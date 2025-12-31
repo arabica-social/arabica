@@ -16,10 +16,6 @@ css:
 run: build
 	./bin/arabica
 
-# Development mode with hot reload
-dev:
-	air
-
 # Clean build artifacts
 clean:
 	rm -rf bin/
@@ -31,8 +27,3 @@ clean:
 init-db:
 	rm -f arabica.db
 	@echo "Database will be created on first run"
-
-# Install development dependencies
-install-deps:
-	go install github.com/a-h/templ/cmd/templ@latest
-	go install github.com/air-verse/air@latest

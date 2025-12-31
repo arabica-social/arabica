@@ -22,7 +22,8 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 					}
 					hx-target="body"
 					class="space-y-6"
-					x-data="brewForm()">
+					x-data="brewForm()"
+					x-init="rating = $el.querySelector('input[name=rating]').value">
 					
 					<!-- Bean Selection -->
 					<div>
@@ -31,14 +32,15 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 							<select 
 								name="bean_id" 
 								required
-								class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4">
+								class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
 								<option value="">Select a bean...</option>
 							for _, bean := range beans {
 								<option 
 									value={ formatID(bean.ID) }
 									if brew != nil && brew.BeanID == bean.ID {
 										selected
-									}>
+									}
+									class="truncate">
 									if bean.Name != "" {
 										{ bean.Name } ({ bean.Origin } - { bean.RoastLevel })
 									} else {
@@ -86,14 +88,15 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 						<div class="flex gap-2">
 							<select 
 								name="grinder_id"
-								class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4">
+								class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
 								<option value="">Select a grinder...</option>
 							for _, grinder := range grinders {
 								<option 
 									value={ formatID(grinder.ID) }
 									if brew != nil && brew.GrinderID != nil && *brew.GrinderID == grinder.ID {
 										selected
-									}>
+									}
+									class="truncate">
 									{ grinder.Name }
 								</option>
 							}
@@ -151,14 +154,15 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 						<div class="flex gap-2">
 							<select 
 								name="brewer_id"
-								class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4">
+								class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
 								<option value="">Select brew method...</option>
 							for _, brewer := range brewers {
 								<option 
 									value={ formatID(brewer.ID) }
 									if brew != nil && brew.BrewerID != nil && *brew.BrewerID == brewer.ID {
 										selected
-									}>
+									}
+									class="truncate">
 									{ brewer.Name }
 								</option>
 							}
@@ -244,19 +248,16 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 					</div>
 					
 					<!-- Submit -->
-					<div class="flex gap-4">
+					<div>
 						<button 
 							type="submit"
-							class="flex-1 bg-brown-600 text-white py-3 px-6 rounded-lg hover:bg-brown-700 transition font-medium text-lg">
+							class="w-full bg-brown-600 text-white py-3 px-6 rounded-lg hover:bg-brown-700 transition font-medium text-lg">
 							if brew != nil {
 								Update Brew
 							} else {
 								Save Brew
 							}
 						</button>
-						<a href="/brews" class="flex-1 bg-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-400 transition font-medium text-lg text-center">
-							Cancel
-						</a>
 					</div>
 				</form>
 			</div>
@@ -268,9 +269,7 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 					showNewBean: false,
 					showNewGrinder: false,
 					showNewBrewer: false,
-					rating: if brew != nil {
-{ formatInt(brew.Rating) }} else {
-5},
+					rating: 5,
 					newBean: { name: '', origin: '', roastLevel: '', process: '', description: '' },
 					newGrinder: { name: '', grinderType: '', burrType: '', notes: '' },
 					newBrewer: { name: '', description: '' },

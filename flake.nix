@@ -8,14 +8,8 @@
         (system: function nixpkgs.legacyPackages.${system} system);
     in {
       devShells = forAllSystems (pkgs: system: {
-        default = pkgs.mkShell {
-          packages = with pkgs; [
-            go
-            templ
-            tailwindcss
-            air # Live reload for Go
-          ];
-        };
+        default =
+          pkgs.mkShell { packages = with pkgs; [ go templ tailwindcss ]; };
       });
 
       packages = forAllSystems (pkgs: system: rec {
@@ -32,7 +26,7 @@
           preBuild = ''
             # Generate templates before building
             templ generate
-            
+
             # Build Tailwind CSS
             tailwindcss -i web/static/css/style.css -o web/static/css/output.css --minify
           '';
