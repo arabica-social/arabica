@@ -55,6 +55,8 @@ func (s *SQLiteStore) runMigrations() error {
 		"migrations/002_add_brewers_table.sql",
 		"migrations/003_update_grinders_schema.sql",
 		"migrations/004_update_brews_add_grinder_brewer_ids.sql",
+		"migrations/005_add_water_amount_to_brews.sql",
+		"migrations/006_add_pours_table.sql",
 		// Future migrations go here
 	}
 
@@ -103,10 +105,10 @@ func (s *SQLiteStore) Close() error {
 
 func (s *SQLiteStore) CreateBrew(req *models.CreateBrewRequest, userID int) (*models.Brew, error) {
 	result, err := s.db.Exec(`
-		INSERT INTO brews (user_id, bean_id, method, temperature, time_seconds, 
+		INSERT INTO brews (user_id, bean_id, method, temperature, water_amount, time_seconds, 
 			grind_size, grinder, grinder_id, brewer_id, tasting_notes, rating)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, userID, req.BeanID, req.Method, req.Temperature, req.TimeSeconds,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, userID, req.BeanID, req.Method, req.Temperature, req.WaterAmount, req.TimeSeconds,
 		req.GrindSize, req.Grinder, req.GrinderID, req.BrewerID, req.TastingNotes, req.Rating)
 
 	if err != nil {
@@ -132,7 +134,7 @@ func (s *SQLiteStore) GetBrew(id int) (*models.Brew, error) {
 
 	err := s.db.QueryRow(`
 		SELECT 
-			b.id, b.user_id, b.bean_id, b.method, b.temperature, 
+			b.id, b.user_id, b.bean_id, b.method, b.temperature, b.water_amount,
 			b.time_seconds, b.grind_size, b.grinder, b.grinder_id, b.brewer_id, b.tasting_notes, b.rating, b.created_at,
 			bn.id, bn.name, bn.origin, bn.roast_level, bn.process, bn.description, bn.roaster_id,
 			COALESCE(r.id, 0), COALESCE(r.name, ''),
@@ -145,7 +147,7 @@ func (s *SQLiteStore) GetBrew(id int) (*models.Brew, error) {
 		LEFT JOIN brewers br ON b.brewer_id = br.id
 		WHERE b.id = ?
 	`, id).Scan(
-		&brew.ID, &brew.UserID, &brew.BeanID, &brew.Method, &brew.Temperature,
+		&brew.ID, &brew.UserID, &brew.BeanID, &brew.Method, &brew.Temperature, &brew.WaterAmount,
 		&brew.TimeSeconds, &brew.GrindSize, &brew.Grinder, &brew.GrinderID, &brew.BrewerID, &brew.TastingNotes, &brew.Rating, &brew.CreatedAt,
 		&brew.Bean.ID, &brew.Bean.Name, &brew.Bean.Origin, &brew.Bean.RoastLevel, &brew.Bean.Process, &brew.Bean.Description, &brew.Bean.RoasterID,
 		&brew.Bean.Roaster.ID, &brew.Bean.Roaster.Name,
@@ -157,13 +159,20 @@ func (s *SQLiteStore) GetBrew(id int) (*models.Brew, error) {
 		return nil, fmt.Errorf("failed to get brew: %w", err)
 	}
 
+	// Load pours for this brew
+	pours, err := s.ListPours(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pours: %w", err)
+	}
+	brew.Pours = pours
+
 	return brew, nil
 }
 
 func (s *SQLiteStore) ListBrews(userID int) ([]*models.Brew, error) {
 	rows, err := s.db.Query(`
 		SELECT 
-			b.id, b.user_id, b.bean_id, b.method, b.temperature, 
+			b.id, b.user_id, b.bean_id, b.method, b.temperature, b.water_amount,
 			b.time_seconds, b.grind_size, b.grinder, b.grinder_id, b.brewer_id, b.tasting_notes, b.rating, b.created_at,
 			bn.id, bn.name, bn.origin, bn.roast_level, bn.process, bn.description, bn.roaster_id,
 			COALESCE(r.id, 0), COALESCE(r.name, ''),
@@ -194,7 +203,7 @@ func (s *SQLiteStore) ListBrews(userID int) ([]*models.Brew, error) {
 		}
 
 		err := rows.Scan(
-			&brew.ID, &brew.UserID, &brew.BeanID, &brew.Method, &brew.Temperature,
+			&brew.ID, &brew.UserID, &brew.BeanID, &brew.Method, &brew.Temperature, &brew.WaterAmount,
 			&brew.TimeSeconds, &brew.GrindSize, &brew.Grinder, &brew.GrinderID, &brew.BrewerID, &brew.TastingNotes, &brew.Rating, &brew.CreatedAt,
 			&brew.Bean.ID, &brew.Bean.Name, &brew.Bean.Origin, &brew.Bean.RoastLevel, &brew.Bean.Process, &brew.Bean.Description, &brew.Bean.RoasterID,
 			&brew.Bean.Roaster.ID, &brew.Bean.Roaster.Name,
@@ -206,6 +215,13 @@ func (s *SQLiteStore) ListBrews(userID int) ([]*models.Brew, error) {
 			return nil, fmt.Errorf("failed to scan brew: %w", err)
 		}
 
+		// Load pours for this brew
+		pours, err := s.ListPours(brew.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get pours: %w", err)
+		}
+		brew.Pours = pours
+
 		brews = append(brews, brew)
 	}
 
@@ -215,10 +231,10 @@ func (s *SQLiteStore) ListBrews(userID int) ([]*models.Brew, error) {
 func (s *SQLiteStore) UpdateBrew(id int, req *models.CreateBrewRequest) error {
 	_, err := s.db.Exec(`
 		UPDATE brews 
-		SET bean_id = ?, method = ?, temperature = ?, time_seconds = ?,
+		SET bean_id = ?, method = ?, temperature = ?, water_amount = ?, time_seconds = ?,
 			grind_size = ?, grinder = ?, grinder_id = ?, brewer_id = ?, tasting_notes = ?, rating = ?
 		WHERE id = ?
-	`, req.BeanID, req.Method, req.Temperature, req.TimeSeconds,
+	`, req.BeanID, req.Method, req.Temperature, req.WaterAmount, req.TimeSeconds,
 		req.GrindSize, req.Grinder, req.GrinderID, req.BrewerID, req.TastingNotes, req.Rating, id)
 
 	if err != nil {
@@ -566,6 +582,77 @@ func (s *SQLiteStore) DeleteBrewer(id int) error {
 	_, err := s.db.Exec("DELETE FROM brewers WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete brewer: %w", err)
+	}
+	return nil
+}
+
+// Pour operations
+
+func (s *SQLiteStore) CreatePours(brewID int, pours []models.CreatePourData) error {
+	if len(pours) == 0 {
+		return nil
+	}
+
+	// Start a transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare(`
+		INSERT INTO pours (brew_id, pour_number, water_amount, time_seconds)
+		VALUES (?, ?, ?, ?)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for i, pour := range pours {
+		_, err := stmt.Exec(brewID, i+1, pour.WaterAmount, pour.TimeSeconds)
+		if err != nil {
+			return fmt.Errorf("failed to insert pour: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (s *SQLiteStore) ListPours(brewID int) ([]*models.Pour, error) {
+	rows, err := s.db.Query(`
+		SELECT id, brew_id, pour_number, water_amount, time_seconds, created_at
+		FROM pours
+		WHERE brew_id = ?
+		ORDER BY pour_number ASC
+	`, brewID)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pours: %w", err)
+	}
+	defer rows.Close()
+
+	var pours []*models.Pour
+	for rows.Next() {
+		pour := &models.Pour{}
+		err := rows.Scan(&pour.ID, &pour.BrewID, &pour.PourNumber, &pour.WaterAmount, &pour.TimeSeconds, &pour.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan pour: %w", err)
+		}
+		pours = append(pours, pour)
+	}
+
+	return pours, nil
+}
+
+func (s *SQLiteStore) DeletePoursForBrew(brewID int) error {
+	_, err := s.db.Exec("DELETE FROM pours WHERE brew_id = ?", brewID)
+	if err != nil {
+		return fmt.Errorf("failed to delete pours: %w", err)
 	}
 	return nil
 }

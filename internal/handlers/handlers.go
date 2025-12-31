@@ -42,6 +42,12 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	roasters, err := h.store.ListRoasters()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	grinders, err := h.store.ListGrinders()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -54,7 +60,7 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.BrewForm(beans, grinders, brewers, nil).Render(r.Context(), w)
+	templates.BrewForm(beans, roasters, grinders, brewers, nil).Render(r.Context(), w)
 }
 
 // Show edit brew form
@@ -78,6 +84,12 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	roasters, err := h.store.ListRoasters()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	grinders, err := h.store.ListGrinders()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -90,7 +102,7 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.BrewForm(beans, grinders, brewers, brew).Render(r.Context(), w)
+	templates.BrewForm(beans, roasters, grinders, brewers, brew).Render(r.Context(), w)
 }
 
 // Create new brew
@@ -102,6 +114,7 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 
 	beanID, _ := strconv.Atoi(r.FormValue("bean_id"))
 	temperature, _ := strconv.ParseFloat(r.FormValue("temperature"), 64)
+	waterAmount, _ := strconv.Atoi(r.FormValue("water_amount"))
 	timeSeconds, _ := strconv.Atoi(r.FormValue("time_seconds"))
 	rating, _ := strconv.Atoi(r.FormValue("rating"))
 
@@ -117,10 +130,37 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		brewerID = &bID
 	}
 
+	// Parse pours
+	var pours []models.CreatePourData
+	i := 0
+	for {
+		waterKey := "pour_water_" + strconv.Itoa(i)
+		timeKey := "pour_time_" + strconv.Itoa(i)
+
+		waterStr := r.FormValue(waterKey)
+		timeStr := r.FormValue(timeKey)
+
+		if waterStr == "" && timeStr == "" {
+			break
+		}
+
+		water, _ := strconv.Atoi(waterStr)
+		time, _ := strconv.Atoi(timeStr)
+
+		if water > 0 && time >= 0 {
+			pours = append(pours, models.CreatePourData{
+				WaterAmount: water,
+				TimeSeconds: time,
+			})
+		}
+		i++
+	}
+
 	req := &models.CreateBrewRequest{
 		BeanID:       beanID,
 		Method:       r.FormValue("method"),
 		Temperature:  temperature,
+		WaterAmount:  waterAmount,
 		TimeSeconds:  timeSeconds,
 		GrindSize:    r.FormValue("grind_size"),
 		Grinder:      r.FormValue("grinder"),
@@ -128,12 +168,21 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		BrewerID:     brewerID,
 		TastingNotes: r.FormValue("tasting_notes"),
 		Rating:       rating,
+		Pours:        pours,
 	}
 
-	_, err := h.store.CreateBrew(req, 1) // Default user ID = 1
+	brew, err := h.store.CreateBrew(req, 1) // Default user ID = 1
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Create pours if any
+	if len(pours) > 0 {
+		if err := h.store.CreatePours(brew.ID, pours); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Redirect to brew list
@@ -157,6 +206,7 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 	beanID, _ := strconv.Atoi(r.FormValue("bean_id"))
 	temperature, _ := strconv.ParseFloat(r.FormValue("temperature"), 64)
+	waterAmount, _ := strconv.Atoi(r.FormValue("water_amount"))
 	timeSeconds, _ := strconv.Atoi(r.FormValue("time_seconds"))
 	rating, _ := strconv.Atoi(r.FormValue("rating"))
 
@@ -172,10 +222,37 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		brewerID = &bID
 	}
 
+	// Parse pours
+	var pours []models.CreatePourData
+	i := 0
+	for {
+		waterKey := "pour_water_" + strconv.Itoa(i)
+		timeKey := "pour_time_" + strconv.Itoa(i)
+
+		waterStr := r.FormValue(waterKey)
+		timeStr := r.FormValue(timeKey)
+
+		if waterStr == "" && timeStr == "" {
+			break
+		}
+
+		water, _ := strconv.Atoi(waterStr)
+		time, _ := strconv.Atoi(timeStr)
+
+		if water > 0 && time >= 0 {
+			pours = append(pours, models.CreatePourData{
+				WaterAmount: water,
+				TimeSeconds: time,
+			})
+		}
+		i++
+	}
+
 	req := &models.CreateBrewRequest{
 		BeanID:       beanID,
 		Method:       r.FormValue("method"),
 		Temperature:  temperature,
+		WaterAmount:  waterAmount,
 		TimeSeconds:  timeSeconds,
 		GrindSize:    r.FormValue("grind_size"),
 		Grinder:      r.FormValue("grinder"),
@@ -183,12 +260,26 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		BrewerID:     brewerID,
 		TastingNotes: r.FormValue("tasting_notes"),
 		Rating:       rating,
+		Pours:        pours,
 	}
 
 	err = h.store.UpdateBrew(id, req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Delete existing pours and create new ones
+	if err := h.store.DeletePoursForBrew(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(pours) > 0 {
+		if err := h.store.CreatePours(id, pours); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Redirect to brew list

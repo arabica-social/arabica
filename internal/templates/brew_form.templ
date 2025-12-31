@@ -2,7 +2,7 @@ package templates
 
 import "arabica/internal/models"
 
-templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*models.Brewer, brew *models.Brew) {
+templ BrewForm(beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, brew *models.Brew) {
 	@Layout("New Brew") {
 		<div class="max-w-2xl mx-auto">
 			<div class="bg-white rounded-lg shadow-md p-8">
@@ -23,7 +23,10 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 					hx-target="body"
 					class="space-y-6"
 					x-data="brewForm()"
-					x-init="rating = $el.querySelector('input[name=rating]').value">
+					x-init="rating = $el.querySelector('input[name=rating]').value"
+					if brew != nil && len(brew.Pours) > 0 {
+						data-pours={ poursToJSON(brew.Pours) }
+					}>
 					
 					<!-- Bean Selection -->
 					<div>
@@ -62,7 +65,13 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 			<h4 class="font-medium mb-3">Add New Bean</h4>
 			<div class="space-y-3">
 				<input type="text" x-model="newBean.name" placeholder="Name (e.g. Morning Blend, House Espresso) *" class="w-full rounded-md border-gray-300 py-2 px-3"/>
-				<input type="text" x-model="newBean.origin" placeholder="Origin (e.g. Ethiopia)" class="w-full rounded-md border-gray-300 py-2 px-3"/>
+				<input type="text" x-model="newBean.origin" placeholder="Origin (e.g. Ethiopia) *" class="w-full rounded-md border-gray-300 py-2 px-3"/>
+				<select x-model.number="newBean.roasterId" class="w-full rounded-md border-gray-300 py-2 px-3">
+					<option value="">Select Roaster (Optional)</option>
+					for _, roaster := range roasters {
+						<option value={ formatID(roaster.ID) }>{ roaster.Name }</option>
+					}
+				</select>
 				<select x-model="newBean.roastLevel" class="w-full rounded-md border-gray-300 py-2 px-3">
 					<option value="">Select Roast Level (Optional)</option>
 					<option value="Ultra-Light">Ultra-Light</option>
@@ -189,19 +198,80 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 						</div>
 					</div>
 					
-					<!-- Temperature -->
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">Temperature</label>
-						<input 
-							type="number" 
-							name="temperature" 
-							step="0.1"
-							if brew != nil && brew.Temperature > 0 {
-								value={ formatTemp(brew.Temperature) }
-							}
-							placeholder="e.g. 93.5"
-							class="w-full rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4"/>
+				<!-- Water Amount -->
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-2">Water Amount (grams)</label>
+					<input 
+						type="number" 
+						name="water_amount" 
+						step="1"
+						if brew != nil && brew.WaterAmount > 0 {
+							value={ formatInt(brew.WaterAmount) }
+						}
+						placeholder="e.g. 250"
+						class="w-full rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4"/>
+					<p class="text-sm text-gray-500 mt-1">Total water used (or leave empty if using pours below)</p>
+				</div>
+				
+				<!-- Pours Section -->
+				<div>
+					<div class="flex items-center justify-between mb-2">
+						<label class="block text-sm font-medium text-gray-700">Pours (Optional)</label>
+						<button 
+							type="button"
+							@click="addPour()"
+							class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300">
+							+ Add Pour
+						</button>
 					</div>
+					<p class="text-sm text-gray-500 mb-3">Track individual pours for bloom and subsequent additions</p>
+					
+					<div class="space-y-3">
+						<template x-for="(pour, index) in pours" :key="index">
+							<div class="flex gap-2 items-center bg-gray-50 p-3 rounded">
+								<div class="flex-1">
+									<label class="text-xs text-gray-600" x-text="'Pour ' + (index + 1)"></label>
+									<input 
+										type="number"
+										:name="'pour_water_' + index"
+										x-model="pour.water"
+										placeholder="Water (g)"
+										class="w-full rounded-md border-gray-300 text-sm py-2 px-3 mt-1"/>
+								</div>
+								<div class="flex-1">
+									<label class="text-xs text-gray-600">Time (sec)</label>
+									<input 
+										type="number"
+										:name="'pour_time_' + index"
+										x-model="pour.time"
+										placeholder="e.g. 45"
+										class="w-full rounded-md border-gray-300 text-sm py-2 px-3 mt-1"/>
+								</div>
+								<button 
+									type="button"
+									@click="removePour(index)"
+									class="text-red-600 hover:text-red-800 mt-5"
+									x-show="pours.length > 0">
+									✕
+								</button>
+							</div>
+						</template>
+					</div>
+				</div>
+				
+				<!-- Temperature -->
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-2">Temperature</label>
+					<input 
+						type="number" 
+						name="temperature" 
+						step="0.1"
+						if brew != nil && brew.Temperature > 0 {
+							value={ formatTemp(brew.Temperature) }
+						}
+						placeholder="e.g. 93.5"
+						class="w-full rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4"/>
+				</div>
 					
 					<!-- Brew Time -->
 					<div>
@@ -270,18 +340,45 @@ templ BrewForm(beans []*models.Bean, grinders []*models.Grinder, brewers []*mode
 					showNewGrinder: false,
 					showNewBrewer: false,
 					rating: 5,
-					newBean: { name: '', origin: '', roastLevel: '', process: '', description: '' },
+					pours: [],
+					newBean: { name: '', origin: '', roasterId: null, roastLevel: '', process: '', description: '' },
 					newGrinder: { name: '', grinderType: '', burrType: '', notes: '' },
 					newBrewer: { name: '', description: '' },
+					init() {
+						// Load existing pours if editing
+						const poursData = this.$el.getAttribute('data-pours');
+						if (poursData) {
+							try {
+								this.pours = JSON.parse(poursData);
+							} catch (e) {
+								console.error('Failed to parse pours data:', e);
+								this.pours = [];
+							}
+						}
+					},
+					addPour() {
+						this.pours.push({ water: '', time: '' });
+					},
+					removePour(index) {
+						this.pours.splice(index, 1);
+					},
 					async addBean() {
-						if (!this.newBean.name) {
-							alert('Bean name is required');
+						if (!this.newBean.name || !this.newBean.origin) {
+							alert('Bean name and origin are required');
 							return;
 						}
+						const payload = {
+							name: this.newBean.name,
+							origin: this.newBean.origin,
+							roast_level: this.newBean.roastLevel,
+							process: this.newBean.process,
+							description: this.newBean.description,
+							roaster_id: this.newBean.roasterId || null
+						};
 						const response = await fetch('/api/beans', {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify(this.newBean)
+							body: JSON.stringify(payload)
 						});
 						if (response.ok) {
 							window.location.reload();

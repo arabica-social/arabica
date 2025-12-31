@@ -46,12 +46,22 @@ type Brewer struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type Pour struct {
+	ID          int       `json:"id"`
+	BrewID      int       `json:"brew_id"`
+	PourNumber  int       `json:"pour_number"`
+	WaterAmount int       `json:"water_amount"`
+	TimeSeconds int       `json:"time_seconds"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 type Brew struct {
 	ID           int       `json:"id"`
 	UserID       int       `json:"user_id"`
 	BeanID       int       `json:"bean_id"`
 	Method       string    `json:"method"`
 	Temperature  float64   `json:"temperature"`
+	WaterAmount  int       `json:"water_amount"`
 	TimeSeconds  int       `json:"time_seconds"`
 	GrindSize    string    `json:"grind_size"`
 	Grinder      string    `json:"grinder"`
@@ -65,19 +75,27 @@ type Brew struct {
 	Bean       *Bean    `json:"bean,omitempty"`
 	GrinderObj *Grinder `json:"grinder_obj,omitempty"`
 	BrewerObj  *Brewer  `json:"brewer_obj,omitempty"`
+	Pours      []*Pour  `json:"pours,omitempty"`
 }
 
 type CreateBrewRequest struct {
-	BeanID       int     `json:"bean_id"`
-	Method       string  `json:"method"`
-	Temperature  float64 `json:"temperature"`
-	TimeSeconds  int     `json:"time_seconds"`
-	GrindSize    string  `json:"grind_size"`
-	Grinder      string  `json:"grinder"`
-	GrinderID    *int    `json:"grinder_id"`
-	BrewerID     *int    `json:"brewer_id"`
-	TastingNotes string  `json:"tasting_notes"`
-	Rating       int     `json:"rating"`
+	BeanID       int              `json:"bean_id"`
+	Method       string           `json:"method"`
+	Temperature  float64          `json:"temperature"`
+	WaterAmount  int              `json:"water_amount"`
+	TimeSeconds  int              `json:"time_seconds"`
+	GrindSize    string           `json:"grind_size"`
+	Grinder      string           `json:"grinder"`
+	GrinderID    *int             `json:"grinder_id"`
+	BrewerID     *int             `json:"brewer_id"`
+	TastingNotes string           `json:"tasting_notes"`
+	Rating       int              `json:"rating"`
+	Pours        []CreatePourData `json:"pours"`
+}
+
+type CreatePourData struct {
+	WaterAmount int `json:"water_amount"`
+	TimeSeconds int `json:"time_seconds"`
 }
 
 type CreateBeanRequest struct {

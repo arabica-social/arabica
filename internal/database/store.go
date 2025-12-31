@@ -40,6 +40,11 @@ type Store interface {
 	UpdateBrewer(id int, brewer *models.UpdateBrewerRequest) error
 	DeleteBrewer(id int) error
 
+	// Pour operations
+	CreatePours(brewID int, pours []models.CreatePourData) error
+	ListPours(brewID int) ([]*models.Pour, error)
+	DeletePoursForBrew(brewID int) error
+
 	// Close the database connection
 	Close() error
 }

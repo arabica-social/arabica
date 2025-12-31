@@ -1,6 +1,11 @@
 package templates
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+
+	"arabica/internal/models"
+)
 
 func formatTemp(temp float64) string {
 	if temp == 0 {
@@ -44,4 +49,30 @@ func formatRoasterID(id *int) string {
 		return "null"
 	}
 	return fmt.Sprintf("%d", *id)
+}
+
+func poursToJSON(pours []*models.Pour) string {
+	if len(pours) == 0 {
+		return "[]"
+	}
+
+	type pourData struct {
+		Water int `json:"water"`
+		Time  int `json:"time"`
+	}
+
+	data := make([]pourData, len(pours))
+	for i, p := range pours {
+		data[i] = pourData{
+			Water: p.WaterAmount,
+			Time:  p.TimeSeconds,
+		}
+	}
+
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return "[]"
+	}
+
+	return string(jsonBytes)
 }

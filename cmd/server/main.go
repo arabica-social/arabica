@@ -5,10 +5,45 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"arabica/internal/database/sqlite"
 	"arabica/internal/handlers"
 )
+
+// loggingMiddleware logs HTTP request details to stdout
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Create a response writer wrapper to capture status code
+		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+		// Call the next handler
+		next.ServeHTTP(rw, r)
+
+		// Log request details
+		log.Printf(
+			"%s %s %d %s %s",
+			r.Method,
+			r.URL.Path,
+			rw.statusCode,
+			time.Since(start),
+			r.RemoteAddr,
+		)
+	})
+}
+
+// responseWriter wraps http.ResponseWriter to capture the status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
 
 func main() {
 	// Get database path from env or use default
@@ -81,7 +116,7 @@ func main() {
 
 	// TODO: configure port and address via env vars
 	log.Printf("Starting Arabica server on http://0.0.0.0:%s", port)
-	if err := http.ListenAndServe("0.0.0.0:"+port, mux); err != nil {
+	if err := http.ListenAndServe("0.0.0.0:"+port, loggingMiddleware(mux)); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
