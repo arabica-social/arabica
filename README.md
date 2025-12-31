@@ -1,6 +1,6 @@
 # Arabica - Coffee Brew Tracker
 
-A self-hosted web application for tracking your coffee brewing journey. Built with Go, Templ, and SQLite.
+A self-hosted web application for tracking your coffee brewing journey. Built with Go and SQLite.
 
 ## Features
 
@@ -16,7 +16,7 @@ A self-hosted web application for tracking your coffee brewing journey. Built wi
 
 - **Backend**: Go 1.22+ (using stdlib router)
 - **Database**: SQLite (via modernc.org/sqlite - pure Go, no CGO)
-- **Templates**: Templ (type-safe HTML templates)
+- **Templates**: html/template (Go standard library)
 - **Frontend**: HTMX + Alpine.js
 - **CSS**: Tailwind CSS
 - **PWA**: Service Worker for offline support
@@ -30,73 +30,34 @@ arabica/
 │   ├── database/        # Database interface & SQLite implementation
 │   ├── models/          # Data models
 │   ├── handlers/        # HTTP handlers
-│   └── templates/       # Templ templates
+│   └── templates/       # HTML templates
 ├── web/static/          # Static assets (CSS, JS, PWA files)
-├── migrations/          # Database migrations
-└── Makefile             # Build commands
+└── migrations/          # Database migrations
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Go 1.22+
-- Templ CLI
-- Tailwind CSS CLI
-- (Optional) Air for hot reload
-
-Or use Nix:
+Use Nix for a reproducible development environment with all dependencies:
 
 ```bash
 nix develop
 ```
 
-### Installation
+### Running the Application
 
-1. Clone the repository:
+1. Enter the Nix development environment:
 ```bash
-cd arabica-site
+nix develop
 ```
 
-2. Install dependencies:
+2. Build and run the server:
 ```bash
-make install-deps
-```
-
-3. Build the application:
-```bash
-make build
-```
-
-4. Run the server:
-```bash
-make run
+go run ./cmd/server
 ```
 
 The application will be available at `http://localhost:8080`
-
-### Development
-
-For hot reload during development:
-
-```bash
-make dev
-```
-
-This uses Air to automatically rebuild when you change Go files or templates.
-
-### Building Assets
-
-```bash
-# Generate templ files
-make templ
-
-# Build Tailwind CSS
-make css
-
-# Or build everything
-make build
-```
 
 ## Usage
 
@@ -164,9 +125,9 @@ The application includes:
 
 - **Go**: Fast compilation, single binary deployment, excellent stdlib
 - **modernc.org/sqlite**: Pure Go SQLite (no CGO), easy cross-compilation
-- **Templ**: Type-safe templates, better than text/template for HTML
+- **html/template**: Built-in Go templates, no external dependencies
 - **HTMX**: Progressive enhancement without heavy JS framework
-- **Nix**: Reproducible builds across environments
+- **Nix**: Reproducible development environment
 
 ### Database Schema
 

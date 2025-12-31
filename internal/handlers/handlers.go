@@ -20,7 +20,9 @@ func NewHandler(store database.Store) *Handler {
 
 // Home page
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
-	templates.Home().Render(r.Context(), w)
+	if err := templates.RenderHome(w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // List all brews
@@ -31,7 +33,9 @@ func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.BrewList(brews).Render(r.Context(), w)
+	if err := templates.RenderBrewList(w, brews); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // Show new brew form
@@ -60,7 +64,9 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.BrewForm(beans, roasters, grinders, brewers, nil).Render(r.Context(), w)
+	if err := templates.RenderBrewForm(w, beans, roasters, grinders, brewers, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // Show edit brew form
@@ -102,7 +108,9 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.BrewForm(beans, roasters, grinders, brewers, brew).Render(r.Context(), w)
+	if err := templates.RenderBrewForm(w, beans, roasters, grinders, brewers, brew); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // Create new brew
@@ -382,7 +390,9 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.ManagePage(beans, roasters, grinders, brewers).Render(r.Context(), w)
+	if err := templates.RenderManage(w, beans, roasters, grinders, brewers); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // Bean update/delete handlers

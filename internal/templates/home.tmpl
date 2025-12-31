@@ -1,7 +1,4 @@
-package templates
-
-templ Home() {
-@Layout("Home") {
+{{define "content"}}
 <div class="max-w-4xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-8 mb-8">
         <h2 class="text-3xl font-bold text-gray-800 mb-4">Welcome to Arabica</h2>
@@ -29,5 +26,4 @@ templ Home() {
         </ul>
     </div>
 </div>
-}
-}
+{{end}}

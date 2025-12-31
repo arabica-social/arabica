@@ -9,7 +9,7 @@
     in {
       devShells = forAllSystems (pkgs: system: {
         default =
-          pkgs.mkShell { packages = with pkgs; [ go templ tailwindcss ]; };
+          pkgs.mkShell { packages = with pkgs; [ go tailwindcss ]; };
       });
 
       packages = forAllSystems (pkgs: system: rec {
@@ -19,14 +19,11 @@
           src = ./.;
 
           # Vendor hash for Go dependencies
-          vendorHash = "sha256-7QYmui8+jyG/QOds0YfZfgsKqZcvm/RLQCkDFUk+xUc=";
+          vendorHash = "sha256-4Z6KAxox3EY9RGtFKUcqxtB/kj3Ed+o+ggPwtLSPctU=";
 
-          nativeBuildInputs = with pkgs; [ templ tailwindcss ];
+          nativeBuildInputs = with pkgs; [ tailwindcss ];
 
           preBuild = ''
-            # Generate templates before building
-            templ generate
-
             # Build Tailwind CSS
             tailwindcss -i web/static/css/style.css -o web/static/css/output.css --minify
           '';
@@ -42,9 +39,10 @@
             mkdir -p $out/bin
             mkdir -p $out/share/arabica
 
-            # Copy static files and migrations
+            # Copy static files, migrations, and templates
             cp -r web $out/share/arabica/
             cp -r migrations $out/share/arabica/
+            cp -r internal $out/share/arabica/
 
             # Install the actual binary
             cp arabica $out/bin/arabica-unwrapped

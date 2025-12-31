@@ -1,0 +1,25 @@
+{{define "new_grinder_form"}}
+<!-- New Grinder Modal -->
+<div x-show="showNewGrinder" class="mt-4 p-4 bg-brown-100 rounded border border-brown-300">
+    <h4 class="font-medium mb-3 text-gray-800">Add New Grinder</h4>
+    <div class="space-y-3">
+        <input type="text" x-model="newGrinder.name" placeholder="Name (e.g. Baratza Encore) *" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
+        <select x-model="newGrinder.grinderType" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">
+            <option value="">Grinder Type (Optional)</option>
+            <option value="Hand">Hand</option>
+            <option value="Electric">Electric</option>
+            <option value="Electric Hand">Electric Hand</option>
+        </select>
+        <select x-model="newGrinder.burrType" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">
+            <option value="">Burr Type (Optional)</option>
+            <option value="Conical">Conical</option>
+            <option value="Flat">Flat</option>
+        </select>
+        <input type="text" x-model="newGrinder.notes" placeholder="Notes (optional)" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
+        <div class="flex gap-2">
+            <button type="button" @click="addGrinder()" class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Add</button>
+            <button type="button" @click="showNewGrinder = false" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+        </div>
+    </div>
+</div>
+{{end}}

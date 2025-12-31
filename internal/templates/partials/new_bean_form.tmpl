@@ -1,0 +1,31 @@
+{{define "new_bean_form"}}
+<!-- New Bean Modal -->
+<div x-show="showNewBean" class="mt-4 p-4 bg-brown-100 rounded border border-brown-300">
+    <h4 class="font-medium mb-3 text-gray-800">Add New Bean</h4>
+    <div class="space-y-3">
+        <input type="text" x-model="newBean.name" placeholder="Name (e.g. Morning Blend, House Espresso) *" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
+        <input type="text" x-model="newBean.origin" placeholder="Origin (e.g. Ethiopia) *" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
+        <select x-model.number="newBean.roasterId" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">
+            <option value="">Select Roaster (Optional)</option>
+            {{range .Roasters}}
+            <option value="{{.ID}}">{{.Name}}</option>
+            {{end}}
+        </select>
+        <select x-model="newBean.roastLevel" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">
+            <option value="">Select Roast Level (Optional)</option>
+            <option value="Ultra-Light">Ultra-Light</option>
+            <option value="Light">Light</option>
+            <option value="Medium-Light">Medium-Light</option>
+            <option value="Medium">Medium</option>
+            <option value="Medium-Dark">Medium-Dark</option>
+            <option value="Dark">Dark</option>
+        </select>
+        <input type="text" x-model="newBean.process" placeholder="Process (e.g. Washed, Natural, Honey)" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
+        <input type="text" x-model="newBean.description" placeholder="Description (optional)" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
+        <div class="flex gap-2">
+            <button type="button" @click="addBean()" class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Add</button>
+            <button type="button" @click="showNewBean = false" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+        </div>
+    </div>
+</div>
+{{end}}

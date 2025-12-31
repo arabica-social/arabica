@@ -1,15 +1,12 @@
-package templates
-
-templ Layout(title string) {
+{{define "layout"}}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Arabica - Coffee brew tracker" />
     <meta name="theme-color" content="#4a2c2a" />
-    <title>{ title } - Arabica</title>
+    <title>{{.Title}} - Arabica</title>
     <link rel="stylesheet" href="/static/css/output.css" />
     <link rel="manifest" href="/static/manifest.json" />
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
@@ -22,7 +19,6 @@ templ Layout(title string) {
         }
     </script>
 </head>
-
 <body class="bg-gray-50 min-h-screen">
     <nav class="bg-brown-800 text-white shadow-lg">
         <div class="container mx-auto px-4 py-4">
@@ -38,9 +34,8 @@ templ Layout(title string) {
         </div>
     </nav>
     <main class="container mx-auto px-4 py-8">
-        { children... }
+        {{template "content" .}}
     </main>
 </body>
-
 </html>
-}
+{{end}}

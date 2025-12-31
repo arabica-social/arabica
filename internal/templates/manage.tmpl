@@ -1,349 +1,4 @@
-package templates
-
-import "arabica/internal/models"
-
-templ ManagePage(beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer) {
-	@Layout("Manage") {
-<div class="max-w-6xl mx-auto" x-data="managePage()">
-    <h2 class="text-3xl font-bold text-gray-800 mb-6">Manage</h2>
-
-    <!-- Tabs -->
-    <div class="mb-6 border-b border-gray-200">
-        <nav class="-mb-px flex space-x-8">
-            <button @click="tab = 'beans'"
-                :class="tab === 'beans' ? 'border-brown-600 text-brown-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Beans
-            </button>
-            <button @click="tab = 'roasters'"
-                :class="tab === 'roasters' ? 'border-brown-600 text-brown-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Roasters
-            </button>
-            <button @click="tab = 'grinders'"
-                :class="tab === 'grinders' ? 'border-brown-600 text-brown-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Grinders
-            </button>
-            <button @click="tab = 'brewers'"
-                :class="tab === 'brewers' ? 'border-brown-600 text-brown-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Brewers
-            </button>
-        </nav>
-    </div>
-
-    <!-- Beans Tab -->
-    <div x-show="tab === 'beans'">
-        <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-xl font-semibold">Coffee Beans</h3>
-            <button
-                @click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_id: null}"
-                class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
-                + Add Bean
-            </button>
-        </div>
-
-        if len(beans) == 0 {
-        <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-600">
-            No beans yet. Add your first bean to get started!
-        </div>
-        } else {
-        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origin</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roaster</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roast Level</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Process</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    for _, bean := range beans {
-                    <tr>
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{ bean.Name }</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">{ bean.Origin }</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
-                            if bean.Roaster != nil && bean.Roaster.Name != "" {
-                            { bean.Roaster.Name }
-                            } else {
-                            <span class="text-gray-400">-</span>
-                            }
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-900">{ bean.RoastLevel }</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">{ bean.Process }</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{ bean.Description }</td>
-						<td class="px-6 py-4 text-sm font-medium space-x-2">
-							<button @click={ "editBean(" + formatID(bean.ID) + ", '" + bean.Name + "', '" + bean.Origin + "', '" + bean.RoastLevel + "', '" + bean.Process + "', '" + bean.Description + "', " + formatRoasterID(bean.RoasterID) + ")" }
-								class="text-blue-600 hover:text-blue-900">Edit</button>
-							<button @click={ "deleteBean(" + formatID(bean.ID) + ")" }
-								class="text-red-600 hover:text-red-900">Delete</button>
-						</td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        }
-    </div>
-
-    <!-- Roasters Tab -->
-    <div x-show="tab === 'roasters'">
-        <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-xl font-semibold">Roasters</h3>
-            <button
-                @click="showRoasterForm = true; editingRoaster = null; roasterForm = {name: '', location: '', website: ''}"
-                class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
-                + Add Roaster
-            </button>
-        </div>
-
-        if len(roasters) == 0 {
-        <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-600">
-            No roasters yet. Add your first roaster!
-        </div>
-        } else {
-        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Website</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    for _, roaster := range roasters {
-                    <tr>
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{ roaster.Name }</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">{ roaster.Location }</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
-                            if roaster.Website != "" {
-                            <a href={ templ.SafeURL(roaster.Website) } target="_blank"
-                                class="text-blue-600 hover:underline">{ roaster.Website }</a>
-                            }
-                        </td>
-                        <td class="px-6 py-4 text-sm font-medium space-x-2">
-                            <button @click={ "editRoaster(" + formatID(roaster.ID) + ", '" + roaster.Name + "', '" +
-                                roaster.Location + "', '" + roaster.Website + "')" }
-                                class="text-blue-600 hover:text-blue-900">Edit</button>
-                            <button @click={ "deleteRoaster(" + formatID(roaster.ID) + ")" }
-                                class="text-red-600 hover:text-red-900">Delete</button>
-                        </td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        }
-    </div>
-
-    <!-- Grinders Tab -->
-    <div x-show="tab === 'grinders'">
-        <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-xl font-semibold">Grinders</h3>
-            <button
-			@click="showGrinderForm = true; editingGrinder = null; grinderForm = {name: '', grinder_type: '', burr_type: '', notes: ''}"
-                class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
-                + Add Grinder
-            </button>
-        </div>
-
-        if len(grinders) == 0 {
-        <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-600">
-            No grinders yet. Add your first grinder!
-        </div>
-        } else {
-        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-					<tr>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grinder Type</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Burr Type</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-					</tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    for _, grinder := range grinders {
-					<tr>
-						<td class="px-6 py-4 text-sm font-medium text-gray-900">{ grinder.Name }</td>
-						<td class="px-6 py-4 text-sm text-gray-900">{ grinder.GrinderType }</td>
-						<td class="px-6 py-4 text-sm text-gray-900">{ grinder.BurrType }</td>
-						<td class="px-6 py-4 text-sm text-gray-500">{ grinder.Notes }</td>
-						<td class="px-6 py-4 text-sm font-medium space-x-2">
-							<button @click={ "editGrinder(" + formatID(grinder.ID) + ", '" + grinder.Name + "', '" +
-								grinder.GrinderType + "', '" + grinder.BurrType + "', '" + grinder.Notes + "')" }
-								class="text-blue-600 hover:text-blue-900">Edit</button>
-							<button @click={ "deleteGrinder(" + formatID(grinder.ID) + ")" }
-								class="text-red-600 hover:text-red-900">Delete</button>
-						</td>
-					</tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        }
-    </div>
-
-    <!-- Brewers Tab -->
-    <div x-show="tab === 'brewers'">
-        <div class="mb-4 flex justify-between items-center">
-            <h3 class="text-xl font-semibold">Brewers</h3>
-            <button @click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', description: ''}"
-                class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
-                + Add Brewer
-            </button>
-        </div>
-
-        if len(brewers) == 0 {
-        <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-600">
-            No brewers yet. Add your first brewer!
-        </div>
-        } else {
-        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    for _, brewer := range brewers {
-                    <tr>
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{ brewer.Name }</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{ brewer.Description }</td>
-                        <td class="px-6 py-4 text-sm font-medium space-x-2">
-                            <button @click={ "editBrewer(" + formatID(brewer.ID) + ", '" + brewer.Name + "', '" +
-                                brewer.Description + "')" } class="text-blue-600 hover:text-blue-900">Edit</button>
-                            <button @click={ "deleteBrewer(" + formatID(brewer.ID) + ")" }
-                                class="text-red-600 hover:text-red-900">Delete</button>
-                        </td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        }
-    </div>
-
-    <!-- Bean Form Modal -->
-    <div x-show="showBeanForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 class="text-xl font-semibold mb-4" x-text="editingBean ? 'Edit Bean' : 'Add Bean'"></h3>
-            <div class="space-y-4">
-                <input type="text" x-model="beanForm.name" placeholder="Name *"
-                    class="w-full rounded-md border-gray-300 py-2 px-3" />
-                <input type="text" x-model="beanForm.origin" placeholder="Origin *"
-                    class="w-full rounded-md border-gray-300 py-2 px-3" />
-                <select x-model.number="beanForm.roaster_id" class="w-full rounded-md border-gray-300 py-2 px-3">
-                    <option value="">Select Roaster (Optional)</option>
-                    for _, roaster := range roasters {
-                    <option value={ formatID(roaster.ID) }>{ roaster.Name }</option>
-                    }
-                </select>
-                <select x-model="beanForm.roast_level" class="w-full rounded-md border-gray-300 py-2 px-3">
-                    <option value="">Select Roast Level (Optional)</option>
-                    <option value="Ultra-Light">Ultra-Light</option>
-                    <option value="Light">Light</option>
-                    <option value="Medium-Light">Medium-Light</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Medium-Dark">Medium-Dark</option>
-                    <option value="Dark">Dark</option>
-                </select>
-                <input type="text" x-model="beanForm.process" placeholder="Process (e.g. Washed, Natural, Honey)"
-                    class="w-full rounded-md border-gray-300 py-2 px-3" />
-                <textarea x-model="beanForm.description" placeholder="Description" rows="3"
-                    class="w-full rounded-md border-gray-300 py-2 px-3"></textarea>
-                <div class="flex gap-2">
-                    <button @click="saveBean()"
-                        class="flex-1 bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Save</button>
-                    <button @click="showBeanForm = false"
-                        class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Roaster Form Modal -->
-    <div x-show="showRoasterForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 class="text-xl font-semibold mb-4" x-text="editingRoaster ? 'Edit Roaster' : 'Add Roaster'"></h3>
-            <div class="space-y-4">
-                <input type="text" x-model="roasterForm.name" placeholder="Name *"
-                    class="w-full rounded-md border-gray-300 py-2 px-3" />
-                <input type="text" x-model="roasterForm.location" placeholder="Location"
-                    class="w-full rounded-md border-gray-300 py-2 px-3" />
-                <input type="url" x-model="roasterForm.website" placeholder="Website"
-                    class="w-full rounded-md border-gray-300 py-2 px-3" />
-                <div class="flex gap-2">
-                    <button @click="saveRoaster()"
-                        class="flex-1 bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Save</button>
-                    <button @click="showRoasterForm = false"
-                        class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-	<!-- Grinder Form Modal -->
-	<div x-show="showGrinderForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-			<h3 class="text-xl font-semibold mb-4" x-text="editingGrinder ? 'Edit Grinder' : 'Add Grinder'"></h3>
-			<div class="space-y-4">
-				<input type="text" x-model="grinderForm.name" placeholder="Name *"
-					class="w-full rounded-md border-gray-300 py-2 px-3" />
-				<select x-model="grinderForm.grinder_type" class="w-full rounded-md border-gray-300 py-2 px-3">
-					<option value="">Select Grinder Type *</option>
-					<option value="Hand">Hand</option>
-					<option value="Electric">Electric</option>
-					<option value="Electric Hand">Electric Hand</option>
-				</select>
-				<select x-model="grinderForm.burr_type" class="w-full rounded-md border-gray-300 py-2 px-3">
-					<option value="">Select Burr Type (Optional)</option>
-					<option value="Conical">Conical</option>
-					<option value="Flat">Flat</option>
-				</select>
-				<textarea x-model="grinderForm.notes" placeholder="Notes" rows="3"
-					class="w-full rounded-md border-gray-300 py-2 px-3"></textarea>
-				<div class="flex gap-2">
-					<button @click="saveGrinder()"
-                        class="flex-1 bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Save</button>
-                    <button @click="showGrinderForm = false"
-                        class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Brewer Form Modal -->
-    <div x-show="showBrewerForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 class="text-xl font-semibold mb-4" x-text="editingBrewer ? 'Edit Brewer' : 'Add Brewer'"></h3>
-            <div class="space-y-4">
-                <input type="text" x-model="brewerForm.name" placeholder="Name *"
-                    class="w-full rounded-md border-gray-300 py-2 px-3" />
-                <textarea x-model="brewerForm.description" placeholder="Description" rows="3"
-                    class="w-full rounded-md border-gray-300 py-2 px-3"></textarea>
-                <div class="flex gap-2">
-                    <button @click="saveBrewer()"
-                        class="flex-1 bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Save</button>
-                    <button @click="showBrewerForm = false"
-                        class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
+{{define "content"}}
 <script>
     function managePage() {
         return {
@@ -358,7 +13,7 @@ templ ManagePage(beans []*models.Bean, roasters []*models.Roaster, grinders []*m
             editingBrewer: null,
             beanForm: {name: '', origin: '', roast_level: '', process: '', description: '', roaster_id: null},
             roasterForm: {name: '', location: '', website: ''},
-			grinderForm: {name: '', grinder_type: '', burr_type: '', notes: ''},
+            grinderForm: {name: '', grinder_type: '', burr_type: '', notes: ''},
             brewerForm: {name: '', description: ''},
 
             init() {
@@ -445,33 +100,33 @@ templ ManagePage(beans []*models.Bean, roasters []*models.Roaster, grinders []*m
                 }
             },
 
-			editGrinder(id, name, grinder_type, burr_type, notes) {
-				this.editingGrinder = id;
-				this.grinderForm = {name, grinder_type, burr_type, notes};
-				this.showGrinderForm = true;
-			},
+            editGrinder(id, name, grinder_type, burr_type, notes) {
+                this.editingGrinder = id;
+                this.grinderForm = {name, grinder_type, burr_type, notes};
+                this.showGrinderForm = true;
+            },
 
-			async saveGrinder() {
-				if (!this.grinderForm.name || !this.grinderForm.grinder_type) {
-					alert('Name and Grinder Type are required');
-					return;
-				}
+            async saveGrinder() {
+                if (!this.grinderForm.name || !this.grinderForm.grinder_type) {
+                    alert('Name and Grinder Type are required');
+                    return;
+                }
 
-				const url = this.editingGrinder ? `/api/grinders/${this.editingGrinder}` : '/api/grinders';
-				const method = this.editingGrinder ? 'PUT' : 'POST';
+                const url = this.editingGrinder ? `/api/grinders/${this.editingGrinder}` : '/api/grinders';
+                const method = this.editingGrinder ? 'PUT' : 'POST';
 
-				const response = await fetch(url, {
-					method,
-					headers: {'Content-Type': 'application/json'},
-					body: JSON.stringify(this.grinderForm)
-				});
+                const response = await fetch(url, {
+                    method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(this.grinderForm)
+                });
 
-				if (response.ok) {
-					window.location.reload();
-				} else {
-					alert('Failed to save grinder');
-				}
-			},
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to save grinder');
+                }
+            },
 
             async deleteGrinder(id) {
                 if (!confirm('Are you sure you want to delete this grinder?')) return;
@@ -525,5 +180,344 @@ templ ManagePage(beans []*models.Bean, roasters []*models.Roaster, grinders []*m
         }
     }
 </script>
-}
-}
+
+<div class="max-w-6xl mx-auto" x-data="managePage()">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">Manage</h2>
+
+    <!-- Tabs -->
+    <div class="mb-6 border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8">
+            <button @click="tab = 'beans'"
+                :class="tab === 'beans' ? 'border-brown-600 text-brown-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                Beans
+            </button>
+            <button @click="tab = 'roasters'"
+                :class="tab === 'roasters' ? 'border-brown-600 text-brown-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                Roasters
+            </button>
+            <button @click="tab = 'grinders'"
+                :class="tab === 'grinders' ? 'border-brown-600 text-brown-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                Grinders
+            </button>
+            <button @click="tab = 'brewers'"
+                :class="tab === 'brewers' ? 'border-brown-600 text-brown-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                Brewers
+            </button>
+        </nav>
+    </div>
+
+    <!-- Beans Tab -->
+    <div x-show="tab === 'beans'">
+        <div class="mb-4 flex justify-between items-center">
+            <h3 class="text-xl font-semibold">Coffee Beans</h3>
+            <button
+                @click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_id: null}"
+                class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
+                + Add Bean
+            </button>
+        </div>
+
+        {{if not .Beans}}
+        <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-600">
+            No beans yet. Add your first bean to get started!
+        </div>
+        {{else}}
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origin</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roaster</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roast Level</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Process</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .Beans}}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{{.Name}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{.Origin}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{if and .Roaster .Roaster.Name}}
+                            {{.Roaster.Name}}
+                            {{else}}
+                            <span class="text-gray-400">-</span>
+                            {{end}}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{.RoastLevel}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{.Process}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{.Description}}</td>
+                        <td class="px-6 py-4 text-sm font-medium space-x-2">
+                            <button @click="editBean({{.ID}}, '{{.Name}}', '{{.Origin}}', '{{.RoastLevel}}', '{{.Process}}', '{{.Description}}', {{if .RoasterID}}{{.RoasterID}}{{else}}null{{end}})"
+                                class="text-blue-600 hover:text-blue-900">Edit</button>
+                            <button @click="deleteBean({{.ID}})"
+                                class="text-red-600 hover:text-red-900">Delete</button>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Roasters Tab -->
+    <div x-show="tab === 'roasters'">
+        <div class="mb-4 flex justify-between items-center">
+            <h3 class="text-xl font-semibold">Roasters</h3>
+            <button
+                @click="showRoasterForm = true; editingRoaster = null; roasterForm = {name: '', location: '', website: ''}"
+                class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
+                + Add Roaster
+            </button>
+        </div>
+
+        {{if not .Roasters}}
+        <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-600">
+            No roasters yet. Add your first roaster!
+        </div>
+        {{else}}
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Website</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .Roasters}}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{{.Name}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{.Location}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{if .Website}}
+                            <a href="{{.Website}}" target="_blank"
+                                class="text-blue-600 hover:underline">{{.Website}}</a>
+                            {{end}}
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium space-x-2">
+                            <button @click="editRoaster({{.ID}}, '{{.Name}}', '{{.Location}}', '{{.Website}}')"
+                                class="text-blue-600 hover:text-blue-900">Edit</button>
+                            <button @click="deleteRoaster({{.ID}})"
+                                class="text-red-600 hover:text-red-900">Delete</button>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Grinders Tab -->
+    <div x-show="tab === 'grinders'">
+        <div class="mb-4 flex justify-between items-center">
+            <h3 class="text-xl font-semibold">Grinders</h3>
+            <button
+            @click="showGrinderForm = true; editingGrinder = null; grinderForm = {name: '', grinder_type: '', burr_type: '', notes: ''}"
+                class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
+                + Add Grinder
+            </button>
+        </div>
+
+        {{if not .Grinders}}
+        <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-600">
+            No grinders yet. Add your first grinder!
+        </div>
+        {{else}}
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grinder Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Burr Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .Grinders}}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{{.Name}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{.GrinderType}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">{{.BurrType}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{.Notes}}</td>
+                        <td class="px-6 py-4 text-sm font-medium space-x-2">
+                            <button @click="editGrinder({{.ID}}, '{{.Name}}', '{{.GrinderType}}', '{{.BurrType}}', '{{.Notes}}')"
+                                class="text-blue-600 hover:text-blue-900">Edit</button>
+                            <button @click="deleteGrinder({{.ID}})"
+                                class="text-red-600 hover:text-red-900">Delete</button>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Brewers Tab -->
+    <div x-show="tab === 'brewers'">
+        <div class="mb-4 flex justify-between items-center">
+            <h3 class="text-xl font-semibold">Brewers</h3>
+            <button @click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', description: ''}"
+                class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
+                + Add Brewer
+            </button>
+        </div>
+
+        {{if not .Brewers}}
+        <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-600">
+            No brewers yet. Add your first brewer!
+        </div>
+        {{else}}
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .Brewers}}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{{.Name}}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{.Description}}</td>
+                        <td class="px-6 py-4 text-sm font-medium space-x-2">
+                            <button @click="editBrewer({{.ID}}, '{{.Name}}', '{{.Description}}')"
+                                class="text-blue-600 hover:text-blue-900">Edit</button>
+                            <button @click="deleteBrewer({{.ID}})"
+                                class="text-red-600 hover:text-red-900">Delete</button>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Bean Form Modal -->
+    <div x-show="showBeanForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-xl font-semibold mb-4" x-text="editingBean ? 'Edit Bean' : 'Add Bean'"></h3>
+            <div class="space-y-4">
+                <input type="text" x-model="beanForm.name" placeholder="Name *"
+                    class="w-full rounded-md border-gray-300 py-2 px-3" />
+                <input type="text" x-model="beanForm.origin" placeholder="Origin *"
+                    class="w-full rounded-md border-gray-300 py-2 px-3" />
+                <select x-model.number="beanForm.roaster_id" class="w-full rounded-md border-gray-300 py-2 px-3">
+                    <option value="">Select Roaster (Optional)</option>
+                    {{range .Roasters}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+                <select x-model="beanForm.roast_level" class="w-full rounded-md border-gray-300 py-2 px-3">
+                    <option value="">Select Roast Level (Optional)</option>
+                    <option value="Ultra-Light">Ultra-Light</option>
+                    <option value="Light">Light</option>
+                    <option value="Medium-Light">Medium-Light</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Medium-Dark">Medium-Dark</option>
+                    <option value="Dark">Dark</option>
+                </select>
+                <input type="text" x-model="beanForm.process" placeholder="Process (e.g. Washed, Natural, Honey)"
+                    class="w-full rounded-md border-gray-300 py-2 px-3" />
+                <textarea x-model="beanForm.description" placeholder="Description" rows="3"
+                    class="w-full rounded-md border-gray-300 py-2 px-3"></textarea>
+                <div class="flex gap-2">
+                    <button @click="saveBean()"
+                        class="flex-1 bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Save</button>
+                    <button @click="showBeanForm = false"
+                        class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Roaster Form Modal -->
+    <div x-show="showRoasterForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-xl font-semibold mb-4" x-text="editingRoaster ? 'Edit Roaster' : 'Add Roaster'"></h3>
+            <div class="space-y-4">
+                <input type="text" x-model="roasterForm.name" placeholder="Name *"
+                    class="w-full rounded-md border-gray-300 py-2 px-3" />
+                <input type="text" x-model="roasterForm.location" placeholder="Location"
+                    class="w-full rounded-md border-gray-300 py-2 px-3" />
+                <input type="url" x-model="roasterForm.website" placeholder="Website"
+                    class="w-full rounded-md border-gray-300 py-2 px-3" />
+                <div class="flex gap-2">
+                    <button @click="saveRoaster()"
+                        class="flex-1 bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Save</button>
+                    <button @click="showRoasterForm = false"
+                        class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grinder Form Modal -->
+    <div x-show="showGrinderForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-xl font-semibold mb-4" x-text="editingGrinder ? 'Edit Grinder' : 'Add Grinder'"></h3>
+            <div class="space-y-4">
+                <input type="text" x-model="grinderForm.name" placeholder="Name *"
+                    class="w-full rounded-md border-gray-300 py-2 px-3" />
+                <select x-model="grinderForm.grinder_type" class="w-full rounded-md border-gray-300 py-2 px-3">
+                    <option value="">Select Grinder Type *</option>
+                    <option value="Hand">Hand</option>
+                    <option value="Electric">Electric</option>
+                    <option value="Electric Hand">Electric Hand</option>
+                </select>
+                <select x-model="grinderForm.burr_type" class="w-full rounded-md border-gray-300 py-2 px-3">
+                    <option value="">Select Burr Type (Optional)</option>
+                    <option value="Conical">Conical</option>
+                    <option value="Flat">Flat</option>
+                </select>
+                <textarea x-model="grinderForm.notes" placeholder="Notes" rows="3"
+                    class="w-full rounded-md border-gray-300 py-2 px-3"></textarea>
+                <div class="flex gap-2">
+                    <button @click="saveGrinder()"
+                        class="flex-1 bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Save</button>
+                    <button @click="showGrinderForm = false"
+                        class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Brewer Form Modal -->
+    <div x-show="showBrewerForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-xl font-semibold mb-4" x-text="editingBrewer ? 'Edit Brewer' : 'Add Brewer'"></h3>
+            <div class="space-y-4">
+                <input type="text" x-model="brewerForm.name" placeholder="Name *"
+                    class="w-full rounded-md border-gray-300 py-2 px-3" />
+                <textarea x-model="brewerForm.description" placeholder="Description" rows="3"
+                    class="w-full rounded-md border-gray-300 py-2 px-3"></textarea>
+                <div class="flex gap-2">
+                    <button @click="saveBrewer()"
+                        class="flex-1 bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Save</button>
+                    <button @click="showBrewerForm = false"
+                        class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{end}}
