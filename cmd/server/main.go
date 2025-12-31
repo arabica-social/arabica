@@ -31,15 +31,29 @@ func main() {
 
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
+	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
 	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
 	mux.HandleFunc("POST /brews", h.HandleBrewCreate)
 	mux.HandleFunc("DELETE /brews/{id}", h.HandleBrewDelete)
 	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
 
-	// API routes for adding beans/roasters via AJAX
+	// API routes for CRUD operations
 	mux.HandleFunc("POST /api/beans", h.HandleBeanCreate)
+	mux.HandleFunc("PUT /api/beans/{id}", h.HandleBeanUpdate)
+	mux.HandleFunc("DELETE /api/beans/{id}", h.HandleBeanDelete)
+
 	mux.HandleFunc("POST /api/roasters", h.HandleRoasterCreate)
+	mux.HandleFunc("PUT /api/roasters/{id}", h.HandleRoasterUpdate)
+	mux.HandleFunc("DELETE /api/roasters/{id}", h.HandleRoasterDelete)
+
+	mux.HandleFunc("POST /api/grinders", h.HandleGrinderCreate)
+	mux.HandleFunc("PUT /api/grinders/{id}", h.HandleGrinderUpdate)
+	mux.HandleFunc("DELETE /api/grinders/{id}", h.HandleGrinderDelete)
+
+	mux.HandleFunc("POST /api/brewers", h.HandleBrewerCreate)
+	mux.HandleFunc("PUT /api/brewers/{id}", h.HandleBrewerUpdate)
+	mux.HandleFunc("DELETE /api/brewers/{id}", h.HandleBrewerDelete)
 
 	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("web/static"))

@@ -37,13 +37,58 @@ func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 }
 
 func (s *SQLiteStore) runMigrations() error {
-	migration, err := os.ReadFile("migrations/001_initial.sql")
+	// Create migrations table if it doesn't exist
+	_, err := s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			version INTEGER PRIMARY KEY,
+			applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
 	if err != nil {
-		return fmt.Errorf("failed to read migration file: %w", err)
+		return fmt.Errorf("failed to create migrations table: %w", err)
 	}
 
-	if _, err := s.db.Exec(string(migration)); err != nil {
-		return fmt.Errorf("failed to execute migration: %w", err)
+	// List of migration files in order
+	// Note: Add new migrations to the end of this list
+	migrations := []string{
+		"migrations/001_initial.sql",
+		"migrations/002_add_brewers_table.sql",
+		"migrations/003_update_grinders_schema.sql",
+		// Future migrations go here
+	}
+
+	for i, migrationPath := range migrations {
+		version := i + 1
+
+		// Check if migration already applied
+		var count int
+		err := s.db.QueryRow("SELECT COUNT(*) FROM schema_migrations WHERE version = ?", version).Scan(&count)
+		if err != nil {
+			return fmt.Errorf("failed to check migration status: %w", err)
+		}
+
+		if count > 0 {
+			// Migration already applied, skip
+			continue
+		}
+
+		// Read and execute migration
+		migration, err := os.ReadFile(migrationPath)
+		if err != nil {
+			return fmt.Errorf("failed to read migration file %s: %w", migrationPath, err)
+		}
+
+		if _, err := s.db.Exec(string(migration)); err != nil {
+			return fmt.Errorf("failed to execute migration %s: %w", migrationPath, err)
+		}
+
+		// Record that migration was applied
+		_, err = s.db.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version)
+		if err != nil {
+			return fmt.Errorf("failed to record migration: %w", err)
+		}
+
+		fmt.Printf("Applied migration %d: %s\n", version, migrationPath)
 	}
 
 	return nil
@@ -57,10 +102,10 @@ func (s *SQLiteStore) Close() error {
 
 func (s *SQLiteStore) CreateBrew(req *models.CreateBrewRequest, userID int) (*models.Brew, error) {
 	result, err := s.db.Exec(`
-		INSERT INTO brews (user_id, bean_id, roaster_id, method, temperature, time_seconds, 
+		INSERT INTO brews (user_id, bean_id, method, temperature, time_seconds, 
 			grind_size, grinder, tasting_notes, rating)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, userID, req.BeanID, req.RoasterID, req.Method, req.Temperature, req.TimeSeconds,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, userID, req.BeanID, req.Method, req.Temperature, req.TimeSeconds,
 		req.GrindSize, req.Grinder, req.TastingNotes, req.Rating)
 
 	if err != nil {
@@ -77,25 +122,26 @@ func (s *SQLiteStore) CreateBrew(req *models.CreateBrewRequest, userID int) (*mo
 
 func (s *SQLiteStore) GetBrew(id int) (*models.Brew, error) {
 	brew := &models.Brew{
-		Bean:    &models.Bean{},
-		Roaster: &models.Roaster{},
+		Bean: &models.Bean{
+			Roaster: &models.Roaster{},
+		},
 	}
 
 	err := s.db.QueryRow(`
 		SELECT 
-			b.id, b.user_id, b.bean_id, b.roaster_id, b.method, b.temperature, 
+			b.id, b.user_id, b.bean_id, b.method, b.temperature, 
 			b.time_seconds, b.grind_size, b.grinder, b.tasting_notes, b.rating, b.created_at,
-			bn.id, bn.name, bn.origin, bn.roast_level, bn.description,
-			r.id, r.name
+			bn.id, bn.name, bn.origin, bn.roast_level, bn.process, bn.description, bn.roaster_id,
+			COALESCE(r.id, 0), COALESCE(r.name, '')
 		FROM brews b
 		JOIN beans bn ON b.bean_id = bn.id
-		JOIN roasters r ON b.roaster_id = r.id
+		LEFT JOIN roasters r ON bn.roaster_id = r.id
 		WHERE b.id = ?
 	`, id).Scan(
-		&brew.ID, &brew.UserID, &brew.BeanID, &brew.RoasterID, &brew.Method, &brew.Temperature,
+		&brew.ID, &brew.UserID, &brew.BeanID, &brew.Method, &brew.Temperature,
 		&brew.TimeSeconds, &brew.GrindSize, &brew.Grinder, &brew.TastingNotes, &brew.Rating, &brew.CreatedAt,
-		&brew.Bean.ID, &brew.Bean.Name, &brew.Bean.Origin, &brew.Bean.RoastLevel, &brew.Bean.Description,
-		&brew.Roaster.ID, &brew.Roaster.Name,
+		&brew.Bean.ID, &brew.Bean.Name, &brew.Bean.Origin, &brew.Bean.RoastLevel, &brew.Bean.Process, &brew.Bean.Description, &brew.Bean.RoasterID,
+		&brew.Bean.Roaster.ID, &brew.Bean.Roaster.Name,
 	)
 
 	if err != nil {
@@ -108,13 +154,13 @@ func (s *SQLiteStore) GetBrew(id int) (*models.Brew, error) {
 func (s *SQLiteStore) ListBrews(userID int) ([]*models.Brew, error) {
 	rows, err := s.db.Query(`
 		SELECT 
-			b.id, b.user_id, b.bean_id, b.roaster_id, b.method, b.temperature, 
+			b.id, b.user_id, b.bean_id, b.method, b.temperature, 
 			b.time_seconds, b.grind_size, b.grinder, b.tasting_notes, b.rating, b.created_at,
-			bn.id, bn.name, bn.origin, bn.roast_level, bn.description,
-			r.id, r.name
+			bn.id, bn.name, bn.origin, bn.roast_level, bn.process, bn.description, bn.roaster_id,
+			COALESCE(r.id, 0), COALESCE(r.name, '')
 		FROM brews b
 		JOIN beans bn ON b.bean_id = bn.id
-		JOIN roasters r ON b.roaster_id = r.id
+		LEFT JOIN roasters r ON bn.roaster_id = r.id
 		WHERE b.user_id = ?
 		ORDER BY b.created_at DESC
 	`, userID)
@@ -127,15 +173,16 @@ func (s *SQLiteStore) ListBrews(userID int) ([]*models.Brew, error) {
 	var brews []*models.Brew
 	for rows.Next() {
 		brew := &models.Brew{
-			Bean:    &models.Bean{},
-			Roaster: &models.Roaster{},
+			Bean: &models.Bean{
+				Roaster: &models.Roaster{},
+			},
 		}
 
 		err := rows.Scan(
-			&brew.ID, &brew.UserID, &brew.BeanID, &brew.RoasterID, &brew.Method, &brew.Temperature,
+			&brew.ID, &brew.UserID, &brew.BeanID, &brew.Method, &brew.Temperature,
 			&brew.TimeSeconds, &brew.GrindSize, &brew.Grinder, &brew.TastingNotes, &brew.Rating, &brew.CreatedAt,
-			&brew.Bean.ID, &brew.Bean.Name, &brew.Bean.Origin, &brew.Bean.RoastLevel, &brew.Bean.Description,
-			&brew.Roaster.ID, &brew.Roaster.Name,
+			&brew.Bean.ID, &brew.Bean.Name, &brew.Bean.Origin, &brew.Bean.RoastLevel, &brew.Bean.Process, &brew.Bean.Description, &brew.Bean.RoasterID,
+			&brew.Bean.Roaster.ID, &brew.Bean.Roaster.Name,
 		)
 
 		if err != nil {
@@ -151,10 +198,10 @@ func (s *SQLiteStore) ListBrews(userID int) ([]*models.Brew, error) {
 func (s *SQLiteStore) UpdateBrew(id int, req *models.CreateBrewRequest) error {
 	_, err := s.db.Exec(`
 		UPDATE brews 
-		SET bean_id = ?, roaster_id = ?, method = ?, temperature = ?, time_seconds = ?,
+		SET bean_id = ?, method = ?, temperature = ?, time_seconds = ?,
 			grind_size = ?, grinder = ?, tasting_notes = ?, rating = ?
 		WHERE id = ?
-	`, req.BeanID, req.RoasterID, req.Method, req.Temperature, req.TimeSeconds,
+	`, req.BeanID, req.Method, req.Temperature, req.TimeSeconds,
 		req.GrindSize, req.Grinder, req.TastingNotes, req.Rating, id)
 
 	if err != nil {
@@ -176,9 +223,9 @@ func (s *SQLiteStore) DeleteBrew(id int) error {
 
 func (s *SQLiteStore) CreateBean(req *models.CreateBeanRequest) (*models.Bean, error) {
 	result, err := s.db.Exec(`
-		INSERT INTO beans (name, origin, roast_level, description)
-		VALUES (?, ?, ?, ?)
-	`, req.Name, req.Origin, req.RoastLevel, req.Description)
+		INSERT INTO beans (name, origin, roast_level, process, description, roaster_id)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, req.Name, req.Origin, req.RoastLevel, req.Process, req.Description, req.RoasterID)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bean: %w", err)
@@ -193,11 +240,17 @@ func (s *SQLiteStore) CreateBean(req *models.CreateBeanRequest) (*models.Bean, e
 }
 
 func (s *SQLiteStore) GetBean(id int) (*models.Bean, error) {
-	bean := &models.Bean{}
+	bean := &models.Bean{
+		Roaster: &models.Roaster{},
+	}
 	err := s.db.QueryRow(`
-		SELECT id, name, origin, roast_level, description, created_at
-		FROM beans WHERE id = ?
-	`, id).Scan(&bean.ID, &bean.Name, &bean.Origin, &bean.RoastLevel, &bean.Description, &bean.CreatedAt)
+		SELECT b.id, b.name, b.origin, b.roast_level, b.process, b.description, b.roaster_id, b.created_at,
+			COALESCE(r.id, 0), COALESCE(r.name, '')
+		FROM beans b
+		LEFT JOIN roasters r ON b.roaster_id = r.id
+		WHERE b.id = ?
+	`, id).Scan(&bean.ID, &bean.Name, &bean.Origin, &bean.RoastLevel, &bean.Process, &bean.Description, &bean.RoasterID, &bean.CreatedAt,
+		&bean.Roaster.ID, &bean.Roaster.Name)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bean: %w", err)
@@ -208,9 +261,11 @@ func (s *SQLiteStore) GetBean(id int) (*models.Bean, error) {
 
 func (s *SQLiteStore) ListBeans() ([]*models.Bean, error) {
 	rows, err := s.db.Query(`
-		SELECT id, name, origin, roast_level, description, created_at
-		FROM beans
-		ORDER BY created_at DESC
+		SELECT b.id, b.name, b.origin, b.roast_level, b.process, b.description, b.roaster_id, b.created_at,
+			COALESCE(r.id, 0), COALESCE(r.name, '')
+		FROM beans b
+		LEFT JOIN roasters r ON b.roaster_id = r.id
+		ORDER BY b.created_at DESC
 	`)
 
 	if err != nil {
@@ -220,8 +275,11 @@ func (s *SQLiteStore) ListBeans() ([]*models.Bean, error) {
 
 	var beans []*models.Bean
 	for rows.Next() {
-		bean := &models.Bean{}
-		err := rows.Scan(&bean.ID, &bean.Name, &bean.Origin, &bean.RoastLevel, &bean.Description, &bean.CreatedAt)
+		bean := &models.Bean{
+			Roaster: &models.Roaster{},
+		}
+		err := rows.Scan(&bean.ID, &bean.Name, &bean.Origin, &bean.RoastLevel, &bean.Process, &bean.Description, &bean.RoasterID, &bean.CreatedAt,
+			&bean.Roaster.ID, &bean.Roaster.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan bean: %w", err)
 		}
@@ -316,9 +374,9 @@ func (s *SQLiteStore) DeleteRoaster(id int) error {
 func (s *SQLiteStore) UpdateBean(id int, req *models.UpdateBeanRequest) error {
 	_, err := s.db.Exec(`
 		UPDATE beans 
-		SET name = ?, origin = ?, roast_level = ?, description = ?
+		SET name = ?, origin = ?, roast_level = ?, process = ?, description = ?, roaster_id = ?
 		WHERE id = ?
-	`, req.Name, req.Origin, req.RoastLevel, req.Description, id)
+	`, req.Name, req.Origin, req.RoastLevel, req.Process, req.Description, req.RoasterID, id)
 
 	if err != nil {
 		return fmt.Errorf("failed to update bean: %w", err)
@@ -339,8 +397,8 @@ func (s *SQLiteStore) DeleteBean(id int) error {
 
 func (s *SQLiteStore) CreateGrinder(req *models.CreateGrinderRequest) (*models.Grinder, error) {
 	result, err := s.db.Exec(`
-		INSERT INTO grinders (name, type, notes) VALUES (?, ?, ?)
-	`, req.Name, req.Type, req.Notes)
+		INSERT INTO grinders (name, grinder_type, burr_type, notes) VALUES (?, ?, ?, ?)
+	`, req.Name, req.GrinderType, req.BurrType, req.Notes)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create grinder: %w", err)
@@ -357,9 +415,9 @@ func (s *SQLiteStore) CreateGrinder(req *models.CreateGrinderRequest) (*models.G
 func (s *SQLiteStore) GetGrinder(id int) (*models.Grinder, error) {
 	grinder := &models.Grinder{}
 	err := s.db.QueryRow(`
-		SELECT id, name, type, notes, created_at
+		SELECT id, name, grinder_type, burr_type, notes, created_at
 		FROM grinders WHERE id = ?
-	`, id).Scan(&grinder.ID, &grinder.Name, &grinder.Type, &grinder.Notes, &grinder.CreatedAt)
+	`, id).Scan(&grinder.ID, &grinder.Name, &grinder.GrinderType, &grinder.BurrType, &grinder.Notes, &grinder.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get grinder: %w", err)
@@ -370,7 +428,7 @@ func (s *SQLiteStore) GetGrinder(id int) (*models.Grinder, error) {
 
 func (s *SQLiteStore) ListGrinders() ([]*models.Grinder, error) {
 	rows, err := s.db.Query(`
-		SELECT id, name, type, notes, created_at
+		SELECT id, name, grinder_type, burr_type, notes, created_at
 		FROM grinders
 		ORDER BY name ASC
 	`)
@@ -383,7 +441,7 @@ func (s *SQLiteStore) ListGrinders() ([]*models.Grinder, error) {
 	var grinders []*models.Grinder
 	for rows.Next() {
 		grinder := &models.Grinder{}
-		err := rows.Scan(&grinder.ID, &grinder.Name, &grinder.Type, &grinder.Notes, &grinder.CreatedAt)
+		err := rows.Scan(&grinder.ID, &grinder.Name, &grinder.GrinderType, &grinder.BurrType, &grinder.Notes, &grinder.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan grinder: %w", err)
 		}
@@ -396,9 +454,9 @@ func (s *SQLiteStore) ListGrinders() ([]*models.Grinder, error) {
 func (s *SQLiteStore) UpdateGrinder(id int, req *models.UpdateGrinderRequest) error {
 	_, err := s.db.Exec(`
 		UPDATE grinders 
-		SET name = ?, type = ?, notes = ?
+		SET name = ?, grinder_type = ?, burr_type = ?, notes = ?
 		WHERE id = ?
-	`, req.Name, req.Type, req.Notes, id)
+	`, req.Name, req.GrinderType, req.BurrType, req.Notes, id)
 
 	if err != nil {
 		return fmt.Errorf("failed to update grinder: %w", err)
@@ -411,6 +469,86 @@ func (s *SQLiteStore) DeleteGrinder(id int) error {
 	_, err := s.db.Exec("DELETE FROM grinders WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete grinder: %w", err)
+	}
+	return nil
+}
+
+// Brewer operations
+
+func (s *SQLiteStore) CreateBrewer(req *models.CreateBrewerRequest) (*models.Brewer, error) {
+	result, err := s.db.Exec(`
+		INSERT INTO brewers (name, description) VALUES (?, ?)
+	`, req.Name, req.Description)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create brewer: %w", err)
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get last insert id: %w", err)
+	}
+
+	return s.GetBrewer(int(id))
+}
+
+func (s *SQLiteStore) GetBrewer(id int) (*models.Brewer, error) {
+	brewer := &models.Brewer{}
+	err := s.db.QueryRow(`
+		SELECT id, name, description, created_at
+		FROM brewers WHERE id = ?
+	`, id).Scan(&brewer.ID, &brewer.Name, &brewer.Description, &brewer.CreatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get brewer: %w", err)
+	}
+
+	return brewer, nil
+}
+
+func (s *SQLiteStore) ListBrewers() ([]*models.Brewer, error) {
+	rows, err := s.db.Query(`
+		SELECT id, name, description, created_at
+		FROM brewers
+		ORDER BY name ASC
+	`)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list brewers: %w", err)
+	}
+	defer rows.Close()
+
+	var brewers []*models.Brewer
+	for rows.Next() {
+		brewer := &models.Brewer{}
+		err := rows.Scan(&brewer.ID, &brewer.Name, &brewer.Description, &brewer.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan brewer: %w", err)
+		}
+		brewers = append(brewers, brewer)
+	}
+
+	return brewers, nil
+}
+
+func (s *SQLiteStore) UpdateBrewer(id int, req *models.UpdateBrewerRequest) error {
+	_, err := s.db.Exec(`
+		UPDATE brewers 
+		SET name = ?, description = ?
+		WHERE id = ?
+	`, req.Name, req.Description, id)
+
+	if err != nil {
+		return fmt.Errorf("failed to update brewer: %w", err)
+	}
+
+	return nil
+}
+
+func (s *SQLiteStore) DeleteBrewer(id int) error {
+	_, err := s.db.Exec("DELETE FROM brewers WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete brewer: %w", err)
 	}
 	return nil
 }

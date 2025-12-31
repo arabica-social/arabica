@@ -2,7 +2,7 @@ package templates
 
 import "arabica/internal/models"
 
-templ BrewForm(beans []*models.Bean, roasters []*models.Roaster, brew *models.Brew) {
+templ BrewForm(beans []*models.Bean, brew *models.Brew) {
 	@Layout("New Brew") {
 		<div class="max-w-2xl mx-auto">
 			<div class="bg-white rounded-lg shadow-md p-8">
@@ -51,55 +51,30 @@ templ BrewForm(beans []*models.Bean, roasters []*models.Roaster, brew *models.Br
 							</button>
 						</div>
 						
-					<!-- New Bean Modal -->
-					<div x-show="showNewBean" class="mt-4 p-4 bg-gray-50 rounded border">
-						<h4 class="font-medium mb-3">Add New Bean</h4>
-						<div class="space-y-3">
-							<input type="text" x-model="newBean.name" placeholder="Name (e.g. Morning Blend, House Espresso) *" class="w-full rounded-md border-gray-300 py-2 px-3"/>
-							<input type="text" x-model="newBean.origin" placeholder="Origin (e.g. Ethiopia)" class="w-full rounded-md border-gray-300 py-2 px-3"/>
-							<input type="text" x-model="newBean.roastLevel" placeholder="Roast Level (e.g. Medium)" class="w-full rounded-md border-gray-300 py-2 px-3"/>
-							<input type="text" x-model="newBean.description" placeholder="Description (optional)" class="w-full rounded-md border-gray-300 py-2 px-3"/>
-								<div class="flex gap-2">
-									<button type="button" @click="addBean()" class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Add</button>
-									<button type="button" @click="showNewBean = false" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-								</div>
-							</div>
-						</div>
+				<!-- New Bean Modal -->
+		<div x-show="showNewBean" class="mt-4 p-4 bg-gray-50 rounded border">
+			<h4 class="font-medium mb-3">Add New Bean</h4>
+			<div class="space-y-3">
+				<input type="text" x-model="newBean.name" placeholder="Name (e.g. Morning Blend, House Espresso) *" class="w-full rounded-md border-gray-300 py-2 px-3"/>
+				<input type="text" x-model="newBean.origin" placeholder="Origin (e.g. Ethiopia)" class="w-full rounded-md border-gray-300 py-2 px-3"/>
+				<select x-model="newBean.roastLevel" class="w-full rounded-md border-gray-300 py-2 px-3">
+					<option value="">Select Roast Level (Optional)</option>
+					<option value="Ultra-Light">Ultra-Light</option>
+					<option value="Light">Light</option>
+					<option value="Medium-Light">Medium-Light</option>
+					<option value="Medium">Medium</option>
+					<option value="Medium-Dark">Medium-Dark</option>
+					<option value="Dark">Dark</option>
+				</select>
+				<input type="text" x-model="newBean.process" placeholder="Process (e.g. Washed, Natural, Honey)" class="w-full rounded-md border-gray-300 py-2 px-3"/>
+				<input type="text" x-model="newBean.description" placeholder="Description (optional)" class="w-full rounded-md border-gray-300 py-2 px-3"/>
+					<div class="flex gap-2">
+						<button type="button" @click="addBean()" class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Add</button>
+						<button type="button" @click="showNewBean = false" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
 					</div>
-					
-					<!-- Roaster Selection -->
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">Roaster</label>
-						<div class="flex gap-2">
-							<select 
-								name="roaster_id" 
-								required
-								class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4">
-								<option value="">Select a roaster...</option>
-								for _, roaster := range roasters {
-									<option value={ formatID(roaster.ID) }>{ roaster.Name }</option>
-								}
-							</select>
-							<button 
-								type="button"
-								@click="showNewRoaster = true"
-								class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
-								+ New
-							</button>
-						</div>
-						
-						<!-- New Roaster Modal -->
-						<div x-show="showNewRoaster" class="mt-4 p-4 bg-gray-50 rounded border">
-							<h4 class="font-medium mb-3">Add New Roaster</h4>
-							<div class="space-y-3">
-								<input type="text" x-model="newRoaster.name" placeholder="Roaster Name" class="w-full rounded-md border-gray-300 py-2 px-3"/>
-								<div class="flex gap-2">
-									<button type="button" @click="addRoaster()" class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Add</button>
-									<button type="button" @click="showNewRoaster = false" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-								</div>
-							</div>
-						</div>
-					</div>
+				</div>
+			</div>
+	</div>
 					
 					<!-- Brew Method -->
 					<div>
@@ -207,10 +182,8 @@ templ BrewForm(beans []*models.Bean, roasters []*models.Roaster, brew *models.Br
 			function brewForm() {
 				return {
 					showNewBean: false,
-					showNewRoaster: false,
 					rating: 5,
-					newBean: { name: '', origin: '', roastLevel: '', description: '' },
-					newRoaster: { name: '' },
+					newBean: { name: '', origin: '', roastLevel: '', process: '', description: '' },
 					async addBean() {
 						if (!this.newBean.name) {
 							alert('Bean name is required');
@@ -220,16 +193,6 @@ templ BrewForm(beans []*models.Bean, roasters []*models.Roaster, brew *models.Br
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
 							body: JSON.stringify(this.newBean)
-						});
-						if (response.ok) {
-							window.location.reload();
-						}
-					},
-					async addRoaster() {
-						const response = await fetch('/api/roasters', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify(this.newRoaster)
 						});
 						if (response.ok) {
 							window.location.reload();

@@ -33,6 +33,13 @@ type Store interface {
 	UpdateGrinder(id int, grinder *models.UpdateGrinderRequest) error
 	DeleteGrinder(id int) error
 
+	// Brewer operations
+	CreateBrewer(brewer *models.CreateBrewerRequest) (*models.Brewer, error)
+	GetBrewer(id int) (*models.Brewer, error)
+	ListBrewers() ([]*models.Brewer, error)
+	UpdateBrewer(id int, brewer *models.UpdateBrewerRequest) error
+	DeleteBrewer(id int) error
+
 	// Close the database connection
 	Close() error
 }

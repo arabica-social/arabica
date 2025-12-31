@@ -52,9 +52,13 @@ templ BrewList(brews []*models.Brew) {
 										<div class="text-gray-500">{ brew.Bean.RoastLevel }</div>
 									}
 								</td>
-									<td class="px-6 py-4 text-sm text-gray-900">
-										{ brew.Roaster.Name }
-									</td>
+							<td class="px-6 py-4 text-sm text-gray-900">
+								if brew.Bean != nil && brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
+									{ brew.Bean.Roaster.Name }
+								} else {
+									<span class="text-gray-400">-</span>
+								}
+							</td>
 									<td class="px-6 py-4 text-sm text-gray-900">
 										<div>{ brew.Method }</div>
 										<div class="text-gray-500 text-xs">

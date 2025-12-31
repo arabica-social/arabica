@@ -34,3 +34,10 @@ func formatRating(rating int) string {
 func formatID(id int) string {
 	return fmt.Sprintf("%d", id)
 }
+
+func formatRoasterID(id *int) string {
+	if id == nil {
+		return "null"
+	}
+	return fmt.Sprintf("%d", *id)
+}

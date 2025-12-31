@@ -13,8 +13,13 @@ type Bean struct {
 	Name        string    `json:"name"`
 	Origin      string    `json:"origin"`
 	RoastLevel  string    `json:"roast_level"`
+	Process     string    `json:"process"`
 	Description string    `json:"description"`
+	RoasterID   *int      `json:"roaster_id"`
 	CreatedAt   time.Time `json:"created_at"`
+
+	// Joined data for display
+	Roaster *Roaster `json:"roaster,omitempty"`
 }
 
 type Roaster struct {
@@ -26,18 +31,25 @@ type Roaster struct {
 }
 
 type Grinder struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Type      string    `json:"type"`
-	Notes     string    `json:"notes"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	GrinderType string    `json:"grinder_type"` // Hand, Electric, Electric Hand
+	BurrType    string    `json:"burr_type"`    // Conical, Flat, or empty
+	Notes       string    `json:"notes"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type Brewer struct {
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type Brew struct {
 	ID           int       `json:"id"`
 	UserID       int       `json:"user_id"`
 	BeanID       int       `json:"bean_id"`
-	RoasterID    int       `json:"roaster_id"`
 	Method       string    `json:"method"`
 	Temperature  float64   `json:"temperature"`
 	TimeSeconds  int       `json:"time_seconds"`
@@ -48,13 +60,11 @@ type Brew struct {
 	CreatedAt    time.Time `json:"created_at"`
 
 	// Joined data for display
-	Bean    *Bean    `json:"bean,omitempty"`
-	Roaster *Roaster `json:"roaster,omitempty"`
+	Bean *Bean `json:"bean,omitempty"`
 }
 
 type CreateBrewRequest struct {
 	BeanID       int     `json:"bean_id"`
-	RoasterID    int     `json:"roaster_id"`
 	Method       string  `json:"method"`
 	Temperature  float64 `json:"temperature"`
 	TimeSeconds  int     `json:"time_seconds"`
@@ -68,7 +78,9 @@ type CreateBeanRequest struct {
 	Name        string `json:"name"`
 	Origin      string `json:"origin"`
 	RoastLevel  string `json:"roast_level"`
+	Process     string `json:"process"`
 	Description string `json:"description"`
+	RoasterID   *int   `json:"roaster_id"`
 }
 
 type CreateRoasterRequest struct {
@@ -78,16 +90,24 @@ type CreateRoasterRequest struct {
 }
 
 type CreateGrinderRequest struct {
-	Name  string `json:"name"`
-	Type  string `json:"type"`
-	Notes string `json:"notes"`
+	Name        string `json:"name"`
+	GrinderType string `json:"grinder_type"`
+	BurrType    string `json:"burr_type"`
+	Notes       string `json:"notes"`
+}
+
+type CreateBrewerRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type UpdateBeanRequest struct {
 	Name        string `json:"name"`
 	Origin      string `json:"origin"`
 	RoastLevel  string `json:"roast_level"`
+	Process     string `json:"process"`
 	Description string `json:"description"`
+	RoasterID   *int   `json:"roaster_id"`
 }
 
 type UpdateRoasterRequest struct {
@@ -97,7 +117,13 @@ type UpdateRoasterRequest struct {
 }
 
 type UpdateGrinderRequest struct {
-	Name  string `json:"name"`
-	Type  string `json:"type"`
-	Notes string `json:"notes"`
+	Name        string `json:"name"`
+	GrinderType string `json:"grinder_type"`
+	BurrType    string `json:"burr_type"`
+	Notes       string `json:"notes"`
+}
+
+type UpdateBrewerRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }

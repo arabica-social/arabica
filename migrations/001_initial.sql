@@ -11,8 +11,11 @@ CREATE TABLE IF NOT EXISTS beans (
     name TEXT,
     origin TEXT NOT NULL,
     roast_level TEXT,
+    process TEXT,
     description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    roaster_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (roaster_id) REFERENCES roasters(id)
 );
 
 CREATE TABLE IF NOT EXISTS roasters (
@@ -35,7 +38,6 @@ CREATE TABLE IF NOT EXISTS brews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL DEFAULT 1,
     bean_id INTEGER NOT NULL,
-    roaster_id INTEGER NOT NULL,
     method TEXT NOT NULL,
     temperature REAL,
     time_seconds INTEGER,
@@ -45,8 +47,7 @@ CREATE TABLE IF NOT EXISTS brews (
     rating INTEGER CHECK(rating >= 1 AND rating <= 10),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (bean_id) REFERENCES beans(id),
-    FOREIGN KEY (roaster_id) REFERENCES roasters(id)
+    FOREIGN KEY (bean_id) REFERENCES beans(id)
 );
 
 -- Insert default user for single-user mode (ignore if exists)
@@ -55,5 +56,5 @@ INSERT OR IGNORE INTO users (username) VALUES ('default');
 -- Create indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_brews_user_id ON brews(user_id);
 CREATE INDEX IF NOT EXISTS idx_brews_bean_id ON brews(bean_id);
-CREATE INDEX IF NOT EXISTS idx_brews_roaster_id ON brews(roaster_id);
 CREATE INDEX IF NOT EXISTS idx_brews_created_at ON brews(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_beans_roaster_id ON beans(roaster_id);
