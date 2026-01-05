@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"arabica/internal/atproto"
 	"arabica/internal/database/sqlite"
 	"arabica/internal/handlers"
 )
@@ -70,11 +72,56 @@ func main() {
 
 	log.Printf("Using database: %s", dbPath)
 
+	// Get port from env or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "18910"
+	}
+
+	// TODO: address environment variable
+
+	// Initialize OAuth manager
+	// For local development, localhost URLs trigger special localhost mode in indigo
+	clientID := os.Getenv("OAUTH_CLIENT_ID")
+	redirectURI := os.Getenv("OAUTH_REDIRECT_URI")
+
+	if clientID == "" && redirectURI == "" {
+		// Use localhost defaults for development
+		redirectURI = fmt.Sprintf("http://127.0.0.1:%s/oauth/callback", port)
+		clientID = "" // Empty triggers localhost mode
+		log.Printf("Using localhost OAuth mode (for development)")
+	}
+
+	scopes := []string{"atproto", "transition:generic"}
+
+	oauthManager, err := atproto.NewOAuthManager(clientID, redirectURI, scopes)
+	if err != nil {
+		log.Fatalf("Failed to initialize OAuth: %v", err)
+	}
+
+	log.Printf("OAuth configured:")
+	if clientID == "" {
+		log.Printf("  Mode: Localhost development")
+	} else {
+		log.Printf("  Client ID: %s", clientID)
+	}
+	log.Printf("  Redirect URI: %s", redirectURI)
+	log.Printf("  Scopes: %v", scopes)
+
 	// Initialize handlers
 	h := handlers.NewHandler(store)
+	h.SetOAuthManager(oauthManager)
 
 	// Create router
 	mux := http.NewServeMux()
+
+	// OAuth routes
+	mux.HandleFunc("GET /login", h.HandleLogin)
+	mux.HandleFunc("POST /auth/login", h.HandleLoginSubmit)
+	mux.HandleFunc("GET /oauth/callback", h.HandleOAuthCallback)
+	mux.HandleFunc("POST /logout", h.HandleLogout)
+	mux.HandleFunc("GET /client-metadata.json", h.HandleClientMetadata)
+	mux.HandleFunc("GET /.well-known/oauth-client-metadata", h.HandleWellKnownOAuth)
 
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
@@ -108,15 +155,12 @@ func main() {
 	fs := http.FileServer(http.Dir("web/static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
-	// Get port from env or use default
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "18910"
-	}
+	// Apply OAuth middleware to add auth context to all requests
+	handler := oauthManager.AuthMiddleware(mux)
 
 	// TODO: configure port and address via env vars
-	log.Printf("Starting Arabica server on http://0.0.0.0:%s", port)
-	if err := http.ListenAndServe("0.0.0.0:"+port, loggingMiddleware(mux)); err != nil {
+	log.Printf("Starting Arabica server on http://localhost:%s", port)
+	if err := http.ListenAndServe("0.0.0.0:"+port, loggingMiddleware(handler)); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

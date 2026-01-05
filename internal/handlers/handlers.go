@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"arabica/internal/atproto"
 	"arabica/internal/database"
 	"arabica/internal/models"
 	"arabica/internal/templates"
@@ -12,10 +13,16 @@ import (
 
 type Handler struct {
 	store database.Store
+	oauth *atproto.OAuthManager
 }
 
 func NewHandler(store database.Store) *Handler {
 	return &Handler{store: store}
+}
+
+// SetOAuthManager sets the OAuth manager for authentication
+func (h *Handler) SetOAuthManager(oauth *atproto.OAuthManager) {
+	h.oauth = oauth
 }
 
 // Home page

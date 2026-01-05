@@ -1,0 +1,99 @@
+{
+  "lexicon": 1,
+  "id": "com.arabica.brew",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A coffee brewing session with parameters and notes",
+      "record": {
+        "type": "object",
+        "required": ["beanRef", "createdAt"],
+        "properties": {
+          "beanRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI reference to the bean record used"
+          },
+          "method": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Brewing method (e.g., 'Pour Over', 'French Press', 'Espresso')"
+          },
+          "temperature": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Water temperature in tenths of a degree Celsius (e.g., 935 = 93.5°C)"
+          },
+          "waterAmount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Amount of water used in grams or milliliters"
+          },
+          "timeSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total brew time in seconds"
+          },
+          "grindSize": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Grind size setting (can be numeric like '18' or descriptive like 'Medium')"
+          },
+          "grinderRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI reference to the grinder used"
+          },
+          "brewerRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI reference to the brewer/device used"
+          },
+          "tastingNotes": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Tasting notes and observations about the brew"
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Rating of the brew from 1 to 10"
+          },
+          "pours": {
+            "type": "array",
+            "description": "Array of pour information for multi-pour methods (e.g., V60)",
+            "items": {
+              "type": "ref",
+              "ref": "#pour"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the brew was made"
+          }
+        }
+      }
+    },
+    "pour": {
+      "type": "object",
+      "description": "Information about a single pour in a multi-pour brewing method",
+      "required": ["waterAmount", "timeSeconds"],
+      "properties": {
+        "waterAmount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Amount of water in this pour (grams or ml)"
+        },
+        "timeSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Time of this pour relative to brew start (seconds)"
+        }
+      }
+    }
+  }
+}
