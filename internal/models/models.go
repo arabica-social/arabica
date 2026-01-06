@@ -10,12 +10,14 @@ type User struct {
 
 type Bean struct {
 	ID          int       `json:"id"`
+	RKey        string    `json:"rkey"` // AT Protocol record key
 	Name        string    `json:"name"`
 	Origin      string    `json:"origin"`
 	RoastLevel  string    `json:"roast_level"`
 	Process     string    `json:"process"`
 	Description string    `json:"description"`
 	RoasterID   *int      `json:"roaster_id"`
+	RoasterRKey string    `json:"roaster_rkey"` // AT Protocol reference
 	CreatedAt   time.Time `json:"created_at"`
 
 	// Joined data for display
@@ -24,6 +26,7 @@ type Bean struct {
 
 type Roaster struct {
 	ID        int       `json:"id"`
+	RKey      string    `json:"rkey"` // AT Protocol record key
 	Name      string    `json:"name"`
 	Location  string    `json:"location"`
 	Website   string    `json:"website"`
@@ -32,6 +35,7 @@ type Roaster struct {
 
 type Grinder struct {
 	ID          int       `json:"id"`
+	RKey        string    `json:"rkey"` // AT Protocol record key
 	Name        string    `json:"name"`
 	GrinderType string    `json:"grinder_type"` // Hand, Electric, Electric Hand
 	BurrType    string    `json:"burr_type"`    // Conical, Flat, or empty
@@ -41,6 +45,7 @@ type Grinder struct {
 
 type Brewer struct {
 	ID          int       `json:"id"`
+	RKey        string    `json:"rkey"` // AT Protocol record key
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -57,8 +62,10 @@ type Pour struct {
 
 type Brew struct {
 	ID           int       `json:"id"`
+	RKey         string    `json:"rkey"` // AT Protocol record key
 	UserID       int       `json:"user_id"`
 	BeanID       int       `json:"bean_id"`
+	BeanRKey     string    `json:"bean_rkey"` // AT Protocol reference
 	Method       string    `json:"method,omitempty"`
 	Temperature  float64   `json:"temperature"`
 	WaterAmount  int       `json:"water_amount"`
@@ -66,7 +73,9 @@ type Brew struct {
 	GrindSize    string    `json:"grind_size"`
 	Grinder      string    `json:"grinder,omitempty"`
 	GrinderID    *int      `json:"grinder_id"`
+	GrinderRKey  string    `json:"grinder_rkey"` // AT Protocol reference
 	BrewerID     *int      `json:"brewer_id"`
+	BrewerRKey   string    `json:"brewer_rkey"` // AT Protocol reference
 	TastingNotes string    `json:"tasting_notes"`
 	Rating       int       `json:"rating"`
 	CreatedAt    time.Time `json:"created_at"`
@@ -79,15 +88,18 @@ type Brew struct {
 }
 
 type CreateBrewRequest struct {
-	BeanID       int              `json:"bean_id"`
+	BeanID       int              `json:"bean_id"`   // Deprecated: use BeanRKey
+	BeanRKey     string           `json:"bean_rkey"` // AT Protocol record key
 	Method       string           `json:"method"`
 	Temperature  float64          `json:"temperature"`
 	WaterAmount  int              `json:"water_amount"`
 	TimeSeconds  int              `json:"time_seconds"`
 	GrindSize    string           `json:"grind_size"`
 	Grinder      string           `json:"grinder"`
-	GrinderID    *int             `json:"grinder_id"`
-	BrewerID     *int             `json:"brewer_id"`
+	GrinderID    *int             `json:"grinder_id"`   // Deprecated: use GrinderRKey
+	GrinderRKey  string           `json:"grinder_rkey"` // AT Protocol record key
+	BrewerID     *int             `json:"brewer_id"`    // Deprecated: use BrewerRKey
+	BrewerRKey   string           `json:"brewer_rkey"`  // AT Protocol record key
 	TastingNotes string           `json:"tasting_notes"`
 	Rating       int              `json:"rating"`
 	Pours        []CreatePourData `json:"pours"`
@@ -104,7 +116,8 @@ type CreateBeanRequest struct {
 	RoastLevel  string `json:"roast_level"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
-	RoasterID   *int   `json:"roaster_id"`
+	RoasterID   *int   `json:"roaster_id"`   // Deprecated: use RoasterRKey
+	RoasterRKey string `json:"roaster_rkey"` // AT Protocol record key
 }
 
 type CreateRoasterRequest struct {

@@ -169,6 +169,11 @@ func GetSessionIDFromContext(ctx context.Context) (string, error) {
 	return sessionID, nil
 }
 
+// ParseDID is a helper to parse a DID string to syntax.DID
+func ParseDID(didStr string) (syntax.DID, error) {
+	return syntax.ParseDID(didStr)
+}
+
 // GetSessionDataFromContext retrieves the full session data from the request context
 func GetSessionDataFromContext(ctx context.Context) (*oauth.ClientSessionData, error) {
 	sessData, ok := ctx.Value(contextKeySessionData).(*oauth.ClientSessionData)

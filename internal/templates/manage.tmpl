@@ -11,7 +11,7 @@
             editingRoaster: null,
             editingGrinder: null,
             editingBrewer: null,
-            beanForm: {name: '', origin: '', roast_level: '', process: '', description: '', roaster_id: null},
+            beanForm: {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''},
             roasterForm: {name: '', location: '', website: ''},
             grinderForm: {name: '', grinder_type: '', burr_type: '', notes: ''},
             brewerForm: {name: '', description: ''},
@@ -215,7 +215,7 @@
         <div class="mb-4 flex justify-between items-center">
             <h3 class="text-xl font-semibold">Coffee Beans</h3>
             <button
-                @click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_id: null}"
+                @click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''}"
                 class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">
                 + Add Bean
             </button>
@@ -419,10 +419,10 @@
                     class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3" />
                 <input type="text" x-model="beanForm.origin" placeholder="Origin *"
                     class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3" />
-                <select x-model.number="beanForm.roaster_id" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">
+                <select x-model="beanForm.roaster_rkey" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">
                     <option value="">Select Roaster (Optional)</option>
                     {{range .Roasters}}
-                    <option value="{{.ID}}">{{.Name}}</option>
+                    <option value="{{.RKey}}">{{.Name}}</option>
                     {{end}}
                 </select>
                 <select x-model="beanForm.roast_level" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">

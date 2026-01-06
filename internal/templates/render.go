@@ -43,13 +43,15 @@ func init() {
 
 // Data structures for templates
 type PageData struct {
-	Title    string
-	Beans    []*models.Bean
-	Roasters []*models.Roaster
-	Grinders []*models.Grinder
-	Brewers  []*models.Brewer
-	Brew     *BrewData
-	Brews    []*BrewListData
+	Title           string
+	Beans           []*models.Bean
+	Roasters        []*models.Roaster
+	Grinders        []*models.Grinder
+	Brewers         []*models.Brewer
+	Brew            *BrewData
+	Brews           []*BrewListData
+	IsAuthenticated bool
+	UserDID         string
 }
 
 type BrewData struct {
@@ -71,9 +73,11 @@ func RenderTemplate(w http.ResponseWriter, tmpl string, data *PageData) error {
 }
 
 // RenderHome renders the home page
-func RenderHome(w http.ResponseWriter) error {
+func RenderHome(w http.ResponseWriter, isAuthenticated bool, userDID string) error {
 	data := &PageData{
-		Title: "Home",
+		Title:           "Home",
+		IsAuthenticated: isAuthenticated,
+		UserDID:         userDID,
 	}
 	// Need to execute layout with the home template
 	t := template.Must(templates.Clone())
@@ -82,7 +86,7 @@ func RenderHome(w http.ResponseWriter) error {
 }
 
 // RenderBrewList renders the brew list page
-func RenderBrewList(w http.ResponseWriter, brews []*models.Brew) error {
+func RenderBrewList(w http.ResponseWriter, brews []*models.Brew, isAuthenticated bool, userDID string) error {
 	brewList := make([]*BrewListData, len(brews))
 	for i, brew := range brews {
 		brewList[i] = &BrewListData{
@@ -94,8 +98,10 @@ func RenderBrewList(w http.ResponseWriter, brews []*models.Brew) error {
 	}
 
 	data := &PageData{
-		Title: "All Brews",
-		Brews: brewList,
+		Title:           "All Brews",
+		Brews:           brewList,
+		IsAuthenticated: isAuthenticated,
+		UserDID:         userDID,
 	}
 	t := template.Must(templates.Clone())
 	t = template.Must(t.ParseFiles("internal/templates/brew_list.tmpl"))
@@ -103,7 +109,7 @@ func RenderBrewList(w http.ResponseWriter, brews []*models.Brew) error {
 }
 
 // RenderBrewForm renders the brew form page
-func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, brew *models.Brew) error {
+func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, brew *models.Brew, isAuthenticated bool, userDID string) error {
 	var brewData *BrewData
 	title := "New Brew"
 
@@ -116,12 +122,14 @@ func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*mod
 	}
 
 	data := &PageData{
-		Title:    title,
-		Beans:    beans,
-		Roasters: roasters,
-		Grinders: grinders,
-		Brewers:  brewers,
-		Brew:     brewData,
+		Title:           title,
+		Beans:           beans,
+		Roasters:        roasters,
+		Grinders:        grinders,
+		Brewers:         brewers,
+		Brew:            brewData,
+		IsAuthenticated: isAuthenticated,
+		UserDID:         userDID,
 	}
 	t := template.Must(templates.Clone())
 	t = template.Must(t.ParseFiles("internal/templates/brew_form.tmpl"))
@@ -129,13 +137,15 @@ func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*mod
 }
 
 // RenderManage renders the manage page
-func RenderManage(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer) error {
+func RenderManage(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string) error {
 	data := &PageData{
-		Title:    "Manage",
-		Beans:    beans,
-		Roasters: roasters,
-		Grinders: grinders,
-		Brewers:  brewers,
+		Title:           "Manage",
+		Beans:           beans,
+		Roasters:        roasters,
+		Grinders:        grinders,
+		Brewers:         brewers,
+		IsAuthenticated: isAuthenticated,
+		UserDID:         userDID,
 	}
 	t := template.Must(templates.Clone())
 	t = template.Must(t.ParseFiles("internal/templates/manage.tmpl"))

@@ -26,9 +26,11 @@
                 <h1 class="text-2xl font-bold hidden md:block">☕ Arabica</h1>
                 <div class="space-x-4">
                     <a href="/" class="hover:text-brown-200">Home</a>
+                    {{if .IsAuthenticated}}
                     <a href="/brews" class="hover:text-brown-200">Brews</a>
                     <a href="/brews/new" class="hover:text-brown-200">New Brew</a>
                     <a href="/manage" class="hover:text-brown-200">Manage</a>
+                    {{end}}
                 </div>
             </div>
         </div>

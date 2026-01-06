@@ -108,9 +108,14 @@ func main() {
 	log.Printf("  Redirect URI: %s", redirectURI)
 	log.Printf("  Scopes: %v", scopes)
 
+	// Initialize atproto client
+	atprotoClient := atproto.NewClient(oauthManager)
+	log.Printf("Atproto client initialized")
+
 	// Initialize handlers
 	h := handlers.NewHandler(store)
 	h.SetOAuthManager(oauthManager)
+	h.SetAtprotoClient(atprotoClient)
 
 	// Create router
 	mux := http.NewServeMux()

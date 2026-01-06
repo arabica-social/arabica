@@ -7,7 +7,7 @@
             showNewBrewer: false,
             rating: 5,
             pours: [],
-            newBean: { name: '', origin: '', roasterId: null, roastLevel: '', process: '', description: '' },
+            newBean: { name: '', origin: '', roasterRKey: '', roastLevel: '', process: '', description: '' },
             newGrinder: { name: '', grinderType: '', burrType: '', notes: '' },
             newBrewer: { name: '', description: '' },
             init() {
@@ -39,7 +39,7 @@
                     roast_level: this.newBean.roastLevel,
                     process: this.newBean.process,
                     description: this.newBean.description,
-                    roaster_id: this.newBean.roasterId || null
+                    roaster_rkey: this.newBean.roasterRKey || ''
                 };
                 const response = await fetch('/api/beans', {
                     method: 'POST',
@@ -106,14 +106,14 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Coffee Bean</label>
                 <div class="flex gap-2">
                     <select 
-                        name="bean_id" 
+                        name="bean_rkey" 
                         required
                         class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
                         <option value="">Select a bean...</option>
                         {{range .Beans}}
                         <option 
-                            value="{{.ID}}"
-                            {{if and $.Brew (eq $.Brew.BeanID .ID)}}selected{{end}}
+                            value="{{.RKey}}"
+                            {{if and $.Brew (eq $.Brew.BeanRKey .RKey)}}selected{{end}}
                             class="truncate">
                             {{if .Name}}{{.Name}} ({{.Origin}} - {{.RoastLevel}}){{else}}{{.Origin}} - {{.RoastLevel}}{{end}}
                         </option>
@@ -135,13 +135,13 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Grinder</label>
                 <div class="flex gap-2">
                     <select 
-                        name="grinder_id"
+                        name="grinder_rkey"
                         class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
                         <option value="">Select a grinder...</option>
                         {{range .Grinders}}
                         <option 
-                            value="{{.ID}}"
-                            {{if and $.Brew (intPtrEquals $.Brew.GrinderID .ID)}}selected{{end}}
+                            value="{{.RKey}}"
+                            {{if and $.Brew (eq $.Brew.GrinderRKey .RKey)}}selected{{end}}
                             class="truncate">
                             {{.Name}}
                         </option>
@@ -175,13 +175,13 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Brew Method</label>
                 <div class="flex gap-2">
                     <select 
-                        name="brewer_id"
+                        name="brewer_rkey"
                         class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
                         <option value="">Select brew method...</option>
                         {{range .Brewers}}
                         <option 
-                            value="{{.ID}}"
-                            {{if and $.Brew (intPtrEquals $.Brew.BrewerID .ID)}}selected{{end}}
+                            value="{{.RKey}}"
+                            {{if and $.Brew (eq $.Brew.BrewerRKey .RKey)}}selected{{end}}
                             class="truncate">
                             {{.Name}}
                         </option>

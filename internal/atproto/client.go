@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/bluesky-social/indigo/xrpc"
 )
 
-// Client wraps the XRPC client for making authenticated requests to a PDS
+// Client wraps the atproto API client for making authenticated requests to a PDS
 type Client struct {
 	oauth *OAuthManager
 }
@@ -20,29 +20,20 @@ func NewClient(oauth *OAuthManager) *Client {
 	}
 }
 
-// getAuthenticatedXRPCClient creates an XRPC client with authentication for a specific session
-func (c *Client) getAuthenticatedXRPCClient(ctx context.Context, did syntax.DID, sessionID string) (*xrpc.Client, error) {
-	// Get session data from OAuth store
-	sessData, err := c.oauth.GetSession(ctx, did, sessionID)
+// getAuthenticatedAPIClient creates an authenticated API client for a specific session
+// This properly handles DPOP token signing and refresh
+func (c *Client) getAuthenticatedAPIClient(ctx context.Context, did syntax.DID, sessionID string) (*atclient.APIClient, error) {
+	// Resume the OAuth session - this returns a ClientSession that handles DPOP
+	session, err := c.oauth.app.ResumeSession(ctx, did, sessionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get session: %w", err)
+		return nil, fmt.Errorf("failed to resume session: %w", err)
 	}
 
-	// Create XRPC client pointing to the user's PDS
-	client := &xrpc.Client{
-		Host: sessData.HostURL,
-	}
+	// Get the authenticated API client from the session
+	// This client automatically handles DPOP signing and token refresh
+	apiClient := session.APIClient()
 
-	// Set authentication using the session's access token
-	// The OAuth library handles DPOP automatically
-	client.Auth = &xrpc.AuthInfo{
-		AccessJwt:  sessData.AccessToken,
-		RefreshJwt: sessData.RefreshToken,
-		Did:        sessData.AccountDID.String(),
-		Handle:     "", // Optional, can be empty
-	}
-
-	return client, nil
+	return apiClient, nil
 }
 
 // CreateRecordInput contains parameters for creating a record
@@ -60,29 +51,29 @@ type CreateRecordOutput struct {
 
 // CreateRecord creates a new record in the user's repository
 func (c *Client) CreateRecord(ctx context.Context, did syntax.DID, sessionID string, input *CreateRecordInput) (*CreateRecordOutput, error) {
-	client, err := c.getAuthenticatedXRPCClient(ctx, did, sessionID)
+	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build the request
-	params := map[string]interface{}{
+	// Build the request body
+	body := map[string]interface{}{
 		"repo":       did.String(),
 		"collection": input.Collection,
 		"record":     input.Record,
 	}
 
 	if input.RKey != nil {
-		params["rkey"] = *input.RKey
+		body["rkey"] = *input.RKey
 	}
 
-	// Make the XRPC call
+	// Use the API client's Post method to call com.atproto.repo.createRecord
 	var result struct {
 		URI string `json:"uri"`
 		CID string `json:"cid"`
 	}
 
-	err = client.Do(ctx, xrpc.Procedure, "", "com.atproto.repo.createRecord", nil, params, &result)
+	err = apiClient.Post(ctx, "com.atproto.repo.createRecord", body, &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create record: %w", err)
 	}
@@ -103,31 +94,31 @@ type GetRecordInput struct {
 type GetRecordOutput struct {
 	URI   string
 	CID   string
-	Value map[string]interface{} // The record data
+	Value map[string]interface{}
 }
 
-// GetRecord retrieves a record from the user's repository
+// GetRecord retrieves a single record by its rkey
 func (c *Client) GetRecord(ctx context.Context, did syntax.DID, sessionID string, input *GetRecordInput) (*GetRecordOutput, error) {
-	client, err := c.getAuthenticatedXRPCClient(ctx, did, sessionID)
+	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Build query parameters
-	params := map[string]interface{}{
+	params := map[string]any{
 		"repo":       did.String(),
 		"collection": input.Collection,
 		"rkey":       input.RKey,
 	}
 
-	// Make the XRPC call
+	// Use the API client's Get method to call com.atproto.repo.getRecord
 	var result struct {
 		URI   string                 `json:"uri"`
 		CID   string                 `json:"cid"`
 		Value map[string]interface{} `json:"value"`
 	}
 
-	err = client.Do(ctx, xrpc.Query, "", "com.atproto.repo.getRecord", params, nil, &result)
+	err = apiClient.Get(ctx, "com.atproto.repo.getRecord", params, &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get record: %w", err)
 	}
@@ -161,13 +152,13 @@ type Record struct {
 
 // ListRecords retrieves a list of records from a collection
 func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID string, input *ListRecordsInput) (*ListRecordsOutput, error) {
-	client, err := c.getAuthenticatedXRPCClient(ctx, did, sessionID)
+	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Build query parameters
-	params := map[string]interface{}{
+	params := map[string]any{
 		"repo":       did.String(),
 		"collection": input.Collection,
 	}
@@ -179,7 +170,7 @@ func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID stri
 		params["cursor"] = *input.Cursor
 	}
 
-	// Make the XRPC call
+	// Use the API client's Get method to call com.atproto.repo.listRecords
 	var result struct {
 		Records []struct {
 			URI   string                 `json:"uri"`
@@ -189,7 +180,7 @@ func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID stri
 		Cursor *string `json:"cursor,omitempty"`
 	}
 
-	err = client.Do(ctx, xrpc.Query, "", "com.atproto.repo.listRecords", params, nil, &result)
+	err = apiClient.Get(ctx, "com.atproto.repo.listRecords", params, &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list records: %w", err)
 	}
@@ -219,26 +210,26 @@ type PutRecordInput struct {
 
 // PutRecord updates an existing record in the user's repository
 func (c *Client) PutRecord(ctx context.Context, did syntax.DID, sessionID string, input *PutRecordInput) error {
-	client, err := c.getAuthenticatedXRPCClient(ctx, did, sessionID)
+	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return err
 	}
 
-	// Build the request
-	params := map[string]interface{}{
+	// Build the request body
+	body := map[string]interface{}{
 		"repo":       did.String(),
 		"collection": input.Collection,
 		"rkey":       input.RKey,
 		"record":     input.Record,
 	}
 
-	// Make the XRPC call
+	// Use the API client's Post method to call com.atproto.repo.putRecord
 	var result struct {
 		URI string `json:"uri"`
 		CID string `json:"cid"`
 	}
 
-	err = client.Do(ctx, xrpc.Procedure, "", "com.atproto.repo.putRecord", nil, params, &result)
+	err = apiClient.Post(ctx, "com.atproto.repo.putRecord", body, &result)
 	if err != nil {
 		return fmt.Errorf("failed to update record: %w", err)
 	}
@@ -254,20 +245,22 @@ type DeleteRecordInput struct {
 
 // DeleteRecord deletes a record from the user's repository
 func (c *Client) DeleteRecord(ctx context.Context, did syntax.DID, sessionID string, input *DeleteRecordInput) error {
-	client, err := c.getAuthenticatedXRPCClient(ctx, did, sessionID)
+	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return err
 	}
 
-	// Build the request
-	params := map[string]interface{}{
+	// Build the request body
+	body := map[string]interface{}{
 		"repo":       did.String(),
 		"collection": input.Collection,
 		"rkey":       input.RKey,
 	}
 
-	// Make the XRPC call
-	err = client.Do(ctx, xrpc.Procedure, "", "com.atproto.repo.deleteRecord", nil, params, nil)
+	// Use the API client's Post method to call com.atproto.repo.deleteRecord
+	var result struct{}
+
+	err = apiClient.Post(ctx, "com.atproto.repo.deleteRecord", body, &result)
 	if err != nil {
 		return fmt.Errorf("failed to delete record: %w", err)
 	}

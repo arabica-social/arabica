@@ -12,8 +12,9 @@ import (
 )
 
 type Handler struct {
-	store database.Store
-	oauth *atproto.OAuthManager
+	store         database.Store
+	oauth         *atproto.OAuthManager
+	atprotoClient *atproto.Client
 }
 
 func NewHandler(store database.Store) *Handler {
@@ -25,53 +26,106 @@ func (h *Handler) SetOAuthManager(oauth *atproto.OAuthManager) {
 	h.oauth = oauth
 }
 
+// SetAtprotoClient sets the atproto client for record operations
+func (h *Handler) SetAtprotoClient(client *atproto.Client) {
+	h.atprotoClient = client
+}
+
+// getAtprotoStore creates a user-scoped atproto store from the request context
+// Returns the store and true if authenticated, or nil and false if not authenticated
+func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
+	// Get authenticated DID from context
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil {
+		return nil, false
+	}
+
+	// Parse DID string to syntax.DID
+	did, err := atproto.ParseDID(didStr)
+	if err != nil {
+		return nil, false
+	}
+
+	// Get session ID from context
+	sessionID, err := atproto.GetSessionIDFromContext(r.Context())
+	if err != nil {
+		return nil, false
+	}
+
+	// Create user-scoped atproto store
+	store := atproto.NewAtprotoStore(r.Context(), h.atprotoClient, did, sessionID)
+	return store, true
+}
+
 // Home page
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
-	if err := templates.RenderHome(w); err != nil {
+	// Check if user is authenticated
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	if err := templates.RenderHome(w, isAuthenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 // List all brews
 func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
-	brews, err := h.store.ListBrews(1) // Default user ID = 1
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	brews, err := store.ListBrews(1) // User ID is not used with atproto
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := templates.RenderBrewList(w, brews); err != nil {
+	if err := templates.RenderBrewList(w, brews, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 // Show new brew form
 func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
-	beans, err := h.store.ListBeans()
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	beans, err := store.ListBeans()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	roasters, err := h.store.ListRoasters()
+	roasters, err := store.ListRoasters()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	grinders, err := h.store.ListGrinders()
+	grinders, err := store.ListGrinders()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	brewers, err := h.store.ListBrewers()
+	brewers, err := store.ListBrewers()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := templates.RenderBrewForm(w, beans, roasters, grinders, brewers, nil); err != nil {
+	if err := templates.RenderBrewForm(w, beans, roasters, grinders, brewers, nil, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -85,37 +139,46 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	brew, err := h.store.GetBrew(id)
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	brew, err := store.GetBrew(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	beans, err := h.store.ListBeans()
+	beans, err := store.ListBeans()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	roasters, err := h.store.ListRoasters()
+	roasters, err := store.ListRoasters()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	grinders, err := h.store.ListGrinders()
+	grinders, err := store.ListGrinders()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	brewers, err := h.store.ListBrewers()
+	brewers, err := store.ListBrewers()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := templates.RenderBrewForm(w, beans, roasters, grinders, brewers, brew); err != nil {
+	if err := templates.RenderBrewForm(w, beans, roasters, grinders, brewers, brew, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -186,7 +249,14 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		Pours:        pours,
 	}
 
-	brew, err := h.store.CreateBrew(req, 1) // Default user ID = 1
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	brew, err := store.CreateBrew(req, 1) // User ID not used with atproto
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -194,7 +264,7 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Create pours if any
 	if len(pours) > 0 {
-		if err := h.store.CreatePours(brew.ID, pours); err != nil {
+		if err := store.CreatePours(brew.ID, pours); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -343,7 +413,14 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bean, err := h.store.CreateBean(&req)
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	bean, err := store.CreateBean(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -361,7 +438,14 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roaster, err := h.store.CreateRoaster(&req)
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	roaster, err := store.CreateRoaster(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -373,31 +457,40 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 
 // Manage page
 func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
-	beans, err := h.store.ListBeans()
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	beans, err := store.ListBeans()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	roasters, err := h.store.ListRoasters()
+	roasters, err := store.ListRoasters()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	grinders, err := h.store.ListGrinders()
+	grinders, err := store.ListGrinders()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	brewers, err := h.store.ListBrewers()
+	brewers, err := store.ListBrewers()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := templates.RenderManage(w, beans, roasters, grinders, brewers); err != nil {
+	if err := templates.RenderManage(w, beans, roasters, grinders, brewers, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
