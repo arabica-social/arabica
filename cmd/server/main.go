@@ -128,6 +128,10 @@ func main() {
 	mux.HandleFunc("GET /client-metadata.json", h.HandleClientMetadata)
 	mux.HandleFunc("GET /.well-known/oauth-client-metadata", h.HandleWellKnownOAuth)
 
+	// API routes for handle resolution (used by login autocomplete)
+	mux.HandleFunc("GET /api/resolve-handle", h.HandleResolveHandle)
+	mux.HandleFunc("GET /api/search-actors", h.HandleSearchActors)
+
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
 	mux.HandleFunc("GET /manage", h.HandleManage)
