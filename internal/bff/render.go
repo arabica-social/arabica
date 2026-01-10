@@ -235,6 +235,43 @@ func RenderFeedPartial(w http.ResponseWriter, feedItems []*feed.FeedItem) error 
 	return t.ExecuteTemplate(w, "feed", data)
 }
 
+// RenderBrewListPartial renders just the brew list partial (for HTMX async loading)
+func RenderBrewListPartial(w http.ResponseWriter, brews []*models.Brew) error {
+	t, err := parsePartialTemplate()
+	if err != nil {
+		return err
+	}
+	brewList := make([]*BrewListData, len(brews))
+	for i, brew := range brews {
+		brewList[i] = &BrewListData{
+			Brew:            brew,
+			TempFormatted:   FormatTemp(brew.Temperature),
+			TimeFormatted:   FormatTime(brew.TimeSeconds),
+			RatingFormatted: FormatRating(brew.Rating),
+		}
+	}
+
+	data := &PageData{
+		Brews: brewList,
+	}
+	return t.ExecuteTemplate(w, "brew_list_content", data)
+}
+
+// RenderManagePartial renders just the manage partial (for HTMX async loading)
+func RenderManagePartial(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer) error {
+	t, err := parsePartialTemplate()
+	if err != nil {
+		return err
+	}
+	data := &PageData{
+		Beans:    beans,
+		Roasters: roasters,
+		Grinders: grinders,
+		Brewers:  brewers,
+	}
+	return t.ExecuteTemplate(w, "manage_content", data)
+}
+
 // findTemplatePath finds the correct path to a template file
 func findTemplatePath(name string) string {
 	dir := getTemplateDir()

@@ -106,10 +106,101 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Brew list partial (loaded async via HTMX)
+func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) {
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	brews, err := store.ListBrews(1) // User ID is not used with atproto
+	if err != nil {
+		http.Error(w, "Failed to fetch brews: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := bff.RenderBrewListPartial(w, brews); err != nil {
+		http.Error(w, "Failed to render: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// Manage page partial (loaded async via HTMX)
+func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	// Fetch all collections in parallel for better performance
+	type result struct {
+		beans    []*models.Bean
+		roasters []*models.Roaster
+		grinders []*models.Grinder
+		brewers  []*models.Brewer
+		err      error
+		which    string
+	}
+
+	results := make(chan result, 4)
+
+	// Launch parallel fetches
+	go func() {
+		beans, err := store.ListBeans()
+		results <- result{beans: beans, err: err, which: "beans"}
+	}()
+	go func() {
+		roasters, err := store.ListRoasters()
+		results <- result{roasters: roasters, err: err, which: "roasters"}
+	}()
+	go func() {
+		grinders, err := store.ListGrinders()
+		results <- result{grinders: grinders, err: err, which: "grinders"}
+	}()
+	go func() {
+		brewers, err := store.ListBrewers()
+		results <- result{brewers: brewers, err: err, which: "brewers"}
+	}()
+
+	// Collect results
+	var beans []*models.Bean
+	var roasters []*models.Roaster
+	var grinders []*models.Grinder
+	var brewers []*models.Brewer
+
+	for i := 0; i < 4; i++ {
+		res := <-results
+		if res.err != nil {
+			http.Error(w, "Failed to fetch "+res.which+": "+res.err.Error(), http.StatusInternalServerError)
+			return
+		}
+		switch res.which {
+		case "beans":
+			beans = res.beans
+		case "roasters":
+			roasters = res.roasters
+		case "grinders":
+			grinders = res.grinders
+		case "brewers":
+			brewers = res.brewers
+		}
+	}
+
+	// Link beans to their roasters
+	atproto.LinkBeansToRoasters(beans, roasters)
+
+	if err := bff.RenderManagePartial(w, beans, roasters, grinders, brewers); err != nil {
+		http.Error(w, "Failed to render: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
 // List all brews
 func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	_, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -117,13 +208,8 @@ func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	brews, err := store.ListBrews(1) // User ID is not used with atproto
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := bff.RenderBrewList(w, brews, authenticated, didStr); err != nil {
+	// Don't fetch brews here - let them load async via HTMX
+	if err := bff.RenderBrewList(w, nil, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -497,7 +583,7 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 // Manage page
 func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	_, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -505,65 +591,8 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	// Fetch all collections in parallel for better performance
-	type result struct {
-		beans    []*models.Bean
-		roasters []*models.Roaster
-		grinders []*models.Grinder
-		brewers  []*models.Brewer
-		err      error
-		which    string
-	}
-
-	results := make(chan result, 4)
-
-	// Launch parallel fetches
-	go func() {
-		beans, err := store.ListBeans()
-		results <- result{beans: beans, err: err, which: "beans"}
-	}()
-	go func() {
-		roasters, err := store.ListRoasters()
-		results <- result{roasters: roasters, err: err, which: "roasters"}
-	}()
-	go func() {
-		grinders, err := store.ListGrinders()
-		results <- result{grinders: grinders, err: err, which: "grinders"}
-	}()
-	go func() {
-		brewers, err := store.ListBrewers()
-		results <- result{brewers: brewers, err: err, which: "brewers"}
-	}()
-
-	// Collect results
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-
-	for i := 0; i < 4; i++ {
-		res := <-results
-		if res.err != nil {
-			http.Error(w, res.err.Error(), http.StatusInternalServerError)
-			return
-		}
-		switch res.which {
-		case "beans":
-			beans = res.beans
-		case "roasters":
-			roasters = res.roasters
-		case "grinders":
-			grinders = res.grinders
-		case "brewers":
-			brewers = res.brewers
-		}
-	}
-
-	// Link beans to their roasters using the pre-fetched roasters
-	// This avoids N+1 queries when using ATProto store
-	atproto.LinkBeansToRoasters(beans, roasters)
-
-	if err := bff.RenderManage(w, beans, roasters, grinders, brewers, authenticated, didStr); err != nil {
+	// Don't fetch data here - let it load async via HTMX
+	if err := bff.RenderManage(w, nil, nil, nil, nil, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

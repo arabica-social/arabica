@@ -40,6 +40,12 @@ func SetupRouter(cfg Config) http.Handler {
 	// Community feed partial (loaded async via HTMX)
 	mux.HandleFunc("GET /api/feed", h.HandleFeedPartial)
 
+	// Brew list partial (loaded async via HTMX)
+	mux.HandleFunc("GET /api/brews", h.HandleBrewListPartial)
+
+	// Manage page partial (loaded async via HTMX)
+	mux.HandleFunc("GET /api/manage", h.HandleManagePartial)
+
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
 	mux.HandleFunc("GET /manage", h.HandleManage)
