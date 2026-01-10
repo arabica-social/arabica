@@ -37,6 +37,9 @@ func SetupRouter(cfg Config) http.Handler {
 	// API route for fetching all user data (used by client-side cache)
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
 
+	// Community feed partial (loaded async via HTMX)
+	mux.HandleFunc("GET /api/feed", h.HandleFeedPartial)
+
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
 	mux.HandleFunc("GET /manage", h.HandleManage)

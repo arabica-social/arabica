@@ -11,17 +11,16 @@ import (
 )
 
 var (
-	templates     *template.Template
-	templatesOnce sync.Once
-	templatesErr  error
+	templateFuncs template.FuncMap
+	funcsOnce     sync.Once
+	templateDir   string
+	templateDirMu sync.Once
 )
 
-// loadTemplates initializes templates lazily - only when first needed
-func loadTemplates() error {
-	templatesOnce.Do(func() {
-		// Parse all template files including partials
-		templates = template.New("")
-		templates = templates.Funcs(template.FuncMap{
+// getTemplateFuncs returns the function map used by all templates
+func getTemplateFuncs() template.FuncMap {
+	funcsOnce.Do(func() {
+		templateFuncs = template.FuncMap{
 			"formatTemp":       FormatTemp,
 			"formatTime":       FormatTime,
 			"formatRating":     FormatRating,
@@ -35,52 +34,68 @@ func loadTemplates() error {
 			"iterateRemaining": IterateRemaining,
 			"hasTemp":          HasTemp,
 			"hasValue":         HasValue,
-		})
-
-		// Try to find templates relative to working directory
-		// This supports both running from project root and from package directory
-		paths := []string{
-			"templates/*.tmpl",
-			"../../templates/*.tmpl",    // for when tests run from internal/bff
-			"../../../templates/*.tmpl", // for deeper test directories
-		}
-
-		var err error
-		for _, path := range paths {
-			dir := path[:len(path)-6] // Remove *.tmpl
-			if _, statErr := os.Stat(dir); statErr == nil {
-				templates, err = templates.ParseGlob(path)
-				if err == nil {
-					break
-				}
-			}
-		}
-		if err != nil {
-			templatesErr = err
-			return
-		}
-
-		// Parse partials
-		partialPaths := []string{
-			"templates/partials/*.tmpl",
-			"../../templates/partials/*.tmpl",
-			"../../../templates/partials/*.tmpl",
-		}
-
-		for _, path := range partialPaths {
-			dir := path[:len(path)-6]
-			if _, statErr := os.Stat(dir); statErr == nil {
-				templates, err = templates.ParseGlob(path)
-				if err == nil {
-					break
-				}
-			}
-		}
-		if err != nil {
-			templatesErr = err
 		}
 	})
-	return templatesErr
+	return templateFuncs
+}
+
+// getTemplateDir finds the template directory
+func getTemplateDir() string {
+	templateDirMu.Do(func() {
+		dirs := []string{
+			"templates",
+			"../../templates",
+			"../../../templates",
+		}
+		for _, dir := range dirs {
+			if _, err := os.Stat(dir); err == nil {
+				templateDir = dir
+				return
+			}
+		}
+		templateDir = "templates" // fallback
+	})
+	return templateDir
+}
+
+// parsePageTemplate parses a complete page template with layout and partials
+func parsePageTemplate(pageName string) (*template.Template, error) {
+	dir := getTemplateDir()
+	t := template.New("").Funcs(getTemplateFuncs())
+
+	// Parse layout first
+	t, err := t.ParseFiles(dir + "/layout.tmpl")
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse all partials
+	t, err = t.ParseGlob(dir + "/partials/*.tmpl")
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the specific page template
+	t, err = t.ParseFiles(dir + "/" + pageName)
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+// parsePartialTemplate parses just the partials (for partial-only renders)
+func parsePartialTemplate() (*template.Template, error) {
+	dir := getTemplateDir()
+	t := template.New("").Funcs(getTemplateFuncs())
+
+	// Parse all partials
+	t, err := t.ParseGlob(dir + "/partials/*.tmpl")
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
 }
 
 // PageData contains data for rendering pages
@@ -113,16 +128,17 @@ type BrewListData struct {
 
 // RenderTemplate renders a template with layout
 func RenderTemplate(w http.ResponseWriter, tmpl string, data *PageData) error {
-	if err := loadTemplates(); err != nil {
+	t, err := parsePageTemplate(tmpl)
+	if err != nil {
 		return err
 	}
-	// Execute the layout template which calls the content template
-	return templates.ExecuteTemplate(w, "layout", data)
+	return t.ExecuteTemplate(w, "layout", data)
 }
 
 // RenderHome renders the home page
 func RenderHome(w http.ResponseWriter, isAuthenticated bool, userDID string, feedItems []*feed.FeedItem) error {
-	if err := loadTemplates(); err != nil {
+	t, err := parsePageTemplate("home.tmpl")
+	if err != nil {
 		return err
 	}
 	data := &PageData{
@@ -131,15 +147,13 @@ func RenderHome(w http.ResponseWriter, isAuthenticated bool, userDID string, fee
 		UserDID:         userDID,
 		FeedItems:       feedItems,
 	}
-	// Need to execute layout with the home template
-	t := template.Must(templates.Clone())
-	t = template.Must(t.ParseFiles(findTemplatePath("home.tmpl")))
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
 // RenderBrewList renders the brew list page
 func RenderBrewList(w http.ResponseWriter, brews []*models.Brew, isAuthenticated bool, userDID string) error {
-	if err := loadTemplates(); err != nil {
+	t, err := parsePageTemplate("brew_list.tmpl")
+	if err != nil {
 		return err
 	}
 	brewList := make([]*BrewListData, len(brews))
@@ -158,14 +172,13 @@ func RenderBrewList(w http.ResponseWriter, brews []*models.Brew, isAuthenticated
 		IsAuthenticated: isAuthenticated,
 		UserDID:         userDID,
 	}
-	t := template.Must(templates.Clone())
-	t = template.Must(t.ParseFiles(findTemplatePath("brew_list.tmpl")))
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
 // RenderBrewForm renders the brew form page
 func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, brew *models.Brew, isAuthenticated bool, userDID string) error {
-	if err := loadTemplates(); err != nil {
+	t, err := parsePageTemplate("brew_form.tmpl")
+	if err != nil {
 		return err
 	}
 	var brewData *BrewData
@@ -189,14 +202,13 @@ func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*mod
 		IsAuthenticated: isAuthenticated,
 		UserDID:         userDID,
 	}
-	t := template.Must(templates.Clone())
-	t = template.Must(t.ParseFiles(findTemplatePath("brew_form.tmpl")))
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
 // RenderManage renders the manage page
 func RenderManage(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string) error {
-	if err := loadTemplates(); err != nil {
+	t, err := parsePageTemplate("manage.tmpl")
+	if err != nil {
 		return err
 	}
 	data := &PageData{
@@ -208,23 +220,23 @@ func RenderManage(w http.ResponseWriter, beans []*models.Bean, roasters []*model
 		IsAuthenticated: isAuthenticated,
 		UserDID:         userDID,
 	}
-	t := template.Must(templates.Clone())
-	t = template.Must(t.ParseFiles(findTemplatePath("manage.tmpl")))
 	return t.ExecuteTemplate(w, "layout", data)
+}
+
+// RenderFeedPartial renders just the feed partial (for HTMX async loading)
+func RenderFeedPartial(w http.ResponseWriter, feedItems []*feed.FeedItem) error {
+	t, err := parsePartialTemplate()
+	if err != nil {
+		return err
+	}
+	data := &PageData{
+		FeedItems: feedItems,
+	}
+	return t.ExecuteTemplate(w, "feed", data)
 }
 
 // findTemplatePath finds the correct path to a template file
 func findTemplatePath(name string) string {
-	paths := []string{
-		"templates/" + name,
-		"../../templates/" + name,
-		"../../../templates/" + name,
-	}
-	for _, path := range paths {
-		if _, err := os.Stat(path); err == nil {
-			return path
-		}
-	}
-	// Return the default path even if it doesn't exist - will fail at parse time
-	return "templates/" + name
+	dir := getTemplateDir()
+	return dir + "/" + name
 }

@@ -88,13 +88,20 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	didStr, err := atproto.GetAuthenticatedDID(r.Context())
 	isAuthenticated := err == nil && didStr != ""
 
-	// Fetch feed items (if feed service is configured)
+	// Don't fetch feed items here - let them load async via HTMX
+	if err := bff.RenderHome(w, isAuthenticated, didStr, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// Community feed partial (loaded async via HTMX)
+func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	var feedItems []*feed.FeedItem
 	if h.feedService != nil {
 		feedItems, _ = h.feedService.GetRecentBrews(r.Context(), 20)
 	}
 
-	if err := bff.RenderHome(w, isAuthenticated, didStr, feedItems); err != nil {
+	if err := bff.RenderFeedPartial(w, feedItems); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
