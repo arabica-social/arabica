@@ -11,6 +11,9 @@
     <link rel="manifest" href="/static/manifest.json" />
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
     <script src="https://unpkg.com/alpinejs@3.15.3/dist/cdn.min.js" defer></script>
+    {{if .IsAuthenticated}}
+    <script src="/static/js/data-cache.js"></script>
+    {{end}}
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/static/service-worker.js')

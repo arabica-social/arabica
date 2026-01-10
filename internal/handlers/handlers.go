@@ -124,7 +124,7 @@ func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 // Show new brew form
 func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	_, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -132,31 +132,9 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	beans, err := store.ListBeans()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	roasters, err := store.ListRoasters()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	grinders, err := store.ListGrinders()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	brewers, err := store.ListBrewers()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := bff.RenderBrewForm(w, beans, roasters, grinders, brewers, nil, authenticated, didStr); err != nil {
+	// Don't fetch data from PDS - client will populate dropdowns from cache
+	// This makes the page load much faster
+	if err := bff.RenderBrewForm(w, nil, nil, nil, nil, nil, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -180,31 +158,9 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	beans, err := store.ListBeans()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	roasters, err := store.ListRoasters()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	grinders, err := store.ListGrinders()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	brewers, err := store.ListBrewers()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := bff.RenderBrewForm(w, beans, roasters, grinders, brewers, brew, authenticated, didStr); err != nil {
+	// Don't fetch dropdown data from PDS - client will populate from cache
+	// This makes the page load much faster
+	if err := bff.RenderBrewForm(w, nil, nil, nil, nil, brew, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -395,6 +351,81 @@ func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 	encoder.Encode(brews)
+}
+
+// API endpoint to list all user data (beans, roasters, grinders, brewers)
+// Used by client-side cache for faster page loads
+func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	// Fetch all collections in parallel
+	type result struct {
+		beans    []*models.Bean
+		roasters []*models.Roaster
+		grinders []*models.Grinder
+		brewers  []*models.Brewer
+		err      error
+		which    string
+	}
+
+	results := make(chan result, 4)
+
+	go func() {
+		beans, err := store.ListBeans()
+		results <- result{beans: beans, err: err, which: "beans"}
+	}()
+	go func() {
+		roasters, err := store.ListRoasters()
+		results <- result{roasters: roasters, err: err, which: "roasters"}
+	}()
+	go func() {
+		grinders, err := store.ListGrinders()
+		results <- result{grinders: grinders, err: err, which: "grinders"}
+	}()
+	go func() {
+		brewers, err := store.ListBrewers()
+		results <- result{brewers: brewers, err: err, which: "brewers"}
+	}()
+
+	var beans []*models.Bean
+	var roasters []*models.Roaster
+	var grinders []*models.Grinder
+	var brewers []*models.Brewer
+
+	for i := 0; i < 4; i++ {
+		res := <-results
+		if res.err != nil {
+			http.Error(w, res.err.Error(), http.StatusInternalServerError)
+			return
+		}
+		switch res.which {
+		case "beans":
+			beans = res.beans
+		case "roasters":
+			roasters = res.roasters
+		case "grinders":
+			grinders = res.grinders
+		case "brewers":
+			brewers = res.brewers
+		}
+	}
+
+	// Link beans to roasters
+	atproto.LinkBeansToRoasters(beans, roasters)
+
+	response := map[string]interface{}{
+		"beans":    beans,
+		"roasters": roasters,
+		"grinders": grinders,
+		"brewers":  brewers,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 // API endpoint to create bean

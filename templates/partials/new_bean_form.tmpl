@@ -5,10 +5,12 @@
     <div class="space-y-3">
         <input type="text" x-model="newBean.name" placeholder="Name (e.g. Morning Blend, House Espresso) *" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
         <input type="text" x-model="newBean.origin" placeholder="Origin (e.g. Ethiopia) *" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
-        <select x-model="newBean.roasterRKey" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">
+        <select x-model="newBean.roasterRKey" name="roaster_rkey_modal" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">
             <option value="">Select Roaster (Optional)</option>
+            {{if .Roasters}}
             {{range .Roasters}}
             <option value="{{.RKey}}">{{.Name}}</option>
+            {{end}}
             {{end}}
         </select>
         <select x-model="newBean.roastLevel" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3">

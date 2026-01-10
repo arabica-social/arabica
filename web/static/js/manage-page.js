@@ -22,6 +22,11 @@ function managePage() {
             this.$watch('tab', value => {
                 localStorage.setItem('manageTab', value);
             });
+            
+            // Initialize cache in background
+            if (window.ArabicaCache) {
+                window.ArabicaCache.init();
+            }
         },
 
         editBean(rkey, name, origin, roast_level, process, description, roaster_rkey) {
@@ -46,6 +51,10 @@ function managePage() {
             });
 
             if (response.ok) {
+                // Invalidate cache and reload
+                if (window.ArabicaCache) {
+                    window.ArabicaCache.invalidateCache();
+                }
                 window.location.reload();
             } else {
                 const errorText = await response.text();
@@ -58,6 +67,10 @@ function managePage() {
 
             const response = await fetch(`/api/beans/${rkey}`, {method: 'DELETE'});
             if (response.ok) {
+                // Invalidate cache and reload
+                if (window.ArabicaCache) {
+                    window.ArabicaCache.invalidateCache();
+                }
                 window.location.reload();
             } else {
                 const errorText = await response.text();
@@ -87,6 +100,10 @@ function managePage() {
             });
 
             if (response.ok) {
+                // Invalidate cache and reload
+                if (window.ArabicaCache) {
+                    window.ArabicaCache.invalidateCache();
+                }
                 window.location.reload();
             } else {
                 const errorText = await response.text();
@@ -99,6 +116,10 @@ function managePage() {
 
             const response = await fetch(`/api/roasters/${rkey}`, {method: 'DELETE'});
             if (response.ok) {
+                // Invalidate cache and reload
+                if (window.ArabicaCache) {
+                    window.ArabicaCache.invalidateCache();
+                }
                 window.location.reload();
             } else {
                 const errorText = await response.text();
@@ -128,6 +149,10 @@ function managePage() {
             });
 
             if (response.ok) {
+                // Invalidate cache and reload
+                if (window.ArabicaCache) {
+                    window.ArabicaCache.invalidateCache();
+                }
                 window.location.reload();
             } else {
                 const errorText = await response.text();
@@ -140,6 +165,10 @@ function managePage() {
 
             const response = await fetch(`/api/grinders/${rkey}`, {method: 'DELETE'});
             if (response.ok) {
+                // Invalidate cache and reload
+                if (window.ArabicaCache) {
+                    window.ArabicaCache.invalidateCache();
+                }
                 window.location.reload();
             } else {
                 const errorText = await response.text();
@@ -169,6 +198,10 @@ function managePage() {
             });
 
             if (response.ok) {
+                // Invalidate cache and reload
+                if (window.ArabicaCache) {
+                    window.ArabicaCache.invalidateCache();
+                }
                 window.location.reload();
             } else {
                 const errorText = await response.text();
@@ -181,6 +214,10 @@ function managePage() {
 
             const response = await fetch(`/api/brewers/${rkey}`, {method: 'DELETE'});
             if (response.ok) {
+                // Invalidate cache and reload
+                if (window.ArabicaCache) {
+                    window.ArabicaCache.invalidateCache();
+                }
                 window.location.reload();
             } else {
                 const errorText = await response.text();

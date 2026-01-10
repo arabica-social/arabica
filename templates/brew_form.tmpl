@@ -29,6 +29,7 @@
                         required
                         class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
                         <option value="">Select a bean...</option>
+                        {{if .Beans}}
                         {{range .Beans}}
                         <option 
                             value="{{.RKey}}"
@@ -36,6 +37,10 @@
                             class="truncate">
                             {{if .Name}}{{.Name}} ({{.Origin}} - {{.RoastLevel}}){{else}}{{.Origin}} - {{.RoastLevel}}{{end}}
                         </option>
+                        {{end}}
+                        {{else if .Brew}}
+                        <!-- Edit mode without server data - put selected value for JS to preserve -->
+                        <option value="{{.Brew.BeanRKey}}" selected>Loading...</option>
                         {{end}}
                     </select>
                     <button 
@@ -70,6 +75,7 @@
                         name="grinder_rkey"
                         class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
                         <option value="">Select a grinder...</option>
+                        {{if .Grinders}}
                         {{range .Grinders}}
                         <option 
                             value="{{.RKey}}"
@@ -77,6 +83,10 @@
                             class="truncate">
                             {{.Name}}
                         </option>
+                        {{end}}
+                        {{else if and .Brew .Brew.GrinderRKey}}
+                        <!-- Edit mode without server data - put selected value for JS to preserve -->
+                        <option value="{{.Brew.GrinderRKey}}" selected>Loading...</option>
                         {{end}}
                     </select>
                     <button 
@@ -110,6 +120,7 @@
                         name="brewer_rkey"
                         class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-brown-500 focus:ring-brown-500 text-base py-3 px-4 truncate max-w-full">
                         <option value="">Select brew method...</option>
+                        {{if .Brewers}}
                         {{range .Brewers}}
                         <option 
                             value="{{.RKey}}"
@@ -117,6 +128,10 @@
                             class="truncate">
                             {{.Name}}
                         </option>
+                        {{end}}
+                        {{else if and .Brew .Brew.BrewerRKey}}
+                        <!-- Edit mode without server data - put selected value for JS to preserve -->
+                        <option value="{{.Brew.BrewerRKey}}" selected>Loading...</option>
                         {{end}}
                     </select>
                     <button 

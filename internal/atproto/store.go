@@ -107,6 +107,9 @@ func (s *AtprotoStore) CreateBrew(brew *models.CreateBrewRequest, userID int) (*
 	rkey := atURI.RecordKey().String()
 	brewModel.RKey = rkey
 
+	// Invalidate brews cache
+	GetSessionCache().InvalidateBrews(s.sessionID)
+
 	// Fetch and resolve references to populate Bean, Grinder, Brewer
 	err = ResolveBrewRefs(ctx, s.client, brewModel, beanURI, grinderURI, brewerURI, s.sessionID)
 	if err != nil {
@@ -171,6 +174,13 @@ func (s *AtprotoStore) GetBrewByRKey(rkey string) (*models.Brew, error) {
 }
 
 func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
+	// Check cache first
+	cache := GetSessionCache()
+	userCache := cache.Get(s.sessionID)
+	if userCache != nil && userCache.Brews != nil && userCache.IsValid() {
+		return userCache.Brews, nil
+	}
+
 	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
@@ -193,12 +203,11 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 			brew.RKey = components.RKey
 		}
 
-		// Extract and resolve references
+		// Extract rkeys from AT-URI references
 		beanRef, _ := rec.Value["beanRef"].(string)
 		grinderRef, _ := rec.Value["grinderRef"].(string)
 		brewerRef, _ := rec.Value["brewerRef"].(string)
 
-		// Extract rkeys from AT-URIs for the model
 		if beanRef != "" {
 			if components, err := ResolveATURI(beanRef); err == nil {
 				brew.BeanRKey = components.RKey
@@ -215,13 +224,59 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 			}
 		}
 
-		err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to resolve brew references")
-		}
-
 		brews = append(brews, brew)
 	}
+
+	// Resolve references using cached data instead of N+1 queries
+	// This fetches beans/grinders/brewers once (from cache if available)
+	// then links them to brews in memory
+	beans, _ := s.ListBeans()
+	grinders, _ := s.ListGrinders()
+	brewers, _ := s.ListBrewers()
+	roasters, _ := s.ListRoasters()
+
+	// Build lookup maps
+	beanMap := make(map[string]*models.Bean)
+	for _, b := range beans {
+		beanMap[b.RKey] = b
+	}
+	grinderMap := make(map[string]*models.Grinder)
+	for _, g := range grinders {
+		grinderMap[g.RKey] = g
+	}
+	brewerMap := make(map[string]*models.Brewer)
+	for _, b := range brewers {
+		brewerMap[b.RKey] = b
+	}
+	roasterMap := make(map[string]*models.Roaster)
+	for _, r := range roasters {
+		roasterMap[r.RKey] = r
+	}
+
+	// Link references
+	for _, brew := range brews {
+		if brew.BeanRKey != "" {
+			brew.Bean = beanMap[brew.BeanRKey]
+			// Also link roaster to bean
+			if brew.Bean != nil && brew.Bean.RoasterRKey != "" {
+				brew.Bean.Roaster = roasterMap[brew.Bean.RoasterRKey]
+			}
+		}
+		if brew.GrinderRKey != "" {
+			brew.GrinderObj = grinderMap[brew.GrinderRKey]
+		}
+		if brew.BrewerRKey != "" {
+			brew.BrewerObj = brewerMap[brew.BrewerRKey]
+		}
+	}
+
+	// Update cache
+	if userCache == nil {
+		userCache = &UserCache{Timestamp: time.Now()}
+	}
+	userCache.Brews = brews
+	userCache.Timestamp = time.Now()
+	cache.Set(s.sessionID, userCache)
 
 	return brews, nil
 }
@@ -293,6 +348,9 @@ func (s *AtprotoStore) UpdateBrewByRKey(rkey string, brew *models.CreateBrewRequ
 		return fmt.Errorf("failed to update brew record: %w", err)
 	}
 
+	// Invalidate brews cache
+	GetSessionCache().InvalidateBrews(s.sessionID)
+
 	return nil
 }
 
@@ -306,6 +364,9 @@ func (s *AtprotoStore) DeleteBrewByRKey(rkey string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete brew record: %w", err)
 	}
+
+	// Invalidate brews cache
+	GetSessionCache().InvalidateBrews(s.sessionID)
 
 	return nil
 }
@@ -352,6 +413,9 @@ func (s *AtprotoStore) CreateBean(bean *models.CreateBeanRequest) (*models.Bean,
 	rkey := atURI.RecordKey().String()
 	beanModel.RKey = rkey
 
+	// Invalidate cache
+	GetSessionCache().InvalidateBeans(s.sessionID)
+
 	return beanModel, nil
 }
 
@@ -393,6 +457,13 @@ func (s *AtprotoStore) GetBeanByRKey(rkey string) (*models.Bean, error) {
 }
 
 func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
+	// Check cache first
+	cache := GetSessionCache()
+	userCache := cache.Get(s.sessionID)
+	if userCache != nil && userCache.Beans != nil && userCache.IsValid() {
+		return userCache.Beans, nil
+	}
+
 	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
@@ -425,6 +496,14 @@ func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
 
 		beans = append(beans, bean)
 	}
+
+	// Update cache
+	if userCache == nil {
+		userCache = &UserCache{Timestamp: time.Now()}
+	}
+	userCache.Beans = beans
+	userCache.Timestamp = time.Now()
+	cache.Set(s.sessionID, userCache)
 
 	return beans, nil
 }
@@ -484,6 +563,9 @@ func (s *AtprotoStore) UpdateBeanByRKey(rkey string, bean *models.UpdateBeanRequ
 		return fmt.Errorf("failed to update bean record: %w", err)
 	}
 
+	// Invalidate cache
+	GetSessionCache().InvalidateBeans(s.sessionID)
+
 	return nil
 }
 
@@ -497,6 +579,9 @@ func (s *AtprotoStore) DeleteBeanByRKey(rkey string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete bean record: %w", err)
 	}
+
+	// Invalidate cache
+	GetSessionCache().InvalidateBeans(s.sessionID)
 
 	return nil
 }
@@ -535,6 +620,9 @@ func (s *AtprotoStore) CreateRoaster(roaster *models.CreateRoasterRequest) (*mod
 	rkey := atURI.RecordKey().String()
 	roasterModel.RKey = rkey
 
+	// Invalidate cache
+	GetSessionCache().InvalidateRoasters(s.sessionID)
+
 	return roasterModel, nil
 }
 
@@ -561,6 +649,13 @@ func (s *AtprotoStore) GetRoasterByRKey(rkey string) (*models.Roaster, error) {
 }
 
 func (s *AtprotoStore) ListRoasters() ([]*models.Roaster, error) {
+	// Check cache first
+	cache := GetSessionCache()
+	userCache := cache.Get(s.sessionID)
+	if userCache != nil && userCache.Roasters != nil && userCache.IsValid() {
+		return userCache.Roasters, nil
+	}
+
 	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
@@ -585,6 +680,14 @@ func (s *AtprotoStore) ListRoasters() ([]*models.Roaster, error) {
 
 		roasters = append(roasters, roaster)
 	}
+
+	// Update cache
+	if userCache == nil {
+		userCache = &UserCache{Timestamp: time.Now()}
+	}
+	userCache.Roasters = roasters
+	userCache.Timestamp = time.Now()
+	cache.Set(s.sessionID, userCache)
 
 	return roasters, nil
 }
@@ -619,6 +722,9 @@ func (s *AtprotoStore) UpdateRoasterByRKey(rkey string, roaster *models.UpdateRo
 		return fmt.Errorf("failed to update roaster record: %w", err)
 	}
 
+	// Invalidate cache
+	GetSessionCache().InvalidateRoasters(s.sessionID)
+
 	return nil
 }
 
@@ -632,6 +738,9 @@ func (s *AtprotoStore) DeleteRoasterByRKey(rkey string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete roaster record: %w", err)
 	}
+
+	// Invalidate cache
+	GetSessionCache().InvalidateRoasters(s.sessionID)
 
 	return nil
 }
@@ -671,6 +780,9 @@ func (s *AtprotoStore) CreateGrinder(grinder *models.CreateGrinderRequest) (*mod
 	rkey := atURI.RecordKey().String()
 	grinderModel.RKey = rkey
 
+	// Invalidate cache
+	GetSessionCache().InvalidateGrinders(s.sessionID)
+
 	return grinderModel, nil
 }
 
@@ -697,6 +809,13 @@ func (s *AtprotoStore) GetGrinderByRKey(rkey string) (*models.Grinder, error) {
 }
 
 func (s *AtprotoStore) ListGrinders() ([]*models.Grinder, error) {
+	// Check cache first
+	cache := GetSessionCache()
+	userCache := cache.Get(s.sessionID)
+	if userCache != nil && userCache.Grinders != nil && userCache.IsValid() {
+		return userCache.Grinders, nil
+	}
+
 	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
@@ -721,6 +840,14 @@ func (s *AtprotoStore) ListGrinders() ([]*models.Grinder, error) {
 
 		grinders = append(grinders, grinder)
 	}
+
+	// Update cache
+	if userCache == nil {
+		userCache = &UserCache{Timestamp: time.Now()}
+	}
+	userCache.Grinders = grinders
+	userCache.Timestamp = time.Now()
+	cache.Set(s.sessionID, userCache)
 
 	return grinders, nil
 }
@@ -756,6 +883,9 @@ func (s *AtprotoStore) UpdateGrinderByRKey(rkey string, grinder *models.UpdateGr
 		return fmt.Errorf("failed to update grinder record: %w", err)
 	}
 
+	// Invalidate cache
+	GetSessionCache().InvalidateGrinders(s.sessionID)
+
 	return nil
 }
 
@@ -769,6 +899,9 @@ func (s *AtprotoStore) DeleteGrinderByRKey(rkey string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete grinder record: %w", err)
 	}
+
+	// Invalidate cache
+	GetSessionCache().InvalidateGrinders(s.sessionID)
 
 	return nil
 }
@@ -806,6 +939,9 @@ func (s *AtprotoStore) CreateBrewer(brewer *models.CreateBrewerRequest) (*models
 	rkey := atURI.RecordKey().String()
 	brewerModel.RKey = rkey
 
+	// Invalidate cache
+	GetSessionCache().InvalidateBrewers(s.sessionID)
+
 	return brewerModel, nil
 }
 
@@ -832,6 +968,13 @@ func (s *AtprotoStore) GetBrewerByRKey(rkey string) (*models.Brewer, error) {
 }
 
 func (s *AtprotoStore) ListBrewers() ([]*models.Brewer, error) {
+	// Check cache first
+	cache := GetSessionCache()
+	userCache := cache.Get(s.sessionID)
+	if userCache != nil && userCache.Brewers != nil && userCache.IsValid() {
+		return userCache.Brewers, nil
+	}
+
 	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
@@ -856,6 +999,14 @@ func (s *AtprotoStore) ListBrewers() ([]*models.Brewer, error) {
 
 		brewers = append(brewers, brewer)
 	}
+
+	// Update cache
+	if userCache == nil {
+		userCache = &UserCache{Timestamp: time.Now()}
+	}
+	userCache.Brewers = brewers
+	userCache.Timestamp = time.Now()
+	cache.Set(s.sessionID, userCache)
 
 	return brewers, nil
 }
@@ -889,6 +1040,9 @@ func (s *AtprotoStore) UpdateBrewerByRKey(rkey string, brewer *models.UpdateBrew
 		return fmt.Errorf("failed to update brewer record: %w", err)
 	}
 
+	// Invalidate cache
+	GetSessionCache().InvalidateBrewers(s.sessionID)
+
 	return nil
 }
 
@@ -902,6 +1056,9 @@ func (s *AtprotoStore) DeleteBrewerByRKey(rkey string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete brewer record: %w", err)
 	}
+
+	// Invalidate cache
+	GetSessionCache().InvalidateBrewers(s.sessionID)
 
 	return nil
 }

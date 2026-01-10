@@ -34,6 +34,9 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /api/resolve-handle", h.HandleResolveHandle)
 	mux.HandleFunc("GET /api/search-actors", h.HandleSearchActors)
 
+	// API route for fetching all user data (used by client-side cache)
+	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
+
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
 	mux.HandleFunc("GET /manage", h.HandleManage)
