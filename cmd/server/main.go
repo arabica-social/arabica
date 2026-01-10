@@ -112,8 +112,15 @@ func main() {
 	atprotoClient := atproto.NewClient(oauthManager)
 	log.Printf("Atproto client initialized")
 
+	// Determine if we should use secure cookies (default: false for development)
+	// Set SECURE_COOKIES=true in production with HTTPS
+	secureCookies := os.Getenv("SECURE_COOKIES") == "true"
+
 	// Initialize handlers
 	h := handlers.NewHandler(store)
+	h.SetConfig(handlers.Config{
+		SecureCookies: secureCookies,
+	})
 	h.SetOAuthManager(oauthManager)
 	h.SetAtprotoClient(atprotoClient)
 

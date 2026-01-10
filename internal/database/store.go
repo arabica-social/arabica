@@ -3,47 +3,43 @@ package database
 import "arabica/internal/models"
 
 // Store defines the interface for all database operations
-// This abstraction allows swapping SQLite for PostgreSQL or other databases later
+// This abstraction allows swapping SQLite for ATProto or other backends
 type Store interface {
 	// Brew operations
+	// Note: userID is deprecated for ATProto (user is implicit from DID)
 	CreateBrew(brew *models.CreateBrewRequest, userID int) (*models.Brew, error)
-	GetBrew(id int) (*models.Brew, error)
+	GetBrewByRKey(rkey string) (*models.Brew, error)
 	ListBrews(userID int) ([]*models.Brew, error)
-	UpdateBrew(id int, brew *models.CreateBrewRequest) error
-	DeleteBrew(id int) error
+	UpdateBrewByRKey(rkey string, brew *models.CreateBrewRequest) error
+	DeleteBrewByRKey(rkey string) error
 
 	// Bean operations
 	CreateBean(bean *models.CreateBeanRequest) (*models.Bean, error)
-	GetBean(id int) (*models.Bean, error)
+	GetBeanByRKey(rkey string) (*models.Bean, error)
 	ListBeans() ([]*models.Bean, error)
-	UpdateBean(id int, bean *models.UpdateBeanRequest) error
-	DeleteBean(id int) error
+	UpdateBeanByRKey(rkey string, bean *models.UpdateBeanRequest) error
+	DeleteBeanByRKey(rkey string) error
 
 	// Roaster operations
 	CreateRoaster(roaster *models.CreateRoasterRequest) (*models.Roaster, error)
-	GetRoaster(id int) (*models.Roaster, error)
+	GetRoasterByRKey(rkey string) (*models.Roaster, error)
 	ListRoasters() ([]*models.Roaster, error)
-	UpdateRoaster(id int, roaster *models.UpdateRoasterRequest) error
-	DeleteRoaster(id int) error
+	UpdateRoasterByRKey(rkey string, roaster *models.UpdateRoasterRequest) error
+	DeleteRoasterByRKey(rkey string) error
 
 	// Grinder operations
 	CreateGrinder(grinder *models.CreateGrinderRequest) (*models.Grinder, error)
-	GetGrinder(id int) (*models.Grinder, error)
+	GetGrinderByRKey(rkey string) (*models.Grinder, error)
 	ListGrinders() ([]*models.Grinder, error)
-	UpdateGrinder(id int, grinder *models.UpdateGrinderRequest) error
-	DeleteGrinder(id int) error
+	UpdateGrinderByRKey(rkey string, grinder *models.UpdateGrinderRequest) error
+	DeleteGrinderByRKey(rkey string) error
 
 	// Brewer operations
 	CreateBrewer(brewer *models.CreateBrewerRequest) (*models.Brewer, error)
-	GetBrewer(id int) (*models.Brewer, error)
+	GetBrewerByRKey(rkey string) (*models.Brewer, error)
 	ListBrewers() ([]*models.Brewer, error)
-	UpdateBrewer(id int, brewer *models.UpdateBrewerRequest) error
-	DeleteBrewer(id int) error
-
-	// Pour operations
-	CreatePours(brewID int, pours []models.CreatePourData) error
-	ListPours(brewID int) ([]*models.Pour, error)
-	DeletePoursForBrew(brewID int) error
+	UpdateBrewerByRKey(rkey string, brewer *models.UpdateBrewerRequest) error
+	DeleteBrewerByRKey(rkey string) error
 
 	// Close the database connection
 	Close() error

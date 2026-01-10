@@ -144,7 +144,8 @@ type UpdateBeanRequest struct {
 	RoastLevel  string `json:"roast_level"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
-	RoasterID   *int   `json:"roaster_id"`
+	RoasterID   *int   `json:"roaster_id"`   // Deprecated: use RoasterRKey
+	RoasterRKey string `json:"roaster_rkey"` // AT Protocol record key
 }
 
 type UpdateRoasterRequest struct {

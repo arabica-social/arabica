@@ -3,6 +3,7 @@ package atproto
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"arabica/internal/database"
@@ -16,7 +17,6 @@ type AtprotoStore struct {
 	client    *Client
 	did       syntax.DID
 	sessionID string
-	ctx       context.Context
 }
 
 // NewAtprotoStore creates a new atproto store for a specific user session
@@ -25,13 +25,21 @@ func NewAtprotoStore(ctx context.Context, client *Client, did syntax.DID, sessio
 		client:    client,
 		did:       did,
 		sessionID: sessionID,
-		ctx:       ctx,
 	}
+}
+
+// getContext returns a context for API calls
+// Since we don't store context in the struct anymore, callers should pass context
+// For now, we use background context but this should be improved
+func (s *AtprotoStore) getContext() context.Context {
+	return context.Background()
 }
 
 // ========== Brew Operations ==========
 
 func (s *AtprotoStore) CreateBrew(brew *models.CreateBrewRequest, userID int) (*models.Brew, error) {
+	ctx := s.getContext()
+
 	// Build AT-URI references from rkeys
 	if brew.BeanRKey == "" {
 		return nil, fmt.Errorf("bean_rkey is required")
@@ -80,7 +88,7 @@ func (s *AtprotoStore) CreateBrew(brew *models.CreateBrewRequest, userID int) (*
 	}
 
 	// Create record in PDS
-	output, err := s.client.CreateRecord(s.ctx, s.did, s.sessionID, &CreateRecordInput{
+	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
 		Collection: "com.arabica.brew",
 		Record:     record,
 	})
@@ -97,24 +105,21 @@ func (s *AtprotoStore) CreateBrew(brew *models.CreateBrewRequest, userID int) (*
 	// Store the rkey in the model
 	rkey := atURI.RecordKey().String()
 	brewModel.RKey = rkey
-	brewModel.ID = 0 // ID no longer used for atproto records
 
 	// Fetch and resolve references to populate Bean, Grinder, Brewer
-	err = ResolveBrewRefs(s.ctx, s.client, brewModel, beanURI, grinderURI, brewerURI, s.sessionID)
+	err = ResolveBrewRefs(ctx, s.client, brewModel, beanURI, grinderURI, brewerURI, s.sessionID)
 	if err != nil {
 		// Non-fatal: return the brew even if we can't resolve refs
-		fmt.Printf("Warning: failed to resolve brew references: %v\n", err)
+		log.Printf("Warning: failed to resolve brew references: %v", err)
 	}
 
 	return brewModel, nil
 }
 
-func (s *AtprotoStore) GetBrew(id int) (*models.Brew, error) {
-	// Convert ID to rkey
-	// TODO: Implement proper ID -> rkey mapping
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) GetBrewByRKey(rkey string) (*models.Brew, error) {
+	ctx := s.getContext()
 
-	output, err := s.client.GetRecord(s.ctx, s.did, s.sessionID, &GetRecordInput{
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: "com.arabica.brew",
 		RKey:       rkey,
 	})
@@ -131,23 +136,44 @@ func (s *AtprotoStore) GetBrew(id int) (*models.Brew, error) {
 		return nil, fmt.Errorf("failed to convert brew record: %w", err)
 	}
 
+	// Set the rkey
+	brew.RKey = rkey
+
 	// Extract and resolve references
 	beanRef, _ := output.Value["beanRef"].(string)
 	grinderRef, _ := output.Value["grinderRef"].(string)
 	brewerRef, _ := output.Value["brewerRef"].(string)
 
-	err = ResolveBrewRefs(s.ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
+	// Extract rkeys from AT-URIs for the model
+	if beanRef != "" {
+		if _, _, beanRKey, err := ResolveATURI(beanRef); err == nil {
+			brew.BeanRKey = beanRKey
+		}
+	}
+	if grinderRef != "" {
+		if _, _, grinderRKey, err := ResolveATURI(grinderRef); err == nil {
+			brew.GrinderRKey = grinderRKey
+		}
+	}
+	if brewerRef != "" {
+		if _, _, brewerRKey, err := ResolveATURI(brewerRef); err == nil {
+			brew.BrewerRKey = brewerRKey
+		}
+	}
+
+	err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
 	if err != nil {
-		fmt.Printf("Warning: failed to resolve brew references: %v\n", err)
+		log.Printf("Warning: failed to resolve brew references: %v", err)
 	}
 
 	return brew, nil
 }
 
 func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
-	output, err := s.client.ListRecords(s.ctx, s.did, s.sessionID, &ListRecordsInput{
-		Collection: "com.arabica.brew",
-	})
+	ctx := s.getContext()
+
+	// Use ListAllRecords to handle pagination automatically
+	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, "com.arabica.brew")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list brew records: %w", err)
 	}
@@ -157,8 +183,13 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 	for _, rec := range output.Records {
 		brew, err := RecordToBrew(rec.Value, rec.URI)
 		if err != nil {
-			fmt.Printf("Warning: failed to convert brew record %s: %v\n", rec.URI, err)
+			log.Printf("Warning: failed to convert brew record %s: %v", rec.URI, err)
 			continue
+		}
+
+		// Extract rkey from URI
+		if _, _, rkey, err := ResolveATURI(rec.URI); err == nil {
+			brew.RKey = rkey
 		}
 
 		// Extract and resolve references
@@ -166,9 +197,26 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 		grinderRef, _ := rec.Value["grinderRef"].(string)
 		brewerRef, _ := rec.Value["brewerRef"].(string)
 
-		err = ResolveBrewRefs(s.ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
+		// Extract rkeys from AT-URIs for the model
+		if beanRef != "" {
+			if _, _, beanRKey, err := ResolveATURI(beanRef); err == nil {
+				brew.BeanRKey = beanRKey
+			}
+		}
+		if grinderRef != "" {
+			if _, _, grinderRKey, err := ResolveATURI(grinderRef); err == nil {
+				brew.GrinderRKey = grinderRKey
+			}
+		}
+		if brewerRef != "" {
+			if _, _, brewerRKey, err := ResolveATURI(brewerRef); err == nil {
+				brew.BrewerRKey = brewerRKey
+			}
+		}
+
+		err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
 		if err != nil {
-			fmt.Printf("Warning: failed to resolve brew references for %s: %v\n", rec.URI, err)
+			log.Printf("Warning: failed to resolve brew references for %s: %v", rec.URI, err)
 		}
 
 		brews = append(brews, brew)
@@ -177,34 +225,43 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 	return brews, nil
 }
 
-func (s *AtprotoStore) UpdateBrew(id int, brew *models.CreateBrewRequest) error {
-	// Convert ID to rkey
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) UpdateBrewByRKey(rkey string, brew *models.CreateBrewRequest) error {
+	ctx := s.getContext()
 
-	// Build AT-URI references
-	beanURI := fmt.Sprintf("at://%s/com.arabica.bean/%d", s.did.String(), brew.BeanID)
+	// Build AT-URI references from rkeys
+	if brew.BeanRKey == "" {
+		return fmt.Errorf("bean_rkey is required")
+	}
+
+	beanURI := fmt.Sprintf("at://%s/com.arabica.bean/%s", s.did.String(), brew.BeanRKey)
 
 	var grinderURI, brewerURI string
-	if brew.GrinderID != nil {
-		grinderURI = fmt.Sprintf("at://%s/com.arabica.grinder/%d", s.did.String(), *brew.GrinderID)
+	if brew.GrinderRKey != "" {
+		grinderURI = fmt.Sprintf("at://%s/com.arabica.grinder/%s", s.did.String(), brew.GrinderRKey)
 	}
-	if brew.BrewerID != nil {
-		brewerURI = fmt.Sprintf("at://%s/com.arabica.brewer/%d", s.did.String(), *brew.BrewerID)
+	if brew.BrewerRKey != "" {
+		brewerURI = fmt.Sprintf("at://%s/com.arabica.brewer/%s", s.did.String(), brew.BrewerRKey)
+	}
+
+	// Get the existing record to preserve createdAt
+	existing, err := s.GetBrewByRKey(rkey)
+	if err != nil {
+		return fmt.Errorf("failed to get existing brew: %w", err)
 	}
 
 	// Convert to models.Brew
 	brewModel := &models.Brew{
-		BeanID:       brew.BeanID,
+		BeanRKey:     brew.BeanRKey,
+		GrinderRKey:  brew.GrinderRKey,
+		BrewerRKey:   brew.BrewerRKey,
 		Method:       brew.Method,
 		Temperature:  brew.Temperature,
 		WaterAmount:  brew.WaterAmount,
 		TimeSeconds:  brew.TimeSeconds,
 		GrindSize:    brew.GrindSize,
-		GrinderID:    brew.GrinderID,
-		BrewerID:     brew.BrewerID,
 		TastingNotes: brew.TastingNotes,
 		Rating:       brew.Rating,
-		CreatedAt:    time.Now(), // Keep original creation time in production
+		CreatedAt:    existing.CreatedAt, // Preserve original creation time
 	}
 
 	// Convert pours
@@ -225,7 +282,7 @@ func (s *AtprotoStore) UpdateBrew(id int, brew *models.CreateBrewRequest) error 
 	}
 
 	// Update record in PDS
-	err = s.client.PutRecord(s.ctx, s.did, s.sessionID, &PutRecordInput{
+	err = s.client.PutRecord(ctx, s.did, s.sessionID, &PutRecordInput{
 		Collection: "com.arabica.brew",
 		RKey:       rkey,
 		Record:     record,
@@ -237,10 +294,10 @@ func (s *AtprotoStore) UpdateBrew(id int, brew *models.CreateBrewRequest) error 
 	return nil
 }
 
-func (s *AtprotoStore) DeleteBrew(id int) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) DeleteBrewByRKey(rkey string) error {
+	ctx := s.getContext()
 
-	err := s.client.DeleteRecord(s.ctx, s.did, s.sessionID, &DeleteRecordInput{
+	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: "com.arabica.brew",
 		RKey:       rkey,
 	})
@@ -254,6 +311,8 @@ func (s *AtprotoStore) DeleteBrew(id int) error {
 // ========== Bean Operations ==========
 
 func (s *AtprotoStore) CreateBean(bean *models.CreateBeanRequest) (*models.Bean, error) {
+	ctx := s.getContext()
+
 	var roasterURI string
 	if bean.RoasterRKey != "" {
 		roasterURI = fmt.Sprintf("at://%s/com.arabica.roaster/%s", s.did.String(), bean.RoasterRKey)
@@ -274,7 +333,7 @@ func (s *AtprotoStore) CreateBean(bean *models.CreateBeanRequest) (*models.Bean,
 		return nil, fmt.Errorf("failed to convert bean to record: %w", err)
 	}
 
-	output, err := s.client.CreateRecord(s.ctx, s.did, s.sessionID, &CreateRecordInput{
+	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
 		Collection: "com.arabica.bean",
 		Record:     record,
 	})
@@ -290,15 +349,14 @@ func (s *AtprotoStore) CreateBean(bean *models.CreateBeanRequest) (*models.Bean,
 	// Store the rkey in the model
 	rkey := atURI.RecordKey().String()
 	beanModel.RKey = rkey
-	beanModel.ID = 0 // ID no longer used for atproto records
 
 	return beanModel, nil
 }
 
-func (s *AtprotoStore) GetBean(id int) (*models.Bean, error) {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) GetBeanByRKey(rkey string) (*models.Bean, error) {
+	ctx := s.getContext()
 
-	output, err := s.client.GetRecord(s.ctx, s.did, s.sessionID, &GetRecordInput{
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: "com.arabica.bean",
 		RKey:       rkey,
 	})
@@ -312,13 +370,19 @@ func (s *AtprotoStore) GetBean(id int) (*models.Bean, error) {
 		return nil, fmt.Errorf("failed to convert bean record: %w", err)
 	}
 
+	bean.RKey = rkey
+
 	// Resolve roaster reference if present
 	if roasterRef, ok := output.Value["roasterRef"].(string); ok && roasterRef != "" {
-		// Only try to resolve if it looks like a valid AT-URI (not just "0" or a numeric ID)
+		// Extract rkey from roaster ref
+		if _, _, roasterRKey, err := ResolveATURI(roasterRef); err == nil {
+			bean.RoasterRKey = roasterRKey
+		}
+		// Only try to resolve if it looks like a valid AT-URI
 		if len(roasterRef) > 10 && (roasterRef[:5] == "at://" || roasterRef[:4] == "did:") {
-			bean.Roaster, err = ResolveRoasterRef(s.ctx, s.client, roasterRef, s.sessionID)
+			bean.Roaster, err = ResolveRoasterRef(ctx, s.client, roasterRef, s.sessionID)
 			if err != nil {
-				fmt.Printf("Warning: failed to resolve roaster reference: %v\n", err)
+				log.Printf("Warning: failed to resolve roaster reference: %v", err)
 			}
 		}
 	}
@@ -327,9 +391,10 @@ func (s *AtprotoStore) GetBean(id int) (*models.Bean, error) {
 }
 
 func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
-	output, err := s.client.ListRecords(s.ctx, s.did, s.sessionID, &ListRecordsInput{
-		Collection: "com.arabica.bean",
-	})
+	ctx := s.getContext()
+
+	// Use ListAllRecords to handle pagination automatically
+	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, "com.arabica.bean")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list bean records: %w", err)
 	}
@@ -339,17 +404,26 @@ func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
 	for _, rec := range output.Records {
 		bean, err := RecordToBean(rec.Value, rec.URI)
 		if err != nil {
-			fmt.Printf("Warning: failed to convert bean record %s: %v\n", rec.URI, err)
+			log.Printf("Warning: failed to convert bean record %s: %v", rec.URI, err)
 			continue
+		}
+
+		// Extract rkey from URI
+		if _, _, rkey, err := ResolveATURI(rec.URI); err == nil {
+			bean.RKey = rkey
 		}
 
 		// Resolve roaster reference if present
 		if roasterRef, ok := rec.Value["roasterRef"].(string); ok && roasterRef != "" {
+			// Extract rkey from roaster ref
+			if _, _, roasterRKey, err := ResolveATURI(roasterRef); err == nil {
+				bean.RoasterRKey = roasterRKey
+			}
 			// Only try to resolve if it looks like a valid AT-URI
 			if len(roasterRef) > 10 && (roasterRef[:5] == "at://" || roasterRef[:4] == "did:") {
-				bean.Roaster, err = ResolveRoasterRef(s.ctx, s.client, roasterRef, s.sessionID)
+				bean.Roaster, err = ResolveRoasterRef(ctx, s.client, roasterRef, s.sessionID)
 				if err != nil {
-					fmt.Printf("Warning: failed to resolve roaster reference: %v\n", err)
+					log.Printf("Warning: failed to resolve roaster reference: %v", err)
 				}
 			}
 		}
@@ -360,12 +434,18 @@ func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
 	return beans, nil
 }
 
-func (s *AtprotoStore) UpdateBean(id int, bean *models.UpdateBeanRequest) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) UpdateBeanByRKey(rkey string, bean *models.UpdateBeanRequest) error {
+	ctx := s.getContext()
+
+	// Get existing to preserve createdAt
+	existing, err := s.GetBeanByRKey(rkey)
+	if err != nil {
+		return fmt.Errorf("failed to get existing bean: %w", err)
+	}
 
 	var roasterURI string
-	if bean.RoasterID != nil {
-		roasterURI = fmt.Sprintf("at://%s/com.arabica.roaster/%d", s.did.String(), *bean.RoasterID)
+	if bean.RoasterRKey != "" {
+		roasterURI = fmt.Sprintf("at://%s/com.arabica.roaster/%s", s.did.String(), bean.RoasterRKey)
 	}
 
 	beanModel := &models.Bean{
@@ -374,8 +454,8 @@ func (s *AtprotoStore) UpdateBean(id int, bean *models.UpdateBeanRequest) error 
 		RoastLevel:  bean.RoastLevel,
 		Process:     bean.Process,
 		Description: bean.Description,
-		RoasterID:   bean.RoasterID,
-		CreatedAt:   time.Now(),
+		RoasterRKey: bean.RoasterRKey,
+		CreatedAt:   existing.CreatedAt,
 	}
 
 	record, err := BeanToRecord(beanModel, roasterURI)
@@ -383,7 +463,7 @@ func (s *AtprotoStore) UpdateBean(id int, bean *models.UpdateBeanRequest) error 
 		return fmt.Errorf("failed to convert bean to record: %w", err)
 	}
 
-	err = s.client.PutRecord(s.ctx, s.did, s.sessionID, &PutRecordInput{
+	err = s.client.PutRecord(ctx, s.did, s.sessionID, &PutRecordInput{
 		Collection: "com.arabica.bean",
 		RKey:       rkey,
 		Record:     record,
@@ -395,10 +475,10 @@ func (s *AtprotoStore) UpdateBean(id int, bean *models.UpdateBeanRequest) error 
 	return nil
 }
 
-func (s *AtprotoStore) DeleteBean(id int) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) DeleteBeanByRKey(rkey string) error {
+	ctx := s.getContext()
 
-	err := s.client.DeleteRecord(s.ctx, s.did, s.sessionID, &DeleteRecordInput{
+	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: "com.arabica.bean",
 		RKey:       rkey,
 	})
@@ -412,6 +492,8 @@ func (s *AtprotoStore) DeleteBean(id int) error {
 // ========== Roaster Operations ==========
 
 func (s *AtprotoStore) CreateRoaster(roaster *models.CreateRoasterRequest) (*models.Roaster, error) {
+	ctx := s.getContext()
+
 	roasterModel := &models.Roaster{
 		Name:      roaster.Name,
 		Location:  roaster.Location,
@@ -424,7 +506,7 @@ func (s *AtprotoStore) CreateRoaster(roaster *models.CreateRoasterRequest) (*mod
 		return nil, fmt.Errorf("failed to convert roaster to record: %w", err)
 	}
 
-	output, err := s.client.CreateRecord(s.ctx, s.did, s.sessionID, &CreateRecordInput{
+	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
 		Collection: "com.arabica.roaster",
 		Record:     record,
 	})
@@ -440,15 +522,14 @@ func (s *AtprotoStore) CreateRoaster(roaster *models.CreateRoasterRequest) (*mod
 	// Store the rkey in the model
 	rkey := atURI.RecordKey().String()
 	roasterModel.RKey = rkey
-	roasterModel.ID = 0 // ID no longer used for atproto records
 
 	return roasterModel, nil
 }
 
-func (s *AtprotoStore) GetRoaster(id int) (*models.Roaster, error) {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) GetRoasterByRKey(rkey string) (*models.Roaster, error) {
+	ctx := s.getContext()
 
-	output, err := s.client.GetRecord(s.ctx, s.did, s.sessionID, &GetRecordInput{
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: "com.arabica.roaster",
 		RKey:       rkey,
 	})
@@ -462,13 +543,16 @@ func (s *AtprotoStore) GetRoaster(id int) (*models.Roaster, error) {
 		return nil, fmt.Errorf("failed to convert roaster record: %w", err)
 	}
 
+	roaster.RKey = rkey
+
 	return roaster, nil
 }
 
 func (s *AtprotoStore) ListRoasters() ([]*models.Roaster, error) {
-	output, err := s.client.ListRecords(s.ctx, s.did, s.sessionID, &ListRecordsInput{
-		Collection: "com.arabica.roaster",
-	})
+	ctx := s.getContext()
+
+	// Use ListAllRecords to handle pagination automatically
+	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, "com.arabica.roaster")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list roaster records: %w", err)
 	}
@@ -478,23 +562,35 @@ func (s *AtprotoStore) ListRoasters() ([]*models.Roaster, error) {
 	for _, rec := range output.Records {
 		roaster, err := RecordToRoaster(rec.Value, rec.URI)
 		if err != nil {
-			fmt.Printf("Warning: failed to convert roaster record %s: %v\n", rec.URI, err)
+			log.Printf("Warning: failed to convert roaster record %s: %v", rec.URI, err)
 			continue
 		}
+
+		// Extract rkey from URI
+		if _, _, rkey, err := ResolveATURI(rec.URI); err == nil {
+			roaster.RKey = rkey
+		}
+
 		roasters = append(roasters, roaster)
 	}
 
 	return roasters, nil
 }
 
-func (s *AtprotoStore) UpdateRoaster(id int, roaster *models.UpdateRoasterRequest) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) UpdateRoasterByRKey(rkey string, roaster *models.UpdateRoasterRequest) error {
+	ctx := s.getContext()
+
+	// Get existing to preserve createdAt
+	existing, err := s.GetRoasterByRKey(rkey)
+	if err != nil {
+		return fmt.Errorf("failed to get existing roaster: %w", err)
+	}
 
 	roasterModel := &models.Roaster{
 		Name:      roaster.Name,
 		Location:  roaster.Location,
 		Website:   roaster.Website,
-		CreatedAt: time.Now(),
+		CreatedAt: existing.CreatedAt,
 	}
 
 	record, err := RoasterToRecord(roasterModel)
@@ -502,7 +598,7 @@ func (s *AtprotoStore) UpdateRoaster(id int, roaster *models.UpdateRoasterReques
 		return fmt.Errorf("failed to convert roaster to record: %w", err)
 	}
 
-	err = s.client.PutRecord(s.ctx, s.did, s.sessionID, &PutRecordInput{
+	err = s.client.PutRecord(ctx, s.did, s.sessionID, &PutRecordInput{
 		Collection: "com.arabica.roaster",
 		RKey:       rkey,
 		Record:     record,
@@ -514,10 +610,10 @@ func (s *AtprotoStore) UpdateRoaster(id int, roaster *models.UpdateRoasterReques
 	return nil
 }
 
-func (s *AtprotoStore) DeleteRoaster(id int) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) DeleteRoasterByRKey(rkey string) error {
+	ctx := s.getContext()
 
-	err := s.client.DeleteRecord(s.ctx, s.did, s.sessionID, &DeleteRecordInput{
+	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: "com.arabica.roaster",
 		RKey:       rkey,
 	})
@@ -531,6 +627,8 @@ func (s *AtprotoStore) DeleteRoaster(id int) error {
 // ========== Grinder Operations ==========
 
 func (s *AtprotoStore) CreateGrinder(grinder *models.CreateGrinderRequest) (*models.Grinder, error) {
+	ctx := s.getContext()
+
 	grinderModel := &models.Grinder{
 		Name:        grinder.Name,
 		GrinderType: grinder.GrinderType,
@@ -544,7 +642,7 @@ func (s *AtprotoStore) CreateGrinder(grinder *models.CreateGrinderRequest) (*mod
 		return nil, fmt.Errorf("failed to convert grinder to record: %w", err)
 	}
 
-	output, err := s.client.CreateRecord(s.ctx, s.did, s.sessionID, &CreateRecordInput{
+	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
 		Collection: "com.arabica.grinder",
 		Record:     record,
 	})
@@ -560,15 +658,14 @@ func (s *AtprotoStore) CreateGrinder(grinder *models.CreateGrinderRequest) (*mod
 	// Store the rkey in the model
 	rkey := atURI.RecordKey().String()
 	grinderModel.RKey = rkey
-	grinderModel.ID = 0 // ID no longer used for atproto records
 
 	return grinderModel, nil
 }
 
-func (s *AtprotoStore) GetGrinder(id int) (*models.Grinder, error) {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) GetGrinderByRKey(rkey string) (*models.Grinder, error) {
+	ctx := s.getContext()
 
-	output, err := s.client.GetRecord(s.ctx, s.did, s.sessionID, &GetRecordInput{
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: "com.arabica.grinder",
 		RKey:       rkey,
 	})
@@ -582,13 +679,16 @@ func (s *AtprotoStore) GetGrinder(id int) (*models.Grinder, error) {
 		return nil, fmt.Errorf("failed to convert grinder record: %w", err)
 	}
 
+	grinder.RKey = rkey
+
 	return grinder, nil
 }
 
 func (s *AtprotoStore) ListGrinders() ([]*models.Grinder, error) {
-	output, err := s.client.ListRecords(s.ctx, s.did, s.sessionID, &ListRecordsInput{
-		Collection: "com.arabica.grinder",
-	})
+	ctx := s.getContext()
+
+	// Use ListAllRecords to handle pagination automatically
+	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, "com.arabica.grinder")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list grinder records: %w", err)
 	}
@@ -598,24 +698,36 @@ func (s *AtprotoStore) ListGrinders() ([]*models.Grinder, error) {
 	for _, rec := range output.Records {
 		grinder, err := RecordToGrinder(rec.Value, rec.URI)
 		if err != nil {
-			fmt.Printf("Warning: failed to convert grinder record %s: %v\n", rec.URI, err)
+			log.Printf("Warning: failed to convert grinder record %s: %v", rec.URI, err)
 			continue
 		}
+
+		// Extract rkey from URI
+		if _, _, rkey, err := ResolveATURI(rec.URI); err == nil {
+			grinder.RKey = rkey
+		}
+
 		grinders = append(grinders, grinder)
 	}
 
 	return grinders, nil
 }
 
-func (s *AtprotoStore) UpdateGrinder(id int, grinder *models.UpdateGrinderRequest) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) UpdateGrinderByRKey(rkey string, grinder *models.UpdateGrinderRequest) error {
+	ctx := s.getContext()
+
+	// Get existing to preserve createdAt
+	existing, err := s.GetGrinderByRKey(rkey)
+	if err != nil {
+		return fmt.Errorf("failed to get existing grinder: %w", err)
+	}
 
 	grinderModel := &models.Grinder{
 		Name:        grinder.Name,
 		GrinderType: grinder.GrinderType,
 		BurrType:    grinder.BurrType,
 		Notes:       grinder.Notes,
-		CreatedAt:   time.Now(),
+		CreatedAt:   existing.CreatedAt,
 	}
 
 	record, err := GrinderToRecord(grinderModel)
@@ -623,7 +735,7 @@ func (s *AtprotoStore) UpdateGrinder(id int, grinder *models.UpdateGrinderReques
 		return fmt.Errorf("failed to convert grinder to record: %w", err)
 	}
 
-	err = s.client.PutRecord(s.ctx, s.did, s.sessionID, &PutRecordInput{
+	err = s.client.PutRecord(ctx, s.did, s.sessionID, &PutRecordInput{
 		Collection: "com.arabica.grinder",
 		RKey:       rkey,
 		Record:     record,
@@ -635,10 +747,10 @@ func (s *AtprotoStore) UpdateGrinder(id int, grinder *models.UpdateGrinderReques
 	return nil
 }
 
-func (s *AtprotoStore) DeleteGrinder(id int) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) DeleteGrinderByRKey(rkey string) error {
+	ctx := s.getContext()
 
-	err := s.client.DeleteRecord(s.ctx, s.did, s.sessionID, &DeleteRecordInput{
+	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: "com.arabica.grinder",
 		RKey:       rkey,
 	})
@@ -652,6 +764,8 @@ func (s *AtprotoStore) DeleteGrinder(id int) error {
 // ========== Brewer Operations ==========
 
 func (s *AtprotoStore) CreateBrewer(brewer *models.CreateBrewerRequest) (*models.Brewer, error) {
+	ctx := s.getContext()
+
 	brewerModel := &models.Brewer{
 		Name:        brewer.Name,
 		Description: brewer.Description,
@@ -663,7 +777,7 @@ func (s *AtprotoStore) CreateBrewer(brewer *models.CreateBrewerRequest) (*models
 		return nil, fmt.Errorf("failed to convert brewer to record: %w", err)
 	}
 
-	output, err := s.client.CreateRecord(s.ctx, s.did, s.sessionID, &CreateRecordInput{
+	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
 		Collection: "com.arabica.brewer",
 		Record:     record,
 	})
@@ -679,15 +793,14 @@ func (s *AtprotoStore) CreateBrewer(brewer *models.CreateBrewerRequest) (*models
 	// Store the rkey in the model
 	rkey := atURI.RecordKey().String()
 	brewerModel.RKey = rkey
-	brewerModel.ID = 0 // ID no longer used for atproto records
 
 	return brewerModel, nil
 }
 
-func (s *AtprotoStore) GetBrewer(id int) (*models.Brewer, error) {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) GetBrewerByRKey(rkey string) (*models.Brewer, error) {
+	ctx := s.getContext()
 
-	output, err := s.client.GetRecord(s.ctx, s.did, s.sessionID, &GetRecordInput{
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: "com.arabica.brewer",
 		RKey:       rkey,
 	})
@@ -701,13 +814,16 @@ func (s *AtprotoStore) GetBrewer(id int) (*models.Brewer, error) {
 		return nil, fmt.Errorf("failed to convert brewer record: %w", err)
 	}
 
+	brewer.RKey = rkey
+
 	return brewer, nil
 }
 
 func (s *AtprotoStore) ListBrewers() ([]*models.Brewer, error) {
-	output, err := s.client.ListRecords(s.ctx, s.did, s.sessionID, &ListRecordsInput{
-		Collection: "com.arabica.brewer",
-	})
+	ctx := s.getContext()
+
+	// Use ListAllRecords to handle pagination automatically
+	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, "com.arabica.brewer")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list brewer records: %w", err)
 	}
@@ -717,22 +833,34 @@ func (s *AtprotoStore) ListBrewers() ([]*models.Brewer, error) {
 	for _, rec := range output.Records {
 		brewer, err := RecordToBrewer(rec.Value, rec.URI)
 		if err != nil {
-			fmt.Printf("Warning: failed to convert brewer record %s: %v\n", rec.URI, err)
+			log.Printf("Warning: failed to convert brewer record %s: %v", rec.URI, err)
 			continue
 		}
+
+		// Extract rkey from URI
+		if _, _, rkey, err := ResolveATURI(rec.URI); err == nil {
+			brewer.RKey = rkey
+		}
+
 		brewers = append(brewers, brewer)
 	}
 
 	return brewers, nil
 }
 
-func (s *AtprotoStore) UpdateBrewer(id int, brewer *models.UpdateBrewerRequest) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) UpdateBrewerByRKey(rkey string, brewer *models.UpdateBrewerRequest) error {
+	ctx := s.getContext()
+
+	// Get existing to preserve createdAt
+	existing, err := s.GetBrewerByRKey(rkey)
+	if err != nil {
+		return fmt.Errorf("failed to get existing brewer: %w", err)
+	}
 
 	brewerModel := &models.Brewer{
 		Name:        brewer.Name,
 		Description: brewer.Description,
-		CreatedAt:   time.Now(),
+		CreatedAt:   existing.CreatedAt,
 	}
 
 	record, err := BrewerToRecord(brewerModel)
@@ -740,7 +868,7 @@ func (s *AtprotoStore) UpdateBrewer(id int, brewer *models.UpdateBrewerRequest) 
 		return fmt.Errorf("failed to convert brewer to record: %w", err)
 	}
 
-	err = s.client.PutRecord(s.ctx, s.did, s.sessionID, &PutRecordInput{
+	err = s.client.PutRecord(ctx, s.did, s.sessionID, &PutRecordInput{
 		Collection: "com.arabica.brewer",
 		RKey:       rkey,
 		Record:     record,
@@ -752,10 +880,10 @@ func (s *AtprotoStore) UpdateBrewer(id int, brewer *models.UpdateBrewerRequest) 
 	return nil
 }
 
-func (s *AtprotoStore) DeleteBrewer(id int) error {
-	rkey := fmt.Sprintf("%d", id)
+func (s *AtprotoStore) DeleteBrewerByRKey(rkey string) error {
+	ctx := s.getContext()
 
-	err := s.client.DeleteRecord(s.ctx, s.did, s.sessionID, &DeleteRecordInput{
+	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: "com.arabica.brewer",
 		RKey:       rkey,
 	})
@@ -764,59 +892,6 @@ func (s *AtprotoStore) DeleteBrewer(id int) error {
 	}
 
 	return nil
-}
-
-// ========== Pour Operations ==========
-
-// Note: Pours are embedded in brew records, not separate
-// These operations modify the parent brew record
-
-func (s *AtprotoStore) CreatePours(brewID int, pours []models.CreatePourData) error {
-	// Get the existing brew
-	brew, err := s.GetBrew(brewID)
-	if err != nil {
-		return fmt.Errorf("failed to get brew: %w", err)
-	}
-
-	// Add the pours to the brew
-	brew.Pours = make([]*models.Pour, len(pours))
-	for i, pour := range pours {
-		brew.Pours[i] = &models.Pour{
-			WaterAmount: pour.WaterAmount,
-			TimeSeconds: pour.TimeSeconds,
-			PourNumber:  i + 1,
-		}
-	}
-
-	// Update the brew record with the pours
-	// This is a bit awkward with the current interface design
-	// In production, we might need a better approach
-	return fmt.Errorf("CreatePours not yet fully implemented for atproto")
-}
-
-func (s *AtprotoStore) ListPours(brewID int) ([]*models.Pour, error) {
-	// Get the brew and return its pours
-	brew, err := s.GetBrew(brewID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get brew: %w", err)
-	}
-
-	return brew.Pours, nil
-}
-
-func (s *AtprotoStore) DeletePoursForBrew(brewID int) error {
-	// Get the existing brew
-	brew, err := s.GetBrew(brewID)
-	if err != nil {
-		return fmt.Errorf("failed to get brew: %w", err)
-	}
-
-	// Clear the pours
-	brew.Pours = nil
-
-	// Update the brew record
-	// This requires re-implementing the update logic
-	return fmt.Errorf("DeletePoursForBrew not yet fully implemented for atproto")
 }
 
 func (s *AtprotoStore) Close() error {

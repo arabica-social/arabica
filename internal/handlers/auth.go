@@ -6,9 +6,17 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
+
+// httpClientWithTimeout creates an HTTP client with reasonable timeouts for API calls
+func httpClientWithTimeout() *http.Client {
+	return &http.Client{
+		Timeout: 10 * time.Second,
+	}
+}
 
 // HandleLogin redirects to the home page
 // The login form is now integrated into the home page
@@ -63,7 +71,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		Value:    sessData.AccountDID.String(),
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false, // TODO: Set to true in production with HTTPS
+		Secure:   h.config.SecureCookies,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400 * 30, // 30 days
 	})
@@ -73,7 +81,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		Value:    sessData.SessionID,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false, // TODO: Set to true in production with HTTPS
+		Secure:   h.config.SecureCookies,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400 * 30, // 30 days
 	})
@@ -160,11 +168,11 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Use a public API client to resolve the handle
 	// We don't need authentication for this
-	apiClient := &http.Client{}
+	apiClient := httpClientWithTimeout()
 
-	// First resolve the handle to a DID
-	// The URL package will properly encode the query parameter
-	resolveURL := fmt.Sprintf("https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=%s", handle)
+	// First resolve the handle to a DID using the public API
+	// Note: public.api.bsky.app is the public Bluesky API endpoint that works for any handle
+	resolveURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=%s", handle)
 	resp, err := apiClient.Get(resolveURL)
 	if err != nil {
 		log.Printf("Error resolving handle %q: %v", handle, err)
@@ -206,8 +214,8 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Now fetch the profile for this DID
-	profileURL := fmt.Sprintf("https://bsky.social/xrpc/app.bsky.actor.getProfile?actor=%s", resolveResult.DID)
+	// Now fetch the profile for this DID using the public API
+	profileURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=%s", resolveResult.DID)
 	profileResp, err := apiClient.Get(profileURL)
 	if err != nil {
 		log.Printf("Error fetching profile: %v", err)
@@ -262,8 +270,8 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use a public API client
-	apiClient := &http.Client{}
+	// Use a public API client with timeout
+	apiClient := httpClientWithTimeout()
 
 	// Try using the public API endpoint with typeahead parameter
 	// Some PDS instances support public search

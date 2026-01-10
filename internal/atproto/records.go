@@ -19,6 +19,7 @@ func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI string) (map
 	}
 
 	record := map[string]interface{}{
+		"$type":     "com.arabica.brew",
 		"beanRef":   beanURI,
 		"createdAt": brew.CreatedAt.Format(time.RFC3339),
 	}
@@ -155,6 +156,7 @@ func RecordToBrew(record map[string]interface{}, atURI string) (*models.Brew, er
 // BeanToRecord converts a models.Bean to an atproto record map
 func BeanToRecord(bean *models.Bean, roasterURI string) (map[string]interface{}, error) {
 	record := map[string]interface{}{
+		"$type":     "com.arabica.bean",
 		"name":      bean.Name,
 		"createdAt": bean.CreatedAt.Format(time.RFC3339),
 	}
@@ -232,6 +234,7 @@ func RecordToBean(record map[string]interface{}, atURI string) (*models.Bean, er
 // RoasterToRecord converts a models.Roaster to an atproto record map
 func RoasterToRecord(roaster *models.Roaster) (map[string]interface{}, error) {
 	record := map[string]interface{}{
+		"$type":     "com.arabica.roaster",
 		"name":      roaster.Name,
 		"createdAt": roaster.CreatedAt.Format(time.RFC3339),
 	}
@@ -294,6 +297,7 @@ func RecordToRoaster(record map[string]interface{}, atURI string) (*models.Roast
 // GrinderToRecord converts a models.Grinder to an atproto record map
 func GrinderToRecord(grinder *models.Grinder) (map[string]interface{}, error) {
 	record := map[string]interface{}{
+		"$type":     "com.arabica.grinder",
 		"name":      grinder.Name,
 		"createdAt": grinder.CreatedAt.Format(time.RFC3339),
 	}
@@ -362,6 +366,7 @@ func RecordToGrinder(record map[string]interface{}, atURI string) (*models.Grind
 // BrewerToRecord converts a models.Brewer to an atproto record map
 func BrewerToRecord(brewer *models.Brewer) (map[string]interface{}, error) {
 	record := map[string]interface{}{
+		"$type":     "com.arabica.brewer",
 		"name":      brewer.Name,
 		"createdAt": brewer.CreatedAt.Format(time.RFC3339),
 	}

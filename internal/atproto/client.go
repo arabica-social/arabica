@@ -201,6 +201,42 @@ func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID stri
 	}, nil
 }
 
+// ListAllRecords retrieves all records from a collection, handling pagination automatically
+// This is useful when you need to fetch the complete collection without worrying about pagination
+func (c *Client) ListAllRecords(ctx context.Context, did syntax.DID, sessionID string, collection string) (*ListRecordsOutput, error) {
+	var allRecords []Record
+	var cursor *string
+
+	// ATProto typically returns up to 100 records per page by default
+	// We'll request 100 at a time and paginate through all results
+	limit := int64(100)
+
+	for {
+		output, err := c.ListRecords(ctx, did, sessionID, &ListRecordsInput{
+			Collection: collection,
+			Limit:      &limit,
+			Cursor:     cursor,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		allRecords = append(allRecords, output.Records...)
+
+		// If there's no cursor, we've fetched all records
+		if output.Cursor == nil || *output.Cursor == "" {
+			break
+		}
+
+		cursor = output.Cursor
+	}
+
+	return &ListRecordsOutput{
+		Records: allRecords,
+		Cursor:  nil, // All records fetched, no more pagination
+	}, nil
+}
+
 // PutRecordInput contains parameters for updating a record
 type PutRecordInput struct {
 	Collection string

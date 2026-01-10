@@ -120,10 +120,22 @@ func (s *SQLiteStore) CreateBrew(req *models.CreateBrewRequest, userID int) (*mo
 		return nil, fmt.Errorf("failed to get last insert id: %w", err)
 	}
 
-	return s.GetBrew(int(id))
+	return s.getBrew(int(id))
 }
 
-func (s *SQLiteStore) GetBrew(id int) (*models.Brew, error) {
+// GetBrewByRKey retrieves a brew by its rkey (for SQLite, this is the string ID)
+func (s *SQLiteStore) GetBrewByRKey(rkey string) (*models.Brew, error) {
+	// For SQLite, rkey is just the string representation of the ID
+	// Parse it back to int for the query
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.getBrew(id)
+}
+
+func (s *SQLiteStore) getBrew(id int) (*models.Brew, error) {
 	brew := &models.Brew{
 		Bean: &models.Bean{
 			Roaster: &models.Roaster{},
@@ -244,12 +256,32 @@ func (s *SQLiteStore) UpdateBrew(id int, req *models.CreateBrewRequest) error {
 	return nil
 }
 
+// UpdateBrewByRKey updates a brew by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) UpdateBrewByRKey(rkey string, req *models.CreateBrewRequest) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.UpdateBrew(id, req)
+}
+
 func (s *SQLiteStore) DeleteBrew(id int) error {
 	_, err := s.db.Exec("DELETE FROM brews WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete brew: %w", err)
 	}
 	return nil
+}
+
+// DeleteBrewByRKey deletes a brew by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) DeleteBrewByRKey(rkey string) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.DeleteBrew(id)
 }
 
 // Bean operations
@@ -290,6 +322,16 @@ func (s *SQLiteStore) GetBean(id int) (*models.Bean, error) {
 	}
 
 	return bean, nil
+}
+
+// GetBeanByRKey retrieves a bean by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) GetBeanByRKey(rkey string) (*models.Bean, error) {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.GetBean(id)
 }
 
 func (s *SQLiteStore) ListBeans() ([]*models.Bean, error) {
@@ -355,6 +397,16 @@ func (s *SQLiteStore) GetRoaster(id int) (*models.Roaster, error) {
 	return roaster, nil
 }
 
+// GetRoasterByRKey retrieves a roaster by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) GetRoasterByRKey(rkey string) (*models.Roaster, error) {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.GetRoaster(id)
+}
+
 func (s *SQLiteStore) ListRoasters() ([]*models.Roaster, error) {
 	rows, err := s.db.Query(`
 		SELECT id, name, location, website, created_at
@@ -394,12 +446,32 @@ func (s *SQLiteStore) UpdateRoaster(id int, req *models.UpdateRoasterRequest) er
 	return nil
 }
 
+// UpdateRoasterByRKey updates a roaster by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) UpdateRoasterByRKey(rkey string, req *models.UpdateRoasterRequest) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.UpdateRoaster(id, req)
+}
+
 func (s *SQLiteStore) DeleteRoaster(id int) error {
 	_, err := s.db.Exec("DELETE FROM roasters WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete roaster: %w", err)
 	}
 	return nil
+}
+
+// DeleteRoasterByRKey deletes a roaster by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) DeleteRoasterByRKey(rkey string) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.DeleteRoaster(id)
 }
 
 // Bean update/delete operations
@@ -418,12 +490,32 @@ func (s *SQLiteStore) UpdateBean(id int, req *models.UpdateBeanRequest) error {
 	return nil
 }
 
+// UpdateBeanByRKey updates a bean by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) UpdateBeanByRKey(rkey string, req *models.UpdateBeanRequest) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.UpdateBean(id, req)
+}
+
 func (s *SQLiteStore) DeleteBean(id int) error {
 	_, err := s.db.Exec("DELETE FROM beans WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete bean: %w", err)
 	}
 	return nil
+}
+
+// DeleteBeanByRKey deletes a bean by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) DeleteBeanByRKey(rkey string) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.DeleteBean(id)
 }
 
 // Grinder operations
@@ -457,6 +549,16 @@ func (s *SQLiteStore) GetGrinder(id int) (*models.Grinder, error) {
 	}
 
 	return grinder, nil
+}
+
+// GetGrinderByRKey retrieves a grinder by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) GetGrinderByRKey(rkey string) (*models.Grinder, error) {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.GetGrinder(id)
 }
 
 func (s *SQLiteStore) ListGrinders() ([]*models.Grinder, error) {
@@ -498,12 +600,32 @@ func (s *SQLiteStore) UpdateGrinder(id int, req *models.UpdateGrinderRequest) er
 	return nil
 }
 
+// UpdateGrinderByRKey updates a grinder by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) UpdateGrinderByRKey(rkey string, req *models.UpdateGrinderRequest) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.UpdateGrinder(id, req)
+}
+
 func (s *SQLiteStore) DeleteGrinder(id int) error {
 	_, err := s.db.Exec("DELETE FROM grinders WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete grinder: %w", err)
 	}
 	return nil
+}
+
+// DeleteGrinderByRKey deletes a grinder by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) DeleteGrinderByRKey(rkey string) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.DeleteGrinder(id)
 }
 
 // Brewer operations
@@ -537,6 +659,16 @@ func (s *SQLiteStore) GetBrewer(id int) (*models.Brewer, error) {
 	}
 
 	return brewer, nil
+}
+
+// GetBrewerByRKey retrieves a brewer by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) GetBrewerByRKey(rkey string) (*models.Brewer, error) {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.GetBrewer(id)
 }
 
 func (s *SQLiteStore) ListBrewers() ([]*models.Brewer, error) {
@@ -578,12 +710,32 @@ func (s *SQLiteStore) UpdateBrewer(id int, req *models.UpdateBrewerRequest) erro
 	return nil
 }
 
+// UpdateBrewerByRKey updates a brewer by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) UpdateBrewerByRKey(rkey string, req *models.UpdateBrewerRequest) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.UpdateBrewer(id, req)
+}
+
 func (s *SQLiteStore) DeleteBrewer(id int) error {
 	_, err := s.db.Exec("DELETE FROM brewers WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete brewer: %w", err)
 	}
 	return nil
+}
+
+// DeleteBrewerByRKey deletes a brewer by its rkey (for SQLite, rkey is the string ID)
+func (s *SQLiteStore) DeleteBrewerByRKey(rkey string) error {
+	var id int
+	_, err := fmt.Sscanf(rkey, "%d", &id)
+	if err != nil {
+		return fmt.Errorf("invalid rkey: %w", err)
+	}
+	return s.DeleteBrewer(id)
 }
 
 // Pour operations

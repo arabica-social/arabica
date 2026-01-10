@@ -39,7 +39,9 @@ func NewOAuthManager(clientID, redirectURI string) (*OAuthManager, error) {
 	}
 
 	// Use in-memory store for development
-	// TODO: Replace with persistent store (Redis/SQLite) for production
+	// TODO(production): Replace with persistent store (e.g., SQLite-backed oauth.Store implementation)
+	// The in-memory store will lose all sessions on server restart, requiring users to re-authenticate.
+	// For production, implement oauth.Store interface with persistent storage.
 	store := oauth.NewMemStore()
 
 	// Create the OAuth client app

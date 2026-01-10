@@ -11,14 +11,27 @@ import (
 	"arabica/internal/templates"
 )
 
+// Config holds handler configuration options
+type Config struct {
+	// SecureCookies sets the Secure flag on authentication cookies
+	// Should be true in production (HTTPS), false for local development (HTTP)
+	SecureCookies bool
+}
+
 type Handler struct {
 	store         database.Store
 	oauth         *atproto.OAuthManager
 	atprotoClient *atproto.Client
+	config        Config
 }
 
 func NewHandler(store database.Store) *Handler {
 	return &Handler{store: store}
+}
+
+// SetConfig sets the handler configuration
+func (h *Handler) SetConfig(config Config) {
+	h.config = config
 }
 
 // SetOAuthManager sets the OAuth manager for authentication
@@ -132,12 +145,7 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 
 // Show edit brew form
 func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
 
 	// Require authentication
 	store, authenticated := h.getAtprotoStore(r)
@@ -148,7 +156,7 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	brew, err := store.GetBrew(id)
+	brew, err := store.GetBrewByRKey(rkey)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -185,28 +193,22 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 // Create new brew
 func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
+	// Require authentication first
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	beanID, _ := strconv.Atoi(r.FormValue("bean_id"))
 	temperature, _ := strconv.ParseFloat(r.FormValue("temperature"), 64)
 	waterAmount, _ := strconv.Atoi(r.FormValue("water_amount"))
 	timeSeconds, _ := strconv.Atoi(r.FormValue("time_seconds"))
 	rating, _ := strconv.Atoi(r.FormValue("rating"))
-
-	var grinderID *int
-	if gIDStr := r.FormValue("grinder_id"); gIDStr != "" {
-		gID, _ := strconv.Atoi(gIDStr)
-		grinderID = &gID
-	}
-
-	var brewerID *int
-	if bIDStr := r.FormValue("brewer_id"); bIDStr != "" {
-		bID, _ := strconv.Atoi(bIDStr)
-		brewerID = &bID
-	}
 
 	// Parse pours
 	var pours []models.CreatePourData
@@ -235,39 +237,23 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := &models.CreateBrewRequest{
-		BeanID:       beanID,
+		BeanRKey:     r.FormValue("bean_rkey"),
 		Method:       r.FormValue("method"),
 		Temperature:  temperature,
 		WaterAmount:  waterAmount,
 		TimeSeconds:  timeSeconds,
 		GrindSize:    r.FormValue("grind_size"),
-		Grinder:      r.FormValue("grinder"),
-		GrinderID:    grinderID,
-		BrewerID:     brewerID,
+		GrinderRKey:  r.FormValue("grinder_rkey"),
+		BrewerRKey:   r.FormValue("brewer_rkey"),
 		TastingNotes: r.FormValue("tasting_notes"),
 		Rating:       rating,
-		Pours:        pours,
+		Pours:        pours, // Pours are embedded in the brew record for ATProto
 	}
 
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	brew, err := store.CreateBrew(req, 1) // User ID not used with atproto
+	_, err := store.CreateBrew(req, 1) // User ID not used with atproto
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	// Create pours if any
-	if len(pours) > 0 {
-		if err := store.CreatePours(brew.ID, pours); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 	}
 
 	// Redirect to brew list
@@ -277,10 +263,12 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 
 // Update existing brew
 func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 
@@ -289,23 +277,10 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	beanID, _ := strconv.Atoi(r.FormValue("bean_id"))
 	temperature, _ := strconv.ParseFloat(r.FormValue("temperature"), 64)
 	waterAmount, _ := strconv.Atoi(r.FormValue("water_amount"))
 	timeSeconds, _ := strconv.Atoi(r.FormValue("time_seconds"))
 	rating, _ := strconv.Atoi(r.FormValue("rating"))
-
-	var grinderID *int
-	if gIDStr := r.FormValue("grinder_id"); gIDStr != "" {
-		gID, _ := strconv.Atoi(gIDStr)
-		grinderID = &gID
-	}
-
-	var brewerID *int
-	if bIDStr := r.FormValue("brewer_id"); bIDStr != "" {
-		bID, _ := strconv.Atoi(bIDStr)
-		brewerID = &bID
-	}
 
 	// Parse pours
 	var pours []models.CreatePourData
@@ -334,37 +309,23 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := &models.CreateBrewRequest{
-		BeanID:       beanID,
+		BeanRKey:     r.FormValue("bean_rkey"),
 		Method:       r.FormValue("method"),
 		Temperature:  temperature,
 		WaterAmount:  waterAmount,
 		TimeSeconds:  timeSeconds,
 		GrindSize:    r.FormValue("grind_size"),
-		Grinder:      r.FormValue("grinder"),
-		GrinderID:    grinderID,
-		BrewerID:     brewerID,
+		GrinderRKey:  r.FormValue("grinder_rkey"),
+		BrewerRKey:   r.FormValue("brewer_rkey"),
 		TastingNotes: r.FormValue("tasting_notes"),
 		Rating:       rating,
 		Pours:        pours,
 	}
 
-	err = h.store.UpdateBrew(id, req)
+	err := store.UpdateBrewByRKey(rkey, req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	// Delete existing pours and create new ones
-	if err := h.store.DeletePoursForBrew(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if len(pours) > 0 {
-		if err := h.store.CreatePours(id, pours); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 	}
 
 	// Redirect to brew list
@@ -374,14 +335,16 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 // Delete brew
 func (h *Handler) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	if err := h.store.DeleteBrew(id); err != nil {
+	if err := store.DeleteBrewByRKey(rkey); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -391,7 +354,14 @@ func (h *Handler) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 
 // Export brews as JSON
 func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
-	brews, err := h.store.ListBrews(1) // Default user ID = 1
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	brews, err := store.ListBrews(1) // User ID is not used with atproto
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -497,10 +467,12 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 
 // Bean update/delete handlers
 func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
@@ -510,12 +482,12 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.store.UpdateBean(id, &req); err != nil {
+	if err := store.UpdateBeanByRKey(rkey, &req); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	bean, err := h.store.GetBean(id)
+	bean, err := store.GetBeanByRKey(rkey)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -526,14 +498,16 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	if err := h.store.DeleteBean(id); err != nil {
+	if err := store.DeleteBeanByRKey(rkey); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -543,10 +517,12 @@ func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
 
 // Roaster update/delete handlers
 func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
@@ -556,12 +532,12 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.store.UpdateRoaster(id, &req); err != nil {
+	if err := store.UpdateRoasterByRKey(rkey, &req); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	roaster, err := h.store.GetRoaster(id)
+	roaster, err := store.GetRoasterByRKey(rkey)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -572,14 +548,16 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	if err := h.store.DeleteRoaster(id); err != nil {
+	if err := store.DeleteRoasterByRKey(rkey); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -613,10 +591,12 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
@@ -626,12 +606,12 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.store.UpdateGrinder(id, &req); err != nil {
+	if err := store.UpdateGrinderByRKey(rkey, &req); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	grinder, err := h.store.GetGrinder(id)
+	grinder, err := store.GetGrinderByRKey(rkey)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -642,14 +622,16 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	if err := h.store.DeleteGrinder(id); err != nil {
+	if err := store.DeleteGrinderByRKey(rkey); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -683,10 +665,12 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
@@ -696,12 +680,12 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.store.UpdateBrewer(id, &req); err != nil {
+	if err := store.UpdateBrewerByRKey(rkey, &req); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	brewer, err := h.store.GetBrewer(id)
+	brewer, err := store.GetBrewerByRKey(rkey)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -712,14 +696,16 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	rkey := r.PathValue("id") // URL still uses "id" path param but value is now rkey
+
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	if err := h.store.DeleteBrewer(id); err != nil {
+	if err := store.DeleteBrewerByRKey(rkey); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
