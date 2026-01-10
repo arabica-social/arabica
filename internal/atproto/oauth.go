@@ -22,7 +22,8 @@ var scopes = []string{
 
 // OAuthManager wraps indigo's OAuth client for managing user authentication
 type OAuthManager struct {
-	app *oauth.ClientApp
+	app           *oauth.ClientApp
+	onAuthSuccess func(did string) // Callback when user authenticates successfully
 }
 
 // NewOAuthManager creates a new OAuth manager with the given configuration
@@ -113,6 +114,12 @@ func (m *OAuthManager) ClientMetadata() oauth.ClientMetadata {
 	return m.app.Config.ClientMetadata()
 }
 
+// SetOnAuthSuccess sets a callback that is called when a user authenticates successfully
+// This is called both on initial login and when validating an existing session
+func (m *OAuthManager) SetOnAuthSuccess(fn func(did string)) {
+	m.onAuthSuccess = fn
+}
+
 // AuthMiddleware adds authentication context to HTTP requests
 func (m *OAuthManager) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +147,11 @@ func (m *OAuthManager) AuthMiddleware(next http.Handler) http.Handler {
 			// Invalid session, continue without auth
 			next.ServeHTTP(w, r)
 			return
+		}
+
+		// Call auth success callback (e.g., to register user in feed)
+		if m.onAuthSuccess != nil {
+			m.onAuthSuccess(did.String())
 		}
 
 		// Note: Token refresh is handled automatically by the SDK when making authenticated requests

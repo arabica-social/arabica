@@ -23,7 +23,7 @@ in {
     dataDir = lib.mkOption {
       type = lib.types.path;
       default = "/var/lib/arabica";
-      description = "Directory where arabica stores its database.";
+      description = "Directory where arabica stores its data (OAuth sessions, etc.).";
     };
 
     user = lib.mkOption {
@@ -90,7 +90,6 @@ in {
 
       environment = {
         PORT = toString cfg.settings.port;
-        DB_PATH = "${cfg.dataDir}/arabica.db";
       };
     };
 

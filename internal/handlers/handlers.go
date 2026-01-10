@@ -6,9 +6,10 @@ import (
 	"strconv"
 
 	"arabica/internal/atproto"
+	"arabica/internal/bff"
 	"arabica/internal/database"
+	"arabica/internal/feed"
 	"arabica/internal/models"
-	"arabica/internal/templates"
 )
 
 // Config holds handler configuration options
@@ -22,6 +23,8 @@ type Handler struct {
 	oauth         *atproto.OAuthManager
 	atprotoClient *atproto.Client
 	config        Config
+	feedService   *feed.Service
+	feedRegistry  *feed.Registry
 }
 
 func NewHandler() *Handler {
@@ -41,6 +44,16 @@ func (h *Handler) SetOAuthManager(oauth *atproto.OAuthManager) {
 // SetAtprotoClient sets the atproto client for record operations
 func (h *Handler) SetAtprotoClient(client *atproto.Client) {
 	h.atprotoClient = client
+}
+
+// SetFeedService sets the feed service for social feed
+func (h *Handler) SetFeedService(service *feed.Service) {
+	h.feedService = service
+}
+
+// SetFeedRegistry sets the feed registry for tracking users
+func (h *Handler) SetFeedRegistry(registry *feed.Registry) {
+	h.feedRegistry = registry
 }
 
 // getAtprotoStore creates a user-scoped atproto store from the request context
@@ -75,7 +88,13 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	didStr, err := atproto.GetAuthenticatedDID(r.Context())
 	isAuthenticated := err == nil && didStr != ""
 
-	if err := templates.RenderHome(w, isAuthenticated, didStr); err != nil {
+	// Fetch feed items (if feed service is configured)
+	var feedItems []*feed.FeedItem
+	if h.feedService != nil {
+		feedItems, _ = h.feedService.GetRecentBrews(r.Context(), 20)
+	}
+
+	if err := bff.RenderHome(w, isAuthenticated, didStr, feedItems); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -97,7 +116,7 @@ func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := templates.RenderBrewList(w, brews, authenticated, didStr); err != nil {
+	if err := bff.RenderBrewList(w, brews, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -137,7 +156,7 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := templates.RenderBrewForm(w, beans, roasters, grinders, brewers, nil, authenticated, didStr); err != nil {
+	if err := bff.RenderBrewForm(w, beans, roasters, grinders, brewers, nil, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -185,7 +204,7 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := templates.RenderBrewForm(w, beans, roasters, grinders, brewers, brew, authenticated, didStr); err != nil {
+	if err := bff.RenderBrewForm(w, beans, roasters, grinders, brewers, brew, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -493,7 +512,7 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 	// This avoids N+1 queries when using ATProto store
 	atproto.LinkBeansToRoasters(beans, roasters)
 
-	if err := templates.RenderManage(w, beans, roasters, grinders, brewers, authenticated, didStr); err != nil {
+	if err := bff.RenderManage(w, beans, roasters, grinders, brewers, authenticated, didStr); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

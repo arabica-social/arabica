@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/feed"
 	"arabica/internal/handlers"
 	"arabica/internal/routing"
 
@@ -68,6 +69,17 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to initialize OAuth")
 	}
 
+	// Initialize feed registry and service for community feed
+	feedRegistry := feed.NewRegistry()
+	feedService := feed.NewService(feedRegistry)
+	log.Info().Msg("Feed service initialized")
+
+	// Register users in the feed when they authenticate
+	// This ensures users are added to the feed even if they had an existing session
+	oauthManager.SetOnAuthSuccess(func(did string) {
+		feedRegistry.Register(did)
+	})
+
 	if clientID == "" {
 		log.Info().
 			Str("mode", "localhost development").
@@ -95,6 +107,8 @@ func main() {
 	})
 	h.SetOAuthManager(oauthManager)
 	h.SetAtprotoClient(atprotoClient)
+	h.SetFeedRegistry(feedRegistry)
+	h.SetFeedService(feedService)
 
 	// Setup router with middleware
 	handler := routing.SetupRouter(routing.Config{

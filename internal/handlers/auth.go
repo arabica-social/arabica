@@ -65,6 +65,11 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Register user in the feed registry for the community feed
+	if h.feedRegistry != nil {
+		h.feedRegistry.Register(sessData.AccountDID.String())
+	}
+
 	// Set session cookies
 	http.SetCookie(w, &http.Cookie{
 		Name:     "account_did",

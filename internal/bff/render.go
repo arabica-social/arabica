@@ -1,4 +1,4 @@
-package templates
+package bff
 
 import (
 	"html/template"
@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"arabica/internal/feed"
 	"arabica/internal/models"
 )
 
@@ -21,27 +22,33 @@ func loadTemplates() error {
 		// Parse all template files including partials
 		templates = template.New("")
 		templates = templates.Funcs(template.FuncMap{
-			"formatTemp":      formatTemp,
-			"formatTime":      formatTime,
-			"formatRating":    formatRating,
-			"formatID":        formatID,
-			"formatInt":       formatInt,
-			"formatRoasterID": formatRoasterID,
-			"poursToJSON":     poursToJSON,
-			"ptrEquals":       ptrEquals[int],
-			"ptrValue":        ptrValue[int],
+			"formatTemp":       FormatTemp,
+			"formatTime":       FormatTime,
+			"formatRating":     FormatRating,
+			"formatID":         FormatID,
+			"formatInt":        FormatInt,
+			"formatRoasterID":  FormatRoasterID,
+			"poursToJSON":      PoursToJSON,
+			"ptrEquals":        PtrEquals[int],
+			"ptrValue":         PtrValue[int],
+			"iterate":          Iterate,
+			"iterateRemaining": IterateRemaining,
+			"hasTemp":          HasTemp,
+			"hasValue":         HasValue,
 		})
 
 		// Try to find templates relative to working directory
 		// This supports both running from project root and from package directory
 		paths := []string{
-			"internal/templates/*.tmpl",
-			"../../internal/templates/*.tmpl", // for when tests run from package dir
+			"templates/*.tmpl",
+			"../../templates/*.tmpl",    // for when tests run from internal/bff
+			"../../../templates/*.tmpl", // for deeper test directories
 		}
 
 		var err error
 		for _, path := range paths {
-			if _, statErr := os.Stat(path[:len(path)-6]); statErr == nil || os.IsExist(statErr) {
+			dir := path[:len(path)-6] // Remove *.tmpl
+			if _, statErr := os.Stat(dir); statErr == nil {
 				templates, err = templates.ParseGlob(path)
 				if err == nil {
 					break
@@ -55,12 +62,14 @@ func loadTemplates() error {
 
 		// Parse partials
 		partialPaths := []string{
-			"internal/templates/partials/*.tmpl",
-			"../../internal/templates/partials/*.tmpl",
+			"templates/partials/*.tmpl",
+			"../../templates/partials/*.tmpl",
+			"../../../templates/partials/*.tmpl",
 		}
 
 		for _, path := range partialPaths {
-			if _, statErr := os.Stat(path[:len(path)-6]); statErr == nil || os.IsExist(statErr) {
+			dir := path[:len(path)-6]
+			if _, statErr := os.Stat(dir); statErr == nil {
 				templates, err = templates.ParseGlob(path)
 				if err == nil {
 					break
@@ -74,7 +83,7 @@ func loadTemplates() error {
 	return templatesErr
 }
 
-// Data structures for templates
+// PageData contains data for rendering pages
 type PageData struct {
 	Title           string
 	Beans           []*models.Bean
@@ -83,15 +92,18 @@ type PageData struct {
 	Brewers         []*models.Brewer
 	Brew            *BrewData
 	Brews           []*BrewListData
+	FeedItems       []*feed.FeedItem
 	IsAuthenticated bool
 	UserDID         string
 }
 
+// BrewData wraps a brew with pre-serialized JSON for pours
 type BrewData struct {
 	*models.Brew
 	PoursJSON string
 }
 
+// BrewListData wraps a brew with pre-formatted display values
 type BrewListData struct {
 	*models.Brew
 	TempFormatted   string
@@ -109,7 +121,7 @@ func RenderTemplate(w http.ResponseWriter, tmpl string, data *PageData) error {
 }
 
 // RenderHome renders the home page
-func RenderHome(w http.ResponseWriter, isAuthenticated bool, userDID string) error {
+func RenderHome(w http.ResponseWriter, isAuthenticated bool, userDID string, feedItems []*feed.FeedItem) error {
 	if err := loadTemplates(); err != nil {
 		return err
 	}
@@ -117,10 +129,11 @@ func RenderHome(w http.ResponseWriter, isAuthenticated bool, userDID string) err
 		Title:           "Home",
 		IsAuthenticated: isAuthenticated,
 		UserDID:         userDID,
+		FeedItems:       feedItems,
 	}
 	// Need to execute layout with the home template
 	t := template.Must(templates.Clone())
-	t = template.Must(t.ParseFiles("internal/templates/home.tmpl"))
+	t = template.Must(t.ParseFiles(findTemplatePath("home.tmpl")))
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
@@ -133,9 +146,9 @@ func RenderBrewList(w http.ResponseWriter, brews []*models.Brew, isAuthenticated
 	for i, brew := range brews {
 		brewList[i] = &BrewListData{
 			Brew:            brew,
-			TempFormatted:   formatTemp(brew.Temperature),
-			TimeFormatted:   formatTime(brew.TimeSeconds),
-			RatingFormatted: formatRating(brew.Rating),
+			TempFormatted:   FormatTemp(brew.Temperature),
+			TimeFormatted:   FormatTime(brew.TimeSeconds),
+			RatingFormatted: FormatRating(brew.Rating),
 		}
 	}
 
@@ -146,7 +159,7 @@ func RenderBrewList(w http.ResponseWriter, brews []*models.Brew, isAuthenticated
 		UserDID:         userDID,
 	}
 	t := template.Must(templates.Clone())
-	t = template.Must(t.ParseFiles("internal/templates/brew_list.tmpl"))
+	t = template.Must(t.ParseFiles(findTemplatePath("brew_list.tmpl")))
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
@@ -162,7 +175,7 @@ func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*mod
 		title = "Edit Brew"
 		brewData = &BrewData{
 			Brew:      brew,
-			PoursJSON: poursToJSON(brew.Pours),
+			PoursJSON: PoursToJSON(brew.Pours),
 		}
 	}
 
@@ -177,7 +190,7 @@ func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*mod
 		UserDID:         userDID,
 	}
 	t := template.Must(templates.Clone())
-	t = template.Must(t.ParseFiles("internal/templates/brew_form.tmpl"))
+	t = template.Must(t.ParseFiles(findTemplatePath("brew_form.tmpl")))
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
@@ -196,6 +209,22 @@ func RenderManage(w http.ResponseWriter, beans []*models.Bean, roasters []*model
 		UserDID:         userDID,
 	}
 	t := template.Must(templates.Clone())
-	t = template.Must(t.ParseFiles("internal/templates/manage.tmpl"))
+	t = template.Must(t.ParseFiles(findTemplatePath("manage.tmpl")))
 	return t.ExecuteTemplate(w, "layout", data)
+}
+
+// findTemplatePath finds the correct path to a template file
+func findTemplatePath(name string) string {
+	paths := []string{
+		"templates/" + name,
+		"../../templates/" + name,
+		"../../../templates/" + name,
+	}
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	// Return the default path even if it doesn't exist - will fail at parse time
+	return "templates/" + name
 }

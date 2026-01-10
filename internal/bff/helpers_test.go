@@ -1,4 +1,4 @@
-package templates
+package bff
 
 import (
 	"testing"
@@ -24,9 +24,9 @@ func TestFormatTemp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatTemp(tt.temp)
+			got := FormatTemp(tt.temp)
 			if got != tt.expected {
-				t.Errorf("formatTemp(%v) = %q, want %q", tt.temp, got, tt.expected)
+				t.Errorf("FormatTemp(%v) = %q, want %q", tt.temp, got, tt.expected)
 			}
 		})
 	}
@@ -46,9 +46,9 @@ func TestFormatTempValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatTempValue(tt.temp)
+			got := FormatTempValue(tt.temp)
 			if got != tt.expected {
-				t.Errorf("formatTempValue(%v) = %q, want %q", tt.temp, got, tt.expected)
+				t.Errorf("FormatTempValue(%v) = %q, want %q", tt.temp, got, tt.expected)
 			}
 		})
 	}
@@ -71,9 +71,9 @@ func TestFormatTime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatTime(tt.seconds)
+			got := FormatTime(tt.seconds)
 			if got != tt.expected {
-				t.Errorf("formatTime(%v) = %q, want %q", tt.seconds, got, tt.expected)
+				t.Errorf("FormatTime(%v) = %q, want %q", tt.seconds, got, tt.expected)
 			}
 		})
 	}
@@ -93,9 +93,9 @@ func TestFormatRating(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatRating(tt.rating)
+			got := FormatRating(tt.rating)
 			if got != tt.expected {
-				t.Errorf("formatRating(%v) = %q, want %q", tt.rating, got, tt.expected)
+				t.Errorf("FormatRating(%v) = %q, want %q", tt.rating, got, tt.expected)
 			}
 		})
 	}
@@ -114,9 +114,9 @@ func TestFormatID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatID(tt.id)
+			got := FormatID(tt.id)
 			if got != tt.expected {
-				t.Errorf("formatID(%v) = %q, want %q", tt.id, got, tt.expected)
+				t.Errorf("FormatID(%v) = %q, want %q", tt.id, got, tt.expected)
 			}
 		})
 	}
@@ -135,9 +135,9 @@ func TestFormatInt(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatInt(tt.val)
+			got := FormatInt(tt.val)
 			if got != tt.expected {
-				t.Errorf("formatInt(%v) = %q, want %q", tt.val, got, tt.expected)
+				t.Errorf("FormatInt(%v) = %q, want %q", tt.val, got, tt.expected)
 			}
 		})
 	}
@@ -145,25 +145,25 @@ func TestFormatInt(t *testing.T) {
 
 func TestFormatRoasterID(t *testing.T) {
 	t.Run("nil returns null", func(t *testing.T) {
-		got := formatRoasterID(nil)
+		got := FormatRoasterID(nil)
 		if got != "null" {
-			t.Errorf("formatRoasterID(nil) = %q, want %q", got, "null")
+			t.Errorf("FormatRoasterID(nil) = %q, want %q", got, "null")
 		}
 	})
 
 	t.Run("valid pointer", func(t *testing.T) {
 		id := 123
-		got := formatRoasterID(&id)
+		got := FormatRoasterID(&id)
 		if got != "123" {
-			t.Errorf("formatRoasterID(&123) = %q, want %q", got, "123")
+			t.Errorf("FormatRoasterID(&123) = %q, want %q", got, "123")
 		}
 	})
 
 	t.Run("zero pointer", func(t *testing.T) {
 		id := 0
-		got := formatRoasterID(&id)
+		got := FormatRoasterID(&id)
 		if got != "0" {
-			t.Errorf("formatRoasterID(&0) = %q, want %q", got, "0")
+			t.Errorf("FormatRoasterID(&0) = %q, want %q", got, "0")
 		}
 	})
 }
@@ -211,9 +211,9 @@ func TestPoursToJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := poursToJSON(tt.pours)
+			got := PoursToJSON(tt.pours)
 			if got != tt.expected {
-				t.Errorf("poursToJSON() = %q, want %q", got, tt.expected)
+				t.Errorf("PoursToJSON() = %q, want %q", got, tt.expected)
 			}
 		})
 	}
@@ -221,23 +221,23 @@ func TestPoursToJSON(t *testing.T) {
 
 func TestPtr(t *testing.T) {
 	t.Run("int", func(t *testing.T) {
-		p := ptr(42)
+		p := Ptr(42)
 		if *p != 42 {
-			t.Errorf("ptr(42) = %v, want 42", *p)
+			t.Errorf("Ptr(42) = %v, want 42", *p)
 		}
 	})
 
 	t.Run("string", func(t *testing.T) {
-		p := ptr("hello")
+		p := Ptr("hello")
 		if *p != "hello" {
-			t.Errorf("ptr(\"hello\") = %v, want \"hello\"", *p)
+			t.Errorf("Ptr(\"hello\") = %v, want \"hello\"", *p)
 		}
 	})
 
 	t.Run("zero value", func(t *testing.T) {
-		p := ptr(0)
+		p := Ptr(0)
 		if *p != 0 {
-			t.Errorf("ptr(0) = %v, want 0", *p)
+			t.Errorf("Ptr(0) = %v, want 0", *p)
 		}
 	})
 }
@@ -245,32 +245,32 @@ func TestPtr(t *testing.T) {
 func TestPtrEquals(t *testing.T) {
 	t.Run("nil pointer returns false", func(t *testing.T) {
 		var p *int = nil
-		if ptrEquals(p, 42) {
-			t.Error("ptrEquals(nil, 42) should be false")
+		if PtrEquals(p, 42) {
+			t.Error("PtrEquals(nil, 42) should be false")
 		}
 	})
 
 	t.Run("matching value returns true", func(t *testing.T) {
 		val := 42
-		if !ptrEquals(&val, 42) {
-			t.Error("ptrEquals(&42, 42) should be true")
+		if !PtrEquals(&val, 42) {
+			t.Error("PtrEquals(&42, 42) should be true")
 		}
 	})
 
 	t.Run("non-matching value returns false", func(t *testing.T) {
 		val := 42
-		if ptrEquals(&val, 99) {
-			t.Error("ptrEquals(&42, 99) should be false")
+		if PtrEquals(&val, 99) {
+			t.Error("PtrEquals(&42, 99) should be false")
 		}
 	})
 
 	t.Run("string comparison", func(t *testing.T) {
 		s := "hello"
-		if !ptrEquals(&s, "hello") {
-			t.Error("ptrEquals(&\"hello\", \"hello\") should be true")
+		if !PtrEquals(&s, "hello") {
+			t.Error("PtrEquals(&\"hello\", \"hello\") should be true")
 		}
-		if ptrEquals(&s, "world") {
-			t.Error("ptrEquals(&\"hello\", \"world\") should be false")
+		if PtrEquals(&s, "world") {
+			t.Error("PtrEquals(&\"hello\", \"world\") should be false")
 		}
 	})
 }
@@ -278,29 +278,29 @@ func TestPtrEquals(t *testing.T) {
 func TestPtrValue(t *testing.T) {
 	t.Run("nil int returns zero", func(t *testing.T) {
 		var p *int = nil
-		if ptrValue(p) != 0 {
-			t.Errorf("ptrValue(nil) = %v, want 0", ptrValue(p))
+		if PtrValue(p) != 0 {
+			t.Errorf("PtrValue(nil) = %v, want 0", PtrValue(p))
 		}
 	})
 
 	t.Run("valid int returns value", func(t *testing.T) {
 		val := 42
-		if ptrValue(&val) != 42 {
-			t.Errorf("ptrValue(&42) = %v, want 42", ptrValue(&val))
+		if PtrValue(&val) != 42 {
+			t.Errorf("PtrValue(&42) = %v, want 42", PtrValue(&val))
 		}
 	})
 
 	t.Run("nil string returns empty", func(t *testing.T) {
 		var p *string = nil
-		if ptrValue(p) != "" {
-			t.Errorf("ptrValue(nil string) = %v, want \"\"", ptrValue(p))
+		if PtrValue(p) != "" {
+			t.Errorf("PtrValue(nil string) = %v, want \"\"", PtrValue(p))
 		}
 	})
 
 	t.Run("valid string returns value", func(t *testing.T) {
 		s := "hello"
-		if ptrValue(&s) != "hello" {
-			t.Errorf("ptrValue(&\"hello\") = %v, want \"hello\"", ptrValue(&s))
+		if PtrValue(&s) != "hello" {
+			t.Errorf("PtrValue(&\"hello\") = %v, want \"hello\"", PtrValue(&s))
 		}
 	})
 }

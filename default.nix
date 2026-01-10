@@ -4,7 +4,7 @@ buildGoModule rec {
   pname = "arabica";
   version = "0.1.0";
   src = ./.;
-  vendorHash = "sha256-o7tm654ZGdPFyIZfhMCKi6QCb0re2PtQNJ3BM13vKzE=";
+  vendorHash = "sha256-pB/TlsU2XnsLdQ63kExR2jIsVi2d21ITr6vRK25SfUk=";
 
   nativeBuildInputs = [ tailwindcss ];
 
@@ -22,10 +22,9 @@ buildGoModule rec {
     mkdir -p $out/bin
     mkdir -p $out/share/arabica
 
-    # Copy static files, migrations, and templates
+    # Copy static files and templates
     cp -r web $out/share/arabica/
-    cp -r migrations $out/share/arabica/
-    cp -r internal $out/share/arabica/
+    cp -r templates $out/share/arabica/
     cp arabica $out/bin/arabica-unwrapped
     cat > $out/bin/arabica <<'EOF'
     #!/bin/sh
