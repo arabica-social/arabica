@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/database/boltstore"
 	"arabica/internal/feed"
 	"arabica/internal/handlers"
 	"arabica/internal/routing"
@@ -52,7 +54,37 @@ func main() {
 		port = "18910"
 	}
 
-	// Initialize OAuth manager
+	// Initialize BoltDB store for persistent sessions and feed registry
+	dbPath := os.Getenv("ARABICA_DB_PATH")
+	if dbPath == "" {
+		// Default to XDG data directory or home directory for development
+		// This avoids issues when running from read-only locations (e.g., nix run)
+		dataDir := os.Getenv("XDG_DATA_HOME")
+		if dataDir == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to get home directory")
+			}
+			dataDir = filepath.Join(home, ".local", "share")
+		}
+		dbPath = filepath.Join(dataDir, "arabica", "arabica.db")
+	}
+
+	store, err := boltstore.Open(boltstore.Options{
+		Path: dbPath,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Str("path", dbPath).Msg("Failed to open database")
+	}
+	defer store.Close()
+
+	log.Info().Str("path", dbPath).Msg("Database opened")
+
+	// Get specialized stores
+	sessionStore := store.SessionStore()
+	feedStore := store.FeedStore()
+
+	// Initialize OAuth manager with persistent session store
 	// For local development, localhost URLs trigger special localhost mode in indigo
 	clientID := os.Getenv("OAUTH_CLIENT_ID")
 	redirectURI := os.Getenv("OAUTH_REDIRECT_URI")
@@ -64,15 +96,19 @@ func main() {
 		log.Info().Msg("Using localhost OAuth mode (for development)")
 	}
 
-	oauthManager, err := atproto.NewOAuthManager(clientID, redirectURI)
+	oauthManager, err := atproto.NewOAuthManager(clientID, redirectURI, sessionStore)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize OAuth")
 	}
 
-	// Initialize feed registry and service for community feed
-	feedRegistry := feed.NewRegistry()
+	// Initialize feed registry with persistent store
+	// This loads existing registered DIDs from the database
+	feedRegistry := feed.NewPersistentRegistry(feedStore)
 	feedService := feed.NewService(feedRegistry)
-	log.Info().Msg("Feed service initialized")
+
+	log.Info().
+		Int("registered_users", feedRegistry.Count()).
+		Msg("Feed service initialized with persistent registry")
 
 	// Register users in the feed when they authenticate
 	// This ensures users are added to the feed even if they had an existing session
@@ -122,6 +158,7 @@ func main() {
 		Str("address", "0.0.0.0:"+port).
 		Str("url", "http://localhost:"+port).
 		Bool("secure_cookies", secureCookies).
+		Str("database", dbPath).
 		Msg("Starting HTTP server")
 
 	if err := http.ListenAndServe("0.0.0.0:"+port, handler); err != nil {

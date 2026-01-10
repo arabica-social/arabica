@@ -26,8 +26,10 @@ type OAuthManager struct {
 	onAuthSuccess func(did string) // Callback when user authenticates successfully
 }
 
-// NewOAuthManager creates a new OAuth manager with the given configuration
-func NewOAuthManager(clientID, redirectURI string) (*OAuthManager, error) {
+// NewOAuthManager creates a new OAuth manager with the given configuration.
+// If store is nil, an in-memory store will be used (sessions lost on restart).
+// For production, pass a persistent store (e.g., boltstore.SessionStore).
+func NewOAuthManager(clientID, redirectURI string, store oauth.ClientAuthStore) (*OAuthManager, error) {
 	var config oauth.ClientConfig
 
 	// Check if we should use localhost config
@@ -39,11 +41,10 @@ func NewOAuthManager(clientID, redirectURI string) (*OAuthManager, error) {
 		config = oauth.NewPublicConfig(clientID, redirectURI, scopes)
 	}
 
-	// Use in-memory store for development
-	// TODO(production): Replace with persistent store (e.g., SQLite-backed oauth.Store implementation)
-	// The in-memory store will lose all sessions on server restart, requiring users to re-authenticate.
-	// For production, implement oauth.Store interface with persistent storage.
-	store := oauth.NewMemStore()
+	// Use provided store, or fall back to in-memory for development
+	if store == nil {
+		store = oauth.NewMemStore()
+	}
 
 	// Create the OAuth client app
 	app := oauth.NewClientApp(&config, store)

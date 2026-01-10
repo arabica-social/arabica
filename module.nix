@@ -133,6 +133,7 @@ in {
         SECURE_COOKIES = lib.boolToString cfg.settings.secureCookies;
         OAUTH_CLIENT_ID = cfg.oauth.clientId;
         OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
+        ARABICA_DB_PATH = "${cfg.dataDir}/arabica.db";
       };
     };
 
