@@ -18,6 +18,44 @@ in {
         default = 18910;
         description = "Port on which the arabica server listens.";
       };
+
+      logLevel = lib.mkOption {
+        type = lib.types.enum [ "debug" "info" "warn" "error" ];
+        default = "info";
+        description = "Log level for the arabica server.";
+      };
+
+      logFormat = lib.mkOption {
+        type = lib.types.enum [ "pretty" "json" ];
+        default = "json";
+        description = "Log format. Use 'json' for production, 'pretty' for development.";
+      };
+
+      secureCookies = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
+      };
+    };
+
+    oauth = {
+      clientId = lib.mkOption {
+        type = lib.types.str;
+        description = ''
+          OAuth client ID. This should be the URL to your client-metadata.json endpoint.
+          For example: https://arabica.example.com/client-metadata.json
+        '';
+        example = "https://arabica.example.com/client-metadata.json";
+      };
+
+      redirectUri = lib.mkOption {
+        type = lib.types.str;
+        description = ''
+          OAuth redirect URI. This is where users are redirected after authentication.
+          For example: https://arabica.example.com/oauth/callback
+        '';
+        example = "https://arabica.example.com/oauth/callback";
+      };
     };
 
     dataDir = lib.mkOption {
@@ -90,6 +128,11 @@ in {
 
       environment = {
         PORT = toString cfg.settings.port;
+        LOG_LEVEL = cfg.settings.logLevel;
+        LOG_FORMAT = cfg.settings.logFormat;
+        SECURE_COOKIES = lib.boolToString cfg.settings.secureCookies;
+        OAUTH_CLIENT_ID = cfg.oauth.clientId;
+        OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
       };
     };
 
