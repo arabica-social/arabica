@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/rs/zerolog/log"
 )
 
 // httpClientWithTimeout creates an HTTP client with reasonable timeouts for API calls
@@ -40,7 +40,7 @@ func (h *Handler) HandleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	// Initiate OAuth flow
 	authURL, err := h.oauth.InitiateLogin(r.Context(), handle)
 	if err != nil {
-		log.Printf("Error initiating login: %v", err)
+		log.Error().Err(err).Str("handle", handle).Msg("Failed to initiate login")
 		http.Error(w, "Failed to initiate login", http.StatusInternalServerError)
 		return
 	}
@@ -60,7 +60,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	// Process the callback with all query parameters
 	sessData, err := h.oauth.HandleCallback(r.Context(), r.URL.Query())
 	if err != nil {
-		log.Printf("Error completing OAuth flow: %v", err)
+		log.Error().Err(err).Msg("Failed to complete OAuth flow")
 		http.Error(w, "Failed to complete login", http.StatusInternalServerError)
 		return
 	}
@@ -86,7 +86,10 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   86400 * 30, // 30 days
 	})
 
-	log.Printf("User logged in: DID=%s, SessionID=%s", sessData.AccountDID.String(), sessData.SessionID)
+	log.Info().
+		Str("user_did", sessData.AccountDID.String()).
+		Str("session_id", sessData.SessionID).
+		Msg("User logged in successfully")
 
 	// Redirect to home page
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -110,7 +113,7 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 			// Delete session from store
 			err = h.oauth.DeleteSession(r.Context(), did, sessionCookie.Value)
 			if err != nil {
-				log.Printf("Error deleting session: %v", err)
+				log.Warn().Err(err).Str("user_did", did.String()).Msg("Failed to delete session during logout")
 			}
 		}
 	}
@@ -175,7 +178,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	resolveURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=%s", handle)
 	resp, err := apiClient.Get(resolveURL)
 	if err != nil {
-		log.Printf("Error resolving handle %q: %v", handle, err)
+		log.Error().Err(err).Str("handle", handle).Msg("Failed to resolve handle")
 		http.Error(w, "Failed to resolve handle", http.StatusInternalServerError)
 		return
 	}
@@ -191,7 +194,11 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	if resp.StatusCode != 200 {
 		// Read the error body for better debugging
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		log.Printf("Unexpected status resolving handle %q: %d, body: %s", handle, resp.StatusCode, string(bodyBytes))
+		log.Warn().
+			Str("handle", handle).
+			Int("status", resp.StatusCode).
+			Str("body", string(bodyBytes)).
+			Msg("Unexpected status resolving handle")
 
 		// Return a more informative error for 400s
 		if resp.StatusCode == 400 {
@@ -209,7 +216,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		DID string `json:"did"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&resolveResult); err != nil {
-		log.Printf("Error decoding resolve response: %v", err)
+		log.Error().Err(err).Str("handle", handle).Msg("Failed to decode resolve response")
 		http.Error(w, "Failed to parse resolve response", http.StatusInternalServerError)
 		return
 	}
@@ -218,7 +225,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	profileURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=%s", resolveResult.DID)
 	profileResp, err := apiClient.Get(profileURL)
 	if err != nil {
-		log.Printf("Error fetching profile: %v", err)
+		log.Warn().Err(err).Str("did", resolveResult.DID).Msg("Failed to fetch profile")
 		// Return just the DID if we can't get the profile
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -246,7 +253,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		Avatar      *string `json:"avatar,omitempty"`
 	}
 	if err := json.NewDecoder(profileResp.Body).Decode(&profile); err != nil {
-		log.Printf("Error decoding profile: %v", err)
+		log.Warn().Err(err).Str("did", resolveResult.DID).Msg("Failed to decode profile")
 		// Return just the DID if we can't parse the profile
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -278,7 +285,7 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 	searchURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/app.bsky.actor.searchActorsTypeahead?q=%s&limit=5", query)
 	resp, err := apiClient.Get(searchURL)
 	if err != nil {
-		log.Printf("Error searching actors for %q: %v", query, err)
+		log.Warn().Err(err).Str("query", query).Msg("Failed to search actors")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}})
@@ -288,7 +295,11 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 
 	if resp.StatusCode != 200 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		log.Printf("Unexpected status searching actors %q: %d, body: %s", query, resp.StatusCode, string(bodyBytes))
+		log.Warn().
+			Str("query", query).
+			Int("status", resp.StatusCode).
+			Str("body", string(bodyBytes)).
+			Msg("Unexpected status searching actors")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}})
@@ -305,7 +316,7 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&searchResult); err != nil {
-		log.Printf("Error decoding search response: %v", err)
+		log.Warn().Err(err).Str("query", query).Msg("Failed to decode search response")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}})

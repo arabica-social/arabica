@@ -3,13 +3,13 @@ package atproto
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"arabica/internal/database"
 	"arabica/internal/models"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/rs/zerolog/log"
 )
 
 // AtprotoStore implements the database.Store interface using atproto records
@@ -110,7 +110,7 @@ func (s *AtprotoStore) CreateBrew(brew *models.CreateBrewRequest, userID int) (*
 	err = ResolveBrewRefs(ctx, s.client, brewModel, beanURI, grinderURI, brewerURI, s.sessionID)
 	if err != nil {
 		// Non-fatal: return the brew even if we can't resolve refs
-		log.Printf("Warning: failed to resolve brew references: %v", err)
+		log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve brew references")
 	}
 
 	return brewModel, nil
@@ -163,7 +163,7 @@ func (s *AtprotoStore) GetBrewByRKey(rkey string) (*models.Brew, error) {
 
 	err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
 	if err != nil {
-		log.Printf("Warning: failed to resolve brew references: %v", err)
+		log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve brew references")
 	}
 
 	return brew, nil
@@ -183,7 +183,7 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 	for _, rec := range output.Records {
 		brew, err := RecordToBrew(rec.Value, rec.URI)
 		if err != nil {
-			log.Printf("Warning: failed to convert brew record %s: %v", rec.URI, err)
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert brew record")
 			continue
 		}
 
@@ -216,7 +216,7 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 
 		err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
 		if err != nil {
-			log.Printf("Warning: failed to resolve brew references for %s: %v", rec.URI, err)
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to resolve brew references")
 		}
 
 		brews = append(brews, brew)
@@ -382,7 +382,7 @@ func (s *AtprotoStore) GetBeanByRKey(rkey string) (*models.Bean, error) {
 		if len(roasterRef) > 10 && (roasterRef[:5] == "at://" || roasterRef[:4] == "did:") {
 			bean.Roaster, err = ResolveRoasterRef(ctx, s.client, roasterRef, s.sessionID)
 			if err != nil {
-				log.Printf("Warning: failed to resolve roaster reference: %v", err)
+				log.Warn().Err(err).Str("bean_rkey", rkey).Str("roaster_ref", roasterRef).Msg("Failed to resolve roaster reference")
 			}
 		}
 	}
@@ -404,7 +404,7 @@ func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
 	for _, rec := range output.Records {
 		bean, err := RecordToBean(rec.Value, rec.URI)
 		if err != nil {
-			log.Printf("Warning: failed to convert bean record %s: %v", rec.URI, err)
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert bean record")
 			continue
 		}
 
@@ -423,7 +423,7 @@ func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
 			if len(roasterRef) > 10 && (roasterRef[:5] == "at://" || roasterRef[:4] == "did:") {
 				bean.Roaster, err = ResolveRoasterRef(ctx, s.client, roasterRef, s.sessionID)
 				if err != nil {
-					log.Printf("Warning: failed to resolve roaster reference: %v", err)
+					log.Warn().Err(err).Str("uri", rec.URI).Str("roaster_ref", roasterRef).Msg("Failed to resolve roaster reference")
 				}
 			}
 		}
@@ -562,7 +562,7 @@ func (s *AtprotoStore) ListRoasters() ([]*models.Roaster, error) {
 	for _, rec := range output.Records {
 		roaster, err := RecordToRoaster(rec.Value, rec.URI)
 		if err != nil {
-			log.Printf("Warning: failed to convert roaster record %s: %v", rec.URI, err)
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert roaster record")
 			continue
 		}
 
@@ -698,7 +698,7 @@ func (s *AtprotoStore) ListGrinders() ([]*models.Grinder, error) {
 	for _, rec := range output.Records {
 		grinder, err := RecordToGrinder(rec.Value, rec.URI)
 		if err != nil {
-			log.Printf("Warning: failed to convert grinder record %s: %v", rec.URI, err)
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert grinder record")
 			continue
 		}
 
@@ -833,7 +833,7 @@ func (s *AtprotoStore) ListBrewers() ([]*models.Brewer, error) {
 	for _, rec := range output.Records {
 		brewer, err := RecordToBrewer(rec.Value, rec.URI)
 		if err != nil {
-			log.Printf("Warning: failed to convert brewer record %s: %v", rec.URI, err)
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert brewer record")
 			continue
 		}
 

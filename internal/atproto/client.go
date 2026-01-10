@@ -3,9 +3,11 @@ package atproto
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/rs/zerolog/log"
 )
 
 // Client wraps the atproto API client for making authenticated requests to a PDS
@@ -51,6 +53,8 @@ type CreateRecordOutput struct {
 
 // CreateRecord creates a new record in the user's repository
 func (c *Client) CreateRecord(ctx context.Context, did syntax.DID, sessionID string, input *CreateRecordInput) (*CreateRecordOutput, error) {
+	start := time.Now()
+
 	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return nil, err
@@ -74,9 +78,28 @@ func (c *Client) CreateRecord(ctx context.Context, did syntax.DID, sessionID str
 	}
 
 	err = apiClient.Post(ctx, "com.atproto.repo.createRecord", body, &result)
+
+	duration := time.Since(start)
+
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("method", "createRecord").
+			Str("collection", input.Collection).
+			Str("did", did.String()).
+			Dur("duration", duration).
+			Msg("PDS request failed")
 		return nil, fmt.Errorf("failed to create record: %w", err)
 	}
+
+	log.Debug().
+		Str("method", "createRecord").
+		Str("collection", input.Collection).
+		Str("did", did.String()).
+		Str("uri", result.URI).
+		Str("cid", result.CID).
+		Dur("duration", duration).
+		Msg("PDS request completed")
 
 	return &CreateRecordOutput{
 		URI: result.URI,
@@ -99,6 +122,8 @@ type GetRecordOutput struct {
 
 // GetRecord retrieves a single record by its rkey
 func (c *Client) GetRecord(ctx context.Context, did syntax.DID, sessionID string, input *GetRecordInput) (*GetRecordOutput, error) {
+	start := time.Now()
+
 	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return nil, err
@@ -119,9 +144,30 @@ func (c *Client) GetRecord(ctx context.Context, did syntax.DID, sessionID string
 	}
 
 	err = apiClient.Get(ctx, "com.atproto.repo.getRecord", params, &result)
+
+	duration := time.Since(start)
+
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("method", "getRecord").
+			Str("collection", input.Collection).
+			Str("rkey", input.RKey).
+			Str("did", did.String()).
+			Dur("duration", duration).
+			Msg("PDS request failed")
 		return nil, fmt.Errorf("failed to get record: %w", err)
 	}
+
+	log.Debug().
+		Str("method", "getRecord").
+		Str("collection", input.Collection).
+		Str("rkey", input.RKey).
+		Str("did", did.String()).
+		Str("uri", result.URI).
+		Str("cid", result.CID).
+		Dur("duration", duration).
+		Msg("PDS request completed")
 
 	return &GetRecordOutput{
 		URI:   result.URI,
@@ -152,6 +198,8 @@ type Record struct {
 
 // ListRecords retrieves a list of records from a collection
 func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID string, input *ListRecordsInput) (*ListRecordsOutput, error) {
+	start := time.Now()
+
 	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return nil, err
@@ -181,9 +229,35 @@ func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID stri
 	}
 
 	err = apiClient.Get(ctx, "com.atproto.repo.listRecords", params, &result)
+
+	duration := time.Since(start)
+	recordCount := len(result.Records)
+
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("method", "listRecords").
+			Str("collection", input.Collection).
+			Str("did", did.String()).
+			Dur("duration", duration).
+			Msg("PDS request failed")
 		return nil, fmt.Errorf("failed to list records: %w", err)
 	}
+
+	logEvent := log.Debug().
+		Str("method", "listRecords").
+		Str("collection", input.Collection).
+		Str("did", did.String()).
+		Int("record_count", recordCount).
+		Dur("duration", duration)
+
+	if result.Cursor != nil && *result.Cursor != "" {
+		logEvent.Str("cursor", *result.Cursor).Bool("has_more", true)
+	} else {
+		logEvent.Bool("has_more", false)
+	}
+
+	logEvent.Msg("PDS request completed")
 
 	// Convert to our output format
 	records := make([]Record, len(result.Records))
@@ -204,8 +278,10 @@ func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID stri
 // ListAllRecords retrieves all records from a collection, handling pagination automatically
 // This is useful when you need to fetch the complete collection without worrying about pagination
 func (c *Client) ListAllRecords(ctx context.Context, did syntax.DID, sessionID string, collection string) (*ListRecordsOutput, error) {
+	start := time.Now()
 	var allRecords []Record
 	var cursor *string
+	pageCount := 0
 
 	// ATProto typically returns up to 100 records per page by default
 	// We'll request 100 at a time and paginate through all results
@@ -222,6 +298,7 @@ func (c *Client) ListAllRecords(ctx context.Context, did syntax.DID, sessionID s
 		}
 
 		allRecords = append(allRecords, output.Records...)
+		pageCount++
 
 		// If there's no cursor, we've fetched all records
 		if output.Cursor == nil || *output.Cursor == "" {
@@ -230,6 +307,17 @@ func (c *Client) ListAllRecords(ctx context.Context, did syntax.DID, sessionID s
 
 		cursor = output.Cursor
 	}
+
+	duration := time.Since(start)
+
+	log.Info().
+		Str("method", "listAllRecords").
+		Str("collection", collection).
+		Str("did", did.String()).
+		Int("total_records", len(allRecords)).
+		Int("pages_fetched", pageCount).
+		Dur("duration", duration).
+		Msg("PDS pagination completed")
 
 	return &ListRecordsOutput{
 		Records: allRecords,
@@ -246,6 +334,8 @@ type PutRecordInput struct {
 
 // PutRecord updates an existing record in the user's repository
 func (c *Client) PutRecord(ctx context.Context, did syntax.DID, sessionID string, input *PutRecordInput) error {
+	start := time.Now()
+
 	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return err
@@ -266,9 +356,30 @@ func (c *Client) PutRecord(ctx context.Context, did syntax.DID, sessionID string
 	}
 
 	err = apiClient.Post(ctx, "com.atproto.repo.putRecord", body, &result)
+
+	duration := time.Since(start)
+
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("method", "putRecord").
+			Str("collection", input.Collection).
+			Str("rkey", input.RKey).
+			Str("did", did.String()).
+			Dur("duration", duration).
+			Msg("PDS request failed")
 		return fmt.Errorf("failed to update record: %w", err)
 	}
+
+	log.Debug().
+		Str("method", "putRecord").
+		Str("collection", input.Collection).
+		Str("rkey", input.RKey).
+		Str("did", did.String()).
+		Str("uri", result.URI).
+		Str("cid", result.CID).
+		Dur("duration", duration).
+		Msg("PDS request completed")
 
 	return nil
 }
@@ -281,6 +392,8 @@ type DeleteRecordInput struct {
 
 // DeleteRecord deletes a record from the user's repository
 func (c *Client) DeleteRecord(ctx context.Context, did syntax.DID, sessionID string, input *DeleteRecordInput) error {
+	start := time.Now()
+
 	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
 	if err != nil {
 		return err
@@ -297,9 +410,28 @@ func (c *Client) DeleteRecord(ctx context.Context, did syntax.DID, sessionID str
 	var result struct{}
 
 	err = apiClient.Post(ctx, "com.atproto.repo.deleteRecord", body, &result)
+
+	duration := time.Since(start)
+
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("method", "deleteRecord").
+			Str("collection", input.Collection).
+			Str("rkey", input.RKey).
+			Str("did", did.String()).
+			Dur("duration", duration).
+			Msg("PDS request failed")
 		return fmt.Errorf("failed to delete record: %w", err)
 	}
+
+	log.Debug().
+		Str("method", "deleteRecord").
+		Str("collection", input.Collection).
+		Str("rkey", input.RKey).
+		Str("did", did.String()).
+		Dur("duration", duration).
+		Msg("PDS request completed")
 
 	return nil
 }

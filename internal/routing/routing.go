@@ -1,5 +1,77 @@
 package routing
 
-func Start() {
+import (
+	"net/http"
 
+	"arabica/internal/atproto"
+	"arabica/internal/handlers"
+	"arabica/internal/middleware"
+
+	"github.com/rs/zerolog"
+)
+
+// Config holds the configuration needed for setting up routes
+type Config struct {
+	Handlers     *handlers.Handler
+	OAuthManager *atproto.OAuthManager
+	Logger       zerolog.Logger
+}
+
+// SetupRouter creates and configures the HTTP router with all routes and middleware
+func SetupRouter(cfg Config) http.Handler {
+	h := cfg.Handlers
+	mux := http.NewServeMux()
+
+	// OAuth routes
+	mux.HandleFunc("GET /login", h.HandleLogin)
+	mux.HandleFunc("POST /auth/login", h.HandleLoginSubmit)
+	mux.HandleFunc("GET /oauth/callback", h.HandleOAuthCallback)
+	mux.HandleFunc("POST /logout", h.HandleLogout)
+	mux.HandleFunc("GET /client-metadata.json", h.HandleClientMetadata)
+	mux.HandleFunc("GET /.well-known/oauth-client-metadata", h.HandleWellKnownOAuth)
+
+	// API routes for handle resolution (used by login autocomplete)
+	mux.HandleFunc("GET /api/resolve-handle", h.HandleResolveHandle)
+	mux.HandleFunc("GET /api/search-actors", h.HandleSearchActors)
+
+	// Page routes (must come before static files)
+	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
+	mux.HandleFunc("GET /manage", h.HandleManage)
+	mux.HandleFunc("GET /brews", h.HandleBrewList)
+	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
+	mux.HandleFunc("GET /brews/{id}", h.HandleBrewEdit)
+	mux.HandleFunc("POST /brews", h.HandleBrewCreate)
+	mux.HandleFunc("PUT /brews/{id}", h.HandleBrewUpdate)
+	mux.HandleFunc("DELETE /brews/{id}", h.HandleBrewDelete)
+	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
+
+	// API routes for CRUD operations
+	mux.HandleFunc("POST /api/beans", h.HandleBeanCreate)
+	mux.HandleFunc("PUT /api/beans/{id}", h.HandleBeanUpdate)
+	mux.HandleFunc("DELETE /api/beans/{id}", h.HandleBeanDelete)
+
+	mux.HandleFunc("POST /api/roasters", h.HandleRoasterCreate)
+	mux.HandleFunc("PUT /api/roasters/{id}", h.HandleRoasterUpdate)
+	mux.HandleFunc("DELETE /api/roasters/{id}", h.HandleRoasterDelete)
+
+	mux.HandleFunc("POST /api/grinders", h.HandleGrinderCreate)
+	mux.HandleFunc("PUT /api/grinders/{id}", h.HandleGrinderUpdate)
+	mux.HandleFunc("DELETE /api/grinders/{id}", h.HandleGrinderDelete)
+
+	mux.HandleFunc("POST /api/brewers", h.HandleBrewerCreate)
+	mux.HandleFunc("PUT /api/brewers/{id}", h.HandleBrewerUpdate)
+	mux.HandleFunc("DELETE /api/brewers/{id}", h.HandleBrewerDelete)
+
+	// Static files (must come after specific routes)
+	fs := http.FileServer(http.Dir("web/static"))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+
+	// Apply middleware in order (last added is executed first)
+	// 1. Apply OAuth middleware to add auth context to all requests
+	handler := cfg.OAuthManager.AuthMiddleware(mux)
+
+	// 2. Apply logging middleware (wraps everything)
+	handler = middleware.LoggingMiddleware(cfg.Logger)(handler)
+
+	return handler
 }

@@ -96,8 +96,56 @@ Click "Export JSON" on the brews page to download all your data as JSON.
 
 Environment variables:
 
-- `DB_PATH`: Path to SQLite database (default: `./arabica.db`)
-- `PORT`: Server port (default: `8080`)
+- `DB_PATH`: Path to SQLite database (default: `$HOME/.local/share/arabica/arabica.db` or XDG_DATA_HOME)
+- `PORT`: Server port (default: `18910`)
+- `LOG_LEVEL`: Logging level - `debug`, `info`, `warn`, or `error` (default: `info`)
+- `LOG_FORMAT`: Log output format - `console` (pretty, colored) or `json` (structured) (default: `console`)
+- `OAUTH_CLIENT_ID`: OAuth client ID for ATProto authentication (optional, uses localhost mode if not set)
+- `OAUTH_REDIRECT_URI`: OAuth redirect URI (optional, auto-configured for localhost)
+- `SECURE_COOKIES`: Set to `true` for production HTTPS environments (default: `false`)
+
+### Logging
+
+The application uses [zerolog](https://github.com/rs/zerolog) for structured logging with the following features:
+
+**Log Levels:**
+- `debug` - Detailed information including all PDS requests/responses
+- `info` - General application flow (default)
+- `warn` - Warning messages (non-fatal issues)
+- `error` - Error messages
+
+**Log Formats:**
+- `console` (default) - Human-readable, colored output for development
+- `json` - Structured JSON logs for production/log aggregation
+
+**Request Logging:**
+All HTTP requests are logged with:
+- Method, path, query parameters
+- Status code, response time, bytes written
+- Client IP, user agent, referer
+- Authenticated user DID (if logged in)
+- Content type
+
+**PDS Request Logging:**
+All ATProto PDS operations are logged (at `debug` level) with:
+- Operation type (createRecord, getRecord, listRecords, etc.)
+- Collection name, record key
+- User DID
+- Request duration
+- Record counts for list operations
+- Pagination details
+
+**Example configurations:**
+
+Development (verbose):
+```bash
+LOG_LEVEL=debug LOG_FORMAT=console go run ./cmd/server
+```
+
+Production (structured):
+```bash
+LOG_LEVEL=info LOG_FORMAT=json SECURE_COOKIES=true ./arabica-server
+```
 
 ## Database Abstraction
 
