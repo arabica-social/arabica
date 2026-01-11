@@ -311,10 +311,11 @@ type ProfilePageData struct {
 	IsAuthenticated bool
 	UserDID         string
 	UserProfile     *UserProfile
+	IsOwnProfile    bool // Whether viewing user is the profile owner
 }
 
 // RenderProfile renders a user's public profile page
-func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string, userProfile *UserProfile) error {
+func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string, userProfile *UserProfile, isOwnProfile bool) error {
 	t, err := parsePageTemplate("profile.tmpl")
 	if err != nil {
 		return err
@@ -336,6 +337,7 @@ func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*mod
 		IsAuthenticated: isAuthenticated,
 		UserDID:         userDID,
 		UserProfile:     userProfile,
+		IsOwnProfile:    isOwnProfile,
 	}
 	return t.ExecuteTemplate(w, "layout", data)
 }

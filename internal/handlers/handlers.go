@@ -1414,8 +1414,11 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(ctx, didStr)
 	}
 
+	// Check if the viewing user is the profile owner
+	isOwnProfile := isAuthenticated && didStr == did
+
 	// Render profile page
-	if err := bff.RenderProfile(w, profile, brews, beans, roasters, grinders, brewers, isAuthenticated, didStr, userProfile); err != nil {
+	if err := bff.RenderProfile(w, profile, brews, beans, roasters, grinders, brewers, isAuthenticated, didStr, userProfile, isOwnProfile); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile page")
 	}
