@@ -179,6 +179,7 @@ social.arabica.alpha.share     - Re-share a brew to your feed
 ```
 
 ### Like Record (Planned)
+
 ```json
 {
   "lexicon": 1,
@@ -205,6 +206,7 @@ social.arabica.alpha.share     - Re-share a brew to your feed
 ```
 
 ### Comment Record (Planned)
+
 ```json
 {
   "lexicon": 1,
@@ -238,16 +240,19 @@ social.arabica.alpha.share     - Re-share a brew to your feed
 ### Implementation Approach
 
 **Cross-user interactions:**
+
 - Likes/comments stored in the actor's PDS (not the brew owner's)
 - Use `public_client.go` to read other users' brews
 - Aggregate likes/comments via relay/firehose or direct PDS queries
 
 **Feed aggregation:**
+
 - Current: Poll registered users' PDS for brews
 - Future: Subscribe to firehose for real-time updates
 - Index social interactions in local DB for fast queries
 
 **UI patterns:**
+
 - Like button on brew cards in feed
 - Comment thread below brew detail view
 - Share button to re-post with optional note
@@ -274,23 +279,9 @@ Cloudflare caches static assets, so incrementing the version ensures users get t
 
 ## Known Issues / TODOs
 
-See todo list in conversation for tracked issues. Key areas:
+Key areas:
 
 - Context should flow through methods (some fixed, verify all paths)
 - Cache race conditions need copy-on-write pattern
 - Missing CID validation on record updates (AT Protocol best practice)
 - Rate limiting for PDS calls not implemented
-
-## Testing
-
-Tests exist for:
-
-- `internal/atproto/` - Record conversion, NSID parsing, resolver
-- `internal/bff/` - Template helpers
-- `internal/middleware/` - Logging
-
-Missing coverage:
-
-- HTTP handlers
-- OAuth flow
-- Feed service

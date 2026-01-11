@@ -49,6 +49,9 @@ func SetupRouter(cfg Config) http.Handler {
 	// Manage page partial (loaded async via HTMX)
 	mux.HandleFunc("GET /api/manage", h.HandleManagePartial)
 
+	// Profile content partial (loaded async via HTMX)
+	mux.HandleFunc("GET /api/profile/{actor}", h.HandleProfilePartial)
+
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
 	mux.HandleFunc("GET /about", h.HandleAbout)

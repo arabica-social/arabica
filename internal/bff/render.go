@@ -314,6 +314,16 @@ type ProfilePageData struct {
 	IsOwnProfile    bool // Whether viewing user is the profile owner
 }
 
+// ProfileContentData contains data for rendering the profile content partial
+type ProfileContentData struct {
+	Brews        []*models.Brew
+	Beans        []*models.Bean
+	Roasters     []*models.Roaster
+	Grinders     []*models.Grinder
+	Brewers      []*models.Brewer
+	IsOwnProfile bool
+}
+
 // RenderProfile renders a user's public profile page
 func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string, userProfile *UserProfile, isOwnProfile bool) error {
 	t, err := parsePageTemplate("profile.tmpl")
@@ -340,6 +350,24 @@ func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*mod
 		IsOwnProfile:    isOwnProfile,
 	}
 	return t.ExecuteTemplate(w, "layout", data)
+}
+
+// RenderProfilePartial renders just the profile content partial (for HTMX async loading)
+func RenderProfilePartial(w http.ResponseWriter, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool) error {
+	t, err := parsePartialTemplate()
+	if err != nil {
+		return err
+	}
+
+	data := &ProfileContentData{
+		Brews:        brews,
+		Beans:        beans,
+		Roasters:     roasters,
+		Grinders:     grinders,
+		Brewers:      brewers,
+		IsOwnProfile: isOwnProfile,
+	}
+	return t.ExecuteTemplate(w, "profile_content", data)
 }
 
 // Render404 renders the 404 not found page
