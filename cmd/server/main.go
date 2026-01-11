@@ -54,6 +54,11 @@ func main() {
 		port = "18910"
 	}
 
+	// Get public root URL for reverse proxy deployments
+	// This allows the server to be accessed via a different URL than it's running on
+	// e.g., SERVER_PUBLIC_URL=https://arabica.example.com when behind a reverse proxy
+	publicURL := os.Getenv("SERVER_PUBLIC_URL")
+
 	// Initialize BoltDB store for persistent sessions and feed registry
 	dbPath := os.Getenv("ARABICA_DB_PATH")
 	if dbPath == "" {
@@ -90,10 +95,18 @@ func main() {
 	redirectURI := os.Getenv("OAUTH_REDIRECT_URI")
 
 	if clientID == "" && redirectURI == "" {
-		// Use localhost defaults for development
-		redirectURI = fmt.Sprintf("http://127.0.0.1:%s/oauth/callback", port)
-		clientID = "" // Empty triggers localhost mode
-		log.Info().Msg("Using localhost OAuth mode (for development)")
+		// Use public URL if set, otherwise localhost defaults for development
+		if publicURL != "" {
+			redirectURI = publicURL + "/oauth/callback"
+			clientID = publicURL + "/oauth-client-metadata.json"
+			log.Info().
+				Str("public_url", publicURL).
+				Msg("Using public URL for OAuth (reverse proxy mode)")
+		} else {
+			redirectURI = fmt.Sprintf("http://127.0.0.1:%s/oauth/callback", port)
+			clientID = "" // Empty triggers localhost mode
+			log.Info().Msg("Using localhost OAuth mode (for development)")
+		}
 	}
 
 	oauthManager, err := atproto.NewOAuthManager(clientID, redirectURI, sessionStore)
@@ -123,6 +136,7 @@ func main() {
 			Msg("OAuth configured")
 	} else {
 		log.Info().
+			Str("mode", "public").
 			Str("client_id", clientID).
 			Str("redirect_uri", redirectURI).
 			Msg("OAuth configured")
@@ -132,19 +146,27 @@ func main() {
 	atprotoClient := atproto.NewClient(oauthManager)
 	log.Info().Msg("ATProto client initialized")
 
+	// Initialize session cache for in-memory caching of user data
+	sessionCache := atproto.NewSessionCache()
+	stopCacheCleanup := sessionCache.StartCleanupRoutine(10 * time.Minute)
+	defer stopCacheCleanup()
+	log.Info().Msg("Session cache initialized with background cleanup")
+
 	// Determine if we should use secure cookies (default: false for development)
 	// Set SECURE_COOKIES=true in production with HTTPS
 	secureCookies := os.Getenv("SECURE_COOKIES") == "true"
 
-	// Initialize handlers
-	h := handlers.NewHandler()
-	h.SetConfig(handlers.Config{
-		SecureCookies: secureCookies,
-	})
-	h.SetOAuthManager(oauthManager)
-	h.SetAtprotoClient(atprotoClient)
-	h.SetFeedRegistry(feedRegistry)
-	h.SetFeedService(feedService)
+	// Initialize handlers with all dependencies via constructor injection
+	h := handlers.NewHandler(
+		oauthManager,
+		atprotoClient,
+		sessionCache,
+		feedService,
+		feedRegistry,
+		handlers.Config{
+			SecureCookies: secureCookies,
+		},
+	)
 
 	// Setup router with middleware
 	handler := routing.SetupRouter(routing.Config{

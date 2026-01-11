@@ -28,39 +28,7 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 			// Calculate duration
 			duration := time.Since(start)
 
-			// Build log context (data to include in the log)
-			logContext := zerolog.Dict().
-				Str("method", r.Method).
-				Str("path", r.URL.Path).
-				Str("query", r.URL.RawQuery).
-				Int("status", rw.statusCode).
-				Dur("duration", duration).
-				Str("remote_addr", r.RemoteAddr).
-				Str("user_agent", r.UserAgent()).
-				Int64("bytes_written", rw.bytesWritten).
-				Str("proto", r.Proto)
-
-			// Add referer if present
-			if referer := r.Referer(); referer != "" {
-				logContext.Str("referer", referer)
-			}
-
-			// Add request ID if present (could be added by another middleware)
-			if reqID := r.Header.Get("X-Request-ID"); reqID != "" {
-				logContext.Str("request_id", reqID)
-			}
-
-			// Add content type if present
-			if contentType := r.Header.Get("Content-Type"); contentType != "" {
-				logContext.Str("content_type", contentType)
-			}
-
-			// Add authenticated user DID if present
-			if did, err := atproto.GetAuthenticatedDID(r.Context()); err == nil && did != "" {
-				logContext.Str("user_did", did)
-			}
-
-			// Select log level based on status code and log with context
+			// Select log level based on status code
 			var logEvent *zerolog.Event
 			if rw.statusCode >= 500 {
 				logEvent = logger.Error()
@@ -70,6 +38,7 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 				logEvent = logger.Info()
 			}
 
+			// Add core fields
 			logEvent.
 				Str("method", r.Method).
 				Str("path", r.URL.Path).
@@ -81,7 +50,7 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 				Int64("bytes_written", rw.bytesWritten).
 				Str("proto", r.Proto)
 
-			// Add optional fields
+			// Add optional fields only if present
 			if referer := r.Referer(); referer != "" {
 				logEvent.Str("referer", referer)
 			}

@@ -6,6 +6,7 @@ require (
 	github.com/bluesky-social/indigo v0.0.0-20260103083015-78a1c1894f36
 	github.com/rs/zerolog v1.34.0
 	go.etcd.io/bbolt v1.3.8
+	golang.org/x/sync v0.19.0
 )
 
 require (

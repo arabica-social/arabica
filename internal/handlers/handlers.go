@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -10,6 +11,9 @@ import (
 	"arabica/internal/database"
 	"arabica/internal/feed"
 	"arabica/internal/models"
+
+	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/errgroup"
 )
 
 // Config holds handler configuration options
@@ -19,45 +23,39 @@ type Config struct {
 	SecureCookies bool
 }
 
+// Handler contains all HTTP handler methods and their dependencies.
+// Dependencies are injected via the constructor for better testability.
 type Handler struct {
 	oauth         *atproto.OAuthManager
 	atprotoClient *atproto.Client
+	sessionCache  *atproto.SessionCache
 	config        Config
 	feedService   *feed.Service
 	feedRegistry  *feed.Registry
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+// NewHandler creates a new Handler with all required dependencies.
+// This constructor pattern ensures the Handler is always fully initialized.
+func NewHandler(
+	oauth *atproto.OAuthManager,
+	atprotoClient *atproto.Client,
+	sessionCache *atproto.SessionCache,
+	feedService *feed.Service,
+	feedRegistry *feed.Registry,
+	config Config,
+) *Handler {
+	return &Handler{
+		oauth:         oauth,
+		atprotoClient: atprotoClient,
+		sessionCache:  sessionCache,
+		config:        config,
+		feedService:   feedService,
+		feedRegistry:  feedRegistry,
+	}
 }
 
-// SetConfig sets the handler configuration
-func (h *Handler) SetConfig(config Config) {
-	h.config = config
-}
-
-// SetOAuthManager sets the OAuth manager for authentication
-func (h *Handler) SetOAuthManager(oauth *atproto.OAuthManager) {
-	h.oauth = oauth
-}
-
-// SetAtprotoClient sets the atproto client for record operations
-func (h *Handler) SetAtprotoClient(client *atproto.Client) {
-	h.atprotoClient = client
-}
-
-// SetFeedService sets the feed service for social feed
-func (h *Handler) SetFeedService(service *feed.Service) {
-	h.feedService = service
-}
-
-// SetFeedRegistry sets the feed registry for tracking users
-func (h *Handler) SetFeedRegistry(registry *feed.Registry) {
-	h.feedRegistry = registry
-}
-
-// getAtprotoStore creates a user-scoped atproto store from the request context
-// Returns the store and true if authenticated, or nil and false if not authenticated
+// getAtprotoStore creates a user-scoped atproto store from the request context.
+// Returns the store and true if authenticated, or nil and false if not authenticated.
 func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 	// Get authenticated DID from context
 	didStr, err := atproto.GetAuthenticatedDID(r.Context())
@@ -77,8 +75,8 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 		return nil, false
 	}
 
-	// Create user-scoped atproto store
-	store := atproto.NewAtprotoStore(r.Context(), h.atprotoClient, did, sessionID)
+	// Create user-scoped atproto store with injected cache
+	store := atproto.NewAtprotoStore(h.atprotoClient, did, sessionID, h.sessionCache)
 	return store, true
 }
 
@@ -90,7 +88,8 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch feed items here - let them load async via HTMX
 	if err := bff.RenderHome(w, isAuthenticated, didStr, nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render home page")
 	}
 }
 
@@ -102,7 +101,8 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := bff.RenderFeedPartial(w, feedItems); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render feed partial")
 	}
 }
 
@@ -115,14 +115,16 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	brews, err := store.ListBrews(1) // User ID is not used with atproto
+	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
 	if err != nil {
-		http.Error(w, "Failed to fetch brews: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch brews", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to fetch brews")
 		return
 	}
 
 	if err := bff.RenderBrewListPartial(w, brews); err != nil {
-		http.Error(w, "Failed to render: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to render content", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render brew list partial")
 	}
 }
 
@@ -135,65 +137,50 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch all collections in parallel for better performance
-	type result struct {
-		beans    []*models.Bean
-		roasters []*models.Roaster
-		grinders []*models.Grinder
-		brewers  []*models.Brewer
-		err      error
-		which    string
-	}
+	ctx := r.Context()
 
-	results := make(chan result, 4)
+	// Fetch all collections in parallel using errgroup for proper error handling
+	// and automatic context cancellation on first error
+	g, ctx := errgroup.WithContext(ctx)
 
-	// Launch parallel fetches
-	go func() {
-		beans, err := store.ListBeans()
-		results <- result{beans: beans, err: err, which: "beans"}
-	}()
-	go func() {
-		roasters, err := store.ListRoasters()
-		results <- result{roasters: roasters, err: err, which: "roasters"}
-	}()
-	go func() {
-		grinders, err := store.ListGrinders()
-		results <- result{grinders: grinders, err: err, which: "grinders"}
-	}()
-	go func() {
-		brewers, err := store.ListBrewers()
-		results <- result{brewers: brewers, err: err, which: "brewers"}
-	}()
-
-	// Collect results
 	var beans []*models.Bean
 	var roasters []*models.Roaster
 	var grinders []*models.Grinder
 	var brewers []*models.Brewer
 
-	for i := 0; i < 4; i++ {
-		res := <-results
-		if res.err != nil {
-			http.Error(w, "Failed to fetch "+res.which+": "+res.err.Error(), http.StatusInternalServerError)
-			return
-		}
-		switch res.which {
-		case "beans":
-			beans = res.beans
-		case "roasters":
-			roasters = res.roasters
-		case "grinders":
-			grinders = res.grinders
-		case "brewers":
-			brewers = res.brewers
-		}
+	g.Go(func() error {
+		var err error
+		beans, err = store.ListBeans(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		roasters, err = store.ListRoasters(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		grinders, err = store.ListGrinders(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		brewers, err = store.ListBrewers(ctx)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to fetch manage page data")
+		return
 	}
 
 	// Link beans to their roasters
 	atproto.LinkBeansToRoasters(beans, roasters)
 
 	if err := bff.RenderManagePartial(w, beans, roasters, grinders, brewers); err != nil {
-		http.Error(w, "Failed to render: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to render content", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render manage partial")
 	}
 }
 
@@ -210,7 +197,8 @@ func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch brews here - let them load async via HTMX
 	if err := bff.RenderBrewList(w, nil, authenticated, didStr); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render brew list page")
 	}
 }
 
@@ -228,7 +216,8 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 	// Don't fetch data from PDS - client will populate dropdowns from cache
 	// This makes the page load much faster
 	if err := bff.RenderBrewForm(w, nil, nil, nil, nil, nil, authenticated, didStr); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render brew form")
 	}
 }
 
@@ -245,17 +234,120 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	brew, err := store.GetBrewByRKey(rkey)
+	brew, err := store.GetBrewByRKey(r.Context(), rkey)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Brew not found", http.StatusNotFound)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for edit")
 		return
 	}
 
 	// Don't fetch dropdown data from PDS - client will populate from cache
 	// This makes the page load much faster
 	if err := bff.RenderBrewForm(w, nil, nil, nil, nil, brew, authenticated, didStr); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render brew edit form")
 	}
+}
+
+// maxPours is the maximum number of pours allowed in a single brew
+const maxPours = 100
+
+// parsePours extracts pour data from form values with bounds checking
+func parsePours(r *http.Request) []models.CreatePourData {
+	var pours []models.CreatePourData
+
+	for i := 0; i < maxPours; i++ {
+		waterKey := "pour_water_" + strconv.Itoa(i)
+		timeKey := "pour_time_" + strconv.Itoa(i)
+
+		waterStr := r.FormValue(waterKey)
+		timeStr := r.FormValue(timeKey)
+
+		if waterStr == "" && timeStr == "" {
+			break
+		}
+
+		water, _ := strconv.Atoi(waterStr)
+		pourTime, _ := strconv.Atoi(timeStr)
+
+		if water > 0 && pourTime >= 0 {
+			pours = append(pours, models.CreatePourData{
+				WaterAmount: water,
+				TimeSeconds: pourTime,
+			})
+		}
+	}
+
+	return pours
+}
+
+// ValidationError represents a validation error with field name and message
+type ValidationError struct {
+	Field   string
+	Message string
+}
+
+// validateBrewRequest validates brew form input and returns any validation errors
+func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, coffeeAmount, timeSeconds, rating int, pours []models.CreatePourData, errs []ValidationError) {
+	// Parse and validate temperature
+	if tempStr := r.FormValue("temperature"); tempStr != "" {
+		var err error
+		temperature, err = strconv.ParseFloat(tempStr, 64)
+		if err != nil {
+			errs = append(errs, ValidationError{Field: "temperature", Message: "invalid temperature format"})
+		} else if temperature < 0 || temperature > 212 {
+			errs = append(errs, ValidationError{Field: "temperature", Message: "temperature must be between 0 and 212"})
+		}
+	}
+
+	// Parse and validate water amount
+	if waterStr := r.FormValue("water_amount"); waterStr != "" {
+		var err error
+		waterAmount, err = strconv.Atoi(waterStr)
+		if err != nil {
+			errs = append(errs, ValidationError{Field: "water_amount", Message: "invalid water amount"})
+		} else if waterAmount < 0 || waterAmount > 10000 {
+			errs = append(errs, ValidationError{Field: "water_amount", Message: "water amount must be between 0 and 10000ml"})
+		}
+	}
+
+	// Parse and validate coffee amount
+	if coffeeStr := r.FormValue("coffee_amount"); coffeeStr != "" {
+		var err error
+		coffeeAmount, err = strconv.Atoi(coffeeStr)
+		if err != nil {
+			errs = append(errs, ValidationError{Field: "coffee_amount", Message: "invalid coffee amount"})
+		} else if coffeeAmount < 0 || coffeeAmount > 1000 {
+			errs = append(errs, ValidationError{Field: "coffee_amount", Message: "coffee amount must be between 0 and 1000g"})
+		}
+	}
+
+	// Parse and validate time
+	if timeStr := r.FormValue("time_seconds"); timeStr != "" {
+		var err error
+		timeSeconds, err = strconv.Atoi(timeStr)
+		if err != nil {
+			errs = append(errs, ValidationError{Field: "time_seconds", Message: "invalid time"})
+		} else if timeSeconds < 0 || timeSeconds > 3600 {
+			errs = append(errs, ValidationError{Field: "time_seconds", Message: "brew time must be between 0 and 3600 seconds"})
+		}
+	}
+
+	// Parse and validate rating
+	if ratingStr := r.FormValue("rating"); ratingStr != "" {
+		var err error
+		rating, err = strconv.Atoi(ratingStr)
+		if err != nil {
+			errs = append(errs, ValidationError{Field: "rating", Message: "invalid rating"})
+		} else if rating < 0 || rating > 10 {
+			errs = append(errs, ValidationError{Field: "rating", Message: "rating must be between 0 and 10"})
+		}
+	}
+
+	// Parse pours
+	pours = parsePours(r)
+
+	return
 }
 
 // Create new brew
@@ -268,44 +360,27 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
 
-	temperature, _ := strconv.ParseFloat(r.FormValue("temperature"), 64)
-	waterAmount, _ := strconv.Atoi(r.FormValue("water_amount"))
-	coffeeAmount, _ := strconv.Atoi(r.FormValue("coffee_amount"))
-	timeSeconds, _ := strconv.Atoi(r.FormValue("time_seconds"))
-	rating, _ := strconv.Atoi(r.FormValue("rating"))
+	// Validate input
+	temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
+	if len(validationErrs) > 0 {
+		// Return first validation error
+		http.Error(w, validationErrs[0].Message, http.StatusBadRequest)
+		return
+	}
 
-	// Parse pours
-	var pours []models.CreatePourData
-	i := 0
-	for {
-		waterKey := "pour_water_" + strconv.Itoa(i)
-		timeKey := "pour_time_" + strconv.Itoa(i)
-
-		waterStr := r.FormValue(waterKey)
-		timeStr := r.FormValue(timeKey)
-
-		if waterStr == "" && timeStr == "" {
-			break
-		}
-
-		water, _ := strconv.Atoi(waterStr)
-		time, _ := strconv.Atoi(timeStr)
-
-		if water > 0 && time >= 0 {
-			pours = append(pours, models.CreatePourData{
-				WaterAmount: water,
-				TimeSeconds: time,
-			})
-		}
-		i++
+	// Validate required fields
+	beanRKey := r.FormValue("bean_rkey")
+	if beanRKey == "" {
+		http.Error(w, "Bean selection is required", http.StatusBadRequest)
+		return
 	}
 
 	req := &models.CreateBrewRequest{
-		BeanRKey:     r.FormValue("bean_rkey"),
+		BeanRKey:     beanRKey,
 		Method:       r.FormValue("method"),
 		Temperature:  temperature,
 		WaterAmount:  waterAmount,
@@ -316,12 +391,13 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		BrewerRKey:   r.FormValue("brewer_rkey"),
 		TastingNotes: r.FormValue("tasting_notes"),
 		Rating:       rating,
-		Pours:        pours, // Pours are embedded in the brew record for ATProto
+		Pours:        pours,
 	}
 
-	_, err := store.CreateBrew(req, 1) // User ID not used with atproto
+	_, err := store.CreateBrew(r.Context(), req, 1) // User ID not used with atproto
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to create brew", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create brew")
 		return
 	}
 
@@ -342,44 +418,26 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
 
-	temperature, _ := strconv.ParseFloat(r.FormValue("temperature"), 64)
-	waterAmount, _ := strconv.Atoi(r.FormValue("water_amount"))
-	coffeeAmount, _ := strconv.Atoi(r.FormValue("coffee_amount"))
-	timeSeconds, _ := strconv.Atoi(r.FormValue("time_seconds"))
-	rating, _ := strconv.Atoi(r.FormValue("rating"))
+	// Validate input
+	temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
+	if len(validationErrs) > 0 {
+		http.Error(w, validationErrs[0].Message, http.StatusBadRequest)
+		return
+	}
 
-	// Parse pours
-	var pours []models.CreatePourData
-	i := 0
-	for {
-		waterKey := "pour_water_" + strconv.Itoa(i)
-		timeKey := "pour_time_" + strconv.Itoa(i)
-
-		waterStr := r.FormValue(waterKey)
-		timeStr := r.FormValue(timeKey)
-
-		if waterStr == "" && timeStr == "" {
-			break
-		}
-
-		water, _ := strconv.Atoi(waterStr)
-		time, _ := strconv.Atoi(timeStr)
-
-		if water > 0 && time >= 0 {
-			pours = append(pours, models.CreatePourData{
-				WaterAmount: water,
-				TimeSeconds: time,
-			})
-		}
-		i++
+	// Validate required fields
+	beanRKey := r.FormValue("bean_rkey")
+	if beanRKey == "" {
+		http.Error(w, "Bean selection is required", http.StatusBadRequest)
+		return
 	}
 
 	req := &models.CreateBrewRequest{
-		BeanRKey:     r.FormValue("bean_rkey"),
+		BeanRKey:     beanRKey,
 		Method:       r.FormValue("method"),
 		Temperature:  temperature,
 		WaterAmount:  waterAmount,
@@ -393,9 +451,10 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		Pours:        pours,
 	}
 
-	err := store.UpdateBrewByRKey(rkey, req)
+	err := store.UpdateBrewByRKey(r.Context(), rkey, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to update brew", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update brew")
 		return
 	}
 
@@ -415,8 +474,9 @@ func (h *Handler) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := store.DeleteBrewByRKey(rkey); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := store.DeleteBrewByRKey(r.Context(), rkey); err != nil {
+		http.Error(w, "Failed to delete brew", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete brew")
 		return
 	}
 
@@ -432,9 +492,10 @@ func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	brews, err := store.ListBrews(1) // User ID is not used with atproto
+	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch brews", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to list brews for export")
 		return
 	}
 
@@ -443,7 +504,9 @@ func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	encoder.Encode(brews)
+	if err := encoder.Encode(brews); err != nil {
+		log.Error().Err(err).Msg("Failed to encode brews for export")
+	}
 }
 
 // API endpoint to list all user data (beans, roasters, grinders, brewers, brews)
@@ -455,39 +518,10 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch all collections in parallel
-	type result struct {
-		beans    []*models.Bean
-		roasters []*models.Roaster
-		grinders []*models.Grinder
-		brewers  []*models.Brewer
-		brews    []*models.Brew
-		err      error
-		which    string
-	}
+	ctx := r.Context()
 
-	results := make(chan result, 5)
-
-	go func() {
-		beans, err := store.ListBeans()
-		results <- result{beans: beans, err: err, which: "beans"}
-	}()
-	go func() {
-		roasters, err := store.ListRoasters()
-		results <- result{roasters: roasters, err: err, which: "roasters"}
-	}()
-	go func() {
-		grinders, err := store.ListGrinders()
-		results <- result{grinders: grinders, err: err, which: "grinders"}
-	}()
-	go func() {
-		brewers, err := store.ListBrewers()
-		results <- result{brewers: brewers, err: err, which: "brewers"}
-	}()
-	go func() {
-		brews, err := store.ListBrews(1) // User ID not used with atproto
-		results <- result{brews: brews, err: err, which: "brews"}
-	}()
+	// Fetch all collections in parallel using errgroup
+	g, ctx := errgroup.WithContext(ctx)
 
 	var beans []*models.Bean
 	var roasters []*models.Roaster
@@ -495,24 +529,36 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	var brewers []*models.Brewer
 	var brews []*models.Brew
 
-	for i := 0; i < 5; i++ {
-		res := <-results
-		if res.err != nil {
-			http.Error(w, res.err.Error(), http.StatusInternalServerError)
-			return
-		}
-		switch res.which {
-		case "beans":
-			beans = res.beans
-		case "roasters":
-			roasters = res.roasters
-		case "grinders":
-			grinders = res.grinders
-		case "brewers":
-			brewers = res.brewers
-		case "brews":
-			brews = res.brews
-		}
+	g.Go(func() error {
+		var err error
+		beans, err = store.ListBeans(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		roasters, err = store.ListRoasters(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		grinders, err = store.ListGrinders(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		brewers, err = store.ListBrewers(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		brews, err = store.ListBrews(ctx, 1) // User ID not used with atproto
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to fetch all data for API")
+		return
 	}
 
 	// Link beans to roasters
@@ -527,14 +573,16 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error().Err(err).Msg("Failed to encode API response")
+	}
 }
 
 // API endpoint to create bean
 func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateBeanRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -545,21 +593,30 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bean, err := store.CreateBean(&req)
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Bean name is required", http.StatusBadRequest)
+		return
+	}
+
+	bean, err := store.CreateBean(r.Context(), &req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to create bean", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create bean")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(bean)
+	if err := json.NewEncoder(w).Encode(bean); err != nil {
+		log.Error().Err(err).Msg("Failed to encode bean response")
+	}
 }
 
 // API endpoint to create roaster
 func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateRoasterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -570,14 +627,23 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roaster, err := store.CreateRoaster(&req)
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Roaster name is required", http.StatusBadRequest)
+		return
+	}
+
+	roaster, err := store.CreateRoaster(r.Context(), &req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to create roaster", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create roaster")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(roaster)
+	if err := json.NewEncoder(w).Encode(roaster); err != nil {
+		log.Error().Err(err).Msg("Failed to encode roaster response")
+	}
 }
 
 // Manage page
@@ -593,7 +659,8 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch data here - let it load async via HTMX
 	if err := bff.RenderManage(w, nil, nil, nil, nil, authenticated, didStr); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render manage page")
 	}
 }
 
@@ -610,23 +677,33 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.UpdateBeanRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := store.UpdateBeanByRKey(rkey, &req); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Bean name is required", http.StatusBadRequest)
 		return
 	}
 
-	bean, err := store.GetBeanByRKey(rkey)
+	if err := store.UpdateBeanByRKey(r.Context(), rkey, &req); err != nil {
+		http.Error(w, "Failed to update bean", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update bean")
+		return
+	}
+
+	bean, err := store.GetBeanByRKey(r.Context(), rkey)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch updated bean", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get bean after update")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(bean)
+	if err := json.NewEncoder(w).Encode(bean); err != nil {
+		log.Error().Err(err).Msg("Failed to encode bean response")
+	}
 }
 
 func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
@@ -639,8 +716,9 @@ func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := store.DeleteBeanByRKey(rkey); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := store.DeleteBeanByRKey(r.Context(), rkey); err != nil {
+		http.Error(w, "Failed to delete bean", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete bean")
 		return
 	}
 
@@ -660,23 +738,33 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.UpdateRoasterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := store.UpdateRoasterByRKey(rkey, &req); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Roaster name is required", http.StatusBadRequest)
 		return
 	}
 
-	roaster, err := store.GetRoasterByRKey(rkey)
+	if err := store.UpdateRoasterByRKey(r.Context(), rkey, &req); err != nil {
+		http.Error(w, "Failed to update roaster", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update roaster")
+		return
+	}
+
+	roaster, err := store.GetRoasterByRKey(r.Context(), rkey)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch updated roaster", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get roaster after update")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(roaster)
+	if err := json.NewEncoder(w).Encode(roaster); err != nil {
+		log.Error().Err(err).Msg("Failed to encode roaster response")
+	}
 }
 
 func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
@@ -689,8 +777,9 @@ func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := store.DeleteRoasterByRKey(rkey); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := store.DeleteRoasterByRKey(r.Context(), rkey); err != nil {
+		http.Error(w, "Failed to delete roaster", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete roaster")
 		return
 	}
 
@@ -701,7 +790,7 @@ func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateGrinderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -712,14 +801,23 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	grinder, err := store.CreateGrinder(&req)
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Grinder name is required", http.StatusBadRequest)
+		return
+	}
+
+	grinder, err := store.CreateGrinder(r.Context(), &req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to create grinder", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create grinder")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(grinder)
+	if err := json.NewEncoder(w).Encode(grinder); err != nil {
+		log.Error().Err(err).Msg("Failed to encode grinder response")
+	}
 }
 
 func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
@@ -734,23 +832,33 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.UpdateGrinderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := store.UpdateGrinderByRKey(rkey, &req); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Grinder name is required", http.StatusBadRequest)
 		return
 	}
 
-	grinder, err := store.GetGrinderByRKey(rkey)
+	if err := store.UpdateGrinderByRKey(r.Context(), rkey, &req); err != nil {
+		http.Error(w, "Failed to update grinder", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update grinder")
+		return
+	}
+
+	grinder, err := store.GetGrinderByRKey(r.Context(), rkey)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch updated grinder", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get grinder after update")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(grinder)
+	if err := json.NewEncoder(w).Encode(grinder); err != nil {
+		log.Error().Err(err).Msg("Failed to encode grinder response")
+	}
 }
 
 func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
@@ -763,8 +871,9 @@ func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := store.DeleteGrinderByRKey(rkey); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := store.DeleteGrinderByRKey(r.Context(), rkey); err != nil {
+		http.Error(w, "Failed to delete grinder", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete grinder")
 		return
 	}
 
@@ -775,7 +884,7 @@ func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateBrewerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -786,14 +895,23 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	brewer, err := store.CreateBrewer(&req)
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Brewer name is required", http.StatusBadRequest)
+		return
+	}
+
+	brewer, err := store.CreateBrewer(r.Context(), &req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to create brewer", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create brewer")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(brewer)
+	if err := json.NewEncoder(w).Encode(brewer); err != nil {
+		log.Error().Err(err).Msg("Failed to encode brewer response")
+	}
 }
 
 func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
@@ -808,23 +926,33 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.UpdateBrewerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := store.UpdateBrewerByRKey(rkey, &req); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Brewer name is required", http.StatusBadRequest)
 		return
 	}
 
-	brewer, err := store.GetBrewerByRKey(rkey)
+	if err := store.UpdateBrewerByRKey(r.Context(), rkey, &req); err != nil {
+		http.Error(w, "Failed to update brewer", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update brewer")
+		return
+	}
+
+	brewer, err := store.GetBrewerByRKey(r.Context(), rkey)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch updated brewer", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brewer after update")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(brewer)
+	if err := json.NewEncoder(w).Encode(brewer); err != nil {
+		log.Error().Err(err).Msg("Failed to encode brewer response")
+	}
 }
 
 func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
@@ -837,10 +965,47 @@ func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := store.DeleteBrewerByRKey(rkey); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := store.DeleteBrewerByRKey(r.Context(), rkey); err != nil {
+		http.Error(w, "Failed to delete brewer", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete brewer")
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// fetchAllData is a helper that fetches all data types in parallel using errgroup.
+// This is used by handlers that need beans, roasters, grinders, and brewers.
+func fetchAllData(ctx context.Context, store database.Store) (
+	beans []*models.Bean,
+	roasters []*models.Roaster,
+	grinders []*models.Grinder,
+	brewers []*models.Brewer,
+	err error,
+) {
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var fetchErr error
+		beans, fetchErr = store.ListBeans(ctx)
+		return fetchErr
+	})
+	g.Go(func() error {
+		var fetchErr error
+		roasters, fetchErr = store.ListRoasters(ctx)
+		return fetchErr
+	})
+	g.Go(func() error {
+		var fetchErr error
+		grinders, fetchErr = store.ListGrinders(ctx)
+		return fetchErr
+	})
+	g.Go(func() error {
+		var fetchErr error
+		brewers, fetchErr = store.ListBrewers(ctx)
+		return fetchErr
+	})
+
+	err = g.Wait()
+	return
 }

@@ -11,11 +11,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// httpClientWithTimeout creates an HTTP client with reasonable timeouts for API calls
-func httpClientWithTimeout() *http.Client {
-	return &http.Client{
-		Timeout: 10 * time.Second,
-	}
+// defaultHTTPClient is a shared HTTP client with connection pooling.
+// Reusing http.Client is recommended by the Go documentation as it
+// manages connection pooling and is safe for concurrent use.
+var defaultHTTPClient = &http.Client{
+	Timeout: 10 * time.Second,
+	Transport: &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+	},
 }
 
 // HandleLogin redirects to the home page
@@ -176,7 +181,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Use a public API client to resolve the handle
 	// We don't need authentication for this
-	apiClient := httpClientWithTimeout()
+	apiClient := defaultHTTPClient
 
 	// First resolve the handle to a DID using the public API
 	// Note: public.api.bsky.app is the public Bluesky API endpoint that works for any handle
@@ -192,7 +197,9 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	if resp.StatusCode == 404 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Handle not found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Handle not found"}); err != nil {
+			log.Error().Err(err).Msg("Failed to encode error response")
+		}
 		return
 	}
 
@@ -209,7 +216,9 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		if resp.StatusCode == 400 {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Invalid handle format"})
+			if err := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid handle format"}); err != nil {
+				log.Error().Err(err).Msg("Failed to encode error response")
+			}
 			return
 		}
 
@@ -233,10 +242,12 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Err(err).Str("did", resolveResult.DID).Msg("Failed to fetch profile")
 		// Return just the DID if we can't get the profile
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"did":    resolveResult.DID,
 			"handle": handle,
-		})
+		}); err != nil {
+			log.Error().Err(err).Msg("Failed to encode response")
+		}
 		return
 	}
 	defer profileResp.Body.Close()
@@ -244,10 +255,12 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	if profileResp.StatusCode != 200 {
 		// Return just the DID if we can't get the profile
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"did":    resolveResult.DID,
 			"handle": handle,
-		})
+		}); err != nil {
+			log.Error().Err(err).Msg("Failed to encode response")
+		}
 		return
 	}
 
@@ -261,16 +274,20 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Err(err).Str("did", resolveResult.DID).Msg("Failed to decode profile")
 		// Return just the DID if we can't parse the profile
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"did":    resolveResult.DID,
 			"handle": handle,
-		})
+		}); err != nil {
+			log.Error().Err(err).Msg("Failed to encode response")
+		}
 		return
 	}
 
 	// Return the profile info
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(profile)
+	if err := json.NewEncoder(w).Encode(profile); err != nil {
+		log.Error().Err(err).Msg("Failed to encode profile response")
+	}
 }
 
 // HandleSearchActors searches for actors by handle or display name
@@ -283,7 +300,7 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Use a public API client with timeout
-	apiClient := httpClientWithTimeout()
+	apiClient := defaultHTTPClient
 
 	// Try using the public API endpoint with typeahead parameter
 	// Some PDS instances support public search
@@ -293,7 +310,9 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Err(err).Str("query", query).Msg("Failed to search actors")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}})
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}}); err != nil {
+			log.Error().Err(err).Msg("Failed to encode empty actors response")
+		}
 		return
 	}
 	defer resp.Body.Close()
@@ -307,7 +326,9 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 			Msg("Unexpected status searching actors")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}})
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}}); err != nil {
+			log.Error().Err(err).Msg("Failed to encode empty actors response")
+		}
 		return
 	}
 
@@ -324,11 +345,15 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Err(err).Str("query", query).Msg("Failed to decode search response")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}})
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}}); err != nil {
+			log.Error().Err(err).Msg("Failed to encode empty actors response")
+		}
 		return
 	}
 
 	// Return the actors
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(searchResult)
+	if err := json.NewEncoder(w).Encode(searchResult); err != nil {
+		log.Error().Err(err).Msg("Failed to encode search result response")
+	}
 }

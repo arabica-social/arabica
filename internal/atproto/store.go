@@ -12,34 +12,30 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// AtprotoStore implements the database.Store interface using atproto records
+// AtprotoStore implements the database.Store interface using atproto records.
+// Context is passed as a parameter to each method rather than stored in the struct,
+// following Go best practices for context propagation.
 type AtprotoStore struct {
 	client    *Client
 	did       syntax.DID
 	sessionID string
+	cache     *SessionCache
 }
 
-// NewAtprotoStore creates a new atproto store for a specific user session
-func NewAtprotoStore(ctx context.Context, client *Client, did syntax.DID, sessionID string) database.Store {
+// NewAtprotoStore creates a new atproto store for a specific user session.
+// The cache parameter allows for dependency injection and testability.
+func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *SessionCache) database.Store {
 	return &AtprotoStore{
 		client:    client,
 		did:       did,
 		sessionID: sessionID,
+		cache:     cache,
 	}
-}
-
-// getContext returns a context for API calls
-// Since we don't store context in the struct anymore, callers should pass context
-// For now, we use background context but this should be improved
-func (s *AtprotoStore) getContext() context.Context {
-	return context.Background()
 }
 
 // ========== Brew Operations ==========
 
-func (s *AtprotoStore) CreateBrew(brew *models.CreateBrewRequest, userID int) (*models.Brew, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRequest, userID int) (*models.Brew, error) {
 	// Build AT-URI references from rkeys
 	if brew.BeanRKey == "" {
 		return nil, fmt.Errorf("bean_rkey is required")
@@ -108,7 +104,7 @@ func (s *AtprotoStore) CreateBrew(brew *models.CreateBrewRequest, userID int) (*
 	brewModel.RKey = rkey
 
 	// Invalidate brews cache
-	GetSessionCache().InvalidateBrews(s.sessionID)
+	s.cache.InvalidateBrews(s.sessionID)
 
 	// Fetch and resolve references to populate Bean, Grinder, Brewer
 	err = ResolveBrewRefs(ctx, s.client, brewModel, beanURI, grinderURI, brewerURI, s.sessionID)
@@ -120,9 +116,7 @@ func (s *AtprotoStore) CreateBrew(brew *models.CreateBrewRequest, userID int) (*
 	return brewModel, nil
 }
 
-func (s *AtprotoStore) GetBrewByRKey(rkey string) (*models.Brew, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.Brew, error) {
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBrew,
 		RKey:       rkey,
@@ -173,15 +167,12 @@ func (s *AtprotoStore) GetBrewByRKey(rkey string) (*models.Brew, error) {
 	return brew, nil
 }
 
-func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
+func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Brew, error) {
 	// Check cache first
-	cache := GetSessionCache()
-	userCache := cache.Get(s.sessionID)
+	userCache := s.cache.Get(s.sessionID)
 	if userCache != nil && userCache.Brews != nil && userCache.IsValid() {
 		return userCache.Brews, nil
 	}
-
-	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDBrew)
@@ -230,10 +221,10 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 	// Resolve references using cached data instead of N+1 queries
 	// This fetches beans/grinders/brewers once (from cache if available)
 	// then links them to brews in memory
-	beans, _ := s.ListBeans()
-	grinders, _ := s.ListGrinders()
-	brewers, _ := s.ListBrewers()
-	roasters, _ := s.ListRoasters()
+	beans, _ := s.ListBeans(ctx)
+	grinders, _ := s.ListGrinders(ctx)
+	brewers, _ := s.ListBrewers(ctx)
+	roasters, _ := s.ListRoasters(ctx)
 
 	// Build lookup maps
 	beanMap := make(map[string]*models.Bean)
@@ -271,19 +262,12 @@ func (s *AtprotoStore) ListBrews(userID int) ([]*models.Brew, error) {
 	}
 
 	// Update cache
-	if userCache == nil {
-		userCache = &UserCache{Timestamp: time.Now()}
-	}
-	userCache.Brews = brews
-	userCache.Timestamp = time.Now()
-	cache.Set(s.sessionID, userCache)
+	s.cache.SetBrews(s.sessionID, brews)
 
 	return brews, nil
 }
 
-func (s *AtprotoStore) UpdateBrewByRKey(rkey string, brew *models.CreateBrewRequest) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *models.CreateBrewRequest) error {
 	// Build AT-URI references from rkeys
 	if brew.BeanRKey == "" {
 		return fmt.Errorf("bean_rkey is required")
@@ -300,7 +284,7 @@ func (s *AtprotoStore) UpdateBrewByRKey(rkey string, brew *models.CreateBrewRequ
 	}
 
 	// Get the existing record to preserve createdAt
-	existing, err := s.GetBrewByRKey(rkey)
+	existing, err := s.GetBrewByRKey(ctx, rkey)
 	if err != nil {
 		return fmt.Errorf("failed to get existing brew: %w", err)
 	}
@@ -349,14 +333,12 @@ func (s *AtprotoStore) UpdateBrewByRKey(rkey string, brew *models.CreateBrewRequ
 	}
 
 	// Invalidate brews cache
-	GetSessionCache().InvalidateBrews(s.sessionID)
+	s.cache.InvalidateBrews(s.sessionID)
 
 	return nil
 }
 
-func (s *AtprotoStore) DeleteBrewByRKey(rkey string) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) DeleteBrewByRKey(ctx context.Context, rkey string) error {
 	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: NSIDBrew,
 		RKey:       rkey,
@@ -366,16 +348,14 @@ func (s *AtprotoStore) DeleteBrewByRKey(rkey string) error {
 	}
 
 	// Invalidate brews cache
-	GetSessionCache().InvalidateBrews(s.sessionID)
+	s.cache.InvalidateBrews(s.sessionID)
 
 	return nil
 }
 
 // ========== Bean Operations ==========
 
-func (s *AtprotoStore) CreateBean(bean *models.CreateBeanRequest) (*models.Bean, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) CreateBean(ctx context.Context, bean *models.CreateBeanRequest) (*models.Bean, error) {
 	var roasterURI string
 	if bean.RoasterRKey != "" {
 		roasterURI = BuildATURI(s.did.String(), NSIDRoaster, bean.RoasterRKey)
@@ -414,14 +394,12 @@ func (s *AtprotoStore) CreateBean(bean *models.CreateBeanRequest) (*models.Bean,
 	beanModel.RKey = rkey
 
 	// Invalidate cache
-	GetSessionCache().InvalidateBeans(s.sessionID)
+	s.cache.InvalidateBeans(s.sessionID)
 
 	return beanModel, nil
 }
 
-func (s *AtprotoStore) GetBeanByRKey(rkey string) (*models.Bean, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) GetBeanByRKey(ctx context.Context, rkey string) (*models.Bean, error) {
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBean,
 		RKey:       rkey,
@@ -456,15 +434,12 @@ func (s *AtprotoStore) GetBeanByRKey(rkey string) (*models.Bean, error) {
 	return bean, nil
 }
 
-func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
+func (s *AtprotoStore) ListBeans(ctx context.Context) ([]*models.Bean, error) {
 	// Check cache first
-	cache := GetSessionCache()
-	userCache := cache.Get(s.sessionID)
+	userCache := s.cache.Get(s.sessionID)
 	if userCache != nil && userCache.Beans != nil && userCache.IsValid() {
 		return userCache.Beans, nil
 	}
-
-	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDBean)
@@ -498,12 +473,7 @@ func (s *AtprotoStore) ListBeans() ([]*models.Bean, error) {
 	}
 
 	// Update cache
-	if userCache == nil {
-		userCache = &UserCache{Timestamp: time.Now()}
-	}
-	userCache.Beans = beans
-	userCache.Timestamp = time.Now()
-	cache.Set(s.sessionID, userCache)
+	s.cache.SetBeans(s.sessionID, beans)
 
 	return beans, nil
 }
@@ -525,11 +495,9 @@ func LinkBeansToRoasters(beans []*models.Bean, roasters []*models.Roaster) {
 	}
 }
 
-func (s *AtprotoStore) UpdateBeanByRKey(rkey string, bean *models.UpdateBeanRequest) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *models.UpdateBeanRequest) error {
 	// Get existing to preserve createdAt
-	existing, err := s.GetBeanByRKey(rkey)
+	existing, err := s.GetBeanByRKey(ctx, rkey)
 	if err != nil {
 		return fmt.Errorf("failed to get existing bean: %w", err)
 	}
@@ -564,14 +532,12 @@ func (s *AtprotoStore) UpdateBeanByRKey(rkey string, bean *models.UpdateBeanRequ
 	}
 
 	// Invalidate cache
-	GetSessionCache().InvalidateBeans(s.sessionID)
+	s.cache.InvalidateBeans(s.sessionID)
 
 	return nil
 }
 
-func (s *AtprotoStore) DeleteBeanByRKey(rkey string) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) DeleteBeanByRKey(ctx context.Context, rkey string) error {
 	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: NSIDBean,
 		RKey:       rkey,
@@ -581,16 +547,14 @@ func (s *AtprotoStore) DeleteBeanByRKey(rkey string) error {
 	}
 
 	// Invalidate cache
-	GetSessionCache().InvalidateBeans(s.sessionID)
+	s.cache.InvalidateBeans(s.sessionID)
 
 	return nil
 }
 
 // ========== Roaster Operations ==========
 
-func (s *AtprotoStore) CreateRoaster(roaster *models.CreateRoasterRequest) (*models.Roaster, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) CreateRoaster(ctx context.Context, roaster *models.CreateRoasterRequest) (*models.Roaster, error) {
 	roasterModel := &models.Roaster{
 		Name:      roaster.Name,
 		Location:  roaster.Location,
@@ -621,14 +585,12 @@ func (s *AtprotoStore) CreateRoaster(roaster *models.CreateRoasterRequest) (*mod
 	roasterModel.RKey = rkey
 
 	// Invalidate cache
-	GetSessionCache().InvalidateRoasters(s.sessionID)
+	s.cache.InvalidateRoasters(s.sessionID)
 
 	return roasterModel, nil
 }
 
-func (s *AtprotoStore) GetRoasterByRKey(rkey string) (*models.Roaster, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) GetRoasterByRKey(ctx context.Context, rkey string) (*models.Roaster, error) {
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDRoaster,
 		RKey:       rkey,
@@ -648,15 +610,12 @@ func (s *AtprotoStore) GetRoasterByRKey(rkey string) (*models.Roaster, error) {
 	return roaster, nil
 }
 
-func (s *AtprotoStore) ListRoasters() ([]*models.Roaster, error) {
+func (s *AtprotoStore) ListRoasters(ctx context.Context) ([]*models.Roaster, error) {
 	// Check cache first
-	cache := GetSessionCache()
-	userCache := cache.Get(s.sessionID)
+	userCache := s.cache.Get(s.sessionID)
 	if userCache != nil && userCache.Roasters != nil && userCache.IsValid() {
 		return userCache.Roasters, nil
 	}
-
-	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDRoaster)
@@ -682,21 +641,14 @@ func (s *AtprotoStore) ListRoasters() ([]*models.Roaster, error) {
 	}
 
 	// Update cache
-	if userCache == nil {
-		userCache = &UserCache{Timestamp: time.Now()}
-	}
-	userCache.Roasters = roasters
-	userCache.Timestamp = time.Now()
-	cache.Set(s.sessionID, userCache)
+	s.cache.SetRoasters(s.sessionID, roasters)
 
 	return roasters, nil
 }
 
-func (s *AtprotoStore) UpdateRoasterByRKey(rkey string, roaster *models.UpdateRoasterRequest) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) UpdateRoasterByRKey(ctx context.Context, rkey string, roaster *models.UpdateRoasterRequest) error {
 	// Get existing to preserve createdAt
-	existing, err := s.GetRoasterByRKey(rkey)
+	existing, err := s.GetRoasterByRKey(ctx, rkey)
 	if err != nil {
 		return fmt.Errorf("failed to get existing roaster: %w", err)
 	}
@@ -723,14 +675,12 @@ func (s *AtprotoStore) UpdateRoasterByRKey(rkey string, roaster *models.UpdateRo
 	}
 
 	// Invalidate cache
-	GetSessionCache().InvalidateRoasters(s.sessionID)
+	s.cache.InvalidateRoasters(s.sessionID)
 
 	return nil
 }
 
-func (s *AtprotoStore) DeleteRoasterByRKey(rkey string) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) DeleteRoasterByRKey(ctx context.Context, rkey string) error {
 	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: NSIDRoaster,
 		RKey:       rkey,
@@ -740,16 +690,14 @@ func (s *AtprotoStore) DeleteRoasterByRKey(rkey string) error {
 	}
 
 	// Invalidate cache
-	GetSessionCache().InvalidateRoasters(s.sessionID)
+	s.cache.InvalidateRoasters(s.sessionID)
 
 	return nil
 }
 
 // ========== Grinder Operations ==========
 
-func (s *AtprotoStore) CreateGrinder(grinder *models.CreateGrinderRequest) (*models.Grinder, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *models.CreateGrinderRequest) (*models.Grinder, error) {
 	grinderModel := &models.Grinder{
 		Name:        grinder.Name,
 		GrinderType: grinder.GrinderType,
@@ -781,14 +729,12 @@ func (s *AtprotoStore) CreateGrinder(grinder *models.CreateGrinderRequest) (*mod
 	grinderModel.RKey = rkey
 
 	// Invalidate cache
-	GetSessionCache().InvalidateGrinders(s.sessionID)
+	s.cache.InvalidateGrinders(s.sessionID)
 
 	return grinderModel, nil
 }
 
-func (s *AtprotoStore) GetGrinderByRKey(rkey string) (*models.Grinder, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) GetGrinderByRKey(ctx context.Context, rkey string) (*models.Grinder, error) {
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDGrinder,
 		RKey:       rkey,
@@ -808,15 +754,12 @@ func (s *AtprotoStore) GetGrinderByRKey(rkey string) (*models.Grinder, error) {
 	return grinder, nil
 }
 
-func (s *AtprotoStore) ListGrinders() ([]*models.Grinder, error) {
+func (s *AtprotoStore) ListGrinders(ctx context.Context) ([]*models.Grinder, error) {
 	// Check cache first
-	cache := GetSessionCache()
-	userCache := cache.Get(s.sessionID)
+	userCache := s.cache.Get(s.sessionID)
 	if userCache != nil && userCache.Grinders != nil && userCache.IsValid() {
 		return userCache.Grinders, nil
 	}
-
-	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDGrinder)
@@ -842,21 +785,14 @@ func (s *AtprotoStore) ListGrinders() ([]*models.Grinder, error) {
 	}
 
 	// Update cache
-	if userCache == nil {
-		userCache = &UserCache{Timestamp: time.Now()}
-	}
-	userCache.Grinders = grinders
-	userCache.Timestamp = time.Now()
-	cache.Set(s.sessionID, userCache)
+	s.cache.SetGrinders(s.sessionID, grinders)
 
 	return grinders, nil
 }
 
-func (s *AtprotoStore) UpdateGrinderByRKey(rkey string, grinder *models.UpdateGrinderRequest) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) UpdateGrinderByRKey(ctx context.Context, rkey string, grinder *models.UpdateGrinderRequest) error {
 	// Get existing to preserve createdAt
-	existing, err := s.GetGrinderByRKey(rkey)
+	existing, err := s.GetGrinderByRKey(ctx, rkey)
 	if err != nil {
 		return fmt.Errorf("failed to get existing grinder: %w", err)
 	}
@@ -884,14 +820,12 @@ func (s *AtprotoStore) UpdateGrinderByRKey(rkey string, grinder *models.UpdateGr
 	}
 
 	// Invalidate cache
-	GetSessionCache().InvalidateGrinders(s.sessionID)
+	s.cache.InvalidateGrinders(s.sessionID)
 
 	return nil
 }
 
-func (s *AtprotoStore) DeleteGrinderByRKey(rkey string) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) DeleteGrinderByRKey(ctx context.Context, rkey string) error {
 	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: NSIDGrinder,
 		RKey:       rkey,
@@ -901,16 +835,14 @@ func (s *AtprotoStore) DeleteGrinderByRKey(rkey string) error {
 	}
 
 	// Invalidate cache
-	GetSessionCache().InvalidateGrinders(s.sessionID)
+	s.cache.InvalidateGrinders(s.sessionID)
 
 	return nil
 }
 
 // ========== Brewer Operations ==========
 
-func (s *AtprotoStore) CreateBrewer(brewer *models.CreateBrewerRequest) (*models.Brewer, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *models.CreateBrewerRequest) (*models.Brewer, error) {
 	brewerModel := &models.Brewer{
 		Name:        brewer.Name,
 		Description: brewer.Description,
@@ -940,14 +872,12 @@ func (s *AtprotoStore) CreateBrewer(brewer *models.CreateBrewerRequest) (*models
 	brewerModel.RKey = rkey
 
 	// Invalidate cache
-	GetSessionCache().InvalidateBrewers(s.sessionID)
+	s.cache.InvalidateBrewers(s.sessionID)
 
 	return brewerModel, nil
 }
 
-func (s *AtprotoStore) GetBrewerByRKey(rkey string) (*models.Brewer, error) {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) GetBrewerByRKey(ctx context.Context, rkey string) (*models.Brewer, error) {
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBrewer,
 		RKey:       rkey,
@@ -967,15 +897,12 @@ func (s *AtprotoStore) GetBrewerByRKey(rkey string) (*models.Brewer, error) {
 	return brewer, nil
 }
 
-func (s *AtprotoStore) ListBrewers() ([]*models.Brewer, error) {
+func (s *AtprotoStore) ListBrewers(ctx context.Context) ([]*models.Brewer, error) {
 	// Check cache first
-	cache := GetSessionCache()
-	userCache := cache.Get(s.sessionID)
+	userCache := s.cache.Get(s.sessionID)
 	if userCache != nil && userCache.Brewers != nil && userCache.IsValid() {
 		return userCache.Brewers, nil
 	}
-
-	ctx := s.getContext()
 
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDBrewer)
@@ -1001,21 +928,14 @@ func (s *AtprotoStore) ListBrewers() ([]*models.Brewer, error) {
 	}
 
 	// Update cache
-	if userCache == nil {
-		userCache = &UserCache{Timestamp: time.Now()}
-	}
-	userCache.Brewers = brewers
-	userCache.Timestamp = time.Now()
-	cache.Set(s.sessionID, userCache)
+	s.cache.SetBrewers(s.sessionID, brewers)
 
 	return brewers, nil
 }
 
-func (s *AtprotoStore) UpdateBrewerByRKey(rkey string, brewer *models.UpdateBrewerRequest) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *models.UpdateBrewerRequest) error {
 	// Get existing to preserve createdAt
-	existing, err := s.GetBrewerByRKey(rkey)
+	existing, err := s.GetBrewerByRKey(ctx, rkey)
 	if err != nil {
 		return fmt.Errorf("failed to get existing brewer: %w", err)
 	}
@@ -1041,14 +961,12 @@ func (s *AtprotoStore) UpdateBrewerByRKey(rkey string, brewer *models.UpdateBrew
 	}
 
 	// Invalidate cache
-	GetSessionCache().InvalidateBrewers(s.sessionID)
+	s.cache.InvalidateBrewers(s.sessionID)
 
 	return nil
 }
 
-func (s *AtprotoStore) DeleteBrewerByRKey(rkey string) error {
-	ctx := s.getContext()
-
+func (s *AtprotoStore) DeleteBrewerByRKey(ctx context.Context, rkey string) error {
 	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
 		Collection: NSIDBrewer,
 		RKey:       rkey,
@@ -1058,7 +976,7 @@ func (s *AtprotoStore) DeleteBrewerByRKey(rkey string) error {
 	}
 
 	// Invalidate cache
-	GetSessionCache().InvalidateBrewers(s.sessionID)
+	s.cache.InvalidateBrewers(s.sessionID)
 
 	return nil
 }

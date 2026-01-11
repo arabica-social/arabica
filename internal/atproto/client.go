@@ -288,6 +288,14 @@ func (c *Client) ListAllRecords(ctx context.Context, did syntax.DID, sessionID s
 	limit := int64(100)
 
 	for {
+		// Check for context cancellation before each page request
+		// This allows long-running pagination to be cancelled gracefully
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
 		output, err := c.ListRecords(ctx, did, sessionID, &ListRecordsInput{
 			Collection: collection,
 			Limit:      &limit,
