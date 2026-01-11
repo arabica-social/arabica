@@ -169,7 +169,10 @@ function brewForm() {
             };
             const response = await fetch('/api/beans', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                },
                 body: JSON.stringify(payload)
             });
             if (response.ok) {
@@ -200,7 +203,10 @@ function brewForm() {
             }
             const response = await fetch('/api/grinders', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                },
                 body: JSON.stringify(this.newGrinder)
             });
             if (response.ok) {
@@ -231,7 +237,10 @@ function brewForm() {
             }
             const response = await fetch('/api/brewers', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                },
                 body: JSON.stringify(this.newBrewer)
             });
             if (response.ok) {

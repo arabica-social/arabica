@@ -260,6 +260,18 @@ social.arabica.alpha.share     - Re-share a brew to your feed
 3. **Public by default** - Social interactions are public records, readable by anyone
 4. **Portable identity** - Users can switch PDS and keep their social graph
 
+## Deployment Notes
+
+### CSS Cache Busting
+
+When making CSS/style changes, bump the version query parameter in `templates/layout.tmpl`:
+
+```html
+<link rel="stylesheet" href="/static/css/output.css?v=0.1.3" />
+```
+
+Cloudflare caches static assets, so incrementing the version ensures users get the updated styles.
+
 ## Known Issues / TODOs
 
 See todo list in conversation for tracked issues. Key areas:

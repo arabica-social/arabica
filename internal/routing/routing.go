@@ -92,10 +92,18 @@ func SetupRouter(cfg Config) http.Handler {
 	// 1. Limit request body size (innermost - runs first on request)
 	handler = middleware.LimitBodyMiddleware(handler)
 
-	// 2. Apply OAuth middleware to add auth context
+	// 2. Apply CSRF protection (validates tokens on state-changing requests)
+	csrfConfig := &middleware.CSRFConfig{
+		SecureCookie:  false, // Set true when using HTTPS
+		ExemptPaths:   []string{"/oauth/callback"},
+		ExemptMethods: []string{"GET", "HEAD", "OPTIONS", "TRACE"},
+	}
+	handler = middleware.CSRFMiddleware(csrfConfig)(handler)
+
+	// 3. Apply OAuth middleware to add auth context
 	handler = cfg.OAuthManager.AuthMiddleware(handler)
 
-	// 3. Apply rate limiting
+	// 4. Apply rate limiting
 	rateLimitConfig := middleware.NewDefaultRateLimitConfig()
 	handler = middleware.RateLimitMiddleware(rateLimitConfig)(handler)
 

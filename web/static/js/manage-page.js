@@ -46,7 +46,10 @@ function managePage() {
 
             const response = await fetch(url, {
                 method,
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                },
                 body: JSON.stringify(this.beanForm)
             });
 
@@ -65,7 +68,12 @@ function managePage() {
         async deleteBean(rkey) {
             if (!confirm('Are you sure you want to delete this bean?')) return;
 
-            const response = await fetch(`/api/beans/${rkey}`, {method: 'DELETE'});
+            const response = await fetch(`/api/beans/${rkey}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                }
+            });
             if (response.ok) {
                 // Invalidate cache and reload
                 if (window.ArabicaCache) {
@@ -95,7 +103,10 @@ function managePage() {
 
             const response = await fetch(url, {
                 method,
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                },
                 body: JSON.stringify(this.roasterForm)
             });
 
@@ -114,7 +125,12 @@ function managePage() {
         async deleteRoaster(rkey) {
             if (!confirm('Are you sure you want to delete this roaster?')) return;
 
-            const response = await fetch(`/api/roasters/${rkey}`, {method: 'DELETE'});
+            const response = await fetch(`/api/roasters/${rkey}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                }
+            });
             if (response.ok) {
                 // Invalidate cache and reload
                 if (window.ArabicaCache) {
@@ -144,7 +160,10 @@ function managePage() {
 
             const response = await fetch(url, {
                 method,
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                },
                 body: JSON.stringify(this.grinderForm)
             });
 
@@ -163,7 +182,12 @@ function managePage() {
         async deleteGrinder(rkey) {
             if (!confirm('Are you sure you want to delete this grinder?')) return;
 
-            const response = await fetch(`/api/grinders/${rkey}`, {method: 'DELETE'});
+            const response = await fetch(`/api/grinders/${rkey}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                }
+            });
             if (response.ok) {
                 // Invalidate cache and reload
                 if (window.ArabicaCache) {
@@ -193,7 +217,10 @@ function managePage() {
 
             const response = await fetch(url, {
                 method,
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                },
                 body: JSON.stringify(this.brewerForm)
             });
 
@@ -212,7 +239,12 @@ function managePage() {
         async deleteBrewer(rkey) {
             if (!confirm('Are you sure you want to delete this brewer?')) return;
 
-            const response = await fetch(`/api/brewers/${rkey}`, {method: 'DELETE'});
+            const response = await fetch(`/api/brewers/${rkey}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                }
+            });
             if (response.ok) {
                 // Invalidate cache and reload
                 if (window.ArabicaCache) {
