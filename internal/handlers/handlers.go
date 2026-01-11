@@ -98,7 +98,7 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	var feedItems []*feed.FeedItem
 	if h.feedService != nil {
-		feedItems, _ = h.feedService.GetRecentBrews(r.Context(), 20)
+		feedItems, _ = h.feedService.GetRecentRecords(r.Context(), 20)
 	}
 
 	if err := bff.RenderFeedPartial(w, feedItems); err != nil {
@@ -1261,5 +1261,17 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	if err := bff.RenderProfile(w, profile, brews, beans, roasters, grinders, brewers, isAuthenticated, didStr); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile page")
+	}
+}
+
+// HandleNotFound renders the 404 page
+func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
+	// Check if current user is authenticated (for nav bar state)
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	if err := bff.Render404(w, isAuthenticated, didStr); err != nil {
+		http.Error(w, "Page not found", http.StatusNotFound)
+		log.Error().Err(err).Msg("Failed to render 404 page")
 	}
 }

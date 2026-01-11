@@ -44,9 +44,9 @@ func NewService(registry *Registry) *Service {
 	}
 }
 
-// GetRecentBrews fetches recent activity (brews and other records) from all registered users
+// GetRecentRecords fetches recent activity (brews and other records) from all registered users
 // Returns up to `limit` items sorted by most recent first
-func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, error) {
+func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem, error) {
 	dids := s.registry.List()
 	if len(dids) == 0 {
 		log.Debug().Msg("feed: no registered users")

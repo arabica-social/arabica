@@ -317,3 +317,18 @@ func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*mod
 	}
 	return t.ExecuteTemplate(w, "layout", data)
 }
+
+// Render404 renders the 404 not found page
+func Render404(w http.ResponseWriter, isAuthenticated bool, userDID string) error {
+	t, err := parsePageTemplate("404.tmpl")
+	if err != nil {
+		return err
+	}
+	data := &PageData{
+		Title:           "Page Not Found",
+		IsAuthenticated: isAuthenticated,
+		UserDID:         userDID,
+	}
+	w.WriteHeader(http.StatusNotFound)
+	return t.ExecuteTemplate(w, "layout", data)
+}

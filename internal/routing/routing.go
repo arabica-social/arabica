@@ -83,6 +83,9 @@ func SetupRouter(cfg Config) http.Handler {
 	fs := http.FileServer(http.Dir("web/static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
+	// Catch-all 404 handler - must be last, catches any unmatched routes
+	mux.HandleFunc("/", h.HandleNotFound)
+
 	// Apply middleware in order (last added is executed first)
 	// 1. Apply OAuth middleware to add auth context to all requests
 	handler := cfg.OAuthManager.AuthMiddleware(mux)
