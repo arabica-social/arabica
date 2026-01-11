@@ -81,7 +81,7 @@
                 img.width = 32;
                 img.height = 32;
                 img.className = 'w-6 h-6 rounded-full object-cover flex-shrink-0';
-                img.onerror = function() { this.src = '/static/icon-placeholder.svg'; };
+                img.addEventListener('error', function() { this.src = '/static/icon-placeholder.svg'; });
                 
                 // Create text container
                 const textContainer = document.createElement('div');
