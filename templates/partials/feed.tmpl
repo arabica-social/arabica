@@ -23,6 +23,13 @@
             </div>
         </div>
 
+        <!-- Action header -->
+        <div class="mb-2 text-sm text-gray-600 italic">
+            {{.Action}}
+        </div>
+
+        <!-- Record content -->
+        {{if eq .RecordType "brew"}}
         <!-- Brew info -->
         <div class="bg-gray-50 rounded-lg p-3">
             <!-- Bean and roaster info -->
@@ -87,12 +94,82 @@
             </div>
             {{end}}
         </div>
+        {{else if eq .RecordType "bean"}}
+        <!-- Bean info -->
+        <div class="bg-gray-50 rounded-lg p-3">
+            <div class="text-base mb-2">
+                <span class="font-bold text-gray-900">
+                    {{if .Bean.Name}}{{.Bean.Name}}{{else}}{{.Bean.Origin}}{{end}}
+                </span>
+                {{if and .Bean.Roaster .Bean.Roaster.Name}}
+                <span class="text-gray-600"> from {{.Bean.Roaster.Name}}</span>
+                {{end}}
+            </div>
+            <div class="text-sm text-gray-600 space-y-1">
+                {{if .Bean.Origin}}
+                <div><span class="text-gray-500">Origin:</span> {{.Bean.Origin}}</div>
+                {{end}}
+                {{if .Bean.RoastLevel}}
+                <div><span class="text-gray-500">Roast:</span> {{.Bean.RoastLevel}}</div>
+                {{end}}
+                {{if .Bean.Process}}
+                <div><span class="text-gray-500">Process:</span> {{.Bean.Process}}</div>
+                {{end}}
+                {{if .Bean.Description}}
+                <div class="mt-2 text-gray-700 italic">"{{.Bean.Description}}"</div>
+                {{end}}
+            </div>
+        </div>
+        {{else if eq .RecordType "roaster"}}
+        <!-- Roaster info -->
+        <div class="bg-gray-50 rounded-lg p-3">
+            <div class="text-base mb-2">
+                <span class="font-bold text-gray-900">{{.Roaster.Name}}</span>
+            </div>
+            <div class="text-sm text-gray-600 space-y-1">
+                {{if .Roaster.Location}}
+                <div><span class="text-gray-500">Location:</span> {{.Roaster.Location}}</div>
+                {{end}}
+                {{if .Roaster.Website}}
+                <div><span class="text-gray-500">Website:</span> <a href="{{.Roaster.Website}}" target="_blank" class="text-blue-600 hover:underline">{{.Roaster.Website}}</a></div>
+                {{end}}
+            </div>
+        </div>
+        {{else if eq .RecordType "grinder"}}
+        <!-- Grinder info -->
+        <div class="bg-gray-50 rounded-lg p-3">
+            <div class="text-base mb-2">
+                <span class="font-bold text-gray-900">{{.Grinder.Name}}</span>
+            </div>
+            <div class="text-sm text-gray-600 space-y-1">
+                {{if .Grinder.GrinderType}}
+                <div><span class="text-gray-500">Type:</span> {{.Grinder.GrinderType}}</div>
+                {{end}}
+                {{if .Grinder.BurrType}}
+                <div><span class="text-gray-500">Burr:</span> {{.Grinder.BurrType}}</div>
+                {{end}}
+                {{if .Grinder.Notes}}
+                <div class="mt-2 text-gray-700 italic">"{{.Grinder.Notes}}"</div>
+                {{end}}
+            </div>
+        </div>
+        {{else if eq .RecordType "brewer"}}
+        <!-- Brewer info -->
+        <div class="bg-gray-50 rounded-lg p-3">
+            <div class="text-base mb-2">
+                <span class="font-bold text-gray-900">{{.Brewer.Name}}</span>
+            </div>
+            {{if .Brewer.Description}}
+            <div class="text-sm text-gray-700 italic">"{{.Brewer.Description}}"</div>
+            {{end}}
+        </div>
+        {{end}}
     </div>
     {{end}}
     {{else}}
     <div class="bg-gray-50 rounded-lg p-6 text-center text-gray-500">
-        <p class="mb-2">No brews in the feed yet.</p>
-        <p class="text-sm">Be the first to log a brew!</p>
+        <p class="mb-2">No activity in the feed yet.</p>
+        <p class="text-sm">Be the first to add something!</p>
     </div>
     {{end}}
 </div>

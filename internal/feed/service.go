@@ -13,9 +13,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// FeedItem represents a brew in the social feed with author info
+// FeedItem represents an activity in the social feed with author info
 type FeedItem struct {
-	Brew      *models.Brew
+	// Record type and data (only one will be non-nil)
+	RecordType string // "brew", "bean", "roaster", "grinder", "brewer"
+	Action     string // "added a new brew", "added a new bean", etc.
+
+	Brew    *models.Brew
+	Bean    *models.Bean
+	Roaster *models.Roaster
+	Grinder *models.Grinder
+	Brewer  *models.Brewer
+
 	Author    *atproto.Profile
 	Timestamp time.Time
 	TimeAgo   string // "2 hours ago", "yesterday", etc.
@@ -35,7 +44,7 @@ func NewService(registry *Registry) *Service {
 	}
 }
 
-// GetRecentBrews fetches recent brews from all registered users
+// GetRecentBrews fetches recent activity (brews and other records) from all registered users
 // Returns up to `limit` items sorted by most recent first
 func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, error) {
 	dids := s.registry.List()
@@ -44,17 +53,21 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 		return nil, nil
 	}
 
-	log.Debug().Int("user_count", len(dids)).Msg("feed: fetching brews from registered users")
+	log.Debug().Int("user_count", len(dids)).Msg("feed: fetching activity from registered users")
 
-	// Fetch brews from all users in parallel
-	type userBrews struct {
-		did     string
-		profile *atproto.Profile
-		brews   []*models.Brew
-		err     error
+	// Fetch all records from all users in parallel
+	type userActivity struct {
+		did      string
+		profile  *atproto.Profile
+		brews    []*models.Brew
+		beans    []*models.Bean
+		roasters []*models.Roaster
+		grinders []*models.Grinder
+		brewers  []*models.Brewer
+		err      error
 	}
 
-	results := make(chan userBrews, len(dids))
+	results := make(chan userActivity, len(dids))
 	var wg sync.WaitGroup
 
 	for _, did := range dids {
@@ -62,7 +75,7 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 		go func(did string) {
 			defer wg.Done()
 
-			result := userBrews{did: did}
+			result := userActivity{did: did}
 
 			// Fetch profile
 			profile, err := s.publicClient.GetProfile(ctx, did)
@@ -83,11 +96,35 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 				return
 			}
 
+			// Fetch recent beans
+			beansOutput, err := s.publicClient.ListRecords(ctx, did, atproto.NSIDBean, 10)
+			if err != nil {
+				log.Warn().Err(err).Str("did", did).Msg("failed to fetch beans for feed")
+			}
+
+			// Fetch recent roasters
+			roastersOutput, err := s.publicClient.ListRecords(ctx, did, atproto.NSIDRoaster, 10)
+			if err != nil {
+				log.Warn().Err(err).Str("did", did).Msg("failed to fetch roasters for feed")
+			}
+
+			// Fetch recent grinders
+			grindersOutput, err := s.publicClient.ListRecords(ctx, did, atproto.NSIDGrinder, 10)
+			if err != nil {
+				log.Warn().Err(err).Str("did", did).Msg("failed to fetch grinders for feed")
+			}
+
+			// Fetch recent brewers
+			brewersOutput, err := s.publicClient.ListRecords(ctx, did, atproto.NSIDBrewer, 10)
+			if err != nil {
+				log.Warn().Err(err).Str("did", did).Msg("failed to fetch brewers for feed")
+			}
+
 			// Fetch all beans, roasters, brewers, and grinders for this user to resolve references
-			beansOutput, _ := s.publicClient.ListRecords(ctx, did, atproto.NSIDBean, 100)
-			roastersOutput, _ := s.publicClient.ListRecords(ctx, did, atproto.NSIDRoaster, 100)
-			brewersOutput, _ := s.publicClient.ListRecords(ctx, did, atproto.NSIDBrewer, 100)
-			grindersOutput, _ := s.publicClient.ListRecords(ctx, did, atproto.NSIDGrinder, 100)
+			allBeansOutput, _ := s.publicClient.ListRecords(ctx, did, atproto.NSIDBean, 100)
+			allRoastersOutput, _ := s.publicClient.ListRecords(ctx, did, atproto.NSIDRoaster, 100)
+			allBrewersOutput, _ := s.publicClient.ListRecords(ctx, did, atproto.NSIDBrewer, 100)
+			allGrindersOutput, _ := s.publicClient.ListRecords(ctx, did, atproto.NSIDGrinder, 100)
 
 			// Build lookup maps (keyed by AT-URI)
 			beanMap := make(map[string]*models.Bean)
@@ -97,8 +134,8 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 			grinderMap := make(map[string]*models.Grinder)
 
 			// Populate bean map
-			if beansOutput != nil {
-				for _, beanRecord := range beansOutput.Records {
+			if allBeansOutput != nil {
+				for _, beanRecord := range allBeansOutput.Records {
 					bean, err := atproto.RecordToBean(beanRecord.Value, beanRecord.URI)
 					if err == nil {
 						beanMap[beanRecord.URI] = bean
@@ -111,8 +148,8 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 			}
 
 			// Populate roaster map
-			if roastersOutput != nil {
-				for _, roasterRecord := range roastersOutput.Records {
+			if allRoastersOutput != nil {
+				for _, roasterRecord := range allRoastersOutput.Records {
 					roaster, err := atproto.RecordToRoaster(roasterRecord.Value, roasterRecord.URI)
 					if err == nil {
 						roasterMap[roasterRecord.URI] = roaster
@@ -121,8 +158,8 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 			}
 
 			// Populate brewer map
-			if brewersOutput != nil {
-				for _, brewerRecord := range brewersOutput.Records {
+			if allBrewersOutput != nil {
+				for _, brewerRecord := range allBrewersOutput.Records {
 					brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI)
 					if err == nil {
 						brewerMap[brewerRecord.URI] = brewer
@@ -131,8 +168,8 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 			}
 
 			// Populate grinder map
-			if grindersOutput != nil {
-				for _, grinderRecord := range grindersOutput.Records {
+			if allGrindersOutput != nil {
+				for _, grinderRecord := range allGrindersOutput.Records {
 					grinder, err := atproto.RecordToGrinder(grinderRecord.Value, grinderRecord.URI)
 					if err == nil {
 						grinderMap[grinderRecord.URI] = grinder
@@ -181,6 +218,70 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 			}
 			result.brews = brews
 
+			// Convert beans to models and resolve roaster references
+			beans := make([]*models.Bean, 0)
+			if beansOutput != nil {
+				for _, record := range beansOutput.Records {
+					bean, err := atproto.RecordToBean(record.Value, record.URI)
+					if err != nil {
+						log.Warn().Err(err).Str("uri", record.URI).Msg("failed to parse bean record")
+						continue
+					}
+
+					// Resolve roaster reference
+					if roasterRef, found := beanRoasterRefMap[record.URI]; found {
+						if roaster, found := roasterMap[roasterRef]; found {
+							bean.Roaster = roaster
+						}
+					}
+
+					beans = append(beans, bean)
+				}
+			}
+			result.beans = beans
+
+			// Convert roasters to models
+			roasters := make([]*models.Roaster, 0)
+			if roastersOutput != nil {
+				for _, record := range roastersOutput.Records {
+					roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
+					if err != nil {
+						log.Warn().Err(err).Str("uri", record.URI).Msg("failed to parse roaster record")
+						continue
+					}
+					roasters = append(roasters, roaster)
+				}
+			}
+			result.roasters = roasters
+
+			// Convert grinders to models
+			grinders := make([]*models.Grinder, 0)
+			if grindersOutput != nil {
+				for _, record := range grindersOutput.Records {
+					grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
+					if err != nil {
+						log.Warn().Err(err).Str("uri", record.URI).Msg("failed to parse grinder record")
+						continue
+					}
+					grinders = append(grinders, grinder)
+				}
+			}
+			result.grinders = grinders
+
+			// Convert brewers to models
+			brewers := make([]*models.Brewer, 0)
+			if brewersOutput != nil {
+				for _, record := range brewersOutput.Records {
+					brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
+					if err != nil {
+						log.Warn().Err(err).Str("uri", record.URI).Msg("failed to parse brewer record")
+						continue
+					}
+					brewers = append(brewers, brewer)
+				}
+			}
+			result.brewers = brewers
+
 			results <- result
 		}(did)
 	}
@@ -198,18 +299,76 @@ func (s *Service) GetRecentBrews(ctx context.Context, limit int) ([]*FeedItem, e
 			continue
 		}
 
+		totalRecords := len(result.brews) + len(result.beans) + len(result.roasters) + len(result.grinders) + len(result.brewers)
+
 		log.Debug().
 			Str("did", result.did).
 			Str("handle", result.profile.Handle).
 			Int("brew_count", len(result.brews)).
-			Msg("feed: collected brews from user")
+			Int("bean_count", len(result.beans)).
+			Int("roaster_count", len(result.roasters)).
+			Int("grinder_count", len(result.grinders)).
+			Int("brewer_count", len(result.brewers)).
+			Int("total_records", totalRecords).
+			Msg("feed: collected records from user")
 
+		// Add brews to feed
 		for _, brew := range result.brews {
 			items = append(items, &FeedItem{
-				Brew:      brew,
-				Author:    result.profile,
-				Timestamp: brew.CreatedAt,
-				TimeAgo:   FormatTimeAgo(brew.CreatedAt),
+				RecordType: "brew",
+				Action:     "added a new brew",
+				Brew:       brew,
+				Author:     result.profile,
+				Timestamp:  brew.CreatedAt,
+				TimeAgo:    FormatTimeAgo(brew.CreatedAt),
+			})
+		}
+
+		// Add beans to feed
+		for _, bean := range result.beans {
+			items = append(items, &FeedItem{
+				RecordType: "bean",
+				Action:     "added a new bean",
+				Bean:       bean,
+				Author:     result.profile,
+				Timestamp:  bean.CreatedAt,
+				TimeAgo:    FormatTimeAgo(bean.CreatedAt),
+			})
+		}
+
+		// Add roasters to feed
+		for _, roaster := range result.roasters {
+			items = append(items, &FeedItem{
+				RecordType: "roaster",
+				Action:     "added a new roaster",
+				Roaster:    roaster,
+				Author:     result.profile,
+				Timestamp:  roaster.CreatedAt,
+				TimeAgo:    FormatTimeAgo(roaster.CreatedAt),
+			})
+		}
+
+		// Add grinders to feed
+		for _, grinder := range result.grinders {
+			items = append(items, &FeedItem{
+				RecordType: "grinder",
+				Action:     "added a new grinder",
+				Grinder:    grinder,
+				Author:     result.profile,
+				Timestamp:  grinder.CreatedAt,
+				TimeAgo:    FormatTimeAgo(grinder.CreatedAt),
+			})
+		}
+
+		// Add brewers to feed
+		for _, brewer := range result.brewers {
+			items = append(items, &FeedItem{
+				RecordType: "brewer",
+				Action:     "added a new brewer",
+				Brewer:     brewer,
+				Author:     result.profile,
+				Timestamp:  brewer.CreatedAt,
+				TimeAgo:    FormatTimeAgo(brewer.CreatedAt),
 			})
 		}
 	}
