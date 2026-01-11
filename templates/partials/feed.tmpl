@@ -5,19 +5,21 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <!-- Author row -->
         <div class="flex items-center gap-3 mb-3">
-            {{if .Author.Avatar}}
-            <img src="{{.Author.Avatar}}" alt="" class="w-10 h-10 rounded-full object-cover" />
-            {{else}}
-            <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                <span class="text-gray-500 text-sm">?</span>
-            </div>
-            {{end}}
+            <a href="/profile/{{.Author.Handle}}" class="flex-shrink-0">
+                {{if .Author.Avatar}}
+                <img src="{{.Author.Avatar}}" alt="" class="w-10 h-10 rounded-full object-cover hover:ring-2 hover:ring-brown-400 transition" />
+                {{else}}
+                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center hover:ring-2 hover:ring-brown-400 transition">
+                    <span class="text-gray-500 text-sm">?</span>
+                </div>
+                {{end}}
+            </a>
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                     {{if .Author.DisplayName}}
-                    <span class="font-medium text-gray-900 truncate">{{.Author.DisplayName}}</span>
+                    <a href="/profile/{{.Author.Handle}}" class="font-medium text-gray-900 truncate hover:text-brown-700 hover:underline">{{.Author.DisplayName}}</a>
                     {{end}}
-                    <span class="text-gray-500 text-sm truncate">@{{.Author.Handle}}</span>
+                    <a href="/profile/{{.Author.Handle}}" class="text-gray-500 text-sm truncate hover:text-brown-600 hover:underline">@{{.Author.Handle}}</a>
                 </div>
                 <span class="text-gray-400 text-sm">{{.TimeAgo}}</span>
             </div>

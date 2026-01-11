@@ -190,6 +190,40 @@ func (c *PublicClient) ListRecords(ctx context.Context, did, collection string, 
 	return &output, nil
 }
 
+// ResolveHandle resolves an AT Protocol handle to a DID
+func (c *PublicClient) ResolveHandle(ctx context.Context, handle string) (string, error) {
+	reqURL := fmt.Sprintf("%s/xrpc/com.atproto.identity.resolveHandle?handle=%s",
+		c.baseURL, url.QueryEscape(handle))
+
+	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("creating request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("resolving handle: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return "", fmt.Errorf("handle not found: %s", handle)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("resolve handle failed with status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		DID string `json:"did"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("decoding response: %w", err)
+	}
+
+	return result.DID, nil
+}
+
 // GetRecord fetches a single public record from the user's PDS
 func (c *PublicClient) GetRecord(ctx context.Context, did, collection, rkey string) (*PublicRecordEntry, error) {
 	// Resolve the user's PDS endpoint

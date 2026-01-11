@@ -76,6 +76,9 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("PUT /api/brewers/{id}", h.HandleBrewerUpdate)
 	mux.HandleFunc("DELETE /api/brewers/{id}", h.HandleBrewerDelete)
 
+	// Profile routes (public user profiles)
+	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
+
 	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("web/static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))

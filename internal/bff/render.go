@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"arabica/internal/atproto"
 	"arabica/internal/feed"
 	"arabica/internal/models"
 )
@@ -276,4 +277,43 @@ func RenderManagePartial(w http.ResponseWriter, beans []*models.Bean, roasters [
 func findTemplatePath(name string) string {
 	dir := getTemplateDir()
 	return dir + "/" + name
+}
+
+// ProfilePageData contains data for rendering the profile page
+type ProfilePageData struct {
+	Title           string
+	Profile         *atproto.Profile
+	Brews           []*models.Brew
+	Beans           []*models.Bean
+	Roasters        []*models.Roaster
+	Grinders        []*models.Grinder
+	Brewers         []*models.Brewer
+	IsAuthenticated bool
+	UserDID         string
+}
+
+// RenderProfile renders a user's public profile page
+func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string) error {
+	t, err := parsePageTemplate("profile.tmpl")
+	if err != nil {
+		return err
+	}
+
+	displayName := profile.Handle
+	if profile.DisplayName != nil && *profile.DisplayName != "" {
+		displayName = *profile.DisplayName
+	}
+
+	data := &ProfilePageData{
+		Title:           displayName + "'s Profile",
+		Profile:         profile,
+		Brews:           brews,
+		Beans:           beans,
+		Roasters:        roasters,
+		Grinders:        grinders,
+		Brewers:         brewers,
+		IsAuthenticated: isAuthenticated,
+		UserDID:         userDID,
+	}
+	return t.ExecuteTemplate(w, "layout", data)
 }
