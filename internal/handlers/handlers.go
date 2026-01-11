@@ -974,6 +974,42 @@ func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// About page
+func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
+	// Check if user is authenticated
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	data := &bff.PageData{
+		Title:           "About",
+		IsAuthenticated: isAuthenticated,
+		UserDID:         didStr,
+	}
+
+	if err := bff.RenderTemplate(w, "about.tmpl", data); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render about page")
+	}
+}
+
+// Terms of Service page
+func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
+	// Check if user is authenticated
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	data := &bff.PageData{
+		Title:           "Terms of Service",
+		IsAuthenticated: isAuthenticated,
+		UserDID:         didStr,
+	}
+
+	if err := bff.RenderTemplate(w, "terms.tmpl", data); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render terms page")
+	}
+}
+
 // fetchAllData is a helper that fetches all data types in parallel using errgroup.
 // This is used by handlers that need beans, roasters, grinders, and brewers.
 func fetchAllData(ctx context.Context, store database.Store) (

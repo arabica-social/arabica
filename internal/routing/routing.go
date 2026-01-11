@@ -48,6 +48,8 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
+	mux.HandleFunc("GET /about", h.HandleAbout)
+	mux.HandleFunc("GET /terms", h.HandleTerms)
 	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
 	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
