@@ -845,6 +845,7 @@ func (s *AtprotoStore) DeleteGrinderByRKey(ctx context.Context, rkey string) err
 func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *models.CreateBrewerRequest) (*models.Brewer, error) {
 	brewerModel := &models.Brewer{
 		Name:        brewer.Name,
+		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
 		CreatedAt:   time.Now(),
 	}
@@ -942,6 +943,7 @@ func (s *AtprotoStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brew
 
 	brewerModel := &models.Brewer{
 		Name:        brewer.Name,
+		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
 		CreatedAt:   existing.CreatedAt,
 	}

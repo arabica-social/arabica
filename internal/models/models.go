@@ -19,6 +19,7 @@ const (
 	MaxGrindSizeLength   = 100
 	MaxGrinderTypeLength = 50
 	MaxBurrTypeLength    = 50
+	MaxBrewerTypeLength  = 100
 )
 
 // Validation errors
@@ -67,6 +68,7 @@ type Grinder struct {
 type Brewer struct {
 	RKey        string    `json:"rkey"` // Record key
 	Name        string    `json:"name"`
+	BrewerType  string    `json:"brewer_type"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -144,6 +146,7 @@ type CreateGrinderRequest struct {
 
 type CreateBrewerRequest struct {
 	Name        string `json:"name"`
+	BrewerType  string `json:"brewer_type"`
 	Description string `json:"description"`
 }
 
@@ -171,6 +174,7 @@ type UpdateGrinderRequest struct {
 
 type UpdateBrewerRequest struct {
 	Name        string `json:"name"`
+	BrewerType  string `json:"brewer_type"`
 	Description string `json:"description"`
 }
 
@@ -302,6 +306,9 @@ func (r *CreateBrewerRequest) Validate() error {
 	if len(r.Name) > MaxNameLength {
 		return ErrNameTooLong
 	}
+	if len(r.BrewerType) > MaxBrewerTypeLength {
+		return ErrFieldTooLong
+	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
 	}
@@ -315,6 +322,9 @@ func (r *UpdateBrewerRequest) Validate() error {
 	}
 	if len(r.Name) > MaxNameLength {
 		return ErrNameTooLong
+	}
+	if len(r.BrewerType) > MaxBrewerTypeLength {
+		return ErrFieldTooLong
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong

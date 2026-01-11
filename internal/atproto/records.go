@@ -379,6 +379,9 @@ func BrewerToRecord(brewer *models.Brewer) (map[string]interface{}, error) {
 	if brewer.Description != "" {
 		record["description"] = brewer.Description
 	}
+	if brewer.BrewerType != "" {
+		record["brewerType"] = brewer.BrewerType
+	}
 
 	return record, nil
 }
@@ -417,6 +420,9 @@ func RecordToBrewer(record map[string]interface{}, atURI string) (*models.Brewer
 	// Optional fields
 	if description, ok := record["description"].(string); ok {
 		brewer.Description = description
+	}
+	if brewerType, ok := record["brewerType"].(string); ok {
+		brewer.BrewerType = brewerType
 	}
 
 	return brewer, nil

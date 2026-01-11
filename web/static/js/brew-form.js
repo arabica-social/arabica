@@ -12,7 +12,7 @@ function brewForm() {
         pours: [],
         newBean: { name: '', origin: '', roasterRKey: '', roastLevel: '', process: '', description: '' },
         newGrinder: { name: '', grinderType: '', burrType: '', notes: '' },
-        newBrewer: { name: '', description: '' },
+        newBrewer: { name: '', brewer_type: '', description: '' },
         
         // Dropdown data
         beans: [],
@@ -296,7 +296,7 @@ function brewForm() {
                 }
                 // Close modal and reset form
                 this.showNewBrewer = false;
-                this.newBrewer = { name: '', description: '' };
+                this.newBrewer = { name: '', brewer_type: '', description: '' };
             } else {
                 const errorText = await response.text();
                 alert('Failed to add brewer: ' + errorText);

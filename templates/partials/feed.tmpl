@@ -33,46 +33,70 @@
         </div>
 
         <!-- Action header -->
-        <div class="mb-2 text-sm text-brown-700 italic">
+        <div class="mb-2 text-sm text-brown-700">
             {{.Action}}
         </div>
 
         <!-- Record content -->
         {{if eq .RecordType "brew"}}
         <!-- Brew info -->
-        <div class="bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200">
-            <!-- Bean and roaster info -->
-            <div class="flex items-start justify-between gap-2 mb-2">
+        <div class="bg-white/60 backdrop-blur rounded-lg p-4 border border-brown-200">
+            <!-- Bean info with rating -->
+            <div class="flex items-start justify-between gap-3 mb-3">
                 <div class="flex-1 min-w-0">
                     {{if .Brew.Bean}}
-                    <!-- Bean name and roaster -->
-                    <div class="text-base">
-                        <span class="text-brown-700">Bean:</span>
-                        <span class="font-bold text-brown-900">
-                            {{if .Brew.Bean.Name}}{{.Brew.Bean.Name}}{{else}}{{.Brew.Bean.Origin}}{{end}}{{if and .Brew.Bean.Roaster .Brew.Bean.Roaster.Name}} - {{.Brew.Bean.Roaster.Name}}{{end}}
-                        </span>
+                    <div class="font-bold text-brown-900 text-base">
+                        {{if .Brew.Bean.Name}}{{.Brew.Bean.Name}}{{else}}{{.Brew.Bean.Origin}}{{end}}
                     </div>
-                    <!-- Process, roast level, origin -->
-                    <div class="text-sm text-brown-600">
-                        {{if .Brew.Bean.Process}}{{.Brew.Bean.Process}}{{end}}{{if and .Brew.Bean.Process .Brew.Bean.RoastLevel}} • {{end}}{{if .Brew.Bean.RoastLevel}}{{.Brew.Bean.RoastLevel}}{{end}}{{if and (or .Brew.Bean.Process .Brew.Bean.RoastLevel) .Brew.Bean.Origin}} • {{end}}{{if .Brew.Bean.Origin}}{{.Brew.Bean.Origin}}{{end}}
+                    {{if and .Brew.Bean.Roaster .Brew.Bean.Roaster.Name}}
+                    <div class="text-sm text-brown-700 mt-0.5">
+                        <span class="font-medium">🏪 {{.Brew.Bean.Roaster.Name}}</span>
+                    </div>
+                    {{end}}
+                    <div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                        {{if .Brew.Bean.Origin}}<span class="inline-flex items-center gap-0.5">📍 {{.Brew.Bean.Origin}}</span>{{end}}
+                        {{if .Brew.Bean.RoastLevel}}<span class="inline-flex items-center gap-0.5">🔥 {{.Brew.Bean.RoastLevel}}</span>{{end}}
+                        {{if .Brew.Bean.Process}}<span class="inline-flex items-center gap-0.5">🌱 {{.Brew.Bean.Process}}</span>{{end}}
+                        {{if hasValue .Brew.CoffeeAmount}}<span class="inline-flex items-center gap-0.5">⚖️ {{.Brew.CoffeeAmount}}g</span>{{end}}
                     </div>
                     {{end}}
                 </div>
                 {{if hasValue .Brew.Rating}}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-900 flex-shrink-0">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-900 flex-shrink-0">
                     ⭐ {{.Brew.Rating}}/10
                 </span>
                 {{end}}
             </div>
             
-            <!-- Brew parameters -->
-            <div class="grid grid-cols-2 gap-2 text-sm text-brown-700">
-                {{if hasValue .Brew.CoffeeAmount}}
+            <!-- Brewer -->
+            {{if or .Brew.BrewerObj .Brew.Method}}
+            <div class="mb-2">
+                <span class="text-xs text-brown-600">Brewer:</span>
+                <span class="text-sm font-semibold text-brown-900">
+                    {{if .Brew.BrewerObj}}{{.Brew.BrewerObj.Name}}{{else if .Brew.Method}}{{.Brew.Method}}{{end}}
+                </span>
+            </div>
+            {{end}}
+            
+            <!-- Brew parameters in compact grid -->
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-brown-700">
+                {{if .Brew.GrinderObj}}
                 <div>
-                    <span class="text-brown-600">Coffee:</span> {{.Brew.CoffeeAmount}}g
+                    <span class="text-brown-600">Grinder:</span> {{.Brew.GrinderObj.Name}}{{if .Brew.GrindSize}} ({{.Brew.GrindSize}}){{end}}
+                </div>
+                {{else if .Brew.GrindSize}}
+                <div>
+                    <span class="text-brown-600">Grind:</span> {{.Brew.GrindSize}}
                 </div>
                 {{end}}
-                {{if hasValue .Brew.WaterAmount}}
+                {{if .Brew.Pours}}
+                <div class="col-span-2">
+                    <span class="text-brown-600">Pours:</span>
+                    {{range .Brew.Pours}}
+                    <div class="pl-2 text-brown-600">• {{.WaterAmount}}g @ {{formatTime .TimeSeconds}}</div>
+                    {{end}}
+                </div>
+                {{else if hasValue .Brew.WaterAmount}}
                 <div>
                     <span class="text-brown-600">Water:</span> {{.Brew.WaterAmount}}g
                 </div>
@@ -87,14 +111,6 @@
                     <span class="text-brown-600">Time:</span> {{formatTime .Brew.TimeSeconds}}
                 </div>
                 {{end}}
-                {{if .Brew.GrindSize}}
-                <div>
-                    <span class="text-brown-600">Grind:</span> {{.Brew.GrindSize}}{{if .Brew.GrinderObj}} ({{.Brew.GrinderObj.Name}}){{end}}
-                </div>
-                {{end}}
-                <div>
-                    <span class="text-brown-600">Brewer:</span> <span class="font-bold text-brown-900">{{if .Brew.BrewerObj}}{{.Brew.BrewerObj.Name}}{{else if .Brew.Method}}{{.Brew.Method}}{{else}}-{{end}}</span>
-                </div>
             </div>
 
             {{if .Brew.TastingNotes}}

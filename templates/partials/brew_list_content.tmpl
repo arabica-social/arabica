@@ -41,10 +41,10 @@
                         <span class="font-medium">{{.Bean.Roaster.Name}}</span>
                     </div>
                     {{end}}
-                    <div class="text-xs text-brown-600 mt-0.5 space-y-0.5">
-                        {{if .Bean.Origin}}<div>📍 {{.Bean.Origin}}</div>{{end}}
-                        {{if .Bean.RoastLevel}}<div>🔥 {{.Bean.RoastLevel}}</div>{{end}}
-                        {{if hasValue .CoffeeAmount}}<div>⚖️ {{.CoffeeAmount}}g</div>{{end}}
+                    <div class="text-xs text-brown-600 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                        {{if .Bean.Origin}}<span class="inline-flex items-center gap-0.5">📍 {{.Bean.Origin}}</span>{{end}}
+                        {{if .Bean.RoastLevel}}<span class="inline-flex items-center gap-0.5">🔥 {{.Bean.RoastLevel}}</span>{{end}}
+                        {{if hasValue .CoffeeAmount}}<span class="inline-flex items-center gap-0.5">⚖️ {{.CoffeeAmount}}g</span>{{end}}
                     </div>
                     {{else}}
                     <span class="text-brown-400">-</span>

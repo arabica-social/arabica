@@ -316,7 +316,7 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 		for _, brew := range result.brews {
 			items = append(items, &FeedItem{
 				RecordType: "brew",
-				Action:     "added a new brew",
+				Action:     "☕ added a new brew",
 				Brew:       brew,
 				Author:     result.profile,
 				Timestamp:  brew.CreatedAt,
@@ -328,7 +328,7 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 		for _, bean := range result.beans {
 			items = append(items, &FeedItem{
 				RecordType: "bean",
-				Action:     "added a new bean",
+				Action:     "🫘 added a new bean",
 				Bean:       bean,
 				Author:     result.profile,
 				Timestamp:  bean.CreatedAt,
@@ -340,7 +340,7 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 		for _, roaster := range result.roasters {
 			items = append(items, &FeedItem{
 				RecordType: "roaster",
-				Action:     "added a new roaster",
+				Action:     "🏪 added a new roaster",
 				Roaster:    roaster,
 				Author:     result.profile,
 				Timestamp:  roaster.CreatedAt,
@@ -352,7 +352,7 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 		for _, grinder := range result.grinders {
 			items = append(items, &FeedItem{
 				RecordType: "grinder",
-				Action:     "added a new grinder",
+				Action:     "⚙️ added a new grinder",
 				Grinder:    grinder,
 				Author:     result.profile,
 				Timestamp:  grinder.CreatedAt,
@@ -364,7 +364,7 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 		for _, brewer := range result.brewers {
 			items = append(items, &FeedItem{
 				RecordType: "brewer",
-				Action:     "added a new brewer",
+				Action:     "☕ added a new brewer",
 				Brewer:     brewer,
 				Author:     result.profile,
 				Timestamp:  brewer.CreatedAt,

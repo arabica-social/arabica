@@ -19,13 +19,13 @@
         <table class="min-w-full divide-y divide-brown-300">
             <thead class="bg-brown-200/80">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📍 Origin</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">☕ Roaster</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔥 Roast Level</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🌱 Process</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📝 Description</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">📍 Origin</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">☕ Roaster</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">🔥 Roast Level</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">🌱 Process</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">📝 Description</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-brown-50/60 divide-y divide-brown-200">
@@ -160,7 +160,7 @@
 <div x-show="tab === 'brewers'">
     <div class="mb-4 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
-        <button @click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', description: ''}"
+        <button @click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', brewer_type: '', description: ''}"
             class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
             + Add Brewer
         </button>
@@ -176,19 +176,27 @@
             <thead class="bg-brown-200/80">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔧 Type</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📝 Description</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-brown-50/60 divide-y divide-brown-200">
                 {{range .Brewers}}
-                <tr class="hover:bg-brown-100/60 transition-colors">
+                <tr class="hover:bg-brown-100/60 transition-colors"
+                    data-rkey="{{.RKey}}"
+                    data-name="{{.Name}}"
+                    data-brewer-type="{{.BrewerType}}"
+                    data-description="{{.Description}}">
                     <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
+                    <td class="px-6 py-4 text-sm text-brown-900">
+                        {{if .BrewerType}}{{.BrewerType}}{{else}}<span class="text-brown-400">-</span>{{end}}
+                    </td>
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Description}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button @click="editBrewer('{{.RKey}}', '{{.Name}}', '{{.Description}}')"
+                        <button @click="editBrewerFromRow($el.closest('tr'))"
                             class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
-                        <button @click="deleteBrewer('{{.RKey}}')"
+                        <button @click="deleteBrewer($el.closest('tr').dataset.rkey)"
                             class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
                     </td>
                 </tr>
@@ -200,7 +208,7 @@
 </div>
 
 <!-- Bean Form Modal -->
-<div x-cloak x-show="showBeanForm" class="fixed inset-0 bg-brown-900/75 flex items-center justify-center z-50">
+<div x-cloak x-show="showBeanForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl border-2 border-brown-300 p-8 max-w-md w-full mx-4 shadow-2xl">
         <h3 class="text-xl font-semibold mb-4 text-brown-900" x-text="editingBean ? 'Edit Bean' : 'Add Bean'"></h3>
         <div class="space-y-4">
@@ -238,7 +246,7 @@
 </div>
 
 <!-- Roaster Form Modal -->
-<div x-cloak x-show="showRoasterForm" class="fixed inset-0 bg-brown-900/75 flex items-center justify-center z-50">
+<div x-cloak x-show="showRoasterForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl border-2 border-brown-300 p-8 max-w-md w-full mx-4 shadow-2xl">
         <h3 class="text-xl font-semibold mb-4 text-brown-900" x-text="editingRoaster ? 'Edit Roaster' : 'Add Roaster'"></h3>
         <div class="space-y-4">
@@ -259,7 +267,7 @@
 </div>
 
 <!-- Grinder Form Modal -->
-<div x-cloak x-show="showGrinderForm" class="fixed inset-0 bg-brown-900/75 flex items-center justify-center z-50">
+<div x-cloak x-show="showGrinderForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl border-2 border-brown-300 p-8 max-w-md w-full mx-4 shadow-2xl">
         <h3 class="text-xl font-semibold mb-4 text-brown-900" x-text="editingGrinder ? 'Edit Grinder' : 'Add Grinder'"></h3>
         <div class="space-y-4">
@@ -289,11 +297,13 @@
 </div>
 
 <!-- Brewer Form Modal -->
-<div x-cloak x-show="showBrewerForm" class="fixed inset-0 bg-brown-900/75 flex items-center justify-center z-50">
+<div x-cloak x-show="showBrewerForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl border-2 border-brown-300 p-8 max-w-md w-full mx-4 shadow-2xl">
         <h3 class="text-xl font-semibold mb-4 text-brown-900" x-text="editingBrewer ? 'Edit Brewer' : 'Add Brewer'"></h3>
         <div class="space-y-4">
             <input type="text" x-model="brewerForm.name" placeholder="Name *"
+                class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600" />
+            <input type="text" x-model="brewerForm.brewer_type" placeholder="Type (e.g., Pour-Over, Immersion, Espresso)"
                 class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600" />
             <textarea x-model="brewerForm.description" placeholder="Description" rows="3"
                 class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"></textarea>

@@ -16,7 +16,7 @@ function managePage() {
         beanForm: {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''},
         roasterForm: {name: '', location: '', website: ''},
         grinderForm: {name: '', grinder_type: '', burr_type: '', notes: ''},
-        brewerForm: {name: '', description: ''},
+        brewerForm: {name: '', brewer_type: '', description: ''},
 
         init() {
             this.$watch('tab', value => {
@@ -200,10 +200,18 @@ function managePage() {
             }
         },
 
-        editBrewer(rkey, name, description) {
+        editBrewer(rkey, name, brewer_type, description) {
             this.editingBrewer = rkey;
-            this.brewerForm = {name, description};
+            this.brewerForm = {name, brewer_type, description};
             this.showBrewerForm = true;
+        },
+
+        editBrewerFromRow(row) {
+            const rkey = row.dataset.rkey;
+            const name = row.dataset.name;
+            const brewer_type = row.dataset.brewerType || '';
+            const description = row.dataset.description || '';
+            this.editBrewer(rkey, name, brewer_type, description);
         },
 
         async saveBrewer() {

@@ -91,12 +91,12 @@
                     <table class="min-w-full divide-y divide-brown-300">
                         <thead class="bg-brown-200/80">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">☕ Roaster</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">📍 Origin</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">🔥 Roast</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">🌱 Process</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">📝 Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">☕ Roaster</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">📍 Origin</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">🔥 Roast</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">🌱 Process</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">📝 Description</th>
                             </tr>
                         </thead>
                         <tbody class="bg-brown-50/60 divide-y divide-brown-200">
@@ -135,7 +135,7 @@
             <!-- Roasters -->
             {{if .Roasters}}
             <div>
-                <h3 class="text-lg font-semibold text-brown-900 mb-3">🏭 Favorite Roasters</h3>
+                <h3 class="text-lg font-semibold text-brown-900 mb-3">🏪 Favorite Roasters</h3>
                 <div class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300">
                     <table class="min-w-full divide-y divide-brown-300">
                         <thead class="bg-brown-200/80">
@@ -219,12 +219,13 @@
             <!-- Brewers -->
             {{if .Brewers}}
             <div>
-                <h3 class="text-lg font-semibold text-brown-900 mb-3">🫖 Brewers</h3>
+                <h3 class="text-lg font-semibold text-brown-900 mb-3">☕ Brewers</h3>
                 <div class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300">
                     <table class="min-w-full divide-y divide-brown-300">
                         <thead class="bg-brown-200/80">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">🔧 Type</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">📝 Description</th>
                             </tr>
                         </thead>
@@ -232,6 +233,9 @@
                             {{range .Brewers}}
                             <tr class="hover:bg-brown-100/60 transition-colors">
                                 <td class="px-6 py-4 text-sm font-bold text-brown-900">{{.Name}}</td>
+                                <td class="px-6 py-4 text-sm text-brown-900">
+                                    {{if .BrewerType}}{{.BrewerType}}{{else}}<span class="text-brown-400">-</span>{{end}}
+                                </td>
                                 <td class="px-6 py-4 text-sm text-brown-700 italic max-w-xs">
                                     {{if .Description}}{{.Description}}{{else}}<span class="text-brown-400 not-italic">-</span>{{end}}
                                 </td>

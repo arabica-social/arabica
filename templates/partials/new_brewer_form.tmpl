@@ -4,6 +4,7 @@
     <h4 class="font-medium mb-3 text-gray-800">Add New Brewer</h4>
     <div class="space-y-3">
         <input type="text" x-model="newBrewer.name" placeholder="Name (e.g. V60, AeroPress) *" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
+        <input type="text" x-model="newBrewer.brewer_type" placeholder="Type (e.g. Pour-Over, Immersion)" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
         <input type="text" x-model="newBrewer.description" placeholder="Description (optional)" class="w-full rounded-md border-gray-300 bg-white shadow-sm py-2 px-3"/>
         <div class="flex gap-2">
             <button type="button" @click="addBrewer()" class="bg-brown-600 text-white px-4 py-2 rounded hover:bg-brown-700">Add</button>

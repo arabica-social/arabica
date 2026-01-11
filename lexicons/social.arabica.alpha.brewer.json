@@ -15,6 +15,11 @@
             "maxLength": 200,
             "description": "Name of the brewer (e.g., 'V60', 'Aeropress', 'Chemex')"
           },
+          "brewerType": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Type of brewer (e.g., 'Pour-Over', 'Immersion', 'Espresso Machine', 'Lever Espresso Machine', 'Moka Pot', 'French Press')"
+          },
           "description": {
             "type": "string",
             "maxLength": 1000,

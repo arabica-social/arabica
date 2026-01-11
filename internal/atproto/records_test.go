@@ -639,6 +639,7 @@ func TestRoundTrip(t *testing.T) {
 	t.Run("brewer round trip", func(t *testing.T) {
 		original := &models.Brewer{
 			Name:        "Hario V60",
+			BrewerType:  "Pour-Over",
 			Description: "Pour-over dripper",
 			CreatedAt:   createdAt,
 		}
@@ -655,6 +656,9 @@ func TestRoundTrip(t *testing.T) {
 
 		if restored.Name != original.Name {
 			t.Errorf("Name = %v, want %v", restored.Name, original.Name)
+		}
+		if restored.BrewerType != original.BrewerType {
+			t.Errorf("BrewerType = %v, want %v", restored.BrewerType, original.BrewerType)
 		}
 		if restored.Description != original.Description {
 			t.Errorf("Description = %v, want %v", restored.Description, original.Description)
