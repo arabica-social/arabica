@@ -13,6 +13,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// PublicFeedCacheTTL is the duration for which the public feed cache is valid.
+// This value can be adjusted based on desired freshness vs. performance tradeoff.
+// Consider values between 5-10 minutes for a good balance.
+const PublicFeedCacheTTL = 5 * time.Minute
+
+// PublicFeedLimit is the number of items to show for unauthenticated users
+const PublicFeedLimit = 5
+
 // FeedItem represents an activity in the social feed with author info
 type FeedItem struct {
 	// Record type and data (only one will be non-nil)
@@ -30,10 +38,18 @@ type FeedItem struct {
 	TimeAgo   string // "2 hours ago", "yesterday", etc.
 }
 
+// publicFeedCache holds cached feed items for unauthenticated users
+type publicFeedCache struct {
+	items     []*FeedItem
+	expiresAt time.Time
+	mu        sync.RWMutex
+}
+
 // Service fetches and aggregates brews from registered users
 type Service struct {
 	registry     *Registry
 	publicClient *atproto.PublicClient
+	cache        *publicFeedCache
 }
 
 // NewService creates a new feed service
@@ -41,7 +57,59 @@ func NewService(registry *Registry) *Service {
 	return &Service{
 		registry:     registry,
 		publicClient: atproto.NewPublicClient(),
+		cache:        &publicFeedCache{},
 	}
+}
+
+// GetCachedPublicFeed returns cached feed items for unauthenticated users.
+// It returns up to PublicFeedLimit items from the cache, refreshing if expired.
+func (s *Service) GetCachedPublicFeed(ctx context.Context) ([]*FeedItem, error) {
+	s.cache.mu.RLock()
+	if time.Now().Before(s.cache.expiresAt) && len(s.cache.items) > 0 {
+		items := s.cache.items
+		s.cache.mu.RUnlock()
+		log.Debug().Int("item_count", len(items)).Msg("feed: returning cached public feed")
+		return items, nil
+	}
+	s.cache.mu.RUnlock()
+
+	// Cache is expired or empty, refresh it
+	return s.refreshPublicFeedCache(ctx)
+}
+
+// refreshPublicFeedCache fetches fresh feed items and updates the cache
+func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, error) {
+	s.cache.mu.Lock()
+	defer s.cache.mu.Unlock()
+
+	// Double-check if another goroutine already refreshed the cache
+	if time.Now().Before(s.cache.expiresAt) && len(s.cache.items) > 0 {
+		return s.cache.items, nil
+	}
+
+	log.Debug().Msg("feed: refreshing public feed cache")
+
+	// Fetch fresh feed items (limited to PublicFeedLimit)
+	items, err := s.GetRecentRecords(ctx, PublicFeedLimit)
+	if err != nil {
+		// If we have stale data, return it rather than failing
+		if len(s.cache.items) > 0 {
+			log.Warn().Err(err).Msg("feed: failed to refresh cache, returning stale data")
+			return s.cache.items, nil
+		}
+		return nil, err
+	}
+
+	// Update cache
+	s.cache.items = items
+	s.cache.expiresAt = time.Now().Add(PublicFeedCacheTTL)
+
+	log.Debug().
+		Int("item_count", len(items)).
+		Time("expires_at", s.cache.expiresAt).
+		Msg("feed: updated public feed cache")
+
+	return items, nil
 }
 
 // GetRecentRecords fetches recent activity (brews and other records) from all registered users

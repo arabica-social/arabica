@@ -156,8 +156,19 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 // Community feed partial (loaded async via HTMX)
 func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	var feedItems []*feed.FeedItem
+
 	if h.feedService != nil {
-		feedItems, _ = h.feedService.GetRecentRecords(r.Context(), 20)
+		// Check if user is authenticated
+		_, err := atproto.GetAuthenticatedDID(r.Context())
+		isAuthenticated := err == nil
+
+		if isAuthenticated {
+			// Authenticated users get the full feed (20 items), fetched fresh
+			feedItems, _ = h.feedService.GetRecentRecords(r.Context(), 20)
+		} else {
+			// Unauthenticated users get a limited feed from the cache
+			feedItems, _ = h.feedService.GetCachedPublicFeed(r.Context())
+		}
 	}
 
 	if err := bff.RenderFeedPartial(w, feedItems); err != nil {
