@@ -1,148 +1,97 @@
-# Arabica - Coffee Brew Tracker
+# Arabica
 
-A self-hosted web application for tracking your coffee brewing journey. Built with Go and SQLite.
-
-## Features
-
-- 📝 Quick entry of brew data (temperature, time, method, flexible grind size entry, etc.)
-- ☕ Organize beans by origin and roaster with quick-select dropdowns
-- 📱 Mobile-first PWA design for on-the-go tracking
-- 📊 Rating system and tasting notes
-- 📥 Export your data as JSON
-- 🔄 CRUD operations for all brew entries
-- 🗄️ SQLite database with abstraction layer for easy migration
+Coffee brew tracking application using AT Protocol for decentralized storage.
 
 ## Tech Stack
 
-- **Backend**: Go 1.22+ (using stdlib router)
-- **Database**: SQLite (via modernc.org/sqlite - pure Go, no CGO)
-- **Templates**: html/template (Go standard library)
-- **Frontend**: HTMX + Alpine.js
-- **CSS**: Tailwind CSS
-- **PWA**: Service Worker for offline support
+- **Backend:** Go with stdlib HTTP router
+- **Storage:** AT Protocol Personal Data Servers
+- **Local DB:** BoltDB for OAuth sessions and feed registry
+- **Templates:** html/template
+- **Frontend:** HTMX + Alpine.js + Tailwind CSS
 
-## Project Structure
-
-```
-arabica/
-├── cmd/server/          # Application entry point
-├── internal/
-│   ├── database/        # Database interface & SQLite implementation
-│   ├── models/          # Data models
-│   ├── handlers/        # HTTP handlers
-│   └── templates/       # HTML templates
-├── web/static/          # Static assets (CSS, JS, PWA files)
-└── migrations/          # Database migrations
-```
-
-## Getting Started
-
-### Prerequisites
-
-Use Nix for a reproducible development environment with all dependencies:
+## Quick Start
 
 ```bash
-nix develop
+# Using Nix
+nix run
+
+# Or with Go
+go run cmd/server/main.go
 ```
 
-### Running the Application
-
-1. Enter the Nix development environment:
-```bash
-nix develop
-```
-
-2. Build and run the server:
-```bash
-go run ./cmd/server
-```
-
-The application will be available at `http://localhost:8080`
-
-## Usage
-
-### Adding a Brew
-
-1. Navigate to "New Brew" from the home page
-2. Select a bean (or add a new one with the "+ New" button)
-   - When adding a new bean, provide a **Name** (required) like "Morning Blend" or "House Espresso"
-   - Optionally add Origin, Roast Level, and Description
-3. Select a roaster (or add a new one)
-4. Fill in brewing details:
-   - Method (Pour Over, French Press, etc.)
-   - Temperature (°C)
-   - Brew time (seconds)
-   - Grind size (free text - enter numbers like "18" or "3.5" for grinder settings, or descriptions like "Medium" or "Fine")
-   - Grinder (optional)
-   - Tasting notes
-   - Rating (1-10)
-5. Click "Save Brew"
-
-### Viewing Brews
-
-Navigate to the "Brews" page to see all your entries in a table format with:
-- Date
-- Bean details
-- Roaster
-- Method and parameters
-- Rating
-- Actions (View, Delete)
-
-### Exporting Data
-
-Click "Export JSON" on the brews page to download all your data as JSON.
+Access at http://localhost:18910
 
 ## Configuration
 
 Environment variables:
 
-- `DB_PATH`: Path to SQLite database (default: `./arabica.db`)
-- `PORT`: Server port (default: `8080`)
+- `PORT` - Server port (default: 18910)
+- `SERVER_PUBLIC_URL` - Public URL for reverse proxy deployments (e.g., https://arabica.example.com)
+- `ARABICA_DB_PATH` - BoltDB path (default: ~/.local/share/arabica/arabica.db)
+- `OAUTH_CLIENT_ID` - OAuth client ID (optional, uses localhost mode if not set)
+- `OAUTH_REDIRECT_URI` - OAuth redirect URI (optional)
+- `SECURE_COOKIES` - Set to true for HTTPS (default: false)
+- `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
+- `LOG_FORMAT` - Log format: console, json (default: console)
 
-## Database Abstraction
+## Features
 
-The application uses an interface-based approach for database operations, making it easy to swap SQLite for PostgreSQL or another database later. See `internal/database/store.go` for the interface definition.
+- Track coffee brews with detailed parameters
+- Store data in your AT Protocol Personal Data Server
+- Community feed of recent brews from registered users
+- Manage beans, roasters, grinders, and brewers
+- Export brew data as JSON
+- Mobile-friendly PWA design
 
-## PWA Support
+## Architecture
 
-The application includes:
-- Web App Manifest for "Add to Home Screen"
-- Service Worker for offline caching
-- Mobile-optimized UI with large touch targets
+Data is stored in AT Protocol records on users' Personal Data Servers. The application uses OAuth to authenticate with the PDS and performs all CRUD operations via the AT Protocol API.
 
-## Future Enhancements (Not in MVP)
+Local BoltDB stores:
+- OAuth session data
+- Feed registry (list of DIDs for community feed)
 
-- Statistics and analytics page
-- CSV export
-- Multi-user support (database already has user_id column)
-- Search and filtering
-- Photo uploads for beans/brews
-- Brew recipes and sharing
+See docs/ for detailed documentation.
 
-## Development Notes
+## Development
 
-### Why These Choices?
+```bash
+# Enter development environment
+nix develop
 
-- **Go**: Fast compilation, single binary deployment, excellent stdlib
-- **modernc.org/sqlite**: Pure Go SQLite (no CGO), easy cross-compilation
-- **html/template**: Built-in Go templates, no external dependencies
-- **HTMX**: Progressive enhancement without heavy JS framework
-- **Nix**: Reproducible development environment
+# Run server
+go run cmd/server/main.go
 
-### Database Schema
+# Run tests
+go test ./...
 
-See `migrations/001_initial.sql` for the complete schema.
+# Build
+go build -o arabica cmd/server/main.go
+```
 
-Key tables:
-- `users`: Future multi-user support
-- `beans`: Coffee bean information
-- `roasters`: Roaster information
-- `brews`: Individual brew records with all parameters
+## Deployment
+
+### Reverse Proxy Setup
+
+When deploying behind a reverse proxy (nginx, Caddy, Cloudflare Tunnel, etc.), set the `SERVER_PUBLIC_URL` environment variable to your public-facing URL:
+
+```bash
+# Example with nginx reverse proxy
+SERVER_PUBLIC_URL=https://arabica.example.com
+SECURE_COOKIES=true
+PORT=18910
+
+# The server listens on localhost:18910
+# But OAuth callbacks use https://arabica.example.com/oauth/callback
+```
+
+The `SERVER_PUBLIC_URL` is used for OAuth client metadata and callback URLs, ensuring the AT Protocol OAuth flow works correctly when the server is accessed via a different URL than it's running on.
+
+### NixOS Deployment
+
+See docs/nix-install.md for NixOS deployment instructions.
 
 ## License
 
 MIT
-
-## Contributing
-
-This is a personal project, but suggestions and improvements are welcome!

@@ -1,49 +1,52 @@
 package database
 
-import "arabica/internal/models"
+import (
+	"context"
 
-// Store defines the interface for all database operations
-// This abstraction allows swapping SQLite for PostgreSQL or other databases later
+	"arabica/internal/models"
+)
+
+// Store defines the interface for all database operations.
+// This abstraction allows swapping SQLite for ATProto or other backends.
+// All methods accept a context.Context as the first parameter to support
+// cancellation, timeouts, and request-scoped values.
 type Store interface {
 	// Brew operations
-	CreateBrew(brew *models.CreateBrewRequest, userID int) (*models.Brew, error)
-	GetBrew(id int) (*models.Brew, error)
-	ListBrews(userID int) ([]*models.Brew, error)
-	UpdateBrew(id int, brew *models.CreateBrewRequest) error
-	DeleteBrew(id int) error
+	// Note: userID parameter is deprecated for ATProto (user is implicit from DID)
+	// It remains for SQLite compatibility but should not be relied upon
+	CreateBrew(ctx context.Context, brew *models.CreateBrewRequest, userID int) (*models.Brew, error)
+	GetBrewByRKey(ctx context.Context, rkey string) (*models.Brew, error)
+	ListBrews(ctx context.Context, userID int) ([]*models.Brew, error)
+	UpdateBrewByRKey(ctx context.Context, rkey string, brew *models.CreateBrewRequest) error
+	DeleteBrewByRKey(ctx context.Context, rkey string) error
 
 	// Bean operations
-	CreateBean(bean *models.CreateBeanRequest) (*models.Bean, error)
-	GetBean(id int) (*models.Bean, error)
-	ListBeans() ([]*models.Bean, error)
-	UpdateBean(id int, bean *models.UpdateBeanRequest) error
-	DeleteBean(id int) error
+	CreateBean(ctx context.Context, bean *models.CreateBeanRequest) (*models.Bean, error)
+	GetBeanByRKey(ctx context.Context, rkey string) (*models.Bean, error)
+	ListBeans(ctx context.Context) ([]*models.Bean, error)
+	UpdateBeanByRKey(ctx context.Context, rkey string, bean *models.UpdateBeanRequest) error
+	DeleteBeanByRKey(ctx context.Context, rkey string) error
 
 	// Roaster operations
-	CreateRoaster(roaster *models.CreateRoasterRequest) (*models.Roaster, error)
-	GetRoaster(id int) (*models.Roaster, error)
-	ListRoasters() ([]*models.Roaster, error)
-	UpdateRoaster(id int, roaster *models.UpdateRoasterRequest) error
-	DeleteRoaster(id int) error
+	CreateRoaster(ctx context.Context, roaster *models.CreateRoasterRequest) (*models.Roaster, error)
+	GetRoasterByRKey(ctx context.Context, rkey string) (*models.Roaster, error)
+	ListRoasters(ctx context.Context) ([]*models.Roaster, error)
+	UpdateRoasterByRKey(ctx context.Context, rkey string, roaster *models.UpdateRoasterRequest) error
+	DeleteRoasterByRKey(ctx context.Context, rkey string) error
 
 	// Grinder operations
-	CreateGrinder(grinder *models.CreateGrinderRequest) (*models.Grinder, error)
-	GetGrinder(id int) (*models.Grinder, error)
-	ListGrinders() ([]*models.Grinder, error)
-	UpdateGrinder(id int, grinder *models.UpdateGrinderRequest) error
-	DeleteGrinder(id int) error
+	CreateGrinder(ctx context.Context, grinder *models.CreateGrinderRequest) (*models.Grinder, error)
+	GetGrinderByRKey(ctx context.Context, rkey string) (*models.Grinder, error)
+	ListGrinders(ctx context.Context) ([]*models.Grinder, error)
+	UpdateGrinderByRKey(ctx context.Context, rkey string, grinder *models.UpdateGrinderRequest) error
+	DeleteGrinderByRKey(ctx context.Context, rkey string) error
 
 	// Brewer operations
-	CreateBrewer(brewer *models.CreateBrewerRequest) (*models.Brewer, error)
-	GetBrewer(id int) (*models.Brewer, error)
-	ListBrewers() ([]*models.Brewer, error)
-	UpdateBrewer(id int, brewer *models.UpdateBrewerRequest) error
-	DeleteBrewer(id int) error
-
-	// Pour operations
-	CreatePours(brewID int, pours []models.CreatePourData) error
-	ListPours(brewID int) ([]*models.Pour, error)
-	DeletePoursForBrew(brewID int) error
+	CreateBrewer(ctx context.Context, brewer *models.CreateBrewerRequest) (*models.Brewer, error)
+	GetBrewerByRKey(ctx context.Context, rkey string) (*models.Brewer, error)
+	ListBrewers(ctx context.Context) ([]*models.Brewer, error)
+	UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *models.UpdateBrewerRequest) error
+	DeleteBrewerByRKey(ctx context.Context, rkey string) error
 
 	// Close the database connection
 	Close() error

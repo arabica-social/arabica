@@ -1,0 +1,52 @@
+{
+  "lexicon": 1,
+  "id": "social.arabica.alpha.bean",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A coffee bean variety tracked by the user",
+      "record": {
+        "type": "object",
+        "required": ["name", "createdAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Name of the coffee bean (e.g., 'Ethiopian Yirgacheffe', 'Morning Blend')"
+          },
+          "origin": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Geographic origin of the beans (e.g., 'Ethiopia', 'Colombia')"
+          },
+          "roastLevel": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Roast level (e.g., 'Light', 'Medium', 'Dark')"
+          },
+          "process": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Processing method (e.g., 'Washed', 'Natural', 'Honey')"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Additional notes about the beans"
+          },
+          "roasterRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI reference to the roaster record (e.g., at://did:plc:abc/social.arabica.alpha.roaster/3jxy...)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the bean record was created"
+          }
+        }
+      }
+    }
+  }
+}

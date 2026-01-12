@@ -1,0 +1,22 @@
+{{define "footer"}}
+<footer class="mt-auto border-t border-brown-200 bg-brown-50">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div class="text-sm text-brown-700">
+                <span class="font-semibold text-brown-900">Arabica</span> - Your brew, your data
+            </div>
+            <nav class="flex flex-wrap justify-center gap-6 text-sm">
+                <a href="/about" class="text-brown-700 hover:text-brown-900 transition-colors">About</a>
+                <a href="/terms" class="text-brown-700 hover:text-brown-900 transition-colors">Terms of Service</a>
+                <a href="https://github.com/ptdewey/arabica" target="_blank" rel="noopener noreferrer" class="text-brown-700 hover:text-brown-900 transition-colors">Source Code</a>
+                <a href="https://atproto.com" target="_blank" rel="noopener noreferrer" class="text-brown-700 hover:text-brown-900 transition-colors">AT Protocol</a>
+            </nav>
+        </div>
+        <!--
+        <div class="mt-4 text-center text-xs text-brown-600">
+            Built on the AT Protocol - Your data lives in your Personal Data Server
+        </div>
+        -->
+    </div>
+</footer>
+{{end}}

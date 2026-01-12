@@ -1,112 +1,52 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"arabica/internal/database/sqlite"
+	"arabica/internal/atproto"
+	"arabica/internal/database/boltstore"
+	"arabica/internal/feed"
 	"arabica/internal/handlers"
+	"arabica/internal/routing"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-// loggingMiddleware logs HTTP request details to stdout
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		// Create a response writer wrapper to capture status code
-		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-
-		// Call the next handler
-		next.ServeHTTP(rw, r)
-
-		// Log request details
-		log.Printf(
-			"%s %s %d %s %s",
-			r.Method,
-			r.URL.Path,
-			rw.statusCode,
-			time.Since(start),
-			r.RemoteAddr,
-		)
-	})
-}
-
-// responseWriter wraps http.ResponseWriter to capture the status code
-type responseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (rw *responseWriter) WriteHeader(code int) {
-	rw.statusCode = code
-	rw.ResponseWriter.WriteHeader(code)
-}
-
 func main() {
-	// Get database path from env or use default
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		// Try XDG_DATA_HOME first, then fallback to HOME, then current dir
-		if xdgData := os.Getenv("XDG_DATA_HOME"); xdgData != "" {
-			dbPath = filepath.Join(xdgData, "arabica", "arabica.db")
-			os.MkdirAll(filepath.Dir(dbPath), 0755)
-		} else if home := os.Getenv("HOME"); home != "" {
-			dbPath = filepath.Join(home, ".local", "share", "arabica", "arabica.db")
-			os.MkdirAll(filepath.Dir(dbPath), 0755)
-		} else {
-			dbPath = "./arabica.db"
-		}
+	// Configure zerolog
+	// Set log level from environment (default: info)
+	logLevel := os.Getenv("LOG_LEVEL")
+	switch logLevel {
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "info", "":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	default:
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
-	// Initialize database
-	store, err := sqlite.NewSQLiteStore(dbPath)
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+	// Use pretty console logging in development, JSON in production
+	if os.Getenv("LOG_FORMAT") == "json" {
+		// Production: JSON logs
+		log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+	} else {
+		// Development: pretty console logs
+		log.Logger = log.Output(zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC3339,
+		})
 	}
-	defer store.Close()
 
-	log.Printf("Using database: %s", dbPath)
-
-	// Initialize handlers
-	h := handlers.NewHandler(store)
-
-	// Create router
-	mux := http.NewServeMux()
-
-	// Page routes (must come before static files)
-	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
-	mux.HandleFunc("GET /manage", h.HandleManage)
-	mux.HandleFunc("GET /brews", h.HandleBrewList)
-	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
-	mux.HandleFunc("GET /brews/{id}", h.HandleBrewEdit)
-	mux.HandleFunc("POST /brews", h.HandleBrewCreate)
-	mux.HandleFunc("PUT /brews/{id}", h.HandleBrewUpdate)
-	mux.HandleFunc("DELETE /brews/{id}", h.HandleBrewDelete)
-	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
-
-	// API routes for CRUD operations
-	mux.HandleFunc("POST /api/beans", h.HandleBeanCreate)
-	mux.HandleFunc("PUT /api/beans/{id}", h.HandleBeanUpdate)
-	mux.HandleFunc("DELETE /api/beans/{id}", h.HandleBeanDelete)
-
-	mux.HandleFunc("POST /api/roasters", h.HandleRoasterCreate)
-	mux.HandleFunc("PUT /api/roasters/{id}", h.HandleRoasterUpdate)
-	mux.HandleFunc("DELETE /api/roasters/{id}", h.HandleRoasterDelete)
-
-	mux.HandleFunc("POST /api/grinders", h.HandleGrinderCreate)
-	mux.HandleFunc("PUT /api/grinders/{id}", h.HandleGrinderUpdate)
-	mux.HandleFunc("DELETE /api/grinders/{id}", h.HandleGrinderDelete)
-
-	mux.HandleFunc("POST /api/brewers", h.HandleBrewerCreate)
-	mux.HandleFunc("PUT /api/brewers/{id}", h.HandleBrewerUpdate)
-	mux.HandleFunc("DELETE /api/brewers/{id}", h.HandleBrewerDelete)
-
-	// Static files (must come after specific routes)
-	fs := http.FileServer(http.Dir("web/static"))
-	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	log.Info().Msg("Starting Arabica Coffee Tracker")
 
 	// Get port from env or use default
 	port := os.Getenv("PORT")
@@ -114,9 +54,136 @@ func main() {
 		port = "18910"
 	}
 
-	// TODO: configure port and address via env vars
-	log.Printf("Starting Arabica server on http://0.0.0.0:%s", port)
-	if err := http.ListenAndServe("0.0.0.0:"+port, loggingMiddleware(mux)); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+	// Get public root URL for reverse proxy deployments
+	// This allows the server to be accessed via a different URL than it's running on
+	// e.g., SERVER_PUBLIC_URL=https://arabica.example.com when behind a reverse proxy
+	publicURL := os.Getenv("SERVER_PUBLIC_URL")
+
+	// Initialize BoltDB store for persistent sessions and feed registry
+	dbPath := os.Getenv("ARABICA_DB_PATH")
+	if dbPath == "" {
+		// Default to XDG data directory or home directory for development
+		// This avoids issues when running from read-only locations (e.g., nix run)
+		dataDir := os.Getenv("XDG_DATA_HOME")
+		if dataDir == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to get home directory")
+			}
+			dataDir = filepath.Join(home, ".local", "share")
+		}
+		dbPath = filepath.Join(dataDir, "arabica", "arabica.db")
+	}
+
+	store, err := boltstore.Open(boltstore.Options{
+		Path: dbPath,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Str("path", dbPath).Msg("Failed to open database")
+	}
+	defer store.Close()
+
+	log.Info().Str("path", dbPath).Msg("Database opened")
+
+	// Get specialized stores
+	sessionStore := store.SessionStore()
+	feedStore := store.FeedStore()
+
+	// Initialize OAuth manager with persistent session store
+	// For local development, localhost URLs trigger special localhost mode in indigo
+	clientID := os.Getenv("OAUTH_CLIENT_ID")
+	redirectURI := os.Getenv("OAUTH_REDIRECT_URI")
+
+	if clientID == "" && redirectURI == "" {
+		// Use public URL if set, otherwise localhost defaults for development
+		if publicURL != "" {
+			redirectURI = publicURL + "/oauth/callback"
+			clientID = publicURL + "/oauth-client-metadata.json"
+			log.Info().
+				Str("public_url", publicURL).
+				Msg("Using public URL for OAuth (reverse proxy mode)")
+		} else {
+			redirectURI = fmt.Sprintf("http://127.0.0.1:%s/oauth/callback", port)
+			clientID = "" // Empty triggers localhost mode
+			log.Info().Msg("Using localhost OAuth mode (for development)")
+		}
+	}
+
+	oauthManager, err := atproto.NewOAuthManager(clientID, redirectURI, sessionStore)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize OAuth")
+	}
+
+	// Initialize feed registry with persistent store
+	// This loads existing registered DIDs from the database
+	feedRegistry := feed.NewPersistentRegistry(feedStore)
+	feedService := feed.NewService(feedRegistry)
+
+	log.Info().
+		Int("registered_users", feedRegistry.Count()).
+		Msg("Feed service initialized with persistent registry")
+
+	// Register users in the feed when they authenticate
+	// This ensures users are added to the feed even if they had an existing session
+	oauthManager.SetOnAuthSuccess(func(did string) {
+		feedRegistry.Register(did)
+	})
+
+	if clientID == "" {
+		log.Info().
+			Str("mode", "localhost development").
+			Str("redirect_uri", redirectURI).
+			Msg("OAuth configured")
+	} else {
+		log.Info().
+			Str("mode", "public").
+			Str("client_id", clientID).
+			Str("redirect_uri", redirectURI).
+			Msg("OAuth configured")
+	}
+
+	// Initialize atproto client
+	atprotoClient := atproto.NewClient(oauthManager)
+	log.Info().Msg("ATProto client initialized")
+
+	// Initialize session cache for in-memory caching of user data
+	sessionCache := atproto.NewSessionCache()
+	stopCacheCleanup := sessionCache.StartCleanupRoutine(10 * time.Minute)
+	defer stopCacheCleanup()
+	log.Info().Msg("Session cache initialized with background cleanup")
+
+	// Determine if we should use secure cookies (default: false for development)
+	// Set SECURE_COOKIES=true in production with HTTPS
+	secureCookies := os.Getenv("SECURE_COOKIES") == "true"
+
+	// Initialize handlers with all dependencies via constructor injection
+	h := handlers.NewHandler(
+		oauthManager,
+		atprotoClient,
+		sessionCache,
+		feedService,
+		feedRegistry,
+		handlers.Config{
+			SecureCookies: secureCookies,
+		},
+	)
+
+	// Setup router with middleware
+	handler := routing.SetupRouter(routing.Config{
+		Handlers:     h,
+		OAuthManager: oauthManager,
+		Logger:       log.Logger,
+	})
+
+	// Start HTTP server
+	log.Info().
+		Str("address", "0.0.0.0:"+port).
+		Str("url", "http://localhost:"+port).
+		Bool("secure_cookies", secureCookies).
+		Str("database", dbPath).
+		Msg("Starting HTTP server")
+
+	if err := http.ListenAndServe("0.0.0.0:"+port, handler); err != nil {
+		log.Fatal().Err(err).Msg("Server failed to start")
 	}
 }

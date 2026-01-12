@@ -4,7 +4,7 @@ buildGoModule rec {
   pname = "arabica";
   version = "0.1.0";
   src = ./.;
-  vendorHash = "sha256-4Z6KAxox3EY9RGtFKUcqxtB/kj3Ed+o+ggPwtLSPctU=";
+  vendorHash = "sha256-hQDxCw2UqYIglHDXctFm6bvjhFI7ykuxU8RbkcEEpBI=";
 
   nativeBuildInputs = [ tailwindcss ];
 
@@ -18,23 +18,35 @@ buildGoModule rec {
     runHook postBuild
   '';
 
-  installPhase = ''
-    mkdir -p $out/bin
-    mkdir -p $out/share/arabica
+  installPhase = let
+    wrapperScript = ''
+      #!/bin/sh
+      SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+      SHARE_DIR="$SCRIPT_DIR/../share/arabica"
 
-    # Copy static files, migrations, and templates
-    cp -r web $out/share/arabica/
-    cp -r migrations $out/share/arabica/
-    cp -r internal $out/share/arabica/
-    cp arabica $out/bin/arabica-unwrapped
-    cat > $out/bin/arabica <<'EOF'
-    #!/bin/sh
-    SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-    SHARE_DIR="$SCRIPT_DIR/../share/arabica"
-    cd "$SHARE_DIR"
-    exec "$SCRIPT_DIR/arabica-unwrapped" "$@"
-    EOF
-    chmod +x $out/bin/arabica
+      # Set default database path if not specified
+      # Uses XDG_DATA_HOME or falls back to ~/.local/share
+      if [ -z "$ARABICA_DB_PATH" ]; then
+          DATA_DIR="''${XDG_DATA_HOME:-$HOME/.local/share}/arabica"
+          mkdir -p "$DATA_DIR"
+          export ARABICA_DB_PATH="$DATA_DIR/arabica.db"
+      fi
+
+      cd "$SHARE_DIR"
+      exec "$SCRIPT_DIR/arabica-unwrapped" "$@"
+    '';
+  in ''
+        mkdir -p $out/bin
+        mkdir -p $out/share/arabica
+
+        # Copy static files and templates
+        cp -r web $out/share/arabica/
+        cp -r templates $out/share/arabica/
+        cp arabica $out/bin/arabica-unwrapped
+        cat > $out/bin/arabica <<'WRAPPER'
+    ${wrapperScript}
+    WRAPPER
+        chmod +x $out/bin/arabica
   '';
 
   meta = with lib; {

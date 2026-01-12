@@ -1,0 +1,37 @@
+{
+  "lexicon": 1,
+  "id": "social.arabica.alpha.brewer",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A coffee brewing device or method",
+      "record": {
+        "type": "object",
+        "required": ["name", "createdAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Name of the brewer (e.g., 'V60', 'Aeropress', 'Chemex')"
+          },
+          "brewerType": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Type of brewer (e.g., 'Pour-Over', 'Immersion', 'Espresso Machine', 'Lever Espresso Machine', 'Moka Pot', 'French Press')"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Description or notes about the brewer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the brewer record was created"
+          }
+        }
+      }
+    }
+  }
+}

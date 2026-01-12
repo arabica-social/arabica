@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "social.arabica.alpha.roaster",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A coffee roaster company",
+      "record": {
+        "type": "object",
+        "required": ["name", "createdAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Name of the roaster (e.g., 'Blue Bottle', 'Stumptown')"
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Location of the roaster (e.g., 'Oakland, CA', 'Portland, OR')"
+          },
+          "website": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 500,
+            "description": "Roaster's website URL"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the roaster record was created"
+          }
+        }
+      }
+    }
+  }
+}

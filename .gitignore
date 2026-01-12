@@ -7,20 +7,20 @@ tmp/
 *.so
 *.dylib
 
+
 # Test binary
 *.test
 
 # Output of the go coverage tool
 *.out
 
+# Generated files
+web/static/css/output.css
+
 # Database
 *.db
 *.db-shm
 *.db-wal
-
-# Generated files
-*_templ.go
-web/static/css/output.css
 
 # IDE
 .vscode/
@@ -31,16 +31,17 @@ web/static/css/output.css
 
 # OS
 .DS_Store
-Thumbs.db
 
 # Dependencies
 vendor/
 
 # Logs
 *.log
-build-errors.log
 
 # Nix
 result
 result-*
 arabica
+
+# Other
+*.bak
