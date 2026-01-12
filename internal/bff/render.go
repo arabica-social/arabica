@@ -37,6 +37,7 @@ func getTemplateFuncs() template.FuncMap {
 			"hasValue":         HasValue,
 			"safeAvatarURL":    SafeAvatarURL,
 			"safeWebsiteURL":   SafeWebsiteURL,
+			"escapeJS":         EscapeJS,
 		}
 	})
 	return templateFuncs

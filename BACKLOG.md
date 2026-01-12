@@ -17,6 +17,11 @@ Each should be addressed one at a time, and the item should be removed after imp
    - Dev mode -- show did, copy did in profiles (remove "logged in as <did>" from home page)
    - Toggle for table view vs future post-style view
 
-## Fixes
+## Far Future Considerations
 
-- Loading columns for brews table doesn't match loaded column names
+- Consider fully separating API backend from frontend service
+  - Currently using HTMX header checks to prevent direct browser access to internal API endpoints
+  - If adding mobile apps, third-party API consumers, or microservices architecture, revisit this
+  - For now, monolithic approach is appropriate for HTMX-based web app with decentralized storage
+
+## Fixes

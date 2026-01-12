@@ -233,3 +233,16 @@ func SafeWebsiteURL(websiteURL string) string {
 
 	return websiteURL
 }
+
+// EscapeJS escapes a string for safe use in JavaScript string literals.
+// Handles newlines, quotes, backslashes, and other special characters.
+func EscapeJS(s string) string {
+	// Replace special characters that would break JavaScript strings
+	s = strings.ReplaceAll(s, "\\", "\\\\") // Must be first
+	s = strings.ReplaceAll(s, "'", "\\'")
+	s = strings.ReplaceAll(s, "\"", "\\\"")
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	s = strings.ReplaceAll(s, "\r", "\\r")
+	s = strings.ReplaceAll(s, "\t", "\\t")
+	return s
+}

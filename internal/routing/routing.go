@@ -34,23 +34,20 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /.well-known/oauth-client-metadata", h.HandleWellKnownOAuth)
 
 	// API routes for handle resolution (used by login autocomplete)
+	// These are intentionally public and don't require HTMX headers
 	mux.HandleFunc("GET /api/resolve-handle", h.HandleResolveHandle)
 	mux.HandleFunc("GET /api/search-actors", h.HandleSearchActors)
 
-	// API route for fetching all user data (used by client-side cache)
+	// API route for fetching all user data (used by client-side cache via fetch())
+	// Auth-protected but accessible without HTMX header (called from JavaScript)
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
 
-	// Community feed partial (loaded async via HTMX)
-	mux.HandleFunc("GET /api/feed", h.HandleFeedPartial)
-
-	// Brew list partial (loaded async via HTMX)
-	mux.HandleFunc("GET /api/brews", h.HandleBrewListPartial)
-
-	// Manage page partial (loaded async via HTMX)
-	mux.HandleFunc("GET /api/manage", h.HandleManagePartial)
-
-	// Profile content partial (loaded async via HTMX)
-	mux.HandleFunc("GET /api/profile/{actor}", h.HandleProfilePartial)
+	// HTMX partials (loaded async via HTMX)
+	// These return HTML fragments and should only be accessed via HTMX
+	mux.Handle("GET /api/feed", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleFeedPartial)))
+	mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleBrewListPartial)))
+	mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleManagePartial)))
+	mux.Handle("GET /api/profile/{actor}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleProfilePartial)))
 
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match

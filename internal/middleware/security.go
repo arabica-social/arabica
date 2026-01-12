@@ -176,6 +176,20 @@ func RateLimitMiddleware(config *RateLimitConfig) func(http.Handler) http.Handle
 
 // getClientIP is defined in logging.go
 
+// RequireHTMXMiddleware ensures that certain API routes are only accessible via HTMX requests.
+// This prevents direct browser access to internal API endpoints that return fragments or JSON.
+// Routes that need to be publicly accessible (like /api/resolve-handle) should not use this middleware.
+func RequireHTMXMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check for HTMX request header
+		if r.Header.Get("HX-Request") != "true" {
+			http.NotFound(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // MaxBodySize limits the size of request bodies
 const (
 	MaxJSONBodySize = 1 << 20 // 1 MB for JSON requests

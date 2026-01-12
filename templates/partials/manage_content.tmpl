@@ -44,7 +44,7 @@
                     <td class="px-6 py-4 text-sm text-brown-900">{{.Process}}</td>
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Description}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button @click="editBean('{{.RKey}}', '{{.Name}}', '{{.Origin}}', '{{.RoastLevel}}', '{{.Process}}', '{{.Description}}', '{{.RoasterRKey}}')"
+                        <button @click="editBean('{{.RKey}}', '{{escapeJS .Name}}', '{{escapeJS .Origin}}', '{{.RoastLevel}}', '{{.Process}}', '{{escapeJS .Description}}', '{{.RoasterRKey}}')"
                             class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
                         <button @click="deleteBean('{{.RKey}}')"
                             class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
@@ -95,7 +95,7 @@
                         {{end}}
                     </td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button @click="editRoaster('{{.RKey}}', '{{.Name}}', '{{.Location}}', '{{.Website}}')"
+                        <button @click="editRoaster('{{.RKey}}', '{{escapeJS .Name}}', '{{escapeJS .Location}}', '{{escapeJS .Website}}')"
                             class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
                         <button @click="deleteRoaster('{{.RKey}}')"
                             class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
@@ -143,7 +143,7 @@
                     <td class="px-6 py-4 text-sm text-brown-900">{{.BurrType}}</td>
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Notes}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button @click="editGrinder('{{.RKey}}', '{{.Name}}', '{{.GrinderType}}', '{{.BurrType}}', '{{.Notes}}')"
+                        <button @click="editGrinder('{{.RKey}}', '{{escapeJS .Name}}', '{{.GrinderType}}', '{{.BurrType}}', '{{escapeJS .Notes}}')"
                             class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
                         <button @click="deleteGrinder('{{.RKey}}')"
                             class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
