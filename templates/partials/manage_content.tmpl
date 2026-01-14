@@ -185,9 +185,9 @@
                 {{range .Brewers}}
                 <tr class="hover:bg-brown-100/60 transition-colors"
                     data-rkey="{{.RKey}}"
-                    data-name="{{.Name}}"
-                    data-brewer-type="{{.BrewerType}}"
-                    data-description="{{.Description}}">
+                    data-name="{{escapeJS .Name}}"
+                    data-brewer-type="{{escapeJS .BrewerType}}"
+                    data-description="{{escapeJS .Description}}">
                     <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
                     <td class="px-6 py-4 text-sm text-brown-900">
                         {{if .BrewerType}}{{.BrewerType}}{{else}}<span class="text-brown-400">-</span>{{end}}
