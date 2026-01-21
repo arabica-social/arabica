@@ -36,6 +36,16 @@ in {
         default = true;
         description = "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
       };
+
+      firehose = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Enable firehose-based feed using Jetstream.
+          This provides real-time feed updates with zero API calls per request,
+          instead of polling each user's PDS.
+        '';
+      };
     };
 
     oauth = {
@@ -103,7 +113,7 @@ in {
         Type = "simple";
         User = cfg.user;
         Group = cfg.group;
-        ExecStart = "${cfg.package}/bin/arabica";
+        ExecStart = "${cfg.package}/bin/arabica${lib.optionalString cfg.settings.firehose " -firehose"}";
         Restart = "on-failure";
         RestartSec = "10s";
 

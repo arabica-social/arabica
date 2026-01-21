@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"arabica/internal/atproto"
 	"arabica/internal/database/boltstore"
 	"arabica/internal/feed"
+	"arabica/internal/firehose"
 	"arabica/internal/handlers"
 	"arabica/internal/routing"
 
@@ -18,6 +23,10 @@ import (
 )
 
 func main() {
+	// Parse command-line flags
+	useFirehose := flag.Bool("firehose", false, "Enable firehose-based feed (Jetstream consumer)")
+	flag.Parse()
+
 	// Configure zerolog
 	// Set log level from environment (default: info)
 	logLevel := os.Getenv("LOG_LEVEL")
@@ -46,7 +55,7 @@ func main() {
 		})
 	}
 
-	log.Info().Msg("Starting Arabica Coffee Tracker")
+	log.Info().Bool("firehose", *useFirehose).Msg("Starting Arabica Coffee Tracker")
 
 	// Get port from env or use default
 	port := os.Getenv("PORT")
@@ -123,10 +132,84 @@ func main() {
 		Int("registered_users", feedRegistry.Count()).
 		Msg("Feed service initialized with persistent registry")
 
+	// Setup context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle shutdown signals
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// Initialize firehose consumer if enabled
+	var firehoseConsumer *firehose.Consumer
+	if *useFirehose {
+		// Determine feed index path
+		feedIndexPath := os.Getenv("ARABICA_FEED_INDEX_PATH")
+		if feedIndexPath == "" {
+			dataDir := os.Getenv("XDG_DATA_HOME")
+			if dataDir == "" {
+				home, err := os.UserHomeDir()
+				if err != nil {
+					log.Fatal().Err(err).Msg("Failed to get home directory for feed index")
+				}
+				dataDir = filepath.Join(home, ".local", "share")
+			}
+			feedIndexPath = filepath.Join(dataDir, "arabica", "feed-index.db")
+		}
+
+		// Create firehose config
+		firehoseConfig := firehose.DefaultConfig()
+		firehoseConfig.IndexPath = feedIndexPath
+
+		// Parse profile cache TTL from env if set
+		if ttlStr := os.Getenv("ARABICA_PROFILE_CACHE_TTL"); ttlStr != "" {
+			if ttl, err := time.ParseDuration(ttlStr); err == nil {
+				firehoseConfig.ProfileCacheTTL = int64(ttl.Seconds())
+			}
+		}
+
+		// Create feed index
+		feedIndex, err := firehose.NewFeedIndex(feedIndexPath, time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second)
+		if err != nil {
+			log.Fatal().Err(err).Str("path", feedIndexPath).Msg("Failed to create feed index")
+		}
+
+		log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
+
+		// Create and start consumer
+		firehoseConsumer = firehose.NewConsumer(firehoseConfig, feedIndex)
+		firehoseConsumer.Start(ctx)
+
+		// Wire up the feed service to use the firehose index
+		adapter := firehose.NewFeedIndexAdapter(feedIndex)
+		feedService.SetFirehoseIndex(adapter)
+
+		log.Info().Msg("Firehose consumer started")
+
+		// Backfill registered users in background
+		go func() {
+			time.Sleep(5 * time.Second) // Wait for initial connection
+			for _, did := range feedRegistry.List() {
+				if err := firehoseConsumer.BackfillDID(ctx, did); err != nil {
+					log.Warn().Err(err).Str("did", did).Msg("Failed to backfill user")
+				}
+			}
+			log.Info().Int("count", feedRegistry.Count()).Msg("Backfill of registered users complete")
+		}()
+	}
+
 	// Register users in the feed when they authenticate
 	// This ensures users are added to the feed even if they had an existing session
 	oauthManager.SetOnAuthSuccess(func(did string) {
 		feedRegistry.Register(did)
+		// If firehose is enabled, backfill the user's records
+		if firehoseConsumer != nil {
+			go func() {
+				if err := firehoseConsumer.BackfillDID(context.Background(), did); err != nil {
+					log.Warn().Err(err).Str("did", did).Msg("Failed to backfill new user")
+				}
+			}()
+		}
 	})
 
 	if clientID == "" {
@@ -175,15 +258,44 @@ func main() {
 		Logger:       log.Logger,
 	})
 
-	// Start HTTP server
-	log.Info().
-		Str("address", "0.0.0.0:"+port).
-		Str("url", "http://localhost:"+port).
-		Bool("secure_cookies", secureCookies).
-		Str("database", dbPath).
-		Msg("Starting HTTP server")
-
-	if err := http.ListenAndServe("0.0.0.0:"+port, handler); err != nil {
-		log.Fatal().Err(err).Msg("Server failed to start")
+	// Create HTTP server
+	server := &http.Server{
+		Addr:    "0.0.0.0:" + port,
+		Handler: handler,
 	}
+
+	// Start HTTP server in goroutine
+	go func() {
+		log.Info().
+			Str("address", "0.0.0.0:"+port).
+			Str("url", "http://localhost:"+port).
+			Bool("secure_cookies", secureCookies).
+			Bool("firehose", *useFirehose).
+			Str("database", dbPath).
+			Msg("Starting HTTP server")
+
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("Server failed to start")
+		}
+	}()
+
+	// Wait for shutdown signal
+	<-sigCh
+	log.Info().Msg("Shutdown signal received")
+
+	// Stop firehose consumer first
+	if firehoseConsumer != nil {
+		log.Info().Msg("Stopping firehose consumer...")
+		firehoseConsumer.Stop()
+	}
+
+	// Graceful shutdown of HTTP server
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Error().Err(err).Msg("HTTP server shutdown error")
+	}
+
+	log.Info().Msg("Server stopped")
 }

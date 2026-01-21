@@ -26,9 +26,6 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 ## Fixes
 
-- Adding new gear (grinders, etc.) from profile page redirects to brews on profile page after (should stay on current page)
-- Brews on profile page are stored in chronological order, should be reverse chronological (newest first)
-
 - [Future work]: adjust timing of caching in feed, maybe use firehose and a sqlite database since we are only storing a few anyway
   - Goal: reduce pings to server when idling
 

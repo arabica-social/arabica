@@ -45,11 +45,35 @@ type publicFeedCache struct {
 	mu        sync.RWMutex
 }
 
+// FirehoseIndex is the interface for the firehose feed index
+// This allows the feed service to use firehose data when available
+type FirehoseIndex interface {
+	IsReady() bool
+	GetRecentFeed(ctx context.Context, limit int) ([]*FirehoseFeedItem, error)
+}
+
+// FirehoseFeedItem matches the FeedItem structure from firehose package
+// This avoids import cycles
+type FirehoseFeedItem struct {
+	RecordType string
+	Action     string
+	Brew       *models.Brew
+	Bean       *models.Bean
+	Roaster    *models.Roaster
+	Grinder    *models.Grinder
+	Brewer     *models.Brewer
+	Author     *atproto.Profile
+	Timestamp  time.Time
+	TimeAgo    string
+}
+
 // Service fetches and aggregates brews from registered users
 type Service struct {
-	registry     *Registry
-	publicClient *atproto.PublicClient
-	cache        *publicFeedCache
+	registry       *Registry
+	publicClient   *atproto.PublicClient
+	cache          *publicFeedCache
+	firehoseIndex  FirehoseIndex
+	useFirehose    bool
 }
 
 // NewService creates a new feed service
@@ -59,6 +83,13 @@ func NewService(registry *Registry) *Service {
 		publicClient: atproto.NewPublicClient(),
 		cache:        &publicFeedCache{},
 	}
+}
+
+// SetFirehoseIndex configures the service to use firehose-based feed when available
+func (s *Service) SetFirehoseIndex(index FirehoseIndex) {
+	s.firehoseIndex = index
+	s.useFirehose = true
+	log.Info().Msg("feed: firehose index configured")
 }
 
 // GetCachedPublicFeed returns cached feed items for unauthenticated users.
@@ -115,13 +146,54 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 // GetRecentRecords fetches recent activity (brews and other records) from all registered users
 // Returns up to `limit` items sorted by most recent first
 func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem, error) {
+	// Try firehose index first if available and ready
+	if s.useFirehose && s.firehoseIndex != nil && s.firehoseIndex.IsReady() {
+		log.Debug().Msg("feed: using firehose index")
+		return s.getRecentRecordsFromFirehose(ctx, limit)
+	}
+
+	// Fallback to polling
+	return s.getRecentRecordsViaPolling(ctx, limit)
+}
+
+// getRecentRecordsFromFirehose fetches feed items from the firehose index
+func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) ([]*FeedItem, error) {
+	firehoseItems, err := s.firehoseIndex.GetRecentFeed(ctx, limit)
+	if err != nil {
+		log.Warn().Err(err).Msg("feed: firehose index error, falling back to polling")
+		return s.getRecentRecordsViaPolling(ctx, limit)
+	}
+
+	// Convert FirehoseFeedItem to FeedItem
+	items := make([]*FeedItem, len(firehoseItems))
+	for i, fi := range firehoseItems {
+		items[i] = &FeedItem{
+			RecordType: fi.RecordType,
+			Action:     fi.Action,
+			Brew:       fi.Brew,
+			Bean:       fi.Bean,
+			Roaster:    fi.Roaster,
+			Grinder:    fi.Grinder,
+			Brewer:     fi.Brewer,
+			Author:     fi.Author,
+			Timestamp:  fi.Timestamp,
+			TimeAgo:    fi.TimeAgo,
+		}
+	}
+
+	log.Debug().Int("count", len(items)).Msg("feed: returning items from firehose index")
+	return items, nil
+}
+
+// getRecentRecordsViaPolling fetches feed items by polling each user's PDS
+func (s *Service) getRecentRecordsViaPolling(ctx context.Context, limit int) ([]*FeedItem, error) {
 	dids := s.registry.List()
 	if len(dids) == 0 {
 		log.Debug().Msg("feed: no registered users")
 		return nil, nil
 	}
 
-	log.Debug().Int("user_count", len(dids)).Msg("feed: fetching activity from registered users")
+	log.Debug().Int("user_count", len(dids)).Msg("feed: fetching activity from registered users (polling)")
 
 	// Fetch all records from all users in parallel
 	type userActivity struct {
