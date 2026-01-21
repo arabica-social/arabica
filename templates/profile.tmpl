@@ -61,24 +61,24 @@
     </div>
 
     <!-- Tabs for content sections -->
-    <div x-data="{ activeTab: 'brews' }">
+    <div>
         <!-- Tab buttons (show immediately) -->
         <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-md mb-4 border border-brown-300">
             <div class="flex border-b border-brown-300">
-                <button 
-                    @click="activeTab = 'brews'" 
+                <button
+                    @click="activeTab = 'brews'"
                     :class="activeTab === 'brews' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'"
                     class="flex-1 py-3 px-4 text-center font-medium transition-colors">
                     Brews
                 </button>
-                <button 
-                    @click="activeTab = 'beans'" 
+                <button
+                    @click="activeTab = 'beans'"
                     :class="activeTab === 'beans' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'"
                     class="flex-1 py-3 px-4 text-center font-medium transition-colors">
                     Beans
                 </button>
-                <button 
-                    @click="activeTab = 'gear'" 
+                <button
+                    @click="activeTab = 'gear'"
                     :class="activeTab === 'gear' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'"
                     class="flex-1 py-3 px-4 text-center font-medium transition-colors">
                     Gear

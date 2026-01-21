@@ -5,6 +5,7 @@
 function managePage() {
   return {
     tab: localStorage.getItem("manageTab") || "beans",
+    activeTab: localStorage.getItem("profileTab") || "brews",
     showBeanForm: false,
     showRoasterForm: false,
     showGrinderForm: false,
@@ -28,6 +29,10 @@ function managePage() {
     init() {
       this.$watch("tab", (value) => {
         localStorage.setItem("manageTab", value);
+      });
+
+      this.$watch("activeTab", (value) => {
+        localStorage.setItem("profileTab", value);
       });
 
       // Initialize cache in background

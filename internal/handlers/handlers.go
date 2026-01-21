@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -1416,6 +1417,11 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Sort brews in reverse chronological order (newest first)
+	sort.Slice(brews, func(i, j int) bool {
+		return brews[i].CreatedAt.After(brews[j].CreatedAt)
+	})
+
 	// Check if current user is authenticated (for nav bar state)
 	didStr, err := atproto.GetAuthenticatedDID(ctx)
 	isAuthenticated := err == nil && didStr != ""
@@ -1621,6 +1627,11 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	// Sort brews in reverse chronological order (newest first)
+	sort.Slice(brews, func(i, j int) bool {
+		return brews[i].CreatedAt.After(brews[j].CreatedAt)
+	})
 
 	// Check if the viewing user is the profile owner
 	didStr, err := atproto.GetAuthenticatedDID(ctx)
