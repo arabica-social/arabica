@@ -1,6 +1,6 @@
 # Arabica
 
-Coffee brew tracking application using AT Protocol for decentralized storage.
+Coffee brew tracking application build on ATProto
 
 ## Tech Stack
 
@@ -68,6 +68,7 @@ Environment variables:
 Data is stored in AT Protocol records on users' Personal Data Servers. The application uses OAuth to authenticate with the PDS and performs all CRUD operations via the AT Protocol API.
 
 Local BoltDB stores:
+
 - OAuth session data
 - Feed registry (list of DIDs for community feed)
 
