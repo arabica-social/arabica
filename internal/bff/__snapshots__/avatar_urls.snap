@@ -1,0 +1,7 @@
+---
+title: avatar_urls
+test_name: TestSafeURL_Snapshot/avatar_URLs
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+[]string{"", "/static/icon-placeholder.svg", "https://cdn.bsky.app/avatar.jpg", "https://av-cdn.bsky.app/img/avatar/plain/did:plc:test/abc@jpeg", "", "", "", ""}

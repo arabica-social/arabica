@@ -1,0 +1,7 @@
+---
+title: time_formatting
+test_name: TestFormatHelpers_Snapshot/time_formatting
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+[]string{"N/A", "15s", "1m", "1m 30s", "3m", "4m 5s"}

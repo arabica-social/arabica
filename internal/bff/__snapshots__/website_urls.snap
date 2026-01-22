@@ -1,0 +1,7 @@
+---
+title: website_urls
+test_name: TestSafeURL_Snapshot/website_URLs
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+[]string{"", "https://example.com", "http://example.com", "https://roastery.coffee/beans", "", "", "", ""}

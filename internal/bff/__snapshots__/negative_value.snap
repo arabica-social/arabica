@@ -1,0 +1,7 @@
+---
+title: negative value
+test_name: TestHasValue_Snapshot/negative_value
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+false

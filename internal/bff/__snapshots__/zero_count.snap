@@ -1,0 +1,8 @@
+---
+title: zero count
+test_name: TestIterate_Snapshot/zero_count
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+[]int{
+}

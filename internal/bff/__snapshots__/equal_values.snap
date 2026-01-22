@@ -1,0 +1,7 @@
+---
+title: equal values
+test_name: TestPtrEquals_Snapshot/equal_values
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+true

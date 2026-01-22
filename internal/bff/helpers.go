@@ -246,3 +246,21 @@ func EscapeJS(s string) string {
 	s = strings.ReplaceAll(s, "\t", "\\t")
 	return s
 }
+
+// Dict creates a map from alternating key-value arguments.
+// Useful for passing multiple parameters to sub-templates in Go templates.
+// Example: {{template "foo" dict "Key1" .Value1 "Key2" .Value2}}
+func Dict(values ...interface{}) (map[string]interface{}, error) {
+	if len(values)%2 != 0 {
+		return nil, fmt.Errorf("dict requires an even number of arguments")
+	}
+	dict := make(map[string]interface{}, len(values)/2)
+	for i := 0; i < len(values); i += 2 {
+		key, ok := values[i].(string)
+		if !ok {
+			return nil, fmt.Errorf("dict keys must be strings")
+		}
+		dict[key] = values[i+1]
+	}
+	return dict, nil
+}

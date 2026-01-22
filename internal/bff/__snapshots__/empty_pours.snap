@@ -1,0 +1,7 @@
+---
+title: empty pours
+test_name: TestPoursToJSON_Snapshot/empty_pours
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+"[]"

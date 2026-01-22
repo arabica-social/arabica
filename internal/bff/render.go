@@ -38,6 +38,7 @@ func getTemplateFuncs() template.FuncMap {
 			"safeAvatarURL":    SafeAvatarURL,
 			"safeWebsiteURL":   SafeWebsiteURL,
 			"escapeJS":         EscapeJS,
+			"dict":             Dict,
 		}
 	})
 	return templateFuncs
@@ -79,6 +80,12 @@ func parsePageTemplate(pageName string) (*template.Template, error) {
 		return nil, err
 	}
 
+	// Parse card templates
+	t, err = t.ParseGlob(dir + "/partials/cards/*.tmpl")
+	if err != nil {
+		return nil, err
+	}
+
 	// Parse the specific page template
 	t, err = t.ParseFiles(dir + "/" + pageName)
 	if err != nil {
@@ -95,6 +102,12 @@ func parsePartialTemplate() (*template.Template, error) {
 
 	// Parse all partials
 	t, err := t.ParseGlob(dir + "/partials/*.tmpl")
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse card templates
+	t, err = t.ParseGlob(dir + "/partials/cards/*.tmpl")
 	if err != nil {
 		return nil, err
 	}

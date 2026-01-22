@@ -1,0 +1,7 @@
+---
+title: multiple pours
+test_name: TestPoursToJSON_Snapshot/multiple_pours
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+"[{\"water\":50,\"time\":30},{\"water\":100,\"time\":45},{\"water\":80,\"time\":60}]"

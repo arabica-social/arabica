@@ -1,0 +1,7 @@
+---
+title: escape_js
+test_name: TestEscapeJS_Snapshot
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+[]string{"simple string", "string with \\'single quotes\\'", "string with \\\"double quotes\\\"", "line1\\nline2", "tab\\there", "backslash\\\\test", "mixed: \\'quotes\\', \\\"quotes\\\", \\n newlines \\t tabs", ""}

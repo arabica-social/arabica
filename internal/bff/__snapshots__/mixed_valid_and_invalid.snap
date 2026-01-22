@@ -1,0 +1,7 @@
+---
+title: mixed valid and invalid
+test_name: TestDict_ErrorCases_Snapshot/mixed_valid_and_invalid
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+"dict keys must be strings"

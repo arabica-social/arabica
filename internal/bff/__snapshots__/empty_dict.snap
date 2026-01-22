@@ -1,0 +1,8 @@
+---
+title: empty dict
+test_name: TestDict_Snapshot/empty_dict
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+}

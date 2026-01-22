@@ -1,0 +1,7 @@
+---
+title: celsius temp
+test_name: TestFormatTempValue_Snapshot/celsius_temp
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+"93.0"

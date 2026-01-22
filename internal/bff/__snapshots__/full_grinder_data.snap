@@ -1,0 +1,7 @@
+---
+title: full grinder data
+test_name: TestTemplateRendering_GearCards_Snapshot/full_grinder_data
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+"\n<div class=\"grinder-card\">\n  <h3>1Zpresso JX-Pro</h3>\n  <p>Type: Hand</p>\n  <p>Burr: Conical</p>\n</div>\n"

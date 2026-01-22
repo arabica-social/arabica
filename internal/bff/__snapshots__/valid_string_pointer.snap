@@ -1,0 +1,7 @@
+---
+title: valid string pointer
+test_name: TestPtrValue_Snapshot/valid_string_pointer
+file_name: render_snapshot_test.go
+version: 0.1.0
+---
+"test value"
