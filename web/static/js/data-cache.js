@@ -40,18 +40,28 @@ function getCache() {
 
 /**
  * Save data to the cache
+ * Stores the user DID alongside the data for validation
  */
 function setCache(data) {
   try {
     const cache = {
       version: CACHE_VERSION,
       timestamp: Date.now(),
+      did: data.did || null, // Store user DID for cache validation
       data: data,
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
   } catch (e) {
     console.warn("Failed to write cache:", e);
   }
+}
+
+/**
+ * Get the DID stored in the cache
+ */
+function getCachedDID() {
+  const cache = getCache();
+  return cache?.did || null;
 }
 
 /**
@@ -66,11 +76,29 @@ function isCacheValid() {
 }
 
 /**
- * Get cached data if available and valid
+ * Get the current user's DID from the page
+ */
+function getCurrentUserDID() {
+  return document.body?.dataset?.userDid || null;
+}
+
+/**
+ * Get cached data if available and valid for the current user
  */
 function getCachedData() {
   const cache = getCache();
   if (!cache) return null;
+
+  // Validate that cached data belongs to the current user
+  const currentDID = getCurrentUserDID();
+  const cachedDID = cache.did;
+
+  // If we have both DIDs and they don't match, cache is invalid
+  if (currentDID && cachedDID && currentDID !== cachedDID) {
+    console.log("Cache belongs to different user, invalidating");
+    invalidateCache();
+    return null;
+  }
 
   // Return data even if expired - caller can decide to refresh
   return cache.data;
@@ -118,6 +146,14 @@ async function refreshCache(force = false) {
   isRefreshing = true;
   try {
     const data = await fetchFreshData();
+
+    // Check if user changed (different DID)
+    const cachedDID = getCachedDID();
+    if (cachedDID && data.did && cachedDID !== data.did) {
+      console.log("User changed, clearing stale cache");
+      invalidateCache();
+    }
+
     setCache(data);
     notifyListeners(data);
     return data;

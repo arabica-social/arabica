@@ -120,6 +120,7 @@ type PageData struct {
 	Brews           []*BrewListData
 	FeedItems       []*feed.FeedItem
 	IsAuthenticated bool
+	IsOwnProfile    bool
 	UserDID         string
 	UserProfile     *UserProfile
 }
@@ -275,7 +276,8 @@ func RenderBrewListPartial(w http.ResponseWriter, brews []*models.Brew) error {
 	}
 
 	data := &PageData{
-		Brews: brewList,
+		Brews:        brewList,
+		IsOwnProfile: true, // This endpoint is only used for viewing own brews
 	}
 	return t.ExecuteTemplate(w, "brew_list_content", data)
 }

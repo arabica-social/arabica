@@ -634,6 +634,9 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get user DID for cache validation
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+
 	ctx := r.Context()
 
 	// Fetch all collections in parallel using errgroup
@@ -681,6 +684,7 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	atproto.LinkBeansToRoasters(beans, roasters)
 
 	response := map[string]interface{}{
+		"did":      userDID,
 		"beans":    beans,
 		"roasters": roasters,
 		"grinders": grinders,

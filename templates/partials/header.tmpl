@@ -57,7 +57,7 @@
                             Settings (coming soon)
                         </a>
                         <div class="border-t border-brown-100 mt-1 pt-1">
-                            <form action="/logout" method="POST">
+                            <form action="/logout" method="POST" onsubmit="if(window.ArabicaCache){window.ArabicaCache.invalidateCache()}">
                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors">
                                     Logout
                                 </button>

@@ -23,7 +23,7 @@
     {{end}}
     <script src="/static/js/sw-register.js"></script>
 </head>
-<body class="bg-brown-50 min-h-full flex flex-col">
+<body class="bg-brown-50 min-h-full flex flex-col"{{if .UserDID}} data-user-did="{{.UserDID}}"{{end}}>
     {{template "header" .}}
     <main class="flex-grow container mx-auto px-4 py-8">
         {{template "content" .}}
