@@ -158,11 +158,11 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	var feedItems []*feed.FeedItem
 
-	if h.feedService != nil {
-		// Check if user is authenticated
-		_, err := atproto.GetAuthenticatedDID(r.Context())
-		isAuthenticated := err == nil
+	// Check if user is authenticated
+	_, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil
 
+	if h.feedService != nil {
 		if isAuthenticated {
 			// Authenticated users get the full feed (20 items), fetched fresh
 			feedItems, _ = h.feedService.GetRecentRecords(r.Context(), 20)
@@ -172,7 +172,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := bff.RenderFeedPartial(w, feedItems); err != nil {
+	if err := bff.RenderFeedPartial(w, feedItems, isAuthenticated); err != nil {
 		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render feed partial")
 	}

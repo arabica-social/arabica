@@ -94,18 +94,25 @@ async function fetchFreshData() {
 /**
  * Refresh the cache from the API
  * Returns the fresh data
+ * @param {boolean} force - If true, always fetch fresh data even if a refresh is in progress
  */
-async function refreshCache() {
+async function refreshCache(force = false) {
   if (isRefreshing) {
     // Wait for existing refresh to complete
-    return new Promise((resolve) => {
+    await new Promise((resolve) => {
       const checkInterval = setInterval(() => {
         if (!isRefreshing) {
           clearInterval(checkInterval);
-          resolve(getCachedData());
+          resolve();
         }
       }, 100);
     });
+
+    // If not forcing, return the cached data from the completed refresh
+    if (!force) {
+      return getCachedData();
+    }
+    // Otherwise, continue to do a new refresh with fresh data
   }
 
   isRefreshing = true;
@@ -152,10 +159,11 @@ function invalidateCache() {
 
 /**
  * Invalidate and immediately refresh the cache
+ * Forces a fresh fetch even if a background refresh is in progress
  */
 async function invalidateAndRefresh() {
   invalidateCache();
-  return await refreshCache();
+  return await refreshCache(true);
 }
 
 /**

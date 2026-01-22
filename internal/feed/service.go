@@ -40,9 +40,10 @@ type FeedItem struct {
 
 // publicFeedCache holds cached feed items for unauthenticated users
 type publicFeedCache struct {
-	items     []*FeedItem
-	expiresAt time.Time
-	mu        sync.RWMutex
+	items        []*FeedItem
+	expiresAt    time.Time
+	fromFirehose bool // tracks if cache was populated from firehose
+	mu           sync.RWMutex
 }
 
 // FirehoseIndex is the interface for the firehose feed index
@@ -96,15 +97,21 @@ func (s *Service) SetFirehoseIndex(index FirehoseIndex) {
 // It returns up to PublicFeedLimit items from the cache, refreshing if expired.
 func (s *Service) GetCachedPublicFeed(ctx context.Context) ([]*FeedItem, error) {
 	s.cache.mu.RLock()
-	if time.Now().Before(s.cache.expiresAt) && len(s.cache.items) > 0 {
-		items := s.cache.items
-		s.cache.mu.RUnlock()
-		log.Debug().Int("item_count", len(items)).Msg("feed: returning cached public feed")
-		return items, nil
-	}
+	cacheValid := time.Now().Before(s.cache.expiresAt) && len(s.cache.items) > 0
+	cacheFromFirehose := s.cache.fromFirehose
+	items := s.cache.items
 	s.cache.mu.RUnlock()
 
-	// Cache is expired or empty, refresh it
+	// Check if we need to refresh: cache expired, empty, or firehose is now ready but cache was from polling
+	firehoseReady := s.useFirehose && s.firehoseIndex != nil && s.firehoseIndex.IsReady()
+	needsRefresh := !cacheValid || (firehoseReady && !cacheFromFirehose)
+
+	if !needsRefresh {
+		log.Debug().Int("item_count", len(items)).Bool("from_firehose", cacheFromFirehose).Msg("feed: returning cached public feed")
+		return items, nil
+	}
+
+	// Cache is expired, empty, or we need to switch to firehose data
 	return s.refreshPublicFeedCache(ctx)
 }
 
@@ -113,12 +120,19 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 	s.cache.mu.Lock()
 	defer s.cache.mu.Unlock()
 
+	// Check if firehose is ready (for tracking cache source)
+	firehoseReady := s.useFirehose && s.firehoseIndex != nil && s.firehoseIndex.IsReady()
+
 	// Double-check if another goroutine already refreshed the cache
+	// But still refresh if firehose is ready and cache was from polling
 	if time.Now().Before(s.cache.expiresAt) && len(s.cache.items) > 0 {
-		return s.cache.items, nil
+		if !firehoseReady || s.cache.fromFirehose {
+			return s.cache.items, nil
+		}
+		// Firehose is ready but cache was from polling, continue to refresh
 	}
 
-	log.Debug().Msg("feed: refreshing public feed cache")
+	log.Debug().Bool("firehose_ready", firehoseReady).Msg("feed: refreshing public feed cache")
 
 	// Fetch fresh feed items (limited to PublicFeedLimit)
 	items, err := s.GetRecentRecords(ctx, PublicFeedLimit)
@@ -134,10 +148,12 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 	// Update cache
 	s.cache.items = items
 	s.cache.expiresAt = time.Now().Add(PublicFeedCacheTTL)
+	s.cache.fromFirehose = firehoseReady
 
 	log.Debug().
 		Int("item_count", len(items)).
 		Time("expires_at", s.cache.expiresAt).
+		Bool("from_firehose", firehoseReady).
 		Msg("feed: updated public feed cache")
 
 	return items, nil

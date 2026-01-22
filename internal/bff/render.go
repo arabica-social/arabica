@@ -246,13 +246,14 @@ func RenderManage(w http.ResponseWriter, beans []*models.Bean, roasters []*model
 }
 
 // RenderFeedPartial renders just the feed partial (for HTMX async loading)
-func RenderFeedPartial(w http.ResponseWriter, feedItems []*feed.FeedItem) error {
+func RenderFeedPartial(w http.ResponseWriter, feedItems []*feed.FeedItem, isAuthenticated bool) error {
 	t, err := parsePartialTemplate()
 	if err != nil {
 		return err
 	}
 	data := &PageData{
-		FeedItems: feedItems,
+		FeedItems:       feedItems,
+		IsAuthenticated: isAuthenticated,
 	}
 	return t.ExecuteTemplate(w, "feed", data)
 }
