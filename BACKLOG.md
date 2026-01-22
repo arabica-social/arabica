@@ -31,3 +31,7 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 - [Future work]: adjust timing of caching in feed, maybe use firehose and a sqlite database since we are only storing a few anyway
   - Goal: reduce pings to server when idling
+
+- Non-authed home page feed shows different from what the firehose version shows (should be cached and show same db contents I think)
+
+- After adding a bean via add brew, that bean does not show up in the drop down until after a refresh

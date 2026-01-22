@@ -1,0 +1,19 @@
+services:
+  arabica:
+    build: .
+    ports:
+      - "18910:18910"
+    volumes:
+      - arabica-data:/data
+    environment:
+      - PORT=18910
+      - ARABICA_DB_PATH=/data/arabica.db
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      # Uncomment for production behind reverse proxy:
+      # - SERVER_PUBLIC_URL=https://arabica.example.com
+      # - SECURE_COOKIES=true
+    restart: unless-stopped
+
+volumes:
+  arabica-data:

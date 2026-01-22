@@ -22,6 +22,25 @@ go run cmd/server/main.go
 
 Access at http://localhost:18910
 
+## Docker
+
+```bash
+# Build and run with Docker Compose
+docker compose up -d
+
+# Or build and run manually
+docker build -t arabica .
+docker run -p 18910:18910 -v arabica-data:/data arabica
+```
+
+For production deployments, configure environment variables in `docker-compose.yml`:
+
+```yaml
+environment:
+  - SERVER_PUBLIC_URL=https://arabica.example.com
+  - SECURE_COOKIES=true
+```
+
 ## Configuration
 
 Environment variables:
