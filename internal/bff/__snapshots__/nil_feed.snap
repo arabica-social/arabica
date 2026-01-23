@@ -4,4 +4,13 @@ test_name: TestFeedTemplate_EmptyFeed_Snapshot/nil_feed
 file_name: feed_template_snapshot_test.go
 version: 0.1.0
 ---
-"\n<div class=\"space-y-4\">\n    \n    <div class=\"bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200\">\n        <p class=\"mb-2 font-medium\">No activity in the feed yet.</p>\n        <p class=\"text-sm\">Be the first to add something!</p>\n    </div>\n    \n</div>\n"
+<div class="space-y-4">
+  <div class="bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200">
+    <p class="mb-2 font-medium">
+      No activity in the feed yet.
+    </p>
+    <p class="text-sm">
+      Be the first to add something!
+    </p>
+  </div>
+</div>

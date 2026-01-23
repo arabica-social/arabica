@@ -102,7 +102,7 @@ func TestProfileContent_BeansTab_Snapshot(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to execute template: %v", err)
 			}
-			shutter.Snap(t, tt.name, buf.String())
+			shutter.SnapString(t, tt.name, formatHTML(buf.String()))
 		})
 	}
 }
@@ -165,7 +165,7 @@ func TestProfileContent_GearTabs_Snapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to execute template: %v", err)
 	}
-	shutter.Snap(t, "profile with gear collection", buf.String())
+	shutter.SnapString(t, "profile with gear collection", formatHTML(buf.String()))
 }
 
 func TestProfileContent_URLSecurity_Snapshot(t *testing.T) {
@@ -230,7 +230,7 @@ func TestProfileContent_URLSecurity_Snapshot(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to execute template: %v", err)
 			}
-			shutter.Snap(t, tt.name, buf.String())
+			shutter.SnapString(t, tt.name, formatHTML(buf.String()))
 		})
 	}
 }
@@ -276,7 +276,7 @@ func TestProfileContent_SpecialCharacters_Snapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to execute template: %v", err)
 	}
-	shutter.Snap(t, "profile with special characters", buf.String())
+	shutter.SnapString(t, "profile with special characters", formatHTML(buf.String()))
 }
 
 func TestProfileContent_Unicode_Snapshot(t *testing.T) {
@@ -327,5 +327,5 @@ func TestProfileContent_Unicode_Snapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to execute template: %v", err)
 	}
-	shutter.Snap(t, "profile with unicode content", buf.String())
+	shutter.SnapString(t, "profile with unicode content", formatHTML(buf.String()))
 }

@@ -237,7 +237,7 @@ func TestFeedTemplate_BrewItem_Snapshot(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to execute template: %v", err)
 			}
-			shutter.Snap(t, tt.name, result)
+			shutter.SnapString(t, tt.name, formatHTML(result))
 		})
 	}
 }
@@ -277,7 +277,7 @@ func TestFeedTemplate_BeanItem_Snapshot(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to execute template: %v", err)
 			}
-			shutter.Snap(t, tt.name, result)
+			shutter.SnapString(t, tt.name, formatHTML(result))
 		})
 	}
 }
@@ -296,7 +296,7 @@ func TestFeedTemplate_RoasterItem_Snapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to execute template: %v", err)
 	}
-	shutter.Snap(t, "roaster item", result)
+	shutter.SnapString(t, "roaster item", formatHTML(result))
 }
 
 func TestFeedTemplate_GrinderItem_Snapshot(t *testing.T) {
@@ -313,7 +313,7 @@ func TestFeedTemplate_GrinderItem_Snapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to execute template: %v", err)
 	}
-	shutter.Snap(t, "grinder item", result)
+	shutter.SnapString(t, "grinder item", formatHTML(result))
 }
 
 func TestFeedTemplate_BrewerItem_Snapshot(t *testing.T) {
@@ -330,7 +330,7 @@ func TestFeedTemplate_BrewerItem_Snapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to execute template: %v", err)
 	}
-	shutter.Snap(t, "brewer item", result)
+	shutter.SnapString(t, "brewer item", formatHTML(result))
 }
 
 // Test mixed feeds and edge cases
@@ -383,7 +383,7 @@ func TestFeedTemplate_MixedFeed_Snapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to execute template: %v", err)
 	}
-	shutter.Snap(t, "mixed feed all types", result)
+	shutter.SnapString(t, "mixed feed all types", formatHTML(result))
 }
 
 func TestFeedTemplate_EmptyFeed_Snapshot(t *testing.T) {
@@ -415,7 +415,7 @@ func TestFeedTemplate_EmptyFeed_Snapshot(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to execute template: %v", err)
 			}
-			shutter.Snap(t, tt.name, result)
+			shutter.SnapString(t, tt.name, formatHTML(result))
 		})
 	}
 }
@@ -462,7 +462,7 @@ func TestFeedTemplate_SecurityURLs_Snapshot(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to execute template: %v", err)
 			}
-			shutter.Snap(t, tt.name, result)
+			shutter.SnapString(t, tt.name, formatHTML(result))
 		})
 	}
 }
@@ -492,5 +492,5 @@ func TestFeedTemplate_SpecialCharacters_Snapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to execute template: %v", err)
 	}
-	shutter.Snap(t, "special characters in content", result)
+	shutter.SnapString(t, "special characters in content", formatHTML(result))
 }

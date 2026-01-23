@@ -4,4 +4,148 @@ test_name: TestProfileContent_Unicode_Snapshot
 file_name: profile_template_snapshot_test.go
 version: 0.1.0
 ---
-"\n\n<div id=\"profile-stats-data\" \n     data-brews=\"0\" \n     data-beans=\"2\" \n     data-roasters=\"1\" \n     data-grinders=\"0\" \n     data-brewers=\"0\"\n     style=\"display: none;\"></div>\n\n\n<div x-show=\"activeTab === 'brews'\">\n    \n\n<div class=\"bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300\">\n    \n    <p class=\"text-brown-800 text-lg font-medium\">No brews yet.</p>\n    \n</div>\n\n\n</div>\n\n\n<div x-show=\"activeTab === 'beans'\" x-cloak class=\"space-y-6\">\n    \n    \n    <div>\n        <h3 class=\"text-lg font-semibold text-brown-900 mb-3\">☕ Coffee Beans</h3>\n        <div class=\"overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300\">\n            <table class=\"min-w-full divide-y divide-brown-300\">\n                <thead class=\"bg-brown-200/80\">\n                    <tr>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap\">Name</th>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap\">☕ Roaster</th>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap\">📍 Origin</th>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap\">🔥 Roast</th>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap\">🌱 Process</th>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap\">📝 Description</th>\n                    </tr>\n                </thead>\n                <tbody class=\"bg-brown-50/60 divide-y divide-brown-200\">\n                    \n                    <tr class=\"hover:bg-brown-100/60 transition-colors\">\n                        <td class=\"px-6 py-4 text-sm font-bold text-brown-900\">\n                            エチオピア イルガチェフェ\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            \n                            <span class=\"text-brown-400\">-</span>\n                            \n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            日本\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            <span class=\"text-brown-400\">-</span>\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            <span class=\"text-brown-400\">-</span>\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-700 italic max-w-xs\">\n                            明るく花のような香り\n                        </td>\n                    </tr>\n                    \n                    <tr class=\"hover:bg-brown-100/60 transition-colors\">\n                        <td class=\"px-6 py-4 text-sm font-bold text-brown-900\">\n                            Café de Colombia\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            \n                            <span class=\"text-brown-400\">-</span>\n                            \n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            Bogotá\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            <span class=\"text-brown-400\">-</span>\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            <span class=\"text-brown-400\">-</span>\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-700 italic max-w-xs\">\n                            Suave y aromático\n                        </td>\n                    </tr>\n                    \n                </tbody>\n            </table>\n        </div>\n        \n    </div>\n    \n\n    \n    \n    <div>\n        <h3 class=\"text-lg font-semibold text-brown-900 mb-3\">🏪 Favorite Roasters</h3>\n        <div class=\"overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300\">\n            <table class=\"min-w-full divide-y divide-brown-300\">\n                <thead class=\"bg-brown-200/80\">\n                    <tr>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider\">Name</th>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider\">📍 Location</th>\n                        <th class=\"px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider\">🌐 Website</th>\n                    </tr>\n                </thead>\n                <tbody class=\"bg-brown-50/60 divide-y divide-brown-200\">\n                    \n                    <tr class=\"hover:bg-brown-100/60 transition-colors\">\n                        <td class=\"px-6 py-4 text-sm font-bold text-brown-900\">Кофейня Москва</td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            Москва, Россия\n                        </td>\n                        <td class=\"px-6 py-4 text-sm text-brown-900\">\n                            \n                            <span class=\"text-brown-400\">-</span>\n                            \n                        </td>\n                    </tr>\n                    \n                </tbody>\n            </table>\n        </div>\n        \n    </div>\n    \n\n    \n</div>\n\n\n<div x-show=\"activeTab === 'gear'\" x-cloak class=\"space-y-6\">\n    \n    \n\n    \n    \n\n    \n    <div class=\"bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center text-brown-800 border border-brown-300\">\n        <p class=\"font-medium\">No gear added yet.</p>\n    </div>\n    \n</div>\n"
+<div id="profile-stats-data" 
+     data-brews="0" 
+     data-beans="2" 
+     data-roasters="1" 
+     data-grinders="0" 
+     data-brewers="0"
+     style="display: none;"></div>
+<div x-show="activeTab === 'brews'">
+  <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300">
+    <p class="text-brown-800 text-lg font-medium">
+      No brews yet.
+    </p>
+  </div>
+</div>
+<div x-show="activeTab === 'beans'" x-cloak class="space-y-6">
+  <div>
+    <h3 class="text-lg font-semibold text-brown-900 mb-3">
+      ☕ Coffee Beans
+    </h3>
+    <div class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300">
+      <table class="min-w-full divide-y divide-brown-300">
+        <thead class="bg-brown-200/80">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">
+              Name
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">
+              ☕ Roaster
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">
+              📍 Origin
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">
+              🔥 Roast
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">
+              🌱 Process
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider whitespace-nowrap">
+              📝 Description
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+          <tr class="hover:bg-brown-100/60 transition-colors">
+            <td class="px-6 py-4 text-sm font-bold text-brown-900">
+              エチオピア イルガチェフェ
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              <span class="text-brown-400">
+                -
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              日本
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              <span class="text-brown-400">
+                -
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              <span class="text-brown-400">
+                -
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-700 italic max-w-xs">
+              明るく花のような香り
+            </td>
+          </tr>
+          <tr class="hover:bg-brown-100/60 transition-colors">
+            <td class="px-6 py-4 text-sm font-bold text-brown-900">
+              Café de Colombia
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              <span class="text-brown-400">
+                -
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              Bogotá
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              <span class="text-brown-400">
+                -
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              <span class="text-brown-400">
+                -
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-700 italic max-w-xs">
+              Suave y aromático
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div>
+    <h3 class="text-lg font-semibold text-brown-900 mb-3">
+      🏪 Favorite Roasters
+    </h3>
+    <div class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300">
+      <table class="min-w-full divide-y divide-brown-300">
+        <thead class="bg-brown-200/80">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">
+              Name
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">
+              📍 Location
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider">
+              🌐 Website
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+          <tr class="hover:bg-brown-100/60 transition-colors">
+            <td class="px-6 py-4 text-sm font-bold text-brown-900">
+              Кофейня Москва
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              Москва, Россия
+            </td>
+            <td class="px-6 py-4 text-sm text-brown-900">
+              <span class="text-brown-400">
+                -
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div x-show="activeTab === 'gear'" x-cloak class="space-y-6">
+  <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center text-brown-800 border border-brown-300">
+    <p class="font-medium">
+      No gear added yet.
+    </p>
+  </div>
+</div>

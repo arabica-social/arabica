@@ -4,4 +4,31 @@ test_name: TestProfileContent_BeansTab_Snapshot/profile_with_empty_beans
 file_name: profile_template_snapshot_test.go
 version: 0.1.0
 ---
-"\n\n<div id=\"profile-stats-data\" \n     data-brews=\"0\" \n     data-beans=\"0\" \n     data-roasters=\"0\" \n     data-grinders=\"0\" \n     data-brewers=\"0\"\n     style=\"display: none;\"></div>\n\n\n<div x-show=\"activeTab === 'brews'\">\n    \n\n<div class=\"bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300\">\n    \n    <p class=\"text-brown-800 text-lg font-medium\">No brews yet.</p>\n    \n</div>\n\n\n</div>\n\n\n<div x-show=\"activeTab === 'beans'\" x-cloak class=\"space-y-6\">\n    \n    \n\n    \n    \n\n    \n    <div class=\"bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center text-brown-800 border border-brown-300\">\n        <p class=\"font-medium\">No beans or roasters yet.</p>\n    </div>\n    \n</div>\n\n\n<div x-show=\"activeTab === 'gear'\" x-cloak class=\"space-y-6\">\n    \n    \n\n    \n    \n\n    \n    <div class=\"bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center text-brown-800 border border-brown-300\">\n        <p class=\"font-medium\">No gear added yet.</p>\n    </div>\n    \n</div>\n"
+<div id="profile-stats-data" 
+     data-brews="0" 
+     data-beans="0" 
+     data-roasters="0" 
+     data-grinders="0" 
+     data-brewers="0"
+     style="display: none;"></div>
+<div x-show="activeTab === 'brews'">
+  <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300">
+    <p class="text-brown-800 text-lg font-medium">
+      No brews yet.
+    </p>
+  </div>
+</div>
+<div x-show="activeTab === 'beans'" x-cloak class="space-y-6">
+  <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center text-brown-800 border border-brown-300">
+    <p class="font-medium">
+      No beans or roasters yet.
+    </p>
+  </div>
+</div>
+<div x-show="activeTab === 'gear'" x-cloak class="space-y-6">
+  <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center text-brown-800 border border-brown-300">
+    <p class="font-medium">
+      No gear added yet.
+    </p>
+  </div>
+</div>
