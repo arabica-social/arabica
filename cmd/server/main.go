@@ -189,6 +189,20 @@ func main() {
 
 		log.Info().Msg("Firehose consumer started")
 
+		// Log known DIDs from database (DIDs discovered via firehose)
+		if knownDIDsFromDB, err := feedIndex.GetKnownDIDs(); err == nil {
+			if len(knownDIDsFromDB) > 0 {
+				log.Info().
+					Int("count", len(knownDIDsFromDB)).
+					Strs("dids", knownDIDsFromDB).
+					Msg("Known DIDs from firehose index")
+			} else {
+				log.Info().Msg("No known DIDs in firehose index yet (will populate as events arrive)")
+			}
+		} else {
+			log.Warn().Err(err).Msg("Failed to retrieve known DIDs from firehose index")
+		}
+
 		// Backfill registered users and known DIDs in background
 		go func() {
 			time.Sleep(5 * time.Second) // Wait for initial connection
@@ -210,7 +224,11 @@ func main() {
 					for _, did := range knownDIDs {
 						didsToBackfill[did] = struct{}{}
 					}
-					log.Info().Int("count", len(knownDIDs)).Str("file", *knownDIDsFile).Msg("Loaded known DIDs from file")
+					log.Info().
+						Int("count", len(knownDIDs)).
+						Str("file", *knownDIDsFile).
+						Strs("dids", knownDIDs).
+						Msg("Loaded known DIDs from file")
 				}
 			}
 
@@ -225,6 +243,17 @@ func main() {
 			}
 			log.Info().Int("total", len(didsToBackfill)).Int("success", successCount).Msg("Backfill complete")
 		}()
+	} else {
+		// Firehose not enabled, log registered users from feed registry
+		registeredDIDs := feedRegistry.List()
+		if len(registeredDIDs) > 0 {
+			log.Info().
+				Int("count", len(registeredDIDs)).
+				Strs("dids", registeredDIDs).
+				Msg("Registered users in feed registry (polling mode)")
+		} else {
+			log.Info().Msg("No registered users in feed registry yet (users register on first login)")
+		}
 	}
 
 	// Register users in the feed when they authenticate

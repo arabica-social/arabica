@@ -41,6 +41,9 @@ var (
 
 	// BucketKnownDIDs stores all DIDs we've seen with Arabica records
 	BucketKnownDIDs = []byte("known_dids")
+
+	// BucketBackfilled stores DIDs that have been backfilled: {did} -> {timestamp}
+	BucketBackfilled = []byte("backfilled")
 )
 
 // IndexedRecord represents a record stored in the index
@@ -107,6 +110,7 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 			BucketProfiles,
 			BucketMeta,
 			BucketKnownDIDs,
+			BucketBackfilled,
 		}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -692,10 +696,38 @@ func formatTimeAgo(t time.Time) string {
 	}
 }
 
+// IsBackfilled checks if a DID has already been backfilled
+func (idx *FeedIndex) IsBackfilled(did string) bool {
+	var exists bool
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketBackfilled)
+		exists = b.Get([]byte(did)) != nil
+		return nil
+	})
+	return exists
+}
+
+// MarkBackfilled marks a DID as backfilled with current timestamp
+func (idx *FeedIndex) MarkBackfilled(did string) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketBackfilled)
+		timestamp := []byte(time.Now().Format(time.RFC3339))
+		return b.Put([]byte(did), timestamp)
+	})
+}
+
 // BackfillUser fetches all existing records for a DID and adds them to the index
+// Returns early if the DID has already been backfilled
 func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
+	// Check if already backfilled
+	if idx.IsBackfilled(did) {
+		log.Debug().Str("did", did).Msg("DID already backfilled, skipping")
+		return nil
+	}
+
 	log.Info().Str("did", did).Msg("backfilling user records")
 
+	recordCount := 0
 	for _, collection := range ArabicaCollections {
 		records, err := idx.publicClient.ListRecords(ctx, did, collection, 100)
 		if err != nil {
@@ -718,9 +750,17 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 
 			if err := idx.UpsertRecord(did, collection, rkey, record.CID, recordJSON, 0); err != nil {
 				log.Warn().Err(err).Str("uri", record.URI).Msg("failed to upsert record during backfill")
+			} else {
+				recordCount++
 			}
 		}
 	}
 
+	// Mark as backfilled
+	if err := idx.MarkBackfilled(did); err != nil {
+		log.Warn().Err(err).Str("did", did).Msg("failed to mark DID as backfilled")
+	}
+
+	log.Info().Str("did", did).Int("record_count", recordCount).Msg("backfill complete")
 	return nil
 }

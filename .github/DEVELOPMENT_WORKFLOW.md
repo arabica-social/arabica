@@ -45,15 +45,30 @@ go run cmd/server/main.go --firehose --known-dids known-dids.txt
 nix run -- --firehose --known-dids known-dids.txt
 ```
 
-### 4. Monitor Backfill Progress
+### 4. Monitor Startup and Backfill Progress
 
-Watch the logs for backfill activity:
+Watch the logs for startup and backfill activity:
 
-```
-{"level":"info","count":3,"file":"known-dids.txt","message":"Loaded known DIDs from file"}
-{"level":"info","did":"did:plc:abc123xyz","message":"backfilling user records"}
+**With firehose enabled:**
+```json
+{"level":"info","message":"Firehose consumer started"}
+{"level":"info","count":2,"dids":["did:plc:user1","did:plc:user2"],"message":"Known DIDs from firehose index"}
+{"level":"info","count":3,"file":"known-dids.txt","dids":["did:plc:abc123","did:plc:def456","did:plc:ghi789"],"message":"Loaded known DIDs from file"}
+{"level":"info","did":"did:plc:abc123","message":"backfilling user records"}
 {"level":"info","total":5,"success":5,"message":"Backfill complete"}
 ```
+
+**Without firehose (polling mode):**
+```json
+{"level":"info","count":2,"dids":["did:plc:user1","did:plc:user2"],"message":"Registered users in feed registry (polling mode)"}
+```
+
+**Empty database (first run):**
+```json
+{"level":"info","message":"No known DIDs in firehose index yet (will populate as events arrive)"}
+```
+
+The server logs all known DIDs on startup, making it easy to verify which users are being tracked.
 
 ### 5. Verify Feed Data
 
@@ -82,6 +97,24 @@ did:plc:user2def
 
 did:web:coffee.example.com  # Web DID example
 ```
+
+## Backfill Behavior
+
+Arabica intelligently manages backfilling to avoid redundant PDS requests:
+
+- **Tracked per DID**: Each DID is backfilled only once, even across server restarts
+- **Idempotent**: Safe to restart the server or re-authenticate - already backfilled DIDs are skipped
+- **Persistent**: Backfill status is stored in BoltDB (`BucketBackfilled`)
+- **Logged**: Debug logs show when DIDs are skipped: `"DID already backfilled, skipping"`
+
+**When backfill occurs:**
+1. **Startup** - DIDs from feed registry + `--known-dids` file (if not already backfilled)
+2. **First authentication** - User's first login triggers backfill (subsequent logins skip it)
+
+**When backfill does NOT occur:**
+- On every page load (would be excessive!)
+- For DIDs already backfilled
+- For DIDs discovered via firehose (they're already indexed in real-time)
 
 ## Security Note
 

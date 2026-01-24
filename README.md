@@ -91,6 +91,11 @@ did:plc:def456uvw
 
 The firehose automatically indexes **all** Arabica records across the AT Protocol network. The `--known-dids` flag allows you to backfill historical records from specific users on startup (useful for development/testing).
 
+**Startup logging:** The server logs all known DIDs on startup for visibility:
+- With firehose: Shows DIDs discovered via the firehose index
+- Without firehose: Shows registered users from the feed registry
+- With `--known-dids`: Shows DIDs loaded from the file
+
 ## Architecture
 
 Data is stored in AT Protocol records on users' Personal Data Servers. The application uses OAuth to authenticate with the PDS and performs all CRUD operations via the AT Protocol API.

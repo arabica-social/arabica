@@ -116,7 +116,8 @@ func (m *OAuthManager) ClientMetadata() oauth.ClientMetadata {
 }
 
 // SetOnAuthSuccess sets a callback that is called when a user authenticates successfully
-// This is called both on initial login and when validating an existing session
+// This is called both on initial login and when validating an existing session (on every authenticated request)
+// Implementations should be idempotent or track state to avoid redundant operations
 func (m *OAuthManager) SetOnAuthSuccess(fn func(did string)) {
 	m.onAuthSuccess = fn
 }

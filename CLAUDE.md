@@ -95,6 +95,17 @@ All Store methods take `context.Context` as first parameter.
 - Invalidated on writes
 - Background cleanup removes expired entries
 
+### Backfill Strategy
+
+User records are backfilled from their PDS once per DID:
+
+- **On startup**: Backfills registered users + known-dids file
+- **On first login**: Backfills the user's historical records
+- **Deduplication**: Tracks backfilled DIDs in `BucketBackfilled` to prevent redundant fetches
+- **Idempotent**: Safe to call multiple times (checks backfill status first)
+
+This prevents excessive PDS requests while ensuring new users' historical data is indexed.
+
 ## Common Tasks
 
 ### Run Development Server

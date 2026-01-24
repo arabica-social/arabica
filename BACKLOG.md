@@ -28,6 +28,9 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 ## Fixes
 
+- Homepage still shows cached feed items on homepage when not authed. should show a cached version of firehose (last 5 entries, cache last 20) from the server.
+  This fetch should not try to backfill anything
+
 - After adding a bean via add brew, that bean does not show up in the drop down until after a refresh
   - Happens with grinders and likely brewers also
 
