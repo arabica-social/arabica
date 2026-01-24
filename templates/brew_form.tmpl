@@ -1,5 +1,5 @@
 {{define "content"}}
-<script src="/static/js/brew-form.js"></script>
+<script src="/static/js/brew-form.js?v=0.2.0"></script>
 
 <div class="max-w-2xl mx-auto" x-data="brewForm()">
     <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 border border-brown-300">
@@ -29,8 +29,7 @@
             {{if and .Brew .Brew.Pours}}
             data-pours='{{.Brew.PoursJSON}}'
             {{end}}
-            x-init="init()"
-            @submit="$el.submit()">
+            x-init="init()">
             
             <!-- Bean Selection -->
             <div>

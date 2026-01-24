@@ -1,10 +1,10 @@
 {{define "content"}}
 {{if .IsOwnProfile}}
 <!-- Load manage page JavaScript before Alpine.js processes the page -->
-<script src="/static/js/manage-page.js"></script>
+<script src="/static/js/manage-page.js?v=0.2.0"></script>
 {{end}}
 <!-- Load profile stats updater -->
-<script src="/static/js/profile-stats.js"></script>
+<script src="/static/js/profile-stats.js?v=0.2.0"></script>
 {{if .IsOwnProfile}}
 <div class="max-w-4xl mx-auto" x-data="managePage()">
 {{else}}

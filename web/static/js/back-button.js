@@ -58,6 +58,8 @@ if (document.readyState === 'loading') {
 }
 
 // Re-initialize after HTMX swaps (for dynamic content)
-document.body.addEventListener('htmx:afterSwap', function() {
-    initAllBackButtons();
-});
+if (document.body) {
+    document.body.addEventListener('htmx:afterSwap', function() {
+        initAllBackButtons();
+    });
+}
