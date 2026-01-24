@@ -87,7 +87,7 @@
         </div>
 
         <!-- Tab content loaded via HTMX -->
-        <div id="profile-content" hx-get="/api/profile/{{.Profile.Handle}}" hx-trigger="load" hx-swap="innerHTML">
+        <div id="profile-content" hx-get="/api/profile/{{.Profile.Handle}}" hx-trigger="load" hx-swap="innerHTML" hx-on::after-swap="Alpine.initTree($el)">
             <!-- Loading skeleton -->
             <div class="animate-pulse">
                 <!-- Brews Tab Skeleton -->
