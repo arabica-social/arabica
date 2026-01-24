@@ -1,7 +1,7 @@
 {{define "content"}}
 <script src="/static/js/brew-form.js"></script>
 
-<div class="max-w-2xl mx-auto">
+<div class="max-w-2xl mx-auto" x-data="brewForm()">
     <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 border border-brown-300">
         <h2 class="text-3xl font-bold text-brown-900 mb-6">
             {{if .Brew}}Edit Brew{{else}}New Brew{{end}}
@@ -15,10 +15,11 @@
             {{end}}
             hx-target="body"
             class="space-y-6"
-            x-data="brewForm()"
             {{if and .Brew .Brew.Pours}}
             data-pours='{{.Brew.PoursJSON}}'
-            {{end}}>
+            {{end}}
+            x-init="init()"
+            @submit="$el.submit()">
             
             <!-- Bean Selection -->
             <div>
@@ -50,8 +51,6 @@
                         + New
                     </button>
                 </div>
-                
-                {{template "bean_form_modal" .}}
             </div>
             
             <!-- Coffee Amount -->
@@ -96,8 +95,6 @@
                         + New
                     </button>
                 </div>
-                
-                {{template "grinder_form_modal" .}}
             </div>
         
             <!-- Grind Size -->
@@ -141,8 +138,6 @@
                         + New
                     </button>
                 </div>
-                
-                {{template "brewer_form_modal" .}}
             </div>
             
             <!-- Water Amount -->
@@ -264,5 +259,10 @@
             </div>
         </form>
     </div>
+    
+    <!-- Modals (outside form but within Alpine scope) -->
+    {{template "bean_form_modal" .}}
+    {{template "grinder_form_modal" .}}
+    {{template "brewer_form_modal" .}}
 </div>
 {{end}}

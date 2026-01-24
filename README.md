@@ -2,13 +2,28 @@
 
 Coffee brew tracking application build on ATProto
 
+Development is on GitHub, and is mirrored to Tangled:
+
+- [Tangled](https://tangled.org/arabica.social/arabica)
+- [GitHub](https://github.com/arabica-social/arabica)
+
+GitHub is currently the primary repo, but that may change in the future.
+
+## Features
+
+- Track coffee brews with detailed parameters
+- Store data in your AT Protocol Personal Data Server
+- Community feed of recent brews from registered users (polling or real-time firehose)
+- Manage beans, roasters, grinders, and brewers
+- Export brew data as JSON
+- Mobile-friendly PWA design
+
 ## Tech Stack
 
-- **Backend:** Go with stdlib HTTP router
-- **Storage:** AT Protocol Personal Data Servers
-- **Local DB:** BoltDB for OAuth sessions and feed registry
-- **Templates:** html/template
-- **Frontend:** HTMX + Alpine.js + Tailwind CSS
+- Backend: Go with stdlib HTTP router
+- Storage: AT Protocol Personal Data Servers + BoltDB for local cache
+- Templates: html/template
+- Frontend: HTMX + Alpine.js + Tailwind CSS
 
 ## Quick Start
 
@@ -61,15 +76,6 @@ environment:
 - `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
 - `LOG_FORMAT` - Log format: console, json (default: console)
 
-## Features
-
-- Track coffee brews with detailed parameters
-- Store data in your AT Protocol Personal Data Server
-- Community feed of recent brews from registered users (polling or real-time firehose)
-- Manage beans, roasters, grinders, and brewers
-- Export brew data as JSON
-- Mobile-friendly PWA design
-
 ### Firehose Mode
 
 Enable real-time feed updates via AT Protocol's Jetstream:
@@ -83,6 +89,7 @@ go run cmd/server/main.go --firehose --known-dids known-dids.txt
 ```
 
 **Known DIDs file format:**
+
 ```
 # Comments start with #
 did:plc:abc123xyz
@@ -92,6 +99,7 @@ did:plc:def456uvw
 The firehose automatically indexes **all** Arabica records across the AT Protocol network. The `--known-dids` flag allows you to backfill historical records from specific users on startup (useful for development/testing).
 
 **Startup logging:** The server logs all known DIDs on startup for visibility:
+
 - With firehose: Shows DIDs discovered via the firehose index
 - Without firehose: Shows registered users from the feed registry
 - With `--known-dids`: Shows DIDs loaded from the file
