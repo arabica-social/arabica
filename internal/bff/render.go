@@ -247,8 +247,19 @@ func RenderBrewView(w http.ResponseWriter, brew *models.Brew, isAuthenticated bo
 		return err
 	}
 
+	// If water amount is not set but pours exist, sum the pours
+	displayBrew := brew
+	if brew.WaterAmount == 0 && len(brew.Pours) > 0 {
+		// Create a copy to avoid modifying the original
+		brewCopy := *brew
+		for _, pour := range brew.Pours {
+			brewCopy.WaterAmount += pour.WaterAmount
+		}
+		displayBrew = &brewCopy
+	}
+
 	brewData := &BrewData{
-		Brew:      brew,
+		Brew:      displayBrew,
 		PoursJSON: PoursToJSON(brew.Pours),
 	}
 
