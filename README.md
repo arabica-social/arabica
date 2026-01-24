@@ -2,13 +2,28 @@
 
 Coffee brew tracking application build on ATProto
 
+Development is on GitHub, and is mirrored to Tangled:
+
+- [Tangled](https://tangled.org/arabica.social/arabica)
+- [GitHub](https://github.com/arabica-social/arabica)
+
+GitHub is currently the primary repo, but that may change in the future.
+
+## Features
+
+- Track coffee brews with detailed parameters
+- Store data in your AT Protocol Personal Data Server
+- Community feed of recent brews from registered users (polling or real-time firehose)
+- Manage beans, roasters, grinders, and brewers
+- Export brew data as JSON
+- Mobile-friendly PWA design
+
 ## Tech Stack
 
-- **Backend:** Go with stdlib HTTP router
-- **Storage:** AT Protocol Personal Data Servers
-- **Local DB:** BoltDB for OAuth sessions and feed registry
-- **Templates:** html/template
-- **Frontend:** HTMX + Alpine.js + Tailwind CSS
+- Backend: Go with stdlib HTTP router
+- Storage: AT Protocol Personal Data Servers + BoltDB for local cache
+- Templates: html/template
+- Frontend: HTMX + Alpine.js + Tailwind CSS
 
 ## Quick Start
 
@@ -45,7 +60,6 @@ environment:
 
 ### Command-Line Flags
 
-- `--firehose` - Enable real-time feed via AT Protocol Jetstream (default: false)
 - `--known-dids <file>` - Path to file with DIDs to backfill on startup (one per line)
 
 ### Environment Variables
@@ -60,36 +74,6 @@ environment:
 - `SECURE_COOKIES` - Set to true for HTTPS (default: false)
 - `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
 - `LOG_FORMAT` - Log format: console, json (default: console)
-
-## Features
-
-- Track coffee brews with detailed parameters
-- Store data in your AT Protocol Personal Data Server
-- Community feed of recent brews from registered users (polling or real-time firehose)
-- Manage beans, roasters, grinders, and brewers
-- Export brew data as JSON
-- Mobile-friendly PWA design
-
-### Firehose Mode
-
-Enable real-time feed updates via AT Protocol's Jetstream:
-
-```bash
-# Basic firehose mode
-go run cmd/server/main.go --firehose
-
-# With known DIDs for backfill
-go run cmd/server/main.go --firehose --known-dids known-dids.txt
-```
-
-**Known DIDs file format:**
-```
-# Comments start with #
-did:plc:abc123xyz
-did:plc:def456uvw
-```
-
-The firehose automatically indexes **all** Arabica records across the AT Protocol network. The `--known-dids` flag allows you to backfill historical records from specific users on startup (useful for development/testing).
 
 ## Architecture
 

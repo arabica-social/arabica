@@ -164,8 +164,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 
 	if h.feedService != nil {
 		if isAuthenticated {
-			// Authenticated users get the full feed (20 items), fetched fresh
-			feedItems, _ = h.feedService.GetRecentRecords(r.Context(), 20)
+			feedItems, _ = h.feedService.GetRecentRecords(r.Context(), feed.FeedLimit)
 		} else {
 			// Unauthenticated users get a limited feed from the cache
 			feedItems, _ = h.feedService.GetCachedPublicFeed(r.Context())
@@ -302,27 +301,133 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check authentication (optional for view)
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
+	// Check if owner (DID or handle) is specified in query params
+	owner := r.URL.Query().Get("owner")
+
+	// Check authentication
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	var userProfile *bff.UserProfile
+	if isAuthenticated {
+		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
+	var brew *models.Brew
+	var brewOwnerDID string
+	var isOwner bool
 
-	brew, err := store.GetBrewByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Brew not found", http.StatusNotFound)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for view")
-		return
+	if owner != "" {
+		// Viewing someone else's brew - use public client
+		publicClient := atproto.NewPublicClient()
+
+		// Resolve owner to DID if it's a handle
+		if strings.HasPrefix(owner, "did:") {
+			brewOwnerDID = owner
+		} else {
+			resolved, err := publicClient.ResolveHandle(r.Context(), owner)
+			if err != nil {
+				log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for brew view")
+				http.Error(w, "User not found", http.StatusNotFound)
+				return
+			}
+			brewOwnerDID = resolved
+		}
+
+		// Fetch the brew record from the owner's PDS
+		record, err := publicClient.GetRecord(r.Context(), brewOwnerDID, atproto.NSIDBrew, rkey)
+		if err != nil {
+			log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
+			http.Error(w, "Brew not found", http.StatusNotFound)
+			return
+		}
+
+		// Convert record to brew
+		brew, err = atproto.RecordToBrew(record.Value, record.URI)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to convert brew record")
+			http.Error(w, "Failed to load brew", http.StatusInternalServerError)
+			return
+		}
+
+		// Resolve references (bean, grinder, brewer)
+		if err := h.resolveBrewReferences(r.Context(), brew, brewOwnerDID, record.Value); err != nil {
+			log.Warn().Err(err).Msg("Failed to resolve some brew references")
+			// Don't fail the request, just log the warning
+		}
+
+		// Check if viewing user is the owner
+		isOwner = isAuthenticated && didStr == brewOwnerDID
+	} else {
+		// Viewing own brew - require authentication
+		store, authenticated := h.getAtprotoStore(r)
+		if !authenticated {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+
+		brew, err = store.GetBrewByRKey(r.Context(), rkey)
+		if err != nil {
+			http.Error(w, "Brew not found", http.StatusNotFound)
+			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for view")
+			return
+		}
+
+		brewOwnerDID = didStr
+		isOwner = true
 	}
 
-	if err := bff.RenderBrewView(w, brew, authenticated, didStr, userProfile); err != nil {
+	if err := bff.RenderBrewView(w, brew, isAuthenticated, didStr, userProfile, isOwner); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew view")
 	}
+}
+
+// resolveBrewReferences resolves bean, grinder, and brewer references for a brew
+func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]interface{}) error {
+	publicClient := atproto.NewPublicClient()
+
+	// Resolve bean reference
+	if beanRef, ok := record["beanRef"].(string); ok && beanRef != "" {
+		beanRecord, err := publicClient.GetRecord(ctx, ownerDID, atproto.NSIDBean, atproto.ExtractRKeyFromURI(beanRef))
+		if err == nil {
+			if bean, err := atproto.RecordToBean(beanRecord.Value, beanRecord.URI); err == nil {
+				brew.Bean = bean
+
+				// Resolve roaster reference for the bean
+				if roasterRef, ok := beanRecord.Value["roasterRef"].(string); ok && roasterRef != "" {
+					roasterRecord, err := publicClient.GetRecord(ctx, ownerDID, atproto.NSIDRoaster, atproto.ExtractRKeyFromURI(roasterRef))
+					if err == nil {
+						if roaster, err := atproto.RecordToRoaster(roasterRecord.Value, roasterRecord.URI); err == nil {
+							brew.Bean.Roaster = roaster
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Resolve grinder reference
+	if grinderRef, ok := record["grinderRef"].(string); ok && grinderRef != "" {
+		grinderRecord, err := publicClient.GetRecord(ctx, ownerDID, atproto.NSIDGrinder, atproto.ExtractRKeyFromURI(grinderRef))
+		if err == nil {
+			if grinder, err := atproto.RecordToGrinder(grinderRecord.Value, grinderRecord.URI); err == nil {
+				brew.GrinderObj = grinder
+			}
+		}
+	}
+
+	// Resolve brewer reference
+	if brewerRef, ok := record["brewerRef"].(string); ok && brewerRef != "" {
+		brewerRecord, err := publicClient.GetRecord(ctx, ownerDID, atproto.NSIDBrewer, atproto.ExtractRKeyFromURI(brewerRef))
+		if err == nil {
+			if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+				brew.BrewerObj = brewer
+			}
+		}
+	}
+
+	return nil
 }
 
 // Show edit brew form
@@ -1672,8 +1777,20 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	isAuthenticated := err == nil && didStr != ""
 	isOwnProfile := isAuthenticated && didStr == did
 
-	// Render profile content partial
-	if err := bff.RenderProfilePartial(w, brews, beans, roasters, grinders, brewers, isOwnProfile); err != nil {
+	// Render profile content partial (use actor as handle, which is already the handle if provided as such)
+	profileHandle := actor
+	if strings.HasPrefix(actor, "did:") {
+		// If actor was a DID, we need to resolve it to a handle
+		// We can get it from the first brew's author if available, or fetch profile
+		profile, err := publicClient.GetProfile(ctx, did)
+		if err == nil {
+			profileHandle = profile.Handle
+		} else {
+			profileHandle = did // Fallback to DID if we can't get handle
+		}
+	}
+
+	if err := bff.RenderProfilePartial(w, brews, beans, roasters, grinders, brewers, isOwnProfile, profileHandle); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile partial")
 	}

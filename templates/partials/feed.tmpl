@@ -118,6 +118,14 @@
                 "{{.Brew.TastingNotes}}"
             </div>
             {{end}}
+            
+            <!-- View button -->
+            <div class="mt-3 border-t border-brown-200 pt-3">
+                <a href="/brews/{{.Brew.RKey}}?owner={{.Author.Handle}}" 
+                   class="inline-flex items-center text-sm font-medium text-brown-700 hover:text-brown-900 hover:underline">
+                    View full details →
+                </a>
+            </div>
         </div>
         {{else if eq .RecordType "bean"}}
         <!-- Bean info -->

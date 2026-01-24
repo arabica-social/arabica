@@ -5,21 +5,29 @@
  */
 function brewForm() {
   return {
-    showNewBean: false,
-    showNewGrinder: false,
-    showNewBrewer: false,
-    rating: 5,
-    pours: [],
-    newBean: {
+    // Modal state (matching manage page)
+    showBeanForm: false,
+    showGrinderForm: false,
+    showBrewerForm: false,
+    editingBean: null,
+    editingGrinder: null,
+    editingBrewer: null,
+    
+    // Form data (matching manage page with snake_case)
+    beanForm: {
       name: "",
       origin: "",
-      roasterRKey: "",
-      roastLevel: "",
+      roast_level: "",
       process: "",
       description: "",
+      roaster_rkey: "",
     },
-    newGrinder: { name: "", grinderType: "", burrType: "", notes: "" },
-    newBrewer: { name: "", brewer_type: "", description: "" },
+    grinderForm: { name: "", grinder_type: "", burr_type: "", notes: "" },
+    brewerForm: { name: "", brewer_type: "", description: "" },
+    
+    // Brew form specific
+    rating: 5,
+    pours: [],
 
     // Dropdown data
     beans: [],
@@ -30,7 +38,9 @@ function brewForm() {
 
     async init() {
       // Load existing pours if editing
-      const poursData = this.$el.getAttribute("data-pours");
+      // $el is now the parent div, so find the form element
+      const formEl = this.$el.querySelector("form");
+      const poursData = formEl?.getAttribute("data-pours");
       if (poursData) {
         try {
           this.pours = JSON.parse(poursData);
@@ -44,9 +54,22 @@ function brewForm() {
       await this.loadDropdownData();
     },
 
-    async loadDropdownData() {
+    async loadDropdownData(forceRefresh = false) {
       if (!window.ArabicaCache) {
         console.warn("ArabicaCache not available");
+        return;
+      }
+
+      // If forcing refresh, always get fresh data
+      if (forceRefresh) {
+        try {
+          const freshData = await window.ArabicaCache.refreshCache(true);
+          if (freshData) {
+            this.applyData(freshData);
+          }
+        } catch (e) {
+          console.error("Failed to refresh dropdown data:", e);
+        }
         return;
       }
 
@@ -84,11 +107,10 @@ function brewForm() {
 
     populateDropdowns() {
       // Get the current selected values (from server-rendered form when editing)
-      const beanSelect = this.$el.querySelector('select[name="bean_rkey"]');
-      const grinderSelect = this.$el.querySelector(
-        'select[name="grinder_rkey"]',
-      );
-      const brewerSelect = this.$el.querySelector('select[name="brewer_rkey"]');
+      // Use document.querySelector to ensure we find the form selects, not modal selects
+      const beanSelect = document.querySelector('form select[name="bean_rkey"]');
+      const grinderSelect = document.querySelector('form select[name="grinder_rkey"]');
+      const brewerSelect = document.querySelector('form select[name="brewer_rkey"]');
 
       const selectedBean = beanSelect?.value || "";
       const selectedGrinder = grinderSelect?.value || "";
@@ -172,9 +194,7 @@ function brewForm() {
       }
 
       // Populate roasters in new bean modal - using DOM methods to prevent XSS
-      const roasterSelect = this.$el.querySelector(
-        'select[name="roaster_rkey_modal"]',
-      );
+      const roasterSelect = document.querySelector('select[name="roaster_rkey_modal"]');
       if (roasterSelect && this.roasters.length > 0) {
         // Clear existing options
         roasterSelect.innerHTML = "";
@@ -204,47 +224,49 @@ function brewForm() {
       this.pours.splice(index, 1);
     },
 
-    async addBean() {
-      if (!this.newBean.name || !this.newBean.origin) {
+    async saveBean() {
+      if (!this.beanForm.name || !this.beanForm.origin) {
         alert("Bean name and origin are required");
         return;
       }
-      const payload = {
-        name: this.newBean.name,
-        origin: this.newBean.origin,
-        roast_level: this.newBean.roastLevel,
-        process: this.newBean.process,
-        description: this.newBean.description,
-        roaster_rkey: this.newBean.roasterRKey || "",
-      };
+      
       const response = await fetch("/api/beans", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(this.beanForm),
       });
+      
       if (response.ok) {
         const newBean = await response.json();
-        // Invalidate cache and refresh data
+        
+        // Invalidate cache and refresh data in one call
+        let freshData = null;
         if (window.ArabicaCache) {
-          await window.ArabicaCache.invalidateAndRefresh();
+          freshData = await window.ArabicaCache.invalidateAndRefresh();
         }
-        // Reload dropdowns and select the new bean
-        await this.loadDropdownData();
-        const beanSelect = this.$el.querySelector('select[name="bean_rkey"]');
+        
+        // Apply the fresh data to update dropdowns
+        if (freshData) {
+          this.applyData(freshData);
+        }
+        
+        // Select the new bean
+        const beanSelect = document.querySelector('form select[name="bean_rkey"]');
         if (beanSelect && newBean.rkey) {
           beanSelect.value = newBean.rkey;
         }
+        
         // Close modal and reset form
-        this.showNewBean = false;
-        this.newBean = {
+        this.showBeanForm = false;
+        this.beanForm = {
           name: "",
           origin: "",
-          roasterRKey: "",
-          roastLevel: "",
+          roast_level: "",
           process: "",
           description: "",
+          roaster_rkey: "",
         };
       } else {
         const errorText = await response.text();
@@ -252,38 +274,46 @@ function brewForm() {
       }
     },
 
-    async addGrinder() {
-      if (!this.newGrinder.name) {
+    async saveGrinder() {
+      if (!this.grinderForm.name) {
         alert("Grinder name is required");
         return;
       }
+      
       const response = await fetch("/api/grinders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(this.newGrinder),
+        body: JSON.stringify(this.grinderForm),
       });
+      
       if (response.ok) {
         const newGrinder = await response.json();
-        // Invalidate cache and refresh data
+        
+        // Invalidate cache and refresh data in one call
+        let freshData = null;
         if (window.ArabicaCache) {
-          await window.ArabicaCache.invalidateAndRefresh();
+          freshData = await window.ArabicaCache.invalidateAndRefresh();
         }
-        // Reload dropdowns and select the new grinder
-        await this.loadDropdownData();
-        const grinderSelect = this.$el.querySelector(
-          'select[name="grinder_rkey"]',
-        );
+        
+        // Apply the fresh data to update dropdowns
+        if (freshData) {
+          this.applyData(freshData);
+        }
+        
+        // Select the new grinder
+        const grinderSelect = document.querySelector('form select[name="grinder_rkey"]');
         if (grinderSelect && newGrinder.rkey) {
           grinderSelect.value = newGrinder.rkey;
         }
+        
         // Close modal and reset form
-        this.showNewGrinder = false;
-        this.newGrinder = {
+        this.showGrinderForm = false;
+        this.grinderForm = {
           name: "",
-          grinderType: "",
-          burrType: "",
+          grinder_type: "",
+          burr_type: "",
           notes: "",
         };
       } else {
@@ -292,35 +322,43 @@ function brewForm() {
       }
     },
 
-    async addBrewer() {
-      if (!this.newBrewer.name) {
+    async saveBrewer() {
+      if (!this.brewerForm.name) {
         alert("Brewer name is required");
         return;
       }
+      
       const response = await fetch("/api/brewers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(this.newBrewer),
+        body: JSON.stringify(this.brewerForm),
       });
+      
       if (response.ok) {
         const newBrewer = await response.json();
-        // Invalidate cache and refresh data
+        
+        // Invalidate cache and refresh data in one call
+        let freshData = null;
         if (window.ArabicaCache) {
-          await window.ArabicaCache.invalidateAndRefresh();
+          freshData = await window.ArabicaCache.invalidateAndRefresh();
         }
-        // Reload dropdowns and select the new brewer
-        await this.loadDropdownData();
-        const brewerSelect = this.$el.querySelector(
-          'select[name="brewer_rkey"]',
-        );
+        
+        // Apply the fresh data to update dropdowns
+        if (freshData) {
+          this.applyData(freshData);
+        }
+        
+        // Select the new brewer
+        const brewerSelect = document.querySelector('form select[name="brewer_rkey"]');
         if (brewerSelect && newBrewer.rkey) {
           brewerSelect.value = newBrewer.rkey;
         }
+        
         // Close modal and reset form
-        this.showNewBrewer = false;
-        this.newBrewer = { name: "", brewer_type: "", description: "" };
+        this.showBrewerForm = false;
+        this.brewerForm = { name: "", brewer_type: "", description: "" };
       } else {
         const errorText = await response.text();
         alert("Failed to add brewer: " + errorText);

@@ -28,23 +28,15 @@ in {
       logFormat = lib.mkOption {
         type = lib.types.enum [ "pretty" "json" ];
         default = "json";
-        description = "Log format. Use 'json' for production, 'pretty' for development.";
+        description =
+          "Log format. Use 'json' for production, 'pretty' for development.";
       };
 
       secureCookies = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
-      };
-
-      firehose = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = ''
-          Enable firehose-based feed using Jetstream.
-          This provides real-time feed updates with zero API calls per request,
-          instead of polling each user's PDS.
-        '';
+        description =
+          "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
       };
     };
 
@@ -71,7 +63,8 @@ in {
     dataDir = lib.mkOption {
       type = lib.types.path;
       default = "/var/lib/arabica";
-      description = "Directory where arabica stores its data (OAuth sessions, etc.).";
+      description =
+        "Directory where arabica stores its data (OAuth sessions, etc.).";
     };
 
     user = lib.mkOption {
@@ -113,7 +106,7 @@ in {
         Type = "simple";
         User = cfg.user;
         Group = cfg.group;
-        ExecStart = "${cfg.package}/bin/arabica${lib.optionalString cfg.settings.firehose " -firehose"}";
+        ExecStart = "${cfg.package}/bin/arabica";
         Restart = "on-failure";
         RestartSec = "10s";
 

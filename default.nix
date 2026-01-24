@@ -4,7 +4,7 @@ buildGoModule rec {
   pname = "arabica";
   version = "0.1.0";
   src = ./.;
-  vendorHash = "sha256-3sMFDeof4OPB4SCcYhD9x1wITSlI1UN3M7SEwUW8H3A=";
+  vendorHash = "sha256-mrIFu5c2EuGvYHyjJVqC8WzlsmUJYCm/6yUpJ0IGPlA=";
 
   nativeBuildInputs = [ tailwindcss ];
 

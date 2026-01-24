@@ -26,7 +26,6 @@ import (
 
 func main() {
 	// Parse command-line flags
-	useFirehose := flag.Bool("firehose", false, "Enable firehose-based feed (Jetstream consumer)")
 	knownDIDsFile := flag.String("known-dids", "", "Path to file containing DIDs to backfill on startup (one per line)")
 	flag.Parse()
 
@@ -58,7 +57,7 @@ func main() {
 		})
 	}
 
-	log.Info().Bool("firehose", *useFirehose).Msg("Starting Arabica Coffee Tracker")
+	log.Info().Msg("Starting Arabica Coffee Tracker")
 
 	// Get port from env or use default
 	port := os.Getenv("PORT")
@@ -143,102 +142,115 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	// Initialize firehose consumer if enabled
-	var firehoseConsumer *firehose.Consumer
-	if *useFirehose {
-		// Determine feed index path
-		feedIndexPath := os.Getenv("ARABICA_FEED_INDEX_PATH")
-		if feedIndexPath == "" {
-			dataDir := os.Getenv("XDG_DATA_HOME")
-			if dataDir == "" {
-				home, err := os.UserHomeDir()
-				if err != nil {
-					log.Fatal().Err(err).Msg("Failed to get home directory for feed index")
-				}
-				dataDir = filepath.Join(home, ".local", "share")
+	// Initialize firehose consumer
+	// Determine feed index path
+	feedIndexPath := os.Getenv("ARABICA_FEED_INDEX_PATH")
+	if feedIndexPath == "" {
+		dataDir := os.Getenv("XDG_DATA_HOME")
+		if dataDir == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to get home directory for feed index")
 			}
-			feedIndexPath = filepath.Join(dataDir, "arabica", "feed-index.db")
+			dataDir = filepath.Join(home, ".local", "share")
 		}
-
-		// Create firehose config
-		firehoseConfig := firehose.DefaultConfig()
-		firehoseConfig.IndexPath = feedIndexPath
-
-		// Parse profile cache TTL from env if set
-		if ttlStr := os.Getenv("ARABICA_PROFILE_CACHE_TTL"); ttlStr != "" {
-			if ttl, err := time.ParseDuration(ttlStr); err == nil {
-				firehoseConfig.ProfileCacheTTL = int64(ttl.Seconds())
-			}
-		}
-
-		// Create feed index
-		feedIndex, err := firehose.NewFeedIndex(feedIndexPath, time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second)
-		if err != nil {
-			log.Fatal().Err(err).Str("path", feedIndexPath).Msg("Failed to create feed index")
-		}
-
-		log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
-
-		// Create and start consumer
-		firehoseConsumer = firehose.NewConsumer(firehoseConfig, feedIndex)
-		firehoseConsumer.Start(ctx)
-
-		// Wire up the feed service to use the firehose index
-		adapter := firehose.NewFeedIndexAdapter(feedIndex)
-		feedService.SetFirehoseIndex(adapter)
-
-		log.Info().Msg("Firehose consumer started")
-
-		// Backfill registered users and known DIDs in background
-		go func() {
-			time.Sleep(5 * time.Second) // Wait for initial connection
-
-			// Collect all DIDs to backfill
-			didsToBackfill := make(map[string]struct{})
-
-			// Add registered users
-			for _, did := range feedRegistry.List() {
-				didsToBackfill[did] = struct{}{}
-			}
-
-			// Add DIDs from known-dids file if provided
-			if *knownDIDsFile != "" {
-				knownDIDs, err := loadKnownDIDs(*knownDIDsFile)
-				if err != nil {
-					log.Warn().Err(err).Str("file", *knownDIDsFile).Msg("Failed to load known DIDs file")
-				} else {
-					for _, did := range knownDIDs {
-						didsToBackfill[did] = struct{}{}
-					}
-					log.Info().Int("count", len(knownDIDs)).Str("file", *knownDIDsFile).Msg("Loaded known DIDs from file")
-				}
-			}
-
-			// Backfill all collected DIDs
-			successCount := 0
-			for did := range didsToBackfill {
-				if err := firehoseConsumer.BackfillDID(ctx, did); err != nil {
-					log.Warn().Err(err).Str("did", did).Msg("Failed to backfill user")
-				} else {
-					successCount++
-				}
-			}
-			log.Info().Int("total", len(didsToBackfill)).Int("success", successCount).Msg("Backfill complete")
-		}()
+		feedIndexPath = filepath.Join(dataDir, "arabica", "feed-index.db")
 	}
+
+	// Create firehose config
+	firehoseConfig := firehose.DefaultConfig()
+	firehoseConfig.IndexPath = feedIndexPath
+
+	// Parse profile cache TTL from env if set
+	if ttlStr := os.Getenv("ARABICA_PROFILE_CACHE_TTL"); ttlStr != "" {
+		if ttl, err := time.ParseDuration(ttlStr); err == nil {
+			firehoseConfig.ProfileCacheTTL = int64(ttl.Seconds())
+		}
+	}
+
+	// Create feed index
+	feedIndex, err := firehose.NewFeedIndex(feedIndexPath, time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second)
+	if err != nil {
+		log.Fatal().Err(err).Str("path", feedIndexPath).Msg("Failed to create feed index")
+	}
+
+	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
+
+	// Create and start consumer
+	firehoseConsumer := firehose.NewConsumer(firehoseConfig, feedIndex)
+	firehoseConsumer.Start(ctx)
+
+	// Wire up the feed service to use the firehose index
+	adapter := firehose.NewFeedIndexAdapter(feedIndex)
+	feedService.SetFirehoseIndex(adapter)
+
+	log.Info().Msg("Firehose consumer started")
+
+	// Log known DIDs from database (DIDs discovered via firehose)
+	if knownDIDsFromDB, err := feedIndex.GetKnownDIDs(); err == nil {
+		if len(knownDIDsFromDB) > 0 {
+			log.Info().
+				Int("count", len(knownDIDsFromDB)).
+				Strs("dids", knownDIDsFromDB).
+				Msg("Known DIDs from firehose index")
+		} else {
+			log.Info().Msg("No known DIDs in firehose index yet (will populate as events arrive)")
+		}
+	} else {
+		log.Warn().Err(err).Msg("Failed to retrieve known DIDs from firehose index")
+	}
+
+	// Backfill registered users and known DIDs in background
+	go func() {
+		time.Sleep(5 * time.Second) // Wait for initial connection
+
+		// Collect all DIDs to backfill
+		didsToBackfill := make(map[string]struct{})
+
+		// Add registered users
+		for _, did := range feedRegistry.List() {
+			didsToBackfill[did] = struct{}{}
+		}
+
+		// Add DIDs from known-dids file if provided
+		if *knownDIDsFile != "" {
+			knownDIDs, err := loadKnownDIDs(*knownDIDsFile)
+			if err != nil {
+				log.Warn().Err(err).Str("file", *knownDIDsFile).Msg("Failed to load known DIDs file")
+			} else {
+				for _, did := range knownDIDs {
+					didsToBackfill[did] = struct{}{}
+				}
+				log.Info().
+					Int("count", len(knownDIDs)).
+					Str("file", *knownDIDsFile).
+					Strs("dids", knownDIDs).
+					Msg("Loaded known DIDs from file")
+			}
+		}
+
+		// Backfill all collected DIDs
+		successCount := 0
+		for did := range didsToBackfill {
+			if err := firehoseConsumer.BackfillDID(ctx, did); err != nil {
+				log.Warn().Err(err).Str("did", did).Msg("Failed to backfill user")
+			} else {
+				successCount++
+			}
+		}
+		log.Info().Int("total", len(didsToBackfill)).Int("success", successCount).Msg("Backfill complete")
+	}()
 
 	// Register users in the feed when they authenticate
 	// This ensures users are added to the feed even if they had an existing session
 	oauthManager.SetOnAuthSuccess(func(did string) {
 		feedRegistry.Register(did)
-		// If firehose is enabled, backfill the user's records
-		if firehoseConsumer != nil {
-			go func() {
-				if err := firehoseConsumer.BackfillDID(context.Background(), did); err != nil {
-					log.Warn().Err(err).Str("did", did).Msg("Failed to backfill new user")
-				}
-			}()
-		}
+		// Backfill the user's records
+		go func() {
+			if err := firehoseConsumer.BackfillDID(context.Background(), did); err != nil {
+				log.Warn().Err(err).Str("did", did).Msg("Failed to backfill new user")
+			}
+		}()
 	})
 
 	if clientID == "" {
@@ -299,7 +311,6 @@ func main() {
 			Str("address", "0.0.0.0:"+port).
 			Str("url", "http://localhost:"+port).
 			Bool("secure_cookies", secureCookies).
-			Bool("firehose", *useFirehose).
 			Str("database", dbPath).
 			Msg("Starting HTTP server")
 
@@ -313,10 +324,8 @@ func main() {
 	log.Info().Msg("Shutdown signal received")
 
 	// Stop firehose consumer first
-	if firehoseConsumer != nil {
-		log.Info().Msg("Stopping firehose consumer...")
-		firehoseConsumer.Stop()
-	}
+	log.Info().Msg("Stopping firehose consumer...")
+	firehoseConsumer.Stop()
 
 	// Graceful shutdown of HTTP server
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
