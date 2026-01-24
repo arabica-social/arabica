@@ -1,0 +1,18 @@
+# Known DIDs for Development Backfill
+# 
+# This file contains DIDs that should be backfilled on startup when using
+# the --known-dids flag. This is useful for development and testing to 
+# populate the feed with known coffee enthusiasts.
+#
+# Format: One DID per line
+# Lines starting with # are comments
+# Empty lines are ignored
+#
+# Example DIDs (replace with real DIDs):
+# did:plc:example1234567890abcdef
+# did:plc:another1234567890abcdef
+#
+# To use this file:
+# 1. Copy this file to known-dids.txt
+# 2. Add real DIDs (one per line)
+# 3. Run: ./arabica --firehose --known-dids known-dids.txt

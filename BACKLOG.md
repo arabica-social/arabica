@@ -24,11 +24,14 @@ Each should be addressed one at a time, and the item should be removed after imp
   - If adding mobile apps, third-party API consumers, or microservices architecture, revisit this
   - For now, monolithic approach is appropriate for HTMX-based web app with decentralized storage
 
+- Backfill seems to be called when user hits homepage, probably only needs to be done on startup
+
 ## Fixes
 
-- [Future work]: adjust timing of caching in feed, maybe use firehose and a sqlite database since we are only storing a few anyway
-  - Goal: reduce pings to server when idling
-
-- Non-authed home page feed shows different from what the firehose version shows (should be cached and show same db contents I think)
-
 - After adding a bean via add brew, that bean does not show up in the drop down until after a refresh
+  - Happens with grinders and likely brewers also
+
+- Adding a grinder via the new brew page does not populate fields correctly other than the name
+  - Also seems to happen to brewers
+  - To solve this issue and the above, we likely should consolidate creation to use the same popup as the manage page uses,
+    since that one works, and should already be a template partial.
