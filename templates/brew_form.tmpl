@@ -45,13 +45,13 @@
                     </select>
                     <button 
                         type="button"
-                        @click="showNewBean = true"
+                        @click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''}"
                         class="bg-brown-300 text-brown-900 px-4 py-2 rounded-lg hover:bg-brown-400 font-medium transition-colors">
                         + New
                     </button>
                 </div>
                 
-                {{template "new_bean_form" .}}
+                {{template "bean_form_modal" .}}
             </div>
             
             <!-- Coffee Amount -->
@@ -91,13 +91,13 @@
                     </select>
                     <button 
                         type="button"
-                        @click="showNewGrinder = true"
+                        @click="showGrinderForm = true; editingGrinder = null; grinderForm = {name: '', grinder_type: '', burr_type: '', notes: ''}"
                         class="bg-brown-300 text-brown-900 px-4 py-2 rounded-lg hover:bg-brown-400 font-medium transition-colors">
                         + New
                     </button>
                 </div>
                 
-                {{template "new_grinder_form" .}}
+                {{template "grinder_form_modal" .}}
             </div>
         
             <!-- Grind Size -->
@@ -136,13 +136,13 @@
                     </select>
                     <button 
                         type="button"
-                        @click="showNewBrewer = true"
+                        @click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', brewer_type: '', description: ''}"
                         class="bg-brown-300 text-brown-900 px-4 py-2 rounded-lg hover:bg-brown-400 font-medium transition-colors">
                         + New
                     </button>
                 </div>
                 
-                {{template "new_brewer_form" .}}
+                {{template "brewer_form_modal" .}}
             </div>
             
             <!-- Water Amount -->

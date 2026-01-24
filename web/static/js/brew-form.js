@@ -5,21 +5,29 @@
  */
 function brewForm() {
   return {
-    showNewBean: false,
-    showNewGrinder: false,
-    showNewBrewer: false,
-    rating: 5,
-    pours: [],
-    newBean: {
+    // Modal state (matching manage page)
+    showBeanForm: false,
+    showGrinderForm: false,
+    showBrewerForm: false,
+    editingBean: null,
+    editingGrinder: null,
+    editingBrewer: null,
+    
+    // Form data (matching manage page with snake_case)
+    beanForm: {
       name: "",
       origin: "",
-      roasterRKey: "",
-      roastLevel: "",
+      roast_level: "",
       process: "",
       description: "",
+      roaster_rkey: "",
     },
-    newGrinder: { name: "", grinderType: "", burrType: "", notes: "" },
-    newBrewer: { name: "", brewer_type: "", description: "" },
+    grinderForm: { name: "", grinder_type: "", burr_type: "", notes: "" },
+    brewerForm: { name: "", brewer_type: "", description: "" },
+    
+    // Brew form specific
+    rating: 5,
+    pours: [],
 
     // Dropdown data
     beans: [],
@@ -90,9 +98,17 @@ function brewForm() {
       );
       const brewerSelect = this.$el.querySelector('select[name="brewer_rkey"]');
 
+      console.log("populateDropdowns - found selects:", {
+        bean: !!beanSelect,
+        grinder: !!grinderSelect,
+        brewer: !!brewerSelect
+      });
+
       const selectedBean = beanSelect?.value || "";
       const selectedGrinder = grinderSelect?.value || "";
       const selectedBrewer = brewerSelect?.value || "";
+      
+      console.log("populateDropdowns - selected:", {bean: selectedBean, grinder: selectedGrinder, brewer: selectedBrewer});
 
       // Populate beans - using DOM methods to prevent XSS
       if (beanSelect && this.beans.length > 0) {
@@ -204,26 +220,20 @@ function brewForm() {
       this.pours.splice(index, 1);
     },
 
-    async addBean() {
-      if (!this.newBean.name || !this.newBean.origin) {
+    async saveBean() {
+      if (!this.beanForm.name || !this.beanForm.origin) {
         alert("Bean name and origin are required");
         return;
       }
-      const payload = {
-        name: this.newBean.name,
-        origin: this.newBean.origin,
-        roast_level: this.newBean.roastLevel,
-        process: this.newBean.process,
-        description: this.newBean.description,
-        roaster_rkey: this.newBean.roasterRKey || "",
-      };
+      
       const response = await fetch("/api/beans", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(this.beanForm),
       });
+      
       if (response.ok) {
         const newBean = await response.json();
         // Invalidate cache and refresh data
@@ -237,14 +247,14 @@ function brewForm() {
           beanSelect.value = newBean.rkey;
         }
         // Close modal and reset form
-        this.showNewBean = false;
-        this.newBean = {
+        this.showBeanForm = false;
+        this.beanForm = {
           name: "",
           origin: "",
-          roasterRKey: "",
-          roastLevel: "",
+          roast_level: "",
           process: "",
           description: "",
+          roaster_rkey: "",
         };
       } else {
         const errorText = await response.text();
@@ -252,18 +262,20 @@ function brewForm() {
       }
     },
 
-    async addGrinder() {
-      if (!this.newGrinder.name) {
+    async saveGrinder() {
+      if (!this.grinderForm.name) {
         alert("Grinder name is required");
         return;
       }
+      
       const response = await fetch("/api/grinders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(this.newGrinder),
+        body: JSON.stringify(this.grinderForm),
       });
+      
       if (response.ok) {
         const newGrinder = await response.json();
         // Invalidate cache and refresh data
@@ -279,11 +291,11 @@ function brewForm() {
           grinderSelect.value = newGrinder.rkey;
         }
         // Close modal and reset form
-        this.showNewGrinder = false;
-        this.newGrinder = {
+        this.showGrinderForm = false;
+        this.grinderForm = {
           name: "",
-          grinderType: "",
-          burrType: "",
+          grinder_type: "",
+          burr_type: "",
           notes: "",
         };
       } else {
@@ -292,18 +304,20 @@ function brewForm() {
       }
     },
 
-    async addBrewer() {
-      if (!this.newBrewer.name) {
+    async saveBrewer() {
+      if (!this.brewerForm.name) {
         alert("Brewer name is required");
         return;
       }
+      
       const response = await fetch("/api/brewers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(this.newBrewer),
+        body: JSON.stringify(this.brewerForm),
       });
+      
       if (response.ok) {
         const newBrewer = await response.json();
         // Invalidate cache and refresh data
@@ -319,8 +333,8 @@ function brewForm() {
           brewerSelect.value = newBrewer.rkey;
         }
         // Close modal and reset form
-        this.showNewBrewer = false;
-        this.newBrewer = { name: "", brewer_type: "", description: "" };
+        this.showBrewerForm = false;
+        this.brewerForm = { name: "", brewer_type: "", description: "" };
       } else {
         const errorText = await response.text();
         alert("Failed to add brewer: " + errorText);
