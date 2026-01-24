@@ -1,0 +1,31 @@
+{$DOMAIN:localhost} {
+    reverse_proxy arabica:18910 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+    
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+    
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+    
+    encode gzip
+    
+    @static {
+        path /static/*
+    }
+    handle @static {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy arabica:18910
+    }
+}
