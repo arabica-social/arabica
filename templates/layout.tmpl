@@ -13,7 +13,7 @@
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32" />
     <link rel="apple-touch-icon" href="/static/icon-192.svg" />
-    <link rel="stylesheet" href="/static/css/output.css?v=0.1.9" />
+    <link rel="stylesheet" href="/static/css/output.css?v=0.2.0" />
     <style>[x-cloak] { display: none !important; }</style>
     <link rel="manifest" href="/static/manifest.json" />
     <script src="/static/js/alpine.min.js" defer></script>
@@ -21,6 +21,7 @@
     {{if .IsAuthenticated}}
     <script src="/static/js/data-cache.js"></script>
     {{end}}
+    <script src="/static/js/back-button.js"></script>
     <script src="/static/js/sw-register.js"></script>
 </head>
 <body class="bg-brown-50 min-h-full flex flex-col"{{if .UserDID}} data-user-did="{{.UserDID}}"{{end}}>

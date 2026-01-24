@@ -46,3 +46,13 @@ func ValidateRKey(rkey string) bool {
 func BuildATURI(did, collection, rkey string) string {
 	return fmt.Sprintf("at://%s/%s/%s", did, collection, rkey)
 }
+
+// ExtractRKeyFromURI extracts the record key from an AT-URI
+// Returns the rkey if successful, empty string if parsing fails
+func ExtractRKeyFromURI(uri string) string {
+	components, err := ResolveATURI(uri)
+	if err != nil {
+		return ""
+	}
+	return components.RKey
+}

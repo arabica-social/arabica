@@ -241,7 +241,7 @@ func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*mod
 }
 
 // RenderBrewView renders the brew view page
-func RenderBrewView(w http.ResponseWriter, brew *models.Brew, isAuthenticated bool, userDID string, userProfile *UserProfile) error {
+func RenderBrewView(w http.ResponseWriter, brew *models.Brew, isAuthenticated bool, userDID string, userProfile *UserProfile, isOwner bool) error {
 	t, err := parsePageTemplate("brew_view.tmpl")
 	if err != nil {
 		return err
@@ -269,6 +269,7 @@ func RenderBrewView(w http.ResponseWriter, brew *models.Brew, isAuthenticated bo
 		IsAuthenticated: isAuthenticated,
 		UserDID:         userDID,
 		UserProfile:     userProfile,
+		IsOwnProfile:    isOwner, // Reuse IsOwnProfile field to indicate ownership
 	}
 	return t.ExecuteTemplate(w, "layout", data)
 }
@@ -366,12 +367,13 @@ type ProfilePageData struct {
 
 // ProfileContentData contains data for rendering the profile content partial
 type ProfileContentData struct {
-	Brews        []*models.Brew
-	Beans        []*models.Bean
-	Roasters     []*models.Roaster
-	Grinders     []*models.Grinder
-	Brewers      []*models.Brewer
-	IsOwnProfile bool
+	Brews         []*models.Brew
+	Beans         []*models.Bean
+	Roasters      []*models.Roaster
+	Grinders      []*models.Grinder
+	Brewers       []*models.Brewer
+	IsOwnProfile  bool
+	ProfileHandle string // The handle of the profile being viewed
 }
 
 // RenderProfile renders a user's public profile page
@@ -403,19 +405,20 @@ func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*mod
 }
 
 // RenderProfilePartial renders just the profile content partial (for HTMX async loading)
-func RenderProfilePartial(w http.ResponseWriter, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool) error {
+func RenderProfilePartial(w http.ResponseWriter, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool, profileHandle string) error {
 	t, err := parsePartialTemplate()
 	if err != nil {
 		return err
 	}
 
 	data := &ProfileContentData{
-		Brews:        brews,
-		Beans:        beans,
-		Roasters:     roasters,
-		Grinders:     grinders,
-		Brewers:      brewers,
-		IsOwnProfile: isOwnProfile,
+		Brews:         brews,
+		Beans:         beans,
+		Roasters:      roasters,
+		Grinders:      grinders,
+		Brewers:       brewers,
+		IsOwnProfile:  isOwnProfile,
+		ProfileHandle: profileHandle,
 	}
 	return t.ExecuteTemplate(w, "profile_content", data)
 }

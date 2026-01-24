@@ -333,6 +333,8 @@ type FeedItem struct {
 func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error) {
 	var records []*IndexedRecord
 
+	// FIX: this seems to show the first 20 records for main deployment
+	// - unclear why, but is likely an issue with the db being stale
 	err := idx.db.View(func(tx *bolt.Tx) error {
 		byTime := tx.Bucket(BucketByTime)
 		recordsBucket := tx.Bucket(BucketRecords)
@@ -341,7 +343,7 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 
 		// Iterate in reverse (newest first)
 		count := 0
-		for k, _ := c.Last(); k != nil && count < limit*2; k, _ = c.Prev() {
+		for k, _ := c.First(); k != nil && count < limit*2; k, _ = c.Next() {
 			// Extract URI from key (format: timestamp:uri)
 			uri := extractURIFromTimeKey(k)
 			if uri == "" {

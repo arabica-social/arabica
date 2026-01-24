@@ -7,6 +7,7 @@
                 <h2 class="text-3xl font-bold text-brown-900">Brew Details</h2>
                 <p class="text-sm text-brown-600 mt-1">{{.Brew.CreatedAt.Format "January 2, 2006 at 3:04 PM"}}</p>
             </div>
+            {{if .IsOwnProfile}}
             <div class="flex gap-2">
                 <a href="/brews/{{.Brew.RKey}}/edit"
                     class="inline-flex items-center bg-brown-300 text-brown-900 px-4 py-2 rounded-lg hover:bg-brown-400 font-medium transition-colors">
@@ -20,6 +21,7 @@
                     Delete
                 </button>
             </div>
+            {{end}}
         </div>
 
         <div class="space-y-6">
@@ -156,10 +158,15 @@
 
             <!-- Back Button -->
             <div class="pt-4">
-                <a href="/brews"
-                    class="inline-block text-brown-700 hover:text-brown-900 font-medium">
-                    &larr; Back to Brews
-                </a>
+                <button
+                    data-back-button
+                    data-fallback="/brews"
+                    class="inline-flex items-center text-brown-700 hover:text-brown-900 font-medium transition-colors cursor-pointer">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back
+                </button>
             </div>
         </div>
     </div>

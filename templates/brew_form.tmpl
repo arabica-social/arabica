@@ -3,9 +3,20 @@
 
 <div class="max-w-2xl mx-auto" x-data="brewForm()">
     <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 border border-brown-300">
-        <h2 class="text-3xl font-bold text-brown-900 mb-6">
-            {{if .Brew}}Edit Brew{{else}}New Brew{{end}}
-        </h2>
+        <!-- Header with Back Button -->
+        <div class="flex items-center gap-3 mb-6">
+            <button
+                data-back-button
+                data-fallback="/brews"
+                class="inline-flex items-center text-brown-700 hover:text-brown-900 font-medium transition-colors cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+            </button>
+            <h2 class="text-3xl font-bold text-brown-900">
+                {{if .Brew}}Edit Brew{{else}}New Brew{{end}}
+            </h2>
+        </div>
         
         <form 
             {{if .Brew}}
