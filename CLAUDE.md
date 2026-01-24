@@ -14,7 +14,7 @@ Coffee brew tracking application using AT Protocol for decentralized storage.
 ## Project Structure
 
 ```
-cmd/server/main.go          # Application entry point
+cmd/arabica-server/main.go          # Application entry point
 internal/
   atproto/                  # AT Protocol integration
     client.go               # Authenticated PDS client (XRPC calls)
@@ -112,10 +112,10 @@ This prevents excessive PDS requests while ensuring new users' historical data i
 
 ```bash
 # Run server (uses firehose mode by default)
-go run cmd/server/main.go
+go run cmd/arabica-server/main.go
 
 # Backfill known DIDs on startup
-go run cmd/server/main.go --known-dids known-dids.txt
+go run cmd/arabica-server/main.go --known-dids known-dids.txt
 
 # Using nix
 nix run
@@ -130,7 +130,7 @@ go test ./...
 ### Build
 
 ```bash
-go build -o arabica cmd/server/main.go
+go build -o arabica cmd/arabica-server/main.go
 ```
 
 ## Command-Line Flags

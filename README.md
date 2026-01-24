@@ -32,7 +32,7 @@ GitHub is currently the primary repo, but that may change in the future.
 nix run
 
 # Or with Go
-go run cmd/server/main.go
+go run cmd/arabica-server/main.go
 ```
 
 Access at http://localhost:18910
@@ -93,13 +93,13 @@ See docs/ for detailed documentation.
 nix develop
 
 # Run server
-go run cmd/server/main.go
+go run cmd/arabica-server/main.go
 
 # Run tests
 go test ./...
 
 # Build
-go build -o arabica cmd/server/main.go
+go build -o arabica cmd/arabica-server/main.go
 ```
 
 ## Deployment

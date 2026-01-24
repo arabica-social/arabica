@@ -135,6 +135,11 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 	return store, true
 }
 
+// SPA fallback handler - serves index.html for client-side routes
+func (h *Handler) HandleSPAFallback(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "web/static/app/index.html")
+}
+
 // Home page
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	// Check if user is authenticated
@@ -174,6 +179,200 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	if err := bff.RenderFeedPartial(w, feedItems, isAuthenticated); err != nil {
 		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render feed partial")
+	}
+}
+
+// API endpoint for feed (JSON)
+func (h *Handler) HandleFeedAPI(w http.ResponseWriter, r *http.Request) {
+	var feedItems []*feed.FeedItem
+
+	// Check if user is authenticated
+	_, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil
+
+	if h.feedService != nil {
+		if isAuthenticated {
+			feedItems, _ = h.feedService.GetRecentRecords(r.Context(), feed.FeedLimit)
+		} else {
+			// Unauthenticated users get a limited feed from the cache
+			feedItems, _ = h.feedService.GetCachedPublicFeed(r.Context())
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"items":           feedItems,
+		"isAuthenticated": isAuthenticated,
+	}); err != nil {
+		log.Error().Err(err).Msg("Failed to encode feed API response")
+	}
+}
+
+// HandleProfileAPI returns profile data for a given actor (handle or DID)
+func (h *Handler) HandleProfileAPI(w http.ResponseWriter, r *http.Request) {
+	actor := r.PathValue("actor")
+	if actor == "" {
+		http.Error(w, "Actor parameter required", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Check if current user is authenticated
+	currentUserDID, err := atproto.GetAuthenticatedDID(ctx)
+	isAuthenticated := err == nil && currentUserDID != ""
+
+	// Resolve actor to DID
+	var targetDID string
+	if strings.HasPrefix(actor, "did:") {
+		targetDID = actor
+	} else {
+		// Resolve handle to DID
+		publicClient := atproto.NewPublicClient()
+		resolvedDID, err := publicClient.ResolveHandle(ctx, actor)
+		if err != nil {
+			http.Error(w, "Failed to resolve handle", http.StatusNotFound)
+			log.Error().Err(err).Str("actor", actor).Msg("Failed to resolve handle")
+			return
+		}
+		targetDID = resolvedDID
+	}
+
+	// Check if viewing own profile
+	isOwnProfile := isAuthenticated && currentUserDID == targetDID
+
+	// Get profile info
+	profile := h.getUserProfile(ctx, targetDID)
+	if profile == nil {
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
+	}
+
+	// Fetch user's data using public client (works for any user)
+	publicClient := atproto.NewPublicClient()
+
+	// Fetch all collections in parallel
+	g, ctx := errgroup.WithContext(ctx)
+
+	var brewRecords, beanRecords, roasterRecords, grinderRecords, brewerRecords *atproto.PublicListRecordsOutput
+
+	g.Go(func() error {
+		var err error
+		brewRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDBrew, 100)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		beanRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDBean, 100)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		roasterRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDRoaster, 100)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		grinderRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDGrinder, 100)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		brewerRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDBrewer, 100)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		http.Error(w, "Failed to fetch profile data", http.StatusInternalServerError)
+		log.Error().Err(err).Str("did", targetDID).Msg("Failed to fetch profile data")
+		return
+	}
+
+	// Convert records to models
+	brews := make([]*models.Brew, 0, len(brewRecords.Records))
+	for _, rec := range brewRecords.Records {
+		brew, err := atproto.RecordToBrew(rec.Value, rec.URI)
+		if err == nil {
+			brews = append(brews, brew)
+		}
+	}
+
+	beans := make([]*models.Bean, 0, len(beanRecords.Records))
+	for _, rec := range beanRecords.Records {
+		bean, err := atproto.RecordToBean(rec.Value, rec.URI)
+		if err == nil {
+			beans = append(beans, bean)
+		}
+	}
+
+	roasters := make([]*models.Roaster, 0, len(roasterRecords.Records))
+	for _, rec := range roasterRecords.Records {
+		roaster, err := atproto.RecordToRoaster(rec.Value, rec.URI)
+		if err == nil {
+			roasters = append(roasters, roaster)
+		}
+	}
+
+	grinders := make([]*models.Grinder, 0, len(grinderRecords.Records))
+	for _, rec := range grinderRecords.Records {
+		grinder, err := atproto.RecordToGrinder(rec.Value, rec.URI)
+		if err == nil {
+			grinders = append(grinders, grinder)
+		}
+	}
+
+	brewers := make([]*models.Brewer, 0, len(brewerRecords.Records))
+	for _, rec := range brewerRecords.Records {
+		brewer, err := atproto.RecordToBrewer(rec.Value, rec.URI)
+		if err == nil {
+			brewers = append(brewers, brewer)
+		}
+	}
+
+	// Link beans to roasters
+	atproto.LinkBeansToRoasters(beans, roasters)
+
+	// Resolve references in brews
+	for _, brew := range brews {
+		if brew.BeanRKey != "" {
+			for _, bean := range beans {
+				if bean.RKey == brew.BeanRKey {
+					brew.Bean = bean
+					break
+				}
+			}
+		}
+		if brew.GrinderRKey != "" {
+			for _, grinder := range grinders {
+				if grinder.RKey == brew.GrinderRKey {
+					brew.GrinderObj = grinder
+					break
+				}
+			}
+		}
+		if brew.BrewerRKey != "" {
+			for _, brewer := range brewers {
+				if brewer.RKey == brew.BrewerRKey {
+					brew.BrewerObj = brewer
+					break
+				}
+			}
+		}
+	}
+
+	response := map[string]interface{}{
+		"profile":      profile,
+		"brews":        brews,
+		"beans":        beans,
+		"roasters":     roasters,
+		"grinders":     grinders,
+		"brewers":      brewers,
+		"isOwnProfile": isOwnProfile,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error().Err(err).Msg("Failed to encode profile API response")
 	}
 }
 
@@ -825,6 +1024,35 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 		"grinders": grinders,
 		"brewers":  brewers,
 		"brews":    brews,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error().Err(err).Msg("Failed to encode API response")
+	}
+}
+
+// API endpoint to get current user info
+func (h *Handler) HandleAPIMe(w http.ResponseWriter, r *http.Request) {
+	// Get authenticated DID from context
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	// Fetch user profile
+	userProfile := h.getUserProfile(r.Context(), didStr)
+	if userProfile == nil {
+		http.Error(w, "Failed to fetch user profile", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"did":         didStr,
+		"handle":      userProfile.Handle,
+		"displayName": userProfile.DisplayName,
+		"avatar":      userProfile.Avatar,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

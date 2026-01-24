@@ -102,6 +102,12 @@ version: 0.1.0
       <div class="mt-3 text-sm text-brown-800 italic border-t border-brown-200 pt-2">
         "Bright citrus notes with floral aroma"
       </div>
+      <div class="mt-3 border-t border-brown-200 pt-3">
+        <a href="/brews/brew123?owner=coffee.lover" 
+                   class="inline-flex items-center text-sm font-medium text-brown-700 hover:text-brown-900 hover:underline">
+          View full details →
+        </a>
+      </div>
     </div>
   </div>
 </div>

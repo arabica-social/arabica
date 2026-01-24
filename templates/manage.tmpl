@@ -14,70 +14,69 @@
         <h2 class="text-3xl font-bold text-brown-900">Manage</h2>
     </div>
 
-    <!-- Tabs -->
-    <div class="mb-6 border-b-2 border-brown-300">
-        <nav class="-mb-px flex space-x-8">
+    <!-- Tab Navigation -->
+    <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300 mb-6">
+        <div class="flex border-b border-brown-300">
             <button @click="tab = 'beans'"
-                :class="tab === 'beans' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Beans
+                :class="tab === 'beans' ? 'bg-brown-50 text-brown-900 border-b-2 border-brown-700' : 'text-brown-700 hover:bg-brown-50'"
+                class="flex-1 px-6 py-4 text-center font-medium transition-colors">
+                ☕ Beans
             </button>
             <button @click="tab = 'roasters'"
-                :class="tab === 'roasters' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Roasters
+                :class="tab === 'roasters' ? 'bg-brown-50 text-brown-900 border-b-2 border-brown-700' : 'text-brown-700 hover:bg-brown-50'"
+                class="flex-1 px-6 py-4 text-center font-medium transition-colors">
+                🏭 Roasters
             </button>
             <button @click="tab = 'grinders'"
-                :class="tab === 'grinders' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Grinders
+                :class="tab === 'grinders' ? 'bg-brown-50 text-brown-900 border-b-2 border-brown-700' : 'text-brown-700 hover:bg-brown-50'"
+                class="flex-1 px-6 py-4 text-center font-medium transition-colors">
+                ⚙️ Grinders
             </button>
             <button @click="tab = 'brewers'"
-                :class="tab === 'brewers' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Brewers
+                :class="tab === 'brewers' ? 'bg-brown-50 text-brown-900 border-b-2 border-brown-700' : 'text-brown-700 hover:bg-brown-50'"
+                class="flex-1 px-6 py-4 text-center font-medium transition-colors">
+                🫖 Brewers
             </button>
-        </nav>
-    </div>
-
-    <div hx-get="/api/manage" hx-trigger="load" hx-swap="innerHTML">
-        <!-- Loading skeleton for the active tab -->
-        <div class="animate-pulse">
-            <!-- Header skeleton -->
-            <div class="mb-4 flex justify-between items-center">
-                <div class="h-6 bg-brown-300 rounded w-32"></div>
-                <div class="h-10 bg-brown-300 rounded w-28"></div>
-            </div>
-            
-            <!-- Table skeleton -->
-            <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-hidden border border-brown-300">
-                <table class="min-w-full divide-y divide-brown-300">
-                    <thead class="bg-brown-200/80">
-                        <tr>
-                            <th class="px-6 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-16"></div></th>
-                            <th class="px-6 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-16"></div></th>
-                            <th class="px-6 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-20"></div></th>
-                            <th class="px-6 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-24"></div></th>
-                            <th class="px-6 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-16"></div></th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-brown-50/60 divide-y divide-brown-200">
-                        {{range iterate 4}}
-                        <tr>
-                            <td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-24"></div></td>
-                            <td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
-                            <td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-28"></div></td>
-                            <td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
-                            <td class="px-6 py-4">
-                                <div class="flex gap-2">
-                                    <div class="h-4 bg-brown-300 rounded w-10"></div>
-                                    <div class="h-4 bg-brown-300 rounded w-12"></div>
-                                </div>
-                            </td>
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
+        </div>
+        
+        <!-- Tab Content -->
+        <div class="p-6" hx-get="/api/manage" hx-trigger="load" hx-swap="innerHTML">
+            <!-- Loading skeleton for the active tab -->
+            <div class="animate-pulse">
+                <!-- Header skeleton -->
+                <div class="mb-4 flex justify-between items-center">
+                    <div class="h-6 bg-brown-300 rounded w-32"></div>
+                    <div class="h-10 bg-brown-300 rounded w-28"></div>
+                </div>
+                
+                <!-- Table skeleton -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-brown-300">
+                        <thead class="bg-brown-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-16"></div></th>
+                                <th class="px-4 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-16"></div></th>
+                                <th class="px-4 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-20"></div></th>
+                                <th class="px-4 py-3 text-left"><div class="h-3 bg-brown-300 rounded w-16"></div></th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-brown-200">
+                            {{range iterate 4}}
+                            <tr>
+                                <td class="px-4 py-3"><div class="h-4 bg-brown-300 rounded w-24"></div></td>
+                                <td class="px-4 py-3"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
+                                <td class="px-4 py-3"><div class="h-4 bg-brown-300 rounded w-28"></div></td>
+                                <td class="px-4 py-3">
+                                    <div class="flex gap-2">
+                                        <div class="h-4 bg-brown-300 rounded w-10"></div>
+                                        <div class="h-4 bg-brown-300 rounded w-12"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

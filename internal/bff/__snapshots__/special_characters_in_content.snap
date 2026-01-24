@@ -47,6 +47,12 @@ version: 0.1.0
       <div class="mt-3 text-sm text-brown-800 italic border-t border-brown-200 pt-2">
         "Notes with &#34;quotes&#34; and &lt;html&gt;tags&lt;/html&gt; and &#39;single quotes&#39;"
       </div>
+      <div class="mt-3 border-t border-brown-200 pt-3">
+        <a href="/brews/brew999?owner=special.chars" 
+                   class="inline-flex items-center text-sm font-medium text-brown-700 hover:text-brown-900 hover:underline">
+          View full details →
+        </a>
+      </div>
     </div>
   </div>
 </div>

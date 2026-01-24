@@ -48,3 +48,6 @@ arabica
 
 # Development files
 known-dids.txt
+
+node_modules
+web/static/app/assets

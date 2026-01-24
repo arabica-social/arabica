@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o arabica cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o arabica cmd/arabica-server/main.go
 
 # Runtime stage
 FROM alpine:3.23

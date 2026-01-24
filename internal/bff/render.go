@@ -117,9 +117,9 @@ func parsePartialTemplate() (*template.Template, error) {
 
 // UserProfile contains user profile data for header display
 type UserProfile struct {
-	Handle      string
-	DisplayName string
-	Avatar      string
+	Handle      string `json:"handle"`
+	DisplayName string `json:"displayName"`
+	Avatar      string `json:"avatar"`
 }
 
 // PageData contains data for rendering pages

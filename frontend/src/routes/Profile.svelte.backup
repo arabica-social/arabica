@@ -1,0 +1,260 @@
+<script>
+  import { onMount } from 'svelte';
+  import { authStore } from '../stores/auth.js';
+  import { cacheStore } from '../stores/cache.js';
+  import { navigate } from '../lib/router.js';
+  
+  export let actor;
+  
+  let profile = null;
+  let brews = [];
+  let beans = [];
+  let roasters = [];
+  let grinders = [];
+  let brewers = [];
+  let isOwnProfile = false;
+  let loading = true;
+  let error = null;
+  
+  let activeTab = 'brews';
+  
+  $: user = $authStore.user;
+  
+  onMount(async () => {
+    try {
+      // For now, only support viewing own profile
+      // TODO: Implement HandleProfileAPI for viewing other users' profiles
+      if (!user) {
+        error = 'Not authenticated';
+        loading = false;
+        return;
+      }
+      
+      // Check if viewing own profile
+      isOwnProfile = (actor === user.handle || actor === user.did);
+      
+      if (!isOwnProfile) {
+        error = 'Viewing other profiles not yet supported';
+        loading = false;
+        return;
+      }
+      
+      // Load own profile from cache
+      await cacheStore.load();
+      profile = user;
+      brews = $cacheStore.brews || [];
+      beans = $cacheStore.beans || [];
+      roasters = $cacheStore.roasters || [];
+      grinders = $cacheStore.grinders || [];
+      brewers = $cacheStore.brewers || [];
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+      error = err.message;
+    } finally {
+      loading = false;
+    }
+  });
+  
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+</script>
+
+<svelte:head>
+  <title>{profile?.displayName || profile?.handle || 'Profile'} - Arabica</title>
+</svelte:head>
+
+<div class="max-w-4xl mx-auto">
+  {#if loading}
+    <div class="text-center py-12">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brown-900"></div>
+      <p class="mt-4 text-brown-700">Loading profile...</p>
+    </div>
+  {:else if error}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      Error: {error}
+    </div>
+  {:else if profile}
+    <!-- Profile Header -->
+    <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-6 mb-6 border border-brown-300">
+      <div class="flex items-center gap-4">
+        {#if profile.avatar}
+          <img src={profile.avatar} alt="" class="w-20 h-20 rounded-full object-cover border-2 border-brown-300" />
+        {:else}
+          <div class="w-20 h-20 rounded-full bg-brown-300 flex items-center justify-center">
+            <span class="text-brown-600 text-2xl">?</span>
+          </div>
+        {/if}
+        <div>
+          {#if profile.displayName}
+            <h1 class="text-2xl font-bold text-brown-900">{profile.displayName}</h1>
+          {/if}
+          <p class="text-brown-700">@{profile.handle}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md p-4 text-center border border-brown-300">
+        <div class="text-2xl font-bold text-brown-800">{brews.length}</div>
+        <div class="text-sm text-brown-700">Brews</div>
+      </div>
+      <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md p-4 text-center border border-brown-300">
+        <div class="text-2xl font-bold text-brown-800">{beans.length}</div>
+        <div class="text-sm text-brown-700">Beans</div>
+      </div>
+      <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md p-4 text-center border border-brown-300">
+        <div class="text-2xl font-bold text-brown-800">{roasters.length}</div>
+        <div class="text-sm text-brown-700">Roasters</div>
+      </div>
+      <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md p-4 text-center border border-brown-300">
+        <div class="text-2xl font-bold text-brown-800">{grinders.length}</div>
+        <div class="text-sm text-brown-700">Grinders</div>
+      </div>
+      <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md p-4 text-center border border-brown-300">
+        <div class="text-2xl font-bold text-brown-800">{brewers.length}</div>
+        <div class="text-sm text-brown-700">Brewers</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div>
+      <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-md mb-4 border border-brown-300">
+        <div class="flex border-b border-brown-300">
+          <button
+            on:click={() => activeTab = 'brews'}
+            class="flex-1 py-3 px-4 text-center font-medium transition-colors {activeTab === 'brews' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'}"
+          >
+            Brews
+          </button>
+          <button
+            on:click={() => activeTab = 'beans'}
+            class="flex-1 py-3 px-4 text-center font-medium transition-colors {activeTab === 'beans' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'}"
+          >
+            Beans
+          </button>
+          <button
+            on:click={() => activeTab = 'gear'}
+            class="flex-1 py-3 px-4 text-center font-medium transition-colors {activeTab === 'gear' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'}"
+          >
+            Gear
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300 p-6">
+        {#if activeTab === 'brews'}
+          {#if brews.length === 0}
+            <p class="text-center text-brown-600 py-8">No brews yet.</p>
+          {:else}
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead>
+                  <tr class="border-b border-brown-300">
+                    <th class="px-4 py-2 text-left text-sm font-medium text-brown-900">Date</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium text-brown-900">Bean</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium text-brown-900">Method</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium text-brown-900">Rating</th>
+                    <th class="px-4 py-2 text-left text-sm font-medium text-brown-900">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each brews as brew}
+                    <tr class="border-b border-brown-200 hover:bg-brown-50">
+                      <td class="px-4 py-3 text-sm text-brown-800">{formatDate(brew.CreatedAt)}</td>
+                      <td class="px-4 py-3 text-sm text-brown-800">{brew.Bean?.Name || brew.Bean?.Origin || 'Unknown'}</td>
+                      <td class="px-4 py-3 text-sm text-brown-800">{brew.BrewerObj?.Name || 'N/A'}</td>
+                      <td class="px-4 py-3 text-sm text-brown-800">{brew.Rating ? `${brew.Rating}/10` : 'N/A'}</td>
+                      <td class="px-4 py-3 text-sm text-brown-700 truncate max-w-xs">{brew.Notes || 'No notes'}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {/if}
+        {:else if activeTab === 'beans'}
+          {#if beans.length === 0}
+            <p class="text-center text-brown-600 py-8">No beans yet.</p>
+          {:else}
+            <div class="grid gap-4">
+              {#each beans as bean}
+                <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                  <h3 class="font-semibold text-brown-900">{bean.Name || bean.Origin}</h3>
+                  <p class="text-sm text-brown-700">Origin: {bean.Origin}</p>
+                  {#if bean.RoastLevel}
+                    <p class="text-sm text-brown-700">Roast: {bean.RoastLevel}</p>
+                  {/if}
+                  {#if bean.Roaster}
+                    <p class="text-sm text-brown-600">Roaster: {bean.Roaster.Name}</p>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {:else if activeTab === 'gear'}
+          <div class="space-y-6">
+            <!-- Roasters -->
+            <div>
+              <h3 class="text-lg font-bold text-brown-900 mb-2">Roasters</h3>
+              {#if roasters.length === 0}
+                <p class="text-brown-600">No roasters yet.</p>
+              {:else}
+                <div class="grid gap-2">
+                  {#each roasters as roaster}
+                    <div class="bg-brown-50 rounded p-3 border border-brown-200">
+                      <p class="font-medium text-brown-900">{roaster.Name}</p>
+                      {#if roaster.Location}
+                        <p class="text-sm text-brown-700">{roaster.Location}</p>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+
+            <!-- Grinders -->
+            <div>
+              <h3 class="text-lg font-bold text-brown-900 mb-2">Grinders</h3>
+              {#if grinders.length === 0}
+                <p class="text-brown-600">No grinders yet.</p>
+              {:else}
+                <div class="grid gap-2">
+                  {#each grinders as grinder}
+                    <div class="bg-brown-50 rounded p-3 border border-brown-200">
+                      <p class="font-medium text-brown-900">{grinder.Name}</p>
+                      {#if grinder.GrinderType}
+                        <p class="text-sm text-brown-700">{grinder.GrinderType}</p>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+
+            <!-- Brewers -->
+            <div>
+              <h3 class="text-lg font-bold text-brown-900 mb-2">Brewers</h3>
+              {#if brewers.length === 0}
+                <p class="text-brown-600">No brewers yet.</p>
+              {:else}
+                <div class="grid gap-2">
+                  {#each brewers as brewer}
+                    <div class="bg-brown-50 rounded p-3 border border-brown-200">
+                      <p class="font-medium text-brown-900">{brewer.Name}</p>
+                      {#if brewer.BrewerType}
+                        <p class="text-sm text-brown-700">{brewer.BrewerType}</p>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
+</div>

@@ -2,52 +2,48 @@
 <!-- Beans Tab -->
 <div x-show="tab === 'beans'">
     <div class="mb-4 flex justify-between items-center">
-        <h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
+        <h3 class="text-xl font-semibold text-brown-900">☕ Coffee Beans</h3>
         <button
             @click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''}"
-            class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
+            class="bg-brown-700 text-white px-4 py-2 rounded-lg hover:bg-brown-800 font-medium">
             + Add Bean
         </button>
     </div>
 
     {{if not .Beans}}
     <div class="bg-brown-100 rounded-lg p-8 text-center text-brown-700 border border-brown-200">
-        No beans yet. Add your first bean to get started!
+        <p class="text-brown-600">No beans yet. Add your first bean!</p>
     </div>
     {{else}}
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-x-auto border border-brown-300">
+    <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-brown-300">
-            <thead class="bg-brown-200/80">
+            <thead class="bg-brown-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">📍 Origin</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">☕ Roaster</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">🔥 Roast Level</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">🌱 Process</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">📝 Description</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">Actions</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">📍 Origin</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔥 Roast</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">🏭 Roaster</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+            <tbody class="bg-white divide-y divide-brown-200">
                 {{range .Beans}}
-                <tr class="hover:bg-brown-100/60 transition-colors">
-                    <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-900">{{.Origin}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-900">
+                <tr class="hover:bg-brown-50">
+                    <td class="px-4 py-3 text-sm text-brown-900">{{if .Name}}{{.Name}}{{else}}-{{end}}</td>
+                    <td class="px-4 py-3 text-sm text-brown-900">{{.Origin}}</td>
+                    <td class="px-4 py-3 text-sm text-brown-900">{{.RoastLevel}}</td>
+                    <td class="px-4 py-3 text-sm text-brown-900">
                         {{if and .Roaster .Roaster.Name}}
                         {{.Roaster.Name}}
                         {{else}}
-                        <span class="text-brown-400">-</span>
+                        -
                         {{end}}
                     </td>
-                    <td class="px-6 py-4 text-sm text-brown-900">{{.RoastLevel}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-900">{{.Process}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-700">{{.Description}}</td>
-                    <td class="px-6 py-4 text-sm font-medium space-x-2">
+                    <td class="px-4 py-3 text-sm space-x-2">
                         <button @click="editBean('{{.RKey}}', '{{escapeJS .Name}}', '{{escapeJS .Origin}}', '{{.RoastLevel}}', '{{.Process}}', '{{escapeJS .Description}}', '{{.RoasterRKey}}')"
                             class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
                         <button @click="deleteBean('{{.RKey}}')"
-                            class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
+                            class="text-red-600 hover:text-red-800 font-medium">Delete</button>
                     </td>
                 </tr>
                 {{end}}
@@ -60,46 +56,38 @@
 <!-- Roasters Tab -->
 <div x-show="tab === 'roasters'">
     <div class="mb-4 flex justify-between items-center">
-        <h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
+        <h3 class="text-xl font-semibold text-brown-900">🏭 Roasters</h3>
         <button
             @click="showRoasterForm = true; editingRoaster = null; roasterForm = {name: '', location: '', website: ''}"
-            class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
+            class="bg-brown-700 text-white px-4 py-2 rounded-lg hover:bg-brown-800 font-medium">
             + Add Roaster
         </button>
     </div>
 
     {{if not .Roasters}}
     <div class="bg-brown-100 rounded-lg p-8 text-center text-brown-700 border border-brown-200">
-        No roasters yet. Add your first roaster!
+        <p class="text-brown-600">No roasters yet. Add your first roaster!</p>
     </div>
     {{else}}
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-x-auto border border-brown-300">
+    <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-brown-300">
-            <thead class="bg-brown-200/80">
+            <thead class="bg-brown-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📍 Location</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🌐 Website</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">📍 Location</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+            <tbody class="bg-white divide-y divide-brown-200">
                 {{range .Roasters}}
-                <tr class="hover:bg-brown-100/60 transition-colors">
-                    <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-900">{{.Location}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-900">
-                        {{$safeWebsite := safeWebsiteURL .Website}}
-                        {{if $safeWebsite}}
-                        <a href="{{$safeWebsite}}" target="_blank" rel="noopener noreferrer"
-                            class="text-brown-700 hover:underline font-medium">{{$safeWebsite}}</a>
-                        {{end}}
-                    </td>
-                    <td class="px-6 py-4 text-sm font-medium space-x-2">
+                <tr class="hover:bg-brown-50">
+                    <td class="px-4 py-3 text-sm text-brown-900">{{.Name}}</td>
+                    <td class="px-4 py-3 text-sm text-brown-900">{{if .Location}}{{.Location}}{{else}}-{{end}}</td>
+                    <td class="px-4 py-3 text-sm space-x-2">
                         <button @click="editRoaster('{{.RKey}}', '{{escapeJS .Name}}', '{{escapeJS .Location}}', '{{escapeJS .Website}}')"
                             class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
                         <button @click="deleteRoaster('{{.RKey}}')"
-                            class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
+                            class="text-red-600 hover:text-red-800 font-medium">Delete</button>
                     </td>
                 </tr>
                 {{end}}
@@ -112,42 +100,40 @@
 <!-- Grinders Tab -->
 <div x-show="tab === 'grinders'">
     <div class="mb-4 flex justify-between items-center">
-        <h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
+        <h3 class="text-xl font-semibold text-brown-900">⚙️ Grinders</h3>
         <button
         @click="showGrinderForm = true; editingGrinder = null; grinderForm = {name: '', grinder_type: '', burr_type: '', notes: ''}"
-            class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
+            class="bg-brown-700 text-white px-4 py-2 rounded-lg hover:bg-brown-800 font-medium">
             + Add Grinder
         </button>
     </div>
 
     {{if not .Grinders}}
     <div class="bg-brown-100 rounded-lg p-8 text-center text-brown-700 border border-brown-200">
-        No grinders yet. Add your first grinder!
+        <p class="text-brown-600">No grinders yet. Add your first grinder!</p>
     </div>
     {{else}}
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-x-auto border border-brown-300">
+    <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-brown-300">
-            <thead class="bg-brown-200/80">
+            <thead class="bg-brown-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔧 Grinder Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">💎 Burr Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📝 Notes</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔧 Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">💎 Burr Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+            <tbody class="bg-white divide-y divide-brown-200">
                 {{range .Grinders}}
-                <tr class="hover:bg-brown-100/60 transition-colors">
-                    <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-900">{{.GrinderType}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-900">{{.BurrType}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-700">{{.Notes}}</td>
-                    <td class="px-6 py-4 text-sm font-medium space-x-2">
+                <tr class="hover:bg-brown-50">
+                    <td class="px-4 py-3 text-sm text-brown-900">{{.Name}}</td>
+                    <td class="px-4 py-3 text-sm text-brown-900">{{if .GrinderType}}{{.GrinderType}}{{else}}-{{end}}</td>
+                    <td class="px-4 py-3 text-sm text-brown-900">{{if .BurrType}}{{.BurrType}}{{else}}-{{end}}</td>
+                    <td class="px-4 py-3 text-sm space-x-2">
                         <button @click="editGrinder('{{.RKey}}', '{{escapeJS .Name}}', '{{.GrinderType}}', '{{.BurrType}}', '{{escapeJS .Notes}}')"
                             class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
                         <button @click="deleteGrinder('{{.RKey}}')"
-                            class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
+                            class="text-red-600 hover:text-red-800 font-medium">Delete</button>
                     </td>
                 </tr>
                 {{end}}
@@ -160,45 +146,43 @@
 <!-- Brewers Tab -->
 <div x-show="tab === 'brewers'">
     <div class="mb-4 flex justify-between items-center">
-        <h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
+        <h3 class="text-xl font-semibold text-brown-900">🫖 Brewers</h3>
         <button @click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', brewer_type: '', description: ''}"
-            class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
+            class="bg-brown-700 text-white px-4 py-2 rounded-lg hover:bg-brown-800 font-medium">
             + Add Brewer
         </button>
     </div>
 
     {{if not .Brewers}}
     <div class="bg-brown-100 rounded-lg p-8 text-center text-brown-700 border border-brown-200">
-        No brewers yet. Add your first brewer!
+        <p class="text-brown-600">No brewers yet. Add your first brewer!</p>
     </div>
     {{else}}
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-x-auto border border-brown-300">
+    <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-brown-300">
-            <thead class="bg-brown-200/80">
+            <thead class="bg-brown-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔧 Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📝 Description</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔧 Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+            <tbody class="bg-white divide-y divide-brown-200">
                 {{range .Brewers}}
-                <tr class="hover:bg-brown-100/60 transition-colors"
+                <tr class="hover:bg-brown-50"
                     data-rkey="{{.RKey}}"
                     data-name="{{escapeJS .Name}}"
                     data-brewer-type="{{escapeJS .BrewerType}}"
                     data-description="{{escapeJS .Description}}">
-                    <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
-                    <td class="px-6 py-4 text-sm text-brown-900">
-                        {{if .BrewerType}}{{.BrewerType}}{{else}}<span class="text-brown-400">-</span>{{end}}
+                    <td class="px-4 py-3 text-sm text-brown-900">{{.Name}}</td>
+                    <td class="px-4 py-3 text-sm text-brown-900">
+                        {{if .BrewerType}}{{.BrewerType}}{{else}}-{{end}}
                     </td>
-                    <td class="px-6 py-4 text-sm text-brown-700">{{.Description}}</td>
-                    <td class="px-6 py-4 text-sm font-medium space-x-2">
+                    <td class="px-4 py-3 text-sm space-x-2">
                         <button @click="editBrewerFromRow($el.closest('tr'))"
                             class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
                         <button @click="deleteBrewer($el.closest('tr').dataset.rkey)"
-                            class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
+                            class="text-red-600 hover:text-red-800 font-medium">Delete</button>
                     </td>
                 </tr>
                 {{end}}

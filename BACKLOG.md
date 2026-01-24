@@ -16,6 +16,7 @@ Each should be addressed one at a time, and the item should be removed after imp
    - Private mode -- don't show in community feed (records are still public via pds api though)
    - Dev mode -- show did, copy did in profiles (remove "logged in as <did>" from home page)
    - Toggle for table view vs future post-style view
+   - Toggle for "for" and "at" in pours view
 
 ## Far Future Considerations
 

@@ -14,7 +14,7 @@ buildGoModule rec {
 
   buildPhase = ''
     runHook preBuild
-    go build -o arabica cmd/server/main.go
+    go build -o arabica cmd/arabica-server/main.go
     runHook postBuild
   '';
 
