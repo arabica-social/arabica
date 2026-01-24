@@ -43,11 +43,18 @@ environment:
 
 ## Configuration
 
-Environment variables:
+### Command-Line Flags
+
+- `--firehose` - Enable real-time feed via AT Protocol Jetstream (default: false)
+- `--known-dids <file>` - Path to file with DIDs to backfill on startup (one per line)
+
+### Environment Variables
 
 - `PORT` - Server port (default: 18910)
 - `SERVER_PUBLIC_URL` - Public URL for reverse proxy deployments (e.g., https://arabica.example.com)
 - `ARABICA_DB_PATH` - BoltDB path (default: ~/.local/share/arabica/arabica.db)
+- `ARABICA_FEED_INDEX_PATH` - Firehose index BoltDB path (default: ~/.local/share/arabica/feed-index.db)
+- `ARABICA_PROFILE_CACHE_TTL` - Profile cache duration (default: 1h)
 - `OAUTH_CLIENT_ID` - OAuth client ID (optional, uses localhost mode if not set)
 - `OAUTH_REDIRECT_URI` - OAuth redirect URI (optional)
 - `SECURE_COOKIES` - Set to true for HTTPS (default: false)
@@ -58,10 +65,31 @@ Environment variables:
 
 - Track coffee brews with detailed parameters
 - Store data in your AT Protocol Personal Data Server
-- Community feed of recent brews from registered users
+- Community feed of recent brews from registered users (polling or real-time firehose)
 - Manage beans, roasters, grinders, and brewers
 - Export brew data as JSON
 - Mobile-friendly PWA design
+
+### Firehose Mode
+
+Enable real-time feed updates via AT Protocol's Jetstream:
+
+```bash
+# Basic firehose mode
+go run cmd/server/main.go --firehose
+
+# With known DIDs for backfill
+go run cmd/server/main.go --firehose --known-dids known-dids.txt
+```
+
+**Known DIDs file format:**
+```
+# Comments start with #
+did:plc:abc123xyz
+did:plc:def456uvw
+```
+
+The firehose automatically indexes **all** Arabica records across the AT Protocol network. The `--known-dids` flag allows you to backfill historical records from specific users on startup (useful for development/testing).
 
 ## Architecture
 

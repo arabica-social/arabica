@@ -6,9 +6,9 @@
 <!-- Load profile stats updater -->
 <script src="/static/js/profile-stats.js"></script>
 {{if .IsOwnProfile}}
-<div class="max-w-4xl mx-auto" x-data="managePage()">
+<div class="max-w-4xl mx-auto" x-data="managePage()" @htmx:after-swap.window="$nextTick(() => Alpine.initTree($el))">
 {{else}}
-<div class="max-w-4xl mx-auto" x-data="{ activeTab: 'brews' }">
+<div class="max-w-4xl mx-auto" x-data="{ activeTab: 'brews' }" @htmx:after-swap.window="$nextTick(() => Alpine.initTree($el))">
 {{end}}
     <!-- Profile Header -->
     <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-6 mb-6 border border-brown-300">

@@ -295,6 +295,36 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Show brew view page
+func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+
+	// Check authentication (optional for view)
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+	userProfile := h.getUserProfile(r.Context(), didStr)
+
+	brew, err := store.GetBrewByRKey(r.Context(), rkey)
+	if err != nil {
+		http.Error(w, "Brew not found", http.StatusNotFound)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for view")
+		return
+	}
+
+	if err := bff.RenderBrewView(w, brew, authenticated, didStr, userProfile); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render brew view")
+	}
+}
+
 // Show edit brew form
 func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 	rkey := validateRKey(w, r.PathValue("id"))

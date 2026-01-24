@@ -21,7 +21,7 @@ version: 0.1.0
 <div x-show="activeTab === 'beans'" x-cloak class="space-y-6">
   <div>
     <h3 class="text-lg font-semibold text-brown-900 mb-3">
-      🏪 Favorite Roasters
+      🏭 Favorite Roasters
     </h3>
     <div class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300">
       <table class="min-w-full divide-y divide-brown-300">

@@ -45,3 +45,6 @@ arabica
 
 # Other
 *.bak
+
+# Development files
+known-dids.txt

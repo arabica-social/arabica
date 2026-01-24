@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -25,6 +27,7 @@ import (
 func main() {
 	// Parse command-line flags
 	useFirehose := flag.Bool("firehose", false, "Enable firehose-based feed (Jetstream consumer)")
+	knownDIDsFile := flag.String("known-dids", "", "Path to file containing DIDs to backfill on startup (one per line)")
 	flag.Parse()
 
 	// Configure zerolog
@@ -186,15 +189,41 @@ func main() {
 
 		log.Info().Msg("Firehose consumer started")
 
-		// Backfill registered users in background
+		// Backfill registered users and known DIDs in background
 		go func() {
 			time.Sleep(5 * time.Second) // Wait for initial connection
+
+			// Collect all DIDs to backfill
+			didsToBackfill := make(map[string]struct{})
+
+			// Add registered users
 			for _, did := range feedRegistry.List() {
-				if err := firehoseConsumer.BackfillDID(ctx, did); err != nil {
-					log.Warn().Err(err).Str("did", did).Msg("Failed to backfill user")
+				didsToBackfill[did] = struct{}{}
+			}
+
+			// Add DIDs from known-dids file if provided
+			if *knownDIDsFile != "" {
+				knownDIDs, err := loadKnownDIDs(*knownDIDsFile)
+				if err != nil {
+					log.Warn().Err(err).Str("file", *knownDIDsFile).Msg("Failed to load known DIDs file")
+				} else {
+					for _, did := range knownDIDs {
+						didsToBackfill[did] = struct{}{}
+					}
+					log.Info().Int("count", len(knownDIDs)).Str("file", *knownDIDsFile).Msg("Loaded known DIDs from file")
 				}
 			}
-			log.Info().Int("count", feedRegistry.Count()).Msg("Backfill of registered users complete")
+
+			// Backfill all collected DIDs
+			successCount := 0
+			for did := range didsToBackfill {
+				if err := firehoseConsumer.BackfillDID(ctx, did); err != nil {
+					log.Warn().Err(err).Str("did", did).Msg("Failed to backfill user")
+				} else {
+					successCount++
+				}
+			}
+			log.Info().Int("total", len(didsToBackfill)).Int("success", successCount).Msg("Backfill complete")
 		}()
 	}
 
@@ -298,4 +327,47 @@ func main() {
 	}
 
 	log.Info().Msg("Server stopped")
+}
+
+// loadKnownDIDs reads a file containing DIDs (one per line) and returns them as a slice.
+// Lines starting with # are treated as comments and ignored.
+// Empty lines and whitespace are trimmed.
+func loadKnownDIDs(filePath string) ([]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	var dids []string
+	scanner := bufio.NewScanner(file)
+	lineNum := 0
+
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Basic DID validation (must start with "did:")
+		if !strings.HasPrefix(line, "did:") {
+			log.Warn().
+				Str("file", filePath).
+				Int("line", lineNum).
+				Str("content", line).
+				Msg("Skipping invalid DID (must start with 'did:')")
+			continue
+		}
+
+		dids = append(dids, line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading file: %w", err)
+	}
+
+	return dids, nil
 }

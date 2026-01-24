@@ -100,8 +100,16 @@ All Store methods take `context.Context` as first parameter.
 ### Run Development Server
 
 ```bash
+# Basic mode (polling-based feed)
 go run cmd/server/main.go
-# or
+
+# With firehose (real-time AT Protocol feed)
+go run cmd/server/main.go --firehose
+
+# With firehose + backfill known DIDs
+go run cmd/server/main.go --firehose --known-dids known-dids.txt
+
+# Using nix
 nix run
 ```
 
@@ -117,16 +125,31 @@ go test ./...
 go build -o arabica cmd/server/main.go
 ```
 
+## Command-Line Flags
+
+| Flag            | Type   | Default | Description                                           |
+| --------------- | ------ | ------- | ----------------------------------------------------- |
+| `--firehose`    | bool   | false   | Enable real-time firehose feed via Jetstream          |
+| `--known-dids`  | string | ""      | Path to file with DIDs to backfill (one per line)     |
+
+**Known DIDs File Format:**
+- One DID per line (e.g., `did:plc:abc123xyz`)
+- Lines starting with `#` are comments
+- Empty lines are ignored
+- See `known-dids.txt.example` for reference
+
 ## Environment Variables
 
-| Variable            | Default                           | Description                  |
-| ------------------- | --------------------------------- | ---------------------------- |
-| `PORT`              | 18910                             | HTTP server port             |
-| `SERVER_PUBLIC_URL` | -                                 | Public URL for reverse proxy |
-| `ARABICA_DB_PATH`   | ~/.local/share/arabica/arabica.db | BoltDB path                  |
-| `SECURE_COOKIES`    | false                             | Set true for HTTPS           |
-| `LOG_LEVEL`         | info                              | debug/info/warn/error        |
-| `LOG_FORMAT`        | console                           | console/json                 |
+| Variable                    | Default                           | Description                        |
+| --------------------------- | --------------------------------- | ---------------------------------- |
+| `PORT`                      | 18910                             | HTTP server port                   |
+| `SERVER_PUBLIC_URL`         | -                                 | Public URL for reverse proxy       |
+| `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db | BoltDB path (sessions, registry)   |
+| `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path     |
+| `ARABICA_PROFILE_CACHE_TTL` | 1h                                | Profile cache duration             |
+| `SECURE_COOKIES`            | false                             | Set true for HTTPS                 |
+| `LOG_LEVEL`                 | info                              | debug/info/warn/error              |
+| `LOG_FORMAT`                | console                           | console/json                       |
 
 ## Code Patterns
 
