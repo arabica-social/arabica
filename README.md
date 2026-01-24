@@ -60,7 +60,6 @@ environment:
 
 ### Command-Line Flags
 
-- `--firehose` - Enable real-time feed via AT Protocol Jetstream (default: false)
 - `--known-dids <file>` - Path to file with DIDs to backfill on startup (one per line)
 
 ### Environment Variables
@@ -75,34 +74,6 @@ environment:
 - `SECURE_COOKIES` - Set to true for HTTPS (default: false)
 - `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
 - `LOG_FORMAT` - Log format: console, json (default: console)
-
-### Firehose Mode
-
-Enable real-time feed updates via AT Protocol's Jetstream:
-
-```bash
-# Basic firehose mode
-go run cmd/server/main.go --firehose
-
-# With known DIDs for backfill
-go run cmd/server/main.go --firehose --known-dids known-dids.txt
-```
-
-**Known DIDs file format:**
-
-```
-# Comments start with #
-did:plc:abc123xyz
-did:plc:def456uvw
-```
-
-The firehose automatically indexes **all** Arabica records across the AT Protocol network. The `--known-dids` flag allows you to backfill historical records from specific users on startup (useful for development/testing).
-
-**Startup logging:** The server logs all known DIDs on startup for visibility:
-
-- With firehose: Shows DIDs discovered via the firehose index
-- Without firehose: Shows registered users from the feed registry
-- With `--known-dids`: Shows DIDs loaded from the file
 
 ## Architecture
 

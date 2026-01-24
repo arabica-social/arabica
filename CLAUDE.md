@@ -111,14 +111,11 @@ This prevents excessive PDS requests while ensuring new users' historical data i
 ### Run Development Server
 
 ```bash
-# Basic mode (polling-based feed)
+# Run server (uses firehose mode by default)
 go run cmd/server/main.go
 
-# With firehose (real-time AT Protocol feed)
-go run cmd/server/main.go --firehose
-
-# With firehose + backfill known DIDs
-go run cmd/server/main.go --firehose --known-dids known-dids.txt
+# Backfill known DIDs on startup
+go run cmd/server/main.go --known-dids known-dids.txt
 
 # Using nix
 nix run
@@ -140,7 +137,7 @@ go build -o arabica cmd/server/main.go
 
 | Flag            | Type   | Default | Description                                           |
 | --------------- | ------ | ------- | ----------------------------------------------------- |
-| `--firehose`    | bool   | false   | Enable real-time firehose feed via Jetstream          |
+| `--firehose`    | bool   | true    | [DEPRECATED] Firehose is now the default (ignored)    |
 | `--known-dids`  | string | ""      | Path to file with DIDs to backfill (one per line)     |
 
 **Known DIDs File Format:**
