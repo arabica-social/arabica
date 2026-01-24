@@ -1,0 +1,167 @@
+{{define "content"}}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 border border-brown-300">
+        <!-- Header with title and actions -->
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h2 class="text-3xl font-bold text-brown-900">Brew Details</h2>
+                <p class="text-sm text-brown-600 mt-1">{{.Brew.CreatedAt.Format "January 2, 2006 at 3:04 PM"}}</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="/brews/{{.Brew.RKey}}/edit"
+                    class="inline-flex items-center bg-brown-300 text-brown-900 px-4 py-2 rounded-lg hover:bg-brown-400 font-medium transition-colors">
+                    Edit
+                </a>
+                <button
+                    hx-delete="/brews/{{.Brew.RKey}}"
+                    hx-confirm="Are you sure you want to delete this brew?"
+                    hx-target="body"
+                    class="inline-flex items-center bg-brown-200 text-brown-700 px-4 py-2 rounded-lg hover:bg-brown-300 font-medium transition-colors">
+                    Delete
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Rating (prominent at top) -->
+            {{if hasValue .Brew.Rating}}
+            <div class="text-center py-4 bg-brown-50 rounded-lg border border-brown-200">
+                <div class="text-4xl font-bold text-brown-800">
+                    {{.Brew.Rating}}/10
+                </div>
+                <div class="text-sm text-brown-600 mt-1">Rating</div>
+            </div>
+            {{end}}
+
+            <!-- Coffee Bean -->
+            <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Coffee Bean</h3>
+                {{if .Brew.Bean}}
+                <div class="font-bold text-lg text-brown-900">
+                    {{if .Brew.Bean.Name}}{{.Brew.Bean.Name}}{{else}}{{.Brew.Bean.Origin}}{{end}}
+                </div>
+                {{if and .Brew.Bean.Roaster .Brew.Bean.Roaster.Name}}
+                <div class="text-sm text-brown-700 mt-1">
+                    by {{.Brew.Bean.Roaster.Name}}
+                </div>
+                {{end}}
+                <div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
+                    {{if .Brew.Bean.Origin}}<span>Origin: {{.Brew.Bean.Origin}}</span>{{end}}
+                    {{if .Brew.Bean.RoastLevel}}<span>Roast: {{.Brew.Bean.RoastLevel}}</span>{{end}}
+                </div>
+                {{else}}
+                <span class="text-brown-400">Not specified</span>
+                {{end}}
+            </div>
+
+            <!-- Brew Parameters -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Brew Method -->
+                <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                    <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Brew Method</h3>
+                    {{if .Brew.BrewerObj}}
+                    <div class="font-semibold text-brown-900">{{.Brew.BrewerObj.Name}}</div>
+                    {{else if .Brew.Method}}
+                    <div class="font-semibold text-brown-900">{{.Brew.Method}}</div>
+                    {{else}}
+                    <span class="text-brown-400">Not specified</span>
+                    {{end}}
+                </div>
+
+                <!-- Grinder -->
+                <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                    <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Grinder</h3>
+                    {{if .Brew.GrinderObj}}
+                    <div class="font-semibold text-brown-900">{{.Brew.GrinderObj.Name}}</div>
+                    {{else}}
+                    <span class="text-brown-400">Not specified</span>
+                    {{end}}
+                </div>
+
+                <!-- Coffee Amount -->
+                <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                    <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Coffee</h3>
+                    {{if hasValue .Brew.CoffeeAmount}}
+                    <div class="font-semibold text-brown-900">{{.Brew.CoffeeAmount}}g</div>
+                    {{else}}
+                    <span class="text-brown-400">Not specified</span>
+                    {{end}}
+                </div>
+
+                <!-- Water Amount -->
+                <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                    <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Water</h3>
+                    {{if hasValue .Brew.WaterAmount}}
+                    <div class="font-semibold text-brown-900">{{.Brew.WaterAmount}}g</div>
+                    {{else}}
+                    <span class="text-brown-400">Not specified</span>
+                    {{end}}
+                </div>
+
+                <!-- Grind Size -->
+                <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                    <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Grind Size</h3>
+                    {{if .Brew.GrindSize}}
+                    <div class="font-semibold text-brown-900">{{.Brew.GrindSize}}</div>
+                    {{else}}
+                    <span class="text-brown-400">Not specified</span>
+                    {{end}}
+                </div>
+
+                <!-- Temperature -->
+                <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                    <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Temperature</h3>
+                    {{if hasTemp .Brew.Temperature}}
+                    <div class="font-semibold text-brown-900">{{formatTemp .Brew.Temperature}}</div>
+                    {{else}}
+                    <span class="text-brown-400">Not specified</span>
+                    {{end}}
+                </div>
+
+                <!-- Brew Time -->
+                <div class="bg-brown-50 rounded-lg p-4 border border-brown-200 col-span-2">
+                    <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Brew Time</h3>
+                    {{if hasValue .Brew.TimeSeconds}}
+                    <div class="font-semibold text-brown-900">{{formatTime .Brew.TimeSeconds}}</div>
+                    {{else}}
+                    <span class="text-brown-400">Not specified</span>
+                    {{end}}
+                </div>
+            </div>
+
+            <!-- Pours -->
+            {{if .Brew.Pours}}
+            <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">Pours</h3>
+                <div class="space-y-2">
+                    {{range .Brew.Pours}}
+                    <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brown-200">
+                        <div class="flex gap-4 text-sm">
+                            <span class="font-semibold text-brown-800">{{.WaterAmount}}g</span>
+                            <span class="text-brown-600">@ {{formatTime .TimeSeconds}}</span>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+
+            <!-- Tasting Notes -->
+            {{if .Brew.TastingNotes}}
+            <div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+                <h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Tasting Notes</h3>
+                <div class="text-brown-900 whitespace-pre-wrap">{{.Brew.TastingNotes}}</div>
+            </div>
+            {{end}}
+
+            <!-- Back Button -->
+            <div class="pt-4">
+                <a href="/brews"
+                    class="inline-block text-brown-700 hover:text-brown-900 font-medium">
+                    &larr; Back to Brews
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

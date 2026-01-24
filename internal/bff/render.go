@@ -240,6 +240,28 @@ func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*mod
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
+// RenderBrewView renders the brew view page
+func RenderBrewView(w http.ResponseWriter, brew *models.Brew, isAuthenticated bool, userDID string, userProfile *UserProfile) error {
+	t, err := parsePageTemplate("brew_view.tmpl")
+	if err != nil {
+		return err
+	}
+
+	brewData := &BrewData{
+		Brew:      brew,
+		PoursJSON: PoursToJSON(brew.Pours),
+	}
+
+	data := &PageData{
+		Title:           "View Brew",
+		Brew:            brewData,
+		IsAuthenticated: isAuthenticated,
+		UserDID:         userDID,
+		UserProfile:     userProfile,
+	}
+	return t.ExecuteTemplate(w, "layout", data)
+}
+
 // RenderManage renders the manage page
 func RenderManage(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string, userProfile *UserProfile) error {
 	t, err := parsePageTemplate("manage.tmpl")
