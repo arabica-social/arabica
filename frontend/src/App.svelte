@@ -85,7 +85,7 @@
 <div class="flex flex-col min-h-screen">
   <Header />
 
-  <main class="flex-1 container mx-auto px-4 py-8">
+  <main class="flex-1 container mx-auto px-3 md:px-4 py-4 md:py-8">
     {#if currentRoute}
       <svelte:component this={currentRoute} {...params} />
     {/if}

@@ -27,6 +27,8 @@ Each should be addressed one at a time, and the item should be removed after imp
     have a different list at bottom of previous beans -- show created date, maybe closed date?)
     - should be below the brewers table
 
+- Add my custom iosevka font as default font
+
 ## Far Future Considerations
 
 - Pivot to full svelte-kit?

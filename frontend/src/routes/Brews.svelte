@@ -83,14 +83,14 @@
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-3xl font-bold text-brown-900">My Brews</h1>
+  <div class="flex items-center justify-between mb-4 md:mb-6 gap-3">
+    <h1 class="text-2xl md:text-3xl font-bold text-brown-900">My Brews</h1>
     <a
       href="/brews/new"
       on:click|preventDefault={() => navigate("/brews/new")}
-      class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-6 py-3 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-semibold shadow-lg"
+      class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-semibold shadow-lg text-sm md:text-base whitespace-nowrap"
     >
-      ☕ Add New Brew
+      ☕ <span class="hidden sm:inline">Add New</span> Brew
     </a>
   </div>
 
@@ -121,25 +121,38 @@
     <div class="space-y-4">
       {#each brews as brew}
         <div
-          class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-5 hover:shadow-lg transition-shadow"
+          class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-4 md:p-5 hover:shadow-lg transition-shadow"
         >
-          <div class="flex items-start justify-between gap-4">
+          <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
             <div class="flex-1 min-w-0">
-              <!-- Bean info -->
-              {#if brew.bean}
-                <h3 class="text-xl font-bold text-brown-900 mb-1">
-                  {brew.bean.name || brew.bean.origin || "Unknown Bean"}
-                </h3>
-                {#if brew.bean.Roaster?.Name}
-                  <p class="text-sm text-brown-700 mb-2">
-                    🏭 {brew.bean.roaster.name}
-                  </p>
+              <!-- Bean info with rating on mobile -->
+              <div class="flex items-start justify-between gap-3 mb-1">
+                <div class="flex-1 min-w-0">
+                  {#if brew.bean}
+                    <h3 class="text-xl font-bold text-brown-900">
+                      {brew.bean.name || brew.bean.origin || "Unknown Bean"}
+                    </h3>
+                    {#if brew.bean.Roaster?.Name}
+                      <p class="text-sm text-brown-700 mb-2">
+                        🏭 {brew.bean.roaster.name}
+                      </p>
+                    {/if}
+                  {:else}
+                    <h3 class="text-xl font-bold text-brown-900">
+                      Unknown Bean
+                    </h3>
+                  {/if}
+                </div>
+                
+                <!-- Rating - visible on mobile, hidden on desktop -->
+                {#if hasValue(brew.rating)}
+                  <span
+                    class="md:hidden inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-900 flex-shrink-0"
+                  >
+                    ⭐ {brew.rating}/10
+                  </span>
                 {/if}
-              {:else}
-                <h3 class="text-xl font-bold text-brown-900 mb-1">
-                  Unknown Bean
-                </h3>
-              {/if}
+              </div>
 
               <!-- Brew details -->
               <div
@@ -161,10 +174,10 @@
                 {/if}
               </div>
 
-              <!-- Notes preview -->
+              <!-- Notes preview - expanded on mobile with 400 char limit -->
               {#if brew.tasting_notes}
-                <p class="text-sm text-brown-700 italic line-clamp-2">
-                  "{brew.tasting_notes}"
+                <p class="text-sm text-brown-700 italic md:line-clamp-2">
+                  "{brew.tasting_notes.length > 400 ? brew.tasting_notes.substring(0, 400) + '...' : brew.tasting_notes}"
                 </p>
               {/if}
 
@@ -172,9 +185,39 @@
               <p class="text-xs text-brown-500 mt-2">
                 {formatDate(brew.created_at || brew.created_at)}
               </p>
+              
+              <!-- Action buttons - below content on mobile -->
+              <div class="flex gap-2 items-center mt-3 md:hidden">
+                <a
+                  href="/brews/{brew.rkey}"
+                  on:click|preventDefault={() =>
+                    navigate(`/brews/${brew.rkey}`)}
+                  class="text-brown-700 hover:text-brown-900 text-sm font-medium hover:underline"
+                >
+                  View
+                </a>
+                <span class="text-brown-400">|</span>
+                <a
+                  href="/brews/{brew.rkey}/edit"
+                  on:click|preventDefault={() =>
+                    navigate(`/brews/${brew.rkey}/edit`)}
+                  class="text-brown-700 hover:text-brown-900 text-sm font-medium hover:underline"
+                >
+                  Edit
+                </a>
+                <span class="text-brown-400">|</span>
+                <button
+                  on:click={() => deleteBrew(brew.rkey)}
+                  disabled={deleting === brew.rkey}
+                  class="text-red-600 hover:text-red-800 text-sm font-medium hover:underline disabled:opacity-50"
+                >
+                  {deleting === brew.rkey ? "Deleting..." : "Delete"}
+                </button>
+              </div>
             </div>
 
-            <div class="flex flex-col items-end gap-2">
+            <!-- Desktop layout - rating and actions on the right side -->
+            <div class="hidden md:flex md:flex-col md:items-end gap-2">
               {#if hasValue(brew.rating)}
                 <span
                   class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-900"
@@ -219,10 +262,12 @@
 </div>
 
 <style>
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  @media (min-width: 768px) {
+    .md\:line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
   }
 </style>

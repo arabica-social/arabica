@@ -207,7 +207,7 @@
     </div>
   {:else}
     <div
-      class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 border border-brown-300"
+      class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-4 md:p-8 border border-brown-300"
     >
       <!-- Header with Back Button -->
       <div class="flex items-center gap-3 mb-6">
@@ -243,7 +243,7 @@
         </div>
       {/if}
 
-      <form on:submit|preventDefault={handleSubmit} class="space-y-6">
+      <form on:submit|preventDefault={handleSubmit} class="space-y-4 md:space-y-6">
         <!-- Bean Selection -->
         <div>
           <label
@@ -256,7 +256,7 @@
               id="bean-select"
               bind:value={form.bean_rkey}
               required
-              class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 truncate max-w-full bg-white"
+              class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 truncate max-w-full bg-white"
             >
               <option value="">Select a bean...</option>
               {#each beans as bean}
@@ -288,7 +288,7 @@
             bind:value={form.coffee_amount}
             step="0.1"
             placeholder="e.g. 18"
-            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 bg-white"
+            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 bg-white"
           />
           <p class="text-sm text-brown-700 mt-1">
             Amount of ground coffee used
@@ -305,7 +305,7 @@
             <select
               id="grinder-select"
               bind:value={form.grinder_rkey}
-              class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 truncate max-w-full bg-white"
+              class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 truncate max-w-full bg-white"
             >
               <option value="">Select a grinder...</option>
               {#each grinders as grinder}
@@ -334,7 +334,7 @@
             type="text"
             bind:value={form.grind_size}
             placeholder="e.g. 18, Medium, 3.5, Fine"
-            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 bg-white"
+            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 bg-white"
           />
           <p class="text-sm text-brown-700 mt-1">
             Enter a number (grinder setting) or description (e.g. "Medium",
@@ -353,7 +353,7 @@
             <select
               id="brewer-select"
               bind:value={form.brewer_rkey}
-              class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 truncate max-w-full bg-white"
+              class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 truncate max-w-full bg-white"
             >
               <option value="">Select brew method...</option>
               {#each brewers as brewer}
@@ -383,7 +383,7 @@
             bind:value={form.water_amount}
             step="1"
             placeholder="e.g. 300"
-            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 bg-white"
+            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 bg-white"
           />
         </div>
 
@@ -400,7 +400,7 @@
             bind:value={form.water_temp}
             step="0.1"
             placeholder="e.g. 93"
-            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 bg-white"
+            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 bg-white"
           />
         </div>
 
@@ -417,7 +417,7 @@
             bind:value={form.brew_time}
             step="1"
             placeholder="e.g. 210"
-            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 bg-white"
+            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 bg-white"
           />
         </div>
 
@@ -440,27 +440,27 @@
             <div class="space-y-2">
               {#each pours as pour, i}
                 <div
-                  class="flex gap-2 items-center bg-brown-50 p-3 rounded-lg border border-brown-200"
+                  class="flex gap-2 items-center bg-brown-50 p-2 md:p-3 rounded-lg border border-brown-200"
                 >
-                  <span class="text-sm font-medium text-brown-700 min-w-[60px]"
+                  <span class="text-xs md:text-sm font-medium text-brown-700 min-w-[50px] md:min-w-[60px]"
                     >Pour {i + 1}:</span
                   >
                   <input
                     type="number"
                     bind:value={pour.water_amount}
-                    placeholder="Water (g)"
-                    class="flex-1 rounded border border-brown-300 px-3 py-2 text-sm"
+                    placeholder="g"
+                    class="w-16 md:w-20 rounded border border-brown-300 px-2 py-2 text-sm"
                   />
                   <input
                     type="number"
                     bind:value={pour.time_seconds}
-                    placeholder="Time (s)"
-                    class="flex-1 rounded border border-brown-300 px-3 py-2 text-sm"
+                    placeholder="sec"
+                    class="w-16 md:w-20 rounded border border-brown-300 px-2 py-2 text-sm"
                   />
                   <button
                     type="button"
                     on:click={() => removePour(i)}
-                    class="text-red-600 hover:text-red-800 font-medium px-2"
+                    class="text-red-600 hover:text-red-800 font-medium px-2 flex-shrink-0"
                   >
                     ✕
                   </button>
@@ -505,7 +505,7 @@
             bind:value={form.notes}
             rows="4"
             placeholder="Describe the flavor, aroma, body, etc."
-            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 bg-white"
+            class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 bg-white"
           ></textarea>
         </div>
 

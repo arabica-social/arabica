@@ -16,7 +16,7 @@
 </script>
 
 <div
-  class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-4 hover:shadow-lg transition-shadow"
+  class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-3 md:p-4 hover:shadow-lg transition-shadow"
 >
   <!-- Author row -->
   <div class="flex items-center gap-3 mb-3">
@@ -82,7 +82,7 @@
   <!-- Record content -->
   {#if item.RecordType === "brew" && item.Brew}
     <div
-      class="bg-white/60 backdrop-blur rounded-lg p-4 border border-brown-200"
+      class="bg-white/60 backdrop-blur rounded-lg p-3 md:p-4 border border-brown-200"
     >
       <!-- Bean info with rating -->
       <div class="flex items-start justify-between gap-3 mb-3">

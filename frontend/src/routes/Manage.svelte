@@ -260,50 +260,52 @@
     </div>
   {:else}
     <!-- Tab Navigation -->
-    <div
-      class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300 mb-6"
-    >
-      <div class="flex border-b border-brown-300">
-        <button
-          on:click={() => setTab("beans")}
-          class="flex-1 px-6 py-4 text-center font-medium transition-colors {activeTab ===
-          'beans'
-            ? 'bg-brown-50 text-brown-900 border-b-2 border-brown-700'
-            : 'text-brown-700 hover:bg-brown-50'}"
-        >
-          ☕ Beans
-        </button>
-        <button
-          on:click={() => setTab("roasters")}
-          class="flex-1 px-6 py-4 text-center font-medium transition-colors {activeTab ===
-          'roasters'
-            ? 'bg-brown-50 text-brown-900 border-b-2 border-brown-700'
-            : 'text-brown-700 hover:bg-brown-50'}"
-        >
-          🏭 Roasters
-        </button>
-        <button
-          on:click={() => setTab("grinders")}
-          class="flex-1 px-6 py-4 text-center font-medium transition-colors {activeTab ===
-          'grinders'
-            ? 'bg-brown-50 text-brown-900 border-b-2 border-brown-700'
-            : 'text-brown-700 hover:bg-brown-50'}"
-        >
-          ⚙️ Grinders
-        </button>
-        <button
-          on:click={() => setTab("brewers")}
-          class="flex-1 px-6 py-4 text-center font-medium transition-colors {activeTab ===
-          'brewers'
-            ? 'bg-brown-50 text-brown-900 border-b-2 border-brown-700'
-            : 'text-brown-700 hover:bg-brown-50'}"
-        >
-          🫖 Brewers
-        </button>
+    <div>
+      <div
+        class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-md mb-4 border border-brown-300"
+      >
+        <div class="flex border-b border-brown-300">
+          <button
+            on:click={() => setTab("beans")}
+            class="flex-1 py-3 px-4 text-center font-medium transition-colors {activeTab ===
+            'beans'
+              ? 'border-b-2 border-brown-700 text-brown-900'
+              : 'text-brown-600 hover:text-brown-800'}"
+          >
+            ☕ Beans
+          </button>
+          <button
+            on:click={() => setTab("roasters")}
+            class="flex-1 py-3 px-4 text-center font-medium transition-colors {activeTab ===
+            'roasters'
+              ? 'border-b-2 border-brown-700 text-brown-900'
+              : 'text-brown-600 hover:text-brown-800'}"
+          >
+            🏭 Roasters
+          </button>
+          <button
+            on:click={() => setTab("grinders")}
+            class="flex-1 py-3 px-4 text-center font-medium transition-colors {activeTab ===
+            'grinders'
+              ? 'border-b-2 border-brown-700 text-brown-900'
+              : 'text-brown-600 hover:text-brown-800'}"
+          >
+            ⚙️ Grinders
+          </button>
+          <button
+            on:click={() => setTab("brewers")}
+            class="flex-1 py-3 px-4 text-center font-medium transition-colors {activeTab ===
+            'brewers'
+              ? 'border-b-2 border-brown-700 text-brown-900'
+              : 'text-brown-600 hover:text-brown-800'}"
+          >
+            🫖 Brewers
+          </button>
+        </div>
       </div>
 
       <!-- Tab Content -->
-      <div class="p-6">
+      <div>
         {#if activeTab === "beans"}
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-brown-900">Coffee Beans</h2>
@@ -316,39 +318,45 @@
           </div>
 
           {#if beans.length === 0}
-            <p class="text-brown-600 text-center py-8">
-              No beans yet. Add your first bean!
-            </p>
+            <div
+              class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300"
+            >
+              <p class="text-brown-800 text-lg font-medium">
+                No beans yet. Add your first bean!
+              </p>
+            </div>
           {:else}
-            <div class="overflow-x-auto">
+            <div
+              class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300"
+            >
               <table class="min-w-full divide-y divide-brown-300">
-                <thead class="bg-brown-50">
+                <thead class="bg-brown-200/80">
                   <tr>
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Name</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >📍 Origin</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >🔥 Roast</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >🏭 Roaster</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Actions</th
                     >
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-brown-200">
+                <tbody class="bg-brown-50/60 divide-y divide-brown-200">
                   {#each beans as bean}
-                    <tr class="hover:bg-brown-50">
+                    <tr class="hover:bg-brown-100/60 transition-colors">
                       <td class="px-4 py-3 text-sm text-brown-900"
                         >{bean.name || "-"}</td
                       >
@@ -393,37 +401,60 @@
           </div>
 
           {#if roasters.length === 0}
-            <p class="text-brown-600 text-center py-8">
-              No roasters yet. Add your first roaster!
-            </p>
+            <div
+              class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300"
+            >
+              <p class="text-brown-800 text-lg font-medium">
+                No roasters yet. Add your first roaster!
+              </p>
+            </div>
           {:else}
-            <div class="overflow-x-auto">
+            <div
+              class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300"
+            >
               <table class="min-w-full divide-y divide-brown-300">
-                <thead class="bg-brown-50">
+                <thead class="bg-brown-200/80">
                   <tr>
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Name</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >📍 Location</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
+                      >🌐 Website</th
+                    >
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Actions</th
                     >
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-brown-200">
+                <tbody class="bg-brown-50/60 divide-y divide-brown-200">
                   {#each roasters as roaster}
-                    <tr class="hover:bg-brown-50">
+                    <tr class="hover:bg-brown-100/60 transition-colors">
                       <td class="px-4 py-3 text-sm text-brown-900"
                         >{roaster.name}</td
                       >
                       <td class="px-4 py-3 text-sm text-brown-900"
                         >{roaster.location || "-"}</td
                       >
+                      <td class="px-4 py-3 text-sm text-brown-900">
+                        {#if roaster.website}
+                          <a
+                            href={roaster.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-brown-700 hover:underline font-medium"
+                            >{roaster.website}</a
+                          >
+                        {:else}
+                          -
+                        {/if}
+                      </td>
                       <td class="px-4 py-3 text-sm space-x-2">
                         <button
                           on:click={() => editRoaster(roaster)}
@@ -456,35 +487,41 @@
           </div>
 
           {#if grinders.length === 0}
-            <p class="text-brown-600 text-center py-8">
-              No grinders yet. Add your first grinder!
-            </p>
+            <div
+              class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300"
+            >
+              <p class="text-brown-800 text-lg font-medium">
+                No grinders yet. Add your first grinder!
+              </p>
+            </div>
           {:else}
-            <div class="overflow-x-auto">
+            <div
+              class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300"
+            >
               <table class="min-w-full divide-y divide-brown-300">
-                <thead class="bg-brown-50">
+                <thead class="bg-brown-200/80">
                   <tr>
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Name</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >🔧 Type</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >💎 Burr Type</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Actions</th
                     >
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-brown-200">
+                <tbody class="bg-brown-50/60 divide-y divide-brown-200">
                   {#each grinders as grinder}
-                    <tr class="hover:bg-brown-50">
+                    <tr class="hover:bg-brown-100/60 transition-colors">
                       <td class="px-4 py-3 text-sm text-brown-900"
                         >{grinder.name}</td
                       >
@@ -526,31 +563,37 @@
           </div>
 
           {#if brewers.length === 0}
-            <p class="text-brown-600 text-center py-8">
-              No brewers yet. Add your first brewer!
-            </p>
+            <div
+              class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300"
+            >
+              <p class="text-brown-800 text-lg font-medium">
+                No brewers yet. Add your first brewer!
+              </p>
+            </div>
           {:else}
-            <div class="overflow-x-auto">
+            <div
+              class="overflow-x-auto bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300"
+            >
               <table class="min-w-full divide-y divide-brown-300">
-                <thead class="bg-brown-50">
+                <thead class="bg-brown-200/80">
                   <tr>
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Name</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >🔧 Type</th
                     >
                     <th
-                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase"
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Actions</th
                     >
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-brown-200">
+                <tbody class="bg-brown-50/60 divide-y divide-brown-200">
                   {#each brewers as brewer}
-                    <tr class="hover:bg-brown-50">
+                    <tr class="hover:bg-brown-100/60 transition-colors">
                       <td class="px-4 py-3 text-sm text-brown-900"
                         >{brewer.name}</td
                       >

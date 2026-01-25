@@ -35,7 +35,7 @@
 
 <div class="max-w-4xl mx-auto">
   <div
-    class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 mb-8 border border-brown-300"
+    class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-5 md:p-8 mb-8 border border-brown-300"
   >
     <div class="flex items-center gap-3 mb-4">
       <h2 class="text-3xl font-bold text-brown-900">Welcome to Arabica</h2>
@@ -92,7 +92,7 @@
 
   <!-- Community Feed -->
   <div
-    class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-6 mb-8 border border-brown-300"
+    class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-4 md:p-6 mb-8 border border-brown-300 -mx-3 md:mx-0"
   >
     <h3 class="text-xl font-bold text-brown-900 mb-4">☕ Community Feed</h3>
 
@@ -136,7 +136,7 @@
   </div>
 
   <div
-    class="bg-gradient-to-br from-amber-50 to-brown-100 rounded-xl p-6 border-2 border-brown-300 shadow-lg"
+    class="bg-gradient-to-br from-amber-50 to-brown-100 rounded-xl p-4 md:p-6 border-2 border-brown-300 shadow-lg"
   >
     <h3 class="text-lg font-bold text-brown-900 mb-3">✨ About Arabica</h3>
     <ul class="text-brown-800 space-y-2 leading-relaxed">
