@@ -17,27 +17,36 @@ Each should be addressed one at a time, and the item should be removed after imp
    - Dev mode -- show did, copy did in profiles (remove "logged in as <did>" from home page)
    - Toggle for table view vs future post-style view
    - Toggle for "for" and "at" in pours view
+   - Pull bsky account management stuff in? (i.e. email verification, change password, enable two factor?)
+
+- "Close bag" of coffee
+  - Remove it from the beans dropdown when adding a new brew
+  - Add a "closed"/"archived" field to the lexicon
+  - Maybe allow adding a rating?
+  - Question: Should it show up in the profile screen? (maybe change header to current beans? --
+    have a different list at bottom of previous beans -- show created date, maybe closed date?)
+    - should be below the brewers table
 
 ## Far Future Considerations
 
-- Consider fully separating API backend from frontend service
-  - Currently using HTMX header checks to prevent direct browser access to internal API endpoints
-  - If adding mobile apps, third-party API consumers, or microservices architecture, revisit this
-  - For now, monolithic approach is appropriate for HTMX-based web app with decentralized storage
+- Pivot to full svelte-kit?
 
 - Maybe swap from boltdb to sqlite
   - Use the non-cgo library
 
 ## Fixes
 
-- Homepage still shows cached feed items on homepage when not authed. should show a cached version of firehose (last 5 entries, cache last 20) from the server.
-  This fetch should not try to backfill anything
+- Migrate terms and about page text. Add links to about at top of non-authed home page
 
-- Feed database in prod seems to be showing outdated data -- not sure why, local dev seems to show most recent.
+- Backfill on startup should be cache invalidated if time since last backfill exceeds some amount (set in code/env var maybe?)
 
-- View button for somebody else's brew leads to an invalid page. need to show the same view brew page but w/o the edit and delete buttons.
-- Back button in view should take user back to their previous page (not sure how to handle this exactly though)
+- Fix always using celcius for units, use settings (future state) or infer from number (maybe also future state)
 
-- Header should probably always be attached to the top of the screen?
+- Make rating color nicer, but on white background for selector on new/edit brew page
 
-- Feed item "view details" button should go away, the "new brew" in "addded a new brew" should take to view page instead (underline this text)
+- Refactor: remove the `SECURE_COOKIES` env var, it should be unecessary
+  - For dev, we should know its running in dev mode by checking the root url env var I think?
+  - This just adds noise and feels like an antipattern
+
+- Fix styling of manage records page to use rounded tables like everything else
+  - Should also use tab selectors the same way as the profile uses

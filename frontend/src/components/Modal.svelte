@@ -2,16 +2,18 @@
   export let onSave;
   export let onCancel;
   export let isOpen = false;
-  export let title = 'Modal';
+  export let title = "Modal";
 </script>
 
 {#if isOpen}
   <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl border-2 border-brown-300 p-8 max-w-md w-full mx-4 shadow-2xl">
+    <div
+      class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl border-2 border-brown-300 p-8 max-w-md w-full mx-4 shadow-2xl"
+    >
       <h3 class="text-xl font-semibold mb-4 text-brown-900">{title}</h3>
       <div class="space-y-4">
         <slot />
-        
+
         <div class="flex gap-2">
           <button
             type="button"

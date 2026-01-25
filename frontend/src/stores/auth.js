@@ -1,5 +1,5 @@
-import { writable } from 'svelte/store';
-import { api } from '../lib/api.js';
+import { writable } from "svelte/store";
+import { api } from "../lib/api.js";
 
 /**
  * Auth store - tracks current user authentication state
@@ -10,16 +10,16 @@ function createAuthStore() {
     user: null,
     loading: true,
   });
-  
+
   return {
     subscribe,
-    
+
     /**
      * Check current authentication status
      */
     async checkAuth() {
       try {
-        const user = await api.get('/api/me');
+        const user = await api.get("/api/me");
         set({
           isAuthenticated: true,
           user,
@@ -33,24 +33,24 @@ function createAuthStore() {
         });
       }
     },
-    
+
     /**
      * Log out current user
      */
     async logout() {
       try {
-        await api.post('/logout', {});
+        await api.post("/logout", {});
         set({
           isAuthenticated: false,
           user: null,
           loading: false,
         });
-        window.location.href = '/';
+        window.location.href = "/";
       } catch (error) {
-        console.error('Logout failed:', error);
+        console.error("Logout failed:", error);
       }
     },
-    
+
     /**
      * Clear auth state (used after logout)
      */

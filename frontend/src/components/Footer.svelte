@@ -1,5 +1,5 @@
 <script>
-  import { navigate } from '../lib/router.js';
+  import { navigate } from "../lib/router.js";
 </script>
 
 <footer class="bg-brown-800 text-brown-100 mt-12">
@@ -11,41 +11,60 @@
           <span>Arabica</span>
         </h3>
         <p class="text-sm text-brown-300">
-          Track your coffee brewing journey with decentralized data storage powered by AT Protocol.
+          Track your coffee brewing journey with decentralized data storage
+          powered by AT Protocol.
         </p>
       </div>
-      
+
       <div>
         <h4 class="font-semibold mb-3">Links</h4>
         <ul class="space-y-2 text-sm">
           <li>
-            <a href="/about" on:click|preventDefault={() => navigate('/about')} class="text-brown-300 hover:text-white transition-colors">
+            <a
+              href="/about"
+              on:click|preventDefault={() => navigate("/about")}
+              class="text-brown-300 hover:text-white transition-colors"
+            >
               About
             </a>
           </li>
           <li>
-            <a href="/terms" on:click|preventDefault={() => navigate('/terms')} class="text-brown-300 hover:text-white transition-colors">
+            <a
+              href="/terms"
+              on:click|preventDefault={() => navigate("/terms")}
+              class="text-brown-300 hover:text-white transition-colors"
+            >
               Terms of Service
             </a>
           </li>
           <li>
-            <a href="https://github.com/arabica-social/arabica" target="_blank" rel="noopener noreferrer" class="text-brown-300 hover:text-white transition-colors">
+            <a
+              href="https://github.com/arabica-social/arabica"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-brown-300 hover:text-white transition-colors"
+            >
               GitHub
             </a>
           </li>
         </ul>
       </div>
-      
+
       <div>
         <h4 class="font-semibold mb-3">AT Protocol</h4>
         <p class="text-sm text-brown-300">
-          Your data lives in your Personal Data Server (PDS), giving you full ownership and portability.
+          Your data lives in your Personal Data Server (PDS), giving you full
+          ownership and portability.
         </p>
       </div>
     </div>
-    
-    <div class="border-t border-brown-700 mt-8 pt-6 text-center text-sm text-brown-400">
-      <p>&copy; {new Date().getFullYear()} Arabica Social. All rights reserved.</p>
+
+    <div
+      class="border-t border-brown-700 mt-8 pt-6 text-center text-sm text-brown-400"
+    >
+      <p>
+        &copy; {new Date().getFullYear()} Arabica Social. All rights reserved.
+      </p>
     </div>
   </div>
 </footer>

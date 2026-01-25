@@ -1,10 +1,10 @@
-import navaid from 'navaid';
+import navaid from "navaid";
 
 /**
  * Simple client-side router using navaid
  * Handles browser history and navigation
  */
-const router = navaid('/');
+const router = navaid("/");
 
 /**
  * Navigate to a route programmatically

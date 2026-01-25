@@ -39,13 +39,10 @@ Access at http://localhost:18910
 
 ## Docker
 
-```bash
-# Build and run with Docker Compose
-docker compose up -d
+Build and run with Docker Compose:
 
-# Or build and run manually
-docker build -t arabica .
-docker run -p 18910:18910 -v arabica-data:/data arabica
+```bash
+docker compose -f deploy/compose.yml up -d
 ```
 
 For production deployments, configure environment variables in `docker-compose.yml`:

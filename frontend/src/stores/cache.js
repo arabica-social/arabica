@@ -1,5 +1,5 @@
-import { writable } from 'svelte/store';
-import { api } from '../lib/api.js';
+import { writable } from "svelte/store";
+import { api } from "../lib/api.js";
 
 /**
  * Cache store - stale-while-revalidate pattern for user data
@@ -15,13 +15,13 @@ function createCacheStore() {
     lastFetch: null,
     loading: false,
   });
-  
-  const CACHE_KEY = 'arabica_data_cache';
+
+  const CACHE_KEY = "arabica_data_cache";
   const STALE_TIME = 5 * 60 * 1000; // 5 minutes
-  
+
   return {
     subscribe,
-    
+
     /**
      * Load data from cache or API
      * Uses stale-while-revalidate pattern
@@ -34,7 +34,7 @@ function createCacheStore() {
           try {
             const data = JSON.parse(cached);
             const age = Date.now() - data.timestamp;
-            
+
             if (age < STALE_TIME) {
               // Fresh cache, use it
               set({
@@ -44,7 +44,7 @@ function createCacheStore() {
               });
               return;
             }
-            
+
             // Stale cache, show it but refetch in background
             set({
               ...data,
@@ -52,16 +52,16 @@ function createCacheStore() {
               loading: true,
             });
           } catch (e) {
-            console.error('Failed to parse cache:', e);
+            console.error("Failed to parse cache:", e);
           }
         }
       }
-      
+
       // Fetch fresh data
       try {
-        update(state => ({ ...state, loading: true }));
-        
-        const data = await api.get('/api/data');
+        update((state) => ({ ...state, loading: true }));
+
+        const data = await api.get("/api/data");
         const newState = {
           beans: data.beans || [],
           roasters: data.roasters || [],
@@ -71,20 +71,23 @@ function createCacheStore() {
           lastFetch: Date.now(),
           loading: false,
         };
-        
+
         set(newState);
-        
+
         // Save to localStorage
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
-          ...newState,
-          timestamp: newState.lastFetch,
-        }));
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            ...newState,
+            timestamp: newState.lastFetch,
+          }),
+        );
       } catch (error) {
-        console.error('Failed to fetch data:', error);
-        update(state => ({ ...state, loading: false }));
+        console.error("Failed to fetch data:", error);
+        update((state) => ({ ...state, loading: false }));
       }
     },
-    
+
     /**
      * Invalidate cache and refetch
      */
@@ -92,7 +95,7 @@ function createCacheStore() {
       localStorage.removeItem(CACHE_KEY);
       await this.load(true);
     },
-    
+
     /**
      * Clear cache completely
      */
