@@ -11,6 +11,18 @@ Coffee brew tracking application using AT Protocol for decentralized storage.
 - **Testing:** Standard library testing + [shutter](https://github.com/ptdewey/shutter) for snapshot tests
 - **Logging:** zerolog
 
+## Use Go Tooling Effectively
+
+- To see source files from a dependency, or to answer questions
+  about a dependency, run `go mod download -json MODULE` and use
+  the returned `Dir` path to read the files.
+
+- Use `go doc foo.Bar` or `go doc -all foo` to read documentation
+  for packages, types, functions, etc.
+
+- Use `go run .` or `go run ./cmd/foo` instead of `go build` to
+  run programs, to avoid leaving behind build artifacts.
+
 ## Project Structure
 
 ```
@@ -143,16 +155,19 @@ Backend API responses are tested using snapshot tests with the [shutter](https:/
 **Location:** `internal/handlers/api_snapshot_test.go`
 
 **Covered endpoints:**
+
 - Authentication: `/api/me`, `/client-metadata.json`
 - Data fetching: `/api/data`, `/api/feed-json`, `/api/profile-json/{actor}`
 - CRUD operations: Create/Update/Delete for beans, roasters, grinders, brewers, brews
 
 **Running snapshot tests:**
+
 ```bash
 cd internal/handlers && go test -v -run "Snapshot"
 ```
 
 **Working with snapshots:**
+
 ```bash
 # Accept all new/changed snapshots
 shutter accept-all
@@ -165,6 +180,7 @@ shutter review
 ```
 
 **Snapshot patterns used:**
+
 - `shutter.ScrubTimestamp()` - Removes timestamp values for deterministic tests
 - `shutter.IgnoreKey("created_at")` - Ignores specific JSON keys
 - `shutter.IgnoreKey("rkey")` - Ignores AT Protocol record keys (TIDs are time-based)
@@ -177,30 +193,17 @@ Snapshots are stored in `internal/handlers/__snapshots__/` and should be committ
 go build -o arabica cmd/arabica-server/main.go
 ```
 
-## Command-Line Flags
-
-| Flag            | Type   | Default | Description                                           |
-| --------------- | ------ | ------- | ----------------------------------------------------- |
-| `--firehose`    | bool   | true    | [DEPRECATED] Firehose is now the default (ignored)    |
-| `--known-dids`  | string | ""      | Path to file with DIDs to backfill (one per line)     |
-
-**Known DIDs File Format:**
-- One DID per line (e.g., `did:plc:abc123xyz`)
-- Lines starting with `#` are comments
-- Empty lines are ignored
-- See `known-dids.txt.example` for reference
-
 ## Environment Variables
 
-| Variable                    | Default                           | Description                        |
-| --------------------------- | --------------------------------- | ---------------------------------- |
-| `PORT`                      | 18910                             | HTTP server port                   |
-| `SERVER_PUBLIC_URL`         | -                                 | Public URL for reverse proxy (enables secure cookies when HTTPS) |
-| `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db | BoltDB path (sessions, registry)   |
-| `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path     |
-| `ARABICA_PROFILE_CACHE_TTL` | 1h                                | Profile cache duration             |
-| `LOG_LEVEL`                 | info                              | debug/info/warn/error              |
-| `LOG_FORMAT`                | console                           | console/json                       |
+| Variable                    | Default                              | Description                                                      |
+| --------------------------- | ------------------------------------ | ---------------------------------------------------------------- |
+| `PORT`                      | 18910                                | HTTP server port                                                 |
+| `SERVER_PUBLIC_URL`         | -                                    | Public URL for reverse proxy (enables secure cookies when HTTPS) |
+| `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db    | BoltDB path (sessions, registry)                                 |
+| `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path                                       |
+| `ARABICA_PROFILE_CACHE_TTL` | 1h                                   | Profile cache duration                                           |
+| `LOG_LEVEL`                 | info                                 | debug/info/warn/error                                            |
+| `LOG_FORMAT`                | console                              | console/json                                                     |
 
 ## Code Patterns
 
@@ -353,9 +356,4 @@ Cloudflare caches static assets, so incrementing the version ensures users get t
 
 ## Known Issues / TODOs
 
-Key areas:
-
-- Context should flow through methods (some fixed, verify all paths)
-- Cache race conditions need copy-on-write pattern
-- Missing CID validation on record updates (AT Protocol best practice)
-- Rate limiting for PDS calls not implemented
+See @BACKLOG.md

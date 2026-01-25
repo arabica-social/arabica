@@ -1,3 +1,6 @@
+[private]
+default: build-ui run
+
 run:
     @LOG_LEVEL=debug LOG_FORMAT=console go run cmd/arabica-server/main.go -known-dids known-dids.txt
 

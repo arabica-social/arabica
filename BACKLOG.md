@@ -20,13 +20,18 @@ Each should be addressed one at a time, and the item should be removed after imp
   - Manage + brews list together probably makes sense
 
 - IMPORTANT: If this platform gains any traction, we will need some form of content moderation
-  - Due to the nature of arabica, this will only really be text based (text and hyperlinks)
+  - Due to the nature of arabica, this will only really need to be text based (text and hyperlinks)
   - Malicious link scanning may be reasonable, not sure about deeper text analysis
   - Need to do more research into security
   - Need admin tooling at the app level that will allow deleting records (may not be possible),
     removing from appview, blacklisting users (and maybe IPs?), possibly more
   - Having accounts with admin rights may be an approach to this (configured with flags at startup time?)
     @arabica.social, @pdewey.com, maybe others? (need trusted users in other time zones probably)
+  - Add on some piece to the TOS that mentions I reserve the right to de-list content from the platform
+  - Continue limiting firehose posts to users who have been previously authenticated (keep a permanent record of "trusted" users)
+    - By logging in users agree to TOS -- can create records to be displayed on the appview ("signal" records)
+      Attestation signature from appview (or pds -- use key from pds) was source of record being created
+  - This is a pretty important consideration going forward, lots to consider
 
 ## Features
 
@@ -57,6 +62,13 @@ Each should be addressed one at a time, and the item should be removed after imp
   - Might be able to just save to the db when backfilling a profile's records
   - NOTE: requires research into existing solustions (whatever tangled does is probably good)
 
+- Opengraph metadata in brew entry page, to allow rich embeds in bluesky
+  - All pages should have opengraph metadat, but view brew, profile, and home/feed are probably the most important
+
+- Maybe move water amount below pours in form, sum pours if they are entered first.
+  - Would need to not override if water amount is entered after pours
+    (maybe update after leaving pour input?).
+
 ## Fixes
 
 - Migrate terms page text. Add links to about at top of non-authed home page
@@ -69,4 +81,6 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 - Show "view" button on brews in profile page (same as on brews list page)
 
-- Fix nix build, nix run, to build frontend as well
+- The "back" button behaves kind of strangely
+  - Goes back to brews list after clicking on view bean in feed,
+    takes to profile for other users' brews.

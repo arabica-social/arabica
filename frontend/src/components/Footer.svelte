@@ -39,12 +39,12 @@
           </li>
           <li>
             <a
-              href="https://github.com/arabica-social/arabica"
+              href="https://tangled.org/arabica.social/arabica"
               target="_blank"
               rel="noopener noreferrer"
               class="text-brown-300 hover:text-white transition-colors"
             >
-              GitHub
+              Source
             </a>
           </li>
         </ul>

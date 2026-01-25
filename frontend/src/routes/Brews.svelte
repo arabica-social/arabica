@@ -132,11 +132,24 @@
                     <h3 class="text-xl font-bold text-brown-900">
                       {brew.bean.name || brew.bean.origin || "Unknown Bean"}
                     </h3>
-                    {#if brew.bean.Roaster?.Name}
-                      <p class="text-sm text-brown-700 mb-2">
-                        🏭 {brew.bean.roaster.name}
-                      </p>
-                    {/if}
+                    <div class="text-sm text-brown-700 mb-2 space-y-0.5">
+                      {#if brew.bean.roaster}
+                        <p>🏭 {brew.bean.roaster.name}</p>
+                      {/if}
+                      {#if brew.bean.roast_level || brew.bean.origin || brew.bean.process}
+                        <p class="flex flex-wrap gap-x-3">
+                          {#if brew.bean.roast_level}
+                            <span>🔥 {brew.bean.roast_level}</span>
+                          {/if}
+                          {#if brew.bean.origin}
+                            <span>🌍 {brew.bean.origin}</span>
+                          {/if}
+                          {#if brew.bean.process}
+                            <span>⚗️ {brew.bean.process}</span>
+                          {/if}
+                        </p>
+                      {/if}
+                    </div>
                   {:else}
                     <h3 class="text-xl font-bold text-brown-900">
                       Unknown Bean
@@ -162,6 +175,9 @@
                   <span>☕ {brew.brewer_obj.name}</span>
                 {:else if brew.method}
                   <span>☕ {brew.method}</span>
+                {/if}
+                {#if brew.grinder_obj}
+                  <span>⚙️ {brew.grinder_obj.name}</span>
                 {/if}
                 {#if hasValue(brew.temperature)}
                   <span>🌡️ {formatTemperature(brew.temperature)}</span>

@@ -13,6 +13,30 @@
   function hasValue(val) {
     return val !== null && val !== undefined && val !== "";
   }
+
+  function formatTemperature(temp) {
+    if (!hasValue(temp)) return null;
+    const unit = temp <= 100 ? "C" : "F";
+    return `${temp}°${unit}`;
+  }
+
+  function formatTime(seconds) {
+    if (!hasValue(seconds)) return null;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${seconds}s`;
+  }
+
+  function safeWebsiteURL(url) {
+    if (!url) return null;
+    if (url.startsWith("https://") || url.startsWith("http://")) {
+      return url;
+    }
+    return null;
+  }
 </script>
 
 <div
@@ -138,52 +162,167 @@
         </div>
       {/if}
 
+      <!-- Brew parameters in compact grid -->
+      <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-brown-700">
+        {#if item.Brew.grinder_obj}
+          <div>
+            <span class="text-brown-600">Grinder:</span>
+            {item.Brew.grinder_obj.name}{#if item.Brew.grind_size}
+              ({item.Brew.grind_size}){/if}
+          </div>
+        {:else if item.Brew.grind_size}
+          <div>
+            <span class="text-brown-600">Grind:</span>
+            {item.Brew.grind_size}
+          </div>
+        {/if}
+        {#if item.Brew.pours && item.Brew.pours.length > 0}
+          <div class="col-span-2">
+            <span class="text-brown-600">Pours:</span>
+            {#each item.Brew.pours as pour}
+              <div class="pl-2 text-brown-600">
+                • {pour.water_amount}g @ {formatTime(pour.time_seconds)}
+              </div>
+            {/each}
+          </div>
+        {:else if hasValue(item.Brew.water_amount)}
+          <div>
+            <span class="text-brown-600">Water:</span>
+            {item.Brew.water_amount}g
+          </div>
+        {/if}
+        {#if formatTemperature(item.Brew.temperature)}
+          <div>
+            <span class="text-brown-600">Temp:</span>
+            {formatTemperature(item.Brew.temperature)}
+          </div>
+        {/if}
+        {#if hasValue(item.Brew.time_seconds)}
+          <div>
+            <span class="text-brown-600">Time:</span>
+            {formatTime(item.Brew.time_seconds)}
+          </div>
+        {/if}
+      </div>
+
       <!-- Notes -->
       {#if item.Brew.tasting_notes}
         <div
-          class="mt-2 text-sm text-brown-800 italic border-l-2 border-brown-300 pl-3"
+          class="mt-3 text-sm text-brown-800 italic border-t border-brown-200 pt-2"
         >
           "{item.Brew.tasting_notes}"
         </div>
       {/if}
+
+      <!-- View button -->
+      <div class="mt-3 border-t border-brown-200 pt-3">
+        <a
+          href="/brews/{item.Author.did}/{item.Brew.rkey}"
+          on:click|preventDefault={() =>
+            navigate(`/brews/${item.Author.did}/${item.Brew.rkey}`)}
+          class="inline-flex items-center text-sm font-medium text-brown-700 hover:text-brown-900 hover:underline"
+        >
+          View full details →
+        </a>
+      </div>
     </div>
   {:else if item.RecordType === "bean" && item.Bean}
     <div
       class="bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200"
     >
-      <div class="font-semibold text-brown-900">
-        {item.Bean.name || item.Bean.origin}
+      <div class="text-base mb-2">
+        <span class="font-bold text-brown-900">
+          {item.Bean.name || item.Bean.origin}
+        </span>
+        {#if item.Bean.roaster?.name}
+          <span class="text-brown-700"> from {item.Bean.roaster.name}</span>
+        {/if}
       </div>
-      {#if item.Bean.origin}<div class="text-sm text-brown-700">
-          📍 {item.Bean.origin}
-        </div>{/if}
+      <div class="text-sm text-brown-700 space-y-1">
+        {#if item.Bean.origin}
+          <div><span class="text-brown-600">Origin:</span> {item.Bean.origin}</div>
+        {/if}
+        {#if item.Bean.roast_level}
+          <div>
+            <span class="text-brown-600">Roast:</span>
+            {item.Bean.roast_level}
+          </div>
+        {/if}
+        {#if item.Bean.process}
+          <div><span class="text-brown-600">Process:</span> {item.Bean.process}</div>
+        {/if}
+        {#if item.Bean.description}
+          <div class="mt-2 text-brown-800 italic">
+            "{item.Bean.description}"
+          </div>
+        {/if}
+      </div>
     </div>
   {:else if item.RecordType === "roaster" && item.Roaster}
     <div
       class="bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200"
     >
-      <div class="font-semibold text-brown-900">🏭 {item.Roaster.name}</div>
-      {#if item.Roaster.location}<div class="text-sm text-brown-700">
-          📍 {item.Roaster.location}
-        </div>{/if}
+      <div class="text-base mb-2">
+        <span class="font-bold text-brown-900">{item.Roaster.name}</span>
+      </div>
+      <div class="text-sm text-brown-700 space-y-1">
+        {#if item.Roaster.location}
+          <div>
+            <span class="text-brown-600">Location:</span>
+            {item.Roaster.location}
+          </div>
+        {/if}
+        {#if safeWebsiteURL(item.Roaster.website)}
+          <div>
+            <span class="text-brown-600">Website:</span>
+            <a
+              href={safeWebsiteURL(item.Roaster.website)}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-brown-800 hover:underline"
+              >{safeWebsiteURL(item.Roaster.website)}</a
+            >
+          </div>
+        {/if}
+      </div>
     </div>
   {:else if item.RecordType === "grinder" && item.Grinder}
     <div
       class="bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200"
     >
-      <div class="font-semibold text-brown-900">⚙️ {item.Grinder.name}</div>
-      {#if item.Grinder.grinder_type}<div class="text-sm text-brown-700">
-          {item.Grinder.grinder_type}
-        </div>{/if}
+      <div class="text-base mb-2">
+        <span class="font-bold text-brown-900">{item.Grinder.name}</span>
+      </div>
+      <div class="text-sm text-brown-700 space-y-1">
+        {#if item.Grinder.grinder_type}
+          <div>
+            <span class="text-brown-600">Type:</span>
+            {item.Grinder.grinder_type}
+          </div>
+        {/if}
+        {#if item.Grinder.burr_type}
+          <div>
+            <span class="text-brown-600">Burr:</span>
+            {item.Grinder.burr_type}
+          </div>
+        {/if}
+        {#if item.Grinder.notes}
+          <div class="mt-2 text-brown-800 italic">"{item.Grinder.notes}"</div>
+        {/if}
+      </div>
     </div>
   {:else if item.RecordType === "brewer" && item.Brewer}
     <div
       class="bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200"
     >
-      <div class="font-semibold text-brown-900">☕ {item.Brewer.name}</div>
-      {#if item.Brewer.brewer_type}<div class="text-sm text-brown-700">
-          {item.Brewer.brewer_type}
-        </div>{/if}
+      <div class="text-base mb-2">
+        <span class="font-bold text-brown-900">{item.Brewer.name}</span>
+      </div>
+      {#if item.Brewer.description}
+        <div class="text-sm text-brown-800 italic">
+          "{item.Brewer.description}"
+        </div>
+      {/if}
     </div>
   {/if}
 </div>

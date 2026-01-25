@@ -175,10 +175,10 @@
       <p class="text-brown-800 leading-relaxed">
         Arabica is open source software. You can view the code, contribute, or
         even run your own instance. Visit our <a
-          href="https://github.com/ptdewey/arabica"
+          href="https://tangled/arabica.social/arabica"
           class="text-brown-700 hover:underline font-medium"
           target="_blank"
-          rel="noopener noreferrer">GitHub repository</a
+          rel="noopener noreferrer">Tangled repository</a
         > to learn more.
       </p>
     </section>

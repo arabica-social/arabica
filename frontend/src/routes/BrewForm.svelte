@@ -243,7 +243,10 @@
         </div>
       {/if}
 
-      <form on:submit|preventDefault={handleSubmit} class="space-y-4 md:space-y-6">
+      <form
+        on:submit|preventDefault={handleSubmit}
+        class="space-y-4 md:space-y-6"
+      >
         <!-- Bean Selection -->
         <div>
           <label
@@ -375,7 +378,7 @@
           <label
             for="water-amount"
             class="block text-sm font-medium text-brown-900 mb-2"
-            >Water Amount (ml)</label
+            >Water Amount (optional)</label
           >
           <input
             id="water-amount"
@@ -385,6 +388,56 @@
             placeholder="e.g. 300"
             class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 bg-white"
           />
+        </div>
+
+        <!-- Pours -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="block text-sm font-medium text-brown-900"
+              >Pour Schedule (Optional)</span
+            >
+            <button
+              type="button"
+              on:click={addPour}
+              class="text-sm bg-brown-300 text-brown-900 px-3 py-1 rounded hover:bg-brown-400 font-medium transition-colors"
+            >
+              + Add Pour
+            </button>
+          </div>
+
+          {#if pours.length > 0}
+            <div class="space-y-2">
+              {#each pours as pour, i}
+                <div
+                  class="flex gap-2 items-center bg-brown-50 p-2 md:p-3 rounded-lg border border-brown-200"
+                >
+                  <span
+                    class="text-xs md:text-sm font-medium text-brown-700 min-w-[50px] md:min-w-[60px]"
+                    >Pour {i + 1}:</span
+                  >
+                  <input
+                    type="number"
+                    bind:value={pour.water_amount}
+                    placeholder="g"
+                    class="w-16 md:w-20 rounded border border-brown-300 px-2 py-2 text-sm"
+                  />
+                  <input
+                    type="number"
+                    bind:value={pour.time_seconds}
+                    placeholder="sec"
+                    class="w-16 md:w-20 rounded border border-brown-300 px-2 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    on:click={() => removePour(i)}
+                    class="text-red-600 hover:text-red-800 font-medium px-2 flex-shrink-0"
+                  >
+                    ✕
+                  </button>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
 
         <!-- Water Temperature -->
@@ -419,55 +472,6 @@
             placeholder="e.g. 210"
             class="w-full rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 md:py-3 px-3 md:px-4 bg-white"
           />
-        </div>
-
-        <!-- Pours -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="block text-sm font-medium text-brown-900"
-              >Pour Schedule (Optional)</span
-            >
-            <button
-              type="button"
-              on:click={addPour}
-              class="text-sm bg-brown-300 text-brown-900 px-3 py-1 rounded hover:bg-brown-400 font-medium transition-colors"
-            >
-              + Add Pour
-            </button>
-          </div>
-
-          {#if pours.length > 0}
-            <div class="space-y-2">
-              {#each pours as pour, i}
-                <div
-                  class="flex gap-2 items-center bg-brown-50 p-2 md:p-3 rounded-lg border border-brown-200"
-                >
-                  <span class="text-xs md:text-sm font-medium text-brown-700 min-w-[50px] md:min-w-[60px]"
-                    >Pour {i + 1}:</span
-                  >
-                  <input
-                    type="number"
-                    bind:value={pour.water_amount}
-                    placeholder="g"
-                    class="w-16 md:w-20 rounded border border-brown-300 px-2 py-2 text-sm"
-                  />
-                  <input
-                    type="number"
-                    bind:value={pour.time_seconds}
-                    placeholder="sec"
-                    class="w-16 md:w-20 rounded border border-brown-300 px-2 py-2 text-sm"
-                  />
-                  <button
-                    type="button"
-                    on:click={() => removePour(i)}
-                    class="text-red-600 hover:text-red-800 font-medium px-2 flex-shrink-0"
-                  >
-                    ✕
-                  </button>
-                </div>
-              {/each}
-            </div>
-          {/if}
         </div>
 
         <!-- Rating -->
