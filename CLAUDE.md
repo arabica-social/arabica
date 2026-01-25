@@ -52,7 +52,7 @@ frontend/                   # Svelte SPA source code
   public/                   # Built SPA assets
 lexicons/                   # AT Protocol lexicon definitions (JSON)
 templates/partials/         # Legacy HTMX partial templates (being phased out)
-web/static/                 # Static assets (CSS, icons, service worker)
+static/                 # Static assets (CSS, icons, service worker)
   app/                      # Built Svelte SPA
 ```
 

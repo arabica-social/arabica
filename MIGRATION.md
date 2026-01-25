@@ -57,7 +57,7 @@ The entire frontend has been migrated from Alpine.js + HTMX + Go templates to a 
 │   ├── index.html
 │   ├── vite.config.js
 │   └── package.json
-└── web/static/app/            # Built Svelte output (served by Go)
+└── static/app/            # Built Svelte output (served by Go)
 ```
 
 ## Development
@@ -87,7 +87,7 @@ cd frontend
 npm run build
 ```
 
-This builds the Svelte app into `web/static/app/`
+This builds the Svelte app into `static/app/`
 
 Then run the Go server normally:
 
@@ -95,7 +95,7 @@ Then run the Go server normally:
 go run cmd/arabica-server/main.go
 ```
 
-The Go server will serve the built Svelte SPA from `web/static/app/`
+The Go server will serve the built Svelte SPA from `static/app/`
 
 ## Key Features Implemented
 
@@ -159,11 +159,11 @@ These can be removed once you're confident the migration is complete:
 
 ```bash
 # Old Alpine.js JavaScript
-web/static/js/alpine.min.js
-web/static/js/manage-page.js
-web/static/js/brew-form.js
-web/static/js/data-cache.js
-web/static/js/handle-autocomplete.js
+static/js/alpine.min.js
+static/js/manage-page.js
+static/js/brew-form.js
+static/js/data-cache.js
+static/js/handle-autocomplete.js
 
 # Go templates (entire directory)
 templates/

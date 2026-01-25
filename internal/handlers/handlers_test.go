@@ -16,45 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestHandleBrewListPartial_Success tests successful brew list retrieval
-func TestHandleBrewListPartial_Success(t *testing.T) {
-	tc := NewTestContext()
-	fixtures := tc.Fixtures
 
-	// Mock store to return test brews
-	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*models.Brew, error) {
-		return []*models.Brew{fixtures.Brew}, nil
-	}
-
-	// Create handler with injected mock store dependency
-	handler := tc.Handler
-
-	// We need to modify the handler to use our mock store
-	// Since getAtprotoStore creates a new store, we'll need to test this differently
-	// For now, let's test the authentication flow
-
-	req := NewAuthenticatedRequest("GET", "/api/brews/list", nil)
-	rec := httptest.NewRecorder()
-
-	handler.HandleBrewListPartial(rec, req)
-
-	// The handler will try to create an atproto store which will fail without proper setup
-	// This shows we need architectural changes to make handlers testable
-	assert.Equal(t, http.StatusUnauthorized, rec.Code, "Expected unauthorized when OAuth is nil")
-}
-
-// TestHandleBrewListPartial_Unauthenticated tests unauthenticated access
-func TestHandleBrewListPartial_Unauthenticated(t *testing.T) {
-	tc := NewTestContext()
-
-	req := NewUnauthenticatedRequest("GET", "/api/brews/list")
-	rec := httptest.NewRecorder()
-
-	tc.Handler.HandleBrewListPartial(rec, req)
-
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Authentication required")
-}
 
 // TestHandleBrewDelete_Success tests successful brew deletion
 func TestHandleBrewDelete_Success(t *testing.T) {
@@ -193,23 +155,6 @@ func TestValidateOptionalRKey(t *testing.T) {
 	}
 }
 
-// TestHandleBrewExport tests brew export functionality
-func TestHandleBrewExport(t *testing.T) {
-	tc := NewTestContext()
-	fixtures := tc.Fixtures
-
-	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*models.Brew, error) {
-		return []*models.Brew{fixtures.Brew}, nil
-	}
-
-	req := NewAuthenticatedRequest("GET", "/brews/export", nil)
-	rec := httptest.NewRecorder()
-
-	tc.Handler.HandleBrewExport(rec, req)
-
-	// Will be unauthorized due to OAuth being nil
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-}
 
 // TestHandleAPIListAll tests the API endpoint for listing all user data
 func TestHandleAPIListAll(t *testing.T) {
@@ -260,78 +205,8 @@ func TestHandleAPIListAll_StoreError(t *testing.T) {
 	assert.Contains(t, []int{http.StatusInternalServerError, http.StatusUnauthorized}, rec.Code)
 }
 
-// TestHandleHome tests home page rendering
-func TestHandleHome(t *testing.T) {
-	tests := []struct {
-		name          string
-		authenticated bool
-		wantStatus    int
-	}{
-		{"authenticated user", true, http.StatusOK},
-		{"unauthenticated user", false, http.StatusOK},
-	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tc := NewTestContext()
 
-			var req *http.Request
-			if tt.authenticated {
-				req = NewAuthenticatedRequest("GET", "/", nil)
-			} else {
-				req = NewUnauthenticatedRequest("GET", "/")
-			}
-			rec := httptest.NewRecorder()
-
-			tc.Handler.HandleHome(rec, req)
-
-			// Home page should render regardless of auth status
-			// Will fail due to template rendering without proper setup
-			// but should not panic
-			assert.NotEqual(t, 0, rec.Code)
-		})
-	}
-}
-
-// TestHandleManagePartial tests manage page data fetching
-func TestHandleManagePartial(t *testing.T) {
-	tc := NewTestContext()
-	fixtures := tc.Fixtures
-
-	// Mock all the data fetches
-	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*models.Bean, error) {
-		return []*models.Bean{fixtures.Bean}, nil
-	}
-	tc.MockStore.ListRoastersFunc = func(ctx context.Context) ([]*models.Roaster, error) {
-		return []*models.Roaster{fixtures.Roaster}, nil
-	}
-	tc.MockStore.ListGrindersFunc = func(ctx context.Context) ([]*models.Grinder, error) {
-		return []*models.Grinder{fixtures.Grinder}, nil
-	}
-	tc.MockStore.ListBrewersFunc = func(ctx context.Context) ([]*models.Brewer, error) {
-		return []*models.Brewer{fixtures.Brewer}, nil
-	}
-
-	req := NewAuthenticatedRequest("GET", "/manage/content", nil)
-	rec := httptest.NewRecorder()
-
-	tc.Handler.HandleManagePartial(rec, req)
-
-	// Will be unauthorized due to OAuth being nil
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-}
-
-// TestHandleManagePartial_Unauthenticated tests unauthenticated access to manage
-func TestHandleManagePartial_Unauthenticated(t *testing.T) {
-	tc := NewTestContext()
-
-	req := NewUnauthenticatedRequest("GET", "/manage/content")
-	rec := httptest.NewRecorder()
-
-	tc.Handler.HandleManagePartial(rec, req)
-
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-}
 
 // TestParsePours tests pour parsing from form data
 func TestParsePours(t *testing.T) {

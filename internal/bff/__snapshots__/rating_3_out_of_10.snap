@@ -1,7 +1,0 @@
----
-title: rating 3 out of 10
-test_name: TestIterateRemaining_Snapshot/rating_3_out_of_10
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-[]int(nil)

@@ -54,14 +54,6 @@ func SetupRouter(cfg Config) http.Handler {
 	// API endpoint for profile data (JSON for Svelte)
 	mux.HandleFunc("GET /api/profile-json/{actor}", h.HandleProfileAPI)
 
-	// HTMX partials (legacy - being phased out)
-	// These return HTML fragments and should only be accessed via HTMX
-	// Still used by manage page and some dynamic content
-	mux.Handle("GET /api/feed", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleFeedPartial)))
-	mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleBrewListPartial)))
-	mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleManagePartial)))
-	mux.Handle("GET /api/profile/{actor}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleProfilePartial)))
-
 	// Brew CRUD API routes (used by Svelte SPA)
 	mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
 	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
@@ -85,15 +77,12 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("DELETE /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerDelete)))
 
 	// Static files (must come after specific routes)
-	fs := http.FileServer(http.Dir("web/static"))
+	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
 	// SPA fallback - serve index.html for all unmatched routes (client-side routing)
 	// This must be after all API routes and static files
 	mux.HandleFunc("GET /{path...}", h.HandleSPAFallback)
-
-	// Catch-all 404 handler - now only used for non-GET requests
-	mux.HandleFunc("/", h.HandleNotFound)
 
 	// Apply middleware in order (outermost first, innermost last)
 	var handler http.Handler = mux

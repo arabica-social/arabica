@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 
 	"arabica/internal/atproto"
-	"arabica/internal/bff"
 	"arabica/internal/database"
 	"arabica/internal/feed"
 	"arabica/internal/models"
@@ -82,33 +80,6 @@ func validateOptionalRKey(rkey, fieldName string) string {
 	return ""
 }
 
-// getUserProfile fetches the profile for an authenticated user.
-// Returns nil if unable to fetch profile (non-fatal error).
-func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfile {
-	if did == "" {
-		return nil
-	}
-
-	publicClient := atproto.NewPublicClient()
-	profile, err := publicClient.GetProfile(ctx, did)
-	if err != nil {
-		log.Warn().Err(err).Str("did", did).Msg("Failed to fetch user profile for header")
-		return nil
-	}
-
-	userProfile := &bff.UserProfile{
-		Handle: profile.Handle,
-	}
-	if profile.DisplayName != nil {
-		userProfile.DisplayName = *profile.DisplayName
-	}
-	if profile.Avatar != nil {
-		userProfile.Avatar = *profile.Avatar
-	}
-
-	return userProfile
-}
-
 // getAtprotoStore creates a user-scoped atproto store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
 func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
@@ -137,33 +108,10 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 
 // SPA fallback handler - serves index.html for client-side routes
 func (h *Handler) HandleSPAFallback(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/static/app/index.html")
+	http.ServeFile(w, r, "static/app/index.html")
 }
 
 // Home page
-
-// Community feed partial (loaded async via HTMX)
-func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
-	var feedItems []*feed.FeedItem
-
-	// Check if user is authenticated
-	_, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil
-
-	if h.feedService != nil {
-		if isAuthenticated {
-			feedItems, _ = h.feedService.GetRecentRecords(r.Context(), feed.FeedLimit)
-		} else {
-			// Unauthenticated users get a limited feed from the cache
-			feedItems, _ = h.feedService.GetCachedPublicFeed(r.Context())
-		}
-	}
-
-	if err := bff.RenderFeedPartial(w, feedItems, isAuthenticated); err != nil {
-		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render feed partial")
-	}
-}
 
 // API endpoint for feed (JSON)
 func (h *Handler) HandleFeedAPI(w http.ResponseWriter, r *http.Request) {
@@ -225,14 +173,15 @@ func (h *Handler) HandleProfileAPI(w http.ResponseWriter, r *http.Request) {
 	isOwnProfile := isAuthenticated && currentUserDID == targetDID
 
 	// Get profile info
-	profile := h.getUserProfile(ctx, targetDID)
-	if profile == nil {
+	publicClient := atproto.NewPublicClient()
+	profile, err := publicClient.GetProfile(ctx, targetDID)
+	if err != nil {
+		log.Warn().Err(err).Str("did", targetDID).Msg("Failed to fetch profile")
 		http.Error(w, "Profile not found", http.StatusNotFound)
 		return
 	}
 
 	// Fetch user's data using public client (works for any user)
-	publicClient := atproto.NewPublicClient()
 
 	// Fetch all collections in parallel
 	g, ctx := errgroup.WithContext(ctx)
@@ -360,89 +309,6 @@ func (h *Handler) HandleProfileAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 // Brew list partial (loaded async via HTMX)
-func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
-	if err != nil {
-		http.Error(w, "Failed to fetch brews", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to fetch brews")
-		return
-	}
-
-	if err := bff.RenderBrewListPartial(w, brews); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew list partial")
-	}
-}
-
-// Manage page partial (loaded async via HTMX)
-func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	ctx := r.Context()
-
-	// Fetch all collections in parallel using errgroup for proper error handling
-	// and automatic context cancellation on first error
-	g, ctx := errgroup.WithContext(ctx)
-
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-
-	g.Go(func() error {
-		var err error
-		beans, err = store.ListBeans(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		roasters, err = store.ListRoasters(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		grinders, err = store.ListGrinders(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		brewers, err = store.ListBrewers(ctx)
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
-		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to fetch manage page data")
-		return
-	}
-
-	// Link beans to their roasters
-	atproto.LinkBeansToRoasters(beans, roasters)
-
-	if err := bff.RenderManagePartial(w, beans, roasters, grinders, brewers); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render manage partial")
-	}
-}
-
-// List all brews
-
-// Show new brew form
-
-// Show brew view page
-
 // resolveBrewReferences resolves bean, grinder, and brewer references for a brew
 func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]interface{}) error {
 	publicClient := atproto.NewPublicClient()
@@ -1015,17 +881,28 @@ func (h *Handler) HandleAPIMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch user profile
-	userProfile := h.getUserProfile(r.Context(), didStr)
-	if userProfile == nil {
+	publicClient := atproto.NewPublicClient()
+	profile, err := publicClient.GetProfile(r.Context(), didStr)
+	if err != nil {
+		log.Warn().Err(err).Str("did", didStr).Msg("Failed to fetch user profile")
 		http.Error(w, "Failed to fetch user profile", http.StatusInternalServerError)
 		return
 	}
 
+	displayName := ""
+	if profile.DisplayName != nil {
+		displayName = *profile.DisplayName
+	}
+	avatar := ""
+	if profile.Avatar != nil {
+		avatar = *profile.Avatar
+	}
+
 	response := map[string]interface{}{
 		"did":         didStr,
-		"handle":      userProfile.Handle,
-		"displayName": userProfile.DisplayName,
-		"avatar":      userProfile.Avatar,
+		"handle":      profile.Handle,
+		"displayName": displayName,
+		"avatar":      avatar,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1491,236 +1368,3 @@ func fetchAllData(ctx context.Context, store database.Store) (
 }
 
 // HandleProfile displays a user's public profile with their brews and gear
-
-// HandleProfilePartial returns profile data content (loaded async via HTMX)
-func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
-	actor := r.PathValue("actor")
-	if actor == "" {
-		http.Error(w, "Actor parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	ctx := r.Context()
-	publicClient := atproto.NewPublicClient()
-
-	// Determine if actor is a DID or handle
-	var did string
-	var err error
-
-	if strings.HasPrefix(actor, "did:") {
-		did = actor
-	} else {
-		did, err = publicClient.ResolveHandle(ctx, actor)
-		if err != nil {
-			log.Warn().Err(err).Str("handle", actor).Msg("Failed to resolve handle")
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-	}
-
-	// Fetch all user data in parallel
-	g, gCtx := errgroup.WithContext(ctx)
-
-	var brews []*models.Brew
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-
-	// Maps for resolving references
-	var beanMap map[string]*models.Bean
-	var beanRoasterRefMap map[string]string
-	var roasterMap map[string]*models.Roaster
-	var brewerMap map[string]*models.Brewer
-	var grinderMap map[string]*models.Grinder
-
-	// Fetch beans
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBean, 100)
-		if err != nil {
-			return err
-		}
-		beanMap = make(map[string]*models.Bean)
-		beanRoasterRefMap = make(map[string]string)
-		beans = make([]*models.Bean, 0, len(output.Records))
-		for _, record := range output.Records {
-			bean, err := atproto.RecordToBean(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			beans = append(beans, bean)
-			beanMap[record.URI] = bean
-			if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
-				beanRoasterRefMap[record.URI] = roasterRef
-			}
-		}
-		return nil
-	})
-
-	// Fetch roasters
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDRoaster, 100)
-		if err != nil {
-			return err
-		}
-		roasterMap = make(map[string]*models.Roaster)
-		roasters = make([]*models.Roaster, 0, len(output.Records))
-		for _, record := range output.Records {
-			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			roasters = append(roasters, roaster)
-			roasterMap[record.URI] = roaster
-		}
-		return nil
-	})
-
-	// Fetch grinders
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDGrinder, 100)
-		if err != nil {
-			return err
-		}
-		grinderMap = make(map[string]*models.Grinder)
-		grinders = make([]*models.Grinder, 0, len(output.Records))
-		for _, record := range output.Records {
-			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			grinders = append(grinders, grinder)
-			grinderMap[record.URI] = grinder
-		}
-		return nil
-	})
-
-	// Fetch brewers
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrewer, 100)
-		if err != nil {
-			return err
-		}
-		brewerMap = make(map[string]*models.Brewer)
-		brewers = make([]*models.Brewer, 0, len(output.Records))
-		for _, record := range output.Records {
-			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			brewers = append(brewers, brewer)
-			brewerMap[record.URI] = brewer
-		}
-		return nil
-	})
-
-	// Fetch brews
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrew, 100)
-		if err != nil {
-			return err
-		}
-		brews = make([]*models.Brew, 0, len(output.Records))
-		for _, record := range output.Records {
-			brew, err := atproto.RecordToBrew(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			// Store the raw record for reference resolution later
-			brew.BeanRKey = ""
-			if beanRef, ok := record.Value["beanRef"].(string); ok {
-				brew.BeanRKey = beanRef
-			}
-			if grinderRef, ok := record.Value["grinderRef"].(string); ok {
-				brew.GrinderRKey = grinderRef
-			}
-			if brewerRef, ok := record.Value["brewerRef"].(string); ok {
-				brew.BrewerRKey = brewerRef
-			}
-			brews = append(brews, brew)
-		}
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
-		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data for profile partial")
-		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
-		return
-	}
-
-	// Resolve references for beans (roaster refs)
-	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
-			if roaster, found := roasterMap[roasterRef]; found {
-				bean.Roaster = roaster
-			}
-		}
-	}
-
-	// Resolve references for brews
-	for _, brew := range brews {
-		// Resolve bean reference
-		if brew.BeanRKey != "" {
-			if bean, found := beanMap[brew.BeanRKey]; found {
-				brew.Bean = bean
-			}
-		}
-		// Resolve grinder reference
-		if brew.GrinderRKey != "" {
-			if grinder, found := grinderMap[brew.GrinderRKey]; found {
-				brew.GrinderObj = grinder
-			}
-		}
-		// Resolve brewer reference
-		if brew.BrewerRKey != "" {
-			if brewer, found := brewerMap[brew.BrewerRKey]; found {
-				brew.BrewerObj = brewer
-			}
-		}
-	}
-
-	// Sort brews in reverse chronological order (newest first)
-	sort.Slice(brews, func(i, j int) bool {
-		return brews[i].CreatedAt.After(brews[j].CreatedAt)
-	})
-
-	// Check if the viewing user is the profile owner
-	didStr, err := atproto.GetAuthenticatedDID(ctx)
-	isAuthenticated := err == nil && didStr != ""
-	isOwnProfile := isAuthenticated && didStr == did
-
-	// Render profile content partial (use actor as handle, which is already the handle if provided as such)
-	profileHandle := actor
-	if strings.HasPrefix(actor, "did:") {
-		// If actor was a DID, we need to resolve it to a handle
-		// We can get it from the first brew's author if available, or fetch profile
-		profile, err := publicClient.GetProfile(ctx, did)
-		if err == nil {
-			profileHandle = profile.Handle
-		} else {
-			profileHandle = did // Fallback to DID if we can't get handle
-		}
-	}
-
-	if err := bff.RenderProfilePartial(w, brews, beans, roasters, grinders, brewers, isOwnProfile, profileHandle); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render profile partial")
-	}
-}
-
-// HandleNotFound renders the 404 page
-func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	// Check if current user is authenticated (for nav bar state)
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	if err := bff.Render404(w, isAuthenticated, didStr, userProfile); err != nil {
-		http.Error(w, "Page not found", http.StatusNotFound)
-		log.Error().Err(err).Msg("Failed to render 404 page")
-	}
-}

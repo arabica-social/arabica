@@ -1,7 +1,0 @@
----
-title: zero temperature
-test_name: TestHasTemp_Snapshot/zero_temperature
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-false

@@ -40,7 +40,7 @@ export default defineConfig({
   },
   base: '/static/app/',
   build: {
-    outDir: path.resolve(__dirname, '../web/static/app'),
+    outDir: path.resolve(__dirname, '../static/app'),
     emptyOutDir: true,
     assetsDir: 'assets',
   },
