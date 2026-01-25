@@ -5,6 +5,15 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 ---
 
+## Far Future Considerations
+
+- Pivot to full svelte-kit?
+
+- Maybe swap from boltdb to sqlite
+  - Use the non-cgo library
+  - Is there a compelling reason to do this?
+  - Might be good as a sort of witness-cache type thing
+
 ## Features
 
 1. LARGE: complete record styling refactor that changes from table-style to more mobile-friendly style
@@ -29,12 +38,10 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 - Add my custom iosevka font as default font
 
-## Far Future Considerations
-
-- Pivot to full svelte-kit?
-
-- Maybe swap from boltdb to sqlite
-  - Use the non-cgo library
+- Improve caching of profile pictures, tangled.sh apparently does this really well
+  - Something with a cloudflare cdn
+  - Might be able to just save to the db when backfilling a profile's records
+  - NOTE: requires research into existing solustions (whatever tangled does is probably good)
 
 ## Fixes
 
@@ -42,13 +49,8 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 - Backfill on startup should be cache invalidated if time since last backfill exceeds some amount (set in code/env var maybe?)
 
-- Fix always using celcius for units, use settings (future state) or infer from number (maybe also future state)
-
 - Make rating color nicer, but on white background for selector on new/edit brew page
 
-- Refactor: remove the `SECURE_COOKIES` env var, it should be unecessary
-  - For dev, we should know its running in dev mode by checking the root url env var I think?
-  - This just adds noise and feels like an antipattern
+- Profile page should show more details, and allow brew entries to take up more vertical space
 
-- Fix styling of manage records page to use rounded tables like everything else
-  - Should also use tab selectors the same way as the profile uses
+- Show "view" button on brews in profile page

@@ -276,9 +276,10 @@ func main() {
 	defer stopCacheCleanup()
 	log.Info().Msg("Session cache initialized with background cleanup")
 
-	// Determine if we should use secure cookies (default: false for development)
-	// Set SECURE_COOKIES=true in production with HTTPS
-	secureCookies := os.Getenv("SECURE_COOKIES") == "true"
+	// Determine if we should use secure cookies based on the public URL scheme
+	// If the public URL uses HTTPS, we automatically set the Secure flag on cookies
+	// For local development (no SERVER_PUBLIC_URL set), secure cookies are disabled
+	secureCookies := strings.HasPrefix(publicURL, "https://")
 
 	// Initialize handlers with all dependencies via constructor injection
 	h := handlers.NewHandler(

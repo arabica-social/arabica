@@ -160,11 +160,10 @@ go build -o arabica cmd/arabica-server/main.go
 | Variable                    | Default                           | Description                        |
 | --------------------------- | --------------------------------- | ---------------------------------- |
 | `PORT`                      | 18910                             | HTTP server port                   |
-| `SERVER_PUBLIC_URL`         | -                                 | Public URL for reverse proxy       |
+| `SERVER_PUBLIC_URL`         | -                                 | Public URL for reverse proxy (enables secure cookies when HTTPS) |
 | `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db | BoltDB path (sessions, registry)   |
 | `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path     |
 | `ARABICA_PROFILE_CACHE_TTL` | 1h                                | Profile cache duration             |
-| `SECURE_COOKIES`            | false                             | Set true for HTTPS                 |
 | `LOG_LEVEL`                 | info                              | debug/info/warn/error              |
 | `LOG_FORMAT`                | console                           | console/json                       |
 

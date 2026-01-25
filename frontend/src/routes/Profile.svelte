@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "../lib/api.js";
   import { navigate } from "../lib/router.js";
+  import Modal from "../components/Modal.svelte";
 
   export let actor;
 
@@ -17,7 +18,30 @@
 
   let activeTab = "brews";
 
+  // Modal states
+  let showBeanModal = false;
+  let showRoasterModal = false;
+  let showGrinderModal = false;
+  let showBrewerModal = false;
+
+  // Forms
+  let beanForm = {
+    name: "",
+    origin: "",
+    roast_level: "",
+    process: "",
+    description: "",
+    roaster_rkey: "",
+  };
+  let roasterForm = { name: "", location: "", website: "", description: "" };
+  let grinderForm = { name: "", grinder_type: "", burr_type: "", notes: "" };
+  let brewerForm = { name: "", brewer_type: "", description: "" };
+
   onMount(async () => {
+    await loadProfile();
+  });
+
+  async function loadProfile() {
     try {
       const data = await api.get(`/api/profile-json/${actor}`);
       profile = data.profile;
@@ -35,7 +59,7 @@
     } finally {
       loading = false;
     }
-  });
+  }
 
   function formatDate(dateStr) {
     const date = new Date(dateStr);
@@ -44,6 +68,78 @@
       month: "short",
       day: "numeric",
     });
+  }
+
+  // Bean handlers
+  function addBean() {
+    beanForm = {
+      name: "",
+      origin: "",
+      roast_level: "",
+      process: "",
+      description: "",
+      roaster_rkey: "",
+    };
+    showBeanModal = true;
+  }
+
+  async function saveBean() {
+    try {
+      await api.post("/api/beans", beanForm);
+      await loadProfile();
+      showBeanModal = false;
+    } catch (err) {
+      console.error("Bean save error:", err);
+      alert("Failed to save bean: " + err.message);
+    }
+  }
+
+  // Roaster handlers
+  function addRoaster() {
+    roasterForm = { name: "", location: "", website: "", description: "" };
+    showRoasterModal = true;
+  }
+
+  async function saveRoaster() {
+    try {
+      await api.post("/api/roasters", roasterForm);
+      await loadProfile();
+      showRoasterModal = false;
+    } catch (err) {
+      alert("Failed to save roaster: " + err.message);
+    }
+  }
+
+  // Grinder handlers
+  function addGrinder() {
+    grinderForm = { name: "", grinder_type: "", burr_type: "", notes: "" };
+    showGrinderModal = true;
+  }
+
+  async function saveGrinder() {
+    try {
+      await api.post("/api/grinders", grinderForm);
+      await loadProfile();
+      showGrinderModal = false;
+    } catch (err) {
+      alert("Failed to save grinder: " + err.message);
+    }
+  }
+
+  // Brewer handlers
+  function addBrewer() {
+    brewerForm = { name: "", brewer_type: "", description: "" };
+    showBrewerModal = true;
+  }
+
+  async function saveBrewer() {
+    try {
+      await api.post("/api/brewers", brewerForm);
+      await loadProfile();
+      showBrewerModal = false;
+    } catch (err) {
+      alert("Failed to save brewer: " + err.message);
+    }
   }
 </script>
 
@@ -173,6 +269,16 @@
             class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center border border-brown-300"
           >
             <p class="text-brown-800 text-lg font-medium">No brews yet.</p>
+            {#if isOwnProfile}
+              <div class="mt-4">
+                <button
+                  on:click={() => navigate("/brews/new")}
+                  class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                >
+                  + Add Brew
+                </button>
+              </div>
+            {/if}
           </div>
         {:else}
           <div
@@ -235,6 +341,16 @@
               </tbody>
             </table>
           </div>
+          {#if isOwnProfile}
+            <div class="mt-4 text-center">
+              <button
+                on:click={() => navigate("/brews/new")}
+                class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+              >
+                + Add Brew
+              </button>
+            </div>
+          {/if}
         {/if}
       {:else if activeTab === "beans"}
         <div class="space-y-6">
@@ -302,6 +418,16 @@
                   </tbody>
                 </table>
               </div>
+              {#if isOwnProfile}
+                <div class="mt-4 text-center">
+                  <button
+                    on:click={addBean}
+                    class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                  >
+                    + Add Bean
+                  </button>
+                </div>
+              {/if}
             </div>
           {/if}
 
@@ -357,6 +483,16 @@
                   </tbody>
                 </table>
               </div>
+              {#if isOwnProfile}
+                <div class="mt-4 text-center">
+                  <button
+                    on:click={addRoaster}
+                    class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                  >
+                    + Add Roaster
+                  </button>
+                </div>
+              {/if}
             </div>
           {/if}
 
@@ -365,6 +501,22 @@
               class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center text-brown-800 border border-brown-300"
             >
               <p class="font-medium">No beans or roasters yet.</p>
+              {#if isOwnProfile}
+                <div class="mt-4 flex gap-4 justify-center">
+                  <button
+                    on:click={addBean}
+                    class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                  >
+                    + Add Bean
+                  </button>
+                  <button
+                    on:click={addRoaster}
+                    class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                  >
+                    + Add Roaster
+                  </button>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
@@ -420,6 +572,16 @@
                   </tbody>
                 </table>
               </div>
+              {#if isOwnProfile}
+                <div class="mt-4 text-center">
+                  <button
+                    on:click={addGrinder}
+                    class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                  >
+                    + Add Grinder
+                  </button>
+                </div>
+              {/if}
             </div>
           {/if}
 
@@ -466,6 +628,16 @@
                   </tbody>
                 </table>
               </div>
+              {#if isOwnProfile}
+                <div class="mt-4 text-center">
+                  <button
+                    on:click={addBrewer}
+                    class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                  >
+                    + Add Brewer
+                  </button>
+                </div>
+              {/if}
             </div>
           {/if}
 
@@ -474,6 +646,22 @@
               class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 text-center text-brown-800 border border-brown-300"
             >
               <p class="font-medium">No gear added yet.</p>
+              {#if isOwnProfile}
+                <div class="mt-4 flex gap-4 justify-center">
+                  <button
+                    on:click={addGrinder}
+                    class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                  >
+                    + Add Grinder
+                  </button>
+                  <button
+                    on:click={addBrewer}
+                    class="bg-brown-700 text-white px-6 py-2 rounded-lg hover:bg-brown-800 font-medium transition-colors"
+                  >
+                    + Add Brewer
+                  </button>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
@@ -481,3 +669,148 @@
     </div>
   {/if}
 </div>
+
+<!-- Modals -->
+{#if isOwnProfile}
+  <Modal
+    bind:isOpen={showBeanModal}
+    title="Add Bean"
+    onSave={saveBean}
+    onCancel={() => (showBeanModal = false)}
+  >
+    <input
+      type="text"
+      bind:value={beanForm.name}
+      placeholder="Name *"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+    <input
+      type="text"
+      bind:value={beanForm.origin}
+      placeholder="Origin *"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+    <select
+      bind:value={beanForm.roaster_rkey}
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    >
+      <option value="">Select Roaster (Optional)</option>
+      {#each roasters as roaster}
+        <option value={roaster.rkey}>{roaster.name}</option>
+      {/each}
+    </select>
+    <select
+      bind:value={beanForm.roast_level}
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    >
+      <option value="">Select Roast Level (Optional)</option>
+      <option value="Ultra-Light">Ultra-Light</option>
+      <option value="Light">Light</option>
+      <option value="Medium-Light">Medium-Light</option>
+      <option value="Medium">Medium</option>
+      <option value="Medium-Dark">Medium-Dark</option>
+      <option value="Dark">Dark</option>
+    </select>
+    <input
+      type="text"
+      bind:value={beanForm.process}
+      placeholder="Process (e.g. Washed, Natural, Honey)"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+    <textarea
+      bind:value={beanForm.description}
+      placeholder="Description"
+      rows="3"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    ></textarea>
+  </Modal>
+
+  <Modal
+    bind:isOpen={showRoasterModal}
+    title="Add Roaster"
+    onSave={saveRoaster}
+    onCancel={() => (showRoasterModal = false)}
+  >
+    <input
+      type="text"
+      bind:value={roasterForm.name}
+      placeholder="Name *"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+    <input
+      type="text"
+      bind:value={roasterForm.location}
+      placeholder="Location"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+    <input
+      type="url"
+      bind:value={roasterForm.website}
+      placeholder="Website"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+  </Modal>
+
+  <Modal
+    bind:isOpen={showGrinderModal}
+    title="Add Grinder"
+    onSave={saveGrinder}
+    onCancel={() => (showGrinderModal = false)}
+  >
+    <input
+      type="text"
+      bind:value={grinderForm.name}
+      placeholder="Name *"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+    <select
+      bind:value={grinderForm.grinder_type}
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    >
+      <option value="">Select Grinder Type *</option>
+      <option value="Hand">Hand</option>
+      <option value="Electric">Electric</option>
+      <option value="Portable Electric">Portable Electric</option>
+    </select>
+    <select
+      bind:value={grinderForm.burr_type}
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    >
+      <option value="">Select Burr Type (Optional)</option>
+      <option value="Conical">Conical</option>
+      <option value="Flat">Flat</option>
+    </select>
+    <textarea
+      bind:value={grinderForm.notes}
+      placeholder="Notes"
+      rows="3"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    ></textarea>
+  </Modal>
+
+  <Modal
+    bind:isOpen={showBrewerModal}
+    title="Add Brewer"
+    onSave={saveBrewer}
+    onCancel={() => (showBrewerModal = false)}
+  >
+    <input
+      type="text"
+      bind:value={brewerForm.name}
+      placeholder="Name *"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+    <input
+      type="text"
+      bind:value={brewerForm.brewer_type}
+      placeholder="Type (e.g., Pour-Over, Immersion, Espresso)"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    />
+    <textarea
+      bind:value={brewerForm.description}
+      placeholder="Description"
+      rows="3"
+      class="w-full rounded-lg border-2 border-brown-300 bg-white shadow-sm py-2 px-3 focus:border-brown-600 focus:ring-brown-600"
+    ></textarea>
+  </Modal>
+{/if}

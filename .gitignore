@@ -6,6 +6,7 @@ tmp/
 *.dll
 *.so
 *.dylib
+/arabica-server
 
 
 # Test binary
@@ -15,7 +16,7 @@ tmp/
 *.out
 
 # Generated files
-web/static/css/output.css
+static/css/output.css
 
 # Database
 *.db

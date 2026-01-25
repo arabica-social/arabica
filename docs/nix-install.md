@@ -10,10 +10,12 @@ Add to your configuration.nix:
   
   services.arabica = {
     enable = true;
-    port = 18910;
+    publicUrl = "https://arabica.example.com";
+    settings = {
+      port = 18910;
+      logLevel = "info";
+    };
     dataDir = "/var/lib/arabica";
-    logLevel = "info";
-    secureCookies = false; # Set true if behind HTTPS proxy
   };
 }
 ```

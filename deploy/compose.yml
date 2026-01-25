@@ -28,7 +28,6 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_FORMAT=${LOG_FORMAT:-json}
       - SERVER_PUBLIC_URL=${SERVER_PUBLIC_URL:-https://${DOMAIN}}
-      - SECURE_COOKIES=true
     restart: unless-stopped
 
 volumes:

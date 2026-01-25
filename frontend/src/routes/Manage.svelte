@@ -350,6 +350,10 @@
                     >
                     <th
                       class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
+                      >📝 Description</th
+                    >
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Actions</th
                     >
                   </tr>
@@ -368,6 +372,9 @@
                       >
                       <td class="px-4 py-3 text-sm text-brown-900"
                         >{bean.roaster?.name || "-"}</td
+                      >
+                      <td class="px-4 py-3 text-sm text-brown-700 italic max-w-xs"
+                        >{bean.description || "-"}</td
                       >
                       <td class="px-4 py-3 text-sm space-x-2">
                         <button
@@ -515,6 +522,10 @@
                     >
                     <th
                       class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
+                      >📝 Notes</th
+                    >
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Actions</th
                     >
                   </tr>
@@ -530,6 +541,9 @@
                       >
                       <td class="px-4 py-3 text-sm text-brown-900"
                         >{grinder.burr_type || "-"}</td
+                      >
+                      <td class="px-4 py-3 text-sm text-brown-700 italic max-w-xs"
+                        >{grinder.notes || "-"}</td
                       >
                       <td class="px-4 py-3 text-sm space-x-2">
                         <button
@@ -587,6 +601,10 @@
                     >
                     <th
                       class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
+                      >📝 Description</th
+                    >
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider"
                       >Actions</th
                     >
                   </tr>
@@ -599,6 +617,9 @@
                       >
                       <td class="px-4 py-3 text-sm text-brown-900"
                         >{brewer.brewer_type || "-"}</td
+                      >
+                      <td class="px-4 py-3 text-sm text-brown-700 italic max-w-xs"
+                        >{brewer.description || "-"}</td
                       >
                       <td class="px-4 py-3 text-sm space-x-2">
                         <button
