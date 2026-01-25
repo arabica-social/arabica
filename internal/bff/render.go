@@ -168,130 +168,14 @@ func RenderTemplateWithProfile(w http.ResponseWriter, r *http.Request, tmpl stri
 }
 
 // RenderHome renders the home page
-func RenderHome(w http.ResponseWriter, isAuthenticated bool, userDID string, userProfile *UserProfile, feedItems []*feed.FeedItem) error {
-	t, err := parsePageTemplate("home.tmpl")
-	if err != nil {
-		return err
-	}
-	data := &PageData{
-		Title:           "Home",
-		IsAuthenticated: isAuthenticated,
-		UserDID:         userDID,
-		UserProfile:     userProfile,
-		FeedItems:       feedItems,
-	}
-	return t.ExecuteTemplate(w, "layout", data)
-}
 
 // RenderBrewList renders the brew list page
-func RenderBrewList(w http.ResponseWriter, brews []*models.Brew, isAuthenticated bool, userDID string, userProfile *UserProfile) error {
-	t, err := parsePageTemplate("brew_list.tmpl")
-	if err != nil {
-		return err
-	}
-	brewList := make([]*BrewListData, len(brews))
-	for i, brew := range brews {
-		brewList[i] = &BrewListData{
-			Brew:            brew,
-			TempFormatted:   FormatTemp(brew.Temperature),
-			TimeFormatted:   FormatTime(brew.TimeSeconds),
-			RatingFormatted: FormatRating(brew.Rating),
-		}
-	}
-
-	data := &PageData{
-		Title:           "All Brews",
-		Brews:           brewList,
-		IsAuthenticated: isAuthenticated,
-		UserDID:         userDID,
-		UserProfile:     userProfile,
-	}
-	return t.ExecuteTemplate(w, "layout", data)
-}
 
 // RenderBrewForm renders the brew form page
-func RenderBrewForm(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, brew *models.Brew, isAuthenticated bool, userDID string, userProfile *UserProfile) error {
-	t, err := parsePageTemplate("brew_form.tmpl")
-	if err != nil {
-		return err
-	}
-	var brewData *BrewData
-	title := "New Brew"
-
-	if brew != nil {
-		title = "Edit Brew"
-		brewData = &BrewData{
-			Brew:      brew,
-			PoursJSON: PoursToJSON(brew.Pours),
-		}
-	}
-
-	data := &PageData{
-		Title:           title,
-		Beans:           beans,
-		Roasters:        roasters,
-		Grinders:        grinders,
-		Brewers:         brewers,
-		Brew:            brewData,
-		IsAuthenticated: isAuthenticated,
-		UserDID:         userDID,
-		UserProfile:     userProfile,
-	}
-	return t.ExecuteTemplate(w, "layout", data)
-}
 
 // RenderBrewView renders the brew view page
-func RenderBrewView(w http.ResponseWriter, brew *models.Brew, isAuthenticated bool, userDID string, userProfile *UserProfile, isOwner bool) error {
-	t, err := parsePageTemplate("brew_view.tmpl")
-	if err != nil {
-		return err
-	}
-
-	// If water amount is not set but pours exist, sum the pours
-	displayBrew := brew
-	if brew.WaterAmount == 0 && len(brew.Pours) > 0 {
-		// Create a copy to avoid modifying the original
-		brewCopy := *brew
-		for _, pour := range brew.Pours {
-			brewCopy.WaterAmount += pour.WaterAmount
-		}
-		displayBrew = &brewCopy
-	}
-
-	brewData := &BrewData{
-		Brew:      displayBrew,
-		PoursJSON: PoursToJSON(brew.Pours),
-	}
-
-	data := &PageData{
-		Title:           "View Brew",
-		Brew:            brewData,
-		IsAuthenticated: isAuthenticated,
-		UserDID:         userDID,
-		UserProfile:     userProfile,
-		IsOwnProfile:    isOwner, // Reuse IsOwnProfile field to indicate ownership
-	}
-	return t.ExecuteTemplate(w, "layout", data)
-}
 
 // RenderManage renders the manage page
-func RenderManage(w http.ResponseWriter, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string, userProfile *UserProfile) error {
-	t, err := parsePageTemplate("manage.tmpl")
-	if err != nil {
-		return err
-	}
-	data := &PageData{
-		Title:           "Manage",
-		Beans:           beans,
-		Roasters:        roasters,
-		Grinders:        grinders,
-		Brewers:         brewers,
-		IsAuthenticated: isAuthenticated,
-		UserDID:         userDID,
-		UserProfile:     userProfile,
-	}
-	return t.ExecuteTemplate(w, "layout", data)
-}
 
 // RenderFeedPartial renders just the feed partial (for HTMX async loading)
 func RenderFeedPartial(w http.ResponseWriter, feedItems []*feed.FeedItem, isAuthenticated bool) error {
@@ -377,32 +261,6 @@ type ProfileContentData struct {
 }
 
 // RenderProfile renders a user's public profile page
-func RenderProfile(w http.ResponseWriter, profile *atproto.Profile, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isAuthenticated bool, userDID string, userProfile *UserProfile, isOwnProfile bool) error {
-	t, err := parsePageTemplate("profile.tmpl")
-	if err != nil {
-		return err
-	}
-
-	displayName := profile.Handle
-	if profile.DisplayName != nil && *profile.DisplayName != "" {
-		displayName = *profile.DisplayName
-	}
-
-	data := &ProfilePageData{
-		Title:           displayName + "'s Profile",
-		Profile:         profile,
-		Brews:           brews,
-		Beans:           beans,
-		Roasters:        roasters,
-		Grinders:        grinders,
-		Brewers:         brewers,
-		IsAuthenticated: isAuthenticated,
-		UserDID:         userDID,
-		UserProfile:     userProfile,
-		IsOwnProfile:    isOwnProfile,
-	}
-	return t.ExecuteTemplate(w, "layout", data)
-}
 
 // RenderProfilePartial renders just the profile content partial (for HTMX async loading)
 func RenderProfilePartial(w http.ResponseWriter, brews []*models.Brew, beans []*models.Bean, roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool, profileHandle string) error {

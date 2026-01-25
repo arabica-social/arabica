@@ -2,10 +2,12 @@
   import { onMount } from 'svelte';
   import { authStore } from '../stores/auth.js';
   import { cacheStore } from '../stores/cache.js';
-  import { navigate } from '../lib/router.js';
+  import { navigate, back } from '../lib/router.js';
   import { api } from '../lib/api.js';
   
-  export let id; // RKey from route
+  export let id = null; // RKey from route (for own brews)
+  export let did = null; // DID from route (for other users' brews)
+  export let rkey = null; // RKey from route (for other users' brews)
   
   let brew = null;
   let loading = true;
@@ -13,6 +15,7 @@
   let isOwnProfile = false;
   
   $: isAuthenticated = $authStore.isAuthenticated;
+  $: currentUserDID = $authStore.user?.did;
   
   // Calculate total water from pours if water_amount is 0
   $: totalWater = brew && (brew.water_amount || 0) === 0 && brew.pours && brew.pours.length > 0
@@ -25,21 +28,53 @@
       return;
     }
     
-    // Load from cache first
+    // Determine if viewing own brew or someone else's
+    if (did && rkey) {
+      // Viewing another user's brew
+      isOwnProfile = did === currentUserDID;
+      await loadBrewFromAPI(did, rkey);
+    } else if (id) {
+      // Viewing own brew (legacy route)
+      isOwnProfile = true;
+      await loadBrewFromCache(id);
+    }
+    
+    loading = false;
+  });
+  
+  async function loadBrewFromCache(brewRKey) {
     await cacheStore.load();
     const brews = $cacheStore.brews || [];
-    brew = brews.find(b => b.rkey === id);
-    loading = false;
-    isOwnProfile = true; // Currently viewing own profile
-  });
+    brew = brews.find(b => b.rkey === brewRKey);
+    if (!brew) {
+      error = 'Brew not found';
+    }
+  }
+  
+  async function loadBrewFromAPI(userDID, brewRKey) {
+    try {
+      // Fetch brew from API using AT-URI
+      const atURI = `at://${userDID}/social.arabica.alpha.brew/${brewRKey}`;
+      brew = await api.get(`/api/brew?uri=${encodeURIComponent(atURI)}`);
+    } catch (err) {
+      console.error('Failed to load brew:', err);
+      error = err.message || 'Failed to load brew';
+    }
+  }
   
   async function deleteBrew() {
     if (!confirm('Are you sure you want to delete this brew?')) {
       return;
     }
     
+    const brewRKey = rkey || id;
+    if (!brewRKey) {
+      alert('Cannot delete brew: missing ID');
+      return;
+    }
+    
     try {
-      await api.delete(`/brews/${id}`);
+      await api.delete(`/brews/${brewRKey}`);
       await cacheStore.invalidate();
       navigate('/brews');
     } catch (err) {
@@ -96,7 +131,7 @@
         {#if isOwnProfile}
           <div class="flex gap-2">
             <button
-              on:click={() => navigate(`/brews/${brew.rkey}/edit`)}
+              on:click={() => navigate(`/brews/${rkey || id || brew.rkey}/edit`)}
               class="inline-flex items-center bg-brown-300 text-brown-900 px-4 py-2 rounded-lg hover:bg-brown-400 font-medium transition-colors"
             >
               Edit

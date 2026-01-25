@@ -3,9 +3,11 @@
   import { authStore } from '../stores/auth.js';
   import { cacheStore } from '../stores/cache.js';
   import { navigate } from '../lib/router.js';
+  import { api } from '../lib/api.js';
   
   let brews = [];
   let loading = true;
+  let deleting = null; // Track which brew is being deleted
   
   $: isAuthenticated = $authStore.isAuthenticated;
   
@@ -47,6 +49,23 @@
     }
     
     return null;
+  }
+  
+  async function deleteBrew(rkey) {
+    if (!confirm('Are you sure you want to delete this brew?')) {
+      return;
+    }
+    
+    deleting = rkey;
+    try {
+      await api.delete(`/brews/${rkey}`);
+      await cacheStore.invalidate();
+      brews = $cacheStore.brews || [];
+    } catch (err) {
+      alert('Failed to delete brew: ' + err.message);
+    } finally {
+      deleting = null;
+    }
   }
 </script>
 
@@ -137,7 +156,7 @@
                 </span>
               {/if}
               
-              <div class="flex gap-2">
+              <div class="flex gap-2 items-center">
                 <a
                   href="/brews/{brew.rkey}"
                   on:click|preventDefault={() => navigate(`/brews/${brew.rkey}`)}
@@ -153,6 +172,14 @@
                 >
                   Edit
                 </a>
+                <span class="text-brown-400">|</span>
+                <button
+                  on:click={() => deleteBrew(brew.rkey)}
+                  disabled={deleting === brew.rkey}
+                  class="text-red-600 hover:text-red-800 text-sm font-medium hover:underline disabled:opacity-50"
+                >
+                  {deleting === brew.rkey ? 'Deleting...' : 'Delete'}
+                </button>
               </div>
             </div>
           </div>

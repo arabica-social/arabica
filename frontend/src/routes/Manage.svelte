@@ -76,14 +76,18 @@
   
   async function saveBean() {
     try {
+      console.log('Saving bean with data:', beanForm);
       if (editingBean) {
+        console.log('Updating bean:', editingBean.rkey);
         await api.put(`/api/beans/${editingBean.rkey}`, beanForm);
       } else {
+        console.log('Creating new bean');
         await api.post('/api/beans', beanForm);
       }
       await cacheStore.invalidate();
       showBeanModal = false;
     } catch (err) {
+      console.error('Bean save error:', err);
       alert('Failed to save bean: ' + err.message);
     }
   }

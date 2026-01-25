@@ -39,7 +39,20 @@
   </div>
 
   <!-- Action header -->
-  <div class="mb-2 text-sm text-brown-700">{item.Action}</div>
+  <div class="mb-2 text-sm text-brown-700">
+    {#if item.RecordType === 'brew' && item.Brew}
+      <span>added a </span>
+      <a 
+        href="/brews/{item.Author.did}/{item.Brew.rkey}"
+        on:click|preventDefault={() => navigate(`/brews/${item.Author.did}/${item.Brew.rkey}`)}
+        class="font-semibold text-brown-800 hover:text-brown-900 hover:underline cursor-pointer"
+      >
+        new brew
+      </a>
+    {:else}
+      {item.Action}
+    {/if}
+  </div>
 
   <!-- Record content -->
   {#if item.RecordType === 'brew' && item.Brew}

@@ -7,8 +7,8 @@ Coffee brew tracking application using AT Protocol for decentralized storage.
 - **Language:** Go 1.21+
 - **HTTP:** stdlib `net/http` with Go 1.22 routing
 - **Storage:** AT Protocol PDS (user data), BoltDB (sessions/feed registry)
-- **Frontend:** HTMX + Alpine.js + Tailwind CSS
-- **Templates:** html/template
+- **Frontend:** Svelte SPA with client-side routing
+- **Legacy:** HTMX partials still used for some dynamic content (being phased out)
 - **Logging:** zerolog
 
 ## Project Structure
@@ -26,10 +26,10 @@ internal/
     public_client.go        # Unauthenticated public API access
     nsid.go                 # Collection NSIDs and AT-URI builders
   handlers/
-    handlers.go             # HTTP handlers for all routes
+    handlers.go             # HTTP handlers (API endpoints + HTMX partials)
     auth.go                 # OAuth login/logout/callback
   bff/
-    render.go               # Template rendering helpers
+    render.go               # Legacy template rendering (HTMX partials only)
     helpers.go              # View helpers (formatting, etc.)
   database/
     store.go                # Store interface definition
@@ -43,9 +43,17 @@ internal/
     logging.go              # Request logging middleware
   routing/
     routing.go              # Router setup and middleware chain
+frontend/                   # Svelte SPA source code
+  src/
+    routes/                 # Page components
+    components/             # Reusable components
+    stores/                 # Svelte stores (auth, cache)
+    lib/                    # Utilities (router, API client)
+  public/                   # Built SPA assets
 lexicons/                   # AT Protocol lexicon definitions (JSON)
-templates/                  # HTML templates
-web/static/                 # CSS, JS, manifest
+templates/partials/         # Legacy HTMX partial templates (being phased out)
+web/static/                 # Static assets (CSS, icons, service worker)
+  app/                      # Built Svelte SPA
 ```
 
 ## Key Concepts
@@ -83,9 +91,10 @@ All Store methods take `context.Context` as first parameter.
 
 1. Request hits middleware (logging, auth check)
 2. Auth middleware extracts DID + session ID from cookies
-3. Handler creates `AtprotoStore` scoped to user
-4. Store methods make XRPC calls to user's PDS
-5. Results rendered via BFF templates or returned as JSON
+3. For SPA routes: Serve index.html (client-side routing)
+4. For API routes: Handler creates `AtprotoStore` scoped to user
+5. Store methods make XRPC calls to user's PDS
+6. Results returned as JSON (for SPA) or HTML fragments (legacy HTMX partials)
 
 ### Caching
 

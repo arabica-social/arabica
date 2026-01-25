@@ -82,7 +82,7 @@
   });
   
   function addPour() {
-    pours = [...pours, { water_amount: '', time_seconds: '' }];
+    pours = [...pours, { water_amount: 0, time_seconds: 0 }];
   }
   
   function removePour(index) {
@@ -90,8 +90,9 @@
   }
   
   async function handleSubmit() {
-    if (!form.bean_rkey) {
-      alert('Please select a coffee bean');
+    // Validate required fields
+    if (!form.bean_rkey || form.bean_rkey === '') {
+      error = 'Please select a coffee bean';
       return;
     }
     
@@ -365,13 +366,13 @@
                   <span class="text-sm font-medium text-brown-700 min-w-[60px]">Pour {i + 1}:</span>
                   <input
                     type="number"
-                    bind:value={pour.Water}
+                    bind:value={pour.water_amount}
                     placeholder="Water (g)"
                     class="flex-1 rounded border border-brown-300 px-3 py-2 text-sm"
                   />
                   <input
                     type="number"
-                    bind:value={pour.Time}
+                    bind:value={pour.time_seconds}
                     placeholder="Time (s)"
                     class="flex-1 rounded border border-brown-300 px-3 py-2 text-sm"
                   />

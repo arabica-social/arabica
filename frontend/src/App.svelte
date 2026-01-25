@@ -43,13 +43,17 @@
         currentRoute = BrewForm;
         params = { mode: "create" };
       })
-      .on("/brews/:id", (routeParams) => {
-        currentRoute = BrewView;
-        params = routeParams;
-      })
       .on("/brews/:id/edit", (routeParams) => {
         currentRoute = BrewForm;
         params = { ...routeParams, mode: "edit" };
+      })
+      .on("/brews/:did/:rkey", (routeParams) => {
+        currentRoute = BrewView;
+        params = routeParams;
+      })
+      .on("/brews/:id", (routeParams) => {
+        currentRoute = BrewView;
+        params = routeParams;
       })
       .on("/manage", () => {
         currentRoute = Manage;
@@ -72,8 +76,9 @@
         params = {};
       });
 
-    // Start router
+    // Start router and resolve current path
     router.listen();
+    router.route(window.location.pathname);
   });
 </script>
 

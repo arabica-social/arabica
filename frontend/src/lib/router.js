@@ -4,10 +4,7 @@ import navaid from 'navaid';
  * Simple client-side router using navaid
  * Handles browser history and navigation
  */
-const router = navaid('/', () => {
-  // Default handler (fallback to home)
-  window.location.hash = '/';
-});
+const router = navaid('/');
 
 /**
  * Navigate to a route programmatically
