@@ -1,12 +1,28 @@
 {
   "name": "Arabica - Coffee Brew Tracker",
   "short_name": "Arabica",
-  "description": "Track your coffee brewing journey",
+  "description": "Track your coffee brewing journey with detailed logs stored in your Personal Data Server",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#4a2c2a",
-  "theme_color": "#4a2c2a",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "background_color": "#faf8f3",
+  "theme_color": "#78350f",
+  "categories": ["productivity", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/static/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/static/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "form_factor": "wide"
+    }
+  ],
   "icons": [
     {
       "src": "/static/favicon.svg",
@@ -25,6 +41,34 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log a Brew",
+      "short_name": "New Brew",
+      "description": "Create a new brew entry",
+      "url": "/brews?action=new",
+      "icons": [
+        {
+          "src": "/static/icon-192.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "View Brews",
+      "short_name": "My Brews",
+      "description": "View your brew history",
+      "url": "/brews",
+      "icons": [
+        {
+          "src": "/static/icon-192.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
     }
   ]
 }

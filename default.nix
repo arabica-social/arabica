@@ -1,15 +1,37 @@
-{ lib, buildGoModule, tailwindcss }:
+{ lib, buildGoModule, buildNpmPackage }:
 
-buildGoModule rec {
+let
+  frontend = buildNpmPackage {
+    pname = "arabica-frontend";
+    version = "0.1.0";
+    src = ./frontend;
+    npmDepsHash = "sha256-zCQiB+NV3iIxZtZ/hHKZ23FbLzBDJmmngBJ4s3QPhyk=";
+
+    preBuild = ''
+      mkdir -p ../static
+    '';
+
+    buildPhase = ''
+      npm run build
+    '';
+
+    installPhase = ''
+      mkdir -p $out
+      cp -r ../static/app $out/
+    '';
+  };
+in buildGoModule {
   pname = "arabica";
   version = "0.1.0";
   src = ./.;
-  vendorHash = "sha256-mrIFu5c2EuGvYHyjJVqC8WzlsmUJYCm/6yUpJ0IGPlA=";
-
-  nativeBuildInputs = [ tailwindcss ];
+  vendorHash = "sha256-xgxoI2tmT4tVjgy+dv96ptI2YSU8T+Yq+rzApAiJ3yw=";
 
   preBuild = ''
-    tailwindcss -i web/static/css/style.css -o web/static/css/output.css --minify
+    echo "Copying pre-built frontend..."
+    mkdir -p static/app
+    cp -r ${frontend}/app/* static/app/ || true
+    cp -r ${frontend}/* static/app/ || true
+    ls -la static/app/ || true
   '';
 
   buildPhase = ''
@@ -39,9 +61,8 @@ buildGoModule rec {
         mkdir -p $out/bin
         mkdir -p $out/share/arabica
 
-        # Copy static files and templates
-        cp -r web $out/share/arabica/
-        cp -r templates $out/share/arabica/
+        # Copy static files 
+        cp -r static $out/share/arabica/
         cp arabica $out/bin/arabica-unwrapped
         cat > $out/bin/arabica <<'WRAPPER'
     ${wrapperScript}

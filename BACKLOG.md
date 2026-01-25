@@ -58,3 +58,5 @@ Each should be addressed one at a time, and the item should be removed after imp
 - Profile page should show more details, and allow brew entries to take up more vertical space
 
 - Show "view" button on brews in profile page (same as on brews list page)
+
+- Fix nix build, nix run, to build frontend as well

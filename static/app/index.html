@@ -2,43 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Arabica" />
+    <meta name="theme-color" content="#78350f" />
+    <meta name="color-scheme" content="light" />
+    
     <title>Arabica - Coffee Brew Tracker</title>
     <meta
       name="description"
       content="Track your coffee brewing journey with detailed logs stored in your Personal Data Server"
     />
 
-    <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="/static/css/output.css?v=0.1.4" />
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+    <link rel="apple-touch-icon" href="/static/icon-192.svg" />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/static/images/favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="/static/images/favicon-16x16.png"
-    />
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="/static/images/apple-touch-icon.png"
-    />
-
-    <!-- Web Manifest -->
+    <!-- Web Manifest for PWA -->
     <link rel="manifest" href="/static/manifest.json" />
-    <meta name="theme-color" content="#78350f" />
-    <script type="module" crossorigin src="/static/app/assets/index-COWWPLMS.js"></script>
-    <link rel="stylesheet" crossorigin href="/static/app/assets/index-DUcERGgO.css">
+    <script type="module" crossorigin src="/static/app/assets/index-B1vlIgXx.js"></script>
+    <link rel="stylesheet" crossorigin href="/static/app/assets/index-C7VTH3Mq.css">
   </head>
   <body class="bg-brown-50 text-brown-900 min-h-screen">
     <div id="app"></div>
+    <!-- Service Worker Registration (external script for CSP compliance) -->
+    <script defer src="/static/register-sw.js"></script>
   </body>
 </html>

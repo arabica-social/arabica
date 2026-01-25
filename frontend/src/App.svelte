@@ -17,6 +17,8 @@
 
   import Header from "./components/Header.svelte";
   import Footer from "./components/Footer.svelte";
+  import OfflineIndicator from "./components/OfflineIndicator.svelte";
+  import UpdateNotification from "./components/UpdateNotification.svelte";
 
   let currentRoute = null;
   let params = {};
@@ -83,6 +85,9 @@
 </script>
 
 <div class="flex flex-col min-h-screen">
+  <OfflineIndicator />
+  <UpdateNotification />
+  
   <Header />
 
   <main class="flex-1 container mx-auto px-3 md:px-4 py-4 md:py-8">

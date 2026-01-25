@@ -8,7 +8,7 @@
         (system: function nixpkgs.legacyPackages.${system} system);
     in {
       devShells = forAllSystems (pkgs: system: {
-        default = pkgs.mkShell { packages = with pkgs; [ go tailwindcss ]; };
+        default = pkgs.mkShell { packages = with pkgs; [ go nodejs ]; };
       });
 
       packages = forAllSystems (pkgs: system: rec {
@@ -20,13 +20,6 @@
         default = {
           type = "app";
           program = "${self.packages.${system}.arabica}/bin/arabica";
-        };
-        tailwind = {
-          type = "app";
-          program = toString (pkgs.writeShellScript "tailwind-build" ''
-            cd ${./.}
-            ${pkgs.tailwindcss}/bin/tailwindcss -i web/static/css/style.css -o web/static/css/output.css --minify
-          '');
         };
       });
 
