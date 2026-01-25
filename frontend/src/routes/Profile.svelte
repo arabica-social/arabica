@@ -41,6 +41,11 @@
     await loadProfile();
   });
 
+  // Reload profile when actor prop changes (e.g., navigating from one profile to another)
+  $: if (actor) {
+    loadProfile();
+  }
+
   async function loadProfile() {
     try {
       const data = await api.get(`/api/profile-json/${actor}`);

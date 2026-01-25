@@ -13,6 +13,8 @@
   let loading = true;
   let error = null;
   let isOwnProfile = false;
+  let brewOwnerHandle = null;
+  let brewOwnerDID = null;
 
   $: isAuthenticated = $authStore.isAuthenticated;
   $: currentUserDID = $authStore.user?.did;
@@ -52,6 +54,10 @@
     brew = brews.find((b) => b.rkey === brewRKey);
     if (!brew) {
       error = "Brew not found";
+    } else {
+      // Set owner to current user for own brews
+      brewOwnerDID = currentUserDID;
+      brewOwnerHandle = $authStore.user?.handle;
     }
   }
 
@@ -60,6 +66,11 @@
       // Fetch brew from API using AT-URI
       const atURI = `at://${userDID}/social.arabica.alpha.brew/${brewRKey}`;
       brew = await api.get(`/api/brew?uri=${encodeURIComponent(atURI)}`);
+      brewOwnerDID = userDID;
+      
+      // Fetch the profile to get the handle
+      const profileData = await api.get(`/api/profile-json/${userDID}`);
+      brewOwnerHandle = profileData.profile?.handle;
     } catch (err) {
       console.error("Failed to load brew:", err);
       error = err.message || "Failed to load brew";
@@ -341,10 +352,20 @@
       <!-- Back button -->
       <div class="mt-6">
         <button
-          on:click={() => navigate("/brews")}
+          on:click={() => {
+            if (isOwnProfile) {
+              navigate("/brews");
+            } else if (brewOwnerHandle) {
+              navigate(`/profile/${brewOwnerHandle}`);
+            } else if (brewOwnerDID) {
+              navigate(`/profile/${brewOwnerDID}`);
+            } else {
+              navigate("/");
+            }
+          }}
           class="text-brown-700 hover:text-brown-900 font-medium hover:underline"
         >
-          ← Back to Brews
+          ← {isOwnProfile ? "Back to My Brews" : "Back to Profile"}
         </button>
       </div>
     </div>

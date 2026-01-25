@@ -58,7 +58,3 @@ Each should be addressed one at a time, and the item should be removed after imp
 - Profile page should show more details, and allow brew entries to take up more vertical space
 
 - Show "view" button on brews in profile page (same as on brews list page)
-
-- Navigating to "my profile" while on another user's profile, the url changes but the page does not change
-
-- Clicking "back to brews" on brew view page returns user to their brews list, even if the brew belonged to another user
