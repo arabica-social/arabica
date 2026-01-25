@@ -14,6 +14,10 @@ Each should be addressed one at a time, and the item should be removed after imp
   - Is there a compelling reason to do this?
   - Might be good as a sort of witness-cache type thing
 
+- The profile, manage, and brews list pages all function in a similar fashion,
+  should one or more of them be consolidated?
+  - Manage + brews list together probably makes sense
+
 ## Features
 
 1. LARGE: complete record styling refactor that changes from table-style to more mobile-friendly style
@@ -45,7 +49,7 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 ## Fixes
 
-- Migrate terms and about page text. Add links to about at top of non-authed home page
+- Migrate terms page text. Add links to about at top of non-authed home page
 
 - Backfill on startup should be cache invalidated if time since last backfill exceeds some amount (set in code/env var maybe?)
 
@@ -53,4 +57,8 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 - Profile page should show more details, and allow brew entries to take up more vertical space
 
-- Show "view" button on brews in profile page
+- Show "view" button on brews in profile page (same as on brews list page)
+
+- Navigating to "my profile" while on another user's profile, the url changes but the page does not change
+
+- Clicking "back to brews" on brew view page returns user to their brews list, even if the brew belonged to another user
