@@ -8,7 +8,7 @@
         (system: function nixpkgs.legacyPackages.${system} system);
     in {
       devShells = forAllSystems (pkgs: system: {
-        default = pkgs.mkShell { packages = with pkgs; [ go nodejs ]; };
+        default = pkgs.mkShell { packages = with pkgs; [ go nodejs pnpm ]; };
       });
 
       packages = forAllSystems (pkgs: system: rec {

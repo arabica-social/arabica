@@ -1,25 +1,32 @@
-{ lib, buildGoModule, buildNpmPackage }:
+{ lib, buildGoModule, stdenv, fetchPnpmDeps, nodejs, pnpm_10, pnpmConfigHook }:
 
 let
-  frontend = buildNpmPackage {
+  frontend = stdenv.mkDerivation (finalAttrs: {
     pname = "arabica-frontend";
     version = "0.1.0";
     src = ./frontend;
-    npmDepsHash = "sha256-zCQiB+NV3iIxZtZ/hHKZ23FbLzBDJmmngBJ4s3QPhyk=";
+
+    nativeBuildInputs = [ nodejs pnpmConfigHook pnpm_10 ];
+
+    pnpmDeps = fetchPnpmDeps {
+      inherit (finalAttrs) pname version src;
+      fetcherVersion = 3;
+      hash = "sha256-GPrCoxtCx3FrB6ypJvrVYGzAEi2vktJuu0nJOKAGQ7c=";
+    };
 
     preBuild = ''
       mkdir -p ../static
     '';
 
     buildPhase = ''
-      npm run build
+      pnpm run build
     '';
 
     installPhase = ''
       mkdir -p $out
       cp -r ../static/app $out/
     '';
-  };
+  });
 in buildGoModule {
   pname = "arabica";
   version = "0.1.0";

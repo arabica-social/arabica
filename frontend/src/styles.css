@@ -10,7 +10,7 @@
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* Prevent iOS zoom on input focus */
   @media (max-width: 768px) {
     input,

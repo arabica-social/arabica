@@ -52,3 +52,6 @@ known-dids.txt
 
 node_modules
 static/app/assets
+
+# pnpm
+.pnpm-store

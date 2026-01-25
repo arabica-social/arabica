@@ -41,9 +41,7 @@
     >
   </div>
 
-  <div
-    class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg"
-  >
+  <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg">
     <p class="text-sm text-brown-800">
       <strong>Alpha Software:</strong> Arabica is currently in early development.
       Features may change, and data structures could be modified in future updates.
@@ -73,8 +71,8 @@
       </h3>
       <ul class="list-disc list-inside space-y-2 text-brown-800">
         <li>
-          <strong>You own your data</strong> - All your brew logs live in your
-          PDS, not our servers
+          <strong>You own your data</strong> - All your brew logs live in your PDS,
+          not our servers
         </li>
         <li>
           <strong>Portable identity</strong> - Switch PDS providers anytime without
@@ -135,19 +133,16 @@
         The AT Protocol Advantage
       </h2>
       <p class="text-brown-800 leading-relaxed">
-        The AT Protocol is a decentralized social networking protocol that
-        gives users true ownership of their data and identity. When you use
-        Arabica:
+        The AT Protocol is a decentralized social networking protocol that gives
+        users true ownership of their data and identity. When you use Arabica:
       </p>
       <ul class="list-disc list-inside space-y-2 text-brown-800 mt-3">
         <li>
-          Your brew data is stored as ATProto records in collections on your
-          PDS
+          Your brew data is stored as ATProto records in collections on your PDS
         </li>
         <li>You authenticate via OAuth with your PDS, not with us</li>
         <li>
-          References between records (like linking a brew to a bean) use
-          AT-URIs
+          References between records (like linking a brew to a bean) use AT-URIs
         </li>
         <li>
           Your identity is portable - change PDS providers without losing your
@@ -159,9 +154,7 @@
     <section
       class="bg-gradient-to-br from-amber-50 to-brown-100 border-2 border-brown-300 p-6 rounded-xl shadow-lg"
     >
-      <h3 class="text-xl font-semibold text-brown-900 mb-3">
-        Getting Started
-      </h3>
+      <h3 class="text-xl font-semibold text-brown-900 mb-3">Getting Started</h3>
       <p class="text-brown-800 mb-4">
         To use Arabica, you'll need an account on a PDS that supports the AT
         Protocol. The easiest way is to create a Bluesky account at <a
