@@ -215,9 +215,10 @@
       <form on:submit|preventDefault={handleSubmit} class="space-y-6">
         <!-- Bean Selection -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Coffee Bean *</label>
+          <label for="bean-select" class="block text-sm font-medium text-brown-900 mb-2">Coffee Bean *</label>
           <div class="flex gap-2">
             <select
+              id="bean-select"
               bind:value={form.bean_rkey}
               required
               class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 truncate max-w-full bg-white"
@@ -241,8 +242,9 @@
         
         <!-- Coffee Amount -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Coffee Amount (grams)</label>
+          <label for="coffee-amount" class="block text-sm font-medium text-brown-900 mb-2">Coffee Amount (grams)</label>
           <input
+            id="coffee-amount"
             type="number"
             bind:value={form.coffee_amount}
             step="0.1"
@@ -254,9 +256,10 @@
         
         <!-- Grinder -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Grinder</label>
+          <label for="grinder-select" class="block text-sm font-medium text-brown-900 mb-2">Grinder</label>
           <div class="flex gap-2">
             <select
+              id="grinder-select"
               bind:value={form.grinder_rkey}
               class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 truncate max-w-full bg-white"
             >
@@ -277,8 +280,9 @@
         
         <!-- Grind Size -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Grind Size</label>
+          <label for="grind-size" class="block text-sm font-medium text-brown-900 mb-2">Grind Size</label>
           <input
+            id="grind-size"
             type="text"
             bind:value={form.grind_size}
             placeholder="e.g. 18, Medium, 3.5, Fine"
@@ -289,9 +293,10 @@
         
         <!-- Brew Method -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Brew Method</label>
+          <label for="brewer-select" class="block text-sm font-medium text-brown-900 mb-2">Brew Method</label>
           <div class="flex gap-2">
             <select
+              id="brewer-select"
               bind:value={form.brewer_rkey}
               class="flex-1 rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-3 px-4 truncate max-w-full bg-white"
             >
@@ -312,8 +317,9 @@
         
         <!-- Water Amount -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Water Amount (ml)</label>
+          <label for="water-amount" class="block text-sm font-medium text-brown-900 mb-2">Water Amount (ml)</label>
           <input
+            id="water-amount"
             type="number"
             bind:value={form.water_amount}
             step="1"
@@ -324,8 +330,9 @@
         
         <!-- Water Temperature -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Water Temperature (°C)</label>
+          <label for="water-temp" class="block text-sm font-medium text-brown-900 mb-2">Water Temperature (°C)</label>
           <input
+            id="water-temp"
             type="number"
             bind:value={form.water_temp}
             step="0.1"
@@ -336,8 +343,9 @@
         
         <!-- Brew Time -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Total Brew Time (seconds)</label>
+          <label for="brew-time" class="block text-sm font-medium text-brown-900 mb-2">Total Brew Time (seconds)</label>
           <input
+            id="brew-time"
             type="number"
             bind:value={form.brew_time}
             step="1"
@@ -349,7 +357,7 @@
         <!-- Pours -->
         <div>
           <div class="flex items-center justify-between mb-2">
-            <label class="block text-sm font-medium text-brown-900">Pour Schedule (Optional)</label>
+            <span class="block text-sm font-medium text-brown-900">Pour Schedule (Optional)</span>
             <button
               type="button"
               on:click={addPour}
@@ -391,10 +399,11 @@
         
         <!-- Rating -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">
+          <label for="rating" class="block text-sm font-medium text-brown-900 mb-2">
             Rating: <span class="font-bold">{form.rating}/10</span>
           </label>
           <input
+            id="rating"
             type="range"
             bind:value={form.rating}
             min="0"
@@ -410,8 +419,9 @@
         
         <!-- Notes -->
         <div>
-          <label class="block text-sm font-medium text-brown-900 mb-2">Tasting Notes</label>
+          <label for="notes" class="block text-sm font-medium text-brown-900 mb-2">Tasting Notes</label>
           <textarea
+            id="notes"
             bind:value={form.notes}
             rows="4"
             placeholder="Describe the flavor, aroma, body, etc."
@@ -450,16 +460,16 @@
 >
   <div class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-      <input type="text" bind:value={beanForm.name} class="w-full rounded border-gray-300 px-3 py-2" />
+      <label for="bean-name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+      <input id="bean-name" type="text" bind:value={beanForm.name} class="w-full rounded border-gray-300 px-3 py-2" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Origin *</label>
-      <input type="text" bind:value={beanForm.origin} required class="w-full rounded border-gray-300 px-3 py-2" />
+      <label for="bean-origin" class="block text-sm font-medium text-gray-700 mb-1">Origin *</label>
+      <input id="bean-origin" type="text" bind:value={beanForm.origin} required class="w-full rounded border-gray-300 px-3 py-2" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Roast Level *</label>
-      <select bind:value={beanForm.roast_level} required class="w-full rounded border-gray-300 px-3 py-2">
+      <label for="bean-roast-level" class="block text-sm font-medium text-gray-700 mb-1">Roast Level *</label>
+      <select id="bean-roast-level" bind:value={beanForm.roast_level} required class="w-full rounded border-gray-300 px-3 py-2">
         <option value="">Select...</option>
         <option value="Light">Light</option>
         <option value="Medium-Light">Medium-Light</option>
@@ -469,9 +479,9 @@
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Roaster</label>
+      <label for="bean-roaster" class="block text-sm font-medium text-gray-700 mb-1">Roaster</label>
       <div class="flex gap-2">
-        <select bind:value={beanForm.roaster_rkey} class="flex-1 rounded border-gray-300 px-3 py-2">
+        <select id="bean-roaster" bind:value={beanForm.roaster_rkey} class="flex-1 rounded border-gray-300 px-3 py-2">
           <option value="">Select...</option>
           {#each roasters as roaster}
             <option value={roaster.rkey}>{roaster.name}</option>
@@ -497,12 +507,12 @@
 >
   <div class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-      <input type="text" bind:value={roasterForm.name} required class="w-full rounded border-gray-300 px-3 py-2" />
+      <label for="roaster-name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+      <input id="roaster-name" type="text" bind:value={roasterForm.name} required class="w-full rounded border-gray-300 px-3 py-2" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-      <input type="text" bind:value={roasterForm.location} class="w-full rounded border-gray-300 px-3 py-2" />
+      <label for="roaster-location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+      <input id="roaster-location" type="text" bind:value={roasterForm.location} class="w-full rounded border-gray-300 px-3 py-2" />
     </div>
   </div>
 </Modal>
@@ -515,12 +525,12 @@
 >
   <div class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-      <input type="text" bind:value={grinderForm.name} required class="w-full rounded border-gray-300 px-3 py-2" />
+      <label for="grinder-name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+      <input id="grinder-name" type="text" bind:value={grinderForm.name} required class="w-full rounded border-gray-300 px-3 py-2" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-      <select bind:value={grinderForm.grinder_type} class="w-full rounded border-gray-300 px-3 py-2">
+      <label for="grinder-type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+      <select id="grinder-type" bind:value={grinderForm.grinder_type} class="w-full rounded border-gray-300 px-3 py-2">
         <option value="">Select...</option>
         <option value="Manual">Manual</option>
         <option value="Electric">Electric</option>
@@ -538,12 +548,12 @@
 >
   <div class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-      <input type="text" bind:value={brewerForm.name} required class="w-full rounded border-gray-300 px-3 py-2" />
+      <label for="brewer-name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+      <input id="brewer-name" type="text" bind:value={brewerForm.name} required class="w-full rounded border-gray-300 px-3 py-2" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-      <select bind:value={brewerForm.brewer_type} class="w-full rounded border-gray-300 px-3 py-2">
+      <label for="brewer-type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+      <select id="brewer-type" bind:value={brewerForm.brewer_type} class="w-full rounded border-gray-300 px-3 py-2">
         <option value="">Select...</option>
         <option value="Pour Over">Pour Over</option>
         <option value="French Press">French Press</option>

@@ -1,5 +1,4 @@
 <script>
-  export let label;
   export let onSave;
   export let onCancel;
   export let isOpen = false;
