@@ -1,7 +1,0 @@
----
-title: all used
-test_name: TestIterateRemaining_Snapshot/all_used
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-[]int(nil)

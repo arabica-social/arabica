@@ -1,7 +1,0 @@
----
-title: decimal celsius
-test_name: TestFormatTempValue_Snapshot/decimal_celsius
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-"92.5"

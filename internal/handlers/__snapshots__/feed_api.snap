@@ -1,0 +1,10 @@
+---
+title: feed_api
+test_name: TestFeedAPI_Snapshot
+file_name: api_snapshot_test.go
+version: 0.1.0
+---
+{
+  "isAuthenticated": false,
+  "items": null
+}

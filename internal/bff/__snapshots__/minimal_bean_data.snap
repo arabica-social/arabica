@@ -1,7 +1,0 @@
----
-title: minimal bean data
-test_name: TestTemplateRendering_BeanCard_Snapshot/minimal_bean_data
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-"\n<div class=\"bean-card\">\n  <h3>House Blend</h3>\n  \n  \n</div>\n"

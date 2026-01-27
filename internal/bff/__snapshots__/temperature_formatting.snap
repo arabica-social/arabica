@@ -1,7 +1,0 @@
----
-title: temperature_formatting
-test_name: TestFormatHelpers_Snapshot/temperature_formatting
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-[]string{"N/A", "20.5°C", "93.0°C", "100.0°C", "200.5°F", "212.0°F"}

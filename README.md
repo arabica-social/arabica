@@ -2,12 +2,10 @@
 
 Coffee brew tracking application build on ATProto
 
-Development is on GitHub, and is mirrored to Tangled:
+Development is primarily happening on Tangled, and is mirrored to GitHub:
 
 - [Tangled](https://tangled.org/arabica.social/arabica)
 - [GitHub](https://github.com/arabica-social/arabica)
-
-GitHub is currently the primary repo, but that may change in the future.
 
 ## Features
 
@@ -15,15 +13,7 @@ GitHub is currently the primary repo, but that may change in the future.
 - Store data in your AT Protocol Personal Data Server
 - Community feed of recent brews from registered users (polling or real-time firehose)
 - Manage beans, roasters, grinders, and brewers
-- Export brew data as JSON
 - Mobile-friendly PWA design
-
-## Tech Stack
-
-- Backend: Go with stdlib HTTP router
-- Storage: AT Protocol Personal Data Servers + BoltDB for local cache
-- Templates: html/template
-- Frontend: HTMX + Alpine.js + Tailwind CSS
 
 ## Quick Start
 
@@ -32,20 +22,17 @@ GitHub is currently the primary repo, but that may change in the future.
 nix run
 
 # Or with Go
-go run cmd/server/main.go
+go run cmd/arabica-server/main.go
 ```
 
 Access at http://localhost:18910
 
 ## Docker
 
-```bash
-# Build and run with Docker Compose
-docker compose up -d
+Build and run with Docker Compose:
 
-# Or build and run manually
-docker build -t arabica .
-docker run -p 18910:18910 -v arabica-data:/data arabica
+```bash
+docker compose -f deploy/compose.yml up -d
 ```
 
 For production deployments, configure environment variables in `docker-compose.yml`:
@@ -53,7 +40,6 @@ For production deployments, configure environment variables in `docker-compose.y
 ```yaml
 environment:
   - SERVER_PUBLIC_URL=https://arabica.example.com
-  - SECURE_COOKIES=true
 ```
 
 ## Configuration
@@ -65,26 +51,14 @@ environment:
 ### Environment Variables
 
 - `PORT` - Server port (default: 18910)
-- `SERVER_PUBLIC_URL` - Public URL for reverse proxy deployments (e.g., https://arabica.example.com)
+- `SERVER_PUBLIC_URL` - Public URL for reverse proxy deployments (e.g., https://arabica.example.com). When set to an HTTPS URL, secure cookies are automatically enabled.
 - `ARABICA_DB_PATH` - BoltDB path (default: ~/.local/share/arabica/arabica.db)
 - `ARABICA_FEED_INDEX_PATH` - Firehose index BoltDB path (default: ~/.local/share/arabica/feed-index.db)
 - `ARABICA_PROFILE_CACHE_TTL` - Profile cache duration (default: 1h)
 - `OAUTH_CLIENT_ID` - OAuth client ID (optional, uses localhost mode if not set)
 - `OAUTH_REDIRECT_URI` - OAuth redirect URI (optional)
-- `SECURE_COOKIES` - Set to true for HTTPS (default: false)
 - `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
 - `LOG_FORMAT` - Log format: console, json (default: console)
-
-## Architecture
-
-Data is stored in AT Protocol records on users' Personal Data Servers. The application uses OAuth to authenticate with the PDS and performs all CRUD operations via the AT Protocol API.
-
-Local BoltDB stores:
-
-- OAuth session data
-- Feed registry (list of DIDs for community feed)
-
-See docs/ for detailed documentation.
 
 ## Development
 
@@ -93,13 +67,13 @@ See docs/ for detailed documentation.
 nix develop
 
 # Run server
-go run cmd/server/main.go
+go run cmd/arabica-server/main.go
 
 # Run tests
 go test ./...
 
 # Build
-go build -o arabica cmd/server/main.go
+go build -o arabica cmd/arabica-server/main.go
 ```
 
 ## Deployment
@@ -111,11 +85,11 @@ When deploying behind a reverse proxy (nginx, Caddy, Cloudflare Tunnel, etc.), s
 ```bash
 # Example with nginx reverse proxy
 SERVER_PUBLIC_URL=https://arabica.example.com
-SECURE_COOKIES=true
 PORT=18910
 
 # The server listens on localhost:18910
 # But OAuth callbacks use https://arabica.example.com/oauth/callback
+# Secure cookies are automatically enabled when SERVER_PUBLIC_URL uses HTTPS
 ```
 
 The `SERVER_PUBLIC_URL` is used for OAuth client metadata and callback URLs, ensuring the AT Protocol OAuth flow works correctly when the server is accessed via a different URL than it's running on.

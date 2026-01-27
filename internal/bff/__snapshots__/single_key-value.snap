@@ -1,9 +1,0 @@
----
-title: single key-value
-test_name: TestDict_Snapshot/single_key-value
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-map[string]interface{}{
-  "key1": "value1",
-}

@@ -1,7 +1,0 @@
----
-title: negative temperature
-test_name: TestHasTemp_Snapshot/negative_temperature
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-false

@@ -342,6 +342,43 @@ func TestRecordToBean(t *testing.T) {
 			t.Error("RecordToBean() should error without name")
 		}
 	})
+
+	t.Run("extracts roasterRKey from roasterRef", func(t *testing.T) {
+		record := map[string]interface{}{
+			"$type":      NSIDBean,
+			"name":       "Ethiopian Yirgacheffe",
+			"roasterRef": "at://did:plc:hm5f3dnm6jdhrc55qp2npdja/social.arabica.alpha.roaster/3mc6ixb5f3s2i",
+			"createdAt":  "2025-01-10T12:00:00Z",
+		}
+
+		atURI := "at://did:plc:test/social.arabica.alpha.bean/bean123"
+		bean, err := RecordToBean(record, atURI)
+		if err != nil {
+			t.Fatalf("RecordToBean() error = %v", err)
+		}
+
+		if bean.RoasterRKey != "3mc6ixb5f3s2i" {
+			t.Errorf("RoasterRKey = %v, want %v", bean.RoasterRKey, "3mc6ixb5f3s2i")
+		}
+	})
+
+	t.Run("handles missing roasterRef gracefully", func(t *testing.T) {
+		record := map[string]interface{}{
+			"$type":     NSIDBean,
+			"name":      "Ethiopian Yirgacheffe",
+			"createdAt": "2025-01-10T12:00:00Z",
+		}
+
+		atURI := "at://did:plc:test/social.arabica.alpha.bean/bean123"
+		bean, err := RecordToBean(record, atURI)
+		if err != nil {
+			t.Fatalf("RecordToBean() error = %v", err)
+		}
+
+		if bean.RoasterRKey != "" {
+			t.Errorf("RoasterRKey = %v, want empty string", bean.RoasterRKey)
+		}
+	})
 }
 
 func TestRoasterToRecord(t *testing.T) {

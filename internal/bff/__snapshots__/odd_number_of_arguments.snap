@@ -1,7 +1,0 @@
----
-title: odd number of arguments
-test_name: TestDict_ErrorCases_Snapshot/odd_number_of_arguments
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-"dict requires an even number of arguments"

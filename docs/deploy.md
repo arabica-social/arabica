@@ -127,8 +127,7 @@ All available environment variables in `.env`:
 | `ACME_EMAIL`        | (empty)                              | Email for Let's Encrypt         |
 | `LOG_LEVEL`         | info                                 | debug/info/warn/error           |
 | `LOG_FORMAT`        | json                                 | console/json                    |
-| `SERVER_PUBLIC_URL` | https://${DOMAIN}                    | Override public URL             |
-| `SECURE_COOKIES`    | true                                 | Use secure cookies              |
+| `SERVER_PUBLIC_URL` | https://${DOMAIN}                    | Override public URL (enables secure cookies when HTTPS) |
 
 ## Support
 

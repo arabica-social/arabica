@@ -1,7 +1,0 @@
----
-title: bean with only origin
-test_name: TestTemplateRendering_BeanCard_Snapshot/bean_with_only_origin
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-"\n<div class=\"bean-card\">\n  <h3></h3>\n  <p>Origin: Colombia</p>\n  \n</div>\n"

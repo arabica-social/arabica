@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Touch targets for interactive elements only */
+  button,
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* TODO: figure this out, @apply may not work with tailwind v4 */
+  /* a { */
+  /*   @apply text-blue-600 hover:text-blue-800 underline; */
+  /* } */
+
+  /* Prevent iOS zoom on input focus */
+  @media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+/* HTMX loading state */
+.htmx-swapping {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}

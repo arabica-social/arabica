@@ -91,8 +91,29 @@ func RecordToBrew(record map[string]interface{}, atURI string) (*models.Brew, er
 	if !ok || beanRef == "" {
 		return nil, fmt.Errorf("beanRef is required")
 	}
-	// Store the beanRef for later resolution
-	// For now, we'll just note it exists but won't resolve it here
+	// Extract rkey from beanRef AT-URI
+	if beanRef != "" {
+		parsedBeanURI, err := syntax.ParseATURI(beanRef)
+		if err == nil {
+			brew.BeanRKey = parsedBeanURI.RecordKey().String()
+		}
+	}
+
+	// Optional: grinderRef
+	if grinderRef, ok := record["grinderRef"].(string); ok && grinderRef != "" {
+		parsedGrinderURI, err := syntax.ParseATURI(grinderRef)
+		if err == nil {
+			brew.GrinderRKey = parsedGrinderURI.RecordKey().String()
+		}
+	}
+
+	// Optional: brewerRef
+	if brewerRef, ok := record["brewerRef"].(string); ok && brewerRef != "" {
+		parsedBrewerURI, err := syntax.ParseATURI(brewerRef)
+		if err == nil {
+			brew.BrewerRKey = parsedBrewerURI.RecordKey().String()
+		}
+	}
 
 	// Required field: createdAt
 	createdAtStr, ok := record["createdAt"].(string)
@@ -228,6 +249,14 @@ func RecordToBean(record map[string]interface{}, atURI string) (*models.Bean, er
 	}
 	if description, ok := record["description"].(string); ok {
 		bean.Description = description
+	}
+
+	// Optional: roasterRef
+	if roasterRef, ok := record["roasterRef"].(string); ok && roasterRef != "" {
+		parsedRoasterURI, err := syntax.ParseATURI(roasterRef)
+		if err == nil {
+			bean.RoasterRKey = parsedRoasterURI.RecordKey().String()
+		}
 	}
 
 	return bean, nil

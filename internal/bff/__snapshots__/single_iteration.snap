@@ -1,7 +1,0 @@
----
-title: single iteration
-test_name: TestIterate_Snapshot/single_iteration
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-[]int{0}

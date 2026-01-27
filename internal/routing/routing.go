@@ -42,28 +42,24 @@ func SetupRouter(cfg Config) http.Handler {
 	// Auth-protected but accessible without HTMX header (called from JavaScript)
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
 
-	// HTMX partials (loaded async via HTMX)
-	// These return HTML fragments and should only be accessed via HTMX
-	mux.Handle("GET /api/feed", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleFeedPartial)))
-	mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleBrewListPartial)))
-	mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleManagePartial)))
-	mux.Handle("GET /api/profile/{actor}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleProfilePartial)))
+	// API route for current user info (used by Svelte auth store)
+	mux.HandleFunc("GET /api/me", h.HandleAPIMe)
 
-	// Page routes (must come before static files)
-	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
-	mux.HandleFunc("GET /about", h.HandleAbout)
-	mux.HandleFunc("GET /terms", h.HandleTerms)
-	mux.HandleFunc("GET /manage", h.HandleManage)
-	mux.HandleFunc("GET /brews", h.HandleBrewList)
-	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
-	mux.HandleFunc("GET /brews/{id}", h.HandleBrewView)
-	mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
+	// API endpoint for feed (JSON)
+	mux.HandleFunc("GET /api/feed-json", h.HandleFeedAPI)
+
+	// API endpoint for fetching public brew by AT-URI
+	mux.HandleFunc("GET /api/brew", h.HandleBrewGetPublic)
+
+	// API endpoint for profile data (JSON for Svelte)
+	mux.HandleFunc("GET /api/profile-json/{actor}", h.HandleProfileAPI)
+
+	// Brew CRUD API routes (used by Svelte SPA)
 	mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
 	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
 	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
-	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
 
-	// API routes for CRUD operations
+	// Entity CRUD API routes (used by Svelte SPA)
 	mux.Handle("POST /api/beans", cop.Handler(http.HandlerFunc(h.HandleBeanCreate)))
 	mux.Handle("PUT /api/beans/{id}", cop.Handler(http.HandlerFunc(h.HandleBeanUpdate)))
 	mux.Handle("DELETE /api/beans/{id}", cop.Handler(http.HandlerFunc(h.HandleBeanDelete)))
@@ -80,15 +76,13 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("PUT /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerUpdate)))
 	mux.Handle("DELETE /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerDelete)))
 
-	// Profile routes (public user profiles)
-	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
-
 	// Static files (must come after specific routes)
-	fs := http.FileServer(http.Dir("web/static"))
+	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
-	// Catch-all 404 handler - must be last, catches any unmatched routes
-	mux.HandleFunc("/", h.HandleNotFound)
+	// SPA fallback - serve index.html for all unmatched routes (client-side routing)
+	// This must be after all API routes and static files
+	mux.HandleFunc("GET /{path...}", h.HandleSPAFallback)
 
 	// Apply middleware in order (outermost first, innermost last)
 	var handler http.Handler = mux

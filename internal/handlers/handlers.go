@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 
 	"arabica/internal/atproto"
-	"arabica/internal/bff"
 	"arabica/internal/database"
 	"arabica/internal/feed"
 	"arabica/internal/models"
@@ -82,33 +80,6 @@ func validateOptionalRKey(rkey, fieldName string) string {
 	return ""
 }
 
-// getUserProfile fetches the profile for an authenticated user.
-// Returns nil if unable to fetch profile (non-fatal error).
-func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfile {
-	if did == "" {
-		return nil
-	}
-
-	publicClient := atproto.NewPublicClient()
-	profile, err := publicClient.GetProfile(ctx, did)
-	if err != nil {
-		log.Warn().Err(err).Str("did", did).Msg("Failed to fetch user profile for header")
-		return nil
-	}
-
-	userProfile := &bff.UserProfile{
-		Handle: profile.Handle,
-	}
-	if profile.DisplayName != nil {
-		userProfile.DisplayName = *profile.DisplayName
-	}
-	if profile.Avatar != nil {
-		userProfile.Avatar = *profile.Avatar
-	}
-
-	return userProfile
-}
-
 // getAtprotoStore creates a user-scoped atproto store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
 func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
@@ -135,27 +106,15 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 	return store, true
 }
 
-// Home page
-func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
-	// Check if user is authenticated
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	// Fetch user profile for authenticated users
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	// Don't fetch feed items here - let them load async via HTMX
-	if err := bff.RenderHome(w, isAuthenticated, didStr, userProfile, nil); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render home page")
-	}
+// SPA fallback handler - serves index.html for client-side routes
+func (h *Handler) HandleSPAFallback(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "static/app/index.html")
 }
 
-// Community feed partial (loaded async via HTMX)
-func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
+// Home page
+
+// API endpoint for feed (JSON)
+func (h *Handler) HandleFeedAPI(w http.ResponseWriter, r *http.Request) {
 	var feedItems []*feed.FeedItem
 
 	// Check if user is authenticated
@@ -171,218 +130,185 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := bff.RenderFeedPartial(w, feedItems, isAuthenticated); err != nil {
-		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render feed partial")
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"items":           feedItems,
+		"isAuthenticated": isAuthenticated,
+	}); err != nil {
+		log.Error().Err(err).Msg("Failed to encode feed API response")
 	}
 }
 
-// Brew list partial (loaded async via HTMX)
-func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
-	if err != nil {
-		http.Error(w, "Failed to fetch brews", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to fetch brews")
-		return
-	}
-
-	if err := bff.RenderBrewListPartial(w, brews); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew list partial")
-	}
-}
-
-// Manage page partial (loaded async via HTMX)
-func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+// HandleProfileAPI returns profile data for a given actor (handle or DID)
+func (h *Handler) HandleProfileAPI(w http.ResponseWriter, r *http.Request) {
+	actor := r.PathValue("actor")
+	if actor == "" {
+		http.Error(w, "Actor parameter required", http.StatusBadRequest)
 		return
 	}
 
 	ctx := r.Context()
 
-	// Fetch all collections in parallel using errgroup for proper error handling
-	// and automatic context cancellation on first error
+	// Check if current user is authenticated
+	currentUserDID, err := atproto.GetAuthenticatedDID(ctx)
+	isAuthenticated := err == nil && currentUserDID != ""
+
+	// Resolve actor to DID
+	var targetDID string
+	if strings.HasPrefix(actor, "did:") {
+		targetDID = actor
+	} else {
+		// Resolve handle to DID
+		publicClient := atproto.NewPublicClient()
+		resolvedDID, err := publicClient.ResolveHandle(ctx, actor)
+		if err != nil {
+			http.Error(w, "Failed to resolve handle", http.StatusNotFound)
+			log.Error().Err(err).Str("actor", actor).Msg("Failed to resolve handle")
+			return
+		}
+		targetDID = resolvedDID
+	}
+
+	// Check if viewing own profile
+	isOwnProfile := isAuthenticated && currentUserDID == targetDID
+
+	// Get profile info
+	publicClient := atproto.NewPublicClient()
+	profile, err := publicClient.GetProfile(ctx, targetDID)
+	if err != nil {
+		log.Warn().Err(err).Str("did", targetDID).Msg("Failed to fetch profile")
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
+	}
+
+	// Fetch user's data using public client (works for any user)
+
+	// Fetch all collections in parallel
 	g, ctx := errgroup.WithContext(ctx)
 
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
+	var brewRecords, beanRecords, roasterRecords, grinderRecords, brewerRecords *atproto.PublicListRecordsOutput
 
 	g.Go(func() error {
 		var err error
-		beans, err = store.ListBeans(ctx)
+		brewRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDBrew, 100)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		roasters, err = store.ListRoasters(ctx)
+		beanRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDBean, 100)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		roasterRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDRoaster, 100)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		grinderRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDGrinder, 100)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		brewerRecords, err = publicClient.ListRecords(ctx, targetDID, atproto.NSIDBrewer, 100)
 		return err
 	})
 
 	if err := g.Wait(); err != nil {
-		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to fetch manage page data")
+		http.Error(w, "Failed to fetch profile data", http.StatusInternalServerError)
+		log.Error().Err(err).Str("did", targetDID).Msg("Failed to fetch profile data")
 		return
 	}
 
-	// Link beans to their roasters
+	// Convert records to models
+	brews := make([]*models.Brew, 0, len(brewRecords.Records))
+	for _, rec := range brewRecords.Records {
+		brew, err := atproto.RecordToBrew(rec.Value, rec.URI)
+		if err == nil {
+			brews = append(brews, brew)
+		}
+	}
+
+	beans := make([]*models.Bean, 0, len(beanRecords.Records))
+	for _, rec := range beanRecords.Records {
+		bean, err := atproto.RecordToBean(rec.Value, rec.URI)
+		if err == nil {
+			beans = append(beans, bean)
+		}
+	}
+
+	roasters := make([]*models.Roaster, 0, len(roasterRecords.Records))
+	for _, rec := range roasterRecords.Records {
+		roaster, err := atproto.RecordToRoaster(rec.Value, rec.URI)
+		if err == nil {
+			roasters = append(roasters, roaster)
+		}
+	}
+
+	grinders := make([]*models.Grinder, 0, len(grinderRecords.Records))
+	for _, rec := range grinderRecords.Records {
+		grinder, err := atproto.RecordToGrinder(rec.Value, rec.URI)
+		if err == nil {
+			grinders = append(grinders, grinder)
+		}
+	}
+
+	brewers := make([]*models.Brewer, 0, len(brewerRecords.Records))
+	for _, rec := range brewerRecords.Records {
+		brewer, err := atproto.RecordToBrewer(rec.Value, rec.URI)
+		if err == nil {
+			brewers = append(brewers, brewer)
+		}
+	}
+
+	// Link beans to roasters
 	atproto.LinkBeansToRoasters(beans, roasters)
 
-	if err := bff.RenderManagePartial(w, beans, roasters, grinders, brewers); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render manage partial")
-	}
-}
-
-// List all brews
-func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	_, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
-
-	// Don't fetch brews here - let them load async via HTMX
-	if err := bff.RenderBrewList(w, nil, authenticated, didStr, userProfile); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew list page")
-	}
-}
-
-// Show new brew form
-func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	_, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
-
-	// Don't fetch data from PDS - client will populate dropdowns from cache
-	// This makes the page load much faster
-	if err := bff.RenderBrewForm(w, nil, nil, nil, nil, nil, authenticated, didStr, userProfile); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew form")
-	}
-}
-
-// Show brew view page
-func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Check if owner (DID or handle) is specified in query params
-	owner := r.URL.Query().Get("owner")
-
-	// Check authentication
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	var brew *models.Brew
-	var brewOwnerDID string
-	var isOwner bool
-
-	if owner != "" {
-		// Viewing someone else's brew - use public client
-		publicClient := atproto.NewPublicClient()
-
-		// Resolve owner to DID if it's a handle
-		if strings.HasPrefix(owner, "did:") {
-			brewOwnerDID = owner
-		} else {
-			resolved, err := publicClient.ResolveHandle(r.Context(), owner)
-			if err != nil {
-				log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for brew view")
-				http.Error(w, "User not found", http.StatusNotFound)
-				return
+	// Resolve references in brews
+	for _, brew := range brews {
+		if brew.BeanRKey != "" {
+			for _, bean := range beans {
+				if bean.RKey == brew.BeanRKey {
+					brew.Bean = bean
+					break
+				}
 			}
-			brewOwnerDID = resolved
 		}
-
-		// Fetch the brew record from the owner's PDS
-		record, err := publicClient.GetRecord(r.Context(), brewOwnerDID, atproto.NSIDBrew, rkey)
-		if err != nil {
-			log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
-			http.Error(w, "Brew not found", http.StatusNotFound)
-			return
+		if brew.GrinderRKey != "" {
+			for _, grinder := range grinders {
+				if grinder.RKey == brew.GrinderRKey {
+					brew.GrinderObj = grinder
+					break
+				}
+			}
 		}
-
-		// Convert record to brew
-		brew, err = atproto.RecordToBrew(record.Value, record.URI)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to convert brew record")
-			http.Error(w, "Failed to load brew", http.StatusInternalServerError)
-			return
+		if brew.BrewerRKey != "" {
+			for _, brewer := range brewers {
+				if brewer.RKey == brew.BrewerRKey {
+					brew.BrewerObj = brewer
+					break
+				}
+			}
 		}
-
-		// Resolve references (bean, grinder, brewer)
-		if err := h.resolveBrewReferences(r.Context(), brew, brewOwnerDID, record.Value); err != nil {
-			log.Warn().Err(err).Msg("Failed to resolve some brew references")
-			// Don't fail the request, just log the warning
-		}
-
-		// Check if viewing user is the owner
-		isOwner = isAuthenticated && didStr == brewOwnerDID
-	} else {
-		// Viewing own brew - require authentication
-		store, authenticated := h.getAtprotoStore(r)
-		if !authenticated {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
-		brew, err = store.GetBrewByRKey(r.Context(), rkey)
-		if err != nil {
-			http.Error(w, "Brew not found", http.StatusNotFound)
-			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for view")
-			return
-		}
-
-		brewOwnerDID = didStr
-		isOwner = true
 	}
 
-	if err := bff.RenderBrewView(w, brew, isAuthenticated, didStr, userProfile, isOwner); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew view")
+	response := map[string]interface{}{
+		"profile":      profile,
+		"brews":        brews,
+		"beans":        beans,
+		"roasters":     roasters,
+		"grinders":     grinders,
+		"brewers":      brewers,
+		"isOwnProfile": isOwnProfile,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error().Err(err).Msg("Failed to encode profile API response")
 	}
 }
 
+// Brew list partial (loaded async via HTMX)
 // resolveBrewReferences resolves bean, grinder, and brewer references for a brew
 func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]interface{}) error {
 	publicClient := atproto.NewPublicClient()
@@ -431,36 +357,6 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, 
 }
 
 // Show edit brew form
-func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
-
-	brew, err := store.GetBrewByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Brew not found", http.StatusNotFound)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for edit")
-		return
-	}
-
-	// Don't fetch dropdown data from PDS - client will populate from cache
-	// This makes the page load much faster
-	if err := bff.RenderBrewForm(w, nil, nil, nil, nil, brew, authenticated, didStr, userProfile); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew edit form")
-	}
-}
 
 // maxPours is the maximum number of pours allowed in a single brew
 const maxPours = 100
@@ -572,67 +468,110 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		return
+	// Check content type - support both JSON and form data
+	contentType := r.Header.Get("Content-Type")
+	isJSON := strings.Contains(contentType, "application/json")
+
+	var req models.CreateBrewRequest
+
+	if isJSON {
+		// Parse JSON body
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Parse form data (legacy support)
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Invalid form data", http.StatusBadRequest)
+			return
+		}
+
+		// Validate input
+		temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
+		if len(validationErrs) > 0 {
+			// Return first validation error
+			http.Error(w, validationErrs[0].Message, http.StatusBadRequest)
+			return
+		}
+
+		// Validate required fields
+		beanRKey := r.FormValue("bean_rkey")
+		if beanRKey == "" {
+			http.Error(w, "Bean selection is required", http.StatusBadRequest)
+			return
+		}
+		if !atproto.ValidateRKey(beanRKey) {
+			http.Error(w, "Invalid bean selection", http.StatusBadRequest)
+			return
+		}
+
+		// Validate optional rkeys
+		grinderRKey := r.FormValue("grinder_rkey")
+		if errMsg := validateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+		brewerRKey := r.FormValue("brewer_rkey")
+		if errMsg := validateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+
+		req = models.CreateBrewRequest{
+			BeanRKey:     beanRKey,
+			Method:       r.FormValue("method"),
+			Temperature:  temperature,
+			WaterAmount:  waterAmount,
+			CoffeeAmount: coffeeAmount,
+			TimeSeconds:  timeSeconds,
+			GrindSize:    r.FormValue("grind_size"),
+			GrinderRKey:  grinderRKey,
+			BrewerRKey:   brewerRKey,
+			TastingNotes: r.FormValue("tasting_notes"),
+			Rating:       rating,
+			Pours:        pours,
+		}
 	}
 
-	// Validate input
-	temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
-	if len(validationErrs) > 0 {
-		// Return first validation error
-		http.Error(w, validationErrs[0].Message, http.StatusBadRequest)
-		return
+	// Validate JSON request
+	if isJSON {
+		if req.BeanRKey == "" {
+			http.Error(w, "Bean selection is required", http.StatusBadRequest)
+			return
+		}
+		if !atproto.ValidateRKey(req.BeanRKey) {
+			http.Error(w, "Invalid bean selection", http.StatusBadRequest)
+			return
+		}
+		if errMsg := validateOptionalRKey(req.GrinderRKey, "Grinder selection"); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+		if errMsg := validateOptionalRKey(req.BrewerRKey, "Brewer selection"); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
 	}
 
-	// Validate required fields
-	beanRKey := r.FormValue("bean_rkey")
-	if beanRKey == "" {
-		http.Error(w, "Bean selection is required", http.StatusBadRequest)
-		return
-	}
-	if !atproto.ValidateRKey(beanRKey) {
-		http.Error(w, "Invalid bean selection", http.StatusBadRequest)
-		return
-	}
-
-	// Validate optional rkeys
-	grinderRKey := r.FormValue("grinder_rkey")
-	if errMsg := validateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
-		http.Error(w, errMsg, http.StatusBadRequest)
-		return
-	}
-	brewerRKey := r.FormValue("brewer_rkey")
-	if errMsg := validateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
-		http.Error(w, errMsg, http.StatusBadRequest)
-		return
-	}
-
-	req := &models.CreateBrewRequest{
-		BeanRKey:     beanRKey,
-		Method:       r.FormValue("method"),
-		Temperature:  temperature,
-		WaterAmount:  waterAmount,
-		CoffeeAmount: coffeeAmount,
-		TimeSeconds:  timeSeconds,
-		GrindSize:    r.FormValue("grind_size"),
-		GrinderRKey:  grinderRKey,
-		BrewerRKey:   brewerRKey,
-		TastingNotes: r.FormValue("tasting_notes"),
-		Rating:       rating,
-		Pours:        pours,
-	}
-
-	_, err := store.CreateBrew(r.Context(), req, 1) // User ID not used with atproto
+	brew, err := store.CreateBrew(r.Context(), &req, 1) // User ID not used with atproto
 	if err != nil {
 		http.Error(w, "Failed to create brew", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create brew")
 		return
 	}
 
-	// Redirect to brew list
-	w.Header().Set("HX-Redirect", "/brews")
-	w.WriteHeader(http.StatusOK)
+	// Return JSON for API calls, redirect for HTMX
+	if isJSON {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(brew); err != nil {
+			log.Error().Err(err).Msg("Failed to encode brew response")
+		}
+	} else {
+		// Redirect to brew list
+		w.Header().Set("HX-Redirect", "/brews")
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 // Update existing brew
@@ -649,66 +588,106 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		return
+	// Check content type - support both JSON and form data
+	contentType := r.Header.Get("Content-Type")
+	isJSON := strings.Contains(contentType, "application/json")
+
+	var req models.CreateBrewRequest
+
+	if isJSON {
+		// Parse JSON body
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Parse form data (legacy support)
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Invalid form data", http.StatusBadRequest)
+			return
+		}
+
+		// Validate input
+		temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
+		if len(validationErrs) > 0 {
+			http.Error(w, validationErrs[0].Message, http.StatusBadRequest)
+			return
+		}
+
+		// Validate required fields
+		beanRKey := r.FormValue("bean_rkey")
+		if beanRKey == "" {
+			http.Error(w, "Bean selection is required", http.StatusBadRequest)
+			return
+		}
+		if !atproto.ValidateRKey(beanRKey) {
+			http.Error(w, "Invalid bean selection", http.StatusBadRequest)
+			return
+		}
+
+		// Validate optional rkeys
+		grinderRKey := r.FormValue("grinder_rkey")
+		if errMsg := validateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+		brewerRKey := r.FormValue("brewer_rkey")
+		if errMsg := validateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+
+		req = models.CreateBrewRequest{
+			BeanRKey:     beanRKey,
+			Method:       r.FormValue("method"),
+			Temperature:  temperature,
+			WaterAmount:  waterAmount,
+			CoffeeAmount: coffeeAmount,
+			TimeSeconds:  timeSeconds,
+			GrindSize:    r.FormValue("grind_size"),
+			GrinderRKey:  grinderRKey,
+			BrewerRKey:   brewerRKey,
+			TastingNotes: r.FormValue("tasting_notes"),
+			Rating:       rating,
+			Pours:        pours,
+		}
 	}
 
-	// Validate input
-	temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
-	if len(validationErrs) > 0 {
-		http.Error(w, validationErrs[0].Message, http.StatusBadRequest)
-		return
+	// Validate JSON request
+	if isJSON {
+		if req.BeanRKey == "" {
+			http.Error(w, "Bean selection is required", http.StatusBadRequest)
+			return
+		}
+		if !atproto.ValidateRKey(req.BeanRKey) {
+			http.Error(w, "Invalid bean selection", http.StatusBadRequest)
+			return
+		}
+		if errMsg := validateOptionalRKey(req.GrinderRKey, "Grinder selection"); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+		if errMsg := validateOptionalRKey(req.BrewerRKey, "Brewer selection"); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
 	}
 
-	// Validate required fields
-	beanRKey := r.FormValue("bean_rkey")
-	if beanRKey == "" {
-		http.Error(w, "Bean selection is required", http.StatusBadRequest)
-		return
-	}
-	if !atproto.ValidateRKey(beanRKey) {
-		http.Error(w, "Invalid bean selection", http.StatusBadRequest)
-		return
-	}
-
-	// Validate optional rkeys
-	grinderRKey := r.FormValue("grinder_rkey")
-	if errMsg := validateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
-		http.Error(w, errMsg, http.StatusBadRequest)
-		return
-	}
-	brewerRKey := r.FormValue("brewer_rkey")
-	if errMsg := validateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
-		http.Error(w, errMsg, http.StatusBadRequest)
-		return
-	}
-
-	req := &models.CreateBrewRequest{
-		BeanRKey:     beanRKey,
-		Method:       r.FormValue("method"),
-		Temperature:  temperature,
-		WaterAmount:  waterAmount,
-		CoffeeAmount: coffeeAmount,
-		TimeSeconds:  timeSeconds,
-		GrindSize:    r.FormValue("grind_size"),
-		GrinderRKey:  grinderRKey,
-		BrewerRKey:   brewerRKey,
-		TastingNotes: r.FormValue("tasting_notes"),
-		Rating:       rating,
-		Pours:        pours,
-	}
-
-	err := store.UpdateBrewByRKey(r.Context(), rkey, req)
+	err := store.UpdateBrewByRKey(r.Context(), rkey, &req)
 	if err != nil {
 		http.Error(w, "Failed to update brew", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update brew")
 		return
 	}
 
-	// Redirect to brew list
-	w.Header().Set("HX-Redirect", "/brews")
-	w.WriteHeader(http.StatusOK)
+	// Return JSON for API calls, redirect for HTMX
+	if isJSON {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		// Redirect to brew list
+		w.Header().Set("HX-Redirect", "/brews")
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 // Delete brew
@@ -735,29 +714,88 @@ func (h *Handler) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // Export brews as JSON
-func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+
+// Get a public brew by AT-URI
+func (h *Handler) HandleBrewGetPublic(w http.ResponseWriter, r *http.Request) {
+	atURI := r.URL.Query().Get("uri")
+	if atURI == "" {
+		http.Error(w, "Missing 'uri' query parameter", http.StatusBadRequest)
 		return
 	}
 
-	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
+	// Parse AT-URI to extract DID, collection, and rkey
+	components, err := atproto.ResolveATURI(atURI)
 	if err != nil {
-		http.Error(w, "Failed to fetch brews", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to list brews for export")
+		http.Error(w, "Invalid AT-URI", http.StatusBadRequest)
+		log.Error().Err(err).Str("uri", atURI).Msg("Failed to parse AT-URI")
 		return
+	}
+
+	// Fetch the record from the user's PDS using PublicClient
+	publicClient := atproto.NewPublicClient()
+	recordEntry, err := publicClient.GetRecord(r.Context(), components.DID, components.Collection, components.RKey)
+	if err != nil {
+		http.Error(w, "Failed to fetch brew", http.StatusInternalServerError)
+		log.Error().Err(err).Str("uri", atURI).Msg("Failed to fetch public brew")
+		return
+	}
+
+	// Convert the record to a Brew model
+	brew, err := atproto.RecordToBrew(recordEntry.Value, atURI)
+	if err != nil {
+		http.Error(w, "Failed to parse brew record", http.StatusInternalServerError)
+		log.Error().Err(err).Str("uri", atURI).Msg("Failed to convert record to brew")
+		return
+	}
+
+	// Fetch referenced entities (bean, grinder, brewer) if they exist
+	if brew.BeanRKey != "" {
+		beanURI := atproto.BuildATURI(components.DID, atproto.NSIDBean, brew.BeanRKey)
+		beanRecord, err := publicClient.GetRecord(r.Context(), components.DID, atproto.NSIDBean, brew.BeanRKey)
+		if err == nil {
+			bean, err := atproto.RecordToBean(beanRecord.Value, beanURI)
+			if err == nil {
+				brew.Bean = bean
+
+				// Fetch roaster if referenced
+				if bean.RoasterRKey != "" {
+					roasterURI := atproto.BuildATURI(components.DID, atproto.NSIDRoaster, bean.RoasterRKey)
+					roasterRecord, err := publicClient.GetRecord(r.Context(), components.DID, atproto.NSIDRoaster, bean.RoasterRKey)
+					if err == nil {
+						roaster, err := atproto.RecordToRoaster(roasterRecord.Value, roasterURI)
+						if err == nil {
+							brew.Bean.Roaster = roaster
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if brew.GrinderRKey != "" {
+		grinderURI := atproto.BuildATURI(components.DID, atproto.NSIDGrinder, brew.GrinderRKey)
+		grinderRecord, err := publicClient.GetRecord(r.Context(), components.DID, atproto.NSIDGrinder, brew.GrinderRKey)
+		if err == nil {
+			grinder, err := atproto.RecordToGrinder(grinderRecord.Value, grinderURI)
+			if err == nil {
+				brew.GrinderObj = grinder
+			}
+		}
+	}
+
+	if brew.BrewerRKey != "" {
+		brewerURI := atproto.BuildATURI(components.DID, atproto.NSIDBrewer, brew.BrewerRKey)
+		brewerRecord, err := publicClient.GetRecord(r.Context(), components.DID, atproto.NSIDBrewer, brew.BrewerRKey)
+		if err == nil {
+			brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerURI)
+			if err == nil {
+				brew.BrewerObj = brewer
+			}
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Disposition", "attachment; filename=arabica-brews.json")
-
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(brews); err != nil {
-		log.Error().Err(err).Msg("Failed to encode brews for export")
-	}
+	json.NewEncoder(w).Encode(brew)
 }
 
 // API endpoint to list all user data (beans, roasters, grinders, brewers, brews)
@@ -825,6 +863,46 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 		"grinders": grinders,
 		"brewers":  brewers,
 		"brews":    brews,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error().Err(err).Msg("Failed to encode API response")
+	}
+}
+
+// API endpoint to get current user info
+func (h *Handler) HandleAPIMe(w http.ResponseWriter, r *http.Request) {
+	// Get authenticated DID from context
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	// Fetch user profile
+	publicClient := atproto.NewPublicClient()
+	profile, err := publicClient.GetProfile(r.Context(), didStr)
+	if err != nil {
+		log.Warn().Err(err).Str("did", didStr).Msg("Failed to fetch user profile")
+		http.Error(w, "Failed to fetch user profile", http.StatusInternalServerError)
+		return
+	}
+
+	displayName := ""
+	if profile.DisplayName != nil {
+		displayName = *profile.DisplayName
+	}
+	avatar := ""
+	if profile.Avatar != nil {
+		avatar = *profile.Avatar
+	}
+
+	response := map[string]interface{}{
+		"did":         didStr,
+		"handle":      profile.Handle,
+		"displayName": displayName,
+		"avatar":      avatar,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -908,23 +986,6 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 // Manage page
-func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	_, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
-
-	// Don't fetch data here - let it load async via HTMX
-	if err := bff.RenderManage(w, nil, nil, nil, nil, authenticated, didStr, userProfile); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render manage page")
-	}
-}
 
 // Bean update/delete handlers
 func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
@@ -1267,52 +1328,8 @@ func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // About page
-func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
-	// Check if user is authenticated
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	data := &bff.PageData{
-		Title:           "About",
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
-
-	if err := bff.RenderTemplate(w, r, "about.tmpl", data); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render about page")
-	}
-}
 
 // Terms of Service page
-func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
-	// Check if user is authenticated
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	data := &bff.PageData{
-		Title:           "Terms of Service",
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
-
-	if err := bff.RenderTemplate(w, r, "terms.tmpl", data); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render terms page")
-	}
-}
 
 // fetchAllData is a helper that fetches all data types in parallel using errgroup.
 // This is used by handlers that need beans, roasters, grinders, and brewers.
@@ -1351,464 +1368,3 @@ func fetchAllData(ctx context.Context, store database.Store) (
 }
 
 // HandleProfile displays a user's public profile with their brews and gear
-func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
-	actor := r.PathValue("actor")
-	if actor == "" {
-		http.Error(w, "Actor parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	ctx := r.Context()
-	publicClient := atproto.NewPublicClient()
-
-	// Determine if actor is a DID or handle
-	var did string
-	var err error
-
-	if strings.HasPrefix(actor, "did:") {
-		// It's already a DID
-		did = actor
-	} else {
-		// It's a handle, resolve to DID
-		did, err = publicClient.ResolveHandle(ctx, actor)
-		if err != nil {
-			log.Warn().Err(err).Str("handle", actor).Msg("Failed to resolve handle")
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-
-		// Redirect to canonical URL with handle (we'll get the handle from profile)
-		// For now, continue with the DID we have
-	}
-
-	// Fetch profile
-	profile, err := publicClient.GetProfile(ctx, did)
-	if err != nil {
-		log.Warn().Err(err).Str("did", did).Msg("Failed to fetch profile")
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	// If the URL used a DID but we have the handle, redirect to the canonical handle URL
-	if strings.HasPrefix(actor, "did:") && profile.Handle != "" {
-		http.Redirect(w, r, "/profile/"+profile.Handle, http.StatusFound)
-		return
-	}
-
-	// Fetch all user data in parallel
-	g, gCtx := errgroup.WithContext(ctx)
-
-	var brews []*models.Brew
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-
-	// Maps for resolving references
-	var beanMap map[string]*models.Bean
-	var beanRoasterRefMap map[string]string
-	var roasterMap map[string]*models.Roaster
-	var brewerMap map[string]*models.Brewer
-	var grinderMap map[string]*models.Grinder
-
-	// Fetch beans
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBean, 100)
-		if err != nil {
-			return err
-		}
-		beanMap = make(map[string]*models.Bean)
-		beanRoasterRefMap = make(map[string]string)
-		beans = make([]*models.Bean, 0, len(output.Records))
-		for _, record := range output.Records {
-			bean, err := atproto.RecordToBean(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			beans = append(beans, bean)
-			beanMap[record.URI] = bean
-			if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
-				beanRoasterRefMap[record.URI] = roasterRef
-			}
-		}
-		return nil
-	})
-
-	// Fetch roasters
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDRoaster, 100)
-		if err != nil {
-			return err
-		}
-		roasterMap = make(map[string]*models.Roaster)
-		roasters = make([]*models.Roaster, 0, len(output.Records))
-		for _, record := range output.Records {
-			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			roasters = append(roasters, roaster)
-			roasterMap[record.URI] = roaster
-		}
-		return nil
-	})
-
-	// Fetch grinders
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDGrinder, 100)
-		if err != nil {
-			return err
-		}
-		grinderMap = make(map[string]*models.Grinder)
-		grinders = make([]*models.Grinder, 0, len(output.Records))
-		for _, record := range output.Records {
-			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			grinders = append(grinders, grinder)
-			grinderMap[record.URI] = grinder
-		}
-		return nil
-	})
-
-	// Fetch brewers
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrewer, 100)
-		if err != nil {
-			return err
-		}
-		brewerMap = make(map[string]*models.Brewer)
-		brewers = make([]*models.Brewer, 0, len(output.Records))
-		for _, record := range output.Records {
-			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			brewers = append(brewers, brewer)
-			brewerMap[record.URI] = brewer
-		}
-		return nil
-	})
-
-	// Fetch brews
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrew, 100)
-		if err != nil {
-			return err
-		}
-		brews = make([]*models.Brew, 0, len(output.Records))
-		for _, record := range output.Records {
-			brew, err := atproto.RecordToBrew(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			// Store the raw record for reference resolution later
-			brew.BeanRKey = "" // Will be resolved after all data is fetched
-			if beanRef, ok := record.Value["beanRef"].(string); ok {
-				brew.BeanRKey = beanRef
-			}
-			if grinderRef, ok := record.Value["grinderRef"].(string); ok {
-				brew.GrinderRKey = grinderRef
-			}
-			if brewerRef, ok := record.Value["brewerRef"].(string); ok {
-				brew.BrewerRKey = brewerRef
-			}
-			brews = append(brews, brew)
-		}
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
-		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data")
-		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
-		return
-	}
-
-	// Resolve references for beans (roaster refs)
-	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
-			if roaster, found := roasterMap[roasterRef]; found {
-				bean.Roaster = roaster
-			}
-		}
-	}
-
-	// Resolve references for brews
-	for _, brew := range brews {
-		// Resolve bean reference
-		if brew.BeanRKey != "" {
-			if bean, found := beanMap[brew.BeanRKey]; found {
-				brew.Bean = bean
-			}
-		}
-		// Resolve grinder reference
-		if brew.GrinderRKey != "" {
-			if grinder, found := grinderMap[brew.GrinderRKey]; found {
-				brew.GrinderObj = grinder
-			}
-		}
-		// Resolve brewer reference
-		if brew.BrewerRKey != "" {
-			if brewer, found := brewerMap[brew.BrewerRKey]; found {
-				brew.BrewerObj = brewer
-			}
-		}
-	}
-
-	// Sort brews in reverse chronological order (newest first)
-	sort.Slice(brews, func(i, j int) bool {
-		return brews[i].CreatedAt.After(brews[j].CreatedAt)
-	})
-
-	// Check if current user is authenticated (for nav bar state)
-	didStr, err := atproto.GetAuthenticatedDID(ctx)
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(ctx, didStr)
-	}
-
-	// Check if the viewing user is the profile owner
-	isOwnProfile := isAuthenticated && didStr == did
-
-	// Render profile page
-	if err := bff.RenderProfile(w, profile, brews, beans, roasters, grinders, brewers, isAuthenticated, didStr, userProfile, isOwnProfile); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render profile page")
-	}
-}
-
-// HandleProfilePartial returns profile data content (loaded async via HTMX)
-func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
-	actor := r.PathValue("actor")
-	if actor == "" {
-		http.Error(w, "Actor parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	ctx := r.Context()
-	publicClient := atproto.NewPublicClient()
-
-	// Determine if actor is a DID or handle
-	var did string
-	var err error
-
-	if strings.HasPrefix(actor, "did:") {
-		did = actor
-	} else {
-		did, err = publicClient.ResolveHandle(ctx, actor)
-		if err != nil {
-			log.Warn().Err(err).Str("handle", actor).Msg("Failed to resolve handle")
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-	}
-
-	// Fetch all user data in parallel
-	g, gCtx := errgroup.WithContext(ctx)
-
-	var brews []*models.Brew
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-
-	// Maps for resolving references
-	var beanMap map[string]*models.Bean
-	var beanRoasterRefMap map[string]string
-	var roasterMap map[string]*models.Roaster
-	var brewerMap map[string]*models.Brewer
-	var grinderMap map[string]*models.Grinder
-
-	// Fetch beans
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBean, 100)
-		if err != nil {
-			return err
-		}
-		beanMap = make(map[string]*models.Bean)
-		beanRoasterRefMap = make(map[string]string)
-		beans = make([]*models.Bean, 0, len(output.Records))
-		for _, record := range output.Records {
-			bean, err := atproto.RecordToBean(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			beans = append(beans, bean)
-			beanMap[record.URI] = bean
-			if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
-				beanRoasterRefMap[record.URI] = roasterRef
-			}
-		}
-		return nil
-	})
-
-	// Fetch roasters
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDRoaster, 100)
-		if err != nil {
-			return err
-		}
-		roasterMap = make(map[string]*models.Roaster)
-		roasters = make([]*models.Roaster, 0, len(output.Records))
-		for _, record := range output.Records {
-			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			roasters = append(roasters, roaster)
-			roasterMap[record.URI] = roaster
-		}
-		return nil
-	})
-
-	// Fetch grinders
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDGrinder, 100)
-		if err != nil {
-			return err
-		}
-		grinderMap = make(map[string]*models.Grinder)
-		grinders = make([]*models.Grinder, 0, len(output.Records))
-		for _, record := range output.Records {
-			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			grinders = append(grinders, grinder)
-			grinderMap[record.URI] = grinder
-		}
-		return nil
-	})
-
-	// Fetch brewers
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrewer, 100)
-		if err != nil {
-			return err
-		}
-		brewerMap = make(map[string]*models.Brewer)
-		brewers = make([]*models.Brewer, 0, len(output.Records))
-		for _, record := range output.Records {
-			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			brewers = append(brewers, brewer)
-			brewerMap[record.URI] = brewer
-		}
-		return nil
-	})
-
-	// Fetch brews
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrew, 100)
-		if err != nil {
-			return err
-		}
-		brews = make([]*models.Brew, 0, len(output.Records))
-		for _, record := range output.Records {
-			brew, err := atproto.RecordToBrew(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			// Store the raw record for reference resolution later
-			brew.BeanRKey = ""
-			if beanRef, ok := record.Value["beanRef"].(string); ok {
-				brew.BeanRKey = beanRef
-			}
-			if grinderRef, ok := record.Value["grinderRef"].(string); ok {
-				brew.GrinderRKey = grinderRef
-			}
-			if brewerRef, ok := record.Value["brewerRef"].(string); ok {
-				brew.BrewerRKey = brewerRef
-			}
-			brews = append(brews, brew)
-		}
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
-		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data for profile partial")
-		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
-		return
-	}
-
-	// Resolve references for beans (roaster refs)
-	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
-			if roaster, found := roasterMap[roasterRef]; found {
-				bean.Roaster = roaster
-			}
-		}
-	}
-
-	// Resolve references for brews
-	for _, brew := range brews {
-		// Resolve bean reference
-		if brew.BeanRKey != "" {
-			if bean, found := beanMap[brew.BeanRKey]; found {
-				brew.Bean = bean
-			}
-		}
-		// Resolve grinder reference
-		if brew.GrinderRKey != "" {
-			if grinder, found := grinderMap[brew.GrinderRKey]; found {
-				brew.GrinderObj = grinder
-			}
-		}
-		// Resolve brewer reference
-		if brew.BrewerRKey != "" {
-			if brewer, found := brewerMap[brew.BrewerRKey]; found {
-				brew.BrewerObj = brewer
-			}
-		}
-	}
-
-	// Sort brews in reverse chronological order (newest first)
-	sort.Slice(brews, func(i, j int) bool {
-		return brews[i].CreatedAt.After(brews[j].CreatedAt)
-	})
-
-	// Check if the viewing user is the profile owner
-	didStr, err := atproto.GetAuthenticatedDID(ctx)
-	isAuthenticated := err == nil && didStr != ""
-	isOwnProfile := isAuthenticated && didStr == did
-
-	// Render profile content partial (use actor as handle, which is already the handle if provided as such)
-	profileHandle := actor
-	if strings.HasPrefix(actor, "did:") {
-		// If actor was a DID, we need to resolve it to a handle
-		// We can get it from the first brew's author if available, or fetch profile
-		profile, err := publicClient.GetProfile(ctx, did)
-		if err == nil {
-			profileHandle = profile.Handle
-		} else {
-			profileHandle = did // Fallback to DID if we can't get handle
-		}
-	}
-
-	if err := bff.RenderProfilePartial(w, brews, beans, roasters, grinders, brewers, isOwnProfile, profileHandle); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render profile partial")
-	}
-}
-
-// HandleNotFound renders the 404 page
-func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	// Check if current user is authenticated (for nav bar state)
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	if err := bff.Render404(w, isAuthenticated, didStr, userProfile); err != nil {
-		http.Error(w, "Page not found", http.StatusNotFound)
-		log.Error().Err(err).Msg("Failed to render 404 page")
-	}
-}

@@ -1,7 +1,0 @@
----
-title: rating_formatting
-test_name: TestFormatHelpers_Snapshot/rating_formatting
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-[]string{"N/A", "1/10", "5/10", "7/10", "10/10"}

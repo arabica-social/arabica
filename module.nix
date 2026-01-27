@@ -26,38 +26,21 @@ in {
       };
 
       logFormat = lib.mkOption {
-        type = lib.types.enum [ "pretty" "json" ];
+        type = lib.types.enum [ "console" "json" ];
         default = "json";
         description =
           "Log format. Use 'json' for production, 'pretty' for development.";
       };
-
-      secureCookies = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description =
-          "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
-      };
     };
 
-    oauth = {
-      clientId = lib.mkOption {
-        type = lib.types.str;
-        description = ''
-          OAuth client ID. This should be the URL to your client-metadata.json endpoint.
-          For example: https://arabica.example.com/client-metadata.json
-        '';
-        example = "https://arabica.example.com/client-metadata.json";
-      };
-
-      redirectUri = lib.mkOption {
-        type = lib.types.str;
-        description = ''
-          OAuth redirect URI. This is where users are redirected after authentication.
-          For example: https://arabica.example.com/oauth/callback
-        '';
-        example = "https://arabica.example.com/oauth/callback";
-      };
+    publicUrl = lib.mkOption {
+      type = lib.types.str;
+      description = ''
+        Public URL where the arabica service is accessible.
+        This is used for OAuth configuration and automatically enables secure cookies when using HTTPS.
+        For example: https://arabica.example.com
+      '';
+      example = "https://arabica.example.com";
     };
 
     dataDir = lib.mkOption {
@@ -133,9 +116,7 @@ in {
         PORT = toString cfg.settings.port;
         LOG_LEVEL = cfg.settings.logLevel;
         LOG_FORMAT = cfg.settings.logFormat;
-        SECURE_COOKIES = lib.boolToString cfg.settings.secureCookies;
-        OAUTH_CLIENT_ID = cfg.oauth.clientId;
-        OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
+        SERVER_PUBLIC_URL = cfg.publicUrl;
         ARABICA_DB_PATH = "${cfg.dataDir}/arabica.db";
       };
     };

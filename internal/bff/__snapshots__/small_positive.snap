@@ -1,7 +1,0 @@
----
-title: small positive
-test_name: TestHasTemp_Snapshot/small_positive
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-true

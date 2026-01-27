@@ -17,7 +17,7 @@ Implemented a smart back button feature that allows users to navigate back to th
 
 The implementation consists of:
 
-1. **JavaScript Module** (`web/static/js/back-button.js`):
+1. **JavaScript Module** (`static/js/back-button.js`):
    - Detects if the user came from within the app (same-origin referrer)
    - Uses `history.back()` for internal navigation (preserves history stack)
    - Falls back to a specified URL for external/direct navigation
@@ -80,7 +80,7 @@ function handleBackNavigation(button) {
 
 ### New Files
 
-1. **`web/static/js/back-button.js`**
+1. **`static/js/back-button.js`**
    - Core back button logic
    - Initialization and event handling
    - HTMX integration

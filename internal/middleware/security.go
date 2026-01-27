@@ -26,16 +26,18 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
 		// Content Security Policy
-		// Allows: self for scripts/styles, inline styles (for Tailwind), jsdelivr for HTMX/Alpine
-		// Note: unsafe-eval required for Alpine.js standard build (CSP build has CDN MIME type issues)
+		// Allows: self for scripts/styles, inline styles (for Tailwind), external scripts from CDN
 		// Note: form-action allows https: for OAuth redirects to external authorization servers
+		// Note: script-src includes https://cdn.jsdelivr.net for external libraries and /static/ for service worker registration
 		csp := strings.Join([]string{
 			"default-src 'self'",
-			"script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net",
-			"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Tailwind
-			"img-src 'self' https: data:",      // Allow external images (avatars) and data URIs
+			"script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net", // External scripts must be listed explicitly
+			"script-src-elem 'self' https://cdn.jsdelivr.net",          // External script tags (register-sw.js)
+			"style-src 'self' 'unsafe-inline'",                         // unsafe-inline needed for Tailwind
+			"img-src 'self' https: data:",                              // Allow external images (avatars) and data URIs
 			"font-src 'self'",
 			"connect-src 'self' https:", // Allow connections to external APIs (OAuth, PDS)
+			"worker-src 'self'",         // Service workers must be same-origin
 			"frame-ancestors 'none'",
 			"base-uri 'self'",
 			"form-action 'self' https:", // Allow form submissions to external OAuth servers
