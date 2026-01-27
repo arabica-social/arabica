@@ -84,3 +84,6 @@ Each should be addressed one at a time, and the item should be removed after imp
 - The "back" button behaves kind of strangely
   - Goes back to brews list after clicking on view bean in feed,
     takes to profile for other users' brews.
+
+- Update terms page to be more clear about the public nature of all data
+  - Link to about page and terms at the top of the unauthed feed

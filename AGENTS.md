@@ -4,7 +4,7 @@ Coffee brew tracking application using AT Protocol for decentralized storage.
 
 ## Tech Stack
 
-- **Language:** Go 1.21+
+- **Language:** Go 1.25+
 - **HTTP:** stdlib `net/http` with Go 1.22 routing
 - **Storage:** AT Protocol PDS (user data), BoltDB (sessions/feed registry)
 - **Frontend:** Svelte SPA with client-side routing

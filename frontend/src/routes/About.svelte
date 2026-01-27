@@ -117,14 +117,9 @@
             comments!)
           </p>
         </div>
-        <div
-          class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md"
-        >
-          <h4 class="font-semibold text-brown-900 mb-2">Export Your Data</h4>
-          <p class="text-brown-700 text-sm">
-            Export all your brews anytime in JSON format
-          </p>
-        </div>
+        <!-- <div -->
+        <!--   class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md" -->
+        <!-- ></div> -->
       </div>
     </section>
 

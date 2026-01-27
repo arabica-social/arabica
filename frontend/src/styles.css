@@ -11,6 +11,11 @@
     min-width: 44px;
   }
 
+  /* TODO: figure this out, @apply may not work with tailwind v4 */
+  /* a { */
+  /*   @apply text-blue-600 hover:text-blue-800 underline; */
+  /* } */
+
   /* Prevent iOS zoom on input focus */
   @media (max-width: 768px) {
     input,

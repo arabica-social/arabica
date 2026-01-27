@@ -1,60 +1,225 @@
-<div class="max-w-4xl mx-auto">
-  <div class="bg-white rounded-xl p-8 shadow-lg">
-    <h1 class="text-3xl font-bold text-brown-900 mb-6">Terms of Service</h1>
+<script>
+  function goBack() {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/";
+    }
+  }
+</script>
 
-    <div class="prose prose-brown max-w-none text-brown-800 space-y-4">
-      <p class="text-sm text-brown-600 italic">
-        Last updated: {new Date().toLocaleDateString()}
-      </p>
+<div class="max-w-3xl mx-auto">
+  <div class="flex items-center gap-3 mb-8">
+    <button
+      on:click={goBack}
+      class="inline-flex items-center text-brown-700 hover:text-brown-900 font-medium transition-colors cursor-pointer"
+    >
+      <svg
+        class="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        ></path>
+      </svg>
+    </button>
+    <h1 class="text-4xl font-bold text-brown-800">Terms of Service</h1>
+  </div>
 
-      <h2 class="text-2xl font-bold text-brown-900 mt-8">
-        1. Acceptance of Terms
+  <div class="prose prose-lg max-w-none space-y-6">
+    <section class="bg-green-50 border border-green-200 p-6 rounded-lg mb-8">
+      <h2 class="text-2xl font-semibold text-green-900 mb-4">
+        The Simple Truth
       </h2>
-      <p>
-        By accessing and using Arabica, you accept and agree to be bound by the
-        terms and provision of this agreement.
+      <p class="text-gray-800 text-lg leading-relaxed">
+        <strong>You own all of your data.</strong> Period. Your brew logs, coffee
+        beans, equipment information, and any other data you create in Arabica belongs
+        to you and is stored in your Personal Data Server (PDS), not on our servers.
       </p>
+    </section>
 
-      <h2 class="text-2xl font-bold text-brown-900 mt-8">
-        2. Alpha Software Notice
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">
+        1. Your Data Ownership
       </h2>
-      <p>
-        Arabica is currently in alpha testing. Features, data structures, and
-        functionality may change without notice. We recommend backing up your
-        data regularly.
+      <!-- TODO: ensure this is correct, we may keep a witness cache of records -->
+      <p class="text-gray-700 leading-relaxed">
+        All data you create through Arabica is stored in your AT Protocol
+        Personal Data Server (PDS). Arabica acts as an interface to your PDS but
+        does not own, claim rights to, or permanently store your data.
       </p>
+      <ul class="list-disc list-inside space-y-2 text-gray-700 mt-3">
+        <li>You retain full ownership and control of your data</li>
+        <li>You can delete your data at any time</li>
+        <li>You can switch PDS providers without losing your data</li>
+        <li>You can stop using Arabica and your data remains in your PDS</li>
+      </ul>
+    </section>
 
-      <h2 class="text-2xl font-bold text-brown-900 mt-8">3. Data Storage</h2>
-      <p>
-        Your brewing data is stored in your Personal Data Server (PDS) via the
-        AT Protocol. Arabica does not store your brewing records on its servers.
-        You are responsible for the security and backup of your PDS.
-      </p>
-
-      <h2 class="text-2xl font-bold text-brown-900 mt-8">
-        4. User Responsibilities
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">
+        2. What We Store
       </h2>
-      <p>
-        You are responsible for maintaining the confidentiality of your account
-        credentials and for all activities that occur under your account.
+      <p class="text-gray-700 leading-relaxed mb-3">
+        Arabica's servers store minimal data necessary for the application to
+        function:
       </p>
+      <ul class="list-disc list-inside space-y-2 text-gray-700">
+        <li>
+          <strong>Session information</strong> - Temporary authentication tokens
+          to keep you logged in
+        </li>
+        <li>
+          <strong>Feed registry</strong> - List of users who've opted into the community
+          feed
+        </li>
+        <li>
+          <strong>Temporary cache</strong> - Short-lived cache of your data to improve
+          performance
+        </li>
+      </ul>
+      <!-- TODO: This may not end up being true, for performance and validation purposes, commenting for now -->
+      <!-- If we do keep data, we will respect delete requests from PDS's -->
+      <!-- <p class="text-gray-700 leading-relaxed mt-3"> -->
+      <!--   We do <strong>not</strong> store your brew logs, beans, equipment, or any -->
+      <!--   other user-generated content on our servers. That data lives exclusively -->
+      <!--   in your PDS. -->
+      <!-- </p> -->
+    </section>
 
-      <h2 class="text-2xl font-bold text-brown-900 mt-8">
-        5. Limitation of Liability
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">
+        3. Authentication
       </h2>
-      <p>
-        Arabica is provided "as is" without warranty of any kind. We are not
-        liable for any data loss, service interruptions, or other damages
-        arising from your use of the application.
+      <p class="text-gray-700 leading-relaxed">
+        Arabica uses OAuth to authenticate with your PDS. We never see or store
+        your PDS password. Authentication is handled between your browser and
+        your PDS, with Arabica receiving only temporary access tokens to read
+        and write data on your behalf.
       </p>
+    </section>
 
-      <h2 class="text-2xl font-bold text-brown-900 mt-8">
-        6. Changes to Terms
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">
+        4. Community Feed
       </h2>
-      <p>
-        We reserve the right to modify these terms at any time. Continued use of
-        Arabica after changes constitutes acceptance of the modified terms.
+      <p class="text-gray-700 leading-relaxed">
+        If you opt into the community feed, Arabica will periodically read your
+        public brew records from your PDS to display them to other users. This
+        is done by:
       </p>
-    </div>
+      <ul class="list-disc list-inside space-y-2 text-gray-700 mt-3">
+        <li>Making public API calls to your PDS</li>
+        <li>Temporarily caching brew data for feed display</li>
+        <li>Not storing your data permanently on our servers</li>
+      </ul>
+      <p class="text-gray-700 leading-relaxed mt-3">
+        You can opt out of the community feed at any time, and we'll stop
+        reading your brews.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">
+        5. Service Availability
+      </h2>
+      <p class="text-gray-700 leading-relaxed">
+        Arabica is provided "as is" without warranties of any kind. We make
+        reasonable efforts to keep the service running but do not guarantee
+        uptime or availability. Since your data is stored in your PDS (not our
+        servers), you won't lose your data if Arabica goes offline.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">6. Privacy</h2>
+      <p class="text-gray-700 leading-relaxed">
+        We respect your privacy and follow these principles:
+      </p>
+      <ul class="list-disc list-inside space-y-2 text-gray-700 mt-3">
+        <li>We don't sell your data</li>
+        <li>We don't track you across websites</li>
+        <li>We use minimal analytics to understand service usage</li>
+        <li>We don't share your data with third parties</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">7. Open Source</h2>
+      <p class="text-gray-700 leading-relaxed">
+        Arabica is open source software. You can review the <a
+          href="https://tangled.org/arabica.social/arabica"
+          class="text-brown-700 hover:underline font-medium"
+          target="_blank">code</a
+        >, run your own instance, or contribute improvements. The transparency
+        of open source means you can verify that we're handling your data as
+        described in these terms.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">
+        8. Changes to Terms
+      </h2>
+      <p class="text-gray-700 leading-relaxed">
+        We may update these terms occasionally. If we make significant changes,
+        we'll notify users through the application. Continued use of Arabica
+        after changes constitutes acceptance of the new terms.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">
+        9. Acceptable Use
+      </h2>
+      <p class="text-gray-700 leading-relaxed">
+        Please use Arabica responsibly:
+      </p>
+      <ul class="list-disc list-inside space-y-2 text-gray-700 mt-3">
+        <li>Don't attempt to access other users' data without permission</li>
+        <li>Don't abuse the service with excessive API requests</li>
+        <li>Don't use Arabica for illegal purposes</li>
+        <li>Be respectful in community interactions</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-semibold text-brown-800 mb-4">10. Contact</h2>
+      <p class="text-gray-700 leading-relaxed">
+        Questions about these terms? You can reach us through our <a
+          href="https://tangled.org/arabica.social/arabica"
+          class="text-brown-700 hover:underline font-medium"
+          target="_blank">Tangled repository</a
+        >
+        or by email at
+        <a
+          href="mailto:mail@arabica.systems"
+          class="text-brown-700 hover:underline font-medium"
+          >mail@arabica.systems</a
+        >.
+      </p>
+    </section>
+
+    <section class="bg-gray-100 p-6 rounded-lg mt-8">
+      <p class="text-sm text-gray-600">
+        <strong>Last Updated:</strong> January 2026<br />
+        <strong>Effective Date:</strong> January 2026
+      </p>
+    </section>
+  </div>
+
+  <div class="mt-12 text-center">
+    <a
+      href="/brews/new"
+      class="inline-block bg-gradient-to-r from-brown-700 to-brown-800 text-white px-8 py-3 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-semibold shadow-lg hover:shadow-xl"
+    >
+      Back to Home</a
+    >
   </div>
 </div>
