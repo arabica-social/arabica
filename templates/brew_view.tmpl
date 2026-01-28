@@ -1,6 +1,6 @@
 {{define "content"}}
 <div class="max-w-2xl mx-auto">
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 border border-brown-300">
+    <div class="card card-inner">
         <!-- Header with title and actions -->
         <div class="flex justify-between items-start mb-6">
             <div>
@@ -10,7 +10,7 @@
             {{if .IsOwnProfile}}
             <div class="flex gap-2">
                 <a href="/brews/{{.Brew.RKey}}/edit"
-                    class="inline-flex items-center bg-brown-300 text-brown-900 px-4 py-2 rounded-lg hover:bg-brown-400 font-medium transition-colors">
+                    class="inline-flex items-center btn-secondary">
                     Edit
                 </a>
                 <button

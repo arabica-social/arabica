@@ -5,7 +5,7 @@
         <h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
         <button
             @click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''}"
-            class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
+            class="btn-primary shadow-md hover:shadow-lg">
             + Add Bean
         </button>
     </div>
@@ -15,22 +15,22 @@
         No beans yet. Add your first bean to get started!
     </div>
     {{else}}
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-x-auto border border-brown-300">
-        <table class="min-w-full divide-y divide-brown-300">
-            <thead class="bg-brown-200/80">
+    <div class="table-container overflow-x-auto">
+        <table class="table">
+            <thead class="table-header">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">📍 Origin</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">☕ Roaster</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">🔥 Roast Level</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">🌱 Process</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">📝 Description</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase whitespace-nowrap">Actions</th>
+                    <th class="table-th whitespace-nowrap">Name</th>
+                    <th class="table-th whitespace-nowrap">📍 Origin</th>
+                    <th class="table-th whitespace-nowrap">☕ Roaster</th>
+                    <th class="table-th whitespace-nowrap">🔥 Roast Level</th>
+                    <th class="table-th whitespace-nowrap">🌱 Process</th>
+                    <th class="table-th whitespace-nowrap">📝 Description</th>
+                    <th class="table-th whitespace-nowrap">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+            <tbody class="table-body">
                 {{range .Beans}}
-                <tr class="hover:bg-brown-100/60 transition-colors">
+                <tr class="table-row">
                     <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
                     <td class="px-6 py-4 text-sm text-brown-900">{{.Origin}}</td>
                     <td class="px-6 py-4 text-sm text-brown-900">
@@ -45,9 +45,9 @@
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Description}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
                         <button @click="editBean('{{.RKey}}', '{{escapeJS .Name}}', '{{escapeJS .Origin}}', '{{.RoastLevel}}', '{{.Process}}', '{{escapeJS .Description}}', '{{.RoasterRKey}}')"
-                            class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
+                            class="btn-link">Edit</button>
                         <button @click="deleteBean('{{.RKey}}')"
-                            class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
+                            class="btn-danger">Delete</button>
                     </td>
                 </tr>
                 {{end}}
@@ -63,7 +63,7 @@
         <h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
         <button
             @click="showRoasterForm = true; editingRoaster = null; roasterForm = {name: '', location: '', website: ''}"
-            class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
+            class="btn-primary shadow-md hover:shadow-lg">
             + Add Roaster
         </button>
     </div>
@@ -73,19 +73,19 @@
         No roasters yet. Add your first roaster!
     </div>
     {{else}}
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-x-auto border border-brown-300">
-        <table class="min-w-full divide-y divide-brown-300">
-            <thead class="bg-brown-200/80">
+    <div class="table-container overflow-x-auto">
+        <table class="table">
+            <thead class="table-header">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📍 Location</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🌐 Website</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
+                    <th class="table-th">Name</th>
+                    <th class="table-th">📍 Location</th>
+                    <th class="table-th">🌐 Website</th>
+                    <th class="table-th">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+            <tbody class="table-body">
                 {{range .Roasters}}
-                <tr class="hover:bg-brown-100/60 transition-colors">
+                <tr class="table-row">
                     <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
                     <td class="px-6 py-4 text-sm text-brown-900">{{.Location}}</td>
                     <td class="px-6 py-4 text-sm text-brown-900">
@@ -97,9 +97,9 @@
                     </td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
                         <button @click="editRoaster('{{.RKey}}', '{{escapeJS .Name}}', '{{escapeJS .Location}}', '{{escapeJS .Website}}')"
-                            class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
+                            class="btn-link">Edit</button>
                         <button @click="deleteRoaster('{{.RKey}}')"
-                            class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
+                            class="btn-danger">Delete</button>
                     </td>
                 </tr>
                 {{end}}
@@ -115,7 +115,7 @@
         <h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
         <button
         @click="showGrinderForm = true; editingGrinder = null; grinderForm = {name: '', grinder_type: '', burr_type: '', notes: ''}"
-            class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
+            class="btn-primary shadow-md hover:shadow-lg">
             + Add Grinder
         </button>
     </div>
@@ -125,29 +125,29 @@
         No grinders yet. Add your first grinder!
     </div>
     {{else}}
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-x-auto border border-brown-300">
-        <table class="min-w-full divide-y divide-brown-300">
-            <thead class="bg-brown-200/80">
+    <div class="table-container overflow-x-auto">
+        <table class="table">
+            <thead class="table-header">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔧 Grinder Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">💎 Burr Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📝 Notes</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
+                    <th class="table-th">Name</th>
+                    <th class="table-th">🔧 Grinder Type</th>
+                    <th class="table-th">💎 Burr Type</th>
+                    <th class="table-th">📝 Notes</th>
+                    <th class="table-th">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+            <tbody class="table-body">
                 {{range .Grinders}}
-                <tr class="hover:bg-brown-100/60 transition-colors">
+                <tr class="table-row">
                     <td class="px-6 py-4 text-sm font-medium text-brown-900">{{.Name}}</td>
                     <td class="px-6 py-4 text-sm text-brown-900">{{.GrinderType}}</td>
                     <td class="px-6 py-4 text-sm text-brown-900">{{.BurrType}}</td>
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Notes}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
                         <button @click="editGrinder('{{.RKey}}', '{{escapeJS .Name}}', '{{.GrinderType}}', '{{.BurrType}}', '{{escapeJS .Notes}}')"
-                            class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
+                            class="btn-link">Edit</button>
                         <button @click="deleteGrinder('{{.RKey}}')"
-                            class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
+                            class="btn-danger">Delete</button>
                     </td>
                 </tr>
                 {{end}}
@@ -162,7 +162,7 @@
     <div class="mb-4 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
         <button @click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', brewer_type: '', description: ''}"
-            class="bg-gradient-to-r from-brown-700 to-brown-800 text-white px-4 py-2 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-medium shadow-md hover:shadow-lg">
+            class="btn-primary shadow-md hover:shadow-lg">
             + Add Brewer
         </button>
     </div>
@@ -172,17 +172,17 @@
         No brewers yet. Add your first brewer!
     </div>
     {{else}}
-    <div class="bg-gradient-to-br from-brown-100 to-brown-200 shadow-xl rounded-xl overflow-x-auto border border-brown-300">
-        <table class="min-w-full divide-y divide-brown-300">
-            <thead class="bg-brown-200/80">
+    <div class="table-container overflow-x-auto">
+        <table class="table">
+            <thead class="table-header">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">🔧 Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">📝 Description</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase">Actions</th>
+                    <th class="table-th">Name</th>
+                    <th class="table-th">🔧 Type</th>
+                    <th class="table-th">📝 Description</th>
+                    <th class="table-th">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-brown-50/60 divide-y divide-brown-200">
+            <tbody class="table-body">
                 {{range .Brewers}}
                 <tr class="hover:bg-brown-100/60 transition-colors"
                     data-rkey="{{.RKey}}"
@@ -196,9 +196,9 @@
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Description}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
                         <button @click="editBrewerFromRow($el.closest('tr'))"
-                            class="text-brown-700 hover:text-brown-900 font-medium">Edit</button>
+                            class="btn-link">Edit</button>
                         <button @click="deleteBrewer($el.closest('tr').dataset.rkey)"
-                            class="text-brown-600 hover:text-brown-800 font-medium">Delete</button>
+                            class="btn-danger">Delete</button>
                     </td>
                 </tr>
                 {{end}}

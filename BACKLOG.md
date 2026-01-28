@@ -40,3 +40,13 @@ Each should be addressed one at a time, and the item should be removed after imp
 - Header should probably always be attached to the top of the screen?
 
 - Feed item "view details" button should go away, the "new brew" in "addded a new brew" should take to view page instead (underline this text)
+
+- Manage brews page truncates notes, but variables wrap to considerably more lines, probably don't need to truncate notes.
+
+- Loading on htmx could probably be snappier by using a loading bar, and waiting until everything is loaded
+  - Alternative could be using transitionary animations between skeleton and full loads
+  - Do we even need skeleton loading with SSR? (I think yes here because of PDS data fetches -- maybe not if we kept a copy of the data)
+
+- I think we should be using htmx more than alpine, we are leaning too much on alpine and not enough on htmx
+  - I think for transitions we should be able to swap to htmx from alpine?
+  - I may be completely off base on this though

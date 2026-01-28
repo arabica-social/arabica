@@ -1,0 +1,125 @@
+package components
+
+import "arabica/internal/models"
+
+type BrewFormProps struct {
+    // Brew being edited; nil if creating new
+    Brew *models.Brew
+
+    // Collections for selects
+    Beans    []models.Bean
+    Grinders []models.Grinder
+    Brewers  []models.Brewer
+
+    // Derived JSON or values for client Alpine initialization
+    PoursJSON string // optional, only if editing
+
+    // Back button
+    BackURL string
+}
+
+templ BrewFormPage(layout *LayoutData, props BrewFormProps) {
+	@Layout(layout, BrewFormCard(props))
+}
+
+
+templ BrewFormCard(props BrewFormProps) {
+  <div class="max-w-2xl mx-auto" x-data="brewForm" x-init="init">
+    <div class="card card-inner">
+      BrewHeader(props)
+      BrewForm(props)
+    </div>
+  </div>
+}
+
+templ BrewHeader(props BrewFormProps) {
+  <div class="flex items-center gap-3 mb-6">
+    BackButton("/brews")
+    if props.Brew != nil {
+      <h2>Edit Brew</h2>
+    } else {
+      <h2>New Brew</h2>
+    }
+  </div>
+}
+
+templ BrewForm(props BrewFormProps) {
+  <form
+    hx-target="body"
+    class="space-y-6"
+    if props.Brew != nil {
+      hx-put={"/brews/" + props.Brew.RKey}
+    } else {
+      hx-post="/brews"
+    }
+    if props.Brew != nil && len(props.Brew.Pours) > 0 {
+      data-pours={props.Brew.PoursJSON}
+    }
+  >
+    BeanSelect(props)
+    CoffeeAmount(props)
+    GrinderSelect(props)
+    GrindSize(props)
+    BrewerSelect(props)
+    WaterAmount(props)
+    PoursEditor(props)
+    Temperature(props)
+    BrewTime(props)
+    TastingNotes(props)
+    RatingInput(props)
+    SubmitButton(props)
+  </form>
+}
+
+templ EntitySelect(
+  label string,
+  name string,
+  options []Entity,
+  selected string,
+  onNew string,
+) {
+  <div>
+    <label class="form-label">{label}</label>
+    <div class="flex gap-2">
+      <select name={name} class="flex-1 form-select">
+        <option value="">Select…</option>
+        for _, opt := range options {
+          <option value={opt.RKey} selected={opt.RKey == selected}>
+            {opt.Label()}
+          </option>
+        }
+      </select>
+      <button type="button" class="btn-secondary" @click={onNew}>
+        + New
+      </button>
+    </div>
+  </div>
+}
+
+templ PoursEditor(props BrewFormProps) {
+  <div x-data="poursEditor" x-init="init">
+    <div class="flex items-center justify-between mb-2">
+      <label>Pours</label>
+      <button type="button" @click="add" class="btn-secondary">+ Add Pour</button>
+    </div>
+
+    <template x-for="(pour, i) in pours" :key="pour.id">
+      <PourRow index="i" />
+    </template>
+  </div>
+}
+
+templ PourRow(index string) {
+  <div class="flex gap-2 items-center">
+    <input type="number" :name="`pours[${index}].water`">
+    <input type="number" :name="`pours[${index}].time`">
+    <button type="button" @click="remove(index)">✕</button>
+  </div>
+}
+
+templ RatingInput(props BrewFormProps) {
+  <div x-data="{ rating: initialRating }">
+    <input type="range" name="rating" min="1" max="10" x-model="rating">
+    <div><span x-text="rating"></span>/10</div>
+  </div>
+}

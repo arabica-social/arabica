@@ -1,32 +1,21 @@
 /**
  * Alpine.js component for the manage page
  * Handles CRUD operations for beans, roasters, grinders, and brewers
+ * Uses shared entity-manager module to eliminate duplication
  */
 function managePage() {
   return {
     tab: localStorage.getItem("manageTab") || "beans",
     activeTab: localStorage.getItem("profileTab") || "brews",
-    showBeanForm: false,
-    showRoasterForm: false,
-    showGrinderForm: false,
-    showBrewerForm: false,
-    editingBean: null,
-    editingRoaster: null,
-    editingGrinder: null,
-    editingBrewer: null,
-    beanForm: {
-      name: "",
-      origin: "",
-      roast_level: "",
-      process: "",
-      description: "",
-      roaster_rkey: "",
-    },
-    roasterForm: { name: "", location: "", website: "" },
-    grinderForm: { name: "", grinder_type: "", burr_type: "", notes: "" },
-    brewerForm: { name: "", brewer_type: "", description: "" },
+
+    // Entity managers for each entity type
+    beanManager: null,
+    roasterManager: null,
+    grinderManager: null,
+    brewerManager: null,
 
     init() {
+      // Watch tab changes and persist to localStorage
       this.$watch("tab", (value) => {
         localStorage.setItem("manageTab", value);
       });
@@ -39,192 +28,169 @@ function managePage() {
       if (window.ArabicaCache) {
         window.ArabicaCache.init();
       }
+
+      // Initialize entity managers
+      this.initEntityManagers();
     },
 
-    editBean(
-      rkey,
-      name,
-      origin,
-      roast_level,
-      process,
-      description,
-      roaster_rkey,
-    ) {
-      this.editingBean = rkey;
-      this.beanForm = {
+    initEntityManagers() {
+      // Bean entity manager
+      this.beanManager = window.createEntityManager({
+        entityType: "bean",
+        apiEndpoint: "/api/beans",
+        defaultFormData: {
+          name: "",
+          origin: "",
+          roast_level: "",
+          process: "",
+          description: "",
+          roaster_rkey: "",
+        },
+        validate: (data) => {
+          if (!data.name || !data.origin) {
+            return "Name and Origin are required";
+          }
+          return null;
+        },
+        reloadOnSuccess: true,
+      });
+
+      // Roaster entity manager
+      this.roasterManager = window.createEntityManager({
+        entityType: "roaster",
+        apiEndpoint: "/api/roasters",
+        defaultFormData: {
+          name: "",
+          location: "",
+          website: "",
+        },
+        validate: (data) => {
+          if (!data.name) {
+            return "Name is required";
+          }
+          return null;
+        },
+        reloadOnSuccess: true,
+      });
+
+      // Grinder entity manager
+      this.grinderManager = window.createEntityManager({
+        entityType: "grinder",
+        apiEndpoint: "/api/grinders",
+        defaultFormData: {
+          name: "",
+          grinder_type: "",
+          burr_type: "",
+          notes: "",
+        },
+        validate: (data) => {
+          if (!data.name || !data.grinder_type) {
+            return "Name and Grinder Type are required";
+          }
+          return null;
+        },
+        reloadOnSuccess: true,
+      });
+
+      // Brewer entity manager
+      this.brewerManager = window.createEntityManager({
+        entityType: "brewer",
+        apiEndpoint: "/api/brewers",
+        defaultFormData: {
+          name: "",
+          brewer_type: "",
+          description: "",
+        },
+        validate: (data) => {
+          if (!data.name) {
+            return "Name is required";
+          }
+          return null;
+        },
+        reloadOnSuccess: true,
+      });
+    },
+
+    // Expose entity manager modal state to Alpine
+    get showBeanForm() {
+      return this.beanManager?.showForm || false;
+    },
+    set showBeanForm(value) {
+      if (this.beanManager) this.beanManager.showForm = value;
+    },
+
+    get showRoasterForm() {
+      return this.roasterManager?.showForm || false;
+    },
+    set showRoasterForm(value) {
+      if (this.roasterManager) this.roasterManager.showForm = value;
+    },
+
+    get showGrinderForm() {
+      return this.grinderManager?.showForm || false;
+    },
+    set showGrinderForm(value) {
+      if (this.grinderManager) this.grinderManager.showForm = value;
+    },
+
+    get showBrewerForm() {
+      return this.brewerManager?.showForm || false;
+    },
+    set showBrewerForm(value) {
+      if (this.brewerManager) this.brewerManager.showForm = value;
+    },
+
+    // Expose entity manager form data to Alpine
+    get beanForm() {
+      return this.beanManager?.formData || {};
+    },
+    set beanForm(value) {
+      if (this.beanManager) this.beanManager.formData = value;
+    },
+
+    get roasterForm() {
+      return this.roasterManager?.formData || {};
+    },
+    set roasterForm(value) {
+      if (this.roasterManager) this.roasterManager.formData = value;
+    },
+
+    get grinderForm() {
+      return this.grinderManager?.formData || {};
+    },
+    set grinderForm(value) {
+      if (this.grinderManager) this.grinderManager.formData = value;
+    },
+
+    get brewerForm() {
+      return this.brewerManager?.formData || {};
+    },
+    set brewerForm(value) {
+      if (this.brewerManager) this.brewerManager.formData = value;
+    },
+
+    // Edit methods - populate form and open modal
+    editBean(rkey, name, origin, roast_level, process, description, roaster_rkey) {
+      this.beanManager.openEdit(rkey, {
         name,
         origin,
         roast_level,
         process,
         description,
         roaster_rkey: roaster_rkey || "",
-      };
-      this.showBeanForm = true;
-    },
-
-    async saveBean() {
-      if (!this.beanForm.name || !this.beanForm.origin) {
-        alert("Name and Origin are required");
-        return;
-      }
-
-      const url = this.editingBean
-        ? `/api/beans/${this.editingBean}`
-        : "/api/beans";
-      const method = this.editingBean ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(this.beanForm),
       });
-
-      if (response.ok) {
-        // Invalidate cache and reload
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert("Failed to save bean: " + errorText);
-      }
-    },
-
-    async deleteBean(rkey) {
-      if (!confirm("Are you sure you want to delete this bean?")) return;
-
-      const response = await fetch(`/api/beans/${rkey}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        // Invalidate cache and reload
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert("Failed to delete bean: " + errorText);
-      }
     },
 
     editRoaster(rkey, name, location, website) {
-      this.editingRoaster = rkey;
-      this.roasterForm = { name, location, website };
-      this.showRoasterForm = true;
-    },
-
-    async saveRoaster() {
-      if (!this.roasterForm.name) {
-        alert("Name is required");
-        return;
-      }
-
-      const url = this.editingRoaster
-        ? `/api/roasters/${this.editingRoaster}`
-        : "/api/roasters";
-      const method = this.editingRoaster ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(this.roasterForm),
-      });
-
-      if (response.ok) {
-        // Invalidate cache and reload
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert("Failed to save roaster: " + errorText);
-      }
-    },
-
-    async deleteRoaster(rkey) {
-      if (!confirm("Are you sure you want to delete this roaster?")) return;
-
-      const response = await fetch(`/api/roasters/${rkey}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        // Invalidate cache and reload
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert("Failed to delete roaster: " + errorText);
-      }
+      this.roasterManager.openEdit(rkey, { name, location, website });
     },
 
     editGrinder(rkey, name, grinder_type, burr_type, notes) {
-      this.editingGrinder = rkey;
-      this.grinderForm = { name, grinder_type, burr_type, notes };
-      this.showGrinderForm = true;
-    },
-
-    async saveGrinder() {
-      if (!this.grinderForm.name || !this.grinderForm.grinder_type) {
-        alert("Name and Grinder Type are required");
-        return;
-      }
-
-      const url = this.editingGrinder
-        ? `/api/grinders/${this.editingGrinder}`
-        : "/api/grinders";
-      const method = this.editingGrinder ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(this.grinderForm),
-      });
-
-      if (response.ok) {
-        // Invalidate cache and reload
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert("Failed to save grinder: " + errorText);
-      }
-    },
-
-    async deleteGrinder(rkey) {
-      if (!confirm("Are you sure you want to delete this grinder?")) return;
-
-      const response = await fetch(`/api/grinders/${rkey}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        // Invalidate cache and reload
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert("Failed to delete grinder: " + errorText);
-      }
+      this.grinderManager.openEdit(rkey, { name, grinder_type, burr_type, notes });
     },
 
     editBrewer(rkey, name, brewer_type, description) {
-      this.editingBrewer = rkey;
-      this.brewerForm = { name, brewer_type, description };
-      this.showBrewerForm = true;
+      this.brewerManager.openEdit(rkey, { name, brewer_type, description });
     },
 
     editBrewerFromRow(row) {
@@ -235,53 +201,38 @@ function managePage() {
       this.editBrewer(rkey, name, brewer_type, description);
     },
 
+    // Delegate save methods to entity managers
+    async saveBean() {
+      await this.beanManager.save();
+    },
+
+    async saveRoaster() {
+      await this.roasterManager.save();
+    },
+
+    async saveGrinder() {
+      await this.grinderManager.save();
+    },
+
     async saveBrewer() {
-      if (!this.brewerForm.name) {
-        alert("Name is required");
-        return;
-      }
+      await this.brewerManager.save();
+    },
 
-      const url = this.editingBrewer
-        ? `/api/brewers/${this.editingBrewer}`
-        : "/api/brewers";
-      const method = this.editingBrewer ? "PUT" : "POST";
+    // Delegate delete methods to entity managers
+    async deleteBean(rkey) {
+      await this.beanManager.delete(rkey);
+    },
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(this.brewerForm),
-      });
+    async deleteRoaster(rkey) {
+      await this.roasterManager.delete(rkey);
+    },
 
-      if (response.ok) {
-        // Invalidate cache and reload
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert("Failed to save brewer: " + errorText);
-      }
+    async deleteGrinder(rkey) {
+      await this.grinderManager.delete(rkey);
     },
 
     async deleteBrewer(rkey) {
-      if (!confirm("Are you sure you want to delete this brewer?")) return;
-
-      const response = await fetch(`/api/brewers/${rkey}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        // Invalidate cache and reload
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert("Failed to delete brewer: " + errorText);
-      }
+      await this.brewerManager.delete(rkey);
     },
   };
 }

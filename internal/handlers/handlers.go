@@ -10,6 +10,7 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/bff"
+	"arabica/internal/components"
 	"arabica/internal/database"
 	"arabica/internal/feed"
 	"arabica/internal/models"
@@ -1277,14 +1278,15 @@ func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	data := &bff.PageData{
+	data := &components.LayoutData{
 		Title:           "About",
 		IsAuthenticated: isAuthenticated,
 		UserDID:         didStr,
 		UserProfile:     userProfile,
 	}
 
-	if err := bff.RenderTemplate(w, r, "about.tmpl", data); err != nil {
+	// Use templ component
+	if err := components.About(data).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render about page")
 	}

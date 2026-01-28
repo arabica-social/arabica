@@ -5,10 +5,10 @@ file_name: feed_template_snapshot_test.go
 version: 0.1.0
 ---
 <div class="space-y-4">
-  <div class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-4 hover:shadow-lg transition-shadow">
+  <div class="feed-card">
     <div class="flex items-center gap-3 mb-3">
       <a href="/profile/badavatar" class="flex-shrink-0">
-        <div class="w-10 h-10 rounded-full bg-brown-300 flex items-center justify-center hover:ring-2 hover:ring-brown-600 transition">
+        <div class="avatar-placeholder avatar-ring">
           <span class="text-brown-600 text-sm">
             ?
           </span>
@@ -16,10 +16,10 @@ version: 0.1.0
       </a>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
-          <a href="/profile/badavatar" class="font-medium text-brown-900 truncate hover:text-brown-700 hover:underline">
+          <a href="/profile/badavatar" class="link-bold text-brown-900 truncate">
             Bad Avatar
           </a>
-          <a href="/profile/badavatar" class="text-brown-600 text-sm truncate hover:text-brown-700 hover:underline">
+          <a href="/profile/badavatar" class="link text-sm truncate">
             @badavatar
           </a>
         </div>
@@ -31,7 +31,7 @@ version: 0.1.0
     <div class="mb-2 text-sm text-brown-700">
       🫘 added a new bean
     </div>
-    <div class="bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200">
+    <div class="feed-content-box-sm">
       <div class="text-base mb-2">
         <span class="font-bold text-brown-900">
           Test Bean
@@ -39,19 +39,19 @@ version: 0.1.0
       </div>
       <div class="text-sm text-brown-700 space-y-1">
         <div>
-          <span class="text-brown-600">
+          <span class="text-label">
             Origin:
           </span>
           Test Origin
         </div>
         <div>
-          <span class="text-brown-600">
+          <span class="text-label">
             Roast:
           </span>
           Medium
         </div>
         <div>
-          <span class="text-brown-600">
+          <span class="text-label">
             Process:
           </span>
           Natural
