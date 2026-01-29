@@ -1,0 +1,22 @@
+package components
+
+// CardProps defines properties for a card container
+type CardProps struct {
+	Class     string // Additional CSS classes
+	InnerCard bool   // Whether to use "card-inner" styling
+}
+
+// Card renders a card container with optional inner styling
+templ Card(props CardProps, content templ.Component) {
+	<div
+		class={
+			templ.Classes(
+				templ.KV("card", true),
+				templ.KV("card-inner", props.InnerCard),
+				templ.KV(props.Class, props.Class != ""),
+			)
+		}
+	>
+		@content
+	</div>
+}

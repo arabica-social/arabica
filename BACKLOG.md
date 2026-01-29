@@ -50,3 +50,5 @@ Each should be addressed one at a time, and the item should be removed after imp
 - I think we should be using htmx more than alpine, we are leaning too much on alpine and not enough on htmx
   - I think for transitions we should be able to swap to htmx from alpine?
   - I may be completely off base on this though
+
+- The pop-up modals are missing their titles, unclear why (possibly hidden?)
