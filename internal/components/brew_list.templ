@@ -1,0 +1,28 @@
+package components
+
+// BrewListProps defines the data for the brew list page
+type BrewListProps struct {
+	// No initial data - loaded via HTMX
+}
+
+// BrewList renders the full brew list page
+templ BrewList(layout *LayoutData, props BrewListProps) {
+	@Layout(layout, BrewListContent(props))
+}
+
+// BrewListContent renders the brew list page content
+templ BrewListContent(props BrewListProps) {
+	<div class="max-w-6xl mx-auto">
+		@PageHeader(PageHeaderProps{
+			Title:      "Your Brews",
+			ActionURL:  "/brews/new",
+			ActionText: "+ New Brew",
+		})
+		<div hx-get="/api/brews" hx-trigger="load" hx-swap="innerHTML">
+			@LoadingSkeletonTable(LoadingSkeletonTableProps{
+				Columns: 6,
+				Rows:    5,
+			})
+		</div>
+	</div>
+}

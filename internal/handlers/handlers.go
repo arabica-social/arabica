@@ -148,8 +148,22 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	// Don't fetch feed items here - let them load async via HTMX
-	if err := bff.RenderHome(w, isAuthenticated, didStr, userProfile, nil); err != nil {
+	// Create layout data
+	layoutData := &components.LayoutData{
+		Title:           "Home",
+		IsAuthenticated: isAuthenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+	}
+
+	// Create home props
+	homeProps := components.HomeProps{
+		IsAuthenticated: isAuthenticated,
+		UserDID:         didStr,
+	}
+
+	// Render using templ component
+	if err := components.Home(layoutData, homeProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render home page")
 	}
@@ -268,8 +282,19 @@ func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 	userProfile := h.getUserProfile(r.Context(), didStr)
 
-	// Don't fetch brews here - let them load async via HTMX
-	if err := bff.RenderBrewList(w, nil, authenticated, didStr, userProfile); err != nil {
+	// Create layout data
+	layoutData := &components.LayoutData{
+		Title:           "Your Brews",
+		IsAuthenticated: authenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+	}
+
+	// Create brew list props
+	brewListProps := components.BrewListProps{}
+
+	// Render using templ component
+	if err := components.BrewList(layoutData, brewListProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew list page")
 	}
@@ -378,7 +403,22 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		isOwner = true
 	}
 
-	if err := bff.RenderBrewView(w, brew, isAuthenticated, didStr, userProfile, isOwner); err != nil {
+	// Create layout data
+	layoutData := &components.LayoutData{
+		Title:           "Brew Details",
+		IsAuthenticated: isAuthenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+	}
+
+	// Create brew view props
+	brewViewProps := components.BrewViewProps{
+		Brew:         brew,
+		IsOwnProfile: isOwner,
+	}
+
+	// Render using templ component
+	if err := components.BrewView(layoutData, brewViewProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew view")
 	}
@@ -920,8 +960,19 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 	userProfile := h.getUserProfile(r.Context(), didStr)
 
-	// Don't fetch data here - let it load async via HTMX
-	if err := bff.RenderManage(w, nil, nil, nil, nil, authenticated, didStr, userProfile); err != nil {
+	// Create layout data
+	layoutData := &components.LayoutData{
+		Title:           "Manage",
+		IsAuthenticated: authenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+	}
+
+	// Create manage props
+	manageProps := components.ManageProps{}
+
+	// Render using templ component
+	if err := components.Manage(layoutData, manageProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage page")
 	}
@@ -1575,8 +1626,49 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	// Check if the viewing user is the profile owner
 	isOwnProfile := isAuthenticated && didStr == did
 
-	// Render profile page
-	if err := bff.RenderProfile(w, profile, brews, beans, roasters, grinders, brewers, isAuthenticated, didStr, userProfile, isOwnProfile); err != nil {
+	// Convert atproto.Profile to bff.UserProfile
+	viewedProfile := &bff.UserProfile{
+		Handle: profile.Handle,
+	}
+	if profile.DisplayName != nil {
+		viewedProfile.DisplayName = *profile.DisplayName
+	}
+	if profile.Avatar != nil {
+		viewedProfile.Avatar = *profile.Avatar
+	}
+
+	// Create layout data
+	pageTitle := "Profile"
+	if viewedProfile.DisplayName != "" {
+		pageTitle = viewedProfile.DisplayName + " - Profile"
+	}
+	layoutData := &components.LayoutData{
+		Title:           pageTitle,
+		IsAuthenticated: isAuthenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+	}
+
+	// Create roaster options for own profile
+	var roasterOptions []components.RoasterOption
+	if isOwnProfile {
+		for _, roaster := range roasters {
+			roasterOptions = append(roasterOptions, components.RoasterOption{
+				RKey: roaster.RKey,
+				Name: roaster.Name,
+			})
+		}
+	}
+
+	// Create profile props
+	profileProps := components.ProfileProps{
+		Profile:      viewedProfile,
+		IsOwnProfile: isOwnProfile,
+		Roasters:     roasterOptions,
+	}
+
+	// Render using templ component
+	if err := components.Profile(layoutData, profileProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile page")
 	}
