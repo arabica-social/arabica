@@ -4,7 +4,10 @@
     <div class="mb-4 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
         <button
-            @click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''}"
+            hx-get="/api/modals/bean/new"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            hx-on::after-swap="document.getElementById('entity-modal').showModal()"
             class="btn-primary shadow-md hover:shadow-lg">
             + Add Bean
         </button>
@@ -44,7 +47,11 @@
                     <td class="px-6 py-4 text-sm text-brown-900">{{.Process}}</td>
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Description}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button @click="editBean('{{.RKey}}', '{{escapeJS .Name}}', '{{escapeJS .Origin}}', '{{.RoastLevel}}', '{{.Process}}', '{{escapeJS .Description}}', '{{.RoasterRKey}}')"
+                        <button
+                            hx-get="/api/modals/bean/{{.RKey}}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            hx-on::after-swap="document.getElementById('entity-modal').showModal()"
                             class="btn-link">Edit</button>
                         <button @click="deleteBean('{{.RKey}}')"
                             class="btn-danger">Delete</button>
@@ -62,7 +69,10 @@
     <div class="mb-4 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
         <button
-            @click="showRoasterForm = true; editingRoaster = null; roasterForm = {name: '', location: '', website: ''}"
+            hx-get="/api/modals/roaster/new"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            hx-on::after-swap="document.getElementById('entity-modal').showModal()"
             class="btn-primary shadow-md hover:shadow-lg">
             + Add Roaster
         </button>
@@ -96,7 +106,11 @@
                         {{end}}
                     </td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button @click="editRoaster('{{.RKey}}', '{{escapeJS .Name}}', '{{escapeJS .Location}}', '{{escapeJS .Website}}')"
+                        <button
+                            hx-get="/api/modals/roaster/{{.RKey}}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            hx-on::after-swap="document.getElementById('entity-modal').showModal()"
                             class="btn-link">Edit</button>
                         <button @click="deleteRoaster('{{.RKey}}')"
                             class="btn-danger">Delete</button>
@@ -114,7 +128,10 @@
     <div class="mb-4 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
         <button
-        @click="showGrinderForm = true; editingGrinder = null; grinderForm = {name: '', grinder_type: '', burr_type: '', notes: ''}"
+            hx-get="/api/modals/grinder/new"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            hx-on::after-swap="document.getElementById('entity-modal').showModal()"
             class="btn-primary shadow-md hover:shadow-lg">
             + Add Grinder
         </button>
@@ -144,7 +161,11 @@
                     <td class="px-6 py-4 text-sm text-brown-900">{{.BurrType}}</td>
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Notes}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button @click="editGrinder('{{.RKey}}', '{{escapeJS .Name}}', '{{.GrinderType}}', '{{.BurrType}}', '{{escapeJS .Notes}}')"
+                        <button
+                            hx-get="/api/modals/grinder/{{.RKey}}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            hx-on::after-swap="document.getElementById('entity-modal').showModal()"
                             class="btn-link">Edit</button>
                         <button @click="deleteGrinder('{{.RKey}}')"
                             class="btn-danger">Delete</button>
@@ -161,7 +182,11 @@
 <div x-show="tab === 'brewers'">
     <div class="mb-4 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
-        <button @click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', brewer_type: '', description: ''}"
+        <button
+            hx-get="/api/modals/brewer/new"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            hx-on::after-swap="document.getElementById('entity-modal').showModal()"
             class="btn-primary shadow-md hover:shadow-lg">
             + Add Brewer
         </button>
@@ -195,9 +220,13 @@
                     </td>
                     <td class="px-6 py-4 text-sm text-brown-700">{{.Description}}</td>
                     <td class="px-6 py-4 text-sm font-medium space-x-2">
-                        <button @click="editBrewerFromRow($el.closest('tr'))"
+                        <button
+                            hx-get="/api/modals/brewer/{{.RKey}}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            hx-on::after-swap="document.getElementById('entity-modal').showModal()"
                             class="btn-link">Edit</button>
-                        <button @click="deleteBrewer($el.closest('tr').dataset.rkey)"
+                        <button @click="deleteBrewer('{{.RKey}}')"
                             class="btn-danger">Delete</button>
                     </td>
                 </tr>

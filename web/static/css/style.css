@@ -115,6 +115,20 @@
     @apply text-xl font-semibold text-brown-900 mb-4;
   }
 
+  /* Native Dialog Element */
+  .modal-dialog {
+    @apply p-0 bg-transparent border-none shadow-none max-w-md w-full;
+  }
+
+  .modal-dialog::backdrop {
+    @apply bg-black/40 backdrop-blur-sm;
+  }
+
+  /* Dialog content wrapper (nested inside dialog) */
+  .modal-dialog .modal-content {
+    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-2xl p-6 w-full border border-brown-300 max-h-[90vh] overflow-y-auto;
+  }
+
   /* Typography */
   .section-title {
     @apply text-2xl font-bold text-brown-900 mb-4;

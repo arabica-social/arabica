@@ -27,7 +27,7 @@ templ BrewFormPage(layout *LayoutData, props BrewFormProps) {
 
 // BrewFormContent renders the brew form content (for use within layout)
 templ BrewFormContent(props BrewFormProps) {
-	<script src="/static/js/entity-manager.js?v=0.3.0"></script>
+	<!-- Keep dropdown manager and brew-form for now (pours functionality) -->
 	<script src="/static/js/dropdown-manager.js?v=0.3.0"></script>
 	<script src="/static/js/brew-form.js?v=0.3.0"></script>
 	<div class="max-w-2xl mx-auto" x-data="brewForm" x-init="init">
@@ -35,9 +35,7 @@ templ BrewFormContent(props BrewFormProps) {
 			CardProps{InnerCard: true},
 			BrewFormCard(props),
 		)
-		@BeanFormModal(props.Roasters)
-		@GrinderFormModal()
-		@BrewerFormModal()
+		<!-- Entity modals now loaded via HTMX into #modal-container -->
 	</div>
 }
 
@@ -124,7 +122,10 @@ templ BeanSelectField(props BrewFormProps) {
 			</select>
 			<button
 				type="button"
-				@click="showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''}"
+				hx-get="/api/modals/bean/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				hx-on::after-swap="document.getElementById('entity-modal').showModal()"
 				class="btn-secondary"
 			>
 				+ New
@@ -188,7 +189,10 @@ templ GrinderSelectField(props BrewFormProps) {
 			</select>
 			<button
 				type="button"
-				@click="showGrinderForm = true; editingGrinder = null; grinderForm = {name: '', grinder_type: '', burr_type: '', notes: ''}"
+				hx-get="/api/modals/grinder/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				hx-on::after-swap="document.getElementById('entity-modal').showModal()"
 				class="btn-secondary"
 			>
 				+ New
@@ -244,7 +248,10 @@ templ BrewerSelectField(props BrewFormProps) {
 			</select>
 			<button
 				type="button"
-				@click="showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', brewer_type: '', description: ''}"
+				hx-get="/api/modals/brewer/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				hx-on::after-swap="document.getElementById('entity-modal').showModal()"
 				class="btn-secondary"
 			>
 				+ New
