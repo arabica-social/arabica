@@ -51,9 +51,6 @@ Each should be addressed one at a time, and the item should be removed after imp
   - I think for transitions we should be able to swap to htmx from alpine?
   - I may be completely off base on this though
 
-- The pop-up modals are missing their titles, unclear why (possibly hidden?)
-  - Maybe an issue with the `modal-title` custom tailwind class
-
 - Is there a way to make templ components compiled output go to a different dir?
   - frontend dir with the components is pretty noisy now, would be great to trim it down
     (both compiling to a different location, and developing better organization)

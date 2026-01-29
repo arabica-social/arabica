@@ -80,7 +80,7 @@ func BrewFormContent(props BrewFormProps) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<script src=\"/static/js/entity-manager.js?v=0.3.0\"></script><script src=\"/static/js/dropdown-manager.js?v=0.3.0\"></script><script src=\"/static/js/brew-form.js?v=0.3.0\"></script><div class=\"max-w-2xl mx-auto\" x-data=\"brewForm\" x-init=\"init\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!-- Keep dropdown manager and brew-form for now (pours functionality) --><script src=\"/static/js/dropdown-manager.js?v=0.3.0\"></script><script src=\"/static/js/brew-form.js?v=0.3.0\"></script><div class=\"max-w-2xl mx-auto\" x-data=\"brewForm\" x-init=\"init\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -91,19 +91,7 @@ func BrewFormContent(props BrewFormProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = BeanFormModal(props.Roasters).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = GrinderFormModal().Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = BrewerFormModal().Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<!-- Entity modals now loaded via HTMX into #modal-container --></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -241,7 +229,7 @@ func BrewFormElement(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs("/brews/" + props.Brew.RKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 77, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 75, Col: 39}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -269,7 +257,7 @@ func BrewFormElement(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(props.PoursJSON)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 84, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 82, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -374,7 +362,7 @@ func BeanSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(bean.RKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 112, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 110, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -397,7 +385,7 @@ func BeanSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(formatBeanLabel(bean))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 118, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 116, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -416,7 +404,7 @@ func BeanSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(props.Brew.BeanRKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 122, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 120, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -427,7 +415,7 @@ func BeanSelectField(props BrewFormProps) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</select> <button type=\"button\" @click=\"showBeanForm = true; editingBean = null; beanForm = {name: '', origin: '', roast_level: '', process: '', description: '', roaster_rkey: ''}\" class=\"btn-secondary\">+ New</button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</select> <button type=\"button\" hx-get=\"/api/modals/bean/new\" hx-target=\"#modal-container\" hx-swap=\"innerHTML\" hx-on::after-swap=\"document.getElementById('entity-modal').showModal()\" class=\"btn-secondary\">+ New</button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -525,7 +513,7 @@ func GrinderSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(grinder.RKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 176, Col: 26}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 177, Col: 26}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -548,7 +536,7 @@ func GrinderSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(grinder.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 182, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 183, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -567,7 +555,7 @@ func GrinderSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(props.Brew.GrinderRKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 186, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 187, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -578,7 +566,7 @@ func GrinderSelectField(props BrewFormProps) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</select> <button type=\"button\" @click=\"showGrinderForm = true; editingGrinder = null; grinderForm = {name: '', grinder_type: '', burr_type: '', notes: ''}\" class=\"btn-secondary\">+ New</button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</select> <button type=\"button\" hx-get=\"/api/modals/grinder/new\" hx-target=\"#modal-container\" hx-swap=\"innerHTML\" hx-on::after-swap=\"document.getElementById('entity-modal').showModal()\" class=\"btn-secondary\">+ New</button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -668,7 +656,7 @@ func BrewerSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(brewer.RKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 232, Col: 25}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 236, Col: 25}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -691,7 +679,7 @@ func BrewerSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(brewer.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 238, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 242, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
@@ -710,7 +698,7 @@ func BrewerSelectField(props BrewFormProps) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(props.Brew.BrewerRKey)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 242, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 246, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -721,7 +709,7 @@ func BrewerSelectField(props BrewFormProps) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</select> <button type=\"button\" @click=\"showBrewerForm = true; editingBrewer = null; brewerForm = {name: '', brewer_type: '', description: ''}\" class=\"btn-secondary\">+ New</button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</select> <button type=\"button\" hx-get=\"/api/modals/brewer/new\" hx-target=\"#modal-container\" hx-swap=\"innerHTML\" hx-on::after-swap=\"document.getElementById('entity-modal').showModal()\" class=\"btn-secondary\">+ New</button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -974,7 +962,7 @@ func RatingField(props BrewFormProps) templ.Component {
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(getRating(props))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 402, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/brew_form.templ`, Line: 409, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {

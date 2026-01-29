@@ -30,6 +30,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<link rel="manifest" href="/static/manifest.json"/>
 			<script src="/static/js/alpine.min.js?v=0.2.0" defer></script>
 			<script src="/static/js/htmx.min.js?v=0.2.0"></script>
+			<script src="/static/js/entity-helpers.js?v=0.4.0"></script>
 			if data.IsAuthenticated {
 				<script src="/static/js/data-cache.js?v=0.2.0"></script>
 			}
@@ -47,6 +48,8 @@ templ Layout(data *LayoutData, content templ.Component) {
 				@content
 			</main>
 			@Footer()
+			<!-- Modal container for entity dialogs -->
+			<div id="modal-container"></div>
 		</body>
 	</html>
 }

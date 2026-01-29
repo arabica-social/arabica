@@ -52,7 +52,7 @@ func Layout(data *LayoutData, content templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " - Arabica</title><link rel=\"icon\" href=\"/static/favicon.svg\" type=\"image/svg+xml\"><link rel=\"icon\" href=\"/static/favicon-32.svg\" type=\"image/svg+xml\" sizes=\"32x32\"><link rel=\"apple-touch-icon\" href=\"/static/icon-192.svg\"><link rel=\"stylesheet\" href=\"/static/css/output.css?v=0.3.0\"><style>[x-cloak] { display: none !important; }</style><link rel=\"manifest\" href=\"/static/manifest.json\"><script src=\"/static/js/alpine.min.js?v=0.2.0\" defer></script><script src=\"/static/js/htmx.min.js?v=0.2.0\"></script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " - Arabica</title><link rel=\"icon\" href=\"/static/favicon.svg\" type=\"image/svg+xml\"><link rel=\"icon\" href=\"/static/favicon-32.svg\" type=\"image/svg+xml\" sizes=\"32x32\"><link rel=\"apple-touch-icon\" href=\"/static/icon-192.svg\"><link rel=\"stylesheet\" href=\"/static/css/output.css?v=0.3.0\"><style>[x-cloak] { display: none !important; }</style><link rel=\"manifest\" href=\"/static/manifest.json\"><script src=\"/static/js/alpine.min.js?v=0.2.0\" defer></script><script src=\"/static/js/htmx.min.js?v=0.2.0\"></script><script src=\"/static/js/entity-helpers.js?v=0.4.0\"></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -74,7 +74,7 @@ func Layout(data *LayoutData, content templ.Component) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.UserDID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/layout.templ`, Line: 42, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/components/layout.templ`, Line: 43, Col: 32}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -109,7 +109,7 @@ func Layout(data *LayoutData, content templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<!-- Modal container for entity dialogs --><div id=\"modal-container\"></div></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

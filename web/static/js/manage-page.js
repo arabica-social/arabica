@@ -140,6 +140,23 @@ function managePage() {
       if (this.brewerManager) this.brewerManager.showForm = value;
     },
 
+    // Expose entity manager editing state to Alpine (for modal titles)
+    get editingBean() {
+      return this.beanManager?.editingId !== null;
+    },
+
+    get editingRoaster() {
+      return this.roasterManager?.editingId !== null;
+    },
+
+    get editingGrinder() {
+      return this.grinderManager?.editingId !== null;
+    },
+
+    get editingBrewer() {
+      return this.brewerManager?.editingId !== null;
+    },
+
     // Expose entity manager form data to Alpine
     get beanForm() {
       return this.beanManager?.formData || {};
