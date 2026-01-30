@@ -54,3 +54,9 @@ Each should be addressed one at a time, and the item should be removed after imp
 - Is there a way to make templ components compiled output go to a different dir?
   - frontend dir with the components is pretty noisy now, would be great to trim it down
     (both compiling to a different location, and developing better organization)
+
+- Headers in skeletons need to exactly match headers in final table
+  - Refreshing profile should show either full skeleton with headers, or use the correct headers for the current tab
+    (It currently shows the brew header for all tabs)
+
+- Modals still don't fade out on save/cancel like I want them to fade out

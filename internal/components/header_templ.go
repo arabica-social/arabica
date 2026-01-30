@@ -31,7 +31,7 @@ func Header(isAuthenticated bool, userProfile *bff.UserProfile) templ.Component 
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"sticky top-0 z-50 bg-gradient-to-br from-brown-800 to-brown-900 text-white shadow-xl border-b-2 border-brown-600\"><div class=\"container mx-auto px-4 py-4\"><div class=\"flex items-center justify-between\"><!-- Logo - always visible --><a href=\"/\" class=\"flex items-center gap-2 hover:opacity-80 transition\"><h1 class=\"text-2xl font-bold\">☕ Arabica</h1><span class=\"text-xs bg-amber-400 text-brown-900 px-2 py-1 rounded-md font-semibold shadow-sm\">ALPHA</span></a><!-- Navigation links --><div class=\"flex items-center gap-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"sticky top-0 z-50 bg-gradient-to-br from-brown-800 to-brown-900 text-white shadow-xl border-b-2 border-brown-600\" style=\"view-transition-name: header-nav;\"><div class=\"container mx-auto px-4 py-4\"><div class=\"flex items-center justify-between\"><!-- Logo - always visible --><a href=\"/\" class=\"flex items-center gap-2 hover:opacity-80 transition\"><h1 class=\"text-2xl font-bold\">☕ Arabica</h1><span class=\"text-xs bg-amber-400 text-brown-900 px-2 py-1 rounded-md font-semibold shadow-sm\">ALPHA</span></a><!-- Navigation links --><div class=\"flex items-center gap-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

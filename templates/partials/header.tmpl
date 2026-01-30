@@ -3,7 +3,7 @@
     <div class="container mx-auto px-4 py-4">
         <div class="flex items-center justify-between">
             <!-- Logo - always visible -->
-            <a href="/" class="flex items-center gap-2 hover:opacity-80 transition">
+            <a href="/" class="flex items-center gap-2 hover:opacity-80 transition" hx-boost="true">
                 <h1 class="text-2xl font-bold">☕ Arabica</h1>
                 <span class="text-xs bg-amber-400 text-brown-900 px-2 py-1 rounded-md font-semibold shadow-sm">ALPHA</span>
             </a>
@@ -44,13 +44,13 @@
                             <p class="text-xs text-brown-500 truncate">@{{.UserProfile.Handle}}</p>
                         </div>
                         {{end}}
-                        <a href="/profile/{{if and .UserProfile .UserProfile.Handle}}{{.UserProfile.Handle}}{{else}}{{.UserDID}}{{end}}" class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors">
+                        <a href="/profile/{{if and .UserProfile .UserProfile.Handle}}{{.UserProfile.Handle}}{{else}}{{.UserDID}}{{end}}" class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors" hx-boost="true">
                             View Profile
                         </a>
-                        <a href="/brews" class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors">
+                        <a href="/brews" class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors" hx-boost="true">
                             My Brews
                         </a>
-                        <a href="/manage" class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors">
+                        <a href="/manage" class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors" hx-boost="true">
                             Manage Records
                         </a>
                         <a href="#" class="block px-4 py-2 text-sm text-brown-400 cursor-not-allowed">

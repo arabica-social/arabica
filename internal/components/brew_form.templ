@@ -27,10 +27,7 @@ templ BrewFormPage(layout *LayoutData, props BrewFormProps) {
 
 // BrewFormContent renders the brew form content (for use within layout)
 templ BrewFormContent(props BrewFormProps) {
-	<!-- Keep dropdown manager and brew-form for now (pours functionality) -->
-	<script src="/static/js/dropdown-manager.js?v=0.3.0"></script>
-	<script src="/static/js/brew-form.js?v=0.3.0"></script>
-	<div class="max-w-2xl mx-auto" x-data="brewForm" x-init="init">
+	<div class="max-w-2xl mx-auto" x-data="brewForm">
 		@Card(
 			CardProps{InnerCard: true},
 			BrewFormCard(props),
