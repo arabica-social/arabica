@@ -26,18 +26,20 @@ function handleBackNavigation(button) {
     const currentUrl = window.location.href;
 
     // Check if there's actual browser history to go back to
-    // We can't directly check history.length in a reliable way across browsers,
-    // but we can check if the referrer is from the same origin
+    // We use both referrer AND history.length to determine if we can safely go back
     const hasSameOriginReferrer = referrer && 
                                    referrer.startsWith(window.location.origin) &&
                                    referrer !== currentUrl;
+    
+    // history.length > 2 means there's at least one page before the current page
+    // (length includes current page + previous pages)
+    const hasHistoryDepth = window.history.length > 2;
 
-    if (hasSameOriginReferrer) {
-        // Safe to use history.back() - we came from within the app
+    // Only use history.back() if we have both a same-origin referrer AND history depth
+    // Otherwise, use the fallback URL to prevent blank pages
+    if (hasSameOriginReferrer && hasHistoryDepth) {
         window.history.back();
     } else {
-        // No referrer or external referrer - use fallback
-        // This handles direct links, external referrers, and bookmarks
         window.location.href = fallbackUrl;
     }
 }

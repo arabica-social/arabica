@@ -31,7 +31,7 @@ window.refreshEntityDropdown = function(entityType) {
 };
 
 /**
- * Shows a modal dialog element
+ * Shows a modal dialog element with fade-in animation
  * @param {string} dialogId - ID of the dialog element
  */
 window.showModal = function(dialogId) {
@@ -42,12 +42,22 @@ window.showModal = function(dialogId) {
 };
 
 /**
- * Closes a modal dialog element
+ * Closes a modal dialog element with fade-out animation
  * @param {string} dialogId - ID of the dialog element
  */
 window.closeModal = function(dialogId) {
   const dialog = document.getElementById(dialogId);
   if (dialog && typeof dialog.close === 'function') {
-    dialog.close();
+    // Add closing class for fade-out animation
+    dialog.style.opacity = '0';
+    dialog.style.transform = 'scale(0.95)';
+    
+    // Wait for animation to complete before actually closing
+    setTimeout(() => {
+      dialog.close();
+      // Reset styles for next open
+      dialog.style.opacity = '';
+      dialog.style.transform = '';
+    }, 200);
   }
 };

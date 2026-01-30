@@ -29,9 +29,10 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		// Allows: self for scripts/styles, inline styles (for Tailwind), jsdelivr for HTMX/Alpine
 		// Note: unsafe-eval required for Alpine.js standard build (CSP build has CDN MIME type issues)
 		// Note: form-action allows https: for OAuth redirects to external authorization servers
+		// TODO: how to set nonse/hash for these?
 		csp := strings.Join([]string{
 			"default-src 'self'",
-			"script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net",
+			"script-src 'self' 'unsafe-eval'",
 			"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Tailwind
 			"img-src 'self' https: data:",      // Allow external images (avatars) and data URIs
 			"font-src 'self'",

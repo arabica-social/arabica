@@ -385,7 +385,7 @@ func WelcomeAuthenticated(userDID string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</span></p></div><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><a href=\"/brews/new\" class=\"block bg-gradient-to-br from-brown-700 to-brown-800 text-white text-center py-4 px-6 rounded-xl hover:from-brown-800 hover:to-brown-900 transition-all shadow-lg hover:shadow-xl transform\"><span class=\"text-xl font-semibold\">☕ Add New Brew</span></a> <a href=\"/brews\" class=\"block bg-gradient-to-br from-brown-500 to-brown-600 text-white text-center py-4 px-6 rounded-xl hover:from-brown-600 hover:to-brown-700 transition-all shadow-lg hover:shadow-xl\"><span class=\"text-xl font-semibold\">📋 View All Brews</span></a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</span></p></div><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><a href=\"/brews/new\" class=\"block bg-gradient-to-br from-brown-700 to-brown-800 text-white text-center py-4 px-6 rounded-xl hover:from-brown-800 hover:to-brown-900 transition-all shadow-lg hover:shadow-xl transform\" hx-boost=\"true\"><span class=\"text-xl font-semibold\">☕ Add New Brew</span></a> <a href=\"/brews\" class=\"block bg-gradient-to-br from-brown-500 to-brown-600 text-white text-center py-4 px-6 rounded-xl hover:from-brown-600 hover:to-brown-700 transition-all shadow-lg hover:shadow-xl\" hx-boost=\"true\"><span class=\"text-xl font-semibold\">📋 View All Brews</span></a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -9,15 +9,34 @@
     <meta property="og:description" content="Track your coffee brewing journey. Built on AT Protocol, your data stays yours." />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#4a2c2a" />
+    <meta name="view-transition" content="same-origin" />
     <title>{{.Title}} - Arabica</title>
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32" />
     <link rel="apple-touch-icon" href="/static/icon-192.svg" />
     <link rel="stylesheet" href="/static/css/output.css?v=0.3.0" />
-    <style>[x-cloak] { display: none !important; }</style>
+    <link rel="stylesheet" href="/static/css/transitions.css?v=0.1.0" />
+    <style>
+        [x-cloak] { display: none !important; }
+        /* Ensure smooth transitions during HTMX swaps */
+        .htmx-swapping { opacity: 0; transition: opacity 200ms ease-out; }
+        .htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }
+    </style>
     <link rel="manifest" href="/static/manifest.json" />
+    <script>
+        // Configure HTMX before it loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof htmx !== 'undefined') {
+                // Enable view transitions globally for browsers that support it
+                if ('startViewTransition' in document) {
+                    htmx.config.globalViewTransitions = true;
+                }
+            }
+        });
+    </script>
     <script src="/static/js/alpine.min.js?v=0.2.0" defer></script>
     <script src="/static/js/htmx.min.js?v=0.2.0"></script>
+    <script src="/static/js/transitions.js?v=0.1.0"></script>
     {{if .IsAuthenticated}}
     <script src="/static/js/data-cache.js?v=0.2.0"></script>
     {{end}}
@@ -26,7 +45,7 @@
 </head>
 <body class="bg-brown-50 min-h-full flex flex-col"{{if .UserDID}} data-user-did="{{.UserDID}}"{{end}}>
     {{template "header" .}}
-    <main class="flex-grow container mx-auto px-4 py-8">
+    <main class="flex-grow container mx-auto px-4 py-8" data-transition>
         {{template "content" .}}
     </main>
     {{template "footer" .}}

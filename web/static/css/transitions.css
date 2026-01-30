@@ -1,0 +1,361 @@
+/**
+ * Arabica Transitions CSS
+ * Provides smooth transitions for page navigation and content swaps
+ */
+
+/* ========================================
+   View Transitions API Animations
+   ======================================== */
+
+/* Exclude header from view transitions - keep it static */
+body > nav:first-of-type,
+nav[style*="view-transition-name: header-nav"] {
+  view-transition-name: header-nav;
+}
+
+::view-transition-old(header-nav),
+::view-transition-new(header-nav) {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+::view-transition-group(header-nav) {
+  animation-duration: 0s !important;
+}
+
+/* Default view transition (fade only, no slide) */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: fade-out 150ms ease-out;
+  }
+
+  ::view-transition-new(root) {
+    animation: fade-in 250ms ease-out;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* Keyframes for view transitions */
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out-slide-down {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes fade-in-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Back navigation animation (reverse of forward) */
+@media (prefers-reduced-motion: no-preference) {
+  :root.back-navigation ::view-transition-old(root) {
+    animation: fade-out-slide-down 150ms ease-out;
+  }
+
+  :root.back-navigation ::view-transition-new(root) {
+    animation: fade-in 200ms ease-out;
+  }
+}
+
+/* ========================================
+   HTMX Transition Classes (Fallback)
+   ======================================== */
+
+/* During swap transition */
+.htmx-swapping {
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+/* After content is added */
+.htmx-added {
+  opacity: 0;
+  animation: fade-in-slide-up 300ms ease-out forwards;
+}
+
+/* During settling phase */
+.htmx-settling {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Transitioning state (no overlay - looks bad) */
+.htmx-transitioning {
+  position: relative;
+  /* Removed overlay ::after pseudo-element - it created unwanted shadow effects */
+}
+
+/* ========================================
+   Reusable Transition Utilities
+   ======================================== */
+
+/* Fade transition utility */
+.transition-fade {
+  transition: opacity 300ms ease-in-out;
+}
+
+.transition-fade-fast {
+  transition: opacity 150ms ease-in-out;
+}
+
+.transition-fade-slow {
+  transition: opacity 500ms ease-in-out;
+}
+
+/* Slide transitions */
+.transition-slide-up {
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.transition-slide-up:not(.visible) {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.transition-slide-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Scale transition (for modals, cards) */
+.transition-scale {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.transition-scale:not(.visible) {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.transition-scale.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ========================================
+   Page Transition States
+   ======================================== */
+
+/* Global page transitioning state */
+body.transitioning {
+  overflow-x: hidden;
+}
+
+body.transitioning main {
+  animation: page-fade-out 150ms ease-out forwards;
+}
+
+@keyframes page-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+/* ========================================
+   Component-Specific Transitions
+   ======================================== */
+
+/* Feed cards appear with stagger effect */
+.feed-card {
+  animation: fade-in-slide-up 400ms ease-out backwards;
+}
+
+.feed-card:nth-child(1) { animation-delay: 0ms; }
+.feed-card:nth-child(2) { animation-delay: 50ms; }
+.feed-card:nth-child(3) { animation-delay: 100ms; }
+.feed-card:nth-child(4) { animation-delay: 150ms; }
+.feed-card:nth-child(5) { animation-delay: 200ms; }
+.feed-card:nth-child(n+6) { animation-delay: 250ms; }
+
+/* Table rows slide in with stagger effect (dynamic content) */
+.table-body tr {
+  animation: fade-in-slide-up 300ms ease-out backwards;
+}
+
+.table-body tr:nth-child(1) { animation-delay: 0ms; }
+.table-body tr:nth-child(2) { animation-delay: 30ms; }
+.table-body tr:nth-child(3) { animation-delay: 60ms; }
+.table-body tr:nth-child(4) { animation-delay: 90ms; }
+.table-body tr:nth-child(5) { animation-delay: 120ms; }
+.table-body tr:nth-child(n+6) { animation-delay: 150ms; }
+
+/* Cards fade in on load (no slide to avoid unwanted movement) */
+/* Removed generic .card animation - too broad and causes issues */
+/* Use specific classes like .welcome-card if needed */
+
+/* Modal transitions (enhanced) */
+.modal-backdrop {
+  animation: fade-in 200ms ease-out;
+}
+
+.modal-content {
+  animation: modal-appear 250ms ease-out;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* HTML5 Dialog Element Transitions */
+.modal-dialog {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 200ms ease-out, transform 200ms ease-out, overlay 200ms ease-out allow-discrete, display 200ms ease-out allow-discrete;
+}
+
+.modal-dialog[open] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Backdrop fade-in transition */
+.modal-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 200ms ease-out, backdrop-filter 200ms ease-out, display 200ms ease-out allow-discrete, overlay 200ms ease-out allow-discrete;
+}
+
+.modal-dialog[open]::backdrop {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Starting style for new browsers that support @starting-style */
+@supports (transition-behavior: allow-discrete) {
+  @starting-style {
+    .modal-dialog[open] {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    
+    .modal-dialog[open]::backdrop {
+      background-color: rgba(0, 0, 0, 0);
+    }
+  }
+}
+
+/* Modal content inside dialog */
+.modal-dialog .modal-content {
+  animation: modal-content-appear 250ms ease-out;
+}
+
+@keyframes modal-content-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Form elements slide in */
+.form-input,
+.form-select,
+.form-textarea {
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 150ms ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   Loading States
+   ======================================== */
+
+/* Enhance skeleton loading animations */
+.animate-pulse {
+  animation: enhanced-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes enhanced-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ========================================
+   Reduced Motion Override
+   ======================================== */
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

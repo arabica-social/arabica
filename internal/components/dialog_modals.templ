@@ -27,7 +27,7 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 				}
 				hx-on::after-request="if(event.detail.successful) {
 					window.refreshEntityDropdown('beans');
-					document.getElementById('entity-modal').close();
+					window.closeModal('entity-modal');
 				}"
 				class="space-y-4"
 			>
@@ -128,7 +128,7 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 				}
 				hx-on::after-request="if(event.detail.successful) {
 					window.refreshEntityDropdown('grinders');
-					document.getElementById('entity-modal').close();
+					window.closeModal('entity-modal');
 				}"
 				class="space-y-4"
 			>
@@ -178,7 +178,7 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 					</button>
 					<button
 						type="button"
-						onclick="document.getElementById('entity-modal').close()"
+						onclick="window.closeModal('entity-modal')"
 						class="flex-1 btn-secondary"
 					>
 						Cancel
@@ -208,7 +208,7 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 				}
 				hx-on::after-request="if(event.detail.successful) {
 					window.refreshEntityDropdown('brewers');
-					document.getElementById('entity-modal').close();
+					window.closeModal('entity-modal');
 				}"
 				class="space-y-4"
 			>
@@ -239,7 +239,7 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 					</button>
 					<button
 						type="button"
-						onclick="document.getElementById('entity-modal').close()"
+						onclick="window.closeModal('entity-modal')"
 						class="flex-1 btn-secondary"
 					>
 						Cancel
@@ -269,7 +269,7 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 				}
 				hx-on::after-request="if(event.detail.successful) {
 					window.refreshEntityDropdown('roasters');
-					document.getElementById('entity-modal').close();
+					window.closeModal('entity-modal');
 				}"
 				class="space-y-4"
 			>
@@ -301,7 +301,7 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 					</button>
 					<button
 						type="button"
-						onclick="document.getElementById('entity-modal').close()"
+						onclick="window.closeModal('entity-modal')"
 						class="flex-1 btn-secondary"
 					>
 						Cancel

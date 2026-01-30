@@ -3,8 +3,10 @@
  * Manages pours, new entity modals, and form state
  * Uses shared entity-manager and dropdown-manager modules
  */
-function brewForm() {
-  return {
+
+// Wait for Alpine to be available and register the component
+document.addEventListener('alpine:init', () => {
+  Alpine.data('brewForm', () => ({
     // Brew form specific
     rating: 5,
     pours: [],
@@ -228,5 +230,5 @@ function brewForm() {
     async saveBrewer() {
       await this.brewerManager.save();
     },
-  };
-}
+  }));
+});
