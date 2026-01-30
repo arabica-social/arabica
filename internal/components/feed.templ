@@ -1,0 +1,282 @@
+package components
+
+import (
+	"arabica/internal/feed"
+	"arabica/internal/bff"
+	"fmt"
+)
+
+// FeedPartial renders the feed items (for HTMX loading)
+templ FeedPartial(items []*feed.FeedItem, isAuthenticated bool) {
+	<div class="space-y-4">
+		if len(items) > 0 {
+			for _, item := range items {
+				@FeedCard(item)
+			}
+		} else {
+			<div class="bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200">
+				<p class="mb-2 font-medium">No activity in the feed yet.</p>
+				<p class="text-sm">Be the first to add something!</p>
+			</div>
+		}
+	</div>
+}
+
+// FeedCard renders a single feed item card
+templ FeedCard(item *feed.FeedItem) {
+	<div class="feed-card">
+		<!-- Author row -->
+		<div class="flex items-center gap-3 mb-3">
+			<a href={ templ.SafeURL("/profile/" + item.Author.Handle) } class="flex-shrink-0">
+				if item.Author.Avatar != nil && *item.Author.Avatar != "" {
+					if safeAvatar := bff.SafeAvatarURL(*item.Author.Avatar); safeAvatar != "" {
+						<img src={ safeAvatar } alt="" class="avatar avatar-ring"/>
+					} else {
+						@AvatarPlaceholder()
+					}
+				} else {
+					@AvatarPlaceholder()
+				}
+			</a>
+			<div class="flex-1 min-w-0">
+				<div class="flex items-center gap-2">
+					if item.Author.DisplayName != nil && *item.Author.DisplayName != "" {
+						<a href={ templ.SafeURL("/profile/" + item.Author.Handle) } class="link-bold text-brown-900 truncate">{ *item.Author.DisplayName }</a>
+					}
+					<a href={ templ.SafeURL("/profile/" + item.Author.Handle) } class="link text-sm truncate">{ "@" + item.Author.Handle }</a>
+				</div>
+				<span class="text-brown-500 text-sm">{ item.TimeAgo }</span>
+			</div>
+		</div>
+		<!-- Action header -->
+		<div class="mb-2 text-sm text-brown-700">
+			{ item.Action }
+		</div>
+		<!-- Record content -->
+		switch item.RecordType {
+			case "brew":
+				@FeedBrewContent(item)
+			case "bean":
+				@FeedBeanContent(item)
+			case "roaster":
+				@FeedRoasterContent(item)
+			case "grinder":
+				@FeedGrinderContent(item)
+			case "brewer":
+				@FeedBrewerContent(item)
+		}
+	</div>
+}
+
+// AvatarPlaceholder renders a placeholder avatar
+templ AvatarPlaceholder() {
+	<div class="avatar-placeholder avatar-ring">
+		<span class="text-brown-600 text-sm">?</span>
+	</div>
+}
+
+// FeedBrewContent renders brew content in a feed card
+templ FeedBrewContent(item *feed.FeedItem) {
+	if item.Brew != nil {
+		<div class="feed-content-box">
+			<!-- Bean info with rating -->
+			<div class="flex items-start justify-between gap-3 mb-3">
+				<div class="flex-1 min-w-0">
+					if item.Brew.Bean != nil {
+						<div class="font-bold text-brown-900 text-base">
+							if item.Brew.Bean.Name != "" {
+								{ item.Brew.Bean.Name }
+							} else {
+								{ item.Brew.Bean.Origin }
+							}
+						</div>
+						if item.Brew.Bean.Roaster != nil && item.Brew.Bean.Roaster.Name != "" {
+							<div class="text-sm text-brown-700 mt-0.5">
+								<span class="font-medium">🏭 { item.Brew.Bean.Roaster.Name }</span>
+							</div>
+						}
+						<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+							if item.Brew.Bean.Origin != "" {
+								<span class="inline-flex items-center gap-0.5">📍 { item.Brew.Bean.Origin }</span>
+							}
+							if item.Brew.Bean.RoastLevel != "" {
+								<span class="inline-flex items-center gap-0.5">🔥 { item.Brew.Bean.RoastLevel }</span>
+							}
+							if item.Brew.Bean.Process != "" {
+								<span class="inline-flex items-center gap-0.5">🌱 { item.Brew.Bean.Process }</span>
+							}
+						if item.Brew.CoffeeAmount > 0 {
+							<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", item.Brew.CoffeeAmount) }</span>
+						}
+						</div>
+					}
+				</div>
+				if item.Brew.Rating > 0 {
+					<span class="badge-rating">
+						⭐ { fmt.Sprintf("%d/10", item.Brew.Rating) }
+					</span>
+				}
+			</div>
+			<!-- Brewer -->
+			if item.Brew.BrewerObj != nil || item.Brew.Method != "" {
+				<div class="mb-2">
+					<span class="text-meta">Brewer:</span>
+					<span class="text-sm font-semibold text-brown-900">
+						if item.Brew.BrewerObj != nil {
+							{ item.Brew.BrewerObj.Name }
+						} else if item.Brew.Method != "" {
+							{ item.Brew.Method }
+						}
+					</span>
+				</div>
+			}
+			<!-- Brew parameters in compact grid -->
+			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-brown-700">
+				if item.Brew.GrinderObj != nil {
+					<div>
+						<span class="text-label">Grinder:</span>
+						{ " " }{ item.Brew.GrinderObj.Name }
+						if item.Brew.GrindSize != "" {
+							({ item.Brew.GrindSize })
+						}
+					</div>
+				} else if item.Brew.GrindSize != "" {
+					<div>
+						<span class="text-label">Grind:</span> { item.Brew.GrindSize }
+					</div>
+				}
+				if len(item.Brew.Pours) > 0 {
+					<div class="col-span-2">
+						<span class="text-label">Pours:</span>
+					for _, pour := range item.Brew.Pours {
+						<div class="pl-2 text-brown-600">• { fmt.Sprintf("%dg @ %s", pour.WaterAmount, bff.FormatTime(pour.TimeSeconds)) }</div>
+					}
+					</div>
+			} else if item.Brew.WaterAmount > 0 {
+				<div>
+					<span class="text-label">Water:</span> { fmt.Sprintf("%dg", item.Brew.WaterAmount) }
+				</div>
+			}
+				if bff.HasTemp(item.Brew.Temperature) {
+					<div>
+						<span class="text-label">Temp:</span> { bff.FormatTemp(item.Brew.Temperature) }
+					</div>
+				}
+				if item.Brew.TimeSeconds > 0 {
+					<div>
+						<span class="text-label">Time:</span> { bff.FormatTime(item.Brew.TimeSeconds) }
+					</div>
+				}
+			</div>
+			if item.Brew.TastingNotes != "" {
+				<div class="mt-3 text-sm text-brown-800 italic border-t border-brown-200 pt-2">
+					"{ item.Brew.TastingNotes }"
+				</div>
+			}
+			<!-- View button -->
+			<div class="mt-3 border-t border-brown-200 pt-3">
+				<a
+					href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)) }
+					class="inline-flex items-center text-sm link-bold"
+				>
+					View full details →
+				</a>
+			</div>
+		</div>
+	}
+}
+
+// FeedBeanContent renders bean content in a feed card
+templ FeedBeanContent(item *feed.FeedItem) {
+	if item.Bean != nil {
+		<div class="feed-content-box-sm">
+			<div class="text-base mb-2">
+				<span class="font-bold text-brown-900">
+					if item.Bean.Name != "" {
+						{ item.Bean.Name }
+					} else {
+						{ item.Bean.Origin }
+					}
+				</span>
+				if item.Bean.Roaster != nil && item.Bean.Roaster.Name != "" {
+					<span class="text-brown-700"> from { item.Bean.Roaster.Name }</span>
+				}
+			</div>
+			<div class="text-sm text-brown-700 space-y-1">
+				if item.Bean.Origin != "" {
+					<div><span class="text-label">Origin:</span> { item.Bean.Origin }</div>
+				}
+				if item.Bean.RoastLevel != "" {
+					<div><span class="text-label">Roast:</span> { item.Bean.RoastLevel }</div>
+				}
+				if item.Bean.Process != "" {
+					<div><span class="text-label">Process:</span> { item.Bean.Process }</div>
+				}
+				if item.Bean.Description != "" {
+					<div class="mt-2 text-brown-800 italic">"{ item.Bean.Description }"</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+// FeedRoasterContent renders roaster content in a feed card
+templ FeedRoasterContent(item *feed.FeedItem) {
+	if item.Roaster != nil {
+		<div class="feed-content-box-sm">
+			<div class="text-base mb-2">
+				<span class="font-bold text-brown-900">{ item.Roaster.Name }</span>
+			</div>
+			<div class="text-sm text-brown-700 space-y-1">
+				if item.Roaster.Location != "" {
+					<div><span class="text-label">Location:</span> { item.Roaster.Location }</div>
+				}
+				if item.Roaster.Website != "" {
+					if safeWebsite := bff.SafeWebsiteURL(item.Roaster.Website); safeWebsite != "" {
+						<div>
+							<span class="text-label">Website:</span>
+							{ " " }
+							<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="text-brown-800 hover:underline">{ safeWebsite }</a>
+						</div>
+					}
+				}
+			</div>
+		</div>
+	}
+}
+
+// FeedGrinderContent renders grinder content in a feed card
+templ FeedGrinderContent(item *feed.FeedItem) {
+	if item.Grinder != nil {
+		<div class="feed-content-box-sm">
+			<div class="text-base mb-2">
+				<span class="font-bold text-brown-900">{ item.Grinder.Name }</span>
+			</div>
+			<div class="text-sm text-brown-700 space-y-1">
+				if item.Grinder.GrinderType != "" {
+					<div><span class="text-label">Type:</span> { item.Grinder.GrinderType }</div>
+				}
+				if item.Grinder.BurrType != "" {
+					<div><span class="text-label">Burr:</span> { item.Grinder.BurrType }</div>
+				}
+				if item.Grinder.Notes != "" {
+					<div class="mt-2 text-brown-800 italic">"{ item.Grinder.Notes }"</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+// FeedBrewerContent renders brewer content in a feed card
+templ FeedBrewerContent(item *feed.FeedItem) {
+	if item.Brewer != nil {
+		<div class="feed-content-box-sm">
+			<div class="text-base mb-2">
+				<span class="font-bold text-brown-900">{ item.Brewer.Name }</span>
+			</div>
+			if item.Brewer.Description != "" {
+				<div class="text-sm text-brown-800 italic">"{ item.Brewer.Description }"</div>
+			}
+		</div>
+	}
+}

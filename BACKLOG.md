@@ -19,25 +19,10 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 ## Far Future Considerations
 
-- Consider fully separating API backend from frontend service
-  - Currently using HTMX header checks to prevent direct browser access to internal API endpoints
-  - If adding mobile apps, third-party API consumers, or microservices architecture, revisit this
-  - For now, monolithic approach is appropriate for HTMX-based web app with decentralized storage
-
 - Maybe swap from boltdb to sqlite
   - Use the non-cgo library
 
 ## Fixes
-
-- Homepage still shows cached feed items on homepage when not authed. should show a cached version of firehose (last 5 entries, cache last 20) from the server.
-  This fetch should not try to backfill anything
-
-- Feed database in prod seems to be showing outdated data -- not sure why, local dev seems to show most recent.
-
-- View button for somebody else's brew leads to an invalid page. need to show the same view brew page but w/o the edit and delete buttons.
-- Back button in view should take user back to their previous page (not sure how to handle this exactly though)
-
-- Header should probably always be attached to the top of the screen?
 
 - Feed item "view details" button should go away, the "new brew" in "addded a new brew" should take to view page instead (underline this text)
 
@@ -47,16 +32,16 @@ Each should be addressed one at a time, and the item should be removed after imp
   - Alternative could be using transitionary animations between skeleton and full loads
   - Do we even need skeleton loading with SSR? (I think yes here because of PDS data fetches -- maybe not if we kept a copy of the data)
 
-- I think we should be using htmx more than alpine, we are leaning too much on alpine and not enough on htmx
-  - I think for transitions we should be able to swap to htmx from alpine?
-  - I may be completely off base on this though
-
-- Is there a way to make templ components compiled output go to a different dir?
-  - frontend dir with the components is pretty noisy now, would be great to trim it down
-    (both compiling to a different location, and developing better organization)
-
 - Headers in skeletons need to exactly match headers in final table
   - Refreshing profile should show either full skeleton with headers, or use the correct headers for the current tab
     (It currently shows the brew header for all tabs)
 
 - Modals still don't fade out on save/cancel like I want them to fade out
+
+## Refactor
+
+- Move all frontend code into a web subdir in internal (bff and components dirs)
+  - Components and pages, live in separate dirs (web/components, web/pages)
+
+- Back button in view should take user back to their previous page (not sure how to handle this exactly though)
+  - Back button is over-engineered, switch to using `history.Back`

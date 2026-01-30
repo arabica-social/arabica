@@ -1,0 +1,143 @@
+package components
+
+import (
+	"arabica/internal/models"
+)
+
+// ProfileContentPartialProps defines props for profile content partial
+type ProfileContentPartialProps struct {
+	Brews         []*models.Brew
+	Beans         []*models.Bean
+	Roasters      []*models.Roaster
+	Grinders      []*models.Grinder
+	Brewers       []*models.Brewer
+	IsOwnProfile  bool
+	ProfileHandle string
+}
+
+// ProfileContentPartial renders the profile tabs content (for HTMX loading)
+templ ProfileContentPartial(props ProfileContentPartialProps) {
+	<!-- Brews Tab -->
+	<div x-show="activeTab === 'brews'">
+		@BrewListTablePartial(BrewListTableProps{
+			Brews:         props.Brews,
+			IsOwnProfile:  props.IsOwnProfile,
+			ProfileHandle: props.ProfileHandle,
+		})
+	</div>
+	<!-- Beans Tab -->
+	<div x-show="activeTab === 'beans'">
+		@ProfileBeansTab(props.Beans, props.IsOwnProfile)
+	</div>
+	<!-- Equipment Tab -->
+	<div x-show="activeTab === 'equipment'">
+		@ProfileEquipmentTab(props.Roasters, props.Grinders, props.Brewers, props.IsOwnProfile)
+	</div>
+}
+
+// ProfileBeansTab renders the beans tab for profile
+templ ProfileBeansTab(beans []*models.Bean, isOwnProfile bool) {
+	if len(beans) == 0 {
+		<div class="card card-inner text-center">
+			if isOwnProfile {
+				<p class="text-brown-800 text-lg mb-4 font-medium">No beans yet! Add your first bean.</p>
+				<a href="/manage" class="inline-block btn-primary py-3 px-6 rounded-lg shadow-lg hover:shadow-xl">
+					Go to Manage
+				</a>
+			} else {
+				<p class="text-brown-800 text-lg font-medium">No beans yet.</p>
+			}
+		</div>
+	} else {
+		<div class="table-container overflow-x-auto">
+			<table class="table">
+				<thead class="table-header">
+					<tr>
+						<th class="table-th">Name</th>
+						<th class="table-th">Origin</th>
+						<th class="table-th">Roaster</th>
+						<th class="table-th">Roast Level</th>
+						<th class="table-th">Process</th>
+					</tr>
+				</thead>
+				<tbody class="table-body">
+					for _, bean := range beans {
+						<tr class="table-row">
+							<td class="px-6 py-4 text-sm font-medium text-brown-900">{ bean.Name }</td>
+							<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
+							<td class="px-6 py-4 text-sm text-brown-900">
+								if bean.Roaster != nil {
+									{ bean.Roaster.Name }
+								} else {
+									<span class="text-brown-400">-</span>
+								}
+							</td>
+							<td class="px-6 py-4 text-sm text-brown-900">{ bean.RoastLevel }</td>
+							<td class="px-6 py-4 text-sm text-brown-900">{ bean.Process }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+// ProfileEquipmentTab renders the equipment tab for profile
+templ ProfileEquipmentTab(roasters []*models.Roaster, grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool) {
+	<div class="space-y-6">
+		<!-- Roasters Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Roasters</h4>
+			if len(roasters) == 0 {
+				<p class="text-brown-600 text-sm">No roasters added yet.</p>
+			} else {
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					for _, roaster := range roasters {
+						<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+							<div class="font-medium text-brown-900">{ roaster.Name }</div>
+							if roaster.Location != "" {
+								<div class="text-sm text-brown-700">{ roaster.Location }</div>
+							}
+						</div>
+					}
+				</div>
+			}
+		</div>
+		<!-- Grinders Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Grinders</h4>
+			if len(grinders) == 0 {
+				<p class="text-brown-600 text-sm">No grinders added yet.</p>
+			} else {
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					for _, grinder := range grinders {
+						<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+							<div class="font-medium text-brown-900">{ grinder.Name }</div>
+							if grinder.GrinderType != "" {
+								<div class="text-sm text-brown-700">{ grinder.GrinderType }</div>
+							}
+						</div>
+					}
+				</div>
+			}
+		</div>
+		<!-- Brewers Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Brewing Devices</h4>
+			if len(brewers) == 0 {
+				<p class="text-brown-600 text-sm">No brewing devices added yet.</p>
+			} else {
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					for _, brewer := range brewers {
+						<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+							<div class="font-medium text-brown-900">{ brewer.Name }</div>
+							if brewer.Description != "" {
+								<div class="text-sm text-brown-700">{ brewer.Description }</div>
+							}
+						</div>
+					}
+				</div>
+			}
+		</div>
+	</div>
+}

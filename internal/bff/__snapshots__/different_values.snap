@@ -1,7 +1,0 @@
----
-title: different values
-test_name: TestPtrEquals_Snapshot/different_values
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-false

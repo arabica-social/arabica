@@ -187,7 +187,15 @@ function managePage() {
     },
 
     // Edit methods - populate form and open modal
-    editBean(rkey, name, origin, roast_level, process, description, roaster_rkey) {
+    editBean(
+      rkey,
+      name,
+      origin,
+      roast_level,
+      process,
+      description,
+      roaster_rkey,
+    ) {
       this.beanManager.openEdit(rkey, {
         name,
         origin,
@@ -203,7 +211,12 @@ function managePage() {
     },
 
     editGrinder(rkey, name, grinder_type, burr_type, notes) {
-      this.grinderManager.openEdit(rkey, { name, grinder_type, burr_type, notes });
+      this.grinderManager.openEdit(rkey, {
+        name,
+        grinder_type,
+        burr_type,
+        notes,
+      });
     },
 
     editBrewer(rkey, name, brewer_type, description) {

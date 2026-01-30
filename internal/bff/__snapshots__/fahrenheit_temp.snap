@@ -1,7 +1,0 @@
----
-title: fahrenheit temp
-test_name: TestFormatTempValue_Snapshot/fahrenheit_temp
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-"205.0"

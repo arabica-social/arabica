@@ -3,13 +3,19 @@
 package bff
 
 import (
+	"arabica/internal/models"
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
-
-	"arabica/internal/models"
 )
+
+// UserProfile contains user profile data for header display
+type UserProfile struct {
+	Handle      string
+	DisplayName string
+	Avatar      string
+}
 
 // FormatTemp formats a temperature value with unit detection.
 // Returns "N/A" if temp is 0, otherwise determines C/F based on >100 threshold.

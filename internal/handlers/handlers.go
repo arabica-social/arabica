@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -186,7 +187,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := bff.RenderFeedPartial(w, feedItems, isAuthenticated); err != nil {
+	if err := components.FeedPartial(feedItems, isAuthenticated).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render feed partial")
 	}
@@ -208,7 +209,10 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := bff.RenderBrewListPartial(w, brews); err != nil {
+	if err := components.BrewListTablePartial(components.BrewListTableProps{
+		Brews:        brews,
+		IsOwnProfile: true,
+	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew list partial")
 	}
@@ -264,7 +268,13 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	// Link beans to their roasters
 	atproto.LinkBeansToRoasters(beans, roasters)
 
-	if err := bff.RenderManagePartial(w, beans, roasters, grinders, brewers); err != nil {
+	// Render manage partial
+	if err := components.ManagePartial(components.ManagePartialProps{
+		Beans:    beans,
+		Roasters: roasters,
+		Grinders: grinders,
+		Brewers:  brewers,
+	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage partial")
 	}
@@ -314,7 +324,19 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch data from PDS - client will populate dropdowns from cache
 	// This makes the page load much faster
-	if err := bff.RenderBrewForm(w, nil, nil, nil, nil, nil, authenticated, didStr, userProfile); err != nil {
+	layoutData := &components.LayoutData{
+		Title:           "New Brew",
+		IsAuthenticated: authenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+	}
+
+	brewFormProps := components.BrewFormProps{
+		Brew:    nil,
+		BackURL: "/brews",
+	}
+
+	if err := components.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew form")
 	}
@@ -497,7 +519,20 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch dropdown data from PDS - client will populate from cache
 	// This makes the page load much faster
-	if err := bff.RenderBrewForm(w, nil, nil, nil, nil, brew, authenticated, didStr, userProfile); err != nil {
+	layoutData := &components.LayoutData{
+		Title:           "Edit Brew",
+		IsAuthenticated: authenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+	}
+
+	brewFormProps := components.BrewFormProps{
+		Brew:      brew,
+		PoursJSON: bff.PoursToJSON(brew.Pours),
+		BackURL:   fmt.Sprintf("/brews/%s", rkey),
+	}
+
+	if err := components.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew edit form")
 	}
@@ -1489,23 +1524,22 @@ func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 
 // Terms of Service page
 func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
-	// Check if user is authenticated
 	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
+	isAuthenticated := err == nil
 
 	var userProfile *bff.UserProfile
 	if isAuthenticated {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	data := &bff.PageData{
+	layoutData := &components.LayoutData{
 		Title:           "Terms of Service",
 		IsAuthenticated: isAuthenticated,
 		UserDID:         didStr,
 		UserProfile:     userProfile,
 	}
 
-	if err := bff.RenderTemplate(w, r, "terms.tmpl", data); err != nil {
+	if err := components.Terms(layoutData).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render terms page")
 	}
@@ -2028,7 +2062,15 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := bff.RenderProfilePartial(w, brews, beans, roasters, grinders, brewers, isOwnProfile, profileHandle); err != nil {
+	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
+		Brews:         brews,
+		Beans:         beans,
+		Roasters:      roasters,
+		Grinders:      grinders,
+		Brewers:       brewers,
+		IsOwnProfile:  isOwnProfile,
+		ProfileHandle: profileHandle,
+	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile partial")
 	}
@@ -2245,8 +2287,16 @@ func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	if err := bff.Render404(w, isAuthenticated, didStr, userProfile); err != nil {
-		http.Error(w, "Page not found", http.StatusNotFound)
+	layoutData := &components.LayoutData{
+		Title:           "Page Not Found",
+		IsAuthenticated: isAuthenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+	}
+
+	w.WriteHeader(http.StatusNotFound)
+	if err := components.NotFound(layoutData).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render 404 page")
 	}
 }

@@ -5,8 +5,8 @@
  */
 
 // Wait for Alpine to be available and register the component
-document.addEventListener('alpine:init', () => {
-  Alpine.data('brewForm', () => ({
+document.addEventListener("alpine:init", () => {
+  Alpine.data("brewForm", () => ({
     // Brew form specific
     rating: 5,
     pours: [],
@@ -68,7 +68,9 @@ document.addEventListener('alpine:init', () => {
           await this.dropdownManager.invalidateAndRefresh();
 
           // Select the new bean
-          const beanSelect = document.querySelector('form select[name="bean_rkey"]');
+          const beanSelect = document.querySelector(
+            'form select[name="bean_rkey"]',
+          );
           if (beanSelect && newBean.rkey) {
             beanSelect.value = newBean.rkey;
           }
@@ -96,7 +98,9 @@ document.addEventListener('alpine:init', () => {
           await this.dropdownManager.invalidateAndRefresh();
 
           // Select the new grinder
-          const grinderSelect = document.querySelector('form select[name="grinder_rkey"]');
+          const grinderSelect = document.querySelector(
+            'form select[name="grinder_rkey"]',
+          );
           if (grinderSelect && newGrinder.rkey) {
             grinderSelect.value = newGrinder.rkey;
           }
@@ -123,7 +127,9 @@ document.addEventListener('alpine:init', () => {
           await this.dropdownManager.invalidateAndRefresh();
 
           // Select the new brewer
-          const brewerSelect = document.querySelector('form select[name="brewer_rkey"]');
+          const brewerSelect = document.querySelector(
+            'form select[name="brewer_rkey"]',
+          );
           if (brewerSelect && newBrewer.rkey) {
             brewerSelect.value = newBrewer.rkey;
           }

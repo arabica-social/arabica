@@ -13,7 +13,7 @@
   function init() {
     // Disable View Transitions API to avoid double-fade issues
     // Using component-level animations instead for better control
-    if (typeof htmx !== 'undefined') {
+    if (typeof htmx !== "undefined") {
       htmx.config.globalViewTransitions = false;
     }
 
