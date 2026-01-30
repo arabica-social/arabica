@@ -1,0 +1,237 @@
+package components
+
+import (
+	"arabica/internal/models"
+)
+
+// ManagePartialProps defines props for the manage content partial
+type ManagePartialProps struct {
+	Beans    []*models.Bean
+	Roasters []*models.Roaster
+	Grinders []*models.Grinder
+	Brewers  []*models.Brewer
+}
+
+// ManagePartial renders the manage page content tables (for HTMX loading)
+templ ManagePartial(props ManagePartialProps) {
+	@ManageBeansTab(props.Beans)
+	@ManageRoastersTab(props.Roasters)
+	@ManageGrindersTab(props.Grinders)
+	@ManageBrewersTab(props.Brewers)
+}
+
+// ManageBeansTab renders the beans tab content
+templ ManageBeansTab(beans []*models.Bean) {
+	<div x-show="tab === 'beans'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
+			<button
+				hx-get="/api/modals/bean/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-md hover:shadow-lg"
+			>
+				+ Add Bean
+			</button>
+		</div>
+		if len(beans) == 0 {
+			@EmptyState(EmptyStateProps{Message: "No beans yet. Add your first bean to get started!"})
+		} else {
+			<div class="table-container overflow-x-auto">
+				<table class="table">
+					<thead class="table-header">
+						<tr>
+							<th class="table-th whitespace-nowrap">Name</th>
+							<th class="table-th whitespace-nowrap">📍 Origin</th>
+							<th class="table-th whitespace-nowrap">☕ Roaster</th>
+							<th class="table-th whitespace-nowrap">🔥 Roast Level</th>
+							<th class="table-th whitespace-nowrap">🌱 Process</th>
+							<th class="table-th whitespace-nowrap">📝 Description</th>
+							<th class="table-th whitespace-nowrap">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="table-body">
+						for _, bean := range beans {
+							<tr class="table-row">
+								<td class="px-6 py-4 text-sm font-medium text-brown-900">{ bean.Name }</td>
+								<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
+								<td class="px-6 py-4 text-sm text-brown-900">
+									if bean.Roaster != nil && bean.Roaster.Name != "" {
+										{ bean.Roaster.Name }
+									} else {
+										<span class="text-brown-400">-</span>
+									}
+								</td>
+								<td class="px-6 py-4 text-sm text-brown-900">{ bean.RoastLevel }</td>
+								<td class="px-6 py-4 text-sm text-brown-900">{ bean.Process }</td>
+								<td class="px-6 py-4 text-sm text-brown-700">{ bean.Description }</td>
+								<td class="px-6 py-4 text-sm font-medium space-x-2">
+									<button
+										hx-get={ "/api/modals/bean/" + bean.RKey }
+										hx-target="#modal-container"
+										hx-swap="innerHTML"
+										class="btn-link"
+									>Edit</button>
+									<button @click={ "deleteBean('" + bean.RKey + "')" } class="btn-danger">Delete</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}
+
+// ManageRoastersTab renders the roasters tab content
+templ ManageRoastersTab(roasters []*models.Roaster) {
+	<div x-show="tab === 'roasters'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
+			<button
+				hx-get="/api/modals/roaster/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-md hover:shadow-lg"
+			>
+				+ Add Roaster
+			</button>
+		</div>
+		if len(roasters) == 0 {
+			@EmptyState(EmptyStateProps{Message: "No roasters yet. Add your first roaster!"})
+		} else {
+			<div class="table-container overflow-x-auto">
+				<table class="table">
+					<thead class="table-header">
+						<tr>
+							<th class="table-th whitespace-nowrap">Name</th>
+							<th class="table-th whitespace-nowrap">📍 Location</th>
+							<th class="table-th whitespace-nowrap">🌐 Website</th>
+							<th class="table-th whitespace-nowrap">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="table-body">
+						for _, roaster := range roasters {
+							<tr class="table-row">
+								<td class="px-6 py-4 text-sm font-medium text-brown-900">{ roaster.Name }</td>
+								<td class="px-6 py-4 text-sm text-brown-900">{ roaster.Location }</td>
+								<td class="px-6 py-4 text-sm text-brown-900">{ roaster.Website }</td>
+								<td class="px-6 py-4 text-sm font-medium space-x-2">
+									<button
+										hx-get={ "/api/modals/roaster/" + roaster.RKey }
+										hx-target="#modal-container"
+										hx-swap="innerHTML"
+										class="btn-link"
+									>Edit</button>
+									<button @click={ "deleteRoaster('" + roaster.RKey + "')" } class="btn-danger">Delete</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}
+
+// ManageGrindersTab renders the grinders tab content
+templ ManageGrindersTab(grinders []*models.Grinder) {
+	<div x-show="tab === 'grinders'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
+			<button
+				hx-get="/api/modals/grinder/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-md hover:shadow-lg"
+			>
+				+ Add Grinder
+			</button>
+		</div>
+		if len(grinders) == 0 {
+			@EmptyState(EmptyStateProps{Message: "No grinders yet. Add your first grinder!"})
+		} else{
+			<div class="table-container overflow-x-auto">
+				<table class="table">
+					<thead class="table-header">
+						<tr>
+							<th class="table-th whitespace-nowrap">Name</th>
+							<th class="table-th whitespace-nowrap">Type</th>
+							<th class="table-th whitespace-nowrap">Burr Type</th>
+							<th class="table-th whitespace-nowrap">Notes</th>
+							<th class="table-th whitespace-nowrap">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="table-body">
+						for _, grinder := range grinders {
+							<tr class="table-row">
+								<td class="px-6 py-4 text-sm font-medium text-brown-900">{ grinder.Name }</td>
+								<td class="px-6 py-4 text-sm text-brown-900">{ grinder.GrinderType }</td>
+								<td class="px-6 py-4 text-sm text-brown-900">{ grinder.BurrType }</td>
+								<td class="px-6 py-4 text-sm text-brown-700">{ grinder.Notes }</td>
+								<td class="px-6 py-4 text-sm font-medium space-x-2">
+									<button
+										hx-get={ "/api/modals/grinder/" + grinder.RKey }
+										hx-target="#modal-container"
+										hx-swap="innerHTML"
+										class="btn-link"
+									>Edit</button>
+									<button @click={ "deleteGrinder('" + grinder.RKey + "')" } class="btn-danger">Delete</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}
+
+// ManageBrewersTab renders the brewers tab content
+templ ManageBrewersTab(brewers []*models.Brewer) {
+	<div x-show="tab === 'brewers'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Brewing Devices</h3>
+			<button
+				hx-get="/api/modals/brewer/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-md hover:shadow-lg"
+			>
+				+ Add Brewer
+			</button>
+		</div>
+		if len(brewers) == 0 {
+			@EmptyState(EmptyStateProps{Message: "No brewing devices yet. Add your first brewer!"})
+		} else {
+			<div class="table-container overflow-x-auto">
+				<table class="table">
+					<thead class="table-header">
+						<tr>
+							<th class="table-th whitespace-nowrap">Name</th>
+							<th class="table-th whitespace-nowrap">Description</th>
+							<th class="table-th whitespace-nowrap">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="table-body">
+						for _, brewer := range brewers {
+							<tr class="table-row">
+								<td class="px-6 py-4 text-sm font-medium text-brown-900">{ brewer.Name }</td>
+								<td class="px-6 py-4 text-sm text-brown-700">{ brewer.Description }</td>
+								<td class="px-6 py-4 text-sm font-medium space-x-2">
+									<button
+										hx-get={ "/api/modals/brewer/" + brewer.RKey }
+										hx-target="#modal-container"
+										hx-swap="innerHTML"
+										class="btn-link"
+									>Edit</button>
+									<button @click={ "deleteBrewer('" + brewer.RKey + "')" } class="btn-danger">Delete</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}

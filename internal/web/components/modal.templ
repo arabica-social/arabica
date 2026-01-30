@@ -1,0 +1,72 @@
+package components
+
+// DEPRECATED: This file contains Alpine.js x-show based modal components.
+// All modals have been migrated to use native HTML5 <dialog> elements.
+// See dialog_modals.templ for the new implementation.
+// This file is kept only for backwards compatibility and will be removed in a future cleanup.
+
+// ModalProps defines properties for a modal dialog
+type ModalProps struct {
+	Show      string // Alpine.js x-show binding variable name (e.g., "showBeanForm")
+	Title     string
+	TitleExpr string // Optional Alpine.js expression for dynamic titles (e.g., "editingBean ? 'Edit Bean' : 'Add Bean'")
+}
+
+// Modal renders a modal dialog with Alpine.js integration
+templ Modal(props ModalProps, content templ.Component) {
+	<div
+		x-cloak
+		x-show={ props.Show }
+		class="modal-backdrop"
+	>
+		<div class="modal-content">
+			if props.TitleExpr != "" {
+				<h3 class="modal-title" x-text={ props.TitleExpr }></h3>
+			} else if props.Title != "" {
+				<h3 class="modal-title">{ props.Title }</h3>
+			}
+			@content
+		</div>
+	</div>
+}
+
+// ModalContent wraps modal body content with standard spacing
+templ ModalContent(content templ.Component) {
+	<div class="space-y-4">
+		@content
+	</div>
+}
+
+// ModalActions renders standard modal action buttons (Save/Cancel)
+type ModalActionsProps struct {
+	SaveText   string // Text for save button (default: "Save")
+	CancelText string // Text for cancel button (default: "Cancel")
+	OnSave     string // Alpine.js click handler for save (e.g., "saveBean()")
+	OnCancel   string // Alpine.js click handler for cancel (e.g., "showBeanForm = false")
+}
+
+// ModalActions renders save/cancel buttons for a modal
+templ ModalActions(props ModalActionsProps) {
+	<div class="flex gap-2">
+		<button
+			@click={ props.OnSave }
+			class="flex-1 btn-primary"
+		>
+			if props.SaveText != "" {
+				{ props.SaveText }
+			} else {
+				Save
+			}
+		</button>
+		<button
+			@click={ props.OnCancel }
+			class="flex-1 btn-secondary"
+		>
+			if props.CancelText != "" {
+				{ props.CancelText }
+			} else {
+				Cancel
+			}
+		</button>
+	</div>
+}

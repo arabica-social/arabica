@@ -6,7 +6,7 @@
 function managePage() {
   return {
     tab: localStorage.getItem("manageTab") || "beans",
-    activeTab: localStorage.getItem("profileTab") || "brews",
+    activeTab: "brews", // Always default to brews tab on profile
 
     // Entity managers for each entity type
     beanManager: null,
@@ -18,10 +18,6 @@ function managePage() {
       // Watch tab changes and persist to localStorage
       this.$watch("tab", (value) => {
         localStorage.setItem("manageTab", value);
-      });
-
-      this.$watch("activeTab", (value) => {
-        localStorage.setItem("profileTab", value);
       });
 
       // Initialize cache in background
@@ -38,6 +34,7 @@ function managePage() {
       this.beanManager = window.createEntityManager({
         entityType: "bean",
         apiEndpoint: "/api/beans",
+        dialogId: "bean-modal",
         defaultFormData: {
           name: "",
           origin: "",
@@ -52,13 +49,20 @@ function managePage() {
           }
           return null;
         },
-        reloadOnSuccess: true,
+        onSuccess: () => {
+          // Reload the manage partial via HTMX
+          const manageLoader = document.querySelector('[hx-get="/api/manage"]');
+          if (manageLoader && typeof htmx !== 'undefined') {
+            htmx.trigger(manageLoader, 'load');
+          }
+        },
       });
 
       // Roaster entity manager
       this.roasterManager = window.createEntityManager({
         entityType: "roaster",
         apiEndpoint: "/api/roasters",
+        dialogId: "roaster-modal",
         defaultFormData: {
           name: "",
           location: "",
@@ -70,13 +74,20 @@ function managePage() {
           }
           return null;
         },
-        reloadOnSuccess: true,
+        onSuccess: () => {
+          // Reload the manage partial via HTMX
+          const manageLoader = document.querySelector('[hx-get="/api/manage"]');
+          if (manageLoader && typeof htmx !== 'undefined') {
+            htmx.trigger(manageLoader, 'load');
+          }
+        },
       });
 
       // Grinder entity manager
       this.grinderManager = window.createEntityManager({
         entityType: "grinder",
         apiEndpoint: "/api/grinders",
+        dialogId: "grinder-modal",
         defaultFormData: {
           name: "",
           grinder_type: "",
@@ -89,13 +100,20 @@ function managePage() {
           }
           return null;
         },
-        reloadOnSuccess: true,
+        onSuccess: () => {
+          // Reload the manage partial via HTMX
+          const manageLoader = document.querySelector('[hx-get="/api/manage"]');
+          if (manageLoader && typeof htmx !== 'undefined') {
+            htmx.trigger(manageLoader, 'load');
+          }
+        },
       });
 
       // Brewer entity manager
       this.brewerManager = window.createEntityManager({
         entityType: "brewer",
         apiEndpoint: "/api/brewers",
+        dialogId: "brewer-modal",
         defaultFormData: {
           name: "",
           brewer_type: "",
@@ -107,7 +125,13 @@ function managePage() {
           }
           return null;
         },
-        reloadOnSuccess: true,
+        onSuccess: () => {
+          // Reload the manage partial via HTMX
+          const manageLoader = document.querySelector('[hx-get="/api/manage"]');
+          if (manageLoader && typeof htmx !== 'undefined') {
+            htmx.trigger(manageLoader, 'load');
+          }
+        },
       });
     },
 

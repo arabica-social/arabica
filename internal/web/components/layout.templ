@@ -1,0 +1,96 @@
+package components
+
+import "arabica/internal/web/bff"
+
+// LayoutData contains all the data needed for the layout
+type LayoutData struct {
+	Title           string
+	IsAuthenticated bool
+	UserDID         string
+	UserProfile     *bff.UserProfile
+	CSPNonce        string
+}
+
+templ Layout(data *LayoutData, content templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en" class="h-full" style="background-color: #fdf8f6;">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="description" content="Arabica is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability."/>
+			<meta property="og:title" content="Arabica - Coffee Brew Tracker"/>
+			<meta property="og:description" content="Track your coffee brewing journey. Built on AT Protocol, your data stays yours."/>
+			<meta property="og:type" content="website"/>
+			<meta name="theme-color" content="#4a2c2a"/>
+			<title>{ data.Title } - Arabica</title>
+			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
+			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
+			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
+			<link rel="stylesheet" href="/static/css/output.css?v=0.4.2"/>
+			<style>
+			[x-cloak] { display: none !important; }
+		</style>
+			<link rel="manifest" href="/static/manifest.json"/>
+			<script nonce={ data.CSPNonce }>
+			// Configure HTMX before it loads
+			document.addEventListener('DOMContentLoaded', function() {
+				if (typeof htmx !== 'undefined') {
+					// Disable view transitions - using component-level animations instead
+					// View transitions were causing double-fade issues
+					htmx.config.globalViewTransitions = false;
+
+					// Increase history cache size to prevent cache misses
+					htmx.config.historyCacheSize = 20;
+
+					// Clean up styles before taking history snapshot
+					document.body.addEventListener('htmx:beforeHistorySave', function(evt) {
+						// Remove all transition classes and styles from elements being cached
+						const allElements = document.querySelectorAll('main, main *, body');
+						allElements.forEach(function(el) {
+							if (el) {
+								el.classList.remove('htmx-swapping', 'htmx-transitioning', 'htmx-settling', 'htmx-added', 'transitioning');
+								// Reset inline styles that might hide content
+								if (el.style.opacity !== '' || el.style.transform !== '' || el.style.visibility !== '') {
+									el.style.opacity = '';
+									el.style.transform = '';
+									el.style.visibility = '';
+								}
+							}
+						});
+					});
+				}
+			});
+		</script>
+			<!-- Load entity manager and dropdown manager modules before Alpine components -->
+			<script src="/static/js/entity-manager.js?v=0.1.0"></script>
+			<script src="/static/js/dropdown-manager.js?v=0.1.0"></script>
+			<!-- Load Alpine components BEFORE Alpine.js initializes -->
+			<script src="/static/js/brew-form.js?v=0.3.2"></script>
+			<!-- Load Alpine.js core with defer (will initialize after DOM loads) -->
+			<script src="/static/js/alpine.min.js?v=0.2.0" defer></script>
+			<!-- Load HTMX and other utilities -->
+			<script src="/static/js/htmx.min.js?v=0.2.0"></script>
+			<script src="/static/js/transitions.js?v=0.3.3"></script>
+			<script src="/static/js/entity-helpers.js?v=0.7.0"></script>
+			if data.IsAuthenticated {
+				<script src="/static/js/data-cache.js?v=0.2.0"></script>
+			}
+			<script src="/static/js/sw-register.js?v=0.2.0"></script>
+		</head>
+		<body
+			class="bg-brown-50 min-h-full flex flex-col"
+			style="background-color: #fdf8f6;"
+			if data.UserDID != "" {
+				data-user-did={ data.UserDID }
+			}
+		>
+			@Header(data.IsAuthenticated, data.UserProfile, data.UserDID)
+			<main class="flex-grow container mx-auto px-4 py-8" data-transition>
+				@content
+			</main>
+			@Footer()
+			<!-- Modal container for entity dialogs -->
+			<div id="modal-container"></div>
+		</body>
+	</html>
+}

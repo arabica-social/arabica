@@ -33,9 +33,10 @@ RUN mkdir -p /data && chown arabica:arabica /data
 # Copy binary from builder
 COPY --from=builder /app/arabica .
 
-# Copy static assets and templates
-COPY --chown=arabica:arabica templates/ ./templates/
+# Copy static assets
 COPY --chown=arabica:arabica web/static/ ./web/static/
+
+# Note: Templ components are compiled into the binary, no need to copy .templ files
 
 # Switch to non-root user
 USER arabica

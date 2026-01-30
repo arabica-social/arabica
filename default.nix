@@ -1,15 +1,16 @@
-{ lib, buildGoModule, tailwindcss }:
+{ lib, buildGoModule, templ, tailwindcss }:
 
-buildGoModule rec {
+buildGoModule {
   pname = "arabica";
   version = "0.1.0";
   src = ./.;
-  vendorHash = "sha256-mrIFu5c2EuGvYHyjJVqC8WzlsmUJYCm/6yUpJ0IGPlA=";
+  vendorHash = "sha256-d4BUF5e8+Gb9sDQN0nBuK6TfwUWKbFbvhyqiUARyLcY=";
 
-  nativeBuildInputs = [ tailwindcss ];
+  nativeBuildInputs = [ templ tailwindcss ];
 
   preBuild = ''
-    tailwindcss -i web/static/css/style.css -o web/static/css/output.css --minify
+    tailwindcss -i web/static/css/app.css -o web/static/css/output.css --minify
+    templ generate
   '';
 
   buildPhase = ''
@@ -39,9 +40,8 @@ buildGoModule rec {
         mkdir -p $out/bin
         mkdir -p $out/share/arabica
 
-        # Copy static files and templates
+        # Copy static files
         cp -r web $out/share/arabica/
-        cp -r templates $out/share/arabica/
         cp arabica $out/bin/arabica-unwrapped
         cat > $out/bin/arabica <<'WRAPPER'
     ${wrapperScript}

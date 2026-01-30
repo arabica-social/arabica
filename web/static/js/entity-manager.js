@@ -9,6 +9,7 @@
  * @param {Object} config - Configuration object
  * @param {string} config.entityType - Entity type name (e.g., 'bean', 'grinder', 'brewer', 'roaster')
  * @param {string} config.apiEndpoint - API endpoint (e.g., '/api/beans')
+ * @param {string} config.dialogId - Dialog element ID (e.g., 'bean-modal')
  * @param {Object} config.defaultFormData - Default form data structure
  * @param {Function} config.validate - Validation function that returns error message or null
  * @param {Function} config.onSuccess - Callback after successful save/delete (optional)
@@ -19,6 +20,7 @@ function createEntityManager(config) {
   const {
     entityType,
     apiEndpoint,
+    dialogId,
     defaultFormData,
     validate,
     onSuccess,
@@ -34,12 +36,23 @@ function createEntityManager(config) {
     formData: { ...defaultFormData },
 
     /**
+     * Gets the dialog element
+     */
+    getDialog() {
+      return document.getElementById(dialogId);
+    },
+
+    /**
      * Opens the form for creating a new entity
      */
     openNew() {
       this.editingId = null;
       this.formData = { ...defaultFormData };
       this.showForm = true;
+      const dialog = this.getDialog();
+      if (dialog) {
+        dialog.showModal();
+      }
     },
 
     /**
@@ -51,6 +64,10 @@ function createEntityManager(config) {
       this.editingId = rkey;
       this.formData = { ...data };
       this.showForm = true;
+      const dialog = this.getDialog();
+      if (dialog) {
+        dialog.showModal();
+      }
     },
 
     /**
@@ -100,6 +117,10 @@ function createEntityManager(config) {
         this.showForm = false;
         this.formData = { ...defaultFormData };
         this.editingId = null;
+        const dialog = this.getDialog();
+        if (dialog) {
+          dialog.close();
+        }
 
         // Reload page if configured to do so
         if (reloadOnSuccess) {
@@ -151,6 +172,10 @@ function createEntityManager(config) {
       this.showForm = false;
       this.formData = { ...defaultFormData };
       this.editingId = null;
+      const dialog = this.getDialog();
+      if (dialog) {
+        dialog.close();
+      }
     },
   };
 }

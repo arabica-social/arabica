@@ -14,5 +14,5 @@ test:
     @go test ./... -cover -coverprofile=cover.out
 
 style:
-    @nix develop --command tailwindcss -i web/static/css/style.css -o web/static/css/output.css --minify
+    @nix develop --command tailwindcss -i web/static/css/app.css -o web/static/css/output.css --minify
 

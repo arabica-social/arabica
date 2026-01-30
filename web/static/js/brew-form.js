@@ -49,6 +49,7 @@ document.addEventListener("alpine:init", () => {
       this.beanManager = window.createEntityManager({
         entityType: "bean",
         apiEndpoint: "/api/beans",
+        dialogId: "entity-modal",
         defaultFormData: {
           name: "",
           origin: "",
@@ -81,6 +82,7 @@ document.addEventListener("alpine:init", () => {
       this.grinderManager = window.createEntityManager({
         entityType: "grinder",
         apiEndpoint: "/api/grinders",
+        dialogId: "entity-modal",
         defaultFormData: {
           name: "",
           grinder_type: "",
@@ -111,6 +113,7 @@ document.addEventListener("alpine:init", () => {
       this.brewerManager = window.createEntityManager({
         entityType: "brewer",
         apiEndpoint: "/api/brewers",
+        dialogId: "entity-modal",
         defaultFormData: {
           name: "",
           brewer_type: "",

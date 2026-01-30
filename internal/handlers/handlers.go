@@ -3,18 +3,19 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 
 	"arabica/internal/atproto"
-	"arabica/internal/bff"
-	"arabica/internal/components"
 	"arabica/internal/database"
 	"arabica/internal/feed"
+	"arabica/internal/middleware"
 	"arabica/internal/models"
+	"arabica/internal/web/bff"
+	"arabica/internal/web/components"
+	"arabica/internal/web/pages"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
@@ -137,6 +138,17 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 	return store, true
 }
 
+// buildLayoutData creates a LayoutData struct with common fields populated from the request
+func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
+	return &components.LayoutData{
+		Title:           title,
+		IsAuthenticated: isAuthenticated,
+		UserDID:         didStr,
+		UserProfile:     userProfile,
+		CSPNonce:        middleware.CSPNonceFromContext(r.Context()),
+	}
+}
+
 // Home page
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	// Check if user is authenticated
@@ -150,21 +162,16 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create layout data
-	layoutData := &components.LayoutData{
-		Title:           "Home",
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	layoutData := h.buildLayoutData(r, "Home", isAuthenticated, didStr, userProfile)
 
 	// Create home props
-	homeProps := components.HomeProps{
+	homeProps := pages.HomeProps{
 		IsAuthenticated: isAuthenticated,
 		UserDID:         didStr,
 	}
 
 	// Render using templ component
-	if err := components.Home(layoutData, homeProps).Render(r.Context(), w); err != nil {
+	if err := pages.Home(layoutData, homeProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render home page")
 	}
@@ -187,7 +194,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := components.FeedPartial(feedItems, isAuthenticated).Render(r.Context(), w); err != nil {
+	if err := pages.FeedPartial(feedItems, isAuthenticated).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render feed partial")
 	}
@@ -293,18 +300,13 @@ func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 	userProfile := h.getUserProfile(r.Context(), didStr)
 
 	// Create layout data
-	layoutData := &components.LayoutData{
-		Title:           "Your Brews",
-		IsAuthenticated: authenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	layoutData := h.buildLayoutData(r, "Your Brews", authenticated, didStr, userProfile)
 
 	// Create brew list props
-	brewListProps := components.BrewListProps{}
+	brewListProps := pages.BrewListProps{}
 
 	// Render using templ component
-	if err := components.BrewList(layoutData, brewListProps).Render(r.Context(), w); err != nil {
+	if err := pages.BrewList(layoutData, brewListProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew list page")
 	}
@@ -324,19 +326,13 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch data from PDS - client will populate dropdowns from cache
 	// This makes the page load much faster
-	layoutData := &components.LayoutData{
-		Title:           "New Brew",
-		IsAuthenticated: authenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
+	layoutData := h.buildLayoutData(r, "New Brew", authenticated, didStr, userProfile)
+
+	brewFormProps := pages.BrewFormProps{
+		Brew: nil,
 	}
 
-	brewFormProps := components.BrewFormProps{
-		Brew:    nil,
-		BackURL: "/brews",
-	}
-
-	if err := components.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
+	if err := pages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew form")
 	}
@@ -426,21 +422,16 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create layout data
-	layoutData := &components.LayoutData{
-		Title:           "Brew Details",
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	layoutData := h.buildLayoutData(r, "Brew Details", isAuthenticated, didStr, userProfile)
 
 	// Create brew view props
-	brewViewProps := components.BrewViewProps{
+	brewViewProps := pages.BrewViewProps{
 		Brew:         brew,
 		IsOwnProfile: isOwner,
 	}
 
 	// Render using templ component
-	if err := components.BrewView(layoutData, brewViewProps).Render(r.Context(), w); err != nil {
+	if err := pages.BrewView(layoutData, brewViewProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew view")
 	}
@@ -519,20 +510,14 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch dropdown data from PDS - client will populate from cache
 	// This makes the page load much faster
-	layoutData := &components.LayoutData{
-		Title:           "Edit Brew",
-		IsAuthenticated: authenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	layoutData := h.buildLayoutData(r, "Edit Brew", authenticated, didStr, userProfile)
 
-	brewFormProps := components.BrewFormProps{
+	brewFormProps := pages.BrewFormProps{
 		Brew:      brew,
 		PoursJSON: bff.PoursToJSON(brew.Pours),
-		BackURL:   fmt.Sprintf("/brews/%s", rkey),
 	}
 
-	if err := components.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
+	if err := pages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew edit form")
 	}
@@ -1033,18 +1018,13 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 	userProfile := h.getUserProfile(r.Context(), didStr)
 
 	// Create layout data
-	layoutData := &components.LayoutData{
-		Title:           "Manage",
-		IsAuthenticated: authenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	layoutData := h.buildLayoutData(r, "Manage", authenticated, didStr, userProfile)
 
 	// Create manage props
-	manageProps := components.ManageProps{}
+	manageProps := pages.ManageProps{}
 
 	// Render using templ component
-	if err := components.Manage(layoutData, manageProps).Render(r.Context(), w); err != nil {
+	if err := pages.Manage(layoutData, manageProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage page")
 	}
@@ -1508,15 +1488,10 @@ func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	data := &components.LayoutData{
-		Title:           "About",
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	data := h.buildLayoutData(r, "About", isAuthenticated, didStr, userProfile)
 
 	// Use templ component
-	if err := components.About(data).Render(r.Context(), w); err != nil {
+	if err := pages.About(data).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render about page")
 	}
@@ -1532,14 +1507,9 @@ func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	layoutData := &components.LayoutData{
-		Title:           "Terms of Service",
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	layoutData := h.buildLayoutData(r, "Terms of Service", isAuthenticated, didStr, userProfile)
 
-	if err := components.Terms(layoutData).Render(r.Context(), w); err != nil {
+	if err := pages.Terms(layoutData).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render terms page")
 	}
@@ -1820,18 +1790,13 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	if viewedProfile.DisplayName != "" {
 		pageTitle = viewedProfile.DisplayName + " - Profile"
 	}
-	layoutData := &components.LayoutData{
-		Title:           pageTitle,
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	layoutData := h.buildLayoutData(r, pageTitle, isAuthenticated, didStr, userProfile)
 
 	// Create roaster options for own profile
-	var roasterOptions []components.RoasterOption
+	var roasterOptions []pages.RoasterOption
 	if isOwnProfile {
 		for _, roaster := range roasters {
-			roasterOptions = append(roasterOptions, components.RoasterOption{
+			roasterOptions = append(roasterOptions, pages.RoasterOption{
 				RKey: roaster.RKey,
 				Name: roaster.Name,
 			})
@@ -1839,14 +1804,14 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create profile props
-	profileProps := components.ProfileProps{
+	profileProps := pages.ProfileProps{
 		Profile:      viewedProfile,
 		IsOwnProfile: isOwnProfile,
 		Roasters:     roasterOptions,
 	}
 
 	// Render using templ component
-	if err := components.Profile(layoutData, profileProps).Render(r.Context(), w); err != nil {
+	if err := pages.Profile(layoutData, profileProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile page")
 	}
@@ -2287,15 +2252,10 @@ func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	layoutData := &components.LayoutData{
-		Title:           "Page Not Found",
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-	}
+	layoutData := h.buildLayoutData(r, "Page Not Found", isAuthenticated, didStr, userProfile)
 
 	w.WriteHeader(http.StatusNotFound)
-	if err := components.NotFound(layoutData).Render(r.Context(), w); err != nil {
+	if err := pages.NotFound(layoutData).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render 404 page")
 	}

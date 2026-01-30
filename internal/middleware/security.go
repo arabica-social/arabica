@@ -62,7 +62,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		// TODO: set nonce/hash on unsafe tags -- needs to be set in elements as well
 		csp := strings.Join([]string{
 			"default-src 'self'",
-			"script-src 'self' 'unsafe-eval'",
+			"script-src 'self' 'unsafe-eval' 'nonce-" + nonce + "'",
 			"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Tailwind
 			"img-src 'self' https: data:",      // Allow external images (avatars) and data URIs
 			"font-src 'self'",
