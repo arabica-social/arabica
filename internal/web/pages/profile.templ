@@ -302,6 +302,10 @@ templ BeanFormModalProfile(roasters []RoasterOption) {
 				</select>
 				<input type="text" x-model="beanForm.process" placeholder="Process (e.g. Washed, Natural, Honey)" class="w-full form-input"/>
 				<textarea x-model="beanForm.description" placeholder="Description" rows="3" class="w-full form-textarea"></textarea>
+				<div class="flex items-center gap-2">
+					<input type="checkbox" x-model="beanForm.closed" id="bean-closed-checkbox" class="rounded border-brown-300 text-brown-700 focus:ring-brown-500"/>
+					<label for="bean-closed-checkbox" class="text-sm text-brown-900">Bag is closed/finished</label>
+				</div>
 				<div class="flex gap-2">
 					<button @click="saveBean()" class="flex-1 btn-primary">Save</button>
 					<button type="button" @click="$el.closest('dialog').close()" class="flex-1 btn-secondary">Cancel</button>

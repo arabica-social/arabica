@@ -94,15 +94,18 @@ templ BeanSelectField(props BrewFormProps) {
 			<select name="bean_rkey" required class="flex-1 form-select">
 				<option value="">Select a bean...</option>
 				for _, bean := range props.Beans {
-					<option
-						value={ bean.RKey }
-						if props.Brew != nil && props.Brew.BeanRKey == bean.RKey {
-							selected
-						}
-						class="truncate"
-					>
-						{ formatBeanLabel(bean) }
-					</option>
+					// Only show open bags (not closed) in the dropdown
+					if !bean.Closed {
+						<option
+							value={ bean.RKey }
+							if props.Brew != nil && props.Brew.BeanRKey == bean.RKey {
+								selected
+							}
+							class="truncate"
+						>
+							{ formatBeanLabel(bean) }
+						</option>
+					}
 				}
 				if props.Brew != nil && len(props.Beans) == 0 {
 					<option value={ props.Brew.BeanRKey } selected>Loading...</option>

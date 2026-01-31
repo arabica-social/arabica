@@ -61,7 +61,7 @@ templ ManageTabs() {
 
 // ManageContentLoader renders the HTMX content loader with skeleton
 templ ManageContentLoader() {
-	<div hx-get="/api/manage" hx-trigger="load" hx-swap="innerHTML">
+	<div hx-get="/api/manage" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML">
 		@ManageLoadingSkeleton()
 	</div>
 }

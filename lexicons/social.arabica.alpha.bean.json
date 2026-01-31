@@ -40,6 +40,10 @@
             "format": "at-uri",
             "description": "AT-URI reference to the roaster record (e.g., at://did:plc:abc/social.arabica.alpha.roaster/3jxy...)"
           },
+          "closed": {
+            "type": "boolean",
+            "description": "Whether the bag is closed/finished (default: false)"
+          },
           "createdAt": {
             "type": "string",
             "format": "datetime",

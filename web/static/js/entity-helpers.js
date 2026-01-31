@@ -24,10 +24,8 @@ window.refreshEntityDropdown = async function (entityType, selectName, newRkey) 
   const manageLoader = document.querySelector('[hx-get="/api/manage"]');
 
   if (manageLoader) {
-    // We're on the manage page - reload the manage partial
-    if (typeof htmx !== 'undefined') {
-      htmx.trigger(manageLoader, 'load');
-    }
+    // We're on the manage page - reload the manage partial by dispatching a custom event
+    document.body.dispatchEvent(new CustomEvent('refreshManage'));
   } else {
     // We're on another page (like brew form) - refresh dropdowns
     const selectElement = document.querySelector(`select[name="${selectName}"]`);
@@ -48,16 +46,25 @@ window.refreshEntityDropdown = async function (entityType, selectName, newRkey) 
       // Refresh data through the dropdown manager if available
       if (dropdownManager && dropdownManager.invalidateAndRefresh) {
         await dropdownManager.invalidateAndRefresh();
-      } else if (window.ArabicaCache && window.ArabicaCache.invalidateAndRefresh) {
-        // Fallback to global cache refresh
-        await window.ArabicaCache.invalidateAndRefresh();
+      } else if (window.ArabicaCache) {
+        // Fallback: refresh cache and manually repopulate dropdowns
+        const freshData = await window.ArabicaCache.invalidateAndRefresh();
+        if (freshData) {
+          // Create a temporary dropdown manager to repopulate
+          const tempManager = window.createDropdownManager();
+          tempManager.applyData(freshData);
+          tempManager.populateDropdowns();
+        }
       }
 
       // Auto-select the newly created item if we have its rkey
       if (newRkey && selectElement) {
-        selectElement.value = newRkey;
-        // Trigger change event in case there are listeners
-        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+        // Small delay to ensure dropdown is populated
+        setTimeout(() => {
+          selectElement.value = newRkey;
+          // Trigger change event in case there are listeners
+          selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+        }, 50);
       }
     }
   }

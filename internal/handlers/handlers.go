@@ -926,7 +926,13 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
+			Closed:      r.FormValue("closed") == "true",
 		}
+		log.Debug().
+			Str("name", req.Name).
+			Str("closed_value", r.FormValue("closed")).
+			Bool("closed_parsed", req.Closed).
+			Msg("Parsed bean create form")
 	}
 
 	// Validate request
@@ -1067,7 +1073,14 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
+			Closed:      r.FormValue("closed") == "true",
 		}
+		log.Debug().
+			Str("rkey", rkey).
+			Str("name", req.Name).
+			Str("closed_value", r.FormValue("closed")).
+			Bool("closed_parsed", req.Closed).
+			Msg("Parsed bean update form")
 	}
 
 	// Validate request

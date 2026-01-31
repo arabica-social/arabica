@@ -135,10 +135,11 @@ function createEntityManager(config) {
     /**
      * Deletes an entity
      * @param {string} rkey - Record key to delete
+     * @returns {Promise<boolean>} True if deleted, false if cancelled or failed
      */
     async delete(rkey) {
       if (!confirm(`Are you sure you want to delete this ${entityType}?`)) {
-        return;
+        return false;
       }
 
       try {
@@ -156,12 +157,20 @@ function createEntityManager(config) {
           window.ArabicaCache.invalidateCache();
         }
 
+        // Call success callback if provided
+        if (onSuccess) {
+          await onSuccess(null, rkey);
+        }
+
         // Reload page if configured to do so
         if (reloadOnSuccess) {
           window.location.reload();
         }
+
+        return true;
       } catch (error) {
         alert(`Failed to delete ${entityType}: ${error.message}`);
+        return false;
       }
     },
 

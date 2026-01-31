@@ -181,6 +181,8 @@ func BeanToRecord(bean *models.Bean, roasterURI string) (map[string]interface{},
 	if roasterURI != "" {
 		record["roasterRef"] = roasterURI
 	}
+	// Always include closed field (defaults to false)
+	record["closed"] = bean.Closed
 
 	return record, nil
 }
@@ -228,6 +230,9 @@ func RecordToBean(record map[string]interface{}, atURI string) (*models.Bean, er
 	}
 	if description, ok := record["description"].(string); ok {
 		bean.Description = description
+	}
+	if closed, ok := record["closed"].(bool); ok {
+		bean.Closed = closed
 	}
 
 	return bean, nil

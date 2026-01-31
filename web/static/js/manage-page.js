@@ -42,6 +42,7 @@ function managePage() {
           process: "",
           description: "",
           roaster_rkey: "",
+          closed: false,
         },
         validate: (data) => {
           if (!data.name || !data.origin) {
@@ -50,11 +51,8 @@ function managePage() {
           return null;
         },
         onSuccess: () => {
-          // Reload the manage partial via HTMX
-          const manageLoader = document.querySelector('[hx-get="/api/manage"]');
-          if (manageLoader && typeof htmx !== 'undefined') {
-            htmx.trigger(manageLoader, 'load');
-          }
+          // Reload the manage partial via HTMX by dispatching a custom event
+          document.body.dispatchEvent(new CustomEvent('refreshManage'));
         },
       });
 
@@ -75,11 +73,8 @@ function managePage() {
           return null;
         },
         onSuccess: () => {
-          // Reload the manage partial via HTMX
-          const manageLoader = document.querySelector('[hx-get="/api/manage"]');
-          if (manageLoader && typeof htmx !== 'undefined') {
-            htmx.trigger(manageLoader, 'load');
-          }
+          // Reload the manage partial via HTMX by dispatching a custom event
+          document.body.dispatchEvent(new CustomEvent('refreshManage'));
         },
       });
 
@@ -101,11 +96,8 @@ function managePage() {
           return null;
         },
         onSuccess: () => {
-          // Reload the manage partial via HTMX
-          const manageLoader = document.querySelector('[hx-get="/api/manage"]');
-          if (manageLoader && typeof htmx !== 'undefined') {
-            htmx.trigger(manageLoader, 'load');
-          }
+          // Reload the manage partial via HTMX by dispatching a custom event
+          document.body.dispatchEvent(new CustomEvent('refreshManage'));
         },
       });
 
@@ -126,11 +118,8 @@ function managePage() {
           return null;
         },
         onSuccess: () => {
-          // Reload the manage partial via HTMX
-          const manageLoader = document.querySelector('[hx-get="/api/manage"]');
-          if (manageLoader && typeof htmx !== 'undefined') {
-            htmx.trigger(manageLoader, 'load');
-          }
+          // Reload the manage partial via HTMX by dispatching a custom event
+          document.body.dispatchEvent(new CustomEvent('refreshManage'));
         },
       });
     },
@@ -219,6 +208,7 @@ function managePage() {
       process,
       description,
       roaster_rkey,
+      closed,
     ) {
       this.beanManager.openEdit(rkey, {
         name,
@@ -227,6 +217,7 @@ function managePage() {
         process,
         description,
         roaster_rkey: roaster_rkey || "",
+        closed: closed || false,
       });
     },
 
@@ -274,19 +265,35 @@ function managePage() {
 
     // Delegate delete methods to entity managers
     async deleteBean(rkey) {
-      await this.beanManager.delete(rkey);
+      const success = await this.beanManager.delete(rkey);
+      // Explicitly trigger refresh after successful delete
+      if (success) {
+        document.body.dispatchEvent(new CustomEvent('refreshManage'));
+      }
     },
 
     async deleteRoaster(rkey) {
-      await this.roasterManager.delete(rkey);
+      const success = await this.roasterManager.delete(rkey);
+      // Explicitly trigger refresh after successful delete
+      if (success) {
+        document.body.dispatchEvent(new CustomEvent('refreshManage'));
+      }
     },
 
     async deleteGrinder(rkey) {
-      await this.grinderManager.delete(rkey);
+      const success = await this.grinderManager.delete(rkey);
+      // Explicitly trigger refresh after successful delete
+      if (success) {
+        document.body.dispatchEvent(new CustomEvent('refreshManage'));
+      }
     },
 
     async deleteBrewer(rkey) {
-      await this.brewerManager.delete(rkey);
+      const success = await this.brewerManager.delete(rkey);
+      // Explicitly trigger refresh after successful delete
+      if (success) {
+        document.body.dispatchEvent(new CustomEvent('refreshManage'));
+      }
     },
   };
 }

@@ -1,5 +1,5 @@
 [private]
-default: style templ-watch
+default: style templ-generate run
 
 run:
     @LOG_LEVEL=debug LOG_FORMAT=console go run cmd/server/main.go -known-dids known-dids.txt
@@ -15,4 +15,3 @@ test:
 
 style:
     @nix develop --command tailwindcss -i web/static/css/app.css -o web/static/css/output.css --minify
-

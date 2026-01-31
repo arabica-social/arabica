@@ -41,6 +41,7 @@ templ ManageBeansTab(beans []*models.Bean) {
 				<table class="table">
 					<thead class="table-header">
 						<tr>
+							<th class="table-th whitespace-nowrap">Status</th>
 							<th class="table-th whitespace-nowrap">Name</th>
 							<th class="table-th whitespace-nowrap">📍 Origin</th>
 							<th class="table-th whitespace-nowrap">☕ Roaster</th>
@@ -53,6 +54,13 @@ templ ManageBeansTab(beans []*models.Bean) {
 					<tbody class="table-body">
 						for _, bean := range beans {
 							<tr class="table-row">
+								<td class="px-6 py-4 text-sm text-brown-900">
+									if bean.Closed {
+										<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-brown-200 text-brown-800">Closed</span>
+									} else {
+										<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">Open</span>
+									}
+								</td>
 								<td class="px-6 py-4 text-sm font-medium text-brown-900">{ bean.Name }</td>
 								<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
 								<td class="px-6 py-4 text-sm text-brown-900">
@@ -72,7 +80,13 @@ templ ManageBeansTab(beans []*models.Bean) {
 										hx-swap="innerHTML"
 										class="btn-link"
 									>Edit</button>
-									<button @click={ "deleteBean('" + bean.RKey + "')" } class="btn-danger">Delete</button>
+									<button
+										hx-delete={ "/api/beans/" + bean.RKey }
+										hx-confirm="Are you sure you want to delete this bean?"
+										hx-target="closest tr"
+										hx-swap="outerHTML swap:0.5s"
+										class="btn-danger"
+									>Delete</button>
 								</td>
 							</tr>
 						}
@@ -123,7 +137,13 @@ templ ManageRoastersTab(roasters []*models.Roaster) {
 										hx-swap="innerHTML"
 										class="btn-link"
 									>Edit</button>
-									<button @click={ "deleteRoaster('" + roaster.RKey + "')" } class="btn-danger">Delete</button>
+									<button
+										hx-delete={ "/api/roasters/" + roaster.RKey }
+										hx-confirm="Are you sure you want to delete this roaster?"
+										hx-target="closest tr"
+										hx-swap="outerHTML swap:0.5s"
+										class="btn-danger"
+									>Delete</button>
 								</td>
 							</tr>
 						}
@@ -176,7 +196,13 @@ templ ManageGrindersTab(grinders []*models.Grinder) {
 										hx-swap="innerHTML"
 										class="btn-link"
 									>Edit</button>
-									<button @click={ "deleteGrinder('" + grinder.RKey + "')" } class="btn-danger">Delete</button>
+									<button
+										hx-delete={ "/api/grinders/" + grinder.RKey }
+										hx-confirm="Are you sure you want to delete this grinder?"
+										hx-target="closest tr"
+										hx-swap="outerHTML swap:0.5s"
+										class="btn-danger"
+									>Delete</button>
 								</td>
 							</tr>
 						}
@@ -225,7 +251,13 @@ templ ManageBrewersTab(brewers []*models.Brewer) {
 										hx-swap="innerHTML"
 										class="btn-link"
 									>Edit</button>
-									<button @click={ "deleteBrewer('" + brewer.RKey + "')" } class="btn-danger">Delete</button>
+									<button
+										hx-delete={ "/api/brewers/" + brewer.RKey }
+										hx-confirm="Are you sure you want to delete this brewer?"
+										hx-target="closest tr"
+										hx-swap="outerHTML swap:0.5s"
+										class="btn-danger"
+									>Delete</button>
 								</td>
 							</tr>
 						}

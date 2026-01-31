@@ -41,19 +41,19 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 // ProfileBeansTab renders the beans and roasters tab for profile
 templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnProfile bool) {
 	<div class="space-y-6">
-		<!-- Beans Section -->
+		<!-- Open Bags Section -->
 		<div>
-			<h4 class="text-lg font-semibold text-brown-900 mb-3">Beans</h4>
-			if len(beans) == 0 {
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h4>
+			if len(filterOpenBeans(beans)) == 0 {
 				if isOwnProfile {
 					@EmptyState(EmptyStateProps{
-						Message:    "No beans yet! Add your first bean.",
+						Message:    "No open bags yet! Add your first bean.",
 						ActionURL:  "/manage",
 						ActionText: "Go to Manage",
 					})
 				} else {
 					@EmptyState(EmptyStateProps{
-						Message: "No beans yet.",
+						Message: "No open bags yet.",
 					})
 				}
 			} else {
@@ -69,7 +69,7 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 							</tr>
 						</thead>
 						<tbody class="table-body">
-							for _, bean := range beans {
+							for _, bean := range filterOpenBeans(beans) {
 								<tr class="table-row">
 									<td class="px-6 py-4 text-sm font-medium text-brown-900">{ bean.Name }</td>
 									<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
@@ -135,7 +135,69 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 				</div>
 			}
 		</div>
+		<!-- Closed Bags Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Closed Bags</h4>
+			if len(filterClosedBeans(beans)) == 0 {
+				@EmptyState(EmptyStateProps{
+					Message: "No closed bags.",
+				})
+			} else {
+				<div class="table-container overflow-x-auto">
+					<table class="table">
+						<thead class="table-header">
+							<tr>
+								<th class="table-th">Name</th>
+								<th class="table-th">Origin</th>
+								<th class="table-th">Roaster</th>
+								<th class="table-th">Roast Level</th>
+								<th class="table-th">Process</th>
+							</tr>
+						</thead>
+						<tbody class="table-body">
+							for _, bean := range filterClosedBeans(beans) {
+								<tr class="table-row">
+									<td class="px-6 py-4 text-sm font-medium text-brown-900">{ bean.Name }</td>
+									<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
+									<td class="px-6 py-4 text-sm text-brown-900">
+										if bean.Roaster != nil {
+											{ bean.Roaster.Name }
+										} else {
+											<span class="text-brown-400">-</span>
+										}
+									</td>
+									<td class="px-6 py-4 text-sm text-brown-900">{ bean.RoastLevel }</td>
+									<td class="px-6 py-4 text-sm text-brown-900">{ bean.Process }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
 	</div>
+}
+
+// filterOpenBeans returns only beans that are not closed
+func filterOpenBeans(beans []*models.Bean) []*models.Bean {
+	var openBeans []*models.Bean
+	for _, bean := range beans {
+		if !bean.Closed {
+			openBeans = append(openBeans, bean)
+		}
+	}
+	return openBeans
+}
+
+// filterClosedBeans returns only beans that are closed
+func filterClosedBeans(beans []*models.Bean) []*models.Bean {
+	var closedBeans []*models.Bean
+	for _, bean := range beans {
+		if bean.Closed {
+			closedBeans = append(closedBeans, bean)
+		}
+	}
+	return closedBeans
 }
 
 // ProfileEquipmentTab renders the equipment tab for profile (grinders and brewers only)

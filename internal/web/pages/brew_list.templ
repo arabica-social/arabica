@@ -30,32 +30,34 @@ templ BrewListContent(props BrewListProps) {
 
 // BrewListLoadingSkeleton renders loading skeleton for brew list
 templ BrewListLoadingSkeleton() {
-	<div class="table-container overflow-x-auto">
-		<table class="table">
-			<thead class="table-header">
-				<tr>
-					<th class="table-th px-4">Date</th>
-					<th class="table-th px-4">Bean</th>
-					<th class="table-th px-4">Brewer</th>
-					<th class="table-th px-4">Variables</th>
-					<th class="table-th px-4">Notes</th>
-					<th class="table-th px-4">Rating</th>
-					<th class="table-th px-4">Actions</th>
-				</tr>
-			</thead>
-			<tbody class="table-body">
-				for i := 0; i < 5; i++ {
-					<tr class="animate-pulse">
-						<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
-						<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-32"></div></td>
-						<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-24"></div></td>
-						<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
-						<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-40"></div></td>
-						<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
-						<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
+	<div class="animate-pulse">
+		<div class="table-container overflow-x-auto">
+			<table class="table">
+				<thead class="table-header">
+					<tr>
+						<th class="table-th px-4">Date</th>
+						<th class="table-th px-4">Bean</th>
+						<th class="table-th px-4">Brewer</th>
+						<th class="table-th px-4">Variables</th>
+						<th class="table-th px-4">Notes</th>
+						<th class="table-th px-4">Rating</th>
+						<th class="table-th px-4">Actions</th>
 					</tr>
-				}
-			</tbody>
-		</table>
+				</thead>
+				<tbody class="table-body">
+					for i := 0; i < 5; i++ {
+						<tr>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-32"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-24"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-40"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
 	</div>
 }

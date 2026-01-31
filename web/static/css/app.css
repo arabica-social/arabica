@@ -219,20 +219,24 @@ body.htmx-history-restoring .htmx-transitioning {
 .htmx-swapping {
   opacity: 0;
   transform: translateY(5px);
-  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 /* After content is added */
 .htmx-added {
   opacity: 0;
-  animation: fade-in-slide-up 300ms ease-out forwards;
+  animation: fade-in-slide-up 200ms ease-out forwards;
 }
 
 /* During settling phase */
 .htmx-settling {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 200ms ease-in, transform 200ms ease-in;
+  transition:
+    opacity 100ms ease-in,
+    transform 100ms ease-in;
 }
 
 /* Transitioning state (no overlay - looks bad) */
@@ -247,35 +251,59 @@ body.htmx-history-restoring .htmx-transitioning {
 
 /* Feed cards appear with stagger effect */
 .feed-card {
-  animation: fade-in-slide-up 400ms ease-out backwards;
+  animation: fade-in-slide-up 300ms ease-out backwards;
 }
 
-.feed-card:nth-child(1) { animation-delay: 0ms; }
-.feed-card:nth-child(2) { animation-delay: 50ms; }
-.feed-card:nth-child(3) { animation-delay: 100ms; }
-.feed-card:nth-child(4) { animation-delay: 150ms; }
-.feed-card:nth-child(5) { animation-delay: 200ms; }
-.feed-card:nth-child(n+6) { animation-delay: 250ms; }
+.feed-card:nth-child(1) {
+  animation-delay: 0ms;
+}
+.feed-card:nth-child(2) {
+  animation-delay: 50ms;
+}
+.feed-card:nth-child(3) {
+  animation-delay: 100ms;
+}
+.feed-card:nth-child(4) {
+  animation-delay: 150ms;
+}
+.feed-card:nth-child(5) {
+  animation-delay: 200ms;
+}
+.feed-card:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
 
 /* Table rows slide in with stagger effect (dynamic content) */
 .table-body tr {
   animation: fade-in-slide-up 300ms ease-out backwards;
 }
 
-.table-body tr:nth-child(1) { animation-delay: 0ms; }
-.table-body tr:nth-child(2) { animation-delay: 30ms; }
-.table-body tr:nth-child(3) { animation-delay: 60ms; }
-.table-body tr:nth-child(4) { animation-delay: 90ms; }
-.table-body tr:nth-child(5) { animation-delay: 120ms; }
-.table-body tr:nth-child(n+6) { animation-delay: 150ms; }
+.table-body tr:nth-child(1) {
+  animation-delay: 0ms;
+}
+.table-body tr:nth-child(2) {
+  animation-delay: 30ms;
+}
+.table-body tr:nth-child(3) {
+  animation-delay: 60ms;
+}
+.table-body tr:nth-child(4) {
+  animation-delay: 90ms;
+}
+.table-body tr:nth-child(5) {
+  animation-delay: 120ms;
+}
+.table-body tr:nth-child(n + 6) {
+  animation-delay: 150ms;
+}
 
 /* Modal transitions (enhanced) */
 .modal-backdrop {
-  animation: fade-in 200ms ease-out;
+  animation: fade-in 100ms ease-out;
 }
 
 .modal-content {
-  animation: modal-appear 250ms ease-out;
+  animation: modal-appear 150ms ease-out;
 }
 
 @keyframes modal-appear {
@@ -293,7 +321,11 @@ body.htmx-history-restoring .htmx-transitioning {
 .modal-dialog {
   opacity: 0;
   transform: scale(0.95);
-  transition: opacity 200ms ease-out, transform 200ms ease-out, overlay 200ms ease-out allow-discrete, display 200ms ease-out allow-discrete;
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out,
+    overlay 100ms ease-out allow-discrete,
+    display 100ms ease-out allow-discrete;
 }
 
 .modal-dialog[open] {
@@ -304,7 +336,11 @@ body.htmx-history-restoring .htmx-transitioning {
 /* Backdrop fade-in transition */
 .modal-dialog::backdrop {
   background-color: rgba(0, 0, 0, 0);
-  transition: background-color 200ms ease-out, backdrop-filter 200ms ease-out, display 200ms ease-out allow-discrete, overlay 200ms ease-out allow-discrete;
+  transition:
+    background-color 100ms ease-out,
+    backdrop-filter 100ms ease-out,
+    display 100ms ease-out allow-discrete,
+    overlay 100ms ease-out allow-discrete;
 }
 
 .modal-dialog[open]::backdrop {
@@ -332,7 +368,10 @@ body.htmx-history-restoring .htmx-transitioning {
 .form-input,
 .form-select,
 .form-textarea {
-  transition: border-color 200ms ease, box-shadow 200ms ease, transform 150ms ease;
+  transition:
+    border-color 100ms ease,
+    box-shadow 100ms ease,
+    transform 50ms ease;
 }
 
 .form-input:focus,
@@ -375,7 +414,8 @@ body.htmx-history-restoring .htmx-transitioning {
 }
 
 @keyframes enhanced-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

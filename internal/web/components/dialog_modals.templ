@@ -20,13 +20,14 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 				}
 			</h3>
 			<form
-				method="dialog"
 				if bean != nil {
 					hx-put={ "/api/beans/" + bean.RKey }
 				} else {
 					hx-post="/api/beans"
 				}
+				hx-trigger="submit"
 				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
 			>
 				<input
@@ -90,6 +91,24 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 					rows="3"
 					class="w-full form-textarea"
 				>{ getStringValue(bean, "description") }</textarea>
+				// Only show "close bag check" when editing
+				if bean != nil {
+					<div class="flex items-center gap-2">
+						<input
+							type="checkbox"
+							name="closed"
+							value="true"
+							id="bean-closed-checkbox-modal"
+							if bean != nil && bean.Closed {
+								checked
+							}
+							class="rounded border-brown-300 text-brown-700 focus:ring-brown-500"
+						/>
+						<label for="bean-closed-checkbox-modal" class="text-sm text-brown-900">
+							Bag is closed/finished
+						</label>
+					</div>
+				}
 				<div class="flex gap-2">
 					<button type="submit" class="flex-1 btn-primary">
 						Save
@@ -119,13 +138,14 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 				}
 			</h3>
 			<form
-				method="dialog"
 				if grinder != nil {
 					hx-put={ "/api/grinders/" + grinder.RKey }
 				} else {
 					hx-post="/api/grinders"
 				}
+				hx-trigger="submit"
 				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
 			>
 				<input
@@ -197,13 +217,14 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 				}
 			</h3>
 			<form
-				method="dialog"
 				if brewer != nil {
 					hx-put={ "/api/brewers/" + brewer.RKey }
 				} else {
 					hx-post="/api/brewers"
 				}
+				hx-trigger="submit"
 				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
 			>
 				<input
@@ -256,13 +277,14 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 				}
 			</h3>
 			<form
-				method="dialog"
 				if roaster != nil {
 					hx-put={ "/api/roasters/" + roaster.RKey }
 				} else {
 					hx-post="/api/roasters"
 				}
+				hx-trigger="submit"
 				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
 			>
 				<input

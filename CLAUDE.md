@@ -2,6 +2,21 @@
 
 Coffee brew tracking application using AT Protocol for decentralized storage.
 
+## Work Management
+
+This project uses **cells** for task tracking and coordination. Cells are atomic, dependency-aware units of work designed for coordination between humans and AI agents.
+
+**For usage instructions, see:** `.cells/AGENTS.md`
+
+Quick reference for AI agents:
+- `./cells list` - View all active cells
+- `./cells list --status open` - Show available work
+- `./cells show <cell-id>` - View cell details
+
+**Note:** Do NOT use `./cells run` - this spawns a new agent session and should only be used by humans. AI agents should inspect cells using the commands above and perform work directly.
+
+All work items are tracked as cells. When starting new work, check for existing cells first.
+
 ## Tech Stack
 
 - **Language:** Go 1.21+
