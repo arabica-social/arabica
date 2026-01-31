@@ -49,12 +49,10 @@ templ PageHeader(props PageHeaderProps) {
 		if props.ActionURL != "" && props.ActionText != "" {
 			<a
 				href={ templ.SafeURL(props.ActionURL) }
-				class={
-					templ.Classes(
+				class={ templ.Classes(
 						templ.KV("btn-primary shadow-lg hover:shadow-xl", props.ActionClass == ""),
 						templ.KV(props.ActionClass, props.ActionClass != ""),
-					)
-				}
+					) }
 			>
 				{ props.ActionText }
 			</a>
@@ -209,32 +207,26 @@ templ Avatar(props AvatarProps) {
 		<img
 			src={ bff.SafeAvatarURL(props.AvatarURL) }
 			alt=""
-			class={
-				templ.Classes(
-					templ.KV("w-8 h-8 rounded-full object-cover ring-2 ring-brown-500", props.Size == "sm"),
-					templ.KV("w-12 h-12 rounded-full object-cover ring-2 ring-brown-500", props.Size == "md" || props.Size == ""),
-					templ.KV("w-20 h-20 rounded-full object-cover border-2 border-brown-300", props.Size == "lg"),
-				)
-			}
+			class={ templ.Classes(
+					templ.KV("w-8 h-8 rounded-full object-cover ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "sm"),
+					templ.KV("w-12 h-12 rounded-full object-cover ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "md" || props.Size == ""),
+					templ.KV("w-20 h-20 rounded-full object-cover border-2 border-brown-300 transition-all duration-200 hover:border-brown-400 hover:border-4", props.Size == "lg"),
+				) }
 		/>
 	} else {
 		<div
-			class={
-				templ.Classes(
-					templ.KV("w-8 h-8 rounded-full bg-brown-600 flex items-center justify-center ring-2 ring-brown-500", props.Size == "sm"),
-					templ.KV("w-12 h-12 rounded-full bg-brown-600 flex items-center justify-center ring-2 ring-brown-500", props.Size == "md" || props.Size == ""),
-					templ.KV("w-20 h-20 rounded-full bg-brown-300 flex items-center justify-center", props.Size == "lg"),
-				)
-			}
+			class={ templ.Classes(
+					templ.KV("w-8 h-8 rounded-full bg-brown-300 flex items-center justify-center ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "sm"),
+					templ.KV("w-12 h-12 rounded-full bg-brown-300 flex items-center justify-center ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "md" || props.Size == ""),
+					templ.KV("w-20 h-20 rounded-full bg-brown-300 flex items-center justify-center transition-all duration-200 hover:bg-brown-400", props.Size == "lg"),
+				) }
 		>
 			<span
-				class={
-					templ.Classes(
+				class={ templ.Classes(
 						templ.KV("text-brown-600 text-sm", props.Size == "sm"),
 						templ.KV("text-brown-600 text-base", props.Size == "md" || props.Size == ""),
 						templ.KV("text-brown-600 text-2xl", props.Size == "lg"),
-					)
-				}
+					) }
 			>
 				if props.DisplayName != "" && len(props.DisplayName) > 0 {
 					{ props.DisplayName[:1] }

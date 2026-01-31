@@ -164,49 +164,6 @@ func TestFormComponents(t *testing.T) {
 	})
 }
 
-// TestModalComponents tests modal component rendering
-func TestModalComponents(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("Modal with static title", func(t *testing.T) {
-		props := components.ModalProps{
-			Show:  "showModal",
-			Title: "Test Modal",
-		}
-
-		// Create simple content component
-		content := templ.Raw("<p>Modal content</p>")
-
-		html := renderToString(t, ctx, components.Modal(props, content))
-
-		if !strings.Contains(html, `x-show="showModal"`) {
-			t.Error("Expected x-show attribute")
-		}
-		if !strings.Contains(html, "Test Modal") {
-			t.Error("Expected modal title")
-		}
-		if !strings.Contains(html, "modal-backdrop") {
-			t.Error("Expected modal-backdrop class")
-		}
-	})
-
-	t.Run("Modal with dynamic title", func(t *testing.T) {
-		props := components.ModalProps{
-			Show:      "showModal",
-			TitleExpr: "editing ? 'Edit' : 'Add'",
-		}
-
-		content := templ.Raw("<p>Modal content</p>")
-
-		html := renderToString(t, ctx, components.Modal(props, content))
-
-		if !strings.Contains(html, `x-text="editing ? &#39;Edit&#39; : &#39;Add&#39;"`) &&
-			!strings.Contains(html, `x-text="editing ? 'Edit' : 'Add'"`) {
-			t.Error("Expected x-text attribute with dynamic title")
-		}
-	})
-}
-
 // TestCardComponent tests card component rendering
 func TestCardComponent(t *testing.T) {
 	ctx := context.Background()

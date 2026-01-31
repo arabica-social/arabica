@@ -40,7 +40,7 @@ templ BrewViewCard(props BrewViewProps) {
 		if props.Brew.TastingNotes != "" {
 			@BrewTastingNotes(props.Brew.TastingNotes)
 		}
-		@BrewViewBackButton()
+		@components.BackButton()
 	</div>
 }
 
@@ -212,22 +212,5 @@ templ BrewTastingNotes(notes string) {
 	<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
 		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Tasting Notes</h3>
 		<div class="text-brown-900 whitespace-pre-wrap">{ notes }</div>
-	</div>
-}
-
-// BrewViewBackButton renders the back button
-templ BrewViewBackButton() {
-	<div class="pt-4">
-		<button
-			type="button"
-			@click="history.back()"
-			class="inline-flex items-center gap-2 text-brown-700 hover:text-brown-900 font-medium transition-colors cursor-pointer"
-			aria-label="Go back"
-		>
-			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-			</svg>
-			<span>Back</span>
-		</button>
 	</div>
 }

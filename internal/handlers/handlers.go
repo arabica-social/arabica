@@ -85,6 +85,41 @@ func validateOptionalRKey(rkey, fieldName string) string {
 	return ""
 }
 
+// isJSONRequest checks if the request Content-Type is JSON
+func isJSONRequest(r *http.Request) bool {
+	contentType := r.Header.Get("Content-Type")
+	return strings.Contains(contentType, "application/json")
+}
+
+// decodeRequest decodes either JSON or form data into the target interface based on Content-Type.
+// The parseForm function is called when the request is form-encoded (not JSON).
+// Returns an error if parsing fails.
+func decodeRequest(r *http.Request, target interface{}, parseForm func() error) error {
+	if isJSONRequest(r) {
+		// Parse as JSON
+		if err := json.NewDecoder(r.Body).Decode(target); err != nil {
+			return err
+		}
+	} else {
+		// Parse as form data using the provided function
+		if err := r.ParseForm(); err != nil {
+			return err
+		}
+		if err := parseForm(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// writeJSON encodes and writes a JSON response
+func writeJSON(w http.ResponseWriter, v interface{}, entityName string) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Error().Err(err).Msg("Failed to encode " + entityName + " response")
+	}
+}
+
 // getUserProfile fetches the profile for an authenticated user.
 // Returns nil if unable to fetch profile (non-fatal error).
 func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfile {
@@ -149,6 +184,191 @@ func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated
 	}
 }
 
+// ProfileDataBundle holds all user data fetched from their PDS for profile display
+type ProfileDataBundle struct {
+	Beans    []*models.Bean
+	Roasters []*models.Roaster
+	Grinders []*models.Grinder
+	Brewers  []*models.Brewer
+	Brews    []*models.Brew
+}
+
+// fetchUserProfileData fetches all user data from their PDS in parallel.
+// This includes beans, roasters, grinders, brewers, and brews with all references resolved.
+// Brews are sorted in reverse chronological order (newest first).
+func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicClient *atproto.PublicClient) (*ProfileDataBundle, error) {
+	// Fetch all user data in parallel
+	g, gCtx := errgroup.WithContext(ctx)
+
+	var brews []*models.Brew
+	var beans []*models.Bean
+	var roasters []*models.Roaster
+	var grinders []*models.Grinder
+	var brewers []*models.Brewer
+
+	// Maps for resolving references
+	var beanMap map[string]*models.Bean
+	var beanRoasterRefMap map[string]string
+	var roasterMap map[string]*models.Roaster
+	var brewerMap map[string]*models.Brewer
+	var grinderMap map[string]*models.Grinder
+
+	// Fetch beans
+	g.Go(func() error {
+		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBean, 100)
+		if err != nil {
+			return err
+		}
+		beanMap = make(map[string]*models.Bean)
+		beanRoasterRefMap = make(map[string]string)
+		beans = make([]*models.Bean, 0, len(output.Records))
+		for _, record := range output.Records {
+			bean, err := atproto.RecordToBean(record.Value, record.URI)
+			if err != nil {
+				continue
+			}
+			beans = append(beans, bean)
+			beanMap[record.URI] = bean
+			if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
+				beanRoasterRefMap[record.URI] = roasterRef
+			}
+		}
+		return nil
+	})
+
+	// Fetch roasters
+	g.Go(func() error {
+		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDRoaster, 100)
+		if err != nil {
+			return err
+		}
+		roasterMap = make(map[string]*models.Roaster)
+		roasters = make([]*models.Roaster, 0, len(output.Records))
+		for _, record := range output.Records {
+			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
+			if err != nil {
+				continue
+			}
+			roasters = append(roasters, roaster)
+			roasterMap[record.URI] = roaster
+		}
+		return nil
+	})
+
+	// Fetch grinders
+	g.Go(func() error {
+		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDGrinder, 100)
+		if err != nil {
+			return err
+		}
+		grinderMap = make(map[string]*models.Grinder)
+		grinders = make([]*models.Grinder, 0, len(output.Records))
+		for _, record := range output.Records {
+			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
+			if err != nil {
+				continue
+			}
+			grinders = append(grinders, grinder)
+			grinderMap[record.URI] = grinder
+		}
+		return nil
+	})
+
+	// Fetch brewers
+	g.Go(func() error {
+		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrewer, 100)
+		if err != nil {
+			return err
+		}
+		brewerMap = make(map[string]*models.Brewer)
+		brewers = make([]*models.Brewer, 0, len(output.Records))
+		for _, record := range output.Records {
+			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
+			if err != nil {
+				continue
+			}
+			brewers = append(brewers, brewer)
+			brewerMap[record.URI] = brewer
+		}
+		return nil
+	})
+
+	// Fetch brews
+	g.Go(func() error {
+		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrew, 100)
+		if err != nil {
+			return err
+		}
+		brews = make([]*models.Brew, 0, len(output.Records))
+		for _, record := range output.Records {
+			brew, err := atproto.RecordToBrew(record.Value, record.URI)
+			if err != nil {
+				continue
+			}
+			// Store the raw record for reference resolution later
+			brew.BeanRKey = ""
+			if beanRef, ok := record.Value["beanRef"].(string); ok {
+				brew.BeanRKey = beanRef
+			}
+			if grinderRef, ok := record.Value["grinderRef"].(string); ok {
+				brew.GrinderRKey = grinderRef
+			}
+			if brewerRef, ok := record.Value["brewerRef"].(string); ok {
+				brew.BrewerRKey = brewerRef
+			}
+			brews = append(brews, brew)
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Resolve references for beans (roaster refs)
+	for _, bean := range beans {
+		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
+			if roaster, found := roasterMap[roasterRef]; found {
+				bean.Roaster = roaster
+			}
+		}
+	}
+
+	// Resolve references for brews
+	for _, brew := range brews {
+		// Resolve bean reference
+		if brew.BeanRKey != "" {
+			if bean, found := beanMap[brew.BeanRKey]; found {
+				brew.Bean = bean
+			}
+		}
+		// Resolve grinder reference
+		if brew.GrinderRKey != "" {
+			if grinder, found := grinderMap[brew.GrinderRKey]; found {
+				brew.GrinderObj = grinder
+			}
+		}
+		// Resolve brewer reference
+		if brew.BrewerRKey != "" {
+			if brewer, found := brewerMap[brew.BrewerRKey]; found {
+				brew.BrewerObj = brewer
+			}
+		}
+	}
+
+	// Sort brews in reverse chronological order (newest first)
+	sort.Slice(brews, func(i, j int) bool {
+		return brews[i].CreatedAt.After(brews[j].CreatedAt)
+	})
+
+	return &ProfileDataBundle{
+		Beans:    beans,
+		Roasters: roasters,
+		Grinders: grinders,
+		Brewers:  brewers,
+		Brews:    brews,
+	}, nil
+}
 // Home page
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	// Check if user is authenticated
@@ -417,7 +637,6 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		brewOwnerDID = didStr
 		isOwner = true
 	}
 
@@ -905,20 +1124,8 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.CreateBeanRequest
 
-	// Check Content-Type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		// Parse as JSON (for JavaScript fetch requests)
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data (for native HTML form submissions)
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
+	// Decode request (JSON or form)
+	if err := decodeRequest(r, &req, func() error {
 		req = models.CreateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
@@ -933,6 +1140,10 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			Str("closed_value", r.FormValue("closed")).
 			Bool("closed_parsed", req.Closed).
 			Msg("Parsed bean create form")
+		return nil
+	}); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Validate request
@@ -954,10 +1165,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(bean); err != nil {
-		log.Error().Err(err).Msg("Failed to encode bean response")
-	}
+	writeJSON(w, bean, "bean")
 }
 
 // API endpoint to create roaster
@@ -971,25 +1179,17 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.CreateRoasterRequest
 
-	// Check Content-Type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		// Parse as JSON
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
+	// Decode request (JSON or form)
+	if err := decodeRequest(r, &req, func() error {
 		req = models.CreateRoasterRequest{
 			Name:     r.FormValue("name"),
 			Location: r.FormValue("location"),
 			Website:  r.FormValue("website"),
 		}
+		return nil
+	}); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Validate request
@@ -1005,10 +1205,7 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(roaster); err != nil {
-		log.Error().Err(err).Msg("Failed to encode roaster response")
-	}
+	writeJSON(w, roaster, "roaster")
 }
 
 // Manage page
@@ -1052,20 +1249,8 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.UpdateBeanRequest
 
-	// Check Content-Type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		// Parse as JSON
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
+	// Decode request (JSON or form)
+	if err := decodeRequest(r, &req, func() error {
 		req = models.UpdateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
@@ -1081,6 +1266,10 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 			Str("closed_value", r.FormValue("closed")).
 			Bool("closed_parsed", req.Closed).
 			Msg("Parsed bean update form")
+		return nil
+	}); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Validate request
@@ -1108,10 +1297,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(bean); err != nil {
-		log.Error().Err(err).Msg("Failed to encode bean response")
-	}
+	writeJSON(w, bean, "bean")
 }
 
 func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
@@ -1152,25 +1338,17 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.UpdateRoasterRequest
 
-	// Check Content-Type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		// Parse as JSON
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
+	// Decode request (JSON or form)
+	if err := decodeRequest(r, &req, func() error {
 		req = models.UpdateRoasterRequest{
 			Name:     r.FormValue("name"),
 			Location: r.FormValue("location"),
 			Website:  r.FormValue("website"),
 		}
+		return nil
+	}); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Validate request
@@ -1192,10 +1370,7 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(roaster); err != nil {
-		log.Error().Err(err).Msg("Failed to encode roaster response")
-	}
+	writeJSON(w, roaster, "roaster")
 }
 
 func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
@@ -1231,26 +1406,18 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.CreateGrinderRequest
 
-	// Check Content-Type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		// Parse as JSON
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
+	// Decode request (JSON or form)
+	if err := decodeRequest(r, &req, func() error {
 		req = models.CreateGrinderRequest{
 			Name:        r.FormValue("name"),
 			GrinderType: r.FormValue("grinder_type"),
 			BurrType:    r.FormValue("burr_type"),
 			Notes:       r.FormValue("notes"),
 		}
+		return nil
+	}); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Validate request
@@ -1266,10 +1433,7 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(grinder); err != nil {
-		log.Error().Err(err).Msg("Failed to encode grinder response")
-	}
+	writeJSON(w, grinder, "grinder")
 }
 
 func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
@@ -1287,26 +1451,18 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.UpdateGrinderRequest
 
-	// Check Content-Type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		// Parse as JSON
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
+	// Decode request (JSON or form)
+	if err := decodeRequest(r, &req, func() error {
 		req = models.UpdateGrinderRequest{
 			Name:        r.FormValue("name"),
 			GrinderType: r.FormValue("grinder_type"),
 			BurrType:    r.FormValue("burr_type"),
 			Notes:       r.FormValue("notes"),
 		}
+		return nil
+	}); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Validate request
@@ -1328,10 +1484,7 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(grinder); err != nil {
-		log.Error().Err(err).Msg("Failed to encode grinder response")
-	}
+	writeJSON(w, grinder, "grinder")
 }
 
 func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
@@ -1367,25 +1520,17 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.CreateBrewerRequest
 
-	// Check Content-Type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		// Parse as JSON
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
+	// Decode request (JSON or form)
+	if err := decodeRequest(r, &req, func() error {
 		req = models.CreateBrewerRequest{
 			Name:        r.FormValue("name"),
 			BrewerType:  r.FormValue("brewer_type"),
 			Description: r.FormValue("description"),
 		}
+		return nil
+	}); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Validate request
@@ -1401,10 +1546,7 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(brewer); err != nil {
-		log.Error().Err(err).Msg("Failed to encode brewer response")
-	}
+	writeJSON(w, brewer, "brewer")
 }
 
 func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
@@ -1422,25 +1564,17 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req models.UpdateBrewerRequest
 
-	// Check Content-Type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		// Parse as JSON
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
+	// Decode request (JSON or form)
+	if err := decodeRequest(r, &req, func() error {
 		req = models.UpdateBrewerRequest{
 			Name:        r.FormValue("name"),
 			BrewerType:  r.FormValue("brewer_type"),
 			Description: r.FormValue("description"),
 		}
+		return nil
+	}); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Validate request
@@ -1462,10 +1596,7 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(brewer); err != nil {
-		log.Error().Err(err).Msg("Failed to encode brewer response")
-	}
+	writeJSON(w, brewer, "brewer")
 }
 
 func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
@@ -1528,42 +1659,6 @@ func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// fetchAllData is a helper that fetches all data types in parallel using errgroup.
-// This is used by handlers that need beans, roasters, grinders, and brewers.
-func fetchAllData(ctx context.Context, store database.Store) (
-	beans []*models.Bean,
-	roasters []*models.Roaster,
-	grinders []*models.Grinder,
-	brewers []*models.Brewer,
-	err error,
-) {
-	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		var fetchErr error
-		beans, fetchErr = store.ListBeans(ctx)
-		return fetchErr
-	})
-	g.Go(func() error {
-		var fetchErr error
-		roasters, fetchErr = store.ListRoasters(ctx)
-		return fetchErr
-	})
-	g.Go(func() error {
-		var fetchErr error
-		grinders, fetchErr = store.ListGrinders(ctx)
-		return fetchErr
-	})
-	g.Go(func() error {
-		var fetchErr error
-		brewers, fetchErr = store.ListBrewers(ctx)
-		return fetchErr
-	})
-
-	err = g.Wait()
-	return
-}
-
 // HandleProfile displays a user's public profile with their brews and gear
 func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	actor := r.PathValue("actor")
@@ -1609,171 +1704,13 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch all user data in parallel
-	g, gCtx := errgroup.WithContext(ctx)
-
-	var brews []*models.Brew
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-
-	// Maps for resolving references
-	var beanMap map[string]*models.Bean
-	var beanRoasterRefMap map[string]string
-	var roasterMap map[string]*models.Roaster
-	var brewerMap map[string]*models.Brewer
-	var grinderMap map[string]*models.Grinder
-
-	// Fetch beans
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBean, 100)
-		if err != nil {
-			return err
-		}
-		beanMap = make(map[string]*models.Bean)
-		beanRoasterRefMap = make(map[string]string)
-		beans = make([]*models.Bean, 0, len(output.Records))
-		for _, record := range output.Records {
-			bean, err := atproto.RecordToBean(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			beans = append(beans, bean)
-			beanMap[record.URI] = bean
-			if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
-				beanRoasterRefMap[record.URI] = roasterRef
-			}
-		}
-		return nil
-	})
-
-	// Fetch roasters
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDRoaster, 100)
-		if err != nil {
-			return err
-		}
-		roasterMap = make(map[string]*models.Roaster)
-		roasters = make([]*models.Roaster, 0, len(output.Records))
-		for _, record := range output.Records {
-			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			roasters = append(roasters, roaster)
-			roasterMap[record.URI] = roaster
-		}
-		return nil
-	})
-
-	// Fetch grinders
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDGrinder, 100)
-		if err != nil {
-			return err
-		}
-		grinderMap = make(map[string]*models.Grinder)
-		grinders = make([]*models.Grinder, 0, len(output.Records))
-		for _, record := range output.Records {
-			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			grinders = append(grinders, grinder)
-			grinderMap[record.URI] = grinder
-		}
-		return nil
-	})
-
-	// Fetch brewers
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrewer, 100)
-		if err != nil {
-			return err
-		}
-		brewerMap = make(map[string]*models.Brewer)
-		brewers = make([]*models.Brewer, 0, len(output.Records))
-		for _, record := range output.Records {
-			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			brewers = append(brewers, brewer)
-			brewerMap[record.URI] = brewer
-		}
-		return nil
-	})
-
-	// Fetch brews
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrew, 100)
-		if err != nil {
-			return err
-		}
-		brews = make([]*models.Brew, 0, len(output.Records))
-		for _, record := range output.Records {
-			brew, err := atproto.RecordToBrew(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			// Store the raw record for reference resolution later
-			brew.BeanRKey = "" // Will be resolved after all data is fetched
-			if beanRef, ok := record.Value["beanRef"].(string); ok {
-				brew.BeanRKey = beanRef
-			}
-			if grinderRef, ok := record.Value["grinderRef"].(string); ok {
-				brew.GrinderRKey = grinderRef
-			}
-			if brewerRef, ok := record.Value["brewerRef"].(string); ok {
-				brew.BrewerRKey = brewerRef
-			}
-			brews = append(brews, brew)
-		}
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
+	// Fetch all user data from their PDS
+	profileData, err := h.fetchUserProfileData(ctx, did, publicClient)
+	if err != nil {
 		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data")
 		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
 		return
 	}
-
-	// Resolve references for beans (roaster refs)
-	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
-			if roaster, found := roasterMap[roasterRef]; found {
-				bean.Roaster = roaster
-			}
-		}
-	}
-
-	// Resolve references for brews
-	for _, brew := range brews {
-		// Resolve bean reference
-		if brew.BeanRKey != "" {
-			if bean, found := beanMap[brew.BeanRKey]; found {
-				brew.Bean = bean
-			}
-		}
-		// Resolve grinder reference
-		if brew.GrinderRKey != "" {
-			if grinder, found := grinderMap[brew.GrinderRKey]; found {
-				brew.GrinderObj = grinder
-			}
-		}
-		// Resolve brewer reference
-		if brew.BrewerRKey != "" {
-			if brewer, found := brewerMap[brew.BrewerRKey]; found {
-				brew.BrewerObj = brewer
-			}
-		}
-	}
-
-	// Sort brews in reverse chronological order (newest first)
-	sort.Slice(brews, func(i, j int) bool {
-		return brews[i].CreatedAt.After(brews[j].CreatedAt)
-	})
 
 	// Check if current user is authenticated (for nav bar state)
 	didStr, err := atproto.GetAuthenticatedDID(ctx)
@@ -1808,7 +1745,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	// Create roaster options for own profile
 	var roasterOptions []pages.RoasterOption
 	if isOwnProfile {
-		for _, roaster := range roasters {
+		for _, roaster := range profileData.Roasters {
 			roasterOptions = append(roasterOptions, pages.RoasterOption{
 				RKey: roaster.RKey,
 				Name: roaster.Name,
@@ -1856,171 +1793,13 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Fetch all user data in parallel
-	g, gCtx := errgroup.WithContext(ctx)
-
-	var brews []*models.Brew
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-
-	// Maps for resolving references
-	var beanMap map[string]*models.Bean
-	var beanRoasterRefMap map[string]string
-	var roasterMap map[string]*models.Roaster
-	var brewerMap map[string]*models.Brewer
-	var grinderMap map[string]*models.Grinder
-
-	// Fetch beans
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBean, 100)
-		if err != nil {
-			return err
-		}
-		beanMap = make(map[string]*models.Bean)
-		beanRoasterRefMap = make(map[string]string)
-		beans = make([]*models.Bean, 0, len(output.Records))
-		for _, record := range output.Records {
-			bean, err := atproto.RecordToBean(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			beans = append(beans, bean)
-			beanMap[record.URI] = bean
-			if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
-				beanRoasterRefMap[record.URI] = roasterRef
-			}
-		}
-		return nil
-	})
-
-	// Fetch roasters
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDRoaster, 100)
-		if err != nil {
-			return err
-		}
-		roasterMap = make(map[string]*models.Roaster)
-		roasters = make([]*models.Roaster, 0, len(output.Records))
-		for _, record := range output.Records {
-			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			roasters = append(roasters, roaster)
-			roasterMap[record.URI] = roaster
-		}
-		return nil
-	})
-
-	// Fetch grinders
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDGrinder, 100)
-		if err != nil {
-			return err
-		}
-		grinderMap = make(map[string]*models.Grinder)
-		grinders = make([]*models.Grinder, 0, len(output.Records))
-		for _, record := range output.Records {
-			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			grinders = append(grinders, grinder)
-			grinderMap[record.URI] = grinder
-		}
-		return nil
-	})
-
-	// Fetch brewers
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrewer, 100)
-		if err != nil {
-			return err
-		}
-		brewerMap = make(map[string]*models.Brewer)
-		brewers = make([]*models.Brewer, 0, len(output.Records))
-		for _, record := range output.Records {
-			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			brewers = append(brewers, brewer)
-			brewerMap[record.URI] = brewer
-		}
-		return nil
-	})
-
-	// Fetch brews
-	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrew, 100)
-		if err != nil {
-			return err
-		}
-		brews = make([]*models.Brew, 0, len(output.Records))
-		for _, record := range output.Records {
-			brew, err := atproto.RecordToBrew(record.Value, record.URI)
-			if err != nil {
-				continue
-			}
-			// Store the raw record for reference resolution later
-			brew.BeanRKey = ""
-			if beanRef, ok := record.Value["beanRef"].(string); ok {
-				brew.BeanRKey = beanRef
-			}
-			if grinderRef, ok := record.Value["grinderRef"].(string); ok {
-				brew.GrinderRKey = grinderRef
-			}
-			if brewerRef, ok := record.Value["brewerRef"].(string); ok {
-				brew.BrewerRKey = brewerRef
-			}
-			brews = append(brews, brew)
-		}
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
+	// Fetch all user data from their PDS
+	profileData, err := h.fetchUserProfileData(ctx, did, publicClient)
+	if err != nil {
 		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data for profile partial")
 		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
 		return
 	}
-
-	// Resolve references for beans (roaster refs)
-	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
-			if roaster, found := roasterMap[roasterRef]; found {
-				bean.Roaster = roaster
-			}
-		}
-	}
-
-	// Resolve references for brews
-	for _, brew := range brews {
-		// Resolve bean reference
-		if brew.BeanRKey != "" {
-			if bean, found := beanMap[brew.BeanRKey]; found {
-				brew.Bean = bean
-			}
-		}
-		// Resolve grinder reference
-		if brew.GrinderRKey != "" {
-			if grinder, found := grinderMap[brew.GrinderRKey]; found {
-				brew.GrinderObj = grinder
-			}
-		}
-		// Resolve brewer reference
-		if brew.BrewerRKey != "" {
-			if brewer, found := brewerMap[brew.BrewerRKey]; found {
-				brew.BrewerObj = brewer
-			}
-		}
-	}
-
-	// Sort brews in reverse chronological order (newest first)
-	sort.Slice(brews, func(i, j int) bool {
-		return brews[i].CreatedAt.After(brews[j].CreatedAt)
-	})
 
 	// Check if the viewing user is the profile owner
 	didStr, err := atproto.GetAuthenticatedDID(ctx)
@@ -2041,11 +1820,11 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
-		Brews:         brews,
-		Beans:         beans,
-		Roasters:      roasters,
-		Grinders:      grinders,
-		Brewers:       brewers,
+		Brews:         profileData.Brews,
+		Beans:         profileData.Beans,
+		Roasters:      profileData.Roasters,
+		Grinders:      profileData.Grinders,
+		Brewers:       profileData.Brewers,
 		IsOwnProfile:  isOwnProfile,
 		ProfileHandle: profileHandle,
 	}).Render(r.Context(), w); err != nil {

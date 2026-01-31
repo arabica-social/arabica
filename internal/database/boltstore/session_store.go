@@ -176,32 +176,3 @@ func (s *SessionStore) CountSessions(ctx context.Context) (int, error) {
 
 	return count, err
 }
-
-// DeleteAllSessionsForDID removes all sessions for a given DID.
-// Useful for "logout from all devices" functionality.
-func (s *SessionStore) DeleteAllSessionsForDID(ctx context.Context, did syntax.DID) error {
-	prefix := []byte(did.String() + ":")
-
-	return s.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(BucketSessions)
-		if bucket == nil {
-			return nil
-		}
-
-		// Collect keys to delete (can't delete while iterating)
-		var keysToDelete [][]byte
-		c := bucket.Cursor()
-		for k, _ := c.Seek(prefix); k != nil && len(k) >= len(prefix) && string(k[:len(prefix)]) == string(prefix); k, _ = c.Next() {
-			keysToDelete = append(keysToDelete, append([]byte{}, k...))
-		}
-
-		// Delete collected keys
-		for _, k := range keysToDelete {
-			if err := bucket.Delete(k); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-}

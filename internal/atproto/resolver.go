@@ -74,11 +74,6 @@ func resolveRef[T any](
 	return result, nil
 }
 
-// ResolveBeanRef fetches a bean record from an AT-URI
-func ResolveBeanRef(ctx context.Context, client *Client, atURI string, sessionID string) (*models.Bean, error) {
-	return resolveRef(ctx, client, atURI, sessionID, NSIDBean, RecordToBean)
-}
-
 // ResolveBeanRefWithRoaster fetches a bean record and also resolves its roaster reference
 func ResolveBeanRefWithRoaster(ctx context.Context, client *Client, atURI string, sessionID string) (*models.Bean, error) {
 	if atURI == "" {

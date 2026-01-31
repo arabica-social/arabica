@@ -198,26 +198,3 @@ func GetSessionIDFromContext(ctx context.Context) (string, error) {
 func ParseDID(didStr string) (syntax.DID, error) {
 	return syntax.ParseDID(didStr)
 }
-
-// GetSessionDataFromContext retrieves the full session data from the request context
-func GetSessionDataFromContext(ctx context.Context) (*oauth.ClientSessionData, error) {
-	sessData, ok := ctx.Value(contextKeySessionData).(*oauth.ClientSessionData)
-	if !ok || sessData == nil {
-		return nil, fmt.Errorf("no session data in context")
-	}
-	return sessData, nil
-}
-
-// RequireAuth is middleware that requires authentication
-func RequireAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := GetAuthenticatedDID(r.Context())
-		if err != nil {
-			// Not authenticated, redirect to login
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
