@@ -57,36 +57,11 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 					})
 				}
 			} else {
-				<div class="table-container overflow-x-auto">
-					<table class="table">
-						<thead class="table-header">
-							<tr>
-								<th class="table-th">Name</th>
-								<th class="table-th">Origin</th>
-								<th class="table-th">Roaster</th>
-								<th class="table-th">Roast Level</th>
-								<th class="table-th">Process</th>
-							</tr>
-						</thead>
-						<tbody class="table-body">
-							for _, bean := range filterOpenBeans(beans) {
-								<tr class="table-row">
-									<td class="px-6 py-4 text-sm font-medium text-brown-900">{ bean.Name }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if bean.Roaster != nil {
-											{ bean.Roaster.Name }
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-									<td class="px-6 py-4 text-sm text-brown-900">{ bean.RoastLevel }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">{ bean.Process }</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
+				@BeansTable(BeansTableProps{
+					Beans:       filterOpenBeans(beans),
+					ShowActions: false,
+					ShowStatus:  false,
+				})
 			}
 		</div>
 		<!-- Roasters Section -->
@@ -99,40 +74,10 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 					@EmptyState(EmptyStateProps{Message: "No roasters yet."})
 				}
 			} else {
-				<div class="table-container overflow-x-auto">
-					<table class="table">
-						<thead class="table-header">
-							<tr>
-								<th class="table-th">Name</th>
-								<th class="table-th">Location</th>
-								<th class="table-th">Website</th>
-							</tr>
-						</thead>
-						<tbody class="table-body">
-							for _, roaster := range roasters {
-								<tr class="table-row">
-									<td class="px-6 py-4 text-sm font-medium text-brown-900">{ roaster.Name }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if roaster.Location != "" {
-											{ roaster.Location }
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if roaster.Website != "" {
-											<a href={ templ.URL(roaster.Website) } target="_blank" rel="noopener noreferrer" class="text-brown-700 hover:text-brown-900 underline">
-												Visit
-											</a>
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
+				@RoastersTable(RoastersTableProps{
+					Roasters:    roasters,
+					ShowActions: false,
+				})
 			}
 		</div>
 		<!-- Closed Bags Section -->
@@ -143,36 +88,11 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 					Message: "No closed bags.",
 				})
 			} else {
-				<div class="table-container overflow-x-auto">
-					<table class="table">
-						<thead class="table-header">
-							<tr>
-								<th class="table-th">Name</th>
-								<th class="table-th">Origin</th>
-								<th class="table-th">Roaster</th>
-								<th class="table-th">Roast Level</th>
-								<th class="table-th">Process</th>
-							</tr>
-						</thead>
-						<tbody class="table-body">
-							for _, bean := range filterClosedBeans(beans) {
-								<tr class="table-row">
-									<td class="px-6 py-4 text-sm font-medium text-brown-900">{ bean.Name }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if bean.Roaster != nil {
-											{ bean.Roaster.Name }
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-									<td class="px-6 py-4 text-sm text-brown-900">{ bean.RoastLevel }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">{ bean.Process }</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
+				@BeansTable(BeansTableProps{
+					Beans:       filterClosedBeans(beans),
+					ShowActions: false,
+					ShowStatus:  false,
+				})
 			}
 		</div>
 	</div>
@@ -213,46 +133,10 @@ templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, 
 					@EmptyState(EmptyStateProps{Message: "No grinders yet."})
 				}
 			} else {
-				<div class="table-container overflow-x-auto">
-					<table class="table">
-						<thead class="table-header">
-							<tr>
-								<th class="table-th">Name</th>
-								<th class="table-th">Type</th>
-								<th class="table-th">Burr Type</th>
-								<th class="table-th">Notes</th>
-							</tr>
-						</thead>
-						<tbody class="table-body">
-							for _, grinder := range grinders {
-								<tr class="table-row">
-									<td class="px-6 py-4 text-sm font-medium text-brown-900">{ grinder.Name }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if grinder.GrinderType != "" {
-											{ grinder.GrinderType }
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if grinder.BurrType != "" {
-											{ grinder.BurrType }
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if grinder.Notes != "" {
-											{ grinder.Notes }
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
+				@GrindersTable(GrindersTableProps{
+					Grinders:    grinders,
+					ShowActions: false,
+				})
 			}
 		</div>
 		<!-- Brewers Section -->
@@ -265,38 +149,10 @@ templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, 
 					@EmptyState(EmptyStateProps{Message: "No brewing devices yet."})
 				}
 			} else {
-				<div class="table-container overflow-x-auto">
-					<table class="table">
-						<thead class="table-header">
-							<tr>
-								<th class="table-th">Name</th>
-								<th class="table-th">Type</th>
-								<th class="table-th">Description</th>
-							</tr>
-						</thead>
-						<tbody class="table-body">
-							for _, brewer := range brewers {
-								<tr class="table-row">
-									<td class="px-6 py-4 text-sm font-medium text-brown-900">{ brewer.Name }</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if brewer.BrewerType != "" {
-											{ brewer.BrewerType }
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-									<td class="px-6 py-4 text-sm text-brown-900">
-										if brewer.Description != "" {
-											{ brewer.Description }
-										} else {
-											<span class="text-brown-400">-</span>
-										}
-									</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
+				@BrewersTable(BrewersTableProps{
+					Brewers:     brewers,
+					ShowActions: false,
+				})
 			}
 		</div>
 	</div>
