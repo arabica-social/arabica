@@ -17,11 +17,21 @@ templ HomeContent(props HomeProps) {
 			IsAuthenticated: props.IsAuthenticated,
 			UserDID:         props.UserDID,
 		})
-		@components.AboutInfoCard()
+		// Move about section after feed for authenticated users
+		// TODO: maybe leave it as a small section that can be
+		// opened via a drowdown?
+		if !props.IsAuthenticated {
+			@components.AboutInfoCard()
+		}
 		@CommunityFeedSection()
+		if props.IsAuthenticated {
+			@components.AboutInfoCard()
+		}
 	</div>
 }
 
+// TODO: add pagination and "load more" button to feed
+// - this is probably mostly a backend change
 templ CommunityFeedSection() {
 	<div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-6 mb-8 border border-brown-300">
 		<h3 class="text-xl font-bold text-brown-900 mb-4">☕ Community Feed</h3>

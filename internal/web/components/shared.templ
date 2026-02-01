@@ -117,7 +117,11 @@ templ WelcomeCard(props WelcomeCardProps) {
 
 templ WelcomeAuthenticated(userDID string) {
 	<div class="mb-6">
-		<p class="text-sm text-brown-700">Logged in as: <span class="font-mono text-brown-900 font-semibold">{ userDID }</span></p>
+		// TODO: maybe add a parenthetical here with "what is this?" linking to the atproto page
+		<p class="text-sm text-brown-700">
+			Logged in as: <span class="font-mono text-brown-900 font-semibold">{ userDID }</span>
+			<a href="/atproto" class="text-brown-700 hover:text-brown-900 transition-colors">(What is this?)</a>
+		</p>
 	</div>
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 		<a
@@ -174,6 +178,7 @@ templ WelcomeUnauthenticated() {
 }
 
 templ AboutInfoCard() {
+	// TODO: only show this at the bottom of the page when authenticated already?
 	<div class="bg-gradient-to-br from-amber-50 to-brown-100 rounded-xl p-6 border-2 border-brown-300 shadow-lg mb-6">
 		<h3 class="text-lg font-bold text-brown-900 mb-3">✨ About Arabica</h3>
 		<ul class="text-brown-800 space-y-2 leading-relaxed mb-3">
