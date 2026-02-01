@@ -97,6 +97,10 @@ func SetupRouter(cfg Config) http.Handler {
 	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	// Serve favicon.ico for pdsls
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/favicon.ico")
+	})
 
 	// Catch-all 404 handler - must be last, catches any unmatched routes
 	mux.HandleFunc("/", h.HandleNotFound)

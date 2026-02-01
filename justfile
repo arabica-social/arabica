@@ -11,6 +11,7 @@ templ-generate:
     @templ generate
 
 test:
+    @templ generate
     @go test ./... -cover -coverprofile=cover.out
 
 style:
