@@ -103,8 +103,11 @@ function createDropdownManager() {
       placeholderOption.textContent = "Select a bean...";
       beanSelect.appendChild(placeholderOption);
 
-      // Add bean options
+      // Add bean options (filter out closed bags)
       this.beans.forEach((bean) => {
+        // Skip closed bags - they shouldn't appear in brew form dropdown
+        if (bean.Closed || bean.closed) return;
+
         const option = document.createElement("option");
         option.value = bean.rkey || bean.RKey;
         const roasterName = bean.Roaster?.Name || bean.roaster?.name || "";
