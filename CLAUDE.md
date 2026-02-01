@@ -8,6 +8,7 @@
 Add proper styling to mail link and 'back to home' button on terms page.
 
 Acceptance criteria:
+
 - Consistent button/link styling
 - Matches site design system
 - Good visual hierarchy
@@ -15,6 +16,7 @@ Acceptance criteria:
 ## Completion Instructions
 
 When you have completed this task:
+
 1. Ensure all work is committed and ready to merge
 2. Exit the session - you'll be prompted to complete, keep, or reopen the cell
 
@@ -103,7 +105,7 @@ internal/
   routing/
     routing.go              # Router setup and middleware chain
 lexicons/                   # AT Protocol lexicon definitions (JSON)
-web/static/                 # CSS, JS, manifest
+static/                     # CSS, JS, manifest
 ```
 
 ## Key Concepts
@@ -681,12 +683,3 @@ nix develop -c templ generate
 ```
 
 This is automatically handled by the build process, but you may need to run it manually during development.
-
-## Known Issues / TODOs
-
-Key areas:
-
-- Context should flow through methods (some fixed, verify all paths)
-- Cache race conditions need copy-on-write pattern
-- Missing CID validation on record updates (AT Protocol best practice)
-- Rate limiting for PDS calls not implemented

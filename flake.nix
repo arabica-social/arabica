@@ -26,7 +26,7 @@
           type = "app";
           program = toString (pkgs.writeShellScript "tailwind-build" ''
             cd ${./.}
-            ${pkgs.tailwindcss}/bin/tailwindcss -i web/static/css/app.css -o web/static/css/output.css --minify
+            ${pkgs.tailwindcss}/bin/tailwindcss -i static/css/app.css -o static/css/output.css --minify
           '');
         };
       });

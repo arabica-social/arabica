@@ -95,7 +95,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
 
 	// Static files (must come after specific routes)
-	fs := http.FileServer(http.Dir("web/static"))
+	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
 	// Catch-all 404 handler - must be last, catches any unmatched routes

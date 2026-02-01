@@ -9,7 +9,7 @@ buildGoModule {
   nativeBuildInputs = [ templ tailwindcss ];
 
   preBuild = ''
-    tailwindcss -i web/static/css/app.css -o web/static/css/output.css --minify
+    tailwindcss -i static/css/app.css -o static/css/output.css --minify
     templ generate
   '';
 
@@ -41,7 +41,7 @@ buildGoModule {
         mkdir -p $out/share/arabica
 
         # Copy static files
-        cp -r web $out/share/arabica/
+        cp -r static $out/share/arabica/
         cp arabica $out/bin/arabica-unwrapped
         cat > $out/bin/arabica <<'WRAPPER'
     ${wrapperScript}

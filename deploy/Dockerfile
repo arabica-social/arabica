@@ -34,7 +34,7 @@ RUN mkdir -p /data && chown arabica:arabica /data
 COPY --from=builder /app/arabica .
 
 # Copy static assets
-COPY --chown=arabica:arabica web/static/ ./web/static/
+COPY --chown=arabica:arabica static/ ./static/
 
 # Note: Templ components are compiled into the binary, no need to copy .templ files
 
