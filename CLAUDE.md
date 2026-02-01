@@ -1,3 +1,25 @@
+# Current Cell Task
+
+**Cell ID:** 01KGA7T06FC5
+**Title:** Style mail link and back button on terms page
+
+## Task Description
+
+Add proper styling to mail link and 'back to home' button on terms page.
+
+Acceptance criteria:
+- Consistent button/link styling
+- Matches site design system
+- Good visual hierarchy
+
+## Completion Instructions
+
+When you have completed this task:
+1. Ensure all work is committed and ready to merge
+2. Exit the session - you'll be prompted to complete, keep, or reopen the cell
+
+---
+
 # Arabica - Project Context for AI Agents
 
 Coffee brew tracking application using AT Protocol for decentralized storage.
@@ -9,6 +31,7 @@ This project uses **cells** for task tracking and coordination. Cells are atomic
 **For usage instructions, see:** `.cells/AGENTS.md`
 
 Quick reference for AI agents:
+
 - `./cells list` - View all active cells
 - `./cells list --status open` - Show available work
 - `./cells show <cell-id>` - View cell details
@@ -150,11 +173,13 @@ The application uses [Templ](https://templ.guide/) for type-safe, component-base
 Components are organized into two categories:
 
 **Pages** (`internal/web/pages/`) - Full-page components that compose the layout with content:
+
 - Each page component accepts `LayoutData` and page-specific props
 - Pattern: `PageName(layoutData *components.LayoutData, props PageProps)`
 - Examples: `Home()`, `BrewList()`, `BrewView()`, `Profile()`
 
 **Components** (`internal/web/components/`) - Reusable UI building blocks:
+
 - `layout.templ` - Base HTML layout with head, body, header, footer
 - `shared.templ` - Common UI elements (EmptyState, PageHeader, LoadingSkeletonTable, etc.)
 - `buttons.templ` - PrimaryButton, SecondaryButton, BackButton
@@ -224,6 +249,7 @@ All templ components implement the `templ.Component` interface, which includes a
 - Is type-safe at compile time
 
 Example:
+
 ```go
 if err := pages.Home(layoutData, homeProps).Render(r.Context(), w); err != nil {
     http.Error(w, "Failed to render page", http.StatusInternalServerError)
@@ -273,6 +299,7 @@ templ EmptyState(props EmptyStateProps) {
 ```
 
 Used in pages:
+
 ```templ
 @components.EmptyState(components.EmptyStateProps{
     Message:    "No brews yet",
@@ -294,6 +321,7 @@ Templ works seamlessly with HTMX for dynamic content loading:
 ```
 
 HTMX responses can render partial components:
+
 ```go
 func (h *Handler) HandleBrewsPartial(w http.ResponseWriter, r *http.Request) {
     brews, _ := store.ListBrews(r.Context())
@@ -317,6 +345,7 @@ Alpine.js directives work natively in templ templates:
 ```
 
 Modal components use Alpine.js for state management:
+
 ```templ
 @Modal(ModalProps{
     Show:      "showBeanForm",
@@ -350,6 +379,7 @@ pages.BrewView(layoutData, pages.BrewViewProps{
 ### Generated Code
 
 The `templ generate` command produces `*_templ.go` files:
+
 - These are committed to version control
 - They implement the `templ.Component` interface
 - They contain optimized rendering logic
@@ -401,12 +431,13 @@ The generated `*_templ.go` files are committed to version control and should be 
 
 ## Command-Line Flags
 
-| Flag            | Type   | Default | Description                                           |
-| --------------- | ------ | ------- | ----------------------------------------------------- |
-| `--firehose`    | bool   | true    | [DEPRECATED] Firehose is now the default (ignored)    |
-| `--known-dids`  | string | ""      | Path to file with DIDs to backfill (one per line)     |
+| Flag           | Type   | Default | Description                                        |
+| -------------- | ------ | ------- | -------------------------------------------------- |
+| `--firehose`   | bool   | true    | [DEPRECATED] Firehose is now the default (ignored) |
+| `--known-dids` | string | ""      | Path to file with DIDs to backfill (one per line)  |
 
 **Known DIDs File Format:**
+
 - One DID per line (e.g., `did:plc:abc123xyz`)
 - Lines starting with `#` are comments
 - Empty lines are ignored
@@ -414,16 +445,16 @@ The generated `*_templ.go` files are committed to version control and should be 
 
 ## Environment Variables
 
-| Variable                    | Default                           | Description                        |
-| --------------------------- | --------------------------------- | ---------------------------------- |
-| `PORT`                      | 18910                             | HTTP server port                   |
-| `SERVER_PUBLIC_URL`         | -                                 | Public URL for reverse proxy       |
-| `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db | BoltDB path (sessions, registry)   |
-| `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path     |
-| `ARABICA_PROFILE_CACHE_TTL` | 1h                                | Profile cache duration             |
-| `SECURE_COOKIES`            | false                             | Set true for HTTPS                 |
-| `LOG_LEVEL`                 | info                              | debug/info/warn/error              |
-| `LOG_FORMAT`                | console                           | console/json                       |
+| Variable                    | Default                              | Description                      |
+| --------------------------- | ------------------------------------ | -------------------------------- |
+| `PORT`                      | 18910                                | HTTP server port                 |
+| `SERVER_PUBLIC_URL`         | -                                    | Public URL for reverse proxy     |
+| `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db    | BoltDB path (sessions, registry) |
+| `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path       |
+| `ARABICA_PROFILE_CACHE_TTL` | 1h                                   | Profile cache duration           |
+| `SECURE_COOKIES`            | false                                | Set true for HTTPS               |
+| `LOG_LEVEL`                 | info                                 | debug/info/warn/error            |
+| `LOG_FORMAT`                | console                              | console/json                     |
 
 ## Code Patterns
 

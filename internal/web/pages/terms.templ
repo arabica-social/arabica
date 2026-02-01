@@ -31,7 +31,6 @@ templ TermsContent() {
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-gray-700 mt-3">
 					<li>You retain full ownership and control of your data</li>
-					<li>You can export your data at any time</li>
 					<li>You can delete your data at any time</li>
 					<li>You can switch PDS providers without losing your data</li>
 					<li>You can stop using Arabica and your data remains in your PDS</li>
@@ -43,14 +42,15 @@ templ TermsContent() {
 					Arabica's servers store minimal data necessary for the application to function:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-gray-700">
-					<li><strong>Session information</strong> - Temporary authentication tokens to keep you logged in</li>
+					<li><strong>Session information</strong> - Authentication tokens to keep you logged in</li>
 					<li><strong>Feed registry</strong> - List of users who've opted into the community feed</li>
-					<li><strong>Temporary cache</strong> - Short-lived cache (5 minutes) of your data to improve performance</li>
+					<li><strong>Temporary cache</strong> - Short-lived cache of your data to improve performance</li>
 				</ul>
-				<p class="text-gray-700 leading-relaxed mt-3">
-					We do <strong>not</strong> store your brew logs, beans, equipment, or any other user-generated content
-					on our servers. That data lives exclusively in your PDS.
-				</p>
+				// NOTE: this may change in the future for witness caching purposes and user settings, so commenting out
+				// <p class="text-gray-700 leading-relaxed mt-3">
+				// 	We do <strong>not</strong> store your brew logs, beans, equipment, or any other user-generated content
+				// 	on our servers. That data lives exclusively in your PDS.
+				// </p>
 			</section>
 			<section>
 				<h2 class="text-2xl font-semibold text-brown-800 mb-4">3. Authentication</h2>
@@ -89,10 +89,9 @@ templ TermsContent() {
 					We respect your privacy and follow these principles:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-gray-700 mt-3">
-					<li>We don't sell your data (because we don't have it to sell!)</li>
+					<li>We don't sell your data</li>
 					<li>We don't track you across websites</li>
 					<li>We use minimal analytics to understand service usage</li>
-					<li>We don't share your data with third parties</li>
 					<li>Your PDS and the AT Protocol control the privacy of your brew data</li>
 				</ul>
 			</section>
@@ -117,7 +116,6 @@ templ TermsContent() {
 					Please use Arabica responsibly:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-gray-700 mt-3">
-					<li>Don't attempt to access other users' data without permission</li>
 					<li>Don't abuse the service with excessive API requests</li>
 					<li>Don't use Arabica for illegal purposes</li>
 					<li>Be respectful in community interactions</li>
@@ -127,18 +125,19 @@ templ TermsContent() {
 				<h2 class="text-2xl font-semibold text-brown-800 mb-4">10. Contact</h2>
 				<p class="text-gray-700 leading-relaxed">
 					Questions about these terms? You can reach us through our GitHub repository or by email at
-					<a href="mailto:mail@arabica.systems" class="text-brown-700 hover:text-brown-900 font-medium transition-colors">mail@arabica.systems</a>.
+					<a href="mailto:mail@arabica.systems" class="link-bold">mail@arabica.systems</a>.
 				</p>
 			</section>
 			<section class="bg-gray-100 p-6 rounded-lg mt-8">
 				<p class="text-sm text-gray-600">
-					<strong>Last Updated:</strong> January 2026<br/>
+					<strong>Last Updated:</strong> January 2026
+					<br/>
 					<strong>Effective Date:</strong> January 2026
 				</p>
 			</section>
 		</div>
 		<div class="mt-12 text-center">
-			<a href="/" class="inline-block bg-gradient-to-r from-brown-700 to-brown-800 text-white px-8 py-3 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all font-semibold shadow-lg hover:shadow-xl">
+			<a href="/" class="btn-primary px-8 py-3">
 				Back to Home
 			</a>
 		</div>

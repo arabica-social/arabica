@@ -12,23 +12,24 @@ type EmptyStateProps struct {
 
 // EmptyState renders an empty state card
 templ EmptyState(props EmptyStateProps) {
-	<div class="card card-inner text-center">
-		<p class="text-brown-800 text-lg mb-4 font-medium">{ props.Message }</p>
-		if props.SubMessage != "" {
-			<p class="text-sm text-brown-700 mb-4">{ props.SubMessage }</p>
-		}
-		if props.ActionURL != "" && props.ActionText != "" {
-			<a
-				href={ templ.SafeURL(props.ActionURL) }
-				class="inline-block btn-primary py-3 px-6 rounded-lg shadow-lg hover:shadow-xl"
-			>
-				{ props.ActionText }
-			</a>
-		}
-	</div>
+	@Card(CardProps{InnerCard: true, Class: "text-center"}, emptyStateContent(props))
 }
 
-// PageHeaderProps defines properties for page headers
+templ emptyStateContent(props EmptyStateProps) {
+	<p class="text-brown-800 text-lg mb-4 font-medium">{ props.Message }</p>
+	if props.SubMessage != "" {
+		<p class="text-sm text-brown-700 mb-4">{ props.SubMessage }</p>
+	}
+	if props.ActionURL != "" && props.ActionText != "" {
+		<a
+			href={ templ.SafeURL(props.ActionURL) }
+			class="inline-block btn-primary py-3 px-6 rounded-lg shadow-lg hover:shadow-xl"
+		>
+			{ props.ActionText }
+		</a>
+	}
+}
+
 type PageHeaderProps struct {
 	Title       string
 	BackURL     string
@@ -37,7 +38,6 @@ type PageHeaderProps struct {
 	ActionClass string // Optional custom class for action button
 }
 
-// PageHeader renders a consistent page header with optional back button and action
 templ PageHeader(props PageHeaderProps) {
 	<div class="mb-6 flex items-center justify-between">
 		<div class="flex items-center gap-3">
@@ -60,13 +60,11 @@ templ PageHeader(props PageHeaderProps) {
 	</div>
 }
 
-// LoadingSkeletonTableProps defines a table loading skeleton
 type LoadingSkeletonTableProps struct {
 	Columns int
 	Rows    int
 }
 
-// LoadingSkeletonTable renders a loading skeleton for tables
 templ LoadingSkeletonTable(props LoadingSkeletonTableProps) {
 	<div class="animate-pulse">
 		<div class="table-container overflow-x-auto">
@@ -96,13 +94,11 @@ templ LoadingSkeletonTable(props LoadingSkeletonTableProps) {
 	</div>
 }
 
-// WelcomeCardProps defines the welcome card properties
 type WelcomeCardProps struct {
 	IsAuthenticated bool
 	UserDID         string
 }
 
-// WelcomeCard renders the home page welcome card
 templ WelcomeCard(props WelcomeCardProps) {
 	<div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 mb-8 border border-brown-300">
 		<div class="flex items-center gap-3 mb-4">
@@ -119,7 +115,6 @@ templ WelcomeCard(props WelcomeCardProps) {
 	</div>
 }
 
-// WelcomeAuthenticated renders the authenticated state of the welcome card
 templ WelcomeAuthenticated(userDID string) {
 	<div class="mb-6">
 		<p class="text-sm text-brown-700">Logged in as: <span class="font-mono text-brown-900 font-semibold">{ userDID }</span></p>
@@ -150,7 +145,6 @@ templ WelcomeAuthenticated(userDID string) {
 	</div>
 }
 
-// WelcomeUnauthenticated renders the login form for unauthenticated users
 templ WelcomeUnauthenticated() {
 	<div>
 		<p class="text-brown-800 mb-6 text-center text-lg">Please log in with your AT Protocol handle to start tracking your brews.</p>
@@ -179,16 +173,15 @@ templ WelcomeUnauthenticated() {
 	</div>
 }
 
-// AboutInfoCard renders the about info section
 templ AboutInfoCard() {
-	<div class="bg-gradient-to-br from-amber-50 to-brown-100 rounded-xl p-6 border-2 border-brown-300 shadow-lg">
+	<div class="bg-gradient-to-br from-amber-50 to-brown-100 rounded-xl p-6 border-2 border-brown-300 shadow-lg mb-6">
 		<h3 class="text-lg font-bold text-brown-900 mb-3">✨ About Arabica</h3>
 		<ul class="text-brown-800 space-y-2 leading-relaxed">
-			<li class="flex items-start"><span class="mr-2">🔒</span><span><strong>Decentralized:</strong> Your data lives in your Personal Data Server (PDS)</span></li>
-			<li class="flex items-start"><span class="mr-2">🚀</span><span><strong>Portable:</strong> Own your coffee brewing history</span></li>
+			<li class="flex items-start"><span class="mr-2">📝</span><span>Add tasting notes and ratings to each brew</span></li>
 			<li class="flex items-start"><span class="mr-2">📊</span><span>Track brewing variables like temperature, time, and grind size</span></li>
 			<li class="flex items-start"><span class="mr-2">🌍</span><span>Organize beans by origin and roaster</span></li>
-			<li class="flex items-start"><span class="mr-2">📝</span><span>Add tasting notes and ratings to each brew</span></li>
+			<li class="flex items-start"><span class="mr-2">🚀</span><span><strong>Portable:</strong> Own your coffee brewing history</span></li>
+			<li class="flex items-start"><span class="mr-2">🔒</span><span><strong>Decentralized:</strong> Your data lives in your Personal Data Server (PDS)</span></li>
 		</ul>
 	</div>
 }
