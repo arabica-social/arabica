@@ -1659,6 +1659,23 @@ func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) HandleATProto(w http.ResponseWriter, r *http.Request) {
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil
+
+	var userProfile *bff.UserProfile
+	if isAuthenticated {
+		userProfile = h.getUserProfile(r.Context(), didStr)
+	}
+
+	layoutData := h.buildLayoutData(r, "AT Protocol", isAuthenticated, didStr, userProfile)
+
+	if err := pages.ATProto(layoutData).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render AT Protocol page")
+	}
+}
+
 // HandleProfile displays a user's public profile with their brews and gear
 func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	actor := r.PathValue("actor")

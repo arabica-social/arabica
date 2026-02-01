@@ -53,6 +53,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
 	mux.HandleFunc("GET /about", h.HandleAbout)
 	mux.HandleFunc("GET /terms", h.HandleTerms)
+	mux.HandleFunc("GET /atproto", h.HandleATProto)
 	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
 	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
