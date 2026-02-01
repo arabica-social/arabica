@@ -1,7 +1,0 @@
----
-title: non-string key
-test_name: TestDict_ErrorCases_Snapshot/non-string_key
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-"dict keys must be strings"

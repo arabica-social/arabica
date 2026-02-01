@@ -53,6 +53,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
 	mux.HandleFunc("GET /about", h.HandleAbout)
 	mux.HandleFunc("GET /terms", h.HandleTerms)
+	mux.HandleFunc("GET /atproto", h.HandleATProto)
 	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
 	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
@@ -79,6 +80,16 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /api/brewers", cop.Handler(http.HandlerFunc(h.HandleBrewerCreate)))
 	mux.Handle("PUT /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerUpdate)))
 	mux.Handle("DELETE /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerDelete)))
+
+	// Modal routes for entity management (return dialog HTML)
+	mux.HandleFunc("GET /api/modals/bean/new", h.HandleBeanModalNew)
+	mux.HandleFunc("GET /api/modals/bean/{id}", h.HandleBeanModalEdit)
+	mux.HandleFunc("GET /api/modals/grinder/new", h.HandleGrinderModalNew)
+	mux.HandleFunc("GET /api/modals/grinder/{id}", h.HandleGrinderModalEdit)
+	mux.HandleFunc("GET /api/modals/brewer/new", h.HandleBrewerModalNew)
+	mux.HandleFunc("GET /api/modals/brewer/{id}", h.HandleBrewerModalEdit)
+	mux.HandleFunc("GET /api/modals/roaster/new", h.HandleRoasterModalNew)
+	mux.HandleFunc("GET /api/modals/roaster/{id}", h.HandleRoasterModalEdit)
 
 	// Profile routes (public user profiles)
 	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)

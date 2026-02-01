@@ -514,6 +514,7 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 		Process:     bean.Process,
 		Description: bean.Description,
 		RoasterRKey: bean.RoasterRKey,
+		Closed:      bean.Closed,
 		CreatedAt:   existing.CreatedAt,
 	}
 

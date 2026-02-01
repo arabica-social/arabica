@@ -1,0 +1,63 @@
+package pages
+
+import (
+	"arabica/internal/web/components"
+)
+
+// BrewListProps defines the data for the brew list page
+type BrewListProps struct {
+	// No initial data - loaded via HTMX
+}
+
+// BrewList renders the full brew list page
+templ BrewList(layout *components.LayoutData, props BrewListProps) {
+	@components.Layout(layout, BrewListContent(props))
+}
+
+// BrewListContent renders the brew list page content
+templ BrewListContent(props BrewListProps) {
+	<div class="max-w-6xl mx-auto">
+		@components.PageHeader(components.PageHeaderProps{
+			Title:      "Your Brews",
+			ActionURL:  "/brews/new",
+			ActionText: "+ New Brew",
+		})
+		<div hx-get="/api/brews" hx-trigger="load" hx-swap="innerHTML">
+			@BrewListLoadingSkeleton()
+		</div>
+	</div>
+}
+
+// BrewListLoadingSkeleton renders loading skeleton for brew list
+templ BrewListLoadingSkeleton() {
+	<div class="animate-pulse">
+		<div class="table-container overflow-x-auto">
+			<table class="table">
+				<thead class="table-header">
+					<tr>
+						<th class="table-th px-4 whitespace-nowrap">📅 Date</th>
+						<th class="table-th px-4 whitespace-nowrap">☕ Bean</th>
+						<th class="table-th px-4 whitespace-nowrap">🫖 Brewer</th>
+						<th class="table-th px-4 whitespace-nowrap">🔧 Variables</th>
+						<th class="table-th px-4 whitespace-nowrap">📝 Notes</th>
+						<th class="table-th px-4 whitespace-nowrap">⭐ Rating</th>
+						<th class="table-th px-4 whitespace-nowrap">⚙️ Actions</th>
+					</tr>
+				</thead>
+				<tbody class="table-body">
+					for i := 0; i < 5; i++ {
+						<tr>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-32"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-24"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-40"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
+							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}

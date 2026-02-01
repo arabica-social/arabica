@@ -1,0 +1,232 @@
+package components
+
+import "arabica/internal/web/bff"
+
+// EmptyStateProps defines properties for empty state messaging
+type EmptyStateProps struct {
+	Message    string
+	SubMessage string
+	ActionURL  string
+	ActionText string
+}
+
+// EmptyState renders an empty state card
+templ EmptyState(props EmptyStateProps) {
+	@Card(CardProps{InnerCard: true, Class: "text-center"}, emptyStateContent(props))
+}
+
+templ emptyStateContent(props EmptyStateProps) {
+	<p class="text-brown-800 text-lg mb-4 font-medium">{ props.Message }</p>
+	if props.SubMessage != "" {
+		<p class="text-sm text-brown-700 mb-4">{ props.SubMessage }</p>
+	}
+	if props.ActionURL != "" && props.ActionText != "" {
+		<a
+			href={ templ.SafeURL(props.ActionURL) }
+			class="inline-block btn-primary py-3 px-6 rounded-lg shadow-lg hover:shadow-xl"
+		>
+			{ props.ActionText }
+		</a>
+	}
+}
+
+type PageHeaderProps struct {
+	Title       string
+	BackURL     string
+	ActionURL   string
+	ActionText  string
+	ActionClass string // Optional custom class for action button
+}
+
+templ PageHeader(props PageHeaderProps) {
+	<div class="mb-6 flex items-center justify-between">
+		<div class="flex items-center gap-3">
+			if props.BackURL != "" {
+				@BackButton()
+			}
+			<h2 class="text-3xl font-bold text-brown-900">{ props.Title }</h2>
+		</div>
+		if props.ActionURL != "" && props.ActionText != "" {
+			<a
+				href={ templ.SafeURL(props.ActionURL) }
+				class={ templ.Classes(
+						templ.KV("btn-primary shadow-lg hover:shadow-xl", props.ActionClass == ""),
+						templ.KV(props.ActionClass, props.ActionClass != ""),
+					) }
+			>
+				{ props.ActionText }
+			</a>
+		}
+	</div>
+}
+
+type LoadingSkeletonTableProps struct {
+	Columns int
+	Rows    int
+}
+
+templ LoadingSkeletonTable(props LoadingSkeletonTableProps) {
+	<div class="animate-pulse">
+		<div class="table-container overflow-x-auto">
+			<table class="table">
+				<thead class="table-header">
+					<tr>
+						for i := 0; i < props.Columns; i++ {
+							<th class="table-th">
+								<div class="h-3 bg-brown-300 rounded w-20"></div>
+							</th>
+						}
+					</tr>
+				</thead>
+				<tbody class="table-body">
+					for i := 0; i < props.Rows; i++ {
+						<tr>
+							for j := 0; j < props.Columns; j++ {
+								<td class="px-6 py-4">
+									<div class="h-4 bg-brown-300 rounded w-24"></div>
+								</td>
+							}
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
+type WelcomeCardProps struct {
+	IsAuthenticated bool
+	UserDID         string
+}
+
+templ WelcomeCard(props WelcomeCardProps) {
+	<div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 mb-8 border border-brown-300">
+		<div class="flex items-center gap-3 mb-4">
+			<h2 class="text-3xl font-bold text-brown-900">Welcome to Arabica</h2>
+			<span class="text-xs bg-amber-400 text-brown-900 px-2 py-1 rounded-md font-semibold shadow-sm">ALPHA</span>
+		</div>
+		<p class="text-brown-800 mb-2 text-lg">Track your coffee brewing journey with detailed logs of every cup.</p>
+		<p class="text-sm text-brown-700 italic mb-6">Note: Arabica is currently in alpha. Features and data structures may change.</p>
+		if props.IsAuthenticated {
+			@WelcomeAuthenticated(props.UserDID)
+		} else {
+			@WelcomeUnauthenticated()
+		}
+	</div>
+}
+
+templ WelcomeAuthenticated(userDID string) {
+	<div class="mb-6">
+		<p class="text-sm text-brown-700">Logged in as: <span class="font-mono text-brown-900 font-semibold">{ userDID }</span></p>
+	</div>
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+		<a
+			href="/brews/new"
+			class="block bg-gradient-to-br from-brown-700 to-brown-800 text-white text-center py-4 px-6 rounded-xl hover:from-brown-800 hover:to-brown-900 transition-all shadow-lg hover:shadow-xl transform"
+			hx-get="/brews/new"
+			hx-target="main"
+			hx-swap="innerHTML show:top"
+			hx-select="main > *"
+			hx-push-url="true"
+		>
+			<span class="text-xl font-semibold">☕ Add New Brew</span>
+		</a>
+		<a
+			href="/brews"
+			class="block bg-gradient-to-br from-brown-500 to-brown-600 text-white text-center py-4 px-6 rounded-xl hover:from-brown-600 hover:to-brown-700 transition-all shadow-lg hover:shadow-xl"
+			hx-get="/brews"
+			hx-target="main"
+			hx-swap="innerHTML show:top"
+			hx-select="main > *"
+			hx-push-url="true"
+		>
+			<span class="text-xl font-semibold">📋 View All Brews</span>
+		</a>
+	</div>
+}
+
+templ WelcomeUnauthenticated() {
+	<div>
+		<p class="text-brown-800 mb-6 text-center text-lg">Please log in with your AT Protocol handle to start tracking your brews.</p>
+		<form method="POST" action="/auth/login" class="max-w-md mx-auto">
+			<div class="relative">
+				<label for="handle" class="block text-sm font-medium text-brown-900 mb-2">Your Handle</label>
+				<input
+					type="text"
+					id="handle"
+					name="handle"
+					placeholder="alice.bsky.social"
+					autocomplete="off"
+					required
+					class="w-full px-4 py-3 border-2 border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-600 focus:border-brown-600 bg-white"
+				/>
+				<div id="autocomplete-results" class="hidden absolute z-10 w-full mt-1 bg-brown-50 border-2 border-brown-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+			</div>
+			<button
+				type="submit"
+				class="w-full mt-4 bg-gradient-to-r from-brown-700 to-brown-800 text-white py-3 px-8 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all text-lg font-semibold shadow-lg hover:shadow-xl"
+			>
+				Log In
+			</button>
+		</form>
+		<script src="/static/js/handle-autocomplete.js?v=0.2.0"></script>
+	</div>
+}
+
+templ AboutInfoCard() {
+	<div class="bg-gradient-to-br from-amber-50 to-brown-100 rounded-xl p-6 border-2 border-brown-300 shadow-lg mb-6">
+		<h3 class="text-lg font-bold text-brown-900 mb-3">✨ About Arabica</h3>
+		<ul class="text-brown-800 space-y-2 leading-relaxed">
+			<li class="flex items-start"><span class="mr-2">📝</span><span>Add tasting notes and ratings to each brew</span></li>
+			<li class="flex items-start"><span class="mr-2">📊</span><span>Track brewing variables like temperature, time, and grind size</span></li>
+			<li class="flex items-start"><span class="mr-2">🌍</span><span>Organize beans by origin and roaster</span></li>
+			<li class="flex items-start"><span class="mr-2">🚀</span><span><strong>Portable:</strong> Own your coffee brewing history</span></li>
+			<li class="flex items-start"><span class="mr-2">🔒</span><span><strong>Decentralized:</strong> Your data lives in your Personal Data Server (PDS)</span></li>
+		</ul>
+	</div>
+}
+
+// AvatarProps defines properties for avatar rendering
+type AvatarProps struct {
+	AvatarURL   string
+	DisplayName string
+	Size        string // "sm", "md", "lg" - defaults to "md" if empty
+}
+
+// Avatar renders a user avatar with safety checks and fallback
+// Supports three sizes: sm (w-8 h-8), md (w-12 h-12), lg (w-20 h-20)
+templ Avatar(props AvatarProps) {
+	if props.AvatarURL != "" && bff.SafeAvatarURL(props.AvatarURL) != "" {
+		<img
+			src={ bff.SafeAvatarURL(props.AvatarURL) }
+			alt=""
+			class={ templ.Classes(
+					templ.KV("w-8 h-8 rounded-full object-cover ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "sm"),
+					templ.KV("w-12 h-12 rounded-full object-cover ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "md" || props.Size == ""),
+					templ.KV("w-20 h-20 rounded-full object-cover border-2 border-brown-300 transition-all duration-200 hover:border-brown-400 hover:border-4", props.Size == "lg"),
+				) }
+		/>
+	} else {
+		<div
+			class={ templ.Classes(
+					templ.KV("w-8 h-8 rounded-full bg-brown-300 flex items-center justify-center ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "sm"),
+					templ.KV("w-12 h-12 rounded-full bg-brown-300 flex items-center justify-center ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "md" || props.Size == ""),
+					templ.KV("w-20 h-20 rounded-full bg-brown-300 flex items-center justify-center transition-all duration-200 hover:bg-brown-400", props.Size == "lg"),
+				) }
+		>
+			<span
+				class={ templ.Classes(
+						templ.KV("text-brown-600 text-sm", props.Size == "sm"),
+						templ.KV("text-brown-600 text-base", props.Size == "md" || props.Size == ""),
+						templ.KV("text-brown-600 text-2xl", props.Size == "lg"),
+					) }
+			>
+				if props.DisplayName != "" && len(props.DisplayName) > 0 {
+					{ props.DisplayName[:1] }
+				} else {
+					?
+				}
+			</span>
+		</div>
+	}
+}

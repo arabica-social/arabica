@@ -1,15 +1,45 @@
 package middleware
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 )
 
+type cspNonceKeyType struct{}
+
+var cspNonceKey = cspNonceKeyType{}
+
+func generateNonce() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(b), nil
+}
+
+func CSPNonceFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(cspNonceKey).(string); ok {
+		return v
+	}
+	return ""
+}
+
 // SecurityHeadersMiddleware adds security headers to all responses
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nonce, err := generateNonce()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		r = r.WithContext(context.WithValue(r.Context(), cspNonceKey, nonce))
+
 		// Prevent clickjacking
 		w.Header().Set("X-Frame-Options", "DENY")
 
@@ -26,12 +56,13 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
 		// Content Security Policy
-		// Allows: self for scripts/styles, inline styles (for Tailwind), jsdelivr for HTMX/Alpine
+		// Allows: self for scripts/styles, inline styles (for Tailwind), inline HTMX/Alpine
 		// Note: unsafe-eval required for Alpine.js standard build (CSP build has CDN MIME type issues)
 		// Note: form-action allows https: for OAuth redirects to external authorization servers
+		// TODO: set nonce/hash on unsafe tags -- needs to be set in elements as well
 		csp := strings.Join([]string{
 			"default-src 'self'",
-			"script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net",
+			"script-src 'self' 'unsafe-eval' 'nonce-" + nonce + "'",
 			"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Tailwind
 			"img-src 'self' https: data:",      // Allow external images (avatars) and data URIs
 			"font-src 'self'",

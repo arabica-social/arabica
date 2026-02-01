@@ -1,7 +1,0 @@
----
-title: five iterations
-test_name: TestIterate_Snapshot/five_iterations
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-[]int{0, 1, 2, 3, 4}

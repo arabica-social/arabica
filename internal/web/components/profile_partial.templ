@@ -1,0 +1,159 @@
+package components
+
+import (
+	"arabica/internal/models"
+	"strconv"
+)
+
+// ProfileContentPartialProps defines props for profile content partial
+type ProfileContentPartialProps struct {
+	Brews         []*models.Brew
+	Beans         []*models.Bean
+	Roasters      []*models.Roaster
+	Grinders      []*models.Grinder
+	Brewers       []*models.Brewer
+	IsOwnProfile  bool
+	ProfileHandle string
+}
+
+// ProfileContentPartial renders the profile tabs content (for HTMX loading)
+templ ProfileContentPartial(props ProfileContentPartialProps) {
+	<!-- Hidden div with stats data for JavaScript -->
+	<div id="profile-stats-data" class="hidden" data-brews={ strconv.Itoa(len(props.Brews)) } data-beans={ strconv.Itoa(len(props.Beans)) } data-roasters={ strconv.Itoa(len(props.Roasters)) } data-grinders={ strconv.Itoa(len(props.Grinders)) } data-brewers={ strconv.Itoa(len(props.Brewers)) }></div>
+	<!-- Brews Tab -->
+	<div x-show="activeTab === 'brews'">
+		@BrewListTablePartial(BrewListTableProps{
+			Brews:         props.Brews,
+			IsOwnProfile:  props.IsOwnProfile,
+			ProfileHandle: props.ProfileHandle,
+		})
+	</div>
+	<!-- Beans Tab -->
+	<div x-show="activeTab === 'beans'">
+		@ProfileBeansTab(props.Beans, props.Roasters, props.IsOwnProfile)
+	</div>
+	<!-- Equipment Tab -->
+	<div x-show="activeTab === 'equipment'">
+		@ProfileEquipmentTab(props.Grinders, props.Brewers, props.IsOwnProfile)
+	</div>
+}
+
+// ProfileBeansTab renders the beans and roasters tab for profile
+templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnProfile bool) {
+	<div class="space-y-6">
+		<!-- Open Bags Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h4>
+			if len(filterOpenBeans(beans)) == 0 {
+				if isOwnProfile {
+					@EmptyState(EmptyStateProps{
+						Message:    "No open bags yet! Add your first bean.",
+						ActionURL:  "/manage",
+						ActionText: "Go to Manage",
+					})
+				} else {
+					@EmptyState(EmptyStateProps{
+						Message: "No open bags yet.",
+					})
+				}
+			} else {
+				@BeansTable(BeansTableProps{
+					Beans:       filterOpenBeans(beans),
+					ShowActions: false,
+					ShowStatus:  false,
+				})
+			}
+		</div>
+		<!-- Roasters Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Roasters</h4>
+			if len(roasters) == 0 {
+				if isOwnProfile {
+					@EmptyState(EmptyStateProps{Message: "No roasters added yet."})
+				} else {
+					@EmptyState(EmptyStateProps{Message: "No roasters yet."})
+				}
+			} else {
+				@RoastersTable(RoastersTableProps{
+					Roasters:    roasters,
+					ShowActions: false,
+				})
+			}
+		</div>
+		<!-- Closed Bags Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Closed Bags</h4>
+			if len(filterClosedBeans(beans)) == 0 {
+				@EmptyState(EmptyStateProps{
+					Message: "No closed bags.",
+				})
+			} else {
+				@BeansTable(BeansTableProps{
+					Beans:       filterClosedBeans(beans),
+					ShowActions: false,
+					ShowStatus:  false,
+				})
+			}
+		</div>
+	</div>
+}
+
+// filterOpenBeans returns only beans that are not closed
+func filterOpenBeans(beans []*models.Bean) []*models.Bean {
+	var openBeans []*models.Bean
+	for _, bean := range beans {
+		if !bean.Closed {
+			openBeans = append(openBeans, bean)
+		}
+	}
+	return openBeans
+}
+
+// filterClosedBeans returns only beans that are closed
+func filterClosedBeans(beans []*models.Bean) []*models.Bean {
+	var closedBeans []*models.Bean
+	for _, bean := range beans {
+		if bean.Closed {
+			closedBeans = append(closedBeans, bean)
+		}
+	}
+	return closedBeans
+}
+
+// ProfileEquipmentTab renders the equipment tab for profile (grinders and brewers only)
+templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool) {
+	<div class="space-y-6">
+		<!-- Grinders Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Grinders</h4>
+			if len(grinders) == 0 {
+				if isOwnProfile {
+					@EmptyState(EmptyStateProps{Message: "No grinders added yet."})
+				} else {
+					@EmptyState(EmptyStateProps{Message: "No grinders yet."})
+				}
+			} else {
+				@GrindersTable(GrindersTableProps{
+					Grinders:    grinders,
+					ShowActions: false,
+				})
+			}
+		</div>
+		<!-- Brewers Section -->
+		<div>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Brewing Devices</h4>
+			if len(brewers) == 0 {
+				if isOwnProfile {
+					@EmptyState(EmptyStateProps{Message: "No brewing devices added yet."})
+				} else {
+					@EmptyState(EmptyStateProps{Message: "No brewing devices yet."})
+				}
+			} else {
+				@BrewersTable(BrewersTableProps{
+					Brewers:     brewers,
+					ShowActions: false,
+				})
+			}
+		</div>
+	</div>
+}

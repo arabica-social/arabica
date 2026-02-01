@@ -1,0 +1,387 @@
+package components
+
+import "arabica/internal/models"
+
+// DialogModalProps defines properties for a native HTML5 dialog modal
+type DialogModalProps struct {
+	ID    string // Dialog ID (e.g., "bean-modal")
+	Title string
+}
+
+// BeanDialogModal renders the bean creation/edit modal using native <dialog>
+templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
+	<dialog id="entity-modal" class="modal-dialog">
+		<div class="modal-content">
+			<h3 class="modal-title">
+				if bean != nil {
+					Edit Bean
+				} else {
+					Add Bean
+				}
+			</h3>
+			<form
+				if bean != nil {
+					hx-put={ "/api/beans/" + bean.RKey }
+				} else {
+					hx-post="/api/beans"
+				}
+				hx-trigger="submit"
+				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				class="space-y-4"
+			>
+				<input
+					type="text"
+					name="name"
+					value={ getStringValue(bean, "name") }
+					placeholder="Name *"
+					required
+					class="w-full form-input"
+				/>
+				<input
+					type="text"
+					name="origin"
+					value={ getStringValue(bean, "origin") }
+					placeholder="Origin *"
+					required
+					class="w-full form-input"
+				/>
+				<select
+					name="roaster_rkey"
+					class="w-full form-input"
+				>
+					<option value="">Select Roaster (Optional)</option>
+					for _, roaster := range roasters {
+						<option
+							value={ roaster.RKey }
+							if bean != nil && bean.RoasterRKey == roaster.RKey {
+								selected
+							}
+						>
+							{ roaster.Name }
+						</option>
+					}
+				</select>
+				<select
+					name="roast_level"
+					class="w-full form-input"
+				>
+					<option value="">Select Roast Level (Optional)</option>
+					for _, level := range models.RoastLevels {
+						<option
+							value={ level }
+							if bean != nil && bean.RoastLevel == level {
+								selected
+							}
+						>
+							{ level }
+						</option>
+					}
+				</select>
+				<input
+					type="text"
+					name="process"
+					value={ getStringValue(bean, "process") }
+					placeholder="Process (e.g. Washed, Natural, Honey)"
+					class="w-full form-input"
+				/>
+				<textarea
+					name="description"
+					placeholder="Description"
+					rows="3"
+					class="w-full form-textarea"
+				>{ getStringValue(bean, "description") }</textarea>
+				// Only show "close bag check" when editing
+				if bean != nil {
+					<div class="flex items-center gap-2">
+						<input
+							type="checkbox"
+							name="closed"
+							value="true"
+							id="bean-closed-checkbox-modal"
+							if bean != nil && bean.Closed {
+								checked
+							}
+							class="rounded border-brown-300 text-brown-700 focus:ring-brown-500"
+						/>
+						<label for="bean-closed-checkbox-modal" class="text-sm text-brown-900">
+							Bag is closed/finished
+						</label>
+					</div>
+				}
+				<div class="flex gap-2">
+					<button type="submit" class="flex-1 btn-primary">
+						Save
+					</button>
+					<button
+						type="button"
+						@click="$el.closest('dialog').close()"
+						class="flex-1 btn-secondary"
+					>
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	</dialog>
+}
+
+// GrinderDialogModal renders the grinder creation/edit modal using native <dialog>
+templ GrinderDialogModal(grinder *models.Grinder) {
+	<dialog id="entity-modal" class="modal-dialog">
+		<div class="modal-content">
+			<h3 class="modal-title">
+				if grinder != nil {
+					Edit Grinder
+				} else {
+					Add Grinder
+				}
+			</h3>
+			<form
+				if grinder != nil {
+					hx-put={ "/api/grinders/" + grinder.RKey }
+				} else {
+					hx-post="/api/grinders"
+				}
+				hx-trigger="submit"
+				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				class="space-y-4"
+			>
+				<input
+					type="text"
+					name="name"
+					value={ getStringValue(grinder, "name") }
+					placeholder="Name *"
+					required
+					class="w-full form-input"
+				/>
+				<select name="grinder_type" class="w-full form-input" required>
+					<option value="">Select Grinder Type *</option>
+					for _, gType := range models.GrinderTypes {
+						<option
+							value={ gType }
+							if grinder != nil && grinder.GrinderType == gType {
+								selected
+							}
+						>
+							{ gType }
+						</option>
+					}
+				</select>
+				<select name="burr_type" class="w-full form-input">
+					<option value="">Select Burr Type (Optional)</option>
+					for _, bType := range models.BurrTypes {
+						<option
+							value={ bType }
+							if grinder != nil && grinder.BurrType == bType {
+								selected
+							}
+						>
+							{ bType }
+						</option>
+					}
+				</select>
+				<textarea
+					name="notes"
+					placeholder="Notes"
+					rows="3"
+					class="w-full form-textarea"
+				>{ getStringValue(grinder, "notes") }</textarea>
+				<div class="flex gap-2">
+					<button type="submit" class="flex-1 btn-primary">
+						Save
+					</button>
+					<button
+						type="button"
+						@click="$el.closest('dialog').close()"
+						class="flex-1 btn-secondary"
+					>
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	</dialog>
+}
+
+// BrewerDialogModal renders the brewer creation/edit modal using native <dialog>
+templ BrewerDialogModal(brewer *models.Brewer) {
+	<dialog id="entity-modal" class="modal-dialog">
+		<div class="modal-content">
+			<h3 class="modal-title">
+				if brewer != nil {
+					Edit Brewer
+				} else {
+					Add Brewer
+				}
+			</h3>
+			<form
+				if brewer != nil {
+					hx-put={ "/api/brewers/" + brewer.RKey }
+				} else {
+					hx-post="/api/brewers"
+				}
+				hx-trigger="submit"
+				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				class="space-y-4"
+			>
+				<input
+					type="text"
+					name="name"
+					value={ getStringValue(brewer, "name") }
+					placeholder="Name *"
+					required
+					class="w-full form-input"
+				/>
+				<input
+					type="text"
+					name="brewer_type"
+					value={ getStringValue(brewer, "brewer_type") }
+					placeholder="Type (e.g., Pour-Over, Immersion, Espresso)"
+					class="w-full form-input"
+				/>
+				<textarea
+					name="description"
+					placeholder="Description"
+					rows="3"
+					class="w-full form-textarea"
+				>{ getStringValue(brewer, "description") }</textarea>
+				<div class="flex gap-2">
+					<button type="submit" class="flex-1 btn-primary">
+						Save
+					</button>
+					<button
+						type="button"
+						@click="$el.closest('dialog').close()"
+						class="flex-1 btn-secondary"
+					>
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	</dialog>
+}
+
+// RoasterDialogModal renders the roaster creation/edit modal using native <dialog>
+templ RoasterDialogModal(roaster *models.Roaster) {
+	<dialog id="entity-modal" class="modal-dialog">
+		<div class="modal-content">
+			<h3 class="modal-title">
+				if roaster != nil {
+					Edit Roaster
+				} else {
+					Add Roaster
+				}
+			</h3>
+			<form
+				if roaster != nil {
+					hx-put={ "/api/roasters/" + roaster.RKey }
+				} else {
+					hx-post="/api/roasters"
+				}
+				hx-trigger="submit"
+				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				class="space-y-4"
+			>
+				<input
+					type="text"
+					name="name"
+					value={ getStringValue(roaster, "name") }
+					placeholder="Name *"
+					required
+					class="w-full form-input"
+				/>
+				<input
+					type="text"
+					name="location"
+					value={ getStringValue(roaster, "location") }
+					placeholder="Location"
+					class="w-full form-input"
+				/>
+				<input
+					type="url"
+					name="website"
+					value={ getStringValue(roaster, "website") }
+					placeholder="Website"
+					class="w-full form-input"
+				/>
+				<div class="flex gap-2">
+					<button type="submit" class="flex-1 btn-primary">
+						Save
+					</button>
+					<button
+						type="button"
+						@click="$el.closest('dialog').close()"
+						class="flex-1 btn-secondary"
+					>
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	</dialog>
+}
+
+// Helper function to get string value from bean (handles nil case)
+func getStringValue(entity interface{}, field string) string {
+	if entity == nil {
+		return ""
+	}
+
+	switch e := entity.(type) {
+	case *models.Bean:
+		if e == nil {
+			return ""
+		}
+		switch field {
+		case "name":
+			return e.Name
+		case "origin":
+			return e.Origin
+		case "process":
+			return e.Process
+		case "description":
+			return e.Description
+		}
+	case *models.Grinder:
+		if e == nil {
+			return ""
+		}
+		switch field {
+		case "name":
+			return e.Name
+		case "notes":
+			return e.Notes
+		}
+	case *models.Brewer:
+		if e == nil {
+			return ""
+		}
+		switch field {
+		case "name":
+			return e.Name
+		case "brewer_type":
+			return e.BrewerType
+		case "description":
+			return e.Description
+		}
+	case *models.Roaster:
+		if e == nil {
+			return ""
+		}
+		switch field {
+		case "name":
+			return e.Name
+		case "location":
+			return e.Location
+		case "website":
+			return e.Website
+		}
+	}
+
+	return ""
+}

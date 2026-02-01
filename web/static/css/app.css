@@ -1,0 +1,439 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Touch targets for interactive elements only */
+  button,
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  @media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer components {
+  /* Cards and Containers */
+  .card {
+    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300;
+  }
+
+  .card-inner {
+    @apply p-6;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply btn bg-gradient-to-br from-brown-700 to-brown-900 text-white hover:from-brown-800 hover:to-brown-900 shadow-md;
+  }
+
+  .btn-secondary {
+    @apply btn bg-brown-300 text-brown-900 hover:bg-brown-400;
+  }
+
+  .btn-link {
+    @apply text-brown-700 hover:text-brown-900 font-medium underline transition-colors cursor-pointer;
+  }
+
+  .btn-danger {
+    @apply text-red-600 hover:text-red-800 font-medium underline transition-colors cursor-pointer;
+  }
+
+  /* Forms */
+  .form-label {
+    @apply block text-sm font-medium text-brown-900 mb-2;
+  }
+
+  .form-input {
+    @apply rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 px-3 bg-white;
+  }
+
+  .form-input-lg {
+    @apply form-input py-3 px-4;
+  }
+
+  .form-select {
+    @apply form-input truncate max-w-full;
+  }
+
+  .form-textarea {
+    @apply form-input min-h-[100px];
+  }
+
+  /* Tables */
+  .table-container {
+    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md overflow-hidden border border-brown-300;
+  }
+
+  .table {
+    @apply min-w-full divide-y divide-brown-300;
+  }
+
+  .table-header {
+    @apply bg-brown-200;
+  }
+
+  .table-th {
+    @apply px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider;
+  }
+
+  .table-body {
+    @apply bg-brown-100 divide-y divide-brown-200;
+  }
+
+  .table-row {
+    @apply hover:bg-brown-100 transition-colors;
+  }
+
+  .table-td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-brown-800;
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4;
+  }
+
+  .modal-content {
+    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-2xl p-6 max-w-md w-full border border-brown-300 max-h-[90vh] overflow-y-auto;
+  }
+
+  .modal-title {
+    @apply text-xl font-semibold text-brown-900 mb-4;
+  }
+
+  /* Native Dialog Element */
+  .modal-dialog {
+    @apply p-0 bg-transparent border-none shadow-none max-w-md w-full;
+  }
+
+  .modal-dialog::backdrop {
+    @apply bg-black/40 backdrop-blur-sm;
+  }
+
+  /* Dialog content wrapper (nested inside dialog) */
+  .modal-dialog .modal-content {
+    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-2xl p-6 w-full border border-brown-300 max-h-[90vh] overflow-y-auto;
+  }
+
+  /* Typography */
+  .section-title {
+    @apply text-2xl font-bold text-brown-900 mb-4;
+  }
+
+  .page-title {
+    @apply text-3xl font-bold text-brown-900;
+  }
+
+  /* Feed Components */
+  .feed-card {
+    @apply bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-4 hover:shadow-lg transition-shadow;
+  }
+
+  .feed-content-box {
+    @apply bg-white/60 backdrop-blur rounded-lg p-4 border border-brown-200;
+  }
+
+  .feed-content-box-sm {
+    @apply bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200;
+  }
+
+  /* Avatar */
+  .avatar {
+    @apply w-10 h-10 rounded-full object-cover;
+  }
+
+  .avatar-placeholder {
+    @apply w-10 h-10 rounded-full bg-brown-300 flex items-center justify-center;
+  }
+
+  .avatar-ring {
+    @apply hover:ring-2 hover:ring-brown-600 transition;
+  }
+
+  /* Text Utilities */
+  .text-helper {
+    @apply text-sm text-brown-700 mt-1;
+  }
+
+  .text-meta {
+    @apply text-xs text-brown-600;
+  }
+
+  .text-meta-sm {
+    @apply text-sm text-brown-600;
+  }
+
+  .text-label {
+    @apply text-brown-600;
+  }
+
+  /* Badges */
+  .badge-rating {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-900 flex-shrink-0;
+  }
+
+  .badge-rating-sm {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-900;
+  }
+
+  /* Links */
+  .link {
+    @apply text-brown-700 hover:text-brown-900 hover:underline transition-colors;
+  }
+
+  .link-bold {
+    @apply font-medium text-brown-700 hover:text-brown-900 hover:underline transition-colors;
+  }
+}
+
+/* ========================================
+   HTMX Transition Classes
+   ======================================== */
+
+/* CRITICAL: Prevent content from being stuck invisible during history restore */
+/* Override HTMX transition classes during history restoration */
+body.htmx-history-restoring main,
+body.htmx-history-restoring .htmx-swapping,
+body.htmx-history-restoring .htmx-transitioning {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* During swap transition */
+.htmx-swapping {
+  opacity: 0;
+  transform: translateY(5px);
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out;
+}
+
+/* After content is added */
+.htmx-added {
+  opacity: 0;
+  animation: fade-in-slide-up 200ms ease-out forwards;
+}
+
+/* During settling phase */
+.htmx-settling {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 100ms ease-in,
+    transform 100ms ease-in;
+}
+
+/* Transitioning state (no overlay - looks bad) */
+.htmx-transitioning {
+  position: relative;
+  /* Removed overlay ::after pseudo-element - it created unwanted shadow effects */
+}
+
+/* ========================================
+   Component-Specific Transitions
+   ======================================== */
+
+/* Feed cards appear with stagger effect */
+.feed-card {
+  animation: fade-in-slide-up 300ms ease-out backwards;
+}
+
+.feed-card:nth-child(1) {
+  animation-delay: 0ms;
+}
+.feed-card:nth-child(2) {
+  animation-delay: 50ms;
+}
+.feed-card:nth-child(3) {
+  animation-delay: 100ms;
+}
+.feed-card:nth-child(4) {
+  animation-delay: 150ms;
+}
+.feed-card:nth-child(5) {
+  animation-delay: 200ms;
+}
+.feed-card:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
+
+/* Table rows slide in with stagger effect (dynamic content) */
+.table-body tr {
+  animation: fade-in-slide-up 300ms ease-out backwards;
+}
+
+.table-body tr:nth-child(1) {
+  animation-delay: 0ms;
+}
+.table-body tr:nth-child(2) {
+  animation-delay: 30ms;
+}
+.table-body tr:nth-child(3) {
+  animation-delay: 60ms;
+}
+.table-body tr:nth-child(4) {
+  animation-delay: 90ms;
+}
+.table-body tr:nth-child(5) {
+  animation-delay: 120ms;
+}
+.table-body tr:nth-child(n + 6) {
+  animation-delay: 150ms;
+}
+
+/* Modal transitions (enhanced) */
+.modal-backdrop {
+  animation: fade-in 100ms ease-out;
+}
+
+.modal-content {
+  animation: modal-appear 150ms ease-out;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* HTML5 Dialog Element Transitions */
+.modal-dialog {
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out,
+    overlay 100ms ease-out allow-discrete,
+    display 100ms ease-out allow-discrete;
+}
+
+.modal-dialog[open] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Backdrop fade-in transition */
+.modal-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0);
+  transition:
+    background-color 100ms ease-out,
+    backdrop-filter 100ms ease-out,
+    display 100ms ease-out allow-discrete,
+    overlay 100ms ease-out allow-discrete;
+}
+
+.modal-dialog[open]::backdrop {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Starting style for new browsers that support @starting-style */
+@supports (transition-behavior: allow-discrete) {
+  @starting-style {
+    .modal-dialog[open] {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    .modal-dialog[open]::backdrop {
+      background-color: rgba(0, 0, 0, 0);
+    }
+  }
+}
+
+/* Modal content inside dialog - no separate animation needed */
+/* The dialog element itself handles the transition */
+
+/* Form elements slide in */
+.form-input,
+.form-select,
+.form-textarea {
+  transition:
+    border-color 100ms ease,
+    box-shadow 100ms ease,
+    transform 50ms ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   Keyframes
+   ======================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   Loading States
+   ======================================== */
+
+/* Enhance skeleton loading animations */
+.animate-pulse {
+  animation: enhanced-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes enhanced-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ========================================
+   Reduced Motion Override
+   ======================================== */
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

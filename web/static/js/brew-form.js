@@ -1,42 +1,31 @@
 /**
  * Alpine.js component for the brew form
  * Manages pours, new entity modals, and form state
- * Populates dropdowns from client-side cache for faster UX
+ * Uses shared entity-manager and dropdown-manager modules
  */
-function brewForm() {
-  return {
-    // Modal state (matching manage page)
-    showBeanForm: false,
-    showGrinderForm: false,
-    showBrewerForm: false,
-    editingBean: null,
-    editingGrinder: null,
-    editingBrewer: null,
-    
-    // Form data (matching manage page with snake_case)
-    beanForm: {
-      name: "",
-      origin: "",
-      roast_level: "",
-      process: "",
-      description: "",
-      roaster_rkey: "",
-    },
-    grinderForm: { name: "", grinder_type: "", burr_type: "", notes: "" },
-    brewerForm: { name: "", brewer_type: "", description: "" },
-    
+
+// Wait for Alpine to be available and register the component
+document.addEventListener("alpine:init", () => {
+  Alpine.data("brewForm", () => ({
     // Brew form specific
     rating: 5,
     pours: [],
 
-    // Dropdown data
-    beans: [],
-    grinders: [],
-    brewers: [],
-    roasters: [],
-    dataLoaded: false,
+    // Dropdown manager instance
+    dropdownManager: null,
+
+    // Entity managers for each entity type
+    beanManager: null,
+    grinderManager: null,
+    brewerManager: null,
 
     async init() {
+      // Initialize dropdown manager
+      this.dropdownManager = window.createDropdownManager();
+
+      // Initialize entity managers
+      this.initEntityManagers();
+
       // Load existing pours if editing
       // $el is now the parent div, so find the form element
       const formEl = this.$el.querySelector("form");
@@ -51,171 +40,107 @@ function brewForm() {
       }
 
       // Populate dropdowns from cache using stale-while-revalidate pattern
-      await this.loadDropdownData();
+      await this.dropdownManager.loadDropdownData();
+      this.dropdownManager.populateDropdowns();
     },
 
-    async loadDropdownData(forceRefresh = false) {
-      if (!window.ArabicaCache) {
-        console.warn("ArabicaCache not available");
-        return;
-      }
-
-      // If forcing refresh, always get fresh data
-      if (forceRefresh) {
-        try {
-          const freshData = await window.ArabicaCache.refreshCache(true);
-          if (freshData) {
-            this.applyData(freshData);
+    initEntityManagers() {
+      // Bean entity manager
+      this.beanManager = window.createEntityManager({
+        entityType: "bean",
+        apiEndpoint: "/api/beans",
+        dialogId: "entity-modal",
+        defaultFormData: {
+          name: "",
+          origin: "",
+          roast_level: "",
+          process: "",
+          description: "",
+          roaster_rkey: "",
+        },
+        validate: (data) => {
+          if (!data.name || !data.origin) {
+            return "Bean name and origin are required";
           }
-        } catch (e) {
-          console.error("Failed to refresh dropdown data:", e);
-        }
-        return;
-      }
+          return null;
+        },
+        onSuccess: async (newBean) => {
+          // Refresh dropdown data and repopulate
+          await this.dropdownManager.invalidateAndRefresh();
 
-      // First, try to immediately populate from cached data (sync)
-      // This prevents flickering by showing data instantly
-      const cachedData = window.ArabicaCache.getCachedData();
-      if (cachedData) {
-        this.applyData(cachedData);
-      }
-
-      // Then refresh in background if cache is stale
-      if (!window.ArabicaCache.isCacheValid()) {
-        try {
-          const freshData = await window.ArabicaCache.refreshCache();
-          if (freshData) {
-            this.applyData(freshData);
+          // Select the new bean
+          const beanSelect = document.querySelector(
+            'form select[name="bean_rkey"]',
+          );
+          if (beanSelect && newBean.rkey) {
+            beanSelect.value = newBean.rkey;
           }
-        } catch (e) {
-          console.error("Failed to refresh dropdown data:", e);
-          // We already have cached data displayed, so this is non-fatal
-        }
-      }
+        },
+      });
+
+      // Grinder entity manager
+      this.grinderManager = window.createEntityManager({
+        entityType: "grinder",
+        apiEndpoint: "/api/grinders",
+        dialogId: "entity-modal",
+        defaultFormData: {
+          name: "",
+          grinder_type: "",
+          burr_type: "",
+          notes: "",
+        },
+        validate: (data) => {
+          if (!data.name) {
+            return "Grinder name is required";
+          }
+          return null;
+        },
+        onSuccess: async (newGrinder) => {
+          // Refresh dropdown data and repopulate
+          await this.dropdownManager.invalidateAndRefresh();
+
+          // Select the new grinder
+          const grinderSelect = document.querySelector(
+            'form select[name="grinder_rkey"]',
+          );
+          if (grinderSelect && newGrinder.rkey) {
+            grinderSelect.value = newGrinder.rkey;
+          }
+        },
+      });
+
+      // Brewer entity manager
+      this.brewerManager = window.createEntityManager({
+        entityType: "brewer",
+        apiEndpoint: "/api/brewers",
+        dialogId: "entity-modal",
+        defaultFormData: {
+          name: "",
+          brewer_type: "",
+          description: "",
+        },
+        validate: (data) => {
+          if (!data.name) {
+            return "Brewer name is required";
+          }
+          return null;
+        },
+        onSuccess: async (newBrewer) => {
+          // Refresh dropdown data and repopulate
+          await this.dropdownManager.invalidateAndRefresh();
+
+          // Select the new brewer
+          const brewerSelect = document.querySelector(
+            'form select[name="brewer_rkey"]',
+          );
+          if (brewerSelect && newBrewer.rkey) {
+            brewerSelect.value = newBrewer.rkey;
+          }
+        },
+      });
     },
 
-    applyData(data) {
-      this.beans = data.beans || [];
-      this.grinders = data.grinders || [];
-      this.brewers = data.brewers || [];
-      this.roasters = data.roasters || [];
-      this.dataLoaded = true;
-
-      // Populate the select elements
-      this.populateDropdowns();
-    },
-
-    populateDropdowns() {
-      // Get the current selected values (from server-rendered form when editing)
-      // Use document.querySelector to ensure we find the form selects, not modal selects
-      const beanSelect = document.querySelector('form select[name="bean_rkey"]');
-      const grinderSelect = document.querySelector('form select[name="grinder_rkey"]');
-      const brewerSelect = document.querySelector('form select[name="brewer_rkey"]');
-
-      const selectedBean = beanSelect?.value || "";
-      const selectedGrinder = grinderSelect?.value || "";
-      const selectedBrewer = brewerSelect?.value || "";
-
-      // Populate beans - using DOM methods to prevent XSS
-      if (beanSelect && this.beans.length > 0) {
-        // Clear existing options
-        beanSelect.innerHTML = "";
-
-        // Add placeholder
-        const placeholderOption = document.createElement("option");
-        placeholderOption.value = "";
-        placeholderOption.textContent = "Select a bean...";
-        beanSelect.appendChild(placeholderOption);
-
-        // Add bean options
-        this.beans.forEach((bean) => {
-          const option = document.createElement("option");
-          option.value = bean.rkey || bean.RKey;
-          const roasterName = bean.Roaster?.Name || bean.roaster?.name || "";
-          const roasterSuffix = roasterName ? ` - ${roasterName}` : "";
-          // Using textContent ensures all user input is safely escaped
-          option.textContent = `${bean.Name || bean.name} (${bean.Origin || bean.origin} - ${bean.RoastLevel || bean.roast_level})${roasterSuffix}`;
-          option.className = "truncate";
-          if ((bean.rkey || bean.RKey) === selectedBean) {
-            option.selected = true;
-          }
-          beanSelect.appendChild(option);
-        });
-      }
-
-      // Populate grinders - using DOM methods to prevent XSS
-      if (grinderSelect && this.grinders.length > 0) {
-        // Clear existing options
-        grinderSelect.innerHTML = "";
-
-        // Add placeholder
-        const placeholderOption = document.createElement("option");
-        placeholderOption.value = "";
-        placeholderOption.textContent = "Select a grinder...";
-        grinderSelect.appendChild(placeholderOption);
-
-        // Add grinder options
-        this.grinders.forEach((grinder) => {
-          const option = document.createElement("option");
-          option.value = grinder.rkey || grinder.RKey;
-          // Using textContent ensures all user input is safely escaped
-          option.textContent = grinder.Name || grinder.name;
-          option.className = "truncate";
-          if ((grinder.rkey || grinder.RKey) === selectedGrinder) {
-            option.selected = true;
-          }
-          grinderSelect.appendChild(option);
-        });
-      }
-
-      // Populate brewers - using DOM methods to prevent XSS
-      if (brewerSelect && this.brewers.length > 0) {
-        // Clear existing options
-        brewerSelect.innerHTML = "";
-
-        // Add placeholder
-        const placeholderOption = document.createElement("option");
-        placeholderOption.value = "";
-        placeholderOption.textContent = "Select brew method...";
-        brewerSelect.appendChild(placeholderOption);
-
-        // Add brewer options
-        this.brewers.forEach((brewer) => {
-          const option = document.createElement("option");
-          option.value = brewer.rkey || brewer.RKey;
-          // Using textContent ensures all user input is safely escaped
-          option.textContent = brewer.Name || brewer.name;
-          option.className = "truncate";
-          if ((brewer.rkey || brewer.RKey) === selectedBrewer) {
-            option.selected = true;
-          }
-          brewerSelect.appendChild(option);
-        });
-      }
-
-      // Populate roasters in new bean modal - using DOM methods to prevent XSS
-      const roasterSelect = document.querySelector('select[name="roaster_rkey_modal"]');
-      if (roasterSelect && this.roasters.length > 0) {
-        // Clear existing options
-        roasterSelect.innerHTML = "";
-
-        // Add placeholder
-        const placeholderOption = document.createElement("option");
-        placeholderOption.value = "";
-        placeholderOption.textContent = "No roaster";
-        roasterSelect.appendChild(placeholderOption);
-
-        // Add roaster options
-        this.roasters.forEach((roaster) => {
-          const option = document.createElement("option");
-          option.value = roaster.rkey || roaster.RKey;
-          // Using textContent ensures all user input is safely escaped
-          option.textContent = roaster.Name || roaster.name;
-          roasterSelect.appendChild(option);
-        });
-      }
-    },
-
+    // Pours management (brew-specific logic)
     addPour() {
       this.pours.push({ water: "", time: "" });
     },
@@ -224,145 +149,95 @@ function brewForm() {
       this.pours.splice(index, 1);
     },
 
+    // Expose entity manager state to Alpine
+    get showBeanForm() {
+      return this.beanManager?.showForm || false;
+    },
+    set showBeanForm(value) {
+      if (this.beanManager) this.beanManager.showForm = value;
+    },
+
+    get showGrinderForm() {
+      return this.grinderManager?.showForm || false;
+    },
+    set showGrinderForm(value) {
+      if (this.grinderManager) this.grinderManager.showForm = value;
+    },
+
+    get showBrewerForm() {
+      return this.brewerManager?.showForm || false;
+    },
+    set showBrewerForm(value) {
+      if (this.brewerManager) this.brewerManager.showForm = value;
+    },
+
+    // Expose entity manager editing state to Alpine (for modal titles)
+    get editingBean() {
+      return this.beanManager?.editingId !== null;
+    },
+
+    get editingGrinder() {
+      return this.grinderManager?.editingId !== null;
+    },
+
+    get editingBrewer() {
+      return this.brewerManager?.editingId !== null;
+    },
+
+    // Expose entity manager form data to Alpine
+    get beanForm() {
+      return this.beanManager?.formData || {};
+    },
+    set beanForm(value) {
+      if (this.beanManager) this.beanManager.formData = value;
+    },
+
+    get grinderForm() {
+      return this.grinderManager?.formData || {};
+    },
+    set grinderForm(value) {
+      if (this.grinderManager) this.grinderManager.formData = value;
+    },
+
+    get brewerForm() {
+      return this.brewerManager?.formData || {};
+    },
+    set brewerForm(value) {
+      if (this.brewerManager) this.brewerManager.formData = value;
+    },
+
+    // Expose dropdown data to Alpine
+    get beans() {
+      return this.dropdownManager?.beans || [];
+    },
+
+    get grinders() {
+      return this.dropdownManager?.grinders || [];
+    },
+
+    get brewers() {
+      return this.dropdownManager?.brewers || [];
+    },
+
+    get roasters() {
+      return this.dropdownManager?.roasters || [];
+    },
+
+    get dataLoaded() {
+      return this.dropdownManager?.dataLoaded || false;
+    },
+
+    // Delegate save methods to entity managers
     async saveBean() {
-      if (!this.beanForm.name || !this.beanForm.origin) {
-        alert("Bean name and origin are required");
-        return;
-      }
-      
-      const response = await fetch("/api/beans", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(this.beanForm),
-      });
-      
-      if (response.ok) {
-        const newBean = await response.json();
-        
-        // Invalidate cache and refresh data in one call
-        let freshData = null;
-        if (window.ArabicaCache) {
-          freshData = await window.ArabicaCache.invalidateAndRefresh();
-        }
-        
-        // Apply the fresh data to update dropdowns
-        if (freshData) {
-          this.applyData(freshData);
-        }
-        
-        // Select the new bean
-        const beanSelect = document.querySelector('form select[name="bean_rkey"]');
-        if (beanSelect && newBean.rkey) {
-          beanSelect.value = newBean.rkey;
-        }
-        
-        // Close modal and reset form
-        this.showBeanForm = false;
-        this.beanForm = {
-          name: "",
-          origin: "",
-          roast_level: "",
-          process: "",
-          description: "",
-          roaster_rkey: "",
-        };
-      } else {
-        const errorText = await response.text();
-        alert("Failed to add bean: " + errorText);
-      }
+      await this.beanManager.save();
     },
 
     async saveGrinder() {
-      if (!this.grinderForm.name) {
-        alert("Grinder name is required");
-        return;
-      }
-      
-      const response = await fetch("/api/grinders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(this.grinderForm),
-      });
-      
-      if (response.ok) {
-        const newGrinder = await response.json();
-        
-        // Invalidate cache and refresh data in one call
-        let freshData = null;
-        if (window.ArabicaCache) {
-          freshData = await window.ArabicaCache.invalidateAndRefresh();
-        }
-        
-        // Apply the fresh data to update dropdowns
-        if (freshData) {
-          this.applyData(freshData);
-        }
-        
-        // Select the new grinder
-        const grinderSelect = document.querySelector('form select[name="grinder_rkey"]');
-        if (grinderSelect && newGrinder.rkey) {
-          grinderSelect.value = newGrinder.rkey;
-        }
-        
-        // Close modal and reset form
-        this.showGrinderForm = false;
-        this.grinderForm = {
-          name: "",
-          grinder_type: "",
-          burr_type: "",
-          notes: "",
-        };
-      } else {
-        const errorText = await response.text();
-        alert("Failed to add grinder: " + errorText);
-      }
+      await this.grinderManager.save();
     },
 
     async saveBrewer() {
-      if (!this.brewerForm.name) {
-        alert("Brewer name is required");
-        return;
-      }
-      
-      const response = await fetch("/api/brewers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(this.brewerForm),
-      });
-      
-      if (response.ok) {
-        const newBrewer = await response.json();
-        
-        // Invalidate cache and refresh data in one call
-        let freshData = null;
-        if (window.ArabicaCache) {
-          freshData = await window.ArabicaCache.invalidateAndRefresh();
-        }
-        
-        // Apply the fresh data to update dropdowns
-        if (freshData) {
-          this.applyData(freshData);
-        }
-        
-        // Select the new brewer
-        const brewerSelect = document.querySelector('form select[name="brewer_rkey"]');
-        if (brewerSelect && newBrewer.rkey) {
-          brewerSelect.value = newBrewer.rkey;
-        }
-        
-        // Close modal and reset form
-        this.showBrewerForm = false;
-        this.brewerForm = { name: "", brewer_type: "", description: "" };
-      } else {
-        const errorText = await response.text();
-        alert("Failed to add brewer: " + errorText);
-      }
+      await this.brewerManager.save();
     },
-  };
-}
+  }));
+});

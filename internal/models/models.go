@@ -34,6 +34,7 @@ var (
 	ErrFieldTooLong    = errors.New("field value is too long")
 )
 
+// TODO: maybe add a "rating" field that can be updated when a bag is closed
 type Bean struct {
 	RKey        string    `json:"rkey"` // Record key (AT Protocol or stringified ID for SQLite)
 	Name        string    `json:"name"`
@@ -42,6 +43,7 @@ type Bean struct {
 	Process     string    `json:"process"`
 	Description string    `json:"description"`
 	RoasterRKey string    `json:"roaster_rkey"` // AT Protocol reference
+	Closed      bool      `json:"closed"`       // Whether the bag is closed/finished
 	CreatedAt   time.Time `json:"created_at"`
 
 	// Joined data for display
@@ -129,6 +131,7 @@ type CreateBeanRequest struct {
 	Process     string `json:"process"`
 	Description string `json:"description"`
 	RoasterRKey string `json:"roaster_rkey"`
+	Closed      bool   `json:"closed"`
 }
 
 type CreateRoasterRequest struct {
@@ -157,6 +160,7 @@ type UpdateBeanRequest struct {
 	Process     string `json:"process"`
 	Description string `json:"description"`
 	RoasterRKey string `json:"roaster_rkey"`
+	Closed      bool   `json:"closed"`
 }
 
 type UpdateRoasterRequest struct {

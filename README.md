@@ -22,7 +22,7 @@ GitHub is currently the primary repo, but that may change in the future.
 
 - Backend: Go with stdlib HTTP router
 - Storage: AT Protocol Personal Data Servers + BoltDB for local cache
-- Templates: html/template
+- Templates: Templ (type-safe Go templates)
 - Frontend: HTMX + Alpine.js + Tailwind CSS
 
 ## Quick Start

@@ -1,0 +1,106 @@
+package components
+
+import (
+	"arabica/internal/models"
+)
+
+// ManagePartialProps defines props for the manage content partial
+type ManagePartialProps struct {
+	Beans    []*models.Bean
+	Roasters []*models.Roaster
+	Grinders []*models.Grinder
+	Brewers  []*models.Brewer
+}
+
+// ManagePartial renders the manage page content tables (for HTMX loading)
+templ ManagePartial(props ManagePartialProps) {
+	@ManageBeansTab(props.Beans)
+	@ManageRoastersTab(props.Roasters)
+	@ManageGrindersTab(props.Grinders)
+	@ManageBrewersTab(props.Brewers)
+}
+
+// ManageBeansTab renders the beans tab content
+templ ManageBeansTab(beans []*models.Bean) {
+	<div x-show="tab === 'beans'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
+			<button
+				hx-get="/api/modals/bean/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-lg hover:shadow-xl"
+			>
+				+ Add Bean
+			</button>
+		</div>
+		@BeansTable(BeansTableProps{
+			Beans:       beans,
+			ShowActions: true,
+			ShowStatus:  true,
+		})
+	</div>
+}
+
+// ManageRoastersTab renders the roasters tab content
+templ ManageRoastersTab(roasters []*models.Roaster) {
+	<div x-show="tab === 'roasters'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
+			<button
+				hx-get="/api/modals/roaster/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-lg hover:shadow-xl"
+			>
+				+ Add Roaster
+			</button>
+		</div>
+		@RoastersTable(RoastersTableProps{
+			Roasters:    roasters,
+			ShowActions: true,
+		})
+	</div>
+}
+
+// ManageGrindersTab renders the grinders tab content
+templ ManageGrindersTab(grinders []*models.Grinder) {
+	<div x-show="tab === 'grinders'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
+			<button
+				hx-get="/api/modals/grinder/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-lg hover:shadow-xl"
+			>
+				+ Add Grinder
+			</button>
+		</div>
+		@GrindersTable(GrindersTableProps{
+			Grinders:    grinders,
+			ShowActions: true,
+		})
+	</div>
+}
+
+// ManageBrewersTab renders the brewers tab content
+templ ManageBrewersTab(brewers []*models.Brewer) {
+	<div x-show="tab === 'brewers'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Brewing Devices</h3>
+			<button
+				hx-get="/api/modals/brewer/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-lg hover:shadow-xl"
+			>
+				+ Add Brewer
+			</button>
+		</div>
+		@BrewersTable(BrewersTableProps{
+			Brewers:     brewers,
+			ShowActions: true,
+		})
+	</div>
+}

@@ -1,7 +1,0 @@
----
-title: minimal brew
-test_name: TestTemplateRendering_BrewCard_Snapshot/minimal_brew
-file_name: render_snapshot_test.go
-version: 0.1.0
----
-"\n<div class=\"brew-card\">\n  <div class=\"date\">Jan 15, 2024</div>\n  \n  \n  \n</div>\n"

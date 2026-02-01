@@ -17,26 +17,41 @@ Each should be addressed one at a time, and the item should be removed after imp
    - Dev mode -- show did, copy did in profiles (remove "logged in as <did>" from home page)
    - Toggle for table view vs future post-style view
 
-## Far Future Considerations
+- Maybe add loading bars to page loads? (above the header perhaps?)
+  - A separate nicer pretty loading bar would also be nice on the brews page?
 
-- Consider fully separating API backend from frontend service
-  - Currently using HTMX header checks to prevent direct browser access to internal API endpoints
-  - If adding mobile apps, third-party API consumers, or microservices architecture, revisit this
-  - For now, monolithic approach is appropriate for HTMX-based web app with decentralized storage
+## Far Future Considerations
 
 - Maybe swap from boltdb to sqlite
   - Use the non-cgo library
 
 ## Fixes
 
-- Homepage still shows cached feed items on homepage when not authed. should show a cached version of firehose (last 5 entries, cache last 20) from the server.
-  This fetch should not try to backfill anything
+- Loading on htmx could probably be snappier by using a loading bar, and waiting until everything is loaded
+  - Alternative could be using transitionary animations between skeleton and full loads
+  - Do we even need skeleton loading with SSR? (I think yes here because of PDS data fetches -- maybe not if we kept a copy of the data)
 
-- Feed database in prod seems to be showing outdated data -- not sure why, local dev seems to show most recent.
+- Headers in skeletons need to exactly match headers in final table
+  - Refreshing profile should show either full skeleton with headers, or use the correct headers for the current tab
+    (It currently shows the brew header for all tabs)
 
-- View button for somebody else's brew leads to an invalid page. need to show the same view brew page but w/o the edit and delete buttons.
-- Back button in view should take user back to their previous page (not sure how to handle this exactly though)
+- Add styling to mail link and back to home button on terms page
 
-- Header should probably always be attached to the top of the screen?
+- Take revision pass on text in about and terms
 
-- Feed item "view details" button should go away, the "new brew" in "addded a new brew" should take to view page instead (underline this text)
+- Need to cache profile pictures to a database to avoid reloading them frequently
+  - This may already be done to some extent
+
+- Tables flash a bit on load, could more smoothly load in? (maybe delay page until the skeleton is rendered at least?)
+  - I think the profile page does this relatively well, with the profile banner and stats
+
+## Refactor
+
+- Need to think about if it is worth having manage, profile, and brew list as separate pages.
+  - Manage and profile could probably be merged? (or brew list and manage)
+
+- Profile tables should all either have edit/delete buttons or none should
+- Also, add buttons below each table for that record type would probably be nice
+
+- Maybe having a way of nesting modals, so a roaster can be created from within the bean modal?
+  - Maybe have a transition that moves the bean modal to the left, and opens a roaster modal to the right
