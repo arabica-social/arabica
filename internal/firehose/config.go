@@ -21,6 +21,7 @@ var ArabicaCollections = []string{
 	atproto.NSIDRoaster,
 	atproto.NSIDGrinder,
 	atproto.NSIDBrewer,
+	atproto.NSIDLike,
 }
 
 // Config holds configuration for the Jetstream consumer

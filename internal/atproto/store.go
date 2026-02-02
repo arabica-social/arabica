@@ -984,6 +984,98 @@ func (s *AtprotoStore) DeleteBrewerByRKey(ctx context.Context, rkey string) erro
 	return nil
 }
 
+// ========== Like Operations ==========
+
+func (s *AtprotoStore) CreateLike(ctx context.Context, req *models.CreateLikeRequest) (*models.Like, error) {
+	if req.SubjectURI == "" {
+		return nil, fmt.Errorf("subject_uri is required")
+	}
+	if req.SubjectCID == "" {
+		return nil, fmt.Errorf("subject_cid is required")
+	}
+
+	likeModel := &models.Like{
+		SubjectURI: req.SubjectURI,
+		SubjectCID: req.SubjectCID,
+		CreatedAt:  time.Now(),
+	}
+
+	record, err := LikeToRecord(likeModel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert like to record: %w", err)
+	}
+
+	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
+		Collection: NSIDLike,
+		Record:     record,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create like record: %w", err)
+	}
+
+	atURI, err := syntax.ParseATURI(output.URI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse returned AT-URI: %w", err)
+	}
+
+	likeModel.RKey = atURI.RecordKey().String()
+
+	return likeModel, nil
+}
+
+func (s *AtprotoStore) DeleteLikeByRKey(ctx context.Context, rkey string) error {
+	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
+		Collection: NSIDLike,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete like record: %w", err)
+	}
+	return nil
+}
+
+func (s *AtprotoStore) GetUserLikeForSubject(ctx context.Context, subjectURI string) (*models.Like, error) {
+	// List all likes and find the one matching the subject URI
+	likes, err := s.ListUserLikes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, like := range likes {
+		if like.SubjectURI == subjectURI {
+			return like, nil
+		}
+	}
+
+	return nil, nil // Not found (not an error)
+}
+
+func (s *AtprotoStore) ListUserLikes(ctx context.Context) ([]*models.Like, error) {
+	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDLike)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list like records: %w", err)
+	}
+
+	likes := make([]*models.Like, 0, len(output.Records))
+
+	for _, rec := range output.Records {
+		like, err := RecordToLike(rec.Value, rec.URI)
+		if err != nil {
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert like record")
+			continue
+		}
+
+		// Extract rkey from URI
+		if components, err := ResolveATURI(rec.URI); err == nil {
+			like.RKey = components.RKey
+		}
+
+		likes = append(likes, like)
+	}
+
+	return likes, nil
+}
+
 func (s *AtprotoStore) Close() error {
 	// No persistent connection to close for atproto
 	return nil

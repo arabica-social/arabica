@@ -41,6 +41,12 @@ type FeedItem struct {
 	Author    *atproto.Profile
 	Timestamp time.Time
 	TimeAgo   string // "2 hours ago", "yesterday", etc.
+
+	// Like-related fields
+	LikeCount       int    // Number of likes on this record
+	SubjectURI      string // AT-URI of this record (for like button)
+	SubjectCID      string // CID of this record (for like button)
+	IsLikedByViewer bool   // Whether the current viewer has liked this record
 }
 
 // publicFeedCache holds cached feed items for unauthenticated users
@@ -70,6 +76,9 @@ type FirehoseFeedItem struct {
 	Author     *atproto.Profile
 	Timestamp  time.Time
 	TimeAgo    string
+	LikeCount  int
+	SubjectURI string
+	SubjectCID string
 }
 
 // Service fetches and aggregates brews from registered users
@@ -199,6 +208,9 @@ func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) (
 			Author:     fi.Author,
 			Timestamp:  fi.Timestamp,
 			TimeAgo:    fi.TimeAgo,
+			LikeCount:  fi.LikeCount,
+			SubjectURI: fi.SubjectURI,
+			SubjectCID: fi.SubjectCID,
 		}
 	}
 

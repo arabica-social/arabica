@@ -1,0 +1,27 @@
+{
+  "lexicon": 1,
+  "id": "social.arabica.alpha.like",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A like on an Arabica record (brew, bean, roaster, grinder, or brewer)",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "The AT-URI and CID of the record being liked"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the like was created"
+          }
+        }
+      }
+    }
+  }
+}

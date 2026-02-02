@@ -44,6 +44,15 @@ var (
 
 	// BucketBackfilled stores DIDs that have been backfilled: {did} -> {timestamp}
 	BucketBackfilled = []byte("backfilled")
+
+	// BucketLikes stores like mappings: {subject_uri:actor_did} -> {rkey}
+	BucketLikes = []byte("likes")
+
+	// BucketLikeCounts stores aggregated like counts: {subject_uri} -> {uint64 count}
+	BucketLikeCounts = []byte("like_counts")
+
+	// BucketLikesByActor stores likes by actor for lookup: {actor_did:subject_uri} -> {rkey}
+	BucketLikesByActor = []byte("likes_by_actor")
 )
 
 // IndexedRecord represents a record stored in the index
@@ -111,6 +120,9 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 			BucketMeta,
 			BucketKnownDIDs,
 			BucketBackfilled,
+			BucketLikes,
+			BucketLikeCounts,
+			BucketLikesByActor,
 		}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -327,6 +339,11 @@ type FeedItem struct {
 	Author    *atproto.Profile
 	Timestamp time.Time
 	TimeAgo   string
+
+	// Like-related fields
+	LikeCount  int    // Number of likes on this record
+	SubjectURI string // AT-URI of this record (for like button)
+	SubjectCID string // CID of this record (for like button)
 }
 
 // GetRecentFeed returns recent feed items from the index
@@ -551,9 +568,18 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		item.Action = "added a new brewer"
 		item.Brewer = brewer
 
+	case atproto.NSIDLike:
+		// Skip likes in the feed - they're indexed but not displayed as feed items
+		return nil, fmt.Errorf("likes are not displayed as feed items")
+
 	default:
 		return nil, fmt.Errorf("unknown collection: %s", record.Collection)
 	}
+
+	// Populate like-related fields for all record types
+	item.SubjectURI = record.URI
+	item.SubjectCID = record.CID
+	item.LikeCount = idx.GetLikeCount(record.URI)
 
 	return item, nil
 }
@@ -765,4 +791,132 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 
 	log.Info().Str("did", did).Int("record_count", recordCount).Msg("backfill complete")
 	return nil
+}
+
+// ========== Like Indexing Methods ==========
+
+// UpsertLike adds or updates a like in the index
+func (idx *FeedIndex) UpsertLike(actorDID, rkey, subjectURI string) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		likes := tx.Bucket(BucketLikes)
+		likeCounts := tx.Bucket(BucketLikeCounts)
+		likesByActor := tx.Bucket(BucketLikesByActor)
+
+		// Key format: {subject_uri}:{actor_did}
+		likeKey := []byte(subjectURI + ":" + actorDID)
+
+		// Check if this like already exists
+		existingRKey := likes.Get(likeKey)
+		if existingRKey != nil {
+			// Already exists, nothing to do
+			return nil
+		}
+
+		// Store the like mapping
+		if err := likes.Put(likeKey, []byte(rkey)); err != nil {
+			return err
+		}
+
+		// Store by actor for reverse lookup
+		actorKey := []byte(actorDID + ":" + subjectURI)
+		if err := likesByActor.Put(actorKey, []byte(rkey)); err != nil {
+			return err
+		}
+
+		// Increment the like count
+		countKey := []byte(subjectURI)
+		currentCount := uint64(0)
+		if countData := likeCounts.Get(countKey); countData != nil && len(countData) == 8 {
+			currentCount = binary.BigEndian.Uint64(countData)
+		}
+		currentCount++
+		countBuf := make([]byte, 8)
+		binary.BigEndian.PutUint64(countBuf, currentCount)
+		return likeCounts.Put(countKey, countBuf)
+	})
+}
+
+// DeleteLike removes a like from the index
+func (idx *FeedIndex) DeleteLike(actorDID, subjectURI string) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		likes := tx.Bucket(BucketLikes)
+		likeCounts := tx.Bucket(BucketLikeCounts)
+		likesByActor := tx.Bucket(BucketLikesByActor)
+
+		// Key format: {subject_uri}:{actor_did}
+		likeKey := []byte(subjectURI + ":" + actorDID)
+
+		// Check if like exists
+		if likes.Get(likeKey) == nil {
+			// Doesn't exist, nothing to do
+			return nil
+		}
+
+		// Delete the like mapping
+		if err := likes.Delete(likeKey); err != nil {
+			return err
+		}
+
+		// Delete by actor lookup
+		actorKey := []byte(actorDID + ":" + subjectURI)
+		if err := likesByActor.Delete(actorKey); err != nil {
+			return err
+		}
+
+		// Decrement the like count
+		countKey := []byte(subjectURI)
+		currentCount := uint64(0)
+		if countData := likeCounts.Get(countKey); countData != nil && len(countData) == 8 {
+			currentCount = binary.BigEndian.Uint64(countData)
+		}
+		if currentCount > 0 {
+			currentCount--
+		}
+		if currentCount == 0 {
+			return likeCounts.Delete(countKey)
+		}
+		countBuf := make([]byte, 8)
+		binary.BigEndian.PutUint64(countBuf, currentCount)
+		return likeCounts.Put(countKey, countBuf)
+	})
+}
+
+// GetLikeCount returns the number of likes for a record
+func (idx *FeedIndex) GetLikeCount(subjectURI string) int {
+	var count uint64
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		likeCounts := tx.Bucket(BucketLikeCounts)
+		countData := likeCounts.Get([]byte(subjectURI))
+		if countData != nil && len(countData) == 8 {
+			count = binary.BigEndian.Uint64(countData)
+		}
+		return nil
+	})
+	return int(count)
+}
+
+// HasUserLiked checks if a user has liked a specific record
+func (idx *FeedIndex) HasUserLiked(actorDID, subjectURI string) bool {
+	var exists bool
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		likesByActor := tx.Bucket(BucketLikesByActor)
+		actorKey := []byte(actorDID + ":" + subjectURI)
+		exists = likesByActor.Get(actorKey) != nil
+		return nil
+	})
+	return exists
+}
+
+// GetUserLikeRKey returns the rkey of a user's like for a specific record, or empty string if not found
+func (idx *FeedIndex) GetUserLikeRKey(actorDID, subjectURI string) string {
+	var rkey string
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		likesByActor := tx.Bucket(BucketLikesByActor)
+		actorKey := []byte(actorDID + ":" + subjectURI)
+		if data := likesByActor.Get(actorKey); data != nil {
+			rkey = string(data)
+		}
+		return nil
+	})
+	return rkey
 }

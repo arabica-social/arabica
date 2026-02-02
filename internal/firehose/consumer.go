@@ -333,7 +333,40 @@ func (c *Consumer) processMessage(data []byte) error {
 			return fmt.Errorf("failed to upsert record: %w", err)
 		}
 
+		// Special handling for likes - index for counts
+		if commit.Collection == "social.arabica.alpha.like" {
+			var recordData map[string]interface{}
+			if err := json.Unmarshal(commit.Record, &recordData); err == nil {
+				if subject, ok := recordData["subject"].(map[string]interface{}); ok {
+					if subjectURI, ok := subject["uri"].(string); ok {
+						if err := c.index.UpsertLike(event.DID, commit.RKey, subjectURI); err != nil {
+							log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to index like")
+						}
+					}
+				}
+			}
+		}
+
 	case "delete":
+		// Special handling for likes - need to look up subject URI before delete
+		if commit.Collection == "social.arabica.alpha.like" {
+			// Try to get the existing record to find its subject
+			if existingRecord, err := c.index.GetRecord(
+				fmt.Sprintf("at://%s/%s/%s", event.DID, commit.Collection, commit.RKey),
+			); err == nil && existingRecord != nil {
+				var recordData map[string]interface{}
+				if err := json.Unmarshal(existingRecord.Record, &recordData); err == nil {
+					if subject, ok := recordData["subject"].(map[string]interface{}); ok {
+						if subjectURI, ok := subject["uri"].(string); ok {
+							if err := c.index.DeleteLike(event.DID, subjectURI); err != nil {
+								log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to delete like index")
+							}
+						}
+					}
+				}
+			}
+		}
+
 		if err := c.index.DeleteRecord(
 			event.DID,
 			commit.Collection,
