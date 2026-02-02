@@ -58,3 +58,29 @@ templ BackButton() {
 		</button>
 	</div>
 }
+
+// ShareButtonProps defines properties for the share button
+type ShareButtonProps struct {
+	URL   string // URL to share
+	Title string // Title for native share dialog
+	Text  string // Text for native share dialog
+}
+
+// ShareButton renders a share button using Web Share API with clipboard fallback
+templ ShareButton(props ShareButtonProps) {
+	<button
+		type="button"
+		x-data={ "{ copied: false, share() { const fullUrl = window.location.origin + '" + props.URL + "'; if (navigator.share) { navigator.share({ title: '" + props.Title + "', text: '" + props.Text + "', url: fullUrl }).catch(() => {}); } else { navigator.clipboard.writeText(fullUrl).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000); }); } } }" }
+		@click="share()"
+		class="share-btn"
+		aria-label="Share"
+	>
+		<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+			<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
+		</svg>
+		<svg x-show="copied" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+			<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"></path>
+		</svg>
+		<span x-show="copied" x-cloak>Copied!</span>
+	</button>
+}

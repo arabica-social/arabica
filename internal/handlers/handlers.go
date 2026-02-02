@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -596,6 +597,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	var brew *models.Brew
 	var brewOwnerDID string
 	var isOwner bool
+	var subjectURI, subjectCID string
 
 	if owner != "" {
 		// Viewing someone else's brew - use public client
@@ -622,6 +624,10 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Store URI and CID for like button
+		subjectURI = record.URI
+		subjectCID = record.CID
+
 		// Convert record to brew
 		brew, err = atproto.RecordToBrew(record.Value, record.URI)
 		if err != nil {
@@ -646,23 +652,58 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		brew, err = store.GetBrewByRKey(r.Context(), rkey)
+		// Use type assertion to access GetBrewRecordByRKey
+		atprotoStore, ok := store.(*atproto.AtprotoStore)
+		if !ok {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			log.Error().Msg("Failed to cast store to AtprotoStore")
+			return
+		}
+
+		brewRecord, err := atprotoStore.GetBrewRecordByRKey(r.Context(), rkey)
 		if err != nil {
 			http.Error(w, "Brew not found", http.StatusNotFound)
 			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for view")
 			return
 		}
 
+		brew = brewRecord.Brew
+		subjectURI = brewRecord.URI
+		subjectCID = brewRecord.CID
 		isOwner = true
 	}
 
 	// Create layout data
 	layoutData := h.buildLayoutData(r, "Brew Details", isAuthenticated, didStr, userProfile)
 
+	// Get like data
+	var isLiked bool
+	var likeCount int
+	if h.feedIndex != nil && subjectURI != "" {
+		likeCount = h.feedIndex.GetLikeCount(subjectURI)
+		if isAuthenticated {
+			isLiked = h.feedIndex.HasUserLiked(didStr, subjectURI)
+		}
+	}
+
+	// Construct share URL
+	var shareURL string
+	if owner != "" {
+		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, owner)
+	} else if userProfile != nil && userProfile.Handle != "" {
+		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, userProfile.Handle)
+	}
+
 	// Create brew view props
 	brewViewProps := pages.BrewViewProps{
-		Brew:         brew,
-		IsOwnProfile: isOwner,
+		Brew:            brew,
+		IsOwnProfile:    isOwner,
+		IsAuthenticated: isAuthenticated,
+		SubjectURI:      subjectURI,
+		SubjectCID:      subjectCID,
+		IsLiked:         isLiked,
+		LikeCount:       likeCount,
+		ShareURL:        shareURL,
 	}
 
 	// Render using templ component

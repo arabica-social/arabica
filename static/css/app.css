@@ -201,7 +201,7 @@
 
   /* Like Button */
   .like-btn {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors;
   }
 
   .like-btn-liked {
@@ -212,6 +212,11 @@
   .like-btn-unliked {
     @apply like-btn bg-brown-100 text-brown-600 hover:bg-brown-200;
     animation: like-shrink 200ms ease-out;
+  }
+
+  /* Share Button */
+  .share-btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200;
   }
 }
 

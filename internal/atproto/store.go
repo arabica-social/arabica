@@ -167,6 +167,69 @@ func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.
 	return brew, nil
 }
 
+// BrewRecord contains a brew with its AT Protocol metadata
+type BrewRecord struct {
+	Brew *models.Brew
+	URI  string
+	CID  string
+}
+
+// GetBrewRecordByRKey fetches a brew by rkey and returns it with its AT Protocol metadata
+func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*BrewRecord, error) {
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
+		Collection: NSIDBrew,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get brew record: %w", err)
+	}
+
+	// Build the AT-URI for this brew
+	atURI := BuildATURI(s.did.String(), NSIDBrew, rkey)
+
+	// Convert to models.Brew
+	brew, err := RecordToBrew(output.Value, atURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert brew record: %w", err)
+	}
+
+	// Set the rkey
+	brew.RKey = rkey
+
+	// Extract and resolve references
+	beanRef, _ := output.Value["beanRef"].(string)
+	grinderRef, _ := output.Value["grinderRef"].(string)
+	brewerRef, _ := output.Value["brewerRef"].(string)
+
+	// Extract rkeys from AT-URIs for the model
+	if beanRef != "" {
+		if components, err := ResolveATURI(beanRef); err == nil {
+			brew.BeanRKey = components.RKey
+		}
+	}
+	if grinderRef != "" {
+		if components, err := ResolveATURI(grinderRef); err == nil {
+			brew.GrinderRKey = components.RKey
+		}
+	}
+	if brewerRef != "" {
+		if components, err := ResolveATURI(brewerRef); err == nil {
+			brew.BrewerRKey = components.RKey
+		}
+	}
+
+	err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
+	if err != nil {
+		log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve brew references")
+	}
+
+	return &BrewRecord{
+		Brew: brew,
+		URI:  output.URI,
+		CID:  output.CID,
+	}, nil
+}
+
 func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Brew, error) {
 	// Check cache first
 	userCache := s.cache.Get(s.sessionID)

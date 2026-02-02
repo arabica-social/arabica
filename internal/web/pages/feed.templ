@@ -62,14 +62,19 @@ templ FeedCard(item *feed.FeedItem) {
 			case "brewer":
 				@FeedBrewerContent(item)
 		}
-		<!-- Like button -->
+		<!-- Like and share buttons -->
 		if item.SubjectURI != "" && item.SubjectCID != "" {
-			<div class="flex items-center justify-end mt-3 pt-3 border-t border-brown-100">
+			<div class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-brown-100">
 				@components.LikeButton(components.LikeButtonProps{
 					SubjectURI: item.SubjectURI,
 					SubjectCID: item.SubjectCID,
 					IsLiked:    item.IsLikedByViewer,
 					LikeCount:  item.LikeCount,
+				})
+				@components.ShareButton(components.ShareButtonProps{
+					URL:   getFeedItemShareURL(item),
+					Title: getFeedItemShareTitle(item),
+					Text:  getFeedItemShareText(item),
 				})
 			</div>
 		}
@@ -306,4 +311,61 @@ templ FeedBrewerContent(item *feed.FeedItem) {
 			}
 		</div>
 	}
+}
+
+// Helper functions for share button
+func getFeedItemShareURL(item *feed.FeedItem) string {
+	switch item.RecordType {
+	case "brew":
+		if item.Brew != nil {
+			return fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)
+		}
+	}
+	// For other record types, link to the user's profile
+	return fmt.Sprintf("/profile/%s", item.Author.Handle)
+}
+
+func getFeedItemShareTitle(item *feed.FeedItem) string {
+	switch item.RecordType {
+	case "brew":
+		if item.Brew != nil && item.Brew.Bean != nil {
+			if item.Brew.Bean.Name != "" {
+				return item.Brew.Bean.Name
+			}
+			return item.Brew.Bean.Origin
+		}
+		return "Coffee Brew"
+	case "bean":
+		if item.Bean != nil {
+			if item.Bean.Name != "" {
+				return item.Bean.Name
+			}
+			return item.Bean.Origin
+		}
+		return "Coffee Bean"
+	case "roaster":
+		if item.Roaster != nil {
+			return item.Roaster.Name
+		}
+		return "Roaster"
+	case "grinder":
+		if item.Grinder != nil {
+			return item.Grinder.Name
+		}
+		return "Grinder"
+	case "brewer":
+		if item.Brewer != nil {
+			return item.Brewer.Name
+		}
+		return "Brewer"
+	}
+	return "Arabica"
+}
+
+func getFeedItemShareText(item *feed.FeedItem) string {
+	displayName := item.Author.Handle
+	if item.Author.DisplayName != nil && *item.Author.DisplayName != "" {
+		displayName = *item.Author.DisplayName
+	}
+	return fmt.Sprintf("Check out this %s by %s on Arabica", item.RecordType, displayName)
 }
