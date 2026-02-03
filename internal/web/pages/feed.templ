@@ -44,6 +44,21 @@ templ FeedCard(item *feed.FeedItem) {
 				</div>
 				<span class="text-brown-500 text-sm">{ item.TimeAgo }</span>
 			</div>
+			<!-- Social buttons -->
+			if item.SubjectURI != "" && item.SubjectCID != "" {
+				<div class="flex-shrink-0">
+					@components.SocialButtons(components.SocialButtonsProps{
+						SubjectURI: item.SubjectURI,
+						SubjectCID: item.SubjectCID,
+						IsLiked:    item.IsLikedByViewer,
+						LikeCount:  item.LikeCount,
+						ShareURL:   getFeedItemShareURL(item),
+						ShareTitle: getFeedItemShareTitle(item),
+						ShareText:  getFeedItemShareText(item),
+						ShowLike:   true,
+					})
+				</div>
+			}
 		</div>
 		<!-- Action header -->
 		<div class="mb-2 text-sm text-brown-700">
@@ -61,22 +76,6 @@ templ FeedCard(item *feed.FeedItem) {
 				@FeedGrinderContent(item)
 			case "brewer":
 				@FeedBrewerContent(item)
-		}
-		<!-- Like and share buttons -->
-		if item.SubjectURI != "" && item.SubjectCID != "" {
-			<div class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-brown-100">
-				@components.LikeButton(components.LikeButtonProps{
-					SubjectURI: item.SubjectURI,
-					SubjectCID: item.SubjectCID,
-					IsLiked:    item.IsLikedByViewer,
-					LikeCount:  item.LikeCount,
-				})
-				@components.ShareButton(components.ShareButtonProps{
-					URL:   getFeedItemShareURL(item),
-					Title: getFeedItemShareTitle(item),
-					Text:  getFeedItemShareText(item),
-				})
-			</div>
 		}
 	</div>
 }

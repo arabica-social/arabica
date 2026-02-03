@@ -48,22 +48,17 @@ templ BrewViewCard(props BrewViewProps) {
 		}
 		<div class="flex justify-between items-center">
 			@components.BackButton()
-			<div class="flex items-center gap-2">
-				if props.IsAuthenticated && props.SubjectURI != "" && props.SubjectCID != "" {
-					@components.LikeButton(components.LikeButtonProps{
-						SubjectURI: props.SubjectURI,
-						SubjectCID: props.SubjectCID,
-						IsLiked:    props.IsLiked,
-						LikeCount:  props.LikeCount,
-					})
-				}
-				if props.ShareURL != "" {
-					@components.ShareButton(components.ShareButtonProps{
-						URL:   props.ShareURL,
-						Title: getBrewShareTitle(props.Brew),
-						Text:  "Check out this brew on Arabica",
-					})
-				}
+			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200">
+				@components.SocialButtons(components.SocialButtonsProps{
+					SubjectURI: props.SubjectURI,
+					SubjectCID: props.SubjectCID,
+					IsLiked:    props.IsLiked,
+					LikeCount:  props.LikeCount,
+					ShareURL:   props.ShareURL,
+					ShareTitle: getBrewShareTitle(props.Brew),
+					ShareText:  "Check out this brew on Arabica",
+					ShowLike:   props.IsAuthenticated,
+				})
 			</div>
 		</div>
 	</div>

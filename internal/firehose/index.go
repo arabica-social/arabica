@@ -349,9 +349,6 @@ type FeedItem struct {
 // GetRecentFeed returns recent feed items from the index
 func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error) {
 	var records []*IndexedRecord
-
-	// FIX: this seems to show the first 20 records for main deployment
-	// - unclear why, but is likely an issue with the db being stale
 	err := idx.db.View(func(tx *bolt.Tx) error {
 		byTime := tx.Bucket(BucketByTime)
 		recordsBucket := tx.Bucket(BucketRecords)
@@ -420,6 +417,9 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 	// Convert to FeedItems
 	items := make([]*FeedItem, 0, len(records))
 	for _, record := range records {
+		// FIX: this needs to not error on like/comments
+		// - item stores RecordType, check against that
+		// - (RecordType should be a concrete type though -- maybe add to models/lexicons package)
 		item, err := idx.recordToFeedItem(ctx, record, recordsByURI)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")

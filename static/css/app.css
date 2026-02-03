@@ -205,7 +205,7 @@
   }
 
   .like-btn-liked {
-    @apply like-btn bg-red-50 text-red-600 hover:bg-red-100;
+    @apply like-btn bg-brown-100 text-red-600 hover:bg-brown-200;
     animation: like-pop 400ms ease-out;
   }
 
