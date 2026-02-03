@@ -1,0 +1,192 @@
+package components
+
+import (
+	"arabica/internal/firehose"
+	"arabica/internal/web/bff"
+	"fmt"
+)
+
+// CommentButtonProps defines properties for the comment button
+type CommentButtonProps struct {
+	SubjectURI      string // AT-URI of the record to comment on
+	SubjectCID      string // CID of the record
+	CommentCount    int    // Number of comments on this record
+	IsAuthenticated bool   // Whether the user is authenticated
+}
+
+// CommentButton renders a comment button with count that links to comments section
+templ CommentButton(props CommentButtonProps) {
+	<button
+		type="button"
+		if props.IsAuthenticated && props.SubjectURI != "" && props.SubjectCID != "" {
+			hx-get={ fmt.Sprintf("/api/comments?subject_uri=%s", props.SubjectURI) }
+			hx-target="#comment-section"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+		}
+		class="comment-btn"
+		aria-label="Comments"
+	>
+		<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+			<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+		</svg>
+		if props.CommentCount > 0 {
+			<span>{ fmt.Sprintf("%d", props.CommentCount) }</span>
+		}
+	</button>
+}
+
+// CommentSectionProps defines properties for the comment section
+type CommentSectionProps struct {
+	SubjectURI      string                    // AT-URI of the record
+	SubjectCID      string                    // CID of the record
+	Comments        []firehose.IndexedComment // List of comments
+	IsAuthenticated bool                      // Whether the user is authenticated
+	CurrentUserDID  string                    // DID of the current user (for delete buttons)
+}
+
+// CommentSection renders the full comment section with list and form
+templ CommentSection(props CommentSectionProps) {
+	<div id="comment-section" class="mt-6">
+		<h3 class="text-lg font-semibold text-brown-900 mb-4">
+			Comments
+			if len(props.Comments) > 0 {
+				<span class="text-sm font-normal text-brown-600">({ fmt.Sprintf("%d", len(props.Comments)) })</span>
+			}
+		</h3>
+		if props.IsAuthenticated {
+			@CommentForm(CommentFormProps{
+				SubjectURI: props.SubjectURI,
+				SubjectCID: props.SubjectCID,
+			})
+		} else {
+			<p class="text-sm text-brown-600 mb-4">
+				<a href="/login" class="text-brown-700 hover:text-brown-900 underline">Log in</a> to leave a comment.
+			</p>
+		}
+		@CommentList(CommentListProps{
+			Comments:       props.Comments,
+			CurrentUserDID: props.CurrentUserDID,
+		})
+	</div>
+}
+
+// CommentFormProps defines properties for the comment form
+type CommentFormProps struct {
+	SubjectURI string // AT-URI of the record
+	SubjectCID string // CID of the record
+}
+
+// CommentForm renders a form for creating new comments
+templ CommentForm(props CommentFormProps) {
+	<form
+		hx-post="/api/comments"
+		hx-target="#comment-section"
+		hx-swap="innerHTML"
+		class="mb-6"
+	>
+		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
+		<input type="hidden" name="subject_cid" value={ props.SubjectCID }/>
+		<div class="flex flex-col gap-2">
+			<textarea
+				name="text"
+				placeholder="Add a comment..."
+				class="form-textarea resize-none"
+				rows="2"
+				maxlength="1000"
+				required
+			></textarea>
+			<div class="flex justify-between items-center">
+				<span class="text-xs text-brown-500">Max 1000 characters</span>
+				<button type="submit" class="btn-primary text-sm py-1.5 px-4">
+					Post Comment
+				</button>
+			</div>
+		</div>
+	</form>
+}
+
+// CommentListProps defines properties for the comment list
+type CommentListProps struct {
+	Comments       []firehose.IndexedComment // List of comments
+	CurrentUserDID string                    // DID of the current user (for delete buttons)
+}
+
+// CommentList renders a list of comments
+templ CommentList(props CommentListProps) {
+	<div class="space-y-4">
+		if len(props.Comments) == 0 {
+			<p class="text-brown-600 text-sm text-center py-4">No comments yet. Be the first to comment!</p>
+		} else {
+			for _, comment := range props.Comments {
+				@CommentItem(CommentItemProps{
+					Comment:      comment,
+					CanDelete:    props.CurrentUserDID == comment.ActorDID,
+				})
+			}
+		}
+	</div>
+}
+
+// CommentItemProps defines properties for a single comment
+type CommentItemProps struct {
+	Comment   firehose.IndexedComment
+	CanDelete bool // Whether the current user can delete this comment
+}
+
+// CommentItem renders a single comment
+templ CommentItem(props CommentItemProps) {
+	<div class="bg-brown-50 rounded-lg p-4 border border-brown-200" id={ "comment-" + props.Comment.RKey }>
+		<!-- Header row with user badge and delete button -->
+		<div class="flex items-center justify-between gap-2 mb-2">
+			@UserBadge(UserBadgeProps{
+				ProfileURL:  "/profile/" + getCommentHandle(props.Comment),
+				AvatarURL:   getCommentAvatarURL(props.Comment),
+				DisplayName: getCommentDisplayName(props.Comment),
+				Handle:      getCommentHandle(props.Comment),
+				TimeAgo:     bff.FormatTimeAgo(props.Comment.CreatedAt),
+				Size:        "sm",
+			})
+			if props.CanDelete {
+				<button
+					type="button"
+					hx-delete={ "/api/comments/" + props.Comment.RKey }
+					hx-target={ "#comment-" + props.Comment.RKey }
+					hx-swap="outerHTML"
+					hx-confirm="Are you sure you want to delete this comment?"
+					class="text-brown-400 hover:text-brown-600 transition-colors flex-shrink-0"
+					aria-label="Delete comment"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+						<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"></path>
+					</svg>
+				</button>
+			}
+		</div>
+		<!-- Comment text -->
+		<p class="text-brown-900 whitespace-pre-wrap break-words pl-11">{ props.Comment.Text }</p>
+	</div>
+}
+
+// Helper functions for comment display
+func getCommentHandle(comment firehose.IndexedComment) string {
+	if comment.Handle != "" {
+		return comment.Handle
+	}
+	return comment.ActorDID
+}
+
+func getCommentDisplayName(comment firehose.IndexedComment) string {
+	if comment.DisplayName != nil {
+		return *comment.DisplayName
+	}
+	return ""
+}
+
+func getCommentAvatarURL(comment firehose.IndexedComment) string {
+	if comment.Avatar != nil {
+		return *comment.Avatar
+	}
+	return ""
+}
+

@@ -20,7 +20,9 @@ type ProfileContentPartialProps struct {
 	BrewLikeCounts  map[string]int
 	BrewLikedByUser map[string]bool
 	BrewCIDs        map[string]string // CIDs keyed by brew RKey
-	IsAuthenticated bool
+	// Comment counts for brews (keyed by brew RKey)
+	BrewCommentCounts map[string]int
+	IsAuthenticated   bool
 }
 
 // ProfileContentPartial renders the profile tabs content (for HTMX loading)
@@ -35,6 +37,7 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 			ProfileHandle:   props.ProfileHandle,
 			Profile:         props.Profile,
 			LikeCounts:      props.BrewLikeCounts,
+			CommentCounts:   props.BrewCommentCounts,
 			LikedByUser:     props.BrewLikedByUser,
 			BrewCIDs:        props.BrewCIDs,
 			IsAuthenticated: props.IsAuthenticated,
@@ -142,6 +145,7 @@ type ProfileBrewCardsProps struct {
 	ProfileHandle   string
 	Profile         *atproto.Profile
 	LikeCounts      map[string]int
+	CommentCounts   map[string]int
 	LikedByUser     map[string]bool
 	IsAuthenticated bool
 	BrewCIDs        map[string]string // CIDs keyed by brew RKey
@@ -170,6 +174,7 @@ templ ProfileBrewCards(props ProfileBrewCardsProps) {
 					ProfileHandle:   props.ProfileHandle,
 					Profile:         props.Profile,
 					LikeCount:       getLikeCount(props.LikeCounts, brew.RKey),
+					CommentCount:    getCommentCount(props.CommentCounts, brew.RKey),
 					IsLiked:         isLikedByUser(props.LikedByUser, brew.RKey),
 					IsAuthenticated: props.IsAuthenticated,
 					SubjectCID:      getBrewCID(props.BrewCIDs, brew.RKey),
@@ -198,6 +203,13 @@ func getBrewCID(cids map[string]string, rkey string) string {
 		return ""
 	}
 	return cids[rkey]
+}
+
+func getCommentCount(counts map[string]int, rkey string) int {
+	if counts == nil {
+		return 0
+	}
+	return counts[rkey]
 }
 
 // ProfileEquipmentTab renders the equipment tab for profile (grinders and brewers only)

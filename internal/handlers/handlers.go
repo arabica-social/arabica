@@ -13,6 +13,7 @@ import (
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
 	"arabica/internal/middleware"
+	"arabica/internal/models"
 	"arabica/internal/moderation"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
@@ -250,5 +251,160 @@ func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated
 		UserProfile:     userProfile,
 		CSPNonce:        middleware.CSPNonceFromContext(r.Context()),
 		IsModerator:     isModerator,
+	}
+}
+
+// HandleCommentCreate handles creating a new comment
+func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	subjectURI := r.FormValue("subject_uri")
+	subjectCID := r.FormValue("subject_cid")
+	text := strings.TrimSpace(r.FormValue("text"))
+
+	if subjectURI == "" || subjectCID == "" {
+		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
+		return
+	}
+
+	if text == "" {
+		http.Error(w, "comment text is required", http.StatusBadRequest)
+		return
+	}
+
+	if len(text) > models.MaxCommentLength {
+		http.Error(w, "comment text is too long", http.StatusBadRequest)
+		return
+	}
+
+	req := &models.CreateCommentRequest{
+		SubjectURI: subjectURI,
+		SubjectCID: subjectCID,
+		Text:       text,
+	}
+
+	comment, err := store.CreateComment(r.Context(), req)
+	if err != nil {
+		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create comment")
+		return
+	}
+
+	// Update firehose index
+	if h.feedIndex != nil {
+		_ = h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, text, comment.CreatedAt)
+	}
+
+	// Return the updated comment section
+	comments := h.feedIndex.GetCommentsForSubject(r.Context(), subjectURI, 100)
+
+	if err := components.CommentSection(components.CommentSectionProps{
+		SubjectURI:      subjectURI,
+		SubjectCID:      subjectCID,
+		Comments:        comments,
+		IsAuthenticated: true,
+		CurrentUserDID:  didStr,
+	}).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render comment section")
+	}
+}
+
+// HandleCommentDelete handles deleting a comment
+func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	rkey := r.PathValue("id")
+	if rkey == "" {
+		http.Error(w, "Comment ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get the comment to find its subject URI before deletion
+	comments, err := store.ListUserComments(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to get comments", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to get user comments")
+		return
+	}
+
+	var subjectURI string
+	for _, c := range comments {
+		if c.RKey == rkey {
+			subjectURI = c.SubjectURI
+			break
+		}
+	}
+
+	if subjectURI == "" {
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	// Delete the comment
+	if err := store.DeleteCommentByRKey(r.Context(), rkey); err != nil {
+		http.Error(w, "Failed to delete comment", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to delete comment")
+		return
+	}
+
+	// Update firehose index
+	if h.feedIndex != nil {
+		_ = h.feedIndex.DeleteComment(didStr, rkey, subjectURI)
+	}
+
+	// Return empty response (the comment element will be removed via hx-swap="outerHTML")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleCommentList returns the comment section for a subject
+func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
+	subjectURI := r.URL.Query().Get("subject_uri")
+	if subjectURI == "" {
+		http.Error(w, "subject_uri is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get authenticated user if any
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	// Get the subject CID from query params (for the form)
+	subjectCID := r.URL.Query().Get("subject_cid")
+
+	// Get comments from firehose index
+	var comments []firehose.IndexedComment
+	if h.feedIndex != nil {
+		comments = h.feedIndex.GetCommentsForSubject(r.Context(), subjectURI, 100)
+	}
+
+	if err := components.CommentSection(components.CommentSectionProps{
+		SubjectURI:      subjectURI,
+		SubjectCID:      subjectCID,
+		Comments:        comments,
+		IsAuthenticated: isAuthenticated,
+		CurrentUserDID:  didStr,
+	}).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render comment section")
 	}
 }

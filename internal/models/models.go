@@ -16,11 +16,13 @@ const (
 	MaxRoastLevelLength  = 100
 	MaxProcessLength     = 100
 	MaxMethodLength      = 100
-	MaxGrindSizeLength   = 100
+	MaxGrindSizeLength    = 100
+	MaxTastingNotesLength = 2000
 	MaxGrinderTypeLength = 50
 	MaxBurrTypeLength    = 50
-	MaxBrewerTypeLength   = 100
-	MaxTastingNotesLength = 2000
+	MaxBrewerTypeLength  = 100
+	MaxCommentLength     = 1000
+	MaxCommentGraphemes  = 300
 )
 
 // Validation errors
@@ -33,6 +35,8 @@ var (
 	ErrNotesTooLong    = errors.New("notes is too long")
 	ErrOriginTooLong   = errors.New("origin is too long")
 	ErrFieldTooLong    = errors.New("field value is too long")
+	ErrCommentRequired = errors.New("comment text is required")
+	ErrCommentTooLong  = errors.New("comment text is too long")
 )
 
 // TODO: maybe add a "rating" field that can be updated when a bag is closed
@@ -196,6 +200,23 @@ type Like struct {
 type CreateLikeRequest struct {
 	SubjectURI string `json:"subject_uri"`
 	SubjectCID string `json:"subject_cid"`
+}
+
+// Comment represents a comment on an Arabica record
+type Comment struct {
+	RKey       string    `json:"rkey"`
+	SubjectURI string    `json:"subject_uri"`
+	SubjectCID string    `json:"subject_cid"`
+	Text       string    `json:"text"`
+	CreatedAt  time.Time `json:"created_at"`
+	ActorDID   string    `json:"actor_did,omitempty"`
+}
+
+// CreateCommentRequest contains the data needed to create a comment
+type CreateCommentRequest struct {
+	SubjectURI string `json:"subject_uri"`
+	SubjectCID string `json:"subject_cid"`
+	Text       string `json:"text"`
 }
 
 // Validate checks that all fields are within acceptable limits
@@ -362,6 +383,23 @@ func (r *UpdateBrewerRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	return nil
+}
+
+// Validate checks that all fields are within acceptable limits
+func (r *CreateCommentRequest) Validate() error {
+	if r.Text == "" {
+		return ErrCommentRequired
+	}
+	if len(r.Text) > MaxCommentLength {
+		return ErrCommentTooLong
+	}
+	if r.SubjectURI == "" {
+		return errors.New("subject_uri is required")
+	}
+	if r.SubjectCID == "" {
+		return errors.New("subject_cid is required")
 	}
 	return nil
 }

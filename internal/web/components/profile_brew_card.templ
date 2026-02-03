@@ -14,6 +14,7 @@ type ProfileBrewCardProps struct {
 	ProfileHandle   string
 	Profile         *atproto.Profile
 	LikeCount       int
+	CommentCount    int
 	IsLiked         bool
 	IsAuthenticated bool
 	SubjectCID      string // CID for like functionality (empty if not available)
@@ -23,23 +24,15 @@ type ProfileBrewCardProps struct {
 templ ProfileBrewCard(props ProfileBrewCardProps) {
 	<div class="feed-card">
 		<!-- Author row -->
-		<div class="flex items-center gap-3 mb-3">
-			<a href={ templ.SafeURL("/profile/" + props.ProfileHandle) } class="flex-shrink-0">
-				@Avatar(AvatarProps{
-					AvatarURL:   getProfileAvatarURL(props.Profile),
-					DisplayName: getProfileDisplayName(props.Profile),
-					Size:        "md",
-				})
-			</a>
-			<div class="flex-1 min-w-0">
-				<div class="flex items-center gap-2">
-					if props.Profile != nil && props.Profile.DisplayName != nil && *props.Profile.DisplayName != "" {
-						<a href={ templ.SafeURL("/profile/" + props.ProfileHandle) } class="link-bold text-brown-900 truncate">{ *props.Profile.DisplayName }</a>
-					}
-					<a href={ templ.SafeURL("/profile/" + props.ProfileHandle) } class="link text-sm truncate">{ "@" + props.ProfileHandle }</a>
-				</div>
-				<span class="text-brown-500 text-sm">{ bff.FormatTimeAgo(props.Brew.CreatedAt) }</span>
-			</div>
+		<div class="mb-3">
+			@UserBadge(UserBadgeProps{
+				ProfileURL:  "/profile/" + props.ProfileHandle,
+				AvatarURL:   getProfileAvatarURL(props.Profile),
+				DisplayName: getProfileDisplayName(props.Profile),
+				Handle:      props.ProfileHandle,
+				TimeAgo:     bff.FormatTimeAgo(props.Brew.CreatedAt),
+				Size:        "md",
+			})
 		</div>
 		<!-- Action text -->
 		<div class="mb-2 text-sm text-brown-700">
@@ -64,6 +57,8 @@ templ ProfileBrewCard(props ProfileBrewCardProps) {
 			SubjectCID:      props.SubjectCID,
 			IsLiked:         props.IsLiked,
 			LikeCount:       props.LikeCount,
+			CommentCount:    props.CommentCount,
+			ViewURL:         fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle),
 			ShareURL:        fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle),
 			ShareTitle:      getBrewShareTitle(props.Brew),
 			ShareText:       getBrewShareText(props.Brew, props.ProfileHandle),

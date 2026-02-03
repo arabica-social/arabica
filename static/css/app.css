@@ -269,7 +269,7 @@
 
   /* Like Button */
   .like-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px];
   }
 
   .like-btn-liked {
@@ -284,7 +284,12 @@
 
   /* Share Button */
   .share-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 min-h-[44px];
+  }
+
+  /* Comment Button */
+  .comment-btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 min-h-[44px];
   }
 
   /* Action Bar */
@@ -293,7 +298,7 @@
   }
 
   .action-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 cursor-pointer;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 cursor-pointer min-h-[44px];
   }
 
   .action-btn-liked {

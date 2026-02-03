@@ -46,23 +46,15 @@ templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
 templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext) {
 	<div class="feed-card">
 		<!-- Author row -->
-		<div class="flex items-center gap-3 mb-3">
-			<a href={ templ.SafeURL("/profile/" + item.Author.Handle) } class="flex-shrink-0">
-				@components.Avatar(components.AvatarProps{
-					AvatarURL:   getAvatarURL(item.Author.Avatar),
-					DisplayName: getDisplayName(item.Author.DisplayName),
-					Size:        "md",
-				})
-			</a>
-			<div class="flex-1 min-w-0">
-				<div class="flex items-center gap-2">
-					if item.Author.DisplayName != nil && *item.Author.DisplayName != "" {
-						<a href={ templ.SafeURL("/profile/" + item.Author.Handle) } class="link-bold text-brown-900 truncate">{ *item.Author.DisplayName }</a>
-					}
-					<a href={ templ.SafeURL("/profile/" + item.Author.Handle) } class="link text-sm truncate">{ "@" + item.Author.Handle }</a>
-				</div>
-				<span class="text-brown-500 text-sm">{ item.TimeAgo }</span>
-			</div>
+		<div class="mb-3">
+			@components.UserBadge(components.UserBadgeProps{
+				ProfileURL:  "/profile/" + item.Author.Handle,
+				AvatarURL:   getAvatarURL(item.Author.Avatar),
+				DisplayName: getDisplayName(item.Author.DisplayName),
+				Handle:      item.Author.Handle,
+				TimeAgo:     item.TimeAgo,
+				Size:        "md",
+			})
 		</div>
 		<!-- Action header -->
 		<div class="mb-2 text-sm text-brown-700">
@@ -88,6 +80,8 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 				SubjectCID:      item.SubjectCID,
 				IsLiked:         item.IsLikedByViewer,
 				LikeCount:       item.LikeCount,
+				CommentCount:    item.CommentCount,
+				ViewURL:         getFeedItemShareURL(item),
 				ShareURL:        getFeedItemShareURL(item),
 				ShareTitle:      getFeedItemShareTitle(item),
 				ShareText:       getFeedItemShareText(item),

@@ -16,6 +16,7 @@ var scopes = []string{
 	"repo:" + NSIDBean,
 	"repo:" + NSIDBrew,
 	"repo:" + NSIDBrewer,
+	"repo:" + NSIDComment,
 	"repo:" + NSIDGrinder,
 	"repo:" + NSIDLike,
 	"repo:" + NSIDRoaster,

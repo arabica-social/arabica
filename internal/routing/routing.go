@@ -92,16 +92,10 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
 	mux.Handle("POST /api/report", cop.Handler(http.HandlerFunc(h.HandleReport)))
 
-	// Moderation routes (obscured path)
-	mux.HandleFunc("GET /_mod", h.HandleAdmin)
-	mux.Handle("GET /_mod/content", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial)))
-	mux.Handle("POST /_mod/hide", cop.Handler(http.HandlerFunc(h.HandleHideRecord)))
-	mux.Handle("POST /_mod/unhide", cop.Handler(http.HandlerFunc(h.HandleUnhideRecord)))
-	mux.Handle("POST /_mod/dismiss-report", cop.Handler(http.HandlerFunc(h.HandleDismissReport)))
-	mux.Handle("POST /_mod/block", cop.Handler(http.HandlerFunc(h.HandleBlockUser)))
-	mux.Handle("POST /_mod/unblock", cop.Handler(http.HandlerFunc(h.HandleUnblockUser)))
-	mux.Handle("POST /_mod/invite", cop.Handler(http.HandlerFunc(h.HandleCreateInvite)))
-	mux.Handle("POST /_mod/dismiss-join", cop.Handler(http.HandlerFunc(h.HandleDismissJoinRequest)))
+	// Comment routes
+	mux.Handle("GET /api/comments", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleCommentList)))
+	mux.Handle("POST /api/comments", cop.Handler(http.HandlerFunc(h.HandleCommentCreate)))
+	mux.Handle("DELETE /api/comments/{id}", cop.Handler(http.HandlerFunc(h.HandleCommentDelete)))
 
 	// Modal routes for entity management (return dialog HTML)
 	mux.HandleFunc("GET /api/modals/bean/new", h.HandleBeanModalNew)
@@ -115,6 +109,17 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// Profile routes (public user profiles)
 	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
+
+	// Moderation routes
+	mux.HandleFunc("GET /_mod", h.HandleAdmin)
+	mux.Handle("GET /_mod/content", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial)))
+	mux.Handle("POST /_mod/hide", cop.Handler(http.HandlerFunc(h.HandleHideRecord)))
+	mux.Handle("POST /_mod/unhide", cop.Handler(http.HandlerFunc(h.HandleUnhideRecord)))
+	mux.Handle("POST /_mod/dismiss-report", cop.Handler(http.HandlerFunc(h.HandleDismissReport)))
+	mux.Handle("POST /_mod/block", cop.Handler(http.HandlerFunc(h.HandleBlockUser)))
+	mux.Handle("POST /_mod/unblock", cop.Handler(http.HandlerFunc(h.HandleUnblockUser)))
+	mux.Handle("POST /_mod/invite", cop.Handler(http.HandlerFunc(h.HandleCreateInvite)))
+	mux.Handle("POST /_mod/dismiss-join", cop.Handler(http.HandlerFunc(h.HandleDismissJoinRequest)))
 
 	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("static"))

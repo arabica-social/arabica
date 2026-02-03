@@ -54,6 +54,12 @@ type Store interface {
 	GetUserLikeForSubject(ctx context.Context, subjectURI string) (*models.Like, error)
 	ListUserLikes(ctx context.Context) ([]*models.Like, error)
 
+	// Comment operations
+	CreateComment(ctx context.Context, req *models.CreateCommentRequest) (*models.Comment, error)
+	DeleteCommentByRKey(ctx context.Context, rkey string) error
+	GetCommentsForSubject(ctx context.Context, subjectURI string) ([]*models.Comment, error)
+	ListUserComments(ctx context.Context) ([]*models.Comment, error)
+
 	// Close the database connection
 	Close() error
 }

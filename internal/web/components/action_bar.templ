@@ -15,6 +15,10 @@ type ActionBarProps struct {
 	IsLiked   bool
 	LikeCount int
 
+	// Comment state
+	CommentCount int
+	ViewURL      string // URL to view the item (for comment link)
+
 	// Share props
 	ShareURL   string
 	ShareTitle string
@@ -51,18 +55,26 @@ func (p ActionBarProps) hasReportAction() bool {
 // Order: [💬 Comments] [♡ Like] [↗ Share] [⋯ More]
 templ ActionBar(props ActionBarProps) {
 	<div class="action-bar" x-data="{ moreOpen: false, openUp: true }">
-		<!-- Comments (placeholder) -->
-		<button
-			type="button"
-			class="action-btn action-btn-disabled"
-			disabled
-			title="Comments coming soon"
-		>
-			<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
-			</svg>
-			<span>0</span>
-		</button>
+		<!-- Comments -->
+		if props.ViewURL != "" {
+			<a
+				href={ templ.SafeURL(props.ViewURL + "#comment-section") }
+				class="action-btn"
+				title="View comments"
+			>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+				</svg>
+				<span>{ fmt.Sprintf("%d", props.CommentCount) }</span>
+			</a>
+		} else {
+			<span class="action-btn action-btn-disabled" title="Comments">
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+				</svg>
+				<span>{ fmt.Sprintf("%d", props.CommentCount) }</span>
+			</span>
+		}
 		<!-- Hidden indicator (visible to moderators) -->
 		if props.IsModerator && props.IsRecordHidden {
 			<span class="hidden-badge" title="This record is hidden from the public feed">
