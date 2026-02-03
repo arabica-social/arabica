@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/lexicons"
 	"arabica/internal/models"
 
 	"github.com/rs/zerolog/log"
@@ -29,8 +30,8 @@ const (
 // FeedItem represents an activity in the social feed with author info
 type FeedItem struct {
 	// Record type and data (only one will be non-nil)
-	RecordType string // "brew", "bean", "roaster", "grinder", "brewer"
-	Action     string // "added a new brew", "added a new bean", etc.
+	RecordType lexicons.RecordType // Use lexicons.RecordTypeBrew, lexicons.RecordTypeBean, etc.
+	Action     string             // "added a new brew", "added a new bean", etc.
 
 	Brew    *models.Brew
 	Bean    *models.Bean
@@ -66,7 +67,7 @@ type FirehoseIndex interface {
 // FirehoseFeedItem matches the FeedItem structure from firehose package
 // This avoids import cycles
 type FirehoseFeedItem struct {
-	RecordType string
+	RecordType lexicons.RecordType
 	Action     string
 	Brew       *models.Brew
 	Bean       *models.Bean

@@ -2,6 +2,7 @@ package pages
 
 import (
 	"arabica/internal/feed"
+	"arabica/internal/lexicons"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"fmt"
@@ -66,15 +67,15 @@ templ FeedCard(item *feed.FeedItem) {
 		</div>
 		<!-- Record content -->
 		switch item.RecordType {
-			case "brew":
+			case lexicons.RecordTypeBrew:
 				@FeedBrewContent(item)
-			case "bean":
+			case lexicons.RecordTypeBean:
 				@FeedBeanContent(item)
-			case "roaster":
+			case lexicons.RecordTypeRoaster:
 				@FeedRoasterContent(item)
-			case "grinder":
+			case lexicons.RecordTypeGrinder:
 				@FeedGrinderContent(item)
-			case "brewer":
+			case lexicons.RecordTypeBrewer:
 				@FeedBrewerContent(item)
 		}
 	</div>
@@ -98,7 +99,7 @@ func getDisplayName(displayName *string) string {
 // ActionText renders the action text with clickable links for record names
 templ ActionText(item *feed.FeedItem) {
 	switch item.RecordType {
-		case "brew":
+		case lexicons.RecordTypeBrew:
 			if item.Brew != nil {
 				added a
 				<a
@@ -315,7 +316,7 @@ templ FeedBrewerContent(item *feed.FeedItem) {
 // Helper functions for share button
 func getFeedItemShareURL(item *feed.FeedItem) string {
 	switch item.RecordType {
-	case "brew":
+	case lexicons.RecordTypeBrew:
 		if item.Brew != nil {
 			return fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)
 		}
@@ -326,7 +327,7 @@ func getFeedItemShareURL(item *feed.FeedItem) string {
 
 func getFeedItemShareTitle(item *feed.FeedItem) string {
 	switch item.RecordType {
-	case "brew":
+	case lexicons.RecordTypeBrew:
 		if item.Brew != nil && item.Brew.Bean != nil {
 			if item.Brew.Bean.Name != "" {
 				return item.Brew.Bean.Name
@@ -334,7 +335,7 @@ func getFeedItemShareTitle(item *feed.FeedItem) string {
 			return item.Brew.Bean.Origin
 		}
 		return "Coffee Brew"
-	case "bean":
+	case lexicons.RecordTypeBean:
 		if item.Bean != nil {
 			if item.Bean.Name != "" {
 				return item.Bean.Name
@@ -342,17 +343,17 @@ func getFeedItemShareTitle(item *feed.FeedItem) string {
 			return item.Bean.Origin
 		}
 		return "Coffee Bean"
-	case "roaster":
+	case lexicons.RecordTypeRoaster:
 		if item.Roaster != nil {
 			return item.Roaster.Name
 		}
 		return "Roaster"
-	case "grinder":
+	case lexicons.RecordTypeGrinder:
 		if item.Grinder != nil {
 			return item.Grinder.Name
 		}
 		return "Grinder"
-	case "brewer":
+	case lexicons.RecordTypeBrewer:
 		if item.Brewer != nil {
 			return item.Brewer.Name
 		}

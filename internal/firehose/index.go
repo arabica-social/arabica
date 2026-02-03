@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/lexicons"
 	"arabica/internal/models"
 
 	"github.com/rs/zerolog/log"
@@ -54,6 +55,16 @@ var (
 	// BucketLikesByActor stores likes by actor for lookup: {actor_did:subject_uri} -> {rkey}
 	BucketLikesByActor = []byte("likes_by_actor")
 )
+
+// FeedableRecordTypes are the record types that should appear as feed items.
+// Likes, comments, etc. are indexed but not displayed directly in the feed.
+var FeedableRecordTypes = map[lexicons.RecordType]bool{
+	lexicons.RecordTypeBrew:    true,
+	lexicons.RecordTypeBean:    true,
+	lexicons.RecordTypeRoaster: true,
+	lexicons.RecordTypeGrinder: true,
+	lexicons.RecordTypeBrewer:  true,
+}
 
 // IndexedRecord represents a record stored in the index
 type IndexedRecord struct {
@@ -132,7 +143,7 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		return nil
 	})
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
@@ -174,7 +185,7 @@ func (idx *FeedIndex) GetCursor() (int64, error) {
 	err := idx.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketMeta)
 		v := b.Get([]byte("cursor"))
-		if v != nil && len(v) == 8 {
+		if len(v) == 8 {
 			cursor = int64(binary.BigEndian.Uint64(v))
 		}
 		return nil
@@ -197,7 +208,7 @@ func (idx *FeedIndex) UpsertRecord(did, collection, rkey, cid string, record jso
 	uri := atproto.BuildATURI(did, collection, rkey)
 
 	// Parse createdAt from record
-	var recordData map[string]interface{}
+	var recordData map[string]any
 	createdAt := time.Now()
 	if err := json.Unmarshal(record, &recordData); err == nil {
 		if createdAtStr, ok := recordData["createdAt"].(string); ok {
@@ -327,7 +338,7 @@ func (idx *FeedIndex) GetRecord(uri string) (*IndexedRecord, error) {
 
 // FeedItem represents an item in the feed (matches feed.FeedItem structure)
 type FeedItem struct {
-	RecordType string
+	RecordType lexicons.RecordType
 	Action     string
 
 	Brew    *models.Brew
@@ -417,12 +428,12 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 	// Convert to FeedItems
 	items := make([]*FeedItem, 0, len(records))
 	for _, record := range records {
-		// FIX: this needs to not error on like/comments
-		// - item stores RecordType, check against that
-		// - (RecordType should be a concrete type though -- maybe add to models/lexicons package)
 		item, err := idx.recordToFeedItem(ctx, record, recordsByURI)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
+			continue
+		}
+		if !FeedableRecordTypes[item.RecordType] {
 			continue
 		}
 		items = append(items, item)
@@ -443,7 +454,7 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 
 // recordToFeedItem converts an IndexedRecord to a FeedItem
 func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecord, refMap map[string]*IndexedRecord) (*FeedItem, error) {
-	var recordData map[string]interface{}
+	var recordData map[string]any
 	if err := json.Unmarshal(record.Record, &recordData); err != nil {
 		return nil, err
 	}
@@ -475,7 +486,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		// Resolve bean reference
 		if beanRef, ok := recordData["beanRef"].(string); ok && beanRef != "" {
 			if beanRecord, found := refMap[beanRef]; found {
-				var beanData map[string]interface{}
+				var beanData map[string]any
 				if err := json.Unmarshal(beanRecord.Record, &beanData); err == nil {
 					bean, _ := atproto.RecordToBean(beanData, beanRef)
 					brew.Bean = bean
@@ -483,7 +494,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 					// Resolve roaster reference for bean
 					if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
 						if roasterRecord, found := refMap[roasterRef]; found {
-							var roasterData map[string]interface{}
+							var roasterData map[string]any
 							if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
 								roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
 								brew.Bean.Roaster = roaster
@@ -497,7 +508,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		// Resolve grinder reference
 		if grinderRef, ok := recordData["grinderRef"].(string); ok && grinderRef != "" {
 			if grinderRecord, found := refMap[grinderRef]; found {
-				var grinderData map[string]interface{}
+				var grinderData map[string]any
 				if err := json.Unmarshal(grinderRecord.Record, &grinderData); err == nil {
 					grinder, _ := atproto.RecordToGrinder(grinderData, grinderRef)
 					brew.GrinderObj = grinder
@@ -508,7 +519,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		// Resolve brewer reference
 		if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
 			if brewerRecord, found := refMap[brewerRef]; found {
-				var brewerData map[string]interface{}
+				var brewerData map[string]any
 				if err := json.Unmarshal(brewerRecord.Record, &brewerData); err == nil {
 					brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
 					brew.BrewerObj = brewer
@@ -516,7 +527,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 			}
 		}
 
-		item.RecordType = "brew"
+		item.RecordType = lexicons.RecordTypeBrew
 		item.Action = "added a new brew"
 		item.Brew = brew
 
@@ -529,7 +540,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		// Resolve roaster reference
 		if roasterRef, ok := recordData["roasterRef"].(string); ok && roasterRef != "" {
 			if roasterRecord, found := refMap[roasterRef]; found {
-				var roasterData map[string]interface{}
+				var roasterData map[string]any
 				if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
 					roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
 					bean.Roaster = roaster
@@ -537,7 +548,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 			}
 		}
 
-		item.RecordType = "bean"
+		item.RecordType = lexicons.RecordTypeBean
 		item.Action = "added a new bean"
 		item.Bean = bean
 
@@ -546,7 +557,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		if err != nil {
 			return nil, err
 		}
-		item.RecordType = "roaster"
+		item.RecordType = lexicons.RecordTypeRoaster
 		item.Action = "added a new roaster"
 		item.Roaster = roaster
 
@@ -555,7 +566,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		if err != nil {
 			return nil, err
 		}
-		item.RecordType = "grinder"
+		item.RecordType = lexicons.RecordTypeGrinder
 		item.Action = "added a new grinder"
 		item.Grinder = grinder
 
@@ -564,7 +575,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		if err != nil {
 			return nil, err
 		}
-		item.RecordType = "brewer"
+		item.RecordType = lexicons.RecordTypeBrewer
 		item.Action = "added a new brewer"
 		item.Brewer = brewer
 
@@ -826,7 +837,7 @@ func (idx *FeedIndex) UpsertLike(actorDID, rkey, subjectURI string) error {
 		// Increment the like count
 		countKey := []byte(subjectURI)
 		currentCount := uint64(0)
-		if countData := likeCounts.Get(countKey); countData != nil && len(countData) == 8 {
+		if countData := likeCounts.Get(countKey); len(countData) == 8 {
 			currentCount = binary.BigEndian.Uint64(countData)
 		}
 		currentCount++
@@ -866,7 +877,7 @@ func (idx *FeedIndex) DeleteLike(actorDID, subjectURI string) error {
 		// Decrement the like count
 		countKey := []byte(subjectURI)
 		currentCount := uint64(0)
-		if countData := likeCounts.Get(countKey); countData != nil && len(countData) == 8 {
+		if countData := likeCounts.Get(countKey); len(countData) == 8 {
 			currentCount = binary.BigEndian.Uint64(countData)
 		}
 		if currentCount > 0 {
@@ -887,7 +898,7 @@ func (idx *FeedIndex) GetLikeCount(subjectURI string) int {
 	_ = idx.db.View(func(tx *bolt.Tx) error {
 		likeCounts := tx.Bucket(BucketLikeCounts)
 		countData := likeCounts.Get([]byte(subjectURI))
-		if countData != nil && len(countData) == 8 {
+		if len(countData) == 8 {
 			count = binary.BigEndian.Uint64(countData)
 		}
 		return nil
