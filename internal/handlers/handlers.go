@@ -29,6 +29,10 @@ type Config struct {
 	// SecureCookies sets the Secure flag on authentication cookies
 	// Should be true in production (HTTPS), false for local development (HTTP)
 	SecureCookies bool
+
+	// PublicURL is the public-facing URL for the server (e.g., https://arabica.social)
+	// Used for constructing absolute URLs in OpenGraph metadata
+	PublicURL string
 }
 
 // Handler contains all HTTP handler methods and their dependencies.
@@ -191,6 +195,61 @@ func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated
 		UserProfile:     userProfile,
 		CSPNonce:        middleware.CSPNonceFromContext(r.Context()),
 	}
+}
+
+// populateBrewOGMetadata sets OpenGraph metadata on layoutData for a brew page.
+// This enriches social media previews when brew links are shared.
+func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew *models.Brew, shareURL string) {
+	if brew == nil {
+		return
+	}
+
+	// Build OG title from bean info
+	var ogTitle string
+	if brew.Bean != nil {
+		if brew.Bean.Origin != "" {
+			ogTitle = fmt.Sprintf("%s from %s", brew.Bean.Name, brew.Bean.Origin)
+		} else {
+			ogTitle = brew.Bean.Name
+		}
+	} else {
+		ogTitle = "Coffee Brew"
+	}
+
+	// Build OG description with rating and tasting notes
+	var descParts []string
+	if brew.Rating > 0 {
+		descParts = append(descParts, fmt.Sprintf("Rated %d/10", brew.Rating))
+	}
+	if brew.TastingNotes != "" {
+		// Truncate tasting notes if too long
+		notes := brew.TastingNotes
+		if len(notes) > 100 {
+			notes = notes[:97] + "..."
+		}
+		descParts = append(descParts, notes)
+	}
+	if brew.Bean != nil && brew.Bean.Roaster != nil {
+		descParts = append(descParts, fmt.Sprintf("Roasted by %s", brew.Bean.Roaster.Name))
+	}
+
+	var ogDescription string
+	if len(descParts) > 0 {
+		ogDescription = strings.Join(descParts, " · ")
+	} else {
+		ogDescription = "A coffee brew tracked on Arabica"
+	}
+
+	// Build absolute URL if public URL is configured
+	var ogURL string
+	if h.config.PublicURL != "" && shareURL != "" {
+		ogURL = h.config.PublicURL + shareURL
+	}
+
+	layoutData.OGTitle = ogTitle
+	layoutData.OGDescription = ogDescription
+	layoutData.OGType = "article"
+	layoutData.OGUrl = ogURL
 }
 
 // ProfileDataBundle holds all user data fetched from their PDS for profile display
@@ -378,6 +437,7 @@ func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicCl
 		Brews:    brews,
 	}, nil
 }
+
 // Home page
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	// Check if user is authenticated
@@ -679,8 +739,17 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		isOwner = true
 	}
 
-	// Create layout data
+	// Construct share URL (needed for both OG metadata and props)
+	var shareURL string
+	if owner != "" {
+		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, owner)
+	} else if userProfile != nil && userProfile.Handle != "" {
+		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, userProfile.Handle)
+	}
+
+	// Create layout data with OpenGraph metadata
 	layoutData := h.buildLayoutData(r, "Brew Details", isAuthenticated, didStr, userProfile)
+	h.populateBrewOGMetadata(layoutData, brew, shareURL)
 
 	// Get like data
 	var isLiked bool
@@ -690,14 +759,6 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		if isAuthenticated {
 			isLiked = h.feedIndex.HasUserLiked(didStr, subjectURI)
 		}
-	}
-
-	// Construct share URL
-	var shareURL string
-	if owner != "" {
-		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, owner)
-	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, userProfile.Handle)
 	}
 
 	// Create brew view props

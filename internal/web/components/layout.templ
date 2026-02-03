@@ -9,6 +9,37 @@ type LayoutData struct {
 	UserDID         string
 	UserProfile     *bff.UserProfile
 	CSPNonce        string
+
+	// OpenGraph metadata (optional, uses defaults if empty)
+	OGTitle       string // Falls back to Title + " - Arabica"
+	OGDescription string // Falls back to site description
+	OGImage       string // If set, renders og:image tag
+	OGType        string // Falls back to "website"
+	OGUrl         string // Canonical URL for the page
+}
+
+// ogTitle returns the OpenGraph title, falling back to the page title
+func (d *LayoutData) ogTitle() string {
+	if d.OGTitle != "" {
+		return d.OGTitle
+	}
+	return d.Title + " - Arabica"
+}
+
+// ogDescription returns the OpenGraph description, falling back to site default
+func (d *LayoutData) ogDescription() string {
+	if d.OGDescription != "" {
+		return d.OGDescription
+	}
+	return "Track your coffee brewing journey. Built on AT Protocol, your data stays yours."
+}
+
+// ogType returns the OpenGraph type, falling back to "website"
+func (d *LayoutData) ogType() string {
+	if d.OGType != "" {
+		return d.OGType
+	}
+	return "website"
 }
 
 templ Layout(data *LayoutData, content templ.Component) {
@@ -18,9 +49,25 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<meta name="description" content="Arabica is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability."/>
-			<meta property="og:title" content="Arabica - Coffee Brew Tracker"/>
-			<meta property="og:description" content="Track your coffee brewing journey. Built on AT Protocol, your data stays yours."/>
-			<meta property="og:type" content="website"/>
+			<!-- OpenGraph metadata -->
+			<meta property="og:title" content={ data.ogTitle() }/>
+			<meta property="og:description" content={ data.ogDescription() }/>
+			<meta property="og:type" content={ data.ogType() }/>
+			<meta property="og:site_name" content="Arabica"/>
+			if data.OGUrl != "" {
+				<meta property="og:url" content={ data.OGUrl }/>
+			}
+			if data.OGImage != "" {
+				<meta property="og:image" content={ data.OGImage }/>
+				<meta property="og:image:alt" content={ data.ogTitle() }/>
+			}
+			<!-- Twitter Card metadata -->
+			<meta name="twitter:card" content="summary"/>
+			<meta name="twitter:title" content={ data.ogTitle() }/>
+			<meta name="twitter:description" content={ data.ogDescription() }/>
+			if data.OGImage != "" {
+				<meta name="twitter:image" content={ data.OGImage }/>
+			}
 			<meta name="theme-color" content="#4a2c2a"/>
 			<title>{ data.Title } - Arabica</title>
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>

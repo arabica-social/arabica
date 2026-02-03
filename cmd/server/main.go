@@ -289,6 +289,7 @@ func main() {
 		feedRegistry,
 		handlers.Config{
 			SecureCookies: secureCookies,
+			PublicURL:     publicURL,
 		},
 	)
 
