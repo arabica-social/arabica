@@ -48,6 +48,12 @@ type Store interface {
 	UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *models.UpdateBrewerRequest) error
 	DeleteBrewerByRKey(ctx context.Context, rkey string) error
 
+	// Like operations
+	CreateLike(ctx context.Context, req *models.CreateLikeRequest) (*models.Like, error)
+	DeleteLikeByRKey(ctx context.Context, rkey string) error
+	GetUserLikeForSubject(ctx context.Context, subjectURI string) (*models.Like, error)
+	ListUserLikes(ctx context.Context) ([]*models.Like, error)
+
 	// Close the database connection
 	Close() error
 }

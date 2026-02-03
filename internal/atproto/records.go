@@ -432,3 +432,71 @@ func RecordToBrewer(record map[string]interface{}, atURI string) (*models.Brewer
 
 	return brewer, nil
 }
+
+// ========== Like Conversions ==========
+
+// LikeToRecord converts a models.Like to an atproto record map
+// Uses com.atproto.repo.strongRef format for the subject
+func LikeToRecord(like *models.Like) (map[string]interface{}, error) {
+	if like.SubjectURI == "" {
+		return nil, fmt.Errorf("subject URI is required")
+	}
+	if like.SubjectCID == "" {
+		return nil, fmt.Errorf("subject CID is required")
+	}
+
+	record := map[string]interface{}{
+		"$type": NSIDLike,
+		"subject": map[string]interface{}{
+			"uri": like.SubjectURI,
+			"cid": like.SubjectCID,
+		},
+		"createdAt": like.CreatedAt.Format(time.RFC3339),
+	}
+
+	return record, nil
+}
+
+// RecordToLike converts an atproto record map to a models.Like
+func RecordToLike(record map[string]interface{}, atURI string) (*models.Like, error) {
+	like := &models.Like{}
+
+	// Extract rkey from AT-URI
+	if atURI != "" {
+		parsedURI, err := syntax.ParseATURI(atURI)
+		if err != nil {
+			return nil, fmt.Errorf("invalid AT-URI: %w", err)
+		}
+		like.RKey = parsedURI.RecordKey().String()
+	}
+
+	// Required field: subject (strongRef)
+	subject, ok := record["subject"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("subject is required")
+	}
+	subjectURI, ok := subject["uri"].(string)
+	if !ok || subjectURI == "" {
+		return nil, fmt.Errorf("subject.uri is required")
+	}
+	like.SubjectURI = subjectURI
+
+	subjectCID, ok := subject["cid"].(string)
+	if !ok || subjectCID == "" {
+		return nil, fmt.Errorf("subject.cid is required")
+	}
+	like.SubjectCID = subjectCID
+
+	// Required field: createdAt
+	createdAtStr, ok := record["createdAt"].(string)
+	if !ok {
+		return nil, fmt.Errorf("createdAt is required")
+	}
+	createdAt, err := time.Parse(time.RFC3339, createdAtStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid createdAt format: %w", err)
+	}
+	like.CreatedAt = createdAt
+
+	return like, nil
+}

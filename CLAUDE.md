@@ -558,6 +558,55 @@ func (h *Handler) HandleBrewsPartial(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+### Testing Conventions
+
+**IMPORTANT:** All tests in this codebase MUST use [testify/assert](https://github.com/stretchr/testify) for assertions. Do NOT use `if` statements with `t.Error()` or `t.Errorf()`.
+
+```go
+// CORRECT: Use testify assert
+import (
+    "testing"
+    "github.com/stretchr/testify/assert"
+)
+
+func TestFormatTemp(t *testing.T) {
+    got := FormatTemp(93.5)
+    assert.Equal(t, "93.5°C", got)
+}
+
+func TestPtrEquals(t *testing.T) {
+    val := 42
+    assert.True(t, PtrEquals(&val, 42))
+    assert.False(t, PtrEquals(&val, 99))
+}
+
+func TestRenderedHTML(t *testing.T) {
+    html := renderComponent()
+    assert.Contains(t, html, "btn-primary")
+    assert.NotContains(t, html, "deprecated-class")
+}
+
+// WRONG: Don't use if statements for assertions
+func TestFormatTemp(t *testing.T) {
+    got := FormatTemp(93.5)
+    if got != "93.5°C" {  // ❌ Don't do this
+        t.Errorf("got %q, want %q", got, "93.5°C")
+    }
+}
+```
+
+**Common testify assertions:**
+- `assert.Equal(t, expected, actual)` - Equality check
+- `assert.NotEqual(t, expected, actual)` - Inequality check
+- `assert.True(t, value)` - Boolean true
+- `assert.False(t, value)` - Boolean false
+- `assert.Nil(t, value)` - Nil check
+- `assert.NotNil(t, value)` - Not nil check
+- `assert.Contains(t, haystack, needle)` - Substring/element check
+- `assert.NotContains(t, haystack, needle)` - Negative substring/element check
+- `assert.NoError(t, err)` - No error occurred
+- `assert.Error(t, err)` - Error occurred
+
 ## Future Vision: Social Features
 
 The app currently has a basic community feed. Future plans expand social interactions leveraging AT Protocol's decentralized nature.

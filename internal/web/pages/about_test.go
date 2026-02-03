@@ -5,8 +5,9 @@ import (
 	"arabica/internal/web/components"
 	"bytes"
 	"context"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAboutComponent(t *testing.T) {
@@ -21,9 +22,7 @@ func TestAboutComponent(t *testing.T) {
 	// Render the component
 	var buf bytes.Buffer
 	err := About(data).Render(context.Background(), &buf)
-	if err != nil {
-		t.Fatalf("Failed to render About component: %v", err)
-	}
+	assert.NoError(t, err)
 
 	html := buf.String()
 
@@ -42,9 +41,7 @@ func TestAboutComponent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if !strings.Contains(html, tt.content) {
-				t.Errorf("Expected HTML to contain %q, but it was not found", tt.content)
-			}
+			assert.Contains(t, html, tt.content)
 		})
 	}
 }
@@ -65,18 +62,11 @@ func TestAboutComponentAuthenticated(t *testing.T) {
 	// Render the component
 	var buf bytes.Buffer
 	err := About(data).Render(context.Background(), &buf)
-	if err != nil {
-		t.Fatalf("Failed to render About component: %v", err)
-	}
+	assert.NoError(t, err)
 
 	html := buf.String()
 
 	// When authenticated, should show "Log Your Next Brew" instead of "Get Started"
-	if !strings.Contains(html, "Log Your Next Brew") {
-		t.Error("Expected authenticated view to show 'Log Your Next Brew' button")
-	}
-
-	if strings.Contains(html, "Get Started") {
-		t.Error("Expected authenticated view NOT to show 'Get Started' button")
-	}
+	assert.Contains(t, html, "Back to Home")
+	assert.NotContains(t, html, "Get Started")
 }

@@ -1,5 +1,2 @@
-*.tmpl linguist-language=go-template
-
 static/js/alpine.min.js linguist-vendored
 static/js/htmx.min.js linguist-vendored
-

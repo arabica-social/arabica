@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"arabica/internal/atproto"
 	"arabica/internal/database"
 	"arabica/internal/feed"
+	"arabica/internal/firehose"
 	"arabica/internal/middleware"
 	"arabica/internal/models"
 	"arabica/internal/web/bff"
@@ -37,6 +39,7 @@ type Handler struct {
 	config        Config
 	feedService   *feed.Service
 	feedRegistry  *feed.Registry
+	feedIndex     *firehose.FeedIndex
 }
 
 // NewHandler creates a new Handler with all required dependencies.
@@ -57,6 +60,11 @@ func NewHandler(
 		feedService:   feedService,
 		feedRegistry:  feedRegistry,
 	}
+}
+
+// SetFeedIndex configures the handler to use the firehose feed index for like lookups
+func (h *Handler) SetFeedIndex(idx *firehose.FeedIndex) {
+	h.feedIndex = idx
 }
 
 // validateRKey validates and returns an rkey from a path parameter.
@@ -402,7 +410,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	var feedItems []*feed.FeedItem
 
 	// Check if user is authenticated
-	_, err := atproto.GetAuthenticatedDID(r.Context())
+	viewerDID, err := atproto.GetAuthenticatedDID(r.Context())
 	isAuthenticated := err == nil
 
 	if h.feedService != nil {
@@ -411,6 +419,15 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		} else {
 			// Unauthenticated users get a limited feed from the cache
 			feedItems, _ = h.feedService.GetCachedPublicFeed(r.Context())
+		}
+	}
+
+	// Populate IsLikedByViewer for each feed item if user is authenticated
+	if isAuthenticated && h.feedIndex != nil {
+		for _, item := range feedItems {
+			if item.SubjectURI != "" {
+				item.IsLikedByViewer = h.feedIndex.HasUserLiked(viewerDID, item.SubjectURI)
+			}
 		}
 	}
 
@@ -580,6 +597,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	var brew *models.Brew
 	var brewOwnerDID string
 	var isOwner bool
+	var subjectURI, subjectCID string
 
 	if owner != "" {
 		// Viewing someone else's brew - use public client
@@ -606,6 +624,10 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Store URI and CID for like button
+		subjectURI = record.URI
+		subjectCID = record.CID
+
 		// Convert record to brew
 		brew, err = atproto.RecordToBrew(record.Value, record.URI)
 		if err != nil {
@@ -630,23 +652,58 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		brew, err = store.GetBrewByRKey(r.Context(), rkey)
+		// Use type assertion to access GetBrewRecordByRKey
+		atprotoStore, ok := store.(*atproto.AtprotoStore)
+		if !ok {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			log.Error().Msg("Failed to cast store to AtprotoStore")
+			return
+		}
+
+		brewRecord, err := atprotoStore.GetBrewRecordByRKey(r.Context(), rkey)
 		if err != nil {
 			http.Error(w, "Brew not found", http.StatusNotFound)
 			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for view")
 			return
 		}
 
+		brew = brewRecord.Brew
+		subjectURI = brewRecord.URI
+		subjectCID = brewRecord.CID
 		isOwner = true
 	}
 
 	// Create layout data
 	layoutData := h.buildLayoutData(r, "Brew Details", isAuthenticated, didStr, userProfile)
 
+	// Get like data
+	var isLiked bool
+	var likeCount int
+	if h.feedIndex != nil && subjectURI != "" {
+		likeCount = h.feedIndex.GetLikeCount(subjectURI)
+		if isAuthenticated {
+			isLiked = h.feedIndex.HasUserLiked(didStr, subjectURI)
+		}
+	}
+
+	// Construct share URL
+	var shareURL string
+	if owner != "" {
+		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, owner)
+	} else if userProfile != nil && userProfile.Handle != "" {
+		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, userProfile.Handle)
+	}
+
 	// Create brew view props
 	brewViewProps := pages.BrewViewProps{
-		Brew:         brew,
-		IsOwnProfile: isOwner,
+		Brew:            brew,
+		IsOwnProfile:    isOwner,
+		IsAuthenticated: isAuthenticated,
+		SubjectURI:      subjectURI,
+		SubjectCID:      subjectCID,
+		IsLiked:         isLiked,
+		LikeCount:       likeCount,
+		ShareURL:        shareURL,
 	}
 
 	// Render using templ component
@@ -1037,6 +1094,88 @@ func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(brews); err != nil {
 		log.Error().Err(err).Msg("Failed to encode brews for export")
+	}
+}
+
+// HandleLikeToggle handles creating or deleting a like on a record
+func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	subjectURI := r.FormValue("subject_uri")
+	subjectCID := r.FormValue("subject_cid")
+
+	if subjectURI == "" || subjectCID == "" {
+		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if user already liked this record
+	existingLike, err := store.GetUserLikeForSubject(r.Context(), subjectURI)
+	if err != nil {
+		http.Error(w, "Failed to check like status", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to check existing like")
+		return
+	}
+
+	var isLiked bool
+	var likeCount int
+
+	if existingLike != nil {
+		// Unlike: delete the existing like
+		if err := store.DeleteLikeByRKey(r.Context(), existingLike.RKey); err != nil {
+			http.Error(w, "Failed to unlike", http.StatusInternalServerError)
+			log.Error().Err(err).Msg("Failed to delete like")
+			return
+		}
+		isLiked = false
+
+		// Update firehose index
+		if h.feedIndex != nil {
+			_ = h.feedIndex.DeleteLike(didStr, subjectURI)
+			likeCount = h.feedIndex.GetLikeCount(subjectURI)
+		}
+	} else {
+		// Like: create a new like
+		req := &models.CreateLikeRequest{
+			SubjectURI: subjectURI,
+			SubjectCID: subjectCID,
+		}
+		like, err := store.CreateLike(r.Context(), req)
+		if err != nil {
+			http.Error(w, "Failed to like", http.StatusInternalServerError)
+			log.Error().Err(err).Msg("Failed to create like")
+			return
+		}
+		isLiked = true
+
+		// Update firehose index
+		if h.feedIndex != nil {
+			_ = h.feedIndex.UpsertLike(didStr, like.RKey, subjectURI)
+			likeCount = h.feedIndex.GetLikeCount(subjectURI)
+		}
+	}
+
+	// Return the updated like button component
+	if err := components.LikeButton(components.LikeButtonProps{
+		SubjectURI: subjectURI,
+		SubjectCID: subjectCID,
+		IsLiked:    isLiked,
+		LikeCount:  likeCount,
+	}).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render like button")
 	}
 }
 

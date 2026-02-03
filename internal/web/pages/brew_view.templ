@@ -9,8 +9,14 @@ import (
 
 // BrewViewProps defines the data for the brew view page
 type BrewViewProps struct {
-	Brew         *models.Brew
-	IsOwnProfile bool
+	Brew            *models.Brew
+	IsOwnProfile    bool
+	IsAuthenticated bool
+	SubjectURI      string // AT-URI of the brew (for like button)
+	SubjectCID      string // CID of the brew (for like button)
+	IsLiked         bool   // Whether the current user has liked this brew
+	LikeCount       int    // Number of likes on this brew
+	ShareURL        string // URL for sharing the brew
 }
 
 // BrewView renders the full brew view page
@@ -40,7 +46,22 @@ templ BrewViewCard(props BrewViewProps) {
 		if props.Brew.TastingNotes != "" {
 			@BrewTastingNotes(props.Brew.TastingNotes)
 		}
-		@components.BackButton()
+		<div class="flex justify-between items-center">
+			@components.BackButton()
+			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200">
+				@components.SocialButtons(components.SocialButtonsProps{
+					SubjectURI:      props.SubjectURI,
+					SubjectCID:      props.SubjectCID,
+					IsLiked:         props.IsLiked,
+					LikeCount:       props.LikeCount,
+					ShareURL:        props.ShareURL,
+					ShareTitle:      getBrewShareTitle(props.Brew),
+					ShareText:       "Check out this brew on Arabica",
+					ShowLike:        props.IsAuthenticated,
+					IsAuthenticated: props.IsAuthenticated,
+				})
+			</div>
+		</div>
 	</div>
 }
 
@@ -116,11 +137,11 @@ templ BrewBeanSection(brew *models.Brew) {
 // BrewParametersGrid renders the brew parameters in a grid
 templ BrewParametersGrid(brew *models.Brew) {
 	<div class="grid grid-cols-2 gap-4">
+		@BrewParameter("Coffee", getCoffeeAmountDisplay(brew))
 		@BrewParameter("Brew Method", getBrewerName(brew))
 		@BrewParameter("Grinder", getGrinderName(brew))
-		@BrewParameter("Coffee", getCoffeeAmountDisplay(brew))
-		@BrewParameter("Water", getWaterAmountDisplay(brew))
 		@BrewParameter("Grind Size", getGrindSizeDisplay(brew))
+		@BrewParameter("Water", getWaterAmountDisplay(brew))
 		@BrewParameter("Temperature", getTemperatureDisplay(brew))
 		<div class="col-span-2">
 			@BrewParameter("Brew Time", getBrewTimeDisplay(brew))
@@ -169,6 +190,16 @@ func getWaterAmountDisplay(brew *models.Brew) string {
 	if brew.WaterAmount > 0 {
 		return fmt.Sprintf("%dg", brew.WaterAmount)
 	}
+	// If water amount not set, sum from pours
+	if len(brew.Pours) > 0 {
+		totalWater := 0
+		for _, pour := range brew.Pours {
+			totalWater += pour.WaterAmount
+		}
+		if totalWater > 0 {
+			return fmt.Sprintf("%dg", totalWater)
+		}
+	}
 	return ""
 }
 
@@ -190,6 +221,16 @@ func getBrewTimeDisplay(brew *models.Brew) string {
 	return ""
 }
 
+func getBrewShareTitle(brew *models.Brew) string {
+	if brew.Bean != nil {
+		if brew.Bean.Name != "" {
+			return brew.Bean.Name
+		}
+		return brew.Bean.Origin
+	}
+	return "Coffee Brew"
+}
+
 // BrewPoursSection renders the pours section
 templ BrewPoursSection(pours []*models.Pour) {
 	<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
@@ -199,7 +240,8 @@ templ BrewPoursSection(pours []*models.Pour) {
 				<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brown-200">
 					<div class="flex gap-4 text-sm">
 						<span class="font-semibold text-brown-800">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
-						<span class="text-brown-600">{ "@ " + bff.FormatTime(pour.TimeSeconds) }</span>
+						// TODO: add a setting to allow users to configure "at" vs "for" in pours display here
+						<span class="text-brown-600">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
 					</div>
 				</div>
 			}

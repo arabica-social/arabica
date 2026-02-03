@@ -17,6 +17,7 @@ var scopes = []string{
 	"repo:" + NSIDBrew,
 	"repo:" + NSIDBrewer,
 	"repo:" + NSIDGrinder,
+	"repo:" + NSIDLike,
 	"repo:" + NSIDRoaster,
 }
 
@@ -198,3 +199,4 @@ func GetSessionIDFromContext(ctx context.Context) (string, error) {
 func ParseDID(didStr string) (syntax.DID, error) {
 	return syntax.ParseDID(didStr)
 }
+

@@ -44,6 +44,9 @@ func (a *FeedIndexAdapter) GetRecentFeed(ctx context.Context, limit int) ([]*fee
 			Author:     item.Author,
 			Timestamp:  item.Timestamp,
 			TimeAgo:    item.TimeAgo,
+			LikeCount:  item.LikeCount,
+			SubjectURI: item.SubjectURI,
+			SubjectCID: item.SubjectCID,
 		}
 	}
 

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/lexicons"
 	"arabica/internal/models"
 
 	"github.com/rs/zerolog/log"
@@ -44,7 +45,26 @@ var (
 
 	// BucketBackfilled stores DIDs that have been backfilled: {did} -> {timestamp}
 	BucketBackfilled = []byte("backfilled")
+
+	// BucketLikes stores like mappings: {subject_uri:actor_did} -> {rkey}
+	BucketLikes = []byte("likes")
+
+	// BucketLikeCounts stores aggregated like counts: {subject_uri} -> {uint64 count}
+	BucketLikeCounts = []byte("like_counts")
+
+	// BucketLikesByActor stores likes by actor for lookup: {actor_did:subject_uri} -> {rkey}
+	BucketLikesByActor = []byte("likes_by_actor")
 )
+
+// FeedableRecordTypes are the record types that should appear as feed items.
+// Likes, comments, etc. are indexed but not displayed directly in the feed.
+var FeedableRecordTypes = map[lexicons.RecordType]bool{
+	lexicons.RecordTypeBrew:    true,
+	lexicons.RecordTypeBean:    true,
+	lexicons.RecordTypeRoaster: true,
+	lexicons.RecordTypeGrinder: true,
+	lexicons.RecordTypeBrewer:  true,
+}
 
 // IndexedRecord represents a record stored in the index
 type IndexedRecord struct {
@@ -111,6 +131,9 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 			BucketMeta,
 			BucketKnownDIDs,
 			BucketBackfilled,
+			BucketLikes,
+			BucketLikeCounts,
+			BucketLikesByActor,
 		}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -120,7 +143,7 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		return nil
 	})
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
@@ -162,7 +185,7 @@ func (idx *FeedIndex) GetCursor() (int64, error) {
 	err := idx.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketMeta)
 		v := b.Get([]byte("cursor"))
-		if v != nil && len(v) == 8 {
+		if len(v) == 8 {
 			cursor = int64(binary.BigEndian.Uint64(v))
 		}
 		return nil
@@ -185,7 +208,7 @@ func (idx *FeedIndex) UpsertRecord(did, collection, rkey, cid string, record jso
 	uri := atproto.BuildATURI(did, collection, rkey)
 
 	// Parse createdAt from record
-	var recordData map[string]interface{}
+	var recordData map[string]any
 	createdAt := time.Now()
 	if err := json.Unmarshal(record, &recordData); err == nil {
 		if createdAtStr, ok := recordData["createdAt"].(string); ok {
@@ -315,7 +338,7 @@ func (idx *FeedIndex) GetRecord(uri string) (*IndexedRecord, error) {
 
 // FeedItem represents an item in the feed (matches feed.FeedItem structure)
 type FeedItem struct {
-	RecordType string
+	RecordType lexicons.RecordType
 	Action     string
 
 	Brew    *models.Brew
@@ -327,14 +350,16 @@ type FeedItem struct {
 	Author    *atproto.Profile
 	Timestamp time.Time
 	TimeAgo   string
+
+	// Like-related fields
+	LikeCount  int    // Number of likes on this record
+	SubjectURI string // AT-URI of this record (for like button)
+	SubjectCID string // CID of this record (for like button)
 }
 
 // GetRecentFeed returns recent feed items from the index
 func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error) {
 	var records []*IndexedRecord
-
-	// FIX: this seems to show the first 20 records for main deployment
-	// - unclear why, but is likely an issue with the db being stale
 	err := idx.db.View(func(tx *bolt.Tx) error {
 		byTime := tx.Bucket(BucketByTime)
 		recordsBucket := tx.Bucket(BucketRecords)
@@ -408,6 +433,9 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
 			continue
 		}
+		if !FeedableRecordTypes[item.RecordType] {
+			continue
+		}
 		items = append(items, item)
 	}
 
@@ -426,7 +454,7 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 
 // recordToFeedItem converts an IndexedRecord to a FeedItem
 func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecord, refMap map[string]*IndexedRecord) (*FeedItem, error) {
-	var recordData map[string]interface{}
+	var recordData map[string]any
 	if err := json.Unmarshal(record.Record, &recordData); err != nil {
 		return nil, err
 	}
@@ -458,7 +486,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		// Resolve bean reference
 		if beanRef, ok := recordData["beanRef"].(string); ok && beanRef != "" {
 			if beanRecord, found := refMap[beanRef]; found {
-				var beanData map[string]interface{}
+				var beanData map[string]any
 				if err := json.Unmarshal(beanRecord.Record, &beanData); err == nil {
 					bean, _ := atproto.RecordToBean(beanData, beanRef)
 					brew.Bean = bean
@@ -466,7 +494,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 					// Resolve roaster reference for bean
 					if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
 						if roasterRecord, found := refMap[roasterRef]; found {
-							var roasterData map[string]interface{}
+							var roasterData map[string]any
 							if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
 								roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
 								brew.Bean.Roaster = roaster
@@ -480,7 +508,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		// Resolve grinder reference
 		if grinderRef, ok := recordData["grinderRef"].(string); ok && grinderRef != "" {
 			if grinderRecord, found := refMap[grinderRef]; found {
-				var grinderData map[string]interface{}
+				var grinderData map[string]any
 				if err := json.Unmarshal(grinderRecord.Record, &grinderData); err == nil {
 					grinder, _ := atproto.RecordToGrinder(grinderData, grinderRef)
 					brew.GrinderObj = grinder
@@ -491,7 +519,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		// Resolve brewer reference
 		if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
 			if brewerRecord, found := refMap[brewerRef]; found {
-				var brewerData map[string]interface{}
+				var brewerData map[string]any
 				if err := json.Unmarshal(brewerRecord.Record, &brewerData); err == nil {
 					brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
 					brew.BrewerObj = brewer
@@ -499,7 +527,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 			}
 		}
 
-		item.RecordType = "brew"
+		item.RecordType = lexicons.RecordTypeBrew
 		item.Action = "added a new brew"
 		item.Brew = brew
 
@@ -512,7 +540,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		// Resolve roaster reference
 		if roasterRef, ok := recordData["roasterRef"].(string); ok && roasterRef != "" {
 			if roasterRecord, found := refMap[roasterRef]; found {
-				var roasterData map[string]interface{}
+				var roasterData map[string]any
 				if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
 					roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
 					bean.Roaster = roaster
@@ -520,7 +548,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 			}
 		}
 
-		item.RecordType = "bean"
+		item.RecordType = lexicons.RecordTypeBean
 		item.Action = "added a new bean"
 		item.Bean = bean
 
@@ -529,7 +557,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		if err != nil {
 			return nil, err
 		}
-		item.RecordType = "roaster"
+		item.RecordType = lexicons.RecordTypeRoaster
 		item.Action = "added a new roaster"
 		item.Roaster = roaster
 
@@ -538,7 +566,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		if err != nil {
 			return nil, err
 		}
-		item.RecordType = "grinder"
+		item.RecordType = lexicons.RecordTypeGrinder
 		item.Action = "added a new grinder"
 		item.Grinder = grinder
 
@@ -547,13 +575,22 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		if err != nil {
 			return nil, err
 		}
-		item.RecordType = "brewer"
+		item.RecordType = lexicons.RecordTypeBrewer
 		item.Action = "added a new brewer"
 		item.Brewer = brewer
+
+	case atproto.NSIDLike:
+		// Skip likes in the feed - they're indexed but not displayed as feed items
+		return nil, fmt.Errorf("likes are not displayed as feed items")
 
 	default:
 		return nil, fmt.Errorf("unknown collection: %s", record.Collection)
 	}
+
+	// Populate like-related fields for all record types
+	item.SubjectURI = record.URI
+	item.SubjectCID = record.CID
+	item.LikeCount = idx.GetLikeCount(record.URI)
 
 	return item, nil
 }
@@ -765,4 +802,132 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 
 	log.Info().Str("did", did).Int("record_count", recordCount).Msg("backfill complete")
 	return nil
+}
+
+// ========== Like Indexing Methods ==========
+
+// UpsertLike adds or updates a like in the index
+func (idx *FeedIndex) UpsertLike(actorDID, rkey, subjectURI string) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		likes := tx.Bucket(BucketLikes)
+		likeCounts := tx.Bucket(BucketLikeCounts)
+		likesByActor := tx.Bucket(BucketLikesByActor)
+
+		// Key format: {subject_uri}:{actor_did}
+		likeKey := []byte(subjectURI + ":" + actorDID)
+
+		// Check if this like already exists
+		existingRKey := likes.Get(likeKey)
+		if existingRKey != nil {
+			// Already exists, nothing to do
+			return nil
+		}
+
+		// Store the like mapping
+		if err := likes.Put(likeKey, []byte(rkey)); err != nil {
+			return err
+		}
+
+		// Store by actor for reverse lookup
+		actorKey := []byte(actorDID + ":" + subjectURI)
+		if err := likesByActor.Put(actorKey, []byte(rkey)); err != nil {
+			return err
+		}
+
+		// Increment the like count
+		countKey := []byte(subjectURI)
+		currentCount := uint64(0)
+		if countData := likeCounts.Get(countKey); len(countData) == 8 {
+			currentCount = binary.BigEndian.Uint64(countData)
+		}
+		currentCount++
+		countBuf := make([]byte, 8)
+		binary.BigEndian.PutUint64(countBuf, currentCount)
+		return likeCounts.Put(countKey, countBuf)
+	})
+}
+
+// DeleteLike removes a like from the index
+func (idx *FeedIndex) DeleteLike(actorDID, subjectURI string) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		likes := tx.Bucket(BucketLikes)
+		likeCounts := tx.Bucket(BucketLikeCounts)
+		likesByActor := tx.Bucket(BucketLikesByActor)
+
+		// Key format: {subject_uri}:{actor_did}
+		likeKey := []byte(subjectURI + ":" + actorDID)
+
+		// Check if like exists
+		if likes.Get(likeKey) == nil {
+			// Doesn't exist, nothing to do
+			return nil
+		}
+
+		// Delete the like mapping
+		if err := likes.Delete(likeKey); err != nil {
+			return err
+		}
+
+		// Delete by actor lookup
+		actorKey := []byte(actorDID + ":" + subjectURI)
+		if err := likesByActor.Delete(actorKey); err != nil {
+			return err
+		}
+
+		// Decrement the like count
+		countKey := []byte(subjectURI)
+		currentCount := uint64(0)
+		if countData := likeCounts.Get(countKey); len(countData) == 8 {
+			currentCount = binary.BigEndian.Uint64(countData)
+		}
+		if currentCount > 0 {
+			currentCount--
+		}
+		if currentCount == 0 {
+			return likeCounts.Delete(countKey)
+		}
+		countBuf := make([]byte, 8)
+		binary.BigEndian.PutUint64(countBuf, currentCount)
+		return likeCounts.Put(countKey, countBuf)
+	})
+}
+
+// GetLikeCount returns the number of likes for a record
+func (idx *FeedIndex) GetLikeCount(subjectURI string) int {
+	var count uint64
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		likeCounts := tx.Bucket(BucketLikeCounts)
+		countData := likeCounts.Get([]byte(subjectURI))
+		if len(countData) == 8 {
+			count = binary.BigEndian.Uint64(countData)
+		}
+		return nil
+	})
+	return int(count)
+}
+
+// HasUserLiked checks if a user has liked a specific record
+func (idx *FeedIndex) HasUserLiked(actorDID, subjectURI string) bool {
+	var exists bool
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		likesByActor := tx.Bucket(BucketLikesByActor)
+		actorKey := []byte(actorDID + ":" + subjectURI)
+		exists = likesByActor.Get(actorKey) != nil
+		return nil
+	})
+	return exists
+}
+
+// GetUserLikeRKey returns the rkey of a user's like for a specific record, or empty string if not found
+func (idx *FeedIndex) GetUserLikeRKey(actorDID, subjectURI string) string {
+	var rkey string
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		likesByActor := tx.Bucket(BucketLikesByActor)
+		actorKey := []byte(actorDID + ":" + subjectURI)
+		if data := likesByActor.Get(actorKey); data != nil {
+			rkey = string(data)
+		}
+		return nil
+	})
+	return rkey
 }

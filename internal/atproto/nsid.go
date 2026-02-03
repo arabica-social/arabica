@@ -17,6 +17,7 @@ const (
 	NSIDBrew    = NSIDBase + ".brew"
 	NSIDBrewer  = NSIDBase + ".brewer"
 	NSIDGrinder = NSIDBase + ".grinder"
+	NSIDLike    = NSIDBase + ".like"
 	NSIDRoaster = NSIDBase + ".roaster"
 
 	// MaxRKeyLength is the maximum allowed length for a record key

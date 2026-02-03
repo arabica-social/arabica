@@ -198,6 +198,26 @@
   .link-bold {
     @apply font-medium text-brown-700 hover:text-brown-900 hover:underline transition-colors;
   }
+
+  /* Like Button */
+  .like-btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors;
+  }
+
+  .like-btn-liked {
+    @apply like-btn bg-brown-100 text-red-600 hover:bg-brown-200;
+    animation: like-pop 400ms ease-out;
+  }
+
+  .like-btn-unliked {
+    @apply like-btn bg-brown-100 text-brown-600 hover:bg-brown-200;
+    animation: like-shrink 200ms ease-out;
+  }
+
+  /* Share Button */
+  .share-btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200;
+  }
 }
 
 /* ========================================
@@ -401,6 +421,44 @@ body.htmx-history-restoring .htmx-transitioning {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Like button pop animation */
+@keyframes like-pop {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.3);
+  }
+  30% {
+    transform: scale(0.9);
+  }
+  45% {
+    transform: scale(1.15);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+  75% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Like button shrink animation for unlike */
+@keyframes like-shrink {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.8);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 

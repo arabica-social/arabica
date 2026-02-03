@@ -81,6 +81,8 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("PUT /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerUpdate)))
 	mux.Handle("DELETE /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerDelete)))
 
+	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
+
 	// Modal routes for entity management (return dialog HTML)
 	mux.HandleFunc("GET /api/modals/bean/new", h.HandleBeanModalNew)
 	mux.HandleFunc("GET /api/modals/bean/{id}", h.HandleBeanModalEdit)
@@ -99,6 +101,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 	// Serve favicon.ico for pdsls
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/x-icon")
 		http.ServeFile(w, r, "static/favicon.ico")
 	})
 

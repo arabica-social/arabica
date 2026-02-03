@@ -182,6 +182,21 @@ type UpdateBrewerRequest struct {
 	Description string `json:"description"`
 }
 
+// Like represents a like on an Arabica record
+type Like struct {
+	RKey       string    `json:"rkey"`
+	SubjectURI string    `json:"subject_uri"`
+	SubjectCID string    `json:"subject_cid"`
+	CreatedAt  time.Time `json:"created_at"`
+	ActorDID   string    `json:"actor_did,omitempty"`
+}
+
+// CreateLikeRequest contains the data needed to create a like
+type CreateLikeRequest struct {
+	SubjectURI string `json:"subject_uri"`
+	SubjectCID string `json:"subject_cid"`
+}
+
 // Validate checks that all fields are within acceptable limits
 func (r *CreateBeanRequest) Validate() error {
 	if r.Name == "" {

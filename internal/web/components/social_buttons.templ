@@ -1,0 +1,41 @@
+package components
+
+// SocialButtonsProps defines properties for the social buttons cluster
+type SocialButtonsProps struct {
+	// Like button props
+	SubjectURI string // AT-URI of the record being liked
+	SubjectCID string // CID of the record being liked
+	IsLiked    bool   // Whether the current user has liked this record
+	LikeCount  int    // Number of likes on this record
+
+	// Share button props
+	ShareURL   string // URL to share
+	ShareTitle string // Title for native share dialog
+	ShareText  string // Text for native share dialog
+
+	// Display options
+	ShowLike        bool // Whether to show the like button (requires authentication)
+	IsAuthenticated bool // Whether the user is authenticated (controls click behavior)
+}
+
+// SocialButtons renders a cluster of social interaction buttons (like, share)
+templ SocialButtons(props SocialButtonsProps) {
+	<div class="flex items-center gap-2">
+		if props.ShowLike && props.SubjectURI != "" && props.SubjectCID != "" {
+			@LikeButton(LikeButtonProps{
+				SubjectURI:      props.SubjectURI,
+				SubjectCID:      props.SubjectCID,
+				IsLiked:         props.IsLiked,
+				LikeCount:       props.LikeCount,
+				IsAuthenticated: props.IsAuthenticated,
+			})
+		}
+		if props.ShareURL != "" {
+			@ShareButton(ShareButtonProps{
+				URL:   props.ShareURL,
+				Title: props.ShareTitle,
+				Text:  props.ShareText,
+			})
+		}
+	</div>
+}

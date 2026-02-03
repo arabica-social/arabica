@@ -2,6 +2,7 @@ package pages
 
 import (
 	"arabica/internal/feed"
+	"arabica/internal/lexicons"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"fmt"
@@ -12,7 +13,7 @@ templ FeedPartial(items []*feed.FeedItem, isAuthenticated bool) {
 	<div class="space-y-4">
 		if len(items) > 0 {
 			for _, item := range items {
-				@FeedCard(item)
+				@FeedCard(item, isAuthenticated)
 			}
 		} else {
 			<div class="bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200">
@@ -24,7 +25,7 @@ templ FeedPartial(items []*feed.FeedItem, isAuthenticated bool) {
 }
 
 // FeedCard renders a single feed item card
-templ FeedCard(item *feed.FeedItem) {
+templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
 	<div class="feed-card">
 		<!-- Author row -->
 		<div class="flex items-center gap-3 mb-3">
@@ -44,6 +45,22 @@ templ FeedCard(item *feed.FeedItem) {
 				</div>
 				<span class="text-brown-500 text-sm">{ item.TimeAgo }</span>
 			</div>
+			<!-- Social buttons -->
+			if item.SubjectURI != "" && item.SubjectCID != "" {
+				<div class="flex-shrink-0">
+					@components.SocialButtons(components.SocialButtonsProps{
+						SubjectURI:      item.SubjectURI,
+						SubjectCID:      item.SubjectCID,
+						IsLiked:         item.IsLikedByViewer,
+						LikeCount:       item.LikeCount,
+						ShareURL:        getFeedItemShareURL(item),
+						ShareTitle:      getFeedItemShareTitle(item),
+						ShareText:       getFeedItemShareText(item),
+						ShowLike:        true,
+						IsAuthenticated: isAuthenticated,
+					})
+				</div>
+			}
 		</div>
 		<!-- Action header -->
 		<div class="mb-2 text-sm text-brown-700">
@@ -51,15 +68,15 @@ templ FeedCard(item *feed.FeedItem) {
 		</div>
 		<!-- Record content -->
 		switch item.RecordType {
-			case "brew":
+			case lexicons.RecordTypeBrew:
 				@FeedBrewContent(item)
-			case "bean":
+			case lexicons.RecordTypeBean:
 				@FeedBeanContent(item)
-			case "roaster":
+			case lexicons.RecordTypeRoaster:
 				@FeedRoasterContent(item)
-			case "grinder":
+			case lexicons.RecordTypeGrinder:
 				@FeedGrinderContent(item)
-			case "brewer":
+			case lexicons.RecordTypeBrewer:
 				@FeedBrewerContent(item)
 		}
 	</div>
@@ -83,7 +100,7 @@ func getDisplayName(displayName *string) string {
 // ActionText renders the action text with clickable links for record names
 templ ActionText(item *feed.FeedItem) {
 	switch item.RecordType {
-		case "brew":
+		case lexicons.RecordTypeBrew:
 			if item.Brew != nil {
 				added a
 				<a
@@ -130,9 +147,9 @@ templ FeedBrewContent(item *feed.FeedItem) {
 							if item.Brew.Bean.Process != "" {
 								<span class="inline-flex items-center gap-0.5">🌱 { item.Brew.Bean.Process }</span>
 							}
-						if item.Brew.CoffeeAmount > 0 {
-							<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", item.Brew.CoffeeAmount) }</span>
-						}
+							if item.Brew.CoffeeAmount > 0 {
+								<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", item.Brew.CoffeeAmount) }</span>
+							}
 						</div>
 					}
 				</div>
@@ -173,15 +190,15 @@ templ FeedBrewContent(item *feed.FeedItem) {
 				if len(item.Brew.Pours) > 0 {
 					<div class="col-span-2">
 						<span class="text-label">Pours:</span>
-					for _, pour := range item.Brew.Pours {
-						<div class="pl-2 text-brown-600">• { fmt.Sprintf("%dg @ %s", pour.WaterAmount, bff.FormatTime(pour.TimeSeconds)) }</div>
-					}
+						for _, pour := range item.Brew.Pours {
+							<div class="pl-2 text-brown-600">• { fmt.Sprintf("%dg @ %s", pour.WaterAmount, bff.FormatTime(pour.TimeSeconds)) }</div>
+						}
 					</div>
-			} else if item.Brew.WaterAmount > 0 {
-				<div>
-					<span class="text-label">Water:</span> { fmt.Sprintf("%dg", item.Brew.WaterAmount) }
-				</div>
-			}
+				} else if item.Brew.WaterAmount > 0 {
+					<div>
+						<span class="text-label">Water:</span> { fmt.Sprintf("%dg", item.Brew.WaterAmount) }
+					</div>
+				}
 				if bff.HasTemp(item.Brew.Temperature) {
 					<div>
 						<span class="text-label">Temp:</span> { bff.FormatTemp(item.Brew.Temperature) }
@@ -215,7 +232,7 @@ templ FeedBeanContent(item *feed.FeedItem) {
 					}
 				</span>
 				if item.Bean.Roaster != nil && item.Bean.Roaster.Name != "" {
-					<span class="text-brown-700"> from { item.Bean.Roaster.Name }</span>
+					<span class="text-brown-700">from { item.Bean.Roaster.Name }</span>
 				}
 			</div>
 			<div class="text-sm text-brown-700 space-y-1">
@@ -295,4 +312,61 @@ templ FeedBrewerContent(item *feed.FeedItem) {
 			}
 		</div>
 	}
+}
+
+// Helper functions for share button
+func getFeedItemShareURL(item *feed.FeedItem) string {
+	switch item.RecordType {
+	case lexicons.RecordTypeBrew:
+		if item.Brew != nil {
+			return fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)
+		}
+	}
+	// For other record types, link to the user's profile
+	return fmt.Sprintf("/profile/%s", item.Author.Handle)
+}
+
+func getFeedItemShareTitle(item *feed.FeedItem) string {
+	switch item.RecordType {
+	case lexicons.RecordTypeBrew:
+		if item.Brew != nil && item.Brew.Bean != nil {
+			if item.Brew.Bean.Name != "" {
+				return item.Brew.Bean.Name
+			}
+			return item.Brew.Bean.Origin
+		}
+		return "Coffee Brew"
+	case lexicons.RecordTypeBean:
+		if item.Bean != nil {
+			if item.Bean.Name != "" {
+				return item.Bean.Name
+			}
+			return item.Bean.Origin
+		}
+		return "Coffee Bean"
+	case lexicons.RecordTypeRoaster:
+		if item.Roaster != nil {
+			return item.Roaster.Name
+		}
+		return "Roaster"
+	case lexicons.RecordTypeGrinder:
+		if item.Grinder != nil {
+			return item.Grinder.Name
+		}
+		return "Grinder"
+	case lexicons.RecordTypeBrewer:
+		if item.Brewer != nil {
+			return item.Brewer.Name
+		}
+		return "Brewer"
+	}
+	return "Arabica"
+}
+
+func getFeedItemShareText(item *feed.FeedItem) string {
+	displayName := item.Author.Handle
+	if item.Author.DisplayName != nil && *item.Author.DisplayName != "" {
+		displayName = *item.Author.DisplayName
+	}
+	return fmt.Sprintf("Check out this %s by %s on Arabica", item.RecordType, displayName)
 }

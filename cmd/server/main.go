@@ -292,6 +292,9 @@ func main() {
 		},
 	)
 
+	// Wire up the feed index for like functionality
+	h.SetFeedIndex(feedIndex)
+
 	// Setup router with middleware
 	handler := routing.SetupRouter(routing.Config{
 		Handlers:     h,
