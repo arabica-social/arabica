@@ -14,7 +14,8 @@ type SocialButtonsProps struct {
 	ShareText  string // Text for native share dialog
 
 	// Display options
-	ShowLike bool // Whether to show the like button (requires authentication)
+	ShowLike        bool // Whether to show the like button (requires authentication)
+	IsAuthenticated bool // Whether the user is authenticated (controls click behavior)
 }
 
 // SocialButtons renders a cluster of social interaction buttons (like, share)
@@ -22,10 +23,11 @@ templ SocialButtons(props SocialButtonsProps) {
 	<div class="flex items-center gap-2">
 		if props.ShowLike && props.SubjectURI != "" && props.SubjectCID != "" {
 			@LikeButton(LikeButtonProps{
-				SubjectURI: props.SubjectURI,
-				SubjectCID: props.SubjectCID,
-				IsLiked:    props.IsLiked,
-				LikeCount:  props.LikeCount,
+				SubjectURI:      props.SubjectURI,
+				SubjectCID:      props.SubjectCID,
+				IsLiked:         props.IsLiked,
+				LikeCount:       props.LikeCount,
+				IsAuthenticated: props.IsAuthenticated,
 			})
 		}
 		if props.ShareURL != "" {

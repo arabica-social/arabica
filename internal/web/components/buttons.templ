@@ -89,20 +89,24 @@ templ ShareButton(props ShareButtonProps) {
 
 // LikeButtonProps defines properties for the like button
 type LikeButtonProps struct {
-	SubjectURI string // AT-URI of the record being liked
-	SubjectCID string // CID of the record being liked
-	IsLiked    bool   // Whether the current user has liked this record
-	LikeCount  int    // Number of likes on this record
+	SubjectURI      string // AT-URI of the record being liked
+	SubjectCID      string // CID of the record being liked
+	IsLiked         bool   // Whether the current user has liked this record
+	LikeCount       int    // Number of likes on this record
+	IsAuthenticated bool   // Whether the user is authenticated
 }
 
 // LikeButton renders a like button with count, using HTMX for toggle behavior
+// TODO: When unauthenticated user clicks, show a login prompt instead of doing nothing
 templ LikeButton(props LikeButtonProps) {
 	<button
 		type="button"
-		hx-post="/api/likes/toggle"
-		hx-vals={ fmt.Sprintf(`{"subject_uri": "%s", "subject_cid": "%s"}`, props.SubjectURI, props.SubjectCID) }
-		hx-swap="outerHTML"
-		hx-trigger="click"
+		if props.IsAuthenticated {
+			hx-post="/api/likes/toggle"
+			hx-vals={ fmt.Sprintf(`{"subject_uri": "%s", "subject_cid": "%s"}`, props.SubjectURI, props.SubjectCID) }
+			hx-swap="outerHTML"
+			hx-trigger="click"
+		}
 		class={ templ.KV("like-btn-liked", props.IsLiked), templ.KV("like-btn-unliked", !props.IsLiked) }
 	>
 		if props.IsLiked {

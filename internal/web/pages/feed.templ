@@ -13,7 +13,7 @@ templ FeedPartial(items []*feed.FeedItem, isAuthenticated bool) {
 	<div class="space-y-4">
 		if len(items) > 0 {
 			for _, item := range items {
-				@FeedCard(item)
+				@FeedCard(item, isAuthenticated)
 			}
 		} else {
 			<div class="bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200">
@@ -25,7 +25,7 @@ templ FeedPartial(items []*feed.FeedItem, isAuthenticated bool) {
 }
 
 // FeedCard renders a single feed item card
-templ FeedCard(item *feed.FeedItem) {
+templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
 	<div class="feed-card">
 		<!-- Author row -->
 		<div class="flex items-center gap-3 mb-3">
@@ -49,14 +49,15 @@ templ FeedCard(item *feed.FeedItem) {
 			if item.SubjectURI != "" && item.SubjectCID != "" {
 				<div class="flex-shrink-0">
 					@components.SocialButtons(components.SocialButtonsProps{
-						SubjectURI: item.SubjectURI,
-						SubjectCID: item.SubjectCID,
-						IsLiked:    item.IsLikedByViewer,
-						LikeCount:  item.LikeCount,
-						ShareURL:   getFeedItemShareURL(item),
-						ShareTitle: getFeedItemShareTitle(item),
-						ShareText:  getFeedItemShareText(item),
-						ShowLike:   true,
+						SubjectURI:      item.SubjectURI,
+						SubjectCID:      item.SubjectCID,
+						IsLiked:         item.IsLikedByViewer,
+						LikeCount:       item.LikeCount,
+						ShareURL:        getFeedItemShareURL(item),
+						ShareTitle:      getFeedItemShareTitle(item),
+						ShareText:       getFeedItemShareText(item),
+						ShowLike:        true,
+						IsAuthenticated: isAuthenticated,
 					})
 				</div>
 			}

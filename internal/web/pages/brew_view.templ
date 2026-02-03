@@ -50,14 +50,15 @@ templ BrewViewCard(props BrewViewProps) {
 			@components.BackButton()
 			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200">
 				@components.SocialButtons(components.SocialButtonsProps{
-					SubjectURI: props.SubjectURI,
-					SubjectCID: props.SubjectCID,
-					IsLiked:    props.IsLiked,
-					LikeCount:  props.LikeCount,
-					ShareURL:   props.ShareURL,
-					ShareTitle: getBrewShareTitle(props.Brew),
-					ShareText:  "Check out this brew on Arabica",
-					ShowLike:   props.IsAuthenticated,
+					SubjectURI:      props.SubjectURI,
+					SubjectCID:      props.SubjectCID,
+					IsLiked:         props.IsLiked,
+					LikeCount:       props.LikeCount,
+					ShareURL:        props.ShareURL,
+					ShareTitle:      getBrewShareTitle(props.Brew),
+					ShareText:       "Check out this brew on Arabica",
+					ShowLike:        props.IsAuthenticated,
+					IsAuthenticated: props.IsAuthenticated,
 				})
 			</div>
 		</div>
