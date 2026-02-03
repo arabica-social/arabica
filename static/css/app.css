@@ -218,6 +218,41 @@
   .share-btn {
     @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200;
   }
+
+  /* Action Bar */
+  .action-bar {
+    @apply flex items-center gap-2 mt-3 pt-3 border-t border-brown-200;
+  }
+
+  .action-btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 cursor-pointer;
+  }
+
+  .action-btn-liked {
+    @apply text-red-600;
+    animation: like-pop 400ms ease-out;
+  }
+
+  .action-btn-disabled {
+    @apply opacity-50 cursor-not-allowed hover:bg-brown-100;
+  }
+
+  /* Action Menu (More dropdown) */
+  .action-menu {
+    @apply absolute right-0 bottom-full mb-1 w-36 bg-white rounded-lg shadow-lg border border-brown-200 py-1 z-10;
+  }
+
+  .action-menu-item {
+    @apply flex items-center gap-2 w-full px-3 py-2 text-sm text-brown-700 hover:bg-brown-100 transition-colors cursor-pointer text-left;
+  }
+
+  .action-menu-item-danger {
+    @apply text-red-600 hover:bg-red-50;
+  }
+
+  .action-menu-divider {
+    @apply border-t border-brown-200 my-1;
+  }
 }
 
 /* ========================================

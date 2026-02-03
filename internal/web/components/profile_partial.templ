@@ -1,6 +1,7 @@
 package components
 
 import (
+	"arabica/internal/atproto"
 	"arabica/internal/models"
 	"strconv"
 )
@@ -14,6 +15,12 @@ type ProfileContentPartialProps struct {
 	Brewers       []*models.Brewer
 	IsOwnProfile  bool
 	ProfileHandle string
+	Profile       *atproto.Profile
+	// Like state for brews (keyed by brew RKey)
+	BrewLikeCounts  map[string]int
+	BrewLikedByUser map[string]bool
+	BrewCIDs        map[string]string // CIDs keyed by brew RKey
+	IsAuthenticated bool
 }
 
 // ProfileContentPartial renders the profile tabs content (for HTMX loading)
@@ -22,10 +29,15 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 	<div id="profile-stats-data" class="hidden" data-brews={ strconv.Itoa(len(props.Brews)) } data-beans={ strconv.Itoa(len(props.Beans)) } data-roasters={ strconv.Itoa(len(props.Roasters)) } data-grinders={ strconv.Itoa(len(props.Grinders)) } data-brewers={ strconv.Itoa(len(props.Brewers)) }></div>
 	<!-- Brews Tab -->
 	<div x-show="activeTab === 'brews'">
-		@BrewListTablePartial(BrewListTableProps{
-			Brews:         props.Brews,
-			IsOwnProfile:  props.IsOwnProfile,
-			ProfileHandle: props.ProfileHandle,
+		@ProfileBrewCards(ProfileBrewCardsProps{
+			Brews:           props.Brews,
+			IsOwnProfile:    props.IsOwnProfile,
+			ProfileHandle:   props.ProfileHandle,
+			Profile:         props.Profile,
+			LikeCounts:      props.BrewLikeCounts,
+			LikedByUser:     props.BrewLikedByUser,
+			BrewCIDs:        props.BrewCIDs,
+			IsAuthenticated: props.IsAuthenticated,
 		})
 	</div>
 	<!-- Beans Tab -->
@@ -118,6 +130,71 @@ func filterClosedBeans(beans []*models.Bean) []*models.Bean {
 		}
 	}
 	return closedBeans
+}
+
+// ProfileBrewCardsProps defines props for the profile brew cards component
+type ProfileBrewCardsProps struct {
+	Brews           []*models.Brew
+	IsOwnProfile    bool
+	ProfileHandle   string
+	Profile         *atproto.Profile
+	LikeCounts      map[string]int
+	LikedByUser     map[string]bool
+	IsAuthenticated bool
+	BrewCIDs        map[string]string // CIDs keyed by brew RKey
+}
+
+// ProfileBrewCards renders brews as feed-style cards
+templ ProfileBrewCards(props ProfileBrewCardsProps) {
+	if len(props.Brews) == 0 {
+		if props.IsOwnProfile {
+			@EmptyState(EmptyStateProps{
+				Message:    "No brews recorded yet! Start tracking your coffee journey.",
+				ActionURL:  "/brews/new",
+				ActionText: "Add Your First Brew",
+			})
+		} else {
+			@EmptyState(EmptyStateProps{
+				Message: "No brews yet.",
+			})
+		}
+	} else {
+		<div class="space-y-4">
+			for _, brew := range props.Brews {
+				@ProfileBrewCard(ProfileBrewCardProps{
+					Brew:            brew,
+					IsOwnProfile:    props.IsOwnProfile,
+					ProfileHandle:   props.ProfileHandle,
+					Profile:         props.Profile,
+					LikeCount:       getLikeCount(props.LikeCounts, brew.RKey),
+					IsLiked:         isLikedByUser(props.LikedByUser, brew.RKey),
+					IsAuthenticated: props.IsAuthenticated,
+					SubjectCID:      getBrewCID(props.BrewCIDs, brew.RKey),
+				})
+			}
+		</div>
+	}
+}
+
+func getLikeCount(counts map[string]int, rkey string) int {
+	if counts == nil {
+		return 0
+	}
+	return counts[rkey]
+}
+
+func isLikedByUser(liked map[string]bool, rkey string) bool {
+	if liked == nil {
+		return false
+	}
+	return liked[rkey]
+}
+
+func getBrewCID(cids map[string]string, rkey string) string {
+	if cids == nil {
+		return ""
+	}
+	return cids[rkey]
 }
 
 // ProfileEquipmentTab renders the equipment tab for profile (grinders and brewers only)

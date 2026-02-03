@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"arabica/internal/atproto"
 	"arabica/internal/database"
@@ -422,10 +423,15 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Populate IsLikedByViewer for each feed item if user is authenticated
-	if isAuthenticated && h.feedIndex != nil {
+	// Populate IsLikedByViewer and IsOwner for each feed item if user is authenticated
+	if isAuthenticated {
 		for _, item := range feedItems {
-			if item.SubjectURI != "" {
+			// Check if viewer owns this record
+			if item.Author != nil {
+				item.IsOwner = item.Author.DID == viewerDID
+			}
+			// Check if viewer liked this record
+			if h.feedIndex != nil && item.SubjectURI != "" {
 				item.IsLikedByViewer = h.feedIndex.HasUserLiked(viewerDID, item.SubjectURI)
 			}
 		}
@@ -1962,27 +1968,52 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	isAuthenticated := err == nil && didStr != ""
 	isOwnProfile := isAuthenticated && didStr == did
 
-	// Render profile content partial (use actor as handle, which is already the handle if provided as such)
+	// Get profile for card rendering
+	profile, err := publicClient.GetProfile(ctx, did)
+	if err != nil {
+		log.Warn().Err(err).Str("did", did).Msg("Failed to fetch profile for profile partial")
+		// Continue without profile - cards will show limited info
+	}
+
+	// Use handle from profile or fallback
 	profileHandle := actor
-	if strings.HasPrefix(actor, "did:") {
-		// If actor was a DID, we need to resolve it to a handle
-		// We can get it from the first brew's author if available, or fetch profile
-		profile, err := publicClient.GetProfile(ctx, did)
-		if err == nil {
-			profileHandle = profile.Handle
-		} else {
-			profileHandle = did // Fallback to DID if we can't get handle
+	if profile != nil {
+		profileHandle = profile.Handle
+	} else if strings.HasPrefix(actor, "did:") {
+		profileHandle = did // Fallback to DID if we can't get handle
+	}
+
+	// Get like counts and CIDs for brews from firehose index
+	brewLikeCounts := make(map[string]int)
+	brewLikedByUser := make(map[string]bool)
+	brewCIDs := make(map[string]string)
+	if h.feedIndex != nil && profile != nil {
+		for _, brew := range profileData.Brews {
+			subjectURI := atproto.BuildATURI(profile.DID, atproto.NSIDBrew, brew.RKey)
+			brewLikeCounts[brew.RKey] = h.feedIndex.GetLikeCount(subjectURI)
+			if isAuthenticated {
+				brewLikedByUser[brew.RKey] = h.feedIndex.HasUserLiked(didStr, subjectURI)
+			}
+			// Get CID from the firehose index record
+			if record, err := h.feedIndex.GetRecord(subjectURI); err == nil && record != nil {
+				brewCIDs[brew.RKey] = record.CID
+			}
 		}
 	}
 
 	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
-		Brews:         profileData.Brews,
-		Beans:         profileData.Beans,
-		Roasters:      profileData.Roasters,
-		Grinders:      profileData.Grinders,
-		Brewers:       profileData.Brewers,
-		IsOwnProfile:  isOwnProfile,
-		ProfileHandle: profileHandle,
+		Brews:           profileData.Brews,
+		Beans:           profileData.Beans,
+		Roasters:        profileData.Roasters,
+		Grinders:        profileData.Grinders,
+		Brewers:         profileData.Brewers,
+		IsOwnProfile:    isOwnProfile,
+		ProfileHandle:   profileHandle,
+		Profile:         profile,
+		BrewLikeCounts:  brewLikeCounts,
+		BrewLikedByUser: brewLikedByUser,
+		BrewCIDs:        brewCIDs,
+		IsAuthenticated: isAuthenticated,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile partial")
@@ -2207,4 +2238,75 @@ func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render 404 page")
 	}
+}
+
+// HandleReport handles content report submissions
+//
+// TODO: Implement actual moderation system:
+// - Store reports in database (BoltDB bucket or SQLite table)
+// - Add admin interface to review reports
+// - Implement report status workflow (pending -> reviewed -> dismissed/actioned)
+//
+// TODO: Reports should be rate limited more strictly by IP than other requests.
+// Consider implementing a separate, stricter rate limit for this endpoint
+// (e.g., 5 reports per hour per IP) to prevent abuse and report flooding.
+func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	subjectURI := r.FormValue("subject_uri")
+	subjectCID := r.FormValue("subject_cid")
+	reason := r.FormValue("reason")
+
+	if subjectURI == "" {
+		http.Error(w, "subject_uri is required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate reason
+	validReasons := map[string]bool{"spam": true, "inappropriate": true, "other": true}
+	if reason == "" || !validReasons[reason] {
+		reason = "other"
+	}
+
+	// Get reporter info if authenticated
+	reporterDID := "anonymous"
+	if didStr, err := atproto.GetAuthenticatedDID(r.Context()); err == nil && didStr != "" {
+		reporterDID = didStr
+	}
+
+	// Get reporter IP for rate limiting tracking
+	reporterIP := r.RemoteAddr
+	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+		// Use first IP in chain (original client)
+		reporterIP = strings.Split(forwarded, ",")[0]
+	}
+
+	// Create report record (not persisted yet - just for structured logging)
+	report := &models.Report{
+		SubjectURI:  subjectURI,
+		SubjectCID:  subjectCID,
+		Reason:      reason,
+		ReporterDID: reporterDID,
+		ReporterIP:  reporterIP,
+		CreatedAt:   time.Now(),
+		Status:      "pending",
+	}
+
+	// TODO: Persist report to database
+	// For now, log the report for manual review
+	log.Info().
+		Str("subject_uri", report.SubjectURI).
+		Str("subject_cid", report.SubjectCID).
+		Str("reason", report.Reason).
+		Str("reporter_did", report.ReporterDID).
+		Str("reporter_ip", report.ReporterIP).
+		Time("created_at", report.CreatedAt).
+		Msg("Content report received")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": "received"}`))
 }

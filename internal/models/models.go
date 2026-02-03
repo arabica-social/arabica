@@ -350,3 +350,16 @@ func (r *UpdateBrewerRequest) Validate() error {
 	}
 	return nil
 }
+
+// Report represents a user-submitted content report
+// TODO: Store reports in database (BoltDB or SQLite) for moderation review
+type Report struct {
+	ID          string    `json:"id"`
+	SubjectURI  string    `json:"subject_uri"`  // AT-URI of the reported content
+	SubjectCID  string    `json:"subject_cid"`  // CID of the reported content
+	Reason      string    `json:"reason"`       // spam, inappropriate, other
+	ReporterDID string    `json:"reporter_did"` // DID of reporter, or "anonymous"
+	ReporterIP  string    `json:"reporter_ip"`  // IP address for rate limiting
+	CreatedAt   time.Time `json:"created_at"`
+	Status      string    `json:"status"` // pending, reviewed, dismissed, actioned
+}

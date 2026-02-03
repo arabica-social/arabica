@@ -48,6 +48,9 @@ type FeedItem struct {
 	SubjectURI      string // AT-URI of this record (for like button)
 	SubjectCID      string // CID of this record (for like button)
 	IsLikedByViewer bool   // Whether the current viewer has liked this record
+
+	// Ownership
+	IsOwner bool // Whether the current viewer owns this record
 }
 
 // publicFeedCache holds cached feed items for unauthenticated users

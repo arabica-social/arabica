@@ -1,0 +1,225 @@
+package components
+
+import (
+	"arabica/internal/atproto"
+	"arabica/internal/models"
+	"arabica/internal/web/bff"
+	"fmt"
+)
+
+// ProfileBrewCardProps defines props for a single brew card on profile
+type ProfileBrewCardProps struct {
+	Brew            *models.Brew
+	IsOwnProfile    bool
+	ProfileHandle   string
+	Profile         *atproto.Profile
+	LikeCount       int
+	IsLiked         bool
+	IsAuthenticated bool
+	SubjectCID      string // CID for like functionality (empty if not available)
+}
+
+// ProfileBrewCard renders a single brew as a feed-style card
+templ ProfileBrewCard(props ProfileBrewCardProps) {
+	<div class="feed-card">
+		<!-- Author row -->
+		<div class="flex items-center gap-3 mb-3">
+			<a href={ templ.SafeURL("/profile/" + props.ProfileHandle) } class="flex-shrink-0">
+				@Avatar(AvatarProps{
+					AvatarURL:   getProfileAvatarURL(props.Profile),
+					DisplayName: getProfileDisplayName(props.Profile),
+					Size:        "md",
+				})
+			</a>
+			<div class="flex-1 min-w-0">
+				<div class="flex items-center gap-2">
+					if props.Profile != nil && props.Profile.DisplayName != nil && *props.Profile.DisplayName != "" {
+						<a href={ templ.SafeURL("/profile/" + props.ProfileHandle) } class="link-bold text-brown-900 truncate">{ *props.Profile.DisplayName }</a>
+					}
+					<a href={ templ.SafeURL("/profile/" + props.ProfileHandle) } class="link text-sm truncate">{ "@" + props.ProfileHandle }</a>
+				</div>
+				<span class="text-brown-500 text-sm">{ bff.FormatTimeAgo(props.Brew.CreatedAt) }</span>
+			</div>
+		</div>
+		<!-- Action text -->
+		<div class="mb-2 text-sm text-brown-700">
+			added a
+			<a
+				href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle)) }
+				class="underline hover:text-brown-900"
+			>
+				new brew
+			</a>
+		</div>
+		<!-- Brew content (clickable) -->
+		<a
+			href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle)) }
+			class="block hover:opacity-90 transition-opacity"
+		>
+			@ProfileBrewContent(props.Brew)
+		</a>
+		<!-- Action bar -->
+		@ActionBar(ActionBarProps{
+			SubjectURI:      buildBrewURI(props.Profile, props.Brew.RKey),
+			SubjectCID:      props.SubjectCID,
+			IsLiked:         props.IsLiked,
+			LikeCount:       props.LikeCount,
+			ShareURL:        fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle),
+			ShareTitle:      getBrewShareTitle(props.Brew),
+			ShareText:       getBrewShareText(props.Brew, props.ProfileHandle),
+			IsOwner:         props.IsOwnProfile,
+			EditURL:         getBrewEditURL(props.Brew.RKey, props.IsOwnProfile),
+			DeleteURL:       getBrewDeleteURL(props.Brew.RKey, props.IsOwnProfile),
+			IsAuthenticated: props.IsAuthenticated,
+		})
+	</div>
+}
+
+func getProfileAvatarURL(profile *atproto.Profile) string {
+	if profile != nil && profile.Avatar != nil {
+		return *profile.Avatar
+	}
+	return ""
+}
+
+func getProfileDisplayName(profile *atproto.Profile) string {
+	if profile != nil && profile.DisplayName != nil {
+		return *profile.DisplayName
+	}
+	return ""
+}
+
+func buildBrewURI(profile *atproto.Profile, rkey string) string {
+	if profile == nil {
+		return ""
+	}
+	return fmt.Sprintf("at://%s/social.arabica.alpha.brew/%s", profile.DID, rkey)
+}
+
+func getBrewShareTitle(brew *models.Brew) string {
+	if brew.Bean != nil {
+		if brew.Bean.Name != "" {
+			return brew.Bean.Name
+		}
+		return brew.Bean.Origin
+	}
+	return "Coffee Brew"
+}
+
+func getBrewShareText(brew *models.Brew, handle string) string {
+	return fmt.Sprintf("Check out this brew by @%s on Arabica", handle)
+}
+
+func getBrewEditURL(rkey string, isOwner bool) string {
+	if !isOwner {
+		return ""
+	}
+	return fmt.Sprintf("/brews/%s/edit", rkey)
+}
+
+func getBrewDeleteURL(rkey string, isOwner bool) string {
+	if !isOwner {
+		return ""
+	}
+	return fmt.Sprintf("/brews/%s", rkey)
+}
+
+// ProfileBrewContent renders the brew details inside the card
+templ ProfileBrewContent(brew *models.Brew) {
+	<div class="feed-content-box">
+		<!-- Bean info with rating -->
+		<div class="flex items-start justify-between gap-3 mb-3">
+			<div class="flex-1 min-w-0">
+				if brew.Bean != nil {
+					<div class="font-bold text-brown-900 text-base">
+						if brew.Bean.Name != "" {
+							{ brew.Bean.Name }
+						} else {
+							{ brew.Bean.Origin }
+						}
+					</div>
+					if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
+						<div class="text-sm text-brown-700 mt-0.5">
+							<span class="font-medium">🏭 { brew.Bean.Roaster.Name }</span>
+						</div>
+					}
+					<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+						if brew.Bean.Origin != "" {
+							<span class="inline-flex items-center gap-0.5">📍 { brew.Bean.Origin }</span>
+						}
+						if brew.Bean.RoastLevel != "" {
+							<span class="inline-flex items-center gap-0.5">🔥 { brew.Bean.RoastLevel }</span>
+						}
+						if brew.Bean.Process != "" {
+							<span class="inline-flex items-center gap-0.5">🌱 { brew.Bean.Process }</span>
+						}
+						if brew.CoffeeAmount > 0 {
+							<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", brew.CoffeeAmount) }</span>
+						}
+					</div>
+				}
+			</div>
+			if brew.Rating > 0 {
+				<span class="badge-rating">
+					⭐ { fmt.Sprintf("%d/10", brew.Rating) }
+				</span>
+			}
+		</div>
+		<!-- Brewer -->
+		if brew.BrewerObj != nil || brew.Method != "" {
+			<div class="mb-2">
+				<span class="text-meta">Brewer:</span>
+				<span class="text-sm font-semibold text-brown-900">
+					if brew.BrewerObj != nil {
+						{ brew.BrewerObj.Name }
+					} else if brew.Method != "" {
+						{ brew.Method }
+					}
+				</span>
+			</div>
+		}
+		<!-- Brew parameters in compact grid -->
+		<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-brown-700">
+			if brew.GrinderObj != nil {
+				<div>
+					<span class="text-label">Grinder:</span>
+					{ " " }{ brew.GrinderObj.Name }
+					if brew.GrindSize != "" {
+						({ brew.GrindSize })
+					}
+				</div>
+			} else if brew.GrindSize != "" {
+				<div>
+					<span class="text-label">Grind:</span> { brew.GrindSize }
+				</div>
+			}
+			if len(brew.Pours) > 0 {
+				<div class="col-span-2">
+					<span class="text-label">Pours:</span>
+					for _, pour := range brew.Pours {
+						<div class="pl-2 text-brown-600">• { fmt.Sprintf("%dg @ %s", pour.WaterAmount, bff.FormatTime(pour.TimeSeconds)) }</div>
+					}
+				</div>
+			} else if brew.WaterAmount > 0 {
+				<div>
+					<span class="text-label">Water:</span> { fmt.Sprintf("%dg", brew.WaterAmount) }
+				</div>
+			}
+			if bff.HasTemp(brew.Temperature) {
+				<div>
+					<span class="text-label">Temp:</span> { bff.FormatTemp(brew.Temperature) }
+				</div>
+			}
+			if brew.TimeSeconds > 0 {
+				<div>
+					<span class="text-label">Time:</span> { bff.FormatTime(brew.TimeSeconds) }
+				</div>
+			}
+		</div>
+		if brew.TastingNotes != "" {
+			<div class="mt-3 text-sm text-brown-800 italic border-t border-brown-200 pt-2">
+				"{ brew.TastingNotes }"
+			</div>
+		}
+	</div>
+}

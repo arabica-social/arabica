@@ -1,0 +1,146 @@
+package components
+
+import "fmt"
+
+// ActionBarProps defines properties for the action bar below feed/profile cards
+type ActionBarProps struct {
+	// Subject reference for likes
+	SubjectURI string
+	SubjectCID string
+
+	// Like state
+	IsLiked   bool
+	LikeCount int
+
+	// Share props
+	ShareURL   string
+	ShareTitle string
+	ShareText  string
+
+	// Ownership and actions
+	IsOwner   bool
+	EditURL   string
+	DeleteURL string
+
+	// Auth state
+	IsAuthenticated bool
+}
+
+// ActionBar renders the action bar with Comments, Like, Share, and More menu
+// Order: [💬 Comments] [♡ Like] [↗ Share] [⋯ More]
+templ ActionBar(props ActionBarProps) {
+	<div class="action-bar" x-data="{ moreOpen: false }">
+		<!-- Comments (placeholder) -->
+		<button
+			type="button"
+			class="action-btn action-btn-disabled"
+			disabled
+			title="Comments coming soon"
+		>
+			<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+			</svg>
+			<span>0</span>
+		</button>
+		<!-- Like -->
+		if props.SubjectURI != "" && props.SubjectCID != "" {
+			@LikeButton(LikeButtonProps{
+				SubjectURI:      props.SubjectURI,
+				SubjectCID:      props.SubjectCID,
+				IsLiked:         props.IsLiked,
+				LikeCount:       props.LikeCount,
+				IsAuthenticated: props.IsAuthenticated,
+			})
+		}
+		<!-- Share -->
+		if props.ShareURL != "" {
+			@ActionBarShareButton(props)
+		}
+		<!-- More menu -->
+		<div class="relative">
+			<button
+				type="button"
+				@click="moreOpen = !moreOpen"
+				@click.away="moreOpen = false"
+				class="action-btn"
+				aria-label="More options"
+			>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+				</svg>
+			</button>
+			<!-- Dropdown menu -->
+			<div
+				x-show="moreOpen"
+				x-transition:enter="transition ease-out duration-100"
+				x-transition:enter-start="transform opacity-0 scale-95"
+				x-transition:enter-end="transform opacity-100 scale-100"
+				x-transition:leave="transition ease-in duration-75"
+				x-transition:leave-start="transform opacity-100 scale-100"
+				x-transition:leave-end="transform opacity-0 scale-95"
+				class="action-menu"
+				x-cloak
+			>
+				if props.IsOwner {
+					if props.EditURL != "" {
+						<a href={ templ.SafeURL(props.EditURL) } class="action-menu-item">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"></path>
+							</svg>
+							Edit
+						</a>
+					}
+					if props.DeleteURL != "" {
+						<button
+							type="button"
+							hx-delete={ props.DeleteURL }
+							hx-confirm="Are you sure you want to delete this?"
+							hx-target="closest .feed-card"
+							hx-swap="outerHTML"
+							class="action-menu-item action-menu-item-danger"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"></path>
+							</svg>
+							Delete
+						</button>
+					}
+					<div class="action-menu-divider"></div>
+				}
+				<!-- Report (available to all users) -->
+				<button
+					type="button"
+					hx-post="/api/report"
+					hx-vals={ fmt.Sprintf(`{"subject_uri": "%s", "subject_cid": "%s", "reason": "inappropriate"}`, props.SubjectURI, props.SubjectCID) }
+					hx-swap="none"
+					@click="moreOpen = false; $dispatch('notify', {message: 'Report submitted'})"
+					class="action-menu-item"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"></path>
+					</svg>
+					Report
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
+// ActionBarShareButton renders the share button for the action bar
+templ ActionBarShareButton(props ActionBarProps) {
+	<button
+		type="button"
+		x-data={ fmt.Sprintf("{ copied: false, share() { const fullUrl = window.location.origin + '%s'; if (navigator.share) { navigator.share({ title: '%s', text: '%s', url: fullUrl }).catch(() => {}); } else { navigator.clipboard.writeText(fullUrl).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000); }); } } }", props.ShareURL, props.ShareTitle, props.ShareText) }
+		@click="share()"
+		class="action-btn"
+		aria-label="Share"
+	>
+		<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
+		</svg>
+		<svg x-show="copied" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"></path>
+		</svg>
+		<span x-show="copied" x-cloak>Copied!</span>
+	</button>
+}

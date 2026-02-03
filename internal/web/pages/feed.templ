@@ -45,31 +45,15 @@ templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
 				</div>
 				<span class="text-brown-500 text-sm">{ item.TimeAgo }</span>
 			</div>
-			<!-- Social buttons -->
-			if item.SubjectURI != "" && item.SubjectCID != "" {
-				<div class="flex-shrink-0">
-					@components.SocialButtons(components.SocialButtonsProps{
-						SubjectURI:      item.SubjectURI,
-						SubjectCID:      item.SubjectCID,
-						IsLiked:         item.IsLikedByViewer,
-						LikeCount:       item.LikeCount,
-						ShareURL:        getFeedItemShareURL(item),
-						ShareTitle:      getFeedItemShareTitle(item),
-						ShareText:       getFeedItemShareText(item),
-						ShowLike:        true,
-						IsAuthenticated: isAuthenticated,
-					})
-				</div>
-			}
 		</div>
 		<!-- Action header -->
 		<div class="mb-2 text-sm text-brown-700">
 			@ActionText(item)
 		</div>
-		<!-- Record content -->
+		<!-- Record content (clickable for brews) -->
 		switch item.RecordType {
 			case lexicons.RecordTypeBrew:
-				@FeedBrewContent(item)
+				@FeedBrewContentClickable(item)
 			case lexicons.RecordTypeBean:
 				@FeedBeanContent(item)
 			case lexicons.RecordTypeRoaster:
@@ -78,6 +62,22 @@ templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
 				@FeedGrinderContent(item)
 			case lexicons.RecordTypeBrewer:
 				@FeedBrewerContent(item)
+		}
+		<!-- Action bar -->
+		if item.SubjectURI != "" && item.SubjectCID != "" {
+			@components.ActionBar(components.ActionBarProps{
+				SubjectURI:      item.SubjectURI,
+				SubjectCID:      item.SubjectCID,
+				IsLiked:         item.IsLikedByViewer,
+				LikeCount:       item.LikeCount,
+				ShareURL:        getFeedItemShareURL(item),
+				ShareTitle:      getFeedItemShareTitle(item),
+				ShareText:       getFeedItemShareText(item),
+				IsOwner:         item.IsOwner,
+				EditURL:         getEditURL(item),
+				DeleteURL:       getDeleteURL(item),
+				IsAuthenticated: isAuthenticated,
+			})
 		}
 	</div>
 }
@@ -114,6 +114,18 @@ templ ActionText(item *feed.FeedItem) {
 			}
 		default:
 			{ item.Action }
+	}
+}
+
+// FeedBrewContentClickable renders brew content wrapped in a clickable link
+templ FeedBrewContentClickable(item *feed.FeedItem) {
+	if item.Brew != nil {
+		<a
+			href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)) }
+			class="block hover:opacity-90 transition-opacity"
+		>
+			@FeedBrewContent(item)
+		</a>
 	}
 }
 
@@ -369,4 +381,26 @@ func getFeedItemShareText(item *feed.FeedItem) string {
 		displayName = *item.Author.DisplayName
 	}
 	return fmt.Sprintf("Check out this %s by %s on Arabica", item.RecordType, displayName)
+}
+
+// getEditURL returns the edit URL for a feed item (only for brews currently)
+func getEditURL(item *feed.FeedItem) string {
+	switch item.RecordType {
+	case lexicons.RecordTypeBrew:
+		if item.Brew != nil {
+			return fmt.Sprintf("/brews/%s/edit", item.Brew.RKey)
+		}
+	}
+	return ""
+}
+
+// getDeleteURL returns the delete URL for a feed item (only for brews currently)
+func getDeleteURL(item *feed.FeedItem) string {
+	switch item.RecordType {
+	case lexicons.RecordTypeBrew:
+		if item.Brew != nil {
+			return fmt.Sprintf("/brews/%s", item.Brew.RKey)
+		}
+	}
+	return ""
 }

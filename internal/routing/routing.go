@@ -82,6 +82,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("DELETE /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerDelete)))
 
 	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
+	mux.Handle("POST /api/report", cop.Handler(http.HandlerFunc(h.HandleReport)))
 
 	// Modal routes for entity management (return dialog HTML)
 	mux.HandleFunc("GET /api/modals/bean/new", h.HandleBeanModalNew)
