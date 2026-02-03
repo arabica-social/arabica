@@ -500,3 +500,82 @@ func RecordToLike(record map[string]interface{}, atURI string) (*models.Like, er
 
 	return like, nil
 }
+
+// ========== Comment Conversions ==========
+
+// CommentToRecord converts a models.Comment to an atproto record map
+// Uses com.atproto.repo.strongRef format for the subject
+func CommentToRecord(comment *models.Comment) (map[string]interface{}, error) {
+	if comment.SubjectURI == "" {
+		return nil, fmt.Errorf("subject URI is required")
+	}
+	if comment.SubjectCID == "" {
+		return nil, fmt.Errorf("subject CID is required")
+	}
+	if comment.Text == "" {
+		return nil, fmt.Errorf("text is required")
+	}
+
+	record := map[string]interface{}{
+		"$type": NSIDComment,
+		"subject": map[string]interface{}{
+			"uri": comment.SubjectURI,
+			"cid": comment.SubjectCID,
+		},
+		"text":      comment.Text,
+		"createdAt": comment.CreatedAt.Format(time.RFC3339),
+	}
+
+	return record, nil
+}
+
+// RecordToComment converts an atproto record map to a models.Comment
+func RecordToComment(record map[string]interface{}, atURI string) (*models.Comment, error) {
+	comment := &models.Comment{}
+
+	// Extract rkey from AT-URI
+	if atURI != "" {
+		parsedURI, err := syntax.ParseATURI(atURI)
+		if err != nil {
+			return nil, fmt.Errorf("invalid AT-URI: %w", err)
+		}
+		comment.RKey = parsedURI.RecordKey().String()
+	}
+
+	// Required field: subject (strongRef)
+	subject, ok := record["subject"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("subject is required")
+	}
+	subjectURI, ok := subject["uri"].(string)
+	if !ok || subjectURI == "" {
+		return nil, fmt.Errorf("subject.uri is required")
+	}
+	comment.SubjectURI = subjectURI
+
+	subjectCID, ok := subject["cid"].(string)
+	if !ok || subjectCID == "" {
+		return nil, fmt.Errorf("subject.cid is required")
+	}
+	comment.SubjectCID = subjectCID
+
+	// Required field: text
+	text, ok := record["text"].(string)
+	if !ok || text == "" {
+		return nil, fmt.Errorf("text is required")
+	}
+	comment.Text = text
+
+	// Required field: createdAt
+	createdAtStr, ok := record["createdAt"].(string)
+	if !ok {
+		return nil, fmt.Errorf("createdAt is required")
+	}
+	createdAt, err := time.Parse(time.RFC3339, createdAtStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid createdAt format: %w", err)
+	}
+	comment.CreatedAt = createdAt
+
+	return comment, nil
+}

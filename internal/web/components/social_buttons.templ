@@ -8,6 +8,10 @@ type SocialButtonsProps struct {
 	IsLiked    bool   // Whether the current user has liked this record
 	LikeCount  int    // Number of likes on this record
 
+	// Comment button props
+	CommentCount int  // Number of comments on this record
+	ShowComment  bool // Whether to show the comment button
+
 	// Share button props
 	ShareURL   string // URL to share
 	ShareTitle string // Title for native share dialog
@@ -18,7 +22,7 @@ type SocialButtonsProps struct {
 	IsAuthenticated bool // Whether the user is authenticated (controls click behavior)
 }
 
-// SocialButtons renders a cluster of social interaction buttons (like, share)
+// SocialButtons renders a cluster of social interaction buttons (like, comment, share)
 templ SocialButtons(props SocialButtonsProps) {
 	<div class="flex items-center gap-2">
 		if props.ShowLike && props.SubjectURI != "" && props.SubjectCID != "" {
@@ -27,6 +31,14 @@ templ SocialButtons(props SocialButtonsProps) {
 				SubjectCID:      props.SubjectCID,
 				IsLiked:         props.IsLiked,
 				LikeCount:       props.LikeCount,
+				IsAuthenticated: props.IsAuthenticated,
+			})
+		}
+		if props.ShowComment && props.SubjectURI != "" && props.SubjectCID != "" {
+			@CommentButton(CommentButtonProps{
+				SubjectURI:      props.SubjectURI,
+				SubjectCID:      props.SubjectCID,
+				CommentCount:    props.CommentCount,
 				IsAuthenticated: props.IsAuthenticated,
 			})
 		}

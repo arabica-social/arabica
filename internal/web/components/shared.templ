@@ -192,6 +192,64 @@ templ AboutInfoCard() {
 	</div>
 }
 
+// UserBadgeProps defines properties for user badge (avatar + name + handle)
+type UserBadgeProps struct {
+	ProfileURL  string // URL to link to (e.g., "/profile/handle")
+	AvatarURL   string
+	DisplayName string
+	Handle      string
+	TimeAgo     string // Optional timestamp to display
+	Size        string // "sm" or "md" - defaults to "md"
+}
+
+// UserBadge renders a user avatar with display name and handle, properly aligned
+templ UserBadge(props UserBadgeProps) {
+	<div class="flex items-center gap-3">
+		<a href={ templ.SafeURL(props.ProfileURL) } class="flex-shrink-0">
+			@Avatar(AvatarProps{
+				AvatarURL:   props.AvatarURL,
+				DisplayName: props.DisplayName,
+				Size:        props.Size,
+			})
+		</a>
+		<div class="flex-1 min-w-0">
+			<div class={ templ.Classes(
+				"flex items-center gap-2",
+				templ.KV("flex-wrap", props.Size == "sm"),
+			) }>
+				if props.DisplayName != "" {
+					<a
+						href={ templ.SafeURL(props.ProfileURL) }
+						class={ templ.Classes(
+							"text-brown-900 truncate",
+							templ.KV("font-medium hover:text-brown-700", props.Size == "sm"),
+							templ.KV("link-bold", props.Size == "md" || props.Size == ""),
+						) }
+					>
+						{ props.DisplayName }
+					</a>
+				}
+				<a
+					href={ templ.SafeURL(props.ProfileURL) }
+					class={ templ.Classes(
+						"truncate",
+						templ.KV("text-sm text-brown-600 hover:text-brown-800", props.Size == "sm"),
+						templ.KV("link text-sm", props.Size == "md" || props.Size == ""),
+					) }
+				>
+					{ "@" + props.Handle }
+				</a>
+				if props.Size == "sm" && props.TimeAgo != "" {
+					<span class="text-brown-500 text-sm">{ props.TimeAgo }</span>
+				}
+			</div>
+			if (props.Size == "md" || props.Size == "") && props.TimeAgo != "" {
+				<span class="text-brown-500 text-sm">{ props.TimeAgo }</span>
+			}
+		</div>
+	</div>
+}
+
 // AvatarProps defines properties for avatar rendering
 type AvatarProps struct {
 	AvatarURL   string

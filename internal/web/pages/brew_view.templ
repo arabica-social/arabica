@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"arabica/internal/firehose"
 	"arabica/internal/models"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
@@ -16,6 +17,9 @@ type BrewViewProps struct {
 	SubjectCID      string // CID of the brew (for like button)
 	IsLiked         bool   // Whether the current user has liked this brew
 	LikeCount       int    // Number of likes on this brew
+	CommentCount    int    // Number of comments on this brew
+	Comments        []firehose.IndexedComment // Comments on this brew
+	CurrentUserDID  string // DID of the current user (for delete buttons)
 	ShareURL        string // URL for sharing the brew
 }
 
@@ -54,6 +58,8 @@ templ BrewViewCard(props BrewViewProps) {
 					SubjectCID:      props.SubjectCID,
 					IsLiked:         props.IsLiked,
 					LikeCount:       props.LikeCount,
+					CommentCount:    props.CommentCount,
+					ShowComment:     true,
 					ShareURL:        props.ShareURL,
 					ShareTitle:      getBrewShareTitle(props.Brew),
 					ShareText:       "Check out this brew on Arabica",
@@ -62,6 +68,13 @@ templ BrewViewCard(props BrewViewProps) {
 				})
 			</div>
 		</div>
+		@components.CommentSection(components.CommentSectionProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			Comments:        props.Comments,
+			IsAuthenticated: props.IsAuthenticated,
+			CurrentUserDID:  props.CurrentUserDID,
+		})
 	</div>
 }
 
