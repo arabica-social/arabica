@@ -428,6 +428,11 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 	// Convert to FeedItems
 	items := make([]*FeedItem, 0, len(records))
 	for _, record := range records {
+		// Skip likes - they're indexed for like counts but not displayed as feed items
+		if record.Collection == atproto.NSIDLike {
+			continue
+		}
+
 		item, err := idx.recordToFeedItem(ctx, record, recordsByURI)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
@@ -580,8 +585,8 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		item.Brewer = brewer
 
 	case atproto.NSIDLike:
-		// Skip likes in the feed - they're indexed but not displayed as feed items
-		return nil, fmt.Errorf("likes are not displayed as feed items")
+		// This should never be reached - likes are filtered before calling recordToFeedItem
+		return nil, fmt.Errorf("unexpected: likes should be filtered before conversion")
 
 	default:
 		return nil, fmt.Errorf("unknown collection: %s", record.Collection)
