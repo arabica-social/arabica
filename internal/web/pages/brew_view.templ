@@ -26,7 +26,7 @@ templ BrewView(layout *components.LayoutData, props BrewViewProps) {
 
 // BrewViewContent renders the brew view page content
 templ BrewViewContent(props BrewViewProps) {
-	<div class="max-w-2xl mx-auto">
+	<div class="page-container-sm">
 		@components.Card(components.CardProps{InnerCard: true}, BrewViewCard(props))
 	</div>
 }
@@ -95,7 +95,7 @@ templ BrewViewHeader(props BrewViewProps) {
 
 // BrewRating renders the prominent rating display
 templ BrewRating(rating int) {
-	<div class="text-center py-4 bg-brown-50 rounded-lg border border-brown-200">
+	<div class="section-box text-center py-4">
 		<div class="text-4xl font-bold text-brown-800">
 			{ fmt.Sprintf("%d/10", rating) }
 		</div>
@@ -105,7 +105,7 @@ templ BrewRating(rating int) {
 
 // BrewBeanSection renders the coffee bean information
 templ BrewBeanSection(brew *models.Brew) {
-	<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+	<div class="section-box">
 		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Coffee Bean</h3>
 		if brew.Bean != nil {
 			<div class="font-bold text-lg text-brown-900">
@@ -151,7 +151,7 @@ templ BrewParametersGrid(brew *models.Brew) {
 
 // BrewParameter renders a single parameter in the grid
 templ BrewParameter(label string, value string) {
-	<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+	<div class="section-box">
 		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
 		if value != "" {
 			<div class="font-semibold text-brown-900">{ value }</div>
@@ -233,7 +233,7 @@ func getBrewShareTitle(brew *models.Brew) string {
 
 // BrewPoursSection renders the pours section
 templ BrewPoursSection(pours []*models.Pour) {
-	<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+	<div class="section-box">
 		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">Pours</h3>
 		<div class="space-y-2">
 			for _, pour := range pours {
@@ -251,7 +251,7 @@ templ BrewPoursSection(pours []*models.Pour) {
 
 // BrewTastingNotes renders the tasting notes section
 templ BrewTastingNotes(notes string) {
-	<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+	<div class="section-box">
 		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Tasting Notes</h3>
 		<div class="text-brown-900 whitespace-pre-wrap">{ notes }</div>
 	</div>

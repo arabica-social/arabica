@@ -100,7 +100,7 @@ type WelcomeCardProps struct {
 }
 
 templ WelcomeCard(props WelcomeCardProps) {
-	<div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-8 mb-8 border border-brown-300">
+	<div class="card p-8 mb-8">
 		<div class="flex items-center gap-3 mb-4">
 			<h2 class="text-3xl font-bold text-brown-900">Welcome to Arabica</h2>
 			<span class="text-xs bg-amber-400 text-brown-900 px-2 py-1 rounded-md font-semibold shadow-sm">ALPHA</span>
@@ -125,7 +125,7 @@ templ WelcomeAuthenticated(userDID string) {
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 		<a
 			href="/brews/new"
-			class="block bg-gradient-to-br from-brown-700 to-brown-800 text-white text-center py-4 px-6 rounded-xl hover:from-brown-800 hover:to-brown-900 transition-all shadow-lg hover:shadow-xl transform"
+			class="btn-primary block text-center py-4 px-6 rounded-xl shadow-lg hover:shadow-xl"
 			hx-get="/brews/new"
 			hx-target="main"
 			hx-swap="innerHTML show:top"
@@ -136,7 +136,7 @@ templ WelcomeAuthenticated(userDID string) {
 		</a>
 		<a
 			href="/brews"
-			class="block bg-gradient-to-br from-brown-500 to-brown-600 text-white text-center py-4 px-6 rounded-xl hover:from-brown-600 hover:to-brown-700 transition-all shadow-lg hover:shadow-xl"
+			class="btn-tertiary block text-center py-4 px-6 rounded-xl shadow-lg hover:shadow-xl"
 			hx-get="/brews"
 			hx-target="main"
 			hx-swap="innerHTML show:top"
@@ -167,7 +167,7 @@ templ WelcomeUnauthenticated() {
 			</div>
 			<button
 				type="submit"
-				class="w-full mt-4 bg-gradient-to-r from-brown-700 to-brown-800 text-white py-3 px-8 rounded-lg hover:from-brown-800 hover:to-brown-900 transition-all text-lg font-semibold shadow-lg hover:shadow-xl"
+				class="btn-primary w-full mt-4 py-3 px-8 text-lg font-semibold shadow-lg hover:shadow-xl"
 			>
 				Log In
 			</button>
@@ -206,27 +206,11 @@ templ Avatar(props AvatarProps) {
 		<img
 			src={ bff.SafeAvatarURL(props.AvatarURL) }
 			alt=""
-			class={ templ.Classes(
-					templ.KV("w-8 h-8 rounded-full object-cover ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "sm"),
-					templ.KV("w-12 h-12 rounded-full object-cover ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "md" || props.Size == ""),
-					templ.KV("w-20 h-20 rounded-full object-cover border-2 border-brown-300 transition-all duration-200 hover:border-brown-400 hover:border-4", props.Size == "lg"),
-				) }
+			class={ avatarClass(props.Size) }
 		/>
 	} else {
-		<div
-			class={ templ.Classes(
-					templ.KV("w-8 h-8 rounded-full bg-brown-300 flex items-center justify-center ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "sm"),
-					templ.KV("w-12 h-12 rounded-full bg-brown-300 flex items-center justify-center ring-2 ring-brown-500 transition-all duration-200 hover:ring-brown-400 hover:ring-4", props.Size == "md" || props.Size == ""),
-					templ.KV("w-20 h-20 rounded-full bg-brown-300 flex items-center justify-center transition-all duration-200 hover:bg-brown-400", props.Size == "lg"),
-				) }
-		>
-			<span
-				class={ templ.Classes(
-						templ.KV("text-brown-600 text-sm", props.Size == "sm"),
-						templ.KV("text-brown-600 text-base", props.Size == "md" || props.Size == ""),
-						templ.KV("text-brown-600 text-2xl", props.Size == "lg"),
-					) }
-			>
+		<div class={ avatarPlaceholderClass(props.Size) }>
+			<span class={ avatarTextClass(props.Size) }>
 				if props.DisplayName != "" && len(props.DisplayName) > 0 {
 					{ props.DisplayName[:1] }
 				} else {
@@ -234,5 +218,41 @@ templ Avatar(props AvatarProps) {
 				}
 			</span>
 		</div>
+	}
+}
+
+// avatarClass returns the CSS class for avatar images based on size
+func avatarClass(size string) string {
+	switch size {
+	case "sm":
+		return "avatar-sm"
+	case "lg":
+		return "avatar-lg"
+	default:
+		return "avatar-md"
+	}
+}
+
+// avatarPlaceholderClass returns the CSS class for avatar placeholders based on size
+func avatarPlaceholderClass(size string) string {
+	switch size {
+	case "sm":
+		return "avatar-placeholder-sm"
+	case "lg":
+		return "avatar-placeholder-lg"
+	default:
+		return "avatar-placeholder-md"
+	}
+}
+
+// avatarTextClass returns the CSS class for avatar text based on size
+func avatarTextClass(size string) string {
+	switch size {
+	case "sm":
+		return "avatar-text-sm"
+	case "lg":
+		return "avatar-text-lg"
+	default:
+		return "avatar-text-md"
 	}
 }

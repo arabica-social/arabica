@@ -27,9 +27,9 @@ templ Header(isAuthenticated bool, userProfile *bff.UserProfile, userDID string)
 								</svg>
 							</button>
 							<!-- Dropdown menu -->
-							<div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-brown-200 py-1 z-50">
+							<div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="dropdown-menu">
 								if userProfile != nil && userProfile.Handle != "" {
-									<div class="px-4 py-2 border-b border-brown-100">
+									<div class="dropdown-header">
 										<p class="text-sm font-medium text-brown-900 truncate">
 											if userProfile.DisplayName != "" {
 												{ userProfile.DisplayName }
@@ -40,19 +40,19 @@ templ Header(isAuthenticated bool, userProfile *bff.UserProfile, userDID string)
 										<p class="text-xs text-brown-500 truncate">{ "@" + userProfile.Handle }</p>
 									</div>
 								}
-								<a href={ templ.SafeURL("/profile/" + getProfileIdentifier(userProfile, userDID)) } class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors">
+								<a href={ templ.SafeURL("/profile/" + getProfileIdentifier(userProfile, userDID)) } class="dropdown-item">
 									View Profile
 								</a>
-								<a href="/brews" class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors">
+								<a href="/brews" class="dropdown-item">
 									My Brews
 								</a>
-								<a href="/manage" class="block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors">
+								<a href="/manage" class="dropdown-item">
 									Manage Records
 								</a>
-								<a href="#" class="block px-4 py-2 text-sm text-brown-400 cursor-not-allowed">
+								<a href="#" class="dropdown-item-disabled">
 									Settings (coming soon)
 								</a>
-								<div class="border-t border-brown-100 mt-1 pt-1">
+								<div class="dropdown-divider">
 									<form action="/logout" method="POST" @submit="if(window.ArabicaCache)window.ArabicaCache.invalidateCache()">
 										<button type="submit" class="w-full text-left px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors">
 											Logout
