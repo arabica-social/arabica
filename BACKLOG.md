@@ -23,7 +23,28 @@ Each should be addressed one at a time, and the item should be removed after imp
 ## Far Future Considerations
 
 - Maybe swap from boltdb to sqlite
-  - Use the non-cgo library
+  - Use the non-cgo library?
+  - Is there a compelling reason to do this?
+  - Might be good as a sort of witness-cache type thing (record refs to avoid hitting PDS's as often?)
+  - Probably not worth unless we keep a copy of all (or all recent) network data
+
+- The profile, manage, and brews list pages all function in a similar fashion,
+  should one or more of them be consolidated?
+  - Manage + brews list together probably makes sense
+
+- IMPORTANT: If this platform gains any traction, we will need some form of content moderation
+  - Due to the nature of arabica, this will only really need to be text based (text and hyperlinks)
+  - Malicious link scanning may be reasonable, not sure about deeper text analysis
+  - Need to do more research into security
+  - Need admin tooling at the app level that will allow deleting records (may not be possible),
+    removing from appview, blacklisting users (and maybe IPs?), possibly more
+  - Having accounts with admin rights may be an approach to this (configured with flags at startup time?)
+    @arabica.social, @pdewey.com, maybe others? (need trusted users in other time zones probably)
+  - Add on some piece to the TOS that mentions I reserve the right to de-list content from the platform
+  - Continue limiting firehose posts to users who have been previously authenticated (keep a permanent record of "trusted" users)
+    - By logging in users agree to TOS -- can create records to be displayed on the appview ("signal" records)
+      Attestation signature from appview (or pds -- use key from pds) was source of record being created
+  - This is a pretty important consideration going forward, lots to consider
 
 ## Fixes
 

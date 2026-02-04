@@ -13,6 +13,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// ModerationFilter provides content filtering for moderation.
+// This interface allows the feed service to filter hidden/blacklisted content.
+type ModerationFilter interface {
+	IsRecordHidden(ctx context.Context, atURI string) bool
+	IsBlacklisted(ctx context.Context, did string) bool
+}
+
 const (
 	// PublicFeedCacheTTL is the duration for which the public feed cache is valid.
 	// This value can be adjusted based on desired freshness vs. performance tradeoff.
@@ -87,9 +94,10 @@ type FirehoseFeedItem struct {
 
 // Service fetches and aggregates brews from registered users
 type Service struct {
-	registry      *Registry
-	cache         *publicFeedCache
-	firehoseIndex FirehoseIndex
+	registry         *Registry
+	cache            *publicFeedCache
+	firehoseIndex    FirehoseIndex
+	moderationFilter ModerationFilter
 }
 
 // NewService creates a new feed service
@@ -106,9 +114,60 @@ func (s *Service) SetFirehoseIndex(index FirehoseIndex) {
 	log.Info().Msg("feed: firehose index configured")
 }
 
+// SetModerationFilter configures the service to filter moderated content
+func (s *Service) SetModerationFilter(filter ModerationFilter) {
+	s.moderationFilter = filter
+	log.Info().Msg("feed: moderation filter configured")
+}
+
+// filterModeratedItems removes hidden records and content from blacklisted users
+func (s *Service) filterModeratedItems(ctx context.Context, items []*FeedItem) []*FeedItem {
+	if s.moderationFilter == nil {
+		return items
+	}
+
+	filtered := make([]*FeedItem, 0, len(items))
+	for _, item := range items {
+		// Get author DID from the item
+		authorDID := s.getAuthorDID(item)
+		if authorDID != "" && s.moderationFilter.IsBlacklisted(ctx, authorDID) {
+			log.Debug().Str("author", authorDID).Msg("feed: filtering blacklisted user's content")
+			continue
+		}
+
+		// Check if the record is hidden
+		if item.SubjectURI != "" && s.moderationFilter.IsRecordHidden(ctx, item.SubjectURI) {
+			log.Debug().Str("uri", item.SubjectURI).Msg("feed: filtering hidden record")
+			continue
+		}
+
+		filtered = append(filtered, item)
+	}
+
+	if len(items) != len(filtered) {
+		log.Debug().
+			Int("original", len(items)).
+			Int("filtered", len(filtered)).
+			Msg("feed: moderation filtering applied")
+	}
+
+	return filtered
+}
+
+// getAuthorDID extracts the author DID from a feed item
+func (s *Service) getAuthorDID(item *FeedItem) string {
+	if item.Author != nil {
+		return item.Author.DID
+	}
+	// Author should always be set on feed items, but handle gracefully
+	return ""
+}
+
 // GetCachedPublicFeed returns cached feed items for unauthenticated users.
 // It returns up to PublicFeedLimit items from the cache, refreshing if expired.
 // The cache stores PublicFeedCacheSize items internally but only returns PublicFeedLimit.
+// Moderated content is filtered even from cached items to ensure hidden content
+// doesn't appear if it was hidden after caching.
 func (s *Service) GetCachedPublicFeed(ctx context.Context) ([]*FeedItem, error) {
 	s.cache.mu.RLock()
 	cacheValid := time.Now().Before(s.cache.expiresAt) && len(s.cache.items) > 0
@@ -116,6 +175,10 @@ func (s *Service) GetCachedPublicFeed(ctx context.Context) ([]*FeedItem, error) 
 	s.cache.mu.RUnlock()
 
 	if cacheValid {
+		// Apply moderation filtering to cached items
+		// This ensures recently hidden content doesn't appear
+		items = s.filterModeratedItems(ctx, items)
+
 		// Return only the first PublicFeedLimit items from the cache
 		if len(items) > PublicFeedLimit {
 			items = items[:PublicFeedLimit]
@@ -180,6 +243,7 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 
 // GetRecentRecords fetches recent activity (brews and other records) from firehose index
 // Returns up to `limit` items sorted by most recent first
+// Moderated content (hidden records, blacklisted users) is filtered out
 func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem, error) {
 	if s.firehoseIndex == nil || !s.firehoseIndex.IsReady() {
 		log.Warn().Msg("feed: firehose index not ready")
@@ -187,7 +251,28 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 	}
 
 	log.Debug().Msg("feed: using firehose index")
-	return s.getRecentRecordsFromFirehose(ctx, limit)
+
+	// Fetch more items than requested to account for filtered content
+	// This ensures we can still return `limit` items after filtering
+	fetchLimit := limit
+	if s.moderationFilter != nil {
+		fetchLimit = limit + 10 // Buffer for filtered items
+	}
+
+	items, err := s.getRecentRecordsFromFirehose(ctx, fetchLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply moderation filtering
+	items = s.filterModeratedItems(ctx, items)
+
+	// Trim to requested limit
+	if len(items) > limit {
+		items = items[:limit]
+	}
+
+	return items, nil
 }
 
 // getRecentRecordsFromFirehose fetches feed items from the firehose index
