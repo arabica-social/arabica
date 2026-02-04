@@ -1236,10 +1236,11 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 
 	// Return the updated like button component
 	if err := components.LikeButton(components.LikeButtonProps{
-		SubjectURI: subjectURI,
-		SubjectCID: subjectCID,
-		IsLiked:    isLiked,
-		LikeCount:  likeCount,
+		SubjectURI:      subjectURI,
+		SubjectCID:      subjectCID,
+		IsLiked:         isLiked,
+		LikeCount:       likeCount,
+		IsAuthenticated: true,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render like button")
