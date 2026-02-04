@@ -1247,6 +1247,8 @@ func (s *AtprotoStore) CreateComment(ctx context.Context, req *models.CreateComm
 		SubjectCID: req.SubjectCID,
 		Text:       req.Text,
 		CreatedAt:  time.Now(),
+		ParentURI:  req.ParentURI,
+		ParentCID:  req.ParentCID,
 	}
 
 	record, err := CommentToRecord(commentModel)
@@ -1268,6 +1270,8 @@ func (s *AtprotoStore) CreateComment(ctx context.Context, req *models.CreateComm
 	}
 
 	commentModel.RKey = atURI.RecordKey().String()
+	// Store the CID of this comment record (useful for threading)
+	commentModel.CID = output.CID
 
 	return commentModel, nil
 }

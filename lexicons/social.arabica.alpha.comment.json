@@ -25,6 +25,11 @@
             "type": "string",
             "format": "datetime",
             "description": "Timestamp when the comment was created"
+          },
+          "parent": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "Optional parent comment reference for replies"
           }
         }
       }

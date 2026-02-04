@@ -63,6 +63,9 @@ var (
 
 	// BucketCommentsByActor stores comments by actor for lookup: {actor_did:rkey} -> {subject_uri}
 	BucketCommentsByActor = []byte("comments_by_actor")
+
+	// BucketCommentChildren stores parent-child relationships: {parent_uri:child_rkey} -> {child_actor_did}
+	BucketCommentChildren = []byte("comment_children")
 )
 
 // FeedableRecordTypes are the record types that should appear as feed items.
@@ -146,6 +149,7 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 			BucketComments,
 			BucketCommentCounts,
 			BucketCommentsByActor,
+			BucketCommentChildren,
 		}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -960,6 +964,13 @@ type IndexedComment struct {
 	Text       string    `json:"text"`
 	ActorDID   string    `json:"actor_did"`
 	CreatedAt  time.Time `json:"created_at"`
+	// Parent fields for threading (stored)
+	ParentURI  string `json:"parent_uri,omitempty"`
+	ParentRKey string `json:"parent_rkey,omitempty"`
+	CID        string `json:"cid,omitempty"`
+	// Computed fields (populated on retrieval, not stored)
+	Depth   int              `json:"-"` // Nesting depth (0 = top-level, 1 = reply, 2+ = nested reply)
+	Replies []IndexedComment `json:"-"` // Child comments (for tree building)
 	// Profile fields (populated on retrieval, not stored)
 	Handle      string  `json:"-"`
 	DisplayName *string `json:"-"`
@@ -967,11 +978,12 @@ type IndexedComment struct {
 }
 
 // UpsertComment adds or updates a comment in the index
-func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, text string, createdAt time.Time) error {
+func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, parentURI, cid, text string, createdAt time.Time) error {
 	return idx.db.Update(func(tx *bolt.Tx) error {
 		comments := tx.Bucket(BucketComments)
 		commentCounts := tx.Bucket(BucketCommentCounts)
 		commentsByActor := tx.Bucket(BucketCommentsByActor)
+		commentChildren := tx.Bucket(BucketCommentChildren)
 
 		// Key format: {subject_uri}:{timestamp}:{actor_did}:{rkey}
 		// Using timestamp for chronological ordering
@@ -982,6 +994,15 @@ func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, text string, cre
 		existingSubject := commentsByActor.Get(actorKey)
 		isNew := existingSubject == nil
 
+		// Extract parent rkey from parent URI if present
+		var parentRKey string
+		if parentURI != "" {
+			parts := strings.Split(parentURI, "/")
+			if len(parts) > 0 {
+				parentRKey = parts[len(parts)-1]
+			}
+		}
+
 		// Store comment data as JSON
 		commentData := IndexedComment{
 			RKey:       rkey,
@@ -989,6 +1010,9 @@ func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, text string, cre
 			Text:       text,
 			ActorDID:   actorDID,
 			CreatedAt:  createdAt,
+			ParentURI:  parentURI,
+			ParentRKey: parentRKey,
+			CID:        cid,
 		}
 		commentJSON, err := json.Marshal(commentData)
 		if err != nil {
@@ -1003,6 +1027,14 @@ func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, text string, cre
 		// Store actor lookup
 		if err := commentsByActor.Put(actorKey, []byte(subjectURI)); err != nil {
 			return fmt.Errorf("failed to store comment by actor: %w", err)
+		}
+
+		// Store parent-child relationship if this is a reply
+		if parentURI != "" {
+			childKey := []byte(parentURI + ":" + rkey)
+			if err := commentChildren.Put(childKey, []byte(actorDID)); err != nil {
+				return fmt.Errorf("failed to store comment child: %w", err)
+			}
 		}
 
 		// Increment count only if this is a new comment
@@ -1030,6 +1062,7 @@ func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
 		comments := tx.Bucket(BucketComments)
 		commentCounts := tx.Bucket(BucketCommentCounts)
 		commentsByActor := tx.Bucket(BucketCommentsByActor)
+		commentChildren := tx.Bucket(BucketCommentChildren)
 
 		actorKey := []byte(actorDID + ":" + rkey)
 
@@ -1040,11 +1073,17 @@ func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
 		}
 
 		// Find and delete the comment by iterating over comments with matching subject
+		var parentURI string
 		prefix := []byte(subjectURI + ":")
 		c := comments.Cursor()
-		for k, _ := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, _ = c.Next() {
+		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
 			// Check if this key contains our actor and rkey
 			if strings.HasSuffix(string(k), ":"+actorDID+":"+rkey) {
+				// Parse the comment to get parent URI for cleanup
+				var comment IndexedComment
+				if err := json.Unmarshal(v, &comment); err == nil {
+					parentURI = comment.ParentURI
+				}
 				if err := comments.Delete(k); err != nil {
 					return fmt.Errorf("failed to delete comment: %w", err)
 				}
@@ -1055,6 +1094,14 @@ func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
 		// Delete actor lookup
 		if err := commentsByActor.Delete(actorKey); err != nil {
 			return fmt.Errorf("failed to delete comment by actor: %w", err)
+		}
+
+		// Delete parent-child relationship if this was a reply
+		if parentURI != "" {
+			childKey := []byte(parentURI + ":" + rkey)
+			if err := commentChildren.Delete(childKey); err != nil {
+				return fmt.Errorf("failed to delete comment child: %w", err)
+			}
 		}
 
 		// Decrement count
@@ -1091,6 +1138,7 @@ func (idx *FeedIndex) GetCommentCount(subjectURI string) int {
 }
 
 // GetCommentsForSubject returns all comments for a specific record, ordered by creation time
+// This returns a flat list of comments without threading
 func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI string, limit int) []IndexedComment {
 	var comments []IndexedComment
 	_ = idx.db.View(func(tx *bolt.Tx) error {
@@ -1125,4 +1173,78 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 	}
 
 	return comments
+}
+
+// GetThreadedCommentsForSubject returns comments for a record in threaded order with depth
+// Comments are returned in depth-first order (parent followed by children)
+// Visual depth is capped at 2 levels for display purposes
+func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subjectURI string, limit int) []IndexedComment {
+	// First get all comments for this subject
+	allComments := idx.GetCommentsForSubject(ctx, subjectURI, 0) // Get all, we'll limit after threading
+
+	if len(allComments) == 0 {
+		return nil
+	}
+
+	// Build a map of comment rkey -> comment for quick lookup
+	commentMap := make(map[string]*IndexedComment)
+	for i := range allComments {
+		commentMap[allComments[i].RKey] = &allComments[i]
+	}
+
+	// Build parent -> children map
+	childrenMap := make(map[string][]*IndexedComment)
+	var topLevel []*IndexedComment
+
+	for i := range allComments {
+		comment := &allComments[i]
+		if comment.ParentRKey == "" {
+			// Top-level comment
+			topLevel = append(topLevel, comment)
+		} else {
+			// Reply - add to parent's children
+			childrenMap[comment.ParentRKey] = append(childrenMap[comment.ParentRKey], comment)
+		}
+	}
+
+	// Sort top-level comments by creation time (oldest first)
+	sort.Slice(topLevel, func(i, j int) bool {
+		return topLevel[i].CreatedAt.Before(topLevel[j].CreatedAt)
+	})
+
+	// Sort children within each parent by creation time
+	for _, children := range childrenMap {
+		sort.Slice(children, func(i, j int) bool {
+			return children[i].CreatedAt.Before(children[j].CreatedAt)
+		})
+	}
+
+	// Flatten the tree in depth-first order
+	var result []IndexedComment
+	var flatten func(comment *IndexedComment, depth int)
+	flatten = func(comment *IndexedComment, depth int) {
+		if limit > 0 && len(result) >= limit {
+			return
+		}
+		// Cap visual depth at 2 for display
+		visualDepth := depth
+		if visualDepth > 2 {
+			visualDepth = 2
+		}
+		comment.Depth = visualDepth
+		result = append(result, *comment)
+
+		// Add children (if any)
+		if children, ok := childrenMap[comment.RKey]; ok {
+			for _, child := range children {
+				flatten(child, depth+1)
+			}
+		}
+	}
+
+	for _, comment := range topLevel {
+		flatten(comment, 0)
+	}
+
+	return result
 }

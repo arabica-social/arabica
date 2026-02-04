@@ -364,7 +364,12 @@ func (c *Consumer) processMessage(data []byte) error {
 						} else {
 							createdAt = time.Now()
 						}
-						if err := c.index.UpsertComment(event.DID, commit.RKey, subjectURI, text, createdAt); err != nil {
+						// Extract optional parent URI for threading
+						var parentURI string
+						if parent, ok := recordData["parent"].(map[string]interface{}); ok {
+							parentURI, _ = parent["uri"].(string)
+						}
+						if err := c.index.UpsertComment(event.DID, commit.RKey, subjectURI, parentURI, commit.CID, text, createdAt); err != nil {
 							log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to index comment")
 						}
 					}

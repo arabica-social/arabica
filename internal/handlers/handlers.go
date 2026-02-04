@@ -273,6 +273,8 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 	subjectURI := r.FormValue("subject_uri")
 	subjectCID := r.FormValue("subject_cid")
 	text := strings.TrimSpace(r.FormValue("text"))
+	parentURI := r.FormValue("parent_uri")
+	parentCID := r.FormValue("parent_cid")
 
 	if subjectURI == "" || subjectCID == "" {
 		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
@@ -289,10 +291,18 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate that parent fields are either both present or both absent
+	if (parentURI != "" && parentCID == "") || (parentURI == "" && parentCID != "") {
+		http.Error(w, "both parent_uri and parent_cid must be provided together", http.StatusBadRequest)
+		return
+	}
+
 	req := &models.CreateCommentRequest{
 		SubjectURI: subjectURI,
 		SubjectCID: subjectCID,
 		Text:       text,
+		ParentURI:  parentURI,
+		ParentCID:  parentCID,
 	}
 
 	comment, err := store.CreateComment(r.Context(), req)
@@ -302,13 +312,13 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update firehose index
+	// Update firehose index (pass parent URI and comment's CID for threading)
 	if h.feedIndex != nil {
-		_ = h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, text, comment.CreatedAt)
+		_ = h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, parentURI, comment.CID, text, comment.CreatedAt)
 	}
 
-	// Return the updated comment section
-	comments := h.feedIndex.GetCommentsForSubject(r.Context(), subjectURI, 100)
+	// Return the updated comment section with threaded comments
+	comments := h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100)
 
 	if err := components.CommentSection(components.CommentSectionProps{
 		SubjectURI:      subjectURI,
@@ -391,10 +401,10 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 	// Get the subject CID from query params (for the form)
 	subjectCID := r.URL.Query().Get("subject_cid")
 
-	// Get comments from firehose index
+	// Get threaded comments from firehose index
 	var comments []firehose.IndexedComment
 	if h.feedIndex != nil {
-		comments = h.feedIndex.GetCommentsForSubject(r.Context(), subjectURI, 100)
+		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100)
 	}
 
 	if err := components.CommentSection(components.CommentSectionProps{

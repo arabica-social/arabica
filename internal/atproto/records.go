@@ -526,6 +526,14 @@ func CommentToRecord(comment *models.Comment) (map[string]interface{}, error) {
 		"createdAt": comment.CreatedAt.Format(time.RFC3339),
 	}
 
+	// Add optional parent reference for replies
+	if comment.ParentURI != "" && comment.ParentCID != "" {
+		record["parent"] = map[string]interface{}{
+			"uri": comment.ParentURI,
+			"cid": comment.ParentCID,
+		}
+	}
+
 	return record, nil
 }
 
@@ -576,6 +584,16 @@ func RecordToComment(record map[string]interface{}, atURI string) (*models.Comme
 		return nil, fmt.Errorf("invalid createdAt format: %w", err)
 	}
 	comment.CreatedAt = createdAt
+
+	// Optional field: parent (strongRef for replies)
+	if parent, ok := record["parent"].(map[string]interface{}); ok {
+		if parentURI, ok := parent["uri"].(string); ok && parentURI != "" {
+			comment.ParentURI = parentURI
+		}
+		if parentCID, ok := parent["cid"].(string); ok && parentCID != "" {
+			comment.ParentCID = parentCID
+		}
+	}
 
 	return comment, nil
 }

@@ -1,8 +1,11 @@
 package firehose
 
 import (
+	"context"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBackfillTracking(t *testing.T) {
@@ -99,4 +102,123 @@ func TestBackfillTracking_MultipleDIDs(t *testing.T) {
 			t.Errorf("DID %s should be marked as backfilled", did)
 		}
 	}
+}
+
+func TestCommentThreading(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	subjectURI := "at://did:plc:user1/social.arabica.alpha.brew/abc123"
+	actorDID := "did:plc:commenter1"
+
+	// Create a top-level comment
+	now := time.Now()
+	err = idx.UpsertComment(actorDID, "comment1", subjectURI, "", "cid1", "Top level comment", now)
+	assert.NoError(t, err)
+
+	// Create a reply to the top-level comment
+	parentURI := "at://did:plc:commenter1/social.arabica.alpha.comment/comment1"
+	err = idx.UpsertComment("did:plc:commenter2", "comment2", subjectURI, parentURI, "cid2", "Reply to comment", now.Add(time.Second))
+	assert.NoError(t, err)
+
+	// Create a nested reply (depth 2)
+	parentURI2 := "at://did:plc:commenter2/social.arabica.alpha.comment/comment2"
+	err = idx.UpsertComment("did:plc:commenter3", "comment3", subjectURI, parentURI2, "cid3", "Nested reply", now.Add(2*time.Second))
+	assert.NoError(t, err)
+
+	// Get threaded comments
+	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100)
+	assert.Len(t, comments, 3)
+
+	// Verify ordering and depth
+	// Order should be: top-level (depth 0) -> reply (depth 1) -> nested reply (depth 2)
+	assert.Equal(t, "comment1", comments[0].RKey)
+	assert.Equal(t, 0, comments[0].Depth)
+
+	assert.Equal(t, "comment2", comments[1].RKey)
+	assert.Equal(t, 1, comments[1].Depth)
+
+	assert.Equal(t, "comment3", comments[2].RKey)
+	assert.Equal(t, 2, comments[2].Depth)
+
+	// Verify comment count
+	count := idx.GetCommentCount(subjectURI)
+	assert.Equal(t, 3, count)
+}
+
+func TestCommentThreading_DepthCap(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	subjectURI := "at://did:plc:user1/social.arabica.alpha.brew/abc123"
+
+	// Create a chain of comments: depth 0 -> 1 -> 2 -> 3 -> 4
+	now := time.Now()
+	parentURI := ""
+	for i := 0; i < 5; i++ {
+		rkey := "comment" + string(rune('A'+i))
+		err = idx.UpsertComment("did:plc:user", rkey, subjectURI, parentURI, "cid"+rkey, "Comment", now.Add(time.Duration(i)*time.Second))
+		assert.NoError(t, err)
+		parentURI = "at://did:plc:user/social.arabica.alpha.comment/" + rkey
+	}
+
+	// Get threaded comments
+	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100)
+	assert.Len(t, comments, 5)
+
+	// Verify depth is capped at 2
+	assert.Equal(t, 0, comments[0].Depth) // commentA
+	assert.Equal(t, 1, comments[1].Depth) // commentB
+	assert.Equal(t, 2, comments[2].Depth) // commentC (capped)
+	assert.Equal(t, 2, comments[3].Depth) // commentD (capped at 2)
+	assert.Equal(t, 2, comments[4].Depth) // commentE (capped at 2)
+}
+
+func TestCommentThreading_MultipleTopLevel(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	subjectURI := "at://did:plc:user1/social.arabica.alpha.brew/abc123"
+
+	now := time.Now()
+
+	// Create two top-level comments
+	err = idx.UpsertComment("did:plc:user1", "topA", subjectURI, "", "cidA", "First top comment", now)
+	assert.NoError(t, err)
+	err = idx.UpsertComment("did:plc:user2", "topB", subjectURI, "", "cidB", "Second top comment", now.Add(5*time.Second))
+	assert.NoError(t, err)
+
+	// Reply to first top-level comment
+	err = idx.UpsertComment("did:plc:user3", "replyA1", subjectURI, "at://did:plc:user1/social.arabica.alpha.comment/topA", "cidA1", "Reply to first", now.Add(2*time.Second))
+	assert.NoError(t, err)
+
+	// Reply to second top-level comment
+	err = idx.UpsertComment("did:plc:user4", "replyB1", subjectURI, "at://did:plc:user2/social.arabica.alpha.comment/topB", "cidB1", "Reply to second", now.Add(6*time.Second))
+	assert.NoError(t, err)
+
+	// Get threaded comments
+	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100)
+	assert.Len(t, comments, 4)
+
+	// Order should be: topA (oldest) -> replyA1 -> topB -> replyB1
+	assert.Equal(t, "topA", comments[0].RKey)
+	assert.Equal(t, 0, comments[0].Depth)
+
+	assert.Equal(t, "replyA1", comments[1].RKey)
+	assert.Equal(t, 1, comments[1].Depth)
+
+	assert.Equal(t, "topB", comments[2].RKey)
+	assert.Equal(t, 0, comments[2].Depth)
+
+	assert.Equal(t, "replyB1", comments[3].RKey)
+	assert.Equal(t, 1, comments[3].Depth)
 }
