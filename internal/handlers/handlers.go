@@ -12,10 +12,12 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/database"
+	"arabica/internal/database/boltstore"
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
 	"arabica/internal/middleware"
 	"arabica/internal/models"
+	"arabica/internal/moderation"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
@@ -45,6 +47,10 @@ type Handler struct {
 	feedService   *feed.Service
 	feedRegistry  *feed.Registry
 	feedIndex     *firehose.FeedIndex
+
+	// Moderation dependencies (optional)
+	moderationService *moderation.Service
+	moderationStore   *boltstore.ModerationStore
 }
 
 // NewHandler creates a new Handler with all required dependencies.
@@ -70,6 +76,12 @@ func NewHandler(
 // SetFeedIndex configures the handler to use the firehose feed index for like lookups
 func (h *Handler) SetFeedIndex(idx *firehose.FeedIndex) {
 	h.feedIndex = idx
+}
+
+// SetModeration configures the handler with moderation service and store
+func (h *Handler) SetModeration(svc *moderation.Service, store *boltstore.ModerationStore) {
+	h.moderationService = svc
+	h.moderationStore = store
 }
 
 // validateRKey validates and returns an rkey from a path parameter.
@@ -160,6 +172,39 @@ func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfi
 	return userProfile
 }
 
+// buildModerationContext creates moderation context for feed rendering
+// Returns empty context if moderation is not configured or user is not a moderator
+func (h *Handler) buildModerationContext(ctx context.Context, viewerDID string, items []*feed.FeedItem) pages.FeedModerationContext {
+	modCtx := pages.FeedModerationContext{
+		HiddenURIs: make(map[string]bool),
+	}
+
+	// Check if moderation is configured and user is a moderator
+	if h.moderationService == nil || viewerDID == "" {
+		return modCtx
+	}
+
+	if !h.moderationService.IsModerator(viewerDID) {
+		return modCtx
+	}
+
+	modCtx.IsModerator = true
+	modCtx.CanHideRecord = h.moderationService.HasPermission(viewerDID, moderation.PermissionHideRecord)
+
+	// Build map of hidden URIs for efficient lookup
+	if h.moderationStore != nil {
+		for _, item := range items {
+			if item.SubjectURI != "" {
+				if h.moderationStore.IsRecordHidden(ctx, item.SubjectURI) {
+					modCtx.HiddenURIs[item.SubjectURI] = true
+				}
+			}
+		}
+	}
+
+	return modCtx
+}
+
 // getAtprotoStore creates a user-scoped atproto store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
 func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
@@ -188,12 +233,19 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 
 // buildLayoutData creates a LayoutData struct with common fields populated from the request
 func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
+	// Check if user is a moderator
+	isModerator := false
+	if h.moderationService != nil && didStr != "" {
+		isModerator = h.moderationService.IsModerator(didStr)
+	}
+
 	return &components.LayoutData{
 		Title:           title,
 		IsAuthenticated: isAuthenticated,
 		UserDID:         didStr,
 		UserProfile:     userProfile,
 		CSPNonce:        middleware.CSPNonceFromContext(r.Context()),
+		IsModerator:     isModerator,
 	}
 }
 
@@ -497,7 +549,10 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := pages.FeedPartial(feedItems, isAuthenticated).Render(r.Context(), w); err != nil {
+	// Build moderation context for moderators
+	modCtx := h.buildModerationContext(r.Context(), viewerDID, feedItems)
+
+	if err := pages.FeedPartialWithModeration(feedItems, isAuthenticated, modCtx).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render feed partial")
 	}

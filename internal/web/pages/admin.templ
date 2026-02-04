@@ -1,0 +1,216 @@
+package pages
+
+import (
+	"arabica/internal/moderation"
+	"arabica/internal/web/components"
+	"fmt"
+)
+
+type AdminProps struct {
+	HiddenRecords []moderation.HiddenRecord
+	AuditLog      []moderation.AuditEntry
+	CanHide       bool
+	CanUnhide     bool
+	CanViewLogs   bool
+}
+
+templ Admin(layout *components.LayoutData, props AdminProps) {
+	@components.Layout(layout, AdminContent(props))
+}
+
+templ AdminContent(props AdminProps) {
+	<div class="page-container-lg">
+		<div class="mb-8">
+			<h1 class="page-title flex items-center gap-2">
+				<svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"></path>
+				</svg>
+				Moderation Dashboard
+			</h1>
+			<p class="text-brown-600 mt-2">Manage hidden content and view moderation activity.</p>
+		</div>
+
+		<!-- Hidden Records Section -->
+		if props.CanHide || props.CanUnhide {
+			<div class="card card-inner mb-6">
+				<h2 class="section-title">Hidden Records</h2>
+				if len(props.HiddenRecords) == 0 {
+					<div class="bg-brown-50 rounded-lg p-4 text-center text-brown-600">
+						<p>No records are currently hidden.</p>
+					</div>
+				} else {
+					<div class="space-y-3">
+						for _, record := range props.HiddenRecords {
+							@HiddenRecordCard(record, props.CanUnhide)
+						}
+					</div>
+				}
+			</div>
+		}
+
+		<!-- Audit Log Section -->
+		if props.CanViewLogs {
+			<div class="card card-inner">
+				<h2 class="section-title">Recent Activity</h2>
+				if len(props.AuditLog) == 0 {
+					<div class="bg-brown-50 rounded-lg p-4 text-center text-brown-600">
+						<p>No moderation activity recorded yet.</p>
+					</div>
+				} else {
+					<div class="space-y-3">
+						for _, entry := range props.AuditLog {
+							@AuditLogCard(entry)
+						}
+					</div>
+				}
+			</div>
+		}
+	</div>
+}
+
+templ HiddenRecordCard(record moderation.HiddenRecord, canUnhide bool) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- URI with copy button -->
+			<div>
+				<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Record URI</span>
+				<div
+					x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.uri.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
+					class="mt-1 flex items-start gap-2"
+				>
+					<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ record.ATURI }</code>
+					<button
+						type="button"
+						x-on:click="copyText()"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+						x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
+					>
+						<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+						</svg>
+						<svg x-show="copied" x-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+						</svg>
+					</button>
+				</div>
+			</div>
+
+			<!-- Meta info row -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-brown-500">Hidden:</span>
+					<span class="text-brown-700 ml-1">{ record.HiddenAt.Format("Jan 2, 2006 15:04") }</span>
+				</div>
+				<div>
+					<span class="text-brown-500">By:</span>
+					<code class="text-brown-700 ml-1 text-xs">{ record.HiddenBy }</code>
+					if record.AutoHidden {
+						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">auto</span>
+					}
+				</div>
+				if record.Reason != "" {
+					<div>
+						<span class="text-brown-500">Reason:</span>
+						<span class="text-brown-700 ml-1">{ record.Reason }</span>
+					</div>
+				}
+			</div>
+
+			<!-- Actions -->
+			if canUnhide {
+				<div class="pt-2 border-t border-brown-200">
+					<button
+						class="text-sm text-amber-600 hover:text-amber-800 font-medium"
+						hx-post="/_mod/unhide"
+						hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, record.ATURI) }
+						hx-swap="delete"
+						hx-target="closest .bg-brown-50"
+						hx-confirm="Are you sure you want to unhide this record?"
+					>
+						Unhide Record
+					</button>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ AuditLogCard(entry moderation.AuditEntry) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- Action badge and time -->
+			<div class="flex items-center justify-between">
+				@AuditActionBadge(entry.Action)
+				<span class="text-sm text-brown-500">{ entry.Timestamp.Format("Jan 2, 2006 15:04") }</span>
+			</div>
+
+			<!-- Target URI with copy button -->
+			if entry.TargetURI != "" {
+				<div>
+					<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Target</span>
+					<div
+						x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.uri.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
+						class="mt-1 flex items-start gap-2"
+					>
+						<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ entry.TargetURI }</code>
+						<button
+							type="button"
+							x-on:click="copyText()"
+							class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+							x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
+						>
+							<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+							</svg>
+							<svg x-show="copied" x-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+							</svg>
+						</button>
+					</div>
+				</div>
+			}
+
+			<!-- Actor info -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-brown-500">Actor:</span>
+					<code class="text-brown-700 ml-1 text-xs">{ entry.ActorDID }</code>
+					if entry.AutoMod {
+						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">auto</span>
+					}
+				</div>
+				if entry.Reason != "" {
+					<div>
+						<span class="text-brown-500">Reason:</span>
+						<span class="text-brown-700 ml-1">{ entry.Reason }</span>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ AuditActionBadge(action moderation.AuditAction) {
+	switch action {
+		case moderation.AuditActionHideRecord:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+				Hide Record
+			</span>
+		case moderation.AuditActionUnhideRecord:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+				Unhide Record
+			</span>
+		case moderation.AuditActionBlacklistUser:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+				Blacklist User
+			</span>
+		case moderation.AuditActionUnblacklistUser:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+				Unblacklist User
+			</span>
+		default:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brown-100 text-brown-800">
+				{ string(action) }
+			</span>
+	}
+}

@@ -84,6 +84,11 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
 	mux.Handle("POST /api/report", cop.Handler(http.HandlerFunc(h.HandleReport)))
 
+	// Moderation routes (obscured path)
+	mux.HandleFunc("GET /_mod", h.HandleAdmin)
+	mux.Handle("POST /_mod/hide", cop.Handler(http.HandlerFunc(h.HandleHideRecord)))
+	mux.Handle("POST /_mod/unhide", cop.Handler(http.HandlerFunc(h.HandleUnhideRecord)))
+
 	// Modal routes for entity management (return dialog HTML)
 	mux.HandleFunc("GET /api/modals/bean/new", h.HandleBeanModalNew)
 	mux.HandleFunc("GET /api/modals/bean/{id}", h.HandleBeanModalEdit)
