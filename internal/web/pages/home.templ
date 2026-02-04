@@ -12,7 +12,7 @@ templ Home(layout *components.LayoutData, props HomeProps) {
 }
 
 templ HomeContent(props HomeProps) {
-	<div class="max-w-4xl mx-auto">
+	<div class="page-container-lg">
 		@components.WelcomeCard(components.WelcomeCardProps{
 			IsAuthenticated: props.IsAuthenticated,
 			UserDID:         props.UserDID,
@@ -33,7 +33,7 @@ templ HomeContent(props HomeProps) {
 // TODO: add pagination and "load more" button to feed
 // - this is probably mostly a backend change
 templ CommunityFeedSection() {
-	<div class="bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl p-6 mb-8 border border-brown-300">
+	<div class="card p-6 mb-8">
 		<h3 class="text-xl font-bold text-brown-900 mb-4">☕ Community Feed</h3>
 		<div hx-get="/api/feed" hx-trigger="load" hx-swap="innerHTML">
 			@FeedLoadingSkeleton()
@@ -44,7 +44,7 @@ templ CommunityFeedSection() {
 templ FeedLoadingSkeleton() {
 	<div class="space-y-4">
 		<div class="animate-pulse">
-			<div class="bg-brown-50 rounded-lg p-4 border border-brown-200">
+			<div class="section-box">
 				<div class="flex items-center gap-3 mb-3">
 					<div class="w-10 h-10 rounded-full bg-brown-300"></div>
 					<div class="flex-1">

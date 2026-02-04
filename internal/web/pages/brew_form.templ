@@ -27,7 +27,7 @@ templ BrewFormPage(layout *components.LayoutData, props BrewFormProps) {
 
 // BrewFormContent renders the brew form content (for use within layout)
 templ BrewFormContent(props BrewFormProps) {
-	<div class="max-w-2xl mx-auto" x-data="brewForm">
+	<div class="page-container-sm" x-data="brewForm">
 		@components.Card(
 			components.CardProps{InnerCard: true},
 			BrewFormCard(props),

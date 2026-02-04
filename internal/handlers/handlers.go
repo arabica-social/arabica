@@ -1945,6 +1945,21 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(ctx, didStr)
 	}
 
+	// Check if this is an Arabica user (has records or is registered in feed)
+	isArabicaUser := h.feedRegistry.IsRegistered(did) ||
+		len(profileData.Brews) > 0 || len(profileData.Beans) > 0 ||
+		len(profileData.Roasters) > 0 || len(profileData.Grinders) > 0 ||
+		len(profileData.Brewers) > 0
+
+	if !isArabicaUser {
+		layoutData := h.buildLayoutData(r, "Profile Not Found", isAuthenticated, didStr, userProfile)
+		w.WriteHeader(http.StatusNotFound)
+		if err := pages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
+			log.Error().Err(err).Msg("Failed to render profile not found page")
+		}
+		return
+	}
+
 	// Check if the viewing user is the profile owner
 	isOwnProfile := isAuthenticated && didStr == did
 
@@ -2022,6 +2037,17 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data for profile partial")
 		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if this is an Arabica user (has records or is registered in feed)
+	isArabicaUser := h.feedRegistry.IsRegistered(did) ||
+		len(profileData.Brews) > 0 || len(profileData.Beans) > 0 ||
+		len(profileData.Roasters) > 0 || len(profileData.Grinders) > 0 ||
+		len(profileData.Brewers) > 0
+
+	if !isArabicaUser {
+		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
 

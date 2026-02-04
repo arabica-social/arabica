@@ -16,7 +16,7 @@ templ BrewList(layout *components.LayoutData, props BrewListProps) {
 
 // BrewListContent renders the brew list page content
 templ BrewListContent(props BrewListProps) {
-	<div class="max-w-6xl mx-auto">
+	<div class="page-container-xl">
 		@components.PageHeader(components.PageHeaderProps{
 			Title:      "Your Brews",
 			ActionURL:  "/brews/new",

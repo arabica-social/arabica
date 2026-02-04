@@ -22,6 +22,27 @@
 }
 
 @layer components {
+  /* Page Containers */
+  .page-container {
+    @apply mx-auto px-4;
+  }
+
+  .page-container-sm {
+    @apply page-container max-w-2xl;
+  }
+
+  .page-container-md {
+    @apply page-container max-w-3xl;
+  }
+
+  .page-container-lg {
+    @apply page-container max-w-4xl;
+  }
+
+  .page-container-xl {
+    @apply page-container max-w-6xl;
+  }
+
   /* Cards and Containers */
   .card {
     @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300;
@@ -29,6 +50,15 @@
 
   .card-inner {
     @apply p-6;
+  }
+
+  .card-sm {
+    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md border border-brown-300;
+  }
+
+  /* Section box for lighter content areas */
+  .section-box {
+    @apply bg-brown-50 rounded-lg p-4 border border-brown-200;
   }
 
   /* Buttons */
@@ -42,6 +72,10 @@
 
   .btn-secondary {
     @apply btn bg-brown-300 text-brown-900 hover:bg-brown-400;
+  }
+
+  .btn-tertiary {
+    @apply btn bg-gradient-to-br from-brown-500 to-brown-600 text-white hover:from-brown-600 hover:to-brown-700;
   }
 
   .btn-link {
@@ -151,17 +185,51 @@
     @apply bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200;
   }
 
-  /* Avatar */
+  /* Avatar - base styles */
   .avatar {
-    @apply w-10 h-10 rounded-full object-cover;
+    @apply rounded-full object-cover transition-all duration-200;
   }
 
+  .avatar-sm {
+    @apply avatar w-8 h-8 ring-2 ring-brown-500 hover:ring-brown-400 hover:ring-4;
+  }
+
+  .avatar-md {
+    @apply avatar w-12 h-12 ring-2 ring-brown-500 hover:ring-brown-400 hover:ring-4;
+  }
+
+  .avatar-lg {
+    @apply avatar w-20 h-20 border-2 border-brown-300 hover:border-brown-400 hover:border-4;
+  }
+
+  /* Avatar placeholder - for missing images */
   .avatar-placeholder {
-    @apply w-10 h-10 rounded-full bg-brown-300 flex items-center justify-center;
+    @apply rounded-full bg-brown-300 flex items-center justify-center transition-all duration-200;
   }
 
-  .avatar-ring {
-    @apply hover:ring-2 hover:ring-brown-600 transition;
+  .avatar-placeholder-sm {
+    @apply avatar-placeholder w-8 h-8 ring-2 ring-brown-500 hover:ring-brown-400 hover:ring-4;
+  }
+
+  .avatar-placeholder-md {
+    @apply avatar-placeholder w-12 h-12 ring-2 ring-brown-500 hover:ring-brown-400 hover:ring-4;
+  }
+
+  .avatar-placeholder-lg {
+    @apply avatar-placeholder w-20 h-20 hover:bg-brown-400;
+  }
+
+  /* Avatar text sizing */
+  .avatar-text-sm {
+    @apply text-brown-600 text-sm;
+  }
+
+  .avatar-text-md {
+    @apply text-brown-600 text-base;
+  }
+
+  .avatar-text-lg {
+    @apply text-brown-600 text-2xl;
   }
 
   /* Text Utilities */
@@ -240,6 +308,27 @@
   /* Action Menu (More dropdown) */
   .action-menu {
     @apply absolute right-0 bottom-full mb-1 w-36 bg-white rounded-lg shadow-lg border border-brown-200 py-1 z-10;
+  }
+
+  /* Dropdown menu (top-positioned, for headers/nav) */
+  .dropdown-menu {
+    @apply absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-brown-200 py-1 z-50;
+  }
+
+  .dropdown-item {
+    @apply block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors;
+  }
+
+  .dropdown-item-disabled {
+    @apply block px-4 py-2 text-sm text-brown-400 cursor-not-allowed;
+  }
+
+  .dropdown-header {
+    @apply px-4 py-2 border-b border-brown-100;
+  }
+
+  .dropdown-divider {
+    @apply border-t border-brown-100 mt-1 pt-1;
   }
 
   .action-menu-item {
