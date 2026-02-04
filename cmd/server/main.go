@@ -18,6 +18,7 @@ import (
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
 	"arabica/internal/handlers"
+	"arabica/internal/moderation"
 	"arabica/internal/routing"
 
 	"github.com/rs/zerolog"
@@ -299,6 +300,15 @@ func main() {
 
 	// Wire up the feed index for like functionality
 	h.SetFeedIndex(feedIndex)
+
+	// Initialize moderation service and wire up to handler
+	moderatorsConfigPath := os.Getenv("ARABICA_MODERATORS_CONFIG")
+	moderationSvc, err := moderation.NewService(moderatorsConfigPath)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize moderation service, moderation disabled")
+	} else {
+		h.SetModeration(moderationSvc, moderationStore)
+	}
 
 	// Setup router with middleware
 	handler := routing.SetupRouter(routing.Config{
