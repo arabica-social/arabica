@@ -66,3 +66,7 @@ Each should be addressed one at a time, and the item should be removed after imp
 - Firehose maybe not backfilling likes
 
 - TODO: add OpenGraph embeds (mainly for brews; beans and roasters can come later)
+
+- Fix opengraph to show handle, record type and date?
+  - Then show brewer and bean?
+  - Add an image of some kind as well
