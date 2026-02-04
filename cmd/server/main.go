@@ -184,6 +184,10 @@ func main() {
 	adapter := firehose.NewFeedIndexAdapter(feedIndex)
 	feedService.SetFirehoseIndex(adapter)
 
+	// Wire up moderation filtering for the feed
+	moderationStore := store.ModerationStore()
+	feedService.SetModerationFilter(moderationStore)
+
 	log.Info().Msg("Firehose consumer started")
 
 	// Log known DIDs from database (DIDs discovered via firehose)
