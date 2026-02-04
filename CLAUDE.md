@@ -98,6 +98,9 @@ internal/
   feed/
     service.go              # Community feed aggregation
     registry.go             # User registration for feed
+  moderation/
+    models.go               # Moderation types (roles, permissions, reports)
+    service.go              # Role-based moderation service
   models/
     models.go               # Domain models and request types
   middleware/
@@ -105,6 +108,7 @@ internal/
   routing/
     routing.go              # Router setup and middleware chain
 lexicons/                   # AT Protocol lexicon definitions (JSON)
+config/                     # Configuration files (moderators.json.example)
 static/                     # CSS, JS, manifest
 ```
 
@@ -453,6 +457,7 @@ The generated `*_templ.go` files are committed to version control and should be 
 | `SERVER_PUBLIC_URL`         | -                                    | Public URL for reverse proxy     |
 | `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db    | BoltDB path (sessions, registry) |
 | `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path       |
+| `ARABICA_MODERATORS_CONFIG` | -                                    | Path to moderators JSON config   |
 | `ARABICA_PROFILE_CACHE_TTL` | 1h                                   | Profile cache duration           |
 | `SECURE_COOKIES`            | false                                | Set true for HTTPS               |
 | `LOG_LEVEL`                 | info                                 | debug/info/warn/error            |
