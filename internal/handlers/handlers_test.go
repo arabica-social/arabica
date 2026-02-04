@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"arabica/internal/models"
+	"arabica/internal/web/components"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -440,6 +441,142 @@ func TestValidateBrewRequest(t *testing.T) {
 			_, _, _, _, _, _, errs := validateBrewRequest(req)
 
 			assert.Equal(t, tt.wantErrs, len(errs))
+		})
+	}
+}
+
+// TestPopulateBrewOGMetadata tests OpenGraph metadata generation for brew pages
+func TestPopulateBrewOGMetadata(t *testing.T) {
+	tests := []struct {
+		name            string
+		brew            *models.Brew
+		shareURL        string
+		publicURL       string
+		wantTitle       string
+		wantDescription string
+		wantType        string
+		wantURL         string
+	}{
+		{
+			name:            "nil brew",
+			brew:            nil,
+			shareURL:        "/brews/123?owner=test",
+			publicURL:       "https://arabica.example.com",
+			wantTitle:       "", // unchanged
+			wantDescription: "", // unchanged
+			wantType:        "", // unchanged
+			wantURL:         "", // unchanged
+		},
+		{
+			name: "brew with bean and origin",
+			brew: &models.Brew{
+				Rating:       8,
+				TastingNotes: "Fruity and bright",
+				Bean: &models.Bean{
+					Name:   "Ethiopian Yirgacheffe",
+					Origin: "Ethiopia",
+				},
+			},
+			shareURL:        "/brews/123?owner=test",
+			publicURL:       "https://arabica.example.com",
+			wantTitle:       "Ethiopian Yirgacheffe from Ethiopia",
+			wantDescription: "Rated 8/10 · Fruity and bright",
+			wantType:        "article",
+			wantURL:         "https://arabica.example.com/brews/123?owner=test",
+		},
+		{
+			name: "brew with bean without origin",
+			brew: &models.Brew{
+				Rating: 7,
+				Bean: &models.Bean{
+					Name: "House Blend",
+				},
+			},
+			shareURL:        "/brews/456",
+			publicURL:       "https://arabica.example.com",
+			wantTitle:       "House Blend",
+			wantDescription: "Rated 7/10",
+			wantType:        "article",
+			wantURL:         "https://arabica.example.com/brews/456",
+		},
+		{
+			name: "brew without bean",
+			brew: &models.Brew{
+				Rating: 5,
+			},
+			shareURL:        "/brews/789",
+			publicURL:       "https://arabica.example.com",
+			wantTitle:       "Coffee Brew",
+			wantDescription: "Rated 5/10",
+			wantType:        "article",
+			wantURL:         "https://arabica.example.com/brews/789",
+		},
+		{
+			name: "brew with roaster",
+			brew: &models.Brew{
+				TastingNotes: "Chocolatey",
+				Bean: &models.Bean{
+					Name:   "Dark Roast",
+					Origin: "Brazil",
+					Roaster: &models.Roaster{
+						Name: "Local Roasters",
+					},
+				},
+			},
+			shareURL:        "/brews/abc",
+			publicURL:       "https://arabica.example.com",
+			wantTitle:       "Dark Roast from Brazil",
+			wantDescription: "Chocolatey · Roasted by Local Roasters",
+			wantType:        "article",
+			wantURL:         "https://arabica.example.com/brews/abc",
+		},
+		{
+			name: "no public URL configured",
+			brew: &models.Brew{
+				Rating: 9,
+				Bean: &models.Bean{
+					Name: "Premium Blend",
+				},
+			},
+			shareURL:        "/brews/xyz",
+			publicURL:       "",
+			wantTitle:       "Premium Blend",
+			wantDescription: "Rated 9/10",
+			wantType:        "article",
+			wantURL:         "", // no absolute URL without public URL
+		},
+		{
+			name: "long tasting notes truncated",
+			brew: &models.Brew{
+				TastingNotes: strings.Repeat("This is a very long tasting note that should be truncated. ", 5),
+				Bean: &models.Bean{
+					Name: "Test Bean",
+				},
+			},
+			shareURL:        "/brews/long",
+			publicURL:       "https://arabica.example.com",
+			wantTitle:       "Test Bean",
+			wantDescription: "This is a very long tasting note that should be truncated. This is a very long tasting note that ...",
+			wantType:        "article",
+			wantURL:         "https://arabica.example.com/brews/long",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &Handler{
+				config: Config{
+					PublicURL: tt.publicURL,
+				},
+			}
+			layoutData := &components.LayoutData{}
+
+			h.populateBrewOGMetadata(layoutData, tt.brew, tt.shareURL)
+
+			assert.Equal(t, tt.wantTitle, layoutData.OGTitle)
+			assert.Equal(t, tt.wantDescription, layoutData.OGDescription)
+			assert.Equal(t, tt.wantType, layoutData.OGType)
+			assert.Equal(t, tt.wantURL, layoutData.OGUrl)
 		})
 	}
 }

@@ -55,3 +55,14 @@ Each should be addressed one at a time, and the item should be removed after imp
 
 - Maybe having a way of nesting modals, so a roaster can be created from within the bean modal?
   - Maybe have a transition that moves the bean modal to the left, and opens a roaster modal to the right
+
+## Notes
+
+- Popup menu for feed card extras should be centered on the button
+  - Maybe use a different background color (maybe the button color?)
+
+- Add a copy AT URI to extras popup
+
+- Firehose maybe not backfilling likes
+
+- TODO: add OpenGraph embeds (mainly for brews; beans and roasters can come later)
