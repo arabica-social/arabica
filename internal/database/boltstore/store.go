@@ -22,6 +22,24 @@ var (
 
 	// BucketFeedRegistry stores registered user DIDs for the community feed
 	BucketFeedRegistry = []byte("feed_registry")
+
+	// BucketModerationHiddenRecords stores AT-URIs of hidden records
+	BucketModerationHiddenRecords = []byte("moderation_hidden_records")
+
+	// BucketModerationBlacklist stores blacklisted user DIDs
+	BucketModerationBlacklist = []byte("moderation_blacklist")
+
+	// BucketModerationReports stores user reports on content
+	BucketModerationReports = []byte("moderation_reports")
+
+	// BucketModerationReportsByURI indexes reports by subject AT-URI
+	BucketModerationReportsByURI = []byte("moderation_reports_by_uri")
+
+	// BucketModerationReportsByDID indexes reports by subject DID
+	BucketModerationReportsByDID = []byte("moderation_reports_by_did")
+
+	// BucketModerationAuditLog stores moderation action audit trail
+	BucketModerationAuditLog = []byte("moderation_audit_log")
 )
 
 // Store wraps a BoltDB database and provides access to specialized stores.
@@ -87,6 +105,12 @@ func Open(opts Options) (*Store, error) {
 			BucketSessions,
 			BucketAuthRequests,
 			BucketFeedRegistry,
+			BucketModerationHiddenRecords,
+			BucketModerationBlacklist,
+			BucketModerationReports,
+			BucketModerationReportsByURI,
+			BucketModerationReportsByDID,
+			BucketModerationAuditLog,
 		}
 
 		for _, bucket := range buckets {
@@ -127,6 +151,11 @@ func (s *Store) SessionStore() *SessionStore {
 // FeedStore returns a feed registry store backed by this database.
 func (s *Store) FeedStore() *FeedStore {
 	return &FeedStore{db: s.db}
+}
+
+// ModerationStore returns a moderation store backed by this database.
+func (s *Store) ModerationStore() *ModerationStore {
+	return &ModerationStore{db: s.db}
 }
 
 // Stats returns database statistics.
