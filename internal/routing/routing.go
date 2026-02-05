@@ -88,6 +88,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /_mod", h.HandleAdmin)
 	mux.Handle("POST /_mod/hide", cop.Handler(http.HandlerFunc(h.HandleHideRecord)))
 	mux.Handle("POST /_mod/unhide", cop.Handler(http.HandlerFunc(h.HandleUnhideRecord)))
+	mux.Handle("POST /_mod/dismiss-report", cop.Handler(http.HandlerFunc(h.HandleDismissReport)))
 
 	// Modal routes for entity management (return dialog HTML)
 	mux.HandleFunc("GET /api/modals/bean/new", h.HandleBeanModalNew)

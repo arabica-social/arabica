@@ -1,6 +1,9 @@
 package components
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // ActionBarProps defines properties for the action bar below feed/profile cards
 type ActionBarProps struct {
@@ -156,22 +159,29 @@ templ ActionBar(props ActionBarProps) {
 					}
 					<div class="action-menu-divider"></div>
 				}
-				<!-- Report (available to all users) -->
-				<button
-					type="button"
-					hx-post="/api/report"
-					hx-vals={ fmt.Sprintf(`{"subject_uri": "%s", "subject_cid": "%s", "reason": "inappropriate"}`, props.SubjectURI, props.SubjectCID) }
-					hx-swap="none"
-					@click="moreOpen = false; $dispatch('notify', {message: 'Report submitted'})"
-					class="action-menu-item"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"></path>
-					</svg>
-					Report
-				</button>
+				<!-- Report (available to authenticated users) -->
+				if props.IsAuthenticated && !props.IsOwner {
+					<button
+						type="button"
+						@click={ fmt.Sprintf("moreOpen = false; document.getElementById('report-modal-%s').showModal()", escapeForAlpine(props.SubjectURI)) }
+						class="action-menu-item"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"></path>
+						</svg>
+						Report
+					</button>
+				}
 			</div>
 		</div>
+		<!-- Report modal (only for authenticated non-owners) -->
+		if props.IsAuthenticated && !props.IsOwner && props.SubjectURI != "" {
+			@ReportModal(ReportModalProps{
+				ID:         fmt.Sprintf("report-modal-%s", escapeForAlpine(props.SubjectURI)),
+				SubjectURI: props.SubjectURI,
+				SubjectCID: props.SubjectCID,
+			})
+		}
 	</div>
 }
 
@@ -192,4 +202,123 @@ templ ActionBarShareButton(props ActionBarProps) {
 		</svg>
 		<span x-show="copied" x-cloak>Copied!</span>
 	</button>
+}
+
+// ReportModalProps defines properties for the report modal
+type ReportModalProps struct {
+	ID         string // Unique ID for the dialog
+	SubjectURI string
+	SubjectCID string
+}
+
+// ReportModal renders an inline report modal for the action bar
+templ ReportModal(props ReportModalProps) {
+	<dialog id={ props.ID } class="modal-dialog" x-data="{ reason: '', charCount: 0, submitting: false, error: '', success: false }">
+		<div class="modal-content">
+			<h3 class="modal-title">Report Content</h3>
+			<template x-if="!success">
+				<form
+					@submit.prevent={ fmt.Sprintf(`
+						submitting = true;
+						error = '';
+						const dialog = document.getElementById('%s');
+						fetch('/api/report', {
+							method: 'POST',
+							headers: {'Content-Type': 'application/json'},
+							body: JSON.stringify({
+								subject_uri: '%s',
+								subject_cid: '%s',
+								reason: reason
+							})
+						})
+						.then(r => r.json().then(data => ({ok: r.ok, data})))
+						.then(({ok, data}) => {
+							submitting = false;
+							if (ok) {
+								success = true;
+								setTimeout(() => dialog.close(), 2000);
+							} else {
+								error = data.message || 'Failed to submit report';
+							}
+						})
+						.catch(() => {
+							submitting = false;
+							error = 'Network error. Please try again.';
+						});
+					`, props.ID, escapeForJS(props.SubjectURI), escapeForJS(props.SubjectCID)) }
+					class="space-y-4"
+				>
+					<p class="text-sm text-brown-700">
+						Please describe why you're reporting this content. Reports are reviewed by moderators.
+					</p>
+					<div>
+						<textarea
+							x-model="reason"
+							@input="charCount = reason.length"
+							name="reason"
+							placeholder="Describe the issue (optional)"
+							rows="4"
+							maxlength="500"
+							class="w-full form-textarea"
+						></textarea>
+						<div class="flex justify-between text-xs text-brown-500 mt-1">
+							<span>Optional, but helpful for moderators</span>
+							<span x-text="charCount + '/500'"></span>
+						</div>
+					</div>
+					<template x-if="error">
+						<div class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm" x-text="error"></div>
+					</template>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							class="flex-1 btn-primary"
+							x-bind:disabled="submitting"
+						>
+							<span x-show="!submitting">Submit Report</span>
+							<span x-show="submitting">Submitting...</span>
+						</button>
+						<button
+							type="button"
+							@click="$el.closest('dialog').close()"
+							class="flex-1 btn-secondary"
+							x-bind:disabled="submitting"
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			</template>
+			<template x-if="success">
+				<div class="text-center py-4">
+					<div class="text-green-600 mb-2">
+						<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+						</svg>
+					</div>
+					<p class="font-medium text-brown-900">Report Submitted</p>
+					<p class="text-sm text-brown-600 mt-1">Thank you for helping keep our community safe.</p>
+				</div>
+			</template>
+		</div>
+	</dialog>
+}
+
+// escapeForAlpine escapes special characters in a string for use in Alpine.js expressions.
+// This creates a safe ID by replacing problematic characters.
+func escapeForAlpine(s string) string {
+	// Replace characters that are problematic in HTML IDs and Alpine expressions
+	s = strings.ReplaceAll(s, ":", "_")
+	s = strings.ReplaceAll(s, "/", "_")
+	s = strings.ReplaceAll(s, ".", "_")
+	return s
+}
+
+// escapeForJS escapes special characters in a string for use in JavaScript string literals.
+func escapeForJS(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "'", "\\'")
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	s = strings.ReplaceAll(s, "\r", "\\r")
+	return s
 }

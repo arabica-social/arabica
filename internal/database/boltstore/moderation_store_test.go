@@ -313,6 +313,41 @@ func TestReports(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, has)
 	})
+
+	t.Run("count reports from user since", func(t *testing.T) {
+		reporter := "did:plc:ratelimituser"
+		now := time.Now()
+
+		// Create reports at different times
+		for i := 0; i < 5; i++ {
+			report := moderation.Report{
+				ID:          "ratelimit_" + string(rune('a'+i)),
+				SubjectURI:  "at://did:plc:target/social.arabica.alpha.brew/rl" + string(rune('0'+i)),
+				SubjectDID:  "did:plc:target",
+				ReporterDID: reporter,
+				Status:      moderation.ReportStatusPending,
+				CreatedAt:   now.Add(-time.Duration(i*30) * time.Minute), // 0, -30, -60, -90, -120 mins
+			}
+			require.NoError(t, store.CreateReport(ctx, report))
+		}
+
+		// Count reports in the last hour (should be 2: 0min and -30min)
+		oneHourAgo := now.Add(-1 * time.Hour)
+		count, err := store.CountReportsFromUserSince(ctx, reporter, oneHourAgo)
+		require.NoError(t, err)
+		assert.Equal(t, 2, count)
+
+		// Count reports in the last 2 hours (should be 4: 0, -30, -60, -90 mins)
+		twoHoursAgo := now.Add(-2 * time.Hour)
+		count, err = store.CountReportsFromUserSince(ctx, reporter, twoHoursAgo)
+		require.NoError(t, err)
+		assert.Equal(t, 4, count)
+
+		// Count reports from a different user (should be 0)
+		count, err = store.CountReportsFromUserSince(ctx, "did:plc:otheruser", oneHourAgo)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+	})
 }
 
 func TestAuditLog(t *testing.T) {

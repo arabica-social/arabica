@@ -470,6 +470,32 @@ func (s *ModerationStore) ListAuditLog(ctx context.Context, limit int) ([]modera
 	return entries, err
 }
 
+// CountReportsFromUserSince counts reports submitted by a user since a given time.
+// Used for rate limiting report submissions.
+func (s *ModerationStore) CountReportsFromUserSince(ctx context.Context, reporterDID string, since time.Time) (int, error) {
+	var count int
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketModerationReports)
+		if bucket == nil {
+			return nil
+		}
+
+		return bucket.ForEach(func(k, v []byte) error {
+			var report moderation.Report
+			if err := json.Unmarshal(v, &report); err != nil {
+				return nil // Skip malformed entries
+			}
+			if report.ReporterDID == reporterDID && report.CreatedAt.After(since) {
+				count++
+			}
+			return nil
+		})
+	})
+
+	return count, err
+}
+
 // hasPrefix checks if a byte slice has a given prefix.
 func hasPrefix(s, prefix []byte) bool {
 	if len(s) < len(prefix) {

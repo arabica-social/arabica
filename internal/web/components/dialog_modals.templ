@@ -326,6 +326,107 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 	</dialog>
 }
 
+// ReportDialogModalProps defines properties for the report dialog
+type ReportDialogModalProps struct {
+	SubjectURI string
+	SubjectCID string
+}
+
+// ReportDialogModal renders the report modal for submitting content reports
+templ ReportDialogModal(props ReportDialogModalProps) {
+	<dialog id="report-modal" class="modal-dialog" x-data="{ reason: '', charCount: 0, submitting: false, error: '', success: false }">
+		<div class="modal-content">
+			<h3 class="modal-title">Report Content</h3>
+			<template x-if="!success">
+				<form
+					@submit.prevent="
+						submitting = true;
+						error = '';
+						const dialog = document.getElementById('report-modal');
+						fetch('/api/report', {
+							method: 'POST',
+							headers: {'Content-Type': 'application/json'},
+							body: JSON.stringify({
+								subject_uri: $el.querySelector('[name=subject_uri]').value,
+								subject_cid: $el.querySelector('[name=subject_cid]').value,
+								reason: reason
+							})
+						})
+						.then(r => r.json().then(data => ({ok: r.ok, data})))
+						.then(({ok, data}) => {
+							submitting = false;
+							if (ok) {
+								success = true;
+								setTimeout(() => dialog.close(), 2000);
+							} else {
+								error = data.message || 'Failed to submit report';
+							}
+						})
+						.catch(() => {
+							submitting = false;
+							error = 'Network error. Please try again.';
+						});
+					"
+					class="space-y-4"
+				>
+					<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
+					<input type="hidden" name="subject_cid" value={ props.SubjectCID }/>
+					<p class="text-sm text-brown-700">
+						Please describe why you're reporting this content. Reports are reviewed by moderators.
+					</p>
+					<div>
+						<textarea
+							x-model="reason"
+							@input="charCount = reason.length"
+							name="reason"
+							placeholder="Describe the issue (optional)"
+							rows="4"
+							maxlength="500"
+							class="w-full form-textarea"
+						></textarea>
+						<div class="flex justify-between text-xs text-brown-500 mt-1">
+							<span>Optional, but helpful for moderators</span>
+							<span x-text="charCount + '/500'"></span>
+						</div>
+					</div>
+					<template x-if="error">
+						<div class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm" x-text="error"></div>
+					</template>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							class="flex-1 btn-primary"
+							:disabled="submitting"
+						>
+							<span x-show="!submitting">Submit Report</span>
+							<span x-show="submitting">Submitting...</span>
+						</button>
+						<button
+							type="button"
+							@click="$el.closest('dialog').close()"
+							class="flex-1 btn-secondary"
+							:disabled="submitting"
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			</template>
+			<template x-if="success">
+				<div class="text-center py-4">
+					<div class="text-green-600 mb-2">
+						<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+						</svg>
+					</div>
+					<p class="font-medium text-brown-900">Report Submitted</p>
+					<p class="text-sm text-brown-600 mt-1">Thank you for helping keep our community safe.</p>
+				</div>
+			</template>
+		</div>
+	</dialog>
+}
+
 // Helper function to get string value from bean (handles nil case)
 func getStringValue(entity interface{}, field string) string {
 	if entity == nil {
