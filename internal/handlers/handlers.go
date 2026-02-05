@@ -761,6 +761,14 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Get comment data
+	var commentCount int
+	var comments []firehose.IndexedComment
+	if h.feedIndex != nil && subjectURI != "" {
+		commentCount = h.feedIndex.GetCommentCount(subjectURI)
+		comments = h.feedIndex.GetCommentsForSubject(r.Context(), subjectURI, 100)
+	}
+
 	// Create brew view props
 	brewViewProps := pages.BrewViewProps{
 		Brew:            brew,
@@ -770,6 +778,9 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		SubjectCID:      subjectCID,
 		IsLiked:         isLiked,
 		LikeCount:       likeCount,
+		CommentCount:    commentCount,
+		Comments:        comments,
+		CurrentUserDID:  didStr,
 		ShareURL:        shareURL,
 	}
 
@@ -2045,14 +2056,16 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		profileHandle = did // Fallback to DID if we can't get handle
 	}
 
-	// Get like counts and CIDs for brews from firehose index
+	// Get like counts, comment counts, and CIDs for brews from firehose index
 	brewLikeCounts := make(map[string]int)
+	brewCommentCounts := make(map[string]int)
 	brewLikedByUser := make(map[string]bool)
 	brewCIDs := make(map[string]string)
 	if h.feedIndex != nil && profile != nil {
 		for _, brew := range profileData.Brews {
 			subjectURI := atproto.BuildATURI(profile.DID, atproto.NSIDBrew, brew.RKey)
 			brewLikeCounts[brew.RKey] = h.feedIndex.GetLikeCount(subjectURI)
+			brewCommentCounts[brew.RKey] = h.feedIndex.GetCommentCount(subjectURI)
 			if isAuthenticated {
 				brewLikedByUser[brew.RKey] = h.feedIndex.HasUserLiked(didStr, subjectURI)
 			}
@@ -2064,18 +2077,19 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
-		Brews:           profileData.Brews,
-		Beans:           profileData.Beans,
-		Roasters:        profileData.Roasters,
-		Grinders:        profileData.Grinders,
-		Brewers:         profileData.Brewers,
-		IsOwnProfile:    isOwnProfile,
-		ProfileHandle:   profileHandle,
-		Profile:         profile,
-		BrewLikeCounts:  brewLikeCounts,
-		BrewLikedByUser: brewLikedByUser,
-		BrewCIDs:        brewCIDs,
-		IsAuthenticated: isAuthenticated,
+		Brews:             profileData.Brews,
+		Beans:             profileData.Beans,
+		Roasters:          profileData.Roasters,
+		Grinders:          profileData.Grinders,
+		Brewers:           profileData.Brewers,
+		IsOwnProfile:      isOwnProfile,
+		ProfileHandle:     profileHandle,
+		Profile:           profile,
+		BrewLikeCounts:    brewLikeCounts,
+		BrewCommentCounts: brewCommentCounts,
+		BrewLikedByUser:   brewLikedByUser,
+		BrewCIDs:          brewCIDs,
+		IsAuthenticated:   isAuthenticated,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile partial")
@@ -2371,4 +2385,159 @@ func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status": "received"}`))
+}
+
+// HandleCommentCreate handles creating a new comment
+func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	subjectURI := r.FormValue("subject_uri")
+	subjectCID := r.FormValue("subject_cid")
+	text := strings.TrimSpace(r.FormValue("text"))
+
+	if subjectURI == "" || subjectCID == "" {
+		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
+		return
+	}
+
+	if text == "" {
+		http.Error(w, "comment text is required", http.StatusBadRequest)
+		return
+	}
+
+	if len(text) > models.MaxCommentLength {
+		http.Error(w, "comment text is too long", http.StatusBadRequest)
+		return
+	}
+
+	req := &models.CreateCommentRequest{
+		SubjectURI: subjectURI,
+		SubjectCID: subjectCID,
+		Text:       text,
+	}
+
+	comment, err := store.CreateComment(r.Context(), req)
+	if err != nil {
+		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create comment")
+		return
+	}
+
+	// Update firehose index
+	if h.feedIndex != nil {
+		_ = h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, text, comment.CreatedAt)
+	}
+
+	// Return the updated comment section
+	comments := h.feedIndex.GetCommentsForSubject(r.Context(), subjectURI, 100)
+
+	if err := components.CommentSection(components.CommentSectionProps{
+		SubjectURI:      subjectURI,
+		SubjectCID:      subjectCID,
+		Comments:        comments,
+		IsAuthenticated: true,
+		CurrentUserDID:  didStr,
+	}).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render comment section")
+	}
+}
+
+// HandleCommentDelete handles deleting a comment
+func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
+	// Require authentication
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	rkey := r.PathValue("id")
+	if rkey == "" {
+		http.Error(w, "Comment ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get the comment to find its subject URI before deletion
+	comments, err := store.ListUserComments(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to get comments", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to get user comments")
+		return
+	}
+
+	var subjectURI string
+	for _, c := range comments {
+		if c.RKey == rkey {
+			subjectURI = c.SubjectURI
+			break
+		}
+	}
+
+	if subjectURI == "" {
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	// Delete the comment
+	if err := store.DeleteCommentByRKey(r.Context(), rkey); err != nil {
+		http.Error(w, "Failed to delete comment", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to delete comment")
+		return
+	}
+
+	// Update firehose index
+	if h.feedIndex != nil {
+		_ = h.feedIndex.DeleteComment(didStr, rkey, subjectURI)
+	}
+
+	// Return empty response (the comment element will be removed via hx-swap="outerHTML")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleCommentList returns the comment section for a subject
+func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
+	subjectURI := r.URL.Query().Get("subject_uri")
+	if subjectURI == "" {
+		http.Error(w, "subject_uri is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get authenticated user if any
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	// Get the subject CID from query params (for the form)
+	subjectCID := r.URL.Query().Get("subject_cid")
+
+	// Get comments from firehose index
+	var comments []firehose.IndexedComment
+	if h.feedIndex != nil {
+		comments = h.feedIndex.GetCommentsForSubject(r.Context(), subjectURI, 100)
+	}
+
+	if err := components.CommentSection(components.CommentSectionProps{
+		SubjectURI:      subjectURI,
+		SubjectCID:      subjectCID,
+		Comments:        comments,
+		IsAuthenticated: isAuthenticated,
+		CurrentUserDID:  didStr,
+	}).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render comment section")
+	}
 }
