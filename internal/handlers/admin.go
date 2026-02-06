@@ -94,6 +94,7 @@ func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
 		Str("by", userDID).
 		Msg("Record hidden from feed")
 
+	w.Header().Set("HX-Trigger", "mod-action")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -161,6 +162,7 @@ func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
 		Str("by", userDID).
 		Msg("Record unhidden")
 
+	w.Header().Set("HX-Trigger", "mod-action")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -169,6 +171,51 @@ func generateTID() string {
 	// Simple implementation using unix nano timestamp
 	// In production, you might want a more sophisticated TID generator
 	return time.Now().Format("20060102150405.000000000")
+}
+
+// buildAdminProps builds the admin dashboard props for the given moderator.
+func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.AdminProps {
+	canHide := h.moderationService.HasPermission(userDID, moderation.PermissionHideRecord)
+	canUnhide := h.moderationService.HasPermission(userDID, moderation.PermissionUnhideRecord)
+	canViewLogs := h.moderationService.HasPermission(userDID, moderation.PermissionViewAuditLog)
+	canViewReports := h.moderationService.HasPermission(userDID, moderation.PermissionViewReports)
+	canBlock := h.moderationService.HasPermission(userDID, moderation.PermissionBlacklistUser)
+	canUnblock := h.moderationService.HasPermission(userDID, moderation.PermissionUnblacklistUser)
+
+	var hiddenRecords []moderation.HiddenRecord
+	var auditLog []moderation.AuditEntry
+	var enrichedReports []pages.EnrichedReport
+	var blockedUsers []moderation.BlacklistedUser
+
+	if (canHide || canUnhide) && h.moderationStore != nil {
+		hiddenRecords, _ = h.moderationStore.ListHiddenRecords(ctx)
+	}
+
+	if canViewLogs && h.moderationStore != nil {
+		auditLog, _ = h.moderationStore.ListAuditLog(ctx, 50)
+	}
+
+	if canViewReports && h.moderationStore != nil {
+		reports, _ := h.moderationStore.ListPendingReports(ctx)
+		enrichedReports = h.enrichReports(ctx, reports)
+	}
+
+	if (canBlock || canUnblock) && h.moderationStore != nil {
+		blockedUsers, _ = h.moderationStore.ListBlacklistedUsers(ctx)
+	}
+
+	return pages.AdminProps{
+		HiddenRecords:  hiddenRecords,
+		AuditLog:       auditLog,
+		Reports:        enrichedReports,
+		BlockedUsers:   blockedUsers,
+		CanHide:        canHide,
+		CanUnhide:      canUnhide,
+		CanViewLogs:    canViewLogs,
+		CanViewReports: canViewReports,
+		CanBlock:       canBlock,
+		CanUnblock:     canUnblock,
+	}
 }
 
 // HandleAdmin renders the moderation dashboard
@@ -186,32 +233,8 @@ func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user profile for layout
 	userProfile := h.getUserProfile(r.Context(), userDID)
-
-	// Check permissions
-	canHide := h.moderationService.HasPermission(userDID, moderation.PermissionHideRecord)
-	canUnhide := h.moderationService.HasPermission(userDID, moderation.PermissionUnhideRecord)
-	canViewLogs := h.moderationService.HasPermission(userDID, moderation.PermissionViewAuditLog)
-	canViewReports := h.moderationService.HasPermission(userDID, moderation.PermissionViewReports)
-
-	// Fetch data based on permissions
-	var hiddenRecords []moderation.HiddenRecord
-	var auditLog []moderation.AuditEntry
-	var enrichedReports []pages.EnrichedReport
-
-	if (canHide || canUnhide) && h.moderationStore != nil {
-		hiddenRecords, _ = h.moderationStore.ListHiddenRecords(r.Context())
-	}
-
-	if canViewLogs && h.moderationStore != nil {
-		auditLog, _ = h.moderationStore.ListAuditLog(r.Context(), 50)
-	}
-
-	if canViewReports && h.moderationStore != nil {
-		reports, _ := h.moderationStore.ListPendingReports(r.Context())
-		enrichedReports = h.enrichReports(r.Context(), reports)
-	}
+	adminProps := h.buildAdminProps(r.Context(), userDID)
 
 	layoutData := &components.LayoutData{
 		Title:           "Moderation",
@@ -222,19 +245,30 @@ func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 		IsModerator:     true,
 	}
 
-	adminProps := pages.AdminProps{
-		HiddenRecords:  hiddenRecords,
-		AuditLog:       auditLog,
-		Reports:        enrichedReports,
-		CanHide:        canHide,
-		CanUnhide:      canUnhide,
-		CanViewLogs:    canViewLogs,
-		CanViewReports: canViewReports,
-	}
-
 	if err := pages.Admin(layoutData, adminProps).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render admin page")
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+	}
+}
+
+// HandleAdminPartial renders just the admin dashboard content (for HTMX refresh)
+func (h *Handler) HandleAdminPartial(w http.ResponseWriter, r *http.Request) {
+	userDID, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil || userDID == "" {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	if h.moderationService == nil || !h.moderationService.IsModerator(userDID) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	adminProps := h.buildAdminProps(r.Context(), userDID)
+
+	if err := pages.AdminDashboardBody(adminProps).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render admin partial")
+		http.Error(w, "Failed to render", http.StatusInternalServerError)
 	}
 }
 
@@ -319,6 +353,153 @@ func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atpro
 	return summary
 }
 
+// blockRequest is the request body for blocking a user
+type blockRequest struct {
+	DID    string `json:"did"`
+	Reason string `json:"reason,omitempty"`
+}
+
+// HandleBlockUser handles POST /_mod/block
+func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
+	// Check authentication
+	userDID, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil || userDID == "" {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	// Check permission
+	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionBlacklistUser) {
+		http.Error(w, "Permission denied", http.StatusForbidden)
+		return
+	}
+
+	// Parse request - support both JSON and form data
+	var req blockRequest
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Parse as form data (HTMX default)
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		req.DID = r.FormValue("did")
+		req.Reason = r.FormValue("reason")
+	}
+
+	if req.DID == "" {
+		http.Error(w, "DID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Block the user
+	entry := moderation.BlacklistedUser{
+		DID:           req.DID,
+		BlacklistedAt: time.Now(),
+		BlacklistedBy: userDID,
+		Reason:        req.Reason,
+	}
+
+	if err := h.moderationStore.BlacklistUser(r.Context(), entry); err != nil {
+		log.Error().Err(err).Str("did", req.DID).Msg("Failed to block user")
+		http.Error(w, "Failed to block user", http.StatusInternalServerError)
+		return
+	}
+
+	// Log the action
+	auditEntry := moderation.AuditEntry{
+		ID:        generateTID(),
+		Action:    moderation.AuditActionBlacklistUser,
+		ActorDID:  userDID,
+		TargetURI: req.DID,
+		Reason:    req.Reason,
+		Timestamp: time.Now(),
+		AutoMod:   false,
+	}
+	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
+		log.Error().Err(err).Msg("Failed to log block action")
+	}
+
+	log.Info().
+		Str("did", req.DID).
+		Str("by", userDID).
+		Msg("User blocked")
+
+	w.Header().Set("HX-Trigger", "mod-action")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleUnblockUser handles POST /_mod/unblock
+func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
+	// Check authentication
+	userDID, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil || userDID == "" {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	// Check permission
+	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionUnblacklistUser) {
+		http.Error(w, "Permission denied", http.StatusForbidden)
+		return
+	}
+
+	// Parse request - support both JSON and form data
+	var req blockRequest
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Parse as form data (HTMX default)
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		req.DID = r.FormValue("did")
+	}
+
+	if req.DID == "" {
+		http.Error(w, "DID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Unblock the user
+	if err := h.moderationStore.UnblacklistUser(r.Context(), req.DID); err != nil {
+		log.Error().Err(err).Str("did", req.DID).Msg("Failed to unblock user")
+		http.Error(w, "Failed to unblock user", http.StatusInternalServerError)
+		return
+	}
+
+	// Log the action
+	auditEntry := moderation.AuditEntry{
+		ID:        generateTID(),
+		Action:    moderation.AuditActionUnblacklistUser,
+		ActorDID:  userDID,
+		TargetURI: req.DID,
+		Timestamp: time.Now(),
+		AutoMod:   false,
+	}
+	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
+		log.Error().Err(err).Msg("Failed to log unblock action")
+	}
+
+	log.Info().
+		Str("did", req.DID).
+		Str("by", userDID).
+		Msg("User unblocked")
+
+	w.Header().Set("HX-Trigger", "mod-action")
+	w.WriteHeader(http.StatusOK)
+}
+
 // HandleDismissReport handles POST /_mod/dismiss-report
 func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
 	// Check authentication
@@ -370,5 +551,6 @@ func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
 		Str("by", userDID).
 		Msg("Report dismissed")
 
+	w.Header().Set("HX-Trigger", "mod-action")
 	w.WriteHeader(http.StatusOK)
 }

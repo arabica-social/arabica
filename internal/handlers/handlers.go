@@ -190,6 +190,7 @@ func (h *Handler) buildModerationContext(ctx context.Context, viewerDID string, 
 
 	modCtx.IsModerator = true
 	modCtx.CanHideRecord = h.moderationService.HasPermission(viewerDID, moderation.PermissionHideRecord)
+	modCtx.CanBlockUser = h.moderationService.HasPermission(viewerDID, moderation.PermissionBlacklistUser)
 
 	// Build map of hidden URIs for efficient lookup
 	if h.moderationStore != nil {

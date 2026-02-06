@@ -12,6 +12,7 @@ import (
 type FeedModerationContext struct {
 	IsModerator   bool              // User has moderator role
 	CanHideRecord bool              // User has hide_record permission
+	CanBlockUser  bool              // User has blacklist_user permission
 	HiddenURIs    map[string]bool   // URIs that are currently hidden
 }
 
@@ -96,7 +97,9 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 				IsAuthenticated: isAuthenticated,
 				IsModerator:     modCtx.IsModerator,
 				CanHideRecord:   modCtx.CanHideRecord,
+				CanBlockUser:    modCtx.CanBlockUser,
 				IsRecordHidden:  modCtx.HiddenURIs[item.SubjectURI],
+				AuthorDID:       item.Author.DID,
 			})
 		}
 	</div>

@@ -31,7 +31,9 @@ type ActionBarProps struct {
 	// Moderation state
 	IsModerator    bool // User has moderator role
 	CanHideRecord  bool // User has hide_record permission
+	CanBlockUser   bool // User has blacklist_user permission
 	IsRecordHidden bool // This record is currently hidden
+	AuthorDID      string // DID of the content author (for block action)
 }
 
 // ActionBar renders the action bar with Comments, Like, Share, and More menu
@@ -87,6 +89,8 @@ templ ActionBar(props ActionBarProps) {
 				</svg>
 			</button>
 			<!-- Dropdown menu -->
+			// FIX: the line shows above the popup modal in many cases
+			// FIX: the modal should open in the other direction if it would extend past the edge of the viewport
 			<div
 				x-show="moreOpen"
 				x-transition:enter="transition ease-out duration-100"
@@ -157,6 +161,23 @@ templ ActionBar(props ActionBarProps) {
 							Hide from feed
 						</button>
 					}
+					<div class="action-menu-divider"></div>
+				}
+				if props.CanBlockUser && props.AuthorDID != "" && !props.IsOwner {
+					<button
+						type="button"
+						hx-post="/_mod/block"
+						hx-vals={ fmt.Sprintf(`{"did": "%s"}`, props.AuthorDID) }
+						hx-swap="none"
+						hx-confirm="Block this user? All their content will be hidden from the feed."
+						@click="moreOpen = false; $dispatch('notify', {message: 'User blocked'})"
+						class="action-menu-item action-menu-item-danger"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"></path>
+						</svg>
+						Block user
+					</button>
 					<div class="action-menu-divider"></div>
 				}
 				<!-- Report (available to authenticated users) -->
