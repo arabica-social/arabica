@@ -2,12 +2,10 @@ package pages
 
 import "arabica/internal/web/components"
 
-// NotFound renders the 404 page
 templ NotFound(layout *components.LayoutData) {
 	@components.Layout(layout, NotFoundContent())
 }
 
-// NotFoundContent renders the 404 content
 templ NotFoundContent() {
 	<div class="page-container-lg">
 		<div class="card p-8 text-center">
