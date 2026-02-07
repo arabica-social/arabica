@@ -54,6 +54,15 @@ var (
 
 	// BucketLikesByActor stores likes by actor for lookup: {actor_did:subject_uri} -> {rkey}
 	BucketLikesByActor = []byte("likes_by_actor")
+
+	// BucketComments stores comment data: {subject_uri:timestamp:actor_did} -> {comment JSON}
+	BucketComments = []byte("comments")
+
+	// BucketCommentCounts stores aggregated comment counts: {subject_uri} -> {uint64 count}
+	BucketCommentCounts = []byte("comment_counts")
+
+	// BucketCommentsByActor stores comments by actor for lookup: {actor_did:rkey} -> {subject_uri}
+	BucketCommentsByActor = []byte("comments_by_actor")
 )
 
 // FeedableRecordTypes are the record types that should appear as feed items.
@@ -134,6 +143,9 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 			BucketLikes,
 			BucketLikeCounts,
 			BucketLikesByActor,
+			BucketComments,
+			BucketCommentCounts,
+			BucketCommentsByActor,
 		}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -355,6 +367,9 @@ type FeedItem struct {
 	LikeCount  int    // Number of likes on this record
 	SubjectURI string // AT-URI of this record (for like button)
 	SubjectCID string // CID of this record (for like button)
+
+	// Comment-related fields
+	CommentCount int // Number of comments on this record
 }
 
 // GetRecentFeed returns recent feed items from the index
@@ -596,6 +611,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	item.SubjectURI = record.URI
 	item.SubjectCID = record.CID
 	item.LikeCount = idx.GetLikeCount(record.URI)
+	item.CommentCount = idx.GetCommentCount(record.URI)
 
 	return item, nil
 }
@@ -935,4 +951,178 @@ func (idx *FeedIndex) GetUserLikeRKey(actorDID, subjectURI string) string {
 		return nil
 	})
 	return rkey
+}
+
+// IndexedComment represents a comment stored in the index
+type IndexedComment struct {
+	RKey       string    `json:"rkey"`
+	SubjectURI string    `json:"subject_uri"`
+	Text       string    `json:"text"`
+	ActorDID   string    `json:"actor_did"`
+	CreatedAt  time.Time `json:"created_at"`
+	// Profile fields (populated on retrieval, not stored)
+	Handle      string  `json:"-"`
+	DisplayName *string `json:"-"`
+	Avatar      *string `json:"-"`
+}
+
+// UpsertComment adds or updates a comment in the index
+func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, text string, createdAt time.Time) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		comments := tx.Bucket(BucketComments)
+		commentCounts := tx.Bucket(BucketCommentCounts)
+		commentsByActor := tx.Bucket(BucketCommentsByActor)
+
+		// Key format: {subject_uri}:{timestamp}:{actor_did}:{rkey}
+		// Using timestamp for chronological ordering
+		commentKey := []byte(subjectURI + ":" + createdAt.Format(time.RFC3339Nano) + ":" + actorDID + ":" + rkey)
+
+		// Check if this comment already exists (by actor key)
+		actorKey := []byte(actorDID + ":" + rkey)
+		existingSubject := commentsByActor.Get(actorKey)
+		isNew := existingSubject == nil
+
+		// Store comment data as JSON
+		commentData := IndexedComment{
+			RKey:       rkey,
+			SubjectURI: subjectURI,
+			Text:       text,
+			ActorDID:   actorDID,
+			CreatedAt:  createdAt,
+		}
+		commentJSON, err := json.Marshal(commentData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal comment: %w", err)
+		}
+
+		// Store comment
+		if err := comments.Put(commentKey, commentJSON); err != nil {
+			return fmt.Errorf("failed to store comment: %w", err)
+		}
+
+		// Store actor lookup
+		if err := commentsByActor.Put(actorKey, []byte(subjectURI)); err != nil {
+			return fmt.Errorf("failed to store comment by actor: %w", err)
+		}
+
+		// Increment count only if this is a new comment
+		if isNew {
+			countKey := []byte(subjectURI)
+			var count uint64
+			if countData := commentCounts.Get(countKey); len(countData) == 8 {
+				count = binary.BigEndian.Uint64(countData)
+			}
+			count++
+			countBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(countBytes, count)
+			if err := commentCounts.Put(countKey, countBytes); err != nil {
+				return fmt.Errorf("failed to update comment count: %w", err)
+			}
+		}
+
+		return nil
+	})
+}
+
+// DeleteComment removes a comment from the index
+func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		comments := tx.Bucket(BucketComments)
+		commentCounts := tx.Bucket(BucketCommentCounts)
+		commentsByActor := tx.Bucket(BucketCommentsByActor)
+
+		actorKey := []byte(actorDID + ":" + rkey)
+
+		// Check if comment exists
+		existingSubject := commentsByActor.Get(actorKey)
+		if existingSubject == nil {
+			return nil // Comment doesn't exist, nothing to do
+		}
+
+		// Find and delete the comment by iterating over comments with matching subject
+		prefix := []byte(subjectURI + ":")
+		c := comments.Cursor()
+		for k, _ := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, _ = c.Next() {
+			// Check if this key contains our actor and rkey
+			if strings.HasSuffix(string(k), ":"+actorDID+":"+rkey) {
+				if err := comments.Delete(k); err != nil {
+					return fmt.Errorf("failed to delete comment: %w", err)
+				}
+				break
+			}
+		}
+
+		// Delete actor lookup
+		if err := commentsByActor.Delete(actorKey); err != nil {
+			return fmt.Errorf("failed to delete comment by actor: %w", err)
+		}
+
+		// Decrement count
+		countKey := []byte(subjectURI)
+		var count uint64
+		if countData := commentCounts.Get(countKey); len(countData) == 8 {
+			count = binary.BigEndian.Uint64(countData)
+		}
+		if count > 0 {
+			count--
+		}
+		countBytes := make([]byte, 8)
+		binary.BigEndian.PutUint64(countBytes, count)
+		if err := commentCounts.Put(countKey, countBytes); err != nil {
+			return fmt.Errorf("failed to update comment count: %w", err)
+		}
+
+		return nil
+	})
+}
+
+// GetCommentCount returns the number of comments on a record
+func (idx *FeedIndex) GetCommentCount(subjectURI string) int {
+	var count uint64
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		commentCounts := tx.Bucket(BucketCommentCounts)
+		countData := commentCounts.Get([]byte(subjectURI))
+		if len(countData) == 8 {
+			count = binary.BigEndian.Uint64(countData)
+		}
+		return nil
+	})
+	return int(count)
+}
+
+// GetCommentsForSubject returns all comments for a specific record, ordered by creation time
+func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI string, limit int) []IndexedComment {
+	var comments []IndexedComment
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketComments)
+		prefix := []byte(subjectURI + ":")
+		c := bucket.Cursor()
+
+		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
+			var comment IndexedComment
+			if err := json.Unmarshal(v, &comment); err != nil {
+				continue
+			}
+			comments = append(comments, comment)
+			if limit > 0 && len(comments) >= limit {
+				break
+			}
+		}
+		return nil
+	})
+
+	// Populate profile info for each comment
+	for i := range comments {
+		profile, err := idx.GetProfile(ctx, comments[i].ActorDID)
+		if err != nil {
+			// Use DID as fallback handle
+			comments[i].Handle = comments[i].ActorDID
+		} else {
+			comments[i].Handle = profile.Handle
+			comments[i].DisplayName = profile.DisplayName
+			comments[i].Avatar = profile.Avatar
+		}
+	}
+
+	return comments
 }
