@@ -307,7 +307,7 @@
 
   /* Action Menu (More dropdown) */
   .action-menu {
-    @apply absolute right-0 bottom-full mb-1 w-36 bg-white rounded-lg shadow-lg border border-brown-200 py-1 z-10;
+    @apply absolute left-1/2 -translate-x-1/2 w-36 bg-white rounded-lg shadow-lg border border-brown-200 py-1 z-50;
   }
 
   /* Dropdown menu (top-positioned, for headers/nav) */
