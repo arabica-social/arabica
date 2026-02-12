@@ -1,6 +1,9 @@
 package components
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // ActionBarProps defines properties for the action bar below feed/profile cards
 type ActionBarProps struct {
@@ -24,6 +27,13 @@ type ActionBarProps struct {
 
 	// Auth state
 	IsAuthenticated bool
+
+	// Moderation state
+	IsModerator    bool // User has moderator role
+	CanHideRecord  bool // User has hide_record permission
+	CanBlockUser   bool // User has blacklist_user permission
+	IsRecordHidden bool // This record is currently hidden
+	AuthorDID      string // DID of the content author (for block action)
 }
 
 // ActionBar renders the action bar with Comments, Like, Share, and More menu
@@ -42,6 +52,15 @@ templ ActionBar(props ActionBarProps) {
 			</svg>
 			<span>0</span>
 		</button>
+		<!-- Hidden indicator (visible to moderators) -->
+		if props.IsModerator && props.IsRecordHidden {
+			<span class="hidden-badge" title="This record is hidden from the public feed">
+				<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"></path>
+				</svg>
+				Hidden
+			</span>
+		}
 		<!-- Like -->
 		if props.SubjectURI != "" && props.SubjectCID != "" {
 			@LikeButton(LikeButtonProps{
@@ -70,6 +89,8 @@ templ ActionBar(props ActionBarProps) {
 				</svg>
 			</button>
 			<!-- Dropdown menu -->
+			// FIX: the line shows above the popup modal in many cases
+			// FIX: the modal should open in the other direction if it would extend past the edge of the viewport
 			<div
 				x-show="moreOpen"
 				x-transition:enter="transition ease-out duration-100"
@@ -108,22 +129,81 @@ templ ActionBar(props ActionBarProps) {
 					}
 					<div class="action-menu-divider"></div>
 				}
-				<!-- Report (available to all users) -->
-				<button
-					type="button"
-					hx-post="/api/report"
-					hx-vals={ fmt.Sprintf(`{"subject_uri": "%s", "subject_cid": "%s", "reason": "inappropriate"}`, props.SubjectURI, props.SubjectCID) }
-					hx-swap="none"
-					@click="moreOpen = false; $dispatch('notify', {message: 'Report submitted'})"
-					class="action-menu-item"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"></path>
-					</svg>
-					Report
-				</button>
+				<!-- Moderation actions (for moderators/admins) -->
+				if props.CanHideRecord && props.SubjectURI != "" {
+					if props.IsRecordHidden {
+						<button
+							type="button"
+							hx-post="/_mod/unhide"
+							hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, props.SubjectURI) }
+							hx-swap="none"
+							@click="moreOpen = false; $dispatch('notify', {message: 'Record unhidden'})"
+							class="action-menu-item"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"></path>
+								<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+							</svg>
+							Unhide from feed
+						</button>
+					} else {
+						<button
+							type="button"
+							hx-post="/_mod/hide"
+							hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, props.SubjectURI) }
+							hx-swap="none"
+							hx-confirm="Hide this record from the public feed?"
+							@click="moreOpen = false; $dispatch('notify', {message: 'Record hidden from feed'})"
+							class="action-menu-item action-menu-item-warning"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"></path>
+							</svg>
+							Hide from feed
+						</button>
+					}
+					<div class="action-menu-divider"></div>
+				}
+				if props.CanBlockUser && props.AuthorDID != "" && !props.IsOwner {
+					<button
+						type="button"
+						hx-post="/_mod/block"
+						hx-vals={ fmt.Sprintf(`{"did": "%s"}`, props.AuthorDID) }
+						hx-swap="none"
+						hx-confirm="Block this user? All their content will be hidden from the feed."
+						@click="moreOpen = false; $dispatch('notify', {message: 'User blocked'})"
+						class="action-menu-item action-menu-item-danger"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"></path>
+						</svg>
+						Block user
+					</button>
+					<div class="action-menu-divider"></div>
+				}
+				<!-- Report (available to authenticated users) -->
+				if props.IsAuthenticated && !props.IsOwner {
+					<button
+						type="button"
+						@click={ fmt.Sprintf("moreOpen = false; document.getElementById('report-modal-%s').showModal()", escapeForAlpine(props.SubjectURI)) }
+						class="action-menu-item"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"></path>
+						</svg>
+						Report
+					</button>
+				}
 			</div>
 		</div>
+		<!-- Report modal (only for authenticated non-owners) -->
+		if props.IsAuthenticated && !props.IsOwner && props.SubjectURI != "" {
+			@ReportModal(ReportModalProps{
+				ID:         fmt.Sprintf("report-modal-%s", escapeForAlpine(props.SubjectURI)),
+				SubjectURI: props.SubjectURI,
+				SubjectCID: props.SubjectCID,
+			})
+		}
 	</div>
 }
 
@@ -144,4 +224,123 @@ templ ActionBarShareButton(props ActionBarProps) {
 		</svg>
 		<span x-show="copied" x-cloak>Copied!</span>
 	</button>
+}
+
+// ReportModalProps defines properties for the report modal
+type ReportModalProps struct {
+	ID         string // Unique ID for the dialog
+	SubjectURI string
+	SubjectCID string
+}
+
+// ReportModal renders an inline report modal for the action bar
+templ ReportModal(props ReportModalProps) {
+	<dialog id={ props.ID } class="modal-dialog" x-data="{ reason: '', charCount: 0, submitting: false, error: '', success: false }">
+		<div class="modal-content">
+			<h3 class="modal-title">Report Content</h3>
+			<template x-if="!success">
+				<form
+					@submit.prevent={ fmt.Sprintf(`
+						submitting = true;
+						error = '';
+						const dialog = document.getElementById('%s');
+						fetch('/api/report', {
+							method: 'POST',
+							headers: {'Content-Type': 'application/json'},
+							body: JSON.stringify({
+								subject_uri: '%s',
+								subject_cid: '%s',
+								reason: reason
+							})
+						})
+						.then(r => r.json().then(data => ({ok: r.ok, data})))
+						.then(({ok, data}) => {
+							submitting = false;
+							if (ok) {
+								success = true;
+								setTimeout(() => dialog.close(), 2000);
+							} else {
+								error = data.message || 'Failed to submit report';
+							}
+						})
+						.catch(() => {
+							submitting = false;
+							error = 'Network error. Please try again.';
+						});
+					`, props.ID, escapeForJS(props.SubjectURI), escapeForJS(props.SubjectCID)) }
+					class="space-y-4"
+				>
+					<p class="text-sm text-brown-700">
+						Please describe why you're reporting this content. Reports are reviewed by moderators.
+					</p>
+					<div>
+						<textarea
+							x-model="reason"
+							@input="charCount = reason.length"
+							name="reason"
+							placeholder="Describe the issue (optional)"
+							rows="4"
+							maxlength="500"
+							class="w-full form-textarea"
+						></textarea>
+						<div class="flex justify-between text-xs text-brown-500 mt-1">
+							<span>Optional, but helpful for moderators</span>
+							<span x-text="charCount + '/500'"></span>
+						</div>
+					</div>
+					<template x-if="error">
+						<div class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm" x-text="error"></div>
+					</template>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							class="flex-1 btn-primary"
+							x-bind:disabled="submitting"
+						>
+							<span x-show="!submitting">Submit Report</span>
+							<span x-show="submitting">Submitting...</span>
+						</button>
+						<button
+							type="button"
+							@click="$el.closest('dialog').close()"
+							class="flex-1 btn-secondary"
+							x-bind:disabled="submitting"
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			</template>
+			<template x-if="success">
+				<div class="text-center py-4">
+					<div class="text-green-600 mb-2">
+						<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+						</svg>
+					</div>
+					<p class="font-medium text-brown-900">Report Submitted</p>
+					<p class="text-sm text-brown-600 mt-1">Thank you for helping keep our community safe.</p>
+				</div>
+			</template>
+		</div>
+	</dialog>
+}
+
+// escapeForAlpine escapes special characters in a string for use in Alpine.js expressions.
+// This creates a safe ID by replacing problematic characters.
+func escapeForAlpine(s string) string {
+	// Replace characters that are problematic in HTML IDs and Alpine expressions
+	s = strings.ReplaceAll(s, ":", "_")
+	s = strings.ReplaceAll(s, "/", "_")
+	s = strings.ReplaceAll(s, ".", "_")
+	return s
+}
+
+// escapeForJS escapes special characters in a string for use in JavaScript string literals.
+func escapeForJS(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "'", "\\'")
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	s = strings.ReplaceAll(s, "\r", "\\r")
+	return s
 }

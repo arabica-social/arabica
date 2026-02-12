@@ -1,0 +1,588 @@
+package pages
+
+import (
+	"arabica/internal/moderation"
+	"arabica/internal/web/components"
+	"fmt"
+)
+
+// EnrichedReport wraps a report with resolved profile info
+type EnrichedReport struct {
+	Report        moderation.Report
+	OwnerHandle   string
+	ReporterHandle string
+	PostContent   string // Summary of the reported content
+}
+
+type AdminProps struct {
+	HiddenRecords  []moderation.HiddenRecord
+	AuditLog       []moderation.AuditEntry
+	Reports        []EnrichedReport
+	BlockedUsers   []moderation.BlacklistedUser
+	CanHide        bool
+	CanUnhide      bool
+	CanViewLogs    bool
+	CanViewReports bool
+	CanBlock       bool
+	CanUnblock     bool
+}
+
+templ Admin(layout *components.LayoutData, props AdminProps) {
+	@components.Layout(layout, AdminContent(props))
+}
+
+templ AdminContent(props AdminProps) {
+	<div class="page-container-lg">
+		<div class="mb-8">
+			<h1 class="page-title flex items-center gap-2">
+				<svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"></path>
+				</svg>
+				Moderation Dashboard
+			</h1>
+			<p class="text-brown-600 mt-2">Manage hidden content, review reports, and view moderation activity.</p>
+		</div>
+		@AdminDashboardBody(props)
+	</div>
+}
+
+// AdminDashboardBody renders the dynamic tabs and panels. This is the HTMX
+// swap target so that the static page header doesn't flicker on refresh.
+templ AdminDashboardBody(props AdminProps) {
+	<div
+		id="mod-dashboard"
+		hx-get="/_mod/content"
+		hx-trigger="mod-action from:body"
+		hx-swap="outerHTML"
+		x-data="{ activeTab: sessionStorage.getItem('mod-tab') || 'hidden' }"
+		x-effect="sessionStorage.setItem('mod-tab', activeTab)"
+		class="space-y-6"
+	>
+		<div class="border-b border-brown-200">
+			<nav class="-mb-px flex space-x-8">
+				if props.CanHide || props.CanUnhide {
+					<button
+						type="button"
+						@click="activeTab = 'hidden'"
+						:class="activeTab === 'hidden' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
+						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+					>
+						Hidden Records
+						if len(props.HiddenRecords) > 0 {
+							<span class="ml-2 bg-brown-100 text-brown-700 py-0.5 px-2 rounded-full text-xs">
+								{ fmt.Sprintf("%d", len(props.HiddenRecords)) }
+							</span>
+						}
+					</button>
+				}
+				if props.CanBlock || props.CanUnblock {
+					<button
+						type="button"
+						@click="activeTab = 'blocked'"
+						:class="activeTab === 'blocked' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
+						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+					>
+						Blocked Users
+						if len(props.BlockedUsers) > 0 {
+							<span class="ml-2 bg-red-100 text-red-700 py-0.5 px-2 rounded-full text-xs">
+								{ fmt.Sprintf("%d", len(props.BlockedUsers)) }
+							</span>
+						}
+					</button>
+				}
+				if props.CanViewReports {
+					<button
+						type="button"
+						@click="activeTab = 'reports'"
+						:class="activeTab === 'reports' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
+						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+					>
+						Reports
+						if len(props.Reports) > 0 {
+							<span class="ml-2 bg-red-100 text-red-700 py-0.5 px-2 rounded-full text-xs">
+								{ fmt.Sprintf("%d", len(props.Reports)) }
+							</span>
+						}
+					</button>
+				}
+				if props.CanViewLogs {
+					<button
+						type="button"
+						@click="activeTab = 'activity'"
+						:class="activeTab === 'activity' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
+						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+					>
+						Activity Log
+					</button>
+				}
+			</nav>
+		</div>
+
+		<!-- Hidden Records Tab -->
+		if props.CanHide || props.CanUnhide {
+			<div x-show="activeTab === 'hidden'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+				<div class="card card-inner">
+					<h2 class="section-title">Hidden Records</h2>
+					if len(props.HiddenRecords) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-brown-600">
+							<p>No records are currently hidden.</p>
+						</div>
+					} else {
+						<div class="space-y-3">
+							for _, record := range props.HiddenRecords {
+								@HiddenRecordCard(record, props.CanUnhide)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+
+		<!-- Blocked Users Tab -->
+		if props.CanBlock || props.CanUnblock {
+			<div x-show="activeTab === 'blocked'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+				<div class="card card-inner">
+					<h2 class="section-title">Blocked Users</h2>
+					if len(props.BlockedUsers) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-brown-600">
+							<p>No users are currently blocked.</p>
+						</div>
+					} else {
+						<div class="space-y-3">
+							for _, user := range props.BlockedUsers {
+								@BlockedUserCard(user, props.CanUnblock)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+
+		<!-- Reports Tab -->
+		if props.CanViewReports {
+			<div x-show="activeTab === 'reports'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+				<div class="card card-inner">
+					<h2 class="section-title">Pending Reports</h2>
+					if len(props.Reports) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-brown-600">
+							<p>No pending reports to review.</p>
+						</div>
+					} else {
+						<div class="space-y-4">
+							for _, report := range props.Reports {
+								@ReportCard(report, props.CanHide, props.CanBlock)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+
+		<!-- Activity Log Tab -->
+		if props.CanViewLogs {
+			<div x-show="activeTab === 'activity'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+				<div class="card card-inner">
+					<h2 class="section-title">Recent Activity</h2>
+					if len(props.AuditLog) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-brown-600">
+							<p>No moderation activity recorded yet.</p>
+						</div>
+					} else {
+						<div class="space-y-3">
+							for _, entry := range props.AuditLog {
+								@AuditLogCard(entry)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ HiddenRecordCard(record moderation.HiddenRecord, canUnhide bool) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- URI with copy button -->
+			<div>
+				<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Record URI</span>
+				<div
+					x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.uri.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
+					class="mt-1 flex items-start gap-2"
+				>
+					<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ record.ATURI }</code>
+					<button
+						type="button"
+						x-on:click="copyText()"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+						x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
+					>
+						<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+						</svg>
+						<svg x-show="copied" x-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+						</svg>
+					</button>
+				</div>
+			</div>
+
+			<!-- Meta info row -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-brown-500">Hidden:</span>
+					<span class="text-brown-700 ml-1">{ record.HiddenAt.Format("Jan 2, 2006 15:04") }</span>
+				</div>
+				<div>
+					<span class="text-brown-500">By:</span>
+					<code class="text-brown-700 ml-1 text-xs">{ record.HiddenBy }</code>
+					if record.AutoHidden {
+						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">auto</span>
+					}
+				</div>
+				if record.Reason != "" {
+					<div>
+						<span class="text-brown-500">Reason:</span>
+						<span class="text-brown-700 ml-1">{ record.Reason }</span>
+					</div>
+				}
+			</div>
+
+			<!-- Actions -->
+			if canUnhide {
+				<div class="pt-2 border-t border-brown-200">
+					<button
+						class="text-sm text-amber-600 hover:text-amber-800 font-medium"
+						hx-post="/_mod/unhide"
+						hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, record.ATURI) }
+						hx-swap="none"
+						hx-confirm="Are you sure you want to unhide this record?"
+					>
+						Unhide Record
+					</button>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ BlockedUserCard(user moderation.BlacklistedUser, canUnblock bool) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- DID with copy button -->
+			<div>
+				<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">User DID</span>
+				<div
+					x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.did.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
+					class="mt-1 flex items-start gap-2"
+				>
+					<code x-ref="did" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ user.DID }</code>
+					<button
+						type="button"
+						x-on:click="copyText()"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+						x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
+					>
+						<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+						</svg>
+						<svg x-show="copied" x-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+						</svg>
+					</button>
+				</div>
+			</div>
+
+			<!-- Meta info row -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-brown-500">Blocked:</span>
+					<span class="text-brown-700 ml-1">{ user.BlacklistedAt.Format("Jan 2, 2006 15:04") }</span>
+				</div>
+				<div>
+					<span class="text-brown-500">By:</span>
+					<code class="text-brown-700 ml-1 text-xs">{ user.BlacklistedBy }</code>
+				</div>
+				if user.Reason != "" {
+					<div>
+						<span class="text-brown-500">Reason:</span>
+						<span class="text-brown-700 ml-1">{ user.Reason }</span>
+					</div>
+				}
+			</div>
+
+			<!-- Actions -->
+			if canUnblock {
+				<div class="pt-2 border-t border-brown-200">
+					<button
+						class="text-sm text-amber-600 hover:text-amber-800 font-medium"
+						hx-post="/_mod/unblock"
+						hx-vals={ fmt.Sprintf(`{"did": "%s"}`, user.DID) }
+						hx-swap="none"
+						hx-confirm="Are you sure you want to unblock this user? Their content will reappear in the feed."
+					>
+						Unblock User
+					</button>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ ReportCard(report EnrichedReport, canHide bool, canBlock bool) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-4">
+			<!-- Header with status badge and time -->
+			<div class="flex items-center justify-between">
+				@ReportStatusBadge(report.Report.Status)
+				<span class="text-sm text-brown-500">{ report.Report.CreatedAt.Format("Jan 2, 2006 15:04") }</span>
+			</div>
+
+			<!-- AT-URI with copy button -->
+			<div>
+				<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Record URI</span>
+				<div
+					x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.uri.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
+					class="mt-1 flex items-start gap-2"
+				>
+					<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ report.Report.SubjectURI }</code>
+					<button
+						type="button"
+						x-on:click="copyText()"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+						x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
+					>
+						<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+						</svg>
+						<svg x-show="copied" x-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+						</svg>
+					</button>
+				</div>
+			</div>
+
+			<!-- Owner info -->
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div>
+					<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Content Owner</span>
+					<div class="mt-1">
+						if report.OwnerHandle != "" {
+							<a href={ templ.SafeURL("/profile/" + report.OwnerHandle) } class="text-amber-600 hover:text-amber-700 font-medium">
+								{ "@" + report.OwnerHandle }
+							</a>
+						} else {
+							<code class="text-sm text-brown-700">{ report.Report.SubjectDID }</code>
+						}
+						<div
+							x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.did.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
+							class="flex items-center gap-1 mt-1"
+						>
+							<code x-ref="did" class="text-xs text-brown-500 break-all">{ report.Report.SubjectDID }</code>
+							<button
+								type="button"
+								x-on:click="copyText()"
+								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-brown-400 hover:text-brown-600 rounded transition-colors"
+								x-bind:title="copied ? 'Copied!' : 'Copy DID'"
+							>
+								<svg x-show="!copied" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+								</svg>
+								<svg x-show="copied" x-cloak class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+								</svg>
+							</button>
+						</div>
+					</div>
+				</div>
+				<div>
+					<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Reported By</span>
+					<div class="mt-1">
+						if report.ReporterHandle != "" {
+							<a href={ templ.SafeURL("/profile/" + report.ReporterHandle) } class="text-amber-600 hover:text-amber-700 font-medium">
+								{ "@" + report.ReporterHandle }
+							</a>
+						} else {
+							<code class="text-sm text-brown-700">{ report.Report.ReporterDID }</code>
+						}
+						<div
+							x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.did.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
+							class="flex items-center gap-1 mt-1"
+						>
+							<code x-ref="did" class="text-xs text-brown-500 break-all">{ report.Report.ReporterDID }</code>
+							<button
+								type="button"
+								x-on:click="copyText()"
+								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-brown-400 hover:text-brown-600 rounded transition-colors"
+								x-bind:title="copied ? 'Copied!' : 'Copy DID'"
+							>
+								<svg x-show="!copied" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+								</svg>
+								<svg x-show="copied" x-cloak class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+								</svg>
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Post content preview -->
+			if report.PostContent != "" {
+				<div>
+					<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Content Preview</span>
+					<div class="mt-1 bg-brown-100 rounded-lg p-3">
+						<p class="text-sm text-brown-700 whitespace-pre-wrap">{ report.PostContent }</p>
+					</div>
+				</div>
+			}
+
+			<!-- Report reason -->
+			if report.Report.Reason != "" {
+				<div>
+					<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Report Reason</span>
+					<p class="mt-1 text-sm text-brown-700">{ report.Report.Reason }</p>
+				</div>
+			}
+
+			<!-- Actions -->
+			if report.Report.Status == moderation.ReportStatusPending {
+				<div class="pt-3 border-t border-brown-200 flex flex-wrap gap-3">
+					if canHide {
+						<button
+							class="text-sm bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-1.5 rounded font-medium transition-colors"
+							hx-post="/_mod/hide"
+							hx-vals={ fmt.Sprintf(`{"uri": "%s", "reason": "Reported by user"}`, report.Report.SubjectURI) }
+							hx-swap="none"
+							hx-confirm="Hide this record from the feed?"
+						>
+							Hide Record
+						</button>
+					}
+					if canBlock {
+						<button
+							class="text-sm bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1.5 rounded font-medium transition-colors"
+							hx-post="/_mod/block"
+							hx-vals={ fmt.Sprintf(`{"did": "%s", "reason": "Reported by user"}`, report.Report.SubjectDID) }
+							hx-swap="none"
+							hx-confirm={ fmt.Sprintf("Block user %s? All their content will be hidden from the feed.", report.Report.SubjectDID) }
+						>
+							Block User
+						</button>
+					}
+					<button
+						class="text-sm text-brown-600 hover:text-brown-800 px-3 py-1.5 rounded font-medium transition-colors"
+						hx-post="/_mod/dismiss-report"
+						hx-vals={ fmt.Sprintf(`{"id": "%s"}`, report.Report.ID) }
+						hx-swap="none"
+						hx-confirm="Dismiss this report?"
+					>
+						Dismiss
+					</button>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ ReportStatusBadge(status moderation.ReportStatus) {
+	switch status {
+		case moderation.ReportStatusPending:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+				Pending
+			</span>
+		case moderation.ReportStatusDismissed:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+				Dismissed
+			</span>
+		case moderation.ReportStatusActioned:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+				Actioned
+			</span>
+		default:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brown-100 text-brown-800">
+				{ string(status) }
+			</span>
+	}
+}
+
+templ AuditLogCard(entry moderation.AuditEntry) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- Action badge and time -->
+			<div class="flex items-center justify-between">
+				@AuditActionBadge(entry.Action)
+				<span class="text-sm text-brown-500">{ entry.Timestamp.Format("Jan 2, 2006 15:04") }</span>
+			</div>
+
+			<!-- Target URI with copy button -->
+			if entry.TargetURI != "" {
+				<div>
+					<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Target</span>
+					<div
+						x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.uri.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
+						class="mt-1 flex items-start gap-2"
+					>
+						<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ entry.TargetURI }</code>
+						<button
+							type="button"
+							x-on:click="copyText()"
+							class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+							x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
+						>
+							<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+							</svg>
+							<svg x-show="copied" x-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+							</svg>
+						</button>
+					</div>
+				</div>
+			}
+
+			<!-- Actor info -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-brown-500">Actor:</span>
+					<code class="text-brown-700 ml-1 text-xs">{ entry.ActorDID }</code>
+					if entry.AutoMod {
+						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">auto</span>
+					}
+				</div>
+				if entry.Reason != "" {
+					<div>
+						<span class="text-brown-500">Reason:</span>
+						<span class="text-brown-700 ml-1">{ entry.Reason }</span>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ AuditActionBadge(action moderation.AuditAction) {
+	switch action {
+		case moderation.AuditActionHideRecord:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+				Hide Record
+			</span>
+		case moderation.AuditActionUnhideRecord:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+				Unhide Record
+			</span>
+		case moderation.AuditActionBlacklistUser:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+				Block User
+			</span>
+		case moderation.AuditActionUnblacklistUser:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+				Unblock User
+			</span>
+		default:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brown-100 text-brown-800">
+				{ string(action) }
+			</span>
+	}
+}

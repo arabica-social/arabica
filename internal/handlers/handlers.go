@@ -12,10 +12,12 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/database"
+	"arabica/internal/database/boltstore"
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
 	"arabica/internal/middleware"
 	"arabica/internal/models"
+	"arabica/internal/moderation"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
@@ -45,6 +47,10 @@ type Handler struct {
 	feedService   *feed.Service
 	feedRegistry  *feed.Registry
 	feedIndex     *firehose.FeedIndex
+
+	// Moderation dependencies (optional)
+	moderationService *moderation.Service
+	moderationStore   *boltstore.ModerationStore
 }
 
 // NewHandler creates a new Handler with all required dependencies.
@@ -70,6 +76,12 @@ func NewHandler(
 // SetFeedIndex configures the handler to use the firehose feed index for like lookups
 func (h *Handler) SetFeedIndex(idx *firehose.FeedIndex) {
 	h.feedIndex = idx
+}
+
+// SetModeration configures the handler with moderation service and store
+func (h *Handler) SetModeration(svc *moderation.Service, store *boltstore.ModerationStore) {
+	h.moderationService = svc
+	h.moderationStore = store
 }
 
 // validateRKey validates and returns an rkey from a path parameter.
@@ -160,6 +172,40 @@ func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfi
 	return userProfile
 }
 
+// buildModerationContext creates moderation context for feed rendering
+// Returns empty context if moderation is not configured or user is not a moderator
+func (h *Handler) buildModerationContext(ctx context.Context, viewerDID string, items []*feed.FeedItem) pages.FeedModerationContext {
+	modCtx := pages.FeedModerationContext{
+		HiddenURIs: make(map[string]bool),
+	}
+
+	// Check if moderation is configured and user is a moderator
+	if h.moderationService == nil || viewerDID == "" {
+		return modCtx
+	}
+
+	if !h.moderationService.IsModerator(viewerDID) {
+		return modCtx
+	}
+
+	modCtx.IsModerator = true
+	modCtx.CanHideRecord = h.moderationService.HasPermission(viewerDID, moderation.PermissionHideRecord)
+	modCtx.CanBlockUser = h.moderationService.HasPermission(viewerDID, moderation.PermissionBlacklistUser)
+
+	// Build map of hidden URIs for efficient lookup
+	if h.moderationStore != nil {
+		for _, item := range items {
+			if item.SubjectURI != "" {
+				if h.moderationStore.IsRecordHidden(ctx, item.SubjectURI) {
+					modCtx.HiddenURIs[item.SubjectURI] = true
+				}
+			}
+		}
+	}
+
+	return modCtx
+}
+
 // getAtprotoStore creates a user-scoped atproto store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
 func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
@@ -188,12 +234,19 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 
 // buildLayoutData creates a LayoutData struct with common fields populated from the request
 func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
+	// Check if user is a moderator
+	isModerator := false
+	if h.moderationService != nil && didStr != "" {
+		isModerator = h.moderationService.IsModerator(didStr)
+	}
+
 	return &components.LayoutData{
 		Title:           title,
 		IsAuthenticated: isAuthenticated,
 		UserDID:         didStr,
 		UserProfile:     userProfile,
 		CSPNonce:        middleware.CSPNonceFromContext(r.Context()),
+		IsModerator:     isModerator,
 	}
 }
 
@@ -497,7 +550,10 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := pages.FeedPartial(feedItems, isAuthenticated).Render(r.Context(), w); err != nil {
+	// Build moderation context for moderators
+	modCtx := h.buildModerationContext(r.Context(), viewerDID, feedItems)
+
+	if err := pages.FeedPartialWithModeration(feedItems, isAuthenticated, modCtx).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render feed partial")
 	}
@@ -2328,73 +2384,241 @@ func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleReport handles content report submissions
-//
-// TODO: Implement actual moderation system:
-// - Store reports in database (BoltDB bucket or SQLite table)
-// - Add admin interface to review reports
-// - Implement report status workflow (pending -> reviewed -> dismissed/actioned)
-//
-// TODO: Reports should be rate limited more strictly by IP than other requests.
-// Consider implementing a separate, stricter rate limit for this endpoint
-// (e.g., 5 reports per hour per IP) to prevent abuse and report flooding.
+// Automod thresholds for automatic content hiding
+const (
+	// AutoHideThreshold is the number of reports on a single record before auto-hiding
+	AutoHideThreshold = 3
+	// AutoHideUserThreshold is the total reports across a user's records before auto-hiding new reports
+	AutoHideUserThreshold = 5
+	// ReportRateLimitPerHour is the maximum reports a user can submit per hour
+	ReportRateLimitPerHour = 10
+	// MaxReportReasonLength is the maximum length of a report reason
+	MaxReportReasonLength = 500
+)
+
+// ReportRequest represents the JSON request for submitting a report
+type ReportRequest struct {
+	SubjectURI string `json:"subject_uri"`
+	SubjectCID string `json:"subject_cid"`
+	Reason     string `json:"reason"`
+}
+
+// ReportResponse represents the JSON response from report submission
+type ReportResponse struct {
+	ID      string `json:"id,omitempty"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+// HandleReport handles content report submissions.
+// Requires authentication, validates input, checks rate limits and duplicates,
+// persists the report, and triggers automod if thresholds are reached.
 func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+	ctx := r.Context()
+
+	// Require authentication
+	reporterDID, err := atproto.GetAuthenticatedDID(ctx)
+	if err != nil || reporterDID == "" {
+		writeReportError(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	subjectURI := r.FormValue("subject_uri")
-	subjectCID := r.FormValue("subject_cid")
-	reason := r.FormValue("reason")
-
-	if subjectURI == "" {
-		http.Error(w, "subject_uri is required", http.StatusBadRequest)
+	// Check if moderation store is configured
+	if h.moderationStore == nil {
+		log.Error().Msg("moderation: store not configured")
+		writeReportError(w, "Reports are not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	// Validate reason
-	validReasons := map[string]bool{"spam": true, "inappropriate": true, "other": true}
-	if reason == "" || !validReasons[reason] {
-		reason = "other"
+	// Parse request (supports both JSON and form data)
+	var req ReportRequest
+	if isJSONRequest(r) {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeReportError(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+	} else {
+		if err := r.ParseForm(); err != nil {
+			writeReportError(w, "Invalid form data", http.StatusBadRequest)
+			return
+		}
+		req.SubjectURI = r.FormValue("subject_uri")
+		req.SubjectCID = r.FormValue("subject_cid")
+		req.Reason = r.FormValue("reason")
 	}
 
-	// Get reporter info if authenticated
-	reporterDID := "anonymous"
-	if didStr, err := atproto.GetAuthenticatedDID(r.Context()); err == nil && didStr != "" {
-		reporterDID = didStr
+	// Validate subject URI
+	if req.SubjectURI == "" {
+		writeReportError(w, "subject_uri is required", http.StatusBadRequest)
+		return
 	}
 
-	// Get reporter IP for rate limiting tracking
-	reporterIP := r.RemoteAddr
-	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
-		// Use first IP in chain (original client)
-		reporterIP = strings.Split(forwarded, ",")[0]
+	// Parse the subject URI to get the content owner's DID
+	uriComponents, err := atproto.ResolveATURI(req.SubjectURI)
+	if err != nil {
+		writeReportError(w, "Invalid subject_uri format", http.StatusBadRequest)
+		return
+	}
+	subjectDID := uriComponents.DID
+
+	// Prevent self-reporting
+	if subjectDID == reporterDID {
+		writeReportError(w, "You cannot report your own content", http.StatusBadRequest)
+		return
 	}
 
-	// Create report record (not persisted yet - just for structured logging)
-	report := &models.Report{
-		SubjectURI:  subjectURI,
-		SubjectCID:  subjectCID,
-		Reason:      reason,
+	// Validate and sanitize reason
+	reason := strings.TrimSpace(req.Reason)
+	if reason == "" {
+		reason = "No reason provided"
+	}
+	if len(reason) > MaxReportReasonLength {
+		reason = reason[:MaxReportReasonLength]
+	}
+
+	// Check rate limit (10 reports per hour per user)
+	oneHourAgo := time.Now().Add(-1 * time.Hour)
+	recentCount, err := h.moderationStore.CountReportsFromUserSince(ctx, reporterDID, oneHourAgo)
+	if err != nil {
+		log.Error().Err(err).Str("reporter", reporterDID).Msg("moderation: failed to check rate limit")
+		writeReportError(w, "Failed to process report", http.StatusInternalServerError)
+		return
+	}
+	if recentCount >= ReportRateLimitPerHour {
+		writeReportError(w, "Rate limit exceeded. Please try again later.", http.StatusTooManyRequests)
+		return
+	}
+
+	// Check for duplicate report
+	alreadyReported, err := h.moderationStore.HasReportedURI(ctx, reporterDID, req.SubjectURI)
+	if err != nil {
+		log.Error().Err(err).Str("reporter", reporterDID).Msg("moderation: failed to check duplicate")
+		writeReportError(w, "Failed to process report", http.StatusInternalServerError)
+		return
+	}
+	if alreadyReported {
+		writeReportError(w, "You have already reported this content", http.StatusConflict)
+		return
+	}
+
+	// Create the report
+	report := moderation.Report{
+		ID:          generateTID(),
+		SubjectURI:  req.SubjectURI,
+		SubjectDID:  subjectDID,
 		ReporterDID: reporterDID,
-		ReporterIP:  reporterIP,
+		Reason:      reason,
 		CreatedAt:   time.Now(),
-		Status:      "pending",
+		Status:      moderation.ReportStatusPending,
 	}
 
-	// TODO: Persist report to database
-	// For now, log the report for manual review
-	log.Info().
-		Str("subject_uri", report.SubjectURI).
-		Str("subject_cid", report.SubjectCID).
-		Str("reason", report.Reason).
-		Str("reporter_did", report.ReporterDID).
-		Str("reporter_ip", report.ReporterIP).
-		Time("created_at", report.CreatedAt).
-		Msg("Content report received")
+	// Persist the report
+	if err := h.moderationStore.CreateReport(ctx, report); err != nil {
+		log.Error().Err(err).Str("reporter", reporterDID).Msg("moderation: failed to create report")
+		writeReportError(w, "Failed to save report", http.StatusInternalServerError)
+		return
+	}
 
+	log.Info().
+		Str("report_id", report.ID).
+		Str("subject_uri", report.SubjectURI).
+		Str("subject_did", report.SubjectDID).
+		Str("reporter_did", report.ReporterDID).
+		Str("reason", report.Reason).
+		Msg("moderation: report created")
+
+	// Check automod thresholds and potentially auto-hide
+	h.checkAutomod(ctx, report)
+
+	// Return success
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status": "received"}`))
+	json.NewEncoder(w).Encode(ReportResponse{
+		ID:      report.ID,
+		Status:  "received",
+		Message: "Thank you for your report. It will be reviewed by a moderator.",
+	})
+}
+
+// checkAutomod checks if automod thresholds are met and auto-hides content if needed.
+func (h *Handler) checkAutomod(ctx context.Context, report moderation.Report) {
+	// Skip if record is already hidden
+	if h.moderationStore.IsRecordHidden(ctx, report.SubjectURI) {
+		return
+	}
+
+	// Check report count for this specific URI
+	uriReportCount, err := h.moderationStore.CountReportsForURI(ctx, report.SubjectURI)
+	if err != nil {
+		log.Error().Err(err).Str("uri", report.SubjectURI).Msg("moderation: failed to count URI reports for automod")
+		return
+	}
+
+	// Check total report count for content by this user
+	didReportCount, err := h.moderationStore.CountReportsForDID(ctx, report.SubjectDID)
+	if err != nil {
+		log.Error().Err(err).Str("did", report.SubjectDID).Msg("moderation: failed to count DID reports for automod")
+		return
+	}
+
+	// Determine if we should auto-hide
+	shouldAutoHide := false
+	autoHideReason := ""
+
+	if uriReportCount >= AutoHideThreshold {
+		shouldAutoHide = true
+		autoHideReason = fmt.Sprintf("Auto-hidden: %d reports on this record", uriReportCount)
+	} else if didReportCount >= AutoHideUserThreshold {
+		shouldAutoHide = true
+		autoHideReason = fmt.Sprintf("Auto-hidden: %d total reports against user's content", didReportCount)
+	}
+
+	if shouldAutoHide {
+		// Auto-hide the record
+		hiddenRecord := moderation.HiddenRecord{
+			ATURI:      report.SubjectURI,
+			HiddenAt:   time.Now(),
+			HiddenBy:   "automod",
+			Reason:     autoHideReason,
+			AutoHidden: true,
+		}
+
+		if err := h.moderationStore.HideRecord(ctx, hiddenRecord); err != nil {
+			log.Error().Err(err).Str("uri", report.SubjectURI).Msg("moderation: automod failed to hide record")
+			return
+		}
+
+		// Log the automod action
+		auditEntry := moderation.AuditEntry{
+			ID:        generateTID(),
+			Action:    moderation.AuditActionHideRecord,
+			ActorDID:  "automod",
+			TargetURI: report.SubjectURI,
+			Reason:    autoHideReason,
+			Timestamp: time.Now(),
+			AutoMod:   true,
+		}
+
+		if err := h.moderationStore.LogAction(ctx, auditEntry); err != nil {
+			log.Error().Err(err).Msg("moderation: failed to log automod action")
+		}
+
+		log.Warn().
+			Str("uri", report.SubjectURI).
+			Str("did", report.SubjectDID).
+			Int("uri_reports", uriReportCount).
+			Int("did_reports", didReportCount).
+			Str("reason", autoHideReason).
+			Msg("moderation: automod triggered - record hidden")
+	}
+}
+
+// writeReportError writes a JSON error response for report endpoints
+func writeReportError(w http.ResponseWriter, message string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(ReportResponse{
+		Status:  "error",
+		Message: message,
+	})
 }

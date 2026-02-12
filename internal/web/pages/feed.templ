@@ -8,12 +8,25 @@ import (
 	"fmt"
 )
 
+// FeedModerationContext holds moderation state for rendering feed items
+type FeedModerationContext struct {
+	IsModerator   bool              // User has moderator role
+	CanHideRecord bool              // User has hide_record permission
+	CanBlockUser  bool              // User has blacklist_user permission
+	HiddenURIs    map[string]bool   // URIs that are currently hidden
+}
+
 // FeedPartial renders the feed items (for HTMX loading)
 templ FeedPartial(items []*feed.FeedItem, isAuthenticated bool) {
+	@FeedPartialWithModeration(items, isAuthenticated, FeedModerationContext{})
+}
+
+// FeedPartialWithModeration renders feed items with moderation context
+templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext) {
 	<div class="space-y-4">
 		if len(items) > 0 {
 			for _, item := range items {
-				@FeedCard(item, isAuthenticated)
+				@FeedCardWithModeration(item, isAuthenticated, modCtx)
 			}
 		} else {
 			<div class="bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200">
@@ -24,8 +37,13 @@ templ FeedPartial(items []*feed.FeedItem, isAuthenticated bool) {
 	</div>
 }
 
-// FeedCard renders a single feed item card
+// FeedCard renders a single feed item card (without moderation context)
 templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
+	@FeedCardWithModeration(item, isAuthenticated, FeedModerationContext{})
+}
+
+// FeedCardWithModeration renders a single feed item card with moderation context
+templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext) {
 	<div class="feed-card">
 		<!-- Author row -->
 		<div class="flex items-center gap-3 mb-3">
@@ -77,6 +95,11 @@ templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
 				EditURL:         getEditURL(item),
 				DeleteURL:       getDeleteURL(item),
 				IsAuthenticated: isAuthenticated,
+				IsModerator:     modCtx.IsModerator,
+				CanHideRecord:   modCtx.CanHideRecord,
+				CanBlockUser:    modCtx.CanBlockUser,
+				IsRecordHidden:  modCtx.HiddenURIs[item.SubjectURI],
+				AuthorDID:       item.Author.DID,
 			})
 		}
 	</div>

@@ -1,8 +1,6 @@
 package components
 
-import (
-	"arabica/internal/models"
-)
+import "arabica/internal/models"
 
 // BeansTableProps defines props for the shared beans table
 type BeansTableProps struct {
@@ -141,7 +139,7 @@ templ RoastersTable(props RoastersTableProps) {
 										{ roaster.Website }
 									} else {
 										<a href={ templ.URL(roaster.Website) } target="_blank" rel="noopener noreferrer" class="text-brown-700 hover:text-brown-900 underline">
-											Visit
+											{ templ.URL(roaster.Website) }
 										</a>
 									}
 								} else {

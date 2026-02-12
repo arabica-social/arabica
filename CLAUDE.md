@@ -42,6 +42,28 @@ Quick reference for AI agents:
 
 All work items are tracked as cells. When starting new work, check for existing cells first.
 
+## Workflow Rules
+
+Do NOT spend more than 2-3 minutes exploring/reading files before beginning implementation. If the task is clear, start writing code immediately. Ask clarifying questions rather than endlessly reading the codebase. When given a specific implementation task, produce code changes in the same session.
+
+## Dependencies
+
+When implementing features, prefer standard library solutions over external dependencies. Only add a third-party dependency if the standard library genuinely cannot handle the requirement. For Go: check stdlib first (e.g., os.Stdout for TTY detection). For JS/TS: check built-in APIs before npm packages.
+
+## Task Agents
+
+When spawning task agents, set a hard limit of 3 agents maximum. Each agent must have a clearly scoped deliverable and file output path. Do not poll agents in a loop—instead, give each agent its full instructions upfront and collect results at the end. If agents aren't producing results within 5 minutes, fall back to doing the work directly.
+
+## Testing & Verification
+
+For Go projects: always run `go vet ./...` and `go build ./...` after making changes. For JavaScript/CSS projects: verify template field names match backend struct fields before considering a task complete. Always test form submissions to verify content-type handling (JSON vs form-encoded).
+
+### Using Go Tooling Effectively
+
+- To see source files from a dependency, or to answer questions about a dependency, run `go mod download -json MODULE` and use the returned `Dir` path to read the files.
+- Use `go doc foo.Bar` or `go doc -all foo` to read documentation for packages, types, functions, etc.
+- Use `go run .` or `go run ./cmd/foo` instead of `go build` to run programs, to avoid leaving behind build artifacts.
+
 ## Tech Stack
 
 - **Language:** Go 1.21+
@@ -98,6 +120,9 @@ internal/
   feed/
     service.go              # Community feed aggregation
     registry.go             # User registration for feed
+  moderation/
+    models.go               # Moderation types (roles, permissions, reports)
+    service.go              # Role-based moderation service
   models/
     models.go               # Domain models and request types
   middleware/
@@ -105,6 +130,7 @@ internal/
   routing/
     routing.go              # Router setup and middleware chain
 lexicons/                   # AT Protocol lexicon definitions (JSON)
+config/                     # Configuration files (moderators.json.example)
 static/                     # CSS, JS, manifest
 ```
 
@@ -453,6 +479,7 @@ The generated `*_templ.go` files are committed to version control and should be 
 | `SERVER_PUBLIC_URL`         | -                                    | Public URL for reverse proxy     |
 | `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db    | BoltDB path (sessions, registry) |
 | `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path       |
+| `ARABICA_MODERATORS_CONFIG` | -                                    | Path to moderators JSON config   |
 | `ARABICA_PROFILE_CACHE_TTL` | 1h                                   | Profile cache duration           |
 | `SECURE_COOKIES`            | false                                | Set true for HTTPS               |
 | `LOG_LEVEL`                 | info                                 | debug/info/warn/error            |
