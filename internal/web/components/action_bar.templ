@@ -36,6 +36,17 @@ type ActionBarProps struct {
 	AuthorDID      string // DID of the content author (for block action)
 }
 
+// hasModActions returns true if any moderation menu items will render.
+func (p ActionBarProps) hasModActions() bool {
+	return (p.CanHideRecord && p.SubjectURI != "") ||
+		(p.CanBlockUser && p.AuthorDID != "" && !p.IsOwner)
+}
+
+// hasReportAction returns true if the report menu item will render.
+func (p ActionBarProps) hasReportAction() bool {
+	return p.IsAuthenticated && !p.IsOwner
+}
+
 // ActionBar renders the action bar with Comments, Like, Share, and More menu
 // Order: [💬 Comments] [♡ Like] [↗ Share] [⋯ More]
 templ ActionBar(props ActionBarProps) {
@@ -89,8 +100,6 @@ templ ActionBar(props ActionBarProps) {
 				</svg>
 			</button>
 			<!-- Dropdown menu -->
-			// FIX: the line shows above the popup modal in many cases
-			// FIX: the modal should open in the other direction if it would extend past the edge of the viewport
 			<div
 				x-show="moreOpen"
 				x-transition:enter="transition ease-out duration-100"
@@ -127,7 +136,9 @@ templ ActionBar(props ActionBarProps) {
 							Delete
 						</button>
 					}
-					<div class="action-menu-divider"></div>
+					if props.hasModActions() || props.hasReportAction() {
+						<div class="action-menu-divider"></div>
+					}
 				}
 				<!-- Moderation actions (for moderators/admins) -->
 				if props.CanHideRecord && props.SubjectURI != "" {
@@ -162,7 +173,9 @@ templ ActionBar(props ActionBarProps) {
 							Hide from feed
 						</button>
 					}
-					<div class="action-menu-divider"></div>
+					if (props.CanBlockUser && props.AuthorDID != "" && !props.IsOwner) || props.hasReportAction() {
+						<div class="action-menu-divider"></div>
+					}
 				}
 				if props.CanBlockUser && props.AuthorDID != "" && !props.IsOwner {
 					<button
@@ -179,7 +192,9 @@ templ ActionBar(props ActionBarProps) {
 						</svg>
 						Block user
 					</button>
-					<div class="action-menu-divider"></div>
+					if props.hasReportAction() {
+						<div class="action-menu-divider"></div>
+					}
 				}
 				<!-- Report (available to authenticated users) -->
 				if props.IsAuthenticated && !props.IsOwner {
