@@ -39,7 +39,7 @@ type ActionBarProps struct {
 // ActionBar renders the action bar with Comments, Like, Share, and More menu
 // Order: [💬 Comments] [♡ Like] [↗ Share] [⋯ More]
 templ ActionBar(props ActionBarProps) {
-	<div class="action-bar" x-data="{ moreOpen: false }">
+	<div class="action-bar" x-data="{ moreOpen: false, openUp: true }">
 		<!-- Comments (placeholder) -->
 		<button
 			type="button"
@@ -76,10 +76,10 @@ templ ActionBar(props ActionBarProps) {
 			@ActionBarShareButton(props)
 		}
 		<!-- More menu -->
-		<div class="relative">
+		<div class="relative z-10">
 			<button
 				type="button"
-				@click="moreOpen = !moreOpen"
+				@click="if (!moreOpen) { openUp = $el.getBoundingClientRect().top > window.innerHeight * 0.25 }; moreOpen = !moreOpen"
 				@click.away="moreOpen = false"
 				class="action-btn"
 				aria-label="More options"
@@ -100,6 +100,7 @@ templ ActionBar(props ActionBarProps) {
 				x-transition:leave-start="transform opacity-100 scale-100"
 				x-transition:leave-end="transform opacity-0 scale-95"
 				class="action-menu"
+				:class="openUp ? 'bottom-full mb-1' : 'top-full mt-1'"
 				x-cloak
 			>
 				if props.IsOwner {
