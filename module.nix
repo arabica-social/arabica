@@ -1,6 +1,69 @@
 { config, lib, pkgs, ... }:
 
-let cfg = config.services.arabica;
+let
+  cfg = config.services.arabica;
+
+  moderatorUserType = lib.types.submodule {
+    options = {
+      did = lib.mkOption {
+        type = lib.types.str;
+        description = "AT Protocol DID of the moderator.";
+        example = "did:plc:abc123xyz";
+      };
+      handle = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "Optional handle for the moderator (for readability).";
+        example = "alice.bsky.social";
+      };
+      role = lib.mkOption {
+        type = lib.types.enum [ "admin" "moderator" ];
+        description = "The moderation role assigned to this user.";
+      };
+      note = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "Optional note about this moderator.";
+      };
+    };
+  };
+
+  # Build the moderators JSON config file from Nix settings
+  moderatorsConfigFile = pkgs.writeText "moderators.json" (builtins.toJSON {
+    roles = {
+      admin = {
+        description = "Full platform control";
+        permissions = [
+          "hide_record"
+          "unhide_record"
+          "blacklist_user"
+          "unblacklist_user"
+          "view_reports"
+          "dismiss_report"
+          "view_audit_log"
+        ];
+      };
+      moderator = {
+        description = "Content moderation";
+        permissions =
+          [ "hide_record" "unhide_record" "view_reports" "dismiss_report" ];
+      };
+    };
+    users = map (u:
+      {
+        inherit (u) did role;
+      } // lib.optionalAttrs (u.handle != "") { inherit (u) handle; }
+      // lib.optionalAttrs (u.note != "") { inherit (u) note; })
+      cfg.moderation.moderators;
+  });
+
+  # Resolve the config path: explicit file takes priority, then generated from moderators list
+  effectiveConfigPath = if cfg.moderation.configFile != null then
+    cfg.moderation.configFile
+  else if cfg.moderation.moderators != [ ] then
+    moderatorsConfigFile
+  else
+    null;
 in {
   options.services.arabica = {
     enable = lib.mkEnableOption "Arabica coffee brew tracking service";
@@ -37,6 +100,35 @@ in {
         default = true;
         description =
           "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
+      };
+    };
+
+    moderation = {
+      configFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        description = ''
+          Path to a moderators JSON config file. If set, this takes priority
+          over the `moderators` list option. See the project README for the
+          expected format.
+        '';
+        example = "/etc/arabica/moderators.json";
+      };
+
+      moderators = lib.mkOption {
+        type = lib.types.listOf moderatorUserType;
+        default = [ ];
+        description = ''
+          List of moderator users. When set, a config file is generated
+          automatically with the standard admin and moderator roles.
+          Ignored if `configFile` is set.
+        '';
+        example = lib.literalExpression ''
+          [
+            { did = "did:plc:abc123"; role = "admin"; handle = "alice.bsky.social"; note = "Platform owner"; }
+            { did = "did:plc:def456"; role = "moderator"; handle = "bob.bsky.social"; }
+          ]
+        '';
       };
     };
 
@@ -137,6 +229,8 @@ in {
         OAUTH_CLIENT_ID = cfg.oauth.clientId;
         OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
         ARABICA_DB_PATH = "${cfg.dataDir}/arabica.db";
+      } // lib.optionalAttrs (effectiveConfigPath != null) {
+        ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;
       };
     };
 
