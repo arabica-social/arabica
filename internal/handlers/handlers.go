@@ -13,6 +13,7 @@ import (
 	"arabica/internal/atproto"
 	"arabica/internal/database"
 	"arabica/internal/database/boltstore"
+	"arabica/internal/email"
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
 	"arabica/internal/middleware"
@@ -22,6 +23,8 @@ import (
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
 
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
@@ -51,6 +54,12 @@ type Handler struct {
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
 	moderationStore   *boltstore.ModerationStore
+
+	// Join request dependencies (optional)
+	emailSender   *email.Sender
+	joinStore     *boltstore.JoinStore
+	pdsAdminURL   string
+	pdsAdminToken string
 }
 
 // NewHandler creates a new Handler with all required dependencies.
@@ -82,6 +91,14 @@ func (h *Handler) SetFeedIndex(idx *firehose.FeedIndex) {
 func (h *Handler) SetModeration(svc *moderation.Service, store *boltstore.ModerationStore) {
 	h.moderationService = svc
 	h.moderationStore = store
+}
+
+// SetJoin configures the handler with email sender and join request store
+func (h *Handler) SetJoin(sender *email.Sender, store *boltstore.JoinStore, pdsURL, pdsAdminToken string) {
+	h.emailSender = sender
+	h.joinStore = store
+	h.pdsAdminURL = pdsURL
+	h.pdsAdminToken = pdsAdminToken
 }
 
 // validateRKey validates and returns an rkey from a path parameter.
@@ -1920,6 +1937,203 @@ func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render terms page")
 	}
+}
+
+// HandleJoin renders the join request page.
+func (h *Handler) HandleJoin(w http.ResponseWriter, r *http.Request) {
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	var userProfile *bff.UserProfile
+	if isAuthenticated {
+		userProfile = h.getUserProfile(r.Context(), didStr)
+	}
+
+	layoutData := h.buildLayoutData(r, "Join Arabica", isAuthenticated, didStr, userProfile)
+
+	if err := pages.Join(layoutData).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render join page")
+	}
+}
+
+// HandleJoinSubmit processes a join request form submission.
+func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	// Honeypot check — if the hidden field is filled, silently reject
+	if r.FormValue("website") != "" {
+		// Show success page anyway so bots don't know they were caught
+		h.renderJoinSuccess(w, r)
+		return
+	}
+
+	emailAddr := strings.TrimSpace(r.FormValue("email"))
+	handle := strings.TrimSpace(r.FormValue("handle"))
+	message := strings.TrimSpace(r.FormValue("message"))
+
+	// Basic email validation
+	if emailAddr == "" || !strings.Contains(emailAddr, "@") || !strings.Contains(emailAddr, ".") {
+		http.Error(w, "A valid email address is required", http.StatusBadRequest)
+		return
+	}
+
+	// Create and save the join request
+	req := &boltstore.JoinRequest{
+		ID:              fmt.Sprintf("%d", time.Now().UnixNano()),
+		Email:           emailAddr,
+		PreferredHandle: handle,
+		Message:         message,
+		CreatedAt:       time.Now().UTC(),
+		IP:              r.RemoteAddr,
+	}
+
+	if h.joinStore != nil {
+		if err := h.joinStore.SaveRequest(req); err != nil {
+			log.Error().Err(err).Str("email", emailAddr).Msg("Failed to save join request")
+			http.Error(w, "Failed to save request, please try again", http.StatusInternalServerError)
+			return
+		}
+		log.Info().Str("email", emailAddr).Str("handle", handle).Msg("Join request saved")
+	}
+
+	// Send admin notification email (non-blocking)
+	if h.emailSender != nil && h.emailSender.Enabled() {
+		go func() {
+			subject := "New Arabica Join Request"
+			body := fmt.Sprintf("New account request:\n\nEmail: %s\nPreferred Handle: %s\nMessage: %s\nIP: %s\nTime: %s\n",
+				req.Email, req.PreferredHandle, req.Message, req.IP, req.CreatedAt.Format(time.RFC3339))
+
+			if err := h.emailSender.Send(h.emailSender.AdminEmail(), subject, body); err != nil {
+				log.Error().Err(err).Str("email", emailAddr).Msg("Failed to send admin notification")
+			}
+		}()
+	}
+
+	h.renderJoinSuccess(w, r)
+}
+
+func (h *Handler) renderJoinSuccess(w http.ResponseWriter, r *http.Request) {
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	var userProfile *bff.UserProfile
+	if isAuthenticated {
+		userProfile = h.getUserProfile(r.Context(), didStr)
+	}
+
+	layoutData := h.buildLayoutData(r, "Request Received", isAuthenticated, didStr, userProfile)
+
+	if err := pages.JoinSuccess(layoutData).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render join success page")
+	}
+}
+
+// HandleCreateInvite creates a PDS invite code and emails it to the requester.
+func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
+	userDID, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil || userDID == "" {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+	if h.moderationService == nil || !h.moderationService.IsAdmin(userDID) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	reqID := r.FormValue("id")
+	reqEmail := r.FormValue("email")
+	if reqID == "" || reqEmail == "" {
+		http.Error(w, "Missing request ID or email", http.StatusBadRequest)
+		return
+	}
+
+	if h.pdsAdminURL == "" || h.pdsAdminToken == "" {
+		http.Error(w, "PDS admin not configured", http.StatusInternalServerError)
+		return
+	}
+
+	// Create invite code via PDS admin API
+	client := &xrpc.Client{
+		Host:       h.pdsAdminURL,
+		AdminToken: &h.pdsAdminToken,
+	}
+	out, err := comatproto.ServerCreateInviteCode(r.Context(), client, &comatproto.ServerCreateInviteCode_Input{
+		UseCount: 1,
+	})
+	if err != nil {
+		log.Error().Err(err).Str("email", reqEmail).Msg("Failed to create invite code")
+		http.Error(w, "Failed to create invite code", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info().Str("email", reqEmail).Str("code", out.Code).Str("by", userDID).Msg("Invite code created")
+
+	// Email the invite code to the requester
+	if h.emailSender != nil && h.emailSender.Enabled() {
+		subject := "Your Arabica Invite Code"
+		body := fmt.Sprintf("Welcome to Arabica!\n\nHere is your invite code to create an account on arabica.systems:\n\n    %s\n\nVisit https://arabica.systems to sign up with this code.\n\nHappy brewing!\n", out.Code)
+		if err := h.emailSender.Send(reqEmail, subject, body); err != nil {
+			log.Error().Err(err).Str("email", reqEmail).Msg("Failed to send invite email")
+			http.Error(w, "Invite created but failed to send email. Code: "+out.Code, http.StatusInternalServerError)
+			return
+		}
+		log.Info().Str("email", reqEmail).Msg("Invite code emailed")
+	}
+
+	// Remove the join request
+	if h.joinStore != nil {
+		if err := h.joinStore.DeleteRequest(reqID); err != nil {
+			log.Error().Err(err).Str("id", reqID).Msg("Failed to delete join request")
+		}
+	}
+
+	w.Header().Set("HX-Trigger", "mod-action")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleDismissJoinRequest removes a join request without sending an invite.
+func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Request) {
+	userDID, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil || userDID == "" {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+	if h.moderationService == nil || !h.moderationService.IsAdmin(userDID) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	reqID := r.FormValue("id")
+	if reqID == "" {
+		http.Error(w, "Missing request ID", http.StatusBadRequest)
+		return
+	}
+
+	if h.joinStore != nil {
+		if err := h.joinStore.DeleteRequest(reqID); err != nil {
+			log.Error().Err(err).Str("id", reqID).Msg("Failed to delete join request")
+			http.Error(w, "Failed to dismiss request", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	log.Info().Str("id", reqID).Str("by", userDID).Msg("Join request dismissed")
+
+	w.Header().Set("HX-Trigger", "mod-action")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) HandleATProto(w http.ResponseWriter, r *http.Request) {

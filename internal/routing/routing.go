@@ -53,6 +53,8 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
 	mux.HandleFunc("GET /about", h.HandleAbout)
 	mux.HandleFunc("GET /terms", h.HandleTerms)
+	mux.HandleFunc("GET /join", h.HandleJoin)
+	mux.Handle("POST /join", cop.Handler(http.HandlerFunc(h.HandleJoinSubmit)))
 	mux.HandleFunc("GET /atproto", h.HandleATProto)
 	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
@@ -92,6 +94,8 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /_mod/dismiss-report", cop.Handler(http.HandlerFunc(h.HandleDismissReport)))
 	mux.Handle("POST /_mod/block", cop.Handler(http.HandlerFunc(h.HandleBlockUser)))
 	mux.Handle("POST /_mod/unblock", cop.Handler(http.HandlerFunc(h.HandleUnblockUser)))
+	mux.Handle("POST /_mod/invite", cop.Handler(http.HandlerFunc(h.HandleCreateInvite)))
+	mux.Handle("POST /_mod/dismiss-join", cop.Handler(http.HandlerFunc(h.HandleDismissJoinRequest)))
 
 	// Modal routes for entity management (return dialog HTML)
 	mux.HandleFunc("GET /api/modals/bean/new", h.HandleBeanModalNew)

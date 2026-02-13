@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"arabica/internal/database/boltstore"
 	"arabica/internal/moderation"
 	"arabica/internal/web/components"
 	"fmt"
@@ -19,12 +20,14 @@ type AdminProps struct {
 	AuditLog       []moderation.AuditEntry
 	Reports        []EnrichedReport
 	BlockedUsers   []moderation.BlacklistedUser
+	JoinRequests   []*boltstore.JoinRequest
 	CanHide        bool
 	CanUnhide      bool
 	CanViewLogs    bool
 	CanViewReports bool
 	CanBlock       bool
 	CanUnblock     bool
+	IsAdmin        bool
 }
 
 templ Admin(layout *components.LayoutData, props AdminProps) {
@@ -115,6 +118,21 @@ templ AdminDashboardBody(props AdminProps) {
 						Activity Log
 					</button>
 				}
+			if props.IsAdmin {
+				<button
+					type="button"
+					@click="activeTab = 'join'"
+					:class="activeTab === 'join' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
+					class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+				>
+					Join Requests
+					if len(props.JoinRequests) > 0 {
+						<span class="ml-2 bg-blue-100 text-blue-700 py-0.5 px-2 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.JoinRequests)) }
+						</span>
+					}
+				</button>
+			}
 			</nav>
 		</div>
 
@@ -196,6 +214,26 @@ templ AdminDashboardBody(props AdminProps) {
 					}
 				</div>
 			</div>
+
+		<!-- Join Requests Tab -->
+		if props.IsAdmin {
+			<div x-show="activeTab === 'join'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+				<div class="card card-inner">
+					<h2 class="section-title">Join Requests</h2>
+					if len(props.JoinRequests) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-brown-600">
+							<p>No join requests.</p>
+						</div>
+					} else {
+						<div class="space-y-3">
+							for _, req := range props.JoinRequests {
+								@JoinRequestCard(req)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
 		}
 	</div>
 }
@@ -585,4 +623,53 @@ templ AuditActionBadge(action moderation.AuditAction) {
 				{ string(action) }
 			</span>
 	}
+}
+
+templ JoinRequestCard(req *boltstore.JoinRequest) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<div class="flex items-center justify-between">
+				<span class="font-medium text-brown-900">{ req.Email }</span>
+				<span class="text-sm text-brown-500">{ req.CreatedAt.Format("Jan 2, 2006 15:04") }</span>
+			</div>
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				if req.PreferredHandle != "" {
+					<div>
+						<span class="text-brown-500">Handle:</span>
+						<span class="text-brown-700 ml-1">{ req.PreferredHandle }</span>
+					</div>
+				}
+				<div>
+					<span class="text-brown-500">IP:</span>
+					<code class="text-brown-700 ml-1 text-xs">{ req.IP }</code>
+				</div>
+			</div>
+			if req.Message != "" {
+				<div>
+					<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Message</span>
+					<p class="mt-1 text-sm text-brown-700">{ req.Message }</p>
+				</div>
+			}
+			<div class="pt-2 border-t border-brown-200 flex flex-wrap gap-3">
+				<button
+					class="text-sm bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1.5 rounded font-medium transition-colors"
+					hx-post="/_mod/invite"
+					hx-vals={ fmt.Sprintf(`{"id": "%s", "email": "%s"}`, req.ID, req.Email) }
+					hx-swap="none"
+					hx-confirm={ fmt.Sprintf("Create invite code and send to %s?", req.Email) }
+				>
+					Send Invite
+				</button>
+				<button
+					class="text-sm text-brown-600 hover:text-brown-800 px-3 py-1.5 rounded font-medium transition-colors"
+					hx-post="/_mod/dismiss-join"
+					hx-vals={ fmt.Sprintf(`{"id": "%s"}`, req.ID) }
+					hx-swap="none"
+					hx-confirm="Dismiss this join request?"
+				>
+					Dismiss
+				</button>
+			</div>
+		</div>
+	</div>
 }

@@ -9,12 +9,14 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"arabica/internal/atproto"
 	"arabica/internal/database/boltstore"
+	"arabica/internal/email"
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
 	"arabica/internal/handlers"
@@ -308,6 +310,31 @@ func main() {
 		log.Warn().Err(err).Msg("Failed to initialize moderation service, moderation disabled")
 	} else {
 		h.SetModeration(moderationSvc, moderationStore)
+	}
+
+	// Initialize join request handling
+	smtpPort := 587
+	if portStr := os.Getenv("SMTP_PORT"); portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			smtpPort = p
+		}
+	}
+	emailSender := email.NewSender(email.Config{
+		Host:       os.Getenv("SMTP_HOST"),
+		Port:       smtpPort,
+		User:       os.Getenv("SMTP_USER"),
+		Pass:       os.Getenv("SMTP_PASS"),
+		From:       os.Getenv("SMTP_FROM"),
+		AdminEmail: os.Getenv("ADMIN_EMAIL"),
+	})
+	joinStore := store.JoinStore()
+	pdsAdminURL := os.Getenv("PDS_ADMIN_URL")
+	pdsAdminToken := os.Getenv("PDS_ADMIN_PASSWORD")
+	h.SetJoin(emailSender, joinStore, pdsAdminURL, pdsAdminToken)
+	if emailSender.Enabled() {
+		log.Info().Str("host", os.Getenv("SMTP_HOST")).Msg("Email notifications enabled for join requests")
+	} else {
+		log.Info().Msg("Email notifications disabled (SMTP_HOST not set), join requests will be saved to database only")
 	}
 
 	// Setup router with middleware
