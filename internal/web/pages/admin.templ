@@ -656,6 +656,7 @@ templ JoinRequestCard(req *boltstore.JoinRequest) {
 					hx-post="/_mod/invite"
 					hx-vals={ fmt.Sprintf(`{"id": "%s", "email": "%s"}`, req.ID, req.Email) }
 					hx-swap="none"
+					hx-disabled-elt="this"
 					hx-confirm={ fmt.Sprintf("Create invite code and send to %s?", req.Email) }
 				>
 					Send Invite

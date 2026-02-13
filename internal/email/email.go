@@ -1,11 +1,14 @@
 package email
 
 import (
+	"crypto/rand"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"net/smtp"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // Config holds SMTP configuration for sending email.
@@ -45,8 +48,20 @@ func (s *Sender) Send(to, subject, body string) error {
 	}
 
 	addr := net.JoinHostPort(s.cfg.Host, strconv.Itoa(s.cfg.Port))
-	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
-		s.cfg.From, to, subject, body)
+
+	// Extract domain from From address for Message-ID
+	domain := s.cfg.Host
+	if parts := strings.SplitN(s.cfg.From, "@", 2); len(parts) == 2 {
+		domain = parts[1]
+	}
+
+	// Generate a random Message-ID
+	randBytes := make([]byte, 16)
+	rand.Read(randBytes)
+	messageID := fmt.Sprintf("<%x.%d@%s>", randBytes, time.Now().UnixNano(), domain)
+
+	msg := fmt.Sprintf("From: Arabica <%s>\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMessage-ID: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
+		s.cfg.From, to, subject, time.Now().UTC().Format(time.RFC1123Z), messageID, body)
 
 	var auth smtp.Auth
 	if s.cfg.User != "" {

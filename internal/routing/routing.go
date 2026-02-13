@@ -55,6 +55,8 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /terms", h.HandleTerms)
 	mux.HandleFunc("GET /join", h.HandleJoin)
 	mux.Handle("POST /join", cop.Handler(http.HandlerFunc(h.HandleJoinSubmit)))
+	mux.HandleFunc("GET /join/create", h.HandleCreateAccount)
+	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
 	mux.HandleFunc("GET /atproto", h.HandleATProto)
 	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
