@@ -1,0 +1,91 @@
+package pages
+
+import "arabica/internal/web/components"
+
+// Join renders the join request page with layout.
+templ Join(layout *components.LayoutData) {
+	@components.Layout(layout, JoinContent())
+}
+
+// JoinContent renders the join request form.
+templ JoinContent() {
+	<div class="page-container-md">
+		<div class="flex items-center gap-3 mb-8">
+			@components.BackButton()
+			<h1 class="text-4xl font-bold text-brown-900">Join Arabica</h1>
+		</div>
+		<p class="text-brown-800 leading-relaxed mb-6">
+			Arabica uses a Personal Data Server (PDS) at <strong>arabica.systems</strong> to store your brew data.
+			Request an account below and we'll send you an invite code once approved.
+		</p>
+		<div class="card card-inner">
+			<form method="POST" action="/join" class="space-y-5">
+				@components.FormField(components.FormFieldProps{
+					Label:    "Email",
+					Required: true,
+				}, components.TextInput(components.TextInputProps{
+					Name:        "email",
+					Type:        "email",
+					Placeholder: "you@example.com",
+					Required:    true,
+					Class:       "w-full",
+				}))
+				@components.FormField(components.FormFieldProps{
+					Label:      "Why do you want to join?",
+					HelperText: "Optional: a short note helps us prioritize requests",
+				}, components.TextArea(components.TextAreaProps{
+					Name:        "message",
+					Placeholder: "I love coffee and want to track my brews...",
+					Rows:        3,
+					Class:       "w-full",
+				}))
+				<!-- Honeypot field — hidden from real users -->
+				<div style="display:none" aria-hidden="true">
+					<label for="website">Website</label>
+					<input type="text" name="website" id="website" tabindex="-1" autocomplete="off"/>
+				</div>
+				<div class="pt-2 text-center">
+					@components.PrimaryButton(components.ButtonProps{
+						Text:  "Request Account",
+						Type:  "submit",
+						Class: "w-full",
+					})
+				</div>
+			</form>
+		</div>
+		<p class="text-sm text-brown-600 mt-6 text-center">
+			Already have an AT Protocol account?
+			<a href="/login" class="link-bold">Log in here</a>.
+		</p>
+	</div>
+}
+
+// JoinSuccess renders the confirmation page after a successful submission.
+templ JoinSuccess(layout *components.LayoutData) {
+	@components.Layout(layout, JoinSuccessContent())
+}
+
+// JoinSuccessContent renders the success message.
+templ JoinSuccessContent() {
+	<div class="page-container-md">
+		<div class="flex items-center gap-3 mb-8">
+			@components.BackButton()
+			<h1 class="text-4xl font-bold text-brown-900">Request Received</h1>
+		</div>
+		<div class="card card-inner text-center py-12">
+			<svg class="w-16 h-16 mx-auto mb-6 text-green-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+			</svg>
+			<h2 class="text-2xl font-semibold text-brown-900 mb-4">Thanks for your interest!</h2>
+			<p class="text-brown-800 leading-relaxed mb-2">
+				We've received your request and will review it shortly.
+			</p>
+			<p class="text-brown-700 text-sm mb-8">
+				You'll receive an invite code by email once your account is ready.
+			</p>
+			<a href="/" class="btn-primary px-8 py-3 font-semibold shadow-lg hover:shadow-xl">
+				Back to Home
+			</a>
+		</div>
+	</div>
+}

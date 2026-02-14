@@ -40,6 +40,9 @@ var (
 
 	// BucketModerationAuditLog stores moderation action audit trail
 	BucketModerationAuditLog = []byte("moderation_audit_log")
+
+	// BucketJoinRequests stores PDS account join requests
+	BucketJoinRequests = []byte("join_requests")
 )
 
 // Store wraps a BoltDB database and provides access to specialized stores.
@@ -111,6 +114,7 @@ func Open(opts Options) (*Store, error) {
 			BucketModerationReportsByURI,
 			BucketModerationReportsByDID,
 			BucketModerationAuditLog,
+			BucketJoinRequests,
 		}
 
 		for _, bucket := range buckets {
@@ -156,6 +160,11 @@ func (s *Store) FeedStore() *FeedStore {
 // ModerationStore returns a moderation store backed by this database.
 func (s *Store) ModerationStore() *ModerationStore {
 	return &ModerationStore{db: s.db}
+}
+
+// JoinStore returns a join request store backed by this database.
+func (s *Store) JoinStore() *JoinStore {
+	return &JoinStore{db: s.db}
 }
 
 // Stats returns database statistics.
