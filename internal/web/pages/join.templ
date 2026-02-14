@@ -28,31 +28,27 @@ templ JoinContent() {
 					Type:        "email",
 					Placeholder: "you@example.com",
 					Required:    true,
-				}))
-				@components.FormField(components.FormFieldProps{
-					Label:      "Preferred Handle",
-					HelperText: "Your desired @handle.arabica.systems username",
-				}, components.TextInput(components.TextInputProps{
-					Name:        "handle",
-					Placeholder: "yourname",
+					Class:       "w-full",
 				}))
 				@components.FormField(components.FormFieldProps{
 					Label:      "Why do you want to join?",
-					HelperText: "Optional — a short note helps us prioritize requests",
+					HelperText: "Optional: a short note helps us prioritize requests",
 				}, components.TextArea(components.TextAreaProps{
 					Name:        "message",
 					Placeholder: "I love coffee and want to track my brews...",
 					Rows:        3,
+					Class:       "w-full",
 				}))
 				<!-- Honeypot field — hidden from real users -->
 				<div style="display:none" aria-hidden="true">
 					<label for="website">Website</label>
 					<input type="text" name="website" id="website" tabindex="-1" autocomplete="off"/>
 				</div>
-				<div class="pt-2">
+				<div class="pt-2 text-center">
 					@components.PrimaryButton(components.ButtonProps{
-						Text: "Request Account",
-						Type: "submit",
+						Text:  "Request Account",
+						Type:  "submit",
+						Class: "w-full",
 					})
 				</div>
 			</form>

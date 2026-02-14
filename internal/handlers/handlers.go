@@ -1984,12 +1984,11 @@ func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// Create and save the join request
 	req := &boltstore.JoinRequest{
-		ID:              fmt.Sprintf("%d", time.Now().UnixNano()),
-		Email:           emailAddr,
-		PreferredHandle: handle,
-		Message:         message,
-		CreatedAt:       time.Now().UTC(),
-		IP:              r.RemoteAddr,
+		ID:        fmt.Sprintf("%d", time.Now().UnixNano()),
+		Email:     emailAddr,
+		Message:   message,
+		CreatedAt: time.Now().UTC(),
+		IP:        r.RemoteAddr,
 	}
 
 	if h.joinStore != nil {
@@ -2005,8 +2004,8 @@ func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 	if h.emailSender != nil && h.emailSender.Enabled() {
 		go func() {
 			subject := "New Arabica Join Request"
-			body := fmt.Sprintf("New account request:\n\nEmail: %s\nPreferred Handle: %s\nMessage: %s\nIP: %s\nTime: %s\n",
-				req.Email, req.PreferredHandle, req.Message, req.IP, req.CreatedAt.Format(time.RFC3339))
+			body := fmt.Sprintf("New account request:\n\nEmail: %s\nMessage: %s\nIP: %s\nTime: %s\n",
+				req.Email, req.Message, req.IP, req.CreatedAt.Format(time.RFC3339))
 
 			if err := h.emailSender.Send(h.emailSender.AdminEmail(), subject, body); err != nil {
 				log.Error().Err(err).Str("email", emailAddr).Msg("Failed to send admin notification")
