@@ -10,12 +10,11 @@ import (
 
 // JoinRequest represents a request to join the PDS.
 type JoinRequest struct {
-	ID              string    `json:"id"`
-	Email           string    `json:"email"`
-	PreferredHandle string    `json:"preferred_handle,omitempty"`
-	Message         string    `json:"message,omitempty"`
-	CreatedAt       time.Time `json:"created_at"`
-	IP              string    `json:"ip"`
+	ID        string    `json:"id"`
+	Email     string    `json:"email"`
+	Message   string    `json:"message,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	IP        string    `json:"ip"`
 }
 
 // JoinStore provides persistent storage for join requests.

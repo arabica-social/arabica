@@ -41,6 +41,7 @@ templ CreateAccountContent(props CreateAccountProps) {
 					Value:       props.InviteCode,
 					Placeholder: "arabica-systems-xxxxx-xxxxx",
 					Required:    true,
+					Class:       "w-full",
 				}))
 				@components.FormField(components.FormFieldProps{
 					Label:      "Handle",
@@ -51,6 +52,7 @@ templ CreateAccountContent(props CreateAccountProps) {
 					Value:       props.Handle,
 					Placeholder: "yourname",
 					Required:    true,
+					Class:       "w-full",
 				}))
 				@components.FormField(components.FormFieldProps{
 					Label:    "Email",
@@ -61,6 +63,7 @@ templ CreateAccountContent(props CreateAccountProps) {
 					Value:       props.Email,
 					Placeholder: "you@example.com",
 					Required:    true,
+					Class:       "w-full",
 				}))
 				@components.FormField(components.FormFieldProps{
 					Label:    "Password",
@@ -70,6 +73,7 @@ templ CreateAccountContent(props CreateAccountProps) {
 					Type:        "password",
 					Placeholder: "Choose a strong password",
 					Required:    true,
+					Class:       "w-full",
 				}))
 				@components.FormField(components.FormFieldProps{
 					Label:    "Confirm Password",
@@ -79,16 +83,18 @@ templ CreateAccountContent(props CreateAccountProps) {
 					Type:        "password",
 					Placeholder: "Confirm your password",
 					Required:    true,
+					Class:       "w-full",
 				}))
 				<!-- Honeypot field — hidden from real users -->
 				<div style="display:none" aria-hidden="true">
 					<label for="website">Website</label>
 					<input type="text" name="website" id="website" tabindex="-1" autocomplete="off"/>
 				</div>
-				<div class="pt-2">
+				<div class="pt-2 text-center">
 					@components.PrimaryButton(components.ButtonProps{
-						Text: "Create Account",
-						Type: "submit",
+						Text:  "Create Account",
+						Type:  "submit",
+						Class: "w-full",
 					})
 				</div>
 			</form>
