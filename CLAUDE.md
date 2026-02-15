@@ -1,27 +1,3 @@
-# Current Cell Task
-
-**Cell ID:** 01KGA7T06FC5
-**Title:** Style mail link and back button on terms page
-
-## Task Description
-
-Add proper styling to mail link and 'back to home' button on terms page.
-
-Acceptance criteria:
-
-- Consistent button/link styling
-- Matches site design system
-- Good visual hierarchy
-
-## Completion Instructions
-
-When you have completed this task:
-
-1. Ensure all work is committed and ready to merge
-2. Exit the session - you'll be prompted to complete, keep, or reopen the cell
-
----
-
 # Arabica - Project Context for AI Agents
 
 Coffee brew tracking application using AT Protocol for decentralized storage.
