@@ -1973,7 +1973,6 @@ func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	emailAddr := strings.TrimSpace(r.FormValue("email"))
-	handle := strings.TrimSpace(r.FormValue("handle"))
 	message := strings.TrimSpace(r.FormValue("message"))
 
 	// Basic email validation
@@ -1988,7 +1987,7 @@ func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 		Email:     emailAddr,
 		Message:   message,
 		CreatedAt: time.Now().UTC(),
-		IP:        r.RemoteAddr,
+		IP:        middleware.GetClientIP(r),
 	}
 
 	if h.joinStore != nil {
@@ -1997,7 +1996,7 @@ func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to save request, please try again", http.StatusInternalServerError)
 			return
 		}
-		log.Info().Str("email", emailAddr).Str("handle", handle).Msg("Join request saved")
+		log.Info().Str("email", emailAddr).Msg("Join request saved")
 	}
 
 	// Send admin notification email (non-blocking)

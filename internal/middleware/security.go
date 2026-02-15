@@ -179,7 +179,7 @@ func NewDefaultRateLimitConfig() *RateLimitConfig {
 func RateLimitMiddleware(config *RateLimitConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := getClientIP(r)
+			ip := GetClientIP(r)
 			path := r.URL.Path
 
 			var limiter *RateLimiter
@@ -205,7 +205,6 @@ func RateLimitMiddleware(config *RateLimitConfig) func(http.Handler) http.Handle
 	}
 }
 
-// getClientIP is defined in logging.go
 
 // RequireHTMXMiddleware ensures that certain API routes are only accessible via HTMX requests.
 // This prevents direct browser access to internal API endpoints that return fragments or JSON.

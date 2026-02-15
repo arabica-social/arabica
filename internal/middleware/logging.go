@@ -11,9 +11,9 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// getClientIP extracts the real client IP address from the request,
+// GetClientIP extracts the real client IP address from the request,
 // checking X-Forwarded-For and X-Real-IP headers for reverse proxy setups.
-func getClientIP(r *http.Request) string {
+func GetClientIP(r *http.Request) string {
 	// Check X-Forwarded-For header (can contain multiple IPs: client, proxy1, proxy2)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		// Take the first IP (the original client)
@@ -73,7 +73,7 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 				Str("query", r.URL.RawQuery).
 				Int("status", rw.statusCode).
 				Dur("duration", duration).
-				Str("client_ip", getClientIP(r)).
+				Str("client_ip", GetClientIP(r)).
 				Str("user_agent", r.UserAgent()).
 				Int64("bytes_written", rw.bytesWritten).
 				Str("proto", r.Proto)

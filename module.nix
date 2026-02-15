@@ -146,20 +146,23 @@ in {
       host = lib.mkOption {
         type = lib.types.str;
         default = "";
-        description = "SMTP server hostname. Can also be set via SMTP_HOST in an environment file.";
+        description =
+          "SMTP server hostname. Can also be set via SMTP_HOST in an environment file.";
         example = "smtp.example.com";
       };
 
       port = lib.mkOption {
         type = lib.types.nullOr lib.types.port;
         default = null;
-        description = "SMTP server port. Can also be set via SMTP_PORT in an environment file. Defaults to 587 if unset.";
+        description =
+          "SMTP server port. Can also be set via SMTP_PORT in an environment file.";
       };
 
       from = lib.mkOption {
         type = lib.types.str;
         default = "";
-        description = "Sender address for outgoing email. Can also be set via SMTP_FROM in an environment file.";
+        description =
+          "Sender address for outgoing email. Can also be set via SMTP_FROM in an environment file.";
         example = "noreply@arabica.example.com";
       };
     };
