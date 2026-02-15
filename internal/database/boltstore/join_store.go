@@ -39,6 +39,26 @@ func (s *JoinStore) SaveRequest(req *JoinRequest) error {
 	})
 }
 
+// GetRequest returns a join request by ID.
+func (s *JoinStore) GetRequest(id string) (*JoinRequest, error) {
+	var req JoinRequest
+	err := s.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketJoinRequests)
+		if bucket == nil {
+			return fmt.Errorf("bucket not found: %s", BucketJoinRequests)
+		}
+		data := bucket.Get([]byte(id))
+		if data == nil {
+			return fmt.Errorf("join request not found: %s", id)
+		}
+		return json.Unmarshal(data, &req)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
 // DeleteRequest removes a join request by ID.
 func (s *JoinStore) DeleteRequest(id string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {

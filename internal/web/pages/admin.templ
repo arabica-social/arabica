@@ -539,6 +539,28 @@ templ AuditLogCard(entry moderation.AuditEntry) {
 				@AuditActionBadge(entry.Action)
 				<span class="text-sm text-brown-500">{ entry.Timestamp.Format("Jan 2, 2006 15:04") }</span>
 			</div>
+			<!-- Join request details (for dismiss/invite actions) -->
+			if len(entry.Details) > 0 {
+				if entry.Details["email"] != "" {
+					<div class="flex items-center justify-between">
+						<span class="font-medium text-brown-900">{ entry.Details["email"] }</span>
+					</div>
+				}
+				<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+					if entry.Details["ip"] != "" {
+						<div>
+							<span class="text-brown-500">IP:</span>
+							<code class="text-brown-700 ml-1 text-xs">{ entry.Details["ip"] }</code>
+						</div>
+					}
+				</div>
+				if entry.Details["message"] != "" {
+					<div>
+						<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">Message</span>
+						<p class="mt-1 text-sm text-brown-700">{ entry.Details["message"] }</p>
+					</div>
+				}
+			}
 			<!-- Target URI with copy button -->
 			if entry.TargetURI != "" {
 				<div>
@@ -601,6 +623,14 @@ templ AuditActionBadge(action moderation.AuditAction) {
 		case moderation.AuditActionUnblacklistUser:
 			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
 				Unblock User
+			</span>
+		case moderation.AuditActionDismissJoinRequest:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+				Dismiss Join Request
+			</span>
+		case moderation.AuditActionCreateInvite:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+				Send Invite
 			</span>
 		default:
 			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brown-100 text-brown-800">

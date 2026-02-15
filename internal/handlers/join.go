@@ -170,11 +170,18 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 
 	// Log the action
 	if h.moderationStore != nil {
+		details := map[string]string{"email": reqEmail}
+		if h.joinStore != nil {
+			if joinReq, err := h.joinStore.GetRequest(reqID); err == nil {
+				details["ip"] = joinReq.IP
+				details["message"] = joinReq.Message
+			}
+		}
 		auditEntry := moderation.AuditEntry{
 			ID:        generateTID(),
 			Action:    moderation.AuditActionCreateInvite,
 			ActorDID:  userDID,
-			TargetURI: reqEmail,
+			Details:   details,
 			Timestamp: time.Now(),
 		}
 		if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
@@ -215,7 +222,17 @@ func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Fetch request details before deleting so we can log them
+	var details map[string]string
 	if h.joinStore != nil {
+		if joinReq, err := h.joinStore.GetRequest(reqID); err == nil {
+			details = map[string]string{
+				"email":   joinReq.Email,
+				"ip":      joinReq.IP,
+				"message": joinReq.Message,
+			}
+		}
+
 		if err := h.joinStore.DeleteRequest(reqID); err != nil {
 			log.Error().Err(err).Str("id", reqID).Msg("Failed to delete join request")
 			http.Error(w, "Failed to dismiss request", http.StatusInternalServerError)
@@ -229,7 +246,7 @@ func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Reques
 			ID:        generateTID(),
 			Action:    moderation.AuditActionDismissJoinRequest,
 			ActorDID:  userDID,
-			TargetURI: reqID,
+			Details:   details,
 			Timestamp: time.Now(),
 		}
 		if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {

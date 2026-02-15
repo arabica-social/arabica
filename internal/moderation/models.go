@@ -156,11 +156,12 @@ const (
 
 // AuditEntry represents a logged moderation action
 type AuditEntry struct {
-	ID        string      `json:"id"`
-	Action    AuditAction `json:"action"`
-	ActorDID  string      `json:"actor_did"` // DID of moderator/admin or "automod"
-	TargetURI string      `json:"target_uri"` // AT-URI or DID being acted upon
-	Reason    string      `json:"reason"`
-	Timestamp time.Time   `json:"timestamp"`
-	AutoMod   bool        `json:"auto_mod"` // true if action was automatic
+	ID        string            `json:"id"`
+	Action    AuditAction       `json:"action"`
+	ActorDID  string            `json:"actor_did"`  // DID of moderator/admin or "automod"
+	TargetURI string            `json:"target_uri"` // AT-URI or DID being acted upon
+	Reason    string            `json:"reason"`
+	Details   map[string]string `json:"details,omitempty"` // Structured metadata (e.g. email, ip, message)
+	Timestamp time.Time         `json:"timestamp"`
+	AutoMod   bool              `json:"auto_mod"` // true if action was automatic
 }
