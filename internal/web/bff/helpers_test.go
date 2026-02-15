@@ -31,26 +31,6 @@ func TestFormatTemp(t *testing.T) {
 	}
 }
 
-func TestFormatTempValue(t *testing.T) {
-	tests := []struct {
-		name     string
-		temp     float64
-		expected string
-	}{
-		{"zero", 0, "0.0"},
-		{"whole number", 93.0, "93.0"},
-		{"decimal", 93.5, "93.5"},
-		{"high precision rounds", 93.55, "93.5"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := FormatTempValue(tt.temp)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-}
-
 func TestFormatTime(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -92,63 +72,6 @@ func TestFormatRating(t *testing.T) {
 			assert.Equal(t, tt.expected, got)
 		})
 	}
-}
-
-func TestFormatID(t *testing.T) {
-	tests := []struct {
-		name     string
-		id       int
-		expected string
-	}{
-		{"zero", 0, "0"},
-		{"positive", 123, "123"},
-		{"large number", 99999, "99999"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := FormatID(tt.id)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-}
-
-func TestFormatInt(t *testing.T) {
-	tests := []struct {
-		name     string
-		val      int
-		expected string
-	}{
-		{"zero", 0, "0"},
-		{"positive", 42, "42"},
-		{"negative", -5, "-5"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := FormatInt(tt.val)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-}
-
-func TestFormatRoasterID(t *testing.T) {
-	t.Run("nil returns null", func(t *testing.T) {
-		got := FormatRoasterID(nil)
-		assert.Equal(t, "null", got)
-	})
-
-	t.Run("valid pointer", func(t *testing.T) {
-		id := 123
-		got := FormatRoasterID(&id)
-		assert.Equal(t, "123", got)
-	})
-
-	t.Run("zero pointer", func(t *testing.T) {
-		id := 0
-		got := FormatRoasterID(&id)
-		assert.Equal(t, "0", got)
-	})
 }
 
 func TestPoursToJSON(t *testing.T) {
@@ -198,66 +121,4 @@ func TestPoursToJSON(t *testing.T) {
 			assert.Equal(t, tt.expected, got)
 		})
 	}
-}
-
-func TestPtr(t *testing.T) {
-	t.Run("int", func(t *testing.T) {
-		p := Ptr(42)
-		assert.Equal(t, 42, *p)
-	})
-
-	t.Run("string", func(t *testing.T) {
-		p := Ptr("hello")
-		assert.Equal(t, "hello", *p)
-	})
-
-	t.Run("zero value", func(t *testing.T) {
-		p := Ptr(0)
-		assert.Equal(t, 0, *p)
-	})
-}
-
-func TestPtrEquals(t *testing.T) {
-	t.Run("nil pointer returns false", func(t *testing.T) {
-		var p *int = nil
-		assert.False(t, PtrEquals(p, 42))
-	})
-
-	t.Run("matching value returns true", func(t *testing.T) {
-		val := 42
-		assert.True(t, PtrEquals(&val, 42))
-	})
-
-	t.Run("non-matching value returns false", func(t *testing.T) {
-		val := 42
-		assert.False(t, PtrEquals(&val, 99))
-	})
-
-	t.Run("string comparison", func(t *testing.T) {
-		s := "hello"
-		assert.True(t, PtrEquals(&s, "hello"))
-		assert.False(t, PtrEquals(&s, "world"))
-	})
-}
-
-func TestPtrValue(t *testing.T) {
-	t.Run("nil int returns zero", func(t *testing.T) {
-		var p *int = nil
-		assert.Equal(t, 0, PtrValue(p))
-	})
-
-	t.Run("valid int returns value", func(t *testing.T) {
-		val := 42
-		assert.Equal(t, 42, PtrValue(&val))
-	})
-
-	t.Run("nil string returns empty", func(t *testing.T) {
-		var p *string = nil
-		assert.Equal(t, "", PtrValue(p))
-	})
-
-	t.Run("valid string returns value", func(t *testing.T) {
-		s := "hello"
-		assert.Equal(t, "hello", PtrValue(&s))
-	})
 }

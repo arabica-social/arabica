@@ -8,7 +8,6 @@ import (
 	"arabica/internal/feed"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
-	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
 
@@ -51,18 +50,7 @@ func (h *Handler) buildModerationContext(ctx context.Context, viewerDID string, 
 
 // Home page
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
-	// Check if user is authenticated
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	// Fetch user profile for authenticated users
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	// Create layout data
-	layoutData := h.buildLayoutData(r, "Home", isAuthenticated, didStr, userProfile)
+	layoutData, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Home")
 
 	// Create home props
 	homeProps := pages.HomeProps{

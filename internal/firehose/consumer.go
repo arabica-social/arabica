@@ -379,34 +379,6 @@ func (c *Consumer) processMessage(data []byte) error {
 	return nil
 }
 
-// BackfillKnownUsers backfills records for all known DIDs
-// This is useful on startup to ensure we have all existing records
-func (c *Consumer) BackfillKnownUsers(ctx context.Context) error {
-	dids, err := c.index.GetKnownDIDs()
-	if err != nil {
-		return fmt.Errorf("failed to get known DIDs: %w", err)
-	}
-
-	log.Info().Int("count", len(dids)).Msg("firehose: backfilling known users")
-
-	for _, did := range dids {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		if err := c.index.BackfillUser(ctx, did); err != nil {
-			log.Warn().Err(err).Str("did", did).Msg("firehose: failed to backfill user")
-		}
-
-		// Small delay to avoid hammering PDS servers
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	return nil
-}
-
 // BackfillDID backfills records for a specific DID
 func (c *Consumer) BackfillDID(ctx context.Context, did string) error {
 	return c.index.BackfillUser(ctx, did)

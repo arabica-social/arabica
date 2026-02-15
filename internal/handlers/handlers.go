@@ -206,6 +206,35 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 	return store, true
 }
 
+// layoutDataFromRequest extracts auth state from the request and builds layout data.
+// Returns the layout data, the user's DID (empty if not authenticated), and whether authenticated.
+func (h *Handler) layoutDataFromRequest(r *http.Request, title string) (layoutData *components.LayoutData, didStr string, isAuthenticated bool) {
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated = err == nil && didStr != ""
+
+	var userProfile *bff.UserProfile
+	if isAuthenticated {
+		userProfile = h.getUserProfile(r.Context(), didStr)
+	}
+
+	layoutData = h.buildLayoutData(r, title, isAuthenticated, didStr, userProfile)
+	return
+}
+
+// deleteEntity validates the rkey, calls the delete function, and returns 200.
+func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn func(context.Context, string) error, entityName string) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	if err := deleteFn(r.Context(), rkey); err != nil {
+		http.Error(w, "Failed to delete "+entityName, http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete " + entityName)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 // buildLayoutData creates a LayoutData struct with common fields populated from the request
 func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
 	// Check if user is a moderator

@@ -252,11 +252,7 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
-
-	// Create layout data
-	layoutData := h.buildLayoutData(r, "Manage", authenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Manage")
 
 	// Create manage props
 	manageProps := pages.ManageProps{}
@@ -336,25 +332,12 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
 	store, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-
-	if err := store.DeleteBeanByRKey(r.Context(), rkey); err != nil {
-		http.Error(w, "Failed to delete bean", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete bean")
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	h.deleteEntity(w, r, store.DeleteBeanByRKey, "bean")
 }
 
 // Roaster update/delete handlers
@@ -409,25 +392,12 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
 	store, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-
-	if err := store.DeleteRoasterByRKey(r.Context(), rkey); err != nil {
-		http.Error(w, "Failed to delete roaster", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete roaster")
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	h.deleteEntity(w, r, store.DeleteRoasterByRKey, "roaster")
 }
 
 // Grinder CRUD handlers
@@ -523,25 +493,12 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
 	store, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-
-	if err := store.DeleteGrinderByRKey(r.Context(), rkey); err != nil {
-		http.Error(w, "Failed to delete grinder", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete grinder")
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	h.deleteEntity(w, r, store.DeleteGrinderByRKey, "grinder")
 }
 
 // Brewer CRUD handlers
@@ -635,23 +592,10 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
 	store, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-
-	if err := store.DeleteBrewerByRKey(r.Context(), rkey); err != nil {
-		http.Error(w, "Failed to delete brewer", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete brewer")
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	h.deleteEntity(w, r, store.DeleteBrewerByRKey, "brewer")
 }

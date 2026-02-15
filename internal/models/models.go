@@ -19,7 +19,8 @@ const (
 	MaxGrindSizeLength   = 100
 	MaxGrinderTypeLength = 50
 	MaxBurrTypeLength    = 50
-	MaxBrewerTypeLength  = 100
+	MaxBrewerTypeLength   = 100
+	MaxTastingNotesLength = 2000
 )
 
 // Validation errors
@@ -330,6 +331,20 @@ func (r *CreateBrewerRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	return nil
+}
+
+// Validate checks that all string fields are within acceptable limits
+func (r *CreateBrewRequest) Validate() error {
+	if len(r.Method) > MaxMethodLength {
+		return ErrFieldTooLong
+	}
+	if len(r.GrindSize) > MaxGrindSizeLength {
+		return ErrFieldTooLong
+	}
+	if len(r.TastingNotes) > MaxTastingNotesLength {
+		return ErrFieldTooLong
 	}
 	return nil
 }

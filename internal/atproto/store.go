@@ -33,6 +33,55 @@ func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *Se
 	}
 }
 
+// ========== Brew Helpers ==========
+
+// extractBrewRefRKeys extracts rkeys from AT-URI references in a brew record's raw values.
+func extractBrewRefRKeys(brew *models.Brew, record map[string]interface{}) {
+	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
+		if c, err := ResolveATURI(beanRef); err == nil {
+			brew.BeanRKey = c.RKey
+		}
+	}
+	if grinderRef, _ := record["grinderRef"].(string); grinderRef != "" {
+		if c, err := ResolveATURI(grinderRef); err == nil {
+			brew.GrinderRKey = c.RKey
+		}
+	}
+	if brewerRef, _ := record["brewerRef"].(string); brewerRef != "" {
+		if c, err := ResolveATURI(brewerRef); err == nil {
+			brew.BrewerRKey = c.RKey
+		}
+	}
+}
+
+// brewModelFromRequest converts a CreateBrewRequest into a Brew model with the given creation time.
+func brewModelFromRequest(req *models.CreateBrewRequest, createdAt time.Time) *models.Brew {
+	brew := &models.Brew{
+		BeanRKey:     req.BeanRKey,
+		GrinderRKey:  req.GrinderRKey,
+		BrewerRKey:   req.BrewerRKey,
+		Method:       req.Method,
+		Temperature:  req.Temperature,
+		WaterAmount:  req.WaterAmount,
+		CoffeeAmount: req.CoffeeAmount,
+		TimeSeconds:  req.TimeSeconds,
+		GrindSize:    req.GrindSize,
+		TastingNotes: req.TastingNotes,
+		Rating:       req.Rating,
+		CreatedAt:    createdAt,
+	}
+	if len(req.Pours) > 0 {
+		brew.Pours = make([]*models.Pour, len(req.Pours))
+		for i, pour := range req.Pours {
+			brew.Pours[i] = &models.Pour{
+				WaterAmount: pour.WaterAmount,
+				TimeSeconds: pour.TimeSeconds,
+			}
+		}
+	}
+	return brew
+}
+
 // ========== Brew Operations ==========
 
 func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRequest, userID int) (*models.Brew, error) {
@@ -52,31 +101,7 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRe
 	}
 
 	// Convert to models.Brew for record conversion
-	brewModel := &models.Brew{
-		BeanRKey:     brew.BeanRKey,
-		GrinderRKey:  brew.GrinderRKey,
-		BrewerRKey:   brew.BrewerRKey,
-		Method:       brew.Method,
-		Temperature:  brew.Temperature,
-		WaterAmount:  brew.WaterAmount,
-		CoffeeAmount: brew.CoffeeAmount,
-		TimeSeconds:  brew.TimeSeconds,
-		GrindSize:    brew.GrindSize,
-		TastingNotes: brew.TastingNotes,
-		Rating:       brew.Rating,
-		CreatedAt:    time.Now(),
-	}
-
-	// Convert pours
-	if len(brew.Pours) > 0 {
-		brewModel.Pours = make([]*models.Pour, len(brew.Pours))
-		for i, pour := range brew.Pours {
-			brewModel.Pours[i] = &models.Pour{
-				WaterAmount: pour.WaterAmount,
-				TimeSeconds: pour.TimeSeconds,
-			}
-		}
-	}
+	brewModel := brewModelFromRequest(brew, time.Now())
 
 	// Convert to atproto record
 	record, err := BrewToRecord(brewModel, beanURI, grinderURI, brewerURI)
@@ -138,27 +163,10 @@ func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.
 	brew.RKey = rkey
 
 	// Extract and resolve references
+	extractBrewRefRKeys(brew, output.Value)
 	beanRef, _ := output.Value["beanRef"].(string)
 	grinderRef, _ := output.Value["grinderRef"].(string)
 	brewerRef, _ := output.Value["brewerRef"].(string)
-
-	// Extract rkeys from AT-URIs for the model
-	if beanRef != "" {
-		if components, err := ResolveATURI(beanRef); err == nil {
-			brew.BeanRKey = components.RKey
-		}
-	}
-	if grinderRef != "" {
-		if components, err := ResolveATURI(grinderRef); err == nil {
-			brew.GrinderRKey = components.RKey
-		}
-	}
-	if brewerRef != "" {
-		if components, err := ResolveATURI(brewerRef); err == nil {
-			brew.BrewerRKey = components.RKey
-		}
-	}
-
 	err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
 	if err != nil {
 		log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve brew references")
@@ -197,27 +205,10 @@ func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*B
 	brew.RKey = rkey
 
 	// Extract and resolve references
+	extractBrewRefRKeys(brew, output.Value)
 	beanRef, _ := output.Value["beanRef"].(string)
 	grinderRef, _ := output.Value["grinderRef"].(string)
 	brewerRef, _ := output.Value["brewerRef"].(string)
-
-	// Extract rkeys from AT-URIs for the model
-	if beanRef != "" {
-		if components, err := ResolveATURI(beanRef); err == nil {
-			brew.BeanRKey = components.RKey
-		}
-	}
-	if grinderRef != "" {
-		if components, err := ResolveATURI(grinderRef); err == nil {
-			brew.GrinderRKey = components.RKey
-		}
-	}
-	if brewerRef != "" {
-		if components, err := ResolveATURI(brewerRef); err == nil {
-			brew.BrewerRKey = components.RKey
-		}
-	}
-
 	err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
 	if err != nil {
 		log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve brew references")
@@ -258,25 +249,7 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Bre
 		}
 
 		// Extract rkeys from AT-URI references
-		beanRef, _ := rec.Value["beanRef"].(string)
-		grinderRef, _ := rec.Value["grinderRef"].(string)
-		brewerRef, _ := rec.Value["brewerRef"].(string)
-
-		if beanRef != "" {
-			if components, err := ResolveATURI(beanRef); err == nil {
-				brew.BeanRKey = components.RKey
-			}
-		}
-		if grinderRef != "" {
-			if components, err := ResolveATURI(grinderRef); err == nil {
-				brew.GrinderRKey = components.RKey
-			}
-		}
-		if brewerRef != "" {
-			if components, err := ResolveATURI(brewerRef); err == nil {
-				brew.BrewerRKey = components.RKey
-			}
-		}
+		extractBrewRefRKeys(brew, rec.Value)
 
 		brews = append(brews, brew)
 	}
@@ -352,32 +325,8 @@ func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *
 		return fmt.Errorf("failed to get existing brew: %w", err)
 	}
 
-	// Convert to models.Brew
-	brewModel := &models.Brew{
-		BeanRKey:     brew.BeanRKey,
-		GrinderRKey:  brew.GrinderRKey,
-		BrewerRKey:   brew.BrewerRKey,
-		Method:       brew.Method,
-		Temperature:  brew.Temperature,
-		WaterAmount:  brew.WaterAmount,
-		CoffeeAmount: brew.CoffeeAmount,
-		TimeSeconds:  brew.TimeSeconds,
-		GrindSize:    brew.GrindSize,
-		TastingNotes: brew.TastingNotes,
-		Rating:       brew.Rating,
-		CreatedAt:    existing.CreatedAt, // Preserve original creation time
-	}
-
-	// Convert pours
-	if len(brew.Pours) > 0 {
-		brewModel.Pours = make([]*models.Pour, len(brew.Pours))
-		for i, pour := range brew.Pours {
-			brewModel.Pours[i] = &models.Pour{
-				WaterAmount: pour.WaterAmount,
-				TimeSeconds: pour.TimeSeconds,
-			}
-		}
-	}
+	// Convert to models.Brew, preserving original creation time
+	brewModel := brewModelFromRequest(brew, existing.CreatedAt)
 
 	// Convert to atproto record
 	record, err := BrewToRecord(brewModel, beanURI, grinderURI, brewerURI)

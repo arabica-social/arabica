@@ -11,7 +11,6 @@ import (
 	"arabica/internal/database/boltstore"
 	"arabica/internal/middleware"
 	"arabica/internal/moderation"
-	"arabica/internal/web/bff"
 	"arabica/internal/web/pages"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -21,15 +20,7 @@ import (
 
 // HandleJoin renders the join request page.
 func (h *Handler) HandleJoin(w http.ResponseWriter, r *http.Request) {
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	layoutData := h.buildLayoutData(r, "Join Arabica", isAuthenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Join Arabica")
 
 	if err := pages.Join(layoutData).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
@@ -95,15 +86,7 @@ func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) renderJoinSuccess(w http.ResponseWriter, r *http.Request) {
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	layoutData := h.buildLayoutData(r, "Request Received", isAuthenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Request Received")
 
 	if err := pages.JoinSuccess(layoutData).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
@@ -262,15 +245,7 @@ func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Reques
 
 // HandleCreateAccount renders the account creation form (GET /join/create).
 func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	layoutData := h.buildLayoutData(r, "Create Account", isAuthenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Create Account")
 
 	props := pages.CreateAccountProps{
 		InviteCode:   r.URL.Query().Get("code"),
@@ -285,14 +260,6 @@ func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
 
 // HandleCreateAccountSubmit processes the account creation form (POST /join/create).
 func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Request) {
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
@@ -307,7 +274,7 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 
 	// Honeypot check — bots fill hidden fields; show fake success
 	if honeypot != "" {
-		layoutData := h.buildLayoutData(r, "Account Created", isAuthenticated, didStr, userProfile)
+		layoutData, _, _ := h.layoutDataFromRequest(r, "Account Created")
 		_ = pages.CreateAccountSuccess(layoutData, pages.CreateAccountSuccessProps{Handle: "user.arabica.systems"}).Render(r.Context(), w)
 		return
 	}
@@ -316,7 +283,7 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 
 	// Render form with error helper
 	renderError := func(msg string) {
-		layoutData := h.buildLayoutData(r, "Create Account", isAuthenticated, didStr, userProfile)
+		layoutData, _, _ := h.layoutDataFromRequest(r, "Create Account")
 		props := pages.CreateAccountProps{
 			Error:        msg,
 			InviteCode:   inviteCode,
@@ -383,7 +350,7 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 
 	log.Info().Str("handle", out.Handle).Str("did", out.Did).Msg("Account created")
 
-	layoutData := h.buildLayoutData(r, "Account Created", isAuthenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Account Created")
 	if err := pages.CreateAccountSuccess(layoutData, pages.CreateAccountSuccessProps{Handle: out.Handle}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render create account success page")

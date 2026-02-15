@@ -106,11 +106,7 @@ func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
-
-	// Create layout data
-	layoutData := h.buildLayoutData(r, "Your Brews", authenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Your Brews")
 
 	// Create brew list props
 	brewListProps := pages.BrewListProps{}
@@ -131,12 +127,9 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
-
 	// Don't fetch data from PDS - client will populate dropdowns from cache
 	// This makes the page load much faster
-	layoutData := h.buildLayoutData(r, "New Brew", authenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, "New Brew")
 
 	brewFormProps := pages.BrewFormProps{
 		Brew: nil,
@@ -164,7 +157,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 
 	var userProfile *bff.UserProfile
 	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
+		userProfile = h.getUserProfile(r.Context(), didStr) //nolint: only partially uses layoutDataFromRequest due to complex flow
 	}
 
 	var brew *models.Brew
@@ -348,9 +341,6 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), didStr)
-
 	brew, err := store.GetBrewByRKey(r.Context(), rkey)
 	if err != nil {
 		http.Error(w, "Brew not found", http.StatusNotFound)
@@ -360,7 +350,7 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch dropdown data from PDS - client will populate from cache
 	// This makes the page load much faster
-	layoutData := h.buildLayoutData(r, "Edit Brew", authenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Brew")
 
 	brewFormProps := pages.BrewFormProps{
 		Brew:      brew,
@@ -534,6 +524,11 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		Pours:        pours,
 	}
 
+	if err := req.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	_, err := store.CreateBrew(r.Context(), req, 1) // User ID not used with atproto
 	if err != nil {
 		http.Error(w, "Failed to create brew", http.StatusInternalServerError)
@@ -610,6 +605,11 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		Pours:        pours,
 	}
 
+	if err := req.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	err := store.UpdateBrewByRKey(r.Context(), rkey, req)
 	if err != nil {
 		http.Error(w, "Failed to update brew", http.StatusInternalServerError)
@@ -624,25 +624,12 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 // Delete brew
 func (h *Handler) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
 	store, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-
-	if err := store.DeleteBrewByRKey(r.Context(), rkey); err != nil {
-		http.Error(w, "Failed to delete brew", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete brew")
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	h.deleteEntity(w, r, store.DeleteBrewByRKey, "brew")
 }
 
 // Export brews as JSON

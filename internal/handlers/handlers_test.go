@@ -83,7 +83,7 @@ func TestHandleBrewDelete_InvalidRKey(t *testing.T) {
 		rkey   string
 		status int
 	}{
-		{"empty rkey", "", http.StatusBadRequest},
+		{"empty rkey", "", http.StatusUnauthorized},
 		{"invalid format", "invalid-chars", http.StatusUnauthorized},
 	}
 

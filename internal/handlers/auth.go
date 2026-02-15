@@ -134,6 +134,8 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
 
@@ -142,6 +144,8 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
 

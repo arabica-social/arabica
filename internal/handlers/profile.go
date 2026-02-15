@@ -256,13 +256,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if current user is authenticated (for nav bar state)
-	didStr, err := atproto.GetAuthenticatedDID(ctx)
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(ctx, didStr)
-	}
+	_, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Profile")
 
 	// Check if this is an Arabica user (has records or is registered in feed)
 	isArabicaUser := h.feedRegistry.IsRegistered(did) ||
@@ -271,7 +265,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		len(profileData.Brewers) > 0
 
 	if !isArabicaUser {
-		layoutData := h.buildLayoutData(r, "Profile Not Found", isAuthenticated, didStr, userProfile)
+		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
 		w.WriteHeader(http.StatusNotFound)
 		if err := pages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
 			log.Error().Err(err).Msg("Failed to render profile not found page")
@@ -298,7 +292,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	if viewedProfile.DisplayName != "" {
 		pageTitle = viewedProfile.DisplayName + " - Profile"
 	}
-	layoutData := h.buildLayoutData(r, pageTitle, isAuthenticated, didStr, userProfile)
+	layoutData, _, _ := h.layoutDataFromRequest(r, pageTitle)
 
 	// Create roaster options for own profile
 	var roasterOptions []pages.RoasterOption
