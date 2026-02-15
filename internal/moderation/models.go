@@ -148,8 +148,10 @@ const (
 	AuditActionUnhideRecord     AuditAction = "unhide_record"
 	AuditActionBlacklistUser    AuditAction = "blacklist_user"
 	AuditActionUnblacklistUser  AuditAction = "unblacklist_user"
-	AuditActionDismissReport    AuditAction = "dismiss_report"
-	AuditActionActionReport     AuditAction = "action_report"
+	AuditActionDismissReport      AuditAction = "dismiss_report"
+	AuditActionActionReport       AuditAction = "action_report"
+	AuditActionDismissJoinRequest AuditAction = "dismiss_join_request"
+	AuditActionCreateInvite       AuditAction = "create_invite"
 )
 
 // AuditEntry represents a logged moderation action

@@ -10,6 +10,7 @@ import (
 	"arabica/internal/atproto"
 	"arabica/internal/database/boltstore"
 	"arabica/internal/middleware"
+	"arabica/internal/moderation"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/pages"
 
@@ -167,6 +168,20 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 		log.Info().Str("email", reqEmail).Msg("Invite code emailed")
 	}
 
+	// Log the action
+	if h.moderationStore != nil {
+		auditEntry := moderation.AuditEntry{
+			ID:        generateTID(),
+			Action:    moderation.AuditActionCreateInvite,
+			ActorDID:  userDID,
+			TargetURI: reqEmail,
+			Timestamp: time.Now(),
+		}
+		if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
+			log.Error().Err(err).Msg("Failed to log create invite action")
+		}
+	}
+
 	// Remove the join request
 	if h.joinStore != nil {
 		if err := h.joinStore.DeleteRequest(reqID); err != nil {
@@ -205,6 +220,20 @@ func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Reques
 			log.Error().Err(err).Str("id", reqID).Msg("Failed to delete join request")
 			http.Error(w, "Failed to dismiss request", http.StatusInternalServerError)
 			return
+		}
+	}
+
+	// Log the action
+	if h.moderationStore != nil {
+		auditEntry := moderation.AuditEntry{
+			ID:        generateTID(),
+			Action:    moderation.AuditActionDismissJoinRequest,
+			ActorDID:  userDID,
+			TargetURI: reqID,
+			Timestamp: time.Now(),
+		}
+		if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
+			log.Error().Err(err).Msg("Failed to log dismiss join request action")
 		}
 	}
 
