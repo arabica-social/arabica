@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/database/boltstore"
 	"arabica/internal/middleware"
 	"arabica/internal/moderation"
 	"arabica/internal/web/components"
@@ -204,17 +205,26 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 		blockedUsers, _ = h.moderationStore.ListBlacklistedUsers(ctx)
 	}
 
+	isAdmin := h.moderationService.IsAdmin(userDID)
+
+	var joinRequests []*boltstore.JoinRequest
+	if isAdmin && h.joinStore != nil {
+		joinRequests, _ = h.joinStore.ListRequests()
+	}
+
 	return pages.AdminProps{
 		HiddenRecords:  hiddenRecords,
 		AuditLog:       auditLog,
 		Reports:        enrichedReports,
 		BlockedUsers:   blockedUsers,
+		JoinRequests:   joinRequests,
 		CanHide:        canHide,
 		CanUnhide:      canUnhide,
 		CanViewLogs:    canViewLogs,
 		CanViewReports: canViewReports,
 		CanBlock:       canBlock,
 		CanUnblock:     canUnblock,
+		IsAdmin:        isAdmin,
 	}
 }
 

@@ -24,7 +24,7 @@
 @layer components {
   /* Page Containers */
   .page-container {
-    @apply mx-auto px-4;
+    @apply mx-auto px-2 sm:px-4;
   }
 
   .page-container-sm {
@@ -174,15 +174,15 @@
 
   /* Feed Components */
   .feed-card {
-    @apply bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-4 hover:shadow-lg transition-shadow;
+    @apply bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-3 sm:p-4 hover:shadow-lg transition-shadow;
   }
 
   .feed-content-box {
-    @apply bg-white/60 backdrop-blur rounded-lg p-4 border border-brown-200;
+    @apply bg-white/60 backdrop-blur rounded-lg p-3 sm:p-4 border border-brown-200;
   }
 
   .feed-content-box-sm {
-    @apply bg-white/60 backdrop-blur rounded-lg p-3 border border-brown-200;
+    @apply bg-white/60 backdrop-blur rounded-lg p-2 sm:p-3 border border-brown-200;
   }
 
   /* Avatar - base styles */
