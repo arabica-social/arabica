@@ -3,7 +3,6 @@ default: style templ-generate run
 
 run:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json go run cmd/server/main.go -known-dids known-dids.txt
-    # @bash scripts/run.sh
 
 templ-watch:
     @templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/server -known-dids known-dids.txt"

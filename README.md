@@ -37,25 +37,6 @@ go run cmd/server/main.go
 
 Access at http://localhost:18910
 
-## Docker
-
-```bash
-# Build and run with Docker Compose
-docker compose up -d
-
-# Or build and run manually
-docker build -t arabica .
-docker run -p 18910:18910 -v arabica-data:/data arabica
-```
-
-For production deployments, configure environment variables in `docker-compose.yml`:
-
-```yaml
-environment:
-  - SERVER_PUBLIC_URL=https://arabica.example.com
-  - SECURE_COOKIES=true
-```
-
 ## Configuration
 
 ### Command-Line Flags
@@ -75,18 +56,9 @@ environment:
 - `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
 - `LOG_FORMAT` - Log format: console, json (default: console)
 
-## Architecture
-
-Data is stored in AT Protocol records on users' Personal Data Servers. The application uses OAuth to authenticate with the PDS and performs all CRUD operations via the AT Protocol API.
-
-Local BoltDB stores:
-
-- OAuth session data
-- Feed registry (list of DIDs for community feed)
-
-See docs/ for detailed documentation.
-
 ## Development
+
+With Nix:
 
 ```bash
 # Enter development environment
@@ -101,6 +73,22 @@ go test ./...
 # Build
 go build -o arabica cmd/server/main.go
 ```
+
+Without Nix, you'll need to have Go, Templ, and tailwindcss installed (just is optional but recommended).
+
+```sh
+# Generate CSS files
+tailwindcss -i static/css/app.css -o static/css/output.css --minify
+# Compile Templ
+templ generate
+# Run the appview
+go run cmd/server/main.go
+
+# with just
+just run
+```
+
+---
 
 ## Deployment
 
