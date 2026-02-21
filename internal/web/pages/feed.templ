@@ -258,32 +258,34 @@ templ FeedBrewContent(item *feed.FeedItem) {
 templ FeedBeanContent(item *feed.FeedItem) {
 	if item.Bean != nil {
 		<div class="feed-content-box-sm">
-			<div class="text-base mb-2">
-				<span class="font-bold text-brown-900">
+			<div class="mb-2">
+				<div class="font-bold text-brown-900 text-base">
 					if item.Bean.Name != "" {
 						{ item.Bean.Name }
 					} else {
 						{ item.Bean.Origin }
 					}
-				</span>
+				</div>
 				if item.Bean.Roaster != nil && item.Bean.Roaster.Name != "" {
-					<span class="text-brown-700">from { item.Bean.Roaster.Name }</span>
+					<div class="text-sm text-brown-700 mt-0.5">
+						<span class="font-medium">🏭 { item.Bean.Roaster.Name }</span>
+					</div>
 				}
 			</div>
-			<div class="text-sm text-brown-700 space-y-1">
+			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
 				if item.Bean.Origin != "" {
-					<div><span class="text-label">Origin:</span> { item.Bean.Origin }</div>
+					<span class="inline-flex items-center gap-0.5">📍 { item.Bean.Origin }</span>
 				}
 				if item.Bean.RoastLevel != "" {
-					<div><span class="text-label">Roast:</span> { item.Bean.RoastLevel }</div>
+					<span class="inline-flex items-center gap-0.5">🔥 { item.Bean.RoastLevel }</span>
 				}
 				if item.Bean.Process != "" {
-					<div><span class="text-label">Process:</span> { item.Bean.Process }</div>
-				}
-				if item.Bean.Description != "" {
-					<div class="mt-2 text-brown-800 italic">"{ item.Bean.Description }"</div>
+					<span class="inline-flex items-center gap-0.5">🌱 { item.Bean.Process }</span>
 				}
 			</div>
+			if item.Bean.Description != "" {
+				<div class="mt-2 text-sm text-brown-800 italic">"{ item.Bean.Description }"</div>
+			}
 		</div>
 	}
 }
@@ -295,17 +297,15 @@ templ FeedRoasterContent(item *feed.FeedItem) {
 			<div class="text-base mb-2">
 				<span class="font-bold text-brown-900">{ item.Roaster.Name }</span>
 			</div>
-			<div class="text-sm text-brown-700 space-y-1">
+			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
 				if item.Roaster.Location != "" {
-					<div><span class="text-label">Location:</span> { item.Roaster.Location }</div>
+					<span class="inline-flex items-center gap-0.5">📍 { item.Roaster.Location }</span>
 				}
 				if item.Roaster.Website != "" {
 					if safeWebsite := bff.SafeWebsiteURL(item.Roaster.Website); safeWebsite != "" {
-						<div>
-							<span class="text-label">Website:</span>
-							{ " " }
-							<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="text-brown-800 hover:underline">{ safeWebsite }</a>
-						</div>
+						<span class="inline-flex items-center gap-0.5">
+							🔗 <a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="text-brown-800 hover:underline">{ safeWebsite }</a>
+						</span>
 					}
 				}
 			</div>
@@ -320,17 +320,17 @@ templ FeedGrinderContent(item *feed.FeedItem) {
 			<div class="text-base mb-2">
 				<span class="font-bold text-brown-900">{ item.Grinder.Name }</span>
 			</div>
-			<div class="text-sm text-brown-700 space-y-1">
+			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
 				if item.Grinder.GrinderType != "" {
-					<div><span class="text-label">Type:</span> { item.Grinder.GrinderType }</div>
+					<span class="inline-flex items-center gap-0.5">⚙️ { item.Grinder.GrinderType }</span>
 				}
 				if item.Grinder.BurrType != "" {
-					<div><span class="text-label">Burr:</span> { item.Grinder.BurrType }</div>
-				}
-				if item.Grinder.Notes != "" {
-					<div class="mt-2 text-brown-800 italic">"{ item.Grinder.Notes }"</div>
+					<span class="inline-flex items-center gap-0.5">🔩 { item.Grinder.BurrType }</span>
 				}
 			</div>
+			if item.Grinder.Notes != "" {
+				<div class="mt-2 text-sm text-brown-800 italic">"{ item.Grinder.Notes }"</div>
+			}
 		</div>
 	}
 }
