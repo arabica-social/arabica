@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"arabica/internal/atproto"
+	"arabica/internal/firehose"
 	"arabica/internal/models"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
@@ -261,6 +262,14 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Get comment data
+	var commentCount int
+	var comments []firehose.IndexedComment
+	if h.feedIndex != nil && subjectURI != "" {
+		commentCount = h.feedIndex.GetCommentCount(subjectURI)
+		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100)
+	}
+
 	// Create brew view props
 	brewViewProps := pages.BrewViewProps{
 		Brew:            brew,
@@ -270,6 +279,9 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		SubjectCID:      subjectCID,
 		IsLiked:         isLiked,
 		LikeCount:       likeCount,
+		CommentCount:    commentCount,
+		Comments:        comments,
+		CurrentUserDID:  didStr,
 		ShareURL:        shareURL,
 	}
 

@@ -47,23 +47,38 @@ type CommentSectionProps struct {
 
 // CommentSection renders the full comment section with list and form
 templ CommentSection(props CommentSectionProps) {
-	<div id="comment-section" class="mt-6">
-		<h3 class="text-lg font-semibold text-brown-900 mb-4">
-			Comments
-			if len(props.Comments) > 0 {
-				<span class="text-sm font-normal text-brown-600">({ fmt.Sprintf("%d", len(props.Comments)) })</span>
-			}
-		</h3>
+	<div id="comment-section" class="comment-section">
+		<!-- Section header -->
+		<div class="comment-section-header">
+			<div class="flex items-center gap-2">
+				<svg class="w-5 h-5 text-brown-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"></path>
+				</svg>
+				<h3 class="text-lg font-semibold text-brown-900">
+					Discussion
+				</h3>
+				if len(props.Comments) > 0 {
+					<span class="comment-count-badge">{ fmt.Sprintf("%d", len(props.Comments)) }</span>
+				}
+			</div>
+		</div>
+		<!-- Comment form or login prompt -->
 		if props.IsAuthenticated {
 			@CommentForm(CommentFormProps{
 				SubjectURI: props.SubjectURI,
 				SubjectCID: props.SubjectCID,
 			})
 		} else {
-			<p class="text-sm text-brown-600 mb-4">
-				<a href="/login" class="text-brown-700 hover:text-brown-900 underline">Log in</a> to leave a comment.
-			</p>
+			<div class="comment-login-prompt">
+				<svg class="w-5 h-5 text-brown-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+				</svg>
+				<p class="text-sm text-brown-600">
+					<a href="/login" class="font-semibold text-brown-800 hover:text-brown-950 underline underline-offset-2 decoration-brown-400 hover:decoration-brown-700 transition-colors">Log in</a> to join the conversation.
+				</p>
+			</div>
 		}
+		<!-- Comment list -->
 		@CommentList(CommentListProps{
 			Comments:        props.Comments,
 			CurrentUserDID:  props.CurrentUserDID,
@@ -86,25 +101,23 @@ templ CommentForm(props CommentFormProps) {
 		hx-post="/api/comments"
 		hx-target="#comment-section"
 		hx-swap="innerHTML"
-		class="mb-6"
+		class="comment-compose"
 	>
 		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
 		<input type="hidden" name="subject_cid" value={ props.SubjectCID }/>
-		<div class="flex flex-col gap-2">
-			<textarea
-				name="text"
-				placeholder="Add a comment..."
-				class="form-textarea resize-none"
-				rows="2"
-				maxlength="1000"
-				required
-			></textarea>
-			<div class="flex justify-between items-center">
-				<span class="text-xs text-brown-500">Max 1000 characters</span>
-				<button type="submit" class="btn-primary text-sm py-1.5 px-4">
-					Post Comment
-				</button>
-			</div>
+		<textarea
+			name="text"
+			placeholder="Share your thoughts..."
+			class="comment-textarea"
+			rows="2"
+			maxlength="1000"
+			required
+		></textarea>
+		<div class="flex justify-between items-center">
+			<span class="text-xs text-brown-400 tracking-wide">1000 char limit</span>
+			<button type="submit" class="btn-primary text-sm py-1.5 px-5">
+				Post
+			</button>
 		</div>
 	</form>
 }
@@ -120,9 +133,15 @@ type CommentListProps struct {
 
 // CommentList renders a list of comments with threading support
 templ CommentList(props CommentListProps) {
-	<div class="space-y-4">
+	<div class="comment-list">
 		if len(props.Comments) == 0 {
-			<p class="text-brown-600 text-sm text-center py-4">No comments yet. Be the first to comment!</p>
+			<div class="comment-empty-state">
+				<svg class="w-10 h-10 text-brown-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+				</svg>
+				<p class="text-brown-500 text-sm font-medium">No comments yet</p>
+				<p class="text-brown-400 text-xs mt-1">Be the first to share your thoughts</p>
+			</div>
 		} else {
 			for _, comment := range props.Comments {
 				@CommentItem(CommentItemProps{
@@ -149,61 +168,69 @@ type CommentItemProps struct {
 // CommentItem renders a single comment with optional threading indentation
 templ CommentItem(props CommentItemProps) {
 	<div
-		class={ "bg-brown-50 rounded-lg p-4 border border-brown-200", getDepthIndentClass(props.Comment.Depth) }
+		class={ "comment-item", getDepthClass(props.Comment.Depth) }
 		id={ "comment-" + props.Comment.RKey }
 		x-data="{ showReplyForm: false }"
 	>
-		<!-- Header row with user badge and action buttons -->
-		<div class="flex items-center justify-between gap-2 mb-2">
-			@UserBadge(UserBadgeProps{
-				ProfileURL:  "/profile/" + getCommentHandle(props.Comment),
-				AvatarURL:   getCommentAvatarURL(props.Comment),
-				DisplayName: getCommentDisplayName(props.Comment),
-				Handle:      getCommentHandle(props.Comment),
-				TimeAgo:     bff.FormatTimeAgo(props.Comment.CreatedAt),
-				Size:        "sm",
-			})
-			<div class="flex items-center gap-2 flex-shrink-0">
-				if props.CanReply {
-					<button
-						type="button"
-						@click="showReplyForm = !showReplyForm"
-						class="text-brown-500 hover:text-brown-700 transition-colors text-xs font-medium"
-						aria-label="Reply to comment"
-					>
-						Reply
-					</button>
-				}
-				if props.CanDelete {
-					<button
-						type="button"
-						hx-delete={ "/api/comments/" + props.Comment.RKey }
-						hx-target={ "#comment-" + props.Comment.RKey }
-						hx-swap="outerHTML"
-						hx-confirm="Are you sure you want to delete this comment?"
-						class="text-brown-400 hover:text-brown-600 transition-colors"
-						aria-label="Delete comment"
-					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-							<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"></path>
-						</svg>
-					</button>
-				}
-			</div>
-		</div>
-		<!-- Comment text -->
-		<p class="text-brown-900 whitespace-pre-wrap break-words pl-11">{ props.Comment.Text }</p>
-		<!-- Inline reply form (shown when Reply is clicked) -->
-		if props.CanReply {
-			<div x-show="showReplyForm" x-transition class="mt-3 pl-11">
-				@ReplyForm(ReplyFormProps{
-					SubjectURI: props.SubjectURI,
-					SubjectCID: props.SubjectCID,
-					ParentURI:  buildCommentURI(props.Comment),
-					ParentCID:  props.Comment.CID,
-				})
-			</div>
+		if props.Comment.Depth > 0 {
+			<div class="comment-thread-line"></div>
 		}
+		<div class="comment-item-inner">
+			<!-- Header row with user badge and action buttons -->
+			<div class="flex items-center justify-between gap-2 mb-1.5">
+				@UserBadge(UserBadgeProps{
+					ProfileURL:  "/profile/" + getCommentHandle(props.Comment),
+					AvatarURL:   getCommentAvatarURL(props.Comment),
+					DisplayName: getCommentDisplayName(props.Comment),
+					Handle:      getCommentHandle(props.Comment),
+					TimeAgo:     bff.FormatTimeAgo(props.Comment.CreatedAt),
+					Size:        "sm",
+				})
+				<div class="flex items-center gap-3 flex-shrink-0">
+					if props.CanReply {
+						<button
+							type="button"
+							@click="showReplyForm = !showReplyForm"
+							class="comment-reply-btn"
+							aria-label="Reply to comment"
+						>
+							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"></path>
+							</svg>
+							Reply
+						</button>
+					}
+					if props.CanDelete {
+						<button
+							type="button"
+							hx-delete={ "/api/comments/" + props.Comment.RKey }
+							hx-target={ "#comment-" + props.Comment.RKey }
+							hx-swap="outerHTML"
+							hx-confirm="Are you sure you want to delete this comment?"
+							class="comment-delete-btn"
+							aria-label="Delete comment"
+						>
+							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"></path>
+							</svg>
+						</button>
+					}
+				</div>
+			</div>
+			<!-- Comment text -->
+			<p class="text-brown-800 whitespace-pre-wrap break-words pl-11 text-[0.9375rem] leading-relaxed">{ props.Comment.Text }</p>
+			<!-- Inline reply form (shown when Reply is clicked) -->
+			if props.CanReply {
+				<div x-show="showReplyForm" x-transition class="mt-3 pl-11">
+					@ReplyForm(ReplyFormProps{
+						SubjectURI: props.SubjectURI,
+						SubjectCID: props.SubjectCID,
+						ParentURI:  buildCommentURI(props.Comment),
+						ParentCID:  props.Comment.CID,
+					})
+				</div>
+			}
+		</div>
 	</div>
 }
 
@@ -221,7 +248,7 @@ templ ReplyForm(props ReplyFormProps) {
 		hx-post="/api/comments"
 		hx-target="#comment-section"
 		hx-swap="innerHTML"
-		class="flex flex-col gap-2"
+		class="comment-reply-form"
 	>
 		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
 		<input type="hidden" name="subject_cid" value={ props.SubjectCID }/>
@@ -230,7 +257,7 @@ templ ReplyForm(props ReplyFormProps) {
 		<textarea
 			name="text"
 			placeholder="Write a reply..."
-			class="form-textarea resize-none text-sm"
+			class="comment-textarea text-sm"
 			rows="2"
 			maxlength="1000"
 			required
@@ -268,13 +295,13 @@ func getCommentAvatarURL(comment firehose.IndexedComment) string {
 	return ""
 }
 
-// getDepthIndentClass returns the CSS class for indentation based on depth
-func getDepthIndentClass(depth int) string {
+// getDepthClass returns the CSS class for comment depth
+func getDepthClass(depth int) string {
 	switch depth {
 	case 1:
-		return "ml-8"
+		return "comment-depth-1"
 	case 2:
-		return "ml-12"
+		return "comment-depth-2"
 	default:
 		return ""
 	}
