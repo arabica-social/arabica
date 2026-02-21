@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -78,10 +79,8 @@ func validateDomain(domain string) error {
 		return nil
 	}
 
-	for _, ip := range ips {
-		if isPrivateIP(ip) {
-			return ErrSSRFBlocked
-		}
+	if slices.ContainsFunc(ips, isPrivateIP) {
+		return ErrSSRFBlocked
 	}
 
 	return nil
@@ -208,9 +207,9 @@ type PublicListRecordsOutput struct {
 
 // PublicRecordEntry represents a single record in the public listRecords response
 type PublicRecordEntry struct {
-	URI   string                 `json:"uri"`
-	CID   string                 `json:"cid"`
-	Value map[string]interface{} `json:"value"`
+	URI   string         `json:"uri"`
+	CID   string         `json:"cid"`
+	Value map[string]any `json:"value"`
 }
 
 // GetProfile fetches a user's public profile by DID or handle

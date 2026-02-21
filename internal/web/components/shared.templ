@@ -150,7 +150,7 @@ templ WelcomeAuthenticated(userDID string) {
 
 templ WelcomeUnauthenticated() {
 	<div>
-		<p class="text-brown-800 mb-6 text-center text-lg">Please log in with your AT Protocol handle to start tracking your brews.</p>
+		<p class="text-brown-800 mb-6 text-center text-lg">Please log in with your <a href="/atproto" class="link-bold">atproto handle</a> to start tracking your brews.</p>
 		<form method="POST" action="/auth/login" class="max-w-md mx-auto">
 			<div class="relative">
 				<label for="handle" class="block text-sm font-medium text-brown-900 mb-2">Your Handle</label>
@@ -158,7 +158,7 @@ templ WelcomeUnauthenticated() {
 					type="text"
 					id="handle"
 					name="handle"
-					placeholder="alice.bsky.social"
+					placeholder="alice.arabica.systems"
 					autocomplete="off"
 					required
 					class="w-full px-4 py-3 border-2 border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-600 focus:border-brown-600 bg-white"
