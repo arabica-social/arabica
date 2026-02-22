@@ -87,6 +87,9 @@ templ BeanViewCard(props BeanViewProps) {
 					ShareTitle:      getBeanShareTitle(props.Bean),
 					ShareText:       "Check out this bean on Arabica",
 					IsOwner:         props.IsOwnProfile,
+					EditModalURL:    "/api/modals/bean/" + props.Bean.RKey,
+					DeleteURL:       "/api/beans/" + props.Bean.RKey,
+					DeleteRedirect:  "/manage",
 					IsAuthenticated: props.IsAuthenticated,
 					IsModerator:     props.IsModerator,
 					CanHideRecord:   props.CanHideRecord,
@@ -113,29 +116,15 @@ templ BeanViewCard(props BeanViewProps) {
 }
 
 templ BeanViewHeader(props BeanViewProps) {
-	<div class="flex justify-between items-start mb-6">
-		<div>
-			<h2 class="text-3xl font-bold text-brown-900">
-				if props.Bean.Name != "" {
-					{ props.Bean.Name }
-				} else {
-					{ props.Bean.Origin }
-				}
-			</h2>
-			<p class="text-sm text-brown-600 mt-1">{ props.Bean.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
-		</div>
-		if props.IsOwnProfile {
-			<div class="flex gap-2">
-				<button
-					hx-delete={ "/api/beans/" + props.Bean.RKey }
-					hx-confirm="Are you sure you want to delete this bean?"
-					hx-target="body"
-					class="inline-flex items-center bg-brown-200 text-brown-700 px-4 py-2 rounded-lg hover:bg-brown-300 font-medium transition-colors"
-				>
-					Delete
-				</button>
-			</div>
-		}
+	<div class="mb-6">
+		<h2 class="text-3xl font-bold text-brown-900">
+			if props.Bean.Name != "" {
+				{ props.Bean.Name }
+			} else {
+				{ props.Bean.Origin }
+			}
+		</h2>
+		<p class="text-sm text-brown-600 mt-1">{ props.Bean.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
 	</div>
 }
 

@@ -56,6 +56,9 @@ type FeedItem struct {
 	SubjectCID      string // CID of this record (for like button)
 	IsLikedByViewer bool   // Whether the current viewer has liked this record
 
+	// Comment-related fields
+	CommentCount int // Number of comments on this record
+
 	// Ownership
 	IsOwner bool // Whether the current viewer owns this record
 }
@@ -77,19 +80,20 @@ type FirehoseIndex interface {
 // FirehoseFeedItem matches the FeedItem structure from firehose package
 // This avoids import cycles
 type FirehoseFeedItem struct {
-	RecordType lexicons.RecordType
-	Action     string
-	Brew       *models.Brew
-	Bean       *models.Bean
-	Roaster    *models.Roaster
-	Grinder    *models.Grinder
-	Brewer     *models.Brewer
-	Author     *atproto.Profile
-	Timestamp  time.Time
-	TimeAgo    string
-	LikeCount  int
-	SubjectURI string
-	SubjectCID string
+	RecordType   lexicons.RecordType
+	Action       string
+	Brew         *models.Brew
+	Bean         *models.Bean
+	Roaster      *models.Roaster
+	Grinder      *models.Grinder
+	Brewer       *models.Brewer
+	Author       *atproto.Profile
+	Timestamp    time.Time
+	TimeAgo      string
+	LikeCount    int
+	CommentCount int
+	SubjectURI   string
+	SubjectCID   string
 }
 
 // Service fetches and aggregates brews from registered users
@@ -287,19 +291,20 @@ func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) (
 	items := make([]*FeedItem, len(firehoseItems))
 	for i, fi := range firehoseItems {
 		items[i] = &FeedItem{
-			RecordType: fi.RecordType,
-			Action:     fi.Action,
-			Brew:       fi.Brew,
-			Bean:       fi.Bean,
-			Roaster:    fi.Roaster,
-			Grinder:    fi.Grinder,
-			Brewer:     fi.Brewer,
-			Author:     fi.Author,
-			Timestamp:  fi.Timestamp,
-			TimeAgo:    fi.TimeAgo,
-			LikeCount:  fi.LikeCount,
-			SubjectURI: fi.SubjectURI,
-			SubjectCID: fi.SubjectCID,
+			RecordType:   fi.RecordType,
+			Action:       fi.Action,
+			Brew:         fi.Brew,
+			Bean:         fi.Bean,
+			Roaster:      fi.Roaster,
+			Grinder:      fi.Grinder,
+			Brewer:       fi.Brewer,
+			Author:       fi.Author,
+			Timestamp:    fi.Timestamp,
+			TimeAgo:      fi.TimeAgo,
+			LikeCount:    fi.LikeCount,
+			CommentCount: fi.CommentCount,
+			SubjectURI:   fi.SubjectURI,
+			SubjectCID:   fi.SubjectCID,
 		}
 	}
 

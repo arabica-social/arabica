@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"arabica/internal/firehose"
 	"arabica/internal/models"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
@@ -16,7 +17,16 @@ type BrewViewProps struct {
 	SubjectCID      string // CID of the brew (for like button)
 	IsLiked         bool   // Whether the current user has liked this brew
 	LikeCount       int    // Number of likes on this brew
+	CommentCount    int    // Number of comments on this brew
+	Comments        []firehose.IndexedComment // Comments on this brew
+	CurrentUserDID  string // DID of the current user (for delete buttons)
 	ShareURL        string // URL for sharing the brew
+	// Moderation state
+	IsModerator    bool   // User has moderator role
+	CanHideRecord  bool   // User has hide_record permission
+	CanBlockUser   bool   // User has blacklist_user permission
+	IsRecordHidden bool   // This record is currently hidden
+	AuthorDID      string // DID of the brew author
 }
 
 // BrewView renders the full brew view page
@@ -48,48 +58,51 @@ templ BrewViewCard(props BrewViewProps) {
 		}
 		<div class="flex justify-between items-center">
 			@components.BackButton()
-			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200">
-				@components.SocialButtons(components.SocialButtonsProps{
+			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
+				@components.ActionBar(components.ActionBarProps{
 					SubjectURI:      props.SubjectURI,
 					SubjectCID:      props.SubjectCID,
 					IsLiked:         props.IsLiked,
 					LikeCount:       props.LikeCount,
+					CommentCount:    props.CommentCount,
+					ShowComments:    true,
 					ShareURL:        props.ShareURL,
 					ShareTitle:      getBrewShareTitle(props.Brew),
 					ShareText:       "Check out this brew on Arabica",
-					ShowLike:        props.IsAuthenticated,
+					IsOwner:         props.IsOwnProfile,
+					EditURL:         "/brews/" + props.Brew.RKey + "/edit",
+					DeleteURL:       "/brews/" + props.Brew.RKey,
+					DeleteRedirect:  "/brews",
 					IsAuthenticated: props.IsAuthenticated,
+					IsModerator:     props.IsModerator,
+					CanHideRecord:   props.CanHideRecord,
+					CanBlockUser:    props.CanBlockUser,
+					IsRecordHidden:  props.IsRecordHidden,
+					AuthorDID:       props.AuthorDID,
 				})
 			</div>
 		</div>
+		@components.CommentSection(components.CommentSectionProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			Comments:        props.Comments,
+			IsAuthenticated: props.IsAuthenticated,
+			CurrentUserDID:  props.CurrentUserDID,
+			ModCtx: components.CommentModerationContext{
+				IsModerator:   props.IsModerator,
+				CanHideRecord: props.CanHideRecord,
+				CanBlockUser:  props.CanBlockUser,
+			},
+			ViewURL:         props.ShareURL,
+		})
 	</div>
 }
 
-// BrewViewHeader renders the header with title and actions
+// BrewViewHeader renders the header with title and timestamp
 templ BrewViewHeader(props BrewViewProps) {
-	<div class="flex justify-between items-start mb-6">
-		<div>
-			<h2 class="text-3xl font-bold text-brown-900">Brew Details</h2>
-			<p class="text-sm text-brown-600 mt-1">{ props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
-		</div>
-		if props.IsOwnProfile {
-			<div class="flex gap-2">
-				<a
-					href={ templ.SafeURL("/brews/" + props.Brew.RKey + "/edit") }
-					class="inline-flex items-center btn-secondary"
-				>
-					Edit
-				</a>
-				<button
-					hx-delete={ "/brews/" + props.Brew.RKey }
-					hx-confirm="Are you sure you want to delete this brew?"
-					hx-target="body"
-					class="inline-flex items-center bg-brown-200 text-brown-700 px-4 py-2 rounded-lg hover:bg-brown-300 font-medium transition-colors"
-				>
-					Delete
-				</button>
-			</div>
-		}
+	<div class="mb-6">
+		<h2 class="text-3xl font-bold text-brown-900">Brew Details</h2>
+		<p class="text-sm text-brown-600 mt-1">{ props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
 	</div>
 }
 

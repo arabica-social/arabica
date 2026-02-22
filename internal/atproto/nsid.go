@@ -16,6 +16,7 @@ const (
 	NSIDBean    = NSIDBase + ".bean"
 	NSIDBrew    = NSIDBase + ".brew"
 	NSIDBrewer  = NSIDBase + ".brewer"
+	NSIDComment = NSIDBase + ".comment"
 	NSIDGrinder = NSIDBase + ".grinder"
 	NSIDLike    = NSIDBase + ".like"
 	NSIDRoaster = NSIDBase + ".roaster"

@@ -269,7 +269,7 @@
 
   /* Like Button */
   .like-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px];
   }
 
   .like-btn-liked {
@@ -284,7 +284,77 @@
 
   /* Share Button */
   .share-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 min-h-[44px];
+  }
+
+  /* Comment Button */
+  .comment-btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 min-h-[44px];
+  }
+
+  /* Comment Section */
+  .comment-section {
+    @apply mt-8 pt-6 border-t-2 border-brown-200;
+  }
+
+  .comment-section-header {
+    @apply mb-5;
+  }
+
+  .comment-count-badge {
+    @apply inline-flex items-center justify-center text-xs font-bold bg-brown-700 text-brown-100 rounded-full min-w-[1.375rem] h-[1.375rem] px-1.5;
+  }
+
+  .comment-login-prompt {
+    @apply flex items-center gap-3 bg-brown-50 rounded-lg p-4 mb-5 border border-dashed border-brown-300;
+  }
+
+  .comment-compose {
+    @apply bg-brown-50 rounded-lg p-4 mb-5 border border-brown-200 flex flex-col gap-2;
+  }
+
+  .comment-textarea {
+    @apply w-full rounded-lg border-2 border-brown-200 bg-white px-3 py-2.5 text-base text-brown-900 placeholder-brown-400 resize-none transition-colors focus:border-brown-500 focus:ring-0 focus:outline-none;
+  }
+
+  .comment-list {
+    @apply space-y-1;
+  }
+
+  .comment-empty-state {
+    @apply text-center py-8;
+  }
+
+  .comment-item {
+    @apply relative rounded-lg p-3 transition-colors hover:bg-brown-50/60;
+  }
+
+  .comment-item-inner {
+    @apply relative;
+  }
+
+  .comment-depth-1 {
+    @apply ml-6 pl-4;
+  }
+
+  .comment-depth-2 {
+    @apply ml-12 pl-4;
+  }
+
+  .comment-thread-line {
+    @apply absolute left-0 top-3 bottom-3 w-0.5 bg-brown-200 rounded-full;
+  }
+
+  .comment-reply-btn {
+    @apply inline-flex items-center gap-1 text-brown-400 hover:text-brown-700 transition-colors text-xs font-medium;
+  }
+
+  .comment-delete-btn {
+    @apply text-brown-300 hover:text-brown-600 transition-colors;
+  }
+
+  .comment-reply-form {
+    @apply flex flex-col gap-2 bg-brown-50 rounded-lg p-3 border border-brown-200;
   }
 
   /* Action Bar */
@@ -292,8 +362,23 @@
     @apply flex items-center gap-2 mt-3 pt-3 border-t border-brown-200;
   }
 
+  /* Action bar inside brew view container - no separator needed */
+  .brew-view-actions .action-bar {
+    @apply mt-0 pt-0 border-t-0;
+  }
+
+  /* Compact action bar variant for comments */
+  .comment-item .action-bar {
+    @apply mt-1 border-t-0 gap-1 bg-brown-100 rounded-lg px-1.5 py-1 inline-flex items-center;
+  }
+
+  .comment-item .action-btn,
+  .comment-item .like-btn {
+    @apply px-2 py-1 text-xs min-h-[28px] bg-transparent;
+  }
+
   .action-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 cursor-pointer;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 cursor-pointer min-h-[44px];
   }
 
   .action-btn-liked {

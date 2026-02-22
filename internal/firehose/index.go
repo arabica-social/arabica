@@ -54,6 +54,18 @@ var (
 
 	// BucketLikesByActor stores likes by actor for lookup: {actor_did:subject_uri} -> {rkey}
 	BucketLikesByActor = []byte("likes_by_actor")
+
+	// BucketComments stores comment data: {subject_uri:timestamp:actor_did} -> {comment JSON}
+	BucketComments = []byte("comments")
+
+	// BucketCommentCounts stores aggregated comment counts: {subject_uri} -> {uint64 count}
+	BucketCommentCounts = []byte("comment_counts")
+
+	// BucketCommentsByActor stores comments by actor for lookup: {actor_did:rkey} -> {subject_uri}
+	BucketCommentsByActor = []byte("comments_by_actor")
+
+	// BucketCommentChildren stores parent-child relationships: {parent_uri:child_rkey} -> {child_actor_did}
+	BucketCommentChildren = []byte("comment_children")
 )
 
 // FeedableRecordTypes are the record types that should appear as feed items.
@@ -134,6 +146,10 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 			BucketLikes,
 			BucketLikeCounts,
 			BucketLikesByActor,
+			BucketComments,
+			BucketCommentCounts,
+			BucketCommentsByActor,
+			BucketCommentChildren,
 		}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -355,6 +371,9 @@ type FeedItem struct {
 	LikeCount  int    // Number of likes on this record
 	SubjectURI string // AT-URI of this record (for like button)
 	SubjectCID string // CID of this record (for like button)
+
+	// Comment-related fields
+	CommentCount int // Number of comments on this record
 }
 
 // GetRecentFeed returns recent feed items from the index
@@ -596,6 +615,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	item.SubjectURI = record.URI
 	item.SubjectCID = record.CID
 	item.LikeCount = idx.GetLikeCount(record.URI)
+	item.CommentCount = idx.GetCommentCount(record.URI)
 
 	return item, nil
 }
@@ -935,4 +955,305 @@ func (idx *FeedIndex) GetUserLikeRKey(actorDID, subjectURI string) string {
 		return nil
 	})
 	return rkey
+}
+
+// IndexedComment represents a comment stored in the index
+type IndexedComment struct {
+	RKey       string    `json:"rkey"`
+	SubjectURI string    `json:"subject_uri"`
+	Text       string    `json:"text"`
+	ActorDID   string    `json:"actor_did"`
+	CreatedAt  time.Time `json:"created_at"`
+	// Parent fields for threading (stored)
+	ParentURI  string `json:"parent_uri,omitempty"`
+	ParentRKey string `json:"parent_rkey,omitempty"`
+	CID        string `json:"cid,omitempty"`
+	// Computed fields (populated on retrieval, not stored)
+	Depth   int              `json:"-"` // Nesting depth (0 = top-level, 1 = reply, 2+ = nested reply)
+	Replies []IndexedComment `json:"-"` // Child comments (for tree building)
+	// Profile fields (populated on retrieval, not stored)
+	Handle      string  `json:"-"`
+	DisplayName *string `json:"-"`
+	Avatar      *string `json:"-"`
+	// Like fields (populated on retrieval, not stored)
+	LikeCount int  `json:"-"`
+	IsLiked   bool `json:"-"`
+}
+
+// UpsertComment adds or updates a comment in the index
+func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, parentURI, cid, text string, createdAt time.Time) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		comments := tx.Bucket(BucketComments)
+		commentCounts := tx.Bucket(BucketCommentCounts)
+		commentsByActor := tx.Bucket(BucketCommentsByActor)
+		commentChildren := tx.Bucket(BucketCommentChildren)
+
+		// Key format: {subject_uri}:{timestamp}:{actor_did}:{rkey}
+		// Using timestamp for chronological ordering
+		commentKey := []byte(subjectURI + ":" + createdAt.Format(time.RFC3339Nano) + ":" + actorDID + ":" + rkey)
+
+		// Check if this comment already exists (by actor key)
+		actorKey := []byte(actorDID + ":" + rkey)
+		existingSubject := commentsByActor.Get(actorKey)
+		isNew := existingSubject == nil
+
+		// Extract parent rkey from parent URI if present
+		var parentRKey string
+		if parentURI != "" {
+			parts := strings.Split(parentURI, "/")
+			if len(parts) > 0 {
+				parentRKey = parts[len(parts)-1]
+			}
+		}
+
+		// Store comment data as JSON
+		commentData := IndexedComment{
+			RKey:       rkey,
+			SubjectURI: subjectURI,
+			Text:       text,
+			ActorDID:   actorDID,
+			CreatedAt:  createdAt,
+			ParentURI:  parentURI,
+			ParentRKey: parentRKey,
+			CID:        cid,
+		}
+		commentJSON, err := json.Marshal(commentData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal comment: %w", err)
+		}
+
+		// Store comment
+		if err := comments.Put(commentKey, commentJSON); err != nil {
+			return fmt.Errorf("failed to store comment: %w", err)
+		}
+
+		// Store actor lookup
+		if err := commentsByActor.Put(actorKey, []byte(subjectURI)); err != nil {
+			return fmt.Errorf("failed to store comment by actor: %w", err)
+		}
+
+		// Store parent-child relationship if this is a reply
+		if parentURI != "" {
+			childKey := []byte(parentURI + ":" + rkey)
+			if err := commentChildren.Put(childKey, []byte(actorDID)); err != nil {
+				return fmt.Errorf("failed to store comment child: %w", err)
+			}
+		}
+
+		// Increment count only if this is a new comment
+		if isNew {
+			countKey := []byte(subjectURI)
+			var count uint64
+			if countData := commentCounts.Get(countKey); len(countData) == 8 {
+				count = binary.BigEndian.Uint64(countData)
+			}
+			count++
+			countBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(countBytes, count)
+			if err := commentCounts.Put(countKey, countBytes); err != nil {
+				return fmt.Errorf("failed to update comment count: %w", err)
+			}
+		}
+
+		return nil
+	})
+}
+
+// DeleteComment removes a comment from the index
+func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
+	return idx.db.Update(func(tx *bolt.Tx) error {
+		comments := tx.Bucket(BucketComments)
+		commentCounts := tx.Bucket(BucketCommentCounts)
+		commentsByActor := tx.Bucket(BucketCommentsByActor)
+		commentChildren := tx.Bucket(BucketCommentChildren)
+
+		actorKey := []byte(actorDID + ":" + rkey)
+
+		// Check if comment exists
+		existingSubject := commentsByActor.Get(actorKey)
+		if existingSubject == nil {
+			return nil // Comment doesn't exist, nothing to do
+		}
+
+		// Find and delete the comment by iterating over comments with matching subject
+		var parentURI string
+		prefix := []byte(subjectURI + ":")
+		c := comments.Cursor()
+		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
+			// Check if this key contains our actor and rkey
+			if strings.HasSuffix(string(k), ":"+actorDID+":"+rkey) {
+				// Parse the comment to get parent URI for cleanup
+				var comment IndexedComment
+				if err := json.Unmarshal(v, &comment); err == nil {
+					parentURI = comment.ParentURI
+				}
+				if err := comments.Delete(k); err != nil {
+					return fmt.Errorf("failed to delete comment: %w", err)
+				}
+				break
+			}
+		}
+
+		// Delete actor lookup
+		if err := commentsByActor.Delete(actorKey); err != nil {
+			return fmt.Errorf("failed to delete comment by actor: %w", err)
+		}
+
+		// Delete parent-child relationship if this was a reply
+		if parentURI != "" {
+			childKey := []byte(parentURI + ":" + rkey)
+			if err := commentChildren.Delete(childKey); err != nil {
+				return fmt.Errorf("failed to delete comment child: %w", err)
+			}
+		}
+
+		// Decrement count
+		countKey := []byte(subjectURI)
+		var count uint64
+		if countData := commentCounts.Get(countKey); len(countData) == 8 {
+			count = binary.BigEndian.Uint64(countData)
+		}
+		if count > 0 {
+			count--
+		}
+		countBytes := make([]byte, 8)
+		binary.BigEndian.PutUint64(countBytes, count)
+		if err := commentCounts.Put(countKey, countBytes); err != nil {
+			return fmt.Errorf("failed to update comment count: %w", err)
+		}
+
+		return nil
+	})
+}
+
+// GetCommentCount returns the number of comments on a record
+func (idx *FeedIndex) GetCommentCount(subjectURI string) int {
+	var count uint64
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		commentCounts := tx.Bucket(BucketCommentCounts)
+		countData := commentCounts.Get([]byte(subjectURI))
+		if len(countData) == 8 {
+			count = binary.BigEndian.Uint64(countData)
+		}
+		return nil
+	})
+	return int(count)
+}
+
+// GetCommentsForSubject returns all comments for a specific record, ordered by creation time
+// This returns a flat list of comments without threading
+func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI string, limit int, viewerDID string) []IndexedComment {
+	var comments []IndexedComment
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketComments)
+		prefix := []byte(subjectURI + ":")
+		c := bucket.Cursor()
+
+		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
+			var comment IndexedComment
+			if err := json.Unmarshal(v, &comment); err != nil {
+				continue
+			}
+			comments = append(comments, comment)
+			if limit > 0 && len(comments) >= limit {
+				break
+			}
+		}
+		return nil
+	})
+
+	// Populate profile and like info for each comment
+	for i := range comments {
+		profile, err := idx.GetProfile(ctx, comments[i].ActorDID)
+		if err != nil {
+			// Use DID as fallback handle
+			comments[i].Handle = comments[i].ActorDID
+		} else {
+			comments[i].Handle = profile.Handle
+			comments[i].DisplayName = profile.DisplayName
+			comments[i].Avatar = profile.Avatar
+		}
+
+		commentURI := fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", comments[i].ActorDID, comments[i].RKey)
+		comments[i].LikeCount = idx.GetLikeCount(commentURI)
+		if viewerDID != "" {
+			comments[i].IsLiked = idx.HasUserLiked(viewerDID, commentURI)
+		}
+	}
+
+	return comments
+}
+
+// GetThreadedCommentsForSubject returns comments for a record in threaded order with depth
+// Comments are returned in depth-first order (parent followed by children)
+// Visual depth is capped at 2 levels for display purposes
+func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subjectURI string, limit int, viewerDID string) []IndexedComment {
+	// First get all comments for this subject
+	allComments := idx.GetCommentsForSubject(ctx, subjectURI, 0, viewerDID) // Get all, we'll limit after threading
+
+	if len(allComments) == 0 {
+		return nil
+	}
+
+	// Build a map of comment rkey -> comment for quick lookup
+	commentMap := make(map[string]*IndexedComment)
+	for i := range allComments {
+		commentMap[allComments[i].RKey] = &allComments[i]
+	}
+
+	// Build parent -> children map
+	childrenMap := make(map[string][]*IndexedComment)
+	var topLevel []*IndexedComment
+
+	for i := range allComments {
+		comment := &allComments[i]
+		if comment.ParentRKey == "" {
+			// Top-level comment
+			topLevel = append(topLevel, comment)
+		} else {
+			// Reply - add to parent's children
+			childrenMap[comment.ParentRKey] = append(childrenMap[comment.ParentRKey], comment)
+		}
+	}
+
+	// Sort top-level comments by creation time (oldest first)
+	sort.Slice(topLevel, func(i, j int) bool {
+		return topLevel[i].CreatedAt.Before(topLevel[j].CreatedAt)
+	})
+
+	// Sort children within each parent by creation time
+	for _, children := range childrenMap {
+		sort.Slice(children, func(i, j int) bool {
+			return children[i].CreatedAt.Before(children[j].CreatedAt)
+		})
+	}
+
+	// Flatten the tree in depth-first order
+	var result []IndexedComment
+	var flatten func(comment *IndexedComment, depth int)
+	flatten = func(comment *IndexedComment, depth int) {
+		if limit > 0 && len(result) >= limit {
+			return
+		}
+		// Cap visual depth at 2 for display
+		visualDepth := depth
+		if visualDepth > 2 {
+			visualDepth = 2
+		}
+		comment.Depth = visualDepth
+		result = append(result, *comment)
+
+		// Add children (if any)
+		if children, ok := childrenMap[comment.RKey]; ok {
+			for _, child := range children {
+				flatten(child, depth+1)
+			}
+		}
+	}
+
+	for _, comment := range topLevel {
+		flatten(comment, 0)
+	}
+
+	return result
 }

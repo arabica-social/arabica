@@ -182,6 +182,7 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 	canViewReports := h.moderationService.HasPermission(userDID, moderation.PermissionViewReports)
 	canBlock := h.moderationService.HasPermission(userDID, moderation.PermissionBlacklistUser)
 	canUnblock := h.moderationService.HasPermission(userDID, moderation.PermissionUnblacklistUser)
+	canResetAutoHide := h.moderationService.HasPermission(userDID, moderation.PermissionResetAutoHide)
 
 	var hiddenRecords []moderation.HiddenRecord
 	var auditLog []moderation.AuditEntry
@@ -222,9 +223,10 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 		CanUnhide:      canUnhide,
 		CanViewLogs:    canViewLogs,
 		CanViewReports: canViewReports,
-		CanBlock:       canBlock,
-		CanUnblock:     canUnblock,
-		IsAdmin:        isAdmin,
+		CanBlock:          canBlock,
+		CanUnblock:        canUnblock,
+		CanResetAutoHide:  canResetAutoHide,
+		IsAdmin:           isAdmin,
 	}
 }
 
@@ -505,6 +507,59 @@ func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
 		Str("did", req.DID).
 		Str("by", userDID).
 		Msg("User unblocked")
+
+	w.Header().Set("HX-Trigger", "mod-action")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleResetAutoHide handles POST /_mod/reset-autohide
+// Resets the per-user auto-hide report counter so that only future reports count toward the threshold.
+func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
+	userDID, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil || userDID == "" {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionResetAutoHide) {
+		http.Error(w, "Permission denied", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	targetDID := r.FormValue("did")
+	if targetDID == "" {
+		http.Error(w, "DID is required", http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now()
+	if err := h.moderationStore.SetAutoHideReset(r.Context(), targetDID, now); err != nil {
+		log.Error().Err(err).Str("did", targetDID).Msg("Failed to reset auto-hide")
+		http.Error(w, "Failed to reset auto-hide", http.StatusInternalServerError)
+		return
+	}
+
+	auditEntry := moderation.AuditEntry{
+		ID:        generateTID(),
+		Action:    moderation.AuditActionResetAutoHide,
+		ActorDID:  userDID,
+		TargetURI: targetDID,
+		Reason:    "Auto-hide report counter reset",
+		Timestamp: now,
+		AutoMod:   false,
+	}
+	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
+		log.Error().Err(err).Msg("Failed to log reset-autohide action")
+	}
+
+	log.Info().
+		Str("did", targetDID).
+		Str("by", userDID).
+		Msg("Auto-hide counter reset for user")
 
 	w.Header().Set("HX-Trigger", "mod-action")
 	w.WriteHeader(http.StatusOK)

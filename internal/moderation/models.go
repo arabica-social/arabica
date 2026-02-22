@@ -13,6 +13,7 @@ const (
 	PermissionViewReports      Permission = "view_reports"
 	PermissionDismissReport    Permission = "dismiss_report"
 	PermissionViewAuditLog     Permission = "view_audit_log"
+	PermissionResetAutoHide    Permission = "reset_autohide"
 )
 
 // AllPermissions returns all available permissions
@@ -25,6 +26,7 @@ func AllPermissions() []Permission {
 		PermissionViewReports,
 		PermissionDismissReport,
 		PermissionViewAuditLog,
+		PermissionResetAutoHide,
 	}
 }
 
@@ -150,6 +152,7 @@ const (
 	AuditActionUnblacklistUser  AuditAction = "unblacklist_user"
 	AuditActionDismissReport      AuditAction = "dismiss_report"
 	AuditActionActionReport       AuditAction = "action_report"
+	AuditActionResetAutoHide      AuditAction = "reset_autohide"
 	AuditActionDismissJoinRequest AuditAction = "dismiss_join_request"
 	AuditActionCreateInvite       AuditAction = "create_invite"
 )

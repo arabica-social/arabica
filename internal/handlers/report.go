@@ -184,8 +184,18 @@ func (h *Handler) checkAutomod(ctx context.Context, report moderation.Report) {
 		return
 	}
 
-	// Check total report count for content by this user
-	didReportCount, err := h.moderationStore.CountReportsForDID(ctx, report.SubjectDID)
+	// Check total report count for content by this user (respecting any reset)
+	var didReportCount int
+	resetAt, err := h.moderationStore.GetAutoHideReset(ctx, report.SubjectDID)
+	if err != nil {
+		log.Error().Err(err).Str("did", report.SubjectDID).Msg("moderation: failed to get auto-hide reset for automod")
+		return
+	}
+	if !resetAt.IsZero() {
+		didReportCount, err = h.moderationStore.CountReportsForDIDSince(ctx, report.SubjectDID, resetAt)
+	} else {
+		didReportCount, err = h.moderationStore.CountReportsForDID(ctx, report.SubjectDID)
+	}
 	if err != nil {
 		log.Error().Err(err).Str("did", report.SubjectDID).Msg("moderation: failed to count DID reports for automod")
 		return

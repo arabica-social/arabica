@@ -347,6 +347,36 @@ func (c *Consumer) processMessage(data []byte) error {
 			}
 		}
 
+		// Special handling for comments - index for counts and retrieval
+		if commit.Collection == "social.arabica.alpha.comment" {
+			var recordData map[string]interface{}
+			if err := json.Unmarshal(commit.Record, &recordData); err == nil {
+				if subject, ok := recordData["subject"].(map[string]interface{}); ok {
+					if subjectURI, ok := subject["uri"].(string); ok {
+						text, _ := recordData["text"].(string)
+						var createdAt time.Time
+						if createdAtStr, ok := recordData["createdAt"].(string); ok {
+							if parsed, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
+								createdAt = parsed
+							} else {
+								createdAt = time.Now()
+							}
+						} else {
+							createdAt = time.Now()
+						}
+						// Extract optional parent URI for threading
+						var parentURI string
+						if parent, ok := recordData["parent"].(map[string]interface{}); ok {
+							parentURI, _ = parent["uri"].(string)
+						}
+						if err := c.index.UpsertComment(event.DID, commit.RKey, subjectURI, parentURI, commit.CID, text, createdAt); err != nil {
+							log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to index comment")
+						}
+					}
+				}
+			}
+		}
+
 	case "delete":
 		// Special handling for likes - need to look up subject URI before delete
 		if commit.Collection == "social.arabica.alpha.like" {
@@ -360,6 +390,25 @@ func (c *Consumer) processMessage(data []byte) error {
 						if subjectURI, ok := subject["uri"].(string); ok {
 							if err := c.index.DeleteLike(event.DID, subjectURI); err != nil {
 								log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to delete like index")
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Special handling for comments - need to look up subject URI before delete
+		if commit.Collection == "social.arabica.alpha.comment" {
+			// Try to get the existing record to find its subject
+			if existingRecord, err := c.index.GetRecord(
+				fmt.Sprintf("at://%s/%s/%s", event.DID, commit.Collection, commit.RKey),
+			); err == nil && existingRecord != nil {
+				var recordData map[string]interface{}
+				if err := json.Unmarshal(existingRecord.Record, &recordData); err == nil {
+					if subject, ok := recordData["subject"].(map[string]interface{}); ok {
+						if subjectURI, ok := subject["uri"].(string); ok {
+							if err := c.index.DeleteComment(event.DID, commit.RKey, subjectURI); err != nil {
+								log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to delete comment index")
 							}
 						}
 					}

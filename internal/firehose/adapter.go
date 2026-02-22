@@ -34,19 +34,20 @@ func (a *FeedIndexAdapter) GetRecentFeed(ctx context.Context, limit int) ([]*fee
 	result := make([]*feed.FirehoseFeedItem, len(items))
 	for i, item := range items {
 		result[i] = &feed.FirehoseFeedItem{
-			RecordType: item.RecordType,
-			Action:     item.Action,
-			Brew:       item.Brew,
-			Bean:       item.Bean,
-			Roaster:    item.Roaster,
-			Grinder:    item.Grinder,
-			Brewer:     item.Brewer,
-			Author:     item.Author,
-			Timestamp:  item.Timestamp,
-			TimeAgo:    item.TimeAgo,
-			LikeCount:  item.LikeCount,
-			SubjectURI: item.SubjectURI,
-			SubjectCID: item.SubjectCID,
+			RecordType:   item.RecordType,
+			Action:       item.Action,
+			Brew:         item.Brew,
+			Bean:         item.Bean,
+			Roaster:      item.Roaster,
+			Grinder:      item.Grinder,
+			Brewer:       item.Brewer,
+			Author:       item.Author,
+			Timestamp:    item.Timestamp,
+			TimeAgo:      item.TimeAgo,
+			LikeCount:    item.LikeCount,
+			CommentCount: item.CommentCount,
+			SubjectURI:   item.SubjectURI,
+			SubjectCID:   item.SubjectCID,
 		}
 	}
 

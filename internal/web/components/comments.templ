@@ -1,0 +1,348 @@
+package components
+
+import (
+	"arabica/internal/firehose"
+	"arabica/internal/web/bff"
+	"fmt"
+)
+
+// CommentButtonProps defines properties for the comment button
+type CommentButtonProps struct {
+	SubjectURI      string // AT-URI of the record to comment on
+	SubjectCID      string // CID of the record
+	CommentCount    int    // Number of comments on this record
+	IsAuthenticated bool   // Whether the user is authenticated
+}
+
+// CommentButton renders a comment button with count that links to comments section
+templ CommentButton(props CommentButtonProps) {
+	<button
+		type="button"
+		if props.IsAuthenticated && props.SubjectURI != "" && props.SubjectCID != "" {
+			hx-get={ fmt.Sprintf("/api/comments?subject_uri=%s", props.SubjectURI) }
+			hx-target="#comment-section"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+		}
+		class="comment-btn"
+		aria-label="Comments"
+	>
+		<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+			<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+		</svg>
+		if props.CommentCount > 0 {
+			<span>{ fmt.Sprintf("%d", props.CommentCount) }</span>
+		}
+	</button>
+}
+
+// CommentModerationContext holds moderation state for rendering comment actions
+type CommentModerationContext struct {
+	IsModerator   bool // User has moderator role
+	CanHideRecord bool // User has hide_record permission
+	CanBlockUser  bool // User has blacklist_user permission
+}
+
+// CommentSectionProps defines properties for the comment section
+type CommentSectionProps struct {
+	SubjectURI      string                    // AT-URI of the record (brew/bean/etc)
+	SubjectCID      string                    // CID of the record
+	Comments        []firehose.IndexedComment // List of comments (threaded order with depth)
+	IsAuthenticated bool                      // Whether the user is authenticated
+	CurrentUserDID  string                    // DID of the current user (for delete buttons)
+	ModCtx          CommentModerationContext  // Moderation context for comment actions
+	ViewURL         string                    // URL of the parent brew (for sharing comments)
+}
+
+// CommentSection renders the full comment section with list and form
+templ CommentSection(props CommentSectionProps) {
+	<div id="comment-section" class="comment-section">
+		<!-- Section header -->
+		<div class="comment-section-header">
+			<div class="flex items-center gap-2">
+				<svg class="w-5 h-5 text-brown-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"></path>
+				</svg>
+				<h3 class="text-lg font-semibold text-brown-900">
+					Discussion
+				</h3>
+				if len(props.Comments) > 0 {
+					<span class="comment-count-badge">{ fmt.Sprintf("%d", len(props.Comments)) }</span>
+				}
+			</div>
+		</div>
+		<!-- Comment form or login prompt -->
+		if props.IsAuthenticated {
+			@CommentForm(CommentFormProps{
+				SubjectURI: props.SubjectURI,
+				SubjectCID: props.SubjectCID,
+			})
+		} else {
+			<div class="comment-login-prompt">
+				<svg class="w-5 h-5 text-brown-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+				</svg>
+				<p class="text-sm text-brown-600">
+					<a href="/login" class="font-semibold text-brown-800 hover:text-brown-950 underline underline-offset-2 decoration-brown-400 hover:decoration-brown-700 transition-colors">Log in</a> to join the conversation.
+				</p>
+			</div>
+		}
+		<!-- Comment list -->
+		@CommentList(CommentListProps{
+			Comments:        props.Comments,
+			CurrentUserDID:  props.CurrentUserDID,
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			IsAuthenticated: props.IsAuthenticated,
+			ModCtx:          props.ModCtx,
+			ViewURL:         props.ViewURL,
+		})
+	</div>
+}
+
+// CommentFormProps defines properties for the comment form
+type CommentFormProps struct {
+	SubjectURI string // AT-URI of the record
+	SubjectCID string // CID of the record
+}
+
+// CommentForm renders a form for creating new comments
+templ CommentForm(props CommentFormProps) {
+	<form
+		hx-post="/api/comments"
+		hx-target="#comment-section"
+		hx-swap="innerHTML"
+		class="comment-compose"
+	>
+		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
+		<input type="hidden" name="subject_cid" value={ props.SubjectCID }/>
+		<textarea
+			name="text"
+			placeholder="Share your thoughts..."
+			class="comment-textarea"
+			rows="2"
+			maxlength="1000"
+			required
+		></textarea>
+		<div class="flex justify-between items-center">
+			<span class="text-xs text-brown-400 tracking-wide">1000 char limit</span>
+			<button type="submit" class="btn-primary text-sm py-1.5 px-5">
+				Post
+			</button>
+		</div>
+	</form>
+}
+
+// CommentListProps defines properties for the comment list
+type CommentListProps struct {
+	Comments        []firehose.IndexedComment // List of comments (threaded order with depth)
+	CurrentUserDID  string                    // DID of the current user (for delete buttons)
+	SubjectURI      string                    // AT-URI of the root subject (for reply forms)
+	SubjectCID      string                    // CID of the root subject (for reply forms)
+	IsAuthenticated bool                      // Whether the user is authenticated (for reply buttons)
+	ModCtx          CommentModerationContext  // Moderation context for comment actions
+	ViewURL         string                    // URL of the parent brew (for sharing comments)
+}
+
+// CommentList renders a list of comments with threading support
+templ CommentList(props CommentListProps) {
+	<div class="comment-list">
+		if len(props.Comments) == 0 {
+			<div class="comment-empty-state">
+				<svg class="w-10 h-10 text-brown-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+				</svg>
+				<p class="text-brown-500 text-sm font-medium">No comments yet</p>
+				<p class="text-brown-400 text-xs mt-1">Be the first to share your thoughts</p>
+			</div>
+		} else {
+			for _, comment := range props.Comments {
+				@CommentItem(CommentItemProps{
+					Comment:         comment,
+					CanDelete:       props.CurrentUserDID == comment.ActorDID,
+					CanReply:        props.IsAuthenticated && comment.Depth < 2 && comment.CID != "",
+					IsOwner:         props.CurrentUserDID == comment.ActorDID,
+					SubjectURI:      props.SubjectURI,
+					SubjectCID:      props.SubjectCID,
+					IsAuthenticated: props.IsAuthenticated,
+					ModCtx:          props.ModCtx,
+					ViewURL:         props.ViewURL,
+				})
+			}
+		}
+	</div>
+}
+
+// CommentItemProps defines properties for a single comment
+type CommentItemProps struct {
+	Comment         firehose.IndexedComment
+	CanDelete       bool                     // Whether the current user can delete this comment
+	CanReply        bool                     // Whether the user can reply (authenticated and depth < 2)
+	IsOwner         bool                     // Whether the current user owns this comment
+	SubjectURI      string                   // AT-URI of the root subject (for reply form)
+	SubjectCID      string                   // CID of the root subject (for reply form)
+	IsAuthenticated bool                     // Whether the user is authenticated
+	ModCtx          CommentModerationContext // Moderation context for comment actions
+	ViewURL         string                   // URL of the parent brew (for sharing)
+}
+
+// CommentItem renders a single comment with optional threading indentation
+templ CommentItem(props CommentItemProps) {
+	<div
+		class={ "comment-item", getDepthClass(props.Comment.Depth) }
+		id={ "comment-" + props.Comment.RKey }
+		x-data="{ showReplyForm: false }"
+	>
+		if props.Comment.Depth > 0 {
+			<div class="comment-thread-line"></div>
+		}
+		<div class="comment-item-inner">
+			<!-- Header row with user badge and reply button -->
+			<div class="flex items-center justify-between gap-2 mb-1.5">
+				@UserBadge(UserBadgeProps{
+					ProfileURL:  "/profile/" + getCommentHandle(props.Comment),
+					AvatarURL:   getCommentAvatarURL(props.Comment),
+					DisplayName: getCommentDisplayName(props.Comment),
+					Handle:      getCommentHandle(props.Comment),
+					TimeAgo:     bff.FormatTimeAgo(props.Comment.CreatedAt),
+					Size:        "sm",
+				})
+				if props.CanReply {
+					<button
+						type="button"
+						@click="showReplyForm = !showReplyForm"
+						class="comment-reply-btn"
+						aria-label="Reply to comment"
+					>
+						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"></path>
+						</svg>
+						Reply
+					</button>
+				}
+			</div>
+			<!-- Comment text -->
+			<p class="text-brown-800 whitespace-pre-wrap break-words pl-11 text-[0.9375rem] leading-relaxed">{ props.Comment.Text }</p>
+			<!-- Action bar (like, share, more menu) -->
+			<div class="pl-11 mt-1">
+				@ActionBar(ActionBarProps{
+					SubjectURI:      buildCommentURI(props.Comment),
+					SubjectCID:      props.Comment.CID,
+					IsLiked:         props.Comment.IsLiked,
+					LikeCount:       props.Comment.LikeCount,
+					ShareURL:        getCommentShareURL(props.ViewURL, props.Comment),
+					ShareTitle:      "Comment on Arabica",
+					ShareText:       props.Comment.Text,
+					IsOwner:         props.IsOwner,
+					DeleteURL:       "/api/comments/" + props.Comment.RKey,
+					DeleteTarget:    "#comment-" + props.Comment.RKey,
+					IsAuthenticated: props.IsAuthenticated,
+					IsModerator:     props.ModCtx.IsModerator,
+					CanHideRecord:   props.ModCtx.CanHideRecord,
+					CanBlockUser:    props.ModCtx.CanBlockUser,
+					AuthorDID:       props.Comment.ActorDID,
+				})
+			</div>
+			<!-- Inline reply form (shown when Reply is clicked) -->
+			if props.CanReply {
+				<div x-show="showReplyForm" x-transition class="mt-3 pl-11">
+					@ReplyForm(ReplyFormProps{
+						SubjectURI: props.SubjectURI,
+						SubjectCID: props.SubjectCID,
+						ParentURI:  buildCommentURI(props.Comment),
+						ParentCID:  props.Comment.CID,
+					})
+				</div>
+			}
+		</div>
+	</div>
+}
+
+// ReplyFormProps defines properties for the reply form
+type ReplyFormProps struct {
+	SubjectURI string // AT-URI of the root subject (brew/bean/etc)
+	SubjectCID string // CID of the root subject
+	ParentURI  string // AT-URI of the parent comment
+	ParentCID  string // CID of the parent comment
+}
+
+// ReplyForm renders a compact inline reply form
+templ ReplyForm(props ReplyFormProps) {
+	<form
+		hx-post="/api/comments"
+		hx-target="#comment-section"
+		hx-swap="innerHTML"
+		class="comment-reply-form"
+	>
+		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
+		<input type="hidden" name="subject_cid" value={ props.SubjectCID }/>
+		<input type="hidden" name="parent_uri" value={ props.ParentURI }/>
+		<input type="hidden" name="parent_cid" value={ props.ParentCID }/>
+		<textarea
+			name="text"
+			placeholder="Write a reply..."
+			class="comment-textarea text-sm"
+			rows="2"
+			maxlength="1000"
+			required
+		></textarea>
+		<div class="flex justify-end gap-2">
+			<button type="button" @click="showReplyForm = false" class="btn-secondary text-xs py-1 px-3">
+				Cancel
+			</button>
+			<button type="submit" class="btn-primary text-xs py-1 px-3">
+				Reply
+			</button>
+		</div>
+	</form>
+}
+
+// Helper functions for comment display
+func getCommentHandle(comment firehose.IndexedComment) string {
+	if comment.Handle != "" {
+		return comment.Handle
+	}
+	return comment.ActorDID
+}
+
+func getCommentDisplayName(comment firehose.IndexedComment) string {
+	if comment.DisplayName != nil {
+		return *comment.DisplayName
+	}
+	return ""
+}
+
+func getCommentAvatarURL(comment firehose.IndexedComment) string {
+	if comment.Avatar != nil {
+		return *comment.Avatar
+	}
+	return ""
+}
+
+// getDepthClass returns the CSS class for comment depth
+func getDepthClass(depth int) string {
+	switch depth {
+	case 1:
+		return "comment-depth-1"
+	case 2:
+		return "comment-depth-2"
+	default:
+		return ""
+	}
+}
+
+// getCommentShareURL returns the share URL for a comment, linking to the comment anchor on the brew page
+func getCommentShareURL(viewURL string, comment firehose.IndexedComment) string {
+	if viewURL == "" {
+		return ""
+	}
+	return viewURL + "#comment-" + comment.RKey
+}
+
+// buildCommentURI constructs the AT-URI for a comment from its indexed data
+func buildCommentURI(comment firehose.IndexedComment) string {
+	// The subject URI contains the DID, format: at://did:plc:xxx/social.arabica.alpha.brew/rkey
+	// We need to extract the DID and build a comment URI: at://did:plc:xxx/social.arabica.alpha.comment/rkey
+	return fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", comment.ActorDID, comment.RKey)
+}
+

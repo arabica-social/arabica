@@ -1229,6 +1229,109 @@ func (s *AtprotoStore) ListUserLikes(ctx context.Context) ([]*models.Like, error
 	return likes, nil
 }
 
+// ========== Comment Operations ==========
+
+func (s *AtprotoStore) CreateComment(ctx context.Context, req *models.CreateCommentRequest) (*models.Comment, error) {
+	if req.SubjectURI == "" {
+		return nil, fmt.Errorf("subject_uri is required")
+	}
+	if req.SubjectCID == "" {
+		return nil, fmt.Errorf("subject_cid is required")
+	}
+	if req.Text == "" {
+		return nil, fmt.Errorf("text is required")
+	}
+
+	commentModel := &models.Comment{
+		SubjectURI: req.SubjectURI,
+		SubjectCID: req.SubjectCID,
+		Text:       req.Text,
+		CreatedAt:  time.Now(),
+		ParentURI:  req.ParentURI,
+		ParentCID:  req.ParentCID,
+	}
+
+	record, err := CommentToRecord(commentModel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert comment to record: %w", err)
+	}
+
+	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
+		Collection: NSIDComment,
+		Record:     record,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create comment record: %w", err)
+	}
+
+	atURI, err := syntax.ParseATURI(output.URI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse returned AT-URI: %w", err)
+	}
+
+	commentModel.RKey = atURI.RecordKey().String()
+	// Store the CID of this comment record (useful for threading)
+	commentModel.CID = output.CID
+
+	return commentModel, nil
+}
+
+func (s *AtprotoStore) DeleteCommentByRKey(ctx context.Context, rkey string) error {
+	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
+		Collection: NSIDComment,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete comment record: %w", err)
+	}
+	return nil
+}
+
+func (s *AtprotoStore) GetCommentsForSubject(ctx context.Context, subjectURI string) ([]*models.Comment, error) {
+	// List all comments and filter by subject URI
+	// Note: This is inefficient for large numbers of comments.
+	// The firehose index provides a more efficient lookup.
+	comments, err := s.ListUserComments(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var filtered []*models.Comment
+	for _, comment := range comments {
+		if comment.SubjectURI == subjectURI {
+			filtered = append(filtered, comment)
+		}
+	}
+
+	return filtered, nil
+}
+
+func (s *AtprotoStore) ListUserComments(ctx context.Context) ([]*models.Comment, error) {
+	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDComment)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list comment records: %w", err)
+	}
+
+	comments := make([]*models.Comment, 0, len(output.Records))
+
+	for _, rec := range output.Records {
+		comment, err := RecordToComment(rec.Value, rec.URI)
+		if err != nil {
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert comment record")
+			continue
+		}
+
+		// Extract rkey from URI
+		if components, err := ResolveATURI(rec.URI); err == nil {
+			comment.RKey = components.RKey
+		}
+
+		comments = append(comments, comment)
+	}
+
+	return comments, nil
+}
+
 func (s *AtprotoStore) Close() error {
 	// No persistent connection to close for atproto
 	return nil

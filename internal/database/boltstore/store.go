@@ -41,6 +41,9 @@ var (
 	// BucketModerationAuditLog stores moderation action audit trail
 	BucketModerationAuditLog = []byte("moderation_audit_log")
 
+	// BucketModerationAutoHideResets stores DID -> timestamp for auto-hide counter resets
+	BucketModerationAutoHideResets = []byte("moderation_autohide_resets")
+
 	// BucketJoinRequests stores PDS account join requests
 	BucketJoinRequests = []byte("join_requests")
 )
@@ -114,6 +117,7 @@ func Open(opts Options) (*Store, error) {
 			BucketModerationReportsByURI,
 			BucketModerationReportsByDID,
 			BucketModerationAuditLog,
+			BucketModerationAutoHideResets,
 			BucketJoinRequests,
 		}
 

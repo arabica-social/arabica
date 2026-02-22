@@ -496,6 +496,87 @@ func (s *ModerationStore) CountReportsFromUserSince(ctx context.Context, reporte
 	return count, err
 }
 
+// SetAutoHideReset stores a reset timestamp for a user's auto-hide counter.
+// Reports created before this timestamp are ignored when checking the per-user auto-hide threshold.
+func (s *ModerationStore) SetAutoHideReset(ctx context.Context, did string, resetAt time.Time) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketModerationAutoHideResets)
+		if bucket == nil {
+			return fmt.Errorf("bucket not found: %s", BucketModerationAutoHideResets)
+		}
+
+		data, err := resetAt.MarshalBinary()
+		if err != nil {
+			return fmt.Errorf("failed to marshal reset time: %w", err)
+		}
+
+		return bucket.Put([]byte(did), data)
+	})
+}
+
+// GetAutoHideReset returns the auto-hide reset timestamp for a user, or zero time if none set.
+func (s *ModerationStore) GetAutoHideReset(ctx context.Context, did string) (time.Time, error) {
+	var resetAt time.Time
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketModerationAutoHideResets)
+		if bucket == nil {
+			return nil
+		}
+
+		data := bucket.Get([]byte(did))
+		if data == nil {
+			return nil
+		}
+
+		return resetAt.UnmarshalBinary(data)
+	})
+
+	return resetAt, err
+}
+
+// CountReportsForDIDSince returns the number of reports for content by a given DID
+// created after the specified time.
+func (s *ModerationStore) CountReportsForDIDSince(ctx context.Context, did string, since time.Time) (int, error) {
+	var count int
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		didIndex := tx.Bucket(BucketModerationReportsByDID)
+		if didIndex == nil {
+			return nil
+		}
+
+		reportsBucket := tx.Bucket(BucketModerationReports)
+		if reportsBucket == nil {
+			return nil
+		}
+
+		cursor := didIndex.Cursor()
+		prefix := []byte(did + ":")
+
+		for k, v := cursor.Seek(prefix); k != nil && hasPrefix(k, prefix); k, v = cursor.Next() {
+			// v is the report ID
+			reportData := reportsBucket.Get(v)
+			if reportData == nil {
+				continue
+			}
+
+			var report moderation.Report
+			if err := json.Unmarshal(reportData, &report); err != nil {
+				continue
+			}
+
+			if report.CreatedAt.After(since) {
+				count++
+			}
+		}
+
+		return nil
+	})
+
+	return count, err
+}
+
 // hasPrefix checks if a byte slice has a given prefix.
 func hasPrefix(s, prefix []byte) bool {
 	if len(s) < len(prefix) {
