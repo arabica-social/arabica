@@ -218,7 +218,7 @@ templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, 
 		</div>
 		<!-- Brewers Section -->
 		<div>
-			<h4 class="text-lg font-semibold text-brown-900 mb-3">Brewing Devices</h4>
+			<h4 class="text-lg font-semibold text-brown-900 mb-3">Brewers</h4>
 			if len(brewers) == 0 {
 				if isOwnProfile {
 					@EmptyState(EmptyStateProps{Message: "No brewing devices added yet."})

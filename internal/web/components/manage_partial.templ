@@ -1,8 +1,6 @@
 package components
 
-import (
-	"arabica/internal/models"
-)
+import "arabica/internal/models"
 
 // ManagePartialProps defines props for the manage content partial
 type ManagePartialProps struct {
@@ -88,7 +86,7 @@ templ ManageGrindersTab(grinders []*models.Grinder) {
 templ ManageBrewersTab(brewers []*models.Brewer) {
 	<div x-show="tab === 'brewers'">
 		<div class="mb-4 flex justify-between items-center">
-			<h3 class="text-xl font-semibold text-brown-900">Brewing Devices</h3>
+			<h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
 			<button
 				hx-get="/api/modals/brewer/new"
 				hx-target="#modal-container"
