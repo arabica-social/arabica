@@ -64,6 +64,9 @@ templ BrewerViewCard(props BrewerViewProps) {
 					ShareTitle:      props.Brewer.Name,
 					ShareText:       "Check out this brewer on Arabica",
 					IsOwner:         props.IsOwnProfile,
+					EditModalURL:    "/api/modals/brewer/" + props.Brewer.RKey,
+					DeleteURL:       "/api/brewers/" + props.Brewer.RKey,
+					DeleteRedirect:  "/manage",
 					IsAuthenticated: props.IsAuthenticated,
 					IsModerator:     props.IsModerator,
 					CanHideRecord:   props.CanHideRecord,
@@ -90,22 +93,8 @@ templ BrewerViewCard(props BrewerViewProps) {
 }
 
 templ BrewerViewHeader(props BrewerViewProps) {
-	<div class="flex justify-between items-start mb-6">
-		<div>
-			<h2 class="text-3xl font-bold text-brown-900">{ props.Brewer.Name }</h2>
-			<p class="text-sm text-brown-600 mt-1">{ props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
-		</div>
-		if props.IsOwnProfile {
-			<div class="flex gap-2">
-				<button
-					hx-delete={ "/api/brewers/" + props.Brewer.RKey }
-					hx-confirm="Are you sure you want to delete this brewer?"
-					hx-target="body"
-					class="inline-flex items-center bg-brown-200 text-brown-700 px-4 py-2 rounded-lg hover:bg-brown-300 font-medium transition-colors"
-				>
-					Delete
-				</button>
-			</div>
-		}
+	<div class="mb-6">
+		<h2 class="text-3xl font-bold text-brown-900">{ props.Brewer.Name }</h2>
+		<p class="text-sm text-brown-600 mt-1">{ props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
 	</div>
 }

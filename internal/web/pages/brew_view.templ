@@ -70,6 +70,9 @@ templ BrewViewCard(props BrewViewProps) {
 					ShareTitle:      getBrewShareTitle(props.Brew),
 					ShareText:       "Check out this brew on Arabica",
 					IsOwner:         props.IsOwnProfile,
+					EditURL:         "/brews/" + props.Brew.RKey + "/edit",
+					DeleteURL:       "/brews/" + props.Brew.RKey,
+					DeleteRedirect:  "/brews",
 					IsAuthenticated: props.IsAuthenticated,
 					IsModerator:     props.IsModerator,
 					CanHideRecord:   props.CanHideRecord,
@@ -95,31 +98,11 @@ templ BrewViewCard(props BrewViewProps) {
 	</div>
 }
 
-// BrewViewHeader renders the header with title and actions
+// BrewViewHeader renders the header with title and timestamp
 templ BrewViewHeader(props BrewViewProps) {
-	<div class="flex justify-between items-start mb-6">
-		<div>
-			<h2 class="text-3xl font-bold text-brown-900">Brew Details</h2>
-			<p class="text-sm text-brown-600 mt-1">{ props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
-		</div>
-		if props.IsOwnProfile {
-			<div class="flex gap-2">
-				<a
-					href={ templ.SafeURL("/brews/" + props.Brew.RKey + "/edit") }
-					class="inline-flex items-center btn-secondary"
-				>
-					Edit
-				</a>
-				<button
-					hx-delete={ "/brews/" + props.Brew.RKey }
-					hx-confirm="Are you sure you want to delete this brew?"
-					hx-target="body"
-					class="inline-flex items-center bg-brown-200 text-brown-700 px-4 py-2 rounded-lg hover:bg-brown-300 font-medium transition-colors"
-				>
-					Delete
-				</button>
-			</div>
-		}
+	<div class="mb-6">
+		<h2 class="text-3xl font-bold text-brown-900">Brew Details</h2>
+		<p class="text-sm text-brown-600 mt-1">{ props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
 	</div>
 }
 

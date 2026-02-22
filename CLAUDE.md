@@ -380,15 +380,6 @@ pages.BrewView(layoutData, pages.BrewViewProps{
 })
 ```
 
-### Generated Code
-
-The `templ generate` command produces `*_templ.go` files:
-
-- These are committed to version control
-- They implement the `templ.Component` interface
-- They contain optimized rendering logic
-- IDE autocomplete and type checking work on generated code
-
 ## Common Tasks
 
 ### Run Development Server
@@ -431,7 +422,9 @@ nix develop -c templ generate
 templ generate --watch
 ```
 
-The generated `*_templ.go` files are committed to version control and should be regenerated whenever `.templ` files change.
+The generated `*_templ.go` should be regenerated whenever `.templ` files change.
+
+Templ files must use tabs rather than spaces.
 
 ## Command-Line Flags
 
@@ -599,6 +592,7 @@ func TestFormatTemp(t *testing.T) {
 ```
 
 **Common testify assertions:**
+
 - `assert.Equal(t, expected, actual)` - Equality check
 - `assert.NotEqual(t, expected, actual)` - Inequality check
 - `assert.True(t, value)` - Boolean true
