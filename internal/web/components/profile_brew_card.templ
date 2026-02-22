@@ -58,6 +58,7 @@ templ ProfileBrewCard(props ProfileBrewCardProps) {
 			IsLiked:         props.IsLiked,
 			LikeCount:       props.LikeCount,
 			CommentCount:    props.CommentCount,
+			ShowComments:    true,
 			ViewURL:         fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle),
 			ShareURL:        fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle),
 			ShareTitle:      getBrewShareTitle(props.Brew),

@@ -269,6 +269,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	if h.feedIndex != nil && subjectURI != "" {
 		commentCount = h.feedIndex.GetCommentCount(subjectURI)
 		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
+		comments = h.filterHiddenComments(r.Context(), comments)
 	}
 
 	// Get moderation data

@@ -369,7 +369,7 @@
 
   /* Compact action bar variant for comments */
   .comment-item .action-bar {
-    @apply mt-1 pt-0 border-t-0 gap-1 bg-brown-100 rounded-md px-1.5 py-1 inline-flex;
+    @apply mt-1 border-t-0 gap-1 bg-brown-100 rounded-lg px-1.5 py-1 inline-flex items-center;
   }
 
   .comment-item .action-btn,

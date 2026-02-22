@@ -41,6 +41,7 @@ let
           "view_reports"
           "dismiss_report"
           "view_audit_log"
+          "reset_autohide"
         ];
       };
       moderator = {

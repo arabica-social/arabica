@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -397,6 +398,40 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// filterHiddenComments removes comments that have been hidden by moderation.
+// Children of hidden comments are kept but shifted up in depth.
+func (h *Handler) filterHiddenComments(ctx context.Context, comments []firehose.IndexedComment) []firehose.IndexedComment {
+	if h.moderationStore == nil || len(comments) == 0 {
+		return comments
+	}
+
+	// Build set of hidden comment rkeys for depth adjustment
+	hiddenRKeys := make(map[string]bool)
+	for _, c := range comments {
+		uri := fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", c.ActorDID, c.RKey)
+		if h.moderationStore.IsRecordHidden(ctx, uri) {
+			hiddenRKeys[c.RKey] = true
+		}
+	}
+
+	if len(hiddenRKeys) == 0 {
+		return comments
+	}
+
+	filtered := make([]firehose.IndexedComment, 0, len(comments))
+	for _, c := range comments {
+		if hiddenRKeys[c.RKey] {
+			continue
+		}
+		// If this comment's parent was hidden, reduce depth by 1
+		if c.ParentRKey != "" && hiddenRKeys[c.ParentRKey] && c.Depth > 0 {
+			c.Depth--
+		}
+		filtered = append(filtered, c)
+	}
+	return filtered
+}
+
 // HandleCommentList returns the comment section for a subject
 func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 	subjectURI := r.URL.Query().Get("subject_uri")
@@ -416,6 +451,7 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 	var comments []firehose.IndexedComment
 	if h.feedIndex != nil {
 		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
+		comments = h.filterHiddenComments(r.Context(), comments)
 	}
 
 	// Build moderation context

@@ -116,6 +116,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /_mod/hide", cop.Handler(http.HandlerFunc(h.HandleHideRecord)))
 	mux.Handle("POST /_mod/unhide", cop.Handler(http.HandlerFunc(h.HandleUnhideRecord)))
 	mux.Handle("POST /_mod/dismiss-report", cop.Handler(http.HandlerFunc(h.HandleDismissReport)))
+	mux.Handle("POST /_mod/reset-autohide", cop.Handler(http.HandlerFunc(h.HandleResetAutoHide)))
 	mux.Handle("POST /_mod/block", cop.Handler(http.HandlerFunc(h.HandleBlockUser)))
 	mux.Handle("POST /_mod/unblock", cop.Handler(http.HandlerFunc(h.HandleUnblockUser)))
 	mux.Handle("POST /_mod/invite", cop.Handler(http.HandlerFunc(h.HandleCreateInvite)))
