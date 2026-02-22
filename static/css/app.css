@@ -1,8 +1,36 @@
+@font-face {
+  font-family: 'Iosevka Patrick';
+  src: url('/static/fonts/IosevkaPatrickNerdFont-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Iosevka Patrick';
+  src: url('/static/fonts/IosevkaPatrickNerdFont-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Iosevka Patrick';
+  src: url('/static/fonts/IosevkaPatrickNerdFont-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  h1, h2, h3 {
+    @apply font-semibold;
+  }
+
   /* Touch targets for interactive elements only */
   button,
   input[type="submit"],

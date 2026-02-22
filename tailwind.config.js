@@ -6,6 +6,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Iosevka Patrick"', 'system-ui', 'sans-serif'],
+        mono: ['"Iosevka Patrick"', 'ui-monospace', 'monospace'],
+      },
       colors: {
         brown: {
           50: "#fdf8f6",
