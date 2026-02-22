@@ -141,8 +141,9 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 	// Email the invite code to the requester
 	if h.emailSender != nil && h.emailSender.Enabled() {
 		subject := "Your Arabica Invite Code"
-		// TODO: this should probably use the env var rather than hard coded
-		body := fmt.Sprintf("Welcome to Arabica!\n\nHere is your invite code to create an account on arabica.systems:\n\n    %s\n\nVisit https://arabica.systems to sign up with this code.\n\nHappy brewing!\n", out.Code)
+		// TODO: this should probably use the env var rather than hard coded (for name/url)
+		// TODO: also this could be a template file
+		body := fmt.Sprintf("Welcome to Arabica!\n\nHere is your invite code to create an account on the arabica.systems PDS:\n\n    %s\n\nVisit https://arabica.social/join to sign up with this code.\n\nHappy brewing!\n", out.Code)
 		if err := h.emailSender.Send(reqEmail, subject, body); err != nil {
 			log.Error().Err(err).Str("email", reqEmail).Msg("Failed to send invite email")
 			http.Error(w, "Invite created but failed to send email. Code: "+out.Code, http.StatusInternalServerError)

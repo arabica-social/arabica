@@ -13,12 +13,12 @@
           "name": {
             "type": "string",
             "maxLength": 200,
-            "description": "Name of the roaster (e.g., 'Blue Bottle', 'Stumptown')"
+            "description": "Name of the roaster (e.g., 'Black & White', 'Red Rooster')"
           },
           "location": {
             "type": "string",
             "maxLength": 200,
-            "description": "Location of the roaster (e.g., 'Oakland, CA', 'Portland, OR')"
+            "description": "Location of the roaster (e.g., 'Raleigh, NC', 'Floyd, VA')"
           },
           "website": {
             "type": "string",
