@@ -1,12 +1,16 @@
 package components
 
-import "arabica/internal/models"
+import (
+	"arabica/internal/models"
+	"fmt"
+)
 
 // BeansTableProps defines props for the shared beans table
 type BeansTableProps struct {
 	Beans       []*models.Bean
-	ShowActions bool // Whether to show Edit/Delete actions
-	ShowStatus  bool // Whether to show Status column (open/closed badge)
+	ShowActions bool   // Whether to show Edit/Delete actions
+	ShowStatus  bool   // Whether to show Status column (open/closed badge)
+	OwnerHandle string // If set, name links to view page with this owner
 }
 
 // BeansTable renders a table of beans with configurable columns and actions
@@ -44,7 +48,13 @@ templ BeansTable(props BeansTableProps) {
 									}
 								</td>
 							}
-							<td class="px-6 py-4 text-sm font-medium text-brown-900">{ bean.Name }</td>
+							<td class="px-6 py-4 text-sm font-medium text-brown-900">
+								if props.OwnerHandle != "" {
+									<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", bean.RKey, props.OwnerHandle)) } class="hover:underline">{ bean.Name }</a>
+								} else {
+									{ bean.Name }
+								}
+							</td>
 							<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
 							<td class="px-6 py-4 text-sm text-brown-900">
 								if bean.Roaster != nil && bean.Roaster.Name != "" {
@@ -102,7 +112,8 @@ templ BeansTable(props BeansTableProps) {
 // RoastersTableProps defines props for the shared roasters table
 type RoastersTableProps struct {
 	Roasters    []*models.Roaster
-	ShowActions bool // Whether to show Edit/Delete actions
+	ShowActions bool   // Whether to show Edit/Delete actions
+	OwnerHandle string // If set, name links to view page with this owner
 }
 
 // RoastersTable renders a table of roasters with configurable actions
@@ -125,7 +136,13 @@ templ RoastersTable(props RoastersTableProps) {
 				<tbody class="table-body">
 					for _, roaster := range props.Roasters {
 						<tr class="table-row">
-							<td class="px-6 py-4 text-sm font-medium text-brown-900">{ roaster.Name }</td>
+							<td class="px-6 py-4 text-sm font-medium text-brown-900">
+								if props.OwnerHandle != "" {
+									<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", roaster.RKey, props.OwnerHandle)) } class="hover:underline">{ roaster.Name }</a>
+								} else {
+									{ roaster.Name }
+								}
+							</td>
 							<td class="px-6 py-4 text-sm text-brown-900">
 								if roaster.Location != "" {
 									{ roaster.Location }
@@ -174,7 +191,8 @@ templ RoastersTable(props RoastersTableProps) {
 // GrindersTableProps defines props for the shared grinders table
 type GrindersTableProps struct {
 	Grinders    []*models.Grinder
-	ShowActions bool // Whether to show Edit/Delete actions
+	ShowActions bool   // Whether to show Edit/Delete actions
+	OwnerHandle string // If set, name links to view page with this owner
 }
 
 // GrindersTable renders a table of grinders with configurable actions
@@ -198,7 +216,13 @@ templ GrindersTable(props GrindersTableProps) {
 				<tbody class="table-body">
 					for _, grinder := range props.Grinders {
 						<tr class="table-row">
-							<td class="px-6 py-4 text-sm font-medium text-brown-900">{ grinder.Name }</td>
+							<td class="px-6 py-4 text-sm font-medium text-brown-900">
+								if props.OwnerHandle != "" {
+									<a href={ templ.SafeURL(fmt.Sprintf("/grinders/%s?owner=%s", grinder.RKey, props.OwnerHandle)) } class="hover:underline">{ grinder.Name }</a>
+								} else {
+									{ grinder.Name }
+								}
+							</td>
 							<td class="px-6 py-4 text-sm text-brown-900">
 								if grinder.GrinderType != "" {
 									{ grinder.GrinderType }
@@ -248,7 +272,8 @@ templ GrindersTable(props GrindersTableProps) {
 // BrewersTableProps defines props for the shared brewers table
 type BrewersTableProps struct {
 	Brewers     []*models.Brewer
-	ShowActions bool // Whether to show Edit/Delete actions
+	ShowActions bool   // Whether to show Edit/Delete actions
+	OwnerHandle string // If set, name links to view page with this owner
 }
 
 // BrewersTable renders a table of brewers with configurable actions
@@ -271,7 +296,13 @@ templ BrewersTable(props BrewersTableProps) {
 				<tbody class="table-body">
 					for _, brewer := range props.Brewers {
 						<tr class="table-row">
-							<td class="px-6 py-4 text-sm font-medium text-brown-900">{ brewer.Name }</td>
+							<td class="px-6 py-4 text-sm font-medium text-brown-900">
+								if props.OwnerHandle != "" {
+									<a href={ templ.SafeURL(fmt.Sprintf("/brewers/%s?owner=%s", brewer.RKey, props.OwnerHandle)) } class="hover:underline">{ brewer.Name }</a>
+								} else {
+									{ brewer.Name }
+								}
+							</td>
 							<td class="px-6 py-4 text-sm text-brown-900">
 								if brewer.BrewerType != "" {
 									{ brewer.BrewerType }

@@ -42,16 +42,16 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 	</div>
 	<!-- Beans Tab -->
 	<div x-show="activeTab === 'beans'">
-		@ProfileBeansTab(props.Beans, props.Roasters, props.IsOwnProfile)
+		@ProfileBeansTab(props.Beans, props.Roasters, props.IsOwnProfile, props.ProfileHandle)
 	</div>
 	<!-- Equipment Tab -->
 	<div x-show="activeTab === 'equipment'">
-		@ProfileEquipmentTab(props.Grinders, props.Brewers, props.IsOwnProfile)
+		@ProfileEquipmentTab(props.Grinders, props.Brewers, props.IsOwnProfile, props.ProfileHandle)
 	</div>
 }
 
 // ProfileBeansTab renders the beans and roasters tab for profile
-templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnProfile bool) {
+templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnProfile bool, profileHandle string) {
 	<div class="space-y-6">
 		<!-- Open Bags Section -->
 		<div>
@@ -73,6 +73,7 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 					Beans:       filterOpenBeans(beans),
 					ShowActions: false,
 					ShowStatus:  false,
+					OwnerHandle: profileHandle,
 				})
 			}
 		</div>
@@ -89,6 +90,7 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 				@RoastersTable(RoastersTableProps{
 					Roasters:    roasters,
 					ShowActions: false,
+					OwnerHandle: profileHandle,
 				})
 			}
 		</div>
@@ -104,6 +106,7 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 					Beans:       filterClosedBeans(beans),
 					ShowActions: false,
 					ShowStatus:  false,
+					OwnerHandle: profileHandle,
 				})
 			}
 		</div>
@@ -198,7 +201,7 @@ func getBrewCID(cids map[string]string, rkey string) string {
 }
 
 // ProfileEquipmentTab renders the equipment tab for profile (grinders and brewers only)
-templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool) {
+templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool, profileHandle string) {
 	<div class="space-y-6">
 		<!-- Grinders Section -->
 		<div>
@@ -213,6 +216,7 @@ templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, 
 				@GrindersTable(GrindersTableProps{
 					Grinders:    grinders,
 					ShowActions: false,
+					OwnerHandle: profileHandle,
 				})
 			}
 		</div>
@@ -229,6 +233,7 @@ templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, 
 				@BrewersTable(BrewersTableProps{
 					Brewers:     brewers,
 					ShowActions: false,
+					OwnerHandle: profileHandle,
 				})
 			}
 		</div>
