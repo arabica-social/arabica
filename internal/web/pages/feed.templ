@@ -82,6 +82,7 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 				LikeCount:       item.LikeCount,
 				CommentCount:    item.CommentCount,
 				ViewURL:         getFeedItemShareURL(item),
+				ShowComments:    true,
 				ShareURL:        getFeedItemShareURL(item),
 				ShareTitle:      getFeedItemShareTitle(item),
 				ShareText:       getFeedItemShareText(item),

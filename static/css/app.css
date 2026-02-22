@@ -362,6 +362,21 @@
     @apply flex items-center gap-2 mt-3 pt-3 border-t border-brown-200;
   }
 
+  /* Action bar inside brew view container - no separator needed */
+  .brew-view-actions .action-bar {
+    @apply mt-0 pt-0 border-t-0;
+  }
+
+  /* Compact action bar variant for comments */
+  .comment-item .action-bar {
+    @apply mt-1 pt-0 border-t-0 gap-1 bg-brown-100 rounded-md px-1.5 py-1 inline-flex;
+  }
+
+  .comment-item .action-btn,
+  .comment-item .like-btn {
+    @apply px-2 py-1 text-xs min-h-[28px] bg-transparent;
+  }
+
   .action-btn {
     @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 cursor-pointer min-h-[44px];
   }

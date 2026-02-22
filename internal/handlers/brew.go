@@ -10,6 +10,7 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/firehose"
+	"arabica/internal/moderation"
 	"arabica/internal/models"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
@@ -267,7 +268,18 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	var comments []firehose.IndexedComment
 	if h.feedIndex != nil && subjectURI != "" {
 		commentCount = h.feedIndex.GetCommentCount(subjectURI)
-		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100)
+		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
+	}
+
+	// Get moderation data
+	var isModerator, canHideRecord, canBlockUser, isRecordHidden bool
+	if h.moderationService != nil && isAuthenticated {
+		isModerator = h.moderationService.IsModerator(didStr)
+		canHideRecord = h.moderationService.HasPermission(didStr, moderation.PermissionHideRecord)
+		canBlockUser = h.moderationService.HasPermission(didStr, moderation.PermissionBlacklistUser)
+	}
+	if h.moderationStore != nil && isModerator && subjectURI != "" {
+		isRecordHidden = h.moderationStore.IsRecordHidden(r.Context(), subjectURI)
 	}
 
 	// Create brew view props
@@ -283,6 +295,11 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		Comments:        comments,
 		CurrentUserDID:  didStr,
 		ShareURL:        shareURL,
+		IsModerator:     isModerator,
+		CanHideRecord:   canHideRecord,
+		CanBlockUser:    canBlockUser,
+		IsRecordHidden:  isRecordHidden,
+		AuthorDID:       brewOwnerDID,
 	}
 
 	// Render using templ component

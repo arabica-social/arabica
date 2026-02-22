@@ -130,7 +130,7 @@ func TestCommentThreading(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get threaded comments
-	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100)
+	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100, "")
 	assert.Len(t, comments, 3)
 
 	// Verify ordering and depth
@@ -169,7 +169,7 @@ func TestCommentThreading_DepthCap(t *testing.T) {
 	}
 
 	// Get threaded comments
-	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100)
+	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100, "")
 	assert.Len(t, comments, 5)
 
 	// Verify depth is capped at 2
@@ -206,7 +206,7 @@ func TestCommentThreading_MultipleTopLevel(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get threaded comments
-	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100)
+	comments := idx.GetThreadedCommentsForSubject(ctx, subjectURI, 100, "")
 	assert.Len(t, comments, 4)
 
 	// Order should be: topA (oldest) -> replyA1 -> topB -> replyB1

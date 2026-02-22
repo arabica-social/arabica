@@ -975,6 +975,9 @@ type IndexedComment struct {
 	Handle      string  `json:"-"`
 	DisplayName *string `json:"-"`
 	Avatar      *string `json:"-"`
+	// Like fields (populated on retrieval, not stored)
+	LikeCount int  `json:"-"`
+	IsLiked   bool `json:"-"`
 }
 
 // UpsertComment adds or updates a comment in the index
@@ -1139,7 +1142,7 @@ func (idx *FeedIndex) GetCommentCount(subjectURI string) int {
 
 // GetCommentsForSubject returns all comments for a specific record, ordered by creation time
 // This returns a flat list of comments without threading
-func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI string, limit int) []IndexedComment {
+func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI string, limit int, viewerDID string) []IndexedComment {
 	var comments []IndexedComment
 	_ = idx.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(BucketComments)
@@ -1159,7 +1162,7 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 		return nil
 	})
 
-	// Populate profile info for each comment
+	// Populate profile and like info for each comment
 	for i := range comments {
 		profile, err := idx.GetProfile(ctx, comments[i].ActorDID)
 		if err != nil {
@@ -1170,6 +1173,12 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 			comments[i].DisplayName = profile.DisplayName
 			comments[i].Avatar = profile.Avatar
 		}
+
+		commentURI := fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", comments[i].ActorDID, comments[i].RKey)
+		comments[i].LikeCount = idx.GetLikeCount(commentURI)
+		if viewerDID != "" {
+			comments[i].IsLiked = idx.HasUserLiked(viewerDID, commentURI)
+		}
 	}
 
 	return comments
@@ -1178,9 +1187,9 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 // GetThreadedCommentsForSubject returns comments for a record in threaded order with depth
 // Comments are returned in depth-first order (parent followed by children)
 // Visual depth is capped at 2 levels for display purposes
-func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subjectURI string, limit int) []IndexedComment {
+func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subjectURI string, limit int, viewerDID string) []IndexedComment {
 	// First get all comments for this subject
-	allComments := idx.GetCommentsForSubject(ctx, subjectURI, 0) // Get all, we'll limit after threading
+	allComments := idx.GetCommentsForSubject(ctx, subjectURI, 0, viewerDID) // Get all, we'll limit after threading
 
 	if len(allComments) == 0 {
 		return nil

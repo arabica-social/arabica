@@ -318,7 +318,17 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return the updated comment section with threaded comments
-	comments := h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100)
+	comments := h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
+
+	// Build moderation context
+	var modCtx components.CommentModerationContext
+	if h.moderationService != nil {
+		if h.moderationService.IsModerator(didStr) {
+			modCtx.IsModerator = true
+			modCtx.CanHideRecord = h.moderationService.HasPermission(didStr, moderation.PermissionHideRecord)
+			modCtx.CanBlockUser = h.moderationService.HasPermission(didStr, moderation.PermissionBlacklistUser)
+		}
+	}
 
 	if err := components.CommentSection(components.CommentSectionProps{
 		SubjectURI:      subjectURI,
@@ -326,6 +336,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		Comments:        comments,
 		IsAuthenticated: true,
 		CurrentUserDID:  didStr,
+		ModCtx:          modCtx,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render comment section")
@@ -404,7 +415,17 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 	// Get threaded comments from firehose index
 	var comments []firehose.IndexedComment
 	if h.feedIndex != nil {
-		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100)
+		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
+	}
+
+	// Build moderation context
+	var modCtx components.CommentModerationContext
+	if h.moderationService != nil && isAuthenticated {
+		if h.moderationService.IsModerator(didStr) {
+			modCtx.IsModerator = true
+			modCtx.CanHideRecord = h.moderationService.HasPermission(didStr, moderation.PermissionHideRecord)
+			modCtx.CanBlockUser = h.moderationService.HasPermission(didStr, moderation.PermissionBlacklistUser)
+		}
 	}
 
 	if err := components.CommentSection(components.CommentSectionProps{
@@ -413,6 +434,7 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 		Comments:        comments,
 		IsAuthenticated: isAuthenticated,
 		CurrentUserDID:  didStr,
+		ModCtx:          modCtx,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render comment section")

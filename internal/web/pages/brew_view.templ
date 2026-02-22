@@ -21,6 +21,12 @@ type BrewViewProps struct {
 	Comments        []firehose.IndexedComment // Comments on this brew
 	CurrentUserDID  string // DID of the current user (for delete buttons)
 	ShareURL        string // URL for sharing the brew
+	// Moderation state
+	IsModerator    bool   // User has moderator role
+	CanHideRecord  bool   // User has hide_record permission
+	CanBlockUser   bool   // User has blacklist_user permission
+	IsRecordHidden bool   // This record is currently hidden
+	AuthorDID      string // DID of the brew author
 }
 
 // BrewView renders the full brew view page
@@ -52,19 +58,24 @@ templ BrewViewCard(props BrewViewProps) {
 		}
 		<div class="flex justify-between items-center">
 			@components.BackButton()
-			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200">
-				@components.SocialButtons(components.SocialButtonsProps{
+			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
+				@components.ActionBar(components.ActionBarProps{
 					SubjectURI:      props.SubjectURI,
 					SubjectCID:      props.SubjectCID,
 					IsLiked:         props.IsLiked,
 					LikeCount:       props.LikeCount,
 					CommentCount:    props.CommentCount,
-					ShowComment:     true,
+					ShowComments:    true,
 					ShareURL:        props.ShareURL,
 					ShareTitle:      getBrewShareTitle(props.Brew),
 					ShareText:       "Check out this brew on Arabica",
-					ShowLike:        props.IsAuthenticated,
+					IsOwner:         props.IsOwnProfile,
 					IsAuthenticated: props.IsAuthenticated,
+					IsModerator:     props.IsModerator,
+					CanHideRecord:   props.CanHideRecord,
+					CanBlockUser:    props.CanBlockUser,
+					IsRecordHidden:  props.IsRecordHidden,
+					AuthorDID:       props.AuthorDID,
 				})
 			</div>
 		</div>
@@ -74,6 +85,12 @@ templ BrewViewCard(props BrewViewProps) {
 			Comments:        props.Comments,
 			IsAuthenticated: props.IsAuthenticated,
 			CurrentUserDID:  props.CurrentUserDID,
+			ModCtx: components.CommentModerationContext{
+				IsModerator:   props.IsModerator,
+				CanHideRecord: props.CanHideRecord,
+				CanBlockUser:  props.CanBlockUser,
+			},
+			ViewURL:         props.ShareURL,
 		})
 	</div>
 }

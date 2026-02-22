@@ -36,6 +36,13 @@ templ CommentButton(props CommentButtonProps) {
 	</button>
 }
 
+// CommentModerationContext holds moderation state for rendering comment actions
+type CommentModerationContext struct {
+	IsModerator   bool // User has moderator role
+	CanHideRecord bool // User has hide_record permission
+	CanBlockUser  bool // User has blacklist_user permission
+}
+
 // CommentSectionProps defines properties for the comment section
 type CommentSectionProps struct {
 	SubjectURI      string                    // AT-URI of the record (brew/bean/etc)
@@ -43,6 +50,8 @@ type CommentSectionProps struct {
 	Comments        []firehose.IndexedComment // List of comments (threaded order with depth)
 	IsAuthenticated bool                      // Whether the user is authenticated
 	CurrentUserDID  string                    // DID of the current user (for delete buttons)
+	ModCtx          CommentModerationContext  // Moderation context for comment actions
+	ViewURL         string                    // URL of the parent brew (for sharing comments)
 }
 
 // CommentSection renders the full comment section with list and form
@@ -85,6 +94,8 @@ templ CommentSection(props CommentSectionProps) {
 			SubjectURI:      props.SubjectURI,
 			SubjectCID:      props.SubjectCID,
 			IsAuthenticated: props.IsAuthenticated,
+			ModCtx:          props.ModCtx,
+			ViewURL:         props.ViewURL,
 		})
 	</div>
 }
@@ -129,6 +140,8 @@ type CommentListProps struct {
 	SubjectURI      string                    // AT-URI of the root subject (for reply forms)
 	SubjectCID      string                    // CID of the root subject (for reply forms)
 	IsAuthenticated bool                      // Whether the user is authenticated (for reply buttons)
+	ModCtx          CommentModerationContext  // Moderation context for comment actions
+	ViewURL         string                    // URL of the parent brew (for sharing comments)
 }
 
 // CommentList renders a list of comments with threading support
@@ -148,8 +161,12 @@ templ CommentList(props CommentListProps) {
 					Comment:         comment,
 					CanDelete:       props.CurrentUserDID == comment.ActorDID,
 					CanReply:        props.IsAuthenticated && comment.Depth < 2 && comment.CID != "",
+					IsOwner:         props.CurrentUserDID == comment.ActorDID,
 					SubjectURI:      props.SubjectURI,
 					SubjectCID:      props.SubjectCID,
+					IsAuthenticated: props.IsAuthenticated,
+					ModCtx:          props.ModCtx,
+					ViewURL:         props.ViewURL,
 				})
 			}
 		}
@@ -158,11 +175,15 @@ templ CommentList(props CommentListProps) {
 
 // CommentItemProps defines properties for a single comment
 type CommentItemProps struct {
-	Comment    firehose.IndexedComment
-	CanDelete  bool   // Whether the current user can delete this comment
-	CanReply   bool   // Whether the user can reply (authenticated and depth < 2)
-	SubjectURI string // AT-URI of the root subject (for reply form)
-	SubjectCID string // CID of the root subject (for reply form)
+	Comment         firehose.IndexedComment
+	CanDelete       bool                     // Whether the current user can delete this comment
+	CanReply        bool                     // Whether the user can reply (authenticated and depth < 2)
+	IsOwner         bool                     // Whether the current user owns this comment
+	SubjectURI      string                   // AT-URI of the root subject (for reply form)
+	SubjectCID      string                   // CID of the root subject (for reply form)
+	IsAuthenticated bool                     // Whether the user is authenticated
+	ModCtx          CommentModerationContext // Moderation context for comment actions
+	ViewURL         string                   // URL of the parent brew (for sharing)
 }
 
 // CommentItem renders a single comment with optional threading indentation
@@ -176,7 +197,7 @@ templ CommentItem(props CommentItemProps) {
 			<div class="comment-thread-line"></div>
 		}
 		<div class="comment-item-inner">
-			<!-- Header row with user badge and action buttons -->
+			<!-- Header row with user badge and reply button -->
 			<div class="flex items-center justify-between gap-2 mb-1.5">
 				@UserBadge(UserBadgeProps{
 					ProfileURL:  "/profile/" + getCommentHandle(props.Comment),
@@ -186,39 +207,42 @@ templ CommentItem(props CommentItemProps) {
 					TimeAgo:     bff.FormatTimeAgo(props.Comment.CreatedAt),
 					Size:        "sm",
 				})
-				<div class="flex items-center gap-3 flex-shrink-0">
-					if props.CanReply {
-						<button
-							type="button"
-							@click="showReplyForm = !showReplyForm"
-							class="comment-reply-btn"
-							aria-label="Reply to comment"
-						>
-							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"></path>
-							</svg>
-							Reply
-						</button>
-					}
-					if props.CanDelete {
-						<button
-							type="button"
-							hx-delete={ "/api/comments/" + props.Comment.RKey }
-							hx-target={ "#comment-" + props.Comment.RKey }
-							hx-swap="outerHTML"
-							hx-confirm="Are you sure you want to delete this comment?"
-							class="comment-delete-btn"
-							aria-label="Delete comment"
-						>
-							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"></path>
-							</svg>
-						</button>
-					}
-				</div>
+				if props.CanReply {
+					<button
+						type="button"
+						@click="showReplyForm = !showReplyForm"
+						class="comment-reply-btn"
+						aria-label="Reply to comment"
+					>
+						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"></path>
+						</svg>
+						Reply
+					</button>
+				}
 			</div>
 			<!-- Comment text -->
 			<p class="text-brown-800 whitespace-pre-wrap break-words pl-11 text-[0.9375rem] leading-relaxed">{ props.Comment.Text }</p>
+			<!-- Action bar (like, share, more menu) -->
+			<div class="pl-11 mt-1">
+				@ActionBar(ActionBarProps{
+					SubjectURI:      buildCommentURI(props.Comment),
+					SubjectCID:      props.Comment.CID,
+					IsLiked:         props.Comment.IsLiked,
+					LikeCount:       props.Comment.LikeCount,
+					ShareURL:        getCommentShareURL(props.ViewURL, props.Comment),
+					ShareTitle:      "Comment on Arabica",
+					ShareText:       props.Comment.Text,
+					IsOwner:         props.IsOwner,
+					DeleteURL:       "/api/comments/" + props.Comment.RKey,
+					DeleteTarget:    "#comment-" + props.Comment.RKey,
+					IsAuthenticated: props.IsAuthenticated,
+					IsModerator:     props.ModCtx.IsModerator,
+					CanHideRecord:   props.ModCtx.CanHideRecord,
+					CanBlockUser:    props.ModCtx.CanBlockUser,
+					AuthorDID:       props.Comment.ActorDID,
+				})
+			</div>
 			<!-- Inline reply form (shown when Reply is clicked) -->
 			if props.CanReply {
 				<div x-show="showReplyForm" x-transition class="mt-3 pl-11">
@@ -305,6 +329,14 @@ func getDepthClass(depth int) string {
 	default:
 		return ""
 	}
+}
+
+// getCommentShareURL returns the share URL for a comment, linking to the comment anchor on the brew page
+func getCommentShareURL(viewURL string, comment firehose.IndexedComment) string {
+	if viewURL == "" {
+		return ""
+	}
+	return viewURL + "#comment-" + comment.RKey
 }
 
 // buildCommentURI constructs the AT-URI for a comment from its indexed data
