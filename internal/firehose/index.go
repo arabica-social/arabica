@@ -1,8 +1,10 @@
 package firehose
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -109,6 +111,28 @@ type FeedIndex struct {
 
 	ready   bool
 	readyMu sync.RWMutex
+}
+
+// FeedSort defines the sort order for feed queries
+type FeedSort string
+
+const (
+	FeedSortRecent  FeedSort = "recent"
+	FeedSortPopular FeedSort = "popular"
+)
+
+// FeedQuery specifies filtering, sorting, and pagination for feed queries
+type FeedQuery struct {
+	Limit      int                  // Max items to return
+	Cursor     string               // Opaque cursor for pagination (base64-encoded time key)
+	TypeFilter lexicons.RecordType  // Filter to a specific record type (empty = all)
+	Sort       FeedSort             // Sort order (default: recent)
+}
+
+// FeedResult contains feed items plus pagination info
+type FeedResult struct {
+	Items      []*FeedItem
+	NextCursor string // Empty if no more results
 }
 
 // NewFeedIndex creates a new feed index backed by BoltDB
@@ -474,6 +498,239 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 	}
 
 	return items, nil
+}
+
+// recordTypeToNSID maps a lexicons.RecordType to its NSID collection string
+var recordTypeToNSID = map[lexicons.RecordType]string{
+	lexicons.RecordTypeBrew:    atproto.NSIDBrew,
+	lexicons.RecordTypeBean:    atproto.NSIDBean,
+	lexicons.RecordTypeRoaster: atproto.NSIDRoaster,
+	lexicons.RecordTypeGrinder: atproto.NSIDGrinder,
+	lexicons.RecordTypeBrewer:  atproto.NSIDBrewer,
+}
+
+// GetFeedWithQuery returns feed items matching the given query with cursor-based pagination
+func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error) {
+	if q.Limit <= 0 {
+		q.Limit = 20
+	}
+	if q.Sort == "" {
+		q.Sort = FeedSortRecent
+	}
+
+	// For type-filtered queries, use BucketByCollection for efficiency
+	// For unfiltered queries, use BucketByTime
+	var records []*IndexedRecord
+	var lastTimeKey []byte
+
+	// Decode cursor if provided
+	var cursorBytes []byte
+	if q.Cursor != "" {
+		var err error
+		cursorBytes, err = decodeCursor(q.Cursor)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cursor: %w", err)
+		}
+	}
+
+	// Fetch more than needed to account for filtering
+	fetchLimit := q.Limit + 10
+
+	err := idx.db.View(func(tx *bolt.Tx) error {
+		recordsBucket := tx.Bucket(BucketRecords)
+
+		if q.TypeFilter != "" {
+			// Use BucketByCollection for filtered queries
+			nsid, ok := recordTypeToNSID[q.TypeFilter]
+			if !ok {
+				return fmt.Errorf("unknown record type: %s", q.TypeFilter)
+			}
+
+			byCollection := tx.Bucket(BucketByCollection)
+			c := byCollection.Cursor()
+
+			// Collection keys: {collection}:{inverted_timestamp}:{uri}
+			prefix := []byte(nsid + ":")
+
+			var k []byte
+			if cursorBytes != nil {
+				// Seek to cursor position (cursor is the full collection key)
+				k, _ = c.Seek(cursorBytes)
+				// Skip the cursor key itself (it was the last item of previous page)
+				if k != nil && string(k) == string(cursorBytes) {
+					k, _ = c.Next()
+				}
+			} else {
+				k, _ = c.Seek(prefix)
+			}
+
+			count := 0
+			for ; k != nil && count < fetchLimit; k, _ = c.Next() {
+				if !bytes.HasPrefix(k, prefix) {
+					break
+				}
+
+				// Extract URI from collection key: {collection}:{timestamp_bytes}:{uri}
+				uri := extractURIFromCollectionKey(k, nsid)
+				if uri == "" {
+					continue
+				}
+
+				data := recordsBucket.Get([]byte(uri))
+				if data == nil {
+					continue
+				}
+
+				var record IndexedRecord
+				if err := json.Unmarshal(data, &record); err != nil {
+					continue
+				}
+				records = append(records, &record)
+				lastTimeKey = make([]byte, len(k))
+				copy(lastTimeKey, k)
+				count++
+			}
+		} else {
+			// Use BucketByTime for unfiltered queries
+			byTime := tx.Bucket(BucketByTime)
+			c := byTime.Cursor()
+
+			var k []byte
+			if cursorBytes != nil {
+				k, _ = c.Seek(cursorBytes)
+				if k != nil && string(k) == string(cursorBytes) {
+					k, _ = c.Next()
+				}
+			} else {
+				k, _ = c.First()
+			}
+
+			count := 0
+			for ; k != nil && count < fetchLimit; k, _ = c.Next() {
+				uri := extractURIFromTimeKey(k)
+				if uri == "" {
+					continue
+				}
+
+				data := recordsBucket.Get([]byte(uri))
+				if data == nil {
+					continue
+				}
+
+				var record IndexedRecord
+				if err := json.Unmarshal(data, &record); err != nil {
+					continue
+				}
+				records = append(records, &record)
+				lastTimeKey = make([]byte, len(k))
+				copy(lastTimeKey, k)
+				count++
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Build lookup maps for reference resolution
+	recordsByURI := make(map[string]*IndexedRecord)
+	for _, r := range records {
+		recordsByURI[r.URI] = r
+	}
+
+	// Load additional records for reference resolution
+	err = idx.db.View(func(tx *bolt.Tx) error {
+		recordsBucket := tx.Bucket(BucketRecords)
+		return recordsBucket.ForEach(func(k, v []byte) error {
+			uri := string(k)
+			if _, exists := recordsByURI[uri]; exists {
+				return nil
+			}
+			var record IndexedRecord
+			if err := json.Unmarshal(v, &record); err != nil {
+				return nil
+			}
+			switch record.Collection {
+			case atproto.NSIDBean, atproto.NSIDRoaster, atproto.NSIDGrinder, atproto.NSIDBrewer:
+				recordsByURI[uri] = &record
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to FeedItems
+	items := make([]*FeedItem, 0, len(records))
+	for _, record := range records {
+		if record.Collection == atproto.NSIDLike || record.Collection == atproto.NSIDComment {
+			continue
+		}
+
+		item, err := idx.recordToFeedItem(ctx, record, recordsByURI)
+		if err != nil {
+			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
+			continue
+		}
+		if !FeedableRecordTypes[item.RecordType] {
+			continue
+		}
+		items = append(items, item)
+	}
+
+	// Sort based on query
+	switch q.Sort {
+	case FeedSortPopular:
+		sort.Slice(items, func(i, j int) bool {
+			scoreI := items[i].LikeCount*3 + items[i].CommentCount*2
+			scoreJ := items[j].LikeCount*3 + items[j].CommentCount*2
+			if scoreI != scoreJ {
+				return scoreI > scoreJ
+			}
+			return items[i].Timestamp.After(items[j].Timestamp)
+		})
+	default: // FeedSortRecent
+		sort.Slice(items, func(i, j int) bool {
+			return items[i].Timestamp.After(items[j].Timestamp)
+		})
+	}
+
+	// Build result with cursor
+	result := &FeedResult{Items: items}
+
+	if len(items) > q.Limit {
+		result.Items = items[:q.Limit]
+		// Cursor is the last time key we read from the DB
+		if lastTimeKey != nil {
+			result.NextCursor = encodeCursor(lastTimeKey)
+		}
+	}
+
+	return result, nil
+}
+
+// extractURIFromCollectionKey extracts the URI from a collection key
+// Format: {collection}:{inverted_timestamp_8bytes}:{uri}
+func extractURIFromCollectionKey(key []byte, collection string) string {
+	// prefix is collection + ":"
+	prefixLen := len(collection) + 1
+	// Then 8 bytes of timestamp + ":"
+	minLen := prefixLen + 8 + 1 + 1 // prefix + timestamp + ":" + at least 1 char
+	if len(key) < minLen {
+		return ""
+	}
+	return string(key[prefixLen+9:])
+}
+
+func encodeCursor(key []byte) string {
+	return hex.EncodeToString(key)
+}
+
+func decodeCursor(s string) ([]byte, error) {
+	return hex.DecodeString(s)
 }
 
 // recordToFeedItem converts an IndexedRecord to a FeedItem

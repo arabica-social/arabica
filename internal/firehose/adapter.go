@@ -30,7 +30,28 @@ func (a *FeedIndexAdapter) GetRecentFeed(ctx context.Context, limit int) ([]*fee
 		return nil, err
 	}
 
-	// Convert to the type expected by feed.Service
+	return convertFeedItems(items), nil
+}
+
+// GetFeedWithQuery returns feed items matching query parameters
+func (a *FeedIndexAdapter) GetFeedWithQuery(ctx context.Context, q feed.FirehoseFeedQuery) (*feed.FirehoseFeedResult, error) {
+	result, err := a.index.GetFeedWithQuery(ctx, FeedQuery{
+		Limit:      q.Limit,
+		Cursor:     q.Cursor,
+		TypeFilter: q.TypeFilter,
+		Sort:       FeedSort(q.Sort),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &feed.FirehoseFeedResult{
+		Items:      convertFeedItems(result.Items),
+		NextCursor: result.NextCursor,
+	}, nil
+}
+
+func convertFeedItems(items []*FeedItem) []*feed.FirehoseFeedItem {
 	result := make([]*feed.FirehoseFeedItem, len(items))
 	for i, item := range items {
 		result[i] = &feed.FirehoseFeedItem{
@@ -50,6 +71,5 @@ func (a *FeedIndexAdapter) GetRecentFeed(ctx context.Context, limit int) ([]*fee
 			SubjectCID:   item.SubjectCID,
 		}
 	}
-
-	return result, nil
+	return result
 }

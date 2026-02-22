@@ -16,25 +16,157 @@ type FeedModerationContext struct {
 	HiddenURIs    map[string]bool // URIs that are currently hidden
 }
 
+// FeedQueryState holds the current filter/sort/pagination state
+type FeedQueryState struct {
+	TypeFilter      string // Current type filter (empty = all)
+	Sort            string // Current sort order
+	NextCursor      string // Cursor for next page (empty = no more)
+	IsAuthenticated bool
+}
+
+// feedFilterTab defines a filter tab option
+type feedFilterTab struct {
+	Label  string
+	Value  string
+}
+
+func feedFilterTabs() []feedFilterTab {
+	return []feedFilterTab{
+		{Label: "All", Value: ""},
+		{Label: "Brews", Value: "brew"},
+		{Label: "Beans", Value: "bean"},
+		{Label: "Roasters", Value: "roaster"},
+		{Label: "Grinders", Value: "grinder"},
+		{Label: "Brewers", Value: "brewer"},
+	}
+}
+
+func buildFeedURL(typeFilter, sort string) string {
+	url := "/api/feed"
+	sep := "?"
+	if typeFilter != "" {
+		url += sep + "type=" + typeFilter
+		sep = "&"
+	}
+	if sort != "" && sort != "recent" {
+		url += sep + "sort=" + sort
+	}
+	return url
+}
+
+func buildFeedURLWithCursor(typeFilter, sort, cursor string) string {
+	url := buildFeedURL(typeFilter, sort)
+	if cursor != "" {
+		if len(url) > len("/api/feed") {
+			url += "&cursor=" + cursor
+		} else {
+			url += "?cursor=" + cursor
+		}
+	}
+	return url
+}
+
 // FeedPartial renders the feed items (for HTMX loading)
 templ FeedPartial(items []*feed.FeedItem, isAuthenticated bool) {
-	@FeedPartialWithModeration(items, isAuthenticated, FeedModerationContext{})
+	@FeedPartialWithModeration(items, isAuthenticated, FeedModerationContext{}, FeedQueryState{IsAuthenticated: isAuthenticated})
 }
 
 // FeedPartialWithModeration renders feed items with moderation context
-templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext) {
-	<div class="space-y-4">
-		if len(items) > 0 {
-			for _, item := range items {
-				@FeedCardWithModeration(item, isAuthenticated, modCtx)
-			}
-		} else {
-			<div class="bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200">
-				<p class="mb-2 font-medium">No activity in the feed yet.</p>
-				<p class="text-sm">Be the first to add something!</p>
-			</div>
+templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext, qs FeedQueryState) {
+	<div id="feed-container">
+		<!-- Filter tabs (authenticated only) -->
+		if isAuthenticated {
+			@FeedFilterBar(qs)
 		}
+		<!-- Feed items -->
+		<div id="feed-items" class="space-y-4">
+			if len(items) > 0 {
+				for _, item := range items {
+					@FeedCardWithModeration(item, isAuthenticated, modCtx)
+				}
+				<!-- Load more button -->
+				if qs.NextCursor != "" {
+					@FeedLoadMoreButton(qs)
+				}
+			} else {
+				<div class="bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200">
+					<p class="mb-2 font-medium">No activity in the feed yet.</p>
+					<p class="text-sm">Be the first to add something!</p>
+				</div>
+			}
+		</div>
 	</div>
+}
+
+// FeedFilterBar renders the type filter tabs and sort selector
+templ FeedFilterBar(qs FeedQueryState) {
+	<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+		<!-- Type filter tabs -->
+		<div class="flex flex-wrap gap-1">
+			for _, tab := range feedFilterTabs() {
+				<button
+					class={ "px-3 py-1.5 text-sm rounded-full transition-colors",
+						templ.KV("bg-brown-800 text-brown-50 font-medium", qs.TypeFilter == tab.Value),
+						templ.KV("bg-brown-100 text-brown-700 hover:bg-brown-200", qs.TypeFilter != tab.Value) }
+					hx-get={ buildFeedURL(tab.Value, qs.Sort) }
+					hx-target="#feed-container"
+					hx-swap="outerHTML"
+				>
+					{ tab.Label }
+				</button>
+			}
+		</div>
+		<!-- Sort selector -->
+		<div class="flex items-center gap-1.5 text-sm">
+			<button
+				class={ "px-2.5 py-1 rounded-md transition-colors",
+					templ.KV("bg-brown-800 text-brown-50 font-medium", qs.Sort == "" || qs.Sort == "recent"),
+					templ.KV("text-brown-600 hover:text-brown-800 hover:bg-brown-100", qs.Sort != "" && qs.Sort != "recent") }
+				hx-get={ buildFeedURL(qs.TypeFilter, "recent") }
+				hx-target="#feed-container"
+				hx-swap="outerHTML"
+			>
+				New
+			</button>
+			<button
+				class={ "px-2.5 py-1 rounded-md transition-colors",
+					templ.KV("bg-brown-800 text-brown-50 font-medium", qs.Sort == "popular"),
+					templ.KV("text-brown-600 hover:text-brown-800 hover:bg-brown-100", qs.Sort != "popular") }
+				hx-get={ buildFeedURL(qs.TypeFilter, "popular") }
+				hx-target="#feed-container"
+				hx-swap="outerHTML"
+			>
+				Popular
+			</button>
+		</div>
+	</div>
+}
+
+// FeedLoadMoreButton renders a "Load more" button for pagination
+templ FeedLoadMoreButton(qs FeedQueryState) {
+	<div class="text-center pt-2" x-data="{ loading: false }">
+		<button
+			class="px-4 py-2 text-sm text-brown-700 bg-brown-100 hover:bg-brown-200 rounded-lg transition-colors disabled:opacity-50"
+			hx-get={ buildFeedURLWithCursor(qs.TypeFilter, qs.Sort, qs.NextCursor) }
+			hx-target="closest div"
+			hx-swap="outerHTML"
+			@htmx:before-request="loading = true"
+			x-bind:disabled="loading"
+		>
+			<span x-show="!loading">Load more</span>
+			<span x-show="loading" x-cloak>Loading...</span>
+		</button>
+	</div>
+}
+
+// FeedMoreItems renders additional items for "load more" pagination (no filter bar)
+templ FeedMoreItems(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext, qs FeedQueryState) {
+	for _, item := range items {
+		@FeedCardWithModeration(item, isAuthenticated, modCtx)
+	}
+	if qs.NextCursor != "" {
+		@FeedLoadMoreButton(qs)
+	}
 }
 
 // FeedCard renders a single feed item card (without moderation context)

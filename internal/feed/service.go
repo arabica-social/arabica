@@ -70,11 +70,48 @@ type publicFeedCache struct {
 	mu        sync.RWMutex
 }
 
+// FeedSort defines the sort order for feed queries
+type FeedSort string
+
+const (
+	FeedSortRecent  FeedSort = "recent"
+	FeedSortPopular FeedSort = "popular"
+)
+
+// FeedQuery specifies filtering, sorting, and pagination for feed queries
+type FeedQuery struct {
+	Limit      int
+	Cursor     string
+	TypeFilter lexicons.RecordType
+	Sort       FeedSort
+}
+
+// FeedResult contains feed items plus pagination info
+type FeedResult struct {
+	Items      []*FeedItem
+	NextCursor string
+}
+
 // FirehoseIndex is the interface for the firehose feed index
 // This allows the feed service to use firehose data when available
 type FirehoseIndex interface {
 	IsReady() bool
 	GetRecentFeed(ctx context.Context, limit int) ([]*FirehoseFeedItem, error)
+	GetFeedWithQuery(ctx context.Context, q FirehoseFeedQuery) (*FirehoseFeedResult, error)
+}
+
+// FirehoseFeedQuery mirrors FeedQuery for the firehose layer
+type FirehoseFeedQuery struct {
+	Limit      int
+	Cursor     string
+	TypeFilter lexicons.RecordType
+	Sort       string // "recent" or "popular"
+}
+
+// FirehoseFeedResult mirrors FeedResult for the firehose layer
+type FirehoseFeedResult struct {
+	Items      []*FirehoseFeedItem
+	NextCursor string
 }
 
 // FirehoseFeedItem matches the FeedItem structure from firehose package
@@ -277,6 +314,72 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 	}
 
 	return items, nil
+}
+
+// GetFeedWithQuery fetches feed items with filtering, sorting, and pagination
+func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error) {
+	if s.firehoseIndex == nil || !s.firehoseIndex.IsReady() {
+		return nil, fmt.Errorf("firehose index not ready")
+	}
+
+	if q.Limit <= 0 {
+		q.Limit = FeedLimit
+	}
+	if q.Sort == "" {
+		q.Sort = FeedSortRecent
+	}
+
+	// Fetch more than needed to account for moderation filtering
+	fetchLimit := q.Limit
+	if s.moderationFilter != nil {
+		fetchLimit = q.Limit + 10
+	}
+
+	firehoseResult, err := s.firehoseIndex.GetFeedWithQuery(ctx, FirehoseFeedQuery{
+		Limit:      fetchLimit,
+		Cursor:     q.Cursor,
+		TypeFilter: q.TypeFilter,
+		Sort:       string(q.Sort),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to FeedItems
+	items := make([]*FeedItem, 0, len(firehoseResult.Items))
+	for _, fi := range firehoseResult.Items {
+		items = append(items, &FeedItem{
+			RecordType:   fi.RecordType,
+			Action:       fi.Action,
+			Brew:         fi.Brew,
+			Bean:         fi.Bean,
+			Roaster:      fi.Roaster,
+			Grinder:      fi.Grinder,
+			Brewer:       fi.Brewer,
+			Author:       fi.Author,
+			Timestamp:    fi.Timestamp,
+			TimeAgo:      fi.TimeAgo,
+			LikeCount:    fi.LikeCount,
+			CommentCount: fi.CommentCount,
+			SubjectURI:   fi.SubjectURI,
+			SubjectCID:   fi.SubjectCID,
+		})
+	}
+
+	// Apply moderation filtering
+	items = s.filterModeratedItems(ctx, items)
+
+	// Trim to requested limit
+	result := &FeedResult{
+		NextCursor: firehoseResult.NextCursor,
+	}
+	if len(items) > q.Limit {
+		result.Items = items[:q.Limit]
+	} else {
+		result.Items = items
+	}
+
+	return result, nil
 }
 
 // getRecentRecordsFromFirehose fetches feed items from the firehose index

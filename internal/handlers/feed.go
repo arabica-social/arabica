@@ -6,6 +6,7 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/feed"
+	"arabica/internal/lexicons"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
 	"arabica/internal/web/components"
@@ -68,16 +69,35 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 // Community feed partial (loaded async via HTMX)
 func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	var feedItems []*feed.FeedItem
+	var nextCursor string
 
 	// Check if user is authenticated
 	viewerDID, err := atproto.GetAuthenticatedDID(r.Context())
 	isAuthenticated := err == nil
 
+	// Parse query parameters
+	typeFilter := lexicons.ParseRecordType(r.URL.Query().Get("type"))
+	sortBy := feed.FeedSort(r.URL.Query().Get("sort"))
+	cursor := r.URL.Query().Get("cursor")
+
+	if sortBy != feed.FeedSortPopular {
+		sortBy = feed.FeedSortRecent
+	}
+
 	if h.feedService != nil {
 		if isAuthenticated {
-			feedItems, _ = h.feedService.GetRecentRecords(r.Context(), feed.FeedLimit)
+			result, _ := h.feedService.GetFeedWithQuery(r.Context(), feed.FeedQuery{
+				Limit:      feed.FeedLimit,
+				Cursor:     cursor,
+				TypeFilter: typeFilter,
+				Sort:       sortBy,
+			})
+			if result != nil {
+				feedItems = result.Items
+				nextCursor = result.NextCursor
+			}
 		} else {
-			// Unauthenticated users get a limited feed from the cache
+			// Unauthenticated users get a limited feed from the cache (no filtering)
 			feedItems, _ = h.feedService.GetCachedPublicFeed(r.Context())
 		}
 	}
@@ -99,7 +119,24 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	// Build moderation context for moderators
 	modCtx := h.buildModerationContext(r.Context(), viewerDID, feedItems)
 
-	if err := pages.FeedPartialWithModeration(feedItems, isAuthenticated, modCtx).Render(r.Context(), w); err != nil {
+	// Build query state for template
+	queryState := pages.FeedQueryState{
+		TypeFilter:      string(typeFilter),
+		Sort:            string(sortBy),
+		NextCursor:      nextCursor,
+		IsAuthenticated: isAuthenticated,
+	}
+
+	// If this is a "load more" request (has cursor), render just the additional items
+	if cursor != "" {
+		if err := pages.FeedMoreItems(feedItems, isAuthenticated, modCtx, queryState).Render(r.Context(), w); err != nil {
+			http.Error(w, "Failed to render feed", http.StatusInternalServerError)
+			log.Error().Err(err).Msg("Failed to render feed partial")
+		}
+		return
+	}
+
+	if err := pages.FeedPartialWithModeration(feedItems, isAuthenticated, modCtx, queryState).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render feed partial")
 	}

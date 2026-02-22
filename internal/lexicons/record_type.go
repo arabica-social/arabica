@@ -19,6 +19,16 @@ func (r RecordType) String() string {
 	return string(r)
 }
 
+// ParseRecordType converts a string to a RecordType if valid, returns empty string if not.
+func ParseRecordType(s string) RecordType {
+	switch RecordType(s) {
+	case RecordTypeBean, RecordTypeBrew, RecordTypeBrewer, RecordTypeGrinder, RecordTypeRoaster:
+		return RecordType(s)
+	default:
+		return ""
+	}
+}
+
 // DisplayName returns a human-readable name for the RecordType.
 func (r RecordType) DisplayName() string {
 	switch r {
