@@ -20,6 +20,11 @@
             "maxLength": 200,
             "description": "Geographic origin of the beans (e.g., 'Ethiopia', 'Colombia')"
           },
+          "variety": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Coffee variety (e.g., 'SL28', 'Typica', 'Gesha', 'Caturra')"
+          },
           "roastLevel": {
             "type": "string",
             "maxLength": 100,

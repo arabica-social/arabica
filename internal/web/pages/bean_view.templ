@@ -58,6 +58,7 @@ templ BeanViewCard(props BeanViewProps) {
 		}
 		<div class="grid grid-cols-2 gap-4">
 			@components.DetailField(components.DetailFieldProps{Label: "📍 Origin", Value: props.Bean.Origin})
+			@components.DetailField(components.DetailFieldProps{Label: "🌿 Variety", Value: props.Bean.Variety})
 			@components.DetailField(components.DetailFieldProps{Label: "🔥 Roast Level", Value: props.Bean.RoastLevel})
 			@components.DetailField(components.DetailFieldProps{Label: "🌱 Process", Value: props.Bean.Process})
 			if props.Bean.Closed {

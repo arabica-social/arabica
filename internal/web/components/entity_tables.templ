@@ -27,6 +27,7 @@ templ BeansTable(props BeansTableProps) {
 						}
 						<th class="table-th whitespace-nowrap">🏷️ Name</th>
 						<th class="table-th whitespace-nowrap">📍 Origin</th>
+						<th class="table-th whitespace-nowrap">🌿 Variety</th>
 						<th class="table-th whitespace-nowrap">☕ Roaster</th>
 						<th class="table-th whitespace-nowrap">🔥 Roast Level</th>
 						<th class="table-th whitespace-nowrap">🌱 Process</th>
@@ -56,6 +57,13 @@ templ BeansTable(props BeansTableProps) {
 								}
 							</td>
 							<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
+							<td class="px-6 py-4 text-sm text-brown-900">
+								if bean.Variety != "" {
+									{ bean.Variety }
+								} else {
+									<span class="text-brown-400">-</span>
+								}
+							</td>
 							<td class="px-6 py-4 text-sm text-brown-900">
 								if bean.Roaster != nil && bean.Roaster.Name != "" {
 									{ bean.Roaster.Name }

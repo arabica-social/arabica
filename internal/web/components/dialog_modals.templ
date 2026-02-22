@@ -83,6 +83,13 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 					required
 					class="w-full form-input"
 				/>
+				<input
+					type="text"
+					name="variety"
+					value={ getStringValue(bean, "variety") }
+					placeholder="Variety (e.g. SL28, Typica, Gesha)"
+					class="w-full form-input"
+				/>
 				<select
 					name="roaster_rkey"
 					class="w-full form-input"
@@ -599,6 +606,8 @@ func getStringValue(entity interface{}, field string) string {
 			return e.Name
 		case "origin":
 			return e.Origin
+		case "variety":
+			return e.Variety
 		case "process":
 			return e.Process
 		case "description":

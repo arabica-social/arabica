@@ -517,6 +517,7 @@ func (s *AtprotoStore) CreateBean(ctx context.Context, bean *models.CreateBeanRe
 	beanModel := &models.Bean{
 		Name:        bean.Name,
 		Origin:      bean.Origin,
+		Variety:     bean.Variety,
 		RoastLevel:  bean.RoastLevel,
 		Process:     bean.Process,
 		Description: bean.Description,
@@ -664,6 +665,7 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 	beanModel := &models.Bean{
 		Name:        bean.Name,
 		Origin:      bean.Origin,
+		Variety:     bean.Variety,
 		RoastLevel:  bean.RoastLevel,
 		Process:     bean.Process,
 		Description: bean.Description,

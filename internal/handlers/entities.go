@@ -164,6 +164,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		req = models.CreateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
+			Variety:     r.FormValue("variety"),
 			RoastLevel:  r.FormValue("roast_level"),
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
@@ -292,6 +293,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		req = models.UpdateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
+			Variety:     r.FormValue("variety"),
 			RoastLevel:  r.FormValue("roast_level"),
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),

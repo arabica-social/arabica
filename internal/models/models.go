@@ -14,6 +14,7 @@ const (
 	MaxNotesLength       = 2000
 	MaxOriginLength      = 200
 	MaxRoastLevelLength  = 100
+	MaxVarietyLength     = 200
 	MaxProcessLength     = 100
 	MaxMethodLength      = 100
 	MaxGrindSizeLength    = 100
@@ -44,6 +45,7 @@ type Bean struct {
 	RKey        string    `json:"rkey"` // Record key (AT Protocol or stringified ID for SQLite)
 	Name        string    `json:"name"`
 	Origin      string    `json:"origin"`
+	Variety     string    `json:"variety"`
 	RoastLevel  string    `json:"roast_level"`
 	Process     string    `json:"process"`
 	Description string    `json:"description"`
@@ -136,6 +138,7 @@ type CreatePourData struct {
 type CreateBeanRequest struct {
 	Name        string `json:"name"`
 	Origin      string `json:"origin"`
+	Variety     string `json:"variety"`
 	RoastLevel  string `json:"roast_level"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
@@ -169,6 +172,7 @@ type CreateBrewerRequest struct {
 type UpdateBeanRequest struct {
 	Name        string `json:"name"`
 	Origin      string `json:"origin"`
+	Variety     string `json:"variety"`
 	RoastLevel  string `json:"roast_level"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
@@ -247,6 +251,9 @@ func (r *CreateBeanRequest) Validate() error {
 	if len(r.Origin) > MaxOriginLength {
 		return ErrOriginTooLong
 	}
+	if len(r.Variety) > MaxVarietyLength {
+		return ErrFieldTooLong
+	}
 	if len(r.RoastLevel) > MaxRoastLevelLength {
 		return ErrFieldTooLong
 	}
@@ -269,6 +276,9 @@ func (r *UpdateBeanRequest) Validate() error {
 	}
 	if len(r.Origin) > MaxOriginLength {
 		return ErrOriginTooLong
+	}
+	if len(r.Variety) > MaxVarietyLength {
+		return ErrFieldTooLong
 	}
 	if len(r.RoastLevel) > MaxRoastLevelLength {
 		return ErrFieldTooLong

@@ -169,6 +169,9 @@ func BeanToRecord(bean *models.Bean, roasterURI string) (map[string]interface{},
 	if bean.Origin != "" {
 		record["origin"] = bean.Origin
 	}
+	if bean.Variety != "" {
+		record["variety"] = bean.Variety
+	}
 	if bean.RoastLevel != "" {
 		record["roastLevel"] = bean.RoastLevel
 	}
@@ -224,6 +227,9 @@ func RecordToBean(record map[string]interface{}, atURI string) (*models.Bean, er
 	// Optional fields
 	if origin, ok := record["origin"].(string); ok {
 		bean.Origin = origin
+	}
+	if variety, ok := record["variety"].(string); ok {
+		bean.Variety = variety
 	}
 	if roastLevel, ok := record["roastLevel"].(string); ok {
 		bean.RoastLevel = roastLevel
