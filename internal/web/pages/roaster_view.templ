@@ -40,7 +40,7 @@ templ RoasterViewCard(props RoasterViewProps) {
 	@RoasterViewHeader(props)
 	<div class="space-y-6">
 		<div class="grid grid-cols-2 gap-4">
-			@RoasterDetailField("📍 Location", props.Roaster.Location)
+			@components.DetailField(components.DetailFieldProps{Label: "📍 Location", Value: props.Roaster.Location})
 			if props.Roaster.Website != "" {
 				<div class="section-box">
 					<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">🔗 Website</h3>
@@ -103,13 +103,3 @@ templ RoasterViewHeader(props RoasterViewProps) {
 	</div>
 }
 
-templ RoasterDetailField(label, value string) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
-		if value != "" {
-			<div class="font-semibold text-brown-900">{ value }</div>
-		} else {
-			<span class="text-brown-400">Not specified</span>
-		}
-	</div>
-}

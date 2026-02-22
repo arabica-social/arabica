@@ -30,6 +30,27 @@ templ emptyStateContent(props EmptyStateProps) {
 	}
 }
 
+// DetailFieldProps defines properties for a labeled detail field
+type DetailFieldProps struct {
+	Label    string
+	Value    string
+	LinkHref string // Optional: wraps value in a link
+}
+
+// DetailField renders a labeled value with a "Not specified" fallback
+templ DetailField(props DetailFieldProps) {
+	<div class="section-box">
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ props.Label }</h3>
+		if props.Value != "" && props.LinkHref != "" {
+			<a href={ templ.SafeURL(props.LinkHref) } class="font-semibold text-brown-900 hover:underline">{ props.Value }</a>
+		} else if props.Value != "" {
+			<div class="font-semibold text-brown-900">{ props.Value }</div>
+		} else {
+			<span class="text-brown-400">Not specified</span>
+		}
+	</div>
+}
+
 type PageHeaderProps struct {
 	Title       string
 	BackURL     string

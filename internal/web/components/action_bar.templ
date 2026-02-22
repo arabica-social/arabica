@@ -277,14 +277,15 @@ templ ReportModal(props ReportModalProps) {
 						submitting = true;
 						error = '';
 						const dialog = document.getElementById('%s');
+						const body = new URLSearchParams({
+							subject_uri: '%s',
+							subject_cid: '%s',
+							reason: reason
+						});
 						fetch('/api/report', {
 							method: 'POST',
-							headers: {'Content-Type': 'application/json'},
-							body: JSON.stringify({
-								subject_uri: '%s',
-								subject_cid: '%s',
-								reason: reason
-							})
+							headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+							body: body
 						})
 						.then(r => r.json().then(data => ({ok: r.ok, data})))
 						.then(({ok, data}) => {

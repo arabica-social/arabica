@@ -57,9 +57,9 @@ templ BeanViewCard(props BeanViewProps) {
 			</div>
 		}
 		<div class="grid grid-cols-2 gap-4">
-			@BeanDetailField("📍 Origin", props.Bean.Origin)
-			@BeanDetailField("🔥 Roast Level", props.Bean.RoastLevel)
-			@BeanDetailField("🌱 Process", props.Bean.Process)
+			@components.DetailField(components.DetailFieldProps{Label: "📍 Origin", Value: props.Bean.Origin})
+			@components.DetailField(components.DetailFieldProps{Label: "🔥 Roast Level", Value: props.Bean.RoastLevel})
+			@components.DetailField(components.DetailFieldProps{Label: "🌱 Process", Value: props.Bean.Process})
 			if props.Bean.Closed {
 				<div class="section-box">
 					<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Status</h3>
@@ -125,17 +125,6 @@ templ BeanViewHeader(props BeanViewProps) {
 			}
 		</h2>
 		<p class="text-sm text-brown-600 mt-1">{ props.Bean.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
-	</div>
-}
-
-templ BeanDetailField(label, value string) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
-		if value != "" {
-			<div class="font-semibold text-brown-900">{ value }</div>
-		} else {
-			<span class="text-brown-400">Not specified</span>
-		}
 	</div>
 }
 

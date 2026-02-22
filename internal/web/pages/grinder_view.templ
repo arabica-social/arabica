@@ -39,8 +39,8 @@ templ GrinderViewCard(props GrinderViewProps) {
 	@GrinderViewHeader(props)
 	<div class="space-y-6">
 		<div class="grid grid-cols-2 gap-4">
-			@GrinderDetailField("⚙️ Type", props.Grinder.GrinderType)
-			@GrinderDetailField("🔩 Burr Type", props.Grinder.BurrType)
+			@components.DetailField(components.DetailFieldProps{Label: "⚙️ Type", Value: props.Grinder.GrinderType})
+			@components.DetailField(components.DetailFieldProps{Label: "🔩 Burr Type", Value: props.Grinder.BurrType})
 		</div>
 		if props.Grinder.Notes != "" {
 			<div class="section-box">
@@ -97,13 +97,3 @@ templ GrinderViewHeader(props GrinderViewProps) {
 	</div>
 }
 
-templ GrinderDetailField(label, value string) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
-		if value != "" {
-			<div class="font-semibold text-brown-900">{ value }</div>
-		} else {
-			<span class="text-brown-400">Not specified</span>
-		}
-	</div>
-}

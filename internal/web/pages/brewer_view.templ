@@ -38,12 +38,7 @@ templ BrewerViewContent(props BrewerViewProps) {
 templ BrewerViewCard(props BrewerViewProps) {
 	@BrewerViewHeader(props)
 	<div class="space-y-6">
-		if props.Brewer.BrewerType != "" {
-			<div class="section-box">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">☕ Type</h3>
-				<div class="font-semibold text-brown-900">{ props.Brewer.BrewerType }</div>
-			</div>
-		}
+		@components.DetailField(components.DetailFieldProps{Label: "☕ Type", Value: props.Brewer.BrewerType})
 		if props.Brewer.Description != "" {
 			<div class="section-box">
 				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📝 Description</h3>

@@ -155,41 +155,15 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 // BrewParametersGrid renders the brew parameters in a grid
 templ BrewParametersGrid(brew *models.Brew, owner string) {
 	<div class="grid grid-cols-2 gap-4">
-		@BrewParameter("⚖️ Coffee", getCoffeeAmountDisplay(brew))
-		@BrewLinkedParameter("☕ Brew Method", getBrewerName(brew), getBrewerViewURL(brew, owner))
-		@BrewLinkedParameter("⚙️ Grinder", getGrinderName(brew), getGrinderViewURL(brew, owner))
-		@BrewParameter("🔩 Grind Size", getGrindSizeDisplay(brew))
-		@BrewParameter("💧 Water", getWaterAmountDisplay(brew))
-		@BrewParameter("🌡️ Temperature", getTemperatureDisplay(brew))
+		@components.DetailField(components.DetailFieldProps{Label: "⚖️ Coffee", Value: getCoffeeAmountDisplay(brew)})
+		@components.DetailField(components.DetailFieldProps{Label: "☕ Brew Method", Value: getBrewerName(brew), LinkHref: getBrewerViewURL(brew, owner)})
+		@components.DetailField(components.DetailFieldProps{Label: "⚙️ Grinder", Value: getGrinderName(brew), LinkHref: getGrinderViewURL(brew, owner)})
+		@components.DetailField(components.DetailFieldProps{Label: "🔩 Grind Size", Value: getGrindSizeDisplay(brew)})
+		@components.DetailField(components.DetailFieldProps{Label: "💧 Water", Value: getWaterAmountDisplay(brew)})
+		@components.DetailField(components.DetailFieldProps{Label: "🌡️ Temperature", Value: getTemperatureDisplay(brew)})
 		<div class="col-span-2">
-			@BrewParameter("⏱️ Brew Time", getBrewTimeDisplay(brew))
+			@components.DetailField(components.DetailFieldProps{Label: "⏱️ Brew Time", Value: getBrewTimeDisplay(brew)})
 		</div>
-	</div>
-}
-
-// BrewParameter renders a single parameter in the grid
-templ BrewParameter(label string, value string) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
-		if value != "" {
-			<div class="font-semibold text-brown-900">{ value }</div>
-		} else {
-			<span class="text-brown-400">Not specified</span>
-		}
-	</div>
-}
-
-// BrewLinkedParameter renders a parameter with a clickable link to the entity view page
-templ BrewLinkedParameter(label string, value string, href string) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
-		if value != "" && href != "" {
-			<a href={ templ.SafeURL(href) } class="font-semibold text-brown-900 hover:underline">{ value }</a>
-		} else if value != "" {
-			<div class="font-semibold text-brown-900">{ value }</div>
-		} else {
-			<span class="text-brown-400">Not specified</span>
-		}
 	</div>
 }
 

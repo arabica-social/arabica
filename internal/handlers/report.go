@@ -60,22 +60,15 @@ func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse request (supports both JSON and form data)
+	// Parse form data only (JSON is rejected to prevent CSRF bypass)
 	var req ReportRequest
-	if isJSONRequest(r) {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeReportError(w, "Invalid JSON", http.StatusBadRequest)
-			return
-		}
-	} else {
-		if err := r.ParseForm(); err != nil {
-			writeReportError(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
-		req.SubjectURI = r.FormValue("subject_uri")
-		req.SubjectCID = r.FormValue("subject_cid")
-		req.Reason = r.FormValue("reason")
+	if err := r.ParseForm(); err != nil {
+		writeReportError(w, "Invalid form data", http.StatusBadRequest)
+		return
 	}
+	req.SubjectURI = r.FormValue("subject_uri")
+	req.SubjectCID = r.FormValue("subject_cid")
+	req.Reason = r.FormValue("reason")
 
 	// Validate subject URI
 	if req.SubjectURI == "" {

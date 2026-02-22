@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
 )
 
@@ -33,27 +33,19 @@ func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
 
 	// Check permission
 	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionHideRecord) {
+		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/hide").Msg("Denied: insufficient permissions")
 		http.Error(w, "Permission denied", http.StatusForbidden)
 		return
 	}
 
-	// Parse request - support both JSON and form data
-	var req hideRequest
-	contentType := r.Header.Get("Content-Type")
-	if contentType == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data (HTMX default)
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-		req.URI = r.FormValue("uri")
-		req.Reason = r.FormValue("reason")
+	// Parse form data only (JSON is rejected to prevent CSRF bypass)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
+	var req hideRequest
+	req.URI = r.FormValue("uri")
+	req.Reason = r.FormValue("reason")
 
 	if req.URI == "" {
 		http.Error(w, "URI is required", http.StatusBadRequest)
@@ -110,27 +102,19 @@ func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
 
 	// Check permission
 	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionUnhideRecord) {
+		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/unhide").Msg("Denied: insufficient permissions")
 		http.Error(w, "Permission denied", http.StatusForbidden)
 		return
 	}
 
-	// Parse request - support both JSON and form data
-	var req hideRequest
-	contentType := r.Header.Get("Content-Type")
-	if contentType == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data (HTMX default)
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-		req.URI = r.FormValue("uri")
-		req.Reason = r.FormValue("reason")
+	// Parse form data only (JSON is rejected to prevent CSRF bypass)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
+	var req hideRequest
+	req.URI = r.FormValue("uri")
+	req.Reason = r.FormValue("reason")
 
 	if req.URI == "" {
 		http.Error(w, "URI is required", http.StatusBadRequest)
@@ -167,11 +151,9 @@ func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// generateTID generates a TID (timestamp-based identifier)
+// generateTID generates a TID (timestamp-based identifier) using the AT Protocol TID format.
 func generateTID() string {
-	// Simple implementation using unix nano timestamp
-	// In production, you might want a more sophisticated TID generator
-	return time.Now().Format("20060102150405.000000000")
+	return syntax.NewTIDNow(0).String()
 }
 
 // buildAdminProps builds the admin dashboard props for the given moderator.
@@ -241,6 +223,7 @@ func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 
 	// Check if user is a moderator
 	if h.moderationService == nil || !h.moderationService.IsModerator(userDID) {
+		log.Warn().Str("did", userDID).Str("endpoint", "/_mod").Msg("Denied: not a moderator")
 		http.Error(w, "Access denied", http.StatusForbidden)
 		return
 	}
@@ -272,6 +255,7 @@ func (h *Handler) HandleAdminPartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.moderationService == nil || !h.moderationService.IsModerator(userDID) {
+		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/content").Msg("Denied: not a moderator")
 		http.Error(w, "Access denied", http.StatusForbidden)
 		return
 	}
@@ -382,27 +366,19 @@ func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
 
 	// Check permission
 	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionBlacklistUser) {
+		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/block").Msg("Denied: insufficient permissions")
 		http.Error(w, "Permission denied", http.StatusForbidden)
 		return
 	}
 
-	// Parse request - support both JSON and form data
-	var req blockRequest
-	contentType := r.Header.Get("Content-Type")
-	if contentType == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data (HTMX default)
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-		req.DID = r.FormValue("did")
-		req.Reason = r.FormValue("reason")
+	// Parse form data only (JSON is rejected to prevent CSRF bypass)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
+	var req blockRequest
+	req.DID = r.FormValue("did")
+	req.Reason = r.FormValue("reason")
 
 	if req.DID == "" {
 		http.Error(w, "DID is required", http.StatusBadRequest)
@@ -457,26 +433,18 @@ func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
 
 	// Check permission
 	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionUnblacklistUser) {
+		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/unblock").Msg("Denied: insufficient permissions")
 		http.Error(w, "Permission denied", http.StatusForbidden)
 		return
 	}
 
-	// Parse request - support both JSON and form data
-	var req blockRequest
-	contentType := r.Header.Get("Content-Type")
-	if contentType == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Parse as form data (HTMX default)
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-		req.DID = r.FormValue("did")
+	// Parse form data only (JSON is rejected to prevent CSRF bypass)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
+	var req blockRequest
+	req.DID = r.FormValue("did")
 
 	if req.DID == "" {
 		http.Error(w, "DID is required", http.StatusBadRequest)
@@ -522,6 +490,7 @@ func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionResetAutoHide) {
+		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/reset-autohide").Msg("Denied: insufficient permissions")
 		http.Error(w, "Permission denied", http.StatusForbidden)
 		return
 	}
@@ -576,6 +545,7 @@ func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
 
 	// Check permission
 	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionDismissReport) {
+		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/dismiss-report").Msg("Denied: insufficient permissions")
 		http.Error(w, "Permission denied", http.StatusForbidden)
 		return
 	}
