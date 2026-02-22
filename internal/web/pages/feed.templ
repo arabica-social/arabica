@@ -117,11 +117,11 @@ templ FeedFilterBar(qs FeedQueryState) {
 			}
 		</div>
 		<!-- Sort selector -->
-		<div class="flex items-center gap-1.5 text-sm">
+		<div class="flex items-center gap-1">
 			<button
-				class={ "px-2.5 py-1 rounded-md transition-colors",
+				class={ "px-3 py-1.5 text-sm rounded-full transition-colors",
 					templ.KV("bg-brown-800 text-brown-50 font-medium", qs.Sort == "" || qs.Sort == "recent"),
-					templ.KV("text-brown-600 hover:text-brown-800 hover:bg-brown-100", qs.Sort != "" && qs.Sort != "recent") }
+					templ.KV("bg-brown-100 text-brown-700 hover:bg-brown-200", qs.Sort != "" && qs.Sort != "recent") }
 				hx-get={ buildFeedURL(qs.TypeFilter, "recent") }
 				hx-target="#feed-container"
 				hx-swap="outerHTML"
@@ -129,9 +129,9 @@ templ FeedFilterBar(qs FeedQueryState) {
 				New
 			</button>
 			<button
-				class={ "px-2.5 py-1 rounded-md transition-colors",
+				class={ "px-3 py-1.5 text-sm rounded-full transition-colors",
 					templ.KV("bg-brown-800 text-brown-50 font-medium", qs.Sort == "popular"),
-					templ.KV("text-brown-600 hover:text-brown-800 hover:bg-brown-100", qs.Sort != "popular") }
+					templ.KV("bg-brown-100 text-brown-700 hover:bg-brown-200", qs.Sort != "popular") }
 				hx-get={ buildFeedURL(qs.TypeFilter, "popular") }
 				hx-target="#feed-container"
 				hx-swap="outerHTML"
