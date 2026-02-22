@@ -1,0 +1,126 @@
+package pages
+
+import (
+	"arabica/internal/firehose"
+	"arabica/internal/models"
+	"arabica/internal/web/bff"
+	"arabica/internal/web/components"
+)
+
+type RoasterViewProps struct {
+	Roaster         *models.Roaster
+	IsOwnProfile    bool
+	IsAuthenticated bool
+	SubjectURI      string
+	SubjectCID      string
+	IsLiked         bool
+	LikeCount       int
+	CommentCount    int
+	Comments        []firehose.IndexedComment
+	CurrentUserDID  string
+	ShareURL        string
+	IsModerator     bool
+	CanHideRecord   bool
+	CanBlockUser    bool
+	IsRecordHidden  bool
+	AuthorDID       string
+}
+
+templ RoasterView(layout *components.LayoutData, props RoasterViewProps) {
+	@components.Layout(layout, RoasterViewContent(props))
+}
+
+templ RoasterViewContent(props RoasterViewProps) {
+	<div class="page-container-sm">
+		@components.Card(components.CardProps{InnerCard: true}, RoasterViewCard(props))
+	</div>
+}
+
+templ RoasterViewCard(props RoasterViewProps) {
+	@RoasterViewHeader(props)
+	<div class="space-y-6">
+		<div class="grid grid-cols-2 gap-4">
+			@RoasterDetailField("📍 Location", props.Roaster.Location)
+			if props.Roaster.Website != "" {
+				<div class="section-box">
+					<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">🔗 Website</h3>
+					if safeWebsite := bff.SafeWebsiteURL(props.Roaster.Website); safeWebsite != "" {
+						<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="font-semibold text-brown-900 hover:underline">
+							{ safeWebsite }
+						</a>
+					} else {
+						<span class="text-brown-400">Invalid URL</span>
+					}
+				</div>
+			}
+		</div>
+		<div class="flex justify-between items-center">
+			@components.BackButton()
+			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
+				@components.ActionBar(components.ActionBarProps{
+					SubjectURI:      props.SubjectURI,
+					SubjectCID:      props.SubjectCID,
+					IsLiked:         props.IsLiked,
+					LikeCount:       props.LikeCount,
+					CommentCount:    props.CommentCount,
+					ShowComments:    true,
+					ShareURL:        props.ShareURL,
+					ShareTitle:      props.Roaster.Name,
+					ShareText:       "Check out this roaster on Arabica",
+					IsOwner:         props.IsOwnProfile,
+					IsAuthenticated: props.IsAuthenticated,
+					IsModerator:     props.IsModerator,
+					CanHideRecord:   props.CanHideRecord,
+					CanBlockUser:    props.CanBlockUser,
+					IsRecordHidden:  props.IsRecordHidden,
+					AuthorDID:       props.AuthorDID,
+				})
+			</div>
+		</div>
+		@components.CommentSection(components.CommentSectionProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			Comments:        props.Comments,
+			IsAuthenticated: props.IsAuthenticated,
+			CurrentUserDID:  props.CurrentUserDID,
+			ModCtx: components.CommentModerationContext{
+				IsModerator:   props.IsModerator,
+				CanHideRecord: props.CanHideRecord,
+				CanBlockUser:  props.CanBlockUser,
+			},
+			ViewURL: props.ShareURL,
+		})
+	</div>
+}
+
+templ RoasterViewHeader(props RoasterViewProps) {
+	<div class="flex justify-between items-start mb-6">
+		<div>
+			<h2 class="text-3xl font-bold text-brown-900">{ props.Roaster.Name }</h2>
+			<p class="text-sm text-brown-600 mt-1">{ props.Roaster.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
+		</div>
+		if props.IsOwnProfile {
+			<div class="flex gap-2">
+				<button
+					hx-delete={ "/api/roasters/" + props.Roaster.RKey }
+					hx-confirm="Are you sure you want to delete this roaster?"
+					hx-target="body"
+					class="inline-flex items-center bg-brown-200 text-brown-700 px-4 py-2 rounded-lg hover:bg-brown-300 font-medium transition-colors"
+				>
+					Delete
+				</button>
+			</div>
+		}
+	</div>
+}
+
+templ RoasterDetailField(label, value string) {
+	<div class="section-box">
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
+		if value != "" {
+			<div class="font-semibold text-brown-900">{ value }</div>
+		} else {
+			<span class="text-brown-400">Not specified</span>
+		}
+	</div>
+}

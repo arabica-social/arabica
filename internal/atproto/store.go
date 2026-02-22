@@ -365,6 +365,147 @@ func (s *AtprotoStore) DeleteBrewByRKey(ctx context.Context, rkey string) error 
 	return nil
 }
 
+// BeanRecord contains a bean with its AT Protocol metadata
+type BeanRecord struct {
+	Bean *models.Bean
+	URI  string
+	CID  string
+}
+
+// GetBeanRecordByRKey fetches a bean by rkey and returns it with its AT Protocol metadata
+func (s *AtprotoStore) GetBeanRecordByRKey(ctx context.Context, rkey string) (*BeanRecord, error) {
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
+		Collection: NSIDBean,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bean record: %w", err)
+	}
+
+	atURI := BuildATURI(s.did.String(), NSIDBean, rkey)
+	bean, err := RecordToBean(output.Value, atURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert bean record: %w", err)
+	}
+
+	bean.RKey = rkey
+
+	// Resolve roaster reference if present
+	if roasterRef, ok := output.Value["roasterRef"].(string); ok && roasterRef != "" {
+		if components, err := ResolveATURI(roasterRef); err == nil {
+			bean.RoasterRKey = components.RKey
+		}
+		if len(roasterRef) > 10 && (roasterRef[:5] == "at://" || roasterRef[:4] == "did:") {
+			bean.Roaster, err = ResolveRoasterRef(ctx, s.client, roasterRef, s.sessionID)
+			if err != nil {
+				log.Warn().Err(err).Str("bean_rkey", rkey).Str("roaster_ref", roasterRef).Msg("Failed to resolve roaster reference")
+			}
+		}
+	}
+
+	return &BeanRecord{
+		Bean: bean,
+		URI:  output.URI,
+		CID:  output.CID,
+	}, nil
+}
+
+// RoasterRecord contains a roaster with its AT Protocol metadata
+type RoasterRecord struct {
+	Roaster *models.Roaster
+	URI     string
+	CID     string
+}
+
+// GetRoasterRecordByRKey fetches a roaster by rkey and returns it with its AT Protocol metadata
+func (s *AtprotoStore) GetRoasterRecordByRKey(ctx context.Context, rkey string) (*RoasterRecord, error) {
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
+		Collection: NSIDRoaster,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get roaster record: %w", err)
+	}
+
+	atURI := BuildATURI(s.did.String(), NSIDRoaster, rkey)
+	roaster, err := RecordToRoaster(output.Value, atURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert roaster record: %w", err)
+	}
+
+	roaster.RKey = rkey
+
+	return &RoasterRecord{
+		Roaster: roaster,
+		URI:     output.URI,
+		CID:     output.CID,
+	}, nil
+}
+
+// GrinderRecord contains a grinder with its AT Protocol metadata
+type GrinderRecord struct {
+	Grinder *models.Grinder
+	URI     string
+	CID     string
+}
+
+// GetGrinderRecordByRKey fetches a grinder by rkey and returns it with its AT Protocol metadata
+func (s *AtprotoStore) GetGrinderRecordByRKey(ctx context.Context, rkey string) (*GrinderRecord, error) {
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
+		Collection: NSIDGrinder,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get grinder record: %w", err)
+	}
+
+	atURI := BuildATURI(s.did.String(), NSIDGrinder, rkey)
+	grinder, err := RecordToGrinder(output.Value, atURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert grinder record: %w", err)
+	}
+
+	grinder.RKey = rkey
+
+	return &GrinderRecord{
+		Grinder: grinder,
+		URI:     output.URI,
+		CID:     output.CID,
+	}, nil
+}
+
+// BrewerRecord contains a brewer with its AT Protocol metadata
+type BrewerRecord struct {
+	Brewer *models.Brewer
+	URI    string
+	CID    string
+}
+
+// GetBrewerRecordByRKey fetches a brewer by rkey and returns it with its AT Protocol metadata
+func (s *AtprotoStore) GetBrewerRecordByRKey(ctx context.Context, rkey string) (*BrewerRecord, error) {
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
+		Collection: NSIDBrewer,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get brewer record: %w", err)
+	}
+
+	atURI := BuildATURI(s.did.String(), NSIDBrewer, rkey)
+	brewer, err := RecordToBrewer(output.Value, atURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert brewer record: %w", err)
+	}
+
+	brewer.RKey = rkey
+
+	return &BrewerRecord{
+		Brewer: brewer,
+		URI:    output.URI,
+		CID:    output.CID,
+	}, nil
+}
+
 // ========== Bean Operations ==========
 
 func (s *AtprotoStore) CreateBean(ctx context.Context, bean *models.CreateBeanRequest) (*models.Bean, error) {

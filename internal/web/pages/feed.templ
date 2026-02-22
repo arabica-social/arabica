@@ -73,13 +73,13 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 			case lexicons.RecordTypeBrew:
 				@FeedBrewContentClickable(item)
 			case lexicons.RecordTypeBean:
-				@FeedBeanContent(item)
+				@FeedEntityContentClickable(item, FeedBeanContent)
 			case lexicons.RecordTypeRoaster:
-				@FeedRoasterContent(item)
+				@FeedEntityContentClickable(item, FeedRoasterContent)
 			case lexicons.RecordTypeGrinder:
-				@FeedGrinderContent(item)
+				@FeedEntityContentClickable(item, FeedGrinderContent)
 			case lexicons.RecordTypeBrewer:
-				@FeedBrewerContent(item)
+				@FeedEntityContentClickable(item, FeedBrewerContent)
 		}
 		<!-- Action bar -->
 		if item.SubjectURI != "" && item.SubjectCID != "" {
@@ -126,18 +126,51 @@ templ ActionText(item *feed.FeedItem) {
 		case lexicons.RecordTypeBrew:
 			if item.Brew != nil {
 				added a
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)) }
-					class="underline hover:text-brown-900"
-				>
-					new brew
-				</a>
+				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new brew</a>
+			} else {
+				{ item.Action }
+			}
+		case lexicons.RecordTypeBean:
+			if item.Bean != nil {
+				added a
+				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new bean</a>
+			} else {
+				{ item.Action }
+			}
+		case lexicons.RecordTypeRoaster:
+			if item.Roaster != nil {
+				added a
+				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new roaster</a>
+			} else {
+				{ item.Action }
+			}
+		case lexicons.RecordTypeGrinder:
+			if item.Grinder != nil {
+				added a
+				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new grinder</a>
+			} else {
+				{ item.Action }
+			}
+		case lexicons.RecordTypeBrewer:
+			if item.Brewer != nil {
+				added a
+				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new brewer</a>
 			} else {
 				{ item.Action }
 			}
 		default:
 			{ item.Action }
 	}
+}
+
+// FeedEntityContentClickable wraps any entity content component in a clickable link
+templ FeedEntityContentClickable(item *feed.FeedItem, content func(*feed.FeedItem) templ.Component) {
+	<a
+		href={ templ.SafeURL(getFeedItemShareURL(item)) }
+		class="block hover:opacity-90 transition-opacity"
+	>
+		@content(item)
+	</a>
 }
 
 // FeedBrewContentClickable renders brew content wrapped in a clickable link
@@ -356,8 +389,23 @@ func getFeedItemShareURL(item *feed.FeedItem) string {
 		if item.Brew != nil {
 			return fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)
 		}
+	case lexicons.RecordTypeBean:
+		if item.Bean != nil {
+			return fmt.Sprintf("/beans/%s?owner=%s", item.Bean.RKey, item.Author.Handle)
+		}
+	case lexicons.RecordTypeRoaster:
+		if item.Roaster != nil {
+			return fmt.Sprintf("/roasters/%s?owner=%s", item.Roaster.RKey, item.Author.Handle)
+		}
+	case lexicons.RecordTypeGrinder:
+		if item.Grinder != nil {
+			return fmt.Sprintf("/grinders/%s?owner=%s", item.Grinder.RKey, item.Author.Handle)
+		}
+	case lexicons.RecordTypeBrewer:
+		if item.Brewer != nil {
+			return fmt.Sprintf("/brewers/%s?owner=%s", item.Brewer.RKey, item.Author.Handle)
+		}
 	}
-	// For other record types, link to the user's profile
 	return fmt.Sprintf("/profile/%s", item.Author.Handle)
 }
 
@@ -406,7 +454,7 @@ func getFeedItemShareText(item *feed.FeedItem) string {
 	return fmt.Sprintf("Check out this %s by %s on Arabica", item.RecordType, displayName)
 }
 
-// getEditURL returns the edit URL for a feed item (only for brews currently)
+// getEditURL returns the edit URL for a feed item
 func getEditURL(item *feed.FeedItem) string {
 	switch item.RecordType {
 	case lexicons.RecordTypeBrew:
@@ -414,15 +462,32 @@ func getEditURL(item *feed.FeedItem) string {
 			return fmt.Sprintf("/brews/%s/edit", item.Brew.RKey)
 		}
 	}
+	// Beans, roasters, grinders, and brewers are edited via modals on the manage page
 	return ""
 }
 
-// getDeleteURL returns the delete URL for a feed item (only for brews currently)
+// getDeleteURL returns the delete URL for a feed item
 func getDeleteURL(item *feed.FeedItem) string {
 	switch item.RecordType {
 	case lexicons.RecordTypeBrew:
 		if item.Brew != nil {
 			return fmt.Sprintf("/brews/%s", item.Brew.RKey)
+		}
+	case lexicons.RecordTypeBean:
+		if item.Bean != nil {
+			return fmt.Sprintf("/api/beans/%s", item.Bean.RKey)
+		}
+	case lexicons.RecordTypeRoaster:
+		if item.Roaster != nil {
+			return fmt.Sprintf("/api/roasters/%s", item.Roaster.RKey)
+		}
+	case lexicons.RecordTypeGrinder:
+		if item.Grinder != nil {
+			return fmt.Sprintf("/api/grinders/%s", item.Grinder.RKey)
+		}
+	case lexicons.RecordTypeBrewer:
+		if item.Brewer != nil {
+			return fmt.Sprintf("/api/brewers/%s", item.Brewer.RKey)
 		}
 	}
 	return ""

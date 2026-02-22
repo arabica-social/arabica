@@ -38,8 +38,8 @@ templ BrewViewCard(props BrewViewProps) {
 		if props.Brew.Rating > 0 {
 			@BrewRating(props.Brew.Rating)
 		}
-		@BrewBeanSection(props.Brew)
-		@BrewParametersGrid(props.Brew)
+		@BrewBeanSection(props.Brew, getOwnerFromShareURL(props.ShareURL))
+		@BrewParametersGrid(props.Brew, getOwnerFromShareURL(props.ShareURL))
 		if props.Brew.Pours != nil && len(props.Brew.Pours) > 0 {
 			@BrewPoursSection(props.Brew.Pours)
 		}
@@ -96,36 +96,41 @@ templ BrewViewHeader(props BrewViewProps) {
 // BrewRating renders the prominent rating display
 templ BrewRating(rating int) {
 	<div class="section-box text-center py-4">
-		<div class="text-4xl font-bold text-brown-800">
-			{ fmt.Sprintf("%d/10", rating) }
-		</div>
-		<div class="text-sm text-brown-600 mt-1">Rating</div>
+		<span class="badge-rating text-2xl !font-bold px-5 py-2">
+			⭐ { fmt.Sprintf("%d/10", rating) }
+		</span>
+		<div class="text-sm text-brown-600 mt-2">Rating</div>
 	</div>
 }
 
 // BrewBeanSection renders the coffee bean information
-templ BrewBeanSection(brew *models.Brew) {
+templ BrewBeanSection(brew *models.Brew, owner string) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Coffee Bean</h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">☕ Coffee Bean</h3>
 		if brew.Bean != nil {
 			<div class="font-bold text-lg text-brown-900">
-				if brew.Bean.Name != "" {
-					{ brew.Bean.Name }
-				} else {
-					{ brew.Bean.Origin }
-				}
+				<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", brew.Bean.RKey, owner)) } class="hover:underline">
+					if brew.Bean.Name != "" {
+						{ brew.Bean.Name }
+					} else {
+						{ brew.Bean.Origin }
+					}
+				</a>
 			</div>
 			if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
 				<div class="text-sm text-brown-700 mt-1">
-					by { brew.Bean.Roaster.Name }
+					🏭
+					<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", brew.Bean.Roaster.RKey, owner)) } class="hover:underline">
+						{ brew.Bean.Roaster.Name }
+					</a>
 				</div>
 			}
 			<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
 				if brew.Bean.Origin != "" {
-					<span>Origin: { brew.Bean.Origin }</span>
+					<span>📍 { brew.Bean.Origin }</span>
 				}
 				if brew.Bean.RoastLevel != "" {
-					<span>Roast: { brew.Bean.RoastLevel }</span>
+					<span>🔥 { brew.Bean.RoastLevel }</span>
 				}
 			</div>
 		} else {
@@ -135,16 +140,16 @@ templ BrewBeanSection(brew *models.Brew) {
 }
 
 // BrewParametersGrid renders the brew parameters in a grid
-templ BrewParametersGrid(brew *models.Brew) {
+templ BrewParametersGrid(brew *models.Brew, owner string) {
 	<div class="grid grid-cols-2 gap-4">
-		@BrewParameter("Coffee", getCoffeeAmountDisplay(brew))
-		@BrewParameter("Brew Method", getBrewerName(brew))
-		@BrewParameter("Grinder", getGrinderName(brew))
-		@BrewParameter("Grind Size", getGrindSizeDisplay(brew))
-		@BrewParameter("Water", getWaterAmountDisplay(brew))
-		@BrewParameter("Temperature", getTemperatureDisplay(brew))
+		@BrewParameter("⚖️ Coffee", getCoffeeAmountDisplay(brew))
+		@BrewLinkedParameter("☕ Brew Method", getBrewerName(brew), getBrewerViewURL(brew, owner))
+		@BrewLinkedParameter("⚙️ Grinder", getGrinderName(brew), getGrinderViewURL(brew, owner))
+		@BrewParameter("🔩 Grind Size", getGrindSizeDisplay(brew))
+		@BrewParameter("💧 Water", getWaterAmountDisplay(brew))
+		@BrewParameter("🌡️ Temperature", getTemperatureDisplay(brew))
 		<div class="col-span-2">
-			@BrewParameter("Brew Time", getBrewTimeDisplay(brew))
+			@BrewParameter("⏱️ Brew Time", getBrewTimeDisplay(brew))
 		</div>
 	</div>
 }
@@ -154,6 +159,20 @@ templ BrewParameter(label string, value string) {
 	<div class="section-box">
 		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
 		if value != "" {
+			<div class="font-semibold text-brown-900">{ value }</div>
+		} else {
+			<span class="text-brown-400">Not specified</span>
+		}
+	</div>
+}
+
+// BrewLinkedParameter renders a parameter with a clickable link to the entity view page
+templ BrewLinkedParameter(label string, value string, href string) {
+	<div class="section-box">
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ label }</h3>
+		if value != "" && href != "" {
+			<a href={ templ.SafeURL(href) } class="font-semibold text-brown-900 hover:underline">{ value }</a>
+		} else if value != "" {
 			<div class="font-semibold text-brown-900">{ value }</div>
 		} else {
 			<span class="text-brown-400">Not specified</span>
@@ -221,6 +240,20 @@ func getBrewTimeDisplay(brew *models.Brew) string {
 	return ""
 }
 
+func getGrinderViewURL(brew *models.Brew, owner string) string {
+	if brew.GrinderObj != nil && brew.GrinderObj.RKey != "" && owner != "" {
+		return fmt.Sprintf("/grinders/%s?owner=%s", brew.GrinderObj.RKey, owner)
+	}
+	return ""
+}
+
+func getBrewerViewURL(brew *models.Brew, owner string) string {
+	if brew.BrewerObj != nil && brew.BrewerObj.RKey != "" && owner != "" {
+		return fmt.Sprintf("/brewers/%s?owner=%s", brew.BrewerObj.RKey, owner)
+	}
+	return ""
+}
+
 func getBrewShareTitle(brew *models.Brew) string {
 	if brew.Bean != nil {
 		if brew.Bean.Name != "" {
@@ -234,7 +267,7 @@ func getBrewShareTitle(brew *models.Brew) string {
 // BrewPoursSection renders the pours section
 templ BrewPoursSection(pours []*models.Pour) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">Pours</h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">💧 Pours</h3>
 		<div class="space-y-2">
 			for _, pour := range pours {
 				<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brown-200">
@@ -252,7 +285,7 @@ templ BrewPoursSection(pours []*models.Pour) {
 // BrewTastingNotes renders the tasting notes section
 templ BrewTastingNotes(notes string) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Tasting Notes</h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📝 Tasting Notes</h3>
 		<div class="text-brown-900 whitespace-pre-wrap">{ notes }</div>
 	</div>
 }
