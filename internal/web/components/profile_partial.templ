@@ -72,10 +72,9 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 					})
 				}
 			} else {
-				@BeansTable(BeansTableProps{
+				@BeanCards(BeanCardsProps{
 					Beans:       filterOpenBeans(beans),
 					ShowActions: false,
-					ShowStatus:  false,
 					OwnerHandle: profileHandle,
 				})
 			}
@@ -105,10 +104,9 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 					Message: "No closed bags.",
 				})
 			} else {
-				@BeansTable(BeansTableProps{
+				@BeanCards(BeanCardsProps{
 					Beans:       filterClosedBeans(beans),
 					ShowActions: false,
-					ShowStatus:  false,
 					OwnerHandle: profileHandle,
 				})
 			}

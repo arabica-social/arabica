@@ -18,7 +18,7 @@ templ ManagePartial(props ManagePartialProps) {
 	@ManageBrewersTab(props.Brewers)
 }
 
-// ManageBeansTab renders the beans tab content
+// ManageBeansTab renders the beans tab content with open/closed sections
 templ ManageBeansTab(beans []*models.Bean) {
 	<div x-show="tab === 'beans'">
 		<div class="mb-4 flex justify-between items-center">
@@ -32,11 +32,22 @@ templ ManageBeansTab(beans []*models.Bean) {
 				+ Add Bean
 			</button>
 		</div>
-		@BeansTable(BeansTableProps{
-			Beans:       beans,
-			ShowActions: true,
-			ShowStatus:  true,
-		})
+		<div class="space-y-6">
+			<div>
+				<h4 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h4>
+				@BeanCards(BeanCardsProps{
+					Beans:       filterOpenBeans(beans),
+					ShowActions: true,
+				})
+			</div>
+			<div>
+				<h4 class="text-lg font-semibold text-brown-900 mb-3">Closed Bags</h4>
+				@BeanCards(BeanCardsProps{
+					Beans:       filterClosedBeans(beans),
+					ShowActions: true,
+				})
+			</div>
+		</div>
 	</div>
 }
 

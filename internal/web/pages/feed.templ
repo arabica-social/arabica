@@ -436,6 +436,9 @@ templ FeedBeanContent(item *feed.FeedItem) {
 				if item.Bean.Origin != "" {
 					<span class="inline-flex items-center gap-0.5">📍 { item.Bean.Origin }</span>
 				}
+				if item.Bean.Variety != "" {
+					<span class="inline-flex items-center gap-0.5">🌿 { item.Bean.Variety }</span>
+				}
 				if item.Bean.RoastLevel != "" {
 					<span class="inline-flex items-center gap-0.5">🔥 { item.Bean.RoastLevel }</span>
 				}

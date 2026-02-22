@@ -5,116 +5,82 @@ import (
 	"fmt"
 )
 
-// BeansTableProps defines props for the shared beans table
-type BeansTableProps struct {
+// BeanCardsProps defines props for the bean cards grid
+type BeanCardsProps struct {
 	Beans       []*models.Bean
 	ShowActions bool   // Whether to show Edit/Delete actions
-	ShowStatus  bool   // Whether to show Status column (open/closed badge)
 	OwnerHandle string // If set, name links to view page with this owner
 }
 
-// BeansTable renders a table of beans with configurable columns and actions
-templ BeansTable(props BeansTableProps) {
+// BeanCards renders a grid of bean cards
+templ BeanCards(props BeanCardsProps) {
 	if len(props.Beans) == 0 {
 		@EmptyState(EmptyStateProps{Message: "No beans yet."})
 	} else {
-		<div class="table-container overflow-x-auto">
-			<table class="table">
-				<thead class="table-header">
-					<tr>
-						if props.ShowStatus {
-							<th class="table-th whitespace-nowrap">📊 Status</th>
-						}
-						<th class="table-th whitespace-nowrap">🏷️ Name</th>
-						<th class="table-th whitespace-nowrap">📍 Origin</th>
-						<th class="table-th whitespace-nowrap">🌿 Variety</th>
-						<th class="table-th whitespace-nowrap">☕ Roaster</th>
-						<th class="table-th whitespace-nowrap">🔥 Roast Level</th>
-						<th class="table-th whitespace-nowrap">🌱 Process</th>
-						if props.ShowActions {
-							<th class="table-th whitespace-nowrap">📝 Description</th>
-							<th class="table-th whitespace-nowrap">⚙️ Actions</th>
-						}
-					</tr>
-				</thead>
-				<tbody class="table-body">
-					for _, bean := range props.Beans {
-						<tr class="table-row">
-							if props.ShowStatus {
-								<td class="px-6 py-4 text-sm text-brown-900">
-									if bean.Closed {
-										<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-brown-200 text-brown-800">Closed</span>
-									} else {
-										<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">Open</span>
-									}
-								</td>
-							}
-							<td class="px-6 py-4 text-sm font-medium text-brown-900">
-								if props.OwnerHandle != "" {
-									<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", bean.RKey, props.OwnerHandle)) } class="hover:underline">{ bean.Name }</a>
-								} else {
-									{ bean.Name }
-								}
-							</td>
-							<td class="px-6 py-4 text-sm text-brown-900">{ bean.Origin }</td>
-							<td class="px-6 py-4 text-sm text-brown-900">
-								if bean.Variety != "" {
-									{ bean.Variety }
-								} else {
-									<span class="text-brown-400">-</span>
-								}
-							</td>
-							<td class="px-6 py-4 text-sm text-brown-900">
-								if bean.Roaster != nil && bean.Roaster.Name != "" {
-									{ bean.Roaster.Name }
-								} else {
-									<span class="text-brown-400">-</span>
-								}
-							</td>
-							<td class="px-6 py-4 text-sm text-brown-900">
-								if bean.RoastLevel != "" {
-									{ bean.RoastLevel }
-								} else {
-									<span class="text-brown-400">-</span>
-								}
-							</td>
-							<td class="px-6 py-4 text-sm text-brown-900">
-								if bean.Process != "" {
-									{ bean.Process }
-								} else {
-									<span class="text-brown-400">-</span>
-								}
-							</td>
-							if props.ShowActions {
-								<td class="px-6 py-4 text-sm text-brown-700">
-									if bean.Description != "" {
-										{ bean.Description }
-									} else {
-										<span class="text-brown-400">-</span>
-									}
-								</td>
-								<td class="px-6 py-4 text-sm font-medium space-x-2">
-									<button
-										hx-get={ "/api/modals/bean/" + bean.RKey }
-										hx-target="#modal-container"
-										hx-swap="innerHTML"
-										class="text-brown-700 hover:text-brown-900 font-medium"
-									>Edit</button>
-									<button
-										hx-delete={ "/api/beans/" + bean.RKey }
-										hx-confirm="Are you sure you want to delete this bean?"
-										hx-target="closest tr"
-										hx-swap="outerHTML swap:0.5s"
-										class="text-brown-600 hover:text-brown-800 font-medium"
-									>Delete</button>
-								</td>
-							}
-						</tr>
-					}
-				</tbody>
-			</table>
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+			for _, bean := range props.Beans {
+				@BeanCard(bean, props.ShowActions, props.OwnerHandle)
+			}
 		</div>
 	}
+}
+
+// BeanCard renders a single bean as a compact card
+templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string) {
+	<div class="feed-card">
+		<div class="feed-content-box-sm">
+			<div class="flex items-start justify-between gap-2 mb-2">
+				<div class="min-w-0">
+					<div class="font-bold text-brown-900 text-base truncate">
+						if ownerHandle != "" {
+							<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", bean.RKey, ownerHandle)) } class="hover:underline">{ bean.Name }</a>
+						} else {
+							{ bean.Name }
+						}
+					</div>
+					if bean.Roaster != nil && bean.Roaster.Name != "" {
+						<div class="text-sm text-brown-700 mt-0.5">
+							<span class="font-medium">🏭 { bean.Roaster.Name }</span>
+						</div>
+					}
+				</div>
+				if showActions {
+					<div class="flex items-center gap-1 flex-shrink-0">
+						<button
+							hx-get={ "/api/modals/bean/" + bean.RKey }
+							hx-target="#modal-container"
+							hx-swap="innerHTML"
+							class="text-brown-600 hover:text-brown-900 text-sm font-medium px-1.5 py-0.5 rounded hover:bg-brown-200"
+						>Edit</button>
+						<button
+							hx-delete={ "/api/beans/" + bean.RKey }
+							hx-confirm="Are you sure you want to delete this bean?"
+							hx-target="closest .feed-card"
+							hx-swap="outerHTML swap:0.3s"
+							class="text-brown-500 hover:text-brown-800 text-sm font-medium px-1.5 py-0.5 rounded hover:bg-brown-200"
+						>Delete</button>
+					</div>
+				}
+			</div>
+			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+				if bean.Origin != "" {
+					<span class="inline-flex items-center gap-0.5">📍 { bean.Origin }</span>
+				}
+				if bean.Variety != "" {
+					<span class="inline-flex items-center gap-0.5">🌿 { bean.Variety }</span>
+				}
+				if bean.RoastLevel != "" {
+					<span class="inline-flex items-center gap-0.5">🔥 { bean.RoastLevel }</span>
+				}
+				if bean.Process != "" {
+					<span class="inline-flex items-center gap-0.5">🌱 { bean.Process }</span>
+				}
+			</div>
+			if bean.Description != "" {
+				<div class="mt-2 text-sm text-brown-800 italic line-clamp-2">"{ bean.Description }"</div>
+			}
+		</div>
+	</div>
 }
 
 // RoastersTableProps defines props for the shared roasters table
