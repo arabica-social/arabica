@@ -504,6 +504,7 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
+		log.Warn().Err(err).Msg("Failed to parse brew create form")
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
@@ -511,7 +512,7 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	// Validate input
 	temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
 	if len(validationErrs) > 0 {
-		// Return first validation error
+		log.Warn().Str("field", validationErrs[0].Field).Str("error", validationErrs[0].Message).Msg("Brew create validation failed")
 		http.Error(w, validationErrs[0].Message, http.StatusBadRequest)
 		return
 	}
@@ -519,10 +520,12 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	// Validate required fields
 	beanRKey := r.FormValue("bean_rkey")
 	if beanRKey == "" {
+		log.Warn().Msg("Brew create: missing bean_rkey")
 		http.Error(w, "Bean selection is required", http.StatusBadRequest)
 		return
 	}
 	if !atproto.ValidateRKey(beanRKey) {
+		log.Warn().Str("bean_rkey", beanRKey).Msg("Brew create: invalid bean rkey format")
 		http.Error(w, "Invalid bean selection", http.StatusBadRequest)
 		return
 	}
@@ -530,11 +533,13 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	// Validate optional rkeys
 	grinderRKey := r.FormValue("grinder_rkey")
 	if errMsg := validateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
+		log.Warn().Str("grinder_rkey", grinderRKey).Msg("Brew create: invalid grinder rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 	brewerRKey := r.FormValue("brewer_rkey")
 	if errMsg := validateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
+		log.Warn().Str("brewer_rkey", brewerRKey).Msg("Brew create: invalid brewer rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -555,6 +560,7 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Msg("Brew create request validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -586,6 +592,7 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseForm(); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to parse brew update form")
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
@@ -593,6 +600,7 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	// Validate input
 	temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
 	if len(validationErrs) > 0 {
+		log.Warn().Str("rkey", rkey).Str("field", validationErrs[0].Field).Str("error", validationErrs[0].Message).Msg("Brew update validation failed")
 		http.Error(w, validationErrs[0].Message, http.StatusBadRequest)
 		return
 	}
@@ -600,10 +608,12 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	// Validate required fields
 	beanRKey := r.FormValue("bean_rkey")
 	if beanRKey == "" {
+		log.Warn().Str("rkey", rkey).Msg("Brew update: missing bean_rkey")
 		http.Error(w, "Bean selection is required", http.StatusBadRequest)
 		return
 	}
 	if !atproto.ValidateRKey(beanRKey) {
+		log.Warn().Str("rkey", rkey).Str("bean_rkey", beanRKey).Msg("Brew update: invalid bean rkey format")
 		http.Error(w, "Invalid bean selection", http.StatusBadRequest)
 		return
 	}
@@ -611,11 +621,13 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	// Validate optional rkeys
 	grinderRKey := r.FormValue("grinder_rkey")
 	if errMsg := validateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
+		log.Warn().Str("rkey", rkey).Str("grinder_rkey", grinderRKey).Msg("Brew update: invalid grinder rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 	brewerRKey := r.FormValue("brewer_rkey")
 	if errMsg := validateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
+		log.Warn().Str("rkey", rkey).Str("brewer_rkey", brewerRKey).Msg("Brew update: invalid brewer rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -636,6 +648,7 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Brew update request validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

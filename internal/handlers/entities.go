@@ -177,18 +177,21 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			Msg("Parsed bean create form")
 		return nil
 	}); err != nil {
+		log.Warn().Err(err).Msg("Failed to decode bean create request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("name", req.Name).Msg("Bean create validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate optional roaster rkey
 	if errMsg := validateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
+		log.Warn().Str("roaster_rkey", req.RoasterRKey).Msg("Bean create: invalid roaster rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -223,12 +226,14 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	}); err != nil {
+		log.Warn().Err(err).Msg("Failed to decode roaster create request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("name", req.Name).Msg("Roaster create validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -299,18 +304,21 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 			Msg("Parsed bean update form")
 		return nil
 	}); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to decode bean update request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Bean update validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate optional roaster rkey
 	if errMsg := validateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
+		log.Warn().Str("rkey", rkey).Str("roaster_rkey", req.RoasterRKey).Msg("Bean update: invalid roaster rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -365,12 +373,14 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	}); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to decode roaster update request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Roaster update validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -421,12 +431,14 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	}); err != nil {
+		log.Warn().Err(err).Msg("Failed to decode grinder create request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("name", req.Name).Msg("Grinder create validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -466,12 +478,14 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	}); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to decode grinder update request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Grinder update validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -521,12 +535,14 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	}); err != nil {
+		log.Warn().Err(err).Msg("Failed to decode brewer create request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("name", req.Name).Msg("Brewer create validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -565,12 +581,14 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	}); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to decode brewer update request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("rkey", rkey).Msg("Brewer update validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

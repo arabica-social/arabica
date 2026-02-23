@@ -87,19 +87,26 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 
 	if h.feedService != nil {
 		if isAuthenticated {
-			result, _ := h.feedService.GetFeedWithQuery(r.Context(), feed.FeedQuery{
+			result, err := h.feedService.GetFeedWithQuery(r.Context(), feed.FeedQuery{
 				Limit:      feed.FeedLimit,
 				Cursor:     cursor,
 				TypeFilter: typeFilter,
 				Sort:       sortBy,
 			})
+			if err != nil {
+				log.Error().Err(err).Str("sort", string(sortBy)).Str("type", string(typeFilter)).Msg("Failed to query feed")
+			}
 			if result != nil {
 				feedItems = result.Items
 				nextCursor = result.NextCursor
 			}
 		} else {
 			// Unauthenticated users get a limited feed from the cache (no filtering)
-			feedItems, _ = h.feedService.GetCachedPublicFeed(r.Context())
+			var err error
+			feedItems, err = h.feedService.GetCachedPublicFeed(r.Context())
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get cached public feed")
+			}
 		}
 	}
 
@@ -155,6 +162,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
+		log.Warn().Err(err).Msg("Failed to parse like toggle form")
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
@@ -163,6 +171,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 	subjectCID := r.FormValue("subject_cid")
 
 	if subjectURI == "" || subjectCID == "" {
+		log.Warn().Str("subject_uri", subjectURI).Str("subject_cid", subjectCID).Msg("Like toggle: missing required fields")
 		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
 		return
 	}
@@ -190,7 +199,9 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 
 		// Update firehose index
 		if h.feedIndex != nil {
-			_ = h.feedIndex.DeleteLike(didStr, subjectURI)
+			if err := h.feedIndex.DeleteLike(didStr, subjectURI); err != nil {
+				log.Warn().Err(err).Str("did", didStr).Str("subject_uri", subjectURI).Msg("Failed to delete like from feed index")
+			}
 			likeCount = h.feedIndex.GetLikeCount(subjectURI)
 		}
 	} else {
@@ -210,7 +221,9 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 
 		// Update firehose index
 		if h.feedIndex != nil {
-			_ = h.feedIndex.UpsertLike(didStr, like.RKey, subjectURI)
+			if err := h.feedIndex.UpsertLike(didStr, like.RKey, subjectURI); err != nil {
+				log.Warn().Err(err).Str("did", didStr).Str("subject_uri", subjectURI).Msg("Failed to upsert like in feed index")
+			}
 			likeCount = h.feedIndex.GetLikeCount(subjectURI)
 		}
 	}

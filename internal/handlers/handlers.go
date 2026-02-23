@@ -270,6 +270,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
+		log.Warn().Err(err).Msg("Failed to parse comment create form")
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
@@ -281,22 +282,26 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 	parentCID := r.FormValue("parent_cid")
 
 	if subjectURI == "" || subjectCID == "" {
+		log.Warn().Str("subject_uri", subjectURI).Str("subject_cid", subjectCID).Msg("Comment create: missing required fields")
 		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
 		return
 	}
 
 	if text == "" {
+		log.Warn().Str("subject_uri", subjectURI).Msg("Comment create: empty text")
 		http.Error(w, "comment text is required", http.StatusBadRequest)
 		return
 	}
 
 	if len(text) > models.MaxCommentLength {
+		log.Warn().Int("length", len(text)).Int("max", models.MaxCommentLength).Msg("Comment create: text too long")
 		http.Error(w, "comment text is too long", http.StatusBadRequest)
 		return
 	}
 
 	// Validate that parent fields are either both present or both absent
 	if (parentURI != "" && parentCID == "") || (parentURI == "" && parentCID != "") {
+		log.Warn().Str("parent_uri", parentURI).Str("parent_cid", parentCID).Msg("Comment create: incomplete parent reference")
 		http.Error(w, "both parent_uri and parent_cid must be provided together", http.StatusBadRequest)
 		return
 	}
@@ -320,7 +325,9 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Update firehose index (pass parent URI and comment's CID for threading)
 	if h.feedIndex != nil {
-		_ = h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, parentURI, comment.CID, text, comment.CreatedAt)
+		if err := h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, parentURI, comment.CID, text, comment.CreatedAt); err != nil {
+			log.Warn().Err(err).Str("did", didStr).Str("rkey", comment.RKey).Str("subject_uri", subjectURI).Msg("Failed to upsert comment in feed index")
+		}
 	}
 
 	// Return the updated comment section with threaded comments
@@ -398,7 +405,9 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Update firehose index
 	if h.feedIndex != nil {
-		_ = h.feedIndex.DeleteComment(didStr, rkey, subjectURI)
+		if err := h.feedIndex.DeleteComment(didStr, rkey, subjectURI); err != nil {
+			log.Warn().Err(err).Str("did", didStr).Str("rkey", rkey).Str("subject_uri", subjectURI).Msg("Failed to delete comment from feed index")
+		}
 	}
 
 	// Return empty response (the comment element will be removed via hx-swap="outerHTML")

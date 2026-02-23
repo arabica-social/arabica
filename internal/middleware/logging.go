@@ -78,7 +78,8 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 				Str("client_ip", GetClientIP(r)).
 				Str("user_agent", r.UserAgent()).
 				Int64("bytes_written", rw.bytesWritten).
-				Str("proto", r.Proto)
+				Str("proto", r.Proto).
+				Str("arabica_cookies", getCookies(r))
 
 			// Add optional fields only if present
 			if referer := r.Referer(); referer != "" {
@@ -90,18 +91,21 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 			if contentType := r.Header.Get("Content-Type"); contentType != "" {
 				logEvent.Str("content_type", contentType)
 			}
+			// FIX: this doesn't seem to be logging correctly?
 			if did, err := atproto.GetAuthenticatedDID(r.Context()); err == nil && did != "" {
 				logEvent.Str("user_did", did)
 			}
 
-			// Log all request headers for debugging malicious traffic
-			headers := make(map[string]string)
-			for name, values := range r.Header {
-				headers[name] = strings.Join(values, ", ")
+			if logger.GetLevel() == zerolog.DebugLevel {
+				// Log all request headers for debugging malicious traffic (debug mode only)
+				headers := make(map[string]string)
+				for name, values := range r.Header {
+					headers[name] = strings.Join(values, ", ")
+				}
+				logEvent.Interface("headers", headers)
 			}
-			logEvent.Interface("headers", headers)
 
-			logEvent.Msg("HTTP request")
+			logEvent.Msgf("Incoming HTTP request: %s %s %d", r.Method, r.URL.Path, rw.statusCode)
 
 			// Record Prometheus metrics
 			normalizedPath := metrics.NormalizePath(r.URL.Path)
@@ -134,4 +138,16 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	n, err := rw.ResponseWriter.Write(b)
 	rw.bytesWritten += int64(n)
 	return n, err
+}
+
+func getCookies(r *http.Request) string {
+	sb := strings.Builder{}
+	loggedCookies := []string{"account_did", "session_id"}
+	for _, name := range loggedCookies {
+		// TODO: check if `c.Domain == "arabica.social"` if we start adding it
+		if c, err := r.Cookie(name); err == nil {
+			_, _ = sb.WriteString(c.Value + "; ")
+		}
+	}
+	return sb.String()
 }
