@@ -62,80 +62,78 @@ templ AdminDashboardBody(props AdminProps) {
 		x-effect="sessionStorage.setItem('mod-tab', activeTab)"
 		class="space-y-6"
 	>
-		<div class="border-b border-brown-200">
-			<nav class="-mb-px flex space-x-8">
-				if props.CanHide || props.CanUnhide {
-					<button
-						type="button"
-						@click="activeTab = 'hidden'"
-						:class="activeTab === 'hidden' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
-						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
-					>
-						Hidden Records
-						if len(props.HiddenRecords) > 0 {
-							<span class="ml-2 bg-brown-100 text-brown-700 py-0.5 px-2 rounded-full text-xs">
-								{ fmt.Sprintf("%d", len(props.HiddenRecords)) }
-							</span>
-						}
-					</button>
-				}
-				if props.CanBlock || props.CanUnblock {
-					<button
-						type="button"
-						@click="activeTab = 'blocked'"
-						:class="activeTab === 'blocked' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
-						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
-					>
-						Blocked Users
-						if len(props.BlockedUsers) > 0 {
-							<span class="ml-2 bg-red-100 text-red-700 py-0.5 px-2 rounded-full text-xs">
-								{ fmt.Sprintf("%d", len(props.BlockedUsers)) }
-							</span>
-						}
-					</button>
-				}
-				if props.CanViewReports {
-					<button
-						type="button"
-						@click="activeTab = 'reports'"
-						:class="activeTab === 'reports' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
-						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
-					>
-						Reports
-						if len(props.Reports) > 0 {
-							<span class="ml-2 bg-red-100 text-red-700 py-0.5 px-2 rounded-full text-xs">
-								{ fmt.Sprintf("%d", len(props.Reports)) }
-							</span>
-						}
-					</button>
-				}
-				if props.CanViewLogs {
-					<button
-						type="button"
-						@click="activeTab = 'activity'"
-						:class="activeTab === 'activity' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
-						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
-					>
-						Activity Log
-					</button>
-				}
-				if props.IsAdmin {
-					<button
-						type="button"
-						@click="activeTab = 'join'"
-						:class="activeTab === 'join' ? 'border-amber-500 text-amber-600' : 'border-transparent text-brown-500 hover:text-brown-700 hover:border-brown-300'"
-						class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
-					>
-						Join Requests
-						if len(props.JoinRequests) > 0 {
-							<span class="ml-2 bg-blue-100 text-blue-700 py-0.5 px-2 rounded-full text-xs">
-								{ fmt.Sprintf("%d", len(props.JoinRequests)) }
-							</span>
-						}
-					</button>
-				}
-			</nav>
-		</div>
+		<nav class="flex flex-wrap gap-2">
+			if props.CanHide || props.CanUnhide {
+				<button
+					type="button"
+					@click="activeTab = 'hidden'"
+					:class="activeTab === 'hidden' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Hidden Records
+					if len(props.HiddenRecords) > 0 {
+						<span class="ml-1.5 bg-brown-200 text-brown-700 py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.HiddenRecords)) }
+						</span>
+					}
+				</button>
+			}
+			if props.CanBlock || props.CanUnblock {
+				<button
+					type="button"
+					@click="activeTab = 'blocked'"
+					:class="activeTab === 'blocked' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Blocked Users
+					if len(props.BlockedUsers) > 0 {
+						<span class="ml-1.5 bg-red-100 text-red-700 py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.BlockedUsers)) }
+						</span>
+					}
+				</button>
+			}
+			if props.CanViewReports {
+				<button
+					type="button"
+					@click="activeTab = 'reports'"
+					:class="activeTab === 'reports' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Reports
+					if len(props.Reports) > 0 {
+						<span class="ml-1.5 bg-red-100 text-red-700 py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.Reports)) }
+						</span>
+					}
+				</button>
+			}
+			if props.CanViewLogs {
+				<button
+					type="button"
+					@click="activeTab = 'activity'"
+					:class="activeTab === 'activity' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Activity Log
+				</button>
+			}
+			if props.IsAdmin {
+				<button
+					type="button"
+					@click="activeTab = 'join'"
+					:class="activeTab === 'join' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Join Requests
+					if len(props.JoinRequests) > 0 {
+						<span class="ml-1.5 bg-blue-100 text-blue-700 py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.JoinRequests)) }
+						</span>
+					}
+				</button>
+			}
+		</nav>
 		<!-- Hidden Records Tab -->
 		if props.CanHide || props.CanUnhide {
 			<div x-show="activeTab === 'hidden'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
