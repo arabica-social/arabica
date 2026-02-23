@@ -10,8 +10,8 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/firehose"
-	"arabica/internal/moderation"
 	"arabica/internal/models"
+	"arabica/internal/moderation"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"

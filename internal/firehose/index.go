@@ -621,6 +621,12 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 				if err := json.Unmarshal(data, &record); err != nil {
 					continue
 				}
+				// Skip non-feedable records (likes, comments) so they don't
+				// consume slots in the fetch limit, which would cause pagination
+				// to break when many non-feedable records are intermixed.
+				if record.Collection == atproto.NSIDLike || record.Collection == atproto.NSIDComment {
+					continue
+				}
 				records = append(records, &record)
 				lastTimeKey = make([]byte, len(k))
 				copy(lastTimeKey, k)

@@ -256,7 +256,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<div
 					id="stats-panel"
 					hx-get="/_mod/stats"
-					hx-trigger="every 30s"
+					hx-trigger="every 300s"
 					hx-swap="innerHTML"
 				>
 					@AdminStatsContent(props.Stats)
