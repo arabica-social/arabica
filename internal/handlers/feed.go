@@ -7,6 +7,7 @@ import (
 	"arabica/internal/atproto"
 	"arabica/internal/feed"
 	"arabica/internal/lexicons"
+	"arabica/internal/metrics"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
 	"arabica/internal/web/components"
@@ -185,6 +186,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		isLiked = false
+		metrics.LikesTotal.WithLabelValues("delete").Inc()
 
 		// Update firehose index
 		if h.feedIndex != nil {
@@ -204,6 +206,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		isLiked = true
+		metrics.LikesTotal.WithLabelValues("create").Inc()
 
 		// Update firehose index
 		if h.feedIndex != nil {

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"arabica/internal/metrics"
+
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
 )
@@ -65,6 +67,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	// Process the callback with all query parameters
 	sessData, err := h.oauth.HandleCallback(r.Context(), r.URL.Query())
 	if err != nil {
+		metrics.AuthLoginsTotal.WithLabelValues("failure").Inc()
 		log.Error().Err(err).Msg("Failed to complete OAuth flow")
 		http.Error(w, "Failed to complete login", http.StatusInternalServerError)
 		return
@@ -95,6 +98,8 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400 * 30, // 30 days
 	})
+
+	metrics.AuthLoginsTotal.WithLabelValues("success").Inc()
 
 	log.Info().
 		Str("user_did", sessData.AccountDID.String()).

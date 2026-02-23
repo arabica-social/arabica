@@ -8,6 +8,7 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/lexicons"
+	"arabica/internal/metrics"
 	"arabica/internal/models"
 
 	"github.com/rs/zerolog/log"
@@ -216,6 +217,7 @@ func (s *Service) GetCachedPublicFeed(ctx context.Context) ([]*FeedItem, error) 
 	s.cache.mu.RUnlock()
 
 	if cacheValid {
+		metrics.FeedCacheHitsTotal.Inc()
 		// Apply moderation filtering to cached items
 		// This ensures recently hidden content doesn't appear
 		items = s.filterModeratedItems(ctx, items)
@@ -247,6 +249,7 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 		return items, nil
 	}
 
+	metrics.FeedCacheMissesTotal.Inc()
 	log.Debug().Msg("feed: refreshing public feed cache")
 
 	// Fetch PublicFeedCacheSize items to cache (20 items)

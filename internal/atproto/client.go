@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"arabica/internal/metrics"
+
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
@@ -80,8 +82,11 @@ func (c *Client) CreateRecord(ctx context.Context, did syntax.DID, sessionID str
 	err = apiClient.Post(ctx, "com.atproto.repo.createRecord", body, &result)
 
 	duration := time.Since(start)
+	metrics.PDSRequestDuration.WithLabelValues("createRecord").Observe(duration.Seconds())
+	metrics.PDSRequestsTotal.WithLabelValues("createRecord", input.Collection).Inc()
 
 	if err != nil {
+		metrics.PDSErrorsTotal.WithLabelValues("createRecord").Inc()
 		log.Error().
 			Err(err).
 			Str("method", "createRecord").
@@ -146,8 +151,11 @@ func (c *Client) GetRecord(ctx context.Context, did syntax.DID, sessionID string
 	err = apiClient.Get(ctx, "com.atproto.repo.getRecord", params, &result)
 
 	duration := time.Since(start)
+	metrics.PDSRequestDuration.WithLabelValues("getRecord").Observe(duration.Seconds())
+	metrics.PDSRequestsTotal.WithLabelValues("getRecord", input.Collection).Inc()
 
 	if err != nil {
+		metrics.PDSErrorsTotal.WithLabelValues("getRecord").Inc()
 		log.Error().
 			Err(err).
 			Str("method", "getRecord").
@@ -232,8 +240,11 @@ func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID stri
 
 	duration := time.Since(start)
 	recordCount := len(result.Records)
+	metrics.PDSRequestDuration.WithLabelValues("listRecords").Observe(duration.Seconds())
+	metrics.PDSRequestsTotal.WithLabelValues("listRecords", input.Collection).Inc()
 
 	if err != nil {
+		metrics.PDSErrorsTotal.WithLabelValues("listRecords").Inc()
 		log.Error().
 			Err(err).
 			Str("method", "listRecords").
@@ -366,8 +377,11 @@ func (c *Client) PutRecord(ctx context.Context, did syntax.DID, sessionID string
 	err = apiClient.Post(ctx, "com.atproto.repo.putRecord", body, &result)
 
 	duration := time.Since(start)
+	metrics.PDSRequestDuration.WithLabelValues("putRecord").Observe(duration.Seconds())
+	metrics.PDSRequestsTotal.WithLabelValues("putRecord", input.Collection).Inc()
 
 	if err != nil {
+		metrics.PDSErrorsTotal.WithLabelValues("putRecord").Inc()
 		log.Error().
 			Err(err).
 			Str("method", "putRecord").
@@ -420,8 +434,11 @@ func (c *Client) DeleteRecord(ctx context.Context, did syntax.DID, sessionID str
 	err = apiClient.Post(ctx, "com.atproto.repo.deleteRecord", body, &result)
 
 	duration := time.Since(start)
+	metrics.PDSRequestDuration.WithLabelValues("deleteRecord").Observe(duration.Seconds())
+	metrics.PDSRequestsTotal.WithLabelValues("deleteRecord", input.Collection).Inc()
 
 	if err != nil {
+		metrics.PDSErrorsTotal.WithLabelValues("deleteRecord").Inc()
 		log.Error().
 			Err(err).
 			Str("method", "deleteRecord").

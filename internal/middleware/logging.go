@@ -3,10 +3,12 @@ package middleware
 import (
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/metrics"
 
 	"github.com/rs/zerolog"
 )
@@ -100,6 +102,11 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 			logEvent.Interface("headers", headers)
 
 			logEvent.Msg("HTTP request")
+
+			// Record Prometheus metrics
+			normalizedPath := metrics.NormalizePath(r.URL.Path)
+			metrics.HTTPRequestsTotal.WithLabelValues(r.Method, normalizedPath, strconv.Itoa(rw.statusCode)).Inc()
+			metrics.HTTPRequestDuration.WithLabelValues(r.Method, normalizedPath).Observe(duration.Seconds())
 		})
 	}
 }

@@ -7,12 +7,15 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/database/boltstore"
+	"arabica/internal/metrics"
 	"arabica/internal/middleware"
 	"arabica/internal/moderation"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -195,12 +198,19 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 		joinRequests, _ = h.joinStore.ListRequests()
 	}
 
+	// Build stats for admin users
+	var stats pages.AdminStats
+	if isAdmin {
+		stats = h.collectAdminStats()
+	}
+
 	return pages.AdminProps{
 		HiddenRecords:  hiddenRecords,
 		AuditLog:       auditLog,
 		Reports:        enrichedReports,
 		BlockedUsers:   blockedUsers,
 		JoinRequests:   joinRequests,
+		Stats:          stats,
 		CanHide:        canHide,
 		CanUnhide:      canUnhide,
 		CanViewLogs:    canViewLogs,
@@ -588,4 +598,65 @@ func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("HX-Trigger", "mod-action")
 	w.WriteHeader(http.StatusOK)
+}
+
+// collectAdminStats gathers current system statistics from available data sources.
+func (h *Handler) collectAdminStats() pages.AdminStats {
+	var stats pages.AdminStats
+
+	if h.feedIndex != nil {
+		stats.KnownUsers = h.feedIndex.KnownDIDCount()
+		stats.IndexedRecords = h.feedIndex.RecordCount()
+		stats.TotalLikes = h.feedIndex.TotalLikeCount()
+		stats.TotalComments = h.feedIndex.TotalCommentCount()
+		stats.RecordsByCollection = h.feedIndex.RecordCountByCollection()
+	}
+
+	if h.feedRegistry != nil {
+		stats.RegisteredUsers = h.feedRegistry.Count()
+	}
+
+	if h.joinStore != nil {
+		if reqs, err := h.joinStore.ListRequests(); err == nil {
+			stats.PendingJoinRequests = len(reqs)
+		}
+	}
+
+	// Read firehose connection state from the Prometheus gauge
+	stats.FirehoseConnected = getGaugeValue(metrics.FirehoseConnectionState) == 1
+
+	return stats
+}
+
+// getGaugeValue reads the current value of a prometheus.Gauge.
+func getGaugeValue(g prometheus.Gauge) float64 {
+	m := &dto.Metric{}
+	if err := g.Write(m); err != nil {
+		return 0
+	}
+	if m.Gauge != nil {
+		return m.GetGauge().GetValue()
+	}
+	return 0
+}
+
+// HandleAdminStats renders the stats partial for HTMX refresh.
+func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
+	userDID, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil || userDID == "" {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	if h.moderationService == nil || !h.moderationService.IsAdmin(userDID) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	stats := h.collectAdminStats()
+
+	if err := pages.AdminStatsContent(stats).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render admin stats partial")
+		http.Error(w, "Failed to render", http.StatusInternalServerError)
+	}
 }

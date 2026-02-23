@@ -121,6 +121,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /_mod/unblock", cop.Handler(http.HandlerFunc(h.HandleUnblockUser)))
 	mux.Handle("POST /_mod/invite", cop.Handler(http.HandlerFunc(h.HandleCreateInvite)))
 	mux.Handle("POST /_mod/dismiss-join", cop.Handler(http.HandlerFunc(h.HandleDismissJoinRequest)))
+	mux.Handle("GET /_mod/stats", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats)))
 
 	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("static"))

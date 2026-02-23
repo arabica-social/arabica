@@ -959,6 +959,56 @@ func (idx *FeedIndex) RecordCount() int {
 	return count
 }
 
+// KnownDIDCount returns the number of unique DIDs in the index
+func (idx *FeedIndex) KnownDIDCount() int {
+	var count int
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketKnownDIDs)
+		count = b.Stats().KeyN
+		return nil
+	})
+	return count
+}
+
+// TotalLikeCount returns the total number of likes indexed
+func (idx *FeedIndex) TotalLikeCount() int {
+	var count int
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketLikes)
+		count = b.Stats().KeyN
+		return nil
+	})
+	return count
+}
+
+// TotalCommentCount returns the total number of comments indexed
+func (idx *FeedIndex) TotalCommentCount() int {
+	var count int
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketCommentsByActor)
+		count = b.Stats().KeyN
+		return nil
+	})
+	return count
+}
+
+// RecordCountByCollection returns a breakdown of record counts by collection type
+func (idx *FeedIndex) RecordCountByCollection() map[string]int {
+	counts := make(map[string]int)
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		records := tx.Bucket(BucketRecords)
+		return records.ForEach(func(k, v []byte) error {
+			var record IndexedRecord
+			if err := json.Unmarshal(v, &record); err != nil {
+				return nil
+			}
+			counts[record.Collection]++
+			return nil
+		})
+	})
+	return counts
+}
+
 // Helper functions
 
 func makeTimeKey(t time.Time, uri string) []byte {

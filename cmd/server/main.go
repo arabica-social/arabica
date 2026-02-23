@@ -20,9 +20,11 @@ import (
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
 	"arabica/internal/handlers"
+	"arabica/internal/metrics"
 	"arabica/internal/moderation"
 	"arabica/internal/routing"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -193,6 +195,24 @@ func main() {
 
 	log.Info().Msg("Firehose consumer started")
 
+	// Start metrics collector for periodic gauge updates
+	metrics.StartCollector(ctx, metrics.StatsSource{
+		KnownDIDCount:   feedIndex.KnownDIDCount,
+		RegisteredCount: feedRegistry.Count,
+		RecordCount:     feedIndex.RecordCount,
+		PendingJoinCount: func() int {
+			joinStore := store.JoinStore()
+			if reqs, err := joinStore.ListRequests(); err == nil {
+				return len(reqs)
+			}
+			return 0
+		},
+		LikeCount:               feedIndex.TotalLikeCount,
+		CommentCount:            feedIndex.TotalCommentCount,
+		RecordCountByCollection: feedIndex.RecordCountByCollection,
+		FirehoseConnected:       firehoseConsumer.IsConnected,
+	}, 60*time.Second)
+
 	// Log known DIDs from database (DIDs discovered via firehose)
 	if knownDIDsFromDB, err := feedIndex.GetKnownDIDs(); err == nil {
 		if len(knownDIDsFromDB) > 0 {
@@ -344,6 +364,26 @@ func main() {
 		Logger:       log.Logger,
 	})
 
+	// Start internal metrics server on localhost only (not publicly accessible)
+	metricsPort := os.Getenv("METRICS_PORT")
+	if metricsPort == "" {
+		metricsPort = "9101"
+	}
+	metricsMux := http.NewServeMux()
+	metricsMux.Handle("GET /metrics", promhttp.Handler())
+	metricsServer := &http.Server{
+		Addr:    "127.0.0.1:" + metricsPort,
+		Handler: metricsMux,
+	}
+	go func() {
+		log.Info().
+			Str("address", "127.0.0.1:"+metricsPort).
+			Msg("Starting metrics server (localhost only)")
+		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error().Err(err).Msg("Metrics server failed to start")
+		}
+	}()
+
 	// Create HTTP server
 	server := &http.Server{
 		Addr:    "0.0.0.0:" + port,
@@ -372,9 +412,13 @@ func main() {
 	log.Info().Msg("Stopping firehose consumer...")
 	firehoseConsumer.Stop()
 
-	// Graceful shutdown of HTTP server
+	// Graceful shutdown of HTTP server and metrics server
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
+
+	if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+		log.Error().Err(err).Msg("Metrics server shutdown error")
+	}
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Error().Err(err).Msg("HTTP server shutdown error")

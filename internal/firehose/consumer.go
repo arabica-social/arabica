@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"arabica/internal/metrics"
+
 	"github.com/gorilla/websocket"
 	"github.com/klauspost/compress/zstd"
 	"github.com/rs/zerolog/log"
@@ -185,6 +187,7 @@ func (c *Consumer) connectAndConsume(ctx context.Context, endpoint string) error
 	c.connMu.Unlock()
 
 	c.connected.Store(true)
+	metrics.FirehoseConnectionState.Set(1)
 	log.Info().Str("endpoint", endpoint).Msg("firehose: connected to Jetstream")
 
 	// Mark index as ready once connected
@@ -198,6 +201,7 @@ func (c *Consumer) connectAndConsume(ctx context.Context, endpoint string) error
 		}
 		c.connMu.Unlock()
 		c.connected.Store(false)
+		metrics.FirehoseConnectionState.Set(0)
 	}()
 
 	// Read events
@@ -221,6 +225,7 @@ func (c *Consumer) connectAndConsume(ctx context.Context, endpoint string) error
 		c.bytesReceived.Add(int64(len(message)))
 
 		if err := c.processMessage(message); err != nil {
+			metrics.FirehoseErrorsTotal.Inc()
 			log.Warn().Err(err).Msg("firehose: failed to process message")
 		}
 	}
@@ -309,6 +314,8 @@ func (c *Consumer) processMessage(data []byte) error {
 	if !strings.HasPrefix(commit.Collection, "social.arabica.alpha.") {
 		return nil
 	}
+
+	metrics.FirehoseEventsTotal.WithLabelValues(commit.Collection, commit.Operation).Inc()
 
 	log.Debug().
 		Str("did", event.DID).

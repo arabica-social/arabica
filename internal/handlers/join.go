@@ -9,6 +9,7 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/database/boltstore"
+	"arabica/internal/metrics"
 	"arabica/internal/middleware"
 	"arabica/internal/moderation"
 	"arabica/internal/web/pages"
@@ -66,6 +67,7 @@ func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to save request, please try again", http.StatusInternalServerError)
 			return
 		}
+		metrics.JoinRequestsTotal.Inc()
 		log.Info().Str("email", emailAddr).Msg("Join request saved")
 	}
 
@@ -146,6 +148,7 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.InvitesCreatedTotal.Inc()
 	log.Info().Str("email", reqEmail).Str("code", out.Code).Str("by", userDID).Msg("Invite code created")
 
 	// Email the invite code to the requester

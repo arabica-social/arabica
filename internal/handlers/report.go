@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/metrics"
 	"arabica/internal/moderation"
 
 	"github.com/rs/zerolog/log"
@@ -141,6 +142,8 @@ func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 		writeReportError(w, "Failed to save report", http.StatusInternalServerError)
 		return
 	}
+
+	metrics.ReportsTotal.Inc()
 
 	log.Info().
 		Str("report_id", report.ID).

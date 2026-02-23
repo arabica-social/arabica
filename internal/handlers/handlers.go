@@ -13,6 +13,7 @@ import (
 	"arabica/internal/email"
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
+	"arabica/internal/metrics"
 	"arabica/internal/middleware"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
@@ -315,6 +316,8 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.CommentsTotal.WithLabelValues("create").Inc()
+
 	// Update firehose index (pass parent URI and comment's CID for threading)
 	if h.feedIndex != nil {
 		_ = h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, parentURI, comment.CID, text, comment.CreatedAt)
@@ -390,6 +393,8 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Failed to delete comment")
 		return
 	}
+
+	metrics.CommentsTotal.WithLabelValues("delete").Inc()
 
 	// Update firehose index
 	if h.feedIndex != nil {

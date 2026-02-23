@@ -15,12 +15,25 @@ type EnrichedReport struct {
 	PostContent    string // Summary of the reported content
 }
 
+// AdminStats holds aggregate statistics for the admin dashboard
+type AdminStats struct {
+	KnownUsers          int
+	RegisteredUsers     int
+	IndexedRecords      int
+	PendingJoinRequests int
+	TotalLikes          int
+	TotalComments       int
+	FirehoseConnected   bool
+	RecordsByCollection map[string]int
+}
+
 type AdminProps struct {
 	HiddenRecords  []moderation.HiddenRecord
 	AuditLog       []moderation.AuditEntry
 	Reports        []EnrichedReport
 	BlockedUsers   []moderation.BlacklistedUser
 	JoinRequests   []*boltstore.JoinRequest
+	Stats          AdminStats
 	CanHide        bool
 	CanUnhide      bool
 	CanViewLogs    bool
@@ -132,6 +145,14 @@ templ AdminDashboardBody(props AdminProps) {
 						</span>
 					}
 				</button>
+				<button
+					type="button"
+					@click="activeTab = 'stats'"
+					:class="activeTab === 'stats' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Stats
+				</button>
 			}
 		</nav>
 		<!-- Hidden Records Tab -->
@@ -228,6 +249,19 @@ templ AdminDashboardBody(props AdminProps) {
 					</div>
 				</div>
 			}
+		}
+		<!-- Stats Tab (admin only) -->
+		if props.IsAdmin {
+			<div x-show="activeTab === 'stats'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+				<div
+					id="stats-panel"
+					hx-get="/_mod/stats"
+					hx-trigger="every 30s"
+					hx-swap="innerHTML"
+				>
+					@AdminStatsContent(props.Stats)
+				</div>
+			</div>
 		}
 	</div>
 }
@@ -695,4 +729,68 @@ templ JoinRequestCard(req *boltstore.JoinRequest) {
 			</div>
 		</div>
 	</div>
+}
+
+templ AdminStatsContent(stats AdminStats) {
+	<div class="card card-inner">
+		<h2 class="section-title">System Stats</h2>
+		<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+			@statCard("Known Users", fmt.Sprintf("%d", stats.KnownUsers), "Unique DIDs indexed")
+			@statCard("Registered Users", fmt.Sprintf("%d", stats.RegisteredUsers), "Feed registry")
+			@statCard("Indexed Records", fmt.Sprintf("%d", stats.IndexedRecords), "Total records")
+			@statCard("Pending Joins", fmt.Sprintf("%d", stats.PendingJoinRequests), "Join requests")
+			@statCard("Total Likes", fmt.Sprintf("%d", stats.TotalLikes), "Across all records")
+			@statCard("Total Comments", fmt.Sprintf("%d", stats.TotalComments), "Across all records")
+			if stats.FirehoseConnected {
+				@statCard("Firehose", "Connected", "Real-time events")
+			} else {
+				@statCardWarning("Firehose", "Disconnected", "Not receiving events")
+			}
+		</div>
+		if len(stats.RecordsByCollection) > 0 {
+			<h3 class="section-title mt-6">Records by Collection</h3>
+			<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+				for collection, count := range stats.RecordsByCollection {
+					@statCard(collectionLabel(collection), fmt.Sprintf("%d", count), collection)
+				}
+			</div>
+		}
+	</div>
+}
+
+templ statCard(title, value, subtitle string) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4 text-center">
+		<div class="text-2xl font-bold text-brown-900">{ value }</div>
+		<div class="text-sm font-medium text-brown-700 mt-1">{ title }</div>
+		<div class="text-xs text-brown-500 mt-0.5">{ subtitle }</div>
+	</div>
+}
+
+templ statCardWarning(title, value, subtitle string) {
+	<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+		<div class="text-2xl font-bold text-red-700">{ value }</div>
+		<div class="text-sm font-medium text-red-600 mt-1">{ title }</div>
+		<div class="text-xs text-red-500 mt-0.5">{ subtitle }</div>
+	</div>
+}
+
+func collectionLabel(nsid string) string {
+	switch nsid {
+	case "social.arabica.alpha.brew":
+		return "Brews"
+	case "social.arabica.alpha.bean":
+		return "Beans"
+	case "social.arabica.alpha.roaster":
+		return "Roasters"
+	case "social.arabica.alpha.grinder":
+		return "Grinders"
+	case "social.arabica.alpha.brewer":
+		return "Brewers"
+	case "social.arabica.alpha.like":
+		return "Likes"
+	case "social.arabica.alpha.comment":
+		return "Comments"
+	default:
+		return nsid
+	}
 }
