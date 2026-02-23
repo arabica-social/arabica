@@ -123,6 +123,7 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create invite code via PDS admin API
+	log.Info().Str("pds_url", h.pdsAdminURL).Str("email", reqEmail).Msg("Creating invite code via PDS admin API")
 	client := &xrpc.Client{
 		Host:       h.pdsAdminURL,
 		AdminToken: &h.pdsAdminToken,
@@ -131,7 +132,16 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 		UseCount: 1,
 	})
 	if err != nil {
-		log.Error().Err(err).Str("email", reqEmail).Msg("Failed to create invite code")
+		logEvent := log.Error().Err(err).Str("email", reqEmail).Str("pds_url", h.pdsAdminURL)
+		var xrpcErr *xrpc.Error
+		if errors.As(err, &xrpcErr) {
+			logEvent = logEvent.Int("status_code", xrpcErr.StatusCode)
+			var inner *xrpc.XRPCError
+			if errors.As(xrpcErr.Wrapped, &inner) {
+				logEvent = logEvent.Str("xrpc_error", inner.ErrStr).Str("xrpc_message", inner.Message)
+			}
+		}
+		logEvent.Msg("Failed to create invite code")
 		http.Error(w, "Failed to create invite code", http.StatusInternalServerError)
 		return
 	}
@@ -140,16 +150,23 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 
 	// Email the invite code to the requester
 	if h.emailSender != nil && h.emailSender.Enabled() {
+		log.Info().Str("email", reqEmail).Str("code", out.Code).Msg("Sending invite code email")
 		subject := "Your Arabica Invite Code"
 		// TODO: this should probably use the env var rather than hard coded (for name/url)
 		// TODO: also this could be a template file
 		body := fmt.Sprintf("Welcome to Arabica!\n\nHere is your invite code to create an account on the arabica.systems PDS:\n\n    %s\n\nVisit https://arabica.social/join to sign up with this code.\n\nHappy brewing!\n", out.Code)
 		if err := h.emailSender.Send(reqEmail, subject, body); err != nil {
-			log.Error().Err(err).Str("email", reqEmail).Msg("Failed to send invite email")
+			log.Error().Err(err).Str("email", reqEmail).Str("code", out.Code).Msg("Failed to send invite email")
 			http.Error(w, "Invite created but failed to send email. Code: "+out.Code, http.StatusInternalServerError)
 			return
 		}
-		log.Info().Str("email", reqEmail).Msg("Invite code emailed")
+		log.Info().Str("email", reqEmail).Msg("Invite code emailed successfully")
+	} else {
+		reason := "nil"
+		if h.emailSender != nil {
+			reason = "disabled (no SMTP host)"
+		}
+		log.Warn().Str("email", reqEmail).Str("code", out.Code).Str("reason", reason).Msg("Email sender not available, invite code not emailed")
 	}
 
 	// Log the action
@@ -317,6 +334,7 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Call PDS createAccount (public endpoint, no admin token needed)
+	log.Info().Str("handle", fullHandle).Str("email", emailAddr).Str("pds_url", h.pdsAdminURL).Msg("Creating account via PDS")
 	client := &xrpc.Client{Host: h.pdsAdminURL}
 	out, err := comatproto.ServerCreateAccount(r.Context(), client, &comatproto.ServerCreateAccount_Input{
 		Handle:     fullHandle,
@@ -344,7 +362,11 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 				}
 			}
 		}
-		log.Error().Err(err).Str("handle", fullHandle).Msg("Failed to create account")
+		logEvent := log.Error().Err(err).Str("handle", fullHandle).Str("email", emailAddr).Str("pds_url", h.pdsAdminURL)
+		if xrpcErr2, ok := err.(*xrpc.Error); ok {
+			logEvent = logEvent.Int("status_code", xrpcErr2.StatusCode)
+		}
+		logEvent.Msg("Failed to create account")
 		renderError(errMsg)
 		return
 	}
