@@ -502,8 +502,13 @@ templ FeedBrewerContent(item *feed.FeedItem) {
 			<div class="text-base mb-2">
 				<span class="font-bold text-brown-900">{ item.Brewer.Name }</span>
 			</div>
+			if item.Brewer.BrewerType != "" {
+				<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+					<span class="inline-flex items-center gap-0.5">🫖 { item.Brewer.BrewerType }</span>
+				</div>
+			}
 			if item.Brewer.Description != "" {
-				<div class="text-sm text-brown-800 italic">"{ item.Brewer.Description }"</div>
+				<div class="mt-2 text-sm text-brown-800 italic">"{ item.Brewer.Description }"</div>
 			}
 		</div>
 	}
