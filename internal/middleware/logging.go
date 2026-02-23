@@ -94,14 +94,16 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 				logEvent.Str("user_did", did)
 			}
 
-			// Log all request headers for debugging malicious traffic
-			headers := make(map[string]string)
-			for name, values := range r.Header {
-				headers[name] = strings.Join(values, ", ")
+			// Log all request headers only at debug level to avoid verbose/sensitive output
+			if logger.GetLevel() == zerolog.DebugLevel {
+				headers := make(map[string]string)
+				for name, values := range r.Header {
+					headers[name] = strings.Join(values, ", ")
+				}
+				logEvent.Interface("headers", headers)
 			}
-			logEvent.Interface("headers", headers)
 
-			logEvent.Msg("HTTP request")
+			logEvent.Msgf("%s %s %d", r.Method, r.URL.Path, rw.statusCode)
 
 			// Record Prometheus metrics
 			normalizedPath := metrics.NormalizePath(r.URL.Path)

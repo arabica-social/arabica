@@ -216,6 +216,7 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 	if owner != "" {
 		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
 		if err != nil {
+			log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for roaster view")
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
@@ -223,6 +224,7 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 		publicClient := atproto.NewPublicClient()
 		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRoaster, rkey)
 		if err != nil {
+			log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msg("Failed to get roaster record")
 			http.Error(w, "Roaster not found", http.StatusNotFound)
 			return
 		}
@@ -232,6 +234,7 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 
 		roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
 		if err != nil {
+			log.Error().Err(err).Msg("Failed to convert roaster record")
 			http.Error(w, "Failed to load roaster", http.StatusInternalServerError)
 			return
 		}
@@ -247,12 +250,14 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 
 		atprotoStore, ok := store.(*atproto.AtprotoStore)
 		if !ok {
+			log.Error().Msg("Failed to cast store to AtprotoStore")
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 			return
 		}
 
 		roasterRecord, err := atprotoStore.GetRoasterRecordByRKey(r.Context(), rkey)
 		if err != nil {
+			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get roaster for view")
 			http.Error(w, "Roaster not found", http.StatusNotFound)
 			return
 		}
@@ -318,6 +323,7 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 	if owner != "" {
 		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
 		if err != nil {
+			log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for grinder view")
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
@@ -325,6 +331,7 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 		publicClient := atproto.NewPublicClient()
 		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDGrinder, rkey)
 		if err != nil {
+			log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msg("Failed to get grinder record")
 			http.Error(w, "Grinder not found", http.StatusNotFound)
 			return
 		}
@@ -334,6 +341,7 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 
 		grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
 		if err != nil {
+			log.Error().Err(err).Msg("Failed to convert grinder record")
 			http.Error(w, "Failed to load grinder", http.StatusInternalServerError)
 			return
 		}
@@ -349,12 +357,14 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 
 		atprotoStore, ok := store.(*atproto.AtprotoStore)
 		if !ok {
+			log.Error().Msg("Failed to cast store to AtprotoStore")
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 			return
 		}
 
 		grinderRecord, err := atprotoStore.GetGrinderRecordByRKey(r.Context(), rkey)
 		if err != nil {
+			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get grinder for view")
 			http.Error(w, "Grinder not found", http.StatusNotFound)
 			return
 		}
@@ -420,6 +430,7 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	if owner != "" {
 		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
 		if err != nil {
+			log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for brewer view")
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
@@ -427,6 +438,7 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 		publicClient := atproto.NewPublicClient()
 		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBrewer, rkey)
 		if err != nil {
+			log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msg("Failed to get brewer record")
 			http.Error(w, "Brewer not found", http.StatusNotFound)
 			return
 		}
@@ -436,6 +448,7 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 
 		brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
 		if err != nil {
+			log.Error().Err(err).Msg("Failed to convert brewer record")
 			http.Error(w, "Failed to load brewer", http.StatusInternalServerError)
 			return
 		}
@@ -451,12 +464,14 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 
 		atprotoStore, ok := store.(*atproto.AtprotoStore)
 		if !ok {
+			log.Error().Msg("Failed to cast store to AtprotoStore")
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 			return
 		}
 
 		brewerRecord, err := atprotoStore.GetBrewerRecordByRKey(r.Context(), rkey)
 		if err != nil {
+			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brewer for view")
 			http.Error(w, "Brewer not found", http.StatusNotFound)
 			return
 		}

@@ -87,19 +87,25 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 
 	if h.feedService != nil {
 		if isAuthenticated {
-			result, _ := h.feedService.GetFeedWithQuery(r.Context(), feed.FeedQuery{
+			result, err := h.feedService.GetFeedWithQuery(r.Context(), feed.FeedQuery{
 				Limit:      feed.FeedLimit,
 				Cursor:     cursor,
 				TypeFilter: typeFilter,
 				Sort:       sortBy,
 			})
-			if result != nil {
+			if err != nil {
+				log.Warn().Err(err).Msg("Failed to get feed with query")
+			} else if result != nil {
 				feedItems = result.Items
 				nextCursor = result.NextCursor
 			}
 		} else {
 			// Unauthenticated users get a limited feed from the cache (no filtering)
-			feedItems, _ = h.feedService.GetCachedPublicFeed(r.Context())
+			var err error
+			feedItems, err = h.feedService.GetCachedPublicFeed(r.Context())
+			if err != nil {
+				log.Warn().Err(err).Msg("Failed to get cached public feed")
+			}
 		}
 	}
 
