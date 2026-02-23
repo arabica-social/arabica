@@ -337,18 +337,6 @@ func main() {
 		log.Info().Msg("Email notifications disabled (SMTP_HOST not set), join requests will be saved to database only")
 	}
 
-	// Configure signup PDS servers for prompt=create account registration
-	signupPDSConfigPath := os.Getenv("ARABICA_SIGNUP_PDS_CONFIG")
-	signupPDSConfig, err := handlers.LoadSignupPDSConfig(signupPDSConfigPath)
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to load signup PDS config, signup disabled")
-	} else if signupPDSConfig != nil {
-		h.SetSignupPDSConfig(signupPDSConfig)
-		log.Info().Int("servers", len(signupPDSConfig.Servers)).Msg("Signup PDS servers configured")
-	} else {
-		log.Info().Msg("No signup PDS config (ARABICA_SIGNUP_PDS_CONFIG not set)")
-	}
-
 	// Setup router with middleware
 	handler := routing.SetupRouter(routing.Config{
 		Handlers:     h,

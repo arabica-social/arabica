@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"arabica/internal/atproto"
@@ -55,8 +54,6 @@ type Handler struct {
 	pdsAdminURL   string
 	pdsAdminToken string
 
-	// Signup PDS config for prompt=create OAuth flow
-	signupPDSConfig *SignupPDSConfig
 }
 
 // NewHandler creates a new Handler with all required dependencies.
@@ -98,46 +95,6 @@ func (h *Handler) SetJoin(sender *email.Sender, store *boltstore.JoinStore, pdsU
 	h.pdsAdminToken = pdsAdminToken
 }
 
-// SignupPDSServer represents a PDS server available for account registration.
-type SignupPDSServer struct {
-	URL         string `json:"url"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	InviteOnly  bool   `json:"invite_only"`
-}
-
-// SignupPDSConfig holds the configuration for PDS servers available for signup.
-type SignupPDSConfig struct {
-	Servers []SignupPDSServer `json:"servers"`
-}
-
-// LoadSignupPDSConfig reads signup PDS configuration from a JSON file.
-// Returns nil config (not an error) if path is empty or file doesn't exist.
-func LoadSignupPDSConfig(path string) (*SignupPDSConfig, error) {
-	if path == "" {
-		return nil, nil
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to read signup PDS config: %w", err)
-	}
-
-	var config SignupPDSConfig
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse signup PDS config: %w", err)
-	}
-
-	return &config, nil
-}
-
-// SetSignupPDSConfig configures the PDS servers available for account registration
-func (h *Handler) SetSignupPDSConfig(config *SignupPDSConfig) {
-	h.signupPDSConfig = config
-}
 
 // validateRKey validates and returns an rkey from a path parameter.
 // Returns the rkey if valid, or writes an error response and returns empty string if invalid.

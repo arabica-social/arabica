@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -264,32 +263,21 @@ func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
+// signupAllowedPDSURLs is the set of PDS URLs that are allowed for signup.
+// This must match the URLs hardcoded in create_account.templ.
+var signupAllowedPDSURLs = map[string]bool{
+	"https://arabica.systems":   true,
+	"https://selfhosted.social": true,
+	"https://bsky.social":       true,
+}
+
 // HandleCreateAccount renders the account creation page (GET /join/create).
-// Shows available PDS servers for account registration via OAuth prompt=create.
+// PDS server options are defined in create_account.templ.
 func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Create Account")
 
-	var pdsOptions []pages.PDSOption
-	if h.signupPDSConfig != nil {
-		for _, s := range h.signupPDSConfig.Servers {
-			u, err := url.Parse(s.URL)
-			if err != nil {
-				log.Warn().Str("url", s.URL).Err(err).Msg("Invalid signup PDS URL, skipping")
-				continue
-			}
-			pdsOptions = append(pdsOptions, pages.PDSOption{
-				URL:         s.URL,
-				Host:        u.Host,
-				Name:        s.Name,
-				Description: s.Description,
-				InviteOnly:  s.InviteOnly,
-			})
-		}
-	}
-
 	props := pages.CreateAccountProps{
-		PDSOptions: pdsOptions,
-		Error:      r.URL.Query().Get("error"),
+		Error: r.URL.Query().Get("error"),
 	}
 
 	if err := pages.CreateAccount(layoutData, props).Render(r.Context(), w); err != nil {
@@ -316,17 +304,7 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Validate the PDS URL is in our allowed list
-	allowed := false
-	if h.signupPDSConfig != nil {
-		for _, s := range h.signupPDSConfig.Servers {
-			if s.URL == pdsURL {
-				allowed = true
-				break
-			}
-		}
-	}
-	if !allowed {
+	if !signupAllowedPDSURLs[pdsURL] {
 		log.Warn().Str("pds_url", pdsURL).Msg("Signup attempt with unlisted PDS URL")
 		http.Redirect(w, r, "/join/create?error=Invalid+server+selection", http.StatusSeeOther)
 		return

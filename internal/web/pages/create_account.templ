@@ -2,19 +2,9 @@ package pages
 
 import "arabica/internal/web/components"
 
-// PDSOption represents a PDS server available for account registration.
-type PDSOption struct {
-	URL         string // Full URL (e.g., "https://arabica.systems")
-	Host        string // Display hostname (e.g., "arabica.systems")
-	Name        string // Human-friendly name (e.g., "Arabica Systems")
-	Description string // Description shown to user
-	InviteOnly  bool   // Whether the server requires an invite code
-}
-
 // CreateAccountProps holds state for the account creation page.
 type CreateAccountProps struct {
-	PDSOptions []PDSOption // Available PDS servers for registration
-	Error      string      // Error message from failed signup attempt
+	Error string // Error message from failed signup attempt
 }
 
 // CreateAccount renders the account creation page with layout.
@@ -38,57 +28,59 @@ templ CreateAccountContent(props CreateAccountProps) {
 				{ props.Error }
 			</div>
 		}
-		if len(props.PDSOptions) > 0 {
-			<div class="space-y-4">
-				for _, pds := range props.PDSOptions {
-					<div class="card card-inner">
-						<form method="POST" action="/join/create">
-							<input type="hidden" name="pds_url" value={ pds.URL }/>
-							<div class="flex items-center justify-between gap-4">
-								<div class="min-w-0">
-									<div class="flex items-center gap-2 mb-1">
-										<p class="text-lg font-semibold text-brown-900">
-											if pds.Name != "" {
-												{ pds.Name }
-											} else {
-												{ pds.Host }
-											}
-										</p>
-										if pds.InviteOnly {
-											<span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-												Invite Only
-											</span>
-										} else {
-											<span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-												Open
-											</span>
-										}
-									</div>
-									if pds.Description != "" {
-										<p class="text-sm text-brown-700 mb-1">{ pds.Description }</p>
-									}
-									<p class="text-xs text-brown-500">{ pds.Host }</p>
-								</div>
-								@components.PrimaryButton(components.ButtonProps{
-									Text: "Create Account",
-									Type: "submit",
-								})
-							</div>
-						</form>
-					</div>
-				}
-			</div>
-		} else {
-			@components.EmptyState(components.EmptyStateProps{
-				Message:    "No servers available for registration",
-				SubMessage: "Account registration is not currently available. You can request an invite instead.",
-				ActionURL:  "/join",
-				ActionText: "Request an Invite",
-			})
-		}
+		<div class="space-y-4">
+			@pdsCard("https://arabica.systems", true) {
+				<p class="text-lg font-semibold text-brown-900">Arabica</p>
+				<p class="text-sm text-brown-700">The official Arabica PDS. Invite only.</p>
+				<p class="text-xs text-brown-500">arabica.systems</p>
+			}
+			@pdsCard("https://selfhosted.social", false) {
+				<p class="text-lg font-semibold text-brown-900">selfhosted.social</p>
+				<p class="text-sm text-brown-700">
+					Indie PDS hosted by
+					<a href="https://bsky.app/profile/baileytownsend.dev" target="_blank" rel="noopener noreferrer" class="link-bold">{ "@baileytownsend.dev" }</a>.
+					Open registration.
+				</p>
+				<p class="text-xs text-brown-500">selfhosted.social</p>
+			}
+			@pdsCard("https://bsky.social", false) {
+				<p class="text-lg font-semibold text-brown-900">Bluesky</p>
+				<p class="text-sm text-brown-700">Maintained by Bluesky PBC. Open registration.</p>
+				<p class="text-xs text-brown-500">bsky.social</p>
+			}
+		</div>
 		<p class="text-sm text-brown-600 mt-6 text-center">
 			Already have an account?
 			<a href="/login" class="link-bold">Log in here</a>.
 		</p>
+	</div>
+}
+
+// pdsCard renders a PDS server option card with a sign-up button.
+templ pdsCard(pdsURL string, inviteOnly bool) {
+	<div class="card card-inner">
+		<form method="POST" action="/join/create">
+			<input type="hidden" name="pds_url" value={ pdsURL }/>
+			<div class="flex items-center justify-between gap-4">
+				<div class="min-w-0">
+					{ children... }
+				</div>
+				<div class="flex items-center gap-2 shrink-0">
+					if inviteOnly {
+						<span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+							Invite Only
+						</span>
+					} else {
+						<span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+							Open
+						</span>
+					}
+					@components.PrimaryButton(components.ButtonProps{
+						Text: "Sign Up",
+						Type: "submit",
+					})
+				</div>
+			</div>
+		</form>
 	</div>
 }
