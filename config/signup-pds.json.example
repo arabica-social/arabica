@@ -1,0 +1,16 @@
+{
+  "servers": [
+    {
+      "url": "https://arabica.systems",
+      "name": "Arabica Systems",
+      "description": "The official Arabica PDS. Invite only.",
+      "invite_only": true
+    },
+    {
+      "url": "https://bsky.social",
+      "name": "Bluesky Social",
+      "description": "The main Bluesky PDS. Open registration.",
+      "invite_only": false
+    }
+  ]
+}

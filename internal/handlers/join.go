@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -154,7 +155,9 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 		subject := "Your Arabica Invite Code"
 		// TODO: this should probably use the env var rather than hard coded (for name/url)
 		// TODO: also this could be a template file
-		body := fmt.Sprintf("Welcome to Arabica!\n\nHere is your invite code to create an account on the arabica.systems PDS:\n\n    %s\n\nVisit https://arabica.social/join to sign up with this code.\n\nHappy brewing!\n", out.Code)
+		createURL := "https://arabica.social/join"
+
+		body := fmt.Sprintf("Welcome to Arabica!\n\nHere is your invite code to create an account on the arabica.systems PDS:\n\n    %s\n\nVisit %s to sign up with this code.\n\nHappy brewing!\n", out.Code, createURL)
 		if err := h.emailSender.Send(reqEmail, subject, body); err != nil {
 			log.Error().Err(err).Str("email", reqEmail).Str("code", out.Code).Msg("Failed to send invite email")
 			http.Error(w, "Invite created but failed to send email. Code: "+out.Code, http.StatusInternalServerError)
@@ -261,13 +264,32 @@ func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
-// HandleCreateAccount renders the account creation form (GET /join/create).
+// HandleCreateAccount renders the account creation page (GET /join/create).
+// Shows available PDS servers for account registration via OAuth prompt=create.
 func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Create Account")
 
+	var pdsOptions []pages.PDSOption
+	if h.signupPDSConfig != nil {
+		for _, s := range h.signupPDSConfig.Servers {
+			u, err := url.Parse(s.URL)
+			if err != nil {
+				log.Warn().Str("url", s.URL).Err(err).Msg("Invalid signup PDS URL, skipping")
+				continue
+			}
+			pdsOptions = append(pdsOptions, pages.PDSOption{
+				URL:         s.URL,
+				Host:        u.Host,
+				Name:        s.Name,
+				Description: s.Description,
+				InviteOnly:  s.InviteOnly,
+			})
+		}
+	}
+
 	props := pages.CreateAccountProps{
-		InviteCode:   r.URL.Query().Get("code"),
-		HandleDomain: "arabica.systems",
+		PDSOptions: pdsOptions,
+		Error:      r.URL.Query().Get("error"),
 	}
 
 	if err := pages.CreateAccount(layoutData, props).Render(r.Context(), w); err != nil {
@@ -276,106 +298,47 @@ func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleCreateAccountSubmit processes the account creation form (POST /join/create).
+// HandleCreateAccountSubmit initiates the OAuth prompt=create flow (POST /join/create).
 func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Request) {
+	if h.oauth == nil {
+		http.Error(w, "OAuth not configured", http.StatusInternalServerError)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	inviteCode := strings.TrimSpace(r.FormValue("invite_code"))
-	handle := strings.TrimSpace(r.FormValue("handle"))
-	emailAddr := strings.TrimSpace(r.FormValue("email"))
-	password := r.FormValue("password")
-	passwordConfirm := r.FormValue("password_confirm")
-	honeypot := r.FormValue("website")
-
-	// Honeypot check — bots fill hidden fields; show fake success
-	if honeypot != "" {
-		layoutData, _, _ := h.layoutDataFromRequest(r, "Account Created")
-		_ = pages.CreateAccountSuccess(layoutData, pages.CreateAccountSuccessProps{Handle: "user.arabica.systems"}).Render(r.Context(), w)
+	pdsURL := r.FormValue("pds_url")
+	if pdsURL == "" {
+		http.Redirect(w, r, "/join/create?error=Please+select+a+server", http.StatusSeeOther)
 		return
 	}
 
-	handleDomain := "arabica.systems"
-
-	// Render form with error helper
-	renderError := func(msg string) {
-		layoutData, _, _ := h.layoutDataFromRequest(r, "Create Account")
-		props := pages.CreateAccountProps{
-			Error:        msg,
-			InviteCode:   inviteCode,
-			Handle:       handle,
-			Email:        emailAddr,
-			HandleDomain: handleDomain,
-		}
-		if err := pages.CreateAccount(layoutData, props).Render(r.Context(), w); err != nil {
-			http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		}
-	}
-
-	// Validate required fields
-	if inviteCode == "" || handle == "" || emailAddr == "" || password == "" {
-		renderError("All fields are required.")
-		return
-	}
-	if password != passwordConfirm {
-		renderError("Passwords do not match.")
-		return
-	}
-
-	// Build full handle
-	fullHandle := handle + "." + handleDomain
-
-	if h.pdsAdminURL == "" {
-		renderError("Account creation is not available at this time.")
-		log.Error().Msg("PDS admin URL not configured for account creation")
-		return
-	}
-
-	// Call PDS createAccount (public endpoint, no admin token needed)
-	log.Info().Str("handle", fullHandle).Str("email", emailAddr).Str("pds_url", h.pdsAdminURL).Msg("Creating account via PDS")
-	client := &xrpc.Client{Host: h.pdsAdminURL}
-	out, err := comatproto.ServerCreateAccount(r.Context(), client, &comatproto.ServerCreateAccount_Input{
-		Handle:     fullHandle,
-		Email:      &emailAddr,
-		Password:   &password,
-		InviteCode: &inviteCode,
-	})
-	if err != nil {
-		errMsg := "Account creation failed. Please try again."
-		var xrpcErr *xrpc.Error
-		if errors.As(err, &xrpcErr) {
-			var inner *xrpc.XRPCError
-			if errors.As(xrpcErr.Wrapped, &inner) {
-				switch inner.ErrStr {
-				case "InvalidInviteCode":
-					errMsg = "Invalid or expired invite code."
-				case "HandleNotAvailable":
-					errMsg = "This handle is already taken."
-				case "InvalidHandle":
-					errMsg = "Invalid handle format. Use only letters, numbers, and hyphens."
-				default:
-					if inner.Message != "" {
-						errMsg = inner.Message
-					}
-				}
+	// Validate the PDS URL is in our allowed list
+	allowed := false
+	if h.signupPDSConfig != nil {
+		for _, s := range h.signupPDSConfig.Servers {
+			if s.URL == pdsURL {
+				allowed = true
+				break
 			}
 		}
-		logEvent := log.Error().Err(err).Str("handle", fullHandle).Str("email", emailAddr).Str("pds_url", h.pdsAdminURL)
-		if xrpcErr2, ok := err.(*xrpc.Error); ok {
-			logEvent = logEvent.Int("status_code", xrpcErr2.StatusCode)
-		}
-		logEvent.Msg("Failed to create account")
-		renderError(errMsg)
+	}
+	if !allowed {
+		log.Warn().Str("pds_url", pdsURL).Msg("Signup attempt with unlisted PDS URL")
+		http.Redirect(w, r, "/join/create?error=Invalid+server+selection", http.StatusSeeOther)
 		return
 	}
 
-	log.Info().Str("handle", out.Handle).Str("did", out.Did).Msg("Account created")
-
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Account Created")
-	if err := pages.CreateAccountSuccess(layoutData, pages.CreateAccountSuccessProps{Handle: out.Handle}).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render create account success page")
+	// Initiate OAuth flow with prompt=create
+	authURL, err := h.oauth.InitiateSignup(r.Context(), pdsURL)
+	if err != nil {
+		log.Error().Err(err).Str("pds_url", pdsURL).Msg("Failed to initiate signup flow")
+		http.Redirect(w, r, "/join/create?error=Failed+to+connect+to+server.+Please+try+again.", http.StatusSeeOther)
+		return
 	}
+
+	http.Redirect(w, r, authURL, http.StatusFound)
 }

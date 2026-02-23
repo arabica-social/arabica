@@ -1,14 +1,21 @@
 package atproto
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/bluesky-social/indigo/atproto/atcrypto"
 	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+
+	"github.com/google/go-querystring/query"
 )
 
 var scopes = []string{
@@ -199,5 +206,168 @@ func GetSessionIDFromContext(ctx context.Context) (string, error) {
 // ParseDID is a helper to parse a DID string to syntax.DID
 func ParseDID(didStr string) (syntax.DID, error) {
 	return syntax.ParseDID(didStr)
+}
+
+// InitiateSignup starts an OAuth flow with prompt=create for account registration.
+// The pdsURL should be the PDS host URL (e.g., "https://arabica.systems").
+// Returns the authorization URL to redirect the user to.
+func (m *OAuthManager) InitiateSignup(ctx context.Context, pdsURL string) (string, error) {
+	app := m.app
+
+	// Resolve auth server from PDS URL
+	authserverURL, err := app.Resolver.ResolveAuthServerURL(ctx, pdsURL)
+	if err != nil {
+		return "", fmt.Errorf("resolving auth server for %s: %w", pdsURL, err)
+	}
+
+	authserverMeta, err := app.Resolver.ResolveAuthServerMetadata(ctx, authserverURL)
+	if err != nil {
+		return "", fmt.Errorf("fetching auth server metadata: %w", err)
+	}
+
+	// Send PAR with prompt=create
+	info, err := m.sendAuthRequestWithPrompt(ctx, authserverMeta, app.Config.Scopes, "create")
+	if err != nil {
+		return "", fmt.Errorf("auth request failed: %w", err)
+	}
+
+	// Persist auth request info
+	if err := app.Store.SaveAuthRequestInfo(ctx, *info); err != nil {
+		return "", fmt.Errorf("saving auth request: %w", err)
+	}
+
+	params := url.Values{}
+	params.Set("client_id", app.Config.ClientID)
+	params.Set("request_uri", info.RequestURI)
+
+	redirectURL := fmt.Sprintf("%s?%s", authserverMeta.AuthorizationEndpoint, params.Encode())
+	return redirectURL, nil
+}
+
+// sendAuthRequestWithPrompt sends a PAR request with an optional prompt parameter.
+// This mirrors the SDK's SendAuthRequest but adds prompt support.
+func (m *OAuthManager) sendAuthRequestWithPrompt(ctx context.Context, authMeta *oauth.AuthServerMetadata, scopes []string, prompt string) (*oauth.AuthRequestData, error) {
+	app := m.app
+	parURL := authMeta.PushedAuthorizationRequestEndpoint
+
+	state := secureRandomBase64(16)
+	pkceVerifier := secureRandomBase64(48)
+	codeChallenge := oauth.S256CodeChallenge(pkceVerifier)
+
+	body := oauth.PushedAuthRequest{
+		ClientID:            app.Config.ClientID,
+		State:               state,
+		RedirectURI:         app.Config.CallbackURL,
+		Scope:               strings.Join(scopes, " "),
+		ResponseType:        "code",
+		CodeChallenge:       codeChallenge,
+		CodeChallengeMethod: "S256",
+	}
+
+	if prompt != "" {
+		body.Prompt = &prompt
+	}
+
+	if app.Config.IsConfidential() {
+		assertionJWT, err := app.Config.NewClientAssertion(authMeta.Issuer)
+		if err != nil {
+			return nil, err
+		}
+		body.ClientAssertionType = oauth.ClientAssertionJWTBearer
+		body.ClientAssertion = assertionJWT
+	}
+
+	vals, err := query.Values(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyBytes := []byte(vals.Encode())
+
+	dpopServerNonce := ""
+	dpopPrivKey, err := atcrypto.GeneratePrivateKeyP256()
+	if err != nil {
+		return nil, err
+	}
+
+	var resp *http.Response
+	for range 2 {
+		dpopJWT, err := oauth.NewAuthDPoP("POST", parURL, dpopServerNonce, dpopPrivKey)
+		if err != nil {
+			return nil, err
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "POST", parURL, bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("DPoP", dpopJWT)
+
+		client := app.Client
+		if client == nil {
+			client = http.DefaultClient
+		}
+		resp, err = client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		dpopServerNonce = resp.Header.Get("DPoP-Nonce")
+
+		if resp.StatusCode == http.StatusBadRequest && dpopServerNonce != "" {
+			// Check if it's a DPoP nonce error; if so retry
+			var errBody struct {
+				Error string `json:"error"`
+			}
+			bodyData := mustReadBody(resp)
+			_ = json.Unmarshal(bodyData, &errBody)
+			if errBody.Error == "use_dpop_nonce" {
+				continue
+			}
+			return nil, fmt.Errorf("PAR request failed (HTTP %d): %s", resp.StatusCode, string(bodyData))
+		}
+
+		break
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		bodyData := mustReadBody(resp)
+		return nil, fmt.Errorf("PAR request failed (HTTP %d): %s", resp.StatusCode, string(bodyData))
+	}
+
+	var parResp oauth.PushedAuthResponse
+	if err := json.NewDecoder(resp.Body).Decode(&parResp); err != nil {
+		return nil, fmt.Errorf("PAR response decode failed: %w", err)
+	}
+
+	info := &oauth.AuthRequestData{
+		State:                        state,
+		AuthServerURL:                authMeta.Issuer,
+		Scopes:                       scopes,
+		PKCEVerifier:                 pkceVerifier,
+		RequestURI:                   parResp.RequestURI,
+		AuthServerTokenEndpoint:      authMeta.TokenEndpoint,
+		AuthServerRevocationEndpoint: authMeta.RevocationEndpoint,
+		DPoPAuthServerNonce:          dpopServerNonce,
+		DPoPPrivateKeyMultibase:      dpopPrivKey.Multibase(),
+	}
+
+	return info, nil
+}
+
+// secureRandomBase64 generates a cryptographically random base64url-encoded string.
+func secureRandomBase64(sizeBytes uint) string {
+	b := make([]byte, sizeBytes)
+	_, _ = rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+// mustReadBody reads and closes the response body, returning the bytes.
+func mustReadBody(resp *http.Response) []byte {
+	defer resp.Body.Close()
+	var buf bytes.Buffer
+	buf.ReadFrom(resp.Body)
+	return buf.Bytes()
 }
 
