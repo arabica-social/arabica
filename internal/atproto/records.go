@@ -183,6 +183,9 @@ func BeanToRecord(bean *models.Bean, roasterURI string) (map[string]interface{},
 	}
 	// Always include closed field (defaults to false)
 	record["closed"] = bean.Closed
+	if bean.SourceRef != "" {
+		record["sourceRef"] = bean.SourceRef
+	}
 
 	return record, nil
 }
@@ -234,6 +237,9 @@ func RecordToBean(record map[string]interface{}, atURI string) (*models.Bean, er
 	if closed, ok := record["closed"].(bool); ok {
 		bean.Closed = closed
 	}
+	if sourceRef, ok := record["sourceRef"].(string); ok {
+		bean.SourceRef = sourceRef
+	}
 
 	return bean, nil
 }
@@ -254,6 +260,9 @@ func RoasterToRecord(roaster *models.Roaster) (map[string]interface{}, error) {
 	}
 	if roaster.Website != "" {
 		record["website"] = roaster.Website
+	}
+	if roaster.SourceRef != "" {
+		record["sourceRef"] = roaster.SourceRef
 	}
 
 	return record, nil
@@ -297,6 +306,9 @@ func RecordToRoaster(record map[string]interface{}, atURI string) (*models.Roast
 	if website, ok := record["website"].(string); ok {
 		roaster.Website = website
 	}
+	if sourceRef, ok := record["sourceRef"].(string); ok {
+		roaster.SourceRef = sourceRef
+	}
 
 	return roaster, nil
 }
@@ -320,6 +332,9 @@ func GrinderToRecord(grinder *models.Grinder) (map[string]interface{}, error) {
 	}
 	if grinder.Notes != "" {
 		record["notes"] = grinder.Notes
+	}
+	if grinder.SourceRef != "" {
+		record["sourceRef"] = grinder.SourceRef
 	}
 
 	return record, nil
@@ -366,6 +381,9 @@ func RecordToGrinder(record map[string]interface{}, atURI string) (*models.Grind
 	if notes, ok := record["notes"].(string); ok {
 		grinder.Notes = notes
 	}
+	if sourceRef, ok := record["sourceRef"].(string); ok {
+		grinder.SourceRef = sourceRef
+	}
 
 	return grinder, nil
 }
@@ -386,6 +404,9 @@ func BrewerToRecord(brewer *models.Brewer) (map[string]interface{}, error) {
 	}
 	if brewer.BrewerType != "" {
 		record["brewerType"] = brewer.BrewerType
+	}
+	if brewer.SourceRef != "" {
+		record["sourceRef"] = brewer.SourceRef
 	}
 
 	return record, nil
@@ -428,6 +449,9 @@ func RecordToBrewer(record map[string]interface{}, atURI string) (*models.Brewer
 	}
 	if brewerType, ok := record["brewerType"].(string); ok {
 		brewer.BrewerType = brewerType
+	}
+	if sourceRef, ok := record["sourceRef"].(string); ok {
+		brewer.SourceRef = sourceRef
 	}
 
 	return brewer, nil

@@ -1129,8 +1129,43 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 
 			if err := idx.UpsertRecord(did, collection, rkey, record.CID, recordJSON, 0); err != nil {
 				log.Warn().Err(err).Str("uri", record.URI).Msg("failed to upsert record during backfill")
-			} else {
-				recordCount++
+				continue
+			}
+			recordCount++
+
+			// Index likes and comments into their specialized buckets
+			switch collection {
+			case atproto.NSIDLike:
+				if subject, ok := record.Value["subject"].(map[string]interface{}); ok {
+					if subjectURI, ok := subject["uri"].(string); ok {
+						if err := idx.UpsertLike(did, rkey, subjectURI); err != nil {
+							log.Warn().Err(err).Str("uri", record.URI).Msg("failed to index like during backfill")
+						}
+					}
+				}
+			case atproto.NSIDComment:
+				if subject, ok := record.Value["subject"].(map[string]interface{}); ok {
+					if subjectURI, ok := subject["uri"].(string); ok {
+						text, _ := record.Value["text"].(string)
+						var createdAt time.Time
+						if createdAtStr, ok := record.Value["createdAt"].(string); ok {
+							if parsed, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
+								createdAt = parsed
+							} else {
+								createdAt = time.Now()
+							}
+						} else {
+							createdAt = time.Now()
+						}
+						var parentURI string
+						if parent, ok := record.Value["parent"].(map[string]interface{}); ok {
+							parentURI, _ = parent["uri"].(string)
+						}
+						if err := idx.UpsertComment(did, rkey, subjectURI, parentURI, record.CID, text, createdAt); err != nil {
+							log.Warn().Err(err).Str("uri", record.URI).Msg("failed to index comment during backfill")
+						}
+					}
+				}
 			}
 		}
 	}
@@ -1398,39 +1433,55 @@ func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
 
 		actorKey := []byte(actorDID + ":" + rkey)
 
-		// Check if comment exists and get subject URI from index
+		// Get subject URI from the actor index, or use the provided one
 		existingSubject := commentsByActor.Get(actorKey)
-		if existingSubject == nil {
-			return nil // Comment doesn't exist, nothing to do
-		}
-
-		// Use the subject URI from the index if not provided
-		if subjectURI == "" {
+		if existingSubject != nil && subjectURI == "" {
 			subjectURI = string(existingSubject)
 		}
 
-		// Find and delete the comment by iterating over comments with matching subject
+		// Find and delete the comment from BucketComments
 		var parentURI string
-		prefix := []byte(subjectURI + ":")
-		c := comments.Cursor()
-		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-			// Check if this key contains our actor and rkey
-			if strings.HasSuffix(string(k), ":"+actorDID+":"+rkey) {
-				// Parse the comment to get parent URI for cleanup
-				var comment IndexedComment
-				if err := json.Unmarshal(v, &comment); err == nil {
-					parentURI = comment.ParentURI
+		suffix := ":" + actorDID + ":" + rkey
+
+		if subjectURI != "" {
+			// Fast path: we know the subject URI, scan only that prefix
+			prefix := []byte(subjectURI + ":")
+			c := comments.Cursor()
+			for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
+				if strings.HasSuffix(string(k), suffix) {
+					var comment IndexedComment
+					if err := json.Unmarshal(v, &comment); err == nil {
+						parentURI = comment.ParentURI
+					}
+					if err := comments.Delete(k); err != nil {
+						return fmt.Errorf("failed to delete comment: %w", err)
+					}
+					break
 				}
-				if err := comments.Delete(k); err != nil {
-					return fmt.Errorf("failed to delete comment: %w", err)
+			}
+		} else {
+			// Slow path: scan all comments to find this actor+rkey
+			c := comments.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				if strings.HasSuffix(string(k), suffix) {
+					var comment IndexedComment
+					if err := json.Unmarshal(v, &comment); err == nil {
+						parentURI = comment.ParentURI
+						subjectURI = comment.SubjectURI
+					}
+					if err := comments.Delete(k); err != nil {
+						return fmt.Errorf("failed to delete comment: %w", err)
+					}
+					break
 				}
-				break
 			}
 		}
 
 		// Delete actor lookup
-		if err := commentsByActor.Delete(actorKey); err != nil {
-			return fmt.Errorf("failed to delete comment by actor: %w", err)
+		if existingSubject != nil {
+			if err := commentsByActor.Delete(actorKey); err != nil {
+				return fmt.Errorf("failed to delete comment by actor: %w", err)
+			}
 		}
 
 		// Delete parent-child relationship if this was a reply

@@ -26,14 +26,12 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
           "thresholds": {
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           }
         },
         "overrides": []
@@ -52,14 +50,14 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `HTTP request` [$__range])",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -87,14 +85,14 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `HTTP request` | json | status >= 500 [$__range])",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -122,21 +120,19 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `HTTP request` | json | status >= 400 | status < 500 [$__range])",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
           "thresholds": {
-            "steps": [
-              { "color": "blue", "value": null }
-            ]
+            "steps": [{ "color": "blue", "value": null }]
           }
         },
         "overrides": []
@@ -155,21 +151,19 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `User logged in successfully` [$__range])",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
           "thresholds": {
-            "steps": [
-              { "color": "purple", "value": null }
-            ]
+            "steps": [{ "color": "purple", "value": null }]
           }
         },
         "overrides": []
@@ -188,21 +182,19 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Report created successfully` [$__range])",
           "refId": "A"
         }
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
           "thresholds": {
-            "steps": [
-              { "color": "orange", "value": null }
-            ]
+            "steps": [{ "color": "orange", "value": null }]
           }
         },
         "overrides": []
@@ -221,7 +213,7 @@
       "type": "stat",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Join request saved` [$__range])",
           "refId": "A"
         }
@@ -235,7 +227,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -252,30 +244,33 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "id": 10,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Requests by Status",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (status) (count_over_time({${log_selector}} |= `HTTP request` | json | status >= 200 | status < 300 [$__auto]))",
           "legendFormat": "2xx",
           "refId": "A"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (status) (count_over_time({${log_selector}} |= `HTTP request` | json | status >= 300 | status < 400 [$__auto]))",
           "legendFormat": "3xx",
           "refId": "B"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (status) (count_over_time({${log_selector}} |= `HTTP request` | json | status >= 400 | status < 500 [$__auto]))",
           "legendFormat": "4xx",
           "refId": "C"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (status) (count_over_time({${log_selector}} |= `HTTP request` | json | status >= 500 [$__auto]))",
           "legendFormat": "5xx",
           "refId": "D"
@@ -283,7 +278,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -300,12 +295,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
       "id": 11,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Requests by Method",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (method) (count_over_time({${log_selector}} |= `HTTP request` | json [$__auto]))",
           "legendFormat": "{{method}}",
           "refId": "A"
@@ -313,7 +311,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -330,12 +328,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
       "id": 12,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Top Paths",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (path) (count_over_time({${log_selector}} |= `HTTP request` | json | path !~ `/static/.*` [$__auto])) ",
           "legendFormat": "{{path}}",
           "refId": "A"
@@ -343,7 +344,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -360,12 +361,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "id": 13,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Response Time (avg per interval)",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "avg_over_time({${log_selector}} |= `HTTP request` | json | path !~ `/static/.*` | unwrap duration [$__auto]) / 1000000",
           "legendFormat": "avg latency",
           "refId": "A"
@@ -380,7 +384,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -397,12 +401,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
       "id": 20,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Firehose Events by Collection",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (collection) (count_over_time({${log_selector}} |= `firehose: processing event` | json [$__auto]))",
           "legendFormat": "{{collection}}",
           "refId": "A"
@@ -410,7 +417,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -427,12 +434,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
       "id": 21,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Firehose Events by Operation",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (operation) (count_over_time({${log_selector}} |= `firehose: processing event` | json [$__auto]))",
           "legendFormat": "{{operation}}",
           "refId": "A"
@@ -440,7 +450,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -456,12 +466,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 },
       "id": 22,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Firehose Errors",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `firehose:` |~ `\"level\":\"(warn|error)\"` [$__auto])",
           "legendFormat": "errors",
           "refId": "A"
@@ -469,7 +482,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -485,18 +498,21 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 },
       "id": 23,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Backfills",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `backfill complete` [$__auto])",
           "legendFormat": "completed",
           "refId": "A"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `backfilling user records` [$__auto])",
           "legendFormat": "started",
           "refId": "B"
@@ -511,7 +527,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -527,24 +543,27 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
       "id": 30,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Logins",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `User logged in successfully` [$__auto])",
           "legendFormat": "successful logins",
           "refId": "A"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Failed to initiate login` [$__auto])",
           "legendFormat": "failed logins",
           "refId": "B"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Failed to complete OAuth flow` [$__auto])",
           "legendFormat": "failed OAuth callbacks",
           "refId": "C"
@@ -552,7 +571,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -568,24 +587,27 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
       "id": 31,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Join Requests & Invites",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Join request saved` [$__auto])",
           "legendFormat": "join requests",
           "refId": "A"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Invite code created` [$__auto])",
           "legendFormat": "invites created",
           "refId": "B"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Account created` [$__auto])",
           "legendFormat": "accounts created",
           "refId": "C"
@@ -600,7 +622,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -616,30 +638,33 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 49 },
       "id": 40,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Moderation Actions",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Report created successfully` [$__auto])",
           "legendFormat": "reports",
           "refId": "A"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Record hidden successfully` [$__auto])",
           "legendFormat": "records hidden",
           "refId": "B"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Record unhidden successfully` [$__auto])",
           "legendFormat": "records unhidden",
           "refId": "C"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `User blocked successfully` [$__auto])",
           "legendFormat": "users blocked",
           "refId": "D"
@@ -647,7 +672,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -663,12 +688,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 49 },
       "id": 41,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Permission Denials",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `Denied:` [$__auto])",
           "legendFormat": "denied",
           "refId": "A"
@@ -683,7 +711,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -700,12 +728,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 58 },
       "id": 50,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "PDS Requests by Method",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (method) (count_over_time({${log_selector}} |= `PDS request completed` | json [$__auto]))",
           "legendFormat": "{{method}}",
           "refId": "A"
@@ -713,7 +744,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -730,12 +761,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 58 },
       "id": 51,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "PDS Latency",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "avg_over_time({${log_selector}} |= `PDS request completed` | json | unwrap duration [$__auto]) / 1000000",
           "legendFormat": "avg",
           "refId": "A"
@@ -743,7 +777,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -758,12 +792,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 66 },
       "id": 52,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "PDS Errors",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |= `PDS request failed` [$__auto])",
           "legendFormat": "PDS failures",
           "refId": "A"
@@ -771,7 +808,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -788,12 +825,15 @@
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 66 },
       "id": 53,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "PDS Requests by Collection",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "sum by (collection) (count_over_time({${log_selector}} |= `PDS request completed` | json [$__auto]))",
           "legendFormat": "{{collection}}",
           "refId": "A"
@@ -808,7 +848,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -824,28 +864,41 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "error" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "red", "mode": "fixed" }
+              }
+            ]
           },
           {
             "matcher": { "id": "byName", "options": "warn" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "yellow", "mode": "fixed" }
+              }
+            ]
           }
         ]
       },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 75 },
       "id": 60,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
       "title": "Errors & Warnings Over Time",
       "type": "timeseries",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |~ `\"level\":\"error\"` [$__auto])",
           "legendFormat": "error",
           "refId": "A"
         },
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "count_over_time({${log_selector}} |~ `\"level\":\"warn\"` [$__auto])",
           "legendFormat": "warn",
           "refId": "B"
@@ -853,7 +906,7 @@
       ]
     },
     {
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "loki", "uid": "Loki" },
       "gridPos": { "h": 12, "w": 24, "x": 0, "y": 83 },
       "id": 61,
       "options": {
@@ -870,7 +923,7 @@
       "type": "logs",
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "loki" },
+          "datasource": { "type": "loki", "uid": "Loki" },
           "expr": "{${log_selector}} |~ `\"level\":\"error\"`",
           "refId": "A"
         }

@@ -29,6 +29,11 @@
             "type": "string",
             "format": "datetime",
             "description": "Timestamp when the brewer record was created"
+          },
+          "sourceRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the record this entity was sourced from"
           }
         }
       }

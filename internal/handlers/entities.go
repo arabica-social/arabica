@@ -169,6 +169,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			Description: r.FormValue("description"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
 			Closed:      r.FormValue("closed") == "true",
+			SourceRef:   r.FormValue("source_ref"),
 		}
 		log.Debug().
 			Str("name", req.Name).
@@ -220,9 +221,10 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
 		req = models.CreateRoasterRequest{
-			Name:     r.FormValue("name"),
-			Location: r.FormValue("location"),
-			Website:  r.FormValue("website"),
+			Name:      r.FormValue("name"),
+			Location:  r.FormValue("location"),
+			Website:   r.FormValue("website"),
+			SourceRef: r.FormValue("source_ref"),
 		}
 		return nil
 	}); err != nil {
@@ -295,6 +297,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 			Description: r.FormValue("description"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
 			Closed:      r.FormValue("closed") == "true",
+			SourceRef:   r.FormValue("source_ref"),
 		}
 		log.Debug().
 			Str("rkey", rkey).
@@ -367,9 +370,10 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
 		req = models.UpdateRoasterRequest{
-			Name:     r.FormValue("name"),
-			Location: r.FormValue("location"),
-			Website:  r.FormValue("website"),
+			Name:      r.FormValue("name"),
+			Location:  r.FormValue("location"),
+			Website:   r.FormValue("website"),
+			SourceRef: r.FormValue("source_ref"),
 		}
 		return nil
 	}); err != nil {
@@ -428,6 +432,7 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 			GrinderType: r.FormValue("grinder_type"),
 			BurrType:    r.FormValue("burr_type"),
 			Notes:       r.FormValue("notes"),
+			SourceRef:   r.FormValue("source_ref"),
 		}
 		return nil
 	}); err != nil {
@@ -475,6 +480,7 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 			GrinderType: r.FormValue("grinder_type"),
 			BurrType:    r.FormValue("burr_type"),
 			Notes:       r.FormValue("notes"),
+			SourceRef:   r.FormValue("source_ref"),
 		}
 		return nil
 	}); err != nil {
@@ -532,6 +538,7 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 			Name:        r.FormValue("name"),
 			BrewerType:  r.FormValue("brewer_type"),
 			Description: r.FormValue("description"),
+			SourceRef:   r.FormValue("source_ref"),
 		}
 		return nil
 	}); err != nil {
@@ -578,6 +585,7 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 			Name:        r.FormValue("name"),
 			BrewerType:  r.FormValue("brewer_type"),
 			Description: r.FormValue("description"),
+			SourceRef:   r.FormValue("source_ref"),
 		}
 		return nil
 	}); err != nil {

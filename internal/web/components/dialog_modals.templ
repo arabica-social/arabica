@@ -30,14 +30,51 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
 			>
-				<input
-					type="text"
-					name="name"
-					value={ getStringValue(bean, "name") }
-					placeholder="Name *"
-					required
-					class="w-full form-input"
-				/>
+				if bean == nil {
+					<div x-data="entitySuggest('/api/suggestions/beans')" class="relative">
+						<input
+							type="text"
+							name="name"
+							placeholder="Name *"
+							required
+							class="w-full form-input"
+							x-model="query"
+							@input.debounce.300ms="search()"
+							@blur.debounce.200ms="showSuggestions = false"
+							@focus="if (suggestions.length > 0) showSuggestions = true"
+							autocomplete="off"
+						/>
+						<input type="hidden" name="source_ref" x-model="sourceRef"/>
+						<template x-if="showSuggestions && suggestions.length > 0">
+							<div class="suggestions-dropdown">
+								<template x-for="s in suggestions" :key="s.source_uri">
+									<button
+										type="button"
+										class="suggestions-item"
+										@mousedown.prevent="selectBeanSuggestion(s)"
+									>
+										<span class="font-medium" x-text="s.name"></span>
+										<template x-if="s.fields.origin">
+											<span class="text-xs text-brown-500" x-text="s.fields.origin"></span>
+										</template>
+										<template x-if="s.count > 1">
+											<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+										</template>
+									</button>
+								</template>
+							</div>
+						</template>
+					</div>
+				} else {
+					<input
+						type="text"
+						name="name"
+						value={ getStringValue(bean, "name") }
+						placeholder="Name *"
+						required
+						class="w-full form-input"
+					/>
+				}
 				<input
 					type="text"
 					name="origin"
@@ -148,15 +185,56 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
 			>
-				<input
-					type="text"
-					name="name"
-					value={ getStringValue(grinder, "name") }
-					placeholder="Name *"
-					required
+				if grinder == nil {
+					<div x-data="entitySuggest('/api/suggestions/grinders')" class="relative">
+						<input
+							type="text"
+							name="name"
+							placeholder="Name *"
+							required
+							class="w-full form-input"
+							x-model="query"
+							@input.debounce.300ms="search()"
+							@blur.debounce.200ms="showSuggestions = false"
+							@focus="if (suggestions.length > 0) showSuggestions = true"
+							autocomplete="off"
+						/>
+						<input type="hidden" name="source_ref" x-model="sourceRef"/>
+						<template x-if="showSuggestions && suggestions.length > 0">
+							<div class="suggestions-dropdown">
+								<template x-for="s in suggestions" :key="s.source_uri">
+									<button
+										type="button"
+										class="suggestions-item"
+										@mousedown.prevent="selectGrinderSuggestion(s)"
+									>
+										<span class="font-medium" x-text="s.name"></span>
+										<template x-if="s.fields.grinderType">
+											<span class="text-xs text-brown-500" x-text="s.fields.grinderType"></span>
+										</template>
+										<template x-if="s.count > 1">
+											<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+										</template>
+									</button>
+								</template>
+							</div>
+						</template>
+					</div>
+				} else {
+					<input
+						type="text"
+						name="name"
+						value={ getStringValue(grinder, "name") }
+						placeholder="Name *"
+						required
+						class="w-full form-input"
+					/>
+				}
+				<select
+					name="grinder_type"
 					class="w-full form-input"
-				/>
-				<select name="grinder_type" class="w-full form-input" required>
+					required
+				>
 					<option value="">Select Grinder Type *</option>
 					for _, gType := range models.GrinderTypes {
 						<option
@@ -169,7 +247,10 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 						</option>
 					}
 				</select>
-				<select name="burr_type" class="w-full form-input">
+				<select
+					name="burr_type"
+					class="w-full form-input"
+				>
 					<option value="">Select Burr Type (Optional)</option>
 					for _, bType := range models.BurrTypes {
 						<option
@@ -227,14 +308,51 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
 			>
-				<input
-					type="text"
-					name="name"
-					value={ getStringValue(brewer, "name") }
-					placeholder="Name *"
-					required
-					class="w-full form-input"
-				/>
+				if brewer == nil {
+					<div x-data="entitySuggest('/api/suggestions/brewers')" class="relative">
+						<input
+							type="text"
+							name="name"
+							placeholder="Name *"
+							required
+							class="w-full form-input"
+							x-model="query"
+							@input.debounce.300ms="search()"
+							@blur.debounce.200ms="showSuggestions = false"
+							@focus="if (suggestions.length > 0) showSuggestions = true"
+							autocomplete="off"
+						/>
+						<input type="hidden" name="source_ref" x-model="sourceRef"/>
+						<template x-if="showSuggestions && suggestions.length > 0">
+							<div class="suggestions-dropdown">
+								<template x-for="s in suggestions" :key="s.source_uri">
+									<button
+										type="button"
+										class="suggestions-item"
+										@mousedown.prevent="selectBrewerSuggestion(s)"
+									>
+										<span class="font-medium" x-text="s.name"></span>
+										<template x-if="s.fields.brewerType">
+											<span class="text-xs text-brown-500" x-text="s.fields.brewerType"></span>
+										</template>
+										<template x-if="s.count > 1">
+											<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+										</template>
+									</button>
+								</template>
+							</div>
+						</template>
+					</div>
+				} else {
+					<input
+						type="text"
+						name="name"
+						value={ getStringValue(brewer, "name") }
+						placeholder="Name *"
+						required
+						class="w-full form-input"
+					/>
+				}
 				<input
 					type="text"
 					name="brewer_type"
@@ -287,14 +405,51 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
 			>
-				<input
-					type="text"
-					name="name"
-					value={ getStringValue(roaster, "name") }
-					placeholder="Name *"
-					required
-					class="w-full form-input"
-				/>
+				if roaster == nil {
+					<div x-data="entitySuggest('/api/suggestions/roasters')" class="relative">
+						<input
+							type="text"
+							name="name"
+							placeholder="Name *"
+							required
+							class="w-full form-input"
+							x-model="query"
+							@input.debounce.300ms="search()"
+							@blur.debounce.200ms="showSuggestions = false"
+							@focus="if (suggestions.length > 0) showSuggestions = true"
+							autocomplete="off"
+						/>
+						<input type="hidden" name="source_ref" x-model="sourceRef"/>
+						<template x-if="showSuggestions && suggestions.length > 0">
+							<div class="suggestions-dropdown">
+								<template x-for="s in suggestions" :key="s.source_uri">
+									<button
+										type="button"
+										class="suggestions-item"
+										@mousedown.prevent="selectRoasterSuggestion(s)"
+									>
+										<span class="font-medium" x-text="s.name"></span>
+										<template x-if="s.fields.location">
+											<span class="text-xs text-brown-500" x-text="s.fields.location"></span>
+										</template>
+										<template x-if="s.count > 1">
+											<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+										</template>
+									</button>
+								</template>
+							</div>
+						</template>
+					</div>
+				} else {
+					<input
+						type="text"
+						name="name"
+						value={ getStringValue(roaster, "name") }
+						placeholder="Name *"
+						required
+						class="w-full form-input"
+					/>
+				}
 				<input
 					type="text"
 					name="location"

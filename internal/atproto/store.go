@@ -521,6 +521,7 @@ func (s *AtprotoStore) CreateBean(ctx context.Context, bean *models.CreateBeanRe
 		Process:     bean.Process,
 		Description: bean.Description,
 		RoasterRKey: bean.RoasterRKey,
+		SourceRef:   bean.SourceRef,
 		CreatedAt:   time.Now(),
 	}
 
@@ -668,6 +669,7 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 		Description: bean.Description,
 		RoasterRKey: bean.RoasterRKey,
 		Closed:      bean.Closed,
+		SourceRef:   bean.SourceRef,
 		CreatedAt:   existing.CreatedAt,
 	}
 
@@ -713,6 +715,7 @@ func (s *AtprotoStore) CreateRoaster(ctx context.Context, roaster *models.Create
 		Name:      roaster.Name,
 		Location:  roaster.Location,
 		Website:   roaster.Website,
+		SourceRef: roaster.SourceRef,
 		CreatedAt: time.Now(),
 	}
 
@@ -811,6 +814,7 @@ func (s *AtprotoStore) UpdateRoasterByRKey(ctx context.Context, rkey string, roa
 		Name:      roaster.Name,
 		Location:  roaster.Location,
 		Website:   roaster.Website,
+		SourceRef: roaster.SourceRef,
 		CreatedAt: existing.CreatedAt,
 	}
 
@@ -857,6 +861,7 @@ func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *models.Create
 		GrinderType: grinder.GrinderType,
 		BurrType:    grinder.BurrType,
 		Notes:       grinder.Notes,
+		SourceRef:   grinder.SourceRef,
 		CreatedAt:   time.Now(),
 	}
 
@@ -956,6 +961,7 @@ func (s *AtprotoStore) UpdateGrinderByRKey(ctx context.Context, rkey string, gri
 		GrinderType: grinder.GrinderType,
 		BurrType:    grinder.BurrType,
 		Notes:       grinder.Notes,
+		SourceRef:   grinder.SourceRef,
 		CreatedAt:   existing.CreatedAt,
 	}
 
@@ -1001,6 +1007,7 @@ func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *models.CreateBr
 		Name:        brewer.Name,
 		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
+		SourceRef:   brewer.SourceRef,
 		CreatedAt:   time.Now(),
 	}
 
@@ -1099,6 +1106,7 @@ func (s *AtprotoStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brew
 		Name:        brewer.Name,
 		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
+		SourceRef:   brewer.SourceRef,
 		CreatedAt:   existing.CreatedAt,
 	}
 

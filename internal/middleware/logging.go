@@ -141,14 +141,12 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 }
 
 func getCookies(r *http.Request) string {
-	// sb := strings.Builder{}
-	// loggedCookies := []string{"account_did", "session_id"}
-	// for _, name := range loggedCookies {
-	// 	// TODO: check if `c.Domain == "arabica.social"` if we start adding it
-	// 	if c, err := r.Cookie(name); err == nil {
-	// 		_, _ = sb.WriteString(c.Name + "=" + c.Value + "; ")
-	// 	}
-	// }
-	// return sb.String()
-	return r.Header.Get("cookies")
+	loggedCookies := []string{"account_did", "session_id"}
+	cookies := make([]string, 0, len(loggedCookies))
+	for _, name := range loggedCookies {
+		if c, err := r.Cookie(name); err == nil {
+			cookies = append(cookies, name+"="+c.Value)
+		}
+	}
+	return strings.Join(cookies, "; ")
 }
