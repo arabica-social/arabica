@@ -180,7 +180,7 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 		<!-- Author row -->
 		<div class="mb-3">
 			@components.UserBadge(components.UserBadgeProps{
-				ProfileURL:  "/profile/" + item.Author.Handle,
+				ProfileURL:  "/profile/" + item.Author.DID,
 				AvatarURL:   getAvatarURL(item.Author.Avatar),
 				DisplayName: getDisplayName(item.Author.DisplayName),
 				Handle:      item.Author.Handle,
@@ -304,7 +304,7 @@ templ FeedEntityContentClickable(item *feed.FeedItem, content func(*feed.FeedIte
 templ FeedBrewContentClickable(item *feed.FeedItem) {
 	if item.Brew != nil {
 		<a
-			href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)) }
+			href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.DID)) }
 			class="block hover:opacity-90 transition-opacity"
 		>
 			@FeedBrewContent(item)
@@ -519,26 +519,26 @@ func getFeedItemShareURL(item *feed.FeedItem) string {
 	switch item.RecordType {
 	case lexicons.RecordTypeBrew:
 		if item.Brew != nil {
-			return fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.Handle)
+			return fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.DID)
 		}
 	case lexicons.RecordTypeBean:
 		if item.Bean != nil {
-			return fmt.Sprintf("/beans/%s?owner=%s", item.Bean.RKey, item.Author.Handle)
+			return fmt.Sprintf("/beans/%s?owner=%s", item.Bean.RKey, item.Author.DID)
 		}
 	case lexicons.RecordTypeRoaster:
 		if item.Roaster != nil {
-			return fmt.Sprintf("/roasters/%s?owner=%s", item.Roaster.RKey, item.Author.Handle)
+			return fmt.Sprintf("/roasters/%s?owner=%s", item.Roaster.RKey, item.Author.DID)
 		}
 	case lexicons.RecordTypeGrinder:
 		if item.Grinder != nil {
-			return fmt.Sprintf("/grinders/%s?owner=%s", item.Grinder.RKey, item.Author.Handle)
+			return fmt.Sprintf("/grinders/%s?owner=%s", item.Grinder.RKey, item.Author.DID)
 		}
 	case lexicons.RecordTypeBrewer:
 		if item.Brewer != nil {
-			return fmt.Sprintf("/brewers/%s?owner=%s", item.Brewer.RKey, item.Author.Handle)
+			return fmt.Sprintf("/brewers/%s?owner=%s", item.Brewer.RKey, item.Author.DID)
 		}
 	}
-	return fmt.Sprintf("/profile/%s", item.Author.Handle)
+	return fmt.Sprintf("/profile/%s", item.Author.DID)
 }
 
 func getFeedItemShareTitle(item *feed.FeedItem) string {
