@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"arabica/internal/atproto"
-	"arabica/internal/firehose"
+	"arabica/internal/suggestions"
 
 	"github.com/rs/zerolog/log"
 )
@@ -57,19 +57,19 @@ func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	suggestions, err := h.feedIndex.SearchEntitySuggestions(nsid, query, limit)
+	results, err := suggestions.Search(h.feedIndex, nsid, query, limit)
 	if err != nil {
 		log.Error().Err(err).Str("entity", entityType).Str("query", query).Msg("Failed to search suggestions")
 		http.Error(w, "Failed to search suggestions", http.StatusInternalServerError)
 		return
 	}
 
-	if suggestions == nil {
-		suggestions = []firehose.EntitySuggestion{}
+	if results == nil {
+		results = []suggestions.EntitySuggestion{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(suggestions); err != nil {
+	if err := json.NewEncoder(w).Encode(results); err != nil {
 		log.Error().Err(err).Msg("Failed to encode suggestions response")
 	}
 }

@@ -956,6 +956,47 @@ func (idx *FeedIndex) GetKnownDIDs() ([]string, error) {
 	return dids, err
 }
 
+// ListRecordsByCollection returns all indexed records for a given collection.
+// This provides raw data access for other packages (e.g., suggestions) to build on.
+func (idx *FeedIndex) ListRecordsByCollection(collection string) ([]IndexedRecord, error) {
+	var records []IndexedRecord
+
+	err := idx.db.View(func(tx *bolt.Tx) error {
+		byCollection := tx.Bucket(BucketByCollection)
+		recordsBucket := tx.Bucket(BucketRecords)
+
+		prefix := []byte(collection + ":")
+		c := byCollection.Cursor()
+
+		for k, _ := c.Seek(prefix); k != nil; k, _ = c.Next() {
+			if !bytes.HasPrefix(k, prefix) {
+				break
+			}
+
+			uri := extractURIFromCollectionKey(k, collection)
+			if uri == "" {
+				continue
+			}
+
+			data := recordsBucket.Get([]byte(uri))
+			if data == nil {
+				continue
+			}
+
+			var record IndexedRecord
+			if err := json.Unmarshal(data, &record); err != nil {
+				continue
+			}
+
+			records = append(records, record)
+		}
+
+		return nil
+	})
+
+	return records, err
+}
+
 // RecordCount returns the total number of indexed records
 func (idx *FeedIndex) RecordCount() int {
 	var count int
