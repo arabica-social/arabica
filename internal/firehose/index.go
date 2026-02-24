@@ -174,6 +174,8 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 			BucketCommentCounts,
 			BucketCommentsByActor,
 			BucketCommentChildren,
+			BucketNotifications,
+			BucketNotificationsMeta,
 		}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
@@ -1310,6 +1312,20 @@ func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, parentURI, cid, 
 		existingSubject := commentsByActor.Get(actorKey)
 		isNew := existingSubject == nil
 
+		// If the comment already exists, delete the old entry from BucketComments
+		// to prevent duplicates (the key includes timestamp which may differ between calls)
+		if !isNew {
+			oldPrefix := []byte(string(existingSubject) + ":")
+			suffix := ":" + actorDID + ":" + rkey
+			cur := comments.Cursor()
+			for k, _ := cur.Seek(oldPrefix); k != nil && strings.HasPrefix(string(k), string(oldPrefix)); k, _ = cur.Next() {
+				if strings.HasSuffix(string(k), suffix) {
+					_ = comments.Delete(k)
+					break
+				}
+			}
+		}
+
 		// Extract parent rkey from parent URI if present
 		var parentRKey string
 		if parentURI != "" {
@@ -1382,10 +1398,15 @@ func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
 
 		actorKey := []byte(actorDID + ":" + rkey)
 
-		// Check if comment exists
+		// Check if comment exists and get subject URI from index
 		existingSubject := commentsByActor.Get(actorKey)
 		if existingSubject == nil {
 			return nil // Comment doesn't exist, nothing to do
+		}
+
+		// Use the subject URI from the index if not provided
+		if subjectURI == "" {
+			subjectURI = string(existingSubject)
 		}
 
 		// Find and delete the comment by iterating over comments with matching subject

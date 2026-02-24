@@ -349,6 +349,8 @@ func (c *Consumer) processMessage(data []byte) error {
 						if err := c.index.UpsertLike(event.DID, commit.RKey, subjectURI); err != nil {
 							log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to index like")
 						}
+						// Create notification for the like
+						c.index.CreateLikeNotification(event.DID, subjectURI)
 					}
 				}
 			}
@@ -379,6 +381,8 @@ func (c *Consumer) processMessage(data []byte) error {
 						if err := c.index.UpsertComment(event.DID, commit.RKey, subjectURI, parentURI, commit.CID, text, createdAt); err != nil {
 							log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to index comment")
 						}
+						// Create notification for the comment
+						c.index.CreateCommentNotification(event.DID, subjectURI, parentURI)
 					}
 				}
 			}
