@@ -36,6 +36,247 @@ func insertRecord(t *testing.T, idx *firehose.FeedIndex, did, collection, rkey s
 	assert.NoError(t, err)
 }
 
+// --- Helper unit tests ---
+
+func TestFuzzyName(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"Counter Culture Coffee", "counter culture"},
+		{"Counter Culture", "counter culture"},
+		{"counter culture coffee roasters", "counter culture"},
+		{"Stumptown Coffee Roasters", "stumptown"},
+		{"Stumptown", "stumptown"},
+		{"Black & White Coffee", "black white"},
+		{"  Some  Roasting Company  ", "some"},
+		{"Heart Coffee Roasters", "heart"},
+		{"Heart Roasters", "heart"},
+		{"Heart", "heart"},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, fuzzyName(tt.input), "fuzzyName(%q)", tt.input)
+	}
+}
+
+func TestExtractDomain(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"https://www.counterculturecoffee.com/shop", "counterculturecoffee.com"},
+		{"http://example.com", "example.com"},
+		{"https://example.com:8080/path", "example.com"},
+		{"www.example.com", "example.com"},
+		{"example.com", "example.com"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, extractDomain(tt.input), "extractDomain(%q)", tt.input)
+	}
+}
+
+func TestNormalize(t *testing.T) {
+	assert.Equal(t, "durham, nc", normalize("  Durham,  NC  "))
+	assert.Equal(t, "oakland ca", normalize("Oakland CA"))
+	assert.Equal(t, "", normalize(""))
+}
+
+// --- Roaster dedup tests ---
+
+func TestRoasterDedup_SameNameDifferentLocation(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRoaster, "r1", map[string]interface{}{
+		"name":     "Stumptown Coffee",
+		"location": "Portland, OR",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDRoaster, "r2", map[string]interface{}{
+		"name":     "Stumptown Coffee",
+		"location": "New York, NY",
+	})
+
+	results, err := Search(idx, atproto.NSIDRoaster, "stumptown", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 2, "different locations should produce separate suggestions")
+}
+
+func TestRoasterDedup_FuzzyNameMerge(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	// Same roaster, different name variations, same location
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRoaster, "r1", map[string]interface{}{
+		"name":     "Counter Culture Coffee",
+		"location": "Durham, NC",
+		"website":  "https://counterculturecoffee.com",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDRoaster, "r2", map[string]interface{}{
+		"name":     "Counter Culture Coffee Roasters",
+		"location": "Durham, NC",
+	})
+
+	results, err := Search(idx, atproto.NSIDRoaster, "counter", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1, "fuzzy name + same location should merge")
+	assert.Equal(t, 2, results[0].Count)
+}
+
+func TestRoasterDedup_NoLocationMerges(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	// Both have no location — should merge on fuzzy name alone
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRoaster, "r1", map[string]interface{}{
+		"name": "Blue Bottle Coffee",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDRoaster, "r2", map[string]interface{}{
+		"name": "Blue Bottle",
+	})
+
+	results, err := Search(idx, atproto.NSIDRoaster, "blue", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1, "same fuzzy name with no location should merge")
+	assert.Equal(t, 2, results[0].Count)
+}
+
+// --- Grinder dedup tests ---
+
+func TestGrinderDedup_SameNameDifferentType(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDGrinder, "g1", map[string]interface{}{
+		"name":        "Baratza Encore",
+		"grinderType": "electric",
+		"burrType":    "conical",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDGrinder, "g2", map[string]interface{}{
+		"name":        "Baratza Encore",
+		"grinderType": "electric",
+		"burrType":    "flat",
+	})
+
+	results, err := Search(idx, atproto.NSIDGrinder, "baratza", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 2, "different burr types should produce separate suggestions")
+}
+
+func TestGrinderDedup_SameEverythingMerges(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDGrinder, "g1", map[string]interface{}{
+		"name":        "1Zpresso JX Pro",
+		"grinderType": "hand",
+		"burrType":    "conical",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDGrinder, "g2", map[string]interface{}{
+		"name":        "1Zpresso JX Pro",
+		"grinderType": "hand",
+		"burrType":    "conical",
+	})
+
+	results, err := Search(idx, atproto.NSIDGrinder, "1zp", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, 2, results[0].Count)
+}
+
+// --- Brewer dedup tests ---
+
+func TestBrewerDedup_SameNameDifferentType(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDBrewer, "br1", map[string]interface{}{
+		"name":       "Hario V60",
+		"brewerType": "pour-over",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDBrewer, "br2", map[string]interface{}{
+		"name":       "Hario V60",
+		"brewerType": "dripper",
+	})
+
+	results, err := Search(idx, atproto.NSIDBrewer, "hario", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 2, "different brewer types should produce separate suggestions")
+}
+
+func TestBrewerDedup_SameNameSameTypeMerges(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDBrewer, "br1", map[string]interface{}{
+		"name":       "AeroPress",
+		"brewerType": "immersion",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDBrewer, "br2", map[string]interface{}{
+		"name":       "AeroPress",
+		"brewerType": "immersion",
+	})
+
+	results, err := Search(idx, atproto.NSIDBrewer, "aero", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, 2, results[0].Count)
+}
+
+// --- Bean dedup tests ---
+
+func TestBeanDedup_SameNameDifferentProcess(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDBean, "b1", map[string]interface{}{
+		"name":    "Yirgacheffe",
+		"origin":  "Ethiopia",
+		"process": "Washed",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDBean, "b2", map[string]interface{}{
+		"name":    "Yirgacheffe",
+		"origin":  "Ethiopia",
+		"process": "Natural",
+	})
+
+	results, err := Search(idx, atproto.NSIDBean, "yirga", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 2, "different processes should produce separate suggestions")
+}
+
+func TestBeanDedup_SameNameDifferentOrigin(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDBean, "b1", map[string]interface{}{
+		"name":   "Gesha",
+		"origin": "Panama",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDBean, "b2", map[string]interface{}{
+		"name":   "Gesha",
+		"origin": "Ethiopia",
+	})
+
+	results, err := Search(idx, atproto.NSIDBean, "gesha", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 2, "different origins should produce separate suggestions")
+}
+
+func TestBeanDedup_SameEverythingMerges(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDBean, "b1", map[string]interface{}{
+		"name":       "Ethiopian Yirgacheffe",
+		"origin":     "Ethiopia",
+		"roastLevel": "Light",
+		"process":    "Washed",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDBean, "b2", map[string]interface{}{
+		"name":    "Ethiopian Yirgacheffe",
+		"origin":  "Ethiopia",
+		"process": "Washed",
+	})
+
+	results, err := Search(idx, atproto.NSIDBean, "ethiopia", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, 2, results[0].Count)
+}
+
+// --- General search tests ---
+
 func TestSearch_PrefixMatch(t *testing.T) {
 	idx := newTestFeedIndex(t)
 
@@ -51,7 +292,6 @@ func TestSearch_PrefixMatch(t *testing.T) {
 	results, err := Search(idx, atproto.NSIDRoaster, "bl", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
-	// Both match prefix "bl"
 	assert.Equal(t, "Black & White Coffee", results[0].Name)
 	assert.Equal(t, "Blue Bottle", results[1].Name)
 }
@@ -77,7 +317,6 @@ func TestSearch_SubstringMatch(t *testing.T) {
 		"location": "Floyd, VA",
 	})
 
-	// Search by location substring
 	results, err := Search(idx, atproto.NSIDRoaster, "floyd", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
@@ -87,21 +326,21 @@ func TestSearch_SubstringMatch(t *testing.T) {
 func TestSearch_Deduplication(t *testing.T) {
 	idx := newTestFeedIndex(t)
 
-	// Two users have the same roaster (different case/whitespace)
+	// Two users have the same roaster, same location (one with website, one without)
 	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRoaster, "r1", map[string]interface{}{
-		"name":     "Counter Culture",
+		"name":     "Counter Culture Coffee",
 		"location": "Durham, NC",
 		"website":  "https://counterculturecoffee.com",
 	})
 	insertRecord(t, idx, "did:plc:bob", atproto.NSIDRoaster, "r2", map[string]interface{}{
-		"name": "Counter Culture",
+		"name":     "Counter Culture",
+		"location": "Durham, NC",
 	})
 
 	results, err := Search(idx, atproto.NSIDRoaster, "counter", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, 2, results[0].Count)
-	// Should keep the more complete record (alice's with location + website)
 	assert.Equal(t, "Durham, NC", results[0].Fields["location"])
 }
 
@@ -128,12 +367,10 @@ func TestSearch_ShortQuery(t *testing.T) {
 		"name": "ABC",
 	})
 
-	// Query too short (< 2 chars)
 	results, err := Search(idx, atproto.NSIDRoaster, "a", 10)
 	assert.NoError(t, err)
 	assert.Empty(t, results)
 
-	// 2 chars should work
 	results, err = Search(idx, atproto.NSIDRoaster, "ab", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
@@ -181,7 +418,6 @@ func TestSearch_BeanFields(t *testing.T) {
 		"process":    "Washed",
 	})
 
-	// Search by origin
 	results, err := Search(idx, atproto.NSIDBean, "ethiopia", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
@@ -206,7 +442,7 @@ func TestSearch_BrewerFields(t *testing.T) {
 func TestSearch_SortOrder(t *testing.T) {
 	idx := newTestFeedIndex(t)
 
-	// "Alpha Roasters" used by 3 people
+	// "Alpha Roasters" used by 3 people (same location so they merge)
 	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRoaster, "r1", map[string]interface{}{"name": "Alpha Roasters"})
 	insertRecord(t, idx, "did:plc:bob", atproto.NSIDRoaster, "r2", map[string]interface{}{"name": "Alpha Roasters"})
 	insertRecord(t, idx, "did:plc:charlie", atproto.NSIDRoaster, "r3", map[string]interface{}{"name": "Alpha Roasters"})
@@ -217,7 +453,6 @@ func TestSearch_SortOrder(t *testing.T) {
 	results, err := Search(idx, atproto.NSIDRoaster, "alpha", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
-	// More popular first
 	assert.Equal(t, "Alpha Roasters", results[0].Name)
 	assert.Equal(t, 3, results[0].Count)
 	assert.Equal(t, "Alpha Beta", results[1].Name)
