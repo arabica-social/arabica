@@ -1,10 +1,8 @@
 package firehose
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
-	"encoding/hex"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,55 +17,7 @@ import (
 	"arabica/internal/models"
 
 	"github.com/rs/zerolog/log"
-	bolt "go.etcd.io/bbolt"
-)
-
-// Bucket names for the feed index
-var (
-	// BucketRecords stores full record data: {at-uri} -> {IndexedRecord JSON}
-	BucketRecords = []byte("records")
-
-	// BucketByTime stores records by timestamp for chronological queries: {timestamp:at-uri} -> {}
-	BucketByTime = []byte("by_time")
-
-	// BucketByDID stores records by DID for user-specific queries: {did:at-uri} -> {}
-	BucketByDID = []byte("by_did")
-
-	// BucketByCollection stores records by type: {collection:timestamp:at-uri} -> {}
-	BucketByCollection = []byte("by_collection")
-
-	// BucketProfiles stores cached profile data: {did} -> {CachedProfile JSON}
-	BucketProfiles = []byte("profiles")
-
-	// BucketMeta stores metadata like cursor position: {key} -> {value}
-	BucketMeta = []byte("meta")
-
-	// BucketKnownDIDs stores all DIDs we've seen with Arabica records
-	BucketKnownDIDs = []byte("known_dids")
-
-	// BucketBackfilled stores DIDs that have been backfilled: {did} -> {timestamp}
-	BucketBackfilled = []byte("backfilled")
-
-	// BucketLikes stores like mappings: {subject_uri:actor_did} -> {rkey}
-	BucketLikes = []byte("likes")
-
-	// BucketLikeCounts stores aggregated like counts: {subject_uri} -> {uint64 count}
-	BucketLikeCounts = []byte("like_counts")
-
-	// BucketLikesByActor stores likes by actor for lookup: {actor_did:subject_uri} -> {rkey}
-	BucketLikesByActor = []byte("likes_by_actor")
-
-	// BucketComments stores comment data: {subject_uri:timestamp:actor_did} -> {comment JSON}
-	BucketComments = []byte("comments")
-
-	// BucketCommentCounts stores aggregated comment counts: {subject_uri} -> {uint64 count}
-	BucketCommentCounts = []byte("comment_counts")
-
-	// BucketCommentsByActor stores comments by actor for lookup: {actor_did:rkey} -> {subject_uri}
-	BucketCommentsByActor = []byte("comments_by_actor")
-
-	// BucketCommentChildren stores parent-child relationships: {parent_uri:child_rkey} -> {child_actor_did}
-	BucketCommentChildren = []byte("comment_children")
+	_ "modernc.org/sqlite"
 )
 
 // FeedableRecordTypes are the record types that should appear as feed items.
@@ -89,7 +39,7 @@ type IndexedRecord struct {
 	Record     json.RawMessage `json:"record"`
 	CID        string          `json:"cid"`
 	IndexedAt  time.Time       `json:"indexed_at"`
-	CreatedAt  time.Time       `json:"created_at"` // Parsed from record
+	CreatedAt  time.Time       `json:"created_at"`
 }
 
 // CachedProfile stores profile data with TTL
@@ -101,7 +51,7 @@ type CachedProfile struct {
 
 // FeedIndex provides persistent storage for firehose events
 type FeedIndex struct {
-	db           *bolt.DB
+	db           *sql.DB
 	publicClient *atproto.PublicClient
 	profileTTL   time.Duration
 
@@ -123,10 +73,10 @@ const (
 
 // FeedQuery specifies filtering, sorting, and pagination for feed queries
 type FeedQuery struct {
-	Limit      int                  // Max items to return
-	Cursor     string               // Opaque cursor for pagination (base64-encoded time key)
-	TypeFilter lexicons.RecordType  // Filter to a specific record type (empty = all)
-	Sort       FeedSort             // Sort order (default: recent)
+	Limit      int                 // Max items to return
+	Cursor     string              // Opaque cursor for pagination (created_at|uri)
+	TypeFilter lexicons.RecordType // Filter to a specific record type (empty = all)
+	Sort       FeedSort            // Sort order (default: recent)
 }
 
 // FeedResult contains feed items plus pagination info
@@ -135,7 +85,122 @@ type FeedResult struct {
 	NextCursor string // Empty if no more results
 }
 
-// NewFeedIndex creates a new feed index backed by BoltDB
+const schemaNoTrailingPragma = `
+CREATE TABLE IF NOT EXISTS records (
+    uri         TEXT PRIMARY KEY,
+    did         TEXT NOT NULL,
+    collection  TEXT NOT NULL,
+    rkey        TEXT NOT NULL,
+    record      TEXT NOT NULL,
+    cid         TEXT NOT NULL DEFAULT '',
+    indexed_at  TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_records_created ON records(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_records_did ON records(did);
+CREATE INDEX IF NOT EXISTS idx_records_coll_created ON records(collection, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS meta (
+    key   TEXT PRIMARY KEY,
+    value BLOB
+);
+
+CREATE TABLE IF NOT EXISTS known_dids (did TEXT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS backfilled (did TEXT PRIMARY KEY, backfilled_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS profiles (
+    did        TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS likes (
+    subject_uri TEXT NOT NULL,
+    actor_did   TEXT NOT NULL,
+    rkey        TEXT NOT NULL,
+    PRIMARY KEY (subject_uri, actor_did)
+);
+CREATE INDEX IF NOT EXISTS idx_likes_actor ON likes(actor_did, subject_uri);
+
+CREATE TABLE IF NOT EXISTS comments (
+    actor_did   TEXT NOT NULL,
+    rkey        TEXT NOT NULL,
+    subject_uri TEXT NOT NULL,
+    parent_uri  TEXT NOT NULL DEFAULT '',
+    parent_rkey TEXT NOT NULL DEFAULT '',
+    cid         TEXT NOT NULL DEFAULT '',
+    text        TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (actor_did, rkey)
+);
+CREATE INDEX IF NOT EXISTS idx_comments_subject ON comments(subject_uri, created_at);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id          TEXT NOT NULL,
+    target_did  TEXT NOT NULL,
+    type        TEXT NOT NULL,
+    actor_did   TEXT NOT NULL,
+    subject_uri TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_notif_target ON notifications(target_did, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notif_dedup ON notifications(target_did, type, actor_did, subject_uri);
+
+CREATE TABLE IF NOT EXISTS notifications_meta (
+    target_did TEXT PRIMARY KEY,
+    last_read  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS moderation_hidden_records (
+    uri         TEXT PRIMARY KEY,
+    hidden_at   TEXT NOT NULL,
+    hidden_by   TEXT NOT NULL,
+    reason      TEXT NOT NULL DEFAULT '',
+    auto_hidden INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS moderation_blacklist (
+    did            TEXT PRIMARY KEY,
+    blacklisted_at TEXT NOT NULL,
+    blacklisted_by TEXT NOT NULL,
+    reason         TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS moderation_reports (
+    id           TEXT PRIMARY KEY,
+    subject_uri  TEXT NOT NULL DEFAULT '',
+    subject_did  TEXT NOT NULL DEFAULT '',
+    reporter_did TEXT NOT NULL,
+    reason       TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'pending',
+    resolved_by  TEXT NOT NULL DEFAULT '',
+    resolved_at  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_modreports_uri      ON moderation_reports(subject_uri);
+CREATE INDEX IF NOT EXISTS idx_modreports_did      ON moderation_reports(subject_did);
+CREATE INDEX IF NOT EXISTS idx_modreports_reporter ON moderation_reports(reporter_did, created_at);
+CREATE INDEX IF NOT EXISTS idx_modreports_status   ON moderation_reports(status);
+
+CREATE TABLE IF NOT EXISTS moderation_audit_log (
+    id         TEXT PRIMARY KEY,
+    action     TEXT NOT NULL,
+    actor_did  TEXT NOT NULL,
+    target_uri TEXT NOT NULL DEFAULT '',
+    reason     TEXT NOT NULL DEFAULT '',
+    details    TEXT NOT NULL DEFAULT '{}',
+    timestamp  TEXT NOT NULL,
+    auto_mod   INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_modaudit_ts ON moderation_audit_log(timestamp DESC);
+
+CREATE TABLE IF NOT EXISTS moderation_autohide_resets (
+    did      TEXT PRIMARY KEY,
+    reset_at TEXT NOT NULL
+);
+`
+
+// NewFeedIndex creates a new feed index backed by SQLite
 func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	if path == "" {
 		return nil, fmt.Errorf("index path is required")
@@ -149,44 +214,20 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		}
 	}
 
-	db, err := bolt.Open(path, 0600, &bolt.Options{
-		Timeout: 5 * time.Second,
-	})
+	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=temp_store(MEMORY)&_pragma=mmap_size(134217728)&_pragma=cache_size(-65536)")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open index database: %w", err)
 	}
 
-	// Create buckets
-	err = db.Update(func(tx *bolt.Tx) error {
-		buckets := [][]byte{
-			BucketRecords,
-			BucketByTime,
-			BucketByDID,
-			BucketByCollection,
-			BucketProfiles,
-			BucketMeta,
-			BucketKnownDIDs,
-			BucketBackfilled,
-			BucketLikes,
-			BucketLikeCounts,
-			BucketLikesByActor,
-			BucketComments,
-			BucketCommentCounts,
-			BucketCommentsByActor,
-			BucketCommentChildren,
-			BucketNotifications,
-			BucketNotificationsMeta,
-		}
-		for _, bucket := range buckets {
-			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
-				return fmt.Errorf("failed to create bucket %s: %w", bucket, err)
-			}
-		}
-		return nil
-	})
-	if err != nil {
+	// WAL mode allows concurrent reads with a single writer.
+	// Allow multiple reader connections but limit to avoid file descriptor exhaustion.
+	db.SetMaxOpenConns(4)
+	db.SetMaxIdleConns(4)
+
+	// Execute schema (skip PRAGMAs — already set via DSN)
+	if _, err := db.Exec(schemaNoTrailingPragma); err != nil {
 		_ = db.Close()
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
 	idx := &FeedIndex{
@@ -197,6 +238,11 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	}
 
 	return idx, nil
+}
+
+// DB returns the underlying database connection for shared use by other stores.
+func (idx *FeedIndex) DB() *sql.DB {
+	return idx.db
 }
 
 // Close closes the index database
@@ -224,25 +270,17 @@ func (idx *FeedIndex) IsReady() bool {
 // GetCursor returns the last processed cursor (microseconds timestamp)
 func (idx *FeedIndex) GetCursor() (int64, error) {
 	var cursor int64
-	err := idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketMeta)
-		v := b.Get([]byte("cursor"))
-		if len(v) == 8 {
-			cursor = int64(binary.BigEndian.Uint64(v))
-		}
-		return nil
-	})
+	err := idx.db.QueryRow(`SELECT value FROM meta WHERE key = 'cursor'`).Scan(&cursor)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
 	return cursor, err
 }
 
 // SetCursor stores the cursor position
 func (idx *FeedIndex) SetCursor(cursor int64) error {
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketMeta)
-		buf := make([]byte, 8)
-		binary.BigEndian.PutUint64(buf, uint64(cursor))
-		return b.Put([]byte("cursor"), buf)
-	})
+	_, err := idx.db.Exec(`INSERT OR REPLACE INTO meta (key, value) VALUES ('cursor', ?)`, cursor)
+	return err
 }
 
 // UpsertRecord adds or updates a record in the index
@@ -260,122 +298,60 @@ func (idx *FeedIndex) UpsertRecord(did, collection, rkey, cid string, record jso
 		}
 	}
 
-	indexed := &IndexedRecord{
-		URI:        uri,
-		DID:        did,
-		Collection: collection,
-		RKey:       rkey,
-		Record:     record,
-		CID:        cid,
-		IndexedAt:  time.Now(),
-		CreatedAt:  createdAt,
-	}
+	now := time.Now()
 
-	data, err := json.Marshal(indexed)
+	_, err := idx.db.Exec(`
+		INSERT INTO records (uri, did, collection, rkey, record, cid, indexed_at, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(uri) DO UPDATE SET
+			record = excluded.record,
+			cid = excluded.cid,
+			indexed_at = excluded.indexed_at,
+			created_at = excluded.created_at
+	`, uri, did, collection, rkey, string(record), cid,
+		now.Format(time.RFC3339Nano), createdAt.Format(time.RFC3339Nano))
 	if err != nil {
-		return fmt.Errorf("failed to marshal record: %w", err)
+		return fmt.Errorf("failed to upsert record: %w", err)
 	}
 
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		// Store the record
-		records := tx.Bucket(BucketRecords)
-		if err := records.Put([]byte(uri), data); err != nil {
-			return err
-		}
+	// Track known DID
+	_, err = idx.db.Exec(`INSERT OR IGNORE INTO known_dids (did) VALUES (?)`, did)
+	if err != nil {
+		return fmt.Errorf("failed to track known DID: %w", err)
+	}
 
-		// Index by time (use createdAt for sorting, not event time)
-		byTime := tx.Bucket(BucketByTime)
-		timeKey := makeTimeKey(createdAt, uri)
-		if err := byTime.Put(timeKey, nil); err != nil {
-			return err
-		}
-
-		// Index by DID
-		byDID := tx.Bucket(BucketByDID)
-		didKey := []byte(did + ":" + uri)
-		if err := byDID.Put(didKey, nil); err != nil {
-			return err
-		}
-
-		// Index by collection
-		byCollection := tx.Bucket(BucketByCollection)
-		collKey := []byte(collection + ":" + string(timeKey))
-		if err := byCollection.Put(collKey, nil); err != nil {
-			return err
-		}
-
-		// Track known DID
-		knownDIDs := tx.Bucket(BucketKnownDIDs)
-		if err := knownDIDs.Put([]byte(did), []byte("1")); err != nil {
-			return err
-		}
-
-		return nil
-	})
+	return nil
 }
 
 // DeleteRecord removes a record from the index
 func (idx *FeedIndex) DeleteRecord(did, collection, rkey string) error {
 	uri := atproto.BuildATURI(did, collection, rkey)
-
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		// Get the existing record to find its timestamp
-		records := tx.Bucket(BucketRecords)
-		existingData := records.Get([]byte(uri))
-		if existingData == nil {
-			// Record doesn't exist, nothing to delete
-			return nil
-		}
-
-		var existing IndexedRecord
-		if err := json.Unmarshal(existingData, &existing); err != nil {
-			// Can't parse, just delete the main record
-			return records.Delete([]byte(uri))
-		}
-
-		// Delete from records
-		if err := records.Delete([]byte(uri)); err != nil {
-			return err
-		}
-
-		// Delete from by_time index
-		byTime := tx.Bucket(BucketByTime)
-		timeKey := makeTimeKey(existing.CreatedAt, uri)
-		if err := byTime.Delete(timeKey); err != nil {
-			return err
-		}
-
-		// Delete from by_did index
-		byDID := tx.Bucket(BucketByDID)
-		didKey := []byte(did + ":" + uri)
-		if err := byDID.Delete(didKey); err != nil {
-			return err
-		}
-
-		// Delete from by_collection index
-		byCollection := tx.Bucket(BucketByCollection)
-		collKey := []byte(collection + ":" + string(timeKey))
-		if err := byCollection.Delete(collKey); err != nil {
-			return err
-		}
-
-		return nil
-	})
+	_, err := idx.db.Exec(`DELETE FROM records WHERE uri = ?`, uri)
+	return err
 }
 
 // GetRecord retrieves a single record by URI
 func (idx *FeedIndex) GetRecord(uri string) (*IndexedRecord, error) {
-	var record *IndexedRecord
-	err := idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketRecords)
-		data := b.Get([]byte(uri))
-		if data == nil {
-			return nil
-		}
-		record = &IndexedRecord{}
-		return json.Unmarshal(data, record)
-	})
-	return record, err
+	var rec IndexedRecord
+	var recordStr, indexedAtStr, createdAtStr string
+
+	err := idx.db.QueryRow(`
+		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
+		FROM records WHERE uri = ?
+	`, uri).Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
+		&recordStr, &rec.CID, &indexedAtStr, &createdAtStr)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	rec.Record = json.RawMessage(recordStr)
+	rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
+	rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+
+	return &rec, nil
 }
 
 // FeedItem represents an item in the feed (matches feed.FeedItem structure)
@@ -404,102 +380,7 @@ type FeedItem struct {
 
 // GetRecentFeed returns recent feed items from the index
 func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error) {
-	var records []*IndexedRecord
-	err := idx.db.View(func(tx *bolt.Tx) error {
-		byTime := tx.Bucket(BucketByTime)
-		recordsBucket := tx.Bucket(BucketRecords)
-
-		c := byTime.Cursor()
-
-		// Iterate in reverse (newest first)
-		count := 0
-		for k, _ := c.First(); k != nil && count < limit*2; k, _ = c.Next() {
-			// Extract URI from key (format: timestamp:uri)
-			uri := extractURIFromTimeKey(k)
-			if uri == "" {
-				continue
-			}
-
-			data := recordsBucket.Get([]byte(uri))
-			if data == nil {
-				continue
-			}
-
-			var record IndexedRecord
-			if err := json.Unmarshal(data, &record); err != nil {
-				continue
-			}
-
-			records = append(records, &record)
-			count++
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Build lookup maps for reference resolution
-	recordsByURI := make(map[string]*IndexedRecord)
-	for _, r := range records {
-		recordsByURI[r.URI] = r
-	}
-
-	// Also load additional records we might need for references
-	err = idx.db.View(func(tx *bolt.Tx) error {
-		recordsBucket := tx.Bucket(BucketRecords)
-		return recordsBucket.ForEach(func(k, v []byte) error {
-			uri := string(k)
-			if _, exists := recordsByURI[uri]; exists {
-				return nil
-			}
-			var record IndexedRecord
-			if err := json.Unmarshal(v, &record); err != nil {
-				return nil
-			}
-			// Only load beans, roasters, grinders, brewers for reference resolution
-			switch record.Collection {
-			case atproto.NSIDBean, atproto.NSIDRoaster, atproto.NSIDGrinder, atproto.NSIDBrewer:
-				recordsByURI[uri] = &record
-			}
-			return nil
-		})
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert to FeedItems
-	items := make([]*FeedItem, 0, len(records))
-	for _, record := range records {
-		// Skip likes - they're indexed for like counts but not displayed as feed items
-		if record.Collection == atproto.NSIDLike {
-			continue
-		}
-
-		item, err := idx.recordToFeedItem(ctx, record, recordsByURI)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
-			continue
-		}
-		if !FeedableRecordTypes[item.RecordType] {
-			continue
-		}
-		items = append(items, item)
-	}
-
-	// Sort by timestamp descending
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].Timestamp.After(items[j].Timestamp)
-	})
-
-	// Apply limit
-	if len(items) > limit {
-		items = items[:limit]
-	}
-
-	return items, nil
+	return idx.getFeedItems(ctx, "", limit, "")
 }
 
 // recordTypeToNSID maps a lexicons.RecordType to its NSID collection string
@@ -511,6 +392,15 @@ var recordTypeToNSID = map[lexicons.RecordType]string{
 	lexicons.RecordTypeBrewer:  atproto.NSIDBrewer,
 }
 
+// feedableCollections is the set of collection NSIDs that appear in the feed
+var feedableCollections = func() []string {
+	out := make([]string, 0, len(recordTypeToNSID))
+	for _, nsid := range recordTypeToNSID {
+		out = append(out, nsid)
+	}
+	return out
+}()
+
 // GetFeedWithQuery returns feed items matching the given query with cursor-based pagination
 func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error) {
 	if q.Limit <= 0 {
@@ -520,164 +410,175 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 		q.Sort = FeedSortRecent
 	}
 
-	// For type-filtered queries, use BucketByCollection for efficiency
-	// For unfiltered queries, use BucketByTime
-	var records []*IndexedRecord
-	var lastTimeKey []byte
-
-	// Decode cursor if provided
-	var cursorBytes []byte
-	if q.Cursor != "" {
-		var err error
-		cursorBytes, err = decodeCursor(q.Cursor)
-		if err != nil {
-			return nil, fmt.Errorf("invalid cursor: %w", err)
+	var collectionFilter string
+	if q.TypeFilter != "" {
+		nsid, ok := recordTypeToNSID[q.TypeFilter]
+		if !ok {
+			return nil, fmt.Errorf("unknown record type: %s", q.TypeFilter)
 		}
+		collectionFilter = nsid
 	}
 
-	// Fetch more than needed to account for filtering
-	fetchLimit := q.Limit + 10
-
-	err := idx.db.View(func(tx *bolt.Tx) error {
-		recordsBucket := tx.Bucket(BucketRecords)
-
-		if q.TypeFilter != "" {
-			// Use BucketByCollection for filtered queries
-			nsid, ok := recordTypeToNSID[q.TypeFilter]
-			if !ok {
-				return fmt.Errorf("unknown record type: %s", q.TypeFilter)
-			}
-
-			byCollection := tx.Bucket(BucketByCollection)
-			c := byCollection.Cursor()
-
-			// Collection keys: {collection}:{inverted_timestamp}:{uri}
-			prefix := []byte(nsid + ":")
-
-			var k []byte
-			if cursorBytes != nil {
-				// Seek to cursor position (cursor is the full collection key)
-				k, _ = c.Seek(cursorBytes)
-				// Skip the cursor key itself (it was the last item of previous page)
-				if k != nil && string(k) == string(cursorBytes) {
-					k, _ = c.Next()
-				}
-			} else {
-				k, _ = c.Seek(prefix)
-			}
-
-			count := 0
-			for ; k != nil && count < fetchLimit; k, _ = c.Next() {
-				if !bytes.HasPrefix(k, prefix) {
-					break
-				}
-
-				// Extract URI from collection key: {collection}:{timestamp_bytes}:{uri}
-				uri := extractURIFromCollectionKey(k, nsid)
-				if uri == "" {
-					continue
-				}
-
-				data := recordsBucket.Get([]byte(uri))
-				if data == nil {
-					continue
-				}
-
-				var record IndexedRecord
-				if err := json.Unmarshal(data, &record); err != nil {
-					continue
-				}
-				records = append(records, &record)
-				lastTimeKey = make([]byte, len(k))
-				copy(lastTimeKey, k)
-				count++
-			}
-		} else {
-			// Use BucketByTime for unfiltered queries
-			byTime := tx.Bucket(BucketByTime)
-			c := byTime.Cursor()
-
-			var k []byte
-			if cursorBytes != nil {
-				k, _ = c.Seek(cursorBytes)
-				if k != nil && string(k) == string(cursorBytes) {
-					k, _ = c.Next()
-				}
-			} else {
-				k, _ = c.First()
-			}
-
-			count := 0
-			for ; k != nil && count < fetchLimit; k, _ = c.Next() {
-				uri := extractURIFromTimeKey(k)
-				if uri == "" {
-					continue
-				}
-
-				data := recordsBucket.Get([]byte(uri))
-				if data == nil {
-					continue
-				}
-
-				var record IndexedRecord
-				if err := json.Unmarshal(data, &record); err != nil {
-					continue
-				}
-				// Skip non-feedable records (likes, comments) so they don't
-				// consume slots in the fetch limit, which would cause pagination
-				// to break when many non-feedable records are intermixed.
-				if record.Collection == atproto.NSIDLike || record.Collection == atproto.NSIDComment {
-					continue
-				}
-				records = append(records, &record)
-				lastTimeKey = make([]byte, len(k))
-				copy(lastTimeKey, k)
-				count++
-			}
-		}
-
-		return nil
-	})
+	items, err := idx.getFeedItems(ctx, collectionFilter, q.Limit+1, q.Cursor)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build lookup maps for reference resolution
-	recordsByURI := make(map[string]*IndexedRecord)
+	// Sort based on query
+	if q.Sort == FeedSortPopular {
+		sort.Slice(items, func(i, j int) bool {
+			scoreI := items[i].LikeCount*3 + items[i].CommentCount*2
+			scoreJ := items[j].LikeCount*3 + items[j].CommentCount*2
+			if scoreI != scoreJ {
+				return scoreI > scoreJ
+			}
+			return items[i].Timestamp.After(items[j].Timestamp)
+		})
+	}
+
+	result := &FeedResult{Items: items}
+	if len(items) > q.Limit {
+		result.Items = items[:q.Limit]
+		last := result.Items[q.Limit-1]
+		result.NextCursor = last.Timestamp.Format(time.RFC3339Nano) + "|" + last.SubjectURI
+	}
+
+	return result, nil
+}
+
+// getFeedItems fetches records from SQLite, resolves references, and returns FeedItems.
+func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilter string, limit int, cursor string) ([]*FeedItem, error) {
+	// Build query for feedable records
+	var args []any
+	query := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE `
+
+	if collectionFilter != "" {
+		query += `collection = ? `
+		args = append(args, collectionFilter)
+	} else {
+		// Only feedable collections
+		placeholders := make([]string, len(feedableCollections))
+		for i, c := range feedableCollections {
+			placeholders[i] = "?"
+			args = append(args, c)
+		}
+		query += `collection IN (` + strings.Join(placeholders, ",") + `) `
+	}
+
+	// Cursor-based pagination: cursor format is "created_at|uri"
+	if cursor != "" {
+		parts := strings.SplitN(cursor, "|", 2)
+		if len(parts) == 2 {
+			query += `AND (created_at < ? OR (created_at = ? AND uri < ?)) `
+			args = append(args, parts[0], parts[0], parts[1])
+		}
+	}
+
+	query += `ORDER BY created_at DESC LIMIT ?`
+	args = append(args, limit)
+
+	rows, err := idx.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var records []*IndexedRecord
+	refURIs := make(map[string]bool) // URIs we need to resolve
+
+	for rows.Next() {
+		var rec IndexedRecord
+		var recordStr, indexedAtStr, createdAtStr string
+		if err := rows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
+			&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
+			continue
+		}
+		rec.Record = json.RawMessage(recordStr)
+		rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
+		rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+		records = append(records, &rec)
+
+		// Collect reference URIs from the record data
+		var recordData map[string]any
+		if err := json.Unmarshal(rec.Record, &recordData); err == nil {
+			for _, key := range []string{"beanRef", "roasterRef", "grinderRef", "brewerRef"} {
+				if ref, ok := recordData[key].(string); ok && ref != "" {
+					refURIs[ref] = true
+				}
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Build lookup map starting with the fetched records
+	recordsByURI := make(map[string]*IndexedRecord, len(records))
 	for _, r := range records {
 		recordsByURI[r.URI] = r
 	}
 
-	// Load additional records for reference resolution
-	err = idx.db.View(func(tx *bolt.Tx) error {
-		recordsBucket := tx.Bucket(BucketRecords)
-		return recordsBucket.ForEach(func(k, v []byte) error {
-			uri := string(k)
-			if _, exists := recordsByURI[uri]; exists {
-				return nil
+	// Fetch referenced records that we don't already have
+	var missingURIs []string
+	for uri := range refURIs {
+		if _, ok := recordsByURI[uri]; !ok {
+			missingURIs = append(missingURIs, uri)
+		}
+	}
+
+	if len(missingURIs) > 0 {
+		placeholders := make([]string, len(missingURIs))
+		refArgs := make([]any, len(missingURIs))
+		for i, uri := range missingURIs {
+			placeholders[i] = "?"
+			refArgs[i] = uri
+		}
+		refQuery := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri IN (` + strings.Join(placeholders, ",") + `)`
+		refRows, err := idx.db.QueryContext(ctx, refQuery, refArgs...)
+		if err == nil {
+			defer refRows.Close()
+			for refRows.Next() {
+				var rec IndexedRecord
+				var recordStr, indexedAtStr, createdAtStr string
+				if err := refRows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
+					&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
+					continue
+				}
+				rec.Record = json.RawMessage(recordStr)
+				rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
+				rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+				recordsByURI[rec.URI] = &rec
+
+				// If this is a bean, check if it references a roaster we also need
+				if rec.Collection == atproto.NSIDBean {
+					var beanData map[string]any
+					if err := json.Unmarshal(rec.Record, &beanData); err == nil {
+						if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
+							if _, ok := recordsByURI[roasterRef]; !ok {
+								// Fetch this roaster too
+								var rRec IndexedRecord
+								var rStr, rIdxAt, rCreAt string
+								err := idx.db.QueryRowContext(ctx,
+									`SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri = ?`,
+									roasterRef).Scan(&rRec.URI, &rRec.DID, &rRec.Collection, &rRec.RKey,
+									&rStr, &rRec.CID, &rIdxAt, &rCreAt)
+								if err == nil {
+									rRec.Record = json.RawMessage(rStr)
+									rRec.IndexedAt, _ = time.Parse(time.RFC3339Nano, rIdxAt)
+									rRec.CreatedAt, _ = time.Parse(time.RFC3339Nano, rCreAt)
+									recordsByURI[rRec.URI] = &rRec
+								}
+							}
+						}
+					}
+				}
 			}
-			var record IndexedRecord
-			if err := json.Unmarshal(v, &record); err != nil {
-				return nil
-			}
-			switch record.Collection {
-			case atproto.NSIDBean, atproto.NSIDRoaster, atproto.NSIDGrinder, atproto.NSIDBrewer:
-				recordsByURI[uri] = &record
-			}
-			return nil
-		})
-	})
-	if err != nil {
-		return nil, err
+		}
 	}
 
 	// Convert to FeedItems
 	items := make([]*FeedItem, 0, len(records))
 	for _, record := range records {
-		if record.Collection == atproto.NSIDLike || record.Collection == atproto.NSIDComment {
-			continue
-		}
-
 		item, err := idx.recordToFeedItem(ctx, record, recordsByURI)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
@@ -689,56 +590,7 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 		items = append(items, item)
 	}
 
-	// Sort based on query
-	switch q.Sort {
-	case FeedSortPopular:
-		sort.Slice(items, func(i, j int) bool {
-			scoreI := items[i].LikeCount*3 + items[i].CommentCount*2
-			scoreJ := items[j].LikeCount*3 + items[j].CommentCount*2
-			if scoreI != scoreJ {
-				return scoreI > scoreJ
-			}
-			return items[i].Timestamp.After(items[j].Timestamp)
-		})
-	default: // FeedSortRecent
-		sort.Slice(items, func(i, j int) bool {
-			return items[i].Timestamp.After(items[j].Timestamp)
-		})
-	}
-
-	// Build result with cursor
-	result := &FeedResult{Items: items}
-
-	if len(items) > q.Limit {
-		result.Items = items[:q.Limit]
-		// Cursor is the last time key we read from the DB
-		if lastTimeKey != nil {
-			result.NextCursor = encodeCursor(lastTimeKey)
-		}
-	}
-
-	return result, nil
-}
-
-// extractURIFromCollectionKey extracts the URI from a collection key
-// Format: {collection}:{inverted_timestamp_8bytes}:{uri}
-func extractURIFromCollectionKey(key []byte, collection string) string {
-	// prefix is collection + ":"
-	prefixLen := len(collection) + 1
-	// Then 8 bytes of timestamp + ":"
-	minLen := prefixLen + 8 + 1 + 1 // prefix + timestamp + ":" + at least 1 char
-	if len(key) < minLen {
-		return ""
-	}
-	return string(key[prefixLen+9:])
-}
-
-func encodeCursor(key []byte) string {
-	return hex.EncodeToString(key)
-}
-
-func decodeCursor(s string) ([]byte, error) {
-	return hex.DecodeString(s)
+	return items, nil
 }
 
 // recordToFeedItem converts an IndexedRecord to a FeedItem
@@ -757,10 +609,9 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	profile, err := idx.GetProfile(ctx, record.DID)
 	if err != nil {
 		log.Warn().Err(err).Str("did", record.DID).Msg("failed to get profile")
-		// Use a placeholder profile
 		profile = &atproto.Profile{
 			DID:    record.DID,
-			Handle: record.DID, // Use DID as handle if we can't resolve
+			Handle: record.DID,
 		}
 	}
 	item.Author = profile
@@ -869,7 +720,6 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		item.Brewer = brewer
 
 	case atproto.NSIDLike:
-		// This should never be reached - likes are filtered before calling recordToFeedItem
 		return nil, fmt.Errorf("unexpected: likes should be filtered before conversion")
 
 	default:
@@ -896,22 +746,19 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 	idx.profileCacheMu.RUnlock()
 
 	// Check persistent cache
-	var cached *CachedProfile
-	err := idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketProfiles)
-		data := b.Get([]byte(did))
-		if data == nil {
-			return nil
+	var dataStr, expiresAtStr string
+	err := idx.db.QueryRow(`SELECT data, expires_at FROM profiles WHERE did = ?`, did).Scan(&dataStr, &expiresAtStr)
+	if err == nil {
+		expiresAt, _ := time.Parse(time.RFC3339Nano, expiresAtStr)
+		if time.Now().Before(expiresAt) {
+			cached := &CachedProfile{}
+			if err := json.Unmarshal([]byte(dataStr), cached); err == nil {
+				idx.profileCacheMu.Lock()
+				idx.profileCache[did] = cached
+				idx.profileCacheMu.Unlock()
+				return cached.Profile, nil
+			}
 		}
-		cached = &CachedProfile{}
-		return json.Unmarshal(data, cached)
-	})
-	if err == nil && cached != nil && time.Now().Before(cached.ExpiresAt) {
-		// Update in-memory cache
-		idx.profileCacheMu.Lock()
-		idx.profileCache[did] = cached
-		idx.profileCacheMu.Unlock()
-		return cached.Profile, nil
 	}
 
 	// Fetch from API
@@ -922,7 +769,7 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 
 	// Cache the result
 	now := time.Now()
-	cached = &CachedProfile{
+	cached := &CachedProfile{
 		Profile:   profile,
 		CachedAt:  now,
 		ExpiresAt: now.Add(idx.profileTTL),
@@ -935,146 +782,102 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 
 	// Persist to database
 	data, _ := json.Marshal(cached)
-	_ = idx.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketProfiles)
-		return b.Put([]byte(did), data)
-	})
+	_, _ = idx.db.Exec(`INSERT OR REPLACE INTO profiles (did, data, expires_at) VALUES (?, ?, ?)`,
+		did, string(data), cached.ExpiresAt.Format(time.RFC3339Nano))
 
 	return profile, nil
 }
 
 // GetKnownDIDs returns all DIDs that have created Arabica records
 func (idx *FeedIndex) GetKnownDIDs() ([]string, error) {
+	rows, err := idx.db.Query(`SELECT did FROM known_dids`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	var dids []string
-	err := idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketKnownDIDs)
-		return b.ForEach(func(k, v []byte) error {
-			dids = append(dids, string(k))
-			return nil
-		})
-	})
-	return dids, err
+	for rows.Next() {
+		var did string
+		if err := rows.Scan(&did); err != nil {
+			continue
+		}
+		dids = append(dids, did)
+	}
+	return dids, rows.Err()
 }
 
 // ListRecordsByCollection returns all indexed records for a given collection.
-// This provides raw data access for other packages (e.g., suggestions) to build on.
 func (idx *FeedIndex) ListRecordsByCollection(collection string) ([]IndexedRecord, error) {
+	rows, err := idx.db.Query(`
+		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
+		FROM records WHERE collection = ? ORDER BY created_at DESC
+	`, collection)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	var records []IndexedRecord
-
-	err := idx.db.View(func(tx *bolt.Tx) error {
-		byCollection := tx.Bucket(BucketByCollection)
-		recordsBucket := tx.Bucket(BucketRecords)
-
-		prefix := []byte(collection + ":")
-		c := byCollection.Cursor()
-
-		for k, _ := c.Seek(prefix); k != nil; k, _ = c.Next() {
-			if !bytes.HasPrefix(k, prefix) {
-				break
-			}
-
-			uri := extractURIFromCollectionKey(k, collection)
-			if uri == "" {
-				continue
-			}
-
-			data := recordsBucket.Get([]byte(uri))
-			if data == nil {
-				continue
-			}
-
-			var record IndexedRecord
-			if err := json.Unmarshal(data, &record); err != nil {
-				continue
-			}
-
-			records = append(records, record)
+	for rows.Next() {
+		var rec IndexedRecord
+		var recordStr, indexedAtStr, createdAtStr string
+		if err := rows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
+			&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
+			continue
 		}
-
-		return nil
-	})
-
-	return records, err
+		rec.Record = json.RawMessage(recordStr)
+		rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
+		rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+		records = append(records, rec)
+	}
+	return records, rows.Err()
 }
 
 // RecordCount returns the total number of indexed records
 func (idx *FeedIndex) RecordCount() int {
 	var count int
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketRecords)
-		count = b.Stats().KeyN
-		return nil
-	})
+	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM records`).Scan(&count)
 	return count
 }
 
 // KnownDIDCount returns the number of unique DIDs in the index
 func (idx *FeedIndex) KnownDIDCount() int {
 	var count int
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketKnownDIDs)
-		count = b.Stats().KeyN
-		return nil
-	})
+	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM known_dids`).Scan(&count)
 	return count
 }
 
 // TotalLikeCount returns the total number of likes indexed
 func (idx *FeedIndex) TotalLikeCount() int {
 	var count int
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketLikes)
-		count = b.Stats().KeyN
-		return nil
-	})
+	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM likes`).Scan(&count)
 	return count
 }
 
 // TotalCommentCount returns the total number of comments indexed
 func (idx *FeedIndex) TotalCommentCount() int {
 	var count int
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketCommentsByActor)
-		count = b.Stats().KeyN
-		return nil
-	})
+	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM comments`).Scan(&count)
 	return count
 }
 
 // RecordCountByCollection returns a breakdown of record counts by collection type
 func (idx *FeedIndex) RecordCountByCollection() map[string]int {
 	counts := make(map[string]int)
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		records := tx.Bucket(BucketRecords)
-		return records.ForEach(func(k, v []byte) error {
-			var record IndexedRecord
-			if err := json.Unmarshal(v, &record); err != nil {
-				return nil
-			}
-			counts[record.Collection]++
-			return nil
-		})
-	})
-	return counts
-}
-
-// Helper functions
-
-func makeTimeKey(t time.Time, uri string) []byte {
-	// Format: inverted timestamp (for reverse chronological order) + ":" + uri
-	// Use nanoseconds for uniqueness
-	inverted := ^uint64(t.UnixNano())
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, inverted)
-	return append(buf, []byte(":"+uri)...)
-}
-
-func extractURIFromTimeKey(key []byte) string {
-	if len(key) < 10 { // 8 bytes timestamp + ":" + at least 1 char
-		return ""
+	rows, err := idx.db.Query(`SELECT collection, COUNT(*) FROM records GROUP BY collection`)
+	if err != nil {
+		return counts
 	}
-	// Skip 8 bytes timestamp + 1 byte ":"
-	return string(key[9:])
+	defer rows.Close()
+	for rows.Next() {
+		var collection string
+		var count int
+		if err := rows.Scan(&collection, &count); err == nil {
+			counts[collection] = count
+		}
+	}
+	return counts
 }
 
 func formatTimeAgo(t time.Time) string {
@@ -1118,28 +921,20 @@ func formatTimeAgo(t time.Time) string {
 
 // IsBackfilled checks if a DID has already been backfilled
 func (idx *FeedIndex) IsBackfilled(did string) bool {
-	var exists bool
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketBackfilled)
-		exists = b.Get([]byte(did)) != nil
-		return nil
-	})
-	return exists
+	var exists int
+	err := idx.db.QueryRow(`SELECT 1 FROM backfilled WHERE did = ?`, did).Scan(&exists)
+	return err == nil
 }
 
 // MarkBackfilled marks a DID as backfilled with current timestamp
 func (idx *FeedIndex) MarkBackfilled(did string) error {
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketBackfilled)
-		timestamp := []byte(time.Now().Format(time.RFC3339))
-		return b.Put([]byte(did), timestamp)
-	})
+	_, err := idx.db.Exec(`INSERT OR IGNORE INTO backfilled (did, backfilled_at) VALUES (?, ?)`,
+		did, time.Now().Format(time.RFC3339))
+	return err
 }
 
 // BackfillUser fetches all existing records for a DID and adds them to the index
-// Returns early if the DID has already been backfilled
 func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
-	// Check if already backfilled
 	if idx.IsBackfilled(did) {
 		log.Debug().Str("did", did).Msg("DID already backfilled, skipping")
 		return nil
@@ -1156,7 +951,6 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 		}
 
 		for _, record := range records.Records {
-			// Extract rkey from URI
 			parts := strings.Split(record.URI, "/")
 			if len(parts) < 3 {
 				continue
@@ -1174,7 +968,6 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 			}
 			recordCount++
 
-			// Index likes and comments into their specialized buckets
 			switch collection {
 			case atproto.NSIDLike:
 				if subject, ok := record.Value["subject"].(map[string]interface{}); ok {
@@ -1211,7 +1004,6 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 		}
 	}
 
-	// Mark as backfilled
 	if err := idx.MarkBackfilled(did); err != nil {
 		log.Warn().Err(err).Str("did", did).Msg("failed to mark DID as backfilled")
 	}
@@ -1224,127 +1016,41 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 
 // UpsertLike adds or updates a like in the index
 func (idx *FeedIndex) UpsertLike(actorDID, rkey, subjectURI string) error {
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		likes := tx.Bucket(BucketLikes)
-		likeCounts := tx.Bucket(BucketLikeCounts)
-		likesByActor := tx.Bucket(BucketLikesByActor)
-
-		// Key format: {subject_uri}:{actor_did}
-		likeKey := []byte(subjectURI + ":" + actorDID)
-
-		// Check if this like already exists
-		existingRKey := likes.Get(likeKey)
-		if existingRKey != nil {
-			// Already exists, nothing to do
-			return nil
-		}
-
-		// Store the like mapping
-		if err := likes.Put(likeKey, []byte(rkey)); err != nil {
-			return err
-		}
-
-		// Store by actor for reverse lookup
-		actorKey := []byte(actorDID + ":" + subjectURI)
-		if err := likesByActor.Put(actorKey, []byte(rkey)); err != nil {
-			return err
-		}
-
-		// Increment the like count
-		countKey := []byte(subjectURI)
-		currentCount := uint64(0)
-		if countData := likeCounts.Get(countKey); len(countData) == 8 {
-			currentCount = binary.BigEndian.Uint64(countData)
-		}
-		currentCount++
-		countBuf := make([]byte, 8)
-		binary.BigEndian.PutUint64(countBuf, currentCount)
-		return likeCounts.Put(countKey, countBuf)
-	})
+	_, err := idx.db.Exec(`INSERT OR IGNORE INTO likes (subject_uri, actor_did, rkey) VALUES (?, ?, ?)`,
+		subjectURI, actorDID, rkey)
+	return err
 }
 
 // DeleteLike removes a like from the index
 func (idx *FeedIndex) DeleteLike(actorDID, subjectURI string) error {
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		likes := tx.Bucket(BucketLikes)
-		likeCounts := tx.Bucket(BucketLikeCounts)
-		likesByActor := tx.Bucket(BucketLikesByActor)
-
-		// Key format: {subject_uri}:{actor_did}
-		likeKey := []byte(subjectURI + ":" + actorDID)
-
-		// Check if like exists
-		if likes.Get(likeKey) == nil {
-			// Doesn't exist, nothing to do
-			return nil
-		}
-
-		// Delete the like mapping
-		if err := likes.Delete(likeKey); err != nil {
-			return err
-		}
-
-		// Delete by actor lookup
-		actorKey := []byte(actorDID + ":" + subjectURI)
-		if err := likesByActor.Delete(actorKey); err != nil {
-			return err
-		}
-
-		// Decrement the like count
-		countKey := []byte(subjectURI)
-		currentCount := uint64(0)
-		if countData := likeCounts.Get(countKey); len(countData) == 8 {
-			currentCount = binary.BigEndian.Uint64(countData)
-		}
-		if currentCount > 0 {
-			currentCount--
-		}
-		if currentCount == 0 {
-			return likeCounts.Delete(countKey)
-		}
-		countBuf := make([]byte, 8)
-		binary.BigEndian.PutUint64(countBuf, currentCount)
-		return likeCounts.Put(countKey, countBuf)
-	})
+	_, err := idx.db.Exec(`DELETE FROM likes WHERE subject_uri = ? AND actor_did = ?`,
+		subjectURI, actorDID)
+	return err
 }
 
 // GetLikeCount returns the number of likes for a record
 func (idx *FeedIndex) GetLikeCount(subjectURI string) int {
-	var count uint64
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		likeCounts := tx.Bucket(BucketLikeCounts)
-		countData := likeCounts.Get([]byte(subjectURI))
-		if len(countData) == 8 {
-			count = binary.BigEndian.Uint64(countData)
-		}
-		return nil
-	})
-	return int(count)
+	var count int
+	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM likes WHERE subject_uri = ?`, subjectURI).Scan(&count)
+	return count
 }
 
 // HasUserLiked checks if a user has liked a specific record
 func (idx *FeedIndex) HasUserLiked(actorDID, subjectURI string) bool {
-	var exists bool
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		likesByActor := tx.Bucket(BucketLikesByActor)
-		actorKey := []byte(actorDID + ":" + subjectURI)
-		exists = likesByActor.Get(actorKey) != nil
-		return nil
-	})
-	return exists
+	var exists int
+	err := idx.db.QueryRow(`SELECT 1 FROM likes WHERE actor_did = ? AND subject_uri = ? LIMIT 1`,
+		actorDID, subjectURI).Scan(&exists)
+	return err == nil
 }
 
 // GetUserLikeRKey returns the rkey of a user's like for a specific record, or empty string if not found
 func (idx *FeedIndex) GetUserLikeRKey(actorDID, subjectURI string) string {
 	var rkey string
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		likesByActor := tx.Bucket(BucketLikesByActor)
-		actorKey := []byte(actorDID + ":" + subjectURI)
-		if data := likesByActor.Get(actorKey); data != nil {
-			rkey = string(data)
-		}
-		return nil
-	})
+	err := idx.db.QueryRow(`SELECT rkey FROM likes WHERE actor_did = ? AND subject_uri = ?`,
+		actorDID, subjectURI).Scan(&rkey)
+	if err != nil {
+		return ""
+	}
 	return rkey
 }
 
@@ -1373,226 +1079,75 @@ type IndexedComment struct {
 
 // UpsertComment adds or updates a comment in the index
 func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, parentURI, cid, text string, createdAt time.Time) error {
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		comments := tx.Bucket(BucketComments)
-		commentCounts := tx.Bucket(BucketCommentCounts)
-		commentsByActor := tx.Bucket(BucketCommentsByActor)
-		commentChildren := tx.Bucket(BucketCommentChildren)
-
-		// Key format: {subject_uri}:{timestamp}:{actor_did}:{rkey}
-		// Using timestamp for chronological ordering
-		commentKey := []byte(subjectURI + ":" + createdAt.Format(time.RFC3339Nano) + ":" + actorDID + ":" + rkey)
-
-		// Check if this comment already exists (by actor key)
-		actorKey := []byte(actorDID + ":" + rkey)
-		existingSubject := commentsByActor.Get(actorKey)
-		isNew := existingSubject == nil
-
-		// If the comment already exists, delete the old entry from BucketComments
-		// to prevent duplicates (the key includes timestamp which may differ between calls)
-		if !isNew {
-			oldPrefix := []byte(string(existingSubject) + ":")
-			suffix := ":" + actorDID + ":" + rkey
-			cur := comments.Cursor()
-			for k, _ := cur.Seek(oldPrefix); k != nil && strings.HasPrefix(string(k), string(oldPrefix)); k, _ = cur.Next() {
-				if strings.HasSuffix(string(k), suffix) {
-					_ = comments.Delete(k)
-					break
-				}
-			}
+	// Extract parent rkey from parent URI if present
+	var parentRKey string
+	if parentURI != "" {
+		parts := strings.Split(parentURI, "/")
+		if len(parts) > 0 {
+			parentRKey = parts[len(parts)-1]
 		}
+	}
 
-		// Extract parent rkey from parent URI if present
-		var parentRKey string
-		if parentURI != "" {
-			parts := strings.Split(parentURI, "/")
-			if len(parts) > 0 {
-				parentRKey = parts[len(parts)-1]
-			}
-		}
-
-		// Store comment data as JSON
-		commentData := IndexedComment{
-			RKey:       rkey,
-			SubjectURI: subjectURI,
-			Text:       text,
-			ActorDID:   actorDID,
-			CreatedAt:  createdAt,
-			ParentURI:  parentURI,
-			ParentRKey: parentRKey,
-			CID:        cid,
-		}
-		commentJSON, err := json.Marshal(commentData)
-		if err != nil {
-			return fmt.Errorf("failed to marshal comment: %w", err)
-		}
-
-		// Store comment
-		if err := comments.Put(commentKey, commentJSON); err != nil {
-			return fmt.Errorf("failed to store comment: %w", err)
-		}
-
-		// Store actor lookup
-		if err := commentsByActor.Put(actorKey, []byte(subjectURI)); err != nil {
-			return fmt.Errorf("failed to store comment by actor: %w", err)
-		}
-
-		// Store parent-child relationship if this is a reply
-		if parentURI != "" {
-			childKey := []byte(parentURI + ":" + rkey)
-			if err := commentChildren.Put(childKey, []byte(actorDID)); err != nil {
-				return fmt.Errorf("failed to store comment child: %w", err)
-			}
-		}
-
-		// Increment count only if this is a new comment
-		if isNew {
-			countKey := []byte(subjectURI)
-			var count uint64
-			if countData := commentCounts.Get(countKey); len(countData) == 8 {
-				count = binary.BigEndian.Uint64(countData)
-			}
-			count++
-			countBytes := make([]byte, 8)
-			binary.BigEndian.PutUint64(countBytes, count)
-			if err := commentCounts.Put(countKey, countBytes); err != nil {
-				return fmt.Errorf("failed to update comment count: %w", err)
-			}
-		}
-
-		return nil
-	})
+	_, err := idx.db.Exec(`
+		INSERT INTO comments (actor_did, rkey, subject_uri, parent_uri, parent_rkey, cid, text, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(actor_did, rkey) DO UPDATE SET
+			subject_uri = excluded.subject_uri,
+			parent_uri = excluded.parent_uri,
+			parent_rkey = excluded.parent_rkey,
+			cid = excluded.cid,
+			text = excluded.text,
+			created_at = excluded.created_at
+	`, actorDID, rkey, subjectURI, parentURI, parentRKey, cid, text, createdAt.Format(time.RFC3339Nano))
+	return err
 }
 
 // DeleteComment removes a comment from the index
 func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		comments := tx.Bucket(BucketComments)
-		commentCounts := tx.Bucket(BucketCommentCounts)
-		commentsByActor := tx.Bucket(BucketCommentsByActor)
-		commentChildren := tx.Bucket(BucketCommentChildren)
-
-		actorKey := []byte(actorDID + ":" + rkey)
-
-		// Get subject URI from the actor index, or use the provided one
-		existingSubject := commentsByActor.Get(actorKey)
-		if existingSubject != nil && subjectURI == "" {
-			subjectURI = string(existingSubject)
-		}
-
-		// Find and delete the comment from BucketComments
-		var parentURI string
-		suffix := ":" + actorDID + ":" + rkey
-
-		if subjectURI != "" {
-			// Fast path: we know the subject URI, scan only that prefix
-			prefix := []byte(subjectURI + ":")
-			c := comments.Cursor()
-			for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-				if strings.HasSuffix(string(k), suffix) {
-					var comment IndexedComment
-					if err := json.Unmarshal(v, &comment); err == nil {
-						parentURI = comment.ParentURI
-					}
-					if err := comments.Delete(k); err != nil {
-						return fmt.Errorf("failed to delete comment: %w", err)
-					}
-					break
-				}
-			}
-		} else {
-			// Slow path: scan all comments to find this actor+rkey
-			c := comments.Cursor()
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-				if strings.HasSuffix(string(k), suffix) {
-					var comment IndexedComment
-					if err := json.Unmarshal(v, &comment); err == nil {
-						parentURI = comment.ParentURI
-						subjectURI = comment.SubjectURI
-					}
-					if err := comments.Delete(k); err != nil {
-						return fmt.Errorf("failed to delete comment: %w", err)
-					}
-					break
-				}
-			}
-		}
-
-		// Delete actor lookup
-		if existingSubject != nil {
-			if err := commentsByActor.Delete(actorKey); err != nil {
-				return fmt.Errorf("failed to delete comment by actor: %w", err)
-			}
-		}
-
-		// Delete parent-child relationship if this was a reply
-		if parentURI != "" {
-			childKey := []byte(parentURI + ":" + rkey)
-			if err := commentChildren.Delete(childKey); err != nil {
-				return fmt.Errorf("failed to delete comment child: %w", err)
-			}
-		}
-
-		// Decrement count
-		countKey := []byte(subjectURI)
-		var count uint64
-		if countData := commentCounts.Get(countKey); len(countData) == 8 {
-			count = binary.BigEndian.Uint64(countData)
-		}
-		if count > 0 {
-			count--
-		}
-		countBytes := make([]byte, 8)
-		binary.BigEndian.PutUint64(countBytes, count)
-		if err := commentCounts.Put(countKey, countBytes); err != nil {
-			return fmt.Errorf("failed to update comment count: %w", err)
-		}
-
-		return nil
-	})
+	_, err := idx.db.Exec(`DELETE FROM comments WHERE actor_did = ? AND rkey = ?`, actorDID, rkey)
+	return err
 }
 
 // GetCommentCount returns the number of comments on a record
 func (idx *FeedIndex) GetCommentCount(subjectURI string) int {
-	var count uint64
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		commentCounts := tx.Bucket(BucketCommentCounts)
-		countData := commentCounts.Get([]byte(subjectURI))
-		if len(countData) == 8 {
-			count = binary.BigEndian.Uint64(countData)
-		}
-		return nil
-	})
-	return int(count)
+	var count int
+	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM comments WHERE subject_uri = ?`, subjectURI).Scan(&count)
+	return count
 }
 
 // GetCommentsForSubject returns all comments for a specific record, ordered by creation time
-// This returns a flat list of comments without threading
 func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI string, limit int, viewerDID string) []IndexedComment {
-	var comments []IndexedComment
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(BucketComments)
-		prefix := []byte(subjectURI + ":")
-		c := bucket.Cursor()
+	query := `SELECT actor_did, rkey, subject_uri, parent_uri, parent_rkey, cid, text, created_at
+		FROM comments WHERE subject_uri = ? ORDER BY created_at`
+	var args []any
+	args = append(args, subjectURI)
+	if limit > 0 {
+		query += ` LIMIT ?`
+		args = append(args, limit)
+	}
 
-		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-			var comment IndexedComment
-			if err := json.Unmarshal(v, &comment); err != nil {
-				continue
-			}
-			comments = append(comments, comment)
-			if limit > 0 && len(comments) >= limit {
-				break
-			}
-		}
+	rows, err := idx.db.QueryContext(ctx, query, args...)
+	if err != nil {
 		return nil
-	})
+	}
+	defer rows.Close()
+
+	var comments []IndexedComment
+	for rows.Next() {
+		var c IndexedComment
+		var createdAtStr string
+		if err := rows.Scan(&c.ActorDID, &c.RKey, &c.SubjectURI, &c.ParentURI, &c.ParentRKey,
+			&c.CID, &c.Text, &createdAtStr); err != nil {
+			continue
+		}
+		c.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+		comments = append(comments, c)
+	}
 
 	// Populate profile and like info for each comment
 	for i := range comments {
 		profile, err := idx.GetProfile(ctx, comments[i].ActorDID)
 		if err != nil {
-			// Use DID as fallback handle
 			comments[i].Handle = comments[i].ActorDID
 		} else {
 			comments[i].Handle = profile.Handle
@@ -1611,11 +1166,8 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 }
 
 // GetThreadedCommentsForSubject returns comments for a record in threaded order with depth
-// Comments are returned in depth-first order (parent followed by children)
-// Visual depth is capped at 2 levels for display purposes
 func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subjectURI string, limit int, viewerDID string) []IndexedComment {
-	// First get all comments for this subject
-	allComments := idx.GetCommentsForSubject(ctx, subjectURI, 0, viewerDID) // Get all, we'll limit after threading
+	allComments := idx.GetCommentsForSubject(ctx, subjectURI, 0, viewerDID)
 
 	if len(allComments) == 0 {
 		return nil
@@ -1634,10 +1186,8 @@ func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subject
 	for i := range allComments {
 		comment := &allComments[i]
 		if comment.ParentRKey == "" {
-			// Top-level comment
 			topLevel = append(topLevel, comment)
 		} else {
-			// Reply - add to parent's children
 			childrenMap[comment.ParentRKey] = append(childrenMap[comment.ParentRKey], comment)
 		}
 	}
@@ -1661,7 +1211,6 @@ func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subject
 		if limit > 0 && len(result) >= limit {
 			return
 		}
-		// Cap visual depth at 2 for display
 		visualDepth := depth
 		if visualDepth > 2 {
 			visualDepth = 2
@@ -1669,7 +1218,6 @@ func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subject
 		comment.Depth = visualDepth
 		result = append(result, *comment)
 
-		// Add children (if any)
 		if children, ok := childrenMap[comment.RKey]; ok {
 			for _, child := range children {
 				flatten(child, depth+1)

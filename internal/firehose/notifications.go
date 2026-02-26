@@ -1,7 +1,6 @@
 package firehose
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -9,118 +8,85 @@ import (
 	"arabica/internal/models"
 
 	"github.com/rs/zerolog/log"
-	bolt "go.etcd.io/bbolt"
-)
-
-// Bucket names for notifications
-var (
-	// BucketNotifications stores notifications: {target_did}:{inverted_timestamp}:{id} -> {Notification JSON}
-	BucketNotifications = []byte("notifications")
-
-	// BucketNotificationsMeta stores per-user metadata: {target_did}:last_read -> {timestamp RFC3339}
-	BucketNotificationsMeta = []byte("notifications_meta")
 )
 
 // CreateNotification stores a notification for the target user.
-// Deduplicates by (type + actorDID + subjectURI) to prevent duplicates from backfills.
+// Deduplicates by (type + actorDID + subjectURI) via unique index.
 // Self-notifications (actorDID == targetDID) are silently skipped.
 func (idx *FeedIndex) CreateNotification(targetDID string, notif models.Notification) error {
 	if targetDID == "" || targetDID == notif.ActorDID {
 		return nil // skip self-notifications
 	}
 
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketNotifications)
+	// Generate ID from timestamp
+	if notif.ID == "" {
+		notif.ID = fmt.Sprintf("%d", notif.CreatedAt.UnixNano())
+	}
 
-		// Deduplication: scan for existing notification with same type+actor+subject
-		prefix := []byte(targetDID + ":")
-		c := b.Cursor()
-		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-			var existing models.Notification
-			if err := json.Unmarshal(v, &existing); err != nil {
-				continue
-			}
-			if existing.Type == notif.Type && existing.ActorDID == notif.ActorDID && existing.SubjectURI == notif.SubjectURI {
-				return nil // duplicate, skip
-			}
-		}
-
-		// Generate ID from timestamp
-		if notif.ID == "" {
-			notif.ID = fmt.Sprintf("%d", notif.CreatedAt.UnixNano())
-		}
-
-		data, err := json.Marshal(notif)
-		if err != nil {
-			return fmt.Errorf("failed to marshal notification: %w", err)
-		}
-
-		// Key: {target_did}:{inverted_timestamp}:{id} for reverse chronological order
-		inverted := ^uint64(notif.CreatedAt.UnixNano())
-		key := fmt.Sprintf("%s:%016x:%s", targetDID, inverted, notif.ID)
-		return b.Put([]byte(key), data)
-	})
+	// INSERT OR IGNORE deduplicates via the unique index on (target_did, type, actor_did, subject_uri)
+	_, err := idx.db.Exec(`
+		INSERT OR IGNORE INTO notifications (id, target_did, type, actor_did, subject_uri, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, notif.ID, targetDID, string(notif.Type), notif.ActorDID, notif.SubjectURI,
+		notif.CreatedAt.Format(time.RFC3339Nano))
+	return err
 }
 
 // GetNotifications returns notifications for a user, newest first.
 // Uses cursor-based pagination. Returns notifications, next cursor, and error.
 func (idx *FeedIndex) GetNotifications(targetDID string, limit int, cursor string) ([]models.Notification, string, error) {
-	var notifications []models.Notification
-	var nextCursor string
-
 	if limit <= 0 {
 		limit = 20
 	}
 
-	// Get last_read timestamp for marking read status
 	lastRead := idx.getLastRead(targetDID)
 
-	err := idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketNotifications)
-		c := b.Cursor()
+	var args []any
+	query := `SELECT id, type, actor_did, subject_uri, created_at
+		FROM notifications WHERE target_did = ?`
+	args = append(args, targetDID)
 
-		prefix := []byte(targetDID + ":")
-		var k, v []byte
+	if cursor != "" {
+		query += ` AND created_at < ?`
+		args = append(args, cursor)
+	}
 
-		if cursor != "" {
-			// Seek to cursor position, then advance past it
-			k, v = c.Seek([]byte(cursor))
-			if k != nil && string(k) == cursor {
-				k, v = c.Next()
-			}
-		} else {
-			k, v = c.Seek(prefix)
+	query += ` ORDER BY created_at DESC LIMIT ?`
+	// Fetch one extra to determine if there's a next page
+	args = append(args, limit+1)
+
+	rows, err := idx.db.Query(query, args...)
+	if err != nil {
+		return nil, "", err
+	}
+	defer rows.Close()
+
+	var notifications []models.Notification
+	for rows.Next() {
+		var notif models.Notification
+		var typeStr, createdAtStr string
+		if err := rows.Scan(&notif.ID, &typeStr, &notif.ActorDID, &notif.SubjectURI, &createdAtStr); err != nil {
+			continue
+		}
+		notif.Type = models.NotificationType(typeStr)
+		notif.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+
+		if !lastRead.IsZero() && !notif.CreatedAt.After(lastRead) {
+			notif.Read = true
 		}
 
-		var lastKey []byte
-		count := 0
-		for ; k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-			if count >= limit {
-				// There are more items beyond our limit
-				nextCursor = string(lastKey)
-				break
-			}
+		notifications = append(notifications, notif)
+	}
 
-			var notif models.Notification
-			if err := json.Unmarshal(v, &notif); err != nil {
-				continue
-			}
+	var nextCursor string
+	if len(notifications) > limit {
+		// There are more results
+		last := notifications[limit-1]
+		nextCursor = last.CreatedAt.Format(time.RFC3339Nano)
+		notifications = notifications[:limit]
+	}
 
-			// Determine read status based on last_read timestamp
-			if !lastRead.IsZero() && !notif.CreatedAt.After(lastRead) {
-				notif.Read = true
-			}
-
-			notifications = append(notifications, notif)
-			lastKey = make([]byte, len(k))
-			copy(lastKey, k)
-			count++
-		}
-
-		return nil
-	})
-
-	return notifications, nextCursor, err
+	return notifications, nextCursor, rows.Err()
 }
 
 // GetUnreadCount returns the number of unread notifications for a user.
@@ -132,54 +98,32 @@ func (idx *FeedIndex) GetUnreadCount(targetDID string) int {
 	lastRead := idx.getLastRead(targetDID)
 
 	var count int
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketNotifications)
-		c := b.Cursor()
-
-		prefix := []byte(targetDID + ":")
-		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-			var notif models.Notification
-			if err := json.Unmarshal(v, &notif); err != nil {
-				continue
-			}
-			// If no last_read set, all are unread
-			if lastRead.IsZero() || notif.CreatedAt.After(lastRead) {
-				count++
-			} else {
-				// Since keys are in reverse chronological order,
-				// once we hit a read notification, all remaining are also read
-				break
-			}
-		}
-		return nil
-	})
+	if lastRead.IsZero() {
+		_ = idx.db.QueryRow(`SELECT COUNT(*) FROM notifications WHERE target_did = ?`, targetDID).Scan(&count)
+	} else {
+		_ = idx.db.QueryRow(`SELECT COUNT(*) FROM notifications WHERE target_did = ? AND created_at > ?`,
+			targetDID, lastRead.Format(time.RFC3339Nano)).Scan(&count)
+	}
 
 	return count
 }
 
 // MarkAllRead updates the last_read timestamp to now for the user.
 func (idx *FeedIndex) MarkAllRead(targetDID string) error {
-	return idx.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketNotificationsMeta)
-		key := []byte(targetDID + ":last_read")
-		return b.Put(key, []byte(time.Now().Format(time.RFC3339Nano)))
-	})
+	_, err := idx.db.Exec(`INSERT OR REPLACE INTO notifications_meta (target_did, last_read) VALUES (?, ?)`,
+		targetDID, time.Now().Format(time.RFC3339Nano))
+	return err
 }
 
 // getLastRead returns the last_read timestamp for a user.
 func (idx *FeedIndex) getLastRead(targetDID string) time.Time {
-	var lastRead time.Time
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketNotificationsMeta)
-		v := b.Get([]byte(targetDID + ":last_read"))
-		if v != nil {
-			if t, err := time.Parse(time.RFC3339Nano, string(v)); err == nil {
-				lastRead = t
-			}
-		}
-		return nil
-	})
-	return lastRead
+	var lastReadStr string
+	err := idx.db.QueryRow(`SELECT last_read FROM notifications_meta WHERE target_did = ?`, targetDID).Scan(&lastReadStr)
+	if err != nil {
+		return time.Time{}
+	}
+	t, _ := time.Parse(time.RFC3339Nano, lastReadStr)
+	return t
 }
 
 // parseTargetDID extracts the DID from an AT-URI (at://did:plc:xxx/collection/rkey)
@@ -206,21 +150,10 @@ func (idx *FeedIndex) DeleteNotification(targetDID string, notifType models.Noti
 		return
 	}
 
-	err := idx.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketNotifications)
-		prefix := []byte(targetDID + ":")
-		c := b.Cursor()
-		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-			var existing models.Notification
-			if err := json.Unmarshal(v, &existing); err != nil {
-				continue
-			}
-			if existing.Type == notifType && existing.ActorDID == actorDID && existing.SubjectURI == subjectURI {
-				return b.Delete(k)
-			}
-		}
-		return nil
-	})
+	_, err := idx.db.Exec(`
+		DELETE FROM notifications
+		WHERE target_did = ? AND type = ? AND actor_did = ? AND subject_uri = ?
+	`, targetDID, string(notifType), actorDID, subjectURI)
 	if err != nil {
 		log.Warn().Err(err).Str("target", targetDID).Str("actor", actorDID).Msg("failed to delete notification")
 	}
@@ -251,14 +184,11 @@ func (idx *FeedIndex) DeleteCommentNotification(actorDID, subjectURI, parentURI 
 // Returns empty string if not found.
 func (idx *FeedIndex) GetCommentSubjectURI(actorDID, rkey string) string {
 	var subjectURI string
-	_ = idx.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(BucketCommentsByActor)
-		v := b.Get([]byte(actorDID + ":" + rkey))
-		if v != nil {
-			subjectURI = string(v)
-		}
-		return nil
-	})
+	err := idx.db.QueryRow(`SELECT subject_uri FROM comments WHERE actor_did = ? AND rkey = ?`,
+		actorDID, rkey).Scan(&subjectURI)
+	if err != nil {
+		return ""
+	}
 	return subjectURI
 }
 
@@ -301,8 +231,6 @@ func (idx *FeedIndex) CreateCommentNotification(actorDID, subjectURI, parentURI 
 	}
 
 	// If this is a reply, also notify the parent comment's author.
-	// We store the brew's subjectURI (not the parent comment URI) so the
-	// notification links directly to the brew page with comments.
 	if parentURI != "" {
 		parentAuthorDID := parseTargetDID(parentURI)
 		if parentAuthorDID != "" && parentAuthorDID != actorDID && parentAuthorDID != targetDID {

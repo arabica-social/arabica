@@ -16,6 +16,7 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/database/boltstore"
+	"arabica/internal/database/sqlitestore"
 	"arabica/internal/email"
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
@@ -103,7 +104,6 @@ func main() {
 
 	// Get specialized stores
 	sessionStore := store.SessionStore()
-	feedStore := store.FeedStore()
 
 	// Initialize OAuth manager with persistent session store
 	// For local development, localhost URLs trigger special localhost mode in indigo
@@ -130,14 +130,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to initialize OAuth")
 	}
 
-	// Initialize feed registry with persistent store
-	// This loads existing registered DIDs from the database
-	feedRegistry := feed.NewPersistentRegistry(feedStore)
+	// Initialize feed registry (in-memory; populated from SQLite after feedIndex opens)
+	feedRegistry := feed.NewRegistry()
 	feedService := feed.NewService(feedRegistry)
-
-	log.Info().
-		Int("registered_users", feedRegistry.Count()).
-		Msg("Feed service initialized with persistent registry")
 
 	// Setup context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -159,7 +154,7 @@ func main() {
 			}
 			dataDir = filepath.Join(home, ".local", "share")
 		}
-		feedIndexPath = filepath.Join(dataDir, "arabica", "feed-index.db")
+		feedIndexPath = filepath.Join(dataDir, "arabica", "feed-index.sqlite")
 	}
 
 	// Create firehose config
@@ -181,6 +176,16 @@ func main() {
 
 	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
 
+	// Populate feed registry from SQLite known_dids (replaces BoltDB feed registry)
+	if knownDIDs, err := feedIndex.GetKnownDIDs(); err == nil {
+		for _, did := range knownDIDs {
+			feedRegistry.Register(did)
+		}
+		log.Info().Int("registered_users", feedRegistry.Count()).Msg("Feed registry populated from index")
+	} else {
+		log.Warn().Err(err).Msg("Failed to load known DIDs into feed registry")
+	}
+
 	// Create and start consumer
 	firehoseConsumer := firehose.NewConsumer(firehoseConfig, feedIndex)
 	firehoseConsumer.Start(ctx)
@@ -190,7 +195,7 @@ func main() {
 	feedService.SetFirehoseIndex(adapter)
 
 	// Wire up moderation filtering for the feed
-	moderationStore := store.ModerationStore()
+	moderationStore := sqlitestore.NewModerationStore(feedIndex.DB())
 	feedService.SetModerationFilter(moderationStore)
 
 	log.Info().Msg("Firehose consumer started")
