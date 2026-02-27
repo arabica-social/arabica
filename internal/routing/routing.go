@@ -8,6 +8,7 @@ import (
 	"arabica/internal/middleware"
 
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // Config holds the configuration needed for setting up routes
@@ -158,8 +159,11 @@ func SetupRouter(cfg Config) http.Handler {
 	// 4. Apply security headers
 	handler = middleware.SecurityHeadersMiddleware(handler)
 
-	// 5. Apply logging middleware (outermost - wraps everything)
+	// 5. Apply logging middleware
 	handler = middleware.LoggingMiddleware(cfg.Logger)(handler)
+
+	// 6. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
+	handler = otelhttp.NewHandler(handler, "arabica")
 
 	return handler
 }

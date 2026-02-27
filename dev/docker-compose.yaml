@@ -1,0 +1,57 @@
+# Local dev support: Grafana + Tempo + Prometheus
+# Run with: docker compose -f dev/docker-compose.yaml up
+#
+# Services:
+#   Grafana:    http://localhost:3000 (admin/admin)
+#   Tempo:      http://localhost:3200 (OTLP ingest on :4318)
+#   Prometheus: http://localhost:9090 (scrapes arabica metrics on :9101)
+#
+# Arabica will send traces to localhost:4318 by default (no config needed).
+
+services:
+  tempo:
+    image: grafana/tempo:2.7.2
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    ports:
+      - "4318:4318"   # OTLP HTTP receiver
+      - "3200:3200"   # Tempo API
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+      - "--storage.tsdb.path=/prometheus"
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:11.6.1
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - ../grafana:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/arabica-prometheus.json
+    ports:
+      - "3000:3000"
+    depends_on:
+      - tempo
+      - prometheus
+
+volumes:
+  tempo-data:
+  prometheus-data:
+  grafana-data:

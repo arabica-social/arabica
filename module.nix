@@ -218,6 +218,14 @@ in {
       description = "Group under which arabica runs.";
     };
 
+    otelEndpoint = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description =
+        "OTLP HTTP endpoint for OpenTelemetry traces (e.g. localhost:4318).";
+      example = "localhost:4318";
+    };
+
     openFirewall = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -286,6 +294,8 @@ in {
         SMTP_PORT = toString cfg.smtp.port;
       } // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.from != "") {
         SMTP_FROM = cfg.smtp.from;
+      } // lib.optionalAttrs (cfg.otelEndpoint != null) {
+        OTEL_EXPORTER_OTLP_ENDPOINT = cfg.otelEndpoint;
       };
     };
 

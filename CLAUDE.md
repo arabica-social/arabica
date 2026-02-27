@@ -450,6 +450,7 @@ Templ files must use tabs rather than spaces.
 | `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path       |
 | `ARABICA_MODERATORS_CONFIG` | -                                    | Path to moderators JSON config   |
 | `ARABICA_PROFILE_CACHE_TTL` | 1h                                   | Profile cache duration           |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | localhost:4318                      | OTLP HTTP endpoint for traces    |
 | `METRICS_PORT`              | 9101                                 | Internal metrics server port (localhost only) |
 | `SECURE_COOKIES`            | false                                | Set true for HTTPS               |
 | `LOG_LEVEL`                 | info                                 | debug/info/warn/error            |

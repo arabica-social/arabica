@@ -24,6 +24,7 @@ import (
 	"arabica/internal/metrics"
 	"arabica/internal/moderation"
 	"arabica/internal/routing"
+	"arabica/internal/tracing"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -64,6 +65,19 @@ func main() {
 	}
 
 	log.Info().Msg("Starting Arabica Coffee Tracker")
+
+	// Initialize OpenTelemetry tracing
+	tp, err := tracing.Init(context.Background())
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize tracing, continuing without it")
+	} else {
+		defer func() {
+			if err := tp.Shutdown(context.Background()); err != nil {
+				log.Error().Err(err).Msg("Error shutting down tracer provider")
+			}
+		}()
+		log.Info().Msg("OpenTelemetry tracing initialized")
+	}
 
 	// Get port from env or use default
 	port := os.Getenv("PORT")

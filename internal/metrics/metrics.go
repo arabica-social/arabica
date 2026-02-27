@@ -43,17 +43,6 @@ var (
 		Name: "arabica_pds_requests_total",
 		Help: "Total number of PDS requests",
 	}, []string{"method", "collection"})
-
-	PDSRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "arabica_pds_request_duration_seconds",
-		Help:    "PDS request duration in seconds",
-		Buckets: []float64{0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
-	}, []string{"method"})
-
-	PDSErrorsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "arabica_pds_errors_total",
-		Help: "Total number of PDS request errors",
-	}, []string{"method"})
 )
 
 // Feed metrics
