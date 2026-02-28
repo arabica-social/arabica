@@ -176,6 +176,17 @@ func main() {
 
 	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
 
+	// One-time seed: copy any DIDs from the legacy BoltDB feed_registry bucket into
+	// SQLite known_dids. INSERT OR IGNORE makes this a no-op once DIDs are present.
+	if legacyDIDs := store.LegacyFeedDIDs(); len(legacyDIDs) > 0 {
+		added, err := feedIndex.SeedKnownDIDs(legacyDIDs)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to seed known DIDs from legacy feed registry")
+		} else if added > 0 {
+			log.Info().Int("seeded", added).Msg("Seeded known_dids from legacy BoltDB feed registry")
+		}
+	}
+
 	// Populate feed registry from SQLite known_dids (replaces BoltDB feed registry)
 	if knownDIDs, err := feedIndex.GetKnownDIDs(); err == nil {
 		for _, did := range knownDIDs {

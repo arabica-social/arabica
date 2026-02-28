@@ -129,6 +129,24 @@ func (s *Store) JoinStore() *JoinStore {
 	return &JoinStore{db: s.db}
 }
 
+// LegacyFeedDIDs reads DIDs from the old feed_registry bucket that existed
+// before the feed registry was moved to SQLite. Used for one-time migration
+// seeding on first startup after the transition.
+func (s *Store) LegacyFeedDIDs() []string {
+	var dids []string
+	_ = s.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("feed_registry"))
+		if bucket == nil {
+			return nil
+		}
+		return bucket.ForEach(func(k, _ []byte) error {
+			dids = append(dids, string(k))
+			return nil
+		})
+	})
+	return dids
+}
+
 // Stats returns database statistics.
 func (s *Store) Stats() bolt.Stats {
 	return s.db.Stats()

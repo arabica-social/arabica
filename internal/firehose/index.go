@@ -245,6 +245,24 @@ func (idx *FeedIndex) DB() *sql.DB {
 	return idx.db
 }
 
+// SeedKnownDIDs inserts DIDs into known_dids, ignoring any that already exist.
+// Used for one-time migration from legacy storage.
+func (idx *FeedIndex) SeedKnownDIDs(dids []string) (int, error) {
+	if len(dids) == 0 {
+		return 0, nil
+	}
+	var added int
+	for _, did := range dids {
+		res, err := idx.db.Exec(`INSERT OR IGNORE INTO known_dids (did) VALUES (?)`, did)
+		if err != nil {
+			return added, fmt.Errorf("seed known DID %s: %w", did, err)
+		}
+		n, _ := res.RowsAffected()
+		added += int(n)
+	}
+	return added, nil
+}
+
 // Close closes the index database
 func (idx *FeedIndex) Close() error {
 	if idx.db != nil {
