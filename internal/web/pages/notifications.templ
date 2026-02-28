@@ -1,0 +1,133 @@
+package pages
+
+import (
+	"arabica/internal/models"
+	"arabica/internal/web/bff"
+	"arabica/internal/web/components"
+)
+
+// NotificationsProps holds the data for the notifications page
+type NotificationsProps struct {
+	Notifications []NotificationItem
+	NextCursor    string
+}
+
+// NotificationItem is a notification with resolved profile data
+type NotificationItem struct {
+	models.Notification
+	ActorHandle      string
+	ActorDisplayName string
+	ActorAvatar      string
+	Link             string // Resolved local URL (e.g. /brews/rkey?owner=did)
+}
+
+templ Notifications(layout *components.LayoutData, props NotificationsProps) {
+	@components.Layout(layout, notificationsContent(props))
+}
+
+templ notificationsContent(props NotificationsProps) {
+	<div class="page-container-md">
+		<div class="flex items-center justify-between mb-8">
+			<div class="flex items-center gap-3">
+				@components.BackButton()
+				<h1 class="text-3xl font-bold text-brown-900">Notifications</h1>
+			</div>
+			if len(props.Notifications) > 0 {
+				<form method="POST" action="/api/notifications/read">
+					<button type="submit" class="btn-secondary text-sm">
+						Mark all as read
+					</button>
+				</form>
+			}
+		</div>
+		if len(props.Notifications) == 0 {
+			@components.EmptyState(components.EmptyStateProps{
+				Message:    "No notifications yet",
+				SubMessage: "When someone likes or comments on your brews, you'll see it here.",
+			})
+		} else {
+			<div class="space-y-2">
+				for _, notif := range props.Notifications {
+					@notificationRow(notif)
+				}
+			</div>
+			if props.NextCursor != "" {
+				<div class="mt-6 text-center">
+					<a
+						href={ templ.SafeURL("/notifications?cursor=" + props.NextCursor) }
+						class="btn-secondary"
+					>
+						Load more
+					</a>
+				</div>
+			}
+		}
+	</div>
+}
+
+templ notificationRow(notif NotificationItem) {
+	<a
+		href={ templ.SafeURL(notifClickURL(notif)) }
+		class={ "card card-inner flex items-start gap-3 p-4 no-underline hover:bg-brown-50 transition-colors cursor-pointer", templ.KV("bg-amber-50/50 border-amber-200", !notif.Read) }
+	>
+		<!-- Actor avatar -->
+		<div class="shrink-0">
+			@components.Avatar(components.AvatarProps{
+				AvatarURL:   notif.ActorAvatar,
+				DisplayName: notifActorName(notif),
+				Size:        "sm",
+			})
+		</div>
+		<!-- Content -->
+		<div class="flex-1 min-w-0">
+			<p class="text-sm text-brown-800">
+				<span class="font-semibold text-brown-900">
+					{ notifActorName(notif) }
+				</span>
+				{ " " }
+				{ notifActionText(notif.Type) }
+			</p>
+			<p class="text-xs text-brown-400 mt-1">
+				{ bff.FormatTimeAgo(notif.CreatedAt) }
+			</p>
+		</div>
+		<!-- Unread indicator -->
+		if !notif.Read {
+			<div class="shrink-0 mt-1">
+				<span class="block w-2 h-2 rounded-full bg-amber-400"></span>
+			</div>
+		}
+	</a>
+}
+
+func notifActorName(notif NotificationItem) string {
+	if notif.ActorDisplayName != "" {
+		return notif.ActorDisplayName
+	}
+	if notif.ActorHandle != "" {
+		return notif.ActorHandle
+	}
+	return notif.ActorDID
+}
+
+func notifActionText(t models.NotificationType) string {
+	switch t {
+	case models.NotificationLike:
+		return "liked your brew"
+	case models.NotificationComment:
+		return "commented on your brew"
+	case models.NotificationCommentReply:
+		return "replied to your comment"
+	default:
+		return "interacted with your content"
+	}
+}
+
+// notifClickURL returns the URL to navigate to when clicking a notification.
+// Uses the pre-resolved Link field, falling back to the notifications page.
+func notifClickURL(notif NotificationItem) string {
+	if notif.Link != "" {
+		return notif.Link
+	}
+	return "/notifications"
+}

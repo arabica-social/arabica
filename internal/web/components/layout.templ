@@ -9,7 +9,8 @@ type LayoutData struct {
 	UserDID         string
 	UserProfile     *bff.UserProfile
 	CSPNonce        string
-	IsModerator     bool // User has moderation permissions
+	IsModerator              bool // User has moderation permissions
+	UnreadNotificationCount  int  // Number of unread notifications
 
 	// OpenGraph metadata (optional, uses defaults if empty)
 	OGTitle       string // Falls back to Title + " - Arabica"
@@ -133,10 +134,11 @@ templ Layout(data *LayoutData, content templ.Component) {
 			}
 		>
 			@HeaderWithProps(HeaderProps{
-			IsAuthenticated: data.IsAuthenticated,
-			UserProfile:     data.UserProfile,
-			UserDID:         data.UserDID,
-			IsModerator:     data.IsModerator,
+			IsAuthenticated:         data.IsAuthenticated,
+			UserProfile:             data.UserProfile,
+			UserDID:                 data.UserDID,
+			IsModerator:             data.IsModerator,
+			UnreadNotificationCount: data.UnreadNotificationCount,
 		})
 			<main class="flex-grow container mx-auto py-8" data-transition>
 				@content

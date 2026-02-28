@@ -107,6 +107,10 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /api/modals/roaster/new", h.HandleRoasterModalNew)
 	mux.HandleFunc("GET /api/modals/roaster/{id}", h.HandleRoasterModalEdit)
 
+	// Notification routes
+	mux.HandleFunc("GET /notifications", h.HandleNotifications)
+	mux.Handle("POST /api/notifications/read", cop.Handler(http.HandlerFunc(h.HandleNotificationsMarkRead)))
+
 	// Profile routes (public user profiles)
 	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
 

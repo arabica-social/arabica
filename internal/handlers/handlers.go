@@ -248,13 +248,20 @@ func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated
 		isModerator = h.moderationService.IsModerator(didStr)
 	}
 
+	// Get unread notification count for authenticated users
+	var unreadNotifCount int
+	if h.feedIndex != nil && didStr != "" {
+		unreadNotifCount = h.feedIndex.GetUnreadCount(didStr)
+	}
+
 	return &components.LayoutData{
-		Title:           title,
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		UserProfile:     userProfile,
-		CSPNonce:        middleware.CSPNonceFromContext(r.Context()),
-		IsModerator:     isModerator,
+		Title:                   title,
+		IsAuthenticated:         isAuthenticated,
+		UserDID:                 didStr,
+		UserProfile:             userProfile,
+		CSPNonce:                middleware.CSPNonceFromContext(r.Context()),
+		IsModerator:             isModerator,
+		UnreadNotificationCount: unreadNotifCount,
 	}
 }
 
@@ -328,6 +335,8 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		if err := h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, parentURI, comment.CID, text, comment.CreatedAt); err != nil {
 			log.Warn().Err(err).Str("did", didStr).Str("rkey", comment.RKey).Str("subject_uri", subjectURI).Msg("Failed to upsert comment in feed index")
 		}
+		// Create notification for the comment/reply
+		h.feedIndex.CreateCommentNotification(didStr, subjectURI, parentURI)
 	}
 
 	// Return the updated comment section with threaded comments
@@ -373,28 +382,7 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the comment to find its subject URI before deletion
-	comments, err := store.ListUserComments(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to get comments", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to get user comments")
-		return
-	}
-
-	var subjectURI string
-	for _, c := range comments {
-		if c.RKey == rkey {
-			subjectURI = c.SubjectURI
-			break
-		}
-	}
-
-	if subjectURI == "" {
-		http.Error(w, "Comment not found", http.StatusNotFound)
-		return
-	}
-
-	// Delete the comment
+	// Delete the comment from the user's PDS
 	if err := store.DeleteCommentByRKey(r.Context(), rkey); err != nil {
 		http.Error(w, "Failed to delete comment", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to delete comment")
@@ -405,8 +393,8 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Update firehose index
 	if h.feedIndex != nil {
-		if err := h.feedIndex.DeleteComment(didStr, rkey, subjectURI); err != nil {
-			log.Warn().Err(err).Str("did", didStr).Str("rkey", rkey).Str("subject_uri", subjectURI).Msg("Failed to delete comment from feed index")
+		if err := h.feedIndex.DeleteComment(didStr, rkey, ""); err != nil {
+			log.Warn().Err(err).Str("did", didStr).Str("rkey", rkey).Msg("Failed to delete comment from feed index")
 		}
 	}
 
