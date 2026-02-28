@@ -1,0 +1,17 @@
+package components
+
+import (
+	"arabica/internal/models"
+)
+
+// BeanContent renders bean details inside a card
+templ BeanContent(bean *models.Bean) {
+	<div class="feed-content-box-sm">
+		@BeanSummary(BeanSummaryProps{
+			Bean: bean,
+		})
+		if bean.Description != "" {
+			<div class="mt-2 text-sm text-brown-800 italic">"{ bean.Description }"</div>
+		}
+	</div>
+}

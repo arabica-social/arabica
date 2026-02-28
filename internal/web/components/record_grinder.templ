@@ -1,0 +1,25 @@
+package components
+
+import (
+	"arabica/internal/models"
+)
+
+// GrinderContent renders grinder details inside a card
+templ GrinderContent(grinder *models.Grinder) {
+	<div class="feed-content-box-sm">
+		<div class="text-base mb-2">
+			<span class="font-bold text-brown-900">{ grinder.Name }</span>
+		</div>
+		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+			if grinder.GrinderType != "" {
+				<span class="inline-flex items-center gap-0.5">⚙️ { grinder.GrinderType }</span>
+			}
+			if grinder.BurrType != "" {
+				<span class="inline-flex items-center gap-0.5">🔩 { grinder.BurrType }</span>
+			}
+		</div>
+		if grinder.Notes != "" {
+			<div class="mt-2 text-sm text-brown-800 italic">"{ grinder.Notes }"</div>
+		}
+	</div>
+}

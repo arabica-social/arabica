@@ -424,7 +424,7 @@ templ generate --watch
 
 The generated `*_templ.go` should be regenerated whenever `.templ` files change.
 
-Templ files must use tabs rather than spaces.
+Templ files must use tabs rather than spaces. **Never use spaces for indentation in `.templ` files** — the templ parser will error with a parse failure. This applies when writing new components, editing existing ones, and constructing multi-line template strings. A post-edit hook runs `templ fmt` automatically to catch any accidental spaces.
 
 ## Command-Line Flags
 

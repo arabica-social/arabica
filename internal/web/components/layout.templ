@@ -4,13 +4,13 @@ import "arabica/internal/web/bff"
 
 // LayoutData contains all the data needed for the layout
 type LayoutData struct {
-	Title           string
-	IsAuthenticated bool
-	UserDID         string
-	UserProfile     *bff.UserProfile
-	CSPNonce        string
-	IsModerator              bool // User has moderation permissions
-	UnreadNotificationCount  int  // Number of unread notifications
+	Title                   string
+	IsAuthenticated         bool
+	UserDID                 string
+	UserProfile             *bff.UserProfile
+	CSPNonce                string
+	IsModerator             bool // User has moderation permissions
+	UnreadNotificationCount int  // Number of unread notifications
 
 	// OpenGraph metadata (optional, uses defaults if empty)
 	OGTitle       string // Falls back to Title + " - Arabica"
@@ -75,7 +75,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
-			<link rel="stylesheet" href="/static/css/output.css?v=0.6.0"/>
+			<link rel="stylesheet" href="/static/css/output.css?v=0.6.1"/>
 			<style>
 			[x-cloak] { display: none !important; }
 		</style>
@@ -168,12 +168,12 @@ templ Layout(data *LayoutData, content templ.Component) {
 				</button>
 			</div>
 			@HeaderWithProps(HeaderProps{
-			IsAuthenticated:         data.IsAuthenticated,
-			UserProfile:             data.UserProfile,
-			UserDID:                 data.UserDID,
-			IsModerator:             data.IsModerator,
-			UnreadNotificationCount: data.UnreadNotificationCount,
-		})
+				IsAuthenticated:         data.IsAuthenticated,
+				UserProfile:             data.UserProfile,
+				UserDID:                 data.UserDID,
+				IsModerator:             data.IsModerator,
+				UnreadNotificationCount: data.UnreadNotificationCount,
+			})
 			<main class="flex-grow container mx-auto py-8" data-transition>
 				@content
 			</main>
