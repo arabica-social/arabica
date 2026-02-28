@@ -385,16 +385,23 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 	// Delete the comment from the user's PDS
 	if err := store.DeleteCommentByRKey(r.Context(), rkey); err != nil {
 		http.Error(w, "Failed to delete comment", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to delete comment")
+		log.Error().Err(err).Str("rkey", rkey).Str("did", didStr).Msg("Failed to delete comment from PDS")
 		return
 	}
 
 	metrics.CommentsTotal.WithLabelValues("delete").Inc()
 
-	// Update firehose index
+	// Update firehose index and remove notifications
 	if h.feedIndex != nil {
+		// Look up subject URI before deletion for notification cleanup
+		subjectURI := h.feedIndex.GetCommentSubjectURI(didStr, rkey)
+
 		if err := h.feedIndex.DeleteComment(didStr, rkey, ""); err != nil {
 			log.Warn().Err(err).Str("did", didStr).Str("rkey", rkey).Msg("Failed to delete comment from feed index")
+		}
+
+		if subjectURI != "" {
+			h.feedIndex.DeleteCommentNotification(didStr, subjectURI, "")
 		}
 	}
 

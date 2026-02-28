@@ -402,6 +402,7 @@ func (c *Consumer) processMessage(data []byte) error {
 							if err := c.index.DeleteLike(event.DID, subjectURI); err != nil {
 								log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to delete like index")
 							}
+							c.index.DeleteLikeNotification(event.DID, subjectURI)
 						}
 					}
 				}
@@ -418,9 +419,14 @@ func (c *Consumer) processMessage(data []byte) error {
 				if err := json.Unmarshal(existingRecord.Record, &recordData); err == nil {
 					if subject, ok := recordData["subject"].(map[string]interface{}); ok {
 						if subjectURI, ok := subject["uri"].(string); ok {
+							var parentURI string
+							if parent, ok := recordData["parent"].(map[string]interface{}); ok {
+								parentURI, _ = parent["uri"].(string)
+							}
 							if err := c.index.DeleteComment(event.DID, commit.RKey, subjectURI); err != nil {
 								log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to delete comment index")
 							}
+							c.index.DeleteCommentNotification(event.DID, subjectURI, parentURI)
 						}
 					}
 				}

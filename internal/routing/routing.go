@@ -42,6 +42,9 @@ func SetupRouter(cfg Config) http.Handler {
 	// Auth-protected but accessible without HTMX header (called from JavaScript)
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
 
+	// Suggestion routes for entity typeahead (auth-protected, read-only GET)
+	mux.HandleFunc("GET /api/suggestions/{entity}", h.HandleEntitySuggestions)
+
 	// HTMX partials (loaded async via HTMX)
 	// These return HTML fragments and should only be accessed via HTMX
 	mux.Handle("GET /api/feed", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleFeedPartial)))

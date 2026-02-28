@@ -49,6 +49,7 @@ type Bean struct {
 	Description string    `json:"description"`
 	RoasterRKey string    `json:"roaster_rkey"` // AT Protocol reference
 	Closed      bool      `json:"closed"`       // Whether the bag is closed/finished
+	SourceRef   string    `json:"source_ref,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 
 	// Joined data for display
@@ -60,6 +61,7 @@ type Roaster struct {
 	Name      string    `json:"name"`
 	Location  string    `json:"location"`
 	Website   string    `json:"website"`
+	SourceRef string    `json:"source_ref,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -69,6 +71,7 @@ type Grinder struct {
 	GrinderType string    `json:"grinder_type"` // Hand, Electric, Portable Electric
 	BurrType    string    `json:"burr_type"`    // Conical, Flat, Blade, or empty
 	Notes       string    `json:"notes"`
+	SourceRef   string    `json:"source_ref,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -77,6 +80,7 @@ type Brewer struct {
 	Name        string    `json:"name"`
 	BrewerType  string    `json:"brewer_type"`
 	Description string    `json:"description"`
+	SourceRef   string    `json:"source_ref,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -137,12 +141,14 @@ type CreateBeanRequest struct {
 	Description string `json:"description"`
 	RoasterRKey string `json:"roaster_rkey"`
 	Closed      bool   `json:"closed"`
+	SourceRef   string `json:"source_ref,omitempty"`
 }
 
 type CreateRoasterRequest struct {
-	Name     string `json:"name"`
-	Location string `json:"location"`
-	Website  string `json:"website"`
+	Name      string `json:"name"`
+	Location  string `json:"location"`
+	Website   string `json:"website"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 type CreateGrinderRequest struct {
@@ -150,12 +156,14 @@ type CreateGrinderRequest struct {
 	GrinderType string `json:"grinder_type"`
 	BurrType    string `json:"burr_type"`
 	Notes       string `json:"notes"`
+	SourceRef   string `json:"source_ref,omitempty"`
 }
 
 type CreateBrewerRequest struct {
 	Name        string `json:"name"`
 	BrewerType  string `json:"brewer_type"`
 	Description string `json:"description"`
+	SourceRef   string `json:"source_ref,omitempty"`
 }
 
 type UpdateBeanRequest struct {
@@ -166,12 +174,14 @@ type UpdateBeanRequest struct {
 	Description string `json:"description"`
 	RoasterRKey string `json:"roaster_rkey"`
 	Closed      bool   `json:"closed"`
+	SourceRef   string `json:"source_ref,omitempty"`
 }
 
 type UpdateRoasterRequest struct {
-	Name     string `json:"name"`
-	Location string `json:"location"`
-	Website  string `json:"website"`
+	Name      string `json:"name"`
+	Location  string `json:"location"`
+	Website   string `json:"website"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 type UpdateGrinderRequest struct {
@@ -179,12 +189,14 @@ type UpdateGrinderRequest struct {
 	GrinderType string `json:"grinder_type"`
 	BurrType    string `json:"burr_type"`
 	Notes       string `json:"notes"`
+	SourceRef   string `json:"source_ref,omitempty"`
 }
 
 type UpdateBrewerRequest struct {
 	Name        string `json:"name"`
 	BrewerType  string `json:"brewer_type"`
 	Description string `json:"description"`
+	SourceRef   string `json:"source_ref,omitempty"`
 }
 
 // Like represents a like on an Arabica record

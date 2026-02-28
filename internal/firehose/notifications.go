@@ -199,6 +199,69 @@ func parseTargetDID(atURI string) string {
 	return did
 }
 
+// DeleteNotification removes a notification matching (type + actorDID + subjectURI)
+// from the target user's notification list. No-op if not found.
+func (idx *FeedIndex) DeleteNotification(targetDID string, notifType models.NotificationType, actorDID, subjectURI string) {
+	if targetDID == "" {
+		return
+	}
+
+	err := idx.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketNotifications)
+		prefix := []byte(targetDID + ":")
+		c := b.Cursor()
+		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
+			var existing models.Notification
+			if err := json.Unmarshal(v, &existing); err != nil {
+				continue
+			}
+			if existing.Type == notifType && existing.ActorDID == actorDID && existing.SubjectURI == subjectURI {
+				return b.Delete(k)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Warn().Err(err).Str("target", targetDID).Str("actor", actorDID).Msg("failed to delete notification")
+	}
+}
+
+// DeleteLikeNotification removes the notification for a like that was undone
+func (idx *FeedIndex) DeleteLikeNotification(actorDID, subjectURI string) {
+	targetDID := parseTargetDID(subjectURI)
+	idx.DeleteNotification(targetDID, models.NotificationLike, actorDID, subjectURI)
+}
+
+// DeleteCommentNotification removes notifications for a deleted comment
+func (idx *FeedIndex) DeleteCommentNotification(actorDID, subjectURI, parentURI string) {
+	// Remove the comment notification sent to the brew owner
+	targetDID := parseTargetDID(subjectURI)
+	idx.DeleteNotification(targetDID, models.NotificationComment, actorDID, subjectURI)
+
+	// Remove the reply notification sent to the parent comment's author
+	if parentURI != "" {
+		parentAuthorDID := parseTargetDID(parentURI)
+		if parentAuthorDID != targetDID {
+			idx.DeleteNotification(parentAuthorDID, models.NotificationCommentReply, actorDID, subjectURI)
+		}
+	}
+}
+
+// GetCommentSubjectURI returns the subject URI for a comment by actor+rkey.
+// Returns empty string if not found.
+func (idx *FeedIndex) GetCommentSubjectURI(actorDID, rkey string) string {
+	var subjectURI string
+	_ = idx.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketCommentsByActor)
+		v := b.Get([]byte(actorDID + ":" + rkey))
+		if v != nil {
+			subjectURI = string(v)
+		}
+		return nil
+	})
+	return subjectURI
+}
+
 // CreateLikeNotification creates a notification for a like event
 func (idx *FeedIndex) CreateLikeNotification(actorDID, subjectURI string) {
 	targetDID := parseTargetDID(subjectURI)

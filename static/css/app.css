@@ -191,6 +191,15 @@
     @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-2xl p-6 w-full border border-brown-300 max-h-[90vh] overflow-y-auto;
   }
 
+  /* Entity suggestion typeahead dropdown */
+  .suggestions-dropdown {
+    @apply absolute z-50 left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-brown-200 max-h-48 overflow-y-auto;
+  }
+
+  .suggestions-item {
+    @apply w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-brown-50 transition-colors cursor-pointer border-b border-brown-100 last:border-b-0;
+  }
+
   /* Typography */
   .section-title {
     @apply text-2xl font-bold text-brown-900 mb-4;

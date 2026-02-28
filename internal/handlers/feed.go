@@ -202,6 +202,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 			if err := h.feedIndex.DeleteLike(didStr, subjectURI); err != nil {
 				log.Warn().Err(err).Str("did", didStr).Str("subject_uri", subjectURI).Msg("Failed to delete like from feed index")
 			}
+			h.feedIndex.DeleteLikeNotification(didStr, subjectURI)
 			likeCount = h.feedIndex.GetLikeCount(subjectURI)
 		}
 	} else {
