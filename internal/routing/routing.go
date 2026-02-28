@@ -163,7 +163,11 @@ func SetupRouter(cfg Config) http.Handler {
 	handler = middleware.LoggingMiddleware(cfg.Logger)(handler)
 
 	// 6. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
-	handler = otelhttp.NewHandler(handler, "arabica")
+	handler = otelhttp.NewHandler(handler, "arabica",
+		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+			return r.Method + " " + r.URL.Path
+		}),
+	)
 
 	return handler
 }
