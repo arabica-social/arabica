@@ -241,6 +241,13 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		profileCache: make(map[string]*CachedProfile),
 	}
 
+	// If the database already has records from a previous run, mark ready immediately
+	// so the feed is served from persisted data while the firehose reconnects.
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM records`).Scan(&count); err == nil && count > 0 {
+		idx.ready = true
+	}
+
 	return idx, nil
 }
 
