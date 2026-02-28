@@ -1,6 +1,52 @@
 package components
 
-import "arabica/internal/web/bff"
+import (
+	"arabica/internal/models"
+	"arabica/internal/web/bff"
+	"fmt"
+)
+
+// BeanSummaryProps defines props for displaying bean metadata inline.
+// Used in both bean feed cards and brew feed cards.
+type BeanSummaryProps struct {
+	Bean         *models.Bean
+	CoffeeAmount int // if > 0, shows "⚖️ Xg" (brew context)
+}
+
+// BeanSummary renders the bean name, roaster, and attribute tags.
+templ BeanSummary(props BeanSummaryProps) {
+	if props.Bean != nil {
+		<div class="font-bold text-brown-900 text-base">
+			if props.Bean.Name != "" {
+				{ props.Bean.Name }
+			} else {
+				{ props.Bean.Origin }
+			}
+		</div>
+		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
+			<div class="text-sm text-brown-700 mt-0.5">
+				<span class="font-medium">🏭 { props.Bean.Roaster.Name }</span>
+			</div>
+		}
+		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+			if props.Bean.Origin != "" {
+				<span class="inline-flex items-center gap-0.5">📍 { props.Bean.Origin }</span>
+			}
+			if props.Bean.RoastLevel != "" {
+				<span class="inline-flex items-center gap-0.5">🔥 { props.Bean.RoastLevel }</span>
+			}
+			if props.Bean.Variety != "" {
+				<span class="inline-flex items-center gap-0.5">🌿 { props.Bean.Variety }</span>
+			}
+			if props.Bean.Process != "" {
+				<span class="inline-flex items-center gap-0.5">🌱 { props.Bean.Process }</span>
+			}
+			if props.CoffeeAmount > 0 {
+				<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", props.CoffeeAmount) }</span>
+			}
+		</div>
+	}
+}
 
 // EmptyStateProps defines properties for empty state messaging
 type EmptyStateProps struct {

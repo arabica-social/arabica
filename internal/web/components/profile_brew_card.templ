@@ -126,34 +126,10 @@ templ ProfileBrewContent(brew *models.Brew) {
 		<!-- Bean info with rating -->
 		<div class="flex items-start justify-between gap-3 mb-3">
 			<div class="flex-1 min-w-0">
-				if brew.Bean != nil {
-					<div class="font-bold text-brown-900 text-base">
-						if brew.Bean.Name != "" {
-							{ brew.Bean.Name }
-						} else {
-							{ brew.Bean.Origin }
-						}
-					</div>
-					if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
-						<div class="text-sm text-brown-700 mt-0.5">
-							<span class="font-medium">🏭 { brew.Bean.Roaster.Name }</span>
-						</div>
-					}
-					<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
-						if brew.Bean.Origin != "" {
-							<span class="inline-flex items-center gap-0.5">📍 { brew.Bean.Origin }</span>
-						}
-						if brew.Bean.RoastLevel != "" {
-							<span class="inline-flex items-center gap-0.5">🔥 { brew.Bean.RoastLevel }</span>
-						}
-						if brew.Bean.Process != "" {
-							<span class="inline-flex items-center gap-0.5">🌱 { brew.Bean.Process }</span>
-						}
-						if brew.CoffeeAmount > 0 {
-							<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", brew.CoffeeAmount) }</span>
-						}
-					</div>
-				}
+				@BeanSummary(BeanSummaryProps{
+					Bean:         brew.Bean,
+					CoffeeAmount: brew.CoffeeAmount,
+				})
 			</div>
 			if brew.Rating > 0 {
 				<span class="badge-rating">
