@@ -47,7 +47,7 @@ type Handler struct {
 
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
-	moderationStore   *boltstore.ModerationStore
+	moderationStore   moderation.Store
 
 	// Join request dependencies (optional)
 	emailSender   *email.Sender
@@ -83,7 +83,7 @@ func (h *Handler) SetFeedIndex(idx *firehose.FeedIndex) {
 }
 
 // SetModeration configures the handler with moderation service and store
-func (h *Handler) SetModeration(svc *moderation.Service, store *boltstore.ModerationStore) {
+func (h *Handler) SetModeration(svc *moderation.Service, store moderation.Store) {
 	h.moderationService = svc
 	h.moderationStore = store
 }

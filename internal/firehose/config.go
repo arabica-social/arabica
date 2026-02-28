@@ -1,5 +1,5 @@
 // Package firehose provides real-time AT Protocol event consumption via Jetstream.
-// It indexes Arabica records into a local BoltDB database for fast feed queries.
+// It indexes Arabica records into a local SQLite database for fast feed queries.
 package firehose
 
 import (
@@ -36,7 +36,7 @@ type Config struct {
 	// Compress enables zstd compression (~56% bandwidth reduction)
 	Compress bool
 
-	// IndexPath is the path to the BoltDB feed index database
+	// IndexPath is the path to the SQLite feed index database
 	IndexPath string
 
 	// ProfileCacheTTL is how long to cache profile data

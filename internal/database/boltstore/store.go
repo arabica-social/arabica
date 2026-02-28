@@ -1,6 +1,6 @@
 // Package boltstore provides persistent storage using BoltDB (bbolt).
 // It implements the oauth.ClientAuthStore interface for session persistence
-// and provides storage for the feed registry.
+// and provides storage for join requests.
 package boltstore
 
 import (
@@ -19,30 +19,6 @@ var (
 
 	// BucketAuthRequests stores pending OAuth auth requests keyed by state
 	BucketAuthRequests = []byte("oauth_auth_requests")
-
-	// BucketFeedRegistry stores registered user DIDs for the community feed
-	BucketFeedRegistry = []byte("feed_registry")
-
-	// BucketModerationHiddenRecords stores AT-URIs of hidden records
-	BucketModerationHiddenRecords = []byte("moderation_hidden_records")
-
-	// BucketModerationBlacklist stores blacklisted user DIDs
-	BucketModerationBlacklist = []byte("moderation_blacklist")
-
-	// BucketModerationReports stores user reports on content
-	BucketModerationReports = []byte("moderation_reports")
-
-	// BucketModerationReportsByURI indexes reports by subject AT-URI
-	BucketModerationReportsByURI = []byte("moderation_reports_by_uri")
-
-	// BucketModerationReportsByDID indexes reports by subject DID
-	BucketModerationReportsByDID = []byte("moderation_reports_by_did")
-
-	// BucketModerationAuditLog stores moderation action audit trail
-	BucketModerationAuditLog = []byte("moderation_audit_log")
-
-	// BucketModerationAutoHideResets stores DID -> timestamp for auto-hide counter resets
-	BucketModerationAutoHideResets = []byte("moderation_autohide_resets")
 
 	// BucketJoinRequests stores PDS account join requests
 	BucketJoinRequests = []byte("join_requests")
@@ -110,14 +86,6 @@ func Open(opts Options) (*Store, error) {
 		buckets := [][]byte{
 			BucketSessions,
 			BucketAuthRequests,
-			BucketFeedRegistry,
-			BucketModerationHiddenRecords,
-			BucketModerationBlacklist,
-			BucketModerationReports,
-			BucketModerationReportsByURI,
-			BucketModerationReportsByDID,
-			BucketModerationAuditLog,
-			BucketModerationAutoHideResets,
 			BucketJoinRequests,
 		}
 
@@ -154,16 +122,6 @@ func (s *Store) DB() *bolt.DB {
 // SessionStore returns an OAuth session store backed by this database.
 func (s *Store) SessionStore() *SessionStore {
 	return &SessionStore{db: s.db}
-}
-
-// FeedStore returns a feed registry store backed by this database.
-func (s *Store) FeedStore() *FeedStore {
-	return &FeedStore{db: s.db}
-}
-
-// ModerationStore returns a moderation store backed by this database.
-func (s *Store) ModerationStore() *ModerationStore {
-	return &ModerationStore{db: s.db}
 }
 
 // JoinStore returns a join request store backed by this database.
