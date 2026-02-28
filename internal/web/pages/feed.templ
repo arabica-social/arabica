@@ -26,8 +26,8 @@ type FeedQueryState struct {
 
 // feedFilterTab defines a filter tab option
 type feedFilterTab struct {
-	Label  string
-	Value  string
+	Label string
+	Value string
 }
 
 func feedFilterTabs() []feedFilterTab {
@@ -332,6 +332,7 @@ templ FeedBrewContent(item *feed.FeedItem) {
 								<span class="font-medium">🏭 { item.Brew.Bean.Roaster.Name }</span>
 							</div>
 						}
+						// TODO: can we share code with the bean card here? (and the roaster?)
 						<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
 							if item.Brew.Bean.Origin != "" {
 								<span class="inline-flex items-center gap-0.5">📍 { item.Brew.Bean.Origin }</span>

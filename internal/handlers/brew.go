@@ -567,8 +567,8 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 
 	_, err := store.CreateBrew(r.Context(), req, 1) // User ID not used with atproto
 	if err != nil {
-		http.Error(w, "Failed to create brew", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create brew")
+		handleStoreError(w, err, "Failed to create brew")
 		return
 	}
 
@@ -655,8 +655,8 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 	err := store.UpdateBrewByRKey(r.Context(), rkey, req)
 	if err != nil {
-		http.Error(w, "Failed to update brew", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update brew")
+		handleStoreError(w, err, "Failed to update brew")
 		return
 	}
 

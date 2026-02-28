@@ -2,6 +2,7 @@ package atproto
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"arabica/internal/metrics"
@@ -11,6 +12,10 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
 )
+
+// ErrSessionExpired is returned when the OAuth session cannot be resumed,
+// indicating the user's authorization grant has expired and they need to log in again.
+var ErrSessionExpired = errors.New("oauth session expired")
 
 // Client wraps the atproto API client for making authenticated requests to a PDS
 type Client struct {
@@ -30,7 +35,7 @@ func (c *Client) getAuthenticatedAPIClient(ctx context.Context, did syntax.DID, 
 	// Resume the OAuth session - this returns a ClientSession that handles DPOP
 	session, err := c.oauth.app.ResumeSession(ctx, did, sessionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resume session: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrSessionExpired, err)
 	}
 
 	// Get the authenticated API client from the session

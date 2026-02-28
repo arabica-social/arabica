@@ -91,6 +91,13 @@ templ Layout(data *LayoutData, content templ.Component) {
 					// Increase history cache size to prevent cache misses
 					htmx.config.historyCacheSize = 20;
 
+					// Show session-expired banner on 401 responses
+					document.body.addEventListener('htmx:afterRequest', function(evt) {
+						if (evt.detail.xhr && evt.detail.xhr.status === 401) {
+							document.body.dispatchEvent(new CustomEvent('auth-expired', { bubbles: true }));
+						}
+					});
+
 					// Clean up styles before taking history snapshot
 					document.body.addEventListener('htmx:beforeHistorySave', function(evt) {
 						// Remove all transition classes and styles from elements being cached
@@ -134,6 +141,32 @@ templ Layout(data *LayoutData, content templ.Component) {
 				data-user-did={ data.UserDID }
 			}
 		>
+			<!-- Session expired banner -->
+			<div
+				x-data="{ show: false }"
+				x-on:auth-expired.window="show = true"
+				x-show="show"
+				x-cloak
+				x-transition:enter="transition ease-out duration-300"
+				x-transition:enter-start="opacity-0 -translate-y-2"
+				x-transition:enter-end="opacity-100 translate-y-0"
+				class="fixed top-0 inset-x-0 z-50 bg-amber-100 border-b border-amber-400 text-amber-900 px-4 py-3 flex items-center justify-between gap-4 shadow-md"
+				role="alert"
+			>
+				<p class="text-sm font-medium">
+					Your session has expired.
+					<a href="/login" class="underline underline-offset-2 hover:text-amber-700 font-semibold ml-1">Log in again</a>
+				</p>
+				<button
+					@click="show = false"
+					class="shrink-0 text-amber-700 hover:text-amber-900 transition-colors"
+					aria-label="Dismiss"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"></path>
+					</svg>
+				</button>
+			</div>
 			@HeaderWithProps(HeaderProps{
 			IsAuthenticated:         data.IsAuthenticated,
 			UserProfile:             data.UserProfile,

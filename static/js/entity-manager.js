@@ -97,6 +97,10 @@ function createEntityManager(config) {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            document.body.dispatchEvent(new CustomEvent('auth-expired', { bubbles: true }));
+            return;
+          }
           const errorText = await response.text();
           throw new Error(errorText);
         }
@@ -148,6 +152,10 @@ function createEntityManager(config) {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            document.body.dispatchEvent(new CustomEvent('auth-expired', { bubbles: true }));
+            return false;
+          }
           const errorText = await response.text();
           throw new Error(errorText);
         }

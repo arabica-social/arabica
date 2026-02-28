@@ -27,7 +27,7 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { document.body.dispatchEvent(new CustomEvent('auth-expired', { bubbles: true })); this.closest('dialog').close(); }"
 				class="space-y-4"
 			>
 				if bean == nil {
@@ -189,7 +189,7 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { document.body.dispatchEvent(new CustomEvent('auth-expired', { bubbles: true })); this.closest('dialog').close(); }"
 				class="space-y-4"
 			>
 				if grinder == nil {
@@ -312,7 +312,7 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { document.body.dispatchEvent(new CustomEvent('auth-expired', { bubbles: true })); this.closest('dialog').close(); }"
 				class="space-y-4"
 			>
 				if brewer == nil {
@@ -409,7 +409,7 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { document.body.dispatchEvent(new CustomEvent('auth-expired', { bubbles: true })); this.closest('dialog').close(); }"
 				class="space-y-4"
 			>
 				if roaster == nil {

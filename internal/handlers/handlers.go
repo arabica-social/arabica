@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -226,6 +227,17 @@ func (h *Handler) layoutDataFromRequest(r *http.Request, title string) (layoutDa
 	return
 }
 
+// handleStoreError writes the appropriate HTTP error for a store operation failure.
+// If the error indicates an expired OAuth session, it returns 401 Unauthorized with
+// a user-friendly message. Otherwise it returns 500 with the fallbackMessage.
+func handleStoreError(w http.ResponseWriter, err error, fallbackMessage string) {
+	if errors.Is(err, atproto.ErrSessionExpired) {
+		http.Error(w, "Your session has expired. Please log in again.", http.StatusUnauthorized)
+		return
+	}
+	http.Error(w, fallbackMessage, http.StatusInternalServerError)
+}
+
 // deleteEntity validates the rkey, calls the delete function, and returns 200.
 func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn func(context.Context, string) error, entityName string) {
 	rkey := validateRKey(w, r.PathValue("id"))
@@ -233,8 +245,8 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 		return
 	}
 	if err := deleteFn(r.Context(), rkey); err != nil {
-		http.Error(w, "Failed to delete "+entityName, http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete " + entityName)
+		handleStoreError(w, err, "Failed to delete "+entityName)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

@@ -200,8 +200,8 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 
 	bean, err := store.CreateBean(r.Context(), &req)
 	if err != nil {
-		http.Error(w, "Failed to create bean", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create bean")
+		handleStoreError(w, err, "Failed to create bean")
 		return
 	}
 
@@ -243,8 +243,8 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 
 	roaster, err := store.CreateRoaster(r.Context(), &req)
 	if err != nil {
-		http.Error(w, "Failed to create roaster", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create roaster")
+		handleStoreError(w, err, "Failed to create roaster")
 		return
 	}
 
@@ -329,8 +329,8 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := store.UpdateBeanByRKey(r.Context(), rkey, &req); err != nil {
-		http.Error(w, "Failed to update bean", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update bean")
+		handleStoreError(w, err, "Failed to update bean")
 		return
 	}
 
@@ -392,8 +392,8 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := store.UpdateRoasterByRKey(r.Context(), rkey, &req); err != nil {
-		http.Error(w, "Failed to update roaster", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update roaster")
+		handleStoreError(w, err, "Failed to update roaster")
 		return
 	}
 
@@ -452,8 +452,8 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 
 	grinder, err := store.CreateGrinder(r.Context(), &req)
 	if err != nil {
-		http.Error(w, "Failed to create grinder", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create grinder")
+		handleStoreError(w, err, "Failed to create grinder")
 		return
 	}
 
@@ -499,8 +499,8 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := store.UpdateGrinderByRKey(r.Context(), rkey, &req); err != nil {
-		http.Error(w, "Failed to update grinder", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update grinder")
+		handleStoreError(w, err, "Failed to update grinder")
 		return
 	}
 
@@ -558,8 +558,8 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 
 	brewer, err := store.CreateBrewer(r.Context(), &req)
 	if err != nil {
-		http.Error(w, "Failed to create brewer", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create brewer")
+		handleStoreError(w, err, "Failed to create brewer")
 		return
 	}
 
@@ -604,8 +604,8 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := store.UpdateBrewerByRKey(r.Context(), rkey, &req); err != nil {
-		http.Error(w, "Failed to update brewer", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update brewer")
+		handleStoreError(w, err, "Failed to update brewer")
 		return
 	}
 
