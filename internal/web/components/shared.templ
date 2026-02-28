@@ -171,10 +171,17 @@ templ WelcomeAuthenticated(userDID string) {
 
 templ WelcomeUnauthenticated() {
 	<div>
-		<p class="text-brown-800 mb-6 text-center text-lg">Please log in with your <a href="/atproto" class="link-bold">atproto handle</a> to start tracking your brews.</p>
+		<p class="text-brown-800 mb-2 text-center text-lg">Connect with your Atmosphere account to start tracking your brews.</p>
+		<details class="mb-6 max-w-md mx-auto">
+			<summary class="text-brown-600 text-sm italic cursor-pointer text-center hover:text-brown-800 transition-colors">What's an Atmosphere account?</summary>
+			<p class="text-brown-600 mt-2 text-sm italic">
+				Arabica uses the <a href="/atproto" class="link">AT Protocol</a> to power its social features, allowing you to own your data and use one account for all compatible applications. Once you create an account, you can use other apps like <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a> and <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a> with the same account. 
+				<a href="/join/create" class="link">(Create an account)</a>
+			</p>
+		</details>
 		<form method="POST" action="/auth/login" class="max-w-md mx-auto">
 			<div class="relative">
-				<label for="handle" class="block text-sm font-medium text-brown-900 mb-2">Your Handle</label>
+				<label for="handle" class="block text-sm font-medium text-brown-900 mb-2">Handle</label>
 				<input
 					type="text"
 					id="handle"
@@ -234,10 +241,12 @@ templ UserBadge(props UserBadgeProps) {
 			})
 		</a>
 		<div class="flex-1 min-w-0">
-			<div class={ templ.Classes(
+			<div
+				class={ templ.Classes(
 				"flex items-center gap-2",
 				templ.KV("flex-wrap", props.Size == "sm"),
-			) }>
+			) }
+			>
 				if props.DisplayName != "" {
 					<a
 						href={ templ.SafeURL(props.ProfileURL) }
