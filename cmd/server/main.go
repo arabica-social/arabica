@@ -130,9 +130,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to initialize OAuth")
 	}
 
-	// Initialize feed registry (in-memory; populated from SQLite after feedIndex opens)
-	feedRegistry := feed.NewRegistry()
-	feedService := feed.NewService(feedRegistry)
+	// feedRegistry and feedService are initialised after feedIndex opens below
 
 	// Setup context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -176,26 +174,24 @@ func main() {
 
 	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
 
-	// One-time seed: copy any DIDs from the legacy BoltDB feed_registry bucket into
-	// SQLite known_dids. INSERT OR IGNORE makes this a no-op once DIDs are present.
+	// One-time seed: copy DIDs from the legacy BoltDB feed_registry bucket into
+	// SQLite registered_dids. INSERT OR IGNORE makes this a no-op after first run.
 	if legacyDIDs := store.LegacyFeedDIDs(); len(legacyDIDs) > 0 {
-		added, err := feedIndex.SeedKnownDIDs(legacyDIDs)
+		added, err := feedIndex.SeedRegisteredDIDs(legacyDIDs)
 		if err != nil {
-			log.Warn().Err(err).Msg("Failed to seed known DIDs from legacy feed registry")
+			log.Warn().Err(err).Msg("Failed to seed registered DIDs from legacy feed registry")
 		} else if added > 0 {
-			log.Info().Int("seeded", added).Msg("Seeded known_dids from legacy BoltDB feed registry")
+			log.Info().Int("seeded", added).Msg("Seeded registered_dids from legacy BoltDB feed registry")
 		}
 	}
 
-	// Populate feed registry from SQLite known_dids (replaces BoltDB feed registry)
-	if knownDIDs, err := feedIndex.GetKnownDIDs(); err == nil {
-		for _, did := range knownDIDs {
-			feedRegistry.Register(did)
-		}
-		log.Info().Int("registered_users", feedRegistry.Count()).Msg("Feed registry populated from index")
-	} else {
-		log.Warn().Err(err).Msg("Failed to load known DIDs into feed registry")
-	}
+	// Initialise feed registry backed by SQLite registered_dids.
+	// This preserves the distinction between registered users (explicit logins)
+	// and known_dids (any user whose records have been indexed via firehose).
+	feedRegistry := feed.NewPersistentRegistry(feedIndex)
+	feedService := feed.NewService(feedRegistry)
+
+	log.Info().Int("registered_users", feedRegistry.Count()).Msg("Feed service initialised")
 
 	// Create and start consumer
 	firehoseConsumer := firehose.NewConsumer(firehoseConfig, feedIndex)
