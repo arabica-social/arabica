@@ -2,6 +2,7 @@ package routing
 
 import (
 	"net/http"
+	"strings"
 
 	"arabica/internal/atproto"
 	"arabica/internal/handlers"
@@ -164,6 +165,9 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// 6. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
 	handler = otelhttp.NewHandler(handler, "arabica",
+		otelhttp.WithFilter(func(r *http.Request) bool {
+			return !strings.HasPrefix(r.URL.Path, "/static/") && r.URL.Path != "/favicon.ico"
+		}),
 		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
 			return r.Method + " " + r.URL.Path
 		}),
