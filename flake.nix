@@ -13,7 +13,7 @@
       });
 
       packages = forAllSystems (pkgs: system: rec {
-        arabica = pkgs.callPackage ./default.nix { };
+        arabica = pkgs.callPackage ./nix/default.nix { };
         default = arabica;
       });
 
@@ -29,8 +29,9 @@
             ${pkgs.tailwindcss}/bin/tailwindcss -i static/css/app.css -o static/css/output.css --minify
           '');
         };
+        monitoring = import ./nix/monitoring.nix { inherit pkgs; };
       });
 
-      nixosModules.default = import ./module.nix;
+      nixosModules.default = import ./nix/module.nix;
     };
 }
