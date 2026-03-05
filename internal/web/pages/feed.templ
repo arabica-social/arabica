@@ -99,17 +99,20 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 
 // FeedFilterBar renders the type filter tabs and sort selector
 templ FeedFilterBar(qs FeedQueryState) {
-	<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+	<div
+		class="flex flex-wrap items-center justify-between gap-2 mb-4"
+		data-type-filter={ qs.TypeFilter }
+		data-sort={ qs.Sort }
+		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { u += sep + 'type=' + t; sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
+	>
 		<!-- Type filter tabs -->
 		<div class="flex flex-wrap gap-1">
 			for _, tab := range feedFilterTabs() {
 				<button
-					class={ "px-3 py-1.5 text-sm rounded-full transition-colors",
-						templ.KV("bg-brown-800 text-brown-50 font-medium", qs.TypeFilter == tab.Value),
-						templ.KV("bg-brown-100 text-brown-700 hover:bg-brown-200", qs.TypeFilter != tab.Value) }
-					hx-get={ buildFeedURL(tab.Value, qs.Sort) }
-					hx-target="#feed-container"
-					hx-swap="outerHTML"
+					class="px-3 py-1.5 text-sm rounded-full transition-colors"
+					:class="typeFilter === $el.dataset.tab ? 'bg-brown-800 text-brown-50 font-medium' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+					data-tab={ tab.Value }
+					@click="changeFilter($el.dataset.tab)"
 				>
 					{ tab.Label }
 				</button>
@@ -118,22 +121,16 @@ templ FeedFilterBar(qs FeedQueryState) {
 		<!-- Sort selector -->
 		<div class="flex items-center gap-1">
 			<button
-				class={ "px-3 py-1.5 text-sm rounded-full transition-colors",
-					templ.KV("bg-brown-800 text-brown-50 font-medium", qs.Sort == "" || qs.Sort == "recent"),
-					templ.KV("bg-brown-100 text-brown-700 hover:bg-brown-200", qs.Sort != "" && qs.Sort != "recent") }
-				hx-get={ buildFeedURL(qs.TypeFilter, "recent") }
-				hx-target="#feed-container"
-				hx-swap="outerHTML"
+				class="px-3 py-1.5 text-sm rounded-full transition-colors"
+				:class="(sort === '' || sort === 'recent') ? 'bg-brown-800 text-brown-50 font-medium' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				@click="changeSort('recent')"
 			>
 				New
 			</button>
 			<button
-				class={ "px-3 py-1.5 text-sm rounded-full transition-colors",
-					templ.KV("bg-brown-800 text-brown-50 font-medium", qs.Sort == "popular"),
-					templ.KV("bg-brown-100 text-brown-700 hover:bg-brown-200", qs.Sort != "popular") }
-				hx-get={ buildFeedURL(qs.TypeFilter, "popular") }
-				hx-target="#feed-container"
-				hx-swap="outerHTML"
+				class="px-3 py-1.5 text-sm rounded-full transition-colors"
+				:class="sort === 'popular' ? 'bg-brown-800 text-brown-50 font-medium' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				@click="changeSort('popular')"
 			>
 				Popular
 			</button>
