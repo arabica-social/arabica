@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"arabica/internal/metrics"
 	"arabica/internal/tracing"
@@ -11,6 +12,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // ErrSessionExpired is returned when the OAuth session cannot be resumed,
@@ -41,6 +43,20 @@ func (c *Client) getAuthenticatedAPIClient(ctx context.Context, did syntax.DID, 
 	// Get the authenticated API client from the session
 	// This client automatically handles DPOP signing and token refresh
 	apiClient := session.APIClient()
+
+	// Wrap the HTTP transport with OpenTelemetry instrumentation so outbound PDS
+	// HTTP calls appear as child spans under the existing pds.* semantic spans.
+	// We create a new http.Client rather than mutating the shared session client.
+	baseTransport := apiClient.Client.Transport
+	if baseTransport == nil {
+		baseTransport = http.DefaultTransport
+	}
+	apiClient.Client = &http.Client{
+		Transport:     otelhttp.NewTransport(baseTransport),
+		Timeout:       apiClient.Client.Timeout,
+		CheckRedirect: apiClient.Client.CheckRedirect,
+		Jar:           apiClient.Client.Jar,
+	}
 
 	return apiClient, nil
 }
