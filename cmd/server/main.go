@@ -237,6 +237,8 @@ func main() {
 		CommentCount:            feedIndex.TotalCommentCount,
 		RecordCountByCollection: feedIndex.RecordCountByCollection,
 		FirehoseConnected:       firehoseConsumer.IsConnected,
+		BoltStats:               store.Stats,
+		SQLiteStats:             feedIndex.DB().Stats,
 	}, 60*time.Second)
 
 	// Log known DIDs from database (DIDs discovered via firehose)

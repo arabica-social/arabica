@@ -2,22 +2,26 @@ package metrics
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
+	bolt "go.etcd.io/bbolt"
 	"github.com/rs/zerolog/log"
 )
 
 // StatsSource provides functions to retrieve current counts for gauge metrics.
 // Each function returns the current count; returning -1 indicates the source is unavailable.
 type StatsSource struct {
-	KnownDIDCount          func() int
-	RegisteredCount        func() int
-	RecordCount            func() int
-	PendingJoinCount       func() int
-	LikeCount              func() int
-	CommentCount           func() int
+	KnownDIDCount           func() int
+	RegisteredCount         func() int
+	RecordCount             func() int
+	PendingJoinCount        func() int
+	LikeCount               func() int
+	CommentCount            func() int
 	RecordCountByCollection func() map[string]int
-	FirehoseConnected      func() bool
+	FirehoseConnected       func() bool
+	BoltStats               func() bolt.Stats
+	SQLiteStats             func() sql.DBStats
 }
 
 // StartCollector launches a goroutine that periodically updates gauge metrics.
@@ -73,5 +77,18 @@ func collect(src StatsSource) {
 		} else {
 			FirehoseConnectionState.Set(0)
 		}
+	}
+	if src.BoltStats != nil {
+		s := src.BoltStats()
+		BoltReadTxTotal.Set(float64(s.TxN))
+		BoltOpenReadTx.Set(float64(s.OpenTxN))
+		BoltWriteOpsTotal.Set(float64(s.TxStats.Write))
+	}
+	if src.SQLiteStats != nil {
+		s := src.SQLiteStats()
+		SQLiteOpenConnections.Set(float64(s.OpenConnections))
+		SQLiteInUse.Set(float64(s.InUse))
+		SQLiteWaitCount.Set(float64(s.WaitCount))
+		SQLiteWaitDurationSeconds.Set(s.WaitDuration.Seconds())
 	}
 }

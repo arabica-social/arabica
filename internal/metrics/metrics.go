@@ -129,6 +129,47 @@ var (
 	})
 )
 
+// BoltDB metrics
+var (
+	BoltReadTxTotal = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "arabica_bolt_read_tx_total",
+		Help: "Total number of started read transactions in BoltDB (cumulative since process start)",
+	})
+
+	BoltOpenReadTx = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "arabica_bolt_open_read_tx",
+		Help: "Number of currently open read transactions in BoltDB",
+	})
+
+	BoltWriteOpsTotal = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "arabica_bolt_write_ops_total",
+		Help: "Total number of write operations performed in BoltDB (cumulative since process start)",
+	})
+)
+
+// SQLite metrics
+var (
+	SQLiteOpenConnections = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "arabica_sqlite_open_connections",
+		Help: "Number of open SQLite connections in the pool",
+	})
+
+	SQLiteInUse = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "arabica_sqlite_connections_in_use",
+		Help: "Number of SQLite connections currently in use",
+	})
+
+	SQLiteWaitCount = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "arabica_sqlite_wait_count_total",
+		Help: "Total number of times a goroutine had to wait for a SQLite connection (cumulative since process start)",
+	})
+
+	SQLiteWaitDurationSeconds = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "arabica_sqlite_wait_duration_seconds_total",
+		Help: "Total time spent waiting for SQLite connections in seconds (cumulative since process start)",
+	})
+)
+
 // NormalizePath reduces high-cardinality path labels by replacing dynamic
 // segments with placeholders. This keeps the metric label space bounded.
 func NormalizePath(path string) string {
