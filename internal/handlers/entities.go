@@ -55,8 +55,8 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err := g.Wait(); err != nil {
-		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to fetch manage page data")
+		handleStoreError(w, err, "Failed to fetch data")
 		return
 	}
 
@@ -125,8 +125,8 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err := g.Wait(); err != nil {
-		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to fetch all data for API")
+		handleStoreError(w, err, "Failed to fetch data")
 		return
 	}
 

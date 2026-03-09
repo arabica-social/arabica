@@ -179,8 +179,8 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 	// Check if user already liked this record
 	existingLike, err := store.GetUserLikeForSubject(r.Context(), subjectURI)
 	if err != nil {
-		http.Error(w, "Failed to check like status", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to check existing like")
+		handleStoreError(w, err, "Failed to check like status")
 		return
 	}
 
@@ -190,8 +190,8 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 	if existingLike != nil {
 		// Unlike: delete the existing like
 		if err := store.DeleteLikeByRKey(r.Context(), existingLike.RKey); err != nil {
-			http.Error(w, "Failed to unlike", http.StatusInternalServerError)
 			log.Error().Err(err).Msg("Failed to delete like")
+			handleStoreError(w, err, "Failed to unlike")
 			return
 		}
 		isLiked = false
@@ -213,8 +213,8 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 		}
 		like, err := store.CreateLike(r.Context(), req)
 		if err != nil {
-			http.Error(w, "Failed to like", http.StatusInternalServerError)
 			log.Error().Err(err).Msg("Failed to create like")
+			handleStoreError(w, err, "Failed to like")
 			return
 		}
 		isLiked = true

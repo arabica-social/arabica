@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/a-h/templ v0.3.977
 	github.com/bluesky-social/indigo v0.0.0-20260106221649-6fcd9317e725
+	github.com/go-logr/zerologr v1.2.3
 	github.com/google/go-querystring v1.1.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.18.3
@@ -32,7 +33,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-logr/zerologr v1.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect

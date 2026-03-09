@@ -85,8 +85,8 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 
 	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
 	if err != nil {
-		http.Error(w, "Failed to fetch brews", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to fetch brews")
+		handleStoreError(w, err, "Failed to fetch brews")
 		return
 	}
 
@@ -686,8 +686,8 @@ func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 
 	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
 	if err != nil {
-		http.Error(w, "Failed to fetch brews", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to list brews for export")
+		handleStoreError(w, err, "Failed to fetch brews")
 		return
 	}
 

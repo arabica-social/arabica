@@ -32,6 +32,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /auth/login", cop.Handler(http.HandlerFunc(h.HandleLoginSubmit)))
 	mux.HandleFunc("GET /oauth/callback", h.HandleOAuthCallback)
 	mux.Handle("POST /logout", cop.Handler(http.HandlerFunc(h.HandleLogout)))
+	mux.Handle("POST /reauth", cop.Handler(http.HandlerFunc(h.HandleReauth)))
 	mux.HandleFunc("GET /client-metadata.json", h.HandleClientMetadata)
 	mux.HandleFunc("GET /.well-known/oauth-client-metadata", h.HandleWellKnownOAuth)
 

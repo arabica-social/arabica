@@ -335,8 +335,8 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 
 	comment, err := store.CreateComment(r.Context(), req)
 	if err != nil {
-		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create comment")
+		handleStoreError(w, err, "Failed to create comment")
 		return
 	}
 
@@ -396,8 +396,8 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Delete the comment from the user's PDS
 	if err := store.DeleteCommentByRKey(r.Context(), rkey); err != nil {
-		http.Error(w, "Failed to delete comment", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Str("did", didStr).Msg("Failed to delete comment from PDS")
+		handleStoreError(w, err, "Failed to delete comment")
 		return
 	}
 

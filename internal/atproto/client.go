@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"arabica/internal/metrics"
 	"arabica/internal/tracing"
@@ -18,6 +19,23 @@ import (
 // ErrSessionExpired is returned when the OAuth session cannot be resumed,
 // indicating the user's authorization grant has expired and they need to log in again.
 var ErrSessionExpired = errors.New("oauth session expired")
+
+// wrapPDSError checks whether an error from an XRPC call indicates that the
+// OAuth grant is no longer valid (e.g. token refresh returned invalid_grant)
+// and, if so, wraps it with ErrSessionExpired so that upstream handlers can
+// return 401 instead of 500.
+func wrapPDSError(err error) error {
+	if err == nil {
+		return nil
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "invalid_grant") ||
+		strings.Contains(msg, "failed to refresh OAuth tokens") ||
+		strings.Contains(msg, "token is expired") {
+		return fmt.Errorf("%w: %w", ErrSessionExpired, err)
+	}
+	return err
+}
 
 // Client wraps the atproto API client for making authenticated requests to a PDS
 type Client struct {
@@ -106,6 +124,7 @@ func (c *Client) CreateRecord(ctx context.Context, did syntax.DID, sessionID str
 	metrics.PDSRequestsTotal.WithLabelValues("createRecord", input.Collection).Inc()
 
 	if err != nil {
+		err = wrapPDSError(err)
 		tracing.EndWithError(span, err)
 		log.Error().
 			Err(err).
@@ -172,6 +191,7 @@ func (c *Client) GetRecord(ctx context.Context, did syntax.DID, sessionID string
 	metrics.PDSRequestsTotal.WithLabelValues("getRecord", input.Collection).Inc()
 
 	if err != nil {
+		err = wrapPDSError(err)
 		tracing.EndWithError(span, err)
 		log.Error().
 			Err(err).
@@ -258,6 +278,7 @@ func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID stri
 	metrics.PDSRequestsTotal.WithLabelValues("listRecords", input.Collection).Inc()
 
 	if err != nil {
+		err = wrapPDSError(err)
 		tracing.EndWithError(span, err)
 		log.Error().
 			Err(err).
@@ -393,6 +414,7 @@ func (c *Client) PutRecord(ctx context.Context, did syntax.DID, sessionID string
 	metrics.PDSRequestsTotal.WithLabelValues("putRecord", input.Collection).Inc()
 
 	if err != nil {
+		err = wrapPDSError(err)
 		tracing.EndWithError(span, err)
 		log.Error().
 			Err(err).
@@ -447,6 +469,7 @@ func (c *Client) DeleteRecord(ctx context.Context, did syntax.DID, sessionID str
 	metrics.PDSRequestsTotal.WithLabelValues("deleteRecord", input.Collection).Inc()
 
 	if err != nil {
+		err = wrapPDSError(err)
 		tracing.EndWithError(span, err)
 		log.Error().
 			Err(err).

@@ -106,8 +106,60 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		Str("session_id", sessData.SessionID).
 		Msg("User logged in successfully")
 
-	// Redirect to home page
-	http.Redirect(w, r, "/", http.StatusFound)
+	// Check for reauth return path
+	redirectTo := "/"
+	if cookie, err := r.Cookie("reauth_return"); err == nil && cookie.Value != "" {
+		redirectTo = cookie.Value
+		// Clear the cookie
+		http.SetCookie(w, &http.Cookie{
+			Name: "reauth_return", Value: "", Path: "/",
+			HttpOnly: true, Secure: h.config.SecureCookies,
+			SameSite: http.SameSiteLaxMode, MaxAge: -1,
+		})
+	}
+
+	http.Redirect(w, r, redirectTo, http.StatusFound)
+}
+
+// HandleReauth clears the stale session and immediately restarts the OAuth
+// login flow so the user doesn't have to re-enter their handle.
+func (h *Handler) HandleReauth(w http.ResponseWriter, r *http.Request) {
+	// Clear the stale session
+	didCookie, err1 := r.Cookie("account_did")
+	sessionCookie, err2 := r.Cookie("session_id")
+	if err1 == nil && err2 == nil {
+		if did, err := syntax.ParseDID(didCookie.Value); err == nil {
+			if h.oauth != nil {
+				if err := h.oauth.DeleteSession(r.Context(), did, sessionCookie.Value); err != nil {
+					log.Warn().Err(err).Str("user_did", did.String()).Msg("Failed to delete session during reauth")
+				}
+			}
+		}
+	}
+
+	// Clear session cookies
+	http.SetCookie(w, &http.Cookie{
+		Name: "account_did", Value: "", Path: "/",
+		HttpOnly: true, Secure: h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode, MaxAge: -1,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name: "session_id", Value: "", Path: "/",
+		HttpOnly: true, Secure: h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode, MaxAge: -1,
+	})
+
+	// Set a short-lived cookie so the OAuth callback knows where to redirect
+	if returnTo := r.FormValue("return_to"); returnTo != "" {
+		http.SetCookie(w, &http.Cookie{
+			Name: "reauth_return", Value: returnTo, Path: "/",
+			HttpOnly: true, Secure: h.config.SecureCookies,
+			SameSite: http.SameSiteLaxMode, MaxAge: 300, // 5 minutes
+		})
+	}
+
+	// Delegate to the existing login flow
+	h.HandleLoginSubmit(w, r)
 }
 
 // HandleLogout logs out the user
