@@ -121,7 +121,10 @@ func (m *OAuthManager) DeleteSession(ctx context.Context, did syntax.DID, sessio
 // ClientMetadata returns the OAuth client metadata document
 // This should be served at the client_id URL
 func (m *OAuthManager) ClientMetadata() oauth.ClientMetadata {
-	return m.app.Config.ClientMetadata()
+	name := "Arabica"
+	meta := m.app.Config.ClientMetadata()
+	meta.ClientName = &name
+	return meta
 }
 
 // SetOnAuthSuccess sets a callback that is called when a user authenticates successfully
@@ -370,4 +373,3 @@ func mustReadBody(resp *http.Response) []byte {
 	buf.ReadFrom(resp.Body)
 	return buf.Bytes()
 }
-
