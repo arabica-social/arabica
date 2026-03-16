@@ -35,6 +35,12 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /reauth", cop.Handler(http.HandlerFunc(h.HandleReauth)))
 	mux.HandleFunc("GET /client-metadata.json", h.HandleClientMetadata)
 	mux.HandleFunc("GET /.well-known/oauth-client-metadata", h.HandleWellKnownOAuth)
+	mux.HandleFunc("GET /.well-known/security.txt", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/.well-known/security.txt")
+	})
+	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/robots.txt")
+	})
 
 	// API routes for handle resolution (used by login autocomplete)
 	// These are intentionally public and don't require HTMX headers
