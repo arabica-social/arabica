@@ -4,7 +4,7 @@ buildGoModule {
   pname = "arabica";
   version = "0.1.0";
   src = ../.;
-  vendorHash = "sha256-eNImqD4Zof/KjKT8Htd392WzJi0lJUeliIAXlrDeWKc=";
+  vendorHash = "sha256-pRwBGhQ0mOQkz0OLwPeDDGjoKual/8ftNeM67y1tEAA=";
 
   nativeBuildInputs = [ templ tailwindcss ];
 
