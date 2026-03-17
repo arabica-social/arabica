@@ -3,6 +3,7 @@ package pages
 import (
 	"arabica/internal/firehose"
 	"arabica/internal/models"
+	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"fmt"
 	"strings"
@@ -125,7 +126,7 @@ templ BeanViewHeader(props BeanViewProps) {
 				{ props.Bean.Origin }
 			}
 		</h2>
-		<p class="text-sm text-brown-600 mt-1">{ props.Bean.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
+		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Bean.CreatedAt) } data-local="long">{ props.Bean.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
 	</div>
 }
 

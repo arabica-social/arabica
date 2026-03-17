@@ -102,7 +102,7 @@ templ BrewViewCard(props BrewViewProps) {
 templ BrewViewHeader(props BrewViewProps) {
 	<div class="mb-6">
 		<h2 class="text-3xl font-bold text-brown-900">Brew Details</h2>
-		<p class="text-sm text-brown-600 mt-1">{ props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
+		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Brew.CreatedAt) } data-local="long">{ props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
 	</div>
 }
 

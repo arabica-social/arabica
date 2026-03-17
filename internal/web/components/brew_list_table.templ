@@ -56,8 +56,10 @@ templ BrewListTableRow(brew *models.Brew, isOwnProfile bool, profileHandle strin
 	<tr class="table-row">
 		<!-- Date -->
 		<td class="px-4 py-4 whitespace-nowrap text-sm text-brown-900 font-medium align-top">
-			<div>{ brew.CreatedAt.Format("Jan 2") }</div>
-			<div class="text-xs text-brown-600">{ brew.CreatedAt.Format("2006") }</div>
+			<time datetime={ bff.FormatISO(brew.CreatedAt) } data-local="date">{ brew.CreatedAt.Format("Jan 2") }</time>
+			<div class="text-xs text-brown-600">
+				<time datetime={ bff.FormatISO(brew.CreatedAt) } data-local="year">{ brew.CreatedAt.Format("2006") }</time>
+			</div>
 		</td>
 		<!-- Bean (with all details) -->
 		<td class="px-4 py-4 text-sm text-brown-900 align-top">

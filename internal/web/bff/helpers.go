@@ -184,6 +184,11 @@ func EscapeJS(s string) string {
 	return s
 }
 
+// FormatISO returns the time formatted as RFC3339 UTC, suitable for HTML datetime attributes.
+func FormatISO(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
+}
+
 // FormatTimeAgo returns a human-readable relative time string
 func FormatTimeAgo(t time.Time) string {
 	now := time.Now()

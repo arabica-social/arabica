@@ -177,6 +177,30 @@ templ Layout(data *LayoutData, content templ.Component) {
 				}
 			});
 
+			// Format <time data-local="..."> elements in the user's local timezone
+			document.addEventListener('DOMContentLoaded', function() {
+				document.querySelectorAll('time[data-local]').forEach(function(el) {
+					var dt = new Date(el.getAttribute('datetime'));
+					if (isNaN(dt.getTime())) return;
+					var fmt = el.getAttribute('data-local');
+					var text;
+					try {
+						if (fmt === 'date') {
+							text = dt.toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+						} else if (fmt === 'year') {
+							text = String(dt.getFullYear());
+						} else if (fmt === 'long') {
+							text = dt.toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'}) +
+								' at ' + dt.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
+						} else if (fmt === 'short') {
+							text = dt.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) +
+								' ' + dt.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'});
+						}
+						if (text) el.textContent = text;
+					} catch(e) {}
+				});
+			});
+
 			// Configure HTMX before it loads
 			document.addEventListener('DOMContentLoaded', function() {
 				if (typeof htmx !== 'undefined') {

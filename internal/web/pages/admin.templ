@@ -3,6 +3,7 @@ package pages
 import (
 	"arabica/internal/database/boltstore"
 	"arabica/internal/moderation"
+	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"fmt"
 )
@@ -397,7 +398,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 			<!-- Header with status badge and time -->
 			<div class="flex items-center justify-between">
 				@ReportStatusBadge(report.Report.Status)
-				<span class="text-sm text-brown-500">{ report.Report.CreatedAt.Format("Jan 2, 2006 15:04") }</span>
+				<time class="text-sm text-brown-500" datetime={ bff.FormatISO(report.Report.CreatedAt) } data-local="short">{ report.Report.CreatedAt.Format("Jan 2, 2006 15:04") }</time>
 			</div>
 			<!-- AT-URI with copy button -->
 			<div>
@@ -692,7 +693,7 @@ templ JoinRequestCard(req *boltstore.JoinRequest) {
 		<div class="flex flex-col gap-3">
 			<div class="flex items-center justify-between">
 				<span class="font-medium text-brown-900">{ req.Email }</span>
-				<span class="text-sm text-brown-500">{ req.CreatedAt.Format("Jan 2, 2006 15:04") }</span>
+				<time class="text-sm text-brown-500" datetime={ bff.FormatISO(req.CreatedAt) } data-local="short">{ req.CreatedAt.Format("Jan 2, 2006 15:04") }</time>
 			</div>
 			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
 				<div>

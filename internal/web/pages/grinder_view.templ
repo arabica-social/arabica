@@ -3,6 +3,7 @@ package pages
 import (
 	"arabica/internal/firehose"
 	"arabica/internal/models"
+	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 )
 
@@ -93,7 +94,7 @@ templ GrinderViewCard(props GrinderViewProps) {
 templ GrinderViewHeader(props GrinderViewProps) {
 	<div class="mb-6">
 		<h2 class="text-3xl font-bold text-brown-900">{ props.Grinder.Name }</h2>
-		<p class="text-sm text-brown-600 mt-1">{ props.Grinder.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</p>
+		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Grinder.CreatedAt) } data-local="long">{ props.Grinder.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
 	</div>
 }
 
