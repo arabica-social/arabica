@@ -101,7 +101,7 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRe
 	}
 
 	// Convert to models.Brew for record conversion
-	brewModel := brewModelFromRequest(brew, time.Now())
+	brewModel := brewModelFromRequest(brew, time.Now().UTC())
 
 	// Convert to atproto record
 	record, err := BrewToRecord(brewModel, beanURI, grinderURI, brewerURI)
@@ -523,7 +523,7 @@ func (s *AtprotoStore) CreateBean(ctx context.Context, bean *models.CreateBeanRe
 		Description: bean.Description,
 		RoasterRKey: bean.RoasterRKey,
 		SourceRef:   bean.SourceRef,
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UTC(),
 	}
 
 	record, err := BeanToRecord(beanModel, roasterURI)
@@ -718,7 +718,7 @@ func (s *AtprotoStore) CreateRoaster(ctx context.Context, roaster *models.Create
 		Location:  roaster.Location,
 		Website:   roaster.Website,
 		SourceRef: roaster.SourceRef,
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 	}
 
 	record, err := RoasterToRecord(roasterModel)
@@ -864,7 +864,7 @@ func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *models.Create
 		BurrType:    grinder.BurrType,
 		Notes:       grinder.Notes,
 		SourceRef:   grinder.SourceRef,
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UTC(),
 	}
 
 	record, err := GrinderToRecord(grinderModel)
@@ -1010,7 +1010,7 @@ func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *models.CreateBr
 		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
 		SourceRef:   brewer.SourceRef,
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UTC(),
 	}
 
 	record, err := BrewerToRecord(brewerModel)
@@ -1160,7 +1160,7 @@ func (s *AtprotoStore) CreateLike(ctx context.Context, req *models.CreateLikeReq
 	likeModel := &models.Like{
 		SubjectURI: req.SubjectURI,
 		SubjectCID: req.SubjectCID,
-		CreatedAt:  time.Now(),
+		CreatedAt:  time.Now().UTC(),
 	}
 
 	record, err := LikeToRecord(likeModel)
@@ -1256,7 +1256,7 @@ func (s *AtprotoStore) CreateComment(ctx context.Context, req *models.CreateComm
 		SubjectURI: req.SubjectURI,
 		SubjectCID: req.SubjectCID,
 		Text:       req.Text,
-		CreatedAt:  time.Now(),
+		CreatedAt:  time.Now().UTC(),
 		ParentURI:  req.ParentURI,
 		ParentCID:  req.ParentCID,
 	}
