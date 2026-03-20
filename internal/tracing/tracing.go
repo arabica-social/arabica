@@ -57,6 +57,17 @@ func Init(ctx context.Context) (*sdktrace.TracerProvider, error) {
 	return tp, nil
 }
 
+// BoltSpan starts a span for a BoltDB operation with standard attributes.
+func BoltSpan(ctx context.Context, op, bucket string) (context.Context, trace.Span) {
+	return tracer().Start(ctx, "bolt."+op,
+		trace.WithAttributes(
+			attribute.String("db.system", "boltdb"),
+			attribute.String("db.operation", op),
+			attribute.String("bolt.bucket", bucket),
+		),
+	)
+}
+
 // PdsSpan starts a span for a PDS operation with standard attributes.
 func PdsSpan(ctx context.Context, method, collection, did string) (context.Context, trace.Span) {
 	return tracer().Start(ctx, "pds."+method,

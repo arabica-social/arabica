@@ -103,6 +103,25 @@ func (s *ModerationStore) ListHiddenRecords(ctx context.Context) ([]moderation.H
 	return records, rows.Err()
 }
 
+// ListHiddenURIs returns all hidden record URIs for batch filtering.
+func (s *ModerationStore) ListHiddenURIs(ctx context.Context) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT uri FROM moderation_hidden_records`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var uris []string
+	for rows.Next() {
+		var uri string
+		if err := rows.Scan(&uri); err != nil {
+			continue
+		}
+		uris = append(uris, uri)
+	}
+	return uris, rows.Err()
+}
+
 // ========== Blacklist ==========
 
 func (s *ModerationStore) BlacklistUser(ctx context.Context, entry moderation.BlacklistedUser) error {
@@ -123,6 +142,25 @@ func (s *ModerationStore) BlacklistUser(ctx context.Context, entry moderation.Bl
 func (s *ModerationStore) UnblacklistUser(ctx context.Context, did string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM moderation_blacklist WHERE did = ?`, did)
 	return err
+}
+
+// ListBlacklistedDIDs returns all blacklisted DIDs for batch filtering.
+func (s *ModerationStore) ListBlacklistedDIDs(ctx context.Context) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT did FROM moderation_blacklist`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var dids []string
+	for rows.Next() {
+		var did string
+		if err := rows.Scan(&did); err != nil {
+			continue
+		}
+		dids = append(dids, did)
+	}
+	return dids, rows.Err()
 }
 
 func (s *ModerationStore) IsBlacklisted(ctx context.Context, did string) bool {

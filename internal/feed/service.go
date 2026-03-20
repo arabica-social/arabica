@@ -19,6 +19,9 @@ import (
 type ModerationFilter interface {
 	IsRecordHidden(ctx context.Context, atURI string) bool
 	IsBlacklisted(ctx context.Context, did string) bool
+	// Batch methods load the full sets for efficient in-memory filtering.
+	ListBlacklistedDIDs(ctx context.Context) ([]string, error)
+	ListHiddenURIs(ctx context.Context) ([]string, error)
 }
 
 const (
@@ -162,23 +165,38 @@ func (s *Service) SetModerationFilter(filter ModerationFilter) {
 	log.Info().Msg("feed: moderation filter configured")
 }
 
-// filterModeratedItems removes hidden records and content from blacklisted users
+// filterModeratedItems removes hidden records and content from blacklisted users.
+// It loads the full blacklist and hidden URI sets upfront (2 queries total)
+// rather than checking each item individually (which would be 2N queries).
 func (s *Service) filterModeratedItems(ctx context.Context, items []*FeedItem) []*FeedItem {
 	if s.moderationFilter == nil {
 		return items
 	}
 
+	// Load moderation sets in bulk (2 queries instead of 2*len(items))
+	blacklistedDIDs := make(map[string]bool)
+	if dids, err := s.moderationFilter.ListBlacklistedDIDs(ctx); err == nil {
+		for _, did := range dids {
+			blacklistedDIDs[did] = true
+		}
+	}
+
+	hiddenURIs := make(map[string]bool)
+	if uris, err := s.moderationFilter.ListHiddenURIs(ctx); err == nil {
+		for _, uri := range uris {
+			hiddenURIs[uri] = true
+		}
+	}
+
 	filtered := make([]*FeedItem, 0, len(items))
 	for _, item := range items {
-		// Get author DID from the item
 		authorDID := s.getAuthorDID(item)
-		if authorDID != "" && s.moderationFilter.IsBlacklisted(ctx, authorDID) {
+		if authorDID != "" && blacklistedDIDs[authorDID] {
 			log.Debug().Str("author", authorDID).Msg("feed: filtering blacklisted user's content")
 			continue
 		}
 
-		// Check if the record is hidden
-		if item.SubjectURI != "" && s.moderationFilter.IsRecordHidden(ctx, item.SubjectURI) {
+		if item.SubjectURI != "" && hiddenURIs[item.SubjectURI] {
 			log.Debug().Str("uri", item.SubjectURI).Msg("feed: filtering hidden record")
 			continue
 		}

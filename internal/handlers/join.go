@@ -62,7 +62,7 @@ func (h *Handler) HandleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.joinStore != nil {
-		if err := h.joinStore.SaveRequest(req); err != nil {
+		if err := h.joinStore.SaveRequest(r.Context(), req); err != nil {
 			log.Error().Err(err).Str("email", emailAddr).Msg("Failed to save join request")
 			http.Error(w, "Failed to save request, please try again", http.StatusInternalServerError)
 			return
@@ -178,7 +178,7 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 	if h.moderationStore != nil {
 		details := map[string]string{"email": reqEmail}
 		if h.joinStore != nil {
-			if joinReq, err := h.joinStore.GetRequest(reqID); err == nil {
+			if joinReq, err := h.joinStore.GetRequest(r.Context(), reqID); err == nil {
 				details["ip"] = joinReq.IP
 				details["message"] = joinReq.Message
 			}
@@ -197,7 +197,7 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 
 	// Remove the join request
 	if h.joinStore != nil {
-		if err := h.joinStore.DeleteRequest(reqID); err != nil {
+		if err := h.joinStore.DeleteRequest(r.Context(), reqID); err != nil {
 			log.Error().Err(err).Str("id", reqID).Msg("Failed to delete join request")
 		}
 	}
@@ -231,7 +231,7 @@ func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Reques
 	// Fetch request details before deleting so we can log them
 	var details map[string]string
 	if h.joinStore != nil {
-		if joinReq, err := h.joinStore.GetRequest(reqID); err == nil {
+		if joinReq, err := h.joinStore.GetRequest(r.Context(), reqID); err == nil {
 			details = map[string]string{
 				"email":   joinReq.Email,
 				"ip":      joinReq.IP,
@@ -239,7 +239,7 @@ func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Reques
 			}
 		}
 
-		if err := h.joinStore.DeleteRequest(reqID); err != nil {
+		if err := h.joinStore.DeleteRequest(r.Context(), reqID); err != nil {
 			log.Error().Err(err).Str("id", reqID).Msg("Failed to delete join request")
 			http.Error(w, "Failed to dismiss request", http.StatusInternalServerError)
 			return

@@ -36,11 +36,15 @@ func (h *Handler) buildModerationContext(ctx context.Context, viewerDID string, 
 	modCtx.CanHideRecord = h.moderationService.HasPermission(viewerDID, moderation.PermissionHideRecord)
 	modCtx.CanBlockUser = h.moderationService.HasPermission(viewerDID, moderation.PermissionBlacklistUser)
 
-	// Build map of hidden URIs for efficient lookup
+	// Load all hidden URIs in one query and intersect with feed items
 	if h.moderationStore != nil {
-		for _, item := range items {
-			if item.SubjectURI != "" {
-				if h.moderationStore.IsRecordHidden(ctx, item.SubjectURI) {
+		if hiddenURIs, err := h.moderationStore.ListHiddenURIs(ctx); err == nil {
+			hiddenSet := make(map[string]bool, len(hiddenURIs))
+			for _, uri := range hiddenURIs {
+				hiddenSet[uri] = true
+			}
+			for _, item := range items {
+				if item.SubjectURI != "" && hiddenSet[item.SubjectURI] {
 					modCtx.HiddenURIs[item.SubjectURI] = true
 				}
 			}

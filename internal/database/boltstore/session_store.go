@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"arabica/internal/tracing"
+
 	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	bolt "go.etcd.io/bbolt"
@@ -28,6 +30,9 @@ func sessionKey(did syntax.DID, sessionID string) []byte {
 // GetSession retrieves a session by DID and session ID.
 // Returns an error if the session is not found.
 func (s *SessionStore) GetSession(ctx context.Context, did syntax.DID, sessionID string) (*oauth.ClientSessionData, error) {
+	ctx, span := tracing.BoltSpan(ctx, "GetSession", "oauth_sessions")
+	defer span.End()
+
 	var session oauth.ClientSessionData
 
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -54,6 +59,9 @@ func (s *SessionStore) GetSession(ctx context.Context, did syntax.DID, sessionID
 // SaveSession persists a session (upsert operation).
 // If a session with the same DID and sessionID exists, it will be updated.
 func (s *SessionStore) SaveSession(ctx context.Context, sess oauth.ClientSessionData) error {
+	_, span := tracing.BoltSpan(ctx, "SaveSession", "oauth_sessions")
+	defer span.End()
+
 	data, err := json.Marshal(sess)
 	if err != nil {
 		return fmt.Errorf("failed to marshal session: %w", err)
@@ -71,6 +79,9 @@ func (s *SessionStore) SaveSession(ctx context.Context, sess oauth.ClientSession
 
 // DeleteSession removes a session by DID and session ID.
 func (s *SessionStore) DeleteSession(ctx context.Context, did syntax.DID, sessionID string) error {
+	_, span := tracing.BoltSpan(ctx, "DeleteSession", "oauth_sessions")
+	defer span.End()
+
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(BucketSessions)
 		if bucket == nil {
@@ -83,6 +94,9 @@ func (s *SessionStore) DeleteSession(ctx context.Context, did syntax.DID, sessio
 
 // GetAuthRequestInfo retrieves pending auth request data by state token.
 func (s *SessionStore) GetAuthRequestInfo(ctx context.Context, state string) (*oauth.AuthRequestData, error) {
+	ctx, span := tracing.BoltSpan(ctx, "GetAuthRequestInfo", "oauth_auth_requests")
+	defer span.End()
+
 	var info oauth.AuthRequestData
 
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -109,6 +123,9 @@ func (s *SessionStore) GetAuthRequestInfo(ctx context.Context, state string) (*o
 // SaveAuthRequestInfo stores auth request data keyed by state token.
 // This is a create-only operation per the oauth.ClientAuthStore contract.
 func (s *SessionStore) SaveAuthRequestInfo(ctx context.Context, info oauth.AuthRequestData) error {
+	_, span := tracing.BoltSpan(ctx, "SaveAuthRequestInfo", "oauth_auth_requests")
+	defer span.End()
+
 	data, err := json.Marshal(info)
 	if err != nil {
 		return fmt.Errorf("failed to marshal auth request: %w", err)
@@ -126,6 +143,9 @@ func (s *SessionStore) SaveAuthRequestInfo(ctx context.Context, info oauth.AuthR
 
 // DeleteAuthRequestInfo removes auth request data by state token.
 func (s *SessionStore) DeleteAuthRequestInfo(ctx context.Context, state string) error {
+	_, span := tracing.BoltSpan(ctx, "DeleteAuthRequestInfo", "oauth_auth_requests")
+	defer span.End()
+
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(BucketAuthRequests)
 		if bucket == nil {
@@ -138,6 +158,9 @@ func (s *SessionStore) DeleteAuthRequestInfo(ctx context.Context, state string) 
 
 // ListSessions returns all sessions (for debugging/admin purposes).
 func (s *SessionStore) ListSessions(ctx context.Context) ([]oauth.ClientSessionData, error) {
+	ctx, span := tracing.BoltSpan(ctx, "ListSessions", "oauth_sessions")
+	defer span.End()
+
 	var sessions []oauth.ClientSessionData
 
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -162,6 +185,9 @@ func (s *SessionStore) ListSessions(ctx context.Context) ([]oauth.ClientSessionD
 
 // CountSessions returns the number of stored sessions.
 func (s *SessionStore) CountSessions(ctx context.Context) (int, error) {
+	ctx, span := tracing.BoltSpan(ctx, "CountSessions", "oauth_sessions")
+	defer span.End()
+
 	var count int
 
 	err := s.db.View(func(tx *bolt.Tx) error {

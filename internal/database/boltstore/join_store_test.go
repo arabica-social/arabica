@@ -1,6 +1,7 @@
 package boltstore
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ func setupTestJoinStore(t *testing.T) *JoinStore {
 
 func TestJoinStore_SaveAndGet(t *testing.T) {
 	store := setupTestJoinStore(t)
+	ctx := context.Background()
 
 	req := &JoinRequest{
 		ID:        "join-001",
@@ -34,10 +36,10 @@ func TestJoinStore_SaveAndGet(t *testing.T) {
 		IP:        "203.0.113.50",
 	}
 
-	err := store.SaveRequest(req)
+	err := store.SaveRequest(ctx, req)
 	require.NoError(t, err)
 
-	retrieved, err := store.GetRequest("join-001")
+	retrieved, err := store.GetRequest(ctx, "join-001")
 	require.NoError(t, err)
 	require.NotNil(t, retrieved)
 
@@ -50,8 +52,9 @@ func TestJoinStore_SaveAndGet(t *testing.T) {
 
 func TestJoinStore_GetNotFound(t *testing.T) {
 	store := setupTestJoinStore(t)
+	ctx := context.Background()
 
-	retrieved, err := store.GetRequest("nonexistent")
+	retrieved, err := store.GetRequest(ctx, "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, retrieved)
 	assert.Contains(t, err.Error(), "not found")
@@ -59,6 +62,7 @@ func TestJoinStore_GetNotFound(t *testing.T) {
 
 func TestJoinStore_Delete(t *testing.T) {
 	store := setupTestJoinStore(t)
+	ctx := context.Background()
 
 	req := &JoinRequest{
 		ID:        "join-del",
@@ -67,30 +71,32 @@ func TestJoinStore_Delete(t *testing.T) {
 		IP:        "10.0.0.1",
 	}
 
-	err := store.SaveRequest(req)
+	err := store.SaveRequest(ctx, req)
 	require.NoError(t, err)
 
-	err = store.DeleteRequest("join-del")
+	err = store.DeleteRequest(ctx, "join-del")
 	require.NoError(t, err)
 
-	retrieved, err := store.GetRequest("join-del")
+	retrieved, err := store.GetRequest(ctx, "join-del")
 	assert.Error(t, err)
 	assert.Nil(t, retrieved)
 }
 
 func TestJoinStore_DeleteNonexistent(t *testing.T) {
 	store := setupTestJoinStore(t)
+	ctx := context.Background()
 
 	// Deleting a non-existent request should not error
-	err := store.DeleteRequest("nonexistent")
+	err := store.DeleteRequest(ctx, "nonexistent")
 	assert.NoError(t, err)
 }
 
 func TestJoinStore_ListRequests(t *testing.T) {
 	store := setupTestJoinStore(t)
+	ctx := context.Background()
 
 	t.Run("empty store", func(t *testing.T) {
-		requests, err := store.ListRequests()
+		requests, err := store.ListRequests(ctx)
 		require.NoError(t, err)
 		assert.Empty(t, requests)
 	})
@@ -103,10 +109,10 @@ func TestJoinStore_ListRequests(t *testing.T) {
 				CreatedAt: time.Now(),
 				IP:        "10.0.0.1",
 			}
-			require.NoError(t, store.SaveRequest(req))
+			require.NoError(t, store.SaveRequest(ctx, req))
 		}
 
-		requests, err := store.ListRequests()
+		requests, err := store.ListRequests(ctx)
 		require.NoError(t, err)
 		assert.Len(t, requests, 3)
 	})
@@ -114,6 +120,7 @@ func TestJoinStore_ListRequests(t *testing.T) {
 
 func TestJoinStore_SaveOverwrites(t *testing.T) {
 	store := setupTestJoinStore(t)
+	ctx := context.Background()
 
 	req := &JoinRequest{
 		ID:        "join-overwrite",
@@ -122,15 +129,15 @@ func TestJoinStore_SaveOverwrites(t *testing.T) {
 		IP:        "10.0.0.1",
 	}
 
-	err := store.SaveRequest(req)
+	err := store.SaveRequest(ctx, req)
 	require.NoError(t, err)
 
 	// Save again with updated email
 	req.Email = "updated@example.com"
-	err = store.SaveRequest(req)
+	err = store.SaveRequest(ctx, req)
 	require.NoError(t, err)
 
-	retrieved, err := store.GetRequest("join-overwrite")
+	retrieved, err := store.GetRequest(ctx, "join-overwrite")
 	require.NoError(t, err)
 	assert.Equal(t, "updated@example.com", retrieved.Email)
 }

@@ -14,6 +14,7 @@ type Store interface {
 	IsRecordHidden(ctx context.Context, atURI string) bool
 	GetHiddenRecord(ctx context.Context, atURI string) (*HiddenRecord, error)
 	ListHiddenRecords(ctx context.Context) ([]HiddenRecord, error)
+	ListHiddenURIs(ctx context.Context) ([]string, error)
 
 	// Blacklist
 	BlacklistUser(ctx context.Context, entry BlacklistedUser) error
@@ -21,6 +22,7 @@ type Store interface {
 	IsBlacklisted(ctx context.Context, did string) bool
 	GetBlacklistedUser(ctx context.Context, did string) (*BlacklistedUser, error)
 	ListBlacklistedUsers(ctx context.Context) ([]BlacklistedUser, error)
+	ListBlacklistedDIDs(ctx context.Context) ([]string, error)
 
 	// Reports
 	CreateReport(ctx context.Context, report Report) error

@@ -195,13 +195,13 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 
 	var joinRequests []*boltstore.JoinRequest
 	if isAdmin && h.joinStore != nil {
-		joinRequests, _ = h.joinStore.ListRequests()
+		joinRequests, _ = h.joinStore.ListRequests(ctx)
 	}
 
 	// Build stats for admin users
 	var stats pages.AdminStats
 	if isAdmin {
-		stats = h.collectAdminStats()
+		stats = h.collectAdminStats(ctx)
 	}
 
 	return pages.AdminProps{
@@ -601,7 +601,7 @@ func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
 }
 
 // collectAdminStats gathers current system statistics from available data sources.
-func (h *Handler) collectAdminStats() pages.AdminStats {
+func (h *Handler) collectAdminStats(ctx context.Context) pages.AdminStats {
 	var stats pages.AdminStats
 
 	if h.feedIndex != nil {
@@ -617,7 +617,7 @@ func (h *Handler) collectAdminStats() pages.AdminStats {
 	}
 
 	if h.joinStore != nil {
-		if reqs, err := h.joinStore.ListRequests(); err == nil {
+		if reqs, err := h.joinStore.ListRequests(ctx); err == nil {
 			stats.PendingJoinRequests = len(reqs)
 		}
 	}
@@ -653,7 +653,7 @@ func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats := h.collectAdminStats()
+	stats := h.collectAdminStats(r.Context())
 
 	if err := pages.AdminStatsContent(stats).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render admin stats partial")

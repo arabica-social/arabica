@@ -1,9 +1,12 @@
 package boltstore
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"arabica/internal/tracing"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -23,7 +26,10 @@ type JoinStore struct {
 }
 
 // SaveRequest stores a join request in BoltDB.
-func (s *JoinStore) SaveRequest(req *JoinRequest) error {
+func (s *JoinStore) SaveRequest(ctx context.Context, req *JoinRequest) error {
+	_, span := tracing.BoltSpan(ctx, "SaveRequest", "join_requests")
+	defer span.End()
+
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(BucketJoinRequests)
 		if bucket == nil {
@@ -40,7 +46,10 @@ func (s *JoinStore) SaveRequest(req *JoinRequest) error {
 }
 
 // GetRequest returns a join request by ID.
-func (s *JoinStore) GetRequest(id string) (*JoinRequest, error) {
+func (s *JoinStore) GetRequest(ctx context.Context, id string) (*JoinRequest, error) {
+	_, span := tracing.BoltSpan(ctx, "GetRequest", "join_requests")
+	defer span.End()
+
 	var req JoinRequest
 	err := s.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(BucketJoinRequests)
@@ -60,7 +69,10 @@ func (s *JoinStore) GetRequest(id string) (*JoinRequest, error) {
 }
 
 // DeleteRequest removes a join request by ID.
-func (s *JoinStore) DeleteRequest(id string) error {
+func (s *JoinStore) DeleteRequest(ctx context.Context, id string) error {
+	_, span := tracing.BoltSpan(ctx, "DeleteRequest", "join_requests")
+	defer span.End()
+
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(BucketJoinRequests)
 		if bucket == nil {
@@ -71,7 +83,10 @@ func (s *JoinStore) DeleteRequest(id string) error {
 }
 
 // ListRequests returns all stored join requests.
-func (s *JoinStore) ListRequests() ([]*JoinRequest, error) {
+func (s *JoinStore) ListRequests(ctx context.Context) ([]*JoinRequest, error) {
+	_, span := tracing.BoltSpan(ctx, "ListRequests", "join_requests")
+	defer span.End()
+
 	var requests []*JoinRequest
 
 	err := s.db.View(func(tx *bolt.Tx) error {

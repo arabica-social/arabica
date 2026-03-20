@@ -228,7 +228,7 @@ func main() {
 		RecordCount:     feedIndex.RecordCount,
 		PendingJoinCount: func() int {
 			joinStore := store.JoinStore()
-			if reqs, err := joinStore.ListRequests(); err == nil {
+			if reqs, err := joinStore.ListRequests(context.Background()); err == nil {
 				return len(reqs)
 			}
 			return 0

@@ -16,7 +16,12 @@ import (
 	"arabica/internal/lexicons"
 	"arabica/internal/models"
 
+	"database/sql/driver"
+
+	"github.com/XSAM/otelsql"
 	"github.com/rs/zerolog/log"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 	_ "modernc.org/sqlite"
 )
 
@@ -218,7 +223,21 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		}
 	}
 
-	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=temp_store(MEMORY)&_pragma=mmap_size(134217728)&_pragma=cache_size(-65536)")
+	db, err := otelsql.Open("sqlite", "file:"+path+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=temp_store(MEMORY)&_pragma=mmap_size(134217728)&_pragma=cache_size(-65536)",
+		otelsql.WithAttributes(semconv.DBSystemSqlite),
+		otelsql.WithSpanOptions(otelsql.SpanOptions{
+			// Only create SQL spans when there's already a parent span (e.g. from an HTTP request).
+			// This avoids standalone traces for background work like firehose indexing.
+			SpanFilter: func(ctx context.Context, _ otelsql.Method, _ string, _ []driver.NamedValue) bool {
+				return trace.SpanFromContext(ctx).SpanContext().IsValid()
+			},
+			// Suppress noisy low-level driver spans — keep only the statement-level spans.
+			OmitConnResetSession: true,
+			OmitConnectorConnect: true,
+			OmitRows:             true,
+			OmitConnPrepare:      true,
+		}),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open index database: %w", err)
 	}
@@ -227,6 +246,11 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	// Allow multiple reader connections but limit to avoid file descriptor exhaustion.
 	db.SetMaxOpenConns(4)
 	db.SetMaxIdleConns(4)
+
+	// Record DB connection pool metrics via OTel
+	if _, err := otelsql.RegisterDBStatsMetrics(db, otelsql.WithAttributes(semconv.DBSystemSqlite)); err != nil {
+		log.Warn().Err(err).Msg("Failed to register OTel DB stats metrics")
+	}
 
 	// Execute schema (skip PRAGMAs — already set via DSN)
 	if _, err := db.Exec(schemaNoTrailingPragma); err != nil {
