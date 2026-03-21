@@ -260,6 +260,9 @@ templ Layout(data *LayoutData, content templ.Component) {
 			if data.UserDID != "" {
 				data-user-did={ data.UserDID }
 			}
+			if tp := traceParentFromContext(ctx); tp != "" {
+				hx-headers={ `{"traceparent":"` + tp + `"}` }
+			}
 		>
 			<!-- Session expired modal -->
 			<dialog id="session-expired-modal" class="modal-dialog">
