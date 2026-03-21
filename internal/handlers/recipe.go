@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"arabica/internal/atproto"
 	"arabica/internal/models"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
@@ -172,6 +173,7 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	recipe.Interpolate()
 	writeJSON(w, recipe, "recipe")
 }
 
@@ -296,6 +298,8 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 	for _, b := range brewers {
 		brewerMap[b.RKey] = b
 	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userProfile := h.getUserProfile(r.Context(), userDID)
 	for _, recipe := range recipes {
 		if recipe.BrewerRKey != "" {
 			recipe.BrewerObj = brewerMap[recipe.BrewerRKey]
@@ -304,6 +308,13 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 		if recipe.BrewerType == "" && recipe.BrewerObj != nil {
 			recipe.BrewerType = recipe.BrewerObj.BrewerType
 		}
+		recipe.AuthorDID = userDID
+		if userProfile != nil {
+			recipe.AuthorHandle = userProfile.Handle
+			recipe.AuthorAvatar = userProfile.Avatar
+			recipe.AuthorDisplay = userProfile.DisplayName
+		}
+		recipe.Interpolate()
 	}
 
 	filtered := models.FilterRecipes(recipes, filter)

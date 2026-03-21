@@ -52,9 +52,8 @@ document.addEventListener("alpine:init", () => {
     },
 
     formatRatio(recipe) {
-      if (recipe.coffee_amount > 0 && recipe.water_amount > 0) {
-        const ratio = recipe.water_amount / recipe.coffee_amount;
-        return `1:${ratio.toFixed(1)}`;
+      if (recipe.ratio > 0) {
+        return `1:${recipe.ratio.toFixed(1)}`;
       }
       return "-";
     },

@@ -109,15 +109,7 @@ templ RecipeSelectField(props BrewFormProps) {
 				:class="activeCategory === 'small' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
 				class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
 			>
-				Small dose
-			</button>
-			<button
-				type="button"
-				@click="setCategory('large')"
-				:class="activeCategory === 'large' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-				class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
-			>
-				Large batch
+				Small (&le;12g)
 			</button>
 			<button
 				type="button"
@@ -126,6 +118,14 @@ templ RecipeSelectField(props BrewFormProps) {
 				class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
 			>
 				Single cup
+			</button>
+			<button
+				type="button"
+				@click="setCategory('large')"
+				:class="activeCategory === 'large' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+			>
+				Large (22g+)
 			</button>
 		</div>
 		<!-- Search input -->

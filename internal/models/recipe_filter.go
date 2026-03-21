@@ -15,15 +15,17 @@ type RecipeFilter struct {
 
 // RecipeCategories maps category names to their filter criteria.
 var RecipeCategories = map[string]RecipeFilter{
-	"small":  {MaxCoffee: 20},
-	"large":  {MinCoffee: 30},
-	"single": {MaxCoffee: 20, MaxWater: 300},
-	"batch":  {MinWater: 500},
+	"small":  {MaxCoffee: 12},              // espresso, small cups (≤12g)
+	"single": {MinCoffee: 12, MaxCoffee: 22, MaxWater: 400}, // typical single pour-over (12-22g)
+	"large":  {MinCoffee: 22},              // large brews (22g+)
+	"batch":  {MinWater: 500},              // batch brew by water volume (500g+)
 }
 
 // MatchesFilter returns true if the recipe satisfies all non-zero filter criteria.
 // Criteria are combined with AND logic; zero-value fields are ignored.
+// Calls Interpolate on the recipe to ensure derived fields are available.
 func MatchesFilter(recipe *Recipe, filter RecipeFilter) bool {
+	recipe.Interpolate()
 	// Apply category defaults first (explicit fields override)
 	f := resolveCategory(filter)
 
