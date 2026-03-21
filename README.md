@@ -2,12 +2,10 @@
 
 Coffee brew tracking application build on ATProto
 
-Development is on GitHub, and is mirrored to Tangled:
+Development is on Tangled, and is mirrored to GitHub:
 
 - [Tangled](https://tangled.org/arabica.social/arabica)
 - [GitHub](https://github.com/arabica-social/arabica)
-
-GitHub is currently the primary repo, but that may change in the future.
 
 ## Features
 
