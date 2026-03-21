@@ -51,15 +51,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 						:class="category === 'small' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
 						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
 					>
-						Small dose (&le;20g)
-					</button>
-					<button
-						type="button"
-						@click="setCategory('large')"
-						:class="category === 'large' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
-					>
-						Large batch (30g+)
+						Small (&le;12g)
 					</button>
 					<button
 						type="button"
@@ -67,7 +59,15 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 						:class="category === 'single' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
 						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
 					>
-						Single cup
+						Single cup (12-22g)
+					</button>
+					<button
+						type="button"
+						@click="setCategory('large')"
+						:class="category === 'large' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+					>
+						Large (22g+)
 					</button>
 					<button
 						type="button"
@@ -118,7 +118,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 		<!-- Results -->
 		<div>
 			<template x-if="loading">
-				@components.LoadingSkeletonTable(components.LoadingSkeletonTableProps{Columns: 6, Rows: 3})
+				@components.LoadingSkeletonTable(components.LoadingSkeletonTableProps{Columns: 7, Rows: 3})
 			</template>
 			<template x-if="!loading && recipes.length === 0">
 				<div class="card card-inner text-center py-8">
@@ -135,6 +135,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 						<table class="table">
 							<thead class="table-header">
 								<tr>
+									<th class="table-th whitespace-nowrap">Author</th>
 									<th class="table-th whitespace-nowrap">Name</th>
 									<th class="table-th whitespace-nowrap">Coffee</th>
 									<th class="table-th whitespace-nowrap">Water</th>
@@ -146,6 +147,17 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 							<tbody class="table-body">
 								<template x-for="recipe in recipes" :key="recipe.rkey">
 									<tr class="table-row cursor-pointer hover:bg-brown-50" @click="selectRecipe(recipe)">
+										<td class="px-6 py-4 text-sm text-brown-900">
+											<div class="flex items-center gap-2">
+												<template x-if="recipe.author_avatar">
+													<img :src="recipe.author_avatar" class="w-6 h-6 rounded-full object-cover" :alt="recipe.author_display || recipe.author_handle || ''"/>
+												</template>
+												<template x-if="!recipe.author_avatar">
+													<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(recipe.author_display || recipe.author_handle || '?')[0].toUpperCase()"></div>
+												</template>
+												<span class="truncate text-xs" x-text="recipe.author_display || recipe.author_handle || ''"></span>
+											</div>
+										</td>
 										<td class="px-6 py-4 text-sm font-medium text-brown-900" x-text="recipe.name"></td>
 										<td class="px-6 py-4 text-sm text-brown-900" x-text="recipe.coffee_amount > 0 ? recipe.coffee_amount.toFixed(1) + 'g' : '-'"></td>
 										<td class="px-6 py-4 text-sm text-brown-900" x-text="recipe.water_amount > 0 ? recipe.water_amount.toFixed(1) + 'g' : '-'"></td>
@@ -164,7 +176,18 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 		<template x-if="selectedRecipe">
 			<div class="card card-inner mt-4">
 				<div class="flex justify-between items-start mb-4">
-					<h3 class="text-xl font-bold text-brown-900" x-text="selectedRecipe.name"></h3>
+					<div>
+						<h3 class="text-xl font-bold text-brown-900" x-text="selectedRecipe.name"></h3>
+						<div class="flex items-center gap-2 mt-1">
+							<template x-if="selectedRecipe.author_avatar">
+								<img :src="selectedRecipe.author_avatar" class="w-5 h-5 rounded-full object-cover" :alt="selectedRecipe.author_display || ''"/>
+							</template>
+							<template x-if="!selectedRecipe.author_avatar">
+								<div class="w-5 h-5 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(selectedRecipe.author_display || selectedRecipe.author_handle || '?')[0].toUpperCase()"></div>
+							</template>
+							<span class="text-sm text-brown-600" x-text="selectedRecipe.author_display || selectedRecipe.author_handle || ''"></span>
+						</div>
+					</div>
 					<button @click="selectedRecipe = null" class="text-brown-500 hover:text-brown-700 text-lg font-bold">&times;</button>
 				</div>
 				<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">

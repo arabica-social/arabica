@@ -320,9 +320,9 @@ document.addEventListener("alpine:init", () => {
 
     // Recipe filter methods
     recipeCategories: {
-      small: { maxCoffee: 20 },
-      large: { minCoffee: 30 },
-      single: { maxCoffee: 20, maxWater: 300 },
+      small: { maxCoffee: 12 },
+      single: { minCoffee: 12, maxCoffee: 22, maxWater: 400 },
+      large: { minCoffee: 22 },
       batch: { minWater: 500 },
     },
 
@@ -354,7 +354,11 @@ document.addEventListener("alpine:init", () => {
         total++;
         const name = (recipe.name || recipe.Name || "").toLowerCase();
         const coffee = recipe.coffee_amount || 0;
-        const water = recipe.water_amount || 0;
+        // Interpolate water from pours if not set
+        let water = recipe.water_amount || 0;
+        if (water === 0 && recipe.pours && recipe.pours.length > 0) {
+          water = recipe.pours.reduce((sum, p) => sum + (p.water_amount || 0), 0);
+        }
 
         // Text filter
         if (query && !name.includes(query)) continue;

@@ -63,3 +63,15 @@ categories: [spec, lexicon]
     Some recipe fields should be interpolated from other fields when missing
     (i.e. water amount and ratio, from pours and coffee amount. Ratio may be
     transitive)
+
+    "Search recipes" entry doesn't currently work. This should be retooled to
+    show a list of matches in the same style as login handle entry, and either
+    show just the user's recipes, or maybe show suggested recipes from other
+    users (not sure how they would be rated though, since that would probably
+    need to be part of this)
+
+** Open Questions
+
+   For links between a brew and recipe, which should have the optional ref?
+   Probably brew, but should a recipe contain a ref to the original brew that it
+   /may/ have been saved from.

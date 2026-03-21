@@ -107,6 +107,31 @@ type Recipe struct {
 	// Joined data for display
 	BrewerObj *Brewer `json:"brewer_obj,omitempty"`
 	Pours     []*Pour `json:"pours,omitempty"`
+
+	// Computed fields (populated by Interpolate or handler)
+	Ratio         float64 `json:"ratio,omitempty"`          // water:coffee ratio (e.g. 16.7 for 1:16.7)
+	AuthorDID     string  `json:"author_did,omitempty"`     // DID of the recipe creator
+	AuthorHandle  string  `json:"author_handle,omitempty"`  // handle of the creator
+	AuthorAvatar  string  `json:"author_avatar,omitempty"`  // avatar URL of the creator
+	AuthorDisplay string  `json:"author_display,omitempty"` // display name of the creator
+}
+
+// Interpolate fills in computed/derived fields from existing data.
+// - WaterAmount from sum of pours if not set
+// - Ratio from water/coffee amounts
+func (r *Recipe) Interpolate() {
+	// Derive water amount from pours if missing
+	if r.WaterAmount == 0 && len(r.Pours) > 0 {
+		var total int
+		for _, p := range r.Pours {
+			total += p.WaterAmount
+		}
+		r.WaterAmount = float64(total)
+	}
+	// Compute ratio
+	if r.CoffeeAmount > 0 && r.WaterAmount > 0 {
+		r.Ratio = r.WaterAmount / r.CoffeeAmount
+	}
 }
 
 type Brew struct {

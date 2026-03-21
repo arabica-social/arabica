@@ -77,29 +77,44 @@ func TestMatchesFilter_MultipleFilters(t *testing.T) {
 }
 
 func TestMatchesFilter_CategorySmall(t *testing.T) {
-	small := &Recipe{Name: "Small Dose", CoffeeAmount: 12}
-	borderline := &Recipe{Name: "Borderline", CoffeeAmount: 20}
-	large := &Recipe{Name: "Big Batch", CoffeeAmount: 35}
+	espresso := &Recipe{Name: "Espresso", CoffeeAmount: 9}
+	borderline := &Recipe{Name: "Borderline", CoffeeAmount: 12}
+	pourover := &Recipe{Name: "Pour Over", CoffeeAmount: 15}
 
-	assert.True(t, MatchesFilter(small, RecipeFilter{Category: "small"}))
+	assert.True(t, MatchesFilter(espresso, RecipeFilter{Category: "small"}))
 	assert.True(t, MatchesFilter(borderline, RecipeFilter{Category: "small"}))
-	assert.False(t, MatchesFilter(large, RecipeFilter{Category: "small"}))
+	assert.False(t, MatchesFilter(pourover, RecipeFilter{Category: "small"}))
 }
 
 func TestMatchesFilter_CategoryLarge(t *testing.T) {
-	small := &Recipe{Name: "Small Dose", CoffeeAmount: 12}
+	single := &Recipe{Name: "Single Cup", CoffeeAmount: 15}
+	borderline := &Recipe{Name: "Borderline", CoffeeAmount: 22}
 	large := &Recipe{Name: "Big Batch", CoffeeAmount: 35}
 
-	assert.False(t, MatchesFilter(small, RecipeFilter{Category: "large"}))
+	assert.False(t, MatchesFilter(single, RecipeFilter{Category: "large"}))
+	assert.True(t, MatchesFilter(borderline, RecipeFilter{Category: "large"}))
 	assert.True(t, MatchesFilter(large, RecipeFilter{Category: "large"}))
 }
 
 func TestMatchesFilter_CategorySingle(t *testing.T) {
+	small := &Recipe{Name: "Espresso", CoffeeAmount: 9, WaterAmount: 40}
 	single := &Recipe{Name: "One Cup", CoffeeAmount: 15, WaterAmount: 250}
-	batch := &Recipe{Name: "Party Brew", CoffeeAmount: 15, WaterAmount: 500}
+	tooMuchWater := &Recipe{Name: "Party Brew", CoffeeAmount: 15, WaterAmount: 500}
+	tooBigDose := &Recipe{Name: "Large", CoffeeAmount: 25, WaterAmount: 300}
 
-	assert.True(t, MatchesFilter(single, RecipeFilter{Category: "single"}))
-	assert.False(t, MatchesFilter(batch, RecipeFilter{Category: "single"}))
+	assert.False(t, MatchesFilter(small, RecipeFilter{Category: "single"}))     // coffee too low
+	assert.True(t, MatchesFilter(single, RecipeFilter{Category: "single"}))      // perfect fit
+	assert.False(t, MatchesFilter(tooMuchWater, RecipeFilter{Category: "single"})) // water too high
+	assert.False(t, MatchesFilter(tooBigDose, RecipeFilter{Category: "single"}))  // coffee too high
+}
+
+func TestMatchesFilter_CategoriesNoOverlap(t *testing.T) {
+	// A 15g dose should only match "single", not "small" or "large"
+	recipe := &Recipe{Name: "V60", CoffeeAmount: 15, WaterAmount: 250}
+
+	assert.False(t, MatchesFilter(recipe, RecipeFilter{Category: "small"}))
+	assert.True(t, MatchesFilter(recipe, RecipeFilter{Category: "single"}))
+	assert.False(t, MatchesFilter(recipe, RecipeFilter{Category: "large"}))
 }
 
 func TestMatchesFilter_CategoryBatch(t *testing.T) {
@@ -111,10 +126,10 @@ func TestMatchesFilter_CategoryBatch(t *testing.T) {
 }
 
 func TestMatchesFilter_CategoryExplicitOverride(t *testing.T) {
-	// Category "small" sets MaxCoffee=20, but explicit MaxCoffee=25 overrides
-	recipe := &Recipe{Name: "Medium", CoffeeAmount: 22}
+	// Category "small" sets MaxCoffee=12, but explicit MaxCoffee=18 overrides
+	recipe := &Recipe{Name: "Medium", CoffeeAmount: 15}
 	assert.False(t, MatchesFilter(recipe, RecipeFilter{Category: "small"}))
-	assert.True(t, MatchesFilter(recipe, RecipeFilter{Category: "small", MaxCoffee: 25}))
+	assert.True(t, MatchesFilter(recipe, RecipeFilter{Category: "small", MaxCoffee: 18}))
 }
 
 func TestMatchesFilter_UnknownCategory(t *testing.T) {
@@ -129,6 +144,67 @@ func TestMatchesFilter_ZeroCoffeeAmount(t *testing.T) {
 	assert.False(t, MatchesFilter(recipe, RecipeFilter{MinCoffee: 10}))
 	// But should match MaxCoffee (0 <= max)
 	assert.True(t, MatchesFilter(recipe, RecipeFilter{MaxCoffee: 10}))
+}
+
+func TestRecipeInterpolate_WaterFromPours(t *testing.T) {
+	recipe := &Recipe{
+		Name:         "V60",
+		CoffeeAmount: 15,
+		WaterAmount:  0, // not set
+		Pours: []*Pour{
+			{WaterAmount: 50},
+			{WaterAmount: 100},
+			{WaterAmount: 100},
+		},
+	}
+	recipe.Interpolate()
+	assert.Equal(t, 250.0, recipe.WaterAmount)
+	assert.InDelta(t, 16.67, recipe.Ratio, 0.01)
+}
+
+func TestRecipeInterpolate_WaterAlreadySet(t *testing.T) {
+	recipe := &Recipe{
+		Name:         "V60",
+		CoffeeAmount: 15,
+		WaterAmount:  300,
+		Pours: []*Pour{
+			{WaterAmount: 50},
+			{WaterAmount: 100},
+		},
+	}
+	recipe.Interpolate()
+	// Should keep existing water amount, not sum pours
+	assert.Equal(t, 300.0, recipe.WaterAmount)
+	assert.InDelta(t, 20.0, recipe.Ratio, 0.01)
+}
+
+func TestRecipeInterpolate_RatioOnly(t *testing.T) {
+	recipe := &Recipe{CoffeeAmount: 18, WaterAmount: 300}
+	recipe.Interpolate()
+	assert.InDelta(t, 16.67, recipe.Ratio, 0.01)
+}
+
+func TestRecipeInterpolate_NoCoffee(t *testing.T) {
+	recipe := &Recipe{WaterAmount: 300}
+	recipe.Interpolate()
+	assert.Equal(t, 0.0, recipe.Ratio) // can't compute ratio without coffee
+}
+
+func TestMatchesFilter_InterpolatesWaterFromPours(t *testing.T) {
+	// Recipe with no water_amount but pours that sum to 250g
+	recipe := &Recipe{
+		Name:         "Pour-over",
+		CoffeeAmount: 15,
+		Pours: []*Pour{
+			{WaterAmount: 50},
+			{WaterAmount: 100},
+			{WaterAmount: 100},
+		},
+	}
+	// Should match single cup (water 250 <= 400) after interpolation
+	assert.True(t, MatchesFilter(recipe, RecipeFilter{Category: "single"}))
+	// Should not match batch (water 250 < 500)
+	assert.False(t, MatchesFilter(recipe, RecipeFilter{Category: "batch"}))
 }
 
 func TestFilterRecipes(t *testing.T) {
