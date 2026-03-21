@@ -58,7 +58,11 @@ func Init(ctx context.Context) (*sdktrace.TracerProvider, error) {
 }
 
 // BoltSpan starts a span for a BoltDB operation with standard attributes.
+// Returns a no-op span if there is no parent span in ctx (e.g. background goroutines).
 func BoltSpan(ctx context.Context, op, bucket string) (context.Context, trace.Span) {
+	if !trace.SpanFromContext(ctx).SpanContext().IsValid() {
+		return ctx, trace.SpanFromContext(ctx)
+	}
 	return tracer().Start(ctx, "bolt."+op,
 		trace.WithAttributes(
 			attribute.String("db.system", "boltdb"),
