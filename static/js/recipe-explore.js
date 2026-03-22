@@ -102,6 +102,17 @@ document.addEventListener("alpine:init", () => {
       }
     },
 
+    getSourceRecipeURL(recipe) {
+      if (!recipe || !recipe.source_ref) return "#";
+      // source_ref is an AT-URI like at://did/collection/rkey
+      const parts = recipe.source_ref.replace("at://", "").split("/");
+      if (parts.length < 3) return "#";
+      const rkey = parts[2];
+      const owner =
+        recipe.source_author_handle || recipe.source_author_display || parts[0];
+      return `/recipes/${rkey}?owner=${encodeURIComponent(owner)}`;
+    },
+
     async forkRecipe() {
       if (!this.selectedRecipe) return;
       const owner =

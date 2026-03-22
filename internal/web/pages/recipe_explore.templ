@@ -148,6 +148,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 									<th class="table-th whitespace-nowrap">Ratio</th>
 									<th class="table-th whitespace-nowrap">Grind</th>
 									<th class="table-th whitespace-nowrap">Brewer</th>
+									<th class="table-th whitespace-nowrap"></th>
 								</tr>
 							</thead>
 							<tbody class="table-body">
@@ -170,6 +171,29 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 										<td class="px-6 py-4 text-sm text-brown-900" x-text="formatRatio(recipe)"></td>
 										<td class="px-6 py-4 text-sm text-brown-900" x-text="recipe.grind_size || '-'"></td>
 										<td class="px-6 py-4 text-sm text-brown-900" x-text="getBrewerDisplay(recipe)"></td>
+										<td class="px-6 py-4 text-sm text-brown-500">
+											<div class="flex items-center gap-3">
+												<template x-if="recipe.brew_count > 0">
+													<span class="flex items-center gap-1" :title="recipe.brew_count + ' brews'">
+														<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"></path></svg>
+														<span x-text="recipe.brew_count"></span>
+													</span>
+												</template>
+												<template x-if="recipe.fork_count > 0">
+													<span class="flex items-center gap-1" :title="recipe.fork_count + ' forks'">
+														<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path></svg>
+														<span x-text="recipe.fork_count"></span>
+													</span>
+												</template>
+												<template x-if="recipe.forker_avatars && recipe.forker_avatars.length > 0">
+													<div class="flex -space-x-1.5">
+														<template x-for="(avatar, i) in recipe.forker_avatars.slice(0, 3)" :key="i">
+															<img :src="avatar" class="w-5 h-5 rounded-full object-cover border border-white"/>
+														</template>
+													</div>
+												</template>
+											</div>
+										</td>
 									</tr>
 								</template>
 							</tbody>
@@ -280,6 +304,45 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 						<span class="text-xs text-brown-600 uppercase">Notes</span>
 						<p class="text-sm text-brown-800 mt-1 whitespace-pre-wrap" x-text="selectedRecipe.notes"></p>
 					</div>
+				</template>
+				<template x-if="selectedRecipe.brew_count > 0 || selectedRecipe.fork_count > 0">
+					<div class="flex items-center gap-4 mb-4 text-sm text-brown-600">
+						<template x-if="selectedRecipe.brew_count > 0">
+							<span class="flex items-center gap-1.5">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"></path></svg>
+								<span x-text="selectedRecipe.brew_count + ' brew' + (selectedRecipe.brew_count !== 1 ? 's' : '')"></span>
+							</span>
+						</template>
+						<template x-if="selectedRecipe.fork_count > 0">
+							<span class="flex items-center gap-1.5">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path></svg>
+								<span x-text="selectedRecipe.fork_count + ' fork' + (selectedRecipe.fork_count !== 1 ? 's' : '')"></span>
+								<template x-if="selectedRecipe.forker_avatars && selectedRecipe.forker_avatars.length > 0">
+									<div class="flex -space-x-1.5 ml-1">
+										<template x-for="(avatar, i) in selectedRecipe.forker_avatars.slice(0, 5)" :key="i">
+											<img :src="avatar" class="w-5 h-5 rounded-full object-cover border border-white"/>
+										</template>
+									</div>
+								</template>
+							</span>
+						</template>
+					</div>
+				</template>
+				<template x-if="selectedRecipe.source_ref">
+					<p class="text-sm text-brown-500 mb-3">
+						Forked from
+						<template x-if="selectedRecipe.source_author_display || selectedRecipe.source_author_handle">
+							<a
+								:href="getSourceRecipeURL(selectedRecipe)"
+								class="text-brown-700 underline hover:text-brown-900"
+								@click.stop
+								x-text="(selectedRecipe.source_author_display || selectedRecipe.source_author_handle) + '\'s recipe'"
+							></a>
+						</template>
+						<template x-if="!selectedRecipe.source_author_display && !selectedRecipe.source_author_handle">
+							<span>another recipe</span>
+						</template>
+					</p>
 				</template>
 				<div class="flex items-center gap-3">
 					<a

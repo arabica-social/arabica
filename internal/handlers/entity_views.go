@@ -751,6 +751,23 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	props.IsRecordHidden = sd.IsRecordHidden
 	props.AuthorDID = entityOwnerDID
 
+	// Resolve source recipe provenance if this is a fork
+	if props.Recipe.SourceRef != "" {
+		if sourceComponents, err := atproto.ResolveATURI(props.Recipe.SourceRef); err == nil {
+			// Build a view URL for the source recipe
+			sourceOwner := sourceComponents.DID
+			if profile, err := h.feedIndex.GetProfile(r.Context(), sourceComponents.DID); err == nil && profile != nil {
+				sourceOwner = profile.Handle
+				if profile.DisplayName != nil && *profile.DisplayName != "" {
+					props.SourceRecipeAuthor = *profile.DisplayName
+				} else {
+					props.SourceRecipeAuthor = profile.Handle
+				}
+			}
+			props.SourceRecipeURL = fmt.Sprintf("/recipes/%s?owner=%s", sourceComponents.RKey, sourceOwner)
+		}
+	}
+
 	if err := pages.RecipeView(layoutData, props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render recipe view")

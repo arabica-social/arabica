@@ -1017,6 +1017,31 @@ func (idx *FeedIndex) RecordCountByCollection() map[string]int {
 	return counts
 }
 
+// BrewCountsByRecipeURI returns a map of recipe AT-URI -> number of brews referencing that recipe.
+// Uses SQLite json_extract to efficiently query the recipeRef field in brew records.
+func (idx *FeedIndex) BrewCountsByRecipeURI() map[string]int {
+	counts := make(map[string]int)
+	rows, err := idx.db.Query(`
+		SELECT json_extract(record, '$.recipeRef') as recipe_uri, COUNT(*) as cnt
+		FROM records
+		WHERE collection = 'social.arabica.alpha.brew'
+		  AND recipe_uri IS NOT NULL AND recipe_uri != ''
+		GROUP BY recipe_uri
+	`)
+	if err != nil {
+		return counts
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uri string
+		var count int
+		if err := rows.Scan(&uri, &count); err == nil {
+			counts[uri] = count
+		}
+	}
+	return counts
+}
+
 func formatTimeAgo(t time.Time) string {
 	now := time.Now()
 	diff := now.Sub(t)

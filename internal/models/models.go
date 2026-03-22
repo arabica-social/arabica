@@ -115,6 +115,16 @@ type Recipe struct {
 	AuthorHandle  string  `json:"author_handle,omitempty"`  // handle of the creator
 	AuthorAvatar  string  `json:"author_avatar,omitempty"`  // avatar URL of the creator
 	AuthorDisplay string  `json:"author_display,omitempty"` // display name of the creator
+
+	// Source/fork provenance (populated by handler for explore/view)
+	SourceAuthorHandle  string `json:"source_author_handle,omitempty"`
+	SourceAuthorAvatar  string `json:"source_author_avatar,omitempty"`
+	SourceAuthorDisplay string `json:"source_author_display,omitempty"`
+
+	// Social stats (populated by handler for explore)
+	ForkCount    int             `json:"fork_count,omitempty"`
+	BrewCount    int             `json:"brew_count,omitempty"`
+	ForkerAvatars []string       `json:"forker_avatars,omitempty"` // up to N forker profile pics
 }
 
 // Interpolate fills in computed/derived fields from existing data.
