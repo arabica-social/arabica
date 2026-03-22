@@ -230,6 +230,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, bean, "bean")
 }
 
@@ -273,6 +274,7 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, roaster, "roaster")
 }
 
@@ -366,6 +368,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, bean, "bean")
 }
 
@@ -429,6 +432,7 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, roaster, "roaster")
 }
 
@@ -482,6 +486,7 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, grinder, "grinder")
 }
 
@@ -536,6 +541,7 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, grinder, "grinder")
 }
 
@@ -588,6 +594,7 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, brewer, "brewer")
 }
 
@@ -641,6 +648,7 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, brewer, "brewer")
 }
 

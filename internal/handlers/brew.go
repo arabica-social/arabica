@@ -579,6 +579,8 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
+
 	// Redirect to brew list
 	w.Header().Set("HX-Redirect", "/brews")
 	w.WriteHeader(http.StatusOK)
@@ -673,6 +675,8 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		handleStoreError(w, err, "Failed to update brew")
 		return
 	}
+
+	h.invalidateFeedCache()
 
 	// Redirect to brew list
 	w.Header().Set("HX-Redirect", "/brews")

@@ -45,6 +45,19 @@ var (
 	}, []string{"method", "collection"})
 )
 
+// Witness cache metrics
+var (
+	WitnessCacheHitsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "arabica_witness_cache_hits_total",
+		Help: "Total witness cache hits (PDS request avoided)",
+	}, []string{"collection"})
+
+	WitnessCacheMissesTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "arabica_witness_cache_misses_total",
+		Help: "Total witness cache misses (fell back to PDS)",
+	}, []string{"collection"})
+)
+
 // Feed metrics
 var (
 	FeedCacheHitsTotal = promauto.NewCounter(prometheus.CounterOpts{

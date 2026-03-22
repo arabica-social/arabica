@@ -225,6 +225,16 @@ func (s *Service) getAuthorDID(item *FeedItem) string {
 	return ""
 }
 
+// InvalidatePublicFeedCache clears the cached public feed so the next request
+// re-queries the firehose index. Call this after any record is created, updated,
+// or deleted so unauthenticated users don't see stale content.
+func (s *Service) InvalidatePublicFeedCache() {
+	s.cache.mu.Lock()
+	s.cache.items = nil
+	s.cache.expiresAt = time.Time{}
+	s.cache.mu.Unlock()
+}
+
 // GetCachedPublicFeed returns cached feed items for unauthenticated users.
 // It returns up to PublicFeedLimit items from the cache, refreshing if expired.
 // The cache stores PublicFeedCacheSize items internally but only returns PublicFeedLimit.

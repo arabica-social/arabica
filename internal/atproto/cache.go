@@ -21,6 +21,10 @@ type UserCache struct {
 	Recipes   []*models.Recipe
 	Brews     []*models.Brew
 	Timestamp time.Time
+	// DirtyCollections tracks collections that were recently written to.
+	// When a collection is dirty, the witness cache should be skipped
+	// because firehose indexing may not have caught up yet.
+	DirtyCollections map[string]bool
 }
 
 // IsValid returns true if the cache is still valid
@@ -31,19 +35,37 @@ func (c *UserCache) IsValid() bool {
 	return time.Since(c.Timestamp) < CacheTTL
 }
 
+// IsDirty returns true if the given collection was recently written to
+// and the witness cache should be skipped.
+func (c *UserCache) IsDirty(collection string) bool {
+	if c == nil || c.DirtyCollections == nil {
+		return false
+	}
+	return c.DirtyCollections[collection]
+}
+
 // clone creates a shallow copy of the UserCache for safe modification
 func (c *UserCache) clone() *UserCache {
 	if c == nil {
 		return &UserCache{Timestamp: time.Now()}
 	}
+	// Copy dirty collections map
+	var dirty map[string]bool
+	if c.DirtyCollections != nil {
+		dirty = make(map[string]bool, len(c.DirtyCollections))
+		for k, v := range c.DirtyCollections {
+			dirty[k] = v
+		}
+	}
 	return &UserCache{
-		Beans:     c.Beans,
-		Roasters:  c.Roasters,
-		Grinders:  c.Grinders,
-		Brewers:   c.Brewers,
-		Recipes:   c.Recipes,
-		Brews:     c.Brews,
-		Timestamp: c.Timestamp,
+		Beans:            c.Beans,
+		Roasters:         c.Roasters,
+		Grinders:         c.Grinders,
+		Brewers:          c.Brewers,
+		Recipes:          c.Recipes,
+		Brews:            c.Brews,
+		Timestamp:        c.Timestamp,
+		DirtyCollections: dirty,
 	}
 }
 
@@ -145,6 +167,25 @@ func (sc *SessionCache) SetBrews(sessionID string, brews []*models.Brew) {
 	sc.caches[sessionID] = newCache
 }
 
+// markDirty sets a collection as dirty on the given cache, initializing the map if needed.
+func markDirty(cache *UserCache, collection string) {
+	if cache.DirtyCollections == nil {
+		cache.DirtyCollections = make(map[string]bool)
+	}
+	cache.DirtyCollections[collection] = true
+}
+
+// ClearDirty removes the dirty flag for a collection after fresh PDS data has been cached.
+func (sc *SessionCache) ClearDirty(sessionID, collection string) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	if cache, ok := sc.caches[sessionID]; ok {
+		newCache := cache.clone()
+		delete(newCache.DirtyCollections, collection)
+		sc.caches[sessionID] = newCache
+	}
+}
+
 // InvalidateBeans marks that beans need to be refreshed using copy-on-write
 func (sc *SessionCache) InvalidateBeans(sessionID string) {
 	sc.mu.Lock()
@@ -152,6 +193,7 @@ func (sc *SessionCache) InvalidateBeans(sessionID string) {
 	if cache, ok := sc.caches[sessionID]; ok {
 		newCache := cache.clone()
 		newCache.Beans = nil
+		markDirty(newCache, NSIDBean)
 		sc.caches[sessionID] = newCache
 	}
 }
@@ -165,6 +207,7 @@ func (sc *SessionCache) InvalidateRoasters(sessionID string) {
 		newCache.Roasters = nil
 		// Also invalidate beans since they reference roasters
 		newCache.Beans = nil
+		markDirty(newCache, NSIDRoaster)
 		sc.caches[sessionID] = newCache
 	}
 }
@@ -176,6 +219,7 @@ func (sc *SessionCache) InvalidateGrinders(sessionID string) {
 	if cache, ok := sc.caches[sessionID]; ok {
 		newCache := cache.clone()
 		newCache.Grinders = nil
+		markDirty(newCache, NSIDGrinder)
 		sc.caches[sessionID] = newCache
 	}
 }
@@ -187,6 +231,7 @@ func (sc *SessionCache) InvalidateBrewers(sessionID string) {
 	if cache, ok := sc.caches[sessionID]; ok {
 		newCache := cache.clone()
 		newCache.Brewers = nil
+		markDirty(newCache, NSIDBrewer)
 		sc.caches[sessionID] = newCache
 	}
 }
@@ -198,6 +243,7 @@ func (sc *SessionCache) InvalidateRecipes(sessionID string) {
 	if cache, ok := sc.caches[sessionID]; ok {
 		newCache := cache.clone()
 		newCache.Recipes = nil
+		markDirty(newCache, NSIDRecipe)
 		sc.caches[sessionID] = newCache
 	}
 }
@@ -209,6 +255,7 @@ func (sc *SessionCache) InvalidateBrews(sessionID string) {
 	if cache, ok := sc.caches[sessionID]; ok {
 		newCache := cache.clone()
 		newCache.Brews = nil
+		markDirty(newCache, NSIDBrew)
 		sc.caches[sessionID] = newCache
 	}
 }
