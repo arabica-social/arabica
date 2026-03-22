@@ -2,15 +2,16 @@
  * Client-side data cache for Arabica
  * Caches beans, roasters, grinders, and brewers in localStorage
  * to reduce PDS round-trips on page loads.
+ *
+ * Data is fetched on page load (if stale) and after mutations.
+ * No background polling — callers invalidate explicitly after CRUD ops.
  */
 
 const CACHE_KEY = "arabica_data_cache";
 const CACHE_VERSION = 1;
-const CACHE_TTL_MS = 30 * 1000; // 30 seconds (shorter for multi-device sync)
-const REFRESH_INTERVAL_MS = 30 * 1000; // 30 seconds
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // Module state
-let refreshTimer = null;
 let isRefreshing = false;
 let listeners = [];
 
@@ -242,39 +243,10 @@ function notifyListeners(data) {
 }
 
 /**
- * Start periodic background refresh
- */
-function startPeriodicRefresh() {
-  if (refreshTimer) return;
-
-  refreshTimer = setInterval(async () => {
-    try {
-      await refreshCache();
-    } catch (e) {
-      console.warn("Periodic refresh failed:", e);
-    }
-  }, REFRESH_INTERVAL_MS);
-}
-
-/**
- * Stop periodic background refresh
- */
-function stopPeriodicRefresh() {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
-}
-
-/**
- * Initialize the cache - call on page load
- * Preloads data if not cached, starts periodic refresh
+ * Initialize the cache - call on page load for pages that need entity data.
+ * Fetches once if cache is stale. No background polling.
  */
 async function init() {
-  // Start periodic refresh
-  startPeriodicRefresh();
-
-  // Preload if cache is empty or expired
   if (!isCacheValid()) {
     try {
       await refreshCache();
@@ -282,29 +254,6 @@ async function init() {
       console.warn("Initial cache load failed:", e);
     }
   }
-
-  // Refresh when user returns to tab/app (handles multi-device sync)
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && !isCacheValid()) {
-      refreshCache().catch((e) =>
-        console.warn("Visibility refresh failed:", e),
-      );
-    }
-  });
-
-  // For iOS PWA: refresh on focus
-  window.addEventListener("focus", () => {
-    if (!isCacheValid()) {
-      refreshCache().catch((e) => console.warn("Focus refresh failed:", e));
-    }
-  });
-
-  // Refresh on page show (back button, bfcache restore)
-  window.addEventListener("pageshow", (event) => {
-    if (event.persisted && !isCacheValid()) {
-      refreshCache().catch((e) => console.warn("Pageshow refresh failed:", e));
-    }
-  });
 }
 
 /**
@@ -323,8 +272,6 @@ window.ArabicaCache = {
   invalidateAndRefresh,
   addListener,
   removeListener,
-  startPeriodicRefresh,
-  stopPeriodicRefresh,
   init,
   preload,
   isCacheValid,
