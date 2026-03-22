@@ -1,9 +1,9 @@
 /**
  * Alpine.js component for the recipe explore page
- * Handles search, filtering, and recipe detail display
+ * Handles search, filtering, recipe detail display, and actions
  */
 document.addEventListener("alpine:init", () => {
-  Alpine.data("recipeExplore", () => ({
+  Alpine.data("recipeExplore", (isAuthenticated = false, userDID = "") => ({
     query: "",
     category: "",
     brewerType: "",
@@ -12,6 +12,8 @@ document.addEventListener("alpine:init", () => {
     loading: false,
     recipes: [],
     selectedRecipe: null,
+    isAuthenticated: isAuthenticated,
+    userDID: userDID,
 
     init() {
       this.search();
@@ -63,6 +65,48 @@ document.addEventListener("alpine:init", () => {
         return recipe.brewer_obj.name;
       }
       return recipe.brewer_type || "-";
+    },
+
+    isOwner(recipe) {
+      return recipe && recipe.author_did === this.userDID;
+    },
+
+    getRecipeURI(recipe) {
+      if (!recipe) return "";
+      return `at://${recipe.author_did}/social.arabica.alpha.recipe/${recipe.rkey}`;
+    },
+
+    getRecipeShareURL(recipe) {
+      if (!recipe) return "";
+      const owner = recipe.author_handle || recipe.author_did;
+      return `/recipes/${recipe.rkey}?owner=${encodeURIComponent(owner)}`;
+    },
+
+    shareRecipe() {
+      if (!this.selectedRecipe) return;
+      const fullUrl =
+        window.location.origin + this.getRecipeShareURL(this.selectedRecipe);
+      const title = this.selectedRecipe.name || "Recipe";
+      const author =
+        this.selectedRecipe.author_display ||
+        this.selectedRecipe.author_handle ||
+        "";
+      const text = `Check out this recipe by ${author} on Arabica`;
+
+      if (navigator.share) {
+        navigator.share({ title, text, url: fullUrl }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(fullUrl).then(() => {
+          this.$dispatch("notify", { message: "Link copied!" });
+        });
+      }
+    },
+
+    openReport() {
+      const dialog = document.getElementById("recipe-report-modal");
+      if (dialog) {
+        dialog.showModal();
+      }
     },
   }));
 });

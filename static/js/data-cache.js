@@ -113,12 +113,6 @@ async function fetchFreshData() {
     "X-Page-Context": window.location.pathname,
   };
 
-  // Propagate W3C traceparent from server-rendered meta tag
-  const tp = document.querySelector('meta[name="traceparent"]')?.content;
-  if (tp) {
-    headers["traceparent"] = tp;
-  }
-
   const response = await fetch("/api/data", {
     credentials: "same-origin",
     headers,

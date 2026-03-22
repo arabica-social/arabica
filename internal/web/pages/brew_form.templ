@@ -70,7 +70,6 @@ templ BrewFormElement(props BrewFormProps) {
 		if props.PoursJSON != "" {
 			data-pours={ props.PoursJSON }
 		}
-		x-init="init()"
 	>
 		@RecipeSelectField(props)
 		@BeanSelectField(props)
