@@ -500,6 +500,128 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleRecipeView displays a recipe detail page
+func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+
+	owner := r.URL.Query().Get("owner")
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := err == nil && didStr != ""
+
+	var userProfile *bff.UserProfile
+	if isAuthenticated {
+		userProfile = h.getUserProfile(r.Context(), didStr)
+	}
+
+	var props pages.RecipeViewProps
+	var subjectURI, subjectCID, entityOwnerDID string
+
+	if owner != "" {
+		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRecipe, rkey)
+		if err != nil {
+			http.Error(w, "Recipe not found", http.StatusNotFound)
+			return
+		}
+
+		subjectURI = record.URI
+		subjectCID = record.CID
+
+		recipe, err := atproto.RecordToRecipe(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
+			return
+		}
+		recipe.RKey = rkey
+
+		// Resolve brewer reference if present
+		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
+			if components, err := atproto.ResolveATURI(brewerRef); err == nil {
+				recipe.BrewerRKey = components.RKey
+			}
+			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
+			if brewerRKey != "" {
+				brewerRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBrewer, brewerRKey)
+				if err == nil {
+					if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+						brewer.RKey = brewerRKey
+						recipe.BrewerObj = brewer
+					}
+				}
+			}
+		}
+
+		recipe.Interpolate()
+		props.Recipe = recipe
+		props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+	} else {
+		store, authenticated := h.getAtprotoStore(r)
+		if !authenticated {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+
+		atprotoStore, ok := store.(*atproto.AtprotoStore)
+		if !ok {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
+
+		recipeRecord, err := atprotoStore.GetRecipeRecordByRKey(r.Context(), rkey)
+		if err != nil {
+			http.Error(w, "Recipe not found", http.StatusNotFound)
+			return
+		}
+
+		recipeRecord.Recipe.Interpolate()
+		props.Recipe = recipeRecord.Recipe
+		subjectURI = recipeRecord.URI
+		subjectCID = recipeRecord.CID
+		props.IsOwnProfile = true
+	}
+
+	var shareURL string
+	if owner != "" {
+		shareURL = fmt.Sprintf("/recipes/%s?owner=%s", rkey, owner)
+	} else if userProfile != nil && userProfile.Handle != "" {
+		shareURL = fmt.Sprintf("/recipes/%s?owner=%s", rkey, userProfile.Handle)
+	}
+
+	layoutData := h.buildLayoutData(r, props.Recipe.Name, isAuthenticated, didStr, userProfile)
+	h.populateRecipeOGMetadata(layoutData, props.Recipe, shareURL)
+
+	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
+
+	props.IsAuthenticated = isAuthenticated
+	props.SubjectURI = subjectURI
+	props.SubjectCID = subjectCID
+	props.IsLiked = sd.IsLiked
+	props.LikeCount = sd.LikeCount
+	props.CommentCount = sd.CommentCount
+	props.Comments = sd.Comments
+	props.CurrentUserDID = didStr
+	props.ShareURL = shareURL
+	props.IsModerator = sd.IsModerator
+	props.CanHideRecord = sd.CanHideRecord
+	props.CanBlockUser = sd.CanBlockUser
+	props.IsRecordHidden = sd.IsRecordHidden
+	props.AuthorDID = entityOwnerDID
+
+	if err := pages.RecipeView(layoutData, props).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render recipe view")
+	}
+}
+
 // OG metadata helpers for entity types
 
 func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean *models.Bean, shareURL string) {
@@ -623,6 +745,40 @@ func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, br
 	}
 
 	layoutData.OGTitle = brewer.Name
+	layoutData.OGDescription = ogDescription
+	layoutData.OGType = "article"
+	layoutData.OGUrl = ogURL
+}
+
+func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *models.Recipe, shareURL string) {
+	if recipe == nil {
+		return
+	}
+
+	var descParts []string
+	if recipe.CoffeeAmount > 0 {
+		descParts = append(descParts, fmt.Sprintf("%.0fg coffee", recipe.CoffeeAmount))
+	}
+	if recipe.WaterAmount > 0 {
+		descParts = append(descParts, fmt.Sprintf("%.0fg water", recipe.WaterAmount))
+	}
+	if recipe.GrindSize != "" {
+		descParts = append(descParts, recipe.GrindSize+" grind")
+	}
+
+	var ogDescription string
+	if len(descParts) > 0 {
+		ogDescription = strings.Join(descParts, " · ")
+	} else {
+		ogDescription = "A coffee recipe on Arabica"
+	}
+
+	var ogURL string
+	if h.config.PublicURL != "" && shareURL != "" {
+		ogURL = h.config.PublicURL + shareURL
+	}
+
+	layoutData.OGTitle = recipe.Name
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
 	layoutData.OGUrl = ogURL

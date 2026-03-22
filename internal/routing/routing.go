@@ -85,7 +85,8 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
 	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
 	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
-	mux.HandleFunc("GET /recipes/explore", h.HandleRecipeExplore)
+	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
+	mux.HandleFunc("GET /recipes/{id}", h.HandleRecipeView)
 
 	// API routes for CRUD operations
 	mux.Handle("POST /api/beans", cop.Handler(http.HandlerFunc(h.HandleBeanCreate)))
