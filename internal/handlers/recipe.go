@@ -32,6 +32,7 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 			BrewerType:  r.FormValue("brewer_type"),
 			GrindSize:  r.FormValue("grind_size"),
 			Notes:      r.FormValue("notes"),
+			SourceRef:   r.FormValue("source_ref"),
 		}
 		if v := r.FormValue("coffee_amount"); v != "" {
 			if f, err := strconv.ParseFloat(v, 64); err == nil {
@@ -64,8 +65,8 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 
 	recipe, err := store.CreateRecipe(r.Context(), &req)
 	if err != nil {
-		http.Error(w, "Failed to create recipe", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create recipe")
+		handleStoreError(w, err, "Failed to create recipe")
 		return
 	}
 
@@ -126,8 +127,8 @@ func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := store.UpdateRecipeByRKey(r.Context(), rkey, &req); err != nil {
-		http.Error(w, "Failed to update recipe", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update recipe")
+		handleStoreError(w, err, "Failed to update recipe")
 		return
 	}
 
@@ -149,8 +150,8 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := store.DeleteRecipeByRKey(r.Context(), rkey); err != nil {
-		http.Error(w, "Failed to delete recipe", http.StatusInternalServerError)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe")
+		handleStoreError(w, err, "Failed to delete recipe")
 		return
 	}
 
@@ -247,8 +248,85 @@ func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Requ
 
 	recipe, err := store.CreateRecipe(r.Context(), req)
 	if err != nil {
-		http.Error(w, "Failed to create recipe", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create recipe from brew")
+		handleStoreError(w, err, "Failed to create recipe")
+		return
+	}
+
+	h.invalidateFeedCache()
+	writeJSON(w, recipe, "recipe")
+}
+
+// HandleRecipeFork creates a copy of another user's recipe in the current user's PDS.
+// The source recipe is identified by rkey + owner query param (handle or DID).
+func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		http.Error(w, "owner query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	ownerDID, err := resolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		http.Error(w, "Could not resolve owner", http.StatusNotFound)
+		return
+	}
+
+	// Fetch the source recipe via public client
+	publicClient := atproto.NewPublicClient()
+	record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRecipe, rkey)
+	if err != nil {
+		http.Error(w, "Recipe not found", http.StatusNotFound)
+		log.Warn().Err(err).Str("rkey", rkey).Str("owner", owner).Msg("Failed to fetch recipe for fork")
+		return
+	}
+
+	sourceRecipe, err := atproto.RecordToRecipe(record.Value, record.URI)
+	if err != nil {
+		http.Error(w, "Failed to parse recipe", http.StatusInternalServerError)
+		return
+	}
+
+	// Build the source AT-URI for provenance
+	sourceURI := atproto.BuildATURI(ownerDID, atproto.NSIDRecipe, rkey)
+
+	// Create a copy in the current user's PDS
+	req := &models.CreateRecipeRequest{
+		Name:         sourceRecipe.Name,
+		BrewerType:   sourceRecipe.BrewerType,
+		CoffeeAmount: sourceRecipe.CoffeeAmount,
+		WaterAmount:  sourceRecipe.WaterAmount,
+		GrindSize:    sourceRecipe.GrindSize,
+		Notes:        sourceRecipe.Notes,
+		SourceRef:    sourceURI,
+	}
+
+	// Copy pours
+	if len(sourceRecipe.Pours) > 0 {
+		req.Pours = make([]models.CreatePourData, len(sourceRecipe.Pours))
+		for i, pour := range sourceRecipe.Pours {
+			req.Pours[i] = models.CreatePourData{
+				WaterAmount: pour.WaterAmount,
+				TimeSeconds: pour.TimeSeconds,
+			}
+		}
+	}
+
+	recipe, err := store.CreateRecipe(r.Context(), req)
+	if err != nil {
+		log.Error().Err(err).Str("source", sourceURI).Msg("Failed to fork recipe")
+		handleStoreError(w, err, "Failed to fork recipe")
 		return
 	}
 

@@ -102,6 +102,33 @@ document.addEventListener("alpine:init", () => {
       }
     },
 
+    async forkRecipe() {
+      if (!this.selectedRecipe) return;
+      const owner =
+        this.selectedRecipe.author_handle || this.selectedRecipe.author_did;
+      try {
+        const resp = await fetch(
+          `/api/recipes/fork/${this.selectedRecipe.rkey}?owner=${encodeURIComponent(owner)}`,
+          { method: "POST", credentials: "same-origin" },
+        );
+        if (!resp.ok) {
+          if (resp.status === 401) {
+            window.__showSessionExpiredModal();
+            return;
+          }
+          const text = await resp.text();
+          throw new Error(text || "Failed to fork recipe");
+        }
+        this.$dispatch("notify", { message: "Recipe copied to your library!" });
+        this.selectedRecipe = null;
+      } catch (e) {
+        console.error("Failed to fork recipe:", e);
+        this.$dispatch("notify", {
+          message: "Failed to copy recipe: " + e.message,
+        });
+      }
+    },
+
     openReport() {
       const dialog = document.getElementById("recipe-report-modal");
       if (dialog) {

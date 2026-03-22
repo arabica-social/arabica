@@ -102,6 +102,7 @@ type Recipe struct {
 	WaterAmount  float64   `json:"water_amount"`
 	GrindSize    string    `json:"grind_size"`
 	Notes        string    `json:"notes"`
+	SourceRef    string    `json:"source_ref,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 
 	// Joined data for display
@@ -221,6 +222,7 @@ type CreateRecipeRequest struct {
 	WaterAmount  float64          `json:"water_amount"`
 	GrindSize    string           `json:"grind_size"`
 	Notes        string           `json:"notes"`
+	SourceRef    string           `json:"source_ref,omitempty"`
 	Pours        []CreatePourData `json:"pours"`
 }
 
