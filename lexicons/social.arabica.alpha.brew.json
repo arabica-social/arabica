@@ -56,6 +56,11 @@
             "format": "at-uri",
             "description": "AT-URI reference to the brewer/device used"
           },
+          "recipeRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI reference to the recipe used for this brew"
+          },
           "tastingNotes": {
             "type": "string",
             "maxLength": 2000,

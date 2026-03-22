@@ -18,6 +18,7 @@ type UserCache struct {
 	Roasters  []*models.Roaster
 	Grinders  []*models.Grinder
 	Brewers   []*models.Brewer
+	Recipes   []*models.Recipe
 	Brews     []*models.Brew
 	Timestamp time.Time
 }
@@ -40,6 +41,7 @@ func (c *UserCache) clone() *UserCache {
 		Roasters:  c.Roasters,
 		Grinders:  c.Grinders,
 		Brewers:   c.Brewers,
+		Recipes:   c.Recipes,
 		Brews:     c.Brews,
 		Timestamp: c.Timestamp,
 	}
@@ -123,6 +125,16 @@ func (sc *SessionCache) SetBrewers(sessionID string, brewers []*models.Brewer) {
 	sc.caches[sessionID] = newCache
 }
 
+// SetRecipes updates just the recipes in the cache using copy-on-write
+func (sc *SessionCache) SetRecipes(sessionID string, recipes []*models.Recipe) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	newCache := sc.caches[sessionID].clone()
+	newCache.Recipes = recipes
+	newCache.Timestamp = time.Now()
+	sc.caches[sessionID] = newCache
+}
+
 // SetBrews updates just the brews in the cache using copy-on-write
 func (sc *SessionCache) SetBrews(sessionID string, brews []*models.Brew) {
 	sc.mu.Lock()
@@ -175,6 +187,17 @@ func (sc *SessionCache) InvalidateBrewers(sessionID string) {
 	if cache, ok := sc.caches[sessionID]; ok {
 		newCache := cache.clone()
 		newCache.Brewers = nil
+		sc.caches[sessionID] = newCache
+	}
+}
+
+// InvalidateRecipes marks that recipes need to be refreshed using copy-on-write
+func (sc *SessionCache) InvalidateRecipes(sessionID string) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	if cache, ok := sc.caches[sessionID]; ok {
+		newCache := cache.clone()
+		newCache.Recipes = nil
 		sc.caches[sessionID] = newCache
 	}
 }

@@ -8,6 +8,7 @@ type ManagePartialProps struct {
 	Roasters []*models.Roaster
 	Grinders []*models.Grinder
 	Brewers  []*models.Brewer
+	Recipes  []*models.Recipe
 }
 
 // ManagePartial renders the manage page content tables (for HTMX loading)
@@ -16,6 +17,7 @@ templ ManagePartial(props ManagePartialProps) {
 	@ManageRoastersTab(props.Roasters)
 	@ManageGrindersTab(props.Grinders)
 	@ManageBrewersTab(props.Brewers)
+	@ManageRecipesTab(props.Recipes)
 }
 
 // ManageBeansTab renders the beans tab content with open/closed sections
@@ -109,6 +111,27 @@ templ ManageBrewersTab(brewers []*models.Brewer) {
 		</div>
 		@BrewersTable(BrewersTableProps{
 			Brewers:     brewers,
+			ShowActions: true,
+		})
+	</div>
+}
+
+// ManageRecipesTab renders the recipes tab content
+templ ManageRecipesTab(recipes []*models.Recipe) {
+	<div x-show="tab === 'recipes'">
+		<div class="mb-4 flex justify-between items-center">
+			<h3 class="text-xl font-semibold text-brown-900">Recipes</h3>
+			<button
+				hx-get="/api/modals/recipe/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-primary shadow-lg hover:shadow-xl"
+			>
+				+ Add Recipe
+			</button>
+		</div>
+		@RecipesTable(RecipesTableProps{
+			Recipes:     recipes,
 			ShowActions: true,
 		})
 	</div>

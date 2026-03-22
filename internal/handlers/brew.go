@@ -543,9 +543,16 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
+	recipeRKey := r.FormValue("recipe_rkey")
+	if errMsg := validateOptionalRKey(recipeRKey, "Recipe selection"); errMsg != "" {
+		log.Warn().Str("recipe_rkey", recipeRKey).Msg("Brew create: invalid recipe rkey")
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
 
 	req := &models.CreateBrewRequest{
 		BeanRKey:     beanRKey,
+		RecipeRKey:   recipeRKey,
 		Method:       r.FormValue("method"),
 		Temperature:  temperature,
 		WaterAmount:  waterAmount,
@@ -631,9 +638,16 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
+	recipeRKey := r.FormValue("recipe_rkey")
+	if errMsg := validateOptionalRKey(recipeRKey, "Recipe selection"); errMsg != "" {
+		log.Warn().Str("rkey", rkey).Str("recipe_rkey", recipeRKey).Msg("Brew update: invalid recipe rkey")
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
 
 	req := &models.CreateBrewRequest{
 		BeanRKey:     beanRKey,
+		RecipeRKey:   recipeRKey,
 		Method:       r.FormValue("method"),
 		Temperature:  temperature,
 		WaterAmount:  waterAmount,

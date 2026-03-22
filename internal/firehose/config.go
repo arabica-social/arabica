@@ -21,6 +21,7 @@ var ArabicaCollections = []string{
 	atproto.NSIDRoaster,
 	atproto.NSIDGrinder,
 	atproto.NSIDBrewer,
+	atproto.NSIDRecipe,
 	atproto.NSIDLike,
 	atproto.NSIDComment,
 }

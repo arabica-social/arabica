@@ -139,8 +139,13 @@ func ResolveBrewerRef(ctx context.Context, client *Client, atURI string, session
 	return resolveRef(ctx, client, atURI, sessionID, NSIDBrewer, RecordToBrewer)
 }
 
+// ResolveRecipeRef fetches a recipe record from an AT-URI
+func ResolveRecipeRef(ctx context.Context, client *Client, atURI string, sessionID string) (*models.Recipe, error) {
+	return resolveRef(ctx, client, atURI, sessionID, NSIDRecipe, RecordToRecipe)
+}
+
 // ResolveBrewRefs resolves all references within a brew record
-// This is a convenience function that resolves bean, grinder, and brewer refs in one call
+// This is a convenience function that resolves bean, grinder, brewer, and recipe refs in one call
 func ResolveBrewRefs(ctx context.Context, client *Client, brew *models.Brew, beanRef, grinderRef, brewerRef, sessionID string) error {
 	var err error
 

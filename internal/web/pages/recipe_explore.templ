@@ -1,0 +1,226 @@
+package pages
+
+import (
+	"arabica/internal/models"
+	"arabica/internal/web/components"
+	"fmt"
+)
+
+// RecipeExploreProps defines the data for the recipe explore page
+type RecipeExploreProps struct{}
+
+// RecipeExplorePage renders the full recipe explore page
+templ RecipeExplorePage(layout *components.LayoutData, props RecipeExploreProps) {
+	@components.Layout(layout, RecipeExploreContent(props))
+}
+
+// RecipeExploreContent renders the recipe explore page content
+templ RecipeExploreContent(props RecipeExploreProps) {
+	<script src="/static/js/recipe-explore.js?v=0.1.0"></script>
+	<div class="page-container-xl" x-data="recipeExplore">
+		<div class="flex items-center gap-3 mb-6">
+			@components.BackButton()
+			<h2 class="text-3xl font-bold text-brown-900">Explore Recipes</h2>
+		</div>
+		<!-- Search and filters -->
+		<div class="card card-inner mb-6">
+			<div class="space-y-4">
+				<!-- Text search -->
+				<div>
+					<input
+						type="text"
+						x-model="query"
+						@input.debounce.300ms="search()"
+						placeholder="Search recipes by name..."
+						class="w-full form-input"
+					/>
+				</div>
+				<!-- Category chips -->
+				<div class="flex flex-wrap gap-2">
+					<button
+						type="button"
+						@click="setCategory('')"
+						:class="category === '' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+					>
+						All
+					</button>
+					<button
+						type="button"
+						@click="setCategory('small')"
+						:class="category === 'small' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+					>
+						Small dose (&le;20g)
+					</button>
+					<button
+						type="button"
+						@click="setCategory('large')"
+						:class="category === 'large' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+					>
+						Large batch (30g+)
+					</button>
+					<button
+						type="button"
+						@click="setCategory('single')"
+						:class="category === 'single' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+					>
+						Single cup
+					</button>
+					<button
+						type="button"
+						@click="setCategory('batch')"
+						:class="category === 'batch' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+					>
+						Batch brew (500g+ water)
+					</button>
+				</div>
+				<!-- Brewer type filter -->
+				<div class="flex gap-4 items-end">
+					<div class="flex-1">
+						<label class="form-label text-sm">Brewer Type</label>
+						<input
+							type="text"
+							x-model="brewerType"
+							@input.debounce.300ms="search()"
+							placeholder="e.g. Pour-Over, French Press..."
+							class="w-full form-input text-sm"
+						/>
+					</div>
+					<div class="w-28">
+						<label class="form-label text-sm">Min coffee (g)</label>
+						<input
+							type="number"
+							x-model="minCoffee"
+							@input.debounce.300ms="search()"
+							placeholder="0"
+							step="1"
+							class="w-full form-input text-sm"
+						/>
+					</div>
+					<div class="w-28">
+						<label class="form-label text-sm">Max coffee (g)</label>
+						<input
+							type="number"
+							x-model="maxCoffee"
+							@input.debounce.300ms="search()"
+							placeholder="any"
+							step="1"
+							class="w-full form-input text-sm"
+						/>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Results -->
+		<div>
+			<template x-if="loading">
+				@components.LoadingSkeletonTable(components.LoadingSkeletonTableProps{Columns: 6, Rows: 3})
+			</template>
+			<template x-if="!loading && recipes.length === 0">
+				<div class="card card-inner text-center py-8">
+					<p class="text-brown-700 text-lg font-medium">No recipes found</p>
+					<p class="text-sm text-brown-600 mt-2">Try adjusting your filters or search terms</p>
+				</div>
+			</template>
+			<template x-if="!loading && recipes.length > 0">
+				<div class="card card-inner">
+					<p class="text-sm text-brown-600 mb-3">
+						<span x-text="recipes.length"></span> recipe(s) found
+					</p>
+					<div class="table-container overflow-x-auto">
+						<table class="table">
+							<thead class="table-header">
+								<tr>
+									<th class="table-th whitespace-nowrap">Name</th>
+									<th class="table-th whitespace-nowrap">Coffee</th>
+									<th class="table-th whitespace-nowrap">Water</th>
+									<th class="table-th whitespace-nowrap">Ratio</th>
+									<th class="table-th whitespace-nowrap">Grind</th>
+									<th class="table-th whitespace-nowrap">Brewer</th>
+								</tr>
+							</thead>
+							<tbody class="table-body">
+								<template x-for="recipe in recipes" :key="recipe.rkey">
+									<tr class="table-row cursor-pointer hover:bg-brown-50" @click="selectRecipe(recipe)">
+										<td class="px-6 py-4 text-sm font-medium text-brown-900" x-text="recipe.name"></td>
+										<td class="px-6 py-4 text-sm text-brown-900" x-text="recipe.coffee_amount > 0 ? recipe.coffee_amount.toFixed(1) + 'g' : '-'"></td>
+										<td class="px-6 py-4 text-sm text-brown-900" x-text="recipe.water_amount > 0 ? recipe.water_amount.toFixed(1) + 'g' : '-'"></td>
+										<td class="px-6 py-4 text-sm text-brown-900" x-text="formatRatio(recipe)"></td>
+										<td class="px-6 py-4 text-sm text-brown-900" x-text="recipe.grind_size || '-'"></td>
+										<td class="px-6 py-4 text-sm text-brown-900" x-text="getBrewerDisplay(recipe)"></td>
+									</tr>
+								</template>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</template>
+		</div>
+		<!-- Recipe detail panel -->
+		<template x-if="selectedRecipe">
+			<div class="card card-inner mt-4">
+				<div class="flex justify-between items-start mb-4">
+					<h3 class="text-xl font-bold text-brown-900" x-text="selectedRecipe.name"></h3>
+					<button @click="selectedRecipe = null" class="text-brown-500 hover:text-brown-700 text-lg font-bold">&times;</button>
+				</div>
+				<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+					<div>
+						<span class="text-xs text-brown-600 uppercase">Coffee</span>
+						<p class="font-medium text-brown-900" x-text="selectedRecipe.coffee_amount > 0 ? selectedRecipe.coffee_amount.toFixed(1) + 'g' : '-'"></p>
+					</div>
+					<div>
+						<span class="text-xs text-brown-600 uppercase">Water</span>
+						<p class="font-medium text-brown-900" x-text="selectedRecipe.water_amount > 0 ? selectedRecipe.water_amount.toFixed(1) + 'g' : '-'"></p>
+					</div>
+					<div>
+						<span class="text-xs text-brown-600 uppercase">Ratio</span>
+						<p class="font-medium text-brown-900" x-text="formatRatio(selectedRecipe)"></p>
+					</div>
+					<div>
+						<span class="text-xs text-brown-600 uppercase">Grind</span>
+						<p class="font-medium text-brown-900" x-text="selectedRecipe.grind_size || '-'"></p>
+					</div>
+				</div>
+				<template x-if="selectedRecipe.pours && selectedRecipe.pours.length > 0">
+					<div class="mb-4">
+						<span class="text-xs text-brown-600 uppercase">Pours</span>
+						<div class="space-y-1 mt-1">
+							<template x-for="(pour, i) in selectedRecipe.pours" :key="i">
+								<div class="flex gap-4 text-sm bg-brown-50 p-2 rounded border border-brown-200">
+									<span class="font-medium text-brown-800" x-text="'Pour ' + (i+1)"></span>
+									<span class="text-brown-700" x-text="pour.water_amount + 'g'"></span>
+									<span class="text-brown-600" x-text="pour.time_seconds + 's'"></span>
+								</div>
+							</template>
+						</div>
+					</div>
+				</template>
+				<template x-if="selectedRecipe.notes">
+					<div class="mb-4">
+						<span class="text-xs text-brown-600 uppercase">Notes</span>
+						<p class="text-sm text-brown-800 mt-1 whitespace-pre-wrap" x-text="selectedRecipe.notes"></p>
+					</div>
+				</template>
+				<a
+					:href="'/brews/new?recipe=' + selectedRecipe.rkey"
+					class="btn-primary inline-block"
+				>
+					Use in Brew
+				</a>
+			</div>
+		</template>
+	</div>
+}
+
+// recipeRatioDisplay is used by the explore page JS
+func recipeRatioDisplay(recipe *models.Recipe) string {
+	if recipe.CoffeeAmount > 0 && recipe.WaterAmount > 0 {
+		ratio := recipe.WaterAmount / recipe.CoffeeAmount
+		return fmt.Sprintf("1:%.1f", ratio)
+	}
+	return "-"
+}

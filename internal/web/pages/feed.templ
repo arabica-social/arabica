@@ -38,6 +38,7 @@ func feedFilterTabs() []feedFilterTab {
 		{Label: "Roasters", Value: "roaster"},
 		{Label: "Grinders", Value: "grinder"},
 		{Label: "Brewers", Value: "brewer"},
+		{Label: "Recipes", Value: "recipe"},
 	}
 }
 
@@ -298,6 +299,13 @@ templ ActionText(item *feed.FeedItem) {
 			} else {
 				{ item.Action }
 			}
+		case lexicons.RecordTypeRecipe:
+			if item.Recipe != nil {
+				added a
+				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new recipe</a>
+			} else {
+				{ item.Action }
+			}
 		default:
 			{ item.Action }
 	}
@@ -417,6 +425,36 @@ templ FeedBrewContent(item *feed.FeedItem) {
 	}
 }
 
+// FeedRecipeContent renders recipe content in a feed card
+templ FeedRecipeContent(item *feed.FeedItem) {
+	if item.Recipe != nil {
+		<div class="feed-content-box-sm">
+			<div class="text-base mb-2">
+				<span class="font-bold text-brown-900">{ item.Recipe.Name }</span>
+			</div>
+			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+				if item.Recipe.CoffeeAmount > 0 {
+					<span class="inline-flex items-center gap-0.5">☕ { fmt.Sprintf("%.1fg", item.Recipe.CoffeeAmount) }</span>
+				}
+				if item.Recipe.WaterAmount > 0 {
+					<span class="inline-flex items-center gap-0.5">💧 { fmt.Sprintf("%.1fg", item.Recipe.WaterAmount) }</span>
+				}
+				if item.Recipe.GrindSize != "" {
+					<span class="inline-flex items-center gap-0.5">🔧 { item.Recipe.GrindSize }</span>
+				}
+				if item.Recipe.BrewerObj != nil {
+					<span class="inline-flex items-center gap-0.5">🫖 { item.Recipe.BrewerObj.Name }</span>
+				} else if item.Recipe.BrewerType != "" {
+					<span class="inline-flex items-center gap-0.5">🫖 { item.Recipe.BrewerType }</span>
+				}
+			</div>
+			if item.Recipe.Notes != "" {
+				<div class="mt-2 text-sm text-brown-800 italic">"{ item.Recipe.Notes }"</div>
+			}
+		</div>
+	}
+}
+
 // Helper functions for share button
 func getFeedItemShareURL(item *feed.FeedItem) string {
 	switch item.RecordType {
@@ -439,6 +477,10 @@ func getFeedItemShareURL(item *feed.FeedItem) string {
 	case lexicons.RecordTypeBrewer:
 		if item.Brewer != nil {
 			return fmt.Sprintf("/brewers/%s?owner=%s", item.Brewer.RKey, item.Author.DID)
+		}
+	case lexicons.RecordTypeRecipe:
+		if item.Recipe != nil {
+			return fmt.Sprintf("/recipes/%s?owner=%s", item.Recipe.RKey, item.Author.DID)
 		}
 	}
 	return fmt.Sprintf("/profile/%s", item.Author.DID)
@@ -477,6 +519,11 @@ func getFeedItemShareTitle(item *feed.FeedItem) string {
 			return item.Brewer.Name
 		}
 		return "Brewer"
+	case lexicons.RecordTypeRecipe:
+		if item.Recipe != nil {
+			return item.Recipe.Name
+		}
+		return "Recipe"
 	}
 	return "Arabica"
 }
@@ -523,6 +570,10 @@ func getDeleteURL(item *feed.FeedItem) string {
 	case lexicons.RecordTypeBrewer:
 		if item.Brewer != nil {
 			return fmt.Sprintf("/api/brewers/%s", item.Brewer.RKey)
+		}
+	case lexicons.RecordTypeRecipe:
+		if item.Recipe != nil {
+			return fmt.Sprintf("/api/recipes/%s", item.Recipe.RKey)
 		}
 	}
 	return ""

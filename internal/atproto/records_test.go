@@ -30,7 +30,7 @@ func TestBrewToRecord(t *testing.T) {
 		grinderURI := "at://did:plc:test/social.arabica.alpha.grinder/grinder123"
 		brewerURI := "at://did:plc:test/social.arabica.alpha.brewer/brewer123"
 
-		record, err := BrewToRecord(brew, beanURI, grinderURI, brewerURI)
+		record, err := BrewToRecord(brew, beanURI, grinderURI, brewerURI, "")
 		if err != nil {
 			t.Fatalf("BrewToRecord() error = %v", err)
 		}
@@ -96,7 +96,7 @@ func TestBrewToRecord(t *testing.T) {
 
 		beanURI := "at://did:plc:test/social.arabica.alpha.bean/bean123"
 
-		record, err := BrewToRecord(brew, beanURI, "", "")
+		record, err := BrewToRecord(brew, beanURI, "", "", "")
 		if err != nil {
 			t.Fatalf("BrewToRecord() error = %v", err)
 		}
@@ -124,7 +124,7 @@ func TestBrewToRecord(t *testing.T) {
 			CreatedAt: createdAt,
 		}
 
-		_, err := BrewToRecord(brew, "", "", "")
+		_, err := BrewToRecord(brew, "", "", "", "")
 		if err == nil {
 			t.Error("BrewToRecord() should error without beanURI")
 		}
@@ -688,7 +688,7 @@ func TestTemperatureConversion(t *testing.T) {
 				CreatedAt:   createdAt,
 			}
 
-			record, err := BrewToRecord(brew, "at://did:plc:test/social.arabica.alpha.bean/bean123", "", "")
+			record, err := BrewToRecord(brew, "at://did:plc:test/social.arabica.alpha.bean/bean123", "", "", "")
 			if err != nil {
 				t.Fatalf("BrewToRecord() error = %v", err)
 			}

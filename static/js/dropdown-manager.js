@@ -15,6 +15,7 @@ function createDropdownManager() {
     grinders: [],
     brewers: [],
     roasters: [],
+    recipes: [],
     dataLoaded: false,
 
     /**
@@ -70,6 +71,7 @@ function createDropdownManager() {
       this.grinders = data.grinders || [];
       this.brewers = data.brewers || [];
       this.roasters = data.roasters || [];
+      this.recipes = data.recipes || [];
       this.dataLoaded = true;
     },
 
@@ -82,6 +84,7 @@ function createDropdownManager() {
       this.populateGrinders();
       this.populateBrewers();
       this.populateRoasters();
+      this.populateRecipes();
     },
 
     /**
@@ -217,6 +220,39 @@ function createDropdownManager() {
           option.selected = true;
         }
         roasterSelect.appendChild(option);
+      });
+    },
+
+    /**
+     * Populates recipe dropdown
+     * @param {string} selectSelector - CSS selector for the select element (optional)
+     */
+    populateRecipes(selectSelector = 'form select[name="recipe_rkey"]') {
+      const recipeSelect = document.querySelector(selectSelector);
+      if (!recipeSelect || this.recipes.length === 0) return;
+
+      const selectedRecipe = recipeSelect.value || "";
+
+      // Clear existing options
+      recipeSelect.innerHTML = "";
+
+      // Add placeholder
+      const placeholderOption = document.createElement("option");
+      placeholderOption.value = "";
+      placeholderOption.textContent = "No recipe";
+      recipeSelect.appendChild(placeholderOption);
+
+      // Add recipe options
+      this.recipes.forEach((recipe) => {
+        const option = document.createElement("option");
+        option.value = recipe.rkey || recipe.RKey;
+        // Using textContent ensures all user input is safely escaped
+        option.textContent = recipe.Name || recipe.name;
+        option.className = "truncate";
+        if ((recipe.rkey || recipe.RKey) === selectedRecipe) {
+          option.selected = true;
+        }
+        recipeSelect.appendChild(option);
       });
     },
 

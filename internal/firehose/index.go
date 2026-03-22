@@ -280,7 +280,6 @@ func (idx *FeedIndex) DB() *sql.DB {
 	return idx.db
 }
 
-
 // Close closes the index database
 func (idx *FeedIndex) Close() error {
 	if idx.db != nil {
@@ -400,6 +399,7 @@ type FeedItem struct {
 	Roaster *models.Roaster
 	Grinder *models.Grinder
 	Brewer  *models.Brewer
+	Recipe  *models.Recipe
 
 	Author    *atproto.Profile
 	Timestamp time.Time
@@ -426,6 +426,7 @@ var recordTypeToNSID = map[lexicons.RecordType]string{
 	lexicons.RecordTypeRoaster: atproto.NSIDRoaster,
 	lexicons.RecordTypeGrinder: atproto.NSIDGrinder,
 	lexicons.RecordTypeBrewer:  atproto.NSIDBrewer,
+	lexicons.RecordTypeRecipe:  atproto.NSIDRecipe,
 }
 
 // feedableCollections is the set of collection NSIDs that appear in the feed
@@ -446,7 +447,7 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 		q.Sort = FeedSortRecent
 	}
 
-	var collectionFilter string
+	collectionFilter := ""
 	if q.TypeFilter != "" {
 		nsid, ok := recordTypeToNSID[q.TypeFilter]
 		if !ok {
@@ -465,7 +466,6 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 	if err != nil {
 		return nil, err
 	}
-
 
 	if q.Sort == FeedSortPopular {
 		sort.Slice(items, func(i, j int) bool {
@@ -709,6 +709,20 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 			}
 		}
 
+		// Resolve recipe reference
+		if recipeRef, ok := recordData["recipeRef"].(string); ok && recipeRef != "" {
+			if c, err := atproto.ResolveATURI(recipeRef); err == nil {
+				brew.RecipeRKey = c.RKey
+			}
+			if recipeRecord, found := refMap[recipeRef]; found {
+				var recipeData map[string]any
+				if err := json.Unmarshal(recipeRecord.Record, &recipeData); err == nil {
+					recipe, _ := atproto.RecordToRecipe(recipeData, recipeRef)
+					brew.RecipeObj = recipe
+				}
+			}
+		}
+
 		item.RecordType = lexicons.RecordTypeBrew
 		item.Action = "added a new brew"
 		item.Brew = brew
@@ -760,6 +774,27 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		item.RecordType = lexicons.RecordTypeBrewer
 		item.Action = "added a new brewer"
 		item.Brewer = brewer
+
+	case atproto.NSIDRecipe:
+		recipe, err := atproto.RecordToRecipe(recordData, record.URI)
+		if err != nil {
+			return nil, err
+		}
+
+		// Resolve brewer reference
+		if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
+			if brewerRecord, found := refMap[brewerRef]; found {
+				var brewerData map[string]any
+				if err := json.Unmarshal(brewerRecord.Record, &brewerData); err == nil {
+					brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
+					recipe.BrewerObj = brewer
+				}
+			}
+		}
+
+		item.RecordType = lexicons.RecordTypeRecipe
+		item.Action = "added a new recipe"
+		item.Recipe = recipe
 
 	case atproto.NSIDLike:
 		return nil, fmt.Errorf("unexpected: likes should be filtered before conversion")

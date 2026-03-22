@@ -11,6 +11,7 @@ const (
 	RecordTypeBrewer  RecordType = "brewer"
 	RecordTypeGrinder RecordType = "grinder"
 	RecordTypeLike    RecordType = "like"
+	RecordTypeRecipe  RecordType = "recipe"
 	RecordTypeRoaster RecordType = "roaster"
 )
 
@@ -22,7 +23,7 @@ func (r RecordType) String() string {
 // ParseRecordType converts a string to a RecordType if valid, returns empty string if not.
 func ParseRecordType(s string) RecordType {
 	switch RecordType(s) {
-	case RecordTypeBean, RecordTypeBrew, RecordTypeBrewer, RecordTypeGrinder, RecordTypeRoaster:
+	case RecordTypeBean, RecordTypeBrew, RecordTypeBrewer, RecordTypeGrinder, RecordTypeRecipe, RecordTypeRoaster:
 		return RecordType(s)
 	default:
 		return ""
@@ -42,6 +43,8 @@ func (r RecordType) DisplayName() string {
 		return "Grinder"
 	case RecordTypeLike:
 		return "Like"
+	case RecordTypeRecipe:
+		return "Recipe"
 	case RecordTypeRoaster:
 		return "Roaster"
 	default:

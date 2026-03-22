@@ -1,0 +1,65 @@
+@document.meta
+title: Arabica Recipes
+authors: @pdewey.com
+created: 03/17/26
+categories: [spec, lexicon]
+@end
+
+* Recipe Records
+
+** Motivation
+
+   When inputting a new brew, it is tedious to type out all the fields when many
+   of them are always the same. A "recipe" is supposed to solve parts of this
+   tedium by auto-filling a number of the fields (most notably pours; count,
+   water amount, and time). A user should be able to create/save a recipe from
+   one of their brews (or maybe another users brews as well?).
+
+   Recipes are also have potential as a social construct that can be easily
+   shared around and used. Saving another users recipe is something I would like
+   to build around in the future. Analytics would also be super cool for
+   recipes.
+
+** Lexicon Fields
+
+   - `name` (string)
+   - `brewerRef` (ref)
+   - `brewerType` (string)
+   - `coffeeAmount` (int -- should be * 10 but isn't)
+   - `waterAmount` (int * 10)
+   - `grindSize` (int * 10)
+   - `pours` (array of `#pour`) (references {*** Pour Schema})`
+   - `notes`: (string) reeform description field
+
+   It would probably also make sense to ceraete a `brewRef` field that draws a
+   link to the brew that the original version of the recipe was created from.
+
+*** Pour Schema
+
+    Both required:
+    - `waterAmount` (int - multiplied by 10)
+    - `timeSeconds` (int)
+
+** Implementation
+
+   - Once selected, a recipe should autofill all non-null fields in the brew
+   - A user should be able to save a recipe off of any brew (by them or by
+     another user)
+   - Users should be able to create new recipes from scratch (requires new modal
+     and view page)
+
+** Debugging and Changes
+
+*** Explore page
+
+    The explore page filters are a bit weird, and values between certain ones
+    seem a bit wonky (i.e. a 15g dose brew shows up in single, small, and large
+    filters when it should probably only show up in the single cup one (small
+    should probably be 12 or less? -- not sure about the exact values).
+
+    Recipes should also show the profile picture and username of the creator of
+    the recipe.
+
+    Some recipe fields should be interpolated from other fields when missing
+    (i.e. water amount and ratio, from pours and coffee amount. Ratio may be
+    transitive)
