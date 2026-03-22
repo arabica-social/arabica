@@ -91,7 +91,11 @@ templ RecipeViewCard(props RecipeViewProps) {
 		<!-- Action bar -->
 		<div class="flex justify-between items-center">
 			@components.BackButton()
-			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
+			<div class="flex items-center gap-3">
+				if props.IsAuthenticated {
+					<a href={ templ.SafeURL("/brews/new?recipe=" + props.Recipe.RKey) } class="btn-primary text-sm">Use in Brew</a>
+				}
+				<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
 				@components.ActionBar(components.ActionBarProps{
 					SubjectURI:      props.SubjectURI,
 					SubjectCID:      props.SubjectCID,
@@ -113,6 +117,7 @@ templ RecipeViewCard(props RecipeViewProps) {
 					IsRecordHidden:  props.IsRecordHidden,
 					AuthorDID:       props.AuthorDID,
 				})
+				</div>
 			</div>
 		</div>
 		<!-- Comments -->

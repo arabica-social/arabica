@@ -51,7 +51,7 @@ templ BrewViewCard(props BrewViewProps) {
 		@BrewBeanSection(props.Brew, getOwnerFromShareURL(props.ShareURL))
 		@BrewParametersGrid(props.Brew, getOwnerFromShareURL(props.ShareURL))
 		if props.Brew.RecipeObj != nil {
-			@BrewRecipeSection(props.Brew.RecipeObj)
+			@BrewRecipeSection(props.Brew.RecipeObj, getOwnerFromShareURL(props.ShareURL))
 		}
 		if props.Brew.Pours != nil && len(props.Brew.Pours) > 0 {
 			@BrewPoursSection(props.Brew.Pours)
@@ -311,10 +311,10 @@ func saveAsRecipeData(brewRKey string) string {
 }
 
 // BrewRecipeSection renders the linked recipe info
-templ BrewRecipeSection(recipe *models.Recipe) {
+templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 	<div class="section-box">
 		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📋 Recipe</h3>
-		<div class="font-bold text-lg text-brown-900">{ recipe.Name }</div>
+		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, owner)) } class="font-bold text-lg text-brown-900 hover:text-brown-700 underline decoration-brown-300 hover:decoration-brown-500 transition-colors">{ recipe.Name }</a>
 		<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
 			if recipe.CoffeeAmount > 0 {
 				<span>☕ { fmt.Sprintf("%.1fg coffee", recipe.CoffeeAmount) }</span>

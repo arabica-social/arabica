@@ -34,8 +34,8 @@ document.addEventListener("alpine:init", () => {
       this.initEntityManagers();
 
       // Load existing pours if editing
-      // $el is now the parent div, so find the form element
-      const formEl = this.$el.querySelector("form");
+      const root = this.$root || this.$el;
+      const formEl = root.querySelector("form");
       const poursData = formEl?.getAttribute("data-pours");
       if (poursData) {
         try {
@@ -67,7 +67,7 @@ document.addEventListener("alpine:init", () => {
       const urlParams = new URLSearchParams(window.location.search);
       const recipeRKey = urlParams.get("recipe");
       if (recipeRKey) {
-        const recipeSelect = this.$el.querySelector('form select[name="recipe_rkey"]');
+        const recipeSelect = root.querySelector('form select[name="recipe_rkey"]');
         if (recipeSelect) {
           recipeSelect.value = recipeRKey;
         }
@@ -173,7 +173,11 @@ document.addEventListener("alpine:init", () => {
 
     // Recipe autofill
     async applyRecipe(rkey) {
-      const form = this.$el.querySelector("form");
+      // Use $root (the x-data element) to find the form, since $el in event
+      // handlers points to the element with the directive (e.g. the select),
+      // not the component root.
+      const root = this.$root || this.$el;
+      const form = root.querySelector("form") || root.closest("form");
       if (!form) return;
 
       // If no recipe selected, clear all recipe-populated fields
@@ -332,7 +336,8 @@ document.addEventListener("alpine:init", () => {
     },
 
     filterRecipes() {
-      const select = this.$el.querySelector('form select[name="recipe_rkey"]');
+      const root = this.$root || this.$el;
+      const select = root.querySelector('form select[name="recipe_rkey"]');
       if (!select) return;
 
       const query = this.searchQuery.toLowerCase().trim();

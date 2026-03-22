@@ -3,6 +3,7 @@ package components
 import (
 	"arabica/internal/models"
 	"fmt"
+	"strings"
 )
 
 // DialogModalProps defines properties for a native HTML5 dialog modal
@@ -491,6 +492,18 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 	</dialog>
 }
 
+// recipePourJSON returns a JSON array string of existing pours for Alpine.js init.
+func recipePourJSON(recipe *models.Recipe) string {
+	if recipe == nil || len(recipe.Pours) == 0 {
+		return "[]"
+	}
+	var parts []string
+	for _, p := range recipe.Pours {
+		parts = append(parts, fmt.Sprintf("{water: %d, time: %d}", p.WaterAmount, p.TimeSeconds))
+	}
+	return "[" + strings.Join(parts, ", ") + "]"
+}
+
 // RecipeDialogModal renders the recipe creation/edit modal using native <dialog>
 templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 	<dialog id="entity-modal" class="modal-dialog">
@@ -512,6 +525,7 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 				hx-swap="none"
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
 				class="space-y-4"
+				x-data={ fmt.Sprintf("{ pours: %s, addPour() { this.pours.push({water: '', time: ''}); }, removePour(i) { this.pours.splice(i, 1); } }", recipePourJSON(recipe)) }
 			>
 				<input
 					type="text"
@@ -567,6 +581,52 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 					placeholder="Grind Size (e.g., Medium, 18, Fine)"
 					class="w-full form-input"
 				/>
+				<!-- Pours -->
+				<div>
+					<div class="flex items-center justify-between mb-2">
+						<label class="block text-sm font-medium text-brown-900">Pours (Optional)</label>
+						<button
+							type="button"
+							@click="addPour()"
+							class="text-sm btn-secondary"
+						>
+							+ Add Pour
+						</button>
+					</div>
+					<div class="space-y-2">
+						<template x-for="(pour, index) in pours" :key="index">
+							<div class="flex gap-2 items-center bg-brown-50 p-3 rounded-lg border border-brown-200">
+								<div class="flex-1">
+									<label class="text-xs text-brown-700 font-medium" x-text="'Pour ' + (index + 1)"></label>
+									<input
+										type="number"
+										:name="'pour_water_' + index"
+										x-model="pour.water"
+										placeholder="Water (g)"
+										class="w-full rounded-md border-brown-300 text-sm py-2 px-3 mt-1 bg-white"
+									/>
+								</div>
+								<div class="flex-1">
+									<label class="text-xs text-brown-700 font-medium">Time (sec)</label>
+									<input
+										type="number"
+										:name="'pour_time_' + index"
+										x-model="pour.time"
+										placeholder="e.g. 45"
+										class="w-full rounded-md border-brown-300 text-sm py-2 px-3 mt-1 bg-white"
+									/>
+								</div>
+								<button
+									type="button"
+									@click="removePour(index)"
+									class="text-brown-700 hover:text-brown-900 mt-5 font-bold"
+								>
+									✕
+								</button>
+							</div>
+						</template>
+					</div>
+				</div>
 				<textarea
 					name="notes"
 					placeholder="Notes"

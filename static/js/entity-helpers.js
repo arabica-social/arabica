@@ -108,19 +108,25 @@ window.closeModal = function (dialogId) {
 (function () {
   "use strict";
 
-  // Listen for HTMX afterSwap events on the modal container
+  // Listen for HTMX afterSwap events on document.body
+  // In HTMX 2.x, afterSwap fires on the source element (the button),
+  // not the target, so we listen on body to catch all swaps.
   function initModalHandling() {
-    const modalContainer = document.getElementById("modal-container");
-    if (!modalContainer) return;
-
-    // Remove any existing listener to prevent duplicates
-    modalContainer.removeEventListener("htmx:afterSwap", handleModalSwap);
-    modalContainer.addEventListener("htmx:afterSwap", handleModalSwap);
+    document.body.removeEventListener("htmx:afterSwap", handleModalSwap);
+    document.body.addEventListener("htmx:afterSwap", handleModalSwap);
   }
 
   function handleModalSwap(evt) {
+    // Check if the swap target is the modal container
+    const modalContainer = document.getElementById("modal-container");
+    if (!modalContainer) return;
+
+    // evt.detail.target is the element content was swapped into
+    const swapTarget = evt.detail?.target || evt.target;
+    if (swapTarget !== modalContainer && !modalContainer.contains(swapTarget)) return;
+
     // Find the dialog element that was just loaded
-    const dialog = evt.target.querySelector("dialog#entity-modal");
+    const dialog = modalContainer.querySelector("dialog#entity-modal");
     if (dialog && typeof dialog.showModal === "function") {
       // Small delay to ensure DOM is fully settled
       setTimeout(() => {

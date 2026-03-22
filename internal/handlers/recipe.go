@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -25,9 +27,9 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err := decodeRequest(r, &req, func() error {
 		req = models.CreateRecipeRequest{
-			Name:       r.FormValue("name"),
-			BrewerRKey: r.FormValue("brewer_rkey"),
-			BrewerType: r.FormValue("brewer_type"),
+			Name:        r.FormValue("name"),
+			BrewerRKey:  r.FormValue("brewer_rkey"),
+			BrewerType:  r.FormValue("brewer_type"),
 			GrindSize:  r.FormValue("grind_size"),
 			Notes:      r.FormValue("notes"),
 		}
@@ -88,9 +90,9 @@ func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err := decodeRequest(r, &req, func() error {
 		req = models.UpdateRecipeRequest{
-			Name:       r.FormValue("name"),
-			BrewerRKey: r.FormValue("brewer_rkey"),
-			BrewerType: r.FormValue("brewer_type"),
+			Name:        r.FormValue("name"),
+			BrewerRKey:  r.FormValue("brewer_rkey"),
+			BrewerType:  r.FormValue("brewer_type"),
 			GrindSize:  r.FormValue("grind_size"),
 			Notes:      r.FormValue("notes"),
 		}
@@ -254,10 +256,10 @@ func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, recipe, "recipe")
 }
 
-// HandleRecipeSuggestions returns filtered recipes based on query parameters.
+// HandleRecipeSuggestions returns filtered recipes from all users via the feed index.
 // Query params: q (text search), brewer_type, min_coffee, max_coffee, min_water, max_water, category
 func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+	_, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -289,36 +291,11 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	recipes, err := store.ListRecipes(r.Context())
+	recipes, err := h.listAllRecipesFromIndex(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to list recipes", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to list recipes for suggestions")
+		log.Error().Err(err).Msg("Failed to list recipes from feed index")
 		return
-	}
-
-	// Resolve brewer references for display
-	brewers, _ := store.ListBrewers(r.Context())
-	brewerMap := make(map[string]*models.Brewer, len(brewers))
-	for _, b := range brewers {
-		brewerMap[b.RKey] = b
-	}
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
-	userProfile := h.getUserProfile(r.Context(), userDID)
-	for _, recipe := range recipes {
-		if recipe.BrewerRKey != "" {
-			recipe.BrewerObj = brewerMap[recipe.BrewerRKey]
-		}
-		// Populate BrewerType from BrewerObj if not set
-		if recipe.BrewerType == "" && recipe.BrewerObj != nil {
-			recipe.BrewerType = recipe.BrewerObj.BrewerType
-		}
-		recipe.AuthorDID = userDID
-		if userProfile != nil {
-			recipe.AuthorHandle = userProfile.Handle
-			recipe.AuthorAvatar = userProfile.Avatar
-			recipe.AuthorDisplay = userProfile.DisplayName
-		}
-		recipe.Interpolate()
 	}
 
 	filtered := models.FilterRecipes(recipes, filter)
@@ -327,6 +304,85 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 	if err := json.NewEncoder(w).Encode(filtered); err != nil {
 		log.Error().Err(err).Msg("Failed to encode recipe suggestions response")
 	}
+}
+
+// listAllRecipesFromIndex loads all recipe records from the feed index,
+// converts them to Recipe models, and populates author info.
+func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe, error) {
+	if h.feedIndex == nil {
+		return nil, fmt.Errorf("feed index not available")
+	}
+
+	records, err := h.feedIndex.ListRecordsByCollection(atproto.NSIDRecipe)
+	if err != nil {
+		return nil, err
+	}
+
+	// Batch-collect unique DIDs for profile lookups
+	didSet := make(map[string]struct{}, len(records))
+	for _, rec := range records {
+		didSet[rec.DID] = struct{}{}
+	}
+
+	// Resolve profiles for all authors
+	profiles := make(map[string]*atproto.Profile, len(didSet))
+	for did := range didSet {
+		profile, err := h.feedIndex.GetProfile(ctx, did)
+		if err == nil && profile != nil {
+			profiles[did] = profile
+		}
+	}
+
+	recipes := make([]*models.Recipe, 0, len(records))
+	for _, rec := range records {
+		var recordData map[string]interface{}
+		if err := json.Unmarshal(rec.Record, &recordData); err != nil {
+			continue
+		}
+
+		recipe, err := atproto.RecordToRecipe(recordData, rec.URI)
+		if err != nil {
+			continue
+		}
+
+		// Resolve brewer reference from the record data
+		if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
+			if c, parseErr := atproto.ResolveATURI(brewerRef); parseErr == nil {
+				recipe.BrewerRKey = c.RKey
+			}
+			// Try to get brewer record from index for display
+			if brewerRec, getErr := h.feedIndex.GetRecord(brewerRef); getErr == nil && brewerRec != nil {
+				var brewerData map[string]interface{}
+				if err := json.Unmarshal(brewerRec.Record, &brewerData); err == nil {
+					if brewer, err := atproto.RecordToBrewer(brewerData, brewerRef); err == nil {
+						recipe.BrewerObj = brewer
+					}
+				}
+			}
+		}
+
+		// Populate brewer type from resolved brewer if not set
+		if recipe.BrewerType == "" && recipe.BrewerObj != nil {
+			recipe.BrewerType = recipe.BrewerObj.BrewerType
+		}
+
+		// Populate author info
+		recipe.AuthorDID = rec.DID
+		if profile, ok := profiles[rec.DID]; ok {
+			recipe.AuthorHandle = profile.Handle
+			if profile.Avatar != nil {
+				recipe.AuthorAvatar = *profile.Avatar
+			}
+			if profile.DisplayName != nil {
+				recipe.AuthorDisplay = *profile.DisplayName
+			}
+		}
+
+		recipe.Interpolate()
+		recipes = append(recipes, recipe)
+	}
+
+	return recipes, nil
 }
 
 // HandleRecipeList returns all recipes as JSON
@@ -434,7 +490,10 @@ func (h *Handler) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
 
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Explore Recipes")
 
-	if err := pages.RecipeExplorePage(layoutData, pages.RecipeExploreProps{}).Render(r.Context(), w); err != nil {
+	if err := pages.RecipeExplorePage(layoutData, pages.RecipeExploreProps{
+		IsAuthenticated: authenticated,
+		UserDID:         layoutData.UserDID,
+	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render recipe explore page")
 	}

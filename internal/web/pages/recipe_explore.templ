@@ -7,7 +7,10 @@ import (
 )
 
 // RecipeExploreProps defines the data for the recipe explore page
-type RecipeExploreProps struct{}
+type RecipeExploreProps struct {
+	IsAuthenticated bool
+	UserDID         string
+}
 
 // RecipeExplorePage renders the full recipe explore page
 templ RecipeExplorePage(layout *components.LayoutData, props RecipeExploreProps) {
@@ -16,8 +19,11 @@ templ RecipeExplorePage(layout *components.LayoutData, props RecipeExploreProps)
 
 // RecipeExploreContent renders the recipe explore page content
 templ RecipeExploreContent(props RecipeExploreProps) {
-	<script src="/static/js/recipe-explore.js?v=0.1.0"></script>
-	<div class="page-container-xl" x-data="recipeExplore">
+	<script src="/static/js/recipe-explore.js?v=0.2.0"></script>
+	<div
+		class="page-container-xl"
+		x-data={ fmt.Sprintf("recipeExplore(%t, '%s')", props.IsAuthenticated, props.UserDID) }
+	>
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()
 			<h2 class="text-3xl font-bold text-brown-900">Explore Recipes</h2>
@@ -188,7 +194,54 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 							<span class="text-sm text-brown-600" x-text="selectedRecipe.author_display || selectedRecipe.author_handle || ''"></span>
 						</div>
 					</div>
-					<button @click="selectedRecipe = null" class="text-brown-500 hover:text-brown-700 text-lg font-bold">&times;</button>
+					<div class="flex items-center gap-2">
+						<!-- Actions dropdown -->
+						<div class="relative" x-data="{ actionsOpen: false }">
+							<button
+								type="button"
+								@click="actionsOpen = !actionsOpen"
+								@click.away="actionsOpen = false"
+								class="action-btn"
+								aria-label="More options"
+							>
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+								</svg>
+							</button>
+							<div
+								x-show="actionsOpen"
+								x-transition:enter="transition ease-out duration-100"
+								x-transition:enter-start="transform opacity-0 scale-95"
+								x-transition:enter-end="transform opacity-100 scale-100"
+								x-transition:leave="transition ease-in duration-75"
+								x-transition:leave-start="transform opacity-100 scale-100"
+								x-transition:leave-end="transform opacity-0 scale-95"
+								class="action-menu bottom-full mb-1"
+								x-cloak
+							>
+								<!-- Share -->
+								<button type="button" @click="shareRecipe(); actionsOpen = false" class="action-menu-item">
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
+									</svg>
+									Share
+								</button>
+								<!-- Report (only for authenticated non-owners) -->
+								<template x-if="isAuthenticated && !isOwner(selectedRecipe)">
+									<div>
+										<div class="action-menu-divider"></div>
+										<button type="button" @click="openReport(); actionsOpen = false" class="action-menu-item">
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"></path>
+											</svg>
+											Report
+										</button>
+									</div>
+								</template>
+							</div>
+						</div>
+						<button @click="selectedRecipe = null" class="text-brown-500 hover:text-brown-700 text-lg font-bold">&times;</button>
+					</div>
 				</div>
 				<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
 					<div>
@@ -228,14 +281,109 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 						<p class="text-sm text-brown-800 mt-1 whitespace-pre-wrap" x-text="selectedRecipe.notes"></p>
 					</div>
 				</template>
-				<a
-					:href="'/brews/new?recipe=' + selectedRecipe.rkey"
-					class="btn-primary inline-block"
-				>
-					Use in Brew
-				</a>
+				<div class="flex items-center gap-3">
+					<a
+						:href="'/brews/new?recipe=' + selectedRecipe.rkey"
+						class="btn-primary inline-block text-sm"
+					>
+						Use in Brew
+					</a>
+					<a
+						:href="'/recipes/' + selectedRecipe.rkey + '?owner=' + encodeURIComponent(selectedRecipe.author_handle || selectedRecipe.author_did)"
+						class="btn-secondary inline-block text-sm"
+					>
+						View Recipe
+					</a>
+				</div>
 			</div>
 		</template>
+		<!-- Report dialog -->
+		<dialog id="recipe-report-modal" class="modal-dialog" x-data="{ reason: '', charCount: 0, submitting: false, error: '', success: false }">
+			<div class="modal-content">
+				<h3 class="modal-title">Report Content</h3>
+				<template x-if="!success">
+					<form @submit.prevent="
+						submitting = true;
+						error = '';
+						const body = new URLSearchParams({
+							subject_uri: getRecipeURI(selectedRecipe),
+							subject_cid: '',
+							reason: reason
+						});
+						fetch('/api/report', {
+							method: 'POST',
+							headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+							body: body
+						})
+						.then(r => r.json().then(data => ({ok: r.ok, data})))
+						.then(({ok, data}) => {
+							submitting = false;
+							if (ok) {
+								success = true;
+								setTimeout(() => document.getElementById('recipe-report-modal').close(), 2000);
+							} else {
+								error = data.message || 'Failed to submit report';
+							}
+						})
+						.catch(() => {
+							submitting = false;
+							error = 'Network error. Please try again.';
+						});
+					" class="space-y-4">
+						<p class="text-sm text-brown-700">
+							Please describe why you're reporting this content. Reports are reviewed by moderators.
+						</p>
+						<div>
+							<textarea
+								x-model="reason"
+								@input="charCount = reason.length"
+								name="reason"
+								placeholder="Describe the issue (optional)"
+								rows="4"
+								maxlength="500"
+								class="w-full form-textarea"
+							></textarea>
+							<div class="flex justify-between text-xs text-brown-500 mt-1">
+								<span>Optional, but helpful for moderators</span>
+								<span x-text="charCount + '/500'"></span>
+							</div>
+						</div>
+						<template x-if="error">
+							<div class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm" x-text="error"></div>
+						</template>
+						<div class="flex gap-2">
+							<button
+								type="submit"
+								class="flex-1 btn-primary"
+								x-bind:disabled="submitting"
+							>
+								<span x-show="!submitting">Submit Report</span>
+								<span x-show="submitting">Submitting...</span>
+							</button>
+							<button
+								type="button"
+								@click="$el.closest('dialog').close()"
+								class="flex-1 btn-secondary"
+								x-bind:disabled="submitting"
+							>
+								Cancel
+							</button>
+						</div>
+					</form>
+				</template>
+				<template x-if="success">
+					<div class="text-center py-4">
+						<div class="text-green-600 mb-2">
+							<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+							</svg>
+						</div>
+						<p class="font-medium text-brown-900">Report Submitted</p>
+						<p class="text-sm text-brown-600 mt-1">Thank you for helping keep our community safe.</p>
+					</div>
+				</template>
+			</div>
+		</dialog>
 	</div>
 }
 
