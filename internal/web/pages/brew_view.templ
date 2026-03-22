@@ -216,6 +216,12 @@ func getWaterAmountDisplay(brew *models.Brew) string {
 }
 
 func getGrindSizeDisplay(brew *models.Brew) string {
+	if brew.GrindSize == "" {
+		return ""
+	}
+	if brew.GrinderObj != nil && brew.GrinderObj.Name != "" {
+		return brew.GrindSize + " (" + brew.GrinderObj.Name + ")"
+	}
 	return brew.GrindSize
 }
 
