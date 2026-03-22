@@ -10,6 +10,8 @@ import (
 
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Config holds the configuration needed for setting up routes
@@ -170,7 +172,10 @@ func SetupRouter(cfg Config) http.Handler {
 	// 5. Apply logging middleware
 	handler = middleware.LoggingMiddleware(cfg.Logger)(handler)
 
-	// 6. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
+	// 6. Enrich trace spans with client page context (runs inside otelhttp span)
+	handler = pageContextMiddleware(handler)
+
+	// 7. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
 	handler = otelhttp.NewHandler(handler, "arabica",
 		otelhttp.WithFilter(func(r *http.Request) bool {
 			return !strings.HasPrefix(r.URL.Path, "/static/") && r.URL.Path != "/favicon.ico"
@@ -181,4 +186,16 @@ func SetupRouter(cfg Config) http.Handler {
 	)
 
 	return handler
+}
+
+// pageContextMiddleware reads the X-Page-Context header (set by client-side JS)
+// and adds it as a span attribute so traces show which page triggered the request.
+func pageContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if page := r.Header.Get("X-Page-Context"); page != "" {
+			span := trace.SpanFromContext(r.Context())
+			span.SetAttributes(attribute.String("http.page_context", page))
+		}
+		next.ServeHTTP(w, r)
+	})
 }
