@@ -1679,6 +1679,7 @@ func (s *AtprotoStore) CreateRecipe(ctx context.Context, req *models.CreateRecip
 		WaterAmount:  req.WaterAmount,
 		GrindSize:    req.GrindSize,
 		Notes:        req.Notes,
+		SourceRef:    req.SourceRef,
 		CreatedAt:    time.Now(),
 	}
 	if len(req.Pours) > 0 {
@@ -1934,6 +1935,7 @@ func (s *AtprotoStore) UpdateRecipeByRKey(ctx context.Context, rkey string, req 
 		WaterAmount:  req.WaterAmount,
 		GrindSize:    req.GrindSize,
 		Notes:        req.Notes,
+		SourceRef:    existing.SourceRef,
 		CreatedAt:    existing.CreatedAt,
 	}
 	if len(req.Pours) > 0 {

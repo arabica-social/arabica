@@ -57,6 +57,11 @@
             "type": "string",
             "format": "datetime",
             "description": "Timestamp when the recipe was created"
+          },
+          "sourceRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the recipe this was forked/copied from"
           }
         }
       }

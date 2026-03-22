@@ -37,6 +37,9 @@ func RecipeToRecord(recipe *models.Recipe, brewerURI string) (map[string]interfa
 	if recipe.Notes != "" {
 		record["notes"] = recipe.Notes
 	}
+	if recipe.SourceRef != "" {
+		record["sourceRef"] = recipe.SourceRef
+	}
 
 	if len(recipe.Pours) > 0 {
 		pours := make([]map[string]interface{}, len(recipe.Pours))
@@ -94,6 +97,9 @@ func RecordToRecipe(record map[string]interface{}, atURI string) (*models.Recipe
 	}
 	if notes, ok := record["notes"].(string); ok {
 		recipe.Notes = notes
+	}
+	if sourceRef, ok := record["sourceRef"].(string); ok {
+		recipe.SourceRef = sourceRef
 	}
 
 	if poursRaw, ok := record["pours"].([]interface{}); ok {

@@ -288,6 +288,15 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 					>
 						Use in Brew
 					</a>
+					<template x-if="isAuthenticated && !isOwner(selectedRecipe)">
+						<button
+							type="button"
+							@click="forkRecipe()"
+							class="btn-secondary text-sm"
+						>
+							Copy Recipe
+						</button>
+					</template>
 					<a
 						:href="'/recipes/' + selectedRecipe.rkey + '?owner=' + encodeURIComponent(selectedRecipe.author_handle || selectedRecipe.author_did)"
 						class="btn-secondary inline-block text-sm"
