@@ -4,7 +4,7 @@ go 1.25.4
 
 require (
 	github.com/XSAM/otelsql v0.41.0
-	github.com/a-h/templ v0.3.977
+	github.com/a-h/templ v0.3.1001
 	github.com/bluesky-social/indigo v0.0.0-20260106221649-6fcd9317e725
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/go-querystring v1.1.0

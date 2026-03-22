@@ -162,7 +162,12 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 												<template x-if="!recipe.author_avatar">
 													<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(recipe.author_display || recipe.author_handle || '?')[0].toUpperCase()"></div>
 												</template>
-												<span class="truncate text-xs" x-text="recipe.author_display || recipe.author_handle || ''"></span>
+												<div class="min-w-0">
+													<template x-if="recipe.author_display">
+														<span class="block truncate text-xs font-medium" x-text="recipe.author_display"></span>
+													</template>
+													<span class="block truncate text-xs text-brown-500" x-text="recipe.author_handle || ''"></span>
+												</div>
 											</div>
 										</td>
 										<td class="px-6 py-4 text-sm font-medium text-brown-900" x-text="recipe.name"></td>
@@ -210,12 +215,17 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 						<h3 class="text-xl font-bold text-brown-900" x-text="selectedRecipe.name"></h3>
 						<div class="flex items-center gap-2 mt-1">
 							<template x-if="selectedRecipe.author_avatar">
-								<img :src="selectedRecipe.author_avatar" class="w-5 h-5 rounded-full object-cover" :alt="selectedRecipe.author_display || ''"/>
+								<img :src="selectedRecipe.author_avatar" class="w-6 h-6 rounded-full object-cover" :alt="selectedRecipe.author_display || ''"/>
 							</template>
 							<template x-if="!selectedRecipe.author_avatar">
-								<div class="w-5 h-5 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(selectedRecipe.author_display || selectedRecipe.author_handle || '?')[0].toUpperCase()"></div>
+								<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(selectedRecipe.author_display || selectedRecipe.author_handle || '?')[0].toUpperCase()"></div>
 							</template>
-							<span class="text-sm text-brown-600" x-text="selectedRecipe.author_display || selectedRecipe.author_handle || ''"></span>
+							<div>
+								<template x-if="selectedRecipe.author_display">
+									<span class="block text-sm font-medium text-brown-700" x-text="selectedRecipe.author_display"></span>
+								</template>
+								<span class="block text-xs text-brown-500" x-text="selectedRecipe.author_handle || ''"></span>
+							</div>
 						</div>
 					</div>
 					<div class="flex items-center gap-2">
@@ -288,13 +298,14 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				<template x-if="selectedRecipe.pours && selectedRecipe.pours.length > 0">
 					<div class="mb-4">
 						<span class="text-xs text-brown-600 uppercase">Pours</span>
-						<div class="space-y-1 mt-1">
+						<div class="flex flex-wrap gap-2 mt-1">
 							<template x-for="(pour, i) in selectedRecipe.pours" :key="i">
-								<div class="flex gap-4 text-sm bg-brown-50 p-2 rounded border border-brown-200">
-									<span class="font-medium text-brown-800" x-text="'Pour ' + (i+1)"></span>
+								<span class="inline-flex items-center gap-1.5 text-xs bg-brown-50 px-2.5 py-1 rounded-full border border-brown-200">
+									<span class="font-medium text-brown-800" x-text="(i+1)"></span>
 									<span class="text-brown-700" x-text="pour.water_amount + 'g'"></span>
+									<span class="text-brown-400">&middot;</span>
 									<span class="text-brown-600" x-text="pour.time_seconds + 's'"></span>
-								</div>
+								</span>
 							</template>
 						</div>
 					</div>
@@ -330,7 +341,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				</template>
 				<template x-if="selectedRecipe.source_ref">
 					<p class="text-sm text-brown-500 mb-3">
-						Forked from
+						Forked from&#32;
 						<template x-if="selectedRecipe.source_author_display || selectedRecipe.source_author_handle">
 							<a
 								:href="getSourceRecipeURL(selectedRecipe)"
@@ -347,7 +358,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				<div class="flex items-center gap-3">
 					<a
 						:href="'/brews/new?recipe=' + selectedRecipe.rkey"
-						class="btn-primary inline-block text-sm"
+						class="btn-primary text-sm"
 					>
 						Use in Brew
 					</a>
@@ -362,7 +373,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 					</template>
 					<a
 						:href="'/recipes/' + selectedRecipe.rkey + '?owner=' + encodeURIComponent(selectedRecipe.author_handle || selectedRecipe.author_did)"
-						class="btn-secondary inline-block text-sm"
+						class="btn-secondary text-sm"
 					>
 						View Recipe
 					</a>
@@ -374,7 +385,8 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 			<div class="modal-content">
 				<h3 class="modal-title">Report Content</h3>
 				<template x-if="!success">
-					<form @submit.prevent="
+					<form
+						@submit.prevent="
 						submitting = true;
 						error = '';
 						const body = new URLSearchParams({
@@ -401,7 +413,9 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 							submitting = false;
 							error = 'Network error. Please try again.';
 						});
-					" class="space-y-4">
+					"
+						class="space-y-4"
+					>
 						<p class="text-sm text-brown-700">
 							Please describe why you're reporting this content. Reports are reviewed by moderators.
 						</p>
