@@ -351,6 +351,10 @@ func main() {
 	// Wire up the feed index for like functionality
 	h.SetFeedIndex(feedIndex)
 
+	// Wire up the witness cache so reads are served from the firehose index
+	// before falling back to the PDS
+	h.SetWitnessCache(feedIndex)
+
 	// Initialize moderation service and wire up to handler
 	moderatorsConfigPath := os.Getenv("ARABICA_MODERATORS_CONFIG")
 	moderationSvc, err := moderation.NewService(moderatorsConfigPath)

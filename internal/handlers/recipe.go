@@ -67,6 +67,7 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, recipe, "recipe")
 }
 
@@ -128,6 +129,7 @@ func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -150,6 +152,7 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.invalidateFeedCache()
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -247,6 +250,7 @@ func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	h.invalidateFeedCache()
 	writeJSON(w, recipe, "recipe")
 }
 

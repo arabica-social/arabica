@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS records (
 CREATE INDEX IF NOT EXISTS idx_records_created ON records(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_records_did ON records(did);
 CREATE INDEX IF NOT EXISTS idx_records_coll_created ON records(collection, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_records_did_coll ON records(did, collection, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
@@ -276,9 +277,67 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	return idx, nil
 }
 
+// Compile-time check: FeedIndex must satisfy the atproto.WitnessCache interface.
+var _ atproto.WitnessCache = (*FeedIndex)(nil)
+
 // DB returns the underlying database connection for shared use by other stores.
 func (idx *FeedIndex) DB() *sql.DB {
 	return idx.db
+}
+
+// GetWitnessRecord retrieves a single record by AT-URI from the index.
+// Returns (nil, nil) when the record is not found.
+func (idx *FeedIndex) GetWitnessRecord(ctx context.Context, uri string) (*atproto.WitnessRecord, error) {
+	var rec atproto.WitnessRecord
+	var recordStr, indexedAtStr, createdAtStr string
+
+	err := idx.db.QueryRowContext(ctx, `
+		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
+		FROM records WHERE uri = ?
+	`, uri).Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
+		&recordStr, &rec.CID, &indexedAtStr, &createdAtStr)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	rec.Record = json.RawMessage(recordStr)
+	rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
+	rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+	return &rec, nil
+}
+
+// ListWitnessRecords returns all indexed records for a DID+collection pair,
+// ordered by created_at descending. Returns an empty slice when none are found.
+func (idx *FeedIndex) ListWitnessRecords(ctx context.Context, did, collection string) ([]*atproto.WitnessRecord, error) {
+	rows, err := idx.db.QueryContext(ctx, `
+		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
+		FROM records WHERE did = ? AND collection = ?
+		ORDER BY created_at DESC
+	`, did, collection)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	records := make([]*atproto.WitnessRecord, 0)
+	for rows.Next() {
+		var rec atproto.WitnessRecord
+		var recordStr, indexedAtStr, createdAtStr string
+		if err := rows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
+			&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
+			continue
+		}
+		rec.Record = json.RawMessage(recordStr)
+		rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
+		rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+		records = append(records, &rec)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return records, nil
 }
 
 // Close closes the index database

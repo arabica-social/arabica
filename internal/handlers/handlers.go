@@ -44,7 +44,8 @@ type Handler struct {
 	config        Config
 	feedService   *feed.Service
 	feedRegistry  *feed.Registry
-	feedIndex     *firehose.FeedIndex
+	feedIndex    *firehose.FeedIndex
+	witnessCache atproto.WitnessCache
 
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
@@ -83,6 +84,11 @@ func (h *Handler) SetFeedIndex(idx *firehose.FeedIndex) {
 	h.feedIndex = idx
 }
 
+// SetWitnessCache configures the handler to use the witness cache for cache-first reads.
+func (h *Handler) SetWitnessCache(wc atproto.WitnessCache) {
+	h.witnessCache = wc
+}
+
 // SetModeration configures the handler with moderation service and store
 func (h *Handler) SetModeration(svc *moderation.Service, store moderation.Store) {
 	h.moderationService = svc
@@ -97,6 +103,13 @@ func (h *Handler) SetJoin(sender *email.Sender, store *boltstore.JoinStore, pdsU
 	h.pdsAdminToken = pdsAdminToken
 }
 
+
+// invalidateFeedCache clears the public feed cache after a mutation.
+func (h *Handler) invalidateFeedCache() {
+	if h.feedService != nil {
+		h.feedService.InvalidatePublicFeedCache()
+	}
+}
 
 // validateRKey validates and returns an rkey from a path parameter.
 // Returns the rkey if valid, or writes an error response and returns empty string if invalid.
@@ -208,6 +221,10 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 	}
 
 	// Create user-scoped atproto store with injected cache
+	if h.witnessCache != nil {
+		store := atproto.NewAtprotoStoreWithWitness(h.atprotoClient, did, sessionID, h.sessionCache, h.witnessCache)
+		return store, true
+	}
 	store := atproto.NewAtprotoStore(h.atprotoClient, did, sessionID, h.sessionCache)
 	return store, true
 }
@@ -249,6 +266,7 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 		handleStoreError(w, err, "Failed to delete "+entityName)
 		return
 	}
+	h.invalidateFeedCache()
 	w.WriteHeader(http.StatusOK)
 }
 

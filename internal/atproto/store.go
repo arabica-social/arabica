@@ -2,10 +2,12 @@ package atproto
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"arabica/internal/database"
+	"arabica/internal/metrics"
 	"arabica/internal/models"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -16,10 +18,11 @@ import (
 // Context is passed as a parameter to each method rather than stored in the struct,
 // following Go best practices for context propagation.
 type AtprotoStore struct {
-	client    *Client
-	did       syntax.DID
-	sessionID string
-	cache     *SessionCache
+	client       *Client
+	did          syntax.DID
+	sessionID    string
+	cache        *SessionCache
+	witnessCache WitnessCache // optional; enables cache-first reads without PDS calls
 }
 
 // NewAtprotoStore creates a new atproto store for a specific user session.
@@ -30,6 +33,162 @@ func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *Se
 		did:       did,
 		sessionID: sessionID,
 		cache:     cache,
+	}
+}
+
+// NewAtprotoStoreWithWitness creates a store that uses the witness cache for
+// cache-first reads, falling back to the PDS on cache misses.
+func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string, cache *SessionCache, witness WitnessCache) database.Store {
+	return &AtprotoStore{
+		client:       client,
+		did:          did,
+		sessionID:    sessionID,
+		cache:        cache,
+		witnessCache: witness,
+	}
+}
+
+// witnessRecordToMap unmarshals a WitnessRecord's raw JSON into the map format
+// expected by the existing Record* conversion functions.
+func witnessRecordToMap(wr *WitnessRecord) (map[string]interface{}, error) {
+	var m map[string]interface{}
+	if err := json.Unmarshal(wr.Record, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// getFromWitness fetches a single record by collection+rkey from the witness cache.
+// Returns nil when the cache is not configured or the record is not found.
+func (s *AtprotoStore) getFromWitness(ctx context.Context, collection, rkey string) *WitnessRecord {
+	if s.witnessCache == nil {
+		return nil
+	}
+	uri := BuildATURI(s.did.String(), collection, rkey)
+	wr, err := s.witnessCache.GetWitnessRecord(ctx, uri)
+	if err != nil {
+		log.Debug().Err(err).Str("uri", uri).Msg("witness: GetWitnessRecord error")
+		return nil
+	}
+	return wr
+}
+
+// listFromWitness returns all cached records for a collection.
+// Returns nil when the cache is not configured or returns nothing.
+// Skips the witness cache if the collection was recently written to
+// (dirty), since the firehose may not have indexed the new record yet.
+func (s *AtprotoStore) listFromWitness(ctx context.Context, collection string) []*WitnessRecord {
+	if s.witnessCache == nil {
+		return nil
+	}
+	// Skip witness cache for collections with pending writes
+	if userCache := s.cache.Get(s.sessionID); userCache.IsDirty(collection) {
+		log.Debug().Str("collection", collection).Msg("witness: skipping dirty collection, falling back to PDS")
+		return nil
+	}
+	records, err := s.witnessCache.ListWitnessRecords(ctx, s.did.String(), collection)
+	if err != nil {
+		log.Debug().Err(err).Str("collection", collection).Msg("witness: ListWitnessRecords error")
+		return nil
+	}
+	if len(records) == 0 {
+		return nil
+	}
+	return records
+}
+
+// getWitnessRecordByURI fetches a single record by full AT-URI from the witness cache.
+// Returns nil when the cache is not configured or the record is not found.
+func (s *AtprotoStore) getWitnessRecordByURI(ctx context.Context, uri string) *WitnessRecord {
+	if s.witnessCache == nil {
+		return nil
+	}
+	wr, err := s.witnessCache.GetWitnessRecord(ctx, uri)
+	if err != nil {
+		log.Debug().Err(err).Str("uri", uri).Msg("witness: GetWitnessRecord error")
+		return nil
+	}
+	return wr
+}
+
+// resolveBrewRefsFromWitness resolves a brew's references (bean, grinder, brewer, recipe)
+// entirely from the witness cache, avoiding any PDS calls. Falls back to PDS-based resolution
+// only if a witness lookup fails for any referenced record.
+func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *models.Brew, record map[string]interface{}) {
+	// Resolve bean (and its roaster)
+	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
+		if beanWR := s.getWitnessRecordByURI(ctx, beanRef); beanWR != nil {
+			if beanMap, err := witnessRecordToMap(beanWR); err == nil {
+				if bean, err := RecordToBean(beanMap, beanWR.URI); err == nil {
+					bean.RKey = beanWR.RKey
+					// Resolve roaster ref from witness too
+					if roasterRef, ok := beanMap["roasterRef"].(string); ok && roasterRef != "" {
+						if c, err := ResolveATURI(roasterRef); err == nil {
+							bean.RoasterRKey = c.RKey
+						}
+						if roasterWR := s.getWitnessRecordByURI(ctx, roasterRef); roasterWR != nil {
+							if roasterMap, err := witnessRecordToMap(roasterWR); err == nil {
+								if roaster, err := RecordToRoaster(roasterMap, roasterWR.URI); err == nil {
+									roaster.RKey = roasterWR.RKey
+									bean.Roaster = roaster
+								}
+							}
+						}
+					}
+					brew.Bean = bean
+				}
+			}
+		}
+	}
+
+	// Resolve grinder
+	if grinderRef, _ := record["grinderRef"].(string); grinderRef != "" {
+		if grinderWR := s.getWitnessRecordByURI(ctx, grinderRef); grinderWR != nil {
+			if grinderMap, err := witnessRecordToMap(grinderWR); err == nil {
+				if grinder, err := RecordToGrinder(grinderMap, grinderWR.URI); err == nil {
+					grinder.RKey = grinderWR.RKey
+					brew.GrinderObj = grinder
+				}
+			}
+		}
+	}
+
+	// Resolve brewer
+	if brewerRef, _ := record["brewerRef"].(string); brewerRef != "" {
+		if brewerWR := s.getWitnessRecordByURI(ctx, brewerRef); brewerWR != nil {
+			if brewerMap, err := witnessRecordToMap(brewerWR); err == nil {
+				if brewer, err := RecordToBrewer(brewerMap, brewerWR.URI); err == nil {
+					brewer.RKey = brewerWR.RKey
+					brew.BrewerObj = brewer
+				}
+			}
+		}
+	}
+
+	// Resolve recipe
+	if recipeRef, _ := record["recipeRef"].(string); recipeRef != "" {
+		if recipeWR := s.getWitnessRecordByURI(ctx, recipeRef); recipeWR != nil {
+			if recipeMap, err := witnessRecordToMap(recipeWR); err == nil {
+				if recipe, err := RecordToRecipe(recipeMap, recipeWR.URI); err == nil {
+					recipe.RKey = recipeWR.RKey
+					// Resolve recipe's brewer ref from witness
+					if brewerRef, ok := recipeMap["brewerRef"].(string); ok && brewerRef != "" {
+						if c, err := ResolveATURI(brewerRef); err == nil {
+							recipe.BrewerRKey = c.RKey
+						}
+						if brewerWR := s.getWitnessRecordByURI(ctx, brewerRef); brewerWR != nil {
+							if brewerMap, err := witnessRecordToMap(brewerWR); err == nil {
+								if brewer, err := RecordToBrewer(brewerMap, brewerWR.URI); err == nil {
+									brewer.RKey = brewerWR.RKey
+									recipe.BrewerObj = brewer
+								}
+							}
+						}
+					}
+					brew.RecipeObj = recipe
+				}
+			}
+		}
 	}
 }
 
@@ -151,6 +310,24 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRe
 }
 
 func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.Brew, error) {
+	// Try witness cache — resolve the brew AND its references from cache
+	if wr := s.getFromWitness(ctx, NSIDBrew, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			brew, err := RecordToBrew(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("brew").Inc()
+				brew.RKey = rkey
+				extractBrewRefRKeys(brew, m)
+				s.resolveBrewRefsFromWitness(ctx, brew, m)
+				return brew, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert brew, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBrew,
 		RKey:       rkey,
@@ -199,6 +376,28 @@ type BrewRecord struct {
 
 // GetBrewRecordByRKey fetches a brew by rkey and returns it with its AT Protocol metadata
 func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*BrewRecord, error) {
+	// Try witness cache
+	if wr := s.getFromWitness(ctx, NSIDBrew, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			brew, err := RecordToBrew(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("brew").Inc()
+				brew.RKey = rkey
+				extractBrewRefRKeys(brew, m)
+				s.resolveBrewRefsFromWitness(ctx, brew, m)
+				return &BrewRecord{
+					Brew: brew,
+					URI:  wr.URI,
+					CID:  wr.CID,
+				}, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert brew record, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBrew,
 		RKey:       rkey,
@@ -249,30 +448,55 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Bre
 		return userCache.Brews, nil
 	}
 
-	// Use ListAllRecords to handle pagination automatically
-	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDBrew)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list brew records: %w", err)
-	}
+	var brews []*models.Brew
 
-	brews := make([]*models.Brew, 0, len(output.Records))
+	// Try witness cache
+	if wRecords := s.listFromWitness(ctx, NSIDBrew); wRecords != nil {
+		metrics.WitnessCacheHitsTotal.WithLabelValues("brew").Inc()
+		brews = make([]*models.Brew, 0, len(wRecords))
+		for _, wr := range wRecords {
+			m, err := witnessRecordToMap(wr)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to parse brew")
+				continue
+			}
+			brew, err := RecordToBrew(m, wr.URI)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to convert brew")
+				continue
+			}
+			brew.RKey = wr.RKey
+			extractBrewRefRKeys(brew, m)
+			brews = append(brews, brew)
+		}
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
 
-	for _, rec := range output.Records {
-		brew, err := RecordToBrew(rec.Value, rec.URI)
+		// Use ListAllRecords to handle pagination automatically
+		output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDBrew)
 		if err != nil {
-			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert brew record")
-			continue
+			return nil, fmt.Errorf("failed to list brew records: %w", err)
 		}
 
-		// Extract rkey from URI
-		if components, err := ResolveATURI(rec.URI); err == nil {
-			brew.RKey = components.RKey
+		brews = make([]*models.Brew, 0, len(output.Records))
+
+		for _, rec := range output.Records {
+			brew, err := RecordToBrew(rec.Value, rec.URI)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert brew record")
+				continue
+			}
+
+			// Extract rkey from URI
+			if components, err := ResolveATURI(rec.URI); err == nil {
+				brew.RKey = components.RKey
+			}
+
+			// Extract rkeys from AT-URI references
+			extractBrewRefRKeys(brew, rec.Value)
+
+			brews = append(brews, brew)
 		}
-
-		// Extract rkeys from AT-URI references
-		extractBrewRefRKeys(brew, rec.Value)
-
-		brews = append(brews, brew)
 	}
 
 	// Resolve references using cached data instead of N+1 queries
@@ -326,8 +550,9 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Bre
 		}
 	}
 
-	// Update cache
+	// Update cache and clear dirty flag since we fetched from PDS
 	s.cache.SetBrews(s.sessionID, brews)
+	s.cache.ClearDirty(s.sessionID, NSIDBrew)
 
 	return brews, nil
 }
@@ -406,6 +631,39 @@ type BeanRecord struct {
 
 // GetBeanRecordByRKey fetches a bean by rkey and returns it with its AT Protocol metadata
 func (s *AtprotoStore) GetBeanRecordByRKey(ctx context.Context, rkey string) (*BeanRecord, error) {
+	// Try witness cache
+	if wr := s.getFromWitness(ctx, NSIDBean, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			bean, err := RecordToBean(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("bean").Inc()
+				bean.RKey = rkey
+				if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
+					if c, err := ResolveATURI(roasterRef); err == nil {
+						bean.RoasterRKey = c.RKey
+					}
+					if roasterWR := s.getWitnessRecordByURI(ctx, roasterRef); roasterWR != nil {
+						if roasterMap, err := witnessRecordToMap(roasterWR); err == nil {
+							if roaster, err := RecordToRoaster(roasterMap, roasterWR.URI); err == nil {
+								roaster.RKey = roasterWR.RKey
+								bean.Roaster = roaster
+							}
+						}
+					}
+				}
+				return &BeanRecord{
+					Bean: bean,
+					URI:  wr.URI,
+					CID:  wr.CID,
+				}, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert bean record, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("bean").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBean,
 		RKey:       rkey,
@@ -451,6 +709,20 @@ type RoasterRecord struct {
 
 // GetRoasterRecordByRKey fetches a roaster by rkey and returns it with its AT Protocol metadata
 func (s *AtprotoStore) GetRoasterRecordByRKey(ctx context.Context, rkey string) (*RoasterRecord, error) {
+	if wr := s.getFromWitness(ctx, NSIDRoaster, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			roaster, err := RecordToRoaster(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("roaster").Inc()
+				roaster.RKey = rkey
+				return &RoasterRecord{Roaster: roaster, URI: wr.URI, CID: wr.CID}, nil
+			}
+		}
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("roaster").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDRoaster,
 		RKey:       rkey,
@@ -483,6 +755,20 @@ type GrinderRecord struct {
 
 // GetGrinderRecordByRKey fetches a grinder by rkey and returns it with its AT Protocol metadata
 func (s *AtprotoStore) GetGrinderRecordByRKey(ctx context.Context, rkey string) (*GrinderRecord, error) {
+	if wr := s.getFromWitness(ctx, NSIDGrinder, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			grinder, err := RecordToGrinder(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("grinder").Inc()
+				grinder.RKey = rkey
+				return &GrinderRecord{Grinder: grinder, URI: wr.URI, CID: wr.CID}, nil
+			}
+		}
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("grinder").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDGrinder,
 		RKey:       rkey,
@@ -515,6 +801,20 @@ type BrewerRecord struct {
 
 // GetBrewerRecordByRKey fetches a brewer by rkey and returns it with its AT Protocol metadata
 func (s *AtprotoStore) GetBrewerRecordByRKey(ctx context.Context, rkey string) (*BrewerRecord, error) {
+	if wr := s.getFromWitness(ctx, NSIDBrewer, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			brewer, err := RecordToBrewer(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("brewer").Inc()
+				brewer.RKey = rkey
+				return &BrewerRecord{Brewer: brewer, URI: wr.URI, CID: wr.CID}, nil
+			}
+		}
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("brewer").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBrewer,
 		RKey:       rkey,
@@ -587,6 +887,36 @@ func (s *AtprotoStore) CreateBean(ctx context.Context, bean *models.CreateBeanRe
 }
 
 func (s *AtprotoStore) GetBeanByRKey(ctx context.Context, rkey string) (*models.Bean, error) {
+	// Try witness cache
+	if wr := s.getFromWitness(ctx, NSIDBean, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			bean, err := RecordToBean(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("bean").Inc()
+				bean.RKey = rkey
+				if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
+					if c, err := ResolveATURI(roasterRef); err == nil {
+						bean.RoasterRKey = c.RKey
+					}
+					// Resolve roaster from witness cache
+					if roasterWR := s.getWitnessRecordByURI(ctx, roasterRef); roasterWR != nil {
+						if roasterMap, err := witnessRecordToMap(roasterWR); err == nil {
+							if roaster, err := RecordToRoaster(roasterMap, roasterWR.URI); err == nil {
+								roaster.RKey = roasterWR.RKey
+								bean.Roaster = roaster
+							}
+						}
+					}
+				}
+				return bean, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert bean, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("bean").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBean,
 		RKey:       rkey,
@@ -628,6 +958,35 @@ func (s *AtprotoStore) ListBeans(ctx context.Context) ([]*models.Bean, error) {
 		return userCache.Beans, nil
 	}
 
+	// Try witness cache
+	if wRecords := s.listFromWitness(ctx, NSIDBean); wRecords != nil {
+		metrics.WitnessCacheHitsTotal.WithLabelValues("bean").Inc()
+		beans := make([]*models.Bean, 0, len(wRecords))
+		for _, wr := range wRecords {
+			m, err := witnessRecordToMap(wr)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to parse bean")
+				continue
+			}
+			bean, err := RecordToBean(m, wr.URI)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to convert bean")
+				continue
+			}
+			bean.RKey = wr.RKey
+			if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
+				if c, err := ResolveATURI(roasterRef); err == nil {
+					bean.RoasterRKey = c.RKey
+				}
+			}
+			beans = append(beans, bean)
+		}
+		s.cache.SetBeans(s.sessionID, beans)
+		return beans, nil
+	}
+
+	metrics.WitnessCacheMissesTotal.WithLabelValues("bean").Inc()
+
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDBean)
 	if err != nil {
@@ -659,8 +1018,9 @@ func (s *AtprotoStore) ListBeans(ctx context.Context) ([]*models.Bean, error) {
 		beans = append(beans, bean)
 	}
 
-	// Update cache
+	// Update cache and clear dirty flag since we fetched from PDS
 	s.cache.SetBeans(s.sessionID, beans)
+	s.cache.ClearDirty(s.sessionID, NSIDBean)
 
 	return beans, nil
 }
@@ -782,6 +1142,22 @@ func (s *AtprotoStore) CreateRoaster(ctx context.Context, roaster *models.Create
 }
 
 func (s *AtprotoStore) GetRoasterByRKey(ctx context.Context, rkey string) (*models.Roaster, error) {
+	// Try witness cache
+	if wr := s.getFromWitness(ctx, NSIDRoaster, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			roaster, err := RecordToRoaster(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("roaster").Inc()
+				roaster.RKey = rkey
+				return roaster, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert roaster, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("roaster").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDRoaster,
 		RKey:       rkey,
@@ -808,6 +1184,30 @@ func (s *AtprotoStore) ListRoasters(ctx context.Context) ([]*models.Roaster, err
 		return userCache.Roasters, nil
 	}
 
+	// Try witness cache
+	if wRecords := s.listFromWitness(ctx, NSIDRoaster); wRecords != nil {
+		metrics.WitnessCacheHitsTotal.WithLabelValues("roaster").Inc()
+		roasters := make([]*models.Roaster, 0, len(wRecords))
+		for _, wr := range wRecords {
+			m, err := witnessRecordToMap(wr)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to parse roaster")
+				continue
+			}
+			roaster, err := RecordToRoaster(m, wr.URI)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to convert roaster")
+				continue
+			}
+			roaster.RKey = wr.RKey
+			roasters = append(roasters, roaster)
+		}
+		s.cache.SetRoasters(s.sessionID, roasters)
+		return roasters, nil
+	}
+
+	metrics.WitnessCacheMissesTotal.WithLabelValues("roaster").Inc()
+
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDRoaster)
 	if err != nil {
@@ -831,8 +1231,9 @@ func (s *AtprotoStore) ListRoasters(ctx context.Context) ([]*models.Roaster, err
 		roasters = append(roasters, roaster)
 	}
 
-	// Update cache
+	// Update cache and clear dirty flag since we fetched from PDS
 	s.cache.SetRoasters(s.sessionID, roasters)
+	s.cache.ClearDirty(s.sessionID, NSIDRoaster)
 
 	return roasters, nil
 }
@@ -928,6 +1329,22 @@ func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *models.Create
 }
 
 func (s *AtprotoStore) GetGrinderByRKey(ctx context.Context, rkey string) (*models.Grinder, error) {
+	// Try witness cache
+	if wr := s.getFromWitness(ctx, NSIDGrinder, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			grinder, err := RecordToGrinder(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("grinder").Inc()
+				grinder.RKey = rkey
+				return grinder, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert grinder, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("grinder").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDGrinder,
 		RKey:       rkey,
@@ -954,6 +1371,30 @@ func (s *AtprotoStore) ListGrinders(ctx context.Context) ([]*models.Grinder, err
 		return userCache.Grinders, nil
 	}
 
+	// Try witness cache
+	if wRecords := s.listFromWitness(ctx, NSIDGrinder); wRecords != nil {
+		metrics.WitnessCacheHitsTotal.WithLabelValues("grinder").Inc()
+		grinders := make([]*models.Grinder, 0, len(wRecords))
+		for _, wr := range wRecords {
+			m, err := witnessRecordToMap(wr)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to parse grinder")
+				continue
+			}
+			grinder, err := RecordToGrinder(m, wr.URI)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to convert grinder")
+				continue
+			}
+			grinder.RKey = wr.RKey
+			grinders = append(grinders, grinder)
+		}
+		s.cache.SetGrinders(s.sessionID, grinders)
+		return grinders, nil
+	}
+
+	metrics.WitnessCacheMissesTotal.WithLabelValues("grinder").Inc()
+
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDGrinder)
 	if err != nil {
@@ -977,8 +1418,9 @@ func (s *AtprotoStore) ListGrinders(ctx context.Context) ([]*models.Grinder, err
 		grinders = append(grinders, grinder)
 	}
 
-	// Update cache
+	// Update cache and clear dirty flag since we fetched from PDS
 	s.cache.SetGrinders(s.sessionID, grinders)
+	s.cache.ClearDirty(s.sessionID, NSIDGrinder)
 
 	return grinders, nil
 }
@@ -1074,6 +1516,22 @@ func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *models.CreateBr
 }
 
 func (s *AtprotoStore) GetBrewerByRKey(ctx context.Context, rkey string) (*models.Brewer, error) {
+	// Try witness cache
+	if wr := s.getFromWitness(ctx, NSIDBrewer, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			brewer, err := RecordToBrewer(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("brewer").Inc()
+				brewer.RKey = rkey
+				return brewer, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert brewer, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("brewer").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDBrewer,
 		RKey:       rkey,
@@ -1100,6 +1558,30 @@ func (s *AtprotoStore) ListBrewers(ctx context.Context) ([]*models.Brewer, error
 		return userCache.Brewers, nil
 	}
 
+	// Try witness cache
+	if wRecords := s.listFromWitness(ctx, NSIDBrewer); wRecords != nil {
+		metrics.WitnessCacheHitsTotal.WithLabelValues("brewer").Inc()
+		brewers := make([]*models.Brewer, 0, len(wRecords))
+		for _, wr := range wRecords {
+			m, err := witnessRecordToMap(wr)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to parse brewer")
+				continue
+			}
+			brewer, err := RecordToBrewer(m, wr.URI)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to convert brewer")
+				continue
+			}
+			brewer.RKey = wr.RKey
+			brewers = append(brewers, brewer)
+		}
+		s.cache.SetBrewers(s.sessionID, brewers)
+		return brewers, nil
+	}
+
+	metrics.WitnessCacheMissesTotal.WithLabelValues("brewer").Inc()
+
 	// Use ListAllRecords to handle pagination automatically
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDBrewer)
 	if err != nil {
@@ -1123,8 +1605,9 @@ func (s *AtprotoStore) ListBrewers(ctx context.Context) ([]*models.Brewer, error
 		brewers = append(brewers, brewer)
 	}
 
-	// Update cache
+	// Update cache and clear dirty flag since we fetched from PDS
 	s.cache.SetBrewers(s.sessionID, brewers)
+	s.cache.ClearDirty(s.sessionID, NSIDBrewer)
 
 	return brewers, nil
 }
@@ -1240,6 +1723,35 @@ func (s *AtprotoStore) CreateRecipe(ctx context.Context, req *models.CreateRecip
 }
 
 func (s *AtprotoStore) GetRecipeByRKey(ctx context.Context, rkey string) (*models.Recipe, error) {
+	// Try witness cache
+	if wr := s.getFromWitness(ctx, NSIDRecipe, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			recipe, err := RecordToRecipe(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("recipe").Inc()
+				recipe.RKey = rkey
+				if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
+					if c, err := ResolveATURI(brewerRef); err == nil {
+						recipe.BrewerRKey = c.RKey
+					}
+					if brewerWR := s.getWitnessRecordByURI(ctx, brewerRef); brewerWR != nil {
+						if brewerMap, err := witnessRecordToMap(brewerWR); err == nil {
+							if brewer, err := RecordToBrewer(brewerMap, brewerWR.URI); err == nil {
+								brewer.RKey = brewerWR.RKey
+								recipe.BrewerObj = brewer
+							}
+						}
+					}
+				}
+				return recipe, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert recipe, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("recipe").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDRecipe,
 		RKey:       rkey,
@@ -1272,6 +1784,39 @@ func (s *AtprotoStore) GetRecipeByRKey(ctx context.Context, rkey string) (*model
 
 // GetRecipeRecordByRKey fetches a recipe by rkey and returns it with its AT Protocol metadata
 func (s *AtprotoStore) GetRecipeRecordByRKey(ctx context.Context, rkey string) (*RecipeRecord, error) {
+	// Try witness cache
+	if wr := s.getFromWitness(ctx, NSIDRecipe, rkey); wr != nil {
+		m, err := witnessRecordToMap(wr)
+		if err == nil {
+			recipe, err := RecordToRecipe(m, wr.URI)
+			if err == nil {
+				metrics.WitnessCacheHitsTotal.WithLabelValues("recipe").Inc()
+				recipe.RKey = rkey
+				if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
+					if c, err := ResolveATURI(brewerRef); err == nil {
+						recipe.BrewerRKey = c.RKey
+					}
+					if brewerWR := s.getWitnessRecordByURI(ctx, brewerRef); brewerWR != nil {
+						if brewerMap, err := witnessRecordToMap(brewerWR); err == nil {
+							if brewer, err := RecordToBrewer(brewerMap, brewerWR.URI); err == nil {
+								brewer.RKey = brewerWR.RKey
+								recipe.BrewerObj = brewer
+							}
+						}
+					}
+				}
+				return &RecipeRecord{
+					Recipe: recipe,
+					URI:    wr.URI,
+					CID:    wr.CID,
+				}, nil
+			}
+		}
+		log.Warn().Err(err).Str("rkey", rkey).Msg("witness: failed to convert recipe record, falling back to PDS")
+	} else {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("recipe").Inc()
+	}
+
 	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
 		Collection: NSIDRecipe,
 		RKey:       rkey,
@@ -1312,6 +1857,35 @@ func (s *AtprotoStore) ListRecipes(ctx context.Context) ([]*models.Recipe, error
 		return userCache.Recipes, nil
 	}
 
+	// Try witness cache
+	if wRecords := s.listFromWitness(ctx, NSIDRecipe); wRecords != nil {
+		metrics.WitnessCacheHitsTotal.WithLabelValues("recipe").Inc()
+		recipes := make([]*models.Recipe, 0, len(wRecords))
+		for _, wr := range wRecords {
+			m, err := witnessRecordToMap(wr)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to parse recipe")
+				continue
+			}
+			recipe, err := RecordToRecipe(m, wr.URI)
+			if err != nil {
+				log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: failed to convert recipe")
+				continue
+			}
+			recipe.RKey = wr.RKey
+			if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
+				if c, err := ResolveATURI(brewerRef); err == nil {
+					recipe.BrewerRKey = c.RKey
+				}
+			}
+			recipes = append(recipes, recipe)
+		}
+		s.cache.SetRecipes(s.sessionID, recipes)
+		return recipes, nil
+	}
+
+	metrics.WitnessCacheMissesTotal.WithLabelValues("recipe").Inc()
+
 	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDRecipe)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list recipe records: %w", err)
@@ -1340,7 +1914,9 @@ func (s *AtprotoStore) ListRecipes(ctx context.Context) ([]*models.Recipe, error
 		recipes = append(recipes, recipe)
 	}
 
+	// Clear dirty flag since we fetched from PDS
 	s.cache.SetRecipes(s.sessionID, recipes)
+	s.cache.ClearDirty(s.sessionID, NSIDRecipe)
 
 	return recipes, nil
 }
