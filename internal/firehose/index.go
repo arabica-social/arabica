@@ -455,12 +455,18 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 		collectionFilter = nsid
 	}
 
-	items, err := idx.getFeedItems(ctx, collectionFilter, q.Limit+1, q.Cursor)
+	// For popular sort, fetch more candidates to re-rank by score
+	fetchLimit := q.Limit + 1
+	if q.Sort == FeedSortPopular {
+		fetchLimit = q.Limit * 5
+	}
+
+	items, err := idx.getFeedItems(ctx, collectionFilter, fetchLimit, q.Cursor)
 	if err != nil {
 		return nil, err
 	}
 
-	// Sort based on query
+
 	if q.Sort == FeedSortPopular {
 		sort.Slice(items, func(i, j int) bool {
 			scoreI := items[i].LikeCount*3 + items[i].CommentCount*2
