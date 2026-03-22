@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"arabica/internal/atproto"
+	"arabica/internal/matching"
 	"arabica/internal/models"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
@@ -301,10 +302,45 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 	// Build the source AT-URI for provenance
 	sourceURI := atproto.BuildATURI(ownerDID, atproto.NSIDRecipe, rkey)
 
+	// Resolve brewer: try to match source brewer to current user's brewers
+	var brewerRKey, brewerType string
+	if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
+		// Fetch the source brewer to get name and type for matching
+		brewerRKeySource := atproto.ExtractRKeyFromURI(brewerRef)
+		if brewerRKeySource != "" {
+			if sourceBrewer, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, brewerRKeySource); err == nil {
+				var sourceName, sourceType string
+				if n, ok := sourceBrewer.Value["name"].(string); ok {
+					sourceName = n
+				}
+				if t, ok := sourceBrewer.Value["brewerType"].(string); ok {
+					sourceType = t
+					brewerType = t
+				}
+
+				// Match against the current user's brewers
+				if userBrewers, err := store.ListBrewers(r.Context()); err == nil {
+					candidates := make([]matching.Candidate, len(userBrewers))
+					for i, b := range userBrewers {
+						candidates[i] = matching.Candidate{RKey: b.RKey, Name: b.Name, Type: b.BrewerType}
+					}
+					if m := matching.Match(sourceName, sourceType, candidates); m != nil {
+						brewerRKey = m.RKey
+						log.Debug().Str("matched", m.Name).Float64("score", m.Score).Msg("Matched brewer for recipe fork")
+					}
+				}
+			}
+		}
+	}
+	if brewerType == "" {
+		brewerType = sourceRecipe.BrewerType
+	}
+
 	// Create a copy in the current user's PDS
 	req := &models.CreateRecipeRequest{
 		Name:         sourceRecipe.Name,
-		BrewerType:   sourceRecipe.BrewerType,
+		BrewerRKey:   brewerRKey,
+		BrewerType:   brewerType,
 		CoffeeAmount: sourceRecipe.CoffeeAmount,
 		WaterAmount:  sourceRecipe.WaterAmount,
 		GrindSize:    sourceRecipe.GrindSize,
@@ -396,13 +432,46 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 		return nil, err
 	}
 
-	// Batch-collect unique DIDs for profile lookups
+	// Batch-collect unique DIDs for profile lookups (authors + source refs)
 	didSet := make(map[string]struct{}, len(records))
 	for _, rec := range records {
 		didSet[rec.DID] = struct{}{}
 	}
 
-	// Resolve profiles for all authors
+	// Pre-scan records for sourceRef DIDs so we can batch profile lookups
+	type parsedRecord struct {
+		uri        string
+		did        string
+		data       map[string]interface{}
+		recipe     *models.Recipe
+		sourceRef  string
+		sourceDID  string
+		sourceRKey string
+	}
+	parsed := make([]parsedRecord, 0, len(records))
+	for i := range records {
+		var recordData map[string]interface{}
+		if err := json.Unmarshal(records[i].Record, &recordData); err != nil {
+			continue
+		}
+		recipe, err := atproto.RecordToRecipe(recordData, records[i].URI)
+		if err != nil {
+			continue
+		}
+
+		pr := parsedRecord{uri: records[i].URI, did: records[i].DID, data: recordData, recipe: recipe}
+		if recipe.SourceRef != "" {
+			if c, err := atproto.ResolveATURI(recipe.SourceRef); err == nil {
+				pr.sourceDID = c.DID
+				pr.sourceRKey = c.RKey
+				pr.sourceRef = recipe.SourceRef
+				didSet[c.DID] = struct{}{}
+			}
+		}
+		parsed = append(parsed, pr)
+	}
+
+	// Resolve profiles for all DIDs (authors + source authors)
 	profiles := make(map[string]*atproto.Profile, len(didSet))
 	for did := range didSet {
 		profile, err := h.feedIndex.GetProfile(ctx, did)
@@ -411,24 +480,41 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 		}
 	}
 
-	recipes := make([]*models.Recipe, 0, len(records))
-	for _, rec := range records {
-		var recordData map[string]interface{}
-		if err := json.Unmarshal(rec.Record, &recordData); err != nil {
-			continue
+	// Build fork map: source URI -> list of forker DIDs
+	type forkInfo struct {
+		count   int
+		avatars []string
+	}
+	forkMap := make(map[string]*forkInfo)
+	for _, pr := range parsed {
+		if pr.sourceRef != "" {
+			fi, ok := forkMap[pr.sourceRef]
+			if !ok {
+				fi = &forkInfo{}
+				forkMap[pr.sourceRef] = fi
+			}
+			fi.count++
+			if len(fi.avatars) < 5 {
+				if p, ok := profiles[pr.did]; ok && p.Avatar != nil && *p.Avatar != "" {
+					fi.avatars = append(fi.avatars, *p.Avatar)
+				}
+			}
 		}
+	}
 
-		recipe, err := atproto.RecordToRecipe(recordData, rec.URI)
-		if err != nil {
-			continue
-		}
+	// Batch query brew counts per recipe
+	brewCounts := h.feedIndex.BrewCountsByRecipeURI()
+
+	// Build final recipe list
+	recipes := make([]*models.Recipe, 0, len(parsed))
+	for _, pr := range parsed {
+		recipe := pr.recipe
 
 		// Resolve brewer reference from the record data
-		if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
+		if brewerRef, ok := pr.data["brewerRef"].(string); ok && brewerRef != "" {
 			if c, parseErr := atproto.ResolveATURI(brewerRef); parseErr == nil {
 				recipe.BrewerRKey = c.RKey
 			}
-			// Try to get brewer record from index for display
 			if brewerRec, getErr := h.feedIndex.GetRecord(brewerRef); getErr == nil && brewerRec != nil {
 				var brewerData map[string]interface{}
 				if err := json.Unmarshal(brewerRec.Record, &brewerData); err == nil {
@@ -438,15 +524,13 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 				}
 			}
 		}
-
-		// Populate brewer type from resolved brewer if not set
 		if recipe.BrewerType == "" && recipe.BrewerObj != nil {
 			recipe.BrewerType = recipe.BrewerObj.BrewerType
 		}
 
 		// Populate author info
-		recipe.AuthorDID = rec.DID
-		if profile, ok := profiles[rec.DID]; ok {
+		recipe.AuthorDID = pr.did
+		if profile, ok := profiles[pr.did]; ok {
 			recipe.AuthorHandle = profile.Handle
 			if profile.Avatar != nil {
 				recipe.AuthorAvatar = *profile.Avatar
@@ -454,6 +538,31 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 			if profile.DisplayName != nil {
 				recipe.AuthorDisplay = *profile.DisplayName
 			}
+		}
+
+		// Populate source author info
+		if pr.sourceDID != "" {
+			if profile, ok := profiles[pr.sourceDID]; ok {
+				recipe.SourceAuthorHandle = profile.Handle
+				if profile.Avatar != nil {
+					recipe.SourceAuthorAvatar = *profile.Avatar
+				}
+				if profile.DisplayName != nil && *profile.DisplayName != "" {
+					recipe.SourceAuthorDisplay = *profile.DisplayName
+				} else {
+					recipe.SourceAuthorDisplay = profile.Handle
+				}
+			}
+		}
+
+		// Populate social stats
+		recipeURI := pr.uri
+		if fi, ok := forkMap[recipeURI]; ok {
+			recipe.ForkCount = fi.count
+			recipe.ForkerAvatars = fi.avatars
+		}
+		if bc, ok := brewCounts[recipeURI]; ok {
+			recipe.BrewCount = bc
 		}
 
 		recipe.Interpolate()

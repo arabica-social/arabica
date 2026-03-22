@@ -9,22 +9,24 @@ import (
 )
 
 type RecipeViewProps struct {
-	Recipe          *models.Recipe
-	IsOwnProfile    bool
-	IsAuthenticated bool
-	SubjectURI      string
-	SubjectCID      string
-	IsLiked         bool
-	LikeCount       int
-	CommentCount    int
-	Comments        []firehose.IndexedComment
-	CurrentUserDID  string
-	ShareURL        string
-	IsModerator     bool
-	CanHideRecord   bool
-	CanBlockUser    bool
-	IsRecordHidden  bool
-	AuthorDID       string
+	Recipe             *models.Recipe
+	IsOwnProfile       bool
+	IsAuthenticated    bool
+	SubjectURI         string
+	SubjectCID         string
+	IsLiked            bool
+	LikeCount          int
+	CommentCount       int
+	Comments           []firehose.IndexedComment
+	CurrentUserDID     string
+	ShareURL           string
+	IsModerator        bool
+	CanHideRecord      bool
+	CanBlockUser       bool
+	IsRecordHidden     bool
+	AuthorDID          string
+	SourceRecipeURL    string // view URL for the forked-from recipe
+	SourceRecipeAuthor string // display name or handle of the original author
 }
 
 templ RecipeView(layout *components.LayoutData, props RecipeViewProps) {
@@ -160,6 +162,18 @@ templ RecipeViewHeader(props RecipeViewProps) {
 	<div class="mb-6">
 		<h2 class="text-3xl font-bold text-brown-900">{ props.Recipe.Name }</h2>
 		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Recipe.CreatedAt) } data-local="long">{ props.Recipe.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
+		if props.SourceRecipeURL != "" {
+			<p class="text-sm text-brown-500 mt-1">
+				Forked from
+				<a href={ templ.SafeURL(props.SourceRecipeURL) } class="text-brown-700 underline hover:text-brown-900">
+					if props.SourceRecipeAuthor != "" {
+						{ props.SourceRecipeAuthor + "'s recipe" }
+					} else {
+						original recipe
+					}
+				</a>
+			</p>
+		}
 	</div>
 }
 
