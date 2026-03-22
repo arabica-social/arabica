@@ -218,6 +218,11 @@ templ Layout(data *LayoutData, content templ.Component) {
 						}
 					});
 
+					// Clear traceparent on history restore so cached pages don't reuse a stale trace
+					document.body.addEventListener('htmx:historyRestore', function() {
+						document.body.removeAttribute('hx-headers');
+					});
+
 					// Clean up styles before taking history snapshot
 					document.body.addEventListener('htmx:beforeHistorySave', function(evt) {
 						// Remove all transition classes and styles from elements being cached
