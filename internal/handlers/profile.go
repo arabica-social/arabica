@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"arabica/internal/atproto"
+	"arabica/internal/metrics"
 	"arabica/internal/models"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
@@ -25,10 +26,196 @@ type ProfileDataBundle struct {
 	Brews    []*models.Brew
 }
 
-// fetchUserProfileData fetches all user data from their PDS in parallel.
-// This includes beans, roasters, grinders, brewers, and brews with all references resolved.
+// fetchUserProfileData fetches all user data for profile display.
+// Tries the witness cache first (firehose index), falling back to the PDS via publicClient.
 // Brews are sorted in reverse chronological order (newest first).
 func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicClient *atproto.PublicClient) (*ProfileDataBundle, error) {
+	// Try witness cache first — all records for this user may already be indexed
+	if bundle := h.fetchProfileFromWitness(ctx, did); bundle != nil {
+		return bundle, nil
+	}
+
+	return h.fetchProfileFromPDS(ctx, did, publicClient)
+}
+
+// fetchProfileFromWitness loads all profile data from the witness cache.
+// Returns nil if the witness cache is not configured or the user has no indexed records.
+func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *ProfileDataBundle {
+	if h.witnessCache == nil {
+		return nil
+	}
+
+	// Load all collections from witness cache
+	type collectionResult struct {
+		collection string
+		records    []*atproto.WitnessRecord
+	}
+
+	collections := []string{
+		atproto.NSIDBean, atproto.NSIDRoaster, atproto.NSIDGrinder,
+		atproto.NSIDBrewer, atproto.NSIDBrew,
+	}
+
+	results := make(map[string][]*atproto.WitnessRecord)
+	totalRecords := 0
+	for _, coll := range collections {
+		records, err := h.witnessCache.ListWitnessRecords(ctx, did, coll)
+		if err != nil {
+			log.Debug().Err(err).Str("did", did).Str("collection", coll).Msg("witness: profile collection error")
+			return nil
+		}
+		results[coll] = records
+		totalRecords += len(records)
+	}
+
+	// If the witness cache has zero records for this user, fall back to PDS
+	// (user may not have been backfilled/indexed yet)
+	if totalRecords == 0 {
+		return nil
+	}
+
+	metrics.WitnessCacheHitsTotal.WithLabelValues("profile").Inc()
+
+	// Convert witness records to models
+	beanMap := make(map[string]*models.Bean)
+	beanRoasterRefMap := make(map[string]string)
+	beans := make([]*models.Bean, 0, len(results[atproto.NSIDBean]))
+	for _, wr := range results[atproto.NSIDBean] {
+		m, err := atproto.WitnessRecordToMap(wr)
+		if err != nil {
+			continue
+		}
+		bean, err := atproto.RecordToBean(m, wr.URI)
+		if err != nil {
+			continue
+		}
+		bean.RKey = wr.RKey
+		beans = append(beans, bean)
+		beanMap[wr.URI] = bean
+		if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
+			beanRoasterRefMap[wr.URI] = roasterRef
+			if c, err := atproto.ResolveATURI(roasterRef); err == nil {
+				bean.RoasterRKey = c.RKey
+			}
+		}
+	}
+
+	roasterMap := make(map[string]*models.Roaster)
+	roasters := make([]*models.Roaster, 0, len(results[atproto.NSIDRoaster]))
+	for _, wr := range results[atproto.NSIDRoaster] {
+		m, err := atproto.WitnessRecordToMap(wr)
+		if err != nil {
+			continue
+		}
+		roaster, err := atproto.RecordToRoaster(m, wr.URI)
+		if err != nil {
+			continue
+		}
+		roaster.RKey = wr.RKey
+		roasters = append(roasters, roaster)
+		roasterMap[wr.URI] = roaster
+	}
+
+	grinderMap := make(map[string]*models.Grinder)
+	grinders := make([]*models.Grinder, 0, len(results[atproto.NSIDGrinder]))
+	for _, wr := range results[atproto.NSIDGrinder] {
+		m, err := atproto.WitnessRecordToMap(wr)
+		if err != nil {
+			continue
+		}
+		grinder, err := atproto.RecordToGrinder(m, wr.URI)
+		if err != nil {
+			continue
+		}
+		grinder.RKey = wr.RKey
+		grinders = append(grinders, grinder)
+		grinderMap[wr.URI] = grinder
+	}
+
+	brewerMap := make(map[string]*models.Brewer)
+	brewers := make([]*models.Brewer, 0, len(results[atproto.NSIDBrewer]))
+	for _, wr := range results[atproto.NSIDBrewer] {
+		m, err := atproto.WitnessRecordToMap(wr)
+		if err != nil {
+			continue
+		}
+		brewer, err := atproto.RecordToBrewer(m, wr.URI)
+		if err != nil {
+			continue
+		}
+		brewer.RKey = wr.RKey
+		brewers = append(brewers, brewer)
+		brewerMap[wr.URI] = brewer
+	}
+
+	brews := make([]*models.Brew, 0, len(results[atproto.NSIDBrew]))
+	for _, wr := range results[atproto.NSIDBrew] {
+		m, err := atproto.WitnessRecordToMap(wr)
+		if err != nil {
+			continue
+		}
+		brew, err := atproto.RecordToBrew(m, wr.URI)
+		if err != nil {
+			continue
+		}
+		brew.RKey = wr.RKey
+		// Store full AT-URI refs for resolution below
+		if beanRef, ok := m["beanRef"].(string); ok {
+			brew.BeanRKey = beanRef
+		}
+		if grinderRef, ok := m["grinderRef"].(string); ok {
+			brew.GrinderRKey = grinderRef
+		}
+		if brewerRef, ok := m["brewerRef"].(string); ok {
+			brew.BrewerRKey = brewerRef
+		}
+		brews = append(brews, brew)
+	}
+
+	// Resolve references (same logic as PDS path)
+	for _, bean := range beans {
+		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
+			if roaster, found := roasterMap[roasterRef]; found {
+				bean.Roaster = roaster
+			}
+		}
+	}
+
+	for _, brew := range brews {
+		if brew.BeanRKey != "" {
+			if bean, found := beanMap[brew.BeanRKey]; found {
+				brew.Bean = bean
+			}
+		}
+		if brew.GrinderRKey != "" {
+			if grinder, found := grinderMap[brew.GrinderRKey]; found {
+				brew.GrinderObj = grinder
+			}
+		}
+		if brew.BrewerRKey != "" {
+			if brewer, found := brewerMap[brew.BrewerRKey]; found {
+				brew.BrewerObj = brewer
+			}
+		}
+	}
+
+	sort.Slice(brews, func(i, j int) bool {
+		return brews[i].CreatedAt.After(brews[j].CreatedAt)
+	})
+
+	return &ProfileDataBundle{
+		Beans:    beans,
+		Roasters: roasters,
+		Grinders: grinders,
+		Brewers:  brewers,
+		Brews:    brews,
+	}
+}
+
+// fetchProfileFromPDS fetches all user data from their PDS via publicClient in parallel.
+func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicClient *atproto.PublicClient) (*ProfileDataBundle, error) {
+	metrics.WitnessCacheMissesTotal.WithLabelValues("profile").Inc()
+
 	// Fetch all user data in parallel
 	g, gCtx := errgroup.WithContext(ctx)
 

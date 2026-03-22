@@ -8,6 +8,7 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/firehose"
+	"arabica/internal/metrics"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
 	"arabica/internal/web/bff"
@@ -96,44 +97,79 @@ func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBean, rkey)
-		if err != nil {
-			log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msg("Failed to get bean record")
-			http.Error(w, "Bean not found", http.StatusNotFound)
-			return
-		}
-
-		subjectURI = record.URI
-		subjectCID = record.CID
-
-		bean, err := atproto.RecordToBean(record.Value, record.URI)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to convert bean record")
-			http.Error(w, "Failed to load bean", http.StatusInternalServerError)
-			return
-		}
-		bean.RKey = rkey
-
-		// Resolve roaster reference
-		if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
-			if components, err := atproto.ResolveATURI(roasterRef); err == nil {
-				bean.RoasterRKey = components.RKey
-			}
-			roasterRKey := atproto.ExtractRKeyFromURI(roasterRef)
-			if roasterRKey != "" {
-				roasterRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRoaster, roasterRKey)
-				if err == nil {
-					if roaster, err := atproto.RecordToRoaster(roasterRecord.Value, roasterRecord.URI); err == nil {
-						roaster.RKey = roasterRKey
-						bean.Roaster = roaster
+		// Try witness cache first
+		beanURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDBean, rkey)
+		if h.witnessCache != nil {
+			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), beanURI); wr != nil {
+				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+					if bean, err := atproto.RecordToBean(m, wr.URI); err == nil {
+						metrics.WitnessCacheHitsTotal.WithLabelValues("bean").Inc()
+						bean.RKey = rkey
+						subjectURI = wr.URI
+						subjectCID = wr.CID
+						// Resolve roaster from witness
+						if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
+							if c, err := atproto.ResolveATURI(roasterRef); err == nil {
+								bean.RoasterRKey = c.RKey
+							}
+							if rwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), roasterRef); rwr != nil {
+								if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
+									if roaster, err := atproto.RecordToRoaster(rm, rwr.URI); err == nil {
+										roaster.RKey = rwr.RKey
+										bean.Roaster = roaster
+									}
+								}
+							}
+						}
+						beanViewProps.Bean = bean
+						beanViewProps.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 					}
 				}
 			}
 		}
 
-		beanViewProps.Bean = bean
-		beanViewProps.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+		if beanViewProps.Bean == nil {
+			// PDS fallback
+			metrics.WitnessCacheMissesTotal.WithLabelValues("bean").Inc()
+			publicClient := atproto.NewPublicClient()
+			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBean, rkey)
+			if err != nil {
+				log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msg("Failed to get bean record")
+				http.Error(w, "Bean not found", http.StatusNotFound)
+				return
+			}
+
+			subjectURI = record.URI
+			subjectCID = record.CID
+
+			bean, err := atproto.RecordToBean(record.Value, record.URI)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to convert bean record")
+				http.Error(w, "Failed to load bean", http.StatusInternalServerError)
+				return
+			}
+			bean.RKey = rkey
+
+			// Resolve roaster reference
+			if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
+				if c, err := atproto.ResolveATURI(roasterRef); err == nil {
+					bean.RoasterRKey = c.RKey
+				}
+				roasterRKey := atproto.ExtractRKeyFromURI(roasterRef)
+				if roasterRKey != "" {
+					roasterRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRoaster, roasterRKey)
+					if err == nil {
+						if roaster, err := atproto.RecordToRoaster(roasterRecord.Value, roasterRecord.URI); err == nil {
+							roaster.RKey = roasterRKey
+							bean.Roaster = roaster
+						}
+					}
+				}
+			}
+
+			beanViewProps.Bean = bean
+			beanViewProps.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+		}
 	} else {
 		store, authenticated := h.getAtprotoStore(r)
 		if !authenticated {
@@ -220,24 +256,45 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRoaster, rkey)
-		if err != nil {
-			http.Error(w, "Roaster not found", http.StatusNotFound)
-			return
+		// Try witness cache first
+		roasterURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDRoaster, rkey)
+		if h.witnessCache != nil {
+			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), roasterURI); wr != nil {
+				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+					if roaster, err := atproto.RecordToRoaster(m, wr.URI); err == nil {
+						metrics.WitnessCacheHitsTotal.WithLabelValues("roaster").Inc()
+						roaster.RKey = rkey
+						subjectURI = wr.URI
+						subjectCID = wr.CID
+						props.Roaster = roaster
+						props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+					}
+				}
+			}
 		}
 
-		subjectURI = record.URI
-		subjectCID = record.CID
+		if props.Roaster == nil {
+			// PDS fallback
+			metrics.WitnessCacheMissesTotal.WithLabelValues("roaster").Inc()
+			publicClient := atproto.NewPublicClient()
+			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRoaster, rkey)
+			if err != nil {
+				http.Error(w, "Roaster not found", http.StatusNotFound)
+				return
+			}
 
-		roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
-		if err != nil {
-			http.Error(w, "Failed to load roaster", http.StatusInternalServerError)
-			return
+			subjectURI = record.URI
+			subjectCID = record.CID
+
+			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
+			if err != nil {
+				http.Error(w, "Failed to load roaster", http.StatusInternalServerError)
+				return
+			}
+			roaster.RKey = rkey
+			props.Roaster = roaster
+			props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 		}
-		roaster.RKey = rkey
-		props.Roaster = roaster
-		props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 	} else {
 		store, authenticated := h.getAtprotoStore(r)
 		if !authenticated {
@@ -322,24 +379,45 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDGrinder, rkey)
-		if err != nil {
-			http.Error(w, "Grinder not found", http.StatusNotFound)
-			return
+		// Try witness cache first
+		grinderURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDGrinder, rkey)
+		if h.witnessCache != nil {
+			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), grinderURI); wr != nil {
+				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+					if grinder, err := atproto.RecordToGrinder(m, wr.URI); err == nil {
+						metrics.WitnessCacheHitsTotal.WithLabelValues("grinder").Inc()
+						grinder.RKey = rkey
+						subjectURI = wr.URI
+						subjectCID = wr.CID
+						props.Grinder = grinder
+						props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+					}
+				}
+			}
 		}
 
-		subjectURI = record.URI
-		subjectCID = record.CID
+		if props.Grinder == nil {
+			// PDS fallback
+			metrics.WitnessCacheMissesTotal.WithLabelValues("grinder").Inc()
+			publicClient := atproto.NewPublicClient()
+			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDGrinder, rkey)
+			if err != nil {
+				http.Error(w, "Grinder not found", http.StatusNotFound)
+				return
+			}
 
-		grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
-		if err != nil {
-			http.Error(w, "Failed to load grinder", http.StatusInternalServerError)
-			return
+			subjectURI = record.URI
+			subjectCID = record.CID
+
+			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
+			if err != nil {
+				http.Error(w, "Failed to load grinder", http.StatusInternalServerError)
+				return
+			}
+			grinder.RKey = rkey
+			props.Grinder = grinder
+			props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 		}
-		grinder.RKey = rkey
-		props.Grinder = grinder
-		props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 	} else {
 		store, authenticated := h.getAtprotoStore(r)
 		if !authenticated {
@@ -424,24 +502,45 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBrewer, rkey)
-		if err != nil {
-			http.Error(w, "Brewer not found", http.StatusNotFound)
-			return
+		// Try witness cache first
+		brewerURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDBrewer, rkey)
+		if h.witnessCache != nil {
+			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerURI); wr != nil {
+				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+					if brewer, err := atproto.RecordToBrewer(m, wr.URI); err == nil {
+						metrics.WitnessCacheHitsTotal.WithLabelValues("brewer").Inc()
+						brewer.RKey = rkey
+						subjectURI = wr.URI
+						subjectCID = wr.CID
+						props.Brewer = brewer
+						props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+					}
+				}
+			}
 		}
 
-		subjectURI = record.URI
-		subjectCID = record.CID
+		if props.Brewer == nil {
+			// PDS fallback
+			metrics.WitnessCacheMissesTotal.WithLabelValues("brewer").Inc()
+			publicClient := atproto.NewPublicClient()
+			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBrewer, rkey)
+			if err != nil {
+				http.Error(w, "Brewer not found", http.StatusNotFound)
+				return
+			}
 
-		brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
-		if err != nil {
-			http.Error(w, "Failed to load brewer", http.StatusInternalServerError)
-			return
+			subjectURI = record.URI
+			subjectCID = record.CID
+
+			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
+			if err != nil {
+				http.Error(w, "Failed to load brewer", http.StatusInternalServerError)
+				return
+			}
+			brewer.RKey = rkey
+			props.Brewer = brewer
+			props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 		}
-		brewer.RKey = rkey
-		props.Brewer = brewer
-		props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 	} else {
 		store, authenticated := h.getAtprotoStore(r)
 		if !authenticated {
@@ -526,43 +625,79 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRecipe, rkey)
-		if err != nil {
-			http.Error(w, "Recipe not found", http.StatusNotFound)
-			return
-		}
-
-		subjectURI = record.URI
-		subjectCID = record.CID
-
-		recipe, err := atproto.RecordToRecipe(record.Value, record.URI)
-		if err != nil {
-			http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
-			return
-		}
-		recipe.RKey = rkey
-
-		// Resolve brewer reference if present
-		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
-			if components, err := atproto.ResolveATURI(brewerRef); err == nil {
-				recipe.BrewerRKey = components.RKey
-			}
-			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
-			if brewerRKey != "" {
-				brewerRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBrewer, brewerRKey)
-				if err == nil {
-					if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
-						brewer.RKey = brewerRKey
-						recipe.BrewerObj = brewer
+		// Try witness cache first
+		recipeURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDRecipe, rkey)
+		if h.witnessCache != nil {
+			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), recipeURI); wr != nil {
+				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+					if recipe, err := atproto.RecordToRecipe(m, wr.URI); err == nil {
+						metrics.WitnessCacheHitsTotal.WithLabelValues("recipe").Inc()
+						recipe.RKey = rkey
+						subjectURI = wr.URI
+						subjectCID = wr.CID
+						// Resolve brewer from witness
+						if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
+							if c, err := atproto.ResolveATURI(brewerRef); err == nil {
+								recipe.BrewerRKey = c.RKey
+							}
+							if bwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerRef); bwr != nil {
+								if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
+									if brewer, err := atproto.RecordToBrewer(bm, bwr.URI); err == nil {
+										brewer.RKey = bwr.RKey
+										recipe.BrewerObj = brewer
+									}
+								}
+							}
+						}
+						recipe.Interpolate()
+						props.Recipe = recipe
+						props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 					}
 				}
 			}
 		}
 
-		recipe.Interpolate()
-		props.Recipe = recipe
-		props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+		if props.Recipe == nil {
+			// PDS fallback
+			metrics.WitnessCacheMissesTotal.WithLabelValues("recipe").Inc()
+			publicClient := atproto.NewPublicClient()
+			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRecipe, rkey)
+			if err != nil {
+				http.Error(w, "Recipe not found", http.StatusNotFound)
+				return
+			}
+
+			subjectURI = record.URI
+			subjectCID = record.CID
+
+			recipe, err := atproto.RecordToRecipe(record.Value, record.URI)
+			if err != nil {
+				http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
+				return
+			}
+			recipe.RKey = rkey
+
+			// Resolve brewer reference if present
+			if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
+				if c, err := atproto.ResolveATURI(brewerRef); err == nil {
+					recipe.BrewerRKey = c.RKey
+				}
+				brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
+				if brewerRKey != "" {
+					brewerRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBrewer, brewerRKey)
+					if err == nil {
+						if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+							brewer.RKey = brewerRKey
+							recipe.BrewerObj = brewer
+						}
+					}
+				}
+			}
+
+			recipe.Interpolate()
+			props.Recipe = recipe
+			props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+		}
 	} else {
 		store, authenticated := h.getAtprotoStore(r)
 		if !authenticated {

@@ -18,6 +18,16 @@ type WitnessRecord struct {
 	CreatedAt  time.Time
 }
 
+// WitnessRecordToMap unmarshals a WitnessRecord's raw JSON into the map format
+// expected by the Record* conversion functions.
+func WitnessRecordToMap(wr *WitnessRecord) (map[string]interface{}, error) {
+	var m map[string]interface{}
+	if err := json.Unmarshal(wr.Record, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // WitnessCache is a read-only view of the firehose index that lets AtprotoStore
 // serve reads from the locally-indexed SQLite database instead of the PDS.
 // Implementations must be safe for concurrent use.

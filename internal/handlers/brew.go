@@ -10,6 +10,7 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/firehose"
+	"arabica/internal/metrics"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
 	"arabica/internal/web/bff"
@@ -184,30 +185,50 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 			brewOwnerDID = resolved
 		}
 
-		// Fetch the brew record from the owner's PDS
-		record, err := publicClient.GetRecord(r.Context(), brewOwnerDID, atproto.NSIDBrew, rkey)
-		if err != nil {
-			log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
-			http.Error(w, "Brew not found", http.StatusNotFound)
-			return
+		// Try witness cache first for the brew and all its references
+		brewURI := atproto.BuildATURI(brewOwnerDID, atproto.NSIDBrew, rkey)
+		if h.witnessCache != nil {
+			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
+				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+					if b, err := atproto.RecordToBrew(m, wr.URI); err == nil {
+						metrics.WitnessCacheHitsTotal.WithLabelValues("brew").Inc()
+						brew = b
+						brew.RKey = rkey
+						atproto.ExtractBrewRefRKeys(brew, m)
+						subjectURI = wr.URI
+						subjectCID = wr.CID
+						h.resolveBrewRefsFromWitness(r.Context(), brew, brewOwnerDID, m)
+					}
+				}
+			}
 		}
 
-		// Store URI and CID for like button
-		subjectURI = record.URI
-		subjectCID = record.CID
+		if brew == nil {
+			// PDS fallback
+			metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
+			record, err := publicClient.GetRecord(r.Context(), brewOwnerDID, atproto.NSIDBrew, rkey)
+			if err != nil {
+				log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
+				http.Error(w, "Brew not found", http.StatusNotFound)
+				return
+			}
 
-		// Convert record to brew
-		brew, err = atproto.RecordToBrew(record.Value, record.URI)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to convert brew record")
-			http.Error(w, "Failed to load brew", http.StatusInternalServerError)
-			return
-		}
+			// Store URI and CID for like button
+			subjectURI = record.URI
+			subjectCID = record.CID
 
-		// Resolve references (bean, grinder, brewer)
-		if err := h.resolveBrewReferences(r.Context(), brew, brewOwnerDID, record.Value); err != nil {
-			log.Warn().Err(err).Msg("Failed to resolve some brew references")
-			// Don't fail the request, just log the warning
+			// Convert record to brew
+			brew, err = atproto.RecordToBrew(record.Value, record.URI)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to convert brew record")
+				http.Error(w, "Failed to load brew", http.StatusInternalServerError)
+				return
+			}
+
+			// Resolve references (bean, grinder, brewer)
+			if err := h.resolveBrewReferences(r.Context(), brew, brewOwnerDID, record.Value); err != nil {
+				log.Warn().Err(err).Msg("Failed to resolve some brew references")
+			}
 		}
 
 		// Check if viewing user is the owner
@@ -355,6 +376,90 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, 
 	}
 
 	return nil
+}
+
+// resolveBrewRefsFromWitness resolves a brew's references (bean, grinder, brewer, recipe)
+// from the witness cache, avoiding PDS calls for public brew views.
+func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]interface{}) {
+	if h.witnessCache == nil {
+		return
+	}
+
+	// Resolve bean (and its roaster)
+	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
+		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, beanRef); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if bean, err := atproto.RecordToBean(m, wr.URI); err == nil {
+					bean.RKey = wr.RKey
+					// Resolve roaster
+					if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
+						if c, err := atproto.ResolveATURI(roasterRef); err == nil {
+							bean.RoasterRKey = c.RKey
+						}
+						if rwr, _ := h.witnessCache.GetWitnessRecord(ctx, roasterRef); rwr != nil {
+							if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
+								if roaster, err := atproto.RecordToRoaster(rm, rwr.URI); err == nil {
+									roaster.RKey = rwr.RKey
+									bean.Roaster = roaster
+								}
+							}
+						}
+					}
+					brew.Bean = bean
+				}
+			}
+		}
+	}
+
+	// Resolve grinder
+	if grinderRef, _ := record["grinderRef"].(string); grinderRef != "" {
+		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, grinderRef); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if grinder, err := atproto.RecordToGrinder(m, wr.URI); err == nil {
+					grinder.RKey = wr.RKey
+					brew.GrinderObj = grinder
+				}
+			}
+		}
+	}
+
+	// Resolve brewer
+	if brewerRef, _ := record["brewerRef"].(string); brewerRef != "" {
+		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, brewerRef); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if brewer, err := atproto.RecordToBrewer(m, wr.URI); err == nil {
+					brewer.RKey = wr.RKey
+					brew.BrewerObj = brewer
+				}
+			}
+		}
+	}
+
+	// Resolve recipe
+	if recipeRef, _ := record["recipeRef"].(string); recipeRef != "" {
+		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, recipeRef); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if recipe, err := atproto.RecordToRecipe(m, wr.URI); err == nil {
+					recipe.RKey = wr.RKey
+					// Resolve recipe's brewer
+					if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
+						if c, err := atproto.ResolveATURI(brewerRef); err == nil {
+							recipe.BrewerRKey = c.RKey
+						}
+						if bwr, _ := h.witnessCache.GetWitnessRecord(ctx, brewerRef); bwr != nil {
+							if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
+								if brewer, err := atproto.RecordToBrewer(bm, bwr.URI); err == nil {
+									brewer.RKey = bwr.RKey
+									recipe.BrewerObj = brewer
+								}
+							}
+						}
+					}
+					brew.RecipeObj = recipe
+				}
+			}
+		}
+	}
 }
 
 // Show edit brew form
