@@ -15,6 +15,7 @@ type BrewFormProps struct {
 	Grinders []models.Grinder
 	Brewers  []models.Brewer
 	Roasters []models.Roaster
+	Recipes  []models.Recipe
 
 	// Derived JSON for pours (if editing)
 	PoursJSON string
@@ -71,6 +72,7 @@ templ BrewFormElement(props BrewFormProps) {
 		}
 		x-init="init()"
 	>
+		@RecipeSelectField(props)
 		@BeanSelectField(props)
 		@CoffeeAmountField(props)
 		@GrinderSelectField(props)
@@ -84,6 +86,93 @@ templ BrewFormElement(props BrewFormProps) {
 		@RatingField(props)
 		@SubmitButton(props)
 	</form>
+}
+
+// RecipeSelectField renders the recipe selection with autofill and filtering
+templ RecipeSelectField(props BrewFormProps) {
+	<div>
+		<label class="form-label">Recipe (Optional)</label>
+		<p class="text-sm text-brown-600 mb-2">Select a recipe to autofill brew parameters</p>
+		<!-- Category filter chips -->
+		<div class="flex flex-wrap gap-1.5 mb-2">
+			<button
+				type="button"
+				@click="setCategory('')"
+				:class="activeCategory === '' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+			>
+				All
+			</button>
+			<button
+				type="button"
+				@click="setCategory('small')"
+				:class="activeCategory === 'small' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+			>
+				Small dose
+			</button>
+			<button
+				type="button"
+				@click="setCategory('large')"
+				:class="activeCategory === 'large' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+			>
+				Large batch
+			</button>
+			<button
+				type="button"
+				@click="setCategory('single')"
+				:class="activeCategory === 'single' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+			>
+				Single cup
+			</button>
+		</div>
+		<!-- Search input -->
+		<input
+			type="text"
+			x-model="searchQuery"
+			@input="filterRecipes()"
+			placeholder="Search recipes..."
+			class="w-full form-input mb-2 text-sm"
+		/>
+		<!-- Recipe select + New button -->
+		<div class="flex gap-2">
+			<select
+				name="recipe_rkey"
+				class="flex-1 form-select"
+				@change="applyRecipe($event.target.value)"
+			>
+				<option value="">No recipe</option>
+				for _, recipe := range props.Recipes {
+					<option
+						value={ recipe.RKey }
+						if props.Brew != nil && props.Brew.RecipeRKey == recipe.RKey {
+							selected
+						}
+						class="truncate"
+					>
+						{ recipe.Name }
+					</option>
+				}
+				if props.Brew != nil && props.Brew.RecipeRKey != "" && len(props.Recipes) == 0 {
+					<option value={ props.Brew.RecipeRKey } selected>Loading...</option>
+				}
+			</select>
+			<button
+				type="button"
+				hx-get="/api/modals/recipe/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="btn-secondary"
+			>
+				+ New
+			</button>
+		</div>
+		<p class="text-xs text-brown-500 mt-1" x-show="filteredCount !== totalCount" x-cloak>
+			Showing <span x-text="filteredCount"></span> of <span x-text="totalCount"></span> recipes
+		</p>
+	</div>
 }
 
 // BeanSelectField renders the bean selection field

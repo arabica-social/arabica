@@ -1,6 +1,9 @@
 package components
 
-import "arabica/internal/models"
+import (
+	"arabica/internal/models"
+	"fmt"
+)
 
 // DialogModalProps defines properties for a native HTML5 dialog modal
 type DialogModalProps struct {
@@ -488,6 +491,105 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 	</dialog>
 }
 
+// RecipeDialogModal renders the recipe creation/edit modal using native <dialog>
+templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
+	<dialog id="entity-modal" class="modal-dialog">
+		<div class="modal-content">
+			<h3 class="modal-title">
+				if recipe != nil {
+					Edit Recipe
+				} else {
+					Add Recipe
+				}
+			</h3>
+			<form
+				if recipe != nil {
+					hx-put={ "/api/recipes/" + recipe.RKey }
+				} else {
+					hx-post="/api/recipes"
+				}
+				hx-trigger="submit"
+				hx-swap="none"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				class="space-y-4"
+			>
+				<input
+					type="text"
+					name="name"
+					value={ getStringValue(recipe, "name") }
+					placeholder="Name *"
+					required
+					class="w-full form-input"
+				/>
+				<select
+					name="brewer_rkey"
+					class="w-full form-input"
+				>
+					<option value="">Select Brewer (Optional)</option>
+					for _, brewer := range brewers {
+						<option
+							value={ brewer.RKey }
+							if recipe != nil && recipe.BrewerRKey == brewer.RKey {
+								selected
+							}
+						>
+							{ brewer.Name }
+						</option>
+					}
+				</select>
+				<input
+					type="text"
+					name="brewer_type"
+					value={ getStringValue(recipe, "brewer_type") }
+					placeholder="Brewer Type (e.g., Pour-Over, Immersion)"
+					class="w-full form-input"
+				/>
+				<input
+					type="number"
+					name="coffee_amount"
+					value={ getStringValue(recipe, "coffee_amount") }
+					placeholder="Coffee Amount (grams)"
+					step="0.1"
+					class="w-full form-input"
+				/>
+				<input
+					type="number"
+					name="water_amount"
+					value={ getStringValue(recipe, "water_amount") }
+					placeholder="Water Amount (grams)"
+					step="0.1"
+					class="w-full form-input"
+				/>
+				<input
+					type="text"
+					name="grind_size"
+					value={ getStringValue(recipe, "grind_size") }
+					placeholder="Grind Size (e.g., Medium, 18, Fine)"
+					class="w-full form-input"
+				/>
+				<textarea
+					name="notes"
+					placeholder="Notes"
+					rows="3"
+					class="w-full form-textarea"
+				>{ getStringValue(recipe, "notes") }</textarea>
+				<div class="flex gap-2">
+					<button type="submit" class="flex-1 btn-primary">
+						Save
+					</button>
+					<button
+						type="button"
+						@click="$el.closest('dialog').close()"
+						class="flex-1 btn-secondary"
+					>
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	</dialog>
+}
+
 // ReportDialogModalProps defines properties for the report dialog
 type ReportDialogModalProps struct {
 	SubjectURI string
@@ -646,6 +748,30 @@ func getStringValue(entity interface{}, field string) string {
 			return e.Location
 		case "website":
 			return e.Website
+		}
+	case *models.Recipe:
+		if e == nil {
+			return ""
+		}
+		switch field {
+		case "name":
+			return e.Name
+		case "brewer_type":
+			return e.BrewerType
+		case "grind_size":
+			return e.GrindSize
+		case "notes":
+			return e.Notes
+		case "coffee_amount":
+			if e.CoffeeAmount > 0 {
+				return fmt.Sprintf("%.1f", e.CoffeeAmount)
+			}
+			return ""
+		case "water_amount":
+			if e.WaterAmount > 0 {
+				return fmt.Sprintf("%.1f", e.WaterAmount)
+			}
+			return ""
 		}
 	}
 

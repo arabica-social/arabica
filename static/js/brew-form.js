@@ -11,6 +11,13 @@ document.addEventListener("alpine:init", () => {
     rating: 5,
     pours: [],
 
+    // Recipe filter state
+    searchQuery: "",
+    activeCategory: "",
+    filteredCount: 0,
+    totalCount: 0,
+    recipes: [],
+
     // Dropdown manager instance
     dropdownManager: null,
 
@@ -42,6 +49,30 @@ document.addEventListener("alpine:init", () => {
       // Populate dropdowns from cache using stale-while-revalidate pattern
       await this.dropdownManager.loadDropdownData();
       this.dropdownManager.populateDropdowns();
+
+      // Initialize recipe filter state from loaded data
+      this.recipes = this.dropdownManager.recipes || [];
+      this.totalCount = this.recipes.length;
+      this.filteredCount = this.recipes.length;
+
+      // Re-sync recipes when cache refreshes
+      if (window.ArabicaCache) {
+        window.ArabicaCache.addListener((data) => {
+          this.recipes = data.recipes || [];
+          this.filterRecipes();
+        });
+      }
+
+      // Auto-apply recipe from URL param (e.g. /brews/new?recipe=abc123)
+      const urlParams = new URLSearchParams(window.location.search);
+      const recipeRKey = urlParams.get("recipe");
+      if (recipeRKey) {
+        const recipeSelect = this.$el.querySelector('form select[name="recipe_rkey"]');
+        if (recipeSelect) {
+          recipeSelect.value = recipeRKey;
+        }
+        await this.applyRecipe(recipeRKey);
+      }
     },
 
     initEntityManagers() {
@@ -138,6 +169,53 @@ document.addEventListener("alpine:init", () => {
           }
         },
       });
+    },
+
+    // Recipe autofill
+    async applyRecipe(rkey) {
+      const form = this.$el.querySelector("form");
+      if (!form) return;
+
+      // If no recipe selected, clear all recipe-populated fields
+      if (!rkey) {
+        this.clearRecipeFields(form);
+        return;
+      }
+
+      try {
+        const resp = await fetch(`/api/recipes/${rkey}`, { credentials: "same-origin" });
+        if (!resp.ok) return;
+        const recipe = await resp.json();
+
+        // Set or clear each field based on recipe data
+        this.setFormField(form, "coffee_amount", recipe.coffee_amount > 0 ? Math.round(recipe.coffee_amount) : "");
+        this.setFormField(form, "water_amount", recipe.water_amount > 0 ? Math.round(recipe.water_amount) : "");
+        this.setFormField(form, "grind_size", recipe.grind_size || "");
+        this.setFormField(form, "brewer_rkey", recipe.brewer_rkey || "");
+
+        // Always reset pours, then apply recipe pours if present
+        this.pours = (recipe.pours && recipe.pours.length > 0)
+          ? recipe.pours.map(p => ({ water: p.water_amount || "", time: p.time_seconds || "" }))
+          : [];
+      } catch (e) {
+        console.error("Failed to apply recipe:", e);
+      }
+    },
+
+    setFormField(form, name, value) {
+      const el = form.querySelector(`[name="${name}"]`);
+      if (el) {
+        el.value = value;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+
+    clearRecipeFields(form) {
+      this.setFormField(form, "coffee_amount", "");
+      this.setFormField(form, "water_amount", "");
+      this.setFormField(form, "grind_size", "");
+      this.setFormField(form, "brewer_rkey", "");
+      this.pours = [];
     },
 
     // Pours management (brew-specific logic)
@@ -238,6 +316,73 @@ document.addEventListener("alpine:init", () => {
 
     async saveBrewer() {
       await this.brewerManager.save();
+    },
+
+    // Recipe filter methods
+    recipeCategories: {
+      small: { maxCoffee: 20 },
+      large: { minCoffee: 30 },
+      single: { maxCoffee: 20, maxWater: 300 },
+      batch: { minWater: 500 },
+    },
+
+    setCategory(cat) {
+      this.activeCategory = cat;
+      this.filterRecipes();
+    },
+
+    filterRecipes() {
+      const select = this.$el.querySelector('form select[name="recipe_rkey"]');
+      if (!select) return;
+
+      const query = this.searchQuery.toLowerCase().trim();
+      const cat = this.recipeCategories[this.activeCategory];
+
+      let total = 0;
+      let shown = 0;
+
+      // Rebuild options: keep placeholder, filter the rest
+      const selectedValue = select.value;
+      select.innerHTML = "";
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "No recipe";
+      select.appendChild(placeholder);
+
+      for (const recipe of this.recipes) {
+        total++;
+        const name = (recipe.name || recipe.Name || "").toLowerCase();
+        const coffee = recipe.coffee_amount || 0;
+        const water = recipe.water_amount || 0;
+
+        // Text filter
+        if (query && !name.includes(query)) continue;
+
+        // Category filter
+        if (cat) {
+          if (cat.maxCoffee && coffee > cat.maxCoffee) continue;
+          if (cat.minCoffee && coffee < cat.minCoffee) continue;
+          if (cat.maxWater && water > cat.maxWater) continue;
+          if (cat.minWater && water < cat.minWater) continue;
+          // Skip recipes with no amount data when filtering by category
+          if ((cat.maxCoffee || cat.minCoffee) && coffee === 0) continue;
+          if ((cat.maxWater || cat.minWater) && water === 0) continue;
+        }
+
+        shown++;
+        const option = document.createElement("option");
+        option.value = recipe.rkey || recipe.RKey;
+        option.textContent = recipe.name || recipe.Name;
+        option.className = "truncate";
+        if ((recipe.rkey || recipe.RKey) === selectedValue) {
+          option.selected = true;
+        }
+        select.appendChild(option);
+      }
+
+      this.totalCount = total;
+      this.filteredCount = shown;
     },
   }));
 });

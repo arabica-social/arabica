@@ -49,6 +49,7 @@ type FeedItem struct {
 	Roaster *models.Roaster
 	Grinder *models.Grinder
 	Brewer  *models.Brewer
+	Recipe  *models.Recipe
 
 	Author    *atproto.Profile
 	Timestamp time.Time
@@ -128,6 +129,7 @@ type FirehoseFeedItem struct {
 	Roaster      *models.Roaster
 	Grinder      *models.Grinder
 	Brewer       *models.Brewer
+	Recipe       *models.Recipe
 	Author       *atproto.Profile
 	Timestamp    time.Time
 	TimeAgo      string
@@ -377,6 +379,7 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 			Roaster:      fi.Roaster,
 			Grinder:      fi.Grinder,
 			Brewer:       fi.Brewer,
+			Recipe:       fi.Recipe,
 			Author:       fi.Author,
 			Timestamp:    fi.Timestamp,
 			TimeAgo:      fi.TimeAgo,
@@ -422,6 +425,7 @@ func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) (
 			Roaster:      fi.Roaster,
 			Grinder:      fi.Grinder,
 			Brewer:       fi.Brewer,
+			Recipe:       fi.Recipe,
 			Author:       fi.Author,
 			Timestamp:    fi.Timestamp,
 			TimeAgo:      fi.TimeAgo,

@@ -50,11 +50,17 @@ templ BrewViewCard(props BrewViewProps) {
 		}
 		@BrewBeanSection(props.Brew, getOwnerFromShareURL(props.ShareURL))
 		@BrewParametersGrid(props.Brew, getOwnerFromShareURL(props.ShareURL))
+		if props.Brew.RecipeObj != nil {
+			@BrewRecipeSection(props.Brew.RecipeObj)
+		}
 		if props.Brew.Pours != nil && len(props.Brew.Pours) > 0 {
 			@BrewPoursSection(props.Brew.Pours)
 		}
 		if props.Brew.TastingNotes != "" {
 			@BrewTastingNotes(props.Brew.TastingNotes)
+		}
+		if props.IsOwnProfile && props.Brew.RecipeObj == nil {
+			@SaveAsRecipeButton(props.Brew.RKey)
 		}
 		<div class="flex justify-between items-center">
 			@components.BackButton()
@@ -249,6 +255,86 @@ func getBrewShareTitle(brew *models.Brew) string {
 		return brew.Bean.Origin
 	}
 	return "Coffee Brew"
+}
+
+// SaveAsRecipeButton renders a button to save brew parameters as a recipe
+templ SaveAsRecipeButton(brewRKey string) {
+	<div class="section-box" x-data={ saveAsRecipeData(brewRKey) }>
+		<template x-if="!showForm && !success">
+			<button
+				@click="showForm = true"
+				class="w-full btn-secondary text-sm"
+			>
+				📋 Save as Recipe
+			</button>
+		</template>
+		<template x-if="showForm && !success">
+			<div class="space-y-3">
+				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider">Save as Recipe</h3>
+				<input
+					type="text"
+					x-model="name"
+					placeholder="Recipe name *"
+					class="w-full form-input"
+				/>
+				<template x-if="error">
+					<div class="text-red-600 text-sm" x-text="error"></div>
+				</template>
+				<div class="flex gap-2">
+					<button
+						@click="saveRecipe()"
+						:disabled="saving"
+						class="flex-1 btn-primary text-sm"
+					>
+						<span x-show="!saving">Save</span>
+						<span x-show="saving">Saving...</span>
+					</button>
+					<button
+						@click="showForm = false; error = ''"
+						class="flex-1 btn-secondary text-sm"
+					>
+						Cancel
+					</button>
+				</div>
+			</div>
+		</template>
+		<template x-if="success">
+			<div class="text-center text-green-700 text-sm font-medium py-2">
+				Recipe saved!
+			</div>
+		</template>
+	</div>
+}
+
+func saveAsRecipeData(brewRKey string) string {
+	return fmt.Sprintf("{ showForm: false, name: '', saving: false, error: '', success: false, brewRKey: '%s', saveRecipe() { if (!this.name.trim()) { this.error = 'Name is required'; return; } this.saving = true; this.error = ''; const body = new URLSearchParams({ name: this.name }); fetch('/api/recipes/from-brew/' + this.brewRKey, { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body, credentials: 'same-origin' }).then(r => { if (!r.ok) throw new Error('Failed'); return r.json(); }).then(() => { this.success = true; this.saving = false; }).catch(() => { this.error = 'Failed to save recipe'; this.saving = false; }); } }", brewRKey)
+}
+
+// BrewRecipeSection renders the linked recipe info
+templ BrewRecipeSection(recipe *models.Recipe) {
+	<div class="section-box">
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📋 Recipe</h3>
+		<div class="font-bold text-lg text-brown-900">{ recipe.Name }</div>
+		<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
+			if recipe.CoffeeAmount > 0 {
+				<span>☕ { fmt.Sprintf("%.1fg coffee", recipe.CoffeeAmount) }</span>
+			}
+			if recipe.WaterAmount > 0 {
+				<span>💧 { fmt.Sprintf("%.1fg water", recipe.WaterAmount) }</span>
+			}
+			if recipe.GrindSize != "" {
+				<span>🔧 { recipe.GrindSize }</span>
+			}
+			if recipe.BrewerObj != nil {
+				<span>🫖 { recipe.BrewerObj.Name }</span>
+			} else if recipe.BrewerType != "" {
+				<span>🫖 { recipe.BrewerType }</span>
+			}
+		</div>
+		if recipe.Notes != "" {
+			<div class="mt-2 text-sm text-brown-700 italic">"{ recipe.Notes }"</div>
+		}
+	</div>
 }
 
 // BrewPoursSection renders the pours section

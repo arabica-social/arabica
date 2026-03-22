@@ -85,6 +85,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
 	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
 	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
+	mux.HandleFunc("GET /recipes/explore", h.HandleRecipeExplore)
 
 	// API routes for CRUD operations
 	mux.Handle("POST /api/beans", cop.Handler(http.HandlerFunc(h.HandleBeanCreate)))
@@ -103,6 +104,14 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("PUT /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerUpdate)))
 	mux.Handle("DELETE /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerDelete)))
 
+	mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
+	mux.HandleFunc("GET /api/recipes/suggestions", h.HandleRecipeSuggestions)
+	mux.HandleFunc("GET /api/recipes/{id}", h.HandleRecipeGet)
+	mux.Handle("POST /api/recipes", cop.Handler(http.HandlerFunc(h.HandleRecipeCreate)))
+	mux.Handle("PUT /api/recipes/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeUpdate)))
+	mux.Handle("DELETE /api/recipes/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeDelete)))
+	mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeCreateFromBrew)))
+
 	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
 	mux.Handle("POST /api/report", cop.Handler(http.HandlerFunc(h.HandleReport)))
 
@@ -120,6 +129,8 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /api/modals/brewer/{id}", h.HandleBrewerModalEdit)
 	mux.HandleFunc("GET /api/modals/roaster/new", h.HandleRoasterModalNew)
 	mux.HandleFunc("GET /api/modals/roaster/{id}", h.HandleRoasterModalEdit)
+	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
+	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
 
 	// Notification routes
 	mux.HandleFunc("GET /notifications", h.HandleNotifications)

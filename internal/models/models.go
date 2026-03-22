@@ -93,9 +93,26 @@ type Pour struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type Recipe struct {
+	RKey         string    `json:"rkey"`
+	Name         string    `json:"name"`
+	BrewerRKey   string    `json:"brewer_rkey"`
+	BrewerType   string    `json:"brewer_type"`
+	CoffeeAmount float64   `json:"coffee_amount"`
+	WaterAmount  float64   `json:"water_amount"`
+	GrindSize    string    `json:"grind_size"`
+	Notes        string    `json:"notes"`
+	CreatedAt    time.Time `json:"created_at"`
+
+	// Joined data for display
+	BrewerObj *Brewer `json:"brewer_obj,omitempty"`
+	Pours     []*Pour `json:"pours,omitempty"`
+}
+
 type Brew struct {
 	RKey         string    `json:"rkey"` // Record key
 	BeanRKey     string    `json:"bean_rkey"`
+	RecipeRKey   string    `json:"recipe_rkey"`
 	Method       string    `json:"method,omitempty"`
 	Temperature  float64   `json:"temperature"`
 	WaterAmount  int       `json:"water_amount"`
@@ -110,6 +127,7 @@ type Brew struct {
 
 	// Joined data for display
 	Bean       *Bean    `json:"bean,omitempty"`
+	RecipeObj  *Recipe  `json:"recipe_obj,omitempty"`
 	GrinderObj *Grinder `json:"grinder_obj,omitempty"`
 	BrewerObj  *Brewer  `json:"brewer_obj,omitempty"`
 	Pours      []*Pour  `json:"pours,omitempty"`
@@ -117,6 +135,7 @@ type Brew struct {
 
 type CreateBrewRequest struct {
 	BeanRKey     string           `json:"bean_rkey"`
+	RecipeRKey   string           `json:"recipe_rkey"`
 	Method       string           `json:"method"`
 	Temperature  float64          `json:"temperature"`
 	WaterAmount  int              `json:"water_amount"`
@@ -167,6 +186,28 @@ type CreateBrewerRequest struct {
 	BrewerType  string `json:"brewer_type"`
 	Description string `json:"description"`
 	SourceRef   string `json:"source_ref,omitempty"`
+}
+
+type CreateRecipeRequest struct {
+	Name         string           `json:"name"`
+	BrewerRKey   string           `json:"brewer_rkey"`
+	BrewerType   string           `json:"brewer_type"`
+	CoffeeAmount float64          `json:"coffee_amount"`
+	WaterAmount  float64          `json:"water_amount"`
+	GrindSize    string           `json:"grind_size"`
+	Notes        string           `json:"notes"`
+	Pours        []CreatePourData `json:"pours"`
+}
+
+type UpdateRecipeRequest struct {
+	Name         string           `json:"name"`
+	BrewerRKey   string           `json:"brewer_rkey"`
+	BrewerType   string           `json:"brewer_type"`
+	CoffeeAmount float64          `json:"coffee_amount"`
+	WaterAmount  float64          `json:"water_amount"`
+	GrindSize    string           `json:"grind_size"`
+	Notes        string           `json:"notes"`
+	Pours        []CreatePourData `json:"pours"`
 }
 
 type UpdateBeanRequest struct {
@@ -379,6 +420,46 @@ func (r *CreateBrewerRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	return nil
+}
+
+// Validate checks that all fields are within acceptable limits
+func (r *CreateRecipeRequest) Validate() error {
+	if r.Name == "" {
+		return ErrNameRequired
+	}
+	if len(r.Name) > MaxNameLength {
+		return ErrNameTooLong
+	}
+	if len(r.BrewerType) > MaxBrewerTypeLength {
+		return ErrFieldTooLong
+	}
+	if len(r.GrindSize) > MaxGrindSizeLength {
+		return ErrFieldTooLong
+	}
+	if len(r.Notes) > MaxNotesLength {
+		return ErrNotesTooLong
+	}
+	return nil
+}
+
+// Validate checks that all fields are within acceptable limits
+func (r *UpdateRecipeRequest) Validate() error {
+	if r.Name == "" {
+		return ErrNameRequired
+	}
+	if len(r.Name) > MaxNameLength {
+		return ErrNameTooLong
+	}
+	if len(r.BrewerType) > MaxBrewerTypeLength {
+		return ErrFieldTooLong
+	}
+	if len(r.GrindSize) > MaxGrindSizeLength {
+		return ErrFieldTooLong
+	}
+	if len(r.Notes) > MaxNotesLength {
+		return ErrNotesTooLong
 	}
 	return nil
 }

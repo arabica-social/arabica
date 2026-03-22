@@ -1,0 +1,82 @@
+{
+  "lexicon": 1,
+  "id": "social.arabica.alpha.recipe",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A reusable brewing recipe with parameters for repeatable coffee preparation",
+      "record": {
+        "type": "object",
+        "required": ["name", "createdAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "User-given name for the recipe (e.g., 'James Hoffmann V60')"
+          },
+          "brewerRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI reference to a specific brewer record"
+          },
+          "brewerType": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Fallback brewer type when no specific brewer is referenced (e.g., 'Pour-Over', 'French Press')"
+          },
+          "coffeeAmount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Amount of coffee in tenths of grams (e.g., 180 = 18.0g)"
+          },
+          "waterAmount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Amount of water in tenths of grams (e.g., 3000 = 300.0g)"
+          },
+          "grindSize": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Grind size setting (can be numeric like '18' or descriptive like 'Medium-Fine')"
+          },
+          "pours": {
+            "type": "array",
+            "description": "Array of pour information for multi-pour methods",
+            "items": {
+              "type": "ref",
+              "ref": "#pour"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Free-text instructions, tips, or notes about the recipe"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the recipe was created"
+          }
+        }
+      }
+    },
+    "pour": {
+      "type": "object",
+      "description": "Information about a single pour in a multi-pour brewing method",
+      "required": ["waterAmount", "timeSeconds"],
+      "properties": {
+        "waterAmount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Amount of water in this pour (grams or ml)"
+        },
+        "timeSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Time of this pour relative to brew start (seconds)"
+        }
+      }
+    }
+  }
+}

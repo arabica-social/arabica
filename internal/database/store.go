@@ -48,6 +48,13 @@ type Store interface {
 	UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *models.UpdateBrewerRequest) error
 	DeleteBrewerByRKey(ctx context.Context, rkey string) error
 
+	// Recipe operations
+	CreateRecipe(ctx context.Context, recipe *models.CreateRecipeRequest) (*models.Recipe, error)
+	GetRecipeByRKey(ctx context.Context, rkey string) (*models.Recipe, error)
+	ListRecipes(ctx context.Context) ([]*models.Recipe, error)
+	UpdateRecipeByRKey(ctx context.Context, rkey string, recipe *models.UpdateRecipeRequest) error
+	DeleteRecipeByRKey(ctx context.Context, rkey string) error
+
 	// Like operations
 	CreateLike(ctx context.Context, req *models.CreateLikeRequest) (*models.Like, error)
 	DeleteLikeByRKey(ctx context.Context, rkey string) error

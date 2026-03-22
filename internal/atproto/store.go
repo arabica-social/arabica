@@ -52,12 +52,18 @@ func extractBrewRefRKeys(brew *models.Brew, record map[string]interface{}) {
 			brew.BrewerRKey = c.RKey
 		}
 	}
+	if recipeRef, _ := record["recipeRef"].(string); recipeRef != "" {
+		if c, err := ResolveATURI(recipeRef); err == nil {
+			brew.RecipeRKey = c.RKey
+		}
+	}
 }
 
 // brewModelFromRequest converts a CreateBrewRequest into a Brew model with the given creation time.
 func brewModelFromRequest(req *models.CreateBrewRequest, createdAt time.Time) *models.Brew {
 	brew := &models.Brew{
 		BeanRKey:     req.BeanRKey,
+		RecipeRKey:   req.RecipeRKey,
 		GrinderRKey:  req.GrinderRKey,
 		BrewerRKey:   req.BrewerRKey,
 		Method:       req.Method,
@@ -92,19 +98,22 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRe
 
 	beanURI := BuildATURI(s.did.String(), NSIDBean, brew.BeanRKey)
 
-	var grinderURI, brewerURI string
+	var grinderURI, brewerURI, recipeURI string
 	if brew.GrinderRKey != "" {
 		grinderURI = BuildATURI(s.did.String(), NSIDGrinder, brew.GrinderRKey)
 	}
 	if brew.BrewerRKey != "" {
 		brewerURI = BuildATURI(s.did.String(), NSIDBrewer, brew.BrewerRKey)
 	}
+	if brew.RecipeRKey != "" {
+		recipeURI = BuildATURI(s.did.String(), NSIDRecipe, brew.RecipeRKey)
+	}
 
 	// Convert to models.Brew for record conversion
 	brewModel := brewModelFromRequest(brew, time.Now().UTC())
 
 	// Convert to atproto record
-	record, err := BrewToRecord(brewModel, beanURI, grinderURI, brewerURI)
+	record, err := BrewToRecord(brewModel, beanURI, grinderURI, brewerURI, recipeURI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert brew to record: %w", err)
 	}
@@ -171,6 +180,12 @@ func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.
 	if err != nil {
 		log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve brew references")
 	}
+	if recipeRef, _ := output.Value["recipeRef"].(string); recipeRef != "" {
+		brew.RecipeObj, err = ResolveRecipeRef(ctx, s.client, recipeRef, s.sessionID)
+		if err != nil {
+			log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve recipe reference")
+		}
+	}
 
 	return brew, nil
 }
@@ -212,6 +227,12 @@ func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*B
 	err = ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID)
 	if err != nil {
 		log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve brew references")
+	}
+	if recipeRef, _ := output.Value["recipeRef"].(string); recipeRef != "" {
+		brew.RecipeObj, err = ResolveRecipeRef(ctx, s.client, recipeRef, s.sessionID)
+		if err != nil {
+			log.Warn().Err(err).Str("brew_rkey", rkey).Msg("Failed to resolve recipe reference")
+		}
 	}
 
 	return &BrewRecord{
@@ -255,12 +276,13 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Bre
 	}
 
 	// Resolve references using cached data instead of N+1 queries
-	// This fetches beans/grinders/brewers once (from cache if available)
+	// This fetches beans/grinders/brewers/recipes once (from cache if available)
 	// then links them to brews in memory
 	beans, _ := s.ListBeans(ctx)
 	grinders, _ := s.ListGrinders(ctx)
 	brewers, _ := s.ListBrewers(ctx)
 	roasters, _ := s.ListRoasters(ctx)
+	recipes, _ := s.ListRecipes(ctx)
 
 	// Build lookup maps
 	beanMap := make(map[string]*models.Bean)
@@ -279,6 +301,10 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Bre
 	for _, r := range roasters {
 		roasterMap[r.RKey] = r
 	}
+	recipeMap := make(map[string]*models.Recipe)
+	for _, r := range recipes {
+		recipeMap[r.RKey] = r
+	}
 
 	// Link references
 	for _, brew := range brews {
@@ -294,6 +320,9 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Bre
 		}
 		if brew.BrewerRKey != "" {
 			brew.BrewerObj = brewerMap[brew.BrewerRKey]
+		}
+		if brew.RecipeRKey != "" {
+			brew.RecipeObj = recipeMap[brew.RecipeRKey]
 		}
 	}
 
@@ -311,12 +340,15 @@ func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *
 
 	beanURI := BuildATURI(s.did.String(), NSIDBean, brew.BeanRKey)
 
-	var grinderURI, brewerURI string
+	var grinderURI, brewerURI, recipeURI string
 	if brew.GrinderRKey != "" {
 		grinderURI = BuildATURI(s.did.String(), NSIDGrinder, brew.GrinderRKey)
 	}
 	if brew.BrewerRKey != "" {
 		brewerURI = BuildATURI(s.did.String(), NSIDBrewer, brew.BrewerRKey)
+	}
+	if brew.RecipeRKey != "" {
+		recipeURI = BuildATURI(s.did.String(), NSIDRecipe, brew.RecipeRKey)
 	}
 
 	// Get the existing record to preserve createdAt
@@ -329,7 +361,7 @@ func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *
 	brewModel := brewModelFromRequest(brew, existing.CreatedAt)
 
 	// Convert to atproto record
-	record, err := BrewToRecord(brewModel, beanURI, grinderURI, brewerURI)
+	record, err := BrewToRecord(brewModel, beanURI, grinderURI, brewerURI, recipeURI)
 	if err != nil {
 		return fmt.Errorf("failed to convert brew to record: %w", err)
 	}
@@ -1143,6 +1175,236 @@ func (s *AtprotoStore) DeleteBrewerByRKey(ctx context.Context, rkey string) erro
 
 	// Invalidate cache
 	s.cache.InvalidateBrewers(s.sessionID)
+
+	return nil
+}
+
+// ========== Recipe Operations ==========
+
+// RecipeRecord contains a recipe with its AT Protocol metadata
+type RecipeRecord struct {
+	Recipe *models.Recipe
+	URI    string
+	CID    string
+}
+
+func (s *AtprotoStore) CreateRecipe(ctx context.Context, req *models.CreateRecipeRequest) (*models.Recipe, error) {
+	var brewerURI string
+	if req.BrewerRKey != "" {
+		brewerURI = BuildATURI(s.did.String(), NSIDBrewer, req.BrewerRKey)
+	}
+
+	recipeModel := &models.Recipe{
+		Name:         req.Name,
+		BrewerRKey:   req.BrewerRKey,
+		BrewerType:   req.BrewerType,
+		CoffeeAmount: req.CoffeeAmount,
+		WaterAmount:  req.WaterAmount,
+		GrindSize:    req.GrindSize,
+		Notes:        req.Notes,
+		CreatedAt:    time.Now(),
+	}
+	if len(req.Pours) > 0 {
+		recipeModel.Pours = make([]*models.Pour, len(req.Pours))
+		for i, pour := range req.Pours {
+			recipeModel.Pours[i] = &models.Pour{
+				WaterAmount: pour.WaterAmount,
+				TimeSeconds: pour.TimeSeconds,
+			}
+		}
+	}
+
+	record, err := RecipeToRecord(recipeModel, brewerURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert recipe to record: %w", err)
+	}
+
+	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
+		Collection: NSIDRecipe,
+		Record:     record,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create recipe record: %w", err)
+	}
+
+	atURI, err := syntax.ParseATURI(output.URI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse returned AT-URI: %w", err)
+	}
+
+	recipeModel.RKey = atURI.RecordKey().String()
+
+	s.cache.InvalidateRecipes(s.sessionID)
+
+	return recipeModel, nil
+}
+
+func (s *AtprotoStore) GetRecipeByRKey(ctx context.Context, rkey string) (*models.Recipe, error) {
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
+		Collection: NSIDRecipe,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get recipe record: %w", err)
+	}
+
+	atURI := BuildATURI(s.did.String(), NSIDRecipe, rkey)
+	recipe, err := RecordToRecipe(output.Value, atURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert recipe record: %w", err)
+	}
+
+	recipe.RKey = rkey
+
+	// Resolve brewer reference if present
+	if brewerRef, ok := output.Value["brewerRef"].(string); ok && brewerRef != "" {
+		if components, err := ResolveATURI(brewerRef); err == nil {
+			recipe.BrewerRKey = components.RKey
+		}
+		recipe.BrewerObj, err = ResolveBrewerRef(ctx, s.client, brewerRef, s.sessionID)
+		if err != nil {
+			log.Warn().Err(err).Str("recipe_rkey", rkey).Msg("Failed to resolve brewer reference")
+		}
+	}
+
+	return recipe, nil
+}
+
+// GetRecipeRecordByRKey fetches a recipe by rkey and returns it with its AT Protocol metadata
+func (s *AtprotoStore) GetRecipeRecordByRKey(ctx context.Context, rkey string) (*RecipeRecord, error) {
+	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
+		Collection: NSIDRecipe,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get recipe record: %w", err)
+	}
+
+	atURI := BuildATURI(s.did.String(), NSIDRecipe, rkey)
+	recipe, err := RecordToRecipe(output.Value, atURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert recipe record: %w", err)
+	}
+
+	recipe.RKey = rkey
+
+	if brewerRef, ok := output.Value["brewerRef"].(string); ok && brewerRef != "" {
+		if components, err := ResolveATURI(brewerRef); err == nil {
+			recipe.BrewerRKey = components.RKey
+		}
+		recipe.BrewerObj, err = ResolveBrewerRef(ctx, s.client, brewerRef, s.sessionID)
+		if err != nil {
+			log.Warn().Err(err).Str("recipe_rkey", rkey).Msg("Failed to resolve brewer reference")
+		}
+	}
+
+	return &RecipeRecord{
+		Recipe: recipe,
+		URI:    output.URI,
+		CID:    output.CID,
+	}, nil
+}
+
+func (s *AtprotoStore) ListRecipes(ctx context.Context) ([]*models.Recipe, error) {
+	// Check cache first
+	userCache := s.cache.Get(s.sessionID)
+	if userCache != nil && userCache.Recipes != nil && userCache.IsValid() {
+		return userCache.Recipes, nil
+	}
+
+	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, NSIDRecipe)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list recipe records: %w", err)
+	}
+
+	recipes := make([]*models.Recipe, 0, len(output.Records))
+
+	for _, rec := range output.Records {
+		recipe, err := RecordToRecipe(rec.Value, rec.URI)
+		if err != nil {
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert recipe record")
+			continue
+		}
+
+		if components, err := ResolveATURI(rec.URI); err == nil {
+			recipe.RKey = components.RKey
+		}
+
+		// Extract brewer rkey from reference
+		if brewerRef, ok := rec.Value["brewerRef"].(string); ok && brewerRef != "" {
+			if components, err := ResolveATURI(brewerRef); err == nil {
+				recipe.BrewerRKey = components.RKey
+			}
+		}
+
+		recipes = append(recipes, recipe)
+	}
+
+	s.cache.SetRecipes(s.sessionID, recipes)
+
+	return recipes, nil
+}
+
+func (s *AtprotoStore) UpdateRecipeByRKey(ctx context.Context, rkey string, req *models.UpdateRecipeRequest) error {
+	existing, err := s.GetRecipeByRKey(ctx, rkey)
+	if err != nil {
+		return fmt.Errorf("failed to get existing recipe: %w", err)
+	}
+
+	var brewerURI string
+	if req.BrewerRKey != "" {
+		brewerURI = BuildATURI(s.did.String(), NSIDBrewer, req.BrewerRKey)
+	}
+
+	recipeModel := &models.Recipe{
+		Name:         req.Name,
+		BrewerRKey:   req.BrewerRKey,
+		BrewerType:   req.BrewerType,
+		CoffeeAmount: req.CoffeeAmount,
+		WaterAmount:  req.WaterAmount,
+		GrindSize:    req.GrindSize,
+		Notes:        req.Notes,
+		CreatedAt:    existing.CreatedAt,
+	}
+	if len(req.Pours) > 0 {
+		recipeModel.Pours = make([]*models.Pour, len(req.Pours))
+		for i, pour := range req.Pours {
+			recipeModel.Pours[i] = &models.Pour{
+				WaterAmount: pour.WaterAmount,
+				TimeSeconds: pour.TimeSeconds,
+			}
+		}
+	}
+
+	record, err := RecipeToRecord(recipeModel, brewerURI)
+	if err != nil {
+		return fmt.Errorf("failed to convert recipe to record: %w", err)
+	}
+
+	err = s.client.PutRecord(ctx, s.did, s.sessionID, &PutRecordInput{
+		Collection: NSIDRecipe,
+		RKey:       rkey,
+		Record:     record,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update recipe record: %w", err)
+	}
+
+	s.cache.InvalidateRecipes(s.sessionID)
+
+	return nil
+}
+
+func (s *AtprotoStore) DeleteRecipeByRKey(ctx context.Context, rkey string) error {
+	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
+		Collection: NSIDRecipe,
+		RKey:       rkey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete recipe record: %w", err)
+	}
+
+	s.cache.InvalidateRecipes(s.sessionID)
 
 	return nil
 }

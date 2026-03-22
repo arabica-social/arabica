@@ -9,11 +9,120 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
+// ========== Recipe Conversions ==========
+
+// RecipeToRecord converts a models.Recipe to an atproto record map
+func RecipeToRecord(recipe *models.Recipe, brewerURI string) (map[string]interface{}, error) {
+	record := map[string]interface{}{
+		"$type":     NSIDRecipe,
+		"name":      recipe.Name,
+		"createdAt": recipe.CreatedAt.Format(time.RFC3339),
+	}
+
+	if brewerURI != "" {
+		record["brewerRef"] = brewerURI
+	}
+	if recipe.BrewerType != "" {
+		record["brewerType"] = recipe.BrewerType
+	}
+	if recipe.CoffeeAmount > 0 {
+		record["coffeeAmount"] = int(recipe.CoffeeAmount * 10)
+	}
+	if recipe.WaterAmount > 0 {
+		record["waterAmount"] = int(recipe.WaterAmount * 10)
+	}
+	if recipe.GrindSize != "" {
+		record["grindSize"] = recipe.GrindSize
+	}
+	if recipe.Notes != "" {
+		record["notes"] = recipe.Notes
+	}
+
+	if len(recipe.Pours) > 0 {
+		pours := make([]map[string]interface{}, len(recipe.Pours))
+		for i, pour := range recipe.Pours {
+			pours[i] = map[string]interface{}{
+				"waterAmount": pour.WaterAmount,
+				"timeSeconds": pour.TimeSeconds,
+			}
+		}
+		record["pours"] = pours
+	}
+
+	return record, nil
+}
+
+// RecordToRecipe converts an atproto record map to a models.Recipe
+func RecordToRecipe(record map[string]interface{}, atURI string) (*models.Recipe, error) {
+	recipe := &models.Recipe{}
+
+	if atURI != "" {
+		parsedURI, err := syntax.ParseATURI(atURI)
+		if err != nil {
+			return nil, fmt.Errorf("invalid AT-URI: %w", err)
+		}
+		recipe.RKey = parsedURI.RecordKey().String()
+	}
+
+	name, ok := record["name"].(string)
+	if !ok || name == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+	recipe.Name = name
+
+	createdAtStr, ok := record["createdAt"].(string)
+	if !ok {
+		return nil, fmt.Errorf("createdAt is required")
+	}
+	createdAt, err := time.Parse(time.RFC3339, createdAtStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid createdAt format: %w", err)
+	}
+	recipe.CreatedAt = createdAt
+
+	if brewerType, ok := record["brewerType"].(string); ok {
+		recipe.BrewerType = brewerType
+	}
+	if coffeeAmount, ok := record["coffeeAmount"].(float64); ok {
+		recipe.CoffeeAmount = coffeeAmount / 10.0
+	}
+	if waterAmount, ok := record["waterAmount"].(float64); ok {
+		recipe.WaterAmount = waterAmount / 10.0
+	}
+	if grindSize, ok := record["grindSize"].(string); ok {
+		recipe.GrindSize = grindSize
+	}
+	if notes, ok := record["notes"].(string); ok {
+		recipe.Notes = notes
+	}
+
+	if poursRaw, ok := record["pours"].([]interface{}); ok {
+		recipe.Pours = make([]*models.Pour, len(poursRaw))
+		for i, pourRaw := range poursRaw {
+			pourMap, ok := pourRaw.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			pour := &models.Pour{}
+			if waterAmount, ok := pourMap["waterAmount"].(float64); ok {
+				pour.WaterAmount = int(waterAmount)
+			}
+			if timeSeconds, ok := pourMap["timeSeconds"].(float64); ok {
+				pour.TimeSeconds = int(timeSeconds)
+			}
+			pour.PourNumber = i + 1
+			recipe.Pours[i] = pour
+		}
+	}
+
+	return recipe, nil
+}
+
 // ========== Brew Conversions ==========
 
 // BrewToRecord converts a models.Brew to an atproto record map
-// Note: References (beanRef, grinderRef, brewerRef) must be AT-URIs
-func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI string) (map[string]interface{}, error) {
+// Note: References (beanRef, grinderRef, brewerRef, recipeRef) must be AT-URIs
+func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI string) (map[string]interface{}, error) {
 	if beanURI == "" {
 		return nil, fmt.Errorf("beanRef (AT-URI) is required")
 	}
@@ -49,6 +158,9 @@ func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI string) (map
 	}
 	if brewerURI != "" {
 		record["brewerRef"] = brewerURI
+	}
+	if recipeURI != "" {
+		record["recipeRef"] = recipeURI
 	}
 	if brew.TastingNotes != "" {
 		record["tastingNotes"] = brew.TastingNotes

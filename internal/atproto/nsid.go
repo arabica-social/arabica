@@ -19,6 +19,7 @@ const (
 	NSIDComment = NSIDBase + ".comment"
 	NSIDGrinder = NSIDBase + ".grinder"
 	NSIDLike    = NSIDBase + ".like"
+	NSIDRecipe  = NSIDBase + ".recipe"
 	NSIDRoaster = NSIDBase + ".roaster"
 
 	// MaxRKeyLength is the maximum allowed length for a record key

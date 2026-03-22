@@ -26,6 +26,7 @@ var scopes = []string{
 	"repo:" + NSIDComment,
 	"repo:" + NSIDGrinder,
 	"repo:" + NSIDLike,
+	"repo:" + NSIDRecipe,
 	"repo:" + NSIDRoaster,
 }
 

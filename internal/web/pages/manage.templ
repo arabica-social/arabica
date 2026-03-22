@@ -55,6 +55,13 @@ templ ManageTabs() {
 			>
 				Brewers
 			</button>
+			<button
+				@click="tab = 'recipes'"
+				:class="tab === 'recipes' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
+				class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+			>
+				Recipes
+			</button>
 		</nav>
 	</div>
 }
@@ -203,6 +210,44 @@ templ ManageLoadingSkeleton() {
 							<tr class="table-row">
 								<td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-28"></div></td>
 								<td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-48"></div></td>
+								<td class="px-6 py-4">
+									<div class="flex gap-2">
+										<div class="h-4 bg-brown-300 rounded w-10"></div>
+										<div class="h-4 bg-brown-300 rounded w-12"></div>
+									</div>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<!-- Recipes Tab Skeleton -->
+		<div x-show="tab === 'recipes'">
+			<div class="mb-4 flex justify-between items-center">
+				<h3 class="text-xl font-semibold text-brown-900">Recipes</h3>
+				<div class="h-10 bg-brown-300 rounded w-28"></div>
+			</div>
+			<div class="table-container overflow-x-auto">
+				<table class="table">
+					<thead class="table-header">
+						<tr>
+							<th class="table-th whitespace-nowrap">Name</th>
+							<th class="table-th whitespace-nowrap">Coffee</th>
+							<th class="table-th whitespace-nowrap">Water</th>
+							<th class="table-th whitespace-nowrap">Grind</th>
+							<th class="table-th whitespace-nowrap">Brewer</th>
+							<th class="table-th whitespace-nowrap">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="table-body">
+						for range ntabs {
+							<tr class="table-row">
+								<td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-28"></div></td>
+								<td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
+								<td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
+								<td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
+								<td class="px-6 py-4"><div class="h-4 bg-brown-300 rounded w-24"></div></td>
 								<td class="px-6 py-4">
 									<div class="flex gap-2">
 										<div class="h-4 bg-brown-300 rounded w-10"></div>

@@ -32,6 +32,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	var roasters []*models.Roaster
 	var grinders []*models.Grinder
 	var brewers []*models.Brewer
+	var recipes []*models.Recipe
 
 	g.Go(func() error {
 		var err error
@@ -53,6 +54,11 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 		brewers, err = store.ListBrewers(ctx)
 		return err
 	})
+	g.Go(func() error {
+		var err error
+		recipes, err = store.ListRecipes(ctx)
+		return err
+	})
 
 	if err := g.Wait(); err != nil {
 		log.Error().Err(err).Msg("Failed to fetch manage page data")
@@ -63,12 +69,24 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	// Link beans to their roasters
 	atproto.LinkBeansToRoasters(beans, roasters)
 
+	// Link recipes to their brewers
+	brewerMap := make(map[string]*models.Brewer, len(brewers))
+	for _, b := range brewers {
+		brewerMap[b.RKey] = b
+	}
+	for _, recipe := range recipes {
+		if recipe.BrewerRKey != "" {
+			recipe.BrewerObj = brewerMap[recipe.BrewerRKey]
+		}
+	}
+
 	// Render manage partial
 	if err := components.ManagePartial(components.ManagePartialProps{
 		Beans:    beans,
 		Roasters: roasters,
 		Grinders: grinders,
 		Brewers:  brewers,
+		Recipes:  recipes,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage partial")
@@ -96,6 +114,7 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	var roasters []*models.Roaster
 	var grinders []*models.Grinder
 	var brewers []*models.Brewer
+	var recipes []*models.Recipe
 	var brews []*models.Brew
 
 	g.Go(func() error {
@@ -120,6 +139,11 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		var err error
+		recipes, err = store.ListRecipes(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
 		brews, err = store.ListBrews(ctx, 1) // User ID not used with atproto
 		return err
 	})
@@ -139,6 +163,7 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 		"roasters": roasters,
 		"grinders": grinders,
 		"brewers":  brewers,
+		"recipes":  recipes,
 		"brews":    brews,
 	}
 
