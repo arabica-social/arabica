@@ -1,0 +1,151 @@
+package pages
+
+import (
+	"arabica/internal/firehose"
+	"arabica/internal/models"
+	"arabica/internal/web/bff"
+	"arabica/internal/web/components"
+	"fmt"
+)
+
+type RecipeViewProps struct {
+	Recipe          *models.Recipe
+	IsOwnProfile    bool
+	IsAuthenticated bool
+	SubjectURI      string
+	SubjectCID      string
+	IsLiked         bool
+	LikeCount       int
+	CommentCount    int
+	Comments        []firehose.IndexedComment
+	CurrentUserDID  string
+	ShareURL        string
+	IsModerator     bool
+	CanHideRecord   bool
+	CanBlockUser    bool
+	IsRecordHidden  bool
+	AuthorDID       string
+}
+
+templ RecipeView(layout *components.LayoutData, props RecipeViewProps) {
+	@components.Layout(layout, RecipeViewContent(props))
+}
+
+templ RecipeViewContent(props RecipeViewProps) {
+	<div class="page-container-sm">
+		@components.Card(components.CardProps{InnerCard: true}, RecipeViewCard(props))
+	</div>
+}
+
+templ RecipeViewCard(props RecipeViewProps) {
+	@RecipeViewHeader(props)
+	<div class="space-y-6">
+		<!-- Main details grid -->
+		<div class="grid grid-cols-2 gap-4">
+			if props.Recipe.CoffeeAmount > 0 {
+				@components.DetailField(components.DetailFieldProps{Label: "☕ Coffee", Value: fmt.Sprintf("%.1fg", props.Recipe.CoffeeAmount)})
+			}
+			if props.Recipe.WaterAmount > 0 {
+				@components.DetailField(components.DetailFieldProps{Label: "💧 Water", Value: fmt.Sprintf("%.1fg", props.Recipe.WaterAmount)})
+			}
+			if props.Recipe.Ratio > 0 {
+				@components.DetailField(components.DetailFieldProps{Label: "⚖️ Ratio", Value: fmt.Sprintf("1:%.1f", props.Recipe.Ratio)})
+			}
+			if props.Recipe.GrindSize != "" {
+				@components.DetailField(components.DetailFieldProps{Label: "🔧 Grind Size", Value: props.Recipe.GrindSize})
+			}
+			if props.Recipe.BrewerObj != nil {
+				@components.DetailField(components.DetailFieldProps{
+					Label:    "🫖 Brewer",
+					Value:    props.Recipe.BrewerObj.Name,
+					LinkHref: recipeBrewerLink(props),
+				})
+			} else if props.Recipe.BrewerType != "" {
+				@components.DetailField(components.DetailFieldProps{Label: "🫖 Brewer Type", Value: props.Recipe.BrewerType})
+			}
+		</div>
+		<!-- Pours -->
+		if len(props.Recipe.Pours) > 0 {
+			<div class="section-box">
+				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">💧 Pours</h3>
+				<div class="space-y-2">
+					for i, pour := range props.Recipe.Pours {
+						<div class="flex items-center gap-4 bg-brown-50 rounded-lg px-3 py-2 border border-brown-200">
+							<span class="text-sm font-medium text-brown-700">Pour { fmt.Sprintf("%d", i+1) }</span>
+							<span class="text-sm text-brown-900">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
+							if pour.TimeSeconds > 0 {
+								<span class="text-sm text-brown-600">at { fmt.Sprintf("%ds", pour.TimeSeconds) }</span>
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+		<!-- Notes -->
+		if props.Recipe.Notes != "" {
+			<div class="section-box">
+				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📝 Notes</h3>
+				<div class="text-brown-900 whitespace-pre-wrap">{ props.Recipe.Notes }</div>
+			</div>
+		}
+		<!-- Action bar -->
+		<div class="flex justify-between items-center">
+			@components.BackButton()
+			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
+				@components.ActionBar(components.ActionBarProps{
+					SubjectURI:      props.SubjectURI,
+					SubjectCID:      props.SubjectCID,
+					IsLiked:         props.IsLiked,
+					LikeCount:       props.LikeCount,
+					CommentCount:    props.CommentCount,
+					ShowComments:    true,
+					ShareURL:        props.ShareURL,
+					ShareTitle:      props.Recipe.Name,
+					ShareText:       "Check out this recipe on Arabica",
+					IsOwner:         props.IsOwnProfile,
+					EditModalURL:    "/api/modals/recipe/" + props.Recipe.RKey,
+					DeleteURL:       "/api/recipes/" + props.Recipe.RKey,
+					DeleteRedirect:  "/manage",
+					IsAuthenticated: props.IsAuthenticated,
+					IsModerator:     props.IsModerator,
+					CanHideRecord:   props.CanHideRecord,
+					CanBlockUser:    props.CanBlockUser,
+					IsRecordHidden:  props.IsRecordHidden,
+					AuthorDID:       props.AuthorDID,
+				})
+			</div>
+		</div>
+		<!-- Comments -->
+		@components.CommentSection(components.CommentSectionProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			Comments:        props.Comments,
+			IsAuthenticated: props.IsAuthenticated,
+			CurrentUserDID:  props.CurrentUserDID,
+			ModCtx: components.CommentModerationContext{
+				IsModerator:   props.IsModerator,
+				CanHideRecord: props.CanHideRecord,
+				CanBlockUser:  props.CanBlockUser,
+			},
+			ViewURL: props.ShareURL,
+		})
+	</div>
+}
+
+templ RecipeViewHeader(props RecipeViewProps) {
+	<div class="mb-6">
+		<h2 class="text-3xl font-bold text-brown-900">{ props.Recipe.Name }</h2>
+		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Recipe.CreatedAt) } data-local="long">{ props.Recipe.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
+	</div>
+}
+
+func recipeBrewerLink(props RecipeViewProps) string {
+	if props.Recipe.BrewerObj == nil || props.Recipe.BrewerRKey == "" {
+		return ""
+	}
+	owner := getOwnerFromShareURL(props.ShareURL)
+	if owner != "" {
+		return fmt.Sprintf("/brewers/%s?owner=%s", props.Recipe.BrewerRKey, owner)
+	}
+	return ""
+}

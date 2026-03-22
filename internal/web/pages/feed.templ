@@ -218,6 +218,12 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 						@components.BrewerContent(item.Brewer)
 					</a>
 				}
+			case lexicons.RecordTypeRecipe:
+				if item.Recipe != nil {
+					<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+						@FeedRecipeContent(item)
+					</a>
+				}
 		}
 		<!-- Action bar -->
 		if item.SubjectURI != "" && item.SubjectCID != "" {
