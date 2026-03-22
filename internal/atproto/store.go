@@ -2,7 +2,6 @@ package atproto
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -48,14 +47,9 @@ func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string
 	}
 }
 
-// witnessRecordToMap unmarshals a WitnessRecord's raw JSON into the map format
-// expected by the existing Record* conversion functions.
+// witnessRecordToMap is a package-internal alias for WitnessRecordToMap.
 func witnessRecordToMap(wr *WitnessRecord) (map[string]interface{}, error) {
-	var m map[string]interface{}
-	if err := json.Unmarshal(wr.Record, &m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return WitnessRecordToMap(wr)
 }
 
 // getFromWitness fetches a single record by collection+rkey from the witness cache.
@@ -194,8 +188,8 @@ func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *mod
 
 // ========== Brew Helpers ==========
 
-// extractBrewRefRKeys extracts rkeys from AT-URI references in a brew record's raw values.
-func extractBrewRefRKeys(brew *models.Brew, record map[string]interface{}) {
+// ExtractBrewRefRKeys extracts rkeys from AT-URI references in a brew record's raw values.
+func ExtractBrewRefRKeys(brew *models.Brew, record map[string]interface{}) {
 	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
 		if c, err := ResolveATURI(beanRef); err == nil {
 			brew.BeanRKey = c.RKey
@@ -318,7 +312,7 @@ func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.
 			if err == nil {
 				metrics.WitnessCacheHitsTotal.WithLabelValues("brew").Inc()
 				brew.RKey = rkey
-				extractBrewRefRKeys(brew, m)
+				ExtractBrewRefRKeys(brew, m)
 				s.resolveBrewRefsFromWitness(ctx, brew, m)
 				return brew, nil
 			}
@@ -349,7 +343,7 @@ func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.
 	brew.RKey = rkey
 
 	// Extract and resolve references
-	extractBrewRefRKeys(brew, output.Value)
+	ExtractBrewRefRKeys(brew, output.Value)
 	beanRef, _ := output.Value["beanRef"].(string)
 	grinderRef, _ := output.Value["grinderRef"].(string)
 	brewerRef, _ := output.Value["brewerRef"].(string)
@@ -384,7 +378,7 @@ func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*B
 			if err == nil {
 				metrics.WitnessCacheHitsTotal.WithLabelValues("brew").Inc()
 				brew.RKey = rkey
-				extractBrewRefRKeys(brew, m)
+				ExtractBrewRefRKeys(brew, m)
 				s.resolveBrewRefsFromWitness(ctx, brew, m)
 				return &BrewRecord{
 					Brew: brew,
@@ -419,7 +413,7 @@ func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*B
 	brew.RKey = rkey
 
 	// Extract and resolve references
-	extractBrewRefRKeys(brew, output.Value)
+	ExtractBrewRefRKeys(brew, output.Value)
 	beanRef, _ := output.Value["beanRef"].(string)
 	grinderRef, _ := output.Value["grinderRef"].(string)
 	brewerRef, _ := output.Value["brewerRef"].(string)
@@ -466,7 +460,7 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Bre
 				continue
 			}
 			brew.RKey = wr.RKey
-			extractBrewRefRKeys(brew, m)
+			ExtractBrewRefRKeys(brew, m)
 			brews = append(brews, brew)
 		}
 	} else {
@@ -493,7 +487,7 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Bre
 			}
 
 			// Extract rkeys from AT-URI references
-			extractBrewRefRKeys(brew, rec.Value)
+			ExtractBrewRefRKeys(brew, rec.Value)
 
 			brews = append(brews, brew)
 		}
