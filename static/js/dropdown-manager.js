@@ -88,172 +88,167 @@ function createDropdownManager() {
     },
 
     /**
-     * Populates bean dropdown
-     * @param {string} selectSelector - CSS selector for the select element (optional)
+     * Populates bean dropdown(s)
+     * @param {string} selectSelector - CSS selector for the select elements (optional)
      */
     populateBeans(selectSelector = 'form select[name="bean_rkey"]') {
-      const beanSelect = document.querySelector(selectSelector);
-      if (!beanSelect || this.beans.length === 0) return;
+      const selects = document.querySelectorAll(selectSelector);
+      if (selects.length === 0 || this.beans.length === 0) return;
 
-      const selectedBean = beanSelect.value || "";
+      selects.forEach((beanSelect) => {
+        const selectedBean = beanSelect.value || "";
+        beanSelect.innerHTML = "";
 
-      // Clear existing options
-      beanSelect.innerHTML = "";
+        const placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = "Select a bean...";
+        beanSelect.appendChild(placeholderOption);
 
-      // Add placeholder
-      const placeholderOption = document.createElement("option");
-      placeholderOption.value = "";
-      placeholderOption.textContent = "Select a bean...";
-      beanSelect.appendChild(placeholderOption);
-
-      // Add bean options (filter out closed bags)
-      this.beans.forEach((bean) => {
-        // Skip closed bags - they shouldn't appear in brew form dropdown
-        if (bean.Closed || bean.closed) return;
-
-        const option = document.createElement("option");
-        option.value = bean.rkey || bean.RKey;
-        const roasterName = bean.Roaster?.Name || bean.roaster?.name || "";
-        const roasterSuffix = roasterName ? ` - ${roasterName}` : "";
-        // Using textContent ensures all user input is safely escaped
-        option.textContent = `${bean.Name || bean.name} (${bean.Origin || bean.origin} - ${bean.RoastLevel || bean.roast_level})${roasterSuffix}`;
-        option.className = "truncate";
-        if ((bean.rkey || bean.RKey) === selectedBean) {
-          option.selected = true;
-        }
-        beanSelect.appendChild(option);
+        this.beans.forEach((bean) => {
+          if (bean.Closed || bean.closed) return;
+          const option = document.createElement("option");
+          option.value = bean.rkey || bean.RKey;
+          const roasterName = bean.Roaster?.Name || bean.roaster?.name || "";
+          const roasterSuffix = roasterName ? ` - ${roasterName}` : "";
+          option.textContent = `${bean.Name || bean.name} (${bean.Origin || bean.origin} - ${bean.RoastLevel || bean.roast_level})${roasterSuffix}`;
+          option.className = "truncate";
+          if ((bean.rkey || bean.RKey) === selectedBean) {
+            option.selected = true;
+          }
+          beanSelect.appendChild(option);
+        });
       });
     },
 
     /**
-     * Populates grinder dropdown
-     * @param {string} selectSelector - CSS selector for the select element (optional)
+     * Populates grinder dropdown(s)
+     * @param {string} selectSelector - CSS selector for the select elements (optional)
      */
     populateGrinders(selectSelector = 'form select[name="grinder_rkey"]') {
-      const grinderSelect = document.querySelector(selectSelector);
-      if (!grinderSelect || this.grinders.length === 0) return;
+      const selects = document.querySelectorAll(selectSelector);
+      if (selects.length === 0 || this.grinders.length === 0) return;
 
-      const selectedGrinder = grinderSelect.value || "";
+      selects.forEach((grinderSelect) => {
+        const selectedGrinder = grinderSelect.value || "";
+        grinderSelect.innerHTML = "";
 
-      // Clear existing options
-      grinderSelect.innerHTML = "";
+        const placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = "Select a grinder...";
+        grinderSelect.appendChild(placeholderOption);
 
-      // Add placeholder
-      const placeholderOption = document.createElement("option");
-      placeholderOption.value = "";
-      placeholderOption.textContent = "Select a grinder...";
-      grinderSelect.appendChild(placeholderOption);
-
-      // Add grinder options
-      this.grinders.forEach((grinder) => {
-        const option = document.createElement("option");
-        option.value = grinder.rkey || grinder.RKey;
-        // Using textContent ensures all user input is safely escaped
-        option.textContent = grinder.Name || grinder.name;
-        option.className = "truncate";
-        if ((grinder.rkey || grinder.RKey) === selectedGrinder) {
-          option.selected = true;
-        }
-        grinderSelect.appendChild(option);
+        this.grinders.forEach((grinder) => {
+          const option = document.createElement("option");
+          option.value = grinder.rkey || grinder.RKey;
+          option.textContent = grinder.Name || grinder.name;
+          option.className = "truncate";
+          if ((grinder.rkey || grinder.RKey) === selectedGrinder) {
+            option.selected = true;
+          }
+          grinderSelect.appendChild(option);
+        });
       });
     },
 
     /**
-     * Populates brewer dropdown
-     * @param {string} selectSelector - CSS selector for the select element (optional)
+     * Populates brewer dropdown(s)
+     * @param {string} selectSelector - CSS selector for the select elements (optional)
      */
     populateBrewers(selectSelector = 'form select[name="brewer_rkey"]') {
-      const brewerSelect = document.querySelector(selectSelector);
-      if (!brewerSelect || this.brewers.length === 0) return;
+      const selects = document.querySelectorAll(selectSelector);
+      if (selects.length === 0 || this.brewers.length === 0) return;
 
-      const selectedBrewer = brewerSelect.value || "";
+      selects.forEach((brewerSelect) => {
+        const selectedBrewer = brewerSelect.value || "";
+        brewerSelect.innerHTML = "";
 
-      // Clear existing options
-      brewerSelect.innerHTML = "";
+        const placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = "Select brew method...";
+        brewerSelect.appendChild(placeholderOption);
 
-      // Add placeholder
-      const placeholderOption = document.createElement("option");
-      placeholderOption.value = "";
-      placeholderOption.textContent = "Select brew method...";
-      brewerSelect.appendChild(placeholderOption);
-
-      // Add brewer options
-      this.brewers.forEach((brewer) => {
-        const option = document.createElement("option");
-        option.value = brewer.rkey || brewer.RKey;
-        // Using textContent ensures all user input is safely escaped
-        option.textContent = brewer.Name || brewer.name;
-        option.className = "truncate";
-        if ((brewer.rkey || brewer.RKey) === selectedBrewer) {
-          option.selected = true;
-        }
-        brewerSelect.appendChild(option);
+        this.brewers.forEach((brewer) => {
+          const option = document.createElement("option");
+          option.value = brewer.rkey || brewer.RKey;
+          option.textContent = brewer.Name || brewer.name;
+          option.className = "truncate";
+          if ((brewer.rkey || brewer.RKey) === selectedBrewer) {
+            option.selected = true;
+          }
+          brewerSelect.appendChild(option);
+        });
       });
     },
 
     /**
-     * Populates roaster dropdown (used in new bean modal)
-     * @param {string} selectSelector - CSS selector for the select element (optional)
+     * Populates roaster dropdown(s) (used in new bean modal)
+     * @param {string} selectSelector - CSS selector for the select elements (optional)
      */
     populateRoasters(selectSelector = 'select[name="roaster_rkey_modal"]') {
-      const roasterSelect = document.querySelector(selectSelector);
-      if (!roasterSelect || this.roasters.length === 0) return;
+      const selects = document.querySelectorAll(selectSelector);
+      if (selects.length === 0 || this.roasters.length === 0) return;
 
-      const selectedRoaster = roasterSelect.value || "";
+      selects.forEach((roasterSelect) => {
+        const selectedRoaster = roasterSelect.value || "";
+        roasterSelect.innerHTML = "";
 
-      // Clear existing options
-      roasterSelect.innerHTML = "";
+        const placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = "No roaster";
+        roasterSelect.appendChild(placeholderOption);
 
-      // Add placeholder
-      const placeholderOption = document.createElement("option");
-      placeholderOption.value = "";
-      placeholderOption.textContent = "No roaster";
-      roasterSelect.appendChild(placeholderOption);
-
-      // Add roaster options
-      this.roasters.forEach((roaster) => {
-        const option = document.createElement("option");
-        option.value = roaster.rkey || roaster.RKey;
-        // Using textContent ensures all user input is safely escaped
-        option.textContent = roaster.Name || roaster.name;
-        if ((roaster.rkey || roaster.RKey) === selectedRoaster) {
-          option.selected = true;
-        }
-        roasterSelect.appendChild(option);
+        this.roasters.forEach((roaster) => {
+          const option = document.createElement("option");
+          option.value = roaster.rkey || roaster.RKey;
+          option.textContent = roaster.Name || roaster.name;
+          if ((roaster.rkey || roaster.RKey) === selectedRoaster) {
+            option.selected = true;
+          }
+          roasterSelect.appendChild(option);
+        });
       });
     },
 
     /**
-     * Populates recipe dropdown
-     * @param {string} selectSelector - CSS selector for the select element (optional)
+     * Populates recipe dropdown(s)
+     * @param {string} selectSelector - CSS selector for the select elements (optional)
      */
     populateRecipes(selectSelector = 'form select[name="recipe_rkey"]') {
-      const recipeSelect = document.querySelector(selectSelector);
-      if (!recipeSelect || this.recipes.length === 0) return;
+      const selects = document.querySelectorAll(selectSelector);
+      if (selects.length === 0 || this.recipes.length === 0) return;
 
-      const selectedRecipe = recipeSelect.value || "";
+      selects.forEach((recipeSelect) => {
+        const selectedRecipe = recipeSelect.value || "";
+        recipeSelect.innerHTML = "";
 
-      // Clear existing options
-      recipeSelect.innerHTML = "";
+        const placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = "No recipe";
+        recipeSelect.appendChild(placeholderOption);
 
-      // Add placeholder
-      const placeholderOption = document.createElement("option");
-      placeholderOption.value = "";
-      placeholderOption.textContent = "No recipe";
-      recipeSelect.appendChild(placeholderOption);
-
-      // Add recipe options
-      this.recipes.forEach((recipe) => {
-        const option = document.createElement("option");
-        option.value = recipe.rkey || recipe.RKey;
-        // Using textContent ensures all user input is safely escaped
-        option.textContent = recipe.Name || recipe.name;
-        option.className = "truncate";
-        if ((recipe.rkey || recipe.RKey) === selectedRecipe) {
-          option.selected = true;
-        }
-        recipeSelect.appendChild(option);
+        this.recipes.forEach((recipe) => {
+          const option = document.createElement("option");
+          option.value = recipe.rkey || recipe.RKey;
+          option.textContent = recipe.Name || recipe.name;
+          option.className = "truncate";
+          if ((recipe.rkey || recipe.RKey) === selectedRecipe) {
+            option.selected = true;
+          }
+          recipeSelect.appendChild(option);
+        });
       });
+    },
+
+    /**
+     * Looks up a brewer's type from the cached brewers array
+     * @param {string} rkey - The brewer's record key
+     * @returns {string} The brewer_type value, or empty string if not found
+     */
+    getBrewerType(rkey) {
+      if (!rkey) return "";
+      const brewer = this.brewers.find((b) => (b.rkey || b.RKey) === rkey);
+      if (!brewer) return "";
+      return brewer.brewer_type || brewer.BrewerType || "";
     },
 
     /**

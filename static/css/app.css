@@ -128,7 +128,7 @@
   }
 
   .form-select {
-    @apply form-input truncate max-w-full;
+    @apply form-input truncate max-w-full min-w-0;
   }
 
   .form-textarea {

@@ -135,7 +135,8 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, "New Brew")
 
 	brewFormProps := pages.BrewFormProps{
-		Brew: nil,
+		Brew:       nil,
+		RecipeRKey: r.URL.Query().Get("recipe"),
 	}
 
 	if err := pages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {

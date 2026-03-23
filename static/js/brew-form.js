@@ -1,6 +1,6 @@
 /**
  * Alpine.js component for the brew form
- * Manages pours, new entity modals, and form state
+ * Manages pours, new entity modals, form mode, and form state
  * Uses shared entity-manager and dropdown-manager modules
  */
 
@@ -10,6 +10,13 @@ document.addEventListener("alpine:init", () => {
     // Brew form specific
     rating: 5,
     pours: [],
+
+    // Mode state
+    formMode: "choose", // 'choose' | 'recipe' | 'freeform'
+    recipeSummaryExpanded: false,
+    activeRecipe: null,
+    showPours: false,
+    isEditing: false,
 
     // Recipe filter state
     searchQuery: "",
@@ -33,9 +40,14 @@ document.addEventListener("alpine:init", () => {
       // Initialize entity managers
       this.initEntityManagers();
 
-      // Load existing pours if editing
+      // Detect state from DOM
       const root = this.$root || this.$el;
       const formEl = root.querySelector("form");
+
+      this.isEditing = formEl?.hasAttribute("data-editing") || false;
+      const recipeRKey = formEl?.getAttribute("data-recipe-rkey") || "";
+
+      // Load existing pours if editing
       const poursData = formEl?.getAttribute("data-pours");
       if (poursData) {
         try {
@@ -44,6 +56,15 @@ document.addEventListener("alpine:init", () => {
           console.error("Failed to parse pours data:", e);
           this.pours = [];
         }
+      }
+
+      // Determine initial mode
+      if (this.isEditing) {
+        this.formMode = recipeRKey ? "recipe" : "freeform";
+      } else if (recipeRKey) {
+        this.formMode = "recipe";
+      } else {
+        this.formMode = "choose";
       }
 
       // Populate dropdowns from cache using stale-while-revalidate pattern
@@ -63,16 +84,91 @@ document.addEventListener("alpine:init", () => {
         });
       }
 
-      // Auto-apply recipe from URL param (e.g. /brews/new?recipe=abc123)
-      const urlParams = new URLSearchParams(window.location.search);
-      const recipeRKey = urlParams.get("recipe");
+      // Auto-apply recipe if rkey present
       if (recipeRKey) {
-        const recipeSelect = root.querySelector('form select[name="recipe_rkey"]');
+        const recipeSelect = root.querySelector(
+          'form select[name="recipe_rkey"]',
+        );
         if (recipeSelect) {
           recipeSelect.value = recipeRKey;
         }
         await this.applyRecipe(recipeRKey);
       }
+
+      // Update pours visibility after setup
+      this.updatePoursVisibility();
+
+      // Also check brewer type after DOM is settled
+      this.$nextTick(() => {
+        const selects =
+          formEl?.querySelectorAll('select[name="brewer_rkey"]') || [];
+        for (const sel of selects) {
+          if (sel.value && !sel.disabled) {
+            this.onBrewerChange(sel.value);
+            break;
+          }
+        }
+      });
+    },
+
+    // Mode switching
+    chooseRecipeMode() {
+      this.formMode = "recipe";
+    },
+
+    chooseFreeformMode() {
+      this.formMode = "freeform";
+      this.updatePoursVisibility();
+    },
+
+    // Pours visibility
+    updatePoursVisibility() {
+      if (this.pours.length > 0) {
+        this.showPours = true;
+        return;
+      }
+      if (this.activeRecipe?.pours?.length > 0) {
+        this.showPours = true;
+        return;
+      }
+    },
+
+    togglePours() {
+      this.showPours = !this.showPours;
+      if (this.showPours && this.pours.length === 0) {
+        this.addPour();
+      }
+    },
+
+    onBrewerChange(rkey) {
+      const brewerType = this.dropdownManager?.getBrewerType(rkey) || "";
+      if (brewerType.toLowerCase().includes("pour")) {
+        this.showPours = true;
+      }
+    },
+
+    // Recipe summary text
+    get recipeSummaryText() {
+      if (!this.activeRecipe) return "";
+      const parts = [];
+      if (this.activeRecipe.coffee_amount > 0) {
+        parts.push(Math.round(this.activeRecipe.coffee_amount) + "g coffee");
+      }
+      if (this.activeRecipe.water_amount > 0) {
+        parts.push(Math.round(this.activeRecipe.water_amount) + "g water");
+      }
+      if (this.activeRecipe.brewer_rkey) {
+        const brewer = (this.dropdownManager?.brewers || []).find(
+          (b) => (b.rkey || b.RKey) === this.activeRecipe.brewer_rkey,
+        );
+        if (brewer) {
+          parts.push(brewer.Name || brewer.name);
+        }
+      }
+      if (this.activeRecipe.pours && this.activeRecipe.pours.length > 0) {
+        parts.push(this.activeRecipe.pours.length + " pours");
+      }
+      return parts.join(" \u00b7 ");
     },
 
     initEntityManagers() {
@@ -99,13 +195,12 @@ document.addEventListener("alpine:init", () => {
           // Refresh dropdown data and repopulate
           await this.dropdownManager.invalidateAndRefresh();
 
-          // Select the new bean
-          const beanSelect = document.querySelector(
-            'form select[name="bean_rkey"]',
-          );
-          if (beanSelect && newBean.rkey) {
-            beanSelect.value = newBean.rkey;
-          }
+          // Select the new bean in all matching selects
+          document
+            .querySelectorAll('form select[name="bean_rkey"]')
+            .forEach((sel) => {
+              if (newBean.rkey) sel.value = newBean.rkey;
+            });
         },
       });
 
@@ -130,13 +225,12 @@ document.addEventListener("alpine:init", () => {
           // Refresh dropdown data and repopulate
           await this.dropdownManager.invalidateAndRefresh();
 
-          // Select the new grinder
-          const grinderSelect = document.querySelector(
-            'form select[name="grinder_rkey"]',
-          );
-          if (grinderSelect && newGrinder.rkey) {
-            grinderSelect.value = newGrinder.rkey;
-          }
+          // Select the new grinder in all matching selects
+          document
+            .querySelectorAll('form select[name="grinder_rkey"]')
+            .forEach((sel) => {
+              if (newGrinder.rkey) sel.value = newGrinder.rkey;
+            });
         },
       });
 
@@ -160,22 +254,18 @@ document.addEventListener("alpine:init", () => {
           // Refresh dropdown data and repopulate
           await this.dropdownManager.invalidateAndRefresh();
 
-          // Select the new brewer
-          const brewerSelect = document.querySelector(
-            'form select[name="brewer_rkey"]',
-          );
-          if (brewerSelect && newBrewer.rkey) {
-            brewerSelect.value = newBrewer.rkey;
-          }
+          // Select the new brewer in all matching selects
+          document
+            .querySelectorAll('form select[name="brewer_rkey"]')
+            .forEach((sel) => {
+              if (newBrewer.rkey) sel.value = newBrewer.rkey;
+            });
         },
       });
     },
 
     // Recipe autofill
     async applyRecipe(rkey) {
-      // Use $root (the x-data element) to find the form, since $el in event
-      // handlers points to the element with the directive (e.g. the select),
-      // not the component root.
       const root = this.$root || this.$el;
       const form = root.querySelector("form") || root.closest("form");
       if (!form) return;
@@ -183,34 +273,57 @@ document.addEventListener("alpine:init", () => {
       // If no recipe selected, clear all recipe-populated fields
       if (!rkey) {
         this.clearRecipeFields(form);
+        this.activeRecipe = null;
+        this.recipeSummaryExpanded = false;
+        this.updatePoursVisibility();
         return;
       }
 
       try {
-        const resp = await fetch(`/api/recipes/${rkey}`, { credentials: "same-origin" });
+        const resp = await fetch(`/api/recipes/${rkey}`, {
+          credentials: "same-origin",
+        });
         if (!resp.ok) return;
         const recipe = await resp.json();
 
+        // Store recipe data for summary display
+        this.activeRecipe = recipe;
+        this.recipeSummaryExpanded = false;
+
         // Set or clear each field based on recipe data
-        this.setFormField(form, "coffee_amount", recipe.coffee_amount > 0 ? Math.round(recipe.coffee_amount) : "");
-        this.setFormField(form, "water_amount", recipe.water_amount > 0 ? Math.round(recipe.water_amount) : "");
+        this.setFormField(
+          form,
+          "coffee_amount",
+          recipe.coffee_amount > 0 ? Math.round(recipe.coffee_amount) : "",
+        );
+        this.setFormField(
+          form,
+          "water_amount",
+          recipe.water_amount > 0 ? Math.round(recipe.water_amount) : "",
+        );
         this.setFormField(form, "brewer_rkey", recipe.brewer_rkey || "");
 
         // Always reset pours, then apply recipe pours if present
-        this.pours = (recipe.pours && recipe.pours.length > 0)
-          ? recipe.pours.map(p => ({ water: p.water_amount || "", time: p.time_seconds || "" }))
-          : [];
+        this.pours =
+          recipe.pours && recipe.pours.length > 0
+            ? recipe.pours.map((p) => ({
+                water: p.water_amount || "",
+                time: p.time_seconds || "",
+              }))
+            : [];
+
+        this.updatePoursVisibility();
       } catch (e) {
         console.error("Failed to apply recipe:", e);
       }
     },
 
     setFormField(form, name, value) {
-      const el = form.querySelector(`[name="${name}"]`);
-      if (el) {
+      // Set all matching fields (both mode sections have their own inputs)
+      form.querySelectorAll(`[name="${name}"]`).forEach((el) => {
         el.value = value;
         el.dispatchEvent(new Event("input", { bubbles: true }));
-      }
+      });
     },
 
     clearRecipeFields(form) {
@@ -360,7 +473,10 @@ document.addEventListener("alpine:init", () => {
         // Interpolate water from pours if not set
         let water = recipe.water_amount || 0;
         if (water === 0 && recipe.pours && recipe.pours.length > 0) {
-          water = recipe.pours.reduce((sum, p) => sum + (p.water_amount || 0), 0);
+          water = recipe.pours.reduce(
+            (sum, p) => sum + (p.water_amount || 0),
+            0,
+          );
         }
 
         // Text filter
