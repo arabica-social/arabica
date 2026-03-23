@@ -75,3 +75,14 @@ categories: [spec, lexicon]
    For links between a brew and recipe, which should have the optional ref?
    Probably brew, but should a recipe contain a ref to the original brew that it
    /may/ have been saved from.
+
+** Alternate Recipe Design
+
+   Recipes only contain minimal structure and are more freeform, (build a custom
+   recipe), with just a content field in the lexicon that contains arbitrary
+   content that can be customized as desired. This leads to more utility that
+   what just a pourover recipe provides (e.g. maybe milk drink stuff for
+   espresso?).
+
+   This would require some sort of recipe customizer page that allows adding
+   arbitrary key-value pairs (or pours/refs to gear/beans).
