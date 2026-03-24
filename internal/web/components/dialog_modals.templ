@@ -574,13 +574,6 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 					step="0.1"
 					class="w-full form-input"
 				/>
-				<input
-					type="text"
-					name="grind_size"
-					value={ getStringValue(recipe, "grind_size") }
-					placeholder="Grind Size (e.g., Medium, 18, Fine)"
-					class="w-full form-input"
-				/>
 				<!-- Pours -->
 				<div>
 					<div class="flex items-center justify-between mb-2">
@@ -818,8 +811,6 @@ func getStringValue(entity interface{}, field string) string {
 			return e.Name
 		case "brewer_type":
 			return e.BrewerType
-		case "grind_size":
-			return e.GrindSize
 		case "notes":
 			return e.Notes
 		case "coffee_amount":

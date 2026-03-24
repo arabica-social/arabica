@@ -53,9 +53,6 @@ templ RecipeViewCard(props RecipeViewProps) {
 			if props.Recipe.Ratio > 0 {
 				@components.DetailField(components.DetailFieldProps{Label: "⚖️ Ratio", Value: fmt.Sprintf("1:%.1f", props.Recipe.Ratio)})
 			}
-			if props.Recipe.GrindSize != "" {
-				@components.DetailField(components.DetailFieldProps{Label: "🔧 Grind Size", Value: props.Recipe.GrindSize})
-			}
 			if props.Recipe.BrewerObj != nil {
 				@components.DetailField(components.DetailFieldProps{
 					Label:    "🫖 Brewer",

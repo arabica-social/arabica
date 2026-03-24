@@ -194,7 +194,6 @@ document.addEventListener("alpine:init", () => {
         // Set or clear each field based on recipe data
         this.setFormField(form, "coffee_amount", recipe.coffee_amount > 0 ? Math.round(recipe.coffee_amount) : "");
         this.setFormField(form, "water_amount", recipe.water_amount > 0 ? Math.round(recipe.water_amount) : "");
-        this.setFormField(form, "grind_size", recipe.grind_size || "");
         this.setFormField(form, "brewer_rkey", recipe.brewer_rkey || "");
 
         // Always reset pours, then apply recipe pours if present
@@ -217,7 +216,6 @@ document.addEventListener("alpine:init", () => {
     clearRecipeFields(form) {
       this.setFormField(form, "coffee_amount", "");
       this.setFormField(form, "water_amount", "");
-      this.setFormField(form, "grind_size", "");
       this.setFormField(form, "brewer_rkey", "");
       this.pours = [];
     },

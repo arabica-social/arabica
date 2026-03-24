@@ -328,9 +328,6 @@ templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 			if recipe.WaterAmount > 0 {
 				<span>💧 { fmt.Sprintf("%.1fg water", recipe.WaterAmount) }</span>
 			}
-			if recipe.GrindSize != "" {
-				<span>🔧 { recipe.GrindSize }</span>
-			}
 			if recipe.BrewerObj != nil {
 				<span>🫖 { recipe.BrewerObj.Name }</span>
 			} else if recipe.BrewerType != "" {

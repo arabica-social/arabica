@@ -31,7 +31,6 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 			Name:        r.FormValue("name"),
 			BrewerRKey:  r.FormValue("brewer_rkey"),
 			BrewerType:  r.FormValue("brewer_type"),
-			GrindSize:  r.FormValue("grind_size"),
 			Notes:      r.FormValue("notes"),
 			SourceRef:   r.FormValue("source_ref"),
 		}
@@ -95,7 +94,6 @@ func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 			Name:        r.FormValue("name"),
 			BrewerRKey:  r.FormValue("brewer_rkey"),
 			BrewerType:  r.FormValue("brewer_type"),
-			GrindSize:  r.FormValue("grind_size"),
 			Notes:      r.FormValue("notes"),
 		}
 		if v := r.FormValue("coffee_amount"); v != "" {
@@ -223,7 +221,6 @@ func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Requ
 		BrewerRKey:   brew.BrewerRKey,
 		CoffeeAmount: float64(brew.CoffeeAmount),
 		WaterAmount:  float64(brew.WaterAmount),
-		GrindSize:    brew.GrindSize,
 	}
 
 	// Copy pours
@@ -343,7 +340,6 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		BrewerType:   brewerType,
 		CoffeeAmount: sourceRecipe.CoffeeAmount,
 		WaterAmount:  sourceRecipe.WaterAmount,
-		GrindSize:    sourceRecipe.GrindSize,
 		Notes:        sourceRecipe.Notes,
 		SourceRef:    sourceURI,
 	}

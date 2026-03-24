@@ -31,9 +31,6 @@ func RecipeToRecord(recipe *models.Recipe, brewerURI string) (map[string]interfa
 	if recipe.WaterAmount > 0 {
 		record["waterAmount"] = int(recipe.WaterAmount * 10)
 	}
-	if recipe.GrindSize != "" {
-		record["grindSize"] = recipe.GrindSize
-	}
 	if recipe.Notes != "" {
 		record["notes"] = recipe.Notes
 	}
@@ -91,9 +88,6 @@ func RecordToRecipe(record map[string]interface{}, atURI string) (*models.Recipe
 	}
 	if waterAmount, ok := record["waterAmount"].(float64); ok {
 		recipe.WaterAmount = waterAmount / 10.0
-	}
-	if grindSize, ok := record["grindSize"].(string); ok {
-		recipe.GrindSize = grindSize
 	}
 	if notes, ok := record["notes"].(string); ok {
 		recipe.Notes = notes

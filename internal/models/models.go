@@ -100,7 +100,6 @@ type Recipe struct {
 	BrewerType   string    `json:"brewer_type"`
 	CoffeeAmount float64   `json:"coffee_amount"`
 	WaterAmount  float64   `json:"water_amount"`
-	GrindSize    string    `json:"grind_size"`
 	Notes        string    `json:"notes"`
 	SourceRef    string    `json:"source_ref,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
@@ -230,7 +229,6 @@ type CreateRecipeRequest struct {
 	BrewerType   string           `json:"brewer_type"`
 	CoffeeAmount float64          `json:"coffee_amount"`
 	WaterAmount  float64          `json:"water_amount"`
-	GrindSize    string           `json:"grind_size"`
 	Notes        string           `json:"notes"`
 	SourceRef    string           `json:"source_ref,omitempty"`
 	Pours        []CreatePourData `json:"pours"`
@@ -242,7 +240,6 @@ type UpdateRecipeRequest struct {
 	BrewerType   string           `json:"brewer_type"`
 	CoffeeAmount float64          `json:"coffee_amount"`
 	WaterAmount  float64          `json:"water_amount"`
-	GrindSize    string           `json:"grind_size"`
 	Notes        string           `json:"notes"`
 	Pours        []CreatePourData `json:"pours"`
 }
@@ -472,9 +469,6 @@ func (r *CreateRecipeRequest) Validate() error {
 	if len(r.BrewerType) > MaxBrewerTypeLength {
 		return ErrFieldTooLong
 	}
-	if len(r.GrindSize) > MaxGrindSizeLength {
-		return ErrFieldTooLong
-	}
 	if len(r.Notes) > MaxNotesLength {
 		return ErrNotesTooLong
 	}
@@ -490,9 +484,6 @@ func (r *UpdateRecipeRequest) Validate() error {
 		return ErrNameTooLong
 	}
 	if len(r.BrewerType) > MaxBrewerTypeLength {
-		return ErrFieldTooLong
-	}
-	if len(r.GrindSize) > MaxGrindSizeLength {
 		return ErrFieldTooLong
 	}
 	if len(r.Notes) > MaxNotesLength {

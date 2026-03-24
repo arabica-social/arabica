@@ -62,6 +62,9 @@ document.addEventListener("alpine:init", () => {
 
     getBrewerDisplay(recipe) {
       if (recipe.brewer_obj && recipe.brewer_obj.name) {
+        if (recipe.brewer_type) {
+          return recipe.brewer_obj.name + ' · ' + recipe.brewer_type;
+        }
         return recipe.brewer_obj.name;
       }
       return recipe.brewer_type || "-";

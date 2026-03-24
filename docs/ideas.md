@@ -15,7 +15,6 @@ specific cup. Recipes are the social object people want to discover and re-use.
 | `temperature`  | int (tenths °C)   | Same encoding as brew                            |
 | `coffeeAmount` | int (grams)       | Dose                                             |
 | `waterAmount`  | int (grams)       | Total water                                      |
-| `grindSize`    | string            | "medium-fine"                                    |
 | `timeSeconds`  | int               | Total brew time                                  |
 | `pours`        | array             | `[{waterAmount, timeSeconds}]` — pour schedule   |
 | `tags`         | []string          | Optional: ["fruity", "light roast", "comp-prep"] |

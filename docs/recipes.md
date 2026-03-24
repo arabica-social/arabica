@@ -30,7 +30,7 @@ other's workflow.
 ### Level 0: What We Have Now
 
 ```
-name, brewerRef, coffeeAmount, waterAmount, grindSize, pours[], notes
+name, brewerRef, coffeeAmount, waterAmount, pours[], notes
 ```
 
 Fixed schema. Works for pourover. Breaks for everything else. Pours are the
@@ -50,7 +50,6 @@ open union array for everything else.
 **Optional structured fields (queryable when present):**
 - `waterAmount` — total water (most methods, but not all — e.g., espresso
   yield is measured differently)
-- `grindSize` — text or numeric
 - `brewerRef` / `brewerType` — gear reference
 
 **Extensions (open union array):**
@@ -243,7 +242,6 @@ Core fields only, no extensions needed:
 name: "Daily V60"
 coffeeAmount: 180        (18.0g)
 waterAmount: 3000        (300.0g)  [if kept in core]
-grindSize: "Medium-Fine"
 brewerRef: at://did/...brewer/abc
 notes: "Standard recipe, nothing fancy"
 ```
@@ -258,7 +256,6 @@ Core fields plus steps:
 name: "Hoffmann V60"
 coffeeAmount: 150        (15.0g)
 waterAmount: 2500        (250.0g)
-grindSize: "Medium"
 brewerRef: at://did/...brewer/abc
 
 parameters:
@@ -355,7 +352,7 @@ fields.
 
 The current lexicon can evolve to Level 2 without breaking existing records:
 
-1. Existing fields (`coffeeAmount`, `waterAmount`, `grindSize`, `brewerRef`,
+1. Existing fields (`coffeeAmount`, `waterAmount`, `brewerRef`,
    `brewerType`, `pours`) remain and continue to work
 2. Add `parameters` and `steps` as new optional array fields
 3. Existing `pours` could be deprecated in favor of `steps` with `#pourStep`,
@@ -382,7 +379,6 @@ No data migration needed. Old records just lack the new fields.
           "name": { "type": "string", "maxLength": 200 },
           "coffeeAmount": { "type": "integer", "minimum": 0 },
           "waterAmount": { "type": "integer", "minimum": 0 },
-          "grindSize": { "type": "string", "maxLength": 100 },
           "brewerRef": { "type": "string", "format": "at-uri" },
           "brewerType": { "type": "string", "maxLength": 100 },
           "parameters": {

@@ -27,7 +27,6 @@ categories: [spec, lexicon]
    - `brewerType` (string)
    - `coffeeAmount` (int -- should be * 10 but isn't)
    - `waterAmount` (int * 10)
-   - `grindSize` (int * 10)
    - `pours` (array of `#pour`) (references {*** Pour Schema})`
    - `notes`: (string) reeform description field
 

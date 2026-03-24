@@ -334,7 +334,6 @@ templ RecipesTable(props RecipesTableProps) {
 						<th class="table-th whitespace-nowrap">Name</th>
 						<th class="table-th whitespace-nowrap">Coffee</th>
 						<th class="table-th whitespace-nowrap">Water</th>
-						<th class="table-th whitespace-nowrap">Grind</th>
 						<th class="table-th whitespace-nowrap">Brewer</th>
 						if props.ShowActions {
 							<th class="table-th whitespace-nowrap">Actions</th>
@@ -357,13 +356,6 @@ templ RecipesTable(props RecipesTableProps) {
 							<td class="px-6 py-4 text-sm text-brown-900">
 								if recipe.WaterAmount > 0 {
 									{ fmt.Sprintf("%.1fg", recipe.WaterAmount) }
-								} else {
-									<span class="text-brown-400">-</span>
-								}
-							</td>
-							<td class="px-6 py-4 text-sm text-brown-900">
-								if recipe.GrindSize != "" {
-									{ recipe.GrindSize }
 								} else {
 									<span class="text-brown-400">-</span>
 								}

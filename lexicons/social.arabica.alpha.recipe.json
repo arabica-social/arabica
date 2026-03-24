@@ -35,11 +35,6 @@
             "minimum": 0,
             "description": "Amount of water in tenths of grams (e.g., 3000 = 300.0g)"
           },
-          "grindSize": {
-            "type": "string",
-            "maxLength": 100,
-            "description": "Grind size setting (can be numeric like '18' or descriptive like 'Medium-Fine')"
-          },
           "pours": {
             "type": "array",
             "description": "Array of pour information for multi-pour methods",

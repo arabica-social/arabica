@@ -914,10 +914,6 @@ func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, re
 	if recipe.WaterAmount > 0 {
 		descParts = append(descParts, fmt.Sprintf("%.0fg water", recipe.WaterAmount))
 	}
-	if recipe.GrindSize != "" {
-		descParts = append(descParts, recipe.GrindSize+" grind")
-	}
-
 	var ogDescription string
 	if len(descParts) > 0 {
 		ogDescription = strings.Join(descParts, " · ")

@@ -445,9 +445,6 @@ templ FeedRecipeContent(item *feed.FeedItem) {
 				if item.Recipe.WaterAmount > 0 {
 					<span class="inline-flex items-center gap-0.5">💧 { fmt.Sprintf("%.1fg", item.Recipe.WaterAmount) }</span>
 				}
-				if item.Recipe.GrindSize != "" {
-					<span class="inline-flex items-center gap-0.5">🔧 { item.Recipe.GrindSize }</span>
-				}
 				if item.Recipe.BrewerObj != nil {
 					<span class="inline-flex items-center gap-0.5">🫖 { item.Recipe.BrewerObj.Name }</span>
 				} else if item.Recipe.BrewerType != "" {
