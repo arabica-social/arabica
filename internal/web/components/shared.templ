@@ -390,3 +390,30 @@ func avatarTextClass(size string) string {
 		return "avatar-text-md"
 	}
 }
+
+// RecipeAlphaWarning displays a warning banner about recipes being in early alpha.
+// TODO: remove this later once recipes are stable
+templ RecipeAlphaWarning() {
+	<div class="rounded-lg border-2 border-amber-400 bg-amber-50 p-4 mb-6">
+		<div class="flex items-start gap-3">
+			<span class="text-xl leading-none mt-0.5">&#9888;&#65039;</span>
+			<div class="text-sm text-amber-900">
+				<p class="font-bold text-base mb-1">Recipes are in early alpha</p>
+				<p class="mb-2">
+					The recipe format may change significantly as we figure out what works best (e.g. it 
+					may be completely redesigned from the ground up with a more powerful recipe creator system).
+					If that happens, your brews won't break &ndash; brew fields are
+					filled in from the recipe at creation time, so they stand on their own. Only the
+					recipe record itself would need to be recreated.
+				</p>
+				<p class="mb-2">
+					Feedback is very welcome! Arabica has had a pourover bias so far (due to its developer's preferences),
+					so input from espresso folks is especially appreciated.
+				</p>
+				<p class="text-xs text-amber-700">
+					If you have feedback or suggestions (or comments) reach out on Bluesky or open an issue on Tangled or GitHub.
+				</p>
+			</div>
+		</div>
+	</div>
+}

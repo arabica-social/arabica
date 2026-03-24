@@ -92,6 +92,9 @@ templ RecipeSelectField(props BrewFormProps) {
 	<div>
 		<label class="form-label">Recipe (Optional)</label>
 		<p class="text-sm text-brown-600 mb-2">Select a recipe to autofill brew parameters</p>
+		<div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 mb-2 text-xs text-amber-800">
+			Recipes are in early alpha &mdash; the format may change. Your brew data won't be affected.
+		</div>
 		<!-- Category filter chips -->
 		<div class="flex flex-wrap gap-1.5 mb-2">
 			<button
@@ -128,13 +131,15 @@ templ RecipeSelectField(props BrewFormProps) {
 			</button>
 		</div>
 		<!-- Search input -->
-		<input
-			type="text"
-			x-model="searchQuery"
-			@input="filterRecipes()"
-			placeholder="Search recipes..."
-			class="w-full form-input mb-2 text-sm"
-		/>
+		// TODO: maybe enable this down the line. 
+		// Would be nice if it suggested from other people's recipes as well and worked similar to the handle autocomplete.
+		// <input
+		// 	type="text"
+		// 	x-model="searchQuery"
+		// 	@input="filterRecipes()"
+		// 	placeholder="Search recipes..."
+		// 	class="w-full form-input mb-2 text-sm"
+		// />
 		<!-- Recipe select + New button -->
 		<div class="flex gap-2">
 			<select

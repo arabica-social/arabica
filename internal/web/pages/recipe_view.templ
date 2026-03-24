@@ -35,6 +35,7 @@ templ RecipeView(layout *components.LayoutData, props RecipeViewProps) {
 
 templ RecipeViewContent(props RecipeViewProps) {
 	<div class="page-container-sm">
+		@components.RecipeAlphaWarning()
 		@components.Card(components.CardProps{InnerCard: true}, RecipeViewCard(props))
 	</div>
 }

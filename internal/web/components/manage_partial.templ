@@ -119,6 +119,7 @@ templ ManageBrewersTab(brewers []*models.Brewer) {
 // ManageRecipesTab renders the recipes tab content
 templ ManageRecipesTab(recipes []*models.Recipe) {
 	<div x-show="tab === 'recipes'">
+		@RecipeAlphaWarning()
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Recipes</h3>
 			<button
