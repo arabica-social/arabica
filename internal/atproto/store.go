@@ -856,6 +856,7 @@ func (s *AtprotoStore) CreateBean(ctx context.Context, bean *models.CreateBeanRe
 		Process:     bean.Process,
 		Description: bean.Description,
 		RoasterRKey: bean.RoasterRKey,
+		Rating:      bean.Rating,
 		SourceRef:   bean.SourceRef,
 		CreatedAt:   time.Now().UTC(),
 	}
@@ -1064,6 +1065,7 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 		Process:     bean.Process,
 		Description: bean.Description,
 		RoasterRKey: bean.RoasterRKey,
+		Rating:      bean.Rating,
 		Closed:      bean.Closed,
 		SourceRef:   bean.SourceRef,
 		CreatedAt:   existing.CreatedAt,

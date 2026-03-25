@@ -2,6 +2,7 @@ package components
 
 import (
 	"arabica/internal/models"
+	"arabica/internal/web/bff"
 	"fmt"
 )
 
@@ -88,6 +89,12 @@ templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string) {
 					<span class="inline-flex items-center gap-1">
 					@IconSprout()
 					{ bean.Process }
+				</span>
+				}
+				if bean.Rating != nil {
+					<span class="inline-flex items-center gap-1">
+					@IconStar()
+					{ bff.FormatBeanRating(bean.Rating) }
 				</span>
 				}
 			</div>

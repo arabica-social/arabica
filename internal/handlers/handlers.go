@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"arabica/internal/atproto"
@@ -160,6 +161,18 @@ func decodeRequest(r *http.Request, target interface{}, parseForm func() error) 
 		}
 	}
 	return nil
+}
+
+// parseOptionalInt parses a form value as *int. Returns nil for empty strings.
+func parseOptionalInt(s string) *int {
+	if s == "" {
+		return nil
+	}
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return nil
+	}
+	return &v
 }
 
 // writeJSON encodes and writes a JSON response

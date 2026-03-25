@@ -139,6 +139,41 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 					rows="3"
 					class="w-full form-textarea"
 				>{ getStringValue(bean, "description") }</textarea>
+				<div x-data={ beanRatingInitData(bean) }>
+					<div x-show="!showRating">
+						<button
+							type="button"
+							@click="showRating = true; if (rating === 0) rating = 5"
+							class="text-sm font-medium text-brown-700 hover:text-brown-900 flex items-center gap-1"
+						>
+							@IconStar()
+							Add Rating (Optional)
+						</button>
+					</div>
+					<div x-show="showRating" x-transition class="space-y-2">
+						<div class="flex items-center justify-between">
+							<label class="form-label mb-0">Rating</label>
+							<button
+								type="button"
+								@click="showRating = false; rating = 0"
+								class="text-xs text-brown-500 hover:text-brown-700"
+							>
+								Remove rating
+							</button>
+						</div>
+						<input
+							type="range"
+							min="1"
+							max="10"
+							x-model.number="rating"
+							class="w-full accent-brown-700"
+						/>
+						<div class="text-center text-2xl font-bold text-brown-800">
+							<span x-text="rating"></span>/10
+						</div>
+						<input type="hidden" name="rating" :value="showRating ? rating : ''"/>
+					</div>
+				</div>
 				// Only show "close bag check" when editing
 				if bean != nil {
 					<div class="flex items-center gap-2">
@@ -743,6 +778,15 @@ templ ReportDialogModal(props ReportDialogModalProps) {
 			</template>
 		</div>
 	</dialog>
+}
+
+// beanRatingInitData returns Alpine.js x-data for the rating toggle.
+// If bean has a rating, the slider is shown with that value; otherwise hidden.
+func beanRatingInitData(bean *models.Bean) string {
+	if bean != nil && bean.Rating != nil {
+		return fmt.Sprintf("{ showRating: true, rating: %d }", *bean.Rating)
+	}
+	return "{ showRating: false, rating: 0 }"
 }
 
 // Helper function to get string value from bean (handles nil case)

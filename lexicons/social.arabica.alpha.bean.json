@@ -45,6 +45,12 @@
             "format": "at-uri",
             "description": "AT-URI reference to the roaster record (e.g., at://did:plc:abc/social.arabica.alpha.roaster/3jxy...)"
           },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "User rating of the bean (1-10 scale, optional)"
+          },
           "closed": {
             "type": "boolean",
             "description": "Whether the bag is closed/finished (default: false)"

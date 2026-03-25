@@ -194,6 +194,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
+			Rating:      parseOptionalInt(r.FormValue("rating")),
 			Closed:      r.FormValue("closed") == "true",
 			SourceRef:   r.FormValue("source_ref"),
 		}
@@ -325,6 +326,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
+			Rating:      parseOptionalInt(r.FormValue("rating")),
 			Closed:      r.FormValue("closed") == "true",
 			SourceRef:   r.FormValue("source_ref"),
 		}

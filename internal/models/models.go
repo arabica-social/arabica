@@ -36,6 +36,7 @@ var (
 	ErrNotesTooLong    = errors.New("notes is too long")
 	ErrOriginTooLong   = errors.New("origin is too long")
 	ErrFieldTooLong    = errors.New("field value is too long")
+	ErrRatingOutOfRange = errors.New("rating must be between 1 and 10")
 	ErrCommentRequired = errors.New("comment text is required")
 	ErrCommentTooLong  = errors.New("comment text is too long")
 )
@@ -50,7 +51,8 @@ type Bean struct {
 	Process     string    `json:"process"`
 	Description string    `json:"description"`
 	RoasterRKey string    `json:"roaster_rkey"` // AT Protocol reference
-	Closed      bool      `json:"closed"`       // Whether the bag is closed/finished
+	Rating      *int      `json:"rating,omitempty"` // User rating (1-10), nil means unrated
+	Closed      bool      `json:"closed"`           // Whether the bag is closed/finished
 	SourceRef   string    `json:"source_ref,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 
@@ -198,6 +200,7 @@ type CreateBeanRequest struct {
 	Process     string `json:"process"`
 	Description string `json:"description"`
 	RoasterRKey string `json:"roaster_rkey"`
+	Rating      *int   `json:"rating,omitempty"`
 	Closed      bool   `json:"closed"`
 	SourceRef   string `json:"source_ref,omitempty"`
 }
@@ -253,6 +256,7 @@ type UpdateBeanRequest struct {
 	Process     string `json:"process"`
 	Description string `json:"description"`
 	RoasterRKey string `json:"roaster_rkey"`
+	Rating      *int   `json:"rating,omitempty"`
 	Closed      bool   `json:"closed"`
 	SourceRef   string `json:"source_ref,omitempty"`
 }
@@ -339,6 +343,9 @@ func (r *CreateBeanRequest) Validate() error {
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
 	}
+	if r.Rating != nil && (*r.Rating < 1 || *r.Rating > 10) {
+		return ErrRatingOutOfRange
+	}
 	return nil
 }
 
@@ -364,6 +371,9 @@ func (r *UpdateBeanRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	if r.Rating != nil && (*r.Rating < 1 || *r.Rating > 10) {
+		return ErrRatingOutOfRange
 	}
 	return nil
 }

@@ -296,6 +296,9 @@ func BeanToRecord(bean *models.Bean, roasterURI string) (map[string]interface{},
 	if roasterURI != "" {
 		record["roasterRef"] = roasterURI
 	}
+	if bean.Rating != nil {
+		record["rating"] = *bean.Rating
+	}
 	// Always include closed field (defaults to false)
 	record["closed"] = bean.Closed
 	if bean.SourceRef != "" {
@@ -351,6 +354,10 @@ func RecordToBean(record map[string]interface{}, atURI string) (*models.Bean, er
 	}
 	if description, ok := record["description"].(string); ok {
 		bean.Description = description
+	}
+	if rating, ok := record["rating"].(float64); ok {
+		r := int(rating)
+		bean.Rating = &r
 	}
 	if closed, ok := record["closed"].(bool); ok {
 		bean.Closed = closed

@@ -60,6 +60,15 @@ func FormatRating(rating int) string {
 	return fmt.Sprintf("%d/10", rating)
 }
 
+// FormatBeanRating formats a bean's optional rating as "X/10".
+// Returns empty string if rating is nil (unrated).
+func FormatBeanRating(rating *int) string {
+	if rating == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d/10", *rating)
+}
+
 // PoursToJSON serializes a slice of pours to JSON for use in JavaScript.
 func PoursToJSON(pours []*models.Pour) string {
 	if len(pours) == 0 {

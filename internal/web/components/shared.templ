@@ -56,6 +56,12 @@ templ BeanSummary(props BeanSummaryProps) {
 				{ props.Bean.Process }
 			</span>
 			}
+			if props.Bean.Rating != nil {
+				<span class="inline-flex items-center gap-1">
+				@IconStar()
+				{ bff.FormatBeanRating(props.Bean.Rating) }
+			</span>
+			}
 			if props.CoffeeAmount > 0 {
 				<span class="inline-flex items-center gap-1">
 				@IconScale()
