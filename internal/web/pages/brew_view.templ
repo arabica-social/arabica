@@ -168,8 +168,8 @@ templ BrewParametersGrid(brew *models.Brew, owner string) {
 	<div class="grid grid-cols-2 gap-4">
 		@components.DetailField(components.DetailFieldProps{Icon: components.IconScale(), Label: "Coffee", Value: getCoffeeAmountDisplay(brew)})
 		@components.DetailField(components.DetailFieldProps{Icon: components.IconCoffee(), Label: "Brew Method", Value: getBrewerName(brew), LinkHref: getBrewerViewURL(brew, owner)})
-		@components.DetailField(components.DetailFieldProps{Label: "⚙️ Grinder", Value: getGrinderName(brew), LinkHref: getGrinderViewURL(brew, owner)})
-		@components.DetailField(components.DetailFieldProps{Label: "🔩 Grind Size", Value: getGrindSizeDisplay(brew)})
+		@components.DetailField(components.DetailFieldProps{Icon: components.IconGear(), Label: "Grinder", Value: getGrinderName(brew), LinkHref: getGrinderViewURL(brew, owner)})
+		@components.DetailField(components.DetailFieldProps{Icon: components.IconDisc(), Label: "Grind Size", Value: getGrindSizeDisplay(brew)})
 		@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Water", Value: getWaterAmountDisplay(brew)})
 		@components.DetailField(components.DetailFieldProps{Icon: components.IconThermometer(), Label: "Temperature", Value: getTemperatureDisplay(brew)})
 		<div class="col-span-2">

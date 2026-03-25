@@ -11,17 +11,18 @@ templ RoasterContent(roaster *models.Roaster) {
 		<div class="text-base mb-2">
 			<span class="font-bold text-brown-900">{ roaster.Name }</span>
 		</div>
-		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
 			if roaster.Location != "" {
-				<span class="inline-flex items-center gap-0.5">
+				<span class="inline-flex items-center gap-1">
 				@IconMapPin()
 				{ roaster.Location }
 			</span>
 			}
 			if roaster.Website != "" {
 				if safeWebsite := bff.SafeWebsiteURL(roaster.Website); safeWebsite != "" {
-					<span class="inline-flex items-center gap-0.5">
-						🔗 <a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="text-brown-800 hover:underline">{ safeWebsite }</a>
+					<span class="inline-flex items-center gap-1">
+						@IconGlobe()
+						<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="text-brown-800 hover:underline">{ safeWebsite }</a>
 					</span>
 				}
 			}

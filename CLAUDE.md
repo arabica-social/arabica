@@ -4,7 +4,9 @@ Coffee brew tracking application using AT Protocol for decentralized storage.
 
 ## Work Management
 
-This project uses **cells** for task tracking and coordination. Cells are atomic, dependency-aware units of work designed for coordination between humans and AI agents.
+This project uses **cells** for task tracking and coordination. Cells are
+atomic, dependency-aware units of work designed for coordination between humans
+and AI agents.
 
 **For usage instructions, see:** `.cells/AGENTS.md`
 
@@ -14,31 +16,52 @@ Quick reference for AI agents:
 - `./cells list --status open` - Show available work
 - `./cells show <cell-id>` - View cell details
 
-**Note:** Do NOT use `./cells run` - this spawns a new agent session and should only be used by humans. AI agents should inspect cells using the commands above and perform work directly.
+**Note:** Do NOT use `./cells run` - this spawns a new agent session and should
+only be used by humans. AI agents should inspect cells using the commands above
+and perform work directly.
 
-All work items are tracked as cells. When starting new work, check for existing cells first.
+All work items are tracked as cells. When starting new work, check for existing
+cells first.
 
 ## Workflow Rules
 
-Do NOT spend more than 2-3 minutes exploring/reading files before beginning implementation. If the task is clear, start writing code immediately. Ask clarifying questions rather than endlessly reading the codebase. When given a specific implementation task, produce code changes in the same session.
+Do NOT spend more than 2-3 minutes exploring/reading files before beginning
+implementation. If the task is clear, start writing code immediately. Ask
+clarifying questions rather than endlessly reading the codebase. When given a
+specific implementation task, produce code changes in the same session.
 
 ## Dependencies
 
-When implementing features, prefer standard library solutions over external dependencies. Only add a third-party dependency if the standard library genuinely cannot handle the requirement. For Go: check stdlib first (e.g., os.Stdout for TTY detection). For JS/TS: check built-in APIs before npm packages.
+When implementing features, prefer standard library solutions over external
+dependencies. Only add a third-party dependency if the standard library
+genuinely cannot handle the requirement. For Go: check stdlib first (e.g.,
+os.Stdout for TTY detection). For JS/TS: check built-in APIs before npm
+packages.
 
 ## Task Agents
 
-When spawning task agents, set a hard limit of 3 agents maximum. Each agent must have a clearly scoped deliverable and file output path. Do not poll agents in a loop—instead, give each agent its full instructions upfront and collect results at the end. If agents aren't producing results within 5 minutes, fall back to doing the work directly.
+When spawning task agents, set a hard limit of 3 agents maximum. Each agent must
+have a clearly scoped deliverable and file output path. Do not poll agents in a
+loop—instead, give each agent its full instructions upfront and collect results
+at the end. If agents aren't producing results within 5 minutes, fall back to
+doing the work directly.
 
 ## Testing & Verification
 
-For Go projects: always run `go vet ./...` and `go build ./...` after making changes. For JavaScript/CSS projects: verify template field names match backend struct fields before considering a task complete. Always test form submissions to verify content-type handling (JSON vs form-encoded).
+For Go projects: always run `go vet ./...` and `go build ./...` after making
+changes. For JavaScript/CSS projects: verify template field names match backend
+struct fields before considering a task complete. Always test form submissions
+to verify content-type handling (JSON vs form-encoded).
 
 ### Using Go Tooling Effectively
 
-- To see source files from a dependency, or to answer questions about a dependency, run `go mod download -json MODULE` and use the returned `Dir` path to read the files.
-- Use `go doc foo.Bar` or `go doc -all foo` to read documentation for packages, types, functions, etc.
-- Use `go run .` or `go run ./cmd/foo` instead of `go build` to run programs, to avoid leaving behind build artifacts.
+- To see source files from a dependency, or to answer questions about a
+  dependency, run `go mod download -json MODULE` and use the returned `Dir` path
+  to read the files.
+- Use `go doc foo.Bar` or `go doc -all foo` to read documentation for packages,
+  types, functions, etc.
+- Use `go run .` or `go run ./cmd/foo` instead of `go build` to run programs, to
+  avoid leaving behind build artifacts.
 
 ## Tech Stack
 
@@ -130,7 +153,8 @@ User data stored in their Personal Data Server (PDS), not locally. The app:
 
 **Record keys:** TID format (timestamp-based identifiers)
 
-**References:** Records reference each other via AT-URIs (`at://did/collection/rkey`)
+**References:** Records reference each other via AT-URIs
+(`at://did/collection/rkey`)
 
 ### Store Interface
 
@@ -163,20 +187,25 @@ User records are backfilled from their PDS once per DID:
 
 - **On startup**: Backfills registered users + known-dids file
 - **On first login**: Backfills the user's historical records
-- **Deduplication**: Tracks backfilled DIDs in `BucketBackfilled` to prevent redundant fetches
+- **Deduplication**: Tracks backfilled DIDs in `BucketBackfilled` to prevent
+  redundant fetches
 - **Idempotent**: Safe to call multiple times (checks backfill status first)
 
-This prevents excessive PDS requests while ensuring new users' historical data is indexed.
+This prevents excessive PDS requests while ensuring new users' historical data
+is indexed.
 
 ## Templ Architecture
 
-The application uses [Templ](https://templ.guide/) for type-safe, component-based HTML templating. Templ generates Go code at compile time, providing full type safety and IDE support.
+The application uses [Templ](https://templ.guide/) for type-safe,
+component-based HTML templating. Templ generates Go code at compile time,
+providing full type safety and IDE support.
 
 ### Component Structure
 
 Components are organized into two categories:
 
-**Pages** (`internal/web/pages/`) - Full-page components that compose the layout with content:
+**Pages** (`internal/web/pages/`) - Full-page components that compose the layout
+with content:
 
 - Each page component accepts `LayoutData` and page-specific props
 - Pattern: `PageName(layoutData *components.LayoutData, props PageProps)`
@@ -185,7 +214,8 @@ Components are organized into two categories:
 **Components** (`internal/web/components/`) - Reusable UI building blocks:
 
 - `layout.templ` - Base HTML layout with head, body, header, footer
-- `shared.templ` - Common UI elements (EmptyState, PageHeader, LoadingSkeletonTable, etc.)
+- `shared.templ` - Common UI elements (EmptyState, PageHeader,
+  LoadingSkeletonTable, etc.)
 - `buttons.templ` - PrimaryButton, SecondaryButton, BackButton
 - `forms.templ` - TextInput, NumberInput, TextArea, Select, FormField
 - `modal.templ` - Modal dialogs with Alpine.js integration
@@ -194,7 +224,8 @@ Components are organized into two categories:
 
 ### LayoutData Pattern
 
-Every page shares a common `LayoutData` struct that contains authentication state and user information:
+Every page shares a common `LayoutData` struct that contains authentication
+state and user information:
 
 ```go
 type LayoutData struct {
@@ -206,7 +237,8 @@ type LayoutData struct {
 }
 ```
 
-This data flows from handlers to the layout component, ensuring consistent header/footer rendering across all pages.
+This data flows from handlers to the layout component, ensuring consistent
+header/footer rendering across all pages.
 
 ### Handler Integration
 
@@ -245,7 +277,8 @@ func (h *Handler) HandlePageName(w http.ResponseWriter, r *http.Request) {
 
 ### The Render(r.Context(), w) Pattern
 
-All templ components implement the `templ.Component` interface, which includes a `Render(ctx context.Context, w io.Writer)` method. This method:
+All templ components implement the `templ.Component` interface, which includes a
+`Render(ctx context.Context, w io.Writer)` method. This method:
 
 - Takes the request context for cancellation/timeout support
 - Writes directly to the http.ResponseWriter
@@ -424,7 +457,11 @@ templ generate --watch
 
 The generated `*_templ.go` should be regenerated whenever `.templ` files change.
 
-Templ files must use tabs rather than spaces. **Never use spaces for indentation in `.templ` files** — the templ parser will error with a parse failure. This applies when writing new components, editing existing ones, and constructing multi-line template strings. A post-edit hook runs `templ fmt` automatically to catch any accidental spaces.
+Templ files must use tabs rather than spaces. **Never use spaces for indentation
+in `.templ` files** — the templ parser will error with a parse failure. This
+applies when writing new components, editing existing ones, and constructing
+multi-line template strings. A post-edit hook runs `templ fmt` automatically to
+catch any accidental spaces.
 
 ## Command-Line Flags
 
@@ -442,19 +479,19 @@ Templ files must use tabs rather than spaces. **Never use spaces for indentation
 
 ## Environment Variables
 
-| Variable                    | Default                              | Description                      |
-| --------------------------- | ------------------------------------ | -------------------------------- |
-| `PORT`                      | 18910                                | HTTP server port                 |
-| `SERVER_PUBLIC_URL`         | -                                    | Public URL for reverse proxy     |
-| `ARABICA_DB_PATH`           | ~/.local/share/arabica/arabica.db    | BoltDB path (sessions, registry) |
-| `ARABICA_FEED_INDEX_PATH`   | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path       |
-| `ARABICA_MODERATORS_CONFIG` | -                                    | Path to moderators JSON config   |
-| `ARABICA_PROFILE_CACHE_TTL` | 1h                                   | Profile cache duration           |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | localhost:4318                      | OTLP HTTP endpoint for traces    |
-| `METRICS_PORT`              | 9101                                 | Internal metrics server port (localhost only) |
-| `SECURE_COOKIES`            | false                                | Set true for HTTPS               |
-| `LOG_LEVEL`                 | info                                 | debug/info/warn/error            |
-| `LOG_FORMAT`                | console                              | console/json                     |
+| Variable                      | Default                              | Description                                   |
+| ----------------------------- | ------------------------------------ | --------------------------------------------- |
+| `PORT`                        | 18910                                | HTTP server port                              |
+| `SERVER_PUBLIC_URL`           | -                                    | Public URL for reverse proxy                  |
+| `ARABICA_DB_PATH`             | ~/.local/share/arabica/arabica.db    | BoltDB path (sessions, registry)              |
+| `ARABICA_FEED_INDEX_PATH`     | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path                    |
+| `ARABICA_MODERATORS_CONFIG`   | -                                    | Path to moderators JSON config                |
+| `ARABICA_PROFILE_CACHE_TTL`   | 1h                                   | Profile cache duration                        |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | localhost:4318                       | OTLP HTTP endpoint for traces                 |
+| `METRICS_PORT`                | 9101                                 | Internal metrics server port (localhost only) |
+| `SECURE_COOKIES`              | false                                | Set true for HTTPS                            |
+| `LOG_LEVEL`                   | info                                 | debug/info/warn/error                         |
+| `LOG_FORMAT`                  | console                              | console/json                                  |
 
 ## Code Patterns
 
@@ -558,7 +595,9 @@ func (h *Handler) HandleBrewsPartial(w http.ResponseWriter, r *http.Request) {
 
 ### Testing Conventions
 
-**IMPORTANT:** All tests in this codebase MUST use [testify/assert](https://github.com/stretchr/testify) for assertions. Do NOT use `if` statements with `t.Error()` or `t.Errorf()`.
+**IMPORTANT:** All tests in this codebase MUST use
+[testify/assert](https://github.com/stretchr/testify) for assertions. Do NOT use
+`if` statements with `t.Error()` or `t.Errorf()`.
 
 ```go
 // CORRECT: Use testify assert
@@ -608,7 +647,8 @@ func TestFormatTemp(t *testing.T) {
 
 ## Future Vision: Social Features
 
-The app currently has a basic community feed. Future plans expand social interactions leveraging AT Protocol's decentralized nature.
+The app currently has a basic community feed. Future plans expand social
+interactions leveraging AT Protocol's decentralized nature.
 
 ### Planned Lexicons
 
@@ -701,22 +741,26 @@ social.arabica.alpha.share     - Re-share a brew to your feed
 
 ### Key Design Decisions
 
-1. **Strong references** - Likes/comments use `com.atproto.repo.strongRef` (URI + CID) to ensure the referenced brew hasn't changed
+1. **Strong references** - Likes/comments use `com.atproto.repo.strongRef`
+   (URI + CID) to ensure the referenced brew hasn't changed
 2. **Actor-owned data** - Your likes live in your PDS, not the brew owner's
-3. **Public by default** - Social interactions are public records, readable by anyone
+3. **Public by default** - Social interactions are public records, readable by
+   anyone
 4. **Portable identity** - Users can switch PDS and keep their social graph
 
 ## Deployment Notes
 
 ### CSS Cache Busting
 
-When making CSS/style changes, bump the version query parameter in `internal/web/components/layout.templ`:
+When making CSS/style changes, bump the version query parameter in
+`internal/web/components/layout.templ`:
 
 ```html
 <link rel="stylesheet" href="/static/css/output.css?v=0.1.3" />
 ```
 
-Cloudflare caches static assets, so incrementing the version ensures users get the updated styles.
+Cloudflare caches static assets, so incrementing the version ensures users get
+the updated styles.
 
 ### Templ Code Generation
 
@@ -730,4 +774,5 @@ templ generate
 nix develop -c templ generate
 ```
 
-This is automatically handled by the build process, but you may need to run it manually during development.
+This is automatically handled by the build process, but you may need to run it
+manually during development.

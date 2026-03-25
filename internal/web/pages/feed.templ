@@ -354,33 +354,33 @@ templ FeedBrewContent(item *feed.FeedItem) {
 						</div>
 						if item.Brew.Bean.Roaster != nil && item.Brew.Bean.Roaster.Name != "" {
 							<div class="text-sm text-brown-700 mt-0.5">
-								<span class="inline-flex items-center gap-0.5 font-medium">
+								<span class="inline-flex items-center gap-1 font-medium">
 								@components.IconStore()
 								{ item.Brew.Bean.Roaster.Name }
 							</span>
 							</div>
 						}
-						<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+						<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
 							if item.Brew.Bean.Origin != "" {
-								<span class="inline-flex items-center gap-0.5">
+								<span class="inline-flex items-center gap-1">
 								@components.IconMapPin()
 								{ item.Brew.Bean.Origin }
 							</span>
 							}
 							if item.Brew.Bean.RoastLevel != "" {
-								<span class="inline-flex items-center gap-0.5">
+								<span class="inline-flex items-center gap-1">
 								@components.IconFlame()
 								{ item.Brew.Bean.RoastLevel }
 							</span>
 							}
 							if item.Brew.Bean.Process != "" {
-								<span class="inline-flex items-center gap-0.5">
+								<span class="inline-flex items-center gap-1">
 								@components.IconSprout()
 								{ item.Brew.Bean.Process }
 							</span>
 							}
 							if item.Brew.CoffeeAmount > 0 {
-								<span class="inline-flex items-center gap-0.5">
+								<span class="inline-flex items-center gap-1">
 								@components.IconScale()
 								{ fmt.Sprintf("%dg", item.Brew.CoffeeAmount) }
 							</span>
@@ -462,26 +462,26 @@ templ FeedRecipeContent(item *feed.FeedItem) {
 			<div class="text-base mb-2">
 				<span class="font-bold text-brown-900">{ item.Recipe.Name }</span>
 			</div>
-			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
 				if item.Recipe.CoffeeAmount > 0 {
-					<span class="inline-flex items-center gap-0.5">
+					<span class="inline-flex items-center gap-1">
 					@components.IconCoffee()
 					{ fmt.Sprintf("%.1fg", item.Recipe.CoffeeAmount) }
 				</span>
 				}
 				if item.Recipe.WaterAmount > 0 {
-					<span class="inline-flex items-center gap-0.5">
+					<span class="inline-flex items-center gap-1">
 					@components.IconDroplet()
 					{ fmt.Sprintf("%.1fg", item.Recipe.WaterAmount) }
 				</span>
 				}
 				if item.Recipe.BrewerObj != nil {
-					<span class="inline-flex items-center gap-0.5">
+					<span class="inline-flex items-center gap-1">
 					@components.IconBrewer()
 					{ item.Recipe.BrewerObj.Name }
 				</span>
 				} else if item.Recipe.BrewerType != "" {
-					<span class="inline-flex items-center gap-0.5">
+					<span class="inline-flex items-center gap-1">
 						@components.IconBrewer()
 						{ item.Recipe.BrewerType }
 					</span>

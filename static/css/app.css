@@ -211,6 +211,7 @@
   .bg-brown-50 { background-color: var(--page-bg) !important; }
   .bg-brown-100 { background-color: var(--surface-bg) !important; }
   .bg-brown-200 { background-color: var(--card-border) !important; }
+  .bg-brown-300 { background-color: var(--surface-bg) !important; }
 
   .border-brown-200 { border-color: var(--card-border) !important; }
   .border-brown-300 { border-color: var(--card-border) !important; }
@@ -333,6 +334,7 @@
 :root[data-theme="dark"] .bg-brown-50 { background-color: var(--page-bg) !important; }
 :root[data-theme="dark"] .bg-brown-100 { background-color: var(--surface-bg) !important; }
 :root[data-theme="dark"] .bg-brown-200 { background-color: var(--card-border) !important; }
+:root[data-theme="dark"] .bg-brown-300 { background-color: var(--surface-bg) !important; }
 :root[data-theme="dark"] .border-brown-200,
 :root[data-theme="dark"] .border-brown-300 { border-color: var(--card-border) !important; }
 :root[data-theme="dark"] .bg-white { background-color: var(--card-bg) !important; }
@@ -512,6 +514,16 @@
     box-shadow: 0 0 0 2px var(--input-ring-focus);
     background: var(--input-bg-focus);
     outline: none;
+  }
+
+  /* Hide number input spinners */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
   }
 
   .form-input::placeholder {
@@ -758,13 +770,13 @@
 
   /* Badges */
   .badge-rating {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium flex-shrink-0;
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium flex-shrink-0;
     background: var(--rating-bg);
     color: var(--rating-text);
   }
 
   .badge-rating-sm {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
     background: var(--rating-bg);
     color: var(--rating-text);
   }

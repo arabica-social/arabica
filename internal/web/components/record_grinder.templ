@@ -10,12 +10,18 @@ templ GrinderContent(grinder *models.Grinder) {
 		<div class="text-base mb-2">
 			<span class="font-bold text-brown-900">{ grinder.Name }</span>
 		</div>
-		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
 			if grinder.GrinderType != "" {
-				<span class="inline-flex items-center gap-0.5">⚙️ { grinder.GrinderType }</span>
+				<span class="inline-flex items-center gap-1">
+					@IconTag()
+					{ grinder.GrinderType }
+				</span>
 			}
 			if grinder.BurrType != "" {
-				<span class="inline-flex items-center gap-0.5">🔩 { grinder.BurrType }</span>
+				<span class="inline-flex items-center gap-1">
+					@IconDisc()
+					{ grinder.BurrType }
+				</span>
 			}
 		</div>
 		if grinder.Notes != "" {

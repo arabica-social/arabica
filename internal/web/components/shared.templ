@@ -25,39 +25,39 @@ templ BeanSummary(props BeanSummaryProps) {
 		</div>
 		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
 			<div class="text-sm text-brown-700 mt-0.5">
-				<span class="inline-flex items-center gap-0.5 font-medium">
+				<span class="inline-flex items-center gap-1 font-medium">
 				@IconStore()
 				{ props.Bean.Roaster.Name }
 			</span>
 			</div>
 		}
-		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
 			if props.Bean.Origin != "" {
-				<span class="inline-flex items-center gap-0.5">
+				<span class="inline-flex items-center gap-1">
 				@IconMapPin()
 				{ props.Bean.Origin }
 			</span>
 			}
 			if props.Bean.RoastLevel != "" {
-				<span class="inline-flex items-center gap-0.5">
+				<span class="inline-flex items-center gap-1">
 				@IconFlame()
 				{ props.Bean.RoastLevel }
 			</span>
 			}
 			if props.Bean.Variety != "" {
-				<span class="inline-flex items-center gap-0.5">
+				<span class="inline-flex items-center gap-1">
 				@IconLeaf()
 				{ props.Bean.Variety }
 			</span>
 			}
 			if props.Bean.Process != "" {
-				<span class="inline-flex items-center gap-0.5">
+				<span class="inline-flex items-center gap-1">
 				@IconSprout()
 				{ props.Bean.Process }
 			</span>
 			}
 			if props.CoffeeAmount > 0 {
-				<span class="inline-flex items-center gap-0.5">
+				<span class="inline-flex items-center gap-1">
 				@IconScale()
 				{ fmt.Sprintf("%dg", props.CoffeeAmount) }
 			</span>

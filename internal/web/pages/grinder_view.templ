@@ -40,8 +40,8 @@ templ GrinderViewCard(props GrinderViewProps) {
 	@GrinderViewHeader(props)
 	<div class="space-y-6">
 		<div class="grid grid-cols-2 gap-4">
-			@components.DetailField(components.DetailFieldProps{Label: "⚙️ Type", Value: props.Grinder.GrinderType})
-			@components.DetailField(components.DetailFieldProps{Label: "🔩 Burr Type", Value: props.Grinder.BurrType})
+			@components.DetailField(components.DetailFieldProps{Icon: components.IconGear(), Label: "Type", Value: props.Grinder.GrinderType})
+			@components.DetailField(components.DetailFieldProps{Icon: components.IconDisc(), Label: "Burr Type", Value: props.Grinder.BurrType})
 		</div>
 		if props.Grinder.Notes != "" {
 			<div class="section-box">

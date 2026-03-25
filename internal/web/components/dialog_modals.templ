@@ -588,7 +588,7 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 					</div>
 					<div class="space-y-2">
 						<template x-for="(pour, index) in pours" :key="index">
-							<div class="flex gap-2 items-center bg-brown-50 p-3 rounded-lg border border-brown-200">
+							<div class="flex gap-2 items-center p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
 								<div class="flex-1">
 									<label class="text-xs text-brown-700 font-medium" x-text="'Pour ' + (index + 1)"></label>
 									<input
@@ -596,7 +596,7 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 										:name="'pour_water_' + index"
 										x-model="pour.water"
 										placeholder="Water (g)"
-										class="w-full rounded-md border-brown-300 text-sm py-2 px-3 mt-1 bg-white"
+										class="w-full form-input text-sm py-2 px-3 mt-1"
 									/>
 								</div>
 								<div class="flex-1">
@@ -606,7 +606,7 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 										:name="'pour_time_' + index"
 										x-model="pour.time"
 										placeholder="e.g. 45"
-										class="w-full rounded-md border-brown-300 text-sm py-2 px-3 mt-1 bg-white"
+										class="w-full form-input text-sm py-2 px-3 mt-1"
 									/>
 								</div>
 								<button
@@ -614,7 +614,7 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 									@click="removePour(index)"
 									class="text-brown-700 hover:text-brown-900 mt-5 font-bold"
 								>
-									✕
+									@IconX()
 								</button>
 							</div>
 						</template>
