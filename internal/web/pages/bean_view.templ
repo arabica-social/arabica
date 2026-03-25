@@ -43,7 +43,7 @@ templ BeanViewCard(props BeanViewProps) {
 	<div class="space-y-6">
 		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
 			<div class="section-box">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">🏭 Roaster</h3>
+				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconStore() Roaster</span></h3>
 				<div class="font-semibold text-brown-900">
 					<a
 						href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", props.Bean.Roaster.RKey, getOwnerFromShareURL(props.ShareURL))) }
@@ -53,15 +53,15 @@ templ BeanViewCard(props BeanViewProps) {
 					</a>
 				</div>
 				if props.Bean.Roaster.Location != "" {
-					<div class="text-sm text-brown-600 mt-1">📍 { props.Bean.Roaster.Location }</div>
+					<div class="text-sm text-brown-600 mt-1"><span class="inline-flex items-center gap-1">@components.IconMapPin() { props.Bean.Roaster.Location }</span></div>
 				}
 			</div>
 		}
 		<div class="grid grid-cols-2 gap-4">
-			@components.DetailField(components.DetailFieldProps{Label: "📍 Origin", Value: props.Bean.Origin})
-			@components.DetailField(components.DetailFieldProps{Label: "🌿 Variety", Value: props.Bean.Variety})
-			@components.DetailField(components.DetailFieldProps{Label: "🔥 Roast Level", Value: props.Bean.RoastLevel})
-			@components.DetailField(components.DetailFieldProps{Label: "🌱 Process", Value: props.Bean.Process})
+			@components.DetailField(components.DetailFieldProps{Icon: components.IconMapPin(), Label: "Origin", Value: props.Bean.Origin})
+			@components.DetailField(components.DetailFieldProps{Icon: components.IconLeaf(), Label: "Variety", Value: props.Bean.Variety})
+			@components.DetailField(components.DetailFieldProps{Icon: components.IconFlame(), Label: "Roast Level", Value: props.Bean.RoastLevel})
+			@components.DetailField(components.DetailFieldProps{Icon: components.IconSprout(), Label: "Process", Value: props.Bean.Process})
 			if props.Bean.Closed {
 				<div class="section-box">
 					<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Status</h3>
@@ -71,7 +71,7 @@ templ BeanViewCard(props BeanViewProps) {
 		</div>
 		if props.Bean.Description != "" {
 			<div class="section-box">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📝 Description</h3>
+				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconFileText() Description</span></h3>
 				<div class="text-brown-900 whitespace-pre-wrap">{ props.Bean.Description }</div>
 			</div>
 		}

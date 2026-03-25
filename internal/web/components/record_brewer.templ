@@ -12,7 +12,10 @@ templ BrewerContent(brewer *models.Brewer) {
 		</div>
 		if brewer.BrewerType != "" {
 			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
-				<span class="inline-flex items-center gap-0.5">🫖 { brewer.BrewerType }</span>
+				<span class="inline-flex items-center gap-0.5">
+				@IconBrewer()
+				{ brewer.BrewerType }
+			</span>
 			</div>
 		}
 		if brewer.Description != "" {

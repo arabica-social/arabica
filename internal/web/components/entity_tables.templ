@@ -40,7 +40,10 @@ templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string) {
 					</div>
 					if bean.Roaster != nil && bean.Roaster.Name != "" {
 						<div class="text-sm text-brown-700 mt-0.5">
-							<span class="font-medium">🏭 { bean.Roaster.Name }</span>
+							<span class="font-medium inline-flex items-center gap-0.5">
+							@IconStore()
+							{ bean.Roaster.Name }
+						</span>
 						</div>
 					}
 				</div>
@@ -64,16 +67,28 @@ templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string) {
 			</div>
 			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
 				if bean.Origin != "" {
-					<span class="inline-flex items-center gap-0.5">📍 { bean.Origin }</span>
+					<span class="inline-flex items-center gap-0.5">
+					@IconMapPin()
+					{ bean.Origin }
+				</span>
 				}
 				if bean.Variety != "" {
-					<span class="inline-flex items-center gap-0.5">🌿 { bean.Variety }</span>
+					<span class="inline-flex items-center gap-0.5">
+					@IconLeaf()
+					{ bean.Variety }
+				</span>
 				}
 				if bean.RoastLevel != "" {
-					<span class="inline-flex items-center gap-0.5">🔥 { bean.RoastLevel }</span>
+					<span class="inline-flex items-center gap-0.5">
+					@IconFlame()
+					{ bean.RoastLevel }
+				</span>
 				}
 				if bean.Process != "" {
-					<span class="inline-flex items-center gap-0.5">🌱 { bean.Process }</span>
+					<span class="inline-flex items-center gap-0.5">
+					@IconSprout()
+					{ bean.Process }
+				</span>
 				}
 			</div>
 			if bean.Description != "" {
@@ -99,11 +114,11 @@ templ RoastersTable(props RoastersTableProps) {
 			<table class="table">
 				<thead class="table-header">
 					<tr>
-						<th class="table-th whitespace-nowrap">🏷️ Name</th>
-						<th class="table-th whitespace-nowrap">📍 Location</th>
-						<th class="table-th whitespace-nowrap">🌐 Website</th>
+						<th class="table-th whitespace-nowrap">Name</th>
+						<th class="table-th whitespace-nowrap">Location</th>
+						<th class="table-th whitespace-nowrap">Website</th>
 						if props.ShowActions {
-							<th class="table-th whitespace-nowrap">⚙️ Actions</th>
+							<th class="table-th whitespace-nowrap">Actions</th>
 						}
 					</tr>
 				</thead>
@@ -178,12 +193,12 @@ templ GrindersTable(props GrindersTableProps) {
 			<table class="table">
 				<thead class="table-header">
 					<tr>
-						<th class="table-th whitespace-nowrap">🏷️ Name</th>
-						<th class="table-th whitespace-nowrap">🎛️ Type</th>
-						<th class="table-th whitespace-nowrap">🔩 Burr Type</th>
-						<th class="table-th whitespace-nowrap">📄 Notes</th>
+						<th class="table-th whitespace-nowrap">Name</th>
+						<th class="table-th whitespace-nowrap">Type</th>
+						<th class="table-th whitespace-nowrap">Burr Type</th>
+						<th class="table-th whitespace-nowrap">Notes</th>
 						if props.ShowActions {
-							<th class="table-th whitespace-nowrap">⚙️ Actions</th>
+							<th class="table-th whitespace-nowrap">Actions</th>
 						}
 					</tr>
 				</thead>
@@ -259,11 +274,11 @@ templ BrewersTable(props BrewersTableProps) {
 			<table class="table">
 				<thead class="table-header">
 					<tr>
-						<th class="table-th whitespace-nowrap">🏷️ Name</th>
-						<th class="table-th whitespace-nowrap">🎛️ Type</th>
-						<th class="table-th whitespace-nowrap">📄 Description</th>
+						<th class="table-th whitespace-nowrap">Name</th>
+						<th class="table-th whitespace-nowrap">Type</th>
+						<th class="table-th whitespace-nowrap">Description</th>
 						if props.ShowActions {
-							<th class="table-th whitespace-nowrap">⚙️ Actions</th>
+							<th class="table-th whitespace-nowrap">Actions</th>
 						}
 					</tr>
 				</thead>

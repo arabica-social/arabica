@@ -82,13 +82,23 @@
   --modal-border: #eaddd7;
   --modal-backdrop: rgba(0, 0, 0, 0.4);
 
-  /* Feed type indicators (left border) */
+  /* Feed type indicators (left border + filter pills) */
   --type-brew: #6b4423;
-  --type-bean: #d97706;
-  --type-recipe: #bfa094;
-  --type-roaster: #d2bab0;
-  --type-grinder: #d2bab0;
-  --type-brewer: #d2bab0;
+  --type-bean: #b45309;
+  --type-recipe: #7f5539;
+  --type-roaster: #92400e;
+  --type-grinder: #6b4423;
+  --type-brewer: #6b4423;
+
+  /* Rating badges */
+  --rating-bg: #fef3c7;
+  --rating-text: #78350f;
+
+  /* Alerts/warnings */
+  --alert-warning-bg: #fffbeb;
+  --alert-warning-border: #fbbf24;
+  --alert-warning-text: #78350f;
+  --alert-warning-text-muted: #92400e;
 
   /* Shadows */
   --shadow-sm: 0 1px 3px var(--card-shadow);
@@ -98,6 +108,159 @@
   /* Footer */
   --footer-bg: #FAF7F5;
   --footer-border: #eaddd7;
+}
+
+/* ========================================
+   Dark theme (auto via prefers-color-scheme)
+   ======================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Page */
+    --page-bg: #0F0A08;
+    --page-text: #FAF7F5;
+
+    /* Cards */
+    --card-bg: #1C1210;
+    --card-border: #2E211B;
+    --card-shadow: rgba(0, 0, 0, 0.3);
+    --card-shadow-hover: rgba(0, 0, 0, 0.4);
+
+    /* Surfaces (inset areas inside cards) */
+    --surface-bg: rgba(36, 26, 22, 0.6);
+    --surface-border: #2E211B;
+
+    /* Header */
+    --header-bg-from: #0F0A08;
+    --header-bg-to: #0F0A08;
+    --header-border: #2E211B;
+    --header-text: #FAF7F5;
+
+    /* Text hierarchy */
+    --text-primary: #FAF7F5;
+    --text-secondary: #E0CEC4;
+    --text-muted: #C4A898;
+    --text-faint: #8B7265;
+    --text-placeholder: #5A4A40;
+
+    /* Interactive */
+    --btn-primary-bg: #7f5539;
+    --btn-primary-bg-hover: #6b4423;
+    --btn-primary-text: #FAF7F5;
+    --btn-secondary-bg: #241A16;
+    --btn-secondary-border: #3D2D24;
+    --btn-secondary-text: #E0CEC4;
+    --btn-secondary-bg-hover: #2E211B;
+
+    /* Forms */
+    --input-bg: #241A16;
+    --input-border: #3D2D24;
+    --input-border-focus: #fbbf24;
+    --input-ring-focus: rgba(251, 191, 36, 0.15);
+    --input-bg-focus: rgba(36, 26, 22, 0.8);
+
+    /* Tables */
+    --table-bg: #1C1210;
+    --table-header-bg: #241A16;
+    --table-border: #2E211B;
+    --table-row-hover: #241A16;
+    --table-divider: #241A16;
+
+    /* Modals */
+    --modal-bg: #1C1210;
+    --modal-border: #2E211B;
+    --modal-backdrop: rgba(0, 0, 0, 0.6);
+
+    /* Feed type indicators (left border) - brighter on dark */
+    --type-brew: #6b4423;
+    --type-bean: #b45309;
+    --type-recipe: #7f5539;
+    --type-roaster: #92400e;
+    --type-grinder: #6b4423;
+    --type-brewer: #6b4423;
+
+    /* Rating badges */
+    --rating-bg: rgba(251, 191, 36, 0.15);
+    --rating-text: #fbbf24;
+
+    /* Alerts/warnings */
+    --alert-warning-bg: rgba(251, 191, 36, 0.08);
+    --alert-warning-border: rgba(251, 191, 36, 0.3);
+    --alert-warning-text: #fde68a;
+    --alert-warning-text-muted: #fcd34d;
+
+    /* Shadows - darker, less visible on dark bg */
+    --shadow-sm: 0 1px 3px var(--card-shadow);
+    --shadow-md: 0 4px 12px var(--card-shadow-hover);
+    --shadow-lg: 0 10px 25px var(--card-shadow-hover);
+
+    /* Footer */
+    --footer-bg: #0F0A08;
+    --footer-border: #2E211B;
+  }
+
+  /* Override common hardcoded Tailwind classes for dark mode */
+  .text-brown-900 { color: var(--text-primary) !important; }
+  .text-brown-800 { color: var(--text-primary) !important; }
+  .text-brown-700 { color: var(--text-secondary) !important; }
+  .text-brown-600 { color: var(--text-muted) !important; }
+  .text-brown-500 { color: var(--text-faint) !important; }
+  .text-brown-400 { color: var(--text-placeholder) !important; }
+
+  .bg-brown-50 { background-color: var(--page-bg) !important; }
+  .bg-brown-100 { background-color: var(--surface-bg) !important; }
+  .bg-brown-200 { background-color: var(--card-border) !important; }
+
+  .border-brown-200 { border-color: var(--card-border) !important; }
+  .border-brown-300 { border-color: var(--card-border) !important; }
+
+  .bg-white { background-color: var(--card-bg) !important; }
+  .bg-white\/60 { background-color: var(--surface-bg) !important; }
+
+  /* Amber badges stay visible on dark */
+  .bg-amber-50 { background-color: rgba(251, 191, 36, 0.1) !important; }
+  .bg-amber-100 { background-color: rgba(251, 191, 36, 0.15) !important; }
+  .bg-amber-400 { background-color: #fbbf24 !important; }
+  .text-amber-900 { color: #fde68a !important; }
+  .text-amber-700 { color: #fcd34d !important; }
+  .text-amber-600 { color: #fbbf24 !important; }
+  .border-amber-400 { border-color: rgba(251, 191, 36, 0.4) !important; }
+
+  /* Warning/alert backgrounds */
+  .bg-green-50 { background-color: rgba(251, 191, 36, 0.08) !important; }
+
+  /* Hover states */
+  .hover\:bg-brown-200:hover { background-color: var(--surface-bg) !important; }
+  .hover\:bg-brown-100:hover { background-color: var(--surface-bg) !important; }
+  .hover\:bg-brown-50:hover { background-color: var(--surface-bg) !important; }
+  .hover\:text-brown-900:hover { color: var(--text-primary) !important; }
+  .hover\:text-brown-800:hover { color: var(--text-primary) !important; }
+  .hover\:text-brown-700:hover { color: var(--text-secondary) !important; }
+
+  /* Dividers */
+  .divide-brown-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--card-border) !important; }
+  .divide-brown-300 > :not([hidden]) ~ :not([hidden]) { border-color: var(--card-border) !important; }
+
+  /* Ring colors for avatars */
+  .ring-brown-500 { --tw-ring-color: #3D2D24 !important; }
+  .hover\:ring-brown-400:hover { --tw-ring-color: #5A4A40 !important; }
+
+  /* Opacity-variant backgrounds (used in recipe stats grid, etc.) */
+  .bg-brown-50\/60 { background-color: var(--surface-bg) !important; }
+  .bg-brown-200\/60 { background-color: var(--card-border) !important; }
+  .border-brown-200\/60 { border-color: var(--card-border) !important; }
+
+  /* Group hover text (used in recipe author links) */
+  .group-hover\/author\:text-brown-900:hover,
+  .group\/author:hover .group-hover\/author\:text-brown-900 { color: var(--text-primary) !important; }
+  .group-hover\/author\:text-brown-800:hover,
+  .group\/author:hover .group-hover\/author\:text-brown-800 { color: var(--text-primary) !important; }
+
+  /* Forker avatar borders */
+  .border-white { border-color: var(--card-bg) !important; }
+
+  /* Decoration colors */
+  .decoration-brown-300 { text-decoration-color: var(--card-border) !important; }
+  .hover\:decoration-brown-500:hover { text-decoration-color: var(--text-faint) !important; }
 }
 
 @tailwind base;
@@ -115,6 +278,12 @@
   input[type="button"] {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  /* Filter pills opt out of the 44px touch target */
+  [class*="filter-pill"] {
+    min-height: auto;
+    min-width: auto;
   }
 
   /* Prevent iOS zoom on input focus */
@@ -491,11 +660,82 @@
 
   /* Badges */
   .badge-rating {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-900 flex-shrink-0;
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium flex-shrink-0;
+    background: var(--rating-bg);
+    color: var(--rating-text);
   }
 
   .badge-rating-sm {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-900;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    background: var(--rating-bg);
+    color: var(--rating-text);
+  }
+
+  /* Filter Pills */
+  .filter-pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--card-border);
+  }
+
+  .filter-pill:hover {
+    color: var(--text-secondary);
+    border-color: var(--input-border-focus);
+    background: var(--surface-bg);
+  }
+
+  .filter-pill-active {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
+    color: var(--btn-primary-text);
+    background: var(--btn-primary-bg);
+    border: 1px solid var(--btn-primary-bg);
+  }
+
+  .filter-pill-active:hover {
+    background: var(--btn-primary-bg-hover);
+    border-color: var(--btn-primary-bg-hover);
+  }
+
+  /* Type-colored filter pills (active state matches feed card left border) */
+  .filter-pill-brew,
+  .filter-pill-bean,
+  .filter-pill-recipe,
+  .filter-pill-roaster,
+  .filter-pill-grinder,
+  .filter-pill-brewer {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
+    color: var(--btn-primary-text);
+  }
+
+  .filter-pill-brew {
+    background: var(--type-brew);
+    border: 1px solid var(--type-brew);
+  }
+
+  .filter-pill-bean {
+    background: var(--type-bean);
+    border: 1px solid var(--type-bean);
+  }
+
+  .filter-pill-recipe {
+    background: var(--type-recipe);
+    border: 1px solid var(--type-recipe);
+  }
+
+  .filter-pill-roaster {
+    background: var(--type-roaster);
+    border: 1px solid var(--type-roaster);
+  }
+
+  .filter-pill-grinder {
+    background: var(--type-grinder);
+    border: 1px solid var(--type-grinder);
+  }
+
+  .filter-pill-brewer {
+    background: var(--type-brewer);
+    border: 1px solid var(--type-brewer);
   }
 
   /* Links */
@@ -791,6 +1031,45 @@
   /* Hidden record indicator badge */
   .hidden-badge {
     @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded;
+  }
+
+  /* Alert banners */
+  .alert-warning {
+    @apply rounded-lg p-4;
+    background: var(--alert-warning-bg);
+    border: 1px solid var(--alert-warning-border);
+    color: var(--alert-warning-text);
+  }
+
+  .alert-warning-muted {
+    color: var(--alert-warning-text-muted);
+  }
+
+  /* Home page action buttons */
+  .home-action-primary {
+    @apply inline-flex items-center justify-center font-medium transition-all cursor-pointer;
+    background: linear-gradient(135deg, #6b4423, #4a2c2a);
+    color: #FAF7F5;
+    border: 1px solid #6b4423;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .home-action-primary:hover {
+    box-shadow: var(--shadow-md);
+    filter: brightness(1.1);
+  }
+
+  .home-action-secondary {
+    @apply inline-flex items-center justify-center font-medium transition-all cursor-pointer;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1.5px solid var(--card-border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .home-action-secondary:hover {
+    border-color: var(--input-border-focus);
+    box-shadow: var(--shadow-md);
   }
 }
 

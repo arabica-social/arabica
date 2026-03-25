@@ -40,7 +40,7 @@ templ RoasterViewCard(props RoasterViewProps) {
 	@RoasterViewHeader(props)
 	<div class="space-y-6">
 		<div class="grid grid-cols-2 gap-4">
-			@components.DetailField(components.DetailFieldProps{Label: "📍 Location", Value: props.Roaster.Location})
+			@components.DetailField(components.DetailFieldProps{Icon: components.IconMapPin(), Label: "Location", Value: props.Roaster.Location})
 			if props.Roaster.Website != "" {
 				<div class="section-box">
 					<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">🔗 Website</h3>

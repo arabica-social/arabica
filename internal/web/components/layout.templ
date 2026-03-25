@@ -46,7 +46,7 @@ func (d *LayoutData) ogType() string {
 
 templ Layout(data *LayoutData, content templ.Component) {
 	<!DOCTYPE html>
-	<html lang="en" class="h-full" style="background-color: #FAF7F5;">
+	<html lang="en" class="h-full" style="background-color: var(--page-bg);">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -70,12 +70,13 @@ templ Layout(data *LayoutData, content templ.Component) {
 			if data.OGImage != "" {
 				<meta name="twitter:image" content={ data.OGImage }/>
 			}
-			<meta name="theme-color" content="#4a2c2a"/>
+			<meta name="theme-color" content="#4a2c2a" media="(prefers-color-scheme: light)"/>
+		<meta name="theme-color" content="#0F0A08" media="(prefers-color-scheme: dark)"/>
 			<title>{ data.Title } - Arabica</title>
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
-			<link rel="stylesheet" href="/static/css/output.css?v=0.7.0"/>
+			<link rel="stylesheet" href="/static/css/output.css?v=0.8.0"/>
 			<style>
 			[x-cloak] { display: none !important; }
 		</style>

@@ -116,7 +116,10 @@ templ BrewViewHeader(props BrewViewProps) {
 templ BrewRating(rating int) {
 	<div class="section-box text-center py-4">
 		<span class="badge-rating text-2xl !font-bold px-5 py-2">
-			⭐ { fmt.Sprintf("%d/10", rating) }
+			<span class="inline-flex items-center gap-1">
+				@components.IconStar()
+				{ fmt.Sprintf("%d/10", rating) }
+			</span>
 		</span>
 		<div class="text-sm text-brown-600 mt-2">Rating</div>
 	</div>
@@ -125,7 +128,7 @@ templ BrewRating(rating int) {
 // BrewBeanSection renders the coffee bean information
 templ BrewBeanSection(brew *models.Brew, owner string) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">☕ Coffee Bean</h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconCoffee() Coffee Bean</span></h3>
 		if brew.Bean != nil {
 			<div class="font-bold text-lg text-brown-900">
 				<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", brew.Bean.RKey, owner)) } class="hover:underline">
@@ -138,18 +141,20 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 			</div>
 			if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
 				<div class="text-sm text-brown-700 mt-1">
-					🏭
-					<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", brew.Bean.Roaster.RKey, owner)) } class="hover:underline">
-						{ brew.Bean.Roaster.Name }
-					</a>
+					<span class="inline-flex items-center gap-1">
+						@components.IconStore()
+						<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", brew.Bean.Roaster.RKey, owner)) } class="hover:underline">
+							{ brew.Bean.Roaster.Name }
+						</a>
+					</span>
 				</div>
 			}
 			<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
 				if brew.Bean.Origin != "" {
-					<span>📍 { brew.Bean.Origin }</span>
+					<span class="inline-flex items-center gap-1">@components.IconMapPin() { brew.Bean.Origin }</span>
 				}
 				if brew.Bean.RoastLevel != "" {
-					<span>🔥 { brew.Bean.RoastLevel }</span>
+					<span class="inline-flex items-center gap-1">@components.IconFlame() { brew.Bean.RoastLevel }</span>
 				}
 			</div>
 		} else {
@@ -161,14 +166,14 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 // BrewParametersGrid renders the brew parameters in a grid
 templ BrewParametersGrid(brew *models.Brew, owner string) {
 	<div class="grid grid-cols-2 gap-4">
-		@components.DetailField(components.DetailFieldProps{Label: "⚖️ Coffee", Value: getCoffeeAmountDisplay(brew)})
-		@components.DetailField(components.DetailFieldProps{Label: "☕ Brew Method", Value: getBrewerName(brew), LinkHref: getBrewerViewURL(brew, owner)})
+		@components.DetailField(components.DetailFieldProps{Icon: components.IconScale(), Label: "Coffee", Value: getCoffeeAmountDisplay(brew)})
+		@components.DetailField(components.DetailFieldProps{Icon: components.IconCoffee(), Label: "Brew Method", Value: getBrewerName(brew), LinkHref: getBrewerViewURL(brew, owner)})
 		@components.DetailField(components.DetailFieldProps{Label: "⚙️ Grinder", Value: getGrinderName(brew), LinkHref: getGrinderViewURL(brew, owner)})
 		@components.DetailField(components.DetailFieldProps{Label: "🔩 Grind Size", Value: getGrindSizeDisplay(brew)})
-		@components.DetailField(components.DetailFieldProps{Label: "💧 Water", Value: getWaterAmountDisplay(brew)})
-		@components.DetailField(components.DetailFieldProps{Label: "🌡️ Temperature", Value: getTemperatureDisplay(brew)})
+		@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Water", Value: getWaterAmountDisplay(brew)})
+		@components.DetailField(components.DetailFieldProps{Icon: components.IconThermometer(), Label: "Temperature", Value: getTemperatureDisplay(brew)})
 		<div class="col-span-2">
-			@components.DetailField(components.DetailFieldProps{Label: "⏱️ Brew Time", Value: getBrewTimeDisplay(brew)})
+			@components.DetailField(components.DetailFieldProps{Icon: components.IconClock(), Label: "Brew Time", Value: getBrewTimeDisplay(brew)})
 		</div>
 	</div>
 }
@@ -271,7 +276,7 @@ templ SaveAsRecipeButton(brewRKey string) {
 				@click="showForm = true"
 				class="w-full btn-secondary text-sm"
 			>
-				📋 Save as Recipe
+				Save as Recipe
 			</button>
 		</template>
 		<template x-if="showForm && !success">
@@ -319,19 +324,19 @@ func saveAsRecipeData(brewRKey string) string {
 // BrewRecipeSection renders the linked recipe info
 templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📋 Recipe</h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Recipe</h3>
 		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, owner)) } class="font-bold text-lg text-brown-900 hover:text-brown-700 underline decoration-brown-300 hover:decoration-brown-500 transition-colors">{ recipe.Name }</a>
 		<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
 			if recipe.CoffeeAmount > 0 {
-				<span>☕ { fmt.Sprintf("%.1fg coffee", recipe.CoffeeAmount) }</span>
+				<span class="inline-flex items-center gap-1">@components.IconCoffee() { fmt.Sprintf("%.1fg coffee", recipe.CoffeeAmount) }</span>
 			}
 			if recipe.WaterAmount > 0 {
-				<span>💧 { fmt.Sprintf("%.1fg water", recipe.WaterAmount) }</span>
+				<span class="inline-flex items-center gap-1">@components.IconDroplet() { fmt.Sprintf("%.1fg water", recipe.WaterAmount) }</span>
 			}
 			if recipe.BrewerObj != nil {
-				<span>🫖 { recipe.BrewerObj.Name }</span>
+				<span class="inline-flex items-center gap-1">@components.IconBrewer() { recipe.BrewerObj.Name }</span>
 			} else if recipe.BrewerType != "" {
-				<span>🫖 { recipe.BrewerType }</span>
+				<span class="inline-flex items-center gap-1">@components.IconBrewer() { recipe.BrewerType }</span>
 			}
 		</div>
 		if recipe.Notes != "" {
@@ -343,7 +348,7 @@ templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 // BrewPoursSection renders the pours section
 templ BrewPoursSection(pours []*models.Pour) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">💧 Pours</h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3"><span class="inline-flex items-center gap-1">@components.IconDroplet() Pours</span></h3>
 		<div class="space-y-2">
 			for _, pour := range pours {
 				<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brown-200">
@@ -361,7 +366,7 @@ templ BrewPoursSection(pours []*models.Pour) {
 // BrewTastingNotes renders the tasting notes section
 templ BrewTastingNotes(notes string) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📝 Tasting Notes</h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconFileText() Tasting Notes</span></h3>
 		<div class="text-brown-900 whitespace-pre-wrap">{ notes }</div>
 	</div>
 }

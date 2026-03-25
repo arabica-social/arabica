@@ -46,28 +46,29 @@ templ RecipeViewCard(props RecipeViewProps) {
 		<!-- Main details grid -->
 		<div class="grid grid-cols-2 gap-4">
 			if props.Recipe.CoffeeAmount > 0 {
-				@components.DetailField(components.DetailFieldProps{Label: "☕ Coffee", Value: fmt.Sprintf("%.1fg", props.Recipe.CoffeeAmount)})
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconCoffee(), Label: "Coffee", Value: fmt.Sprintf("%.1fg", props.Recipe.CoffeeAmount)})
 			}
 			if props.Recipe.WaterAmount > 0 {
-				@components.DetailField(components.DetailFieldProps{Label: "💧 Water", Value: fmt.Sprintf("%.1fg", props.Recipe.WaterAmount)})
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Water", Value: fmt.Sprintf("%.1fg", props.Recipe.WaterAmount)})
 			}
 			if props.Recipe.Ratio > 0 {
-				@components.DetailField(components.DetailFieldProps{Label: "⚖️ Ratio", Value: fmt.Sprintf("1:%.1f", props.Recipe.Ratio)})
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconScale(), Label: "Ratio", Value: fmt.Sprintf("1:%.1f", props.Recipe.Ratio)})
 			}
 			if props.Recipe.BrewerObj != nil {
 				@components.DetailField(components.DetailFieldProps{
-					Label:    "🫖 Brewer",
+					Icon:     components.IconBrewer(),
+					Label:    "Brewer",
 					Value:    props.Recipe.BrewerObj.Name,
 					LinkHref: recipeBrewerLink(props),
 				})
 			} else if props.Recipe.BrewerType != "" {
-				@components.DetailField(components.DetailFieldProps{Label: "🫖 Brewer Type", Value: props.Recipe.BrewerType})
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconBrewer(), Label: "Brewer Type", Value: props.Recipe.BrewerType})
 			}
 		</div>
 		<!-- Pours -->
 		if len(props.Recipe.Pours) > 0 {
 			<div class="section-box">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">💧 Pours</h3>
+				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconDroplet() Pours</span></h3>
 				<div class="space-y-2">
 					for i, pour := range props.Recipe.Pours {
 						<div class="flex items-center gap-4 bg-brown-50 rounded-lg px-3 py-2 border border-brown-200">
@@ -84,7 +85,7 @@ templ RecipeViewCard(props RecipeViewProps) {
 		<!-- Notes -->
 		if props.Recipe.Notes != "" {
 			<div class="section-box">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">📝 Notes</h3>
+				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconFileText() Notes</span></h3>
 				<div class="text-brown-900 whitespace-pre-wrap">{ props.Recipe.Notes }</div>
 			</div>
 		}

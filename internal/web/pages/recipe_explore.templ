@@ -46,41 +46,41 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				<div class="flex flex-wrap gap-2">
 					<button
 						type="button"
+						class="filter-pill"
 						@click="setCategory('')"
-						:class="category === '' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+						:class="category === '' ? 'filter-pill-active' : 'filter-pill'"
 					>
 						All
 					</button>
 					<button
 						type="button"
+						class="filter-pill"
 						@click="setCategory('small')"
-						:class="category === 'small' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+						:class="category === 'small' ? 'filter-pill-active' : 'filter-pill'"
 					>
 						Small (&le;12g)
 					</button>
 					<button
 						type="button"
+						class="filter-pill"
 						@click="setCategory('single')"
-						:class="category === 'single' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+						:class="category === 'single' ? 'filter-pill-active' : 'filter-pill'"
 					>
 						Single cup (12-22g)
 					</button>
 					<button
 						type="button"
+						class="filter-pill"
 						@click="setCategory('large')"
-						:class="category === 'large' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+						:class="category === 'large' ? 'filter-pill-active' : 'filter-pill'"
 					>
 						Large (22g+)
 					</button>
 					<button
 						type="button"
+						class="filter-pill"
 						@click="setCategory('batch')"
-						:class="category === 'batch' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+						:class="category === 'batch' ? 'filter-pill-active' : 'filter-pill'"
 					>
 						Batch brew (500g+ water)
 					</button>

@@ -105,14 +105,14 @@ templ FeedFilterBar(qs FeedQueryState) {
 		class="flex flex-wrap items-center justify-between gap-2 mb-4"
 		data-type-filter={ qs.TypeFilter }
 		data-sort={ qs.Sort }
-		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { u += sep + 'type=' + t; sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
+		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, pillClass(tab) { if (this.typeFilter !== tab) return 'filter-pill'; if (!tab) return 'filter-pill-active'; return 'filter-pill-' + tab; }, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { u += sep + 'type=' + t; sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
 	>
 		<!-- Type filter tabs -->
 		<div class="flex flex-wrap gap-1">
 			for _, tab := range feedFilterTabs() {
 				<button
-					class="px-3 py-1.5 text-sm rounded-full transition-colors"
-					:class="typeFilter === $el.dataset.tab ? 'bg-brown-800 text-brown-50 font-medium' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+					class="filter-pill"
+					:class="pillClass($el.dataset.tab)"
 					data-tab={ tab.Value }
 					@click="changeFilter($el.dataset.tab)"
 				>
@@ -123,15 +123,15 @@ templ FeedFilterBar(qs FeedQueryState) {
 		<!-- Sort selector -->
 		<div class="flex items-center gap-1">
 			<button
-				class="px-3 py-1.5 text-sm rounded-full transition-colors"
-				:class="(sort === '' || sort === 'recent') ? 'bg-brown-800 text-brown-50 font-medium' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				class="filter-pill"
+				:class="(sort === '' || sort === 'recent') ? 'filter-pill-active' : 'filter-pill'"
 				@click="changeSort('recent')"
 			>
 				New
 			</button>
 			<button
-				class="px-3 py-1.5 text-sm rounded-full transition-colors"
-				:class="sort === 'popular' ? 'bg-brown-800 text-brown-50 font-medium' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
+				class="filter-pill"
+				:class="sort === 'popular' ? 'filter-pill-active' : 'filter-pill'"
 				@click="changeSort('popular')"
 			>
 				Popular
@@ -144,7 +144,7 @@ templ FeedFilterBar(qs FeedQueryState) {
 templ FeedLoadMoreButton(qs FeedQueryState) {
 	<div class="text-center pt-2" x-data="{ loading: false }">
 		<button
-			class="px-4 py-2 text-sm text-brown-700 bg-brown-100 hover:bg-brown-200 rounded-lg transition-colors disabled:opacity-50"
+			class="btn-secondary text-sm disabled:opacity-50"
 			hx-get={ buildFeedURLWithCursor(qs.TypeFilter, qs.Sort, qs.NextCursor) }
 			hx-target="closest div"
 			hx-swap="outerHTML"
@@ -354,28 +354,44 @@ templ FeedBrewContent(item *feed.FeedItem) {
 						</div>
 						if item.Brew.Bean.Roaster != nil && item.Brew.Bean.Roaster.Name != "" {
 							<div class="text-sm text-brown-700 mt-0.5">
-								<span class="font-medium">🏭 { item.Brew.Bean.Roaster.Name }</span>
+								<span class="inline-flex items-center gap-0.5 font-medium">
+								@components.IconStore()
+								{ item.Brew.Bean.Roaster.Name }
+							</span>
 							</div>
 						}
 						<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
 							if item.Brew.Bean.Origin != "" {
-								<span class="inline-flex items-center gap-0.5">📍 { item.Brew.Bean.Origin }</span>
+								<span class="inline-flex items-center gap-0.5">
+								@components.IconMapPin()
+								{ item.Brew.Bean.Origin }
+							</span>
 							}
 							if item.Brew.Bean.RoastLevel != "" {
-								<span class="inline-flex items-center gap-0.5">🔥 { item.Brew.Bean.RoastLevel }</span>
+								<span class="inline-flex items-center gap-0.5">
+								@components.IconFlame()
+								{ item.Brew.Bean.RoastLevel }
+							</span>
 							}
 							if item.Brew.Bean.Process != "" {
-								<span class="inline-flex items-center gap-0.5">🌱 { item.Brew.Bean.Process }</span>
+								<span class="inline-flex items-center gap-0.5">
+								@components.IconSprout()
+								{ item.Brew.Bean.Process }
+							</span>
 							}
 							if item.Brew.CoffeeAmount > 0 {
-								<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", item.Brew.CoffeeAmount) }</span>
+								<span class="inline-flex items-center gap-0.5">
+								@components.IconScale()
+								{ fmt.Sprintf("%dg", item.Brew.CoffeeAmount) }
+							</span>
 							}
 						</div>
 					}
 				</div>
 				if item.Brew.Rating > 0 {
 					<span class="badge-rating">
-						⭐ { fmt.Sprintf("%d/10", item.Brew.Rating) }
+						@components.IconStar()
+					{ fmt.Sprintf("%d/10", item.Brew.Rating) }
 					</span>
 				}
 			</div>
@@ -448,15 +464,27 @@ templ FeedRecipeContent(item *feed.FeedItem) {
 			</div>
 			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
 				if item.Recipe.CoffeeAmount > 0 {
-					<span class="inline-flex items-center gap-0.5">☕ { fmt.Sprintf("%.1fg", item.Recipe.CoffeeAmount) }</span>
+					<span class="inline-flex items-center gap-0.5">
+					@components.IconCoffee()
+					{ fmt.Sprintf("%.1fg", item.Recipe.CoffeeAmount) }
+				</span>
 				}
 				if item.Recipe.WaterAmount > 0 {
-					<span class="inline-flex items-center gap-0.5">💧 { fmt.Sprintf("%.1fg", item.Recipe.WaterAmount) }</span>
+					<span class="inline-flex items-center gap-0.5">
+					@components.IconDroplet()
+					{ fmt.Sprintf("%.1fg", item.Recipe.WaterAmount) }
+				</span>
 				}
 				if item.Recipe.BrewerObj != nil {
-					<span class="inline-flex items-center gap-0.5">🫖 { item.Recipe.BrewerObj.Name }</span>
+					<span class="inline-flex items-center gap-0.5">
+					@components.IconBrewer()
+					{ item.Recipe.BrewerObj.Name }
+				</span>
 				} else if item.Recipe.BrewerType != "" {
-					<span class="inline-flex items-center gap-0.5">🫖 { item.Recipe.BrewerType }</span>
+					<span class="inline-flex items-center gap-0.5">
+						@components.IconBrewer()
+						{ item.Recipe.BrewerType }
+					</span>
 				}
 			</div>
 			if item.Recipe.Notes != "" {

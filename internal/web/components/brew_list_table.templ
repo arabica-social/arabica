@@ -33,11 +33,11 @@ templ BrewListTablePartial(props BrewListTableProps) {
 				<thead class="table-header">
 					<tr>
 						<th class="table-th px-4 whitespace-nowrap">📅 Date</th>
-						<th class="table-th px-4 whitespace-nowrap">☕ Bean</th>
-						<th class="table-th px-4 whitespace-nowrap">🫖 Brewer</th>
+						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@IconCoffee() Bean</span></th>
+						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@IconBrewer() Brewer</span></th>
 						<th class="table-th px-4 whitespace-nowrap">🔧 Variables</th>
-						<th class="table-th px-4 whitespace-nowrap">📝 Notes</th>
-						<th class="table-th px-4 whitespace-nowrap">⭐ Rating</th>
+						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@IconFileText() Notes</span></th>
+						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@IconStar() Rating</span></th>
 						<th class="table-th px-4 whitespace-nowrap">⚙️ Actions</th>
 					</tr>
 				</thead>
@@ -78,13 +78,13 @@ templ BrewListTableRow(brew *models.Brew, isOwnProfile bool, profileHandle strin
 				}
 				<div class="text-meta mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
 					if brew.Bean.Origin != "" {
-						<span class="inline-flex items-center gap-0.5">📍 { brew.Bean.Origin }</span>
+						<span class="inline-flex items-center gap-0.5">@IconMapPin() { brew.Bean.Origin }</span>
 					}
 					if brew.Bean.RoastLevel != "" {
-						<span class="inline-flex items-center gap-0.5">🔥 { brew.Bean.RoastLevel }</span>
+						<span class="inline-flex items-center gap-0.5">@IconFlame() { brew.Bean.RoastLevel }</span>
 					}
 					if brew.CoffeeAmount > 0 {
-						<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", brew.CoffeeAmount) }</span>
+						<span class="inline-flex items-center gap-0.5">@IconScale() { fmt.Sprintf("%dg", brew.CoffeeAmount) }</span>
 					}
 				</div>
 			} else {
@@ -143,7 +143,7 @@ templ BrewListTableRow(brew *models.Brew, isOwnProfile bool, profileHandle strin
 		<td class="px-4 py-4 whitespace-nowrap text-sm text-brown-900 align-top">
 			if brew.Rating > 0 {
 				<span class="badge-rating-sm">
-					⭐ { fmt.Sprintf("%d/10", brew.Rating) }
+					@IconStar() { fmt.Sprintf("%d/10", brew.Rating) }
 				</span>
 			} else {
 				<span class="text-brown-400">-</span>

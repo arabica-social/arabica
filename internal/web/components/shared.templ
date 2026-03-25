@@ -10,7 +10,7 @@ import (
 // Used in both bean feed cards and brew feed cards.
 type BeanSummaryProps struct {
 	Bean         *models.Bean
-	CoffeeAmount int // if > 0, shows "⚖️ Xg" (brew context)
+	CoffeeAmount int // if > 0, shows scale icon + "Xg" (brew context)
 }
 
 // BeanSummary renders the bean name, roaster, and attribute tags.
@@ -25,24 +25,42 @@ templ BeanSummary(props BeanSummaryProps) {
 		</div>
 		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
 			<div class="text-sm text-brown-700 mt-0.5">
-				<span class="font-medium">🏭 { props.Bean.Roaster.Name }</span>
+				<span class="inline-flex items-center gap-0.5 font-medium">
+				@IconStore()
+				{ props.Bean.Roaster.Name }
+			</span>
 			</div>
 		}
 		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
 			if props.Bean.Origin != "" {
-				<span class="inline-flex items-center gap-0.5">📍 { props.Bean.Origin }</span>
+				<span class="inline-flex items-center gap-0.5">
+				@IconMapPin()
+				{ props.Bean.Origin }
+			</span>
 			}
 			if props.Bean.RoastLevel != "" {
-				<span class="inline-flex items-center gap-0.5">🔥 { props.Bean.RoastLevel }</span>
+				<span class="inline-flex items-center gap-0.5">
+				@IconFlame()
+				{ props.Bean.RoastLevel }
+			</span>
 			}
 			if props.Bean.Variety != "" {
-				<span class="inline-flex items-center gap-0.5">🌿 { props.Bean.Variety }</span>
+				<span class="inline-flex items-center gap-0.5">
+				@IconLeaf()
+				{ props.Bean.Variety }
+			</span>
 			}
 			if props.Bean.Process != "" {
-				<span class="inline-flex items-center gap-0.5">🌱 { props.Bean.Process }</span>
+				<span class="inline-flex items-center gap-0.5">
+				@IconSprout()
+				{ props.Bean.Process }
+			</span>
 			}
 			if props.CoffeeAmount > 0 {
-				<span class="inline-flex items-center gap-0.5">⚖️ { fmt.Sprintf("%dg", props.CoffeeAmount) }</span>
+				<span class="inline-flex items-center gap-0.5">
+				@IconScale()
+				{ fmt.Sprintf("%dg", props.CoffeeAmount) }
+			</span>
 			}
 		</div>
 	}
@@ -80,13 +98,23 @@ templ emptyStateContent(props EmptyStateProps) {
 type DetailFieldProps struct {
 	Label    string
 	Value    string
-	LinkHref string // Optional: wraps value in a link
+	LinkHref string          // Optional: wraps value in a link
+	Icon     templ.Component // Optional: icon rendered before the label
 }
 
 // DetailField renders a labeled value with a "Not specified" fallback
 templ DetailField(props DetailFieldProps) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">{ props.Label }</h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">
+			if props.Icon != nil {
+				<span class="inline-flex items-center gap-1">
+					@props.Icon
+					{ props.Label }
+				</span>
+			} else {
+				{ props.Label }
+			}
+		</h3>
 		if props.Value != "" && props.LinkHref != "" {
 			<a href={ templ.SafeURL(props.LinkHref) } class="font-semibold text-brown-900 hover:underline">{ props.Value }</a>
 		} else if props.Value != "" {
@@ -192,25 +220,25 @@ templ WelcomeAuthenticated(userDID string) {
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 		<a
 			href="/brews/new"
-			class="btn-primary block text-center py-4 px-6 rounded-xl"
+			class="home-action-primary block text-center py-4 px-6 rounded-xl"
 			hx-get="/brews/new"
 			hx-target="main"
 			hx-swap="innerHTML show:top"
 			hx-select="main > *"
 			hx-push-url="true"
 		>
-			<span class="text-xl font-semibold">☕ Add New Brew</span>
+			<span class="text-lg font-semibold">Add New Brew</span>
 		</a>
 		<a
 			href="/brews"
-			class="btn-tertiary block text-center py-4 px-6 rounded-xl"
+			class="home-action-secondary block text-center py-4 px-6 rounded-xl"
 			hx-get="/brews"
 			hx-target="main"
 			hx-swap="innerHTML show:top"
 			hx-select="main > *"
 			hx-push-url="true"
 		>
-			<span class="text-xl font-semibold">📋 View All Brews</span>
+			<span class="text-lg font-semibold">View All Brews</span>
 		</a>
 	</div>
 }
@@ -253,13 +281,13 @@ templ WelcomeUnauthenticated() {
 templ AboutInfoCard() {
 	// TODO: only show this at the bottom of the page when authenticated already?
 	<div class="card p-6 mb-6">
-		<h3 class="text-lg font-bold text-brown-900 mb-3">✨ About Arabica</h3>
+		<h3 class="text-lg font-bold text-brown-900 mb-3">About Arabica</h3>
 		<ul class="text-brown-800 space-y-2 leading-relaxed mb-3">
-			<li class="flex items-start"><span class="mr-2">📝</span><span>Add tasting notes and ratings to each brew</span></li>
-			<li class="flex items-start"><span class="mr-2">📊</span><span>Track brewing variables like temperature, time, and grind size</span></li>
-			<li class="flex items-start"><span class="mr-2">🌍</span><span>Organize beans by origin and roaster</span></li>
-			<li class="flex items-start"><span class="mr-2">🚀</span><span><strong>Portable:</strong> Own your coffee brewing history</span></li>
-			<li class="flex items-start"><span class="mr-2">🔒</span><span><strong>Decentralized:</strong> Your data lives in your Personal Data Server (PDS)</span></li>
+			<li>Add tasting notes and ratings to each brew</li>
+			<li>Track brewing variables like temperature, time, and grind size</li>
+			<li>Organize beans by origin and roaster</li>
+			<li><strong>Portable:</strong> Own your coffee brewing history</li>
+			<li><strong>Decentralized:</strong> Your data lives in your Personal Data Server (PDS)</li>
 		</ul>
 		// TODO: include a link to the about page here somewhere
 		// <div class="text-large text-brown-900"><a href="/about" class="text-brown-700 hover:text-brown-900 transition-colors">Learn more</a></div>
@@ -394,13 +422,13 @@ func avatarTextClass(size string) string {
 // RecipeAlphaWarning displays a warning banner about recipes being in early alpha.
 // TODO: remove this later once recipes are stable
 templ RecipeAlphaWarning() {
-	<div class="rounded-lg border border-amber-400 bg-amber-50 p-4 mb-6">
+	<div class="alert-warning mb-6">
 		<div class="flex items-start gap-3">
 			<span class="text-xl leading-none mt-0.5">&#9888;&#65039;</span>
-			<div class="text-sm text-amber-900">
+			<div class="text-sm">
 				<p class="font-bold text-base mb-1">Recipes are in early alpha</p>
 				<p class="mb-2">
-					The recipe format may change significantly as we figure out what works best (e.g. it 
+					The recipe format may change significantly as we figure out what works best (e.g. it
 					may be completely redesigned from the ground up with a more powerful recipe creator system).
 					If that happens, your brews won't break &ndash; brew fields are
 					filled in from the recipe at creation time, so they stand on their own. Only the
@@ -410,7 +438,7 @@ templ RecipeAlphaWarning() {
 					Feedback is very welcome! Arabica has had a pourover bias so far (due to its developer's preferences),
 					so input from espresso folks is especially appreciated.
 				</p>
-				<p class="text-xs text-amber-700">
+				<p class="text-xs alert-warning-muted">
 					If you have feedback or suggestions (or comments) reach out on Bluesky or open an issue on Tangled or GitHub.
 				</p>
 			</div>
