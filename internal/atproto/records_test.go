@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"arabica/internal/models"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBrewToRecord(t *testing.T) {
@@ -717,4 +719,66 @@ func TestTemperatureConversion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBrewRoundTrip_EspressoParams(t *testing.T) {
+	original := &models.Brew{
+		BeanRKey:    "abc123",
+		Temperature: 93.5,
+		Rating:      8,
+		CreatedAt:   time.Now().Truncate(time.Second),
+		EspressoParams: &models.EspressoParams{
+			YieldWeight:        36.0,
+			Pressure:           9.0,
+			PreInfusionSeconds: 5,
+		},
+	}
+
+	record, err := BrewToRecord(original, "at://did:plc:test/social.arabica.alpha.bean/abc123", "", "", "")
+	assert.NoError(t, err)
+
+	// Verify espressoParams is in the record
+	ep, ok := record["espressoParams"].(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, 360, ep["yieldWeight"]) // 36.0 * 10
+	assert.Equal(t, 90, ep["pressure"])     // 9.0 * 10
+	assert.Equal(t, 5, ep["preInfusionSeconds"])
+
+	restored, err := RecordToBrew(record, "at://did:plc:test/social.arabica.alpha.brew/tid123")
+	assert.NoError(t, err)
+	assert.NotNil(t, restored.EspressoParams)
+	assert.InDelta(t, 36.0, restored.EspressoParams.YieldWeight, 0.1)
+	assert.InDelta(t, 9.0, restored.EspressoParams.Pressure, 0.1)
+	assert.Equal(t, 5, restored.EspressoParams.PreInfusionSeconds)
+}
+
+func TestBrewRoundTrip_PouroverParams(t *testing.T) {
+	original := &models.Brew{
+		BeanRKey:  "abc123",
+		CreatedAt: time.Now().Truncate(time.Second),
+		PouroverParams: &models.PouroverParams{
+			BloomWater:      50,
+			BloomSeconds:    45,
+			DrawdownSeconds: 30,
+			BypassWater:     100,
+		},
+	}
+
+	record, err := BrewToRecord(original, "at://did:plc:test/social.arabica.alpha.bean/abc123", "", "", "")
+	assert.NoError(t, err)
+
+	pp, ok := record["pouroverParams"].(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, 50, pp["bloomWater"])
+	assert.Equal(t, 45, pp["bloomSeconds"])
+	assert.Equal(t, 30, pp["drawdownSeconds"])
+	assert.Equal(t, 100, pp["bypassWater"])
+
+	restored, err := RecordToBrew(record, "at://did:plc:test/social.arabica.alpha.brew/tid123")
+	assert.NoError(t, err)
+	assert.NotNil(t, restored.PouroverParams)
+	assert.Equal(t, 50, restored.PouroverParams.BloomWater)
+	assert.Equal(t, 45, restored.PouroverParams.BloomSeconds)
+	assert.Equal(t, 30, restored.PouroverParams.DrawdownSeconds)
+	assert.Equal(t, 100, restored.PouroverParams.BypassWater)
 }

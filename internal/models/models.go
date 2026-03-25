@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,63 @@ const (
 	MaxCommentLength      = 1000
 	MaxCommentGraphemes   = 300
 )
+
+// Brewer type categories (knownValues from lexicon)
+const (
+	BrewerTypePourover  = "pourover"
+	BrewerTypeEspresso  = "espresso"
+	BrewerTypeImmersion = "immersion"
+	BrewerTypeMokaPot   = "mokapot"
+	BrewerTypeColdBrew  = "coldbrew"
+	BrewerTypeCupping   = "cupping"
+	BrewerTypeOther     = "other"
+)
+
+// BrewerTypeLabels maps canonical brewer type values to display labels
+var BrewerTypeLabels = map[string]string{
+	BrewerTypePourover:  "Pour-over",
+	BrewerTypeEspresso:  "Espresso",
+	BrewerTypeImmersion: "Immersion",
+	BrewerTypeMokaPot:   "Moka Pot",
+	BrewerTypeColdBrew:  "Cold Brew",
+	BrewerTypeCupping:   "Cupping",
+	BrewerTypeOther:     "Other",
+}
+
+// BrewerTypeKnownValues is the ordered list for form dropdowns
+var BrewerTypeKnownValues = []string{
+	BrewerTypePourover,
+	BrewerTypeEspresso,
+	BrewerTypeImmersion,
+	BrewerTypeMokaPot,
+	BrewerTypeColdBrew,
+	BrewerTypeCupping,
+	BrewerTypeOther,
+}
+
+// NormalizeBrewerType maps freeform brewer type strings to canonical values.
+// Returns the input unchanged if no mapping is found (preserves unknown values).
+func NormalizeBrewerType(raw string) string {
+	lower := strings.ToLower(strings.TrimSpace(raw))
+	switch {
+	case lower == "pourover" || lower == "pour-over" || lower == "pour over" || lower == "dripper":
+		return BrewerTypePourover
+	case lower == "espresso" || lower == "espresso machine" || lower == "lever espresso" || lower == "lever espresso machine":
+		return BrewerTypeEspresso
+	case lower == "immersion" || lower == "french press" || lower == "aeropress" || lower == "siphon" || lower == "clever" || lower == "clever dripper":
+		return BrewerTypeImmersion
+	case lower == "mokapot" || lower == "moka pot" || lower == "moka" || lower == "bialetti":
+		return BrewerTypeMokaPot
+	case lower == "coldbrew" || lower == "cold brew" || lower == "cold drip":
+		return BrewerTypeColdBrew
+	case lower == "cupping":
+		return BrewerTypeCupping
+	case lower == "other":
+		return BrewerTypeOther
+	default:
+		return raw // preserve unknown values
+	}
+}
 
 // Validation errors
 var (
@@ -95,6 +153,21 @@ type Pour struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+// EspressoParams holds espresso-specific brewing parameters
+type EspressoParams struct {
+	YieldWeight        float64 `json:"yield_weight"`         // Output weight in grams
+	Pressure           float64 `json:"pressure"`             // Pressure in bar
+	PreInfusionSeconds int     `json:"pre_infusion_seconds"` // Pre-infusion time
+}
+
+// PouroverParams holds pour-over-specific brewing parameters
+type PouroverParams struct {
+	BloomWater      int `json:"bloom_water"`      // Bloom water in grams
+	BloomSeconds    int `json:"bloom_seconds"`    // Bloom wait time in seconds
+	DrawdownSeconds int `json:"drawdown_seconds"` // Drawdown time in seconds
+	BypassWater     int `json:"bypass_water"`     // Bypass water in grams
+}
+
 type Recipe struct {
 	RKey         string    `json:"rkey"`
 	Name         string    `json:"name"`
@@ -162,6 +235,10 @@ type Brew struct {
 	Rating       int       `json:"rating"`
 	CreatedAt    time.Time `json:"created_at"`
 
+	// Method-specific parameters
+	EspressoParams *EspressoParams `json:"espresso_params,omitempty"`
+	PouroverParams *PouroverParams `json:"pourover_params,omitempty"`
+
 	// Joined data for display
 	Bean       *Bean    `json:"bean,omitempty"`
 	RecipeObj  *Recipe  `json:"recipe_obj,omitempty"`
@@ -185,6 +262,8 @@ type CreateBrewRequest struct {
 	TastingNotes   string           `json:"tasting_notes"`
 	Rating         int              `json:"rating"`
 	Pours          []CreatePourData `json:"pours"`
+	EspressoParams *EspressoParams  `json:"espresso_params,omitempty"`
+	PouroverParams *PouroverParams  `json:"pourover_params,omitempty"`
 }
 
 type CreatePourData struct {

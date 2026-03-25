@@ -169,6 +169,8 @@ templ RecipeModeSection(props BrewFormProps) {
 			@TemperatureField(props)
 			@BrewTimeField(props)
 		</fieldset>
+		@EspressoParamsSection(props)
+		@PouroverParamsSection(props)
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
 			<legend class="text-sm font-semibold text-brown-800 px-2">Results</legend>
 			@TastingNotesField(props)
@@ -196,6 +198,8 @@ templ FreeformModeSection(props BrewFormProps) {
 			@TemperatureField(props)
 			@BrewTimeField(props)
 		</fieldset>
+		@EspressoParamsSection(props)
+		@PouroverParamsSection(props)
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
 			<legend class="text-sm font-semibold text-brown-800 px-2">Results</legend>
 			@TastingNotesField(props)
@@ -643,4 +647,156 @@ templ SubmitButton(props BrewFormProps) {
 			}
 		</button>
 	</div>
+}
+
+// EspressoParamsSection renders espresso-specific fields (shown when brewer type is espresso)
+templ EspressoParamsSection(props BrewFormProps) {
+	<div x-show="brewerCategory === 'espresso'" x-cloak>
+		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<legend class="text-sm font-semibold text-brown-800 px-2">Espresso</legend>
+			@components.FormField(
+				components.FormFieldProps{
+					Label:      "Yield Weight (grams)",
+					HelperText: "Weight of espresso output",
+				},
+				components.NumberInput(components.NumberInputProps{
+					Name:        "espresso_yield_weight",
+					Value:       getEspressoYieldWeight(props),
+					Placeholder: "e.g. 36",
+					Step:        "0.1",
+					Class:       "w-full form-input-lg",
+				}),
+			)
+			@components.FormField(
+				components.FormFieldProps{
+					Label:      "Pressure (bar)",
+					HelperText: "Brewing pressure",
+				},
+				components.NumberInput(components.NumberInputProps{
+					Name:        "espresso_pressure",
+					Value:       getEspressoPressure(props),
+					Placeholder: "e.g. 9",
+					Step:        "0.1",
+					Class:       "w-full form-input-lg",
+				}),
+			)
+			@components.FormField(
+				components.FormFieldProps{Label: "Pre-infusion Time (seconds)"},
+				components.NumberInput(components.NumberInputProps{
+					Name:        "espresso_pre_infusion_seconds",
+					Value:       getEspressoPreInfusion(props),
+					Placeholder: "e.g. 5",
+					Class:       "w-full form-input-lg",
+				}),
+			)
+		</fieldset>
+	</div>
+}
+
+// PouroverParamsSection renders pour-over-specific fields (shown when brewer type is pourover)
+templ PouroverParamsSection(props BrewFormProps) {
+	<div x-show="brewerCategory === 'pourover'" x-cloak>
+		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<legend class="text-sm font-semibold text-brown-800 px-2">Pour-over Details</legend>
+			<div class="grid grid-cols-2 gap-4">
+				@components.FormField(
+					components.FormFieldProps{
+						Label:      "Bloom Water (grams)",
+						HelperText: "Water for bloom",
+					},
+					components.NumberInput(components.NumberInputProps{
+						Name:        "pourover_bloom_water",
+						Value:       getPouroverBloomWater(props),
+						Placeholder: "e.g. 50",
+						Class:       "w-full form-input-lg",
+					}),
+				)
+				@components.FormField(
+					components.FormFieldProps{
+						Label:      "Bloom Time (seconds)",
+						HelperText: "Bloom wait time",
+					},
+					components.NumberInput(components.NumberInputProps{
+						Name:        "pourover_bloom_seconds",
+						Value:       getPouroverBloomSeconds(props),
+						Placeholder: "e.g. 45",
+						Class:       "w-full form-input-lg",
+					}),
+				)
+			</div>
+			@components.FormField(
+				components.FormFieldProps{
+					Label:      "Drawdown Time (seconds)",
+					HelperText: "Time after last pour until bed is dry",
+				},
+				components.NumberInput(components.NumberInputProps{
+					Name:        "pourover_drawdown_seconds",
+					Value:       getPouroverDrawdown(props),
+					Placeholder: "e.g. 30",
+					Class:       "w-full form-input-lg",
+				}),
+			)
+			@components.FormField(
+				components.FormFieldProps{
+					Label:      "Bypass Water (grams)",
+					HelperText: "Water added after brewing",
+				},
+				components.NumberInput(components.NumberInputProps{
+					Name:        "pourover_bypass_water",
+					Value:       getPouroverBypass(props),
+					Placeholder: "e.g. 100",
+					Class:       "w-full form-input-lg",
+				}),
+			)
+		</fieldset>
+	</div>
+}
+
+func getEspressoYieldWeight(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.EspressoParams != nil && props.Brew.EspressoParams.YieldWeight > 0 {
+		return fmt.Sprintf("%.1f", props.Brew.EspressoParams.YieldWeight)
+	}
+	return ""
+}
+
+func getEspressoPressure(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.EspressoParams != nil && props.Brew.EspressoParams.Pressure > 0 {
+		return fmt.Sprintf("%.1f", props.Brew.EspressoParams.Pressure)
+	}
+	return ""
+}
+
+func getEspressoPreInfusion(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.EspressoParams != nil && props.Brew.EspressoParams.PreInfusionSeconds > 0 {
+		return fmt.Sprintf("%d", props.Brew.EspressoParams.PreInfusionSeconds)
+	}
+	return ""
+}
+
+func getPouroverBloomWater(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.PouroverParams != nil && props.Brew.PouroverParams.BloomWater > 0 {
+		return fmt.Sprintf("%d", props.Brew.PouroverParams.BloomWater)
+	}
+	return ""
+}
+
+func getPouroverBloomSeconds(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.PouroverParams != nil && props.Brew.PouroverParams.BloomSeconds > 0 {
+		return fmt.Sprintf("%d", props.Brew.PouroverParams.BloomSeconds)
+	}
+	return ""
+}
+
+func getPouroverDrawdown(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.PouroverParams != nil && props.Brew.PouroverParams.DrawdownSeconds > 0 {
+		return fmt.Sprintf("%d", props.Brew.PouroverParams.DrawdownSeconds)
+	}
+	return ""
+}
+
+func getPouroverBypass(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.PouroverParams != nil && props.Brew.PouroverParams.BypassWater > 0 {
+		return fmt.Sprintf("%d", props.Brew.PouroverParams.BypassWater)
+	}
+	return ""
 }

@@ -500,6 +500,58 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// parseEspressoParams extracts espresso-specific params from form values.
+// Returns nil if no espresso params were provided.
+func parseEspressoParams(r *http.Request) *models.EspressoParams {
+	yieldStr := r.FormValue("espresso_yield_weight")
+	pressureStr := r.FormValue("espresso_pressure")
+	preInfStr := r.FormValue("espresso_pre_infusion_seconds")
+
+	if yieldStr == "" && pressureStr == "" && preInfStr == "" {
+		return nil
+	}
+
+	ep := &models.EspressoParams{}
+	if v, err := strconv.ParseFloat(yieldStr, 64); err == nil && v > 0 {
+		ep.YieldWeight = v
+	}
+	if v, err := strconv.ParseFloat(pressureStr, 64); err == nil && v > 0 {
+		ep.Pressure = v
+	}
+	if v, err := strconv.Atoi(preInfStr); err == nil && v > 0 {
+		ep.PreInfusionSeconds = v
+	}
+	return ep
+}
+
+// parsePouroverParams extracts pour-over-specific params from form values.
+// Returns nil if no pour-over params were provided.
+func parsePouroverParams(r *http.Request) *models.PouroverParams {
+	bloomWaterStr := r.FormValue("pourover_bloom_water")
+	bloomSecsStr := r.FormValue("pourover_bloom_seconds")
+	drawdownStr := r.FormValue("pourover_drawdown_seconds")
+	bypassStr := r.FormValue("pourover_bypass_water")
+
+	if bloomWaterStr == "" && bloomSecsStr == "" && drawdownStr == "" && bypassStr == "" {
+		return nil
+	}
+
+	pp := &models.PouroverParams{}
+	if v, err := strconv.Atoi(bloomWaterStr); err == nil && v > 0 {
+		pp.BloomWater = v
+	}
+	if v, err := strconv.Atoi(bloomSecsStr); err == nil && v > 0 {
+		pp.BloomSeconds = v
+	}
+	if v, err := strconv.Atoi(drawdownStr); err == nil && v > 0 {
+		pp.DrawdownSeconds = v
+	}
+	if v, err := strconv.Atoi(bypassStr); err == nil && v > 0 {
+		pp.BypassWater = v
+	}
+	return pp
+}
+
 // maxPours is the maximum number of pours allowed in a single brew
 const maxPours = 100
 
@@ -673,6 +725,8 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		Rating:         rating,
 		Pours:          pours,
 	}
+	req.EspressoParams = parseEspressoParams(r)
+	req.PouroverParams = parsePouroverParams(r)
 
 	if err := req.Validate(); err != nil {
 		log.Warn().Err(err).Msg("Brew create request validation failed")
@@ -771,6 +825,8 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		Rating:         rating,
 		Pours:          pours,
 	}
+	req.EspressoParams = parseEspressoParams(r)
+	req.PouroverParams = parsePouroverParams(r)
 
 	if err := req.Validate(); err != nil {
 		log.Warn().Err(err).Str("rkey", rkey).Msg("Brew update request validation failed")

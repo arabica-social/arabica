@@ -80,6 +80,16 @@
               "ref": "#pour"
             }
           },
+          "espressoParams": {
+            "type": "ref",
+            "ref": "#espressoParams",
+            "description": "Espresso-specific brewing parameters (optional)"
+          },
+          "pouroverParams": {
+            "type": "ref",
+            "ref": "#pouroverParams",
+            "description": "Pour-over-specific brewing parameters (optional)"
+          },
           "createdAt": {
             "type": "string",
             "format": "datetime",
@@ -102,6 +112,53 @@
           "type": "integer",
           "minimum": 0,
           "description": "Time of this pour relative to brew start (seconds)"
+        }
+      }
+    },
+    "espressoParams": {
+      "type": "object",
+      "description": "Parameters specific to espresso brewing",
+      "properties": {
+        "yieldWeight": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Espresso yield/output weight in tenths of a gram (e.g., 360 = 36.0g)"
+        },
+        "pressure": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Brewing pressure in tenths of a bar (e.g., 90 = 9.0 bar)"
+        },
+        "preInfusionSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pre-infusion time in seconds"
+        }
+      }
+    },
+    "pouroverParams": {
+      "type": "object",
+      "description": "Parameters specific to pour-over brewing",
+      "properties": {
+        "bloomWater": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Water used for bloom in grams"
+        },
+        "bloomSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Bloom wait time in seconds"
+        },
+        "drawdownSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Drawdown time in seconds (time after last pour until bed is dry)"
+        },
+        "bypassWater": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Bypass water added after brewing in grams"
         }
       }
     }

@@ -10,6 +10,7 @@ document.addEventListener("alpine:init", () => {
     // Brew form specific
     rating: 5,
     pours: [],
+    brewerCategory: "", // 'pourover' | 'espresso' | 'immersion' | ''
 
     // Mode state
     formMode: "choose", // 'choose' | 'recipe' | 'freeform'
@@ -146,9 +147,62 @@ document.addEventListener("alpine:init", () => {
 
     onBrewerChange(rkey) {
       const brewerType = this.dropdownManager?.getBrewerType(rkey) || "";
-      if (brewerType.toLowerCase().includes("pour")) {
+      this.brewerCategory = this.normalizeBrewerCategory(brewerType);
+
+      // Auto-show pours for pour-over brewers
+      if (this.brewerCategory === "pourover") {
         this.showPours = true;
       }
+    },
+
+    // Map brewer type strings to canonical categories
+    normalizeBrewerCategory(raw) {
+      if (!raw) return "";
+      const lower = raw.toLowerCase().trim();
+
+      // Direct match on canonical values
+      if (
+        [
+          "pourover",
+          "espresso",
+          "immersion",
+          "mokapot",
+          "coldbrew",
+          "cupping",
+          "other",
+        ].includes(lower)
+      )
+        return lower;
+
+      // Legacy freeform mappings
+      if (
+        ["pour-over", "pour over", "dripper"].includes(lower)
+      )
+        return "pourover";
+      if (
+        [
+          "espresso machine",
+          "lever espresso",
+          "lever espresso machine",
+        ].includes(lower)
+      )
+        return "espresso";
+      if (
+        [
+          "french press",
+          "aeropress",
+          "siphon",
+          "clever",
+          "clever dripper",
+        ].includes(lower)
+      )
+        return "immersion";
+
+      // TODO: future method types
+      // if (['moka pot', 'moka', 'bialetti'].includes(lower)) return 'mokapot';
+      // if (['cold brew', 'cold drip'].includes(lower)) return 'coldbrew';
+
+      return "";
     },
 
     // Recipe summary text
@@ -324,6 +378,11 @@ document.addEventListener("alpine:init", () => {
           recipe.water_amount > 0 ? Math.round(recipe.water_amount) : "",
         );
         this.setFormField(form, "brewer_rkey", recipe.brewer_rkey || "");
+
+        // Update brewer category from recipe's brewer
+        if (recipe.brewer_rkey) {
+          this.onBrewerChange(recipe.brewer_rkey);
+        }
 
         // Always reset pours, then apply recipe pours if present
         this.pours =

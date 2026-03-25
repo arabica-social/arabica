@@ -9,6 +9,19 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
+// toFloat64 extracts a numeric value from an interface{} that may be int or float64.
+// JSON decoding produces float64, but in-memory maps may contain int.
+func toFloat64(v interface{}) (float64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return n, true
+	case int:
+		return float64(n), true
+	default:
+		return 0, false
+	}
+}
+
 // ========== Recipe Conversions ==========
 
 // RecipeToRecord converts a models.Recipe to an atproto record map
@@ -181,6 +194,43 @@ func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI s
 		record["pours"] = pours
 	}
 
+	// Espresso-specific params
+	if brew.EspressoParams != nil {
+		ep := map[string]interface{}{}
+		if brew.EspressoParams.YieldWeight > 0 {
+			ep["yieldWeight"] = int(brew.EspressoParams.YieldWeight * 10) // tenths of a gram
+		}
+		if brew.EspressoParams.Pressure > 0 {
+			ep["pressure"] = int(brew.EspressoParams.Pressure * 10) // tenths of a bar
+		}
+		if brew.EspressoParams.PreInfusionSeconds > 0 {
+			ep["preInfusionSeconds"] = brew.EspressoParams.PreInfusionSeconds
+		}
+		if len(ep) > 0 {
+			record["espressoParams"] = ep
+		}
+	}
+
+	// Pour-over-specific params
+	if brew.PouroverParams != nil {
+		pp := map[string]interface{}{}
+		if brew.PouroverParams.BloomWater > 0 {
+			pp["bloomWater"] = brew.PouroverParams.BloomWater
+		}
+		if brew.PouroverParams.BloomSeconds > 0 {
+			pp["bloomSeconds"] = brew.PouroverParams.BloomSeconds
+		}
+		if brew.PouroverParams.DrawdownSeconds > 0 {
+			pp["drawdownSeconds"] = brew.PouroverParams.DrawdownSeconds
+		}
+		if brew.PouroverParams.BypassWater > 0 {
+			pp["bypassWater"] = brew.PouroverParams.BypassWater
+		}
+		if len(pp) > 0 {
+			record["pouroverParams"] = pp
+		}
+	}
+
 	return record, nil
 }
 
@@ -262,6 +312,39 @@ func RecordToBrew(record map[string]interface{}, atURI string) (*models.Brew, er
 			pour.PourNumber = i + 1 // Sequential numbering
 			brew.Pours[i] = pour
 		}
+	}
+
+	// Espresso params
+	if epRaw, ok := record["espressoParams"].(map[string]interface{}); ok {
+		ep := &models.EspressoParams{}
+		if v, ok := toFloat64(epRaw["yieldWeight"]); ok {
+			ep.YieldWeight = v / 10.0
+		}
+		if v, ok := toFloat64(epRaw["pressure"]); ok {
+			ep.Pressure = v / 10.0
+		}
+		if v, ok := toFloat64(epRaw["preInfusionSeconds"]); ok {
+			ep.PreInfusionSeconds = int(v)
+		}
+		brew.EspressoParams = ep
+	}
+
+	// Pour-over params
+	if ppRaw, ok := record["pouroverParams"].(map[string]interface{}); ok {
+		pp := &models.PouroverParams{}
+		if v, ok := toFloat64(ppRaw["bloomWater"]); ok {
+			pp.BloomWater = int(v)
+		}
+		if v, ok := toFloat64(ppRaw["bloomSeconds"]); ok {
+			pp.BloomSeconds = int(v)
+		}
+		if v, ok := toFloat64(ppRaw["drawdownSeconds"]); ok {
+			pp.DrawdownSeconds = int(v)
+		}
+		if v, ok := toFloat64(ppRaw["bypassWater"]); ok {
+			pp.BypassWater = int(v)
+		}
+		brew.PouroverParams = pp
 	}
 
 	return brew, nil

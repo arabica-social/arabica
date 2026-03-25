@@ -238,6 +238,8 @@ func brewModelFromRequest(req *models.CreateBrewRequest, createdAt time.Time) *m
 			}
 		}
 	}
+	brew.EspressoParams = req.EspressoParams
+	brew.PouroverParams = req.PouroverParams
 	return brew
 }
 

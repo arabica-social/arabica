@@ -350,3 +350,36 @@ func TestCreateBrewRequest_Validate(t *testing.T) {
 		assert.ErrorIs(t, req.Validate(), ErrFieldTooLong)
 	})
 }
+
+func TestNormalizeBrewerType(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"pourover", "pourover"},
+		{"Pour-Over", "pourover"},
+		{"pour over", "pourover"},
+		{"Dripper", "pourover"},
+		{"espresso", "espresso"},
+		{"Espresso Machine", "espresso"},
+		{"Lever Espresso Machine", "espresso"},
+		{"immersion", "immersion"},
+		{"French Press", "immersion"},
+		{"Aeropress", "immersion"},
+		{"Clever Dripper", "immersion"},
+		{"mokapot", "mokapot"},
+		{"Moka Pot", "mokapot"},
+		{"coldbrew", "coldbrew"},
+		{"Cold Brew", "coldbrew"},
+		{"cupping", "cupping"},
+		{"other", "other"},
+		{"SomeUnknownType", "SomeUnknownType"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			assert.Equal(t, tt.expected, NormalizeBrewerType(tt.input))
+		})
+	}
+}

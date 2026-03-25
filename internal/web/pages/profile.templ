@@ -387,7 +387,16 @@ templ BrewerFormModal() {
 			<h3 class="modal-title" x-text="editingBrewer ? 'Edit Brewer' : 'Add Brewer'"></h3>
 			<div class="space-y-4">
 				<input type="text" x-model="brewerForm.name" placeholder="Name *" class="w-full form-input"/>
-				<input type="text" x-model="brewerForm.brewer_type" placeholder="Type (e.g., Pour-Over, Immersion, Espresso)" class="w-full form-input"/>
+				<select x-model="brewerForm.brewer_type" class="w-full form-select">
+				<option value="">Select type...</option>
+				<option value="pourover">Pour-over</option>
+				<option value="espresso">Espresso</option>
+				<option value="immersion">Immersion</option>
+				<option value="mokapot">Moka Pot</option>
+				<option value="coldbrew">Cold Brew</option>
+				<option value="cupping">Cupping</option>
+				<option value="other">Other</option>
+			</select>
 				<textarea x-model="brewerForm.description" placeholder="Description" rows="3" class="w-full form-textarea"></textarea>
 				<div class="flex gap-2">
 					<button @click="saveBrewer()" class="flex-1 btn-primary">Save</button>

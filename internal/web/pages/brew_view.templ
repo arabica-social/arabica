@@ -175,7 +175,42 @@ templ BrewParametersGrid(brew *models.Brew, owner string) {
 		<div class="col-span-2">
 			@components.DetailField(components.DetailFieldProps{Icon: components.IconClock(), Label: "Brew Time", Value: getBrewTimeDisplay(brew)})
 		</div>
+		if brew.EspressoParams != nil {
+			if brew.EspressoParams.YieldWeight > 0 {
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconScale(), Label: "Yield", Value: fmt.Sprintf("%.1fg", brew.EspressoParams.YieldWeight)})
+			}
+			if brew.EspressoParams.Pressure > 0 {
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconBarChart(), Label: "Pressure", Value: fmt.Sprintf("%.1f bar", brew.EspressoParams.Pressure)})
+			}
+			if brew.EspressoParams.PreInfusionSeconds > 0 {
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconClock(), Label: "Pre-infusion", Value: fmt.Sprintf("%ds", brew.EspressoParams.PreInfusionSeconds)})
+			}
+		}
+		if brew.PouroverParams != nil {
+			if brew.PouroverParams.BloomWater > 0 || brew.PouroverParams.BloomSeconds > 0 {
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Bloom", Value: formatBloom(brew.PouroverParams)})
+			}
+			if brew.PouroverParams.DrawdownSeconds > 0 {
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconClock(), Label: "Drawdown", Value: fmt.Sprintf("%ds", brew.PouroverParams.DrawdownSeconds)})
+			}
+			if brew.PouroverParams.BypassWater > 0 {
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Bypass Water", Value: fmt.Sprintf("%dg", brew.PouroverParams.BypassWater)})
+			}
+		}
 	</div>
+}
+
+func formatBloom(pp *models.PouroverParams) string {
+	if pp.BloomWater > 0 && pp.BloomSeconds > 0 {
+		return fmt.Sprintf("%dg for %ds", pp.BloomWater, pp.BloomSeconds)
+	}
+	if pp.BloomWater > 0 {
+		return fmt.Sprintf("%dg", pp.BloomWater)
+	}
+	if pp.BloomSeconds > 0 {
+		return fmt.Sprintf("%ds", pp.BloomSeconds)
+	}
+	return ""
 }
 
 // Helper functions for brew view display

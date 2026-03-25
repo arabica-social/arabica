@@ -18,7 +18,16 @@
           "brewerType": {
             "type": "string",
             "maxLength": 100,
-            "description": "Type of brewer (e.g., 'Pour-Over', 'Immersion', 'Espresso Machine', 'Lever Espresso Machine', 'Moka Pot', 'French Press')"
+            "knownValues": [
+              "pourover",
+              "espresso",
+              "immersion",
+              "mokapot",
+              "coldbrew",
+              "cupping",
+              "other"
+            ],
+            "description": "Category of brewer. Known values: pourover, espresso, immersion, mokapot, coldbrew, cupping, other"
           },
           "description": {
             "type": "string",
