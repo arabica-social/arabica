@@ -102,10 +102,10 @@ func TestMatchesFilter_CategorySingle(t *testing.T) {
 	tooMuchWater := &Recipe{Name: "Party Brew", CoffeeAmount: 15, WaterAmount: 500}
 	tooBigDose := &Recipe{Name: "Large", CoffeeAmount: 25, WaterAmount: 300}
 
-	assert.False(t, MatchesFilter(small, RecipeFilter{Category: "single"}))     // coffee too low
-	assert.True(t, MatchesFilter(single, RecipeFilter{Category: "single"}))      // perfect fit
+	assert.False(t, MatchesFilter(small, RecipeFilter{Category: "single"}))        // coffee too low
+	assert.True(t, MatchesFilter(single, RecipeFilter{Category: "single"}))        // perfect fit
 	assert.False(t, MatchesFilter(tooMuchWater, RecipeFilter{Category: "single"})) // water too high
-	assert.False(t, MatchesFilter(tooBigDose, RecipeFilter{Category: "single"}))  // coffee too high
+	assert.False(t, MatchesFilter(tooBigDose, RecipeFilter{Category: "single"}))   // coffee too high
 }
 
 func TestMatchesFilter_CategoriesNoOverlap(t *testing.T) {

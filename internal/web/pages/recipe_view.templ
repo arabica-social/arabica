@@ -94,7 +94,7 @@ templ RecipeViewCard(props RecipeViewProps) {
 			<div class="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
 				@components.BackButton()
 				if props.IsAuthenticated {
-					<a href={ templ.SafeURL("/brews/new?recipe=" + props.Recipe.RKey) } class="btn-primary text-sm text-center">Use in Brew</a>
+					<a href={ templ.SafeURL("/brews/new?recipe=" + props.Recipe.RKey + "&recipe_owner=" + props.Recipe.AuthorDID) } class="btn-primary text-sm text-center">Use in Brew</a>
 				}
 				if props.IsAuthenticated && !props.IsOwnProfile {
 					<button

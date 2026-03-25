@@ -205,20 +205,20 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 	}
 
 	return pages.AdminProps{
-		HiddenRecords:  hiddenRecords,
-		AuditLog:       auditLog,
-		Reports:        enrichedReports,
-		BlockedUsers:   blockedUsers,
-		JoinRequests:   joinRequests,
-		Stats:          stats,
-		CanHide:        canHide,
-		CanUnhide:      canUnhide,
-		CanViewLogs:    canViewLogs,
-		CanViewReports: canViewReports,
-		CanBlock:          canBlock,
-		CanUnblock:        canUnblock,
-		CanResetAutoHide:  canResetAutoHide,
-		IsAdmin:           isAdmin,
+		HiddenRecords:    hiddenRecords,
+		AuditLog:         auditLog,
+		Reports:          enrichedReports,
+		BlockedUsers:     blockedUsers,
+		JoinRequests:     joinRequests,
+		Stats:            stats,
+		CanHide:          canHide,
+		CanUnhide:        canUnhide,
+		CanViewLogs:      canViewLogs,
+		CanViewReports:   canViewReports,
+		CanBlock:         canBlock,
+		CanUnblock:       canUnblock,
+		CanResetAutoHide: canResetAutoHide,
+		IsAdmin:          isAdmin,
 	}
 }
 

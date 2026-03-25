@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/rs/zerolog/log"
+	bolt "go.etcd.io/bbolt"
 )
 
 // StatsSource provides functions to retrieve current counts for gauge metrics.

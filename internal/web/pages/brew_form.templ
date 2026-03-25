@@ -22,6 +22,8 @@ type BrewFormProps struct {
 
 	// Recipe rkey from URL param (for auto-applying recipe on new brew)
 	RecipeRKey string
+	// Recipe owner DID from URL param (for cross-user recipe references)
+	RecipeOwnerDID string
 }
 
 // BrewFormPage renders the full brew form page with layout
@@ -70,6 +72,13 @@ func getFormRecipeRKey(props BrewFormProps) string {
 	return ""
 }
 
+func getFormRecipeOwnerDID(props BrewFormProps) string {
+	if props.RecipeOwnerDID != "" {
+		return props.RecipeOwnerDID
+	}
+	return ""
+}
+
 // BrewFormElement renders the form element with all fields
 templ BrewFormElement(props BrewFormProps) {
 	<form
@@ -88,6 +97,9 @@ templ BrewFormElement(props BrewFormProps) {
 		}
 		if getFormRecipeRKey(props) != "" {
 			data-recipe-rkey={ getFormRecipeRKey(props) }
+		}
+		if getFormRecipeOwnerDID(props) != "" {
+			data-recipe-owner={ getFormRecipeOwnerDID(props) }
 		}
 	>
 		@ModeChooser(props)
@@ -127,6 +139,7 @@ templ ModeChooser(props BrewFormProps) {
 // RecipeModeSection renders recipe select, summary bar, override fields, and non-recipe fields
 templ RecipeModeSection(props BrewFormProps) {
 	<fieldset x-show="formMode === 'recipe'" :disabled="formMode !== 'recipe'" x-cloak class="space-y-6 border-0 p-0 m-0 min-w-0">
+		<input type="hidden" name="recipe_owner_did" :value="recipeOwnerDID"/>
 		@RecipeSelectField(props)
 		<!-- Recipe summary bar -->
 		<div class="section-box" x-show="activeRecipe" x-cloak>

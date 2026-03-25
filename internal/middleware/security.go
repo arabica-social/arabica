@@ -205,7 +205,6 @@ func RateLimitMiddleware(config *RateLimitConfig) func(http.Handler) http.Handle
 	}
 }
 
-
 // RequireHTMXMiddleware ensures that certain API routes are only accessible via HTMX requests.
 // This prevents direct browser access to internal API endpoints that return fragments or JSON.
 // Routes that need to be publicly accessible (like /api/resolve-handle) should not use this middleware.

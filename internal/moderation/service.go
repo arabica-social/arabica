@@ -16,7 +16,7 @@ type Service struct {
 	configPath string
 
 	// Quick lookup maps built from config
-	userRoles map[string]*Role // DID -> Role
+	userRoles map[string]*Role          // DID -> Role
 	userInfos map[string]*ModeratorUser // DID -> ModeratorUser
 }
 

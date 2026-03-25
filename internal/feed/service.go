@@ -42,7 +42,7 @@ const (
 type FeedItem struct {
 	// Record type and data (only one will be non-nil)
 	RecordType lexicons.RecordType // Use lexicons.RecordTypeBrew, lexicons.RecordTypeBean, etc.
-	Action     string             // "added a new brew", "added a new bean", etc.
+	Action     string              // "added a new brew", "added a new bean", etc.
 
 	Brew    *models.Brew
 	Bean    *models.Bean

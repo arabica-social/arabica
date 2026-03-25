@@ -143,7 +143,8 @@ templ BrewListTableRow(brew *models.Brew, isOwnProfile bool, profileHandle strin
 		<td class="px-4 py-4 whitespace-nowrap text-sm text-brown-900 align-top">
 			if brew.Rating > 0 {
 				<span class="badge-rating-sm">
-					@IconStar() { fmt.Sprintf("%d/10", brew.Rating) }
+					@IconStar()
+					{ fmt.Sprintf("%d/10", brew.Rating) }
 				</span>
 			} else {
 				<span class="text-brown-400">-</span>

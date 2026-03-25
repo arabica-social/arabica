@@ -111,10 +111,12 @@
 }
 
 /* ========================================
-   Dark theme (auto via prefers-color-scheme)
+   Dark theme
+   Activates via: OS preference OR data-theme="dark" on <html>
+   data-theme="light" forces light even on dark OS
    ======================================== */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     /* Page */
     --page-bg: #0F0A08;
     --page-text: #FAF7F5;
@@ -262,6 +264,102 @@
   .decoration-brown-300 { text-decoration-color: var(--card-border) !important; }
   .hover\:decoration-brown-500:hover { text-decoration-color: var(--text-faint) !important; }
 }
+
+/* Manual dark theme override (data-theme="dark" on <html>) */
+:root[data-theme="dark"] {
+  --page-bg: #0F0A08;
+  --page-text: #FAF7F5;
+  --card-bg: #1C1210;
+  --card-border: #2E211B;
+  --card-shadow: rgba(0, 0, 0, 0.3);
+  --card-shadow-hover: rgba(0, 0, 0, 0.4);
+  --surface-bg: rgba(36, 26, 22, 0.6);
+  --surface-border: #2E211B;
+  --header-bg-from: #0F0A08;
+  --header-bg-to: #0F0A08;
+  --header-border: #2E211B;
+  --header-text: #FAF7F5;
+  --text-primary: #FAF7F5;
+  --text-secondary: #E0CEC4;
+  --text-muted: #C4A898;
+  --text-faint: #8B7265;
+  --text-placeholder: #5A4A40;
+  --btn-primary-bg: #7f5539;
+  --btn-primary-bg-hover: #6b4423;
+  --btn-primary-text: #FAF7F5;
+  --btn-secondary-bg: #241A16;
+  --btn-secondary-border: #3D2D24;
+  --btn-secondary-text: #E0CEC4;
+  --btn-secondary-bg-hover: #2E211B;
+  --input-bg: #241A16;
+  --input-border: #3D2D24;
+  --input-border-focus: #fbbf24;
+  --input-ring-focus: rgba(251, 191, 36, 0.15);
+  --input-bg-focus: rgba(36, 26, 22, 0.8);
+  --table-bg: #1C1210;
+  --table-header-bg: #241A16;
+  --table-border: #2E211B;
+  --table-row-hover: #241A16;
+  --table-divider: #241A16;
+  --modal-bg: #1C1210;
+  --modal-border: #2E211B;
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
+  --type-brew: #6b4423;
+  --type-bean: #b45309;
+  --type-recipe: #7f5539;
+  --type-roaster: #92400e;
+  --type-grinder: #6b4423;
+  --type-brewer: #6b4423;
+  --rating-bg: rgba(251, 191, 36, 0.15);
+  --rating-text: #fbbf24;
+  --alert-warning-bg: rgba(251, 191, 36, 0.08);
+  --alert-warning-border: rgba(251, 191, 36, 0.3);
+  --alert-warning-text: #fde68a;
+  --alert-warning-text-muted: #fcd34d;
+  --shadow-sm: 0 1px 3px var(--card-shadow);
+  --shadow-md: 0 4px 12px var(--card-shadow-hover);
+  --shadow-lg: 0 10px 25px var(--card-shadow-hover);
+  --footer-bg: #0F0A08;
+  --footer-border: #2E211B;
+}
+
+/* Tailwind class overrides for dark theme (both auto and manual) */
+:root[data-theme="dark"] .text-brown-900,
+:root[data-theme="dark"] .text-brown-800 { color: var(--text-primary) !important; }
+:root[data-theme="dark"] .text-brown-700 { color: var(--text-secondary) !important; }
+:root[data-theme="dark"] .text-brown-600 { color: var(--text-muted) !important; }
+:root[data-theme="dark"] .text-brown-500 { color: var(--text-faint) !important; }
+:root[data-theme="dark"] .text-brown-400 { color: var(--text-placeholder) !important; }
+:root[data-theme="dark"] .bg-brown-50 { background-color: var(--page-bg) !important; }
+:root[data-theme="dark"] .bg-brown-100 { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .bg-brown-200 { background-color: var(--card-border) !important; }
+:root[data-theme="dark"] .border-brown-200,
+:root[data-theme="dark"] .border-brown-300 { border-color: var(--card-border) !important; }
+:root[data-theme="dark"] .bg-white { background-color: var(--card-bg) !important; }
+:root[data-theme="dark"] .bg-white\/60 { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .bg-amber-50 { background-color: rgba(251, 191, 36, 0.1) !important; }
+:root[data-theme="dark"] .bg-amber-100 { background-color: rgba(251, 191, 36, 0.15) !important; }
+:root[data-theme="dark"] .text-amber-900 { color: #fde68a !important; }
+:root[data-theme="dark"] .text-amber-700 { color: #fcd34d !important; }
+:root[data-theme="dark"] .text-amber-600 { color: #fbbf24 !important; }
+:root[data-theme="dark"] .border-amber-400 { border-color: rgba(251, 191, 36, 0.4) !important; }
+:root[data-theme="dark"] .bg-green-50 { background-color: rgba(251, 191, 36, 0.08) !important; }
+:root[data-theme="dark"] .hover\:bg-brown-200:hover,
+:root[data-theme="dark"] .hover\:bg-brown-100:hover,
+:root[data-theme="dark"] .hover\:bg-brown-50:hover { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .hover\:text-brown-900:hover,
+:root[data-theme="dark"] .hover\:text-brown-800:hover { color: var(--text-primary) !important; }
+:root[data-theme="dark"] .hover\:text-brown-700:hover { color: var(--text-secondary) !important; }
+:root[data-theme="dark"] .divide-brown-200 > :not([hidden]) ~ :not([hidden]),
+:root[data-theme="dark"] .divide-brown-300 > :not([hidden]) ~ :not([hidden]) { border-color: var(--card-border) !important; }
+:root[data-theme="dark"] .ring-brown-500 { --tw-ring-color: #3D2D24 !important; }
+:root[data-theme="dark"] .hover\:ring-brown-400:hover { --tw-ring-color: #5A4A40 !important; }
+:root[data-theme="dark"] .bg-brown-50\/60 { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .bg-brown-200\/60 { background-color: var(--card-border) !important; }
+:root[data-theme="dark"] .border-brown-200\/60 { border-color: var(--card-border) !important; }
+:root[data-theme="dark"] .border-white { border-color: var(--card-bg) !important; }
+:root[data-theme="dark"] .decoration-brown-300 { text-decoration-color: var(--card-border) !important; }
+:root[data-theme="dark"] .hover\:decoration-brown-500:hover { text-decoration-color: var(--text-faint) !important; }
 
 @tailwind base;
 @tailwind components;
@@ -684,6 +782,14 @@
     border-color: var(--input-border-focus);
     background: var(--surface-bg);
   }
+
+  /* Type-aware hover: preview the active color on hover */
+  .filter-pill[data-tab="brew"]:hover { border-color: var(--type-brew); color: var(--type-brew); }
+  .filter-pill[data-tab="bean"]:hover { border-color: var(--type-bean); color: var(--type-bean); }
+  .filter-pill[data-tab="recipe"]:hover { border-color: var(--type-recipe); color: var(--type-recipe); }
+  .filter-pill[data-tab="roaster"]:hover { border-color: var(--type-roaster); color: var(--type-roaster); }
+  .filter-pill[data-tab="grinder"]:hover { border-color: var(--type-grinder); color: var(--type-grinder); }
+  .filter-pill[data-tab="brewer"]:hover { border-color: var(--type-brewer); color: var(--type-brewer); }
 
   .filter-pill-active {
     @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;

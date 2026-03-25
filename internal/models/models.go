@@ -7,23 +7,23 @@ import (
 
 // Field length limits for validation
 const (
-	MaxNameLength        = 200
-	MaxLocationLength    = 200
-	MaxWebsiteLength     = 500
-	MaxDescriptionLength = 2000
-	MaxNotesLength       = 2000
-	MaxOriginLength      = 200
-	MaxRoastLevelLength  = 100
-	MaxVarietyLength     = 200
-	MaxProcessLength     = 100
-	MaxMethodLength      = 100
+	MaxNameLength         = 200
+	MaxLocationLength     = 200
+	MaxWebsiteLength      = 500
+	MaxDescriptionLength  = 2000
+	MaxNotesLength        = 2000
+	MaxOriginLength       = 200
+	MaxRoastLevelLength   = 100
+	MaxVarietyLength      = 200
+	MaxProcessLength      = 100
+	MaxMethodLength       = 100
 	MaxGrindSizeLength    = 100
 	MaxTastingNotesLength = 2000
-	MaxGrinderTypeLength = 50
-	MaxBurrTypeLength    = 50
-	MaxBrewerTypeLength  = 100
-	MaxCommentLength     = 1000
-	MaxCommentGraphemes  = 300
+	MaxGrinderTypeLength  = 50
+	MaxBurrTypeLength     = 50
+	MaxBrewerTypeLength   = 100
+	MaxCommentLength      = 1000
+	MaxCommentGraphemes   = 300
 )
 
 // Validation errors
@@ -121,9 +121,9 @@ type Recipe struct {
 	SourceAuthorDisplay string `json:"source_author_display,omitempty"`
 
 	// Social stats (populated by handler for explore)
-	ForkCount    int             `json:"fork_count,omitempty"`
-	BrewCount    int             `json:"brew_count,omitempty"`
-	ForkerAvatars []string       `json:"forker_avatars,omitempty"` // up to N forker profile pics
+	ForkCount     int      `json:"fork_count,omitempty"`
+	BrewCount     int      `json:"brew_count,omitempty"`
+	ForkerAvatars []string `json:"forker_avatars,omitempty"` // up to N forker profile pics
 }
 
 // Interpolate fills in computed/derived fields from existing data.
@@ -169,19 +169,20 @@ type Brew struct {
 }
 
 type CreateBrewRequest struct {
-	BeanRKey     string           `json:"bean_rkey"`
-	RecipeRKey   string           `json:"recipe_rkey"`
-	Method       string           `json:"method"`
-	Temperature  float64          `json:"temperature"`
-	WaterAmount  int              `json:"water_amount"`
-	CoffeeAmount int              `json:"coffee_amount"`
-	TimeSeconds  int              `json:"time_seconds"`
-	GrindSize    string           `json:"grind_size"`
-	GrinderRKey  string           `json:"grinder_rkey"`
-	BrewerRKey   string           `json:"brewer_rkey"`
-	TastingNotes string           `json:"tasting_notes"`
-	Rating       int              `json:"rating"`
-	Pours        []CreatePourData `json:"pours"`
+	BeanRKey       string           `json:"bean_rkey"`
+	RecipeRKey     string           `json:"recipe_rkey"`
+	RecipeOwnerDID string           `json:"recipe_owner_did"` // DID of the recipe owner (may differ from brew author)
+	Method         string           `json:"method"`
+	Temperature    float64          `json:"temperature"`
+	WaterAmount    int              `json:"water_amount"`
+	CoffeeAmount   int              `json:"coffee_amount"`
+	TimeSeconds    int              `json:"time_seconds"`
+	GrindSize      string           `json:"grind_size"`
+	GrinderRKey    string           `json:"grinder_rkey"`
+	BrewerRKey     string           `json:"brewer_rkey"`
+	TastingNotes   string           `json:"tasting_notes"`
+	Rating         int              `json:"rating"`
+	Pours          []CreatePourData `json:"pours"`
 }
 
 type CreatePourData struct {
@@ -296,14 +297,14 @@ type CreateLikeRequest struct {
 // Comment represents a comment on an Arabica record
 type Comment struct {
 	RKey       string    `json:"rkey"`
-	CID        string    `json:"cid,omitempty"`         // CID of this comment record
+	CID        string    `json:"cid,omitempty"` // CID of this comment record
 	SubjectURI string    `json:"subject_uri"`
 	SubjectCID string    `json:"subject_cid"`
 	Text       string    `json:"text"`
 	CreatedAt  time.Time `json:"created_at"`
 	ActorDID   string    `json:"actor_did,omitempty"`
-	ParentURI  string    `json:"parent_uri,omitempty"`  // AT-URI of parent comment for replies
-	ParentCID  string    `json:"parent_cid,omitempty"`  // CID of parent comment for replies
+	ParentURI  string    `json:"parent_uri,omitempty"` // AT-URI of parent comment for replies
+	ParentCID  string    `json:"parent_cid,omitempty"` // CID of parent comment for replies
 }
 
 // CreateCommentRequest contains the data needed to create a comment
@@ -311,8 +312,8 @@ type CreateCommentRequest struct {
 	SubjectURI string `json:"subject_uri"`
 	SubjectCID string `json:"subject_cid"`
 	Text       string `json:"text"`
-	ParentURI  string `json:"parent_uri,omitempty"`  // AT-URI of parent comment for replies
-	ParentCID  string `json:"parent_cid,omitempty"`  // CID of parent comment for replies
+	ParentURI  string `json:"parent_uri,omitempty"` // AT-URI of parent comment for replies
+	ParentCID  string `json:"parent_cid,omitempty"` // CID of parent comment for replies
 }
 
 // Validate checks that all fields are within acceptable limits

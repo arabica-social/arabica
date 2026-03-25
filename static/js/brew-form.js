@@ -25,6 +25,9 @@ document.addEventListener("alpine:init", () => {
     totalCount: 0,
     recipes: [],
 
+    // Recipe owner DID (for cross-user recipe references)
+    recipeOwnerDID: "",
+
     // Dropdown manager instance
     dropdownManager: null,
 
@@ -46,6 +49,7 @@ document.addEventListener("alpine:init", () => {
 
       this.isEditing = formEl?.hasAttribute("data-editing") || false;
       const recipeRKey = formEl?.getAttribute("data-recipe-rkey") || "";
+      this.recipeOwnerDID = formEl?.getAttribute("data-recipe-owner") || "";
 
       // Load existing pours if editing
       const poursData = formEl?.getAttribute("data-pours");
@@ -274,13 +278,26 @@ document.addEventListener("alpine:init", () => {
       if (!rkey) {
         this.clearRecipeFields(form);
         this.activeRecipe = null;
+        this.recipeOwnerDID = "";
         this.recipeSummaryExpanded = false;
         this.updatePoursVisibility();
         return;
       }
 
+      // Look up owner DID from cached recipes (for dropdown selections)
+      const cachedRecipe = this.recipes.find(
+        (r) => (r.rkey || r.RKey) === rkey,
+      );
+      if (cachedRecipe && cachedRecipe.author_did) {
+        this.recipeOwnerDID = cachedRecipe.author_did;
+      }
+
       try {
-        const resp = await fetch(`/api/recipes/${rkey}`, {
+        let url = `/api/recipes/${rkey}`;
+        if (this.recipeOwnerDID) {
+          url += `?owner=${encodeURIComponent(this.recipeOwnerDID)}`;
+        }
+        const resp = await fetch(url, {
           credentials: "same-origin",
         });
         if (!resp.ok) return;
@@ -289,6 +306,11 @@ document.addEventListener("alpine:init", () => {
         // Store recipe data for summary display
         this.activeRecipe = recipe;
         this.recipeSummaryExpanded = false;
+
+        // Track owner DID from API response
+        if (recipe.author_did) {
+          this.recipeOwnerDID = recipe.author_did;
+        }
 
         // Set or clear each field based on recipe data
         this.setFormField(

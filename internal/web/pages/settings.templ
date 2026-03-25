@@ -1,0 +1,46 @@
+package pages
+
+import "arabica/internal/web/components"
+
+templ settingsContent() {
+	<div class="page-container-sm py-6">
+		<h1 class="page-title mb-6">Settings</h1>
+		<div class="card card-inner">
+			<h2 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">Appearance</h2>
+			<div x-data="themeSettings()">
+				<label class="form-label">Theme</label>
+				<p class="text-sm mb-3" style="color: var(--text-muted);">Choose how Arabica looks for you. System will follow your OS setting.</p>
+				<div class="flex flex-wrap gap-2">
+					<button
+						type="button"
+						class="filter-pill"
+						:class="theme === 'system' ? 'filter-pill-active' : 'filter-pill'"
+						@click="setTheme('system')"
+					>
+						System
+					</button>
+					<button
+						type="button"
+						class="filter-pill"
+						:class="theme === 'light' ? 'filter-pill-active' : 'filter-pill'"
+						@click="setTheme('light')"
+					>
+						Light
+					</button>
+					<button
+						type="button"
+						class="filter-pill"
+						:class="theme === 'dark' ? 'filter-pill-active' : 'filter-pill'"
+						@click="setTheme('dark')"
+					>
+						Dark
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ Settings(data *components.LayoutData) {
+	@components.Layout(data, settingsContent())
+}

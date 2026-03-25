@@ -28,11 +28,11 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err := decodeRequest(r, &req, func() error {
 		req = models.CreateRecipeRequest{
-			Name:        r.FormValue("name"),
-			BrewerRKey:  r.FormValue("brewer_rkey"),
-			BrewerType:  r.FormValue("brewer_type"),
+			Name:       r.FormValue("name"),
+			BrewerRKey: r.FormValue("brewer_rkey"),
+			BrewerType: r.FormValue("brewer_type"),
 			Notes:      r.FormValue("notes"),
-			SourceRef:   r.FormValue("source_ref"),
+			SourceRef:  r.FormValue("source_ref"),
 		}
 		if v := r.FormValue("coffee_amount"); v != "" {
 			if f, err := strconv.ParseFloat(v, 64); err == nil {
@@ -91,9 +91,9 @@ func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err := decodeRequest(r, &req, func() error {
 		req = models.UpdateRecipeRequest{
-			Name:        r.FormValue("name"),
-			BrewerRKey:  r.FormValue("brewer_rkey"),
-			BrewerType:  r.FormValue("brewer_type"),
+			Name:       r.FormValue("name"),
+			BrewerRKey: r.FormValue("brewer_rkey"),
+			BrewerType: r.FormValue("brewer_type"),
 			Notes:      r.FormValue("notes"),
 		}
 		if v := r.FormValue("coffee_amount"); v != "" {
@@ -169,6 +169,7 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleRecipeGet returns a single recipe as JSON (for autofill)
+// Accepts optional ?owner= query param to fetch from another user's PDS.
 func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 	rkey := validateRKey(w, r.PathValue("id"))
 	if rkey == "" {
@@ -181,11 +182,53 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe, err := store.GetRecipeByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Recipe not found", http.StatusNotFound)
-		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to get recipe")
-		return
+	ownerDID := r.URL.Query().Get("owner")
+
+	var recipe *models.Recipe
+	if ownerDID != "" {
+		// Fetch from the recipe owner's PDS via public client
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRecipe, rkey)
+		if err != nil {
+			http.Error(w, "Recipe not found", http.StatusNotFound)
+			log.Warn().Err(err).Str("rkey", rkey).Str("owner", ownerDID).Msg("Failed to get recipe from owner PDS")
+			return
+		}
+
+		recipe, err = atproto.RecordToRecipe(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to parse recipe", http.StatusInternalServerError)
+			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to parse recipe record")
+			return
+		}
+		recipe.RKey = rkey
+		recipe.AuthorDID = ownerDID
+
+		// Resolve brewer reference if present
+		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
+			if c, err := atproto.ResolveATURI(brewerRef); err == nil {
+				recipe.BrewerRKey = c.RKey
+			}
+			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
+			if brewerRKey != "" {
+				brewerRecord, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, brewerRKey)
+				if err == nil {
+					if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+						brewer.RKey = brewerRKey
+						recipe.BrewerObj = brewer
+					}
+				}
+			}
+		}
+	} else {
+		// Fetch from the logged-in user's own PDS
+		var err error
+		recipe, err = store.GetRecipeByRKey(r.Context(), rkey)
+		if err != nil {
+			http.Error(w, "Recipe not found", http.StatusNotFound)
+			log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to get recipe")
+			return
+		}
 	}
 
 	recipe.Interpolate()

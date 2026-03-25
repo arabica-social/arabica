@@ -37,6 +37,20 @@ func (h *Handler) HandleATProto(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Settings page
+func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
+	data, _, isAuthenticated := h.layoutDataFromRequest(r, "Settings")
+	if !isAuthenticated {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	if err := pages.Settings(data).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render settings page")
+	}
+}
+
 // HandleNotFound renders the 404 page
 func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Page Not Found")

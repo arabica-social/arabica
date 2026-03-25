@@ -400,7 +400,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				</template>
 				<div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
 					<a
-						:href="'/brews/new?recipe=' + selectedRecipe.rkey"
+						:href="'/brews/new?recipe=' + selectedRecipe.rkey + '&recipe_owner=' + (selectedRecipe.author_did || '')"
 						class="btn-primary text-sm text-center"
 					>
 						Use in Brew

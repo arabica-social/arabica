@@ -15,10 +15,10 @@ type RecipeFilter struct {
 
 // RecipeCategories maps category names to their filter criteria.
 var RecipeCategories = map[string]RecipeFilter{
-	"small":  {MaxCoffee: 12},              // espresso, small cups (≤12g)
+	"small":  {MaxCoffee: 12},                               // espresso, small cups (≤12g)
 	"single": {MinCoffee: 12, MaxCoffee: 22, MaxWater: 400}, // typical single pour-over (12-22g)
-	"large":  {MinCoffee: 22},              // large brews (22g+)
-	"batch":  {MinWater: 500},              // batch brew by water volume (500g+)
+	"large":  {MinCoffee: 22},                               // large brews (22g+)
+	"batch":  {MinWater: 500},                               // batch brew by water volume (500g+)
 }
 
 // MatchesFilter returns true if the recipe satisfies all non-zero filter criteria.

@@ -44,8 +44,8 @@ type Handler struct {
 	config        Config
 	feedService   *feed.Service
 	feedRegistry  *feed.Registry
-	feedIndex    *firehose.FeedIndex
-	witnessCache atproto.WitnessCache
+	feedIndex     *firehose.FeedIndex
+	witnessCache  atproto.WitnessCache
 
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
@@ -56,7 +56,6 @@ type Handler struct {
 	joinStore     *boltstore.JoinStore
 	pdsAdminURL   string
 	pdsAdminToken string
-
 }
 
 // NewHandler creates a new Handler with all required dependencies.
@@ -102,7 +101,6 @@ func (h *Handler) SetJoin(sender *email.Sender, store *boltstore.JoinStore, pdsU
 	h.pdsAdminURL = pdsURL
 	h.pdsAdminToken = pdsAdminToken
 }
-
 
 // invalidateFeedCache clears the public feed cache after a mutation.
 func (h *Handler) invalidateFeedCache() {

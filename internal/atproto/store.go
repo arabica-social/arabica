@@ -259,7 +259,11 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRe
 		brewerURI = BuildATURI(s.did.String(), NSIDBrewer, brew.BrewerRKey)
 	}
 	if brew.RecipeRKey != "" {
-		recipeURI = BuildATURI(s.did.String(), NSIDRecipe, brew.RecipeRKey)
+		recipeOwner := s.did.String()
+		if brew.RecipeOwnerDID != "" {
+			recipeOwner = brew.RecipeOwnerDID
+		}
+		recipeURI = BuildATURI(recipeOwner, NSIDRecipe, brew.RecipeRKey)
 	}
 
 	// Convert to models.Brew for record conversion
@@ -567,7 +571,11 @@ func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *
 		brewerURI = BuildATURI(s.did.String(), NSIDBrewer, brew.BrewerRKey)
 	}
 	if brew.RecipeRKey != "" {
-		recipeURI = BuildATURI(s.did.String(), NSIDRecipe, brew.RecipeRKey)
+		recipeOwner := s.did.String()
+		if brew.RecipeOwnerDID != "" {
+			recipeOwner = brew.RecipeOwnerDID
+		}
+		recipeURI = BuildATURI(recipeOwner, NSIDRecipe, brew.RecipeRKey)
 	}
 
 	// Get the existing record to preserve createdAt

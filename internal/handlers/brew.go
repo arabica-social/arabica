@@ -135,8 +135,9 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, "New Brew")
 
 	brewFormProps := pages.BrewFormProps{
-		Brew:       nil,
-		RecipeRKey: r.URL.Query().Get("recipe"),
+		Brew:           nil,
+		RecipeRKey:     r.URL.Query().Get("recipe"),
+		RecipeOwnerDID: r.URL.Query().Get("recipe_owner"),
 	}
 
 	if err := pages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
@@ -657,19 +658,20 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := &models.CreateBrewRequest{
-		BeanRKey:     beanRKey,
-		RecipeRKey:   recipeRKey,
-		Method:       r.FormValue("method"),
-		Temperature:  temperature,
-		WaterAmount:  waterAmount,
-		CoffeeAmount: coffeeAmount,
-		TimeSeconds:  timeSeconds,
-		GrindSize:    r.FormValue("grind_size"),
-		GrinderRKey:  grinderRKey,
-		BrewerRKey:   brewerRKey,
-		TastingNotes: r.FormValue("tasting_notes"),
-		Rating:       rating,
-		Pours:        pours,
+		BeanRKey:       beanRKey,
+		RecipeRKey:     recipeRKey,
+		RecipeOwnerDID: r.FormValue("recipe_owner_did"),
+		Method:         r.FormValue("method"),
+		Temperature:    temperature,
+		WaterAmount:    waterAmount,
+		CoffeeAmount:   coffeeAmount,
+		TimeSeconds:    timeSeconds,
+		GrindSize:      r.FormValue("grind_size"),
+		GrinderRKey:    grinderRKey,
+		BrewerRKey:     brewerRKey,
+		TastingNotes:   r.FormValue("tasting_notes"),
+		Rating:         rating,
+		Pours:          pours,
 	}
 
 	if err := req.Validate(); err != nil {
@@ -754,19 +756,20 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := &models.CreateBrewRequest{
-		BeanRKey:     beanRKey,
-		RecipeRKey:   recipeRKey,
-		Method:       r.FormValue("method"),
-		Temperature:  temperature,
-		WaterAmount:  waterAmount,
-		CoffeeAmount: coffeeAmount,
-		TimeSeconds:  timeSeconds,
-		GrindSize:    r.FormValue("grind_size"),
-		GrinderRKey:  grinderRKey,
-		BrewerRKey:   brewerRKey,
-		TastingNotes: r.FormValue("tasting_notes"),
-		Rating:       rating,
-		Pours:        pours,
+		BeanRKey:       beanRKey,
+		RecipeRKey:     recipeRKey,
+		RecipeOwnerDID: r.FormValue("recipe_owner_did"),
+		Method:         r.FormValue("method"),
+		Temperature:    temperature,
+		WaterAmount:    waterAmount,
+		CoffeeAmount:   coffeeAmount,
+		TimeSeconds:    timeSeconds,
+		GrindSize:      r.FormValue("grind_size"),
+		GrinderRKey:    grinderRKey,
+		BrewerRKey:     brewerRKey,
+		TastingNotes:   r.FormValue("tasting_notes"),
+		Rating:         rating,
+		Pours:          pours,
 	}
 
 	if err := req.Validate(); err != nil {

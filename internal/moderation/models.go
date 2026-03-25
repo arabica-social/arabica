@@ -6,14 +6,14 @@ import "time"
 type Permission string
 
 const (
-	PermissionHideRecord       Permission = "hide_record"
-	PermissionUnhideRecord     Permission = "unhide_record"
-	PermissionBlacklistUser    Permission = "blacklist_user"
-	PermissionUnblacklistUser  Permission = "unblacklist_user"
-	PermissionViewReports      Permission = "view_reports"
-	PermissionDismissReport    Permission = "dismiss_report"
-	PermissionViewAuditLog     Permission = "view_audit_log"
-	PermissionResetAutoHide    Permission = "reset_autohide"
+	PermissionHideRecord      Permission = "hide_record"
+	PermissionUnhideRecord    Permission = "unhide_record"
+	PermissionBlacklistUser   Permission = "blacklist_user"
+	PermissionUnblacklistUser Permission = "unblacklist_user"
+	PermissionViewReports     Permission = "view_reports"
+	PermissionDismissReport   Permission = "dismiss_report"
+	PermissionViewAuditLog    Permission = "view_audit_log"
+	PermissionResetAutoHide   Permission = "reset_autohide"
 )
 
 // AllPermissions returns all available permissions
@@ -107,7 +107,7 @@ func (e *ConfigError) Error() string {
 type HiddenRecord struct {
 	ATURI      string    `json:"at_uri"`
 	HiddenAt   time.Time `json:"hidden_at"`
-	HiddenBy   string    `json:"hidden_by"`   // DID of moderator
+	HiddenBy   string    `json:"hidden_by"` // DID of moderator
 	Reason     string    `json:"reason"`
 	AutoHidden bool      `json:"auto_hidden"` // true if hidden by automod
 }
@@ -146,10 +146,10 @@ type Report struct {
 type AuditAction string
 
 const (
-	AuditActionHideRecord       AuditAction = "hide_record"
-	AuditActionUnhideRecord     AuditAction = "unhide_record"
-	AuditActionBlacklistUser    AuditAction = "blacklist_user"
-	AuditActionUnblacklistUser  AuditAction = "unblacklist_user"
+	AuditActionHideRecord         AuditAction = "hide_record"
+	AuditActionUnhideRecord       AuditAction = "unhide_record"
+	AuditActionBlacklistUser      AuditAction = "blacklist_user"
+	AuditActionUnblacklistUser    AuditAction = "unblacklist_user"
 	AuditActionDismissReport      AuditAction = "dismiss_report"
 	AuditActionActionReport       AuditAction = "action_report"
 	AuditActionResetAutoHide      AuditAction = "reset_autohide"

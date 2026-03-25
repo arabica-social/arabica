@@ -4,6 +4,21 @@ module.exports = {
   content: [
     "./internal/**/*.templ",
     "./web/**/*.{html,js}",
+    "./static/js/**/*.js",
+  ],
+  safelist: [
+    'filter-pill-brew',
+    'filter-pill-bean',
+    'filter-pill-recipe',
+    'filter-pill-roaster',
+    'filter-pill-grinder',
+    'filter-pill-brewer',
+    'feed-card-brew',
+    'feed-card-bean',
+    'feed-card-recipe',
+    'feed-card-roaster',
+    'feed-card-grinder',
+    'feed-card-brewer',
   ],
   theme: {
     extend: {
