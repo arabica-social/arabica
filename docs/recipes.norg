@@ -69,6 +69,16 @@ categories: [spec, lexicon]
     users (not sure how they would be rated though, since that would probably
     need to be part of this)
 
+*** Using Other User's Recipes In Brews
+
+    Currently, this behavior does not work as expected, as the server tries to
+    look up the record in the logged-in user's PDS, rather than the one
+    belonging to the owner. This prevents other users from using recipes that
+    don't belong to them and is not the intended behavior.
+
+    (Brewer fuzzy finding might also not work, but its hard to say since the
+    recipe lookup fails first)
+
 ** Open Questions
 
    For links between a brew and recipe, which should have the optional ref?

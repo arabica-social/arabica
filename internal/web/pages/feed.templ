@@ -174,7 +174,15 @@ templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
 
 // FeedCardWithModeration renders a single feed item card with moderation context
 templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext) {
-	<div class="feed-card">
+	<div class={ templ.Classes(
+		"feed-card",
+		templ.KV("feed-card-brew", item.RecordType == lexicons.RecordTypeBrew),
+		templ.KV("feed-card-bean", item.RecordType == lexicons.RecordTypeBean),
+		templ.KV("feed-card-recipe", item.RecordType == lexicons.RecordTypeRecipe),
+		templ.KV("feed-card-roaster", item.RecordType == lexicons.RecordTypeRoaster),
+		templ.KV("feed-card-grinder", item.RecordType == lexicons.RecordTypeGrinder),
+		templ.KV("feed-card-brewer", item.RecordType == lexicons.RecordTypeBrewer),
+	) }>
 		<!-- Author row -->
 		<div class="mb-3">
 			@components.UserBadge(components.UserBadgeProps{

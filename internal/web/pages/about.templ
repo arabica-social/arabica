@@ -23,7 +23,7 @@ templ AboutContent(isAuthenticated bool) {
 					coffee beans, and equipment information in <strong>your own Personal Data Server (PDS)</strong>.
 				</p>
 			</section>
-			<section class="bg-gradient-to-br from-brown-100 to-brown-200 p-6 rounded-xl border border-brown-300">
+			<section class="card p-6">
 				<h3 class="text-xl font-semibold text-brown-900 mb-3">What Makes Arabica Different?</h3>
 				<ul class="list-disc list-inside space-y-2 text-brown-800">
 					<li><strong>You own your data</strong> - All your brew logs live in your PDS</li>
@@ -34,15 +34,15 @@ templ AboutContent(isAuthenticated bool) {
 			<section>
 				<h2 class="text-2xl font-semibold text-brown-900 mb-4">Features</h2>
 				<div class="grid md:grid-cols-2 gap-4">
-					<div class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md">
+					<div class="card p-4">
 						<h4 class="font-semibold text-brown-900 mb-2">Track Your Brews</h4>
 						<p class="text-brown-700 text-sm">Log every detail: beans, grind size, water temp, brew time, and tasting notes</p>
 					</div>
-					<div class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md">
+					<div class="card p-4">
 						<h4 class="font-semibold text-brown-900 mb-2">Manage Equipment</h4>
 						<p class="text-brown-700 text-sm">Keep track of your grinders, brewers, beans, and roasters</p>
 					</div>
-					<div class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md">
+					<div class="card p-4">
 						<h4 class="font-semibold text-brown-900 mb-2">Community Feed</h4>
 						<p class="text-brown-700 text-sm">Share your best brews with the community (coming soon: likes and comments!)</p>
 					</div>
@@ -65,7 +65,7 @@ templ AboutContent(isAuthenticated bool) {
 					<li>Your identity is portable - change PDS providers without losing your account</li>
 				</ul>
 			</section>
-			<section class="bg-gradient-to-br from-amber-50 to-brown-100 border-2 border-brown-300 p-6 rounded-xl shadow-lg">
+			<section class="card p-6">
 				<h3 class="text-xl font-semibold text-brown-900 mb-3">Getting Started</h3>
 				<p class="text-brown-800 mb-4">
 					To use Arabica, you'll need an account on a PDS that supports the AT Protocol.
@@ -82,7 +82,7 @@ templ AboutContent(isAuthenticated bool) {
 					Visit our <a href="https://github.com/arabica-social/arabica" class="text-brown-700 hover:underline font-medium" target="_blank" rel="noopener noreferrer">GitHub repository</a> to learn more.
 				</p>
 			</section>
-			<section id="support" class="bg-gradient-to-br from-brown-100 to-brown-200 p-6 rounded-xl border border-brown-300">
+			<section id="support" class="card p-6">
 				<h3 class="text-xl font-semibold text-brown-900 mb-3">Support Arabica</h3>
 				<p class="text-brown-800 leading-relaxed">
 					Buy me a coffee, or help cover infra costs (and Claude subscription).
@@ -99,14 +99,14 @@ templ AboutContent(isAuthenticated bool) {
 		</div>
 		<div class="mt-12 text-center">
 			if !isAuthenticated {
-				<a href="/login" class="btn-primary px-8 py-3 font-semibold shadow-lg hover:shadow-xl">
+				<a href="/login" class="btn-primary px-8 py-3 font-semibold">
 					Get Started
 				</a>
 			} else {
-				// <a href="/brews/new" class="btn-primary px-8 py-3 font-semibold shadow-lg hover:shadow-xl">
+				// <a href="/brews/new" class="btn-primary px-8 py-3 font-semibold">
 				// 	Log Your Next Brew
 				// </a>
-				<a href="/" class="btn-primary px-8 py-3 font-semibold shadow-lg hover:shadow-xl">
+				<a href="/" class="btn-primary px-8 py-3 font-semibold">
 					Back to Home
 				</a>
 			}

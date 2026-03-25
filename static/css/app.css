@@ -22,6 +22,84 @@
   font-display: swap;
 }
 
+/* ========================================
+   Design Tokens (CSS Custom Properties)
+   Light theme (default)
+   ======================================== */
+:root {
+  /* Page */
+  --page-bg: #FAF7F5;
+  --page-text: #3d2319;
+
+  /* Cards */
+  --card-bg: #FFFFFF;
+  --card-border: #eaddd7;
+  --card-shadow: rgba(61, 35, 25, 0.06);
+  --card-shadow-hover: rgba(61, 35, 25, 0.10);
+
+  /* Surfaces (inset areas inside cards) */
+  --surface-bg: rgba(250, 247, 245, 0.5);
+  --surface-border: #f2e8e5;
+
+  /* Header */
+  --header-bg-from: #4a2c2a;
+  --header-bg-to: #3d2319;
+  --header-border: #7f5539;
+  --header-text: #FAF7F5;
+
+  /* Text hierarchy */
+  --text-primary: #3d2319;
+  --text-secondary: #4a2c2a;
+  --text-muted: #7f5539;
+  --text-faint: #bfa094;
+  --text-placeholder: #d2bab0;
+
+  /* Interactive */
+  --btn-primary-bg: #4a2c2a;
+  --btn-primary-bg-hover: #3d2319;
+  --btn-primary-text: #FAF7F5;
+  --btn-secondary-bg: #FFFFFF;
+  --btn-secondary-border: #e0cec7;
+  --btn-secondary-text: #6b4423;
+  --btn-secondary-bg-hover: #FAF7F5;
+
+  /* Forms */
+  --input-bg: #FFFFFF;
+  --input-border: #e0cec7;
+  --input-border-focus: #7f5539;
+  --input-ring-focus: rgba(127, 85, 57, 0.15);
+  --input-bg-focus: rgba(250, 247, 245, 0.3);
+
+  /* Tables */
+  --table-bg: #FFFFFF;
+  --table-header-bg: #FAF7F5;
+  --table-border: #eaddd7;
+  --table-row-hover: #FAF7F5;
+  --table-divider: #f2e8e5;
+
+  /* Modals */
+  --modal-bg: #FFFFFF;
+  --modal-border: #eaddd7;
+  --modal-backdrop: rgba(0, 0, 0, 0.4);
+
+  /* Feed type indicators (left border) */
+  --type-brew: #6b4423;
+  --type-bean: #d97706;
+  --type-recipe: #bfa094;
+  --type-roaster: #d2bab0;
+  --type-grinder: #d2bab0;
+  --type-brewer: #d2bab0;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px var(--card-shadow);
+  --shadow-md: 0 4px 12px var(--card-shadow-hover);
+  --shadow-lg: 0 10px 25px var(--card-shadow-hover);
+
+  /* Footer */
+  --footer-bg: #FAF7F5;
+  --footer-border: #eaddd7;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -73,7 +151,15 @@
 
   /* Cards and Containers */
   .card {
-    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-xl border border-brown-300;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    @apply rounded-xl;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 200ms ease;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-md);
   }
 
   .card-inner {
@@ -81,12 +167,16 @@
   }
 
   .card-sm {
-    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md border border-brown-300;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    @apply rounded-lg;
+    box-shadow: var(--shadow-sm);
   }
 
   /* Section box for lighter content areas */
   .section-box {
-    @apply bg-brown-50 rounded-lg p-4 border border-brown-200;
+    background: var(--surface-bg);
+    @apply rounded-lg p-4;
   }
 
   /* Buttons */
@@ -95,19 +185,41 @@
   }
 
   .btn-primary {
-    @apply btn bg-gradient-to-br from-brown-700 to-brown-900 text-white hover:from-brown-800 hover:to-brown-900 shadow-md;
+    @apply btn text-white;
+    background: var(--btn-primary-bg);
+  }
+
+  .btn-primary:hover {
+    background: var(--btn-primary-bg-hover);
   }
 
   .btn-secondary {
-    @apply btn bg-brown-300 text-brown-900 hover:bg-brown-400;
+    @apply btn;
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-text);
+    border: 1px solid var(--btn-secondary-border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--btn-secondary-bg-hover);
   }
 
   .btn-tertiary {
-    @apply btn bg-gradient-to-br from-brown-500 to-brown-600 text-white hover:from-brown-600 hover:to-brown-700;
+    @apply btn text-white;
+    background: var(--btn-primary-bg);
+  }
+
+  .btn-tertiary:hover {
+    background: var(--btn-primary-bg-hover);
   }
 
   .btn-link {
-    @apply text-brown-700 hover:text-brown-900 font-medium underline transition-colors cursor-pointer;
+    color: var(--text-muted);
+    @apply font-medium underline transition-colors cursor-pointer;
+  }
+
+  .btn-link:hover {
+    color: var(--text-primary);
   }
 
   .btn-danger {
@@ -116,11 +228,27 @@
 
   /* Forms */
   .form-label {
-    @apply block text-sm font-medium text-brown-900 mb-2;
+    @apply block text-sm font-medium mb-2;
+    color: var(--text-primary);
   }
 
   .form-input {
-    @apply rounded-lg border-2 border-brown-300 shadow-sm focus:border-brown-600 focus:ring-brown-600 text-base py-2 px-3 bg-white;
+    @apply rounded-lg text-base py-2 px-3;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .form-input:focus {
+    border-color: var(--input-border-focus);
+    box-shadow: 0 0 0 2px var(--input-ring-focus);
+    background: var(--input-bg-focus);
+    outline: none;
+  }
+
+  .form-input::placeholder {
+    color: var(--text-placeholder);
   }
 
   .form-input-lg {
@@ -137,44 +265,69 @@
 
   /* Tables */
   .table-container {
-    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-lg shadow-md overflow-hidden border border-brown-300;
+    background: var(--table-bg);
+    border: 1px solid var(--table-border);
+    @apply rounded-lg overflow-hidden;
+    box-shadow: var(--shadow-sm);
   }
 
   .table {
-    @apply min-w-full divide-y divide-brown-300;
+    @apply min-w-full;
+    border-collapse: collapse;
   }
 
   .table-header {
-    @apply bg-brown-200;
+    background: var(--table-header-bg);
+    border-bottom: 1px solid var(--table-border);
   }
 
   .table-th {
-    @apply px-6 py-3 text-left text-xs font-medium text-brown-900 uppercase tracking-wider;
+    @apply px-6 py-3 text-left text-xs font-medium uppercase tracking-wider;
+    color: var(--text-muted);
   }
 
   .table-body {
-    @apply bg-brown-100 divide-y divide-brown-200;
+    background: var(--table-bg);
+  }
+
+  .table-body tr {
+    border-bottom: 1px solid var(--table-divider);
+  }
+
+  .table-body tr:last-child {
+    border-bottom: none;
   }
 
   .table-row {
-    @apply hover:bg-brown-100 transition-colors;
+    transition: background-color 150ms ease;
+  }
+
+  .table-row:hover {
+    background: var(--table-row-hover);
   }
 
   .table-td {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-brown-800;
+    @apply px-6 py-4 whitespace-nowrap text-sm;
+    color: var(--text-secondary);
   }
 
   /* Modals */
   .modal-backdrop {
-    @apply fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4;
+    @apply fixed inset-0 flex items-center justify-center z-50 p-4;
+    background: var(--modal-backdrop);
+    backdrop-filter: blur(4px);
   }
 
   .modal-content {
-    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-2xl p-6 max-w-md w-full border border-brown-300 max-h-[90vh] overflow-y-auto;
+    background: var(--modal-bg);
+    border: 1px solid var(--modal-border);
+    @apply rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto;
+    box-shadow: var(--shadow-lg);
   }
 
   .modal-title {
-    @apply text-xl font-semibold text-brown-900 mb-4;
+    @apply text-xl font-semibold mb-4;
+    color: var(--text-primary);
   }
 
   /* Native Dialog Element */
@@ -183,43 +336,90 @@
   }
 
   .modal-dialog::backdrop {
-    @apply bg-black/40 backdrop-blur-sm;
+    background: var(--modal-backdrop);
+    backdrop-filter: blur(4px);
   }
 
-  /* Dialog content wrapper (nested inside dialog) */
   .modal-dialog .modal-content {
-    @apply bg-gradient-to-br from-brown-100 to-brown-200 rounded-xl shadow-2xl p-6 w-full border border-brown-300 max-h-[90vh] overflow-y-auto;
+    background: var(--modal-bg);
+    border: 1px solid var(--modal-border);
+    @apply rounded-xl p-6 w-full max-h-[90vh] overflow-y-auto;
+    box-shadow: var(--shadow-lg);
   }
 
   /* Entity suggestion typeahead dropdown */
   .suggestions-dropdown {
-    @apply absolute z-50 left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-brown-200 max-h-48 overflow-y-auto;
+    @apply absolute z-50 left-0 right-0 mt-1 rounded-lg max-h-48 overflow-y-auto;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-md);
   }
 
   .suggestions-item {
-    @apply w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-brown-50 transition-colors cursor-pointer border-b border-brown-100 last:border-b-0;
+    @apply w-full text-left px-3 py-2 flex items-center gap-2 transition-colors cursor-pointer last:border-b-0;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .suggestions-item:hover {
+    background: var(--surface-bg);
   }
 
   /* Typography */
   .section-title {
-    @apply text-2xl font-bold text-brown-900 mb-4;
+    @apply text-xs font-semibold uppercase tracking-widest mb-4;
+    color: var(--text-faint);
   }
 
   .page-title {
-    @apply text-3xl font-bold text-brown-900;
+    @apply text-2xl font-semibold;
+    color: var(--text-primary);
   }
 
   /* Feed Components */
   .feed-card {
-    @apply bg-gradient-to-br from-brown-50 to-brown-100 rounded-lg shadow-md border border-brown-200 p-3 sm:p-4 hover:shadow-lg transition-shadow;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    @apply rounded-lg p-3 sm:p-4 transition-shadow;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .feed-card:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Feed card type indicators */
+  .feed-card-brew {
+    border-left: 3px solid var(--type-brew);
+  }
+
+  .feed-card-bean {
+    border-left: 3px solid var(--type-bean);
+  }
+
+  .feed-card-recipe {
+    border-left: 3px solid var(--type-recipe);
+  }
+
+  .feed-card-roaster {
+    border-left: 3px solid var(--type-roaster);
+  }
+
+  .feed-card-grinder {
+    border-left: 3px solid var(--type-grinder);
+  }
+
+  .feed-card-brewer {
+    border-left: 3px solid var(--type-brewer);
   }
 
   .feed-content-box {
-    @apply bg-white/60 backdrop-blur rounded-lg p-3 sm:p-4 border border-brown-200;
+    background: var(--surface-bg);
+    @apply rounded-lg p-3 sm:p-4;
   }
 
   .feed-content-box-sm {
-    @apply bg-white/60 backdrop-blur rounded-lg p-2 sm:p-3 border border-brown-200;
+    background: var(--surface-bg);
+    @apply rounded-lg p-2 sm:p-3;
   }
 
   /* Avatar - base styles */
@@ -271,19 +471,22 @@
 
   /* Text Utilities */
   .text-helper {
-    @apply text-sm text-brown-700 mt-1;
+    @apply text-sm mt-1;
+    color: var(--text-muted);
   }
 
   .text-meta {
-    @apply text-xs text-brown-600;
+    @apply text-xs;
+    color: var(--text-muted);
   }
 
   .text-meta-sm {
-    @apply text-sm text-brown-600;
+    @apply text-sm;
+    color: var(--text-muted);
   }
 
   .text-label {
-    @apply text-brown-600;
+    color: var(--text-muted);
   }
 
   /* Badges */
@@ -297,11 +500,21 @@
 
   /* Links */
   .link {
-    @apply text-brown-700 hover:text-brown-900 hover:underline transition-colors;
+    color: var(--text-muted);
+    @apply hover:underline transition-colors;
+  }
+
+  .link:hover {
+    color: var(--text-primary);
   }
 
   .link-bold {
-    @apply font-medium text-brown-700 hover:text-brown-900 hover:underline transition-colors;
+    color: var(--text-muted);
+    @apply font-medium hover:underline transition-colors;
+  }
+
+  .link-bold:hover {
+    color: var(--text-primary);
   }
 
   /* Like Button */
@@ -310,28 +523,52 @@
   }
 
   .like-btn-liked {
-    @apply like-btn bg-brown-100 text-red-600 hover:bg-brown-200;
+    @apply like-btn text-red-600;
+    background: transparent;
     animation: like-pop 400ms ease-out;
   }
 
+  .like-btn-liked:hover {
+    background: var(--surface-bg);
+  }
+
   .like-btn-unliked {
-    @apply like-btn bg-brown-100 text-brown-600 hover:bg-brown-200;
+    @apply like-btn;
+    color: var(--text-muted);
+    background: transparent;
     animation: like-shrink 200ms ease-out;
+  }
+
+  .like-btn-unliked:hover {
+    background: var(--surface-bg);
   }
 
   /* Share Button */
   .share-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 min-h-[44px];
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px];
+    color: var(--text-muted);
+    background: transparent;
+  }
+
+  .share-btn:hover {
+    background: var(--surface-bg);
   }
 
   /* Comment Button */
   .comment-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 min-h-[44px];
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px];
+    color: var(--text-muted);
+    background: transparent;
+  }
+
+  .comment-btn:hover {
+    background: var(--surface-bg);
   }
 
   /* Comment Section */
   .comment-section {
-    @apply mt-8 pt-6 border-t-2 border-brown-200;
+    @apply mt-8 pt-6;
+    border-top: 2px solid var(--card-border);
   }
 
   .comment-section-header {
@@ -343,15 +580,30 @@
   }
 
   .comment-login-prompt {
-    @apply flex items-center gap-3 bg-brown-50 rounded-lg p-4 mb-5 border border-dashed border-brown-300;
+    @apply flex items-center gap-3 rounded-lg p-4 mb-5 border border-dashed;
+    background: var(--surface-bg);
+    border-color: var(--card-border);
   }
 
   .comment-compose {
-    @apply bg-brown-50 rounded-lg p-4 mb-5 border border-brown-200 flex flex-col gap-2;
+    @apply rounded-lg p-4 mb-5 flex flex-col gap-2;
+    background: var(--surface-bg);
+    border: 1px solid var(--card-border);
   }
 
   .comment-textarea {
-    @apply w-full rounded-lg border-2 border-brown-200 bg-white px-3 py-2.5 text-base text-brown-900 placeholder-brown-400 resize-none transition-colors focus:border-brown-500 focus:ring-0 focus:outline-none;
+    @apply w-full rounded-lg px-3 py-2.5 text-base resize-none transition-colors focus:ring-0 focus:outline-none;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+  }
+
+  .comment-textarea::placeholder {
+    color: var(--text-placeholder);
+  }
+
+  .comment-textarea:focus {
+    border-color: var(--input-border-focus);
   }
 
   .comment-list {
@@ -363,7 +615,11 @@
   }
 
   .comment-item {
-    @apply relative rounded-lg p-3 transition-colors hover:bg-brown-50/60;
+    @apply relative rounded-lg p-3 transition-colors;
+  }
+
+  .comment-item:hover {
+    background: var(--surface-bg);
   }
 
   .comment-item-inner {
@@ -379,24 +635,38 @@
   }
 
   .comment-thread-line {
-    @apply absolute left-0 top-3 bottom-3 w-0.5 bg-brown-200 rounded-full;
+    @apply absolute left-0 top-3 bottom-3 w-0.5 rounded-full;
+    background: var(--card-border);
   }
 
   .comment-reply-btn {
-    @apply inline-flex items-center gap-1 text-brown-400 hover:text-brown-700 transition-colors text-xs font-medium;
+    @apply inline-flex items-center gap-1 transition-colors text-xs font-medium;
+    color: var(--text-placeholder);
+  }
+
+  .comment-reply-btn:hover {
+    color: var(--text-muted);
   }
 
   .comment-delete-btn {
-    @apply text-brown-300 hover:text-brown-600 transition-colors;
+    @apply transition-colors;
+    color: var(--text-placeholder);
+  }
+
+  .comment-delete-btn:hover {
+    color: var(--text-muted);
   }
 
   .comment-reply-form {
-    @apply flex flex-col gap-2 bg-brown-50 rounded-lg p-3 border border-brown-200;
+    @apply flex flex-col gap-2 rounded-lg p-3;
+    background: var(--surface-bg);
+    border: 1px solid var(--card-border);
   }
 
   /* Action Bar */
   .action-bar {
-    @apply flex items-center gap-2 mt-3 pt-3 border-t border-brown-200;
+    @apply flex items-center gap-2 mt-3 pt-3;
+    border-top: 1px solid var(--surface-border);
   }
 
   /* Action bar inside brew view container - no separator needed */
@@ -406,7 +676,8 @@
 
   /* Compact action bar variant for comments */
   .comment-item .action-bar {
-    @apply mt-1 border-t-0 gap-1 bg-brown-100 rounded-lg px-1.5 py-1 inline-flex items-center;
+    @apply mt-1 border-t-0 gap-1 rounded-lg px-1.5 py-1 inline-flex items-center;
+    background: var(--surface-bg);
   }
 
   .comment-item .action-btn,
@@ -415,7 +686,14 @@
   }
 
   .action-btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-brown-100 text-brown-600 hover:bg-brown-200 cursor-pointer min-h-[44px];
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer min-h-[44px];
+    color: var(--text-muted);
+    background: transparent;
+  }
+
+  .action-btn:hover {
+    background: var(--surface-bg);
+    color: var(--text-secondary);
   }
 
   .action-btn-liked {
@@ -424,53 +702,90 @@
   }
 
   .action-btn-disabled {
-    @apply opacity-50 cursor-not-allowed hover:bg-brown-100;
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .action-btn-disabled:hover {
+    background: transparent;
   }
 
   /* Action Menu (More dropdown) */
   .action-menu {
-    @apply absolute left-1/2 -translate-x-1/2 w-36 bg-white rounded-lg shadow-lg border border-brown-200 py-1 z-50;
+    @apply absolute left-1/2 -translate-x-1/2 w-36 rounded-lg py-1 z-50;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-md);
   }
 
   /* Dropdown menu (top-positioned, for headers/nav) */
   .dropdown-menu {
-    @apply absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-brown-200 py-1 z-50;
+    @apply absolute right-0 mt-2 w-48 rounded-lg py-1 z-50;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-md);
   }
 
   .dropdown-item {
-    @apply block px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors;
+    @apply block px-4 py-2 text-sm transition-colors;
+    color: var(--text-muted);
+  }
+
+  .dropdown-item:hover {
+    background: var(--surface-bg);
   }
 
   .dropdown-item-disabled {
-    @apply block px-4 py-2 text-sm text-brown-400 cursor-not-allowed;
+    @apply block px-4 py-2 text-sm cursor-not-allowed;
+    color: var(--text-placeholder);
   }
 
   .dropdown-item-mod {
-    @apply text-amber-700 hover:bg-amber-50;
+    @apply text-amber-700;
+  }
+
+  .dropdown-item-mod:hover {
+    @apply bg-amber-50;
   }
 
   .dropdown-header {
-    @apply px-4 py-2 border-b border-brown-100;
+    @apply px-4 py-2;
+    border-bottom: 1px solid var(--surface-border);
   }
 
   .dropdown-divider {
-    @apply border-t border-brown-100 mt-1 pt-1;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--surface-border);
   }
 
   .action-menu-item {
-    @apply flex items-center gap-2 w-full px-3 py-2 text-sm text-brown-700 hover:bg-brown-100 transition-colors cursor-pointer text-left;
+    @apply flex items-center gap-2 w-full px-3 py-2 text-sm transition-colors cursor-pointer text-left;
+    color: var(--text-muted);
+  }
+
+  .action-menu-item:hover {
+    background: var(--surface-bg);
   }
 
   .action-menu-item-danger {
-    @apply text-red-600 hover:bg-red-50;
+    @apply text-red-600;
+  }
+
+  .action-menu-item-danger:hover {
+    @apply bg-red-50;
   }
 
   .action-menu-item-warning {
-    @apply text-amber-600 hover:bg-amber-50;
+    @apply text-amber-600;
+  }
+
+  .action-menu-item-warning:hover {
+    @apply bg-amber-50;
   }
 
   .action-menu-divider {
-    @apply border-t border-brown-200 my-1;
+    @apply my-1;
+    border-top: 1px solid var(--surface-border);
   }
 
   /* Hidden record indicator badge */
@@ -552,30 +867,6 @@ body.htmx-history-restoring .htmx-transitioning {
   animation-delay: 250ms;
 }
 
-/* Table rows slide in with stagger effect (dynamic content) */
-.table-body tr {
-  animation: fade-in-slide-up 300ms ease-out backwards;
-}
-
-.table-body tr:nth-child(1) {
-  animation-delay: 0ms;
-}
-.table-body tr:nth-child(2) {
-  animation-delay: 30ms;
-}
-.table-body tr:nth-child(3) {
-  animation-delay: 60ms;
-}
-.table-body tr:nth-child(4) {
-  animation-delay: 90ms;
-}
-.table-body tr:nth-child(5) {
-  animation-delay: 120ms;
-}
-.table-body tr:nth-child(n + 6) {
-  animation-delay: 150ms;
-}
-
 /* Modal transitions (enhanced) */
 .modal-backdrop {
   animation: fade-in 100ms ease-out;
@@ -642,22 +933,6 @@ body.htmx-history-restoring .htmx-transitioning {
 
 /* Modal content inside dialog - no separate animation needed */
 /* The dialog element itself handles the transition */
-
-/* Form elements slide in */
-.form-input,
-.form-select,
-.form-textarea {
-  transition:
-    border-color 100ms ease,
-    box-shadow 100ms ease,
-    transform 50ms ease;
-}
-
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-  transform: translateY(-1px);
-}
 
 /* ========================================
    Keyframes

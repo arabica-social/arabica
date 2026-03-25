@@ -69,7 +69,7 @@ templ emptyStateContent(props EmptyStateProps) {
 	if props.ActionURL != "" && props.ActionText != "" {
 		<a
 			href={ templ.SafeURL(props.ActionURL) }
-			class="inline-block btn-primary py-3 px-6 rounded-lg shadow-lg hover:shadow-xl"
+			class="inline-block btn-primary py-3 px-6 rounded-lg"
 		>
 			{ props.ActionText }
 		</a>
@@ -111,13 +111,13 @@ templ PageHeader(props PageHeaderProps) {
 			if props.BackURL != "" {
 				@BackButton()
 			}
-			<h2 class="text-3xl font-bold text-brown-900">{ props.Title }</h2>
+			<h2 class="page-title">{ props.Title }</h2>
 		</div>
 		if props.ActionURL != "" && props.ActionText != "" {
 			<a
 				href={ templ.SafeURL(props.ActionURL) }
 				class={ templ.Classes(
-						templ.KV("btn-primary shadow-lg hover:shadow-xl", props.ActionClass == ""),
+						templ.KV("btn-primary", props.ActionClass == ""),
 						templ.KV(props.ActionClass, props.ActionClass != ""),
 					) }
 			>
@@ -169,7 +169,7 @@ type WelcomeCardProps struct {
 templ WelcomeCard(props WelcomeCardProps) {
 	<div class="card p-8 mb-8">
 		<div class="flex items-center gap-3 mb-4">
-			<h2 class="text-3xl font-bold text-brown-900">Welcome to Arabica</h2>
+			<h2 class="text-2xl font-semibold text-brown-900">Welcome to Arabica</h2>
 			<span class="text-xs bg-amber-400 text-brown-900 px-2 py-1 rounded-md font-semibold shadow-sm">ALPHA</span>
 		</div>
 		<p class="text-brown-800 mb-2 text-lg">Track your coffee brewing journey with detailed logs of every cup.</p>
@@ -192,7 +192,7 @@ templ WelcomeAuthenticated(userDID string) {
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 		<a
 			href="/brews/new"
-			class="btn-primary block text-center py-4 px-6 rounded-xl shadow-lg hover:shadow-xl"
+			class="btn-primary block text-center py-4 px-6 rounded-xl"
 			hx-get="/brews/new"
 			hx-target="main"
 			hx-swap="innerHTML show:top"
@@ -203,7 +203,7 @@ templ WelcomeAuthenticated(userDID string) {
 		</a>
 		<a
 			href="/brews"
-			class="btn-tertiary block text-center py-4 px-6 rounded-xl shadow-lg hover:shadow-xl"
+			class="btn-tertiary block text-center py-4 px-6 rounded-xl"
 			hx-get="/brews"
 			hx-target="main"
 			hx-swap="innerHTML show:top"
@@ -235,13 +235,13 @@ templ WelcomeUnauthenticated() {
 					placeholder="alice.arabica.systems"
 					autocomplete="off"
 					required
-					class="w-full px-4 py-3 border-2 border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-600 focus:border-brown-600 bg-white"
+					class="w-full px-4 py-3 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-600 focus:border-brown-600 bg-white"
 				/>
-				<div id="autocomplete-results" class="hidden absolute z-10 w-full mt-1 bg-brown-50 border-2 border-brown-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+				<div id="autocomplete-results" class="hidden absolute z-10 w-full mt-1 bg-brown-50 border border-brown-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
 			</div>
 			<button
 				type="submit"
-				class="btn-primary w-full mt-4 py-3 px-8 text-lg font-semibold shadow-lg hover:shadow-xl"
+				class="btn-primary w-full mt-4 py-3 px-8 text-lg font-semibold"
 			>
 				Log In
 			</button>
@@ -252,7 +252,7 @@ templ WelcomeUnauthenticated() {
 
 templ AboutInfoCard() {
 	// TODO: only show this at the bottom of the page when authenticated already?
-	<div class="bg-gradient-to-br from-amber-50 to-brown-100 rounded-xl p-6 border-2 border-brown-300 shadow-lg mb-6">
+	<div class="card p-6 mb-6">
 		<h3 class="text-lg font-bold text-brown-900 mb-3">✨ About Arabica</h3>
 		<ul class="text-brown-800 space-y-2 leading-relaxed mb-3">
 			<li class="flex items-start"><span class="mr-2">📝</span><span>Add tasting notes and ratings to each brew</span></li>
@@ -394,7 +394,7 @@ func avatarTextClass(size string) string {
 // RecipeAlphaWarning displays a warning banner about recipes being in early alpha.
 // TODO: remove this later once recipes are stable
 templ RecipeAlphaWarning() {
-	<div class="rounded-lg border-2 border-amber-400 bg-amber-50 p-4 mb-6">
+	<div class="rounded-lg border border-amber-400 bg-amber-50 p-4 mb-6">
 		<div class="flex items-start gap-3">
 			<span class="text-xl leading-none mt-0.5">&#9888;&#65039;</span>
 			<div class="text-sm text-amber-900">

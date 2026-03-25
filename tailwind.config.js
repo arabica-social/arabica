@@ -11,6 +11,9 @@ module.exports = {
         mono: ['"Iosevka Patrick"', 'ui-monospace', 'monospace'],
       },
       colors: {
+        cream: {
+          50: "#FAF7F5",
+        },
         brown: {
           50: "#fdf8f6",
           100: "#f2e8e5",

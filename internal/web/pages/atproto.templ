@@ -15,7 +15,7 @@ templ ATProtoContent() {
 			<h1 class="text-4xl font-bold text-brown-900">The AT Protocol</h1>
 		</div>
 		<div class="prose prose-lg max-w-none space-y-6">
-			<section class="bg-gradient-to-br from-brown-100 to-brown-200 p-6 rounded-xl border border-brown-300">
+			<section class="card p-6">
 				<h2 class="text-2xl font-semibold text-brown-900 mb-4">What is the AT Protocol?</h2>
 				<p class="text-brown-800 leading-relaxed mb-3">
 					Arabica uses the <strong>AT Protocol</strong> (Authenticated Transfer Protocol) to power many of its social features,
@@ -30,7 +30,7 @@ templ ATProtoContent() {
 			<section>
 				<h2 class="text-2xl font-semibold text-brown-900 mb-4">Key Concepts</h2>
 				<div class="space-y-4">
-					<div class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md">
+					<div class="card p-4">
 						<h3 class="font-semibold text-brown-900 mb-2">Personal Data Server (PDS)</h3>
 						<p class="text-brown-700 text-sm">
 							Your PDS is where all your data lives. Think of it as your personal database in the cloud.
@@ -38,7 +38,7 @@ templ ATProtoContent() {
 							You can switch PDS providers anytime without losing your data.
 						</p>
 					</div>
-					<div class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md">
+					<div class="card p-4">
 						<h3 class="font-semibold text-brown-900 mb-2">Decentralized Identity (DID)</h3>
 						<p class="text-brown-700 text-sm">
 							Your identity is represented by a DID (Decentralized Identifier) that you own.
@@ -46,7 +46,7 @@ templ ATProtoContent() {
 							(e.g. yourname.arabica.systems) is just a human-friendly alias { "for" } your DID.
 						</p>
 					</div>
-					<div class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md">
+					<div class="card p-4">
 						<h3 class="font-semibold text-brown-900 mb-2">Lexicons</h3>
 						<p class="text-brown-700 text-sm">
 							Lexicons define the structure of data in the AT Protocol. Arabica uses custom lexicons
@@ -54,7 +54,7 @@ templ ATProtoContent() {
 							ensure data consistency and enable interoperability with other coffee apps.
 						</p>
 					</div>
-					<div class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md">
+					<div class="card p-4">
 						<h3 class="font-semibold text-brown-900 mb-2">AT-URIs</h3>
 						<p class="text-brown-700 text-sm">
 							Records reference each other using AT-URIs, which look like:
@@ -91,25 +91,25 @@ templ ATProtoContent() {
 			<section>
 				<h2 class="text-2xl font-semibold text-brown-900 mb-4">Why This Matters</h2>
 				<div class="grid md:grid-cols-2 gap-4">
-					<div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-4 rounded-lg">
+					<div class="bg-green-50 border border-green-200 p-4 rounded-lg">
 						<h4 class="font-semibold text-green-900 mb-2">Data Ownership</h4>
 						<p class="text-green-800 text-sm">
 							Your coffee data is yours. If Arabica shuts down, your data remains safe in your PDS.
 						</p>
 					</div>
-					<div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-4 rounded-lg">
+					<div class="bg-green-50 border border-green-200 p-4 rounded-lg">
 						<h4 class="font-semibold text-green-900 mb-2">Portability</h4>
 						<p class="text-green-800 text-sm">
 							Switch PDS providers without losing anything. Your identity and data move with you.
 						</p>
 					</div>
-					<div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-4 rounded-lg">
+					<div class="bg-green-50 border border-green-200 p-4 rounded-lg">
 						<h4 class="font-semibold text-green-900 mb-2">Interoperability</h4>
 						<p class="text-green-800 text-sm">
 							Other apps can build on the same data. Future coffee apps could read your Arabica brews.
 						</p>
 					</div>
-					<div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-4 rounded-lg">
+					<div class="bg-green-50 border border-green-200 p-4 rounded-lg">
 						<h4 class="font-semibold text-green-900 mb-2">Transparency</h4>
 						<p class="text-green-800 text-sm">
 							Open protocol means no hidden algorithms. You can see exactly how your data is handled.
@@ -117,7 +117,7 @@ templ ATProtoContent() {
 					</div>
 				</div>
 			</section>
-			<section class="bg-gradient-to-br from-amber-50 to-brown-100 border-2 border-brown-300 p-6 rounded-xl shadow-lg">
+			<section class="card p-6">
 				<h3 class="text-xl font-semibold text-brown-900 mb-3">Learn More</h3>
 				<p class="text-brown-800 mb-4">
 					The AT Protocol is an open standard with comprehensive documentation. To dive deeper:
@@ -139,7 +139,7 @@ templ ATProtoContent() {
 			</section>
 		</div>
 		<div class="mt-12 text-center">
-			<a href="/" class="btn-primary px-8 py-3 font-semibold shadow-lg hover:shadow-xl">
+			<a href="/" class="btn-primary px-8 py-3 font-semibold">
 				Back to Home
 			</a>
 		</div>

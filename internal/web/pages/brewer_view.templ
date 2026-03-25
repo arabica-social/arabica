@@ -90,7 +90,7 @@ templ BrewerViewCard(props BrewerViewProps) {
 
 templ BrewerViewHeader(props BrewerViewProps) {
 	<div class="mb-6">
-		<h2 class="text-3xl font-bold text-brown-900">{ props.Brewer.Name }</h2>
+		<h2 class="text-2xl font-semibold text-brown-900">{ props.Brewer.Name }</h2>
 		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Brewer.CreatedAt) } data-local="long">{ props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
 	</div>
 }

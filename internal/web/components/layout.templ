@@ -46,7 +46,7 @@ func (d *LayoutData) ogType() string {
 
 templ Layout(data *LayoutData, content templ.Component) {
 	<!DOCTYPE html>
-	<html lang="en" class="h-full" style="background-color: #fdf8f6;">
+	<html lang="en" class="h-full" style="background-color: #FAF7F5;">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -75,7 +75,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
-			<link rel="stylesheet" href="/static/css/output.css?v=0.6.1"/>
+			<link rel="stylesheet" href="/static/css/output.css?v=0.7.0"/>
 			<style>
 			[x-cloak] { display: none !important; }
 		</style>
@@ -256,8 +256,8 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<script src="/static/js/sw-register.js?v=0.2.0"></script>
 		</head>
 		<body
-			class="bg-brown-50 min-h-full flex flex-col"
-			style="background-color: #fdf8f6;"
+			class="min-h-full flex flex-col"
+			style="background-color: var(--page-bg); color: var(--page-text);"
 			if data.UserDID != "" {
 				data-user-did={ data.UserDID }
 			}

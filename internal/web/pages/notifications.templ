@@ -30,7 +30,7 @@ templ notificationsContent(props NotificationsProps) {
 		<div class="flex items-center justify-between mb-8">
 			<div class="flex items-center gap-3">
 				@components.BackButton()
-				<h1 class="text-3xl font-bold text-brown-900">Notifications</h1>
+				<h1 class="text-2xl font-semibold text-brown-900">Notifications</h1>
 			</div>
 			if len(props.Notifications) > 0 {
 				<form method="POST" action="/api/notifications/read">

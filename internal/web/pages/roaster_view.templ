@@ -98,7 +98,7 @@ templ RoasterViewCard(props RoasterViewProps) {
 
 templ RoasterViewHeader(props RoasterViewProps) {
 	<div class="mb-6">
-		<h2 class="text-3xl font-bold text-brown-900">{ props.Roaster.Name }</h2>
+		<h2 class="text-2xl font-semibold text-brown-900">{ props.Roaster.Name }</h2>
 		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Roaster.CreatedAt) } data-local="long">{ props.Roaster.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
 	</div>
 }
