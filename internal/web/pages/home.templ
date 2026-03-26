@@ -36,7 +36,7 @@ templ CommunityFeedSection(isAuthenticated bool) {
 		if isAuthenticated {
 			@FeedFilterBar(FeedQueryState{IsAuthenticated: isAuthenticated})
 		}
-		<div hx-get="/api/feed" hx-trigger="load" hx-swap="outerHTML" hx-select="#feed-items" hx-target="#feed-items">
+		<div hx-get="/api/feed" hx-trigger="load" hx-swap="outerHTML" hx-select="#feed-items" hx-target="#feed-items" hx-disinherit="*">
 			<div id="feed-items" class="space-y-4">
 				@FeedLoadingSkeleton()
 			</div>
