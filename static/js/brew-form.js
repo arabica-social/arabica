@@ -32,17 +32,9 @@ document.addEventListener("alpine:init", () => {
     // Dropdown manager instance
     dropdownManager: null,
 
-    // Entity managers for each entity type
-    beanManager: null,
-    grinderManager: null,
-    brewerManager: null,
-
     async init() {
       // Initialize dropdown manager
       this.dropdownManager = window.createDropdownManager();
-
-      // Initialize entity managers
-      this.initEntityManagers();
 
       // Detect state from DOM
       const root = this.$root || this.$el;
@@ -103,14 +95,16 @@ document.addEventListener("alpine:init", () => {
       // Update pours visibility after setup
       this.updatePoursVisibility();
 
-      // Also check brewer type after DOM is settled
-      this.$nextTick(() => {
-        const selects =
-          formEl?.querySelectorAll('select[name="brewer_rkey"]') || [];
-        for (const sel of selects) {
-          if (sel.value && !sel.disabled) {
-            this.onBrewerChange(sel.value);
-            break;
+      // Listen for combo-select changes (brewer type drives form sections)
+      root.addEventListener("combo-change", (e) => {
+        if (e.detail.entityType === "brewer") {
+          const bt =
+            e.detail.entity?.brewer_type ||
+            e.detail.entity?.BrewerType ||
+            "";
+          this.brewerCategory = this.normalizeBrewerCategory(bt);
+          if (this.brewerCategory === "pourover") {
+            this.showPours = true;
           }
         }
       });
@@ -229,99 +223,6 @@ document.addEventListener("alpine:init", () => {
       return parts.join(" \u00b7 ");
     },
 
-    initEntityManagers() {
-      // Bean entity manager
-      this.beanManager = window.createEntityManager({
-        entityType: "bean",
-        apiEndpoint: "/api/beans",
-        dialogId: "entity-modal",
-        defaultFormData: {
-          name: "",
-          origin: "",
-          roast_level: "",
-          process: "",
-          description: "",
-          roaster_rkey: "",
-        },
-        validate: (data) => {
-          if (!data.name || !data.origin) {
-            return "Bean name and origin are required";
-          }
-          return null;
-        },
-        onSuccess: async (newBean) => {
-          // Refresh dropdown data and repopulate
-          await this.dropdownManager.invalidateAndRefresh();
-
-          // Select the new bean in all matching selects
-          document
-            .querySelectorAll('form select[name="bean_rkey"]')
-            .forEach((sel) => {
-              if (newBean.rkey) sel.value = newBean.rkey;
-            });
-        },
-      });
-
-      // Grinder entity manager
-      this.grinderManager = window.createEntityManager({
-        entityType: "grinder",
-        apiEndpoint: "/api/grinders",
-        dialogId: "entity-modal",
-        defaultFormData: {
-          name: "",
-          grinder_type: "",
-          burr_type: "",
-          notes: "",
-        },
-        validate: (data) => {
-          if (!data.name) {
-            return "Grinder name is required";
-          }
-          return null;
-        },
-        onSuccess: async (newGrinder) => {
-          // Refresh dropdown data and repopulate
-          await this.dropdownManager.invalidateAndRefresh();
-
-          // Select the new grinder in all matching selects
-          document
-            .querySelectorAll('form select[name="grinder_rkey"]')
-            .forEach((sel) => {
-              if (newGrinder.rkey) sel.value = newGrinder.rkey;
-            });
-        },
-      });
-
-      // Brewer entity manager
-      this.brewerManager = window.createEntityManager({
-        entityType: "brewer",
-        apiEndpoint: "/api/brewers",
-        dialogId: "entity-modal",
-        defaultFormData: {
-          name: "",
-          brewer_type: "",
-          description: "",
-        },
-        validate: (data) => {
-          if (!data.name) {
-            return "Brewer name is required";
-          }
-          return null;
-        },
-        onSuccess: async (newBrewer) => {
-          // Refresh dropdown data and repopulate
-          await this.dropdownManager.invalidateAndRefresh();
-
-          // Select the new brewer in all matching selects
-          document
-            .querySelectorAll('form select[name="brewer_rkey"]')
-            .forEach((sel) => {
-              if (newBrewer.rkey) sel.value = newBrewer.rkey;
-            });
-        },
-      });
-    },
-
     // Recipe autofill
     async applyRecipe(rkey) {
       const root = this.$root || this.$el;
@@ -377,9 +278,27 @@ document.addEventListener("alpine:init", () => {
           "water_amount",
           recipe.water_amount > 0 ? Math.round(recipe.water_amount) : "",
         );
-        this.setFormField(form, "brewer_rkey", recipe.brewer_rkey || "");
-
-        // Update brewer category from recipe's brewer
+        // Update brewer combo-select via event
+        const brewerCombo = form.querySelector(
+          '[x-data*="entityType: \'brewer\'"]',
+        );
+        if (brewerCombo) {
+          const brewerName =
+            (this.dropdownManager?.brewers || []).find(
+              (b) =>
+                (b.rkey || b.RKey) === recipe.brewer_rkey,
+            )?.name || "";
+          brewerCombo.dispatchEvent(
+            new CustomEvent("combo-set", {
+              detail: {
+                rkey: recipe.brewer_rkey || "",
+                label: brewerName,
+              },
+              bubbles: false,
+            }),
+          );
+        }
+        // Also update brewer category
         if (recipe.brewer_rkey) {
           this.onBrewerChange(recipe.brewer_rkey);
         }
@@ -410,7 +329,18 @@ document.addEventListener("alpine:init", () => {
     clearRecipeFields(form) {
       this.setFormField(form, "coffee_amount", "");
       this.setFormField(form, "water_amount", "");
-      this.setFormField(form, "brewer_rkey", "");
+      // Clear brewer combo-select
+      const brewerCombo = form.querySelector(
+        '[x-data*="entityType: \'brewer\'"]',
+      );
+      if (brewerCombo) {
+        brewerCombo.dispatchEvent(
+          new CustomEvent("combo-set", {
+            detail: { rkey: "", label: "" },
+            bubbles: false,
+          }),
+        );
+      }
       this.pours = [];
     },
 
@@ -423,70 +353,9 @@ document.addEventListener("alpine:init", () => {
       this.pours.splice(index, 1);
     },
 
-    // Expose entity manager state to Alpine
-    get showBeanForm() {
-      return this.beanManager?.showForm || false;
-    },
-    set showBeanForm(value) {
-      if (this.beanManager) this.beanManager.showForm = value;
-    },
-
-    get showGrinderForm() {
-      return this.grinderManager?.showForm || false;
-    },
-    set showGrinderForm(value) {
-      if (this.grinderManager) this.grinderManager.showForm = value;
-    },
-
-    get showBrewerForm() {
-      return this.brewerManager?.showForm || false;
-    },
-    set showBrewerForm(value) {
-      if (this.brewerManager) this.brewerManager.showForm = value;
-    },
-
-    // Expose entity manager editing state to Alpine (for modal titles)
-    get editingBean() {
-      return this.beanManager?.editingId !== null;
-    },
-
-    get editingGrinder() {
-      return this.grinderManager?.editingId !== null;
-    },
-
-    get editingBrewer() {
-      return this.brewerManager?.editingId !== null;
-    },
-
-    // Expose entity manager form data to Alpine
-    get beanForm() {
-      return this.beanManager?.formData || {};
-    },
-    set beanForm(value) {
-      if (this.beanManager) this.beanManager.formData = value;
-    },
-
-    get grinderForm() {
-      return this.grinderManager?.formData || {};
-    },
-    set grinderForm(value) {
-      if (this.grinderManager) this.grinderManager.formData = value;
-    },
-
-    get brewerForm() {
-      return this.brewerManager?.formData || {};
-    },
-    set brewerForm(value) {
-      if (this.brewerManager) this.brewerManager.formData = value;
-    },
-
-    // Expose dropdown data to Alpine
+    // Expose dropdown data to Alpine (still needed for recipe filtering)
     get beans() {
       return this.dropdownManager?.beans || [];
-    },
-
-    get grinders() {
-      return this.dropdownManager?.grinders || [];
     },
 
     get brewers() {
@@ -499,19 +368,6 @@ document.addEventListener("alpine:init", () => {
 
     get dataLoaded() {
       return this.dropdownManager?.dataLoaded || false;
-    },
-
-    // Delegate save methods to entity managers
-    async saveBean() {
-      await this.beanManager.save();
-    },
-
-    async saveGrinder() {
-      await this.grinderManager.save();
-    },
-
-    async saveBrewer() {
-      await this.brewerManager.save();
     },
 
     // Recipe filter methods

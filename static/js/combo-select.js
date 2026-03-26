@@ -1,0 +1,300 @@
+/**
+ * Reusable combo select component for entity selection + inline creation.
+ * Replaces the select + "+ New" modal pattern with a typeahead that can
+ * search user entities, show community suggestions, and create new entities inline.
+ */
+
+document.addEventListener("alpine:init", () => {
+  Alpine.data("comboSelect", (config) => ({
+    // Config
+    entityType: config.entityType || "",
+    apiEndpoint: config.apiEndpoint || "",
+    suggestEndpoint: config.suggestEndpoint || "",
+    inputName: config.inputName || "",
+    placeholder: config.placeholder || "Search...",
+    formatLabel: config.formatLabel || ((e) => e.name || e.Name || ""),
+    formatCreateData: config.formatCreateData || ((name) => ({ name })),
+    required: config.required || false,
+
+    // State
+    query: "",
+    selectedRKey: "",
+    selectedLabel: "",
+    isOpen: false,
+    highlightIndex: -1,
+    isCreating: false,
+
+    // Results
+    userResults: [],
+    closedResults: [], // Closed beans (only for bean entity type)
+    communityResults: [],
+
+    // All items for flat indexing (for keyboard nav)
+    get allItems() {
+      const items = [];
+      for (const r of this.userResults) {
+        items.push({ type: "user", entity: r });
+      }
+      for (const r of this.closedResults) {
+        items.push({ type: "closed", entity: r });
+      }
+      for (const r of this.communityResults) {
+        items.push({ type: "community", suggestion: r });
+      }
+      if (this.query.trim() && !this.exactMatch) {
+        items.push({ type: "create", name: this.query.trim() });
+      }
+      return items;
+    },
+
+    // Whether query exactly matches an existing entity
+    get exactMatch() {
+      const q = this.query.trim().toLowerCase();
+      const nameMatch = (e) => (e.name || e.Name || "").toLowerCase() === q;
+      return this.userResults.some(nameMatch) || this.closedResults.some(nameMatch) || this.communityResults.some(
+        (s) => (s.name || "").toLowerCase() === q,
+      );
+    },
+
+    init() {
+      // Listen for external set events (e.g., from recipe autofill)
+      this.$el.addEventListener("combo-set", (e) => {
+        if (e.detail.rkey) {
+          this.selectedRKey = e.detail.rkey;
+          this.selectedLabel = e.detail.label || "";
+          this.query = this.selectedLabel;
+        } else {
+          this.clear();
+        }
+      });
+    },
+
+    open() {
+      this.isOpen = true;
+      this.highlightIndex = -1;
+      this.search();
+    },
+
+    close() {
+      // Delay to allow click events on dropdown items
+      setTimeout(() => {
+        this.isOpen = false;
+        // Restore label if user didn't complete selection
+        if (this.selectedRKey && this.query !== this.selectedLabel) {
+          this.query = this.selectedLabel;
+        }
+      }, 150);
+    },
+
+    // Search: local filtering is instant, remote suggestions are debounced
+    _suggestTimer: null,
+
+    async search() {
+      const q = this.query.trim().toLowerCase();
+
+      // Instant: filter user's entities from cache
+      const entities = this.getUserEntities();
+      this.closedResults = [];
+      if (q) {
+        const matches = entities.filter((e) => {
+          const label = this.formatLabel(e).toLowerCase();
+          return label.includes(q);
+        });
+        if (this.entityType === "bean") {
+          this.userResults = matches.filter((b) => !b.closed && !b.Closed);
+          this.closedResults = matches.filter((b) => b.closed || b.Closed);
+        } else {
+          this.userResults = matches;
+        }
+      } else {
+        const filtered =
+          this.entityType === "bean"
+            ? entities.filter((b) => !b.closed && !b.Closed)
+            : entities;
+        this.userResults = filtered.slice(0, 10);
+      }
+
+      this.highlightIndex = -1;
+      if (!this.isOpen && this.query) {
+        this.isOpen = true;
+      }
+
+      // Debounced: fetch community suggestions (400ms after last keystroke)
+      clearTimeout(this._suggestTimer);
+      if (q.length >= 2 && this.suggestEndpoint) {
+        this._suggestTimer = setTimeout(() => {
+          this.fetchSuggestions(q, entities);
+        }, 400);
+      } else {
+        this.communityResults = [];
+      }
+    },
+
+    async fetchSuggestions(q, entities) {
+      try {
+        const resp = await fetch(
+          `${this.suggestEndpoint}?q=${encodeURIComponent(q)}&limit=5`,
+          { credentials: "same-origin" },
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          // Filter out community results that match any of the user's entities
+          const allNames = new Set(
+            entities.map((e) => (e.name || e.Name || "").toLowerCase()),
+          );
+          this.communityResults = (data || []).filter(
+            (s) => !allNames.has((s.name || "").toLowerCase()),
+          );
+        }
+      } catch (e) {
+        console.error("Suggestion fetch failed:", e);
+      }
+    },
+
+    getUserEntities() {
+      const dm = window.ArabicaCache?.getCachedData?.() || {};
+      switch (this.entityType) {
+        case "bean":
+          return dm.beans || [];
+        case "brewer":
+          return dm.brewers || [];
+        case "grinder":
+          return dm.grinders || [];
+        default:
+          return [];
+      }
+    },
+
+    // Select an existing user entity
+    selectEntity(entity) {
+      const rkey = entity.rkey || entity.RKey;
+      this.selectedRKey = rkey;
+      this.selectedLabel = this.formatLabel(entity);
+      this.query = this.selectedLabel;
+      this.isOpen = false;
+
+      // Dispatch change event for other listeners (e.g., onBrewerChange)
+      this.$nextTick(() => {
+        this.$dispatch("combo-change", {
+          entityType: this.entityType,
+          rkey,
+          entity,
+        });
+      });
+    },
+
+    // Select a community suggestion — creates the entity first
+    async selectSuggestion(suggestion) {
+      this.isCreating = true;
+      try {
+        const data = this.formatCreateData(suggestion.name, suggestion);
+        if (suggestion.source_uri) {
+          data.source_ref = suggestion.source_uri;
+        }
+        const resp = await fetch(this.apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(data),
+        });
+        if (!resp.ok) throw new Error(`Create failed: ${resp.status}`);
+        const created = await resp.json();
+        const rkey = created.rkey || created.RKey;
+
+        this.selectedRKey = rkey;
+        this.selectedLabel = suggestion.name;
+        this.query = suggestion.name;
+        this.isOpen = false;
+
+        // Invalidate cache so entity appears in future searches
+        if (window.ArabicaCache) {
+          window.ArabicaCache.invalidateCache();
+        }
+
+        this.$nextTick(() => {
+          this.$dispatch("combo-change", {
+            entityType: this.entityType,
+            rkey,
+          });
+        });
+      } catch (e) {
+        console.error("Failed to create from suggestion:", e);
+      } finally {
+        this.isCreating = false;
+      }
+    },
+
+    // Create a brand new entity with just the name
+    async createNew() {
+      const name = this.query.trim();
+      if (!name) return;
+
+      this.isCreating = true;
+      try {
+        const data = this.formatCreateData(name, null);
+        const resp = await fetch(this.apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(data),
+        });
+        if (!resp.ok) throw new Error(`Create failed: ${resp.status}`);
+        const created = await resp.json();
+        const rkey = created.rkey || created.RKey;
+
+        this.selectedRKey = rkey;
+        this.selectedLabel = name;
+        this.query = name;
+        this.isOpen = false;
+
+        if (window.ArabicaCache) {
+          window.ArabicaCache.invalidateCache();
+        }
+
+        this.$nextTick(() => {
+          this.$dispatch("combo-change", {
+            entityType: this.entityType,
+            rkey,
+          });
+        });
+      } catch (e) {
+        console.error("Failed to create entity:", e);
+      } finally {
+        this.isCreating = false;
+      }
+    },
+
+    // Keyboard navigation
+    moveDown() {
+      if (this.highlightIndex < this.allItems.length - 1) {
+        this.highlightIndex++;
+      }
+    },
+
+    moveUp() {
+      if (this.highlightIndex > 0) {
+        this.highlightIndex--;
+      }
+    },
+
+    selectHighlighted() {
+      const item = this.allItems[this.highlightIndex];
+      if (!item) return;
+      if (item.type === "user") this.selectEntity(item.entity);
+      else if (item.type === "community")
+        this.selectSuggestion(item.suggestion);
+      else if (item.type === "create") this.createNew();
+    },
+
+    // Clear selection
+    clear() {
+      this.selectedRKey = "";
+      this.selectedLabel = "";
+      this.query = "";
+      this.$dispatch("combo-change", {
+        entityType: this.entityType,
+        rkey: "",
+      });
+    },
+  }));
+});

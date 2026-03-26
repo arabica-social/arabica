@@ -534,6 +534,57 @@
     @apply form-input py-3 px-4;
   }
 
+  /* Combo select dropdown */
+  .combo-select {
+    @apply relative;
+  }
+
+  .combo-dropdown {
+    @apply absolute z-50 w-full mt-1 rounded-lg overflow-hidden;
+    background: var(--card-bg);
+    border: 1px solid var(--input-border);
+    box-shadow: var(--shadow-lg);
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .combo-section-label {
+    @apply text-xs font-medium uppercase tracking-wider px-3 py-1.5;
+    color: var(--text-muted);
+    background: var(--surface-bg);
+  }
+
+  .combo-item {
+    @apply px-3 py-2 cursor-pointer text-sm;
+    color: var(--text-primary);
+  }
+
+  .combo-item:hover,
+  .combo-item[data-highlighted="true"] {
+    background: var(--surface-bg);
+  }
+
+  .combo-item-create {
+    @apply px-3 py-2 cursor-pointer text-sm font-medium;
+    color: var(--accent-primary);
+    border-top: 1px solid var(--surface-border);
+  }
+
+  .combo-item-create:hover,
+  .combo-item-create[data-highlighted="true"] {
+    background: var(--surface-bg);
+  }
+
+  .combo-item-sub {
+    @apply text-xs;
+    color: var(--text-muted);
+  }
+
+  .combo-creating {
+    @apply px-3 py-2 text-sm text-center;
+    color: var(--text-muted);
+  }
+
   .form-select {
     @apply form-input truncate max-w-full min-w-0;
   }

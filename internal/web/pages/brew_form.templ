@@ -38,7 +38,6 @@ templ BrewFormContent(props BrewFormProps) {
 			components.CardProps{InnerCard: true},
 			BrewFormCard(props),
 		)
-		<!-- Entity modals now loaded via HTMX into #modal-container -->
 	</div>
 }
 
@@ -300,41 +299,21 @@ templ RecipeSelectField(props BrewFormProps) {
 	</div>
 }
 
-// BeanSelectField renders the bean selection field
+// BeanSelectField renders the bean combo-select with typeahead + inline creation
 templ BeanSelectField(props BrewFormProps) {
-	<div>
-		<label class="form-label">Coffee Bean</label>
-		<div class="flex gap-2">
-			<select name="bean_rkey" required class="flex-1 form-select">
-				<option value="">Select a bean...</option>
-				for _, bean := range props.Beans {
-					// Only show open bags (not closed) in the dropdown
-					if !bean.Closed {
-						<option
-							value={ bean.RKey }
-							if props.Brew != nil && props.Brew.BeanRKey == bean.RKey {
-								selected
-							}
-							class="truncate"
-						>
-							{ formatBeanLabel(bean) }
-						</option>
-					}
-				}
-				if props.Brew != nil && len(props.Beans) == 0 {
-					<option value={ props.Brew.BeanRKey } selected>Loading...</option>
-				}
-			</select>
-			<button
-				type="button"
-				hx-get="/api/modals/bean/new"
-				hx-target="#modal-container"
-				hx-swap="innerHTML"
-				class="btn-secondary"
-			>
-				+ New
-			</button>
-		</div>
+	<div
+		class="combo-select"
+		x-data={ comboSelectConfig("bean", "/api/beans", "/api/suggestions/beans", "bean_rkey", "Search or create a bean...", true) }
+		if props.Brew != nil && props.Brew.BeanRKey != "" {
+			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.BeanRKey, escapeJS(getBeanLabel(props))) }
+		}
+	>
+		<label class="form-label">
+			Coffee Bean
+			<span class="text-red-500">*</span>
+		</label>
+		<input type="hidden" :name="inputName" :value="selectedRKey"/>
+		@comboSelectInput("Your beans")
 	</div>
 }
 
@@ -343,6 +322,170 @@ func formatBeanLabel(bean models.Bean) string {
 		return fmt.Sprintf("%s (%s - %s)", bean.Name, bean.Origin, bean.RoastLevel)
 	}
 	return fmt.Sprintf("%s - %s", bean.Origin, bean.RoastLevel)
+}
+
+func getBeanLabel(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.Bean != nil {
+		return formatBeanLabel(*props.Brew.Bean)
+	}
+	return ""
+}
+
+func getBrewerLabel(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.BrewerObj != nil {
+		return props.Brew.BrewerObj.Name
+	}
+	return ""
+}
+
+func getGrinderLabel(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.GrinderObj != nil {
+		return props.Brew.GrinderObj.Name
+	}
+	return ""
+}
+
+func escapeJS(s string) string {
+	// Escape single quotes for use in JS string literals
+	result := ""
+	for _, c := range s {
+		if c == '\'' {
+			result += "\\'"
+		} else if c == '\\' {
+			result += "\\\\"
+		} else {
+			result += string(c)
+		}
+	}
+	return result
+}
+
+// comboSelectConfig generates the x-data attribute for a combo-select
+func comboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder string, required bool) string {
+	requiredStr := "false"
+	if required {
+		requiredStr = "true"
+	}
+
+	// Entity-specific formatLabel and formatCreateData
+	var formatLabel, formatCreateData string
+	switch entityType {
+	case "bean":
+		formatLabel = `(e) => { const n = e.name || e.Name || ''; const o = e.origin || e.Origin || ''; const r = e.roast_level || e.RoastLevel || ''; if (o && r) return n + ' (' + o + ' - ' + r + ')'; if (o) return n + ' (' + o + ')'; return n; }`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.origin) d.origin = s.fields.origin; if (s.fields.roastLevel) d.roast_level = s.fields.roastLevel; if (s.fields.process) d.process = s.fields.process; } return d; }`
+	case "brewer":
+		formatLabel = `(e) => e.name || e.Name || ''`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields && s.fields.brewerType) d.brewer_type = s.fields.brewerType; return d; }`
+	case "grinder":
+		formatLabel = `(e) => e.name || e.Name || ''`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.grinderType) d.grinder_type = s.fields.grinderType; if (s.fields.burrType) d.burr_type = s.fields.burrType; } return d; }`
+	default:
+		formatLabel = `(e) => e.name || e.Name || ''`
+		formatCreateData = `(name) => ({ name })`
+	}
+
+	return fmt.Sprintf(`comboSelect({ entityType: '%s', apiEndpoint: '%s', suggestEndpoint: '%s', inputName: '%s', placeholder: '%s', required: %s, formatLabel: %s, formatCreateData: %s })`,
+		entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, requiredStr, formatLabel, formatCreateData)
+}
+
+// comboSelectInput renders the shared input + dropdown markup for combo-select fields
+templ comboSelectInput(sectionLabel string) {
+	<div class="relative">
+		<input
+			type="text"
+			x-model="query"
+			@input="search()"
+			@focus="open()"
+			@blur="close()"
+			@keydown.escape.prevent="close()"
+			@keydown.arrow-down.prevent="moveDown()"
+			@keydown.arrow-up.prevent="moveUp()"
+			@keydown.enter.prevent="selectHighlighted()"
+			:placeholder="placeholder"
+			class="w-full form-input-lg"
+			autocomplete="off"
+		/>
+		<button
+			type="button"
+			x-show="selectedRKey"
+			@click="clear()"
+			class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
+			x-cloak
+		>
+			@components.IconX()
+		</button>
+	</div>
+	<div x-show="isOpen && (allItems.length > 0 || query.trim())" x-cloak class="combo-dropdown" @mousedown.prevent>
+		<div x-show="isCreating" x-cloak class="combo-creating">Creating...</div>
+		<template x-if="!isCreating">
+			<div>
+				<template x-if="userResults.length > 0">
+					<div>
+						<div class="combo-section-label">{ sectionLabel }</div>
+						<template x-for="(entity, i) in userResults" :key="entity.rkey || entity.RKey">
+							<div
+								class="combo-item"
+								:data-highlighted="highlightIndex === i"
+								@click="selectEntity(entity)"
+								@mouseenter="highlightIndex = i"
+							>
+								<span x-text="formatLabel(entity)"></span>
+							</div>
+						</template>
+					</div>
+				</template>
+				<template x-if="closedResults.length > 0">
+					<div>
+						<div class="combo-section-label">Closed bags</div>
+						<template x-for="(entity, ci) in closedResults" :key="entity.rkey || entity.RKey">
+							<div
+								class="combo-item opacity-60"
+								:data-highlighted="highlightIndex === userResults.length + ci"
+								@click="selectEntity(entity)"
+								@mouseenter="highlightIndex = userResults.length + ci"
+							>
+								<span x-text="formatLabel(entity)"></span>
+							</div>
+						</template>
+					</div>
+				</template>
+				<template x-if="communityResults.length > 0">
+					<div>
+						<div class="combo-section-label">Community</div>
+						<template x-for="(s, j) in communityResults" :key="s.source_uri || j">
+							<div
+								class="combo-item"
+								:data-highlighted="highlightIndex === userResults.length + closedResults.length + j"
+								@click="selectSuggestion(s)"
+								@mouseenter="highlightIndex = userResults.length + closedResults.length + j"
+							>
+								<div x-text="s.name"></div>
+								<div class="combo-item-sub">
+									<span x-show="s.fields?.origin" x-text="s.fields?.origin"></span>
+									<span x-show="s.fields?.origin && s.fields?.roastLevel"> · </span>
+									<span x-show="s.fields?.roastLevel" x-text="s.fields?.roastLevel"></span>
+									<span x-show="s.count > 1" x-text="' · ' + s.count + ' users'"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+				</template>
+				<template x-if="query.trim() && !exactMatch">
+					<div
+						class="combo-item-create"
+						:data-highlighted="highlightIndex === userResults.length + closedResults.length + communityResults.length"
+						@click="createNew()"
+						@mouseenter="highlightIndex = userResults.length + closedResults.length + communityResults.length"
+					>
+						Create "<span x-text="query.trim()"></span>"
+					</div>
+				</template>
+				<template x-if="allItems.length === 0 && query.trim()">
+					<div class="combo-creating">No matches found</div>
+				</template>
+			</div>
+		</template>
+	</div>
 }
 
 // CoffeeAmountField renders the coffee amount input
@@ -369,38 +512,18 @@ func getCoffeeAmount(props BrewFormProps) string {
 	return ""
 }
 
-// GrinderSelectField renders the grinder selection field
+// GrinderSelectField renders the grinder combo-select with typeahead + inline creation
 templ GrinderSelectField(props BrewFormProps) {
-	<div>
+	<div
+		class="combo-select"
+		x-data={ comboSelectConfig("grinder", "/api/grinders", "/api/suggestions/grinders", "grinder_rkey", "Search or create a grinder...", false) }
+		if props.Brew != nil && props.Brew.GrinderRKey != "" {
+			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.GrinderRKey, escapeJS(getGrinderLabel(props))) }
+		}
+	>
 		<label class="form-label">Grinder</label>
-		<div class="flex gap-2">
-			<select name="grinder_rkey" class="flex-1 form-select">
-				<option value="">Select a grinder...</option>
-				for _, grinder := range props.Grinders {
-					<option
-						value={ grinder.RKey }
-						if props.Brew != nil && props.Brew.GrinderRKey == grinder.RKey {
-							selected
-						}
-						class="truncate"
-					>
-						{ grinder.Name }
-					</option>
-				}
-				if props.Brew != nil && props.Brew.GrinderRKey != "" && len(props.Grinders) == 0 {
-					<option value={ props.Brew.GrinderRKey } selected>Loading...</option>
-				}
-			</select>
-			<button
-				type="button"
-				hx-get="/api/modals/grinder/new"
-				hx-target="#modal-container"
-				hx-swap="innerHTML"
-				class="btn-secondary"
-			>
-				+ New
-			</button>
-		</div>
+		<input type="hidden" :name="inputName" :value="selectedRKey"/>
+		@comboSelectInput("Your grinders")
 	</div>
 }
 
@@ -427,38 +550,18 @@ func getGrindSize(props BrewFormProps) string {
 	return ""
 }
 
-// BrewerSelectField renders the brewer selection field
+// BrewerSelectField renders the brewer combo-select with typeahead + inline creation
 templ BrewerSelectField(props BrewFormProps) {
-	<div>
+	<div
+		class="combo-select"
+		x-data={ comboSelectConfig("brewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey", "Search or create a brew method...", false) }
+		if props.Brew != nil && props.Brew.BrewerRKey != "" {
+			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.BrewerRKey, escapeJS(getBrewerLabel(props))) }
+		}
+	>
 		<label class="form-label">Brew Method</label>
-		<div class="flex gap-2">
-			<select name="brewer_rkey" class="flex-1 form-select" @change="onBrewerChange($event.target.value)">
-				<option value="">Select brew method...</option>
-				for _, brewer := range props.Brewers {
-					<option
-						value={ brewer.RKey }
-						if props.Brew != nil && props.Brew.BrewerRKey == brewer.RKey {
-							selected
-						}
-						class="truncate"
-					>
-						{ brewer.Name }
-					</option>
-				}
-				if props.Brew != nil && props.Brew.BrewerRKey != "" && len(props.Brewers) == 0 {
-					<option value={ props.Brew.BrewerRKey } selected>Loading...</option>
-				}
-			</select>
-			<button
-				type="button"
-				hx-get="/api/modals/brewer/new"
-				hx-target="#modal-container"
-				hx-swap="innerHTML"
-				class="btn-secondary"
-			>
-				+ New
-			</button>
-		</div>
+		<input type="hidden" :name="inputName" :value="selectedRKey"/>
+		@comboSelectInput("Your brewers")
 	</div>
 }
 

@@ -257,6 +257,19 @@ async function preload() {
   return await refreshCache();
 }
 
+// Invalidate caches when entities are created/updated/deleted
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.addEventListener("refreshManage", () => {
+    invalidateCache();
+    // Clear HTMX history cache so navigating to other pages fetches fresh data
+    try {
+      localStorage.removeItem("htmx-history-cache");
+    } catch (e) {
+      // ignore
+    }
+  });
+});
+
 // Export as global for use in other scripts
 window.ArabicaCache = {
   getData,
