@@ -222,3 +222,140 @@ func TestCommentThreading_MultipleTopLevel(t *testing.T) {
 	assert.Equal(t, "replyB1", comments[3].RKey)
 	assert.Equal(t, 1, comments[3].Depth)
 }
+
+func TestDeleteRecord(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	did := "did:plc:testuser"
+	collection := "social.arabica.alpha.bean"
+	rkey := "bean123"
+
+	// Index a record
+	record := []byte(`{"$type":"social.arabica.alpha.bean","name":"Test Bean","origin":"Ethiopia","createdAt":"2025-01-01T00:00:00Z"}`)
+	err = idx.UpsertRecord(did, collection, rkey, "cid123", record, time.Now().Unix())
+	assert.NoError(t, err)
+
+	// Verify it exists
+	uri := "at://" + did + "/" + collection + "/" + rkey
+	rec, err := idx.GetRecord(uri)
+	assert.NoError(t, err)
+	assert.NotNil(t, rec, "record should exist after upsert")
+
+	// Verify it appears in collection listing
+	records, err := idx.ListRecordsByCollection(collection)
+	assert.NoError(t, err)
+	assert.Len(t, records, 1)
+
+	// Delete the record
+	err = idx.DeleteRecord(did, collection, rkey)
+	assert.NoError(t, err)
+
+	// Verify it no longer exists via GetRecord
+	rec, err = idx.GetRecord(uri)
+	assert.NoError(t, err)
+	assert.Nil(t, rec, "record should not exist after delete")
+
+	// Verify it no longer appears in collection listing
+	records, err = idx.ListRecordsByCollection(collection)
+	assert.NoError(t, err)
+	assert.Len(t, records, 0, "deleted record should not appear in collection listing")
+
+	// Verify record count is zero
+	assert.Equal(t, 0, idx.RecordCount(), "record count should be zero after delete")
+}
+
+func TestDeleteRecord_DoesNotAffectOtherRecords(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	did := "did:plc:testuser"
+	collection := "social.arabica.alpha.bean"
+
+	// Index two records
+	record1 := []byte(`{"$type":"social.arabica.alpha.bean","name":"Bean One","createdAt":"2025-01-01T00:00:00Z"}`)
+	record2 := []byte(`{"$type":"social.arabica.alpha.bean","name":"Bean Two","createdAt":"2025-01-02T00:00:00Z"}`)
+	err = idx.UpsertRecord(did, collection, "bean1", "cid1", record1, time.Now().Unix())
+	assert.NoError(t, err)
+	err = idx.UpsertRecord(did, collection, "bean2", "cid2", record2, time.Now().Unix())
+	assert.NoError(t, err)
+
+	assert.Equal(t, 2, idx.RecordCount())
+
+	// Delete only the first record
+	err = idx.DeleteRecord(did, collection, "bean1")
+	assert.NoError(t, err)
+
+	// Second record should still exist
+	uri2 := "at://" + did + "/" + collection + "/bean2"
+	rec, err := idx.GetRecord(uri2)
+	assert.NoError(t, err)
+	assert.NotNil(t, rec, "second record should still exist after deleting first")
+
+	// Only one record should remain
+	assert.Equal(t, 1, idx.RecordCount())
+
+	records, err := idx.ListRecordsByCollection(collection)
+	assert.NoError(t, err)
+	assert.Len(t, records, 1)
+	assert.Equal(t, "bean2", records[0].RKey)
+}
+
+func TestDeleteRecord_NonexistentIsNoOp(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	// Deleting a record that doesn't exist should not error
+	err = idx.DeleteRecord("did:plc:nobody", "social.arabica.alpha.bean", "nonexistent")
+	assert.NoError(t, err)
+}
+
+func TestDeleteRecord_AllEntityTypes(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	did := "did:plc:testuser"
+	now := time.Now().Unix()
+
+	// Index one record of each entity type
+	types := []struct {
+		collection string
+		rkey       string
+		record     string
+	}{
+		{"social.arabica.alpha.bean", "bean1", `{"$type":"social.arabica.alpha.bean","name":"Test Bean","createdAt":"2025-01-01T00:00:00Z"}`},
+		{"social.arabica.alpha.roaster", "roaster1", `{"$type":"social.arabica.alpha.roaster","name":"Test Roaster","createdAt":"2025-01-01T00:00:00Z"}`},
+		{"social.arabica.alpha.grinder", "grinder1", `{"$type":"social.arabica.alpha.grinder","name":"Test Grinder","createdAt":"2025-01-01T00:00:00Z"}`},
+		{"social.arabica.alpha.brewer", "brewer1", `{"$type":"social.arabica.alpha.brewer","name":"Test Brewer","createdAt":"2025-01-01T00:00:00Z"}`},
+		{"social.arabica.alpha.brew", "brew1", `{"$type":"social.arabica.alpha.brew","beanRef":"at://did:plc:testuser/social.arabica.alpha.bean/bean1","createdAt":"2025-01-01T00:00:00Z"}`},
+		{"social.arabica.alpha.recipe", "recipe1", `{"$type":"social.arabica.alpha.recipe","name":"Test Recipe","createdAt":"2025-01-01T00:00:00Z"}`},
+	}
+
+	for _, tt := range types {
+		err := idx.UpsertRecord(did, tt.collection, tt.rkey, "cid-"+tt.rkey, []byte(tt.record), now)
+		assert.NoError(t, err, "failed to upsert %s", tt.collection)
+	}
+
+	assert.Equal(t, 6, idx.RecordCount())
+
+	// Delete each record and verify it's gone
+	for _, tt := range types {
+		err := idx.DeleteRecord(did, tt.collection, tt.rkey)
+		assert.NoError(t, err, "failed to delete %s/%s", tt.collection, tt.rkey)
+
+		uri := "at://" + did + "/" + tt.collection + "/" + tt.rkey
+		rec, err := idx.GetRecord(uri)
+		assert.NoError(t, err)
+		assert.Nil(t, rec, "%s should not exist after delete", tt.collection)
+	}
+
+	assert.Equal(t, 0, idx.RecordCount(), "all records should be deleted")
+}

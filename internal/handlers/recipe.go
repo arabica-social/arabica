@@ -154,6 +154,16 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Remove from firehose feed index
+	if h.feedIndex != nil {
+		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+		if didStr != "" {
+			if err := h.feedIndex.DeleteRecord(didStr, atproto.NSIDRecipe, rkey); err != nil {
+				log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe from feed index")
+			}
+		}
+	}
+
 	h.invalidateFeedCache()
 	w.WriteHeader(http.StatusOK)
 }

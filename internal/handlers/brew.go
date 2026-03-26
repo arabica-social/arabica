@@ -795,7 +795,7 @@ func (h *Handler) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBrewByRKey, "brew")
+	h.deleteEntity(w, r, store.DeleteBrewByRKey, "brew", atproto.NSIDBrew)
 }
 
 // Export brews as JSON

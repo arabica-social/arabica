@@ -378,7 +378,7 @@ func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBeanByRKey, "bean")
+	h.deleteEntity(w, r, store.DeleteBeanByRKey, "bean", atproto.NSIDBean)
 }
 
 // Roaster update/delete handlers
@@ -442,7 +442,7 @@ func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteRoasterByRKey, "roaster")
+	h.deleteEntity(w, r, store.DeleteRoasterByRKey, "roaster", atproto.NSIDRoaster)
 }
 
 // Grinder CRUD handlers
@@ -551,7 +551,7 @@ func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteGrinderByRKey, "grinder")
+	h.deleteEntity(w, r, store.DeleteGrinderByRKey, "grinder", atproto.NSIDGrinder)
 }
 
 // Brewer CRUD handlers
@@ -658,5 +658,5 @@ func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBrewerByRKey, "brewer")
+	h.deleteEntity(w, r, store.DeleteBrewerByRKey, "brewer", atproto.NSIDBrewer)
 }

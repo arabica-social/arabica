@@ -255,8 +255,9 @@ func handleStoreError(w http.ResponseWriter, err error, fallbackMessage string) 
 	http.Error(w, fallbackMessage, http.StatusInternalServerError)
 }
 
-// deleteEntity validates the rkey, calls the delete function, and returns 200.
-func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn func(context.Context, string) error, entityName string) {
+// deleteEntity validates the rkey, calls the delete function, removes the record
+// from the firehose feed index, and returns 200.
+func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn func(context.Context, string) error, entityName string, collection string) {
 	rkey := validateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
@@ -265,6 +266,15 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete " + entityName)
 		handleStoreError(w, err, "Failed to delete "+entityName)
 		return
+	}
+	// Remove from firehose feed index
+	if h.feedIndex != nil && collection != "" {
+		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+		if didStr != "" {
+			if err := h.feedIndex.DeleteRecord(didStr, collection, rkey); err != nil {
+				log.Warn().Err(err).Str("rkey", rkey).Str("collection", collection).Msg("Failed to delete record from feed index")
+			}
+		}
 	}
 	h.invalidateFeedCache()
 	w.WriteHeader(http.StatusOK)
