@@ -92,7 +92,9 @@ templ RecipeViewCard(props RecipeViewProps) {
 		<!-- Action bar -->
 		<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
 			<div class="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
-				@components.BackButton()
+				<div class="order-2 sm:order-first">
+					@components.BackButton()
+				</div>
 				if props.IsAuthenticated {
 					<a href={ templ.SafeURL("/brews/new?recipe=" + props.Recipe.RKey + "&recipe_owner=" + props.Recipe.AuthorDID) } class="btn-primary text-sm text-center">Use in Brew</a>
 				}

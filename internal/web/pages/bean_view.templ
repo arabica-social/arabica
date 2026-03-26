@@ -78,30 +78,64 @@ templ BeanViewCard(props BeanViewProps) {
 				<div class="text-brown-900 whitespace-pre-wrap">{ props.Bean.Description }</div>
 			</div>
 		}
-		<div class="flex justify-between items-center">
-			@components.BackButton()
-			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
-				@components.ActionBar(components.ActionBarProps{
-					SubjectURI:      props.SubjectURI,
-					SubjectCID:      props.SubjectCID,
-					IsLiked:         props.IsLiked,
-					LikeCount:       props.LikeCount,
-					CommentCount:    props.CommentCount,
-					ShowComments:    true,
-					ShareURL:        props.ShareURL,
-					ShareTitle:      getBeanShareTitle(props.Bean),
-					ShareText:       "Check out this bean on Arabica",
-					IsOwner:         props.IsOwnProfile,
-					EditModalURL:    "/api/modals/bean/" + props.Bean.RKey,
-					DeleteURL:       "/api/beans/" + props.Bean.RKey,
-					DeleteRedirect:  "/manage",
-					IsAuthenticated: props.IsAuthenticated,
-					IsModerator:     props.IsModerator,
-					CanHideRecord:   props.CanHideRecord,
-					CanBlockUser:    props.CanBlockUser,
-					IsRecordHidden:  props.IsRecordHidden,
-					AuthorDID:       props.AuthorDID,
-				})
+		<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+			<div class="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
+				<div class="order-2 sm:order-first">
+					@components.BackButton()
+				</div>
+				if props.IsOwnProfile {
+					if !props.Bean.Closed {
+						<div x-data="{ showConfirm: false, _saving: false }">
+							<button
+								type="button"
+								@click="showConfirm = true"
+								class="btn-secondary text-sm text-center"
+							>
+								Close Bag
+							</button>
+							@BeanCloseBagConfirm(props)
+						</div>
+					}
+					<div x-data={ beanRateInitData(props.Bean) }>
+						<button
+							type="button"
+							@click="$refs.rateDialog.showModal()"
+							class="btn-secondary text-sm text-center"
+						>
+							if props.Bean.Rating != nil {
+								Edit Rating
+							} else {
+								Rate Bag
+							}
+						</button>
+						@BeanRateModal(props)
+					</div>
+				}
+			</div>
+			<div class="flex items-center gap-3">
+				<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
+					@components.ActionBar(components.ActionBarProps{
+						SubjectURI:      props.SubjectURI,
+						SubjectCID:      props.SubjectCID,
+						IsLiked:         props.IsLiked,
+						LikeCount:       props.LikeCount,
+						CommentCount:    props.CommentCount,
+						ShowComments:    true,
+						ShareURL:        props.ShareURL,
+						ShareTitle:      getBeanShareTitle(props.Bean),
+						ShareText:       "Check out this bean on Arabica",
+						IsOwner:         props.IsOwnProfile,
+						EditModalURL:    "/api/modals/bean/" + props.Bean.RKey,
+						DeleteURL:       "/api/beans/" + props.Bean.RKey,
+						DeleteRedirect:  "/manage",
+						IsAuthenticated: props.IsAuthenticated,
+						IsModerator:     props.IsModerator,
+						CanHideRecord:   props.CanHideRecord,
+						CanBlockUser:    props.CanBlockUser,
+						IsRecordHidden:  props.IsRecordHidden,
+						AuthorDID:       props.AuthorDID,
+					})
+				</div>
 			</div>
 		</div>
 		@components.CommentSection(components.CommentSectionProps{
@@ -138,6 +172,158 @@ func getBeanShareTitle(bean *models.Bean) string {
 		return bean.Name
 	}
 	return bean.Origin
+}
+
+// BeanCloseBagConfirm renders a styled confirmation dialog for closing a bag
+templ BeanCloseBagConfirm(props BeanViewProps) {
+	<dialog
+		id="close-bag-confirm"
+		class="modal-dialog"
+		x-ref="closeDialog"
+		x-init="$watch('showConfirm', v => { if (v) $refs.closeDialog.showModal() })"
+		@close="showConfirm = false"
+	>
+		<div class="modal-content">
+			<h3 class="modal-title">Close Bag</h3>
+			<p class="text-brown-700 text-sm mb-4">
+				Mark this bag as finished? You can reopen it later from the edit menu.
+			</p>
+			<div class="flex gap-2">
+				<button
+					type="button"
+					@click={ beanPatchAction(props.Bean, `{ "closed": true }`, "Failed to close bag") }
+					class="flex-1 btn-primary"
+					:disabled="_saving"
+				>
+					<span x-show="!_saving">Close Bag</span>
+					<span x-show="_saving">Closing...</span>
+				</button>
+				<button
+					type="button"
+					@click="$refs.closeDialog.close()"
+					class="flex-1 btn-secondary"
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	</dialog>
+}
+
+// BeanRateModal renders a dialog for rating or editing a bean's rating
+templ BeanRateModal(props BeanViewProps) {
+	<dialog
+		id="rate-bag-modal"
+		class="modal-dialog"
+		x-ref="rateDialog"
+	>
+		<div class="modal-content">
+			<h3 class="modal-title">
+				if props.Bean.Rating != nil {
+					Edit Rating
+				} else {
+					Rate Bag
+				}
+			</h3>
+			<div class="space-y-4">
+				<input
+					type="range"
+					min="1"
+					max="10"
+					x-model.number="rating"
+					class="w-full accent-brown-700"
+				/>
+				<div class="text-center text-3xl font-bold text-brown-800">
+					<span x-text="rating"></span>/10
+				</div>
+			</div>
+			<div class="flex gap-2 mt-4">
+				<button
+					type="button"
+					@click={ beanPatchAction(props.Bean, `{ "rating": rating }`, "Failed to save rating") }
+					class="flex-1 btn-primary"
+					:disabled="_saving"
+				>
+					<span x-show="!_saving">Save</span>
+					<span x-show="_saving">Saving...</span>
+				</button>
+				if props.Bean.Rating != nil {
+					<button
+						type="button"
+						@click={ beanPatchAction(props.Bean, `{ "rating": null }`, "Failed to remove rating") }
+						class="flex-1 btn-secondary text-red-700"
+						:disabled="_saving"
+					>
+						<span x-show="!_saving">Remove</span>
+						<span x-show="_saving">Removing...</span>
+					</button>
+				}
+				<button
+					type="button"
+					@click="$refs.rateDialog.close()"
+					class="flex-1 btn-secondary"
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	</dialog>
+}
+
+func beanRateInitData(bean *models.Bean) string {
+	if bean.Rating != nil {
+		return fmt.Sprintf("{ rating: %d, _saving: false }", *bean.Rating)
+	}
+	return "{ rating: 5, _saving: false }"
+}
+
+// beanPatchAction generates JS that PUTs the current bean state with overrides applied.
+// overrideExpr is a JS expression for the fields to override (e.g. `{ "closed": true }`).
+func beanPatchAction(bean *models.Bean, overrideExpr string, errorMsg string) string {
+	return fmt.Sprintf(`
+		if (this._saving) return;
+		this._saving = true;
+		const base = %s;
+		const body = Object.assign(base, %s);
+		fetch('/api/beans/%s', {
+			method: 'PUT',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body)
+		}).then(r => {
+			if (r.status === 401) { window.__showSessionExpiredModal(); this._saving = false; return; }
+			if (!r.ok) throw new Error('Failed');
+			localStorage.removeItem('htmx-history-cache');
+			window.location.reload();
+		}).catch(() => {
+			$dispatch('notify', { message: '%s' });
+			this._saving = false;
+		});
+	`, beanBaseJSON(bean), overrideExpr, bean.RKey, errorMsg)
+}
+
+// beanBaseJSON returns a JS object literal with the current bean's editable fields.
+func beanBaseJSON(bean *models.Bean) string {
+	roasterRKey := ""
+	if bean.Roaster != nil {
+		roasterRKey = bean.Roaster.RKey
+	}
+	ratingStr := "null"
+	if bean.Rating != nil {
+		ratingStr = fmt.Sprintf("%d", *bean.Rating)
+	}
+	return fmt.Sprintf(`{
+		"name": %q,
+		"origin": %q,
+		"variety": %q,
+		"roast_level": %q,
+		"process": %q,
+		"description": %q,
+		"roaster_rkey": %q,
+		"rating": %s,
+		"closed": %t
+	}`, bean.Name, bean.Origin, bean.Variety, bean.RoastLevel,
+		bean.Process, bean.Description, roasterRKey, ratingStr, bean.Closed)
 }
 
 func getOwnerFromShareURL(shareURL string) string {
