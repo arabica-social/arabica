@@ -13,7 +13,7 @@ document.addEventListener("alpine:init", () => {
     brewerCategory: "", // 'pourover' | 'espresso' | 'immersion' | ''
 
     // Mode state
-    formMode: "choose", // 'choose' | 'recipe' | 'freeform'
+    formMode: "recipe",
     recipeSummaryExpanded: false,
     activeRecipe: null,
     showPours: false,
@@ -55,14 +55,8 @@ document.addEventListener("alpine:init", () => {
         }
       }
 
-      // Determine initial mode
-      if (this.isEditing) {
-        this.formMode = recipeRKey ? "recipe" : "freeform";
-      } else if (recipeRKey) {
-        this.formMode = "recipe";
-      } else {
-        this.formMode = "choose";
-      }
+      // Always use recipe mode (recipe selection is optional)
+      this.formMode = "recipe";
 
       // Populate dropdowns from cache using stale-while-revalidate pattern
       await this.dropdownManager.loadDropdownData();
@@ -111,14 +105,6 @@ document.addEventListener("alpine:init", () => {
     },
 
     // Mode switching
-    chooseRecipeMode() {
-      this.formMode = "recipe";
-    },
-
-    chooseFreeformMode() {
-      this.formMode = "freeform";
-      this.updatePoursVisibility();
-    },
 
     // Pours visibility
     updatePoursVisibility() {
