@@ -84,7 +84,6 @@ function createDropdownManager() {
       this.populateGrinders();
       this.populateBrewers();
       this.populateRoasters();
-      this.populateRecipes();
     },
 
     /**

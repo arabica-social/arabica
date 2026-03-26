@@ -56,6 +56,12 @@ var entityConfigs = map[string]entityFieldConfig{
 		nameField:    "name",
 		dedupKey:     beanDedupKey,
 	},
+	atproto.NSIDRecipe: {
+		allFields:    []string{"name", "brewerType"},
+		searchFields: []string{"name", "brewerType"},
+		nameField:    "name",
+		dedupKey:     recipeDedupKey,
+	},
 }
 
 // --- Dedup key functions ---
@@ -107,6 +113,16 @@ func beanDedupKey(fields map[string]string) string {
 	}
 	if p := normalize(fields["process"]); p != "" {
 		parts = append(parts, p)
+	}
+	return strings.Join(parts, "|")
+}
+
+// recipeDedupKey: exact name + brewer type.
+// "V60 Standard" pourover vs "V60 Standard" immersion → different.
+func recipeDedupKey(fields map[string]string) string {
+	parts := []string{normalize(fields["name"])}
+	if bt := normalize(fields["brewerType"]); bt != "" {
+		parts = append(parts, bt)
 	}
 	return strings.Join(parts, "|")
 }

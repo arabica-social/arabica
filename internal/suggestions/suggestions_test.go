@@ -439,6 +439,58 @@ func TestSearch_BrewerFields(t *testing.T) {
 	assert.Equal(t, "Pour-Over", results[0].Fields["brewerType"])
 }
 
+// --- Recipe dedup tests ---
+
+func TestRecipeDedup_SameNameDifferentBrewerType(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRecipe, "rec1", map[string]interface{}{
+		"name":       "V60 Standard",
+		"brewerType": "pourover",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDRecipe, "rec2", map[string]interface{}{
+		"name":       "V60 Standard",
+		"brewerType": "immersion",
+	})
+
+	results, err := Search(idx, atproto.NSIDRecipe, "v60", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 2, "different brewer types should produce separate suggestions")
+}
+
+func TestRecipeDedup_SameNameSameTypeMerges(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRecipe, "rec1", map[string]interface{}{
+		"name":       "AeroPress Standard",
+		"brewerType": "immersion",
+	})
+	insertRecord(t, idx, "did:plc:bob", atproto.NSIDRecipe, "rec2", map[string]interface{}{
+		"name":       "AeroPress Standard",
+		"brewerType": "immersion",
+	})
+
+	results, err := Search(idx, atproto.NSIDRecipe, "aero", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, 2, results[0].Count)
+}
+
+func TestSearch_RecipeFields(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRecipe, "rec1", map[string]interface{}{
+		"name":       "James Hoffmann V60",
+		"brewerType": "pourover",
+	})
+
+	results, err := Search(idx, atproto.NSIDRecipe, "hoffmann", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "James Hoffmann V60", results[0].Name)
+	assert.Equal(t, "pourover", results[0].Fields["brewerType"])
+}
+
 func TestSearch_SortOrder(t *testing.T) {
 	idx := newTestFeedIndex(t)
 

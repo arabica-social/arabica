@@ -19,11 +19,7 @@ document.addEventListener("alpine:init", () => {
     showPours: false,
     isEditing: false,
 
-    // Recipe filter state
-    searchQuery: "",
-    activeCategory: "",
-    filteredCount: 0,
-    totalCount: 0,
+    // Recipes from cache (needed by applyRecipe for author_did lookup)
     recipes: [],
 
     // Recipe owner DID (for cross-user recipe references)
@@ -62,26 +58,32 @@ document.addEventListener("alpine:init", () => {
       await this.dropdownManager.loadDropdownData();
       this.dropdownManager.populateDropdowns();
 
-      // Initialize recipe filter state from loaded data
+      // Sync recipes from cache
       this.recipes = this.dropdownManager.recipes || [];
-      this.totalCount = this.recipes.length;
-      this.filteredCount = this.recipes.length;
-
-      // Re-sync recipes when cache refreshes
       if (window.ArabicaCache) {
         window.ArabicaCache.addListener((data) => {
           this.recipes = data.recipes || [];
-          this.filterRecipes();
         });
       }
 
-      // Auto-apply recipe if rkey present
+      // Auto-apply recipe if rkey present (e.g., from URL param)
       if (recipeRKey) {
-        const recipeSelect = root.querySelector(
-          'form select[name="recipe_rkey"]',
+        // Set the combo-select value
+        const recipeCombo = root.querySelector(
+          '[x-data*="entityType: \'recipe\'"]',
         );
-        if (recipeSelect) {
-          recipeSelect.value = recipeRKey;
+        if (recipeCombo) {
+          const recipeName = this.recipes.find(
+            (r) => (r.rkey || r.RKey) === recipeRKey,
+          )?.name || this.recipes.find(
+            (r) => (r.rkey || r.RKey) === recipeRKey,
+          )?.Name || "";
+          recipeCombo.dispatchEvent(
+            new CustomEvent("combo-set", {
+              detail: { rkey: recipeRKey, label: recipeName },
+              bubbles: false,
+            }),
+          );
         }
         await this.applyRecipe(recipeRKey);
       }
@@ -89,7 +91,7 @@ document.addEventListener("alpine:init", () => {
       // Update pours visibility after setup
       this.updatePoursVisibility();
 
-      // Listen for combo-select changes (brewer type drives form sections)
+      // Listen for combo-select changes
       root.addEventListener("combo-change", (e) => {
         if (e.detail.entityType === "brewer") {
           const bt =
@@ -100,6 +102,17 @@ document.addEventListener("alpine:init", () => {
           if (this.brewerCategory === "pourover") {
             this.showPours = true;
           }
+        }
+        if (e.detail.entityType === "recipe") {
+          if (e.detail.suggestion) {
+            // Community suggestion: extract DID from source_uri
+            const parts = (e.detail.suggestion.source_uri || "").split("/");
+            this.recipeOwnerDID = parts.length >= 3 ? parts[2] : "";
+          } else {
+            // User's own recipe
+            this.recipeOwnerDID = "";
+          }
+          this.applyRecipe(e.detail.rkey);
         }
       });
     },
@@ -356,79 +369,5 @@ document.addEventListener("alpine:init", () => {
       return this.dropdownManager?.dataLoaded || false;
     },
 
-    // Recipe filter methods
-    recipeCategories: {
-      small: { maxCoffee: 12 },
-      single: { minCoffee: 12, maxCoffee: 22, maxWater: 400 },
-      large: { minCoffee: 22 },
-      batch: { minWater: 500 },
-    },
-
-    setCategory(cat) {
-      this.activeCategory = cat;
-      this.filterRecipes();
-    },
-
-    filterRecipes() {
-      const root = this.$root || this.$el;
-      const select = root.querySelector('form select[name="recipe_rkey"]');
-      if (!select) return;
-
-      const query = this.searchQuery.toLowerCase().trim();
-      const cat = this.recipeCategories[this.activeCategory];
-
-      let total = 0;
-      let shown = 0;
-
-      // Rebuild options: keep placeholder, filter the rest
-      const selectedValue = select.value;
-      select.innerHTML = "";
-
-      const placeholder = document.createElement("option");
-      placeholder.value = "";
-      placeholder.textContent = "No recipe";
-      select.appendChild(placeholder);
-
-      for (const recipe of this.recipes) {
-        total++;
-        const name = (recipe.name || recipe.Name || "").toLowerCase();
-        const coffee = recipe.coffee_amount || 0;
-        // Interpolate water from pours if not set
-        let water = recipe.water_amount || 0;
-        if (water === 0 && recipe.pours && recipe.pours.length > 0) {
-          water = recipe.pours.reduce(
-            (sum, p) => sum + (p.water_amount || 0),
-            0,
-          );
-        }
-
-        // Text filter
-        if (query && !name.includes(query)) continue;
-
-        // Category filter
-        if (cat) {
-          if (cat.maxCoffee && coffee > cat.maxCoffee) continue;
-          if (cat.minCoffee && coffee < cat.minCoffee) continue;
-          if (cat.maxWater && water > cat.maxWater) continue;
-          if (cat.minWater && water < cat.minWater) continue;
-          // Skip recipes with no amount data when filtering by category
-          if ((cat.maxCoffee || cat.minCoffee) && coffee === 0) continue;
-          if ((cat.maxWater || cat.minWater) && water === 0) continue;
-        }
-
-        shown++;
-        const option = document.createElement("option");
-        option.value = recipe.rkey || recipe.RKey;
-        option.textContent = recipe.name || recipe.Name;
-        option.className = "truncate";
-        if ((recipe.rkey || recipe.RKey) === selectedValue) {
-          option.selected = true;
-        }
-        select.appendChild(option);
-      }
-
-      this.totalCount = total;
-      this.filteredCount = shown;
-    },
   }));
 });

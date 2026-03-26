@@ -15,6 +15,7 @@ document.addEventListener("alpine:init", () => {
     formatLabel: config.formatLabel || ((e) => e.name || e.Name || ""),
     formatCreateData: config.formatCreateData || ((name) => ({ name })),
     required: config.required || false,
+    passthrough: config.passthrough || false,
 
     // State
     query: "",
@@ -41,7 +42,7 @@ document.addEventListener("alpine:init", () => {
       for (const r of this.communityResults) {
         items.push({ type: "community", suggestion: r });
       }
-      if (this.query.trim() && !this.exactMatch) {
+      if (this.query.trim() && !this.exactMatch && !this.passthrough) {
         items.push({ type: "create", name: this.query.trim() });
       }
       return items;
@@ -160,6 +161,8 @@ document.addEventListener("alpine:init", () => {
           return dm.brewers || [];
         case "grinder":
           return dm.grinders || [];
+        case "recipe":
+          return dm.recipes || [];
         default:
           return [];
       }
@@ -183,8 +186,28 @@ document.addEventListener("alpine:init", () => {
       });
     },
 
-    // Select a community suggestion — creates the entity first
+    // Select a community suggestion — creates the entity first (or passthrough)
     async selectSuggestion(suggestion) {
+      // Passthrough mode: use the source record directly without creating a copy
+      if (this.passthrough) {
+        const parts = (suggestion.source_uri || "").split("/");
+        // AT-URI format: at://did/collection/rkey
+        const rkey = parts.length >= 5 ? parts[4] : "";
+        this.selectedRKey = rkey;
+        this.selectedLabel = this.formatLabel(suggestion);
+        this.query = this.selectedLabel;
+        this.isOpen = false;
+
+        this.$nextTick(() => {
+          this.$dispatch("combo-change", {
+            entityType: this.entityType,
+            rkey,
+            suggestion,
+          });
+        });
+        return;
+      }
+
       this.isCreating = true;
       try {
         const data = this.formatCreateData(suggestion.name, suggestion);

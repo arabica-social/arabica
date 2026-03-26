@@ -150,76 +150,35 @@ templ RecipeModeSection(props BrewFormProps) {
 }
 
 
-// RecipeSelectField renders the recipe selection with autofill and filtering
+// RecipeSelectField renders the recipe selection with combo-select typeahead
 templ RecipeSelectField(props BrewFormProps) {
-	<div>
+	<div
+		class="combo-select"
+		x-data={ comboSelectConfig("recipe", "/api/recipes", "/api/suggestions/recipes", "recipe_rkey", "Search recipes...", false, true) }
+		if props.Brew != nil && props.Brew.RecipeRKey != "" {
+			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.RecipeRKey, escapeJS(getRecipeLabel(props))) }
+		}
+	>
 		<label class="form-label">Recipe (Optional)</label>
 		<p class="text-sm text-brown-600 mb-2">Select a recipe to autofill brew parameters</p>
 		<div class="alert-warning px-3 py-2 mb-2 text-xs">
 			Recipes are in early alpha &mdash; the format may change. Your brew data won't be affected.
 		</div>
-		// TODO: re-enable category filter chips. Update pill styles to match
-		// the community feed filter pills before adding back.
-		// <div class="flex flex-wrap gap-1.5 mb-2">
-		// 	<button type="button" @click="setCategory('')"
-		// 		:class="activeCategory === '' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-		// 		class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors">All</button>
-		// 	<button type="button" @click="setCategory('small')"
-		// 		:class="activeCategory === 'small' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-		// 		class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors">Small (&le;12g)</button>
-		// 	<button type="button" @click="setCategory('single')"
-		// 		:class="activeCategory === 'single' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-		// 		class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors">Single cup</button>
-		// 	<button type="button" @click="setCategory('large')"
-		// 		:class="activeCategory === 'large' ? 'bg-brown-700 text-white' : 'bg-brown-100 text-brown-700 hover:bg-brown-200'"
-		// 		class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors">Large (22g+)</button>
-		// </div>
-		<!-- Search input -->
-		// TODO: maybe enable this down the line. 
-		// Would be nice if it suggested from other people's recipes as well and worked similar to the handle autocomplete.
-		// <input
-		// 	type="text"
-		// 	x-model="searchQuery"
-		// 	@input="filterRecipes()"
-		// 	placeholder="Search recipes..."
-		// 	class="w-full form-input mb-2 text-sm"
-		// />
-		<!-- Recipe select + New button -->
+		<input type="hidden" :name="inputName" :value="selectedRKey"/>
 		<div class="flex gap-2">
-			<select
-				name="recipe_rkey"
-				class="flex-1 form-select"
-				@change="applyRecipe($event.target.value)"
-			>
-				<option value="">No recipe</option>
-				for _, recipe := range props.Recipes {
-					<option
-						value={ recipe.RKey }
-						if props.Brew != nil && props.Brew.RecipeRKey == recipe.RKey {
-							selected
-						}
-						class="truncate"
-					>
-						{ recipe.Name }
-					</option>
-				}
-				if props.Brew != nil && props.Brew.RecipeRKey != "" && len(props.Recipes) == 0 {
-					<option value={ props.Brew.RecipeRKey } selected>Loading...</option>
-				}
-			</select>
+			<div class="flex-1">
+				@comboSelectInput("Your recipes")
+			</div>
 			<button
 				type="button"
 				hx-get="/api/modals/recipe/new"
 				hx-target="#modal-container"
 				hx-swap="innerHTML"
-				class="btn-secondary"
+				class="btn-secondary self-start mt-0"
 			>
 				+ New
 			</button>
 		</div>
-		<p class="text-xs text-brown-500 mt-1" x-show="filteredCount !== totalCount" x-cloak>
-			Showing <span x-text="filteredCount"></span> of <span x-text="totalCount"></span> recipes
-		</p>
 	</div>
 }
 
@@ -262,6 +221,17 @@ func getBrewerLabel(props BrewFormProps) string {
 	return ""
 }
 
+func getRecipeLabel(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.RecipeRKey != "" {
+		for _, r := range props.Recipes {
+			if r.RKey == props.Brew.RecipeRKey {
+				return r.Name
+			}
+		}
+	}
+	return ""
+}
+
 func getGrinderLabel(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.GrinderObj != nil {
 		return props.Brew.GrinderObj.Name
@@ -285,10 +255,14 @@ func escapeJS(s string) string {
 }
 
 // comboSelectConfig generates the x-data attribute for a combo-select
-func comboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder string, required bool) string {
+func comboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder string, required bool, passthrough ...bool) string {
 	requiredStr := "false"
 	if required {
 		requiredStr = "true"
+	}
+	passthroughStr := "false"
+	if len(passthrough) > 0 && passthrough[0] {
+		passthroughStr = "true"
 	}
 
 	// Entity-specific formatLabel and formatCreateData
@@ -303,13 +277,16 @@ func comboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, plac
 	case "grinder":
 		formatLabel = `(e) => e.name || e.Name || ''`
 		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.grinderType) d.grinder_type = s.fields.grinderType; if (s.fields.burrType) d.burr_type = s.fields.burrType; } return d; }`
+	case "recipe":
+		formatLabel = `(e) => { const n = e.name || e.Name || ''; const bt = e.brewer_type || e.BrewerType || (e.fields && e.fields.brewerType) || ''; return bt ? n + ' (' + bt + ')' : n; }`
+		formatCreateData = `(name) => ({ name })`
 	default:
 		formatLabel = `(e) => e.name || e.Name || ''`
 		formatCreateData = `(name) => ({ name })`
 	}
 
-	return fmt.Sprintf(`comboSelect({ entityType: '%s', apiEndpoint: '%s', suggestEndpoint: '%s', inputName: '%s', placeholder: '%s', required: %s, formatLabel: %s, formatCreateData: %s })`,
-		entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, requiredStr, formatLabel, formatCreateData)
+	return fmt.Sprintf(`comboSelect({ entityType: '%s', apiEndpoint: '%s', suggestEndpoint: '%s', inputName: '%s', placeholder: '%s', required: %s, passthrough: %s, formatLabel: %s, formatCreateData: %s })`,
+		entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, requiredStr, passthroughStr, formatLabel, formatCreateData)
 }
 
 // comboSelectInput renders the shared input + dropdown markup for combo-select fields

@@ -17,6 +17,7 @@ var entityTypeToNSID = map[string]string{
 	"grinders": atproto.NSIDGrinder,
 	"brewers":  atproto.NSIDBrewer,
 	"beans":    atproto.NSIDBean,
+	"recipes":  atproto.NSIDRecipe,
 }
 
 // HandleEntitySuggestions returns typeahead suggestions for entity creation
