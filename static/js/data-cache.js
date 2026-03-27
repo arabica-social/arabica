@@ -268,6 +268,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // ignore
     }
   });
+
+  // Listen for entityDeleted events triggered by HX-Trigger response headers.
+  // This covers all HTMX delete flows (brew list, entity tables, action bar,
+  // comments) regardless of which page they originate from.
+  document.body.addEventListener("entityDeleted", () => {
+    invalidateCache();
+  });
 });
 
 // Export as global for use in other scripts

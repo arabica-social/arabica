@@ -2,6 +2,7 @@ package atproto
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -95,6 +96,37 @@ func (s *AtprotoStore) listFromWitness(ctx context.Context, collection string) [
 		return nil
 	}
 	return records
+}
+
+// writeThroughWitness upserts a record into the witness cache after a
+// successful PDS write so subsequent reads see the latest data without
+// waiting for the firehose to re-index.
+func (s *AtprotoStore) writeThroughWitness(collection, rkey, cid string, record interface{}) {
+	if s.witnessCache == nil {
+		return
+	}
+	data, err := json.Marshal(record)
+	if err != nil {
+		log.Warn().Err(err).Str("collection", collection).Str("rkey", rkey).
+			Msg("witness write-through: failed to marshal record")
+		return
+	}
+	if err := s.witnessCache.UpsertWitnessRecord(context.Background(), s.did.String(), collection, rkey, cid, data); err != nil {
+		log.Warn().Err(err).Str("collection", collection).Str("rkey", rkey).
+			Msg("witness write-through: failed to upsert record")
+	}
+}
+
+// deleteFromWitness removes a record from the witness cache after a
+// successful PDS deletion.
+func (s *AtprotoStore) deleteFromWitness(collection, rkey string) {
+	if s.witnessCache == nil {
+		return
+	}
+	if err := s.witnessCache.DeleteWitnessRecord(context.Background(), s.did.String(), collection, rkey); err != nil {
+		log.Warn().Err(err).Str("collection", collection).Str("rkey", rkey).
+			Msg("witness write-through: failed to delete record")
+	}
 }
 
 // getWitnessRecordByURI fetches a single record by full AT-URI from the witness cache.
@@ -302,7 +334,7 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRe
 	rkey := atURI.RecordKey().String()
 	brewModel.RKey = rkey
 
-	// Invalidate brews cache
+	s.writeThroughWitness(NSIDBrew, rkey, output.CID, record)
 	s.cache.InvalidateBrews(s.sessionID)
 
 	// Fetch and resolve references to populate Bean, Grinder, Brewer
@@ -611,7 +643,7 @@ func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *
 		return fmt.Errorf("failed to update brew record: %w", err)
 	}
 
-	// Invalidate brews cache
+	s.writeThroughWitness(NSIDBrew, rkey, "", record)
 	s.cache.InvalidateBrews(s.sessionID)
 
 	return nil
@@ -626,7 +658,7 @@ func (s *AtprotoStore) DeleteBrewByRKey(ctx context.Context, rkey string) error 
 		return fmt.Errorf("failed to delete brew record: %w", err)
 	}
 
-	// Invalidate brews cache
+	s.deleteFromWitness(NSIDBrew, rkey)
 	s.cache.InvalidateBrews(s.sessionID)
 
 	return nil
@@ -891,7 +923,7 @@ func (s *AtprotoStore) CreateBean(ctx context.Context, bean *models.CreateBeanRe
 	rkey := atURI.RecordKey().String()
 	beanModel.RKey = rkey
 
-	// Invalidate cache
+	s.writeThroughWitness(NSIDBean, rkey, output.CID, record)
 	s.cache.InvalidateBeans(s.sessionID)
 
 	return beanModel, nil
@@ -1093,7 +1125,7 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 		return fmt.Errorf("failed to update bean record: %w", err)
 	}
 
-	// Invalidate cache
+	s.writeThroughWitness(NSIDBean, rkey, "", record)
 	s.cache.InvalidateBeans(s.sessionID)
 
 	return nil
@@ -1108,7 +1140,7 @@ func (s *AtprotoStore) DeleteBeanByRKey(ctx context.Context, rkey string) error 
 		return fmt.Errorf("failed to delete bean record: %w", err)
 	}
 
-	// Invalidate cache
+	s.deleteFromWitness(NSIDBean, rkey)
 	s.cache.InvalidateBeans(s.sessionID)
 
 	return nil
@@ -1147,7 +1179,7 @@ func (s *AtprotoStore) CreateRoaster(ctx context.Context, roaster *models.Create
 	rkey := atURI.RecordKey().String()
 	roasterModel.RKey = rkey
 
-	// Invalidate cache
+	s.writeThroughWitness(NSIDRoaster, rkey, output.CID, record)
 	s.cache.InvalidateRoasters(s.sessionID)
 
 	return roasterModel, nil
@@ -1279,7 +1311,7 @@ func (s *AtprotoStore) UpdateRoasterByRKey(ctx context.Context, rkey string, roa
 		return fmt.Errorf("failed to update roaster record: %w", err)
 	}
 
-	// Invalidate cache
+	s.writeThroughWitness(NSIDRoaster, rkey, "", record)
 	s.cache.InvalidateRoasters(s.sessionID)
 
 	return nil
@@ -1294,7 +1326,7 @@ func (s *AtprotoStore) DeleteRoasterByRKey(ctx context.Context, rkey string) err
 		return fmt.Errorf("failed to delete roaster record: %w", err)
 	}
 
-	// Invalidate cache
+	s.deleteFromWitness(NSIDRoaster, rkey)
 	s.cache.InvalidateRoasters(s.sessionID)
 
 	return nil
@@ -1334,7 +1366,7 @@ func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *models.Create
 	rkey := atURI.RecordKey().String()
 	grinderModel.RKey = rkey
 
-	// Invalidate cache
+	s.writeThroughWitness(NSIDGrinder, rkey, output.CID, record)
 	s.cache.InvalidateGrinders(s.sessionID)
 
 	return grinderModel, nil
@@ -1467,7 +1499,7 @@ func (s *AtprotoStore) UpdateGrinderByRKey(ctx context.Context, rkey string, gri
 		return fmt.Errorf("failed to update grinder record: %w", err)
 	}
 
-	// Invalidate cache
+	s.writeThroughWitness(NSIDGrinder, rkey, "", record)
 	s.cache.InvalidateGrinders(s.sessionID)
 
 	return nil
@@ -1482,7 +1514,7 @@ func (s *AtprotoStore) DeleteGrinderByRKey(ctx context.Context, rkey string) err
 		return fmt.Errorf("failed to delete grinder record: %w", err)
 	}
 
-	// Invalidate cache
+	s.deleteFromWitness(NSIDGrinder, rkey)
 	s.cache.InvalidateGrinders(s.sessionID)
 
 	return nil
@@ -1521,7 +1553,7 @@ func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *models.CreateBr
 	rkey := atURI.RecordKey().String()
 	brewerModel.RKey = rkey
 
-	// Invalidate cache
+	s.writeThroughWitness(NSIDBrewer, rkey, output.CID, record)
 	s.cache.InvalidateBrewers(s.sessionID)
 
 	return brewerModel, nil
@@ -1653,7 +1685,7 @@ func (s *AtprotoStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brew
 		return fmt.Errorf("failed to update brewer record: %w", err)
 	}
 
-	// Invalidate cache
+	s.writeThroughWitness(NSIDBrewer, rkey, "", record)
 	s.cache.InvalidateBrewers(s.sessionID)
 
 	return nil
@@ -1668,7 +1700,7 @@ func (s *AtprotoStore) DeleteBrewerByRKey(ctx context.Context, rkey string) erro
 		return fmt.Errorf("failed to delete brewer record: %w", err)
 	}
 
-	// Invalidate cache
+	s.deleteFromWitness(NSIDBrewer, rkey)
 	s.cache.InvalidateBrewers(s.sessionID)
 
 	return nil
@@ -1729,6 +1761,7 @@ func (s *AtprotoStore) CreateRecipe(ctx context.Context, req *models.CreateRecip
 
 	recipeModel.RKey = atURI.RecordKey().String()
 
+	s.writeThroughWitness(NSIDRecipe, recipeModel.RKey, output.CID, record)
 	s.cache.InvalidateRecipes(s.sessionID)
 
 	return recipeModel, nil
@@ -1978,6 +2011,7 @@ func (s *AtprotoStore) UpdateRecipeByRKey(ctx context.Context, rkey string, req 
 		return fmt.Errorf("failed to update recipe record: %w", err)
 	}
 
+	s.writeThroughWitness(NSIDRecipe, rkey, "", record)
 	s.cache.InvalidateRecipes(s.sessionID)
 
 	return nil
@@ -1992,6 +2026,7 @@ func (s *AtprotoStore) DeleteRecipeByRKey(ctx context.Context, rkey string) erro
 		return fmt.Errorf("failed to delete recipe record: %w", err)
 	}
 
+	s.deleteFromWitness(NSIDRecipe, rkey)
 	s.cache.InvalidateRecipes(s.sessionID)
 
 	return nil
@@ -2033,6 +2068,8 @@ func (s *AtprotoStore) CreateLike(ctx context.Context, req *models.CreateLikeReq
 
 	likeModel.RKey = atURI.RecordKey().String()
 
+	s.writeThroughWitness(NSIDLike, likeModel.RKey, output.CID, record)
+
 	return likeModel, nil
 }
 
@@ -2044,6 +2081,7 @@ func (s *AtprotoStore) DeleteLikeByRKey(ctx context.Context, rkey string) error 
 	if err != nil {
 		return fmt.Errorf("failed to delete like record: %w", err)
 	}
+	s.deleteFromWitness(NSIDLike, rkey)
 	return nil
 }
 
@@ -2133,6 +2171,8 @@ func (s *AtprotoStore) CreateComment(ctx context.Context, req *models.CreateComm
 	// Store the CID of this comment record (useful for threading)
 	commentModel.CID = output.CID
 
+	s.writeThroughWitness(NSIDComment, commentModel.RKey, output.CID, record)
+
 	return commentModel, nil
 }
 
@@ -2144,6 +2184,7 @@ func (s *AtprotoStore) DeleteCommentByRKey(ctx context.Context, rkey string) err
 	if err != nil {
 		return fmt.Errorf("failed to delete comment record: %w", err)
 	}
+	s.deleteFromWitness(NSIDComment, rkey)
 	return nil
 }
 

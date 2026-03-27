@@ -288,6 +288,7 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 		}
 	}
 	h.invalidateFeedCache()
+	w.Header().Set("HX-Trigger", "entityDeleted")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -457,6 +458,7 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return empty response (the comment element will be removed via hx-swap="outerHTML")
+	w.Header().Set("HX-Trigger", "entityDeleted")
 	w.WriteHeader(http.StatusOK)
 }
 

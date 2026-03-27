@@ -425,6 +425,16 @@ func (idx *FeedIndex) DeleteRecord(did, collection, rkey string) error {
 	return err
 }
 
+// UpsertWitnessRecord implements atproto.WitnessCache for write-through caching.
+func (idx *FeedIndex) UpsertWitnessRecord(_ context.Context, did, collection, rkey, cid string, record json.RawMessage) error {
+	return idx.UpsertRecord(did, collection, rkey, cid, record, time.Now().UnixMicro())
+}
+
+// DeleteWitnessRecord implements atproto.WitnessCache for write-through caching.
+func (idx *FeedIndex) DeleteWitnessRecord(_ context.Context, did, collection, rkey string) error {
+	return idx.DeleteRecord(did, collection, rkey)
+}
+
 // GetRecord retrieves a single record by URI
 func (idx *FeedIndex) GetRecord(uri string) (*IndexedRecord, error) {
 	var rec IndexedRecord

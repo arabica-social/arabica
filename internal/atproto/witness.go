@@ -28,8 +28,10 @@ func WitnessRecordToMap(wr *WitnessRecord) (map[string]interface{}, error) {
 	return m, nil
 }
 
-// WitnessCache is a read-only view of the firehose index that lets AtprotoStore
+// WitnessCache is a view of the firehose index that lets AtprotoStore
 // serve reads from the locally-indexed SQLite database instead of the PDS.
+// Write methods enable write-through caching so the witness stays fresh
+// without waiting for the firehose to re-index after a PDS mutation.
 // Implementations must be safe for concurrent use.
 type WitnessCache interface {
 	// GetWitnessRecord retrieves a single record by AT-URI.
@@ -40,4 +42,12 @@ type WitnessCache interface {
 	// ordered by created_at descending.
 	// Returns an empty (non-nil) slice when none are found.
 	ListWitnessRecords(ctx context.Context, did, collection string) ([]*WitnessRecord, error)
+
+	// UpsertWitnessRecord inserts or updates a record in the cache.
+	// Used for write-through caching after successful PDS mutations.
+	UpsertWitnessRecord(ctx context.Context, did, collection, rkey, cid string, record json.RawMessage) error
+
+	// DeleteWitnessRecord removes a record from the cache.
+	// Used for write-through caching after successful PDS deletions.
+	DeleteWitnessRecord(ctx context.Context, did, collection, rkey string) error
 }

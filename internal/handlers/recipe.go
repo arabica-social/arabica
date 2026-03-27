@@ -165,6 +165,7 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.invalidateFeedCache()
+	w.Header().Set("HX-Trigger", "entityDeleted")
 	w.WriteHeader(http.StatusOK)
 }
 
