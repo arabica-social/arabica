@@ -225,6 +225,22 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If a new roaster name was provided and no existing roaster selected, create it
+	if newRoasterName := r.FormValue("new_roaster_name"); newRoasterName != "" && req.RoasterRKey == "" {
+		roaster, roasterErr := store.CreateRoaster(r.Context(), &models.CreateRoasterRequest{
+			Name:     newRoasterName,
+			Location: r.FormValue("new_roaster_location"),
+			Website:  r.FormValue("new_roaster_website"),
+		})
+		if roasterErr != nil {
+			log.Error().Err(roasterErr).Str("name", newRoasterName).Msg("Failed to create roaster for bean")
+			handleStoreError(w, roasterErr, "Failed to create roaster")
+			return
+		}
+		req.RoasterRKey = roaster.RKey
+		log.Info().Str("roaster_rkey", roaster.RKey).Str("name", newRoasterName).Msg("Auto-created roaster for bean")
+	}
+
 	// Validate optional roaster rkey
 	if errMsg := validateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
 		log.Warn().Str("roaster_rkey", req.RoasterRKey).Msg("Bean create: invalid roaster rkey")
@@ -527,6 +543,22 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Err(err).Str("rkey", rkey).Msg("Bean update validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	// If a new roaster name was provided and no existing roaster selected, create it
+	if newRoasterName := r.FormValue("new_roaster_name"); newRoasterName != "" && req.RoasterRKey == "" {
+		roaster, roasterErr := store.CreateRoaster(r.Context(), &models.CreateRoasterRequest{
+			Name:     newRoasterName,
+			Location: r.FormValue("new_roaster_location"),
+			Website:  r.FormValue("new_roaster_website"),
+		})
+		if roasterErr != nil {
+			log.Error().Err(roasterErr).Str("name", newRoasterName).Msg("Failed to create roaster for bean update")
+			handleStoreError(w, roasterErr, "Failed to create roaster")
+			return
+		}
+		req.RoasterRKey = roaster.RKey
+		log.Info().Str("roaster_rkey", roaster.RKey).Str("name", newRoasterName).Msg("Auto-created roaster for bean update")
 	}
 
 	// Validate optional roaster rkey

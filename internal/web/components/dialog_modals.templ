@@ -94,22 +94,76 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 					placeholder="Variety (e.g. SL28, Typica, Gesha)"
 					class="w-full form-input"
 				/>
-				<select
-					name="roaster_rkey"
-					class="w-full form-input"
-				>
-					<option value="">Select Roaster (Optional)</option>
-					for _, roaster := range roasters {
-						<option
-							value={ roaster.RKey }
-							if bean != nil && bean.RoasterRKey == roaster.RKey {
-								selected
-							}
+				<div x-data={ roasterPickerInit(bean, roasters) } class="relative">
+					<input
+						type="text"
+						x-model="query"
+						x-show="!showDetails"
+						@input="filter()"
+						@focus="showDropdown = true"
+						@blur="setTimeout(() => showDropdown = false, 150)"
+						@keydown.escape.prevent="showDropdown = false"
+						placeholder="Search or create roaster (optional)"
+						class="w-full form-input"
+						autocomplete="off"
+					/>
+					<input type="hidden" name="roaster_rkey" :value="selectedRKey"/>
+					<input type="hidden" name="new_roaster_name" :value="newRoasterName"/>
+					<input type="hidden" name="new_roaster_location" :value="newRoasterLocation"/>
+					<input type="hidden" name="new_roaster_website" :value="newRoasterWebsite"/>
+					<button
+						type="button"
+						x-show="(selectedRKey || newRoasterName) && !showDetails"
+						@click="clear()"
+						class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600 text-sm"
+						x-cloak
+					>
+						&times;
+					</button>
+					<div x-show="showDropdown && !showDetails" x-cloak class="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto rounded-lg shadow-lg" style="background: var(--card-bg, #fff); border: 1px solid var(--surface-border, #d4c4a8);">
+						<template x-for="r in filtered" :key="r.rkey">
+							<div
+								class="px-3 py-2 cursor-pointer text-sm hover:bg-brown-100"
+								@mousedown.prevent="selectRoaster(r)"
+								x-text="r.name"
+							></div>
+						</template>
+						<template x-if="query.trim() && !exactMatch">
+							<div
+								class="px-3 py-2 cursor-pointer text-sm font-medium border-t hover:bg-brown-100"
+								style="border-color: var(--surface-border, #d4c4a8);"
+								@mousedown.prevent="startCreate()"
+							>
+								Create "<span x-text="query.trim()"></span>"
+							</div>
+						</template>
+					</div>
+					<!-- Inline details for new roaster -->
+					<div x-show="showDetails" x-transition x-cloak class="p-3 rounded-lg space-y-2" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
+						<p class="text-sm font-medium text-brown-900">
+							New roaster: <span x-text="newRoasterName" class="font-semibold"></span>
+						</p>
+						<input
+							type="text"
+							x-model="newRoasterLocation"
+							placeholder="Location (optional)"
+							class="w-full form-input text-sm"
+						/>
+						<input
+							type="url"
+							x-model="newRoasterWebsite"
+							placeholder="Website (optional)"
+							class="w-full form-input text-sm"
+						/>
+						<button
+							type="button"
+							@click="cancelCreate()"
+							class="text-xs text-brown-500 hover:text-brown-700"
 						>
-							{ roaster.Name }
-						</option>
-					}
-				</select>
+							Cancel
+						</button>
+					</div>
+				</div>
 				<select
 					name="roast_level"
 					class="w-full form-input"
@@ -784,6 +838,87 @@ templ ReportDialogModal(props ReportDialogModalProps) {
 			</template>
 		</div>
 	</dialog>
+}
+
+// roasterPickerInit generates Alpine.js x-data for the inline roaster picker.
+func roasterPickerInit(bean *models.Bean, roasters []models.Roaster) string {
+	// Build JSON array of roasters for Alpine
+	var items []string
+	for _, r := range roasters {
+		items = append(items, fmt.Sprintf(`{rkey:'%s',name:'%s'}`, r.RKey, strings.ReplaceAll(r.Name, "'", "\\'")))
+	}
+	allRoasters := "[" + strings.Join(items, ",") + "]"
+
+	// Pre-select if editing a bean with a roaster
+	selectedRKey := ""
+	selectedName := ""
+	if bean != nil && bean.RoasterRKey != "" {
+		selectedRKey = bean.RoasterRKey
+		if bean.Roaster != nil {
+			selectedName = strings.ReplaceAll(bean.Roaster.Name, "'", "\\'")
+		} else {
+			// Find name from roasters list
+			for _, r := range roasters {
+				if r.RKey == bean.RoasterRKey {
+					selectedName = strings.ReplaceAll(r.Name, "'", "\\'")
+					break
+				}
+			}
+		}
+	}
+
+	return fmt.Sprintf(`{
+		allRoasters: %s,
+		filtered: %s,
+		query: '%s',
+		selectedRKey: '%s',
+		newRoasterName: '',
+		newRoasterLocation: '',
+		newRoasterWebsite: '',
+		showDropdown: false,
+		showDetails: false,
+		get exactMatch() {
+			const q = this.query.trim().toLowerCase();
+			return this.allRoasters.some(r => r.name.toLowerCase() === q);
+		},
+		filter() {
+			const q = this.query.trim().toLowerCase();
+			this.selectedRKey = '';
+			this.newRoasterName = '';
+			if (!q) { this.filtered = this.allRoasters.slice(0, 10); return; }
+			this.filtered = this.allRoasters.filter(r => r.name.toLowerCase().includes(q));
+		},
+		selectRoaster(r) {
+			this.selectedRKey = r.rkey;
+			this.newRoasterName = '';
+			this.newRoasterLocation = '';
+			this.newRoasterWebsite = '';
+			this.query = r.name;
+			this.showDropdown = false;
+			this.showDetails = false;
+		},
+		startCreate() {
+			this.newRoasterName = this.query.trim();
+			this.selectedRKey = '';
+			this.showDropdown = false;
+			this.showDetails = true;
+		},
+		cancelCreate() {
+			this.newRoasterName = '';
+			this.newRoasterLocation = '';
+			this.newRoasterWebsite = '';
+			this.showDetails = false;
+		},
+		clear() {
+			this.query = '';
+			this.selectedRKey = '';
+			this.newRoasterName = '';
+			this.newRoasterLocation = '';
+			this.newRoasterWebsite = '';
+			this.showDetails = false;
+			this.filtered = this.allRoasters.slice(0, 10);
+		}
+	}`, allRoasters, allRoasters, selectedName, selectedRKey)
 }
 
 // beanRatingInitData returns Alpine.js x-data for the rating toggle.
