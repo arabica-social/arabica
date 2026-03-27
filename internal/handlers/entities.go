@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"arabica/internal/atproto"
 	"arabica/internal/models"
@@ -297,6 +298,133 @@ func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
 	if err := pages.Manage(layoutData, manageProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage page")
+	}
+}
+
+// HandleManageRefresh invalidates all caches and re-fetches records from the
+// user's PDS, writing them through to the witness cache so subsequent reads
+// are up to date. Returns the refreshed manage partial.
+func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	sessionID, err := atproto.GetSessionIDFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "Session required", http.StatusUnauthorized)
+		return
+	}
+
+	didStr, err := atproto.GetAuthenticatedDID(r.Context())
+	if err != nil {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+	did, err := atproto.ParseDID(didStr)
+	if err != nil {
+		http.Error(w, "Invalid DID", http.StatusInternalServerError)
+		return
+	}
+
+	// Nuke the entire session cache so List* calls fall through to PDS
+	h.sessionCache.Invalidate(sessionID)
+
+	// Re-fetch all entity collections from PDS and write-through to witness
+	entityCollections := []string{
+		atproto.NSIDBean, atproto.NSIDRoaster, atproto.NSIDGrinder,
+		atproto.NSIDBrewer, atproto.NSIDRecipe, atproto.NSIDBrew,
+	}
+
+	if h.witnessCache != nil {
+		for _, collection := range entityCollections {
+			output, err := h.atprotoClient.ListAllRecords(r.Context(), did, sessionID, collection)
+			if err != nil {
+				log.Warn().Err(err).Str("collection", collection).Msg("refresh: failed to list records from PDS")
+				continue
+			}
+			for _, rec := range output.Records {
+				rkey := atproto.ExtractRKeyFromURI(rec.URI)
+				if rkey == "" {
+					continue
+				}
+				recordJSON, jsonErr := json.Marshal(rec.Value)
+				if jsonErr != nil {
+					continue
+				}
+				if err := h.witnessCache.UpsertWitnessRecord(r.Context(), didStr, collection, rkey, rec.CID, recordJSON); err != nil {
+					log.Warn().Err(err).Str("uri", rec.URI).Msg("refresh: failed to write-through record")
+				}
+			}
+			short := collection[strings.LastIndex(collection, ".")+1:]
+			log.Info().Str("collection", short).Int("count", len(output.Records)).Msg("refresh: synced collection from PDS")
+		}
+	}
+
+	// Now fetch and render the manage partial with fresh PDS data
+	ctx := r.Context()
+	g, ctx := errgroup.WithContext(ctx)
+
+	var beans []*models.Bean
+	var roasters []*models.Roaster
+	var grinders []*models.Grinder
+	var brewers []*models.Brewer
+	var recipes []*models.Recipe
+
+	g.Go(func() error {
+		var err error
+		beans, err = store.ListBeans(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		roasters, err = store.ListRoasters(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		grinders, err = store.ListGrinders(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		brewers, err = store.ListBrewers(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		recipes, err = store.ListRecipes(ctx)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Error().Err(err).Msg("Failed to fetch manage page data after refresh")
+		handleStoreError(w, err, "Failed to fetch data")
+		return
+	}
+
+	atproto.LinkBeansToRoasters(beans, roasters)
+
+	brewerMap := make(map[string]*models.Brewer, len(brewers))
+	for _, b := range brewers {
+		brewerMap[b.RKey] = b
+	}
+	for _, recipe := range recipes {
+		if recipe.BrewerRKey != "" {
+			recipe.BrewerObj = brewerMap[recipe.BrewerRKey]
+		}
+	}
+
+	if err := components.ManagePartial(components.ManagePartialProps{
+		Beans:    beans,
+		Roasters: roasters,
+		Grinders: grinders,
+		Brewers:  brewers,
+		Recipes:  recipes,
+	}).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render content", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render manage partial after refresh")
 	}
 }
 

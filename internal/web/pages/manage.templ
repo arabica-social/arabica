@@ -17,6 +17,9 @@ templ ManageContent(props ManageProps) {
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()
 			<h2 class="text-2xl font-semibold text-brown-900">Manage</h2>
+			<div class="ml-auto">
+				@ManageRefreshButton()
+			</div>
 		</div>
 		@ManageTabs()
 		@ManageContentLoader()
@@ -68,9 +71,29 @@ templ ManageTabs() {
 
 // ManageContentLoader renders the HTMX content loader with skeleton
 templ ManageContentLoader() {
-	<div hx-get="/api/manage" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML">
+	<div id="manage-content" hx-get="/api/manage" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML">
 		@ManageLoadingSkeleton()
 	</div>
+}
+
+// ManageRefreshButton renders the sync-from-PDS button
+templ ManageRefreshButton() {
+	<button
+		type="button"
+		x-data="{ syncing: false }"
+		@click="syncing = true; htmx.ajax('POST', '/api/manage/refresh', { target: '#manage-content', swap: 'innerHTML' }).then(() => syncing = false).catch(() => syncing = false)"
+		:disabled="syncing"
+		class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-brown-700 hover:text-brown-900 border border-brown-300 hover:border-brown-400 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+		title="Refresh all data from your PDS"
+	>
+		<svg :class="syncing && 'animate-spin'" class="inline-block w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M21.5 2v6h-6"></path>
+			<path d="M2.5 22v-6h6"></path>
+			<path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8"></path>
+			<path d="M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"></path>
+		</svg>
+		<span x-text="syncing ? 'Syncing...' : 'Sync from PDS'"></span>
+	</button>
 }
 
 const ntabs int = 3
