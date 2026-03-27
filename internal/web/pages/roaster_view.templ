@@ -70,7 +70,7 @@ templ RoasterViewCard(props RoasterViewProps) {
 					IsOwner:         props.IsOwnProfile,
 					EditModalURL:    "/api/modals/roaster/" + props.Roaster.RKey,
 					DeleteURL:       "/api/roasters/" + props.Roaster.RKey,
-					DeleteRedirect:  "/manage",
+					DeleteRedirect:  "/my-coffee",
 					IsAuthenticated: props.IsAuthenticated,
 					IsModerator:     props.IsModerator,
 					CanHideRecord:   props.CanHideRecord,

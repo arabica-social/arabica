@@ -102,23 +102,7 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 
 // List all brews
 func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	_, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Your Brews")
-
-	// Create brew list props
-	brewListProps := pages.BrewListProps{}
-
-	// Render using templ component
-	if err := pages.BrewList(layoutData, brewListProps).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew list page")
-	}
+	http.Redirect(w, r, "/my-coffee", http.StatusMovedPermanently)
 }
 
 // Show new brew form

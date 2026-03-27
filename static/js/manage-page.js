@@ -5,7 +5,7 @@
  */
 function managePage() {
   return {
-    tab: localStorage.getItem("manageTab") || "beans",
+    tab: localStorage.getItem("manageTab") || "brews",
     activeTab: "brews", // Always default to brews tab on profile
 
     // Entity managers for each entity type

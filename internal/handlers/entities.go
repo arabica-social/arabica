@@ -289,22 +289,66 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 
 // Manage page
 func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
+	http.Redirect(w, r, "/my-coffee", http.StatusMovedPermanently)
+}
+
+// HandleMyCoffee renders the unified My Coffee page (replaces both /brews and /manage)
+func (h *Handler) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
 	_, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Manage")
+	layoutData, _, _ := h.layoutDataFromRequest(r, "My Coffee")
 
-	// Create manage props
-	manageProps := pages.ManageProps{}
-
-	// Render using templ component
-	if err := pages.Manage(layoutData, manageProps).Render(r.Context(), w); err != nil {
+	if err := pages.MyCoffee(layoutData, pages.MyCoffeeProps{}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render manage page")
+		log.Error().Err(err).Msg("Failed to render my coffee page")
+	}
+}
+
+// HandleIncompleteRecordsPartial returns an HTML fragment for incomplete records on the home dashboard.
+func (h *Handler) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		return
+	}
+
+	ctx := r.Context()
+	g, ctx := errgroup.WithContext(ctx)
+
+	var beans []*models.Bean
+	var grinders []*models.Grinder
+	var brewers []*models.Brewer
+
+	g.Go(func() error {
+		var err error
+		beans, err = store.ListBeans(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		grinders, err = store.ListGrinders(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		brewers, err = store.ListBrewers(ctx)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Error().Err(err).Msg("Failed to fetch data for incomplete records")
+		return
+	}
+
+	records := components.CollectIncompleteRecords(beans, grinders, brewers, 5)
+
+	if err := components.IncompleteRecords(components.IncompleteRecordsProps{
+		Records: records,
+	}).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render incomplete records")
 	}
 }
 

@@ -133,7 +133,7 @@ templ RecipeViewCard(props RecipeViewProps) {
 						IsOwner:         props.IsOwnProfile,
 						EditModalURL:    "/api/modals/recipe/" + props.Recipe.RKey,
 						DeleteURL:       "/api/recipes/" + props.Recipe.RKey,
-						DeleteRedirect:  "/manage",
+						DeleteRedirect:  "/my-coffee",
 						IsAuthenticated: props.IsAuthenticated,
 						IsModerator:     props.IsModerator,
 						CanHideRecord:   props.CanHideRecord,

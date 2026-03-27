@@ -362,6 +362,54 @@ type UpdateBrewerRequest struct {
 	SourceRef   string `json:"source_ref,omitempty"`
 }
 
+// IsIncomplete returns true if the bean is missing key fields beyond name/origin.
+func (b *Bean) IsIncomplete() bool {
+	return b.RoasterRKey == "" || b.RoastLevel == "" || b.Process == ""
+}
+
+// MissingFields returns a human-readable list of missing fields.
+func (b *Bean) MissingFields() []string {
+	var missing []string
+	if b.RoasterRKey == "" {
+		missing = append(missing, "roaster")
+	}
+	if b.RoastLevel == "" {
+		missing = append(missing, "roast level")
+	}
+	if b.Process == "" {
+		missing = append(missing, "process")
+	}
+	return missing
+}
+
+// IsIncomplete returns true if the grinder is missing its type.
+func (g *Grinder) IsIncomplete() bool {
+	return g.GrinderType == ""
+}
+
+// MissingFields returns a human-readable list of missing fields.
+func (g *Grinder) MissingFields() []string {
+	var missing []string
+	if g.GrinderType == "" {
+		missing = append(missing, "grinder type")
+	}
+	return missing
+}
+
+// IsIncomplete returns true if the brewer is missing its type.
+func (b *Brewer) IsIncomplete() bool {
+	return b.BrewerType == ""
+}
+
+// MissingFields returns a human-readable list of missing fields.
+func (b *Brewer) MissingFields() []string {
+	var missing []string
+	if b.BrewerType == "" {
+		missing = append(missing, "brewer type")
+	}
+	return missing
+}
+
 // Like represents a like on an Arabica record
 type Like struct {
 	RKey       string    `json:"rkey"`

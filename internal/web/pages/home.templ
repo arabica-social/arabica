@@ -17,9 +17,13 @@ templ HomeContent(props HomeProps) {
 			IsAuthenticated: props.IsAuthenticated,
 			UserDID:         props.UserDID,
 		})
-		// Move about section after feed for authenticated users
-		// TODO: maybe leave it as a small section that can be
-		// opened via a drowdown?
+		if props.IsAuthenticated {
+			<!-- Incomplete records loaded async -->
+			<div id="incomplete-records-section" hx-get="/api/incomplete-records" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML">
+			</div>
+			<!-- Modal container for entity edit dialogs opened from dashboard -->
+			<div id="modal-container"></div>
+		}
 		if !props.IsAuthenticated {
 			@components.AboutInfoCard()
 		}

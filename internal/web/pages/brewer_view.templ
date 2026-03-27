@@ -62,7 +62,7 @@ templ BrewerViewCard(props BrewerViewProps) {
 					IsOwner:         props.IsOwnProfile,
 					EditModalURL:    "/api/modals/brewer/" + props.Brewer.RKey,
 					DeleteURL:       "/api/brewers/" + props.Brewer.RKey,
-					DeleteRedirect:  "/manage",
+					DeleteRedirect:  "/my-coffee",
 					IsAuthenticated: props.IsAuthenticated,
 					IsModerator:     props.IsModerator,
 					CanHideRecord:   props.CanHideRecord,

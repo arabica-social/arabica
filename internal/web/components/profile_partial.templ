@@ -63,8 +63,8 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 				if isOwnProfile {
 					@EmptyState(EmptyStateProps{
 						Message:    "No open bags yet! Add your first bean.",
-						ActionURL:  "/manage",
-						ActionText: "Go to Manage",
+						ActionURL:  "/my-coffee",
+						ActionText: "Go to My Coffee",
 					})
 				} else {
 					@EmptyState(EmptyStateProps{

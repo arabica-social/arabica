@@ -351,6 +351,40 @@ func TestCreateBrewRequest_Validate(t *testing.T) {
 	})
 }
 
+func TestBeanIsIncomplete(t *testing.T) {
+	complete := &Bean{Name: "Test", Origin: "Ethiopia", RoasterRKey: "abc", RoastLevel: "Light", Process: "Washed"}
+	assert.False(t, complete.IsIncomplete())
+	assert.Empty(t, complete.MissingFields())
+
+	incomplete := &Bean{Name: "Test", Origin: "Ethiopia", RoastLevel: "Light", Process: "Washed"}
+	assert.True(t, incomplete.IsIncomplete())
+	assert.Contains(t, incomplete.MissingFields(), "roaster")
+
+	stub := &Bean{Name: "Test"}
+	assert.True(t, stub.IsIncomplete())
+	assert.Len(t, stub.MissingFields(), 3)
+}
+
+func TestGrinderIsIncomplete(t *testing.T) {
+	complete := &Grinder{Name: "Test", GrinderType: "Hand"}
+	assert.False(t, complete.IsIncomplete())
+	assert.Empty(t, complete.MissingFields())
+
+	incomplete := &Grinder{Name: "Test"}
+	assert.True(t, incomplete.IsIncomplete())
+	assert.Contains(t, incomplete.MissingFields(), "grinder type")
+}
+
+func TestBrewerIsIncomplete(t *testing.T) {
+	complete := &Brewer{Name: "V60", BrewerType: "pourover"}
+	assert.False(t, complete.IsIncomplete())
+	assert.Empty(t, complete.MissingFields())
+
+	incomplete := &Brewer{Name: "V60"}
+	assert.True(t, incomplete.IsIncomplete())
+	assert.Contains(t, incomplete.MissingFields(), "brewer type")
+}
+
 func TestNormalizeBrewerType(t *testing.T) {
 	tests := []struct {
 		input    string

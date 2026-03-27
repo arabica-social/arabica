@@ -1,0 +1,109 @@
+package components
+
+import (
+	"arabica/internal/models"
+	"fmt"
+	"strings"
+)
+
+// IncompleteRecord represents a single entity that needs attention
+type IncompleteRecord struct {
+	EntityType    string
+	RKey          string
+	Name          string
+	MissingFields []string
+}
+
+// IncompleteRecordsProps defines the data for the incomplete records section
+type IncompleteRecordsProps struct {
+	Records []IncompleteRecord
+}
+
+// IncompleteRecords renders the incomplete records nudge section
+templ IncompleteRecords(props IncompleteRecordsProps) {
+	if len(props.Records) > 0 {
+		<div class="card p-4 sm:p-6 mb-6">
+			<div class="flex items-center gap-2 mb-3">
+				<svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"></path>
+				</svg>
+				<h3 class="text-lg font-semibold text-brown-900">
+					{ fmt.Sprintf("%d", len(props.Records)) } { incompleteNoun(len(props.Records)) } need details
+				</h3>
+			</div>
+			<div class="space-y-2">
+				for _, rec := range props.Records {
+					<div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
+						<div>
+							<span class="font-medium text-brown-900">{ rec.Name }</span>
+							<span class="text-sm text-brown-600 ml-2">
+								missing { strings.Join(rec.MissingFields, ", ") }
+							</span>
+						</div>
+						<button
+							hx-get={ fmt.Sprintf("/api/modals/%s/%s", rec.EntityType, rec.RKey) }
+							hx-target="#modal-container"
+							hx-swap="innerHTML"
+							class="text-sm font-medium text-brown-700 hover:text-brown-900 cursor-pointer whitespace-nowrap ml-2"
+						>
+							Complete
+						</button>
+					</div>
+				}
+			</div>
+			if len(props.Records) > 3 {
+				<a href="/my-coffee" class="block text-center text-sm text-brown-600 hover:text-brown-800 mt-3">
+					View all in My Coffee
+				</a>
+			}
+		</div>
+	}
+}
+
+func incompleteNoun(count int) string {
+	if count == 1 {
+		return "record"
+	}
+	return "records"
+}
+
+// CollectIncompleteRecords scans all entities and returns incomplete ones (max limit).
+func CollectIncompleteRecords(beans []*models.Bean, grinders []*models.Grinder, brewers []*models.Brewer, limit int) []IncompleteRecord {
+	var records []IncompleteRecord
+
+	for _, b := range beans {
+		if b.IsIncomplete() && !b.Closed {
+			records = append(records, IncompleteRecord{
+				EntityType:    "bean",
+				RKey:          b.RKey,
+				Name:          b.Name,
+				MissingFields: b.MissingFields(),
+			})
+		}
+	}
+	for _, g := range grinders {
+		if g.IsIncomplete() {
+			records = append(records, IncompleteRecord{
+				EntityType:    "grinder",
+				RKey:          g.RKey,
+				Name:          g.Name,
+				MissingFields: g.MissingFields(),
+			})
+		}
+	}
+	for _, b := range brewers {
+		if b.IsIncomplete() {
+			records = append(records, IncompleteRecord{
+				EntityType:    "brewer",
+				RKey:          b.RKey,
+				Name:          b.Name,
+				MissingFields: b.MissingFields(),
+			})
+		}
+	}
+
+	if limit > 0 && len(records) > limit {
+		return records[:limit]
+	}
+	return records
+}

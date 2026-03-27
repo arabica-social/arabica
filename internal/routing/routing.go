@@ -61,6 +61,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("GET /api/feed", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleFeedPartial)))
 	mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleBrewListPartial)))
 	mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleManagePartial)))
+	mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleIncompleteRecordsPartial)))
 	mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(h.HandleManageRefresh)))
 	mux.Handle("GET /api/profile/{actor}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleProfilePartial)))
 
@@ -73,6 +74,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /join/create", h.HandleCreateAccount)
 	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
 	mux.HandleFunc("GET /atproto", h.HandleATProto)
+	mux.HandleFunc("GET /my-coffee", h.HandleMyCoffee)
 	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
 	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
