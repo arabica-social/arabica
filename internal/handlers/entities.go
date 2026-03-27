@@ -23,6 +23,13 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Invalidate the session cache so we read from the witness cache (or PDS)
+	// rather than serving potentially stale in-memory data. The witness cache
+	// is a local SQLite read so this is cheap.
+	if sessionID, err := atproto.GetSessionIDFromContext(r.Context()); err == nil {
+		h.sessionCache.Invalidate(sessionID)
+	}
+
 	ctx := r.Context()
 
 	// Fetch all collections in parallel using errgroup for proper error handling
