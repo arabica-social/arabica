@@ -282,15 +282,20 @@ document.addEventListener("alpine:init", () => {
           '[x-data*="entityType: \'brewer\'"]',
         );
         if (brewerCombo) {
-          const brewerName =
-            (this.dropdownManager?.brewers || []).find(
-              (b) =>
-                (b.rkey || b.RKey) === recipe.brewer_rkey,
-            )?.name || "";
+          // Try to find matching local brewer by rkey
+          const localBrewer = (this.dropdownManager?.brewers || []).find(
+            (b) => (b.rkey || b.RKey) === recipe.brewer_rkey,
+          );
+          const brewerRKey = localBrewer
+            ? recipe.brewer_rkey
+            : "";
+          const brewerName = localBrewer
+            ? localBrewer.name || localBrewer.Name || ""
+            : "";
           brewerCombo.dispatchEvent(
             new CustomEvent("combo-set", {
               detail: {
-                rkey: recipe.brewer_rkey || "",
+                rkey: brewerRKey,
                 label: brewerName,
               },
               bubbles: false,

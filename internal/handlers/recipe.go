@@ -13,6 +13,7 @@ import (
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
 
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -205,11 +206,10 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 		recipe.RKey = rkey
 		recipe.AuthorDID = ownerDID
 
-		// Resolve brewer reference if present
+		// Resolve brewer reference: fetch source brewer info, then match
+		// against the current user's brewers so the returned brewer_rkey
+		// is usable in the current user's brew form.
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
-			if c, err := atproto.ResolveATURI(brewerRef); err == nil {
-				recipe.BrewerRKey = c.RKey
-			}
 			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
 			if brewerRKey != "" {
 				brewerRecord, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, brewerRKey)
@@ -217,6 +217,17 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 					if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
 						brewer.RKey = brewerRKey
 						recipe.BrewerObj = brewer
+
+						// Try to match source brewer to the current user's brewers
+						if userBrewers, err := store.ListBrewers(r.Context()); err == nil {
+							candidates := make([]matching.Candidate, len(userBrewers))
+							for i, b := range userBrewers {
+								candidates[i] = matching.Candidate{RKey: b.RKey, Name: b.Name, Type: b.BrewerType}
+							}
+							if m := matching.Match(brewer.Name, brewer.BrewerType, candidates); m != nil {
+								recipe.BrewerRKey = m.RKey
+							}
+						}
 					}
 				}
 			}

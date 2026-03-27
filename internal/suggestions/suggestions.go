@@ -208,7 +208,8 @@ func extractDomain(rawURL string) string {
 // Search searches indexed records for entity suggestions matching a query.
 // It matches against searchable fields, deduplicates using entity-specific
 // keys, and returns results sorted by popularity.
-func Search(source RecordSource, collection, query string, limit int) ([]EntitySuggestion, error) {
+// If excludeDID is non-empty, records from that DID are excluded from results.
+func Search(source RecordSource, collection, query string, limit int, excludeDID ...string) ([]EntitySuggestion, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -221,6 +222,11 @@ func Search(source RecordSource, collection, query string, limit int) ([]EntityS
 	queryLower := strings.ToLower(strings.TrimSpace(query))
 	if len(queryLower) < 2 {
 		return nil, nil
+	}
+
+	var skipDID string
+	if len(excludeDID) > 0 {
+		skipDID = excludeDID[0]
 	}
 
 	records, err := source.ListRecordsByCollection(collection)
@@ -237,6 +243,11 @@ func Search(source RecordSource, collection, query string, limit int) ([]EntityS
 	candidates := make(map[string]*candidate)
 
 	for _, indexed := range records {
+		// Skip the current user's records so they only see community data
+		if skipDID != "" && indexed.DID == skipDID {
+			continue
+		}
+
 		var recordData map[string]any
 		if err := json.Unmarshal(indexed.Record, &recordData); err != nil {
 			continue

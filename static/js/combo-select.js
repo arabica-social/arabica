@@ -124,14 +124,14 @@ document.addEventListener("alpine:init", () => {
       clearTimeout(this._suggestTimer);
       if (q.length >= 2 && this.suggestEndpoint) {
         this._suggestTimer = setTimeout(() => {
-          this.fetchSuggestions(q, entities);
+          this.fetchSuggestions(q);
         }, 400);
       } else {
         this.communityResults = [];
       }
     },
 
-    async fetchSuggestions(q, entities) {
+    async fetchSuggestions(q) {
       try {
         const resp = await fetch(
           `${this.suggestEndpoint}?q=${encodeURIComponent(q)}&limit=5`,
@@ -139,9 +139,10 @@ document.addEventListener("alpine:init", () => {
         );
         if (resp.ok) {
           const data = await resp.json();
-          // Filter out community results that match any of the user's entities
+          // Re-read entities fresh from cache (may have loaded since search() ran)
+          const freshEntities = this.getUserEntities();
           const allNames = new Set(
-            entities.map((e) => (e.name || e.Name || "").toLowerCase()),
+            freshEntities.map((e) => (e.name || e.Name || "").toLowerCase()),
           );
           this.communityResults = (data || []).filter(
             (s) => !allNames.has((s.name || "").toLowerCase()),
