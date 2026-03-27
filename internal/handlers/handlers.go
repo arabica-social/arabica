@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"arabica/internal/atproto"
 	"arabica/internal/database"
@@ -24,6 +26,16 @@ import (
 
 	"github.com/rs/zerolog/log"
 )
+
+// profileCacheTTL controls how long user profiles are cached before re-fetching.
+// Profiles (avatar, display name) change infrequently so 1 hour is reasonable.
+const profileCacheTTL = 1 * time.Hour
+
+// cachedProfile holds a user profile with its fetch timestamp.
+type cachedProfile struct {
+	profile  *bff.UserProfile
+	cachedAt time.Time
+}
 
 // Config holds handler configuration options
 type Config struct {
@@ -57,6 +69,11 @@ type Handler struct {
 	joinStore     *boltstore.JoinStore
 	pdsAdminURL   string
 	pdsAdminToken string
+
+	// profileCache caches user profiles (avatar, handle) by DID to avoid
+	// hitting the Bluesky API on every page load.
+	profileCache   map[string]*cachedProfile
+	profileCacheMu sync.RWMutex
 }
 
 // NewHandler creates a new Handler with all required dependencies.
@@ -76,6 +93,7 @@ func NewHandler(
 		config:        config,
 		feedService:   feedService,
 		feedRegistry:  feedRegistry,
+		profileCache:  make(map[string]*cachedProfile),
 	}
 }
 
@@ -184,11 +202,21 @@ func writeJSON(w http.ResponseWriter, v interface{}, entityName string) {
 }
 
 // getUserProfile fetches the profile for an authenticated user.
+// Results are cached by DID for profileCacheTTL to avoid hitting the
+// Bluesky API on every page load.
 // Returns nil if unable to fetch profile (non-fatal error).
 func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfile {
 	if did == "" {
 		return nil
 	}
+
+	// Check cache
+	h.profileCacheMu.RLock()
+	if cached, ok := h.profileCache[did]; ok && time.Since(cached.cachedAt) < profileCacheTTL {
+		h.profileCacheMu.RUnlock()
+		return cached.profile
+	}
+	h.profileCacheMu.RUnlock()
 
 	publicClient := atproto.NewPublicClient()
 	profile, err := publicClient.GetProfile(ctx, did)
@@ -206,6 +234,14 @@ func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfi
 	if profile.Avatar != nil {
 		userProfile.Avatar = *profile.Avatar
 	}
+
+	// Store in cache
+	h.profileCacheMu.Lock()
+	h.profileCache[did] = &cachedProfile{
+		profile:  userProfile,
+		cachedAt: time.Now(),
+	}
+	h.profileCacheMu.Unlock()
 
 	return userProfile
 }
