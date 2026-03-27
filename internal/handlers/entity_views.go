@@ -224,6 +224,15 @@ func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
 	beanViewProps.IsRecordHidden = sd.IsRecordHidden
 	beanViewProps.AuthorDID = entityOwnerDID
 
+	if h.feedIndex != nil && subjectURI != "" {
+		ownerDID := entityOwnerDID
+		if ownerDID == "" {
+			ownerDID = didStr
+		}
+		counts := h.feedIndex.BrewCountsByBeanURI(ownerDID)
+		beanViewProps.BrewCount = counts[subjectURI]
+	}
+
 	if err := pages.BeanView(layoutData, beanViewProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render bean view")
@@ -346,6 +355,15 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 	props.CanBlockUser = sd.CanBlockUser
 	props.IsRecordHidden = sd.IsRecordHidden
 	props.AuthorDID = entityOwnerDID
+
+	if h.feedIndex != nil && subjectURI != "" {
+		ownerDID := entityOwnerDID
+		if ownerDID == "" {
+			ownerDID = didStr
+		}
+		counts := h.feedIndex.BeanCountsByRoasterURI(ownerDID)
+		props.BeanCount = counts[subjectURI]
+	}
 
 	if err := pages.RoasterView(layoutData, props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
@@ -470,6 +488,15 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 	props.IsRecordHidden = sd.IsRecordHidden
 	props.AuthorDID = entityOwnerDID
 
+	if h.feedIndex != nil && subjectURI != "" {
+		ownerDID := entityOwnerDID
+		if ownerDID == "" {
+			ownerDID = didStr
+		}
+		counts := h.feedIndex.BrewCountsByGrinderURI(ownerDID)
+		props.BrewCount = counts[subjectURI]
+	}
+
 	if err := pages.GrinderView(layoutData, props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render grinder view")
@@ -592,6 +619,15 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	props.CanBlockUser = sd.CanBlockUser
 	props.IsRecordHidden = sd.IsRecordHidden
 	props.AuthorDID = entityOwnerDID
+
+	if h.feedIndex != nil && subjectURI != "" {
+		ownerDID := entityOwnerDID
+		if ownerDID == "" {
+			ownerDID = didStr
+		}
+		counts := h.feedIndex.BrewCountsByBrewerURI(ownerDID)
+		props.BrewCount = counts[subjectURI]
+	}
 
 	if err := pages.BrewerView(layoutData, props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)

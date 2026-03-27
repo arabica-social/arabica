@@ -27,6 +27,16 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()
 			<h2 class="text-2xl font-semibold text-brown-900">Explore Recipes</h2>
+			<div class="ml-auto">
+				<button
+					hx-get="/api/modals/recipe/new"
+					hx-target="#modal-container"
+					hx-swap="innerHTML"
+					class="btn-primary shadow-lg hover:shadow-xl"
+				>
+					+ New Recipe
+				</button>
+			</div>
 		</div>
 		@components.RecipeAlphaWarning()
 		<!-- Search and filters -->
@@ -513,6 +523,8 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				</template>
 			</div>
 		</dialog>
+		<!-- Modal container for recipe creation dialog -->
+		<div id="modal-container"></div>
 	</div>
 }
 

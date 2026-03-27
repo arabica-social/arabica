@@ -23,6 +23,12 @@ type ProfileContentPartialProps struct {
 	// Comment counts for brews (keyed by brew RKey)
 	BrewCommentCounts map[string]int
 	IsAuthenticated   bool
+	// Entity usage counts (keyed by AT-URI)
+	BeanBrewCounts    map[string]int // bean URI -> brew count
+	GrinderBrewCounts map[string]int // grinder URI -> brew count
+	BrewerBrewCounts  map[string]int // brewer URI -> brew count
+	RoasterBeanCounts map[string]int // roaster URI -> bean count
+	ProfileDID        string         // DID of the profile being viewed
 }
 
 // ProfileContentPartial renders the profile tabs content (for HTMX loading)
@@ -45,22 +51,49 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 	</div>
 	<!-- Beans Tab -->
 	<div x-show="activeTab === 'beans'">
-		@ProfileBeansTab(props.Beans, props.Roasters, props.IsOwnProfile, props.ProfileHandle)
+		@ProfileBeansTab(ProfileBeansTabProps{
+			Beans:             props.Beans,
+			Roasters:          props.Roasters,
+			IsOwnProfile:      props.IsOwnProfile,
+			ProfileHandle:     props.ProfileHandle,
+			BeanBrewCounts:    props.BeanBrewCounts,
+			RoasterBeanCounts: props.RoasterBeanCounts,
+			ProfileDID:        props.ProfileDID,
+		})
 	</div>
 	<!-- Equipment Tab -->
 	<div x-show="activeTab === 'equipment'">
-		@ProfileEquipmentTab(props.Grinders, props.Brewers, props.IsOwnProfile, props.ProfileHandle)
+		@ProfileEquipmentTab(ProfileEquipmentTabProps{
+			Grinders:          props.Grinders,
+			Brewers:           props.Brewers,
+			IsOwnProfile:      props.IsOwnProfile,
+			ProfileHandle:     props.ProfileHandle,
+			GrinderBrewCounts: props.GrinderBrewCounts,
+			BrewerBrewCounts:  props.BrewerBrewCounts,
+			ProfileDID:        props.ProfileDID,
+		})
 	</div>
 }
 
+// ProfileBeansTabProps defines props for the beans tab
+type ProfileBeansTabProps struct {
+	Beans             []*models.Bean
+	Roasters          []*models.Roaster
+	IsOwnProfile      bool
+	ProfileHandle     string
+	BeanBrewCounts    map[string]int
+	RoasterBeanCounts map[string]int
+	ProfileDID        string
+}
+
 // ProfileBeansTab renders the beans and roasters tab for profile
-templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnProfile bool, profileHandle string) {
+templ ProfileBeansTab(props ProfileBeansTabProps) {
 	<div class="space-y-6">
 		<!-- Open Bags Section -->
 		<div>
 			<h4 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h4>
-			if len(filterOpenBeans(beans)) == 0 {
-				if isOwnProfile {
+			if len(filterOpenBeans(props.Beans)) == 0 {
+				if props.IsOwnProfile {
 					@EmptyState(EmptyStateProps{
 						Message:    "No open bags yet! Add your first bean.",
 						ActionURL:  "/my-coffee",
@@ -73,41 +106,47 @@ templ ProfileBeansTab(beans []*models.Bean, roasters []*models.Roaster, isOwnPro
 				}
 			} else {
 				@BeanCards(BeanCardsProps{
-					Beans:       filterOpenBeans(beans),
+					Beans:       filterOpenBeans(props.Beans),
 					ShowActions: false,
-					OwnerHandle: profileHandle,
+					OwnerHandle: props.ProfileHandle,
+					BrewCounts:  props.BeanBrewCounts,
+					OwnerDID:    props.ProfileDID,
 				})
 			}
 		</div>
 		<!-- Roasters Section -->
 		<div>
 			<h4 class="text-lg font-semibold text-brown-900 mb-3">Roasters</h4>
-			if len(roasters) == 0 {
-				if isOwnProfile {
+			if len(props.Roasters) == 0 {
+				if props.IsOwnProfile {
 					@EmptyState(EmptyStateProps{Message: "No roasters added yet."})
 				} else {
 					@EmptyState(EmptyStateProps{Message: "No roasters yet."})
 				}
 			} else {
 				@RoastersTable(RoastersTableProps{
-					Roasters:    roasters,
+					Roasters:   props.Roasters,
 					ShowActions: false,
-					OwnerHandle: profileHandle,
+					OwnerHandle: props.ProfileHandle,
+					BeanCounts:  props.RoasterBeanCounts,
+					OwnerDID:    props.ProfileDID,
 				})
 			}
 		</div>
 		<!-- Closed Bags Section -->
 		<div>
 			<h4 class="text-lg font-semibold text-brown-900 mb-3">Closed Bags</h4>
-			if len(filterClosedBeans(beans)) == 0 {
+			if len(filterClosedBeans(props.Beans)) == 0 {
 				@EmptyState(EmptyStateProps{
 					Message: "No closed bags.",
 				})
 			} else {
 				@BeanCards(BeanCardsProps{
-					Beans:       filterClosedBeans(beans),
+					Beans:       filterClosedBeans(props.Beans),
 					ShowActions: false,
-					OwnerHandle: profileHandle,
+					OwnerHandle: props.ProfileHandle,
+					BrewCounts:  props.BeanBrewCounts,
+					OwnerDID:    props.ProfileDID,
 				})
 			}
 		</div>
@@ -210,40 +249,55 @@ func getCommentCount(counts map[string]int, rkey string) int {
 	return counts[rkey]
 }
 
+// ProfileEquipmentTabProps defines props for the equipment tab
+type ProfileEquipmentTabProps struct {
+	Grinders          []*models.Grinder
+	Brewers           []*models.Brewer
+	IsOwnProfile      bool
+	ProfileHandle     string
+	GrinderBrewCounts map[string]int
+	BrewerBrewCounts  map[string]int
+	ProfileDID        string
+}
+
 // ProfileEquipmentTab renders the equipment tab for profile (grinders and brewers only)
-templ ProfileEquipmentTab(grinders []*models.Grinder, brewers []*models.Brewer, isOwnProfile bool, profileHandle string) {
+templ ProfileEquipmentTab(props ProfileEquipmentTabProps) {
 	<div class="space-y-6">
 		<!-- Grinders Section -->
 		<div>
 			<h4 class="text-lg font-semibold text-brown-900 mb-3">Grinders</h4>
-			if len(grinders) == 0 {
-				if isOwnProfile {
+			if len(props.Grinders) == 0 {
+				if props.IsOwnProfile {
 					@EmptyState(EmptyStateProps{Message: "No grinders added yet."})
 				} else {
 					@EmptyState(EmptyStateProps{Message: "No grinders yet."})
 				}
 			} else {
 				@GrindersTable(GrindersTableProps{
-					Grinders:    grinders,
+					Grinders:    props.Grinders,
 					ShowActions: false,
-					OwnerHandle: profileHandle,
+					OwnerHandle: props.ProfileHandle,
+					BrewCounts:  props.GrinderBrewCounts,
+					OwnerDID:    props.ProfileDID,
 				})
 			}
 		</div>
 		<!-- Brewers Section -->
 		<div>
 			<h4 class="text-lg font-semibold text-brown-900 mb-3">Brewers</h4>
-			if len(brewers) == 0 {
-				if isOwnProfile {
+			if len(props.Brewers) == 0 {
+				if props.IsOwnProfile {
 					@EmptyState(EmptyStateProps{Message: "No brewing devices added yet."})
 				} else {
 					@EmptyState(EmptyStateProps{Message: "No brewing devices yet."})
 				}
 			} else {
 				@BrewersTable(BrewersTableProps{
-					Brewers:     brewers,
+					Brewers:     props.Brewers,
 					ShowActions: false,
-					OwnerHandle: profileHandle,
+					OwnerHandle: props.ProfileHandle,
+					BrewCounts:  props.BrewerBrewCounts,
+					OwnerDID:    props.ProfileDID,
 				})
 			}
 		</div>

@@ -26,6 +26,7 @@ type BeanViewProps struct {
 	CanBlockUser    bool
 	IsRecordHidden  bool
 	AuthorDID       string
+	BrewCount       int
 }
 
 templ BeanView(layout *components.LayoutData, props BeanViewProps) {
@@ -76,6 +77,14 @@ templ BeanViewCard(props BeanViewProps) {
 			<div class="section-box">
 				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconFileText() Description</span></h3>
 				<div class="text-brown-900 whitespace-pre-wrap">{ props.Bean.Description }</div>
+			</div>
+		}
+		if props.BrewCount > 0 {
+			<div class="flex items-center gap-3 pt-3 border-t border-brown-200/60 text-xs text-brown-500">
+				<span class="flex items-center gap-1">
+					@components.IconCoffee()
+					{ fmt.Sprintf("%d brew%s", props.BrewCount, pluralS(props.BrewCount)) }
+				</span>
 			</div>
 		}
 		<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
@@ -324,6 +333,13 @@ func beanBaseJSON(bean *models.Bean) string {
 		"closed": %t
 	}`, bean.Name, bean.Origin, bean.Variety, bean.RoastLevel,
 		bean.Process, bean.Description, roasterRKey, ratingStr, bean.Closed)
+}
+
+func pluralS(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
 }
 
 func getOwnerFromShareURL(shareURL string) string {

@@ -575,6 +575,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	brewLikeCounts := make(map[string]int)
 	brewLikedByUser := make(map[string]bool)
 	brewCIDs := make(map[string]string)
+	var beanBrewCounts, grinderBrewCounts, brewerBrewCounts, roasterBeanCounts map[string]int
 	if h.feedIndex != nil && profile != nil {
 		for _, brew := range profileData.Brews {
 			subjectURI := atproto.BuildATURI(profile.DID, atproto.NSIDBrew, brew.RKey)
@@ -587,21 +588,31 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 				brewCIDs[brew.RKey] = record.CID
 			}
 		}
+		// Entity usage counts
+		beanBrewCounts = h.feedIndex.BrewCountsByBeanURI(did)
+		grinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(did)
+		brewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(did)
+		roasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(did)
 	}
 
 	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
-		Brews:           profileData.Brews,
-		Beans:           profileData.Beans,
-		Roasters:        profileData.Roasters,
-		Grinders:        profileData.Grinders,
-		Brewers:         profileData.Brewers,
-		IsOwnProfile:    isOwnProfile,
-		ProfileHandle:   profileHandle,
-		Profile:         profile,
-		BrewLikeCounts:  brewLikeCounts,
-		BrewLikedByUser: brewLikedByUser,
-		BrewCIDs:        brewCIDs,
-		IsAuthenticated: isAuthenticated,
+		Brews:             profileData.Brews,
+		Beans:             profileData.Beans,
+		Roasters:          profileData.Roasters,
+		Grinders:          profileData.Grinders,
+		Brewers:           profileData.Brewers,
+		IsOwnProfile:      isOwnProfile,
+		ProfileHandle:     profileHandle,
+		Profile:           profile,
+		BrewLikeCounts:    brewLikeCounts,
+		BrewLikedByUser:   brewLikedByUser,
+		BrewCIDs:          brewCIDs,
+		IsAuthenticated:   isAuthenticated,
+		BeanBrewCounts:    beanBrewCounts,
+		GrinderBrewCounts: grinderBrewCounts,
+		BrewerBrewCounts:  brewerBrewCounts,
+		RoasterBeanCounts: roasterBeanCounts,
+		ProfileDID:        did,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile partial")

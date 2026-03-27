@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"fmt"
+
 	"arabica/internal/firehose"
 	"arabica/internal/models"
 	"arabica/internal/web/bff"
@@ -24,6 +26,7 @@ type RoasterViewProps struct {
 	CanBlockUser    bool
 	IsRecordHidden  bool
 	AuthorDID       string
+	BeanCount       int
 }
 
 templ RoasterView(layout *components.LayoutData, props RoasterViewProps) {
@@ -54,6 +57,14 @@ templ RoasterViewCard(props RoasterViewProps) {
 				</div>
 			}
 		</div>
+		if props.BeanCount > 0 {
+			<div class="flex items-center gap-3 pt-3 border-t border-brown-200/60 text-xs text-brown-500">
+				<span class="flex items-center gap-1">
+					@components.IconLeaf()
+					{ fmt.Sprintf("%d bean%s", props.BeanCount, pluralS(props.BeanCount)) }
+				</span>
+			</div>
+		}
 		<div class="flex justify-between items-center">
 			@components.BackButton()
 			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">

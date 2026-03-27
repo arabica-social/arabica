@@ -1052,6 +1052,68 @@ func (idx *FeedIndex) BrewCountsByRecipeURI() map[string]int {
 	return counts
 }
 
+// refCounts returns a map of ref AT-URI -> count of records in the given collection
+// that reference it via the specified JSON field. If did is non-empty, only records
+// owned by that DID are counted.
+func (idx *FeedIndex) refCounts(collection, jsonField, did string) map[string]int {
+	counts := make(map[string]int)
+	var rows *sql.Rows
+	var err error
+	if did != "" {
+		rows, err = idx.db.Query(fmt.Sprintf(`
+			SELECT json_extract(record, '$.%s') as ref_uri, COUNT(*) as cnt
+			FROM records
+			WHERE collection = ? AND did = ?
+			  AND ref_uri IS NOT NULL AND ref_uri != ''
+			GROUP BY ref_uri
+		`, jsonField), collection, did)
+	} else {
+		rows, err = idx.db.Query(fmt.Sprintf(`
+			SELECT json_extract(record, '$.%s') as ref_uri, COUNT(*) as cnt
+			FROM records
+			WHERE collection = ?
+			  AND ref_uri IS NOT NULL AND ref_uri != ''
+			GROUP BY ref_uri
+		`, jsonField), collection)
+	}
+	if err != nil {
+		return counts
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uri string
+		var count int
+		if err := rows.Scan(&uri, &count); err == nil {
+			counts[uri] = count
+		}
+	}
+	return counts
+}
+
+// BrewCountsByBeanURI returns a map of bean AT-URI -> number of brews referencing that bean.
+// If did is non-empty, only brews owned by that DID are counted.
+func (idx *FeedIndex) BrewCountsByBeanURI(did string) map[string]int {
+	return idx.refCounts("social.arabica.alpha.brew", "beanRef", did)
+}
+
+// BrewCountsByGrinderURI returns a map of grinder AT-URI -> number of brews referencing that grinder.
+// If did is non-empty, only brews owned by that DID are counted.
+func (idx *FeedIndex) BrewCountsByGrinderURI(did string) map[string]int {
+	return idx.refCounts("social.arabica.alpha.brew", "grinderRef", did)
+}
+
+// BrewCountsByBrewerURI returns a map of brewer AT-URI -> number of brews referencing that brewer.
+// If did is non-empty, only brews owned by that DID are counted.
+func (idx *FeedIndex) BrewCountsByBrewerURI(did string) map[string]int {
+	return idx.refCounts("social.arabica.alpha.brew", "brewerRef", did)
+}
+
+// BeanCountsByRoasterURI returns a map of roaster AT-URI -> number of beans referencing that roaster.
+// If did is non-empty, only beans owned by that DID are counted.
+func (idx *FeedIndex) BeanCountsByRoasterURI(did string) map[string]int {
+	return idx.refCounts("social.arabica.alpha.bean", "roasterRef", did)
+}
+
 func formatTimeAgo(t time.Time) string {
 	now := time.Now()
 	diff := now.Sub(t)
