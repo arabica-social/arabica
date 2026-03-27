@@ -16,6 +16,7 @@ document.addEventListener("alpine:init", () => {
     formatCreateData: config.formatCreateData || ((name) => ({ name })),
     required: config.required || false,
     passthrough: config.passthrough || false,
+    extraFields: config.extraFields || [],
 
     // State
     query: "",
@@ -24,6 +25,10 @@ document.addEventListener("alpine:init", () => {
     isOpen: false,
     highlightIndex: -1,
     isCreating: false,
+
+    // Inline create form state
+    showCreateForm: false,
+    createFormData: {},
 
     // Results
     userResults: [],
@@ -209,53 +214,74 @@ document.addEventListener("alpine:init", () => {
         return;
       }
 
-      this.isCreating = true;
-      try {
-        const data = this.formatCreateData(suggestion.name, suggestion);
-        if (suggestion.source_uri) {
-          data.source_ref = suggestion.source_uri;
-        }
-        const resp = await fetch(this.apiEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
-          body: JSON.stringify(data),
-        });
-        if (!resp.ok) throw new Error(`Create failed: ${resp.status}`);
-        const created = await resp.json();
-        const rkey = created.rkey || created.RKey;
-
-        this.selectedRKey = rkey;
-        this.selectedLabel = suggestion.name;
-        this.query = suggestion.name;
-        this.isOpen = false;
-
-        // Invalidate cache so entity appears in future searches
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
-        }
-
-        this.$nextTick(() => {
-          this.$dispatch("combo-change", {
-            entityType: this.entityType,
-            rkey,
-          });
-        });
-      } catch (e) {
-        console.error("Failed to create from suggestion:", e);
-      } finally {
-        this.isCreating = false;
+      // Build data from suggestion fields
+      const data = this.formatCreateData(suggestion.name, suggestion);
+      if (suggestion.source_uri) {
+        data.source_ref = suggestion.source_uri;
       }
+
+      // If extraFields configured, show form pre-filled with suggestion data
+      if (this.extraFields.length > 0) {
+        this.createFormData = { ...data };
+        // Ensure all extra fields have a value (even if empty)
+        for (const field of this.extraFields) {
+          if (!(field.name in this.createFormData)) {
+            this.createFormData[field.name] = "";
+          }
+        }
+        this.showCreateForm = true;
+        this.isOpen = false;
+        return;
+      }
+
+      await this._doCreate(data);
     },
 
-    // Create a brand new entity with just the name
-    async createNew() {
+    // Create a brand new entity — show detail form if extraFields configured
+    createNew() {
       const name = this.query.trim();
       if (!name) return;
 
+      if (this.extraFields.length > 0) {
+        this.createFormData = { name };
+        for (const field of this.extraFields) {
+          this.createFormData[field.name] = "";
+        }
+        this.showCreateForm = true;
+        this.isOpen = false;
+        return;
+      }
+
+      this._doCreate({ name });
+    },
+
+    // Submit the inline create form with all details
+    async submitCreateForm() {
+      await this._doCreate({ ...this.createFormData });
+      this.showCreateForm = false;
+      this.createFormData = {};
+    },
+
+    // Skip details — create with just the name (and any suggestion data)
+    async skipCreateDetails() {
+      const data = { name: this.createFormData.name };
+      if (this.createFormData.source_ref) {
+        data.source_ref = this.createFormData.source_ref;
+      }
+      this.showCreateForm = false;
+      this.createFormData = {};
+      await this._doCreate(data);
+    },
+
+    cancelCreateForm() {
+      this.showCreateForm = false;
+      this.createFormData = {};
+    },
+
+    // Internal: perform the actual POST to create the entity
+    async _doCreate(data) {
       this.isCreating = true;
       try {
-        const data = this.formatCreateData(name, null);
         const resp = await fetch(this.apiEndpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -267,8 +293,8 @@ document.addEventListener("alpine:init", () => {
         const rkey = created.rkey || created.RKey;
 
         this.selectedRKey = rkey;
-        this.selectedLabel = name;
-        this.query = name;
+        this.selectedLabel = data.name;
+        this.query = data.name;
         this.isOpen = false;
 
         if (window.ArabicaCache) {
@@ -315,6 +341,8 @@ document.addEventListener("alpine:init", () => {
       this.selectedRKey = "";
       this.selectedLabel = "";
       this.query = "";
+      this.showCreateForm = false;
+      this.createFormData = {};
       this.$dispatch("combo-change", {
         entityType: this.entityType,
         rkey: "",

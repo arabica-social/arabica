@@ -4,6 +4,22 @@
  * Uses shared entity-manager and dropdown-manager modules
  */
 
+// Capture incomplete entity nudge from brew save response before HTMX redirect.
+// htmx:afterRequest fires after any HTMX request completes, including redirects.
+document.addEventListener("htmx:afterRequest", (e) => {
+  const xhr = e.detail.xhr;
+  if (xhr) {
+    const nudge = xhr.getResponseHeader("X-Incomplete-Nudge");
+    if (nudge) {
+      try {
+        sessionStorage.setItem("incompleteNudge", nudge);
+      } catch (_) {
+        // sessionStorage may be unavailable
+      }
+    }
+  }
+});
+
 // Wait for Alpine to be available and register the component
 document.addEventListener("alpine:init", () => {
   Alpine.data("brewForm", () => ({

@@ -727,8 +727,18 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 
 	h.invalidateFeedCache()
 
-	// Redirect to brew list
-	w.Header().Set("HX-Redirect", "/brews")
+	// Check if the bean is incomplete and include nudge info in response header.
+	// The brew form JS reads this before HTMX processes the redirect.
+	ctx := r.Context()
+	if beanRKey != "" {
+		if bean, beanErr := store.GetBeanByRKey(ctx, beanRKey); beanErr == nil && bean != nil && bean.IsIncomplete() {
+			nudge := fmt.Sprintf(`{"entity_type":"bean","rkey":"%s","name":"%s","missing":"%s"}`,
+				bean.RKey, bean.Name, strings.Join(bean.MissingFields(), ", "))
+			w.Header().Set("X-Incomplete-Nudge", nudge)
+		}
+	}
+
+	w.Header().Set("HX-Redirect", "/my-coffee")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -827,8 +837,7 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 	h.invalidateFeedCache()
 
-	// Redirect to brew list
-	w.Header().Set("HX-Redirect", "/brews")
+	w.Header().Set("HX-Redirect", "/my-coffee")
 	w.WriteHeader(http.StatusOK)
 }
 

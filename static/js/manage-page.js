@@ -27,6 +27,44 @@ function managePage() {
 
       // Initialize entity managers
       this.initEntityManagers();
+
+      // Check for incomplete entity nudge from brew save
+      this.showIncompleteNudge();
+    },
+
+    showIncompleteNudge() {
+      try {
+        const raw = sessionStorage.getItem("incompleteNudge");
+        if (!raw) return;
+        sessionStorage.removeItem("incompleteNudge");
+        const nudge = JSON.parse(raw);
+        if (!nudge.name || !nudge.missing) return;
+
+        // Create toast element
+        const toast = document.createElement("div");
+        toast.className =
+          "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4 p-4 rounded-lg shadow-lg flex items-center gap-3";
+        toast.style.cssText =
+          "background: var(--card-bg, #fff); border: 1px solid var(--surface-border, #d4c4a8); color: var(--text-primary, #3e2723);";
+        toast.innerHTML = `
+          <div class="flex-1 text-sm">
+            <strong>${nudge.name}</strong> is missing ${nudge.missing}
+          </div>
+          <button class="text-sm font-medium hover:opacity-80 whitespace-nowrap" style="color: var(--accent-primary, #5d4037);"
+            onclick="this.closest('div').remove(); document.querySelector('#modal-container') && htmx.ajax('GET', '/api/modals/${nudge.entity_type}/${nudge.rkey}', {target: '#modal-container', swap: 'innerHTML'});">
+            Complete
+          </button>
+          <button class="text-brown-400 hover:text-brown-600" onclick="this.closest('div').remove();">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        `;
+        document.body.appendChild(toast);
+
+        // Auto-dismiss after 10 seconds
+        setTimeout(() => toast.remove(), 10000);
+      } catch (_) {
+        // Ignore errors
+      }
     },
 
     initEntityManagers() {

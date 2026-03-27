@@ -265,28 +265,33 @@ func comboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, plac
 		passthroughStr = "true"
 	}
 
-	// Entity-specific formatLabel and formatCreateData
-	var formatLabel, formatCreateData string
+	// Entity-specific formatLabel, formatCreateData, and extraFields
+	var formatLabel, formatCreateData, extraFields string
 	switch entityType {
 	case "bean":
 		formatLabel = `(e) => { const n = e.name || e.Name || ''; const o = e.origin || e.Origin || ''; const r = e.roast_level || e.RoastLevel || ''; if (o && r) return n + ' (' + o + ' - ' + r + ')'; if (o) return n + ' (' + o + ')'; return n; }`
 		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.origin) d.origin = s.fields.origin; if (s.fields.roastLevel) d.roast_level = s.fields.roastLevel; if (s.fields.process) d.process = s.fields.process; } return d; }`
+		extraFields = `[{name:'origin',label:'Origin',type:'text',placeholder:'e.g. Ethiopia, Colombia'},{name:'roast_level',label:'Roast Level',type:'select',options:['Ultra-Light','Light','Medium-Light','Medium','Medium-Dark','Dark']},{name:'process',label:'Process',type:'text',placeholder:'e.g. Washed, Natural, Honey'}]`
 	case "brewer":
 		formatLabel = `(e) => e.name || e.Name || ''`
 		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields && s.fields.brewerType) d.brewer_type = s.fields.brewerType; return d; }`
+		extraFields = `[{name:'brewer_type',label:'Type',type:'select',options:['pourover','espresso','immersion','mokapot','coldbrew','cupping','other']}]`
 	case "grinder":
 		formatLabel = `(e) => e.name || e.Name || ''`
 		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.grinderType) d.grinder_type = s.fields.grinderType; if (s.fields.burrType) d.burr_type = s.fields.burrType; } return d; }`
+		extraFields = `[{name:'grinder_type',label:'Type',type:'select',options:['Hand','Electric','Portable Electric']},{name:'burr_type',label:'Burr Type',type:'select',options:['Conical','Flat']}]`
 	case "recipe":
 		formatLabel = `(e) => { const n = e.name || e.Name || ''; const bt = e.brewer_type || e.BrewerType || (e.fields && e.fields.brewerType) || ''; return bt ? n + ' (' + bt + ')' : n; }`
 		formatCreateData = `(name) => ({ name })`
+		extraFields = `[]`
 	default:
 		formatLabel = `(e) => e.name || e.Name || ''`
 		formatCreateData = `(name) => ({ name })`
+		extraFields = `[]`
 	}
 
-	return fmt.Sprintf(`comboSelect({ entityType: '%s', apiEndpoint: '%s', suggestEndpoint: '%s', inputName: '%s', placeholder: '%s', required: %s, passthrough: %s, formatLabel: %s, formatCreateData: %s })`,
-		entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, requiredStr, passthroughStr, formatLabel, formatCreateData)
+	return fmt.Sprintf(`comboSelect({ entityType: '%s', apiEndpoint: '%s', suggestEndpoint: '%s', inputName: '%s', placeholder: '%s', required: %s, passthrough: %s, formatLabel: %s, formatCreateData: %s, extraFields: %s })`,
+		entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, requiredStr, passthroughStr, formatLabel, formatCreateData, extraFields)
 }
 
 // comboSelectInput renders the shared input + dropdown markup for combo-select fields
@@ -384,6 +389,58 @@ templ comboSelectInput(sectionLabel string) {
 				<template x-if="allItems.length === 0 && query.trim()">
 					<div class="combo-creating">No matches found</div>
 				</template>
+			</div>
+		</template>
+	</div>
+	<!-- Inline create form with extra details -->
+	<div x-show="showCreateForm" x-transition x-cloak class="mt-2 p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
+		<p class="text-sm font-medium text-brown-900 mb-2">
+			Creating: <span x-text="createFormData.name" class="font-semibold"></span>
+		</p>
+		<template x-if="extraFields.length > 0">
+			<div class="space-y-2">
+				<template x-for="field in extraFields" :key="field.name">
+					<div>
+						<template x-if="field.type === 'select'">
+							<select
+								x-model="createFormData[field.name]"
+								class="w-full form-input text-sm"
+							>
+								<option value="" x-text="field.label + ' (optional)'"></option>
+								<template x-for="opt in field.options" :key="opt">
+									<option :value="opt" x-text="opt"></option>
+								</template>
+							</select>
+						</template>
+						<template x-if="field.type === 'text'">
+							<input
+								type="text"
+								:placeholder="field.placeholder || field.label"
+								x-model="createFormData[field.name]"
+								class="w-full form-input text-sm"
+							/>
+						</template>
+					</div>
+				</template>
+				<div class="flex gap-2 mt-2">
+					<button
+						type="button"
+						@click="submitCreateForm()"
+						class="flex-1 btn-primary text-sm py-1.5"
+						:disabled="isCreating"
+					>
+						<span x-show="!isCreating">Save</span>
+						<span x-show="isCreating">Saving...</span>
+					</button>
+					<button
+						type="button"
+						@click="skipCreateDetails()"
+						class="flex-1 btn-secondary text-sm py-1.5"
+						:disabled="isCreating"
+					>
+						Skip details
+					</button>
+				</div>
 			</div>
 		</template>
 	</div>
