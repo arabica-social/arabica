@@ -53,9 +53,15 @@ func witnessRecordToMap(wr *WitnessRecord) (map[string]interface{}, error) {
 }
 
 // getFromWitness fetches a single record by collection+rkey from the witness cache.
-// Returns nil when the cache is not configured or the record is not found.
+// Returns nil when the cache is not configured, the record is not found,
+// or the collection was recently written to (dirty).
 func (s *AtprotoStore) getFromWitness(ctx context.Context, collection, rkey string) *WitnessRecord {
 	if s.witnessCache == nil {
+		return nil
+	}
+	// Skip witness cache for collections with pending writes
+	if userCache := s.cache.Get(s.sessionID); userCache.IsDirty(collection) {
+		log.Debug().Str("collection", collection).Msg("witness: skipping dirty collection for single record, falling back to PDS")
 		return nil
 	}
 	uri := BuildATURI(s.did.String(), collection, rkey)
