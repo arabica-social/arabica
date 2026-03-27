@@ -13,6 +13,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	// Public Bluesky API
+	typeaheadProviderBluesky = "public.api.bsky.app"
+	// waow.tech https://tangled.org/zzstoatzz.io/typeahead
+	typeaheadProviderWaow = "typeahead.waow.tech"
+)
+
 // defaultHTTPClient is a shared HTTP client with connection pooling.
 // Reusing http.Client is recommended by the Go documentation as it
 // manages connection pooling and is safe for concurrent use.
@@ -366,7 +373,11 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 
 	// Try using the public API endpoint with typeahead parameter
 	// Some PDS instances support public search
-	searchURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/app.bsky.actor.searchActorsTypeahead?q=%s&limit=5", query)
+	searchURL := fmt.Sprintf(
+		"https://%s/xrpc/app.bsky.actor.searchActorsTypeahead?q=%s&limit=5",
+		typeaheadProviderWaow,
+		query,
+	)
 	resp, err := apiClient.Get(searchURL)
 	if err != nil {
 		log.Warn().Err(err).Str("query", query).Msg("Failed to search actors")

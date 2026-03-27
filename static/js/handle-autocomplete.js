@@ -55,7 +55,7 @@
 
       if (!data.actors || data.actors.length === 0) {
         results.innerHTML =
-          '<div class="px-4 py-3 text-sm text-gray-500">No accounts found</div>';
+          '<div class="handle-no-results">No accounts found</div>';
         results.classList.remove("hidden");
         return;
       }
@@ -70,8 +70,7 @@
 
         // Create container div
         const resultDiv = document.createElement("div");
-        resultDiv.className =
-          "handle-result px-3 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2";
+        resultDiv.className = "handle-result";
         resultDiv.setAttribute("data-handle", actor.handle);
 
         // Create avatar image
@@ -99,12 +98,12 @@
 
         // Create display name element
         const nameDiv = document.createElement("div");
-        nameDiv.className = "font-medium text-sm text-gray-900 truncate";
+        nameDiv.className = "handle-name";
         nameDiv.textContent = displayName; // textContent auto-escapes
 
         // Create handle element
         const handleDiv = document.createElement("div");
-        handleDiv.className = "text-xs text-gray-500 truncate";
+        handleDiv.className = "handle-at";
         handleDiv.textContent = "@" + actor.handle; // textContent auto-escapes
 
         // Assemble the elements

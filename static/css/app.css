@@ -677,6 +677,38 @@
     box-shadow: var(--shadow-lg);
   }
 
+  /* Handle autocomplete typeahead dropdown */
+  .handle-dropdown {
+    @apply absolute z-10 w-full mt-1 rounded-lg max-h-60 overflow-y-auto;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .handle-result {
+    @apply px-3 py-2 cursor-pointer flex items-center gap-2 transition-colors;
+    color: var(--text-primary);
+  }
+
+  .handle-result:hover {
+    background: var(--surface-bg);
+  }
+
+  .handle-result .handle-name {
+    @apply font-medium text-sm truncate;
+    color: var(--text-primary);
+  }
+
+  .handle-result .handle-at {
+    @apply text-xs truncate;
+    color: var(--text-muted);
+  }
+
+  .handle-no-results {
+    @apply px-4 py-3 text-sm;
+    color: var(--text-muted);
+  }
+
   /* Entity suggestion typeahead dropdown */
   .suggestions-dropdown {
     @apply absolute z-50 left-0 right-0 mt-1 rounded-lg max-h-48 overflow-y-auto;
