@@ -687,6 +687,7 @@
 
   .suggestions-item {
     @apply w-full text-left px-3 py-2 flex items-center gap-2 transition-colors cursor-pointer last:border-b-0;
+    color: var(--text-primary);
     border-bottom: 1px solid var(--surface-border);
   }
 
