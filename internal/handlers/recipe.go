@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"arabica/internal/atproto"
@@ -12,7 +13,6 @@ import (
 	"arabica/internal/models"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
-
 
 	"github.com/rs/zerolog/log"
 )
@@ -744,5 +744,32 @@ func (h *Handler) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render recipe explore page")
+	}
+}
+
+// HandlePopularRecipesPartial returns an HTML fragment of popular recipes for the home page.
+func (h *Handler) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Request) {
+	recipes, err := h.listAllRecipesFromIndex(r.Context())
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to fetch recipes for popular section")
+		return
+	}
+
+	// Sort by popularity: brew_count + fork_count, descending
+	sort.Slice(recipes, func(i, j int) bool {
+		si := recipes[i].BrewCount + recipes[i].ForkCount
+		sj := recipes[j].BrewCount + recipes[j].ForkCount
+		return si > sj
+	})
+
+	// Take top 6
+	if len(recipes) > 6 {
+		recipes = recipes[:6]
+	}
+
+	if err := components.PopularRecipes(components.PopularRecipesProps{
+		Recipes: recipes,
+	}).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render popular recipes")
 	}
 }

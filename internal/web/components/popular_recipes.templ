@@ -1,0 +1,143 @@
+package components
+
+import (
+	"arabica/internal/models"
+	"fmt"
+)
+
+// PopularRecipesProps defines the data for the popular recipes section
+type PopularRecipesProps struct {
+	Recipes []*models.Recipe
+}
+
+// PopularRecipes renders the popular recipes section for the home page
+templ PopularRecipes(props PopularRecipesProps) {
+	if len(props.Recipes) > 0 {
+		<div class="card p-4 sm:p-6 mb-6">
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="text-lg font-semibold text-brown-900">Popular Recipes</h3>
+				<a href="/recipes" class="text-sm text-brown-600 hover:text-brown-800 font-medium">
+					Explore all
+				</a>
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+				for _, recipe := range props.Recipes {
+					@popularRecipeCard(recipe)
+				}
+			</div>
+		</div>
+	}
+}
+
+templ popularRecipeCard(recipe *models.Recipe) {
+	<a
+		href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, recipe.AuthorDID)) }
+		class="feed-card feed-card-recipe block hover:shadow-md transition-shadow"
+	>
+		<!-- Author -->
+		<div class="flex items-center gap-2 mb-2">
+			if recipe.AuthorAvatar != "" {
+				<img src={ recipe.AuthorAvatar } class="w-6 h-6 rounded-full object-cover" alt=""/>
+			} else {
+				<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold">
+					{ authorInitial(recipe) }
+				</div>
+			}
+			<span class="text-xs text-brown-600 truncate">
+				if recipe.AuthorDisplay != "" {
+					{ recipe.AuthorDisplay }
+				} else if recipe.AuthorHandle != "" {
+					{ recipe.AuthorHandle }
+				}
+			</span>
+		</div>
+		<!-- Name + brewer -->
+		<h4 class="font-semibold text-brown-900 truncate mb-1">{ recipe.Name }</h4>
+		if recipe.BrewerType != "" {
+			<p class="text-xs text-brown-600 mb-2">{ formatBrewerType(recipe.BrewerType) }</p>
+		}
+		<!-- Stats -->
+		<div class="grid grid-cols-3 gap-1.5 mb-2">
+			<div class="text-center bg-brown-50/60 rounded py-1">
+				<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Coffee</span>
+				<span class="block text-xs font-medium text-brown-900">{ formatAmount(recipe.CoffeeAmount) }</span>
+			</div>
+			<div class="text-center bg-brown-50/60 rounded py-1">
+				<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Water</span>
+				<span class="block text-xs font-medium text-brown-900">{ formatAmount(recipe.WaterAmount) }</span>
+			</div>
+			<div class="text-center bg-brown-50/60 rounded py-1">
+				<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Ratio</span>
+				<span class="block text-xs font-medium text-brown-900">{ formatRatio(recipe) }</span>
+			</div>
+		</div>
+		<!-- Brew/Fork counts -->
+		if recipe.BrewCount > 0 || recipe.ForkCount > 0 {
+			<div class="flex items-center gap-3 pt-2 border-t border-brown-200/60 text-xs text-brown-500">
+				if recipe.BrewCount > 0 {
+					<span class="flex items-center gap-1">
+						@IconFlame()
+						{ fmt.Sprintf("%d brew%s", recipe.BrewCount, plural(recipe.BrewCount)) }
+					</span>
+				}
+				if recipe.ForkCount > 0 {
+					<span class="flex items-center gap-1">
+						@IconFork()
+						{ fmt.Sprintf("%d fork%s", recipe.ForkCount, plural(recipe.ForkCount)) }
+					</span>
+				}
+				if len(recipe.ForkerAvatars) > 0 {
+					<div class="flex -space-x-1.5 ml-auto">
+						for _, avatar := range recipe.ForkerAvatars[:min(3, len(recipe.ForkerAvatars))] {
+							<img src={ avatar } class="w-5 h-5 rounded-full object-cover border border-white"/>
+						}
+					</div>
+				}
+			</div>
+		}
+	</a>
+}
+
+func authorInitial(recipe *models.Recipe) string {
+	if recipe.AuthorDisplay != "" {
+		return string([]rune(recipe.AuthorDisplay)[:1])
+	}
+	if recipe.AuthorHandle != "" {
+		return string([]rune(recipe.AuthorHandle)[:1])
+	}
+	return "?"
+}
+
+func formatBrewerType(bt string) string {
+	if label, ok := models.BrewerTypeLabels[bt]; ok {
+		return label
+	}
+	return bt
+}
+
+func formatAmount(amount float64) string {
+	if amount <= 0 {
+		return "-"
+	}
+	if amount == float64(int(amount)) {
+		return fmt.Sprintf("%dg", int(amount))
+	}
+	return fmt.Sprintf("%.1fg", amount)
+}
+
+func formatRatio(recipe *models.Recipe) string {
+	if recipe.Ratio > 0 {
+		return fmt.Sprintf("1:%.1f", recipe.Ratio)
+	}
+	if recipe.CoffeeAmount > 0 && recipe.WaterAmount > 0 {
+		return fmt.Sprintf("1:%.1f", recipe.WaterAmount/recipe.CoffeeAmount)
+	}
+	return "-"
+}
+
+func plural(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
+}

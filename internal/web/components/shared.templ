@@ -223,24 +223,30 @@ templ WelcomeAuthenticated(userDID string) {
 			<a href="/atproto" class="text-brown-700 hover:text-brown-900 transition-colors">(What is this?)</a>
 		</p>
 	</div>
-	<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+	<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
 		<a
 			href="/brews/new"
-			class="home-action-primary block text-center py-4 px-6 rounded-xl"
+			class="home-action-primary block text-center py-4 px-4 rounded-xl"
 		>
-			<span class="text-lg font-semibold">Log Brew</span>
+			<span class="text-base font-semibold">Log Brew</span>
 		</a>
 		<a
 			href="/my-coffee"
-			class="home-action-secondary block text-center py-4 px-6 rounded-xl"
+			class="home-action-secondary block text-center py-4 px-4 rounded-xl"
 		>
-			<span class="text-lg font-semibold">My Coffee</span>
+			<span class="text-base font-semibold">My Coffee</span>
+		</a>
+		<a
+			href="/recipes"
+			class="home-action-secondary block text-center py-4 px-4 rounded-xl"
+		>
+			<span class="text-base font-semibold">Recipes</span>
 		</a>
 		<a
 			href={ templ.SafeURL("/profile/" + userDID) }
-			class="home-action-secondary block text-center py-4 px-6 rounded-xl"
+			class="home-action-secondary block text-center py-4 px-4 rounded-xl"
 		>
-			<span class="text-lg font-semibold">Profile</span>
+			<span class="text-base font-semibold">Profile</span>
 		</a>
 	</div>
 }

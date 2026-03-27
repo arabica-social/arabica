@@ -27,6 +27,11 @@ templ HomeContent(props HomeProps) {
 		if !props.IsAuthenticated {
 			@components.AboutInfoCard()
 		}
+		if props.IsAuthenticated {
+			<!-- Popular recipes loaded async -->
+			<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML">
+			</div>
+		}
 		@CommunityFeedSection(props.IsAuthenticated)
 		if props.IsAuthenticated {
 			@components.AboutInfoCard()
