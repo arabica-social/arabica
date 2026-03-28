@@ -322,6 +322,17 @@ document.addEventListener("alpine:init", () => {
         if (recipe.brewer_rkey) {
           this.onBrewerChange(recipe.brewer_rkey);
         }
+        // Fallback: use recipe's brewer_type directly if category wasn't
+        // resolved from the dropdown cache (e.g. cross-user recipe with no
+        // local brewer match, or stale cache).
+        if (!this.brewerCategory) {
+          const recipeBrewerType =
+            recipe.brewer_type || recipe.brewer_obj?.brewer_type || "";
+          if (recipeBrewerType) {
+            this.brewerCategory =
+              this.normalizeBrewerCategory(recipeBrewerType);
+          }
+        }
 
         // Always reset pours, then apply recipe pours if present
         this.pours =

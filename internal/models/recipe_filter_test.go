@@ -190,6 +190,34 @@ func TestRecipeInterpolate_NoCoffee(t *testing.T) {
 	assert.Equal(t, 0.0, recipe.Ratio) // can't compute ratio without coffee
 }
 
+func TestRecipeInterpolate_BrewerTypeFromObj(t *testing.T) {
+	// When BrewerType is empty but BrewerObj has a type, Interpolate should populate it
+	recipe := &Recipe{
+		Name:      "V60 Recipe",
+		BrewerObj: &Brewer{Name: "V60", BrewerType: BrewerTypePourover},
+	}
+	recipe.Interpolate()
+	assert.Equal(t, BrewerTypePourover, recipe.BrewerType)
+}
+
+func TestRecipeInterpolate_BrewerTypeAlreadySet(t *testing.T) {
+	// When BrewerType is already set, Interpolate should not overwrite it
+	recipe := &Recipe{
+		Name:       "Espresso Recipe",
+		BrewerType: BrewerTypeEspresso,
+		BrewerObj:  &Brewer{Name: "Gaggia", BrewerType: BrewerTypeOther},
+	}
+	recipe.Interpolate()
+	assert.Equal(t, BrewerTypeEspresso, recipe.BrewerType)
+}
+
+func TestRecipeInterpolate_NoBrewerObj(t *testing.T) {
+	// When no BrewerObj, BrewerType should remain empty
+	recipe := &Recipe{Name: "Basic Recipe"}
+	recipe.Interpolate()
+	assert.Equal(t, "", recipe.BrewerType)
+}
+
 func TestMatchesFilter_InterpolatesWaterFromPours(t *testing.T) {
 	// Recipe with no water_amount but pours that sum to 250g
 	recipe := &Recipe{

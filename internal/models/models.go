@@ -202,9 +202,14 @@ type Recipe struct {
 }
 
 // Interpolate fills in computed/derived fields from existing data.
+// - BrewerType from BrewerObj if not set
 // - WaterAmount from sum of pours if not set
 // - Ratio from water/coffee amounts
 func (r *Recipe) Interpolate() {
+	// Derive brewer type from joined brewer object if missing
+	if r.BrewerType == "" && r.BrewerObj != nil && r.BrewerObj.BrewerType != "" {
+		r.BrewerType = r.BrewerObj.BrewerType
+	}
 	// Derive water amount from pours if missing
 	if r.WaterAmount == 0 && len(r.Pours) > 0 {
 		var total int
