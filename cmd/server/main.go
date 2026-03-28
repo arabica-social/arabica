@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/logging"
 	"arabica/internal/database/boltstore"
 	"arabica/internal/database/sqlitestore"
 	"arabica/internal/email"
@@ -65,14 +66,9 @@ func main() {
 		})
 	}
 
-	// Configure slog default handler to match zerolog format.
-	// Third-party libraries (e.g. indigo OAuth) use slog, so without this
-	// their output bypasses zerolog and breaks structured log parsing.
-	if os.Getenv("LOG_FORMAT") == "json" {
-		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
-	} else {
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
-	}
+	// Bridge slog to zerolog so third-party libraries (e.g. indigo OAuth)
+	// produce output consistent with the rest of the application.
+	slog.SetDefault(slog.New(logging.NewZerologHandler(log.Logger)))
 
 	log.Info().Msg("Starting Arabica Coffee Tracker")
 
