@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -62,6 +63,15 @@ func main() {
 			Out:        os.Stdout,
 			TimeFormat: time.RFC3339,
 		})
+	}
+
+	// Configure slog default handler to match zerolog format.
+	// Third-party libraries (e.g. indigo OAuth) use slog, so without this
+	// their output bypasses zerolog and breaks structured log parsing.
+	if os.Getenv("LOG_FORMAT") == "json" {
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	} else {
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 	}
 
 	log.Info().Msg("Starting Arabica Coffee Tracker")

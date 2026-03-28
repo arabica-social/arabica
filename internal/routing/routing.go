@@ -192,10 +192,13 @@ func SetupRouter(cfg Config) http.Handler {
 	// 5. Apply logging middleware
 	handler = middleware.LoggingMiddleware(cfg.Logger)(handler)
 
-	// 6. Enrich trace spans with client page context (runs inside otelhttp span)
+	// 6. Inject trace_id into zerolog context (runs after otelhttp creates the span)
+	handler = middleware.RequestIDMiddleware(cfg.Logger)(handler)
+
+	// 7. Enrich trace spans with client page context (runs inside otelhttp span)
 	handler = pageContextMiddleware(handler)
 
-	// 7. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
+	// 8. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
 	handler = otelhttp.NewHandler(handler, "arabica",
 		otelhttp.WithFilter(func(r *http.Request) bool {
 			return !strings.HasPrefix(r.URL.Path, "/static/") && r.URL.Path != "/favicon.ico"

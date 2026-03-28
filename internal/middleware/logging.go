@@ -58,14 +58,20 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 			// Calculate duration
 			duration := time.Since(start)
 
+			// Use the context logger (enriched with trace_id by RequestIDMiddleware)
+			ctxLogger := zerolog.Ctx(r.Context())
+			if ctxLogger.GetLevel() == zerolog.Disabled {
+				ctxLogger = &logger
+			}
+
 			// Select log level based on status code
 			var logEvent *zerolog.Event
 			if rw.statusCode >= 500 {
-				logEvent = logger.Error()
+				logEvent = ctxLogger.Error()
 			} else if rw.statusCode >= 400 {
-				logEvent = logger.Warn()
+				logEvent = ctxLogger.Warn()
 			} else {
-				logEvent = logger.Info()
+				logEvent = ctxLogger.Info()
 			}
 
 			// Add core fields
@@ -96,7 +102,7 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 				logEvent.Str("user_did", did)
 			}
 
-			if logger.GetLevel() == zerolog.DebugLevel {
+			if ctxLogger.GetLevel() == zerolog.DebugLevel {
 				// Log all request headers for debugging malicious traffic (debug mode only)
 				headers := make(map[string]string)
 				for name, values := range r.Header {
