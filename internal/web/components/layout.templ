@@ -219,6 +219,15 @@ templ Layout(data *LayoutData, content templ.Component) {
 					// Increase history cache size to prevent cache misses
 					htmx.config.historyCacheSize = 20;
 
+					// Propagate W3C traceparent to HTMX requests so sub-requests
+					// (e.g. /api/feed, /api/popular-recipes) share the page's trace
+					var tp = document.querySelector('meta[name="traceparent"]');
+					if (tp) {
+						document.body.addEventListener('htmx:configRequest', function(evt) {
+							evt.detail.headers['traceparent'] = tp.content;
+						});
+					}
+
 					// Show session-expired modal on 401 responses
 					document.body.addEventListener('htmx:afterRequest', function(evt) {
 						if (evt.detail.xhr && evt.detail.xhr.status === 401) {
@@ -263,6 +272,9 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<script src="/static/js/data-cache.js?v=0.3.0"></script>
 			<script src="/static/js/sw-register.js?v=0.2.0"></script>
 		</head>
+		if tp := bff.Traceparent(ctx); tp != "" {
+			<meta name="traceparent" content={ tp }/>
+		}
 		<body
 			class="min-h-full flex flex-col"
 			style="background-color: var(--page-bg); color: var(--page-text);"
