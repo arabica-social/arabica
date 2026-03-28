@@ -235,7 +235,7 @@ func TestDeleteRecord(t *testing.T) {
 
 	// Index a record
 	record := []byte(`{"$type":"social.arabica.alpha.bean","name":"Test Bean","origin":"Ethiopia","createdAt":"2025-01-01T00:00:00Z"}`)
-	err = idx.UpsertRecord(did, collection, rkey, "cid123", record, time.Now().Unix())
+	err = idx.UpsertRecord(context.Background(), did, collection, rkey, "cid123", record, time.Now().Unix())
 	assert.NoError(t, err)
 
 	// Verify it exists
@@ -279,9 +279,9 @@ func TestDeleteRecord_DoesNotAffectOtherRecords(t *testing.T) {
 	// Index two records
 	record1 := []byte(`{"$type":"social.arabica.alpha.bean","name":"Bean One","createdAt":"2025-01-01T00:00:00Z"}`)
 	record2 := []byte(`{"$type":"social.arabica.alpha.bean","name":"Bean Two","createdAt":"2025-01-02T00:00:00Z"}`)
-	err = idx.UpsertRecord(did, collection, "bean1", "cid1", record1, time.Now().Unix())
+	err = idx.UpsertRecord(context.Background(), did, collection, "bean1", "cid1", record1, time.Now().Unix())
 	assert.NoError(t, err)
-	err = idx.UpsertRecord(did, collection, "bean2", "cid2", record2, time.Now().Unix())
+	err = idx.UpsertRecord(context.Background(), did, collection, "bean2", "cid2", record2, time.Now().Unix())
 	assert.NoError(t, err)
 
 	assert.Equal(t, 2, idx.RecordCount())
@@ -340,7 +340,7 @@ func TestDeleteRecord_AllEntityTypes(t *testing.T) {
 	}
 
 	for _, tt := range types {
-		err := idx.UpsertRecord(did, tt.collection, tt.rkey, "cid-"+tt.rkey, []byte(tt.record), now)
+		err := idx.UpsertRecord(context.Background(), did, tt.collection, tt.rkey, "cid-"+tt.rkey, []byte(tt.record), now)
 		assert.NoError(t, err, "failed to upsert %s", tt.collection)
 	}
 

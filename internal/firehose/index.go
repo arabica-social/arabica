@@ -15,11 +15,13 @@ import (
 	"arabica/internal/atproto"
 	"arabica/internal/lexicons"
 	"arabica/internal/models"
+	"arabica/internal/tracing"
 
 	"database/sql/driver"
 
 	"github.com/XSAM/otelsql"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	_ "modernc.org/sqlite"
@@ -378,8 +380,26 @@ func (idx *FeedIndex) SetCursor(cursor int64) error {
 	return err
 }
 
-// UpsertRecord adds or updates a record in the index
-func (idx *FeedIndex) UpsertRecord(did, collection, rkey, cid string, record json.RawMessage, eventTime int64) error {
+// UpsertRecord adds or updates a record in the index.
+// The context is used for OTel tracing; pass context.Background() for background operations.
+func (idx *FeedIndex) UpsertRecord(ctx context.Context, did, collection, rkey, cid string, record json.RawMessage, eventTime int64) error {
+	const stmt = `INSERT INTO records (uri, did, collection, rkey, record, cid, indexed_at, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(uri) DO UPDATE SET
+	record = excluded.record,
+	cid = excluded.cid,
+	indexed_at = excluded.indexed_at,
+	created_at = excluded.created_at`
+
+	ctx, span := tracing.SqliteSpan(ctx, "upsert", "records")
+	span.SetAttributes(
+		attribute.String("record.did", did),
+		attribute.String("record.collection", collection),
+		attribute.String("record.rkey", rkey),
+		attribute.String("db.statement", stmt),
+	)
+	defer span.End()
+
 	uri := atproto.BuildATURI(did, collection, rkey)
 
 	// Parse createdAt from record
@@ -395,23 +415,17 @@ func (idx *FeedIndex) UpsertRecord(did, collection, rkey, cid string, record jso
 
 	now := time.Now()
 
-	_, err := idx.db.Exec(`
-		INSERT INTO records (uri, did, collection, rkey, record, cid, indexed_at, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(uri) DO UPDATE SET
-			record = excluded.record,
-			cid = excluded.cid,
-			indexed_at = excluded.indexed_at,
-			created_at = excluded.created_at
-	`, uri, did, collection, rkey, string(record), cid,
+	_, err := idx.db.Exec(stmt, uri, did, collection, rkey, string(record), cid,
 		now.Format(time.RFC3339Nano), createdAt.Format(time.RFC3339Nano))
 	if err != nil {
+		tracing.EndWithError(span, err)
 		return fmt.Errorf("failed to upsert record: %w", err)
 	}
 
 	// Track known DID
 	_, err = idx.db.Exec(`INSERT OR IGNORE INTO known_dids (did) VALUES (?)`, did)
 	if err != nil {
+		tracing.EndWithError(span, err)
 		return fmt.Errorf("failed to track known DID: %w", err)
 	}
 
@@ -426,8 +440,85 @@ func (idx *FeedIndex) DeleteRecord(did, collection, rkey string) error {
 }
 
 // UpsertWitnessRecord implements atproto.WitnessCache for write-through caching.
-func (idx *FeedIndex) UpsertWitnessRecord(_ context.Context, did, collection, rkey, cid string, record json.RawMessage) error {
-	return idx.UpsertRecord(did, collection, rkey, cid, record, time.Now().UnixMicro())
+func (idx *FeedIndex) UpsertWitnessRecord(ctx context.Context, did, collection, rkey, cid string, record json.RawMessage) error {
+	return idx.UpsertRecord(ctx, did, collection, rkey, cid, record, time.Now().UnixMicro())
+}
+
+// UpsertWitnessRecordBatch implements atproto.WitnessCache batch upsert.
+// All records are inserted in a single transaction for efficiency.
+func (idx *FeedIndex) UpsertWitnessRecordBatch(ctx context.Context, records []atproto.WitnessWriteRecord) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	const upsertSQL = `INSERT INTO records (uri, did, collection, rkey, record, cid, indexed_at, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(uri) DO UPDATE SET
+	record = excluded.record,
+	cid = excluded.cid,
+	indexed_at = excluded.indexed_at,
+	created_at = excluded.created_at`
+
+	ctx, span := tracing.SqliteSpan(ctx, "upsert_batch", "records")
+	span.SetAttributes(
+		attribute.Int("batch.size", len(records)),
+		attribute.String("db.statement", upsertSQL),
+	)
+	defer span.End()
+
+	tx, err := idx.db.Begin()
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	stmt, err := tx.Prepare(upsertSQL)
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	now := time.Now()
+	seenDIDs := make(map[string]struct{})
+
+	for _, rec := range records {
+		uri := atproto.BuildATURI(rec.DID, rec.Collection, rec.RKey)
+
+		createdAt := now
+		var recordData map[string]any
+		if err := json.Unmarshal(rec.Record, &recordData); err == nil {
+			if createdAtStr, ok := recordData["createdAt"].(string); ok {
+				if t, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
+					createdAt = t
+				}
+			}
+		}
+
+		if _, err := stmt.Exec(uri, rec.DID, rec.Collection, rec.RKey,
+			string(rec.Record), rec.CID,
+			now.Format(time.RFC3339Nano), createdAt.Format(time.RFC3339Nano)); err != nil {
+			tracing.EndWithError(span, err)
+			return fmt.Errorf("failed to upsert record %s: %w", uri, err)
+		}
+		seenDIDs[rec.DID] = struct{}{}
+	}
+
+	// Track known DIDs (deduplicated)
+	for did := range seenDIDs {
+		if _, err := tx.Exec(`INSERT OR IGNORE INTO known_dids (did) VALUES (?)`, did); err != nil {
+			tracing.EndWithError(span, err)
+			return fmt.Errorf("failed to track known DID: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		tracing.EndWithError(span, err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 // DeleteWitnessRecord implements atproto.WitnessCache for write-through caching.
@@ -1196,7 +1287,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 				continue
 			}
 
-			if err := idx.UpsertRecord(did, collection, rkey, record.CID, recordJSON, 0); err != nil {
+			if err := idx.UpsertRecord(ctx, did, collection, rkey, record.CID, recordJSON, 0); err != nil {
 				log.Warn().Err(err).Str("uri", record.URI).Msg("failed to upsert record during backfill")
 				continue
 			}

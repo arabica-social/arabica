@@ -1,6 +1,7 @@
 package suggestions
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -32,7 +33,7 @@ func insertRecord(t *testing.T, idx *firehose.FeedIndex, did, collection, rkey s
 	fields["createdAt"] = time.Now().Format(time.RFC3339)
 	data, err := json.Marshal(fields)
 	assert.NoError(t, err)
-	err = idx.UpsertRecord(did, collection, rkey, "cid-"+rkey, data, 0)
+	err = idx.UpsertRecord(context.Background(), did, collection, rkey, "cid-"+rkey, data, 0)
 	assert.NoError(t, err)
 }
 

@@ -330,6 +330,7 @@ func (c *Consumer) processMessage(data []byte) error {
 			return nil
 		}
 		if err := c.index.UpsertRecord(
+			context.Background(),
 			event.DID,
 			commit.Collection,
 			commit.RKey,

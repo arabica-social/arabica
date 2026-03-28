@@ -7,10 +7,12 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/models"
+	"arabica/internal/tracing"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
 
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -405,8 +407,12 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.witnessCache != nil {
+		refreshCtx, refreshSpan := tracing.HandlerSpan(r.Context(), "manage.refresh.witness_sync",
+			attribute.String("user.did", didStr),
+		)
+		var batch []atproto.WitnessWriteRecord
 		for _, collection := range entityCollections {
-			output, err := h.atprotoClient.ListAllRecords(r.Context(), did, sessionID, collection)
+			output, err := h.atprotoClient.ListAllRecords(refreshCtx, did, sessionID, collection)
 			if err != nil {
 				log.Warn().Err(err).Str("collection", collection).Msg("refresh: failed to list records from PDS")
 				continue
@@ -420,13 +426,22 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 				if jsonErr != nil {
 					continue
 				}
-				if err := h.witnessCache.UpsertWitnessRecord(r.Context(), didStr, collection, rkey, rec.CID, recordJSON); err != nil {
-					log.Warn().Err(err).Str("uri", rec.URI).Msg("refresh: failed to write-through record")
-				}
+				batch = append(batch, atproto.WitnessWriteRecord{
+					DID:        didStr,
+					Collection: collection,
+					RKey:       rkey,
+					CID:        rec.CID,
+					Record:     recordJSON,
+				})
 			}
 			short := collection[strings.LastIndex(collection, ".")+1:]
-			log.Info().Str("collection", short).Int("count", len(output.Records)).Msg("refresh: synced collection from PDS")
+			log.Info().Str("collection", short).Int("count", len(output.Records)).Msg("refresh: fetched collection from PDS")
 		}
+		if err := h.witnessCache.UpsertWitnessRecordBatch(refreshCtx, batch); err != nil {
+			log.Error().Err(err).Msg("refresh: failed to batch upsert records")
+		}
+		refreshSpan.SetAttributes(attribute.Int("refresh.total_records", len(batch)))
+		refreshSpan.End()
 	}
 
 	// Now fetch and render the manage partial with fresh PDS data

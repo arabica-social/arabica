@@ -47,7 +47,20 @@ type WitnessCache interface {
 	// Used for write-through caching after successful PDS mutations.
 	UpsertWitnessRecord(ctx context.Context, did, collection, rkey, cid string, record json.RawMessage) error
 
+	// UpsertWitnessRecordBatch inserts or updates multiple records in a single
+	// transaction. Used for bulk operations like refresh/backfill.
+	UpsertWitnessRecordBatch(ctx context.Context, records []WitnessWriteRecord) error
+
 	// DeleteWitnessRecord removes a record from the cache.
 	// Used for write-through caching after successful PDS deletions.
 	DeleteWitnessRecord(ctx context.Context, did, collection, rkey string) error
+}
+
+// WitnessWriteRecord holds the fields needed to upsert a record into the witness cache.
+type WitnessWriteRecord struct {
+	DID        string
+	Collection string
+	RKey       string
+	CID        string
+	Record     json.RawMessage
 }

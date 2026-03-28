@@ -83,6 +83,27 @@ func PdsSpan(ctx context.Context, method, collection, did string) (context.Conte
 	)
 }
 
+// SqliteSpan starts a span for a SQLite operation with standard attributes.
+// Returns a no-op span if there is no parent span in ctx.
+func SqliteSpan(ctx context.Context, op, table string) (context.Context, trace.Span) {
+	if !trace.SpanFromContext(ctx).SpanContext().IsValid() {
+		return ctx, trace.SpanFromContext(ctx)
+	}
+	return tracer().Start(ctx, "sqlite."+op,
+		trace.WithAttributes(
+			attribute.String("db.system", "sqlite"),
+			attribute.String("db.operation", op),
+			attribute.String("db.sql.table", table),
+		),
+	)
+}
+
+// HandlerSpan starts a span for a logical operation within a handler.
+// Use this to group related work (e.g. a refresh loop) under a single span.
+func HandlerSpan(ctx context.Context, name string, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
+	return tracer().Start(ctx, name, trace.WithAttributes(attrs...))
+}
+
 // EndWithError records an error on a span and sets its status.
 // If err is nil, this is a no-op.
 func EndWithError(span trace.Span, err error) {
