@@ -26,22 +26,10 @@ type hideRequest struct {
 }
 
 // HandleHideRecord handles POST /admin/hide
+// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
-	// Check authentication
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	// Check permission
-	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionHideRecord) {
-		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/hide").Msg("Denied: insufficient permissions")
-		http.Error(w, "Permission denied", http.StatusForbidden)
-		return
-	}
-
-	// Parse form data only (JSON is rejected to prevent CSRF bypass)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -95,22 +83,10 @@ func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleUnhideRecord handles POST /admin/unhide
+// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
-	// Check authentication
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	// Check permission
-	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionUnhideRecord) {
-		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/unhide").Msg("Denied: insufficient permissions")
-		http.Error(w, "Permission denied", http.StatusForbidden)
-		return
-	}
-
-	// Parse form data only (JSON is rejected to prevent CSRF bypass)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -257,19 +233,9 @@ func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleAdminPartial renders just the admin dashboard content (for HTMX refresh)
+// Auth and moderator checks are handled by RequireModerator middleware.
 func (h *Handler) HandleAdminPartial(w http.ResponseWriter, r *http.Request) {
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	if h.moderationService == nil || !h.moderationService.IsModerator(userDID) {
-		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/content").Msg("Denied: not a moderator")
-		http.Error(w, "Access denied", http.StatusForbidden)
-		return
-	}
-
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 	adminProps := h.buildAdminProps(r.Context(), userDID)
 
 	if err := pages.AdminDashboardBody(adminProps).Render(r.Context(), w); err != nil {
@@ -366,22 +332,10 @@ type blockRequest struct {
 }
 
 // HandleBlockUser handles POST /_mod/block
+// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
-	// Check authentication
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	// Check permission
-	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionBlacklistUser) {
-		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/block").Msg("Denied: insufficient permissions")
-		http.Error(w, "Permission denied", http.StatusForbidden)
-		return
-	}
-
-	// Parse form data only (JSON is rejected to prevent CSRF bypass)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -433,22 +387,10 @@ func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleUnblockUser handles POST /_mod/unblock
+// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
-	// Check authentication
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	// Check permission
-	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionUnblacklistUser) {
-		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/unblock").Msg("Denied: insufficient permissions")
-		http.Error(w, "Permission denied", http.StatusForbidden)
-		return
-	}
-
-	// Parse form data only (JSON is rejected to prevent CSRF bypass)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -492,18 +434,9 @@ func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
 
 // HandleResetAutoHide handles POST /_mod/reset-autohide
 // Resets the per-user auto-hide report counter so that only future reports count toward the threshold.
+// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionResetAutoHide) {
-		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/reset-autohide").Msg("Denied: insufficient permissions")
-		http.Error(w, "Permission denied", http.StatusForbidden)
-		return
-	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -545,22 +478,10 @@ func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleDismissReport handles POST /_mod/dismiss-report
+// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
-	// Check authentication
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	// Check permission
-	if h.moderationService == nil || !h.moderationService.HasPermission(userDID, moderation.PermissionDismissReport) {
-		log.Warn().Str("did", userDID).Str("endpoint", "/_mod/dismiss-report").Msg("Denied: insufficient permissions")
-		http.Error(w, "Permission denied", http.StatusForbidden)
-		return
-	}
-
-	// Parse request
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -641,18 +562,8 @@ func getGaugeValue(g prometheus.Gauge) float64 {
 }
 
 // HandleAdminStats renders the stats partial for HTMX refresh.
+// Auth and admin checks are handled by RequireAdmin middleware.
 func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	if h.moderationService == nil || !h.moderationService.IsAdmin(userDID) {
-		http.Error(w, "Access denied", http.StatusForbidden)
-		return
-	}
-
 	stats := h.collectAdminStats(r.Context())
 
 	if err := pages.AdminStatsContent(stats).Render(r.Context(), w); err != nil {

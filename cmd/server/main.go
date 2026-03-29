@@ -397,9 +397,10 @@ func main() {
 
 	// Setup router with middleware
 	handler := routing.SetupRouter(routing.Config{
-		Handlers:     h,
-		OAuthManager: oauthManager,
-		Logger:       log.Logger,
+		Handlers:          h,
+		OAuthManager:      oauthManager,
+		Logger:            log.Logger,
+		ModerationService: moderationSvc,
 	})
 
 	// Start internal metrics server on localhost only (not publicly accessible)

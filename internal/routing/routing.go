@@ -7,6 +7,7 @@ import (
 	"arabica/internal/atproto"
 	"arabica/internal/handlers"
 	"arabica/internal/middleware"
+	"arabica/internal/moderation"
 
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -16,9 +17,10 @@ import (
 
 // Config holds the configuration needed for setting up routes
 type Config struct {
-	Handlers     *handlers.Handler
-	OAuthManager *atproto.OAuthManager
-	Logger       zerolog.Logger
+	Handlers          *handlers.Handler
+	OAuthManager      *atproto.OAuthManager
+	Logger            zerolog.Logger
+	ModerationService *moderation.Service
 }
 
 // SetupRouter creates and configures the HTTP router with all routes and middleware
@@ -149,17 +151,29 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
 
 	// Moderation routes
+	// HandleAdmin keeps its own auth check (redirects to / instead of 401)
+	modSvc := cfg.ModerationService
 	mux.HandleFunc("GET /_mod", h.HandleAdmin)
-	mux.Handle("GET /_mod/content", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial)))
-	mux.Handle("POST /_mod/hide", cop.Handler(http.HandlerFunc(h.HandleHideRecord)))
-	mux.Handle("POST /_mod/unhide", cop.Handler(http.HandlerFunc(h.HandleUnhideRecord)))
-	mux.Handle("POST /_mod/dismiss-report", cop.Handler(http.HandlerFunc(h.HandleDismissReport)))
-	mux.Handle("POST /_mod/reset-autohide", cop.Handler(http.HandlerFunc(h.HandleResetAutoHide)))
-	mux.Handle("POST /_mod/block", cop.Handler(http.HandlerFunc(h.HandleBlockUser)))
-	mux.Handle("POST /_mod/unblock", cop.Handler(http.HandlerFunc(h.HandleUnblockUser)))
-	mux.Handle("POST /_mod/invite", cop.Handler(http.HandlerFunc(h.HandleCreateInvite)))
-	mux.Handle("POST /_mod/dismiss-join", cop.Handler(http.HandlerFunc(h.HandleDismissJoinRequest)))
-	mux.Handle("GET /_mod/stats", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats)))
+	mux.Handle("GET /_mod/content", middleware.RequireModerator(modSvc,
+		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial))))
+	mux.Handle("POST /_mod/hide", cop.Handler(
+		middleware.RequirePermission(modSvc, moderation.PermissionHideRecord, http.HandlerFunc(h.HandleHideRecord))))
+	mux.Handle("POST /_mod/unhide", cop.Handler(
+		middleware.RequirePermission(modSvc, moderation.PermissionUnhideRecord, http.HandlerFunc(h.HandleUnhideRecord))))
+	mux.Handle("POST /_mod/dismiss-report", cop.Handler(
+		middleware.RequirePermission(modSvc, moderation.PermissionDismissReport, http.HandlerFunc(h.HandleDismissReport))))
+	mux.Handle("POST /_mod/reset-autohide", cop.Handler(
+		middleware.RequirePermission(modSvc, moderation.PermissionResetAutoHide, http.HandlerFunc(h.HandleResetAutoHide))))
+	mux.Handle("POST /_mod/block", cop.Handler(
+		middleware.RequirePermission(modSvc, moderation.PermissionBlacklistUser, http.HandlerFunc(h.HandleBlockUser))))
+	mux.Handle("POST /_mod/unblock", cop.Handler(
+		middleware.RequirePermission(modSvc, moderation.PermissionUnblacklistUser, http.HandlerFunc(h.HandleUnblockUser))))
+	mux.Handle("POST /_mod/invite", cop.Handler(
+		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleCreateInvite))))
+	mux.Handle("POST /_mod/dismiss-join", cop.Handler(
+		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleDismissJoinRequest))))
+	mux.Handle("GET /_mod/stats", middleware.RequireAdmin(modSvc,
+		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
 
 	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("static"))

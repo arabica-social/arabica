@@ -97,16 +97,9 @@ func (h *Handler) renderJoinSuccess(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleCreateInvite creates a PDS invite code and emails it to the requester.
+// Auth and admin checks are handled by RequireAdmin middleware.
 func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-	if h.moderationService == nil || !h.moderationService.IsAdmin(userDID) {
-		http.Error(w, "Access denied", http.StatusForbidden)
-		return
-	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -207,16 +200,9 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleDismissJoinRequest removes a join request without sending an invite.
+// Auth and admin checks are handled by RequireAdmin middleware.
 func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Request) {
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-	if h.moderationService == nil || !h.moderationService.IsAdmin(userDID) {
-		http.Error(w, "Access denied", http.StatusForbidden)
-		return
-	}
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)

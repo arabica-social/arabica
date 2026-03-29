@@ -189,6 +189,13 @@ const (
 	contextKeySessionData contextKey = "sessionData"
 )
 
+// ContextWithAuthDID returns a context with the given DID set as the
+// authenticated user. This is useful for testing middleware and handlers that
+// call GetAuthenticatedDID.
+func ContextWithAuthDID(ctx context.Context, did string) context.Context {
+	return context.WithValue(ctx, contextKeyUserDID, did)
+}
+
 // GetAuthenticatedDID retrieves the authenticated user's DID from the request context
 func GetAuthenticatedDID(ctx context.Context) (string, error) {
 	did, ok := ctx.Value(contextKeyUserDID).(string)
