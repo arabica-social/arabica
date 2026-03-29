@@ -19,8 +19,8 @@ func GetClientIP(r *http.Request) string {
 	// Check X-Forwarded-For header (can contain multiple IPs: client, proxy1, proxy2)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		// Take the first IP (the original client)
-		if idx := strings.Index(xff, ","); idx != -1 {
-			return strings.TrimSpace(xff[:idx])
+		if before, _, ok := strings.Cut(xff, ","); ok {
+			return strings.TrimSpace(before)
 		}
 		return strings.TrimSpace(xff)
 	}

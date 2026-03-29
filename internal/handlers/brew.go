@@ -318,7 +318,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 }
 
 // resolveBrewReferences resolves bean, grinder, and brewer references for a brew
-func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]interface{}) error {
+func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]any) error {
 	publicClient := atproto.NewPublicClient()
 
 	// Resolve bean reference
@@ -366,7 +366,7 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, 
 
 // resolveBrewRefsFromWitness resolves a brew's references (bean, grinder, brewer, recipe)
 // from the witness cache, avoiding PDS calls for public brew views.
-func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]interface{}) {
+func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]any) {
 	if h.witnessCache == nil {
 		return
 	}
@@ -543,7 +543,7 @@ const maxPours = 100
 func parsePours(r *http.Request) []models.CreatePourData {
 	var pours []models.CreatePourData
 
-	for i := 0; i < maxPours; i++ {
+	for i := range maxPours {
 		waterKey := "pour_water_" + strconv.Itoa(i)
 		timeKey := "pour_time_" + strconv.Itoa(i)
 

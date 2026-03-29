@@ -428,10 +428,10 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		wg.Add(numGoroutines * 2)
 
 		// Writers
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer wg.Done()
-				for j := 0; j < numOperations; j++ {
+				for range numOperations {
 					sessionID := "session"
 					userCache := &UserCache{
 						Beans:     []*models.Bean{{RKey: "bean"}},
@@ -443,10 +443,10 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Readers
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer wg.Done()
-				for j := 0; j < numOperations; j++ {
+				for range numOperations {
 					cache.Get("session")
 				}
 			}(i)
@@ -470,35 +470,35 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			for i := 0; i < numOperations; i++ {
+			for range numOperations {
 				cache.SetBeans(sessionID, []*models.Bean{{RKey: "bean"}})
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
-			for i := 0; i < numOperations; i++ {
+			for range numOperations {
 				cache.SetRoasters(sessionID, []*models.Roaster{{RKey: "roaster"}})
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
-			for i := 0; i < numOperations; i++ {
+			for range numOperations {
 				cache.InvalidateBeans(sessionID)
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
-			for i := 0; i < numOperations; i++ {
+			for range numOperations {
 				cache.InvalidateRoasters(sessionID)
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
-			for i := 0; i < numOperations; i++ {
+			for range numOperations {
 				cache.Get(sessionID)
 			}
 		}()
@@ -514,7 +514,7 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		// Writer
 		go func() {
 			defer wg.Done()
-			for i := 0; i < numOperations; i++ {
+			for range numOperations {
 				cache.Set("session", &UserCache{
 					Beans:     []*models.Bean{{RKey: "bean"}},
 					Timestamp: time.Now(),
@@ -525,7 +525,7 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		// Reader
 		go func() {
 			defer wg.Done()
-			for i := 0; i < numOperations; i++ {
+			for range numOperations {
 				cache.Get("session")
 			}
 		}()
@@ -533,7 +533,7 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		// Cleanup
 		go func() {
 			defer wg.Done()
-			for i := 0; i < numOperations; i++ {
+			for range numOperations {
 				cache.Cleanup()
 			}
 		}()

@@ -79,7 +79,7 @@ func TestBrewToRecord(t *testing.T) {
 		}
 
 		// Check pours
-		pours, ok := record["pours"].([]map[string]interface{})
+		pours, ok := record["pours"].([]map[string]any)
 		if !ok {
 			t.Fatalf("pours is not []map[string]interface{}")
 		}
@@ -135,7 +135,7 @@ func TestBrewToRecord(t *testing.T) {
 
 func TestRecordToBrew(t *testing.T) {
 	t.Run("full record", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":        NSIDBrew,
 			"beanRef":      "at://did:plc:test/social.arabica.alpha.bean/bean123",
 			"createdAt":    "2025-01-10T12:00:00Z",
@@ -148,9 +148,9 @@ func TestRecordToBrew(t *testing.T) {
 			"brewerRef":    "at://did:plc:test/social.arabica.alpha.brewer/brewer123",
 			"tastingNotes": "Fruity",
 			"rating":       float64(8),
-			"pours": []interface{}{
-				map[string]interface{}{"waterAmount": float64(50), "timeSeconds": float64(30)},
-				map[string]interface{}{"waterAmount": float64(100), "timeSeconds": float64(60)},
+			"pours": []any{
+				map[string]any{"waterAmount": float64(50), "timeSeconds": float64(30)},
+				map[string]any{"waterAmount": float64(100), "timeSeconds": float64(60)},
 			},
 		}
 
@@ -198,7 +198,7 @@ func TestRecordToBrew(t *testing.T) {
 	})
 
 	t.Run("error without beanRef", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":     NSIDBrew,
 			"createdAt": "2025-01-10T12:00:00Z",
 		}
@@ -210,7 +210,7 @@ func TestRecordToBrew(t *testing.T) {
 	})
 
 	t.Run("error without createdAt", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":   NSIDBrew,
 			"beanRef": "at://did:plc:test/social.arabica.alpha.bean/bean123",
 		}
@@ -222,7 +222,7 @@ func TestRecordToBrew(t *testing.T) {
 	})
 
 	t.Run("error with invalid AT-URI", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":     NSIDBrew,
 			"beanRef":   "at://did:plc:test/social.arabica.alpha.bean/bean123",
 			"createdAt": "2025-01-10T12:00:00Z",
@@ -297,7 +297,7 @@ func TestBeanToRecord(t *testing.T) {
 
 func TestRecordToBean(t *testing.T) {
 	t.Run("full record", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":       NSIDBean,
 			"name":        "Ethiopian Yirgacheffe",
 			"origin":      "Ethiopia",
@@ -334,7 +334,7 @@ func TestRecordToBean(t *testing.T) {
 	})
 
 	t.Run("error without name", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":     NSIDBean,
 			"createdAt": "2025-01-10T12:00:00Z",
 		}
@@ -379,7 +379,7 @@ func TestRoasterToRecord(t *testing.T) {
 
 func TestRecordToRoaster(t *testing.T) {
 	t.Run("full record", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":     NSIDRoaster,
 			"name":      "Counter Culture",
 			"location":  "Durham, NC",
@@ -408,7 +408,7 @@ func TestRecordToRoaster(t *testing.T) {
 	})
 
 	t.Run("error without name", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":     NSIDRoaster,
 			"createdAt": "2025-01-10T12:00:00Z",
 		}
@@ -457,7 +457,7 @@ func TestGrinderToRecord(t *testing.T) {
 
 func TestRecordToGrinder(t *testing.T) {
 	t.Run("full record", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":       NSIDGrinder,
 			"name":        "Comandante C40",
 			"grinderType": "Hand",
@@ -519,7 +519,7 @@ func TestBrewerToRecord(t *testing.T) {
 
 func TestRecordToBrewer(t *testing.T) {
 	t.Run("full record", func(t *testing.T) {
-		record := map[string]interface{}{
+		record := map[string]any{
 			"$type":       NSIDBrewer,
 			"name":        "Hario V60",
 			"description": "Pour-over dripper",
@@ -738,7 +738,7 @@ func TestBrewRoundTrip_EspressoParams(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify espressoParams is in the record
-	ep, ok := record["espressoParams"].(map[string]interface{})
+	ep, ok := record["espressoParams"].(map[string]any)
 	assert.True(t, ok)
 	assert.Equal(t, 360, ep["yieldWeight"]) // 36.0 * 10
 	assert.Equal(t, 90, ep["pressure"])     // 9.0 * 10
@@ -767,7 +767,7 @@ func TestBrewRoundTrip_PouroverParams(t *testing.T) {
 	record, err := BrewToRecord(original, "at://did:plc:test/social.arabica.alpha.bean/abc123", "", "", "")
 	assert.NoError(t, err)
 
-	pp, ok := record["pouroverParams"].(map[string]interface{})
+	pp, ok := record["pouroverParams"].(map[string]any)
 	assert.True(t, ok)
 	assert.Equal(t, 50, pp["bloomWater"])
 	assert.Equal(t, 45, pp["bloomSeconds"])

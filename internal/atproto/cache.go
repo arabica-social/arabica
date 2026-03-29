@@ -1,6 +1,7 @@
 package atproto
 
 import (
+	"maps"
 	"sync"
 	"time"
 
@@ -53,9 +54,7 @@ func (c *UserCache) clone() *UserCache {
 	var dirty map[string]bool
 	if c.DirtyCollections != nil {
 		dirty = make(map[string]bool, len(c.DirtyCollections))
-		for k, v := range c.DirtyCollections {
-			dirty[k] = v
-		}
+		maps.Copy(dirty, c.DirtyCollections)
 	}
 	return &UserCache{
 		Beans:            c.Beans,

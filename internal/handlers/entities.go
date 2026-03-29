@@ -186,7 +186,7 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	// Link beans to roasters
 	atproto.LinkBeansToRoasters(beans, roasters)
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"did":      userDID,
 		"beans":    beans,
 		"roasters": roasters,

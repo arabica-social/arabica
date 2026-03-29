@@ -177,7 +177,7 @@ func isJSONRequest(r *http.Request) bool {
 // decodeRequest decodes either JSON or form data into the target interface based on Content-Type.
 // The parseForm function is called when the request is form-encoded (not JSON).
 // Returns an error if parsing fails.
-func decodeRequest(r *http.Request, target interface{}, parseForm func() error) error {
+func decodeRequest(r *http.Request, target any, parseForm func() error) error {
 	if isJSONRequest(r) {
 		// Parse as JSON
 		if err := json.NewDecoder(r.Body).Decode(target); err != nil {
@@ -208,7 +208,7 @@ func parseOptionalInt(s string) *int {
 }
 
 // writeJSON encodes and writes a JSON response
-func writeJSON(w http.ResponseWriter, v interface{}, entityName string) {
+func writeJSON(w http.ResponseWriter, v any, entityName string) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		log.Error().Err(err).Msg("Failed to encode " + entityName + " response")

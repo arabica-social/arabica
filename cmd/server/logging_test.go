@@ -62,7 +62,7 @@ did:plc:xyz789
 	}
 
 	// Parse as JSON to verify structure
-	var logEntry map[string]interface{}
+	var logEntry map[string]any
 	if err := json.Unmarshal([]byte(strings.TrimSpace(logOutput)), &logEntry); err != nil {
 		t.Fatalf("Failed to parse log as JSON: %v\nOutput: %s", err, logOutput)
 	}
@@ -77,7 +77,7 @@ did:plc:xyz789
 	}
 
 	// Verify DIDs array is present
-	didsFromLog, ok := logEntry["dids"].([]interface{})
+	didsFromLog, ok := logEntry["dids"].([]any)
 	if !ok {
 		t.Fatalf("Expected 'dids' to be an array, got %T", logEntry["dids"])
 	}

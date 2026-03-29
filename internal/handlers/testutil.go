@@ -133,7 +133,7 @@ const (
 )
 
 // NewAuthenticatedRequest creates a request with authentication context
-func NewAuthenticatedRequest(method, path string, body interface{}) *http.Request {
+func NewAuthenticatedRequest(method, path string, body any) *http.Request {
 	req := httptest.NewRequest(method, path, nil)
 
 	// Add authenticated DID to context using the same keys as OAuth middleware
@@ -150,7 +150,7 @@ func NewUnauthenticatedRequest(method, path string) *http.Request {
 
 // AssertResponseCode checks if the response has the expected status code
 func AssertResponseCode(t interface {
-	Errorf(format string, args ...interface{})
+	Errorf(format string, args ...any)
 }, rec *httptest.ResponseRecorder, expected int) {
 	if rec.Code != expected {
 		t.Errorf("Expected status code %d, got %d. Body: %s", expected, rec.Code, rec.Body.String())

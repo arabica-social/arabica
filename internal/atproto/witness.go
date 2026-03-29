@@ -20,8 +20,8 @@ type WitnessRecord struct {
 
 // WitnessRecordToMap unmarshals a WitnessRecord's raw JSON into the map format
 // expected by the Record* conversion functions.
-func WitnessRecordToMap(wr *WitnessRecord) (map[string]interface{}, error) {
-	var m map[string]interface{}
+func WitnessRecordToMap(wr *WitnessRecord) (map[string]any, error) {
+	var m map[string]any
 	if err := json.Unmarshal(wr.Record, &m); err != nil {
 		return nil, err
 	}

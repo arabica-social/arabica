@@ -82,7 +82,7 @@ func (c *Client) getAuthenticatedAPIClient(ctx context.Context, did syntax.DID, 
 // CreateRecordInput contains parameters for creating a record
 type CreateRecordInput struct {
 	Collection string
-	Record     interface{}
+	Record     any
 	RKey       *string // Optional, if nil a TID will be generated
 }
 
@@ -104,7 +104,7 @@ func (c *Client) CreateRecord(ctx context.Context, did syntax.DID, sessionID str
 	}
 
 	// Build the request body
-	body := map[string]interface{}{
+	body := map[string]any{
 		"repo":       did.String(),
 		"collection": input.Collection,
 		"record":     input.Record,
@@ -159,7 +159,7 @@ type GetRecordInput struct {
 type GetRecordOutput struct {
 	URI   string
 	CID   string
-	Value map[string]interface{}
+	Value map[string]any
 }
 
 // GetRecord retrieves a single record by its rkey
@@ -182,9 +182,9 @@ func (c *Client) GetRecord(ctx context.Context, did syntax.DID, sessionID string
 
 	// Use the API client's Get method to call com.atproto.repo.getRecord
 	var result struct {
-		URI   string                 `json:"uri"`
-		CID   string                 `json:"cid"`
-		Value map[string]interface{} `json:"value"`
+		URI   string         `json:"uri"`
+		CID   string         `json:"cid"`
+		Value map[string]any `json:"value"`
 	}
 
 	err = apiClient.Get(ctx, "com.atproto.repo.getRecord", params, &result)
@@ -236,7 +236,7 @@ type ListRecordsOutput struct {
 type Record struct {
 	URI   string
 	CID   string
-	Value map[string]interface{}
+	Value map[string]any
 }
 
 // ListRecords retrieves a list of records from a collection
@@ -266,9 +266,9 @@ func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID stri
 	// Use the API client's Get method to call com.atproto.repo.listRecords
 	var result struct {
 		Records []struct {
-			URI   string                 `json:"uri"`
-			CID   string                 `json:"cid"`
-			Value map[string]interface{} `json:"value"`
+			URI   string         `json:"uri"`
+			CID   string         `json:"cid"`
+			Value map[string]any `json:"value"`
 		} `json:"records"`
 		Cursor *string `json:"cursor,omitempty"`
 	}
@@ -382,7 +382,7 @@ func (c *Client) ListAllRecords(ctx context.Context, did syntax.DID, sessionID s
 type PutRecordInput struct {
 	Collection string
 	RKey       string
-	Record     interface{}
+	Record     any
 }
 
 // PutRecord updates an existing record in the user's repository
@@ -397,7 +397,7 @@ func (c *Client) PutRecord(ctx context.Context, did syntax.DID, sessionID string
 	}
 
 	// Build the request body
-	body := map[string]interface{}{
+	body := map[string]any{
 		"repo":       did.String(),
 		"collection": input.Collection,
 		"rkey":       input.RKey,
@@ -456,7 +456,7 @@ func (c *Client) DeleteRecord(ctx context.Context, did syntax.DID, sessionID str
 	}
 
 	// Build the request body
-	body := map[string]interface{}{
+	body := map[string]any{
 		"repo":       did.String(),
 		"collection": input.Collection,
 		"rkey":       input.RKey,

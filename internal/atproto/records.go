@@ -11,7 +11,7 @@ import (
 
 // toFloat64 extracts a numeric value from an interface{} that may be int or float64.
 // JSON decoding produces float64, but in-memory maps may contain int.
-func toFloat64(v interface{}) (float64, bool) {
+func toFloat64(v any) (float64, bool) {
 	switch n := v.(type) {
 	case float64:
 		return n, true
@@ -25,8 +25,8 @@ func toFloat64(v interface{}) (float64, bool) {
 // ========== Recipe Conversions ==========
 
 // RecipeToRecord converts a models.Recipe to an atproto record map
-func RecipeToRecord(recipe *models.Recipe, brewerURI string) (map[string]interface{}, error) {
-	record := map[string]interface{}{
+func RecipeToRecord(recipe *models.Recipe, brewerURI string) (map[string]any, error) {
+	record := map[string]any{
 		"$type":     NSIDRecipe,
 		"name":      recipe.Name,
 		"createdAt": recipe.CreatedAt.Format(time.RFC3339),
@@ -52,9 +52,9 @@ func RecipeToRecord(recipe *models.Recipe, brewerURI string) (map[string]interfa
 	}
 
 	if len(recipe.Pours) > 0 {
-		pours := make([]map[string]interface{}, len(recipe.Pours))
+		pours := make([]map[string]any, len(recipe.Pours))
 		for i, pour := range recipe.Pours {
-			pours[i] = map[string]interface{}{
+			pours[i] = map[string]any{
 				"waterAmount": pour.WaterAmount,
 				"timeSeconds": pour.TimeSeconds,
 			}
@@ -66,7 +66,7 @@ func RecipeToRecord(recipe *models.Recipe, brewerURI string) (map[string]interfa
 }
 
 // RecordToRecipe converts an atproto record map to a models.Recipe
-func RecordToRecipe(record map[string]interface{}, atURI string) (*models.Recipe, error) {
+func RecordToRecipe(record map[string]any, atURI string) (*models.Recipe, error) {
 	recipe := &models.Recipe{}
 
 	if atURI != "" {
@@ -109,10 +109,10 @@ func RecordToRecipe(record map[string]interface{}, atURI string) (*models.Recipe
 		recipe.SourceRef = sourceRef
 	}
 
-	if poursRaw, ok := record["pours"].([]interface{}); ok {
+	if poursRaw, ok := record["pours"].([]any); ok {
 		recipe.Pours = make([]*models.Pour, len(poursRaw))
 		for i, pourRaw := range poursRaw {
-			pourMap, ok := pourRaw.(map[string]interface{})
+			pourMap, ok := pourRaw.(map[string]any)
 			if !ok {
 				continue
 			}
@@ -135,12 +135,12 @@ func RecordToRecipe(record map[string]interface{}, atURI string) (*models.Recipe
 
 // BrewToRecord converts a models.Brew to an atproto record map
 // Note: References (beanRef, grinderRef, brewerRef, recipeRef) must be AT-URIs
-func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI string) (map[string]interface{}, error) {
+func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI string) (map[string]any, error) {
 	if beanURI == "" {
 		return nil, fmt.Errorf("beanRef (AT-URI) is required")
 	}
 
-	record := map[string]interface{}{
+	record := map[string]any{
 		"$type":     NSIDBrew,
 		"beanRef":   beanURI,
 		"createdAt": brew.CreatedAt.Format(time.RFC3339),
@@ -184,9 +184,9 @@ func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI s
 
 	// Convert pours to embedded array
 	if len(brew.Pours) > 0 {
-		pours := make([]map[string]interface{}, len(brew.Pours))
+		pours := make([]map[string]any, len(brew.Pours))
 		for i, pour := range brew.Pours {
-			pours[i] = map[string]interface{}{
+			pours[i] = map[string]any{
 				"waterAmount": pour.WaterAmount,
 				"timeSeconds": pour.TimeSeconds,
 			}
@@ -196,7 +196,7 @@ func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI s
 
 	// Espresso-specific params
 	if brew.EspressoParams != nil {
-		ep := map[string]interface{}{}
+		ep := map[string]any{}
 		if brew.EspressoParams.YieldWeight > 0 {
 			ep["yieldWeight"] = int(brew.EspressoParams.YieldWeight * 10) // tenths of a gram
 		}
@@ -213,7 +213,7 @@ func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI s
 
 	// Pour-over-specific params
 	if brew.PouroverParams != nil {
-		pp := map[string]interface{}{}
+		pp := map[string]any{}
 		if brew.PouroverParams.BloomWater > 0 {
 			pp["bloomWater"] = brew.PouroverParams.BloomWater
 		}
@@ -236,7 +236,7 @@ func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI s
 
 // RecordToBrew converts an atproto record map to a models.Brew
 // The atURI parameter should be the full AT-URI of this brew record
-func RecordToBrew(record map[string]interface{}, atURI string) (*models.Brew, error) {
+func RecordToBrew(record map[string]any, atURI string) (*models.Brew, error) {
 	brew := &models.Brew{}
 
 	// Extract rkey from AT-URI
@@ -295,10 +295,10 @@ func RecordToBrew(record map[string]interface{}, atURI string) (*models.Brew, er
 	}
 
 	// Convert pours from embedded array
-	if poursRaw, ok := record["pours"].([]interface{}); ok {
+	if poursRaw, ok := record["pours"].([]any); ok {
 		brew.Pours = make([]*models.Pour, len(poursRaw))
 		for i, pourRaw := range poursRaw {
-			pourMap, ok := pourRaw.(map[string]interface{})
+			pourMap, ok := pourRaw.(map[string]any)
 			if !ok {
 				continue
 			}
@@ -315,7 +315,7 @@ func RecordToBrew(record map[string]interface{}, atURI string) (*models.Brew, er
 	}
 
 	// Espresso params
-	if epRaw, ok := record["espressoParams"].(map[string]interface{}); ok {
+	if epRaw, ok := record["espressoParams"].(map[string]any); ok {
 		ep := &models.EspressoParams{}
 		if v, ok := toFloat64(epRaw["yieldWeight"]); ok {
 			ep.YieldWeight = v / 10.0
@@ -330,7 +330,7 @@ func RecordToBrew(record map[string]interface{}, atURI string) (*models.Brew, er
 	}
 
 	// Pour-over params
-	if ppRaw, ok := record["pouroverParams"].(map[string]interface{}); ok {
+	if ppRaw, ok := record["pouroverParams"].(map[string]any); ok {
 		pp := &models.PouroverParams{}
 		if v, ok := toFloat64(ppRaw["bloomWater"]); ok {
 			pp.BloomWater = int(v)
@@ -353,8 +353,8 @@ func RecordToBrew(record map[string]interface{}, atURI string) (*models.Brew, er
 // ========== Bean Conversions ==========
 
 // BeanToRecord converts a models.Bean to an atproto record map
-func BeanToRecord(bean *models.Bean, roasterURI string) (map[string]interface{}, error) {
-	record := map[string]interface{}{
+func BeanToRecord(bean *models.Bean, roasterURI string) (map[string]any, error) {
+	record := map[string]any{
 		"$type":     NSIDBean,
 		"name":      bean.Name,
 		"createdAt": bean.CreatedAt.Format(time.RFC3339),
@@ -392,7 +392,7 @@ func BeanToRecord(bean *models.Bean, roasterURI string) (map[string]interface{},
 }
 
 // RecordToBean converts an atproto record map to a models.Bean
-func RecordToBean(record map[string]interface{}, atURI string) (*models.Bean, error) {
+func RecordToBean(record map[string]any, atURI string) (*models.Bean, error) {
 	bean := &models.Bean{}
 
 	// Extract rkey from AT-URI
@@ -455,8 +455,8 @@ func RecordToBean(record map[string]interface{}, atURI string) (*models.Bean, er
 // ========== Roaster Conversions ==========
 
 // RoasterToRecord converts a models.Roaster to an atproto record map
-func RoasterToRecord(roaster *models.Roaster) (map[string]interface{}, error) {
-	record := map[string]interface{}{
+func RoasterToRecord(roaster *models.Roaster) (map[string]any, error) {
+	record := map[string]any{
 		"$type":     NSIDRoaster,
 		"name":      roaster.Name,
 		"createdAt": roaster.CreatedAt.Format(time.RFC3339),
@@ -477,7 +477,7 @@ func RoasterToRecord(roaster *models.Roaster) (map[string]interface{}, error) {
 }
 
 // RecordToRoaster converts an atproto record map to a models.Roaster
-func RecordToRoaster(record map[string]interface{}, atURI string) (*models.Roaster, error) {
+func RecordToRoaster(record map[string]any, atURI string) (*models.Roaster, error) {
 	roaster := &models.Roaster{}
 
 	// Extract rkey from AT-URI
@@ -524,8 +524,8 @@ func RecordToRoaster(record map[string]interface{}, atURI string) (*models.Roast
 // ========== Grinder Conversions ==========
 
 // GrinderToRecord converts a models.Grinder to an atproto record map
-func GrinderToRecord(grinder *models.Grinder) (map[string]interface{}, error) {
-	record := map[string]interface{}{
+func GrinderToRecord(grinder *models.Grinder) (map[string]any, error) {
+	record := map[string]any{
 		"$type":     NSIDGrinder,
 		"name":      grinder.Name,
 		"createdAt": grinder.CreatedAt.Format(time.RFC3339),
@@ -549,7 +549,7 @@ func GrinderToRecord(grinder *models.Grinder) (map[string]interface{}, error) {
 }
 
 // RecordToGrinder converts an atproto record map to a models.Grinder
-func RecordToGrinder(record map[string]interface{}, atURI string) (*models.Grinder, error) {
+func RecordToGrinder(record map[string]any, atURI string) (*models.Grinder, error) {
 	grinder := &models.Grinder{}
 
 	// Extract rkey from AT-URI
@@ -599,8 +599,8 @@ func RecordToGrinder(record map[string]interface{}, atURI string) (*models.Grind
 // ========== Brewer Conversions ==========
 
 // BrewerToRecord converts a models.Brewer to an atproto record map
-func BrewerToRecord(brewer *models.Brewer) (map[string]interface{}, error) {
-	record := map[string]interface{}{
+func BrewerToRecord(brewer *models.Brewer) (map[string]any, error) {
+	record := map[string]any{
 		"$type":     NSIDBrewer,
 		"name":      brewer.Name,
 		"createdAt": brewer.CreatedAt.Format(time.RFC3339),
@@ -621,7 +621,7 @@ func BrewerToRecord(brewer *models.Brewer) (map[string]interface{}, error) {
 }
 
 // RecordToBrewer converts an atproto record map to a models.Brewer
-func RecordToBrewer(record map[string]interface{}, atURI string) (*models.Brewer, error) {
+func RecordToBrewer(record map[string]any, atURI string) (*models.Brewer, error) {
 	brewer := &models.Brewer{}
 
 	// Extract rkey from AT-URI
@@ -669,7 +669,7 @@ func RecordToBrewer(record map[string]interface{}, atURI string) (*models.Brewer
 
 // LikeToRecord converts a models.Like to an atproto record map
 // Uses com.atproto.repo.strongRef format for the subject
-func LikeToRecord(like *models.Like) (map[string]interface{}, error) {
+func LikeToRecord(like *models.Like) (map[string]any, error) {
 	if like.SubjectURI == "" {
 		return nil, fmt.Errorf("subject URI is required")
 	}
@@ -677,9 +677,9 @@ func LikeToRecord(like *models.Like) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("subject CID is required")
 	}
 
-	record := map[string]interface{}{
+	record := map[string]any{
 		"$type": NSIDLike,
-		"subject": map[string]interface{}{
+		"subject": map[string]any{
 			"uri": like.SubjectURI,
 			"cid": like.SubjectCID,
 		},
@@ -690,7 +690,7 @@ func LikeToRecord(like *models.Like) (map[string]interface{}, error) {
 }
 
 // RecordToLike converts an atproto record map to a models.Like
-func RecordToLike(record map[string]interface{}, atURI string) (*models.Like, error) {
+func RecordToLike(record map[string]any, atURI string) (*models.Like, error) {
 	like := &models.Like{}
 
 	// Extract rkey from AT-URI
@@ -703,7 +703,7 @@ func RecordToLike(record map[string]interface{}, atURI string) (*models.Like, er
 	}
 
 	// Required field: subject (strongRef)
-	subject, ok := record["subject"].(map[string]interface{})
+	subject, ok := record["subject"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("subject is required")
 	}
@@ -737,7 +737,7 @@ func RecordToLike(record map[string]interface{}, atURI string) (*models.Like, er
 
 // CommentToRecord converts a models.Comment to an atproto record map
 // Uses com.atproto.repo.strongRef format for the subject
-func CommentToRecord(comment *models.Comment) (map[string]interface{}, error) {
+func CommentToRecord(comment *models.Comment) (map[string]any, error) {
 	if comment.SubjectURI == "" {
 		return nil, fmt.Errorf("subject URI is required")
 	}
@@ -748,9 +748,9 @@ func CommentToRecord(comment *models.Comment) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("text is required")
 	}
 
-	record := map[string]interface{}{
+	record := map[string]any{
 		"$type": NSIDComment,
-		"subject": map[string]interface{}{
+		"subject": map[string]any{
 			"uri": comment.SubjectURI,
 			"cid": comment.SubjectCID,
 		},
@@ -760,7 +760,7 @@ func CommentToRecord(comment *models.Comment) (map[string]interface{}, error) {
 
 	// Add optional parent reference for replies
 	if comment.ParentURI != "" && comment.ParentCID != "" {
-		record["parent"] = map[string]interface{}{
+		record["parent"] = map[string]any{
 			"uri": comment.ParentURI,
 			"cid": comment.ParentCID,
 		}
@@ -770,7 +770,7 @@ func CommentToRecord(comment *models.Comment) (map[string]interface{}, error) {
 }
 
 // RecordToComment converts an atproto record map to a models.Comment
-func RecordToComment(record map[string]interface{}, atURI string) (*models.Comment, error) {
+func RecordToComment(record map[string]any, atURI string) (*models.Comment, error) {
 	comment := &models.Comment{}
 
 	// Extract rkey from AT-URI
@@ -783,7 +783,7 @@ func RecordToComment(record map[string]interface{}, atURI string) (*models.Comme
 	}
 
 	// Required field: subject (strongRef)
-	subject, ok := record["subject"].(map[string]interface{})
+	subject, ok := record["subject"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("subject is required")
 	}
@@ -818,7 +818,7 @@ func RecordToComment(record map[string]interface{}, atURI string) (*models.Comme
 	comment.CreatedAt = createdAt
 
 	// Optional field: parent (strongRef for replies)
-	if parent, ok := record["parent"].(map[string]interface{}); ok {
+	if parent, ok := record["parent"].(map[string]any); ok {
 		if parentURI, ok := parent["uri"].(string); ok && parentURI != "" {
 			comment.ParentURI = parentURI
 		}

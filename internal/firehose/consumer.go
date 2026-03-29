@@ -84,11 +84,9 @@ func NewConsumer(config *Config, index *FeedIndex) *Consumer {
 
 // Start begins consuming events in a background goroutine
 func (c *Consumer) Start(ctx context.Context) {
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
+	c.wg.Go(func() {
 		c.run(ctx)
-	}()
+	})
 }
 
 // Stop gracefully stops the consumer
@@ -343,9 +341,9 @@ func (c *Consumer) processMessage(data []byte) error {
 
 		// Special handling for likes - index for counts
 		if commit.Collection == "social.arabica.alpha.like" {
-			var recordData map[string]interface{}
+			var recordData map[string]any
 			if err := json.Unmarshal(commit.Record, &recordData); err == nil {
-				if subject, ok := recordData["subject"].(map[string]interface{}); ok {
+				if subject, ok := recordData["subject"].(map[string]any); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
 						if err := c.index.UpsertLike(context.Background(), event.DID, commit.RKey, subjectURI); err != nil {
 							log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to index like")
@@ -359,9 +357,9 @@ func (c *Consumer) processMessage(data []byte) error {
 
 		// Special handling for comments - index for counts and retrieval
 		if commit.Collection == "social.arabica.alpha.comment" {
-			var recordData map[string]interface{}
+			var recordData map[string]any
 			if err := json.Unmarshal(commit.Record, &recordData); err == nil {
-				if subject, ok := recordData["subject"].(map[string]interface{}); ok {
+				if subject, ok := recordData["subject"].(map[string]any); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
 						text, _ := recordData["text"].(string)
 						var createdAt time.Time
@@ -376,7 +374,7 @@ func (c *Consumer) processMessage(data []byte) error {
 						}
 						// Extract optional parent URI for threading
 						var parentURI string
-						if parent, ok := recordData["parent"].(map[string]interface{}); ok {
+						if parent, ok := recordData["parent"].(map[string]any); ok {
 							parentURI, _ = parent["uri"].(string)
 						}
 						if err := c.index.UpsertComment(context.Background(), event.DID, commit.RKey, subjectURI, parentURI, commit.CID, text, createdAt); err != nil {
@@ -397,9 +395,9 @@ func (c *Consumer) processMessage(data []byte) error {
 				context.Background(),
 				fmt.Sprintf("at://%s/%s/%s", event.DID, commit.Collection, commit.RKey),
 			); err == nil && existingRecord != nil {
-				var recordData map[string]interface{}
+				var recordData map[string]any
 				if err := json.Unmarshal(existingRecord.Record, &recordData); err == nil {
-					if subject, ok := recordData["subject"].(map[string]interface{}); ok {
+					if subject, ok := recordData["subject"].(map[string]any); ok {
 						if subjectURI, ok := subject["uri"].(string); ok {
 							if err := c.index.DeleteLike(context.Background(), event.DID, subjectURI); err != nil {
 								log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to delete like index")
@@ -418,12 +416,12 @@ func (c *Consumer) processMessage(data []byte) error {
 				context.Background(),
 				fmt.Sprintf("at://%s/%s/%s", event.DID, commit.Collection, commit.RKey),
 			); err == nil && existingRecord != nil {
-				var recordData map[string]interface{}
+				var recordData map[string]any
 				if err := json.Unmarshal(existingRecord.Record, &recordData); err == nil {
-					if subject, ok := recordData["subject"].(map[string]interface{}); ok {
+					if subject, ok := recordData["subject"].(map[string]any); ok {
 						if subjectURI, ok := subject["uri"].(string); ok {
 							var parentURI string
-							if parent, ok := recordData["parent"].(map[string]interface{}); ok {
+							if parent, ok := recordData["parent"].(map[string]any); ok {
 								parentURI, _ = parent["uri"].(string)
 							}
 							if err := c.index.DeleteComment(context.Background(), event.DID, commit.RKey, subjectURI); err != nil {

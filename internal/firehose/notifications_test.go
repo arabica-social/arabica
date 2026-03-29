@@ -100,7 +100,7 @@ func TestGetUnreadCount(t *testing.T) {
 	assert.Equal(t, 0, idx.GetUnreadCount(targetDID))
 
 	// Add some notifications
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		notif := models.Notification{
 			Type:       models.NotificationLike,
 			ActorDID:   "did:plc:actor" + string(rune('a'+i)),
@@ -120,7 +120,7 @@ func TestMarkAllRead(t *testing.T) {
 	baseTime := time.Now().Add(-time.Minute) // use past times to avoid race
 
 	// Add notifications
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		notif := models.Notification{
 			Type:       models.NotificationLike,
 			ActorDID:   "did:plc:actor" + string(rune('a'+i)),
@@ -152,7 +152,7 @@ func TestGetNotifications_Pagination(t *testing.T) {
 	baseTime := time.Now().Add(-time.Minute)
 
 	// Add 5 notifications
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		notif := models.Notification{
 			Type:       models.NotificationLike,
 			ActorDID:   "did:plc:actor" + string(rune('a'+i)),

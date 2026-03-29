@@ -38,7 +38,7 @@ func resolveRef[T any](
 	atURI string,
 	sessionID string,
 	expectedCollection string,
-	convert func(map[string]interface{}, string) (*T, error),
+	convert func(map[string]any, string) (*T, error),
 ) (*T, error) {
 	if atURI == "" {
 		return nil, nil

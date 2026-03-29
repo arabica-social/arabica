@@ -311,7 +311,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Err(err).Str("did", resolveResult.DID).Msg("Failed to fetch profile")
 		// Return just the DID if we can't get the profile
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"did":    resolveResult.DID,
 			"handle": handle,
 		}); err != nil {
@@ -324,7 +324,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	if profileResp.StatusCode != 200 {
 		// Return just the DID if we can't get the profile
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"did":    resolveResult.DID,
 			"handle": handle,
 		}); err != nil {
@@ -343,7 +343,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Err(err).Str("did", resolveResult.DID).Msg("Failed to decode profile")
 		// Return just the DID if we can't parse the profile
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"did":    resolveResult.DID,
 			"handle": handle,
 		}); err != nil {
@@ -400,7 +400,7 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 			Msg("Unexpected status searching actors")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}}); err != nil {
+		if err := json.NewEncoder(w).Encode(map[string]any{"actors": []any{}}); err != nil {
 			log.Error().Err(err).Msg("Failed to encode empty actors response")
 		}
 		return
@@ -419,7 +419,7 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Err(err).Str("query", query).Msg("Failed to decode search response")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{"actors": []interface{}{}}); err != nil {
+		if err := json.NewEncoder(w).Encode(map[string]any{"actors": []any{}}); err != nil {
 			log.Error().Err(err).Msg("Failed to encode empty actors response")
 		}
 		return

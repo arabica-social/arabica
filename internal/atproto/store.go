@@ -49,7 +49,7 @@ func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string
 }
 
 // witnessRecordToMap is a package-internal alias for WitnessRecordToMap.
-func witnessRecordToMap(wr *WitnessRecord) (map[string]interface{}, error) {
+func witnessRecordToMap(wr *WitnessRecord) (map[string]any, error) {
 	return WitnessRecordToMap(wr)
 }
 
@@ -101,7 +101,7 @@ func (s *AtprotoStore) listFromWitness(ctx context.Context, collection string) [
 // writeThroughWitness upserts a record into the witness cache after a
 // successful PDS write so subsequent reads see the latest data without
 // waiting for the firehose to re-index.
-func (s *AtprotoStore) writeThroughWitness(collection, rkey, cid string, record interface{}) {
+func (s *AtprotoStore) writeThroughWitness(collection, rkey, cid string, record any) {
 	if s.witnessCache == nil {
 		return
 	}
@@ -146,7 +146,7 @@ func (s *AtprotoStore) getWitnessRecordByURI(ctx context.Context, uri string) *W
 // resolveBrewRefsFromWitness resolves a brew's references (bean, grinder, brewer, recipe)
 // entirely from the witness cache, avoiding any PDS calls. Falls back to PDS-based resolution
 // only if a witness lookup fails for any referenced record.
-func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *models.Brew, record map[string]interface{}) {
+func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *models.Brew, record map[string]any) {
 	// Resolve bean (and its roaster)
 	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
 		if beanWR := s.getWitnessRecordByURI(ctx, beanRef); beanWR != nil {
@@ -227,7 +227,7 @@ func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *mod
 // ========== Brew Helpers ==========
 
 // ExtractBrewRefRKeys extracts rkeys from AT-URI references in a brew record's raw values.
-func ExtractBrewRefRKeys(brew *models.Brew, record map[string]interface{}) {
+func ExtractBrewRefRKeys(brew *models.Brew, record map[string]any) {
 	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
 		if c, err := ResolveATURI(beanRef); err == nil {
 			brew.BeanRKey = c.RKey

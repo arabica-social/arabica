@@ -65,7 +65,7 @@ func TestCSPNonceUniqueness(t *testing.T) {
 
 	wrapped := SecurityHeadersMiddleware(handler)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 		wrapped.ServeHTTP(rec, req)
@@ -145,7 +145,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 	wrapped := middleware(handler)
 
 	t.Run("auth endpoints use auth limiter", func(t *testing.T) {
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
 			req.RemoteAddr = "1.1.1.1:1234"
 			rec := httptest.NewRecorder()
@@ -162,7 +162,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 	})
 
 	t.Run("api endpoints use api limiter", func(t *testing.T) {
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			req := httptest.NewRequest(http.MethodGet, "/api/brews", nil)
 			req.RemoteAddr = "2.2.2.2:1234"
 			rec := httptest.NewRecorder()
@@ -178,7 +178,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 	})
 
 	t.Run("other endpoints use global limiter", func(t *testing.T) {
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			req := httptest.NewRequest(http.MethodGet, "/brews", nil)
 			req.RemoteAddr = "3.3.3.3:1234"
 			rec := httptest.NewRecorder()
@@ -194,7 +194,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 	})
 
 	t.Run("login path uses auth limiter", func(t *testing.T) {
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			req := httptest.NewRequest(http.MethodPost, "/login", nil)
 			req.RemoteAddr = "4.4.4.4:1234"
 			rec := httptest.NewRecorder()

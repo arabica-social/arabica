@@ -167,7 +167,7 @@ func TestCommentThreading_DepthCap(t *testing.T) {
 	// Create a chain of comments: depth 0 -> 1 -> 2 -> 3 -> 4
 	now := time.Now()
 	parentURI := ""
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		rkey := "comment" + string(rune('A'+i))
 		err = idx.UpsertComment(ctx, "did:plc:user", rkey, subjectURI, parentURI, "cid"+rkey, "Comment", now.Add(time.Duration(i)*time.Second))
 		assert.NoError(t, err)
@@ -273,16 +273,16 @@ func TestAvgBrewRatingByBeanURI_MultipleBeansAndUsers(t *testing.T) {
 
 	// User1 rates bean1: 6, 8
 	for i, rating := range []int{6, 8} {
-		record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":%d,"createdAt":"2025-01-01T00:00:00Z"}`, bean1, rating))
+		record := fmt.Appendf(nil, `{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":%d,"createdAt":"2025-01-01T00:00:00Z"}`, bean1, rating)
 		assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user1", "social.arabica.alpha.brew", fmt.Sprintf("u1b1_%d", i), "cid", record, now))
 	}
 
 	// User2 rates bean1: 10
-	record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":10,"createdAt":"2025-01-01T00:00:00Z"}`, bean1))
+	record := fmt.Appendf(nil, `{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":10,"createdAt":"2025-01-01T00:00:00Z"}`, bean1)
 	assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user2", "social.arabica.alpha.brew", "u2b1_0", "cid", record, now))
 
 	// User1 rates bean2: 4
-	record = []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":4,"createdAt":"2025-01-01T00:00:00Z"}`, bean2))
+	record = fmt.Appendf(nil, `{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":4,"createdAt":"2025-01-01T00:00:00Z"}`, bean2)
 	assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user1", "social.arabica.alpha.brew", "u1b2_0", "cid", record, now))
 
 	// Per-user1: bean1 avg=7, bean2 avg=4
@@ -312,11 +312,11 @@ func TestAvgBrewRatingByBeanURI_SkipsBrewsWithoutRating(t *testing.T) {
 	beanURI := "at://did:plc:user1/social.arabica.alpha.bean/bean1"
 
 	// Brew with rating
-	record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":7,"createdAt":"2025-01-01T00:00:00Z"}`, beanURI))
+	record := fmt.Appendf(nil, `{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":7,"createdAt":"2025-01-01T00:00:00Z"}`, beanURI)
 	assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user1", "social.arabica.alpha.brew", "brew1", "cid", record, now))
 
 	// Brew without rating
-	record = []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","createdAt":"2025-01-02T00:00:00Z"}`, beanURI))
+	record = fmt.Appendf(nil, `{"$type":"social.arabica.alpha.brew","beanRef":"%s","createdAt":"2025-01-02T00:00:00Z"}`, beanURI)
 	assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user1", "social.arabica.alpha.brew", "brew2", "cid", record, now))
 
 	stats := idx.AvgBrewRatingByBeanURI(ctx, "")
@@ -338,12 +338,12 @@ func TestAvgBrewRatingByRoasterURI(t *testing.T) {
 	roasterURI := "at://did:plc:user1/social.arabica.alpha.roaster/roaster1"
 
 	// Insert the bean record with roaster reference
-	beanRecord := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.bean","name":"Ethiopia Yirgacheffe","roasterRef":"%s","createdAt":"2025-01-01T00:00:00Z"}`, roasterURI))
+	beanRecord := fmt.Appendf(nil, `{"$type":"social.arabica.alpha.bean","name":"Ethiopia Yirgacheffe","roasterRef":"%s","createdAt":"2025-01-01T00:00:00Z"}`, roasterURI)
 	assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.bean", "bean1", "cid", beanRecord, now))
 
 	// Insert brews referencing that bean with ratings
 	for i, rating := range []int{6, 8, 10} {
-		record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":%d,"createdAt":"2025-01-0%dT00:00:00Z"}`, beanURI, rating, i+1))
+		record := fmt.Appendf(nil, `{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":%d,"createdAt":"2025-01-0%dT00:00:00Z"}`, beanURI, rating, i+1)
 		assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.brew", fmt.Sprintf("brew%d", i), "cid", record, now))
 	}
 
@@ -375,14 +375,14 @@ func TestAvgBrewRatingByRoasterURI_MultipleBeansSameRoaster(t *testing.T) {
 
 	// Two beans from the same roaster
 	for _, b := range []struct{ uri, rkey string }{{bean1URI, "bean1"}, {bean2URI, "bean2"}} {
-		record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.bean","name":"Bean","roasterRef":"%s","createdAt":"2025-01-01T00:00:00Z"}`, roasterURI))
+		record := fmt.Appendf(nil, `{"$type":"social.arabica.alpha.bean","name":"Bean","roasterRef":"%s","createdAt":"2025-01-01T00:00:00Z"}`, roasterURI)
 		assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.bean", b.rkey, "cid", record, now))
 	}
 
 	// Brews: bean1 rated 6, bean2 rated 10
-	record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":6,"createdAt":"2025-01-01T00:00:00Z"}`, bean1URI))
+	record := fmt.Appendf(nil, `{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":6,"createdAt":"2025-01-01T00:00:00Z"}`, bean1URI)
 	assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.brew", "brew1", "cid", record, now))
-	record = []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":10,"createdAt":"2025-01-01T00:00:00Z"}`, bean2URI))
+	record = fmt.Appendf(nil, `{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":10,"createdAt":"2025-01-01T00:00:00Z"}`, bean2URI)
 	assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.brew", "brew2", "cid", record, now))
 
 	stats := idx.AvgBrewRatingByRoasterURI(ctx, "")

@@ -504,7 +504,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 	type parsedRecord struct {
 		uri        string
 		did        string
-		data       map[string]interface{}
+		data       map[string]any
 		recipe     *models.Recipe
 		sourceRef  string
 		sourceDID  string
@@ -512,7 +512,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 	}
 	parsed := make([]parsedRecord, 0, len(records))
 	for i := range records {
-		var recordData map[string]interface{}
+		var recordData map[string]any
 		if err := json.Unmarshal(records[i].Record, &recordData); err != nil {
 			continue
 		}
@@ -587,7 +587,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 				recipe.BrewerRKey = c.RKey
 			}
 			if brewerRec, ok := brewerRecords[brewerRef]; ok {
-				var brewerData map[string]interface{}
+				var brewerData map[string]any
 				if err := json.Unmarshal(brewerRec.Record, &brewerData); err == nil {
 					if brewer, err := atproto.RecordToBrewer(brewerData, brewerRef); err == nil {
 						recipe.BrewerObj = brewer

@@ -1476,7 +1476,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 
 			switch collection {
 			case atproto.NSIDLike:
-				if subject, ok := record.Value["subject"].(map[string]interface{}); ok {
+				if subject, ok := record.Value["subject"].(map[string]any); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
 						if err := idx.UpsertLike(ctx, did, rkey, subjectURI); err != nil {
 							log.Warn().Err(err).Str("uri", record.URI).Msg("failed to index like during backfill")
@@ -1484,7 +1484,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 					}
 				}
 			case atproto.NSIDComment:
-				if subject, ok := record.Value["subject"].(map[string]interface{}); ok {
+				if subject, ok := record.Value["subject"].(map[string]any); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
 						text, _ := record.Value["text"].(string)
 						var createdAt time.Time
@@ -1498,7 +1498,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 							createdAt = time.Now()
 						}
 						var parentURI string
-						if parent, ok := record.Value["parent"].(map[string]interface{}); ok {
+						if parent, ok := record.Value["parent"].(map[string]any); ok {
 							parentURI, _ = parent["uri"].(string)
 						}
 						if err := idx.UpsertComment(ctx, did, rkey, subjectURI, parentURI, record.CID, text, createdAt); err != nil {
@@ -1841,10 +1841,7 @@ func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subject
 		if limit > 0 && len(result) >= limit {
 			return
 		}
-		visualDepth := depth
-		if visualDepth > 2 {
-			visualDepth = 2
-		}
+		visualDepth := min(depth, 2)
 		comment.Depth = visualDepth
 		result = append(result, *comment)
 

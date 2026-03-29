@@ -1,5 +1,7 @@
 package moderation
 
+import "slices"
+
 import "time"
 
 // Permission represents a moderation action that can be performed
@@ -47,12 +49,7 @@ type Role struct {
 
 // HasPermission checks if this role has the given permission
 func (r *Role) HasPermission(perm Permission) bool {
-	for _, p := range r.Permissions {
-		if p == perm {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(r.Permissions, perm)
 }
 
 // ModeratorUser represents a user with moderation privileges

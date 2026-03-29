@@ -158,10 +158,10 @@ func (c *PublicClient) GetPDSEndpoint(ctx context.Context, did string) (string, 
 				break
 			}
 		}
-	} else if strings.HasPrefix(did, "did:web:") {
+	} else if after, ok := strings.CutPrefix(did, "did:web:"); ok {
 		// Web DID - the domain is the PDS
 		// Validate domain to prevent SSRF attacks
-		domain := strings.TrimPrefix(did, "did:web:")
+		domain := after
 		// Handle percent-encoded colons for ports (e.g., did:web:example.com%3A8080)
 		domain = strings.ReplaceAll(domain, "%3A", ":")
 
