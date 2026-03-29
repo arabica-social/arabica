@@ -90,14 +90,33 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Render manage partial
-	if err := components.ManagePartial(components.ManagePartialProps{
+	// Fetch entity usage counts and avg ratings from witness cache
+	props := components.ManagePartialProps{
 		Beans:    beans,
 		Roasters: roasters,
 		Grinders: grinders,
 		Brewers:  brewers,
 		Recipes:  recipes,
-	}).Render(r.Context(), w); err != nil {
+	}
+	if h.feedIndex != nil {
+		did, _ := atproto.GetAuthenticatedDID(r.Context())
+		props.OwnerDID = did
+		props.BeanBrewCounts = h.feedIndex.BrewCountsByBeanURI(r.Context(), did)
+		props.GrinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(r.Context(), did)
+		props.BrewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(r.Context(), did)
+		props.RoasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(r.Context(), did)
+		props.BeanAvgBrewRatings = make(map[string]float64)
+		for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(r.Context(), did) {
+			props.BeanAvgBrewRatings[uri] = stats.Average
+		}
+		props.RoasterAvgBrewRatings = make(map[string]float64)
+		for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(r.Context(), did) {
+			props.RoasterAvgBrewRatings[uri] = stats.Average
+		}
+	}
+
+	// Render manage partial
+	if err := components.ManagePartial(props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage partial")
 	}
@@ -498,13 +517,30 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := components.ManagePartial(components.ManagePartialProps{
+	refreshProps := components.ManagePartialProps{
 		Beans:    beans,
 		Roasters: roasters,
 		Grinders: grinders,
 		Brewers:  brewers,
 		Recipes:  recipes,
-	}).Render(r.Context(), w); err != nil {
+	}
+	if h.feedIndex != nil {
+		refreshProps.OwnerDID = didStr
+		refreshProps.BeanBrewCounts = h.feedIndex.BrewCountsByBeanURI(r.Context(), didStr)
+		refreshProps.GrinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(r.Context(), didStr)
+		refreshProps.BrewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(r.Context(), didStr)
+		refreshProps.RoasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(r.Context(), didStr)
+		refreshProps.BeanAvgBrewRatings = make(map[string]float64)
+		for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(r.Context(), didStr) {
+			refreshProps.BeanAvgBrewRatings[uri] = stats.Average
+		}
+		refreshProps.RoasterAvgBrewRatings = make(map[string]float64)
+		for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(r.Context(), didStr) {
+			refreshProps.RoasterAvgBrewRatings[uri] = stats.Average
+		}
+	}
+
+	if err := components.ManagePartial(refreshProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage partial after refresh")
 	}

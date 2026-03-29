@@ -9,19 +9,27 @@ type ManagePartialProps struct {
 	Grinders []*models.Grinder
 	Brewers  []*models.Brewer
 	Recipes  []*models.Recipe
+	// Entity usage counts and ratings (keyed by AT-URI)
+	BeanBrewCounts        map[string]int
+	GrinderBrewCounts     map[string]int
+	BrewerBrewCounts      map[string]int
+	RoasterBeanCounts     map[string]int
+	BeanAvgBrewRatings    map[string]float64
+	RoasterAvgBrewRatings map[string]float64
+	OwnerDID              string
 }
 
 // ManagePartial renders the manage page content tables (for HTMX loading)
 templ ManagePartial(props ManagePartialProps) {
-	@ManageBeansTab(props.Beans)
-	@ManageRoastersTab(props.Roasters)
-	@ManageGrindersTab(props.Grinders)
-	@ManageBrewersTab(props.Brewers)
+	@ManageBeansTab(props.Beans, props.BeanBrewCounts, props.BeanAvgBrewRatings, props.OwnerDID)
+	@ManageRoastersTab(props.Roasters, props.RoasterBeanCounts, props.RoasterAvgBrewRatings, props.OwnerDID)
+	@ManageGrindersTab(props.Grinders, props.GrinderBrewCounts, props.OwnerDID)
+	@ManageBrewersTab(props.Brewers, props.BrewerBrewCounts, props.OwnerDID)
 	@ManageRecipesTab(props.Recipes)
 }
 
 // ManageBeansTab renders the beans tab content with open/closed sections
-templ ManageBeansTab(beans []*models.Bean) {
+templ ManageBeansTab(beans []*models.Bean, brewCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
 	<div x-show="tab === 'beans'">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
@@ -38,15 +46,21 @@ templ ManageBeansTab(beans []*models.Bean) {
 			<div>
 				<h4 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h4>
 				@BeanCards(BeanCardsProps{
-					Beans:       filterOpenBeans(beans),
-					ShowActions: true,
+					Beans:          filterOpenBeans(beans),
+					ShowActions:    true,
+					BrewCounts:     brewCounts,
+					AvgBrewRatings: avgBrewRatings,
+					OwnerDID:       ownerDID,
 				})
 			</div>
 			<div>
 				<h4 class="text-lg font-semibold text-brown-900 mb-3">Closed Bags</h4>
 				@BeanCards(BeanCardsProps{
-					Beans:       filterClosedBeans(beans),
-					ShowActions: true,
+					Beans:          filterClosedBeans(beans),
+					ShowActions:    true,
+					BrewCounts:     brewCounts,
+					AvgBrewRatings: avgBrewRatings,
+					OwnerDID:       ownerDID,
 				})
 			</div>
 		</div>
@@ -54,7 +68,7 @@ templ ManageBeansTab(beans []*models.Bean) {
 }
 
 // ManageRoastersTab renders the roasters tab content
-templ ManageRoastersTab(roasters []*models.Roaster) {
+templ ManageRoastersTab(roasters []*models.Roaster, beanCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
 	<div x-show="tab === 'roasters'">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
@@ -68,14 +82,17 @@ templ ManageRoastersTab(roasters []*models.Roaster) {
 			</button>
 		</div>
 		@RoastersTable(RoastersTableProps{
-			Roasters:    roasters,
-			ShowActions: true,
+			Roasters:       roasters,
+			ShowActions:    true,
+			BeanCounts:     beanCounts,
+			AvgBrewRatings: avgBrewRatings,
+			OwnerDID:       ownerDID,
 		})
 	</div>
 }
 
 // ManageGrindersTab renders the grinders tab content
-templ ManageGrindersTab(grinders []*models.Grinder) {
+templ ManageGrindersTab(grinders []*models.Grinder, brewCounts map[string]int, ownerDID string) {
 	<div x-show="tab === 'grinders'">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
@@ -91,12 +108,14 @@ templ ManageGrindersTab(grinders []*models.Grinder) {
 		@GrindersTable(GrindersTableProps{
 			Grinders:    grinders,
 			ShowActions: true,
+			BrewCounts:  brewCounts,
+			OwnerDID:    ownerDID,
 		})
 	</div>
 }
 
 // ManageBrewersTab renders the brewers tab content
-templ ManageBrewersTab(brewers []*models.Brewer) {
+templ ManageBrewersTab(brewers []*models.Brewer, brewCounts map[string]int, ownerDID string) {
 	<div x-show="tab === 'brewers'">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
@@ -112,6 +131,8 @@ templ ManageBrewersTab(brewers []*models.Brewer) {
 		@BrewersTable(BrewersTableProps{
 			Brewers:     brewers,
 			ShowActions: true,
+			BrewCounts:  brewCounts,
+			OwnerDID:    ownerDID,
 		})
 	</div>
 }
