@@ -566,6 +566,15 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 	// Batch query brew counts per recipe
 	brewCounts := h.feedIndex.BrewCountsByRecipeURI(ctx)
 
+	// Batch-fetch brewer records referenced by recipes
+	brewerURIs := make([]string, 0)
+	for _, pr := range parsed {
+		if brewerRef, ok := pr.data["brewerRef"].(string); ok && brewerRef != "" {
+			brewerURIs = append(brewerURIs, brewerRef)
+		}
+	}
+	brewerRecords := h.feedIndex.GetRecordsBatch(ctx, brewerURIs)
+
 	// Build final recipe list
 	recipes := make([]*models.Recipe, 0, len(parsed))
 	for _, pr := range parsed {
@@ -576,7 +585,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 			if c, parseErr := atproto.ResolveATURI(brewerRef); parseErr == nil {
 				recipe.BrewerRKey = c.RKey
 			}
-			if brewerRec, getErr := h.feedIndex.GetRecord(ctx, brewerRef); getErr == nil && brewerRec != nil {
+			if brewerRec, ok := brewerRecords[brewerRef]; ok {
 				var brewerData map[string]interface{}
 				if err := json.Unmarshal(brewerRec.Record, &brewerData); err == nil {
 					if brewer, err := atproto.RecordToBrewer(brewerData, brewerRef); err == nil {

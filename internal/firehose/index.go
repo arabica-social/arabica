@@ -779,10 +779,28 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilter string,
 		}
 	}
 
+	// Batch-fetch social data for all records
+	recordURIs := make([]string, 0, len(records))
+	didSet := make(map[string]struct{}, len(records))
+	for _, r := range records {
+		recordURIs = append(recordURIs, r.URI)
+		didSet[r.DID] = struct{}{}
+	}
+	likeCounts := idx.GetLikeCountsBatch(ctx, recordURIs)
+	commentCounts := idx.GetCommentCountsBatch(ctx, recordURIs)
+
+	// Pre-warm profile cache for all unique DIDs
+	profiles := make(map[string]*atproto.Profile, len(didSet))
+	for did := range didSet {
+		if p, err := idx.GetProfile(ctx, did); err == nil {
+			profiles[did] = p
+		}
+	}
+
 	// Convert to FeedItems
 	items := make([]*FeedItem, 0, len(records))
 	for _, record := range records {
-		item, err := idx.recordToFeedItem(ctx, record, recordsByURI)
+		item, err := idx.recordToFeedItem(ctx, record, recordsByURI, profiles)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
 			continue
@@ -790,14 +808,18 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilter string,
 		if !FeedableRecordTypes[item.RecordType] {
 			continue
 		}
+		item.LikeCount = likeCounts[record.URI]
+		item.CommentCount = commentCounts[record.URI]
 		items = append(items, item)
 	}
 
 	return items, nil
 }
 
-// recordToFeedItem converts an IndexedRecord to a FeedItem
-func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecord, refMap map[string]*IndexedRecord) (*FeedItem, error) {
+// recordToFeedItem converts an IndexedRecord to a FeedItem.
+// The profiles map provides pre-fetched profiles keyed by DID; if nil or missing,
+// the profile is fetched individually as a fallback.
+func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecord, refMap map[string]*IndexedRecord, profiles map[string]*atproto.Profile) (*FeedItem, error) {
 	var recordData map[string]any
 	if err := json.Unmarshal(record.Record, &recordData); err != nil {
 		return nil, err
@@ -808,13 +830,17 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		TimeAgo:   formatTimeAgo(record.CreatedAt),
 	}
 
-	// Get author profile
-	profile, err := idx.GetProfile(ctx, record.DID)
-	if err != nil {
-		log.Warn().Err(err).Str("did", record.DID).Msg("failed to get profile")
-		profile = &atproto.Profile{
-			DID:    record.DID,
-			Handle: record.DID,
+	// Get author profile from pre-fetched map or fallback to individual fetch
+	profile, ok := profiles[record.DID]
+	if !ok || profile == nil {
+		var err error
+		profile, err = idx.GetProfile(ctx, record.DID)
+		if err != nil {
+			log.Warn().Err(err).Str("did", record.DID).Msg("failed to get profile")
+			profile = &atproto.Profile{
+				DID:    record.DID,
+				Handle: record.DID,
+			}
 		}
 	}
 	item.Author = profile
@@ -964,11 +990,9 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		return nil, fmt.Errorf("unknown collection: %s", record.Collection)
 	}
 
-	// Populate like-related fields for all record types
+	// Populate subject fields (like/comment counts are set by caller via batch)
 	item.SubjectURI = record.URI
 	item.SubjectCID = record.CID
-	item.LikeCount = idx.GetLikeCount(ctx, record.URI)
-	item.CommentCount = idx.GetCommentCount(ctx, record.URI)
 
 	return item, nil
 }
@@ -1379,6 +1403,119 @@ func (idx *FeedIndex) GetUserLikeRKey(ctx context.Context, actorDID, subjectURI 
 	return rkey
 }
 
+// ========== Batch Query Methods ==========
+
+// placeholders returns a string of "?,?,?" for n items and a corresponding []any slice.
+func placeholders(uris []string) (string, []any) {
+	ph := make([]string, len(uris))
+	args := make([]any, len(uris))
+	for i, u := range uris {
+		ph[i] = "?"
+		args[i] = u
+	}
+	return strings.Join(ph, ","), args
+}
+
+// GetLikeCountsBatch returns like counts for multiple subject URIs in a single query.
+func (idx *FeedIndex) GetLikeCountsBatch(ctx context.Context, uris []string) map[string]int {
+	counts := make(map[string]int, len(uris))
+	if len(uris) == 0 {
+		return counts
+	}
+	ph, args := placeholders(uris)
+	rows, err := idx.db.QueryContext(ctx,
+		`SELECT subject_uri, COUNT(*) FROM likes WHERE subject_uri IN (`+ph+`) GROUP BY subject_uri`, args...)
+	if err != nil {
+		return counts
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uri string
+		var count int
+		if err := rows.Scan(&uri, &count); err == nil {
+			counts[uri] = count
+		}
+	}
+	return counts
+}
+
+// HasUserLikedBatch checks if a user has liked multiple records in a single query.
+func (idx *FeedIndex) HasUserLikedBatch(ctx context.Context, actorDID string, uris []string) map[string]bool {
+	liked := make(map[string]bool, len(uris))
+	if len(uris) == 0 || actorDID == "" {
+		return liked
+	}
+	ph, args := placeholders(uris)
+	// Prepend actorDID to args
+	allArgs := make([]any, 0, len(args)+1)
+	allArgs = append(allArgs, actorDID)
+	allArgs = append(allArgs, args...)
+	rows, err := idx.db.QueryContext(ctx,
+		`SELECT subject_uri FROM likes WHERE actor_did = ? AND subject_uri IN (`+ph+`)`, allArgs...)
+	if err != nil {
+		return liked
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uri string
+		if err := rows.Scan(&uri); err == nil {
+			liked[uri] = true
+		}
+	}
+	return liked
+}
+
+// GetCommentCountsBatch returns comment counts for multiple subject URIs in a single query.
+func (idx *FeedIndex) GetCommentCountsBatch(ctx context.Context, uris []string) map[string]int {
+	counts := make(map[string]int, len(uris))
+	if len(uris) == 0 {
+		return counts
+	}
+	ph, args := placeholders(uris)
+	rows, err := idx.db.QueryContext(ctx,
+		`SELECT subject_uri, COUNT(*) FROM comments WHERE subject_uri IN (`+ph+`) GROUP BY subject_uri`, args...)
+	if err != nil {
+		return counts
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uri string
+		var count int
+		if err := rows.Scan(&uri, &count); err == nil {
+			counts[uri] = count
+		}
+	}
+	return counts
+}
+
+// GetRecordsBatch retrieves multiple records by URI in a single query.
+func (idx *FeedIndex) GetRecordsBatch(ctx context.Context, uris []string) map[string]*IndexedRecord {
+	records := make(map[string]*IndexedRecord, len(uris))
+	if len(uris) == 0 {
+		return records
+	}
+	ph, args := placeholders(uris)
+	rows, err := idx.db.QueryContext(ctx,
+		`SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri IN (`+ph+`)`, args...)
+	if err != nil {
+		return records
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var rec IndexedRecord
+		var recordStr, indexedAtStr, createdAtStr string
+		if err := rows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
+			&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
+			continue
+		}
+		rec.Record = json.RawMessage(recordStr)
+		rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
+		rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+		records[rec.URI] = &rec
+	}
+	return records
+}
+
 // IndexedComment represents a comment stored in the index
 type IndexedComment struct {
 	RKey       string    `json:"rkey"`
@@ -1469,7 +1606,19 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 		comments = append(comments, c)
 	}
 
-	// Populate profile and like info for each comment
+	// Batch-fetch profiles and social data for all comments
+	commentURIs := make([]string, len(comments))
+	didSet := make(map[string]struct{}, len(comments))
+	for i, c := range comments {
+		commentURIs[i] = fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", c.ActorDID, c.RKey)
+		didSet[c.ActorDID] = struct{}{}
+	}
+	likeCounts := idx.GetLikeCountsBatch(ctx, commentURIs)
+	var likedByViewer map[string]bool
+	if viewerDID != "" {
+		likedByViewer = idx.HasUserLikedBatch(ctx, viewerDID, commentURIs)
+	}
+
 	for i := range comments {
 		profile, err := idx.GetProfile(ctx, comments[i].ActorDID)
 		if err != nil {
@@ -1480,10 +1629,9 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 			comments[i].Avatar = profile.Avatar
 		}
 
-		commentURI := fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", comments[i].ActorDID, comments[i].RKey)
-		comments[i].LikeCount = idx.GetLikeCount(ctx, commentURI)
-		if viewerDID != "" {
-			comments[i].IsLiked = idx.HasUserLiked(ctx, viewerDID, commentURI)
+		comments[i].LikeCount = likeCounts[commentURIs[i]]
+		if likedByViewer != nil {
+			comments[i].IsLiked = likedByViewer[commentURIs[i]]
 		}
 	}
 

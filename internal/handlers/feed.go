@@ -116,14 +116,23 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 
 	// Populate IsLikedByViewer and IsOwner for each feed item if user is authenticated
 	if isAuthenticated {
+		// Batch fetch liked status for all feed items
+		var likedByViewer map[string]bool
+		if h.feedIndex != nil {
+			uris := make([]string, 0, len(feedItems))
+			for _, item := range feedItems {
+				if item.SubjectURI != "" {
+					uris = append(uris, item.SubjectURI)
+				}
+			}
+			likedByViewer = h.feedIndex.HasUserLikedBatch(r.Context(), viewerDID, uris)
+		}
 		for _, item := range feedItems {
-			// Check if viewer owns this record
 			if item.Author != nil {
 				item.IsOwner = item.Author.DID == viewerDID
 			}
-			// Check if viewer liked this record
-			if h.feedIndex != nil && item.SubjectURI != "" {
-				item.IsLikedByViewer = h.feedIndex.HasUserLiked(r.Context(), viewerDID, item.SubjectURI)
+			if likedByViewer != nil {
+				item.IsLikedByViewer = likedByViewer[item.SubjectURI]
 			}
 		}
 	}

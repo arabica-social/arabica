@@ -577,17 +577,33 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	brewCIDs := make(map[string]string)
 	var beanBrewCounts, grinderBrewCounts, brewerBrewCounts, roasterBeanCounts map[string]int
 	if h.feedIndex != nil && profile != nil {
+		// Collect all brew URIs for batch lookup
+		brewURIs := make([]string, 0, len(profileData.Brews))
+		uriToRKey := make(map[string]string, len(profileData.Brews))
 		for _, brew := range profileData.Brews {
-			subjectURI := atproto.BuildATURI(profile.DID, atproto.NSIDBrew, brew.RKey)
-			brewLikeCounts[brew.RKey] = h.feedIndex.GetLikeCount(ctx, subjectURI)
-			if isAuthenticated {
-				brewLikedByUser[brew.RKey] = h.feedIndex.HasUserLiked(ctx, didStr, subjectURI)
+			uri := atproto.BuildATURI(profile.DID, atproto.NSIDBrew, brew.RKey)
+			brewURIs = append(brewURIs, uri)
+			uriToRKey[uri] = brew.RKey
+		}
+
+		// Batch fetch like counts, liked status, and records
+		batchLikes := h.feedIndex.GetLikeCountsBatch(ctx, brewURIs)
+		batchRecords := h.feedIndex.GetRecordsBatch(ctx, brewURIs)
+		var batchLiked map[string]bool
+		if isAuthenticated {
+			batchLiked = h.feedIndex.HasUserLikedBatch(ctx, didStr, brewURIs)
+		}
+
+		for uri, rkey := range uriToRKey {
+			brewLikeCounts[rkey] = batchLikes[uri]
+			if batchLiked != nil {
+				brewLikedByUser[rkey] = batchLiked[uri]
 			}
-			// Get CID from the firehose index record
-			if record, err := h.feedIndex.GetRecord(ctx, subjectURI); err == nil && record != nil {
-				brewCIDs[brew.RKey] = record.CID
+			if rec, ok := batchRecords[uri]; ok {
+				brewCIDs[rkey] = rec.CID
 			}
 		}
+
 		// Entity usage counts
 		beanBrewCounts = h.feedIndex.BrewCountsByBeanURI(ctx, did)
 		grinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(ctx, did)
