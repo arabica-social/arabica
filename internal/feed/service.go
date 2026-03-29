@@ -10,6 +10,7 @@ import (
 	"arabica/internal/lexicons"
 	"arabica/internal/metrics"
 	"arabica/internal/models"
+	"arabica/internal/moderation"
 
 	"github.com/rs/zerolog/log"
 )
@@ -175,36 +176,15 @@ func (s *Service) filterModeratedItems(ctx context.Context, items []*FeedItem) [
 		return items
 	}
 
-	// Load moderation sets in bulk (2 queries instead of 2*len(items))
-	blacklistedDIDs := make(map[string]bool)
-	if dids, err := s.moderationFilter.ListBlacklistedDIDs(ctx); err == nil {
-		for _, did := range dids {
-			blacklistedDIDs[did] = true
-		}
+	f, err := moderation.LoadFilter(ctx, s.moderationFilter)
+	if err != nil {
+		log.Warn().Err(err).Msg("feed: failed to load moderation filter")
+		return items
 	}
 
-	hiddenURIs := make(map[string]bool)
-	if uris, err := s.moderationFilter.ListHiddenURIs(ctx); err == nil {
-		for _, uri := range uris {
-			hiddenURIs[uri] = true
-		}
-	}
-
-	filtered := make([]*FeedItem, 0, len(items))
-	for _, item := range items {
-		authorDID := s.getAuthorDID(item)
-		if authorDID != "" && blacklistedDIDs[authorDID] {
-			log.Debug().Str("author", authorDID).Msg("feed: filtering blacklisted user's content")
-			continue
-		}
-
-		if item.SubjectURI != "" && hiddenURIs[item.SubjectURI] {
-			log.Debug().Str("uri", item.SubjectURI).Msg("feed: filtering hidden record")
-			continue
-		}
-
-		filtered = append(filtered, item)
-	}
+	filtered := moderation.FilterSlice(f, items, func(item *FeedItem) (string, string) {
+		return item.SubjectURI, s.getAuthorDID(item)
+	})
 
 	if len(items) != len(filtered) {
 		log.Debug().

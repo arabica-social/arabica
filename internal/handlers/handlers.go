@@ -128,6 +128,20 @@ func (h *Handler) invalidateFeedCache() {
 	}
 }
 
+// loadContentFilter creates a ContentFilter from the moderation store.
+// Returns nil if moderation is not configured.
+func (h *Handler) loadContentFilter(ctx context.Context) *moderation.ContentFilter {
+	if h.moderationStore == nil {
+		return nil
+	}
+	f, err := moderation.LoadFilter(ctx, h.moderationStore)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to load content filter")
+		return nil
+	}
+	return f
+}
+
 // validateRKey validates and returns an rkey from a path parameter.
 // Returns the rkey if valid, or writes an error response and returns empty string if invalid.
 func validateRKey(w http.ResponseWriter, rkey string) string {

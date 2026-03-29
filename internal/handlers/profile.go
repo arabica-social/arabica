@@ -9,6 +9,7 @@ import (
 	"arabica/internal/atproto"
 	"arabica/internal/metrics"
 	"arabica/internal/models"
+	"arabica/internal/moderation"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
@@ -420,6 +421,16 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		// For now, continue with the DID we have
 	}
 
+	// Check if user is blacklisted
+	if cf := h.loadContentFilter(ctx); cf != nil && cf.IsBlocked(did) {
+		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
+		w.WriteHeader(http.StatusNotFound)
+		if err := pages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
+			log.Error().Err(err).Msg("Failed to render profile not found page")
+		}
+		return
+	}
+
 	// Fetch profile
 	profile, err := publicClient.GetProfile(ctx, did)
 	if err != nil {
@@ -532,12 +543,26 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Check if user is blacklisted
+	cf := h.loadContentFilter(ctx)
+	if cf != nil && cf.IsBlocked(did) {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
 	// Fetch all user data from their PDS
 	profileData, err := h.fetchUserProfileData(ctx, did, publicClient)
 	if err != nil {
 		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data for profile partial")
 		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
 		return
+	}
+
+	// Filter moderated content from profile
+	if cf != nil {
+		profileData.Brews = moderation.FilterSlice(cf, profileData.Brews, func(b *models.Brew) (string, string) {
+			return atproto.BuildATURI(did, atproto.NSIDBrew, b.RKey), did
+		})
 	}
 
 	// Check if this is an Arabica user (has records or is registered in feed)

@@ -11,6 +11,7 @@ import (
 	"arabica/internal/atproto"
 	"arabica/internal/matching"
 	"arabica/internal/models"
+	"arabica/internal/moderation"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
 
@@ -637,6 +638,16 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 
 		recipe.Interpolate()
 		recipes = append(recipes, recipe)
+	}
+
+	// Filter moderated content (hidden records + blacklisted users)
+	if cf := h.loadContentFilter(ctx); cf != nil {
+		recipes = moderation.FilterSlice(cf, recipes, func(r *models.Recipe) (string, string) {
+			if r.AuthorDID != "" && r.RKey != "" {
+				return atproto.BuildATURI(r.AuthorDID, atproto.NSIDRecipe, r.RKey), r.AuthorDID
+			}
+			return "", r.AuthorDID
+		})
 	}
 
 	return recipes, nil
