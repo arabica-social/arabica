@@ -248,7 +248,7 @@ func main() {
 	}, 60*time.Second)
 
 	// Log known DIDs from database (DIDs discovered via firehose)
-	if knownDIDsFromDB, err := feedIndex.GetKnownDIDs(); err == nil {
+	if knownDIDsFromDB, err := feedIndex.GetKnownDIDs(context.Background()); err == nil {
 		if len(knownDIDsFromDB) > 0 {
 			log.Info().
 				Int("count", len(knownDIDsFromDB)).

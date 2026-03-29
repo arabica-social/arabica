@@ -123,7 +123,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 			}
 			// Check if viewer liked this record
 			if h.feedIndex != nil && item.SubjectURI != "" {
-				item.IsLikedByViewer = h.feedIndex.HasUserLiked(viewerDID, item.SubjectURI)
+				item.IsLikedByViewer = h.feedIndex.HasUserLiked(r.Context(), viewerDID, item.SubjectURI)
 			}
 		}
 	}
@@ -203,11 +203,11 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 
 		// Update firehose index
 		if h.feedIndex != nil {
-			if err := h.feedIndex.DeleteLike(didStr, subjectURI); err != nil {
+			if err := h.feedIndex.DeleteLike(r.Context(), didStr, subjectURI); err != nil {
 				log.Warn().Err(err).Str("did", didStr).Str("subject_uri", subjectURI).Msg("Failed to delete like from feed index")
 			}
 			h.feedIndex.DeleteLikeNotification(didStr, subjectURI)
-			likeCount = h.feedIndex.GetLikeCount(subjectURI)
+			likeCount = h.feedIndex.GetLikeCount(r.Context(), subjectURI)
 		}
 	} else {
 		// Like: create a new like
@@ -226,10 +226,10 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 
 		// Update firehose index
 		if h.feedIndex != nil {
-			if err := h.feedIndex.UpsertLike(didStr, like.RKey, subjectURI); err != nil {
+			if err := h.feedIndex.UpsertLike(r.Context(), didStr, like.RKey, subjectURI); err != nil {
 				log.Warn().Err(err).Str("did", didStr).Str("subject_uri", subjectURI).Msg("Failed to upsert like in feed index")
 			}
-			likeCount = h.feedIndex.GetLikeCount(subjectURI)
+			likeCount = h.feedIndex.GetLikeCount(r.Context(), subjectURI)
 		}
 	}
 

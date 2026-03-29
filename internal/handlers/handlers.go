@@ -318,7 +318,7 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 	if h.feedIndex != nil && collection != "" {
 		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 		if didStr != "" {
-			if err := h.feedIndex.DeleteRecord(didStr, collection, rkey); err != nil {
+			if err := h.feedIndex.DeleteRecord(r.Context(), didStr, collection, rkey); err != nil {
 				log.Warn().Err(err).Str("rkey", rkey).Str("collection", collection).Msg("Failed to delete record from feed index")
 			}
 		}
@@ -420,7 +420,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Update firehose index (pass parent URI and comment's CID for threading)
 	if h.feedIndex != nil {
-		if err := h.feedIndex.UpsertComment(didStr, comment.RKey, subjectURI, parentURI, comment.CID, text, comment.CreatedAt); err != nil {
+		if err := h.feedIndex.UpsertComment(r.Context(), didStr, comment.RKey, subjectURI, parentURI, comment.CID, text, comment.CreatedAt); err != nil {
 			log.Warn().Err(err).Str("did", didStr).Str("rkey", comment.RKey).Str("subject_uri", subjectURI).Msg("Failed to upsert comment in feed index")
 		}
 		// Create notification for the comment/reply
@@ -484,7 +484,7 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 		// Look up subject URI before deletion for notification cleanup
 		subjectURI := h.feedIndex.GetCommentSubjectURI(didStr, rkey)
 
-		if err := h.feedIndex.DeleteComment(didStr, rkey, ""); err != nil {
+		if err := h.feedIndex.DeleteComment(r.Context(), didStr, rkey, ""); err != nil {
 			log.Warn().Err(err).Str("did", didStr).Str("rkey", rkey).Msg("Failed to delete comment from feed index")
 		}
 

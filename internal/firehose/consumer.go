@@ -74,7 +74,7 @@ func NewConsumer(config *Config, index *FeedIndex) *Consumer {
 	}
 
 	// Load cursor from index
-	if cursor, err := index.GetCursor(); err == nil && cursor > 0 {
+	if cursor, err := index.GetCursor(context.Background()); err == nil && cursor > 0 {
 		c.cursor.Store(cursor)
 		log.Info().Int64("cursor", cursor).Msg("firehose: loaded cursor from index")
 	}
@@ -297,7 +297,7 @@ func (c *Consumer) processMessage(data []byte) error {
 
 		// Persist cursor periodically (every 1000 events)
 		if c.eventsReceived.Load()%1000 == 0 {
-			if err := c.index.SetCursor(event.TimeUS); err != nil {
+			if err := c.index.SetCursor(context.Background(), event.TimeUS); err != nil {
 				log.Warn().Err(err).Msg("firehose: failed to persist cursor")
 			}
 		}
@@ -347,7 +347,7 @@ func (c *Consumer) processMessage(data []byte) error {
 			if err := json.Unmarshal(commit.Record, &recordData); err == nil {
 				if subject, ok := recordData["subject"].(map[string]interface{}); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
-						if err := c.index.UpsertLike(event.DID, commit.RKey, subjectURI); err != nil {
+						if err := c.index.UpsertLike(context.Background(), event.DID, commit.RKey, subjectURI); err != nil {
 							log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to index like")
 						}
 						// Create notification for the like
@@ -379,7 +379,7 @@ func (c *Consumer) processMessage(data []byte) error {
 						if parent, ok := recordData["parent"].(map[string]interface{}); ok {
 							parentURI, _ = parent["uri"].(string)
 						}
-						if err := c.index.UpsertComment(event.DID, commit.RKey, subjectURI, parentURI, commit.CID, text, createdAt); err != nil {
+						if err := c.index.UpsertComment(context.Background(), event.DID, commit.RKey, subjectURI, parentURI, commit.CID, text, createdAt); err != nil {
 							log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to index comment")
 						}
 						// Create notification for the comment
@@ -394,13 +394,14 @@ func (c *Consumer) processMessage(data []byte) error {
 		if commit.Collection == "social.arabica.alpha.like" {
 			// Try to get the existing record to find its subject
 			if existingRecord, err := c.index.GetRecord(
+				context.Background(),
 				fmt.Sprintf("at://%s/%s/%s", event.DID, commit.Collection, commit.RKey),
 			); err == nil && existingRecord != nil {
 				var recordData map[string]interface{}
 				if err := json.Unmarshal(existingRecord.Record, &recordData); err == nil {
 					if subject, ok := recordData["subject"].(map[string]interface{}); ok {
 						if subjectURI, ok := subject["uri"].(string); ok {
-							if err := c.index.DeleteLike(event.DID, subjectURI); err != nil {
+							if err := c.index.DeleteLike(context.Background(), event.DID, subjectURI); err != nil {
 								log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to delete like index")
 							}
 							c.index.DeleteLikeNotification(event.DID, subjectURI)
@@ -414,6 +415,7 @@ func (c *Consumer) processMessage(data []byte) error {
 		if commit.Collection == "social.arabica.alpha.comment" {
 			// Try to get the existing record to find its subject
 			if existingRecord, err := c.index.GetRecord(
+				context.Background(),
 				fmt.Sprintf("at://%s/%s/%s", event.DID, commit.Collection, commit.RKey),
 			); err == nil && existingRecord != nil {
 				var recordData map[string]interface{}
@@ -424,7 +426,7 @@ func (c *Consumer) processMessage(data []byte) error {
 							if parent, ok := recordData["parent"].(map[string]interface{}); ok {
 								parentURI, _ = parent["uri"].(string)
 							}
-							if err := c.index.DeleteComment(event.DID, commit.RKey, subjectURI); err != nil {
+							if err := c.index.DeleteComment(context.Background(), event.DID, commit.RKey, subjectURI); err != nil {
 								log.Warn().Err(err).Str("did", event.DID).Str("subject", subjectURI).Msg("failed to delete comment index")
 							}
 							c.index.DeleteCommentNotification(event.DID, subjectURI, parentURI)
@@ -435,6 +437,7 @@ func (c *Consumer) processMessage(data []byte) error {
 		}
 
 		if err := c.index.DeleteRecord(
+			context.Background(),
 			event.DID,
 			commit.Collection,
 			commit.RKey,

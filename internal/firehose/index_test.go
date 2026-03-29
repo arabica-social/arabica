@@ -17,26 +17,27 @@ func TestBackfillTracking(t *testing.T) {
 	}
 	defer idx.Close()
 
+	ctx := context.Background()
 	testDID := "did:plc:test123abc"
 
 	// Initially should not be backfilled
-	if idx.IsBackfilled(testDID) {
+	if idx.IsBackfilled(ctx, testDID) {
 		t.Error("DID should not be backfilled initially")
 	}
 
 	// Mark as backfilled
-	if err := idx.MarkBackfilled(testDID); err != nil {
+	if err := idx.MarkBackfilled(ctx, testDID); err != nil {
 		t.Fatalf("Failed to mark DID as backfilled: %v", err)
 	}
 
 	// Now should be backfilled
-	if !idx.IsBackfilled(testDID) {
+	if !idx.IsBackfilled(ctx, testDID) {
 		t.Error("DID should be marked as backfilled")
 	}
 
 	// Different DID should not be backfilled
 	otherDID := "did:plc:other456def"
-	if idx.IsBackfilled(otherDID) {
+	if idx.IsBackfilled(ctx, otherDID) {
 		t.Error("Other DID should not be backfilled")
 	}
 }
@@ -53,7 +54,7 @@ func TestBackfillTracking_Persistence(t *testing.T) {
 			t.Fatalf("Failed to create index: %v", err)
 		}
 
-		if err := idx.MarkBackfilled(testDID); err != nil {
+		if err := idx.MarkBackfilled(context.Background(), testDID); err != nil {
 			t.Fatalf("Failed to mark DID as backfilled: %v", err)
 		}
 
@@ -68,7 +69,7 @@ func TestBackfillTracking_Persistence(t *testing.T) {
 		}
 		defer idx.Close()
 
-		if !idx.IsBackfilled(testDID) {
+		if !idx.IsBackfilled(context.Background(), testDID) {
 			t.Error("DID should still be marked as backfilled after reopening")
 		}
 	}
@@ -89,16 +90,18 @@ func TestBackfillTracking_MultipleDIDs(t *testing.T) {
 		"did:plc:user3",
 	}
 
+	ctx := context.Background()
+
 	// Mark all as backfilled
 	for _, did := range dids {
-		if err := idx.MarkBackfilled(did); err != nil {
+		if err := idx.MarkBackfilled(ctx, did); err != nil {
 			t.Fatalf("Failed to mark DID %s as backfilled: %v", did, err)
 		}
 	}
 
 	// Verify all are marked
 	for _, did := range dids {
-		if !idx.IsBackfilled(did) {
+		if !idx.IsBackfilled(ctx, did) {
 			t.Errorf("DID %s should be marked as backfilled", did)
 		}
 	}
@@ -116,17 +119,17 @@ func TestCommentThreading(t *testing.T) {
 
 	// Create a top-level comment
 	now := time.Now()
-	err = idx.UpsertComment(actorDID, "comment1", subjectURI, "", "cid1", "Top level comment", now)
+	err = idx.UpsertComment(ctx, actorDID, "comment1", subjectURI, "", "cid1", "Top level comment", now)
 	assert.NoError(t, err)
 
 	// Create a reply to the top-level comment
 	parentURI := "at://did:plc:commenter1/social.arabica.alpha.comment/comment1"
-	err = idx.UpsertComment("did:plc:commenter2", "comment2", subjectURI, parentURI, "cid2", "Reply to comment", now.Add(time.Second))
+	err = idx.UpsertComment(ctx, "did:plc:commenter2", "comment2", subjectURI, parentURI, "cid2", "Reply to comment", now.Add(time.Second))
 	assert.NoError(t, err)
 
 	// Create a nested reply (depth 2)
 	parentURI2 := "at://did:plc:commenter2/social.arabica.alpha.comment/comment2"
-	err = idx.UpsertComment("did:plc:commenter3", "comment3", subjectURI, parentURI2, "cid3", "Nested reply", now.Add(2*time.Second))
+	err = idx.UpsertComment(ctx, "did:plc:commenter3", "comment3", subjectURI, parentURI2, "cid3", "Nested reply", now.Add(2*time.Second))
 	assert.NoError(t, err)
 
 	// Get threaded comments
@@ -145,7 +148,7 @@ func TestCommentThreading(t *testing.T) {
 	assert.Equal(t, 2, comments[2].Depth)
 
 	// Verify comment count
-	count := idx.GetCommentCount(subjectURI)
+	count := idx.GetCommentCount(ctx, subjectURI)
 	assert.Equal(t, 3, count)
 }
 
@@ -163,7 +166,7 @@ func TestCommentThreading_DepthCap(t *testing.T) {
 	parentURI := ""
 	for i := 0; i < 5; i++ {
 		rkey := "comment" + string(rune('A'+i))
-		err = idx.UpsertComment("did:plc:user", rkey, subjectURI, parentURI, "cid"+rkey, "Comment", now.Add(time.Duration(i)*time.Second))
+		err = idx.UpsertComment(ctx, "did:plc:user", rkey, subjectURI, parentURI, "cid"+rkey, "Comment", now.Add(time.Duration(i)*time.Second))
 		assert.NoError(t, err)
 		parentURI = "at://did:plc:user/social.arabica.alpha.comment/" + rkey
 	}
@@ -192,17 +195,17 @@ func TestCommentThreading_MultipleTopLevel(t *testing.T) {
 	now := time.Now()
 
 	// Create two top-level comments
-	err = idx.UpsertComment("did:plc:user1", "topA", subjectURI, "", "cidA", "First top comment", now)
+	err = idx.UpsertComment(ctx, "did:plc:user1", "topA", subjectURI, "", "cidA", "First top comment", now)
 	assert.NoError(t, err)
-	err = idx.UpsertComment("did:plc:user2", "topB", subjectURI, "", "cidB", "Second top comment", now.Add(5*time.Second))
+	err = idx.UpsertComment(ctx, "did:plc:user2", "topB", subjectURI, "", "cidB", "Second top comment", now.Add(5*time.Second))
 	assert.NoError(t, err)
 
 	// Reply to first top-level comment
-	err = idx.UpsertComment("did:plc:user3", "replyA1", subjectURI, "at://did:plc:user1/social.arabica.alpha.comment/topA", "cidA1", "Reply to first", now.Add(2*time.Second))
+	err = idx.UpsertComment(ctx, "did:plc:user3", "replyA1", subjectURI, "at://did:plc:user1/social.arabica.alpha.comment/topA", "cidA1", "Reply to first", now.Add(2*time.Second))
 	assert.NoError(t, err)
 
 	// Reply to second top-level comment
-	err = idx.UpsertComment("did:plc:user4", "replyB1", subjectURI, "at://did:plc:user2/social.arabica.alpha.comment/topB", "cidB1", "Reply to second", now.Add(6*time.Second))
+	err = idx.UpsertComment(ctx, "did:plc:user4", "replyB1", subjectURI, "at://did:plc:user2/social.arabica.alpha.comment/topB", "cidB1", "Reply to second", now.Add(6*time.Second))
 	assert.NoError(t, err)
 
 	// Get threaded comments
@@ -238,28 +241,30 @@ func TestDeleteRecord(t *testing.T) {
 	err = idx.UpsertRecord(context.Background(), did, collection, rkey, "cid123", record, time.Now().Unix())
 	assert.NoError(t, err)
 
+	ctx := context.Background()
+
 	// Verify it exists
 	uri := "at://" + did + "/" + collection + "/" + rkey
-	rec, err := idx.GetRecord(uri)
+	rec, err := idx.GetRecord(ctx, uri)
 	assert.NoError(t, err)
 	assert.NotNil(t, rec, "record should exist after upsert")
 
 	// Verify it appears in collection listing
-	records, err := idx.ListRecordsByCollection(collection)
+	records, err := idx.ListRecordsByCollection(ctx, collection)
 	assert.NoError(t, err)
 	assert.Len(t, records, 1)
 
 	// Delete the record
-	err = idx.DeleteRecord(did, collection, rkey)
+	err = idx.DeleteRecord(ctx, did, collection, rkey)
 	assert.NoError(t, err)
 
 	// Verify it no longer exists via GetRecord
-	rec, err = idx.GetRecord(uri)
+	rec, err = idx.GetRecord(ctx, uri)
 	assert.NoError(t, err)
 	assert.Nil(t, rec, "record should not exist after delete")
 
 	// Verify it no longer appears in collection listing
-	records, err = idx.ListRecordsByCollection(collection)
+	records, err = idx.ListRecordsByCollection(ctx, collection)
 	assert.NoError(t, err)
 	assert.Len(t, records, 0, "deleted record should not appear in collection listing")
 
@@ -286,20 +291,22 @@ func TestDeleteRecord_DoesNotAffectOtherRecords(t *testing.T) {
 
 	assert.Equal(t, 2, idx.RecordCount())
 
+	ctx := context.Background()
+
 	// Delete only the first record
-	err = idx.DeleteRecord(did, collection, "bean1")
+	err = idx.DeleteRecord(ctx, did, collection, "bean1")
 	assert.NoError(t, err)
 
 	// Second record should still exist
 	uri2 := "at://" + did + "/" + collection + "/bean2"
-	rec, err := idx.GetRecord(uri2)
+	rec, err := idx.GetRecord(ctx, uri2)
 	assert.NoError(t, err)
 	assert.NotNil(t, rec, "second record should still exist after deleting first")
 
 	// Only one record should remain
 	assert.Equal(t, 1, idx.RecordCount())
 
-	records, err := idx.ListRecordsByCollection(collection)
+	records, err := idx.ListRecordsByCollection(ctx, collection)
 	assert.NoError(t, err)
 	assert.Len(t, records, 1)
 	assert.Equal(t, "bean2", records[0].RKey)
@@ -312,7 +319,7 @@ func TestDeleteRecord_NonexistentIsNoOp(t *testing.T) {
 	defer idx.Close()
 
 	// Deleting a record that doesn't exist should not error
-	err = idx.DeleteRecord("did:plc:nobody", "social.arabica.alpha.bean", "nonexistent")
+	err = idx.DeleteRecord(context.Background(), "did:plc:nobody", "social.arabica.alpha.bean", "nonexistent")
 	assert.NoError(t, err)
 }
 
@@ -346,13 +353,15 @@ func TestDeleteRecord_AllEntityTypes(t *testing.T) {
 
 	assert.Equal(t, 6, idx.RecordCount())
 
+	ctx := context.Background()
+
 	// Delete each record and verify it's gone
 	for _, tt := range types {
-		err := idx.DeleteRecord(did, tt.collection, tt.rkey)
+		err := idx.DeleteRecord(ctx, did, tt.collection, tt.rkey)
 		assert.NoError(t, err, "failed to delete %s/%s", tt.collection, tt.rkey)
 
 		uri := "at://" + did + "/" + tt.collection + "/" + tt.rkey
-		rec, err := idx.GetRecord(uri)
+		rec, err := idx.GetRecord(ctx, uri)
 		assert.NoError(t, err)
 		assert.Nil(t, rec, "%s should not exist after delete", tt.collection)
 	}

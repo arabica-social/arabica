@@ -97,7 +97,7 @@ func TestRoasterDedup_SameNameDifferentLocation(t *testing.T) {
 		"location": "New York, NY",
 	})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "stumptown", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "stumptown", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2, "different locations should produce separate suggestions")
 }
@@ -116,7 +116,7 @@ func TestRoasterDedup_FuzzyNameMerge(t *testing.T) {
 		"location": "Durham, NC",
 	})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "counter", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "counter", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1, "fuzzy name + same location should merge")
 	assert.Equal(t, 2, results[0].Count)
@@ -133,7 +133,7 @@ func TestRoasterDedup_NoLocationMerges(t *testing.T) {
 		"name": "Blue Bottle",
 	})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "blue", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "blue", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1, "same fuzzy name with no location should merge")
 	assert.Equal(t, 2, results[0].Count)
@@ -155,7 +155,7 @@ func TestGrinderDedup_SameNameDifferentType(t *testing.T) {
 		"burrType":    "flat",
 	})
 
-	results, err := Search(idx, atproto.NSIDGrinder, "baratza", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDGrinder, "baratza", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2, "different burr types should produce separate suggestions")
 }
@@ -174,7 +174,7 @@ func TestGrinderDedup_SameEverythingMerges(t *testing.T) {
 		"burrType":    "conical",
 	})
 
-	results, err := Search(idx, atproto.NSIDGrinder, "1zp", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDGrinder, "1zp", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, 2, results[0].Count)
@@ -194,7 +194,7 @@ func TestBrewerDedup_SameNameDifferentType(t *testing.T) {
 		"brewerType": "dripper",
 	})
 
-	results, err := Search(idx, atproto.NSIDBrewer, "hario", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDBrewer, "hario", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2, "different brewer types should produce separate suggestions")
 }
@@ -211,7 +211,7 @@ func TestBrewerDedup_SameNameSameTypeMerges(t *testing.T) {
 		"brewerType": "immersion",
 	})
 
-	results, err := Search(idx, atproto.NSIDBrewer, "aero", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDBrewer, "aero", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, 2, results[0].Count)
@@ -233,7 +233,7 @@ func TestBeanDedup_SameNameDifferentProcess(t *testing.T) {
 		"process": "Natural",
 	})
 
-	results, err := Search(idx, atproto.NSIDBean, "yirga", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDBean, "yirga", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2, "different processes should produce separate suggestions")
 }
@@ -250,7 +250,7 @@ func TestBeanDedup_SameNameDifferentOrigin(t *testing.T) {
 		"origin": "Ethiopia",
 	})
 
-	results, err := Search(idx, atproto.NSIDBean, "gesha", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDBean, "gesha", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2, "different origins should produce separate suggestions")
 }
@@ -270,7 +270,7 @@ func TestBeanDedup_SameEverythingMerges(t *testing.T) {
 		"process": "Washed",
 	})
 
-	results, err := Search(idx, atproto.NSIDBean, "ethiopia", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDBean, "ethiopia", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, 2, results[0].Count)
@@ -290,7 +290,7 @@ func TestSearch_PrefixMatch(t *testing.T) {
 		"location": "Oakland, CA",
 	})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "bl", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "bl", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	assert.Equal(t, "Black & White Coffee", results[0].Name)
@@ -304,7 +304,7 @@ func TestSearch_CaseInsensitive(t *testing.T) {
 		"name": "Stumptown Coffee",
 	})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "STUMP", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "STUMP", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "Stumptown Coffee", results[0].Name)
@@ -318,7 +318,7 @@ func TestSearch_SubstringMatch(t *testing.T) {
 		"location": "Floyd, VA",
 	})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "floyd", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "floyd", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "Red Rooster Coffee", results[0].Name)
@@ -338,7 +338,7 @@ func TestSearch_Deduplication(t *testing.T) {
 		"location": "Durham, NC",
 	})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "counter", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "counter", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, 2, results[0].Count)
@@ -356,7 +356,7 @@ func TestSearch_Limit(t *testing.T) {
 		})
 	}
 
-	results, err := Search(idx, atproto.NSIDGrinder, "grinder", 3)
+	results, err := Search(context.Background(), idx,atproto.NSIDGrinder, "grinder", 3)
 	assert.NoError(t, err)
 	assert.Len(t, results, 3)
 }
@@ -368,11 +368,11 @@ func TestSearch_ShortQuery(t *testing.T) {
 		"name": "ABC",
 	})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "a", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "a", 10)
 	assert.NoError(t, err)
 	assert.Empty(t, results)
 
-	results, err = Search(idx, atproto.NSIDRoaster, "ab", 10)
+	results, err = Search(context.Background(), idx,atproto.NSIDRoaster, "ab", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 }
@@ -380,7 +380,7 @@ func TestSearch_ShortQuery(t *testing.T) {
 func TestSearch_EmptyQuery(t *testing.T) {
 	idx := newTestFeedIndex(t)
 
-	results, err := Search(idx, atproto.NSIDRoaster, "", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "", 10)
 	assert.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -388,7 +388,7 @@ func TestSearch_EmptyQuery(t *testing.T) {
 func TestSearch_UnknownCollection(t *testing.T) {
 	idx := newTestFeedIndex(t)
 
-	results, err := Search(idx, "unknown.collection", "test", 10)
+	results, err := Search(context.Background(), idx,"unknown.collection", "test", 10)
 	assert.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -402,7 +402,7 @@ func TestSearch_GrinderFields(t *testing.T) {
 		"burrType":    "conical",
 	})
 
-	results, err := Search(idx, atproto.NSIDGrinder, "1zp", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDGrinder, "1zp", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "hand", results[0].Fields["grinderType"])
@@ -419,7 +419,7 @@ func TestSearch_BeanFields(t *testing.T) {
 		"process":    "Washed",
 	})
 
-	results, err := Search(idx, atproto.NSIDBean, "ethiopia", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDBean, "ethiopia", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "Ethiopian Yirgacheffe", results[0].Name)
@@ -434,7 +434,7 @@ func TestSearch_BrewerFields(t *testing.T) {
 		"brewerType": "Pour-Over",
 	})
 
-	results, err := Search(idx, atproto.NSIDBrewer, "hario", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDBrewer, "hario", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "Pour-Over", results[0].Fields["brewerType"])
@@ -454,7 +454,7 @@ func TestRecipeDedup_SameNameDifferentBrewerType(t *testing.T) {
 		"brewerType": "immersion",
 	})
 
-	results, err := Search(idx, atproto.NSIDRecipe, "v60", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRecipe, "v60", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2, "different brewer types should produce separate suggestions")
 }
@@ -471,7 +471,7 @@ func TestRecipeDedup_SameNameSameTypeMerges(t *testing.T) {
 		"brewerType": "immersion",
 	})
 
-	results, err := Search(idx, atproto.NSIDRecipe, "aero", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRecipe, "aero", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, 2, results[0].Count)
@@ -485,7 +485,7 @@ func TestSearch_RecipeFields(t *testing.T) {
 		"brewerType": "pourover",
 	})
 
-	results, err := Search(idx, atproto.NSIDRecipe, "hoffmann", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRecipe, "hoffmann", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "James Hoffmann V60", results[0].Name)
@@ -503,7 +503,7 @@ func TestSearch_SortOrder(t *testing.T) {
 	// "Alpha Beta" used by 1 person
 	insertRecord(t, idx, "did:plc:dave", atproto.NSIDRoaster, "r4", map[string]interface{}{"name": "Alpha Beta"})
 
-	results, err := Search(idx, atproto.NSIDRoaster, "alpha", 10)
+	results, err := Search(context.Background(), idx,atproto.NSIDRoaster, "alpha", 10)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	assert.Equal(t, "Alpha Roasters", results[0].Name)

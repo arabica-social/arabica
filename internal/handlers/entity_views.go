@@ -35,12 +35,12 @@ func (h *Handler) fetchSocialData(ctx context.Context, subjectURI, didStr string
 	var sd socialData
 
 	if h.feedIndex != nil && subjectURI != "" {
-		sd.LikeCount = h.feedIndex.GetLikeCount(subjectURI)
-		sd.CommentCount = h.feedIndex.GetCommentCount(subjectURI)
+		sd.LikeCount = h.feedIndex.GetLikeCount(ctx, subjectURI)
+		sd.CommentCount = h.feedIndex.GetCommentCount(ctx, subjectURI)
 		sd.Comments = h.feedIndex.GetThreadedCommentsForSubject(ctx, subjectURI, 100, didStr)
 		sd.Comments = h.filterHiddenComments(ctx, sd.Comments)
 		if isAuthenticated {
-			sd.IsLiked = h.feedIndex.HasUserLiked(didStr, subjectURI)
+			sd.IsLiked = h.feedIndex.HasUserLiked(ctx, didStr, subjectURI)
 		}
 	}
 
@@ -229,7 +229,7 @@ func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
 		if ownerDID == "" {
 			ownerDID = didStr
 		}
-		counts := h.feedIndex.BrewCountsByBeanURI(ownerDID)
+		counts := h.feedIndex.BrewCountsByBeanURI(r.Context(), ownerDID)
 		beanViewProps.BrewCount = counts[subjectURI]
 	}
 
@@ -361,7 +361,7 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 		if ownerDID == "" {
 			ownerDID = didStr
 		}
-		counts := h.feedIndex.BeanCountsByRoasterURI(ownerDID)
+		counts := h.feedIndex.BeanCountsByRoasterURI(r.Context(), ownerDID)
 		props.BeanCount = counts[subjectURI]
 	}
 
@@ -493,7 +493,7 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 		if ownerDID == "" {
 			ownerDID = didStr
 		}
-		counts := h.feedIndex.BrewCountsByGrinderURI(ownerDID)
+		counts := h.feedIndex.BrewCountsByGrinderURI(r.Context(), ownerDID)
 		props.BrewCount = counts[subjectURI]
 	}
 
@@ -625,7 +625,7 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 		if ownerDID == "" {
 			ownerDID = didStr
 		}
-		counts := h.feedIndex.BrewCountsByBrewerURI(ownerDID)
+		counts := h.feedIndex.BrewCountsByBrewerURI(r.Context(), ownerDID)
 		props.BrewCount = counts[subjectURI]
 	}
 

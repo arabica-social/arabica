@@ -264,9 +264,9 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	var isLiked bool
 	var likeCount int
 	if h.feedIndex != nil && subjectURI != "" {
-		likeCount = h.feedIndex.GetLikeCount(subjectURI)
+		likeCount = h.feedIndex.GetLikeCount(r.Context(), subjectURI)
 		if isAuthenticated {
-			isLiked = h.feedIndex.HasUserLiked(didStr, subjectURI)
+			isLiked = h.feedIndex.HasUserLiked(r.Context(), didStr, subjectURI)
 		}
 	}
 
@@ -274,7 +274,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	var commentCount int
 	var comments []firehose.IndexedComment
 	if h.feedIndex != nil && subjectURI != "" {
-		commentCount = h.feedIndex.GetCommentCount(subjectURI)
+		commentCount = h.feedIndex.GetCommentCount(r.Context(), subjectURI)
 		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
 		comments = h.filterHiddenComments(r.Context(), comments)
 	}

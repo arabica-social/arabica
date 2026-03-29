@@ -365,9 +365,9 @@ func (idx *FeedIndex) IsReady() bool {
 }
 
 // GetCursor returns the last processed cursor (microseconds timestamp)
-func (idx *FeedIndex) GetCursor() (int64, error) {
+func (idx *FeedIndex) GetCursor(ctx context.Context) (int64, error) {
 	var cursor int64
-	err := idx.db.QueryRow(`SELECT value FROM meta WHERE key = 'cursor'`).Scan(&cursor)
+	err := idx.db.QueryRowContext(ctx, `SELECT value FROM meta WHERE key = 'cursor'`).Scan(&cursor)
 	if err == sql.ErrNoRows {
 		return 0, nil
 	}
@@ -375,8 +375,8 @@ func (idx *FeedIndex) GetCursor() (int64, error) {
 }
 
 // SetCursor stores the cursor position
-func (idx *FeedIndex) SetCursor(cursor int64) error {
-	_, err := idx.db.Exec(`INSERT OR REPLACE INTO meta (key, value) VALUES ('cursor', ?)`, cursor)
+func (idx *FeedIndex) SetCursor(ctx context.Context, cursor int64) error {
+	_, err := idx.db.ExecContext(ctx, `INSERT OR REPLACE INTO meta (key, value) VALUES ('cursor', ?)`, cursor)
 	return err
 }
 
@@ -415,7 +415,7 @@ ON CONFLICT(uri) DO UPDATE SET
 
 	now := time.Now()
 
-	_, err := idx.db.Exec(stmt, uri, did, collection, rkey, string(record), cid,
+	_, err := idx.db.ExecContext(ctx, stmt, uri, did, collection, rkey, string(record), cid,
 		now.Format(time.RFC3339Nano), createdAt.Format(time.RFC3339Nano))
 	if err != nil {
 		tracing.EndWithError(span, err)
@@ -423,7 +423,7 @@ ON CONFLICT(uri) DO UPDATE SET
 	}
 
 	// Track known DID
-	_, err = idx.db.Exec(`INSERT OR IGNORE INTO known_dids (did) VALUES (?)`, did)
+	_, err = idx.db.ExecContext(ctx, `INSERT OR IGNORE INTO known_dids (did) VALUES (?)`, did)
 	if err != nil {
 		tracing.EndWithError(span, err)
 		return fmt.Errorf("failed to track known DID: %w", err)
@@ -433,9 +433,9 @@ ON CONFLICT(uri) DO UPDATE SET
 }
 
 // DeleteRecord removes a record from the index
-func (idx *FeedIndex) DeleteRecord(did, collection, rkey string) error {
+func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey string) error {
 	uri := atproto.BuildATURI(did, collection, rkey)
-	_, err := idx.db.Exec(`DELETE FROM records WHERE uri = ?`, uri)
+	_, err := idx.db.ExecContext(ctx, `DELETE FROM records WHERE uri = ?`, uri)
 	return err
 }
 
@@ -522,16 +522,16 @@ ON CONFLICT(uri) DO UPDATE SET
 }
 
 // DeleteWitnessRecord implements atproto.WitnessCache for write-through caching.
-func (idx *FeedIndex) DeleteWitnessRecord(_ context.Context, did, collection, rkey string) error {
-	return idx.DeleteRecord(did, collection, rkey)
+func (idx *FeedIndex) DeleteWitnessRecord(ctx context.Context, did, collection, rkey string) error {
+	return idx.DeleteRecord(ctx, did, collection, rkey)
 }
 
 // GetRecord retrieves a single record by URI
-func (idx *FeedIndex) GetRecord(uri string) (*IndexedRecord, error) {
+func (idx *FeedIndex) GetRecord(ctx context.Context, uri string) (*IndexedRecord, error) {
 	var rec IndexedRecord
 	var recordStr, indexedAtStr, createdAtStr string
 
-	err := idx.db.QueryRow(`
+	err := idx.db.QueryRowContext(ctx, `
 		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
 		FROM records WHERE uri = ?
 	`, uri).Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
@@ -967,8 +967,8 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	// Populate like-related fields for all record types
 	item.SubjectURI = record.URI
 	item.SubjectCID = record.CID
-	item.LikeCount = idx.GetLikeCount(record.URI)
-	item.CommentCount = idx.GetCommentCount(record.URI)
+	item.LikeCount = idx.GetLikeCount(ctx, record.URI)
+	item.CommentCount = idx.GetCommentCount(ctx, record.URI)
 
 	return item, nil
 }
@@ -985,7 +985,7 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 
 	// Check persistent cache
 	var dataStr, expiresAtStr string
-	err := idx.db.QueryRow(`SELECT data, expires_at FROM profiles WHERE did = ?`, did).Scan(&dataStr, &expiresAtStr)
+	err := idx.db.QueryRowContext(ctx, `SELECT data, expires_at FROM profiles WHERE did = ?`, did).Scan(&dataStr, &expiresAtStr)
 	if err == nil {
 		expiresAt, _ := time.Parse(time.RFC3339Nano, expiresAtStr)
 		if time.Now().Before(expiresAt) {
@@ -1020,15 +1020,15 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 
 	// Persist to database
 	data, _ := json.Marshal(cached)
-	_, _ = idx.db.Exec(`INSERT OR REPLACE INTO profiles (did, data, expires_at) VALUES (?, ?, ?)`,
+	_, _ = idx.db.ExecContext(ctx, `INSERT OR REPLACE INTO profiles (did, data, expires_at) VALUES (?, ?, ?)`,
 		did, string(data), cached.ExpiresAt.Format(time.RFC3339Nano))
 
 	return profile, nil
 }
 
 // GetKnownDIDs returns all DIDs that have created Arabica records
-func (idx *FeedIndex) GetKnownDIDs() ([]string, error) {
-	rows, err := idx.db.Query(`SELECT did FROM known_dids`)
+func (idx *FeedIndex) GetKnownDIDs(ctx context.Context) ([]string, error) {
+	rows, err := idx.db.QueryContext(ctx, `SELECT did FROM known_dids`)
 	if err != nil {
 		return nil, err
 	}
@@ -1046,8 +1046,8 @@ func (idx *FeedIndex) GetKnownDIDs() ([]string, error) {
 }
 
 // ListRecordsByCollection returns all indexed records for a given collection.
-func (idx *FeedIndex) ListRecordsByCollection(collection string) ([]IndexedRecord, error) {
-	rows, err := idx.db.Query(`
+func (idx *FeedIndex) ListRecordsByCollection(ctx context.Context, collection string) ([]IndexedRecord, error) {
+	rows, err := idx.db.QueryContext(ctx, `
 		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
 		FROM records WHERE collection = ? ORDER BY created_at DESC
 	`, collection)
@@ -1120,9 +1120,9 @@ func (idx *FeedIndex) RecordCountByCollection() map[string]int {
 
 // BrewCountsByRecipeURI returns a map of recipe AT-URI -> number of brews referencing that recipe.
 // Uses SQLite json_extract to efficiently query the recipeRef field in brew records.
-func (idx *FeedIndex) BrewCountsByRecipeURI() map[string]int {
+func (idx *FeedIndex) BrewCountsByRecipeURI(ctx context.Context) map[string]int {
 	counts := make(map[string]int)
-	rows, err := idx.db.Query(`
+	rows, err := idx.db.QueryContext(ctx, `
 		SELECT json_extract(record, '$.recipeRef') as recipe_uri, COUNT(*) as cnt
 		FROM records
 		WHERE collection = 'social.arabica.alpha.brew'
@@ -1146,12 +1146,12 @@ func (idx *FeedIndex) BrewCountsByRecipeURI() map[string]int {
 // refCounts returns a map of ref AT-URI -> count of records in the given collection
 // that reference it via the specified JSON field. If did is non-empty, only records
 // owned by that DID are counted.
-func (idx *FeedIndex) refCounts(collection, jsonField, did string) map[string]int {
+func (idx *FeedIndex) refCounts(ctx context.Context, collection, jsonField, did string) map[string]int {
 	counts := make(map[string]int)
 	var rows *sql.Rows
 	var err error
 	if did != "" {
-		rows, err = idx.db.Query(fmt.Sprintf(`
+		rows, err = idx.db.QueryContext(ctx, fmt.Sprintf(`
 			SELECT json_extract(record, '$.%s') as ref_uri, COUNT(*) as cnt
 			FROM records
 			WHERE collection = ? AND did = ?
@@ -1159,7 +1159,7 @@ func (idx *FeedIndex) refCounts(collection, jsonField, did string) map[string]in
 			GROUP BY ref_uri
 		`, jsonField), collection, did)
 	} else {
-		rows, err = idx.db.Query(fmt.Sprintf(`
+		rows, err = idx.db.QueryContext(ctx, fmt.Sprintf(`
 			SELECT json_extract(record, '$.%s') as ref_uri, COUNT(*) as cnt
 			FROM records
 			WHERE collection = ?
@@ -1183,26 +1183,26 @@ func (idx *FeedIndex) refCounts(collection, jsonField, did string) map[string]in
 
 // BrewCountsByBeanURI returns a map of bean AT-URI -> number of brews referencing that bean.
 // If did is non-empty, only brews owned by that DID are counted.
-func (idx *FeedIndex) BrewCountsByBeanURI(did string) map[string]int {
-	return idx.refCounts("social.arabica.alpha.brew", "beanRef", did)
+func (idx *FeedIndex) BrewCountsByBeanURI(ctx context.Context, did string) map[string]int {
+	return idx.refCounts(ctx, "social.arabica.alpha.brew", "beanRef", did)
 }
 
 // BrewCountsByGrinderURI returns a map of grinder AT-URI -> number of brews referencing that grinder.
 // If did is non-empty, only brews owned by that DID are counted.
-func (idx *FeedIndex) BrewCountsByGrinderURI(did string) map[string]int {
-	return idx.refCounts("social.arabica.alpha.brew", "grinderRef", did)
+func (idx *FeedIndex) BrewCountsByGrinderURI(ctx context.Context, did string) map[string]int {
+	return idx.refCounts(ctx, "social.arabica.alpha.brew", "grinderRef", did)
 }
 
 // BrewCountsByBrewerURI returns a map of brewer AT-URI -> number of brews referencing that brewer.
 // If did is non-empty, only brews owned by that DID are counted.
-func (idx *FeedIndex) BrewCountsByBrewerURI(did string) map[string]int {
-	return idx.refCounts("social.arabica.alpha.brew", "brewerRef", did)
+func (idx *FeedIndex) BrewCountsByBrewerURI(ctx context.Context, did string) map[string]int {
+	return idx.refCounts(ctx, "social.arabica.alpha.brew", "brewerRef", did)
 }
 
 // BeanCountsByRoasterURI returns a map of roaster AT-URI -> number of beans referencing that roaster.
 // If did is non-empty, only beans owned by that DID are counted.
-func (idx *FeedIndex) BeanCountsByRoasterURI(did string) map[string]int {
-	return idx.refCounts("social.arabica.alpha.bean", "roasterRef", did)
+func (idx *FeedIndex) BeanCountsByRoasterURI(ctx context.Context, did string) map[string]int {
+	return idx.refCounts(ctx, "social.arabica.alpha.bean", "roasterRef", did)
 }
 
 func formatTimeAgo(t time.Time) string {
@@ -1245,22 +1245,22 @@ func formatTimeAgo(t time.Time) string {
 }
 
 // IsBackfilled checks if a DID has already been backfilled
-func (idx *FeedIndex) IsBackfilled(did string) bool {
+func (idx *FeedIndex) IsBackfilled(ctx context.Context, did string) bool {
 	var exists int
-	err := idx.db.QueryRow(`SELECT 1 FROM backfilled WHERE did = ?`, did).Scan(&exists)
+	err := idx.db.QueryRowContext(ctx, `SELECT 1 FROM backfilled WHERE did = ?`, did).Scan(&exists)
 	return err == nil
 }
 
 // MarkBackfilled marks a DID as backfilled with current timestamp
-func (idx *FeedIndex) MarkBackfilled(did string) error {
-	_, err := idx.db.Exec(`INSERT OR IGNORE INTO backfilled (did, backfilled_at) VALUES (?, ?)`,
+func (idx *FeedIndex) MarkBackfilled(ctx context.Context, did string) error {
+	_, err := idx.db.ExecContext(ctx, `INSERT OR IGNORE INTO backfilled (did, backfilled_at) VALUES (?, ?)`,
 		did, time.Now().Format(time.RFC3339))
 	return err
 }
 
 // BackfillUser fetches all existing records for a DID and adds them to the index
 func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
-	if idx.IsBackfilled(did) {
+	if idx.IsBackfilled(ctx, did) {
 		log.Debug().Str("did", did).Msg("DID already backfilled, skipping")
 		return nil
 	}
@@ -1297,7 +1297,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 			case atproto.NSIDLike:
 				if subject, ok := record.Value["subject"].(map[string]interface{}); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
-						if err := idx.UpsertLike(did, rkey, subjectURI); err != nil {
+						if err := idx.UpsertLike(ctx, did, rkey, subjectURI); err != nil {
 							log.Warn().Err(err).Str("uri", record.URI).Msg("failed to index like during backfill")
 						}
 					}
@@ -1320,7 +1320,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 						if parent, ok := record.Value["parent"].(map[string]interface{}); ok {
 							parentURI, _ = parent["uri"].(string)
 						}
-						if err := idx.UpsertComment(did, rkey, subjectURI, parentURI, record.CID, text, createdAt); err != nil {
+						if err := idx.UpsertComment(ctx, did, rkey, subjectURI, parentURI, record.CID, text, createdAt); err != nil {
 							log.Warn().Err(err).Str("uri", record.URI).Msg("failed to index comment during backfill")
 						}
 					}
@@ -1329,7 +1329,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 		}
 	}
 
-	if err := idx.MarkBackfilled(did); err != nil {
+	if err := idx.MarkBackfilled(ctx, did); err != nil {
 		log.Warn().Err(err).Str("did", did).Msg("failed to mark DID as backfilled")
 	}
 
@@ -1340,38 +1340,38 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 // ========== Like Indexing Methods ==========
 
 // UpsertLike adds or updates a like in the index
-func (idx *FeedIndex) UpsertLike(actorDID, rkey, subjectURI string) error {
-	_, err := idx.db.Exec(`INSERT OR IGNORE INTO likes (subject_uri, actor_did, rkey) VALUES (?, ?, ?)`,
+func (idx *FeedIndex) UpsertLike(ctx context.Context, actorDID, rkey, subjectURI string) error {
+	_, err := idx.db.ExecContext(ctx, `INSERT OR IGNORE INTO likes (subject_uri, actor_did, rkey) VALUES (?, ?, ?)`,
 		subjectURI, actorDID, rkey)
 	return err
 }
 
 // DeleteLike removes a like from the index
-func (idx *FeedIndex) DeleteLike(actorDID, subjectURI string) error {
-	_, err := idx.db.Exec(`DELETE FROM likes WHERE subject_uri = ? AND actor_did = ?`,
+func (idx *FeedIndex) DeleteLike(ctx context.Context, actorDID, subjectURI string) error {
+	_, err := idx.db.ExecContext(ctx, `DELETE FROM likes WHERE subject_uri = ? AND actor_did = ?`,
 		subjectURI, actorDID)
 	return err
 }
 
 // GetLikeCount returns the number of likes for a record
-func (idx *FeedIndex) GetLikeCount(subjectURI string) int {
+func (idx *FeedIndex) GetLikeCount(ctx context.Context, subjectURI string) int {
 	var count int
-	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM likes WHERE subject_uri = ?`, subjectURI).Scan(&count)
+	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM likes WHERE subject_uri = ?`, subjectURI).Scan(&count)
 	return count
 }
 
 // HasUserLiked checks if a user has liked a specific record
-func (idx *FeedIndex) HasUserLiked(actorDID, subjectURI string) bool {
+func (idx *FeedIndex) HasUserLiked(ctx context.Context, actorDID, subjectURI string) bool {
 	var exists int
-	err := idx.db.QueryRow(`SELECT 1 FROM likes WHERE actor_did = ? AND subject_uri = ? LIMIT 1`,
+	err := idx.db.QueryRowContext(ctx, `SELECT 1 FROM likes WHERE actor_did = ? AND subject_uri = ? LIMIT 1`,
 		actorDID, subjectURI).Scan(&exists)
 	return err == nil
 }
 
 // GetUserLikeRKey returns the rkey of a user's like for a specific record, or empty string if not found
-func (idx *FeedIndex) GetUserLikeRKey(actorDID, subjectURI string) string {
+func (idx *FeedIndex) GetUserLikeRKey(ctx context.Context, actorDID, subjectURI string) string {
 	var rkey string
-	err := idx.db.QueryRow(`SELECT rkey FROM likes WHERE actor_did = ? AND subject_uri = ?`,
+	err := idx.db.QueryRowContext(ctx, `SELECT rkey FROM likes WHERE actor_did = ? AND subject_uri = ?`,
 		actorDID, subjectURI).Scan(&rkey)
 	if err != nil {
 		return ""
@@ -1403,7 +1403,7 @@ type IndexedComment struct {
 }
 
 // UpsertComment adds or updates a comment in the index
-func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, parentURI, cid, text string, createdAt time.Time) error {
+func (idx *FeedIndex) UpsertComment(ctx context.Context, actorDID, rkey, subjectURI, parentURI, cid, text string, createdAt time.Time) error {
 	// Extract parent rkey from parent URI if present
 	var parentRKey string
 	if parentURI != "" {
@@ -1413,7 +1413,7 @@ func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, parentURI, cid, 
 		}
 	}
 
-	_, err := idx.db.Exec(`
+	_, err := idx.db.ExecContext(ctx, `
 		INSERT INTO comments (actor_did, rkey, subject_uri, parent_uri, parent_rkey, cid, text, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(actor_did, rkey) DO UPDATE SET
@@ -1428,15 +1428,15 @@ func (idx *FeedIndex) UpsertComment(actorDID, rkey, subjectURI, parentURI, cid, 
 }
 
 // DeleteComment removes a comment from the index
-func (idx *FeedIndex) DeleteComment(actorDID, rkey, subjectURI string) error {
-	_, err := idx.db.Exec(`DELETE FROM comments WHERE actor_did = ? AND rkey = ?`, actorDID, rkey)
+func (idx *FeedIndex) DeleteComment(ctx context.Context, actorDID, rkey, subjectURI string) error {
+	_, err := idx.db.ExecContext(ctx, `DELETE FROM comments WHERE actor_did = ? AND rkey = ?`, actorDID, rkey)
 	return err
 }
 
 // GetCommentCount returns the number of comments on a record
-func (idx *FeedIndex) GetCommentCount(subjectURI string) int {
+func (idx *FeedIndex) GetCommentCount(ctx context.Context, subjectURI string) int {
 	var count int
-	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM comments WHERE subject_uri = ?`, subjectURI).Scan(&count)
+	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM comments WHERE subject_uri = ?`, subjectURI).Scan(&count)
 	return count
 }
 
@@ -1481,9 +1481,9 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 		}
 
 		commentURI := fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", comments[i].ActorDID, comments[i].RKey)
-		comments[i].LikeCount = idx.GetLikeCount(commentURI)
+		comments[i].LikeCount = idx.GetLikeCount(ctx, commentURI)
 		if viewerDID != "" {
-			comments[i].IsLiked = idx.HasUserLiked(viewerDID, commentURI)
+			comments[i].IsLiked = idx.HasUserLiked(ctx, viewerDID, commentURI)
 		}
 	}
 

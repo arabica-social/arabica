@@ -579,20 +579,20 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	if h.feedIndex != nil && profile != nil {
 		for _, brew := range profileData.Brews {
 			subjectURI := atproto.BuildATURI(profile.DID, atproto.NSIDBrew, brew.RKey)
-			brewLikeCounts[brew.RKey] = h.feedIndex.GetLikeCount(subjectURI)
+			brewLikeCounts[brew.RKey] = h.feedIndex.GetLikeCount(ctx, subjectURI)
 			if isAuthenticated {
-				brewLikedByUser[brew.RKey] = h.feedIndex.HasUserLiked(didStr, subjectURI)
+				brewLikedByUser[brew.RKey] = h.feedIndex.HasUserLiked(ctx, didStr, subjectURI)
 			}
 			// Get CID from the firehose index record
-			if record, err := h.feedIndex.GetRecord(subjectURI); err == nil && record != nil {
+			if record, err := h.feedIndex.GetRecord(ctx, subjectURI); err == nil && record != nil {
 				brewCIDs[brew.RKey] = record.CID
 			}
 		}
 		// Entity usage counts
-		beanBrewCounts = h.feedIndex.BrewCountsByBeanURI(did)
-		grinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(did)
-		brewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(did)
-		roasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(did)
+		beanBrewCounts = h.feedIndex.BrewCountsByBeanURI(ctx, did)
+		grinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(ctx, did)
+		brewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(ctx, did)
+		roasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(ctx, did)
 	}
 
 	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{

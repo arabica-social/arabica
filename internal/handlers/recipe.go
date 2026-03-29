@@ -159,7 +159,7 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 	if h.feedIndex != nil {
 		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 		if didStr != "" {
-			if err := h.feedIndex.DeleteRecord(didStr, atproto.NSIDRecipe, rkey); err != nil {
+			if err := h.feedIndex.DeleteRecord(r.Context(), didStr, atproto.NSIDRecipe, rkey); err != nil {
 				log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe from feed index")
 			}
 		}
@@ -488,7 +488,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 		return nil, fmt.Errorf("feed index not available")
 	}
 
-	records, err := h.feedIndex.ListRecordsByCollection(atproto.NSIDRecipe)
+	records, err := h.feedIndex.ListRecordsByCollection(ctx, atproto.NSIDRecipe)
 	if err != nil {
 		return nil, err
 	}
@@ -564,7 +564,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 	}
 
 	// Batch query brew counts per recipe
-	brewCounts := h.feedIndex.BrewCountsByRecipeURI()
+	brewCounts := h.feedIndex.BrewCountsByRecipeURI(ctx)
 
 	// Build final recipe list
 	recipes := make([]*models.Recipe, 0, len(parsed))
@@ -576,7 +576,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 			if c, parseErr := atproto.ResolveATURI(brewerRef); parseErr == nil {
 				recipe.BrewerRKey = c.RKey
 			}
-			if brewerRec, getErr := h.feedIndex.GetRecord(brewerRef); getErr == nil && brewerRec != nil {
+			if brewerRec, getErr := h.feedIndex.GetRecord(ctx, brewerRef); getErr == nil && brewerRec != nil {
 				var brewerData map[string]interface{}
 				if err := json.Unmarshal(brewerRec.Record, &brewerData); err == nil {
 					if brewer, err := atproto.RecordToBrewer(brewerData, brewerRef); err == nil {

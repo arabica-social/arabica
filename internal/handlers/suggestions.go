@@ -62,7 +62,7 @@ func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request
 	// community records, not their own data echoed back.
 	excludeDID, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	results, err := suggestions.Search(h.feedIndex, nsid, query, limit, excludeDID)
+	results, err := suggestions.Search(r.Context(), h.feedIndex, nsid, query, limit, excludeDID)
 	if err != nil {
 		log.Error().Err(err).Str("entity", entityType).Str("query", query).Msg("Failed to search suggestions")
 		http.Error(w, "Failed to search suggestions", http.StatusInternalServerError)
