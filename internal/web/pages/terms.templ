@@ -27,14 +27,25 @@ templ TermsContent() {
 			</section>
 			<section>
 				<h2 class="text-2xl font-semibold text-brown-800 mb-4">1. Your Data Ownership</h2>
-				<p class="text-brown-700 leading-relaxed">
+				<p class="text-brown-700 leading-relaxed mb-3">
 					All data you create through Arabica is stored in your AT Protocol Personal Data Server (PDS).
+					Your PDS may be operated by a large provider (such as
+					<a href="https://bsky.app" class="link-bold" target="_blank" rel="noopener noreferrer">Bluesky</a>),
+					an independent host (such as
+					<a href="https://selfhosted.social" class="link-bold" target="_blank" rel="noopener noreferrer">selfhosted.social</a> or
+					<a href="https://eurosky.cloud" class="link-bold" target="_blank" rel="noopener noreferrer">Eurosky</a>),
+					or by you on
+					<a href="https://atproto.com/guides/self-hosting" class="link-bold" target="_blank" rel="noopener noreferrer">your own infrastructure</a>.
+					You choose where your PDS lives, and the AT Protocol allows you to migrate to a different
+					provider at any time, taking your data and identity with you.
+				</p>
+				<p class="text-brown-700 leading-relaxed">
 					Arabica does not own or claim any rights to your data.
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-brown-700 mt-3">
-					<li>You retain full ownership and control of your data</li>
+					<li>You retain ownership of your data and choose where it is hosted</li>
 					<li>You can delete your data at any time &mdash; deletes are respected immediately (see below)</li>
-					<li>You can switch PDS providers without losing your data</li>
+					<li>You can migrate to a different PDS provider without losing your data or identity</li>
 					<li>You can stop using Arabica and your data remains in your PDS</li>
 				</ul>
 			</section>
@@ -94,15 +105,66 @@ templ TermsContent() {
 				</p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">6. Service Availability</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">6. Age Requirement</h2>
 				<p class="text-brown-700 leading-relaxed">
-					Arabica is provided "as is" without warranties of any kind. We make reasonable efforts to keep
-					the service running but do not guarantee uptime or availability. Since your data is stored in
-					your PDS (not our servers), you won't lose your data if Arabica goes offline.
+					You must be at least 13 years old to use Arabica. If you are between 13 and 18, you must have
+					permission from a parent or legal guardian. We do not knowingly collect data from children
+					under 13. If we become aware that a user is under 13, we will take steps to remove their
+					data from our servers.
 				</p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">7. Privacy</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">7. Content Moderation</h2>
+				<p class="text-brown-700 leading-relaxed mb-3">
+					Arabica has a moderation system to maintain a safe and welcoming community. Moderators may:
+				</p>
+				<ul class="list-disc list-inside space-y-2 text-brown-700">
+					<li><strong>Hide content</strong> &mdash; Records that violate community standards may be hidden from the community feed. Hidden records remain in your PDS and are not deleted.</li>
+					<li><strong>Restrict accounts</strong> &mdash; Accounts that repeatedly violate community standards may be restricted from appearing in the community feed.</li>
+					<li><strong>Auto-moderation</strong> &mdash; Arabica uses automated content filtering that may automatically hide records pending moderator review.</li>
+				</ul>
+				<p class="text-brown-700 leading-relaxed mt-3">
+					Users can report content they believe violates community standards. All moderation actions are
+					logged in an audit trail. Moderation only affects visibility within Arabica &mdash; your data
+					in your PDS is never modified or deleted by moderators.
+				</p>
+			</section>
+			<section>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">8. Account Termination</h2>
+				<p class="text-brown-700 leading-relaxed">
+					Arabica may restrict or terminate your access to the service if you violate these terms or
+					community standards. Because your data lives in your PDS, termination from Arabica does not
+					affect your data or your AT Protocol identity &mdash; you can still access your records through
+					other AT Protocol applications.
+				</p>
+			</section>
+			<section>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">9. Service Availability &amp; Third Parties</h2>
+				<p class="text-brown-700 leading-relaxed mb-3">
+					Arabica is provided "as is" without warranties of any kind. We make reasonable efforts to keep
+					the service running but do not guarantee uptime or availability. Since your data is stored in
+					your PDS rather than on Arabica's servers, you won't lose your data if Arabica goes offline.
+				</p>
+				<p class="text-brown-700 leading-relaxed">
+					Arabica depends on third-party services including your PDS provider and the AT Protocol relay
+					network. Your PDS provider (e.g. Bluesky) hosts your data and has its own terms of service
+					and data handling practices. We are not responsible for the availability, performance, or
+					data handling practices of these third-party services.
+				</p>
+			</section>
+			<section>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">10. Limitation of Liability</h2>
+				<p class="text-brown-700 leading-relaxed">
+					To the maximum extent permitted by law, Arabica and its operators shall not be liable for any
+					indirect, incidental, special, consequential, or punitive damages, including but not limited to
+					loss of data, loss of profits, or interruption of service, arising from your use of or inability
+					to use the service. Our total liability for any claim related to the service shall not exceed
+					the amount you have paid us in the twelve months preceding the claim (which, since Arabica is
+					free, is zero).
+				</p>
+			</section>
+			<section>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">11. Privacy</h2>
 				<p class="text-brown-700 leading-relaxed mb-3">
 					<strong>All data on the AT Protocol is public.</strong> Records you create in Arabica &mdash; brews, beans,
 					equipment, likes, comments &mdash; are publicly accessible on your PDS and through the AT Protocol firehose.
@@ -120,7 +182,26 @@ templ TermsContent() {
 				</ul>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">8. Open Source</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">12. Your Data Rights</h2>
+				<p class="text-brown-700 leading-relaxed mb-3">
+					Regardless of where you are located, you have the following rights regarding data stored on
+					Arabica's servers (the witness cache, session data, and moderation data &mdash; for data in
+					your PDS, contact your PDS provider):
+				</p>
+				<ul class="list-disc list-inside space-y-2 text-brown-700">
+					<li><strong>Right to access</strong> &mdash; You can request a copy of the data we hold about you on our servers</li>
+					<li><strong>Right to deletion</strong> &mdash; You can request that we remove your data from our witness cache, feed registry, and other server-side storage</li>
+					<li><strong>Right to correction</strong> &mdash; Since your PDS is the source of truth, corrections are made by updating your PDS records, and the witness cache will reflect the change</li>
+				</ul>
+				<p class="text-brown-700 leading-relaxed mt-3">
+					To exercise these rights, contact us at
+					<a href="mailto:mail@arabica.systems" class="link-bold">mail@arabica.systems</a>.
+					We process data on the legal basis of legitimate interest (providing the community feed and
+					social features you use). We do not transfer your data to third parties.
+				</p>
+			</section>
+			<section>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">13. Open Source</h2>
 				<p class="text-brown-700 leading-relaxed">
 					Arabica is open source software. You can review the code, run your own instance, or contribute
 					improvements. The transparency of open source means you can verify that we're handling your data
@@ -128,14 +209,7 @@ templ TermsContent() {
 				</p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">9. Changes to Terms</h2>
-				<p class="text-brown-700 leading-relaxed">
-					We may update these terms occasionally. If we make significant changes, we'll notify users through
-					the application. Continued use of Arabica after changes constitutes acceptance of the new terms.
-				</p>
-			</section>
-			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">10. Acceptable Use</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">14. Acceptable Use</h2>
 				<p class="text-brown-700 leading-relaxed">
 					Please use Arabica responsibly:
 				</p>
@@ -146,7 +220,14 @@ templ TermsContent() {
 				</ul>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">11. Contact</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">15. Changes to Terms</h2>
+				<p class="text-brown-700 leading-relaxed">
+					We may update these terms occasionally. If we make significant changes, we'll notify users through
+					the application. Continued use of Arabica after changes constitutes acceptance of the new terms.
+				</p>
+			</section>
+			<section>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">16. Contact</h2>
 				<p class="text-brown-700 leading-relaxed">
 					Questions about these terms? You can reach us through our GitHub repository or by email at
 					<a href="mailto:mail@arabica.systems" class="link-bold">mail@arabica.systems</a>.

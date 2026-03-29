@@ -20,7 +20,13 @@ templ AboutContent(isAuthenticated bool) {
 				<p class="text-brown-800 leading-relaxed">
 					Arabica is a coffee brew tracking application built on the AT Protocol, a decentralized social networking protocol.
 					Unlike traditional apps where your data is locked in a company's database, Arabica stores your brew logs,
-					coffee beans, and equipment information in <strong>your own Personal Data Server (PDS)</strong>.
+					coffee beans, and equipment information in <strong>your Personal Data Server (PDS)</strong> &mdash; hosted
+					by a provider you choose (such as
+					<a href="https://bsky.app" class="link-bold" target="_blank" rel="noopener noreferrer">Bluesky</a>,
+					<a href="https://selfhosted.social" class="link-bold" target="_blank" rel="noopener noreferrer">selfhosted.social</a>, or
+					<a href="https://eurosky.cloud" class="link-bold" target="_blank" rel="noopener noreferrer">Eurosky</a>),
+					<a href="https://atproto.com/guides/self-hosting" class="link-bold" target="_blank" rel="noopener noreferrer">self-hosted</a> on your own
+					infrastructure, and portable to a different provider at any time.
 				</p>
 			</section>
 			<section class="card p-6">
@@ -44,7 +50,7 @@ templ AboutContent(isAuthenticated bool) {
 					</div>
 					<div class="card p-4">
 						<h4 class="font-semibold text-brown-900 mb-2">Community Feed</h4>
-						<p class="text-brown-700 text-sm">Share your best brews with the community (coming soon: likes and comments!)</p>
+						<p class="text-brown-700 text-sm">Share your best brews with the community, and interact with likes and comments</p>
 					</div>
 					// <div class="bg-gradient-to-br from-brown-50 to-brown-100 border border-brown-200 p-4 rounded-lg shadow-md">
 					// 	<h4 class="font-semibold text-brown-900 mb-2">Export Your Data</h4>
@@ -55,8 +61,8 @@ templ AboutContent(isAuthenticated bool) {
 			<section>
 				<h2 class="text-2xl font-semibold text-brown-900 mb-4">The AT Protocol Advantage</h2>
 				<p class="text-brown-800 leading-relaxed">
-					The AT Protocol is a decentralized social networking protocol that gives users true ownership of their data
-					and identity. When you use Arabica:
+					The AT Protocol is a decentralized social networking protocol that gives users ownership of their data
+					and a portable identity. When you use Arabica:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-brown-800 mt-3">
 					<li>Your brew data is stored as ATProto records in collections on your PDS</li>
