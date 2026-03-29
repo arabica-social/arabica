@@ -211,6 +211,11 @@ CREATE TABLE IF NOT EXISTS moderation_autohide_resets (
     did      TEXT PRIMARY KEY,
     reset_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS user_settings (
+    did  TEXT PRIMARY KEY,
+    profile_stats_visibility TEXT NOT NULL DEFAULT '{}'
+);
 `
 
 // NewFeedIndex creates a new feed index backed by SQLite
@@ -1337,6 +1342,48 @@ func (idx *FeedIndex) AvgBrewRatingByRoasterURI(ctx context.Context, did string)
 		}
 	}
 	return stats
+}
+
+// GetProfileStatsVisibility returns the profile stats visibility settings for a user.
+// Returns default (all public) if no settings are stored.
+func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string) models.ProfileStatsVisibility {
+	defaults := models.DefaultProfileStatsVisibility()
+	if did == "" {
+		return defaults
+	}
+	var raw string
+	err := idx.db.QueryRowContext(ctx,
+		`SELECT profile_stats_visibility FROM user_settings WHERE did = ?`, did,
+	).Scan(&raw)
+	if err != nil {
+		return defaults
+	}
+	var settings models.ProfileStatsVisibility
+	if err := json.Unmarshal([]byte(raw), &settings); err != nil {
+		return defaults
+	}
+	// Fill in defaults for any empty fields
+	if settings.BeanAvgRating == "" {
+		settings.BeanAvgRating = models.VisibilityPublic
+	}
+	if settings.RoasterAvgRating == "" {
+		settings.RoasterAvgRating = models.VisibilityPublic
+	}
+	return settings
+}
+
+// SetProfileStatsVisibility saves the profile stats visibility settings for a user.
+func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string, settings models.ProfileStatsVisibility) error {
+	raw, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("marshal settings: %w", err)
+	}
+	_, err = idx.db.ExecContext(ctx,
+		`INSERT INTO user_settings (did, profile_stats_visibility) VALUES (?, ?)
+		 ON CONFLICT(did) DO UPDATE SET profile_stats_visibility = excluded.profile_stats_visibility`,
+		did, string(raw),
+	)
+	return err
 }
 
 func formatTimeAgo(t time.Time) string {

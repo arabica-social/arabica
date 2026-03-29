@@ -1,8 +1,15 @@
 package pages
 
-import "arabica/internal/web/components"
+import (
+	"arabica/internal/models"
+	"arabica/internal/web/components"
+)
 
-templ settingsContent() {
+type SettingsProps struct {
+	ProfileStatsVisibility models.ProfileStatsVisibility
+}
+
+templ settingsContent(props SettingsProps) {
 	<div class="page-container-sm py-6">
 		<h1 class="page-title mb-6">Settings</h1>
 		<div class="card card-inner">
@@ -38,9 +45,39 @@ templ settingsContent() {
 				</div>
 			</div>
 		</div>
+		<div class="card card-inner mt-4">
+			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Profile Visibility</h2>
+			<p class="text-sm mb-4" style="color: var(--text-muted);">Control which aggregate stats are visible to others on your profile page. These settings only affect what other people see — you always see your own stats.</p>
+			<form
+				hx-post="/api/settings/profile-visibility"
+				hx-target="#visibility-save-status"
+				hx-swap="innerHTML"
+			>
+				<div class="space-y-4">
+					<div>
+						<label class="form-label">Bean average brew rating</label>
+						<select name="bean_avg_rating" class="form-select">
+							<option value="public" selected?={ props.ProfileStatsVisibility.BeanAvgRating == "public" }>Public</option>
+							<option value="private" selected?={ props.ProfileStatsVisibility.BeanAvgRating == "private" }>Only me</option>
+						</select>
+					</div>
+					<div>
+						<label class="form-label">Roaster average brew rating</label>
+						<select name="roaster_avg_rating" class="form-select">
+							<option value="public" selected?={ props.ProfileStatsVisibility.RoasterAvgRating == "public" }>Public</option>
+							<option value="private" selected?={ props.ProfileStatsVisibility.RoasterAvgRating == "private" }>Only me</option>
+						</select>
+					</div>
+				</div>
+				<div class="mt-4 flex items-center gap-3">
+					<button type="submit" class="btn-primary">Save</button>
+					<span id="visibility-save-status"></span>
+				</div>
+			</form>
+		</div>
 	</div>
 }
 
-templ Settings(data *components.LayoutData) {
-	@components.Layout(data, settingsContent())
+templ Settings(data *components.LayoutData, props SettingsProps) {
+	@components.Layout(data, settingsContent(props))
 }

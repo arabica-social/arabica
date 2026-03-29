@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"arabica/internal/models"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -397,6 +399,72 @@ func TestAvgBrewRatingByBeanURI_Empty(t *testing.T) {
 
 	stats := idx.AvgBrewRatingByBeanURI(context.Background(), "")
 	assert.Empty(t, stats)
+}
+
+func TestProfileStatsVisibility_Defaults(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	// No settings stored — should return all public
+	vis := idx.GetProfileStatsVisibility(context.Background(), "did:plc:nobody")
+	assert.Equal(t, models.VisibilityPublic, vis.BeanAvgRating)
+	assert.Equal(t, models.VisibilityPublic, vis.RoasterAvgRating)
+}
+
+func TestProfileStatsVisibility_SetAndGet(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	did := "did:plc:user1"
+
+	// Set bean to private, roaster stays public
+	err = idx.SetProfileStatsVisibility(ctx, did, models.ProfileStatsVisibility{
+		BeanAvgRating:    models.VisibilityPrivate,
+		RoasterAvgRating: models.VisibilityPublic,
+	})
+	assert.NoError(t, err)
+
+	vis := idx.GetProfileStatsVisibility(ctx, did)
+	assert.Equal(t, models.VisibilityPrivate, vis.BeanAvgRating)
+	assert.Equal(t, models.VisibilityPublic, vis.RoasterAvgRating)
+
+	// Update to both private
+	err = idx.SetProfileStatsVisibility(ctx, did, models.ProfileStatsVisibility{
+		BeanAvgRating:    models.VisibilityPrivate,
+		RoasterAvgRating: models.VisibilityPrivate,
+	})
+	assert.NoError(t, err)
+
+	vis = idx.GetProfileStatsVisibility(ctx, did)
+	assert.Equal(t, models.VisibilityPrivate, vis.BeanAvgRating)
+	assert.Equal(t, models.VisibilityPrivate, vis.RoasterAvgRating)
+}
+
+func TestProfileStatsVisibility_IsolatedPerUser(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+
+	// User1 sets private, User2 has defaults
+	err = idx.SetProfileStatsVisibility(ctx, "did:plc:user1", models.ProfileStatsVisibility{
+		BeanAvgRating:    models.VisibilityPrivate,
+		RoasterAvgRating: models.VisibilityPrivate,
+	})
+	assert.NoError(t, err)
+
+	vis1 := idx.GetProfileStatsVisibility(ctx, "did:plc:user1")
+	vis2 := idx.GetProfileStatsVisibility(ctx, "did:plc:user2")
+
+	assert.Equal(t, models.VisibilityPrivate, vis1.BeanAvgRating)
+	assert.Equal(t, models.VisibilityPublic, vis2.BeanAvgRating)
 }
 
 func TestDeleteRecord(t *testing.T) {

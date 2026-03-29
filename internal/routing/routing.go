@@ -146,6 +146,7 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// Settings
 	mux.HandleFunc("GET /settings", h.HandleSettings)
+	mux.Handle("POST /api/settings/profile-visibility", cop.Handler(http.HandlerFunc(h.HandleSettingsProfileVisibility)))
 
 	// Profile routes (public user profiles)
 	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)

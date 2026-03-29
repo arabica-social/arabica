@@ -636,14 +636,19 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		brewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(ctx, did)
 		roasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(ctx, did)
 
-		// Average brew ratings
-		beanAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(ctx, did) {
-			beanAvgBrewRatings[uri] = stats.Average
+		// Average brew ratings — respect profile visibility settings
+		statsVis := h.feedIndex.GetProfileStatsVisibility(ctx, did)
+		if isOwnProfile || statsVis.BeanAvgRating == models.VisibilityPublic {
+			beanAvgBrewRatings = make(map[string]float64)
+			for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(ctx, did) {
+				beanAvgBrewRatings[uri] = stats.Average
+			}
 		}
-		roasterAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(ctx, did) {
-			roasterAvgBrewRatings[uri] = stats.Average
+		if isOwnProfile || statsVis.RoasterAvgRating == models.VisibilityPublic {
+			roasterAvgBrewRatings = make(map[string]float64)
+			for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(ctx, did) {
+				roasterAvgBrewRatings[uri] = stats.Average
+			}
 		}
 	}
 
