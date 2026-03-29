@@ -19,19 +19,21 @@ templ TermsContent() {
 				<h2 class="text-2xl font-semibold text-brown-900 mb-4">The Simple Truth</h2>
 				<p class="text-brown-800 text-lg leading-relaxed">
 					<strong>You own all of your data.</strong> Period. Your brew logs, coffee beans, equipment information,
-					and any other data you create in Arabica belongs to you and is stored in your Personal Data Server (PDS),
-					not on our servers.
+					and any other data you create in Arabica belongs to you and is stored in your Personal Data Server (PDS).
+					Your PDS is always the source of truth. Arabica maintains a local cache to power the community feed
+					and improve performance, but your PDS is what matters &mdash; if Arabica's cache and your PDS ever disagree,
+					your PDS wins.
 				</p>
 			</section>
 			<section>
 				<h2 class="text-2xl font-semibold text-brown-800 mb-4">1. Your Data Ownership</h2>
 				<p class="text-brown-700 leading-relaxed">
 					All data you create through Arabica is stored in your AT Protocol Personal Data Server (PDS).
-					Arabica acts as an interface to your PDS but does not own, claim rights to, or permanently store your data.
+					Arabica does not own or claim any rights to your data.
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-brown-700 mt-3">
 					<li>You retain full ownership and control of your data</li>
-					<li>You can delete your data at any time</li>
+					<li>You can delete your data at any time &mdash; deletes are respected immediately (see below)</li>
 					<li>You can switch PDS providers without losing your data</li>
 					<li>You can stop using Arabica and your data remains in your PDS</li>
 				</ul>
@@ -39,44 +41,60 @@ templ TermsContent() {
 			<section>
 				<h2 class="text-2xl font-semibold text-brown-800 mb-4">2. What We Store</h2>
 				<p class="text-brown-700 leading-relaxed mb-3">
-					Arabica's servers store minimal data necessary for the application to function:
+					In addition to your PDS, Arabica's servers store the following data:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-brown-700">
 					<li><strong>Session information</strong> - Authentication tokens to keep you logged in</li>
 					<li><strong>Feed registry</strong> - List of users who've opted into the community feed</li>
-					<li><strong>Temporary cache</strong> - Short-lived cache of your data to improve performance</li>
+					<li>
+						<strong>Witness cache</strong> - A copy of your Arabica records (brews, beans, equipment, recipes)
+						indexed from the AT Protocol firehose. This powers the community feed and enables features like
+						like counts and comments without repeatedly querying your PDS. Your PDS remains the authoritative
+						source &mdash; the witness cache is a read-optimized mirror, not a replacement.
+					</li>
+					<li><strong>Social interactions</strong> - Likes and comments are indexed locally for fast retrieval</li>
+					<li><strong>Profile cache</strong> - A short-lived cache of user profiles that expires automatically</li>
 				</ul>
-				// NOTE: this may change in the future for witness caching purposes and user settings, so commenting out
-				// <p class="text-brown-700 leading-relaxed mt-3">
-				// 	We do <strong>not</strong> store your brew logs, beans, equipment, or any other user-generated content
-				// 	on our servers. That data lives exclusively in your PDS.
-				// </p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">3. Authentication</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">3. How Deletes Work</h2>
+				<p class="text-brown-700 leading-relaxed mb-3">
+					When you delete a record in Arabica, the deletion is immediate and thorough:
+				</p>
+				<ol class="list-decimal list-inside space-y-2 text-brown-700">
+					<li>The record is deleted from your PDS (the source of truth)</li>
+					<li>The corresponding witness cache entry is removed immediately</li>
+					<li>The AT Protocol firehose also delivers the delete event, providing a second layer of consistency</li>
+				</ol>
+				<p class="text-brown-700 leading-relaxed mt-3">
+					Arabica does not retain copies of deleted records. When you delete something, it's gone from both
+					your PDS and our servers.
+				</p>
+			</section>
+			<section>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">4. Authentication</h2>
 				<p class="text-brown-700 leading-relaxed">
-					Arabica uses OAuth to authenticate with your PDS. We never see or store your PDS password.
+					Arabica uses OAuth to authenticate with your PDS.
 					Authentication is handled between your browser and your PDS, with Arabica receiving only
 					temporary access tokens to read and write data on your behalf.
+					Due to the ephemeral nature of these access tokens, you will need to re-authenticate every
+					couple of weeks.
 				</p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">4. Community Feed</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">5. Community Feed</h2>
 				<p class="text-brown-700 leading-relaxed">
-					If you opt into the community feed, Arabica will periodically read your public brew records
-					from your PDS to display them to other users. This is done by:
+					Arabica subscribes to the atproto firehose to index <code>social.arabica.*</code> records in real time.
+					When you create a brew, bean, or other record, it is picked up by the firehose and stored in
+					the witness cache to power the community feed and social features like likes and comments.
 				</p>
-				<ul class="list-disc list-inside space-y-2 text-brown-700 mt-3">
-					<li>Making public API calls to your PDS</li>
-					<li>Temporarily caching brew data for feed display</li>
-				</ul>
-				// TODO: this hasn't been implemented yet
-				// <p class="text-brown-700 leading-relaxed mt-3">
-				// 	You can opt out of the community feed at any time, and we'll stop reading your brews.
-				// </p>
+				<p class="text-brown-700 leading-relaxed mt-3">
+					This indexing only applies to records using Arabica's lexicons &mdash; we do not read or store
+					any of your data from other atproto applications.
+				</p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">5. Service Availability</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">6. Service Availability</h2>
 				<p class="text-brown-700 leading-relaxed">
 					Arabica is provided "as is" without warranties of any kind. We make reasonable efforts to keep
 					the service running but do not guarantee uptime or availability. Since your data is stored in
@@ -84,19 +102,25 @@ templ TermsContent() {
 				</p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">6. Privacy</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">7. Privacy</h2>
+				<p class="text-brown-700 leading-relaxed mb-3">
+					<strong>All data on the AT Protocol is public.</strong> Records you create in Arabica &mdash; brews, beans,
+					equipment, likes, comments &mdash; are publicly accessible on your PDS and through the AT Protocol firehose.
+					There is no expectation of privacy for data stored via the AT Protocol. Do not store sensitive or
+					personal information in your brew records.
+				</p>
 				<p class="text-brown-700 leading-relaxed">
-					We respect your privacy and follow these principles:
+					With that said, we follow these principles regarding how Arabica operates:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-brown-700 mt-3">
 					<li>We don't sell your data</li>
 					<li>We don't track you across websites</li>
 					<li>We use minimal analytics to understand service usage</li>
-					<li>Your PDS and the AT Protocol control the privacy of your brew data</li>
+					<li>We only index records using Arabica's own lexicons &mdash; we don't read your data from other apps</li>
 				</ul>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">7. Open Source</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">8. Open Source</h2>
 				<p class="text-brown-700 leading-relaxed">
 					Arabica is open source software. You can review the code, run your own instance, or contribute
 					improvements. The transparency of open source means you can verify that we're handling your data
@@ -104,14 +128,14 @@ templ TermsContent() {
 				</p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">8. Changes to Terms</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">9. Changes to Terms</h2>
 				<p class="text-brown-700 leading-relaxed">
 					We may update these terms occasionally. If we make significant changes, we'll notify users through
 					the application. Continued use of Arabica after changes constitutes acceptance of the new terms.
 				</p>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">9. Acceptable Use</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">10. Acceptable Use</h2>
 				<p class="text-brown-700 leading-relaxed">
 					Please use Arabica responsibly:
 				</p>
@@ -122,7 +146,7 @@ templ TermsContent() {
 				</ul>
 			</section>
 			<section>
-				<h2 class="text-2xl font-semibold text-brown-800 mb-4">10. Contact</h2>
+				<h2 class="text-2xl font-semibold text-brown-800 mb-4">11. Contact</h2>
 				<p class="text-brown-700 leading-relaxed">
 					Questions about these terms? You can reach us through our GitHub repository or by email at
 					<a href="mailto:mail@arabica.systems" class="link-bold">mail@arabica.systems</a>.
@@ -130,9 +154,9 @@ templ TermsContent() {
 			</section>
 			<section class="card p-6 mt-8">
 				<p class="text-sm text-brown-700">
-					<strong>Last Updated:</strong> January 2026
+					<strong>Last Updated:</strong> March 29, 2026
 					<br/>
-					<strong>Effective Date:</strong> January 2026
+					<strong>Effective Date:</strong> March 29, 2026
 				</p>
 			</section>
 		</div>
