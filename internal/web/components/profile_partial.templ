@@ -28,7 +28,10 @@ type ProfileContentPartialProps struct {
 	GrinderBrewCounts map[string]int // grinder URI -> brew count
 	BrewerBrewCounts  map[string]int // brewer URI -> brew count
 	RoasterBeanCounts map[string]int // roaster URI -> bean count
-	ProfileDID        string         // DID of the profile being viewed
+	// Average brew ratings (keyed by AT-URI)
+	BeanAvgBrewRatings    map[string]float64 // bean URI -> avg brew rating
+	RoasterAvgBrewRatings map[string]float64 // roaster URI -> avg brew rating
+	ProfileDID            string             // DID of the profile being viewed
 }
 
 // ProfileContentPartial renders the profile tabs content (for HTMX loading)
@@ -52,13 +55,15 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 	<!-- Beans Tab -->
 	<div x-show="activeTab === 'beans'">
 		@ProfileBeansTab(ProfileBeansTabProps{
-			Beans:             props.Beans,
-			Roasters:          props.Roasters,
-			IsOwnProfile:      props.IsOwnProfile,
-			ProfileHandle:     props.ProfileHandle,
-			BeanBrewCounts:    props.BeanBrewCounts,
-			RoasterBeanCounts: props.RoasterBeanCounts,
-			ProfileDID:        props.ProfileDID,
+			Beans:                 props.Beans,
+			Roasters:              props.Roasters,
+			IsOwnProfile:          props.IsOwnProfile,
+			ProfileHandle:         props.ProfileHandle,
+			BeanBrewCounts:        props.BeanBrewCounts,
+			RoasterBeanCounts:     props.RoasterBeanCounts,
+			BeanAvgBrewRatings:    props.BeanAvgBrewRatings,
+			RoasterAvgBrewRatings: props.RoasterAvgBrewRatings,
+			ProfileDID:            props.ProfileDID,
 		})
 	</div>
 	<!-- Equipment Tab -->
@@ -77,13 +82,15 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 
 // ProfileBeansTabProps defines props for the beans tab
 type ProfileBeansTabProps struct {
-	Beans             []*models.Bean
-	Roasters          []*models.Roaster
-	IsOwnProfile      bool
-	ProfileHandle     string
-	BeanBrewCounts    map[string]int
-	RoasterBeanCounts map[string]int
-	ProfileDID        string
+	Beans                 []*models.Bean
+	Roasters              []*models.Roaster
+	IsOwnProfile          bool
+	ProfileHandle         string
+	BeanBrewCounts        map[string]int
+	RoasterBeanCounts     map[string]int
+	BeanAvgBrewRatings    map[string]float64
+	RoasterAvgBrewRatings map[string]float64
+	ProfileDID            string
 }
 
 // ProfileBeansTab renders the beans and roasters tab for profile
@@ -106,11 +113,12 @@ templ ProfileBeansTab(props ProfileBeansTabProps) {
 				}
 			} else {
 				@BeanCards(BeanCardsProps{
-					Beans:       filterOpenBeans(props.Beans),
-					ShowActions: false,
-					OwnerHandle: props.ProfileHandle,
-					BrewCounts:  props.BeanBrewCounts,
-					OwnerDID:    props.ProfileDID,
+					Beans:          filterOpenBeans(props.Beans),
+					ShowActions:    false,
+					OwnerHandle:    props.ProfileHandle,
+					BrewCounts:     props.BeanBrewCounts,
+					AvgBrewRatings: props.BeanAvgBrewRatings,
+					OwnerDID:       props.ProfileDID,
 				})
 			}
 		</div>
@@ -125,11 +133,12 @@ templ ProfileBeansTab(props ProfileBeansTabProps) {
 				}
 			} else {
 				@RoastersTable(RoastersTableProps{
-					Roasters:   props.Roasters,
-					ShowActions: false,
-					OwnerHandle: props.ProfileHandle,
-					BeanCounts:  props.RoasterBeanCounts,
-					OwnerDID:    props.ProfileDID,
+					Roasters:       props.Roasters,
+					ShowActions:    false,
+					OwnerHandle:    props.ProfileHandle,
+					BeanCounts:     props.RoasterBeanCounts,
+					AvgBrewRatings: props.RoasterAvgBrewRatings,
+					OwnerDID:       props.ProfileDID,
 				})
 			}
 		</div>
@@ -142,11 +151,12 @@ templ ProfileBeansTab(props ProfileBeansTabProps) {
 				})
 			} else {
 				@BeanCards(BeanCardsProps{
-					Beans:       filterClosedBeans(props.Beans),
-					ShowActions: false,
-					OwnerHandle: props.ProfileHandle,
-					BrewCounts:  props.BeanBrewCounts,
-					OwnerDID:    props.ProfileDID,
+					Beans:          filterClosedBeans(props.Beans),
+					ShowActions:    false,
+					OwnerHandle:    props.ProfileHandle,
+					BrewCounts:     props.BeanBrewCounts,
+					AvgBrewRatings: props.BeanAvgBrewRatings,
+					OwnerDID:       props.ProfileDID,
 				})
 			}
 		</div>

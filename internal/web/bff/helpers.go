@@ -69,6 +69,15 @@ func FormatBeanRating(rating *int) string {
 	return fmt.Sprintf("%d/10", *rating)
 }
 
+// FormatAvgRating formats an average rating as "X.X/10".
+// Returns empty string if avg is zero (no ratings).
+func FormatAvgRating(avg float64) string {
+	if avg == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.1f/10", avg)
+}
+
 // PoursToJSON serializes a slice of pours to JSON for use in JavaScript.
 func PoursToJSON(pours []*models.Pour) string {
 	if len(pours) == 0 {

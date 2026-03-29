@@ -601,6 +601,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	brewLikedByUser := make(map[string]bool)
 	brewCIDs := make(map[string]string)
 	var beanBrewCounts, grinderBrewCounts, brewerBrewCounts, roasterBeanCounts map[string]int
+	var beanAvgBrewRatings, roasterAvgBrewRatings map[string]float64
 	if h.feedIndex != nil && profile != nil {
 		// Collect all brew URIs for batch lookup
 		brewURIs := make([]string, 0, len(profileData.Brews))
@@ -634,6 +635,16 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		grinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(ctx, did)
 		brewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(ctx, did)
 		roasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(ctx, did)
+
+		// Average brew ratings
+		beanAvgBrewRatings = make(map[string]float64)
+		for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(ctx, did) {
+			beanAvgBrewRatings[uri] = stats.Average
+		}
+		roasterAvgBrewRatings = make(map[string]float64)
+		for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(ctx, did) {
+			roasterAvgBrewRatings[uri] = stats.Average
+		}
 	}
 
 	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
@@ -649,11 +660,13 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		BrewLikedByUser:   brewLikedByUser,
 		BrewCIDs:          brewCIDs,
 		IsAuthenticated:   isAuthenticated,
-		BeanBrewCounts:    beanBrewCounts,
-		GrinderBrewCounts: grinderBrewCounts,
-		BrewerBrewCounts:  brewerBrewCounts,
-		RoasterBeanCounts: roasterBeanCounts,
-		ProfileDID:        did,
+		BeanBrewCounts:        beanBrewCounts,
+		GrinderBrewCounts:     grinderBrewCounts,
+		BrewerBrewCounts:      brewerBrewCounts,
+		RoasterBeanCounts:     roasterBeanCounts,
+		BeanAvgBrewRatings:    beanAvgBrewRatings,
+		RoasterAvgBrewRatings: roasterAvgBrewRatings,
+		ProfileDID:            did,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile partial")

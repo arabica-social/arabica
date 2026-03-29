@@ -2,6 +2,7 @@ package firehose
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -224,6 +225,178 @@ func TestCommentThreading_MultipleTopLevel(t *testing.T) {
 
 	assert.Equal(t, "replyB1", comments[3].RKey)
 	assert.Equal(t, 1, comments[3].Depth)
+}
+
+func TestAvgBrewRatingByBeanURI(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	did := "did:plc:user1"
+	now := time.Now().Unix()
+	beanURI := "at://did:plc:user1/social.arabica.alpha.bean/bean1"
+
+	// Insert brews with ratings referencing the same bean
+	for i, rating := range []int{7, 8, 9} {
+		record := []byte(`{"$type":"social.arabica.alpha.brew","beanRef":"` + beanURI + `","rating":` + fmt.Sprintf("%d", rating) + `,"createdAt":"2025-01-0` + fmt.Sprintf("%d", i+1) + `T00:00:00Z"}`)
+		err := idx.UpsertRecord(ctx, did, "social.arabica.alpha.brew", fmt.Sprintf("brew%d", i), "cid", record, now)
+		assert.NoError(t, err)
+	}
+
+	// Per-user average
+	stats := idx.AvgBrewRatingByBeanURI(ctx, did)
+	assert.Len(t, stats, 1)
+	assert.Equal(t, 3, stats[beanURI].Count)
+	assert.InDelta(t, 8.0, stats[beanURI].Average, 0.01)
+
+	// Cross-user average (empty DID)
+	stats = idx.AvgBrewRatingByBeanURI(ctx, "")
+	assert.Len(t, stats, 1)
+	assert.Equal(t, 3, stats[beanURI].Count)
+	assert.InDelta(t, 8.0, stats[beanURI].Average, 0.01)
+}
+
+func TestAvgBrewRatingByBeanURI_MultipleBeansAndUsers(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	now := time.Now().Unix()
+	bean1 := "at://did:plc:user1/social.arabica.alpha.bean/bean1"
+	bean2 := "at://did:plc:user1/social.arabica.alpha.bean/bean2"
+
+	// User1 rates bean1: 6, 8
+	for i, rating := range []int{6, 8} {
+		record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":%d,"createdAt":"2025-01-01T00:00:00Z"}`, bean1, rating))
+		assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user1", "social.arabica.alpha.brew", fmt.Sprintf("u1b1_%d", i), "cid", record, now))
+	}
+
+	// User2 rates bean1: 10
+	record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":10,"createdAt":"2025-01-01T00:00:00Z"}`, bean1))
+	assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user2", "social.arabica.alpha.brew", "u2b1_0", "cid", record, now))
+
+	// User1 rates bean2: 4
+	record = []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":4,"createdAt":"2025-01-01T00:00:00Z"}`, bean2))
+	assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user1", "social.arabica.alpha.brew", "u1b2_0", "cid", record, now))
+
+	// Per-user1: bean1 avg=7, bean2 avg=4
+	stats := idx.AvgBrewRatingByBeanURI(ctx, "did:plc:user1")
+	assert.Len(t, stats, 2)
+	assert.InDelta(t, 7.0, stats[bean1].Average, 0.01)
+	assert.Equal(t, 2, stats[bean1].Count)
+	assert.InDelta(t, 4.0, stats[bean2].Average, 0.01)
+	assert.Equal(t, 1, stats[bean2].Count)
+
+	// Cross-user: bean1 avg=(6+8+10)/3=8, bean2 avg=4
+	stats = idx.AvgBrewRatingByBeanURI(ctx, "")
+	assert.Len(t, stats, 2)
+	assert.InDelta(t, 8.0, stats[bean1].Average, 0.01)
+	assert.Equal(t, 3, stats[bean1].Count)
+	assert.InDelta(t, 4.0, stats[bean2].Average, 0.01)
+}
+
+func TestAvgBrewRatingByBeanURI_SkipsBrewsWithoutRating(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	now := time.Now().Unix()
+	beanURI := "at://did:plc:user1/social.arabica.alpha.bean/bean1"
+
+	// Brew with rating
+	record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":7,"createdAt":"2025-01-01T00:00:00Z"}`, beanURI))
+	assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user1", "social.arabica.alpha.brew", "brew1", "cid", record, now))
+
+	// Brew without rating
+	record = []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","createdAt":"2025-01-02T00:00:00Z"}`, beanURI))
+	assert.NoError(t, idx.UpsertRecord(ctx, "did:plc:user1", "social.arabica.alpha.brew", "brew2", "cid", record, now))
+
+	stats := idx.AvgBrewRatingByBeanURI(ctx, "")
+	assert.Len(t, stats, 1)
+	assert.Equal(t, 1, stats[beanURI].Count)
+	assert.InDelta(t, 7.0, stats[beanURI].Average, 0.01)
+}
+
+func TestAvgBrewRatingByRoasterURI(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	did := "did:plc:user1"
+	now := time.Now().Unix()
+	beanURI := "at://did:plc:user1/social.arabica.alpha.bean/bean1"
+	roasterURI := "at://did:plc:user1/social.arabica.alpha.roaster/roaster1"
+
+	// Insert the bean record with roaster reference
+	beanRecord := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.bean","name":"Ethiopia Yirgacheffe","roasterRef":"%s","createdAt":"2025-01-01T00:00:00Z"}`, roasterURI))
+	assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.bean", "bean1", "cid", beanRecord, now))
+
+	// Insert brews referencing that bean with ratings
+	for i, rating := range []int{6, 8, 10} {
+		record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":%d,"createdAt":"2025-01-0%dT00:00:00Z"}`, beanURI, rating, i+1))
+		assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.brew", fmt.Sprintf("brew%d", i), "cid", record, now))
+	}
+
+	// Per-user average for roaster
+	stats := idx.AvgBrewRatingByRoasterURI(ctx, did)
+	assert.Len(t, stats, 1)
+	assert.Equal(t, 3, stats[roasterURI].Count)
+	assert.InDelta(t, 8.0, stats[roasterURI].Average, 0.01)
+
+	// Cross-user
+	stats = idx.AvgBrewRatingByRoasterURI(ctx, "")
+	assert.Len(t, stats, 1)
+	assert.Equal(t, 3, stats[roasterURI].Count)
+	assert.InDelta(t, 8.0, stats[roasterURI].Average, 0.01)
+}
+
+func TestAvgBrewRatingByRoasterURI_MultipleBeansSameRoaster(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	did := "did:plc:user1"
+	now := time.Now().Unix()
+	roasterURI := "at://did:plc:user1/social.arabica.alpha.roaster/roaster1"
+	bean1URI := "at://did:plc:user1/social.arabica.alpha.bean/bean1"
+	bean2URI := "at://did:plc:user1/social.arabica.alpha.bean/bean2"
+
+	// Two beans from the same roaster
+	for _, b := range []struct{ uri, rkey string }{{bean1URI, "bean1"}, {bean2URI, "bean2"}} {
+		record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.bean","name":"Bean","roasterRef":"%s","createdAt":"2025-01-01T00:00:00Z"}`, roasterURI))
+		assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.bean", b.rkey, "cid", record, now))
+	}
+
+	// Brews: bean1 rated 6, bean2 rated 10
+	record := []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":6,"createdAt":"2025-01-01T00:00:00Z"}`, bean1URI))
+	assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.brew", "brew1", "cid", record, now))
+	record = []byte(fmt.Sprintf(`{"$type":"social.arabica.alpha.brew","beanRef":"%s","rating":10,"createdAt":"2025-01-01T00:00:00Z"}`, bean2URI))
+	assert.NoError(t, idx.UpsertRecord(ctx, did, "social.arabica.alpha.brew", "brew2", "cid", record, now))
+
+	stats := idx.AvgBrewRatingByRoasterURI(ctx, "")
+	assert.Len(t, stats, 1)
+	assert.Equal(t, 2, stats[roasterURI].Count)
+	assert.InDelta(t, 8.0, stats[roasterURI].Average, 0.01)
+}
+
+func TestAvgBrewRatingByBeanURI_Empty(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	stats := idx.AvgBrewRatingByBeanURI(context.Background(), "")
+	assert.Empty(t, stats)
 }
 
 func TestDeleteRecord(t *testing.T) {

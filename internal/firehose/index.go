@@ -1229,6 +1229,116 @@ func (idx *FeedIndex) BeanCountsByRoasterURI(ctx context.Context, did string) ma
 	return idx.refCounts(ctx, "social.arabica.alpha.bean", "roasterRef", did)
 }
 
+// RatingStats holds aggregated rating statistics for an entity.
+type RatingStats struct {
+	Average float64
+	Count   int
+}
+
+// refAvgRatings returns a map of ref URI -> RatingStats for brew records,
+// grouped by the given JSON reference field. If did is non-empty, only brews
+// owned by that DID are included.
+func (idx *FeedIndex) refAvgRatings(ctx context.Context, jsonField, did string) map[string]RatingStats {
+	stats := make(map[string]RatingStats)
+	var rows *sql.Rows
+	var err error
+	if did != "" {
+		rows, err = idx.db.QueryContext(ctx, fmt.Sprintf(`
+			SELECT json_extract(record, '$.%s') as ref_uri,
+			       AVG(json_extract(record, '$.rating')) as avg_rating,
+			       COUNT(*) as cnt
+			FROM records
+			WHERE collection = 'social.arabica.alpha.brew'
+			  AND did = ?
+			  AND ref_uri IS NOT NULL AND ref_uri != ''
+			  AND json_extract(record, '$.rating') IS NOT NULL
+			GROUP BY ref_uri
+		`, jsonField), did)
+	} else {
+		rows, err = idx.db.QueryContext(ctx, fmt.Sprintf(`
+			SELECT json_extract(record, '$.%s') as ref_uri,
+			       AVG(json_extract(record, '$.rating')) as avg_rating,
+			       COUNT(*) as cnt
+			FROM records
+			WHERE collection = 'social.arabica.alpha.brew'
+			  AND ref_uri IS NOT NULL AND ref_uri != ''
+			  AND json_extract(record, '$.rating') IS NOT NULL
+			GROUP BY ref_uri
+		`, jsonField))
+	}
+	if err != nil {
+		return stats
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uri string
+		var avg float64
+		var count int
+		if err := rows.Scan(&uri, &avg, &count); err == nil {
+			stats[uri] = RatingStats{Average: avg, Count: count}
+		}
+	}
+	return stats
+}
+
+// AvgBrewRatingByBeanURI returns a map of bean AT-URI -> RatingStats from brew ratings.
+// If did is non-empty, only brews owned by that DID are included.
+func (idx *FeedIndex) AvgBrewRatingByBeanURI(ctx context.Context, did string) map[string]RatingStats {
+	return idx.refAvgRatings(ctx, "beanRef", did)
+}
+
+// AvgBrewRatingByRoasterURI returns a map of roaster AT-URI -> RatingStats,
+// aggregated from brew ratings through the bean's roaster reference.
+// If did is non-empty, only brews owned by that DID are included.
+func (idx *FeedIndex) AvgBrewRatingByRoasterURI(ctx context.Context, did string) map[string]RatingStats {
+	stats := make(map[string]RatingStats)
+	var rows *sql.Rows
+	var err error
+	if did != "" {
+		rows, err = idx.db.QueryContext(ctx, `
+			SELECT json_extract(beans.record, '$.roasterRef') as roaster_uri,
+			       AVG(json_extract(brews.record, '$.rating')) as avg_rating,
+			       COUNT(*) as cnt
+			FROM records brews
+			JOIN records beans
+			  ON beans.uri = json_extract(brews.record, '$.beanRef')
+			  AND beans.collection = 'social.arabica.alpha.bean'
+			WHERE brews.collection = 'social.arabica.alpha.brew'
+			  AND brews.did = ?
+			  AND json_extract(brews.record, '$.rating') IS NOT NULL
+			  AND roaster_uri IS NOT NULL AND roaster_uri != ''
+			GROUP BY roaster_uri
+		`, did)
+	} else {
+		rows, err = idx.db.QueryContext(ctx, `
+			SELECT json_extract(beans.record, '$.roasterRef') as roaster_uri,
+			       AVG(json_extract(brews.record, '$.rating')) as avg_rating,
+			       COUNT(*) as cnt
+			FROM records brews
+			JOIN records beans
+			  ON beans.uri = json_extract(brews.record, '$.beanRef')
+			  AND beans.collection = 'social.arabica.alpha.bean'
+			WHERE brews.collection = 'social.arabica.alpha.brew'
+			  AND json_extract(brews.record, '$.rating') IS NOT NULL
+			  AND roaster_uri IS NOT NULL AND roaster_uri != ''
+			GROUP BY roaster_uri
+		`)
+	}
+	if err != nil {
+		return stats
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uri string
+		var avg float64
+		var count int
+		if err := rows.Scan(&uri, &avg, &count); err == nil {
+			stats[uri] = RatingStats{Average: avg, Count: count}
+		}
+	}
+	return stats
+}
+
 func formatTimeAgo(t time.Time) string {
 	now := time.Now()
 	diff := now.Sub(t)

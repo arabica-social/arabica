@@ -15,13 +15,22 @@ func entityCount(counts map[string]int, ownerDID, nsid, rkey string) int {
 	return counts[atproto.BuildATURI(ownerDID, nsid, rkey)]
 }
 
+// entityAvgRating looks up an average rating for an entity by building its AT-URI.
+func entityAvgRating(ratings map[string]float64, ownerDID, nsid, rkey string) float64 {
+	if ratings == nil || ownerDID == "" {
+		return 0
+	}
+	return ratings[atproto.BuildATURI(ownerDID, nsid, rkey)]
+}
+
 // BeanCardsProps defines props for the bean cards grid
 type BeanCardsProps struct {
-	Beans       []*models.Bean
-	ShowActions bool   // Whether to show Edit/Delete actions
-	OwnerHandle string // If set, name links to view page with this owner
-	BrewCounts  map[string]int // bean AT-URI -> brew count (optional)
-	OwnerDID    string         // DID of the entity owner (for count lookups)
+	Beans          []*models.Bean
+	ShowActions    bool   // Whether to show Edit/Delete actions
+	OwnerHandle    string // If set, name links to view page with this owner
+	BrewCounts     map[string]int     // bean AT-URI -> brew count (optional)
+	AvgBrewRatings map[string]float64 // bean AT-URI -> avg brew rating (optional)
+	OwnerDID       string             // DID of the entity owner (for count lookups)
 }
 
 // BeanCards renders a grid of bean cards
@@ -31,14 +40,14 @@ templ BeanCards(props BeanCardsProps) {
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, bean := range props.Beans {
-				@BeanCard(bean, props.ShowActions, props.OwnerHandle, entityCount(props.BrewCounts, props.OwnerDID, atproto.NSIDBean, bean.RKey))
+				@BeanCard(bean, props.ShowActions, props.OwnerHandle, entityCount(props.BrewCounts, props.OwnerDID, atproto.NSIDBean, bean.RKey), entityAvgRating(props.AvgBrewRatings, props.OwnerDID, atproto.NSIDBean, bean.RKey))
 			}
 		</div>
 	}
 }
 
 // BeanCard renders a single bean as a compact card
-templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string, brewCount int) {
+templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string, brewCount int, avgBrewRating float64) {
 	<div class="feed-card feed-card-bean">
 		<div class="feed-content-box-sm">
 			<div class="flex items-start justify-between gap-2 mb-2">
@@ -112,12 +121,20 @@ templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string, brewCoun
 			if bean.Description != "" {
 				<div class="mt-2 text-sm text-brown-800 italic line-clamp-2">"{ bean.Description }"</div>
 			}
-			if brewCount > 0 {
+			if brewCount > 0 || avgBrewRating > 0 {
 				<div class="flex items-center gap-3 pt-2 mt-2 border-t border-brown-200/60 text-xs text-brown-500">
-					<span class="flex items-center gap-1">
-						@IconCoffee()
-						{ fmt.Sprintf("%d brew%s", brewCount, entityPluralS(brewCount)) }
-					</span>
+					if brewCount > 0 {
+						<span class="flex items-center gap-1">
+							@IconCoffee()
+							{ fmt.Sprintf("%d brew%s", brewCount, entityPluralS(brewCount)) }
+						</span>
+					}
+					if avgBrewRating > 0 {
+						<span class="flex items-center gap-1">
+							@IconStar()
+							{ bff.FormatAvgRating(avgBrewRating) } avg
+						</span>
+					}
 				</div>
 			}
 		</div>
@@ -134,11 +151,12 @@ func entityPluralS(n int) string {
 
 // RoastersTableProps defines props for the shared roasters display
 type RoastersTableProps struct {
-	Roasters    []*models.Roaster
-	ShowActions bool   // Whether to show Edit/Delete actions
-	OwnerHandle string // If set, name links to view page with this owner
-	BeanCounts  map[string]int // roaster AT-URI -> bean count (optional)
-	OwnerDID    string         // DID of the entity owner (for count lookups)
+	Roasters       []*models.Roaster
+	ShowActions    bool   // Whether to show Edit/Delete actions
+	OwnerHandle    string // If set, name links to view page with this owner
+	BeanCounts     map[string]int     // roaster AT-URI -> bean count (optional)
+	AvgBrewRatings map[string]float64 // roaster AT-URI -> avg brew rating (optional)
+	OwnerDID       string             // DID of the entity owner (for count lookups)
 }
 
 // RoastersTable renders a grid of roaster cards
@@ -148,14 +166,14 @@ templ RoastersTable(props RoastersTableProps) {
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, roaster := range props.Roasters {
-				@RoasterCard(roaster, props.ShowActions, props.OwnerHandle, entityCount(props.BeanCounts, props.OwnerDID, atproto.NSIDRoaster, roaster.RKey))
+				@RoasterCard(roaster, props.ShowActions, props.OwnerHandle, entityCount(props.BeanCounts, props.OwnerDID, atproto.NSIDRoaster, roaster.RKey), entityAvgRating(props.AvgBrewRatings, props.OwnerDID, atproto.NSIDRoaster, roaster.RKey))
 			}
 		</div>
 	}
 }
 
 // RoasterCard renders a single roaster as a compact card
-templ RoasterCard(roaster *models.Roaster, showActions bool, ownerHandle string, beanCount int) {
+templ RoasterCard(roaster *models.Roaster, showActions bool, ownerHandle string, beanCount int, avgBrewRating float64) {
 	<div class="feed-card feed-card-roaster">
 		<div class="feed-content-box-sm">
 			<div class="flex items-start justify-between gap-2 mb-2">
@@ -204,12 +222,20 @@ templ RoasterCard(roaster *models.Roaster, showActions bool, ownerHandle string,
 					</span>
 				}
 			</div>
-			if beanCount > 0 {
+			if beanCount > 0 || avgBrewRating > 0 {
 				<div class="flex items-center gap-3 pt-2 mt-2 border-t border-brown-200/60 text-xs text-brown-500">
-					<span class="flex items-center gap-1">
-						@IconLeaf()
-						{ fmt.Sprintf("%d bean%s", beanCount, entityPluralS(beanCount)) }
-					</span>
+					if beanCount > 0 {
+						<span class="flex items-center gap-1">
+							@IconLeaf()
+							{ fmt.Sprintf("%d bean%s", beanCount, entityPluralS(beanCount)) }
+						</span>
+					}
+					if avgBrewRating > 0 {
+						<span class="flex items-center gap-1">
+							@IconStar()
+							{ bff.FormatAvgRating(avgBrewRating) } avg
+						</span>
+					}
 				</div>
 			}
 		</div>
