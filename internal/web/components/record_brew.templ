@@ -52,14 +52,7 @@ templ BrewContent(brew *models.Brew) {
 					<span class="text-label">Grind:</span> { brew.GrindSize }
 				</div>
 			}
-			if len(brew.Pours) > 0 {
-				<div class="col-span-2">
-					<span class="text-label">Pours:</span>
-					for _, pour := range brew.Pours {
-						<div class="pl-2 text-brown-600">• { fmt.Sprintf("%dg @ %s", pour.WaterAmount, bff.FormatTime(pour.TimeSeconds)) }</div>
-					}
-				</div>
-			} else if brew.WaterAmount > 0 {
+			if brew.WaterAmount > 0 {
 				<div>
 					<span class="text-label">Water:</span> { fmt.Sprintf("%dg", brew.WaterAmount) }
 				</div>
@@ -74,11 +67,76 @@ templ BrewContent(brew *models.Brew) {
 					<span class="text-label">Time:</span> { bff.FormatTime(brew.TimeSeconds) }
 				</div>
 			}
+			<!-- Espresso-specific details -->
+			if brew.EspressoParams != nil {
+				if brew.EspressoParams.YieldWeight > 0 {
+					<div>
+						<span class="text-label">Yield:</span> { fmt.Sprintf("%.1fg", brew.EspressoParams.YieldWeight) }
+					</div>
+				}
+				if brew.EspressoParams.Pressure > 0 {
+					<div>
+						<span class="text-label">Pressure:</span> { fmt.Sprintf("%.1f bar", brew.EspressoParams.Pressure) }
+					</div>
+				}
+				if brew.EspressoParams.PreInfusionSeconds > 0 {
+					<div>
+						<span class="text-label">Pre-infusion:</span> { fmt.Sprintf("%ds", brew.EspressoParams.PreInfusionSeconds) }
+					</div>
+				}
+			}
+			<!-- Pourover-specific details -->
+			if brew.PouroverParams != nil {
+				if brew.PouroverParams.BloomWater > 0 || brew.PouroverParams.BloomSeconds > 0 {
+					<div>
+						<span class="text-label">Bloom:</span> { brewFormatBloom(brew.PouroverParams) }
+					</div>
+				}
+				if brew.PouroverParams.DrawdownSeconds > 0 {
+					<div>
+						<span class="text-label">Drawdown:</span> { fmt.Sprintf("%ds", brew.PouroverParams.DrawdownSeconds) }
+					</div>
+				}
+				if brew.PouroverParams.BypassWater > 0 {
+					<div>
+						<span class="text-label">Bypass:</span> { fmt.Sprintf("%dg", brew.PouroverParams.BypassWater) }
+					</div>
+				}
+			}
 		</div>
+		<!-- Pours as inline pills -->
+		if len(brew.Pours) > 0 {
+			<div class="mt-2 flex flex-wrap items-center gap-1.5">
+				<span class="text-xs text-label">Pours:</span>
+				for i, pour := range brew.Pours {
+					<span class="inline-flex items-center gap-1.5 bg-brown-50 rounded-md px-2 py-1 border border-brown-200 text-xs">
+						<span class="font-medium text-brown-700">{ fmt.Sprintf("%d", i+1) }</span>
+						<span class="text-brown-900">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
+						if pour.TimeSeconds > 0 {
+							<span class="text-brown-400">&middot;</span>
+							<span class="text-brown-500">{ bff.FormatTime(pour.TimeSeconds) }</span>
+						}
+					</span>
+				}
+			</div>
+		}
 		if brew.TastingNotes != "" {
 			<div class="mt-3 text-sm text-brown-800 italic border-t border-brown-200 pt-2">
 				"{ brew.TastingNotes }"
 			</div>
 		}
 	</div>
+}
+
+func brewFormatBloom(pp *models.PouroverParams) string {
+	if pp.BloomWater > 0 && pp.BloomSeconds > 0 {
+		return fmt.Sprintf("%dg for %ds", pp.BloomWater, pp.BloomSeconds)
+	}
+	if pp.BloomWater > 0 {
+		return fmt.Sprintf("%dg", pp.BloomWater)
+	}
+	if pp.BloomSeconds > 0 {
+		return fmt.Sprintf("%ds", pp.BloomSeconds)
+	}
+	return ""
 }
