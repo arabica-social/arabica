@@ -159,6 +159,11 @@
           "type": "integer",
           "minimum": 0,
           "description": "Bypass water added after brewing in grams"
+        },
+        "filter": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Type of filter used (e.g. paper, metal, cloth)"
         }
       }
     }

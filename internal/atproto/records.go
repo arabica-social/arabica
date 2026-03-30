@@ -226,6 +226,9 @@ func BrewToRecord(brew *models.Brew, beanURI, grinderURI, brewerURI, recipeURI s
 		if brew.PouroverParams.BypassWater > 0 {
 			pp["bypassWater"] = brew.PouroverParams.BypassWater
 		}
+		if brew.PouroverParams.Filter != "" {
+			pp["filter"] = brew.PouroverParams.Filter
+		}
 		if len(pp) > 0 {
 			record["pouroverParams"] = pp
 		}
@@ -343,6 +346,9 @@ func RecordToBrew(record map[string]any, atURI string) (*models.Brew, error) {
 		}
 		if v, ok := toFloat64(ppRaw["bypassWater"]); ok {
 			pp.BypassWater = int(v)
+		}
+		if v, ok := ppRaw["filter"].(string); ok {
+			pp.Filter = v
 		}
 		brew.PouroverParams = pp
 	}

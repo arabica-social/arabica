@@ -809,6 +809,18 @@ templ PouroverParamsSection(props BrewFormProps) {
 					Class:       "w-full form-input-lg",
 				}),
 			)
+			@components.FormField(
+				components.FormFieldProps{
+					Label:      "Filter",
+					HelperText: "Type of filter used",
+				},
+				components.TextInput(components.TextInputProps{
+					Name:        "pourover_filter",
+					Value:       getPouroverFilter(props),
+					Placeholder: "e.g. paper, metal, cloth",
+					Class:       "w-full form-input-lg",
+				}),
+			)
 		</fieldset>
 	</div>
 }
@@ -858,6 +870,13 @@ func getPouroverDrawdown(props BrewFormProps) string {
 func getPouroverBypass(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.PouroverParams != nil && props.Brew.PouroverParams.BypassWater > 0 {
 		return fmt.Sprintf("%d", props.Brew.PouroverParams.BypassWater)
+	}
+	return ""
+}
+
+func getPouroverFilter(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.PouroverParams != nil {
+		return props.Brew.PouroverParams.Filter
 	}
 	return ""
 }

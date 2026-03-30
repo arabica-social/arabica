@@ -196,6 +196,9 @@ templ BrewParametersGrid(brew *models.Brew, owner string) {
 			if brew.PouroverParams.BypassWater > 0 {
 				@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Bypass Water", Value: fmt.Sprintf("%dg", brew.PouroverParams.BypassWater)})
 			}
+			if brew.PouroverParams.Filter != "" {
+				@components.DetailField(components.DetailFieldProps{Icon: components.IconSliders(), Label: "Filter", Value: brew.PouroverParams.Filter})
+			}
 		}
 	</div>
 }

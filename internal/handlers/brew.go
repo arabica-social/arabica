@@ -515,8 +515,9 @@ func parsePouroverParams(r *http.Request) *models.PouroverParams {
 	bloomSecsStr := r.FormValue("pourover_bloom_seconds")
 	drawdownStr := r.FormValue("pourover_drawdown_seconds")
 	bypassStr := r.FormValue("pourover_bypass_water")
+	filterStr := strings.TrimSpace(r.FormValue("pourover_filter"))
 
-	if bloomWaterStr == "" && bloomSecsStr == "" && drawdownStr == "" && bypassStr == "" {
+	if bloomWaterStr == "" && bloomSecsStr == "" && drawdownStr == "" && bypassStr == "" && filterStr == "" {
 		return nil
 	}
 
@@ -533,6 +534,7 @@ func parsePouroverParams(r *http.Request) *models.PouroverParams {
 	if v, err := strconv.Atoi(bypassStr); err == nil && v > 0 {
 		pp.BypassWater = v
 	}
+	pp.Filter = filterStr
 	return pp
 }
 

@@ -761,6 +761,7 @@ func TestBrewRoundTrip_PouroverParams(t *testing.T) {
 			BloomSeconds:    45,
 			DrawdownSeconds: 30,
 			BypassWater:     100,
+			Filter:          "paper",
 		},
 	}
 
@@ -773,6 +774,7 @@ func TestBrewRoundTrip_PouroverParams(t *testing.T) {
 	assert.Equal(t, 45, pp["bloomSeconds"])
 	assert.Equal(t, 30, pp["drawdownSeconds"])
 	assert.Equal(t, 100, pp["bypassWater"])
+	assert.Equal(t, "paper", pp["filter"])
 
 	restored, err := RecordToBrew(record, "at://did:plc:test/social.arabica.alpha.brew/tid123")
 	assert.NoError(t, err)
@@ -781,4 +783,5 @@ func TestBrewRoundTrip_PouroverParams(t *testing.T) {
 	assert.Equal(t, 45, restored.PouroverParams.BloomSeconds)
 	assert.Equal(t, 30, restored.PouroverParams.DrawdownSeconds)
 	assert.Equal(t, 100, restored.PouroverParams.BypassWater)
+	assert.Equal(t, "paper", restored.PouroverParams.Filter)
 }

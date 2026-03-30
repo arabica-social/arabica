@@ -194,10 +194,11 @@ type EspressoParams struct {
 
 // PouroverParams holds pour-over-specific brewing parameters
 type PouroverParams struct {
-	BloomWater      int `json:"bloom_water"`      // Bloom water in grams
-	BloomSeconds    int `json:"bloom_seconds"`    // Bloom wait time in seconds
-	DrawdownSeconds int `json:"drawdown_seconds"` // Drawdown time in seconds
-	BypassWater     int `json:"bypass_water"`     // Bypass water in grams
+	BloomWater      int    `json:"bloom_water"`      // Bloom water in grams
+	BloomSeconds    int    `json:"bloom_seconds"`    // Bloom wait time in seconds
+	DrawdownSeconds int    `json:"drawdown_seconds"` // Drawdown time in seconds
+	BypassWater     int    `json:"bypass_water"`     // Bypass water in grams
+	Filter          string `json:"filter"`           // Filter type (e.g. "paper", "metal", "cloth")
 }
 
 type Recipe struct {

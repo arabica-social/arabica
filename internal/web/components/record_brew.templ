@@ -102,6 +102,11 @@ templ BrewContent(brew *models.Brew) {
 						<span class="text-label">Bypass:</span> { fmt.Sprintf("%dg", brew.PouroverParams.BypassWater) }
 					</div>
 				}
+				if brew.PouroverParams.Filter != "" {
+					<div>
+						<span class="text-label">Filter:</span> { brew.PouroverParams.Filter }
+					</div>
+				}
 			}
 		</div>
 		<!-- Pours as inline pills -->
