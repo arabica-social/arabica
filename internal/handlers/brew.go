@@ -13,6 +13,7 @@ import (
 	"arabica/internal/metrics"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
+	"arabica/internal/ogcard"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
@@ -73,6 +74,91 @@ func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
 	layoutData.OGUrl = ogURL
+
+	// Set OG image URL for rich social media previews
+	if h.config.PublicURL != "" && shareURL != "" {
+		ogImageURL := strings.Replace(shareURL, "?", "/og-image?", 1)
+		layoutData.OGImage = h.config.PublicURL + ogImageURL
+	}
+}
+
+// HandleBrewOGImage generates a 1200x630 PNG preview card for a brew.
+// Used as the og:image for social media embeds.
+func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+
+	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		http.Error(w, "owner parameter required", http.StatusBadRequest)
+		return
+	}
+
+	// Resolve owner to DID
+	publicClient := atproto.NewPublicClient()
+	var ownerDID string
+	if strings.HasPrefix(owner, "did:") {
+		ownerDID = owner
+	} else {
+		resolved, err := publicClient.ResolveHandle(r.Context(), owner)
+		if err != nil {
+			log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for OG image")
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		ownerDID = resolved
+	}
+
+	// Fetch brew (witness cache first, then PDS fallback)
+	var brew *models.Brew
+	brewURI := atproto.BuildATURI(ownerDID, atproto.NSIDBrew, rkey)
+	if h.witnessCache != nil {
+		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if b, err := atproto.RecordToBrew(m, wr.URI); err == nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues("brew_og").Inc()
+					brew = b
+					brew.RKey = rkey
+					atproto.ExtractBrewRefRKeys(brew, m)
+					h.resolveBrewRefsFromWitness(r.Context(), brew, ownerDID, m)
+				}
+			}
+		}
+	}
+	if brew == nil {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("brew_og").Inc()
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrew, rkey)
+		if err != nil {
+			log.Error().Err(err).Str("did", ownerDID).Str("rkey", rkey).Msg("Failed to get brew for OG image")
+			http.Error(w, "Brew not found", http.StatusNotFound)
+			return
+		}
+		brew, err = atproto.RecordToBrew(record.Value, record.URI)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to convert brew record for OG image")
+			http.Error(w, "Failed to load brew", http.StatusInternalServerError)
+			return
+		}
+		if err := h.resolveBrewReferences(r.Context(), brew, ownerDID, record.Value); err != nil {
+			log.Warn().Err(err).Msg("Failed to resolve some brew references for OG image")
+		}
+	}
+
+	// Generate card
+	card, err := ogcard.DrawBrewCard(brew)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate OG image")
+		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+	if err := card.EncodePNG(w); err != nil {
+		log.Error().Err(err).Msg("Failed to encode OG image")
+	}
 }
 
 // Brew list partial (loaded async via HTMX)

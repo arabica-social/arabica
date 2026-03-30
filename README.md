@@ -1,28 +1,11 @@
 # Arabica
 
-Coffee brew tracking application build on ATProto
+Coffee brew logging application built on ATProto
 
 Development is on Tangled, and is mirrored to GitHub:
 
 - [Tangled](https://tangled.org/arabica.social/arabica)
 - [GitHub](https://github.com/arabica-social/arabica)
-
-## Features
-
-- Track coffee brews with detailed parameters
-- Store data in your AT Protocol Personal Data Server
-- Community feed of recent brews from registered users (polling or real-time
-  firehose)
-- Manage beans, roasters, grinders, and brewers
-- Export brew data as JSON
-- Mobile-friendly PWA design
-
-## Tech Stack
-
-- Backend: Go with stdlib HTTP router
-- Storage: AT Protocol Personal Data Servers + BoltDB for local cache
-- Templates: Templ (type-safe Go templates)
-- Frontend: HTMX + Alpine.js + Tailwind CSS
 
 ## Quick Start
 
@@ -113,10 +96,6 @@ PORT=18910
 The `SERVER_PUBLIC_URL` is used for OAuth client metadata and callback URLs,
 ensuring the AT Protocol OAuth flow works correctly when the server is accessed
 via a different URL than it's running on.
-
-### NixOS Deployment
-
-See docs/nix-install.md for NixOS deployment instructions.
 
 ## License
 

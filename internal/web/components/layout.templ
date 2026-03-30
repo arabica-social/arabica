@@ -44,6 +44,15 @@ func (d *LayoutData) ogType() string {
 	return "website"
 }
 
+// twitterCardType returns "summary_large_image" when an OG image is set,
+// otherwise "summary" for the default compact card.
+func (d *LayoutData) twitterCardType() string {
+	if d.OGImage != "" {
+		return "summary_large_image"
+	}
+	return "summary"
+}
+
 templ Layout(data *LayoutData, content templ.Component) {
 	<!DOCTYPE html>
 	<html lang="en" class="h-full" style="background-color: var(--page-bg);">
@@ -68,10 +77,12 @@ templ Layout(data *LayoutData, content templ.Component) {
 			}
 			if data.OGImage != "" {
 				<meta property="og:image" content={ data.OGImage }/>
+				<meta property="og:image:width" content="1200"/>
+				<meta property="og:image:height" content="630"/>
 				<meta property="og:image:alt" content={ data.ogTitle() }/>
 			}
 			<!-- Twitter Card metadata -->
-			<meta name="twitter:card" content="summary"/>
+			<meta name="twitter:card" content={ data.twitterCardType() }/>
 			<meta name="twitter:title" content={ data.ogTitle() }/>
 			<meta name="twitter:description" content={ data.ogDescription() }/>
 			if data.OGImage != "" {

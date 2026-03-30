@@ -11,6 +11,7 @@ import (
 	"arabica/internal/metrics"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
+	"arabica/internal/ogcard"
 	"arabica/internal/web/bff"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
@@ -810,6 +811,336 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// OG image handlers for entity types
+
+// HandleBeanOGImage generates a 1200x630 PNG preview card for a bean.
+func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		http.Error(w, "owner parameter required", http.StatusBadRequest)
+		return
+	}
+
+	ownerDID, err := resolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var bean *models.Bean
+	beanURI := atproto.BuildATURI(ownerDID, atproto.NSIDBean, rkey)
+	if h.witnessCache != nil {
+		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), beanURI); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if b, err := atproto.RecordToBean(m, wr.URI); err == nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues("bean_og").Inc()
+					bean = b
+					bean.RKey = rkey
+					// Resolve roaster
+					if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
+						if rwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), roasterRef); rwr != nil {
+							if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
+								if roaster, err := atproto.RecordToRoaster(rm, rwr.URI); err == nil {
+									bean.Roaster = roaster
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if bean == nil {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("bean_og").Inc()
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBean, rkey)
+		if err != nil {
+			http.Error(w, "Bean not found", http.StatusNotFound)
+			return
+		}
+		bean, err = atproto.RecordToBean(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to load bean", http.StatusInternalServerError)
+			return
+		}
+		// Resolve roaster reference
+		if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
+			roasterRKey := atproto.ExtractRKeyFromURI(roasterRef)
+			if roasterRKey != "" {
+				if rr, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRoaster, roasterRKey); err == nil {
+					if roaster, err := atproto.RecordToRoaster(rr.Value, rr.URI); err == nil {
+						bean.Roaster = roaster
+					}
+				}
+			}
+		}
+	}
+
+	card, err := ogcard.DrawBeanCard(bean)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate bean OG image")
+		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
+		return
+	}
+	writeOGImage(w, card)
+}
+
+// HandleRoasterOGImage generates a 1200x630 PNG preview card for a roaster.
+func (h *Handler) HandleRoasterOGImage(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		http.Error(w, "owner parameter required", http.StatusBadRequest)
+		return
+	}
+
+	ownerDID, err := resolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var roaster *models.Roaster
+	roasterURI := atproto.BuildATURI(ownerDID, atproto.NSIDRoaster, rkey)
+	if h.witnessCache != nil {
+		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), roasterURI); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if r, err := atproto.RecordToRoaster(m, wr.URI); err == nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues("roaster_og").Inc()
+					roaster = r
+					roaster.RKey = rkey
+				}
+			}
+		}
+	}
+	if roaster == nil {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("roaster_og").Inc()
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRoaster, rkey)
+		if err != nil {
+			http.Error(w, "Roaster not found", http.StatusNotFound)
+			return
+		}
+		roaster, err = atproto.RecordToRoaster(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to load roaster", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	card, err := ogcard.DrawRoasterCard(roaster)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate roaster OG image")
+		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
+		return
+	}
+	writeOGImage(w, card)
+}
+
+// HandleGrinderOGImage generates a 1200x630 PNG preview card for a grinder.
+func (h *Handler) HandleGrinderOGImage(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		http.Error(w, "owner parameter required", http.StatusBadRequest)
+		return
+	}
+
+	ownerDID, err := resolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var grinder *models.Grinder
+	grinderURI := atproto.BuildATURI(ownerDID, atproto.NSIDGrinder, rkey)
+	if h.witnessCache != nil {
+		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), grinderURI); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if g, err := atproto.RecordToGrinder(m, wr.URI); err == nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues("grinder_og").Inc()
+					grinder = g
+					grinder.RKey = rkey
+				}
+			}
+		}
+	}
+	if grinder == nil {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("grinder_og").Inc()
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDGrinder, rkey)
+		if err != nil {
+			http.Error(w, "Grinder not found", http.StatusNotFound)
+			return
+		}
+		grinder, err = atproto.RecordToGrinder(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to load grinder", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	card, err := ogcard.DrawGrinderCard(grinder)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate grinder OG image")
+		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
+		return
+	}
+	writeOGImage(w, card)
+}
+
+// HandleBrewerOGImage generates a 1200x630 PNG preview card for a brewer.
+func (h *Handler) HandleBrewerOGImage(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		http.Error(w, "owner parameter required", http.StatusBadRequest)
+		return
+	}
+
+	ownerDID, err := resolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var brewer *models.Brewer
+	brewerURI := atproto.BuildATURI(ownerDID, atproto.NSIDBrewer, rkey)
+	if h.witnessCache != nil {
+		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerURI); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if b, err := atproto.RecordToBrewer(m, wr.URI); err == nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues("brewer_og").Inc()
+					brewer = b
+					brewer.RKey = rkey
+				}
+			}
+		}
+	}
+	if brewer == nil {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("brewer_og").Inc()
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, rkey)
+		if err != nil {
+			http.Error(w, "Brewer not found", http.StatusNotFound)
+			return
+		}
+		brewer, err = atproto.RecordToBrewer(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to load brewer", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	card, err := ogcard.DrawBrewerCard(brewer)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate brewer OG image")
+		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
+		return
+	}
+	writeOGImage(w, card)
+}
+
+// HandleRecipeOGImage generates a 1200x630 PNG preview card for a recipe.
+func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		http.Error(w, "owner parameter required", http.StatusBadRequest)
+		return
+	}
+
+	ownerDID, err := resolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var recipe *models.Recipe
+	recipeURI := atproto.BuildATURI(ownerDID, atproto.NSIDRecipe, rkey)
+	if h.witnessCache != nil {
+		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), recipeURI); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if rec, err := atproto.RecordToRecipe(m, wr.URI); err == nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues("recipe_og").Inc()
+					recipe = rec
+					recipe.RKey = rkey
+					// Resolve brewer from witness
+					if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
+						if bwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerRef); bwr != nil {
+							if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
+								if brewer, err := atproto.RecordToBrewer(bm, bwr.URI); err == nil {
+									recipe.BrewerObj = brewer
+								}
+							}
+						}
+					}
+					recipe.Interpolate()
+				}
+			}
+		}
+	}
+	if recipe == nil {
+		metrics.WitnessCacheMissesTotal.WithLabelValues("recipe_og").Inc()
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRecipe, rkey)
+		if err != nil {
+			http.Error(w, "Recipe not found", http.StatusNotFound)
+			return
+		}
+		recipe, err = atproto.RecordToRecipe(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
+			return
+		}
+		// Resolve brewer reference
+		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
+			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
+			if brewerRKey != "" {
+				if br, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, brewerRKey); err == nil {
+					if brewer, err := atproto.RecordToBrewer(br.Value, br.URI); err == nil {
+						recipe.BrewerObj = brewer
+					}
+				}
+			}
+		}
+		recipe.Interpolate()
+	}
+
+	card, err := ogcard.DrawRecipeCard(recipe)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate recipe OG image")
+		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
+		return
+	}
+	writeOGImage(w, card)
+}
+
+// writeOGImage encodes a card as PNG with appropriate cache headers.
+func writeOGImage(w http.ResponseWriter, card *ogcard.Card) {
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	if err := card.EncodePNG(w); err != nil {
+		log.Error().Err(err).Msg("Failed to encode OG image")
+	}
+}
+
 // OG metadata helpers for entity types
 
 func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean *models.Bean, shareURL string) {
@@ -837,7 +1168,7 @@ func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean
 	if len(descParts) > 0 {
 		ogDescription = strings.Join(descParts, " · ")
 	} else {
-		ogDescription = "A coffee bean tracked on Arabica"
+		ogDescription = "coffee bean"
 	}
 
 	var ogURL string
@@ -849,6 +1180,9 @@ func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
 	layoutData.OGUrl = ogURL
+	if h.config.PublicURL != "" && shareURL != "" {
+		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	}
 }
 
 func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, roaster *models.Roaster, shareURL string) {
@@ -865,7 +1199,7 @@ func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, r
 	if len(descParts) > 0 {
 		ogDescription = strings.Join(descParts, " · ")
 	} else {
-		ogDescription = "A coffee roaster tracked on Arabica"
+		ogDescription = "roaster"
 	}
 
 	var ogURL string
@@ -877,6 +1211,9 @@ func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, r
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
 	layoutData.OGUrl = ogURL
+	if h.config.PublicURL != "" && shareURL != "" {
+		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	}
 }
 
 func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, grinder *models.Grinder, shareURL string) {
@@ -896,7 +1233,7 @@ func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, g
 	if len(descParts) > 0 {
 		ogDescription = strings.Join(descParts, " · ")
 	} else {
-		ogDescription = "A coffee grinder tracked on Arabica"
+		ogDescription = "grinder"
 	}
 
 	var ogURL string
@@ -908,6 +1245,9 @@ func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, g
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
 	layoutData.OGUrl = ogURL
+	if h.config.PublicURL != "" && shareURL != "" {
+		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	}
 }
 
 func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, brewer *models.Brewer, shareURL string) {
@@ -924,7 +1264,7 @@ func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, br
 	if len(descParts) > 0 {
 		ogDescription = strings.Join(descParts, " · ")
 	} else {
-		ogDescription = "A brewing device tracked on Arabica"
+		ogDescription = "brewer"
 	}
 
 	var ogURL string
@@ -936,6 +1276,9 @@ func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, br
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
 	layoutData.OGUrl = ogURL
+	if h.config.PublicURL != "" && shareURL != "" {
+		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	}
 }
 
 func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *models.Recipe, shareURL string) {
@@ -954,7 +1297,7 @@ func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, re
 	if len(descParts) > 0 {
 		ogDescription = strings.Join(descParts, " · ")
 	} else {
-		ogDescription = "A coffee recipe on Arabica"
+		ogDescription = "coffee recipe"
 	}
 
 	var ogURL string
@@ -966,4 +1309,7 @@ func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, re
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
 	layoutData.OGUrl = ogURL
+	if h.config.PublicURL != "" && shareURL != "" {
+		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	}
 }

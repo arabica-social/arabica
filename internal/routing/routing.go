@@ -81,10 +81,15 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
 	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
+	mux.HandleFunc("GET /brews/{id}/og-image", h.HandleBrewOGImage)
 	mux.HandleFunc("GET /brews/{id}", h.HandleBrewView)
+	mux.HandleFunc("GET /beans/{id}/og-image", h.HandleBeanOGImage)
 	mux.HandleFunc("GET /beans/{id}", h.HandleBeanView)
+	mux.HandleFunc("GET /roasters/{id}/og-image", h.HandleRoasterOGImage)
 	mux.HandleFunc("GET /roasters/{id}", h.HandleRoasterView)
+	mux.HandleFunc("GET /grinders/{id}/og-image", h.HandleGrinderOGImage)
 	mux.HandleFunc("GET /grinders/{id}", h.HandleGrinderView)
+	mux.HandleFunc("GET /brewers/{id}/og-image", h.HandleBrewerOGImage)
 	mux.HandleFunc("GET /brewers/{id}", h.HandleBrewerView)
 	mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
 	mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
@@ -92,6 +97,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
 	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
 	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
+	mux.HandleFunc("GET /recipes/{id}/og-image", h.HandleRecipeOGImage)
 	mux.HandleFunc("GET /recipes/{id}", h.HandleRecipeView)
 
 	// API routes for CRUD operations
