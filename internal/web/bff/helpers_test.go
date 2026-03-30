@@ -55,26 +55,6 @@ func TestFormatTime(t *testing.T) {
 	}
 }
 
-func TestFormatRating(t *testing.T) {
-	tests := []struct {
-		name     string
-		rating   int
-		expected string
-	}{
-		{"zero returns N/A", 0, "N/A"},
-		{"rating 1", 1, "1/10"},
-		{"rating 5", 5, "5/10"},
-		{"rating 10", 10, "10/10"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := FormatRating(tt.rating)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-}
-
 func TestPoursToJSON(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -131,13 +111,6 @@ func TestHasTemp(t *testing.T) {
 	assert.True(t, HasTemp(93.5))
 }
 
-func TestHasValue(t *testing.T) {
-	assert.False(t, HasValue(0))
-	assert.False(t, HasValue(-1))
-	assert.True(t, HasValue(1))
-	assert.True(t, HasValue(250))
-}
-
 func TestSafeAvatarURL(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -183,30 +156,6 @@ func TestSafeWebsiteURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expected, SafeWebsiteURL(tt.input))
-		})
-	}
-}
-
-func TestEscapeJS(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"empty string", "", ""},
-		{"no special chars", "hello world", "hello world"},
-		{"single quotes", "it's a test", "it\\'s a test"},
-		{"double quotes", `say "hello"`, `say \"hello\"`},
-		{"newlines", "line1\nline2", "line1\\nline2"},
-		{"carriage return", "line1\rline2", "line1\\rline2"},
-		{"tabs", "col1\tcol2", "col1\\tcol2"},
-		{"backslash", `path\to\file`, `path\\to\\file`},
-		{"mixed", "it's a \"test\"\nwith\\stuff", "it\\'s a \\\"test\\\"\\nwith\\\\stuff"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, EscapeJS(tt.input))
 		})
 	}
 }

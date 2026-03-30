@@ -161,40 +161,6 @@ templ PageHeader(props PageHeaderProps) {
 	</div>
 }
 
-type LoadingSkeletonTableProps struct {
-	Columns int
-	Rows    int
-}
-
-templ LoadingSkeletonTable(props LoadingSkeletonTableProps) {
-	<div class="animate-pulse">
-		<div class="table-container overflow-x-auto">
-			<table class="table">
-				<thead class="table-header">
-					<tr>
-						for i := 0; i < props.Columns; i++ {
-							<th class="table-th">
-								<div class="h-3 bg-brown-300 rounded w-20"></div>
-							</th>
-						}
-					</tr>
-				</thead>
-				<tbody class="table-body">
-					for i := 0; i < props.Rows; i++ {
-						<tr>
-							for j := 0; j < props.Columns; j++ {
-								<td class="px-6 py-4">
-									<div class="h-4 bg-brown-300 rounded w-24"></div>
-								</td>
-							}
-						</tr>
-					}
-				</tbody>
-			</table>
-		</div>
-	</div>
-}
-
 type WelcomeCardProps struct {
 	IsAuthenticated bool
 	UserDID         string

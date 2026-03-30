@@ -24,7 +24,6 @@ const (
 	MaxBurrTypeLength     = 50
 	MaxBrewerTypeLength   = 100
 	MaxCommentLength      = 1000
-	MaxCommentGraphemes   = 300
 )
 
 // Visibility controls who can see a piece of profile data.

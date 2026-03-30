@@ -51,15 +51,6 @@ func FormatTime(seconds int) string {
 	return fmt.Sprintf("%dm %ds", minutes, remaining)
 }
 
-// FormatRating formats a rating as "X/10".
-// Returns "N/A" if rating is 0.
-func FormatRating(rating int) string {
-	if rating == 0 {
-		return "N/A"
-	}
-	return fmt.Sprintf("%d/10", rating)
-}
-
 // FormatBeanRating formats a bean's optional rating as "X/10".
 // Returns empty string if rating is nil (unrated).
 func FormatBeanRating(rating *int) string {
@@ -108,11 +99,6 @@ func PoursToJSON(pours []*models.Pour) string {
 // HasTemp returns true if temperature is greater than zero
 func HasTemp(temp float64) bool {
 	return temp > 0
-}
-
-// HasValue returns true if the int value is greater than zero
-func HasValue(val int) bool {
-	return val > 0
 }
 
 // SafeAvatarURL validates and sanitizes avatar URLs to prevent XSS and other attacks.
@@ -187,19 +173,6 @@ func SafeWebsiteURL(websiteURL string) string {
 	}
 
 	return websiteURL
-}
-
-// EscapeJS escapes a string for safe use in JavaScript string literals.
-// Handles newlines, quotes, backslashes, and other special characters.
-func EscapeJS(s string) string {
-	// Replace special characters that would break JavaScript strings
-	s = strings.ReplaceAll(s, "\\", "\\\\") // Must be first
-	s = strings.ReplaceAll(s, "'", "\\'")
-	s = strings.ReplaceAll(s, "\"", "\\\"")
-	s = strings.ReplaceAll(s, "\n", "\\n")
-	s = strings.ReplaceAll(s, "\r", "\\r")
-	s = strings.ReplaceAll(s, "\t", "\\t")
-	return s
 }
 
 // FormatISO returns the time formatted as RFC3339 UTC, suitable for HTML datetime attributes.
