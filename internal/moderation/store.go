@@ -43,4 +43,13 @@ type Store interface {
 	// Auto-hide resets
 	SetAutoHideReset(ctx context.Context, did string, resetAt time.Time) error
 	GetAutoHideReset(ctx context.Context, did string) (time.Time, error)
+
+	// Labels
+	AddLabel(ctx context.Context, label Label) error
+	RemoveLabel(ctx context.Context, entityType, entityID, labelName string) error
+	HasLabel(ctx context.Context, entityType, entityID, labelName string) (bool, error)
+	GetLabel(ctx context.Context, entityType, entityID, labelName string) (*Label, error)
+	ListLabels(ctx context.Context, entityType, entityID string) ([]Label, error)
+	ListAllLabels(ctx context.Context) ([]Label, error)
+	CleanExpiredLabels(ctx context.Context) (int, error)
 }

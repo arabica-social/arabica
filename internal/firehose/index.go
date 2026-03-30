@@ -212,6 +212,20 @@ CREATE TABLE IF NOT EXISTS moderation_autohide_resets (
     reset_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS moderation_labels (
+    id          TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL,
+    entity_id   TEXT NOT NULL,
+    label       TEXT NOT NULL,
+    value       TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL,
+    created_by  TEXT NOT NULL,
+    expires_at  TEXT,
+    UNIQUE(entity_type, entity_id, label)
+);
+CREATE INDEX IF NOT EXISTS idx_modlabels_entity ON moderation_labels(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_modlabels_expires ON moderation_labels(expires_at) WHERE expires_at IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS user_settings (
     did  TEXT PRIMARY KEY,
     profile_stats_visibility TEXT NOT NULL DEFAULT '{}'

@@ -33,6 +33,7 @@ type AdminProps struct {
 	AuditLog       []moderation.AuditEntry
 	Reports        []EnrichedReport
 	BlockedUsers   []moderation.BlacklistedUser
+	Labels         []moderation.Label
 	JoinRequests   []*boltstore.JoinRequest
 	Stats          AdminStats
 	CanHide        bool
@@ -42,6 +43,7 @@ type AdminProps struct {
 	CanBlock          bool
 	CanUnblock        bool
 	CanResetAutoHide  bool
+	CanManageLabels   bool
 	IsAdmin           bool
 }
 
@@ -130,6 +132,21 @@ templ AdminDashboardBody(props AdminProps) {
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Activity Log
+				</button>
+			}
+			if props.CanManageLabels {
+				<button
+					type="button"
+					@click="activeTab = 'labels'"
+					:class="activeTab === 'labels' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Labels
+					if len(props.Labels) > 0 {
+						<span class="ml-1.5 bg-purple-100 text-purple-700 py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.Labels)) }
+						</span>
+					}
 				</button>
 			}
 			if props.IsAdmin {
@@ -231,6 +248,96 @@ templ AdminDashboardBody(props AdminProps) {
 					}
 				</div>
 			</div>
+		}
+		<!-- Labels Tab -->
+			if props.CanManageLabels {
+				<div x-show="activeTab === 'labels'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+					<div class="card card-inner">
+						<div class="flex items-center justify-between mb-4">
+							<h2 class="section-title mb-0">Labels</h2>
+							<button
+								type="button"
+								x-data
+								@click="$dispatch('open-add-label')"
+								class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded font-medium transition-colors"
+							>
+								Add Label
+							</button>
+						</div>
+						if len(props.Labels) == 0 {
+							<div class="bg-brown-50 rounded-lg p-4 text-center text-brown-600">
+								<p>No labels have been applied yet.</p>
+							</div>
+						} else {
+							<div class="space-y-3">
+								for _, label := range props.Labels {
+									@LabelCard(label)
+								}
+							</div>
+						}
+					</div>
+					<!-- Add Label Form -->
+					<div
+						x-data="{ open: false }"
+						x-on:open-add-label.window="open = true"
+						x-show="open"
+						x-cloak
+						x-transition
+						class="card card-inner mt-4"
+					>
+						<h3 class="section-title">Add Label</h3>
+						<form
+							hx-post="/_mod/label/add"
+							hx-swap="none"
+							class="space-y-4"
+							x-ref="labelForm"
+							@htmx:after-request.window="if ($event.detail.successful) { open = false; $refs.labelForm.reset() }"
+						>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label class="block text-sm font-medium text-brown-700 mb-1">Entity Type</label>
+									<select name="entity_type" required class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-brown-900 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+										<option value="user">User (DID)</option>
+										<option value="record">Record (AT-URI)</option>
+									</select>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-brown-700 mb-1">Entity ID</label>
+									<input type="text" name="entity_id" required placeholder="did:plc:... or at://..." class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-brown-900 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"/>
+								</div>
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+								<div>
+									<label class="block text-sm font-medium text-brown-700 mb-1">Label</label>
+									<input type="text" name="label" required placeholder="e.g. warned, trusted, spam" class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-brown-900 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"/>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-brown-700 mb-1">Value (optional)</label>
+									<input type="text" name="value" placeholder="Optional value" class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-brown-900 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"/>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-brown-700 mb-1">Expires (optional)</label>
+									<select name="expires" class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-brown-900 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+										<option value="">Never</option>
+										<option value="24h">24 hours</option>
+										<option value="168h">7 days</option>
+										<option value="720h">30 days</option>
+										<option value="2160h">90 days</option>
+									</select>
+								</div>
+							</div>
+							<div class="flex gap-3">
+								<button type="submit" class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded font-medium transition-colors">
+									Add Label
+								</button>
+								<button type="button" @click="open = false" class="text-sm text-brown-600 hover:text-brown-800 px-4 py-2 rounded font-medium transition-colors">
+									Cancel
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			}
 			<!-- Join Requests Tab -->
 			if props.IsAdmin {
 				<div x-show="activeTab === 'join'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
@@ -250,7 +357,6 @@ templ AdminDashboardBody(props AdminProps) {
 					</div>
 				</div>
 			}
-		}
 		<!-- Stats Tab (admin only) -->
 		if props.IsAdmin {
 			<div x-show="activeTab === 'stats'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
@@ -681,6 +787,14 @@ templ AuditActionBadge(action moderation.AuditAction) {
 			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
 				Send Invite
 			</span>
+		case moderation.AuditActionAddLabel:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+				Add Label
+			</span>
+		case moderation.AuditActionRemoveLabel:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+				Remove Label
+			</span>
 		default:
 			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brown-100 text-brown-800">
 				{ string(action) }
@@ -730,6 +844,94 @@ templ JoinRequestCard(req *boltstore.JoinRequest) {
 			</div>
 		</div>
 	</div>
+}
+
+templ LabelCard(label moderation.Label) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- Label name badge and entity type -->
+			<div class="flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					@LabelBadge(label.Name)
+					<span class="text-xs bg-brown-100 text-brown-600 px-1.5 py-0.5 rounded">{ label.EntityType }</span>
+					if label.Value != "" {
+						<span class="text-xs text-brown-500">= { label.Value }</span>
+					}
+				</div>
+				<time class="text-sm text-brown-500" datetime={ bff.FormatISO(label.CreatedAt) }>{ label.CreatedAt.Format("Jan 2, 2006 15:04") }</time>
+			</div>
+			<!-- Entity ID -->
+			<div>
+				<span class="text-xs font-medium text-brown-500 uppercase tracking-wide">
+					if label.EntityType == "user" {
+						User DID
+					} else {
+						Record URI
+					}
+				</span>
+				<code class="mt-1 block text-sm bg-brown-100 px-2 py-1 rounded break-all font-mono">{ label.EntityID }</code>
+			</div>
+			<!-- Meta -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-brown-500">By:</span>
+					<code class="text-brown-700 ml-1 text-xs">{ label.CreatedBy }</code>
+				</div>
+				if label.ExpiresAt != nil {
+					<div>
+						<span class="text-brown-500">Expires:</span>
+						<span class="text-brown-700 ml-1">{ label.ExpiresAt.Format("Jan 2, 2006 15:04") }</span>
+					</div>
+				} else {
+					<div>
+						<span class="text-brown-500">Expires:</span>
+						<span class="text-brown-700 ml-1">Never</span>
+					</div>
+				}
+			</div>
+			<!-- Actions -->
+			<div class="pt-2 border-t border-brown-200">
+				<button
+					class="text-sm text-red-600 hover:text-red-800 font-medium"
+					hx-post="/_mod/label/remove"
+					hx-vals={ fmt.Sprintf(`{"entity_type": "%s", "entity_id": "%s", "label": "%s"}`, label.EntityType, label.EntityID, label.Name) }
+					hx-swap="none"
+					hx-confirm={ fmt.Sprintf("Remove label '%s' from %s?", label.Name, label.EntityID) }
+				>
+					Remove Label
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
+templ LabelBadge(name string) {
+	switch name {
+		case "warned":
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+				{ name }
+			</span>
+		case "trusted":
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+				{ name }
+			</span>
+		case "under_review":
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+				{ name }
+			</span>
+		case "rate_limited":
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+				{ name }
+			</span>
+		case "spam":
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+				{ name }
+			</span>
+		default:
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+				{ name }
+			</span>
+	}
 }
 
 templ AdminStatsContent(stats AdminStats) {

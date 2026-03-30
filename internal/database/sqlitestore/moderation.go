@@ -414,3 +414,129 @@ func (s *ModerationStore) GetAutoHideReset(ctx context.Context, did string) (tim
 	t, _ := time.Parse(time.RFC3339Nano, resetAtStr)
 	return t, nil
 }
+
+// ========== Labels ==========
+
+func (s *ModerationStore) AddLabel(ctx context.Context, label moderation.Label) error {
+	var expiresAt *string
+	if label.ExpiresAt != nil {
+		v := label.ExpiresAt.Format(time.RFC3339Nano)
+		expiresAt = &v
+	}
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO moderation_labels (id, entity_type, entity_id, label, value, created_at, created_by, expires_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(entity_type, entity_id, label) DO UPDATE SET
+			id         = excluded.id,
+			value      = excluded.value,
+			created_at = excluded.created_at,
+			created_by = excluded.created_by,
+			expires_at = excluded.expires_at
+	`, label.ID, label.EntityType, label.EntityID, label.Name, label.Value,
+		label.CreatedAt.Format(time.RFC3339Nano), label.CreatedBy, expiresAt)
+	if err != nil {
+		return fmt.Errorf("add label: %w", err)
+	}
+	return nil
+}
+
+func (s *ModerationStore) RemoveLabel(ctx context.Context, entityType, entityID, labelName string) error {
+	_, err := s.db.ExecContext(ctx, `
+		DELETE FROM moderation_labels WHERE entity_type = ? AND entity_id = ? AND label = ?
+	`, entityType, entityID, labelName)
+	return err
+}
+
+func (s *ModerationStore) HasLabel(ctx context.Context, entityType, entityID, labelName string) (bool, error) {
+	var exists int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT 1 FROM moderation_labels
+		WHERE entity_type = ? AND entity_id = ? AND label = ?
+		AND (expires_at IS NULL OR expires_at > ?)
+	`, entityType, entityID, labelName, time.Now().Format(time.RFC3339Nano)).Scan(&exists)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	return exists == 1, err
+}
+
+func (s *ModerationStore) GetLabel(ctx context.Context, entityType, entityID, labelName string) (*moderation.Label, error) {
+	var l moderation.Label
+	var createdAtStr string
+	var expiresAtStr sql.NullString
+	err := s.db.QueryRowContext(ctx, `
+		SELECT id, entity_type, entity_id, label, value, created_at, created_by, expires_at
+		FROM moderation_labels WHERE entity_type = ? AND entity_id = ? AND label = ?
+	`, entityType, entityID, labelName).Scan(
+		&l.ID, &l.EntityType, &l.EntityID, &l.Name, &l.Value,
+		&createdAtStr, &l.CreatedBy, &expiresAtStr)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	l.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+	if expiresAtStr.Valid {
+		t, _ := time.Parse(time.RFC3339Nano, expiresAtStr.String)
+		l.ExpiresAt = &t
+	}
+	return &l, nil
+}
+
+func (s *ModerationStore) ListLabels(ctx context.Context, entityType, entityID string) ([]moderation.Label, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, entity_type, entity_id, label, value, created_at, created_by, expires_at
+		FROM moderation_labels WHERE entity_type = ? AND entity_id = ?
+		ORDER BY created_at DESC
+	`, entityType, entityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanLabels(rows)
+}
+
+func (s *ModerationStore) ListAllLabels(ctx context.Context) ([]moderation.Label, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, entity_type, entity_id, label, value, created_at, created_by, expires_at
+		FROM moderation_labels ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanLabels(rows)
+}
+
+func scanLabels(rows *sql.Rows) ([]moderation.Label, error) {
+	var labels []moderation.Label
+	for rows.Next() {
+		var l moderation.Label
+		var createdAtStr string
+		var expiresAtStr sql.NullString
+		if err := rows.Scan(
+			&l.ID, &l.EntityType, &l.EntityID, &l.Name, &l.Value,
+			&createdAtStr, &l.CreatedBy, &expiresAtStr); err != nil {
+			continue
+		}
+		l.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+		if expiresAtStr.Valid {
+			t, _ := time.Parse(time.RFC3339Nano, expiresAtStr.String)
+			l.ExpiresAt = &t
+		}
+		labels = append(labels, l)
+	}
+	return labels, rows.Err()
+}
+
+func (s *ModerationStore) CleanExpiredLabels(ctx context.Context) (int, error) {
+	res, err := s.db.ExecContext(ctx, `
+		DELETE FROM moderation_labels WHERE expires_at IS NOT NULL AND expires_at < ?
+	`, time.Now().Format(time.RFC3339Nano))
+	if err != nil {
+		return 0, err
+	}
+	n, _ := res.RowsAffected()
+	return int(n), nil
+}

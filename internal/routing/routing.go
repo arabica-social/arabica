@@ -169,6 +169,10 @@ func SetupRouter(cfg Config) http.Handler {
 		middleware.RequirePermission(modSvc, moderation.PermissionBlacklistUser, http.HandlerFunc(h.HandleBlockUser))))
 	mux.Handle("POST /_mod/unblock", cop.Handler(
 		middleware.RequirePermission(modSvc, moderation.PermissionUnblacklistUser, http.HandlerFunc(h.HandleUnblockUser))))
+	mux.Handle("POST /_mod/label/add", cop.Handler(
+		middleware.RequirePermission(modSvc, moderation.PermissionManageLabels, http.HandlerFunc(h.HandleAddLabel))))
+	mux.Handle("POST /_mod/label/remove", cop.Handler(
+		middleware.RequirePermission(modSvc, moderation.PermissionManageLabels, http.HandlerFunc(h.HandleRemoveLabel))))
 	mux.Handle("POST /_mod/invite", cop.Handler(
 		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleCreateInvite))))
 	mux.Handle("POST /_mod/dismiss-join", cop.Handler(

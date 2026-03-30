@@ -16,6 +16,7 @@ const (
 	PermissionDismissReport   Permission = "dismiss_report"
 	PermissionViewAuditLog    Permission = "view_audit_log"
 	PermissionResetAutoHide   Permission = "reset_autohide"
+	PermissionManageLabels    Permission = "manage_labels"
 )
 
 // AllPermissions returns all available permissions
@@ -29,6 +30,7 @@ func AllPermissions() []Permission {
 		PermissionDismissReport,
 		PermissionViewAuditLog,
 		PermissionResetAutoHide,
+		PermissionManageLabels,
 	}
 }
 
@@ -152,6 +154,8 @@ const (
 	AuditActionResetAutoHide      AuditAction = "reset_autohide"
 	AuditActionDismissJoinRequest AuditAction = "dismiss_join_request"
 	AuditActionCreateInvite       AuditAction = "create_invite"
+	AuditActionAddLabel           AuditAction = "add_label"
+	AuditActionRemoveLabel        AuditAction = "remove_label"
 )
 
 // AuditEntry represents a logged moderation action
@@ -164,4 +168,22 @@ type AuditEntry struct {
 	Details   map[string]string `json:"details,omitempty"` // Structured metadata (e.g. email, ip, message)
 	Timestamp time.Time         `json:"timestamp"`
 	AutoMod   bool              `json:"auto_mod"` // true if action was automatic
+}
+
+// Label represents a moderation label attached to a user or record.
+// Labels are internal operational state used by automod rules and moderators.
+type Label struct {
+	ID         string     `json:"id"`
+	EntityType string     `json:"entity_type"` // "user" or "record"
+	EntityID   string     `json:"entity_id"`   // DID or AT-URI
+	Name       string     `json:"label"`
+	Value      string     `json:"value,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	CreatedBy  string     `json:"created_by"` // DID or "automod" or "system"
+	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+}
+
+// IsExpired returns true if the label has passed its expiration time.
+func (l *Label) IsExpired() bool {
+	return l.ExpiresAt != nil && time.Now().After(*l.ExpiresAt)
 }

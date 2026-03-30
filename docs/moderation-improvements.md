@@ -302,6 +302,143 @@ is a single DELETE query:
 DELETE FROM moderation_labels WHERE expires_at IS NOT NULL AND expires_at < ?
 ```
 
+### Relationship to AT Protocol Labels
+
+AT Protocol has its own label system (`com.atproto.label`) designed for
+**federated, decentralized moderation**. It's worth understanding how it differs
+from the internal labels proposed above, whether Arabica should use both, and
+when each applies.
+
+#### How atproto labels work
+
+atproto labels are cryptographically signed metadata tags produced by independent
+**labeler services** — third-party identities (with their own DID and signing
+key) that publish labels about accounts or records across the network. Key
+properties:
+
+- **Signed**: Each label is CBOR-encoded and signed with the labeler's
+  `#atproto_label` key. Clients verify authenticity without trusting the
+  transport.
+- **User-choosable**: Users subscribe to labelers they trust (up to 20). Each
+  user independently decides how to handle each label value: hide, warn, or
+  ignore. This is fundamentally different from moderator-imposed decisions.
+- **Distributed**: Labels are broadcast via
+  `com.atproto.label.subscribeLabels` (WebSocket stream) and queryable via
+  `com.atproto.label.queryLabels`. AppViews hydrate labels into API responses
+  based on the client's `atproto-accept-labelers` header.
+- **Graduated actions**: Label values define `severity` (inform/alert/none) and
+  `blurs` (content/media/none). The `!hide` and `!warn` system labels are
+  non-overridable; content labels like `porn`, `graphic-media` let users choose.
+- **Negatable and expirable**: A label is retracted by publishing a negation
+  (`neg: true`) with the same src/uri/val. Labels can also carry `exp` for
+  automatic expiry.
+- **Self-labels**: Record authors can self-apply global label values (e.g.,
+  `porn`, `nudity`, `graphic-media`) directly in their records via
+  `com.atproto.label.defs#selfLabels`.
+
+The indigo SDK already provides the Go types (`LabelDefs_Label`,
+`LabelDefs_SelfLabels`) and signing/verification utilities.
+
+#### How internal labels differ
+
+The labels proposed in this doc are **app-internal operational state** — they
+exist only inside Arabica's SQLite database, are not signed or distributed, and
+are invisible to the broader AT Protocol network. They serve a fundamentally
+different purpose:
+
+| Aspect | Internal Labels | AT Protocol Labels |
+|--------|----------------|--------------------|
+| **Purpose** | Automod state, moderator notes | Network-wide content classification |
+| **Audience** | Arabica's automod engine + moderators | Any atproto client, user-selectable |
+| **Storage** | SQLite row | Signed CBOR object, distributed via WebSocket |
+| **Who creates** | Automod rules or Arabica moderators | Independent labeler services |
+| **Who consumes** | Arabica's rule evaluator | End users via their chosen client |
+| **Visibility** | Admin dashboard only | Public (any subscriber can see) |
+| **User choice** | None — moderator decisions are authoritative | Users choose labelers and per-label behavior |
+| **Examples** | `warned`, `trusted`, `under_review`, `rate_limited` | `porn`, `graphic-media`, `!hide`, `spam` |
+
+These are complementary, not competing. Internal labels are private moderator
+bookkeeping. atproto labels are public content classification signals.
+
+#### Should Arabica use both?
+
+**Yes** — but for different things, and not at the same time.
+
+**Phase 1: Internal labels (this proposal)**
+
+Internal labels are the right tool for what's described in this doc: giving
+automod memory and letting moderators annotate users. A `warned` label that
+expires in 30 days, or a `trusted` label that exempts someone from automod —
+these are operational concerns that don't belong on the public network. They're
+the equivalent of internal moderation notes, not public content ratings.
+
+Ship internal labels first. They have zero infrastructure requirements, integrate
+directly with the automod rule evaluator, and solve the immediate problem of
+stateless automod.
+
+**Phase 2: Arabica as an atproto labeler (future)**
+
+Later, Arabica could operate as a labeler service — publishing labels that other
+atproto clients can subscribe to. This would be valuable for:
+
+- **Content warnings on brew records**: Labeling brews that contain
+  controversial ingredients or methods (e.g., if the community ever needs
+  content classification beyond coffee)
+- **Quality signals**: A `verified-roaster` or `featured` label that other
+  clients could consume to highlight trusted content
+- **Spam classification**: Publishing `spam` labels on records Arabica's automod
+  has flagged, so other apps indexing `social.arabica.alpha.*` collections can
+  benefit from Arabica's moderation work
+- **Cross-app moderation**: If other apps build on the arabica lexicons, they
+  could subscribe to Arabica's labeler to get moderation decisions without
+  running their own moderation
+
+This would require:
+1. A signing key (`#atproto_label`) in Arabica's DID document
+2. An `app.bsky.labeler.service` declaration record
+3. `subscribeLabels` and `queryLabels` endpoints
+4. A mapping from internal moderation actions → published atproto labels
+
+#### When an action should become a public label
+
+Not every internal label should be published externally. A rough heuristic:
+
+| Internal action | Publish as atproto label? | Why / why not |
+|-----------------|--------------------------|---------------|
+| `hide_record` | Yes → `!hide` | Other apps indexing arabica records should respect this |
+| `blacklist_user` | Maybe → custom `blocked` | Depends on whether other apps need to know |
+| `warned` | No | Private moderator state, not relevant to other clients |
+| `trusted` | No | Internal automod bypass, meaningless externally |
+| `spam` | Yes → `spam` | Useful for any app consuming arabica records |
+| `under_review` | No | Temporary internal state |
+
+The bridge between the two systems would be straightforward: when an internal
+moderation action fires that warrants a public label, also sign and publish an
+atproto label. The internal label drives automod behavior; the atproto label
+communicates the decision to the network.
+
+#### What this means for the current proposal
+
+No changes needed to the internal labels design. The schema, store interface, and
+automod integration all remain as specified above. The only future consideration
+is adding an optional `publish_label` action type to the automod rules config
+(Phase 3), which would sign and emit an atproto label alongside the internal
+action:
+
+```json
+{
+  "name": "publish_spam_label",
+  "trigger": "record_auto_hidden",
+  "conditions": {
+    "has_label": { "entity": "subject_record", "label": "spam" }
+  },
+  "action": { "type": "publish_label", "val": "spam" }
+}
+```
+
+This is purely additive and doesn't affect the Phase 2/3 work described in this
+doc.
+
 ---
 
 ## 3. Permission Middleware
@@ -477,7 +614,14 @@ Phase 2 gives moderators new capabilities. Phase 3 makes automod flexible.
 - **No investigation UI** — the existing admin dashboard gets labels, not a
   query engine
 - **No ML/AI integration** — rules are deterministic threshold checks
+- **No atproto labeler service** — internal labels are private operational
+  state, not published to the network. Becoming an atproto labeler is a natural
+  future extension (see "Relationship to AT Protocol Labels" in section 2) but
+  is out of scope for this work.
 
 These are deliberate constraints. If the moderation needs outgrow this, that's
 the point where Osprey (or a similar system) becomes worth the infrastructure
-cost.
+cost. The atproto labeler path is a lighter lift than Osprey — it reuses the
+existing moderation decisions and just adds a signed publication layer — so it's
+a reasonable intermediate step if cross-app moderation becomes needed before
+full-scale infrastructure is justified.

@@ -144,6 +144,7 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 	canBlock := h.moderationService.HasPermission(userDID, moderation.PermissionBlacklistUser)
 	canUnblock := h.moderationService.HasPermission(userDID, moderation.PermissionUnblacklistUser)
 	canResetAutoHide := h.moderationService.HasPermission(userDID, moderation.PermissionResetAutoHide)
+	canManageLabels := h.moderationService.HasPermission(userDID, moderation.PermissionManageLabels)
 
 	var hiddenRecords []moderation.HiddenRecord
 	var auditLog []moderation.AuditEntry
@@ -167,6 +168,11 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 		blockedUsers, _ = h.moderationStore.ListBlacklistedUsers(ctx)
 	}
 
+	var labels []moderation.Label
+	if canManageLabels && h.moderationStore != nil {
+		labels, _ = h.moderationStore.ListAllLabels(ctx)
+	}
+
 	isAdmin := h.moderationService.IsAdmin(userDID)
 
 	var joinRequests []*boltstore.JoinRequest
@@ -185,6 +191,7 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 		AuditLog:         auditLog,
 		Reports:          enrichedReports,
 		BlockedUsers:     blockedUsers,
+		Labels:           labels,
 		JoinRequests:     joinRequests,
 		Stats:            stats,
 		CanHide:          canHide,
@@ -194,6 +201,7 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 		CanBlock:         canBlock,
 		CanUnblock:       canUnblock,
 		CanResetAutoHide: canResetAutoHide,
+		CanManageLabels:  canManageLabels,
 		IsAdmin:          isAdmin,
 	}
 }
@@ -516,6 +524,134 @@ func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
 		Str("reportID", reportID).
 		Str("by", userDID).
 		Msg("Report dismissed")
+
+	w.Header().Set("HX-Trigger", "mod-action")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleAddLabel handles POST /_mod/label/add
+// Auth and permission checks are handled by RequirePermission middleware.
+func (h *Handler) HandleAddLabel(w http.ResponseWriter, r *http.Request) {
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	entityType := r.FormValue("entity_type")
+	entityID := r.FormValue("entity_id")
+	labelName := r.FormValue("label")
+
+	if entityType == "" || entityID == "" || labelName == "" {
+		http.Error(w, "entity_type, entity_id, and label are required", http.StatusBadRequest)
+		return
+	}
+	if entityType != "user" && entityType != "record" {
+		http.Error(w, "entity_type must be 'user' or 'record'", http.StatusBadRequest)
+		return
+	}
+
+	label := moderation.Label{
+		ID:         generateTID(),
+		EntityType: entityType,
+		EntityID:   entityID,
+		Name:       labelName,
+		Value:      r.FormValue("value"),
+		CreatedAt:  time.Now(),
+		CreatedBy:  userDID,
+	}
+
+	// Parse optional TTL
+	if ttl := r.FormValue("expires"); ttl != "" {
+		if d, err := time.ParseDuration(ttl); err == nil {
+			exp := time.Now().Add(d)
+			label.ExpiresAt = &exp
+		}
+	}
+
+	if err := h.moderationStore.AddLabel(r.Context(), label); err != nil {
+		log.Error().Err(err).Str("label", labelName).Msg("Failed to add label")
+		http.Error(w, "Failed to add label", http.StatusInternalServerError)
+		return
+	}
+
+	// Log the action
+	auditEntry := moderation.AuditEntry{
+		ID:        generateTID(),
+		Action:    moderation.AuditActionAddLabel,
+		ActorDID:  userDID,
+		TargetURI: entityID,
+		Reason:    labelName,
+		Details: map[string]string{
+			"entity_type": entityType,
+			"label":       labelName,
+		},
+		Timestamp: time.Now(),
+	}
+	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
+		log.Error().Err(err).Msg("Failed to log add-label action")
+	}
+
+	log.Info().
+		Str("entity_type", entityType).
+		Str("entity_id", entityID).
+		Str("label", labelName).
+		Str("by", userDID).
+		Msg("Label added")
+
+	w.Header().Set("HX-Trigger", "mod-action")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleRemoveLabel handles POST /_mod/label/remove
+// Auth and permission checks are handled by RequirePermission middleware.
+func (h *Handler) HandleRemoveLabel(w http.ResponseWriter, r *http.Request) {
+	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	entityType := r.FormValue("entity_type")
+	entityID := r.FormValue("entity_id")
+	labelName := r.FormValue("label")
+
+	if entityType == "" || entityID == "" || labelName == "" {
+		http.Error(w, "entity_type, entity_id, and label are required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.moderationStore.RemoveLabel(r.Context(), entityType, entityID, labelName); err != nil {
+		log.Error().Err(err).Str("label", labelName).Msg("Failed to remove label")
+		http.Error(w, "Failed to remove label", http.StatusInternalServerError)
+		return
+	}
+
+	// Log the action
+	auditEntry := moderation.AuditEntry{
+		ID:        generateTID(),
+		Action:    moderation.AuditActionRemoveLabel,
+		ActorDID:  userDID,
+		TargetURI: entityID,
+		Reason:    labelName,
+		Details: map[string]string{
+			"entity_type": entityType,
+			"label":       labelName,
+		},
+		Timestamp: time.Now(),
+	}
+	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
+		log.Error().Err(err).Msg("Failed to log remove-label action")
+	}
+
+	log.Info().
+		Str("entity_type", entityType).
+		Str("entity_id", entityID).
+		Str("label", labelName).
+		Str("by", userDID).
+		Msg("Label removed")
 
 	w.Header().Set("HX-Trigger", "mod-action")
 	w.WriteHeader(http.StatusOK)

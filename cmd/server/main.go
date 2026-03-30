@@ -376,6 +376,24 @@ func main() {
 		h.SetModeration(moderationSvc, moderationStore)
 	}
 
+	// Periodic cleanup of expired moderation labels
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if n, err := moderationStore.CleanExpiredLabels(ctx); err != nil {
+					log.Error().Err(err).Msg("Failed to clean expired labels")
+				} else if n > 0 {
+					log.Info().Int("count", n).Msg("Cleaned expired moderation labels")
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	// Initialize join request handling
 	smtpPort := 587
 	if portStr := os.Getenv("SMTP_PORT"); portStr != "" {
