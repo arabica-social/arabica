@@ -1446,6 +1446,11 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 		return nil
 	}
 
+	ctx, span := tracing.HandlerSpan(ctx, "backfill.user",
+		attribute.String("backfill.did", did),
+	)
+	defer span.End()
+
 	log.Info().Str("did", did).Msg("backfilling user records")
 
 	recordCount := 0

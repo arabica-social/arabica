@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"arabica/internal/tracing"
+
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -119,6 +121,9 @@ func (c *PublicClient) GetPDSEndpoint(ctx context.Context, did string) (string, 
 	}
 	c.pdsCacheMu.RUnlock()
 
+	ctx, span := tracing.PdsSpan(ctx, "resolvePDS", "did:plc", did)
+	defer span.End()
+
 	// Resolve DID document from PLC directory
 	var pdsEndpoint string
 
@@ -217,6 +222,9 @@ type PublicRecordEntry struct {
 
 // GetProfile fetches a user's public profile by DID or handle
 func (c *PublicClient) GetProfile(ctx context.Context, actor string) (*Profile, error) {
+	ctx, span := tracing.PdsSpan(ctx, "getProfile", "app.bsky.actor", actor)
+	defer span.End()
+
 	reqURL := fmt.Sprintf("%s/xrpc/app.bsky.actor.getProfile?actor=%s",
 		c.baseURL, url.QueryEscape(actor))
 
@@ -247,6 +255,9 @@ func (c *PublicClient) GetProfile(ctx context.Context, actor string) (*Profile, 
 // Records are returned in reverse chronological order (newest first)
 // This queries the user's PDS directly to support custom collections
 func (c *PublicClient) ListRecords(ctx context.Context, did, collection string, limit int) (*PublicListRecordsOutput, error) {
+	ctx, span := tracing.PdsSpan(ctx, "publicListRecords", collection, did)
+	defer span.End()
+
 	// Resolve the user's PDS endpoint
 	pdsEndpoint, err := c.GetPDSEndpoint(ctx, did)
 	if err != nil {
@@ -281,6 +292,9 @@ func (c *PublicClient) ListRecords(ctx context.Context, did, collection string, 
 
 // ResolveHandle resolves an AT Protocol handle to a DID
 func (c *PublicClient) ResolveHandle(ctx context.Context, handle string) (string, error) {
+	ctx, span := tracing.PdsSpan(ctx, "resolveHandle", "com.atproto.identity", handle)
+	defer span.End()
+
 	reqURL := fmt.Sprintf("%s/xrpc/com.atproto.identity.resolveHandle?handle=%s",
 		c.baseURL, url.QueryEscape(handle))
 
@@ -315,6 +329,9 @@ func (c *PublicClient) ResolveHandle(ctx context.Context, handle string) (string
 
 // GetRecord fetches a single public record from the user's PDS
 func (c *PublicClient) GetRecord(ctx context.Context, did, collection, rkey string) (*PublicRecordEntry, error) {
+	ctx, span := tracing.PdsSpan(ctx, "publicGetRecord", collection, did)
+	defer span.End()
+
 	// Resolve the user's PDS endpoint
 	pdsEndpoint, err := c.GetPDSEndpoint(ctx, did)
 	if err != nil {

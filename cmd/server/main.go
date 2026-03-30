@@ -290,15 +290,19 @@ func main() {
 			}
 		}
 
+		// Create a root span so all backfill PDS calls are grouped under one trace
+		backfillCtx, backfillSpan := tracing.HandlerSpan(ctx, "backfill.startup")
+
 		// Backfill all collected DIDs
 		successCount := 0
 		for did := range didsToBackfill {
-			if err := firehoseConsumer.BackfillDID(ctx, did); err != nil {
+			if err := firehoseConsumer.BackfillDID(backfillCtx, did); err != nil {
 				log.Warn().Err(err).Str("did", did).Msg("Failed to backfill user")
 			} else {
 				successCount++
 			}
 		}
+		backfillSpan.End()
 		log.Info().Int("total", len(didsToBackfill)).Int("success", successCount).Msg("Backfill complete")
 	}()
 
@@ -306,7 +310,9 @@ func main() {
 	// This ensures users are added to the feed even if they had an existing session
 	oauthManager.SetOnAuthSuccess(func(did string) {
 		feedRegistry.Register(did)
-		// Backfill the user's records
+		// Backfill the user's records (BackfillUser creates its own span
+		// only when there is actual work to do, avoiding empty traces for
+		// already-backfilled users)
 		go func() {
 			if err := firehoseConsumer.BackfillDID(context.Background(), did); err != nil {
 				log.Warn().Err(err).Str("did", did).Msg("Failed to backfill new user")
