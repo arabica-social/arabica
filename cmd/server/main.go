@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"arabica/internal/atproto"
+	"arabica/internal/backup"
 	"arabica/internal/logging"
 	"arabica/internal/database/boltstore"
 	"arabica/internal/database/sqlitestore"
@@ -393,6 +394,30 @@ func main() {
 			}
 		}
 	}()
+
+	// Initialize automated backups
+	backupDir := os.Getenv("ARABICA_BACKUP_DIR")
+	if backupDir == "" {
+		dataDir := os.Getenv("XDG_DATA_HOME")
+		if dataDir == "" {
+			home, _ := os.UserHomeDir()
+			dataDir = filepath.Join(home, ".local", "share")
+		}
+		backupDir = filepath.Join(dataDir, "arabica", "backups")
+	}
+	backupDest, err := backup.NewLocalDestination(backupDir)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to create backup destination, backups disabled")
+	} else {
+		backupSvc := backup.NewService(backup.Config{
+			ScheduleHour: 11, // 11:00 UTC = 3:00 AM PST
+			Retain:       2,
+			Dest:         backupDest,
+		})
+		backupSvc.AddSource(backup.NewSQLiteSource("feed-index", feedIndex.DB()))
+		backupSvc.Start(ctx)
+		log.Info().Str("dir", backupDir).Msg("Automated backups enabled")
+	}
 
 	// Initialize join request handling
 	smtpPort := 587
