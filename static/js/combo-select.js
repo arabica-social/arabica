@@ -169,6 +169,8 @@ document.addEventListener("alpine:init", () => {
           return dm.grinders || [];
         case "recipe":
           return dm.recipes || [];
+        case "roaster":
+          return dm.roasters || [];
         default:
           return [];
       }

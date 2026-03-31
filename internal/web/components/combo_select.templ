@@ -1,0 +1,226 @@
+package components
+
+import "fmt"
+
+// ComboSelectConfig generates the x-data attribute for a combo-select Alpine.js component.
+// entityType: one of "bean", "brewer", "grinder", "recipe", "roaster", "cafe"
+// apiEndpoint: URL to list user's own records (e.g. "/api/beans")
+// suggestEndpoint: URL for community suggestions (e.g. "/api/suggestions/beans")
+// inputName: the hidden input name for the selected rkey
+// placeholder: input placeholder text
+// required: whether the field is required
+// passthrough: if true, value is passed through without create (for recipe refs)
+func ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder string, required bool, passthrough ...bool) string {
+	requiredStr := "false"
+	if required {
+		requiredStr = "true"
+	}
+	passthroughStr := "false"
+	if len(passthrough) > 0 && passthrough[0] {
+		passthroughStr = "true"
+	}
+
+	var formatLabel, formatCreateData, extraFields string
+	switch entityType {
+	case "bean":
+		formatLabel = `(e) => { const n = e.name || e.Name || ''; const o = e.origin || e.Origin || ''; const r = e.roast_level || e.RoastLevel || ''; if (o && r) return n + ' (' + o + ' - ' + r + ')'; if (o) return n + ' (' + o + ')'; return n; }`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.origin) d.origin = s.fields.origin; if (s.fields.roastLevel) d.roast_level = s.fields.roastLevel; if (s.fields.process) d.process = s.fields.process; } return d; }`
+		extraFields = `[{name:'origin',label:'Origin',type:'text',placeholder:'e.g. Ethiopia, Colombia'},{name:'roast_level',label:'Roast Level',type:'select',options:['Ultra-Light','Light','Medium-Light','Medium','Medium-Dark','Dark']},{name:'process',label:'Process',type:'text',placeholder:'e.g. Washed, Natural, Honey'}]`
+	case "brewer":
+		formatLabel = `(e) => e.name || e.Name || ''`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields && s.fields.brewerType) d.brewer_type = s.fields.brewerType; return d; }`
+		extraFields = `[{name:'brewer_type',label:'Type',type:'select',options:['pourover','espresso','immersion','mokapot','coldbrew','cupping','other']}]`
+	case "grinder":
+		formatLabel = `(e) => e.name || e.Name || ''`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.grinderType) d.grinder_type = s.fields.grinderType; if (s.fields.burrType) d.burr_type = s.fields.burrType; } return d; }`
+		extraFields = `[{name:'grinder_type',label:'Type',type:'select',options:['Hand','Electric','Portable Electric']},{name:'burr_type',label:'Burr Type',type:'select',options:['Conical','Flat']}]`
+	case "recipe":
+		formatLabel = `(e) => { const n = e.name || e.Name || ''; const bt = e.brewer_type || e.BrewerType || (e.fields && e.fields.brewerType) || ''; return bt ? n + ' (' + bt + ')' : n; }`
+		formatCreateData = `(name) => ({ name })`
+		extraFields = `[]`
+	case "roaster":
+		formatLabel = `(e) => e.name || e.Name || ''`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.location) d.location = s.fields.location; if (s.fields.website) d.website = s.fields.website; } return d; }`
+		extraFields = `[{name:'location',label:'Location',type:'text',placeholder:'e.g. Portland, OR'},{name:'website',label:'Website',type:'text',placeholder:'https://...'}]`
+	case "cafe":
+		formatLabel = `(e) => { const n = e.name || e.Name || ''; const l = e.location || e.Location || ''; return l ? n + ' (' + l + ')' : n; }`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.location) d.location = s.fields.location; if (s.fields.website) d.website = s.fields.website; } return d; }`
+		extraFields = `[{name:'location',label:'Location',type:'text',placeholder:'e.g. Portland, OR'},{name:'website',label:'Website',type:'text',placeholder:'https://...'}]`
+	default:
+		formatLabel = `(e) => e.name || e.Name || ''`
+		formatCreateData = `(name) => ({ name })`
+		extraFields = `[]`
+	}
+
+	return fmt.Sprintf(`comboSelect({ entityType: '%s', apiEndpoint: '%s', suggestEndpoint: '%s', inputName: '%s', placeholder: '%s', required: %s, passthrough: %s, formatLabel: %s, formatCreateData: %s, extraFields: %s })`,
+		entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, requiredStr, passthroughStr, formatLabel, formatCreateData, extraFields)
+}
+
+// ComboSelectInput renders the shared input + dropdown markup for combo-select fields.
+// sectionLabel is the heading shown above the user's own records (e.g. "Your beans").
+templ ComboSelectInput(sectionLabel string) {
+	<div class="relative">
+		<input
+			type="text"
+			x-model="query"
+			@input="search()"
+			@focus="open()"
+			@blur="close()"
+			@keydown.escape.prevent="close()"
+			@keydown.arrow-down.prevent="moveDown()"
+			@keydown.arrow-up.prevent="moveUp()"
+			@keydown.enter.prevent="selectHighlighted()"
+			:placeholder="placeholder"
+			class="w-full form-input-lg"
+			autocomplete="off"
+		/>
+		<button
+			type="button"
+			x-show="selectedRKey"
+			@click="clear()"
+			class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
+			x-cloak
+		>
+			@IconX()
+		</button>
+	</div>
+	<div x-show="isOpen && (allItems.length > 0 || query.trim())" x-cloak class="combo-dropdown" @mousedown.prevent>
+		<div x-show="isCreating" x-cloak class="combo-creating">Creating...</div>
+		<template x-if="!isCreating">
+			<div>
+				<template x-if="userResults.length > 0">
+					<div>
+						<div class="combo-section-label">{ sectionLabel }</div>
+						<template x-for="(entity, i) in userResults" :key="entity.rkey || entity.RKey">
+							<div
+								class="combo-item"
+								:data-highlighted="highlightIndex === i"
+								@click="selectEntity(entity)"
+								@mouseenter="highlightIndex = i"
+							>
+								<span x-text="formatLabel(entity)"></span>
+							</div>
+						</template>
+					</div>
+				</template>
+				<template x-if="closedResults.length > 0">
+					<div>
+						<div class="combo-section-label">Closed bags</div>
+						<template x-for="(entity, ci) in closedResults" :key="entity.rkey || entity.RKey">
+							<div
+								class="combo-item opacity-60"
+								:data-highlighted="highlightIndex === userResults.length + ci"
+								@click="selectEntity(entity)"
+								@mouseenter="highlightIndex = userResults.length + ci"
+							>
+								<span x-text="formatLabel(entity)"></span>
+							</div>
+						</template>
+					</div>
+				</template>
+				<template x-if="communityResults.length > 0">
+					<div>
+						<div class="combo-section-label">Community</div>
+						<template x-for="(s, j) in communityResults" :key="s.source_uri || j">
+							<div
+								class="combo-item"
+								:data-highlighted="highlightIndex === userResults.length + closedResults.length + j"
+								@click="selectSuggestion(s)"
+								@mouseenter="highlightIndex = userResults.length + closedResults.length + j"
+							>
+								<div x-text="s.name"></div>
+								<div class="combo-item-sub">
+									<span x-show="s.fields?.origin" x-text="s.fields?.origin"></span>
+									<span x-show="s.fields?.origin && s.fields?.roastLevel">· </span>
+									<span x-show="s.fields?.roastLevel" x-text="s.fields?.roastLevel"></span>
+									<span x-show="s.fields?.location" x-text="s.fields?.location"></span>
+									<span x-show="s.count > 1" x-text="' · ' + s.count + ' users'"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+				</template>
+				<template x-if="query.trim() && !exactMatch">
+					<div
+						class="combo-item-create"
+						:data-highlighted="highlightIndex === userResults.length + closedResults.length + communityResults.length"
+						@click="createNew()"
+						@mouseenter="highlightIndex = userResults.length + closedResults.length + communityResults.length"
+					>
+						Create "<span x-text="query.trim()"></span>"
+					</div>
+				</template>
+				<template x-if="allItems.length === 0 && query.trim()">
+					<div class="combo-creating">No matches found</div>
+				</template>
+			</div>
+		</template>
+	</div>
+	<!-- Inline create form with extra details -->
+	<div x-show="showCreateForm" x-transition x-cloak class="mt-2 p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
+		<p class="text-sm font-medium text-brown-900 mb-2">
+			Creating: <span x-text="createFormData.name" class="font-semibold"></span>
+		</p>
+		<template x-if="extraFields.length > 0">
+			<div class="space-y-2">
+				<template x-for="field in extraFields" :key="field.name">
+					<div>
+						<template x-if="field.type === 'select'">
+							<select
+								x-model="createFormData[field.name]"
+								class="w-full form-input text-sm"
+							>
+								<option value="" x-text="field.label + ' (optional)'"></option>
+								<template x-for="opt in field.options" :key="opt">
+									<option :value="opt" x-text="opt"></option>
+								</template>
+							</select>
+						</template>
+						<template x-if="field.type === 'text'">
+							<input
+								type="text"
+								:placeholder="field.placeholder || field.label"
+								x-model="createFormData[field.name]"
+								class="w-full form-input text-sm"
+							/>
+						</template>
+					</div>
+				</template>
+				<div class="flex gap-2 mt-2">
+					<button
+						type="button"
+						@click="submitCreateForm()"
+						class="flex-1 btn-primary text-sm py-1.5"
+						:disabled="isCreating"
+					>
+						<span x-show="!isCreating">Save</span>
+						<span x-show="isCreating">Saving...</span>
+					</button>
+					<button
+						type="button"
+						@click="skipCreateDetails()"
+						class="flex-1 btn-secondary text-sm py-1.5"
+						:disabled="isCreating"
+					>
+						Skip details
+					</button>
+				</div>
+			</div>
+		</template>
+	</div>
+}
+
+// EscapeJS escapes a string for safe embedding in JavaScript string literals.
+func EscapeJS(s string) string {
+	result := ""
+	for _, c := range s {
+		if c == '\'' {
+			result += "\\'"
+		} else if c == '\\' {
+			result += "\\\\"
+		} else {
+			result += string(c)
+		}
+	}
+	return result
+}

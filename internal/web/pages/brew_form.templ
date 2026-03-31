@@ -149,12 +149,11 @@ templ RecipeModeSection(props BrewFormProps) {
 	</fieldset>
 }
 
-
 // RecipeSelectField renders the recipe selection with combo-select typeahead
 templ RecipeSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
-		x-data={ comboSelectConfig("recipe", "/api/recipes", "/api/suggestions/recipes", "recipe_rkey", "Search recipes...", false, true) }
+		x-data={ components.ComboSelectConfig("recipe", "/api/recipes", "/api/suggestions/recipes", "recipe_rkey", "Search recipes...", false, true) }
 		if props.Brew != nil && props.Brew.RecipeRKey != "" {
 			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.RecipeRKey, escapeJS(getRecipeLabel(props))) }
 		}
@@ -167,7 +166,7 @@ templ RecipeSelectField(props BrewFormProps) {
 		<input type="hidden" :name="inputName" :value="selectedRKey"/>
 		<div class="flex gap-2">
 			<div class="flex-1">
-				@comboSelectInput("Your recipes")
+				@components.ComboSelectInput("Your recipes")
 			</div>
 			<button
 				type="button"
@@ -186,7 +185,7 @@ templ RecipeSelectField(props BrewFormProps) {
 templ BeanSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
-		x-data={ comboSelectConfig("bean", "/api/beans", "/api/suggestions/beans", "bean_rkey", "Search or create a bean...", true) }
+		x-data={ components.ComboSelectConfig("bean", "/api/beans", "/api/suggestions/beans", "bean_rkey", "Search or create a bean...", true) }
 		if props.Brew != nil && props.Brew.BeanRKey != "" {
 			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.BeanRKey, escapeJS(getBeanLabel(props))) }
 		}
@@ -196,7 +195,7 @@ templ BeanSelectField(props BrewFormProps) {
 			<span class="text-red-500">*</span>
 		</label>
 		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@comboSelectInput("Your beans")
+		@components.ComboSelectInput("Your beans")
 	</div>
 }
 
@@ -368,7 +367,7 @@ templ comboSelectInput(sectionLabel string) {
 								<div x-text="s.name"></div>
 								<div class="combo-item-sub">
 									<span x-show="s.fields?.origin" x-text="s.fields?.origin"></span>
-									<span x-show="s.fields?.origin && s.fields?.roastLevel"> · </span>
+									<span x-show="s.fields?.origin && s.fields?.roastLevel">· </span>
 									<span x-show="s.fields?.roastLevel" x-text="s.fields?.roastLevel"></span>
 									<span x-show="s.count > 1" x-text="' · ' + s.count + ' users'"></span>
 								</div>
@@ -474,14 +473,14 @@ func getCoffeeAmount(props BrewFormProps) string {
 templ GrinderSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
-		x-data={ comboSelectConfig("grinder", "/api/grinders", "/api/suggestions/grinders", "grinder_rkey", "Search or create a grinder...", false) }
+		x-data={ components.ComboSelectConfig("grinder", "/api/grinders", "/api/suggestions/grinders", "grinder_rkey", "Search or create a grinder...", false) }
 		if props.Brew != nil && props.Brew.GrinderRKey != "" {
 			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.GrinderRKey, escapeJS(getGrinderLabel(props))) }
 		}
 	>
 		<label class="form-label">Grinder</label>
 		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@comboSelectInput("Your grinders")
+		@components.ComboSelectInput("Your grinders")
 	</div>
 }
 
@@ -512,14 +511,14 @@ func getGrindSize(props BrewFormProps) string {
 templ BrewerSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
-		x-data={ comboSelectConfig("brewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey", "Search or create a brew method...", false) }
+		x-data={ components.ComboSelectConfig("brewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey", "Search or create a brew method...", false) }
 		if props.Brew != nil && props.Brew.BrewerRKey != "" {
 			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.BrewerRKey, escapeJS(getBrewerLabel(props))) }
 		}
 	>
 		<label class="form-label">Brew Method</label>
 		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@comboSelectInput("Your brewers")
+		@components.ComboSelectInput("Your brewers")
 	</div>
 }
 

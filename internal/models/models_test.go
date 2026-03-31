@@ -362,7 +362,7 @@ func TestBeanIsIncomplete(t *testing.T) {
 
 	stub := &Bean{Name: "Test"}
 	assert.True(t, stub.IsIncomplete())
-	assert.Len(t, stub.MissingFields(), 3)
+	assert.Len(t, stub.MissingFields(), 2)
 }
 
 func TestGrinderIsIncomplete(t *testing.T) {

@@ -1,27 +1,37 @@
-# Arabica - Project Context for AI Agents
+# CLAUDE.md
 
-Coffee brew tracking application using AT Protocol for decentralized storage.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Work Management
+## Project Overview
 
-This project uses **cells** for task tracking and coordination. Cells are
-atomic, dependency-aware units of work designed for coordination between humans
-and AI agents.
+Arabica is a coffee brew tracking application built on AT Protocol. User data
+(beans, brews, cafes, drinks, etc.) lives in each user's Personal Data Server
+(PDS), not locally. The app authenticates via OAuth, then performs CRUD through
+XRPC calls to the user's PDS.
 
-**For usage instructions, see:** `.cells/AGENTS.md`
+## Build & Development Commands
 
-Quick reference for AI agents:
+```bash
+# Run development server (debug logging, moderator config, known-dids backfill)
+just run
 
-- `./cells list` - View all active cells
-- `./cells list --status open` - Show available work
-- `./cells show <cell-id>` - View cell details
+# Run tests
+go test ./...
 
-**Note:** Do NOT use `./cells run` - this spawns a new agent session and should
-only be used by humans. AI agents should inspect cells using the commands above
-and perform work directly.
+# Run a single test
+go test ./internal/models/... -run TestBeanIsIncomplete
 
-All work items are tracked as cells. When starting new work, check for existing
-cells first.
+# After editing .templ files — regenerate Go code
+templ generate            # all files
+templ generate -f <file>  # single file
+
+# Rebuild Tailwind CSS (required after CSS/class changes)
+just style
+
+# Verify after changes
+go vet ./...
+go build ./...
+```
 
 ## Workflow Rules
 
@@ -30,725 +40,168 @@ implementation. If the task is clear, start writing code immediately. Ask
 clarifying questions rather than endlessly reading the codebase. When given a
 specific implementation task, produce code changes in the same session.
 
+## Work Management
+
+This project uses **cells** for task tracking. See `.cells/AGENTS.md` for usage.
+
+- `./cells list` / `./cells list --status open` / `./cells show <cell-id>`
+- Do NOT use `./cells run` (spawns new agent session, humans only)
+
 ## Dependencies
 
-When implementing features, prefer standard library solutions over external
-dependencies. Only add a third-party dependency if the standard library
-genuinely cannot handle the requirement. For Go: check stdlib first (e.g.,
-os.Stdout for TTY detection). For JS/TS: check built-in APIs before npm
-packages.
+Prefer standard library solutions over external dependencies. Only add a
+third-party dependency if stdlib genuinely cannot handle the requirement.
 
 ## Task Agents
 
-When spawning task agents, set a hard limit of 3 agents maximum. Each agent must
-have a clearly scoped deliverable and file output path. Do not poll agents in a
-loop—instead, give each agent its full instructions upfront and collect results
-at the end. If agents aren't producing results within 5 minutes, fall back to
-doing the work directly.
-
-## Testing & Verification
-
-For Go projects: always run `go vet ./...` and `go build ./...` after making
-changes. For JavaScript/CSS projects: verify template field names match backend
-struct fields before considering a task complete. Always test form submissions
-to verify content-type handling (JSON vs form-encoded).
-
-### Using Go Tooling Effectively
-
-- To see source files from a dependency, or to answer questions about a
-  dependency, run `go mod download -json MODULE` and use the returned `Dir` path
-  to read the files.
-- Use `go doc foo.Bar` or `go doc -all foo` to read documentation for packages,
-  types, functions, etc.
-- Use `go run .` or `go run ./cmd/foo` instead of `go build` to run programs, to
-  avoid leaving behind build artifacts.
+Hard limit of 3 agents maximum. Each agent must have a clearly scoped
+deliverable. Do not poll agents in a loop. If agents aren't producing results
+within 5 minutes, fall back to doing the work directly.
 
 ## Tech Stack
 
-- **Language:** Go 1.21+
-- **HTTP:** stdlib `net/http` with Go 1.22 routing
-- **Storage:** AT Protocol PDS (user data), BoltDB (sessions/feed registry)
+- **Language:** Go 1.21+, stdlib `net/http` with Go 1.22 routing
+- **Storage:** AT Protocol PDS (user data), BoltDB (sessions), SQLite (firehose index)
 - **Frontend:** HTMX + Alpine.js + Tailwind CSS
-- **Templates:** Templ (type-safe Go templates)
+- **Templates:** [Templ](https://templ.guide/) (type-safe Go templates)
 - **Logging:** zerolog
 
-## Project Structure
-
-```
-cmd/server/main.go          # Application entry point
-internal/
-  atproto/                  # AT Protocol integration
-    client.go               # Authenticated PDS client (XRPC calls)
-    oauth.go                # OAuth flow with PKCE/DPOP
-    store.go                # database.Store implementation using PDS
-    cache.go                # Per-session in-memory cache
-    records.go              # Model <-> ATProto record conversion
-    resolver.go             # AT-URI parsing and reference resolution
-    public_client.go        # Unauthenticated public API access
-    nsid.go                 # Collection NSIDs and AT-URI builders
-  handlers/
-    handlers.go             # HTTP handlers for all routes
-    auth.go                 # OAuth login/logout/callback
-  web/
-    bff/
-      helpers.go            # View helpers (formatting, UserProfile)
-    components/             # Reusable Templ components
-      layout.templ          # Base HTML layout component
-      header.templ          # Navigation header
-      footer.templ          # Site footer
-      shared.templ          # Shared UI components (EmptyState, PageHeader, etc.)
-      buttons.templ         # Button components
-      forms.templ           # Form input components
-      modal.templ           # Modal dialog components
-      card.templ            # Card container components
-      entity_modals.templ   # Entity creation/edit modals
-      *_templ.go            # Generated Go code (auto-generated by templ)
-    pages/                  # Full-page Templ components
-      home.templ            # Home page
-      about.templ           # About page
-      brew_list.templ       # Brew list page
-      brew_view.templ       # Brew detail page
-      brew_form.templ       # Brew creation/edit form
-      manage.templ          # Entity management page
-      profile.templ         # User profile page
-      feed.templ            # Community feed page
-      *_templ.go            # Generated Go code
-  database/
-    store.go                # Store interface definition
-    boltstore/              # BoltDB implementation for sessions
-  feed/
-    service.go              # Community feed aggregation
-    registry.go             # User registration for feed
-  moderation/
-    models.go               # Moderation types (roles, permissions, reports)
-    service.go              # Role-based moderation service
-  models/
-    models.go               # Domain models and request types
-  middleware/
-    logging.go              # Request logging middleware
-  routing/
-    routing.go              # Router setup and middleware chain
-lexicons/                   # AT Protocol lexicon definitions (JSON)
-config/                     # Configuration files (moderators.json.example)
-static/                     # CSS, JS, manifest
-```
-
-## Key Concepts
+## Architecture
 
 ### AT Protocol Integration
 
-User data stored in their Personal Data Server (PDS), not locally. The app:
+1. User authenticates via OAuth (indigo SDK handles PKCE/DPOP)
+2. Handler creates `AtprotoStore` scoped to user's DID + session
+3. Store methods make XRPC calls to user's PDS
+4. Results rendered via Templ components or returned as JSON
 
-1. Authenticates via OAuth (indigo SDK handles PKCE/DPOP)
-2. Gets access token scoped to user's DID
-3. Performs CRUD via XRPC calls to user's PDS
+**Collections (NSIDs)** — defined in `internal/atproto/nsid.go`:
 
-**Collections (NSIDs):**
+- `social.arabica.alpha.bean` — Coffee beans (references roaster)
+- `social.arabica.alpha.roaster` — Roasters
+- `social.arabica.alpha.grinder` — Grinders
+- `social.arabica.alpha.brewer` — Brewing devices
+- `social.arabica.alpha.cafe` — Cafes (references roaster)
+- `social.arabica.alpha.brew` — Brew sessions (references bean, grinder, brewer, recipe)
+- `social.arabica.alpha.drink` — Drinks at cafes (references cafe, bean)
+- `social.arabica.alpha.recipe` — Recipes (references brewer)
+- `social.arabica.alpha.like` — Likes (strongRef to any record)
+- `social.arabica.alpha.comment` — Comments (strongRef to any record, optional parent for threads)
 
-- `social.arabica.alpha.bean` - Coffee beans
-- `social.arabica.alpha.roaster` - Roasters
-- `social.arabica.alpha.grinder` - Grinders
-- `social.arabica.alpha.brewer` - Brewing devices
-- `social.arabica.alpha.brew` - Brew sessions (references bean, grinder, brewer)
-
-**Record keys:** TID format (timestamp-based identifiers)
-
-**References:** Records reference each other via AT-URIs
-(`at://did/collection/rkey`)
+Records reference each other via AT-URIs (`at://did/collection/rkey`). Record
+keys use TID format (timestamp-based identifiers).
 
 ### Store Interface
 
-`internal/database/store.go` defines the `Store` interface. Two implementations:
-
-- `AtprotoStore` - Production, stores in user's PDS
-- BoltDB stores only sessions and feed registry (not user data)
-
-All Store methods take `context.Context` as first parameter.
-
-### Request Flow
-
-1. Request hits middleware (logging, auth check)
-2. Auth middleware extracts DID + session ID from cookies
-3. Handler creates `AtprotoStore` scoped to user
-4. Store methods make XRPC calls to user's PDS
-5. Results rendered via Templ components or returned as JSON
-
-### Caching
-
-`SessionCache` caches user data in memory (5-minute TTL):
-
-- Avoids repeated PDS calls for same data
-- Invalidated on writes
-- Background cleanup removes expired entries
-
-### Backfill Strategy
-
-User records are backfilled from their PDS once per DID:
-
-- **On startup**: Backfills registered users + known-dids file
-- **On first login**: Backfills the user's historical records
-- **Deduplication**: Tracks backfilled DIDs in `BucketBackfilled` to prevent
-  redundant fetches
-- **Idempotent**: Safe to call multiple times (checks backfill status first)
-
-This prevents excessive PDS requests while ensuring new users' historical data
-is indexed.
-
-## Templ Architecture
-
-The application uses [Templ](https://templ.guide/) for type-safe,
-component-based HTML templating. Templ generates Go code at compile time,
-providing full type safety and IDE support.
-
-### Component Structure
-
-Components are organized into two categories:
-
-**Pages** (`internal/web/pages/`) - Full-page components that compose the layout
-with content:
-
-- Each page component accepts `LayoutData` and page-specific props
-- Pattern: `PageName(layoutData *components.LayoutData, props PageProps)`
-- Examples: `Home()`, `BrewList()`, `BrewView()`, `Profile()`
-
-**Components** (`internal/web/components/`) - Reusable UI building blocks:
-
-- `layout.templ` - Base HTML layout with head, body, header, footer
-- `shared.templ` - Common UI elements (EmptyState, PageHeader,
-  LoadingSkeletonTable, etc.)
-- `buttons.templ` - PrimaryButton, SecondaryButton, BackButton
-- `forms.templ` - TextInput, NumberInput, TextArea, Select, FormField
-- `modal.templ` - Modal dialogs with Alpine.js integration
-- `card.templ` - Card containers
-- `entity_modals.templ` - Entity creation/edit forms
-
-### LayoutData Pattern
-
-Every page shares a common `LayoutData` struct that contains authentication
-state and user information:
-
-```go
-type LayoutData struct {
-    Title           string
-    IsAuthenticated bool
-    UserDID         string
-    UserProfile     *bff.UserProfile
-    CSPNonce        string
-}
-```
-
-This data flows from handlers to the layout component, ensuring consistent
-header/footer rendering across all pages.
-
-### Handler Integration
-
-Handlers follow a consistent pattern:
-
-```go
-func (h *Handler) HandlePageName(w http.ResponseWriter, r *http.Request) {
-    // 1. Get authentication state and user data
-    store, authenticated := h.getAtprotoStore(r)
-    userProfile, _ := h.getUserProfile(r, store)
-
-    // 2. Fetch page-specific data from store
-    data, err := store.GetData(r.Context())
-
-    // 3. Create LayoutData
-    layoutData := &components.LayoutData{
-        Title:           "Page Title",
-        IsAuthenticated: authenticated,
-        UserDID:         userDID,
-        UserProfile:     userProfile,
-        CSPNonce:        nonce,
-    }
-
-    // 4. Create page-specific props
-    pageProps := pages.PageProps{
-        Data: data,
-        // ... other props
-    }
-
-    // 5. Render templ component
-    if err := pages.PageName(layoutData, pageProps).Render(r.Context(), w); err != nil {
-        http.Error(w, "Failed to render page", http.StatusInternalServerError)
-    }
-}
-```
-
-### The Render(r.Context(), w) Pattern
-
-All templ components implement the `templ.Component` interface, which includes a
-`Render(ctx context.Context, w io.Writer)` method. This method:
-
-- Takes the request context for cancellation/timeout support
-- Writes directly to the http.ResponseWriter
-- Returns an error if rendering fails
-- Is type-safe at compile time
-
-Example:
-
-```go
-if err := pages.Home(layoutData, homeProps).Render(r.Context(), w); err != nil {
-    http.Error(w, "Failed to render page", http.StatusInternalServerError)
-}
-```
-
-### Component Composition
-
-Templ components compose naturally using the `@` syntax:
-
-```templ
-// Page component wraps layout
-templ Home(layout *components.LayoutData, props HomeProps) {
-    @components.Layout(layout, HomeContent(props))
-}
-
-// Content component uses shared components
-templ HomeContent(props HomeProps) {
-    <div class="max-w-4xl mx-auto">
-        @components.WelcomeCard(components.WelcomeCardProps{
-            IsAuthenticated: props.IsAuthenticated,
-        })
-        @CommunityFeedSection()
-    </div>
-}
-```
-
-### Component Reusability
-
-Shared components accept props structs for configuration:
-
-```templ
-// EmptyState component with props
-templ EmptyState(props EmptyStateProps) {
-    <div class="card card-inner text-center">
-        <p class="text-brown-800 text-lg mb-4 font-medium">{ props.Message }</p>
-        if props.SubMessage != "" {
-            <p class="text-sm text-brown-700 mb-4">{ props.SubMessage }</p>
-        }
-        if props.ActionURL != "" && props.ActionText != "" {
-            <a href={ templ.SafeURL(props.ActionURL) } class="btn-primary">
-                { props.ActionText }
-            </a>
-        }
-    </div>
-}
-```
-
-Used in pages:
-
-```templ
-@components.EmptyState(components.EmptyStateProps{
-    Message:    "No brews yet",
-    SubMessage: "Start tracking your coffee journey",
-    ActionURL:  "/brews/new",
-    ActionText: "Log Your First Brew",
-})
-```
-
-### HTMX Integration
-
-Templ works seamlessly with HTMX for dynamic content loading:
-
-```templ
-// Page with HTMX loading
-<div hx-get="/api/brews" hx-trigger="load" hx-swap="innerHTML">
-    @LoadingSkeletonTable(LoadingSkeletonTableProps{Columns: 5, Rows: 3})
-</div>
-```
-
-HTMX responses can render partial components:
-
-```go
-func (h *Handler) HandleBrewsPartial(w http.ResponseWriter, r *http.Request) {
-    brews, _ := store.ListBrews(r.Context())
-    if err := components.BrewListTable(brews).Render(r.Context(), w); err != nil {
-        http.Error(w, "Failed to render", http.StatusInternalServerError)
-    }
-}
-```
-
-### Alpine.js Compatibility
-
-Alpine.js directives work natively in templ templates:
-
-```templ
-<div x-data="{ open: false }">
-    <button @click="open = !open">Toggle</button>
-    <div x-show="open" x-transition>
-        Content
-    </div>
-</div>
-```
-
-Modal components use Alpine.js for state management:
-
-```templ
-@Modal(ModalProps{
-    Show:      "showBeanForm",
-    TitleExpr: "editingBean ? 'Edit Bean' : 'Add Bean'",
-}, FormContent())
-```
-
-### Type Safety Benefits
-
-Templ provides compile-time type checking:
-
-```go
-// Props are strongly typed
-type BrewViewProps struct {
-    Brew        *models.Brew
-    Bean        *models.Bean
-    Grinder     *models.Grinder
-    Brewer      *models.Brewer
-    IsOwner     bool
-}
-
-// Compiler catches missing/wrong fields
-pages.BrewView(layoutData, pages.BrewViewProps{
-    Brew:    brew,
-    Bean:    bean,
-    IsOwner: isOwner,
-    // Compile error: missing Grinder, Brewer fields
-})
-```
-
-## Common Tasks
-
-### Run Development Server
-
-```bash
-# Run server (uses firehose mode by default)
-go run cmd/server/main.go
-
-# Backfill known DIDs on startup
-go run cmd/server/main.go --known-dids known-dids.txt
-
-# Using nix
-nix run
-```
-
-### Run Tests
-
-```bash
-go test ./...
-```
-
-### Build
-
-```bash
-go build -o arabica cmd/server/main.go
-```
-
-### Generate Templ Components
-
-When you modify `.templ` files, you need to regenerate the Go code:
-
-```bash
-# Generate Go code from .templ files
-templ generate
-
-# Or in Nix environment
-nix develop -c templ generate
-
-# Watch mode for development (auto-regenerate on changes)
-templ generate --watch
-```
-
-The generated `*_templ.go` should be regenerated whenever `.templ` files change.
-
-Templ files must use tabs rather than spaces. **Never use spaces for indentation
-in `.templ` files** — the templ parser will error with a parse failure. This
-applies when writing new components, editing existing ones, and constructing
-multi-line template strings. A post-edit hook runs `templ fmt` automatically to
-catch any accidental spaces.
-
-## Command-Line Flags
-
-| Flag           | Type   | Default | Description                                        |
-| -------------- | ------ | ------- | -------------------------------------------------- |
-| `--firehose`   | bool   | true    | [DEPRECATED] Firehose is now the default (ignored) |
-| `--known-dids` | string | ""      | Path to file with DIDs to backfill (one per line)  |
-
-**Known DIDs File Format:**
-
-- One DID per line (e.g., `did:plc:abc123xyz`)
-- Lines starting with `#` are comments
-- Empty lines are ignored
-- See `known-dids.txt.example` for reference
-
-## Environment Variables
-
-| Variable                      | Default                              | Description                                   |
-| ----------------------------- | ------------------------------------ | --------------------------------------------- |
-| `PORT`                        | 18910                                | HTTP server port                              |
-| `SERVER_PUBLIC_URL`           | -                                    | Public URL for reverse proxy                  |
-| `ARABICA_DB_PATH`             | ~/.local/share/arabica/arabica.db    | BoltDB path (sessions, registry)              |
-| `ARABICA_FEED_INDEX_PATH`     | ~/.local/share/arabica/feed-index.db | Firehose index BoltDB path                    |
-| `ARABICA_MODERATORS_CONFIG`   | -                                    | Path to moderators JSON config                |
-| `ARABICA_PROFILE_CACHE_TTL`   | 1h                                   | Profile cache duration                        |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | localhost:4318                       | OTLP HTTP endpoint for traces                 |
-| `METRICS_PORT`                | 9101                                 | Internal metrics server port (localhost only) |
-| `SECURE_COOKIES`              | false                                | Set true for HTTPS                            |
-| `LOG_LEVEL`                   | info                                 | debug/info/warn/error                         |
-| `LOG_FORMAT`                  | console                              | console/json                                  |
-
-## Code Patterns
-
-### Creating a Store
-
-```go
-// In handlers, store is created per-request
-store, authenticated := h.getAtprotoStore(r)
-if !authenticated {
-    http.Error(w, "Authentication required", http.StatusUnauthorized)
-    return
-}
-
-// Use store with request context
-brews, err := store.ListBrews(r.Context(), userID)
-```
-
-### Record Conversion
-
-```go
-// Model -> ATProto record
-record, err := BrewToRecord(brew, beanURI, grinderURI, brewerURI)
-
-// ATProto record -> Model
-brew, err := RecordToBrew(record, atURI)
-```
-
-### AT-URI Handling
-
-```go
-// Build AT-URI
-uri := BuildATURI(did, NSIDBean, rkey)  // at://did:plc:xxx/social.arabica.alpha.bean/abc
-
-// Parse AT-URI
-components, err := ResolveATURI(uri)
-// components.DID, components.Collection, components.RKey
-```
-
-### Rendering Pages with Templ
-
-```go
-// Standard page rendering pattern
-func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
-    store, authenticated := h.getAtprotoStore(r)
-    if !authenticated {
-        http.Redirect(w, r, "/", http.StatusSeeOther)
-        return
-    }
-
-    // Fetch data
-    brews, err := store.ListBrews(r.Context(), userDID)
-    if err != nil {
-        http.Error(w, "Failed to load brews", http.StatusInternalServerError)
-        return
-    }
-
-    // Create layout data
-    layoutData := &components.LayoutData{
-        Title:           "My Brews",
-        IsAuthenticated: authenticated,
-        UserDID:         userDID,
-        UserProfile:     userProfile,
-        CSPNonce:        nonce,
-    }
-
-    // Create page props
-    brewListProps := pages.BrewListProps{
-        Brews: brews,
-    }
-
-    // Render templ component
-    if err := pages.BrewList(layoutData, brewListProps).Render(r.Context(), w); err != nil {
-        http.Error(w, "Failed to render page", http.StatusInternalServerError)
-    }
-}
-```
-
-### Rendering HTMX Partials with Templ
-
-```go
-// Partial component for HTMX responses
-func (h *Handler) HandleBrewsPartial(w http.ResponseWriter, r *http.Request) {
-    store, authenticated := h.getAtprotoStore(r)
-    if !authenticated {
-        http.Error(w, "Unauthorized", http.StatusUnauthorized)
-        return
-    }
-
-    brews, err := store.ListBrews(r.Context(), userDID)
-    if err != nil {
-        http.Error(w, "Failed to load brews", http.StatusInternalServerError)
-        return
-    }
-
-    // Render just the table component (no layout)
-    if err := components.BrewListTable(brews, userDID).Render(r.Context(), w); err != nil {
-        http.Error(w, "Failed to render", http.StatusInternalServerError)
-    }
-}
-```
-
-### Testing Conventions
-
-**IMPORTANT:** All tests in this codebase MUST use
-[testify/assert](https://github.com/stretchr/testify) for assertions. Do NOT use
-`if` statements with `t.Error()` or `t.Errorf()`.
-
-```go
-// CORRECT: Use testify assert
-import (
-    "testing"
-    "github.com/stretchr/testify/assert"
-)
-
-func TestFormatTemp(t *testing.T) {
-    got := FormatTemp(93.5)
-    assert.Equal(t, "93.5°C", got)
-}
-
-func TestPtrEquals(t *testing.T) {
-    val := 42
-    assert.True(t, PtrEquals(&val, 42))
-    assert.False(t, PtrEquals(&val, 99))
-}
-
-func TestRenderedHTML(t *testing.T) {
-    html := renderComponent()
-    assert.Contains(t, html, "btn-primary")
-    assert.NotContains(t, html, "deprecated-class")
-}
-
-// WRONG: Don't use if statements for assertions
-func TestFormatTemp(t *testing.T) {
-    got := FormatTemp(93.5)
-    if got != "93.5°C" {  // ❌ Don't do this
-        t.Errorf("got %q, want %q", got, "93.5°C")
-    }
-}
-```
-
-**Common testify assertions:**
-
-- `assert.Equal(t, expected, actual)` - Equality check
-- `assert.NotEqual(t, expected, actual)` - Inequality check
-- `assert.True(t, value)` - Boolean true
-- `assert.False(t, value)` - Boolean false
-- `assert.Nil(t, value)` - Nil check
-- `assert.NotNil(t, value)` - Not nil check
-- `assert.Contains(t, haystack, needle)` - Substring/element check
-- `assert.NotContains(t, haystack, needle)` - Negative substring/element check
-- `assert.NoError(t, err)` - No error occurred
-- `assert.Error(t, err)` - Error occurred
-
-## Future Vision: Social Features
-
-The app currently has a basic community feed. Future plans expand social
-interactions leveraging AT Protocol's decentralized nature.
-
-### Planned Lexicons
-
-```
-social.arabica.alpha.like      - Like a brew (references brew AT-URI)
-social.arabica.alpha.comment   - Comment on a brew
-social.arabica.alpha.follow    - Follow another user
-social.arabica.alpha.share     - Re-share a brew to your feed
-```
-
-### Like Record (Planned)
-
-```json
-{
-  "lexicon": 1,
-  "id": "social.arabica.alpha.like",
-  "defs": {
-    "main": {
-      "type": "record",
-      "key": "tid",
-      "record": {
-        "type": "object",
-        "required": ["subject", "createdAt"],
-        "properties": {
-          "subject": {
-            "type": "ref",
-            "ref": "com.atproto.repo.strongRef",
-            "description": "The brew being liked"
-          },
-          "createdAt": { "type": "string", "format": "datetime" }
-        }
-      }
-    }
-  }
-}
-```
-
-### Comment Record (Planned)
-
-```json
-{
-  "lexicon": 1,
-  "id": "social.arabica.alpha.comment",
-  "defs": {
-    "main": {
-      "type": "record",
-      "key": "tid",
-      "record": {
-        "type": "object",
-        "required": ["subject", "text", "createdAt"],
-        "properties": {
-          "subject": {
-            "type": "ref",
-            "ref": "com.atproto.repo.strongRef",
-            "description": "The brew being commented on"
-          },
-          "text": {
-            "type": "string",
-            "maxLength": 1000,
-            "maxGraphemes": 300
-          },
-          "createdAt": { "type": "string", "format": "datetime" }
-        }
-      }
-    }
-  }
-}
-```
-
-### Implementation Approach
-
-**Cross-user interactions:**
-
-- Likes/comments stored in the actor's PDS (not the brew owner's)
-- Use `public_client.go` to read other users' brews
-- Aggregate likes/comments via relay/firehose or direct PDS queries
-
-**Feed aggregation:**
-
-- Current: Poll registered users' PDS for brews
-- Future: Subscribe to firehose for real-time updates
-- Index social interactions in local DB for fast queries
-
-**UI patterns:**
-
-- Like button on brew cards in feed
-- Comment thread below brew detail view
-- Share button to re-post with optional note
-- Notification system for interactions on your brews
-
-### Key Design Decisions
-
-1. **Strong references** - Likes/comments use `com.atproto.repo.strongRef`
-   (URI + CID) to ensure the referenced brew hasn't changed
-2. **Actor-owned data** - Your likes live in your PDS, not the brew owner's
-3. **Public by default** - Social interactions are public records, readable by
-   anyone
-4. **Portable identity** - Users can switch PDS and keep their social graph
-
-## Deployment Notes
+`internal/database/store.go` defines the `Store` interface with CRUD methods for
+all entity types. `AtprotoStore` is the production implementation backed by the
+user's PDS with witness cache and session cache layers.
+
+### Three-Layer Caching
+
+1. **SessionCache** (`internal/atproto/cache.go`) — per-user in-memory cache
+   (2-min TTL). Copy-on-write pattern, invalidated on writes. Dirty-collection
+   tracking skips witness cache after local writes until firehose catches up.
+
+2. **WitnessCache** (`internal/firehose/index.go`) — SQLite-backed local index
+   populated by the Jetstream firehose consumer. Provides fast reads without PDS
+   calls. Used as fallback when session cache misses.
+
+3. **PDS fallback** — direct XRPC calls to the user's PDS when both caches miss.
+
+Write path: PDS write -> write-through to witness cache -> invalidate session
+cache (mark dirty).
+
+### Firehose & Feed Pipeline
+
+`internal/firehose/` subscribes to AT Protocol's Jetstream relay for real-time
+events. Records are indexed into the SQLite feed index. The feed pipeline:
+
+1. **FeedIndex** (`firehose/index.go`) — SQLite store, `recordToFeedItem()`
+   converts indexed records to `FeedItem` structs with resolved references.
+2. **FeedIndexAdapter** (`firehose/adapter.go`) — converts firehose `FeedItem`
+   to feed `FirehoseFeedItem` to avoid import cycles.
+3. **Feed Service** (`feed/service.go`) — converts to `feed.FeedItem`, applies
+   moderation filtering, caching, and pagination.
+
+When adding a new entity type, all three layers need the new fields added.
+
+### Adding a New Entity Type (Checklist)
+
+The full stack for a new entity requires changes across many files. Follow the
+pattern of an existing entity (e.g., roaster for simple entities, brew for
+entities with references):
+
+1. **Lexicon JSON** in `lexicons/`
+2. **NSID constant** in `internal/atproto/nsid.go`
+3. **RecordType constant** in `internal/lexicons/record_type.go` (const + ParseRecordType + DisplayName)
+4. **Model + request types + validation** in `internal/models/models.go`
+5. **Record conversion** (`XToRecord`/`RecordToX`) in `internal/atproto/records.go`
+6. **Store interface methods** in `internal/database/store.go`
+7. **AtprotoStore implementation** in `internal/atproto/store.go` (CRUD + witness + cache)
+8. **Cache fields + Set/Invalidate methods** in `internal/atproto/cache.go`
+9. **OAuth scope** in `internal/atproto/oauth.go`
+10. **Firehose config** (collection list) in `internal/firehose/config.go`
+11. **Firehose FeedItem** fields + `recordToFeedItem` switch case in `internal/firehose/index.go`
+12. **Feed adapter** mapping in `internal/firehose/adapter.go`
+13. **Feed service** `FeedItem` + `FirehoseFeedItem` fields and both mapper sites in `internal/feed/service.go`
+14. **CRUD handlers** in `internal/handlers/entities.go` (also update `HandleManagePartial`, `HandleAPIListAll`, `HandleManageRefresh`)
+15. **View + OG image handlers** in `internal/handlers/entity_views.go`
+16. **Modal handlers** in `internal/handlers/modals.go`
+17. **Routes** in `internal/routing/routing.go` (page views, API CRUD, modals, OG images)
+18. **Templ view page** in `internal/web/pages/` (e.g., `cafe_view.templ`)
+19. **Templ record content** in `internal/web/components/` (e.g., `record_cafe.templ`)
+20. **Entity table component** in `internal/web/components/entity_tables.templ`
+21. **Dialog modal** in `internal/web/components/dialog_modals.templ` (+ `getStringValue` cases)
+22. **Manage partial** tab in `internal/web/components/manage_partial.templ`
+23. **My Coffee tab** in `internal/web/pages/my_coffee.templ`
+24. **Feed card** switch cases in `internal/web/pages/feed.templ` (card class, content, ActionText, share URL, title, delete URL)
+25. **OG card** function in `internal/ogcard/entities.go` (+ accent color in `brew.go`)
+26. **Suggestions** config in `internal/suggestions/suggestions.go` + handler map in `internal/handlers/suggestions.go`
+27. **Client-side cache** entity case in `static/js/combo-select.js` `getUserEntities()`
+
+### Templ Architecture
+
+**Tabs only in `.templ` files** — never use spaces for indentation. A post-edit
+hook runs `templ fmt` automatically. After editing `.templ` files, run
+`templ generate` to regenerate Go code.
+
+Pages (`internal/web/pages/`) accept `*components.LayoutData` + page-specific
+props. Components (`internal/web/components/`) are reusable building blocks.
+
+Pattern: `pages.PageName(layoutData, props).Render(r.Context(), w)`
+
+### Combo-Select Component System
+
+Entity selection dropdowns (bean, grinder, brewer, roaster, cafe) use a shared
+combo-select pattern with typeahead search, community suggestions, and inline
+creation:
+
+- **Go config**: `components.ComboSelectConfig()` in `components/combo_select.templ`
+  generates Alpine.js `x-data` with entity-specific label formatting and create
+  data mapping.
+- **Templ markup**: `components.ComboSelectInput()` renders the shared dropdown UI.
+- **JS behavior**: `static/js/combo-select.js` — Alpine.js component that
+  searches user records (from client-side cache), community suggestions (from
+  `/api/suggestions/{entity}`), and creates new entities inline via POST.
+- **Suggestions backend**: `internal/suggestions/suggestions.go` — entity configs
+  define searchable fields and dedup keys.
+
+To add a new entity to combo-select: add a case to `ComboSelectConfig`, add to
+`getUserEntities()` in `combo-select.js`, add entity config to
+`suggestions.go`, and add to the entity-to-NSID map in
+`handlers/suggestions.go`.
+
+### Entity View Handler Pattern
+
+View handlers (`HandleXView`) support both authenticated (own records) and
+public (via `?owner=` parameter) access. They:
+
+1. Try witness cache first, fall back to PDS
+2. Resolve references (e.g., roaster for cafe)
+3. Populate OG metadata for social sharing
+4. Fetch social data (likes, comments, moderation state)
+5. Render the templ page with all props
 
 ### CSS Cache Busting
 
@@ -759,20 +212,21 @@ When making CSS/style changes, bump the version query parameter in
 <link rel="stylesheet" href="/static/css/output.css?v=0.1.3" />
 ```
 
-Cloudflare caches static assets, so incrementing the version ensures users get
-the updated styles.
+## Testing Conventions
 
-### Templ Code Generation
+All tests MUST use [testify/assert](https://github.com/stretchr/testify). Do
+NOT use `if` statements with `t.Error()`.
 
-Templ templates must be compiled to Go code before building:
-
-```bash
-# Generate Go code from .templ files
-templ generate
-
-# Or in Nix environment
-nix develop -c templ generate
+```go
+assert.Equal(t, expected, actual)
+assert.NoError(t, err)
+assert.Contains(t, haystack, needle)
+assert.True(t, value)
+assert.Nil(t, value)
 ```
 
-This is automatically handled by the build process, but you may need to run it
-manually during development.
+## Using Go Tooling
+
+- `go mod download -json MODULE` — get dependency source path
+- `go doc foo.Bar` — read package/type/function docs
+- `go run ./cmd/server` instead of `go build` to avoid artifacts
