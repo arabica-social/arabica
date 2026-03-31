@@ -342,6 +342,28 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 	w.WriteHeader(http.StatusOK)
 }
 
+// populateOGFields sets the standard OG metadata fields for an entity page.
+// The description follows the pattern "{type} from {owner} on arabica.social".
+func populateOGFields(layoutData *components.LayoutData, title, recordType, owner, baseURL, shareURL string) {
+	layoutData.OGTitle = title
+	layoutData.OGType = "article"
+
+	if owner != "" {
+		layoutData.OGDescription = fmt.Sprintf("%s from %s on arabica.social", recordType, owner)
+	} else {
+		layoutData.OGDescription = fmt.Sprintf("%s on arabica.social", recordType)
+	}
+
+	if baseURL != "" && shareURL != "" {
+		layoutData.OGUrl = baseURL + shareURL
+		if idx := strings.Index(shareURL, "?"); idx >= 0 {
+			layoutData.OGImage = baseURL + shareURL[:idx] + "/og-image" + shareURL[idx:]
+		} else {
+			layoutData.OGImage = baseURL + shareURL + "/og-image"
+		}
+	}
+}
+
 // publicBaseURL returns the public-facing base URL for constructing absolute URLs.
 // It prefers the configured PublicURL, falling back to deriving it from the request.
 func (h *Handler) publicBaseURL(r *http.Request) string {

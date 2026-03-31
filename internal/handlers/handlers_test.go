@@ -450,115 +450,73 @@ func TestPopulateBrewOGMetadata(t *testing.T) {
 	tests := []struct {
 		name            string
 		brew            *models.Brew
+		owner           string
 		shareURL        string
 		publicURL       string
 		wantTitle       string
 		wantDescription string
 		wantType        string
 		wantURL         string
+		wantImage       string
 	}{
 		{
-			name:            "nil brew",
-			brew:            nil,
-			shareURL:        "/brews/123?owner=test",
-			publicURL:       "https://arabica.example.com",
-			wantTitle:       "", // unchanged
-			wantDescription: "", // unchanged
-			wantType:        "", // unchanged
-			wantURL:         "", // unchanged
+			name:      "nil brew",
+			brew:      nil,
+			owner:     "alice.bsky.social",
+			shareURL:  "/brews/123?owner=alice.bsky.social",
+			publicURL: "https://arabica.example.com",
 		},
 		{
-			name: "brew with bean and origin",
+			name: "brew with bean",
 			brew: &models.Brew{
-				Rating:       8,
-				TastingNotes: "Fruity and bright",
-				Bean: &models.Bean{
-					Name:   "Ethiopian Yirgacheffe",
-					Origin: "Ethiopia",
-				},
+				Bean: &models.Bean{Name: "Ethiopian Yirgacheffe"},
 			},
-			shareURL:        "/brews/123?owner=test",
+			owner:           "alice.bsky.social",
+			shareURL:        "/brews/123?owner=alice.bsky.social",
 			publicURL:       "https://arabica.example.com",
-			wantTitle:       "Ethiopian Yirgacheffe from Ethiopia",
-			wantDescription: "Rated 8/10 · Fruity and bright",
+			wantTitle:       "Ethiopian Yirgacheffe",
+			wantDescription: "brew from alice.bsky.social on arabica.social",
 			wantType:        "article",
-			wantURL:         "https://arabica.example.com/brews/123?owner=test",
+			wantURL:         "https://arabica.example.com/brews/123?owner=alice.bsky.social",
+			wantImage:       "https://arabica.example.com/brews/123/og-image?owner=alice.bsky.social",
 		},
 		{
-			name: "brew with bean without origin",
-			brew: &models.Brew{
-				Rating: 7,
-				Bean: &models.Bean{
-					Name: "House Blend",
-				},
-			},
-			shareURL:        "/brews/456",
-			publicURL:       "https://arabica.example.com",
-			wantTitle:       "House Blend",
-			wantDescription: "Rated 7/10",
-			wantType:        "article",
-			wantURL:         "https://arabica.example.com/brews/456",
-		},
-		{
-			name: "brew without bean",
-			brew: &models.Brew{
-				Rating: 5,
-			},
-			shareURL:        "/brews/789",
+			name:            "brew without bean",
+			brew:            &models.Brew{},
+			owner:           "bob.bsky.social",
+			shareURL:        "/brews/789?owner=bob.bsky.social",
 			publicURL:       "https://arabica.example.com",
 			wantTitle:       "Coffee Brew",
-			wantDescription: "Rated 5/10",
+			wantDescription: "brew from bob.bsky.social on arabica.social",
 			wantType:        "article",
-			wantURL:         "https://arabica.example.com/brews/789",
+			wantURL:         "https://arabica.example.com/brews/789?owner=bob.bsky.social",
+			wantImage:       "https://arabica.example.com/brews/789/og-image?owner=bob.bsky.social",
 		},
 		{
-			name: "brew with roaster",
+			name: "no public URL",
 			brew: &models.Brew{
-				TastingNotes: "Chocolatey",
-				Bean: &models.Bean{
-					Name:   "Dark Roast",
-					Origin: "Brazil",
-					Roaster: &models.Roaster{
-						Name: "Local Roasters",
-					},
-				},
+				Bean: &models.Bean{Name: "Premium Blend"},
 			},
-			shareURL:        "/brews/abc",
-			publicURL:       "https://arabica.example.com",
-			wantTitle:       "Dark Roast from Brazil",
-			wantDescription: "Chocolatey · Roasted by Local Roasters",
-			wantType:        "article",
-			wantURL:         "https://arabica.example.com/brews/abc",
-		},
-		{
-			name: "no public URL configured",
-			brew: &models.Brew{
-				Rating: 9,
-				Bean: &models.Bean{
-					Name: "Premium Blend",
-				},
-			},
+			owner:           "alice.bsky.social",
 			shareURL:        "/brews/xyz",
 			publicURL:       "",
 			wantTitle:       "Premium Blend",
-			wantDescription: "Rated 9/10",
+			wantDescription: "brew from alice.bsky.social on arabica.social",
 			wantType:        "article",
-			wantURL:         "", // no absolute URL without public URL
 		},
 		{
-			name: "long tasting notes truncated",
+			name: "no owner",
 			brew: &models.Brew{
-				TastingNotes: strings.Repeat("This is a very long tasting note that should be truncated. ", 5),
-				Bean: &models.Bean{
-					Name: "Test Bean",
-				},
+				Bean: &models.Bean{Name: "House Blend"},
 			},
-			shareURL:        "/brews/long",
+			owner:           "",
+			shareURL:        "/brews/456",
 			publicURL:       "https://arabica.example.com",
-			wantTitle:       "Test Bean",
-			wantDescription: "This is a very long tasting note that should be truncated. This is a very long tasting note that ...",
+			wantTitle:       "House Blend",
+			wantDescription: "brew on arabica.social",
 			wantType:        "article",
-			wantURL:         "https://arabica.example.com/brews/long",
+			wantURL:         "https://arabica.example.com/brews/456",
+			wantImage:       "https://arabica.example.com/brews/456/og-image",
 		},
 	}
 
@@ -571,12 +529,13 @@ func TestPopulateBrewOGMetadata(t *testing.T) {
 			}
 			layoutData := &components.LayoutData{}
 
-			h.populateBrewOGMetadata(layoutData, tt.brew, tt.publicURL, tt.shareURL)
+			h.populateBrewOGMetadata(layoutData, tt.brew, tt.owner, tt.publicURL, tt.shareURL)
 
 			assert.Equal(t, tt.wantTitle, layoutData.OGTitle)
 			assert.Equal(t, tt.wantDescription, layoutData.OGDescription)
 			assert.Equal(t, tt.wantType, layoutData.OGType)
 			assert.Equal(t, tt.wantURL, layoutData.OGUrl)
+			assert.Equal(t, tt.wantImage, layoutData.OGImage)
 		})
 	}
 }

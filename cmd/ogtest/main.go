@@ -155,6 +155,11 @@ func main() {
 				BrewerType: "immersion",
 			})
 		}},
+
+		// Site card
+		{"/tmp/og-site.png", func() (*ogcard.Card, error) {
+			return ogcard.DrawSiteCard()
+		}},
 	}
 
 	for _, tc := range cases {

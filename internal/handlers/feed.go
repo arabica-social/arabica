@@ -10,6 +10,7 @@ import (
 	"arabica/internal/metrics"
 	"arabica/internal/models"
 	"arabica/internal/moderation"
+	"arabica/internal/ogcard"
 	"arabica/internal/web/components"
 	"arabica/internal/web/pages"
 
@@ -58,6 +59,15 @@ func (h *Handler) buildModerationContext(ctx context.Context, viewerDID string, 
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	layoutData, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Home")
 
+	// Set OG metadata for the home page
+	layoutData.OGTitle = "Arabica"
+	layoutData.OGDescription = "Coffee brew tracking on the AT Protocol. Your data, your PDS, your coffee."
+	baseURL := h.publicBaseURL(r)
+	if baseURL != "" {
+		layoutData.OGImage = baseURL + "/og-image"
+		layoutData.OGUrl = baseURL + "/"
+	}
+
 	// Create home props
 	homeProps := pages.HomeProps{
 		IsAuthenticated: isAuthenticated,
@@ -68,6 +78,22 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	if err := pages.Home(layoutData, homeProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render home page")
+	}
+}
+
+// HandleSiteOGImage generates a 1200x630 PNG preview card for the site.
+func (h *Handler) HandleSiteOGImage(w http.ResponseWriter, r *http.Request) {
+	card, err := ogcard.DrawSiteCard()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate site OG image")
+		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	if err := card.EncodePNG(w); err != nil {
+		log.Error().Err(err).Msg("Failed to encode site OG image")
 	}
 }
 

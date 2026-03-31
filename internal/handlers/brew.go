@@ -23,56 +23,19 @@ import (
 
 // populateBrewOGMetadata sets OpenGraph metadata on layoutData for a brew page.
 // This enriches social media previews when brew links are shared.
-func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew *models.Brew, baseURL, shareURL string) {
+func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew *models.Brew, owner, baseURL, shareURL string) {
 	if brew == nil {
 		return
 	}
 
-	// Build OG title from bean info
 	var ogTitle string
 	if brew.Bean != nil {
-		if brew.Bean.Origin != "" {
-			ogTitle = fmt.Sprintf("%s from %s", brew.Bean.Name, brew.Bean.Origin)
-		} else {
-			ogTitle = brew.Bean.Name
-		}
+		ogTitle = brew.Bean.Name
 	} else {
 		ogTitle = "Coffee Brew"
 	}
 
-	// Build OG description with rating and tasting notes
-	var descParts []string
-	if brew.Rating > 0 {
-		descParts = append(descParts, fmt.Sprintf("Rated %d/10", brew.Rating))
-	}
-	if brew.TastingNotes != "" {
-		// Truncate tasting notes if too long
-		notes := brew.TastingNotes
-		if len(notes) > 100 {
-			notes = notes[:97] + "..."
-		}
-		descParts = append(descParts, notes)
-	}
-	if brew.Bean != nil && brew.Bean.Roaster != nil {
-		descParts = append(descParts, fmt.Sprintf("Roasted by %s", brew.Bean.Roaster.Name))
-	}
-
-	var ogDescription string
-	if len(descParts) > 0 {
-		ogDescription = strings.Join(descParts, " · ")
-	} else {
-		ogDescription = "A coffee brew tracked on Arabica"
-	}
-
-	layoutData.OGTitle = ogTitle
-	layoutData.OGDescription = ogDescription
-	layoutData.OGType = "article"
-
-	if baseURL != "" && shareURL != "" {
-		layoutData.OGUrl = baseURL + shareURL
-		ogImageURL := strings.Replace(shareURL, "?", "/og-image?", 1)
-		layoutData.OGImage = baseURL + ogImageURL
-	}
+	populateOGFields(layoutData, ogTitle, "brew", owner, baseURL, shareURL)
 }
 
 // HandleBrewOGImage generates a 1200x630 PNG preview card for a brew.
@@ -337,7 +300,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 
 	// Create layout data with OpenGraph metadata
 	layoutData := h.buildLayoutData(r, "Brew Details", isAuthenticated, didStr, userProfile)
-	h.populateBrewOGMetadata(layoutData, brew, h.publicBaseURL(r), shareURL)
+	h.populateBrewOGMetadata(layoutData, brew, owner, h.publicBaseURL(r), shareURL)
 
 	// Get like data
 	var isLiked bool

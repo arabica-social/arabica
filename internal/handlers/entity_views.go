@@ -206,7 +206,7 @@ func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, beanViewProps.Bean.Name, isAuthenticated, didStr, userProfile)
-	h.populateBeanOGMetadata(layoutData, beanViewProps.Bean, h.publicBaseURL(r), shareURL)
+	h.populateBeanOGMetadata(layoutData, beanViewProps.Bean, owner, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -338,7 +338,7 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Roaster.Name, isAuthenticated, didStr, userProfile)
-	h.populateRoasterOGMetadata(layoutData, props.Roaster, h.publicBaseURL(r), shareURL)
+	h.populateRoasterOGMetadata(layoutData, props.Roaster, owner, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -470,7 +470,7 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Grinder.Name, isAuthenticated, didStr, userProfile)
-	h.populateGrinderOGMetadata(layoutData, props.Grinder, h.publicBaseURL(r), shareURL)
+	h.populateGrinderOGMetadata(layoutData, props.Grinder, owner, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -602,7 +602,7 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Brewer.Name, isAuthenticated, didStr, userProfile)
-	h.populateBrewerOGMetadata(layoutData, props.Brewer, h.publicBaseURL(r), shareURL)
+	h.populateBrewerOGMetadata(layoutData, props.Brewer, owner, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -769,7 +769,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Recipe.Name, isAuthenticated, didStr, userProfile)
-	h.populateRecipeOGMetadata(layoutData, props.Recipe, h.publicBaseURL(r), shareURL)
+	h.populateRecipeOGMetadata(layoutData, props.Recipe, owner, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -1143,148 +1143,41 @@ func writeOGImage(w http.ResponseWriter, card *ogcard.Card) {
 
 // OG metadata helpers for entity types
 
-func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean *models.Bean, baseURL, shareURL string) {
+func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean *models.Bean, owner, baseURL, shareURL string) {
 	if bean == nil {
 		return
 	}
-
-	ogTitle := bean.Name
-	if ogTitle == "" {
-		ogTitle = bean.Origin
+	title := bean.Name
+	if title == "" {
+		title = bean.Origin
 	}
-
-	var descParts []string
-	if bean.Origin != "" {
-		descParts = append(descParts, "Origin: "+bean.Origin)
-	}
-	if bean.RoastLevel != "" {
-		descParts = append(descParts, "Roast: "+bean.RoastLevel)
-	}
-	if bean.Roaster != nil {
-		descParts = append(descParts, "by "+bean.Roaster.Name)
-	}
-
-	var ogDescription string
-	if len(descParts) > 0 {
-		ogDescription = strings.Join(descParts, " · ")
-	} else {
-		ogDescription = "coffee bean"
-	}
-
-	layoutData.OGTitle = ogTitle
-	layoutData.OGDescription = ogDescription
-	layoutData.OGType = "article"
-	if baseURL != "" && shareURL != "" {
-		layoutData.OGUrl = baseURL + shareURL
-		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
-	}
+	populateOGFields(layoutData, title, "bean", owner, baseURL, shareURL)
 }
 
-func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, roaster *models.Roaster, baseURL, shareURL string) {
+func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, roaster *models.Roaster, owner, baseURL, shareURL string) {
 	if roaster == nil {
 		return
 	}
-
-	var descParts []string
-	if roaster.Location != "" {
-		descParts = append(descParts, roaster.Location)
-	}
-
-	var ogDescription string
-	if len(descParts) > 0 {
-		ogDescription = strings.Join(descParts, " · ")
-	} else {
-		ogDescription = "roaster"
-	}
-
-	layoutData.OGTitle = roaster.Name
-	layoutData.OGDescription = ogDescription
-	layoutData.OGType = "article"
-	if baseURL != "" && shareURL != "" {
-		layoutData.OGUrl = baseURL + shareURL
-		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
-	}
+	populateOGFields(layoutData, roaster.Name, "roaster", owner, baseURL, shareURL)
 }
 
-func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, grinder *models.Grinder, baseURL, shareURL string) {
+func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, grinder *models.Grinder, owner, baseURL, shareURL string) {
 	if grinder == nil {
 		return
 	}
-
-	var descParts []string
-	if grinder.GrinderType != "" {
-		descParts = append(descParts, grinder.GrinderType)
-	}
-	if grinder.BurrType != "" {
-		descParts = append(descParts, grinder.BurrType+" burrs")
-	}
-
-	var ogDescription string
-	if len(descParts) > 0 {
-		ogDescription = strings.Join(descParts, " · ")
-	} else {
-		ogDescription = "grinder"
-	}
-
-	layoutData.OGTitle = grinder.Name
-	layoutData.OGDescription = ogDescription
-	layoutData.OGType = "article"
-	if baseURL != "" && shareURL != "" {
-		layoutData.OGUrl = baseURL + shareURL
-		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
-	}
+	populateOGFields(layoutData, grinder.Name, "grinder", owner, baseURL, shareURL)
 }
 
-func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, brewer *models.Brewer, baseURL, shareURL string) {
+func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, brewer *models.Brewer, owner, baseURL, shareURL string) {
 	if brewer == nil {
 		return
 	}
-
-	var descParts []string
-	if brewer.BrewerType != "" {
-		descParts = append(descParts, brewer.BrewerType)
-	}
-
-	var ogDescription string
-	if len(descParts) > 0 {
-		ogDescription = strings.Join(descParts, " · ")
-	} else {
-		ogDescription = "brewer"
-	}
-
-	layoutData.OGTitle = brewer.Name
-	layoutData.OGDescription = ogDescription
-	layoutData.OGType = "article"
-	if baseURL != "" && shareURL != "" {
-		layoutData.OGUrl = baseURL + shareURL
-		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
-	}
+	populateOGFields(layoutData, brewer.Name, "brewer", owner, baseURL, shareURL)
 }
 
-func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *models.Recipe, baseURL, shareURL string) {
+func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *models.Recipe, owner, baseURL, shareURL string) {
 	if recipe == nil {
 		return
 	}
-
-	var descParts []string
-	if recipe.CoffeeAmount > 0 {
-		descParts = append(descParts, fmt.Sprintf("%.0fg coffee", recipe.CoffeeAmount))
-	}
-	if recipe.WaterAmount > 0 {
-		descParts = append(descParts, fmt.Sprintf("%.0fg water", recipe.WaterAmount))
-	}
-	var ogDescription string
-	if len(descParts) > 0 {
-		ogDescription = strings.Join(descParts, " · ")
-	} else {
-		ogDescription = "coffee recipe"
-	}
-
-	layoutData.OGTitle = recipe.Name
-	layoutData.OGDescription = ogDescription
-	layoutData.OGType = "article"
-	if baseURL != "" && shareURL != "" {
-		layoutData.OGUrl = baseURL + shareURL
-		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
-	}
+	populateOGFields(layoutData, recipe.Name, "recipe", owner, baseURL, shareURL)
 }
