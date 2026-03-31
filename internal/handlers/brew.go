@@ -23,7 +23,7 @@ import (
 
 // populateBrewOGMetadata sets OpenGraph metadata on layoutData for a brew page.
 // This enriches social media previews when brew links are shared.
-func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew *models.Brew, shareURL string) {
+func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew *models.Brew, baseURL, shareURL string) {
 	if brew == nil {
 		return
 	}
@@ -64,21 +64,14 @@ func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew
 		ogDescription = "A coffee brew tracked on Arabica"
 	}
 
-	// Build absolute URL if public URL is configured
-	var ogURL string
-	if h.config.PublicURL != "" && shareURL != "" {
-		ogURL = h.config.PublicURL + shareURL
-	}
-
 	layoutData.OGTitle = ogTitle
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
-	layoutData.OGUrl = ogURL
 
-	// Set OG image URL for rich social media previews
-	if h.config.PublicURL != "" && shareURL != "" {
+	if baseURL != "" && shareURL != "" {
+		layoutData.OGUrl = baseURL + shareURL
 		ogImageURL := strings.Replace(shareURL, "?", "/og-image?", 1)
-		layoutData.OGImage = h.config.PublicURL + ogImageURL
+		layoutData.OGImage = baseURL + ogImageURL
 	}
 }
 
@@ -344,7 +337,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 
 	// Create layout data with OpenGraph metadata
 	layoutData := h.buildLayoutData(r, "Brew Details", isAuthenticated, didStr, userProfile)
-	h.populateBrewOGMetadata(layoutData, brew, shareURL)
+	h.populateBrewOGMetadata(layoutData, brew, h.publicBaseURL(r), shareURL)
 
 	// Get like data
 	var isLiked bool

@@ -571,7 +571,7 @@ func TestPopulateBrewOGMetadata(t *testing.T) {
 			}
 			layoutData := &components.LayoutData{}
 
-			h.populateBrewOGMetadata(layoutData, tt.brew, tt.shareURL)
+			h.populateBrewOGMetadata(layoutData, tt.brew, tt.publicURL, tt.shareURL)
 
 			assert.Equal(t, tt.wantTitle, layoutData.OGTitle)
 			assert.Equal(t, tt.wantDescription, layoutData.OGDescription)

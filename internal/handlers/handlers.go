@@ -342,6 +342,19 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 	w.WriteHeader(http.StatusOK)
 }
 
+// publicBaseURL returns the public-facing base URL for constructing absolute URLs.
+// It prefers the configured PublicURL, falling back to deriving it from the request.
+func (h *Handler) publicBaseURL(r *http.Request) string {
+	if h.config.PublicURL != "" {
+		return h.config.PublicURL
+	}
+	scheme := "https"
+	if r.TLS == nil && r.Header.Get("X-Forwarded-Proto") == "" {
+		scheme = "http"
+	}
+	return scheme + "://" + r.Host
+}
+
 // buildLayoutData creates a LayoutData struct with common fields populated from the request
 func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
 	// Check if user is a moderator

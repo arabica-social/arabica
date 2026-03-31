@@ -102,6 +102,17 @@ in {
         description =
           "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
       };
+
+      publicUrl = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = ''
+          Public-facing URL of the server (e.g. https://arabica.social).
+          Used for absolute URLs in OpenGraph metadata. If not set, the
+          server derives it from the Host header at request time.
+        '';
+        example = "https://arabica.social";
+      };
     };
 
     moderation = {
@@ -286,6 +297,8 @@ in {
         OAUTH_CLIENT_ID = cfg.oauth.clientId;
         OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
         ARABICA_DB_PATH = "${cfg.dataDir}/arabica.db";
+      } // lib.optionalAttrs (cfg.settings.publicUrl != null) {
+        SERVER_PUBLIC_URL = cfg.settings.publicUrl;
       } // lib.optionalAttrs (effectiveConfigPath != null) {
         ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;
       } // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.host != "") {

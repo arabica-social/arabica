@@ -206,7 +206,7 @@ func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, beanViewProps.Bean.Name, isAuthenticated, didStr, userProfile)
-	h.populateBeanOGMetadata(layoutData, beanViewProps.Bean, shareURL)
+	h.populateBeanOGMetadata(layoutData, beanViewProps.Bean, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -338,7 +338,7 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Roaster.Name, isAuthenticated, didStr, userProfile)
-	h.populateRoasterOGMetadata(layoutData, props.Roaster, shareURL)
+	h.populateRoasterOGMetadata(layoutData, props.Roaster, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -470,7 +470,7 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Grinder.Name, isAuthenticated, didStr, userProfile)
-	h.populateGrinderOGMetadata(layoutData, props.Grinder, shareURL)
+	h.populateGrinderOGMetadata(layoutData, props.Grinder, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -602,7 +602,7 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Brewer.Name, isAuthenticated, didStr, userProfile)
-	h.populateBrewerOGMetadata(layoutData, props.Brewer, shareURL)
+	h.populateBrewerOGMetadata(layoutData, props.Brewer, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -769,7 +769,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Recipe.Name, isAuthenticated, didStr, userProfile)
-	h.populateRecipeOGMetadata(layoutData, props.Recipe, shareURL)
+	h.populateRecipeOGMetadata(layoutData, props.Recipe, h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -1143,7 +1143,7 @@ func writeOGImage(w http.ResponseWriter, card *ogcard.Card) {
 
 // OG metadata helpers for entity types
 
-func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean *models.Bean, shareURL string) {
+func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean *models.Bean, baseURL, shareURL string) {
 	if bean == nil {
 		return
 	}
@@ -1171,21 +1171,16 @@ func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean
 		ogDescription = "coffee bean"
 	}
 
-	var ogURL string
-	if h.config.PublicURL != "" && shareURL != "" {
-		ogURL = h.config.PublicURL + shareURL
-	}
-
 	layoutData.OGTitle = ogTitle
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
-	layoutData.OGUrl = ogURL
-	if h.config.PublicURL != "" && shareURL != "" {
-		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	if baseURL != "" && shareURL != "" {
+		layoutData.OGUrl = baseURL + shareURL
+		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
 	}
 }
 
-func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, roaster *models.Roaster, shareURL string) {
+func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, roaster *models.Roaster, baseURL, shareURL string) {
 	if roaster == nil {
 		return
 	}
@@ -1202,21 +1197,16 @@ func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, r
 		ogDescription = "roaster"
 	}
 
-	var ogURL string
-	if h.config.PublicURL != "" && shareURL != "" {
-		ogURL = h.config.PublicURL + shareURL
-	}
-
 	layoutData.OGTitle = roaster.Name
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
-	layoutData.OGUrl = ogURL
-	if h.config.PublicURL != "" && shareURL != "" {
-		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	if baseURL != "" && shareURL != "" {
+		layoutData.OGUrl = baseURL + shareURL
+		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
 	}
 }
 
-func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, grinder *models.Grinder, shareURL string) {
+func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, grinder *models.Grinder, baseURL, shareURL string) {
 	if grinder == nil {
 		return
 	}
@@ -1236,21 +1226,16 @@ func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, g
 		ogDescription = "grinder"
 	}
 
-	var ogURL string
-	if h.config.PublicURL != "" && shareURL != "" {
-		ogURL = h.config.PublicURL + shareURL
-	}
-
 	layoutData.OGTitle = grinder.Name
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
-	layoutData.OGUrl = ogURL
-	if h.config.PublicURL != "" && shareURL != "" {
-		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	if baseURL != "" && shareURL != "" {
+		layoutData.OGUrl = baseURL + shareURL
+		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
 	}
 }
 
-func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, brewer *models.Brewer, shareURL string) {
+func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, brewer *models.Brewer, baseURL, shareURL string) {
 	if brewer == nil {
 		return
 	}
@@ -1267,21 +1252,16 @@ func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, br
 		ogDescription = "brewer"
 	}
 
-	var ogURL string
-	if h.config.PublicURL != "" && shareURL != "" {
-		ogURL = h.config.PublicURL + shareURL
-	}
-
 	layoutData.OGTitle = brewer.Name
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
-	layoutData.OGUrl = ogURL
-	if h.config.PublicURL != "" && shareURL != "" {
-		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	if baseURL != "" && shareURL != "" {
+		layoutData.OGUrl = baseURL + shareURL
+		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
 	}
 }
 
-func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *models.Recipe, shareURL string) {
+func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *models.Recipe, baseURL, shareURL string) {
 	if recipe == nil {
 		return
 	}
@@ -1300,16 +1280,11 @@ func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, re
 		ogDescription = "coffee recipe"
 	}
 
-	var ogURL string
-	if h.config.PublicURL != "" && shareURL != "" {
-		ogURL = h.config.PublicURL + shareURL
-	}
-
 	layoutData.OGTitle = recipe.Name
 	layoutData.OGDescription = ogDescription
 	layoutData.OGType = "article"
-	layoutData.OGUrl = ogURL
-	if h.config.PublicURL != "" && shareURL != "" {
-		layoutData.OGImage = h.config.PublicURL + strings.Replace(shareURL, "?", "/og-image?", 1)
+	if baseURL != "" && shareURL != "" {
+		layoutData.OGUrl = baseURL + shareURL
+		layoutData.OGImage = baseURL + strings.Replace(shareURL, "?", "/og-image?", 1)
 	}
 }
