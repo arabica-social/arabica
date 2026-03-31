@@ -651,6 +651,7 @@
   .modal-content {
     background: var(--modal-bg);
     border: 1px solid var(--modal-border);
+    color: var(--text-primary);
     @apply rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto;
     box-shadow: var(--shadow-lg);
   }
@@ -673,6 +674,7 @@
   .modal-dialog .modal-content {
     background: var(--modal-bg);
     border: 1px solid var(--modal-border);
+    color: var(--text-primary);
     @apply rounded-xl p-6 w-full max-h-[90vh] overflow-y-auto;
     box-shadow: var(--shadow-lg);
   }

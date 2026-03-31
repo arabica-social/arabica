@@ -30,6 +30,19 @@ document.addEventListener("alpine:init", () => {
     showCreateForm: false,
     createFormData: {},
 
+    // Roaster picker state (for bean inline creation)
+    roasterQuery: "",
+    roasterResults: [],
+    roasterSuggestions: [],
+    roasterDropdownOpen: false,
+    selectedRoasterRKey: "",
+    selectedRoasterLabel: "",
+    creatingNewRoaster: false,
+    newRoasterName: "",
+    newRoasterLocation: "",
+    newRoasterWebsite: "",
+    _roasterSuggestTimer: null,
+
     // Results
     userResults: [],
     closedResults: [], // Closed beans (only for bean entity type)
@@ -259,9 +272,38 @@ document.addEventListener("alpine:init", () => {
 
     // Submit the inline create form with all details
     async submitCreateForm() {
-      await this._doCreate({ ...this.createFormData });
+      const data = { ...this.createFormData };
+
+      // For beans: handle roaster creation/selection
+      if (this.entityType === "bean") {
+        if (this.selectedRoasterRKey) {
+          data.roaster_rkey = this.selectedRoasterRKey;
+        } else if (this.creatingNewRoaster && this.newRoasterName) {
+          try {
+            const resp = await fetch("/api/roasters", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "same-origin",
+              body: JSON.stringify({
+                name: this.newRoasterName,
+                location: this.newRoasterLocation,
+                website: this.newRoasterWebsite,
+              }),
+            });
+            if (!resp.ok) throw new Error("Failed to create roaster");
+            const roaster = await resp.json();
+            data.roaster_rkey = roaster.rkey || roaster.RKey;
+          } catch (e) {
+            console.error("Roaster creation failed:", e);
+            return;
+          }
+        }
+      }
+
+      await this._doCreate(data);
       this.showCreateForm = false;
       this.createFormData = {};
+      this.resetRoasterPicker();
     },
 
     // Skip details — create with just the name (and any suggestion data)
@@ -272,12 +314,111 @@ document.addEventListener("alpine:init", () => {
       }
       this.showCreateForm = false;
       this.createFormData = {};
+      this.resetRoasterPicker();
       await this._doCreate(data);
     },
 
     cancelCreateForm() {
       this.showCreateForm = false;
       this.createFormData = {};
+      this.resetRoasterPicker();
+    },
+
+    // Roaster picker methods (for bean inline creation)
+    searchRoasters() {
+      const q = this.roasterQuery.trim().toLowerCase();
+      const roasters =
+        (window.ArabicaCache?.getCachedData?.() || {}).roasters || [];
+      if (!q) {
+        this.roasterResults = roasters.slice(0, 8);
+      } else {
+        this.roasterResults = roasters.filter((r) =>
+          (r.name || r.Name || "").toLowerCase().includes(q),
+        );
+      }
+      this.selectedRoasterRKey = "";
+      this.selectedRoasterLabel = "";
+      this.creatingNewRoaster = false;
+      this.newRoasterName = "";
+
+      // Debounced community suggestions
+      clearTimeout(this._roasterSuggestTimer);
+      if (q.length >= 2) {
+        this._roasterSuggestTimer = setTimeout(() => {
+          this.fetchRoasterSuggestions(q);
+        }, 400);
+      } else {
+        this.roasterSuggestions = [];
+      }
+    },
+
+    async fetchRoasterSuggestions(q) {
+      try {
+        const resp = await fetch(
+          `/api/suggestions/roasters?q=${encodeURIComponent(q)}&limit=5`,
+          { credentials: "same-origin" },
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          const roasters =
+            (window.ArabicaCache?.getCachedData?.() || {}).roasters || [];
+          const ownNames = new Set(
+            roasters.map((r) => (r.name || r.Name || "").toLowerCase()),
+          );
+          this.roasterSuggestions = (data || []).filter(
+            (s) => !ownNames.has((s.name || "").toLowerCase()),
+          );
+        }
+      } catch (e) {
+        console.error("Roaster suggestion fetch failed:", e);
+      }
+    },
+
+    selectRoaster(roaster) {
+      this.selectedRoasterRKey = roaster.rkey || roaster.RKey;
+      this.selectedRoasterLabel = roaster.name || roaster.Name || "";
+      this.roasterQuery = this.selectedRoasterLabel;
+      this.roasterDropdownOpen = false;
+      this.roasterSuggestions = [];
+      this.creatingNewRoaster = false;
+    },
+
+    selectRoasterSuggestion(suggestion) {
+      // Pre-fill new roaster from community suggestion
+      this.newRoasterName = suggestion.name || "";
+      this.newRoasterLocation =
+        (suggestion.fields && suggestion.fields.location) || "";
+      this.newRoasterWebsite =
+        (suggestion.fields && suggestion.fields.website) || "";
+      this.selectedRoasterRKey = "";
+      this.roasterQuery = suggestion.name || "";
+      this.creatingNewRoaster = true;
+      this.roasterDropdownOpen = false;
+      this.roasterSuggestions = [];
+    },
+
+    startCreateRoaster() {
+      this.newRoasterName = this.roasterQuery.trim();
+      this.selectedRoasterRKey = "";
+      this.creatingNewRoaster = true;
+      this.roasterDropdownOpen = false;
+    },
+
+    clearRoaster() {
+      this.roasterQuery = "";
+      this.roasterResults = [];
+      this.roasterSuggestions = [];
+      this.selectedRoasterRKey = "";
+      this.selectedRoasterLabel = "";
+      this.creatingNewRoaster = false;
+      this.newRoasterName = "";
+      this.newRoasterLocation = "";
+      this.newRoasterWebsite = "";
+      this.roasterDropdownOpen = false;
+    },
+
+    resetRoasterPicker() {
+      this.clearRoaster();
     },
 
     // Internal: perform the actual POST to create the entity

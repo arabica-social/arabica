@@ -186,6 +186,94 @@ templ ComboSelectInput(sectionLabel string) {
 						</template>
 					</div>
 				</template>
+				<!-- Roaster picker (bean only) -->
+				<template x-if="entityType === 'bean'">
+					<div class="mt-1">
+						<div class="relative">
+							<input
+								type="text"
+								x-model="roasterQuery"
+								@input="searchRoasters(); roasterDropdownOpen = true"
+								@focus="searchRoasters(); roasterDropdownOpen = true"
+								@blur="setTimeout(() => roasterDropdownOpen = false, 150)"
+								@keydown.escape.prevent="roasterDropdownOpen = false"
+								placeholder="Roaster (optional)"
+								class="w-full form-input text-sm"
+								autocomplete="off"
+							/>
+							<button
+								type="button"
+								x-show="selectedRoasterRKey || creatingNewRoaster"
+								@click="clearRoaster()"
+								class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
+								x-cloak
+							>
+								@IconX()
+							</button>
+							<!-- Roaster dropdown -->
+							<div x-show="roasterDropdownOpen && (roasterResults.length > 0 || roasterSuggestions.length > 0 || roasterQuery.trim())" x-cloak class="combo-dropdown" @mousedown.prevent>
+								<template x-if="roasterResults.length > 0">
+									<div>
+										<div class="combo-section-label">Your roasters</div>
+										<template x-for="(r, ri) in roasterResults" :key="r.rkey || r.RKey">
+											<div
+												class="combo-item"
+												@click="selectRoaster(r)"
+											>
+												<span x-text="r.name || r.Name"></span>
+											</div>
+										</template>
+									</div>
+								</template>
+								<template x-if="roasterSuggestions.length > 0">
+									<div>
+										<div class="combo-section-label">Community</div>
+										<template x-for="(s, si) in roasterSuggestions" :key="s.source_uri || si">
+											<div
+												class="combo-item"
+												@click="selectRoasterSuggestion(s)"
+											>
+												<div x-text="s.name"></div>
+												<div class="combo-item-sub">
+													<span x-show="s.fields?.location" x-text="s.fields?.location"></span>
+													<span x-show="s.count > 1" x-text="' · ' + s.count + ' users'"></span>
+												</div>
+											</div>
+										</template>
+									</div>
+								</template>
+								<template x-if="roasterQuery.trim() && !roasterResults.some(r => (r.name || r.Name || '').toLowerCase() === roasterQuery.trim().toLowerCase()) && !roasterSuggestions.some(s => (s.name || '').toLowerCase() === roasterQuery.trim().toLowerCase())">
+									<div
+										class="combo-item-create"
+										@click="startCreateRoaster()"
+									>
+										Create "<span x-text="roasterQuery.trim()"></span>"
+									</div>
+								</template>
+							</div>
+						</div>
+						<!-- New roaster detail fields -->
+						<template x-if="creatingNewRoaster">
+							<div class="mt-2 ml-3 space-y-2 border-l-2 pl-3" style="border-color: var(--surface-border);">
+								<p class="text-xs text-brown-500">
+									New roaster: <span x-text="newRoasterName" class="font-medium"></span>
+								</p>
+								<input
+									type="text"
+									x-model="newRoasterLocation"
+									placeholder="Location (optional)"
+									class="w-full form-input text-sm"
+								/>
+								<input
+									type="text"
+									x-model="newRoasterWebsite"
+									placeholder="Website (optional)"
+									class="w-full form-input text-sm"
+								/>
+							</div>
+						</template>
+					</div>
+				</template>
 				<div class="flex gap-2 mt-2">
 					<button
 						type="button"
