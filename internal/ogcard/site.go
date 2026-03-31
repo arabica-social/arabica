@@ -18,7 +18,7 @@ func DrawSiteCard() (*Card, error) {
 	// Logo centered in right portion
 	if logo := GetLogo(); logo != nil {
 		logoSz := 220
-		lx := 820
+		lx := cardWidth - leftPad - logoSz
 		ly := (brandBarY - logoSz) / 2
 		card.DrawImageScaled(logo, lx, ly, logoSz, logoSz)
 	}
