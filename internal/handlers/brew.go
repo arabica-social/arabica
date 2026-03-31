@@ -28,14 +28,15 @@ func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew
 		return
 	}
 
-	var ogTitle string
+	var subtitle string
 	if brew.Bean != nil {
-		ogTitle = brew.Bean.Name
-	} else {
-		ogTitle = "Coffee Brew"
+		subtitle = brew.Bean.Name
+		if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
+			subtitle += " from " + brew.Bean.Roaster.Name
+		}
 	}
 
-	populateOGFields(layoutData, ogTitle, "brew", owner, baseURL, shareURL)
+	populateOGFields(layoutData, subtitle, "brew", owner, baseURL, shareURL)
 }
 
 // HandleBrewOGImage generates a 1200x630 PNG preview card for a brew.
@@ -300,7 +301,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 
 	// Create layout data with OpenGraph metadata
 	layoutData := h.buildLayoutData(r, "Brew Details", isAuthenticated, didStr, userProfile)
-	h.populateBrewOGMetadata(layoutData, brew, owner, h.publicBaseURL(r), shareURL)
+	h.populateBrewOGMetadata(layoutData, brew, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
 
 	// Get like data
 	var isLiked bool

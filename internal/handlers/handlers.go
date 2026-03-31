@@ -342,17 +342,34 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 	w.WriteHeader(http.StatusOK)
 }
 
+// resolveOwnerHandle returns a human-readable handle for the owner string.
+// If the owner is already a handle, it is returned as-is. If it is a DID,
+// the feed index profile cache is consulted to resolve it to a handle.
+func (h *Handler) resolveOwnerHandle(ctx context.Context, owner string) string {
+	if !strings.HasPrefix(owner, "did:") {
+		return owner
+	}
+	if h.feedIndex != nil {
+		if profile, err := h.feedIndex.GetProfile(ctx, owner); err == nil && profile.Handle != "" {
+			return profile.Handle
+		}
+	}
+	return owner
+}
+
 // populateOGFields sets the standard OG metadata fields for an entity page.
-// The description follows the pattern "{type} from {owner} on arabica.social".
-func populateOGFields(layoutData *components.LayoutData, title, recordType, owner, baseURL, shareURL string) {
-	layoutData.OGTitle = title
+// The title follows the pattern "{type} from {owner} on arabica.social".
+// The subtitle (OG description) shows record-specific detail like the bean name.
+func populateOGFields(layoutData *components.LayoutData, subtitle, recordType, owner, baseURL, shareURL string) {
 	layoutData.OGType = "article"
 
 	if owner != "" {
-		layoutData.OGDescription = fmt.Sprintf("%s from %s on arabica.social", recordType, owner)
+		layoutData.OGTitle = fmt.Sprintf("%s from %s on arabica.social", recordType, owner)
 	} else {
-		layoutData.OGDescription = fmt.Sprintf("%s on arabica.social", recordType)
+		layoutData.OGTitle = fmt.Sprintf("%s on arabica.social", recordType)
 	}
+
+	layoutData.OGDescription = subtitle
 
 	if baseURL != "" && shareURL != "" {
 		layoutData.OGUrl = baseURL + shareURL

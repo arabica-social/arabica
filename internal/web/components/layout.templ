@@ -16,6 +16,7 @@ type LayoutData struct {
 	OGTitle       string // Falls back to Title + " - Arabica"
 	OGDescription string // Falls back to site description
 	OGImage       string // If set, renders og:image tag
+	OGImageAlt    string // Alt text for OG image; falls back to OGTitle + OGDescription
 	OGType        string // Falls back to "website"
 	OGUrl         string // Canonical URL for the page
 }
@@ -42,6 +43,18 @@ func (d *LayoutData) ogType() string {
 		return d.OGType
 	}
 	return "website"
+}
+
+// ogImageAlt returns descriptive alt text for the OG image.
+func (d *LayoutData) ogImageAlt() string {
+	if d.OGImageAlt != "" {
+		return d.OGImageAlt
+	}
+	alt := d.ogTitle()
+	if d.OGDescription != "" {
+		alt += " — " + d.OGDescription
+	}
+	return alt
 }
 
 // twitterCardType returns "summary_large_image" when an OG image is set,
@@ -79,7 +92,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 				<meta property="og:image" content={ data.OGImage }/>
 				<meta property="og:image:width" content="1200"/>
 				<meta property="og:image:height" content="630"/>
-				<meta property="og:image:alt" content={ data.ogTitle() }/>
+				<meta property="og:image:alt" content={ data.ogImageAlt() }/>
 			}
 			<!-- Twitter Card metadata -->
 			<meta name="twitter:card" content={ data.twitterCardType() }/>

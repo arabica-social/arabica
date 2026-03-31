@@ -206,7 +206,7 @@ func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, beanViewProps.Bean.Name, isAuthenticated, didStr, userProfile)
-	h.populateBeanOGMetadata(layoutData, beanViewProps.Bean, owner, h.publicBaseURL(r), shareURL)
+	h.populateBeanOGMetadata(layoutData, beanViewProps.Bean, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -338,7 +338,7 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Roaster.Name, isAuthenticated, didStr, userProfile)
-	h.populateRoasterOGMetadata(layoutData, props.Roaster, owner, h.publicBaseURL(r), shareURL)
+	h.populateRoasterOGMetadata(layoutData, props.Roaster, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -470,7 +470,7 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Grinder.Name, isAuthenticated, didStr, userProfile)
-	h.populateGrinderOGMetadata(layoutData, props.Grinder, owner, h.publicBaseURL(r), shareURL)
+	h.populateGrinderOGMetadata(layoutData, props.Grinder, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -602,7 +602,7 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Brewer.Name, isAuthenticated, didStr, userProfile)
-	h.populateBrewerOGMetadata(layoutData, props.Brewer, owner, h.publicBaseURL(r), shareURL)
+	h.populateBrewerOGMetadata(layoutData, props.Brewer, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -769,7 +769,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	layoutData := h.buildLayoutData(r, props.Recipe.Name, isAuthenticated, didStr, userProfile)
-	h.populateRecipeOGMetadata(layoutData, props.Recipe, owner, h.publicBaseURL(r), shareURL)
+	h.populateRecipeOGMetadata(layoutData, props.Recipe, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
 
 	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -1147,11 +1147,14 @@ func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean
 	if bean == nil {
 		return
 	}
-	title := bean.Name
-	if title == "" {
-		title = bean.Origin
+	subtitle := bean.Name
+	if subtitle == "" {
+		subtitle = bean.Origin
 	}
-	populateOGFields(layoutData, title, "bean", owner, baseURL, shareURL)
+	if bean.Roaster != nil && bean.Roaster.Name != "" {
+		subtitle += " from " + bean.Roaster.Name
+	}
+	populateOGFields(layoutData, subtitle, "bean", owner, baseURL, shareURL)
 }
 
 func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, roaster *models.Roaster, owner, baseURL, shareURL string) {
