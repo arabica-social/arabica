@@ -291,10 +291,22 @@ func main() {
 			}
 		}
 
+		// Pre-load already-backfilled DIDs to avoid N+1 SELECT per DID
+		alreadyBackfilled, err := firehoseConsumer.BackfilledDIDs(ctx)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to load backfilled DIDs, will check individually")
+			alreadyBackfilled = make(map[string]struct{})
+		}
+
+		// Remove already-backfilled DIDs
+		for did := range alreadyBackfilled {
+			delete(didsToBackfill, did)
+		}
+
 		// Create a root span so all backfill PDS calls are grouped under one trace
 		backfillCtx, backfillSpan := tracing.HandlerSpan(ctx, "backfill.startup")
 
-		// Backfill all collected DIDs
+		// Backfill remaining DIDs
 		successCount := 0
 		for did := range didsToBackfill {
 			if err := firehoseConsumer.BackfillDID(backfillCtx, did); err != nil {
@@ -304,7 +316,11 @@ func main() {
 			}
 		}
 		backfillSpan.End()
-		log.Info().Int("total", len(didsToBackfill)).Int("success", successCount).Msg("Backfill complete")
+		log.Info().
+			Int("skipped", len(alreadyBackfilled)).
+			Int("backfilled", successCount).
+			Int("failed", len(didsToBackfill)-successCount).
+			Msg("Backfill complete")
 	}()
 
 	// Register users in the feed when they authenticate

@@ -1,8 +1,8 @@
 package components
 
 import (
-	"fmt"
 	"arabica/internal/web/bff"
+	"fmt"
 )
 
 // HeaderProps contains all properties for the header component
@@ -45,6 +45,94 @@ templ HeaderWithProps(props HeaderProps) {
 								</span>
 							}
 						</a>
+						<!-- Create new dropdown -->
+						<div x-data="{ open: false }" class="relative">
+							<button @click="open = !open" @click.outside="open = false" class="hover:opacity-80 transition p-1 focus:outline-none" title="Create new">
+								<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+								</svg>
+							</button>
+							<div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="dropdown-menu w-52">
+								<div class="dropdown-header">
+									<p class="text-xs font-semibold uppercase tracking-wider text-brown-500">Log</p>
+								</div>
+								<a href="/brews/new" class="dropdown-item flex items-center gap-2" @click="open = false">
+									@IconCoffee()
+									New Brew
+								</a>
+								// <button
+								// 	class="dropdown-item flex items-center gap-2 w-full text-left"
+								// 	hx-get="/api/modals/drink/new"
+								// 	hx-target="#modal-container"
+								// 	hx-swap="innerHTML"
+								// 	@click="open = false"
+								// >
+								// 	@IconDroplet() Log Drink
+								// </button>
+								<div class="dropdown-divider">
+									<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-brown-500">Add</p>
+								</div>
+								<button
+									class="dropdown-item flex items-center gap-2 w-full text-left"
+									hx-get="/api/modals/bean/new"
+									hx-target="#modal-container"
+									hx-swap="innerHTML"
+									@click="open = false"
+								>
+									@IconLeaf()
+									Bean
+								</button>
+								<button
+									class="dropdown-item flex items-center gap-2 w-full text-left"
+									hx-get="/api/modals/roaster/new"
+									hx-target="#modal-container"
+									hx-swap="innerHTML"
+									@click="open = false"
+								>
+									@IconStore()
+									Roaster
+								</button>
+								// <button
+								// 	class="dropdown-item flex items-center gap-2 w-full text-left"
+								// 	hx-get="/api/modals/cafe/new"
+								// 	hx-target="#modal-container"
+								// 	hx-swap="innerHTML"
+								// 	@click="open = false"
+								// >
+								// 	@IconMapPin() Cafe
+								// </button>
+								<button
+									class="dropdown-item flex items-center gap-2 w-full text-left"
+									hx-get="/api/modals/grinder/new"
+									hx-target="#modal-container"
+									hx-swap="innerHTML"
+									@click="open = false"
+								>
+									@IconDisc()
+									Grinder
+								</button>
+								<button
+									class="dropdown-item flex items-center gap-2 w-full text-left"
+									hx-get="/api/modals/brewer/new"
+									hx-target="#modal-container"
+									hx-swap="innerHTML"
+									@click="open = false"
+								>
+									@IconBrewer()
+									Brewer
+								</button>
+								<button
+									class="dropdown-item flex items-center gap-2 w-full text-left"
+									hx-get="/api/modals/recipe/new"
+									hx-target="#modal-container"
+									hx-swap="innerHTML"
+									@click="open = false"
+								>
+									@IconFileText()
+									Recipe
+								</button>
+							</div>
+						</div>
 						<!-- User profile dropdown -->
 						<div x-data="{ open: false }" class="relative">
 							<button @click="open = !open" @click.outside="open = false" class="flex items-center gap-2 hover:opacity-80 transition focus:outline-none">

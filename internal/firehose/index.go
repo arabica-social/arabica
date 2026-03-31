@@ -1446,6 +1446,25 @@ func (idx *FeedIndex) IsBackfilled(ctx context.Context, did string) bool {
 	return err == nil
 }
 
+// BackfilledDIDs returns the set of all DIDs that have been backfilled.
+func (idx *FeedIndex) BackfilledDIDs(ctx context.Context) (map[string]struct{}, error) {
+	rows, err := idx.db.QueryContext(ctx, `SELECT did FROM backfilled`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[string]struct{})
+	for rows.Next() {
+		var did string
+		if err := rows.Scan(&did); err != nil {
+			return nil, err
+		}
+		result[did] = struct{}{}
+	}
+	return result, rows.Err()
+}
+
 // MarkBackfilled marks a DID as backfilled with current timestamp
 func (idx *FeedIndex) MarkBackfilled(ctx context.Context, did string) error {
 	_, err := idx.db.ExecContext(ctx, `INSERT OR IGNORE INTO backfilled (did, backfilled_at) VALUES (?, ?)`,

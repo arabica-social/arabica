@@ -451,3 +451,8 @@ func (c *Consumer) processMessage(data []byte) error {
 func (c *Consumer) BackfillDID(ctx context.Context, did string) error {
 	return c.index.BackfillUser(ctx, did)
 }
+
+// BackfilledDIDs returns the set of all DIDs that have been backfilled.
+func (c *Consumer) BackfilledDIDs(ctx context.Context) (map[string]struct{}, error) {
+	return c.index.BackfilledDIDs(ctx)
+}
