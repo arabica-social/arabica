@@ -30,14 +30,14 @@ func DrawSiteCard() (*Card, error) {
 	card.DrawBoldText("arabica.social", leftPad, y, ColorDark, 48)
 	y += 54 + 16
 
-	card.DrawText("coffee brew tracking on the AT Protocol", leftPad, y, ColorBody, 28)
+	card.DrawText("coffee journaling for the open social web", leftPad, y, ColorBody, 28)
 	y += 40 + 24
 
 	// Divider
 	card.DrawRect(leftPad, y, leftPad+120, y+2, ColorDivider)
 	y += 32
 
-	card.DrawText("your data, your PDS, your coffee", leftPad, y, ColorMuted, 22)
+	card.DrawText("track, share, and own your brews", leftPad, y, ColorMuted, 22)
 
 	return card, nil
 }

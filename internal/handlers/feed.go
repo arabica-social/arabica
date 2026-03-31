@@ -61,7 +61,7 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	// Set OG metadata for the home page
 	layoutData.OGTitle = "Arabica"
-	layoutData.OGDescription = "Coffee brew tracking on the AT Protocol. Your data, your PDS, your coffee."
+	layoutData.OGDescription = "Coffee journaling for the open social web. Track, share, and own your brews."
 	baseURL := h.publicBaseURL(r)
 	if baseURL != "" {
 		layoutData.OGImage = baseURL + "/og-image"
