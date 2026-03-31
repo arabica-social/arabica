@@ -530,6 +530,13 @@
     color: var(--text-placeholder);
   }
 
+  /* Select/option dark mode fix — native <option> elements need explicit colors */
+  select.form-input option,
+  select.form-input optgroup {
+    background: var(--input-bg);
+    color: var(--text-primary);
+  }
+
   .form-input-lg {
     @apply form-input py-3 px-4;
   }

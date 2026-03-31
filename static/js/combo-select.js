@@ -453,7 +453,7 @@ document.addEventListener("alpine:init", () => {
         this.isOpen = false;
 
         if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
+          window.ArabicaCache.invalidateAndRefresh();
         }
 
         this.$nextTick(() => {
