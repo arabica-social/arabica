@@ -402,7 +402,7 @@ type UpdateBrewerRequest struct {
 
 // IsIncomplete returns true if the bean is missing key fields beyond name/origin.
 func (b *Bean) IsIncomplete() bool {
-	return b.RoasterRKey == "" || b.RoastLevel == "" || b.Process == ""
+	return b.RoasterRKey == "" || b.RoastLevel == ""
 }
 
 // MissingFields returns a human-readable list of missing fields.
@@ -413,9 +413,6 @@ func (b *Bean) MissingFields() []string {
 	}
 	if b.RoastLevel == "" {
 		missing = append(missing, "roast level")
-	}
-	if b.Process == "" {
-		missing = append(missing, "process")
 	}
 	return missing
 }
