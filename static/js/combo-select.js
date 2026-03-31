@@ -290,7 +290,13 @@ document.addEventListener("alpine:init", () => {
                 website: this.newRoasterWebsite,
               }),
             });
-            if (!resp.ok) throw new Error("Failed to create roaster");
+            if (!resp.ok) {
+              if (resp.status === 401) {
+                window.__showSessionExpiredModal();
+                return;
+              }
+              throw new Error("Failed to create roaster");
+            }
             const roaster = await resp.json();
             data.roaster_rkey = roaster.rkey || roaster.RKey;
           } catch (e) {
@@ -431,7 +437,13 @@ document.addEventListener("alpine:init", () => {
           credentials: "same-origin",
           body: JSON.stringify(data),
         });
-        if (!resp.ok) throw new Error(`Create failed: ${resp.status}`);
+        if (!resp.ok) {
+          if (resp.status === 401) {
+            window.__showSessionExpiredModal();
+            return;
+          }
+          throw new Error(`Create failed: ${resp.status}`);
+        }
         const created = await resp.json();
         const rkey = created.rkey || created.RKey;
 
