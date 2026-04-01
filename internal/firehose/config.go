@@ -14,6 +14,10 @@ var DefaultJetstreamEndpoints = []string{
 	"wss://jetstream2.us-west.bsky.network/subscribe",
 }
 
+// NSIDBlueskyProfile is the AT Protocol collection for user profile records.
+// Watched by ProfileWatcher (separate connection) for known Arabica users only.
+const NSIDBlueskyProfile = "app.bsky.actor.profile"
+
 // ArabicaCollections lists all Arabica lexicon collections to filter for
 var ArabicaCollections = []string{
 	atproto.NSIDBrew,

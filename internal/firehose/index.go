@@ -1069,6 +1069,16 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 	return profile, nil
 }
 
+// InvalidateProfile removes a DID's profile from both the in-memory and persistent
+// caches. The next GetProfile call will re-fetch from the API.
+func (idx *FeedIndex) InvalidateProfile(did string) {
+	idx.profileCacheMu.Lock()
+	delete(idx.profileCache, did)
+	idx.profileCacheMu.Unlock()
+
+	_, _ = idx.db.Exec(`DELETE FROM profiles WHERE did = ?`, did)
+}
+
 // GetKnownDIDs returns all DIDs that have created Arabica records
 func (idx *FeedIndex) GetKnownDIDs(ctx context.Context) ([]string, error) {
 	rows, err := idx.db.QueryContext(ctx, `SELECT did FROM known_dids`)

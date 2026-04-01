@@ -218,6 +218,11 @@ func main() {
 	firehoseConsumer := firehose.NewConsumer(firehoseConfig, feedIndex)
 	firehoseConsumer.Start(ctx)
 
+	// Create and start profile watcher (separate Jetstream connection filtered
+	// to app.bsky.actor.profile events for known Arabica users only)
+	profileWatcher := firehose.NewProfileWatcher(firehoseConfig, feedIndex)
+	profileWatcher.Start(ctx)
+
 	// Wire up the feed service to use the firehose index
 	adapter := firehose.NewFeedIndexAdapter(feedIndex)
 	feedService.SetFirehoseIndex(adapter)
@@ -327,6 +332,7 @@ func main() {
 	// This ensures users are added to the feed even if they had an existing session
 	oauthManager.SetOnAuthSuccess(func(did string) {
 		feedRegistry.Register(did)
+		profileWatcher.Watch(did)
 		// Backfill the user's records (BackfillUser creates its own span
 		// only when there is actual work to do, avoiding empty traces for
 		// already-backfilled users)
