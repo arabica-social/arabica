@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"arabica/internal/atproto"
+	"arabica/internal/models"
 	"arabica/internal/web/pages"
 
 	"github.com/rs/zerolog/log"
@@ -38,6 +39,7 @@ func (h *Handler) HandleNotifications(w http.ResponseWriter, r *http.Request) {
 			item := pages.NotificationItem{
 				Notification: notif,
 				Link:         resolveNotificationLink(notif.SubjectURI),
+				ActionText:   notifActionText(notif),
 			}
 
 			profile, err := h.feedIndex.GetProfile(r.Context(), notif.ActorDID)
@@ -88,8 +90,27 @@ func (h *Handler) HandleNotificationsMarkRead(w http.ResponseWriter, r *http.Req
 	http.Redirect(w, r, "/notifications", http.StatusSeeOther)
 }
 
+// collectionURLPath maps AT Protocol collection NSIDs to their URL path prefixes.
+var collectionURLPath = map[string]string{
+	atproto.NSIDBrew:    "/brews/",
+	atproto.NSIDBean:    "/beans/",
+	atproto.NSIDRoaster: "/roasters/",
+	atproto.NSIDGrinder: "/grinders/",
+	atproto.NSIDBrewer:  "/brewers/",
+	atproto.NSIDRecipe:  "/recipes/",
+}
+
+// collectionDisplayName maps AT Protocol collection NSIDs to human-readable names.
+var collectionDisplayName = map[string]string{
+	atproto.NSIDBrew:    "brew",
+	atproto.NSIDBean:    "bean",
+	atproto.NSIDRoaster: "roaster",
+	atproto.NSIDGrinder: "grinder",
+	atproto.NSIDBrewer:  "brewer",
+	atproto.NSIDRecipe:  "recipe",
+}
+
 // resolveNotificationLink converts a SubjectURI (AT-URI) to a local page URL.
-// All notification types store a brew AT-URI as SubjectURI.
 // Format: at://did:plc:xxx/social.arabica.alpha.brew/rkey -> /brews/rkey?owner=did:plc:xxx
 func resolveNotificationLink(subjectURI string) string {
 	if !strings.HasPrefix(subjectURI, "at://") {
@@ -106,10 +127,39 @@ func resolveNotificationLink(subjectURI string) string {
 	collection := parts[1]
 	rkey := parts[2]
 
-	switch collection {
-	case atproto.NSIDBrew:
-		return fmt.Sprintf("/brews/%s?owner=%s", rkey, did)
+	if prefix, ok := collectionURLPath[collection]; ok {
+		return fmt.Sprintf("%s%s?owner=%s", prefix, rkey, did)
+	}
+	return ""
+}
+
+// resolveNotificationEntityName returns the display name for the entity in a SubjectURI.
+func resolveNotificationEntityName(subjectURI string) string {
+	if !strings.HasPrefix(subjectURI, "at://") {
+		return "content"
+	}
+	rest := subjectURI[5:]
+	parts := strings.SplitN(rest, "/", 3)
+	if len(parts) < 3 {
+		return "content"
+	}
+	if name, ok := collectionDisplayName[parts[1]]; ok {
+		return name
+	}
+	return "content"
+}
+
+// notifActionText returns human-readable action text for a notification.
+func notifActionText(notif models.Notification) string {
+	entity := resolveNotificationEntityName(notif.SubjectURI)
+	switch notif.Type {
+	case models.NotificationLike:
+		return "liked your " + entity
+	case models.NotificationComment:
+		return "commented on your " + entity
+	case models.NotificationCommentReply:
+		return "replied to your comment"
 	default:
-		return ""
+		return "interacted with your " + entity
 	}
 }

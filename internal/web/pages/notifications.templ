@@ -19,6 +19,7 @@ type NotificationItem struct {
 	ActorDisplayName string
 	ActorAvatar      string
 	Link             string // Resolved local URL (e.g. /brews/rkey?owner=did)
+	ActionText       string // e.g. "commented on your brew"
 }
 
 templ Notifications(layout *components.LayoutData, props NotificationsProps) {
@@ -85,7 +86,7 @@ templ notificationRow(notif NotificationItem) {
 					{ notifActorName(notif) }
 				</span>
 				{ " " }
-				{ notifActionText(notif.Type) }
+				{ notif.ActionText }
 			</p>
 			<p class="text-xs text-brown-400 mt-1">
 				{ bff.FormatTimeAgo(notif.CreatedAt) }
@@ -108,19 +109,6 @@ func notifActorName(notif NotificationItem) string {
 		return notif.ActorHandle
 	}
 	return notif.ActorDID
-}
-
-func notifActionText(t models.NotificationType) string {
-	switch t {
-	case models.NotificationLike:
-		return "liked your brew"
-	case models.NotificationComment:
-		return "commented on your brew"
-	case models.NotificationCommentReply:
-		return "replied to your comment"
-	default:
-		return "interacted with your content"
-	}
 }
 
 // notifClickURL returns the URL to navigate to when clicking a notification.
