@@ -167,6 +167,39 @@ func (pw *ProfileWatcher) connectAndConsume(ctx context.Context, endpoint string
 		pw.connMu.Unlock()
 	}()
 
+	const pingInterval = 30 * time.Second
+	const readTimeout = 90 * time.Second
+
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(readTimeout))
+		return nil
+	})
+
+	pingTicker := time.NewTicker(pingInterval)
+	defer pingTicker.Stop()
+
+	go func() {
+		for {
+			select {
+			case <-pingTicker.C:
+				pw.connMu.Lock()
+				c := pw.conn
+				pw.connMu.Unlock()
+				if c == nil {
+					return
+				}
+				c.SetWriteDeadline(time.Now().Add(10 * time.Second))
+				if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
+					return
+				}
+			case <-ctx.Done():
+				return
+			case <-pw.stopCh:
+				return
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -176,7 +209,7 @@ func (pw *ProfileWatcher) connectAndConsume(ctx context.Context, endpoint string
 		default:
 		}
 
-		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		conn.SetReadDeadline(time.Now().Add(readTimeout))
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			return fmt.Errorf("read error: %w", err)
