@@ -29,6 +29,7 @@ import (
 	"arabica/internal/routing"
 	"arabica/internal/tracing"
 
+	"go.opentelemetry.io/otel/attribute"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -271,7 +272,12 @@ func main() {
 	go func() {
 		time.Sleep(5 * time.Second) // Wait for initial connection
 
+		// Create a root span so all backfill work is grouped under one trace
+		backfillCtx, backfillSpan := tracing.HandlerSpan(ctx, "backfill.startup")
+		defer backfillSpan.End()
+
 		// Collect all DIDs to backfill
+		collectCtx, collectSpan := tracing.HandlerSpan(backfillCtx, "backfill.collect_dids")
 		didsToBackfill := make(map[string]struct{})
 
 		// Add registered users
@@ -295,9 +301,12 @@ func main() {
 					Msg("Loaded known DIDs from file")
 			}
 		}
+		collectSpan.SetAttributes(attribute.Int("backfill.total_dids", len(didsToBackfill)))
+		collectSpan.End()
 
 		// Pre-load already-backfilled DIDs to avoid N+1 SELECT per DID
-		alreadyBackfilled, err := firehoseConsumer.BackfilledDIDs(ctx)
+		filterCtx, filterSpan := tracing.HandlerSpan(collectCtx, "backfill.filter_backfilled")
+		alreadyBackfilled, err := firehoseConsumer.BackfilledDIDs(filterCtx)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to load backfilled DIDs, will check individually")
 			alreadyBackfilled = make(map[string]struct{})
@@ -307,11 +316,16 @@ func main() {
 		for did := range alreadyBackfilled {
 			delete(didsToBackfill, did)
 		}
-
-		// Create a root span so all backfill PDS calls are grouped under one trace
-		backfillCtx, backfillSpan := tracing.HandlerSpan(ctx, "backfill.startup")
+		filterSpan.SetAttributes(
+			attribute.Int("backfill.already_backfilled", len(alreadyBackfilled)),
+			attribute.Int("backfill.remaining", len(didsToBackfill)),
+		)
+		filterSpan.End()
 
 		// Backfill remaining DIDs
+		_, execSpan := tracing.HandlerSpan(filterCtx, "backfill.execute",
+			attribute.Int("backfill.count", len(didsToBackfill)),
+		)
 		successCount := 0
 		for did := range didsToBackfill {
 			if err := firehoseConsumer.BackfillDID(backfillCtx, did); err != nil {
@@ -320,7 +334,12 @@ func main() {
 				successCount++
 			}
 		}
-		backfillSpan.End()
+		execSpan.SetAttributes(
+			attribute.Int("backfill.success", successCount),
+			attribute.Int("backfill.failed", len(didsToBackfill)-successCount),
+		)
+		execSpan.End()
+
 		log.Info().
 			Int("skipped", len(alreadyBackfilled)).
 			Int("backfilled", successCount).
