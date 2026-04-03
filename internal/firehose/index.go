@@ -1016,9 +1016,11 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	return item, nil
 }
 
-// GetProfile fetches a profile, using cache when possible
+// GetProfile fetches a profile, using cache when possible. The persistent
+// SQLite store has no TTL — the profile watcher keeps it fresh via the
+// firehose. Only a completely unknown DID triggers an API fetch.
 func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Profile, error) {
-	// Check in-memory cache first
+	// Check in-memory cache first (TTL used only for memory management)
 	idx.profileCacheMu.RLock()
 	if cached, ok := idx.profileCache[did]; ok && time.Now().Before(cached.ExpiresAt) {
 		idx.profileCacheMu.RUnlock()
@@ -1026,29 +1028,33 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 	}
 	idx.profileCacheMu.RUnlock()
 
-	// Check persistent cache
-	var dataStr, expiresAtStr string
-	err := idx.db.QueryRowContext(ctx, `SELECT data, expires_at FROM profiles WHERE did = ?`, did).Scan(&dataStr, &expiresAtStr)
+	// Check persistent store — no TTL, firehose keeps it fresh
+	var dataStr string
+	err := idx.db.QueryRowContext(ctx, `SELECT data FROM profiles WHERE did = ?`, did).Scan(&dataStr)
 	if err == nil {
-		expiresAt, _ := time.Parse(time.RFC3339Nano, expiresAtStr)
-		if time.Now().Before(expiresAt) {
-			cached := &CachedProfile{}
-			if err := json.Unmarshal([]byte(dataStr), cached); err == nil {
-				idx.profileCacheMu.Lock()
-				idx.profileCache[did] = cached
-				idx.profileCacheMu.Unlock()
-				return cached.Profile, nil
-			}
+		cached := &CachedProfile{}
+		if err := json.Unmarshal([]byte(dataStr), cached); err == nil {
+			// Promote to in-memory cache
+			cached.ExpiresAt = time.Now().Add(idx.profileTTL)
+			idx.profileCacheMu.Lock()
+			idx.profileCache[did] = cached
+			idx.profileCacheMu.Unlock()
+			return cached.Profile, nil
 		}
 	}
 
-	// Fetch from API
+	// Unknown DID — fetch from API
 	profile, err := idx.publicClient.GetProfile(ctx, did)
 	if err != nil {
 		return nil, err
 	}
 
-	// Cache the result
+	idx.storeProfile(ctx, did, profile)
+	return profile, nil
+}
+
+// storeProfile writes a profile to both in-memory and persistent caches.
+func (idx *FeedIndex) storeProfile(ctx context.Context, did string, profile *atproto.Profile) {
 	now := time.Now()
 	cached := &CachedProfile{
 		Profile:   profile,
@@ -1056,17 +1062,13 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 		ExpiresAt: now.Add(idx.profileTTL),
 	}
 
-	// Update in-memory cache
 	idx.profileCacheMu.Lock()
 	idx.profileCache[did] = cached
 	idx.profileCacheMu.Unlock()
 
-	// Persist to database
 	data, _ := json.Marshal(cached)
 	_, _ = idx.db.ExecContext(ctx, `INSERT OR REPLACE INTO profiles (did, data, expires_at) VALUES (?, ?, ?)`,
 		did, string(data), cached.ExpiresAt.Format(time.RFC3339Nano))
-
-	return profile, nil
 }
 
 // InvalidateProfile removes a DID's profile from both the in-memory and persistent
@@ -1077,6 +1079,19 @@ func (idx *FeedIndex) InvalidateProfile(did string) {
 	idx.profileCacheMu.Unlock()
 
 	_, _ = idx.db.Exec(`DELETE FROM profiles WHERE did = ?`, did)
+}
+
+// RefreshProfile fetches a profile from the API and stores it in both caches.
+// Used by the profile watcher to keep the cache warm on firehose events.
+func (idx *FeedIndex) RefreshProfile(ctx context.Context, did string) {
+	profile, err := idx.publicClient.GetProfile(ctx, did)
+	if err != nil {
+		log.Warn().Err(err).Str("did", did).Msg("profile refresh: failed to fetch, invalidating instead")
+		idx.InvalidateProfile(did)
+		return
+	}
+
+	idx.storeProfile(ctx, did, profile)
 }
 
 // GetKnownDIDs returns all DIDs that have created Arabica records

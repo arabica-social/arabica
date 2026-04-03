@@ -278,7 +278,7 @@ func (pw *ProfileWatcher) processMessage(data []byte) {
 		return
 	}
 	if event.Commit.Operation == "create" || event.Commit.Operation == "update" {
-		pw.index.InvalidateProfile(event.DID)
-		log.Debug().Str("did", event.DID).Msg("profile watcher: invalidated profile cache")
+		pw.index.RefreshProfile(context.Background(), event.DID)
+		log.Debug().Str("did", event.DID).Msg("profile watcher: refreshed profile cache")
 	}
 }
