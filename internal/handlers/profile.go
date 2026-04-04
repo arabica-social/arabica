@@ -406,19 +406,20 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if strings.HasPrefix(actor, "did:") {
-		// It's already a DID
 		did = actor
 	} else {
-		// It's a handle, resolve to DID
-		did, err = publicClient.ResolveHandle(ctx, actor)
-		if err != nil {
-			log.Warn().Err(err).Str("handle", actor).Msg("Failed to resolve handle")
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
+		// Try feed index cache first, fall back to API
+		if h.feedIndex != nil {
+			did, _ = h.feedIndex.GetDIDByHandle(ctx, actor)
 		}
-
-		// Redirect to canonical URL with handle (we'll get the handle from profile)
-		// For now, continue with the DID we have
+		if did == "" {
+			did, err = publicClient.ResolveHandle(ctx, actor)
+			if err != nil {
+				log.Warn().Err(err).Str("handle", actor).Msg("Failed to resolve handle")
+				http.Error(w, "User not found", http.StatusNotFound)
+				return
+			}
+		}
 	}
 
 	// Check if user is blacklisted
@@ -431,12 +432,18 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch profile
-	profile, err := publicClient.GetProfile(ctx, did)
-	if err != nil {
-		log.Warn().Err(err).Str("did", did).Msg("Failed to fetch profile")
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
+	// Fetch profile — try feed index cache first, fall back to API
+	var profile *atproto.Profile
+	if h.feedIndex != nil {
+		profile, _ = h.feedIndex.GetProfile(ctx, did)
+	}
+	if profile == nil {
+		profile, err = publicClient.GetProfile(ctx, did)
+		if err != nil {
+			log.Warn().Err(err).Str("did", did).Msg("Failed to fetch profile")
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
 	}
 
 	// If the URL used a DID but we have the handle, redirect to the canonical handle URL
@@ -535,11 +542,17 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(actor, "did:") {
 		did = actor
 	} else {
-		did, err = publicClient.ResolveHandle(ctx, actor)
-		if err != nil {
-			log.Warn().Err(err).Str("handle", actor).Msg("Failed to resolve handle")
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
+		// Try feed index cache first, fall back to API
+		if h.feedIndex != nil {
+			did, _ = h.feedIndex.GetDIDByHandle(ctx, actor)
+		}
+		if did == "" {
+			did, err = publicClient.ResolveHandle(ctx, actor)
+			if err != nil {
+				log.Warn().Err(err).Str("handle", actor).Msg("Failed to resolve handle")
+				http.Error(w, "User not found", http.StatusNotFound)
+				return
+			}
 		}
 	}
 
@@ -581,11 +594,17 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	isAuthenticated := err == nil && didStr != ""
 	isOwnProfile := isAuthenticated && didStr == did
 
-	// Get profile for card rendering
-	profile, err := publicClient.GetProfile(ctx, did)
-	if err != nil {
-		log.Warn().Err(err).Str("did", did).Msg("Failed to fetch profile for profile partial")
-		// Continue without profile - cards will show limited info
+	// Get profile for card rendering — try feed index cache first
+	var profile *atproto.Profile
+	if h.feedIndex != nil {
+		profile, _ = h.feedIndex.GetProfile(ctx, did)
+	}
+	if profile == nil {
+		profile, err = publicClient.GetProfile(ctx, did)
+		if err != nil {
+			log.Warn().Err(err).Str("did", did).Msg("Failed to fetch profile for profile partial")
+			// Continue without profile - cards will show limited info
+		}
 	}
 
 	// Use handle from profile or fallback

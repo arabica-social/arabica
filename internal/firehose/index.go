@@ -1071,6 +1071,49 @@ func (idx *FeedIndex) storeProfile(ctx context.Context, did string, profile *atp
 		did, string(data), cached.ExpiresAt.Format(time.RFC3339Nano))
 }
 
+// GetDIDByHandle looks up a DID from the profile cache by handle.
+// Returns the DID and true if found, or empty string and false if not cached.
+// This avoids a ResolveHandle API call for known Arabica users.
+func (idx *FeedIndex) GetDIDByHandle(ctx context.Context, handle string) (string, bool) {
+	// Check in-memory cache first
+	idx.profileCacheMu.RLock()
+	for did, cached := range idx.profileCache {
+		if cached.Profile != nil && cached.Profile.Handle == handle && time.Now().Before(cached.ExpiresAt) {
+			idx.profileCacheMu.RUnlock()
+			return did, true
+		}
+	}
+	idx.profileCacheMu.RUnlock()
+
+	// Check persistent store
+	rows, err := idx.db.QueryContext(ctx, `SELECT did, data FROM profiles`)
+	if err != nil {
+		return "", false
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var did, dataStr string
+		if err := rows.Scan(&did, &dataStr); err != nil {
+			continue
+		}
+		cached := &CachedProfile{}
+		if err := json.Unmarshal([]byte(dataStr), cached); err != nil || cached.Profile == nil {
+			continue
+		}
+		if cached.Profile.Handle == handle {
+			// Promote to in-memory cache
+			cached.ExpiresAt = time.Now().Add(idx.profileTTL)
+			idx.profileCacheMu.Lock()
+			idx.profileCache[did] = cached
+			idx.profileCacheMu.Unlock()
+			return did, true
+		}
+	}
+
+	return "", false
+}
+
 // InvalidateProfile removes a DID's profile from both the in-memory and persistent
 // caches. The next GetProfile call will re-fetch from the API.
 func (idx *FeedIndex) InvalidateProfile(did string) {
