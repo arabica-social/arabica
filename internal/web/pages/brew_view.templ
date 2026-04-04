@@ -151,10 +151,16 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 			}
 			<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
 				if brew.Bean.Origin != "" {
-					<span class="inline-flex items-center gap-1">@components.IconMapPin() { brew.Bean.Origin }</span>
+					<span class="inline-flex items-center gap-1">
+							@components.IconMapPin()
+							{ brew.Bean.Origin }
+						</span>
 				}
 				if brew.Bean.RoastLevel != "" {
-					<span class="inline-flex items-center gap-1">@components.IconFlame() { brew.Bean.RoastLevel }</span>
+					<span class="inline-flex items-center gap-1">
+							@components.IconFlame()
+							{ brew.Bean.RoastLevel }
+						</span>
 				}
 			</div>
 		} else {
@@ -366,15 +372,27 @@ templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, owner)) } class="font-bold text-lg text-brown-900 hover:text-brown-700 underline decoration-brown-300 hover:decoration-brown-500 transition-colors">{ recipe.Name }</a>
 		<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
 			if recipe.CoffeeAmount > 0 {
-				<span class="inline-flex items-center gap-1">@components.IconCoffee() { fmt.Sprintf("%.1fg coffee", recipe.CoffeeAmount) }</span>
+				<span class="inline-flex items-center gap-1">
+						@components.IconCoffee()
+						{ fmt.Sprintf("%.1fg coffee", recipe.CoffeeAmount) }
+					</span>
 			}
 			if recipe.WaterAmount > 0 {
-				<span class="inline-flex items-center gap-1">@components.IconDroplet() { fmt.Sprintf("%.1fg water", recipe.WaterAmount) }</span>
+				<span class="inline-flex items-center gap-1">
+						@components.IconDroplet()
+						{ fmt.Sprintf("%.1fg water", recipe.WaterAmount) }
+					</span>
 			}
 			if recipe.BrewerObj != nil {
-				<span class="inline-flex items-center gap-1">@components.IconBrewer() { recipe.BrewerObj.Name }</span>
+				<span class="inline-flex items-center gap-1">
+						@components.IconBrewer()
+						{ recipe.BrewerObj.Name }
+					</span>
 			} else if recipe.BrewerType != "" {
-				<span class="inline-flex items-center gap-1">@components.IconBrewer() { recipe.BrewerType }</span>
+				<span class="inline-flex items-center gap-1">
+						@components.IconBrewer()
+						{ recipe.BrewerType }
+					</span>
 			}
 		</div>
 		if recipe.Notes != "" {
