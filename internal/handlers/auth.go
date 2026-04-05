@@ -378,12 +378,21 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 		typeaheadProviderWaow,
 		query,
 	)
-	resp, err := apiClient.Get(searchURL)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, searchURL, nil)
+	if err != nil {
+		log.Warn().Err(err).Str("query", query).Msg("Failed to build search request")
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]any{"actors": []any{}}); err != nil {
+			log.Error().Err(err).Msg("Failed to encode empty actors response")
+		}
+		return
+	}
+	req.Header.Set("X-Client", "arabica.social")
+	resp, err := apiClient.Do(req)
 	if err != nil {
 		log.Warn().Err(err).Str("query", query).Msg("Failed to search actors")
 		// Return empty results instead of error
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Client", "arabica.social")
 		if err := json.NewEncoder(w).Encode(map[string]any{"actors": []any{}}); err != nil {
 			log.Error().Err(err).Msg("Failed to encode empty actors response")
 		}
