@@ -23,38 +23,54 @@ var wrapPDSError = atp.WrapPDSError
 // Record represents a single record from a PDS.
 type Record = atp.Record
 
+// ClientProvider returns an authenticated atp.Client for the given DID and session.
+type ClientProvider func(ctx context.Context, did syntax.DID, sessionID string) (*atp.Client, error)
+
 // Client wraps the atproto API client for making authenticated requests to a PDS.
 type Client struct {
-	oauth *OAuthManager
+	getClient ClientProvider
 }
 
-// NewClient creates a new atproto client.
+// NewClient creates a new atproto client that authenticates via OAuth.
 func NewClient(oauth *OAuthManager) *Client {
-	return &Client{oauth: oauth}
+	return &Client{getClient: oauthProvider(oauth)}
 }
 
-// getAtpClient resumes an OAuth session and returns an atp.Client with OTel-instrumented transport.
+// NewClientWithProvider creates a client with a custom authentication provider.
+// This is useful for testing with password-auth or pre-authenticated clients.
+func NewClientWithProvider(provider ClientProvider) *Client {
+	return &Client{getClient: provider}
+}
+
+// oauthProvider returns a ClientProvider that resumes OAuth sessions with OTel-instrumented transport.
+func oauthProvider(oauth *OAuthManager) ClientProvider {
+	return func(ctx context.Context, did syntax.DID, sessionID string) (*atp.Client, error) {
+		session, err := oauth.app.ResumeSession(ctx, did, sessionID)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrSessionExpired, err)
+		}
+
+		apiClient := session.APIClient()
+
+		// Wrap transport with OTel instrumentation.
+		baseTransport := apiClient.Client.Transport
+		if baseTransport == nil {
+			baseTransport = http.DefaultTransport
+		}
+		apiClient.Client = &http.Client{
+			Transport:     otelhttp.NewTransport(baseTransport),
+			Timeout:       apiClient.Client.Timeout,
+			CheckRedirect: apiClient.Client.CheckRedirect,
+			Jar:           apiClient.Client.Jar,
+		}
+
+		return atp.NewClient(apiClient, did), nil
+	}
+}
+
+// getAtpClient returns an authenticated atp.Client using the configured provider.
 func (c *Client) getAtpClient(ctx context.Context, did syntax.DID, sessionID string) (*atp.Client, error) {
-	session, err := c.oauth.app.ResumeSession(ctx, did, sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrSessionExpired, err)
-	}
-
-	apiClient := session.APIClient()
-
-	// Wrap transport with OTel instrumentation.
-	baseTransport := apiClient.Client.Transport
-	if baseTransport == nil {
-		baseTransport = http.DefaultTransport
-	}
-	apiClient.Client = &http.Client{
-		Transport:     otelhttp.NewTransport(baseTransport),
-		Timeout:       apiClient.Client.Timeout,
-		CheckRedirect: apiClient.Client.CheckRedirect,
-		Jar:           apiClient.Client.Jar,
-	}
-
-	return atp.NewClient(apiClient, did), nil
+	return c.getClient(ctx, did, sessionID)
 }
 
 // --- Input/Output types (kept for caller compatibility) ---

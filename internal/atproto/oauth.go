@@ -196,6 +196,15 @@ func ContextWithAuthDID(ctx context.Context, did string) context.Context {
 	return context.WithValue(ctx, contextKeyUserDID, did)
 }
 
+// ContextWithAuth returns a context populated with both the authenticated DID
+// and session ID. This is the test-friendly equivalent of what AuthMiddleware
+// installs after validating real cookies.
+func ContextWithAuth(ctx context.Context, did, sessionID string) context.Context {
+	ctx = context.WithValue(ctx, contextKeyUserDID, did)
+	ctx = context.WithValue(ctx, contextKeySessionID, sessionID)
+	return ctx
+}
+
 // GetAuthenticatedDID retrieves the authenticated user's DID from the request context
 func GetAuthenticatedDID(ctx context.Context) (string, error) {
 	did, ok := ctx.Value(contextKeyUserDID).(string)
