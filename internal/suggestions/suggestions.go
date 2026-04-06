@@ -21,7 +21,7 @@ type EntitySuggestion struct {
 
 // RecordSource provides read access to indexed records.
 type RecordSource interface {
-	ListRecordsByCollection(ctx context.Context, collection string) ([]firehose.IndexedRecord, error)
+	ListRecordsByCollectionOldest(ctx context.Context, collection string) ([]firehose.IndexedRecord, error)
 }
 
 // entityFieldConfig defines which fields to extract and search for each entity type
@@ -230,7 +230,7 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 		skipDID = excludeDID[0]
 	}
 
-	records, err := source.ListRecordsByCollection(ctx, collection)
+	records, err := source.ListRecordsByCollectionOldest(ctx, collection)
 	if err != nil {
 		return nil, err
 	}

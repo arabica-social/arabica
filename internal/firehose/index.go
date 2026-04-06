@@ -1156,12 +1156,23 @@ func (idx *FeedIndex) GetKnownDIDs(ctx context.Context) ([]string, error) {
 	return dids, rows.Err()
 }
 
-// ListRecordsByCollection returns all indexed records for a given collection.
+// ListRecordsByCollection returns all indexed records for a given collection,
+// ordered by created_at DESC (newest first).
 func (idx *FeedIndex) ListRecordsByCollection(ctx context.Context, collection string) ([]IndexedRecord, error) {
-	rows, err := idx.db.QueryContext(ctx, `
+	return idx.listRecordsByCollection(ctx, collection, "DESC")
+}
+
+// ListRecordsByCollectionOldest returns all indexed records for a given collection,
+// ordered by created_at ASC (oldest first).
+func (idx *FeedIndex) ListRecordsByCollectionOldest(ctx context.Context, collection string) ([]IndexedRecord, error) {
+	return idx.listRecordsByCollection(ctx, collection, "ASC")
+}
+
+func (idx *FeedIndex) listRecordsByCollection(ctx context.Context, collection string, dir string) ([]IndexedRecord, error) {
+	rows, err := idx.db.QueryContext(ctx, fmt.Sprintf(`
 		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
-		FROM records WHERE collection = ? ORDER BY created_at ASC
-	`, collection)
+		FROM records WHERE collection = ? ORDER BY created_at %s
+	`, dir), collection)
 	if err != nil {
 		return nil, err
 	}
