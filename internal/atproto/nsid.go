@@ -1,8 +1,9 @@
 package atproto
 
 import (
-	"fmt"
 	"regexp"
+
+	"tangled.org/pdewey.com/atp"
 )
 
 // NSID (Namespaced Identifier) constants for Arabica lexicons.
@@ -45,17 +46,9 @@ func ValidateRKey(rkey string) bool {
 	return rkeyRegex.MatchString(rkey)
 }
 
-// BuildATURI constructs an AT-URI from a DID, collection NSID, and record key
-func BuildATURI(did, collection, rkey string) string {
-	return fmt.Sprintf("at://%s/%s/%s", did, collection, rkey)
-}
+// BuildATURI constructs an AT-URI from a DID, collection NSID, and record key.
+var BuildATURI = atp.BuildATURI
 
-// ExtractRKeyFromURI extracts the record key from an AT-URI
-// Returns the rkey if successful, empty string if parsing fails
-func ExtractRKeyFromURI(uri string) string {
-	components, err := ResolveATURI(uri)
-	if err != nil {
-		return ""
-	}
-	return components.RKey
-}
+// ExtractRKeyFromURI extracts the record key from an AT-URI.
+// Returns the rkey if successful, empty string if parsing fails.
+var ExtractRKeyFromURI = atp.RKeyFromURI

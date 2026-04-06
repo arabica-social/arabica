@@ -2,69 +2,47 @@ package atproto
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"arabica/internal/metrics"
 	"arabica/internal/tracing"
 
-	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"tangled.org/pdewey.com/atp"
 )
 
-// ErrSessionExpired is returned when the OAuth session cannot be resumed,
-// indicating the user's authorization grant has expired and they need to log in again.
-var ErrSessionExpired = errors.New("oauth session expired")
+// ErrSessionExpired is returned when the OAuth session cannot be resumed.
+var ErrSessionExpired = atp.ErrSessionExpired
 
-// wrapPDSError checks whether an error from an XRPC call indicates that the
-// OAuth grant is no longer valid (e.g. token refresh returned invalid_grant)
-// and, if so, wraps it with ErrSessionExpired so that upstream handlers can
-// return 401 instead of 500.
-func wrapPDSError(err error) error {
-	if err == nil {
-		return nil
-	}
-	msg := err.Error()
-	if strings.Contains(msg, "invalid_grant") ||
-		strings.Contains(msg, "failed to refresh OAuth tokens") ||
-		strings.Contains(msg, "token is expired") {
-		return fmt.Errorf("%w: %w", ErrSessionExpired, err)
-	}
-	return err
-}
+// wrapPDSError checks whether an error indicates an expired OAuth grant.
+var wrapPDSError = atp.WrapPDSError
 
-// Client wraps the atproto API client for making authenticated requests to a PDS
+// Record represents a single record from a PDS.
+type Record = atp.Record
+
+// Client wraps the atproto API client for making authenticated requests to a PDS.
 type Client struct {
 	oauth *OAuthManager
 }
 
-// NewClient creates a new atproto client
+// NewClient creates a new atproto client.
 func NewClient(oauth *OAuthManager) *Client {
-	return &Client{
-		oauth: oauth,
-	}
+	return &Client{oauth: oauth}
 }
 
-// getAuthenticatedAPIClient creates an authenticated API client for a specific session
-// This properly handles DPOP token signing and refresh
-func (c *Client) getAuthenticatedAPIClient(ctx context.Context, did syntax.DID, sessionID string) (*atclient.APIClient, error) {
-	// Resume the OAuth session - this returns a ClientSession that handles DPOP
+// getAtpClient resumes an OAuth session and returns an atp.Client with OTel-instrumented transport.
+func (c *Client) getAtpClient(ctx context.Context, did syntax.DID, sessionID string) (*atp.Client, error) {
 	session, err := c.oauth.app.ResumeSession(ctx, did, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrSessionExpired, err)
 	}
 
-	// Get the authenticated API client from the session
-	// This client automatically handles DPOP signing and token refresh
 	apiClient := session.APIClient()
 
-	// Wrap the HTTP transport with OpenTelemetry instrumentation so outbound PDS
-	// HTTP calls appear as child spans under the existing pds.* semantic spans.
-	// We create a new http.Client rather than mutating the shared session client.
+	// Wrap transport with OTel instrumentation.
 	baseTransport := apiClient.Client.Transport
 	if baseTransport == nil {
 		baseTransport = http.DefaultTransport
@@ -76,417 +54,221 @@ func (c *Client) getAuthenticatedAPIClient(ctx context.Context, did syntax.DID, 
 		Jar:           apiClient.Client.Jar,
 	}
 
-	return apiClient, nil
+	return atp.NewClient(apiClient, did), nil
 }
 
-// CreateRecordInput contains parameters for creating a record
+// --- Input/Output types (kept for caller compatibility) ---
+
 type CreateRecordInput struct {
 	Collection string
 	Record     any
-	RKey       *string // Optional, if nil a TID will be generated
+	RKey       *string
 }
 
-// CreateRecordOutput contains the result of creating a record
 type CreateRecordOutput struct {
-	URI string // AT-URI of the created record
-	CID string // Content ID
+	URI string
+	CID string
 }
 
-// CreateRecord creates a new record in the user's repository
-func (c *Client) CreateRecord(ctx context.Context, did syntax.DID, sessionID string, input *CreateRecordInput) (*CreateRecordOutput, error) {
-	ctx, span := tracing.PdsSpan(ctx, "createRecord", input.Collection, did.String())
-	defer span.End()
-
-	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return nil, err
-	}
-
-	// Build the request body
-	body := map[string]any{
-		"repo":       did.String(),
-		"collection": input.Collection,
-		"record":     input.Record,
-	}
-
-	if input.RKey != nil {
-		body["rkey"] = *input.RKey
-	}
-
-	// Use the API client's Post method to call com.atproto.repo.createRecord
-	var result struct {
-		URI string `json:"uri"`
-		CID string `json:"cid"`
-	}
-
-	err = apiClient.Post(ctx, "com.atproto.repo.createRecord", body, &result)
-	metrics.PDSRequestsTotal.WithLabelValues("createRecord", input.Collection).Inc()
-
-	if err != nil {
-		err = wrapPDSError(err)
-		tracing.EndWithError(span, err)
-		log.Error().
-			Err(err).
-			Str("method", "createRecord").
-			Str("collection", input.Collection).
-			Str("did", did.String()).
-			Msg("PDS request failed")
-		return nil, fmt.Errorf("failed to create record: %w", err)
-	}
-
-	log.Debug().
-		Str("method", "createRecord").
-		Str("collection", input.Collection).
-		Str("did", did.String()).
-		Str("uri", result.URI).
-		Str("cid", result.CID).
-		Msg("PDS request completed")
-
-	return &CreateRecordOutput{
-		URI: result.URI,
-		CID: result.CID,
-	}, nil
-}
-
-// GetRecordInput contains parameters for getting a record
 type GetRecordInput struct {
 	Collection string
 	RKey       string
 }
 
-// GetRecordOutput contains the result of getting a record
 type GetRecordOutput struct {
 	URI   string
 	CID   string
 	Value map[string]any
 }
 
-// GetRecord retrieves a single record by its rkey
-func (c *Client) GetRecord(ctx context.Context, did syntax.DID, sessionID string, input *GetRecordInput) (*GetRecordOutput, error) {
-	ctx, span := tracing.PdsSpan(ctx, "getRecord", input.Collection, did.String())
-	defer span.End()
-
-	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return nil, err
-	}
-
-	// Build query parameters
-	params := map[string]any{
-		"repo":       did.String(),
-		"collection": input.Collection,
-		"rkey":       input.RKey,
-	}
-
-	// Use the API client's Get method to call com.atproto.repo.getRecord
-	var result struct {
-		URI   string         `json:"uri"`
-		CID   string         `json:"cid"`
-		Value map[string]any `json:"value"`
-	}
-
-	err = apiClient.Get(ctx, "com.atproto.repo.getRecord", params, &result)
-	metrics.PDSRequestsTotal.WithLabelValues("getRecord", input.Collection).Inc()
-
-	if err != nil {
-		err = wrapPDSError(err)
-		tracing.EndWithError(span, err)
-		log.Error().
-			Err(err).
-			Str("method", "getRecord").
-			Str("collection", input.Collection).
-			Str("rkey", input.RKey).
-			Str("did", did.String()).
-			Msg("PDS request failed")
-		return nil, fmt.Errorf("failed to get record: %w", err)
-	}
-
-	log.Debug().
-		Str("method", "getRecord").
-		Str("collection", input.Collection).
-		Str("rkey", input.RKey).
-		Str("did", did.String()).
-		Str("uri", result.URI).
-		Str("cid", result.CID).
-		Msg("PDS request completed")
-
-	return &GetRecordOutput{
-		URI:   result.URI,
-		CID:   result.CID,
-		Value: result.Value,
-	}, nil
-}
-
-// ListRecordsInput contains parameters for listing records
 type ListRecordsInput struct {
 	Collection string
 	Limit      *int64
 	Cursor     *string
 }
 
-// ListRecordsOutput contains the result of listing records
 type ListRecordsOutput struct {
 	Records []Record
 	Cursor  *string
 }
 
-// Record represents a single record in a list
-type Record struct {
-	URI   string
-	CID   string
-	Value map[string]any
-}
-
-// ListRecords retrieves a list of records from a collection
-func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID string, input *ListRecordsInput) (*ListRecordsOutput, error) {
-	ctx, span := tracing.PdsSpan(ctx, "listRecords", input.Collection, did.String())
-	defer span.End()
-
-	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return nil, err
-	}
-
-	// Build query parameters
-	params := map[string]any{
-		"repo":       did.String(),
-		"collection": input.Collection,
-	}
-
-	if input.Limit != nil {
-		params["limit"] = *input.Limit
-	}
-	if input.Cursor != nil {
-		params["cursor"] = *input.Cursor
-	}
-
-	// Use the API client's Get method to call com.atproto.repo.listRecords
-	var result struct {
-		Records []struct {
-			URI   string         `json:"uri"`
-			CID   string         `json:"cid"`
-			Value map[string]any `json:"value"`
-		} `json:"records"`
-		Cursor *string `json:"cursor,omitempty"`
-	}
-
-	err = apiClient.Get(ctx, "com.atproto.repo.listRecords", params, &result)
-	recordCount := len(result.Records)
-	metrics.PDSRequestsTotal.WithLabelValues("listRecords", input.Collection).Inc()
-
-	if err != nil {
-		err = wrapPDSError(err)
-		tracing.EndWithError(span, err)
-		log.Error().
-			Err(err).
-			Str("method", "listRecords").
-			Str("collection", input.Collection).
-			Str("did", did.String()).
-			Msg("PDS request failed")
-		return nil, fmt.Errorf("failed to list records: %w", err)
-	}
-
-	logEvent := log.Debug().
-		Str("method", "listRecords").
-		Str("collection", input.Collection).
-		Str("did", did.String()).
-		Int("record_count", recordCount)
-
-	if result.Cursor != nil && *result.Cursor != "" {
-		logEvent.Str("cursor", *result.Cursor).Bool("has_more", true)
-	} else {
-		logEvent.Bool("has_more", false)
-	}
-
-	logEvent.Msg("PDS request completed")
-
-	// Convert to our output format
-	records := make([]Record, len(result.Records))
-	for i, r := range result.Records {
-		records[i] = Record{
-			URI:   r.URI,
-			CID:   r.CID,
-			Value: r.Value,
-		}
-	}
-
-	return &ListRecordsOutput{
-		Records: records,
-		Cursor:  result.Cursor,
-	}, nil
-}
-
-// ListAllRecords retrieves all records from a collection, handling pagination automatically
-// This is useful when you need to fetch the complete collection without worrying about pagination
-func (c *Client) ListAllRecords(ctx context.Context, did syntax.DID, sessionID string, collection string) (*ListRecordsOutput, error) {
-	ctx, span := tracing.PdsSpan(ctx, "listAllRecords", collection, did.String())
-	defer span.End()
-
-	var allRecords []Record
-	var cursor *string
-	pageCount := 0
-
-	// ATProto typically returns up to 100 records per page by default
-	// We'll request 100 at a time and paginate through all results
-	limit := int64(100)
-
-	for {
-		// Check for context cancellation before each page request
-		// This allows long-running pagination to be cancelled gracefully
-		select {
-		case <-ctx.Done():
-			tracing.EndWithError(span, ctx.Err())
-			return nil, ctx.Err()
-		default:
-		}
-
-		output, err := c.ListRecords(ctx, did, sessionID, &ListRecordsInput{
-			Collection: collection,
-			Limit:      &limit,
-			Cursor:     cursor,
-		})
-		if err != nil {
-			tracing.EndWithError(span, err)
-			return nil, err
-		}
-
-		allRecords = append(allRecords, output.Records...)
-		pageCount++
-
-		// If there's no cursor, we've fetched all records
-		if output.Cursor == nil || *output.Cursor == "" {
-			break
-		}
-
-		cursor = output.Cursor
-	}
-
-	log.Info().
-		Str("method", "listAllRecords").
-		Str("collection", collection).
-		Str("did", did.String()).
-		Int("total_records", len(allRecords)).
-		Int("pages_fetched", pageCount).
-		Msg("PDS pagination completed")
-
-	return &ListRecordsOutput{
-		Records: allRecords,
-		Cursor:  nil, // All records fetched, no more pagination
-	}, nil
-}
-
-// PutRecordInput contains parameters for updating a record
 type PutRecordInput struct {
 	Collection string
 	RKey       string
 	Record     any
 }
 
-// PutRecord updates an existing record in the user's repository
-func (c *Client) PutRecord(ctx context.Context, did syntax.DID, sessionID string, input *PutRecordInput) error {
-	ctx, span := tracing.PdsSpan(ctx, "putRecord", input.Collection, did.String())
-	defer span.End()
-
-	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return err
-	}
-
-	// Build the request body
-	body := map[string]any{
-		"repo":       did.String(),
-		"collection": input.Collection,
-		"rkey":       input.RKey,
-		"record":     input.Record,
-	}
-
-	// Use the API client's Post method to call com.atproto.repo.putRecord
-	var result struct {
-		URI string `json:"uri"`
-		CID string `json:"cid"`
-	}
-
-	err = apiClient.Post(ctx, "com.atproto.repo.putRecord", body, &result)
-	metrics.PDSRequestsTotal.WithLabelValues("putRecord", input.Collection).Inc()
-
-	if err != nil {
-		err = wrapPDSError(err)
-		tracing.EndWithError(span, err)
-		log.Error().
-			Err(err).
-			Str("method", "putRecord").
-			Str("collection", input.Collection).
-			Str("rkey", input.RKey).
-			Str("did", did.String()).
-			Msg("PDS request failed")
-		return fmt.Errorf("failed to update record: %w", err)
-	}
-
-	log.Debug().
-		Str("method", "putRecord").
-		Str("collection", input.Collection).
-		Str("rkey", input.RKey).
-		Str("did", did.String()).
-		Str("uri", result.URI).
-		Str("cid", result.CID).
-		Msg("PDS request completed")
-
-	return nil
-}
-
-// DeleteRecordInput contains parameters for deleting a record
 type DeleteRecordInput struct {
 	Collection string
 	RKey       string
 }
 
-// DeleteRecord deletes a record from the user's repository
-func (c *Client) DeleteRecord(ctx context.Context, did syntax.DID, sessionID string, input *DeleteRecordInput) error {
-	ctx, span := tracing.PdsSpan(ctx, "deleteRecord", input.Collection, did.String())
+// --- CRUD methods ---
+
+func (c *Client) CreateRecord(ctx context.Context, did syntax.DID, sessionID string, input *CreateRecordInput) (*CreateRecordOutput, error) {
+	ctx, span := tracing.PdsSpan(ctx, "createRecord", input.Collection, did.String())
 	defer span.End()
 
-	apiClient, err := c.getAuthenticatedAPIClient(ctx, did, sessionID)
+	atpClient, err := c.getAtpClient(ctx, did, sessionID)
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return nil, err
+	}
+
+	var uri, cid string
+	if input.RKey != nil {
+		uri, cid, err = atpClient.CreateRecordWithRKey(ctx, input.Collection, *input.RKey, input.Record)
+	} else {
+		uri, cid, err = atpClient.CreateRecord(ctx, input.Collection, input.Record)
+	}
+	metrics.PDSRequestsTotal.WithLabelValues("createRecord", input.Collection).Inc()
+
+	if err != nil {
+		tracing.EndWithError(span, err)
+		log.Error().Err(err).Str("method", "createRecord").Str("collection", input.Collection).Str("did", did.String()).Msg("PDS request failed")
+		return nil, fmt.Errorf("failed to create record: %w", err)
+	}
+
+	log.Debug().Str("method", "createRecord").Str("collection", input.Collection).Str("did", did.String()).Str("uri", uri).Str("cid", cid).Msg("PDS request completed")
+	return &CreateRecordOutput{URI: uri, CID: cid}, nil
+}
+
+func (c *Client) GetRecord(ctx context.Context, did syntax.DID, sessionID string, input *GetRecordInput) (*GetRecordOutput, error) {
+	ctx, span := tracing.PdsSpan(ctx, "getRecord", input.Collection, did.String())
+	defer span.End()
+
+	atpClient, err := c.getAtpClient(ctx, did, sessionID)
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return nil, err
+	}
+
+	rec, err := atpClient.GetRecord(ctx, input.Collection, input.RKey)
+	metrics.PDSRequestsTotal.WithLabelValues("getRecord", input.Collection).Inc()
+
+	if err != nil {
+		tracing.EndWithError(span, err)
+		log.Error().Err(err).Str("method", "getRecord").Str("collection", input.Collection).Str("rkey", input.RKey).Str("did", did.String()).Msg("PDS request failed")
+		return nil, fmt.Errorf("failed to get record: %w", err)
+	}
+
+	log.Debug().Str("method", "getRecord").Str("collection", input.Collection).Str("rkey", input.RKey).Str("did", did.String()).Str("uri", rec.URI).Str("cid", rec.CID).Msg("PDS request completed")
+	return &GetRecordOutput{URI: rec.URI, CID: rec.CID, Value: rec.Value}, nil
+}
+
+func (c *Client) ListRecords(ctx context.Context, did syntax.DID, sessionID string, input *ListRecordsInput) (*ListRecordsOutput, error) {
+	ctx, span := tracing.PdsSpan(ctx, "listRecords", input.Collection, did.String())
+	defer span.End()
+
+	atpClient, err := c.getAtpClient(ctx, did, sessionID)
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return nil, err
+	}
+
+	var limit int
+	if input.Limit != nil {
+		limit = int(*input.Limit)
+	}
+	var cursor string
+	if input.Cursor != nil {
+		cursor = *input.Cursor
+	}
+
+	result, err := atpClient.ListRecords(ctx, input.Collection, limit, cursor)
+	metrics.PDSRequestsTotal.WithLabelValues("listRecords", input.Collection).Inc()
+
+	if err != nil {
+		tracing.EndWithError(span, err)
+		log.Error().Err(err).Str("method", "listRecords").Str("collection", input.Collection).Str("did", did.String()).Msg("PDS request failed")
+		return nil, fmt.Errorf("failed to list records: %w", err)
+	}
+
+	logEvent := log.Debug().Str("method", "listRecords").Str("collection", input.Collection).Str("did", did.String()).Int("record_count", len(result.Records))
+	if result.Cursor != "" {
+		logEvent.Str("cursor", result.Cursor).Bool("has_more", true)
+	} else {
+		logEvent.Bool("has_more", false)
+	}
+	logEvent.Msg("PDS request completed")
+
+	var cursorPtr *string
+	if result.Cursor != "" {
+		cursorPtr = &result.Cursor
+	}
+
+	return &ListRecordsOutput{
+		Records: result.Records,
+		Cursor:  cursorPtr,
+	}, nil
+}
+
+func (c *Client) ListAllRecords(ctx context.Context, did syntax.DID, sessionID string, collection string) (*ListRecordsOutput, error) {
+	ctx, span := tracing.PdsSpan(ctx, "listAllRecords", collection, did.String())
+	defer span.End()
+
+	atpClient, err := c.getAtpClient(ctx, did, sessionID)
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return nil, err
+	}
+
+	records, err := atpClient.ListAllRecords(ctx, collection)
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return nil, err
+	}
+
+	log.Info().Str("method", "listAllRecords").Str("collection", collection).Str("did", did.String()).Int("total_records", len(records)).Msg("PDS pagination completed")
+
+	return &ListRecordsOutput{
+		Records: records,
+		Cursor:  nil,
+	}, nil
+}
+
+func (c *Client) PutRecord(ctx context.Context, did syntax.DID, sessionID string, input *PutRecordInput) error {
+	ctx, span := tracing.PdsSpan(ctx, "putRecord", input.Collection, did.String())
+	defer span.End()
+
+	atpClient, err := c.getAtpClient(ctx, did, sessionID)
 	if err != nil {
 		tracing.EndWithError(span, err)
 		return err
 	}
 
-	// Build the request body
-	body := map[string]any{
-		"repo":       did.String(),
-		"collection": input.Collection,
-		"rkey":       input.RKey,
+	_, _, err = atpClient.PutRecord(ctx, input.Collection, input.RKey, input.Record)
+	metrics.PDSRequestsTotal.WithLabelValues("putRecord", input.Collection).Inc()
+
+	if err != nil {
+		tracing.EndWithError(span, err)
+		log.Error().Err(err).Str("method", "putRecord").Str("collection", input.Collection).Str("rkey", input.RKey).Str("did", did.String()).Msg("PDS request failed")
+		return fmt.Errorf("failed to update record: %w", err)
 	}
 
-	// Use the API client's Post method to call com.atproto.repo.deleteRecord
-	var result struct{}
+	log.Debug().Str("method", "putRecord").Str("collection", input.Collection).Str("rkey", input.RKey).Str("did", did.String()).Msg("PDS request completed")
+	return nil
+}
 
-	err = apiClient.Post(ctx, "com.atproto.repo.deleteRecord", body, &result)
+func (c *Client) DeleteRecord(ctx context.Context, did syntax.DID, sessionID string, input *DeleteRecordInput) error {
+	ctx, span := tracing.PdsSpan(ctx, "deleteRecord", input.Collection, did.String())
+	defer span.End()
+
+	atpClient, err := c.getAtpClient(ctx, did, sessionID)
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return err
+	}
+
+	err = atpClient.DeleteRecord(ctx, input.Collection, input.RKey)
 	metrics.PDSRequestsTotal.WithLabelValues("deleteRecord", input.Collection).Inc()
 
 	if err != nil {
-		err = wrapPDSError(err)
 		tracing.EndWithError(span, err)
-		log.Error().
-			Err(err).
-			Str("method", "deleteRecord").
-			Str("collection", input.Collection).
-			Str("rkey", input.RKey).
-			Str("did", did.String()).
-			Msg("PDS request failed")
+		log.Error().Err(err).Str("method", "deleteRecord").Str("collection", input.Collection).Str("rkey", input.RKey).Str("did", did.String()).Msg("PDS request failed")
 		return fmt.Errorf("failed to delete record: %w", err)
 	}
 
-	log.Debug().
-		Str("method", "deleteRecord").
-		Str("collection", input.Collection).
-		Str("rkey", input.RKey).
-		Str("did", did.String()).
-		Msg("PDS request completed")
-
+	log.Debug().Str("method", "deleteRecord").Str("collection", input.Collection).Str("rkey", input.RKey).Str("did", did.String()).Msg("PDS request completed")
 	return nil
 }

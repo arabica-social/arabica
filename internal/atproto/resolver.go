@@ -7,6 +7,7 @@ import (
 	"arabica/internal/models"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/pdewey.com/atp"
 )
 
 // ATURIComponents holds the parsed components of an AT-URI
@@ -16,18 +17,18 @@ type ATURIComponents struct {
 	RKey       string
 }
 
-// ResolveATURI parses an AT-URI and returns its components
+// ResolveATURI parses an AT-URI and returns its components.
 // AT-URI format: at://did:plc:abc123/social.arabica.brew/3jxyabc
 func ResolveATURI(uri string) (*ATURIComponents, error) {
-	atURI, err := syntax.ParseATURI(uri)
+	did, collection, rkey, err := atp.ParseATURI(uri)
 	if err != nil {
-		return nil, fmt.Errorf("invalid AT-URI: %w", err)
+		return nil, err
 	}
 
 	return &ATURIComponents{
-		DID:        atURI.Authority().String(),
-		Collection: atURI.Collection().String(),
-		RKey:       atURI.RecordKey().String(),
+		DID:        did,
+		Collection: collection,
+		RKey:       rkey,
 	}, nil
 }
 

@@ -1,114 +1,48 @@
+// Package tracing re-exports atp/tracing span helpers and provides
+// arabica-specific initialization (zerolog bridge).
 package tracing
 
 import (
 	"context"
-	"os"
 
 	"github.com/go-logr/zerologr"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
+
+	atptracing "tangled.org/pdewey.com/atp/tracing"
 )
 
-// tracer returns the package tracer. This must be a function (not a package-level var)
-// because the global TracerProvider isn't set until Init() runs.
-func tracer() trace.Tracer {
-	return otel.Tracer("arabica")
-}
-
 // Init creates and registers a tracer provider with an OTLP HTTP exporter.
-// It reads OTEL_EXPORTER_OTLP_ENDPOINT (default: localhost:4318).
-// Returns the provider so the caller can defer Shutdown.
+// Bridges OTel's internal logger to zerolog before delegating to atp/tracing.
 func Init(ctx context.Context) (*sdktrace.TracerProvider, error) {
-	// Bridge OTel's internal logger to zerolog
 	otel.SetLogger(zerologr.New(&log.Logger))
-
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if endpoint == "" {
-		endpoint = "localhost:4318"
-	}
-
-	exp, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint(endpoint),
-		otlptracehttp.WithInsecure(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exp),
-		sdktrace.WithResource(resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("arabica"),
-		)),
-	)
-
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
-
-	return tp, nil
+	return atptracing.Init(ctx, "arabica")
 }
 
-// BoltSpan starts a span for a BoltDB operation with standard attributes.
-// Returns a no-op span if there is no parent span in ctx (e.g. background goroutines).
+// BoltSpan starts a span for a BoltDB operation.
 func BoltSpan(ctx context.Context, op, bucket string) (context.Context, trace.Span) {
-	if !trace.SpanFromContext(ctx).SpanContext().IsValid() {
-		return ctx, trace.SpanFromContext(ctx)
-	}
-	return tracer().Start(ctx, "bolt."+op,
-		trace.WithAttributes(
-			attribute.String("db.system", "boltdb"),
-			attribute.String("db.operation", op),
-			attribute.String("bolt.bucket", bucket),
-		),
-	)
+	return atptracing.BoltSpan(ctx, op, bucket)
 }
 
-// PdsSpan starts a span for a PDS operation with standard attributes.
-func PdsSpan(ctx context.Context, method, collection, did string) (context.Context, trace.Span) {
-	return tracer().Start(ctx, "pds."+method,
-		trace.WithAttributes(
-			attribute.String("pds.method", method),
-			attribute.String("pds.collection", collection),
-			attribute.String("pds.did", did),
-		),
-	)
-}
-
-// SqliteSpan starts a span for a SQLite operation with standard attributes.
-// Returns a no-op span if there is no parent span in ctx.
+// SqliteSpan starts a span for a SQLite operation.
 func SqliteSpan(ctx context.Context, op, table string) (context.Context, trace.Span) {
-	if !trace.SpanFromContext(ctx).SpanContext().IsValid() {
-		return ctx, trace.SpanFromContext(ctx)
-	}
-	return tracer().Start(ctx, "sqlite."+op,
-		trace.WithAttributes(
-			attribute.String("db.system", "sqlite"),
-			attribute.String("db.operation", op),
-			attribute.String("db.sql.table", table),
-		),
-	)
+	return atptracing.SqliteSpan(ctx, op, table)
+}
+
+// PdsSpan starts a span for a PDS XRPC operation.
+func PdsSpan(ctx context.Context, method, collection, did string) (context.Context, trace.Span) {
+	return atptracing.PdsSpan(ctx, method, collection, did)
 }
 
 // HandlerSpan starts a span for a logical operation within a handler.
-// Use this to group related work (e.g. a refresh loop) under a single span.
 func HandlerSpan(ctx context.Context, name string, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
-	return tracer().Start(ctx, name, trace.WithAttributes(attrs...))
+	return atptracing.HandlerSpan(ctx, name, attrs...)
 }
 
 // EndWithError records an error on a span and sets its status.
-// If err is nil, this is a no-op.
 func EndWithError(span trace.Span, err error) {
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-	}
+	atptracing.EndWithError(span, err)
 }
