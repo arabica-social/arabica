@@ -107,7 +107,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
-			<link rel="stylesheet" href="/static/css/output.css?v=0.8.3"/>
+			<link rel="stylesheet" href="/static/css/output.css?v=0.8.4"/>
 			<style>
 			[x-cloak] { display: none !important; }
 		</style>
@@ -300,7 +300,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<meta name="traceparent" content={ tp }/>
 		}
 		<body
-			class="min-h-full flex flex-col"
+			class="min-h-full flex flex-col font-sans"
 			style="background-color: var(--page-bg); color: var(--page-text);"
 			if data.UserDID != "" {
 				data-user-did={ data.UserDID }

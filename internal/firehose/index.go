@@ -1160,7 +1160,7 @@ func (idx *FeedIndex) GetKnownDIDs(ctx context.Context) ([]string, error) {
 func (idx *FeedIndex) ListRecordsByCollection(ctx context.Context, collection string) ([]IndexedRecord, error) {
 	rows, err := idx.db.QueryContext(ctx, `
 		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
-		FROM records WHERE collection = ? ORDER BY created_at DESC
+		FROM records WHERE collection = ? ORDER BY created_at ASC
 	`, collection)
 	if err != nil {
 		return nil, err
