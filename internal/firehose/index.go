@@ -1194,6 +1194,17 @@ func (idx *FeedIndex) listRecordsByCollection(ctx context.Context, collection st
 	return records, rows.Err()
 }
 
+// CountReferencesToURI returns how many records have a sourceRef pointing to the given URI.
+// This searches the JSON record field across all collections.
+func (idx *FeedIndex) CountReferencesToURI(ctx context.Context, uri string) (int, error) {
+	var count int
+	err := idx.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM records
+		WHERE json_extract(record, '$.sourceRef') = ?
+	`, uri).Scan(&count)
+	return count, err
+}
+
 // RecordCount returns the total number of indexed records
 func (idx *FeedIndex) RecordCount() int {
 	var count int

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"arabica/internal/models"
+	"arabica/internal/suggestions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,6 +60,102 @@ func fetchSuggestions(t *testing.T, h *Harness, client *http.Client, entity, que
 	var results []suggestionResult
 	require.NoError(t, json.Unmarshal([]byte(body), &results))
 	return results
+}
+
+// roasterURI builds the AT-URI for a roaster owned by the given DID.
+func roasterURI(did, rkey string) string {
+	return "at://" + did + "/social.arabica.alpha.roaster/" + rkey
+}
+
+// TestHTTP_SuggestionScoring_PrefersReferenced verifies the sourceRef selection
+// logic end-to-end: when a roaster has been "adopted" by other users (their
+// records carry source_ref pointing back at the original), that original URI
+// should win as the canonical sourceRef in the suggestions response.
+//
+// This is the original motivating scenario for the scoring work — exercises
+// witness cache writes, the json_extract reference query, and the composite
+// score function all together.
+func TestHTTP_SuggestionScoring_PrefersReferenced(t *testing.T) {
+	h := StartHarness(t, nil)
+
+	// Four users total: alice/bob/carol contribute, dave queries.
+	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
+	carol := h.CreateAccount("carol@test.com", "carol.test", "hunter2")
+	dave := h.CreateAccount("dave@test.com", "dave.test", "hunter2")
+
+	aliceClient := h.Client // primary == alice
+	bobClient := h.NewClientForAccount(bob)
+	carolClient := h.NewClientForAccount(carol)
+	daveClient := h.NewClientForAccount(dave)
+	alice := h.PrimaryAccount
+
+	// Alice creates the canonical "Counter Culture" roaster (no sourceRef).
+	aliceRoaster := postRoasterAs(t, h, aliceClient, "Counter Culture", "Durham, NC", "")
+	aliceURI := roasterURI(alice.DID, aliceRoaster.RKey)
+
+	// Bob and Carol both adopt Alice's roaster — i.e. they create their own
+	// records with source_ref pointing at her URI. Each adoption gives Alice
+	// +2 points in the score function (refCount * 2).
+	postRoasterAs(t, h, bobClient, "Counter Culture Coffee", "Durham, NC", aliceURI)
+	postRoasterAs(t, h, carolClient, "Counter Culture", "Durham, NC", aliceURI)
+
+	// Dave queries suggestions. The three contributing roasters dedupe into
+	// one candidate, and Alice's URI should win because two records reference it.
+	results := fetchSuggestions(t, h, daveClient, "roasters", "counter")
+	require.NotEmpty(t, results, "expected at least one suggestion")
+
+	var cc *suggestionResult
+	for i := range results {
+		if strings.Contains(strings.ToLower(results[i].Name), "counter culture") {
+			cc = &results[i]
+			break
+		}
+	}
+	require.NotNil(t, cc, "expected a Counter Culture suggestion in results")
+
+	assert.Equal(t, 3, cc.Count, "all three contributing users should be counted")
+	assert.Equal(t, aliceURI, cc.SourceURI,
+		"alice's roaster (referenced by 2 others) should win as the canonical sourceRef")
+}
+
+// TestHTTP_SuggestionScoring_PreferredDIDOverride verifies that a DID added to
+// suggestions.PreferredDIDs wins over a record with more references.
+func TestHTTP_SuggestionScoring_PreferredDIDOverride(t *testing.T) {
+	h := StartHarness(t, nil)
+
+	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
+	carol := h.CreateAccount("carol@test.com", "carol.test", "hunter2")
+	dave := h.CreateAccount("dave@test.com", "dave.test", "hunter2")
+
+	aliceClient := h.Client
+	bobClient := h.NewClientForAccount(bob)
+	carolClient := h.NewClientForAccount(carol)
+	daveClient := h.NewClientForAccount(dave)
+	alice := h.PrimaryAccount
+
+	// Alice creates the canonical roaster, Bob and Carol adopt it.
+	aliceRoaster := postRoasterAs(t, h, aliceClient, "Counter Culture", "Durham, NC", "")
+	aliceURI := roasterURI(alice.DID, aliceRoaster.RKey)
+	bobRoaster := postRoasterAs(t, h, bobClient, "Counter Culture Coffee", "Durham, NC", aliceURI)
+	postRoasterAs(t, h, carolClient, "Counter Culture", "Durham, NC", aliceURI)
+
+	// Mark Bob as preferred. The +10 bonus should overcome Alice's +4 from refs.
+	suggestions.PreferredDIDs[bob.DID] = struct{}{}
+	t.Cleanup(func() { delete(suggestions.PreferredDIDs, bob.DID) })
+
+	results := fetchSuggestions(t, h, daveClient, "roasters", "counter")
+	var cc *suggestionResult
+	for i := range results {
+		if strings.Contains(strings.ToLower(results[i].Name), "counter culture") {
+			cc = &results[i]
+			break
+		}
+	}
+	require.NotNil(t, cc)
+
+	bobURI := roasterURI(bob.DID, bobRoaster.RKey)
+	assert.Equal(t, bobURI, cc.SourceURI,
+		"bob's roaster should win because his DID is in PreferredDIDs")
 }
 
 // TestHTTP_SuggestionDedupe verifies that when multiple users post a roaster

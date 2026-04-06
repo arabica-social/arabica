@@ -22,7 +22,13 @@ type EntitySuggestion struct {
 // RecordSource provides read access to indexed records.
 type RecordSource interface {
 	ListRecordsByCollectionOldest(ctx context.Context, collection string) ([]firehose.IndexedRecord, error)
+	CountReferencesToURI(ctx context.Context, uri string) (int, error)
 }
+
+// PreferredDIDs is a set of DIDs whose records should be preferred when
+// choosing the representative sourceRef for a suggestion. Records from
+// preferred DIDs get a scoring bonus during deduplication.
+var PreferredDIDs = map[string]struct{}{}
 
 // entityFieldConfig defines which fields to extract and search for each entity type
 type entityFieldConfig struct {
@@ -238,7 +244,7 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 	// dedupKey -> aggregated suggestion
 	type candidate struct {
 		suggestion EntitySuggestion
-		fieldCount int // number of non-empty fields (to pick best representative)
+		score      int // composite score for picking best representative
 		dids       map[string]struct{}
 	}
 	candidates := make(map[string]*candidate)
@@ -286,15 +292,15 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 		// Deduplicate using entity-specific key
 		key := config.dedupKey(fields)
 
+		score := scoreRecord(ctx, source, indexed.URI, indexed.DID, fields)
+
 		if existing, ok := candidates[key]; ok {
 			existing.dids[indexed.DID] = struct{}{}
-			// Keep the record with more complete fields
-			nonEmpty := countNonEmpty(fields)
-			if nonEmpty > existing.fieldCount {
+			if score > existing.score {
 				existing.suggestion.Name = name
 				existing.suggestion.Fields = fields
 				existing.suggestion.SourceURI = indexed.URI
-				existing.fieldCount = nonEmpty
+				existing.score = score
 			}
 		} else {
 			candidates[key] = &candidate{
@@ -303,8 +309,8 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 					SourceURI: indexed.URI,
 					Fields:    fields,
 				},
-				fieldCount: countNonEmpty(fields),
-				dids:       map[string]struct{}{indexed.DID: {}},
+				score: score,
+				dids:  map[string]struct{}{indexed.DID: {}},
 			}
 		}
 	}
@@ -334,6 +340,25 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 	}
 
 	return results, nil
+}
+
+// scoreRecord computes a composite score for choosing the best representative
+// record within a dedup group. Higher score wins. Factors:
+//   - Field completeness (1 point per non-empty field)
+//   - Reference count (2 points per record that references this URI via sourceRef)
+//   - Preferred DID bonus (10 points if the record's author is in PreferredDIDs)
+func scoreRecord(ctx context.Context, source RecordSource, uri, did string, fields map[string]string) int {
+	score := countNonEmpty(fields)
+
+	if refCount, err := source.CountReferencesToURI(ctx, uri); err == nil {
+		score += refCount * 2
+	}
+
+	if _, ok := PreferredDIDs[did]; ok {
+		score += 10
+	}
+
+	return score
 }
 
 func countNonEmpty(fields map[string]string) int {
