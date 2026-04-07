@@ -286,6 +286,39 @@ func (h *Harness) Get(path string) *http.Response {
 	return resp
 }
 
+// GetHTMX fetches a path as the primary account with the HX-Request header set,
+// for endpoints behind RequireHTMXMiddleware.
+func (h *Harness) GetHTMX(path string) *http.Response {
+	h.T.Helper()
+	req, err := http.NewRequest("GET", h.URL(path), nil)
+	require.NoError(h.T, err)
+	req.Header.Set("HX-Request", "true")
+	resp, err := h.Client.Do(req)
+	require.NoError(h.T, err)
+	return resp
+}
+
+// PutForm sends a urlencoded form via PUT as the primary account.
+func (h *Harness) PutForm(path string, form url.Values) *http.Response {
+	h.T.Helper()
+	req, err := http.NewRequest("PUT", h.URL(path), strings.NewReader(form.Encode()))
+	require.NoError(h.T, err)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := h.Client.Do(req)
+	require.NoError(h.T, err)
+	return resp
+}
+
+// Delete sends a DELETE request as the primary account.
+func (h *Harness) Delete(path string) *http.Response {
+	h.T.Helper()
+	req, err := http.NewRequest("DELETE", h.URL(path), nil)
+	require.NoError(h.T, err)
+	resp, err := h.Client.Do(req)
+	require.NoError(h.T, err)
+	return resp
+}
+
 // ReadBody drains and returns the response body, closing it.
 func ReadBody(t *testing.T, resp *http.Response) string {
 	t.Helper()

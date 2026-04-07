@@ -66,6 +66,84 @@ func TestHTTP_RoasterCreateValidationError(t *testing.T) {
 	assert.Equal(t, 400, resp.StatusCode, statusErr(resp, body))
 }
 
+// TestHTTP_RoasterUpdateFlow exercises PUT /api/roasters/{id}: create a
+// roaster, update it, then verify the change round-tripped through the PDS by
+// listing all data via /api/data.
+func TestHTTP_RoasterUpdateFlow(t *testing.T) {
+	h := StartHarness(t, nil)
+
+	createForm := url.Values{}
+	createForm.Set("name", "Sey Coffee")
+	createForm.Set("location", "Brooklyn, NY")
+	createResp := h.PostForm("/api/roasters", createForm)
+	createBody := ReadBody(t, createResp)
+	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
+
+	var created models.Roaster
+	require.NoError(t, json.Unmarshal([]byte(createBody), &created))
+	require.NotEmpty(t, created.RKey)
+
+	updateForm := url.Values{}
+	updateForm.Set("name", "Sey Coffee Roasters")
+	updateForm.Set("location", "Brooklyn, NY")
+	updateForm.Set("website", "https://seycoffee.com")
+	updateResp := h.PutForm("/api/roasters/"+created.RKey, updateForm)
+	updateBody := ReadBody(t, updateResp)
+	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, updateBody))
+
+	listResp := h.Get("/api/data")
+	listBody := ReadBody(t, listResp)
+	require.Equal(t, 200, listResp.StatusCode, statusErr(listResp, listBody))
+
+	var data struct {
+		Roasters []models.Roaster `json:"roasters"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(listBody), &data))
+
+	var found *models.Roaster
+	for i := range data.Roasters {
+		if data.Roasters[i].RKey == created.RKey {
+			found = &data.Roasters[i]
+			break
+		}
+	}
+	require.NotNil(t, found, "updated roaster not found in list")
+	assert.Equal(t, "Sey Coffee Roasters", found.Name)
+	assert.Equal(t, "https://seycoffee.com", found.Website)
+}
+
+// TestHTTP_RoasterDeleteFlow exercises DELETE /api/roasters/{id}: create a
+// roaster, delete it, then verify it's gone from /api/data.
+func TestHTTP_RoasterDeleteFlow(t *testing.T) {
+	h := StartHarness(t, nil)
+
+	createForm := url.Values{}
+	createForm.Set("name", "Heart Coffee")
+	createResp := h.PostForm("/api/roasters", createForm)
+	createBody := ReadBody(t, createResp)
+	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
+
+	var created models.Roaster
+	require.NoError(t, json.Unmarshal([]byte(createBody), &created))
+	require.NotEmpty(t, created.RKey)
+
+	delResp := h.Delete("/api/roasters/" + created.RKey)
+	delBody := ReadBody(t, delResp)
+	require.Equal(t, 200, delResp.StatusCode, statusErr(delResp, delBody))
+
+	listResp := h.Get("/api/data")
+	listBody := ReadBody(t, listResp)
+	require.Equal(t, 200, listResp.StatusCode, statusErr(listResp, listBody))
+
+	var data struct {
+		Roasters []models.Roaster `json:"roasters"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(listBody), &data))
+	for _, r := range data.Roasters {
+		assert.NotEqual(t, created.RKey, r.RKey, "roaster still present after delete")
+	}
+}
+
 // TestHTTP_BeanCreateLinksToRoaster exercises a multi-step flow: create a
 // roaster, then create a bean referencing it. Verifies the cross-entity
 // reference round-trips through the handler layer.
