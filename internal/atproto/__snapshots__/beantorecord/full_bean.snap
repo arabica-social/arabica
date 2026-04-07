@@ -1,0 +1,17 @@
+---
+title: BeanToRecord/full bean
+test_name: TestBeanToRecord/full_bean
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "2025-01-10T12:00:00Z",
+  "description": "Fruity and floral notes",
+  "name": "Ethiopian Yirgacheffe",
+  "origin": "Ethiopia",
+  "process": "Washed",
+  "roastLevel": "Light",
+  "roasterRef": "at://did:plc:test/social.arabica.alpha.roaster/roaster123",
+}

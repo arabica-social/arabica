@@ -1,0 +1,11 @@
+---
+title: BrewToRecord/minimal brew
+test_name: TestBrewToRecord/minimal_brew
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://did:plc:test/social.arabica.alpha.bean/bean123",
+  "createdAt": "2025-01-10T12:00:00Z",
+}

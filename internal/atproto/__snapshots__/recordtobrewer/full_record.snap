@@ -1,0 +1,18 @@
+---
+title: RecordToBrewer/full record
+test_name: TestRecordToBrewer/full_record
+file_name: records_test.go
+version: 0.1.0
+---
+&models.Brewer{
+  RKey: "brewer123",
+  Name: "Hario V60",
+  BrewerType: "",
+  Description: "Pour-over dripper",
+  SourceRef: "",
+  CreatedAt: time.Time{
+    wall: 0x0,
+    ext: 63872107200,
+    loc: (*time.Location)(nil),
+  },
+}

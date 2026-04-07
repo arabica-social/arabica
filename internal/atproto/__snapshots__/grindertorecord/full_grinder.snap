@@ -1,0 +1,14 @@
+---
+title: GrinderToRecord/full grinder
+test_name: TestGrinderToRecord/full_grinder
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.grinder",
+  "burrType": "Conical",
+  "createdAt": "2025-01-10T12:00:00Z",
+  "grinderType": "Hand",
+  "name": "Comandante C40",
+  "notes": "Great for travel",
+}

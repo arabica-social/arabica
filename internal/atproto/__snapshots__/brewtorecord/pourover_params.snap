@@ -1,0 +1,18 @@
+---
+title: BrewToRecord/pourover params
+test_name: TestBrewRoundTrip_PouroverParams
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://did:plc:test/social.arabica.alpha.bean/abc123",
+  "createdAt": "2025-01-10T12:00:00Z",
+  "pouroverParams": map[string]interface{}{
+    "bloomSeconds": 45,
+    "bloomWater": 50,
+    "bypassWater": 100,
+    "drawdownSeconds": 30,
+    "filter": "paper",
+  },
+}

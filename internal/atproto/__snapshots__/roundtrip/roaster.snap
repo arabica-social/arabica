@@ -1,0 +1,18 @@
+---
+title: RoundTrip/roaster
+test_name: TestRoundTrip/roaster_round_trip
+file_name: records_test.go
+version: 0.1.0
+---
+&models.Roaster{
+  RKey: "roaster123",
+  Name: "Counter Culture",
+  Location: "Durham, NC",
+  Website: "https://counterculturecoffee.com",
+  SourceRef: "",
+  CreatedAt: time.Time{
+    wall: 0x0,
+    ext: 63872107200,
+    loc: (*time.Location)(nil),
+  },
+}

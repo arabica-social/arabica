@@ -1,0 +1,13 @@
+---
+title: RoasterToRecord/full roaster
+test_name: TestRoasterToRecord/full_roaster
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.roaster",
+  "createdAt": "2025-01-10T12:00:00Z",
+  "location": "Durham, NC",
+  "name": "Counter Culture",
+  "website": "https://counterculturecoffee.com",
+}

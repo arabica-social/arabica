@@ -1,0 +1,12 @@
+---
+title: BrewerToRecord/full brewer
+test_name: TestBrewerToRecord/full_brewer
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.brewer",
+  "createdAt": "2025-01-10T12:00:00Z",
+  "description": "Pour-over dripper",
+  "name": "Hario V60",
+}

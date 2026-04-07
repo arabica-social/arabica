@@ -1,0 +1,12 @@
+---
+title: BeanToRecord/no roaster
+test_name: TestBeanToRecord/bean_without_roaster
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "2025-01-10T12:00:00Z",
+  "name": "Generic Coffee",
+}

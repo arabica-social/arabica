@@ -1,0 +1,18 @@
+---
+title: RoundTrip/brewer
+test_name: TestRoundTrip/brewer_round_trip
+file_name: records_test.go
+version: 0.1.0
+---
+&models.Brewer{
+  RKey: "brewer123",
+  Name: "Hario V60",
+  BrewerType: "Pour-Over",
+  Description: "Pour-over dripper",
+  SourceRef: "",
+  CreatedAt: time.Time{
+    wall: 0x0,
+    ext: 63872107200,
+    loc: (*time.Location)(nil),
+  },
+}

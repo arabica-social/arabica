@@ -1,0 +1,19 @@
+---
+title: RecordToGrinder/full record
+test_name: TestRecordToGrinder/full_record
+file_name: records_test.go
+version: 0.1.0
+---
+&models.Grinder{
+  RKey: "grinder123",
+  Name: "Comandante C40",
+  GrinderType: "Hand",
+  BurrType: "Conical",
+  Notes: "Great for travel",
+  SourceRef: "",
+  CreatedAt: time.Time{
+    wall: 0x0,
+    ext: 63872107200,
+    loc: (*time.Location)(nil),
+  },
+}

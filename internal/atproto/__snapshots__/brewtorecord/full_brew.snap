@@ -1,0 +1,30 @@
+---
+title: BrewToRecord/full brew
+test_name: TestBrewToRecord/full_brew_with_all_fields
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://did:plc:test/social.arabica.alpha.bean/bean123",
+  "brewerRef": "at://did:plc:test/social.arabica.alpha.brewer/brewer123",
+  "createdAt": "2025-01-10T12:00:00Z",
+  "grindSize": "Medium",
+  "grinderRef": "at://did:plc:test/social.arabica.alpha.grinder/grinder123",
+  "method": "V60",
+  "pours": []map[string]interface{}{
+    {
+      "timeSeconds": 30,
+      "waterAmount": 50,
+    },
+    {
+      "timeSeconds": 60,
+      "waterAmount": 100,
+    },
+  },
+  "rating": 8,
+  "tastingNotes": "Fruity and bright",
+  "temperature": 935,
+  "timeSeconds": 180,
+  "waterAmount": 300,
+}

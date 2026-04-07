@@ -1,0 +1,39 @@
+---
+title: RecordToBrew/pourover params
+test_name: TestBrewRoundTrip_PouroverParams
+file_name: records_test.go
+version: 0.1.0
+---
+&models.Brew{
+  RKey: "tid123",
+  BeanRKey: "",
+  RecipeRKey: "",
+  Method: "",
+  Temperature: 0.0,
+  WaterAmount: 0,
+  CoffeeAmount: 0,
+  TimeSeconds: 0,
+  GrindSize: "",
+  GrinderRKey: "",
+  BrewerRKey: "",
+  TastingNotes: "",
+  Rating: 0,
+  CreatedAt: time.Time{
+    wall: 0x0,
+    ext: 63872107200,
+    loc: (*time.Location)(nil),
+  },
+  EspressoParams: (*models.EspressoParams)(nil),
+  PouroverParams: &models.PouroverParams{
+    BloomWater: 50,
+    BloomSeconds: 45,
+    DrawdownSeconds: 30,
+    BypassWater: 100,
+    Filter: "paper",
+  },
+  Bean: (*models.Bean)(nil),
+  RecipeObj: (*models.Recipe)(nil),
+  GrinderObj: (*models.Grinder)(nil),
+  BrewerObj: (*models.Brewer)(nil),
+  Pours: []*models.Pour(nil),
+}

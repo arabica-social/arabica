@@ -1,0 +1,18 @@
+---
+title: BrewToRecord/espresso params
+test_name: TestBrewRoundTrip_EspressoParams
+file_name: records_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://did:plc:test/social.arabica.alpha.bean/abc123",
+  "createdAt": "2025-01-10T12:00:00Z",
+  "espressoParams": map[string]interface{}{
+    "preInfusionSeconds": 5,
+    "pressure": 90,
+    "yieldWeight": 360,
+  },
+  "rating": 8,
+  "temperature": 935,
+}
