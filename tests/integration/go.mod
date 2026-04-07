@@ -13,6 +13,7 @@ require (
 	github.com/haileyok/cocoon v0.9.0
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
+	gorm.io/gorm v1.31.1
 	tangled.org/pdewey.com/atp v0.0.0-20260407015143-f53954e5e783
 )
 
@@ -161,7 +162,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/postgres v1.6.0 // indirect
 	gorm.io/driver/sqlite v1.6.0 // indirect
-	gorm.io/gorm v1.31.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 	modernc.org/libc v1.70.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

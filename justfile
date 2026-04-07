@@ -14,8 +14,11 @@ test:
     @templ generate
     @go test ./... -cover -coverprofile=cover.out
 
-test-integration:
-    @cd tests/integration && go test -v ./... -count=1
+integration-test:
+    @cd tests/integration && go test -v ./... -count=1 
+
+verbose-integration-test:
+    @cd tests/integration && INTEGRATION_LOGS=true go test -v ./... -count=1 
 
 style:
     @nix develop --command tailwindcss -i static/css/app.css -o static/css/output.css --minify

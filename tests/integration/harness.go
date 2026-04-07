@@ -30,30 +30,44 @@ import (
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
 	"tangled.org/pdewey.com/atp"
+	gormlogger "gorm.io/gorm/logger"
 )
 
-// silenceLogs redirects all the noisy log outputs that show up during
-// integration tests (cocoon's stdlib log + slog + GORM, arabica's zerolog) to
-// io.Discard. This keeps `go test -v` output focused on actual test results.
+func init() {
+	// Cocoon constructs its gorm sessions with `&gorm.Config{}` (no Logger),
+	// so each session falls back to gormlogger.Default. Replace it with one
+	// that ignores ErrRecordNotFound — cocoon's preflight existence checks
+	// (handle/email/seq lookups on a fresh test DB) otherwise spam yellow
+	// "record not found" warnings on every test run.
+	gormlogger.Default = gormlogger.New(
+		stdlog.New(os.Stdout, "\r\n", stdlog.LstdFlags),
+		gormlogger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  gormlogger.Warn,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  true,
+		},
+	)
+}
+
+// silenceLogs routes the noisy log outputs that show up during integration
+// tests (cocoon's stdlib log + slog, arabica's zerolog) to io.Discard so
+// passing runs aren't drowned in per-request access logs and handler debug
+// lines.
 //
-// Without this, even passing runs scroll dozens of lines of GORM
-// "record not found" warnings, arabica request debug logs, and cocoon's
-// per-request access logs.
-//
-// Set INTEGRATION_VERBOSE=1 to keep the logs visible — useful when a test is
-// failing and you want to see what arabica or cocoon were doing at the time.
-//
-// Note: without -v, `go test` already captures per-test output and only prints
-// it on failure, so this silencing is mainly relevant for `go test -v`.
+// Set INTEGRATION_LOGS=1 to keep them visible — arabica's zerolog gets routed
+// through a colored ConsoleWriter so its lines blend in with cocoon's
+// gorm/slog output.
 func silenceLogs() {
-	if v := os.Getenv("INTEGRATION_VERBOSE"); v == "1" || v == "true" {
+	if v := os.Getenv("INTEGRATION_LOGS"); v == "1" || v == "true" {
+		zlog.Logger = zerolog.New(zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC3339,
+		}).With().Timestamp().Logger()
 		return
 	}
-	// stdlib log (some GORM logger configurations write here)
 	stdlog.SetOutput(io.Discard)
-	// log/slog (cocoon's slogecho middleware, server lifecycle logs)
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	// zerolog (arabica's handler debug/info logs go through the global logger)
 	zlog.Logger = zerolog.New(io.Discard)
 }
 
@@ -70,11 +84,12 @@ const (
 // PDS and exposes an httptest.Server. Auth is faked via custom headers so
 // tests can act as any DID without an OAuth dance.
 type Harness struct {
-	T         *testing.T
-	PDS       *testpds.TestPDS
-	Server    *httptest.Server
-	Handler   *handlers.Handler
-	FeedIndex *firehose.FeedIndex
+	T            *testing.T
+	PDS          *testpds.TestPDS
+	Server       *httptest.Server
+	Handler      *handlers.Handler
+	FeedIndex    *firehose.FeedIndex
+	SessionCache *atproto.SessionCache
 
 	// PrimaryAccount is the default account created on harness setup.
 	PrimaryAccount TestAccount
@@ -138,11 +153,14 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	feedIndex, err := firehose.NewFeedIndex(t.TempDir()+"/feed-index.db", 1*time.Hour)
 	require.NoError(t, err)
 
+	sessionCache := atproto.NewSessionCache()
+
 	harness := &Harness{
-		T:         t,
-		PDS:       pds,
-		FeedIndex: feedIndex,
-		accounts:  make(map[string]*atclient.APIClient),
+		T:            t,
+		PDS:          pds,
+		FeedIndex:    feedIndex,
+		SessionCache: sessionCache,
+		accounts:     make(map[string]*atclient.APIClient),
 	}
 
 	// Provider routes XRPC calls based on the DID in the request context. The
@@ -165,7 +183,6 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	oauthMgr, err := atproto.NewOAuthManager("", "http://localhost/oauth/callback", nil)
 	require.NoError(t, err)
 
-	sessionCache := atproto.NewSessionCache()
 	feedRegistry := feed.NewRegistry()
 	feedService := feed.NewService(feedRegistry)
 
@@ -307,6 +324,29 @@ func (h *Harness) PutForm(path string, form url.Values) *http.Response {
 	resp, err := h.Client.Do(req)
 	require.NoError(h.T, err)
 	return resp
+}
+
+// SessionIDFor returns the test session ID assigned to an account by
+// authInjectingTransport. Tests use it when reaching into the session cache
+// directly (e.g. to evict an entry to force a witness/PDS read).
+func (h *Harness) SessionIDFor(acct TestAccount) string {
+	return "test-session-" + acct.DID
+}
+
+// EvictWitnessRecord deletes a single record from the witness cache by
+// (collection, rkey). Tests call this to force a witness-cache miss without
+// going through the delete handler (which would also delete from the PDS).
+// Combined with InvalidateSessionCache, this exercises the PDS fallback path.
+func (h *Harness) EvictWitnessRecord(acct TestAccount, collection, rkey string) {
+	h.T.Helper()
+	require.NoError(h.T, h.FeedIndex.DeleteWitnessRecord(context.Background(), acct.DID, collection, rkey))
+}
+
+// InvalidateSessionCache wipes the per-session in-memory cache for an account.
+// Tests use it together with EvictWitnessRecord to force the store to fall
+// through both cache layers down to a real PDS read.
+func (h *Harness) InvalidateSessionCache(acct TestAccount) {
+	h.SessionCache.Invalidate(h.SessionIDFor(acct))
 }
 
 // Delete sends a DELETE request as the primary account.
