@@ -345,4 +345,3 @@ func buildCommentURI(comment firehose.IndexedComment) string {
 	// We need to extract the DID and build a comment URI: at://did:plc:xxx/social.arabica.alpha.comment/rkey
 	return fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", comment.ActorDID, comment.RKey)
 }
-

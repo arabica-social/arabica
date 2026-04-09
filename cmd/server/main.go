@@ -17,22 +17,22 @@ import (
 
 	"arabica/internal/atproto"
 	"arabica/internal/backup"
-	"arabica/internal/logging"
 	"arabica/internal/database/boltstore"
 	"arabica/internal/database/sqlitestore"
 	"arabica/internal/email"
 	"arabica/internal/feed"
 	"arabica/internal/firehose"
 	"arabica/internal/handlers"
+	"arabica/internal/logging"
 	"arabica/internal/metrics"
 	"arabica/internal/moderation"
 	"arabica/internal/routing"
 	"arabica/internal/tracing"
 
-	"go.opentelemetry.io/otel/attribute"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func main() {

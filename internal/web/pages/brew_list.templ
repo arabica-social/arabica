@@ -1,8 +1,6 @@
 package pages
 
-import (
-	"arabica/internal/web/components"
-)
+import "arabica/internal/web/components"
 
 // BrewListProps defines the data for the brew list page
 type BrewListProps struct {
@@ -30,34 +28,36 @@ templ BrewListContent(props BrewListProps) {
 
 // BrewListLoadingSkeleton renders loading skeleton for brew list
 templ BrewListLoadingSkeleton() {
-	<div class="animate-pulse">
-		<div class="table-container overflow-x-auto">
-			<table class="table">
-				<thead class="table-header">
-					<tr>
-						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@components.IconCalendar() Date</span></th>
-						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@components.IconCoffee() Bean</span></th>
-						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@components.IconBrewer() Brewer</span></th>
-						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@components.IconWrench() Variables</span></th>
-						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@components.IconFileText() Notes</span></th>
-						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@components.IconStar() Rating</span></th>
-						<th class="table-th px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1">@components.IconGear() Actions</span></th>
-					</tr>
-				</thead>
-				<tbody class="table-body">
-					for i := 0; i < 5; i++ {
-						<tr>
-							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
-							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-32"></div></td>
-							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-24"></div></td>
-							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
-							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-40"></div></td>
-							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-16"></div></td>
-							<td class="px-4 py-4"><div class="h-4 bg-brown-300 rounded w-20"></div></td>
-						</tr>
-					}
-				</tbody>
-			</table>
-		</div>
+	<div class="animate-pulse space-y-3">
+		for i := 0; i < 5; i++ {
+			<div class="feed-card feed-card-brew">
+				<!-- Header: date + actions -->
+				<div class="flex items-center justify-between mb-2">
+					<div class="h-4 bg-brown-300 rounded w-20"></div>
+					<div class="flex gap-1">
+						<div class="h-5 bg-brown-300 rounded w-8"></div>
+						<div class="h-5 bg-brown-300 rounded w-8"></div>
+						<div class="h-5 bg-brown-300 rounded w-10"></div>
+					</div>
+				</div>
+				<!-- Brew content -->
+				<div class="feed-content-box">
+					<div class="flex items-start justify-between gap-3 mb-3">
+						<div class="flex-1 min-w-0">
+							<div class="h-5 bg-brown-300 rounded w-36 mb-1"></div>
+							<div class="h-3 bg-brown-300 rounded w-24"></div>
+						</div>
+						<div class="h-6 bg-brown-300 rounded w-12 flex-shrink-0"></div>
+					</div>
+					<div class="h-4 bg-brown-300 rounded w-28 mb-2"></div>
+					<div class="grid grid-cols-2 gap-x-4 gap-y-1">
+						<div class="h-3 bg-brown-300 rounded w-20"></div>
+						<div class="h-3 bg-brown-300 rounded w-24"></div>
+						<div class="h-3 bg-brown-300 rounded w-16"></div>
+						<div class="h-3 bg-brown-300 rounded w-20"></div>
+					</div>
+				</div>
+			</div>
+		}
 	</div>
 }

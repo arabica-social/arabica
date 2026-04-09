@@ -16,9 +16,9 @@ type ActionBarProps struct {
 	LikeCount int
 
 	// Comment state
-	CommentCount    int
-	ViewURL         string // URL to view the item (for comment link)
-	ShowComments    bool   // Whether to show the comment button
+	CommentCount int
+	ViewURL      string // URL to view the item (for comment link)
+	ShowComments bool   // Whether to show the comment button
 
 	// Share props
 	ShareURL   string
@@ -37,10 +37,10 @@ type ActionBarProps struct {
 	IsAuthenticated bool
 
 	// Moderation state
-	IsModerator    bool // User has moderator role
-	CanHideRecord  bool // User has hide_record permission
-	CanBlockUser   bool // User has blacklist_user permission
-	IsRecordHidden bool // This record is currently hidden
+	IsModerator    bool   // User has moderator role
+	CanHideRecord  bool   // User has hide_record permission
+	CanBlockUser   bool   // User has blacklist_user permission
+	IsRecordHidden bool   // This record is currently hidden
 	AuthorDID      string // DID of the content author (for block action)
 }
 

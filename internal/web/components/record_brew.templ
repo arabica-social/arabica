@@ -20,7 +20,7 @@ templ BrewContent(brew *models.Brew) {
 			if brew.Rating > 0 {
 				<span class="badge-rating">
 					@IconStar()
-				{ fmt.Sprintf("%d/10", brew.Rating) }
+					{ fmt.Sprintf("%d/10", brew.Rating) }
 				</span>
 			}
 		</div>

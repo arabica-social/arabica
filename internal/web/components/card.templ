@@ -9,13 +9,11 @@ type CardProps struct {
 // Card renders a card container with optional inner styling
 templ Card(props CardProps, content templ.Component) {
 	<div
-		class={
-			templ.Classes(
+		class={ templ.Classes(
 				templ.KV("card", true),
 				templ.KV("card-inner", props.InnerCard),
 				templ.KV(props.Class, props.Class != ""),
-			)
-		}
+			) }
 	>
 		@content
 	</div>

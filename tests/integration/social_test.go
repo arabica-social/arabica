@@ -324,4 +324,3 @@ func TestHTTP_LikeAndCommentTogether(t *testing.T) {
 	assert.Equal(t, 0, h.FeedIndex.GetLikeCount(context.Background(), subjectURI))
 	assert.Empty(t, h.FeedIndex.GetThreadedCommentsForSubject(context.Background(), subjectURI, 100, h.PrimaryAccount.DID))
 }
-

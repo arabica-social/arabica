@@ -118,17 +118,17 @@ func NormalizeBrewerType(raw string) string {
 
 // Validation errors
 var (
-	ErrNameRequired    = errors.New("name is required")
-	ErrNameTooLong     = errors.New("name is too long")
-	ErrLocationTooLong = errors.New("location is too long")
-	ErrWebsiteTooLong  = errors.New("website is too long")
-	ErrDescTooLong     = errors.New("description is too long")
-	ErrNotesTooLong    = errors.New("notes is too long")
-	ErrOriginTooLong   = errors.New("origin is too long")
-	ErrFieldTooLong    = errors.New("field value is too long")
+	ErrNameRequired     = errors.New("name is required")
+	ErrNameTooLong      = errors.New("name is too long")
+	ErrLocationTooLong  = errors.New("location is too long")
+	ErrWebsiteTooLong   = errors.New("website is too long")
+	ErrDescTooLong      = errors.New("description is too long")
+	ErrNotesTooLong     = errors.New("notes is too long")
+	ErrOriginTooLong    = errors.New("origin is too long")
+	ErrFieldTooLong     = errors.New("field value is too long")
 	ErrRatingOutOfRange = errors.New("rating must be between 1 and 10")
-	ErrCommentRequired = errors.New("comment text is required")
-	ErrCommentTooLong  = errors.New("comment text is too long")
+	ErrCommentRequired  = errors.New("comment text is required")
+	ErrCommentTooLong   = errors.New("comment text is too long")
 )
 
 // TODO: maybe add a "rating" field that can be updated when a bag is closed
@@ -140,7 +140,7 @@ type Bean struct {
 	RoastLevel  string    `json:"roast_level"`
 	Process     string    `json:"process"`
 	Description string    `json:"description"`
-	RoasterRKey string    `json:"roaster_rkey"` // AT Protocol reference
+	RoasterRKey string    `json:"roaster_rkey"`     // AT Protocol reference
 	Rating      *int      `json:"rating,omitempty"` // User rating (1-10), nil means unrated
 	Closed      bool      `json:"closed"`           // Whether the bag is closed/finished
 	SourceRef   string    `json:"source_ref,omitempty"`

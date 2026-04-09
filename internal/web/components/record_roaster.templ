@@ -14,9 +14,9 @@ templ RoasterContent(roaster *models.Roaster) {
 		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
 			if roaster.Location != "" {
 				<span class="inline-flex items-center gap-1">
-				@IconMapPin()
-				{ roaster.Location }
-			</span>
+					@IconMapPin()
+					{ roaster.Location }
+				</span>
 			}
 			if roaster.Website != "" {
 				if safeWebsite := bff.SafeWebsiteURL(roaster.Website); safeWebsite != "" {

@@ -19,8 +19,7 @@ templ HomeContent(props HomeProps) {
 		})
 		if props.IsAuthenticated {
 			<!-- Incomplete records loaded async -->
-			<div id="incomplete-records-section" hx-get="/api/incomplete-records" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML">
-			</div>
+			<div id="incomplete-records-section" hx-get="/api/incomplete-records" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML"></div>
 			<!-- Modal container for entity edit dialogs opened from dashboard -->
 			<div id="modal-container"></div>
 		}
@@ -29,8 +28,7 @@ templ HomeContent(props HomeProps) {
 		}
 		if props.IsAuthenticated {
 			<!-- Popular recipes loaded async -->
-			<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML">
-			</div>
+			<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML"></div>
 		}
 		@CommunityFeedSection(props.IsAuthenticated)
 		if props.IsAuthenticated {

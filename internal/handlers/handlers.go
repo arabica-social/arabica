@@ -25,7 +25,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-
 // Config holds handler configuration options
 type Config struct {
 	// SecureCookies sets the Secure flag on authentication cookies
@@ -58,7 +57,6 @@ type Handler struct {
 	joinStore     *boltstore.JoinStore
 	pdsAdminURL   string
 	pdsAdminToken string
-
 }
 
 // NewHandler creates a new Handler with all required dependencies.

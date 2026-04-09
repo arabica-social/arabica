@@ -29,8 +29,8 @@ import (
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
-	"tangled.org/pdewey.com/atp"
 	gormlogger "gorm.io/gorm/logger"
+	"tangled.org/pdewey.com/atp"
 )
 
 func init() {

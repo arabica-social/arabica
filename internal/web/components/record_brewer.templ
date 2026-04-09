@@ -1,8 +1,6 @@
 package components
 
-import (
-	"arabica/internal/models"
-)
+import "arabica/internal/models"
 
 // BrewerContent renders brewer details inside a card
 templ BrewerContent(brewer *models.Brewer) {
@@ -13,9 +11,9 @@ templ BrewerContent(brewer *models.Brewer) {
 		if brewer.BrewerType != "" {
 			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
 				<span class="inline-flex items-center gap-1">
-				@IconBrewer()
-				{ brewer.BrewerType }
-			</span>
+					@IconBrewer()
+					{ brewer.BrewerType }
+				</span>
 			</div>
 		}
 		if brewer.Description != "" {

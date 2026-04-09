@@ -48,7 +48,8 @@ templ GrinderViewCard(props GrinderViewProps) {
 		</div>
 		if props.Grinder.Notes != "" {
 			<div class="section-box">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconFileText() Notes</span></h3>
+				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconFileText()
+Notes</span></h3>
 				<div class="text-brown-900 whitespace-pre-wrap">{ props.Grinder.Notes }</div>
 			</div>
 		}
@@ -108,4 +109,3 @@ templ GrinderViewHeader(props GrinderViewProps) {
 		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Grinder.CreatedAt) } data-local="long">{ props.Grinder.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
 	</div>
 }
-

@@ -540,12 +540,12 @@ func TestSnap_PDS_BrewPermutations(t *testing.T) {
 	)), "recipe")
 
 	rkeys := map[string]string{
-		"roaster":    roasterRKey,
-		"bean":       beanRKey,
-		"grinder":    grinderRKey,
-		"brewer":     brewerRKey,
-		"espBrewer":  espBrewerRKey,
-		"recipe":     recipeRKey,
+		"roaster":   roasterRKey,
+		"bean":      beanRKey,
+		"grinder":   grinderRKey,
+		"brewer":    brewerRKey,
+		"espBrewer": espBrewerRKey,
+		"recipe":    recipeRKey,
 	}
 
 	cases := []struct {
@@ -707,13 +707,13 @@ func TestSnap_PDS_BrewPermutations(t *testing.T) {
 			brewRKey := data.Brews[0].RKey
 
 			subRkeys := map[string]string{
-				"roaster":    subRoasterRKey,
-				"bean":       subBeanRKey,
-				"grinder":    subGrinderRKey,
-				"brewer":     subBrewerRKey,
-				"espBrewer":  subEspBrewerRKey,
-				"recipe":     subRecipeRKey,
-				"brew":       brewRKey,
+				"roaster":   subRoasterRKey,
+				"bean":      subBeanRKey,
+				"grinder":   subGrinderRKey,
+				"brewer":    subBrewerRKey,
+				"espBrewer": subEspBrewerRKey,
+				"recipe":    subRecipeRKey,
+				"brew":      brewRKey,
 			}
 			snapPDSRecord(t, sub, "brew "+tc.name, atproto.NSIDBrew, brewRKey, subRkeys)
 		})

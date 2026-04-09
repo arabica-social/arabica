@@ -55,8 +55,8 @@ func entityAvgRating(ratings map[string]float64, ownerDID, nsid, rkey string) fl
 // BeanCardsProps defines props for the bean cards grid
 type BeanCardsProps struct {
 	Beans          []*models.Bean
-	ShowActions    bool   // Whether to show Edit/Delete actions
-	OwnerHandle    string // If set, name links to view page with this owner
+	ShowActions    bool               // Whether to show Edit/Delete actions
+	OwnerHandle    string             // If set, name links to view page with this owner
 	BrewCounts     map[string]int     // bean AT-URI -> brew count (optional)
 	AvgBrewRatings map[string]float64 // bean AT-URI -> avg brew rating (optional)
 	OwnerDID       string             // DID of the entity owner (for count lookups)
@@ -92,9 +92,9 @@ templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string, brewCoun
 					if bean.Roaster != nil && bean.Roaster.Name != "" {
 						<div class="text-sm text-brown-700 mt-0.5">
 							<span class="font-medium inline-flex items-center gap-1">
-							@IconStore()
-							{ bean.Roaster.Name }
-						</span>
+								@IconStore()
+								{ bean.Roaster.Name }
+							</span>
 						</div>
 					}
 				</div>
@@ -108,27 +108,27 @@ templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string, brewCoun
 			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
 				if bean.Origin != "" {
 					<span class="inline-flex items-center gap-1">
-					@IconMapPin()
-					{ bean.Origin }
-				</span>
+						@IconMapPin()
+						{ bean.Origin }
+					</span>
 				}
 				if bean.Variety != "" {
 					<span class="inline-flex items-center gap-1">
-					@IconLeaf()
-					{ bean.Variety }
-				</span>
+						@IconLeaf()
+						{ bean.Variety }
+					</span>
 				}
 				if bean.RoastLevel != "" {
 					<span class="inline-flex items-center gap-1">
-					@IconFlame()
-					{ bean.RoastLevel }
-				</span>
+						@IconFlame()
+						{ bean.RoastLevel }
+					</span>
 				}
 				if bean.Process != "" {
 					<span class="inline-flex items-center gap-1">
-					@IconSprout()
-					{ bean.Process }
-				</span>
+						@IconSprout()
+						{ bean.Process }
+					</span>
 				}
 			</div>
 			if bean.Description != "" {
@@ -165,8 +165,8 @@ func entityPluralS(n int) string {
 // RoastersTableProps defines props for the shared roasters display
 type RoastersTableProps struct {
 	Roasters       []*models.Roaster
-	ShowActions    bool   // Whether to show Edit/Delete actions
-	OwnerHandle    string // If set, name links to view page with this owner
+	ShowActions    bool               // Whether to show Edit/Delete actions
+	OwnerHandle    string             // If set, name links to view page with this owner
 	BeanCounts     map[string]int     // roaster AT-URI -> bean count (optional)
 	AvgBrewRatings map[string]float64 // roaster AT-URI -> avg brew rating (optional)
 	OwnerDID       string             // DID of the entity owner (for count lookups)
@@ -242,8 +242,8 @@ templ RoasterCard(roaster *models.Roaster, showActions bool, ownerHandle string,
 // GrindersTableProps defines props for the shared grinders display
 type GrindersTableProps struct {
 	Grinders    []*models.Grinder
-	ShowActions bool   // Whether to show Edit/Delete actions
-	OwnerHandle string // If set, name links to view page with this owner
+	ShowActions bool           // Whether to show Edit/Delete actions
+	OwnerHandle string         // If set, name links to view page with this owner
 	BrewCounts  map[string]int // grinder AT-URI -> brew count (optional)
 	OwnerDID    string         // DID of the entity owner (for count lookups)
 }
@@ -309,8 +309,8 @@ templ GrinderCard(grinder *models.Grinder, showActions bool, ownerHandle string,
 // BrewersTableProps defines props for the shared brewers display
 type BrewersTableProps struct {
 	Brewers     []*models.Brewer
-	ShowActions bool   // Whether to show Edit/Delete actions
-	OwnerHandle string // If set, name links to view page with this owner
+	ShowActions bool           // Whether to show Edit/Delete actions
+	OwnerHandle string         // If set, name links to view page with this owner
 	BrewCounts  map[string]int // brewer AT-URI -> brew count (optional)
 	OwnerDID    string         // DID of the entity owner (for count lookups)
 }
