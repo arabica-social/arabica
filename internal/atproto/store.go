@@ -1729,7 +1729,7 @@ func (s *AtprotoStore) CreateRecipe(ctx context.Context, req *models.CreateRecip
 		WaterAmount:  req.WaterAmount,
 		Notes:        req.Notes,
 		SourceRef:    req.SourceRef,
-		CreatedAt:    time.Now(),
+		CreatedAt:    time.Now().UTC(),
 	}
 	if len(req.Pours) > 0 {
 		recipeModel.Pours = make([]*models.Pour, len(req.Pours))

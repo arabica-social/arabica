@@ -423,16 +423,16 @@ ON CONFLICT(uri) DO UPDATE SET
 
 	// Parse createdAt from record
 	var recordData map[string]any
-	createdAt := time.Now()
+	createdAt := time.Now().UTC()
 	if err := json.Unmarshal(record, &recordData); err == nil {
 		if createdAtStr, ok := recordData["createdAt"].(string); ok {
 			if t, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
-				createdAt = t
+				createdAt = t.UTC()
 			}
 		}
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 
 	_, err := idx.db.ExecContext(ctx, stmt, uri, did, collection, rkey, string(record), cid,
 		now.Format(time.RFC3339Nano), createdAt.Format(time.RFC3339Nano))
@@ -499,7 +499,7 @@ ON CONFLICT(uri) DO UPDATE SET
 	}
 	defer stmt.Close()
 
-	now := time.Now()
+	now := time.Now().UTC()
 	seenDIDs := make(map[string]struct{})
 
 	for _, rec := range records {
@@ -510,7 +510,7 @@ ON CONFLICT(uri) DO UPDATE SET
 		if err := json.Unmarshal(rec.Record, &recordData); err == nil {
 			if createdAtStr, ok := recordData["createdAt"].(string); ok {
 				if t, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
-					createdAt = t
+					createdAt = t.UTC()
 				}
 			}
 		}
