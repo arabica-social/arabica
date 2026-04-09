@@ -26,6 +26,14 @@ func (d *LayoutData) ogTitle() string {
 	if d.OGTitle != "" {
 		return d.OGTitle
 	}
+	return d.pageTitle()
+}
+
+// pageTitle returns the <title> text, collapsing the home page to just "Arabica"
+func (d *LayoutData) pageTitle() string {
+	if d.Title == "" || d.Title == "Home" {
+		return "Arabica"
+	}
 	return d.Title + " - Arabica"
 }
 
@@ -103,7 +111,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			}
 			<meta name="theme-color" content="#4a2c2a" media="(prefers-color-scheme: light)"/>
 			<meta name="theme-color" content="#0F0A08" media="(prefers-color-scheme: dark)"/>
-			<title>{ data.Title } - Arabica</title>
+			<title>{ data.pageTitle() }</title>
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>

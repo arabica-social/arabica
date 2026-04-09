@@ -493,9 +493,9 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create layout data
-	pageTitle := "Profile"
+	pageTitle := "@" + viewedProfile.Handle
 	if viewedProfile.DisplayName != "" {
-		pageTitle = viewedProfile.DisplayName + " - Profile"
+		pageTitle = viewedProfile.DisplayName + " (@" + viewedProfile.Handle + ")"
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, pageTitle)
 
@@ -672,18 +672,18 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
-		Brews:             profileData.Brews,
-		Beans:             profileData.Beans,
-		Roasters:          profileData.Roasters,
-		Grinders:          profileData.Grinders,
-		Brewers:           profileData.Brewers,
-		IsOwnProfile:      isOwnProfile,
-		ProfileHandle:     profileHandle,
-		Profile:           profile,
-		BrewLikeCounts:    brewLikeCounts,
-		BrewLikedByUser:   brewLikedByUser,
-		BrewCIDs:          brewCIDs,
-		IsAuthenticated:   isAuthenticated,
+		Brews:                 profileData.Brews,
+		Beans:                 profileData.Beans,
+		Roasters:              profileData.Roasters,
+		Grinders:              profileData.Grinders,
+		Brewers:               profileData.Brewers,
+		IsOwnProfile:          isOwnProfile,
+		ProfileHandle:         profileHandle,
+		Profile:               profile,
+		BrewLikeCounts:        brewLikeCounts,
+		BrewLikedByUser:       brewLikedByUser,
+		BrewCIDs:              brewCIDs,
+		IsAuthenticated:       isAuthenticated,
 		BeanBrewCounts:        beanBrewCounts,
 		GrinderBrewCounts:     grinderBrewCounts,
 		BrewerBrewCounts:      brewerBrewCounts,
