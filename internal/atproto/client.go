@@ -14,6 +14,26 @@ import (
 	"tangled.org/pdewey.com/atp"
 )
 
+// userAgent is prepended to the User-Agent header on all PDS requests so
+// arabica traffic is identifiable in server logs.
+const userAgent = "Arabica (+https://alpha.arabica.social; abuse@mail.arabica.systems)"
+
+// userAgentTransport wraps an http.RoundTripper and prepends a custom
+// User-Agent string to every outgoing request.
+type userAgentTransport struct {
+	base http.RoundTripper
+}
+
+func (t *userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	r := req.Clone(req.Context())
+	if existing := r.Header.Get("User-Agent"); existing != "" {
+		r.Header.Set("User-Agent", userAgent+" "+existing)
+	} else {
+		r.Header.Set("User-Agent", userAgent)
+	}
+	return t.base.RoundTrip(r)
+}
+
 // ErrSessionExpired is returned when the OAuth session cannot be resumed.
 var ErrSessionExpired = atp.ErrSessionExpired
 
@@ -58,7 +78,7 @@ func oauthProvider(oauth *OAuthManager) ClientProvider {
 			baseTransport = http.DefaultTransport
 		}
 		apiClient.Client = &http.Client{
-			Transport:     otelhttp.NewTransport(baseTransport),
+			Transport:     &userAgentTransport{base: otelhttp.NewTransport(baseTransport)},
 			Timeout:       apiClient.Client.Timeout,
 			CheckRedirect: apiClient.Client.CheckRedirect,
 			Jar:           apiClient.Client.Jar,

@@ -24,7 +24,7 @@ type PublicClient struct {
 func NewPublicClient() *PublicClient {
 	hc := &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
+		Transport: &userAgentTransport{base: otelhttp.NewTransport(http.DefaultTransport)},
 	}
 	return &PublicClient{inner: atp.NewPublicClientWithHTTP(hc)}
 }
