@@ -1,0 +1,20 @@
+---
+title: all brews
+test_name: TestSnap_PDS_FullRepo
+file_name: snapshot_test.go
+version: 0.1.0
+---
+[
+  {
+    "$type": "social.arabica.alpha.brew",
+    "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+    "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+    "coffeeAmount": 15,
+    "createdAt": "<TIMESTAMP>",
+    "grinderRef": "at://<DID>/social.arabica.alpha.grinder/<RKEY:grinder>",
+    "method": "Pour Over",
+    "rating": 7,
+    "timeSeconds": 180,
+    "waterAmount": 250
+  }
+]

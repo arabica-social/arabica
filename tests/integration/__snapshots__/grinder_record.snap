@@ -1,0 +1,14 @@
+---
+title: grinder record
+test_name: TestSnap_PDS_GrinderCreate
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.grinder",
+  "burrType": "Conical",
+  "createdAt": "<TIMESTAMP>",
+  "grinderType": "Manual",
+  "name": "Comandante C40",
+  "notes": "red clix installed"
+}

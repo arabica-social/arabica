@@ -1,0 +1,17 @@
+---
+title: brew pourover partial params
+test_name: TestSnap_PDS_BrewPermutations/pourover_partial_params
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "createdAt": "<TIMESTAMP>",
+  "method": "Pour Over",
+  "pouroverParams": {
+    "bloomSeconds": 45,
+    "bloomWater": 50
+  }
+}

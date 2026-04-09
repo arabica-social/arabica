@@ -1,0 +1,12 @@
+---
+title: grinder with type
+test_name: TestSnap_PDS_GrinderPermutations/with_type
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.grinder",
+  "createdAt": "<TIMESTAMP>",
+  "grinderType": "Electric",
+  "name": "Typed Grinder"
+}

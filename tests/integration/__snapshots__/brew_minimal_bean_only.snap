@@ -1,0 +1,11 @@
+---
+title: brew minimal bean only
+test_name: TestSnap_PDS_BrewPermutations/minimal_bean_only
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "createdAt": "<TIMESTAMP>"
+}

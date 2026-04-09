@@ -1,0 +1,12 @@
+---
+title: roaster name and website
+test_name: TestSnap_PDS_RoasterPermutations/name_and_website
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.roaster",
+  "createdAt": "<TIMESTAMP>",
+  "name": "Web Roaster",
+  "website": "https://example.com"
+}

@@ -1,0 +1,12 @@
+---
+title: brewer with description
+test_name: TestSnap_PDS_BrewerPermutations/with_description
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brewer",
+  "createdAt": "<TIMESTAMP>",
+  "description": "12oz capacity",
+  "name": "Described Brewer"
+}

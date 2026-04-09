@@ -1,0 +1,12 @@
+---
+title: bean name only
+test_name: TestSnap_PDS_BeanPermutations/name_only
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "<TIMESTAMP>",
+  "name": "Bare Bean"
+}

@@ -1,0 +1,38 @@
+---
+title: recipe with pours
+test_name: TestSnap_PDS_RecipeWithPours
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.recipe",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "brewerType": "Pour Over",
+  "coffeeAmount": 200,
+  "createdAt": "<TIMESTAMP>",
+  "name": "4:6 Method",
+  "notes": "Tetsu Kasuya 4:6",
+  "pours": [
+    {
+      "timeSeconds": 0,
+      "waterAmount": 50
+    },
+    {
+      "timeSeconds": 45,
+      "waterAmount": 70
+    },
+    {
+      "timeSeconds": 90,
+      "waterAmount": 60
+    },
+    {
+      "timeSeconds": 120,
+      "waterAmount": 60
+    },
+    {
+      "timeSeconds": 150,
+      "waterAmount": 60
+    }
+  ],
+  "waterAmount": 3000
+}

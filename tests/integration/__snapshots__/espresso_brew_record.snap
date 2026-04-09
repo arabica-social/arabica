@@ -1,0 +1,24 @@
+---
+title: espresso brew record
+test_name: TestSnap_PDS_EspressoBrew
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "coffeeAmount": 18,
+  "createdAt": "<TIMESTAMP>",
+  "espressoParams": {
+    "preInfusionSeconds": 5,
+    "pressure": 90,
+    "yieldWeight": 360
+  },
+  "grinderRef": "at://<DID>/social.arabica.alpha.grinder/<RKEY:grinder>",
+  "method": "Espresso",
+  "rating": 9,
+  "tastingNotes": "syrupy, chocolate",
+  "timeSeconds": 28,
+  "waterAmount": 36
+}

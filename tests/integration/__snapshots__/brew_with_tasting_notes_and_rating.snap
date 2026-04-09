@@ -1,0 +1,13 @@
+---
+title: brew with tasting notes and rating
+test_name: TestSnap_PDS_BrewPermutations/with_tasting_notes_and_rating
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "createdAt": "<TIMESTAMP>",
+  "rating": 9,
+  "tastingNotes": "cherry, jasmine, silky"
+}

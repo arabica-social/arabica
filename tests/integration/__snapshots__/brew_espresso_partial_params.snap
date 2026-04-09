@@ -1,0 +1,17 @@
+---
+title: brew espresso partial params
+test_name: TestSnap_PDS_BrewPermutations/espresso_partial_params
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:espBrewer>",
+  "coffeeAmount": 18,
+  "createdAt": "<TIMESTAMP>",
+  "espressoParams": {
+    "yieldWeight": 400
+  },
+  "method": "Espresso"
+}

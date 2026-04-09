@@ -1,0 +1,12 @@
+---
+title: grinder with notes
+test_name: TestSnap_PDS_GrinderPermutations/with_notes
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.grinder",
+  "createdAt": "<TIMESTAMP>",
+  "name": "Noted Grinder",
+  "notes": "SSP burrs installed"
+}

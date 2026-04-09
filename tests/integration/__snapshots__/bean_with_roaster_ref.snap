@@ -1,0 +1,17 @@
+---
+title: bean with roaster ref
+test_name: TestSnap_PDS_BeanWithRoaster
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "<TIMESTAMP>",
+  "name": "Geometry",
+  "origin": "Colombia",
+  "process": "Washed",
+  "roastLevel": "Medium",
+  "roasterRef": "at://<DID>/social.arabica.alpha.roaster/<RKEY:roaster>",
+  "variety": "Caturra"
+}

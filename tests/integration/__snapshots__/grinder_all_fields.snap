@@ -1,0 +1,14 @@
+---
+title: grinder all fields
+test_name: TestSnap_PDS_GrinderPermutations/all_fields
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.grinder",
+  "burrType": "Flat",
+  "createdAt": "<TIMESTAMP>",
+  "grinderType": "Electric",
+  "name": "Full Grinder",
+  "notes": "64mm SSP multipurpose"
+}

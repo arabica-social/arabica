@@ -1,0 +1,13 @@
+---
+title: grinder type and burr
+test_name: TestSnap_PDS_GrinderPermutations/type_and_burr
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.grinder",
+  "burrType": "Conical",
+  "createdAt": "<TIMESTAMP>",
+  "grinderType": "Manual",
+  "name": "Full Manual"
+}

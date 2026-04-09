@@ -1,0 +1,21 @@
+---
+title: recipe with single pour
+test_name: TestSnap_PDS_RecipePermutations/with_single_pour
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.recipe",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "brewerType": "Pour Over",
+  "coffeeAmount": 180,
+  "createdAt": "<TIMESTAMP>",
+  "name": "Single Pour Recipe",
+  "pours": [
+    {
+      "timeSeconds": 0,
+      "waterAmount": 300
+    }
+  ],
+  "waterAmount": 3000
+}

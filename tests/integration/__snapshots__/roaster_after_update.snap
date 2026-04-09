@@ -1,0 +1,13 @@
+---
+title: roaster after update
+test_name: TestSnap_PDS_RoasterUpdate
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.roaster",
+  "createdAt": "<TIMESTAMP>",
+  "location": "Brooklyn, NY",
+  "name": "Sey Coffee Roasters",
+  "website": "https://seycoffee.com"
+}

@@ -1,0 +1,16 @@
+---
+title: brew pourover with filter only
+test_name: TestSnap_PDS_BrewPermutations/pourover_with_filter_only
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "createdAt": "<TIMESTAMP>",
+  "method": "Pour Over",
+  "pouroverParams": {
+    "filter": "Sibarist FAST"
+  }
+}

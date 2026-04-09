@@ -1,0 +1,13 @@
+---
+title: brew with grinder and grind size
+test_name: TestSnap_PDS_BrewPermutations/with_grinder_and_grind_size
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "createdAt": "<TIMESTAMP>",
+  "grindSize": "Fine",
+  "grinderRef": "at://<DID>/social.arabica.alpha.grinder/<RKEY:grinder>"
+}

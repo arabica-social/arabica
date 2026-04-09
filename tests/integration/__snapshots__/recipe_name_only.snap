@@ -1,0 +1,11 @@
+---
+title: recipe name only
+test_name: TestSnap_PDS_RecipePermutations/name_only
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.recipe",
+  "createdAt": "<TIMESTAMP>",
+  "name": "Bare Recipe"
+}

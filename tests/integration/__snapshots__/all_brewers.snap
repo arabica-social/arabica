@@ -1,0 +1,14 @@
+---
+title: all brewers
+test_name: TestSnap_PDS_FullRepo
+file_name: snapshot_test.go
+version: 0.1.0
+---
+[
+  {
+    "$type": "social.arabica.alpha.brewer",
+    "brewerType": "Pour Over",
+    "createdAt": "<TIMESTAMP>",
+    "name": "V60"
+  }
+]

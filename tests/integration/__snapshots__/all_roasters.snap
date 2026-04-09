@@ -1,0 +1,21 @@
+---
+title: all roasters
+test_name: TestSnap_PDS_FullRepo
+file_name: snapshot_test.go
+version: 0.1.0
+---
+[
+  {
+    "$type": "social.arabica.alpha.roaster",
+    "createdAt": "<TIMESTAMP>",
+    "location": "Brooklyn, NY",
+    "name": "Sey",
+    "website": "https://seycoffee.com"
+  },
+  {
+    "$type": "social.arabica.alpha.roaster",
+    "createdAt": "<TIMESTAMP>",
+    "location": "Rogers, AR",
+    "name": "Onyx"
+  }
+]

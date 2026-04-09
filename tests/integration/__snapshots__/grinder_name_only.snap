@@ -1,0 +1,11 @@
+---
+title: grinder name only
+test_name: TestSnap_PDS_GrinderPermutations/name_only
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.grinder",
+  "createdAt": "<TIMESTAMP>",
+  "name": "Bare Grinder"
+}

@@ -1,0 +1,30 @@
+---
+title: recipe all fields
+test_name: TestSnap_PDS_RecipePermutations/all_fields
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.recipe",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "brewerType": "Pour Over",
+  "coffeeAmount": 200,
+  "createdAt": "<TIMESTAMP>",
+  "name": "Full Recipe",
+  "notes": "Competition recipe",
+  "pours": [
+    {
+      "timeSeconds": 0,
+      "waterAmount": 60
+    },
+    {
+      "timeSeconds": 45,
+      "waterAmount": 120
+    },
+    {
+      "timeSeconds": 90,
+      "waterAmount": 120
+    }
+  ],
+  "waterAmount": 3000
+}

@@ -103,6 +103,9 @@ type Harness struct {
 	accountsMu sync.RWMutex
 	accounts   map[string]*atclient.APIClient
 
+	// atpClients maps DID -> atp.Client for direct PDS access in tests.
+	atpClients map[string]*atp.Client
+
 	cleanup []func()
 }
 
@@ -161,6 +164,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		FeedIndex:    feedIndex,
 		SessionCache: sessionCache,
 		accounts:     make(map[string]*atclient.APIClient),
+		atpClients:   make(map[string]*atp.Client),
 	}
 
 	// Provider routes XRPC calls based on the DID in the request context. The
@@ -246,6 +250,7 @@ func (h *Harness) CreateAccount(email, handle, password string) TestAccount {
 
 	h.accountsMu.Lock()
 	h.accounts[acct.DID] = apiClient
+	h.atpClients[acct.DID] = atp.NewClient(apiClient, syntax.DID(acct.DID))
 	h.accountsMu.Unlock()
 
 	return acct
@@ -347,6 +352,40 @@ func (h *Harness) EvictWitnessRecord(acct TestAccount, collection, rkey string) 
 // through both cache layers down to a real PDS read.
 func (h *Harness) InvalidateSessionCache(acct TestAccount) {
 	h.SessionCache.Invalidate(h.SessionIDFor(acct))
+}
+
+// PDSGetRecord fetches a single record directly from the PDS via XRPC,
+// bypassing all arabica caching and conversion layers. Returns the raw
+// record value as stored in the user's repo.
+func (h *Harness) PDSGetRecord(acct TestAccount, collection, rkey string) map[string]any {
+	h.T.Helper()
+	h.accountsMu.RLock()
+	client := h.atpClients[acct.DID]
+	h.accountsMu.RUnlock()
+	require.NotNil(h.T, client, "no atp client for DID %s", acct.DID)
+
+	rec, err := client.GetRecord(context.Background(), collection, rkey)
+	require.NoError(h.T, err)
+	return rec.Value
+}
+
+// PDSListRecords fetches all records in a collection directly from the PDS
+// via XRPC. Returns raw record values as stored in the user's repo.
+func (h *Harness) PDSListRecords(acct TestAccount, collection string) []map[string]any {
+	h.T.Helper()
+	h.accountsMu.RLock()
+	client := h.atpClients[acct.DID]
+	h.accountsMu.RUnlock()
+	require.NotNil(h.T, client, "no atp client for DID %s", acct.DID)
+
+	records, err := client.ListAllRecords(context.Background(), collection)
+	require.NoError(h.T, err)
+
+	values := make([]map[string]any, len(records))
+	for i, r := range records {
+		values[i] = r.Value
+	}
+	return values
 }
 
 // Delete sends a DELETE request as the primary account.

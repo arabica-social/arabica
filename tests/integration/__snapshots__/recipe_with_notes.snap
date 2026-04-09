@@ -1,0 +1,12 @@
+---
+title: recipe with notes
+test_name: TestSnap_PDS_RecipePermutations/with_notes
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.recipe",
+  "createdAt": "<TIMESTAMP>",
+  "name": "Noted Recipe",
+  "notes": "Hoffmann method"
+}

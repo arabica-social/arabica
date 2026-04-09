@@ -1,0 +1,13 @@
+---
+title: brew with temperature and time
+test_name: TestSnap_PDS_BrewPermutations/with_temperature_and_time
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "createdAt": "<TIMESTAMP>",
+  "temperature": 960,
+  "timeSeconds": 240
+}

@@ -1,0 +1,18 @@
+---
+title: bean all fields
+test_name: TestSnap_PDS_BeanPermutations/all_fields
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "<TIMESTAMP>",
+  "description": "Balanced and clean",
+  "name": "Full Bean",
+  "origin": "Colombia",
+  "process": "Washed",
+  "roastLevel": "Medium",
+  "roasterRef": "at://<DID>/social.arabica.alpha.roaster/<RKEY:roaster>",
+  "variety": "Caturra"
+}

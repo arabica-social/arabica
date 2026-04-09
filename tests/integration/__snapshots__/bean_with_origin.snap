@@ -1,0 +1,13 @@
+---
+title: bean with origin
+test_name: TestSnap_PDS_BeanPermutations/with_origin
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "<TIMESTAMP>",
+  "name": "Origin Bean",
+  "origin": "Ethiopia"
+}

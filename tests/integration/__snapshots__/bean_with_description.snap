@@ -1,0 +1,13 @@
+---
+title: bean with description
+test_name: TestSnap_PDS_BeanPermutations/with_description
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "<TIMESTAMP>",
+  "description": "Juicy and complex",
+  "name": "Described Bean"
+}

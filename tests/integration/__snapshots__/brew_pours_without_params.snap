@@ -1,0 +1,22 @@
+---
+title: brew pours without params
+test_name: TestSnap_PDS_BrewPermutations/pours_without_params
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "createdAt": "<TIMESTAMP>",
+  "method": "Pour Over",
+  "pours": [
+    {
+      "timeSeconds": 0,
+      "waterAmount": 60
+    },
+    {
+      "timeSeconds": 30,
+      "waterAmount": 240
+    }
+  ]
+}

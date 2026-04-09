@@ -1,0 +1,14 @@
+---
+title: bean with variety and process
+test_name: TestSnap_PDS_BeanPermutations/with_variety_and_process
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "<TIMESTAMP>",
+  "name": "Processed Bean",
+  "process": "Natural",
+  "variety": "Gesha"
+}

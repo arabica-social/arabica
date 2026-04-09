@@ -1,0 +1,13 @@
+---
+title: brewer all fields
+test_name: TestSnap_PDS_BrewerPermutations/all_fields
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brewer",
+  "brewerType": "Pour Over",
+  "createdAt": "<TIMESTAMP>",
+  "description": "Ceramic, size 02",
+  "name": "Full Brewer"
+}

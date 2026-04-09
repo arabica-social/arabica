@@ -1,0 +1,18 @@
+---
+title: brew single pour
+test_name: TestSnap_PDS_BrewPermutations/single_pour
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "createdAt": "<TIMESTAMP>",
+  "method": "Pour Over",
+  "pours": [
+    {
+      "timeSeconds": 0,
+      "waterAmount": 300
+    }
+  ]
+}

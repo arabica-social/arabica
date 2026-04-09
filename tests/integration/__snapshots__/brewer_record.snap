@@ -1,0 +1,13 @@
+---
+title: brewer record
+test_name: TestSnap_PDS_BrewerCreate
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brewer",
+  "brewerType": "Pour Over",
+  "createdAt": "<TIMESTAMP>",
+  "description": "Plastic, size 02",
+  "name": "Hario V60 02"
+}

@@ -1,0 +1,17 @@
+---
+title: all beans
+test_name: TestSnap_PDS_FullRepo
+file_name: snapshot_test.go
+version: 0.1.0
+---
+[
+  {
+    "$type": "social.arabica.alpha.bean",
+    "closed": false,
+    "createdAt": "<TIMESTAMP>",
+    "name": "Monarch",
+    "origin": "Blend",
+    "roastLevel": "Medium",
+    "roasterRef": "at://<DID>/social.arabica.alpha.roaster/<RKEY:roaster>"
+  }
+]

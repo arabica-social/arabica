@@ -1,0 +1,41 @@
+---
+title: pourover brew record
+test_name: TestSnap_PDS_PouroverBrew
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "coffeeAmount": 18,
+  "createdAt": "<TIMESTAMP>",
+  "grindSize": "Medium",
+  "grinderRef": "at://<DID>/social.arabica.alpha.grinder/<RKEY:grinder>",
+  "method": "Pour Over",
+  "pouroverParams": {
+    "bloomSeconds": 30,
+    "bloomWater": 60,
+    "drawdownSeconds": 45,
+    "filter": "Hario tabbed"
+  },
+  "pours": [
+    {
+      "timeSeconds": 0,
+      "waterAmount": 60
+    },
+    {
+      "timeSeconds": 45,
+      "waterAmount": 120
+    },
+    {
+      "timeSeconds": 90,
+      "waterAmount": 120
+    }
+  ],
+  "rating": 8,
+  "tastingNotes": "bright, floral",
+  "temperature": 940,
+  "timeSeconds": 210,
+  "waterAmount": 300
+}

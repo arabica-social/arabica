@@ -1,0 +1,13 @@
+---
+title: bean with roaster ref only
+test_name: TestSnap_PDS_BeanPermutations/with_roaster_ref_only
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.bean",
+  "closed": false,
+  "createdAt": "<TIMESTAMP>",
+  "name": "Sourced Bean",
+  "roasterRef": "at://<DID>/social.arabica.alpha.roaster/<RKEY:roaster>"
+}

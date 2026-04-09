@@ -1,0 +1,15 @@
+---
+title: all grinders
+test_name: TestSnap_PDS_FullRepo
+file_name: snapshot_test.go
+version: 0.1.0
+---
+[
+  {
+    "$type": "social.arabica.alpha.grinder",
+    "burrType": "Flat",
+    "createdAt": "<TIMESTAMP>",
+    "grinderType": "Electric",
+    "name": "DF64"
+  }
+]

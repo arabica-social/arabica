@@ -1,0 +1,16 @@
+---
+title: brew with recipe ref
+test_name: TestSnap_PDS_BrewPermutations/with_recipe_ref
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "coffeeAmount": 18,
+  "createdAt": "<TIMESTAMP>",
+  "method": "Pour Over",
+  "recipeRef": "at://<DID>/social.arabica.alpha.recipe/<RKEY:recipe>",
+  "waterAmount": 300
+}

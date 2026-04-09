@@ -1,0 +1,12 @@
+---
+title: brew bean with method
+test_name: TestSnap_PDS_BrewPermutations/bean_with_method
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "createdAt": "<TIMESTAMP>",
+  "method": "French Press"
+}

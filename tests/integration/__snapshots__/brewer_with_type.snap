@@ -1,0 +1,12 @@
+---
+title: brewer with type
+test_name: TestSnap_PDS_BrewerPermutations/with_type
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brewer",
+  "brewerType": "Immersion",
+  "createdAt": "<TIMESTAMP>",
+  "name": "Typed Brewer"
+}

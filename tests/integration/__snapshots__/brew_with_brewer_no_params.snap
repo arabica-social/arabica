@@ -1,0 +1,13 @@
+---
+title: brew with brewer no params
+test_name: TestSnap_PDS_BrewPermutations/with_brewer_no_params
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.brew",
+  "beanRef": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+  "brewerRef": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+  "createdAt": "<TIMESTAMP>",
+  "method": "Pour Over"
+}

@@ -1,0 +1,13 @@
+---
+title: roaster all fields
+test_name: TestSnap_PDS_RoasterPermutations/all_fields
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.roaster",
+  "createdAt": "<TIMESTAMP>",
+  "location": "Seattle, WA",
+  "name": "Full Roaster",
+  "website": "https://full.example.com"
+}

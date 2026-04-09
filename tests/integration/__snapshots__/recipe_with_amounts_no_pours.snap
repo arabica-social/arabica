@@ -1,0 +1,13 @@
+---
+title: recipe with amounts no pours
+test_name: TestSnap_PDS_RecipePermutations/with_amounts_no_pours
+file_name: snapshot_test.go
+version: 0.1.0
+---
+{
+  "$type": "social.arabica.alpha.recipe",
+  "coffeeAmount": 150,
+  "createdAt": "<TIMESTAMP>",
+  "name": "Amounts Recipe",
+  "waterAmount": 2500
+}
