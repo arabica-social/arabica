@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 // entityStartY computes the starting Y to vertically center contentH within the card.

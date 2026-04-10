@@ -17,11 +17,11 @@ import (
 	"testing"
 	"time"
 
-	"arabica/internal/atproto"
-	"arabica/internal/feed"
-	"arabica/internal/firehose"
-	"arabica/internal/handlers"
-	"arabica/internal/routing"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/feed"
+	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/handlers"
+	"tangled.org/arabica.social/arabica/internal/routing"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"

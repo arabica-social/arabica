@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"strings"
 
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 // Arabica color palette (warm coffee tones)

@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"arabica/internal/atproto"
-	"arabica/internal/lexicons"
-	"arabica/internal/models"
-	"arabica/internal/tracing"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/tracing"
 
 	"database/sql/driver"
 

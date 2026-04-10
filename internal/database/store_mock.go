@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 // MockStore is a mock implementation of the Store interface for testing.

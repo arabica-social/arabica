@@ -3,7 +3,7 @@ package firehose
 import (
 	"time"
 
-	"arabica/internal/feed"
+	"tangled.org/arabica.social/arabica/internal/feed"
 )
 
 // Ensure FeedIndex implements feed.PersistentStore at compile time.

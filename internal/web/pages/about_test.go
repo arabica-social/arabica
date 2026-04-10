@@ -1,8 +1,8 @@
 package pages
 
 import (
-	"arabica/internal/web/bff"
-	"arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
+	"tangled.org/arabica.social/arabica/internal/web/components"
 	"bytes"
 	"context"
 	"testing"

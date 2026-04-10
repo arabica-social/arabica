@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/moderation"
 )
 
 // ModerationStore implements moderation.Store using SQLite.

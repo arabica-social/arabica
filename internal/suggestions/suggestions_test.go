@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"arabica/internal/atproto"
-	"arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/firehose"
 
 	"github.com/stretchr/testify/assert"
 )

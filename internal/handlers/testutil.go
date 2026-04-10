@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"arabica/internal/database"
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/database"
+	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 // TestFixtures contains sample data for testing

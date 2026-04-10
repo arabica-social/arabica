@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"arabica/internal/atproto"
-	"arabica/internal/suggestions"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/suggestions"
 
 	"github.com/rs/zerolog/log"
 )

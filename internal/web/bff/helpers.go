@@ -3,7 +3,7 @@
 package bff
 
 import (
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 	"encoding/json"
 	"fmt"
 	"net/url"

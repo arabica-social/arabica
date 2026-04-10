@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"arabica/internal/tracing"
+	"tangled.org/arabica.social/arabica/internal/tracing"
 
 	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	"github.com/bluesky-social/indigo/atproto/syntax"

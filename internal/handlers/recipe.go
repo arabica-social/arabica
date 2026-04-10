@@ -8,12 +8,12 @@ import (
 	"sort"
 	"strconv"
 
-	"arabica/internal/atproto"
-	"arabica/internal/matching"
-	"arabica/internal/models"
-	"arabica/internal/moderation"
-	"arabica/internal/web/components"
-	"arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/matching"
+	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 
 	"github.com/rs/zerolog/log"
 )

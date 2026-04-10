@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"arabica/internal/atproto"
-	"arabica/internal/firehose"
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

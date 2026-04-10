@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"arabica/internal/models"
-	"arabica/internal/suggestions"
+	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/suggestions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

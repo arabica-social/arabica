@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"arabica/internal/atproto"
-	"arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/metrics"
 
 	"github.com/rs/zerolog"
 )

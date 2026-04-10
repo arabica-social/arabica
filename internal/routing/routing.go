@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strings"
 
-	"arabica/internal/atproto"
-	"arabica/internal/handlers"
-	"arabica/internal/middleware"
-	"arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/handlers"
+	"tangled.org/arabica.social/arabica/internal/middleware"
+	"tangled.org/arabica.social/arabica/internal/moderation"
 
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"

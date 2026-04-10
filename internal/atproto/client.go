@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"arabica/internal/metrics"
-	"arabica/internal/tracing"
+	"tangled.org/arabica.social/arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/tracing"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"

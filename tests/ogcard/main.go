@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"arabica/internal/models"
-	"arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/ogcard"
 )
 
 func main() {

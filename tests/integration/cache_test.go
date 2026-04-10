@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"arabica/internal/atproto"
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

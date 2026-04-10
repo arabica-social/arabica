@@ -1,7 +1,7 @@
 package pages
 
 import (
-	"arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/components"
 	"context"
 	"strings"
 	"testing"

@@ -3,8 +3,8 @@ package middleware
 import (
 	"net/http"
 
-	"arabica/internal/atproto"
-	"arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/moderation"
 
 	"github.com/rs/zerolog/log"
 )

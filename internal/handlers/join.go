@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"arabica/internal/atproto"
-	"arabica/internal/database/boltstore"
-	"arabica/internal/metrics"
-	"arabica/internal/middleware"
-	"arabica/internal/moderation"
-	"arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/database/boltstore"
+	"tangled.org/arabica.social/arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/middleware"
+	"tangled.org/arabica.social/arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"

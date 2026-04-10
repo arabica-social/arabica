@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"arabica/internal/tracing"
+	"tangled.org/arabica.social/arabica/internal/tracing"
 
 	bolt "go.etcd.io/bbolt"
 )

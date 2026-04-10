@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 // Store defines the interface for all database operations.

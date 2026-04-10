@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"arabica/internal/database"
-	"arabica/internal/metrics"
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/database"
+	"tangled.org/arabica.social/arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/models"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"

@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	"arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 
 	"github.com/ptdewey/shutter"
 	"github.com/stretchr/testify/require"

@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strings"
 
-	"arabica/internal/atproto"
-	"arabica/internal/models"
-	"arabica/internal/tracing"
-	"arabica/internal/web/components"
-	"arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/tracing"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"

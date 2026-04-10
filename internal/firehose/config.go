@@ -3,7 +3,7 @@
 package firehose
 
 import (
-	"arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 )
 
 // Default Jetstream public endpoints

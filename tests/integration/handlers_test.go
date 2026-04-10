@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

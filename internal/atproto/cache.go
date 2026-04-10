@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 // CacheTTL is how long cached data remains valid

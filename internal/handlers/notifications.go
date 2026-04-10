@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"arabica/internal/atproto"
-	"arabica/internal/models"
-	"arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 
 	"github.com/rs/zerolog/log"
 )

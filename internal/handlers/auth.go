@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/metrics"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"

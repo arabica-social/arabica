@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/moderation"
 
 	"github.com/stretchr/testify/assert"
 	_ "modernc.org/sqlite"

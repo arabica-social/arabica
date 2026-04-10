@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/metrics"
 
 	"github.com/gorilla/websocket"
 	"github.com/klauspost/compress/zstd"

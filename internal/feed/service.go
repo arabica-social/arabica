@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"arabica/internal/atproto"
-	"arabica/internal/lexicons"
-	"arabica/internal/metrics"
-	"arabica/internal/models"
-	"arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/moderation"
 
 	"github.com/rs/zerolog/log"
 )

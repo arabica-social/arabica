@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 

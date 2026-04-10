@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"arabica/internal/atproto"
-	"arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/moderation"
 
 	"github.com/stretchr/testify/assert"
 )

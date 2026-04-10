@@ -3,7 +3,7 @@ package firehose
 import (
 	"context"
 
-	"arabica/internal/feed"
+	"tangled.org/arabica.social/arabica/internal/feed"
 )
 
 // FeedIndexAdapter wraps FeedIndex to implement feed.FirehoseIndex interface

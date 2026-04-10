@@ -1,4 +1,4 @@
-module arabica
+module tangled.org/arabica.social/arabica
 
 go 1.26.1
 

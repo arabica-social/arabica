@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"arabica/internal/atproto"
-	"arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/firehose"
 )
 
 // EntitySuggestion represents a suggestion for auto-completing an entity

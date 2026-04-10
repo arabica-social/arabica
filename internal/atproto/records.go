@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/models"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
