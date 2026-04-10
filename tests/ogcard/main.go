@@ -156,6 +156,17 @@ func main() {
 			})
 		}},
 
+		// Bean - Greek text (non-ASCII unicode)
+		{"/tmp/og-bean-greek.png", func() (*ogcard.Card, error) {
+			rating := 7
+			return ogcard.DrawBeanCard(&models.Bean{
+				Name: "Λουμίδης Παπαγάλος Παραδοσιακός Ελληνικός Καφές 100 gr", Origin: "Unspecified Latin American",
+				RoastLevel: "Medium", Process: "Unknown", Rating: &rating, Variety: "Unspecified Arabica",
+				Roaster:     &models.Roaster{Name: "Λουμίδης Παπαγάλος"},
+				Description: "A tasty blend with a balanced roast and earthy notes.",
+			})
+		}},
+
 		// Site card
 		{"/tmp/og-site.png", func() (*ogcard.Card, error) {
 			return ogcard.DrawSiteCard()

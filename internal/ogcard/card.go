@@ -163,6 +163,49 @@ func (c *Card) FontHeight(sizePt float64) int {
 	return (m.Ascent + m.Descent).Ceil()
 }
 
+// LineSpacing returns the line spacing (height + gap) for the given point size.
+func (c *Card) LineSpacing(sizePt float64) int {
+	fc, err := getFace(false, sizePt)
+	if err != nil {
+		return int(sizePt * 5 / 4)
+	}
+	m := fc.Metrics()
+	lineHeight := (m.Ascent + m.Descent).Ceil()
+	return lineHeight + lineHeight/4
+}
+
+// CountWrappedLines returns how many lines text would occupy when wrapped,
+// capped at maxLines.
+func (c *Card) CountWrappedLines(text string, maxWidth int, sizePt float64, bold bool, maxLines int) int {
+	fc, err := getFace(bold, sizePt)
+	if err != nil {
+		return 1
+	}
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return 1
+	}
+	lines := 1
+	currentLine := ""
+	for _, word := range words {
+		proposed := currentLine
+		if proposed != "" {
+			proposed += " "
+		}
+		proposed += word
+		if font.MeasureString(fc, proposed).Ceil() > maxWidth && currentLine != "" {
+			lines++
+			if lines >= maxLines {
+				return maxLines
+			}
+			currentLine = word
+		} else {
+			currentLine = proposed
+		}
+	}
+	return lines
+}
+
 // DrawWrappedText draws word-wrapped text within maxWidth pixels.
 // Returns the Y position after the last line.
 func (c *Card) DrawWrappedText(text string, x, y, maxWidth int, clr color.Color, sizePt float64, bold bool) int {

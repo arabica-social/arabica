@@ -29,7 +29,9 @@ func DrawBeanCard(bean *models.Bean) (*Card, error) {
 	x := leftPad
 
 	// Calculate content height for centering
-	h := 58 // name
+	nameLines := card.CountWrappedLines(bean.Name, maxTextWidth, 44, true, 2)
+	nameH := card.LineSpacing(44) * nameLines
+	h := nameH
 	hasDetails := bean.Origin != "" || bean.RoastLevel != "" || bean.Process != ""
 	if hasDetails {
 		h += 42
@@ -50,9 +52,8 @@ func DrawBeanCard(bean *models.Bean) (*Card, error) {
 
 	y := entityStartY(h)
 
-	// Bean name
-	card.DrawBoldText(truncate(bean.Name, 50), x, y, ColorDark, 44)
-	y += 58
+	// Bean name (wrap up to 2 lines)
+	y = card.DrawWrappedTextCapped(bean.Name, x, y, maxTextWidth, ColorDark, 44, true, 2)
 
 	// Origin / roast / process
 	var details []string
@@ -66,13 +67,13 @@ func DrawBeanCard(bean *models.Bean) (*Card, error) {
 		details = append(details, bean.Process)
 	}
 	if len(details) > 0 {
-		card.DrawText(strings.Join(details, dot), x, y, ColorBody, 26)
+		card.DrawText(truncateLine(card, strings.Join(details, dot), maxTextWidth, 26, false), x, y, ColorBody, 26)
 		y += 42
 	}
 
 	// Roaster
 	if bean.Roaster != nil && bean.Roaster.Name != "" {
-		card.DrawText("by "+bean.Roaster.Name, x, y, ColorBody, 26)
+		card.DrawText(truncateLine(card, "by "+bean.Roaster.Name, maxTextWidth, 26, false), x, y, ColorBody, 26)
 		y += 42
 	}
 
@@ -112,7 +113,8 @@ func DrawRoasterCard(roaster *models.Roaster) (*Card, error) {
 
 	x := leftPad
 
-	h := 58 // name
+	nameLines := card.CountWrappedLines(roaster.Name, maxTextWidth, 44, true, 2)
+	h := card.LineSpacing(44) * nameLines
 	if roaster.Location != "" {
 		h += 44
 	}
@@ -123,9 +125,8 @@ func DrawRoasterCard(roaster *models.Roaster) (*Card, error) {
 
 	y := entityStartY(h)
 
-	// Roaster name
-	card.DrawBoldText(truncate(roaster.Name, 50), x, y, ColorDark, 44)
-	y += 58
+	// Roaster name (wrap up to 2 lines)
+	y = card.DrawWrappedTextCapped(roaster.Name, x, y, maxTextWidth, ColorDark, 44, true, 2)
 
 	// Location
 	if roaster.Location != "" {
@@ -155,7 +156,8 @@ func DrawGrinderCard(grinder *models.Grinder) (*Card, error) {
 
 	x := leftPad
 
-	h := 58 // name
+	nameLines := card.CountWrappedLines(grinder.Name, maxTextWidth, 44, true, 2)
+	h := card.LineSpacing(44) * nameLines
 	hasDetails := grinder.GrinderType != "" || grinder.BurrType != ""
 	if hasDetails {
 		h += 44
@@ -167,9 +169,8 @@ func DrawGrinderCard(grinder *models.Grinder) (*Card, error) {
 
 	y := entityStartY(h)
 
-	// Grinder name
-	card.DrawBoldText(truncate(grinder.Name, 50), x, y, ColorDark, 44)
-	y += 58
+	// Grinder name (wrap up to 2 lines)
+	y = card.DrawWrappedTextCapped(grinder.Name, x, y, maxTextWidth, ColorDark, 44, true, 2)
 
 	// Type and burr type
 	var details []string
@@ -206,7 +207,8 @@ func DrawBrewerCard(brewer *models.Brewer) (*Card, error) {
 
 	x := leftPad
 
-	h := 58 // name
+	nameLines := card.CountWrappedLines(brewer.Name, maxTextWidth, 44, true, 2)
+	h := card.LineSpacing(44) * nameLines
 	if brewer.BrewerType != "" {
 		h += 44
 	}
@@ -217,9 +219,8 @@ func DrawBrewerCard(brewer *models.Brewer) (*Card, error) {
 
 	y := entityStartY(h)
 
-	// Brewer name
-	card.DrawBoldText(truncate(brewer.Name, 50), x, y, ColorDark, 44)
-	y += 58
+	// Brewer name (wrap up to 2 lines)
+	y = card.DrawWrappedTextCapped(brewer.Name, x, y, maxTextWidth, ColorDark, 44, true, 2)
 
 	// Type label
 	if brewer.BrewerType != "" {
@@ -260,7 +261,8 @@ func DrawRecipeCard(recipe *models.Recipe) (*Card, error) {
 
 	x := leftPad
 
-	h := 58 // name
+	nameLines := card.CountWrappedLines(recipe.Name, maxTextWidth, 44, true, 2)
+	h := card.LineSpacing(44) * nameLines
 	hasMethod := recipe.BrewerType != "" || (recipe.BrewerObj != nil && recipe.BrewerObj.Name != "")
 	if hasMethod {
 		h += 44
@@ -278,9 +280,8 @@ func DrawRecipeCard(recipe *models.Recipe) (*Card, error) {
 
 	y := entityStartY(h)
 
-	// Recipe name
-	card.DrawBoldText(truncate(recipe.Name, 50), x, y, ColorDark, 44)
-	y += 58
+	// Recipe name (wrap up to 2 lines)
+	y = card.DrawWrappedTextCapped(recipe.Name, x, y, maxTextWidth, ColorDark, 44, true, 2)
 
 	// Brewer type + brewer name
 	var methodParts []string

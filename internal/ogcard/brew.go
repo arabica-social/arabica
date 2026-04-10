@@ -79,10 +79,11 @@ func drawRatingBar(card *Card, x, y, rating int) int {
 	return y + 36
 }
 
-// truncate shortens s to maxLen, appending "..." if truncated.
+// truncate shortens s to maxLen runes, appending "..." if truncated.
 func truncate(s string, maxLen int) string {
-	if len(s) > maxLen {
-		return s[:maxLen-3] + "..."
+	r := []rune(s)
+	if len(r) > maxLen {
+		return string(r[:maxLen-3]) + "..."
 	}
 	return s
 }
@@ -92,13 +93,13 @@ func truncateLine(card *Card, s string, maxWidth int, sizePt float64, bold bool)
 	if card.MeasureText(s, sizePt, bold) <= maxWidth {
 		return s
 	}
-	for len(s) > 0 {
-		candidate := s + "..."
+	runes := []rune(s)
+	for len(runes) > 0 {
+		candidate := string(runes) + "..."
 		if card.MeasureText(candidate, sizePt, bold) <= maxWidth {
 			return candidate
 		}
-		// trim one rune at a time
-		s = s[:len(s)-1]
+		runes = runes[:len(runes)-1]
 	}
 	return "..."
 }
