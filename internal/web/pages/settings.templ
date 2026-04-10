@@ -75,6 +75,21 @@ templ settingsContent(props SettingsProps) {
 				</div>
 			</form>
 		</div>
+		<div class="card card-inner mt-4">
+			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Developer</h2>
+			<p class="text-sm mb-4" style="color: var(--text-muted);">Tools for inspecting AT Protocol data.</p>
+			<div x-data="{ devMode: localStorage.getItem('devMode') === 'true' }">
+				<label class="flex items-center gap-2 cursor-pointer">
+					<input
+						type="checkbox"
+						:checked="devMode"
+						@change="devMode = !devMode; localStorage.setItem('devMode', devMode)"
+						class="form-checkbox"
+					/>
+					<span class="text-sm" style="color: var(--text-primary);">Show "Copy AT URI" in action menus</span>
+				</label>
+			</div>
+		</div>
 	</div>
 }
 
