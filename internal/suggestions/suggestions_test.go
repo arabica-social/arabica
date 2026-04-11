@@ -426,6 +426,43 @@ func TestSearch_BeanFields(t *testing.T) {
 	assert.Equal(t, "Light", results[0].Fields["roastLevel"])
 }
 
+func TestSearch_BeanRoasterNameResolved(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	// Insert a roaster record
+	roasterURI := "at://did:plc:alice/social.arabica.alpha.roaster/r1"
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDRoaster, "r1", map[string]any{
+		"name": "Counter Culture",
+	})
+
+	// Insert a bean that references that roaster
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDBean, "b1", map[string]any{
+		"name":       "Hologram",
+		"origin":     "Blend",
+		"roasterRef": roasterURI,
+	})
+
+	results, err := Search(context.Background(), idx, atproto.NSIDBean, "hologram", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "Counter Culture", results[0].Fields["roasterName"])
+}
+
+func TestSearch_BeanNoRoasterRef(t *testing.T) {
+	idx := newTestFeedIndex(t)
+
+	// Bean without a roasterRef should not have roasterName in fields
+	insertRecord(t, idx, "did:plc:alice", atproto.NSIDBean, "b1", map[string]any{
+		"name":   "Mystery Bean",
+		"origin": "Unknown",
+	})
+
+	results, err := Search(context.Background(), idx, atproto.NSIDBean, "mystery", 10)
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Empty(t, results[0].Fields["roasterName"])
+}
+
 func TestSearch_BrewerFields(t *testing.T) {
 	idx := newTestFeedIndex(t)
 

@@ -241,6 +241,14 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 		return nil, err
 	}
 
+	// For beans, build a roaster URI -> name map so we can include the
+	// roaster name in suggestion fields. This lets clients verify the
+	// roaster matches before setting source_ref.
+	var roasterNames map[string]string
+	if collection == atproto.NSIDBean {
+		roasterNames = buildRoasterNameMap(ctx, source)
+	}
+
 	// dedupKey -> aggregated suggestion
 	type candidate struct {
 		suggestion EntitySuggestion
@@ -265,6 +273,15 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 		for _, f := range config.allFields {
 			if v, ok := recordData[f].(string); ok && v != "" {
 				fields[f] = v
+			}
+		}
+
+		// For beans, resolve roasterRef to a roaster name
+		if roasterNames != nil {
+			if ref, ok := recordData["roasterRef"].(string); ok && ref != "" {
+				if rn, ok := roasterNames[ref]; ok {
+					fields["roasterName"] = rn
+				}
 			}
 		}
 
@@ -359,6 +376,27 @@ func scoreRecord(ctx context.Context, source RecordSource, uri, did string, fiel
 	}
 
 	return score
+}
+
+// buildRoasterNameMap loads all indexed roaster records and returns a map
+// from AT-URI to roaster name. Used to resolve roaster references in bean
+// suggestions so the client can verify roaster match before setting source_ref.
+func buildRoasterNameMap(ctx context.Context, source RecordSource) map[string]string {
+	records, err := source.ListRecordsByCollectionOldest(ctx, atproto.NSIDRoaster)
+	if err != nil {
+		return nil
+	}
+	m := make(map[string]string, len(records))
+	for _, r := range records {
+		var data map[string]any
+		if err := json.Unmarshal(r.Record, &data); err != nil {
+			continue
+		}
+		if name, ok := data["name"].(string); ok && name != "" {
+			m[r.URI] = name
+		}
+	}
+	return m
 }
 
 func countNonEmpty(fields map[string]string) int {

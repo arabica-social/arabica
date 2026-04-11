@@ -24,7 +24,7 @@ func ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, plac
 	switch entityType {
 	case "bean":
 		formatLabel = `(e) => { const n = e.name || e.Name || ''; const o = e.origin || e.Origin || ''; const r = e.roast_level || e.RoastLevel || ''; if (o && r) return n + ' (' + o + ' - ' + r + ')'; if (o) return n + ' (' + o + ')'; return n; }`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.origin) d.origin = s.fields.origin; if (s.fields.roastLevel) d.roast_level = s.fields.roastLevel; if (s.fields.process) d.process = s.fields.process; } return d; }`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.origin) d.origin = s.fields.origin; if (s.fields.roastLevel) d.roast_level = s.fields.roastLevel; if (s.fields.process) d.process = s.fields.process; if (s.fields.roasterName) d._source_roaster_name = s.fields.roasterName; } return d; }`
 		extraFields = `[{name:'origin',label:'Origin',type:'text',placeholder:'e.g. Ethiopia, Colombia'},{name:'roast_level',label:'Roast Level',type:'select',options:['Ultra-Light','Light','Medium-Light','Medium','Medium-Dark','Dark']},{name:'process',label:'Process',type:'text',placeholder:'e.g. Washed, Natural, Honey'}]`
 	case "brewer":
 		formatLabel = `(e) => e.name || e.Name || ''`

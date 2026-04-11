@@ -1,19 +1,20 @@
-module arabica/tests/integration
+module tangled.org/arabica.social/arabica/tests/integration
 
 go 1.26.1
 
 replace (
-	arabica => ../..
 	github.com/haileyok/cocoon => github.com/ptdewey/cocoon v0.0.0-20260406233545-539d73959ca6
+	tangled.org/arabica.social/arabica => ../..
 )
 
 require (
-	arabica v0.0.0-00010101000000-000000000000
 	github.com/bluesky-social/indigo v0.0.0-20260318212431-cbaa83aee9dd
 	github.com/haileyok/cocoon v0.9.0
+	github.com/ptdewey/shutter v0.2.1
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
 	gorm.io/gorm v1.31.1
+	tangled.org/arabica.social/arabica v0.0.0-00010101000000-000000000000
 	tangled.org/pdewey.com/atp v0.0.0-20260407015143-f53954e5e783
 )
 
@@ -123,7 +124,6 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
-	github.com/ptdewey/shutter v0.2.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/samber/lo v1.53.0 // indirect
 	github.com/samber/slog-echo v1.21.0 // indirect

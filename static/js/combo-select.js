@@ -306,6 +306,16 @@ document.addEventListener("alpine:init", () => {
         }
       }
 
+      // For beans: clear source_ref if the roaster doesn't match the source
+      if (this.entityType === "bean" && data.source_ref && data._source_roaster_name) {
+        const selected = (this.selectedRoasterLabel || this.newRoasterName || "").toLowerCase().trim();
+        const source = data._source_roaster_name.toLowerCase().trim();
+        if (selected !== source) {
+          delete data.source_ref;
+        }
+      }
+      delete data._source_roaster_name;
+
       await this._doCreate(data);
       this.showCreateForm = false;
       this.createFormData = {};
@@ -317,6 +327,11 @@ document.addEventListener("alpine:init", () => {
       const data = { name: this.createFormData.name };
       if (this.createFormData.source_ref) {
         data.source_ref = this.createFormData.source_ref;
+      }
+      // For beans: skip details means no roaster selected, so clear source_ref
+      // if the source had a roaster
+      if (this.entityType === "bean" && data.source_ref && this.createFormData._source_roaster_name) {
+        delete data.source_ref;
       }
       this.showCreateForm = false;
       this.createFormData = {};
