@@ -230,3 +230,28 @@ assert.Nil(t, value)
 - `go mod download -json MODULE` — get dependency source path
 - `go doc foo.Bar` — read package/type/function docs
 - `go run ./cmd/server` instead of `go build` to avoid artifacts
+
+## Design Context
+
+See `.impeccable.md` for the full design system reference. Key points:
+
+### Brand Personality
+**Cozy, social, inviting** — like a neighborhood specialty cafe. Warm, not
+clinical. The emotional goals are calm satisfaction, geeky delight, community
+belonging, and craft pride.
+
+### Visual References
+- Specialty coffee bag packaging (Counter Culture, Onyx) — craft labels, earthy
+  tones, confident type
+- Analog journals — Moleskine, handwritten brew logs, texture of paper and ink
+
+### Design Principles
+1. **Warmth over precision** — Brown paper, not graph paper
+2. **Quiet confidence** — Strong typography, restrained color, let content shine
+3. **Tactile texture** — Evoke the analog: ceramic, kraft, journal pages
+4. **Community as atmosphere** — Cafe conversations, not social media timelines
+5. **Respect the ritual** — No urgency, no gamification, intentional interactions
+
+### Typography
+Iosevka Patrick (custom monospace) is the core UI font. Open to pairing with a
+warmer display font for headings.

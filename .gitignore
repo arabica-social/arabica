@@ -1,4 +1,3 @@
-# Binaries
 bin/
 tmp/
 *.exe
@@ -6,50 +5,27 @@ tmp/
 *.dll
 *.so
 *.dylib
-
-# Test binary
 *.test
-
-# Templ generated files
 *_templ.go
-
-# Output of the go coverage tool
 *.out
-
-# Generated files
+*.secret
 static/css/output.css
-
-# Database
 *.db
 *.db-shm
 *.db-wal
-
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-
-# Dependencies
 vendor/
-
-# Logs
 *.log
-
-# Nix
 result
 result-*
 /arabica
 /ogcard
-
-# Other
 *.bak
-
-# Development files
 known-dids.txt
 moderators.json
 roles.json
