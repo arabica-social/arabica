@@ -470,6 +470,26 @@
     @apply rounded-lg p-4;
   }
 
+  /* Form field groups — semantic clusters within modals */
+  .form-fieldset {
+    @apply space-y-3;
+  }
+
+  .form-fieldset-label {
+    @apply text-xs font-medium uppercase tracking-wider mb-1;
+    color: var(--text-muted);
+  }
+
+  .form-divider {
+    border-top: 1px solid var(--surface-border);
+    @apply my-2;
+  }
+
+  .form-optional-hint {
+    @apply text-xs;
+    color: var(--text-faint);
+  }
+
   /* Buttons */
   .btn {
     @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer;

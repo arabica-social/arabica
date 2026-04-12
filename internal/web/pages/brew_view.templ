@@ -44,12 +44,19 @@ templ BrewViewContent(props BrewViewProps) {
 // BrewViewCard renders the brew details card
 templ BrewViewCard(props BrewViewProps) {
 	@BrewViewHeader(props)
-	<div class="space-y-6">
-		if props.Brew.Rating > 0 {
+	<!-- Rating: hero element, generous spacing -->
+	if props.Brew.Rating > 0 {
+		<div class="mb-8">
 			@BrewRating(props.Brew.Rating)
-		}
+		</div>
+	}
+	<!-- Bean + parameters: tightly grouped as core brew info -->
+	<div class="space-y-4 mb-8">
 		@BrewBeanSection(props.Brew, getOwnerFromShareURL(props.ShareURL))
 		@BrewParametersGrid(props.Brew, getOwnerFromShareURL(props.ShareURL))
+	</div>
+	<!-- Method details: recipe, pours, tasting notes — secondary info with more breathing room -->
+	<div class="space-y-6">
 		if props.Brew.RecipeObj != nil {
 			@BrewRecipeSection(props.Brew.RecipeObj, getOwnerFromShareURL(props.ShareURL))
 		}
@@ -62,7 +69,7 @@ templ BrewViewCard(props BrewViewProps) {
 		if props.IsOwnProfile && props.Brew.RecipeObj == nil {
 			@SaveAsRecipeButton(props.Brew.RKey)
 		}
-		<div class="flex justify-between items-center">
+		<div class="flex justify-between items-center pt-2">
 			@components.BackButton()
 			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
 				@components.ActionBar(components.ActionBarProps{
@@ -114,14 +121,13 @@ templ BrewViewHeader(props BrewViewProps) {
 
 // BrewRating renders the prominent rating display
 templ BrewRating(rating int) {
-	<div class="section-box text-center py-4">
-		<span class="badge-rating text-2xl !font-bold px-5 py-2">
-			<span class="inline-flex items-center gap-1">
+	<div class="text-center py-6">
+		<span class="badge-rating text-2xl !font-bold px-6 py-2.5">
+			<span class="inline-flex items-center gap-1.5">
 				@components.IconStar()
 				{ fmt.Sprintf("%d/10", rating) }
 			</span>
 		</span>
-		<div class="text-sm text-brown-600 mt-2">Rating</div>
 	</div>
 }
 

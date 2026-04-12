@@ -32,204 +32,219 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 				hx-trigger="submit"
 				hx-swap="none"
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); }"
-				class="space-y-4"
+				class="space-y-5"
 			>
-				if bean == nil {
-					<div x-data="entitySuggest('/api/suggestions/beans')" class="relative">
+				<!-- Essentials -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Essentials</div>
+					if bean == nil {
+						<div x-data="entitySuggest('/api/suggestions/beans')" class="relative">
+							<input
+								type="text"
+								name="name"
+								placeholder="Name *"
+								required
+								class="w-full form-input"
+								x-model="query"
+								@input.debounce.300ms="search()"
+								@blur.debounce.200ms="showSuggestions = false"
+								@focus="if (suggestions.length > 0) showSuggestions = true"
+								autocomplete="off"
+							/>
+							<input type="hidden" name="source_ref" x-model="sourceRef"/>
+							<template x-if="showSuggestions && suggestions.length > 0">
+								<div class="suggestions-dropdown">
+									<template x-for="s in suggestions" :key="s.source_uri">
+										<button
+											type="button"
+											class="suggestions-item"
+											@mousedown.prevent="selectBeanSuggestion(s)"
+										>
+											<span class="font-medium" x-text="s.name"></span>
+											<template x-if="s.fields.origin">
+												<span class="text-xs text-brown-500" x-text="s.fields.origin"></span>
+											</template>
+											<template x-if="s.count > 1">
+												<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+											</template>
+										</button>
+									</template>
+								</div>
+							</template>
+						</div>
+					} else {
 						<input
 							type="text"
 							name="name"
+							value={ getStringValue(bean, "name") }
 							placeholder="Name *"
 							required
 							class="w-full form-input"
-							x-model="query"
-							@input.debounce.300ms="search()"
-							@blur.debounce.200ms="showSuggestions = false"
-							@focus="if (suggestions.length > 0) showSuggestions = true"
-							autocomplete="off"
 						/>
-						<input type="hidden" name="source_ref" x-model="sourceRef"/>
-						<template x-if="showSuggestions && suggestions.length > 0">
-							<div class="suggestions-dropdown">
-								<template x-for="s in suggestions" :key="s.source_uri">
-									<button
-										type="button"
-										class="suggestions-item"
-										@mousedown.prevent="selectBeanSuggestion(s)"
-									>
-										<span class="font-medium" x-text="s.name"></span>
-										<template x-if="s.fields.origin">
-											<span class="text-xs text-brown-500" x-text="s.fields.origin"></span>
-										</template>
-										<template x-if="s.count > 1">
-											<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
-										</template>
-									</button>
-								</template>
-							</div>
-						</template>
-					</div>
-				} else {
+					}
 					<input
 						type="text"
-						name="name"
-						value={ getStringValue(bean, "name") }
-						placeholder="Name *"
+						name="origin"
+						value={ getStringValue(bean, "origin") }
+						placeholder="Origin *"
 						required
 						class="w-full form-input"
 					/>
-				}
-				<input
-					type="text"
-					name="origin"
-					value={ getStringValue(bean, "origin") }
-					placeholder="Origin *"
-					required
-					class="w-full form-input"
-				/>
-				<input
-					type="text"
-					name="variety"
-					value={ getStringValue(bean, "variety") }
-					placeholder="Variety (e.g. SL28, Typica, Gesha)"
-					class="w-full form-input"
-				/>
-				<div x-data={ roasterPickerInit(bean, roasters) } class="relative">
+				</div>
+				<div class="form-divider"></div>
+				<!-- Origin details -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Origin Details <span class="form-optional-hint">(optional)</span></div>
 					<input
 						type="text"
-						x-model="query"
-						x-show="!showDetails"
-						@input="filter()"
-						@focus="showDropdown = true"
-						@blur="setTimeout(() => showDropdown = false, 150)"
-						@keydown.escape.prevent="showDropdown = false"
-						placeholder="Search or create roaster (optional)"
+						name="variety"
+						value={ getStringValue(bean, "variety") }
+						placeholder="Variety (e.g. SL28, Typica, Gesha)"
 						class="w-full form-input"
-						autocomplete="off"
 					/>
-					<input type="hidden" name="roaster_rkey" :value="selectedRKey"/>
-					<input type="hidden" name="new_roaster_name" :value="newRoasterName"/>
-					<input type="hidden" name="new_roaster_location" :value="newRoasterLocation"/>
-					<input type="hidden" name="new_roaster_website" :value="newRoasterWebsite"/>
-					<button
-						type="button"
-						x-show="(selectedRKey || newRoasterName) && !showDetails"
-						@click="clear()"
-						class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600 text-sm"
-						x-cloak
-					>
-						&times;
-					</button>
-					<div x-show="showDropdown && !showDetails" x-cloak class="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto rounded-lg shadow-lg" style="background: var(--card-bg, #fff); border: 1px solid var(--surface-border, #d4c4a8);">
-						<template x-for="r in filtered" :key="r.rkey">
-							<div
-								class="px-3 py-2 cursor-pointer text-sm hover:bg-brown-100"
-								@mousedown.prevent="selectRoaster(r)"
-								x-text="r.name"
-							></div>
-						</template>
-						<template x-if="query.trim() && !exactMatch">
-							<div
-								class="px-3 py-2 cursor-pointer text-sm font-medium border-t hover:bg-brown-100"
-								style="border-color: var(--surface-border, #d4c4a8);"
-								@mousedown.prevent="startCreate()"
-							>
-								Create "<span x-text="query.trim()"></span>"
-							</div>
-						</template>
-					</div>
-					<!-- Inline details for new roaster -->
-					<div x-show="showDetails" x-transition x-cloak class="p-3 rounded-lg space-y-2" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
-						<p class="text-sm font-medium text-brown-900">
-							New roaster: <span x-text="newRoasterName" class="font-semibold"></span>
-						</p>
+					<div x-data={ roasterPickerInit(bean, roasters) } class="relative">
 						<input
 							type="text"
-							x-model="newRoasterLocation"
-							placeholder="Location (optional)"
-							class="w-full form-input text-sm"
+							x-model="query"
+							x-show="!showDetails"
+							@input="filter()"
+							@focus="showDropdown = true"
+							@blur="setTimeout(() => showDropdown = false, 150)"
+							@keydown.escape.prevent="showDropdown = false"
+							placeholder="Search or create roaster"
+							class="w-full form-input"
+							autocomplete="off"
 						/>
-						<input
-							type="url"
-							x-model="newRoasterWebsite"
-							placeholder="Website (optional)"
-							class="w-full form-input text-sm"
-						/>
+						<input type="hidden" name="roaster_rkey" :value="selectedRKey"/>
+						<input type="hidden" name="new_roaster_name" :value="newRoasterName"/>
+						<input type="hidden" name="new_roaster_location" :value="newRoasterLocation"/>
+						<input type="hidden" name="new_roaster_website" :value="newRoasterWebsite"/>
 						<button
 							type="button"
-							@click="cancelCreate()"
-							class="text-xs text-brown-500 hover:text-brown-700"
+							x-show="(selectedRKey || newRoasterName) && !showDetails"
+							@click="clear()"
+							class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600 text-sm"
+							x-cloak
 						>
-							Cancel
+							&times;
 						</button>
-					</div>
-				</div>
-				<select
-					name="roast_level"
-					class="w-full form-input"
-				>
-					<option value="">Select Roast Level (Optional)</option>
-					for _, level := range models.RoastLevels {
-						<option
-							value={ level }
-							if bean != nil && bean.RoastLevel == level {
-								selected
-							}
-						>
-							{ level }
-						</option>
-					}
-				</select>
-				<input
-					type="text"
-					name="process"
-					value={ getStringValue(bean, "process") }
-					placeholder="Process (e.g. Washed, Natural, Honey)"
-					class="w-full form-input"
-				/>
-				<textarea
-					name="description"
-					placeholder="Description"
-					rows="3"
-					class="w-full form-textarea"
-				>{ getStringValue(bean, "description") }</textarea>
-				<div x-data={ beanRatingInitData(bean) }>
-					<div x-show="!showRating">
-						<button
-							type="button"
-							@click="showRating = true; if (rating === 0) rating = 5"
-							class="text-sm font-medium text-brown-700 hover:text-brown-900 flex items-center gap-1"
-						>
-							@IconStar()
-							Add Rating (Optional)
-						</button>
-					</div>
-					<div x-show="showRating" x-transition class="space-y-2">
-						<div class="flex items-center justify-between">
-							<label class="form-label mb-0">Rating</label>
+						<div x-show="showDropdown && !showDetails" x-cloak class="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto rounded-lg shadow-lg" style="background: var(--card-bg, #fff); border: 1px solid var(--surface-border, #d4c4a8);">
+							<template x-for="r in filtered" :key="r.rkey">
+								<div
+									class="px-3 py-2 cursor-pointer text-sm hover:bg-brown-100"
+									@mousedown.prevent="selectRoaster(r)"
+									x-text="r.name"
+								></div>
+							</template>
+							<template x-if="query.trim() && !exactMatch">
+								<div
+									class="px-3 py-2 cursor-pointer text-sm font-medium border-t hover:bg-brown-100"
+									style="border-color: var(--surface-border, #d4c4a8);"
+									@mousedown.prevent="startCreate()"
+								>
+									Create "<span x-text="query.trim()"></span>"
+								</div>
+							</template>
+						</div>
+						<!-- Inline details for new roaster -->
+						<div x-show="showDetails" x-transition x-cloak class="p-3 rounded-lg space-y-2" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
+							<p class="text-sm font-medium text-brown-900">
+								New roaster: <span x-text="newRoasterName" class="font-semibold"></span>
+							</p>
+							<input
+								type="text"
+								x-model="newRoasterLocation"
+								placeholder="Location (optional)"
+								class="w-full form-input text-sm"
+							/>
+							<input
+								type="url"
+								x-model="newRoasterWebsite"
+								placeholder="Website (optional)"
+								class="w-full form-input text-sm"
+							/>
 							<button
 								type="button"
-								@click="showRating = false; rating = 0"
+								@click="cancelCreate()"
 								class="text-xs text-brown-500 hover:text-brown-700"
 							>
-								Remove rating
+								Cancel
 							</button>
 						</div>
-						<input
-							type="range"
-							min="1"
-							max="10"
-							x-model.number="rating"
-							class="w-full accent-brown-700"
-						/>
-						<div class="text-center text-2xl font-bold text-brown-800">
-							<span x-text="rating"></span>/10
+					</div>
+					<select
+						name="roast_level"
+						class="w-full form-input"
+					>
+						<option value="">Select Roast Level</option>
+						for _, level := range models.RoastLevels {
+							<option
+								value={ level }
+								if bean != nil && bean.RoastLevel == level {
+									selected
+								}
+							>
+								{ level }
+							</option>
+						}
+					</select>
+					<input
+						type="text"
+						name="process"
+						value={ getStringValue(bean, "process") }
+						placeholder="Process (e.g. Washed, Natural, Honey)"
+						class="w-full form-input"
+					/>
+				</div>
+				<div class="form-divider"></div>
+				<!-- Notes & rating -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Notes & Rating <span class="form-optional-hint">(optional)</span></div>
+					<textarea
+						name="description"
+						placeholder="Description"
+						rows="3"
+						class="w-full form-textarea"
+					>{ getStringValue(bean, "description") }</textarea>
+					<div x-data={ beanRatingInitData(bean) }>
+						<div x-show="!showRating">
+							<button
+								type="button"
+								@click="showRating = true; if (rating === 0) rating = 5"
+								class="text-sm font-medium text-brown-700 hover:text-brown-900 flex items-center gap-1"
+							>
+								@IconStar()
+								Add Rating
+							</button>
 						</div>
-						<input type="hidden" name="rating" :value="showRating ? rating : ''"/>
+						<div x-show="showRating" x-transition class="space-y-2">
+							<div class="flex items-center justify-between">
+								<label class="form-label mb-0">Rating</label>
+								<button
+									type="button"
+									@click="showRating = false; rating = 0"
+									class="text-xs text-brown-500 hover:text-brown-700"
+								>
+									Remove rating
+								</button>
+							</div>
+							<input
+								type="range"
+								min="1"
+								max="10"
+								x-model.number="rating"
+								class="w-full accent-brown-700"
+							/>
+							<div class="text-center text-2xl font-bold text-brown-800">
+								<span x-text="rating"></span>/10
+							</div>
+							<input type="hidden" name="rating" :value="showRating ? rating : ''"/>
+						</div>
 					</div>
 				</div>
 				// Only show "close bag check" when editing
 				if bean != nil {
+					<div class="form-divider"></div>
 					<div class="flex items-center gap-2">
 						<input
 							type="checkbox"
@@ -246,7 +261,7 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 						</label>
 					</div>
 				}
-				<div class="flex gap-2">
+				<div class="flex gap-2 pt-2">
 					<button type="submit" class="flex-1 btn-primary">
 						Save
 					</button>
@@ -283,93 +298,102 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 				hx-trigger="submit"
 				hx-swap="none"
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); }"
-				class="space-y-4"
+				class="space-y-5"
 			>
-				if grinder == nil {
-					<div x-data="entitySuggest('/api/suggestions/grinders')" class="relative">
+				<!-- Essentials -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Essentials</div>
+					if grinder == nil {
+						<div x-data="entitySuggest('/api/suggestions/grinders')" class="relative">
+							<input
+								type="text"
+								name="name"
+								placeholder="Name *"
+								required
+								class="w-full form-input"
+								x-model="query"
+								@input.debounce.300ms="search()"
+								@blur.debounce.200ms="showSuggestions = false"
+								@focus="if (suggestions.length > 0) showSuggestions = true"
+								autocomplete="off"
+							/>
+							<input type="hidden" name="source_ref" x-model="sourceRef"/>
+							<template x-if="showSuggestions && suggestions.length > 0">
+								<div class="suggestions-dropdown">
+									<template x-for="s in suggestions" :key="s.source_uri">
+										<button
+											type="button"
+											class="suggestions-item"
+											@mousedown.prevent="selectGrinderSuggestion(s)"
+										>
+											<span class="font-medium" x-text="s.name"></span>
+											<template x-if="s.fields.grinderType">
+												<span class="text-xs text-brown-500" x-text="s.fields.grinderType"></span>
+											</template>
+											<template x-if="s.count > 1">
+												<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+											</template>
+										</button>
+									</template>
+								</div>
+							</template>
+						</div>
+					} else {
 						<input
 							type="text"
 							name="name"
+							value={ getStringValue(grinder, "name") }
 							placeholder="Name *"
 							required
 							class="w-full form-input"
-							x-model="query"
-							@input.debounce.300ms="search()"
-							@blur.debounce.200ms="showSuggestions = false"
-							@focus="if (suggestions.length > 0) showSuggestions = true"
-							autocomplete="off"
 						/>
-						<input type="hidden" name="source_ref" x-model="sourceRef"/>
-						<template x-if="showSuggestions && suggestions.length > 0">
-							<div class="suggestions-dropdown">
-								<template x-for="s in suggestions" :key="s.source_uri">
-									<button
-										type="button"
-										class="suggestions-item"
-										@mousedown.prevent="selectGrinderSuggestion(s)"
-									>
-										<span class="font-medium" x-text="s.name"></span>
-										<template x-if="s.fields.grinderType">
-											<span class="text-xs text-brown-500" x-text="s.fields.grinderType"></span>
-										</template>
-										<template x-if="s.count > 1">
-											<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
-										</template>
-									</button>
-								</template>
-							</div>
-						</template>
-					</div>
-				} else {
-					<input
-						type="text"
-						name="name"
-						value={ getStringValue(grinder, "name") }
-						placeholder="Name *"
-						required
+					}
+					<select
+						name="grinder_type"
 						class="w-full form-input"
-					/>
-				}
-				<select
-					name="grinder_type"
-					class="w-full form-input"
-					required
-				>
-					<option value="">Select Grinder Type *</option>
-					for _, gType := range models.GrinderTypes {
-						<option
-							value={ gType }
-							if grinder != nil && grinder.GrinderType == gType {
-								selected
-							}
-						>
-							{ gType }
-						</option>
-					}
-				</select>
-				<select
-					name="burr_type"
-					class="w-full form-input"
-				>
-					<option value="">Select Burr Type (Optional)</option>
-					for _, bType := range models.BurrTypes {
-						<option
-							value={ bType }
-							if grinder != nil && grinder.BurrType == bType {
-								selected
-							}
-						>
-							{ bType }
-						</option>
-					}
-				</select>
-				<textarea
-					name="notes"
-					placeholder="Notes"
-					rows="3"
-					class="w-full form-textarea"
-				>{ getStringValue(grinder, "notes") }</textarea>
-				<div class="flex gap-2">
+						required
+					>
+						<option value="">Select Grinder Type *</option>
+						for _, gType := range models.GrinderTypes {
+							<option
+								value={ gType }
+								if grinder != nil && grinder.GrinderType == gType {
+									selected
+								}
+							>
+								{ gType }
+							</option>
+						}
+					</select>
+				</div>
+				<div class="form-divider"></div>
+				<!-- Details -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
+					<select
+						name="burr_type"
+						class="w-full form-input"
+					>
+						<option value="">Select Burr Type</option>
+						for _, bType := range models.BurrTypes {
+							<option
+								value={ bType }
+								if grinder != nil && grinder.BurrType == bType {
+									selected
+								}
+							>
+								{ bType }
+							</option>
+						}
+					</select>
+					<textarea
+						name="notes"
+						placeholder="Notes"
+						rows="3"
+						class="w-full form-textarea"
+					>{ getStringValue(grinder, "notes") }</textarea>
+				</div>
+				<div class="flex gap-2 pt-2">
 					<button type="submit" class="flex-1 btn-primary">
 						Save
 					</button>
@@ -406,87 +430,96 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 				hx-trigger="submit"
 				hx-swap="none"
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); }"
-				class="space-y-4"
+				class="space-y-5"
 			>
-				if brewer == nil {
-					<div x-data="entitySuggest('/api/suggestions/brewers')" class="relative">
+				<!-- Essentials -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Essentials</div>
+					if brewer == nil {
+						<div x-data="entitySuggest('/api/suggestions/brewers')" class="relative">
+							<input
+								type="text"
+								name="name"
+								placeholder="Name *"
+								required
+								class="w-full form-input"
+								x-model="query"
+								@input.debounce.300ms="search()"
+								@blur.debounce.200ms="showSuggestions = false"
+								@focus="if (suggestions.length > 0) showSuggestions = true"
+								autocomplete="off"
+							/>
+							<input type="hidden" name="source_ref" x-model="sourceRef"/>
+							<template x-if="showSuggestions && suggestions.length > 0">
+								<div class="suggestions-dropdown">
+									<template x-for="s in suggestions" :key="s.source_uri">
+										<button
+											type="button"
+											class="suggestions-item"
+											@mousedown.prevent="selectBrewerSuggestion(s)"
+										>
+											<span class="font-medium" x-text="s.name"></span>
+											<template x-if="s.fields.brewerType">
+												<span class="text-xs text-brown-500" x-text="s.fields.brewerType"></span>
+											</template>
+											<template x-if="s.count > 1">
+												<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+											</template>
+										</button>
+									</template>
+								</div>
+							</template>
+						</div>
+					} else {
 						<input
 							type="text"
 							name="name"
+							value={ getStringValue(brewer, "name") }
 							placeholder="Name *"
 							required
 							class="w-full form-input"
-							x-model="query"
-							@input.debounce.300ms="search()"
-							@blur.debounce.200ms="showSuggestions = false"
-							@focus="if (suggestions.length > 0) showSuggestions = true"
-							autocomplete="off"
 						/>
-						<input type="hidden" name="source_ref" x-model="sourceRef"/>
-						<template x-if="showSuggestions && suggestions.length > 0">
-							<div class="suggestions-dropdown">
-								<template x-for="s in suggestions" :key="s.source_uri">
-									<button
-										type="button"
-										class="suggestions-item"
-										@mousedown.prevent="selectBrewerSuggestion(s)"
-									>
-										<span class="font-medium" x-text="s.name"></span>
-										<template x-if="s.fields.brewerType">
-											<span class="text-xs text-brown-500" x-text="s.fields.brewerType"></span>
-										</template>
-										<template x-if="s.count > 1">
-											<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
-										</template>
-									</button>
-								</template>
-							</div>
-						</template>
-					</div>
-				} else {
-					<input
-						type="text"
-						name="name"
-						value={ getStringValue(brewer, "name") }
-						placeholder="Name *"
-						required
-						class="w-full form-input"
-					/>
-				}
-				<select
-					name="brewer_type"
-					class="w-full form-select"
-				>
-					<option value="">Select type...</option>
-					<option value="pourover" if getStringValue(brewer, "brewer_type") == "pourover" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "pourover" {
+					}
+					<select
+						name="brewer_type"
+						class="w-full form-select"
+					>
+						<option value="">Select type...</option>
+						<option value="pourover" if getStringValue(brewer, "brewer_type") == "pourover" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "pourover" {
 	selected
 }>Pour-over</option>
-					<option value="espresso" if getStringValue(brewer, "brewer_type") == "espresso" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "espresso" {
+						<option value="espresso" if getStringValue(brewer, "brewer_type") == "espresso" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "espresso" {
 	selected
 }>Espresso</option>
-					<option value="immersion" if getStringValue(brewer, "brewer_type") == "immersion" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "immersion" {
+						<option value="immersion" if getStringValue(brewer, "brewer_type") == "immersion" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "immersion" {
 	selected
 }>Immersion</option>
-					<option value="mokapot" if getStringValue(brewer, "brewer_type") == "mokapot" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "mokapot" {
+						<option value="mokapot" if getStringValue(brewer, "brewer_type") == "mokapot" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "mokapot" {
 	selected
 }>Moka Pot</option>
-					<option value="coldbrew" if getStringValue(brewer, "brewer_type") == "coldbrew" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "coldbrew" {
+						<option value="coldbrew" if getStringValue(brewer, "brewer_type") == "coldbrew" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "coldbrew" {
 	selected
 }>Cold Brew</option>
-					<option value="cupping" if getStringValue(brewer, "brewer_type") == "cupping" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "cupping" {
+						<option value="cupping" if getStringValue(brewer, "brewer_type") == "cupping" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "cupping" {
 	selected
 }>Cupping</option>
-					<option value="other" if getStringValue(brewer, "brewer_type") == "other" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "other" {
+						<option value="other" if getStringValue(brewer, "brewer_type") == "other" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "other" {
 	selected
 }>Other</option>
-				</select>
-				<textarea
-					name="description"
-					placeholder="Description"
-					rows="3"
-					class="w-full form-textarea"
-				>{ getStringValue(brewer, "description") }</textarea>
-				<div class="flex gap-2">
+					</select>
+				</div>
+				<div class="form-divider"></div>
+				<!-- Description -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Description <span class="form-optional-hint">(optional)</span></div>
+					<textarea
+						name="description"
+						placeholder="Description"
+						rows="3"
+						class="w-full form-textarea"
+					>{ getStringValue(brewer, "description") }</textarea>
+				</div>
+				<div class="flex gap-2 pt-2">
 					<button type="submit" class="flex-1 btn-primary">
 						Save
 					</button>
@@ -523,68 +556,77 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 				hx-trigger="submit"
 				hx-swap="none"
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); }"
-				class="space-y-4"
+				class="space-y-5"
 			>
-				if roaster == nil {
-					<div x-data="entitySuggest('/api/suggestions/roasters')" class="relative">
+				<!-- Essentials -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Essentials</div>
+					if roaster == nil {
+						<div x-data="entitySuggest('/api/suggestions/roasters')" class="relative">
+							<input
+								type="text"
+								name="name"
+								placeholder="Name *"
+								required
+								class="w-full form-input"
+								x-model="query"
+								@input.debounce.300ms="search()"
+								@blur.debounce.200ms="showSuggestions = false"
+								@focus="if (suggestions.length > 0) showSuggestions = true"
+								autocomplete="off"
+							/>
+							<input type="hidden" name="source_ref" x-model="sourceRef"/>
+							<template x-if="showSuggestions && suggestions.length > 0">
+								<div class="suggestions-dropdown">
+									<template x-for="s in suggestions" :key="s.source_uri">
+										<button
+											type="button"
+											class="suggestions-item"
+											@mousedown.prevent="selectRoasterSuggestion(s)"
+										>
+											<span class="font-medium" x-text="s.name"></span>
+											<template x-if="s.fields.location">
+												<span class="text-xs text-brown-500" x-text="s.fields.location"></span>
+											</template>
+											<template x-if="s.count > 1">
+												<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+											</template>
+										</button>
+									</template>
+								</div>
+							</template>
+						</div>
+					} else {
 						<input
 							type="text"
 							name="name"
+							value={ getStringValue(roaster, "name") }
 							placeholder="Name *"
 							required
 							class="w-full form-input"
-							x-model="query"
-							@input.debounce.300ms="search()"
-							@blur.debounce.200ms="showSuggestions = false"
-							@focus="if (suggestions.length > 0) showSuggestions = true"
-							autocomplete="off"
 						/>
-						<input type="hidden" name="source_ref" x-model="sourceRef"/>
-						<template x-if="showSuggestions && suggestions.length > 0">
-							<div class="suggestions-dropdown">
-								<template x-for="s in suggestions" :key="s.source_uri">
-									<button
-										type="button"
-										class="suggestions-item"
-										@mousedown.prevent="selectRoasterSuggestion(s)"
-									>
-										<span class="font-medium" x-text="s.name"></span>
-										<template x-if="s.fields.location">
-											<span class="text-xs text-brown-500" x-text="s.fields.location"></span>
-										</template>
-										<template x-if="s.count > 1">
-											<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
-										</template>
-									</button>
-								</template>
-							</div>
-						</template>
-					</div>
-				} else {
+					}
+				</div>
+				<div class="form-divider"></div>
+				<!-- Details -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
 					<input
 						type="text"
-						name="name"
-						value={ getStringValue(roaster, "name") }
-						placeholder="Name *"
-						required
+						name="location"
+						value={ getStringValue(roaster, "location") }
+						placeholder="Location"
 						class="w-full form-input"
 					/>
-				}
-				<input
-					type="text"
-					name="location"
-					value={ getStringValue(roaster, "location") }
-					placeholder="Location"
-					class="w-full form-input"
-				/>
-				<input
-					type="url"
-					name="website"
-					value={ getStringValue(roaster, "website") }
-					placeholder="Website"
-					class="w-full form-input"
-				/>
-				<div class="flex gap-2">
+					<input
+						type="url"
+						name="website"
+						value={ getStringValue(roaster, "website") }
+						placeholder="Website"
+						class="w-full form-input"
+					/>
+				</div>
+				<div class="flex gap-2 pt-2">
 					<button type="submit" class="flex-1 btn-primary">
 						Save
 					</button>
@@ -633,60 +675,72 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 				hx-trigger="submit"
 				hx-swap="none"
 				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
-				class="space-y-4"
+				class="space-y-5"
 				x-data={ fmt.Sprintf("{ pours: %s, addPour() { this.pours.push({water: '', time: ''}); }, removePour(i) { this.pours.splice(i, 1); } }", recipePourJSON(recipe)) }
 			>
-				<input
-					type="text"
-					name="name"
-					value={ getStringValue(recipe, "name") }
-					placeholder="Name *"
-					required
-					class="w-full form-input"
-				/>
-				<select
-					name="brewer_rkey"
-					class="w-full form-input"
-				>
-					<option value="">Select Brewer (Optional)</option>
-					for _, brewer := range brewers {
-						<option
-							value={ brewer.RKey }
-							if recipe != nil && recipe.BrewerRKey == brewer.RKey {
-								selected
-							}
-						>
-							{ brewer.Name }
-						</option>
-					}
-				</select>
-				<input
-					type="text"
-					name="brewer_type"
-					value={ getStringValue(recipe, "brewer_type") }
-					placeholder="Brewer Type (e.g., Pour-Over, Immersion)"
-					class="w-full form-input"
-				/>
-				<input
-					type="number"
-					name="coffee_amount"
-					value={ getStringValue(recipe, "coffee_amount") }
-					placeholder="Coffee Amount (grams)"
-					step="0.1"
-					class="w-full form-input"
-				/>
-				<input
-					type="number"
-					name="water_amount"
-					value={ getStringValue(recipe, "water_amount") }
-					placeholder="Water Amount (grams)"
-					step="0.1"
-					class="w-full form-input"
-				/>
+				<!-- Essentials -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Essentials</div>
+					<input
+						type="text"
+						name="name"
+						value={ getStringValue(recipe, "name") }
+						placeholder="Name *"
+						required
+						class="w-full form-input"
+					/>
+					<select
+						name="brewer_rkey"
+						class="w-full form-input"
+					>
+						<option value="">Select Brewer</option>
+						for _, brewer := range brewers {
+							<option
+								value={ brewer.RKey }
+								if recipe != nil && recipe.BrewerRKey == brewer.RKey {
+									selected
+								}
+							>
+								{ brewer.Name }
+							</option>
+						}
+					</select>
+					<input
+						type="text"
+						name="brewer_type"
+						value={ getStringValue(recipe, "brewer_type") }
+						placeholder="Brewer Type (e.g., Pour-Over, Immersion)"
+						class="w-full form-input"
+					/>
+				</div>
+				<div class="form-divider"></div>
+				<!-- Amounts -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Amounts <span class="form-optional-hint">(optional)</span></div>
+					<div class="grid grid-cols-2 gap-3">
+						<input
+							type="number"
+							name="coffee_amount"
+							value={ getStringValue(recipe, "coffee_amount") }
+							placeholder="Coffee (g)"
+							step="0.1"
+							class="w-full form-input"
+						/>
+						<input
+							type="number"
+							name="water_amount"
+							value={ getStringValue(recipe, "water_amount") }
+							placeholder="Water (g)"
+							step="0.1"
+							class="w-full form-input"
+						/>
+					</div>
+				</div>
+				<div class="form-divider"></div>
 				<!-- Pours -->
-				<div>
-					<div class="flex items-center justify-between mb-2">
-						<label class="block text-sm font-medium text-brown-900">Pours (Optional)</label>
+				<div class="form-fieldset">
+					<div class="flex items-center justify-between">
+						<div class="form-fieldset-label">Pours <span class="form-optional-hint">(optional)</span></div>
 						<button
 							type="button"
 							@click="addPour()"
@@ -729,13 +783,18 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 						</template>
 					</div>
 				</div>
-				<textarea
-					name="notes"
-					placeholder="Notes"
-					rows="3"
-					class="w-full form-textarea"
-				>{ getStringValue(recipe, "notes") }</textarea>
-				<div class="flex gap-2">
+				<div class="form-divider"></div>
+				<!-- Notes -->
+				<div class="form-fieldset">
+					<div class="form-fieldset-label">Notes <span class="form-optional-hint">(optional)</span></div>
+					<textarea
+						name="notes"
+						placeholder="Notes"
+						rows="3"
+						class="w-full form-textarea"
+					>{ getStringValue(recipe, "notes") }</textarea>
+				</div>
+				<div class="flex gap-2 pt-2">
 					<button type="submit" class="flex-1 btn-primary">
 						Save
 					</button>
