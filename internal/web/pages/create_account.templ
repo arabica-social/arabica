@@ -12,71 +12,76 @@ templ CreateAccount(layout *components.LayoutData, props CreateAccountProps) {
 	@components.Layout(layout, CreateAccountContent(props))
 }
 
-// CreateAccountContent renders the PDS server selection for account creation.
+// CreateAccountContent renders the Atmosphere account creation page.
 templ CreateAccountContent(props CreateAccountProps) {
 	<div class="page-container-md">
 		<div class="flex items-center gap-3 mb-8">
 			@components.BackButton()
-			<h1 class="text-4xl font-bold text-brown-900">Create Account</h1>
+			<h1 class="text-4xl font-bold text-brown-900">Create an Atmosphere Account</h1>
 		</div>
-		<p class="text-brown-800 leading-relaxed mb-6">
-			Create an account on a Personal Data Server (PDS) to start tracking your brews.
-			Your data is stored on the server you choose and is portable — you can move it later.
+		<p class="text-brown-800 leading-relaxed mb-2">
+			An Atmosphere account is your passport to Arabica and the wider <a href="/atproto" class="link-bold">AT Protocol</a> ecosystem.
+			One account works across every compatible app — no more creating new logins.
+		</p>
+		<p class="text-sm text-brown-600 mb-6">
+			Choose a provider below. Your data is portable — you can move to a different provider at any time.
 		</p>
 		if props.Error != "" {
 			<div class="mb-6 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 text-sm">
 				{ props.Error }
 			</div>
 		}
-		<div class="space-y-4">
-			@pdsCard("https://arabica.systems") {
-				<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
-					Arabica
-					<span class="relative -top-px inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-						Invite Only
-					</span>
-				</p>
-				<p class="text-sm text-brown-700">The official Arabica PDS.</p>
-				<p class="flex items-center gap-1 text-xs text-brown-500">
-					arabica.systems ·
-					@locationPin()
-					United States
-				</p>
-			}
-			@pdsCard("https://selfhosted.social") {
-				<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
-					selfhosted.social
-					<span class="relative -top-px inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-						Open
-					</span>
-				</p>
-				<p class="text-sm text-brown-700">
-					Indie PDS hosted by
-					<a href="https://bsky.app/profile/baileytownsend.dev" target="_blank" rel="noopener noreferrer" class="link-bold">{ "@baileytownsend.dev" }</a>.
-				</p>
-				<p class="flex items-center gap-1 text-xs text-brown-500">
-					selfhosted.social ·
-					@locationPin()
-					United States
-				</p>
-			}
-			// @pdsCard("https://bsky.app") {
-			// 	<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
-			// 		Bluesky
-			// 		<span class="relative -top-px inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-			// 			Open
-			// 		</span>
-			// 	</p>
-			// 	<p class="text-sm text-brown-700">Maintained by Bluesky PBC.</p>
-			// 	<p class="flex items-center gap-1 text-xs text-brown-500">
-			// 		bsky.social ·
-			// 		@locationPin()
-			// 		United States
-			// 	</p>
-			// }
+		<!-- App providers -->
+		<div class="mb-6">
+			<h2 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">App Providers</h2>
+			<p class="text-sm text-brown-500 mb-3">These apps host your account and data { "for" } you.</p>
+			<div class="space-y-3">
+				@pdsCard("https://arabica.systems") {
+					<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
+						Arabica
+						<span class="relative -top-px inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+							Invite Only
+						</span>
+					</p>
+					<p class="text-sm text-brown-700">The official Arabica provider.</p>
+					<p class="flex items-center gap-1 text-xs text-brown-500">
+						arabica.systems ·
+						@locationPin()
+						United States
+					</p>
+				}
+			</div>
 		</div>
-		<p class="text-sm text-brown-600 mt-6 text-center">
-			Already have an account?
+		<!-- Independent providers -->
+		<div class="mb-6">
+			<h2 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">Independent Providers</h2>
+			<p class="text-sm text-brown-500 mb-3">Account hosts run by the community. They hold your account and data, independent of any single app.</p>
+			<div class="space-y-3">
+				@pdsCard("https://selfhosted.social") {
+					<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
+						selfhosted.social
+						<span class="relative -top-px inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+							Open
+						</span>
+					</p>
+					<p class="text-sm text-brown-700">
+						Community provider hosted by
+						<a href="https://bsky.app/profile/baileytownsend.dev" target="_blank" rel="noopener noreferrer" class="link-bold">{ "@baileytownsend.dev" }</a>.
+					</p>
+					<p class="flex items-center gap-1 text-xs text-brown-500">
+						selfhosted.social ·
+						@locationPin()
+						United States
+					</p>
+				}
+			</div>
+		</div>
+		<!-- Self-hosted note -->
+		<div class="text-sm text-brown-500 mb-6">
+			<strong class="text-brown-700">Self-hosted:</strong> Technical users can <a href="https://atproto.com/guides/self-hosting" target="_blank" rel="noopener noreferrer" class="link">run their own provider</a> { "for" } full control over their data.
+		</div>
+		<p class="text-sm text-brown-600 text-center">
+			Already have an Atmosphere account?
 			<a href="/login" class="link-bold">Log in here</a>.
 		</p>
 	</div>

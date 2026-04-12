@@ -33,6 +33,17 @@ templ HeaderWithProps(props HeaderProps) {
 				</a>
 				<!-- Navigation links -->
 				<div class="flex items-center gap-4">
+					if !props.IsAuthenticated {
+						<div class="flex items-center gap-4">
+														<button
+								x-data
+								@click="$dispatch('open-login')"
+								class="text-sm font-semibold text-brown-100 hover:text-white transition-colors"
+							>
+								Log In
+							</button>
+						</div>
+					}
 					if props.IsAuthenticated {
 						<!-- Notification bell -->
 						<a href="/notifications" class="relative hover:opacity-80 transition p-1" title="Notifications">
@@ -194,6 +205,60 @@ templ HeaderWithProps(props HeaderProps) {
 			</div>
 		</div>
 	</nav>
+	if !props.IsAuthenticated {
+		@LoginModal()
+	}
+}
+
+// LoginModal renders the login dialog for unauthenticated users
+templ LoginModal() {
+	<dialog id="login-modal" class="modal-dialog" x-data @open-login.window="$el.showModal()">
+		<div class="modal-content">
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="modal-title mb-0">Log in with your Atmosphere account</h3>
+				<button
+					type="button"
+					@click="$el.closest('dialog').close()"
+					class="text-brown-400 hover:text-brown-600 transition-colors"
+				>
+					@IconX()
+				</button>
+			</div>
+			<form method="POST" action="/auth/login" class="space-y-4">
+				<div class="relative">
+					<label { "for" }="login-handle" class="block text-sm font-medium text-brown-900 mb-2">Handle</label>
+					<input
+						type="text"
+						id="login-handle"
+						name="handle"
+						placeholder="your-handle.bsky.social"
+						autocomplete="off"
+						required
+						class="w-full form-input-lg"
+					/>
+					<div id="autocomplete-results" class="hidden handle-dropdown"></div>
+				</div>
+				<button
+					type="submit"
+					class="btn-primary w-full py-3 font-semibold"
+				>
+					Log In
+				</button>
+			</form>
+			<div class="mt-4 text-sm text-brown-600 text-center">
+				<a href="/join/create" class="font-medium text-brown-800 hover:text-brown-900 transition-colors hover:underline">Create an account</a>
+				<span class="mx-1.5 text-brown-400">&middot;</span>
+				<a href="/about" class="text-brown-600 hover:text-brown-800 transition-colors hover:underline">Learn more</a>
+			</div>
+			<details class="mt-4">
+				<summary class="text-brown-500 text-sm cursor-pointer hover:text-brown-700 transition-colors">What's an Atmosphere account?</summary>
+				<p class="text-brown-600 mt-2 text-sm leading-relaxed">
+					One account { "for" } the entire <a href="/atproto" class="link">AT Protocol</a> ecosystem. Sign up once and use it across Arabica, <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a>, <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a>, and more. Your data is portable — you own it.
+				</p>
+			</details>
+			<script src="/static/js/handle-autocomplete.js?v=0.2.0"></script>
+		</div>
+	</dialog>
 }
 
 // Helper function to get profile identifier (handle or DID)

@@ -3,7 +3,9 @@
  * Provides typeahead search for Bluesky handles
  */
 (function () {
-  const input = document.getElementById("handle");
+  const input =
+    document.getElementById("login-handle") ||
+    document.getElementById("handle");
   const results = document.getElementById("autocomplete-results");
 
   // Exit early if elements don't exist (user might be authenticated)

@@ -26,7 +26,6 @@ templ HomeContent(props HomeProps) {
 			<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML"></div>
 		} else {
 			@components.WelcomeHero()
-			@components.WelcomeLoginCard()
 		}
 		@CommunityFeedSection(props.IsAuthenticated)
 		if props.IsAuthenticated {
