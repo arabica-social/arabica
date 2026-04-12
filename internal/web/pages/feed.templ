@@ -284,6 +284,8 @@ templ ActionText(item *feed.FeedItem) {
 			if item.Brew != nil {
 				added a
 				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new brew</a>
+				{ " " }
+				@components.TypeBadge("brew")
 			} else {
 				{ item.Action }
 			}
@@ -291,6 +293,8 @@ templ ActionText(item *feed.FeedItem) {
 			if item.Bean != nil {
 				added a
 				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new bean</a>
+				{ " " }
+				@components.TypeBadge("bean")
 			} else {
 				{ item.Action }
 			}
@@ -298,6 +302,8 @@ templ ActionText(item *feed.FeedItem) {
 			if item.Roaster != nil {
 				added a
 				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new roaster</a>
+				{ " " }
+				@components.TypeBadge("roaster")
 			} else {
 				{ item.Action }
 			}
@@ -305,6 +311,8 @@ templ ActionText(item *feed.FeedItem) {
 			if item.Grinder != nil {
 				added a
 				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new grinder</a>
+				{ " " }
+				@components.TypeBadge("grinder")
 			} else {
 				{ item.Action }
 			}
@@ -312,6 +320,8 @@ templ ActionText(item *feed.FeedItem) {
 			if item.Brewer != nil {
 				added a
 				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new brewer</a>
+				{ " " }
+				@components.TypeBadge("brewer")
 			} else {
 				{ item.Action }
 			}
@@ -319,6 +329,8 @@ templ ActionText(item *feed.FeedItem) {
 			if item.Recipe != nil {
 				added a
 				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new recipe</a>
+				{ " " }
+				@components.TypeBadge("recipe")
 			} else {
 				{ item.Action }
 			}

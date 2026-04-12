@@ -82,13 +82,21 @@
   --modal-border: #eaddd7;
   --modal-backdrop: rgba(0, 0, 0, 0.4);
 
-  /* Feed type indicators (left border + filter pills) */
+  /* Feed type indicators (filter pills + type badges) */
   --type-brew: #6b4423;
   --type-bean: #b45309;
-  --type-recipe: #7f5539;
+  --type-recipe: #a0522d;
   --type-roaster: #92400e;
-  --type-grinder: #6b4423;
-  --type-brewer: #6b4423;
+  --type-grinder: #78716c;
+  --type-brewer: #5b6e4e;
+
+  /* Type background tints (subtle card wash) */
+  --type-brew-tint: rgba(107, 68, 35, 0.04);
+  --type-bean-tint: rgba(180, 83, 9, 0.04);
+  --type-recipe-tint: rgba(160, 82, 45, 0.04);
+  --type-roaster-tint: rgba(146, 64, 14, 0.04);
+  --type-grinder-tint: rgba(120, 113, 108, 0.04);
+  --type-brewer-tint: rgba(91, 110, 78, 0.04);
 
   /* Rating badges */
   --rating-bg: #fef3c7;
@@ -172,13 +180,21 @@
     --modal-border: #2E211B;
     --modal-backdrop: rgba(0, 0, 0, 0.6);
 
-    /* Feed type indicators (left border) - brighter on dark */
-    --type-brew: #6b4423;
-    --type-bean: #b45309;
-    --type-recipe: #7f5539;
-    --type-roaster: #92400e;
-    --type-grinder: #6b4423;
-    --type-brewer: #6b4423;
+    /* Feed type indicators - brighter on dark */
+    --type-brew: #a67c52;
+    --type-bean: #d97706;
+    --type-recipe: #c4724a;
+    --type-roaster: #c2610e;
+    --type-grinder: #a8a29e;
+    --type-brewer: #8ba37a;
+
+    /* Type background tints (slightly stronger on dark) */
+    --type-brew-tint: rgba(166, 124, 82, 0.06);
+    --type-bean-tint: rgba(217, 119, 6, 0.06);
+    --type-recipe-tint: rgba(196, 114, 74, 0.06);
+    --type-roaster-tint: rgba(194, 97, 14, 0.06);
+    --type-grinder-tint: rgba(168, 162, 158, 0.06);
+    --type-brewer-tint: rgba(139, 163, 122, 0.06);
 
     /* Rating badges */
     --rating-bg: rgba(251, 191, 36, 0.15);
@@ -305,12 +321,18 @@
   --modal-bg: #1C1210;
   --modal-border: #2E211B;
   --modal-backdrop: rgba(0, 0, 0, 0.6);
-  --type-brew: #6b4423;
-  --type-bean: #b45309;
-  --type-recipe: #7f5539;
-  --type-roaster: #92400e;
-  --type-grinder: #6b4423;
-  --type-brewer: #6b4423;
+  --type-brew: #a67c52;
+  --type-bean: #d97706;
+  --type-recipe: #c4724a;
+  --type-roaster: #c2610e;
+  --type-grinder: #a8a29e;
+  --type-brewer: #8ba37a;
+  --type-brew-tint: rgba(166, 124, 82, 0.06);
+  --type-bean-tint: rgba(217, 119, 6, 0.06);
+  --type-recipe-tint: rgba(196, 114, 74, 0.06);
+  --type-roaster-tint: rgba(194, 97, 14, 0.06);
+  --type-grinder-tint: rgba(168, 162, 158, 0.06);
+  --type-brewer-tint: rgba(139, 163, 122, 0.06);
   --rating-bg: rgba(251, 191, 36, 0.15);
   --rating-text: #fbbf24;
   --alert-warning-bg: rgba(251, 191, 36, 0.08);
@@ -759,30 +781,61 @@
     box-shadow: var(--shadow-md);
   }
 
-  /* Feed card type indicators */
+  /* Feed card type tints — subtle background wash per record type */
   .feed-card-brew {
-    border-left: 3px solid var(--type-brew);
+    background: linear-gradient(var(--type-brew-tint), var(--type-brew-tint)), var(--card-bg);
   }
 
   .feed-card-bean {
-    border-left: 3px solid var(--type-bean);
+    background: linear-gradient(var(--type-bean-tint), var(--type-bean-tint)), var(--card-bg);
   }
 
   .feed-card-recipe {
-    border-left: 3px solid var(--type-recipe);
+    background: linear-gradient(var(--type-recipe-tint), var(--type-recipe-tint)), var(--card-bg);
   }
 
   .feed-card-roaster {
-    border-left: 3px solid var(--type-roaster);
+    background: linear-gradient(var(--type-roaster-tint), var(--type-roaster-tint)), var(--card-bg);
   }
 
   .feed-card-grinder {
-    border-left: 3px solid var(--type-grinder);
+    background: linear-gradient(var(--type-grinder-tint), var(--type-grinder-tint)), var(--card-bg);
   }
 
   .feed-card-brewer {
-    border-left: 3px solid var(--type-brewer);
+    background: linear-gradient(var(--type-brewer-tint), var(--type-brewer-tint)), var(--card-bg);
   }
+
+  /* Type badges — inline pill with icon + label */
+  .type-badge {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium;
+    border: 1px solid currentColor;
+    opacity: 0.8;
+  }
+
+  .type-badge svg {
+    color: inherit;
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  .type-badge-brew { color: var(--type-brew); }
+  .type-badge-bean { color: var(--type-bean); }
+  .type-badge-recipe { color: var(--type-recipe); }
+  .type-badge-roaster { color: var(--type-roaster); }
+  .type-badge-grinder { color: var(--type-grinder); }
+  .type-badge-brewer { color: var(--type-brewer); }
+
+  /* Entity card type dot — small colored indicator in card headers */
+  .entity-card-dot {
+    @apply inline-block w-2 h-2 rounded-full flex-shrink-0;
+  }
+
+  .entity-card-dot-bean { background: var(--type-bean); }
+  .entity-card-dot-roaster { background: var(--type-roaster); }
+  .entity-card-dot-grinder { background: var(--type-grinder); }
+  .entity-card-dot-brewer { background: var(--type-brewer); }
+  .entity-card-dot-recipe { background: var(--type-recipe); }
 
   .feed-content-box {
     background: var(--surface-bg);

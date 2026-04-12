@@ -72,6 +72,42 @@ templ BeanSummary(props BeanSummaryProps) {
 	}
 }
 
+// TypeBadge renders a colored pill with an icon and type label for record type identification.
+templ TypeBadge(recordType string) {
+	switch recordType {
+		case "brew":
+			<span class="type-badge type-badge-brew">
+				@IconCoffee()
+				Brew
+			</span>
+		case "bean":
+			<span class="type-badge type-badge-bean">
+				@IconBean()
+				Bean
+			</span>
+		case "recipe":
+			<span class="type-badge type-badge-recipe">
+				@IconFileText()
+				Recipe
+			</span>
+		case "roaster":
+			<span class="type-badge type-badge-roaster">
+				@IconStore()
+				Roaster
+			</span>
+		case "grinder":
+			<span class="type-badge type-badge-grinder">
+				@IconGear()
+				Grinder
+			</span>
+		case "brewer":
+			<span class="type-badge type-badge-brewer">
+				@IconBrewer()
+				Brewer
+			</span>
+	}
+}
+
 // EmptyStateProps defines properties for empty state messaging
 type EmptyStateProps struct {
 	Message    string
