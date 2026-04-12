@@ -26,7 +26,7 @@ require (
 	golang.org/x/sync v0.20.0
 	gorm.io/gorm v1.31.1
 	modernc.org/sqlite v1.48.1
-	tangled.org/pdewey.com/atp v0.0.0-20260412024836-2795bc15b775
+	tangled.org/pdewey.com/atp v0.0.0-20260412220944-ab8db352c13e
 )
 
 require (

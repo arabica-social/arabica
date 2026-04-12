@@ -383,6 +383,9 @@ templ Avatar(props AvatarProps) {
 			src={ bff.SafeAvatarURL(props.AvatarURL) }
 			alt=""
 			class={ avatarClass(props.Size) }
+			loading="lazy"
+			width={ avatarDimension(props.Size) }
+			height={ avatarDimension(props.Size) }
 		/>
 	} else {
 		<div class={ avatarPlaceholderClass(props.Size) }>
@@ -406,6 +409,18 @@ func avatarClass(size string) string {
 		return "avatar-lg"
 	default:
 		return "avatar-md"
+	}
+}
+
+// avatarDimension returns the pixel dimension string for avatar images based on size
+func avatarDimension(size string) string {
+	switch size {
+	case "sm":
+		return "32"
+	case "lg":
+		return "80"
+	default:
+		return "48"
 	}
 }
 

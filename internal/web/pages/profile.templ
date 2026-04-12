@@ -79,7 +79,7 @@ templ ProfileStats() {
 
 // ProfileStat renders a single stat card
 templ ProfileStat(dataKey string, label string) {
-	<div class="card-sm p-4 text-center">
+	<div class="card-sm p-4">
 		<div class="text-2xl font-bold text-brown-800" data-stat={ dataKey }>-</div>
 		<div class="text-sm text-brown-700">{ label }</div>
 	</div>
@@ -171,7 +171,7 @@ templ ProfileLoadingSkeleton() {
 			<div class="space-y-6">
 				<!-- Open Bags Section -->
 				<div>
-					<h4 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h4>
+					<h2 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h2>
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 						for i := 0; i < 2; i++ {
 							<div class="feed-card feed-card-bean">
@@ -198,7 +198,7 @@ templ ProfileLoadingSkeleton() {
 				</div>
 				<!-- Roasters Section -->
 				<div>
-					<h4 class="text-lg font-semibold text-brown-900 mb-3">Roasters</h4>
+					<h2 class="text-lg font-semibold text-brown-900 mb-3">Roasters</h2>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 						for i := 0; i < 2; i++ {
 							<div class="feed-card feed-card-roaster">
@@ -222,7 +222,7 @@ templ ProfileLoadingSkeleton() {
 			<div class="space-y-6">
 				<!-- Grinders Section -->
 				<div>
-					<h4 class="text-lg font-semibold text-brown-900 mb-3">Grinders</h4>
+					<h2 class="text-lg font-semibold text-brown-900 mb-3">Grinders</h2>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 						for i := 0; i < 2; i++ {
 							<div class="feed-card feed-card-grinder">
@@ -242,7 +242,7 @@ templ ProfileLoadingSkeleton() {
 				</div>
 				<!-- Brewers Section -->
 				<div>
-					<h4 class="text-lg font-semibold text-brown-900 mb-3">Brewers</h4>
+					<h2 class="text-lg font-semibold text-brown-900 mb-3">Brewers</h2>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 						for i := 0; i < 2; i++ {
 							<div class="feed-card feed-card-brewer">

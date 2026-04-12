@@ -73,6 +73,11 @@ templ ComboSelectInput(sectionLabel string) {
 			:placeholder="placeholder"
 			class="w-full form-input-lg"
 			autocomplete="off"
+			role="combobox"
+			aria-autocomplete="list"
+			:aria-expanded="isOpen && (allItems.length > 0 || query.trim()) ? 'true' : 'false'"
+			aria-controls="combo-dropdown"
+			aria-label="Search and select"
 		/>
 		<button
 			type="button"
@@ -80,11 +85,12 @@ templ ComboSelectInput(sectionLabel string) {
 			@click="clear()"
 			class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
 			x-cloak
+			aria-label="Clear selection"
 		>
 			@IconX()
 		</button>
 	</div>
-	<div x-show="isOpen && (allItems.length > 0 || query.trim())" x-cloak class="combo-dropdown" @mousedown.prevent>
+	<div id="combo-dropdown" role="listbox" x-show="isOpen && (allItems.length > 0 || query.trim())" x-cloak class="combo-dropdown" @mousedown.prevent>
 		<div x-show="isCreating" x-cloak class="combo-creating">Creating...</div>
 		<template x-if="!isCreating">
 			<div>
@@ -94,6 +100,7 @@ templ ComboSelectInput(sectionLabel string) {
 						<template x-for="(entity, i) in userResults" :key="entity.rkey || entity.RKey">
 							<div
 								class="combo-item"
+								role="option"
 								:data-highlighted="highlightIndex === i"
 								@click="selectEntity(entity)"
 								@mouseenter="highlightIndex = i"
@@ -109,6 +116,7 @@ templ ComboSelectInput(sectionLabel string) {
 						<template x-for="(entity, ci) in closedResults" :key="entity.rkey || entity.RKey">
 							<div
 								class="combo-item opacity-60"
+								role="option"
 								:data-highlighted="highlightIndex === userResults.length + ci"
 								@click="selectEntity(entity)"
 								@mouseenter="highlightIndex = userResults.length + ci"
@@ -124,6 +132,7 @@ templ ComboSelectInput(sectionLabel string) {
 						<template x-for="(s, j) in communityResults" :key="s.source_uri || j">
 							<div
 								class="combo-item"
+								role="option"
 								:data-highlighted="highlightIndex === userResults.length + closedResults.length + j"
 								@click="selectSuggestion(s)"
 								@mouseenter="highlightIndex = userResults.length + closedResults.length + j"
@@ -143,6 +152,7 @@ templ ComboSelectInput(sectionLabel string) {
 				<template x-if="query.trim() && !exactMatch">
 					<div
 						class="combo-item-create"
+						role="option"
 						:data-highlighted="highlightIndex === userResults.length + closedResults.length + communityResults.length"
 						@click="createNew()"
 						@mouseenter="highlightIndex = userResults.length + closedResults.length + communityResults.length"
@@ -156,6 +166,7 @@ templ ComboSelectInput(sectionLabel string) {
 			</div>
 		</template>
 	</div>
+	<div class="sr-only" aria-live="polite" x-text="allItems.length + ' results available'"></div>
 	<!-- Inline create form with extra details -->
 	<div x-show="showCreateForm" x-transition x-cloak class="mt-2 p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
 		<p class="text-sm font-medium text-brown-900 mb-2">
@@ -207,6 +218,7 @@ templ ComboSelectInput(sectionLabel string) {
 								@click="clearRoaster()"
 								class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
 								x-cloak
+								aria-label="Clear roaster"
 							>
 								@IconX()
 							</button>
@@ -254,7 +266,7 @@ templ ComboSelectInput(sectionLabel string) {
 						</div>
 						<!-- New roaster detail fields -->
 						<template x-if="creatingNewRoaster">
-							<div class="mt-2 ml-3 space-y-2 border-l-2 pl-3" style="border-color: var(--surface-border);">
+							<div class="mt-2 ml-3 space-y-2 pl-3 rounded-lg py-2 pr-2" style="background: var(--surface-bg);">
 								<p class="text-xs text-brown-500">
 									New roaster: <span x-text="newRoasterName" class="font-medium"></span>
 								</p>

@@ -37,7 +37,7 @@ templ popularRecipeCard(recipe *models.Recipe) {
 		<!-- Author -->
 		<div class="flex items-center gap-2 mb-2">
 			if recipe.AuthorAvatar != "" {
-				<img src={ recipe.AuthorAvatar } class="w-6 h-6 rounded-full object-cover" alt=""/>
+				<img src={ recipe.AuthorAvatar } class="w-6 h-6 rounded-full object-cover" loading="lazy" alt="" width="24" height="24"/>
 			} else {
 				<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold">
 					{ authorInitial(recipe) }
@@ -89,7 +89,7 @@ templ popularRecipeCard(recipe *models.Recipe) {
 				if len(recipe.ForkerAvatars) > 0 {
 					<div class="flex -space-x-1.5 ml-auto">
 						for _, avatar := range recipe.ForkerAvatars[:min(3, len(recipe.ForkerAvatars))] {
-							<img src={ avatar } class="w-5 h-5 rounded-full object-cover border border-white"/>
+							<img src={ avatar } class="w-5 h-5 rounded-full object-cover border border-white" loading="lazy" alt="" width="20" height="20"/>
 						}
 					</div>
 				}

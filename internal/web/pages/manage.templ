@@ -29,39 +29,39 @@ templ ManageContent(props ManageProps) {
 // ManageTabs renders the tab navigation
 templ ManageTabs() {
 	<div class="mb-6 border-b-2 border-brown-300">
-		<nav class="-mb-px flex space-x-8">
+		<nav class="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto">
 			<button
 				@click="tab = 'beans'"
 				:class="tab === 'beans' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-				class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
 			>
 				Beans
 			</button>
 			<button
 				@click="tab = 'roasters'"
 				:class="tab === 'roasters' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-				class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
 			>
 				Roasters
 			</button>
 			<button
 				@click="tab = 'grinders'"
 				:class="tab === 'grinders' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-				class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
 			>
 				Grinders
 			</button>
 			<button
 				@click="tab = 'brewers'"
 				:class="tab === 'brewers' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-				class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
 			>
 				Brewers
 			</button>
 			<button
 				@click="tab = 'recipes'"
 				:class="tab === 'recipes' ? 'border-brown-700 text-brown-900' : 'border-transparent text-brown-600 hover:text-brown-800 hover:border-brown-400'"
-				class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
 			>
 				Recipes
 			</button>

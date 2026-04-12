@@ -1067,3 +1067,5 @@ rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 tangled.org/pdewey.com/atp v0.0.0-20260412024836-2795bc15b775 h1:0+cKQFnOepiZrkZnGP8F45cCBf83/9FLXMX4FvqcUqU=
 tangled.org/pdewey.com/atp v0.0.0-20260412024836-2795bc15b775/go.mod h1:Vsfo53wETUM7mlnZqhr9HrGB6/yoqhbpXjwWqp+ZjOA=
+tangled.org/pdewey.com/atp v0.0.0-20260412220944-ab8db352c13e h1:ISWAtPN74Y7EN7sl6yruNlKqF8ifZcOAaCPzGiCHU54=
+tangled.org/pdewey.com/atp v0.0.0-20260412220944-ab8db352c13e/go.mod h1:Vsfo53wETUM7mlnZqhr9HrGB6/yoqhbpXjwWqp+ZjOA=
