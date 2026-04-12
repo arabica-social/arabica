@@ -821,30 +821,10 @@
     background: linear-gradient(var(--type-brewer-tint), var(--type-brewer-tint)), var(--card-bg);
   }
 
-  /* Inner content boxes inside tinted cards — deeper shade of the same tint */
-  .feed-card-brew .feed-content-box,
-  .feed-card-brew .feed-content-box-sm {
-    background: linear-gradient(rgba(107, 68, 35, 0.06), rgba(107, 68, 35, 0.06)), var(--card-bg);
-  }
-  .feed-card-bean .feed-content-box,
-  .feed-card-bean .feed-content-box-sm {
-    background: linear-gradient(rgba(180, 83, 9, 0.05), rgba(180, 83, 9, 0.05)), var(--card-bg);
-  }
-  .feed-card-recipe .feed-content-box,
-  .feed-card-recipe .feed-content-box-sm {
-    background: linear-gradient(rgba(160, 82, 45, 0.05), rgba(160, 82, 45, 0.05)), var(--card-bg);
-  }
-  .feed-card-roaster .feed-content-box,
-  .feed-card-roaster .feed-content-box-sm {
-    background: linear-gradient(rgba(146, 64, 14, 0.05), rgba(146, 64, 14, 0.05)), var(--card-bg);
-  }
-  .feed-card-grinder .feed-content-box,
-  .feed-card-grinder .feed-content-box-sm {
-    background: linear-gradient(rgba(120, 113, 108, 0.05), rgba(120, 113, 108, 0.05)), var(--card-bg);
-  }
-  .feed-card-brewer .feed-content-box,
-  .feed-card-brewer .feed-content-box-sm {
-    background: linear-gradient(rgba(91, 110, 78, 0.05), rgba(91, 110, 78, 0.05)), var(--card-bg);
+  /* Inner content boxes inside tinted cards — blend with outer card */
+  .feed-card .feed-content-box,
+  .feed-card .feed-content-box-sm {
+    background: transparent;
   }
 
   /* Type badges — inline pill with icon + label */
