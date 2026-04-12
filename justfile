@@ -12,7 +12,7 @@ templ-generate:
 
 test:
     @templ generate
-    @go test ./... -cover -coverprofile=cover.out
+    @go test ./... -cover -coverprofile=cover.out -v
 
 integration-test:
     @cd tests/integration && go test -v ./... -count=1 
