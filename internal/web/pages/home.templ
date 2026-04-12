@@ -13,22 +13,20 @@ templ Home(layout *components.LayoutData, props HomeProps) {
 
 templ HomeContent(props HomeProps) {
 	<div class="page-container-lg">
-		@components.WelcomeCard(components.WelcomeCardProps{
-			IsAuthenticated: props.IsAuthenticated,
-			UserDID:         props.UserDID,
-		})
 		if props.IsAuthenticated {
+			@components.WelcomeCard(components.WelcomeCardProps{
+				IsAuthenticated: props.IsAuthenticated,
+				UserDID:         props.UserDID,
+			})
 			<!-- Incomplete records loaded async -->
 			<div id="incomplete-records-section" hx-get="/api/incomplete-records" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML"></div>
 			<!-- Modal container for entity edit dialogs opened from dashboard -->
 			<div id="modal-container"></div>
-		}
-		if !props.IsAuthenticated {
-			@components.AboutInfoCard()
-		}
-		if props.IsAuthenticated {
 			<!-- Popular recipes loaded async -->
 			<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML"></div>
+		} else {
+			@components.WelcomeHero()
+			@components.WelcomeLoginCard()
 		}
 		@CommunityFeedSection(props.IsAuthenticated)
 		if props.IsAuthenticated {
