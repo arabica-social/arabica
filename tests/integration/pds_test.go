@@ -13,7 +13,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/haileyok/cocoon/testpds"
+	"tangled.org/pdewey.com/atp/testpds"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tangled.org/pdewey.com/atp"

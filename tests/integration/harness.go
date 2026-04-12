@@ -25,7 +25,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/haileyok/cocoon/testpds"
+	"tangled.org/pdewey.com/atp/testpds"
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
@@ -89,6 +89,7 @@ type Harness struct {
 	Server       *httptest.Server
 	Handler      *handlers.Handler
 	FeedIndex    *firehose.FeedIndex
+	Consumer     *firehose.Consumer
 	SessionCache *atproto.SessionCache
 
 	// PrimaryAccount is the default account created on harness setup.
@@ -105,6 +106,9 @@ type Harness struct {
 
 	// atpClients maps DID -> atp.Client for direct PDS access in tests.
 	atpClients map[string]*atp.Client
+
+	// firehoseCancel stops the firehose bridge goroutine.
+	firehoseCancel context.CancelFunc
 
 	cleanup []func()
 }
@@ -125,6 +129,10 @@ type HarnessOptions struct {
 	PrimaryEmail string
 	// PrimaryPassword is the password for the default account. Defaults to "hunter2".
 	PrimaryPassword string
+	// EnableFirehose subscribes to the test PDS firehose and feeds events
+	// through the Consumer → FeedIndex pipeline, so records created via the
+	// PDS are automatically indexed. Use WaitForRecord to synchronise.
+	EnableFirehose bool
 }
 
 // StartHarness boots a test PDS, creates a primary account, builds the full
@@ -221,6 +229,24 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	harness.Server = server
 	harness.Handler = h
 	harness.cleanup = append(harness.cleanup, server.Close, func() { _ = feedIndex.Close() })
+
+	// Wire up the firehose consumer before creating accounts so events are
+	// indexed as they happen.
+	if opts.EnableFirehose {
+		consumer := firehose.NewConsumer(&firehose.Config{
+			WantedCollections: firehose.ArabicaCollections,
+		}, feedIndex)
+		harness.Consumer = consumer
+
+		ctx, cancel := context.WithCancel(context.Background())
+		harness.firehoseCancel = cancel
+		harness.cleanup = append(harness.cleanup, cancel)
+
+		ch, err := pds.Subscribe(ctx, 0)
+		require.NoError(t, err)
+
+		go harness.firehoseBridge(ctx, ch)
+	}
 
 	// Create the primary account and register it.
 	harness.PrimaryAccount = harness.CreateAccount(opts.PrimaryEmail, opts.PrimaryHandle, opts.PrimaryPassword)
@@ -474,6 +500,119 @@ func createAccountOnPDS(t *testing.T, pdsURL, email, handle, password string) Te
 		Password:  password,
 		AccessJwt: result.AccessJwt,
 	}
+}
+
+// --- firehose bridge ---
+
+// firehoseBridge reads testpds firehose events, fetches records via XRPC, and
+// feeds them through the Consumer's event processing pipeline.
+func (h *Harness) firehoseBridge(ctx context.Context, ch <-chan testpds.FirehoseEvent) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case evt, ok := <-ch:
+			if !ok {
+				return
+			}
+			if evt.Commit == nil {
+				continue
+			}
+			for _, op := range evt.Commit.Ops {
+				parts := strings.SplitN(op.Path, "/", 2)
+				if len(parts) != 2 {
+					continue
+				}
+				collection, rkey := parts[0], parts[1]
+				if !strings.HasPrefix(collection, "social.arabica.alpha.") {
+					continue
+				}
+
+				event := firehose.JetstreamEvent{
+					DID:    evt.Commit.Repo,
+					TimeUS: time.Now().UnixMicro(),
+					Kind:   "commit",
+				}
+
+				switch op.Action {
+				case "create", "update":
+					record, cid, err := h.fetchRecordJSON(evt.Commit.Repo, collection, rkey)
+					if err != nil {
+						continue
+					}
+					event.Commit = &firehose.JetstreamCommit{
+						Operation:  op.Action,
+						Collection: collection,
+						RKey:       rkey,
+						Record:     record,
+						CID:        cid,
+					}
+				case "delete":
+					event.Commit = &firehose.JetstreamCommit{
+						Operation:  "delete",
+						Collection: collection,
+						RKey:       rkey,
+					}
+				default:
+					continue
+				}
+
+				_ = h.Consumer.ProcessEvent(event)
+			}
+		}
+	}
+}
+
+// fetchRecordJSON fetches a record from the test PDS as raw JSON.
+func (h *Harness) fetchRecordJSON(did, collection, rkey string) (json.RawMessage, string, error) {
+	u := fmt.Sprintf("%s/xrpc/com.atproto.repo.getRecord?repo=%s&collection=%s&rkey=%s",
+		h.PDS.URL, url.QueryEscape(did), url.QueryEscape(collection), url.QueryEscape(rkey))
+	resp, err := http.Get(u)
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, "", fmt.Errorf("getRecord %d", resp.StatusCode)
+	}
+	var result struct {
+		CID   string          `json:"cid"`
+		Value json.RawMessage `json:"value"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, "", err
+	}
+	return result.Value, result.CID, nil
+}
+
+// WaitForRecord polls the FeedIndex until the record with the given AT-URI is
+// indexed, or fails the test after timeout.
+func (h *Harness) WaitForRecord(uri string, timeout time.Duration) {
+	h.T.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		rec, _ := h.FeedIndex.GetRecord(context.Background(), uri)
+		if rec != nil {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	h.T.Fatalf("timed out waiting for record %s to be indexed", uri)
+}
+
+// WaitForRecordAbsent polls the FeedIndex until the record with the given
+// AT-URI is no longer present, or fails the test after timeout.
+func (h *Harness) WaitForRecordAbsent(uri string, timeout time.Duration) {
+	h.T.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		rec, _ := h.FeedIndex.GetRecord(context.Background(), uri)
+		if rec == nil {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	h.T.Fatalf("timed out waiting for record %s to be removed from index", uri)
 }
 
 // statusErr is a small helper for assertions that print useful diagnostics.

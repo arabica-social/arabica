@@ -17,19 +17,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// JetstreamCommit represents the commit data within a Jetstream event.
+type JetstreamCommit struct {
+	Rev        string          `json:"rev"`
+	Operation  string          `json:"operation"` // "create", "update", "delete"
+	Collection string          `json:"collection"`
+	RKey       string          `json:"rkey"`
+	Record     json.RawMessage `json:"record,omitempty"`
+	CID        string          `json:"cid"`
+}
+
 // JetstreamEvent represents an event from Jetstream
 type JetstreamEvent struct {
-	DID    string `json:"did"`
-	TimeUS int64  `json:"time_us"`
-	Kind   string `json:"kind"` // "commit", "identity", "account"
-	Commit *struct {
-		Rev        string          `json:"rev"`
-		Operation  string          `json:"operation"` // "create", "update", "delete"
-		Collection string          `json:"collection"`
-		RKey       string          `json:"rkey"`
-		Record     json.RawMessage `json:"record,omitempty"`
-		CID        string          `json:"cid"`
-	} `json:"commit,omitempty"`
+	DID    string           `json:"did"`
+	TimeUS int64            `json:"time_us"`
+	Kind   string           `json:"kind"` // "commit", "identity", "account"
+	Commit *JetstreamCommit `json:"commit,omitempty"`
 }
 
 // Consumer consumes events from Jetstream and indexes them
@@ -321,6 +324,25 @@ func (c *Consumer) processMessage(data []byte) error {
 		Str("operation", commit.Operation).
 		Str("rkey", commit.RKey).
 		Msg("firehose: processing event")
+
+	return c.processCommit(event)
+}
+
+// ProcessEvent processes a single Jetstream event through the indexing pipeline.
+// Exported for use in integration tests where events are fed from a test PDS
+// firehose rather than a live Jetstream connection.
+func (c *Consumer) ProcessEvent(event JetstreamEvent) error {
+	if event.Kind != "commit" || event.Commit == nil {
+		return nil
+	}
+	if !strings.HasPrefix(event.Commit.Collection, "social.arabica.alpha.") {
+		return nil
+	}
+	return c.processCommit(event)
+}
+
+func (c *Consumer) processCommit(event JetstreamEvent) error {
+	commit := event.Commit
 
 	switch commit.Operation {
 	case "create", "update":

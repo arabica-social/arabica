@@ -5,11 +5,11 @@ go 1.26.1
 replace (
 	github.com/haileyok/cocoon => github.com/ptdewey/cocoon v0.0.0-20260406233545-539d73959ca6
 	tangled.org/arabica.social/arabica => ../..
+	tangled.org/pdewey.com/atp => ../../../atp
 )
 
 require (
-	github.com/bluesky-social/indigo v0.0.0-20260318212431-cbaa83aee9dd
-	github.com/haileyok/cocoon v0.9.0
+	github.com/bluesky-social/indigo v0.0.0-20260409212512-2031017ff411
 	github.com/ptdewey/shutter v0.2.1
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
@@ -57,6 +57,7 @@ require (
 	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
+	github.com/haileyok/cocoon v0.9.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
