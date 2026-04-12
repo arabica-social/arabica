@@ -75,7 +75,7 @@ type BeanCardsProps struct {
 // BeanCards renders a grid of bean cards
 templ BeanCards(props BeanCardsProps) {
 	if len(props.Beans) == 0 {
-		@EmptyState(EmptyStateProps{Message: "No beans yet."})
+		@EmptyState(EmptyStateProps{Message: "No beans yet.", SubMessage: "Add the beans you're brewing with. You can also add beans inline when logging a brew."})
 	} else {
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 			for _, bean := range props.Beans {
@@ -185,7 +185,7 @@ type RoastersTableProps struct {
 // RoastersTable renders a grid of roaster cards
 templ RoastersTable(props RoastersTableProps) {
 	if len(props.Roasters) == 0 {
-		@EmptyState(EmptyStateProps{Message: "No roasters yet."})
+		@EmptyState(EmptyStateProps{Message: "No roasters yet.", SubMessage: "Add your favorite coffee roasters. They'll appear as options when adding beans."})
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, roaster := range props.Roasters {
@@ -261,7 +261,7 @@ type GrindersTableProps struct {
 // GrindersTable renders a grid of grinder cards
 templ GrindersTable(props GrindersTableProps) {
 	if len(props.Grinders) == 0 {
-		@EmptyState(EmptyStateProps{Message: "No grinders yet."})
+		@EmptyState(EmptyStateProps{Message: "No grinders yet.", SubMessage: "Track your grinders to log grind settings with each brew."})
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, grinder := range props.Grinders {
@@ -328,7 +328,7 @@ type BrewersTableProps struct {
 // BrewersTable renders a grid of brewer cards
 templ BrewersTable(props BrewersTableProps) {
 	if len(props.Brewers) == 0 {
-		@EmptyState(EmptyStateProps{Message: "No brewing devices yet."})
+		@EmptyState(EmptyStateProps{Message: "No brewing devices yet.", SubMessage: "Add your V60, AeroPress, espresso machine, or other brewers."})
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, brewer := range props.Brewers {
@@ -386,7 +386,7 @@ type RecipesTableProps struct {
 // RecipesTable renders a grid of recipe cards
 templ RecipesTable(props RecipesTableProps) {
 	if len(props.Recipes) == 0 {
-		@EmptyState(EmptyStateProps{Message: "No recipes yet."})
+		@EmptyState(EmptyStateProps{Message: "No recipes yet.", SubMessage: "Save your favorite brew recipes to reuse them. You can also save a recipe directly from a brew."})
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, recipe := range props.Recipes {

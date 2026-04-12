@@ -31,9 +31,11 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); }"
+				x-data="{ serverError: '' }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? 'Something went wrong. Please try again.' : 'Connection error. Check your network.'; }"
 				class="space-y-5"
 			>
+				<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
 				<!-- Essentials -->
 				<div class="form-fieldset">
 					<div class="form-fieldset-label">Essentials</div>
@@ -297,9 +299,11 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); }"
+				x-data="{ serverError: '' }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? 'Something went wrong. Please try again.' : 'Connection error. Check your network.'; }"
 				class="space-y-5"
 			>
+				<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
 				<!-- Essentials -->
 				<div class="form-fieldset">
 					<div class="form-fieldset-label">Essentials</div>
@@ -429,9 +433,11 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); }"
+				x-data="{ serverError: '' }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? 'Something went wrong. Please try again.' : 'Connection error. Check your network.'; }"
 				class="space-y-5"
 			>
+				<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
 				<!-- Essentials -->
 				<div class="form-fieldset">
 					<div class="form-fieldset-label">Essentials</div>
@@ -555,9 +561,11 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); }"
+				x-data="{ serverError: '' }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? 'Something went wrong. Please try again.' : 'Connection error. Check your network.'; }"
 				class="space-y-5"
 			>
+				<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
 				<!-- Essentials -->
 				<div class="form-fieldset">
 					<div class="form-fieldset-label">Essentials</div>
@@ -674,10 +682,11 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 				}
 				hx-trigger="submit"
 				hx-swap="none"
-				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); }"
+				hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else { this._x_dataStack[0].serverError = event.detail.xhr ? 'Something went wrong. Please try again.' : 'Connection error. Check your network.'; }"
 				class="space-y-5"
-				x-data={ fmt.Sprintf("{ pours: %s, addPour() { this.pours.push({water: '', time: ''}); }, removePour(i) { this.pours.splice(i, 1); } }", recipePourJSON(recipe)) }
+				x-data={ fmt.Sprintf("{ serverError: '', pours: %s, addPour() { this.pours.push({water: '', time: ''}); }, removePour(i) { this.pours.splice(i, 1); } }", recipePourJSON(recipe)) }
 			>
+				<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
 				<!-- Essentials -->
 				<div class="form-fieldset">
 					<div class="form-fieldset-label">Essentials</div>

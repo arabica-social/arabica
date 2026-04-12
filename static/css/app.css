@@ -490,6 +490,26 @@
     color: var(--text-faint);
   }
 
+  /* Form validation errors */
+  .form-error {
+    @apply text-xs mt-1 block;
+    color: #b91c1c;
+  }
+
+  :root[data-theme="dark"] .form-error,
+  .dark .form-error {
+    color: #fca5a5;
+  }
+
+  .form-input-error {
+    border-color: #b91c1c;
+  }
+
+  .form-input-error:focus {
+    border-color: #b91c1c;
+    box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.15);
+  }
+
   /* Buttons */
   .btn {
     @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer;

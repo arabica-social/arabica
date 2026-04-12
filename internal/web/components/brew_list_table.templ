@@ -18,9 +18,10 @@ templ BrewListTablePartial(props BrewListTableProps) {
 	if len(props.Brews) == 0 {
 		if props.IsOwnProfile {
 			@EmptyState(EmptyStateProps{
-				Message:    "No brews yet! Start tracking your coffee journey.",
+				Message:    "Your brew journal is empty.",
+				SubMessage: "Log your first cup and start building your coffee story. Just pick a bean, choose your method, and rate the result.",
 				ActionURL:  "/brews/new",
-				ActionText: "Add Your First Brew",
+				ActionText: "Log Your First Brew",
 			})
 		} else {
 			@EmptyState(EmptyStateProps{
