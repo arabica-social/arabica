@@ -90,13 +90,13 @@
   --type-grinder: #78716c;
   --type-brewer: #5b6e4e;
 
-  /* Type background tints (subtle card wash) */
-  --type-brew-tint: rgba(107, 68, 35, 0.04);
-  --type-bean-tint: rgba(180, 83, 9, 0.04);
-  --type-recipe-tint: rgba(160, 82, 45, 0.04);
-  --type-roaster-tint: rgba(146, 64, 14, 0.04);
-  --type-grinder-tint: rgba(120, 113, 108, 0.04);
-  --type-brewer-tint: rgba(91, 110, 78, 0.04);
+  /* Type background tints */
+  --type-brew-tint: rgba(107, 68, 35, 0.08);
+  --type-bean-tint: rgba(180, 83, 9, 0.07);
+  --type-recipe-tint: rgba(160, 82, 45, 0.07);
+  --type-roaster-tint: rgba(146, 64, 14, 0.07);
+  --type-grinder-tint: rgba(120, 113, 108, 0.06);
+  --type-brewer-tint: rgba(91, 110, 78, 0.07);
 
   /* Rating badges */
   --rating-bg: #fef3c7;
@@ -188,13 +188,13 @@
     --type-grinder: #a8a29e;
     --type-brewer: #8ba37a;
 
-    /* Type background tints (slightly stronger on dark) */
-    --type-brew-tint: rgba(166, 124, 82, 0.06);
-    --type-bean-tint: rgba(217, 119, 6, 0.06);
-    --type-recipe-tint: rgba(196, 114, 74, 0.06);
-    --type-roaster-tint: rgba(194, 97, 14, 0.06);
-    --type-grinder-tint: rgba(168, 162, 158, 0.06);
-    --type-brewer-tint: rgba(139, 163, 122, 0.06);
+    /* Type background tints */
+    --type-brew-tint: rgba(166, 124, 82, 0.10);
+    --type-bean-tint: rgba(217, 119, 6, 0.09);
+    --type-recipe-tint: rgba(196, 114, 74, 0.09);
+    --type-roaster-tint: rgba(194, 97, 14, 0.09);
+    --type-grinder-tint: rgba(168, 162, 158, 0.08);
+    --type-brewer-tint: rgba(139, 163, 122, 0.09);
 
     /* Rating badges */
     --rating-bg: rgba(251, 191, 36, 0.15);
@@ -327,12 +327,12 @@
   --type-roaster: #c2610e;
   --type-grinder: #a8a29e;
   --type-brewer: #8ba37a;
-  --type-brew-tint: rgba(166, 124, 82, 0.06);
-  --type-bean-tint: rgba(217, 119, 6, 0.06);
-  --type-recipe-tint: rgba(196, 114, 74, 0.06);
-  --type-roaster-tint: rgba(194, 97, 14, 0.06);
-  --type-grinder-tint: rgba(168, 162, 158, 0.06);
-  --type-brewer-tint: rgba(139, 163, 122, 0.06);
+  --type-brew-tint: rgba(166, 124, 82, 0.10);
+  --type-bean-tint: rgba(217, 119, 6, 0.09);
+  --type-recipe-tint: rgba(196, 114, 74, 0.09);
+  --type-roaster-tint: rgba(194, 97, 14, 0.09);
+  --type-grinder-tint: rgba(168, 162, 158, 0.08);
+  --type-brewer-tint: rgba(139, 163, 122, 0.09);
   --rating-bg: rgba(251, 191, 36, 0.15);
   --rating-text: #fbbf24;
   --alert-warning-bg: rgba(251, 191, 36, 0.08);
@@ -801,29 +801,50 @@
     box-shadow: var(--shadow-md);
   }
 
-  /* Feed card type tints — subtle background wash per record type */
+  /* Feed card type tints — outer card gets full tint */
   .feed-card-brew {
     background: linear-gradient(var(--type-brew-tint), var(--type-brew-tint)), var(--card-bg);
   }
-
   .feed-card-bean {
     background: linear-gradient(var(--type-bean-tint), var(--type-bean-tint)), var(--card-bg);
   }
-
   .feed-card-recipe {
     background: linear-gradient(var(--type-recipe-tint), var(--type-recipe-tint)), var(--card-bg);
   }
-
   .feed-card-roaster {
     background: linear-gradient(var(--type-roaster-tint), var(--type-roaster-tint)), var(--card-bg);
   }
-
   .feed-card-grinder {
     background: linear-gradient(var(--type-grinder-tint), var(--type-grinder-tint)), var(--card-bg);
   }
-
   .feed-card-brewer {
     background: linear-gradient(var(--type-brewer-tint), var(--type-brewer-tint)), var(--card-bg);
+  }
+
+  /* Inner content boxes inside tinted cards — deeper shade of the same tint */
+  .feed-card-brew .feed-content-box,
+  .feed-card-brew .feed-content-box-sm {
+    background: linear-gradient(rgba(107, 68, 35, 0.06), rgba(107, 68, 35, 0.06)), var(--card-bg);
+  }
+  .feed-card-bean .feed-content-box,
+  .feed-card-bean .feed-content-box-sm {
+    background: linear-gradient(rgba(180, 83, 9, 0.05), rgba(180, 83, 9, 0.05)), var(--card-bg);
+  }
+  .feed-card-recipe .feed-content-box,
+  .feed-card-recipe .feed-content-box-sm {
+    background: linear-gradient(rgba(160, 82, 45, 0.05), rgba(160, 82, 45, 0.05)), var(--card-bg);
+  }
+  .feed-card-roaster .feed-content-box,
+  .feed-card-roaster .feed-content-box-sm {
+    background: linear-gradient(rgba(146, 64, 14, 0.05), rgba(146, 64, 14, 0.05)), var(--card-bg);
+  }
+  .feed-card-grinder .feed-content-box,
+  .feed-card-grinder .feed-content-box-sm {
+    background: linear-gradient(rgba(120, 113, 108, 0.05), rgba(120, 113, 108, 0.05)), var(--card-bg);
+  }
+  .feed-card-brewer .feed-content-box,
+  .feed-card-brewer .feed-content-box-sm {
+    background: linear-gradient(rgba(91, 110, 78, 0.05), rgba(91, 110, 78, 0.05)), var(--card-bg);
   }
 
   /* Type badges — inline pill with icon + label */
