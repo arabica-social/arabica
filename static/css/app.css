@@ -1065,35 +1065,73 @@
     color: var(--rating-text);
   }
 
-  /* Feed Tab Bar */
-  .feed-tabs {
-    @apply flex items-center gap-1 overflow-x-auto;
-    border-bottom: 2px solid var(--card-border);
-  }
-
-  .feed-tab {
-    @apply px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer;
+  /* Filter Pills */
+  .filter-pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
     color: var(--text-muted);
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
+    background: transparent;
+    border: 1px solid var(--card-border);
   }
 
-  .feed-tab:hover {
+  .filter-pill:hover {
     color: var(--text-secondary);
+    border-color: var(--input-border-focus);
+    background: var(--surface-bg);
   }
 
-  .feed-tab-active {
-    @apply px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer;
-    color: var(--text-primary);
-    border-bottom: 2px solid var(--btn-primary-bg);
-    margin-bottom: -2px;
+  /* Type-aware hover */
+  .filter-pill[data-tab="brew"]:hover { border-color: var(--type-brew); color: var(--type-brew); }
+  .filter-pill[data-tab="bean"]:hover { border-color: var(--type-bean); color: var(--type-bean); }
+  .filter-pill[data-tab="recipe"]:hover { border-color: var(--type-recipe); color: var(--type-recipe); }
+  .filter-pill[data-tab="grinder"]:hover { border-color: var(--type-grinder); color: var(--type-grinder); }
+  .filter-pill[data-tab="brewer"]:hover { border-color: var(--type-brewer); color: var(--type-brewer); }
+
+  .filter-pill-active {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
+    color: var(--btn-primary-text);
+    background: var(--btn-primary-bg);
+    border: 1px solid var(--btn-primary-bg);
   }
 
-  /* Type-colored active tabs */
-  .feed-tab-brew { color: var(--type-brew); border-bottom-color: var(--type-brew); }
-  .feed-tab-bean { color: var(--type-bean); border-bottom-color: var(--type-bean); }
-  .feed-tab-recipe { color: var(--type-recipe); border-bottom-color: var(--type-recipe); }
-  .feed-tab-equipment { color: var(--type-grinder); border-bottom-color: var(--type-grinder); }
+  .filter-pill-active:hover {
+    background: var(--btn-primary-bg-hover);
+    border-color: var(--btn-primary-bg-hover);
+  }
+
+  /* Type-colored active pills */
+  .filter-pill-brew,
+  .filter-pill-bean,
+  .filter-pill-recipe,
+  .filter-pill-grinder,
+  .filter-pill-brewer {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
+    color: var(--btn-primary-text);
+  }
+
+  .filter-pill-brew {
+    background: var(--type-brew);
+    border: 1px solid var(--type-brew);
+  }
+
+  .filter-pill-bean {
+    background: var(--type-bean);
+    border: 1px solid var(--type-bean);
+  }
+
+  .filter-pill-recipe {
+    background: var(--type-recipe);
+    border: 1px solid var(--type-recipe);
+  }
+
+  .filter-pill-grinder {
+    background: var(--type-grinder);
+    border: 1px solid var(--type-grinder);
+  }
+
+  .filter-pill-brewer {
+    background: var(--type-brewer);
+    border: 1px solid var(--type-brewer);
+  }
 
   .feed-sort-btn {
     @apply px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer;

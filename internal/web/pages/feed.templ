@@ -36,7 +36,8 @@ func feedFilterTabs() []feedFilterTab {
 		{Label: "Brews", Value: "brew"},
 		{Label: "Beans", Value: "bean"},
 		{Label: "Recipes", Value: "recipe"},
-		{Label: "Equipment", Value: "equipment"},
+		{Label: "Grinders", Value: "grinder"},
+		{Label: "Brewers", Value: "brewer"},
 	}
 }
 
@@ -110,22 +111,22 @@ templ FeedFilterBar(qs FeedQueryState) {
 		class="mb-5"
 		data-type-filter={ qs.TypeFilter }
 		data-sort={ qs.Sort }
-		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, tabClass(tab) { if (this.typeFilter !== tab) return 'feed-tab'; if (!tab) return 'feed-tab-active'; return 'feed-tab-' + tab; }, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { if (t === 'equipment') { u += sep + 'type=grinder&type=brewer'; } else { u += sep + 'type=' + t; } sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
+		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, pillClass(tab) { if (this.typeFilter !== tab) return 'filter-pill'; if (!tab) return 'filter-pill-active'; return 'filter-pill-' + tab; }, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { if (t === 'equipment') { u += sep + 'type=grinder&type=brewer'; } else { u += sep + 'type=' + t; } sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
 	>
-		<div class="flex items-center justify-between gap-4">
-			<!-- Type filter tabs -->
-			<nav class="feed-tabs flex-1" aria-label="Feed filters">
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<!-- Type filter pills -->
+			<div class="flex flex-wrap gap-1" role="tablist" aria-label="Feed filters">
 				for _, tab := range feedFilterTabs() {
 					<button
-						class="feed-tab"
-						:class="tabClass($el.dataset.tab)"
+						class="filter-pill"
+						:class="pillClass($el.dataset.tab)"
 						data-tab={ tab.Value }
 						@click="changeFilter($el.dataset.tab)"
 					>
 						{ tab.Label }
 					</button>
 				}
-			</nav>
+			</div>
 			<!-- Sort selector -->
 			<div class="flex items-center gap-1 flex-shrink-0">
 				<button
