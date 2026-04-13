@@ -23,6 +23,21 @@
 }
 
 /* ========================================
+   Texture Patterns (inline SVG noise)
+   ======================================== */
+
+/* Corkboard — organic, fine-grained, warm */
+:root {
+  --texture-cork: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.3 0 0 0 0.15 0.2 0 0 0 0.08 0.1 0 0 0 0.02 0 0 0 0.15 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23c)'/%3E%3C/svg%3E");
+  /* Feed board — warm cork brown */
+  --feed-board-bg: #C4A882;
+  --feed-board-border: #B09470;
+  /* Sticky note base — warm off-white */
+  --feed-card-bg: #FFFDF5;
+  --texture-paper: none;
+}
+
+/* ========================================
    Design Tokens (CSS Custom Properties)
    Light theme (default)
    ======================================== */
@@ -91,12 +106,12 @@
   --type-brewer: #5b6e4e;
 
   /* Type background tints */
-  --type-brew-tint: rgba(107, 68, 35, 0.08);
-  --type-bean-tint: rgba(180, 83, 9, 0.07);
-  --type-recipe-tint: rgba(160, 82, 45, 0.07);
-  --type-roaster-tint: rgba(146, 64, 14, 0.07);
-  --type-grinder-tint: rgba(120, 113, 108, 0.06);
-  --type-brewer-tint: rgba(91, 110, 78, 0.07);
+  --type-brew-tint: rgba(107, 68, 35, 0.14);
+  --type-bean-tint: rgba(180, 83, 9, 0.12);
+  --type-recipe-tint: rgba(160, 82, 45, 0.12);
+  --type-roaster-tint: rgba(146, 64, 14, 0.12);
+  --type-grinder-tint: rgba(120, 113, 108, 0.10);
+  --type-brewer-tint: rgba(91, 110, 78, 0.12);
 
   /* Rating badges */
   --rating-bg: #fef3c7;
@@ -138,6 +153,12 @@
     /* Surfaces (inset areas inside cards) */
     --surface-bg: rgba(36, 26, 22, 0.6);
     --surface-border: #2E211B;
+
+    /* Feed board — noticeably lighter than cards for contrast */
+    --feed-board-bg: #3D2D22;
+    --feed-board-border: #4A3828;
+    /* Sticky notes — dark, sitting on the lighter board */
+    --feed-card-bg: #1A1210;
 
     /* Header */
     --header-bg-from: #0F0A08;
@@ -189,12 +210,12 @@
     --type-brewer: #8ba37a;
 
     /* Type background tints */
-    --type-brew-tint: rgba(166, 124, 82, 0.10);
-    --type-bean-tint: rgba(217, 119, 6, 0.09);
-    --type-recipe-tint: rgba(196, 114, 74, 0.09);
-    --type-roaster-tint: rgba(194, 97, 14, 0.09);
-    --type-grinder-tint: rgba(168, 162, 158, 0.08);
-    --type-brewer-tint: rgba(139, 163, 122, 0.09);
+    --type-brew-tint: rgba(166, 124, 82, 0.18);
+    --type-bean-tint: rgba(217, 119, 6, 0.15);
+    --type-recipe-tint: rgba(196, 114, 74, 0.15);
+    --type-roaster-tint: rgba(194, 97, 14, 0.15);
+    --type-grinder-tint: rgba(168, 162, 158, 0.12);
+    --type-brewer-tint: rgba(139, 163, 122, 0.15);
 
     /* Rating badges */
     --rating-bg: rgba(251, 191, 36, 0.15);
@@ -292,6 +313,9 @@
   --card-shadow-hover: rgba(0, 0, 0, 0.4);
   --surface-bg: rgba(36, 26, 22, 0.6);
   --surface-border: #2E211B;
+  --feed-board-bg: #3D2D22;
+  --feed-board-border: #4A3828;
+  --feed-card-bg: #1A1210;
   --header-bg-from: #0F0A08;
   --header-bg-to: #0F0A08;
   --header-border: #2E211B;
@@ -327,12 +351,12 @@
   --type-roaster: #c2610e;
   --type-grinder: #a8a29e;
   --type-brewer: #8ba37a;
-  --type-brew-tint: rgba(166, 124, 82, 0.10);
-  --type-bean-tint: rgba(217, 119, 6, 0.09);
-  --type-recipe-tint: rgba(196, 114, 74, 0.09);
-  --type-roaster-tint: rgba(194, 97, 14, 0.09);
-  --type-grinder-tint: rgba(168, 162, 158, 0.08);
-  --type-brewer-tint: rgba(139, 163, 122, 0.09);
+  --type-brew-tint: rgba(166, 124, 82, 0.18);
+  --type-bean-tint: rgba(217, 119, 6, 0.15);
+  --type-recipe-tint: rgba(196, 114, 74, 0.15);
+  --type-roaster-tint: rgba(194, 97, 14, 0.15);
+  --type-grinder-tint: rgba(168, 162, 158, 0.12);
+  --type-brewer-tint: rgba(139, 163, 122, 0.15);
   --rating-bg: rgba(251, 191, 36, 0.15);
   --rating-text: #fbbf24;
   --alert-warning-bg: rgba(251, 191, 36, 0.08);
@@ -809,36 +833,109 @@
     color: var(--text-primary);
   }
 
-  /* Feed Components */
+  /* Feed Components — Sticky Notes on Corkboard */
   .feed-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    @apply rounded-lg p-3 sm:p-4 transition-shadow;
-    box-shadow: var(--shadow-sm);
+    background-color: var(--feed-card-bg);
+    border: none;
+    @apply rounded p-3 sm:p-4 transition-all duration-200;
+    box-shadow: 1px 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    break-inside: avoid;
+    overflow: hidden;
   }
 
   .feed-card:hover {
     box-shadow: var(--shadow-md);
   }
 
-  /* Feed card type tints — outer card gets full tint */
-  .feed-card-brew {
-    background: linear-gradient(var(--type-brew-tint), var(--type-brew-tint)), var(--card-bg);
+  @media (min-width: 768px) {
+    .feed-card {
+      transform: rotate(var(--card-rotate, 0deg));
+    }
+
+    .feed-card:hover {
+      transform: rotate(0deg) translateY(-2px);
+    }
   }
+
+  /* Subtle deterministic rotation for collage feel (desktop only) */
+  @media (min-width: 768px) {
+    .feed-card:nth-child(5n+1) { --card-rotate: -0.8deg; }
+    .feed-card:nth-child(5n+2) { --card-rotate: 0.5deg; }
+    .feed-card:nth-child(5n+3) { --card-rotate: -0.3deg; }
+    .feed-card:nth-child(5n+4) { --card-rotate: 0.7deg; }
+    .feed-card:nth-child(5n+5) { --card-rotate: 0deg; }
+  }
+
+  /* Brew cards — the main sticky note, slightly larger presence */
+  .feed-card-brew {
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(var(--type-brew-tint), var(--type-brew-tint));
+    @apply rounded;
+    box-shadow: 2px 3px 6px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .feed-card-brew:hover {
+    box-shadow: 3px 4px 10px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  /* Compact cards — equipment and roasters */
+  .feed-card-compact {
+    @apply p-2.5 sm:p-3 rounded-lg;
+  }
+
+  /* Feed card type tints — colored sticky notes */
   .feed-card-bean {
-    background: linear-gradient(var(--type-bean-tint), var(--type-bean-tint)), var(--card-bg);
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(var(--type-bean-tint), var(--type-bean-tint));
   }
   .feed-card-recipe {
-    background: linear-gradient(var(--type-recipe-tint), var(--type-recipe-tint)), var(--card-bg);
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(var(--type-recipe-tint), var(--type-recipe-tint));
   }
   .feed-card-roaster {
-    background: linear-gradient(var(--type-roaster-tint), var(--type-roaster-tint)), var(--card-bg);
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(var(--type-roaster-tint), var(--type-roaster-tint));
   }
   .feed-card-grinder {
-    background: linear-gradient(var(--type-grinder-tint), var(--type-grinder-tint)), var(--card-bg);
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(var(--type-grinder-tint), var(--type-grinder-tint));
   }
   .feed-card-brewer {
-    background: linear-gradient(var(--type-brewer-tint), var(--type-brewer-tint)), var(--card-bg);
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(var(--type-brewer-tint), var(--type-brewer-tint));
+  }
+
+  /* Feed grid layout — starts as normal grid, JS adds masonry class for tight packing */
+  .feed-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    align-items: start;
+    overflow: hidden;
+    background-image: var(--texture-cork);
+    background-color: var(--feed-board-bg);
+    @apply rounded-xl p-3 sm:p-5;
+    border: 1px solid var(--feed-board-border);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.12);
+  }
+
+  @media (min-width: 768px) {
+    .feed-grid {
+      grid-template-columns: repeat(2, 1fr);
+      column-gap: 1.25rem;
+      row-gap: 1.25rem;
+    }
+
+    /* JS adds this class after measuring heights */
+    .feed-grid.masonry-ready {
+      grid-auto-rows: 8px;
+      row-gap: 0;
+    }
+  }
+
+  /* Brew cards get extra presence without spanning columns */
+  .feed-card-brew {
+    @apply p-4 sm:p-5;
   }
 
   /* Inner content boxes inside tinted cards — blend with outer card */
@@ -968,79 +1065,53 @@
     color: var(--rating-text);
   }
 
-  /* Filter Pills */
-  .filter-pill {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
+  /* Feed Tab Bar */
+  .feed-tabs {
+    @apply flex items-center gap-1 overflow-x-auto;
+    border-bottom: 2px solid var(--card-border);
+  }
+
+  .feed-tab {
+    @apply px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+  }
+
+  .feed-tab:hover {
+    color: var(--text-secondary);
+  }
+
+  .feed-tab-active {
+    @apply px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--btn-primary-bg);
+    margin-bottom: -2px;
+  }
+
+  /* Type-colored active tabs */
+  .feed-tab-brew { color: var(--type-brew); border-bottom-color: var(--type-brew); }
+  .feed-tab-bean { color: var(--type-bean); border-bottom-color: var(--type-bean); }
+  .feed-tab-recipe { color: var(--type-recipe); border-bottom-color: var(--type-recipe); }
+  .feed-tab-equipment { color: var(--type-grinder); border-bottom-color: var(--type-grinder); }
+
+  .feed-sort-btn {
+    @apply px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer;
     color: var(--text-muted);
     background: transparent;
     border: 1px solid var(--card-border);
   }
 
-  .filter-pill:hover {
+  .feed-sort-btn:hover {
     color: var(--text-secondary);
     border-color: var(--input-border-focus);
-    background: var(--surface-bg);
   }
 
-  /* Type-aware hover: preview the active color on hover */
-  .filter-pill[data-tab="brew"]:hover { border-color: var(--type-brew); color: var(--type-brew); }
-  .filter-pill[data-tab="bean"]:hover { border-color: var(--type-bean); color: var(--type-bean); }
-  .filter-pill[data-tab="recipe"]:hover { border-color: var(--type-recipe); color: var(--type-recipe); }
-  .filter-pill[data-tab="roaster"]:hover { border-color: var(--type-roaster); color: var(--type-roaster); }
-  .filter-pill[data-tab="grinder"]:hover { border-color: var(--type-grinder); color: var(--type-grinder); }
-  .filter-pill[data-tab="brewer"]:hover { border-color: var(--type-brewer); color: var(--type-brewer); }
-
-  .filter-pill-active {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
+  .feed-sort-btn-active {
+    @apply px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer;
     color: var(--btn-primary-text);
     background: var(--btn-primary-bg);
     border: 1px solid var(--btn-primary-bg);
-  }
-
-  .filter-pill-active:hover {
-    background: var(--btn-primary-bg-hover);
-    border-color: var(--btn-primary-bg-hover);
-  }
-
-  /* Type-colored filter pills (active state matches feed card left border) */
-  .filter-pill-brew,
-  .filter-pill-bean,
-  .filter-pill-recipe,
-  .filter-pill-roaster,
-  .filter-pill-grinder,
-  .filter-pill-brewer {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer;
-    color: var(--btn-primary-text);
-  }
-
-  .filter-pill-brew {
-    background: var(--type-brew);
-    border: 1px solid var(--type-brew);
-  }
-
-  .filter-pill-bean {
-    background: var(--type-bean);
-    border: 1px solid var(--type-bean);
-  }
-
-  .filter-pill-recipe {
-    background: var(--type-recipe);
-    border: 1px solid var(--type-recipe);
-  }
-
-  .filter-pill-roaster {
-    background: var(--type-roaster);
-    border: 1px solid var(--type-roaster);
-  }
-
-  .filter-pill-grinder {
-    background: var(--type-grinder);
-    border: 1px solid var(--type-grinder);
-  }
-
-  .filter-pill-brewer {
-    background: var(--type-brewer);
-    border: 1px solid var(--type-brewer);
   }
 
   /* Links */
@@ -1432,24 +1503,13 @@ body.htmx-history-restoring .htmx-transitioning {
   animation: fade-in-slide-up 300ms ease-out backwards;
 }
 
-.feed-card:nth-child(1) {
-  animation-delay: 0ms;
-}
-.feed-card:nth-child(2) {
-  animation-delay: 50ms;
-}
-.feed-card:nth-child(3) {
-  animation-delay: 100ms;
-}
-.feed-card:nth-child(4) {
-  animation-delay: 150ms;
-}
-.feed-card:nth-child(5) {
-  animation-delay: 200ms;
-}
-.feed-card:nth-child(n + 6) {
-  animation-delay: 250ms;
-}
+.feed-card:nth-child(1) { animation-delay: 0ms; }
+.feed-card:nth-child(2) { animation-delay: 60ms; }
+.feed-card:nth-child(3) { animation-delay: 120ms; }
+.feed-card:nth-child(4) { animation-delay: 160ms; }
+.feed-card:nth-child(5) { animation-delay: 200ms; }
+.feed-card:nth-child(6) { animation-delay: 230ms; }
+.feed-card:nth-child(n + 7) { animation-delay: 260ms; }
 
 /* Modal transitions (enhanced) */
 .modal-backdrop {

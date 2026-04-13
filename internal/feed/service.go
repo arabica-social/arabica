@@ -86,10 +86,11 @@ const (
 
 // FeedQuery specifies filtering, sorting, and pagination for feed queries
 type FeedQuery struct {
-	Limit      int
-	Cursor     string
-	TypeFilter lexicons.RecordType
-	Sort       FeedSort
+	Limit       int
+	Cursor      string
+	TypeFilter  lexicons.RecordType
+	TypeFilters []lexicons.RecordType
+	Sort        FeedSort
 }
 
 // FeedResult contains feed items plus pagination info
@@ -108,10 +109,11 @@ type FirehoseIndex interface {
 
 // FirehoseFeedQuery mirrors FeedQuery for the firehose layer
 type FirehoseFeedQuery struct {
-	Limit      int
-	Cursor     string
-	TypeFilter lexicons.RecordType
-	Sort       string // "recent" or "popular"
+	Limit       int
+	Cursor      string
+	TypeFilter  lexicons.RecordType
+	TypeFilters []lexicons.RecordType
+	Sort        string // "recent" or "popular"
 }
 
 // FirehoseFeedResult mirrors FeedResult for the firehose layer
@@ -349,10 +351,11 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 	}
 
 	firehoseResult, err := s.firehoseIndex.GetFeedWithQuery(ctx, FirehoseFeedQuery{
-		Limit:      fetchLimit,
-		Cursor:     q.Cursor,
-		TypeFilter: q.TypeFilter,
-		Sort:       string(q.Sort),
+		Limit:       fetchLimit,
+		Cursor:      q.Cursor,
+		TypeFilter:  q.TypeFilter,
+		TypeFilters: q.TypeFilters,
+		Sort:        string(q.Sort),
 	})
 	if err != nil {
 		return nil, err

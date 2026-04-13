@@ -81,10 +81,11 @@ const (
 
 // FeedQuery specifies filtering, sorting, and pagination for feed queries
 type FeedQuery struct {
-	Limit      int                 // Max items to return
-	Cursor     string              // Opaque cursor for pagination (created_at|uri)
-	TypeFilter lexicons.RecordType // Filter to a specific record type (empty = all)
-	Sort       FeedSort            // Sort order (default: recent)
+	Limit       int                   // Max items to return
+	Cursor      string                // Opaque cursor for pagination (created_at|uri)
+	TypeFilter  lexicons.RecordType   // Filter to a specific record type (empty = all)
+	TypeFilters []lexicons.RecordType // Filter to multiple record types (takes precedence over TypeFilter)
+	Sort        FeedSort              // Sort order (default: recent)
 }
 
 // FeedResult contains feed items plus pagination info
@@ -596,7 +597,7 @@ type FeedItem struct {
 
 // GetRecentFeed returns recent feed items from the index
 func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error) {
-	return idx.getFeedItems(ctx, "", limit, "")
+	return idx.getFeedItems(ctx, nil, limit, "")
 }
 
 // recordTypeToNSID maps a lexicons.RecordType to its NSID collection string
@@ -627,13 +628,22 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 		q.Sort = FeedSortRecent
 	}
 
-	collectionFilter := ""
-	if q.TypeFilter != "" {
+	// Determine collection filters
+	var collectionFilters []string
+	if len(q.TypeFilters) > 0 {
+		for _, tf := range q.TypeFilters {
+			nsid, ok := recordTypeToNSID[tf]
+			if !ok {
+				return nil, fmt.Errorf("unknown record type: %s", tf)
+			}
+			collectionFilters = append(collectionFilters, nsid)
+		}
+	} else if q.TypeFilter != "" {
 		nsid, ok := recordTypeToNSID[q.TypeFilter]
 		if !ok {
 			return nil, fmt.Errorf("unknown record type: %s", q.TypeFilter)
 		}
-		collectionFilter = nsid
+		collectionFilters = []string{nsid}
 	}
 
 	// For popular sort, fetch more candidates to re-rank by score
@@ -642,7 +652,7 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 		fetchLimit = q.Limit * 5
 	}
 
-	items, err := idx.getFeedItems(ctx, collectionFilter, fetchLimit, q.Cursor)
+	items, err := idx.getFeedItems(ctx, collectionFilters, fetchLimit, q.Cursor)
 	if err != nil {
 		return nil, err
 	}
@@ -669,14 +679,21 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 }
 
 // getFeedItems fetches records from SQLite, resolves references, and returns FeedItems.
-func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilter string, limit int, cursor string) ([]*FeedItem, error) {
+func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []string, limit int, cursor string) ([]*FeedItem, error) {
 	// Build query for feedable records
 	var args []any
 	query := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE `
 
-	if collectionFilter != "" {
+	if len(collectionFilters) == 1 {
 		query += `collection = ? `
-		args = append(args, collectionFilter)
+		args = append(args, collectionFilters[0])
+	} else if len(collectionFilters) > 1 {
+		placeholders := make([]string, len(collectionFilters))
+		for i, c := range collectionFilters {
+			placeholders[i] = "?"
+			args = append(args, c)
+		}
+		query += `collection IN (` + strings.Join(placeholders, ",") + `) `
 	} else {
 		// Only feedable collections
 		placeholders := make([]string, len(feedableCollections))

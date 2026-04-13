@@ -35,10 +35,8 @@ func feedFilterTabs() []feedFilterTab {
 		{Label: "All", Value: ""},
 		{Label: "Brews", Value: "brew"},
 		{Label: "Beans", Value: "bean"},
-		{Label: "Roasters", Value: "roaster"},
-		{Label: "Grinders", Value: "grinder"},
-		{Label: "Brewers", Value: "brewer"},
 		{Label: "Recipes", Value: "recipe"},
+		{Label: "Equipment", Value: "equipment"},
 	}
 }
 
@@ -46,8 +44,13 @@ func buildFeedURL(typeFilter, sort string) string {
 	url := "/api/feed"
 	sep := "?"
 	if typeFilter != "" {
-		url += sep + "type=" + typeFilter
-		sep = "&"
+		if typeFilter == "equipment" {
+			url += sep + "type=grinder&type=brewer"
+			sep = "&"
+		} else {
+			url += sep + "type=" + typeFilter
+			sep = "&"
+		}
 	}
 	if sort != "" && sort != "recent" {
 		url += sep + "sort=" + sort
@@ -80,7 +83,7 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 			@FeedFilterBar(qs)
 		}
 		<!-- Feed items -->
-		<div id="feed-items" class="space-y-4">
+		<div id="feed-items" class="feed-grid">
 			if len(items) > 0 {
 				for _, item := range items {
 					@FeedCardWithModeration(item, isAuthenticated, modCtx)
@@ -90,59 +93,63 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 					@FeedLoadMoreButton(qs)
 				}
 			} else {
-				<div class="bg-brown-100 rounded-lg p-6 text-center text-brown-700 border border-brown-200">
-					<p class="mb-2 font-medium">No activity in the feed yet.</p>
-					<p class="text-sm">Be the first to add something!</p>
+				<div class="rounded-xl p-8 text-center" style="background: var(--surface-bg); border: 2px dashed var(--card-border); grid-column: 1 / -1;">
+					<div class="text-4xl mb-3">☕</div>
+					<p class="text-brown-700 font-medium mb-1">The board's quiet today</p>
+					<p class="text-sm text-brown-500">Follow some brewers to fill it up, or log your first brew to get started.</p>
 				</div>
 			}
 		</div>
+		<script src="/static/js/feed-masonry.js?v=0.1.0"></script>
 	</div>
 }
 
 // FeedFilterBar renders the type filter tabs and sort selector
 templ FeedFilterBar(qs FeedQueryState) {
 	<div
-		class="flex flex-wrap items-center justify-between gap-2 mb-4"
+		class="mb-5"
 		data-type-filter={ qs.TypeFilter }
 		data-sort={ qs.Sort }
-		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, pillClass(tab) { if (this.typeFilter !== tab) return 'filter-pill'; if (!tab) return 'filter-pill-active'; return 'filter-pill-' + tab; }, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { u += sep + 'type=' + t; sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
+		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, tabClass(tab) { if (this.typeFilter !== tab) return 'feed-tab'; if (!tab) return 'feed-tab-active'; return 'feed-tab-' + tab; }, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { if (t === 'equipment') { u += sep + 'type=grinder&type=brewer'; } else { u += sep + 'type=' + t; } sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
 	>
-		<!-- Type filter tabs -->
-		<div class="flex flex-wrap gap-1">
-			for _, tab := range feedFilterTabs() {
+		<div class="flex items-center justify-between gap-4">
+			<!-- Type filter tabs -->
+			<nav class="feed-tabs flex-1" aria-label="Feed filters">
+				for _, tab := range feedFilterTabs() {
+					<button
+						class="feed-tab"
+						:class="tabClass($el.dataset.tab)"
+						data-tab={ tab.Value }
+						@click="changeFilter($el.dataset.tab)"
+					>
+						{ tab.Label }
+					</button>
+				}
+			</nav>
+			<!-- Sort selector -->
+			<div class="flex items-center gap-1 flex-shrink-0">
 				<button
-					class="filter-pill"
-					:class="pillClass($el.dataset.tab)"
-					data-tab={ tab.Value }
-					@click="changeFilter($el.dataset.tab)"
+					class="feed-sort-btn"
+					:class="(sort === '' || sort === 'recent') ? 'feed-sort-btn-active' : 'feed-sort-btn'"
+					@click="changeSort('recent')"
 				>
-					{ tab.Label }
+					New
 				</button>
-			}
-		</div>
-		<!-- Sort selector -->
-		<div class="flex items-center gap-1">
-			<button
-				class="filter-pill"
-				:class="(sort === '' || sort === 'recent') ? 'filter-pill-active' : 'filter-pill'"
-				@click="changeSort('recent')"
-			>
-				New
-			</button>
-			<button
-				class="filter-pill"
-				:class="sort === 'popular' ? 'filter-pill-active' : 'filter-pill'"
-				@click="changeSort('popular')"
-			>
-				Popular
-			</button>
+				<button
+					class="feed-sort-btn"
+					:class="sort === 'popular' ? 'feed-sort-btn-active' : 'feed-sort-btn'"
+					@click="changeSort('popular')"
+				>
+					Popular
+				</button>
+			</div>
 		</div>
 	</div>
 }
 
 // FeedLoadMoreButton renders a "Load more" button for pagination
 templ FeedLoadMoreButton(qs FeedQueryState) {
-	<div class="text-center pt-2" x-data="{ loading: false }">
+	<div class="text-center pt-2" style="grid-column: 1 / -1;" x-data="{ loading: false }">
 		<button
 			class="btn-secondary text-sm disabled:opacity-50"
 			hx-get={ buildFeedURLWithCursor(qs.TypeFilter, qs.Sort, qs.NextCursor) }
@@ -183,6 +190,7 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 		templ.KV("feed-card-roaster", item.RecordType == lexicons.RecordTypeRoaster),
 		templ.KV("feed-card-grinder", item.RecordType == lexicons.RecordTypeGrinder),
 		templ.KV("feed-card-brewer", item.RecordType == lexicons.RecordTypeBrewer),
+		templ.KV("feed-card-compact", item.RecordType == lexicons.RecordTypeGrinder || item.RecordType == lexicons.RecordTypeBrewer || item.RecordType == lexicons.RecordTypeRoaster),
 	) }
 	>
 		<!-- Author row -->

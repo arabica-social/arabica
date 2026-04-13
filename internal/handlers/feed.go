@@ -107,7 +107,13 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	isAuthenticated := err == nil
 
 	// Parse query parameters
-	typeFilter := lexicons.ParseRecordType(r.URL.Query().Get("type"))
+	typeParam := r.URL.Query().Get("type")
+	typeFilter := lexicons.ParseRecordType(typeParam)
+	var typeFilters []lexicons.RecordType
+	if typeParam == "equipment" {
+		typeFilters = []lexicons.RecordType{lexicons.RecordTypeGrinder, lexicons.RecordTypeBrewer}
+		typeFilter = "" // Clear single filter when using multi
+	}
 	sortBy := feed.FeedSort(r.URL.Query().Get("sort"))
 	cursor := r.URL.Query().Get("cursor")
 
@@ -118,10 +124,11 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	if h.feedService != nil {
 		if isAuthenticated {
 			result, err := h.feedService.GetFeedWithQuery(r.Context(), feed.FeedQuery{
-				Limit:      feed.FeedLimit,
-				Cursor:     cursor,
-				TypeFilter: typeFilter,
-				Sort:       sortBy,
+				Limit:       feed.FeedLimit,
+				Cursor:      cursor,
+				TypeFilter:  typeFilter,
+				TypeFilters: typeFilters,
+				Sort:        sortBy,
 			})
 			if err != nil {
 				log.Error().Err(err).Str("sort", string(sortBy)).Str("type", string(typeFilter)).Msg("Failed to query feed")
@@ -167,8 +174,12 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	modCtx := h.buildModerationContext(r.Context(), viewerDID, feedItems)
 
 	// Build query state for template
+	typeFilterStr := string(typeFilter)
+	if len(typeFilters) > 0 {
+		typeFilterStr = "equipment"
+	}
 	queryState := pages.FeedQueryState{
-		TypeFilter:      string(typeFilter),
+		TypeFilter:      typeFilterStr,
 		Sort:            string(sortBy),
 		NextCursor:      nextCursor,
 		IsAuthenticated: isAuthenticated,

@@ -36,10 +36,11 @@ func (a *FeedIndexAdapter) GetRecentFeed(ctx context.Context, limit int) ([]*fee
 // GetFeedWithQuery returns feed items matching query parameters
 func (a *FeedIndexAdapter) GetFeedWithQuery(ctx context.Context, q feed.FirehoseFeedQuery) (*feed.FirehoseFeedResult, error) {
 	result, err := a.index.GetFeedWithQuery(ctx, FeedQuery{
-		Limit:      q.Limit,
-		Cursor:     q.Cursor,
-		TypeFilter: q.TypeFilter,
-		Sort:       FeedSort(q.Sort),
+		Limit:       q.Limit,
+		Cursor:      q.Cursor,
+		TypeFilter:  q.TypeFilter,
+		TypeFilters: q.TypeFilters,
+		Sort:        FeedSort(q.Sort),
 	})
 	if err != nil {
 		return nil, err
