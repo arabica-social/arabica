@@ -71,13 +71,12 @@ templ RecipeViewCard(props RecipeViewProps) {
 				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconDroplet()
 Pours</span></h3>
 				<div class="space-y-2">
-					for i, pour := range props.Recipe.Pours {
-						<div class="flex items-center gap-4 bg-brown-50 rounded-lg px-3 py-2 border border-brown-200">
-							<span class="text-sm font-medium text-brown-700">Pour { fmt.Sprintf("%d", i+1) }</span>
-							<span class="text-sm text-brown-900">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
-							if pour.TimeSeconds > 0 {
-								<span class="text-sm text-brown-600">at { fmt.Sprintf("%ds", pour.TimeSeconds) }</span>
-							}
+					for _, pour := range props.Recipe.Pours {
+						<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brown-200">
+							<div class="flex gap-4 text-sm">
+								<span class="font-semibold text-brown-800">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
+								<span class="text-brown-600">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
+							</div>
 						</div>
 					}
 				</div>

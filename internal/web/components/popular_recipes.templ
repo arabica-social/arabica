@@ -58,15 +58,15 @@ templ popularRecipeCard(recipe *models.Recipe) {
 		}
 		<!-- Stats -->
 		<div class="grid grid-cols-3 gap-1.5 mb-2">
-			<div class="text-center bg-brown-50/60 rounded py-1">
+			<div class="text-center rounded py-1">
 				<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Coffee</span>
 				<span class="block text-xs font-medium text-brown-900">{ formatAmount(recipe.CoffeeAmount) }</span>
 			</div>
-			<div class="text-center bg-brown-50/60 rounded py-1">
+			<div class="text-center rounded py-1">
 				<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Water</span>
 				<span class="block text-xs font-medium text-brown-900">{ formatAmount(recipe.WaterAmount) }</span>
 			</div>
-			<div class="text-center bg-brown-50/60 rounded py-1">
+			<div class="text-center rounded py-1">
 				<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Ratio</span>
 				<span class="block text-xs font-medium text-brown-900">{ formatRatio(recipe) }</span>
 			</div>
