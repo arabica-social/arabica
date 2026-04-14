@@ -917,6 +917,13 @@
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.12);
   }
 
+  .feed-masonry-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
   @media (min-width: 768px) {
     .feed-grid {
       grid-template-columns: repeat(2, 1fr);
@@ -925,10 +932,7 @@
     }
 
     .feed-masonry-col {
-      display: flex;
-      flex-direction: column;
       gap: 1.25rem;
-      min-width: 0;
     }
   }
 

@@ -2,6 +2,64 @@ package pages
 
 import "tangled.org/arabica.social/arabica/internal/web/components"
 
+// PDSProvider describes a single PDS hosting option.
+type PDSProvider struct {
+	URL          string // Full URL for the signup form (e.g. "https://arabica.systems")
+	Name         string // Display name (e.g. "Arabica")
+	Domain       string // Display domain (e.g. "arabica.systems")
+	Description  string // Short description shown under the name
+	Location     string // Geographic location (e.g. "United States")
+	Badge        string // Status badge text (e.g. "Invite Only", "Open")
+	BadgeColor   string // Tailwind color prefix for badge (e.g. "amber", "green")
+	OperatorName string // Optional: handle of community operator (e.g. "@baileytownsend.dev")
+	OperatorURL  string // Optional: link to operator profile
+}
+
+// PDSCategory groups providers under a heading.
+type PDSCategory struct {
+	Title       string
+	Description string
+	Providers   []PDSProvider
+}
+
+// pdsCategories returns the list of PDS provider categories shown on the create account page.
+func pdsCategories() []PDSCategory {
+	return []PDSCategory{
+		{
+			Title:       "App Providers",
+			Description: "These apps host your account and data for you.",
+			Providers: []PDSProvider{
+				{
+					URL:         "https://arabica.systems",
+					Name:        "Arabica",
+					Domain:      "arabica.systems",
+					Description: "The official Arabica provider.",
+					Location:    "United States",
+					Badge:       "Invite Only",
+					BadgeColor:  "amber",
+				},
+			},
+		},
+		{
+			Title:       "Independent Providers",
+			Description: "Account hosts run by the community. They hold your account and data, independent of any single app.",
+			Providers: []PDSProvider{
+				{
+					URL:          "https://selfhosted.social",
+					Name:         "selfhosted.social",
+					Domain:       "selfhosted.social",
+					Description:  "Community provider",
+					Location:     "United States",
+					Badge:        "Open",
+					BadgeColor:   "green",
+					OperatorName: "@baileytownsend.dev",
+					OperatorURL:  "https://bsky.app/profile/baileytownsend.dev",
+				},
+			},
+		},
+	}
+}
+
 // CreateAccountProps holds state for the account creation page.
 type CreateAccountProps struct {
 	Error string // Error message from failed signup attempt
@@ -31,51 +89,17 @@ templ CreateAccountContent(props CreateAccountProps) {
 				{ props.Error }
 			</div>
 		}
-		<!-- App providers -->
-		<div class="mb-6">
-			<h2 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">App Providers</h2>
-			<p class="text-sm text-brown-500 mb-3">These apps host your account and data { "for" } you.</p>
-			<div class="space-y-3">
-				@pdsCard("https://arabica.systems") {
-					<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
-						Arabica
-						<span class="relative -top-px inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-							Invite Only
-						</span>
-					</p>
-					<p class="text-sm text-brown-700">The official Arabica provider.</p>
-					<p class="flex items-center gap-1 text-xs text-brown-500">
-						arabica.systems ·
-						@locationPin()
-						United States
-					</p>
-				}
+		for _, cat := range pdsCategories() {
+			<div class="mb-6">
+				<h2 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">{ cat.Title }</h2>
+				<p class="text-sm text-brown-500 mb-3">{ cat.Description }</p>
+				<div class="space-y-3">
+					for _, p := range cat.Providers {
+						@pdsCard(p)
+					}
+				</div>
 			</div>
-		</div>
-		<!-- Independent providers -->
-		<div class="mb-6">
-			<h2 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">Independent Providers</h2>
-			<p class="text-sm text-brown-500 mb-3">Account hosts run by the community. They hold your account and data, independent of any single app.</p>
-			<div class="space-y-3">
-				@pdsCard("https://selfhosted.social") {
-					<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
-						selfhosted.social
-						<span class="relative -top-px inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-							Open
-						</span>
-					</p>
-					<p class="text-sm text-brown-700">
-						Community provider hosted by
-						<a href="https://bsky.app/profile/baileytownsend.dev" target="_blank" rel="noopener noreferrer" class="link-bold">{ "@baileytownsend.dev" }</a>.
-					</p>
-					<p class="flex items-center gap-1 text-xs text-brown-500">
-						selfhosted.social ·
-						@locationPin()
-						United States
-					</p>
-				}
-			</div>
-		</div>
+		}
 		<!-- Self-hosted note -->
 		<div class="text-sm text-brown-500 mb-6">
 			<strong class="text-brown-700">Self-hosted:</strong> Technical users can <a href="https://atproto.com/guides/self-hosting" target="_blank" rel="noopener noreferrer" class="link">run their own provider</a> { "for" } full control over their data.
@@ -92,11 +116,28 @@ templ locationPin() {
 }
 
 // pdsCard renders a PDS server option card with a sign-up button.
-templ pdsCard(pdsURL string) {
+templ pdsCard(p PDSProvider) {
 	<div class="card card-inner">
 		<form method="POST" action="/join/create">
-			<input type="hidden" name="pds_url" value={ pdsURL }/>
-			{ children... }
+			<input type="hidden" name="pds_url" value={ p.URL }/>
+			<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
+				{ p.Name }
+				<span class={ "relative -top-px inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", "bg-" + p.BadgeColor + "-100", "text-" + p.BadgeColor + "-800" }>
+					{ p.Badge }
+				</span>
+			</p>
+			<p class="text-sm text-brown-700">
+				{ p.Description }
+				if p.OperatorName != "" {
+					{ " hosted by " }
+					<a href={ templ.SafeURL(p.OperatorURL) } target="_blank" rel="noopener noreferrer" class="link-bold">{ p.OperatorName }</a>.
+				}
+			</p>
+			<p class="flex items-center gap-1 text-xs text-brown-500">
+				{ p.Domain } ·
+				@locationPin()
+				{ p.Location }
+			</p>
 			<div class="mt-3">
 				@components.PrimaryButton(components.ButtonProps{
 					Text: "Create Account",

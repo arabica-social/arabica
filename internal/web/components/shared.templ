@@ -1,9 +1,9 @@
 package components
 
 import (
+	"fmt"
 	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
-	"fmt"
 )
 
 // BeanSummaryProps defines props for displaying bean metadata inline.
@@ -211,10 +211,10 @@ templ WelcomeCard(props WelcomeCardProps) {
 
 templ WelcomeAuthenticated(userDID string) {
 	<div class="text-center mb-8 pt-4">
-		<h1 class="text-3xl sm:text-4xl font-semibold text-brown-900 mb-3">Your coffee journey, documented.</h1>
-		<p class="text-sm text-brown-500 mb-6">
-			Logged in as <span class="font-mono text-brown-700 font-medium">{ userDID }</span>
-		</p>
+		<h1 class="text-3xl sm:text-4xl font-semibold text-brown-900 mb-6">Your coffee journey, documented.</h1>
+		// <p class="text-sm text-brown-500 mb-6">
+		// 	Logged in as <span class="font-mono text-brown-700 font-medium">{ userDID }</span>
+		// </p>
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto">
 			<a
 				href="/brews/new"

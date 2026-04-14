@@ -34,7 +34,7 @@ const (
 	// PublicFeedCacheSize is the number of items to cache in the server
 	PublicFeedCacheSize = 20
 	// PublicFeedLimit is the number of items to show for unauthenticated users
-	PublicFeedLimit = 5
+	PublicFeedLimit = 10
 	// Number of feed items to show for authenticated users.
 	FeedLimit = 20
 )
