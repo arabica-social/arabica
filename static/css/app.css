@@ -847,23 +847,21 @@
     box-shadow: var(--shadow-md);
   }
 
+  /* Sticky-note rotation only inside the feed pinboard */
   @media (min-width: 768px) {
-    .feed-card {
+    .feed-grid .feed-card {
       transform: rotate(var(--card-rotate, 0deg));
     }
 
-    .feed-card:hover {
+    .feed-grid .feed-card:hover {
       transform: rotate(0deg) translateY(-2px);
     }
-  }
 
-  /* Subtle deterministic rotation for collage feel (desktop only) */
-  @media (min-width: 768px) {
-    .feed-card:nth-child(5n+1) { --card-rotate: -0.8deg; }
-    .feed-card:nth-child(5n+2) { --card-rotate: 0.5deg; }
-    .feed-card:nth-child(5n+3) { --card-rotate: -0.3deg; }
-    .feed-card:nth-child(5n+4) { --card-rotate: 0.7deg; }
-    .feed-card:nth-child(5n+5) { --card-rotate: 0deg; }
+    .feed-grid .feed-card:nth-child(5n+1) { --card-rotate: -0.8deg; }
+    .feed-grid .feed-card:nth-child(5n+2) { --card-rotate: 0.5deg; }
+    .feed-grid .feed-card:nth-child(5n+3) { --card-rotate: -0.3deg; }
+    .feed-grid .feed-card:nth-child(5n+4) { --card-rotate: 0.7deg; }
+    .feed-grid .feed-card:nth-child(5n+5) { --card-rotate: 0deg; }
   }
 
   /* Brew cards — the main sticky note, slightly larger presence */
@@ -926,10 +924,11 @@
       row-gap: 1.25rem;
     }
 
-    /* JS adds this class after measuring heights */
-    .feed-grid.masonry-ready {
-      grid-auto-rows: 8px;
-      row-gap: 0;
+    .feed-masonry-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      min-width: 0;
     }
   }
 
@@ -1536,18 +1535,18 @@ body.htmx-history-restoring .htmx-transitioning {
    Component-Specific Transitions
    ======================================== */
 
-/* Feed cards appear with stagger effect */
-.feed-card {
+/* Feed cards appear with stagger effect (only inside the pinboard) */
+.feed-grid .feed-card {
   animation: fade-in-slide-up 300ms ease-out backwards;
 }
 
-.feed-card:nth-child(1) { animation-delay: 0ms; }
-.feed-card:nth-child(2) { animation-delay: 60ms; }
-.feed-card:nth-child(3) { animation-delay: 120ms; }
-.feed-card:nth-child(4) { animation-delay: 160ms; }
-.feed-card:nth-child(5) { animation-delay: 200ms; }
-.feed-card:nth-child(6) { animation-delay: 230ms; }
-.feed-card:nth-child(n + 7) { animation-delay: 260ms; }
+.feed-grid .feed-card:nth-child(1) { animation-delay: 0ms; }
+.feed-grid .feed-card:nth-child(2) { animation-delay: 60ms; }
+.feed-grid .feed-card:nth-child(3) { animation-delay: 120ms; }
+.feed-grid .feed-card:nth-child(4) { animation-delay: 160ms; }
+.feed-grid .feed-card:nth-child(5) { animation-delay: 200ms; }
+.feed-grid .feed-card:nth-child(6) { animation-delay: 230ms; }
+.feed-grid .feed-card:nth-child(n + 7) { animation-delay: 260ms; }
 
 /* Modal transitions (enhanced) */
 .modal-backdrop {

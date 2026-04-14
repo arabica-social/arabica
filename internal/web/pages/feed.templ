@@ -86,9 +86,20 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 		<!-- Feed items -->
 		<div id="feed-items" class="feed-grid">
 			if len(items) > 0 {
-				for _, item := range items {
-					@FeedCardWithModeration(item, isAuthenticated, modCtx)
-				}
+				<div class="feed-masonry-col">
+					for i, item := range items {
+						if i % 2 == 0 {
+							@FeedCardWithModeration(item, isAuthenticated, modCtx)
+						}
+					}
+				</div>
+				<div class="feed-masonry-col">
+					for i, item := range items {
+						if i % 2 == 1 {
+							@FeedCardWithModeration(item, isAuthenticated, modCtx)
+						}
+					}
+				</div>
 				<!-- Load more button -->
 				if qs.NextCursor != "" {
 					@FeedLoadMoreButton(qs)
@@ -101,7 +112,6 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 				</div>
 			}
 		</div>
-		<script src="/static/js/feed-masonry.js?v=0.1.0"></script>
 	</div>
 }
 
@@ -167,9 +177,20 @@ templ FeedLoadMoreButton(qs FeedQueryState) {
 
 // FeedMoreItems renders additional items for "load more" pagination (no filter bar)
 templ FeedMoreItems(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext, qs FeedQueryState) {
-	for _, item := range items {
-		@FeedCardWithModeration(item, isAuthenticated, modCtx)
-	}
+	<div class="feed-masonry-col">
+		for i, item := range items {
+			if i % 2 == 0 {
+				@FeedCardWithModeration(item, isAuthenticated, modCtx)
+			}
+		}
+	</div>
+	<div class="feed-masonry-col">
+		for i, item := range items {
+			if i % 2 == 1 {
+				@FeedCardWithModeration(item, isAuthenticated, modCtx)
+			}
+		}
+	</div>
 	if qs.NextCursor != "" {
 		@FeedLoadMoreButton(qs)
 	}
