@@ -1,9 +1,9 @@
 package pages
 
 import (
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	"context"
 	"strings"
+	"tangled.org/arabica.social/arabica/internal/web/components"
 	"testing"
 
 	"github.com/a-h/templ"

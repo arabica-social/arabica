@@ -1,8 +1,8 @@
 package atproto
 
 import (
-	"tangled.org/arabica.social/arabica/internal/models"
 	"sync"
+	"tangled.org/arabica.social/arabica/internal/models"
 	"testing"
 	"time"
 

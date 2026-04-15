@@ -782,9 +782,9 @@ func (h *Handler) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Req
 		return si > sj
 	})
 
-	// Take top 6
-	if len(recipes) > 6 {
-		recipes = recipes[:6]
+	const maxRecipes = 3
+	if len(recipes) > maxRecipes {
+		recipes = recipes[:maxRecipes]
 	}
 
 	if err := components.PopularRecipes(components.PopularRecipesProps{

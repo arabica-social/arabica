@@ -71,11 +71,9 @@ func (pw *ProfileWatcher) Watch(did string) {
 // Start begins the profile watcher in a background goroutine. It will reconnect
 // automatically on failure, rotating through endpoints with exponential backoff.
 func (pw *ProfileWatcher) Start(ctx context.Context) {
-	pw.wg.Add(1)
-	go func() {
-		defer pw.wg.Done()
+	pw.wg.Go(func() {
 		pw.run(ctx)
-	}()
+	})
 }
 
 // Stop gracefully shuts down the watcher.

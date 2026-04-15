@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/models"
 	"github.com/stretchr/testify/assert"
+	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 func TestFormatTemp(t *testing.T) {

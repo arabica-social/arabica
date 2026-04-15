@@ -9,10 +9,7 @@ import (
 
 // entityStartY computes the starting Y to vertically center contentH within the card.
 func entityStartY(contentH int) int {
-	y := (brandBarY - contentH) / 2
-	if y < 30 {
-		y = 30
-	}
+	y := max((brandBarY-contentH)/2, 30)
 	return y
 }
 

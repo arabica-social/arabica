@@ -1,10 +1,10 @@
 package pages
 
 import (
-	"tangled.org/arabica.social/arabica/internal/web/bff"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	"bytes"
 	"context"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
+	"tangled.org/arabica.social/arabica/internal/web/components"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

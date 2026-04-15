@@ -25,12 +25,12 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.org/pdewey.com/atp/testpds"
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
 	gormlogger "gorm.io/gorm/logger"
 	"tangled.org/pdewey.com/atp"
+	"tangled.org/pdewey.com/atp/testpds"
 )
 
 func init() {

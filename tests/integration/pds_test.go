@@ -13,10 +13,10 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.org/pdewey.com/atp/testpds"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tangled.org/pdewey.com/atp"
+	"tangled.org/pdewey.com/atp/testpds"
 )
 
 // testAccount holds credentials for a test PDS account.

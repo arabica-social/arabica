@@ -3,11 +3,11 @@
 package bff
 
 import (
-	"tangled.org/arabica.social/arabica/internal/models"
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
+	"tangled.org/arabica.social/arabica/internal/models"
 	"time"
 )
 

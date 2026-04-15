@@ -1,11 +1,11 @@
 package pages
 
 import (
+	"fmt"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
-	"fmt"
 )
 
 // BrewViewProps defines the data for the brew view page
@@ -134,8 +134,12 @@ templ BrewRating(rating int) {
 // BrewBeanSection renders the coffee bean information
 templ BrewBeanSection(brew *models.Brew, owner string) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconCoffee()
-Coffee Bean</span></h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">
+			<span class="inline-flex items-center gap-1">
+				@components.IconCoffee()
+				Coffee Bean
+			</span>
+		</h3>
 		if brew.Bean != nil {
 			<div class="font-bold text-lg text-brown-900">
 				<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", brew.Bean.RKey, owner)) } class="hover:underline">
@@ -411,8 +415,12 @@ templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 // BrewPoursSection renders the pours section
 templ BrewPoursSection(pours []*models.Pour) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3"><span class="inline-flex items-center gap-1">@components.IconDroplet()
-Pours</span></h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">
+			<span class="inline-flex items-center gap-1">
+				@components.IconDroplet()
+				Pours
+			</span>
+		</h3>
 		<div class="space-y-2">
 			for _, pour := range pours {
 				<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brown-200">
@@ -430,8 +438,12 @@ Pours</span></h3>
 // BrewTastingNotes renders the tasting notes section
 templ BrewTastingNotes(notes string) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2"><span class="inline-flex items-center gap-1">@components.IconFileText()
-Tasting Notes</span></h3>
+		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">
+			<span class="inline-flex items-center gap-1">
+				@components.IconFileText()
+				Tasting Notes
+			</span>
+		</h3>
 		<div class="text-brown-900 whitespace-pre-wrap">{ notes }</div>
 	</div>
 }

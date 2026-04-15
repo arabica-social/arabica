@@ -1,9 +1,9 @@
 package components
 
 import (
-	"tangled.org/arabica.social/arabica/internal/models"
 	"fmt"
 	"strings"
+	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 // DialogModalProps defines properties for a native HTML5 dialog modal
@@ -491,27 +491,48 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 						class="w-full form-select"
 					>
 						<option value="">Select type...</option>
-						<option value="pourover" if getStringValue(brewer, "brewer_type") == "pourover" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "pourover" {
-	selected
-}>Pour-over</option>
-						<option value="espresso" if getStringValue(brewer, "brewer_type") == "espresso" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "espresso" {
-	selected
-}>Espresso</option>
-						<option value="immersion" if getStringValue(brewer, "brewer_type") == "immersion" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "immersion" {
-	selected
-}>Immersion</option>
-						<option value="mokapot" if getStringValue(brewer, "brewer_type") == "mokapot" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "mokapot" {
-	selected
-}>Moka Pot</option>
-						<option value="coldbrew" if getStringValue(brewer, "brewer_type") == "coldbrew" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "coldbrew" {
-	selected
-}>Cold Brew</option>
-						<option value="cupping" if getStringValue(brewer, "brewer_type") == "cupping" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "cupping" {
-	selected
-}>Cupping</option>
-						<option value="other" if getStringValue(brewer, "brewer_type") == "other" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "other" {
-	selected
-}>Other</option>
+						<option
+							value="pourover"
+							if getStringValue(brewer, "brewer_type") == "pourover" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "pourover" {
+								selected
+							}
+						>Pour-over</option>
+						<option
+							value="espresso"
+							if getStringValue(brewer, "brewer_type") == "espresso" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "espresso" {
+								selected
+							}
+						>Espresso</option>
+						<option
+							value="immersion"
+							if getStringValue(brewer, "brewer_type") == "immersion" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "immersion" {
+								selected
+							}
+						>Immersion</option>
+						<option
+							value="mokapot"
+							if getStringValue(brewer, "brewer_type") == "mokapot" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "mokapot" {
+								selected
+							}
+						>Moka Pot</option>
+						<option
+							value="coldbrew"
+							if getStringValue(brewer, "brewer_type") == "coldbrew" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "coldbrew" {
+								selected
+							}
+						>Cold Brew</option>
+						<option
+							value="cupping"
+							if getStringValue(brewer, "brewer_type") == "cupping" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "cupping" {
+								selected
+							}
+						>Cupping</option>
+						<option
+							value="other"
+							if getStringValue(brewer, "brewer_type") == "other" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "other" {
+								selected
+							}
+						>Other</option>
 					</select>
 				</div>
 				<div class="form-divider"></div>

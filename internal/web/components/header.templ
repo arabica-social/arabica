@@ -1,8 +1,8 @@
 package components
 
 import (
-	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"fmt"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
 
 // HeaderProps contains all properties for the header component
@@ -35,7 +35,7 @@ templ HeaderWithProps(props HeaderProps) {
 				<div class="flex items-center gap-4">
 					if !props.IsAuthenticated {
 						<div class="flex items-center gap-4">
-														<button
+							<button
 								x-data
 								@click="$dispatch('open-login')"
 								class="text-sm font-semibold text-brown-100 hover:text-white transition-colors"
