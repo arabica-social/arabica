@@ -25,8 +25,11 @@ type BrewerViewProps struct {
 	CanHideRecord   bool
 	CanBlockUser    bool
 	IsRecordHidden  bool
-	AuthorDID       string
-	BrewCount       int
+	AuthorDID         string
+	AuthorHandle      string
+	AuthorDisplayName string
+	AuthorAvatar      string
+	BrewCount         int
 }
 
 templ BrewerView(layout *components.LayoutData, props BrewerViewProps) {
@@ -40,7 +43,16 @@ templ BrewerViewContent(props BrewerViewProps) {
 }
 
 templ BrewerViewCard(props BrewerViewProps) {
-	@BrewerViewHeader(props)
+	@components.RecordViewHeader(components.RecordViewHeaderProps{
+		RecordType:    "brewer",
+		Title:         props.Brewer.Name,
+		Timestamp:     props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Brewer.CreatedAt),
+		AuthorDID:     props.AuthorDID,
+		AuthorHandle:  props.AuthorHandle,
+		AuthorDisplay: props.AuthorDisplayName,
+		AuthorAvatar:  props.AuthorAvatar,
+	})
 	<div class="space-y-6">
 		@components.DetailField(components.DetailFieldProps{Icon: components.IconCoffee(), Label: "Type", Value: props.Brewer.BrewerType})
 		if props.Brewer.Description != "" {
@@ -104,9 +116,3 @@ templ BrewerViewCard(props BrewerViewProps) {
 	</div>
 }
 
-templ BrewerViewHeader(props BrewerViewProps) {
-	<div class="mb-6">
-		<h2 class="text-2xl font-semibold text-brown-900">{ props.Brewer.Name }</h2>
-		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Brewer.CreatedAt) } data-local="long">{ props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
-	</div>
-}

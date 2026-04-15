@@ -353,6 +353,17 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		AuthorDID:       brewOwnerDID,
 	}
 
+	// Fetch author profile for display
+	authorDIDForProfile := brewOwnerDID
+	if authorDIDForProfile == "" {
+		authorDIDForProfile = didStr
+	}
+	if authorProfile := h.getUserProfile(r.Context(), authorDIDForProfile); authorProfile != nil {
+		brewViewProps.AuthorHandle = authorProfile.Handle
+		brewViewProps.AuthorDisplayName = authorProfile.DisplayName
+		brewViewProps.AuthorAvatar = authorProfile.Avatar
+	}
+
 	// Render using templ component
 	if err := pages.BrewView(layoutData, brewViewProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)

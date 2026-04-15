@@ -26,7 +26,10 @@ type BrewViewProps struct {
 	CanHideRecord  bool   // User has hide_record permission
 	CanBlockUser   bool   // User has blacklist_user permission
 	IsRecordHidden bool   // This record is currently hidden
-	AuthorDID      string // DID of the brew author
+	AuthorDID          string // DID of the brew author
+	AuthorHandle       string
+	AuthorDisplayName  string
+	AuthorAvatar       string
 }
 
 // BrewView renders the full brew view page
@@ -43,7 +46,16 @@ templ BrewViewContent(props BrewViewProps) {
 
 // BrewViewCard renders the brew details card
 templ BrewViewCard(props BrewViewProps) {
-	@BrewViewHeader(props)
+	@components.RecordViewHeader(components.RecordViewHeaderProps{
+		RecordType:    "brew",
+		Title:         "Brew Details",
+		Timestamp:     props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Brew.CreatedAt),
+		AuthorDID:     props.AuthorDID,
+		AuthorHandle:  props.AuthorHandle,
+		AuthorDisplay: props.AuthorDisplayName,
+		AuthorAvatar:  props.AuthorAvatar,
+	})
 	<!-- Rating: hero element, generous spacing -->
 	if props.Brew.Rating > 0 {
 		<div class="mb-8">
@@ -108,14 +120,6 @@ templ BrewViewCard(props BrewViewProps) {
 			},
 			ViewURL: props.ShareURL,
 		})
-	</div>
-}
-
-// BrewViewHeader renders the header with title and timestamp
-templ BrewViewHeader(props BrewViewProps) {
-	<div class="mb-6">
-		<h2 class="text-2xl font-semibold text-brown-900">Brew Details</h2>
-		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Brew.CreatedAt) } data-local="long">{ props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
 	</div>
 }
 

@@ -25,6 +25,9 @@ type RecipeViewProps struct {
 	CanBlockUser       bool
 	IsRecordHidden     bool
 	AuthorDID          string
+	AuthorHandle       string
+	AuthorDisplayName  string
+	AuthorAvatar       string
 	SourceRecipeURL    string // view URL for the forked-from recipe
 	SourceRecipeAuthor string // display name or handle of the original author
 }
@@ -41,7 +44,28 @@ templ RecipeViewContent(props RecipeViewProps) {
 }
 
 templ RecipeViewCard(props RecipeViewProps) {
-	@RecipeViewHeader(props)
+	@components.RecordViewHeader(components.RecordViewHeaderProps{
+		RecordType:    "recipe",
+		Title:         props.Recipe.Name,
+		Timestamp:     props.Recipe.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Recipe.CreatedAt),
+		AuthorDID:     props.AuthorDID,
+		AuthorHandle:  props.AuthorHandle,
+		AuthorDisplay: props.AuthorDisplayName,
+		AuthorAvatar:  props.AuthorAvatar,
+	})
+	if props.SourceRecipeURL != "" {
+		<p class="text-sm text-brown-500 -mt-4 mb-4">
+			Forked from&#32;
+			<a href={ templ.SafeURL(props.SourceRecipeURL) } class="text-brown-700 underline hover:text-brown-900">
+				if props.SourceRecipeAuthor != "" {
+					{ props.SourceRecipeAuthor + "'s recipe" }
+				} else {
+					original recipe
+				}
+			</a>
+		</p>
+	}
 	<div class="space-y-6">
 		<!-- Main details grid -->
 		<div class="grid grid-cols-2 gap-4">
@@ -170,24 +194,6 @@ templ RecipeViewCard(props RecipeViewProps) {
 	</div>
 }
 
-templ RecipeViewHeader(props RecipeViewProps) {
-	<div class="mb-6">
-		<h2 class="text-2xl font-semibold text-brown-900">{ props.Recipe.Name }</h2>
-		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Recipe.CreatedAt) } data-local="long">{ props.Recipe.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
-		if props.SourceRecipeURL != "" {
-			<p class="text-sm text-brown-500 mt-1">
-				Forked from&#32;
-				<a href={ templ.SafeURL(props.SourceRecipeURL) } class="text-brown-700 underline hover:text-brown-900">
-					if props.SourceRecipeAuthor != "" {
-						{ props.SourceRecipeAuthor + "'s recipe" }
-					} else {
-						original recipe
-					}
-				</a>
-			</p>
-		}
-	</div>
-}
 
 func recipeBrewerLink(props RecipeViewProps) string {
 	if props.Recipe.BrewerObj == nil || props.Recipe.BrewerRKey == "" {

@@ -225,6 +225,19 @@ func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
 	beanViewProps.IsRecordHidden = sd.IsRecordHidden
 	beanViewProps.AuthorDID = entityOwnerDID
 
+	// Fetch author profile for display
+	var authorProfile *bff.UserProfile
+	authorDIDForProfile := entityOwnerDID
+	if authorDIDForProfile == "" {
+		authorDIDForProfile = didStr
+	}
+	authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
+	if authorProfile != nil {
+		beanViewProps.AuthorHandle = authorProfile.Handle
+		beanViewProps.AuthorDisplayName = authorProfile.DisplayName
+		beanViewProps.AuthorAvatar = authorProfile.Avatar
+	}
+
 	if h.feedIndex != nil && subjectURI != "" {
 		ownerDID := entityOwnerDID
 		if ownerDID == "" {
@@ -356,6 +369,19 @@ func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 	props.CanBlockUser = sd.CanBlockUser
 	props.IsRecordHidden = sd.IsRecordHidden
 	props.AuthorDID = entityOwnerDID
+
+	// Fetch author profile for display
+	var authorProfile *bff.UserProfile
+	authorDIDForProfile := entityOwnerDID
+	if authorDIDForProfile == "" {
+		authorDIDForProfile = didStr
+	}
+	authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
+	if authorProfile != nil {
+		props.AuthorHandle = authorProfile.Handle
+		props.AuthorDisplayName = authorProfile.DisplayName
+		props.AuthorAvatar = authorProfile.Avatar
+	}
 
 	if h.feedIndex != nil && subjectURI != "" {
 		ownerDID := entityOwnerDID
@@ -489,6 +515,21 @@ func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 	props.IsRecordHidden = sd.IsRecordHidden
 	props.AuthorDID = entityOwnerDID
 
+	// Fetch author profile for display
+	{
+		var authorProfile *bff.UserProfile
+		authorDIDForProfile := entityOwnerDID
+		if authorDIDForProfile == "" {
+			authorDIDForProfile = didStr
+		}
+		authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
+		if authorProfile != nil {
+			props.AuthorHandle = authorProfile.Handle
+			props.AuthorDisplayName = authorProfile.DisplayName
+			props.AuthorAvatar = authorProfile.Avatar
+		}
+	}
+
 	if h.feedIndex != nil && subjectURI != "" {
 		ownerDID := entityOwnerDID
 		if ownerDID == "" {
@@ -620,6 +661,21 @@ func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	props.CanBlockUser = sd.CanBlockUser
 	props.IsRecordHidden = sd.IsRecordHidden
 	props.AuthorDID = entityOwnerDID
+
+	// Fetch author profile for display
+	{
+		var authorProfile *bff.UserProfile
+		authorDIDForProfile := entityOwnerDID
+		if authorDIDForProfile == "" {
+			authorDIDForProfile = didStr
+		}
+		authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
+		if authorProfile != nil {
+			props.AuthorHandle = authorProfile.Handle
+			props.AuthorDisplayName = authorProfile.DisplayName
+			props.AuthorAvatar = authorProfile.Avatar
+		}
+	}
 
 	if h.feedIndex != nil && subjectURI != "" {
 		ownerDID := entityOwnerDID
@@ -787,6 +843,21 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	props.CanBlockUser = sd.CanBlockUser
 	props.IsRecordHidden = sd.IsRecordHidden
 	props.AuthorDID = entityOwnerDID
+
+	// Fetch author profile for display
+	{
+		var authorProfile *bff.UserProfile
+		authorDIDForProfile := entityOwnerDID
+		if authorDIDForProfile == "" {
+			authorDIDForProfile = didStr
+		}
+		authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
+		if authorProfile != nil {
+			props.AuthorHandle = authorProfile.Handle
+			props.AuthorDisplayName = authorProfile.DisplayName
+			props.AuthorAvatar = authorProfile.Avatar
+		}
+	}
 
 	// Resolve source recipe provenance if this is a fork
 	if props.Recipe.SourceRef != "" {

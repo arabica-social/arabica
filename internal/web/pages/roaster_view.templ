@@ -25,8 +25,11 @@ type RoasterViewProps struct {
 	CanHideRecord   bool
 	CanBlockUser    bool
 	IsRecordHidden  bool
-	AuthorDID       string
-	BeanCount       int
+	AuthorDID         string
+	AuthorHandle      string
+	AuthorDisplayName string
+	AuthorAvatar      string
+	BeanCount         int
 }
 
 templ RoasterView(layout *components.LayoutData, props RoasterViewProps) {
@@ -40,7 +43,16 @@ templ RoasterViewContent(props RoasterViewProps) {
 }
 
 templ RoasterViewCard(props RoasterViewProps) {
-	@RoasterViewHeader(props)
+	@components.RecordViewHeader(components.RecordViewHeaderProps{
+		RecordType:    "roaster",
+		Title:         props.Roaster.Name,
+		Timestamp:     props.Roaster.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Roaster.CreatedAt),
+		AuthorDID:     props.AuthorDID,
+		AuthorHandle:  props.AuthorHandle,
+		AuthorDisplay: props.AuthorDisplayName,
+		AuthorAvatar:  props.AuthorAvatar,
+	})
 	<div class="space-y-6">
 		<div class="grid grid-cols-2 gap-4">
 			@components.DetailField(components.DetailFieldProps{Icon: components.IconMapPin(), Label: "Location", Value: props.Roaster.Location})
@@ -112,9 +124,3 @@ templ RoasterViewCard(props RoasterViewProps) {
 	</div>
 }
 
-templ RoasterViewHeader(props RoasterViewProps) {
-	<div class="mb-6">
-		<h2 class="text-2xl font-semibold text-brown-900">{ props.Roaster.Name }</h2>
-		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Roaster.CreatedAt) } data-local="long">{ props.Roaster.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
-	</div>
-}

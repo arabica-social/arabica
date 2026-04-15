@@ -494,6 +494,73 @@
     @apply rounded-lg p-4;
   }
 
+  /* Record view — tinted header region */
+  .record-view-header {
+    @apply -mx-6 -mt-6 px-6 pt-5 pb-4 mb-6 rounded-t-xl;
+  }
+
+  .record-view-header-brew {
+    background: linear-gradient(to bottom, var(--type-brew-tint), transparent);
+  }
+  .record-view-header-bean {
+    background: linear-gradient(to bottom, var(--type-bean-tint), transparent);
+  }
+  .record-view-header-recipe {
+    background: linear-gradient(to bottom, var(--type-recipe-tint), transparent);
+  }
+  .record-view-header-roaster {
+    background: linear-gradient(to bottom, var(--type-roaster-tint), transparent);
+  }
+  .record-view-header-grinder {
+    background: linear-gradient(to bottom, var(--type-grinder-tint), transparent);
+  }
+  .record-view-header-brewer {
+    background: linear-gradient(to bottom, var(--type-brewer-tint), transparent);
+  }
+
+  /* Record view — author line */
+  .record-view-author {
+    @apply flex items-center gap-3 mb-4;
+  }
+
+  .record-view-author-info {
+    @apply flex-1 min-w-0;
+  }
+
+  .record-view-author-names {
+    @apply flex items-center gap-2 flex-wrap;
+  }
+
+  .record-view-author-displayname {
+    @apply font-semibold truncate;
+    color: var(--text-primary);
+  }
+
+  .record-view-author-handle {
+    @apply text-sm truncate;
+    color: var(--text-muted);
+  }
+
+  .record-view-author-handle:hover {
+    color: var(--text-secondary);
+  }
+
+  .record-view-meta {
+    @apply flex items-center gap-3 text-sm;
+    color: var(--text-muted);
+  }
+
+  /* Record view — title area */
+  .record-view-title {
+    @apply text-2xl font-bold tracking-tight;
+    color: var(--text-primary);
+  }
+
+  .record-view-timestamp {
+    @apply text-sm mt-1;
+    color: var(--text-muted);
+  }
+
   /* Form field groups — semantic clusters within modals */
   .form-fieldset {
     @apply space-y-3;

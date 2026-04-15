@@ -25,8 +25,11 @@ type BeanViewProps struct {
 	CanHideRecord   bool
 	CanBlockUser    bool
 	IsRecordHidden  bool
-	AuthorDID       string
-	BrewCount       int
+	AuthorDID         string
+	AuthorHandle      string
+	AuthorDisplayName string
+	AuthorAvatar      string
+	BrewCount         int
 }
 
 templ BeanView(layout *components.LayoutData, props BeanViewProps) {
@@ -40,7 +43,16 @@ templ BeanViewContent(props BeanViewProps) {
 }
 
 templ BeanViewCard(props BeanViewProps) {
-	@BeanViewHeader(props)
+	@components.RecordViewHeader(components.RecordViewHeaderProps{
+		RecordType:    "bean",
+		Title:         beanViewTitle(props.Bean),
+		Timestamp:     props.Bean.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Bean.CreatedAt),
+		AuthorDID:     props.AuthorDID,
+		AuthorHandle:  props.AuthorHandle,
+		AuthorDisplay: props.AuthorDisplayName,
+		AuthorAvatar:  props.AuthorAvatar,
+	})
 	<div class="space-y-6">
 		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
 			<div class="section-box">
@@ -178,17 +190,11 @@ templ BeanViewCard(props BeanViewProps) {
 	</div>
 }
 
-templ BeanViewHeader(props BeanViewProps) {
-	<div class="mb-6">
-		<h2 class="text-2xl font-semibold text-brown-900">
-			if props.Bean.Name != "" {
-				{ props.Bean.Name }
-			} else {
-				{ props.Bean.Origin }
-			}
-		</h2>
-		<p class="text-sm text-brown-600 mt-1"><time datetime={ bff.FormatISO(props.Bean.CreatedAt) } data-local="long">{ props.Bean.CreatedAt.Format("January 2, 2006 at 3:04 PM") }</time></p>
-	</div>
+func beanViewTitle(bean *models.Bean) string {
+	if bean.Name != "" {
+		return bean.Name
+	}
+	return bean.Origin
 }
 
 func getBeanShareTitle(bean *models.Bean) string {

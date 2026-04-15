@@ -108,6 +108,57 @@ templ TypeBadge(recordType string) {
 	}
 }
 
+// RecordViewHeaderProps defines properties for the shared record view header.
+type RecordViewHeaderProps struct {
+	RecordType    string // "brew", "bean", "roaster", "grinder", "brewer", "recipe"
+	Title         string
+	Timestamp     string // formatted date string
+	TimestampISO  string // ISO 8601 for <time> element
+	AuthorDID     string
+	AuthorHandle  string
+	AuthorDisplay string
+	AuthorAvatar  string
+}
+
+// RecordViewHeader renders the tinted header region with author attribution and type badge.
+templ RecordViewHeader(props RecordViewHeaderProps) {
+	<div class={ "record-view-header", "record-view-header-" + props.RecordType }>
+		if props.AuthorHandle != "" {
+			<div class="record-view-author">
+				<a href={ templ.SafeURL("/profile/" + props.AuthorHandle) } class="flex-shrink-0">
+					@Avatar(AvatarProps{
+						AvatarURL:   props.AuthorAvatar,
+						DisplayName: props.AuthorDisplay,
+						Size:        "md",
+					})
+				</a>
+				<div class="record-view-author-info">
+					<div class="record-view-author-names">
+						if props.AuthorDisplay != "" {
+							<a href={ templ.SafeURL("/profile/" + props.AuthorHandle) } class="record-view-author-displayname">
+								{ props.AuthorDisplay }
+							</a>
+						}
+						<a href={ templ.SafeURL("/profile/" + props.AuthorHandle) } class="record-view-author-handle">
+							{ "@" + props.AuthorHandle }
+						</a>
+					</div>
+					<div class="record-view-meta">
+						<time datetime={ props.TimestampISO } data-local="long">{ props.Timestamp }</time>
+					</div>
+				</div>
+				@TypeBadge(props.RecordType)
+			</div>
+		} else {
+			<div class="record-view-meta mb-3">
+				@TypeBadge(props.RecordType)
+				<time datetime={ props.TimestampISO } data-local="long">{ props.Timestamp }</time>
+			</div>
+		}
+		<h2 class="record-view-title">{ props.Title }</h2>
+	</div>
+}
+
 // EmptyStateProps defines properties for empty state messaging
 type EmptyStateProps struct {
 	Message    string
