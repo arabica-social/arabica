@@ -851,6 +851,7 @@
   @media (min-width: 768px) {
     .feed-grid .feed-card {
       transform: rotate(var(--card-rotate, 0deg));
+      backface-visibility: hidden;
     }
 
     .feed-grid .feed-card:hover {
