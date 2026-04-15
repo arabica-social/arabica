@@ -13,6 +13,7 @@ type PDSProvider struct {
 	BadgeColor   string // Tailwind color prefix for badge (e.g. "amber", "green")
 	OperatorName string // Optional: handle of community operator (e.g. "@baileytownsend.dev")
 	OperatorURL  string // Optional: link to operator profile
+	SignupURL    string // Optional: if set, link directly to this URL instead of using prompt=create
 }
 
 // PDSCategory groups providers under a heading.
@@ -38,6 +39,36 @@ func pdsCategories() []PDSCategory {
 					Badge:       "Invite Only",
 					BadgeColor:  "amber",
 				},
+				{
+					URL:         "https://bsky.social",
+					Name:        "Bluesky",
+					Domain:      "bsky.social",
+					Description: "The largest AT Protocol provider.",
+					Location:    "United States",
+					Badge:       "Open",
+					BadgeColor:  "green",
+					SignupURL:   "https://bsky.app",
+				},
+				// {
+				// 	URL:         "https://tngl.sh",
+				// 	Name:        "Tangled",
+				// 	Domain:      "tngl.sh",
+				// 	Description: "Developer-focused AT Protocol hosting.",
+				// 	Location:    "Europe",
+				// 	Badge:       "Open",
+				// 	BadgeColor:  "green",
+				// 	SignupURL:   "https://tangled.sh",
+				// },
+				{
+					URL:         "https://npmx.social",
+					Name:        "npmx",
+					Domain:      "npmx.social",
+					Description: "Developer-focused Community provider.",
+					Location:    "Europe",
+					Badge:       "Open",
+					BadgeColor:  "green",
+					SignupURL:   "https://npmx.social",
+				},
 			},
 		},
 		{
@@ -54,6 +85,16 @@ func pdsCategories() []PDSCategory {
 					BadgeColor:   "green",
 					OperatorName: "@baileytownsend.dev",
 					OperatorURL:  "https://bsky.app/profile/baileytownsend.dev",
+				},
+				{
+					URL:         "https://eurosky.social",
+					Name:        "Eurosky",
+					Domain:      "eurosky.social",
+					Description: "Sovereign European AT Protocol hosting.",
+					Location:    "Europe",
+					Badge:       "Open",
+					BadgeColor:  "green",
+					SignupURL:   "https://portal.eurosky.tech/create-account",
 				},
 			},
 		},
@@ -118,32 +159,44 @@ templ locationPin() {
 // pdsCard renders a PDS server option card with a sign-up button.
 templ pdsCard(p PDSProvider) {
 	<div class="card card-inner">
-		<form method="POST" action="/join/create">
-			<input type="hidden" name="pds_url" value={ p.URL }/>
-			<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
-				{ p.Name }
-				<span class={ "relative -top-px inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", "bg-" + p.BadgeColor + "-100", "text-" + p.BadgeColor + "-800" }>
-					{ p.Badge }
-				</span>
-			</p>
-			<p class="text-sm text-brown-700">
-				{ p.Description }
-				if p.OperatorName != "" {
-					{ " hosted by " }
-					<a href={ templ.SafeURL(p.OperatorURL) } target="_blank" rel="noopener noreferrer" class="link-bold">{ p.OperatorName }</a>.
-				}
-			</p>
-			<p class="flex items-center gap-1 text-xs text-brown-500">
-				{ p.Domain } ·
-				@locationPin()
-				{ p.Location }
-			</p>
-			<div class="mt-3">
-				@components.PrimaryButton(components.ButtonProps{
-					Text: "Create Account",
-					Type: "submit",
-				})
-			</div>
-		</form>
+		@pdsCardInfo(p)
+		<div class="mt-3">
+			if p.SignupURL != "" {
+				<a href={ templ.SafeURL(p.SignupURL) } target="_blank" rel="noopener noreferrer">
+					@components.PrimaryButton(components.ButtonProps{
+						Text: "Create Account",
+					})
+				</a>
+			} else {
+				<form method="POST" action="/join/create">
+					<input type="hidden" name="pds_url" value={ p.URL }/>
+					@components.PrimaryButton(components.ButtonProps{
+						Text: "Create Account",
+						Type: "submit",
+					})
+				</form>
+			}
+		</div>
 	</div>
+}
+
+templ pdsCardInfo(p PDSProvider) {
+	<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
+		{ p.Name }
+		<span class={ "relative -top-px inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", "bg-" + p.BadgeColor + "-100", "text-" + p.BadgeColor + "-800" }>
+			{ p.Badge }
+		</span>
+	</p>
+	<p class="text-sm text-brown-700">
+		{ p.Description }
+		if p.OperatorName != "" {
+			{ " hosted by " }
+			<a href={ templ.SafeURL(p.OperatorURL) } target="_blank" rel="noopener noreferrer" class="link-bold">{ p.OperatorName }</a>.
+		}
+	</p>
+	<p class="flex items-center gap-1 text-xs text-brown-500">
+		{ p.Domain } ·
+		@locationPin()
+		{ p.Location }
+	</p>
 }
