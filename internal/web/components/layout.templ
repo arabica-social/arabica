@@ -115,7 +115,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
-			<link rel="stylesheet" href="/static/css/output.css?v=0.9.1"/>
+			<link rel="stylesheet" href="/static/css/output.css?v=0.9.2"/>
 			<style>
 			[x-cloak] { display: none !important; }
 		</style>
@@ -303,7 +303,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<script src="/static/js/entity-helpers.js?v=0.8.0"></script>
 			<script src="/static/js/data-cache.js?v=0.3.0"></script>
 			<script src="/static/js/sw-register.js?v=0.2.0"></script>
-			<script src="/static/js/feed-masonry.js?v=0.1.0"></script>
+			<script src="/static/js/feed-masonry.js?v=0.1.1"></script>
 		</head>
 		if tp := bff.Traceparent(ctx); tp != "" {
 			<meta name="traceparent" content={ tp }/>

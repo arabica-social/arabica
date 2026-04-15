@@ -19,6 +19,15 @@
     return cards;
   }
 
+  // Assign a random subtle rotation to a card (sticky-note effect)
+  var ROTATIONS = [-0.8, -0.5, -0.3, 0, 0.3, 0.5, 0.7];
+  function assignRotation(card) {
+    if (!card.style.getPropertyValue('--card-rotate')) {
+      var deg = ROTATIONS[Math.floor(Math.random() * ROTATIONS.length)];
+      card.style.setProperty('--card-rotate', deg + 'deg');
+    }
+  }
+
   // Distribute loose cards into two masonry columns (shortest-first)
   function masonryLayout(container) {
     var cards = getLooseCards(container);
@@ -38,6 +47,7 @@
 
     var heights = [cols[0].offsetHeight, cols[1].offsetHeight];
     cards.forEach(function (card) {
+      assignRotation(card);
       var idx = heights[0] <= heights[1] ? 0 : 1;
       cols[idx].appendChild(card);
       heights[idx] += card.offsetHeight + 20;
@@ -49,7 +59,6 @@
     var cols = container.querySelectorAll(':scope > .feed-masonry-col');
     if (cols.length === 0) return;
 
-    // Interleave from both columns to restore chronological order
     var c0 = cols[0] ? Array.from(cols[0].children) : [];
     var c1 = cols[1] ? Array.from(cols[1].children) : [];
     var merged = [];
@@ -59,7 +68,6 @@
       if (i < c1.length) merged.push(c1[i]);
     }
 
-    // Find insertion point (before first non-column, non-card child like load-more)
     var ref = null;
     for (var j = 0; j < container.children.length; j++) {
       var ch = container.children[j];
@@ -96,11 +104,13 @@
   // Viewport changes
   MQ.addEventListener('change', applyLayout);
 
-  // After HTMX swaps (load-more, filter/sort changes)
-  document.addEventListener('htmx:afterSettle', function (e) {
-    var t = e.detail.target;
-    if (t && (t.id === 'feed-items' || (t.closest && t.closest('#feed-items')))) {
+  // After any HTMX swap, check if feed has loose cards to distribute.
+  // Uses requestAnimationFrame so new DOM has dimensions for height measurement.
+  document.addEventListener('htmx:afterSettle', function () {
+    var container = getContainer();
+    if (!container) return;
+    requestAnimationFrame(function () {
       applyLayout();
-    }
+    });
   });
 })();
