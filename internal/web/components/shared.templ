@@ -218,6 +218,78 @@ templ DetailField(props DetailFieldProps) {
 	</div>
 }
 
+// DetailStackedProps defines properties for the typography-driven detail components.
+type DetailStackedProps struct {
+	Label    string
+	Value    string
+	LinkHref string          // Optional: wraps value in a link
+	Icon     templ.Component // Optional: icon rendered before the label
+	Large    bool            // Uses detail-value-lg for primary details
+}
+
+// DetailStacked renders a label above a value with no container box.
+templ DetailStacked(props DetailStackedProps) {
+	if props.Value != "" || props.LinkHref == "" {
+		<div class="detail-stacked">
+			<span class="detail-label">
+				if props.Icon != nil {
+					<span class="inline-flex items-center gap-1">
+						@props.Icon
+						{ props.Label }
+					</span>
+				} else {
+					{ props.Label }
+				}
+			</span>
+			if props.Value != "" && props.LinkHref != "" {
+				<a
+					href={ templ.SafeURL(props.LinkHref) }
+					class={ templ.Classes(
+						templ.KV("detail-value-lg", props.Large),
+						templ.KV("detail-value", !props.Large),
+					) }
+				>
+					{ props.Value }
+				</a>
+			} else if props.Value != "" {
+				<span
+					class={ templ.Classes(
+						templ.KV("detail-value-lg", props.Large),
+						templ.KV("detail-value", !props.Large),
+					) }
+				>
+					{ props.Value }
+				</span>
+			} else {
+				<span class="text-sm" style="color: var(--text-muted)">—</span>
+			}
+		</div>
+	}
+}
+
+// DetailInline renders a label and value side by side on one line.
+templ DetailInline(props DetailStackedProps) {
+	if props.Value != "" {
+		<div class="detail-inline">
+			<span class="detail-label">
+				if props.Icon != nil {
+					<span class="inline-flex items-center gap-1">
+						@props.Icon
+						{ props.Label }
+					</span>
+				} else {
+					{ props.Label }
+				}
+			</span>
+			if props.LinkHref != "" {
+				<a href={ templ.SafeURL(props.LinkHref) } class="detail-value">{ props.Value }</a>
+			} else {
+				<span class="detail-value">{ props.Value }</span>
+			}
+		</div>
+	}
+}
+
 type PageHeaderProps struct {
 	Title       string
 	BackURL     string

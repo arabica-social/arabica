@@ -561,6 +561,91 @@
     color: var(--text-muted);
   }
 
+  /* Record view — typography-driven detail fields (no container boxes) */
+  .detail-label {
+    @apply text-xs font-medium uppercase tracking-wider;
+    color: var(--text-muted);
+  }
+
+  .detail-value {
+    @apply font-semibold;
+    color: var(--text-primary);
+  }
+
+  .detail-value-lg {
+    @apply font-bold text-lg;
+    color: var(--text-primary);
+  }
+
+  .detail-value a {
+    color: var(--text-primary);
+  }
+
+  .detail-value a:hover {
+    text-decoration: underline;
+  }
+
+  /* Stacked: label on top, value below */
+  .detail-stacked {
+    @apply flex flex-col gap-1;
+  }
+
+  /* Inline: label and value side by side */
+  .detail-inline {
+    @apply flex items-baseline gap-2;
+  }
+
+  /* Compact parameter grid — tighter than standard, single col on mobile */
+  .detail-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4;
+  }
+
+  /* Journal-entry prose for notes/descriptions */
+  .prose-note {
+    @apply pl-4 whitespace-pre-wrap leading-relaxed;
+    border-left: 2px solid var(--surface-border);
+    color: var(--text-primary);
+  }
+
+  /* Bean reference card on brew view */
+  .brew-bean-ref {
+    @apply rounded-lg p-4;
+    background: var(--surface-bg);
+    transition: background 0.15s ease;
+  }
+
+  .brew-bean-ref:hover {
+    background: var(--type-bean-tint);
+  }
+
+  /* Hero rating for brew view */
+  .brew-rating-hero {
+    @apply inline-flex items-center gap-2 py-1;
+  }
+
+  .brew-rating-value {
+    @apply text-4xl font-bold tracking-tight;
+    color: var(--rating-text);
+  }
+
+  .brew-rating-max {
+    @apply text-lg font-medium;
+    color: var(--text-muted);
+  }
+
+  /* Clean record footer: back button left, actions right */
+  .record-view-footer {
+    @apply flex justify-between items-center pt-4 mt-6;
+    border-top: 1px solid var(--surface-border);
+  }
+
+  /* Stat line at bottom of record (brew count, bean count) */
+  .record-stat-line {
+    @apply flex items-center gap-3 text-xs py-3;
+    color: var(--text-muted);
+    border-top: 1px solid var(--surface-border);
+  }
+
   /* Form field groups — semantic clusters within modals */
   .form-fieldset {
     @apply space-y-3;

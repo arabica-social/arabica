@@ -56,18 +56,47 @@ templ BrewViewCard(props BrewViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<!-- Rating: hero element, generous spacing -->
 	if props.Brew.Rating > 0 {
-		<div class="mb-8">
-			@BrewRating(props.Brew.Rating)
+		<div class="brew-rating-hero mb-6">
+			<span class="brew-rating-value">{ fmt.Sprintf("%d", props.Brew.Rating) }</span>
+			<span class="brew-rating-max">/10</span>
 		</div>
 	}
-	<!-- Bean + parameters: tightly grouped as core brew info -->
-	<div class="space-y-4 mb-8">
-		@BrewBeanSection(props.Brew, getOwnerFromShareURL(props.ShareURL))
-		@BrewParametersGrid(props.Brew, getOwnerFromShareURL(props.ShareURL))
+	@BrewBeanSection(props.Brew, getOwnerFromShareURL(props.ShareURL))
+	<div class="detail-grid my-6">
+		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconScale(), Label: "Coffee", Value: getCoffeeAmountDisplay(props.Brew)})
+		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Brew Method", Value: getBrewerName(props.Brew), LinkHref: getBrewerViewURL(props.Brew, getOwnerFromShareURL(props.ShareURL))})
+		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconGear(), Label: "Grinder", Value: getGrinderName(props.Brew), LinkHref: getGrinderViewURL(props.Brew, getOwnerFromShareURL(props.ShareURL))})
+		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Grind Size", Value: getGrindSizeDisplay(props.Brew)})
+		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Water", Value: getWaterAmountDisplay(props.Brew)})
+		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconThermometer(), Label: "Temperature", Value: getTemperatureDisplay(props.Brew)})
+		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconClock(), Label: "Brew Time", Value: getBrewTimeDisplay(props.Brew)})
+		if props.Brew.EspressoParams != nil {
+			if props.Brew.EspressoParams.YieldWeight > 0 {
+				@components.DetailStacked(components.DetailStackedProps{Icon: components.IconScale(), Label: "Yield", Value: fmt.Sprintf("%.1fg", props.Brew.EspressoParams.YieldWeight)})
+			}
+			if props.Brew.EspressoParams.Pressure > 0 {
+				@components.DetailStacked(components.DetailStackedProps{Icon: components.IconBarChart(), Label: "Pressure", Value: fmt.Sprintf("%.1f bar", props.Brew.EspressoParams.Pressure)})
+			}
+			if props.Brew.EspressoParams.PreInfusionSeconds > 0 {
+				@components.DetailStacked(components.DetailStackedProps{Icon: components.IconClock(), Label: "Pre-infusion", Value: fmt.Sprintf("%ds", props.Brew.EspressoParams.PreInfusionSeconds)})
+			}
+		}
+		if props.Brew.PouroverParams != nil {
+			if props.Brew.PouroverParams.BloomWater > 0 || props.Brew.PouroverParams.BloomSeconds > 0 {
+				@components.DetailStacked(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Bloom", Value: formatBloom(props.Brew.PouroverParams)})
+			}
+			if props.Brew.PouroverParams.DrawdownSeconds > 0 {
+				@components.DetailStacked(components.DetailStackedProps{Icon: components.IconClock(), Label: "Drawdown", Value: fmt.Sprintf("%ds", props.Brew.PouroverParams.DrawdownSeconds)})
+			}
+			if props.Brew.PouroverParams.BypassWater > 0 {
+				@components.DetailStacked(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Bypass Water", Value: fmt.Sprintf("%dg", props.Brew.PouroverParams.BypassWater)})
+			}
+			if props.Brew.PouroverParams.Filter != "" {
+				@components.DetailStacked(components.DetailStackedProps{Icon: components.IconSliders(), Label: "Filter", Value: props.Brew.PouroverParams.Filter})
+			}
+		}
 	</div>
-	<!-- Method details: recipe, pours, tasting notes — secondary info with more breathing room -->
 	<div class="space-y-6">
 		if props.Brew.RecipeObj != nil {
 			@BrewRecipeSection(props.Brew.RecipeObj, getOwnerFromShareURL(props.ShareURL))
@@ -81,81 +110,65 @@ templ BrewViewCard(props BrewViewProps) {
 		if props.IsOwnProfile && props.Brew.RecipeObj == nil {
 			@SaveAsRecipeButton(props.Brew.RKey)
 		}
-		<div class="flex justify-between items-center pt-2">
-			@components.BackButton()
-			<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
-				@components.ActionBar(components.ActionBarProps{
-					SubjectURI:      props.SubjectURI,
-					SubjectCID:      props.SubjectCID,
-					IsLiked:         props.IsLiked,
-					LikeCount:       props.LikeCount,
-					CommentCount:    props.CommentCount,
-					ShowComments:    true,
-					ShareURL:        props.ShareURL,
-					ShareTitle:      getBrewShareTitle(props.Brew),
-					ShareText:       "Check out this brew on Arabica",
-					IsOwner:         props.IsOwnProfile,
-					EditURL:         "/brews/" + props.Brew.RKey + "/edit",
-					DeleteURL:       "/brews/" + props.Brew.RKey,
-					DeleteRedirect:  "/my-coffee",
-					IsAuthenticated: props.IsAuthenticated,
-					IsModerator:     props.IsModerator,
-					CanHideRecord:   props.CanHideRecord,
-					CanBlockUser:    props.CanBlockUser,
-					IsRecordHidden:  props.IsRecordHidden,
-					AuthorDID:       props.AuthorDID,
-				})
-			</div>
-		</div>
-		@components.CommentSection(components.CommentSectionProps{
+	</div>
+	<div class="record-view-footer">
+		@components.BackButton()
+		@components.ActionBar(components.ActionBarProps{
 			SubjectURI:      props.SubjectURI,
 			SubjectCID:      props.SubjectCID,
-			Comments:        props.Comments,
+			IsLiked:         props.IsLiked,
+			LikeCount:       props.LikeCount,
+			CommentCount:    props.CommentCount,
+			ShowComments:    true,
+			ShareURL:        props.ShareURL,
+			ShareTitle:      getBrewShareTitle(props.Brew),
+			ShareText:       "Check out this brew on Arabica",
+			IsOwner:         props.IsOwnProfile,
+			EditURL:         "/brews/" + props.Brew.RKey + "/edit",
+			DeleteURL:       "/brews/" + props.Brew.RKey,
+			DeleteRedirect:  "/my-coffee",
 			IsAuthenticated: props.IsAuthenticated,
-			CurrentUserDID:  props.CurrentUserDID,
-			ModCtx: components.CommentModerationContext{
-				IsModerator:   props.IsModerator,
-				CanHideRecord: props.CanHideRecord,
-				CanBlockUser:  props.CanBlockUser,
-			},
-			ViewURL: props.ShareURL,
+			IsModerator:     props.IsModerator,
+			CanHideRecord:   props.CanHideRecord,
+			CanBlockUser:    props.CanBlockUser,
+			IsRecordHidden:  props.IsRecordHidden,
+			AuthorDID:       props.AuthorDID,
 		})
 	</div>
+	@components.CommentSection(components.CommentSectionProps{
+		SubjectURI:      props.SubjectURI,
+		SubjectCID:      props.SubjectCID,
+		Comments:        props.Comments,
+		IsAuthenticated: props.IsAuthenticated,
+		CurrentUserDID:  props.CurrentUserDID,
+		ModCtx: components.CommentModerationContext{
+			IsModerator:   props.IsModerator,
+			CanHideRecord: props.CanHideRecord,
+			CanBlockUser:  props.CanBlockUser,
+		},
+		ViewURL: props.ShareURL,
+	})
 }
 
-// BrewRating renders the prominent rating display
-templ BrewRating(rating int) {
-	<div class="text-center py-6">
-		<span class="badge-rating text-2xl !font-bold px-6 py-2.5">
-			<span class="inline-flex items-center gap-1.5">
-				@components.IconStar()
-				{ fmt.Sprintf("%d/10", rating) }
-			</span>
-		</span>
-	</div>
-}
-
-// BrewBeanSection renders the coffee bean information
+// BrewBeanSection renders the coffee bean as a prominent reference card
 templ BrewBeanSection(brew *models.Brew, owner string) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">
-			<span class="inline-flex items-center gap-1">
-				@components.IconCoffee()
-				Coffee Bean
+	if brew.Bean != nil {
+		<div class="brew-bean-ref mb-2">
+			<span class="detail-label mb-2 block">
+				<span class="inline-flex items-center gap-1">
+					@components.IconBean()
+					Coffee Bean
+				</span>
 			</span>
-		</h3>
-		if brew.Bean != nil {
-			<div class="font-bold text-lg text-brown-900">
-				<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", brew.Bean.RKey, owner)) } class="hover:underline">
-					if brew.Bean.Name != "" {
-						{ brew.Bean.Name }
-					} else {
-						{ brew.Bean.Origin }
-					}
-				</a>
-			</div>
+			<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", brew.Bean.RKey, owner)) } class="detail-value-lg hover:underline">
+				if brew.Bean.Name != "" {
+					{ brew.Bean.Name }
+				} else {
+					{ brew.Bean.Origin }
+				}
+			</a>
 			if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
-				<div class="text-sm text-brown-700 mt-1">
+				<div class="text-sm mt-1" style="color: var(--text-secondary)">
 					<span class="inline-flex items-center gap-1">
 						@components.IconStore()
 						<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", brew.Bean.Roaster.RKey, owner)) } class="hover:underline">
@@ -164,7 +177,7 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 					</span>
 				</div>
 			}
-			<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
+			<div class="flex flex-wrap gap-3 mt-2 text-sm" style="color: var(--text-muted)">
 				if brew.Bean.Origin != "" {
 					<span class="inline-flex items-center gap-1">
 						@components.IconMapPin()
@@ -178,50 +191,8 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 					</span>
 				}
 			</div>
-		} else {
-			<span class="text-brown-400">Not specified</span>
-		}
-	</div>
-}
-
-// BrewParametersGrid renders the brew parameters in a grid
-templ BrewParametersGrid(brew *models.Brew, owner string) {
-	<div class="grid grid-cols-2 gap-4">
-		@components.DetailField(components.DetailFieldProps{Icon: components.IconScale(), Label: "Coffee", Value: getCoffeeAmountDisplay(brew)})
-		@components.DetailField(components.DetailFieldProps{Icon: components.IconCoffee(), Label: "Brew Method", Value: getBrewerName(brew), LinkHref: getBrewerViewURL(brew, owner)})
-		@components.DetailField(components.DetailFieldProps{Icon: components.IconGear(), Label: "Grinder", Value: getGrinderName(brew), LinkHref: getGrinderViewURL(brew, owner)})
-		@components.DetailField(components.DetailFieldProps{Icon: components.IconDisc(), Label: "Grind Size", Value: getGrindSizeDisplay(brew)})
-		@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Water", Value: getWaterAmountDisplay(brew)})
-		@components.DetailField(components.DetailFieldProps{Icon: components.IconThermometer(), Label: "Temperature", Value: getTemperatureDisplay(brew)})
-		<div class="col-span-2">
-			@components.DetailField(components.DetailFieldProps{Icon: components.IconClock(), Label: "Brew Time", Value: getBrewTimeDisplay(brew)})
 		</div>
-		if brew.EspressoParams != nil {
-			if brew.EspressoParams.YieldWeight > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconScale(), Label: "Yield", Value: fmt.Sprintf("%.1fg", brew.EspressoParams.YieldWeight)})
-			}
-			if brew.EspressoParams.Pressure > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconBarChart(), Label: "Pressure", Value: fmt.Sprintf("%.1f bar", brew.EspressoParams.Pressure)})
-			}
-			if brew.EspressoParams.PreInfusionSeconds > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconClock(), Label: "Pre-infusion", Value: fmt.Sprintf("%ds", brew.EspressoParams.PreInfusionSeconds)})
-			}
-		}
-		if brew.PouroverParams != nil {
-			if brew.PouroverParams.BloomWater > 0 || brew.PouroverParams.BloomSeconds > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Bloom", Value: formatBloom(brew.PouroverParams)})
-			}
-			if brew.PouroverParams.DrawdownSeconds > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconClock(), Label: "Drawdown", Value: fmt.Sprintf("%ds", brew.PouroverParams.DrawdownSeconds)})
-			}
-			if brew.PouroverParams.BypassWater > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Bypass Water", Value: fmt.Sprintf("%dg", brew.PouroverParams.BypassWater)})
-			}
-			if brew.PouroverParams.Filter != "" {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconSliders(), Label: "Filter", Value: brew.PouroverParams.Filter})
-			}
-		}
-	</div>
+	}
 }
 
 func formatBloom(pp *models.PouroverParams) string {
@@ -329,7 +300,7 @@ func getBrewShareTitle(brew *models.Brew) string {
 
 // SaveAsRecipeButton renders a button to save brew parameters as a recipe
 templ SaveAsRecipeButton(brewRKey string) {
-	<div class="section-box" x-data={ saveAsRecipeData(brewRKey) }>
+	<div x-data={ saveAsRecipeData(brewRKey) }>
 		<template x-if="!showForm && !success">
 			<button
 				@click="showForm = true"
@@ -382,10 +353,10 @@ func saveAsRecipeData(brewRKey string) string {
 
 // BrewRecipeSection renders the linked recipe info
 templ BrewRecipeSection(recipe *models.Recipe, owner string) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">Recipe</h3>
-		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, owner)) } class="font-bold text-lg text-brown-900 hover:text-brown-700 underline decoration-brown-300 hover:decoration-brown-500 transition-colors">{ recipe.Name }</a>
-		<div class="flex flex-wrap gap-3 mt-2 text-sm text-brown-600">
+	<div>
+		<span class="detail-label mb-2 block">Recipe</span>
+		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, owner)) } class="detail-value-lg hover:underline">{ recipe.Name }</a>
+		<div class="flex flex-wrap gap-3 mt-2 text-sm" style="color: var(--text-muted)">
 			if recipe.CoffeeAmount > 0 {
 				<span class="inline-flex items-center gap-1">
 					@components.IconCoffee()
@@ -411,28 +382,26 @@ templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 			}
 		</div>
 		if recipe.Notes != "" {
-			<div class="mt-2 text-sm text-brown-700 italic">"{ recipe.Notes }"</div>
+			<div class="mt-2 text-sm italic" style="color: var(--text-secondary)">"{ recipe.Notes }"</div>
 		}
 	</div>
 }
 
 // BrewPoursSection renders the pours section
 templ BrewPoursSection(pours []*models.Pour) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">
+	<div>
+		<span class="detail-label mb-3 block">
 			<span class="inline-flex items-center gap-1">
 				@components.IconDroplet()
 				Pours
 			</span>
-		</h3>
+		</span>
 		<div class="space-y-2">
 			for _, pour := range pours {
-				<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brown-200">
-					<div class="flex gap-4 text-sm">
-						<span class="font-semibold text-brown-800">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
-						// TODO: add a setting to allow users to configure "at" vs "for" in pours display here
-						<span class="text-brown-600">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
-					</div>
+				<div class="flex gap-4 text-sm py-2" style="border-bottom: 1px solid var(--surface-border)">
+					<span class="detail-value">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
+					// TODO: add a setting to allow users to configure "at" vs "for" in pours display here
+					<span style="color: var(--text-muted)">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
 				</div>
 			}
 		</div>
@@ -441,13 +410,13 @@ templ BrewPoursSection(pours []*models.Pour) {
 
 // BrewTastingNotes renders the tasting notes section
 templ BrewTastingNotes(notes string) {
-	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">
+	<div>
+		<span class="detail-label mb-2 block">
 			<span class="inline-flex items-center gap-1">
 				@components.IconFileText()
 				Tasting Notes
 			</span>
-		</h3>
-		<div class="text-brown-900 whitespace-pre-wrap">{ notes }</div>
+		</span>
+		<div class="prose-note">{ notes }</div>
 	</div>
 }

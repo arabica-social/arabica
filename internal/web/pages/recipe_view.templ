@@ -66,132 +66,119 @@ templ RecipeViewCard(props RecipeViewProps) {
 			</a>
 		</p>
 	}
-	<div class="space-y-6">
-		<!-- Main details grid -->
-		<div class="grid grid-cols-2 gap-4">
-			if props.Recipe.CoffeeAmount > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconCoffee(), Label: "Coffee", Value: fmt.Sprintf("%.1fg", props.Recipe.CoffeeAmount)})
-			}
-			if props.Recipe.WaterAmount > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconDroplet(), Label: "Water", Value: fmt.Sprintf("%.1fg", props.Recipe.WaterAmount)})
-			}
-			if props.Recipe.Ratio > 0 {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconScale(), Label: "Ratio", Value: fmt.Sprintf("1:%.1f", props.Recipe.Ratio)})
-			}
-			if props.Recipe.BrewerObj != nil {
-				@components.DetailField(components.DetailFieldProps{
-					Icon:     components.IconBrewer(),
-					Label:    "Brewer",
-					Value:    props.Recipe.BrewerObj.Name,
-					LinkHref: recipeBrewerLink(props),
-				})
-			} else if props.Recipe.BrewerType != "" {
-				@components.DetailField(components.DetailFieldProps{Icon: components.IconBrewer(), Label: "Brewer Type", Value: props.Recipe.BrewerType})
-			}
-		</div>
-		<!-- Pours -->
+	<div class="detail-grid">
+		if props.Recipe.CoffeeAmount > 0 {
+			@components.DetailStacked(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Coffee", Value: fmt.Sprintf("%.1fg", props.Recipe.CoffeeAmount)})
+		}
+		if props.Recipe.WaterAmount > 0 {
+			@components.DetailStacked(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Water", Value: fmt.Sprintf("%.1fg", props.Recipe.WaterAmount)})
+		}
+		if props.Recipe.Ratio > 0 {
+			@components.DetailStacked(components.DetailStackedProps{Icon: components.IconScale(), Label: "Ratio", Value: fmt.Sprintf("1:%.1f", props.Recipe.Ratio)})
+		}
+		if props.Recipe.BrewerObj != nil {
+			@components.DetailStacked(components.DetailStackedProps{
+				Icon:     components.IconBrewer(),
+				Label:    "Brewer",
+				Value:    props.Recipe.BrewerObj.Name,
+				LinkHref: recipeBrewerLink(props),
+			})
+		} else if props.Recipe.BrewerType != "" {
+			@components.DetailStacked(components.DetailStackedProps{Icon: components.IconBrewer(), Label: "Brewer Type", Value: props.Recipe.BrewerType})
+		}
+	</div>
+	<div class="space-y-6 mt-6">
 		if len(props.Recipe.Pours) > 0 {
-			<div class="section-box">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">
+			<div>
+				<span class="detail-label mb-3 block">
 					<span class="inline-flex items-center gap-1">
 						@components.IconDroplet()
 						Pours
 					</span>
-				</h3>
+				</span>
 				<div class="space-y-2">
 					for _, pour := range props.Recipe.Pours {
-						<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brown-200">
-							<div class="flex gap-4 text-sm">
-								<span class="font-semibold text-brown-800">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
-								<span class="text-brown-600">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
-							</div>
+						<div class="flex gap-4 text-sm py-2" style="border-bottom: 1px solid var(--surface-border)">
+							<span class="detail-value">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
+							<span style="color: var(--text-muted)">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
 						</div>
 					}
 				</div>
 			</div>
 		}
-		<!-- Notes -->
 		if props.Recipe.Notes != "" {
-			<div class="section-box">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">
+			<div>
+				<span class="detail-label mb-2 block">
 					<span class="inline-flex items-center gap-1">
 						@components.IconFileText()
 						Notes
 					</span>
-				</h3>
-				<div class="text-brown-900 whitespace-pre-wrap">{ props.Recipe.Notes }</div>
+				</span>
+				<div class="prose-note">{ props.Recipe.Notes }</div>
 			</div>
 		}
-		<!-- Action bar -->
-		<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-			<div class="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
-				<div class="order-2 sm:order-first">
-					@components.BackButton()
-				</div>
-				if props.IsAuthenticated {
-					<a href={ templ.SafeURL("/brews/new?recipe=" + props.Recipe.RKey + "&recipe_owner=" + props.Recipe.AuthorDID) } class="btn-primary text-sm text-center">Use in Brew</a>
-				}
-				if props.IsAuthenticated && !props.IsOwnProfile {
-					<button
-						type="button"
-						x-data="{ forking: false }"
-						@click={ fmt.Sprintf(`
-							if (forking) return;
-							forking = true;
-							fetch('/api/recipes/fork/%s?owner=%s', { method: 'POST', credentials: 'same-origin' })
-								.then(r => { if (r.status === 401) { window.__showSessionExpiredModal(); forking = false; return; } if (!r.ok) throw new Error('Failed'); return r.json(); })
-								.then(d => { if (d) { $dispatch('notify', { message: 'Recipe copied to your library!' }); } forking = false; })
-								.catch(() => { $dispatch('notify', { message: 'Failed to copy recipe' }); forking = false; });
-						`, props.Recipe.RKey, props.AuthorDID) }
-						class="btn-secondary text-sm"
-						:disabled="forking"
-					>
-						<span x-show="!forking">Copy Recipe</span>
-						<span x-show="forking">Copying...</span>
-					</button>
-				}
-			</div>
-			<div class="flex items-center gap-3">
-				<div class="bg-brown-50 rounded-lg px-3 py-2 border border-brown-200 brew-view-actions">
-					@components.ActionBar(components.ActionBarProps{
-						SubjectURI:      props.SubjectURI,
-						SubjectCID:      props.SubjectCID,
-						IsLiked:         props.IsLiked,
-						LikeCount:       props.LikeCount,
-						CommentCount:    props.CommentCount,
-						ShowComments:    true,
-						ShareURL:        props.ShareURL,
-						ShareTitle:      props.Recipe.Name,
-						ShareText:       "Check out this recipe on Arabica",
-						IsOwner:         props.IsOwnProfile,
-						EditModalURL:    "/api/modals/recipe/" + props.Recipe.RKey,
-						DeleteURL:       "/api/recipes/" + props.Recipe.RKey,
-						DeleteRedirect:  "/my-coffee",
-						IsAuthenticated: props.IsAuthenticated,
-						IsModerator:     props.IsModerator,
-						CanHideRecord:   props.CanHideRecord,
-						CanBlockUser:    props.CanBlockUser,
-						IsRecordHidden:  props.IsRecordHidden,
-						AuthorDID:       props.AuthorDID,
-					})
-				</div>
-			</div>
+	</div>
+	<div class="record-view-footer">
+		<div class="flex items-center gap-3">
+			@components.BackButton()
+			if props.IsAuthenticated {
+				<a href={ templ.SafeURL("/brews/new?recipe=" + props.Recipe.RKey + "&recipe_owner=" + props.Recipe.AuthorDID) } class="btn-primary text-sm text-center">Use in Brew</a>
+			}
+			if props.IsAuthenticated && !props.IsOwnProfile {
+				<button
+					type="button"
+					x-data="{ forking: false }"
+					@click={ fmt.Sprintf(`
+						if (forking) return;
+						forking = true;
+						fetch('/api/recipes/fork/%s?owner=%s', { method: 'POST', credentials: 'same-origin' })
+							.then(r => { if (r.status === 401) { window.__showSessionExpiredModal(); forking = false; return; } if (!r.ok) throw new Error('Failed'); return r.json(); })
+							.then(d => { if (d) { $dispatch('notify', { message: 'Recipe copied to your library!' }); } forking = false; })
+							.catch(() => { $dispatch('notify', { message: 'Failed to copy recipe' }); forking = false; });
+					`, props.Recipe.RKey, props.AuthorDID) }
+					class="btn-secondary text-sm"
+					:disabled="forking"
+				>
+					<span x-show="!forking">Copy Recipe</span>
+					<span x-show="forking">Copying...</span>
+				</button>
+			}
 		</div>
-		<!-- Comments -->
-		@components.CommentSection(components.CommentSectionProps{
+		@components.ActionBar(components.ActionBarProps{
 			SubjectURI:      props.SubjectURI,
 			SubjectCID:      props.SubjectCID,
-			Comments:        props.Comments,
+			IsLiked:         props.IsLiked,
+			LikeCount:       props.LikeCount,
+			CommentCount:    props.CommentCount,
+			ShowComments:    true,
+			ShareURL:        props.ShareURL,
+			ShareTitle:      props.Recipe.Name,
+			ShareText:       "Check out this recipe on Arabica",
+			IsOwner:         props.IsOwnProfile,
+			EditModalURL:    "/api/modals/recipe/" + props.Recipe.RKey,
+			DeleteURL:       "/api/recipes/" + props.Recipe.RKey,
+			DeleteRedirect:  "/my-coffee",
 			IsAuthenticated: props.IsAuthenticated,
-			CurrentUserDID:  props.CurrentUserDID,
-			ModCtx: components.CommentModerationContext{
-				IsModerator:   props.IsModerator,
-				CanHideRecord: props.CanHideRecord,
-				CanBlockUser:  props.CanBlockUser,
-			},
-			ViewURL: props.ShareURL,
+			IsModerator:     props.IsModerator,
+			CanHideRecord:   props.CanHideRecord,
+			CanBlockUser:    props.CanBlockUser,
+			IsRecordHidden:  props.IsRecordHidden,
+			AuthorDID:       props.AuthorDID,
 		})
 	</div>
+	@components.CommentSection(components.CommentSectionProps{
+		SubjectURI:      props.SubjectURI,
+		SubjectCID:      props.SubjectCID,
+		Comments:        props.Comments,
+		IsAuthenticated: props.IsAuthenticated,
+		CurrentUserDID:  props.CurrentUserDID,
+		ModCtx: components.CommentModerationContext{
+			IsModerator:   props.IsModerator,
+			CanHideRecord: props.CanHideRecord,
+			CanBlockUser:  props.CanBlockUser,
+		},
+		ViewURL: props.ShareURL,
+	})
 }
 
 
