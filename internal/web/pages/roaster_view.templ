@@ -10,21 +10,21 @@ import (
 )
 
 type RoasterViewProps struct {
-	Roaster         *models.Roaster
-	IsOwnProfile    bool
-	IsAuthenticated bool
-	SubjectURI      string
-	SubjectCID      string
-	IsLiked         bool
-	LikeCount       int
-	CommentCount    int
-	Comments        []firehose.IndexedComment
-	CurrentUserDID  string
-	ShareURL        string
-	IsModerator     bool
-	CanHideRecord   bool
-	CanBlockUser    bool
-	IsRecordHidden  bool
+	Roaster           *models.Roaster
+	IsOwnProfile      bool
+	IsAuthenticated   bool
+	SubjectURI        string
+	SubjectCID        string
+	IsLiked           bool
+	LikeCount         int
+	CommentCount      int
+	Comments          []firehose.IndexedComment
+	CurrentUserDID    string
+	ShareURL          string
+	IsModerator       bool
+	CanHideRecord     bool
+	CanBlockUser      bool
+	IsRecordHidden    bool
 	AuthorDID         string
 	AuthorHandle      string
 	AuthorDisplayName string
@@ -53,10 +53,22 @@ templ RoasterViewCard(props RoasterViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="space-y-4">
-		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconMapPin(), Label: "Location", Value: props.Roaster.Location, Large: true})
+	<div class="record-label p-4">
+		<div class="label-detail">
+			<span class="detail-label">
+				<span class="inline-flex items-center gap-1">
+					@components.IconMapPin()
+					Location
+				</span>
+			</span>
+			if props.Roaster.Location != "" {
+				<span class="label-origin-hero" style="font-size: 1.5rem">{ props.Roaster.Location }</span>
+			} else {
+				<span class="text-sm" style="color: var(--text-faint)">—</span>
+			}
+		</div>
 		if props.Roaster.Website != "" {
-			<div class="detail-stacked">
+			<div class="label-detail">
 				<span class="detail-label">
 					<span class="inline-flex items-center gap-1">
 						@components.IconLink()
@@ -117,4 +129,3 @@ templ RoasterViewCard(props RoasterViewProps) {
 		ViewURL: props.ShareURL,
 	})
 }
-

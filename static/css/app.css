@@ -34,7 +34,14 @@
   --feed-board-border: #B09470;
   /* Sticky note base — warm off-white */
   --feed-card-bg: #FFFDF5;
-  --texture-paper: none;
+  /* Dot-grid — faint dots on warm paper, for journal pages */
+  --texture-dotgrid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%23d2bab0' fill-opacity='0.35'/%3E%3C/svg%3E");
+  /* Kraft grain — subtle fiber texture for label pages */
+  --texture-kraft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.15 0 0 0 0.1 0.1 0 0 0 0.06 0.05 0 0 0 0.02 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+  /* Journal paper — warm cream */
+  --journal-bg: #FFFDF5;
+  /* Kraft — slightly warmer/darker than card bg */
+  --kraft-bg: #F7F0E8;
 }
 
 /* ========================================
@@ -153,6 +160,12 @@
     /* Surfaces (inset areas inside cards) */
     --surface-bg: rgba(36, 26, 22, 0.6);
     --surface-border: #2E211B;
+
+    /* Journal/label page backgrounds */
+    --texture-dotgrid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%235A4A40' fill-opacity='0.4'/%3E%3C/svg%3E");
+    --texture-kraft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.08 0 0 0 0.04 0.06 0 0 0 0.03 0.03 0 0 0 0.01 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+    --journal-bg: #1A1210;
+    --kraft-bg: #201814;
 
     /* Feed board — noticeably lighter than cards for contrast */
     --feed-board-bg: #3D2D22;
@@ -316,6 +329,10 @@
   --feed-board-bg: #3D2D22;
   --feed-board-border: #4A3828;
   --feed-card-bg: #1A1210;
+  --texture-dotgrid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%235A4A40' fill-opacity='0.4'/%3E%3C/svg%3E");
+  --texture-kraft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.08 0 0 0 0.04 0.06 0 0 0 0.03 0.03 0 0 0 0.01 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+  --journal-bg: #1A1210;
+  --kraft-bg: #201814;
   --header-bg-from: #0F0A08;
   --header-bg-to: #0F0A08;
   --header-border: #2E211B;
@@ -561,7 +578,7 @@
     color: var(--text-muted);
   }
 
-  /* Record view — typography-driven detail fields (no container boxes) */
+  /* ── Shared record view tokens ── */
   .detail-label {
     @apply text-xs font-medium uppercase tracking-wider;
     color: var(--text-muted);
@@ -577,50 +594,54 @@
     color: var(--text-primary);
   }
 
-  .detail-value a {
-    color: var(--text-primary);
-  }
+  .detail-value a { color: var(--text-primary); }
+  .detail-value a:hover { text-decoration: underline; }
 
-  .detail-value a:hover {
-    text-decoration: underline;
-  }
-
-  /* Stacked: label on top, value below */
   .detail-stacked {
     @apply flex flex-col gap-1;
   }
 
-  /* Inline: label and value side by side */
   .detail-inline {
     @apply flex items-baseline gap-2;
   }
 
-  /* Compact parameter grid — tighter than standard, single col on mobile */
-  .detail-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4;
+  .record-view-footer {
+    @apply flex justify-between items-center pt-4 mt-6;
   }
 
-  /* Journal-entry prose for notes/descriptions */
-  .prose-note {
-    @apply pl-4 whitespace-pre-wrap leading-relaxed;
-    border-left: 2px solid var(--surface-border);
-    color: var(--text-primary);
+  .record-stat-line {
+    @apply flex items-center gap-3 text-xs pt-3;
+    color: var(--text-muted);
   }
 
-  /* Bean reference card on brew view */
-  .brew-bean-ref {
-    @apply rounded-lg p-4;
-    background: var(--surface-bg);
-    transition: background 0.15s ease;
-  }
-
-  .brew-bean-ref:hover {
-    background: var(--type-bean-tint);
-  }
-
-  /* Hero rating for brew view */
   .brew-rating-hero {
     @apply inline-flex items-center gap-2 py-1;
+  }
+
+  .brew-summary {
+    @apply flex flex-wrap items-center gap-x-8 gap-y-4 mb-6 pb-5;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .brew-summary-stats {
+    @apply flex flex-wrap gap-x-6 gap-y-3;
+    flex: 1 1 auto;
+  }
+
+  .brew-summary-stat {
+    @apply flex flex-col gap-0.5;
+  }
+
+  .brew-summary-stat dt {
+    @apply uppercase tracking-wider;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+  }
+
+  .brew-summary-stat dd {
+    @apply text-base font-semibold;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
   }
 
   .brew-rating-value {
@@ -633,17 +654,124 @@
     color: var(--text-muted);
   }
 
-  /* Clean record footer: back button left, actions right */
-  .record-view-footer {
-    @apply flex justify-between items-center pt-4 mt-6;
-    border-top: 1px solid var(--surface-border);
+  /* ── Treatment 1: Brew Journal ──
+     Dot-grid paper, ledger-style fields, for brews/recipes/equipment */
+
+  .record-journal {
+    background-color: var(--journal-bg);
+    background-image: var(--texture-dotgrid);
+    @apply rounded-lg;
   }
 
-  /* Stat line at bottom of record (brew count, bean count) */
-  .record-stat-line {
-    @apply flex items-center gap-3 text-xs py-3;
+  /* Ledger field: label left, value right, separated by faint line */
+  .journal-field {
+    @apply flex items-baseline justify-between py-3;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .journal-field:last-child {
+    border-bottom: none;
+  }
+
+  .journal-field .detail-label {
+    @apply flex-shrink-0;
+    width: 9rem;
+  }
+
+  .journal-field .detail-value,
+  .journal-field .detail-value-lg {
+    @apply text-right flex-1;
+  }
+
+  .journal-field a.detail-value {
+    @apply text-right;
+  }
+
+  /* On mobile, stack journal fields vertically */
+  @media (max-width: 480px) {
+    .journal-field {
+      @apply flex-col items-start gap-1;
+    }
+    .journal-field .detail-value,
+    .journal-field .detail-value-lg {
+      @apply text-left;
+    }
+  }
+
+  /* Prose section in journal context */
+  .journal-prose {
+    @apply whitespace-pre-wrap leading-relaxed;
+    color: var(--text-primary);
+  }
+
+  /* Bean reference inside a journal brew page */
+  .journal-bean-ref {
+    @apply rounded-lg p-4 mb-2;
+    background: var(--surface-bg);
+    transition: background 0.15s ease;
+  }
+
+  .journal-bean-ref:hover {
+    background: var(--type-bean-tint);
+  }
+
+  /* ── Treatment 2: Craft Label ──
+     Kraft paper texture, bold typographic hierarchy, for beans/roasters */
+
+  .record-label {
+    background-color: var(--kraft-bg);
+    background-image: var(--texture-kraft);
+    @apply rounded-lg;
+  }
+
+  /* Origin hero — the biggest element on a bean label */
+  .label-origin-hero {
+    @apply text-3xl sm:text-4xl font-bold tracking-tight leading-tight;
+    color: var(--text-primary);
+  }
+
+  /* Roaster byline under bean name */
+  .label-byline {
+    @apply text-sm mt-1;
     color: var(--text-muted);
-    border-top: 1px solid var(--surface-border);
+  }
+
+  .label-byline a {
+    color: var(--text-secondary);
+  }
+
+  .label-byline a:hover {
+    text-decoration: underline;
+    color: var(--text-primary);
+  }
+
+  /* Inline tag strip: variety / process / roast level */
+  .label-tags {
+    @apply flex flex-wrap gap-2 mt-4;
+  }
+
+  .label-tag {
+    @apply text-xs font-medium px-2.5 py-1 rounded-full;
+    background: var(--surface-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--surface-border);
+  }
+
+  /* Description on a label — flowing paragraph, no indent */
+  .label-description {
+    @apply leading-relaxed mt-6;
+    color: var(--text-primary);
+    max-width: 65ch;
+  }
+
+  /* Stacked detail for label pages (location, website) */
+  .label-detail {
+    @apply flex flex-col gap-1 py-3;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .label-detail:last-child {
+    border-bottom: none;
   }
 
   /* Form field groups — semantic clusters within modals */

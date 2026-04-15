@@ -10,21 +10,21 @@ import (
 )
 
 type BrewerViewProps struct {
-	Brewer          *models.Brewer
-	IsOwnProfile    bool
-	IsAuthenticated bool
-	SubjectURI      string
-	SubjectCID      string
-	IsLiked         bool
-	LikeCount       int
-	CommentCount    int
-	Comments        []firehose.IndexedComment
-	CurrentUserDID  string
-	ShareURL        string
-	IsModerator     bool
-	CanHideRecord   bool
-	CanBlockUser    bool
-	IsRecordHidden  bool
+	Brewer            *models.Brewer
+	IsOwnProfile      bool
+	IsAuthenticated   bool
+	SubjectURI        string
+	SubjectCID        string
+	IsLiked           bool
+	LikeCount         int
+	CommentCount      int
+	Comments          []firehose.IndexedComment
+	CurrentUserDID    string
+	ShareURL          string
+	IsModerator       bool
+	CanHideRecord     bool
+	CanBlockUser      bool
+	IsRecordHidden    bool
 	AuthorDID         string
 	AuthorHandle      string
 	AuthorDisplayName string
@@ -53,18 +53,20 @@ templ BrewerViewCard(props BrewerViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	@components.DetailStacked(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Type", Value: props.Brewer.BrewerType})
-	if props.Brewer.Description != "" {
-		<div class="mt-6">
-			<span class="detail-label mb-2 block">
-				<span class="inline-flex items-center gap-1">
-					@components.IconFileText()
-					Description
+	<div class="record-journal p-4">
+		@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Type", Value: props.Brewer.BrewerType})
+		if props.Brewer.Description != "" {
+			<div class="mt-6">
+				<span class="detail-label mb-2 block">
+					<span class="inline-flex items-center gap-1">
+						@components.IconFileText()
+						Description
+					</span>
 				</span>
-			</span>
-			<div class="prose-note">{ props.Brewer.Description }</div>
-		</div>
-	}
+				<div class="journal-prose">{ props.Brewer.Description }</div>
+			</div>
+		}
+	</div>
 	if props.BrewCount > 0 {
 		<div class="record-stat-line">
 			<span class="flex items-center gap-1">
@@ -111,4 +113,3 @@ templ BrewerViewCard(props BrewerViewProps) {
 		ViewURL: props.ShareURL,
 	})
 }
-

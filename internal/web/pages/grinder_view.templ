@@ -10,21 +10,21 @@ import (
 )
 
 type GrinderViewProps struct {
-	Grinder         *models.Grinder
-	IsOwnProfile    bool
-	IsAuthenticated bool
-	SubjectURI      string
-	SubjectCID      string
-	IsLiked         bool
-	LikeCount       int
-	CommentCount    int
-	Comments        []firehose.IndexedComment
-	CurrentUserDID  string
-	ShareURL        string
-	IsModerator     bool
-	CanHideRecord   bool
-	CanBlockUser    bool
-	IsRecordHidden  bool
+	Grinder           *models.Grinder
+	IsOwnProfile      bool
+	IsAuthenticated   bool
+	SubjectURI        string
+	SubjectCID        string
+	IsLiked           bool
+	LikeCount         int
+	CommentCount      int
+	Comments          []firehose.IndexedComment
+	CurrentUserDID    string
+	ShareURL          string
+	IsModerator       bool
+	CanHideRecord     bool
+	CanBlockUser      bool
+	IsRecordHidden    bool
 	AuthorDID         string
 	AuthorHandle      string
 	AuthorDisplayName string
@@ -53,21 +53,23 @@ templ GrinderViewCard(props GrinderViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="space-y-4">
-		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconGear(), Label: "Type", Value: props.Grinder.GrinderType})
-		@components.DetailStacked(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Burr Type", Value: props.Grinder.BurrType})
-	</div>
-	if props.Grinder.Notes != "" {
-		<div class="mt-6">
-			<span class="detail-label mb-2 block">
-				<span class="inline-flex items-center gap-1">
-					@components.IconFileText()
-					Notes
-				</span>
-			</span>
-			<div class="prose-note">{ props.Grinder.Notes }</div>
+	<div class="record-journal p-4">
+		<div>
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconGear(), Label: "Type", Value: props.Grinder.GrinderType})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Burr Type", Value: props.Grinder.BurrType})
 		</div>
-	}
+		if props.Grinder.Notes != "" {
+			<div class="mt-6">
+				<span class="detail-label mb-2 block">
+					<span class="inline-flex items-center gap-1">
+						@components.IconFileText()
+						Notes
+					</span>
+				</span>
+				<div class="journal-prose">{ props.Grinder.Notes }</div>
+			</div>
+		}
+	</div>
 	if props.BrewCount > 0 {
 		<div class="record-stat-line">
 			<span class="flex items-center gap-1">
@@ -114,4 +116,3 @@ templ GrinderViewCard(props GrinderViewProps) {
 		ViewURL: props.ShareURL,
 	})
 }
-

@@ -290,6 +290,29 @@ templ DetailInline(props DetailStackedProps) {
 	}
 }
 
+// JournalField renders a ledger-style row: label left, value right, with a faint separator.
+templ JournalField(props DetailStackedProps) {
+	if props.Value != "" {
+		<div class="journal-field">
+			<span class="detail-label">
+				if props.Icon != nil {
+					<span class="inline-flex items-center gap-1">
+						@props.Icon
+						{ props.Label }
+					</span>
+				} else {
+					{ props.Label }
+				}
+			</span>
+			if props.LinkHref != "" {
+				<a href={ templ.SafeURL(props.LinkHref) } class="detail-value hover:underline">{ props.Value }</a>
+			} else {
+				<span class="detail-value">{ props.Value }</span>
+			}
+		</div>
+	}
+}
+
 type PageHeaderProps struct {
 	Title       string
 	BackURL     string
