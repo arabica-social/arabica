@@ -297,6 +297,10 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<script src="/static/js/combo-select.js?v=0.5.0"></script>
 			<!-- Load Alpine.js core with defer (will initialize after DOM loads) -->
 			<script src="/static/js/alpine.min.js?v=0.2.0" defer></script>
+			<!-- Set feed column cookie before HTMX fires -->
+			<script nonce={ data.CSPNonce }>
+				(function(){var c=function(){document.cookie='feed_cols='+(window.innerWidth>=768?2:1)+';path=/;SameSite=Lax';};c();window.addEventListener('resize',c);})();
+			</script>
 			<!-- Load HTMX and other utilities -->
 			<script src="/static/js/htmx.min.js?v=0.2.0"></script>
 			<script src="/static/js/transitions.js?v=0.3.3"></script>

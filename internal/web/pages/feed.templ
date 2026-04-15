@@ -22,6 +22,7 @@ type FeedQueryState struct {
 	Sort            string // Current sort order
 	NextCursor      string // Cursor for next page (empty = no more)
 	IsAuthenticated bool
+	Cols            int // Number of columns (1 = mobile flat, 2 = desktop masonry)
 }
 
 // feedFilterTab defines a filter tab option
@@ -59,14 +60,18 @@ func buildFeedURL(typeFilter, sort string) string {
 	return url
 }
 
-func buildFeedURLWithCursor(typeFilter, sort, cursor string) string {
+func buildFeedURLWithCursor(typeFilter, sort, cursor string, cols int) string {
 	url := buildFeedURL(typeFilter, sort)
+	sep := "?"
+	if len(url) > len("/api/feed") {
+		sep = "&"
+	}
+	if cols > 0 {
+		url += sep + fmt.Sprintf("cols=%d", cols)
+		sep = "&"
+	}
 	if cursor != "" {
-		if len(url) > len("/api/feed") {
-			url += "&cursor=" + cursor
-		} else {
-			url += "?cursor=" + cursor
-		}
+		url += sep + "cursor=" + cursor
 	}
 	return url
 }
@@ -86,20 +91,26 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 		<!-- Feed items -->
 		<div id="feed-items" class="feed-grid">
 			if len(items) > 0 {
-				<div class="feed-masonry-col">
-					for i, item := range items {
-						if i % 2 == 0 {
-							@FeedCardWithModeration(item, isAuthenticated, modCtx)
+				if qs.Cols >= 2 {
+					<div class="feed-masonry-col">
+						for i, item := range items {
+							if i % 2 == 0 {
+								@FeedCardWithModeration(item, isAuthenticated, modCtx)
+							}
 						}
-					}
-				</div>
-				<div class="feed-masonry-col">
-					for i, item := range items {
-						if i % 2 == 1 {
-							@FeedCardWithModeration(item, isAuthenticated, modCtx)
+					</div>
+					<div class="feed-masonry-col">
+						for i, item := range items {
+							if i % 2 == 1 {
+								@FeedCardWithModeration(item, isAuthenticated, modCtx)
+							}
 						}
+					</div>
+				} else {
+					for _, item := range items {
+						@FeedCardWithModeration(item, isAuthenticated, modCtx)
 					}
-				</div>
+				}
 				<!-- Load more button -->
 				if qs.NextCursor != "" {
 					@FeedLoadMoreButton(qs)
@@ -121,7 +132,7 @@ templ FeedFilterBar(qs FeedQueryState) {
 		class="mb-5"
 		data-type-filter={ qs.TypeFilter }
 		data-sort={ qs.Sort }
-		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, pillClass(tab) { if (this.typeFilter !== tab) return 'filter-pill'; if (!tab) return 'filter-pill-active'; return 'filter-pill-' + tab; }, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { if (t === 'equipment') { u += sep + 'type=grinder&type=brewer'; } else { u += sep + 'type=' + t; } sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
+		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, feedCols() { return window.innerWidth >= 768 ? 2 : 1; }, pillClass(tab) { if (this.typeFilter !== tab) return 'filter-pill'; if (!tab) return 'filter-pill-active'; return 'filter-pill-' + tab; }, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { if (t === 'equipment') { u += sep + 'type=grinder&type=brewer'; } else { u += sep + 'type=' + t; } sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; sep = '&'; } } u += sep + 'cols=' + this.feedCols(); return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
 	>
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<!-- Type filter pills -->
@@ -163,7 +174,7 @@ templ FeedLoadMoreButton(qs FeedQueryState) {
 	<div class="text-center pt-2" style="grid-column: 1 / -1;" x-data="{ loading: false }">
 		<button
 			class="btn-secondary text-sm disabled:opacity-50"
-			hx-get={ buildFeedURLWithCursor(qs.TypeFilter, qs.Sort, qs.NextCursor) }
+			hx-get={ buildFeedURLWithCursor(qs.TypeFilter, qs.Sort, qs.NextCursor, qs.Cols) }
 			hx-target="closest div"
 			hx-swap="outerHTML"
 			@htmx:before-request="loading = true"
@@ -177,20 +188,26 @@ templ FeedLoadMoreButton(qs FeedQueryState) {
 
 // FeedMoreItems renders additional items for "load more" pagination (no filter bar)
 templ FeedMoreItems(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext, qs FeedQueryState) {
-	<div class="feed-masonry-col">
-		for i, item := range items {
-			if i % 2 == 0 {
-				@FeedCardWithModeration(item, isAuthenticated, modCtx)
+	if qs.Cols >= 2 {
+		<div class="feed-masonry-col">
+			for i, item := range items {
+				if i % 2 == 0 {
+					@FeedCardWithModeration(item, isAuthenticated, modCtx)
+				}
 			}
-		}
-	</div>
-	<div class="feed-masonry-col">
-		for i, item := range items {
-			if i % 2 == 1 {
-				@FeedCardWithModeration(item, isAuthenticated, modCtx)
+		</div>
+		<div class="feed-masonry-col">
+			for i, item := range items {
+				if i % 2 == 1 {
+					@FeedCardWithModeration(item, isAuthenticated, modCtx)
+				}
 			}
+		</div>
+	} else {
+		for _, item := range items {
+			@FeedCardWithModeration(item, isAuthenticated, modCtx)
 		}
-	</div>
+	}
 	if qs.NextCursor != "" {
 		@FeedLoadMoreButton(qs)
 	}

@@ -178,11 +178,23 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	if len(typeFilters) > 0 {
 		typeFilterStr = "equipment"
 	}
+	// Determine column count from query param or cookie
+	cols := 2 // default to 2-column masonry
+	if c := r.URL.Query().Get("cols"); c == "1" {
+		cols = 1
+	} else if c == "" {
+		// No query param — check cookie (set by client JS on initial page load)
+		if ck, err := r.Cookie("feed_cols"); err == nil && ck.Value == "1" {
+			cols = 1
+		}
+	}
+
 	queryState := pages.FeedQueryState{
 		TypeFilter:      typeFilterStr,
 		Sort:            string(sortBy),
 		NextCursor:      nextCursor,
 		IsAuthenticated: isAuthenticated,
+		Cols:            cols,
 	}
 
 	// If this is a "load more" request (has cursor), render just the additional items
