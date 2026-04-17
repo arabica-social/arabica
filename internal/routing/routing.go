@@ -1,10 +1,12 @@
 package routing
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
@@ -21,6 +23,7 @@ type Config struct {
 	OAuthManager      *atproto.OAuthManager
 	Logger            zerolog.Logger
 	ModerationService *moderation.Service
+	FirehoseConsumer  *firehose.Consumer
 }
 
 // SetupRouter creates and configures the HTTP router with all routes and middleware
@@ -45,6 +48,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/robots.txt")
 	})
+	mux.HandleFunc("GET /healthz", handleHealthz(h, cfg.FirehoseConsumer))
 
 	// API routes for handle resolution (used by login autocomplete)
 	// These are intentionally public and don't require HTMX headers
@@ -235,6 +239,46 @@ func SetupRouter(cfg Config) http.Handler {
 	)
 
 	return handler
+}
+
+func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		status := "ok"
+		httpStatus := http.StatusOK
+
+		// Check firehose connection
+		firehoseCheck := map[string]any{"connected": false}
+		if consumer != nil {
+			connected := consumer.IsConnected()
+			firehoseCheck["connected"] = connected
+			if !connected {
+				status = "degraded"
+			}
+		}
+
+		// Check SQLite feed index
+		feedIndexCheck := map[string]any{"healthy": false, "ready": false}
+		if idx := h.FeedIndex(); idx != nil {
+			feedIndexCheck["ready"] = idx.IsReady()
+			if err := idx.DB().PingContext(r.Context()); err != nil {
+				feedIndexCheck["healthy"] = false
+				status = "error"
+				httpStatus = http.StatusServiceUnavailable
+			} else {
+				feedIndexCheck["healthy"] = true
+			}
+		}
+
+		resp := map[string]any{
+			"status":     status,
+			"firehose":   firehoseCheck,
+			"feed_index": feedIndexCheck,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpStatus)
+		json.NewEncoder(w).Encode(resp)
+	}
 }
 
 // pageContextMiddleware reads the X-Page-Context header (set by client-side JS)

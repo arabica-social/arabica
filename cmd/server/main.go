@@ -491,6 +491,7 @@ func main() {
 		OAuthManager:      oauthManager,
 		Logger:            log.Logger,
 		ModerationService: moderationSvc,
+		FirehoseConsumer:  firehoseConsumer,
 	})
 
 	// Start internal metrics server on localhost only (not publicly accessible)

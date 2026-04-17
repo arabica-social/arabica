@@ -84,6 +84,11 @@ func (h *Handler) SetFeedIndex(idx *firehose.FeedIndex) {
 	h.feedIndex = idx
 }
 
+// FeedIndex returns the feed index for health checks.
+func (h *Handler) FeedIndex() *firehose.FeedIndex {
+	return h.feedIndex
+}
+
 // SetWitnessCache configures the handler to use the witness cache for cache-first reads.
 func (h *Handler) SetWitnessCache(wc atproto.WitnessCache) {
 	h.witnessCache = wc
