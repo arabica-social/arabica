@@ -30,13 +30,13 @@ import (
 	"github.com/stretchr/testify/require"
 	gormlogger "gorm.io/gorm/logger"
 	"tangled.org/pdewey.com/atp"
-	"tangled.org/pdewey.com/atp/testpds"
+	"tangled.org/pdewey.com/chrysalis/testpds"
 )
 
 func init() {
-	// Cocoon constructs its gorm sessions with `&gorm.Config{}` (no Logger),
+	// Chrysalis constructs its gorm sessions with `&gorm.Config{}` (no Logger),
 	// so each session falls back to gormlogger.Default. Replace it with one
-	// that ignores ErrRecordNotFound — cocoon's preflight existence checks
+	// that ignores ErrRecordNotFound — chrysalis's preflight existence checks
 	// (handle/email/seq lookups on a fresh test DB) otherwise spam yellow
 	// "record not found" warnings on every test run.
 	gormlogger.Default = gormlogger.New(
@@ -155,7 +155,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		opts.PrimaryPassword = "hunter2"
 	}
 
-	pds := testpds.Start(t, nil)
+	pds := testpds.StartT(t, nil)
 
 	// Build an in-process FeedIndex (SQLite, temp dir) to back the witness
 	// cache and the suggestion endpoint. This is the same type production

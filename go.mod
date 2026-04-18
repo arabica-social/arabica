@@ -2,8 +2,6 @@ module tangled.org/arabica.social/arabica
 
 go 1.26.1
 
-replace github.com/haileyok/cocoon => github.com/ptdewey/cocoon v0.0.0-20260406233545-539d73959ca6
-
 require (
 	github.com/XSAM/otelsql v0.41.0
 	github.com/a-h/templ v0.3.1001
@@ -26,21 +24,17 @@ require (
 	golang.org/x/sync v0.20.0
 	gorm.io/gorm v1.31.1
 	modernc.org/sqlite v1.48.1
-	tangled.org/pdewey.com/atp v0.0.0-20260412220944-ab8db352c13e
+	tangled.org/pdewey.com/atp v0.0.0-20260418015135-962c7a9ed37e
+	tangled.org/pdewey.com/chrysalis v0.0.0-20260418015724-ffe63f2b6114
 )
 
 require (
-	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest/to v0.4.1 // indirect
 	github.com/RussellLuo/slidingwindow v0.0.0-20200528002341-535bb99d338b // indirect
-	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
-	github.com/domodwyer/mailyak/v3 v3.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/earthboundkid/versioninfo/v2 v2.24.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -59,13 +53,8 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/context v1.1.2 // indirect
-	github.com/gorilla/securecookie v1.1.2 // indirect
-	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
-	github.com/haileyok/cocoon v0.0.0-00010101000000-000000000000 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
-	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
@@ -96,10 +85,8 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kortschak/utter v1.7.0 // indirect
-	github.com/labstack/echo-contrib v0.50.1 // indirect
 	github.com/labstack/echo/v4 v4.15.1 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect

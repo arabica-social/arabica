@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tangled.org/pdewey.com/atp"
-	"tangled.org/pdewey.com/atp/testpds"
+	"tangled.org/pdewey.com/chrysalis/testpds"
 )
 
 // testAccount holds credentials for a test PDS account.
@@ -86,7 +86,7 @@ func newTestStore(t *testing.T, pdsURL string, acct testAccount) *atproto.Atprot
 }
 
 func TestPDS_RoasterCRUD(t *testing.T) {
-	pds := testpds.Start(t, nil)
+	pds := testpds.StartT(t, nil)
 	acct := createAccount(t, pds.URL, "alice@test.com", "alice.test", "hunter2")
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
@@ -137,7 +137,7 @@ func TestPDS_RoasterCRUD(t *testing.T) {
 }
 
 func TestPDS_BeanWithRoasterRef(t *testing.T) {
-	pds := testpds.Start(t, nil)
+	pds := testpds.StartT(t, nil)
 	acct := createAccount(t, pds.URL, "bob@test.com", "bob.test", "hunter2")
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
@@ -169,7 +169,7 @@ func TestPDS_BeanWithRoasterRef(t *testing.T) {
 }
 
 func TestPDS_GrinderCRUD(t *testing.T) {
-	pds := testpds.Start(t, nil)
+	pds := testpds.StartT(t, nil)
 	acct := createAccount(t, pds.URL, "carol@test.com", "carol.test", "hunter2")
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
@@ -189,7 +189,7 @@ func TestPDS_GrinderCRUD(t *testing.T) {
 }
 
 func TestPDS_BrewerCRUD(t *testing.T) {
-	pds := testpds.Start(t, nil)
+	pds := testpds.StartT(t, nil)
 	acct := createAccount(t, pds.URL, "dave@test.com", "dave.test", "hunter2")
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
@@ -207,7 +207,7 @@ func TestPDS_BrewerCRUD(t *testing.T) {
 }
 
 func TestPDS_FullBrewSession(t *testing.T) {
-	pds := testpds.Start(t, nil)
+	pds := testpds.StartT(t, nil)
 	acct := createAccount(t, pds.URL, "eve@test.com", "eve.test", "hunter2")
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
