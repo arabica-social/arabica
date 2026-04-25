@@ -1,33 +1,80 @@
-# NixOS Installation
+# Nix/NixOS Installation
 
-## Using the Module
+## NixOS Module
 
-Add to your configuration.nix:
+This repo exposes a NixOS module at `nixosModules.default`.
+
+### Via flake input
 
 ```nix
 {
-  imports = [ ./arabica-site/module.nix ];
-  
-  services.arabica = {
-    enable = true;
-    port = 18910;
-    dataDir = "/var/lib/arabica";
-    logLevel = "info";
-    secureCookies = false; # Set true if behind HTTPS proxy
+  inputs.arabica.url = "github:<you>/arabica";
+
+  outputs = { self, nixpkgs, arabica, ... }: {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        arabica.nixosModules.default
+        ({ ... }: {
+          services.arabica = {
+            enable = true;
+            dataDir = "/var/lib/arabica";
+
+            settings = {
+              port = 18910;
+              logLevel = "info";
+              secureCookies = true;
+              # publicUrl = "https://arabica.example.com";
+            };
+
+            oauth = {
+              clientId = "https://arabica.example.com/client-metadata.json";
+              redirectUri = "https://arabica.example.com/oauth/callback";
+            };
+          };
+        })
+      ];
+    };
   };
 }
 ```
 
-## Manual Installation
+### Via local checkout
 
-Build and run directly:
+```nix
+{
+  imports = [ ./nix/module.nix ];
 
-```bash
-# Build
-nix-build -E 'with import <nixpkgs> {}; callPackage ./default.nix {}'
+  services.arabica = {
+    enable = true;
+    dataDir = "/var/lib/arabica";
 
-# Run
-result/bin/arabica
+    settings = {
+      port = 18910;
+      logLevel = "info";
+      secureCookies = false; # only for local/dev http
+    };
+
+    oauth = {
+      clientId = "https://arabica.example.com/client-metadata.json";
+      redirectUri = "https://arabica.example.com/oauth/callback";
+    };
+  };
+}
 ```
 
-The data directory will be created at `~/.local/share/arabica/` by default.
+## Build/Run Manually (flake)
+
+```bash
+# Build package
+nix build .#arabica
+
+# Run built binary
+./result/bin/arabica
+
+# Or run directly
+nix run .#arabica
+```
+
+By default the wrapper stores data at `~/.local/share/arabica/arabica.db` when
+`ARABICA_DB_PATH` is not set.
