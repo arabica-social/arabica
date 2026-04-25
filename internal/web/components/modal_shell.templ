@@ -1,0 +1,69 @@
+package components
+
+import (
+	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
+)
+
+// ModalShellProps configures the shared dialog wrapper used by entity
+// create/edit modals. Body content is passed as templ children.
+type ModalShellProps struct {
+	Type       lexicons.RecordType
+	RKey       string // "" = create, non-empty = edit
+	ExtraXData string // optional Alpine x-data; if empty, "{ serverError: '' }" is used
+}
+
+func modalShellXData(extra string) string {
+	if extra != "" {
+		return extra
+	}
+	return "{ serverError: '' }"
+}
+
+func modalActionURL(d *entities.Descriptor, rkey string) string {
+	if rkey != "" {
+		return "/api/" + d.URLPath + "/" + rkey
+	}
+	return "/api/" + d.URLPath
+}
+
+templ ModalShell(props ModalShellProps) {
+	if d := entities.Get(props.Type); d != nil {
+		<dialog id="entity-modal" class="modal-dialog">
+			<div class="modal-content">
+				<h3 class="modal-title">
+					if props.RKey != "" {
+						Edit { d.DisplayName }
+					} else {
+						Add { d.DisplayName }
+					}
+				</h3>
+				<form
+					if props.RKey != "" {
+						hx-put={ modalActionURL(d, props.RKey) }
+					} else {
+						hx-post={ modalActionURL(d, "") }
+					}
+					hx-trigger="submit"
+					hx-swap="none"
+					x-data={ modalShellXData(props.ExtraXData) }
+					hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? 'Something went wrong. Please try again.' : 'Connection error. Check your network.'; }"
+					class="space-y-5"
+				>
+					<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
+					{ children... }
+					<div class="flex gap-2 pt-2">
+						<button type="submit" class="flex-1 btn-primary">Save</button>
+						<button
+							type="button"
+							@click="$el.closest('dialog').close()"
+							class="flex-1 btn-secondary"
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			</div>
+		</dialog>
+	}
+}

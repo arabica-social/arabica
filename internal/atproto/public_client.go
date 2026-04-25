@@ -3,6 +3,7 @@ package atproto
 import (
 	"context"
 	"net/http"
+	"sync"
 	"time"
 
 	"tangled.org/pdewey.com/atp"
@@ -14,10 +15,23 @@ import (
 // so existing callers continue to work without changes.
 type Profile = atp.PublicProfile
 
+const resolverCacheTTL = time.Hour
+
+type cachedValue struct {
+	value  string
+	expiry time.Time
+}
+
 // PublicClient wraps atp.PublicClient and exposes the same method signatures
 // that arabica callers already use (GetRecord, ListRecords, etc.).
 type PublicClient struct {
 	inner *atp.PublicClient
+
+	pdsMu   sync.RWMutex
+	pdsCache map[string]cachedValue // DID → PDS URL
+
+	handleMu    sync.RWMutex
+	handleCache map[string]cachedValue // handle → DID
 }
 
 // NewPublicClient creates a PublicClient with OTel-instrumented HTTP transport.
@@ -26,12 +40,31 @@ func NewPublicClient() *PublicClient {
 		Timeout:   30 * time.Second,
 		Transport: &userAgentTransport{base: otelhttp.NewTransport(http.DefaultTransport)},
 	}
-	return &PublicClient{inner: atp.NewPublicClientWithHTTP(hc)}
+	return &PublicClient{
+		inner:       atp.NewPublicClientWithHTTP(hc),
+		pdsCache:    make(map[string]cachedValue),
+		handleCache: make(map[string]cachedValue),
+	}
 }
 
 // GetPDSEndpoint resolves a DID to the user's PDS base URL.
 func (c *PublicClient) GetPDSEndpoint(ctx context.Context, did string) (string, error) {
-	return c.inner.GetPDSEndpoint(ctx, did)
+	c.pdsMu.RLock()
+	if v, ok := c.pdsCache[did]; ok && time.Now().Before(v.expiry) {
+		c.pdsMu.RUnlock()
+		return v.value, nil
+	}
+	c.pdsMu.RUnlock()
+
+	url, err := c.inner.GetPDSEndpoint(ctx, did)
+	if err != nil {
+		return "", err
+	}
+
+	c.pdsMu.Lock()
+	c.pdsCache[did] = cachedValue{value: url, expiry: time.Now().Add(resolverCacheTTL)}
+	c.pdsMu.Unlock()
+	return url, nil
 }
 
 // GetProfile fetches a user's public profile by DID or handle.
@@ -41,7 +74,22 @@ func (c *PublicClient) GetProfile(ctx context.Context, actor string) (*Profile, 
 
 // ResolveHandle resolves an AT Protocol handle to a DID.
 func (c *PublicClient) ResolveHandle(ctx context.Context, handle string) (string, error) {
-	return c.inner.ResolveHandle(ctx, handle)
+	c.handleMu.RLock()
+	if v, ok := c.handleCache[handle]; ok && time.Now().Before(v.expiry) {
+		c.handleMu.RUnlock()
+		return v.value, nil
+	}
+	c.handleMu.RUnlock()
+
+	did, err := c.inner.ResolveHandle(ctx, handle)
+	if err != nil {
+		return "", err
+	}
+
+	c.handleMu.Lock()
+	c.handleCache[handle] = cachedValue{value: did, expiry: time.Now().Add(resolverCacheTTL)}
+	c.handleMu.Unlock()
+	return did, nil
 }
 
 // PublicListRecordsOutput represents the response from public listRecords API.

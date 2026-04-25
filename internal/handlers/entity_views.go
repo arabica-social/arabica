@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/moderation"
@@ -71,625 +73,397 @@ func resolveOwnerDID(ctx context.Context, owner string) (string, error) {
 	return resolved, nil
 }
 
-// HandleBeanView shows a bean detail page with social features
-func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
+// entityViewConfig captures per-entity behavior for handleEntityView.
+// Construct via the h.xViewConfig() methods — closures capture h naturally.
+type entityViewConfig struct {
+	descriptor  *entities.Descriptor
+	fromWitness func(ctx context.Context, m map[string]any, uri, rkey, ownerDID string) (any, error)
+	fromPDS     func(ctx context.Context, e *atproto.PublicRecordEntry, rkey, ownerDID string) (any, error)
+	fromStore   func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error)
+	displayName func(record any) string
+	ogSubtitle  func(record any) string
+	countLookup func(ctx context.Context, ownerDID, subjectURI string) int
+	render      func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error
+}
+
+func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg entityViewConfig) {
 	rkey := validateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
 	owner := r.URL.Query().Get("owner")
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
+	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+	isAuthenticated := didStr != ""
 
 	var userProfile *bff.UserProfile
 	if isAuthenticated {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	var beanViewProps pages.BeanViewProps
+	var record any
 	var subjectURI, subjectCID, entityOwnerDID string
+	isOwnProfile := false
 
 	if owner != "" {
+		var err error
 		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
 		if err != nil {
-			log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for bean view")
+			log.Warn().Err(err).Str("handle", owner).Msgf("Failed to resolve handle for %s view", cfg.descriptor.Noun)
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
 
-		// Try witness cache first
-		beanURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDBean, rkey)
+		entityURI := atproto.BuildATURI(entityOwnerDID, cfg.descriptor.NSID, rkey)
 		if h.witnessCache != nil {
-			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), beanURI); wr != nil {
+			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), entityURI); wr != nil {
 				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if bean, err := atproto.RecordToBean(m, wr.URI); err == nil {
-						metrics.WitnessCacheHitsTotal.WithLabelValues("bean").Inc()
-						bean.RKey = rkey
+					if rec, err := cfg.fromWitness(r.Context(), m, wr.URI, rkey, entityOwnerDID); err == nil {
+						metrics.WitnessCacheHitsTotal.WithLabelValues(cfg.descriptor.Noun).Inc()
+						record = rec
 						subjectURI = wr.URI
 						subjectCID = wr.CID
-						// Resolve roaster from witness
-						if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
-							if c, err := atproto.ResolveATURI(roasterRef); err == nil {
-								bean.RoasterRKey = c.RKey
-							}
-							if rwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), roasterRef); rwr != nil {
-								if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
-									if roaster, err := atproto.RecordToRoaster(rm, rwr.URI); err == nil {
-										roaster.RKey = rwr.RKey
-										bean.Roaster = roaster
-									}
-								}
-							}
-						}
-						beanViewProps.Bean = bean
-						beanViewProps.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+						isOwnProfile = isAuthenticated && didStr == entityOwnerDID
 					}
 				}
 			}
 		}
 
-		if beanViewProps.Bean == nil {
-			// PDS fallback
-			metrics.WitnessCacheMissesTotal.WithLabelValues("bean").Inc()
-			publicClient := atproto.NewPublicClient()
-			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBean, rkey)
+		if record == nil {
+			metrics.WitnessCacheMissesTotal.WithLabelValues(cfg.descriptor.Noun).Inc()
+			pub := atproto.NewPublicClient()
+			entry, err := pub.GetRecord(r.Context(), entityOwnerDID, cfg.descriptor.NSID, rkey)
 			if err != nil {
-				log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msg("Failed to get bean record")
-				http.Error(w, "Bean not found", http.StatusNotFound)
+				log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msgf("Failed to get %s record", cfg.descriptor.Noun)
+				http.Error(w, cfg.descriptor.DisplayName+" not found", http.StatusNotFound)
 				return
 			}
-
-			subjectURI = record.URI
-			subjectCID = record.CID
-
-			bean, err := atproto.RecordToBean(record.Value, record.URI)
+			rec, err := cfg.fromPDS(r.Context(), entry, rkey, entityOwnerDID)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to convert bean record")
-				http.Error(w, "Failed to load bean", http.StatusInternalServerError)
+				log.Error().Err(err).Msgf("Failed to convert %s record", cfg.descriptor.Noun)
+				http.Error(w, "Failed to load "+cfg.descriptor.Noun, http.StatusInternalServerError)
 				return
+			}
+			record = rec
+			subjectURI = entry.URI
+			subjectCID = entry.CID
+			isOwnProfile = isAuthenticated && didStr == entityOwnerDID
+		}
+	} else {
+		store, authenticated := h.getAtprotoStore(r)
+		if !authenticated {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+		atprotoStore, ok := store.(*atproto.AtprotoStore)
+		if !ok {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
+		rec, uri, cid, err := cfg.fromStore(r.Context(), atprotoStore, rkey)
+		if err != nil {
+			http.Error(w, cfg.descriptor.DisplayName+" not found", http.StatusNotFound)
+			log.Error().Err(err).Str("rkey", rkey).Msgf("Failed to get %s for view", cfg.descriptor.Noun)
+			return
+		}
+		record, subjectURI, subjectCID = rec, uri, cid
+		isOwnProfile = true
+	}
+
+	var shareURL string
+	if owner != "" {
+		shareURL = fmt.Sprintf("/%s/%s?owner=%s", cfg.descriptor.URLPath, rkey, owner)
+	} else if userProfile != nil && userProfile.Handle != "" {
+		shareURL = fmt.Sprintf("/%s/%s?owner=%s", cfg.descriptor.URLPath, rkey, userProfile.Handle)
+	}
+
+	ownerHandle := h.resolveOwnerHandle(r.Context(), owner)
+	layoutData := h.buildLayoutData(r, cfg.displayName(record), isAuthenticated, didStr, userProfile)
+	populateOGFields(layoutData, cfg.ogSubtitle(record), cfg.descriptor.Noun, ownerHandle, h.publicBaseURL(r), shareURL)
+
+	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
+
+	authorDID := entityOwnerDID
+	if authorDID == "" {
+		authorDID = didStr
+	}
+	base := pages.EntityViewBase{
+		IsOwnProfile:      isOwnProfile,
+		IsAuthenticated:   isAuthenticated,
+		SubjectURI:        subjectURI,
+		SubjectCID:        subjectCID,
+		IsLiked:           sd.IsLiked,
+		LikeCount:         sd.LikeCount,
+		CommentCount:      sd.CommentCount,
+		Comments:          sd.Comments,
+		CurrentUserDID:    didStr,
+		ShareURL:          shareURL,
+		IsModerator:       sd.IsModerator,
+		CanHideRecord:     sd.CanHideRecord,
+		CanBlockUser:      sd.CanBlockUser,
+		IsRecordHidden:    sd.IsRecordHidden,
+		AuthorDID:         entityOwnerDID,
+	}
+	if ap := h.getUserProfile(r.Context(), authorDID); ap != nil {
+		base.AuthorHandle = ap.Handle
+		base.AuthorDisplayName = ap.DisplayName
+		base.AuthorAvatar = ap.Avatar
+	}
+
+	if err := cfg.render(r.Context(), w, layoutData, record, base); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Failed to render %s view", cfg.descriptor.Noun)
+	}
+}
+
+func (h *Handler) roasterViewConfig() entityViewConfig {
+	return entityViewConfig{
+		descriptor: entities.Get(lexicons.RecordTypeRoaster),
+		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
+			r, err := atproto.RecordToRoaster(m, uri)
+			if err != nil {
+				return nil, err
+			}
+			r.RKey = rkey
+			return r, nil
+		},
+		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
+			r, err := atproto.RecordToRoaster(e.Value, e.URI)
+			if err != nil {
+				return nil, err
+			}
+			r.RKey = rkey
+			return r, nil
+		},
+		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
+			rec, err := s.GetRoasterRecordByRKey(ctx, rkey)
+			if err != nil {
+				return nil, "", "", err
+			}
+			return rec.Roaster, rec.URI, rec.CID, nil
+		},
+		displayName: func(record any) string { return record.(*models.Roaster).Name },
+		ogSubtitle:  func(record any) string { return record.(*models.Roaster).Name },
+		countLookup: func(ctx context.Context, ownerDID, subjectURI string) int {
+			if h.feedIndex == nil || subjectURI == "" {
+				return 0
+			}
+			return h.feedIndex.BeanCountsByRoasterURI(ctx, ownerDID)[subjectURI]
+		},
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+			roaster := record.(*models.Roaster)
+			props := pages.RoasterViewProps{
+				Roaster:        roaster,
+				EntityViewBase: base,
+			}
+			if h.feedIndex != nil && base.SubjectURI != "" {
+				ownerDID := base.AuthorDID
+				if ownerDID == "" {
+					ownerDID = base.CurrentUserDID
+				}
+				props.BeanCount = h.feedIndex.BeanCountsByRoasterURI(ctx, ownerDID)[base.SubjectURI]
+			}
+			return pages.RoasterView(layoutData, props).Render(ctx, w)
+		},
+	}
+}
+
+func (h *Handler) grinderViewConfig() entityViewConfig {
+	return entityViewConfig{
+		descriptor: entities.Get(lexicons.RecordTypeGrinder),
+		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
+			g, err := atproto.RecordToGrinder(m, uri)
+			if err != nil {
+				return nil, err
+			}
+			g.RKey = rkey
+			return g, nil
+		},
+		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
+			g, err := atproto.RecordToGrinder(e.Value, e.URI)
+			if err != nil {
+				return nil, err
+			}
+			g.RKey = rkey
+			return g, nil
+		},
+		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
+			rec, err := s.GetGrinderRecordByRKey(ctx, rkey)
+			if err != nil {
+				return nil, "", "", err
+			}
+			return rec.Grinder, rec.URI, rec.CID, nil
+		},
+		displayName: func(record any) string { return record.(*models.Grinder).Name },
+		ogSubtitle:  func(record any) string { return record.(*models.Grinder).Name },
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+			grinder := record.(*models.Grinder)
+			props := pages.GrinderViewProps{
+				Grinder:        grinder,
+				EntityViewBase: base,
+			}
+			if h.feedIndex != nil && base.SubjectURI != "" {
+				ownerDID := base.AuthorDID
+				if ownerDID == "" {
+					ownerDID = base.CurrentUserDID
+				}
+				props.BrewCount = h.feedIndex.BrewCountsByGrinderURI(ctx, ownerDID)[base.SubjectURI]
+			}
+			return pages.GrinderView(layoutData, props).Render(ctx, w)
+		},
+	}
+}
+
+func (h *Handler) brewerViewConfig() entityViewConfig {
+	return entityViewConfig{
+		descriptor: entities.Get(lexicons.RecordTypeBrewer),
+		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
+			b, err := atproto.RecordToBrewer(m, uri)
+			if err != nil {
+				return nil, err
+			}
+			b.RKey = rkey
+			return b, nil
+		},
+		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
+			b, err := atproto.RecordToBrewer(e.Value, e.URI)
+			if err != nil {
+				return nil, err
+			}
+			b.RKey = rkey
+			return b, nil
+		},
+		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
+			rec, err := s.GetBrewerRecordByRKey(ctx, rkey)
+			if err != nil {
+				return nil, "", "", err
+			}
+			return rec.Brewer, rec.URI, rec.CID, nil
+		},
+		displayName: func(record any) string { return record.(*models.Brewer).Name },
+		ogSubtitle:  func(record any) string { return record.(*models.Brewer).Name },
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+			brewer := record.(*models.Brewer)
+			props := pages.BrewerViewProps{
+				Brewer:         brewer,
+				EntityViewBase: base,
+			}
+			if h.feedIndex != nil && base.SubjectURI != "" {
+				ownerDID := base.AuthorDID
+				if ownerDID == "" {
+					ownerDID = base.CurrentUserDID
+				}
+				props.BrewCount = h.feedIndex.BrewCountsByBrewerURI(ctx, ownerDID)[base.SubjectURI]
+			}
+			return pages.BrewerView(layoutData, props).Render(ctx, w)
+		},
+	}
+}
+
+func (h *Handler) beanViewConfig() entityViewConfig {
+	return entityViewConfig{
+		descriptor: entities.Get(lexicons.RecordTypeBean),
+		fromWitness: func(ctx context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
+			bean, err := atproto.RecordToBean(m, uri)
+			if err != nil {
+				return nil, err
 			}
 			bean.RKey = rkey
-
-			// Resolve roaster reference
-			if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
+			if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
+				if c, err := atproto.ResolveATURI(roasterRef); err == nil {
+					bean.RoasterRKey = c.RKey
+				}
+				if h.witnessCache != nil {
+					if rwr, _ := h.witnessCache.GetWitnessRecord(ctx, roasterRef); rwr != nil {
+						if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
+							if roaster, err := atproto.RecordToRoaster(rm, rwr.URI); err == nil {
+								roaster.RKey = rwr.RKey
+								bean.Roaster = roaster
+							}
+						}
+					}
+				}
+			}
+			return bean, nil
+		},
+		fromPDS: func(ctx context.Context, e *atproto.PublicRecordEntry, rkey, ownerDID string) (any, error) {
+			bean, err := atproto.RecordToBean(e.Value, e.URI)
+			if err != nil {
+				return nil, err
+			}
+			bean.RKey = rkey
+			if roasterRef, ok := e.Value["roasterRef"].(string); ok && roasterRef != "" {
 				if c, err := atproto.ResolveATURI(roasterRef); err == nil {
 					bean.RoasterRKey = c.RKey
 				}
 				roasterRKey := atproto.ExtractRKeyFromURI(roasterRef)
 				if roasterRKey != "" {
-					roasterRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRoaster, roasterRKey)
-					if err == nil {
-						if roaster, err := atproto.RecordToRoaster(roasterRecord.Value, roasterRecord.URI); err == nil {
+					pub := atproto.NewPublicClient()
+					if rr, err := pub.GetRecord(ctx, ownerDID, atproto.NSIDRoaster, roasterRKey); err == nil {
+						if roaster, err := atproto.RecordToRoaster(rr.Value, rr.URI); err == nil {
 							roaster.RKey = roasterRKey
 							bean.Roaster = roaster
 						}
 					}
 				}
 			}
-
-			beanViewProps.Bean = bean
-			beanViewProps.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
-		}
-	} else {
-		store, authenticated := h.getAtprotoStore(r)
-		if !authenticated {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
-		atprotoStore, ok := store.(*atproto.AtprotoStore)
-		if !ok {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
-			return
-		}
-
-		beanRecord, err := atprotoStore.GetBeanRecordByRKey(r.Context(), rkey)
-		if err != nil {
-			http.Error(w, "Bean not found", http.StatusNotFound)
-			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get bean for view")
-			return
-		}
-
-		beanViewProps.Bean = beanRecord.Bean
-		subjectURI = beanRecord.URI
-		subjectCID = beanRecord.CID
-		beanViewProps.IsOwnProfile = true
+			return bean, nil
+		},
+		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
+			rec, err := s.GetBeanRecordByRKey(ctx, rkey)
+			if err != nil {
+				return nil, "", "", err
+			}
+			return rec.Bean, rec.URI, rec.CID, nil
+		},
+		displayName: func(record any) string { return record.(*models.Bean).Name },
+		ogSubtitle: func(record any) string {
+			bean := record.(*models.Bean)
+			sub := bean.Name
+			if sub == "" {
+				sub = bean.Origin
+			}
+			if bean.Roaster != nil && bean.Roaster.Name != "" {
+				sub += " from " + bean.Roaster.Name
+			}
+			return sub
+		},
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+			bean := record.(*models.Bean)
+			props := pages.BeanViewProps{
+				Bean:           bean,
+				EntityViewBase: base,
+			}
+			if h.feedIndex != nil && base.SubjectURI != "" {
+				ownerDID := base.AuthorDID
+				if ownerDID == "" {
+					ownerDID = base.CurrentUserDID
+				}
+				props.BrewCount = h.feedIndex.BrewCountsByBeanURI(ctx, ownerDID)[base.SubjectURI]
+			}
+			return pages.BeanView(layoutData, props).Render(ctx, w)
+		},
 	}
+}
 
-	// Construct share URL
-	var shareURL string
-	if owner != "" {
-		shareURL = fmt.Sprintf("/beans/%s?owner=%s", rkey, owner)
-	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/beans/%s?owner=%s", rkey, userProfile.Handle)
-	}
-
-	layoutData := h.buildLayoutData(r, beanViewProps.Bean.Name, isAuthenticated, didStr, userProfile)
-	h.populateBeanOGMetadata(layoutData, beanViewProps.Bean, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
-
-	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
-
-	beanViewProps.IsAuthenticated = isAuthenticated
-	beanViewProps.SubjectURI = subjectURI
-	beanViewProps.SubjectCID = subjectCID
-	beanViewProps.IsLiked = sd.IsLiked
-	beanViewProps.LikeCount = sd.LikeCount
-	beanViewProps.CommentCount = sd.CommentCount
-	beanViewProps.Comments = sd.Comments
-	beanViewProps.CurrentUserDID = didStr
-	beanViewProps.ShareURL = shareURL
-	beanViewProps.IsModerator = sd.IsModerator
-	beanViewProps.CanHideRecord = sd.CanHideRecord
-	beanViewProps.CanBlockUser = sd.CanBlockUser
-	beanViewProps.IsRecordHidden = sd.IsRecordHidden
-	beanViewProps.AuthorDID = entityOwnerDID
-
-	// Fetch author profile for display
-	var authorProfile *bff.UserProfile
-	authorDIDForProfile := entityOwnerDID
-	if authorDIDForProfile == "" {
-		authorDIDForProfile = didStr
-	}
-	authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
-	if authorProfile != nil {
-		beanViewProps.AuthorHandle = authorProfile.Handle
-		beanViewProps.AuthorDisplayName = authorProfile.DisplayName
-		beanViewProps.AuthorAvatar = authorProfile.Avatar
-	}
-
-	if h.feedIndex != nil && subjectURI != "" {
-		ownerDID := entityOwnerDID
-		if ownerDID == "" {
-			ownerDID = didStr
-		}
-		counts := h.feedIndex.BrewCountsByBeanURI(r.Context(), ownerDID)
-		beanViewProps.BrewCount = counts[subjectURI]
-	}
-
-	if err := pages.BeanView(layoutData, beanViewProps).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render bean view")
-	}
+// HandleBeanView shows a bean detail page with social features
+func (h *Handler) HandleBeanView(w http.ResponseWriter, r *http.Request) {
+	h.handleEntityView(w, r, h.beanViewConfig())
 }
 
 // HandleRoasterView shows a roaster detail page with social features
 func (h *Handler) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	owner := r.URL.Query().Get("owner")
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	var props pages.RoasterViewProps
-	var subjectURI, subjectCID, entityOwnerDID string
-
-	if owner != "" {
-		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
-		if err != nil {
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-
-		// Try witness cache first
-		roasterURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDRoaster, rkey)
-		if h.witnessCache != nil {
-			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), roasterURI); wr != nil {
-				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if roaster, err := atproto.RecordToRoaster(m, wr.URI); err == nil {
-						metrics.WitnessCacheHitsTotal.WithLabelValues("roaster").Inc()
-						roaster.RKey = rkey
-						subjectURI = wr.URI
-						subjectCID = wr.CID
-						props.Roaster = roaster
-						props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
-					}
-				}
-			}
-		}
-
-		if props.Roaster == nil {
-			// PDS fallback
-			metrics.WitnessCacheMissesTotal.WithLabelValues("roaster").Inc()
-			publicClient := atproto.NewPublicClient()
-			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRoaster, rkey)
-			if err != nil {
-				http.Error(w, "Roaster not found", http.StatusNotFound)
-				return
-			}
-
-			subjectURI = record.URI
-			subjectCID = record.CID
-
-			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
-			if err != nil {
-				http.Error(w, "Failed to load roaster", http.StatusInternalServerError)
-				return
-			}
-			roaster.RKey = rkey
-			props.Roaster = roaster
-			props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
-		}
-	} else {
-		store, authenticated := h.getAtprotoStore(r)
-		if !authenticated {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
-		atprotoStore, ok := store.(*atproto.AtprotoStore)
-		if !ok {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
-			return
-		}
-
-		roasterRecord, err := atprotoStore.GetRoasterRecordByRKey(r.Context(), rkey)
-		if err != nil {
-			http.Error(w, "Roaster not found", http.StatusNotFound)
-			return
-		}
-
-		props.Roaster = roasterRecord.Roaster
-		subjectURI = roasterRecord.URI
-		subjectCID = roasterRecord.CID
-		props.IsOwnProfile = true
-	}
-
-	var shareURL string
-	if owner != "" {
-		shareURL = fmt.Sprintf("/roasters/%s?owner=%s", rkey, owner)
-	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/roasters/%s?owner=%s", rkey, userProfile.Handle)
-	}
-
-	layoutData := h.buildLayoutData(r, props.Roaster.Name, isAuthenticated, didStr, userProfile)
-	h.populateRoasterOGMetadata(layoutData, props.Roaster, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
-
-	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
-
-	props.IsAuthenticated = isAuthenticated
-	props.SubjectURI = subjectURI
-	props.SubjectCID = subjectCID
-	props.IsLiked = sd.IsLiked
-	props.LikeCount = sd.LikeCount
-	props.CommentCount = sd.CommentCount
-	props.Comments = sd.Comments
-	props.CurrentUserDID = didStr
-	props.ShareURL = shareURL
-	props.IsModerator = sd.IsModerator
-	props.CanHideRecord = sd.CanHideRecord
-	props.CanBlockUser = sd.CanBlockUser
-	props.IsRecordHidden = sd.IsRecordHidden
-	props.AuthorDID = entityOwnerDID
-
-	// Fetch author profile for display
-	var authorProfile *bff.UserProfile
-	authorDIDForProfile := entityOwnerDID
-	if authorDIDForProfile == "" {
-		authorDIDForProfile = didStr
-	}
-	authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
-	if authorProfile != nil {
-		props.AuthorHandle = authorProfile.Handle
-		props.AuthorDisplayName = authorProfile.DisplayName
-		props.AuthorAvatar = authorProfile.Avatar
-	}
-
-	if h.feedIndex != nil && subjectURI != "" {
-		ownerDID := entityOwnerDID
-		if ownerDID == "" {
-			ownerDID = didStr
-		}
-		counts := h.feedIndex.BeanCountsByRoasterURI(r.Context(), ownerDID)
-		props.BeanCount = counts[subjectURI]
-	}
-
-	if err := pages.RoasterView(layoutData, props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render roaster view")
-	}
+	h.handleEntityView(w, r, h.roasterViewConfig())
 }
 
 // HandleGrinderView shows a grinder detail page with social features
 func (h *Handler) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	owner := r.URL.Query().Get("owner")
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	var props pages.GrinderViewProps
-	var subjectURI, subjectCID, entityOwnerDID string
-
-	if owner != "" {
-		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
-		if err != nil {
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-
-		// Try witness cache first
-		grinderURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDGrinder, rkey)
-		if h.witnessCache != nil {
-			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), grinderURI); wr != nil {
-				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if grinder, err := atproto.RecordToGrinder(m, wr.URI); err == nil {
-						metrics.WitnessCacheHitsTotal.WithLabelValues("grinder").Inc()
-						grinder.RKey = rkey
-						subjectURI = wr.URI
-						subjectCID = wr.CID
-						props.Grinder = grinder
-						props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
-					}
-				}
-			}
-		}
-
-		if props.Grinder == nil {
-			// PDS fallback
-			metrics.WitnessCacheMissesTotal.WithLabelValues("grinder").Inc()
-			publicClient := atproto.NewPublicClient()
-			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDGrinder, rkey)
-			if err != nil {
-				http.Error(w, "Grinder not found", http.StatusNotFound)
-				return
-			}
-
-			subjectURI = record.URI
-			subjectCID = record.CID
-
-			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
-			if err != nil {
-				http.Error(w, "Failed to load grinder", http.StatusInternalServerError)
-				return
-			}
-			grinder.RKey = rkey
-			props.Grinder = grinder
-			props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
-		}
-	} else {
-		store, authenticated := h.getAtprotoStore(r)
-		if !authenticated {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
-		atprotoStore, ok := store.(*atproto.AtprotoStore)
-		if !ok {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
-			return
-		}
-
-		grinderRecord, err := atprotoStore.GetGrinderRecordByRKey(r.Context(), rkey)
-		if err != nil {
-			http.Error(w, "Grinder not found", http.StatusNotFound)
-			return
-		}
-
-		props.Grinder = grinderRecord.Grinder
-		subjectURI = grinderRecord.URI
-		subjectCID = grinderRecord.CID
-		props.IsOwnProfile = true
-	}
-
-	var shareURL string
-	if owner != "" {
-		shareURL = fmt.Sprintf("/grinders/%s?owner=%s", rkey, owner)
-	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/grinders/%s?owner=%s", rkey, userProfile.Handle)
-	}
-
-	layoutData := h.buildLayoutData(r, props.Grinder.Name, isAuthenticated, didStr, userProfile)
-	h.populateGrinderOGMetadata(layoutData, props.Grinder, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
-
-	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
-
-	props.IsAuthenticated = isAuthenticated
-	props.SubjectURI = subjectURI
-	props.SubjectCID = subjectCID
-	props.IsLiked = sd.IsLiked
-	props.LikeCount = sd.LikeCount
-	props.CommentCount = sd.CommentCount
-	props.Comments = sd.Comments
-	props.CurrentUserDID = didStr
-	props.ShareURL = shareURL
-	props.IsModerator = sd.IsModerator
-	props.CanHideRecord = sd.CanHideRecord
-	props.CanBlockUser = sd.CanBlockUser
-	props.IsRecordHidden = sd.IsRecordHidden
-	props.AuthorDID = entityOwnerDID
-
-	// Fetch author profile for display
-	{
-		var authorProfile *bff.UserProfile
-		authorDIDForProfile := entityOwnerDID
-		if authorDIDForProfile == "" {
-			authorDIDForProfile = didStr
-		}
-		authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
-		if authorProfile != nil {
-			props.AuthorHandle = authorProfile.Handle
-			props.AuthorDisplayName = authorProfile.DisplayName
-			props.AuthorAvatar = authorProfile.Avatar
-		}
-	}
-
-	if h.feedIndex != nil && subjectURI != "" {
-		ownerDID := entityOwnerDID
-		if ownerDID == "" {
-			ownerDID = didStr
-		}
-		counts := h.feedIndex.BrewCountsByGrinderURI(r.Context(), ownerDID)
-		props.BrewCount = counts[subjectURI]
-	}
-
-	if err := pages.GrinderView(layoutData, props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render grinder view")
-	}
+	h.handleEntityView(w, r, h.grinderViewConfig())
 }
 
 // HandleBrewerView shows a brewer detail page with social features
 func (h *Handler) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	owner := r.URL.Query().Get("owner")
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
-	}
-
-	var props pages.BrewerViewProps
-	var subjectURI, subjectCID, entityOwnerDID string
-
-	if owner != "" {
-		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
-		if err != nil {
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-
-		// Try witness cache first
-		brewerURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDBrewer, rkey)
-		if h.witnessCache != nil {
-			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerURI); wr != nil {
-				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if brewer, err := atproto.RecordToBrewer(m, wr.URI); err == nil {
-						metrics.WitnessCacheHitsTotal.WithLabelValues("brewer").Inc()
-						brewer.RKey = rkey
-						subjectURI = wr.URI
-						subjectCID = wr.CID
-						props.Brewer = brewer
-						props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
-					}
-				}
-			}
-		}
-
-		if props.Brewer == nil {
-			// PDS fallback
-			metrics.WitnessCacheMissesTotal.WithLabelValues("brewer").Inc()
-			publicClient := atproto.NewPublicClient()
-			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBrewer, rkey)
-			if err != nil {
-				http.Error(w, "Brewer not found", http.StatusNotFound)
-				return
-			}
-
-			subjectURI = record.URI
-			subjectCID = record.CID
-
-			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
-			if err != nil {
-				http.Error(w, "Failed to load brewer", http.StatusInternalServerError)
-				return
-			}
-			brewer.RKey = rkey
-			props.Brewer = brewer
-			props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
-		}
-	} else {
-		store, authenticated := h.getAtprotoStore(r)
-		if !authenticated {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
-		atprotoStore, ok := store.(*atproto.AtprotoStore)
-		if !ok {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
-			return
-		}
-
-		brewerRecord, err := atprotoStore.GetBrewerRecordByRKey(r.Context(), rkey)
-		if err != nil {
-			http.Error(w, "Brewer not found", http.StatusNotFound)
-			return
-		}
-
-		props.Brewer = brewerRecord.Brewer
-		subjectURI = brewerRecord.URI
-		subjectCID = brewerRecord.CID
-		props.IsOwnProfile = true
-	}
-
-	var shareURL string
-	if owner != "" {
-		shareURL = fmt.Sprintf("/brewers/%s?owner=%s", rkey, owner)
-	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/brewers/%s?owner=%s", rkey, userProfile.Handle)
-	}
-
-	layoutData := h.buildLayoutData(r, props.Brewer.Name, isAuthenticated, didStr, userProfile)
-	h.populateBrewerOGMetadata(layoutData, props.Brewer, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
-
-	sd := h.fetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
-
-	props.IsAuthenticated = isAuthenticated
-	props.SubjectURI = subjectURI
-	props.SubjectCID = subjectCID
-	props.IsLiked = sd.IsLiked
-	props.LikeCount = sd.LikeCount
-	props.CommentCount = sd.CommentCount
-	props.Comments = sd.Comments
-	props.CurrentUserDID = didStr
-	props.ShareURL = shareURL
-	props.IsModerator = sd.IsModerator
-	props.CanHideRecord = sd.CanHideRecord
-	props.CanBlockUser = sd.CanBlockUser
-	props.IsRecordHidden = sd.IsRecordHidden
-	props.AuthorDID = entityOwnerDID
-
-	// Fetch author profile for display
-	{
-		var authorProfile *bff.UserProfile
-		authorDIDForProfile := entityOwnerDID
-		if authorDIDForProfile == "" {
-			authorDIDForProfile = didStr
-		}
-		authorProfile = h.getUserProfile(r.Context(), authorDIDForProfile)
-		if authorProfile != nil {
-			props.AuthorHandle = authorProfile.Handle
-			props.AuthorDisplayName = authorProfile.DisplayName
-			props.AuthorAvatar = authorProfile.Avatar
-		}
-	}
-
-	if h.feedIndex != nil && subjectURI != "" {
-		ownerDID := entityOwnerDID
-		if ownerDID == "" {
-			ownerDID = didStr
-		}
-		counts := h.feedIndex.BrewCountsByBrewerURI(r.Context(), ownerDID)
-		props.BrewCount = counts[subjectURI]
-	}
-
-	if err := pages.BrewerView(layoutData, props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brewer view")
-	}
+	h.handleEntityView(w, r, h.brewerViewConfig())
 }
 
 // HandleRecipeView displays a recipe detail page
@@ -960,8 +734,17 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 	writeOGImage(w, card)
 }
 
-// HandleRoasterOGImage generates a 1200x630 PNG preview card for a roaster.
-func (h *Handler) HandleRoasterOGImage(w http.ResponseWriter, r *http.Request) {
+// ogImageConfig captures per-entity behavior for handleSimpleOGImage.
+type ogImageConfig struct {
+	nsid        string
+	metricLabel string
+	convert     func(m map[string]any, uri, rkey string) (any, error)
+	drawCard    func(record any) (*ogcard.Card, error)
+}
+
+// handleSimpleOGImage serves a simple entity OG image (no nested ref resolution).
+// Bean and Recipe have bespoke handlers due to nested ref resolution.
+func (h *Handler) handleSimpleOGImage(w http.ResponseWriter, r *http.Request, cfg ogImageConfig) {
 	rkey := validateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
@@ -971,158 +754,93 @@ func (h *Handler) HandleRoasterOGImage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "owner parameter required", http.StatusBadRequest)
 		return
 	}
-
 	ownerDID, err := resolveOwnerDID(r.Context(), owner)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
-
-	var roaster *models.Roaster
-	roasterURI := atproto.BuildATURI(ownerDID, atproto.NSIDRoaster, rkey)
+	var record any
+	entityURI := atproto.BuildATURI(ownerDID, cfg.nsid, rkey)
 	if h.witnessCache != nil {
-		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), roasterURI); wr != nil {
+		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), entityURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if r, err := atproto.RecordToRoaster(m, wr.URI); err == nil {
-					metrics.WitnessCacheHitsTotal.WithLabelValues("roaster_og").Inc()
-					roaster = r
-					roaster.RKey = rkey
+				if rec, err := cfg.convert(m, wr.URI, rkey); err == nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues(cfg.metricLabel).Inc()
+					record = rec
 				}
 			}
 		}
 	}
-	if roaster == nil {
-		metrics.WitnessCacheMissesTotal.WithLabelValues("roaster_og").Inc()
-		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRoaster, rkey)
+	if record == nil {
+		metrics.WitnessCacheMissesTotal.WithLabelValues(cfg.metricLabel).Inc()
+		pub := atproto.NewPublicClient()
+		pr, err := pub.GetRecord(r.Context(), ownerDID, cfg.nsid, rkey)
 		if err != nil {
-			http.Error(w, "Roaster not found", http.StatusNotFound)
+			http.Error(w, "Not found", http.StatusNotFound)
 			return
 		}
-		roaster, err = atproto.RecordToRoaster(record.Value, record.URI)
+		rec, err := cfg.convert(pr.Value, pr.URI, rkey)
 		if err != nil {
-			http.Error(w, "Failed to load roaster", http.StatusInternalServerError)
+			http.Error(w, "Failed to load record", http.StatusInternalServerError)
 			return
 		}
+		record = rec
 	}
-
-	card, err := ogcard.DrawRoasterCard(roaster)
+	card, err := cfg.drawCard(record)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to generate roaster OG image")
+		log.Error().Err(err).Msgf("Failed to generate %s OG image", cfg.metricLabel)
 		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
 		return
 	}
 	writeOGImage(w, card)
+}
+
+// HandleRoasterOGImage generates a 1200x630 PNG preview card for a roaster.
+func (h *Handler) HandleRoasterOGImage(w http.ResponseWriter, r *http.Request) {
+	h.handleSimpleOGImage(w, r, ogImageConfig{
+		nsid: atproto.NSIDRoaster, metricLabel: "roaster_og",
+		convert: func(m map[string]any, uri, rkey string) (any, error) {
+			rec, err := atproto.RecordToRoaster(m, uri)
+			if err != nil {
+				return nil, err
+			}
+			rec.RKey = rkey
+			return rec, nil
+		},
+		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawRoasterCard(rec.(*models.Roaster)) },
+	})
 }
 
 // HandleGrinderOGImage generates a 1200x630 PNG preview card for a grinder.
 func (h *Handler) HandleGrinderOGImage(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-	owner := r.URL.Query().Get("owner")
-	if owner == "" {
-		http.Error(w, "owner parameter required", http.StatusBadRequest)
-		return
-	}
-
-	ownerDID, err := resolveOwnerDID(r.Context(), owner)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	var grinder *models.Grinder
-	grinderURI := atproto.BuildATURI(ownerDID, atproto.NSIDGrinder, rkey)
-	if h.witnessCache != nil {
-		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), grinderURI); wr != nil {
-			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if g, err := atproto.RecordToGrinder(m, wr.URI); err == nil {
-					metrics.WitnessCacheHitsTotal.WithLabelValues("grinder_og").Inc()
-					grinder = g
-					grinder.RKey = rkey
-				}
+	h.handleSimpleOGImage(w, r, ogImageConfig{
+		nsid: atproto.NSIDGrinder, metricLabel: "grinder_og",
+		convert: func(m map[string]any, uri, rkey string) (any, error) {
+			rec, err := atproto.RecordToGrinder(m, uri)
+			if err != nil {
+				return nil, err
 			}
-		}
-	}
-	if grinder == nil {
-		metrics.WitnessCacheMissesTotal.WithLabelValues("grinder_og").Inc()
-		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDGrinder, rkey)
-		if err != nil {
-			http.Error(w, "Grinder not found", http.StatusNotFound)
-			return
-		}
-		grinder, err = atproto.RecordToGrinder(record.Value, record.URI)
-		if err != nil {
-			http.Error(w, "Failed to load grinder", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	card, err := ogcard.DrawGrinderCard(grinder)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to generate grinder OG image")
-		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
-		return
-	}
-	writeOGImage(w, card)
+			rec.RKey = rkey
+			return rec, nil
+		},
+		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawGrinderCard(rec.(*models.Grinder)) },
+	})
 }
 
 // HandleBrewerOGImage generates a 1200x630 PNG preview card for a brewer.
 func (h *Handler) HandleBrewerOGImage(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-	owner := r.URL.Query().Get("owner")
-	if owner == "" {
-		http.Error(w, "owner parameter required", http.StatusBadRequest)
-		return
-	}
-
-	ownerDID, err := resolveOwnerDID(r.Context(), owner)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	var brewer *models.Brewer
-	brewerURI := atproto.BuildATURI(ownerDID, atproto.NSIDBrewer, rkey)
-	if h.witnessCache != nil {
-		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerURI); wr != nil {
-			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if b, err := atproto.RecordToBrewer(m, wr.URI); err == nil {
-					metrics.WitnessCacheHitsTotal.WithLabelValues("brewer_og").Inc()
-					brewer = b
-					brewer.RKey = rkey
-				}
+	h.handleSimpleOGImage(w, r, ogImageConfig{
+		nsid: atproto.NSIDBrewer, metricLabel: "brewer_og",
+		convert: func(m map[string]any, uri, rkey string) (any, error) {
+			rec, err := atproto.RecordToBrewer(m, uri)
+			if err != nil {
+				return nil, err
 			}
-		}
-	}
-	if brewer == nil {
-		metrics.WitnessCacheMissesTotal.WithLabelValues("brewer_og").Inc()
-		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, rkey)
-		if err != nil {
-			http.Error(w, "Brewer not found", http.StatusNotFound)
-			return
-		}
-		brewer, err = atproto.RecordToBrewer(record.Value, record.URI)
-		if err != nil {
-			http.Error(w, "Failed to load brewer", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	card, err := ogcard.DrawBrewerCard(brewer)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to generate brewer OG image")
-		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
-		return
-	}
-	writeOGImage(w, card)
+			rec.RKey = rkey
+			return rec, nil
+		},
+		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawBrewerCard(rec.(*models.Brewer)) },
+	})
 }
 
 // HandleRecipeOGImage generates a 1200x630 PNG preview card for a recipe.
@@ -1210,43 +928,6 @@ func writeOGImage(w http.ResponseWriter, card *ogcard.Card) {
 	if err := card.EncodePNG(w); err != nil {
 		log.Error().Err(err).Msg("Failed to encode OG image")
 	}
-}
-
-// OG metadata helpers for entity types
-
-func (h *Handler) populateBeanOGMetadata(layoutData *components.LayoutData, bean *models.Bean, owner, baseURL, shareURL string) {
-	if bean == nil {
-		return
-	}
-	subtitle := bean.Name
-	if subtitle == "" {
-		subtitle = bean.Origin
-	}
-	if bean.Roaster != nil && bean.Roaster.Name != "" {
-		subtitle += " from " + bean.Roaster.Name
-	}
-	populateOGFields(layoutData, subtitle, "bean", owner, baseURL, shareURL)
-}
-
-func (h *Handler) populateRoasterOGMetadata(layoutData *components.LayoutData, roaster *models.Roaster, owner, baseURL, shareURL string) {
-	if roaster == nil {
-		return
-	}
-	populateOGFields(layoutData, roaster.Name, "roaster", owner, baseURL, shareURL)
-}
-
-func (h *Handler) populateGrinderOGMetadata(layoutData *components.LayoutData, grinder *models.Grinder, owner, baseURL, shareURL string) {
-	if grinder == nil {
-		return
-	}
-	populateOGFields(layoutData, grinder.Name, "grinder", owner, baseURL, shareURL)
-}
-
-func (h *Handler) populateBrewerOGMetadata(layoutData *components.LayoutData, brewer *models.Brewer, owner, baseURL, shareURL string) {
-	if brewer == nil {
-		return
-	}
-	populateOGFields(layoutData, brewer.Name, "brewer", owner, baseURL, shareURL)
 }
 
 func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *models.Recipe, owner, baseURL, shareURL string) {

@@ -69,6 +69,115 @@ type FeedItem struct {
 	IsOwner bool // Whether the current viewer owns this record
 }
 
+// Record returns the typed record pointer matching f.RecordType, or nil if
+// none is set. Lets callers dispatch on RecordType without a type switch.
+func (f *FeedItem) Record() any {
+	switch f.RecordType {
+	case lexicons.RecordTypeBean:
+		if f.Bean != nil {
+			return f.Bean
+		}
+	case lexicons.RecordTypeRoaster:
+		if f.Roaster != nil {
+			return f.Roaster
+		}
+	case lexicons.RecordTypeGrinder:
+		if f.Grinder != nil {
+			return f.Grinder
+		}
+	case lexicons.RecordTypeBrewer:
+		if f.Brewer != nil {
+			return f.Brewer
+		}
+	case lexicons.RecordTypeRecipe:
+		if f.Recipe != nil {
+			return f.Recipe
+		}
+	case lexicons.RecordTypeBrew:
+		if f.Brew != nil {
+			return f.Brew
+		}
+	}
+	return nil
+}
+
+// RKey returns the record key of whichever typed record is set on this
+// FeedItem, or "" if none. Lets callers build URLs without a type switch.
+func (f *FeedItem) RKey() string {
+	switch f.RecordType {
+	case lexicons.RecordTypeBean:
+		if f.Bean != nil {
+			return f.Bean.RKey
+		}
+	case lexicons.RecordTypeRoaster:
+		if f.Roaster != nil {
+			return f.Roaster.RKey
+		}
+	case lexicons.RecordTypeGrinder:
+		if f.Grinder != nil {
+			return f.Grinder.RKey
+		}
+	case lexicons.RecordTypeBrewer:
+		if f.Brewer != nil {
+			return f.Brewer.RKey
+		}
+	case lexicons.RecordTypeRecipe:
+		if f.Recipe != nil {
+			return f.Recipe.RKey
+		}
+	case lexicons.RecordTypeBrew:
+		if f.Brew != nil {
+			return f.Brew.RKey
+		}
+	}
+	return ""
+}
+
+// DisplayTitle returns a human-readable title for share UI. Brew is
+// special-cased: brews don't have a name field, so we fall back to the
+// associated bean's name (or origin).
+func (f *FeedItem) DisplayTitle() string {
+	switch f.RecordType {
+	case lexicons.RecordTypeBrew:
+		if f.Brew != nil && f.Brew.Bean != nil {
+			if f.Brew.Bean.Name != "" {
+				return f.Brew.Bean.Name
+			}
+			return f.Brew.Bean.Origin
+		}
+		return "Coffee Brew"
+	case lexicons.RecordTypeBean:
+		if f.Bean != nil {
+			if f.Bean.Name != "" {
+				return f.Bean.Name
+			}
+			return f.Bean.Origin
+		}
+		return "Coffee Bean"
+	case lexicons.RecordTypeRoaster:
+		if f.Roaster != nil {
+			return f.Roaster.Name
+		}
+		return "Roaster"
+	case lexicons.RecordTypeGrinder:
+		if f.Grinder != nil {
+			return f.Grinder.Name
+		}
+		return "Grinder"
+	case lexicons.RecordTypeBrewer:
+		if f.Brewer != nil {
+			return f.Brewer.Name
+		}
+		return "Brewer"
+	case lexicons.RecordTypeRecipe:
+		if f.Recipe != nil {
+			return f.Recipe.Name
+		}
+		return "Recipe"
+	}
+	return "Arabica"
+}
+
 // publicFeedCache holds cached feed items for unauthenticated users
 type publicFeedCache struct {
 	items     []*FeedItem

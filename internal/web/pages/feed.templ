@@ -2,6 +2,7 @@ package pages
 
 import (
 	"fmt"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
@@ -287,63 +288,13 @@ func getDisplayName(displayName *string) string {
 
 // ActionText renders the action text with clickable links for record names
 templ ActionText(item *feed.FeedItem) {
-	switch item.RecordType {
-		case lexicons.RecordTypeBrew:
-			if item.Brew != nil {
-				added a
-				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new brew</a>
-				{ " " }
-				@components.TypeBadge("brew")
-			} else {
-				{ item.Action }
-			}
-		case lexicons.RecordTypeBean:
-			if item.Bean != nil {
-				added a
-				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new bean</a>
-				{ " " }
-				@components.TypeBadge("bean")
-			} else {
-				{ item.Action }
-			}
-		case lexicons.RecordTypeRoaster:
-			if item.Roaster != nil {
-				added a
-				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new roaster</a>
-				{ " " }
-				@components.TypeBadge("roaster")
-			} else {
-				{ item.Action }
-			}
-		case lexicons.RecordTypeGrinder:
-			if item.Grinder != nil {
-				added a
-				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new grinder</a>
-				{ " " }
-				@components.TypeBadge("grinder")
-			} else {
-				{ item.Action }
-			}
-		case lexicons.RecordTypeBrewer:
-			if item.Brewer != nil {
-				added a
-				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new brewer</a>
-				{ " " }
-				@components.TypeBadge("brewer")
-			} else {
-				{ item.Action }
-			}
-		case lexicons.RecordTypeRecipe:
-			if item.Recipe != nil {
-				added a
-				<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new recipe</a>
-				{ " " }
-				@components.TypeBadge("recipe")
-			} else {
-				{ item.Action }
-			}
-		default:
-			{ item.Action }
+	if d := entities.Get(item.RecordType); d != nil && item.Record() != nil {
+		added a
+		<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new { d.Noun }</a>
+		{ " " }
+		@components.TypeBadge(d.Noun)
+	} else {
+		{ item.Action }
 	}
 }
 
@@ -518,73 +469,17 @@ templ FeedRecipeContent(item *feed.FeedItem) {
 
 // Helper functions for share button
 func getFeedItemShareURL(item *feed.FeedItem) string {
-	switch item.RecordType {
-	case lexicons.RecordTypeBrew:
-		if item.Brew != nil {
-			return fmt.Sprintf("/brews/%s?owner=%s", item.Brew.RKey, item.Author.DID)
-		}
-	case lexicons.RecordTypeBean:
-		if item.Bean != nil {
-			return fmt.Sprintf("/beans/%s?owner=%s", item.Bean.RKey, item.Author.DID)
-		}
-	case lexicons.RecordTypeRoaster:
-		if item.Roaster != nil {
-			return fmt.Sprintf("/roasters/%s?owner=%s", item.Roaster.RKey, item.Author.DID)
-		}
-	case lexicons.RecordTypeGrinder:
-		if item.Grinder != nil {
-			return fmt.Sprintf("/grinders/%s?owner=%s", item.Grinder.RKey, item.Author.DID)
-		}
-	case lexicons.RecordTypeBrewer:
-		if item.Brewer != nil {
-			return fmt.Sprintf("/brewers/%s?owner=%s", item.Brewer.RKey, item.Author.DID)
-		}
-	case lexicons.RecordTypeRecipe:
-		if item.Recipe != nil {
-			return fmt.Sprintf("/recipes/%s?owner=%s", item.Recipe.RKey, item.Author.DID)
+	if d := entities.Get(item.RecordType); d != nil {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/%s/%s?owner=%s", d.URLPath, rkey, item.Author.DID)
 		}
 	}
 	return fmt.Sprintf("/profile/%s", item.Author.DID)
 }
 
 func getFeedItemShareTitle(item *feed.FeedItem) string {
-	switch item.RecordType {
-	case lexicons.RecordTypeBrew:
-		if item.Brew != nil && item.Brew.Bean != nil {
-			if item.Brew.Bean.Name != "" {
-				return item.Brew.Bean.Name
-			}
-			return item.Brew.Bean.Origin
-		}
-		return "Coffee Brew"
-	case lexicons.RecordTypeBean:
-		if item.Bean != nil {
-			if item.Bean.Name != "" {
-				return item.Bean.Name
-			}
-			return item.Bean.Origin
-		}
-		return "Coffee Bean"
-	case lexicons.RecordTypeRoaster:
-		if item.Roaster != nil {
-			return item.Roaster.Name
-		}
-		return "Roaster"
-	case lexicons.RecordTypeGrinder:
-		if item.Grinder != nil {
-			return item.Grinder.Name
-		}
-		return "Grinder"
-	case lexicons.RecordTypeBrewer:
-		if item.Brewer != nil {
-			return item.Brewer.Name
-		}
-		return "Brewer"
-	case lexicons.RecordTypeRecipe:
-		if item.Recipe != nil {
-			return item.Recipe.Name
-		}
-		return "Recipe"
+	if title := item.DisplayTitle(); title != "" {
+		return title
 	}
 	return "Arabica"
 }
@@ -611,31 +506,15 @@ func getEditURL(item *feed.FeedItem) string {
 
 // getDeleteURL returns the delete URL for a feed item
 func getDeleteURL(item *feed.FeedItem) string {
-	switch item.RecordType {
-	case lexicons.RecordTypeBrew:
-		if item.Brew != nil {
-			return fmt.Sprintf("/brews/%s", item.Brew.RKey)
-		}
-	case lexicons.RecordTypeBean:
-		if item.Bean != nil {
-			return fmt.Sprintf("/api/beans/%s", item.Bean.RKey)
-		}
-	case lexicons.RecordTypeRoaster:
-		if item.Roaster != nil {
-			return fmt.Sprintf("/api/roasters/%s", item.Roaster.RKey)
-		}
-	case lexicons.RecordTypeGrinder:
-		if item.Grinder != nil {
-			return fmt.Sprintf("/api/grinders/%s", item.Grinder.RKey)
-		}
-	case lexicons.RecordTypeBrewer:
-		if item.Brewer != nil {
-			return fmt.Sprintf("/api/brewers/%s", item.Brewer.RKey)
-		}
-	case lexicons.RecordTypeRecipe:
-		if item.Recipe != nil {
-			return fmt.Sprintf("/api/recipes/%s", item.Recipe.RKey)
-		}
+	rkey := item.RKey()
+	if rkey == "" {
+		return ""
+	}
+	if item.RecordType == lexicons.RecordTypeBrew {
+		return fmt.Sprintf("/brews/%s", rkey)
+	}
+	if d := entities.Get(item.RecordType); d != nil {
+		return fmt.Sprintf("/api/%s/%s", d.URLPath, rkey)
 	}
 	return ""
 }

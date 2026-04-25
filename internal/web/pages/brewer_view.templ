@@ -3,33 +3,15 @@ package pages
 import (
 	"fmt"
 
-	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 type BrewerViewProps struct {
-	Brewer            *models.Brewer
-	IsOwnProfile      bool
-	IsAuthenticated   bool
-	SubjectURI        string
-	SubjectCID        string
-	IsLiked           bool
-	LikeCount         int
-	CommentCount      int
-	Comments          []firehose.IndexedComment
-	CurrentUserDID    string
-	ShareURL          string
-	IsModerator       bool
-	CanHideRecord     bool
-	CanBlockUser      bool
-	IsRecordHidden    bool
-	AuthorDID         string
-	AuthorHandle      string
-	AuthorDisplayName string
-	AuthorAvatar      string
-	BrewCount         int
+	Brewer    *models.Brewer
+	BrewCount int
+	EntityViewBase
 }
 
 templ BrewerView(layout *components.LayoutData, props BrewerViewProps) {

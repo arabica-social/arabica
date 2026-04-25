@@ -140,16 +140,20 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("DELETE /api/comments/{id}", cop.Handler(http.HandlerFunc(h.HandleCommentDelete)))
 
 	// Modal routes for entity management (return dialog HTML)
-	mux.HandleFunc("GET /api/modals/bean/new", h.HandleBeanModalNew)
-	mux.HandleFunc("GET /api/modals/bean/{id}", h.HandleBeanModalEdit)
-	mux.HandleFunc("GET /api/modals/grinder/new", h.HandleGrinderModalNew)
-	mux.HandleFunc("GET /api/modals/grinder/{id}", h.HandleGrinderModalEdit)
-	mux.HandleFunc("GET /api/modals/brewer/new", h.HandleBrewerModalNew)
-	mux.HandleFunc("GET /api/modals/brewer/{id}", h.HandleBrewerModalEdit)
-	mux.HandleFunc("GET /api/modals/roaster/new", h.HandleRoasterModalNew)
-	mux.HandleFunc("GET /api/modals/roaster/{id}", h.HandleRoasterModalEdit)
-	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
-	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
+	for _, m := range []struct {
+		noun string
+		new  http.HandlerFunc
+		edit http.HandlerFunc
+	}{
+		{"bean", h.HandleBeanModalNew, h.HandleBeanModalEdit},
+		{"grinder", h.HandleGrinderModalNew, h.HandleGrinderModalEdit},
+		{"brewer", h.HandleBrewerModalNew, h.HandleBrewerModalEdit},
+		{"roaster", h.HandleRoasterModalNew, h.HandleRoasterModalEdit},
+		{"recipe", h.HandleRecipeModalNew, h.HandleRecipeModalEdit},
+	} {
+		mux.HandleFunc("GET /api/modals/"+m.noun+"/new", m.new)
+		mux.HandleFunc("GET /api/modals/"+m.noun+"/{id}", m.edit)
+	}
 
 	// Notification routes
 	mux.HandleFunc("GET /notifications", h.HandleNotifications)

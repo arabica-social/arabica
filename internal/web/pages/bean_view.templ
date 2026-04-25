@@ -3,33 +3,15 @@ package pages
 import (
 	"fmt"
 	"strings"
-	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 type BeanViewProps struct {
-	Bean              *models.Bean
-	IsOwnProfile      bool
-	IsAuthenticated   bool
-	SubjectURI        string
-	SubjectCID        string
-	IsLiked           bool
-	LikeCount         int
-	CommentCount      int
-	Comments          []firehose.IndexedComment
-	CurrentUserDID    string
-	ShareURL          string
-	IsModerator       bool
-	CanHideRecord     bool
-	CanBlockUser      bool
-	IsRecordHidden    bool
-	AuthorDID         string
-	AuthorHandle      string
-	AuthorDisplayName string
-	AuthorAvatar      string
-	BrewCount         int
+	Bean      *models.Bean
+	BrewCount int
+	EntityViewBase
 }
 
 templ BeanView(layout *components.LayoutData, props BeanViewProps) {

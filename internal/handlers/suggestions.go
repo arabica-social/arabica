@@ -6,19 +6,23 @@ import (
 	"strconv"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/suggestions"
 
 	"github.com/rs/zerolog/log"
 )
 
-// entityTypeToNSID maps URL path segments to collection NSIDs
-var entityTypeToNSID = map[string]string{
-	"roasters": atproto.NSIDRoaster,
-	"grinders": atproto.NSIDGrinder,
-	"brewers":  atproto.NSIDBrewer,
-	"beans":    atproto.NSIDBean,
-	"recipes":  atproto.NSIDRecipe,
-}
+// entityTypeToNSID maps URL path segments to collection NSIDs.
+// Built from the descriptor registry so new entities appear automatically.
+var entityTypeToNSID = func() map[string]string {
+	m := make(map[string]string)
+	for _, d := range entities.All() {
+		if d.NSID != "" {
+			m[d.URLPath] = d.NSID
+		}
+	}
+	return m
+}()
 
 // HandleEntitySuggestions returns typeahead suggestions for entity creation
 func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request) {
