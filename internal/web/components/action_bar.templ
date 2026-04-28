@@ -288,9 +288,9 @@ type ReportModalProps struct {
 
 // ReportModal renders an inline report modal for the action bar
 templ ReportModal(props ReportModalProps) {
-	<dialog id={ props.ID } class="modal-dialog" x-data="{ reason: '', charCount: 0, submitting: false, error: '', success: false }">
+	<dialog id={ props.ID } class="modal-dialog" aria-labelledby={ props.ID + "-title" } x-data="{ reason: '', charCount: 0, submitting: false, error: '', success: false }">
 		<div class="modal-content">
-			<h3 class="modal-title">Report Content</h3>
+			<h3 id={ props.ID + "-title" } class="modal-title">Report Content</h3>
 			<template x-if="!success">
 				<form
 					@submit.prevent={ fmt.Sprintf(`

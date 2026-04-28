@@ -99,9 +99,9 @@ templ RecipeViewCard(props RecipeViewProps) {
 					</span>
 					<div>
 						for _, pour := range props.Recipe.Pours {
-							<div class="flex gap-4 text-sm py-2" style="border-bottom: 1px solid var(--surface-border)">
+							<div class="pour-row">
 								<span class="detail-value">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
-								<span style="color: var(--text-muted)">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
+								<span class="text-muted">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
 							</div>
 						}
 					</div>

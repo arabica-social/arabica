@@ -34,10 +34,13 @@
   --feed-board-border: #B09470;
   /* Sticky note base — warm off-white */
   --feed-card-bg: #FFFDF5;
-  /* Dot-grid — faint dots on warm paper, for journal pages */
-  --texture-dotgrid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%23d2bab0' fill-opacity='0.35'/%3E%3C/svg%3E");
-  /* Kraft grain — subtle fiber texture for label pages */
-  --texture-kraft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.15 0 0 0 0.1 0.1 0 0 0 0.06 0.05 0 0 0 0.02 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+  /* Dot-grid + kraft — defined once per theme, theme blocks just swap the active alias */
+  --texture-dotgrid-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%23d2bab0' fill-opacity='0.35'/%3E%3C/svg%3E");
+  --texture-dotgrid-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%235A4A40' fill-opacity='0.4'/%3E%3C/svg%3E");
+  --texture-kraft-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.15 0 0 0 0.1 0.1 0 0 0 0.06 0.05 0 0 0 0.02 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+  --texture-kraft-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.08 0 0 0 0.04 0.06 0 0 0 0.03 0.03 0 0 0 0.01 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+  --texture-dotgrid: var(--texture-dotgrid-light);
+  --texture-kraft: var(--texture-kraft-light);
   /* Journal paper — warm cream */
   --journal-bg: #FFFDF5;
   /* Kraft — slightly warmer/darker than card bg */
@@ -124,6 +127,10 @@
   --rating-bg: #fef3c7;
   --rating-text: #78350f;
 
+  /* Status text — danger / success */
+  --text-danger: #b91c1c;
+  --text-success: #15803d;
+
   /* Alerts/warnings */
   --alert-warning-bg: #fffbeb;
   --alert-warning-border: #fbbf24;
@@ -162,8 +169,8 @@
     --surface-border: #2E211B;
 
     /* Journal/label page backgrounds */
-    --texture-dotgrid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%235A4A40' fill-opacity='0.4'/%3E%3C/svg%3E");
-    --texture-kraft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.08 0 0 0 0.04 0.06 0 0 0 0.03 0.03 0 0 0 0.01 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+    --texture-dotgrid: var(--texture-dotgrid-dark);
+    --texture-kraft: var(--texture-kraft-dark);
     --journal-bg: #1A1210;
     --kraft-bg: #201814;
 
@@ -233,6 +240,10 @@
     /* Rating badges */
     --rating-bg: rgba(251, 191, 36, 0.15);
     --rating-text: #fbbf24;
+
+    /* Status text — danger / success */
+    --text-danger: #fca5a5;
+    --text-success: #86efac;
 
     /* Alerts/warnings */
     --alert-warning-bg: rgba(251, 191, 36, 0.08);
@@ -329,8 +340,8 @@
   --feed-board-bg: #3D2D22;
   --feed-board-border: #4A3828;
   --feed-card-bg: #1A1210;
-  --texture-dotgrid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%235A4A40' fill-opacity='0.4'/%3E%3C/svg%3E");
-  --texture-kraft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.08 0 0 0 0.04 0.06 0 0 0 0.03 0.03 0 0 0 0.01 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+  --texture-dotgrid: var(--texture-dotgrid-dark);
+  --texture-kraft: var(--texture-kraft-dark);
   --journal-bg: #1A1210;
   --kraft-bg: #201814;
   --header-bg-from: #0F0A08;
@@ -376,6 +387,8 @@
   --type-brewer-tint: rgba(139, 163, 122, 0.15);
   --rating-bg: rgba(251, 191, 36, 0.15);
   --rating-text: #fbbf24;
+  --text-danger: #fca5a5;
+  --text-success: #86efac;
   --alert-warning-bg: rgba(251, 191, 36, 0.08);
   --alert-warning-border: rgba(251, 191, 36, 0.3);
   --alert-warning-text: #fde68a;
@@ -447,6 +460,17 @@
   [class*="filter-pill"] {
     min-height: auto;
     min-width: auto;
+  }
+
+  /* Global keyboard focus ring — visible only for keyboard users (not click) */
+  :focus-visible {
+    outline: 2px solid var(--input-border-focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  /* Clear native outline when focus-visible is in play (we draw our own above) */
+  :focus:not(:focus-visible) {
+    outline: none;
   }
 
   /* Prevent iOS zoom on input focus */
@@ -606,7 +630,7 @@
   }
 
   .record-view-footer {
-    @apply flex justify-between items-center pt-4 mt-6;
+    @apply flex flex-wrap justify-between items-center gap-3 pt-4 mt-6;
   }
 
   .record-stat-line {
@@ -696,6 +720,15 @@
     .journal-field .detail-value-lg {
       @apply text-left;
     }
+  }
+
+  /* Pour rows: shared by brew and recipe views */
+  .pour-row {
+    @apply flex gap-4 text-sm py-2;
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .pour-row:last-child {
+    border-bottom: none;
   }
 
   /* Prose section in journal context */
@@ -1334,6 +1367,12 @@
   .text-label {
     color: var(--text-muted);
   }
+
+  .text-secondary { color: var(--text-secondary); }
+  .text-muted { color: var(--text-muted); }
+  .text-faint { color: var(--text-faint); }
+  .text-danger { color: var(--text-danger); }
+  .text-success { color: var(--text-success); }
 
   /* Badges */
   .badge-rating {

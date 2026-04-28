@@ -221,7 +221,7 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 				}
 			</a>
 			if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
-				<div class="text-sm mt-1" style="color: var(--text-secondary)">
+				<div class="text-sm mt-1 text-secondary">
 					<span class="inline-flex items-center gap-1">
 						@components.IconStore()
 						<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", brew.Bean.Roaster.RKey, owner)) } class="hover:underline">
@@ -230,7 +230,7 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 					</span>
 				</div>
 			}
-			<div class="flex flex-wrap gap-3 mt-2 text-sm" style="color: var(--text-muted)">
+			<div class="flex flex-wrap gap-3 mt-2 text-sm text-muted">
 				if brew.Bean.Origin != "" {
 					<span class="inline-flex items-center gap-1">
 						@components.IconMapPin()
@@ -364,15 +364,19 @@ templ SaveAsRecipeButton(brewRKey string) {
 		</template>
 		<template x-if="showForm && !success">
 			<div class="space-y-3">
-				<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider">Save as Recipe</h3>
+				<h3 class="text-sm font-medium text-muted uppercase tracking-wider">Save as Recipe</h3>
+				<label for={ "save-recipe-name-" + brewRKey } class="sr-only">Recipe name</label>
 				<input
+					id={ "save-recipe-name-" + brewRKey }
 					type="text"
 					x-model="name"
-					placeholder="Recipe name *"
+					placeholder="Recipe name"
+					required
+					aria-required="true"
 					class="w-full form-input"
 				/>
 				<template x-if="error">
-					<div class="text-red-600 text-sm" x-text="error"></div>
+					<div class="text-danger text-sm" x-text="error"></div>
 				</template>
 				<div class="flex gap-2">
 					<button
@@ -393,7 +397,7 @@ templ SaveAsRecipeButton(brewRKey string) {
 			</div>
 		</template>
 		<template x-if="success">
-			<div class="text-center text-green-700 text-sm font-medium py-2">
+			<div class="text-center text-success text-sm font-medium py-2">
 				Recipe saved!
 			</div>
 		</template>
@@ -409,7 +413,7 @@ templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 	<div>
 		<span class="detail-label mb-2 block">Recipe</span>
 		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, owner)) } class="detail-value-lg hover:underline">{ recipe.Name }</a>
-		<div class="flex flex-wrap gap-3 mt-2 text-sm" style="color: var(--text-muted)">
+		<div class="flex flex-wrap gap-3 mt-2 text-sm text-muted">
 			if recipe.CoffeeAmount > 0 {
 				<span class="inline-flex items-center gap-1">
 					@components.IconCoffee()
@@ -435,7 +439,7 @@ templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 			}
 		</div>
 		if recipe.Notes != "" {
-			<div class="mt-2 text-sm italic" style="color: var(--text-secondary)">"{ recipe.Notes }"</div>
+			<div class="mt-2 text-sm italic text-secondary">"{ recipe.Notes }"</div>
 		}
 	</div>
 }
@@ -451,10 +455,10 @@ templ BrewPoursSection(pours []*models.Pour) {
 		</span>
 		<div class="space-y-2">
 			for _, pour := range pours {
-				<div class="flex gap-4 text-sm py-2" style="border-bottom: 1px solid var(--surface-border)">
+				<div class="pour-row">
 					<span class="detail-value">{ fmt.Sprintf("%dg", pour.WaterAmount) }</span>
 					// TODO: add a setting to allow users to configure "at" vs "for" in pours display here
-					<span style="color: var(--text-muted)">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
+					<span class="text-muted">{ "for " + bff.FormatTime(pour.TimeSeconds) }</span>
 				</div>
 			}
 		</div>

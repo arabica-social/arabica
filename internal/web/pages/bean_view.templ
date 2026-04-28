@@ -44,7 +44,7 @@ templ BeanViewCard(props BeanViewProps) {
 						{ props.Bean.Roaster.Name }
 					</a>
 					if props.Bean.Roaster.Location != "" {
-						<span style="color: var(--text-faint)">·</span>
+						<span class="text-faint">·</span>
 						<span class="inline-flex items-center gap-1">
 							@components.IconMapPin()
 							{ props.Bean.Roaster.Location }
@@ -194,14 +194,15 @@ func getBeanShareTitle(bean *models.Bean) string {
 // BeanCloseBagConfirm renders a styled confirmation dialog for closing a bag
 templ BeanCloseBagConfirm(props BeanViewProps) {
 	<dialog
-		id="close-bag-confirm"
+		id={ "close-bag-confirm-" + props.Bean.RKey }
 		class="modal-dialog"
 		x-ref="closeDialog"
 		x-init="$watch('showConfirm', v => { if (v) $refs.closeDialog.showModal() })"
 		@close="showConfirm = false"
+		aria-labelledby={ "close-bag-title-" + props.Bean.RKey }
 	>
 		<div class="modal-content">
-			<h3 class="modal-title">Close Bag</h3>
+			<h3 id={ "close-bag-title-" + props.Bean.RKey } class="modal-title">Close Bag</h3>
 			<p class="text-brown-700 text-sm mb-4">
 				Mark this bag as finished? You can reopen it later from the edit menu.
 			</p>
@@ -230,12 +231,13 @@ templ BeanCloseBagConfirm(props BeanViewProps) {
 // BeanRateModal renders a dialog for rating or editing a bean's rating
 templ BeanRateModal(props BeanViewProps) {
 	<dialog
-		id="rate-bag-modal"
+		id={ "rate-bag-modal-" + props.Bean.RKey }
 		class="modal-dialog"
 		x-ref="rateDialog"
+		aria-labelledby={ "rate-bag-title-" + props.Bean.RKey }
 	>
 		<div class="modal-content">
-			<h3 class="modal-title">
+			<h3 id={ "rate-bag-title-" + props.Bean.RKey } class="modal-title">
 				if props.Bean.Rating != nil {
 					Edit Rating
 				} else {
@@ -249,8 +251,9 @@ templ BeanRateModal(props BeanViewProps) {
 					max="10"
 					x-model.number="rating"
 					class="w-full accent-brown-700"
+					aria-label="Bag rating, 1 to 10"
 				/>
-				<div class="text-center text-3xl font-bold text-brown-800">
+				<div class="text-center text-3xl font-bold text-brown-800" aria-hidden="true">
 					<span x-text="rating"></span>/10
 				</div>
 			</div>
@@ -268,7 +271,7 @@ templ BeanRateModal(props BeanViewProps) {
 					<button
 						type="button"
 						@click={ beanPatchAction(props.Bean, `{ "rating": null }`, "Failed to remove rating") }
-						class="flex-1 btn-secondary text-red-700"
+						class="flex-1 btn-secondary text-danger"
 						:disabled="_saving"
 					>
 						<span x-show="!_saving">Remove</span>

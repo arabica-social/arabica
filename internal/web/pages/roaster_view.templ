@@ -44,9 +44,9 @@ templ RoasterViewCard(props RoasterViewProps) {
 				</span>
 			</span>
 			if props.Roaster.Location != "" {
-				<span class="label-origin-hero" style="font-size: 1.5rem">{ props.Roaster.Location }</span>
+				<span class="detail-value-lg">{ props.Roaster.Location }</span>
 			} else {
-				<span class="text-sm" style="color: var(--text-faint)">—</span>
+				<span class="text-sm text-faint">—</span>
 			}
 		</div>
 		if props.Roaster.Website != "" {
