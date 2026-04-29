@@ -832,6 +832,34 @@
     border-style: dashed;
   }
 
+  /* Category-tinted label tags — muted, earthy hues that fit the palette.
+     Use bg + border + text together so each pill reads as one tone. */
+  .label-tag-origin {
+    background: #eef0e8;
+    border-color: #b6c0a6;
+    color: #4a5a3a;
+  }
+
+  .label-tag-variety {
+    background: #efe5ec;
+    border-color: #b89aae;
+    color: #5c3a52;
+  }
+
+  .label-tag-process {
+    background: #e7ebef;
+    border-color: #a4b1bd;
+    color: #3e4a57;
+  }
+
+  /* Roast level — graduated amber/brown by darkness */
+  .label-tag-roast-1 { background: #fdf3dc; border-color: #e6c97a; color: #6b4f1a; }
+  .label-tag-roast-2 { background: #f7e6c2; border-color: #d4a85a; color: #5a3d10; }
+  .label-tag-roast-3 { background: #ebd2a4; border-color: #b88947; color: #4a2f0c; }
+  .label-tag-roast-4 { background: #d9b483; border-color: #8a6332; color: #3a2408; }
+  .label-tag-roast-5 { background: #b8895a; border-color: #5e3f1c; color: #2a1604; }
+  .label-tag-roast-6 { background: #6b4423; border-color: #2a1604; color: #fdf3dc; }
+
   /* Description on a label — flowing paragraph, no indent */
   .label-description {
     @apply leading-relaxed mt-6;

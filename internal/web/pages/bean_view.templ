@@ -55,16 +55,16 @@ templ BeanViewCard(props BeanViewProps) {
 		}
 		<div class="label-tags">
 			if props.Bean.Origin != "" {
-				<span class="label-tag">{ props.Bean.Origin }</span>
+				<span class="label-tag label-tag-origin">{ props.Bean.Origin }</span>
 			}
 			if props.Bean.Variety != "" {
-				<span class="label-tag">{ props.Bean.Variety }</span>
+				<span class="label-tag label-tag-variety">{ props.Bean.Variety }</span>
 			}
 			if props.Bean.RoastLevel != "" {
-				<span class="label-tag">{ props.Bean.RoastLevel }</span>
+				<span class={ "label-tag", roastLevelTagClass(props.Bean.RoastLevel) }>{ props.Bean.RoastLevel }</span>
 			}
 			if props.Bean.Process != "" {
-				<span class="label-tag">{ props.Bean.Process }</span>
+				<span class="label-tag label-tag-process">{ props.Bean.Process }</span>
 			}
 			if props.Bean.Closed {
 				<span class="label-tag label-tag-closed">Closed</span>
@@ -318,6 +318,24 @@ func beanBaseJSON(bean *models.Bean) string {
 		"closed": %t
 	}`, bean.Name, bean.Origin, bean.Variety, bean.RoastLevel,
 		bean.Process, bean.Description, roasterRKey, ratingStr, bean.Closed)
+}
+
+func roastLevelTagClass(level string) string {
+	switch level {
+	case "Ultra-Light":
+		return "label-tag-roast-1"
+	case "Light":
+		return "label-tag-roast-2"
+	case "Medium-Light":
+		return "label-tag-roast-3"
+	case "Medium":
+		return "label-tag-roast-4"
+	case "Medium-Dark":
+		return "label-tag-roast-5"
+	case "Dark":
+		return "label-tag-roast-6"
+	}
+	return ""
 }
 
 func pluralS(n int) string {
