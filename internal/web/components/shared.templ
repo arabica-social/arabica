@@ -155,7 +155,9 @@ templ RecordViewHeader(props RecordViewHeaderProps) {
 				<time datetime={ props.TimestampISO } data-local="long">{ props.Timestamp }</time>
 			</div>
 		}
-		<h2 class="record-view-title">{ props.Title }</h2>
+		if props.Title != "" {
+			<h2 class="record-view-title">{ props.Title }</h2>
+		}
 	</div>
 }
 

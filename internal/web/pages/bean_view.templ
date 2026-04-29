@@ -27,7 +27,7 @@ templ BeanViewContent(props BeanViewProps) {
 templ BeanViewCard(props BeanViewProps) {
 	@components.RecordViewHeader(components.RecordViewHeaderProps{
 		RecordType:    "bean",
-		Title:         beanViewTitle(props.Bean),
+		Title:         "",
 		Timestamp:     props.Bean.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
 		TimestampISO:  bff.FormatISO(props.Bean.CreatedAt),
 		AuthorDID:     props.AuthorDID,
@@ -36,64 +36,38 @@ templ BeanViewCard(props BeanViewProps) {
 		AuthorAvatar:  props.AuthorAvatar,
 	})
 	<div class="record-label p-4">
+		<h1 class="label-origin-hero">{ beanViewTitle(props.Bean) }</h1>
 		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
 			<div class="label-byline">
-				<span class="inline-flex items-center gap-1">
-					@components.IconStore()
-					<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", props.Bean.Roaster.RKey, getOwnerFromShareURL(props.ShareURL))) }>
-						{ props.Bean.Roaster.Name }
-					</a>
-					if props.Bean.Roaster.Location != "" {
-						<span class="text-faint">·</span>
-						<span class="inline-flex items-center gap-1">
-							@components.IconMapPin()
-							{ props.Bean.Roaster.Location }
-						</span>
-					}
-				</span>
+				<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", props.Bean.Roaster.RKey, getOwnerFromShareURL(props.ShareURL))) }>
+					{ props.Bean.Roaster.Name }
+				</a>
+				if props.Bean.Roaster.Location != "" {
+					<span class="text-faint"> · { props.Bean.Roaster.Location }</span>
+				}
 			</div>
 		}
 		if props.Bean.Rating != nil {
-			<div class="brew-rating-hero mt-4">
+			<div class="brew-rating-hero mt-5">
 				<span class="brew-rating-value">{ fmt.Sprintf("%d", *props.Bean.Rating) }</span>
-				<span class="brew-rating-max">/10</span>
+				<span class="brew-rating-max">/ 10</span>
 			</div>
 		}
 		<div class="label-tags">
 			if props.Bean.Origin != "" {
-				<span class="label-tag">
-					<span class="inline-flex items-center gap-1">
-						@components.IconMapPin()
-						{ props.Bean.Origin }
-					</span>
-				</span>
+				<span class="label-tag">{ props.Bean.Origin }</span>
 			}
 			if props.Bean.Variety != "" {
-				<span class="label-tag">
-					<span class="inline-flex items-center gap-1">
-						@components.IconLeaf()
-						{ props.Bean.Variety }
-					</span>
-				</span>
+				<span class="label-tag">{ props.Bean.Variety }</span>
 			}
 			if props.Bean.RoastLevel != "" {
-				<span class="label-tag">
-					<span class="inline-flex items-center gap-1">
-						@components.IconFlame()
-						{ props.Bean.RoastLevel }
-					</span>
-				</span>
+				<span class="label-tag">{ props.Bean.RoastLevel }</span>
 			}
 			if props.Bean.Process != "" {
-				<span class="label-tag">
-					<span class="inline-flex items-center gap-1">
-						@components.IconSprout()
-						{ props.Bean.Process }
-					</span>
-				</span>
+				<span class="label-tag">{ props.Bean.Process }</span>
 			}
 			if props.Bean.Closed {
-				<span class="label-tag" style="border-color: var(--text-muted)">Closed</span>
+				<span class="label-tag label-tag-closed">Closed</span>
 			}
 		</div>
 		if props.Bean.Description != "" {

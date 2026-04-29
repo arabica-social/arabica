@@ -48,7 +48,7 @@ templ BrewViewContent(props BrewViewProps) {
 templ BrewViewCard(props BrewViewProps) {
 	@components.RecordViewHeader(components.RecordViewHeaderProps{
 		RecordType:    "brew",
-		Title:         "Brew Details",
+		Title:         getBrewShareTitle(props.Brew),
 		Timestamp:     props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
 		TimestampISO:  bff.FormatISO(props.Brew.CreatedAt),
 		AuthorDID:     props.AuthorDID,
@@ -60,22 +60,24 @@ templ BrewViewCard(props BrewViewProps) {
 		@BrewSummary(props.Brew)
 		@BrewBeanSection(props.Brew, getOwnerFromShareURL(props.ShareURL))
 		<div class="my-6">
+			<div class="ledger-section">Inputs</div>
 			@components.JournalField(components.DetailStackedProps{Icon: components.IconScale(), Label: "Coffee", Value: getCoffeeAmountDisplay(props.Brew)})
-			@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Brew Method", Value: getBrewerName(props.Brew), LinkHref: getBrewerViewURL(props.Brew, getOwnerFromShareURL(props.ShareURL))})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Water", Value: getWaterAmountDisplay(props.Brew)})
 			@components.JournalField(components.DetailStackedProps{Icon: components.IconGear(), Label: "Grinder", Value: getGrinderName(props.Brew), LinkHref: getGrinderViewURL(props.Brew, getOwnerFromShareURL(props.ShareURL))})
 			@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Grind Size", Value: getGrindSizeDisplay(props.Brew)})
-			@components.JournalField(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Water", Value: getWaterAmountDisplay(props.Brew)})
 			@components.JournalField(components.DetailStackedProps{Icon: components.IconThermometer(), Label: "Temperature", Value: getTemperatureDisplay(props.Brew)})
+			if props.Brew.PouroverParams != nil && props.Brew.PouroverParams.Filter != "" {
+				@components.JournalField(components.DetailStackedProps{Icon: components.IconSliders(), Label: "Filter", Value: props.Brew.PouroverParams.Filter})
+			}
+			<div class="ledger-section">Process</div>
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Brew Method", Value: getBrewerName(props.Brew), LinkHref: getBrewerViewURL(props.Brew, getOwnerFromShareURL(props.ShareURL))})
 			@components.JournalField(components.DetailStackedProps{Icon: components.IconClock(), Label: "Brew Time", Value: getBrewTimeDisplay(props.Brew)})
 			if props.Brew.EspressoParams != nil {
-				if props.Brew.EspressoParams.YieldWeight > 0 {
-					@components.JournalField(components.DetailStackedProps{Icon: components.IconScale(), Label: "Yield", Value: fmt.Sprintf("%.1fg", props.Brew.EspressoParams.YieldWeight)})
+				if props.Brew.EspressoParams.PreInfusionSeconds > 0 {
+					@components.JournalField(components.DetailStackedProps{Icon: components.IconClock(), Label: "Pre-infusion", Value: fmt.Sprintf("%ds", props.Brew.EspressoParams.PreInfusionSeconds)})
 				}
 				if props.Brew.EspressoParams.Pressure > 0 {
 					@components.JournalField(components.DetailStackedProps{Icon: components.IconBarChart(), Label: "Pressure", Value: fmt.Sprintf("%.1f bar", props.Brew.EspressoParams.Pressure)})
-				}
-				if props.Brew.EspressoParams.PreInfusionSeconds > 0 {
-					@components.JournalField(components.DetailStackedProps{Icon: components.IconClock(), Label: "Pre-infusion", Value: fmt.Sprintf("%ds", props.Brew.EspressoParams.PreInfusionSeconds)})
 				}
 			}
 			if props.Brew.PouroverParams != nil {
@@ -88,9 +90,10 @@ templ BrewViewCard(props BrewViewProps) {
 				if props.Brew.PouroverParams.BypassWater > 0 {
 					@components.JournalField(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Bypass Water", Value: fmt.Sprintf("%dg", props.Brew.PouroverParams.BypassWater)})
 				}
-				if props.Brew.PouroverParams.Filter != "" {
-					@components.JournalField(components.DetailStackedProps{Icon: components.IconSliders(), Label: "Filter", Value: props.Brew.PouroverParams.Filter})
-				}
+			}
+			if props.Brew.EspressoParams != nil && props.Brew.EspressoParams.YieldWeight > 0 {
+				<div class="ledger-section">Output</div>
+				@components.JournalField(components.DetailStackedProps{Icon: components.IconScale(), Label: "Yield", Value: fmt.Sprintf("%.1fg", props.Brew.EspressoParams.YieldWeight)})
 			}
 		</div>
 		<div class="space-y-6">

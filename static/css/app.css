@@ -538,6 +538,7 @@
   /* Record view — tinted header region */
   .record-view-header {
     @apply -mx-6 -mt-6 px-6 pt-5 pb-4 mb-6 rounded-t-xl;
+    border-bottom: 1px solid var(--surface-border);
   }
 
   .record-view-header-brew {
@@ -669,12 +670,13 @@
   }
 
   .brew-rating-value {
-    @apply text-4xl font-bold tracking-tight;
+    @apply font-bold tracking-tight leading-none;
+    font-size: clamp(3.25rem, 6vw + 1rem, 4.5rem);
     color: var(--rating-text);
   }
 
   .brew-rating-max {
-    @apply text-lg font-medium;
+    @apply text-xs font-medium uppercase tracking-wider self-end pb-1;
     color: var(--text-muted);
   }
 
@@ -720,6 +722,38 @@
     .journal-field .detail-value-lg {
       @apply text-left;
     }
+  }
+
+  /* Section heading inside the journal ledger — separates Inputs/Process/Output */
+  .ledger-section {
+    @apply text-xs font-semibold uppercase mt-7 mb-1 pb-1;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .ledger-section:first-child {
+    @apply mt-0;
+  }
+
+  /* Kraft tape chip — used for recipe fork provenance */
+  .fork-chip {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-3 py-1 mb-5;
+    background-color: var(--kraft-bg);
+    background-image: var(--texture-kraft);
+    color: var(--text-secondary);
+    border: 1px solid var(--surface-border);
+    border-radius: 2px;
+    transform: rotate(-1.25deg);
+    box-shadow: var(--shadow-sm);
+  }
+  .fork-chip a {
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-decoration-color: var(--text-faint);
+    text-underline-offset: 2px;
+  }
+  .fork-chip a:hover {
+    text-decoration-color: var(--text-muted);
   }
 
   /* Pour rows: shared by brew and recipe views */
@@ -778,16 +812,24 @@
     color: var(--text-primary);
   }
 
-  /* Inline tag strip: variety / process / roast level */
+  /* Inline tag strip: variety / process / roast level — stamp marks, not pills */
   .label-tags {
-    @apply flex flex-wrap gap-2 mt-4;
+    @apply flex flex-wrap gap-x-3 gap-y-2 mt-5;
   }
 
   .label-tag {
-    @apply text-xs font-medium px-2.5 py-1 rounded-full;
-    background: var(--surface-bg);
+    @apply text-[0.7rem] font-semibold uppercase px-2.5 py-1;
+    letter-spacing: 0.14em;
+    background: transparent;
     color: var(--text-secondary);
-    border: 1px solid var(--surface-border);
+    border: 1px solid var(--text-muted);
+    border-radius: 2px;
+  }
+
+  .label-tag-closed {
+    color: var(--text-muted);
+    border-color: var(--text-faint);
+    border-style: dashed;
   }
 
   /* Description on a label — flowing paragraph, no indent */

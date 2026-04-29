@@ -55,16 +55,18 @@ templ RecipeViewCard(props RecipeViewProps) {
 		AuthorAvatar:  props.AuthorAvatar,
 	})
 	if props.SourceRecipeURL != "" {
-		<p class="text-sm text-brown-500 -mt-4 mb-4">
-			Forked from&#32;
-			<a href={ templ.SafeURL(props.SourceRecipeURL) } class="text-brown-700 underline hover:text-brown-900">
-				if props.SourceRecipeAuthor != "" {
-					{ props.SourceRecipeAuthor + "'s recipe" }
-				} else {
-					original recipe
-				}
-			</a>
-		</p>
+		<div class="-mt-3">
+			<span class="fork-chip">
+				↳ forked from&#32;
+				<a href={ templ.SafeURL(props.SourceRecipeURL) }>
+					if props.SourceRecipeAuthor != "" {
+						{ props.SourceRecipeAuthor + "'s recipe" }
+					} else {
+						original recipe
+					}
+				</a>
+			</span>
+		</div>
 	}
 	<div class="record-journal p-4">
 		<div>
