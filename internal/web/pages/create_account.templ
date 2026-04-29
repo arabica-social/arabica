@@ -27,6 +27,23 @@ type PDSCategory struct {
 func pdsCategories() []PDSCategory {
 	return []PDSCategory{
 		{
+			Title:       "Recommended",
+			Description: "A reliable, open community provider — a great default if you're unsure where to start.",
+			Providers: []PDSProvider{
+				{
+					URL:          "https://selfhosted.social",
+					Name:         "selfhosted.social",
+					Domain:       "selfhosted.social",
+					Description:  "Community provider",
+					Location:     "United States",
+					Badge:        "Open",
+					BadgeColor:   "green",
+					OperatorName: "@baileytownsend.dev",
+					OperatorURL:  "https://bsky.app/profile/baileytownsend.dev",
+				},
+			},
+		},
+		{
 			Title:       "App Providers",
 			Description: "These apps host your account and data for you.",
 			Providers: []PDSProvider{
@@ -43,7 +60,7 @@ func pdsCategories() []PDSCategory {
 					URL:         "https://bsky.social",
 					Name:        "Bluesky",
 					Domain:      "bsky.social",
-					Description: "The largest AT Protocol provider.",
+					Description: "The largest PDS provider.",
 					Location:    "United States",
 					Badge:       "Open",
 					BadgeColor:  "green",
@@ -90,7 +107,7 @@ func pdsCategories() []PDSCategory {
 					URL:         "https://eurosky.social",
 					Name:        "Eurosky",
 					Domain:      "eurosky.social",
-					Description: "Sovereign European AT Protocol hosting.",
+					Description: "Sovereign European PDS hosting.",
 					Location:    "Europe",
 					Badge:       "Open",
 					BadgeColor:  "green",
