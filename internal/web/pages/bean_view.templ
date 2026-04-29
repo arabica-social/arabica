@@ -36,23 +36,27 @@ templ BeanViewCard(props BeanViewProps) {
 		AuthorAvatar:  props.AuthorAvatar,
 	})
 	<div class="record-label p-4">
-		<h1 class="label-origin-hero">{ beanViewTitle(props.Bean) }</h1>
-		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
-			<div class="label-byline">
-				<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", props.Bean.Roaster.RKey, getOwnerFromShareURL(props.ShareURL))) }>
-					{ props.Bean.Roaster.Name }
-				</a>
-				if props.Bean.Roaster.Location != "" {
-					<span class="text-faint"> · { props.Bean.Roaster.Location }</span>
+		<div class="bean-hero-row">
+			<div class="bean-hero-text">
+				<h1 class="label-origin-hero">{ beanViewTitle(props.Bean) }</h1>
+				if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
+					<div class="label-byline">
+						<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", props.Bean.Roaster.RKey, getOwnerFromShareURL(props.ShareURL))) }>
+							{ props.Bean.Roaster.Name }
+						</a>
+						if props.Bean.Roaster.Location != "" {
+							<span class="text-faint"> · { props.Bean.Roaster.Location }</span>
+						}
+					</div>
 				}
 			</div>
-		}
-		if props.Bean.Rating != nil {
-			<div class="brew-rating-hero mt-5">
-				<span class="brew-rating-value">{ fmt.Sprintf("%d", *props.Bean.Rating) }</span>
-				<span class="brew-rating-max">/ 10</span>
-			</div>
-		}
+			if props.Bean.Rating != nil {
+				<div class="brew-rating-hero">
+					<span class="brew-rating-value">{ fmt.Sprintf("%d", *props.Bean.Rating) }</span>
+					<span class="brew-rating-max">/ 10</span>
+				</div>
+			}
+		</div>
 		<div class="label-tags">
 			if props.Bean.Origin != "" {
 				<span class="label-tag label-tag-origin">{ props.Bean.Origin }</span>
