@@ -9,6 +9,7 @@ document.addEventListener("alpine:init", () => {
     brewerType: "",
     minCoffee: "",
     maxCoffee: "",
+    sortBy: "popular",
     loading: false,
     recipes: [],
     selectedRecipe: null,
@@ -24,6 +25,11 @@ document.addEventListener("alpine:init", () => {
       this.search();
     },
 
+    setSort(sort) {
+      this.sortBy = sort;
+      this.search();
+    },
+
     async search() {
       this.loading = true;
       try {
@@ -33,6 +39,7 @@ document.addEventListener("alpine:init", () => {
         if (this.brewerType) params.set("brewer_type", this.brewerType);
         if (this.minCoffee) params.set("min_coffee", this.minCoffee);
         if (this.maxCoffee) params.set("max_coffee", this.maxCoffee);
+        if (this.sortBy) params.set("sort", this.sortBy);
 
         const resp = await fetch(`/api/recipes/suggestions?${params}`, {
           credentials: "same-origin",
@@ -51,6 +58,11 @@ document.addEventListener("alpine:init", () => {
 
     selectRecipe(recipe) {
       this.selectedRecipe = recipe;
+      this.$nextTick(() => {
+        if (this.$refs.recipeDetail) {
+          this.$refs.recipeDetail.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
     },
 
     formatRatio(recipe) {

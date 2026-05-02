@@ -476,6 +476,28 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 
 	filtered := models.FilterRecipes(recipes, filter)
 
+	// Sort results (default: popular)
+	sortBy := r.URL.Query().Get("sort")
+	if sortBy == "" {
+		sortBy = "popular"
+	}
+	switch sortBy {
+	case "popular":
+		sort.Slice(filtered, func(i, j int) bool {
+			si := filtered[i].BrewCount + filtered[i].ForkCount
+			sj := filtered[j].BrewCount + filtered[j].ForkCount
+			return si > sj
+		})
+	case "newest":
+		sort.Slice(filtered, func(i, j int) bool {
+			return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+		})
+	case "most_forked":
+		sort.Slice(filtered, func(i, j int) bool {
+			return filtered[i].ForkCount > filtered[j].ForkCount
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(filtered); err != nil {
 		log.Error().Err(err).Msg("Failed to encode recipe suggestions response")

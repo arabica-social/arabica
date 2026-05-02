@@ -133,7 +133,225 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				</div>
 			</div>
 		</div>
-		<!-- Results -->
+		<!-- Sort + results count bar -->
+		<div class="flex items-center justify-between mb-3">
+			<template x-if="!loading && recipes.length > 0">
+				<p class="text-sm text-brown-600">
+					<span x-text="recipes.length"></span> recipe(s) found
+				</p>
+			</template>
+			<template x-if="loading || recipes.length === 0">
+				<div></div>
+			</template>
+			<div class="flex items-center gap-1 text-sm">
+				<span class="text-brown-500 mr-1">Sort:</span>
+				<button
+					type="button"
+					class="filter-pill text-xs"
+					@click="setSort('popular')"
+					:class="sortBy === 'popular' ? 'filter-pill-active' : 'filter-pill'"
+				>
+					Popular
+				</button>
+				<button
+					type="button"
+					class="filter-pill text-xs"
+					@click="setSort('newest')"
+					:class="sortBy === 'newest' ? 'filter-pill-active' : 'filter-pill'"
+				>
+					Newest
+				</button>
+				<button
+					type="button"
+					class="filter-pill text-xs"
+					@click="setSort('most_forked')"
+					:class="sortBy === 'most_forked' ? 'filter-pill-active' : 'filter-pill'"
+				>
+					Most Forked
+				</button>
+			</div>
+		</div>
+		<!-- Selected recipe detail panel (above grid) -->
+		<template x-if="selectedRecipe">
+			<div class="mb-4" x-ref="recipeDetail">
+				<div class="card card-inner">
+					<div class="flex justify-between items-start mb-4">
+						<div class="min-w-0 flex-1">
+							<h3 class="text-xl font-bold text-brown-900 break-words" x-text="selectedRecipe.name"></h3>
+							<a
+								:href="'/profile/' + selectedRecipe.author_did"
+								class="flex items-center gap-2 mt-1 group/author"
+							>
+								<template x-if="selectedRecipe.author_avatar">
+									<img :src="selectedRecipe.author_avatar" class="w-6 h-6 rounded-full object-cover" :alt="selectedRecipe.author_display || ''" loading="lazy" width="24" height="24"/>
+								</template>
+								<template x-if="!selectedRecipe.author_avatar">
+									<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(selectedRecipe.author_display || selectedRecipe.author_handle || '?')[0].toUpperCase()"></div>
+								</template>
+								<div>
+									<template x-if="selectedRecipe.author_display">
+										<span class="block text-sm font-medium text-brown-700 group-hover/author:text-brown-900 group-hover/author:underline transition-colors" x-text="selectedRecipe.author_display"></span>
+									</template>
+									<span class="block text-xs text-brown-600 group-hover/author:text-brown-800 transition-colors" x-text="selectedRecipe.author_handle || ''"></span>
+								</div>
+							</a>
+						</div>
+						<div class="flex items-center gap-2 shrink-0">
+							<!-- Actions dropdown -->
+							<div class="relative" x-data="{ actionsOpen: false }">
+								<button
+									type="button"
+									@click="actionsOpen = !actionsOpen"
+									@click.away="actionsOpen = false"
+									class="action-btn"
+									aria-label="More options"
+								>
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+									</svg>
+								</button>
+								<div
+									x-show="actionsOpen"
+									x-transition:enter="transition ease-out duration-100"
+									x-transition:enter-start="transform opacity-0 scale-95"
+									x-transition:enter-end="transform opacity-100 scale-100"
+									x-transition:leave="transition ease-in duration-75"
+									x-transition:leave-start="transform opacity-100 scale-100"
+									x-transition:leave-end="transform opacity-0 scale-95"
+									class="action-menu bottom-full mb-1"
+									x-cloak
+								>
+									<!-- Share -->
+									<button type="button" @click="shareRecipe(); actionsOpen = false" class="action-menu-item">
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
+										</svg>
+										Share
+									</button>
+									<!-- Report (only for authenticated non-owners) -->
+									<template x-if="isAuthenticated && !isOwner(selectedRecipe)">
+										<div>
+											<div class="action-menu-divider"></div>
+											<button type="button" @click="openReport(); actionsOpen = false" class="action-menu-item">
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"></path>
+												</svg>
+												Report
+											</button>
+										</div>
+									</template>
+								</div>
+							</div>
+							<button @click="selectedRecipe = null" class="text-brown-500 hover:text-brown-700 text-lg font-bold" aria-label="Close recipe details">&times;</button>
+						</div>
+					</div>
+					<template x-if="getBrewerDisplay(selectedRecipe) !== '-'">
+						<div class="mb-4">
+							<span class="text-xs text-brown-600 uppercase">Brewer</span>
+							<p class="font-medium text-brown-900" x-text="getBrewerDisplay(selectedRecipe)"></p>
+						</div>
+					</template>
+					<div class="grid grid-cols-3 gap-4 mb-4">
+						<div>
+							<span class="text-xs text-brown-600 uppercase">Coffee</span>
+							<p class="font-medium text-brown-900" x-text="selectedRecipe.coffee_amount > 0 ? selectedRecipe.coffee_amount.toFixed(1) + 'g' : '-'"></p>
+						</div>
+						<div>
+							<span class="text-xs text-brown-600 uppercase">Water</span>
+							<p class="font-medium text-brown-900" x-text="selectedRecipe.water_amount > 0 ? selectedRecipe.water_amount.toFixed(1) + 'g' : '-'"></p>
+						</div>
+						<div>
+							<span class="text-xs text-brown-600 uppercase">Ratio</span>
+							<p class="font-medium text-brown-900" x-text="formatRatio(selectedRecipe)"></p>
+						</div>
+					</div>
+					<template x-if="selectedRecipe.pours && selectedRecipe.pours.length > 0">
+						<div class="mb-4">
+							<span class="text-xs text-brown-600 uppercase">Pours</span>
+							<div class="flex flex-wrap gap-2 mt-1">
+								<template x-for="(pour, i) in selectedRecipe.pours" :key="i">
+									<span class="inline-flex items-center gap-1.5 text-xs bg-brown-50 px-2.5 py-1 rounded-full border border-brown-200">
+										<span class="font-medium text-brown-800" x-text="(i+1)"></span>
+										<span class="text-brown-700" x-text="pour.water_amount + 'g'"></span>
+										<span class="text-brown-400">&middot;</span>
+										<span class="text-brown-600" x-text="pour.time_seconds + 's'"></span>
+									</span>
+								</template>
+							</div>
+						</div>
+					</template>
+					<template x-if="selectedRecipe.notes">
+						<div class="mb-4">
+							<span class="text-xs text-brown-600 uppercase">Notes</span>
+							<p class="text-sm text-brown-800 mt-1 whitespace-pre-wrap" x-text="selectedRecipe.notes"></p>
+						</div>
+					</template>
+					<template x-if="selectedRecipe.brew_count > 0 || selectedRecipe.fork_count > 0">
+						<div class="flex items-center gap-4 mb-4 text-sm text-brown-600">
+							<template x-if="selectedRecipe.brew_count > 0">
+								<span class="flex items-center gap-1.5">
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"></path></svg>
+									<span x-text="selectedRecipe.brew_count + ' brew' + (selectedRecipe.brew_count !== 1 ? 's' : '')"></span>
+								</span>
+							</template>
+							<template x-if="selectedRecipe.fork_count > 0">
+								<span class="flex items-center gap-1.5">
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path></svg>
+									<span x-text="selectedRecipe.fork_count + ' fork' + (selectedRecipe.fork_count !== 1 ? 's' : '')"></span>
+									<template x-if="selectedRecipe.forker_avatars && selectedRecipe.forker_avatars.length > 0">
+										<div class="flex -space-x-1.5 ml-1">
+											<template x-for="(avatar, i) in selectedRecipe.forker_avatars.slice(0, 5)" :key="i">
+												<img :src="avatar" alt="" class="w-5 h-5 rounded-full object-cover border border-white" loading="lazy" width="20" height="20"/>
+											</template>
+										</div>
+									</template>
+								</span>
+							</template>
+						</div>
+					</template>
+					<template x-if="selectedRecipe.source_ref">
+						<p class="text-sm text-brown-500 mb-3">
+							Forked from&#32;
+							<template x-if="selectedRecipe.source_author_display || selectedRecipe.source_author_handle">
+								<a
+									:href="getSourceRecipeURL(selectedRecipe)"
+									class="text-brown-700 underline hover:text-brown-900"
+									@click.stop
+									x-text="(selectedRecipe.source_author_display || selectedRecipe.source_author_handle) + '\'s recipe'"
+								></a>
+							</template>
+							<template x-if="!selectedRecipe.source_author_display && !selectedRecipe.source_author_handle">
+								<span>another recipe</span>
+							</template>
+						</p>
+					</template>
+					<div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+						<a
+							:href="'/brews/new?recipe=' + selectedRecipe.rkey + '&recipe_owner=' + (selectedRecipe.author_did || '')"
+							class="btn-primary text-sm text-center"
+						>
+							Use in Brew
+						</a>
+						<template x-if="isAuthenticated && !isOwner(selectedRecipe)">
+							<button
+								type="button"
+								@click="forkRecipe()"
+								class="btn-secondary text-sm"
+							>
+								Copy Recipe
+							</button>
+						</template>
+						<a
+							:href="'/recipes/' + selectedRecipe.rkey + '?owner=' + encodeURIComponent(selectedRecipe.author_handle || selectedRecipe.author_did)"
+							class="btn-secondary text-sm text-center"
+						>
+							View Recipe
+						</a>
+					</div>
+				</div>
+			</div>
+		</template>
+		<!-- Recipe grid -->
 		<div>
 			<template x-if="loading">
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -176,264 +394,82 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				</div>
 			</template>
 			<template x-if="!loading && recipes.length > 0">
-				<div>
-					<p class="text-sm text-brown-600 mb-3">
-						<span x-text="recipes.length"></span> recipe(s) found
-					</p>
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-						<template x-for="recipe in recipes" :key="recipe.rkey">
-							<div
-								class="feed-card feed-card-recipe cursor-pointer"
-								@click="selectRecipe(recipe)"
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+					<template x-for="recipe in recipes" :key="recipe.rkey">
+						<div
+							class="feed-card feed-card-recipe cursor-pointer transition-shadow"
+							:class="selectedRecipe && selectedRecipe.rkey === recipe.rkey ? 'ring-2 ring-brown-400' : ''"
+							@click="selectRecipe(recipe)"
+						>
+							<!-- Author row -->
+							<a
+								:href="'/profile/' + recipe.author_did"
+								class="flex items-center gap-2 mb-3 group/author"
+								@click.stop
 							>
-								<!-- Author row -->
-								<a
-									:href="'/profile/' + recipe.author_did"
-									class="flex items-center gap-2 mb-3 group/author"
-									@click.stop
-								>
-									<template x-if="recipe.author_avatar">
-										<img :src="recipe.author_avatar" class="w-7 h-7 rounded-full object-cover" :alt="recipe.author_display || recipe.author_handle || ''" loading="lazy" width="28" height="28"/>
-									</template>
-									<template x-if="!recipe.author_avatar">
-										<div class="w-7 h-7 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(recipe.author_display || recipe.author_handle || '?')[0].toUpperCase()"></div>
-									</template>
-									<div class="min-w-0 flex-1">
-										<template x-if="recipe.author_display">
-											<span class="block truncate text-sm font-medium text-brown-700 group-hover/author:text-brown-900 group-hover/author:underline transition-colors" x-text="recipe.author_display"></span>
-										</template>
-										<span class="block truncate text-xs text-brown-600 group-hover/author:text-brown-800 transition-colors" x-text="recipe.author_handle || ''"></span>
-									</div>
-								</a>
-								<!-- Recipe name -->
-								<h3 class="font-semibold text-brown-900 mb-2 truncate" x-text="recipe.name"></h3>
-								<!-- Brewer -->
-								<template x-if="getBrewerDisplay(recipe) !== '-'">
-									<p class="text-sm text-brown-600 mb-3" x-text="getBrewerDisplay(recipe)"></p>
+								<template x-if="recipe.author_avatar">
+									<img :src="recipe.author_avatar" class="w-7 h-7 rounded-full object-cover" :alt="recipe.author_display || recipe.author_handle || ''" loading="lazy" width="28" height="28"/>
 								</template>
-								<!-- Stats grid -->
-								<div class="grid grid-cols-3 gap-2 mb-3">
-									<div class="text-center bg-brown-50/60 rounded-md py-1.5">
-										<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Coffee</span>
-										<span class="block text-sm font-medium text-brown-900" x-text="recipe.coffee_amount > 0 ? recipe.coffee_amount.toFixed(1) + 'g' : '-'"></span>
-									</div>
-									<div class="text-center bg-brown-50/60 rounded-md py-1.5">
-										<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Water</span>
-										<span class="block text-sm font-medium text-brown-900" x-text="recipe.water_amount > 0 ? recipe.water_amount.toFixed(1) + 'g' : '-'"></span>
-									</div>
-									<div class="text-center bg-brown-50/60 rounded-md py-1.5">
-										<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Ratio</span>
-										<span class="block text-sm font-medium text-brown-900" x-text="formatRatio(recipe)"></span>
-									</div>
+								<template x-if="!recipe.author_avatar">
+									<div class="w-7 h-7 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(recipe.author_display || recipe.author_handle || '?')[0].toUpperCase()"></div>
+								</template>
+								<div class="min-w-0 flex-1">
+									<template x-if="recipe.author_display">
+										<span class="block truncate text-sm font-medium text-brown-700 group-hover/author:text-brown-900 group-hover/author:underline transition-colors" x-text="recipe.author_display"></span>
+									</template>
+									<span class="block truncate text-xs text-brown-600 group-hover/author:text-brown-800 transition-colors" x-text="recipe.author_handle || ''"></span>
 								</div>
-								<!-- Counts row -->
-								<template x-if="recipe.brew_count > 0 || recipe.fork_count > 0">
-									<div class="flex items-center gap-3 pt-2 border-t border-brown-200/60 text-xs text-brown-500">
-										<template x-if="recipe.brew_count > 0">
-											<span class="flex items-center gap-1" :title="recipe.brew_count + ' brews'">
-												<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"></path></svg>
-												<span x-text="recipe.brew_count + ' brew' + (recipe.brew_count !== 1 ? 's' : '')"></span>
-											</span>
-										</template>
-										<template x-if="recipe.fork_count > 0">
-											<span class="flex items-center gap-1" :title="recipe.fork_count + ' forks'">
-												<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path></svg>
-												<span x-text="recipe.fork_count + ' fork' + (recipe.fork_count !== 1 ? 's' : '')"></span>
-											</span>
-										</template>
-										<template x-if="recipe.forker_avatars && recipe.forker_avatars.length > 0">
-											<div class="flex -space-x-1.5 ml-auto">
-												<template x-for="(avatar, i) in recipe.forker_avatars.slice(0, 3)" :key="i">
-													<img :src="avatar" alt="" class="w-5 h-5 rounded-full object-cover border border-white" loading="lazy" width="20" height="20"/>
-												</template>
-											</div>
-										</template>
-									</div>
-								</template>
+							</a>
+							<!-- Recipe name -->
+							<h3 class="font-semibold text-brown-900 mb-2 truncate" x-text="recipe.name"></h3>
+							<!-- Brewer -->
+							<template x-if="getBrewerDisplay(recipe) !== '-'">
+								<p class="text-sm text-brown-600 mb-3" x-text="getBrewerDisplay(recipe)"></p>
+							</template>
+							<!-- Stats grid -->
+							<div class="grid grid-cols-3 gap-2 mb-3">
+								<div class="text-center bg-brown-50/60 rounded-md py-1.5">
+									<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Coffee</span>
+									<span class="block text-sm font-medium text-brown-900" x-text="recipe.coffee_amount > 0 ? recipe.coffee_amount.toFixed(1) + 'g' : '-'"></span>
+								</div>
+								<div class="text-center bg-brown-50/60 rounded-md py-1.5">
+									<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Water</span>
+									<span class="block text-sm font-medium text-brown-900" x-text="recipe.water_amount > 0 ? recipe.water_amount.toFixed(1) + 'g' : '-'"></span>
+								</div>
+								<div class="text-center bg-brown-50/60 rounded-md py-1.5">
+									<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Ratio</span>
+									<span class="block text-sm font-medium text-brown-900" x-text="formatRatio(recipe)"></span>
+								</div>
 							</div>
-						</template>
-					</div>
+							<!-- Counts row -->
+							<template x-if="recipe.brew_count > 0 || recipe.fork_count > 0">
+								<div class="flex items-center gap-3 pt-2 border-t border-brown-200/60 text-xs text-brown-500">
+									<template x-if="recipe.brew_count > 0">
+										<span class="flex items-center gap-1" :title="recipe.brew_count + ' brews'">
+											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"></path></svg>
+											<span x-text="recipe.brew_count + ' brew' + (recipe.brew_count !== 1 ? 's' : '')"></span>
+										</span>
+									</template>
+									<template x-if="recipe.fork_count > 0">
+										<span class="flex items-center gap-1" :title="recipe.fork_count + ' forks'">
+											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path></svg>
+											<span x-text="recipe.fork_count + ' fork' + (recipe.fork_count !== 1 ? 's' : '')"></span>
+										</span>
+									</template>
+									<template x-if="recipe.forker_avatars && recipe.forker_avatars.length > 0">
+										<div class="flex -space-x-1.5 ml-auto">
+											<template x-for="(avatar, i) in recipe.forker_avatars.slice(0, 3)" :key="i">
+												<img :src="avatar" alt="" class="w-5 h-5 rounded-full object-cover border border-white" loading="lazy" width="20" height="20"/>
+											</template>
+										</div>
+									</template>
+								</div>
+							</template>
+						</div>
+					</template>
 				</div>
 			</template>
 		</div>
-		<!-- Recipe detail panel -->
-		<template x-if="selectedRecipe">
-			<div class="card card-inner mt-4">
-				<div class="flex justify-between items-start mb-4">
-					<div>
-						<h3 class="text-xl font-bold text-brown-900" x-text="selectedRecipe.name"></h3>
-						<a
-							:href="'/profile/' + selectedRecipe.author_did"
-							class="flex items-center gap-2 mt-1 group/author"
-						>
-							<template x-if="selectedRecipe.author_avatar">
-								<img :src="selectedRecipe.author_avatar" class="w-6 h-6 rounded-full object-cover" :alt="selectedRecipe.author_display || ''" loading="lazy" width="24" height="24"/>
-							</template>
-							<template x-if="!selectedRecipe.author_avatar">
-								<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(selectedRecipe.author_display || selectedRecipe.author_handle || '?')[0].toUpperCase()"></div>
-							</template>
-							<div>
-								<template x-if="selectedRecipe.author_display">
-									<span class="block text-sm font-medium text-brown-700 group-hover/author:text-brown-900 group-hover/author:underline transition-colors" x-text="selectedRecipe.author_display"></span>
-								</template>
-								<span class="block text-xs text-brown-600 group-hover/author:text-brown-800 transition-colors" x-text="selectedRecipe.author_handle || ''"></span>
-							</div>
-						</a>
-					</div>
-					<div class="flex items-center gap-2">
-						<!-- Actions dropdown -->
-						<div class="relative" x-data="{ actionsOpen: false }">
-							<button
-								type="button"
-								@click="actionsOpen = !actionsOpen"
-								@click.away="actionsOpen = false"
-								class="action-btn"
-								aria-label="More options"
-							>
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
-								</svg>
-							</button>
-							<div
-								x-show="actionsOpen"
-								x-transition:enter="transition ease-out duration-100"
-								x-transition:enter-start="transform opacity-0 scale-95"
-								x-transition:enter-end="transform opacity-100 scale-100"
-								x-transition:leave="transition ease-in duration-75"
-								x-transition:leave-start="transform opacity-100 scale-100"
-								x-transition:leave-end="transform opacity-0 scale-95"
-								class="action-menu bottom-full mb-1"
-								x-cloak
-							>
-								<!-- Share -->
-								<button type="button" @click="shareRecipe(); actionsOpen = false" class="action-menu-item">
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
-									</svg>
-									Share
-								</button>
-								<!-- Report (only for authenticated non-owners) -->
-								<template x-if="isAuthenticated && !isOwner(selectedRecipe)">
-									<div>
-										<div class="action-menu-divider"></div>
-										<button type="button" @click="openReport(); actionsOpen = false" class="action-menu-item">
-											<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"></path>
-											</svg>
-											Report
-										</button>
-									</div>
-								</template>
-							</div>
-						</div>
-						<button @click="selectedRecipe = null" class="text-brown-500 hover:text-brown-700 text-lg font-bold" aria-label="Close recipe details">&times;</button>
-					</div>
-				</div>
-				<template x-if="getBrewerDisplay(selectedRecipe) !== '-'">
-					<div class="mb-4">
-						<span class="text-xs text-brown-600 uppercase">Brewer</span>
-						<p class="font-medium text-brown-900" x-text="getBrewerDisplay(selectedRecipe)"></p>
-					</div>
-				</template>
-				<div class="grid grid-cols-3 gap-4 mb-4">
-					<div>
-						<span class="text-xs text-brown-600 uppercase">Coffee</span>
-						<p class="font-medium text-brown-900" x-text="selectedRecipe.coffee_amount > 0 ? selectedRecipe.coffee_amount.toFixed(1) + 'g' : '-'"></p>
-					</div>
-					<div>
-						<span class="text-xs text-brown-600 uppercase">Water</span>
-						<p class="font-medium text-brown-900" x-text="selectedRecipe.water_amount > 0 ? selectedRecipe.water_amount.toFixed(1) + 'g' : '-'"></p>
-					</div>
-					<div>
-						<span class="text-xs text-brown-600 uppercase">Ratio</span>
-						<p class="font-medium text-brown-900" x-text="formatRatio(selectedRecipe)"></p>
-					</div>
-				</div>
-				<template x-if="selectedRecipe.pours && selectedRecipe.pours.length > 0">
-					<div class="mb-4">
-						<span class="text-xs text-brown-600 uppercase">Pours</span>
-						<div class="flex flex-wrap gap-2 mt-1">
-							<template x-for="(pour, i) in selectedRecipe.pours" :key="i">
-								<span class="inline-flex items-center gap-1.5 text-xs bg-brown-50 px-2.5 py-1 rounded-full border border-brown-200">
-									<span class="font-medium text-brown-800" x-text="(i+1)"></span>
-									<span class="text-brown-700" x-text="pour.water_amount + 'g'"></span>
-									<span class="text-brown-400">&middot;</span>
-									<span class="text-brown-600" x-text="pour.time_seconds + 's'"></span>
-								</span>
-							</template>
-						</div>
-					</div>
-				</template>
-				<template x-if="selectedRecipe.notes">
-					<div class="mb-4">
-						<span class="text-xs text-brown-600 uppercase">Notes</span>
-						<p class="text-sm text-brown-800 mt-1 whitespace-pre-wrap" x-text="selectedRecipe.notes"></p>
-					</div>
-				</template>
-				<template x-if="selectedRecipe.brew_count > 0 || selectedRecipe.fork_count > 0">
-					<div class="flex items-center gap-4 mb-4 text-sm text-brown-600">
-						<template x-if="selectedRecipe.brew_count > 0">
-							<span class="flex items-center gap-1.5">
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"></path></svg>
-								<span x-text="selectedRecipe.brew_count + ' brew' + (selectedRecipe.brew_count !== 1 ? 's' : '')"></span>
-							</span>
-						</template>
-						<template x-if="selectedRecipe.fork_count > 0">
-							<span class="flex items-center gap-1.5">
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path></svg>
-								<span x-text="selectedRecipe.fork_count + ' fork' + (selectedRecipe.fork_count !== 1 ? 's' : '')"></span>
-								<template x-if="selectedRecipe.forker_avatars && selectedRecipe.forker_avatars.length > 0">
-									<div class="flex -space-x-1.5 ml-1">
-										<template x-for="(avatar, i) in selectedRecipe.forker_avatars.slice(0, 5)" :key="i">
-											<img :src="avatar" alt="" class="w-5 h-5 rounded-full object-cover border border-white" loading="lazy" width="20" height="20"/>
-										</template>
-									</div>
-								</template>
-							</span>
-						</template>
-					</div>
-				</template>
-				<template x-if="selectedRecipe.source_ref">
-					<p class="text-sm text-brown-500 mb-3">
-						Forked from&#32;
-						<template x-if="selectedRecipe.source_author_display || selectedRecipe.source_author_handle">
-							<a
-								:href="getSourceRecipeURL(selectedRecipe)"
-								class="text-brown-700 underline hover:text-brown-900"
-								@click.stop
-								x-text="(selectedRecipe.source_author_display || selectedRecipe.source_author_handle) + '\'s recipe'"
-							></a>
-						</template>
-						<template x-if="!selectedRecipe.source_author_display && !selectedRecipe.source_author_handle">
-							<span>another recipe</span>
-						</template>
-					</p>
-				</template>
-				<div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-					<a
-						:href="'/brews/new?recipe=' + selectedRecipe.rkey + '&recipe_owner=' + (selectedRecipe.author_did || '')"
-						class="btn-primary text-sm text-center"
-					>
-						Use in Brew
-					</a>
-					<template x-if="isAuthenticated && !isOwner(selectedRecipe)">
-						<button
-							type="button"
-							@click="forkRecipe()"
-							class="btn-secondary text-sm"
-						>
-							Copy Recipe
-						</button>
-					</template>
-					<a
-						:href="'/recipes/' + selectedRecipe.rkey + '?owner=' + encodeURIComponent(selectedRecipe.author_handle || selectedRecipe.author_did)"
-						class="btn-secondary text-sm text-center"
-					>
-						View Recipe
-					</a>
-				</div>
-			</div>
-		</template>
 		<!-- Report dialog -->
 		<dialog id="recipe-report-modal" class="modal-dialog" x-data="{ reason: '', charCount: 0, submitting: false, error: '', success: false }">
 			<div class="modal-content">
