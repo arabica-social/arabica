@@ -88,9 +88,10 @@ type Harness struct {
 	PDS          *testpds.TestPDS
 	Server       *httptest.Server
 	Handler      *handlers.Handler
-	FeedIndex    *firehose.FeedIndex
-	Consumer     *firehose.Consumer
-	SessionCache *atproto.SessionCache
+	FeedIndex      *firehose.FeedIndex
+	Consumer       *firehose.Consumer
+	ProfileWatcher *firehose.ProfileWatcher
+	SessionCache   *atproto.SessionCache
 
 	// PrimaryAccount is the default account created on harness setup.
 	PrimaryAccount TestAccount
@@ -237,6 +238,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 			WantedCollections: firehose.ArabicaCollections,
 		}, feedIndex)
 		harness.Consumer = consumer
+		harness.ProfileWatcher = firehose.NewProfileWatcher(&firehose.Config{}, feedIndex)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		harness.firehoseCancel = cancel
@@ -515,6 +517,46 @@ func (h *Harness) firehoseBridge(ctx context.Context, ch <-chan testpds.Firehose
 			if !ok {
 				return
 			}
+
+			if evt.Identity != nil && h.ProfileWatcher != nil {
+				handle := ""
+				if evt.Identity.Handle != nil {
+					handle = *evt.Identity.Handle
+				}
+				h.ProfileWatcher.ProcessEvent(firehose.JetstreamEvent{
+					DID:    evt.Identity.Did,
+					TimeUS: time.Now().UnixMicro(),
+					Kind:   "identity",
+					Identity: &firehose.JetstreamIdentity{
+						DID:    evt.Identity.Did,
+						Handle: handle,
+						Seq:    evt.Identity.Seq,
+						Time:   evt.Identity.Time,
+					},
+				})
+				continue
+			}
+
+			if evt.Account != nil && h.ProfileWatcher != nil {
+				status := ""
+				if evt.Account.Status != nil {
+					status = *evt.Account.Status
+				}
+				h.ProfileWatcher.ProcessEvent(firehose.JetstreamEvent{
+					DID:    evt.Account.Did,
+					TimeUS: time.Now().UnixMicro(),
+					Kind:   "account",
+					Account: &firehose.JetstreamAccount{
+						Active: evt.Account.Active,
+						DID:    evt.Account.Did,
+						Seq:    evt.Account.Seq,
+						Status: status,
+						Time:   evt.Account.Time,
+					},
+				})
+				continue
+			}
+
 			if evt.Commit == nil {
 				continue
 			}

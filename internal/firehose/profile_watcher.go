@@ -280,12 +280,23 @@ func (pw *ProfileWatcher) sendOptionsUpdate() {
 	}
 }
 
+// ProcessEvent processes a single Jetstream event through the profile-watcher
+// pipeline. Exported for use in integration tests where events are fed from a
+// test PDS firehose rather than a live Jetstream connection. Production code
+// reaches this path via processMessage.
+func (pw *ProfileWatcher) ProcessEvent(event JetstreamEvent) {
+	pw.dispatch(event)
+}
+
 func (pw *ProfileWatcher) processMessage(data []byte) {
 	var event JetstreamEvent
 	if err := json.Unmarshal(data, &event); err != nil {
 		return
 	}
+	pw.dispatch(event)
+}
 
+func (pw *ProfileWatcher) dispatch(event JetstreamEvent) {
 	switch event.Kind {
 	case "commit":
 		if event.Commit == nil || event.Commit.Collection != NSIDBlueskyProfile {
