@@ -68,6 +68,19 @@ func (pw *ProfileWatcher) Watch(did string) {
 	}
 }
 
+// Unwatch removes a DID from the subscription. Used when an account is deleted
+// so Jetstream stops sending events for that DID.
+func (pw *ProfileWatcher) Unwatch(did string) {
+	pw.watchedDIDsMu.Lock()
+	_, present := pw.watchedDIDs[did]
+	delete(pw.watchedDIDs, did)
+	pw.watchedDIDsMu.Unlock()
+
+	if present {
+		pw.sendOptionsUpdate()
+	}
+}
+
 // Start begins the profile watcher in a background goroutine. It will reconnect
 // automatically on failure, rotating through endpoints with exponential backoff.
 func (pw *ProfileWatcher) Start(ctx context.Context) {
@@ -269,14 +282,51 @@ func (pw *ProfileWatcher) sendOptionsUpdate() {
 
 func (pw *ProfileWatcher) processMessage(data []byte) {
 	var event JetstreamEvent
-	if err := json.Unmarshal(data, &event); err != nil || event.Kind != "commit" || event.Commit == nil {
+	if err := json.Unmarshal(data, &event); err != nil {
 		return
 	}
-	if event.Commit.Collection != NSIDBlueskyProfile {
-		return
-	}
-	if event.Commit.Operation == "create" || event.Commit.Operation == "update" {
+
+	switch event.Kind {
+	case "commit":
+		if event.Commit == nil || event.Commit.Collection != NSIDBlueskyProfile {
+			return
+		}
+		if event.Commit.Operation == "create" || event.Commit.Operation == "update" {
+			pw.index.RefreshProfile(context.Background(), event.DID)
+			log.Debug().Str("did", event.DID).Msg("profile watcher: refreshed profile cache")
+		}
+
+	case "identity":
+		// Handle change or PDS migration — refresh the cached profile so handle
+		// resolution stays accurate. Profile-commit events don't fire on handle
+		// changes, so this is the only signal we get.
 		pw.index.RefreshProfile(context.Background(), event.DID)
-		log.Debug().Str("did", event.DID).Msg("profile watcher: refreshed profile cache")
+		handle := ""
+		if event.Identity != nil {
+			handle = event.Identity.Handle
+		}
+		log.Info().Str("did", event.DID).Str("handle", handle).Msg("profile watcher: identity update, refreshed profile")
+
+	case "account":
+		if event.Account == nil {
+			return
+		}
+		status := event.Account.Status
+		log.Info().
+			Str("did", event.DID).
+			Str("status", status).
+			Bool("active", event.Account.Active).
+			Msg("profile watcher: account event")
+
+		// Only act on terminal states. deactivated/suspended are reversible —
+		// we keep the data so it reappears if the account comes back.
+		if status == "deleted" || status == "takendown" {
+			if err := pw.index.DeleteAllByDID(context.Background(), event.DID); err != nil {
+				log.Error().Err(err).Str("did", event.DID).Str("status", status).Msg("profile watcher: failed to delete user data")
+				return
+			}
+			log.Warn().Str("did", event.DID).Str("status", status).Msg("profile watcher: purged all data for account")
+			pw.Unwatch(event.DID)
+		}
 	}
 }

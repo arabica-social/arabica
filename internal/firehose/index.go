@@ -459,6 +459,60 @@ func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey st
 	return err
 }
 
+// DeleteAllByDID removes all data associated with a DID from the index.
+// Used when a Jetstream account event reports the DID as deleted or takendown.
+//
+// Removes: records authored by the DID; likes/comments by the DID; likes/comments
+// targeting the DID's records; profile cache; notifications to or from the DID;
+// known/registered/backfilled tracking; user settings.
+//
+// Preserves moderation_* tables (reports, audit log, blacklist, labels, hidden
+// records, autohide resets) — those are evidence of moderation actions and
+// should outlive the account.
+func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
+	uriPrefix := fmt.Sprintf("at://%s/%%", did)
+
+	tx, err := idx.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	stmts := []struct {
+		sql  string
+		args []any
+	}{
+		{`DELETE FROM records WHERE did = ?`, []any{did}},
+		{`DELETE FROM likes WHERE actor_did = ?`, []any{did}},
+		{`DELETE FROM likes WHERE subject_uri LIKE ?`, []any{uriPrefix}},
+		{`DELETE FROM comments WHERE actor_did = ?`, []any{did}},
+		{`DELETE FROM comments WHERE subject_uri LIKE ?`, []any{uriPrefix}},
+		{`DELETE FROM notifications WHERE target_did = ? OR actor_did = ?`, []any{did, did}},
+		{`DELETE FROM notifications_meta WHERE target_did = ?`, []any{did}},
+		{`DELETE FROM profiles WHERE did = ?`, []any{did}},
+		{`DELETE FROM known_dids WHERE did = ?`, []any{did}},
+		{`DELETE FROM registered_dids WHERE did = ?`, []any{did}},
+		{`DELETE FROM backfilled WHERE did = ?`, []any{did}},
+		{`DELETE FROM user_settings WHERE did = ?`, []any{did}},
+	}
+
+	for _, s := range stmts {
+		if _, err := tx.ExecContext(ctx, s.sql, s.args...); err != nil {
+			return fmt.Errorf("delete by did: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	idx.profileCacheMu.Lock()
+	delete(idx.profileCache, did)
+	idx.profileCacheMu.Unlock()
+
+	return nil
+}
+
 // UpsertWitnessRecord implements atproto.WitnessCache for write-through caching.
 func (idx *FeedIndex) UpsertWitnessRecord(ctx context.Context, did, collection, rkey, cid string, record json.RawMessage) error {
 	return idx.UpsertRecord(ctx, did, collection, rkey, cid, record, time.Now().UnixMicro())

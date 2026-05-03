@@ -27,12 +27,33 @@ type JetstreamCommit struct {
 	CID        string          `json:"cid"`
 }
 
+// JetstreamIdentity represents the identity payload of a Jetstream event.
+// Emitted when a DID's handle or PDS endpoint changes.
+type JetstreamIdentity struct {
+	DID    string `json:"did"`
+	Handle string `json:"handle,omitempty"`
+	Seq    int64  `json:"seq"`
+	Time   string `json:"time"`
+}
+
+// JetstreamAccount represents the account payload of a Jetstream event.
+// Status is one of "active", "deleted", "deactivated", "suspended", "takendown".
+type JetstreamAccount struct {
+	Active bool   `json:"active"`
+	DID    string `json:"did"`
+	Seq    int64  `json:"seq"`
+	Status string `json:"status,omitempty"`
+	Time   string `json:"time"`
+}
+
 // JetstreamEvent represents an event from Jetstream
 type JetstreamEvent struct {
-	DID    string           `json:"did"`
-	TimeUS int64            `json:"time_us"`
-	Kind   string           `json:"kind"` // "commit", "identity", "account"
-	Commit *JetstreamCommit `json:"commit,omitempty"`
+	DID      string             `json:"did"`
+	TimeUS   int64              `json:"time_us"`
+	Kind     string             `json:"kind"` // "commit", "identity", "account"
+	Commit   *JetstreamCommit   `json:"commit,omitempty"`
+	Identity *JetstreamIdentity `json:"identity,omitempty"`
+	Account  *JetstreamAccount  `json:"account,omitempty"`
 }
 
 // Consumer consumes events from Jetstream and indexes them

@@ -609,3 +609,89 @@ func TestDeleteRecord_AllEntityTypes(t *testing.T) {
 
 	assert.Equal(t, 0, idx.RecordCount(), "all records should be deleted")
 }
+
+func TestDeleteAllByDID(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	ctx := context.Background()
+	target := "did:plc:victim"
+	other := "did:plc:bystander"
+	now := time.Now().Unix()
+
+	// Records: target owns 2, other owns 1
+	bean := []byte(`{"$type":"social.arabica.alpha.bean","name":"Bean","createdAt":"2025-01-01T00:00:00Z"}`)
+	brew := []byte(`{"$type":"social.arabica.alpha.brew","createdAt":"2025-01-02T00:00:00Z"}`)
+	assert.NoError(t, idx.UpsertRecord(ctx, target, "social.arabica.alpha.bean", "b1", "cid1", bean, now))
+	assert.NoError(t, idx.UpsertRecord(ctx, target, "social.arabica.alpha.brew", "br1", "cid2", brew, now))
+	assert.NoError(t, idx.UpsertRecord(ctx, other, "social.arabica.alpha.bean", "b2", "cid3", bean, now))
+
+	// Likes: target -> other's record, other -> target's record, other -> other's record
+	targetBeanURI := "at://" + target + "/social.arabica.alpha.bean/b1"
+	otherBeanURI := "at://" + other + "/social.arabica.alpha.bean/b2"
+	assert.NoError(t, idx.UpsertLike(ctx, target, "lk1", otherBeanURI))
+	assert.NoError(t, idx.UpsertLike(ctx, other, "lk2", targetBeanURI))
+	assert.NoError(t, idx.UpsertLike(ctx, other, "lk3", otherBeanURI))
+
+	// Comments mirroring the like pattern
+	createdAt := time.Now()
+	assert.NoError(t, idx.UpsertComment(ctx, target, "c1", otherBeanURI, "", "cidc1", "by target", createdAt))
+	assert.NoError(t, idx.UpsertComment(ctx, other, "c2", targetBeanURI, "", "cidc2", "on target", createdAt))
+	assert.NoError(t, idx.UpsertComment(ctx, other, "c3", otherBeanURI, "", "cidc3", "untouched", createdAt))
+
+	// Backfill marker for target
+	assert.NoError(t, idx.MarkBackfilled(ctx, target))
+	assert.True(t, idx.IsBackfilled(ctx, target))
+
+	// Settings for target
+	assert.NoError(t, idx.SetProfileStatsVisibility(ctx, target, models.ProfileStatsVisibility{}))
+
+	// Notification: target receives a like from other
+	idx.CreateLikeNotification(other, targetBeanURI)
+
+	// Sanity: counts before
+	assert.Equal(t, 3, idx.RecordCount())
+	assert.Equal(t, 3, idx.TotalLikeCount())
+	assert.Equal(t, 3, idx.TotalCommentCount())
+
+	// Act
+	assert.NoError(t, idx.DeleteAllByDID(ctx, target))
+
+	// Records: only other's bean remains
+	assert.Equal(t, 1, idx.RecordCount())
+	rec, err := idx.GetRecord(ctx, otherBeanURI)
+	assert.NoError(t, err)
+	assert.NotNil(t, rec)
+
+	// Likes: only other->other survives (target's like and the like ON target's record gone)
+	assert.Equal(t, 1, idx.TotalLikeCount())
+	assert.Equal(t, 0, idx.GetLikeCount(ctx, targetBeanURI))
+	assert.Equal(t, 1, idx.GetLikeCount(ctx, otherBeanURI))
+	assert.False(t, idx.HasUserLiked(ctx, target, otherBeanURI))
+
+	// Comments: only the third comment survives
+	assert.Equal(t, 1, idx.TotalCommentCount())
+	assert.Equal(t, 0, idx.GetCommentCount(ctx, targetBeanURI))
+	assert.Equal(t, 1, idx.GetCommentCount(ctx, otherBeanURI))
+
+	// Backfill cleared
+	assert.False(t, idx.IsBackfilled(ctx, target))
+
+	// Profile cache cleared (in-memory)
+	idx.profileCacheMu.RLock()
+	_, present := idx.profileCache[target]
+	idx.profileCacheMu.RUnlock()
+	assert.False(t, present)
+}
+
+func TestDeleteAllByDID_NoData(t *testing.T) {
+	tmpDir := t.TempDir()
+	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
+	assert.NoError(t, err)
+	defer idx.Close()
+
+	// Should be a no-op for an unknown DID
+	assert.NoError(t, idx.DeleteAllByDID(context.Background(), "did:plc:ghost"))
+}
