@@ -136,7 +136,7 @@ func main() {
 		// Use public URL if set, otherwise localhost defaults for development
 		if publicURL != "" {
 			redirectURI = publicURL + "/oauth/callback"
-			clientID = publicURL + "/oauth-client-metadata.json"
+			clientID = publicURL + "/.well-known/oauth-client-metadata.json"
 			log.Info().
 				Str("public_url", publicURL).
 				Msg("Using public URL for OAuth (reverse proxy mode)")

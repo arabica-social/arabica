@@ -194,10 +194,10 @@ in {
       clientId = lib.mkOption {
         type = lib.types.str;
         description = ''
-          OAuth client ID. This should be the URL to your client-metadata.json endpoint.
-          For example: https://arabica.example.com/client-metadata.json
+          OAuth client ID. This should be the URL to your client metadata endpoint.
+          For example: https://arabica.example.com/.well-known/oauth-client-metadata.json
         '';
-        example = "https://arabica.example.com/client-metadata.json";
+        example = "https://arabica.example.com/.well-known/oauth-client-metadata.json";
       };
 
       redirectUri = lib.mkOption {

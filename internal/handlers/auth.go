@@ -234,11 +234,6 @@ func (h *Handler) HandleClientMetadata(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleWellKnownOAuth serves the OAuth client metadata at /.well-known/oauth-client-metadata
-func (h *Handler) HandleWellKnownOAuth(w http.ResponseWriter, r *http.Request) {
-	h.HandleClientMetadata(w, r)
-}
-
 // HandleResolveHandle resolves an AT Protocol handle and returns basic profile info
 // This is used for the autocomplete login feature
 func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
