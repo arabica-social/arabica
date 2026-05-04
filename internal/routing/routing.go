@@ -196,6 +196,8 @@ func SetupRouter(cfg Config) http.Handler {
 		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleDismissJoinRequest))))
 	mux.Handle("GET /_mod/stats", middleware.RequireAdmin(modSvc,
 		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
+	mux.Handle("GET /_mod/export", middleware.RequireAdmin(modSvc,
+		http.HandlerFunc(h.HandleAdminExportDID)))
 
 	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("static"))

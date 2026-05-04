@@ -2,11 +2,15 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/database/boltstore"
+	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
@@ -705,5 +709,85 @@ func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
 	if err := pages.AdminStatsContent(stats).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render admin stats partial")
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
+	}
+}
+
+// exportedRecord is the per-record shape in the witness export payload.
+type exportedRecord struct {
+	URI        string          `json:"uri"`
+	RKey       string          `json:"rkey"`
+	CID        string          `json:"cid"`
+	CreatedAt  time.Time       `json:"createdAt"`
+	IndexedAt  time.Time       `json:"indexedAt"`
+	Record     json.RawMessage `json:"record"`
+}
+
+// witnessExport is the top-level payload returned by HandleAdminExportDID.
+type witnessExport struct {
+	DID         string                       `json:"did"`
+	ExportedAt  time.Time                    `json:"exportedAt"`
+	Source      string                       `json:"source"`
+	Collections map[string][]exportedRecord  `json:"collections"`
+}
+
+// HandleAdminExportDID exports every witness-cached record for a given DID as
+// a single JSON document. Records come from the firehose-backed SQLite index,
+// not the user's PDS. Auth and admin checks are handled by RequireAdmin.
+func (h *Handler) HandleAdminExportDID(w http.ResponseWriter, r *http.Request) {
+	rawDID := strings.TrimSpace(r.URL.Query().Get("did"))
+	if rawDID == "" {
+		http.Error(w, "missing 'did' query parameter", http.StatusBadRequest)
+		return
+	}
+	did, err := syntax.ParseDID(rawDID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("invalid DID: %v", err), http.StatusBadRequest)
+		return
+	}
+	if h.witnessCache == nil {
+		http.Error(w, "witness cache not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	didStr := did.String()
+	out := witnessExport{
+		DID:         didStr,
+		ExportedAt:  time.Now().UTC(),
+		Source:      "witness-cache",
+		Collections: make(map[string][]exportedRecord, len(firehose.ArabicaCollections)),
+	}
+
+	for _, collection := range firehose.ArabicaCollections {
+		records, err := h.witnessCache.ListWitnessRecords(r.Context(), didStr, collection)
+		if err != nil {
+			log.Error().Err(err).Str("did", didStr).Str("collection", collection).Msg("witness export: list failed")
+			http.Error(w, "failed to read witness cache", http.StatusInternalServerError)
+			return
+		}
+		exported := make([]exportedRecord, 0, len(records))
+		for _, rec := range records {
+			exported = append(exported, exportedRecord{
+				URI:       rec.URI,
+				RKey:      rec.RKey,
+				CID:       rec.CID,
+				CreatedAt: rec.CreatedAt,
+				IndexedAt: rec.IndexedAt,
+				Record:    rec.Record,
+			})
+		}
+		out.Collections[collection] = exported
+	}
+
+	filename := fmt.Sprintf("arabica-witness-%s-%s.json",
+		strings.ReplaceAll(didStr, ":", "_"),
+		out.ExportedAt.Format("20060102-150405"))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(out); err != nil {
+		log.Error().Err(err).Str("did", didStr).Msg("witness export: encode failed")
 	}
 }
