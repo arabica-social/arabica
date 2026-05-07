@@ -170,12 +170,45 @@ func TestIdentityEvent_EvictsPriorOwnerOfHandle(t *testing.T) {
 		assert.NotEqual(t, orphanDID, got, "shared handle must not resolve to the evicted prior owner")
 	}
 
+	// The orphan's in-memory profile entry must also be gone. The DB-side
+	// assertion above only catches did_by_handle cleanup; this catches the
+	// other half of InvalidateProfile.
+	assert.False(t, h.FeedIndex.ProfileCachedInMemory(orphanDID),
+		"orphan profile must be evicted from the in-memory cache")
+
 	// Now seed the new DID's profile (as the watcher would, on a working API).
 	// The handle must resolve to newDID, never orphanDID.
 	seedProfile(t, h, newDID, sharedHandle)
 	got, ok = h.FeedIndex.GetDIDByHandle(ctx, sharedHandle)
 	require.True(t, ok)
 	assert.Equal(t, newDID, got, "after reconciliation, shared handle resolves to the new owner")
+}
+
+// TestInvalidateProfile_RemovesHandleMapping is a direct unit-level assertion
+// for InvalidateProfile. The eviction paths exercised in other tests
+// (OnIdentityEvent, DeleteAllByDID) reach did_by_handle through different
+// routes; this test pins the contract of InvalidateProfile itself: clear the
+// in-memory cache, the persistent profile row, and the handle mapping.
+func TestInvalidateProfile_RemovesHandleMapping(t *testing.T) {
+	h := StartHarness(t, nil)
+	ctx := context.Background()
+
+	const did = "did:plc:invalidatetest"
+	const handle = "invalidate.test"
+
+	seedProfile(t, h, did, handle)
+	require.True(t, h.FeedIndex.ProfileCachedInMemory(did),
+		"precondition: seed populates the in-memory cache")
+	got, ok := h.FeedIndex.GetDIDByHandle(ctx, handle)
+	require.True(t, ok)
+	require.Equal(t, did, got)
+
+	h.FeedIndex.InvalidateProfile(did)
+
+	assert.False(t, h.FeedIndex.ProfileCachedInMemory(did),
+		"InvalidateProfile must clear the in-memory cache")
+	_, ok = h.FeedIndex.GetDIDByHandle(ctx, handle)
+	assert.False(t, ok, "InvalidateProfile must clear the handle mapping")
 }
 
 // TestHandleResolution_BackfillFromExistingProfiles verifies that a FeedIndex

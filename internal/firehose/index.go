@@ -1238,6 +1238,17 @@ func (idx *FeedIndex) InvalidateProfile(did string) {
 	_, _ = idx.db.Exec(`DELETE FROM did_by_handle WHERE did = ?`, did)
 }
 
+// ProfileCachedInMemory reports whether the in-memory profile cache currently
+// holds an entry for did. Test-only helper for asserting eviction behavior
+// without going through GetProfile (which would fall through to the public API
+// on a cache miss).
+func (idx *FeedIndex) ProfileCachedInMemory(did string) bool {
+	idx.profileCacheMu.RLock()
+	defer idx.profileCacheMu.RUnlock()
+	_, ok := idx.profileCache[did]
+	return ok
+}
+
 // RefreshProfile fetches a profile from the API and stores it in both caches.
 // Used by the profile watcher to keep the cache warm on firehose events.
 func (idx *FeedIndex) RefreshProfile(ctx context.Context, did string) {
