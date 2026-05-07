@@ -791,3 +791,54 @@ func (h *Handler) HandleAdminExportDID(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Str("did", didStr).Msg("witness export: encode failed")
 	}
 }
+
+// HandleAdminPurgeDID removes every trace of a DID from the witness cache:
+// records, likes, comments (including ones targeting this DID's records),
+// notifications, profile cache, did_by_handle index, known/registered/backfilled
+// tracking, and user settings. Moderation tables are preserved as evidence.
+//
+// Required when an account orphans its data — e.g. the user's PDS goes away
+// without the firehose ever emitting a deleted/takendown account event, so the
+// stale records sit in the cache forever. Auth and admin checks are handled by
+// RequireAdmin.
+func (h *Handler) HandleAdminPurgeDID(w http.ResponseWriter, r *http.Request) {
+	rawDID := strings.TrimSpace(r.URL.Query().Get("did"))
+	if rawDID == "" {
+		// Form posts may put it in the body.
+		if err := r.ParseForm(); err == nil {
+			rawDID = strings.TrimSpace(r.FormValue("did"))
+		}
+	}
+	if rawDID == "" {
+		http.Error(w, "missing 'did' parameter", http.StatusBadRequest)
+		return
+	}
+	did, err := syntax.ParseDID(rawDID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("invalid DID: %v", err), http.StatusBadRequest)
+		return
+	}
+	if h.feedIndex == nil {
+		http.Error(w, "feed index not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	didStr := did.String()
+	actor, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	if err := h.feedIndex.DeleteAllByDID(r.Context(), didStr); err != nil {
+		log.Error().Err(err).Str("did", didStr).Str("actor", actor).Msg("admin purge: DeleteAllByDID failed")
+		http.Error(w, "purge failed", http.StatusInternalServerError)
+		return
+	}
+	h.feedIndex.InvalidatePublicCachesForDID(didStr)
+
+	log.Warn().Str("did", didStr).Str("actor", actor).Msg("admin purge: removed all witness data for DID")
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"did":     didStr,
+		"purged":  true,
+		"purgedAt": time.Now().UTC(),
+	})
+}

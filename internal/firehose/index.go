@@ -128,6 +128,13 @@ CREATE TABLE IF NOT EXISTS profiles (
     expires_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS did_by_handle (
+    handle     TEXT PRIMARY KEY,
+    did        TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_did_by_handle_did ON did_by_handle(did);
+
 CREATE TABLE IF NOT EXISTS likes (
     subject_uri TEXT NOT NULL,
     actor_did   TEXT NOT NULL,
@@ -289,6 +296,12 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		profileCache: make(map[string]*CachedProfile),
 	}
 
+	// One-time backfill: populate did_by_handle from any pre-existing profile rows
+	// so handle resolution works for users observed before this table existed.
+	if err := idx.backfillHandleIndex(); err != nil {
+		log.Warn().Err(err).Msg("did_by_handle backfill failed; lookups will populate lazily")
+	}
+
 	// If the database already has records from a previous run, mark ready immediately
 	// so the feed is served from persisted data while the firehose reconnects.
 	var count int
@@ -297,6 +310,39 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	}
 
 	return idx, nil
+}
+
+// backfillHandleIndex populates did_by_handle from the profiles table. Idempotent.
+// Iterates every cached profile and inserts (handle, did) — last writer wins,
+// matching the live storeProfile semantics, so a handle that existed on multiple
+// DIDs resolves to whichever profile was inserted most recently in the iteration.
+func (idx *FeedIndex) backfillHandleIndex() error {
+	var n int
+	if err := idx.db.QueryRow(`SELECT COUNT(*) FROM did_by_handle`).Scan(&n); err == nil && n > 0 {
+		return nil
+	}
+
+	rows, err := idx.db.Query(`SELECT did, data FROM profiles`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	now := time.Now().Format(time.RFC3339Nano)
+	for rows.Next() {
+		var did, dataStr string
+		if err := rows.Scan(&did, &dataStr); err != nil {
+			continue
+		}
+		cached := &CachedProfile{}
+		if err := json.Unmarshal([]byte(dataStr), cached); err != nil || cached.Profile == nil || cached.Profile.Handle == "" {
+			continue
+		}
+		_, _ = idx.db.Exec(
+			`INSERT OR REPLACE INTO did_by_handle (handle, did, updated_at) VALUES (?, ?, ?)`,
+			cached.Profile.Handle, did, now)
+	}
+	return rows.Err()
 }
 
 // Compile-time check: FeedIndex must satisfy the atproto.WitnessCache interface.
@@ -490,6 +536,7 @@ func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
 		{`DELETE FROM notifications WHERE target_did = ? OR actor_did = ?`, []any{did, did}},
 		{`DELETE FROM notifications_meta WHERE target_did = ?`, []any{did}},
 		{`DELETE FROM profiles WHERE did = ?`, []any{did}},
+		{`DELETE FROM did_by_handle WHERE did = ?`, []any{did}},
 		{`DELETE FROM known_dids WHERE did = ?`, []any{did}},
 		{`DELETE FROM registered_dids WHERE did = ?`, []any{did}},
 		{`DELETE FROM backfilled WHERE did = ?`, []any{did}},
@@ -1124,7 +1171,9 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 	return profile, nil
 }
 
-// storeProfile writes a profile to both in-memory and persistent caches.
+// storeProfile writes a profile to both in-memory and persistent caches, and
+// maintains the did_by_handle index so handle lookups stay accurate across
+// handle changes and handle reassignment between DIDs.
 func (idx *FeedIndex) storeProfile(ctx context.Context, did string, profile *atproto.Profile) {
 	now := time.Now()
 	cached := &CachedProfile{
@@ -1140,49 +1189,34 @@ func (idx *FeedIndex) storeProfile(ctx context.Context, did string, profile *atp
 	data, _ := json.Marshal(cached)
 	_, _ = idx.db.ExecContext(ctx, `INSERT OR REPLACE INTO profiles (did, data, expires_at) VALUES (?, ?, ?)`,
 		did, string(data), cached.ExpiresAt.Format(time.RFC3339Nano))
+
+	if profile != nil && profile.Handle != "" {
+		// Drop any prior row pointing this DID at a different handle (handle change).
+		_, _ = idx.db.ExecContext(ctx,
+			`DELETE FROM did_by_handle WHERE did = ? AND handle != ?`, did, profile.Handle)
+		// Last writer wins on handle — this naturally resolves handle reassignment
+		// from an old DID to a new one, since the new profile's INSERT OR REPLACE
+		// overwrites the old DID's mapping.
+		_, _ = idx.db.ExecContext(ctx,
+			`INSERT OR REPLACE INTO did_by_handle (handle, did, updated_at) VALUES (?, ?, ?)`,
+			profile.Handle, did, now.Format(time.RFC3339Nano))
+	}
 }
 
-// GetDIDByHandle looks up a DID from the profile cache by handle.
-// Returns the DID and true if found, or empty string and false if not cached.
-// This avoids a ResolveHandle API call for known Arabica users.
+// GetDIDByHandle looks up a DID from the handle index. Returns the DID and
+// true if found, or empty string and false if not indexed.
+//
+// Backed by the did_by_handle table — last-writer-wins, so a handle that has
+// been reassigned to a new DID resolves to that new DID once the new profile
+// is observed (via the firehose profile watcher or a GetProfile call).
 func (idx *FeedIndex) GetDIDByHandle(ctx context.Context, handle string) (string, bool) {
-	// Check in-memory cache first
-	idx.profileCacheMu.RLock()
-	for did, cached := range idx.profileCache {
-		if cached.Profile != nil && cached.Profile.Handle == handle && time.Now().Before(cached.ExpiresAt) {
-			idx.profileCacheMu.RUnlock()
-			return did, true
-		}
-	}
-	idx.profileCacheMu.RUnlock()
-
-	// Check persistent store
-	rows, err := idx.db.QueryContext(ctx, `SELECT did, data FROM profiles`)
-	if err != nil {
+	var did string
+	err := idx.db.QueryRowContext(ctx,
+		`SELECT did FROM did_by_handle WHERE handle = ?`, handle).Scan(&did)
+	if err != nil || did == "" {
 		return "", false
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var did, dataStr string
-		if err := rows.Scan(&did, &dataStr); err != nil {
-			continue
-		}
-		cached := &CachedProfile{}
-		if err := json.Unmarshal([]byte(dataStr), cached); err != nil || cached.Profile == nil {
-			continue
-		}
-		if cached.Profile.Handle == handle {
-			// Promote to in-memory cache
-			cached.ExpiresAt = time.Now().Add(idx.profileTTL)
-			idx.profileCacheMu.Lock()
-			idx.profileCache[did] = cached
-			idx.profileCacheMu.Unlock()
-			return did, true
-		}
-	}
-
-	return "", false
+	return did, true
 }
 
 // InvalidateProfile removes a DID's profile from both the in-memory and persistent
@@ -1193,6 +1227,7 @@ func (idx *FeedIndex) InvalidateProfile(did string) {
 	idx.profileCacheMu.Unlock()
 
 	_, _ = idx.db.Exec(`DELETE FROM profiles WHERE did = ?`, did)
+	_, _ = idx.db.Exec(`DELETE FROM did_by_handle WHERE did = ?`, did)
 }
 
 // RefreshProfile fetches a profile from the API and stores it in both caches.
@@ -1206,6 +1241,75 @@ func (idx *FeedIndex) RefreshProfile(ctx context.Context, did string) {
 	}
 
 	idx.storeProfile(ctx, did, profile)
+}
+
+// InvalidatePublicCachesForDID drops the public client's cached PDS endpoint
+// and any handle→DID mappings pointing at this DID. Used when an account is
+// deleted/takendown so subsequent lookups don't keep hitting the tombstoned DID.
+func (idx *FeedIndex) InvalidatePublicCachesForDID(did string) {
+	if idx.publicClient != nil {
+		idx.publicClient.InvalidateDID(did)
+	}
+}
+
+// OnIdentityEvent reconciles caches when a Jetstream identity event reports
+// that a DID's handle has changed. It is the only path through which a handle
+// can be reassigned from one DID to another (handle release + reclaim by a
+// different account), so this is where stale mappings must be evicted.
+//
+// Steps:
+//  1. Look up this DID's previously cached handle (the old handle).
+//  2. Find any *other* DID whose cached profile still claims the new handle —
+//     that's the prior owner; invalidate its profile and resolver entries.
+//  3. Drop the old handle from the resolver cache (it may now resolve to
+//     someone else, or to nothing).
+//  4. Drop the new handle from the resolver cache so the next ResolveHandle
+//     re-fetches from the directory.
+//  5. Refresh this DID's profile via the API; storeProfile then writes the
+//     authoritative did_by_handle row.
+func (idx *FeedIndex) OnIdentityEvent(ctx context.Context, did, newHandle string) {
+	var oldHandle string
+	idx.profileCacheMu.RLock()
+	if cached, ok := idx.profileCache[did]; ok && cached.Profile != nil {
+		oldHandle = cached.Profile.Handle
+	}
+	idx.profileCacheMu.RUnlock()
+	if oldHandle == "" {
+		// Fall back to persistent store.
+		var dataStr string
+		if err := idx.db.QueryRowContext(ctx, `SELECT data FROM profiles WHERE did = ?`, did).Scan(&dataStr); err == nil {
+			cached := &CachedProfile{}
+			if err := json.Unmarshal([]byte(dataStr), cached); err == nil && cached.Profile != nil {
+				oldHandle = cached.Profile.Handle
+			}
+		}
+	}
+
+	if newHandle != "" {
+		// Evict any prior owner of newHandle (other than `did` itself).
+		var priorDID string
+		err := idx.db.QueryRowContext(ctx,
+			`SELECT did FROM did_by_handle WHERE handle = ? AND did != ?`, newHandle, did).Scan(&priorDID)
+		if err == nil && priorDID != "" {
+			log.Warn().
+				Str("handle", newHandle).
+				Str("prior_did", priorDID).
+				Str("new_did", did).
+				Msg("identity event: handle reassigned, invalidating prior owner")
+			idx.InvalidateProfile(priorDID)
+			idx.publicClient.InvalidateDID(priorDID)
+		}
+	}
+
+	if oldHandle != "" && oldHandle != newHandle {
+		idx.publicClient.InvalidateHandle(oldHandle)
+	}
+	if newHandle != "" {
+		idx.publicClient.InvalidateHandle(newHandle)
+	}
+	idx.publicClient.InvalidateDID(did)
+
+	idx.RefreshProfile(ctx, did)
 }
 
 // GetKnownDIDs returns all DIDs that have created Arabica records

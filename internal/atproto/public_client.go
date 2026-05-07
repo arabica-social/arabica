@@ -92,6 +92,39 @@ func (c *PublicClient) ResolveHandle(ctx context.Context, handle string) (string
 	return did, nil
 }
 
+// InvalidateHandle removes a handle from the resolver cache so the next
+// ResolveHandle call refetches from the directory. Called when a firehose
+// identity event signals that a handle's DID mapping has changed.
+func (c *PublicClient) InvalidateHandle(handle string) {
+	if handle == "" {
+		return
+	}
+	c.handleMu.Lock()
+	delete(c.handleCache, handle)
+	c.handleMu.Unlock()
+}
+
+// InvalidateDID drops any cached entries pointing at this DID — both the
+// PDS endpoint cache and any handle→DID mappings whose resolved DID is the
+// given one. Used when a DID's repo is gone (account deleted/takendown) or
+// when a handle has been reassigned away from this DID.
+func (c *PublicClient) InvalidateDID(did string) {
+	if did == "" {
+		return
+	}
+	c.pdsMu.Lock()
+	delete(c.pdsCache, did)
+	c.pdsMu.Unlock()
+
+	c.handleMu.Lock()
+	for h, v := range c.handleCache {
+		if v.value == did {
+			delete(c.handleCache, h)
+		}
+	}
+	c.handleMu.Unlock()
+}
+
 // PublicListRecordsOutput represents the response from public listRecords API.
 type PublicListRecordsOutput struct {
 	Records []PublicRecordEntry `json:"records"`

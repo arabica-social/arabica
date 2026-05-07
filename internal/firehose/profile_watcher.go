@@ -308,15 +308,16 @@ func (pw *ProfileWatcher) dispatch(event JetstreamEvent) {
 		}
 
 	case "identity":
-		// Handle change or PDS migration — refresh the cached profile so handle
-		// resolution stays accurate. Profile-commit events don't fire on handle
-		// changes, so this is the only signal we get.
-		pw.index.RefreshProfile(context.Background(), event.DID)
+		// Handle change, handle reassignment, or PDS migration. OnIdentityEvent
+		// reconciles the profile cache, did_by_handle index, and resolver caches
+		// before refreshing — this is also the only signal we get when a handle
+		// moves from an abandoned DID to a new one.
 		handle := ""
 		if event.Identity != nil {
 			handle = event.Identity.Handle
 		}
-		log.Info().Str("did", event.DID).Str("handle", handle).Msg("profile watcher: identity update, refreshed profile")
+		pw.index.OnIdentityEvent(context.Background(), event.DID, handle)
+		log.Info().Str("did", event.DID).Str("handle", handle).Msg("profile watcher: identity update reconciled")
 
 	case "account":
 		if event.Account == nil {
@@ -336,6 +337,7 @@ func (pw *ProfileWatcher) dispatch(event JetstreamEvent) {
 				log.Error().Err(err).Str("did", event.DID).Str("status", status).Msg("profile watcher: failed to delete user data")
 				return
 			}
+			pw.index.InvalidatePublicCachesForDID(event.DID)
 			log.Warn().Str("did", event.DID).Str("status", status).Msg("profile watcher: purged all data for account")
 			pw.Unwatch(event.DID)
 		}
