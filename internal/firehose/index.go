@@ -1171,6 +1171,14 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 	return profile, nil
 }
 
+// StoreProfile writes a profile to both in-memory and persistent caches and
+// maintains the did_by_handle index. Use this when you've already fetched a
+// profile (backfill workers, tests, externally-provided data) and want to seed
+// the cache without going through the public API.
+func (idx *FeedIndex) StoreProfile(ctx context.Context, did string, profile *atproto.Profile) {
+	idx.storeProfile(ctx, did, profile)
+}
+
 // storeProfile writes a profile to both in-memory and persistent caches, and
 // maintains the did_by_handle index so handle lookups stay accurate across
 // handle changes and handle reassignment between DIDs.
