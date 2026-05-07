@@ -842,3 +842,118 @@ func (h *Handler) HandleAdminPurgeDID(w http.ResponseWriter, r *http.Request) {
 		"purgedAt": time.Now().UTC(),
 	})
 }
+
+// pdsRecord is the per-record shape in the PDS fetch payload.
+type pdsRecord struct {
+	URI    string         `json:"uri"`
+	RKey   string         `json:"rkey"`
+	CID    string         `json:"cid"`
+	Record map[string]any `json:"record"`
+}
+
+// pdsExport is the top-level payload returned by HandleAdminFetchPDSRecords.
+type pdsExport struct {
+	DID         string                  `json:"did"`
+	Handle      string                  `json:"handle,omitempty"`
+	FetchedAt   time.Time               `json:"fetchedAt"`
+	Source      string                  `json:"source"`
+	Collections map[string][]pdsRecord  `json:"collections"`
+}
+
+// HandleAdminFetchPDSRecords fetches every Arabica record for an account
+// directly from the user's PDS and returns it as a single JSON document.
+// Accepts `?actor=did:plc:...` or `?actor=handle.example` — handles are
+// resolved via the public directory, not the local witness cache, so this
+// works even for users who've never appeared on the firehose.
+//
+// This is the moderator-side counterpart to /_mod/export: where export reads
+// the local witness cache, this one reads the canonical PDS state. Useful for
+// investigating reports, comparing against the cache, or capturing a snapshot
+// before purging. Auth checks are handled by RequireModerator.
+func (h *Handler) HandleAdminFetchPDSRecords(w http.ResponseWriter, r *http.Request) {
+	actor := strings.TrimSpace(r.URL.Query().Get("actor"))
+	if actor == "" {
+		http.Error(w, "missing 'actor' query parameter (DID or handle)", http.StatusBadRequest)
+		return
+	}
+
+	publicClient := atproto.NewPublicClient()
+
+	var didStr, handle string
+	if strings.HasPrefix(actor, "did:") {
+		did, err := syntax.ParseDID(actor)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("invalid DID: %v", err), http.StatusBadRequest)
+			return
+		}
+		didStr = did.String()
+	} else {
+		resolved, err := publicClient.ResolveHandle(r.Context(), actor)
+		if err != nil {
+			log.Warn().Err(err).Str("handle", actor).Msg("PDS fetch: ResolveHandle failed")
+			http.Error(w, fmt.Sprintf("could not resolve handle %q: %v", actor, err), http.StatusNotFound)
+			return
+		}
+		didStr = resolved
+		handle = actor
+	}
+
+	out := pdsExport{
+		DID:         didStr,
+		Handle:      handle,
+		FetchedAt:   time.Now().UTC(),
+		Source:      "pds",
+		Collections: make(map[string][]pdsRecord, len(firehose.ArabicaCollections)),
+	}
+
+	requester, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	for _, collection := range firehose.ArabicaCollections {
+		records, err := publicClient.ListAllRecords(r.Context(), didStr, collection)
+		if err != nil {
+			// One collection failing shouldn't sink the whole fetch — record an
+			// empty list and continue. The collection key is preserved so the
+			// caller can see which slots came up empty.
+			log.Warn().Err(err).
+				Str("did", didStr).
+				Str("collection", collection).
+				Str("actor", requester).
+				Msg("PDS fetch: ListAllRecords failed for collection")
+			out.Collections[collection] = []pdsRecord{}
+			continue
+		}
+		entries := make([]pdsRecord, 0, len(records))
+		for _, rec := range records {
+			rkey := ""
+			if comp, err := atproto.ResolveATURI(rec.URI); err == nil {
+				rkey = comp.RKey
+			}
+			entries = append(entries, pdsRecord{
+				URI:    rec.URI,
+				RKey:   rkey,
+				CID:    rec.CID,
+				Record: rec.Value,
+			})
+		}
+		out.Collections[collection] = entries
+	}
+
+	log.Info().
+		Str("did", didStr).
+		Str("handle", handle).
+		Str("actor", requester).
+		Msg("PDS fetch: returned records")
+
+	filename := fmt.Sprintf("arabica-pds-%s-%s.json",
+		strings.ReplaceAll(didStr, ":", "_"),
+		out.FetchedAt.Format("20060102-150405"))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(out); err != nil {
+		log.Error().Err(err).Str("did", didStr).Msg("PDS fetch: encode failed")
+	}
+}

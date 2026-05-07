@@ -200,6 +200,8 @@ func SetupRouter(cfg Config) http.Handler {
 		http.HandlerFunc(h.HandleAdminExportDID)))
 	mux.Handle("POST /_mod/purge", cop.Handler(
 		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleAdminPurgeDID))))
+	mux.Handle("GET /_mod/pds-records", middleware.RequireModerator(modSvc,
+		http.HandlerFunc(h.HandleAdminFetchPDSRecords)))
 
 	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("static"))

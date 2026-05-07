@@ -173,11 +173,11 @@ templ AdminDashboardBody(props AdminProps) {
 				</button>
 				<button
 					type="button"
-					@click="activeTab = 'export'"
-					:class="activeTab === 'export' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					@click="activeTab = 'cache'"
+					:class="activeTab === 'cache' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
-					Export
+					Cache
 				</button>
 			}
 		</nav>
@@ -378,9 +378,9 @@ templ AdminDashboardBody(props AdminProps) {
 				</div>
 			</div>
 		}
-		<!-- Export Tab (admin only) -->
+		<!-- Cache Tab (admin only) -->
 		if props.IsAdmin {
-			<div x-show="activeTab === 'export'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+			<div x-show="activeTab === 'cache'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="space-y-4">
 				<div class="card card-inner">
 					<h2 class="section-title">Export Witness Cache</h2>
 					<p class="text-sm text-brown-600 mb-4">
@@ -410,6 +410,77 @@ templ AdminDashboardBody(props AdminProps) {
 							Export JSON
 						</button>
 					</form>
+				</div>
+				<div class="card card-inner">
+					<h2 class="section-title">Fetch PDS Records</h2>
+					<p class="text-sm text-brown-600 mb-4">
+						Fetch every Arabica record for a user directly from their PDS, bypassing
+						the witness cache. Accepts a DID or a handle. Useful for investigating
+						reports or capturing a snapshot before purging.
+					</p>
+					<form
+						action="/_mod/pds-records"
+						method="get"
+						class="flex flex-col gap-3 sm:flex-row sm:items-end"
+					>
+						<div class="flex-1">
+							<label for="pds-actor" class="block text-sm font-medium text-brown-700 mb-1">DID or handle</label>
+							<input
+								id="pds-actor"
+								type="text"
+								name="actor"
+								required
+								placeholder="did:plc:... or alice.example.com"
+								class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-brown-900 text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+							/>
+						</div>
+						<button
+							type="submit"
+							class="text-sm bg-brown-300 text-brown-900 hover:bg-brown-400 px-4 py-2 rounded font-medium transition-colors"
+						>
+							Fetch JSON
+						</button>
+					</form>
+				</div>
+				<div class="card card-inner border-red-300">
+					<h2 class="section-title text-red-900">Purge DID from Witness Cache</h2>
+					<p class="text-sm text-brown-600 mb-2">
+						Remove every record, like, comment, notification, profile entry, and
+						handle mapping for a DID from the local witness cache. Moderation tables
+						(reports, audit log, blacklist, labels) are preserved as evidence.
+					</p>
+					<p class="text-sm text-red-800 mb-4">
+						This is irreversible from the dashboard. Use only when an account has
+						orphaned its data — e.g. the user's PDS is gone and no
+						<code class="bg-red-100 px-1 rounded">deleted</code>/<code class="bg-red-100 px-1 rounded">takendown</code>
+						event will ever arrive on the firehose.
+					</p>
+					<form
+						hx-post="/_mod/purge"
+						hx-confirm="Permanently purge this DID from the witness cache? This cannot be undone."
+						hx-swap="innerHTML"
+						hx-target="#purge-result"
+						class="flex flex-col gap-3 sm:flex-row sm:items-end"
+					>
+						<div class="flex-1">
+							<label for="purge-did" class="block text-sm font-medium text-brown-700 mb-1">DID</label>
+							<input
+								id="purge-did"
+								type="text"
+								name="did"
+								required
+								placeholder="did:plc:..."
+								class="w-full px-3 py-2 border border-red-300 rounded-lg bg-white text-brown-900 text-sm font-mono focus:ring-2 focus:ring-red-500 focus:border-red-500"
+							/>
+						</div>
+						<button
+							type="submit"
+							class="text-sm bg-red-700 text-white hover:bg-red-800 px-4 py-2 rounded font-medium transition-colors"
+						>
+							Purge DID
+						</button>
+					</form>
+					<div id="purge-result" class="mt-3 text-sm text-brown-700 font-mono"></div>
 				</div>
 			</div>
 		}

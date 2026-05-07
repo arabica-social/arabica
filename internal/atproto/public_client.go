@@ -165,6 +165,40 @@ func (c *PublicClient) ListRecords(ctx context.Context, did, collection string, 
 	return out, nil
 }
 
+// ListAllRecords paginates through every record in a collection on the user's
+// PDS and returns them all, newest-first. Use for moderation tools that need
+// the full repo state for a user; for normal feed paths prefer the witness
+// cache or a single-page ListRecords.
+func (c *PublicClient) ListAllRecords(ctx context.Context, did, collection string) ([]PublicRecordEntry, error) {
+	const pageSize = 100
+	const maxPages = 100 // hard ceiling against runaway loops; 10k records per collection is plenty.
+
+	var all []PublicRecordEntry
+	cursor := ""
+	for page := 0; page < maxPages; page++ {
+		records, next, err := c.inner.ListPublicRecords(ctx, did, collection, atp.ListPublicRecordsOpts{
+			Limit:   pageSize,
+			Cursor:  cursor,
+			Reverse: true,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range records {
+			all = append(all, PublicRecordEntry{
+				URI:   r.URI,
+				CID:   r.CID,
+				Value: r.Value,
+			})
+		}
+		if next == "" || len(records) == 0 {
+			return all, nil
+		}
+		cursor = next
+	}
+	return all, nil
+}
+
 // GetRecord fetches a single public record from a user's PDS.
 func (c *PublicClient) GetRecord(ctx context.Context, did, collection, rkey string) (*PublicRecordEntry, error) {
 	r, err := c.inner.GetPublicRecord(ctx, did, collection, rkey)
