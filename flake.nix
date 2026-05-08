@@ -9,7 +9,7 @@
     in {
       devShells = forAllSystems (pkgs: system: {
         default =
-          pkgs.mkShell { packages = with pkgs; [ go tailwindcss templ ]; };
+          pkgs.mkShell { packages = with pkgs; [ go tailwindcss_4 templ ]; };
       });
 
       packages = forAllSystems (pkgs: system: rec {
@@ -26,7 +26,7 @@
           type = "app";
           program = toString (pkgs.writeShellScript "tailwind-build" ''
             cd ${./.}
-            ${pkgs.tailwindcss}/bin/tailwindcss -i static/css/app.css -o static/css/output.css --minify
+            ${pkgs.tailwindcss_4}/bin/tailwindcss_4 -i static/css/app.css -o static/css/output.css --minify
           '');
         };
         monitoring = import ./nix/monitoring.nix { inherit pkgs; };

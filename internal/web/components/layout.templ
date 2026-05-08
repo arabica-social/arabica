@@ -19,6 +19,12 @@ type LayoutData struct {
 	BrandName    string // "Arabica", "Matcha"
 	BrandTagline string // "Your brew, your data"
 
+	// AppName is the running app's lowercase identifier (e.g. "arabica",
+	// "matcha"). Used to pick which compiled CSS file to load — empty
+	// falls back to arabica's stylesheet, keeping legacy call sites that
+	// build LayoutData directly working unchanged.
+	AppName string
+
 	// OpenGraph metadata (optional, uses defaults if empty)
 	OGTitle       string // Falls back to Title + " - " + brand name
 	OGDescription string // Falls back to site description
@@ -26,6 +32,18 @@ type LayoutData struct {
 	OGImageAlt    string // Alt text for OG image; falls back to OGTitle + OGDescription
 	OGType        string // Falls back to "website"
 	OGUrl         string // Canonical URL for the page
+}
+
+// stylesheetHref returns the compiled CSS file for the running app.
+// Each app has its own Tailwind build (see static/css/app-<name>.css);
+// arabica is the default since it's the canonical input.
+func (d *LayoutData) stylesheetHref() string {
+	switch d.AppName {
+	case "matcha":
+		return "/static/css/output-matcha.css?v=0.14.3"
+	default:
+		return "/static/css/output.css?v=0.14.3"
+	}
 }
 
 // brandName returns the configured brand display name, defaulting to
@@ -142,7 +160,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
-			<link rel="stylesheet" href="/static/css/output.css?v=0.13.3"/>
+			<link rel="stylesheet" href={ data.stylesheetHref() }/>
 			<style>
 			[x-cloak] { display: none !important; }
 		</style>
@@ -385,7 +403,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 				UnreadNotificationCount: data.UnreadNotificationCount,
 				BrandName:               data.brandName(),
 			})
-			<main class="flex-grow container mx-auto py-8" data-transition>
+			<main class="grow container mx-auto py-8" data-transition>
 				@content
 			</main>
 			@FooterWithBrand(data.brandName(), data.brandTagline())

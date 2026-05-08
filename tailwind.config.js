@@ -1,25 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // v4 defaults darkMode to media-query already; left here as a no-op
+  // marker until this config moves to CSS @theme. content + safelist
+  // are owned by static/css/app.css now (@source / @source inline).
   darkMode: 'media',
-  content: [
-    "./internal/**/*.templ",
-    "./web/**/*.{html,js}",
-    "./static/js/**/*.js",
-  ],
-  safelist: [
-    'filter-pill-brew',
-    'filter-pill-bean',
-    'filter-pill-recipe',
-    'filter-pill-roaster',
-    'filter-pill-grinder',
-    'filter-pill-brewer',
-    'feed-card-brew',
-    'feed-card-bean',
-    'feed-card-recipe',
-    'feed-card-roaster',
-    'feed-card-grinder',
-    'feed-card-brewer',
-  ],
   theme: {
     extend: {
       fontFamily: {

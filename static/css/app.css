@@ -107,6 +107,10 @@
   --modal-border: #eaddd7;
   --modal-backdrop: rgba(0, 0, 0, 0.4);
 
+  /* Avatar ring */
+  --avatar-ring: #6b4423;
+  --avatar-ring-hover: #4a2c2a;
+
   /* Feed type indicators (filter pills + type badges) */
   --type-brew: #6b4423;
   --type-bean: #b45309;
@@ -220,6 +224,10 @@
     --modal-bg: #1C1210;
     --modal-border: #2E211B;
     --modal-backdrop: rgba(0, 0, 0, 0.6);
+
+    /* Avatar ring */
+    --avatar-ring: #3D2D24;
+    --avatar-ring-hover: #5A4A40;
 
     /* Feed type indicators - brighter on dark */
     --type-brew: #a67c52;
@@ -373,6 +381,8 @@
   --modal-bg: #1C1210;
   --modal-border: #2E211B;
   --modal-backdrop: rgba(0, 0, 0, 0.6);
+  --avatar-ring: #3D2D24;
+  --avatar-ring-hover: #5A4A40;
   --type-brew: #a67c52;
   --type-bean: #d97706;
   --type-recipe: #c4724a;
@@ -439,9 +449,35 @@
 :root[data-theme="dark"] .decoration-brown-300 { text-decoration-color: var(--card-border) !important; }
 :root[data-theme="dark"] .hover\:decoration-brown-500:hover { text-decoration-color: var(--text-faint) !important; }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Tailwind v4 reads classes from these globs to know what to ship.
+   Replaces the v3 `content` array in tailwind.config.js. */
+@source "../../internal/**/*.templ";
+@source "../../static/js/**/*.js";
+
+/* Dynamic class names that aren't statically discoverable by the v4
+   scanner. Replaces the v3 `safelist` in tailwind.config.js. */
+@source inline("filter-pill-brew filter-pill-bean filter-pill-recipe filter-pill-roaster filter-pill-grinder filter-pill-brewer feed-card-brew feed-card-bean feed-card-recipe feed-card-roaster feed-card-grinder feed-card-brewer");
+
+/* Pull theme extensions (brown/amber/cream palettes, font families) from
+   the existing tailwind.config.js. v4 prefers a CSS @theme block, but
+   @config keeps the JS file authoritative until we choose to migrate. */
+@config "../../tailwind.config.js";
+
+/* v4 default border color is `currentcolor` instead of gray-200. This
+   shim restores v3 behaviour so existing `border` utilities without an
+   explicit color don't render in surprising hues. Remove once every
+   border-using element specifies a color utility. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 @layer base {
   h1, h2, h3 {
@@ -484,25 +520,27 @@
 }
 
 @layer components {
-  /* Page Containers */
+  /* Page Containers — inlined rather than chained via @apply because
+     v4's @apply only resolves built-in utilities and @utility blocks,
+     not classes defined inside @layer components. */
   .page-container {
     @apply mx-auto px-2 sm:px-4;
   }
 
   .page-container-sm {
-    @apply page-container max-w-2xl;
+    @apply mx-auto px-2 sm:px-4 max-w-2xl;
   }
 
   .page-container-md {
-    @apply page-container max-w-3xl;
+    @apply mx-auto px-2 sm:px-4 max-w-3xl;
   }
 
   .page-container-lg {
-    @apply page-container max-w-4xl;
+    @apply mx-auto px-2 sm:px-4 max-w-4xl;
   }
 
   .page-container-xl {
-    @apply page-container max-w-6xl;
+    @apply mx-auto px-2 sm:px-4 max-w-6xl;
   }
 
   /* Cards and Containers */
@@ -942,7 +980,7 @@
   }
 
   .btn-primary {
-    @apply btn text-white;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer text-white;
     background: var(--btn-primary-bg);
   }
 
@@ -951,7 +989,7 @@
   }
 
   .btn-secondary {
-    @apply btn;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer;
     background: var(--btn-secondary-bg);
     color: var(--btn-secondary-text);
     border: 1px solid var(--btn-secondary-border);
@@ -962,7 +1000,7 @@
   }
 
   .btn-tertiary {
-    @apply btn text-white;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer text-white;
     background: var(--btn-primary-bg);
   }
 
@@ -1026,7 +1064,7 @@
   }
 
   .form-input-lg {
-    @apply form-input py-3 px-4;
+    @apply rounded-lg text-base py-3 px-4;
   }
 
   /* Combo select dropdown */
@@ -1081,11 +1119,11 @@
   }
 
   .form-select {
-    @apply form-input truncate max-w-full min-w-0;
+    @apply rounded-lg text-base py-2 px-3 truncate max-w-full min-w-0;
   }
 
   .form-textarea {
-    @apply form-input min-h-[100px];
+    @apply rounded-lg text-base py-2 px-3 min-h-[100px];
   }
 
   /* Tables */
@@ -1259,7 +1297,11 @@
     }
 
     .feed-grid .feed-card:hover {
-      rotate: 0deg;
+      /* var(... , 0deg) form prevents Lightning CSS (v4's bundled
+         minifier) from dead-stripping `rotate: 0deg` as an initial
+         value. Without this, the minified output drops the un-tilt
+         on hover and the cards stay rotated. */
+      rotate: var(--feed-card-hover-rotate, 0deg);
       transform: translateY(-2px);
     }
 
@@ -1396,15 +1438,23 @@
   }
 
   .avatar-sm {
-    @apply avatar w-8 h-8 ring-2 ring-brown-500 hover:ring-brown-400 hover:ring-4;
+    @apply rounded-full object-cover transition-all duration-200 w-8 h-8 ring-2 hover:ring-4;
+    --tw-ring-color: var(--avatar-ring);
+  }
+  .avatar-sm:hover {
+    --tw-ring-color: var(--avatar-ring-hover);
   }
 
   .avatar-md {
-    @apply avatar w-12 h-12 ring-2 ring-brown-500 hover:ring-brown-400 hover:ring-4;
+    @apply rounded-full object-cover transition-all duration-200 w-12 h-12 ring-2 hover:ring-4;
+    --tw-ring-color: var(--avatar-ring);
+  }
+  .avatar-md:hover {
+    --tw-ring-color: var(--avatar-ring-hover);
   }
 
   .avatar-lg {
-    @apply avatar w-20 h-20 border-2 border-brown-300 hover:border-brown-400 hover:border-4;
+    @apply rounded-full object-cover transition-all duration-200 w-20 h-20 border-2 border-brown-300 hover:border-brown-400 hover:border-4;
   }
 
   /* Avatar placeholder - for missing images */
@@ -1413,15 +1463,23 @@
   }
 
   .avatar-placeholder-sm {
-    @apply avatar-placeholder w-8 h-8 ring-2 ring-brown-500 hover:ring-brown-400 hover:ring-4;
+    @apply rounded-full bg-brown-300 flex items-center justify-center transition-all duration-200 w-8 h-8 ring-2 hover:ring-4;
+    --tw-ring-color: var(--avatar-ring);
+  }
+  .avatar-placeholder-sm:hover {
+    --tw-ring-color: var(--avatar-ring-hover);
   }
 
   .avatar-placeholder-md {
-    @apply avatar-placeholder w-12 h-12 ring-2 ring-brown-500 hover:ring-brown-400 hover:ring-4;
+    @apply rounded-full bg-brown-300 flex items-center justify-center transition-all duration-200 w-12 h-12 ring-2 hover:ring-4;
+    --tw-ring-color: var(--avatar-ring);
+  }
+  .avatar-placeholder-md:hover {
+    --tw-ring-color: var(--avatar-ring-hover);
   }
 
   .avatar-placeholder-lg {
-    @apply avatar-placeholder w-20 h-20 hover:bg-brown-400;
+    @apply rounded-full bg-brown-300 flex items-center justify-center transition-all duration-200 w-20 h-20 hover:bg-brown-400;
   }
 
   /* Avatar text sizing */
@@ -1588,7 +1646,7 @@
   }
 
   .like-btn-liked {
-    @apply like-btn text-red-600;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] text-red-600;
     background: transparent;
     animation: like-pop 400ms ease-out;
   }
@@ -1598,7 +1656,7 @@
   }
 
   .like-btn-unliked {
-    @apply like-btn;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px];
     color: var(--text-muted);
     background: transparent;
     animation: like-shrink 200ms ease-out;

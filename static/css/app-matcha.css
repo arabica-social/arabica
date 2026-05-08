@@ -1,0 +1,9 @@
+/* Tailwind input for the matcha (tea) variant. Pulls in arabica's
+   full pipeline (Tailwind import, @source globs, @config theme JS,
+   layered components, and design tokens), then overrides the palette
+   custom properties with the matcha values. Cascade order matters:
+   arabica's :root must be declared before matcha's :root for the
+   overrides to win. */
+
+@import "./app.css";
+@import "./themes/matcha.css";

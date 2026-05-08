@@ -268,7 +268,7 @@ templ AdminDashboardBody(props AdminProps) {
 							type="button"
 							x-data
 							@click="$dispatch('open-add-label')"
-							class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded font-medium transition-colors"
+							class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
 						>
 							Add Label
 						</button>
@@ -336,10 +336,10 @@ templ AdminDashboardBody(props AdminProps) {
 							</div>
 						</div>
 						<div class="flex gap-3">
-							<button type="submit" class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded font-medium transition-colors">
+							<button type="submit" class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-sm font-medium transition-colors">
 								Add Label
 							</button>
-							<button type="button" @click="open = false" class="text-sm text-brown-600 hover:text-brown-800 px-4 py-2 rounded font-medium transition-colors">
+							<button type="button" @click="open = false" class="text-sm text-brown-600 hover:text-brown-800 px-4 py-2 rounded-sm font-medium transition-colors">
 								Cancel
 							</button>
 						</div>
@@ -406,7 +406,7 @@ templ AdminDashboardBody(props AdminProps) {
 						</div>
 						<button
 							type="submit"
-							class="text-sm bg-brown-300 text-brown-900 hover:bg-brown-400 px-4 py-2 rounded font-medium transition-colors"
+							class="text-sm bg-brown-300 text-brown-900 hover:bg-brown-400 px-4 py-2 rounded-sm font-medium transition-colors"
 						>
 							Export JSON
 						</button>
@@ -437,7 +437,7 @@ templ AdminDashboardBody(props AdminProps) {
 						</div>
 						<button
 							type="submit"
-							class="text-sm bg-brown-300 text-brown-900 hover:bg-brown-400 px-4 py-2 rounded font-medium transition-colors"
+							class="text-sm bg-brown-300 text-brown-900 hover:bg-brown-400 px-4 py-2 rounded-sm font-medium transition-colors"
 						>
 							Fetch JSON
 						</button>
@@ -513,7 +513,7 @@ templ AdminDashboardBody(props AdminProps) {
 					<p class="text-sm text-red-800 mb-4">
 						This is irreversible from the dashboard. Use only when an account has
 						orphaned its data — e.g. the user's PDS is gone and no
-						<code class="bg-red-100 px-1 rounded">deleted</code>/<code class="bg-red-100 px-1 rounded">takendown</code>
+						<code class="bg-red-100 px-1 rounded-sm">deleted</code>/<code class="bg-red-100 px-1 rounded-sm">takendown</code>
 						event will ever arrive on the firehose.
 					</p>
 					<form
@@ -536,7 +536,7 @@ templ AdminDashboardBody(props AdminProps) {
 						</div>
 						<button
 							type="submit"
-							class="text-sm bg-red-700 text-white hover:bg-red-800 px-4 py-2 rounded font-medium transition-colors"
+							class="text-sm bg-red-700 text-white hover:bg-red-800 px-4 py-2 rounded-sm font-medium transition-colors"
 						>
 							Purge DID
 						</button>
@@ -558,11 +558,11 @@ templ HiddenRecordCard(record moderation.HiddenRecord, canUnhide bool) {
 					x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.uri.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
 					class="mt-1 flex items-start gap-2"
 				>
-					<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ record.ATURI }</code>
+					<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ record.ATURI }</code>
 					<button
 						type="button"
 						x-on:click="copyText()"
-						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded-sm transition-colors"
 						x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
 					>
 						<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -584,7 +584,7 @@ templ HiddenRecordCard(record moderation.HiddenRecord, canUnhide bool) {
 					<span class="text-brown-500">By:</span>
 					<code class="text-brown-700 ml-1 text-xs">{ record.HiddenBy }</code>
 					if record.AutoHidden {
-						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">auto</span>
+						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-sm">auto</span>
 					}
 				</div>
 				if record.Reason != "" {
@@ -622,11 +622,11 @@ templ BlockedUserCard(user moderation.BlacklistedUser, canUnblock bool) {
 					x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.did.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
 					class="mt-1 flex items-start gap-2"
 				>
-					<code x-ref="did" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ user.DID }</code>
+					<code x-ref="did" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ user.DID }</code>
 					<button
 						type="button"
 						x-on:click="copyText()"
-						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded-sm transition-colors"
 						x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
 					>
 						<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -688,11 +688,11 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 					x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.uri.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
 					class="mt-1 flex items-start gap-2"
 				>
-					<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ report.Report.SubjectURI }</code>
+					<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ report.Report.SubjectURI }</code>
 					<button
 						type="button"
 						x-on:click="copyText()"
-						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded-sm transition-colors"
 						x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
 					>
 						<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -724,7 +724,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 							<button
 								type="button"
 								x-on:click="copyText()"
-								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-brown-400 hover:text-brown-600 rounded transition-colors"
+								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-brown-400 hover:text-brown-600 rounded-sm transition-colors"
 								x-bind:title="copied ? 'Copied!' : 'Copy DID'"
 							>
 								<svg x-show="!copied" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -755,7 +755,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 							<button
 								type="button"
 								x-on:click="copyText()"
-								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-brown-400 hover:text-brown-600 rounded transition-colors"
+								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-brown-400 hover:text-brown-600 rounded-sm transition-colors"
 								x-bind:title="copied ? 'Copied!' : 'Copy DID'"
 							>
 								<svg x-show="!copied" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -790,7 +790,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 				<div class="pt-3 border-t border-brown-200 flex flex-wrap gap-3">
 					if canHide {
 						<button
-							class="text-sm bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-1.5 rounded font-medium transition-colors"
+							class="text-sm bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
 							hx-post="/_mod/hide"
 							hx-vals={ fmt.Sprintf(`{"uri": "%s", "reason": "Reported by user"}`, report.Report.SubjectURI) }
 							hx-swap="none"
@@ -801,7 +801,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 					}
 					if canBlock {
 						<button
-							class="text-sm bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1.5 rounded font-medium transition-colors"
+							class="text-sm bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
 							hx-post="/_mod/block"
 							hx-vals={ fmt.Sprintf(`{"did": "%s", "reason": "Reported by user"}`, report.Report.SubjectDID) }
 							hx-swap="none"
@@ -812,7 +812,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 					}
 					if canResetAutoHide {
 						<button
-							class="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded font-medium transition-colors"
+							class="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
 							hx-post="/_mod/reset-autohide"
 							hx-vals={ fmt.Sprintf(`{"did": "%s"}`, report.Report.SubjectDID) }
 							hx-swap="none"
@@ -822,7 +822,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 						</button>
 					}
 					<button
-						class="text-sm text-brown-600 hover:text-brown-800 px-3 py-1.5 rounded font-medium transition-colors"
+						class="text-sm text-brown-600 hover:text-brown-800 px-3 py-1.5 rounded-sm font-medium transition-colors"
 						hx-post="/_mod/dismiss-report"
 						hx-vals={ fmt.Sprintf(`{"id": "%s"}`, report.Report.ID) }
 						hx-swap="none"
@@ -839,19 +839,19 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 templ ReportStatusBadge(status moderation.ReportStatus) {
 	switch status {
 		case moderation.ReportStatusPending:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800">
 				Pending
 			</span>
 		case moderation.ReportStatusDismissed:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800">
 				Dismissed
 			</span>
 		case moderation.ReportStatusActioned:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
 				Actioned
 			</span>
 		default:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brown-100 text-brown-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-brown-100 text-brown-800">
 				{ string(status) }
 			</span>
 	}
@@ -895,11 +895,11 @@ templ AuditLogCard(entry moderation.AuditEntry) {
 						x-data="{ copied: false, copyText() { navigator.clipboard.writeText(this.$refs.uri.textContent.trim()).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000) }) } }"
 						class="mt-1 flex items-start gap-2"
 					>
-						<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded break-all flex-1 font-mono">{ entry.TargetURI }</code>
+						<code x-ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ entry.TargetURI }</code>
 						<button
 							type="button"
 							x-on:click="copyText()"
-							class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded transition-colors"
+							class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-brown-500 hover:text-brown-700 hover:bg-brown-200 rounded-sm transition-colors"
 							x-bind:title="copied ? 'Copied!' : 'Copy to clipboard'"
 						>
 							<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -918,7 +918,7 @@ templ AuditLogCard(entry moderation.AuditEntry) {
 					<span class="text-brown-500">Actor:</span>
 					<code class="text-brown-700 ml-1 text-xs">{ entry.ActorDID }</code>
 					if entry.AutoMod {
-						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">auto</span>
+						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-sm">auto</span>
 					}
 				</div>
 				if entry.Reason != "" {
@@ -935,43 +935,43 @@ templ AuditLogCard(entry moderation.AuditEntry) {
 templ AuditActionBadge(action moderation.AuditAction) {
 	switch action {
 		case moderation.AuditActionHideRecord:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800">
 				Hide Record
 			</span>
 		case moderation.AuditActionUnhideRecord:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
 				Unhide Record
 			</span>
 		case moderation.AuditActionBlacklistUser:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800">
 				Block User
 			</span>
 		case moderation.AuditActionUnblacklistUser:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
 				Unblock User
 			</span>
 		case moderation.AuditActionResetAutoHide:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">
 				Reset Auto-Hide
 			</span>
 		case moderation.AuditActionDismissJoinRequest:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800">
 				Dismiss Join Request
 			</span>
 		case moderation.AuditActionCreateInvite:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">
 				Send Invite
 			</span>
 		case moderation.AuditActionAddLabel:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">
 				Add Label
 			</span>
 		case moderation.AuditActionRemoveLabel:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">
 				Remove Label
 			</span>
 		default:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brown-100 text-brown-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-brown-100 text-brown-800">
 				{ string(action) }
 			</span>
 	}
@@ -998,7 +998,7 @@ templ JoinRequestCard(req *boltstore.JoinRequest) {
 			}
 			<div class="pt-2 border-t border-brown-200 flex flex-wrap gap-3">
 				<button
-					class="text-sm bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1.5 rounded font-medium transition-colors"
+					class="text-sm bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
 					hx-post="/_mod/invite"
 					hx-vals={ fmt.Sprintf(`{"id": "%s", "email": "%s"}`, req.ID, req.Email) }
 					hx-swap="none"
@@ -1008,7 +1008,7 @@ templ JoinRequestCard(req *boltstore.JoinRequest) {
 					Send Invite
 				</button>
 				<button
-					class="text-sm text-brown-600 hover:text-brown-800 px-3 py-1.5 rounded font-medium transition-colors"
+					class="text-sm text-brown-600 hover:text-brown-800 px-3 py-1.5 rounded-sm font-medium transition-colors"
 					hx-post="/_mod/dismiss-join"
 					hx-vals={ fmt.Sprintf(`{"id": "%s"}`, req.ID) }
 					hx-swap="none"
@@ -1028,7 +1028,7 @@ templ LabelCard(label moderation.Label) {
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					@LabelBadge(label.Name)
-					<span class="text-xs bg-brown-100 text-brown-600 px-1.5 py-0.5 rounded">{ label.EntityType }</span>
+					<span class="text-xs bg-brown-100 text-brown-600 px-1.5 py-0.5 rounded-sm">{ label.EntityType }</span>
 					if label.Value != "" {
 						<span class="text-xs text-brown-500">= { label.Value }</span>
 					}
@@ -1044,7 +1044,7 @@ templ LabelCard(label moderation.Label) {
 						Record URI
 					}
 				</span>
-				<code class="mt-1 block text-sm bg-brown-100 px-2 py-1 rounded break-all font-mono">{ label.EntityID }</code>
+				<code class="mt-1 block text-sm bg-brown-100 px-2 py-1 rounded-sm break-all font-mono">{ label.EntityID }</code>
 			</div>
 			<!-- Meta -->
 			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -1083,27 +1083,27 @@ templ LabelCard(label moderation.Label) {
 templ LabelBadge(name string) {
 	switch name {
 		case "warned":
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800">
 				{ name }
 			</span>
 		case "trusted":
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
 				{ name }
 			</span>
 		case "under_review":
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">
 				{ name }
 			</span>
 		case "rate_limited":
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-orange-100 text-orange-800">
 				{ name }
 			</span>
 		case "spam":
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800">
 				{ name }
 			</span>
 		default:
-			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">
 				{ name }
 			</span>
 	}

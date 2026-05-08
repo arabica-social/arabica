@@ -1,4 +1,4 @@
-{ lib, buildGoModule, templ, tailwindcss }:
+{ lib, buildGoModule, templ, tailwindcss_4 }:
 
 buildGoModule {
   pname = "arabica";
@@ -6,10 +6,11 @@ buildGoModule {
   src = ../.;
   vendorHash = "sha256-2bvt0TQvVaRbj/Rd2+m1Hdt+AmK7WB8ZGhQWEynXTtw=";
 
-  nativeBuildInputs = [ templ tailwindcss ];
+  nativeBuildInputs = [ templ tailwindcss_4 ];
 
   preBuild = ''
     tailwindcss -i static/css/app.css -o static/css/output.css --minify
+    tailwindcss -i static/css/app-matcha.css -o static/css/output-matcha.css --minify
     templ generate
   '';
 

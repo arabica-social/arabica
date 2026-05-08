@@ -5,7 +5,7 @@ run:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json go run ./cmd/server -known-dids known-dids.txt
 
 templ-watch:
-    @templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/arabica -known-dids known-dids.txt"
+    @templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/server -known-dids known-dids.txt"
 
 templ-generate:
     @templ generate
@@ -20,5 +20,10 @@ integration-test:
 verbose-integration-test:
     @cd tests/integration && INTEGRATION_LOGS=true go test -v ./... -count=1 
 
-style:
+style: style-arabica style-matcha
+
+style-arabica:
     @nix develop --command tailwindcss -i static/css/app.css -o static/css/output.css --minify
+
+style-matcha:
+    @nix develop --command tailwindcss -i static/css/app-matcha.css -o static/css/output-matcha.css --minify

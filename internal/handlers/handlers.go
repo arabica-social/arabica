@@ -83,6 +83,17 @@ func (h *Handler) SetApp(a *domain.App) {
 	h.app = a
 }
 
+// appName returns the running app's lowercase identifier, falling back
+// to "arabica" when SetApp wasn't called (legacy tests, ad-hoc handler
+// construction). The empty default matches the layout's stylesheet
+// switch which serves arabica's CSS for unknown app names.
+func appName(a *domain.App) string {
+	if a == nil {
+		return ""
+	}
+	return a.Name
+}
+
 // appNSIDs returns the running app's NSID list. Returns nil if SetApp
 // was never called — admin handlers handle nil gracefully (empty
 // export rather than crash) so tests that skip wiring still work.
@@ -427,6 +438,7 @@ func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated
 		UnreadNotificationCount: unreadNotifCount,
 		BrandName:               h.brand.DisplayName,
 		BrandTagline:            h.brand.Tagline,
+		AppName:                 appName(h.app),
 	}
 }
 
