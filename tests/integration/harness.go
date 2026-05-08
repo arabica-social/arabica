@@ -224,6 +224,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		NSIDBase:    atproto.NSIDBase,
 		Descriptors: entities.All(),
 	}
+	h.SetApp(app)
 	router := routing.SetupRouter(routing.Config{
 		App:          app,
 		Handlers:     h,
@@ -245,7 +246,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	// indexed as they happen.
 	if opts.EnableFirehose {
 		consumer := firehose.NewConsumer(&firehose.Config{
-			WantedCollections: firehose.ArabicaCollections,
+			WantedCollections: app.NSIDs(),
 		}, feedIndex)
 		harness.Consumer = consumer
 		harness.ProfileWatcher = firehose.NewProfileWatcher(&firehose.Config{}, feedIndex)

@@ -229,7 +229,7 @@ assert.Nil(t, value)
 
 - `go mod download -json MODULE` — get dependency source path
 - `go doc foo.Bar` — read package/type/function docs
-- `go run ./cmd/server` instead of `go build` to avoid artifacts
+- `go run ./cmd/arabica` instead of `go build` to avoid artifacts
 
 ## Design Context
 

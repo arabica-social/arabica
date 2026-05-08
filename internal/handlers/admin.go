@@ -10,7 +10,6 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/database/boltstore"
-	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
@@ -754,10 +753,10 @@ func (h *Handler) HandleAdminExportDID(w http.ResponseWriter, r *http.Request) {
 		DID:         didStr,
 		ExportedAt:  time.Now().UTC(),
 		Source:      "witness-cache",
-		Collections: make(map[string][]exportedRecord, len(firehose.ArabicaCollections)),
+		Collections: make(map[string][]exportedRecord, len(h.appNSIDs())),
 	}
 
-	for _, collection := range firehose.ArabicaCollections {
+	for _, collection := range h.appNSIDs() {
 		records, err := h.witnessCache.ListWitnessRecords(r.Context(), didStr, collection)
 		if err != nil {
 			log.Error().Err(err).Str("did", didStr).Str("collection", collection).Msg("witness export: list failed")
@@ -979,12 +978,12 @@ func (h *Handler) HandleAdminFetchPDSRecords(w http.ResponseWriter, r *http.Requ
 		Handle:      handle,
 		FetchedAt:   time.Now().UTC(),
 		Source:      "pds",
-		Collections: make(map[string][]pdsRecord, len(firehose.ArabicaCollections)),
+		Collections: make(map[string][]pdsRecord, len(h.appNSIDs())),
 	}
 
 	requester, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	for _, collection := range firehose.ArabicaCollections {
+	for _, collection := range h.appNSIDs() {
 		records, err := publicClient.ListAllRecords(r.Context(), didStr, collection)
 		if err != nil {
 			// One collection failing shouldn't sink the whole fetch — record an

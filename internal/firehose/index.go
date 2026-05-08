@@ -1871,7 +1871,11 @@ func (idx *FeedIndex) MarkBackfilled(ctx context.Context, did string) error {
 }
 
 // BackfillUser fetches all existing records for a DID and adds them to the index
-func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
+// BackfillUser fetches every record this user has in the supplied
+// collections and indexes them into the witness cache. Collections
+// typically come from app.NSIDs() so backfill tracks the running app's
+// entity set.
+func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections []string) error {
 	if idx.IsBackfilled(ctx, did) {
 		log.Debug().Str("did", did).Msg("DID already backfilled, skipping")
 		return nil
@@ -1885,7 +1889,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string) error {
 	log.Info().Str("did", did).Msg("backfilling user records")
 
 	recordCount := 0
-	for _, collection := range ArabicaCollections {
+	for _, collection := range collections {
 		records, err := idx.publicClient.ListRecords(ctx, did, collection, 100)
 		if err != nil {
 			log.Warn().Err(err).Str("did", did).Str("collection", collection).Msg("failed to list records for backfill")

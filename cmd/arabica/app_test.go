@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"tangled.org/arabica.social/arabica/internal/firehose"
 )
 
 // TestArabicaApp_OAuthScopes_matchesLegacyList guards against accidental
@@ -32,17 +31,26 @@ func TestArabicaApp_OAuthScopes_matchesLegacyList(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-// TestArabicaApp_NSIDs_matchesFirehoseCollections guards against drift
-// between the runtime firehose subscription (driven by app.NSIDs()) and
-// firehose.ArabicaCollections, which is still read by BackfillUser and
-// admin export. Once those readers migrate to App-driven sources in later
-// phases, ArabicaCollections (and this test) can be removed.
-func TestArabicaApp_NSIDs_matchesFirehoseCollections(t *testing.T) {
+// TestArabicaApp_NSIDs guards against accidental drift in the arabica
+// app's collection set. Every code path that needs the entity list (the
+// firehose subscription, witness/PDS export, BackfillUser) reads
+// app.NSIDs() — this test pins the expected output for the arabica
+// binary specifically.
+func TestArabicaApp_NSIDs(t *testing.T) {
 	app := newArabicaApp()
 	got := app.NSIDs()
 	sort.Strings(got)
 
-	want := append([]string(nil), firehose.ArabicaCollections...)
+	want := []string{
+		"social.arabica.alpha.bean",
+		"social.arabica.alpha.brew",
+		"social.arabica.alpha.brewer",
+		"social.arabica.alpha.comment",
+		"social.arabica.alpha.grinder",
+		"social.arabica.alpha.like",
+		"social.arabica.alpha.recipe",
+		"social.arabica.alpha.roaster",
+	}
 	sort.Strings(want)
 
 	assert.Equal(t, want, got)

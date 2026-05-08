@@ -490,9 +490,10 @@ func (c *Consumer) processCommit(event JetstreamEvent) error {
 	return nil
 }
 
-// BackfillDID backfills records for a specific DID
+// BackfillDID backfills records for a specific DID using the consumer's
+// configured WantedCollections (which come from app.NSIDs() at startup).
 func (c *Consumer) BackfillDID(ctx context.Context, did string) error {
-	return c.index.BackfillUser(ctx, did)
+	return c.index.BackfillUser(ctx, did, c.config.WantedCollections)
 }
 
 // BackfilledDIDs returns the set of all DIDs that have been backfilled.

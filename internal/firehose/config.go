@@ -1,10 +1,6 @@
 // Package firehose provides real-time AT Protocol event consumption via Jetstream.
-// It indexes Arabica records into a local SQLite database for fast feed queries.
+// It indexes records into a local SQLite database for fast feed queries.
 package firehose
-
-import (
-	"tangled.org/arabica.social/arabica/internal/atproto"
-)
 
 // Default Jetstream public endpoints
 var DefaultJetstreamEndpoints = []string{
@@ -15,20 +11,8 @@ var DefaultJetstreamEndpoints = []string{
 }
 
 // NSIDBlueskyProfile is the AT Protocol collection for user profile records.
-// Watched by ProfileWatcher (separate connection) for known Arabica users only.
+// Watched by ProfileWatcher (separate connection) for known users only.
 const NSIDBlueskyProfile = "app.bsky.actor.profile"
-
-// ArabicaCollections lists all Arabica lexicon collections to filter for
-var ArabicaCollections = []string{
-	atproto.NSIDBrew,
-	atproto.NSIDBean,
-	atproto.NSIDRoaster,
-	atproto.NSIDGrinder,
-	atproto.NSIDBrewer,
-	atproto.NSIDRecipe,
-	atproto.NSIDLike,
-	atproto.NSIDComment,
-}
 
 // Config holds configuration for the Jetstream consumer
 type Config struct {

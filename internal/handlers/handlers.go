@@ -63,12 +63,34 @@ type Handler struct {
 	// SetBrand at startup; consumed by buildLayoutData so templ
 	// components can read brand strings without hardcoding "Arabica".
 	brand domain.BrandConfig
+
+	// app carries the per-app config so handlers that need the entity
+	// list (admin export, NSID-keyed loops) can read app.NSIDs(). Set
+	// via SetApp at startup.
+	app *domain.App
 }
 
 // SetBrand wires the per-app branding into the handler. Called once at
 // startup from cmd/{arabica,matcha}/main.go after constructing the App.
 func (h *Handler) SetBrand(b domain.BrandConfig) {
 	h.brand = b
+}
+
+// SetApp wires the per-app config into the handler so app-aware code
+// paths (admin export, etc.) can read entity lists without depending on
+// arabica-specific globals.
+func (h *Handler) SetApp(a *domain.App) {
+	h.app = a
+}
+
+// appNSIDs returns the running app's NSID list. Returns nil if SetApp
+// was never called — admin handlers handle nil gracefully (empty
+// export rather than crash) so tests that skip wiring still work.
+func (h *Handler) appNSIDs() []string {
+	if h.app != nil {
+		return h.app.NSIDs()
+	}
+	return nil
 }
 
 // NewHandler creates a new Handler with all required dependencies.
