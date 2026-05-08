@@ -41,16 +41,12 @@ const (
 
 // FeedItem represents an activity in the social feed with author info
 type FeedItem struct {
-	// Record type and data (only one will be non-nil)
 	RecordType lexicons.RecordType // Use lexicons.RecordTypeBrew, lexicons.RecordTypeBean, etc.
 	Action     string              // "added a new brew", "added a new bean", etc.
 
-	Brew    *models.Brew
-	Bean    *models.Bean
-	Roaster *models.Roaster
-	Grinder *models.Grinder
-	Brewer  *models.Brewer
-	Recipe  *models.Recipe
+	// Record carries the typed model (*models.Brew, etc.). Access via the
+	// per-entity accessor methods (Brew(), Bean(), …).
+	Record any
 
 	Author    *atproto.Profile
 	Timestamp time.Time
@@ -69,66 +65,76 @@ type FeedItem struct {
 	IsOwner bool // Whether the current viewer owns this record
 }
 
-// Record returns the typed record pointer matching f.RecordType, or nil if
-// none is set. Lets callers dispatch on RecordType without a type switch.
-func (f *FeedItem) Record() any {
-	switch f.RecordType {
-	case lexicons.RecordTypeBean:
-		if f.Bean != nil {
-			return f.Bean
-		}
-	case lexicons.RecordTypeRoaster:
-		if f.Roaster != nil {
-			return f.Roaster
-		}
-	case lexicons.RecordTypeGrinder:
-		if f.Grinder != nil {
-			return f.Grinder
-		}
-	case lexicons.RecordTypeBrewer:
-		if f.Brewer != nil {
-			return f.Brewer
-		}
-	case lexicons.RecordTypeRecipe:
-		if f.Recipe != nil {
-			return f.Recipe
-		}
-	case lexicons.RecordTypeBrew:
-		if f.Brew != nil {
-			return f.Brew
-		}
+// Brew returns f.Record cast to *models.Brew, or nil. Nil-safe on f.
+func (f *FeedItem) Brew() *models.Brew {
+	if f == nil {
+		return nil
 	}
-	return nil
+	v, _ := f.Record.(*models.Brew)
+	return v
+}
+
+// Bean returns f.Record cast to *models.Bean, or nil. Nil-safe.
+func (f *FeedItem) Bean() *models.Bean {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Bean)
+	return v
+}
+
+// Roaster returns f.Record cast to *models.Roaster, or nil. Nil-safe.
+func (f *FeedItem) Roaster() *models.Roaster {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Roaster)
+	return v
+}
+
+// Grinder returns f.Record cast to *models.Grinder, or nil. Nil-safe.
+func (f *FeedItem) Grinder() *models.Grinder {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Grinder)
+	return v
+}
+
+// Brewer returns f.Record cast to *models.Brewer, or nil. Nil-safe.
+func (f *FeedItem) Brewer() *models.Brewer {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Brewer)
+	return v
+}
+
+// Recipe returns f.Record cast to *models.Recipe, or nil. Nil-safe.
+func (f *FeedItem) Recipe() *models.Recipe {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Recipe)
+	return v
 }
 
 // RKey returns the record key of whichever typed record is set on this
 // FeedItem, or "" if none. Lets callers build URLs without a type switch.
 func (f *FeedItem) RKey() string {
-	switch f.RecordType {
-	case lexicons.RecordTypeBean:
-		if f.Bean != nil {
-			return f.Bean.RKey
-		}
-	case lexicons.RecordTypeRoaster:
-		if f.Roaster != nil {
-			return f.Roaster.RKey
-		}
-	case lexicons.RecordTypeGrinder:
-		if f.Grinder != nil {
-			return f.Grinder.RKey
-		}
-	case lexicons.RecordTypeBrewer:
-		if f.Brewer != nil {
-			return f.Brewer.RKey
-		}
-	case lexicons.RecordTypeRecipe:
-		if f.Recipe != nil {
-			return f.Recipe.RKey
-		}
-	case lexicons.RecordTypeBrew:
-		if f.Brew != nil {
-			return f.Brew.RKey
-		}
+	switch m := f.Record.(type) {
+	case *models.Bean:
+		return m.RKey
+	case *models.Roaster:
+		return m.RKey
+	case *models.Grinder:
+		return m.RKey
+	case *models.Brewer:
+		return m.RKey
+	case *models.Recipe:
+		return m.RKey
+	case *models.Brew:
+		return m.RKey
 	}
 	return ""
 }
@@ -137,42 +143,42 @@ func (f *FeedItem) RKey() string {
 // special-cased: brews don't have a name field, so we fall back to the
 // associated bean's name (or origin).
 func (f *FeedItem) DisplayTitle() string {
-	switch f.RecordType {
-	case lexicons.RecordTypeBrew:
-		if f.Brew != nil && f.Brew.Bean != nil {
-			if f.Brew.Bean.Name != "" {
-				return f.Brew.Bean.Name
+	switch m := f.Record.(type) {
+	case *models.Brew:
+		if m.Bean != nil {
+			if m.Bean.Name != "" {
+				return m.Bean.Name
 			}
-			return f.Brew.Bean.Origin
+			return m.Bean.Origin
 		}
 		return "Coffee Brew"
-	case lexicons.RecordTypeBean:
-		if f.Bean != nil {
-			if f.Bean.Name != "" {
-				return f.Bean.Name
-			}
-			return f.Bean.Origin
+	case *models.Bean:
+		if m.Name != "" {
+			return m.Name
 		}
+		return m.Origin
+	case *models.Roaster:
+		return m.Name
+	case *models.Grinder:
+		return m.Name
+	case *models.Brewer:
+		return m.Name
+	case *models.Recipe:
+		return m.Name
+	}
+	// Fall back to type-based default when Record is nil.
+	switch f.RecordType {
+	case lexicons.RecordTypeBrew:
+		return "Coffee Brew"
+	case lexicons.RecordTypeBean:
 		return "Coffee Bean"
 	case lexicons.RecordTypeRoaster:
-		if f.Roaster != nil {
-			return f.Roaster.Name
-		}
 		return "Roaster"
 	case lexicons.RecordTypeGrinder:
-		if f.Grinder != nil {
-			return f.Grinder.Name
-		}
 		return "Grinder"
 	case lexicons.RecordTypeBrewer:
-		if f.Brewer != nil {
-			return f.Brewer.Name
-		}
 		return "Brewer"
 	case lexicons.RecordTypeRecipe:
-		if f.Recipe != nil {
-			return f.Recipe.Name
-		}
 		return "Recipe"
 	}
 	return "Arabica"
@@ -234,14 +240,11 @@ type FirehoseFeedResult struct {
 // FirehoseFeedItem matches the FeedItem structure from firehose package
 // This avoids import cycles
 type FirehoseFeedItem struct {
-	RecordType   lexicons.RecordType
-	Action       string
-	Brew         *models.Brew
-	Bean         *models.Bean
-	Roaster      *models.Roaster
-	Grinder      *models.Grinder
-	Brewer       *models.Brewer
-	Recipe       *models.Recipe
+	RecordType lexicons.RecordType
+	Action     string
+
+	Record any
+
 	Author       *atproto.Profile
 	Timestamp    time.Time
 	TimeAgo      string
@@ -476,12 +479,7 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 		items = append(items, &FeedItem{
 			RecordType:   fi.RecordType,
 			Action:       fi.Action,
-			Brew:         fi.Brew,
-			Bean:         fi.Bean,
-			Roaster:      fi.Roaster,
-			Grinder:      fi.Grinder,
-			Brewer:       fi.Brewer,
-			Recipe:       fi.Recipe,
+			Record:       fi.Record,
 			Author:       fi.Author,
 			Timestamp:    fi.Timestamp,
 			TimeAgo:      fi.TimeAgo,
@@ -522,12 +520,7 @@ func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) (
 		items[i] = &FeedItem{
 			RecordType:   fi.RecordType,
 			Action:       fi.Action,
-			Brew:         fi.Brew,
-			Bean:         fi.Bean,
-			Roaster:      fi.Roaster,
-			Grinder:      fi.Grinder,
-			Brewer:       fi.Brewer,
-			Recipe:       fi.Recipe,
+			Record:       fi.Record,
 			Author:       fi.Author,
 			Timestamp:    fi.Timestamp,
 			TimeAgo:      fi.TimeAgo,

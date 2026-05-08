@@ -58,12 +58,7 @@ func convertFeedItems(items []*FeedItem) []*feed.FirehoseFeedItem {
 		result[i] = &feed.FirehoseFeedItem{
 			RecordType:   item.RecordType,
 			Action:       item.Action,
-			Brew:         item.Brew,
-			Bean:         item.Bean,
-			Roaster:      item.Roaster,
-			Grinder:      item.Grinder,
-			Brewer:       item.Brewer,
-			Recipe:       item.Recipe,
+			Record:       item.Record,
 			Author:       item.Author,
 			Timestamp:    item.Timestamp,
 			TimeAgo:      item.TimeAgo,

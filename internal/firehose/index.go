@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/tracing"
@@ -676,12 +677,9 @@ type FeedItem struct {
 	RecordType lexicons.RecordType
 	Action     string
 
-	Brew    *models.Brew
-	Bean    *models.Bean
-	Roaster *models.Roaster
-	Grinder *models.Grinder
-	Brewer  *models.Brewer
-	Recipe  *models.Recipe
+	// Record carries the typed model (*models.Brew, *models.Bean, …).
+	// Type-asserted via the per-entity accessor methods.
+	Record any
 
 	Author    *atproto.Profile
 	Timestamp time.Time
@@ -694,6 +692,60 @@ type FeedItem struct {
 
 	// Comment-related fields
 	CommentCount int // Number of comments on this record
+}
+
+// Brew returns f.Record cast to *models.Brew, or nil. Nil-safe on f.
+func (f *FeedItem) Brew() *models.Brew {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Brew)
+	return v
+}
+
+// Bean returns f.Record cast to *models.Bean, or nil. Nil-safe.
+func (f *FeedItem) Bean() *models.Bean {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Bean)
+	return v
+}
+
+// Roaster returns f.Record cast to *models.Roaster, or nil. Nil-safe.
+func (f *FeedItem) Roaster() *models.Roaster {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Roaster)
+	return v
+}
+
+// Grinder returns f.Record cast to *models.Grinder, or nil. Nil-safe.
+func (f *FeedItem) Grinder() *models.Grinder {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Grinder)
+	return v
+}
+
+// Brewer returns f.Record cast to *models.Brewer, or nil. Nil-safe.
+func (f *FeedItem) Brewer() *models.Brewer {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Brewer)
+	return v
+}
+
+// Recipe returns f.Record cast to *models.Recipe, or nil. Nil-safe.
+func (f *FeedItem) Recipe() *models.Recipe {
+	if f == nil {
+		return nil
+	}
+	v, _ := f.Record.(*models.Recipe)
+	return v
 }
 
 // GetRecentFeed returns recent feed items from the index
@@ -982,149 +1034,34 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	}
 	item.Author = profile
 
-	switch record.Collection {
-	case atproto.NSIDBrew:
-		brew, err := atproto.RecordToBrew(recordData, record.URI)
-		if err != nil {
-			return nil, err
-		}
-
-		// Resolve bean reference
-		if beanRef, ok := recordData["beanRef"].(string); ok && beanRef != "" {
-			if beanRecord, found := refMap[beanRef]; found {
-				var beanData map[string]any
-				if err := json.Unmarshal(beanRecord.Record, &beanData); err == nil {
-					bean, _ := atproto.RecordToBean(beanData, beanRef)
-					brew.Bean = bean
-
-					// Resolve roaster reference for bean
-					if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
-						if roasterRecord, found := refMap[roasterRef]; found {
-							var roasterData map[string]any
-							if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
-								roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
-								brew.Bean.Roaster = roaster
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// Resolve grinder reference
-		if grinderRef, ok := recordData["grinderRef"].(string); ok && grinderRef != "" {
-			if grinderRecord, found := refMap[grinderRef]; found {
-				var grinderData map[string]any
-				if err := json.Unmarshal(grinderRecord.Record, &grinderData); err == nil {
-					grinder, _ := atproto.RecordToGrinder(grinderData, grinderRef)
-					brew.GrinderObj = grinder
-				}
-			}
-		}
-
-		// Resolve brewer reference
-		if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
-			if brewerRecord, found := refMap[brewerRef]; found {
-				var brewerData map[string]any
-				if err := json.Unmarshal(brewerRecord.Record, &brewerData); err == nil {
-					brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
-					brew.BrewerObj = brewer
-				}
-			}
-		}
-
-		// Resolve recipe reference
-		if recipeRef, ok := recordData["recipeRef"].(string); ok && recipeRef != "" {
-			if c, err := atproto.ResolveATURI(recipeRef); err == nil {
-				brew.RecipeRKey = c.RKey
-			}
-			if recipeRecord, found := refMap[recipeRef]; found {
-				var recipeData map[string]any
-				if err := json.Unmarshal(recipeRecord.Record, &recipeData); err == nil {
-					recipe, _ := atproto.RecordToRecipe(recipeData, recipeRef)
-					brew.RecipeObj = recipe
-				}
-			}
-		}
-
-		item.RecordType = lexicons.RecordTypeBrew
-		item.Action = "added a new brew"
-		item.Brew = brew
-
-	case atproto.NSIDBean:
-		bean, err := atproto.RecordToBean(recordData, record.URI)
-		if err != nil {
-			return nil, err
-		}
-
-		// Resolve roaster reference
-		if roasterRef, ok := recordData["roasterRef"].(string); ok && roasterRef != "" {
-			if roasterRecord, found := refMap[roasterRef]; found {
-				var roasterData map[string]any
-				if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
-					roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
-					bean.Roaster = roaster
-				}
-			}
-		}
-
-		item.RecordType = lexicons.RecordTypeBean
-		item.Action = "added a new bean"
-		item.Bean = bean
-
-	case atproto.NSIDRoaster:
-		roaster, err := atproto.RecordToRoaster(recordData, record.URI)
-		if err != nil {
-			return nil, err
-		}
-		item.RecordType = lexicons.RecordTypeRoaster
-		item.Action = "added a new roaster"
-		item.Roaster = roaster
-
-	case atproto.NSIDGrinder:
-		grinder, err := atproto.RecordToGrinder(recordData, record.URI)
-		if err != nil {
-			return nil, err
-		}
-		item.RecordType = lexicons.RecordTypeGrinder
-		item.Action = "added a new grinder"
-		item.Grinder = grinder
-
-	case atproto.NSIDBrewer:
-		brewer, err := atproto.RecordToBrewer(recordData, record.URI)
-		if err != nil {
-			return nil, err
-		}
-		item.RecordType = lexicons.RecordTypeBrewer
-		item.Action = "added a new brewer"
-		item.Brewer = brewer
-
-	case atproto.NSIDRecipe:
-		recipe, err := atproto.RecordToRecipe(recordData, record.URI)
-		if err != nil {
-			return nil, err
-		}
-
-		// Resolve brewer reference
-		if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
-			if brewerRecord, found := refMap[brewerRef]; found {
-				var brewerData map[string]any
-				if err := json.Unmarshal(brewerRecord.Record, &brewerData); err == nil {
-					brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
-					recipe.BrewerObj = brewer
-				}
-			}
-		}
-
-		item.RecordType = lexicons.RecordTypeRecipe
-		item.Action = "added a new recipe"
-		item.Recipe = recipe
-
-	case atproto.NSIDLike:
+	if record.Collection == atproto.NSIDLike {
 		return nil, fmt.Errorf("unexpected: likes should be filtered before conversion")
+	}
 
-	default:
+	desc := entities.GetByNSID(record.Collection)
+	if desc == nil || desc.RecordToModel == nil {
 		return nil, fmt.Errorf("unknown collection: %s", record.Collection)
+	}
+	model, err := desc.RecordToModel(recordData, record.URI)
+	if err != nil {
+		return nil, err
+	}
+
+	item.RecordType = desc.Type
+	item.Action = "added a new " + desc.Noun
+	item.Record = model
+
+	// Per-entity reference resolution. The ref shape is genuinely
+	// entity-specific (brew has four refs, bean has one, recipe has one) and
+	// the resolved values land on per-entity fields. Keep these inline
+	// until a future descriptor extension generalises ref resolution.
+	switch m := model.(type) {
+	case *models.Brew:
+		resolveBrewFeedRefs(m, recordData, refMap)
+	case *models.Bean:
+		resolveBeanFeedRef(m, recordData, refMap)
+	case *models.Recipe:
+		resolveRecipeFeedRef(m, recordData, refMap)
 	}
 
 	// Populate subject fields (like/comment counts are set by caller via batch)
@@ -1132,6 +1069,101 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	item.SubjectCID = record.CID
 
 	return item, nil
+}
+
+// resolveBrewFeedRefs hydrates bean/grinder/brewer/recipe references on a
+// brew using already-fetched indexed records in refMap. Missing refs are
+// silently skipped — feed cards render fine with partial reference data.
+func resolveBrewFeedRefs(brew *models.Brew, recordData map[string]any, refMap map[string]*IndexedRecord) {
+	if beanRef, ok := recordData["beanRef"].(string); ok && beanRef != "" {
+		if beanRecord, found := refMap[beanRef]; found {
+			var beanData map[string]any
+			if err := json.Unmarshal(beanRecord.Record, &beanData); err == nil {
+				bean, _ := atproto.RecordToBean(beanData, beanRef)
+				brew.Bean = bean
+
+				// Resolve roaster reference for the bean.
+				if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
+					if roasterRecord, found := refMap[roasterRef]; found {
+						var roasterData map[string]any
+						if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
+							roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
+							brew.Bean.Roaster = roaster
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if grinderRef, ok := recordData["grinderRef"].(string); ok && grinderRef != "" {
+		if grinderRecord, found := refMap[grinderRef]; found {
+			var grinderData map[string]any
+			if err := json.Unmarshal(grinderRecord.Record, &grinderData); err == nil {
+				grinder, _ := atproto.RecordToGrinder(grinderData, grinderRef)
+				brew.GrinderObj = grinder
+			}
+		}
+	}
+
+	if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
+		if brewerRecord, found := refMap[brewerRef]; found {
+			var brewerData map[string]any
+			if err := json.Unmarshal(brewerRecord.Record, &brewerData); err == nil {
+				brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
+				brew.BrewerObj = brewer
+			}
+		}
+	}
+
+	if recipeRef, ok := recordData["recipeRef"].(string); ok && recipeRef != "" {
+		if c, err := atproto.ResolveATURI(recipeRef); err == nil {
+			brew.RecipeRKey = c.RKey
+		}
+		if recipeRecord, found := refMap[recipeRef]; found {
+			var recipeData map[string]any
+			if err := json.Unmarshal(recipeRecord.Record, &recipeData); err == nil {
+				recipe, _ := atproto.RecordToRecipe(recipeData, recipeRef)
+				brew.RecipeObj = recipe
+			}
+		}
+	}
+}
+
+// resolveBeanFeedRef hydrates a bean's roaster reference from refMap.
+func resolveBeanFeedRef(bean *models.Bean, recordData map[string]any, refMap map[string]*IndexedRecord) {
+	roasterRef, ok := recordData["roasterRef"].(string)
+	if !ok || roasterRef == "" {
+		return
+	}
+	roasterRecord, found := refMap[roasterRef]
+	if !found {
+		return
+	}
+	var roasterData map[string]any
+	if err := json.Unmarshal(roasterRecord.Record, &roasterData); err != nil {
+		return
+	}
+	roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
+	bean.Roaster = roaster
+}
+
+// resolveRecipeFeedRef hydrates a recipe's brewer reference from refMap.
+func resolveRecipeFeedRef(recipe *models.Recipe, recordData map[string]any, refMap map[string]*IndexedRecord) {
+	brewerRef, ok := recordData["brewerRef"].(string)
+	if !ok || brewerRef == "" {
+		return
+	}
+	brewerRecord, found := refMap[brewerRef]
+	if !found {
+		return
+	}
+	var brewerData map[string]any
+	if err := json.Unmarshal(brewerRecord.Record, &brewerData); err != nil {
+		return
+	}
+	brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
+	recipe.BrewerObj = brewer
 }
 
 // GetProfile fetches a profile, using cache when possible. The persistent
