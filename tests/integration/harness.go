@@ -17,7 +17,9 @@ import (
 	"testing"
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
@@ -214,8 +216,16 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	h.SetWitnessCache(feedIndex)
 
 	// Build the router with no moderation service (most tests don't need it).
+	// The harness constructs its own App rather than importing newArabicaApp
+	// from cmd/server (which would create a test-only public API in main).
 	logger := zerolog.Nop()
+	app := &domain.App{
+		Name:        "arabica",
+		NSIDBase:    atproto.NSIDBase,
+		Descriptors: entities.All(),
+	}
 	router := routing.SetupRouter(routing.Config{
+		App:          app,
 		Handlers:     h,
 		OAuthManager: oauthMgr,
 		Logger:       logger,

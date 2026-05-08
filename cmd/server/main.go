@@ -494,6 +494,7 @@ func main() {
 
 	// Setup router with middleware
 	handler := routing.SetupRouter(routing.Config{
+		App:               app,
 		Handlers:          h,
 		OAuthManager:      oauthManager,
 		Logger:            log.Logger,

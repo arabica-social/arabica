@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
@@ -19,6 +20,7 @@ import (
 
 // Config holds the configuration needed for setting up routes
 type Config struct {
+	App               *domain.App
 	Handlers          *handlers.Handler
 	OAuthManager      *atproto.OAuthManager
 	Logger            zerolog.Logger
@@ -88,41 +90,28 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /manage", h.HandleManage)
 	mux.HandleFunc("GET /brews", h.HandleBrewList)
 	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
+	// Brew is registered explicitly: edit page and export endpoint don't
+	// fit the simple-entity route shape.
 	mux.HandleFunc("GET /brews/{id}/og-image", h.HandleBrewOGImage)
 	mux.HandleFunc("GET /brews/{id}", h.HandleBrewView)
-	mux.HandleFunc("GET /beans/{id}/og-image", h.HandleBeanOGImage)
-	mux.HandleFunc("GET /beans/{id}", h.HandleBeanView)
-	mux.HandleFunc("GET /roasters/{id}/og-image", h.HandleRoasterOGImage)
-	mux.HandleFunc("GET /roasters/{id}", h.HandleRoasterView)
-	mux.HandleFunc("GET /grinders/{id}/og-image", h.HandleGrinderOGImage)
-	mux.HandleFunc("GET /grinders/{id}", h.HandleGrinderView)
-	mux.HandleFunc("GET /brewers/{id}/og-image", h.HandleBrewerOGImage)
-	mux.HandleFunc("GET /brewers/{id}", h.HandleBrewerView)
 	mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
 	mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
 	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
 	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
 	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
+
+	// Recipe view + OG image are registered here; the API CRUD ops below
+	// have additional endpoints (from-brew, fork) that don't fit the
+	// simple-entity bundle.
 	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
 	mux.HandleFunc("GET /recipes/{id}/og-image", h.HandleRecipeOGImage)
 	mux.HandleFunc("GET /recipes/{id}", h.HandleRecipeView)
 
-	// API routes for CRUD operations
-	mux.Handle("POST /api/beans", cop.Handler(http.HandlerFunc(h.HandleBeanCreate)))
-	mux.Handle("PUT /api/beans/{id}", cop.Handler(http.HandlerFunc(h.HandleBeanUpdate)))
-	mux.Handle("DELETE /api/beans/{id}", cop.Handler(http.HandlerFunc(h.HandleBeanDelete)))
-
-	mux.Handle("POST /api/roasters", cop.Handler(http.HandlerFunc(h.HandleRoasterCreate)))
-	mux.Handle("PUT /api/roasters/{id}", cop.Handler(http.HandlerFunc(h.HandleRoasterUpdate)))
-	mux.Handle("DELETE /api/roasters/{id}", cop.Handler(http.HandlerFunc(h.HandleRoasterDelete)))
-
-	mux.Handle("POST /api/grinders", cop.Handler(http.HandlerFunc(h.HandleGrinderCreate)))
-	mux.Handle("PUT /api/grinders/{id}", cop.Handler(http.HandlerFunc(h.HandleGrinderUpdate)))
-	mux.Handle("DELETE /api/grinders/{id}", cop.Handler(http.HandlerFunc(h.HandleGrinderDelete)))
-
-	mux.Handle("POST /api/brewers", cop.Handler(http.HandlerFunc(h.HandleBrewerCreate)))
-	mux.Handle("PUT /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerUpdate)))
-	mux.Handle("DELETE /api/brewers/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewerDelete)))
+	// Per-entity routes for the simple entities (bean, roaster, grinder,
+	// brewer): view pages, OG images, JSON CRUD, modal partials. Driven
+	// by the route bundles + the App's descriptor list so a sister app
+	// (matcha) reuses the loop without duplicating wiring.
+	registerEntityRoutes(mux, cop, cfg.App, h.EntityRouteBundles())
 
 	mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
 	mux.HandleFunc("GET /api/recipes/suggestions", h.HandleRecipeSuggestions)
@@ -141,21 +130,9 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /api/comments", cop.Handler(http.HandlerFunc(h.HandleCommentCreate)))
 	mux.Handle("DELETE /api/comments/{id}", cop.Handler(http.HandlerFunc(h.HandleCommentDelete)))
 
-	// Modal routes for entity management (return dialog HTML)
-	for _, m := range []struct {
-		noun string
-		new  http.HandlerFunc
-		edit http.HandlerFunc
-	}{
-		{"bean", h.HandleBeanModalNew, h.HandleBeanModalEdit},
-		{"grinder", h.HandleGrinderModalNew, h.HandleGrinderModalEdit},
-		{"brewer", h.HandleBrewerModalNew, h.HandleBrewerModalEdit},
-		{"roaster", h.HandleRoasterModalNew, h.HandleRoasterModalEdit},
-		{"recipe", h.HandleRecipeModalNew, h.HandleRecipeModalEdit},
-	} {
-		mux.HandleFunc("GET /api/modals/"+m.noun+"/new", m.new)
-		mux.HandleFunc("GET /api/modals/"+m.noun+"/{id}", m.edit)
-	}
+	// Recipe modal stays explicit (no JSON CRUD bundle).
+	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
+	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
 
 	// Notification routes
 	mux.HandleFunc("GET /notifications", h.HandleNotifications)
@@ -294,6 +271,49 @@ func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.Handle
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(httpStatus)
 		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+// registerEntityRoutes wires the per-entity public routes — view page, OG
+// image, JSON CRUD, and modal partials — for every bundle whose
+// RecordType has a matching descriptor on app.
+//
+// The descriptor's URLPath becomes the URL segment (e.g., "beans"); the
+// descriptor's Noun becomes the modal path segment (e.g., "bean"). A
+// nil handler in a bundle field skips the corresponding route, letting
+// future entities omit (say) modal partials without forcing every app
+// to publish stubs.
+func registerEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *domain.App, bundles []handlers.EntityRouteBundle) {
+	for _, b := range bundles {
+		desc := app.DescriptorByType(b.RecordType)
+		if desc == nil {
+			// Bundle declared a route for an entity this app doesn't run.
+			// Skip silently — supports app-specific entity subsets.
+			continue
+		}
+
+		urlPath := desc.URLPath
+		if b.View != nil {
+			mux.HandleFunc("GET /"+urlPath+"/{id}", b.View)
+		}
+		if b.OGImage != nil {
+			mux.HandleFunc("GET /"+urlPath+"/{id}/og-image", b.OGImage)
+		}
+		if b.Create != nil {
+			mux.Handle("POST /api/"+urlPath, cop.Handler(b.Create))
+		}
+		if b.Update != nil {
+			mux.Handle("PUT /api/"+urlPath+"/{id}", cop.Handler(b.Update))
+		}
+		if b.Delete != nil {
+			mux.Handle("DELETE /api/"+urlPath+"/{id}", cop.Handler(b.Delete))
+		}
+		if b.ModalNew != nil {
+			mux.HandleFunc("GET /api/modals/"+desc.Noun+"/new", b.ModalNew)
+		}
+		if b.ModalEdit != nil {
+			mux.HandleFunc("GET /api/modals/"+desc.Noun+"/{id}", b.ModalEdit)
+		}
 	}
 }
 

@@ -5,6 +5,7 @@ package domain
 
 import (
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
 type App struct {
@@ -42,6 +43,19 @@ func (a *App) OAuthScopes() []string {
 func (a *App) DescriptorByNSID(nsid string) *entities.Descriptor {
 	for _, d := range a.Descriptors {
 		if d.NSID == nsid {
+			return d
+		}
+	}
+	return nil
+}
+
+// DescriptorByType returns the descriptor whose RecordType matches, or
+// nil if the app doesn't run that entity. Used by route registration
+// and any handler that wants to gate behaviour on per-app entity
+// availability.
+func (a *App) DescriptorByType(rt lexicons.RecordType) *entities.Descriptor {
+	for _, d := range a.Descriptors {
+		if d.Type == rt {
 			return d
 		}
 	}
