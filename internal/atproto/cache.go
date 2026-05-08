@@ -188,37 +188,6 @@ func (sc *SessionCache) InvalidateRecords(sessionID, nsid string) {
 	}
 }
 
-// SetBeans is a typed wrapper over SetRecords. Phase D removes typed wrappers
-// when call sites migrate to the generic primitive.
-func (sc *SessionCache) SetBeans(sessionID string, beans []*models.Bean) {
-	sc.SetRecords(sessionID, NSIDBean, beans)
-}
-
-// SetRoasters is a typed wrapper over SetRecords.
-func (sc *SessionCache) SetRoasters(sessionID string, roasters []*models.Roaster) {
-	sc.SetRecords(sessionID, NSIDRoaster, roasters)
-}
-
-// SetGrinders is a typed wrapper over SetRecords.
-func (sc *SessionCache) SetGrinders(sessionID string, grinders []*models.Grinder) {
-	sc.SetRecords(sessionID, NSIDGrinder, grinders)
-}
-
-// SetBrewers is a typed wrapper over SetRecords.
-func (sc *SessionCache) SetBrewers(sessionID string, brewers []*models.Brewer) {
-	sc.SetRecords(sessionID, NSIDBrewer, brewers)
-}
-
-// SetRecipes is a typed wrapper over SetRecords.
-func (sc *SessionCache) SetRecipes(sessionID string, recipes []*models.Recipe) {
-	sc.SetRecords(sessionID, NSIDRecipe, recipes)
-}
-
-// SetBrews is a typed wrapper over SetRecords.
-func (sc *SessionCache) SetBrews(sessionID string, brews []*models.Brew) {
-	sc.SetRecords(sessionID, NSIDBrew, brews)
-}
-
 // markDirty sets a collection as dirty on the given cache, initializing the map if needed.
 func markDirty(cache *UserCache, collection string) {
 	if cache.DirtyCollections == nil {
@@ -236,40 +205,6 @@ func (sc *SessionCache) ClearDirty(sessionID, collection string) {
 		delete(newCache.DirtyCollections, collection)
 		sc.caches[sessionID] = newCache
 	}
-}
-
-// InvalidateBeans is a typed wrapper over InvalidateRecords.
-func (sc *SessionCache) InvalidateBeans(sessionID string) {
-	sc.InvalidateRecords(sessionID, NSIDBean)
-}
-
-// InvalidateRoasters invalidates roasters AND beans, since beans denormalize
-// roaster data. This cross-collection coupling is arabica-specific; Phase D
-// moves it onto Descriptor.RelatedNSIDs or a callback when typed wrappers
-// are removed.
-func (sc *SessionCache) InvalidateRoasters(sessionID string) {
-	sc.InvalidateRecords(sessionID, NSIDRoaster)
-	sc.InvalidateRecords(sessionID, NSIDBean)
-}
-
-// InvalidateGrinders is a typed wrapper over InvalidateRecords.
-func (sc *SessionCache) InvalidateGrinders(sessionID string) {
-	sc.InvalidateRecords(sessionID, NSIDGrinder)
-}
-
-// InvalidateBrewers is a typed wrapper over InvalidateRecords.
-func (sc *SessionCache) InvalidateBrewers(sessionID string) {
-	sc.InvalidateRecords(sessionID, NSIDBrewer)
-}
-
-// InvalidateRecipes is a typed wrapper over InvalidateRecords.
-func (sc *SessionCache) InvalidateRecipes(sessionID string) {
-	sc.InvalidateRecords(sessionID, NSIDRecipe)
-}
-
-// InvalidateBrews is a typed wrapper over InvalidateRecords.
-func (sc *SessionCache) InvalidateBrews(sessionID string) {
-	sc.InvalidateRecords(sessionID, NSIDBrew)
 }
 
 // Cleanup removes expired caches.

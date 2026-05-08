@@ -198,7 +198,7 @@ func TestSessionCache_SetCollections(t *testing.T) {
 			{RKey: "bean3", Name: "Another Bean"},
 		}
 
-		cache.SetBeans(sessionID, newBeans)
+		cache.SetRecords(sessionID, NSIDBean, newBeans)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -218,7 +218,7 @@ func TestSessionCache_SetCollections(t *testing.T) {
 
 	t.Run("SetRoasters updates only roasters", func(t *testing.T) {
 		newRoasters := []*models.Roaster{{RKey: "roaster2"}}
-		cache.SetRoasters(sessionID, newRoasters)
+		cache.SetRecords(sessionID, NSIDRoaster, newRoasters)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -229,7 +229,7 @@ func TestSessionCache_SetCollections(t *testing.T) {
 
 	t.Run("SetGrinders updates only grinders", func(t *testing.T) {
 		newGrinders := []*models.Grinder{{RKey: "grinder2"}}
-		cache.SetGrinders(sessionID, newGrinders)
+		cache.SetRecords(sessionID, NSIDGrinder, newGrinders)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -239,7 +239,7 @@ func TestSessionCache_SetCollections(t *testing.T) {
 
 	t.Run("SetBrewers updates only brewers", func(t *testing.T) {
 		newBrewers := []*models.Brewer{{RKey: "brewer2"}}
-		cache.SetBrewers(sessionID, newBrewers)
+		cache.SetRecords(sessionID, NSIDBrewer, newBrewers)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -249,7 +249,7 @@ func TestSessionCache_SetCollections(t *testing.T) {
 
 	t.Run("SetBrews updates only brews", func(t *testing.T) {
 		newBrews := []*models.Brew{{RKey: "brew2"}}
-		cache.SetBrews(sessionID, newBrews)
+		cache.SetRecords(sessionID, NSIDBrew, newBrews)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -279,7 +279,7 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	cache.Set(sessionID, freshInitial())
 
 	t.Run("InvalidateBeans clears only beans", func(t *testing.T) {
-		cache.InvalidateBeans(sessionID)
+		cache.InvalidateRecords(sessionID, NSIDBean)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -290,15 +290,18 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 		assert.NotNil(t, result.Brews())
 	})
 
-	t.Run("InvalidateRoasters clears roasters AND beans", func(t *testing.T) {
-		// Reset cache
+	t.Run("Roaster invalidation cascades to beans (call-site pattern)", func(t *testing.T) {
+		// Reset cache. Cross-collection invalidation moved from a typed
+		// wrapper (Phase C) to an explicit two-call pattern at the call
+		// site (Phase D). UpdateRoasterByRKey/DeleteRoasterByRKey in
+		// store.go now make both invalidation calls.
 		cache.Set(sessionID, freshInitial())
 
-		cache.InvalidateRoasters(sessionID)
+		cache.InvalidateRecords(sessionID, NSIDRoaster)
+		cache.InvalidateRecords(sessionID, NSIDBean)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		// Both roasters and beans should be nil (cascading invalidation)
 		assert.Nil(t, result.Roasters())
 		assert.Nil(t, result.Beans())
 		assert.NotNil(t, result.Grinders())
@@ -309,7 +312,7 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	t.Run("InvalidateGrinders clears only grinders", func(t *testing.T) {
 		cache.Set(sessionID, freshInitial())
 
-		cache.InvalidateGrinders(sessionID)
+		cache.InvalidateRecords(sessionID, NSIDGrinder)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -321,7 +324,7 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	t.Run("InvalidateBrewers clears only brewers", func(t *testing.T) {
 		cache.Set(sessionID, freshInitial())
 
-		cache.InvalidateBrewers(sessionID)
+		cache.InvalidateRecords(sessionID, NSIDBrewer)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -332,7 +335,7 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	t.Run("InvalidateBrews clears only brews", func(t *testing.T) {
 		cache.Set(sessionID, freshInitial())
 
-		cache.InvalidateBrews(sessionID)
+		cache.InvalidateRecords(sessionID, NSIDBrew)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -341,11 +344,11 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	})
 
 	t.Run("invalidate on nonexistent session is safe", func(t *testing.T) {
-		cache.InvalidateBeans("nonexistent")
-		cache.InvalidateRoasters("nonexistent")
-		cache.InvalidateGrinders("nonexistent")
-		cache.InvalidateBrewers("nonexistent")
-		cache.InvalidateBrews("nonexistent")
+		cache.InvalidateRecords("nonexistent", NSIDBean)
+		cache.InvalidateRecords("nonexistent", NSIDRoaster)
+		cache.InvalidateRecords("nonexistent", NSIDGrinder)
+		cache.InvalidateRecords("nonexistent", NSIDBrewer)
+		cache.InvalidateRecords("nonexistent", NSIDBrew)
 		// Should not panic
 	})
 }
@@ -493,28 +496,29 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for range numOperations {
-				cache.SetBeans(sessionID, []*models.Bean{{RKey: "bean"}})
+				cache.SetRecords(sessionID, NSIDBean, []*models.Bean{{RKey: "bean"}})
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
 			for range numOperations {
-				cache.SetRoasters(sessionID, []*models.Roaster{{RKey: "roaster"}})
+				cache.SetRecords(sessionID, NSIDRoaster, []*models.Roaster{{RKey: "roaster"}})
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
 			for range numOperations {
-				cache.InvalidateBeans(sessionID)
+				cache.InvalidateRecords(sessionID, NSIDBean)
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
 			for range numOperations {
-				cache.InvalidateRoasters(sessionID)
+				cache.InvalidateRecords(sessionID, NSIDRoaster)
+				cache.InvalidateRecords(sessionID, NSIDBean)
 			}
 		}()
 
@@ -587,7 +591,7 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 
 	// Update beans
 	newBeans := []*models.Bean{{RKey: "bean2", Name: "Updated"}}
-	cache.SetBeans(sessionID, newBeans)
+	cache.SetRecords(sessionID, NSIDBean, newBeans)
 
 	// Get reference after update
 	after := cache.Get(sessionID)
@@ -656,7 +660,7 @@ func TestSessionCache_MultipleSessionsIsolation(t *testing.T) {
 	})
 
 	// Update session2
-	cache.SetBeans("session2", []*models.Bean{{RKey: "bean2-updated"}})
+	cache.SetRecords("session2", NSIDBean, []*models.Bean{{RKey: "bean2-updated"}})
 
 	// Invalidate session3
 	cache.Invalidate("session3")

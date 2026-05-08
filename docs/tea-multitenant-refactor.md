@@ -129,7 +129,7 @@ mechanical.
 | A | Domain/App layer | ✅ done | Introduce `App` and thread it through startup. OAuth scopes and firehose collections flow from `App`, not constants. | 2-3 days | +150 |
 | B | Finish ED phase 1 | (in progress) | Migrate remaining `feed.templ` data switches. (Independent track.) | — | -150 |
 | C | Cache map | ✅ done | `UserCache` typed fields → `map[string]any` keyed by NSID. Generic `SetRecords`/`InvalidateRecords` primitives. Typed wrappers retained for arabica call sites; Phase D removes them. | 2-3 days | -200 |
-| D | Generic Store CRUD | pending | `Get[T any](ctx, nsid, rkey)`, `List[T any]`, `Create`, `Update`, `Delete` on `AtprotoStore`. ~60 methods → ~10. | 4-5 days | -400 |
+| D | Generic Store CRUD | ✅ done | Generic `fetchRecord`/`fetchAllRecords`/`putRecord`/`removeRecord` primitives in `store_generic.go`. All 6 entities migrated; per-entity wrappers handle only model construction + ref resolution. Typed cache wrappers removed. store.go shrank from 2239 LOC → 1424 LOC (-815). | 4-5 days | -700 |
 | E | Generic feed pipeline | pending | `FeedItem.Record any` + RecordType. `recordToFeedItem` becomes dispatch via descriptor. Adapter and feed.FeedItem similarly. | 4-5 days | -200 |
 | F | Handler/route parameterization | pending | View handler unification (ED phase 4). Generic CRUD handler factory. Routes registered via loop over `App.Descriptors`. | 5-7 days | -500 |
 | G | Templ shell extraction | pending | Modal shell (ED phase 5'). Manage tab, feed page, profile page parameterized by `App`. Each app owns entity-specific templates. | 3-4 days | -150 |
