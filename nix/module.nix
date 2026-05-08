@@ -3,6 +3,14 @@
 let
   cfg = config.services.arabica;
 
+  # teaName is the single source of truth on the nix side for the
+  # tea-tracking sister app. It must match cmd/server/apps.go's
+  # teaAppName constant — the binary derives its env-var prefix and
+  # data-dir name from that constant, and this module sets envs based
+  # on this value. Renaming the tea app means bumping both.
+  teaName = "matcha";
+  teaPrefix = lib.toUpper teaName;
+
   moderatorUserType = lib.types.submodule {
     options = {
       did = lib.mkOption {
@@ -68,6 +76,17 @@ let
 in {
   options.services.arabica = {
     enable = lib.mkEnableOption "Arabica coffee brew tracking service";
+
+    mode = lib.mkOption {
+      type = lib.types.enum [ "all" "arabica" "matcha" ];
+      default = "all";
+      description = ''
+        Which apps the unified server binary should boot. "all" runs
+        both arabica (coffee) and the tea sister app in one process on
+        distinct ports. "arabica" or "matcha" runs just one. Maps to
+        the APPS environment variable.
+      '';
+    };
 
     package = lib.mkOption {
       type = lib.types.package;
@@ -217,6 +236,74 @@ in {
         "Directory where arabica stores its data (OAuth sessions, etc.).";
     };
 
+    # Tea-app (matcha) settings. Mirrors the top-level arabica options
+    # but scoped under `matcha` so a host running both apps from the
+    # unified binary can configure each independently. The binary
+    # reads <APP>_PORT, <APP>_PUBLIC_URL, <APP>_OAUTH_*, <APP>_DATA_DIR,
+    # <APP>_METRICS_PORT, <APP>_BIND_ADDR — where <APP> is the
+    # uppercase teaName ("MATCHA" today).
+    matcha = {
+      port = lib.mkOption {
+        type = lib.types.port;
+        default = 18920;
+        description = "Port on which the tea (matcha) server listens.";
+      };
+
+      bindAddr = lib.mkOption {
+        type = lib.types.str;
+        default = "0.0.0.0";
+        description = "Bind address for the tea (matcha) HTTP listener.";
+      };
+
+      metricsPort = lib.mkOption {
+        type = lib.types.port;
+        default = 9102;
+        description =
+          "Localhost-only Prometheus metrics port for the tea app.";
+      };
+
+      publicUrl = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = ''
+          Public-facing URL of the tea server (e.g. https://matcha.social).
+          Used for absolute URLs in OpenGraph metadata and OAuth callbacks
+          when the corresponding oauth.* options are unset.
+        '';
+        example = "https://matcha.social";
+      };
+
+      dataDir = lib.mkOption {
+        type = lib.types.path;
+        default = "/var/lib/matcha";
+        description = "Data directory for the tea app.";
+      };
+
+      oauth = {
+        clientId = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = ''
+            OAuth client ID for the tea app. If null, the binary falls
+            back to localhost development mode for the tea listener.
+          '';
+        };
+
+        redirectUri = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = "OAuth redirect URI for the tea app.";
+        };
+      };
+
+      openFirewall = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description =
+          "Whether to open the firewall for the tea app's HTTP port.";
+      };
+    };
+
     user = lib.mkOption {
       type = lib.types.str;
       default = "arabica";
@@ -275,7 +362,8 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ cfg.dataDir ];
+        ReadWritePaths = [ cfg.dataDir ]
+          ++ lib.optional (cfg.mode != "arabica") cfg.matcha.dataDir;
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
@@ -290,15 +378,29 @@ in {
       };
 
       environment = {
-        PORT = toString cfg.settings.port;
+        APPS = cfg.mode;
         LOG_LEVEL = cfg.settings.logLevel;
         LOG_FORMAT = cfg.settings.logFormat;
         SECURE_COOKIES = lib.boolToString cfg.settings.secureCookies;
-        OAUTH_CLIENT_ID = cfg.oauth.clientId;
-        OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
-        ARABICA_DB_PATH = "${cfg.dataDir}/arabica.db";
+        # Arabica per-app env (uppercase prefix matches app.Name).
+        ARABICA_PORT = toString cfg.settings.port;
+        ARABICA_OAUTH_CLIENT_ID = cfg.oauth.clientId;
+        ARABICA_OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
+        ARABICA_DATA_DIR = cfg.dataDir;
+        # Tea (matcha) per-app env. Always exported so combined-mode
+        # boots find them; ignored when mode = "arabica".
+        "${teaPrefix}_PORT" = toString cfg.matcha.port;
+        "${teaPrefix}_BIND_ADDR" = cfg.matcha.bindAddr;
+        "${teaPrefix}_METRICS_PORT" = toString cfg.matcha.metricsPort;
+        "${teaPrefix}_DATA_DIR" = cfg.matcha.dataDir;
       } // lib.optionalAttrs (cfg.settings.publicUrl != null) {
-        SERVER_PUBLIC_URL = cfg.settings.publicUrl;
+        ARABICA_PUBLIC_URL = cfg.settings.publicUrl;
+      } // lib.optionalAttrs (cfg.matcha.publicUrl != null) {
+        "${teaPrefix}_PUBLIC_URL" = cfg.matcha.publicUrl;
+      } // lib.optionalAttrs (cfg.matcha.oauth.clientId != null) {
+        "${teaPrefix}_OAUTH_CLIENT_ID" = cfg.matcha.oauth.clientId;
+      } // lib.optionalAttrs (cfg.matcha.oauth.redirectUri != null) {
+        "${teaPrefix}_OAUTH_REDIRECT_URI" = cfg.matcha.oauth.redirectUri;
       } // lib.optionalAttrs (effectiveConfigPath != null) {
         ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;
       } // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.host != "") {
@@ -312,7 +414,8 @@ in {
       };
     };
 
-    networking.firewall =
-      lib.mkIf cfg.openFirewall { allowedTCPPorts = [ cfg.settings.port ]; };
+    networking.firewall.allowedTCPPorts =
+      lib.optional (cfg.openFirewall && cfg.mode != "matcha") cfg.settings.port
+      ++ lib.optional (cfg.matcha.openFirewall && cfg.mode != "arabica") cfg.matcha.port;
   };
 }

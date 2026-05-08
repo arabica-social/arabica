@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
@@ -44,7 +45,20 @@ type Options struct {
 	// KnownDIDsPath is the optional file of DIDs to backfill at startup
 	// (one per line, # comments allowed). Empty skips file-based backfill.
 	KnownDIDsPath string
+
+	// DefaultPort is the public HTTP port used when <APP>_PORT is unset.
+	// Empty falls back to "18910".
+	DefaultPort string
+
+	// DefaultMetricsPort is the localhost metrics port used when
+	// <APP>_METRICS_PORT is unset. Empty falls back to "9101".
+	DefaultMetricsPort string
 }
+
+// tracingOnce ensures the global OpenTelemetry provider is initialised
+// at most once per process, even when Run is invoked concurrently for
+// multiple apps from the unified server entrypoint.
+var tracingOnce sync.Once
 
 // Run constructs the full server stack for app and serves until ctx is
 // cancelled or a SIGINT/SIGTERM arrives at the signal handler the
@@ -82,26 +96,39 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		Str("data_dir", dataDir).
 		Msg("Constructed app config")
 
-	// Initialize OpenTelemetry tracing
-	tp, err := tracing.Init(context.Background())
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to initialize tracing, continuing without it")
-	} else {
-		defer func() {
-			if err := tp.Shutdown(context.Background()); err != nil {
-				log.Error().Err(err).Msg("Error shutting down tracer provider")
-			}
-		}()
+	// Initialize OpenTelemetry tracing once per process. Multi-app boot
+	// (cmd/server running both arabica and matcha) calls Run twice; the
+	// tracer provider is global, so init must not race or double-register.
+	tracingOnce.Do(func() {
+		tp, err := tracing.Init(context.Background())
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to initialize tracing, continuing without it")
+			return
+		}
+		// Shutdown is intentionally not deferred here: the provider is
+		// process-global and outlives any single Run invocation.
+		_ = tp
 		log.Info().Msg("OpenTelemetry tracing initialized")
-	}
+	})
 
-	port := os.Getenv("PORT")
+	port := lookupAppEnv(envPrefix, "PORT")
+	if port == "" {
+		port = opts.DefaultPort
+	}
 	if port == "" {
 		port = "18910"
 	}
 
+	bindAddr := lookupAppEnv(envPrefix, "BIND_ADDR")
+	if bindAddr == "" {
+		bindAddr = "0.0.0.0"
+	}
+
 	// Public URL for reverse proxy deployments
-	publicURL := os.Getenv("SERVER_PUBLIC_URL")
+	publicURL := lookupAppEnv(envPrefix, "PUBLIC_URL")
+	if publicURL == "" {
+		publicURL = os.Getenv("SERVER_PUBLIC_URL")
+	}
 
 	// All persistent files live under dataDir (per-app, see resolveDataDir).
 	dbPath := filepath.Join(dataDir, app.Name+".db")
@@ -115,8 +142,8 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	sessionStore := store.SessionStore()
 
 	// OAuth manager
-	clientID := os.Getenv("OAUTH_CLIENT_ID")
-	redirectURI := os.Getenv("OAUTH_REDIRECT_URI")
+	clientID := lookupAppEnv(envPrefix, "OAUTH_CLIENT_ID")
+	redirectURI := lookupAppEnv(envPrefix, "OAUTH_REDIRECT_URI")
 	if clientID == "" && redirectURI == "" {
 		if publicURL != "" {
 			redirectURI = publicURL + "/oauth/callback"
@@ -335,7 +362,10 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	})
 
 	// Internal metrics server (localhost-only)
-	metricsPort := os.Getenv("METRICS_PORT")
+	metricsPort := lookupAppEnv(envPrefix, "METRICS_PORT")
+	if metricsPort == "" {
+		metricsPort = opts.DefaultMetricsPort
+	}
 	if metricsPort == "" {
 		metricsPort = "9101"
 	}
@@ -354,13 +384,14 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 
 	// Public HTTP server
 	httpServer := &http.Server{
-		Addr:    "0.0.0.0:" + port,
+		Addr:    bindAddr + ":" + port,
 		Handler: handler,
 	}
 	serverErr := make(chan error, 1)
 	go func() {
 		log.Info().
-			Str("address", "0.0.0.0:"+port).
+			Str("app", app.Name).
+			Str("address", bindAddr+":"+port).
 			Str("url", "http://localhost:"+port).
 			Bool("secure_cookies", secureCookies).
 			Str("database", dbPath).
@@ -419,6 +450,18 @@ func resolveDataDir(envPrefix, appName string) (string, error) {
 		root = filepath.Join(home, ".local", "share")
 	}
 	return filepath.Join(root, appName), nil
+}
+
+// lookupAppEnv returns os.Getenv("<envPrefix>_<key>") if set, falling
+// back to os.Getenv(key). This lets a single binary running multiple
+// apps (cmd/server) keep per-app overrides like ARABICA_PORT and
+// MATCHA_PORT distinct, while a one-app deploy that only sets the
+// shared key continues to work unchanged.
+func lookupAppEnv(envPrefix, key string) string {
+	if v := os.Getenv(envPrefix + "_" + key); v != "" {
+		return v
+	}
+	return os.Getenv(key)
 }
 
 // validateAppName ensures app.Name is safe for use as an env-var prefix
