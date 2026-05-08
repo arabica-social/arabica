@@ -2,12 +2,12 @@ package components
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
 
 // BrewContent renders brew details inside a card
-templ BrewContent(brew *models.Brew) {
+templ BrewContent(brew *arabica.Brew) {
 	<div class="feed-content-box">
 		<!-- Bean info with rating -->
 		<div class="flex items-start justify-between gap-3 mb-3">
@@ -133,7 +133,7 @@ templ BrewContent(brew *models.Brew) {
 	</div>
 }
 
-func brewFormatBloom(pp *models.PouroverParams) string {
+func brewFormatBloom(pp *arabica.PouroverParams) string {
 	if pp.BloomWater > 0 && pp.BloomSeconds > 0 {
 		return fmt.Sprintf("%dg for %ds", pp.BloomWater, pp.BloomSeconds)
 	}

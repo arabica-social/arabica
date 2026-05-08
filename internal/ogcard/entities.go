@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/models"
 )
 
 // entityStartY computes the starting Y to vertically center contentH within the card.
@@ -19,7 +19,7 @@ func entityStartY(contentH int) int {
 var maxTextWidth = contentW - leftPad
 
 // DrawBeanCard generates a 1200x630 OG image for a bean record.
-func DrawBeanCard(bean *models.Bean) (*Card, error) {
+func DrawBeanCard(bean *arabica.Bean) (*Card, error) {
 	card, err := newTypedCard(AccentBean, entities.Get(lexicons.RecordTypeBean).Noun)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func DrawBeanCard(bean *models.Bean) (*Card, error) {
 }
 
 // DrawRoasterCard generates a 1200x630 OG image for a roaster record.
-func DrawRoasterCard(roaster *models.Roaster) (*Card, error) {
+func DrawRoasterCard(roaster *arabica.Roaster) (*Card, error) {
 	card, err := newTypedCard(AccentRoaster, entities.Get(lexicons.RecordTypeRoaster).Noun)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func DrawRoasterCard(roaster *models.Roaster) (*Card, error) {
 }
 
 // DrawGrinderCard generates a 1200x630 OG image for a grinder record.
-func DrawGrinderCard(grinder *models.Grinder) (*Card, error) {
+func DrawGrinderCard(grinder *arabica.Grinder) (*Card, error) {
 	card, err := newTypedCard(AccentGrinder, entities.Get(lexicons.RecordTypeGrinder).Noun)
 	if err != nil {
 		return nil, err
@@ -198,7 +198,7 @@ func DrawGrinderCard(grinder *models.Grinder) (*Card, error) {
 }
 
 // DrawBrewerCard generates a 1200x630 OG image for a brewer record.
-func DrawBrewerCard(brewer *models.Brewer) (*Card, error) {
+func DrawBrewerCard(brewer *arabica.Brewer) (*Card, error) {
 	card, err := newTypedCard(AccentBrewer, entities.Get(lexicons.RecordTypeBrewer).Noun)
 	if err != nil {
 		return nil, err
@@ -224,7 +224,7 @@ func DrawBrewerCard(brewer *models.Brewer) (*Card, error) {
 	// Type label
 	if brewer.BrewerType != "" {
 		typeLabel := brewer.BrewerType
-		if label, ok := models.BrewerTypeLabels[brewer.BrewerType]; ok {
+		if label, ok := arabica.BrewerTypeLabels[brewer.BrewerType]; ok {
 			typeLabel = label
 		}
 		card.DrawText(typeLabel, x, y, ColorBody, 28)
@@ -245,7 +245,7 @@ func DrawBrewerCard(brewer *models.Brewer) (*Card, error) {
 }
 
 // DrawRecipeCard generates a 1200x630 OG image for a recipe record.
-func DrawRecipeCard(recipe *models.Recipe) (*Card, error) {
+func DrawRecipeCard(recipe *arabica.Recipe) (*Card, error) {
 	var recipeType string
 	if recipe.BrewerType != "" {
 		recipeType = recipe.BrewerType
@@ -285,7 +285,7 @@ func DrawRecipeCard(recipe *models.Recipe) (*Card, error) {
 	// Brewer type + brewer name
 	var methodParts []string
 	if recipe.BrewerType != "" {
-		if label, ok := models.BrewerTypeLabels[recipe.BrewerType]; ok {
+		if label, ok := arabica.BrewerTypeLabels[recipe.BrewerType]; ok {
 			methodParts = append(methodParts, label)
 		} else {
 			methodParts = append(methodParts, recipe.BrewerType)

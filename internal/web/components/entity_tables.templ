@@ -3,7 +3,7 @@ package components
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"time"
 )
@@ -64,7 +64,7 @@ func entityAvgRating(ratings map[string]float64, ownerDID, nsid, rkey string) fl
 
 // BeanCardsProps defines props for the bean cards grid
 type BeanCardsProps struct {
-	Beans          []*models.Bean
+	Beans          []*arabica.Bean
 	ShowActions    bool               // Whether to show Edit/Delete actions
 	OwnerHandle    string             // If set, name links to view page with this owner
 	BrewCounts     map[string]int     // bean AT-URI -> brew count (optional)
@@ -79,14 +79,14 @@ templ BeanCards(props BeanCardsProps) {
 	} else {
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 			for _, bean := range props.Beans {
-				@BeanCard(bean, props.ShowActions, props.OwnerHandle, entityCount(props.BrewCounts, props.OwnerDID, atproto.NSIDBean, bean.RKey), entityAvgRating(props.AvgBrewRatings, props.OwnerDID, atproto.NSIDBean, bean.RKey))
+				@BeanCard(bean, props.ShowActions, props.OwnerHandle, entityCount(props.BrewCounts, props.OwnerDID, arabica.NSIDBean, bean.RKey), entityAvgRating(props.AvgBrewRatings, props.OwnerDID, arabica.NSIDBean, bean.RKey))
 			}
 		</div>
 	}
 }
 
 // BeanCard renders a single bean as a compact card
-templ BeanCard(bean *models.Bean, showActions bool, ownerHandle string, brewCount int, avgBrewRating float64) {
+templ BeanCard(bean *arabica.Bean, showActions bool, ownerHandle string, brewCount int, avgBrewRating float64) {
 	<div class="feed-card feed-card-bean">
 		@entityCardHeader(bean.CreatedAt, showActions, "/api/modals/bean/"+bean.RKey, "/api/beans/"+bean.RKey, "bean", "bean")
 		<div class="feed-content-box-sm">
@@ -174,7 +174,7 @@ func entityPluralS(n int) string {
 
 // RoastersTableProps defines props for the shared roasters display
 type RoastersTableProps struct {
-	Roasters       []*models.Roaster
+	Roasters       []*arabica.Roaster
 	ShowActions    bool               // Whether to show Edit/Delete actions
 	OwnerHandle    string             // If set, name links to view page with this owner
 	BeanCounts     map[string]int     // roaster AT-URI -> bean count (optional)
@@ -189,14 +189,14 @@ templ RoastersTable(props RoastersTableProps) {
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, roaster := range props.Roasters {
-				@RoasterCard(roaster, props.ShowActions, props.OwnerHandle, entityCount(props.BeanCounts, props.OwnerDID, atproto.NSIDRoaster, roaster.RKey), entityAvgRating(props.AvgBrewRatings, props.OwnerDID, atproto.NSIDRoaster, roaster.RKey))
+				@RoasterCard(roaster, props.ShowActions, props.OwnerHandle, entityCount(props.BeanCounts, props.OwnerDID, arabica.NSIDRoaster, roaster.RKey), entityAvgRating(props.AvgBrewRatings, props.OwnerDID, arabica.NSIDRoaster, roaster.RKey))
 			}
 		</div>
 	}
 }
 
 // RoasterCard renders a single roaster as a compact card
-templ RoasterCard(roaster *models.Roaster, showActions bool, ownerHandle string, beanCount int, avgBrewRating float64) {
+templ RoasterCard(roaster *arabica.Roaster, showActions bool, ownerHandle string, beanCount int, avgBrewRating float64) {
 	<div class="feed-card feed-card-roaster">
 		@entityCardHeader(roaster.CreatedAt, showActions, "/api/modals/roaster/"+roaster.RKey, "/api/roasters/"+roaster.RKey, "roaster", "roaster")
 		<div class="feed-content-box-sm">
@@ -251,7 +251,7 @@ templ RoasterCard(roaster *models.Roaster, showActions bool, ownerHandle string,
 
 // GrindersTableProps defines props for the shared grinders display
 type GrindersTableProps struct {
-	Grinders    []*models.Grinder
+	Grinders    []*arabica.Grinder
 	ShowActions bool           // Whether to show Edit/Delete actions
 	OwnerHandle string         // If set, name links to view page with this owner
 	BrewCounts  map[string]int // grinder AT-URI -> brew count (optional)
@@ -265,14 +265,14 @@ templ GrindersTable(props GrindersTableProps) {
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, grinder := range props.Grinders {
-				@GrinderCard(grinder, props.ShowActions, props.OwnerHandle, entityCount(props.BrewCounts, props.OwnerDID, atproto.NSIDGrinder, grinder.RKey))
+				@GrinderCard(grinder, props.ShowActions, props.OwnerHandle, entityCount(props.BrewCounts, props.OwnerDID, arabica.NSIDGrinder, grinder.RKey))
 			}
 		</div>
 	}
 }
 
 // GrinderCard renders a single grinder as a compact card
-templ GrinderCard(grinder *models.Grinder, showActions bool, ownerHandle string, brewCount int) {
+templ GrinderCard(grinder *arabica.Grinder, showActions bool, ownerHandle string, brewCount int) {
 	<div class="feed-card feed-card-grinder">
 		@entityCardHeader(grinder.CreatedAt, showActions, "/api/modals/grinder/"+grinder.RKey, "/api/grinders/"+grinder.RKey, "grinder", "grinder")
 		<div class="feed-content-box-sm">
@@ -318,7 +318,7 @@ templ GrinderCard(grinder *models.Grinder, showActions bool, ownerHandle string,
 
 // BrewersTableProps defines props for the shared brewers display
 type BrewersTableProps struct {
-	Brewers     []*models.Brewer
+	Brewers     []*arabica.Brewer
 	ShowActions bool           // Whether to show Edit/Delete actions
 	OwnerHandle string         // If set, name links to view page with this owner
 	BrewCounts  map[string]int // brewer AT-URI -> brew count (optional)
@@ -332,14 +332,14 @@ templ BrewersTable(props BrewersTableProps) {
 	} else {
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 			for _, brewer := range props.Brewers {
-				@BrewerCard(brewer, props.ShowActions, props.OwnerHandle, entityCount(props.BrewCounts, props.OwnerDID, atproto.NSIDBrewer, brewer.RKey))
+				@BrewerCard(brewer, props.ShowActions, props.OwnerHandle, entityCount(props.BrewCounts, props.OwnerDID, arabica.NSIDBrewer, brewer.RKey))
 			}
 		</div>
 	}
 }
 
 // BrewerCard renders a single brewer as a compact card
-templ BrewerCard(brewer *models.Brewer, showActions bool, ownerHandle string, brewCount int) {
+templ BrewerCard(brewer *arabica.Brewer, showActions bool, ownerHandle string, brewCount int) {
 	<div class="feed-card feed-card-brewer">
 		@entityCardHeader(brewer.CreatedAt, showActions, "/api/modals/brewer/"+brewer.RKey, "/api/brewers/"+brewer.RKey, "brewer", "brewer")
 		<div class="feed-content-box-sm">
@@ -379,7 +379,7 @@ templ BrewerCard(brewer *models.Brewer, showActions bool, ownerHandle string, br
 
 // RecipesTableProps defines props for the shared recipes display
 type RecipesTableProps struct {
-	Recipes     []*models.Recipe
+	Recipes     []*arabica.Recipe
 	ShowActions bool
 }
 
@@ -397,7 +397,7 @@ templ RecipesTable(props RecipesTableProps) {
 }
 
 // RecipeCard renders a single recipe as a compact card
-templ RecipeCard(recipe *models.Recipe, showActions bool) {
+templ RecipeCard(recipe *arabica.Recipe, showActions bool) {
 	<div class="feed-card feed-card-recipe">
 		@entityCardHeader(recipe.CreatedAt, showActions, "/api/modals/recipe/"+recipe.RKey, "/api/recipes/"+recipe.RKey, "recipe", "recipe")
 		<div class="feed-content-box-sm">

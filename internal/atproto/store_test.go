@@ -3,18 +3,18 @@ package atproto
 import (
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 func TestLinkBeansToRoasters(t *testing.T) {
 	t.Run("links beans to matching roasters", func(t *testing.T) {
-		roasters := []*models.Roaster{
+		roasters := []*arabica.Roaster{
 			{RKey: "roaster1", Name: "Roaster One"},
 			{RKey: "roaster2", Name: "Roaster Two"},
 			{RKey: "roaster3", Name: "Roaster Three"},
 		}
 
-		beans := []*models.Bean{
+		beans := []*arabica.Bean{
 			{RKey: "bean1", Name: "Bean One", RoasterRKey: "roaster1"},
 			{RKey: "bean2", Name: "Bean Two", RoasterRKey: "roaster2"},
 			{RKey: "bean3", Name: "Bean Three", RoasterRKey: ""}, // No roaster
@@ -43,11 +43,11 @@ func TestLinkBeansToRoasters(t *testing.T) {
 	})
 
 	t.Run("handles missing roaster gracefully", func(t *testing.T) {
-		roasters := []*models.Roaster{
+		roasters := []*arabica.Roaster{
 			{RKey: "roaster1", Name: "Roaster One"},
 		}
 
-		beans := []*models.Bean{
+		beans := []*arabica.Bean{
 			{RKey: "bean1", Name: "Bean One", RoasterRKey: "nonexistent"},
 		}
 
@@ -63,6 +63,6 @@ func TestLinkBeansToRoasters(t *testing.T) {
 	t.Run("handles empty slices", func(t *testing.T) {
 		// Should not panic with empty inputs
 		LinkBeansToRoasters(nil, nil)
-		LinkBeansToRoasters([]*models.Bean{}, []*models.Roaster{})
+		LinkBeansToRoasters([]*arabica.Bean{}, []*arabica.Roaster{})
 	})
 }

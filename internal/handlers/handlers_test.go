@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 
 	"github.com/stretchr/testify/assert"
@@ -23,8 +23,8 @@ func TestHandleBrewListPartial_Success(t *testing.T) {
 	fixtures := tc.Fixtures
 
 	// Mock store to return test brews
-	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*models.Brew, error) {
-		return []*models.Brew{fixtures.Brew}, nil
+	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*arabica.Brew, error) {
+		return []*arabica.Brew{fixtures.Brew}, nil
 	}
 
 	// Create handler with injected mock store dependency
@@ -108,19 +108,19 @@ func TestHandleBrewDelete_InvalidRKey(t *testing.T) {
 func TestHandleBeanCreate_ValidationError(t *testing.T) {
 	tests := []struct {
 		name    string
-		bean    models.CreateBeanRequest
+		bean    arabica.CreateBeanRequest
 		wantErr string
 	}{
 		{
 			name: "missing name",
-			bean: models.CreateBeanRequest{
+			bean: arabica.CreateBeanRequest{
 				Origin: "Ethiopia",
 			},
 			wantErr: "name is required",
 		},
 		{
 			name: "name too long",
-			bean: models.CreateBeanRequest{
+			bean: arabica.CreateBeanRequest{
 				Name:   strings.Repeat("a", 201),
 				Origin: "Ethiopia",
 			},
@@ -199,8 +199,8 @@ func TestHandleBrewExport(t *testing.T) {
 	tc := NewTestContext()
 	fixtures := tc.Fixtures
 
-	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*models.Brew, error) {
-		return []*models.Brew{fixtures.Brew}, nil
+	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*arabica.Brew, error) {
+		return []*arabica.Brew{fixtures.Brew}, nil
 	}
 
 	req := NewAuthenticatedRequest("GET", "/brews/export", nil)
@@ -218,20 +218,20 @@ func TestHandleAPIListAll(t *testing.T) {
 	fixtures := tc.Fixtures
 
 	// Mock all list operations
-	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*models.Bean, error) {
-		return []*models.Bean{fixtures.Bean}, nil
+	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*arabica.Bean, error) {
+		return []*arabica.Bean{fixtures.Bean}, nil
 	}
-	tc.MockStore.ListRoastersFunc = func(ctx context.Context) ([]*models.Roaster, error) {
-		return []*models.Roaster{fixtures.Roaster}, nil
+	tc.MockStore.ListRoastersFunc = func(ctx context.Context) ([]*arabica.Roaster, error) {
+		return []*arabica.Roaster{fixtures.Roaster}, nil
 	}
-	tc.MockStore.ListGrindersFunc = func(ctx context.Context) ([]*models.Grinder, error) {
-		return []*models.Grinder{fixtures.Grinder}, nil
+	tc.MockStore.ListGrindersFunc = func(ctx context.Context) ([]*arabica.Grinder, error) {
+		return []*arabica.Grinder{fixtures.Grinder}, nil
 	}
-	tc.MockStore.ListBrewersFunc = func(ctx context.Context) ([]*models.Brewer, error) {
-		return []*models.Brewer{fixtures.Brewer}, nil
+	tc.MockStore.ListBrewersFunc = func(ctx context.Context) ([]*arabica.Brewer, error) {
+		return []*arabica.Brewer{fixtures.Brewer}, nil
 	}
-	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*models.Brew, error) {
-		return []*models.Brew{fixtures.Brew}, nil
+	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*arabica.Brew, error) {
+		return []*arabica.Brew{fixtures.Brew}, nil
 	}
 
 	req := NewAuthenticatedRequest("GET", "/api/all", nil)
@@ -248,7 +248,7 @@ func TestHandleAPIListAll_StoreError(t *testing.T) {
 	tc := NewTestContext()
 
 	// Mock store to return error
-	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*models.Bean, error) {
+	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*arabica.Bean, error) {
 		return nil, errors.New("database error")
 	}
 
@@ -300,17 +300,17 @@ func TestHandleManagePartial(t *testing.T) {
 	fixtures := tc.Fixtures
 
 	// Mock all the data fetches
-	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*models.Bean, error) {
-		return []*models.Bean{fixtures.Bean}, nil
+	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*arabica.Bean, error) {
+		return []*arabica.Bean{fixtures.Bean}, nil
 	}
-	tc.MockStore.ListRoastersFunc = func(ctx context.Context) ([]*models.Roaster, error) {
-		return []*models.Roaster{fixtures.Roaster}, nil
+	tc.MockStore.ListRoastersFunc = func(ctx context.Context) ([]*arabica.Roaster, error) {
+		return []*arabica.Roaster{fixtures.Roaster}, nil
 	}
-	tc.MockStore.ListGrindersFunc = func(ctx context.Context) ([]*models.Grinder, error) {
-		return []*models.Grinder{fixtures.Grinder}, nil
+	tc.MockStore.ListGrindersFunc = func(ctx context.Context) ([]*arabica.Grinder, error) {
+		return []*arabica.Grinder{fixtures.Grinder}, nil
 	}
-	tc.MockStore.ListBrewersFunc = func(ctx context.Context) ([]*models.Brewer, error) {
-		return []*models.Brewer{fixtures.Brewer}, nil
+	tc.MockStore.ListBrewersFunc = func(ctx context.Context) ([]*arabica.Brewer, error) {
+		return []*arabica.Brewer{fixtures.Brewer}, nil
 	}
 
 	req := NewAuthenticatedRequest("GET", "/manage/content", nil)
@@ -449,7 +449,7 @@ func TestValidateBrewRequest(t *testing.T) {
 func TestPopulateBrewOGMetadata(t *testing.T) {
 	tests := []struct {
 		name            string
-		brew            *models.Brew
+		brew            *arabica.Brew
 		owner           string
 		shareURL        string
 		publicURL       string
@@ -468,10 +468,10 @@ func TestPopulateBrewOGMetadata(t *testing.T) {
 		},
 		{
 			name: "brew with bean and roaster",
-			brew: &models.Brew{
-				Bean: &models.Bean{
+			brew: &arabica.Brew{
+				Bean: &arabica.Bean{
 					Name:    "Ethiopian Yirgacheffe",
-					Roaster: &models.Roaster{Name: "Sweet Maria's"},
+					Roaster: &arabica.Roaster{Name: "Sweet Maria's"},
 				},
 			},
 			owner:           "alice.bsky.social",
@@ -485,7 +485,7 @@ func TestPopulateBrewOGMetadata(t *testing.T) {
 		},
 		{
 			name:            "brew without bean",
-			brew:            &models.Brew{},
+			brew:            &arabica.Brew{},
 			owner:           "bob.bsky.social",
 			shareURL:        "/brews/789?owner=bob.bsky.social",
 			publicURL:       "https://arabica.example.com",
@@ -497,8 +497,8 @@ func TestPopulateBrewOGMetadata(t *testing.T) {
 		},
 		{
 			name: "no public URL",
-			brew: &models.Brew{
-				Bean: &models.Bean{Name: "Premium Blend"},
+			brew: &arabica.Brew{
+				Bean: &arabica.Bean{Name: "Premium Blend"},
 			},
 			owner:           "alice.bsky.social",
 			shareURL:        "/brews/xyz",
@@ -509,8 +509,8 @@ func TestPopulateBrewOGMetadata(t *testing.T) {
 		},
 		{
 			name: "no owner",
-			brew: &models.Brew{
-				Bean: &models.Bean{Name: "House Blend"},
+			brew: &arabica.Brew{
+				Bean: &arabica.Bean{Name: "House Blend"},
 			},
 			owner:           "",
 			shareURL:        "/brews/456",

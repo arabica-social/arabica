@@ -2,13 +2,13 @@ package components
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
 
 // BrewListTableProps defines props for the brew list partial
 type BrewListTableProps struct {
-	Brews         []*models.Brew
+	Brews         []*arabica.Brew
 	IsOwnProfile  bool
 	ProfileHandle string
 }
@@ -38,7 +38,7 @@ templ BrewListTablePartial(props BrewListTableProps) {
 }
 
 // brewListCard renders a single brew as a feed card
-templ brewListCard(brew *models.Brew, isOwnProfile bool, profileHandle string) {
+templ brewListCard(brew *arabica.Brew, isOwnProfile bool, profileHandle string) {
 	<div class="feed-card feed-card-brew">
 		<!-- Header: date + actions -->
 		<div class="flex items-center justify-between mb-2">

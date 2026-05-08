@@ -2,7 +2,7 @@ package pages
 
 import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
@@ -307,7 +307,7 @@ templ BeanFormModalProfile(roasters []RoasterOption) {
 				</select>
 				<select x-model="beanForm.roast_level" class="w-full form-input">
 					<option value="">Select Roast Level (Optional)</option>
-					for _, level := range models.RoastLevels {
+					for _, level := range arabica.RoastLevels {
 						<option value={ level }>{ level }</option>
 					}
 				</select>
@@ -353,13 +353,13 @@ templ GrinderFormModal() {
 				<input type="text" x-model="grinderForm.name" placeholder="Name *" class="w-full form-input"/>
 				<select x-model="grinderForm.grinder_type" class="w-full form-input">
 					<option value="">Select Grinder Type *</option>
-					for _, gType := range models.GrinderTypes {
+					for _, gType := range arabica.GrinderTypes {
 						<option value={ gType }>{ gType }</option>
 					}
 				</select>
 				<select x-model="grinderForm.burr_type" class="w-full form-input">
 					<option value="">Select Burr Type (Optional)</option>
-					for _, bType := range models.BurrTypes {
+					for _, bType := range arabica.BurrTypes {
 						<option value={ bType }>{ bType }</option>
 					}
 				</select>

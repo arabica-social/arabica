@@ -14,8 +14,9 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 
 	"database/sql/driver"
@@ -672,81 +673,11 @@ func (idx *FeedIndex) GetRecord(ctx context.Context, uri string) (*IndexedRecord
 	return &rec, nil
 }
 
-// FeedItem represents an item in the feed (matches feed.FeedItem structure)
-type FeedItem struct {
-	RecordType lexicons.RecordType
-	Action     string
-
-	// Record carries the typed model (*models.Brew, *models.Bean, …).
-	// Type-asserted via the per-entity accessor methods.
-	Record any
-
-	Author    *atproto.Profile
-	Timestamp time.Time
-	TimeAgo   string
-
-	// Like-related fields
-	LikeCount  int    // Number of likes on this record
-	SubjectURI string // AT-URI of this record (for like button)
-	SubjectCID string // CID of this record (for like button)
-
-	// Comment-related fields
-	CommentCount int // Number of comments on this record
-}
-
-// Brew returns f.Record cast to *models.Brew, or nil. Nil-safe on f.
-func (f *FeedItem) Brew() *models.Brew {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*models.Brew)
-	return v
-}
-
-// Bean returns f.Record cast to *models.Bean, or nil. Nil-safe.
-func (f *FeedItem) Bean() *models.Bean {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*models.Bean)
-	return v
-}
-
-// Roaster returns f.Record cast to *models.Roaster, or nil. Nil-safe.
-func (f *FeedItem) Roaster() *models.Roaster {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*models.Roaster)
-	return v
-}
-
-// Grinder returns f.Record cast to *models.Grinder, or nil. Nil-safe.
-func (f *FeedItem) Grinder() *models.Grinder {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*models.Grinder)
-	return v
-}
-
-// Brewer returns f.Record cast to *models.Brewer, or nil. Nil-safe.
-func (f *FeedItem) Brewer() *models.Brewer {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*models.Brewer)
-	return v
-}
-
-// Recipe returns f.Record cast to *models.Recipe, or nil. Nil-safe.
-func (f *FeedItem) Recipe() *models.Recipe {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*models.Recipe)
-	return v
-}
+// FeedItem is the firehose-side alias for feed.FeedItemCore. Defining it
+// here as an alias (not a separate struct) means the feed-service adapter
+// no longer needs to copy field-by-field — same in-memory layout, no
+// conversion. Per-entity accessors (Brew, Bean, …) live on FeedItemCore.
+type FeedItem = feed.FeedItemCore
 
 // GetRecentFeed returns recent feed items from the index
 func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error) {
@@ -755,12 +686,12 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem
 
 // recordTypeToNSID maps a lexicons.RecordType to its NSID collection string
 var recordTypeToNSID = map[lexicons.RecordType]string{
-	lexicons.RecordTypeBrew:    atproto.NSIDBrew,
-	lexicons.RecordTypeBean:    atproto.NSIDBean,
-	lexicons.RecordTypeRoaster: atproto.NSIDRoaster,
-	lexicons.RecordTypeGrinder: atproto.NSIDGrinder,
-	lexicons.RecordTypeBrewer:  atproto.NSIDBrewer,
-	lexicons.RecordTypeRecipe:  atproto.NSIDRecipe,
+	lexicons.RecordTypeBrew:    arabica.NSIDBrew,
+	lexicons.RecordTypeBean:    arabica.NSIDBean,
+	lexicons.RecordTypeRoaster: arabica.NSIDRoaster,
+	lexicons.RecordTypeGrinder: arabica.NSIDGrinder,
+	lexicons.RecordTypeBrewer:  arabica.NSIDBrewer,
+	lexicons.RecordTypeRecipe:  arabica.NSIDRecipe,
 }
 
 // feedableCollections is the set of collection NSIDs that appear in the feed
@@ -942,7 +873,7 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 				recordsByURI[rec.URI] = &rec
 
 				// If this is a bean, check if it references a roaster we also need
-				if rec.Collection == atproto.NSIDBean {
+				if rec.Collection == arabica.NSIDBean {
 					var beanData map[string]any
 					if err := json.Unmarshal(rec.Record, &beanData); err == nil {
 						if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
@@ -1034,7 +965,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	}
 	item.Author = profile
 
-	if record.Collection == atproto.NSIDLike {
+	if record.Collection == arabica.NSIDLike {
 		return nil, fmt.Errorf("unexpected: likes should be filtered before conversion")
 	}
 
@@ -1056,11 +987,11 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	// the resolved values land on per-entity fields. Keep these inline
 	// until a future descriptor extension generalises ref resolution.
 	switch m := model.(type) {
-	case *models.Brew:
+	case *arabica.Brew:
 		resolveBrewFeedRefs(m, recordData, refMap)
-	case *models.Bean:
+	case *arabica.Bean:
 		resolveBeanFeedRef(m, recordData, refMap)
-	case *models.Recipe:
+	case *arabica.Recipe:
 		resolveRecipeFeedRef(m, recordData, refMap)
 	}
 
@@ -1074,12 +1005,12 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 // resolveBrewFeedRefs hydrates bean/grinder/brewer/recipe references on a
 // brew using already-fetched indexed records in refMap. Missing refs are
 // silently skipped — feed cards render fine with partial reference data.
-func resolveBrewFeedRefs(brew *models.Brew, recordData map[string]any, refMap map[string]*IndexedRecord) {
+func resolveBrewFeedRefs(brew *arabica.Brew, recordData map[string]any, refMap map[string]*IndexedRecord) {
 	if beanRef, ok := recordData["beanRef"].(string); ok && beanRef != "" {
 		if beanRecord, found := refMap[beanRef]; found {
 			var beanData map[string]any
 			if err := json.Unmarshal(beanRecord.Record, &beanData); err == nil {
-				bean, _ := atproto.RecordToBean(beanData, beanRef)
+				bean, _ := arabica.RecordToBean(beanData, beanRef)
 				brew.Bean = bean
 
 				// Resolve roaster reference for the bean.
@@ -1087,7 +1018,7 @@ func resolveBrewFeedRefs(brew *models.Brew, recordData map[string]any, refMap ma
 					if roasterRecord, found := refMap[roasterRef]; found {
 						var roasterData map[string]any
 						if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
-							roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
+							roaster, _ := arabica.RecordToRoaster(roasterData, roasterRef)
 							brew.Bean.Roaster = roaster
 						}
 					}
@@ -1100,7 +1031,7 @@ func resolveBrewFeedRefs(brew *models.Brew, recordData map[string]any, refMap ma
 		if grinderRecord, found := refMap[grinderRef]; found {
 			var grinderData map[string]any
 			if err := json.Unmarshal(grinderRecord.Record, &grinderData); err == nil {
-				grinder, _ := atproto.RecordToGrinder(grinderData, grinderRef)
+				grinder, _ := arabica.RecordToGrinder(grinderData, grinderRef)
 				brew.GrinderObj = grinder
 			}
 		}
@@ -1110,7 +1041,7 @@ func resolveBrewFeedRefs(brew *models.Brew, recordData map[string]any, refMap ma
 		if brewerRecord, found := refMap[brewerRef]; found {
 			var brewerData map[string]any
 			if err := json.Unmarshal(brewerRecord.Record, &brewerData); err == nil {
-				brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
+				brewer, _ := arabica.RecordToBrewer(brewerData, brewerRef)
 				brew.BrewerObj = brewer
 			}
 		}
@@ -1123,7 +1054,7 @@ func resolveBrewFeedRefs(brew *models.Brew, recordData map[string]any, refMap ma
 		if recipeRecord, found := refMap[recipeRef]; found {
 			var recipeData map[string]any
 			if err := json.Unmarshal(recipeRecord.Record, &recipeData); err == nil {
-				recipe, _ := atproto.RecordToRecipe(recipeData, recipeRef)
+				recipe, _ := arabica.RecordToRecipe(recipeData, recipeRef)
 				brew.RecipeObj = recipe
 			}
 		}
@@ -1131,7 +1062,7 @@ func resolveBrewFeedRefs(brew *models.Brew, recordData map[string]any, refMap ma
 }
 
 // resolveBeanFeedRef hydrates a bean's roaster reference from refMap.
-func resolveBeanFeedRef(bean *models.Bean, recordData map[string]any, refMap map[string]*IndexedRecord) {
+func resolveBeanFeedRef(bean *arabica.Bean, recordData map[string]any, refMap map[string]*IndexedRecord) {
 	roasterRef, ok := recordData["roasterRef"].(string)
 	if !ok || roasterRef == "" {
 		return
@@ -1144,12 +1075,12 @@ func resolveBeanFeedRef(bean *models.Bean, recordData map[string]any, refMap map
 	if err := json.Unmarshal(roasterRecord.Record, &roasterData); err != nil {
 		return
 	}
-	roaster, _ := atproto.RecordToRoaster(roasterData, roasterRef)
+	roaster, _ := arabica.RecordToRoaster(roasterData, roasterRef)
 	bean.Roaster = roaster
 }
 
 // resolveRecipeFeedRef hydrates a recipe's brewer reference from refMap.
-func resolveRecipeFeedRef(recipe *models.Recipe, recordData map[string]any, refMap map[string]*IndexedRecord) {
+func resolveRecipeFeedRef(recipe *arabica.Recipe, recordData map[string]any, refMap map[string]*IndexedRecord) {
 	brewerRef, ok := recordData["brewerRef"].(string)
 	if !ok || brewerRef == "" {
 		return
@@ -1162,7 +1093,7 @@ func resolveRecipeFeedRef(recipe *models.Recipe, recordData map[string]any, refM
 	if err := json.Unmarshal(brewerRecord.Record, &brewerData); err != nil {
 		return
 	}
-	brewer, _ := atproto.RecordToBrewer(brewerData, brewerRef)
+	brewer, _ := arabica.RecordToBrewer(brewerData, brewerRef)
 	recipe.BrewerObj = brewer
 }
 
@@ -1758,8 +1689,8 @@ func (idx *FeedIndex) AvgBrewRatingByRoasterURI(ctx context.Context, did string)
 
 // GetProfileStatsVisibility returns the profile stats visibility settings for a user.
 // Returns default (all public) if no settings are stored.
-func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string) models.ProfileStatsVisibility {
-	defaults := models.DefaultProfileStatsVisibility()
+func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string) arabica.ProfileStatsVisibility {
+	defaults := arabica.DefaultProfileStatsVisibility()
 	if did == "" {
 		return defaults
 	}
@@ -1770,22 +1701,22 @@ func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string)
 	if err != nil {
 		return defaults
 	}
-	var settings models.ProfileStatsVisibility
+	var settings arabica.ProfileStatsVisibility
 	if err := json.Unmarshal([]byte(raw), &settings); err != nil {
 		return defaults
 	}
 	// Fill in defaults for any empty fields
 	if settings.BeanAvgRating == "" {
-		settings.BeanAvgRating = models.VisibilityPublic
+		settings.BeanAvgRating = arabica.VisibilityPublic
 	}
 	if settings.RoasterAvgRating == "" {
-		settings.RoasterAvgRating = models.VisibilityPublic
+		settings.RoasterAvgRating = arabica.VisibilityPublic
 	}
 	return settings
 }
 
 // SetProfileStatsVisibility saves the profile stats visibility settings for a user.
-func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string, settings models.ProfileStatsVisibility) error {
+func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string, settings arabica.ProfileStatsVisibility) error {
 	raw, err := json.Marshal(settings)
 	if err != nil {
 		return fmt.Errorf("marshal settings: %w", err)
@@ -1915,7 +1846,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 			recordCount++
 
 			switch collection {
-			case atproto.NSIDLike:
+			case arabica.NSIDLike:
 				if subject, ok := record.Value["subject"].(map[string]any); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
 						if err := idx.UpsertLike(ctx, did, rkey, subjectURI); err != nil {
@@ -1923,7 +1854,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 						}
 					}
 				}
-			case atproto.NSIDComment:
+			case arabica.NSIDComment:
 				if subject, ok := record.Value["subject"].(map[string]any); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
 						text, _ := record.Value["text"].(string)

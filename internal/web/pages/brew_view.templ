@@ -3,14 +3,14 @@ package pages
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/firehose"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 // BrewViewProps defines the data for the brew view page
 type BrewViewProps struct {
-	Brew            *models.Brew
+	Brew            *arabica.Brew
 	IsOwnProfile    bool
 	IsAuthenticated bool
 	SubjectURI      string                    // AT-URI of the brew (for like button)
@@ -152,7 +152,7 @@ templ BrewViewCard(props BrewViewProps) {
 
 // BrewSummary renders the at-a-glance headline at the top of the journal:
 // the rating on the left paired with a compact recipe summary on the right.
-templ BrewSummary(brew *models.Brew) {
+templ BrewSummary(brew *arabica.Brew) {
 	if brew.Rating > 0 || hasBrewSummaryStats(brew) {
 		<div class="brew-summary">
 			if brew.Rating > 0 {
@@ -187,11 +187,11 @@ templ BrewSummary(brew *models.Brew) {
 	}
 }
 
-func hasBrewSummaryStats(brew *models.Brew) bool {
+func hasBrewSummaryStats(brew *arabica.Brew) bool {
 	return getBrewRatioDisplay(brew) != "" || getBrewTimeDisplay(brew) != "" || getBrewerName(brew) != ""
 }
 
-func getBrewRatioDisplay(brew *models.Brew) string {
+func getBrewRatioDisplay(brew *arabica.Brew) string {
 	water := 0
 	if brew.WaterAmount > 0 {
 		water = brew.WaterAmount
@@ -207,7 +207,7 @@ func getBrewRatioDisplay(brew *models.Brew) string {
 }
 
 // BrewBeanSection renders the coffee bean as a prominent reference card
-templ BrewBeanSection(brew *models.Brew, owner string) {
+templ BrewBeanSection(brew *arabica.Brew, owner string) {
 	if brew.Bean != nil {
 		<div class="journal-bean-ref mb-2">
 			<span class="detail-label mb-2 block">
@@ -251,7 +251,7 @@ templ BrewBeanSection(brew *models.Brew, owner string) {
 	}
 }
 
-func formatBloom(pp *models.PouroverParams) string {
+func formatBloom(pp *arabica.PouroverParams) string {
 	if pp.BloomWater > 0 && pp.BloomSeconds > 0 {
 		return fmt.Sprintf("%dg for %ds", pp.BloomWater, pp.BloomSeconds)
 	}
@@ -265,7 +265,7 @@ func formatBloom(pp *models.PouroverParams) string {
 }
 
 // Helper functions for brew view display
-func getBrewerName(brew *models.Brew) string {
+func getBrewerName(brew *arabica.Brew) string {
 	if brew.BrewerObj != nil {
 		return brew.BrewerObj.Name
 	}
@@ -275,21 +275,21 @@ func getBrewerName(brew *models.Brew) string {
 	return ""
 }
 
-func getGrinderName(brew *models.Brew) string {
+func getGrinderName(brew *arabica.Brew) string {
 	if brew.GrinderObj != nil {
 		return brew.GrinderObj.Name
 	}
 	return ""
 }
 
-func getCoffeeAmountDisplay(brew *models.Brew) string {
+func getCoffeeAmountDisplay(brew *arabica.Brew) string {
 	if brew.CoffeeAmount > 0 {
 		return fmt.Sprintf("%dg", brew.CoffeeAmount)
 	}
 	return ""
 }
 
-func getWaterAmountDisplay(brew *models.Brew) string {
+func getWaterAmountDisplay(brew *arabica.Brew) string {
 	if brew.WaterAmount > 0 {
 		return fmt.Sprintf("%dg", brew.WaterAmount)
 	}
@@ -306,7 +306,7 @@ func getWaterAmountDisplay(brew *models.Brew) string {
 	return ""
 }
 
-func getGrindSizeDisplay(brew *models.Brew) string {
+func getGrindSizeDisplay(brew *arabica.Brew) string {
 	if brew.GrindSize == "" {
 		return ""
 	}
@@ -316,35 +316,35 @@ func getGrindSizeDisplay(brew *models.Brew) string {
 	return brew.GrindSize
 }
 
-func getTemperatureDisplay(brew *models.Brew) string {
+func getTemperatureDisplay(brew *arabica.Brew) string {
 	if brew.Temperature > 0 {
 		return bff.FormatTemp(brew.Temperature)
 	}
 	return ""
 }
 
-func getBrewTimeDisplay(brew *models.Brew) string {
+func getBrewTimeDisplay(brew *arabica.Brew) string {
 	if brew.TimeSeconds > 0 {
 		return bff.FormatTime(brew.TimeSeconds)
 	}
 	return ""
 }
 
-func getGrinderViewURL(brew *models.Brew, owner string) string {
+func getGrinderViewURL(brew *arabica.Brew, owner string) string {
 	if brew.GrinderObj != nil && brew.GrinderObj.RKey != "" && owner != "" {
 		return fmt.Sprintf("/grinders/%s?owner=%s", brew.GrinderObj.RKey, owner)
 	}
 	return ""
 }
 
-func getBrewerViewURL(brew *models.Brew, owner string) string {
+func getBrewerViewURL(brew *arabica.Brew, owner string) string {
 	if brew.BrewerObj != nil && brew.BrewerObj.RKey != "" && owner != "" {
 		return fmt.Sprintf("/brewers/%s?owner=%s", brew.BrewerObj.RKey, owner)
 	}
 	return ""
 }
 
-func getBrewShareTitle(brew *models.Brew) string {
+func getBrewShareTitle(brew *arabica.Brew) string {
 	if brew.Bean != nil {
 		if brew.Bean.Name != "" {
 			return brew.Bean.Name
@@ -412,7 +412,7 @@ func saveAsRecipeData(brewRKey string) string {
 }
 
 // BrewRecipeSection renders the linked recipe info
-templ BrewRecipeSection(recipe *models.Recipe, owner string) {
+templ BrewRecipeSection(recipe *arabica.Recipe, owner string) {
 	<div>
 		<span class="detail-label mb-2 block">Recipe</span>
 		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, owner)) } class="detail-value-lg hover:underline">{ recipe.Name }</a>
@@ -448,7 +448,7 @@ templ BrewRecipeSection(recipe *models.Recipe, owner string) {
 }
 
 // BrewPoursSection renders the pours section
-templ BrewPoursSection(pours []*models.Pour) {
+templ BrewPoursSection(pours []*arabica.Pour) {
 	<div>
 		<span class="detail-label mb-3 block">
 			<span class="inline-flex items-center gap-1">

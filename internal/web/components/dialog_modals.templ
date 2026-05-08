@@ -5,7 +5,7 @@ import (
 	"strings"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // DialogModalProps defines properties for a native HTML5 dialog modal
@@ -15,7 +15,7 @@ type DialogModalProps struct {
 }
 
 // BeanDialogModal renders the bean creation/edit modal using native <dialog>
-templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
+templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeBean,
 		RKey: modalEntityRKey(bean),
@@ -163,7 +163,7 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 						class="w-full form-input"
 					>
 						<option value="">Select Roast Level</option>
-						for _, level := range models.RoastLevels {
+						for _, level := range arabica.RoastLevels {
 							<option
 								value={ level }
 								if bean != nil && bean.RoastLevel == level {
@@ -251,7 +251,7 @@ templ BeanDialogModal(bean *models.Bean, roasters []models.Roaster) {
 }
 
 // GrinderDialogModal renders the grinder creation/edit modal using native <dialog>
-templ GrinderDialogModal(grinder *models.Grinder) {
+templ GrinderDialogModal(grinder *arabica.Grinder) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeGrinder,
 		RKey: modalEntityRKey(grinder),
@@ -310,7 +310,7 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 				required
 			>
 				<option value="">Select Grinder Type *</option>
-				for _, gType := range models.GrinderTypes {
+				for _, gType := range arabica.GrinderTypes {
 					<option
 						value={ gType }
 						if grinder != nil && grinder.GrinderType == gType {
@@ -331,7 +331,7 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 				class="w-full form-input"
 			>
 				<option value="">Select Burr Type</option>
-				for _, bType := range models.BurrTypes {
+				for _, bType := range arabica.BurrTypes {
 					<option
 						value={ bType }
 						if grinder != nil && grinder.BurrType == bType {
@@ -353,7 +353,7 @@ templ GrinderDialogModal(grinder *models.Grinder) {
 }
 
 // BrewerDialogModal renders the brewer creation/edit modal using native <dialog>
-templ BrewerDialogModal(brewer *models.Brewer) {
+templ BrewerDialogModal(brewer *arabica.Brewer) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeBrewer,
 		RKey: modalEntityRKey(brewer),
@@ -413,43 +413,43 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 				<option value="">Select type...</option>
 				<option
 					value="pourover"
-					if getStringValue(brewer, "brewer_type") == "pourover" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "pourover" {
+					if getStringValue(brewer, "brewer_type") == "pourover" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "pourover" {
 						selected
 					}
 				>Pour-over</option>
 				<option
 					value="espresso"
-					if getStringValue(brewer, "brewer_type") == "espresso" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "espresso" {
+					if getStringValue(brewer, "brewer_type") == "espresso" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "espresso" {
 						selected
 					}
 				>Espresso</option>
 				<option
 					value="immersion"
-					if getStringValue(brewer, "brewer_type") == "immersion" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "immersion" {
+					if getStringValue(brewer, "brewer_type") == "immersion" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "immersion" {
 						selected
 					}
 				>Immersion</option>
 				<option
 					value="mokapot"
-					if getStringValue(brewer, "brewer_type") == "mokapot" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "mokapot" {
+					if getStringValue(brewer, "brewer_type") == "mokapot" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "mokapot" {
 						selected
 					}
 				>Moka Pot</option>
 				<option
 					value="coldbrew"
-					if getStringValue(brewer, "brewer_type") == "coldbrew" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "coldbrew" {
+					if getStringValue(brewer, "brewer_type") == "coldbrew" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "coldbrew" {
 						selected
 					}
 				>Cold Brew</option>
 				<option
 					value="cupping"
-					if getStringValue(brewer, "brewer_type") == "cupping" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "cupping" {
+					if getStringValue(brewer, "brewer_type") == "cupping" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "cupping" {
 						selected
 					}
 				>Cupping</option>
 				<option
 					value="other"
-					if getStringValue(brewer, "brewer_type") == "other" || models.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "other" {
+					if getStringValue(brewer, "brewer_type") == "other" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "other" {
 						selected
 					}
 				>Other</option>
@@ -470,7 +470,7 @@ templ BrewerDialogModal(brewer *models.Brewer) {
 }
 
 // RoasterDialogModal renders the roaster creation/edit modal using native <dialog>
-templ RoasterDialogModal(roaster *models.Roaster) {
+templ RoasterDialogModal(roaster *arabica.Roaster) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeRoaster,
 		RKey: modalEntityRKey(roaster),
@@ -547,7 +547,7 @@ templ RoasterDialogModal(roaster *models.Roaster) {
 }
 
 // recipePourJSON returns a JSON array string of existing pours for Alpine.js init.
-func recipePourJSON(recipe *models.Recipe) string {
+func recipePourJSON(recipe *arabica.Recipe) string {
 	if recipe == nil || len(recipe.Pours) == 0 {
 		return "[]"
 	}
@@ -559,7 +559,7 @@ func recipePourJSON(recipe *models.Recipe) string {
 }
 
 // RecipeDialogModal renders the recipe creation/edit modal using native <dialog>
-templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
+templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 	@ModalShell(ModalShellProps{
 		Type:       lexicons.RecordTypeRecipe,
 		RKey:       modalEntityRKey(recipe),
@@ -685,7 +685,7 @@ templ RecipeDialogModal(recipe *models.Recipe, brewers []models.Brewer) {
 }
 
 // roasterPickerInit generates Alpine.js x-data for the inline roaster picker.
-func roasterPickerInit(bean *models.Bean, roasters []models.Roaster) string {
+func roasterPickerInit(bean *arabica.Bean, roasters []arabica.Roaster) string {
 	// Build JSON array of roasters for Alpine
 	var items []string
 	for _, r := range roasters {
@@ -767,7 +767,7 @@ func roasterPickerInit(bean *models.Bean, roasters []models.Roaster) string {
 
 // beanRatingInitData returns Alpine.js x-data for the rating toggle.
 // If bean has a rating, the slider is shown with that value; otherwise hidden.
-func beanRatingInitData(bean *models.Bean) string {
+func beanRatingInitData(bean *arabica.Bean) string {
 	if bean != nil && bean.Rating != nil {
 		return fmt.Sprintf("{ showRating: true, rating: %d }", *bean.Rating)
 	}
@@ -792,23 +792,23 @@ func getStringValue(entity interface{}, field string) string {
 // which the modal shell interprets as "create" (POST) instead of "edit".
 func modalEntityRKey(entity any) string {
 	switch e := entity.(type) {
-	case *models.Bean:
+	case *arabica.Bean:
 		if e != nil {
 			return e.RKey
 		}
-	case *models.Roaster:
+	case *arabica.Roaster:
 		if e != nil {
 			return e.RKey
 		}
-	case *models.Grinder:
+	case *arabica.Grinder:
 		if e != nil {
 			return e.RKey
 		}
-	case *models.Brewer:
+	case *arabica.Brewer:
 		if e != nil {
 			return e.RKey
 		}
-	case *models.Recipe:
+	case *arabica.Recipe:
 		if e != nil {
 			return e.RKey
 		}
@@ -821,15 +821,15 @@ func modalEntityRKey(entity any) string {
 // is deferred to phase 4.
 func recordTypeOf(entity any) lexicons.RecordType {
 	switch entity.(type) {
-	case *models.Bean:
+	case *arabica.Bean:
 		return lexicons.RecordTypeBean
-	case *models.Roaster:
+	case *arabica.Roaster:
 		return lexicons.RecordTypeRoaster
-	case *models.Grinder:
+	case *arabica.Grinder:
 		return lexicons.RecordTypeGrinder
-	case *models.Brewer:
+	case *arabica.Brewer:
 		return lexicons.RecordTypeBrewer
-	case *models.Recipe:
+	case *arabica.Recipe:
 		return lexicons.RecordTypeRecipe
 	}
 	return ""

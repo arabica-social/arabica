@@ -20,6 +20,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
@@ -86,10 +87,10 @@ const (
 // PDS and exposes an httptest.Server. Auth is faked via custom headers so
 // tests can act as any DID without an OAuth dance.
 type Harness struct {
-	T            *testing.T
-	PDS          *testpds.TestPDS
-	Server       *httptest.Server
-	Handler      *handlers.Handler
+	T              *testing.T
+	PDS            *testpds.TestPDS
+	Server         *httptest.Server
+	Handler        *handlers.Handler
 	FeedIndex      *firehose.FeedIndex
 	Consumer       *firehose.Consumer
 	ProfileWatcher *firehose.ProfileWatcher
@@ -221,7 +222,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	logger := zerolog.Nop()
 	app := &domain.App{
 		Name:        "arabica",
-		NSIDBase:    atproto.NSIDBase,
+		NSIDBase:    arabica.NSIDBase,
 		Descriptors: entities.All(),
 	}
 	h.SetApp(app)

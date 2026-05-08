@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 
 	"github.com/rs/zerolog/log"
@@ -24,11 +24,11 @@ func (h *Handler) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
 	roasters, err := store.ListRoasters(r.Context())
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to fetch roasters for bean modal")
-		roasters = []*models.Roaster{} // Empty list on error
+		roasters = []*arabica.Roaster{} // Empty list on error
 	}
 
 	// Convert to slice for template
-	roastersSlice := make([]models.Roaster, len(roasters))
+	roastersSlice := make([]arabica.Roaster, len(roasters))
 	for i, r := range roasters {
 		roastersSlice[i] = *r
 	}
@@ -65,11 +65,11 @@ func (h *Handler) HandleBeanModalEdit(w http.ResponseWriter, r *http.Request) {
 	roasters, err := store.ListRoasters(r.Context())
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to fetch roasters for bean modal")
-		roasters = []*models.Roaster{}
+		roasters = []*arabica.Roaster{}
 	}
 
 	// Convert to slice for template
-	roastersSlice := make([]models.Roaster, len(roasters))
+	roastersSlice := make([]arabica.Roaster, len(roasters))
 	for i, r := range roasters {
 		roastersSlice[i] = *r
 	}

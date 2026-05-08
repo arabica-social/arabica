@@ -1,9 +1,9 @@
 package components
 
-import "tangled.org/arabica.social/arabica/internal/models"
+import "tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 // BeanContent renders bean details inside a card
-templ BeanContent(bean *models.Bean) {
+templ BeanContent(bean *arabica.Bean) {
 	<div class="feed-content-box-sm">
 		@BeanSummary(BeanSummaryProps{
 			Bean: bean,

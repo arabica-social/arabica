@@ -3,9 +3,10 @@ package pages
 import (
 	"bytes"
 	"context"
+	"testing"
+
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )

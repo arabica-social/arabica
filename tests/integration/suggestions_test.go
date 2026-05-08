@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/suggestions"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +26,7 @@ type suggestionResult struct {
 // postRoasterAs is a helper that creates a roaster on behalf of the given client
 // and returns the created entity. If sourceRef is non-empty, it sets the
 // source_ref field (used to track community adoption).
-func postRoasterAs(t *testing.T, h *Harness, client *http.Client, name, location, sourceRef string) models.Roaster {
+func postRoasterAs(t *testing.T, h *Harness, client *http.Client, name, location, sourceRef string) arabica.Roaster {
 	t.Helper()
 	form := url.Values{}
 	form.Set("name", name)
@@ -43,7 +43,7 @@ func postRoasterAs(t *testing.T, h *Harness, client *http.Client, name, location
 	require.NoError(t, err)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	var roaster models.Roaster
+	var roaster arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(body), &roaster))
 	return roaster
 }

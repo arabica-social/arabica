@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +31,7 @@ func TestHTTP_CrossUserView(t *testing.T) {
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
 
-	var roaster models.Roaster
+	var roaster arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(createBody), &roaster))
 	require.NotEmpty(t, roaster.RKey)
 
@@ -63,7 +63,7 @@ func TestHTTP_CrossUserDeleteIsolation(t *testing.T) {
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
 
-	var alicesRoaster models.Roaster
+	var alicesRoaster arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(createBody), &alicesRoaster))
 
 	// Bob signs in and tries to delete Alice's record by rkey.
@@ -104,7 +104,7 @@ func TestHTTP_CrossUserUpdateIsolation(t *testing.T) {
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
 
-	var alicesRoaster models.Roaster
+	var alicesRoaster arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(createBody), &alicesRoaster))
 
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
@@ -122,7 +122,7 @@ func TestHTTP_CrossUserUpdateIsolation(t *testing.T) {
 
 	// Alice re-reads her roaster: name and location must be untouched.
 	data := fetchData(t, h)
-	var found *models.Roaster
+	var found *arabica.Roaster
 	for i := range data.Roasters {
 		if data.Roasters[i].RKey == alicesRoaster.RKey {
 			found = &data.Roasters[i]

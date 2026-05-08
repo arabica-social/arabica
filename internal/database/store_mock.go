@@ -3,52 +3,52 @@ package database
 import (
 	"context"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // MockStore is a mock implementation of the Store interface for testing.
 // Uses function fields to allow tests to inject custom behavior.
 type MockStore struct {
 	// Brew operations
-	CreateBrewFunc       func(ctx context.Context, brew *models.CreateBrewRequest, userID int) (*models.Brew, error)
-	GetBrewByRKeyFunc    func(ctx context.Context, rkey string) (*models.Brew, error)
-	ListBrewsFunc        func(ctx context.Context, userID int) ([]*models.Brew, error)
-	UpdateBrewByRKeyFunc func(ctx context.Context, rkey string, brew *models.CreateBrewRequest) error
+	CreateBrewFunc       func(ctx context.Context, brew *arabica.CreateBrewRequest, userID int) (*arabica.Brew, error)
+	GetBrewByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Brew, error)
+	ListBrewsFunc        func(ctx context.Context, userID int) ([]*arabica.Brew, error)
+	UpdateBrewByRKeyFunc func(ctx context.Context, rkey string, brew *arabica.CreateBrewRequest) error
 	DeleteBrewByRKeyFunc func(ctx context.Context, rkey string) error
 
 	// Bean operations
-	CreateBeanFunc       func(ctx context.Context, bean *models.CreateBeanRequest) (*models.Bean, error)
-	GetBeanByRKeyFunc    func(ctx context.Context, rkey string) (*models.Bean, error)
-	ListBeansFunc        func(ctx context.Context) ([]*models.Bean, error)
-	UpdateBeanByRKeyFunc func(ctx context.Context, rkey string, bean *models.UpdateBeanRequest) error
+	CreateBeanFunc       func(ctx context.Context, bean *arabica.CreateBeanRequest) (*arabica.Bean, error)
+	GetBeanByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Bean, error)
+	ListBeansFunc        func(ctx context.Context) ([]*arabica.Bean, error)
+	UpdateBeanByRKeyFunc func(ctx context.Context, rkey string, bean *arabica.UpdateBeanRequest) error
 	DeleteBeanByRKeyFunc func(ctx context.Context, rkey string) error
 
 	// Roaster operations
-	CreateRoasterFunc       func(ctx context.Context, roaster *models.CreateRoasterRequest) (*models.Roaster, error)
-	GetRoasterByRKeyFunc    func(ctx context.Context, rkey string) (*models.Roaster, error)
-	ListRoastersFunc        func(ctx context.Context) ([]*models.Roaster, error)
-	UpdateRoasterByRKeyFunc func(ctx context.Context, rkey string, roaster *models.UpdateRoasterRequest) error
+	CreateRoasterFunc       func(ctx context.Context, roaster *arabica.CreateRoasterRequest) (*arabica.Roaster, error)
+	GetRoasterByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Roaster, error)
+	ListRoastersFunc        func(ctx context.Context) ([]*arabica.Roaster, error)
+	UpdateRoasterByRKeyFunc func(ctx context.Context, rkey string, roaster *arabica.UpdateRoasterRequest) error
 	DeleteRoasterByRKeyFunc func(ctx context.Context, rkey string) error
 
 	// Grinder operations
-	CreateGrinderFunc       func(ctx context.Context, grinder *models.CreateGrinderRequest) (*models.Grinder, error)
-	GetGrinderByRKeyFunc    func(ctx context.Context, rkey string) (*models.Grinder, error)
-	ListGrindersFunc        func(ctx context.Context) ([]*models.Grinder, error)
-	UpdateGrinderByRKeyFunc func(ctx context.Context, rkey string, grinder *models.UpdateGrinderRequest) error
+	CreateGrinderFunc       func(ctx context.Context, grinder *arabica.CreateGrinderRequest) (*arabica.Grinder, error)
+	GetGrinderByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Grinder, error)
+	ListGrindersFunc        func(ctx context.Context) ([]*arabica.Grinder, error)
+	UpdateGrinderByRKeyFunc func(ctx context.Context, rkey string, grinder *arabica.UpdateGrinderRequest) error
 	DeleteGrinderByRKeyFunc func(ctx context.Context, rkey string) error
 
 	// Brewer operations
-	CreateBrewerFunc       func(ctx context.Context, brewer *models.CreateBrewerRequest) (*models.Brewer, error)
-	GetBrewerByRKeyFunc    func(ctx context.Context, rkey string) (*models.Brewer, error)
-	ListBrewersFunc        func(ctx context.Context) ([]*models.Brewer, error)
-	UpdateBrewerByRKeyFunc func(ctx context.Context, rkey string, brewer *models.UpdateBrewerRequest) error
+	CreateBrewerFunc       func(ctx context.Context, brewer *arabica.CreateBrewerRequest) (*arabica.Brewer, error)
+	GetBrewerByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Brewer, error)
+	ListBrewersFunc        func(ctx context.Context) ([]*arabica.Brewer, error)
+	UpdateBrewerByRKeyFunc func(ctx context.Context, rkey string, brewer *arabica.UpdateBrewerRequest) error
 	DeleteBrewerByRKeyFunc func(ctx context.Context, rkey string) error
 
 	CloseFunc func() error
 }
 
 // CreateBrew calls the mock function or returns nil if not set
-func (m *MockStore) CreateBrew(ctx context.Context, brew *models.CreateBrewRequest, userID int) (*models.Brew, error) {
+func (m *MockStore) CreateBrew(ctx context.Context, brew *arabica.CreateBrewRequest, userID int) (*arabica.Brew, error) {
 	if m.CreateBrewFunc != nil {
 		return m.CreateBrewFunc(ctx, brew, userID)
 	}
@@ -56,7 +56,7 @@ func (m *MockStore) CreateBrew(ctx context.Context, brew *models.CreateBrewReque
 }
 
 // GetBrewByRKey calls the mock function or returns nil if not set
-func (m *MockStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.Brew, error) {
+func (m *MockStore) GetBrewByRKey(ctx context.Context, rkey string) (*arabica.Brew, error) {
 	if m.GetBrewByRKeyFunc != nil {
 		return m.GetBrewByRKeyFunc(ctx, rkey)
 	}
@@ -64,15 +64,15 @@ func (m *MockStore) GetBrewByRKey(ctx context.Context, rkey string) (*models.Bre
 }
 
 // ListBrews calls the mock function or returns empty slice if not set
-func (m *MockStore) ListBrews(ctx context.Context, userID int) ([]*models.Brew, error) {
+func (m *MockStore) ListBrews(ctx context.Context, userID int) ([]*arabica.Brew, error) {
 	if m.ListBrewsFunc != nil {
 		return m.ListBrewsFunc(ctx, userID)
 	}
-	return []*models.Brew{}, nil
+	return []*arabica.Brew{}, nil
 }
 
 // UpdateBrewByRKey calls the mock function or returns nil if not set
-func (m *MockStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *models.CreateBrewRequest) error {
+func (m *MockStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *arabica.CreateBrewRequest) error {
 	if m.UpdateBrewByRKeyFunc != nil {
 		return m.UpdateBrewByRKeyFunc(ctx, rkey, brew)
 	}
@@ -88,7 +88,7 @@ func (m *MockStore) DeleteBrewByRKey(ctx context.Context, rkey string) error {
 }
 
 // CreateBean calls the mock function or returns nil if not set
-func (m *MockStore) CreateBean(ctx context.Context, bean *models.CreateBeanRequest) (*models.Bean, error) {
+func (m *MockStore) CreateBean(ctx context.Context, bean *arabica.CreateBeanRequest) (*arabica.Bean, error) {
 	if m.CreateBeanFunc != nil {
 		return m.CreateBeanFunc(ctx, bean)
 	}
@@ -96,7 +96,7 @@ func (m *MockStore) CreateBean(ctx context.Context, bean *models.CreateBeanReque
 }
 
 // GetBeanByRKey calls the mock function or returns nil if not set
-func (m *MockStore) GetBeanByRKey(ctx context.Context, rkey string) (*models.Bean, error) {
+func (m *MockStore) GetBeanByRKey(ctx context.Context, rkey string) (*arabica.Bean, error) {
 	if m.GetBeanByRKeyFunc != nil {
 		return m.GetBeanByRKeyFunc(ctx, rkey)
 	}
@@ -104,15 +104,15 @@ func (m *MockStore) GetBeanByRKey(ctx context.Context, rkey string) (*models.Bea
 }
 
 // ListBeans calls the mock function or returns empty slice if not set
-func (m *MockStore) ListBeans(ctx context.Context) ([]*models.Bean, error) {
+func (m *MockStore) ListBeans(ctx context.Context) ([]*arabica.Bean, error) {
 	if m.ListBeansFunc != nil {
 		return m.ListBeansFunc(ctx)
 	}
-	return []*models.Bean{}, nil
+	return []*arabica.Bean{}, nil
 }
 
 // UpdateBeanByRKey calls the mock function or returns nil if not set
-func (m *MockStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *models.UpdateBeanRequest) error {
+func (m *MockStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *arabica.UpdateBeanRequest) error {
 	if m.UpdateBeanByRKeyFunc != nil {
 		return m.UpdateBeanByRKeyFunc(ctx, rkey, bean)
 	}
@@ -128,7 +128,7 @@ func (m *MockStore) DeleteBeanByRKey(ctx context.Context, rkey string) error {
 }
 
 // CreateRoaster calls the mock function or returns nil if not set
-func (m *MockStore) CreateRoaster(ctx context.Context, roaster *models.CreateRoasterRequest) (*models.Roaster, error) {
+func (m *MockStore) CreateRoaster(ctx context.Context, roaster *arabica.CreateRoasterRequest) (*arabica.Roaster, error) {
 	if m.CreateRoasterFunc != nil {
 		return m.CreateRoasterFunc(ctx, roaster)
 	}
@@ -136,7 +136,7 @@ func (m *MockStore) CreateRoaster(ctx context.Context, roaster *models.CreateRoa
 }
 
 // GetRoasterByRKey calls the mock function or returns nil if not set
-func (m *MockStore) GetRoasterByRKey(ctx context.Context, rkey string) (*models.Roaster, error) {
+func (m *MockStore) GetRoasterByRKey(ctx context.Context, rkey string) (*arabica.Roaster, error) {
 	if m.GetRoasterByRKeyFunc != nil {
 		return m.GetRoasterByRKeyFunc(ctx, rkey)
 	}
@@ -144,15 +144,15 @@ func (m *MockStore) GetRoasterByRKey(ctx context.Context, rkey string) (*models.
 }
 
 // ListRoasters calls the mock function or returns empty slice if not set
-func (m *MockStore) ListRoasters(ctx context.Context) ([]*models.Roaster, error) {
+func (m *MockStore) ListRoasters(ctx context.Context) ([]*arabica.Roaster, error) {
 	if m.ListRoastersFunc != nil {
 		return m.ListRoastersFunc(ctx)
 	}
-	return []*models.Roaster{}, nil
+	return []*arabica.Roaster{}, nil
 }
 
 // UpdateRoasterByRKey calls the mock function or returns nil if not set
-func (m *MockStore) UpdateRoasterByRKey(ctx context.Context, rkey string, roaster *models.UpdateRoasterRequest) error {
+func (m *MockStore) UpdateRoasterByRKey(ctx context.Context, rkey string, roaster *arabica.UpdateRoasterRequest) error {
 	if m.UpdateRoasterByRKeyFunc != nil {
 		return m.UpdateRoasterByRKeyFunc(ctx, rkey, roaster)
 	}
@@ -168,7 +168,7 @@ func (m *MockStore) DeleteRoasterByRKey(ctx context.Context, rkey string) error 
 }
 
 // CreateGrinder calls the mock function or returns nil if not set
-func (m *MockStore) CreateGrinder(ctx context.Context, grinder *models.CreateGrinderRequest) (*models.Grinder, error) {
+func (m *MockStore) CreateGrinder(ctx context.Context, grinder *arabica.CreateGrinderRequest) (*arabica.Grinder, error) {
 	if m.CreateGrinderFunc != nil {
 		return m.CreateGrinderFunc(ctx, grinder)
 	}
@@ -176,7 +176,7 @@ func (m *MockStore) CreateGrinder(ctx context.Context, grinder *models.CreateGri
 }
 
 // GetGrinderByRKey calls the mock function or returns nil if not set
-func (m *MockStore) GetGrinderByRKey(ctx context.Context, rkey string) (*models.Grinder, error) {
+func (m *MockStore) GetGrinderByRKey(ctx context.Context, rkey string) (*arabica.Grinder, error) {
 	if m.GetGrinderByRKeyFunc != nil {
 		return m.GetGrinderByRKeyFunc(ctx, rkey)
 	}
@@ -184,15 +184,15 @@ func (m *MockStore) GetGrinderByRKey(ctx context.Context, rkey string) (*models.
 }
 
 // ListGrinders calls the mock function or returns empty slice if not set
-func (m *MockStore) ListGrinders(ctx context.Context) ([]*models.Grinder, error) {
+func (m *MockStore) ListGrinders(ctx context.Context) ([]*arabica.Grinder, error) {
 	if m.ListGrindersFunc != nil {
 		return m.ListGrindersFunc(ctx)
 	}
-	return []*models.Grinder{}, nil
+	return []*arabica.Grinder{}, nil
 }
 
 // UpdateGrinderByRKey calls the mock function or returns nil if not set
-func (m *MockStore) UpdateGrinderByRKey(ctx context.Context, rkey string, grinder *models.UpdateGrinderRequest) error {
+func (m *MockStore) UpdateGrinderByRKey(ctx context.Context, rkey string, grinder *arabica.UpdateGrinderRequest) error {
 	if m.UpdateGrinderByRKeyFunc != nil {
 		return m.UpdateGrinderByRKeyFunc(ctx, rkey, grinder)
 	}
@@ -208,7 +208,7 @@ func (m *MockStore) DeleteGrinderByRKey(ctx context.Context, rkey string) error 
 }
 
 // CreateBrewer calls the mock function or returns nil if not set
-func (m *MockStore) CreateBrewer(ctx context.Context, brewer *models.CreateBrewerRequest) (*models.Brewer, error) {
+func (m *MockStore) CreateBrewer(ctx context.Context, brewer *arabica.CreateBrewerRequest) (*arabica.Brewer, error) {
 	if m.CreateBrewerFunc != nil {
 		return m.CreateBrewerFunc(ctx, brewer)
 	}
@@ -216,7 +216,7 @@ func (m *MockStore) CreateBrewer(ctx context.Context, brewer *models.CreateBrewe
 }
 
 // GetBrewerByRKey calls the mock function or returns nil if not set
-func (m *MockStore) GetBrewerByRKey(ctx context.Context, rkey string) (*models.Brewer, error) {
+func (m *MockStore) GetBrewerByRKey(ctx context.Context, rkey string) (*arabica.Brewer, error) {
 	if m.GetBrewerByRKeyFunc != nil {
 		return m.GetBrewerByRKeyFunc(ctx, rkey)
 	}
@@ -224,15 +224,15 @@ func (m *MockStore) GetBrewerByRKey(ctx context.Context, rkey string) (*models.B
 }
 
 // ListBrewers calls the mock function or returns empty slice if not set
-func (m *MockStore) ListBrewers(ctx context.Context) ([]*models.Brewer, error) {
+func (m *MockStore) ListBrewers(ctx context.Context) ([]*arabica.Brewer, error) {
 	if m.ListBrewersFunc != nil {
 		return m.ListBrewersFunc(ctx)
 	}
-	return []*models.Brewer{}, nil
+	return []*arabica.Brewer{}, nil
 }
 
 // UpdateBrewerByRKey calls the mock function or returns nil if not set
-func (m *MockStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *models.UpdateBrewerRequest) error {
+func (m *MockStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *arabica.UpdateBrewerRequest) error {
 	if m.UpdateBrewerByRKeyFunc != nil {
 		return m.UpdateBrewerByRKeyFunc(ctx, rkey, brewer)
 	}

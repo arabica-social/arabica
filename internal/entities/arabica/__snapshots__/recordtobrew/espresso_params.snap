@@ -1,0 +1,37 @@
+---
+title: RecordToBrew/espresso params
+test_name: TestBrewRoundTrip_EspressoParams
+file_name: records_test.go
+version: 0.1.0
+---
+&arabica.Brew{
+  RKey: "tid123",
+  BeanRKey: "",
+  RecipeRKey: "",
+  Method: "",
+  Temperature: 0.0,
+  WaterAmount: 0,
+  CoffeeAmount: 0,
+  TimeSeconds: 0,
+  GrindSize: "",
+  GrinderRKey: "",
+  BrewerRKey: "",
+  TastingNotes: "",
+  Rating: 0,
+  CreatedAt: time.Time{
+    wall: 0x0,
+    ext: 63872107200,
+    loc: (*time.Location)(nil),
+  },
+  EspressoParams: &arabica.EspressoParams{
+    YieldWeight: 36.0,
+    Pressure: 9.0,
+    PreInfusionSeconds: 5,
+  },
+  PouroverParams: (*arabica.PouroverParams)(nil),
+  Bean: (*arabica.Bean)(nil),
+  RecipeObj: (*arabica.Recipe)(nil),
+  GrinderObj: (*arabica.Grinder)(nil),
+  BrewerObj: (*arabica.Brewer)(nil),
+  Pours: []*arabica.Pour(nil),
+}

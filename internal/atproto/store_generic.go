@@ -6,12 +6,13 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 )
 
 // rawRecord is what fetchAllRecords returns: a parsed record map plus the
 // URI, rkey, and CID it was fetched from. Per-entity wrappers convert the
-// map to their typed model (RecordToBean, RecordToRoaster, etc.).
+// map to their typed model (arabica.RecordToBean, arabica.RecordToRoaster, etc.).
 type rawRecord struct {
 	URI    string
 	RKey   string
@@ -140,17 +141,17 @@ func (s *AtprotoStore) removeRecord(ctx context.Context, nsid, rkey string) erro
 // new entity that's not yet been added here.
 func metricLabelFor(nsid string) string {
 	switch nsid {
-	case NSIDBean:
+	case arabica.NSIDBean:
 		return "bean"
-	case NSIDBrew:
+	case arabica.NSIDBrew:
 		return "brew"
-	case NSIDBrewer:
+	case arabica.NSIDBrewer:
 		return "brewer"
-	case NSIDGrinder:
+	case arabica.NSIDGrinder:
 		return "grinder"
-	case NSIDRecipe:
+	case arabica.NSIDRecipe:
 		return "recipe"
-	case NSIDRoaster:
+	case arabica.NSIDRoaster:
 		return "roaster"
 	default:
 		return "unknown"

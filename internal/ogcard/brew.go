@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // Arabica color palette (warm coffee tones)
@@ -106,7 +106,7 @@ func truncateLine(card *Card, s string, maxWidth int, sizePt float64, bold bool)
 
 // brewContentHeight calculates the total height of all brew content lines
 // so we can vertically center the content.
-func brewContentHeight(card *Card, brew *models.Brew) int {
+func brewContentHeight(card *Card, brew *arabica.Brew) int {
 	h := 0
 
 	// Bean name (1 or 2 lines)
@@ -163,7 +163,7 @@ func brewContentHeight(card *Card, brew *models.Brew) int {
 }
 
 // DrawBrewCard generates a 1200x630 OG image for a brew record.
-func DrawBrewCard(brew *models.Brew) (*Card, error) {
+func DrawBrewCard(brew *arabica.Brew) (*Card, error) {
 	card, err := newTypedCard(AccentBrew, "brew")
 	if err != nil {
 		return nil, err
@@ -221,7 +221,7 @@ func DrawBrewCard(brew *models.Brew) (*Card, error) {
 	// var methodParts []string
 	// if brew.BrewerObj != nil {
 	// 	if brew.BrewerObj.BrewerType != "" {
-	// 		if label, ok := models.BrewerTypeLabels[brew.BrewerObj.BrewerType]; ok {
+	// 		if label, ok := arabica.BrewerTypeLabels[brew.BrewerObj.BrewerType]; ok {
 	// 			methodParts = append(methodParts, label)
 	// 		}
 	// 	}

@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"time"
+
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // UserProfile contains user profile data for header display
@@ -70,7 +71,7 @@ func FormatAvgRating(avg float64) string {
 }
 
 // PoursToJSON serializes a slice of pours to JSON for use in JavaScript.
-func PoursToJSON(pours []*models.Pour) string {
+func PoursToJSON(pours []*arabica.Pour) string {
 	if len(pours) == 0 {
 		return "[]"
 	}

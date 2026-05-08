@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 
 	"github.com/rs/zerolog/log"
@@ -47,12 +47,12 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var statsVis models.ProfileStatsVisibility
+	var statsVis arabica.ProfileStatsVisibility
 	if h.feedIndex != nil {
 		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 		statsVis = h.feedIndex.GetProfileStatsVisibility(r.Context(), didStr)
 	} else {
-		statsVis = models.DefaultProfileStatsVisibility()
+		statsVis = arabica.DefaultProfileStatsVisibility()
 	}
 
 	if err := pages.Settings(data, pages.SettingsProps{
@@ -75,17 +75,17 @@ func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http
 		return
 	}
 
-	settings := models.ProfileStatsVisibility{
-		BeanAvgRating:    models.Visibility(r.FormValue("bean_avg_rating")),
-		RoasterAvgRating: models.Visibility(r.FormValue("roaster_avg_rating")),
+	settings := arabica.ProfileStatsVisibility{
+		BeanAvgRating:    arabica.Visibility(r.FormValue("bean_avg_rating")),
+		RoasterAvgRating: arabica.Visibility(r.FormValue("roaster_avg_rating")),
 	}
 
 	// Validate — fall back to public for unrecognized values
 	if !settings.BeanAvgRating.IsValid() {
-		settings.BeanAvgRating = models.VisibilityPublic
+		settings.BeanAvgRating = arabica.VisibilityPublic
 	}
 	if !settings.RoasterAvgRating.IsValid() {
-		settings.RoasterAvgRating = models.VisibilityPublic
+		settings.RoasterAvgRating = arabica.VisibilityPublic
 	}
 
 	if h.feedIndex != nil {

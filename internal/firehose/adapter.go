@@ -6,8 +6,13 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 )
 
-// FeedIndexAdapter wraps FeedIndex to implement feed.FirehoseIndex interface
-// This avoids import cycles between feed and firehose packages
+// FeedIndexAdapter wraps FeedIndex to implement feed.FirehoseIndex.
+//
+// FeedItem is a type alias for feed.FeedItemCore (== feed.FirehoseFeedItem),
+// so the result types match across the two packages without conversion;
+// this adapter exists only to translate the feed.FirehoseFeedQuery struct
+// into firehose.FeedQuery (different Sort field type) and to satisfy the
+// interface contract.
 type FeedIndexAdapter struct {
 	index *FeedIndex
 }
@@ -22,15 +27,9 @@ func (a *FeedIndexAdapter) IsReady() bool {
 	return a.index.IsReady()
 }
 
-// GetRecentFeed returns recent feed items from the index
-// Converts FeedItem to feed.FirehoseFeedItem to satisfy the interface
+// GetRecentFeed returns recent feed items from the index.
 func (a *FeedIndexAdapter) GetRecentFeed(ctx context.Context, limit int) ([]*feed.FirehoseFeedItem, error) {
-	items, err := a.index.GetRecentFeed(ctx, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	return convertFeedItems(items), nil
+	return a.index.GetRecentFeed(ctx, limit)
 }
 
 // GetFeedWithQuery returns feed items matching query parameters
@@ -47,26 +46,7 @@ func (a *FeedIndexAdapter) GetFeedWithQuery(ctx context.Context, q feed.Firehose
 	}
 
 	return &feed.FirehoseFeedResult{
-		Items:      convertFeedItems(result.Items),
+		Items:      result.Items,
 		NextCursor: result.NextCursor,
 	}, nil
-}
-
-func convertFeedItems(items []*FeedItem) []*feed.FirehoseFeedItem {
-	result := make([]*feed.FirehoseFeedItem, len(items))
-	for i, item := range items {
-		result[i] = &feed.FirehoseFeedItem{
-			RecordType:   item.RecordType,
-			Action:       item.Action,
-			Record:       item.Record,
-			Author:       item.Author,
-			Timestamp:    item.Timestamp,
-			TimeAgo:      item.TimeAgo,
-			LikeCount:    item.LikeCount,
-			CommentCount: item.CommentCount,
-			SubjectURI:   item.SubjectURI,
-			SubjectCID:   item.SubjectCID,
-		}
-	}
-	return result
 }

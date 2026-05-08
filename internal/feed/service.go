@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 
 	"github.com/rs/zerolog/log"
@@ -39,12 +39,15 @@ const (
 	FeedLimit = 20
 )
 
-// FeedItem represents an activity in the social feed with author info
-type FeedItem struct {
+// FeedItemCore is the shared payload between the firehose layer (which
+// produces it from indexed records) and the feed service (which wraps it
+// in FeedItem to add viewer-context fields). All accessor methods live
+// here so both layers share the same nil-safe type-assertion helpers.
+type FeedItemCore struct {
 	RecordType lexicons.RecordType // Use lexicons.RecordTypeBrew, lexicons.RecordTypeBean, etc.
 	Action     string              // "added a new brew", "added a new bean", etc.
 
-	// Record carries the typed model (*models.Brew, etc.). Access via the
+	// Record carries the typed model (*arabica.Brew, etc.). Access via the
 	// per-entity accessor methods (Brew(), Bean(), …).
 	Record any
 
@@ -53,87 +56,97 @@ type FeedItem struct {
 	TimeAgo   string // "2 hours ago", "yesterday", etc.
 
 	// Like-related fields
-	LikeCount       int    // Number of likes on this record
-	SubjectURI      string // AT-URI of this record (for like button)
-	SubjectCID      string // CID of this record (for like button)
-	IsLikedByViewer bool   // Whether the current viewer has liked this record
+	LikeCount  int    // Number of likes on this record
+	SubjectURI string // AT-URI of this record (for like button)
+	SubjectCID string // CID of this record (for like button)
 
 	// Comment-related fields
 	CommentCount int // Number of comments on this record
-
-	// Ownership
-	IsOwner bool // Whether the current viewer owns this record
 }
 
-// Brew returns f.Record cast to *models.Brew, or nil. Nil-safe on f.
-func (f *FeedItem) Brew() *models.Brew {
+// FirehoseFeedItem is the unmodified core item produced by the firehose
+// layer. The feed service wraps it into FeedItem with viewer-context
+// fields populated downstream.
+type FirehoseFeedItem = FeedItemCore
+
+// FeedItem extends the firehose-produced core with viewer-context fields
+// (IsLikedByViewer, IsOwner) populated by the feed service per request.
+type FeedItem struct {
+	FeedItemCore
+
+	IsLikedByViewer bool // Whether the current viewer has liked this record
+	IsOwner         bool // Whether the current viewer owns this record
+}
+
+// Brew returns f.Record cast to *arabica.Brew, or nil. Nil-safe on f.
+func (f *FeedItemCore) Brew() *arabica.Brew {
 	if f == nil {
 		return nil
 	}
-	v, _ := f.Record.(*models.Brew)
+	v, _ := f.Record.(*arabica.Brew)
 	return v
 }
 
-// Bean returns f.Record cast to *models.Bean, or nil. Nil-safe.
-func (f *FeedItem) Bean() *models.Bean {
+// Bean returns f.Record cast to *arabica.Bean, or nil. Nil-safe.
+func (f *FeedItemCore) Bean() *arabica.Bean {
 	if f == nil {
 		return nil
 	}
-	v, _ := f.Record.(*models.Bean)
+	v, _ := f.Record.(*arabica.Bean)
 	return v
 }
 
-// Roaster returns f.Record cast to *models.Roaster, or nil. Nil-safe.
-func (f *FeedItem) Roaster() *models.Roaster {
+// Roaster returns f.Record cast to *arabica.Roaster, or nil. Nil-safe.
+func (f *FeedItemCore) Roaster() *arabica.Roaster {
 	if f == nil {
 		return nil
 	}
-	v, _ := f.Record.(*models.Roaster)
+	v, _ := f.Record.(*arabica.Roaster)
 	return v
 }
 
-// Grinder returns f.Record cast to *models.Grinder, or nil. Nil-safe.
-func (f *FeedItem) Grinder() *models.Grinder {
+// Grinder returns f.Record cast to *arabica.Grinder, or nil. Nil-safe.
+func (f *FeedItemCore) Grinder() *arabica.Grinder {
 	if f == nil {
 		return nil
 	}
-	v, _ := f.Record.(*models.Grinder)
+	v, _ := f.Record.(*arabica.Grinder)
 	return v
 }
 
-// Brewer returns f.Record cast to *models.Brewer, or nil. Nil-safe.
-func (f *FeedItem) Brewer() *models.Brewer {
+// Brewer returns f.Record cast to *arabica.Brewer, or nil. Nil-safe.
+func (f *FeedItemCore) Brewer() *arabica.Brewer {
 	if f == nil {
 		return nil
 	}
-	v, _ := f.Record.(*models.Brewer)
+	v, _ := f.Record.(*arabica.Brewer)
 	return v
 }
 
-// Recipe returns f.Record cast to *models.Recipe, or nil. Nil-safe.
-func (f *FeedItem) Recipe() *models.Recipe {
+// Recipe returns f.Record cast to *arabica.Recipe, or nil. Nil-safe.
+func (f *FeedItemCore) Recipe() *arabica.Recipe {
 	if f == nil {
 		return nil
 	}
-	v, _ := f.Record.(*models.Recipe)
+	v, _ := f.Record.(*arabica.Recipe)
 	return v
 }
 
 // RKey returns the record key of whichever typed record is set on this
-// FeedItem, or "" if none. Lets callers build URLs without a type switch.
-func (f *FeedItem) RKey() string {
+// item, or "" if none. Lets callers build URLs without a type switch.
+func (f *FeedItemCore) RKey() string {
 	switch m := f.Record.(type) {
-	case *models.Bean:
+	case *arabica.Bean:
 		return m.RKey
-	case *models.Roaster:
+	case *arabica.Roaster:
 		return m.RKey
-	case *models.Grinder:
+	case *arabica.Grinder:
 		return m.RKey
-	case *models.Brewer:
+	case *arabica.Brewer:
 		return m.RKey
-	case *models.Recipe:
+	case *arabica.Recipe:
 		return m.RKey
-	case *models.Brew:
+	case *arabica.Brew:
 		return m.RKey
 	}
 	return ""
@@ -142,9 +155,9 @@ func (f *FeedItem) RKey() string {
 // DisplayTitle returns a human-readable title for share UI. Brew is
 // special-cased: brews don't have a name field, so we fall back to the
 // associated bean's name (or origin).
-func (f *FeedItem) DisplayTitle() string {
+func (f *FeedItemCore) DisplayTitle() string {
 	switch m := f.Record.(type) {
-	case *models.Brew:
+	case *arabica.Brew:
 		if m.Bean != nil {
 			if m.Bean.Name != "" {
 				return m.Bean.Name
@@ -152,18 +165,18 @@ func (f *FeedItem) DisplayTitle() string {
 			return m.Bean.Origin
 		}
 		return "Coffee Brew"
-	case *models.Bean:
+	case *arabica.Bean:
 		if m.Name != "" {
 			return m.Name
 		}
 		return m.Origin
-	case *models.Roaster:
+	case *arabica.Roaster:
 		return m.Name
-	case *models.Grinder:
+	case *arabica.Grinder:
 		return m.Name
-	case *models.Brewer:
+	case *arabica.Brewer:
 		return m.Name
-	case *models.Recipe:
+	case *arabica.Recipe:
 		return m.Name
 	}
 	// Fall back to type-based default when Record is nil.
@@ -235,23 +248,6 @@ type FirehoseFeedQuery struct {
 type FirehoseFeedResult struct {
 	Items      []*FirehoseFeedItem
 	NextCursor string
-}
-
-// FirehoseFeedItem matches the FeedItem structure from firehose package
-// This avoids import cycles
-type FirehoseFeedItem struct {
-	RecordType lexicons.RecordType
-	Action     string
-
-	Record any
-
-	Author       *atproto.Profile
-	Timestamp    time.Time
-	TimeAgo      string
-	LikeCount    int
-	CommentCount int
-	SubjectURI   string
-	SubjectCID   string
 }
 
 // Service fetches and aggregates brews from registered users
@@ -473,21 +469,11 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 		return nil, err
 	}
 
-	// Convert to FeedItems
+	// Wrap each firehose-produced core into a FeedItem; viewer-context
+	// fields (IsLikedByViewer, IsOwner) are populated downstream.
 	items := make([]*FeedItem, 0, len(firehoseResult.Items))
 	for _, fi := range firehoseResult.Items {
-		items = append(items, &FeedItem{
-			RecordType:   fi.RecordType,
-			Action:       fi.Action,
-			Record:       fi.Record,
-			Author:       fi.Author,
-			Timestamp:    fi.Timestamp,
-			TimeAgo:      fi.TimeAgo,
-			LikeCount:    fi.LikeCount,
-			CommentCount: fi.CommentCount,
-			SubjectURI:   fi.SubjectURI,
-			SubjectCID:   fi.SubjectCID,
-		})
+		items = append(items, &FeedItem{FeedItemCore: *fi})
 	}
 
 	// Apply moderation filtering
@@ -514,21 +500,9 @@ func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) (
 		return nil, err
 	}
 
-	// Convert FirehoseFeedItem to FeedItem
 	items := make([]*FeedItem, len(firehoseItems))
 	for i, fi := range firehoseItems {
-		items[i] = &FeedItem{
-			RecordType:   fi.RecordType,
-			Action:       fi.Action,
-			Record:       fi.Record,
-			Author:       fi.Author,
-			Timestamp:    fi.Timestamp,
-			TimeAgo:      fi.TimeAgo,
-			LikeCount:    fi.LikeCount,
-			CommentCount: fi.CommentCount,
-			SubjectURI:   fi.SubjectURI,
-			SubjectCID:   fi.SubjectCID,
-		}
+		items[i] = &FeedItem{FeedItemCore: *fi}
 	}
 
 	log.Debug().Int("count", len(items)).Msg("feed: returning items from firehose index")

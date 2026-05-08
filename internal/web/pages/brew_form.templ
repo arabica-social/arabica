@@ -2,20 +2,20 @@ package pages
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 type BrewFormProps struct {
 	// Brew being edited; nil if creating new
-	Brew *models.Brew
+	Brew *arabica.Brew
 
 	// Collections for selects
-	Beans    []models.Bean
-	Grinders []models.Grinder
-	Brewers  []models.Brewer
-	Roasters []models.Roaster
-	Recipes  []models.Recipe
+	Beans    []arabica.Bean
+	Grinders []arabica.Grinder
+	Brewers  []arabica.Brewer
+	Roasters []arabica.Roaster
+	Recipes  []arabica.Recipe
 
 	// Derived JSON for pours (if editing)
 	PoursJSON string
@@ -199,7 +199,7 @@ templ BeanSelectField(props BrewFormProps) {
 	</div>
 }
 
-func formatBeanLabel(bean models.Bean) string {
+func formatBeanLabel(bean arabica.Bean) string {
 	if bean.Name != "" {
 		return fmt.Sprintf("%s (%s - %s)", bean.Name, bean.Origin, bean.RoastLevel)
 	}

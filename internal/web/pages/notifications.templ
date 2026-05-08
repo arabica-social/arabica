@@ -2,7 +2,7 @@ package pages
 
 import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
@@ -15,7 +15,7 @@ type NotificationsProps struct {
 
 // NotificationItem is a notification with resolved profile data
 type NotificationItem struct {
-	models.Notification
+	arabica.Notification
 	ActorHandle      string
 	ActorDisplayName string
 	ActorAvatar      string

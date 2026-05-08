@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
@@ -23,7 +23,7 @@ import (
 
 // populateBrewOGMetadata sets OpenGraph metadata on layoutData for a brew page.
 // This enriches social media previews when brew links are shared.
-func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew *models.Brew, owner, baseURL, shareURL string) {
+func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew *arabica.Brew, owner, baseURL, shareURL string) {
 	if brew == nil {
 		return
 	}
@@ -69,12 +69,12 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch brew (witness cache first, then PDS fallback)
-	var brew *models.Brew
-	brewURI := atproto.BuildATURI(ownerDID, atproto.NSIDBrew, rkey)
+	var brew *arabica.Brew
+	brewURI := atproto.BuildATURI(ownerDID, arabica.NSIDBrew, rkey)
 	if h.witnessCache != nil {
 		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if b, err := atproto.RecordToBrew(m, wr.URI); err == nil {
+				if b, err := arabica.RecordToBrew(m, wr.URI); err == nil {
 					metrics.WitnessCacheHitsTotal.WithLabelValues("brew_og").Inc()
 					brew = b
 					brew.RKey = rkey
@@ -86,13 +86,13 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 	if brew == nil {
 		metrics.WitnessCacheMissesTotal.WithLabelValues("brew_og").Inc()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrew, rkey)
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrew, rkey)
 		if err != nil {
 			log.Error().Err(err).Str("did", ownerDID).Str("rkey", rkey).Msg("Failed to get brew for OG image")
 			http.Error(w, "Brew not found", http.StatusNotFound)
 			return
 		}
-		brew, err = atproto.RecordToBrew(record.Value, record.URI)
+		brew, err = arabica.RecordToBrew(record.Value, record.URI)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to convert brew record for OG image")
 			http.Error(w, "Failed to load brew", http.StatusInternalServerError)
@@ -192,7 +192,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(r.Context(), didStr) //nolint: only partially uses layoutDataFromRequest due to complex flow
 	}
 
-	var brew *models.Brew
+	var brew *arabica.Brew
 	var brewOwnerDID string
 	var isOwner bool
 	var subjectURI, subjectCID string
@@ -215,11 +215,11 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Try witness cache first for the brew and all its references
-		brewURI := atproto.BuildATURI(brewOwnerDID, atproto.NSIDBrew, rkey)
+		brewURI := atproto.BuildATURI(brewOwnerDID, arabica.NSIDBrew, rkey)
 		if h.witnessCache != nil {
 			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
 				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if b, err := atproto.RecordToBrew(m, wr.URI); err == nil {
+					if b, err := arabica.RecordToBrew(m, wr.URI); err == nil {
 						metrics.WitnessCacheHitsTotal.WithLabelValues("brew").Inc()
 						brew = b
 						brew.RKey = rkey
@@ -235,7 +235,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		if brew == nil {
 			// PDS fallback
 			metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
-			record, err := publicClient.GetRecord(r.Context(), brewOwnerDID, atproto.NSIDBrew, rkey)
+			record, err := publicClient.GetRecord(r.Context(), brewOwnerDID, arabica.NSIDBrew, rkey)
 			if err != nil {
 				log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
 				http.Error(w, "Brew not found", http.StatusNotFound)
@@ -247,7 +247,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 			subjectCID = record.CID
 
 			// Convert record to brew
-			brew, err = atproto.RecordToBrew(record.Value, record.URI)
+			brew, err = arabica.RecordToBrew(record.Value, record.URI)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to convert brew record")
 				http.Error(w, "Failed to load brew", http.StatusInternalServerError)
@@ -372,21 +372,21 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 }
 
 // resolveBrewReferences resolves bean, grinder, and brewer references for a brew
-func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]any) error {
+func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew, ownerDID string, record map[string]any) error {
 	publicClient := atproto.NewPublicClient()
 
 	// Resolve bean reference
 	if beanRef, ok := record["beanRef"].(string); ok && beanRef != "" {
-		beanRecord, err := publicClient.GetRecord(ctx, ownerDID, atproto.NSIDBean, atproto.ExtractRKeyFromURI(beanRef))
+		beanRecord, err := publicClient.GetRecord(ctx, ownerDID, arabica.NSIDBean, atproto.ExtractRKeyFromURI(beanRef))
 		if err == nil {
-			if bean, err := atproto.RecordToBean(beanRecord.Value, beanRecord.URI); err == nil {
+			if bean, err := arabica.RecordToBean(beanRecord.Value, beanRecord.URI); err == nil {
 				brew.Bean = bean
 
 				// Resolve roaster reference for the bean
 				if roasterRef, ok := beanRecord.Value["roasterRef"].(string); ok && roasterRef != "" {
-					roasterRecord, err := publicClient.GetRecord(ctx, ownerDID, atproto.NSIDRoaster, atproto.ExtractRKeyFromURI(roasterRef))
+					roasterRecord, err := publicClient.GetRecord(ctx, ownerDID, arabica.NSIDRoaster, atproto.ExtractRKeyFromURI(roasterRef))
 					if err == nil {
-						if roaster, err := atproto.RecordToRoaster(roasterRecord.Value, roasterRecord.URI); err == nil {
+						if roaster, err := arabica.RecordToRoaster(roasterRecord.Value, roasterRecord.URI); err == nil {
 							brew.Bean.Roaster = roaster
 						}
 					}
@@ -397,9 +397,9 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, 
 
 	// Resolve grinder reference
 	if grinderRef, ok := record["grinderRef"].(string); ok && grinderRef != "" {
-		grinderRecord, err := publicClient.GetRecord(ctx, ownerDID, atproto.NSIDGrinder, atproto.ExtractRKeyFromURI(grinderRef))
+		grinderRecord, err := publicClient.GetRecord(ctx, ownerDID, arabica.NSIDGrinder, atproto.ExtractRKeyFromURI(grinderRef))
 		if err == nil {
-			if grinder, err := atproto.RecordToGrinder(grinderRecord.Value, grinderRecord.URI); err == nil {
+			if grinder, err := arabica.RecordToGrinder(grinderRecord.Value, grinderRecord.URI); err == nil {
 				brew.GrinderObj = grinder
 			}
 		}
@@ -407,9 +407,9 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, 
 
 	// Resolve brewer reference
 	if brewerRef, ok := record["brewerRef"].(string); ok && brewerRef != "" {
-		brewerRecord, err := publicClient.GetRecord(ctx, ownerDID, atproto.NSIDBrewer, atproto.ExtractRKeyFromURI(brewerRef))
+		brewerRecord, err := publicClient.GetRecord(ctx, ownerDID, arabica.NSIDBrewer, atproto.ExtractRKeyFromURI(brewerRef))
 		if err == nil {
-			if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+			if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
 				brew.BrewerObj = brewer
 			}
 		}
@@ -420,7 +420,7 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *models.Brew, 
 
 // resolveBrewRefsFromWitness resolves a brew's references (bean, grinder, brewer, recipe)
 // from the witness cache, avoiding PDS calls for public brew views.
-func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.Brew, ownerDID string, record map[string]any) {
+func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *arabica.Brew, ownerDID string, record map[string]any) {
 	if h.witnessCache == nil {
 		return
 	}
@@ -429,7 +429,7 @@ func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.B
 	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
 		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, beanRef); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if bean, err := atproto.RecordToBean(m, wr.URI); err == nil {
+				if bean, err := arabica.RecordToBean(m, wr.URI); err == nil {
 					bean.RKey = wr.RKey
 					// Resolve roaster
 					if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
@@ -438,7 +438,7 @@ func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.B
 						}
 						if rwr, _ := h.witnessCache.GetWitnessRecord(ctx, roasterRef); rwr != nil {
 							if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
-								if roaster, err := atproto.RecordToRoaster(rm, rwr.URI); err == nil {
+								if roaster, err := arabica.RecordToRoaster(rm, rwr.URI); err == nil {
 									roaster.RKey = rwr.RKey
 									bean.Roaster = roaster
 								}
@@ -455,7 +455,7 @@ func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.B
 	if grinderRef, _ := record["grinderRef"].(string); grinderRef != "" {
 		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, grinderRef); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if grinder, err := atproto.RecordToGrinder(m, wr.URI); err == nil {
+				if grinder, err := arabica.RecordToGrinder(m, wr.URI); err == nil {
 					grinder.RKey = wr.RKey
 					brew.GrinderObj = grinder
 				}
@@ -467,7 +467,7 @@ func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.B
 	if brewerRef, _ := record["brewerRef"].(string); brewerRef != "" {
 		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, brewerRef); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if brewer, err := atproto.RecordToBrewer(m, wr.URI); err == nil {
+				if brewer, err := arabica.RecordToBrewer(m, wr.URI); err == nil {
 					brewer.RKey = wr.RKey
 					brew.BrewerObj = brewer
 				}
@@ -479,7 +479,7 @@ func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.B
 	if recipeRef, _ := record["recipeRef"].(string); recipeRef != "" {
 		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, recipeRef); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if recipe, err := atproto.RecordToRecipe(m, wr.URI); err == nil {
+				if recipe, err := arabica.RecordToRecipe(m, wr.URI); err == nil {
 					recipe.RKey = wr.RKey
 					// Resolve recipe's brewer
 					if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
@@ -488,7 +488,7 @@ func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *models.B
 						}
 						if bwr, _ := h.witnessCache.GetWitnessRecord(ctx, brewerRef); bwr != nil {
 							if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
-								if brewer, err := atproto.RecordToBrewer(bm, bwr.URI); err == nil {
+								if brewer, err := arabica.RecordToBrewer(bm, bwr.URI); err == nil {
 									brewer.RKey = bwr.RKey
 									recipe.BrewerObj = brewer
 								}
@@ -540,7 +540,7 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 // parseEspressoParams extracts espresso-specific params from form values.
 // Returns nil if no espresso params were provided.
-func parseEspressoParams(r *http.Request) *models.EspressoParams {
+func parseEspressoParams(r *http.Request) *arabica.EspressoParams {
 	yieldStr := r.FormValue("espresso_yield_weight")
 	pressureStr := r.FormValue("espresso_pressure")
 	preInfStr := r.FormValue("espresso_pre_infusion_seconds")
@@ -549,7 +549,7 @@ func parseEspressoParams(r *http.Request) *models.EspressoParams {
 		return nil
 	}
 
-	ep := &models.EspressoParams{}
+	ep := &arabica.EspressoParams{}
 	if v, err := strconv.ParseFloat(yieldStr, 64); err == nil && v > 0 {
 		ep.YieldWeight = v
 	}
@@ -564,7 +564,7 @@ func parseEspressoParams(r *http.Request) *models.EspressoParams {
 
 // parsePouroverParams extracts pour-over-specific params from form values.
 // Returns nil if no pour-over params were provided.
-func parsePouroverParams(r *http.Request) *models.PouroverParams {
+func parsePouroverParams(r *http.Request) *arabica.PouroverParams {
 	bloomWaterStr := r.FormValue("pourover_bloom_water")
 	bloomSecsStr := r.FormValue("pourover_bloom_seconds")
 	drawdownStr := r.FormValue("pourover_drawdown_seconds")
@@ -575,7 +575,7 @@ func parsePouroverParams(r *http.Request) *models.PouroverParams {
 		return nil
 	}
 
-	pp := &models.PouroverParams{}
+	pp := &arabica.PouroverParams{}
 	if v, err := strconv.Atoi(bloomWaterStr); err == nil && v > 0 {
 		pp.BloomWater = v
 	}
@@ -596,8 +596,8 @@ func parsePouroverParams(r *http.Request) *models.PouroverParams {
 const maxPours = 100
 
 // parsePours extracts pour data from form values with bounds checking
-func parsePours(r *http.Request) []models.CreatePourData {
-	var pours []models.CreatePourData
+func parsePours(r *http.Request) []arabica.CreatePourData {
+	var pours []arabica.CreatePourData
 
 	for i := range maxPours {
 		waterKey := "pour_water_" + strconv.Itoa(i)
@@ -614,7 +614,7 @@ func parsePours(r *http.Request) []models.CreatePourData {
 		pourTime, _ := strconv.Atoi(timeStr)
 
 		if water > 0 && pourTime >= 0 {
-			pours = append(pours, models.CreatePourData{
+			pours = append(pours, arabica.CreatePourData{
 				WaterAmount: water,
 				TimeSeconds: pourTime,
 			})
@@ -631,7 +631,7 @@ type ValidationError struct {
 }
 
 // validateBrewRequest validates brew form input and returns any validation errors
-func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, coffeeAmount, timeSeconds, rating int, pours []models.CreatePourData, errs []ValidationError) {
+func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, coffeeAmount, timeSeconds, rating int, pours []arabica.CreatePourData, errs []ValidationError) {
 	// Parse and validate temperature
 	if tempStr := r.FormValue("temperature"); tempStr != "" {
 		var err error
@@ -749,7 +749,7 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &models.CreateBrewRequest{
+	req := &arabica.CreateBrewRequest{
 		BeanRKey:       beanRKey,
 		RecipeRKey:     recipeRKey,
 		RecipeOwnerDID: r.FormValue("recipe_owner_did"),
@@ -859,7 +859,7 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &models.CreateBrewRequest{
+	req := &arabica.CreateBrewRequest{
 		BeanRKey:       beanRKey,
 		RecipeRKey:     recipeRKey,
 		RecipeOwnerDID: r.FormValue("recipe_owner_did"),
@@ -904,7 +904,7 @@ func (h *Handler) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBrewByRKey, "brew", atproto.NSIDBrew)
+	h.deleteEntity(w, r, store.DeleteBrewByRKey, "brew", arabica.NSIDBrew)
 }
 
 // Export brews as JSON

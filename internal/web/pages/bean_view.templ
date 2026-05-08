@@ -3,13 +3,13 @@ package pages
 import (
 	"fmt"
 	"strings"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 type BeanViewProps struct {
-	Bean      *models.Bean
+	Bean      *arabica.Bean
 	BrewCount int
 	EntityViewBase
 }
@@ -155,14 +155,14 @@ templ BeanViewCard(props BeanViewProps) {
 	})
 }
 
-func beanViewTitle(bean *models.Bean) string {
+func beanViewTitle(bean *arabica.Bean) string {
 	if bean.Name != "" {
 		return bean.Name
 	}
 	return bean.Origin
 }
 
-func getBeanShareTitle(bean *models.Bean) string {
+func getBeanShareTitle(bean *arabica.Bean) string {
 	if bean.Name != "" {
 		return bean.Name
 	}
@@ -268,7 +268,7 @@ templ BeanRateModal(props BeanViewProps) {
 	</dialog>
 }
 
-func beanRateInitData(bean *models.Bean) string {
+func beanRateInitData(bean *arabica.Bean) string {
 	if bean.Rating != nil {
 		return fmt.Sprintf("{ rating: %d, _saving: false }", *bean.Rating)
 	}
@@ -277,7 +277,7 @@ func beanRateInitData(bean *models.Bean) string {
 
 // beanPatchAction generates JS that PUTs the current bean state with overrides applied.
 // overrideExpr is a JS expression for the fields to override (e.g. `{ "closed": true }`).
-func beanPatchAction(bean *models.Bean, overrideExpr string, errorMsg string) string {
+func beanPatchAction(bean *arabica.Bean, overrideExpr string, errorMsg string) string {
 	return fmt.Sprintf(`
 		if (this._saving) return;
 		this._saving = true;
@@ -301,7 +301,7 @@ func beanPatchAction(bean *models.Bean, overrideExpr string, errorMsg string) st
 }
 
 // beanBaseJSON returns a JS object literal with the current bean's editable fields.
-func beanBaseJSON(bean *models.Bean) string {
+func beanBaseJSON(bean *arabica.Bean) string {
 	roasterRKey := ""
 	if bean.Roaster != nil {
 		roasterRKey = bean.Roaster.RKey

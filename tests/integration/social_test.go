@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/firehose"
-	"tangled.org/arabica.social/arabica/internal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +37,7 @@ func TestHTTP_LikeToggleFlow(t *testing.T) {
 	h := StartHarness(t, nil)
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Likeable Roaster")), "roaster")
-	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, atproto.NSIDRoaster, rkey)
+	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
 	// Initial state: no likes.
 	assert.Equal(t, 0, h.FeedIndex.GetLikeCount(context.Background(), subjectURI))
@@ -71,7 +71,7 @@ func TestHTTP_LikeCrossUser(t *testing.T) {
 	h := StartHarness(t, nil)
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Popular Roaster")), "roaster")
-	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, atproto.NSIDRoaster, rkey)
+	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
 	// Alice likes her own record.
 	resp := h.PostForm("/api/likes/toggle", form("subject_uri", subjectURI, "subject_cid", subjectCID))
@@ -137,7 +137,7 @@ func TestHTTP_CommentCreateAndList(t *testing.T) {
 	data := fetchData(t, h)
 	require.Len(t, data.Brews, 1)
 	brewRKey := data.Brews[0].RKey
-	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, atproto.NSIDBrew, brewRKey)
+	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDBrew, brewRKey)
 
 	// Post a comment.
 	commentResp := h.PostForm("/api/comments", form(
@@ -180,7 +180,7 @@ func TestHTTP_CommentReplyThreading(t *testing.T) {
 	h := StartHarness(t, nil)
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Threaded Roaster")), "roaster")
-	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, atproto.NSIDRoaster, rkey)
+	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
 	// Top-level comment.
 	parentResp := h.PostForm("/api/comments", form(
@@ -195,7 +195,7 @@ func TestHTTP_CommentReplyThreading(t *testing.T) {
 	parent := indexed[0]
 	require.NotEmpty(t, parent.CID, "parent comment should have a CID we can strongRef")
 
-	parentURI := atproto.BuildATURI(h.PrimaryAccount.DID, atproto.NSIDComment, parent.RKey)
+	parentURI := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDComment, parent.RKey)
 
 	// Reply referencing the parent.
 	replyResp := h.PostForm("/api/comments", form(
@@ -234,7 +234,7 @@ func TestHTTP_CommentValidation(t *testing.T) {
 	h := StartHarness(t, nil)
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Val Roaster")), "roaster")
-	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, atproto.NSIDRoaster, rkey)
+	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
 	cases := []struct {
 		name string
@@ -254,7 +254,7 @@ func TestHTTP_CommentValidation(t *testing.T) {
 		},
 		{
 			name: "text_too_long",
-			form: form("subject_uri", subjectURI, "subject_cid", subjectCID, "text", strings.Repeat("a", models.MaxCommentLength+1)),
+			form: form("subject_uri", subjectURI, "subject_cid", subjectCID, "text", strings.Repeat("a", arabica.MaxCommentLength+1)),
 		},
 		{
 			name: "parent_uri_without_parent_cid",
@@ -287,7 +287,7 @@ func TestHTTP_LikeAndCommentTogether(t *testing.T) {
 	h := StartHarness(t, nil)
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Combined Roaster")), "roaster")
-	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, atproto.NSIDRoaster, rkey)
+	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
 	// Like.
 	likeResp := h.PostForm("/api/likes/toggle", form("subject_uri", subjectURI, "subject_cid", subjectCID))

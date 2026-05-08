@@ -2,6 +2,8 @@ package atproto
 
 import (
 	"testing"
+
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 func TestResolveATURI(t *testing.T) {
@@ -128,11 +130,11 @@ func TestResolveATURI_AllCollections(t *testing.T) {
 	rkey := "abc123"
 
 	collections := []string{
-		NSIDBean,
-		NSIDBrew,
-		NSIDBrewer,
-		NSIDGrinder,
-		NSIDRoaster,
+		arabica.NSIDBean,
+		arabica.NSIDBrew,
+		arabica.NSIDBrewer,
+		arabica.NSIDGrinder,
+		arabica.NSIDRoaster,
 	}
 
 	for _, collection := range collections {
@@ -163,10 +165,10 @@ func TestBuildAndResolveRoundTrip(t *testing.T) {
 		collection string
 		rkey       string
 	}{
-		{"did:plc:abc123", NSIDBean, "bean123"},
-		{"did:plc:xyz789", NSIDBrew, "3kfk4slgu6s2h"},
-		{"did:web:example.com", NSIDRoaster, "roaster456"},
-		{"did:plc:longdidvalue123456789", NSIDGrinder, "g1"},
+		{"did:plc:abc123", arabica.NSIDBean, "bean123"},
+		{"did:plc:xyz789", arabica.NSIDBrew, "3kfk4slgu6s2h"},
+		{"did:web:example.com", arabica.NSIDRoaster, "roaster456"},
+		{"did:plc:longdidvalue123456789", arabica.NSIDGrinder, "g1"},
 	}
 
 	for _, tt := range tests {

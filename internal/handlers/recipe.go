@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/matching"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -26,10 +26,10 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.CreateRecipeRequest
+	var req arabica.CreateRecipeRequest
 
 	if err := decodeRequest(r, &req, func() error {
-		req = models.CreateRecipeRequest{
+		req = arabica.CreateRecipeRequest{
 			Name:       r.FormValue("name"),
 			BrewerRKey: r.FormValue("brewer_rkey"),
 			BrewerType: r.FormValue("brewer_type"),
@@ -89,10 +89,10 @@ func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.UpdateRecipeRequest
+	var req arabica.UpdateRecipeRequest
 
 	if err := decodeRequest(r, &req, func() error {
-		req = models.UpdateRecipeRequest{
+		req = arabica.UpdateRecipeRequest{
 			Name:       r.FormValue("name"),
 			BrewerRKey: r.FormValue("brewer_rkey"),
 			BrewerType: r.FormValue("brewer_type"),
@@ -160,7 +160,7 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 	if h.feedIndex != nil {
 		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
 		if didStr != "" {
-			if err := h.feedIndex.DeleteRecord(r.Context(), didStr, atproto.NSIDRecipe, rkey); err != nil {
+			if err := h.feedIndex.DeleteRecord(r.Context(), didStr, arabica.NSIDRecipe, rkey); err != nil {
 				log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe from feed index")
 			}
 		}
@@ -187,18 +187,18 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 
 	ownerDID := r.URL.Query().Get("owner")
 
-	var recipe *models.Recipe
+	var recipe *arabica.Recipe
 	if ownerDID != "" {
 		// Fetch from the recipe owner's PDS via public client
 		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRecipe, rkey)
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
 		if err != nil {
 			http.Error(w, "Recipe not found", http.StatusNotFound)
 			log.Warn().Err(err).Str("rkey", rkey).Str("owner", ownerDID).Msg("Failed to get recipe from owner PDS")
 			return
 		}
 
-		recipe, err = atproto.RecordToRecipe(record.Value, record.URI)
+		recipe, err = arabica.RecordToRecipe(record.Value, record.URI)
 		if err != nil {
 			http.Error(w, "Failed to parse recipe", http.StatusInternalServerError)
 			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to parse recipe record")
@@ -213,9 +213,9 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
 			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
 			if brewerRKey != "" {
-				brewerRecord, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, brewerRKey)
+				brewerRecord, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey)
 				if err == nil {
-					if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+					if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
 						brewer.RKey = brewerRKey
 						recipe.BrewerObj = brewer
 
@@ -282,7 +282,7 @@ func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Build recipe from brew parameters
-	req := &models.CreateRecipeRequest{
+	req := &arabica.CreateRecipeRequest{
 		Name:         name,
 		BrewerRKey:   brew.BrewerRKey,
 		CoffeeAmount: float64(brew.CoffeeAmount),
@@ -291,9 +291,9 @@ func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Requ
 
 	// Copy pours
 	if len(brew.Pours) > 0 {
-		req.Pours = make([]models.CreatePourData, len(brew.Pours))
+		req.Pours = make([]arabica.CreatePourData, len(brew.Pours))
 		for i, pour := range brew.Pours {
-			req.Pours[i] = models.CreatePourData{
+			req.Pours[i] = arabica.CreatePourData{
 				WaterAmount: pour.WaterAmount,
 				TimeSeconds: pour.TimeSeconds,
 			}
@@ -349,21 +349,21 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch the source recipe via public client
 	publicClient := atproto.NewPublicClient()
-	record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRecipe, rkey)
+	record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
 	if err != nil {
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		log.Warn().Err(err).Str("rkey", rkey).Str("owner", owner).Msg("Failed to fetch recipe for fork")
 		return
 	}
 
-	sourceRecipe, err := atproto.RecordToRecipe(record.Value, record.URI)
+	sourceRecipe, err := arabica.RecordToRecipe(record.Value, record.URI)
 	if err != nil {
 		http.Error(w, "Failed to parse recipe", http.StatusInternalServerError)
 		return
 	}
 
 	// Build the source AT-URI for provenance
-	sourceURI := atproto.BuildATURI(ownerDID, atproto.NSIDRecipe, rkey)
+	sourceURI := atproto.BuildATURI(ownerDID, arabica.NSIDRecipe, rkey)
 
 	// Resolve brewer: try to match source brewer to current user's brewers
 	var brewerRKey, brewerType string
@@ -371,7 +371,7 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		// Fetch the source brewer to get name and type for matching
 		brewerRKeySource := atproto.ExtractRKeyFromURI(brewerRef)
 		if brewerRKeySource != "" {
-			if sourceBrewer, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, brewerRKeySource); err == nil {
+			if sourceBrewer, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKeySource); err == nil {
 				var sourceName, sourceType string
 				if n, ok := sourceBrewer.Value["name"].(string); ok {
 					sourceName = n
@@ -400,7 +400,7 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create a copy in the current user's PDS
-	req := &models.CreateRecipeRequest{
+	req := &arabica.CreateRecipeRequest{
 		Name:         sourceRecipe.Name,
 		BrewerRKey:   brewerRKey,
 		BrewerType:   brewerType,
@@ -412,9 +412,9 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 
 	// Copy pours
 	if len(sourceRecipe.Pours) > 0 {
-		req.Pours = make([]models.CreatePourData, len(sourceRecipe.Pours))
+		req.Pours = make([]arabica.CreatePourData, len(sourceRecipe.Pours))
 		for i, pour := range sourceRecipe.Pours {
-			req.Pours[i] = models.CreatePourData{
+			req.Pours[i] = arabica.CreatePourData{
 				WaterAmount: pour.WaterAmount,
 				TimeSeconds: pour.TimeSeconds,
 			}
@@ -441,7 +441,7 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	filter := models.RecipeFilter{
+	filter := arabica.RecipeFilter{
 		Query:      r.URL.Query().Get("q"),
 		BrewerType: r.URL.Query().Get("brewer_type"),
 		Category:   r.URL.Query().Get("category"),
@@ -474,7 +474,7 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	filtered := models.FilterRecipes(recipes, filter)
+	filtered := arabica.FilterRecipes(recipes, filter)
 
 	// Sort results (default: popular)
 	sortBy := r.URL.Query().Get("sort")
@@ -506,12 +506,12 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 
 // listAllRecipesFromIndex loads all recipe records from the feed index,
 // converts them to Recipe models, and populates author info.
-func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe, error) {
+func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recipe, error) {
 	if h.feedIndex == nil {
 		return nil, fmt.Errorf("feed index not available")
 	}
 
-	records, err := h.feedIndex.ListRecordsByCollection(ctx, atproto.NSIDRecipe)
+	records, err := h.feedIndex.ListRecordsByCollection(ctx, arabica.NSIDRecipe)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +527,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 		uri        string
 		did        string
 		data       map[string]any
-		recipe     *models.Recipe
+		recipe     *arabica.Recipe
 		sourceRef  string
 		sourceDID  string
 		sourceRKey string
@@ -538,7 +538,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 		if err := json.Unmarshal(records[i].Record, &recordData); err != nil {
 			continue
 		}
-		recipe, err := atproto.RecordToRecipe(recordData, records[i].URI)
+		recipe, err := arabica.RecordToRecipe(recordData, records[i].URI)
 		if err != nil {
 			continue
 		}
@@ -599,7 +599,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 	brewerRecords := h.feedIndex.GetRecordsBatch(ctx, brewerURIs)
 
 	// Build final recipe list
-	recipes := make([]*models.Recipe, 0, len(parsed))
+	recipes := make([]*arabica.Recipe, 0, len(parsed))
 	for _, pr := range parsed {
 		recipe := pr.recipe
 
@@ -611,7 +611,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 			if brewerRec, ok := brewerRecords[brewerRef]; ok {
 				var brewerData map[string]any
 				if err := json.Unmarshal(brewerRec.Record, &brewerData); err == nil {
-					if brewer, err := atproto.RecordToBrewer(brewerData, brewerRef); err == nil {
+					if brewer, err := arabica.RecordToBrewer(brewerData, brewerRef); err == nil {
 						recipe.BrewerObj = brewer
 					}
 				}
@@ -664,9 +664,9 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*models.Recipe
 
 	// Filter moderated content (hidden records + blacklisted users)
 	if cf := h.loadContentFilter(ctx); cf != nil {
-		recipes = moderation.FilterSlice(cf, recipes, func(r *models.Recipe) (string, string) {
+		recipes = moderation.FilterSlice(cf, recipes, func(r *arabica.Recipe) (string, string) {
 			if r.AuthorDID != "" && r.RKey != "" {
-				return atproto.BuildATURI(r.AuthorDID, atproto.NSIDRecipe, r.RKey), r.AuthorDID
+				return atproto.BuildATURI(r.AuthorDID, arabica.NSIDRecipe, r.RKey), r.AuthorDID
 			}
 			return "", r.AuthorDID
 		})
@@ -692,7 +692,7 @@ func (h *Handler) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
 
 	// Resolve brewer references using cached data
 	brewers, _ := store.ListBrewers(r.Context())
-	brewerMap := make(map[string]*models.Brewer, len(brewers))
+	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
 	for _, b := range brewers {
 		brewerMap[b.RKey] = b
 	}
@@ -719,10 +719,10 @@ func (h *Handler) HandleRecipeModalNew(w http.ResponseWriter, r *http.Request) {
 	brewers, err := store.ListBrewers(r.Context())
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to fetch brewers for recipe modal")
-		brewers = []*models.Brewer{}
+		brewers = []*arabica.Brewer{}
 	}
 
-	brewersSlice := make([]models.Brewer, len(brewers))
+	brewersSlice := make([]arabica.Brewer, len(brewers))
 	for i, b := range brewers {
 		brewersSlice[i] = *b
 	}
@@ -756,10 +756,10 @@ func (h *Handler) HandleRecipeModalEdit(w http.ResponseWriter, r *http.Request) 
 	brewers, err := store.ListBrewers(r.Context())
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to fetch brewers for recipe modal")
-		brewers = []*models.Brewer{}
+		brewers = []*arabica.Brewer{}
 	}
 
-	brewersSlice := make([]models.Brewer, len(brewers))
+	brewersSlice := make([]arabica.Brewer, len(brewers))
 	for i, b := range brewers {
 		brewersSlice[i] = *b
 	}

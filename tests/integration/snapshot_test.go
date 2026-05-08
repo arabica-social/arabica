@@ -5,10 +5,9 @@ import (
 	"net/url"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
-
 	"github.com/ptdewey/shutter"
 	"github.com/stretchr/testify/require"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // scrubPDS returns shutter options that replace PDS-generated dynamic values
@@ -62,7 +61,7 @@ func TestSnap_PDS_RoasterCreate(t *testing.T) {
 		"website", "https://counterculturecoffee.com",
 	)), "roaster")
 
-	snapPDSRecord(t, h, "roaster record", atproto.NSIDRoaster, rkey, map[string]string{
+	snapPDSRecord(t, h, "roaster record", arabica.NSIDRoaster, rkey, map[string]string{
 		"roaster": rkey,
 	})
 }
@@ -79,7 +78,7 @@ func TestSnap_PDS_RoasterUpdate(t *testing.T) {
 	))
 	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, ReadBody(t, updateResp)))
 
-	snapPDSRecord(t, h, "roaster after update", atproto.NSIDRoaster, rkey, map[string]string{
+	snapPDSRecord(t, h, "roaster after update", arabica.NSIDRoaster, rkey, map[string]string{
 		"roaster": rkey,
 	})
 }
@@ -99,7 +98,7 @@ func TestSnap_PDS_BeanWithRoaster(t *testing.T) {
 		"roaster_rkey", roasterRKey,
 	)), "bean")
 
-	snapPDSRecord(t, h, "bean with roaster ref", atproto.NSIDBean, beanRKey, map[string]string{
+	snapPDSRecord(t, h, "bean with roaster ref", arabica.NSIDBean, beanRKey, map[string]string{
 		"roaster": roasterRKey,
 		"bean":    beanRKey,
 	})
@@ -117,7 +116,7 @@ func TestSnap_PDS_GrinderCreate(t *testing.T) {
 		"notes", "red clix installed",
 	)), "grinder")
 
-	snapPDSRecord(t, h, "grinder record", atproto.NSIDGrinder, rkey, map[string]string{
+	snapPDSRecord(t, h, "grinder record", arabica.NSIDGrinder, rkey, map[string]string{
 		"grinder": rkey,
 	})
 }
@@ -133,7 +132,7 @@ func TestSnap_PDS_BrewerCreate(t *testing.T) {
 		"description", "Plastic, size 02",
 	)), "brewer")
 
-	snapPDSRecord(t, h, "brewer record", atproto.NSIDBrewer, rkey, map[string]string{
+	snapPDSRecord(t, h, "brewer record", arabica.NSIDBrewer, rkey, map[string]string{
 		"brewer": rkey,
 	})
 }
@@ -163,7 +162,7 @@ func TestSnap_PDS_RecipeWithPours(t *testing.T) {
 		"pour_time_4", "150",
 	)), "recipe")
 
-	snapPDSRecord(t, h, "recipe with pours", atproto.NSIDRecipe, recipeRKey, map[string]string{
+	snapPDSRecord(t, h, "recipe with pours", arabica.NSIDRecipe, recipeRKey, map[string]string{
 		"brewer": brewerRKey,
 		"recipe": recipeRKey,
 	})
@@ -220,7 +219,7 @@ func TestSnap_PDS_PouroverBrew(t *testing.T) {
 		"brew":    brewRKey,
 	}
 
-	snapPDSRecord(t, h, "pourover brew record", atproto.NSIDBrew, brewRKey, rkeys)
+	snapPDSRecord(t, h, "pourover brew record", arabica.NSIDBrew, brewRKey, rkeys)
 }
 
 // --- Espresso brew (method-specific params) ---
@@ -264,7 +263,7 @@ func TestSnap_PDS_EspressoBrew(t *testing.T) {
 		"brew":    brewRKey,
 	}
 
-	snapPDSRecord(t, h, "espresso brew record", atproto.NSIDBrew, brewRKey, rkeys)
+	snapPDSRecord(t, h, "espresso brew record", arabica.NSIDBrew, brewRKey, rkeys)
 }
 
 // --- Brew update: pourover → espresso (verify old params removed) ---
@@ -331,7 +330,7 @@ func TestSnap_PDS_BrewMethodSwap(t *testing.T) {
 		"brew":       brewRKey,
 	}
 
-	snapPDSRecord(t, h, "brew after pourover to espresso", atproto.NSIDBrew, brewRKey, rkeys)
+	snapPDSRecord(t, h, "brew after pourover to espresso", arabica.NSIDBrew, brewRKey, rkeys)
 }
 
 // --- Roaster field permutations ---
@@ -351,7 +350,7 @@ func TestSnap_PDS_RoasterPermutations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			h := StartHarness(t, nil)
 			rkey := mustRKey(t, h.PostForm("/api/roasters", form(tc.form...)), "roaster")
-			snapPDSRecord(t, h, "roaster "+tc.name, atproto.NSIDRoaster, rkey, map[string]string{
+			snapPDSRecord(t, h, "roaster "+tc.name, arabica.NSIDRoaster, rkey, map[string]string{
 				"roaster": rkey,
 			})
 		})
@@ -394,7 +393,7 @@ func TestSnap_PDS_BeanPermutations(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rkey := mustRKey(t, h.PostForm("/api/beans", form(tc.form...)), "bean")
-			snapPDSRecord(t, h, "bean "+tc.name, atproto.NSIDBean, rkey, map[string]string{
+			snapPDSRecord(t, h, "bean "+tc.name, arabica.NSIDBean, rkey, map[string]string{
 				"roaster": roasterRKey,
 				"bean":    rkey,
 			})
@@ -428,7 +427,7 @@ func TestSnap_PDS_GrinderPermutations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			h := StartHarness(t, nil)
 			rkey := mustRKey(t, h.PostForm("/api/grinders", form(tc.form...)), "grinder")
-			snapPDSRecord(t, h, "grinder "+tc.name, atproto.NSIDGrinder, rkey, map[string]string{
+			snapPDSRecord(t, h, "grinder "+tc.name, arabica.NSIDGrinder, rkey, map[string]string{
 				"grinder": rkey,
 			})
 		})
@@ -456,7 +455,7 @@ func TestSnap_PDS_BrewerPermutations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			h := StartHarness(t, nil)
 			rkey := mustRKey(t, h.PostForm("/api/brewers", form(tc.form...)), "brewer")
-			snapPDSRecord(t, h, "brewer "+tc.name, atproto.NSIDBrewer, rkey, map[string]string{
+			snapPDSRecord(t, h, "brewer "+tc.name, arabica.NSIDBrewer, rkey, map[string]string{
 				"brewer": rkey,
 			})
 		})
@@ -514,7 +513,7 @@ func TestSnap_PDS_RecipePermutations(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rkey := mustRKey(t, h.PostForm("/api/recipes", form(tc.form...)), "recipe")
-			snapPDSRecord(t, h, "recipe "+tc.name, atproto.NSIDRecipe, rkey, map[string]string{
+			snapPDSRecord(t, h, "recipe "+tc.name, arabica.NSIDRecipe, rkey, map[string]string{
 				"brewer": brewerRKey,
 				"recipe": rkey,
 			})
@@ -715,7 +714,7 @@ func TestSnap_PDS_BrewPermutations(t *testing.T) {
 				"recipe":    subRecipeRKey,
 				"brew":      brewRKey,
 			}
-			snapPDSRecord(t, sub, "brew "+tc.name, atproto.NSIDBrew, brewRKey, subRkeys)
+			snapPDSRecord(t, sub, "brew "+tc.name, arabica.NSIDBrew, brewRKey, subRkeys)
 		})
 	}
 
@@ -776,9 +775,9 @@ func TestSnap_PDS_FullRepo(t *testing.T) {
 	}
 
 	// Snapshot each collection from the PDS.
-	snapPDSCollection(t, h, "all roasters", atproto.NSIDRoaster, rkeys)
-	snapPDSCollection(t, h, "all beans", atproto.NSIDBean, rkeys)
-	snapPDSCollection(t, h, "all grinders", atproto.NSIDGrinder, rkeys)
-	snapPDSCollection(t, h, "all brewers", atproto.NSIDBrewer, rkeys)
-	snapPDSCollection(t, h, "all brews", atproto.NSIDBrew, rkeys)
+	snapPDSCollection(t, h, "all roasters", arabica.NSIDRoaster, rkeys)
+	snapPDSCollection(t, h, "all beans", arabica.NSIDBean, rkeys)
+	snapPDSCollection(t, h, "all grinders", arabica.NSIDGrinder, rkeys)
+	snapPDSCollection(t, h, "all brewers", arabica.NSIDBrewer, rkeys)
+	snapPDSCollection(t, h, "all brews", arabica.NSIDBrew, rkeys)
 }

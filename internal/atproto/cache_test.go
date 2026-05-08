@@ -2,9 +2,10 @@ package atproto
 
 import (
 	"sync"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"testing"
 	"time"
+
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,20 +80,20 @@ func TestUserCache_clone(t *testing.T) {
 	t.Run("clone creates shallow copy", func(t *testing.T) {
 		original := &UserCache{
 			Records: map[string]any{
-				NSIDBean: []*models.Bean{
+				arabica.NSIDBean: []*arabica.Bean{
 					{RKey: "bean1", Name: "Bean One"},
 					{RKey: "bean2", Name: "Bean Two"},
 				},
-				NSIDRoaster: []*models.Roaster{
+				arabica.NSIDRoaster: []*arabica.Roaster{
 					{RKey: "roaster1", Name: "Roaster One"},
 				},
-				NSIDGrinder: []*models.Grinder{
+				arabica.NSIDGrinder: []*arabica.Grinder{
 					{RKey: "grinder1", Name: "Grinder One"},
 				},
-				NSIDBrewer: []*models.Brewer{
+				arabica.NSIDBrewer: []*arabica.Brewer{
 					{RKey: "brewer1", Name: "Brewer One"},
 				},
-				NSIDBrew: []*models.Brew{
+				arabica.NSIDBrew: []*arabica.Brew{
 					{RKey: "brew1", Method: "V60"},
 				},
 			},
@@ -118,7 +119,7 @@ func TestUserCache_clone(t *testing.T) {
 	t.Run("clone is independent reference", func(t *testing.T) {
 		original := &UserCache{
 			Records: map[string]any{
-				NSIDBean: []*models.Bean{{RKey: "bean1"}},
+				arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1"}},
 			},
 			Timestamp: time.Now(),
 		}
@@ -126,7 +127,7 @@ func TestUserCache_clone(t *testing.T) {
 		cloned := original.clone()
 
 		// Replace the slice in the original's map (clone should be independent)
-		original.Records[NSIDBean] = []*models.Bean{{RKey: "bean2"}}
+		original.Records[arabica.NSIDBean] = []*arabica.Bean{{RKey: "bean2"}}
 
 		// Cloned should still have old reference
 		assert.Equal(t, "bean1", cloned.Beans()[0].RKey)
@@ -152,7 +153,7 @@ func TestSessionCache_GetSetInvalidate(t *testing.T) {
 	t.Run("set and get session", func(t *testing.T) {
 		userCache := &UserCache{
 			Records: map[string]any{
-				NSIDBean: []*models.Bean{{RKey: "bean1"}},
+				arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1"}},
 			},
 			Timestamp: time.Now(),
 		}
@@ -182,23 +183,23 @@ func TestSessionCache_SetCollections(t *testing.T) {
 	// Initialize cache with some data
 	initial := &UserCache{
 		Records: map[string]any{
-			NSIDBean:    []*models.Bean{{RKey: "bean1"}},
-			NSIDRoaster: []*models.Roaster{{RKey: "roaster1"}},
-			NSIDGrinder: []*models.Grinder{{RKey: "grinder1"}},
-			NSIDBrewer:  []*models.Brewer{{RKey: "brewer1"}},
-			NSIDBrew:    []*models.Brew{{RKey: "brew1"}},
+			arabica.NSIDBean:    []*arabica.Bean{{RKey: "bean1"}},
+			arabica.NSIDRoaster: []*arabica.Roaster{{RKey: "roaster1"}},
+			arabica.NSIDGrinder: []*arabica.Grinder{{RKey: "grinder1"}},
+			arabica.NSIDBrewer:  []*arabica.Brewer{{RKey: "brewer1"}},
+			arabica.NSIDBrew:    []*arabica.Brew{{RKey: "brew1"}},
 		},
 		Timestamp: time.Now().Add(-time.Minute),
 	}
 	cache.Set(sessionID, initial)
 
 	t.Run("SetBeans updates only beans", func(t *testing.T) {
-		newBeans := []*models.Bean{
+		newBeans := []*arabica.Bean{
 			{RKey: "bean2", Name: "New Bean"},
 			{RKey: "bean3", Name: "Another Bean"},
 		}
 
-		cache.SetRecords(sessionID, NSIDBean, newBeans)
+		cache.SetRecords(sessionID, arabica.NSIDBean, newBeans)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -217,8 +218,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 	})
 
 	t.Run("SetRoasters updates only roasters", func(t *testing.T) {
-		newRoasters := []*models.Roaster{{RKey: "roaster2"}}
-		cache.SetRecords(sessionID, NSIDRoaster, newRoasters)
+		newRoasters := []*arabica.Roaster{{RKey: "roaster2"}}
+		cache.SetRecords(sessionID, arabica.NSIDRoaster, newRoasters)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -228,8 +229,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 	})
 
 	t.Run("SetGrinders updates only grinders", func(t *testing.T) {
-		newGrinders := []*models.Grinder{{RKey: "grinder2"}}
-		cache.SetRecords(sessionID, NSIDGrinder, newGrinders)
+		newGrinders := []*arabica.Grinder{{RKey: "grinder2"}}
+		cache.SetRecords(sessionID, arabica.NSIDGrinder, newGrinders)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -238,8 +239,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 	})
 
 	t.Run("SetBrewers updates only brewers", func(t *testing.T) {
-		newBrewers := []*models.Brewer{{RKey: "brewer2"}}
-		cache.SetRecords(sessionID, NSIDBrewer, newBrewers)
+		newBrewers := []*arabica.Brewer{{RKey: "brewer2"}}
+		cache.SetRecords(sessionID, arabica.NSIDBrewer, newBrewers)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -248,8 +249,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 	})
 
 	t.Run("SetBrews updates only brews", func(t *testing.T) {
-		newBrews := []*models.Brew{{RKey: "brew2"}}
-		cache.SetRecords(sessionID, NSIDBrew, newBrews)
+		newBrews := []*arabica.Brew{{RKey: "brew2"}}
+		cache.SetRecords(sessionID, arabica.NSIDBrew, newBrews)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -266,11 +267,11 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	freshInitial := func() *UserCache {
 		return &UserCache{
 			Records: map[string]any{
-				NSIDBean:    []*models.Bean{{RKey: "bean1"}},
-				NSIDRoaster: []*models.Roaster{{RKey: "roaster1"}},
-				NSIDGrinder: []*models.Grinder{{RKey: "grinder1"}},
-				NSIDBrewer:  []*models.Brewer{{RKey: "brewer1"}},
-				NSIDBrew:    []*models.Brew{{RKey: "brew1"}},
+				arabica.NSIDBean:    []*arabica.Bean{{RKey: "bean1"}},
+				arabica.NSIDRoaster: []*arabica.Roaster{{RKey: "roaster1"}},
+				arabica.NSIDGrinder: []*arabica.Grinder{{RKey: "grinder1"}},
+				arabica.NSIDBrewer:  []*arabica.Brewer{{RKey: "brewer1"}},
+				arabica.NSIDBrew:    []*arabica.Brew{{RKey: "brew1"}},
 			},
 			Timestamp: time.Now(),
 		}
@@ -279,7 +280,7 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	cache.Set(sessionID, freshInitial())
 
 	t.Run("InvalidateBeans clears only beans", func(t *testing.T) {
-		cache.InvalidateRecords(sessionID, NSIDBean)
+		cache.InvalidateRecords(sessionID, arabica.NSIDBean)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -297,8 +298,8 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 		// store.go now make both invalidation calls.
 		cache.Set(sessionID, freshInitial())
 
-		cache.InvalidateRecords(sessionID, NSIDRoaster)
-		cache.InvalidateRecords(sessionID, NSIDBean)
+		cache.InvalidateRecords(sessionID, arabica.NSIDRoaster)
+		cache.InvalidateRecords(sessionID, arabica.NSIDBean)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -312,7 +313,7 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	t.Run("InvalidateGrinders clears only grinders", func(t *testing.T) {
 		cache.Set(sessionID, freshInitial())
 
-		cache.InvalidateRecords(sessionID, NSIDGrinder)
+		cache.InvalidateRecords(sessionID, arabica.NSIDGrinder)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -324,7 +325,7 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	t.Run("InvalidateBrewers clears only brewers", func(t *testing.T) {
 		cache.Set(sessionID, freshInitial())
 
-		cache.InvalidateRecords(sessionID, NSIDBrewer)
+		cache.InvalidateRecords(sessionID, arabica.NSIDBrewer)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -335,7 +336,7 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	t.Run("InvalidateBrews clears only brews", func(t *testing.T) {
 		cache.Set(sessionID, freshInitial())
 
-		cache.InvalidateRecords(sessionID, NSIDBrew)
+		cache.InvalidateRecords(sessionID, arabica.NSIDBrew)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
@@ -344,11 +345,11 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	})
 
 	t.Run("invalidate on nonexistent session is safe", func(t *testing.T) {
-		cache.InvalidateRecords("nonexistent", NSIDBean)
-		cache.InvalidateRecords("nonexistent", NSIDRoaster)
-		cache.InvalidateRecords("nonexistent", NSIDGrinder)
-		cache.InvalidateRecords("nonexistent", NSIDBrewer)
-		cache.InvalidateRecords("nonexistent", NSIDBrew)
+		cache.InvalidateRecords("nonexistent", arabica.NSIDBean)
+		cache.InvalidateRecords("nonexistent", arabica.NSIDRoaster)
+		cache.InvalidateRecords("nonexistent", arabica.NSIDGrinder)
+		cache.InvalidateRecords("nonexistent", arabica.NSIDBrewer)
+		cache.InvalidateRecords("nonexistent", arabica.NSIDBrew)
 		// Should not panic
 	})
 }
@@ -359,7 +360,7 @@ func TestSessionCache_Cleanup(t *testing.T) {
 	// Add fresh cache
 	freshCache := &UserCache{
 		Records: map[string]any{
-			NSIDBean: []*models.Bean{{RKey: "bean1"}},
+			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1"}},
 		},
 		Timestamp: time.Now(),
 	}
@@ -368,7 +369,7 @@ func TestSessionCache_Cleanup(t *testing.T) {
 	// Add old cache (beyond 2x TTL)
 	oldCache := &UserCache{
 		Records: map[string]any{
-			NSIDBean: []*models.Bean{{RKey: "bean2"}},
+			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean2"}},
 		},
 		Timestamp: time.Now().Add(-CacheTTL*2 - time.Second),
 	}
@@ -377,7 +378,7 @@ func TestSessionCache_Cleanup(t *testing.T) {
 	// Add cache within TTL
 	recentCache := &UserCache{
 		Records: map[string]any{
-			NSIDBean: []*models.Bean{{RKey: "bean3"}},
+			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean3"}},
 		},
 		Timestamp: time.Now().Add(-CacheTTL + time.Minute),
 	}
@@ -400,7 +401,7 @@ func TestSessionCache_StartCleanupRoutine(t *testing.T) {
 	// Add old cache
 	oldCache := &UserCache{
 		Records: map[string]any{
-			NSIDBean: []*models.Bean{{RKey: "bean1"}},
+			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1"}},
 		},
 		Timestamp: time.Now().Add(-CacheTTL*2 - time.Second),
 	}
@@ -456,7 +457,7 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 					sessionID := "session"
 					userCache := &UserCache{
 						Records: map[string]any{
-							NSIDBean: []*models.Bean{{RKey: "bean"}},
+							arabica.NSIDBean: []*arabica.Bean{{RKey: "bean"}},
 						},
 						Timestamp: time.Now(),
 					}
@@ -483,8 +484,8 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		sessionID := "test-session"
 		initial := &UserCache{
 			Records: map[string]any{
-				NSIDBean:    []*models.Bean{{RKey: "bean1"}},
-				NSIDRoaster: []*models.Roaster{{RKey: "roaster1"}},
+				arabica.NSIDBean:    []*arabica.Bean{{RKey: "bean1"}},
+				arabica.NSIDRoaster: []*arabica.Roaster{{RKey: "roaster1"}},
 			},
 			Timestamp: time.Now(),
 		}
@@ -496,29 +497,29 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for range numOperations {
-				cache.SetRecords(sessionID, NSIDBean, []*models.Bean{{RKey: "bean"}})
+				cache.SetRecords(sessionID, arabica.NSIDBean, []*arabica.Bean{{RKey: "bean"}})
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
 			for range numOperations {
-				cache.SetRecords(sessionID, NSIDRoaster, []*models.Roaster{{RKey: "roaster"}})
+				cache.SetRecords(sessionID, arabica.NSIDRoaster, []*arabica.Roaster{{RKey: "roaster"}})
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
 			for range numOperations {
-				cache.InvalidateRecords(sessionID, NSIDBean)
+				cache.InvalidateRecords(sessionID, arabica.NSIDBean)
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
 			for range numOperations {
-				cache.InvalidateRecords(sessionID, NSIDRoaster)
-				cache.InvalidateRecords(sessionID, NSIDBean)
+				cache.InvalidateRecords(sessionID, arabica.NSIDRoaster)
+				cache.InvalidateRecords(sessionID, arabica.NSIDBean)
 			}
 		}()
 
@@ -543,7 +544,7 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 			for range numOperations {
 				cache.Set("session", &UserCache{
 					Records: map[string]any{
-						NSIDBean: []*models.Bean{{RKey: "bean"}},
+						arabica.NSIDBean: []*arabica.Bean{{RKey: "bean"}},
 					},
 					Timestamp: time.Now(),
 				})
@@ -578,7 +579,7 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 	// Initialize cache
 	original := &UserCache{
 		Records: map[string]any{
-			NSIDBean: []*models.Bean{{RKey: "bean1", Name: "Original"}},
+			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1", Name: "Original"}},
 		},
 		Timestamp: time.Now(),
 	}
@@ -590,8 +591,8 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 	assert.Equal(t, "Original", before.Beans()[0].Name)
 
 	// Update beans
-	newBeans := []*models.Bean{{RKey: "bean2", Name: "Updated"}}
-	cache.SetRecords(sessionID, NSIDBean, newBeans)
+	newBeans := []*arabica.Bean{{RKey: "bean2", Name: "Updated"}}
+	cache.SetRecords(sessionID, arabica.NSIDBean, newBeans)
 
 	// Get reference after update
 	after := cache.Get(sessionID)
@@ -640,27 +641,27 @@ func TestSessionCache_MultipleSessionsIsolation(t *testing.T) {
 	// Create caches for different sessions
 	cache.Set("session1", &UserCache{
 		Records: map[string]any{
-			NSIDBean: []*models.Bean{{RKey: "bean1"}},
+			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1"}},
 		},
 		Timestamp: time.Now(),
 	})
 
 	cache.Set("session2", &UserCache{
 		Records: map[string]any{
-			NSIDBean: []*models.Bean{{RKey: "bean2"}},
+			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean2"}},
 		},
 		Timestamp: time.Now(),
 	})
 
 	cache.Set("session3", &UserCache{
 		Records: map[string]any{
-			NSIDBean: []*models.Bean{{RKey: "bean3"}},
+			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean3"}},
 		},
 		Timestamp: time.Now(),
 	})
 
 	// Update session2
-	cache.SetRecords("session2", NSIDBean, []*models.Bean{{RKey: "bean2-updated"}})
+	cache.SetRecords("session2", arabica.NSIDBean, []*arabica.Bean{{RKey: "bean2-updated"}})
 
 	// Invalidate session3
 	cache.Invalidate("session3")

@@ -14,11 +14,11 @@ import (
 	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/database/boltstore"
 	"tangled.org/arabica.social/arabica/internal/email"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -465,8 +465,8 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(text) > models.MaxCommentLength {
-		log.Warn().Int("length", len(text)).Int("max", models.MaxCommentLength).Msg("Comment create: text too long")
+	if len(text) > arabica.MaxCommentLength {
+		log.Warn().Int("length", len(text)).Int("max", arabica.MaxCommentLength).Msg("Comment create: text too long")
 		http.Error(w, "comment text is too long", http.StatusBadRequest)
 		return
 	}
@@ -478,7 +478,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &models.CreateCommentRequest{
+	req := &arabica.CreateCommentRequest{
 		SubjectURI: subjectURI,
 		SubjectCID: subjectCID,
 		Text:       text,

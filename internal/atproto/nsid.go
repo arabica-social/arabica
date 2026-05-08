@@ -6,26 +6,8 @@ import (
 	"tangled.org/pdewey.com/atp"
 )
 
-// NSID (Namespaced Identifier) constants for Arabica lexicons.
-// The domain is reversed following ATProto conventions: arabica.social -> social.arabica
-// Using "alpha" namespace during development - will migrate to stable namespace later.
-const (
-	// NSIDBase is the base namespace for all Arabica lexicons
-	NSIDBase = "social.arabica.alpha"
-
-	// Collection NSIDs
-	NSIDBean    = NSIDBase + ".bean"
-	NSIDBrew    = NSIDBase + ".brew"
-	NSIDBrewer  = NSIDBase + ".brewer"
-	NSIDComment = NSIDBase + ".comment"
-	NSIDGrinder = NSIDBase + ".grinder"
-	NSIDLike    = NSIDBase + ".like"
-	NSIDRecipe  = NSIDBase + ".recipe"
-	NSIDRoaster = NSIDBase + ".roaster"
-
-	// MaxRKeyLength is the maximum allowed length for a record key
-	MaxRKeyLength = 512
-)
+// MaxRKeyLength is the maximum allowed length for a record key.
+const MaxRKeyLength = 512
 
 // rkeyRegex validates AT Protocol record keys (rkeys).
 // Valid rkeys contain only alphanumeric characters, hyphens, underscores, colons, and periods.

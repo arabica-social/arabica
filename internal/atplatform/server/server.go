@@ -52,18 +52,34 @@ type Options struct {
 // fatal startup error or an HTTP server failure.
 //
 // Environment variables are scoped by app.Name uppercased: the arabica
-// binary reads ARABICA_DB_PATH, ARABICA_FEED_INDEX_PATH,
-// ARABICA_BACKUP_DIR, ARABICA_MODERATORS_CONFIG, ARABICA_PROFILE_CACHE_TTL.
-// matcha reads MATCHA_*. Universal env vars (PORT, SERVER_PUBLIC_URL,
-// SECURE_COOKIES, OAUTH_*, SMTP_*, ADMIN_EMAIL, PDS_ADMIN_*,
-// METRICS_PORT) are app-agnostic.
+// binary reads ARABICA_DATA_DIR, ARABICA_MODERATORS_CONFIG,
+// ARABICA_PROFILE_CACHE_TTL. matcha reads MATCHA_*. Universal env vars
+// (PORT, SERVER_PUBLIC_URL, SECURE_COOKIES, OAUTH_*, SMTP_*, ADMIN_EMAIL,
+// PDS_ADMIN_*, METRICS_PORT) are app-agnostic.
+//
+// All persistent files (BoltDB, feed-index SQLite, backups) live under
+// a single per-app data directory: <APP>_DATA_DIR if set, otherwise
+// <XDG_DATA_HOME or ~/.local/share>/<app.Name>. This keeps multi-tenant
+// hosts (one box running both arabica and matcha) collision-free with a
+// single env-var to point at the right disk in production.
 func Run(ctx context.Context, app *domain.App, opts Options) error {
+	if err := validateAppName(app.Name); err != nil {
+		return err
+	}
 	envPrefix := strings.ToUpper(app.Name)
-	dataSubdir := app.Name
+
+	dataDir, err := resolveDataDir(envPrefix, app.Name)
+	if err != nil {
+		return fmt.Errorf("resolve data dir: %w", err)
+	}
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		return fmt.Errorf("create data dir %s: %w", dataDir, err)
+	}
 
 	log.Info().
 		Str("app", app.Name).
 		Int("descriptors", len(app.Descriptors)).
+		Str("data_dir", dataDir).
 		Msg("Constructed app config")
 
 	// Initialize OpenTelemetry tracing
@@ -87,16 +103,8 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	// Public URL for reverse proxy deployments
 	publicURL := os.Getenv("SERVER_PUBLIC_URL")
 
-	// BoltDB store for sessions and feed registry
-	dbPath := os.Getenv(envPrefix + "_DB_PATH")
-	if dbPath == "" {
-		dataDir, err := defaultDataDir()
-		if err != nil {
-			return fmt.Errorf("resolve data dir: %w", err)
-		}
-		dbPath = filepath.Join(dataDir, dataSubdir, dataSubdir+".db")
-	}
-
+	// All persistent files live under dataDir (per-app, see resolveDataDir).
+	dbPath := filepath.Join(dataDir, app.Name+".db")
 	store, err := boltstore.Open(boltstore.Options{Path: dbPath})
 	if err != nil {
 		return fmt.Errorf("open database at %s: %w", dbPath, err)
@@ -125,15 +133,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		return fmt.Errorf("initialize OAuth: %w", err)
 	}
 
-	// Feed index path
-	feedIndexPath := os.Getenv(envPrefix + "_FEED_INDEX_PATH")
-	if feedIndexPath == "" {
-		dataDir, err := defaultDataDir()
-		if err != nil {
-			return fmt.Errorf("resolve data dir for feed index: %w", err)
-		}
-		feedIndexPath = filepath.Join(dataDir, dataSubdir, "feed-index.sqlite")
-	}
+	feedIndexPath := filepath.Join(dataDir, "feed-index.sqlite")
 
 	// Firehose config — wantedCollections come from app.NSIDs() so the
 	// jetstream subscription tracks the running app's entity set.
@@ -283,28 +283,20 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		}
 	}()
 
-	// Automated backups
-	backupDir := os.Getenv(envPrefix + "_BACKUP_DIR")
-	if backupDir == "" {
-		dataDir, err := defaultDataDir()
-		if err == nil {
-			backupDir = filepath.Join(dataDir, dataSubdir, "backups")
-		}
-	}
-	if backupDir != "" {
-		backupDest, err := backup.NewLocalDestination(backupDir)
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed to create backup destination, backups disabled")
-		} else {
-			backupSvc := backup.NewService(backup.Config{
-				ScheduleHour: 11, // 11:00 UTC = 3:00 AM PST
-				Retain:       2,
-				Dest:         backupDest,
-			})
-			backupSvc.AddSource(backup.NewSQLiteSource("feed-index", feedIndex.DB()))
-			backupSvc.Start(ctx)
-			log.Info().Str("dir", backupDir).Msg("Automated backups enabled")
-		}
+	// Automated backups land under the per-app data dir.
+	backupDir := filepath.Join(dataDir, "backups")
+	backupDest, err := backup.NewLocalDestination(backupDir)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to create backup destination, backups disabled")
+	} else {
+		backupSvc := backup.NewService(backup.Config{
+			ScheduleHour: 11, // 11:00 UTC = 3:00 AM PST
+			Retain:       2,
+			Dest:         backupDest,
+		})
+		backupSvc.AddSource(backup.NewSQLiteSource("feed-index", feedIndex.DB()))
+		backupSvc.Start(ctx)
+		log.Info().Str("dir", backupDir).Msg("Automated backups enabled")
 	}
 
 	// Join request handling
@@ -410,17 +402,42 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	return nil
 }
 
-// defaultDataDir resolves the platform data directory, preferring
-// XDG_DATA_HOME and falling back to ~/.local/share.
-func defaultDataDir() (string, error) {
-	if d := os.Getenv("XDG_DATA_HOME"); d != "" {
+// resolveDataDir returns the per-app data directory: <APP>_DATA_DIR if
+// set (used to point production at /var/lib/<app> or similar), otherwise
+// <XDG_DATA_HOME or ~/.local/share>/<appName>. Both arabica and matcha
+// running on the same host get isolated dirs by default.
+func resolveDataDir(envPrefix, appName string) (string, error) {
+	if d := os.Getenv(envPrefix + "_DATA_DIR"); d != "" {
 		return d, nil
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
+	root := os.Getenv("XDG_DATA_HOME")
+	if root == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		root = filepath.Join(home, ".local", "share")
 	}
-	return filepath.Join(home, ".local", "share"), nil
+	return filepath.Join(root, appName), nil
+}
+
+// validateAppName ensures app.Name is safe for use as an env-var prefix
+// and a path component. Allowed: lowercase letters and digits, starting
+// with a letter. Rejects empty, hyphens, underscores, dots, slashes —
+// all of which would silently break envPrefix construction or path joins.
+func validateAppName(name string) error {
+	if name == "" {
+		return fmt.Errorf("app.Name must not be empty")
+	}
+	for i, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= '0' && r <= '9' && i > 0:
+		default:
+			return fmt.Errorf("app.Name %q invalid at index %d: must match [a-z][a-z0-9]*", name, i)
+		}
+	}
+	return nil
 }
 
 // runBackfill collects DIDs from the registry and the known-dids file,

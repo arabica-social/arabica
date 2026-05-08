@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -20,11 +20,11 @@ import (
 
 // ProfileDataBundle holds all user data fetched from their PDS for profile display
 type ProfileDataBundle struct {
-	Beans    []*models.Bean
-	Roasters []*models.Roaster
-	Grinders []*models.Grinder
-	Brewers  []*models.Brewer
-	Brews    []*models.Brew
+	Beans    []*arabica.Bean
+	Roasters []*arabica.Roaster
+	Grinders []*arabica.Grinder
+	Brewers  []*arabica.Brewer
+	Brews    []*arabica.Brew
 }
 
 // fetchUserProfileData fetches all user data for profile display.
@@ -53,8 +53,8 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 	}
 
 	collections := []string{
-		atproto.NSIDBean, atproto.NSIDRoaster, atproto.NSIDGrinder,
-		atproto.NSIDBrewer, atproto.NSIDBrew,
+		arabica.NSIDBean, arabica.NSIDRoaster, arabica.NSIDGrinder,
+		arabica.NSIDBrewer, arabica.NSIDBrew,
 	}
 
 	results := make(map[string][]*atproto.WitnessRecord)
@@ -78,15 +78,15 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 	metrics.WitnessCacheHitsTotal.WithLabelValues("profile").Inc()
 
 	// Convert witness records to models
-	beanMap := make(map[string]*models.Bean)
+	beanMap := make(map[string]*arabica.Bean)
 	beanRoasterRefMap := make(map[string]string)
-	beans := make([]*models.Bean, 0, len(results[atproto.NSIDBean]))
-	for _, wr := range results[atproto.NSIDBean] {
+	beans := make([]*arabica.Bean, 0, len(results[arabica.NSIDBean]))
+	for _, wr := range results[arabica.NSIDBean] {
 		m, err := atproto.WitnessRecordToMap(wr)
 		if err != nil {
 			continue
 		}
-		bean, err := atproto.RecordToBean(m, wr.URI)
+		bean, err := arabica.RecordToBean(m, wr.URI)
 		if err != nil {
 			continue
 		}
@@ -101,14 +101,14 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 		}
 	}
 
-	roasterMap := make(map[string]*models.Roaster)
-	roasters := make([]*models.Roaster, 0, len(results[atproto.NSIDRoaster]))
-	for _, wr := range results[atproto.NSIDRoaster] {
+	roasterMap := make(map[string]*arabica.Roaster)
+	roasters := make([]*arabica.Roaster, 0, len(results[arabica.NSIDRoaster]))
+	for _, wr := range results[arabica.NSIDRoaster] {
 		m, err := atproto.WitnessRecordToMap(wr)
 		if err != nil {
 			continue
 		}
-		roaster, err := atproto.RecordToRoaster(m, wr.URI)
+		roaster, err := arabica.RecordToRoaster(m, wr.URI)
 		if err != nil {
 			continue
 		}
@@ -117,14 +117,14 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 		roasterMap[wr.URI] = roaster
 	}
 
-	grinderMap := make(map[string]*models.Grinder)
-	grinders := make([]*models.Grinder, 0, len(results[atproto.NSIDGrinder]))
-	for _, wr := range results[atproto.NSIDGrinder] {
+	grinderMap := make(map[string]*arabica.Grinder)
+	grinders := make([]*arabica.Grinder, 0, len(results[arabica.NSIDGrinder]))
+	for _, wr := range results[arabica.NSIDGrinder] {
 		m, err := atproto.WitnessRecordToMap(wr)
 		if err != nil {
 			continue
 		}
-		grinder, err := atproto.RecordToGrinder(m, wr.URI)
+		grinder, err := arabica.RecordToGrinder(m, wr.URI)
 		if err != nil {
 			continue
 		}
@@ -133,14 +133,14 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 		grinderMap[wr.URI] = grinder
 	}
 
-	brewerMap := make(map[string]*models.Brewer)
-	brewers := make([]*models.Brewer, 0, len(results[atproto.NSIDBrewer]))
-	for _, wr := range results[atproto.NSIDBrewer] {
+	brewerMap := make(map[string]*arabica.Brewer)
+	brewers := make([]*arabica.Brewer, 0, len(results[arabica.NSIDBrewer]))
+	for _, wr := range results[arabica.NSIDBrewer] {
 		m, err := atproto.WitnessRecordToMap(wr)
 		if err != nil {
 			continue
 		}
-		brewer, err := atproto.RecordToBrewer(m, wr.URI)
+		brewer, err := arabica.RecordToBrewer(m, wr.URI)
 		if err != nil {
 			continue
 		}
@@ -149,13 +149,13 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 		brewerMap[wr.URI] = brewer
 	}
 
-	brews := make([]*models.Brew, 0, len(results[atproto.NSIDBrew]))
-	for _, wr := range results[atproto.NSIDBrew] {
+	brews := make([]*arabica.Brew, 0, len(results[arabica.NSIDBrew]))
+	for _, wr := range results[arabica.NSIDBrew] {
 		m, err := atproto.WitnessRecordToMap(wr)
 		if err != nil {
 			continue
 		}
-		brew, err := atproto.RecordToBrew(m, wr.URI)
+		brew, err := arabica.RecordToBrew(m, wr.URI)
 		if err != nil {
 			continue
 		}
@@ -175,7 +175,7 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 
 	// Resolve references (same logic as PDS path)
 	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
+		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, arabica.NSIDBean, bean.RKey)]; found {
 			if roaster, found := roasterMap[roasterRef]; found {
 				bean.Roaster = roaster
 			}
@@ -220,30 +220,30 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 	// Fetch all user data in parallel
 	g, gCtx := errgroup.WithContext(ctx)
 
-	var brews []*models.Brew
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
+	var brews []*arabica.Brew
+	var beans []*arabica.Bean
+	var roasters []*arabica.Roaster
+	var grinders []*arabica.Grinder
+	var brewers []*arabica.Brewer
 
 	// Maps for resolving references
-	var beanMap map[string]*models.Bean
+	var beanMap map[string]*arabica.Bean
 	var beanRoasterRefMap map[string]string
-	var roasterMap map[string]*models.Roaster
-	var brewerMap map[string]*models.Brewer
-	var grinderMap map[string]*models.Grinder
+	var roasterMap map[string]*arabica.Roaster
+	var brewerMap map[string]*arabica.Brewer
+	var grinderMap map[string]*arabica.Grinder
 
 	// Fetch beans
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBean, 100)
+		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDBean, 100)
 		if err != nil {
 			return err
 		}
-		beanMap = make(map[string]*models.Bean)
+		beanMap = make(map[string]*arabica.Bean)
 		beanRoasterRefMap = make(map[string]string)
-		beans = make([]*models.Bean, 0, len(output.Records))
+		beans = make([]*arabica.Bean, 0, len(output.Records))
 		for _, record := range output.Records {
-			bean, err := atproto.RecordToBean(record.Value, record.URI)
+			bean, err := arabica.RecordToBean(record.Value, record.URI)
 			if err != nil {
 				continue
 			}
@@ -258,14 +258,14 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch roasters
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDRoaster, 100)
+		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDRoaster, 100)
 		if err != nil {
 			return err
 		}
-		roasterMap = make(map[string]*models.Roaster)
-		roasters = make([]*models.Roaster, 0, len(output.Records))
+		roasterMap = make(map[string]*arabica.Roaster)
+		roasters = make([]*arabica.Roaster, 0, len(output.Records))
 		for _, record := range output.Records {
-			roaster, err := atproto.RecordToRoaster(record.Value, record.URI)
+			roaster, err := arabica.RecordToRoaster(record.Value, record.URI)
 			if err != nil {
 				continue
 			}
@@ -277,14 +277,14 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch grinders
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDGrinder, 100)
+		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDGrinder, 100)
 		if err != nil {
 			return err
 		}
-		grinderMap = make(map[string]*models.Grinder)
-		grinders = make([]*models.Grinder, 0, len(output.Records))
+		grinderMap = make(map[string]*arabica.Grinder)
+		grinders = make([]*arabica.Grinder, 0, len(output.Records))
 		for _, record := range output.Records {
-			grinder, err := atproto.RecordToGrinder(record.Value, record.URI)
+			grinder, err := arabica.RecordToGrinder(record.Value, record.URI)
 			if err != nil {
 				continue
 			}
@@ -296,14 +296,14 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch brewers
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrewer, 100)
+		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDBrewer, 100)
 		if err != nil {
 			return err
 		}
-		brewerMap = make(map[string]*models.Brewer)
-		brewers = make([]*models.Brewer, 0, len(output.Records))
+		brewerMap = make(map[string]*arabica.Brewer)
+		brewers = make([]*arabica.Brewer, 0, len(output.Records))
 		for _, record := range output.Records {
-			brewer, err := atproto.RecordToBrewer(record.Value, record.URI)
+			brewer, err := arabica.RecordToBrewer(record.Value, record.URI)
 			if err != nil {
 				continue
 			}
@@ -315,13 +315,13 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch brews
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, atproto.NSIDBrew, 100)
+		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDBrew, 100)
 		if err != nil {
 			return err
 		}
-		brews = make([]*models.Brew, 0, len(output.Records))
+		brews = make([]*arabica.Brew, 0, len(output.Records))
 		for _, record := range output.Records {
-			brew, err := atproto.RecordToBrew(record.Value, record.URI)
+			brew, err := arabica.RecordToBrew(record.Value, record.URI)
 			if err != nil {
 				continue
 			}
@@ -347,7 +347,7 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Resolve references for beans (roaster refs)
 	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, atproto.NSIDBean, bean.RKey)]; found {
+		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, arabica.NSIDBean, bean.RKey)]; found {
 			if roaster, found := roasterMap[roasterRef]; found {
 				bean.Roaster = roaster
 			}
@@ -573,8 +573,8 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 
 	// Filter moderated content from profile
 	if cf != nil {
-		profileData.Brews = moderation.FilterSlice(cf, profileData.Brews, func(b *models.Brew) (string, string) {
-			return atproto.BuildATURI(did, atproto.NSIDBrew, b.RKey), did
+		profileData.Brews = moderation.FilterSlice(cf, profileData.Brews, func(b *arabica.Brew) (string, string) {
+			return atproto.BuildATURI(did, arabica.NSIDBrew, b.RKey), did
 		})
 	}
 
@@ -626,7 +626,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		brewURIs := make([]string, 0, len(profileData.Brews))
 		uriToRKey := make(map[string]string, len(profileData.Brews))
 		for _, brew := range profileData.Brews {
-			uri := atproto.BuildATURI(profile.DID, atproto.NSIDBrew, brew.RKey)
+			uri := atproto.BuildATURI(profile.DID, arabica.NSIDBrew, brew.RKey)
 			brewURIs = append(brewURIs, uri)
 			uriToRKey[uri] = brew.RKey
 		}
@@ -657,13 +657,13 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 
 		// Average brew ratings — respect profile visibility settings
 		statsVis := h.feedIndex.GetProfileStatsVisibility(ctx, did)
-		if isOwnProfile || statsVis.BeanAvgRating == models.VisibilityPublic {
+		if isOwnProfile || statsVis.BeanAvgRating == arabica.VisibilityPublic {
 			beanAvgBrewRatings = make(map[string]float64)
 			for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(ctx, did) {
 				beanAvgBrewRatings[uri] = stats.Average
 			}
 		}
-		if isOwnProfile || statsVis.RoasterAvgRating == models.VisibilityPublic {
+		if isOwnProfile || statsVis.RoasterAvgRating == arabica.VisibilityPublic {
 			roasterAvgBrewRatings = make(map[string]float64)
 			for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(ctx, did) {
 				roasterAvgBrewRatings[uri] = stats.Average

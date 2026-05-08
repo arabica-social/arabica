@@ -3,8 +3,9 @@ package pages
 import (
 	"context"
 	"strings"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	"testing"
+
+	"tangled.org/arabica.social/arabica/internal/web/components"
 
 	"github.com/a-h/templ"
 	"github.com/stretchr/testify/assert"

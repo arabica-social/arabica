@@ -3,13 +3,13 @@ package components
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
 
 // ProfileBrewCardProps defines props for a single brew card on profile
 type ProfileBrewCardProps struct {
-	Brew            *models.Brew
+	Brew            *arabica.Brew
 	IsOwnProfile    bool
 	ProfileHandle   string
 	Profile         *atproto.Profile
@@ -92,7 +92,7 @@ func buildBrewURI(profile *atproto.Profile, rkey string) string {
 	return fmt.Sprintf("at://%s/social.arabica.alpha.brew/%s", profile.DID, rkey)
 }
 
-func getBrewShareTitle(brew *models.Brew) string {
+func getBrewShareTitle(brew *arabica.Brew) string {
 	if brew.Bean != nil {
 		if brew.Bean.Name != "" {
 			return brew.Bean.Name
@@ -102,7 +102,7 @@ func getBrewShareTitle(brew *models.Brew) string {
 	return "Coffee Brew"
 }
 
-func getBrewShareText(brew *models.Brew, handle string) string {
+func getBrewShareText(brew *arabica.Brew, handle string) string {
 	return fmt.Sprintf("Check out this brew by @%s on Arabica", handle)
 }
 

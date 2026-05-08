@@ -3,16 +3,16 @@ package components
 import (
 	"strconv"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // ProfileContentPartialProps defines props for profile content partial
 type ProfileContentPartialProps struct {
-	Brews         []*models.Brew
-	Beans         []*models.Bean
-	Roasters      []*models.Roaster
-	Grinders      []*models.Grinder
-	Brewers       []*models.Brewer
+	Brews         []*arabica.Brew
+	Beans         []*arabica.Bean
+	Roasters      []*arabica.Roaster
+	Grinders      []*arabica.Grinder
+	Brewers       []*arabica.Brewer
 	IsOwnProfile  bool
 	ProfileHandle string
 	Profile       *atproto.Profile
@@ -82,8 +82,8 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 
 // ProfileBeansTabProps defines props for the beans tab
 type ProfileBeansTabProps struct {
-	Beans                 []*models.Bean
-	Roasters              []*models.Roaster
+	Beans                 []*arabica.Bean
+	Roasters              []*arabica.Roaster
 	IsOwnProfile          bool
 	ProfileHandle         string
 	BeanBrewCounts        map[string]int
@@ -164,8 +164,8 @@ templ ProfileBeansTab(props ProfileBeansTabProps) {
 }
 
 // filterOpenBeans returns only beans that are not closed
-func filterOpenBeans(beans []*models.Bean) []*models.Bean {
-	var openBeans []*models.Bean
+func filterOpenBeans(beans []*arabica.Bean) []*arabica.Bean {
+	var openBeans []*arabica.Bean
 	for _, bean := range beans {
 		if !bean.Closed {
 			openBeans = append(openBeans, bean)
@@ -175,8 +175,8 @@ func filterOpenBeans(beans []*models.Bean) []*models.Bean {
 }
 
 // filterClosedBeans returns only beans that are closed
-func filterClosedBeans(beans []*models.Bean) []*models.Bean {
-	var closedBeans []*models.Bean
+func filterClosedBeans(beans []*arabica.Bean) []*arabica.Bean {
+	var closedBeans []*arabica.Bean
 	for _, bean := range beans {
 		if bean.Closed {
 			closedBeans = append(closedBeans, bean)
@@ -187,7 +187,7 @@ func filterClosedBeans(beans []*models.Bean) []*models.Bean {
 
 // ProfileBrewCardsProps defines props for the profile brew cards component
 type ProfileBrewCardsProps struct {
-	Brews           []*models.Brew
+	Brews           []*arabica.Brew
 	IsOwnProfile    bool
 	ProfileHandle   string
 	Profile         *atproto.Profile
@@ -261,8 +261,8 @@ func getCommentCount(counts map[string]int, rkey string) int {
 
 // ProfileEquipmentTabProps defines props for the equipment tab
 type ProfileEquipmentTabProps struct {
-	Grinders          []*models.Grinder
-	Brewers           []*models.Brewer
+	Grinders          []*arabica.Grinder
+	Brewers           []*arabica.Brewer
 	IsOwnProfile      bool
 	ProfileHandle     string
 	GrinderBrewCounts map[string]int

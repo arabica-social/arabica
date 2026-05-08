@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -257,7 +257,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// Like: create a new like
-		req := &models.CreateLikeRequest{
+		req := &arabica.CreateLikeRequest{
 			SubjectURI: subjectURI,
 			SubjectCID: subjectCID,
 		}

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 )
 
@@ -39,31 +39,31 @@ type entityFieldConfig struct {
 }
 
 var entityConfigs = map[string]entityFieldConfig{
-	atproto.NSIDRoaster: {
+	arabica.NSIDRoaster: {
 		allFields:    []string{"name", "location", "website"},
 		searchFields: []string{"name", "location", "website"},
 		nameField:    "name",
 		dedupKey:     roasterDedupKey,
 	},
-	atproto.NSIDGrinder: {
+	arabica.NSIDGrinder: {
 		allFields:    []string{"name", "grinderType", "burrType"},
 		searchFields: []string{"name", "grinderType", "burrType"},
 		nameField:    "name",
 		dedupKey:     grinderDedupKey,
 	},
-	atproto.NSIDBrewer: {
+	arabica.NSIDBrewer: {
 		allFields:    []string{"name", "brewerType", "description"},
 		searchFields: []string{"name", "brewerType"},
 		nameField:    "name",
 		dedupKey:     brewerDedupKey,
 	},
-	atproto.NSIDBean: {
+	arabica.NSIDBean: {
 		allFields:    []string{"name", "origin", "roastLevel", "process"},
 		searchFields: []string{"name", "origin", "roastLevel"},
 		nameField:    "name",
 		dedupKey:     beanDedupKey,
 	},
-	atproto.NSIDRecipe: {
+	arabica.NSIDRecipe: {
 		allFields:    []string{"name", "brewerType"},
 		searchFields: []string{"name", "brewerType"},
 		nameField:    "name",
@@ -245,7 +245,7 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 	// roaster name in suggestion fields. This lets clients verify the
 	// roaster matches before setting source_ref.
 	var roasterNames map[string]string
-	if collection == atproto.NSIDBean {
+	if collection == arabica.NSIDBean {
 		roasterNames = buildRoasterNameMap(ctx, source)
 	}
 
@@ -382,7 +382,7 @@ func scoreRecord(ctx context.Context, source RecordSource, uri, did string, fiel
 // from AT-URI to roaster name. Used to resolve roaster references in bean
 // suggestions so the client can verify roaster match before setting source_ref.
 func buildRoasterNameMap(ctx context.Context, source RecordSource) map[string]string {
-	records, err := source.ListRecordsByCollectionOldest(ctx, atproto.NSIDRoaster)
+	records, err := source.ListRecordsByCollectionOldest(ctx, arabica.NSIDRoaster)
 	if err != nil {
 		return nil
 	}

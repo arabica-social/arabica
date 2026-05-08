@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/rs/zerolog/log"
 )
@@ -13,7 +13,7 @@ import (
 // CreateNotification stores a notification for the target user.
 // Deduplicates by (type + actorDID + subjectURI) via unique index.
 // Self-notifications (actorDID == targetDID) are silently skipped.
-func (idx *FeedIndex) CreateNotification(targetDID string, notif models.Notification) error {
+func (idx *FeedIndex) CreateNotification(targetDID string, notif arabica.Notification) error {
 	if targetDID == "" || targetDID == notif.ActorDID {
 		return nil // skip self-notifications
 	}
@@ -34,7 +34,7 @@ func (idx *FeedIndex) CreateNotification(targetDID string, notif models.Notifica
 
 // GetNotifications returns notifications for a user, newest first.
 // Uses cursor-based pagination. Returns notifications, next cursor, and error.
-func (idx *FeedIndex) GetNotifications(targetDID string, limit int, cursor string) ([]models.Notification, string, error) {
+func (idx *FeedIndex) GetNotifications(targetDID string, limit int, cursor string) ([]arabica.Notification, string, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -61,14 +61,14 @@ func (idx *FeedIndex) GetNotifications(targetDID string, limit int, cursor strin
 	}
 	defer rows.Close()
 
-	var notifications []models.Notification
+	var notifications []arabica.Notification
 	for rows.Next() {
-		var notif models.Notification
+		var notif arabica.Notification
 		var typeStr, createdAtStr string
 		if err := rows.Scan(&notif.ID, &typeStr, &notif.ActorDID, &notif.SubjectURI, &createdAtStr); err != nil {
 			continue
 		}
-		notif.Type = models.NotificationType(typeStr)
+		notif.Type = arabica.NotificationType(typeStr)
 		notif.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
 
 		if !lastRead.IsZero() && !notif.CreatedAt.After(lastRead) {
@@ -145,7 +145,7 @@ func parseTargetDID(atURI string) string {
 
 // DeleteNotification removes a notification matching (type + actorDID + subjectURI)
 // from the target user's notification list. No-op if not found.
-func (idx *FeedIndex) DeleteNotification(targetDID string, notifType models.NotificationType, actorDID, subjectURI string) {
+func (idx *FeedIndex) DeleteNotification(targetDID string, notifType arabica.NotificationType, actorDID, subjectURI string) {
 	if targetDID == "" {
 		return
 	}
@@ -162,20 +162,20 @@ func (idx *FeedIndex) DeleteNotification(targetDID string, notifType models.Noti
 // DeleteLikeNotification removes the notification for a like that was undone
 func (idx *FeedIndex) DeleteLikeNotification(actorDID, subjectURI string) {
 	targetDID := parseTargetDID(subjectURI)
-	idx.DeleteNotification(targetDID, models.NotificationLike, actorDID, subjectURI)
+	idx.DeleteNotification(targetDID, arabica.NotificationLike, actorDID, subjectURI)
 }
 
 // DeleteCommentNotification removes notifications for a deleted comment
 func (idx *FeedIndex) DeleteCommentNotification(actorDID, subjectURI, parentURI string) {
 	// Remove the comment notification sent to the brew owner
 	targetDID := parseTargetDID(subjectURI)
-	idx.DeleteNotification(targetDID, models.NotificationComment, actorDID, subjectURI)
+	idx.DeleteNotification(targetDID, arabica.NotificationComment, actorDID, subjectURI)
 
 	// Remove the reply notification sent to the parent comment's author
 	if parentURI != "" {
 		parentAuthorDID := parseTargetDID(parentURI)
 		if parentAuthorDID != targetDID {
-			idx.DeleteNotification(parentAuthorDID, models.NotificationCommentReply, actorDID, subjectURI)
+			idx.DeleteNotification(parentAuthorDID, arabica.NotificationCommentReply, actorDID, subjectURI)
 		}
 	}
 }
@@ -199,8 +199,8 @@ func (idx *FeedIndex) CreateLikeNotification(actorDID, subjectURI string) {
 		return
 	}
 
-	notif := models.Notification{
-		Type:       models.NotificationLike,
+	notif := arabica.Notification{
+		Type:       arabica.NotificationLike,
 		ActorDID:   actorDID,
 		SubjectURI: subjectURI,
 		CreatedAt:  time.Now(),
@@ -219,8 +219,8 @@ func (idx *FeedIndex) CreateCommentNotification(actorDID, subjectURI, parentURI 
 	// Notify the brew owner
 	targetDID := parseTargetDID(subjectURI)
 	if targetDID != "" && targetDID != actorDID {
-		notif := models.Notification{
-			Type:       models.NotificationComment,
+		notif := arabica.Notification{
+			Type:       arabica.NotificationComment,
 			ActorDID:   actorDID,
 			SubjectURI: subjectURI,
 			CreatedAt:  now,
@@ -234,8 +234,8 @@ func (idx *FeedIndex) CreateCommentNotification(actorDID, subjectURI, parentURI 
 	if parentURI != "" {
 		parentAuthorDID := parseTargetDID(parentURI)
 		if parentAuthorDID != "" && parentAuthorDID != actorDID && parentAuthorDID != targetDID {
-			replyNotif := models.Notification{
-				Type:       models.NotificationCommentReply,
+			replyNotif := arabica.Notification{
+				Type:       arabica.NotificationCommentReply,
 				ActorDID:   actorDID,
 				SubjectURI: subjectURI, // brew URI, not parent comment URI
 				CreatedAt:  now,

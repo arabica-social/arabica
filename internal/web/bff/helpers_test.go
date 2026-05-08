@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 func TestFormatTemp(t *testing.T) {
@@ -58,12 +58,12 @@ func TestFormatTime(t *testing.T) {
 func TestPoursToJSON(t *testing.T) {
 	tests := []struct {
 		name     string
-		pours    []*models.Pour
+		pours    []*arabica.Pour
 		expected string
 	}{
 		{
 			name:     "empty pours",
-			pours:    []*models.Pour{},
+			pours:    []*arabica.Pour{},
 			expected: "[]",
 		},
 		{
@@ -73,14 +73,14 @@ func TestPoursToJSON(t *testing.T) {
 		},
 		{
 			name: "single pour",
-			pours: []*models.Pour{
+			pours: []*arabica.Pour{
 				{WaterAmount: 50, TimeSeconds: 30},
 			},
 			expected: `[{"water":50,"time":30}]`,
 		},
 		{
 			name: "multiple pours",
-			pours: []*models.Pour{
+			pours: []*arabica.Pour{
 				{WaterAmount: 50, TimeSeconds: 30},
 				{WaterAmount: 100, TimeSeconds: 60},
 				{WaterAmount: 150, TimeSeconds: 90},
@@ -89,7 +89,7 @@ func TestPoursToJSON(t *testing.T) {
 		},
 		{
 			name: "zero values",
-			pours: []*models.Pour{
+			pours: []*arabica.Pour{
 				{WaterAmount: 0, TimeSeconds: 0},
 			},
 			expected: `[{"water":0,"time":0}]`,

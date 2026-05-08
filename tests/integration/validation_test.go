@@ -17,8 +17,8 @@ import (
 func TestHTTP_ValidationErrors(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Build long strings once. Limits per models.go: name=200, location=200,
-	// website=500. Use 1000 to comfortably exceed any boundary.
+	// Build long strings once. Limits per entities/arabica/models.go: name=200,
+	// location=200, website=500. Use 1000 to comfortably exceed any boundary.
 	tooLong := strings.Repeat("a", 1000)
 
 	cases := []struct {

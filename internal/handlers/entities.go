@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -38,11 +38,11 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	// and automatic context cancellation on first error
 	g, ctx := errgroup.WithContext(ctx)
 
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-	var recipes []*models.Recipe
+	var beans []*arabica.Bean
+	var roasters []*arabica.Roaster
+	var grinders []*arabica.Grinder
+	var brewers []*arabica.Brewer
+	var recipes []*arabica.Recipe
 
 	g.Go(func() error {
 		var err error
@@ -80,7 +80,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	atproto.LinkBeansToRoasters(beans, roasters)
 
 	// Link recipes to their brewers
-	brewerMap := make(map[string]*models.Brewer, len(brewers))
+	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
 	for _, b := range brewers {
 		brewerMap[b.RKey] = b
 	}
@@ -139,12 +139,12 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	// Fetch all collections in parallel using errgroup
 	g, ctx := errgroup.WithContext(ctx)
 
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-	var recipes []*models.Recipe
-	var brews []*models.Brew
+	var beans []*arabica.Bean
+	var roasters []*arabica.Roaster
+	var grinders []*arabica.Grinder
+	var brewers []*arabica.Brewer
+	var recipes []*arabica.Recipe
+	var brews []*arabica.Brew
 
 	g.Go(func() error {
 		var err error
@@ -211,11 +211,11 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.CreateBeanRequest
+	var req arabica.CreateBeanRequest
 
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
-		req = models.CreateBeanRequest{
+		req = arabica.CreateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
 			Variety:     r.FormValue("variety"),
@@ -248,7 +248,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 
 	// If a new roaster name was provided and no existing roaster selected, create it
 	if newRoasterName := r.FormValue("new_roaster_name"); newRoasterName != "" && req.RoasterRKey == "" {
-		roaster, roasterErr := store.CreateRoaster(r.Context(), &models.CreateRoasterRequest{
+		roaster, roasterErr := store.CreateRoaster(r.Context(), &arabica.CreateRoasterRequest{
 			Name:     newRoasterName,
 			Location: r.FormValue("new_roaster_location"),
 			Website:  r.FormValue("new_roaster_website"),
@@ -289,11 +289,11 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.CreateRoasterRequest
+	var req arabica.CreateRoasterRequest
 
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
-		req = models.CreateRoasterRequest{
+		req = arabica.CreateRoasterRequest{
 			Name:      r.FormValue("name"),
 			Location:  r.FormValue("location"),
 			Website:   r.FormValue("website"),
@@ -355,9 +355,9 @@ func (h *Handler) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	g, ctx := errgroup.WithContext(ctx)
 
-	var beans []*models.Bean
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
+	var beans []*arabica.Bean
+	var grinders []*arabica.Grinder
+	var brewers []*arabica.Brewer
 
 	g.Go(func() error {
 		var err error
@@ -421,8 +421,8 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 
 	// Re-fetch all entity collections from PDS and write-through to witness
 	entityCollections := []string{
-		atproto.NSIDBean, atproto.NSIDRoaster, atproto.NSIDGrinder,
-		atproto.NSIDBrewer, atproto.NSIDRecipe, atproto.NSIDBrew,
+		arabica.NSIDBean, arabica.NSIDRoaster, arabica.NSIDGrinder,
+		arabica.NSIDBrewer, arabica.NSIDRecipe, arabica.NSIDBrew,
 	}
 
 	if h.witnessCache != nil {
@@ -467,11 +467,11 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	g, ctx := errgroup.WithContext(ctx)
 
-	var beans []*models.Bean
-	var roasters []*models.Roaster
-	var grinders []*models.Grinder
-	var brewers []*models.Brewer
-	var recipes []*models.Recipe
+	var beans []*arabica.Bean
+	var roasters []*arabica.Roaster
+	var grinders []*arabica.Grinder
+	var brewers []*arabica.Brewer
+	var recipes []*arabica.Recipe
 
 	g.Go(func() error {
 		var err error
@@ -507,7 +507,7 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 
 	atproto.LinkBeansToRoasters(beans, roasters)
 
-	brewerMap := make(map[string]*models.Brewer, len(brewers))
+	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
 	for _, b := range brewers {
 		brewerMap[b.RKey] = b
 	}
@@ -560,11 +560,11 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.UpdateBeanRequest
+	var req arabica.UpdateBeanRequest
 
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
-		req = models.UpdateBeanRequest{
+		req = arabica.UpdateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
 			Variety:     r.FormValue("variety"),
@@ -598,7 +598,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// If a new roaster name was provided and no existing roaster selected, create it
 	if newRoasterName := r.FormValue("new_roaster_name"); newRoasterName != "" && req.RoasterRKey == "" {
-		roaster, roasterErr := store.CreateRoaster(r.Context(), &models.CreateRoasterRequest{
+		roaster, roasterErr := store.CreateRoaster(r.Context(), &arabica.CreateRoasterRequest{
 			Name:     newRoasterName,
 			Location: r.FormValue("new_roaster_location"),
 			Website:  r.FormValue("new_roaster_website"),
@@ -642,7 +642,7 @@ func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBeanByRKey, "bean", atproto.NSIDBean)
+	h.deleteEntity(w, r, store.DeleteBeanByRKey, "bean", arabica.NSIDBean)
 }
 
 // Roaster update/delete handlers
@@ -659,11 +659,11 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.UpdateRoasterRequest
+	var req arabica.UpdateRoasterRequest
 
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
-		req = models.UpdateRoasterRequest{
+		req = arabica.UpdateRoasterRequest{
 			Name:      r.FormValue("name"),
 			Location:  r.FormValue("location"),
 			Website:   r.FormValue("website"),
@@ -706,7 +706,7 @@ func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteRoasterByRKey, "roaster", atproto.NSIDRoaster)
+	h.deleteEntity(w, r, store.DeleteRoasterByRKey, "roaster", arabica.NSIDRoaster)
 }
 
 // Grinder CRUD handlers
@@ -718,11 +718,11 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.CreateGrinderRequest
+	var req arabica.CreateGrinderRequest
 
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
-		req = models.CreateGrinderRequest{
+		req = arabica.CreateGrinderRequest{
 			Name:        r.FormValue("name"),
 			GrinderType: r.FormValue("grinder_type"),
 			BurrType:    r.FormValue("burr_type"),
@@ -767,11 +767,11 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.UpdateGrinderRequest
+	var req arabica.UpdateGrinderRequest
 
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
-		req = models.UpdateGrinderRequest{
+		req = arabica.UpdateGrinderRequest{
 			Name:        r.FormValue("name"),
 			GrinderType: r.FormValue("grinder_type"),
 			BurrType:    r.FormValue("burr_type"),
@@ -815,7 +815,7 @@ func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteGrinderByRKey, "grinder", atproto.NSIDGrinder)
+	h.deleteEntity(w, r, store.DeleteGrinderByRKey, "grinder", arabica.NSIDGrinder)
 }
 
 // Brewer CRUD handlers
@@ -827,11 +827,11 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.CreateBrewerRequest
+	var req arabica.CreateBrewerRequest
 
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
-		req = models.CreateBrewerRequest{
+		req = arabica.CreateBrewerRequest{
 			Name:        r.FormValue("name"),
 			BrewerType:  r.FormValue("brewer_type"),
 			Description: r.FormValue("description"),
@@ -875,11 +875,11 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.UpdateBrewerRequest
+	var req arabica.UpdateBrewerRequest
 
 	// Decode request (JSON or form)
 	if err := decodeRequest(r, &req, func() error {
-		req = models.UpdateBrewerRequest{
+		req = arabica.UpdateBrewerRequest{
 			Name:        r.FormValue("name"),
 			BrewerType:  r.FormValue("brewer_type"),
 			Description: r.FormValue("description"),
@@ -922,5 +922,5 @@ func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBrewerByRKey, "brewer", atproto.NSIDBrewer)
+	h.deleteEntity(w, r, store.DeleteBrewerByRKey, "brewer", arabica.NSIDBrewer)
 }

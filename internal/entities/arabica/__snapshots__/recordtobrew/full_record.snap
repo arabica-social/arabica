@@ -1,0 +1,54 @@
+---
+title: RecordToBrew/full record
+test_name: TestRecordToBrew/full_record
+file_name: records_test.go
+version: 0.1.0
+---
+&arabica.Brew{
+  RKey: "brew123",
+  BeanRKey: "",
+  RecipeRKey: "",
+  Method: "V60",
+  Temperature: 93.5,
+  WaterAmount: 300,
+  CoffeeAmount: 0,
+  TimeSeconds: 180,
+  GrindSize: "Medium",
+  GrinderRKey: "",
+  BrewerRKey: "",
+  TastingNotes: "Fruity",
+  Rating: 8,
+  CreatedAt: time.Time{
+    wall: 0x0,
+    ext: 63872107200,
+    loc: (*time.Location)(nil),
+  },
+  EspressoParams: (*arabica.EspressoParams)(nil),
+  PouroverParams: (*arabica.PouroverParams)(nil),
+  Bean: (*arabica.Bean)(nil),
+  RecipeObj: (*arabica.Recipe)(nil),
+  GrinderObj: (*arabica.Grinder)(nil),
+  BrewerObj: (*arabica.Brewer)(nil),
+  Pours: []*arabica.Pour{
+    &arabica.Pour{
+      PourNumber: 1,
+      WaterAmount: 50,
+      TimeSeconds: 30,
+      CreatedAt: time.Time{
+        wall: 0x0,
+        ext: 0,
+        loc: (*time.Location)(nil),
+      },
+    },
+    &arabica.Pour{
+      PourNumber: 2,
+      WaterAmount: 100,
+      TimeSeconds: 60,
+      CreatedAt: time.Time{
+        wall: 0x0,
+        ext: 0,
+        loc: (*time.Location)(nil),
+      },
+    },
+  },
+}

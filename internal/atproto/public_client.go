@@ -27,7 +27,7 @@ type cachedValue struct {
 type PublicClient struct {
 	inner *atp.PublicClient
 
-	pdsMu   sync.RWMutex
+	pdsMu    sync.RWMutex
 	pdsCache map[string]cachedValue // DID → PDS URL
 
 	handleMu    sync.RWMutex

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,8 +31,8 @@ func TestCreateNotification(t *testing.T) {
 	actorDID := "did:plc:actor456"
 	subjectURI := "at://did:plc:target123/social.arabica.alpha.brew/abc"
 
-	notif := models.Notification{
-		Type:       models.NotificationLike,
+	notif := arabica.Notification{
+		Type:       arabica.NotificationLike,
 		ActorDID:   actorDID,
 		SubjectURI: subjectURI,
 		CreatedAt:  time.Now(),
@@ -45,7 +45,7 @@ func TestCreateNotification(t *testing.T) {
 	notifications, _, err := idx.GetNotifications(targetDID, 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, notifications, 1)
-	assert.Equal(t, models.NotificationLike, notifications[0].Type)
+	assert.Equal(t, arabica.NotificationLike, notifications[0].Type)
 	assert.Equal(t, actorDID, notifications[0].ActorDID)
 	assert.Equal(t, subjectURI, notifications[0].SubjectURI)
 }
@@ -55,8 +55,8 @@ func TestCreateNotification_SkipsSelfNotification(t *testing.T) {
 
 	selfDID := "did:plc:self123"
 
-	notif := models.Notification{
-		Type:       models.NotificationLike,
+	notif := arabica.Notification{
+		Type:       arabica.NotificationLike,
 		ActorDID:   selfDID,
 		SubjectURI: "at://did:plc:self123/social.arabica.alpha.brew/abc",
 		CreatedAt:  time.Now(),
@@ -74,8 +74,8 @@ func TestCreateNotification_Deduplication(t *testing.T) {
 	idx := newTestIndex(t)
 
 	targetDID := "did:plc:target123"
-	notif := models.Notification{
-		Type:       models.NotificationLike,
+	notif := arabica.Notification{
+		Type:       arabica.NotificationLike,
 		ActorDID:   "did:plc:actor456",
 		SubjectURI: "at://did:plc:target123/social.arabica.alpha.brew/abc",
 		CreatedAt:  time.Now(),
@@ -101,8 +101,8 @@ func TestGetUnreadCount(t *testing.T) {
 
 	// Add some notifications
 	for i := range 3 {
-		notif := models.Notification{
-			Type:       models.NotificationLike,
+		notif := arabica.Notification{
+			Type:       arabica.NotificationLike,
 			ActorDID:   "did:plc:actor" + string(rune('a'+i)),
 			SubjectURI: "at://did:plc:target123/social.arabica.alpha.brew/abc",
 			CreatedAt:  baseTime.Add(time.Duration(i) * time.Second),
@@ -121,8 +121,8 @@ func TestMarkAllRead(t *testing.T) {
 
 	// Add notifications
 	for i := range 3 {
-		notif := models.Notification{
-			Type:       models.NotificationLike,
+		notif := arabica.Notification{
+			Type:       arabica.NotificationLike,
 			ActorDID:   "did:plc:actor" + string(rune('a'+i)),
 			SubjectURI: "at://did:plc:target123/social.arabica.alpha.brew/abc",
 			CreatedAt:  baseTime.Add(time.Duration(i) * time.Second),
@@ -153,8 +153,8 @@ func TestGetNotifications_Pagination(t *testing.T) {
 
 	// Add 5 notifications
 	for i := range 5 {
-		notif := models.Notification{
-			Type:       models.NotificationLike,
+		notif := arabica.Notification{
+			Type:       arabica.NotificationLike,
 			ActorDID:   "did:plc:actor" + string(rune('a'+i)),
 			SubjectURI: "at://did:plc:target123/social.arabica.alpha.brew/abc",
 			CreatedAt:  baseTime.Add(time.Duration(i) * time.Second),
@@ -227,7 +227,7 @@ func TestCreateLikeNotification(t *testing.T) {
 	notifications, _, err := idx.GetNotifications("did:plc:target123", 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, notifications, 1)
-	assert.Equal(t, models.NotificationLike, notifications[0].Type)
+	assert.Equal(t, arabica.NotificationLike, notifications[0].Type)
 }
 
 func TestCreateLikeNotification_SkipsSelf(t *testing.T) {
@@ -254,7 +254,7 @@ func TestCreateCommentNotification(t *testing.T) {
 	notifications, _, err := idx.GetNotifications("did:plc:target123", 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, notifications, 1)
-	assert.Equal(t, models.NotificationComment, notifications[0].Type)
+	assert.Equal(t, arabica.NotificationComment, notifications[0].Type)
 }
 
 func TestCreateCommentNotification_WithReply(t *testing.T) {
@@ -270,12 +270,12 @@ func TestCreateCommentNotification_WithReply(t *testing.T) {
 	brewOwnerNotifs, _, err := idx.GetNotifications("did:plc:brewowner", 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, brewOwnerNotifs, 1)
-	assert.Equal(t, models.NotificationComment, brewOwnerNotifs[0].Type)
+	assert.Equal(t, arabica.NotificationComment, brewOwnerNotifs[0].Type)
 
 	// Parent comment author gets a reply notification with the brew URI (not the parent comment URI)
 	commenterNotifs, _, err := idx.GetNotifications("did:plc:commenter789", 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, commenterNotifs, 1)
-	assert.Equal(t, models.NotificationCommentReply, commenterNotifs[0].Type)
+	assert.Equal(t, arabica.NotificationCommentReply, commenterNotifs[0].Type)
 	assert.Equal(t, subjectURI, commenterNotifs[0].SubjectURI)
 }

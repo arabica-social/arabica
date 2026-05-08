@@ -7,23 +7,23 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // TestFixtures contains sample data for testing
 type TestFixtures struct {
-	Bean    *models.Bean
-	Roaster *models.Roaster
-	Grinder *models.Grinder
-	Brewer  *models.Brewer
-	Brew    *models.Brew
+	Bean    *arabica.Bean
+	Roaster *arabica.Roaster
+	Grinder *arabica.Grinder
+	Brewer  *arabica.Brewer
+	Brew    *arabica.Brew
 }
 
 // NewTestFixtures creates a set of sample test data
 func NewTestFixtures() *TestFixtures {
 	now := time.Now()
 
-	roaster := &models.Roaster{
+	roaster := &arabica.Roaster{
 		RKey:      "test-roaster-rkey",
 		Name:      "Test Roaster",
 		Location:  "Test City",
@@ -31,7 +31,7 @@ func NewTestFixtures() *TestFixtures {
 		CreatedAt: now,
 	}
 
-	bean := &models.Bean{
+	bean := &arabica.Bean{
 		RKey:        "test-bean-rkey",
 		Name:        "Test Bean",
 		Origin:      "Ethiopia",
@@ -43,7 +43,7 @@ func NewTestFixtures() *TestFixtures {
 		CreatedAt:   now,
 	}
 
-	grinder := &models.Grinder{
+	grinder := &arabica.Grinder{
 		RKey:        "test-grinder-rkey",
 		Name:        "Test Grinder",
 		GrinderType: "Hand",
@@ -52,7 +52,7 @@ func NewTestFixtures() *TestFixtures {
 		CreatedAt:   now,
 	}
 
-	brewer := &models.Brewer{
+	brewer := &arabica.Brewer{
 		RKey:        "test-brewer-rkey",
 		Name:        "Test Brewer",
 		BrewerType:  "Pour Over",
@@ -60,7 +60,7 @@ func NewTestFixtures() *TestFixtures {
 		CreatedAt:   now,
 	}
 
-	brew := &models.Brew{
+	brew := &arabica.Brew{
 		RKey:         "test-brew-rkey",
 		BeanRKey:     bean.RKey,
 		Method:       "V60",

@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func TestHTTP_RoasterCreateFlow(t *testing.T) {
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
 
-	var created models.Roaster
+	var created arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(body), &created))
 	assert.Equal(t, "Counter Culture", created.Name)
 	assert.Equal(t, "Durham, NC", created.Location)
@@ -79,7 +79,7 @@ func TestHTTP_RoasterUpdateFlow(t *testing.T) {
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
 
-	var created models.Roaster
+	var created arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(createBody), &created))
 	require.NotEmpty(t, created.RKey)
 
@@ -96,11 +96,11 @@ func TestHTTP_RoasterUpdateFlow(t *testing.T) {
 	require.Equal(t, 200, listResp.StatusCode, statusErr(listResp, listBody))
 
 	var data struct {
-		Roasters []models.Roaster `json:"roasters"`
+		Roasters []arabica.Roaster `json:"roasters"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(listBody), &data))
 
-	var found *models.Roaster
+	var found *arabica.Roaster
 	for i := range data.Roasters {
 		if data.Roasters[i].RKey == created.RKey {
 			found = &data.Roasters[i]
@@ -123,7 +123,7 @@ func TestHTTP_RoasterDeleteFlow(t *testing.T) {
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
 
-	var created models.Roaster
+	var created arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(createBody), &created))
 	require.NotEmpty(t, created.RKey)
 
@@ -136,7 +136,7 @@ func TestHTTP_RoasterDeleteFlow(t *testing.T) {
 	require.Equal(t, 200, listResp.StatusCode, statusErr(listResp, listBody))
 
 	var data struct {
-		Roasters []models.Roaster `json:"roasters"`
+		Roasters []arabica.Roaster `json:"roasters"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(listBody), &data))
 	for _, r := range data.Roasters {
@@ -157,7 +157,7 @@ func TestHTTP_BeanCreateLinksToRoaster(t *testing.T) {
 	roasterBody := ReadBody(t, roasterResp)
 	require.Equal(t, 200, roasterResp.StatusCode, statusErr(roasterResp, roasterBody))
 
-	var roaster models.Roaster
+	var roaster arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(roasterBody), &roaster))
 	require.NotEmpty(t, roaster.RKey)
 
@@ -171,7 +171,7 @@ func TestHTTP_BeanCreateLinksToRoaster(t *testing.T) {
 	beanBody := ReadBody(t, beanResp)
 	require.Equal(t, 200, beanResp.StatusCode, statusErr(beanResp, beanBody))
 
-	var bean models.Bean
+	var bean arabica.Bean
 	require.NoError(t, json.Unmarshal([]byte(beanBody), &bean))
 	assert.Equal(t, "Geometry", bean.Name)
 	assert.Equal(t, roaster.RKey, bean.RoasterRKey)

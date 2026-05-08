@@ -1,0 +1,25 @@
+---
+title: RoundTrip/bean
+test_name: TestRoundTrip/bean_round_trip
+file_name: records_test.go
+version: 0.1.0
+---
+&arabica.Bean{
+  RKey: "bean123",
+  Name: "Ethiopian Yirgacheffe",
+  Origin: "Ethiopia",
+  Variety: "",
+  RoastLevel: "Light",
+  Process: "Washed",
+  Description: "Fruity notes",
+  RoasterRKey: "",
+  Rating: (*int)(nil),
+  Closed: false,
+  SourceRef: "",
+  CreatedAt: time.Time{
+    wall: 0x0,
+    ext: 63872107200,
+    loc: (*time.Location)(nil),
+  },
+  Roaster: (*arabica.Roaster)(nil),
+}

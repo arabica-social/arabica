@@ -713,20 +713,20 @@ func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
 
 // exportedRecord is the per-record shape in the witness export payload.
 type exportedRecord struct {
-	URI        string          `json:"uri"`
-	RKey       string          `json:"rkey"`
-	CID        string          `json:"cid"`
-	CreatedAt  time.Time       `json:"createdAt"`
-	IndexedAt  time.Time       `json:"indexedAt"`
-	Record     json.RawMessage `json:"record"`
+	URI       string          `json:"uri"`
+	RKey      string          `json:"rkey"`
+	CID       string          `json:"cid"`
+	CreatedAt time.Time       `json:"createdAt"`
+	IndexedAt time.Time       `json:"indexedAt"`
+	Record    json.RawMessage `json:"record"`
 }
 
 // witnessExport is the top-level payload returned by HandleAdminExportDID.
 type witnessExport struct {
-	DID         string                       `json:"did"`
-	ExportedAt  time.Time                    `json:"exportedAt"`
-	Source      string                       `json:"source"`
-	Collections map[string][]exportedRecord  `json:"collections"`
+	DID         string                      `json:"did"`
+	ExportedAt  time.Time                   `json:"exportedAt"`
+	Source      string                      `json:"source"`
+	Collections map[string][]exportedRecord `json:"collections"`
 }
 
 // HandleAdminExportDID exports every witness-cached record for a given DID as
@@ -836,8 +836,8 @@ func (h *Handler) HandleAdminPurgeDID(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"did":     didStr,
-		"purged":  true,
+		"did":      didStr,
+		"purged":   true,
 		"purgedAt": time.Now().UTC(),
 	})
 }
@@ -928,11 +928,11 @@ type pdsRecord struct {
 
 // pdsExport is the top-level payload returned by HandleAdminFetchPDSRecords.
 type pdsExport struct {
-	DID         string                  `json:"did"`
-	Handle      string                  `json:"handle,omitempty"`
-	FetchedAt   time.Time               `json:"fetchedAt"`
-	Source      string                  `json:"source"`
-	Collections map[string][]pdsRecord  `json:"collections"`
+	DID         string                 `json:"did"`
+	Handle      string                 `json:"handle,omitempty"`
+	FetchedAt   time.Time              `json:"fetchedAt"`
+	Source      string                 `json:"source"`
+	Collections map[string][]pdsRecord `json:"collections"`
 }
 
 // HandleAdminFetchPDSRecords fetches every Arabica record for an account

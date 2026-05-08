@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -92,7 +92,7 @@ func TestPDS_RoasterCRUD(t *testing.T) {
 	ctx := context.Background()
 
 	// Create
-	roaster, err := store.CreateRoaster(ctx, &models.CreateRoasterRequest{
+	roaster, err := store.CreateRoaster(ctx, &arabica.CreateRoasterRequest{
 		Name:     "Counter Culture",
 		Location: "Durham, NC",
 		Website:  "https://counterculturecoffee.com",
@@ -110,7 +110,7 @@ func TestPDS_RoasterCRUD(t *testing.T) {
 	assert.Equal(t, "https://counterculturecoffee.com", fetched.Website)
 
 	// Update
-	err = store.UpdateRoasterByRKey(ctx, roaster.RKey, &models.UpdateRoasterRequest{
+	err = store.UpdateRoasterByRKey(ctx, roaster.RKey, &arabica.UpdateRoasterRequest{
 		Name:     "Counter Culture Coffee",
 		Location: "Durham, NC",
 		Website:  "https://counterculturecoffee.com",
@@ -143,13 +143,13 @@ func TestPDS_BeanWithRoasterRef(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a roaster first
-	roaster, err := store.CreateRoaster(ctx, &models.CreateRoasterRequest{
+	roaster, err := store.CreateRoaster(ctx, &arabica.CreateRoasterRequest{
 		Name: "Sweet Maria's",
 	})
 	require.NoError(t, err)
 
 	// Create a bean referencing the roaster
-	bean, err := store.CreateBean(ctx, &models.CreateBeanRequest{
+	bean, err := store.CreateBean(ctx, &arabica.CreateBeanRequest{
 		Name:        "Ethiopia Yirgacheffe",
 		Origin:      "Ethiopia",
 		RoastLevel:  "Light",
@@ -174,7 +174,7 @@ func TestPDS_GrinderCRUD(t *testing.T) {
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
 
-	grinder, err := store.CreateGrinder(ctx, &models.CreateGrinderRequest{
+	grinder, err := store.CreateGrinder(ctx, &arabica.CreateGrinderRequest{
 		Name:        "Comandante C40",
 		GrinderType: "hand",
 		BurrType:    "conical",
@@ -194,7 +194,7 @@ func TestPDS_BrewerCRUD(t *testing.T) {
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
 
-	brewer, err := store.CreateBrewer(ctx, &models.CreateBrewerRequest{
+	brewer, err := store.CreateBrewer(ctx, &arabica.CreateBrewerRequest{
 		Name:       "Hario V60",
 		BrewerType: "pourover",
 	})
@@ -213,31 +213,31 @@ func TestPDS_FullBrewSession(t *testing.T) {
 	ctx := context.Background()
 
 	// Set up entities
-	roaster, err := store.CreateRoaster(ctx, &models.CreateRoasterRequest{Name: "Onyx"})
+	roaster, err := store.CreateRoaster(ctx, &arabica.CreateRoasterRequest{Name: "Onyx"})
 	require.NoError(t, err)
 
-	bean, err := store.CreateBean(ctx, &models.CreateBeanRequest{
+	bean, err := store.CreateBean(ctx, &arabica.CreateBeanRequest{
 		Name:        "Monarch",
 		RoasterRKey: roaster.RKey,
 		RoastLevel:  "Medium",
 	})
 	require.NoError(t, err)
 
-	grinder, err := store.CreateGrinder(ctx, &models.CreateGrinderRequest{
+	grinder, err := store.CreateGrinder(ctx, &arabica.CreateGrinderRequest{
 		Name:        "1Zpresso JX-Pro",
 		GrinderType: "hand",
 		BurrType:    "conical",
 	})
 	require.NoError(t, err)
 
-	brewer, err := store.CreateBrewer(ctx, &models.CreateBrewerRequest{
+	brewer, err := store.CreateBrewer(ctx, &arabica.CreateBrewerRequest{
 		Name:       "V60",
 		BrewerType: "pourover",
 	})
 	require.NoError(t, err)
 
 	// Create a brew referencing all entities
-	brew, err := store.CreateBrew(ctx, &models.CreateBrewRequest{
+	brew, err := store.CreateBrew(ctx, &arabica.CreateBrewRequest{
 		BeanRKey:    bean.RKey,
 		GrinderRKey: grinder.RKey,
 		BrewerRKey:  brewer.RKey,

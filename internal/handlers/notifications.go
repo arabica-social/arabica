@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 
 	"github.com/rs/zerolog/log"
@@ -92,22 +92,22 @@ func (h *Handler) HandleNotificationsMarkRead(w http.ResponseWriter, r *http.Req
 
 // collectionURLPath maps AT Protocol collection NSIDs to their URL path prefixes.
 var collectionURLPath = map[string]string{
-	atproto.NSIDBrew:    "/brews/",
-	atproto.NSIDBean:    "/beans/",
-	atproto.NSIDRoaster: "/roasters/",
-	atproto.NSIDGrinder: "/grinders/",
-	atproto.NSIDBrewer:  "/brewers/",
-	atproto.NSIDRecipe:  "/recipes/",
+	arabica.NSIDBrew:    "/brews/",
+	arabica.NSIDBean:    "/beans/",
+	arabica.NSIDRoaster: "/roasters/",
+	arabica.NSIDGrinder: "/grinders/",
+	arabica.NSIDBrewer:  "/brewers/",
+	arabica.NSIDRecipe:  "/recipes/",
 }
 
 // collectionDisplayName maps AT Protocol collection NSIDs to human-readable names.
 var collectionDisplayName = map[string]string{
-	atproto.NSIDBrew:    "brew",
-	atproto.NSIDBean:    "bean",
-	atproto.NSIDRoaster: "roaster",
-	atproto.NSIDGrinder: "grinder",
-	atproto.NSIDBrewer:  "brewer",
-	atproto.NSIDRecipe:  "recipe",
+	arabica.NSIDBrew:    "brew",
+	arabica.NSIDBean:    "bean",
+	arabica.NSIDRoaster: "roaster",
+	arabica.NSIDGrinder: "grinder",
+	arabica.NSIDBrewer:  "brewer",
+	arabica.NSIDRecipe:  "recipe",
 }
 
 // resolveNotificationLink converts a SubjectURI (AT-URI) to a local page URL.
@@ -150,14 +150,14 @@ func resolveNotificationEntityName(subjectURI string) string {
 }
 
 // notifActionText returns human-readable action text for a notification.
-func notifActionText(notif models.Notification) string {
+func notifActionText(notif arabica.Notification) string {
 	entity := resolveNotificationEntityName(notif.SubjectURI)
 	switch notif.Type {
-	case models.NotificationLike:
+	case arabica.NotificationLike:
 		return "liked your " + entity
-	case models.NotificationComment:
+	case arabica.NotificationComment:
 		return "commented on your " + entity
-	case models.NotificationCommentReply:
+	case arabica.NotificationCommentReply:
 		return "replied to your comment"
 	default:
 		return "interacted with your " + entity

@@ -1,12 +1,12 @@
 package components
 
 import (
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
 
 // RoasterContent renders roaster details inside a card
-templ RoasterContent(roaster *models.Roaster) {
+templ RoasterContent(roaster *arabica.Roaster) {
 	<div class="feed-content-box-sm">
 		<div class="text-base mb-2">
 			<span class="font-bold text-brown-900">{ roaster.Name }</span>

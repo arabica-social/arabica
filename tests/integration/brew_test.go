@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,7 +92,7 @@ func TestHTTP_BrewCreatePourover(t *testing.T) {
 	require.Equal(t, 200, listResp.StatusCode, statusErr(listResp, listBody))
 
 	var data struct {
-		Brews []models.Brew `json:"brews"`
+		Brews []arabica.Brew `json:"brews"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(listBody), &data))
 	require.Len(t, data.Brews, 1, "expected exactly one brew")

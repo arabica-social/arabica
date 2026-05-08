@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // CacheTTL is how long cached data remains valid.
@@ -13,7 +13,7 @@ import (
 const CacheTTL = 2 * time.Minute
 
 // UserCache holds cached records for a single user, keyed by NSID.
-// Values in Records are typed slices (e.g. []*models.Bean); the typed
+// Values in Records are typed slices (e.g. []*arabica.Bean); the typed
 // accessor methods (Beans(), Roasters(), ...) handle the cast.
 //
 // This struct is treated as immutable once created — modifications create
@@ -68,57 +68,57 @@ func (c *UserCache) clone() *UserCache {
 	}
 }
 
-// Beans returns the cached []*models.Bean slice, or nil if not cached.
-func (c *UserCache) Beans() []*models.Bean {
+// Beans returns the cached []*arabica.Bean slice, or nil if not cached.
+func (c *UserCache) Beans() []*arabica.Bean {
 	if c == nil {
 		return nil
 	}
-	v, _ := c.Records[NSIDBean].([]*models.Bean)
+	v, _ := c.Records[arabica.NSIDBean].([]*arabica.Bean)
 	return v
 }
 
-// Roasters returns the cached []*models.Roaster slice, or nil if not cached.
-func (c *UserCache) Roasters() []*models.Roaster {
+// Roasters returns the cached []*arabica.Roaster slice, or nil if not cached.
+func (c *UserCache) Roasters() []*arabica.Roaster {
 	if c == nil {
 		return nil
 	}
-	v, _ := c.Records[NSIDRoaster].([]*models.Roaster)
+	v, _ := c.Records[arabica.NSIDRoaster].([]*arabica.Roaster)
 	return v
 }
 
-// Grinders returns the cached []*models.Grinder slice, or nil if not cached.
-func (c *UserCache) Grinders() []*models.Grinder {
+// Grinders returns the cached []*arabica.Grinder slice, or nil if not cached.
+func (c *UserCache) Grinders() []*arabica.Grinder {
 	if c == nil {
 		return nil
 	}
-	v, _ := c.Records[NSIDGrinder].([]*models.Grinder)
+	v, _ := c.Records[arabica.NSIDGrinder].([]*arabica.Grinder)
 	return v
 }
 
-// Brewers returns the cached []*models.Brewer slice, or nil if not cached.
-func (c *UserCache) Brewers() []*models.Brewer {
+// Brewers returns the cached []*arabica.Brewer slice, or nil if not cached.
+func (c *UserCache) Brewers() []*arabica.Brewer {
 	if c == nil {
 		return nil
 	}
-	v, _ := c.Records[NSIDBrewer].([]*models.Brewer)
+	v, _ := c.Records[arabica.NSIDBrewer].([]*arabica.Brewer)
 	return v
 }
 
-// Recipes returns the cached []*models.Recipe slice, or nil if not cached.
-func (c *UserCache) Recipes() []*models.Recipe {
+// Recipes returns the cached []*arabica.Recipe slice, or nil if not cached.
+func (c *UserCache) Recipes() []*arabica.Recipe {
 	if c == nil {
 		return nil
 	}
-	v, _ := c.Records[NSIDRecipe].([]*models.Recipe)
+	v, _ := c.Records[arabica.NSIDRecipe].([]*arabica.Recipe)
 	return v
 }
 
-// Brews returns the cached []*models.Brew slice, or nil if not cached.
-func (c *UserCache) Brews() []*models.Brew {
+// Brews returns the cached []*arabica.Brew slice, or nil if not cached.
+func (c *UserCache) Brews() []*arabica.Brew {
 	if c == nil {
 		return nil
 	}
-	v, _ := c.Records[NSIDBrew].([]*models.Brew)
+	v, _ := c.Records[arabica.NSIDBrew].([]*arabica.Brew)
 	return v
 }
 
@@ -161,7 +161,7 @@ func (sc *SessionCache) Invalidate(sessionID string) {
 }
 
 // SetRecords stores records for one NSID using copy-on-write. The records
-// argument should be a typed slice (e.g. []*models.Bean); SessionCache does
+// argument should be a typed slice (e.g. []*arabica.Bean); SessionCache does
 // not interpret the value.
 func (sc *SessionCache) SetRecords(sessionID, nsid string, records any) {
 	sc.mu.Lock()

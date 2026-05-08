@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,12 +26,12 @@ func fetchData(t *testing.T, h *Harness) listAllResponse {
 }
 
 type listAllResponse struct {
-	Beans    []models.Bean    `json:"beans"`
-	Roasters []models.Roaster `json:"roasters"`
-	Grinders []models.Grinder `json:"grinders"`
-	Brewers  []models.Brewer  `json:"brewers"`
-	Recipes  []models.Recipe  `json:"recipes"`
-	Brews    []models.Brew    `json:"brews"`
+	Beans    []arabica.Bean    `json:"beans"`
+	Roasters []arabica.Roaster `json:"roasters"`
+	Grinders []arabica.Grinder `json:"grinders"`
+	Brewers  []arabica.Brewer  `json:"brewers"`
+	Recipes  []arabica.Recipe  `json:"recipes"`
+	Brews    []arabica.Brew    `json:"brews"`
 }
 
 // TestHTTP_BeanLifecycle covers POST → PUT → DELETE for beans, including the
@@ -60,7 +60,7 @@ func TestHTTP_BeanLifecycle(t *testing.T) {
 	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, ReadBody(t, updateResp)))
 
 	data := fetchData(t, h)
-	var found *models.Bean
+	var found *arabica.Bean
 	for i := range data.Beans {
 		if data.Beans[i].RKey == beanRKey {
 			found = &data.Beans[i]
@@ -100,7 +100,7 @@ func TestHTTP_GrinderLifecycle(t *testing.T) {
 	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, ReadBody(t, updateResp)))
 
 	data := fetchData(t, h)
-	var found *models.Grinder
+	var found *arabica.Grinder
 	for i := range data.Grinders {
 		if data.Grinders[i].RKey == rkey {
 			found = &data.Grinders[i]
@@ -137,7 +137,7 @@ func TestHTTP_BrewerLifecycle(t *testing.T) {
 	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, ReadBody(t, updateResp)))
 
 	data := fetchData(t, h)
-	var found *models.Brewer
+	var found *arabica.Brewer
 	for i := range data.Brewers {
 		if data.Brewers[i].RKey == rkey {
 			found = &data.Brewers[i]
@@ -194,7 +194,7 @@ func TestHTTP_RecipeLifecycle(t *testing.T) {
 	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, ReadBody(t, updateResp)))
 
 	data := fetchData(t, h)
-	var found *models.Recipe
+	var found *arabica.Recipe
 	for i := range data.Recipes {
 		if data.Recipes[i].RKey == recipeRKey {
 			found = &data.Recipes[i]

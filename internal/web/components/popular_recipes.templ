@@ -3,12 +3,12 @@ package components
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // PopularRecipesProps defines the data for the popular recipes section
 type PopularRecipesProps struct {
-	Recipes []*models.Recipe
+	Recipes []*arabica.Recipe
 }
 
 // PopularRecipes renders the popular recipes section for the home page
@@ -30,7 +30,7 @@ templ PopularRecipes(props PopularRecipesProps) {
 	}
 }
 
-templ popularRecipeCard(recipe *models.Recipe) {
+templ popularRecipeCard(recipe *arabica.Recipe) {
 	<a
 		href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, recipe.AuthorDID)) }
 		class="feed-card feed-card-recipe block hover:shadow-md transition-shadow"
@@ -99,7 +99,7 @@ templ popularRecipeCard(recipe *models.Recipe) {
 	</a>
 }
 
-func authorInitial(recipe *models.Recipe) string {
+func authorInitial(recipe *arabica.Recipe) string {
 	if recipe.AuthorDisplay != "" {
 		return string([]rune(recipe.AuthorDisplay)[:1])
 	}
@@ -110,7 +110,7 @@ func authorInitial(recipe *models.Recipe) string {
 }
 
 func formatBrewerType(bt string) string {
-	if label, ok := models.BrewerTypeLabels[bt]; ok {
+	if label, ok := arabica.BrewerTypeLabels[bt]; ok {
 		return label
 	}
 	return bt
@@ -126,7 +126,7 @@ func formatAmount(amount float64) string {
 	return fmt.Sprintf("%.1fg", amount)
 }
 
-func formatRatio(recipe *models.Recipe) string {
+func formatRatio(recipe *arabica.Recipe) string {
 	if recipe.Ratio > 0 {
 		return fmt.Sprintf("1:%.1f", recipe.Ratio)
 	}

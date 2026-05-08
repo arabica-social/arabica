@@ -2,18 +2,19 @@ package main
 
 import (
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // newArabicaApp builds the App value for the arabica binary. It pulls
-// descriptors from the global entities registry (populated at init time)
-// and pairs them with the arabica NSID base. Subsequent phases of the
-// tea-multitenant refactor will move construction into internal/arabica/.
+// descriptors from the global entities registry — populated by
+// internal/entities/arabica's init() (imported here for both the
+// NSIDBase value and that side effect) — and pairs them with the
+// arabica NSID base.
 func newArabicaApp() *domain.App {
 	return &domain.App{
 		Name:        "arabica",
-		NSIDBase:    atproto.NSIDBase,
+		NSIDBase:    arabica.NSIDBase,
 		Descriptors: entities.All(),
 		Brand: domain.BrandConfig{
 			DisplayName: "Arabica",

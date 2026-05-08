@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/pdewey.com/atp"
@@ -76,7 +76,7 @@ func resolveRef[T any](
 }
 
 // ResolveBeanRefWithRoaster fetches a bean record and also resolves its roaster reference
-func ResolveBeanRefWithRoaster(ctx context.Context, client *Client, atURI string, sessionID string) (*models.Bean, error) {
+func ResolveBeanRefWithRoaster(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Bean, error) {
 	if atURI == "" {
 		return nil, nil
 	}
@@ -86,8 +86,8 @@ func ResolveBeanRefWithRoaster(ctx context.Context, client *Client, atURI string
 		return nil, err
 	}
 
-	if components.Collection != NSIDBean {
-		return nil, fmt.Errorf("expected %s collection, got %s", NSIDBean, components.Collection)
+	if components.Collection != arabica.NSIDBean {
+		return nil, fmt.Errorf("expected %s collection, got %s", arabica.NSIDBean, components.Collection)
 	}
 
 	didObj, err := syntax.ParseDID(components.DID)
@@ -103,7 +103,7 @@ func ResolveBeanRefWithRoaster(ctx context.Context, client *Client, atURI string
 		return nil, fmt.Errorf("failed to fetch bean record: %w", err)
 	}
 
-	bean, err := RecordToBean(output.Value, atURI)
+	bean, err := arabica.RecordToBean(output.Value, atURI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert bean record: %w", err)
 	}
@@ -126,28 +126,28 @@ func ResolveBeanRefWithRoaster(ctx context.Context, client *Client, atURI string
 }
 
 // ResolveRoasterRef fetches a roaster record from an AT-URI
-func ResolveRoasterRef(ctx context.Context, client *Client, atURI string, sessionID string) (*models.Roaster, error) {
-	return resolveRef(ctx, client, atURI, sessionID, NSIDRoaster, RecordToRoaster)
+func ResolveRoasterRef(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Roaster, error) {
+	return resolveRef(ctx, client, atURI, sessionID, arabica.NSIDRoaster, arabica.RecordToRoaster)
 }
 
 // ResolveGrinderRef fetches a grinder record from an AT-URI
-func ResolveGrinderRef(ctx context.Context, client *Client, atURI string, sessionID string) (*models.Grinder, error) {
-	return resolveRef(ctx, client, atURI, sessionID, NSIDGrinder, RecordToGrinder)
+func ResolveGrinderRef(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Grinder, error) {
+	return resolveRef(ctx, client, atURI, sessionID, arabica.NSIDGrinder, arabica.RecordToGrinder)
 }
 
 // ResolveBrewerRef fetches a brewer record from an AT-URI
-func ResolveBrewerRef(ctx context.Context, client *Client, atURI string, sessionID string) (*models.Brewer, error) {
-	return resolveRef(ctx, client, atURI, sessionID, NSIDBrewer, RecordToBrewer)
+func ResolveBrewerRef(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Brewer, error) {
+	return resolveRef(ctx, client, atURI, sessionID, arabica.NSIDBrewer, arabica.RecordToBrewer)
 }
 
 // ResolveRecipeRef fetches a recipe record from an AT-URI
-func ResolveRecipeRef(ctx context.Context, client *Client, atURI string, sessionID string) (*models.Recipe, error) {
-	return resolveRef(ctx, client, atURI, sessionID, NSIDRecipe, RecordToRecipe)
+func ResolveRecipeRef(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Recipe, error) {
+	return resolveRef(ctx, client, atURI, sessionID, arabica.NSIDRecipe, arabica.RecordToRecipe)
 }
 
 // ResolveBrewRefs resolves all references within a brew record
 // This is a convenience function that resolves bean, grinder, brewer, and recipe refs in one call
-func ResolveBrewRefs(ctx context.Context, client *Client, brew *models.Brew, beanRef, grinderRef, brewerRef, sessionID string) error {
+func ResolveBrewRefs(ctx context.Context, client *Client, brew *arabica.Brew, beanRef, grinderRef, brewerRef, sessionID string) error {
 	var err error
 
 	// Resolve bean reference (required) - also resolves nested roaster

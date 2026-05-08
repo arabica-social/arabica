@@ -1,14 +1,14 @@
 package components
 
-import "tangled.org/arabica.social/arabica/internal/models"
+import "tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 // ManagePartialProps defines props for the manage content partial
 type ManagePartialProps struct {
-	Beans    []*models.Bean
-	Roasters []*models.Roaster
-	Grinders []*models.Grinder
-	Brewers  []*models.Brewer
-	Recipes  []*models.Recipe
+	Beans    []*arabica.Bean
+	Roasters []*arabica.Roaster
+	Grinders []*arabica.Grinder
+	Brewers  []*arabica.Brewer
+	Recipes  []*arabica.Recipe
 	// Entity usage counts and ratings (keyed by AT-URI)
 	BeanBrewCounts        map[string]int
 	GrinderBrewCounts     map[string]int
@@ -29,7 +29,7 @@ templ ManagePartial(props ManagePartialProps) {
 }
 
 // ManageBeansTab renders the beans tab content with open/closed sections
-templ ManageBeansTab(beans []*models.Bean, brewCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
+templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
 	<div x-show="tab === 'beans'">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
@@ -68,7 +68,7 @@ templ ManageBeansTab(beans []*models.Bean, brewCounts map[string]int, avgBrewRat
 }
 
 // ManageRoastersTab renders the roasters tab content
-templ ManageRoastersTab(roasters []*models.Roaster, beanCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
+templ ManageRoastersTab(roasters []*arabica.Roaster, beanCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
 	<div x-show="tab === 'roasters'">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
@@ -92,7 +92,7 @@ templ ManageRoastersTab(roasters []*models.Roaster, beanCounts map[string]int, a
 }
 
 // ManageGrindersTab renders the grinders tab content
-templ ManageGrindersTab(grinders []*models.Grinder, brewCounts map[string]int, ownerDID string) {
+templ ManageGrindersTab(grinders []*arabica.Grinder, brewCounts map[string]int, ownerDID string) {
 	<div x-show="tab === 'grinders'">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
@@ -115,7 +115,7 @@ templ ManageGrindersTab(grinders []*models.Grinder, brewCounts map[string]int, o
 }
 
 // ManageBrewersTab renders the brewers tab content
-templ ManageBrewersTab(brewers []*models.Brewer, brewCounts map[string]int, ownerDID string) {
+templ ManageBrewersTab(brewers []*arabica.Brewer, brewCounts map[string]int, ownerDID string) {
 	<div x-show="tab === 'brewers'">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
@@ -138,7 +138,7 @@ templ ManageBrewersTab(brewers []*models.Brewer, brewCounts map[string]int, owne
 }
 
 // ManageRecipesTab renders the recipes tab content
-templ ManageRecipesTab(recipes []*models.Recipe) {
+templ ManageRecipesTab(recipes []*arabica.Recipe) {
 	<div x-show="tab === 'recipes'">
 		@RecipeAlphaWarning()
 		<div class="mb-4 flex justify-between items-center">

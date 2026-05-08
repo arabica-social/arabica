@@ -8,10 +8,10 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
@@ -188,21 +188,21 @@ func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg e
 		authorDID = didStr
 	}
 	base := pages.EntityViewBase{
-		IsOwnProfile:      isOwnProfile,
-		IsAuthenticated:   isAuthenticated,
-		SubjectURI:        subjectURI,
-		SubjectCID:        subjectCID,
-		IsLiked:           sd.IsLiked,
-		LikeCount:         sd.LikeCount,
-		CommentCount:      sd.CommentCount,
-		Comments:          sd.Comments,
-		CurrentUserDID:    didStr,
-		ShareURL:          shareURL,
-		IsModerator:       sd.IsModerator,
-		CanHideRecord:     sd.CanHideRecord,
-		CanBlockUser:      sd.CanBlockUser,
-		IsRecordHidden:    sd.IsRecordHidden,
-		AuthorDID:         entityOwnerDID,
+		IsOwnProfile:    isOwnProfile,
+		IsAuthenticated: isAuthenticated,
+		SubjectURI:      subjectURI,
+		SubjectCID:      subjectCID,
+		IsLiked:         sd.IsLiked,
+		LikeCount:       sd.LikeCount,
+		CommentCount:    sd.CommentCount,
+		Comments:        sd.Comments,
+		CurrentUserDID:  didStr,
+		ShareURL:        shareURL,
+		IsModerator:     sd.IsModerator,
+		CanHideRecord:   sd.CanHideRecord,
+		CanBlockUser:    sd.CanBlockUser,
+		IsRecordHidden:  sd.IsRecordHidden,
+		AuthorDID:       entityOwnerDID,
 	}
 	if ap := h.getUserProfile(r.Context(), authorDID); ap != nil {
 		base.AuthorHandle = ap.Handle
@@ -220,7 +220,7 @@ func (h *Handler) roasterViewConfig() entityViewConfig {
 	return entityViewConfig{
 		descriptor: entities.Get(lexicons.RecordTypeRoaster),
 		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
-			r, err := atproto.RecordToRoaster(m, uri)
+			r, err := arabica.RecordToRoaster(m, uri)
 			if err != nil {
 				return nil, err
 			}
@@ -228,7 +228,7 @@ func (h *Handler) roasterViewConfig() entityViewConfig {
 			return r, nil
 		},
 		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
-			r, err := atproto.RecordToRoaster(e.Value, e.URI)
+			r, err := arabica.RecordToRoaster(e.Value, e.URI)
 			if err != nil {
 				return nil, err
 			}
@@ -242,8 +242,8 @@ func (h *Handler) roasterViewConfig() entityViewConfig {
 			}
 			return rec.Roaster, rec.URI, rec.CID, nil
 		},
-		displayName: func(record any) string { return record.(*models.Roaster).Name },
-		ogSubtitle:  func(record any) string { return record.(*models.Roaster).Name },
+		displayName: func(record any) string { return record.(*arabica.Roaster).Name },
+		ogSubtitle:  func(record any) string { return record.(*arabica.Roaster).Name },
 		countLookup: func(ctx context.Context, ownerDID, subjectURI string) int {
 			if h.feedIndex == nil || subjectURI == "" {
 				return 0
@@ -251,7 +251,7 @@ func (h *Handler) roasterViewConfig() entityViewConfig {
 			return h.feedIndex.BeanCountsByRoasterURI(ctx, ownerDID)[subjectURI]
 		},
 		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			roaster := record.(*models.Roaster)
+			roaster := record.(*arabica.Roaster)
 			props := pages.RoasterViewProps{
 				Roaster:        roaster,
 				EntityViewBase: base,
@@ -272,7 +272,7 @@ func (h *Handler) grinderViewConfig() entityViewConfig {
 	return entityViewConfig{
 		descriptor: entities.Get(lexicons.RecordTypeGrinder),
 		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
-			g, err := atproto.RecordToGrinder(m, uri)
+			g, err := arabica.RecordToGrinder(m, uri)
 			if err != nil {
 				return nil, err
 			}
@@ -280,7 +280,7 @@ func (h *Handler) grinderViewConfig() entityViewConfig {
 			return g, nil
 		},
 		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
-			g, err := atproto.RecordToGrinder(e.Value, e.URI)
+			g, err := arabica.RecordToGrinder(e.Value, e.URI)
 			if err != nil {
 				return nil, err
 			}
@@ -294,10 +294,10 @@ func (h *Handler) grinderViewConfig() entityViewConfig {
 			}
 			return rec.Grinder, rec.URI, rec.CID, nil
 		},
-		displayName: func(record any) string { return record.(*models.Grinder).Name },
-		ogSubtitle:  func(record any) string { return record.(*models.Grinder).Name },
+		displayName: func(record any) string { return record.(*arabica.Grinder).Name },
+		ogSubtitle:  func(record any) string { return record.(*arabica.Grinder).Name },
 		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			grinder := record.(*models.Grinder)
+			grinder := record.(*arabica.Grinder)
 			props := pages.GrinderViewProps{
 				Grinder:        grinder,
 				EntityViewBase: base,
@@ -318,7 +318,7 @@ func (h *Handler) brewerViewConfig() entityViewConfig {
 	return entityViewConfig{
 		descriptor: entities.Get(lexicons.RecordTypeBrewer),
 		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
-			b, err := atproto.RecordToBrewer(m, uri)
+			b, err := arabica.RecordToBrewer(m, uri)
 			if err != nil {
 				return nil, err
 			}
@@ -326,7 +326,7 @@ func (h *Handler) brewerViewConfig() entityViewConfig {
 			return b, nil
 		},
 		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
-			b, err := atproto.RecordToBrewer(e.Value, e.URI)
+			b, err := arabica.RecordToBrewer(e.Value, e.URI)
 			if err != nil {
 				return nil, err
 			}
@@ -340,10 +340,10 @@ func (h *Handler) brewerViewConfig() entityViewConfig {
 			}
 			return rec.Brewer, rec.URI, rec.CID, nil
 		},
-		displayName: func(record any) string { return record.(*models.Brewer).Name },
-		ogSubtitle:  func(record any) string { return record.(*models.Brewer).Name },
+		displayName: func(record any) string { return record.(*arabica.Brewer).Name },
+		ogSubtitle:  func(record any) string { return record.(*arabica.Brewer).Name },
 		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			brewer := record.(*models.Brewer)
+			brewer := record.(*arabica.Brewer)
 			props := pages.BrewerViewProps{
 				Brewer:         brewer,
 				EntityViewBase: base,
@@ -364,7 +364,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 	return entityViewConfig{
 		descriptor: entities.Get(lexicons.RecordTypeBean),
 		fromWitness: func(ctx context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
-			bean, err := atproto.RecordToBean(m, uri)
+			bean, err := arabica.RecordToBean(m, uri)
 			if err != nil {
 				return nil, err
 			}
@@ -376,7 +376,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 				if h.witnessCache != nil {
 					if rwr, _ := h.witnessCache.GetWitnessRecord(ctx, roasterRef); rwr != nil {
 						if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
-							if roaster, err := atproto.RecordToRoaster(rm, rwr.URI); err == nil {
+							if roaster, err := arabica.RecordToRoaster(rm, rwr.URI); err == nil {
 								roaster.RKey = rwr.RKey
 								bean.Roaster = roaster
 							}
@@ -387,7 +387,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 			return bean, nil
 		},
 		fromPDS: func(ctx context.Context, e *atproto.PublicRecordEntry, rkey, ownerDID string) (any, error) {
-			bean, err := atproto.RecordToBean(e.Value, e.URI)
+			bean, err := arabica.RecordToBean(e.Value, e.URI)
 			if err != nil {
 				return nil, err
 			}
@@ -399,8 +399,8 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 				roasterRKey := atproto.ExtractRKeyFromURI(roasterRef)
 				if roasterRKey != "" {
 					pub := atproto.NewPublicClient()
-					if rr, err := pub.GetRecord(ctx, ownerDID, atproto.NSIDRoaster, roasterRKey); err == nil {
-						if roaster, err := atproto.RecordToRoaster(rr.Value, rr.URI); err == nil {
+					if rr, err := pub.GetRecord(ctx, ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
+						if roaster, err := arabica.RecordToRoaster(rr.Value, rr.URI); err == nil {
 							roaster.RKey = roasterRKey
 							bean.Roaster = roaster
 						}
@@ -416,9 +416,9 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 			}
 			return rec.Bean, rec.URI, rec.CID, nil
 		},
-		displayName: func(record any) string { return record.(*models.Bean).Name },
+		displayName: func(record any) string { return record.(*arabica.Bean).Name },
 		ogSubtitle: func(record any) string {
-			bean := record.(*models.Bean)
+			bean := record.(*arabica.Bean)
 			sub := bean.Name
 			if sub == "" {
 				sub = bean.Origin
@@ -429,7 +429,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 			return sub
 		},
 		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			bean := record.(*models.Bean)
+			bean := record.(*arabica.Bean)
 			props := pages.BeanViewProps{
 				Bean:           bean,
 				EntityViewBase: base,
@@ -493,11 +493,11 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Try witness cache first
-		recipeURI := atproto.BuildATURI(entityOwnerDID, atproto.NSIDRecipe, rkey)
+		recipeURI := atproto.BuildATURI(entityOwnerDID, arabica.NSIDRecipe, rkey)
 		if h.witnessCache != nil {
 			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), recipeURI); wr != nil {
 				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if recipe, err := atproto.RecordToRecipe(m, wr.URI); err == nil {
+					if recipe, err := arabica.RecordToRecipe(m, wr.URI); err == nil {
 						metrics.WitnessCacheHitsTotal.WithLabelValues("recipe").Inc()
 						recipe.RKey = rkey
 						subjectURI = wr.URI
@@ -509,7 +509,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 							}
 							if bwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerRef); bwr != nil {
 								if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
-									if brewer, err := atproto.RecordToBrewer(bm, bwr.URI); err == nil {
+									if brewer, err := arabica.RecordToBrewer(bm, bwr.URI); err == nil {
 										brewer.RKey = bwr.RKey
 										recipe.BrewerObj = brewer
 									}
@@ -528,7 +528,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 			// PDS fallback
 			metrics.WitnessCacheMissesTotal.WithLabelValues("recipe").Inc()
 			publicClient := atproto.NewPublicClient()
-			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDRecipe, rkey)
+			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, arabica.NSIDRecipe, rkey)
 			if err != nil {
 				http.Error(w, "Recipe not found", http.StatusNotFound)
 				return
@@ -537,7 +537,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 			subjectURI = record.URI
 			subjectCID = record.CID
 
-			recipe, err := atproto.RecordToRecipe(record.Value, record.URI)
+			recipe, err := arabica.RecordToRecipe(record.Value, record.URI)
 			if err != nil {
 				http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
 				return
@@ -551,9 +551,9 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 				}
 				brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
 				if brewerRKey != "" {
-					brewerRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, atproto.NSIDBrewer, brewerRKey)
+					brewerRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, arabica.NSIDBrewer, brewerRKey)
 					if err == nil {
-						if brewer, err := atproto.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+						if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
 							brewer.RKey = brewerRKey
 							recipe.BrewerObj = brewer
 						}
@@ -676,12 +676,12 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var bean *models.Bean
-	beanURI := atproto.BuildATURI(ownerDID, atproto.NSIDBean, rkey)
+	var bean *arabica.Bean
+	beanURI := atproto.BuildATURI(ownerDID, arabica.NSIDBean, rkey)
 	if h.witnessCache != nil {
 		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), beanURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if b, err := atproto.RecordToBean(m, wr.URI); err == nil {
+				if b, err := arabica.RecordToBean(m, wr.URI); err == nil {
 					metrics.WitnessCacheHitsTotal.WithLabelValues("bean_og").Inc()
 					bean = b
 					bean.RKey = rkey
@@ -689,7 +689,7 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 					if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
 						if rwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), roasterRef); rwr != nil {
 							if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
-								if roaster, err := atproto.RecordToRoaster(rm, rwr.URI); err == nil {
+								if roaster, err := arabica.RecordToRoaster(rm, rwr.URI); err == nil {
 									bean.Roaster = roaster
 								}
 							}
@@ -702,12 +702,12 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 	if bean == nil {
 		metrics.WitnessCacheMissesTotal.WithLabelValues("bean_og").Inc()
 		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBean, rkey)
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBean, rkey)
 		if err != nil {
 			http.Error(w, "Bean not found", http.StatusNotFound)
 			return
 		}
-		bean, err = atproto.RecordToBean(record.Value, record.URI)
+		bean, err = arabica.RecordToBean(record.Value, record.URI)
 		if err != nil {
 			http.Error(w, "Failed to load bean", http.StatusInternalServerError)
 			return
@@ -716,8 +716,8 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 		if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
 			roasterRKey := atproto.ExtractRKeyFromURI(roasterRef)
 			if roasterRKey != "" {
-				if rr, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRoaster, roasterRKey); err == nil {
-					if roaster, err := atproto.RecordToRoaster(rr.Value, rr.URI); err == nil {
+				if rr, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
+					if roaster, err := arabica.RecordToRoaster(rr.Value, rr.URI); err == nil {
 						bean.Roaster = roaster
 					}
 				}
@@ -798,48 +798,48 @@ func (h *Handler) handleSimpleOGImage(w http.ResponseWriter, r *http.Request, cf
 // HandleRoasterOGImage generates a 1200x630 PNG preview card for a roaster.
 func (h *Handler) HandleRoasterOGImage(w http.ResponseWriter, r *http.Request) {
 	h.handleSimpleOGImage(w, r, ogImageConfig{
-		nsid: atproto.NSIDRoaster, metricLabel: "roaster_og",
+		nsid: arabica.NSIDRoaster, metricLabel: "roaster_og",
 		convert: func(m map[string]any, uri, rkey string) (any, error) {
-			rec, err := atproto.RecordToRoaster(m, uri)
+			rec, err := arabica.RecordToRoaster(m, uri)
 			if err != nil {
 				return nil, err
 			}
 			rec.RKey = rkey
 			return rec, nil
 		},
-		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawRoasterCard(rec.(*models.Roaster)) },
+		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawRoasterCard(rec.(*arabica.Roaster)) },
 	})
 }
 
 // HandleGrinderOGImage generates a 1200x630 PNG preview card for a grinder.
 func (h *Handler) HandleGrinderOGImage(w http.ResponseWriter, r *http.Request) {
 	h.handleSimpleOGImage(w, r, ogImageConfig{
-		nsid: atproto.NSIDGrinder, metricLabel: "grinder_og",
+		nsid: arabica.NSIDGrinder, metricLabel: "grinder_og",
 		convert: func(m map[string]any, uri, rkey string) (any, error) {
-			rec, err := atproto.RecordToGrinder(m, uri)
+			rec, err := arabica.RecordToGrinder(m, uri)
 			if err != nil {
 				return nil, err
 			}
 			rec.RKey = rkey
 			return rec, nil
 		},
-		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawGrinderCard(rec.(*models.Grinder)) },
+		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawGrinderCard(rec.(*arabica.Grinder)) },
 	})
 }
 
 // HandleBrewerOGImage generates a 1200x630 PNG preview card for a brewer.
 func (h *Handler) HandleBrewerOGImage(w http.ResponseWriter, r *http.Request) {
 	h.handleSimpleOGImage(w, r, ogImageConfig{
-		nsid: atproto.NSIDBrewer, metricLabel: "brewer_og",
+		nsid: arabica.NSIDBrewer, metricLabel: "brewer_og",
 		convert: func(m map[string]any, uri, rkey string) (any, error) {
-			rec, err := atproto.RecordToBrewer(m, uri)
+			rec, err := arabica.RecordToBrewer(m, uri)
 			if err != nil {
 				return nil, err
 			}
 			rec.RKey = rkey
 			return rec, nil
 		},
-		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawBrewerCard(rec.(*models.Brewer)) },
+		drawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawBrewerCard(rec.(*arabica.Brewer)) },
 	})
 }
 
@@ -861,12 +861,12 @@ func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var recipe *models.Recipe
-	recipeURI := atproto.BuildATURI(ownerDID, atproto.NSIDRecipe, rkey)
+	var recipe *arabica.Recipe
+	recipeURI := atproto.BuildATURI(ownerDID, arabica.NSIDRecipe, rkey)
 	if h.witnessCache != nil {
 		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), recipeURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if rec, err := atproto.RecordToRecipe(m, wr.URI); err == nil {
+				if rec, err := arabica.RecordToRecipe(m, wr.URI); err == nil {
 					metrics.WitnessCacheHitsTotal.WithLabelValues("recipe_og").Inc()
 					recipe = rec
 					recipe.RKey = rkey
@@ -874,7 +874,7 @@ func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 					if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
 						if bwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerRef); bwr != nil {
 							if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
-								if brewer, err := atproto.RecordToBrewer(bm, bwr.URI); err == nil {
+								if brewer, err := arabica.RecordToBrewer(bm, bwr.URI); err == nil {
 									recipe.BrewerObj = brewer
 								}
 							}
@@ -888,12 +888,12 @@ func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 	if recipe == nil {
 		metrics.WitnessCacheMissesTotal.WithLabelValues("recipe_og").Inc()
 		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDRecipe, rkey)
+		record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
 		if err != nil {
 			http.Error(w, "Recipe not found", http.StatusNotFound)
 			return
 		}
-		recipe, err = atproto.RecordToRecipe(record.Value, record.URI)
+		recipe, err = arabica.RecordToRecipe(record.Value, record.URI)
 		if err != nil {
 			http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
 			return
@@ -902,8 +902,8 @@ func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
 			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
 			if brewerRKey != "" {
-				if br, err := publicClient.GetRecord(r.Context(), ownerDID, atproto.NSIDBrewer, brewerRKey); err == nil {
-					if brewer, err := atproto.RecordToBrewer(br.Value, br.URI); err == nil {
+				if br, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey); err == nil {
+					if brewer, err := arabica.RecordToBrewer(br.Value, br.URI); err == nil {
 						recipe.BrewerObj = brewer
 					}
 				}
@@ -930,7 +930,7 @@ func writeOGImage(w http.ResponseWriter, card *ogcard.Card) {
 	}
 }
 
-func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *models.Recipe, owner, baseURL, shareURL string) {
+func (h *Handler) populateRecipeOGMetadata(layoutData *components.LayoutData, recipe *arabica.Recipe, owner, baseURL, shareURL string) {
 	if recipe == nil {
 		return
 	}

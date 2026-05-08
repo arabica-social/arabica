@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 
 	"github.com/stretchr/testify/assert"
@@ -96,7 +97,7 @@ func TestPurgeDID_FreesHandleForReuse(t *testing.T) {
 	seedProfile(t, h, orphanDID, sharedHandle)
 
 	// The orphan also has indexed records — purge must remove them.
-	const collection = atproto.NSIDRoaster
+	const collection = arabica.NSIDRoaster
 	const rkey = "orphanrkey"
 	now := time.Now().Unix()
 	require.NoError(t, h.FeedIndex.UpsertRecord(

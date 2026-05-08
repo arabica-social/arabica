@@ -3,7 +3,7 @@ package components
 import (
 	"fmt"
 	"strings"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // IncompleteRecord represents a single entity that needs attention
@@ -68,7 +68,7 @@ func incompleteNoun(count int) string {
 }
 
 // CollectIncompleteRecords scans all entities and returns incomplete ones (max limit).
-func CollectIncompleteRecords(beans []*models.Bean, grinders []*models.Grinder, brewers []*models.Brewer, limit int) []IncompleteRecord {
+func CollectIncompleteRecords(beans []*arabica.Bean, grinders []*arabica.Grinder, brewers []*arabica.Brewer, limit int) []IncompleteRecord {
 	var records []IncompleteRecord
 
 	for _, b := range beans {

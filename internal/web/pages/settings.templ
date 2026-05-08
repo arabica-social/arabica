@@ -1,12 +1,12 @@
 package pages
 
 import (
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 type SettingsProps struct {
-	ProfileStatsVisibility models.ProfileStatsVisibility
+	ProfileStatsVisibility arabica.ProfileStatsVisibility
 }
 
 templ settingsContent(props SettingsProps) {

@@ -2,7 +2,7 @@ package pages
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -566,7 +566,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 }
 
 // recipeRatioDisplay is used by the explore page JS
-func recipeRatioDisplay(recipe *models.Recipe) string {
+func recipeRatioDisplay(recipe *arabica.Recipe) string {
 	if recipe.CoffeeAmount > 0 && recipe.WaterAmount > 0 {
 		ratio := recipe.WaterAmount / recipe.CoffeeAmount
 		return fmt.Sprintf("1:%.1f", ratio)

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +36,7 @@ func TestHTTP_WitnessCacheFallback(t *testing.T) {
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
 
-	var created models.Roaster
+	var created arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(createBody), &created))
 	require.NotEmpty(t, created.RKey)
 
@@ -49,17 +49,17 @@ func TestHTTP_WitnessCacheFallback(t *testing.T) {
 	// Step 3: evict the witness record and clear the session cache. After
 	// this, both fast paths in AtprotoStore.ListRoasters will miss and the
 	// store has to fall through to s.client.ListAllRecords (real PDS read).
-	h.EvictWitnessRecord(h.PrimaryAccount, atproto.NSIDRoaster, created.RKey)
+	h.EvictWitnessRecord(h.PrimaryAccount, arabica.NSIDRoaster, created.RKey)
 	h.InvalidateSessionCache(h.PrimaryAccount)
 
 	// Sanity check: confirm the witness cache really is empty for that record.
-	wr, _ := h.FeedIndex.GetWitnessRecord(t.Context(), atproto.BuildATURI(h.PrimaryAccount.DID, atproto.NSIDRoaster, created.RKey))
+	wr, _ := h.FeedIndex.GetWitnessRecord(t.Context(), atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, created.RKey))
 	require.Nil(t, wr, "witness record should have been evicted")
 
 	// Step 4: read again — must still return the roaster, this time via the
 	// PDS fallback path.
 	postData := fetchData(t, h)
-	var found *models.Roaster
+	var found *arabica.Roaster
 	for i := range postData.Roasters {
 		if postData.Roasters[i].RKey == created.RKey {
 			found = &postData.Roasters[i]
@@ -88,11 +88,11 @@ func TestHTTP_WitnessCacheGetByRKeyFallback(t *testing.T) {
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
 
-	var created models.Roaster
+	var created arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(createBody), &created))
 
 	// Evict caches.
-	h.EvictWitnessRecord(h.PrimaryAccount, atproto.NSIDRoaster, created.RKey)
+	h.EvictWitnessRecord(h.PrimaryAccount, arabica.NSIDRoaster, created.RKey)
 	h.InvalidateSessionCache(h.PrimaryAccount)
 
 	// The view page calls GetRoasterRecordByRKey via HandleRoasterView. With
@@ -107,7 +107,7 @@ func TestHTTP_WitnessCacheGetByRKeyFallback(t *testing.T) {
 
 // containsRoaster reports whether a roaster with the given rkey exists in the
 // slice. Small helper used by cache tests.
-func containsRoaster(roasters []models.Roaster, rkey string) bool {
+func containsRoaster(roasters []arabica.Roaster, rkey string) bool {
 	for _, r := range roasters {
 		if r.RKey == rkey {
 			return true

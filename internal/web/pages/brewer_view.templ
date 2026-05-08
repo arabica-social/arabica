@@ -3,13 +3,13 @@ package pages
 import (
 	"fmt"
 
-	"tangled.org/arabica.social/arabica/internal/models"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 type BrewerViewProps struct {
-	Brewer    *models.Brewer
+	Brewer    *arabica.Brewer
 	BrewCount int
 	EntityViewBase
 }

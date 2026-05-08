@@ -92,4 +92,3 @@ func (h *Handler) EntityRouteBundles() []EntityRouteBundle {
 		},
 	}
 }
-
