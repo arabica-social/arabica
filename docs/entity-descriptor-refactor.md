@@ -1,6 +1,6 @@
 # Entity Descriptor Refactor — Spec
 
-**Status:** Phase 0 complete; phase 1 in progress
+**Status:** Phases 0 and 1 complete
 **Author:** ptdewey
 **Created:** 2026-04-25
 **Last updated:** 2026-04-25
@@ -113,7 +113,7 @@ Each phase ships independently. Stop anywhere if the win plateaus.
 | Phase | Scope | Status | Approx. LOC |
 |---|---|---|---|
 | **0. Foundation** | New `internal/entities` package + registry. Migrate `ActionText` and `getStringValue` as proof. | ✅ done | net 0 |
-| **1. Templ data switches** | Remaining four switches in `feed.templ` (card class, title, share URL, delete URL+confirm). OG card accent/label lookup. | ▶ next | −150 |
+| **1. Templ data switches** | Remaining four switches in `feed.templ` (card class, title, share URL, delete URL+confirm). OG card accent/label lookup. | ✅ done | −150 |
 | **5'. Modal shell extraction** *(replaces old phase 5)* | Extract a shared `EntityModalShell` component (dialog mechanics, header, error display, footer/buttons). Per-entity field bodies stay as their own templ files. | planned | −100 to −150 |
 | **2. Cache map** | `UserCache.Beans/Roasters/...` → `map[string]any` keyed by NSID. | deferred | −200 |
 | **3. Generic store CRUD** | `Get[T](ctx, nsid, rkey)`, `List[T]` on `AtprotoStore`. | deferred | −400 |
