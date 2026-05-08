@@ -19,6 +19,12 @@ type Descriptor struct {
 	Noun        string // "bean" — appears in copy: "added a new bean"
 	URLPath     string // "beans" — share URLs and routes
 
+	// FeedFilterLabel is the label shown on the feed filter pill for this
+	// entity, e.g. "Beans". Empty means the entity is hidden from the
+	// feed filter bar (used for reference entities like roaster that
+	// rarely warrant a dedicated tab).
+	FeedFilterLabel string
+
 	// GetField extracts one named string field from a typed model pointer for
 	// form prefill. Returns ("", false) if entity is nil or field is unknown.
 	GetField func(entity any, field string) (string, bool)

@@ -12,13 +12,39 @@ type LayoutData struct {
 	IsModerator             bool // User has moderation permissions
 	UnreadNotificationCount int  // Number of unread notifications
 
+	// Brand strings, populated from domain.BrandConfig. Empty values fall
+	// back to the arabica defaults via the helper methods below — keeps
+	// existing call sites that build LayoutData directly working until
+	// every handler threads the brand through.
+	BrandName    string // "Arabica", "Matcha"
+	BrandTagline string // "Your brew, your data"
+
 	// OpenGraph metadata (optional, uses defaults if empty)
-	OGTitle       string // Falls back to Title + " - Arabica"
+	OGTitle       string // Falls back to Title + " - " + brand name
 	OGDescription string // Falls back to site description
 	OGImage       string // If set, renders og:image tag
 	OGImageAlt    string // Alt text for OG image; falls back to OGTitle + OGDescription
 	OGType        string // Falls back to "website"
 	OGUrl         string // Canonical URL for the page
+}
+
+// brandName returns the configured brand display name, defaulting to
+// "Arabica" when unset (covers tests and any pre-Phase-G call site that
+// hasn't been threaded yet).
+func (d *LayoutData) brandName() string {
+	if d.BrandName != "" {
+		return d.BrandName
+	}
+	return "Arabica"
+}
+
+// brandTagline returns the configured brand tagline, defaulting to the
+// arabica tagline when unset.
+func (d *LayoutData) brandTagline() string {
+	if d.BrandTagline != "" {
+		return d.BrandTagline
+	}
+	return "Your brew, your data"
 }
 
 // ogTitle returns the OpenGraph title, falling back to the page title
@@ -29,12 +55,13 @@ func (d *LayoutData) ogTitle() string {
 	return d.pageTitle()
 }
 
-// pageTitle returns the <title> text, collapsing the home page to just "Arabica"
+// pageTitle returns the <title> text, collapsing the home page to just
+// the brand name.
 func (d *LayoutData) pageTitle() string {
 	if d.Title == "" || d.Title == "Home" {
-		return "Arabica"
+		return d.brandName()
 	}
-	return d.Title + " - Arabica"
+	return d.Title + " - " + d.brandName()
 }
 
 // ogDescription returns the OpenGraph description, falling back to site default
@@ -87,12 +114,12 @@ templ Layout(data *LayoutData, content templ.Component) {
 		</script>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<meta name="description" content="Arabica is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability."/>
+			<meta name="description" content={ data.brandName() + " is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability." }/>
 			<!-- OpenGraph metadata -->
 			<meta property="og:title" content={ data.ogTitle() }/>
 			<meta property="og:description" content={ data.ogDescription() }/>
 			<meta property="og:type" content={ data.ogType() }/>
-			<meta property="og:site_name" content="Arabica"/>
+			<meta property="og:site_name" content={ data.brandName() }/>
 			if data.OGUrl != "" {
 				<meta property="og:url" content={ data.OGUrl }/>
 			}
@@ -356,11 +383,12 @@ templ Layout(data *LayoutData, content templ.Component) {
 				UserDID:                 data.UserDID,
 				IsModerator:             data.IsModerator,
 				UnreadNotificationCount: data.UnreadNotificationCount,
+				BrandName:               data.brandName(),
 			})
 			<main class="flex-grow container mx-auto py-8" data-transition>
 				@content
 			</main>
-			@Footer()
+			@FooterWithBrand(data.brandName(), data.brandTagline())
 			<!-- Modal container for entity dialogs -->
 			<div id="modal-container"></div>
 		</body>

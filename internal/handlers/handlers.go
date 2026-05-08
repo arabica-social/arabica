@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/database/boltstore"
@@ -57,6 +58,17 @@ type Handler struct {
 	joinStore     *boltstore.JoinStore
 	pdsAdminURL   string
 	pdsAdminToken string
+
+	// Brand carries the per-app display name and tagline. Set via
+	// SetBrand at startup; consumed by buildLayoutData so templ
+	// components can read brand strings without hardcoding "Arabica".
+	brand domain.BrandConfig
+}
+
+// SetBrand wires the per-app branding into the handler. Called once at
+// startup from cmd/{arabica,matcha}/main.go after constructing the App.
+func (h *Handler) SetBrand(b domain.BrandConfig) {
+	h.brand = b
 }
 
 // NewHandler creates a new Handler with all required dependencies.
@@ -391,6 +403,8 @@ func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated
 		CSPNonce:                middleware.CSPNonceFromContext(r.Context()),
 		IsModerator:             isModerator,
 		UnreadNotificationCount: unreadNotifCount,
+		BrandName:               h.brand.DisplayName,
+		BrandTagline:            h.brand.Tagline,
 	}
 }
 

@@ -1,11 +1,33 @@
 package components
 
+// footerBrandName returns the brand name with the arabica fallback so
+// existing @Footer() call sites without threaded brand still render.
+func footerBrandName(name string) string {
+	if name != "" {
+		return name
+	}
+	return "Arabica"
+}
+
+func footerTagline(tagline string) string {
+	if tagline != "" {
+		return tagline
+	}
+	return "Your brew, your data"
+}
+
 templ Footer() {
+	@FooterWithBrand("", "")
+}
+
+// FooterWithBrand renders the footer with the configured brand name and
+// tagline. Empty values fall back to arabica defaults.
+templ FooterWithBrand(brandName, tagline string) {
 	<footer class="mt-auto" style="background: var(--footer-bg); border-top: 1px solid var(--footer-border);">
 		<div class="container mx-auto px-4 py-8">
 			<div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
 				<div class="text-sm text-brown-700">
-					<span class="font-semibold text-brown-900">Arabica</span> - Your brew, your data
+					<span class="font-semibold text-brown-900">{ footerBrandName(brandName) }</span> - { footerTagline(tagline) }
 				</div>
 				<nav class="flex flex-wrap justify-center gap-6 text-sm">
 					<a href="/about" class="text-brown-700 hover:text-brown-900 transition-colors">About</a>

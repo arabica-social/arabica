@@ -17,7 +17,7 @@ func newArabicaApp() *domain.App {
 		Descriptors: entities.All(),
 		Brand: domain.BrandConfig{
 			DisplayName: "Arabica",
-			Tagline:     "Coffee tracking on AT Protocol",
+			Tagline:     "Your brew, your data",
 		},
 	}
 }

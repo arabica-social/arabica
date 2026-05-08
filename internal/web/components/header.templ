@@ -11,8 +11,18 @@ type HeaderProps struct {
 	IsAuthenticated         bool
 	UserProfile             *bff.UserProfile
 	UserDID                 string
-	IsModerator             bool // Show admin link in dropdown
-	UnreadNotificationCount int  // Badge count for bell icon
+	IsModerator             bool   // Show admin link in dropdown
+	UnreadNotificationCount int    // Badge count for bell icon
+	BrandName               string // "Arabica"; falls back to "Arabica" when empty
+}
+
+// brandName returns the configured brand name with the arabica default
+// applied so existing call sites that don't thread it stay working.
+func (p HeaderProps) brandName() string {
+	if p.BrandName != "" {
+		return p.BrandName
+	}
+	return "Arabica"
 }
 
 templ Header(isAuthenticated bool, userProfile *bff.UserProfile, userDID string) {
@@ -29,7 +39,7 @@ templ HeaderWithProps(props HeaderProps) {
 			<div class="flex items-center justify-between">
 				<!-- Logo - always visible -->
 				<a href="/" class="flex items-center gap-2 hover:opacity-80 transition">
-					<h1 class="text-2xl font-bold">☕ Arabica</h1>
+					<h1 class="text-2xl font-bold">☕ { props.brandName() }</h1>
 					<span class="text-[10px] bg-amber-400 text-brown-900 px-1.5 py-0.5 rounded font-semibold">ALPHA</span>
 				</a>
 				<!-- Navigation links -->

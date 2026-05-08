@@ -416,6 +416,10 @@ func main() {
 	// before falling back to the PDS
 	h.SetWitnessCache(feedIndex)
 
+	// Wire the per-app brand into the handler so layout/header/footer
+	// templates render with the right display name and tagline.
+	h.SetBrand(app.Brand)
+
 	// Initialize moderation service and wire up to handler
 	moderatorsConfigPath := os.Getenv("ARABICA_MODERATORS_CONFIG")
 	moderationSvc, err := moderation.NewService(moderatorsConfigPath)

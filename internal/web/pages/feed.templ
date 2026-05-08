@@ -32,15 +32,20 @@ type feedFilterTab struct {
 	Value string
 }
 
+// feedFilterTabs returns the filter pills shown above the feed. The "All"
+// tab is universal; the per-entity tabs come from descriptors with a
+// non-empty FeedFilterLabel, ordered as registered. Adding a new entity
+// to the feed filter is now a one-line FeedFilterLabel addition in
+// register.go rather than an edit here.
 func feedFilterTabs() []feedFilterTab {
-	return []feedFilterTab{
-		{Label: "All", Value: ""},
-		{Label: "Brews", Value: "brew"},
-		{Label: "Beans", Value: "bean"},
-		{Label: "Recipes", Value: "recipe"},
-		{Label: "Grinders", Value: "grinder"},
-		{Label: "Brewers", Value: "brewer"},
+	tabs := []feedFilterTab{{Label: "All", Value: ""}}
+	for _, d := range entities.All() {
+		if d.FeedFilterLabel == "" {
+			continue
+		}
+		tabs = append(tabs, feedFilterTab{Label: d.FeedFilterLabel, Value: d.Noun})
 	}
+	return tabs
 }
 
 func buildFeedURL(typeFilter, sort string) string {
