@@ -482,8 +482,8 @@ func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*B
 func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*models.Brew, error) {
 	// Check cache first
 	userCache := s.cache.Get(s.sessionID)
-	if userCache != nil && userCache.Brews != nil && userCache.IsValid() {
-		return userCache.Brews, nil
+	if userCache != nil && userCache.Brews() != nil && userCache.IsValid() {
+		return userCache.Brews(), nil
 	}
 
 	var brews []*models.Brew
@@ -997,8 +997,8 @@ func (s *AtprotoStore) GetBeanByRKey(ctx context.Context, rkey string) (*models.
 func (s *AtprotoStore) ListBeans(ctx context.Context) ([]*models.Bean, error) {
 	// Check cache first
 	userCache := s.cache.Get(s.sessionID)
-	if userCache != nil && userCache.Beans != nil && userCache.IsValid() {
-		return userCache.Beans, nil
+	if userCache != nil && userCache.Beans() != nil && userCache.IsValid() {
+		return userCache.Beans(), nil
 	}
 
 	// Try witness cache
@@ -1224,8 +1224,8 @@ func (s *AtprotoStore) GetRoasterByRKey(ctx context.Context, rkey string) (*mode
 func (s *AtprotoStore) ListRoasters(ctx context.Context) ([]*models.Roaster, error) {
 	// Check cache first
 	userCache := s.cache.Get(s.sessionID)
-	if userCache != nil && userCache.Roasters != nil && userCache.IsValid() {
-		return userCache.Roasters, nil
+	if userCache != nil && userCache.Roasters() != nil && userCache.IsValid() {
+		return userCache.Roasters(), nil
 	}
 
 	// Try witness cache
@@ -1411,8 +1411,8 @@ func (s *AtprotoStore) GetGrinderByRKey(ctx context.Context, rkey string) (*mode
 func (s *AtprotoStore) ListGrinders(ctx context.Context) ([]*models.Grinder, error) {
 	// Check cache first
 	userCache := s.cache.Get(s.sessionID)
-	if userCache != nil && userCache.Grinders != nil && userCache.IsValid() {
-		return userCache.Grinders, nil
+	if userCache != nil && userCache.Grinders() != nil && userCache.IsValid() {
+		return userCache.Grinders(), nil
 	}
 
 	// Try witness cache
@@ -1598,8 +1598,8 @@ func (s *AtprotoStore) GetBrewerByRKey(ctx context.Context, rkey string) (*model
 func (s *AtprotoStore) ListBrewers(ctx context.Context) ([]*models.Brewer, error) {
 	// Check cache first
 	userCache := s.cache.Get(s.sessionID)
-	if userCache != nil && userCache.Brewers != nil && userCache.IsValid() {
-		return userCache.Brewers, nil
+	if userCache != nil && userCache.Brewers() != nil && userCache.IsValid() {
+		return userCache.Brewers(), nil
 	}
 
 	// Try witness cache
@@ -1898,8 +1898,8 @@ func (s *AtprotoStore) GetRecipeRecordByRKey(ctx context.Context, rkey string) (
 func (s *AtprotoStore) ListRecipes(ctx context.Context) ([]*models.Recipe, error) {
 	// Check cache first
 	userCache := s.cache.Get(s.sessionID)
-	if userCache != nil && userCache.Recipes != nil && userCache.IsValid() {
-		return userCache.Recipes, nil
+	if userCache != nil && userCache.Recipes() != nil && userCache.IsValid() {
+		return userCache.Recipes(), nil
 	}
 
 	// Try witness cache

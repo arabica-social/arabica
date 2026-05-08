@@ -128,7 +128,7 @@ mechanical.
 |---|---|---|---|---|---|
 | A | Domain/App layer | ✅ done | Introduce `App` and thread it through startup. OAuth scopes and firehose collections flow from `App`, not constants. | 2-3 days | +150 |
 | B | Finish ED phase 1 | (in progress) | Migrate remaining `feed.templ` data switches. (Independent track.) | — | -150 |
-| C | Cache map | pending | `UserCache` typed fields → `map[string][]any` keyed by NSID. Generic `Set`/`Invalidate` driven by descriptor. | 2-3 days | -200 |
+| C | Cache map | ✅ done | `UserCache` typed fields → `map[string]any` keyed by NSID. Generic `SetRecords`/`InvalidateRecords` primitives. Typed wrappers retained for arabica call sites; Phase D removes them. | 2-3 days | -200 |
 | D | Generic Store CRUD | pending | `Get[T any](ctx, nsid, rkey)`, `List[T any]`, `Create`, `Update`, `Delete` on `AtprotoStore`. ~60 methods → ~10. | 4-5 days | -400 |
 | E | Generic feed pipeline | pending | `FeedItem.Record any` + RecordType. `recordToFeedItem` becomes dispatch via descriptor. Adapter and feed.FeedItem similarly. | 4-5 days | -200 |
 | F | Handler/route parameterization | pending | View handler unification (ED phase 4). Generic CRUD handler factory. Routes registered via loop over `App.Descriptors`. | 5-7 days | -500 |

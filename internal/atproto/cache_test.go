@@ -78,21 +78,23 @@ func TestUserCache_clone(t *testing.T) {
 
 	t.Run("clone creates shallow copy", func(t *testing.T) {
 		original := &UserCache{
-			Beans: []*models.Bean{
-				{RKey: "bean1", Name: "Bean One"},
-				{RKey: "bean2", Name: "Bean Two"},
-			},
-			Roasters: []*models.Roaster{
-				{RKey: "roaster1", Name: "Roaster One"},
-			},
-			Grinders: []*models.Grinder{
-				{RKey: "grinder1", Name: "Grinder One"},
-			},
-			Brewers: []*models.Brewer{
-				{RKey: "brewer1", Name: "Brewer One"},
-			},
-			Brews: []*models.Brew{
-				{RKey: "brew1", Method: "V60"},
+			Records: map[string]any{
+				NSIDBean: []*models.Bean{
+					{RKey: "bean1", Name: "Bean One"},
+					{RKey: "bean2", Name: "Bean Two"},
+				},
+				NSIDRoaster: []*models.Roaster{
+					{RKey: "roaster1", Name: "Roaster One"},
+				},
+				NSIDGrinder: []*models.Grinder{
+					{RKey: "grinder1", Name: "Grinder One"},
+				},
+				NSIDBrewer: []*models.Brewer{
+					{RKey: "brewer1", Name: "Brewer One"},
+				},
+				NSIDBrew: []*models.Brew{
+					{RKey: "brew1", Method: "V60"},
+				},
 			},
 			Timestamp: time.Now(),
 		}
@@ -101,40 +103,40 @@ func TestUserCache_clone(t *testing.T) {
 		require.NotNil(t, cloned)
 
 		// Verify all slices are copied (shallow copy)
-		assert.Equal(t, len(original.Beans), len(cloned.Beans))
-		assert.Equal(t, len(original.Roasters), len(cloned.Roasters))
-		assert.Equal(t, len(original.Grinders), len(cloned.Grinders))
-		assert.Equal(t, len(original.Brewers), len(cloned.Brewers))
-		assert.Equal(t, len(original.Brews), len(cloned.Brews))
+		assert.Equal(t, len(original.Beans()), len(cloned.Beans()))
+		assert.Equal(t, len(original.Roasters()), len(cloned.Roasters()))
+		assert.Equal(t, len(original.Grinders()), len(cloned.Grinders()))
+		assert.Equal(t, len(original.Brewers()), len(cloned.Brewers()))
+		assert.Equal(t, len(original.Brews()), len(cloned.Brews()))
 		assert.Equal(t, original.Timestamp, cloned.Timestamp)
 
-		// Verify shallow copy: modifying slice affects both
-		original.Beans[0].Name = "Modified"
-		assert.Equal(t, "Modified", cloned.Beans[0].Name)
+		// Verify shallow copy: modifying slice element affects both
+		original.Beans()[0].Name = "Modified"
+		assert.Equal(t, "Modified", cloned.Beans()[0].Name)
 	})
 
 	t.Run("clone is independent reference", func(t *testing.T) {
 		original := &UserCache{
-			Beans:     []*models.Bean{{RKey: "bean1"}},
+			Records: map[string]any{
+				NSIDBean: []*models.Bean{{RKey: "bean1"}},
+			},
 			Timestamp: time.Now(),
 		}
 
 		cloned := original.clone()
 
-		// Modify original slice reference (not elements)
-		original.Beans = []*models.Bean{{RKey: "bean2"}}
+		// Replace the slice in the original's map (clone should be independent)
+		original.Records[NSIDBean] = []*models.Bean{{RKey: "bean2"}}
 
 		// Cloned should still have old reference
-		assert.Equal(t, "bean1", cloned.Beans[0].RKey)
+		assert.Equal(t, "bean1", cloned.Beans()[0].RKey)
 	})
 }
-
-// ========== SessionCache Tests ==========
 
 func TestNewSessionCache(t *testing.T) {
 	cache := NewSessionCache()
 	require.NotNil(t, cache)
-	require.NotNil(t, cache.caches)
+	assert.NotNil(t, cache.caches)
 	assert.Empty(t, cache.caches)
 }
 
@@ -149,15 +151,17 @@ func TestSessionCache_GetSetInvalidate(t *testing.T) {
 
 	t.Run("set and get session", func(t *testing.T) {
 		userCache := &UserCache{
-			Beans:     []*models.Bean{{RKey: "bean1"}},
+			Records: map[string]any{
+				NSIDBean: []*models.Bean{{RKey: "bean1"}},
+			},
 			Timestamp: time.Now(),
 		}
 
 		cache.Set(sessionID, userCache)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
-		assert.Equal(t, 1, len(result.Beans))
-		assert.Equal(t, "bean1", result.Beans[0].RKey)
+		assert.Equal(t, 1, len(result.Beans()))
+		assert.Equal(t, "bean1", result.Beans()[0].RKey)
 	})
 
 	t.Run("invalidate removes session", func(t *testing.T) {
@@ -168,7 +172,6 @@ func TestSessionCache_GetSetInvalidate(t *testing.T) {
 
 	t.Run("invalidate nonexistent session is safe", func(t *testing.T) {
 		cache.Invalidate("nonexistent")
-		// Should not panic
 	})
 }
 
@@ -178,11 +181,13 @@ func TestSessionCache_SetCollections(t *testing.T) {
 
 	// Initialize cache with some data
 	initial := &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean1"}},
-		Roasters:  []*models.Roaster{{RKey: "roaster1"}},
-		Grinders:  []*models.Grinder{{RKey: "grinder1"}},
-		Brewers:   []*models.Brewer{{RKey: "brewer1"}},
-		Brews:     []*models.Brew{{RKey: "brew1"}},
+		Records: map[string]any{
+			NSIDBean:    []*models.Bean{{RKey: "bean1"}},
+			NSIDRoaster: []*models.Roaster{{RKey: "roaster1"}},
+			NSIDGrinder: []*models.Grinder{{RKey: "grinder1"}},
+			NSIDBrewer:  []*models.Brewer{{RKey: "brewer1"}},
+			NSIDBrew:    []*models.Brew{{RKey: "brew1"}},
+		},
 		Timestamp: time.Now().Add(-time.Minute),
 	}
 	cache.Set(sessionID, initial)
@@ -198,14 +203,14 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		require.NotNil(t, result)
 
 		// Beans should be updated
-		assert.Len(t, result.Beans, 2)
-		assert.Equal(t, "bean2", result.Beans[0].RKey)
+		assert.Len(t, result.Beans(), 2)
+		assert.Equal(t, "bean2", result.Beans()[0].RKey)
 
 		// Other collections unchanged
-		assert.Len(t, result.Roasters, 1)
-		assert.Len(t, result.Grinders, 1)
-		assert.Len(t, result.Brewers, 1)
-		assert.Len(t, result.Brews, 1)
+		assert.Len(t, result.Roasters(), 1)
+		assert.Len(t, result.Grinders(), 1)
+		assert.Len(t, result.Brewers(), 1)
+		assert.Len(t, result.Brews(), 1)
 
 		// Timestamp should be updated
 		assert.True(t, result.Timestamp.After(initial.Timestamp))
@@ -217,9 +222,9 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Len(t, result.Roasters, 1)
-		assert.Equal(t, "roaster2", result.Roasters[0].RKey)
-		assert.Len(t, result.Beans, 2) // From previous test
+		assert.Len(t, result.Roasters(), 1)
+		assert.Equal(t, "roaster2", result.Roasters()[0].RKey)
+		assert.Len(t, result.Beans(), 2) // From previous test
 	})
 
 	t.Run("SetGrinders updates only grinders", func(t *testing.T) {
@@ -228,8 +233,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Len(t, result.Grinders, 1)
-		assert.Equal(t, "grinder2", result.Grinders[0].RKey)
+		assert.Len(t, result.Grinders(), 1)
+		assert.Equal(t, "grinder2", result.Grinders()[0].RKey)
 	})
 
 	t.Run("SetBrewers updates only brewers", func(t *testing.T) {
@@ -238,8 +243,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Len(t, result.Brewers, 1)
-		assert.Equal(t, "brewer2", result.Brewers[0].RKey)
+		assert.Len(t, result.Brewers(), 1)
+		assert.Equal(t, "brewer2", result.Brewers()[0].RKey)
 	})
 
 	t.Run("SetBrews updates only brews", func(t *testing.T) {
@@ -248,8 +253,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Len(t, result.Brews, 1)
-		assert.Equal(t, "brew2", result.Brews[0].RKey)
+		assert.Len(t, result.Brews(), 1)
+		assert.Equal(t, "brew2", result.Brews()[0].RKey)
 	})
 }
 
@@ -257,77 +262,82 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 	cache := NewSessionCache()
 	sessionID := "session123"
 
-	// Initialize cache with all collections
-	initial := &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean1"}},
-		Roasters:  []*models.Roaster{{RKey: "roaster1"}},
-		Grinders:  []*models.Grinder{{RKey: "grinder1"}},
-		Brewers:   []*models.Brewer{{RKey: "brewer1"}},
-		Brews:     []*models.Brew{{RKey: "brew1"}},
-		Timestamp: time.Now(),
+	// freshInitial returns a new initialized cache so each subtest can reset.
+	freshInitial := func() *UserCache {
+		return &UserCache{
+			Records: map[string]any{
+				NSIDBean:    []*models.Bean{{RKey: "bean1"}},
+				NSIDRoaster: []*models.Roaster{{RKey: "roaster1"}},
+				NSIDGrinder: []*models.Grinder{{RKey: "grinder1"}},
+				NSIDBrewer:  []*models.Brewer{{RKey: "brewer1"}},
+				NSIDBrew:    []*models.Brew{{RKey: "brew1"}},
+			},
+			Timestamp: time.Now(),
+		}
 	}
-	cache.Set(sessionID, initial)
+
+	cache.Set(sessionID, freshInitial())
 
 	t.Run("InvalidateBeans clears only beans", func(t *testing.T) {
 		cache.InvalidateBeans(sessionID)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Beans)
-		assert.NotNil(t, result.Roasters)
-		assert.NotNil(t, result.Grinders)
-		assert.NotNil(t, result.Brewers)
-		assert.NotNil(t, result.Brews)
+		assert.Nil(t, result.Beans())
+		assert.NotNil(t, result.Roasters())
+		assert.NotNil(t, result.Grinders())
+		assert.NotNil(t, result.Brewers())
+		assert.NotNil(t, result.Brews())
 	})
 
 	t.Run("InvalidateRoasters clears roasters AND beans", func(t *testing.T) {
 		// Reset cache
-		cache.Set(sessionID, initial)
+		cache.Set(sessionID, freshInitial())
 
 		cache.InvalidateRoasters(sessionID)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
 		// Both roasters and beans should be nil (cascading invalidation)
-		assert.Nil(t, result.Roasters)
-		assert.Nil(t, result.Beans)
-		assert.NotNil(t, result.Grinders)
-		assert.NotNil(t, result.Brewers)
-		assert.NotNil(t, result.Brews)
+		assert.Nil(t, result.Roasters())
+		assert.Nil(t, result.Beans())
+		assert.NotNil(t, result.Grinders())
+		assert.NotNil(t, result.Brewers())
+		assert.NotNil(t, result.Brews())
 	})
 
 	t.Run("InvalidateGrinders clears only grinders", func(t *testing.T) {
-		cache.Set(sessionID, initial)
+		cache.Set(sessionID, freshInitial())
 
 		cache.InvalidateGrinders(sessionID)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Grinders)
-		assert.NotNil(t, result.Beans)
-		assert.NotNil(t, result.Roasters)
+		assert.Nil(t, result.Grinders())
+		assert.NotNil(t, result.Beans())
+		assert.NotNil(t, result.Roasters())
 	})
 
 	t.Run("InvalidateBrewers clears only brewers", func(t *testing.T) {
-		cache.Set(sessionID, initial)
+		cache.Set(sessionID, freshInitial())
 
 		cache.InvalidateBrewers(sessionID)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Brewers)
-		assert.NotNil(t, result.Beans)
+		assert.Nil(t, result.Brewers())
+		assert.NotNil(t, result.Beans())
 	})
 
 	t.Run("InvalidateBrews clears only brews", func(t *testing.T) {
-		cache.Set(sessionID, initial)
+		cache.Set(sessionID, freshInitial())
 
 		cache.InvalidateBrews(sessionID)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Brews)
-		assert.NotNil(t, result.Beans)
+		assert.Nil(t, result.Brews())
+		assert.NotNil(t, result.Beans())
 	})
 
 	t.Run("invalidate on nonexistent session is safe", func(t *testing.T) {
@@ -345,21 +355,27 @@ func TestSessionCache_Cleanup(t *testing.T) {
 
 	// Add fresh cache
 	freshCache := &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean1"}},
+		Records: map[string]any{
+			NSIDBean: []*models.Bean{{RKey: "bean1"}},
+		},
 		Timestamp: time.Now(),
 	}
 	cache.Set("session-fresh", freshCache)
 
 	// Add old cache (beyond 2x TTL)
 	oldCache := &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean2"}},
+		Records: map[string]any{
+			NSIDBean: []*models.Bean{{RKey: "bean2"}},
+		},
 		Timestamp: time.Now().Add(-CacheTTL*2 - time.Second),
 	}
 	cache.Set("session-old", oldCache)
 
 	// Add cache within TTL
 	recentCache := &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean3"}},
+		Records: map[string]any{
+			NSIDBean: []*models.Bean{{RKey: "bean3"}},
+		},
 		Timestamp: time.Now().Add(-CacheTTL + time.Minute),
 	}
 	cache.Set("session-recent", recentCache)
@@ -380,7 +396,9 @@ func TestSessionCache_StartCleanupRoutine(t *testing.T) {
 
 	// Add old cache
 	oldCache := &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean1"}},
+		Records: map[string]any{
+			NSIDBean: []*models.Bean{{RKey: "bean1"}},
+		},
 		Timestamp: time.Now().Add(-CacheTTL*2 - time.Second),
 	}
 	cache.Set("session-old", oldCache)
@@ -434,7 +452,9 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 				for range numOperations {
 					sessionID := "session"
 					userCache := &UserCache{
-						Beans:     []*models.Bean{{RKey: "bean"}},
+						Records: map[string]any{
+							NSIDBean: []*models.Bean{{RKey: "bean"}},
+						},
 						Timestamp: time.Now(),
 					}
 					cache.Set(sessionID, userCache)
@@ -459,8 +479,10 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 	t.Run("concurrent collection updates", func(t *testing.T) {
 		sessionID := "test-session"
 		initial := &UserCache{
-			Beans:     []*models.Bean{{RKey: "bean1"}},
-			Roasters:  []*models.Roaster{{RKey: "roaster1"}},
+			Records: map[string]any{
+				NSIDBean:    []*models.Bean{{RKey: "bean1"}},
+				NSIDRoaster: []*models.Roaster{{RKey: "roaster1"}},
+			},
 			Timestamp: time.Now(),
 		}
 		cache.Set(sessionID, initial)
@@ -516,7 +538,9 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			for range numOperations {
 				cache.Set("session", &UserCache{
-					Beans:     []*models.Bean{{RKey: "bean"}},
+					Records: map[string]any{
+						NSIDBean: []*models.Bean{{RKey: "bean"}},
+					},
 					Timestamp: time.Now(),
 				})
 			}
@@ -549,7 +573,9 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 
 	// Initialize cache
 	original := &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean1", Name: "Original"}},
+		Records: map[string]any{
+			NSIDBean: []*models.Bean{{RKey: "bean1", Name: "Original"}},
+		},
 		Timestamp: time.Now(),
 	}
 	cache.Set(sessionID, original)
@@ -557,7 +583,7 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 	// Get reference before update
 	before := cache.Get(sessionID)
 	require.NotNil(t, before)
-	assert.Equal(t, "Original", before.Beans[0].Name)
+	assert.Equal(t, "Original", before.Beans()[0].Name)
 
 	// Update beans
 	newBeans := []*models.Bean{{RKey: "bean2", Name: "Updated"}}
@@ -568,11 +594,40 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 	require.NotNil(t, after)
 
 	// Verify copy-on-write: old reference still has old data
-	assert.Equal(t, "Original", before.Beans[0].Name)
-	assert.Equal(t, "Updated", after.Beans[0].Name)
+	assert.Equal(t, "Original", before.Beans()[0].Name)
+	assert.Equal(t, "Updated", after.Beans()[0].Name)
 
 	// Verify they are different instances
 	assert.NotEqual(t, before, after)
+}
+
+// TestSessionCache_SetRecordsGenericNSID proves SetRecords/InvalidateRecords
+// work for any NSID/type combination, not just arabica entities. This is
+// the contract a sister app (matcha) depends on.
+func TestSessionCache_SetRecordsGenericNSID(t *testing.T) {
+	sc := NewSessionCache()
+	sessionID := "test-session"
+
+	const fakeNSID = "social.fake.alpha.widget"
+	type widget struct{ ID string }
+	widgets := []*widget{{ID: "w1"}, {ID: "w2"}}
+
+	sc.SetRecords(sessionID, fakeNSID, widgets)
+
+	cache := sc.Get(sessionID)
+	require.NotNil(t, cache)
+	got, ok := cache.Records[fakeNSID].([]*widget)
+	assert.True(t, ok)
+	assert.Equal(t, widgets, got)
+
+	// Not dirty right after Set
+	assert.False(t, cache.IsDirty(fakeNSID))
+
+	sc.InvalidateRecords(sessionID, fakeNSID)
+	cache = sc.Get(sessionID)
+	_, present := cache.Records[fakeNSID]
+	assert.False(t, present)
+	assert.True(t, cache.IsDirty(fakeNSID))
 }
 
 func TestSessionCache_MultipleSessionsIsolation(t *testing.T) {
@@ -580,17 +635,23 @@ func TestSessionCache_MultipleSessionsIsolation(t *testing.T) {
 
 	// Create caches for different sessions
 	cache.Set("session1", &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean1"}},
+		Records: map[string]any{
+			NSIDBean: []*models.Bean{{RKey: "bean1"}},
+		},
 		Timestamp: time.Now(),
 	})
 
 	cache.Set("session2", &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean2"}},
+		Records: map[string]any{
+			NSIDBean: []*models.Bean{{RKey: "bean2"}},
+		},
 		Timestamp: time.Now(),
 	})
 
 	cache.Set("session3", &UserCache{
-		Beans:     []*models.Bean{{RKey: "bean3"}},
+		Records: map[string]any{
+			NSIDBean: []*models.Bean{{RKey: "bean3"}},
+		},
 		Timestamp: time.Now(),
 	})
 
@@ -603,11 +664,11 @@ func TestSessionCache_MultipleSessionsIsolation(t *testing.T) {
 	// Verify isolation
 	s1 := cache.Get("session1")
 	require.NotNil(t, s1)
-	assert.Equal(t, "bean1", s1.Beans[0].RKey)
+	assert.Equal(t, "bean1", s1.Beans()[0].RKey)
 
 	s2 := cache.Get("session2")
 	require.NotNil(t, s2)
-	assert.Equal(t, "bean2-updated", s2.Beans[0].RKey)
+	assert.Equal(t, "bean2-updated", s2.Beans()[0].RKey)
 
 	s3 := cache.Get("session3")
 	assert.Nil(t, s3)

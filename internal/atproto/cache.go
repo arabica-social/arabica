@@ -8,19 +8,18 @@ import (
 	"tangled.org/arabica.social/arabica/internal/models"
 )
 
-// CacheTTL is how long cached data remains valid
-// Set to 2 minutes to balance multi-device sync with PDS request load
+// CacheTTL is how long cached data remains valid.
+// Set to 2 minutes to balance multi-device sync with PDS request load.
 const CacheTTL = 2 * time.Minute
 
-// UserCache holds cached data for a single user.
-// This struct is immutable once created - modifications create new instances.
+// UserCache holds cached records for a single user, keyed by NSID.
+// Values in Records are typed slices (e.g. []*models.Bean); the typed
+// accessor methods (Beans(), Roasters(), ...) handle the cast.
+//
+// This struct is treated as immutable once created — modifications create
+// new instances via clone().
 type UserCache struct {
-	Beans     []*models.Bean
-	Roasters  []*models.Roaster
-	Grinders  []*models.Grinder
-	Brewers   []*models.Brewer
-	Recipes   []*models.Recipe
-	Brews     []*models.Brew
+	Records   map[string]any
 	Timestamp time.Time
 	// DirtyCollections tracks collections that were recently written to.
 	// When a collection is dirty, the witness cache should be skipped
@@ -28,7 +27,7 @@ type UserCache struct {
 	DirtyCollections map[string]bool
 }
 
-// IsValid returns true if the cache is still valid
+// IsValid returns true if the cache is still valid.
 func (c *UserCache) IsValid() bool {
 	if c == nil {
 		return false
@@ -45,27 +44,82 @@ func (c *UserCache) IsDirty(collection string) bool {
 	return c.DirtyCollections[collection]
 }
 
-// clone creates a shallow copy of the UserCache for safe modification
+// clone creates a shallow copy of the UserCache for safe modification.
+// The Records map is copied but its slice values share backing arrays,
+// which is fine because callers never mutate cached slices in place.
 func (c *UserCache) clone() *UserCache {
 	if c == nil {
 		return &UserCache{Timestamp: time.Now()}
 	}
-	// Copy dirty collections map
 	var dirty map[string]bool
 	if c.DirtyCollections != nil {
 		dirty = make(map[string]bool, len(c.DirtyCollections))
 		maps.Copy(dirty, c.DirtyCollections)
 	}
+	var records map[string]any
+	if c.Records != nil {
+		records = make(map[string]any, len(c.Records))
+		maps.Copy(records, c.Records)
+	}
 	return &UserCache{
-		Beans:            c.Beans,
-		Roasters:         c.Roasters,
-		Grinders:         c.Grinders,
-		Brewers:          c.Brewers,
-		Recipes:          c.Recipes,
-		Brews:            c.Brews,
+		Records:          records,
 		Timestamp:        c.Timestamp,
 		DirtyCollections: dirty,
 	}
+}
+
+// Beans returns the cached []*models.Bean slice, or nil if not cached.
+func (c *UserCache) Beans() []*models.Bean {
+	if c == nil {
+		return nil
+	}
+	v, _ := c.Records[NSIDBean].([]*models.Bean)
+	return v
+}
+
+// Roasters returns the cached []*models.Roaster slice, or nil if not cached.
+func (c *UserCache) Roasters() []*models.Roaster {
+	if c == nil {
+		return nil
+	}
+	v, _ := c.Records[NSIDRoaster].([]*models.Roaster)
+	return v
+}
+
+// Grinders returns the cached []*models.Grinder slice, or nil if not cached.
+func (c *UserCache) Grinders() []*models.Grinder {
+	if c == nil {
+		return nil
+	}
+	v, _ := c.Records[NSIDGrinder].([]*models.Grinder)
+	return v
+}
+
+// Brewers returns the cached []*models.Brewer slice, or nil if not cached.
+func (c *UserCache) Brewers() []*models.Brewer {
+	if c == nil {
+		return nil
+	}
+	v, _ := c.Records[NSIDBrewer].([]*models.Brewer)
+	return v
+}
+
+// Recipes returns the cached []*models.Recipe slice, or nil if not cached.
+func (c *UserCache) Recipes() []*models.Recipe {
+	if c == nil {
+		return nil
+	}
+	v, _ := c.Records[NSIDRecipe].([]*models.Recipe)
+	return v
+}
+
+// Brews returns the cached []*models.Brew slice, or nil if not cached.
+func (c *UserCache) Brews() []*models.Brew {
+	if c == nil {
+		return nil
+	}
+	v, _ := c.Records[NSIDBrew].([]*models.Brew)
+	return v
 }
 
 // SessionCache manages per-user caches with proper synchronization.
@@ -92,78 +146,77 @@ func (sc *SessionCache) Get(sessionID string) *UserCache {
 	return sc.caches[sessionID]
 }
 
-// Set stores a user's cache (replaces entirely)
+// Set stores a user's cache (replaces entirely).
 func (sc *SessionCache) Set(sessionID string, cache *UserCache) {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 	sc.caches[sessionID] = cache
 }
 
-// Invalidate removes a user's cache entirely
+// Invalidate removes a user's cache entirely.
 func (sc *SessionCache) Invalidate(sessionID string) {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 	delete(sc.caches, sessionID)
 }
 
-// SetBeans updates just the beans in the cache using copy-on-write
+// SetRecords stores records for one NSID using copy-on-write. The records
+// argument should be a typed slice (e.g. []*models.Bean); SessionCache does
+// not interpret the value.
+func (sc *SessionCache) SetRecords(sessionID, nsid string, records any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	newCache := sc.caches[sessionID].clone()
+	if newCache.Records == nil {
+		newCache.Records = make(map[string]any)
+	}
+	newCache.Records[nsid] = records
+	newCache.Timestamp = time.Now()
+	sc.caches[sessionID] = newCache
+}
+
+// InvalidateRecords clears the cache for one NSID and marks it dirty so the
+// witness cache is skipped until firehose catches up.
+func (sc *SessionCache) InvalidateRecords(sessionID, nsid string) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	if cache, ok := sc.caches[sessionID]; ok {
+		newCache := cache.clone()
+		delete(newCache.Records, nsid)
+		markDirty(newCache, nsid)
+		sc.caches[sessionID] = newCache
+	}
+}
+
+// SetBeans is a typed wrapper over SetRecords. Phase D removes typed wrappers
+// when call sites migrate to the generic primitive.
 func (sc *SessionCache) SetBeans(sessionID string, beans []*models.Bean) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	newCache := sc.caches[sessionID].clone()
-	newCache.Beans = beans
-	newCache.Timestamp = time.Now()
-	sc.caches[sessionID] = newCache
+	sc.SetRecords(sessionID, NSIDBean, beans)
 }
 
-// SetRoasters updates just the roasters in the cache using copy-on-write
+// SetRoasters is a typed wrapper over SetRecords.
 func (sc *SessionCache) SetRoasters(sessionID string, roasters []*models.Roaster) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	newCache := sc.caches[sessionID].clone()
-	newCache.Roasters = roasters
-	newCache.Timestamp = time.Now()
-	sc.caches[sessionID] = newCache
+	sc.SetRecords(sessionID, NSIDRoaster, roasters)
 }
 
-// SetGrinders updates just the grinders in the cache using copy-on-write
+// SetGrinders is a typed wrapper over SetRecords.
 func (sc *SessionCache) SetGrinders(sessionID string, grinders []*models.Grinder) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	newCache := sc.caches[sessionID].clone()
-	newCache.Grinders = grinders
-	newCache.Timestamp = time.Now()
-	sc.caches[sessionID] = newCache
+	sc.SetRecords(sessionID, NSIDGrinder, grinders)
 }
 
-// SetBrewers updates just the brewers in the cache using copy-on-write
+// SetBrewers is a typed wrapper over SetRecords.
 func (sc *SessionCache) SetBrewers(sessionID string, brewers []*models.Brewer) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	newCache := sc.caches[sessionID].clone()
-	newCache.Brewers = brewers
-	newCache.Timestamp = time.Now()
-	sc.caches[sessionID] = newCache
+	sc.SetRecords(sessionID, NSIDBrewer, brewers)
 }
 
-// SetRecipes updates just the recipes in the cache using copy-on-write
+// SetRecipes is a typed wrapper over SetRecords.
 func (sc *SessionCache) SetRecipes(sessionID string, recipes []*models.Recipe) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	newCache := sc.caches[sessionID].clone()
-	newCache.Recipes = recipes
-	newCache.Timestamp = time.Now()
-	sc.caches[sessionID] = newCache
+	sc.SetRecords(sessionID, NSIDRecipe, recipes)
 }
 
-// SetBrews updates just the brews in the cache using copy-on-write
+// SetBrews is a typed wrapper over SetRecords.
 func (sc *SessionCache) SetBrews(sessionID string, brews []*models.Brew) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	newCache := sc.caches[sessionID].clone()
-	newCache.Brews = brews
-	newCache.Timestamp = time.Now()
-	sc.caches[sessionID] = newCache
+	sc.SetRecords(sessionID, NSIDBrew, brews)
 }
 
 // markDirty sets a collection as dirty on the given cache, initializing the map if needed.
@@ -185,78 +238,38 @@ func (sc *SessionCache) ClearDirty(sessionID, collection string) {
 	}
 }
 
-// InvalidateBeans marks that beans need to be refreshed using copy-on-write
+// InvalidateBeans is a typed wrapper over InvalidateRecords.
 func (sc *SessionCache) InvalidateBeans(sessionID string) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	if cache, ok := sc.caches[sessionID]; ok {
-		newCache := cache.clone()
-		newCache.Beans = nil
-		markDirty(newCache, NSIDBean)
-		sc.caches[sessionID] = newCache
-	}
+	sc.InvalidateRecords(sessionID, NSIDBean)
 }
 
-// InvalidateRoasters marks that roasters need to be refreshed using copy-on-write
+// InvalidateRoasters invalidates roasters AND beans, since beans denormalize
+// roaster data. This cross-collection coupling is arabica-specific; Phase D
+// moves it onto Descriptor.RelatedNSIDs or a callback when typed wrappers
+// are removed.
 func (sc *SessionCache) InvalidateRoasters(sessionID string) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	if cache, ok := sc.caches[sessionID]; ok {
-		newCache := cache.clone()
-		newCache.Roasters = nil
-		// Also invalidate beans since they reference roasters
-		newCache.Beans = nil
-		markDirty(newCache, NSIDRoaster)
-		sc.caches[sessionID] = newCache
-	}
+	sc.InvalidateRecords(sessionID, NSIDRoaster)
+	sc.InvalidateRecords(sessionID, NSIDBean)
 }
 
-// InvalidateGrinders marks that grinders need to be refreshed using copy-on-write
+// InvalidateGrinders is a typed wrapper over InvalidateRecords.
 func (sc *SessionCache) InvalidateGrinders(sessionID string) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	if cache, ok := sc.caches[sessionID]; ok {
-		newCache := cache.clone()
-		newCache.Grinders = nil
-		markDirty(newCache, NSIDGrinder)
-		sc.caches[sessionID] = newCache
-	}
+	sc.InvalidateRecords(sessionID, NSIDGrinder)
 }
 
-// InvalidateBrewers marks that brewers need to be refreshed using copy-on-write
+// InvalidateBrewers is a typed wrapper over InvalidateRecords.
 func (sc *SessionCache) InvalidateBrewers(sessionID string) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	if cache, ok := sc.caches[sessionID]; ok {
-		newCache := cache.clone()
-		newCache.Brewers = nil
-		markDirty(newCache, NSIDBrewer)
-		sc.caches[sessionID] = newCache
-	}
+	sc.InvalidateRecords(sessionID, NSIDBrewer)
 }
 
-// InvalidateRecipes marks that recipes need to be refreshed using copy-on-write
+// InvalidateRecipes is a typed wrapper over InvalidateRecords.
 func (sc *SessionCache) InvalidateRecipes(sessionID string) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	if cache, ok := sc.caches[sessionID]; ok {
-		newCache := cache.clone()
-		newCache.Recipes = nil
-		markDirty(newCache, NSIDRecipe)
-		sc.caches[sessionID] = newCache
-	}
+	sc.InvalidateRecords(sessionID, NSIDRecipe)
 }
 
-// InvalidateBrews marks that brews need to be refreshed using copy-on-write
+// InvalidateBrews is a typed wrapper over InvalidateRecords.
 func (sc *SessionCache) InvalidateBrews(sessionID string) {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	if cache, ok := sc.caches[sessionID]; ok {
-		newCache := cache.clone()
-		newCache.Brews = nil
-		markDirty(newCache, NSIDBrew)
-		sc.caches[sessionID] = newCache
-	}
+	sc.InvalidateRecords(sessionID, NSIDBrew)
 }
 
 // Cleanup removes expired caches.
