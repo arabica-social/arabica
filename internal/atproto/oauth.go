@@ -18,18 +18,6 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-var scopes = []string{
-	"atproto",
-	"repo:" + NSIDBean,
-	"repo:" + NSIDBrew,
-	"repo:" + NSIDBrewer,
-	"repo:" + NSIDComment,
-	"repo:" + NSIDGrinder,
-	"repo:" + NSIDLike,
-	"repo:" + NSIDRecipe,
-	"repo:" + NSIDRoaster,
-}
-
 // OAuthManager wraps indigo's OAuth client for managing user authentication
 type OAuthManager struct {
 	app           *oauth.ClientApp
@@ -39,7 +27,8 @@ type OAuthManager struct {
 // NewOAuthManager creates a new OAuth manager with the given configuration.
 // If store is nil, an in-memory store will be used (sessions lost on restart).
 // For production, pass a persistent store (e.g., boltstore.SessionStore).
-func NewOAuthManager(clientID, redirectURI string, store oauth.ClientAuthStore) (*OAuthManager, error) {
+// The scopes slice should typically come from domain.App.OAuthScopes().
+func NewOAuthManager(clientID, redirectURI string, scopes []string, store oauth.ClientAuthStore) (*OAuthManager, error) {
 	var config oauth.ClientConfig
 
 	// Check if we should use localhost config

@@ -193,7 +193,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	// stores. The OAuth manager is built but never exercised — its
 	// AuthMiddleware short-circuits when no cookies are present, leaving the
 	// context the harness middleware installed in place.
-	oauthMgr, err := atproto.NewOAuthManager("", "http://localhost/oauth/callback", nil)
+	oauthMgr, err := atproto.NewOAuthManager("", "http://localhost/oauth/callback", []string{"atproto"}, nil)
 	require.NoError(t, err)
 
 	feedRegistry := feed.NewRegistry()

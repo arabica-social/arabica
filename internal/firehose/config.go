@@ -48,11 +48,14 @@ type Config struct {
 	ProfileCacheTTL int64 // seconds
 }
 
-// DefaultConfig returns a configuration with sensible defaults
+// DefaultConfig returns a configuration with sensible defaults. Caller
+// must populate WantedCollections (typically from domain.App.NSIDs()) — a
+// nil default forces app-aware wiring at startup so the subscription tracks
+// the running app's entity set.
 func DefaultConfig() *Config {
 	return &Config{
 		Endpoints:         DefaultJetstreamEndpoints,
-		WantedCollections: ArabicaCollections,
+		WantedCollections: nil,
 		Compress:          false, // Disabled: Jetstream uses custom zstd dictionary
 		IndexPath:         "",    // Will be set based on data directory
 		ProfileCacheTTL:   3600,  // 1 hour

@@ -74,6 +74,12 @@ func main() {
 
 	log.Info().Msg("Starting Arabica Coffee Tracker")
 
+	app := newArabicaApp()
+	log.Info().
+		Str("app", app.Name).
+		Int("descriptors", len(app.Descriptors)).
+		Msg("Constructed app config")
+
 	// Initialize OpenTelemetry tracing
 	tp, err := tracing.Init(context.Background())
 	if err != nil {
@@ -147,7 +153,7 @@ func main() {
 		}
 	}
 
-	oauthManager, err := atproto.NewOAuthManager(clientID, redirectURI, sessionStore)
+	oauthManager, err := atproto.NewOAuthManager(clientID, redirectURI, app.OAuthScopes(), sessionStore)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize OAuth")
 	}
@@ -180,6 +186,7 @@ func main() {
 	// Create firehose config
 	firehoseConfig := firehose.DefaultConfig()
 	firehoseConfig.IndexPath = feedIndexPath
+	firehoseConfig.WantedCollections = app.NSIDs()
 
 	// Parse profile cache TTL from env if set
 	if ttlStr := os.Getenv("ARABICA_PROFILE_CACHE_TTL"); ttlStr != "" {
