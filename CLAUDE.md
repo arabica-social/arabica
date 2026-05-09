@@ -118,13 +118,18 @@ cache (mark dirty).
 events. Records are indexed into the SQLite feed index. The feed pipeline:
 
 1. **FeedIndex** (`firehose/index.go`) — SQLite store, `recordToFeedItem()`
-   converts indexed records to `FeedItem` structs with resolved references.
-2. **FeedIndexAdapter** (`firehose/adapter.go`) — converts firehose `FeedItem`
-   to feed `FirehoseFeedItem` to avoid import cycles.
-3. **Feed Service** (`feed/service.go`) — converts to `feed.FeedItem`, applies
-   moderation filtering, caching, and pagination.
+   converts indexed records to `feed.FeedItem` structs with resolved
+   references.
+2. **FeedIndexAdapter** (`firehose/adapter.go`) — implements
+   `feed.FirehoseIndex` over `FeedIndex`. Items pass through as
+   `*feed.FeedItem`; the adapter only bridges the
+   `FirehoseFeedQuery`/`FeedQuery` query structs.
+3. **Feed Service** (`feed/service.go`) — applies moderation filtering,
+   caching, and pagination. The handler populates `IsLikedByViewer` and
+   `IsOwner` on each item once a viewer is identified.
 
-When adding a new entity type, all three layers need the new fields added.
+When adding a new entity type, fields live on a single `feed.FeedItem`
+struct; entity-specific population lives in `recordToFeedItem`'s switch.
 
 ### Adding a New Entity Type (Checklist)
 
@@ -142,23 +147,22 @@ entities with references):
 8. **Cache fields + Set/Invalidate methods** in `internal/atproto/cache.go`
 9. **OAuth scope** in `internal/atproto/oauth.go`
 10. **Firehose config** (collection list) in `internal/firehose/config.go`
-11. **Firehose FeedItem** fields + `recordToFeedItem` switch case in `internal/firehose/index.go`
-12. **Feed adapter** mapping in `internal/firehose/adapter.go`
-13. **Feed service** `FeedItem` + `FirehoseFeedItem` fields and both mapper sites in `internal/feed/service.go`
-14. **CRUD handlers** in `internal/handlers/entities.go` (also update `HandleManagePartial`, `HandleAPIListAll`, `HandleManageRefresh`)
-15. **View + OG image handlers** in `internal/handlers/entity_views.go`
-16. **Modal handlers** in `internal/handlers/modals.go`
-17. **Routes** in `internal/routing/routing.go` (page views, API CRUD, modals, OG images)
-18. **Templ view page** in `internal/web/pages/` (e.g., `cafe_view.templ`)
-19. **Templ record content** in `internal/web/components/` (e.g., `record_cafe.templ`)
-20. **Entity table component** in `internal/web/components/entity_tables.templ`
-21. **Dialog modal** in `internal/web/components/dialog_modals.templ` (+ `getStringValue` cases)
-22. **Manage partial** tab in `internal/web/components/manage_partial.templ`
-23. **My Coffee tab** in `internal/web/pages/my_coffee.templ`
-24. **Feed card** switch cases in `internal/web/pages/feed.templ` (card class, content, ActionText, share URL, title, delete URL)
-25. **OG card** function in `internal/ogcard/entities.go` (+ accent color in `brew.go`)
-26. **Suggestions** config in `internal/suggestions/suggestions.go` + handler map in `internal/handlers/suggestions.go`
-27. **Client-side cache** entity case in `static/js/combo-select.js` `getUserEntities()`
+11. **`recordToFeedItem` switch case** in `internal/firehose/index.go` (entity-specific population on `feed.FeedItem`)
+12. **`FeedItem` fields** in `internal/feed/service.go` if the new entity needs a field on the shared payload
+13. **CRUD handlers** in `internal/handlers/entities.go` (also update `HandleManagePartial`, `HandleAPIListAll`, `HandleManageRefresh`)
+14. **View + OG image handlers** in `internal/handlers/entity_views.go`
+15. **Modal handlers** in `internal/handlers/modals.go`
+16. **Routes** in `internal/routing/routing.go` (page views, API CRUD, modals, OG images)
+17. **Templ view page** in `internal/web/pages/` (e.g., `cafe_view.templ`)
+18. **Templ record content** in `internal/web/components/` (e.g., `record_cafe.templ`)
+19. **Entity table component** in `internal/web/components/entity_tables.templ`
+20. **Dialog modal** in `internal/web/components/dialog_modals.templ` (+ `getStringValue` cases)
+21. **Manage partial** tab in `internal/web/components/manage_partial.templ`
+22. **My Coffee tab** in `internal/web/pages/my_coffee.templ`
+23. **Feed card** switch cases in `internal/web/pages/feed.templ` (card class, content, ActionText, share URL, title, delete URL)
+24. **OG card** function in `internal/ogcard/entities.go` (+ accent color in `brew.go`)
+25. **Suggestions** config in `internal/suggestions/suggestions.go` + handler map in `internal/handlers/suggestions.go`
+26. **Client-side cache** entity case in `static/js/combo-select.js` `getUserEntities()`
 
 ### Templ Architecture
 

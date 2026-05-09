@@ -8,10 +8,9 @@ import (
 
 // FeedIndexAdapter wraps FeedIndex to implement feed.FirehoseIndex.
 //
-// FeedItem is a type alias for feed.FeedItemCore (== feed.FirehoseFeedItem),
-// so the result types match across the two packages without conversion;
-// this adapter exists only to translate the feed.FirehoseFeedQuery struct
-// into firehose.FeedQuery (different Sort field type) and to satisfy the
+// Items flow through unchanged (both sides use *feed.FeedItem); the
+// adapter exists only to translate feed.FirehoseFeedQuery into
+// firehose.FeedQuery (different Sort field type) and to satisfy the
 // interface contract.
 type FeedIndexAdapter struct {
 	index *FeedIndex
@@ -28,7 +27,7 @@ func (a *FeedIndexAdapter) IsReady() bool {
 }
 
 // GetRecentFeed returns recent feed items from the index.
-func (a *FeedIndexAdapter) GetRecentFeed(ctx context.Context, limit int) ([]*feed.FirehoseFeedItem, error) {
+func (a *FeedIndexAdapter) GetRecentFeed(ctx context.Context, limit int) ([]*feed.FeedItem, error) {
 	return a.index.GetRecentFeed(ctx, limit)
 }
 

@@ -39,11 +39,12 @@ const (
 	FeedLimit = 20
 )
 
-// FeedItemCore is the shared payload between the firehose layer (which
-// produces it from indexed records) and the feed service (which wraps it
-// in FeedItem to add viewer-context fields). All accessor methods live
-// here so both layers share the same nil-safe type-assertion helpers.
-type FeedItemCore struct {
+// FeedItem is a feed entry produced by the firehose layer and consumed
+// by the feed service and templates. The like/comment counts and
+// SubjectURI/CID populate during indexing; IsLikedByViewer and IsOwner
+// populate per-request when an authenticated viewer is present and stay
+// zero otherwise. Accessor methods (Brew, Bean, …) are nil-safe.
+type FeedItem struct {
 	RecordType lexicons.RecordType // Use lexicons.RecordTypeBrew, lexicons.RecordTypeBean, etc.
 	Action     string              // "added a new brew", "added a new bean", etc.
 
@@ -62,24 +63,15 @@ type FeedItemCore struct {
 
 	// Comment-related fields
 	CommentCount int // Number of comments on this record
-}
 
-// FirehoseFeedItem is the unmodified core item produced by the firehose
-// layer. The feed service wraps it into FeedItem with viewer-context
-// fields populated downstream.
-type FirehoseFeedItem = FeedItemCore
-
-// FeedItem extends the firehose-produced core with viewer-context fields
-// (IsLikedByViewer, IsOwner) populated by the feed service per request.
-type FeedItem struct {
-	FeedItemCore
-
-	IsLikedByViewer bool // Whether the current viewer has liked this record
-	IsOwner         bool // Whether the current viewer owns this record
+	// Viewer-context fields, populated per-request by the feed service
+	// when an authenticated viewer is present. Zero otherwise.
+	IsLikedByViewer bool
+	IsOwner         bool
 }
 
 // Brew returns f.Record cast to *arabica.Brew, or nil. Nil-safe on f.
-func (f *FeedItemCore) Brew() *arabica.Brew {
+func (f *FeedItem) Brew() *arabica.Brew {
 	if f == nil {
 		return nil
 	}
@@ -88,7 +80,7 @@ func (f *FeedItemCore) Brew() *arabica.Brew {
 }
 
 // Bean returns f.Record cast to *arabica.Bean, or nil. Nil-safe.
-func (f *FeedItemCore) Bean() *arabica.Bean {
+func (f *FeedItem) Bean() *arabica.Bean {
 	if f == nil {
 		return nil
 	}
@@ -97,7 +89,7 @@ func (f *FeedItemCore) Bean() *arabica.Bean {
 }
 
 // Roaster returns f.Record cast to *arabica.Roaster, or nil. Nil-safe.
-func (f *FeedItemCore) Roaster() *arabica.Roaster {
+func (f *FeedItem) Roaster() *arabica.Roaster {
 	if f == nil {
 		return nil
 	}
@@ -106,7 +98,7 @@ func (f *FeedItemCore) Roaster() *arabica.Roaster {
 }
 
 // Grinder returns f.Record cast to *arabica.Grinder, or nil. Nil-safe.
-func (f *FeedItemCore) Grinder() *arabica.Grinder {
+func (f *FeedItem) Grinder() *arabica.Grinder {
 	if f == nil {
 		return nil
 	}
@@ -115,7 +107,7 @@ func (f *FeedItemCore) Grinder() *arabica.Grinder {
 }
 
 // Brewer returns f.Record cast to *arabica.Brewer, or nil. Nil-safe.
-func (f *FeedItemCore) Brewer() *arabica.Brewer {
+func (f *FeedItem) Brewer() *arabica.Brewer {
 	if f == nil {
 		return nil
 	}
@@ -124,7 +116,7 @@ func (f *FeedItemCore) Brewer() *arabica.Brewer {
 }
 
 // Recipe returns f.Record cast to *arabica.Recipe, or nil. Nil-safe.
-func (f *FeedItemCore) Recipe() *arabica.Recipe {
+func (f *FeedItem) Recipe() *arabica.Recipe {
 	if f == nil {
 		return nil
 	}
@@ -134,7 +126,7 @@ func (f *FeedItemCore) Recipe() *arabica.Recipe {
 
 // RKey returns the record key of whichever typed record is set on this
 // item, or "" if none. Lets callers build URLs without a type switch.
-func (f *FeedItemCore) RKey() string {
+func (f *FeedItem) RKey() string {
 	switch m := f.Record.(type) {
 	case *arabica.Bean:
 		return m.RKey
@@ -155,7 +147,7 @@ func (f *FeedItemCore) RKey() string {
 // DisplayTitle returns a human-readable title for share UI. Brew is
 // special-cased: brews don't have a name field, so we fall back to the
 // associated bean's name (or origin).
-func (f *FeedItemCore) DisplayTitle() string {
+func (f *FeedItem) DisplayTitle() string {
 	switch m := f.Record.(type) {
 	case *arabica.Brew:
 		if m.Bean != nil {
@@ -231,7 +223,7 @@ type FeedResult struct {
 // This allows the feed service to use firehose data when available
 type FirehoseIndex interface {
 	IsReady() bool
-	GetRecentFeed(ctx context.Context, limit int) ([]*FirehoseFeedItem, error)
+	GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error)
 	GetFeedWithQuery(ctx context.Context, q FirehoseFeedQuery) (*FirehoseFeedResult, error)
 }
 
@@ -246,7 +238,7 @@ type FirehoseFeedQuery struct {
 
 // FirehoseFeedResult mirrors FeedResult for the firehose layer
 type FirehoseFeedResult struct {
-	Items      []*FirehoseFeedItem
+	Items      []*FeedItem
 	NextCursor string
 }
 
@@ -469,15 +461,9 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 		return nil, err
 	}
 
-	// Wrap each firehose-produced core into a FeedItem; viewer-context
-	// fields (IsLikedByViewer, IsOwner) are populated downstream.
-	items := make([]*FeedItem, 0, len(firehoseResult.Items))
-	for _, fi := range firehoseResult.Items {
-		items = append(items, &FeedItem{FeedItemCore: *fi})
-	}
-
-	// Apply moderation filtering
-	items = s.filterModeratedItems(ctx, items)
+	// Apply moderation filtering. IsLikedByViewer/IsOwner are zero here
+	// and populated by the handler once a viewer is identified.
+	items := s.filterModeratedItems(ctx, firehoseResult.Items)
 
 	// Trim to requested limit
 	result := &FeedResult{
@@ -494,15 +480,10 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 
 // getRecentRecordsFromFirehose fetches feed items from the firehose index
 func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) ([]*FeedItem, error) {
-	firehoseItems, err := s.firehoseIndex.GetRecentFeed(ctx, limit)
+	items, err := s.firehoseIndex.GetRecentFeed(ctx, limit)
 	if err != nil {
 		log.Warn().Err(err).Msg("feed: firehose index error")
 		return nil, err
-	}
-
-	items := make([]*FeedItem, len(firehoseItems))
-	for i, fi := range firehoseItems {
-		items[i] = &FeedItem{FeedItemCore: *fi}
 	}
 
 	log.Debug().Int("count", len(items)).Msg("feed: returning items from firehose index")

@@ -92,7 +92,7 @@ type FeedQuery struct {
 
 // FeedResult contains feed items plus pagination info
 type FeedResult struct {
-	Items      []*FeedItem
+	Items      []*feed.FeedItem
 	NextCursor string // Empty if no more results
 }
 
@@ -673,14 +673,8 @@ func (idx *FeedIndex) GetRecord(ctx context.Context, uri string) (*IndexedRecord
 	return &rec, nil
 }
 
-// FeedItem is the firehose-side alias for feed.FeedItemCore. Defining it
-// here as an alias (not a separate struct) means the feed-service adapter
-// no longer needs to copy field-by-field — same in-memory layout, no
-// conversion. Per-entity accessors (Brew, Bean, …) live on FeedItemCore.
-type FeedItem = feed.FeedItemCore
-
 // GetRecentFeed returns recent feed items from the index
-func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error) {
+func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*feed.FeedItem, error) {
 	return idx.getFeedItems(ctx, nil, limit, "")
 }
 
@@ -763,7 +757,7 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 }
 
 // getFeedItems fetches records from SQLite, resolves references, and returns FeedItems.
-func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []string, limit int, cursor string) ([]*FeedItem, error) {
+func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []string, limit int, cursor string) ([]*feed.FeedItem, error) {
 	// Build query for feedable records
 	var args []any
 	query := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE `
@@ -918,7 +912,7 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 	}
 
 	// Convert to FeedItems
-	items := make([]*FeedItem, 0, len(records))
+	items := make([]*feed.FeedItem, 0, len(records))
 	for _, record := range records {
 		item, err := idx.recordToFeedItem(ctx, record, recordsByURI, profiles)
 		if err != nil {
@@ -939,13 +933,13 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 // recordToFeedItem converts an IndexedRecord to a FeedItem.
 // The profiles map provides pre-fetched profiles keyed by DID; if nil or missing,
 // the profile is fetched individually as a fallback.
-func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecord, refMap map[string]*IndexedRecord, profiles map[string]*atproto.Profile) (*FeedItem, error) {
+func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecord, refMap map[string]*IndexedRecord, profiles map[string]*atproto.Profile) (*feed.FeedItem, error) {
 	var recordData map[string]any
 	if err := json.Unmarshal(record.Record, &recordData); err != nil {
 		return nil, err
 	}
 
-	item := &FeedItem{
+	item := &feed.FeedItem{
 		Timestamp: record.CreatedAt,
 		TimeAgo:   formatTimeAgo(record.CreatedAt),
 	}

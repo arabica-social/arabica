@@ -10,6 +10,7 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 
@@ -290,7 +291,7 @@ func TestFirehose_FeedQueryWithLikeAndCommentCounts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	var found *firehose.FeedItem
+	var found *feed.FeedItem
 	for _, item := range result.Items {
 		if item.SubjectURI == subjectURI {
 			found = item
