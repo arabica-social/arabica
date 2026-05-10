@@ -14,8 +14,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
-	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"

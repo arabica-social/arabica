@@ -2,12 +2,12 @@ package pages
 
 import (
 	"fmt"
-	"tangled.org/pdewey.com/atp"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/pdewey.com/atp"
 )
 
 // FeedModerationContext holds moderation state for rendering feed items
@@ -24,6 +24,7 @@ type FeedQueryState struct {
 	Sort            string // Current sort order
 	NextCursor      string // Cursor for next page (empty = no more)
 	IsAuthenticated bool
+	Descriptors     []*entities.Descriptor // App-scoped descriptors for filter tabs
 }
 
 // feedFilterTab defines a filter tab option
@@ -37,9 +38,17 @@ type feedFilterTab struct {
 // non-empty FeedFilterLabel, ordered as registered. Adding a new entity
 // to the feed filter is now a one-line FeedFilterLabel addition in
 // register.go rather than an edit here.
-func feedFilterTabs() []feedFilterTab {
+//
+// descriptors should be the current app's scoped descriptors (from
+// app.Descriptors). If nil, falls back to entities.All() for backward
+// compatibility — callers that know their app should pass descriptors
+// explicitly to avoid leaking sister-app entities into the feed bar.
+func feedFilterTabs(descriptors []*entities.Descriptor) []feedFilterTab {
 	tabs := []feedFilterTab{{Label: "All", Value: ""}}
-	for _, d := range entities.All() {
+	if descriptors == nil {
+		descriptors = entities.All()
+	}
+	for _, d := range descriptors {
 		if d.FeedFilterLabel == "" {
 			continue
 		}
@@ -122,7 +131,7 @@ templ FeedFilterBar(qs FeedQueryState) {
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<!-- Type filter pills -->
 			<div class="flex flex-wrap gap-1" role="tablist" aria-label="Feed filters">
-				for _, tab := range feedFilterTabs() {
+				for _, tab := range feedFilterTabs(qs.Descriptors) {
 					<button
 						class="filter-pill"
 						:class="pillClass($el.dataset.tab)"

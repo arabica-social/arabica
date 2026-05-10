@@ -101,5 +101,3 @@ func (c *Client) getAtpClient(ctx context.Context, did syntax.DID, sessionID str
 func (c *Client) AtpClient(ctx context.Context, did syntax.DID, sessionID string) (*atp.Client, error) {
 	return c.getAtpClient(ctx, did, sessionID)
 }
-
-

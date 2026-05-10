@@ -10,8 +10,8 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
-	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )

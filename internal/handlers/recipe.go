@@ -14,8 +14,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
-	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )

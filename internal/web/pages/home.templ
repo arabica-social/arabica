@@ -1,10 +1,14 @@
 package pages
 
-import "tangled.org/arabica.social/arabica/internal/web/components"
+import (
+	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
 
 type HomeProps struct {
 	IsAuthenticated bool
 	UserDID         string
+	Descriptors     []*entities.Descriptor // App-scoped descriptors for feed filter tabs
 }
 
 templ Home(layout *components.LayoutData, props HomeProps) {
@@ -27,18 +31,18 @@ templ HomeContent(props HomeProps) {
 		} else {
 			@components.WelcomeHero()
 		}
-		@CommunityFeedSection(props.IsAuthenticated)
+		@CommunityFeedSection(props.IsAuthenticated, props.Descriptors)
 		if props.IsAuthenticated {
 			@components.AboutInfoCard()
 		}
 	</div>
 }
 
-templ CommunityFeedSection(isAuthenticated bool) {
+templ CommunityFeedSection(isAuthenticated bool, descriptors []*entities.Descriptor) {
 	<div class="card p-2 sm:p-6 mb-8">
 		<h3 class="text-xl font-bold text-brown-900 mb-4">Community Activity</h3>
 		if isAuthenticated {
-			@FeedFilterBar(FeedQueryState{IsAuthenticated: isAuthenticated})
+			@FeedFilterBar(FeedQueryState{IsAuthenticated: isAuthenticated, Descriptors: descriptors})
 		}
 		<div hx-get="/api/feed" hx-trigger="load" hx-swap="outerHTML" hx-select="#feed-items" hx-target="#feed-items" hx-disinherit="*">
 			<div id="feed-items" class="space-y-4">

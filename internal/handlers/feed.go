@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -69,9 +70,14 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create home props
+	var descriptors []*entities.Descriptor
+	if h.app != nil {
+		descriptors = h.app.Descriptors
+	}
 	homeProps := pages.HomeProps{
 		IsAuthenticated: isAuthenticated,
 		UserDID:         didStr,
+		Descriptors:     descriptors,
 	}
 
 	// Render using templ component
@@ -177,11 +183,16 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	if len(typeFilters) > 0 {
 		typeFilterStr = "equipment"
 	}
+	var descriptors []*entities.Descriptor
+	if h.app != nil {
+		descriptors = h.app.Descriptors
+	}
 	queryState := pages.FeedQueryState{
 		TypeFilter:      typeFilterStr,
 		Sort:            string(sortBy),
 		NextCursor:      nextCursor,
 		IsAuthenticated: isAuthenticated,
+		Descriptors:     descriptors,
 	}
 
 	// If this is a "load more" request (has cursor), render just the additional items

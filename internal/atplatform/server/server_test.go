@@ -16,7 +16,7 @@ func TestValidateAppName(t *testing.T) {
 		{"oolong", false},
 		{"app2", false},
 		{"", true},
-		{"Arabica", true},   // uppercase
+		{"Arabica", true},     // uppercase
 		{"arabica-dev", true}, // hyphen
 		{"arabica_dev", true}, // underscore
 		{"arabica.dev", true}, // dot
