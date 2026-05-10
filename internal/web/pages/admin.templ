@@ -2,7 +2,7 @@ package pages
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/pdewey.com/atp"
 	"tangled.org/arabica.social/arabica/internal/database/boltstore"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
@@ -711,7 +711,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 					<div class="mt-1">
 						if report.OwnerHandle != "" {
 							<a href={ templ.SafeURL("/profile/" + report.OwnerHandle) } class="text-amber-600 hover:text-amber-700 font-medium">
-								{ "@" + atproto.DisplayHandle(report.OwnerHandle) }
+								{ "@" + atp.DisplayHandle(report.OwnerHandle) }
 							</a>
 						} else {
 							<code class="text-sm text-brown-700">{ report.Report.SubjectDID }</code>
@@ -742,7 +742,7 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 					<div class="mt-1">
 						if report.ReporterHandle != "" {
 							<a href={ templ.SafeURL("/profile/" + report.ReporterHandle) } class="text-amber-600 hover:text-amber-700 font-medium">
-								{ "@" + atproto.DisplayHandle(report.ReporterHandle) }
+								{ "@" + atp.DisplayHandle(report.ReporterHandle) }
 							</a>
 						} else {
 							<code class="text-sm text-brown-700">{ report.Report.ReporterDID }</code>

@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
+	"tangled.org/pdewey.com/atp"
 )
 
 const (
@@ -239,7 +239,7 @@ func (h *Handler) HandleClientMetadata(w http.ResponseWriter, r *http.Request) {
 // HandleResolveHandle resolves an AT Protocol handle and returns basic profile info
 // This is used for the autocomplete login feature
 func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
-	handle := atproto.NormalizeHandle(r.URL.Query().Get("handle"))
+	handle := atp.NormalizeHandle(r.URL.Query().Get("handle"))
 	if handle == "" {
 		http.Error(w, "Handle parameter is required", http.StatusBadRequest)
 		return

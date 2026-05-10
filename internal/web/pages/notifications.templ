@@ -1,7 +1,7 @@
 package pages
 
 import (
-	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/pdewey.com/atp"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -107,7 +107,7 @@ func notifActorName(notif NotificationItem) string {
 		return notif.ActorDisplayName
 	}
 	if notif.ActorHandle != "" {
-		return atproto.DisplayHandle(notif.ActorHandle)
+		return atp.DisplayHandle(notif.ActorHandle)
 	}
 	return notif.ActorDID
 }

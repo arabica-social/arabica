@@ -22,6 +22,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
 )
@@ -181,7 +182,7 @@ func validateRKey(w http.ResponseWriter, rkey string) string {
 		http.Error(w, "Record key is required", http.StatusBadRequest)
 		return ""
 	}
-	if !atproto.ValidateRKey(rkey) {
+	if !atp.ValidateRKey(rkey) {
 		http.Error(w, "Invalid record key format", http.StatusBadRequest)
 		return ""
 	}
@@ -194,7 +195,7 @@ func validateOptionalRKey(rkey, fieldName string) string {
 	if rkey == "" {
 		return ""
 	}
-	if !atproto.ValidateRKey(rkey) {
+	if !atp.ValidateRKey(rkey) {
 		return fieldName + " has invalid format"
 	}
 	return ""

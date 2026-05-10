@@ -2,7 +2,7 @@ package components
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/pdewey.com/atp"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
 
@@ -180,10 +180,10 @@ templ HeaderWithProps(props HeaderProps) {
 											if props.UserProfile.DisplayName != "" {
 												{ props.UserProfile.DisplayName }
 											} else {
-												{ atproto.DisplayHandle(props.UserProfile.Handle) }
+												{ atp.DisplayHandle(props.UserProfile.Handle) }
 											}
 										</p>
-										<p class="text-xs text-brown-500 truncate">{ "@" + atproto.DisplayHandle(props.UserProfile.Handle) }</p>
+										<p class="text-xs text-brown-500 truncate">{ "@" + atp.DisplayHandle(props.UserProfile.Handle) }</p>
 									</div>
 								}
 								<a href={ templ.SafeURL("/profile/" + getProfileIdentifier(props.UserProfile, props.UserDID)) } class="dropdown-item" role="menuitem">

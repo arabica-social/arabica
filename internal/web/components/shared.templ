@@ -2,7 +2,7 @@ package components
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/pdewey.com/atp"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
@@ -141,7 +141,7 @@ templ RecordViewHeader(props RecordViewHeaderProps) {
 							</a>
 						}
 						<a href={ templ.SafeURL("/profile/" + props.AuthorHandle) } class="record-view-author-handle">
-							{ "@" + atproto.DisplayHandle(props.AuthorHandle) }
+							{ "@" + atp.DisplayHandle(props.AuthorHandle) }
 						</a>
 					</div>
 					<div class="record-view-meta">
@@ -504,7 +504,7 @@ templ UserBadge(props UserBadgeProps) {
 						templ.KV("link text-sm", props.Size == "md" || props.Size == ""),
 					) }
 				>
-					{ "@" + atproto.DisplayHandle(props.Handle) }
+					{ "@" + atp.DisplayHandle(props.Handle) }
 				</a>
 				if props.Size == "sm" && props.TimeAgo != "" {
 					<span class="text-brown-500 text-sm">{ props.TimeAgo }</span>

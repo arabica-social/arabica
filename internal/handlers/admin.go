@@ -872,7 +872,7 @@ func (h *Handler) HandleAdminRebuildDID(w http.ResponseWriter, r *http.Request) 
 	didStr := did.String()
 	actor, _ := atproto.GetAuthenticatedDID(r.Context())
 
-	if err := h.feedIndex.BackfillUser(r.Context(), didStr); err != nil {
+	if err := h.feedIndex.BackfillUser(r.Context(), didStr, nil); err != nil {
 		log.Error().Err(err).Str("did", didStr).Str("actor", actor).Msg("admin rebuild: BackfillUser failed")
 		http.Error(w, "rebuild failed", http.StatusInternalServerError)
 		return

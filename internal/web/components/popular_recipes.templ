@@ -2,7 +2,7 @@ package components
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/pdewey.com/atp"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
@@ -48,7 +48,7 @@ templ popularRecipeCard(recipe *arabica.Recipe) {
 				if recipe.AuthorDisplay != "" {
 					{ recipe.AuthorDisplay }
 				} else if recipe.AuthorHandle != "" {
-					{ atproto.DisplayHandle(recipe.AuthorHandle) }
+					{ atp.DisplayHandle(recipe.AuthorHandle) }
 				}
 			</span>
 		</div>
@@ -104,7 +104,7 @@ func authorInitial(recipe *arabica.Recipe) string {
 		return string([]rune(recipe.AuthorDisplay)[:1])
 	}
 	if recipe.AuthorHandle != "" {
-		return string([]rune(atproto.DisplayHandle(recipe.AuthorHandle))[:1])
+		return string([]rune(atp.DisplayHandle(recipe.AuthorHandle))[:1])
 	}
 	return "?"
 }

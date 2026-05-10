@@ -17,6 +17,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
 )
@@ -723,7 +724,7 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bean selection is required", http.StatusBadRequest)
 		return
 	}
-	if !atproto.ValidateRKey(beanRKey) {
+	if !atp.ValidateRKey(beanRKey) {
 		log.Warn().Str("bean_rkey", beanRKey).Msg("Brew create: invalid bean rkey format")
 		http.Error(w, "Invalid bean selection", http.StatusBadRequest)
 		return
@@ -833,7 +834,7 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bean selection is required", http.StatusBadRequest)
 		return
 	}
-	if !atproto.ValidateRKey(beanRKey) {
+	if !atp.ValidateRKey(beanRKey) {
 		log.Warn().Str("rkey", rkey).Str("bean_rkey", beanRKey).Msg("Brew update: invalid bean rkey format")
 		http.Error(w, "Invalid bean selection", http.StatusBadRequest)
 		return

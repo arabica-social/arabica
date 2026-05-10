@@ -2,6 +2,11 @@ module tangled.org/arabica.social/arabica
 
 go 1.26.1
 
+replace (
+	tangled.org/pdewey.com/atp v0.0.0-20260418015135-962c7a9ed37e => ../atp
+	tangled.org/pdewey.com/chrysalis v0.0.0-20260418015724-ffe63f2b6114 => ../chrysalis/
+)
+
 require (
 	github.com/XSAM/otelsql v0.41.0
 	github.com/a-h/templ v0.3.1001
