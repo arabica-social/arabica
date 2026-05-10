@@ -18,6 +18,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/tracing"
+	"tangled.org/pdewey.com/atp"
 
 	"database/sql/driver"
 
@@ -468,7 +469,7 @@ ON CONFLICT(uri) DO UPDATE SET
 	)
 	defer span.End()
 
-	uri := atproto.BuildATURI(did, collection, rkey)
+	uri := atp.BuildATURI(did, collection, rkey)
 
 	// Parse createdAt from record
 	var recordData map[string]any
@@ -502,7 +503,7 @@ ON CONFLICT(uri) DO UPDATE SET
 
 // DeleteRecord removes a record from the index
 func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey string) error {
-	uri := atproto.BuildATURI(did, collection, rkey)
+	uri := atp.BuildATURI(did, collection, rkey)
 	_, err := idx.db.ExecContext(ctx, `DELETE FROM records WHERE uri = ?`, uri)
 	return err
 }
@@ -607,7 +608,7 @@ ON CONFLICT(uri) DO UPDATE SET
 	seenDIDs := make(map[string]struct{})
 
 	for _, rec := range records {
-		uri := atproto.BuildATURI(rec.DID, rec.Collection, rec.RKey)
+		uri := atp.BuildATURI(rec.DID, rec.Collection, rec.RKey)
 
 		createdAt := now
 		var recordData map[string]any

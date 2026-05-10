@@ -14,6 +14,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
 )
@@ -211,7 +212,7 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 		// against the current user's brewers so the returned brewer_rkey
 		// is usable in the current user's brew form.
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
-			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
+			brewerRKey := atp.RKeyFromURI(brewerRef)
 			if brewerRKey != "" {
 				brewerRecord, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey)
 				if err == nil {
@@ -363,13 +364,13 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build the source AT-URI for provenance
-	sourceURI := atproto.BuildATURI(ownerDID, arabica.NSIDRecipe, rkey)
+	sourceURI := atp.BuildATURI(ownerDID, arabica.NSIDRecipe, rkey)
 
 	// Resolve brewer: try to match source brewer to current user's brewers
 	var brewerRKey, brewerType string
 	if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
 		// Fetch the source brewer to get name and type for matching
-		brewerRKeySource := atproto.ExtractRKeyFromURI(brewerRef)
+		brewerRKeySource := atp.RKeyFromURI(brewerRef)
 		if brewerRKeySource != "" {
 			if sourceBrewer, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKeySource); err == nil {
 				var sourceName, sourceType string
@@ -666,7 +667,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recip
 	if cf := h.loadContentFilter(ctx); cf != nil {
 		recipes = moderation.FilterSlice(cf, recipes, func(r *arabica.Recipe) (string, string) {
 			if r.AuthorDID != "" && r.RKey != "" {
-				return atproto.BuildATURI(r.AuthorDID, arabica.NSIDRecipe, r.RKey), r.AuthorDID
+				return atp.BuildATURI(r.AuthorDID, arabica.NSIDRecipe, r.RKey), r.AuthorDID
 			}
 			return "", r.AuthorDID
 		})

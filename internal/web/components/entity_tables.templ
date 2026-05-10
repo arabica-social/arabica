@@ -2,9 +2,9 @@ package components
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
+	"tangled.org/pdewey.com/atp"
 	"time"
 )
 
@@ -51,7 +51,7 @@ func entityCount(counts map[string]int, ownerDID, nsid, rkey string) int {
 	if counts == nil || ownerDID == "" {
 		return 0
 	}
-	return counts[atproto.BuildATURI(ownerDID, nsid, rkey)]
+	return counts[atp.BuildATURI(ownerDID, nsid, rkey)]
 }
 
 // entityAvgRating looks up an average rating for an entity by building its AT-URI.
@@ -59,7 +59,7 @@ func entityAvgRating(ratings map[string]float64, ownerDID, nsid, rkey string) fl
 	if ratings == nil || ownerDID == "" {
 		return 0
 	}
-	return ratings[atproto.BuildATURI(ownerDID, nsid, rkey)]
+	return ratings[atp.BuildATURI(ownerDID, nsid, rkey)]
 }
 
 // BeanCardsProps defines props for the bean cards grid

@@ -17,6 +17,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
 )
@@ -114,7 +115,7 @@ func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg e
 			return
 		}
 
-		entityURI := atproto.BuildATURI(entityOwnerDID, cfg.descriptor.NSID, rkey)
+		entityURI := atp.BuildATURI(entityOwnerDID, cfg.descriptor.NSID, rkey)
 		if h.witnessCache != nil {
 			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), entityURI); wr != nil {
 				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
@@ -396,7 +397,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 				if c, err := atproto.ResolveATURI(roasterRef); err == nil {
 					bean.RoasterRKey = c.RKey
 				}
-				roasterRKey := atproto.ExtractRKeyFromURI(roasterRef)
+				roasterRKey := atp.RKeyFromURI(roasterRef)
 				if roasterRKey != "" {
 					pub := atproto.NewPublicClient()
 					if rr, err := pub.GetRecord(ctx, ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
@@ -493,7 +494,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Try witness cache first
-		recipeURI := atproto.BuildATURI(entityOwnerDID, arabica.NSIDRecipe, rkey)
+		recipeURI := atp.BuildATURI(entityOwnerDID, arabica.NSIDRecipe, rkey)
 		if h.witnessCache != nil {
 			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), recipeURI); wr != nil {
 				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
@@ -549,7 +550,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 				if c, err := atproto.ResolveATURI(brewerRef); err == nil {
 					recipe.BrewerRKey = c.RKey
 				}
-				brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
+				brewerRKey := atp.RKeyFromURI(brewerRef)
 				if brewerRKey != "" {
 					brewerRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, arabica.NSIDBrewer, brewerRKey)
 					if err == nil {
@@ -677,7 +678,7 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var bean *arabica.Bean
-	beanURI := atproto.BuildATURI(ownerDID, arabica.NSIDBean, rkey)
+	beanURI := atp.BuildATURI(ownerDID, arabica.NSIDBean, rkey)
 	if h.witnessCache != nil {
 		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), beanURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
@@ -714,7 +715,7 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 		}
 		// Resolve roaster reference
 		if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
-			roasterRKey := atproto.ExtractRKeyFromURI(roasterRef)
+			roasterRKey := atp.RKeyFromURI(roasterRef)
 			if roasterRKey != "" {
 				if rr, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
 					if roaster, err := arabica.RecordToRoaster(rr.Value, rr.URI); err == nil {
@@ -760,7 +761,7 @@ func (h *Handler) handleSimpleOGImage(w http.ResponseWriter, r *http.Request, cf
 		return
 	}
 	var record any
-	entityURI := atproto.BuildATURI(ownerDID, cfg.nsid, rkey)
+	entityURI := atp.BuildATURI(ownerDID, cfg.nsid, rkey)
 	if h.witnessCache != nil {
 		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), entityURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
@@ -862,7 +863,7 @@ func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var recipe *arabica.Recipe
-	recipeURI := atproto.BuildATURI(ownerDID, arabica.NSIDRecipe, rkey)
+	recipeURI := atp.BuildATURI(ownerDID, arabica.NSIDRecipe, rkey)
 	if h.witnessCache != nil {
 		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), recipeURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
@@ -900,7 +901,7 @@ func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 		}
 		// Resolve brewer reference
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
-			brewerRKey := atproto.ExtractRKeyFromURI(brewerRef)
+			brewerRKey := atp.RKeyFromURI(brewerRef)
 			if brewerRKey != "" {
 				if br, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey); err == nil {
 					if brewer, err := arabica.RecordToBrewer(br.Value, br.URI); err == nil {

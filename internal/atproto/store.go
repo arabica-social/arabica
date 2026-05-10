@@ -8,6 +8,7 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
@@ -64,7 +65,7 @@ func (s *AtprotoStore) getFromWitness(ctx context.Context, collection, rkey stri
 		log.Debug().Str("collection", collection).Msg("witness: skipping dirty collection for single record, falling back to PDS")
 		return nil
 	}
-	uri := BuildATURI(s.did.String(), collection, rkey)
+	uri := atp.BuildATURI(s.did.String(), collection, rkey)
 	wr, err := s.witnessCache.GetWitnessRecord(ctx, uri)
 	if err != nil {
 		log.Debug().Err(err).Str("uri", uri).Msg("witness: GetWitnessRecord error")
@@ -313,20 +314,20 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *arabica.CreateBrewR
 	if brew.BeanRKey == "" {
 		return nil, fmt.Errorf("bean_rkey is required")
 	}
-	beanURI := BuildATURI(s.did.String(), arabica.NSIDBean, brew.BeanRKey)
+	beanURI := atp.BuildATURI(s.did.String(), arabica.NSIDBean, brew.BeanRKey)
 	var grinderURI, brewerURI, recipeURI string
 	if brew.GrinderRKey != "" {
-		grinderURI = BuildATURI(s.did.String(), arabica.NSIDGrinder, brew.GrinderRKey)
+		grinderURI = atp.BuildATURI(s.did.String(), arabica.NSIDGrinder, brew.GrinderRKey)
 	}
 	if brew.BrewerRKey != "" {
-		brewerURI = BuildATURI(s.did.String(), arabica.NSIDBrewer, brew.BrewerRKey)
+		brewerURI = atp.BuildATURI(s.did.String(), arabica.NSIDBrewer, brew.BrewerRKey)
 	}
 	if brew.RecipeRKey != "" {
 		recipeOwner := s.did.String()
 		if brew.RecipeOwnerDID != "" {
 			recipeOwner = brew.RecipeOwnerDID
 		}
-		recipeURI = BuildATURI(recipeOwner, arabica.NSIDRecipe, brew.RecipeRKey)
+		recipeURI = atp.BuildATURI(recipeOwner, arabica.NSIDRecipe, brew.RecipeRKey)
 	}
 
 	model := brewModelFromRequest(brew, time.Now().UTC())
@@ -464,20 +465,20 @@ func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *
 	if brew.BeanRKey == "" {
 		return fmt.Errorf("bean_rkey is required")
 	}
-	beanURI := BuildATURI(s.did.String(), arabica.NSIDBean, brew.BeanRKey)
+	beanURI := atp.BuildATURI(s.did.String(), arabica.NSIDBean, brew.BeanRKey)
 	var grinderURI, brewerURI, recipeURI string
 	if brew.GrinderRKey != "" {
-		grinderURI = BuildATURI(s.did.String(), arabica.NSIDGrinder, brew.GrinderRKey)
+		grinderURI = atp.BuildATURI(s.did.String(), arabica.NSIDGrinder, brew.GrinderRKey)
 	}
 	if brew.BrewerRKey != "" {
-		brewerURI = BuildATURI(s.did.String(), arabica.NSIDBrewer, brew.BrewerRKey)
+		brewerURI = atp.BuildATURI(s.did.String(), arabica.NSIDBrewer, brew.BrewerRKey)
 	}
 	if brew.RecipeRKey != "" {
 		recipeOwner := s.did.String()
 		if brew.RecipeOwnerDID != "" {
 			recipeOwner = brew.RecipeOwnerDID
 		}
-		recipeURI = BuildATURI(recipeOwner, arabica.NSIDRecipe, brew.RecipeRKey)
+		recipeURI = atp.BuildATURI(recipeOwner, arabica.NSIDRecipe, brew.RecipeRKey)
 	}
 
 	existing, err := s.GetBrewByRKey(ctx, rkey)
@@ -646,7 +647,7 @@ func extractBeanRoasterRKey(bean *arabica.Bean, record map[string]any) {
 func (s *AtprotoStore) CreateBean(ctx context.Context, bean *arabica.CreateBeanRequest) (*arabica.Bean, error) {
 	var roasterURI string
 	if bean.RoasterRKey != "" {
-		roasterURI = BuildATURI(s.did.String(), arabica.NSIDRoaster, bean.RoasterRKey)
+		roasterURI = atp.BuildATURI(s.did.String(), arabica.NSIDRoaster, bean.RoasterRKey)
 	}
 	model := &arabica.Bean{
 		Name:        bean.Name,
@@ -739,7 +740,7 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 	}
 	var roasterURI string
 	if bean.RoasterRKey != "" {
-		roasterURI = BuildATURI(s.did.String(), arabica.NSIDRoaster, bean.RoasterRKey)
+		roasterURI = atp.BuildATURI(s.did.String(), arabica.NSIDRoaster, bean.RoasterRKey)
 	}
 	model := &arabica.Bean{
 		Name:        bean.Name,
@@ -1106,7 +1107,7 @@ func recipeModelFromCreate(req *arabica.CreateRecipeRequest) *arabica.Recipe {
 func (s *AtprotoStore) CreateRecipe(ctx context.Context, req *arabica.CreateRecipeRequest) (*arabica.Recipe, error) {
 	var brewerURI string
 	if req.BrewerRKey != "" {
-		brewerURI = BuildATURI(s.did.String(), arabica.NSIDBrewer, req.BrewerRKey)
+		brewerURI = atp.BuildATURI(s.did.String(), arabica.NSIDBrewer, req.BrewerRKey)
 	}
 	model := recipeModelFromCreate(req)
 	record, err := arabica.RecipeToRecord(model, brewerURI)
@@ -1187,7 +1188,7 @@ func (s *AtprotoStore) UpdateRecipeByRKey(ctx context.Context, rkey string, req 
 	}
 	var brewerURI string
 	if req.BrewerRKey != "" {
-		brewerURI = BuildATURI(s.did.String(), arabica.NSIDBrewer, req.BrewerRKey)
+		brewerURI = atp.BuildATURI(s.did.String(), arabica.NSIDBrewer, req.BrewerRKey)
 	}
 	model := &arabica.Recipe{
 		Name:         req.Name,

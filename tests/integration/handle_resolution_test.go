@@ -8,6 +8,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -106,7 +107,7 @@ func TestPurgeDID_FreesHandleForReuse(t *testing.T) {
 		now,
 	))
 
-	uri := atproto.BuildATURI(orphanDID, collection, rkey)
+	uri := atp.BuildATURI(orphanDID, collection, rkey)
 	rec, err := h.FeedIndex.GetRecord(ctx, uri)
 	require.NoError(t, err)
 	require.NotNil(t, rec, "orphan record should be indexed before purge")

@@ -1,13 +1,13 @@
 // External test package to avoid an internal-test cycle: atproto/cache.go
-// imports arabica (for record types), and the BuildATURI test wants to call
-// atproto.BuildATURI on arabica's NSID constants.
+// imports arabica (for record types), and the atp.BuildATURI test wants to call
+// atproto.atp.BuildATURI on arabica's NSID constants.
 package arabica_test
 
 import (
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/pdewey.com/atp"
 )
 
 func TestNSIDConstants(t *testing.T) {
@@ -53,9 +53,9 @@ func TestBuildATURI_WithNSIDConstants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.collection, func(t *testing.T) {
-			got := atproto.BuildATURI(did, tt.collection, rkey)
+			got := atp.BuildATURI(did, tt.collection, rkey)
 			if got != tt.expected {
-				t.Errorf("BuildATURI with %s = %q, want %q", tt.collection, got, tt.expected)
+				t.Errorf("atp.BuildATURI with %s = %q, want %q", tt.collection, got, tt.expected)
 			}
 		})
 	}

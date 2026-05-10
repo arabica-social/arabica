@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+
+	"tangled.org/pdewey.com/atp"
 )
 
 func TestResolveATURI(t *testing.T) {
@@ -139,7 +141,7 @@ func TestResolveATURI_AllCollections(t *testing.T) {
 
 	for _, collection := range collections {
 		t.Run(collection, func(t *testing.T) {
-			uri := BuildATURI(did, collection, rkey)
+			uri := atp.BuildATURI(did, collection, rkey)
 			components, err := ResolveATURI(uri)
 			if err != nil {
 				t.Fatalf("ResolveATURI() error = %v", err)
@@ -159,7 +161,7 @@ func TestResolveATURI_AllCollections(t *testing.T) {
 }
 
 func TestBuildAndResolveRoundTrip(t *testing.T) {
-	// Test that BuildATURI and ResolveATURI are inverses
+	// Test that atp.BuildATURI and ResolveATURI are inverses
 	tests := []struct {
 		did        string
 		collection string
@@ -174,7 +176,7 @@ func TestBuildAndResolveRoundTrip(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.did+"/"+tt.collection+"/"+tt.rkey, func(t *testing.T) {
 			// Build the URI
-			uri := BuildATURI(tt.did, tt.collection, tt.rkey)
+			uri := atp.BuildATURI(tt.did, tt.collection, tt.rkey)
 
 			// Resolve it back
 			components, err := ResolveATURI(uri)

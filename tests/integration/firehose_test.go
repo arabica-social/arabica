@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,7 @@ func TestFirehose_RecordIndexing(t *testing.T) {
 
 	// Create a roaster via the HTTP API.
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Firehose Roaster", "location", "Portland, OR")), "roaster")
-	uri := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
+	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
 
 	// Wait for the firehose to index the record.
 	h.WaitForRecord(uri, firehoseWait)
@@ -57,10 +57,10 @@ func TestFirehose_MultipleEntityTypes(t *testing.T) {
 	brewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "Multi Brewer")), "brewer")
 
 	uris := map[string]string{
-		"roaster": atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, roasterRKey),
-		"bean":    atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDBean, beanRKey),
-		"grinder": atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDGrinder, grinderRKey),
-		"brewer":  atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDBrewer, brewerRKey),
+		"roaster": atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, roasterRKey),
+		"bean":    atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDBean, beanRKey),
+		"grinder": atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDGrinder, grinderRKey),
+		"brewer":  atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDBrewer, brewerRKey),
 	}
 
 	for label, uri := range uris {
@@ -77,7 +77,7 @@ func TestFirehose_DeleteRemovesFromIndex(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Delete Me")), "roaster")
-	uri := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
+	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
 
 	// Wait for firehose to index it first.
 	h.WaitForRecord(uri, firehoseWait)
@@ -201,9 +201,9 @@ func TestFirehose_FeedQueryReturnsIndexedRecords(t *testing.T) {
 	grinderRKey := mustRKey(t, h.PostForm("/api/grinders", form("name", "Feed Grinder")), "grinder")
 
 	// Wait for all records to be indexed.
-	roasterURI := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, roasterRKey)
-	beanURI := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDBean, beanRKey)
-	grinderURI := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDGrinder, grinderRKey)
+	roasterURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, roasterRKey)
+	beanURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDBean, beanRKey)
+	grinderURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDGrinder, grinderRKey)
 
 	h.WaitForRecord(roasterURI, firehoseWait)
 	h.WaitForRecord(beanURI, firehoseWait)
@@ -234,7 +234,7 @@ func TestFirehose_FeedQueryTypeFilter(t *testing.T) {
 	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Filter Roaster")), "roaster")
 	mustRKey(t, h.PostForm("/api/grinders", form("name", "Filter Grinder")), "grinder")
 
-	roasterURI := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, roasterRKey)
+	roasterURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, roasterRKey)
 	h.WaitForRecord(roasterURI, firehoseWait)
 
 	// Filter to roasters only.
@@ -312,7 +312,7 @@ func TestFirehose_RecordUpdateReflected(t *testing.T) {
 	ctx := context.Background()
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Original Name", "location", "NYC")), "roaster")
-	uri := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
+	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
 
 	h.WaitForRecord(uri, firehoseWait)
 
@@ -467,7 +467,7 @@ func TestFirehose_AccountDeactivated_KeepsData(t *testing.T) {
 	ctx := context.Background()
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Survives Deactivation")), "roaster")
-	uri := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
+	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
 	h.WaitForRecord(uri, firehoseWait)
 
 	apiClient := h.accounts[h.PrimaryAccount.DID]
@@ -494,7 +494,7 @@ func TestFirehose_AccountDeleted_PurgesData(t *testing.T) {
 	ctx := context.Background()
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "About to be Purged")), "roaster")
-	uri := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
+	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
 	h.WaitForRecord(uri, firehoseWait)
 
 	require.NotNil(t, h.ProfileWatcher)

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ import (
 // build social-feature props.
 func subjectRefFor(t *testing.T, h *Harness, acct TestAccount, collection, rkey string) (uri, cid string) {
 	t.Helper()
-	uri = atproto.BuildATURI(acct.DID, collection, rkey)
+	uri = atp.BuildATURI(acct.DID, collection, rkey)
 	wr, err := h.FeedIndex.GetWitnessRecord(context.Background(), uri)
 	require.NoError(t, err)
 	require.NotNil(t, wr, "witness record missing for %s", uri)
@@ -195,7 +195,7 @@ func TestHTTP_CommentReplyThreading(t *testing.T) {
 	parent := indexed[0]
 	require.NotEmpty(t, parent.CID, "parent comment should have a CID we can strongRef")
 
-	parentURI := atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDComment, parent.RKey)
+	parentURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDComment, parent.RKey)
 
 	// Reply referencing the parent.
 	replyResp := h.PostForm("/api/comments", form(

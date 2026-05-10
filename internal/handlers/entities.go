@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
+	"tangled.org/pdewey.com/atp"
 )
 
 // Manage page partial (loaded async via HTMX)
@@ -437,7 +438,7 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			for _, rec := range output.Records {
-				rkey := atproto.ExtractRKeyFromURI(rec.URI)
+				rkey := atp.RKeyFromURI(rec.URI)
 				if rkey == "" {
 					continue
 				}

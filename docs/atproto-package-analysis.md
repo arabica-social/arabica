@@ -11,213 +11,129 @@ arabica-specific business logic. This creates a problem: oolong needs the
 protocol layer but not the coffee domain code. The shared `atp` library exists
 to hold the general-purpose layer.
 
-## Files in `internal/atproto/`
+## Current Files in `internal/atproto/`
 
-| File               | Lines | Purpose                                                       |
-| ------------------ | ----- | ------------------------------------------------------------- |
-| `nsid.go`          | 40    | RKey validation, proxies `atp.BuildATURI`/`atp.RKeyFromURI`   |
-| `client.go`        | 308   | OTel/metrics/UA wrapping of `atp.Client` + I/O type wrappers  |
-| `oauth.go`         | 360   | OAuth flow management, auth middleware, context helpers       |
-| `handle.go`        | 30    | `NormalizeHandle`, `DisplayHandle` (IDN punycode/unicode)     |
-| `resolver.go`      | 155   | AT-URI parsing + entity-specific reference resolvers          |
-| `public_client.go` | 210   | Caching wrapper around `atp.PublicClient`                     |
-| `store.go`         | 1250+ | `AtprotoStore` implementing `database.Store` for all entities |
-| `store_generic.go` | 170   | Generic fetch/put/delete helpers used by store.go             |
-| `cache.go`         | 226   | Copy-on-write per-session cache with typed entity accessors   |
-| `witness.go`       | 62    | `WitnessCache` interface + `WitnessRecord` type               |
+| File               | Lines | Purpose                                                       | Status |
+| ------------------ | ----- | ------------------------------------------------------------- | ------ |
+| `nsid.go`          | ~10   | Proxies `atp.atp.BuildATURI`/`atp.RKeyFromURI`                   | Slimmed ✅ |
+| `client.go`        | 308   | OTel/metrics/UA wrapping of `atp.Client` + I/O type wrappers  | TODO |
+| `oauth.go`         | 360   | OAuth flow management, auth middleware, context helpers       | TODO |
+| `resolver.go`      | 155   | AT-URI parsing + entity-specific reference resolvers          | TODO |
+| `public_client.go` | ~70   | Thin OTel/UA wrapper around `atp.PublicClient`               | Slimmed ✅ |
+| `store.go`         | 1250+ | `AtprotoStore` implementing `database.Store` for all entities | TODO |
+| `store_generic.go` | 170   | Generic fetch/put/delete helpers used by store.go             | TODO |
+| `cache.go`         | 226   | Copy-on-write per-session cache with typed entity accessors   | TODO |
+| `witness.go`       | 62    | `WitnessCache` interface + `WitnessRecord` type               | TODO |
 
-## What's in `atp` already
+**Already deleted**: `handle.go`, `handle_test.go`, `nsid_test.go`
 
-- **`atp.Client`** — PDS CRUD (`CreateRecord`, `GetRecord`, `ListRecords`,
-  `PutRecord`, `DeleteRecord`, `UploadBlob`, `GetBlob`)
-- **`atp.OAuthApp`** — OAuth flow management (`StartLogin`, `HandleCallback`,
-  `LoginCLI`, `ResumeSession`, `Logout`, `DeleteSession`, `ClientMetadata`)
-- **`atp.PublicClient`** — unauthenticated reads (`ResolveHandle`,
-  `GetPDSEndpoint`, `GetProfile`, `ListPublicRecords`, `GetPublicRecord`)
-- **`atp.uri`** — `BuildATURI`, `ParseATURI`, `RKeyFromURI`
-- **`atp/middleware`** — `CookieAuth` middleware, `ClientMetadataHandler`,
-  context getters
+## What's in `atp` now
+
+- **`atp.Client`** — PDS CRUD (`CreateRecord`, `GetRecord`, `ListRecords`, `PutRecord`, `DeleteRecord`, `UploadBlob`, `GetBlob`)
+- **`atp.OAuthApp`** — OAuth flow management (`StartLogin`, `HandleCallback`, `LoginCLI`, `ResumeSession`, `Logout`, `DeleteSession`, `ClientMetadata`) **+ `StartSignup`** ✅
+- **`atp.PublicClient`** — unauthenticated reads (`ResolveHandle`, `GetPDSEndpoint`, `GetProfile`, `ListPublicRecords`, `GetPublicRecord`) **+ caching, `InvalidateHandle`, `InvalidateDID`, `ListAllRecords`** ✅
+- **`atp.uri`** — `atp.BuildATURI`, `ParseATURI`, `RKeyFromURI` **+ `NormalizeHandle`, `DisplayHandle`, `ValidateRKey`** ✅
+- **`atp/middleware`** — `CookieAuth` middleware, `ClientMetadataHandler`, context getters
 - **`atp/errors`** — `ErrSessionExpired`, `WrapPDSError`
 - **`atp/scopes`** — `ScopesForCollections`
 - **`atp/jetstream`** — Jetstream consumer
 - **`atp/store/bolt`**, **`atp/store/sqlite`** — persistent OAuth session stores
 - **`atp/tracing`** — OTel span helpers
 
-## Recommendations
+## Completed — Phase A ✅
 
-### Move to `atp`
+| Item | Details |
+|------|---------|
+| `NormalizeHandle`, `DisplayHandle` → `atp/uri.go` | Deleted `handle.go`, updated all `.templ` + `.go` callers |
+| `ValidateRKey` → `atp/uri.go` | Updated `handlers/handlers.go`, `handlers/brew.go` callers |
+| `PublicClient` caching → `atp/public.go` | TTL-based handle→DID and DID→PDS caches, `InvalidateHandle`, `InvalidateDID`, `ListAllRecords` |
+| `StartSignup` → `atp/oauth.go` | `prompt=create` PAR flow as `OAuthApp.StartSignup` |
+| `public_client.go` slimmed | Now ~70 lines, embeds `*atp.PublicClient`, keeps backward-compat `ListRecords`/`GetRecord`/`ListAllRecords` wrappers |
 
-These have zero arabica dependencies and are generally useful:
+---
 
-| Code                                                                                       | Destination        | Rationale                                                                  |
-| ------------------------------------------------------------------------------------------ | ------------------ | -------------------------------------------------------------------------- |
-| `NormalizeHandle`, `DisplayHandle`                                                         | `atp`              | Pure IDN utility; handle resolution is an atp concern                      |
-| `ValidateRKey`                                                                             | `atp`              | URI/RKey validation alongside `ParseATURI`                                 |
-| Caching layer on `PublicClient` (handle→DID, DID→PDS, `InvalidateHandle`, `InvalidateDID`) | `atp.PublicClient` | Generic; firehose consumers need cache invalidation                        |
-| `PublicClient.ListAllRecords`, `PublicClient.GetRecord`                                    | `atp.PublicClient` | Convenience methods already in `atp.Client` but missing from public client |
+## Remaining Work
 
-### Keep in arabica (not upstreaming)
+### Phase B — OAuth switch
 
-These are opinionated design choices — the caching architecture may not be the
-best general approach for all atproto apps:
+The `OAuthManager` in `oauth.go` is nearly identical to `atp.OAuthApp`. Now that
+`StartSignup` is upstreamed, switch arabica to use `atp` directly:
 
-| Code                                                                       | Keep in                                          | Rationale                                                                                                                                                                                                                                                                |
-| -------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `WitnessCache` interface + `WitnessRecord`                                 | `internal/atproto/` or `internal/store/atproto/` | Interface defines the contract between store and firehose index in arabica's specific caching strategy. Not clear this is the right pattern for general atproto apps                                                                                                     |
-| `SessionCache` / `UserCache`                                               | `internal/atproto/` or `internal/store/atproto/` | Copy-on-write + dirty tracking is coupled to arabica's three-layer cache architecture (session → witness → PDS). Premature to impose on other apps                                                                                                                       |
-| `store_generic.go` (fetchRecord, fetchAllRecords, putRecord, removeRecord) | `internal/store/atproto/` (with store.go)        | Not actually generic — every method depends on arabica's caching architecture: witness cache probes, dirty-collection checks, write-through, and session cache invalidation. The pure generic CRUD is already in `atp.Client`; these are the caching-orchestration layer |
+1. **Replace `OAuthManager` with `atp.OAuthApp`** — nearly identical API:
+   `InitiateLogin` → `StartLogin`, `HandleCallback` → `HandleCallback`,
+   `GetSession`/`DeleteSession` → `Store().GetSession`/`DeleteSession`,
+   `ClientMetadata` → `ClientMetadata`
 
-### Replace with existing `atp` equivalents
+2. **Replace `AuthMiddleware` with `atp/middleware.CookieAuth`** — identical
+   behavior (cookie parsing, session validation, context injection).
+   `atp/middleware` also provides `ClientMetadataHandler`.
 
-| Arabica code                                     | `atp` replacement                                      | Notes                                              |
-| ------------------------------------------------ | ------------------------------------------------------ | -------------------------------------------------- |
-| `BuildATURI` proxy                               | `atp.BuildATURI` directly                              | Delete `nsid.go`                                   |
-| `ExtractRKeyFromURI` proxy                       | `atp.RKeyFromURI` directly                             |                                                    |
-| `ResolveATURI` / `ATURIComponents`               | `atp.ParseATURI`                                       | Slightly different return type (strings vs struct) |
-| `OAuthManager`                                   | `atp.OAuthApp`                                         | Nearly identical API                               |
-| `AuthMiddleware`                                 | `atp/middleware.CookieAuth`                            | Identical behavior                                 |
-| `GetAuthenticatedDID`, `GetSessionIDFromContext` | `atp/middleware.GetDID`, `atp/middleware.GetSessionID` | Different context keys but same pattern            |
-| `ContextWithAuthDID`, `ContextWithAuth`          | `atp/middleware` context keys                          | Adapt to atp context keys                          |
+3. **Replace context helpers** — `GetAuthenticatedDID` / `GetSessionIDFromContext`
+   → `atp/middleware.GetDID` / `atp/middleware.GetSessionID`.
+   Note: this changes context key names; callers need updating.
 
-### Missing from `atp` — needs upstreaming
+4. **Delete `oauth.go`** (~360 lines eliminated).
 
-Before arabica can fully switch from `OAuthManager` to `atp.OAuthApp`, one
-feature needs adding to `atp`:
+5. **Replace `ContextWithAuthDID` / `ContextWithAuth`** — adapt callers to
+   `atp/middleware` context keys, or keep thin wrappers in arabica.
 
-| Feature                                             | Current home            | Notes                                                                                                                               |
-| --------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `InitiateSignup(pdsURL)` → "prompt=create" PAR flow | `oauth.go` (~105 lines) | Most of `sendAuthRequestWithPrompt` is copied from indigo SDK with `prompt` field injection. Add to `atp.OAuthApp` as `StartSignup` |
+**Impact**: ~360 lines deleted, one less OAuth implementation to maintain.
 
-### Extract to arabica-specific packages
+### Phase C — Package extraction
 
-These are tightly coupled to arabica entities and don't belong in a
-general-purpose library:
+Extract the store, cache, and witness code into `internal/store/atproto/`:
 
-| Code                                                                                 | Recommended home                                          | Rationale                                                                                      |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `AtprotoStore` + `store_generic.go`                                                  | `internal/store/atproto/`                                 | Implements `database.Store` for arabica entity types                                           |
-| Entity-specific ref resolvers (`ResolveBeanRefWithRoaster`, `ResolveBrewRefs`, etc.) | `internal/store/atproto/resolve.go`                       | Only make sense in context of arabica's entity model                                           |
-| `SessionCache` typed accessors (`Beans()`, `Roasters()`, etc.)                       | Remove or inline                                          | Use generic `cache.Get(sessionID).Records[nsid]` instead; generic cache core can move to `atp` |
-| `userAgentTransport`                                                                 | Keep in arabica                                           | Application-specific branding                                                                  |
-| `metricLabelFor`                                                                     | Keep in store                                             | Maps arabica NSIDs to Prometheus labels                                                        |
-| `InitiateSignup` (if not upstreamed)                                                 | `internal/oauth/signup.go` or `internal/handlers/auth.go` | Signup flow specific to arabica                                                                |
-| I/O types (`CreateRecordInput`, `GetRecordOutput`, etc.)                             | Remove                                                    | Use `atp.Client` directly                                                                      |
+1. **Create `internal/store/atproto/`**: Move `store.go`, `store_generic.go`,
+   `cache.go`, `witness.go` there.
 
-### Keep cache.go in arabica
+2. **Move entity resolvers**: Extract `ResolveBeanRefWithRoaster`,
+   `ResolveRoasterRef`, `ResolveGrinderRef`, `ResolveBrewerRef`,
+   `ResolveRecipeRef`, `ResolveBrewRefs` from `resolver.go` into
+   `internal/store/atproto/resolve.go`.
 
-The `SessionCache` / `UserCache` pattern (copy-on-write, TTL, dirty collection
-tracking) is coupled to arabica's three-layer caching architecture. While the
-pattern could theoretically be generalized, it's premature to impose this
-opinionated design on other `atp` consumers. The typed entity accessors
-(`Beans()`, `Roasters()`, etc.) are also arabica-specific.
+3. This separates the coffee-domain data access layer from general protocol
+   utilities. Oolong would get its own `internal/store/atproto/` with tea
+   entities.
 
-**Recommendation:** Keep in arabica. When oolong or a third app needs session
-caching, extract a shared arabica-internal pattern or re-evaluate upstreaming to
-`atp`.
+### Phase D — Cleanup
 
-### Why `store_generic.go` stays in arabica
+Remove remaining duplication and thin abstractions:
 
-The `fetchRecord`, `fetchAllRecords`, `putRecord`, and `removeRecord` methods
-look generic (they work with `map[string]any`), but every method is deeply
-coupled to arabica's three-layer architecture:
+1. **Delete `resolver.go`**: Replace `ResolveATURI` / `ATURIComponents` usage
+   with `atp.ParseATURI` (same 4-string return: did, collection, rkey, err).
+   Entity-specific resolvers already moved to `internal/store/atproto/`.
 
-- **`fetchRecord`** — tries witness cache (`getFromWitness` which checks
-  `SessionCache.IsDirty`), then falls back to PDS; tracks `fromWitness` boolean
-  so downstream ref resolution can stay in the witness cache
-- **`fetchAllRecords`** — tries witness cache (`listFromWitness` which also
-  checks dirty collections), then falls back to PDS pagination
-- **`putRecord`** — PDS write → `writeThroughWitness` →
-  `SessionCache.InvalidateRecords`
-- **`removeRecord`** — PDS delete → `deleteFromWitness` →
-  `SessionCache.InvalidateRecords`
-- **`metricLabelFor`** — maps arabica NSIDs to Prometheus labels
+2. **Delete `client.go` I/O types**: `CreateRecordInput`, `GetRecordOutput`,
+   etc. are thin wrappers around `atp.Client` methods. Replace with direct
+   `atp.Client` usage. Keep only the UA/metrics constructor wiring.
 
-The pure generic CRUD (call PDS, get records back) already lives in
-`atp.Client`. These methods are the caching-orchestration layer between the
-protocol primitives and arabica's chosen caching strategy. They belong alongside
-`store.go`.
+3. **Delete `nsid.go` proxies**: Update remaining `atproto.atp.BuildATURI` and
+   `atproto.ExtractRKeyFromURI` callers to use `atp.atp.BuildATURI` and
+   `atp.RKeyFromURI` directly. This affects ~15 files (mostly tests).
 
-### Thin down `client.go`
+4. **Delete `public_client.go` entirely**: Once all callers use `atp.PublicClient`
+   methods directly, the thin `PublicListRecordsOutput`/`PublicRecordEntry`
+   wrappers can go away.
 
-The CRUD methods in `client.go` are thin delegations that add:
-
-- OTel tracing spans
-- Prometheus metrics counters
-- zerolog logging
-- Custom User-Agent header
-- Ergonomic I/O type conversions (pointer optionals)
-
-These are mostly wiring patterns that could be done at the constructor level or
-replaced by direct `atp.Client` usage. The I/O types add unnecessary abstraction
-over `atp.Client`'s methods.
-
-## Target Architecture
+### End state
 
 ```
-tangled.org/pdewey.com/atp              (shared library)
-├── client.go                           (unchanged)
-├── oauth.go                            (+ StartSignup)
-├── public.go                           (+ caching, InvalidateHandle, InvalidateDID, ListAllRecords, GetRecord)
-├── uri.go                              (+ NormalizeHandle, DisplayHandle, ValidateRKey)
-├── middleware/auth.go                  (unchanged)
-├── ...
-
 arabica/internal/
-├── store/atproto/                      (NEW - extracted from atproto/)
-│   ├── store.go                        AtprotoStore implementing database.Store
-│   ├── generic.go                      fetchRecord, fetchAllRecords, putRecord, removeRecord (caching-orchestration layer)
-│   ├── resolve.go                      entity-specific ref resolvers
-│   ├── cache.go                        SessionCache / UserCache (arabica's caching architecture)
-│   ├── witness.go                      WitnessCache interface + WitnessRecord (arabica's contract)
-│   └── write.go                        write-through witness helpers
-├── atproto/                            (KEPT - but slimmed)
-│   ├── client.go                       slimmed to UA/metrics constructor
-│   └── public_client.go                slimmed to UA-wrapped constructor
-├── handlers/auth.go                    (+ signup if not upstreamed)
-├── handlers/entities.go                (imports store/atproto)
-└── entity_views.go                     (uses store for view handlers)
+├── store/atproto/          ← store.go, generic.go, cache.go, witness.go, resolve.go
+├── atproto/                ← (empty or single OTel constructor file)
+├── handlers/
+└── ...
 ```
 
-## Dependency Graph (desired)
+---
 
-```
-handlers/entities.go
-  └─→ internal/store/atproto/ (arabica Store impl)
-         └─→ tangled.org/pdewey.com/atp (protocol layer)
-                └─→ indigo (underlying SDK)
-  └─→ internal/database/store.go (interface only)
-```
+## Things Kept in Arabica (by Design)
 
-No arabica-specific code in `atp`. The `atp` library is pure AT Protocol
-boilerplate.
-
-## Migration Strategy
-
-1. **Phase A — Quick wins** (no structural change)
-   - Move `handle.go` → `atp`
-   - Delete `nsid.go`, update callers to `atp.BuildATURI` / `atp.RKeyFromURI`
-   - Add caching + `InvalidateHandle`/`InvalidateDID` to `atp.PublicClient`
-
-2. **Phase B — OAuth switch** (needs `StartSignup` upstreamed first)
-   - Add `StartSignup` to `atp.OAuthApp`
-   - Replace `OAuthManager` with `atp.OAuthApp`
-   - Replace `AuthMiddleware` with `atp/middleware.CookieAuth`
-   - Replace context helpers with `atp/middleware.GetDID` / `GetSessionID`
-   - Delete `oauth.go`
-
-3. **Phase C — Package extraction**
-   - Create `internal/store/atproto/`
-   - Move `store.go`, `store_generic.go`, `cache.go`, `witness.go`, entity
-     resolver code there
-   - Move entity-specific resolver code out of `resolver.go` into
-     `internal/store/atproto/resolve.go`
-   - Shrink `client.go` to just constructor wiring
-
-4. **Phase D — Cleanup**
-   - Delete `resolver.go` (all entity-specific code moved; `ResolveATURI`
-     callers use `atp.ParseATURI`)
-   - Delete `client.go` I/O types, use `atp.Client` directly
-   - Delete `public_client.go` (upstreamed to `atp`)
-   - `internal/atproto/` shrinks to just slimmed `client.go` (UA/metrics
-     constructor) — the remaining protocol concerns live in
-     `internal/store/atproto/`
+| What | Why |
+|------|-----|
+| `WitnessCache` interface + `WitnessRecord` | Opinionated caching contract between store and firehose |
+| `SessionCache` / `UserCache` | Copy-on-write + dirty tracking tied to three-layer architecture |
+| `store_generic.go` helpers | Orchestrate witness → PDS → cache, not generic CRUD |
+| `cache.go` typed accessors | Arabica entity-specific |
+| `userAgentTransport` | Application branding |
+| `metricLabelFor` | Arabica NSIDs → Prometheus labels |

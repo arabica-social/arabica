@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +53,7 @@ func TestHTTP_WitnessCacheFallback(t *testing.T) {
 	h.InvalidateSessionCache(h.PrimaryAccount)
 
 	// Sanity check: confirm the witness cache really is empty for that record.
-	wr, _ := h.FeedIndex.GetWitnessRecord(t.Context(), atproto.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, created.RKey))
+	wr, _ := h.FeedIndex.GetWitnessRecord(t.Context(), atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, created.RKey))
 	require.Nil(t, wr, "witness record should have been evicted")
 
 	// Step 4: read again — must still return the roaster, this time via the

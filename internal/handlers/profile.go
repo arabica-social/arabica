@@ -13,6 +13,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
@@ -175,7 +176,7 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 
 	// Resolve references (same logic as PDS path)
 	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, arabica.NSIDBean, bean.RKey)]; found {
+		if roasterRef, found := beanRoasterRefMap[atp.BuildATURI(did, arabica.NSIDBean, bean.RKey)]; found {
 			if roaster, found := roasterMap[roasterRef]; found {
 				bean.Roaster = roaster
 			}
@@ -347,7 +348,7 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Resolve references for beans (roaster refs)
 	for _, bean := range beans {
-		if roasterRef, found := beanRoasterRefMap[atproto.BuildATURI(did, arabica.NSIDBean, bean.RKey)]; found {
+		if roasterRef, found := beanRoasterRefMap[atp.BuildATURI(did, arabica.NSIDBean, bean.RKey)]; found {
 			if roaster, found := roasterMap[roasterRef]; found {
 				bean.Roaster = roaster
 			}
@@ -574,7 +575,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	// Filter moderated content from profile
 	if cf != nil {
 		profileData.Brews = moderation.FilterSlice(cf, profileData.Brews, func(b *arabica.Brew) (string, string) {
-			return atproto.BuildATURI(did, arabica.NSIDBrew, b.RKey), did
+			return atp.BuildATURI(did, arabica.NSIDBrew, b.RKey), did
 		})
 	}
 
@@ -626,7 +627,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		brewURIs := make([]string, 0, len(profileData.Brews))
 		uriToRKey := make(map[string]string, len(profileData.Brews))
 		for _, brew := range profileData.Brews {
-			uri := atproto.BuildATURI(profile.DID, arabica.NSIDBrew, brew.RKey)
+			uri := atp.BuildATURI(profile.DID, arabica.NSIDBrew, brew.RKey)
 			brewURIs = append(brewURIs, uri)
 			uriToRKey[uri] = brew.RKey
 		}

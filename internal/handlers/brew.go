@@ -71,7 +71,7 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch brew (witness cache first, then PDS fallback)
 	var brew *arabica.Brew
-	brewURI := atproto.BuildATURI(ownerDID, arabica.NSIDBrew, rkey)
+	brewURI := atp.BuildATURI(ownerDID, arabica.NSIDBrew, rkey)
 	if h.witnessCache != nil {
 		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
@@ -216,7 +216,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Try witness cache first for the brew and all its references
-		brewURI := atproto.BuildATURI(brewOwnerDID, arabica.NSIDBrew, rkey)
+		brewURI := atp.BuildATURI(brewOwnerDID, arabica.NSIDBrew, rkey)
 		if h.witnessCache != nil {
 			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
 				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
@@ -378,14 +378,23 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew,
 
 	// Resolve bean reference
 	if beanRef, ok := record["beanRef"].(string); ok && beanRef != "" {
-		beanRecord, err := publicClient.GetRecord(ctx, ownerDID, arabica.NSIDBean, atproto.ExtractRKeyFromURI(beanRef))
+		beanRecord, err := publicClient.GetRecord(
+			ctx,
+			ownerDID,
+			arabica.NSIDBean, atp.RKeyFromURI(beanRef),
+		)
 		if err == nil {
 			if bean, err := arabica.RecordToBean(beanRecord.Value, beanRecord.URI); err == nil {
 				brew.Bean = bean
 
 				// Resolve roaster reference for the bean
 				if roasterRef, ok := beanRecord.Value["roasterRef"].(string); ok && roasterRef != "" {
-					roasterRecord, err := publicClient.GetRecord(ctx, ownerDID, arabica.NSIDRoaster, atproto.ExtractRKeyFromURI(roasterRef))
+					roasterRecord, err := publicClient.GetRecord(
+						ctx,
+						ownerDID,
+						arabica.NSIDRoaster,
+						atp.RKeyFromURI(roasterRef),
+					)
 					if err == nil {
 						if roaster, err := arabica.RecordToRoaster(roasterRecord.Value, roasterRecord.URI); err == nil {
 							brew.Bean.Roaster = roaster
@@ -398,7 +407,12 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew,
 
 	// Resolve grinder reference
 	if grinderRef, ok := record["grinderRef"].(string); ok && grinderRef != "" {
-		grinderRecord, err := publicClient.GetRecord(ctx, ownerDID, arabica.NSIDGrinder, atproto.ExtractRKeyFromURI(grinderRef))
+		grinderRecord, err := publicClient.GetRecord(
+			ctx,
+			ownerDID,
+			arabica.NSIDGrinder,
+			atp.RKeyFromURI(grinderRef),
+		)
 		if err == nil {
 			if grinder, err := arabica.RecordToGrinder(grinderRecord.Value, grinderRecord.URI); err == nil {
 				brew.GrinderObj = grinder
@@ -408,7 +422,12 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew,
 
 	// Resolve brewer reference
 	if brewerRef, ok := record["brewerRef"].(string); ok && brewerRef != "" {
-		brewerRecord, err := publicClient.GetRecord(ctx, ownerDID, arabica.NSIDBrewer, atproto.ExtractRKeyFromURI(brewerRef))
+		brewerRecord, err := publicClient.GetRecord(
+			ctx,
+			ownerDID,
+			arabica.NSIDBrewer,
+			atp.RKeyFromURI(brewerRef),
+		)
 		if err == nil {
 			if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
 				brew.BrewerObj = brewer
