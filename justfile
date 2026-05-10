@@ -25,7 +25,7 @@ style: style-arabica
 # style-oolong
 
 style-arabica:
-    @nix develop --command tailwindcss -i static/css/app.css -o static/css/output.css --minify
+    @cat static/css/tokens.css static/css/reset.css static/css/utilities.css static/css/components.css > static/css/output.css
 
 style-oolong:
-    @nix develop --command tailwindcss -i static/css/app-oolong.css -o static/css/output-oolong.css --minify
+    @cat static/css/tokens.css static/css/reset.css static/css/utilities.css static/css/components.css static/css/themes/oolong.css > static/css/output-oolong.css
