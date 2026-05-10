@@ -6,9 +6,9 @@ version: 0.1.0
 ---
 {
   "$type": "social.arabica.alpha.grinder",
-  "burrType": "Flat",
+  "burrType": "flat",
   "createdAt": "<TIMESTAMP>",
-  "grinderType": "Electric",
+  "grinderType": "electric",
   "name": "Full Grinder",
   "notes": "64mm SSP multipurpose"
 }

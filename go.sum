@@ -478,8 +478,16 @@ github.com/prometheus/procfs v0.20.1 h1:XwbrGOIplXW/AU3YhIhLODXMJYyC1isLFfYCsTEy
 github.com/prometheus/procfs v0.20.1/go.mod h1:o9EMBZGRyvDrSPH1RqdxhojkuXstoe4UlK79eF5TGGo=
 github.com/ptdewey/shutter v0.2.1 h1:Xly9ZsgOm+SRDf3pyMWLcJRJWpQNkyh777zW8T9QpIo=
 github.com/ptdewey/shutter v0.2.1/go.mod h1:teeIXF4LdgsE9E4kjHk9nGzDxl2cjdbVb1qbdzAHSR4=
+github.com/ptdewey/shutter v0.2.2 h1:HxB55Kz35PK2mpXszuQfobz2F+9mNtwbCO/ZqSRrqNk=
+github.com/ptdewey/shutter v0.2.2/go.mod h1:teeIXF4LdgsE9E4kjHk9nGzDxl2cjdbVb1qbdzAHSR4=
+github.com/ptdewey/shutter v0.2.3 h1:D719IXFcZjsfYRjKSTmkdIDq1ln2BTbQHEC2sqhBsDg=
+github.com/ptdewey/shutter v0.2.3/go.mod h1:teeIXF4LdgsE9E4kjHk9nGzDxl2cjdbVb1qbdzAHSR4=
+github.com/ptdewey/shutter v0.2.4 h1:ABMqTf+dz7tHQp4VHYAdzxe7ZnxV/ghqxxhAN341O48=
+github.com/ptdewey/shutter v0.2.4/go.mod h1:teeIXF4LdgsE9E4kjHk9nGzDxl2cjdbVb1qbdzAHSR4=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
+github.com/rivo/uniseg v0.1.0 h1:+2KBaVoUmb9XzDsrx/Ct0W/EYOSFf/nWTauy++DprtY=
+github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=

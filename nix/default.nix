@@ -9,7 +9,7 @@ buildGoModule {
   pname = "arabica";
   version = "0.1.0";
   src = ../.;
-  vendorHash = "sha256-j0yA+nIAwsjEthRVFJ9vNp4NLwUJ3Owqt15hUSkUfTk=";
+  vendorHash = "sha256-ZDRE/PuCOkRpencco8FpN8wxv25N7SlgiAUse0jJM/E=";
 
   nativeBuildInputs = [
     templ

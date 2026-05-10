@@ -176,16 +176,16 @@ func TestPDS_GrinderCRUD(t *testing.T) {
 
 	grinder, err := store.CreateGrinder(ctx, &arabica.CreateGrinderRequest{
 		Name:        "Comandante C40",
-		GrinderType: "hand",
-		BurrType:    "conical",
+		GrinderType: "Hand",
+		BurrType:    "Conical",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Comandante C40", grinder.Name)
 
 	fetched, err := store.GetGrinderByRKey(ctx, grinder.RKey)
 	require.NoError(t, err)
-	assert.Equal(t, "hand", fetched.GrinderType)
-	assert.Equal(t, "conical", fetched.BurrType)
+	assert.Equal(t, "Hand", fetched.GrinderType)
+	assert.Equal(t, "Conical", fetched.BurrType)
 }
 
 func TestPDS_BrewerCRUD(t *testing.T) {

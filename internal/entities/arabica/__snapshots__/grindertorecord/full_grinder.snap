@@ -6,9 +6,9 @@ version: 0.1.0
 ---
 map[string]interface{}{
   "$type": "social.arabica.alpha.grinder",
-  "burrType": "Conical",
+  "burrType": "conical",
   "createdAt": "2025-01-10T12:00:00Z",
-  "grinderType": "Hand",
+  "grinderType": "hand",
   "name": "Comandante C40",
   "notes": "Great for travel",
 }

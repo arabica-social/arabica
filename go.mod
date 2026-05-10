@@ -11,7 +11,7 @@ require (
 	github.com/klauspost/compress v1.18.3
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
-	github.com/ptdewey/shutter v0.2.1
+	github.com/ptdewey/shutter v0.2.4
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
 	go.etcd.io/bbolt v1.4.3
@@ -116,6 +116,7 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/rivo/uniseg v0.1.0 // indirect
 	github.com/samber/lo v1.53.0 // indirect
 	github.com/samber/slog-echo v1.21.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect

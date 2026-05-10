@@ -6,7 +6,7 @@ version: 0.1.0
 ---
 {
   "$type": "social.arabica.alpha.grinder",
-  "burrType": "Flat",
+  "burrType": "flat",
   "createdAt": "<TIMESTAMP>",
   "name": "Burr Grinder"
 }

@@ -528,6 +528,36 @@ func RecordToRoaster(record map[string]any, atURI string) (*Roaster, error) {
 // ========== Grinder Conversions ==========
 
 // GrinderToRecord converts a Grinder to an atproto record map
+// The grinder lexicon's grinderType and burrType enums are lowercase
+// (e.g. "hand", "portable_electric", "conical"), but the Go model and UI
+// store Title-case values ("Hand", "Portable Electric", "Conical"). Normalize
+// at the wire boundary in both directions so the model stays canonical
+// Title-case while writes conform to the lexicon. Unknown / legacy values
+// pass through both maps unchanged so older records still load.
+var grinderTypeToWire = map[string]string{
+	"Hand":              "hand",
+	"Electric":          "electric",
+	"Portable Electric": "portable_electric",
+}
+
+var grinderTypeFromWire = map[string]string{
+	"hand":              "Hand",
+	"electric":          "Electric",
+	"portable_electric": "Portable Electric",
+}
+
+var burrTypeToWire = map[string]string{
+	"Conical": "conical",
+	"Flat":    "flat",
+	"Blade":   "blade",
+}
+
+var burrTypeFromWire = map[string]string{
+	"conical": "Conical",
+	"flat":    "Flat",
+	"blade":   "Blade",
+}
+
 func GrinderToRecord(grinder *Grinder) (map[string]any, error) {
 	record := map[string]any{
 		"$type":     NSIDGrinder,
@@ -537,10 +567,18 @@ func GrinderToRecord(grinder *Grinder) (map[string]any, error) {
 
 	// Optional fields
 	if grinder.GrinderType != "" {
-		record["grinderType"] = grinder.GrinderType
+		v := grinder.GrinderType
+		if mapped, ok := grinderTypeToWire[v]; ok {
+			v = mapped
+		}
+		record["grinderType"] = v
 	}
 	if grinder.BurrType != "" {
-		record["burrType"] = grinder.BurrType
+		v := grinder.BurrType
+		if mapped, ok := burrTypeToWire[v]; ok {
+			v = mapped
+		}
+		record["burrType"] = v
 	}
 	if grinder.Notes != "" {
 		record["notes"] = grinder.Notes
@@ -583,11 +621,18 @@ func RecordToGrinder(record map[string]any, atURI string) (*Grinder, error) {
 	}
 	grinder.CreatedAt = createdAt
 
-	// Optional fields
+	// Optional fields. Map lexicon-format lowercase enums back to Title case;
+	// pass through unknown values so legacy records load unchanged.
 	if grinderType, ok := record["grinderType"].(string); ok {
+		if mapped, found := grinderTypeFromWire[grinderType]; found {
+			grinderType = mapped
+		}
 		grinder.GrinderType = grinderType
 	}
 	if burrType, ok := record["burrType"].(string); ok {
+		if mapped, found := burrTypeFromWire[burrType]; found {
+			burrType = mapped
+		}
 		grinder.BurrType = burrType
 	}
 	if notes, ok := record["notes"].(string); ok {
