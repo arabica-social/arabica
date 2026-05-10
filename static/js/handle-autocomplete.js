@@ -89,14 +89,14 @@
         img.alt = ""; // Empty alt for decorative images
         img.width = 32;
         img.height = 32;
-        img.className = "w-6 h-6 rounded-full object-cover flex-shrink-0";
+        img.className = "handle-result-avatar";
         img.addEventListener("error", function () {
           this.src = "/static/icon-placeholder.svg";
         });
 
         // Create text container
         const textContainer = document.createElement("div");
-        textContainer.className = "flex-1 min-w-0";
+        textContainer.className = "handle-result-text";
 
         // Create display name element
         const nameDiv = document.createElement("div");

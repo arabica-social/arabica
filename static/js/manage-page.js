@@ -42,10 +42,7 @@ function managePage() {
 
         // Create toast element
         const toast = document.createElement("div");
-        toast.className =
-          "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4 p-4 rounded-lg shadow-lg flex items-center gap-3";
-        toast.style.cssText =
-          "background: var(--card-bg, #fff); border: 1px solid var(--surface-border, #d4c4a8); color: var(--text-primary, #3e2723);";
+        toast.className = "nudge-toast";
         toast.innerHTML = `
           <div class="flex-1 text-sm">
             <strong>${nudge.name}</strong> is missing ${nudge.missing}

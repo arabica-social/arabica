@@ -1046,6 +1046,21 @@
 
   .form-input-lg {
     @apply rounded-lg text-base py-3 px-4;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .form-input-lg:focus {
+    border-color: var(--input-border-focus);
+    box-shadow: 0 0 0 2px var(--input-ring-focus);
+    background: var(--input-bg-focus);
+    outline: none;
+  }
+
+  .form-input-lg::placeholder {
+    color: var(--text-placeholder);
   }
 
   /* Combo select dropdown */
@@ -1101,10 +1116,36 @@
 
   .form-select {
     @apply rounded-lg text-base py-2 px-3 truncate max-w-full min-w-0;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .form-select:focus {
+    border-color: var(--input-border-focus);
+    box-shadow: 0 0 0 2px var(--input-ring-focus);
+    background: var(--input-bg-focus);
+    outline: none;
   }
 
   .form-textarea {
     @apply rounded-lg text-base py-2 px-3 min-h-[100px];
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .form-textarea:focus {
+    border-color: var(--input-border-focus);
+    box-shadow: 0 0 0 2px var(--input-ring-focus);
+    background: var(--input-bg-focus);
+    outline: none;
+  }
+
+  .form-textarea::placeholder {
+    color: var(--text-placeholder);
   }
 
   /* Tables */
@@ -1938,6 +1979,64 @@
   .home-action-secondary:hover {
     border-color: var(--input-border-focus);
     box-shadow: var(--shadow-md);
+  }
+
+  /* Tab navigation — underline variant (no base border, profile page) */
+  .tab-underline-active {
+    border-bottom: 2px solid var(--btn-primary-bg);
+    color: var(--text-primary);
+  }
+  .tab-underline-inactive {
+    color: var(--text-muted);
+  }
+  .tab-underline-inactive:hover {
+    color: var(--text-primary);
+  }
+
+  /* Tab navigation — row variant (element has border-b-2; my_coffee, manage) */
+  .tab-row-active {
+    border-color: var(--btn-primary-bg);
+    color: var(--text-primary);
+  }
+  .tab-row-inactive {
+    border-color: transparent;
+    color: var(--text-muted);
+  }
+  .tab-row-inactive:hover {
+    border-color: #d2bab0; /* brown-400 — matches pre-bespoke original */
+    color: var(--text-primary);
+  }
+
+  /* Tab navigation — pill variant (admin moderation tabs) */
+  .tab-pill-active {
+    background: var(--card-border);
+    color: var(--text-primary);
+    border-color: #d2bab0; /* brown-400 — matches pre-bespoke original */
+  }
+  .tab-pill-inactive {
+    background: var(--surface-bg);
+    color: var(--text-muted);
+    border-color: var(--card-border);
+  }
+  .tab-pill-inactive:hover {
+    background: var(--card-border);
+  }
+
+  /* Incomplete-entity nudge toast (manage-page.js) */
+  .nudge-toast {
+    @apply fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4 p-4 rounded-lg flex items-center gap-3;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Handle autocomplete row internals (handle-autocomplete.js) */
+  .handle-result-avatar {
+    @apply w-6 h-6 rounded-full object-cover flex-shrink-0;
+  }
+  .handle-result-text {
+    @apply flex-1 min-w-0;
   }
 }
 

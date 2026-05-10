@@ -93,21 +93,21 @@ templ ProfileTabs(isOwnProfile bool) {
 			<div class="flex border-b border-brown-300">
 				<button
 					@click="activeTab = 'brews'"
-					:class="activeTab === 'brews' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'"
+					:class="activeTab === 'brews' ? 'tab-underline-active' : 'tab-underline-inactive'"
 					class="flex-1 py-3 px-4 text-center font-medium transition-colors"
 				>
 					Brews
 				</button>
 				<button
 					@click="activeTab = 'beans'"
-					:class="activeTab === 'beans' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'"
+					:class="activeTab === 'beans' ? 'tab-underline-active' : 'tab-underline-inactive'"
 					class="flex-1 py-3 px-4 text-center font-medium transition-colors"
 				>
 					Beans
 				</button>
 				<button
 					@click="activeTab = 'equipment'"
-					:class="activeTab === 'equipment' ? 'border-b-2 border-brown-700 text-brown-900' : 'text-brown-600 hover:text-brown-800'"
+					:class="activeTab === 'equipment' ? 'tab-underline-active' : 'tab-underline-inactive'"
 					class="flex-1 py-3 px-4 text-center font-medium transition-colors"
 				>
 					Gear

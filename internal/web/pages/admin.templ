@@ -84,7 +84,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<button
 					type="button"
 					@click="activeTab = 'hidden'"
-					:class="activeTab === 'hidden' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					:class="activeTab === 'hidden' ? 'tab-pill-active' : 'tab-pill-inactive'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Hidden Records
@@ -99,7 +99,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<button
 					type="button"
 					@click="activeTab = 'blocked'"
-					:class="activeTab === 'blocked' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					:class="activeTab === 'blocked' ? 'tab-pill-active' : 'tab-pill-inactive'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Blocked Users
@@ -114,7 +114,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<button
 					type="button"
 					@click="activeTab = 'reports'"
-					:class="activeTab === 'reports' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					:class="activeTab === 'reports' ? 'tab-pill-active' : 'tab-pill-inactive'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Reports
@@ -129,7 +129,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<button
 					type="button"
 					@click="activeTab = 'activity'"
-					:class="activeTab === 'activity' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					:class="activeTab === 'activity' ? 'tab-pill-active' : 'tab-pill-inactive'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Activity Log
@@ -139,7 +139,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<button
 					type="button"
 					@click="activeTab = 'labels'"
-					:class="activeTab === 'labels' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					:class="activeTab === 'labels' ? 'tab-pill-active' : 'tab-pill-inactive'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Labels
@@ -154,7 +154,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<button
 					type="button"
 					@click="activeTab = 'join'"
-					:class="activeTab === 'join' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					:class="activeTab === 'join' ? 'tab-pill-active' : 'tab-pill-inactive'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Join Requests
@@ -167,7 +167,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<button
 					type="button"
 					@click="activeTab = 'stats'"
-					:class="activeTab === 'stats' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					:class="activeTab === 'stats' ? 'tab-pill-active' : 'tab-pill-inactive'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Stats
@@ -175,7 +175,7 @@ templ AdminDashboardBody(props AdminProps) {
 				<button
 					type="button"
 					@click="activeTab = 'cache'"
-					:class="activeTab === 'cache' ? 'bg-brown-300 text-brown-900 border-brown-400' : 'bg-brown-100 text-brown-600 border-brown-200 hover:bg-brown-200'"
+					:class="activeTab === 'cache' ? 'tab-pill-active' : 'tab-pill-inactive'"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Cache
