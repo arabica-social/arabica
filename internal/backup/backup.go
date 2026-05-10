@@ -164,6 +164,11 @@ func NewSQLiteSource(name string, db *sql.DB) *SQLiteSource {
 func (s *SQLiteSource) Name() string { return s.name }
 
 func (s *SQLiteSource) Backup(ctx context.Context, destPath string) error {
+	// VACUUM INTO refuses to write to an existing file; clear any stale
+	// target left over from a previous interrupted run.
+	if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing stale backup target: %w", err)
+	}
 	_, err := s.db.ExecContext(ctx, "VACUUM INTO ?", destPath)
 	if err != nil {
 		return fmt.Errorf("VACUUM INTO: %w", err)

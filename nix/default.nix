@@ -33,15 +33,6 @@ buildGoModule {
         #!/bin/sh
         SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
         SHARE_DIR="$SCRIPT_DIR/../share/arabica"
-
-        # Set default database path if not specified
-        # Uses XDG_DATA_HOME or falls back to ~/.local/share
-        if [ -z "$ARABICA_DB_PATH" ]; then
-            DATA_DIR="''${XDG_DATA_HOME:-$HOME/.local/share}/arabica"
-            mkdir -p "$DATA_DIR"
-            export ARABICA_DB_PATH="$DATA_DIR/arabica.db"
-        fi
-
         cd "$SHARE_DIR"
         exec "$SCRIPT_DIR/arabica-unwrapped" "$@"
       '';
