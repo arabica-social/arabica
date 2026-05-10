@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.services.arabica;
@@ -25,7 +30,10 @@ let
         example = "alice.bsky.social";
       };
       role = lib.mkOption {
-        type = lib.types.enum [ "admin" "moderator" ];
+        type = lib.types.enum [
+          "admin"
+          "moderator"
+        ];
         description = "The moderation role assigned to this user.";
       };
       note = lib.mkOption {
@@ -37,49 +45,63 @@ let
   };
 
   # Build the moderators JSON config file from Nix settings
-  moderatorsConfigFile = pkgs.writeText "moderators.json" (builtins.toJSON {
-    roles = {
-      admin = {
-        description = "Full platform control";
-        permissions = [
-          "hide_record"
-          "unhide_record"
-          "blacklist_user"
-          "unblacklist_user"
-          "view_reports"
-          "dismiss_report"
-          "view_audit_log"
-          "reset_autohide"
-        ];
+  moderatorsConfigFile = pkgs.writeText "moderators.json" (
+    builtins.toJSON {
+      roles = {
+        admin = {
+          description = "Full platform control";
+          permissions = [
+            "hide_record"
+            "unhide_record"
+            "blacklist_user"
+            "unblacklist_user"
+            "view_reports"
+            "dismiss_report"
+            "view_audit_log"
+            "reset_autohide"
+          ];
+        };
+        moderator = {
+          description = "Content moderation";
+          permissions = [
+            "hide_record"
+            "unhide_record"
+            "view_reports"
+            "dismiss_report"
+          ];
+        };
       };
-      moderator = {
-        description = "Content moderation";
-        permissions =
-          [ "hide_record" "unhide_record" "view_reports" "dismiss_report" ];
-      };
-    };
-    users = map (u:
-      {
-        inherit (u) did role;
-      } // lib.optionalAttrs (u.handle != "") { inherit (u) handle; }
-      // lib.optionalAttrs (u.note != "") { inherit (u) note; })
-      cfg.moderation.moderators;
-  });
+      users = map (
+        u:
+        {
+          inherit (u) did role;
+        }
+        // lib.optionalAttrs (u.handle != "") { inherit (u) handle; }
+        // lib.optionalAttrs (u.note != "") { inherit (u) note; }
+      ) cfg.moderation.moderators;
+    }
+  );
 
   # Resolve the config path: explicit file takes priority, then generated from moderators list
-  effectiveConfigPath = if cfg.moderation.configFile != null then
-    cfg.moderation.configFile
-  else if cfg.moderation.moderators != [ ] then
-    moderatorsConfigFile
-  else
-    null;
-in {
+  effectiveConfigPath =
+    if cfg.moderation.configFile != null then
+      cfg.moderation.configFile
+    else if cfg.moderation.moderators != [ ] then
+      moderatorsConfigFile
+    else
+      null;
+in
+{
   options.services.arabica = {
     enable = lib.mkEnableOption "Arabica coffee brew tracking service";
 
     mode = lib.mkOption {
-      type = lib.types.enum [ "all" "arabica" "oolong" ];
-      default = "all";
+      type = lib.types.enum [
+        "all"
+        "arabica"
+        "oolong"
+      ];
+      default = "arabica";
       description = ''
         Which apps the unified server binary should boot. "all" runs
         both arabica (coffee) and the tea sister app in one process on
@@ -103,23 +125,29 @@ in {
       };
 
       logLevel = lib.mkOption {
-        type = lib.types.enum [ "debug" "info" "warn" "error" ];
+        type = lib.types.enum [
+          "debug"
+          "info"
+          "warn"
+          "error"
+        ];
         default = "info";
         description = "Log level for the arabica server.";
       };
 
       logFormat = lib.mkOption {
-        type = lib.types.enum [ "pretty" "json" ];
+        type = lib.types.enum [
+          "pretty"
+          "json"
+        ];
         default = "json";
-        description =
-          "Log format. Use 'json' for production, 'pretty' for development.";
+        description = "Log format. Use 'json' for production, 'pretty' for development.";
       };
 
       secureCookies = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description =
-          "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
+        description = "Whether to set the Secure flag on cookies. Should be true when using HTTPS.";
       };
 
       publicUrl = lib.mkOption {
@@ -177,23 +205,20 @@ in {
       host = lib.mkOption {
         type = lib.types.str;
         default = "";
-        description =
-          "SMTP server hostname. Can also be set via SMTP_HOST in an environment file.";
+        description = "SMTP server hostname. Can also be set via SMTP_HOST in an environment file.";
         example = "smtp.example.com";
       };
 
       port = lib.mkOption {
         type = lib.types.nullOr lib.types.port;
         default = null;
-        description =
-          "SMTP server port. Can also be set via SMTP_PORT in an environment file.";
+        description = "SMTP server port. Can also be set via SMTP_PORT in an environment file.";
       };
 
       from = lib.mkOption {
         type = lib.types.str;
         default = "";
-        description =
-          "Sender address for outgoing email. Can also be set via SMTP_FROM in an environment file.";
+        description = "Sender address for outgoing email. Can also be set via SMTP_FROM in an environment file.";
         example = "noreply@arabica.example.com";
       };
     };
@@ -232,8 +257,7 @@ in {
     dataDir = lib.mkOption {
       type = lib.types.path;
       default = "/var/lib/arabica";
-      description =
-        "Directory where arabica stores its data (OAuth sessions, etc.).";
+      description = "Directory where arabica stores its data (OAuth sessions, etc.).";
     };
 
     # Tea-app (oolong) settings. Mirrors the top-level arabica options
@@ -258,8 +282,7 @@ in {
       metricsPort = lib.mkOption {
         type = lib.types.port;
         default = 9102;
-        description =
-          "Localhost-only Prometheus metrics port for the tea app.";
+        description = "Localhost-only Prometheus metrics port for the tea app.";
       };
 
       publicUrl = lib.mkOption {
@@ -299,8 +322,7 @@ in {
       openFirewall = lib.mkOption {
         type = lib.types.bool;
         default = false;
-        description =
-          "Whether to open the firewall for the tea app's HTTP port.";
+        description = "Whether to open the firewall for the tea app's HTTP port.";
       };
     };
 
@@ -319,8 +341,7 @@ in {
     otelEndpoint = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
-      description =
-        "OTLP HTTP endpoint for OpenTelemetry traces (e.g. localhost:4318).";
+      description = "OTLP HTTP endpoint for OpenTelemetry traces (e.g. localhost:4318).";
       example = "localhost:4318";
     };
 
@@ -362,12 +383,15 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ cfg.dataDir ]
-          ++ lib.optional (cfg.mode != "arabica") cfg.oolong.dataDir;
+        ReadWritePaths = [ cfg.dataDir ] ++ lib.optional (cfg.mode != "arabica") cfg.oolong.dataDir;
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
-        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+          "AF_UNIX"
+        ];
         RestrictNamespaces = true;
         LockPersonality = true;
         RestrictRealtime = true;
@@ -393,23 +417,32 @@ in {
         "${teaPrefix}_BIND_ADDR" = cfg.oolong.bindAddr;
         "${teaPrefix}_METRICS_PORT" = toString cfg.oolong.metricsPort;
         "${teaPrefix}_DATA_DIR" = cfg.oolong.dataDir;
-      } // lib.optionalAttrs (cfg.settings.publicUrl != null) {
+      }
+      // lib.optionalAttrs (cfg.settings.publicUrl != null) {
         ARABICA_PUBLIC_URL = cfg.settings.publicUrl;
-      } // lib.optionalAttrs (cfg.oolong.publicUrl != null) {
+      }
+      // lib.optionalAttrs (cfg.oolong.publicUrl != null) {
         "${teaPrefix}_PUBLIC_URL" = cfg.oolong.publicUrl;
-      } // lib.optionalAttrs (cfg.oolong.oauth.clientId != null) {
+      }
+      // lib.optionalAttrs (cfg.oolong.oauth.clientId != null) {
         "${teaPrefix}_OAUTH_CLIENT_ID" = cfg.oolong.oauth.clientId;
-      } // lib.optionalAttrs (cfg.oolong.oauth.redirectUri != null) {
+      }
+      // lib.optionalAttrs (cfg.oolong.oauth.redirectUri != null) {
         "${teaPrefix}_OAUTH_REDIRECT_URI" = cfg.oolong.oauth.redirectUri;
-      } // lib.optionalAttrs (effectiveConfigPath != null) {
+      }
+      // lib.optionalAttrs (effectiveConfigPath != null) {
         ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;
-      } // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.host != "") {
+      }
+      // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.host != "") {
         SMTP_HOST = cfg.smtp.host;
-      } // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.port != null) {
+      }
+      // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.port != null) {
         SMTP_PORT = toString cfg.smtp.port;
-      } // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.from != "") {
+      }
+      // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.from != "") {
         SMTP_FROM = cfg.smtp.from;
-      } // lib.optionalAttrs (cfg.otelEndpoint != null) {
+      }
+      // lib.optionalAttrs (cfg.otelEndpoint != null) {
         OTEL_EXPORTER_OTLP_ENDPOINT = cfg.otelEndpoint;
       };
     };

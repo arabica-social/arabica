@@ -2,17 +2,11 @@ module tangled.org/arabica.social/arabica
 
 go 1.26.1
 
-replace (
-	tangled.org/pdewey.com/atp v0.0.0-20260418015135-962c7a9ed37e => ../atp
-	tangled.org/pdewey.com/chrysalis v0.0.0-20260418015724-ffe63f2b6114 => ../chrysalis/
-)
-
 require (
 	github.com/XSAM/otelsql v0.41.0
 	github.com/a-h/templ v0.3.1001
 	github.com/bluesky-social/indigo v0.0.0-20260409212512-2031017ff411
 	github.com/go-logr/zerologr v1.2.3
-	github.com/google/go-querystring v1.1.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.18.3
 	github.com/prometheus/client_golang v1.23.2
@@ -26,12 +20,11 @@ require (
 	go.opentelemetry.io/otel/sdk v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0
 	golang.org/x/image v0.38.0
-	golang.org/x/net v0.52.0
 	golang.org/x/sync v0.20.0
 	gorm.io/gorm v1.31.1
 	modernc.org/sqlite v1.48.1
-	tangled.org/pdewey.com/atp v0.0.0-20260418015135-962c7a9ed37e
-	tangled.org/pdewey.com/chrysalis v0.0.0-20260418015724-ffe63f2b6114
+	tangled.org/pdewey.com/atp v0.0.0-20260510162548-f4356d375902
+	tangled.org/pdewey.com/chrysalis v0.0.0-20260510160834-e539fd062370
 )
 
 require (
@@ -58,6 +51,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
@@ -141,6 +135,7 @@ require (
 	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
