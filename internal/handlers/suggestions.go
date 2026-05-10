@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/suggestions"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
@@ -64,7 +64,7 @@ func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request
 
 	// Exclude the current user's records from suggestions so they only see
 	// community records, not their own data echoed back.
-	excludeDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	excludeDID, _ := atpmiddleware.GetDID(r.Context())
 
 	results, err := suggestions.Search(r.Context(), h.feedIndex, nsid, query, limit, excludeDID)
 	if err != nil {

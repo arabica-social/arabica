@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -13,6 +12,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
@@ -103,8 +103,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	var nextCursor string
 
 	// Check if user is authenticated
-	viewerDID, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil
+	viewerDID, isAuthenticated := atpmiddleware.GetDID(r.Context())
 
 	// Parse query parameters
 	typeParam := r.URL.Query().Get("type")
@@ -209,7 +208,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+	didStr, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		log.Warn().Err(err).Msg("Failed to parse like toggle form")

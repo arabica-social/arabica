@@ -14,6 +14,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
@@ -159,7 +160,7 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Remove from firehose feed index
 	if h.feedIndex != nil {
-		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+		didStr, _ := atpmiddleware.GetDID(r.Context())
 		if didStr != "" {
 			if err := h.feedIndex.DeleteRecord(r.Context(), didStr, arabica.NSIDRecipe, rkey); err != nil {
 				log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe from feed index")

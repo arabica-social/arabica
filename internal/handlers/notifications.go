@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
@@ -72,8 +72,8 @@ func (h *Handler) HandleNotifications(w http.ResponseWriter, r *http.Request) {
 
 // HandleNotificationsMarkRead marks all notifications as read
 func (h *Handler) HandleNotificationsMarkRead(w http.ResponseWriter, r *http.Request) {
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || didStr == "" {
+	didStr, ok := atpmiddleware.GetDID(r.Context())
+	if !ok {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}

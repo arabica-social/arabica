@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/database/boltstore"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
@@ -99,7 +99,7 @@ func (h *Handler) renderJoinSuccess(w http.ResponseWriter, r *http.Request) {
 // HandleCreateInvite creates a PDS invite code and emails it to the requester.
 // Auth and admin checks are handled by RequireAdmin middleware.
 func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -202,7 +202,7 @@ func (h *Handler) HandleCreateInvite(w http.ResponseWriter, r *http.Request) {
 // HandleDismissJoinRequest removes a join request without sending an invite.
 // Auth and admin checks are handled by RequireAdmin middleware.
 func (h *Handler) HandleDismissJoinRequest(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -300,7 +300,7 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Initiate OAuth flow with prompt=create
-	authURL, err := h.oauth.InitiateSignup(r.Context(), pdsURL)
+	authURL, err := h.oauth.StartSignup(r.Context(), pdsURL)
 	if err != nil {
 		log.Error().Err(err).Str("pds_url", pdsURL).Msg("Failed to initiate signup flow")
 		http.Redirect(w, r, "/join/create?error=Failed+to+connect+to+server.+Please+try+again.", http.StatusSeeOther)

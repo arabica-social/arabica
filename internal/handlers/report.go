@@ -11,6 +11,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
@@ -48,8 +49,8 @@ func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Require authentication
-	reporterDID, err := atproto.GetAuthenticatedDID(ctx)
-	if err != nil || reporterDID == "" {
+	reporterDID, ok := atpmiddleware.GetDID(ctx)
+	if !ok {
 		writeReportError(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}

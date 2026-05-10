@@ -23,7 +23,9 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
 )
 
@@ -41,7 +43,7 @@ type Config struct {
 // Handler contains all HTTP handler methods and their dependencies.
 // Dependencies are injected via the constructor for better testability.
 type Handler struct {
-	oauth         *atproto.OAuthManager
+	oauth         *atp.OAuthApp
 	atprotoClient *atproto.Client
 	sessionCache  *atproto.SessionCache
 	config        Config
@@ -108,7 +110,7 @@ func (h *Handler) appNSIDs() []string {
 // NewHandler creates a new Handler with all required dependencies.
 // This constructor pattern ensures the Handler is always fully initialized.
 func NewHandler(
-	oauth *atproto.OAuthManager,
+	oauth *atp.OAuthApp,
 	atprotoClient *atproto.Client,
 	sessionCache *atproto.SessionCache,
 	feedService *feed.Service,
@@ -285,20 +287,20 @@ func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfi
 // Returns the store and true if authenticated, or nil and false if not authenticated.
 func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 	// Get authenticated DID from context
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil {
+	didStr, ok := atpmiddleware.GetDID(r.Context())
+	if !ok {
 		return nil, false
 	}
 
 	// Parse DID string to syntax.DID
-	did, err := atproto.ParseDID(didStr)
+	did, err := syntax.ParseDID(didStr)
 	if err != nil {
 		return nil, false
 	}
 
 	// Get session ID from context
-	sessionID, err := atproto.GetSessionIDFromContext(r.Context())
-	if err != nil {
+	sessionID, ok := atpmiddleware.GetSessionID(r.Context())
+	if !ok {
 		return nil, false
 	}
 
@@ -314,8 +316,7 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 // layoutDataFromRequest extracts auth state from the request and builds layout data.
 // Returns the layout data, the user's DID (empty if not authenticated), and whether authenticated.
 func (h *Handler) layoutDataFromRequest(r *http.Request, title string) (layoutData *components.LayoutData, didStr string, isAuthenticated bool) {
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated = err == nil && didStr != ""
+	didStr, isAuthenticated = atpmiddleware.GetDID(r.Context())
 
 	var userProfile *bff.UserProfile
 	if isAuthenticated {
@@ -351,7 +352,7 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 	}
 	// Remove from firehose feed index
 	if h.feedIndex != nil && collection != "" {
-		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+		didStr, _ := atpmiddleware.GetDID(r.Context())
 		if didStr != "" {
 			if err := h.feedIndex.DeleteRecord(r.Context(), didStr, collection, rkey); err != nil {
 				log.Warn().Err(err).Str("rkey", rkey).Str("collection", collection).Msg("Failed to delete record from feed index")
@@ -452,7 +453,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+	didStr, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		log.Warn().Err(err).Msg("Failed to parse comment create form")
@@ -552,7 +553,7 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+	didStr, _ := atpmiddleware.GetDID(r.Context())
 
 	rkey := r.PathValue("id")
 	if rkey == "" {
@@ -631,8 +632,7 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get authenticated user if any
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
+	didStr, isAuthenticated := atpmiddleware.GetDID(r.Context())
 
 	// Get the subject CID from query params (for the form)
 	subjectCID := r.URL.Query().Get("subject_cid")

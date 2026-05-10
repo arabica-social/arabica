@@ -25,6 +25,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/routing"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -32,7 +33,6 @@ import (
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
 	gormlogger "gorm.io/gorm/logger"
-	"tangled.org/pdewey.com/atp"
 	"tangled.org/pdewey.com/chrysalis/testpds"
 )
 
@@ -196,14 +196,18 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	// stores. The OAuth manager is built but never exercised — its
 	// AuthMiddleware short-circuits when no cookies are present, leaving the
 	// context the harness middleware installed in place.
-	oauthMgr, err := atproto.NewOAuthManager("", "http://localhost/oauth/callback", []string{"atproto"}, nil)
+	oauthApp, err := atp.NewOAuthApp(atp.OAuthConfig{
+		ClientID:    "",
+		RedirectURI: "http://localhost/oauth/callback",
+		Scopes:      []string{"atproto"},
+	})
 	require.NoError(t, err)
 
 	feedRegistry := feed.NewRegistry()
 	feedService := feed.NewService(feedRegistry)
 
 	h := handlers.NewHandler(
-		oauthMgr,
+		oauthApp,
 		atprotoClient,
 		sessionCache,
 		feedService,
@@ -227,10 +231,10 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	}
 	h.SetApp(app)
 	router := routing.SetupRouter(routing.Config{
-		App:          app,
-		Handlers:     h,
-		OAuthManager: oauthMgr,
-		Logger:       logger,
+		App:      app,
+		Handlers: h,
+		OAuthApp: oauthApp,
+		Logger:   logger,
 	})
 
 	// Wrap the router with the harness auth middleware so tests can pose as
@@ -458,7 +462,9 @@ func harnessAuthMiddleware(next http.Handler) http.Handler {
 		did := r.Header.Get(testAuthDIDHeader)
 		sessionID := r.Header.Get(testAuthSessionHeader)
 		if did != "" && sessionID != "" {
-			r = r.WithContext(atproto.ContextWithAuth(r.Context(), did, sessionID))
+			ctx := context.WithValue(r.Context(), "atp_did", did)
+		ctx = context.WithValue(ctx, "atp_session_id", sessionID)
+		r = r.WithContext(ctx)
 		}
 		next.ServeHTTP(w, r)
 	})

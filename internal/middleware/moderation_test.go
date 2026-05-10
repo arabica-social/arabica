@@ -1,13 +1,13 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +15,7 @@ import (
 
 func authenticatedRequest(did string) *http.Request {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
-	ctx := atproto.ContextWithAuthDID(req.Context(), did)
+	ctx := context.WithValue(req.Context(), "atp_did", did)
 	return req.WithContext(ctx)
 }
 

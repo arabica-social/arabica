@@ -124,21 +124,13 @@ func NewTestContext() *TestContext {
 	}
 }
 
-// contextKey type for storing auth info in tests
-type contextKey string
-
-const (
-	contextKeyUserDID   contextKey = "userDID"
-	contextKeySessionID contextKey = "sessionID"
-)
-
 // NewAuthenticatedRequest creates a request with authentication context
 func NewAuthenticatedRequest(method, path string, body any) *http.Request {
 	req := httptest.NewRequest(method, path, nil)
 
-	// Add authenticated DID to context using the same keys as OAuth middleware
-	ctx := context.WithValue(req.Context(), contextKeyUserDID, "did:plc:test123456789")
-	ctx = context.WithValue(ctx, contextKeySessionID, "test-session-id")
+	// Add authenticated DID to context using the same keys as atp/middleware.CookieAuth
+	ctx := context.WithValue(req.Context(), "atp_did", "did:plc:test123456789")
+	ctx = context.WithValue(ctx, "atp_session_id", "test-session-id")
 
 	return req.WithContext(ctx)
 }

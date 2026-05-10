@@ -52,7 +52,7 @@ type Client struct {
 }
 
 // NewClient creates a new atproto client that authenticates via OAuth.
-func NewClient(oauth *OAuthManager) *Client {
+func NewClient(oauth *atp.OAuthApp) *Client {
 	return &Client{getClient: oauthProvider(oauth)}
 }
 
@@ -63,14 +63,14 @@ func NewClientWithProvider(provider ClientProvider) *Client {
 }
 
 // oauthProvider returns a ClientProvider that resumes OAuth sessions with OTel-instrumented transport.
-func oauthProvider(oauth *OAuthManager) ClientProvider {
+func oauthProvider(oauth *atp.OAuthApp) ClientProvider {
 	return func(ctx context.Context, did syntax.DID, sessionID string) (*atp.Client, error) {
-		session, err := oauth.app.ResumeSession(ctx, did, sessionID)
+		atpClient, err := oauth.ResumeSession(ctx, did, sessionID)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrSessionExpired, err)
+			return nil, err
 		}
 
-		apiClient := session.APIClient()
+		apiClient := atpClient.APIClient()
 
 		// Wrap transport with OTel instrumentation.
 		baseTransport := apiClient.Client.Transport
@@ -84,7 +84,7 @@ func oauthProvider(oauth *OAuthManager) ClientProvider {
 			Jar:           apiClient.Client.Jar,
 		}
 
-		return atp.NewClient(apiClient, did), nil
+		return atpClient, nil
 	}
 }
 

@@ -17,6 +17,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
@@ -185,8 +186,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	owner := r.URL.Query().Get("owner")
 
 	// Check authentication
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
+	didStr, isAuthenticated := atpmiddleware.GetDID(r.Context())
 
 	var userProfile *bff.UserProfile
 	if isAuthenticated {

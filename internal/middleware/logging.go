@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/metrics"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog"
 )
@@ -98,7 +98,7 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 				logEvent.Str("content_type", contentType)
 			}
 			// FIX: this doesn't seem to be logging correctly?
-			if did, err := atproto.GetAuthenticatedDID(r.Context()); err == nil && did != "" {
+			if did, ok := atpmiddleware.GetDID(r.Context()); ok {
 				logEvent.Str("user_did", did)
 			}
 

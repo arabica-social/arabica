@@ -3,8 +3,8 @@ package middleware
 import (
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
@@ -13,8 +13,8 @@ import (
 // the given permission. Returns 401 if unauthenticated, 403 if not permitted.
 func RequirePermission(svc *moderation.Service, perm moderation.Permission, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userDID, err := atproto.GetAuthenticatedDID(r.Context())
-		if err != nil || userDID == "" {
+		userDID, ok := atpmiddleware.GetDID(r.Context())
+		if !ok {
 			http.Error(w, "Authentication required", http.StatusUnauthorized)
 			return
 		}
@@ -37,8 +37,8 @@ func RequirePermission(svc *moderation.Service, perm moderation.Permission, next
 // moderator (any role). Returns 401 if unauthenticated, 403 if not a moderator.
 func RequireModerator(svc *moderation.Service, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userDID, err := atproto.GetAuthenticatedDID(r.Context())
-		if err != nil || userDID == "" {
+		userDID, ok := atpmiddleware.GetDID(r.Context())
+		if !ok {
 			http.Error(w, "Authentication required", http.StatusUnauthorized)
 			return
 		}
@@ -60,8 +60,8 @@ func RequireModerator(svc *moderation.Service, next http.Handler) http.Handler {
 // Returns 401 if unauthenticated, 403 if not an admin.
 func RequireAdmin(svc *moderation.Service, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userDID, err := atproto.GetAuthenticatedDID(r.Context())
-		if err != nil || userDID == "" {
+		userDID, ok := atpmiddleware.GetDID(r.Context())
+		if !ok {
 			http.Error(w, "Authentication required", http.StatusUnauthorized)
 			return
 		}

@@ -13,6 +13,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
@@ -591,8 +592,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if the viewing user is the profile owner
-	didStr, err := atproto.GetAuthenticatedDID(ctx)
-	isAuthenticated := err == nil && didStr != ""
+	didStr, isAuthenticated := atpmiddleware.GetDID(ctx)
 	isOwnProfile := isAuthenticated && didStr == did
 
 	// Get profile for card rendering — try feed index cache first

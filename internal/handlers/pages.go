@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
@@ -49,7 +49,7 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 
 	var statsVis arabica.ProfileStatsVisibility
 	if h.feedIndex != nil {
-		didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+		didStr, _ := atpmiddleware.GetDID(r.Context())
 		statsVis = h.feedIndex.GetProfileStatsVisibility(r.Context(), didStr)
 	} else {
 		statsVis = arabica.DefaultProfileStatsVisibility()
@@ -69,8 +69,8 @@ func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http
 		return
 	}
 
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil {
+	didStr, ok := atpmiddleware.GetDID(r.Context())
+	if !ok {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}

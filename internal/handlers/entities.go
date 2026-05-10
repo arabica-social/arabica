@@ -10,7 +10,9 @@ import (
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
@@ -29,7 +31,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	// Invalidate the session cache so we read from the witness cache (or PDS)
 	// rather than serving potentially stale in-memory data. The witness cache
 	// is a local SQLite read so this is cheap.
-	if sessionID, err := atproto.GetSessionIDFromContext(r.Context()); err == nil {
+	if sessionID, ok := atpmiddleware.GetSessionID(r.Context()); ok {
 		h.sessionCache.Invalidate(sessionID)
 	}
 
@@ -100,7 +102,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 		Recipes:  recipes,
 	}
 	if h.feedIndex != nil {
-		did, _ := atproto.GetAuthenticatedDID(r.Context())
+		did, _ := atpmiddleware.GetDID(r.Context())
 		props.OwnerDID = did
 		props.BeanBrewCounts = h.feedIndex.BrewCountsByBeanURI(r.Context(), did)
 		props.GrinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(r.Context(), did)
@@ -133,7 +135,7 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user DID for cache validation
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	ctx := r.Context()
 
@@ -400,18 +402,18 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := atproto.GetSessionIDFromContext(r.Context())
-	if err != nil {
+	sessionID, ok := atpmiddleware.GetSessionID(r.Context())
+	if !ok {
 		http.Error(w, "Session required", http.StatusUnauthorized)
 		return
 	}
 
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil {
+	didStr, ok := atpmiddleware.GetDID(r.Context())
+	if !ok {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	did, err := atproto.ParseDID(didStr)
+	did, err := syntax.ParseDID(didStr)
 	if err != nil {
 		http.Error(w, "Invalid DID", http.StatusInternalServerError)
 		return

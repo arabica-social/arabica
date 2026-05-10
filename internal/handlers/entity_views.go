@@ -17,6 +17,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
@@ -94,7 +95,7 @@ func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg e
 	}
 
 	owner := r.URL.Query().Get("owner")
-	didStr, _ := atproto.GetAuthenticatedDID(r.Context())
+	didStr, _ := atpmiddleware.GetDID(r.Context())
 	isAuthenticated := didStr != ""
 
 	var userProfile *bff.UserProfile
@@ -475,8 +476,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	owner := r.URL.Query().Get("owner")
-	didStr, err := atproto.GetAuthenticatedDID(r.Context())
-	isAuthenticated := err == nil && didStr != ""
+	didStr, isAuthenticated := atpmiddleware.GetDID(r.Context())
 
 	var userProfile *bff.UserProfile
 	if isAuthenticated {
@@ -487,7 +487,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	var subjectURI, subjectCID, entityOwnerDID string
 
 	if owner != "" {
-		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
+		entityOwnerDID, err := resolveOwnerDID(r.Context(), owner)
 		if err != nil {
 			http.Error(w, "User not found", http.StatusNotFound)
 			return

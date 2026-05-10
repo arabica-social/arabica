@@ -31,6 +31,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/tracing"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
@@ -155,7 +156,13 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 			log.Info().Msg("Using localhost OAuth mode (for development)")
 		}
 	}
-	oauthManager, err := atproto.NewOAuthManager(clientID, redirectURI, app.OAuthScopes(), sessionStore)
+	oauthApp, err := atp.NewOAuthApp(atp.OAuthConfig{
+		ClientID:    clientID,
+		RedirectURI: redirectURI,
+		Scopes:      app.OAuthScopes(),
+		Store:       sessionStore,
+		AppName:     app.Brand.DisplayName,
+	})
 	if err != nil {
 		return fmt.Errorf("initialize OAuth: %w", err)
 	}
@@ -240,8 +247,8 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	// Background backfill of registered + known DIDs
 	go runBackfill(ctx, firehoseConsumer, feedRegistry, opts.KnownDIDsPath)
 
-	// Register users in the feed when they authenticate.
-	oauthManager.SetOnAuthSuccess(func(did string) {
+	// onAuth is called by the CookieAuth middleware when a valid session is found.
+	onAuth := func(did string) {
 		feedRegistry.Register(did)
 		profileWatcher.Watch(did)
 		go func() {
@@ -249,7 +256,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 				log.Warn().Err(err).Str("did", did).Msg("Failed to backfill new user")
 			}
 		}()
-	})
+	}
 
 	if clientID == "" {
 		log.Info().Str("mode", "localhost development").Str("redirect_uri", redirectURI).Msg("OAuth configured")
@@ -257,7 +264,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		log.Info().Str("mode", "public").Str("client_id", clientID).Str("redirect_uri", redirectURI).Msg("OAuth configured")
 	}
 
-	atprotoClient := atproto.NewClient(oauthManager)
+	atprotoClient := atproto.NewClient(oauthApp)
 	log.Info().Msg("ATProto client initialized")
 
 	sessionCache := atproto.NewSessionCache()
@@ -268,7 +275,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	secureCookies := os.Getenv("SECURE_COOKIES") == "true"
 
 	h := handlers.NewHandler(
-		oauthManager,
+		oauthApp,
 		atprotoClient,
 		sessionCache,
 		feedService,
@@ -355,7 +362,8 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	handler := routing.SetupRouter(routing.Config{
 		App:               app,
 		Handlers:          h,
-		OAuthManager:      oauthManager,
+		OAuthApp:          oauthApp,
+		OnAuth:            onAuth,
 		Logger:            log.Logger,
 		ModerationService: moderationSvc,
 		FirehoseConsumer:  firehoseConsumer,

@@ -54,7 +54,7 @@ func (h *Handler) HandleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Initiate OAuth flow
-	authURL, err := h.oauth.InitiateLogin(r.Context(), handle)
+	authURL, err := h.oauth.StartLogin(r.Context(), handle)
 	if err != nil {
 		log.Error().Err(err).Str("handle", handle).Msg("Failed to initiate login")
 		http.Error(w, "Failed to initiate login", http.StatusInternalServerError)
@@ -84,13 +84,13 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	// Register user in the feed registry for the community feed
 	if h.feedRegistry != nil {
-		h.feedRegistry.Register(sessData.AccountDID.String())
+		h.feedRegistry.Register(sessData.DID.String())
 	}
 
 	// Set session cookies
 	http.SetCookie(w, &http.Cookie{
 		Name:     "account_did",
-		Value:    sessData.AccountDID.String(),
+		Value:    sessData.DID.String(),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   h.config.SecureCookies,
@@ -111,7 +111,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	metrics.AuthLoginsTotal.WithLabelValues("success").Inc()
 
 	log.Info().
-		Str("user_did", sessData.AccountDID.String()).
+		Str("user_did", sessData.DID.String()).
 		Str("session_id", sessData.SessionID).
 		Msg("User logged in successfully")
 

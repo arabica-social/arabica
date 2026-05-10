@@ -15,6 +15,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,7 +32,7 @@ type hideRequest struct {
 // HandleHideRecord handles POST /admin/hide
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -88,7 +89,7 @@ func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
 // HandleUnhideRecord handles POST /admin/unhide
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -212,8 +213,8 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) pages.Adm
 // HandleAdmin renders the moderation dashboard
 func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 	// Check authentication
-	userDID, err := atproto.GetAuthenticatedDID(r.Context())
-	if err != nil || userDID == "" {
+	userDID, ok := atpmiddleware.GetDID(r.Context())
+	if !ok {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -246,7 +247,7 @@ func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 // HandleAdminPartial renders just the admin dashboard content (for HTMX refresh)
 // Auth and moderator checks are handled by RequireModerator middleware.
 func (h *Handler) HandleAdminPartial(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 	adminProps := h.buildAdminProps(r.Context(), userDID)
 
 	if err := pages.AdminDashboardBody(adminProps).Render(r.Context(), w); err != nil {
@@ -345,7 +346,7 @@ type blockRequest struct {
 // HandleBlockUser handles POST /_mod/block
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -400,7 +401,7 @@ func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
 // HandleUnblockUser handles POST /_mod/unblock
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -447,7 +448,7 @@ func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
 // Resets the per-user auto-hide report counter so that only future reports count toward the threshold.
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -491,7 +492,7 @@ func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
 // HandleDismissReport handles POST /_mod/dismiss-report
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -535,7 +536,7 @@ func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
 // HandleAddLabel handles POST /_mod/label/add
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleAddLabel(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -610,7 +611,7 @@ func (h *Handler) HandleAddLabel(w http.ResponseWriter, r *http.Request) {
 // HandleRemoveLabel handles POST /_mod/label/remove
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleRemoveLabel(w http.ResponseWriter, r *http.Request) {
-	userDID, _ := atproto.GetAuthenticatedDID(r.Context())
+	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -823,7 +824,7 @@ func (h *Handler) HandleAdminPurgeDID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	didStr := did.String()
-	actor, _ := atproto.GetAuthenticatedDID(r.Context())
+	actor, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := h.feedIndex.DeleteAllByDID(r.Context(), didStr); err != nil {
 		log.Error().Err(err).Str("did", didStr).Str("actor", actor).Msg("admin purge: DeleteAllByDID failed")
@@ -870,7 +871,7 @@ func (h *Handler) HandleAdminRebuildDID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	didStr := did.String()
-	actor, _ := atproto.GetAuthenticatedDID(r.Context())
+	actor, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := h.feedIndex.BackfillUser(r.Context(), didStr, nil); err != nil {
 		log.Error().Err(err).Str("did", didStr).Str("actor", actor).Msg("admin rebuild: BackfillUser failed")
@@ -897,7 +898,7 @@ func (h *Handler) HandleAdminRefreshHandles(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "feed index not configured", http.StatusServiceUnavailable)
 		return
 	}
-	actor, _ := atproto.GetAuthenticatedDID(r.Context())
+	actor, _ := atpmiddleware.GetDID(r.Context())
 
 	start := time.Now()
 	refreshed, failed := h.feedIndex.RefreshAllProfiles(r.Context())
@@ -981,7 +982,7 @@ func (h *Handler) HandleAdminFetchPDSRecords(w http.ResponseWriter, r *http.Requ
 		Collections: make(map[string][]pdsRecord, len(h.appNSIDs())),
 	}
 
-	requester, _ := atproto.GetAuthenticatedDID(r.Context())
+	requester, _ := atpmiddleware.GetDID(r.Context())
 
 	for _, collection := range h.appNSIDs() {
 		records, err := publicClient.ListAllRecords(r.Context(), didStr, collection)

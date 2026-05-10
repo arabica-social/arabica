@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	"tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -22,7 +23,8 @@ import (
 type Config struct {
 	App               *domain.App
 	Handlers          *handlers.Handler
-	OAuthManager      *atproto.OAuthManager
+	OAuthApp          *atp.OAuthApp
+	OnAuth            func(did string)
 	Logger            zerolog.Logger
 	ModerationService *moderation.Service
 	FirehoseConsumer  *firehose.Consumer
@@ -203,7 +205,12 @@ func SetupRouter(cfg Config) http.Handler {
 	handler = middleware.LimitBodyMiddleware(handler)
 
 	// 2. Apply OAuth middleware to add auth context
-	handler = cfg.OAuthManager.AuthMiddleware(handler)
+	if cfg.OAuthApp != nil {
+		handler = atpmiddleware.CookieAuth(atpmiddleware.CookieAuthConfig{
+			OAuthApp: cfg.OAuthApp,
+			OnAuth:   cfg.OnAuth,
+		})(handler)
+	}
 
 	// 3. Apply rate limiting
 	rateLimitConfig := middleware.NewDefaultRateLimitConfig()
