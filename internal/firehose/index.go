@@ -1285,7 +1285,10 @@ func (idx *FeedIndex) InvalidatePublicCachesForDID(did string) {
 //  4. Drop the new handle from the resolver cache so the next ResolveHandle
 //     re-fetches from the directory.
 //  5. Refresh this DID's profile via the API; storeProfile then writes the
-//     authoritative did_by_handle row.
+//     authoritative did_by_handle row. The AppView's getProfile lags the relay
+//     during a handle change, so we overwrite the returned Handle with the
+//     value from the Jetstream event (which the relay verified bidirectionally
+//     before emitting) to avoid caching a stale handle indefinitely.
 func (idx *FeedIndex) OnIdentityEvent(ctx context.Context, did, newHandle string) {
 	var oldHandle string
 	idx.profileCacheMu.RLock()
@@ -1328,7 +1331,21 @@ func (idx *FeedIndex) OnIdentityEvent(ctx context.Context, did, newHandle string
 	}
 	idx.publicClient.InvalidateDID(did)
 
-	idx.RefreshProfile(ctx, did)
+	profile, err := idx.publicClient.GetProfile(ctx, did)
+	if err != nil {
+		log.Warn().Err(err).Str("did", did).Msg("identity event: profile refresh failed, invalidating instead")
+		idx.InvalidateProfile(did)
+		return
+	}
+	if profile != nil && newHandle != "" && profile.Handle != newHandle {
+		log.Info().
+			Str("did", did).
+			Str("appview_handle", profile.Handle).
+			Str("event_handle", newHandle).
+			Msg("identity event: overriding stale appview handle with relay-verified value")
+		profile.Handle = newHandle
+	}
+	idx.storeProfile(ctx, did, profile)
 }
 
 // GetKnownDIDs returns all DIDs that have created Arabica records

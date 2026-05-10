@@ -2,6 +2,7 @@ package pages
 
 import (
 	"fmt"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -485,7 +486,7 @@ func getFeedItemShareTitle(item *feed.FeedItem) string {
 }
 
 func getFeedItemShareText(item *feed.FeedItem) string {
-	displayName := item.Author.Handle
+	displayName := atproto.DisplayHandle(item.Author.Handle)
 	if item.Author.DisplayName != nil && *item.Author.DisplayName != "" {
 		displayName = *item.Author.DisplayName
 	}

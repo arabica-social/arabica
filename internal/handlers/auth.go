@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -237,7 +239,7 @@ func (h *Handler) HandleClientMetadata(w http.ResponseWriter, r *http.Request) {
 // HandleResolveHandle resolves an AT Protocol handle and returns basic profile info
 // This is used for the autocomplete login feature
 func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
-	handle := r.URL.Query().Get("handle")
+	handle := atproto.NormalizeHandle(r.URL.Query().Get("handle"))
 	if handle == "" {
 		http.Error(w, "Handle parameter is required", http.StatusBadRequest)
 		return
@@ -249,7 +251,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 
 	// First resolve the handle to a DID using the public API
 	// Note: public.api.bsky.app is the public Bluesky API endpoint that works for any handle
-	resolveURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=%s", handle)
+	resolveURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=%s", url.QueryEscape(handle))
 	resp, err := apiClient.Get(resolveURL)
 	if err != nil {
 		log.Error().Err(err).Str("handle", handle).Msg("Failed to resolve handle")

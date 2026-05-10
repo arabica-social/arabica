@@ -72,8 +72,12 @@ func (c *PublicClient) GetProfile(ctx context.Context, actor string) (*Profile, 
 	return c.inner.GetProfile(ctx, actor)
 }
 
-// ResolveHandle resolves an AT Protocol handle to a DID.
+// ResolveHandle resolves an AT Protocol handle to a DID. Accepts both
+// Unicode and ASCII (punycode) IDN forms; input is normalized to ASCII
+// before lookup so cache hits are independent of the form supplied.
 func (c *PublicClient) ResolveHandle(ctx context.Context, handle string) (string, error) {
+	handle = NormalizeHandle(handle)
+
 	c.handleMu.RLock()
 	if v, ok := c.handleCache[handle]; ok && time.Now().Before(v.expiry) {
 		c.handleMu.RUnlock()
@@ -96,6 +100,7 @@ func (c *PublicClient) ResolveHandle(ctx context.Context, handle string) (string
 // ResolveHandle call refetches from the directory. Called when a firehose
 // identity event signals that a handle's DID mapping has changed.
 func (c *PublicClient) InvalidateHandle(handle string) {
+	handle = NormalizeHandle(handle)
 	if handle == "" {
 		return
 	}

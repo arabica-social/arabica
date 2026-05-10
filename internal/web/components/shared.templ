@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
@@ -503,7 +504,7 @@ templ UserBadge(props UserBadgeProps) {
 						templ.KV("link text-sm", props.Size == "md" || props.Size == ""),
 					) }
 				>
-					{ "@" + props.Handle }
+					{ "@" + atproto.DisplayHandle(props.Handle) }
 				</a>
 				if props.Size == "sm" && props.TimeAgo != "" {
 					<span class="text-brown-500 text-sm">{ props.TimeAgo }</span>

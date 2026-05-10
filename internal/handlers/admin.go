@@ -843,6 +843,52 @@ func (h *Handler) HandleAdminPurgeDID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// HandleAdminRebuildDID re-pulls every Arabica record for a DID from their PDS
+// and writes them into the witness cache via BackfillUser. Pair with
+// HandleAdminPurgeDID to fully recycle a user's witness data — purge clears the
+// `backfilled` row, so this call will run a fresh pass instead of short-circuiting.
+//
+// Auth and admin checks are handled by RequireAdmin.
+func (h *Handler) HandleAdminRebuildDID(w http.ResponseWriter, r *http.Request) {
+	rawDID := strings.TrimSpace(r.URL.Query().Get("did"))
+	if rawDID == "" {
+		if err := r.ParseForm(); err == nil {
+			rawDID = strings.TrimSpace(r.FormValue("did"))
+		}
+	}
+	if rawDID == "" {
+		http.Error(w, "missing 'did' parameter", http.StatusBadRequest)
+		return
+	}
+	did, err := syntax.ParseDID(rawDID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("invalid DID: %v", err), http.StatusBadRequest)
+		return
+	}
+	if h.feedIndex == nil {
+		http.Error(w, "feed index not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	didStr := did.String()
+	actor, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	if err := h.feedIndex.BackfillUser(r.Context(), didStr); err != nil {
+		log.Error().Err(err).Str("did", didStr).Str("actor", actor).Msg("admin rebuild: BackfillUser failed")
+		http.Error(w, "rebuild failed", http.StatusInternalServerError)
+		return
+	}
+
+	log.Warn().Str("did", didStr).Str("actor", actor).Msg("admin rebuild: refilled witness cache from PDS")
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"did":       didStr,
+		"rebuilt":   true,
+		"rebuiltAt": time.Now().UTC(),
+	})
+}
+
 // pdsRecord is the per-record shape in the PDS fetch payload.
 type pdsRecord struct {
 	URI    string         `json:"uri"`
