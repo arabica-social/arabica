@@ -8,14 +8,6 @@
 let
   cfg = config.services.arabica;
 
-  # teaName is the single source of truth on the nix side for the
-  # tea-tracking sister app. It must match cmd/server/apps.go's
-  # teaAppName constant — the binary derives its env-var prefix and
-  # data-dir name from that constant, and this module sets envs based
-  # on this value. Renaming the tea app means bumping both.
-  teaName = "oolong";
-  teaPrefix = lib.toUpper teaName;
-
   moderatorUserType = lib.types.submodule {
     options = {
       did = lib.mkOption {
@@ -94,21 +86,6 @@ in
 {
   options.services.arabica = {
     enable = lib.mkEnableOption "Arabica coffee brew tracking service";
-
-    mode = lib.mkOption {
-      type = lib.types.enum [
-        "all"
-        "arabica"
-        "oolong"
-      ];
-      default = "arabica";
-      description = ''
-        Which apps the unified server binary should boot. "all" runs
-        both arabica (coffee) and the tea sister app in one process on
-        distinct ports. "arabica" or "oolong" runs just one. Maps to
-        the APPS environment variable.
-      '';
-    };
 
     package = lib.mkOption {
       type = lib.types.package;
@@ -260,72 +237,6 @@ in
       description = "Directory where arabica stores its data (OAuth sessions, etc.).";
     };
 
-    # Tea-app (oolong) settings. Mirrors the top-level arabica options
-    # but scoped under `oolong` so a host running both apps from the
-    # unified binary can configure each independently. The binary
-    # reads <APP>_PORT, <APP>_PUBLIC_URL, <APP>_OAUTH_*, <APP>_DATA_DIR,
-    # <APP>_METRICS_PORT, <APP>_BIND_ADDR — where <APP> is the
-    # uppercase teaName ("OOLONG" today).
-    # oolong = {
-    #   port = lib.mkOption {
-    #     type = lib.types.port;
-    #     default = 18920;
-    #     description = "Port on which the tea (oolong) server listens.";
-    #   };
-    #
-    #   bindAddr = lib.mkOption {
-    #     type = lib.types.str;
-    #     default = "0.0.0.0";
-    #     description = "Bind address for the tea (oolong) HTTP listener.";
-    #   };
-    #
-    #   metricsPort = lib.mkOption {
-    #     type = lib.types.port;
-    #     default = 9102;
-    #     description = "Localhost-only Prometheus metrics port for the tea app.";
-    #   };
-    #
-    #   publicUrl = lib.mkOption {
-    #     type = lib.types.nullOr lib.types.str;
-    #     default = null;
-    #     description = ''
-    #       Public-facing URL of the tea server (e.g. https://oolong.social).
-    #       Used for absolute URLs in OpenGraph metadata and OAuth callbacks
-    #       when the corresponding oauth.* options are unset.
-    #     '';
-    #     example = "https://oolong.social";
-    #   };
-    #
-    #   dataDir = lib.mkOption {
-    #     type = lib.types.path;
-    #     default = "/var/lib/oolong";
-    #     description = "Data directory for the tea app.";
-    #   };
-    #
-    #   oauth = {
-    #     clientId = lib.mkOption {
-    #       type = lib.types.nullOr lib.types.str;
-    #       default = null;
-    #       description = ''
-    #         OAuth client ID for the tea app. If null, the binary falls
-    #         back to localhost development mode for the tea listener.
-    #       '';
-    #     };
-    #
-    #     redirectUri = lib.mkOption {
-    #       type = lib.types.nullOr lib.types.str;
-    #       default = null;
-    #       description = "OAuth redirect URI for the tea app.";
-    #     };
-    #   };
-    #
-    #   openFirewall = lib.mkOption {
-    #     type = lib.types.bool;
-    #     default = false;
-    #     description = "Whether to open the firewall for the tea app's HTTP port.";
-    #   };
-    # };
-
     user = lib.mkOption {
       type = lib.types.str;
       default = "arabica";
@@ -383,7 +294,7 @@ in
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ cfg.dataDir ] ++ lib.optional (cfg.mode != "arabica") cfg.oolong.dataDir;
+        ReadWritePaths = [ cfg.dataDir ];
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
@@ -402,7 +313,7 @@ in
       };
 
       environment = {
-        APPS = cfg.mode;
+        APPS = "arabica";
         LOG_LEVEL = cfg.settings.logLevel;
         LOG_FORMAT = cfg.settings.logFormat;
         SECURE_COOKIES = lib.boolToString cfg.settings.secureCookies;
@@ -411,24 +322,9 @@ in
         ARABICA_OAUTH_CLIENT_ID = cfg.oauth.clientId;
         ARABICA_OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
         ARABICA_DATA_DIR = cfg.dataDir;
-        # Tea (oolong) per-app env. Always exported so combined-mode
-        # boots find them; ignored when mode = "arabica".
-        "${teaPrefix}_PORT" = toString cfg.oolong.port;
-        "${teaPrefix}_BIND_ADDR" = cfg.oolong.bindAddr;
-        "${teaPrefix}_METRICS_PORT" = toString cfg.oolong.metricsPort;
-        "${teaPrefix}_DATA_DIR" = cfg.oolong.dataDir;
       }
       // lib.optionalAttrs (cfg.settings.publicUrl != null) {
         ARABICA_PUBLIC_URL = cfg.settings.publicUrl;
-      }
-      // lib.optionalAttrs (cfg.oolong.publicUrl != null) {
-        "${teaPrefix}_PUBLIC_URL" = cfg.oolong.publicUrl;
-      }
-      // lib.optionalAttrs (cfg.oolong.oauth.clientId != null) {
-        "${teaPrefix}_OAUTH_CLIENT_ID" = cfg.oolong.oauth.clientId;
-      }
-      // lib.optionalAttrs (cfg.oolong.oauth.redirectUri != null) {
-        "${teaPrefix}_OAUTH_REDIRECT_URI" = cfg.oolong.oauth.redirectUri;
       }
       // lib.optionalAttrs (effectiveConfigPath != null) {
         ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;
@@ -447,8 +343,6 @@ in
       };
     };
 
-    networking.firewall.allowedTCPPorts =
-      lib.optional (cfg.openFirewall && cfg.mode != "oolong") cfg.settings.port
-      ++ lib.optional (cfg.oolong.openFirewall && cfg.mode != "arabica") cfg.oolong.port;
+    networking.firewall.allowedTCPPorts = lib.optional cfg.openFirewall cfg.settings.port;
   };
 }
