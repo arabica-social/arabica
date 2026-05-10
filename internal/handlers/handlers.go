@@ -71,7 +71,7 @@ type Handler struct {
 }
 
 // SetBrand wires the per-app branding into the handler. Called once at
-// startup from cmd/{arabica,matcha}/main.go after constructing the App.
+// startup from cmd/{arabica,oolong}/main.go after constructing the App.
 func (h *Handler) SetBrand(b domain.BrandConfig) {
 	h.brand = b
 }

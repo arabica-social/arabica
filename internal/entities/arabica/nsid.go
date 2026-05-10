@@ -5,7 +5,7 @@ package arabica
 // Using "alpha" namespace during development - will migrate to stable namespace later.
 //
 // These live with the entity types (not in the generic atproto package) because
-// they are arabica-specific; sister apps (matcha, etc.) define their own NSID
+// they are arabica-specific; sister apps (oolong, etc.) define their own NSID
 // base + collections in their own entity package.
 const (
 	// NSIDBase is the base namespace for all Arabica lexicons.

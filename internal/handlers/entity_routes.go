@@ -10,8 +10,8 @@ import (
 // public surface (CRUD, view page, OG image, modal partials). routing.go
 // loops over the bundle returned by EntityRouteBundles to register the
 // per-entity routes uniformly, making it cheap for a sister app like
-// matcha to ship its own bundle without duplicating the route-wiring
-// logic in cmd/{arabica,matcha}/routing.
+// oolong to ship its own bundle without duplicating the route-wiring
+// logic in cmd/{arabica,oolong}/routing.
 //
 // Bundles cover the entities whose routes are structurally identical:
 // bean, roaster, grinder, brewer. Recipe and brew have additional
@@ -20,7 +20,7 @@ import (
 //
 // A nil handler in a bundle field means "no route for this slot" — the
 // router skips it. Today every simple-entity bundle populates every
-// slot, but the optional shape lets matcha (or future arabica work)
+// slot, but the optional shape lets oolong (or future arabica work)
 // declare entities without an OG image or without modal partials.
 type EntityRouteBundle struct {
 	// RecordType identifies the entity. Used to look up the descriptor

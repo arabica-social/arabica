@@ -16,11 +16,11 @@ type LayoutData struct {
 	// back to the arabica defaults via the helper methods below — keeps
 	// existing call sites that build LayoutData directly working until
 	// every handler threads the brand through.
-	BrandName    string // "Arabica", "Matcha"
+	BrandName    string // "Arabica", "Oolong"
 	BrandTagline string // "Your brew, your data"
 
 	// AppName is the running app's lowercase identifier (e.g. "arabica",
-	// "matcha"). Used to pick which compiled CSS file to load — empty
+	// "oolong"). Used to pick which compiled CSS file to load — empty
 	// falls back to arabica's stylesheet, keeping legacy call sites that
 	// build LayoutData directly working unchanged.
 	AppName string
@@ -39,10 +39,10 @@ type LayoutData struct {
 // arabica is the default since it's the canonical input.
 func (d *LayoutData) stylesheetHref() string {
 	switch d.AppName {
-	case "matcha":
-		return "/static/css/output-matcha.css?v=0.14.3"
+	case "oolong":
+		return "/static/css/output-oolong.css?v=0.14.5"
 	default:
-		return "/static/css/output.css?v=0.14.3"
+		return "/static/css/output.css?v=0.14.5"
 	}
 }
 

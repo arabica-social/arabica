@@ -7,13 +7,13 @@
 
 ## Goal
 
-Enable a tea-tracking sister app ("matcha") to ship as a separate binary that
+Enable a tea-tracking sister app ("oolong") to ship as a separate binary that
 shares arabica's Go core. Both apps reuse identical infrastructure — auth,
 session/witness/PDS cache stack, Jetstream firehose pipeline, feed/moderation,
 likes/comments, OG card scaffolding, combo-select, suggestions — and provide
 their own lexicons, descriptors, and entity-specific UI.
 
-After this refactor, `cmd/arabica` and `cmd/matcha` differ only in the `App`
+After this refactor, `cmd/arabica` and `cmd/oolong` differ only in the `App`
 value they construct at startup. Bug fixes and cross-cutting features land
 once and benefit both apps.
 
@@ -27,11 +27,11 @@ This refactor is a strict superset of `docs/entity-descriptor-refactor.md`:
 - **ED Phases 2-4** were deferred as not paying for themselves on
   entity-addition alone. This refactor activates them — cross-app reuse needs
   the data and handler layers to be entity-agnostic, with no escape hatch like
-  "edit the brew handler directly" because there is no brew in matcha.
+  "edit the brew handler directly" because there is no brew in oolong.
 - **ED Phase 5'** (modal shell extraction) lands as part of Phase G here.
 
 The honest tradeoff: re-activating ED's deferred phases is roughly 2-3 weeks of
-churn through hot files. The matcha project has to justify that. We've decided
+churn through hot files. The oolong project has to justify that. We've decided
 it does.
 
 ## What we're optimizing for
@@ -51,11 +51,11 @@ it does.
   session store. They can run on the same host but not the same files.
 - **Shared OAuth client identity.** Each app registers as a separate AT
   Protocol OAuth client and serves its own client metadata.
-- **Plugin or dynamic loading.** matcha is built from this repo's source. No
+- **Plugin or dynamic loading.** oolong is built from this repo's source. No
   Go plugin runtime, no shared-object wizardry.
 - **Lexicon code generation.** Per ED non-goals, lexicons stay JSON +
   hand-written models.
-- **Feed cross-pollination.** matcha users see matcha events; arabica users
+- **Feed cross-pollination.** oolong users see oolong events; arabica users
   see arabica events. The federated feed within one app stays scoped to that
   app's collections.
 
@@ -67,7 +67,7 @@ it does.
 package domain
 
 type App struct {
-    Name        string                  // "arabica", "matcha"
+    Name        string                  // "arabica", "oolong"
     NSIDBase    string                  // "social.arabica.alpha"
     Descriptors []*entities.Descriptor  // sourced from each app's register.go
     Brand       BrandConfig
@@ -99,16 +99,16 @@ internal/
     ogcard/          ← per-entity OG cards
     lexicons/        ← arabica's record types
 
-  matcha/            ← tea-specific (sibling layout to arabica/)
+  oolong/            ← tea-specific (sibling layout to arabica/)
     register.go
     ...
 
 cmd/
   arabica/main.go    ← constructs arabica's App, starts server
-  matcha/main.go     ← constructs matcha's App, starts server
+  oolong/main.go     ← constructs oolong's App, starts server
 ```
 
-We start with `internal/atplatform/` (not `pkg/`) because matcha is committed
+We start with `internal/atplatform/` (not `pkg/`) because oolong is committed
 to live in this repo. If a separate repo emerges later, promotion to `pkg/` is
 mechanical.
 
@@ -131,18 +131,18 @@ mechanical.
 | C | Cache map | ✅ done | `UserCache` typed fields → `map[string]any` keyed by NSID. Generic `SetRecords`/`InvalidateRecords` primitives. Typed wrappers retained for arabica call sites; Phase D removes them. | 2-3 days | -200 |
 | D | Generic Store CRUD | ✅ done | Generic `fetchRecord`/`fetchAllRecords`/`putRecord`/`removeRecord` primitives in `store_generic.go`. All 6 entities migrated; per-entity wrappers handle only model construction + ref resolution. Typed cache wrappers removed. store.go shrank from 2239 LOC → 1424 LOC (-815). | 4-5 days | -700 |
 | E | Generic feed pipeline | ✅ done | `FeedItem.Record any` replaces six typed pointer fields across `firehose.FeedItem`, `feed.FirehoseFeedItem`, `feed.FeedItem`. `recordToFeedItem` dispatches via `entities.GetByNSID` + `Descriptor.RecordToModel`; per-entity ref resolution lives in three named helpers. `Action` text comes from `Descriptor.Noun`. Templ feed.templ migrated 64 sites from typed-field reads to nil-safe accessor methods. `RKey()`/`DisplayTitle()` type-switch on `Record`. | 4-5 days | net ~+34 (LOC trade for entity-add friction reduction) |
-| F | Handler/route parameterization | ◐ partial | Routes for the simple entities (bean, roaster, grinder, brewer) — view, OG image, JSON CRUD, modal partials — register via a loop over `App.Descriptors` + `Handler.EntityRouteBundles()`. `App.DescriptorByType` added. Recipe and brew stay explicit. View/OG handler internals (the per-entity `xViewConfig` builders) remain typed; matcha can ship its own bundle without touching arabica's handler internals, so the deeper consolidation can wait or stay deferred. | 5-7 days | net ~-30 (LOC), full matcha-enablement of routing |
-| G | Templ shell extraction | ◐ partial | ModalShell already shipped during ED phase 5'; verified all 5 entity modals use it. Feed filter pills loop over descriptors with new `Descriptor.FeedFilterLabel` (empty hides). Brand strings (page title, header logo, footer name+tagline, og:site_name, meta description) thread through `domain.BrandConfig` via `Handler.SetBrand`/`LayoutData.BrandName/BrandTagline`/`HeaderProps.BrandName`/`FooterWithBrand`. Manage tab tables stay bespoke (each table is genuinely different); profile sections will land alongside Phase H templ split. | 3-4 days | net ~+50 (LOC) — matcha unblocked for branding |
-| H | Package split + cmd binaries | ◐ mostly done | `cmd/server` renamed to `cmd/arabica`. `cmd/matcha/main.go` constructs its own `*domain.App` and calls the same `internal/atplatform/server.Run` arabica uses. Both binaries share the full bootstrap (database, OAuth, firehose, handlers, router, metrics, backups, signal handling) — `cmd/arabica/main.go` shrank from 617 → 72 LOC; `cmd/matcha/main.go` is 103 LOC of which 30 lines are the App constructor. Env vars are app-name prefixed (`ARABICA_DB_PATH`, `MATCHA_DB_PATH`), data dirs use `app.Name` so the two binaries don't collide on disk. `firehose.ArabicaCollections` deleted; `BackfillUser` takes collections explicitly; admin export reads `h.appNSIDs()`. Smoke-tested: both binaries boot, arabica serves with descriptors, matcha serves with empty descriptors and refuses entity routes (no entities). Deferred: physically moving shared packages (atproto, firehose, feed, handlers, web/components) under `internal/atplatform/...` — mechanical but enormous import-rename fanout, low value before tea lexicons exist. | 2-3 days | net -100 (LOC); matcha now has a working server stack |
+| F | Handler/route parameterization | ◐ partial | Routes for the simple entities (bean, roaster, grinder, brewer) — view, OG image, JSON CRUD, modal partials — register via a loop over `App.Descriptors` + `Handler.EntityRouteBundles()`. `App.DescriptorByType` added. Recipe and brew stay explicit. View/OG handler internals (the per-entity `xViewConfig` builders) remain typed; oolong can ship its own bundle without touching arabica's handler internals, so the deeper consolidation can wait or stay deferred. | 5-7 days | net ~-30 (LOC), full oolong-enablement of routing |
+| G | Templ shell extraction | ◐ partial | ModalShell already shipped during ED phase 5'; verified all 5 entity modals use it. Feed filter pills loop over descriptors with new `Descriptor.FeedFilterLabel` (empty hides). Brand strings (page title, header logo, footer name+tagline, og:site_name, meta description) thread through `domain.BrandConfig` via `Handler.SetBrand`/`LayoutData.BrandName/BrandTagline`/`HeaderProps.BrandName`/`FooterWithBrand`. Manage tab tables stay bespoke (each table is genuinely different); profile sections will land alongside Phase H templ split. | 3-4 days | net ~+50 (LOC) — oolong unblocked for branding |
+| H | Package split + cmd binaries | ◐ mostly done | `cmd/server` renamed to `cmd/arabica`. `cmd/oolong/main.go` constructs its own `*domain.App` and calls the same `internal/atplatform/server.Run` arabica uses. Both binaries share the full bootstrap (database, OAuth, firehose, handlers, router, metrics, backups, signal handling) — `cmd/arabica/main.go` shrank from 617 → 72 LOC; `cmd/oolong/main.go` is 103 LOC of which 30 lines are the App constructor. Env vars are app-name prefixed (`ARABICA_DB_PATH`, `OOLONG_DB_PATH`), data dirs use `app.Name` so the two binaries don't collide on disk. `firehose.ArabicaCollections` deleted; `BackfillUser` takes collections explicitly; admin export reads `h.appNSIDs()`. Smoke-tested: both binaries boot, arabica serves with descriptors, oolong serves with empty descriptors and refuses entity routes (no entities). Deferred: physically moving shared packages (atproto, firehose, feed, handlers, web/components) under `internal/atplatform/...` — mechanical but enormous import-rename fanout, low value before tea lexicons exist. | 2-3 days | net -100 (LOC); oolong now has a working server stack |
 
-Total: **~3-5 weeks** of refactor work. matcha's entity-specific work
+Total: **~3-5 weeks** of refactor work. oolong's entity-specific work
 (lexicons, models, descriptors, templ pages) begins after Phase H.
 
 ## Decisions made
 
 1. **Shared-core location:** `internal/atplatform/` for now (single repo,
-   atomic refactors). Promote to `pkg/` only if matcha lives in its own repo.
-2. **Single Go module.** No multi-module setup. matcha imports
+   atomic refactors). Promote to `pkg/` only if oolong lives in its own repo.
+2. **Single Go module.** No multi-module setup. oolong imports
    `tangled.org/arabica.social/arabica/internal/atplatform/...`.
 3. **Descriptor scope expands.** ED's descriptor will gain methods over the
    refactor: `RecordToFeedPayload` (Phase E), possibly `DefaultModerationPolicy`.
@@ -162,10 +162,10 @@ Total: **~3-5 weeks** of refactor work. matcha's entity-specific work
   `firehose/index.go` will be touched repeatedly across phases C-F. Mitigate
   with TDD: every refactor preserves test green, and we add coverage where
   it's thin before moving fields around.
-- **Refactor stalls before matcha ships.** If we land Phases A-C and then
+- **Refactor stalls before oolong ships.** If we land Phases A-C and then
   pause, we have less-tested code with no offsetting product win. Mitigate by
-  sequencing matcha's lexicon JSONs and stub descriptors in parallel from
-  Phase E onward — we should see a "matcha hello world" by end of Phase G.
+  sequencing oolong's lexicon JSONs and stub descriptors in parallel from
+  Phase E onward — we should see a "oolong hello world" by end of Phase G.
 - **Generics + reflection cost.** Phase D's `Get[T any]` likely needs
   reflection or per-descriptor decode functions. Test the hot path early
   (witness cache reads on a populated DB) to confirm no regression.
@@ -177,11 +177,11 @@ Total: **~3-5 weeks** of refactor work. matcha's entity-specific work
 
 - `cmd/arabica` builds and serves with no behavior change at any phase
   boundary.
-- After Phase H, `cmd/matcha` (with stub descriptors) builds, runs, and
+- After Phase H, `cmd/oolong` (with stub descriptors) builds, runs, and
   refuses login because no descriptors are registered — proving the App layer
   is the only branching point.
 - The 27-step entity checklist in `CLAUDE.md` collapses to ≤10 steps for both
-  arabica and matcha.
+  arabica and oolong.
 - No test regressions throughout. Coverage is added where the refactor
   touches uncovered code.
 

@@ -1,6 +1,6 @@
 // Package server holds the bootstrap that constructs every shared
 // dependency (database, OAuth, firehose, handlers, router) and serves
-// HTTP until shutdown. cmd/arabica/main.go and cmd/matcha/main.go both
+// HTTP until shutdown. cmd/arabica/main.go and cmd/oolong/main.go both
 // call Run after building their respective *domain.App, so a bug fix
 // in the boot sequence benefits both binaries with no duplication.
 package server
@@ -67,14 +67,14 @@ var tracingOnce sync.Once
 //
 // Environment variables are scoped by app.Name uppercased: the arabica
 // binary reads ARABICA_DATA_DIR, ARABICA_MODERATORS_CONFIG,
-// ARABICA_PROFILE_CACHE_TTL. matcha reads MATCHA_*. Universal env vars
+// ARABICA_PROFILE_CACHE_TTL. oolong reads OOLONG_*. Universal env vars
 // (PORT, SERVER_PUBLIC_URL, SECURE_COOKIES, OAUTH_*, SMTP_*, ADMIN_EMAIL,
 // PDS_ADMIN_*, METRICS_PORT) are app-agnostic.
 //
 // All persistent files (BoltDB, feed-index SQLite, backups) live under
 // a single per-app data directory: <APP>_DATA_DIR if set, otherwise
 // <XDG_DATA_HOME or ~/.local/share>/<app.Name>. This keeps multi-tenant
-// hosts (one box running both arabica and matcha) collision-free with a
+// hosts (one box running both arabica and oolong) collision-free with a
 // single env-var to point at the right disk in production.
 func Run(ctx context.Context, app *domain.App, opts Options) error {
 	if err := validateAppName(app.Name); err != nil {
@@ -97,7 +97,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		Msg("Constructed app config")
 
 	// Initialize OpenTelemetry tracing once per process. Multi-app boot
-	// (cmd/server running both arabica and matcha) calls Run twice; the
+	// (cmd/server running both arabica and oolong) calls Run twice; the
 	// tracer provider is global, so init must not race or double-register.
 	tracingOnce.Do(func() {
 		tp, err := tracing.Init(context.Background())
@@ -435,7 +435,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 
 // resolveDataDir returns the per-app data directory: <APP>_DATA_DIR if
 // set (used to point production at /var/lib/<app> or similar), otherwise
-// <XDG_DATA_HOME or ~/.local/share>/<appName>. Both arabica and matcha
+// <XDG_DATA_HOME or ~/.local/share>/<appName>. Both arabica and oolong
 // running on the same host get isolated dirs by default.
 func resolveDataDir(envPrefix, appName string) (string, error) {
 	if d := os.Getenv(envPrefix + "_DATA_DIR"); d != "" {
@@ -455,7 +455,7 @@ func resolveDataDir(envPrefix, appName string) (string, error) {
 // lookupAppEnv returns os.Getenv("<envPrefix>_<key>") if set, falling
 // back to os.Getenv(key). This lets a single binary running multiple
 // apps (cmd/server) keep per-app overrides like ARABICA_PORT and
-// MATCHA_PORT distinct, while a one-app deploy that only sets the
+// OOLONG_PORT distinct, while a one-app deploy that only sets the
 // shared key continues to work unchanged.
 func lookupAppEnv(envPrefix, key string) string {
 	if v := os.Getenv(envPrefix + "_" + key); v != "" {

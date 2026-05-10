@@ -1,5 +1,5 @@
 // Package domain holds the per-binary App configuration shared between
-// arabica and any sister app (matcha, etc.). Every code path that needs to
+// arabica and any sister app (oolong, etc.). Every code path that needs to
 // know what entities or NSIDs the app cares about reads them from App.
 package domain
 

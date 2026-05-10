@@ -1,4 +1,4 @@
-/* Matcha palette — Phase H1 colour studies.
+/* Oolong palette — Phase H1 colour studies.
  *
  * This file declares the CSS custom properties that the shared templ
  * components (Layout, Header, Footer, ModalShell, FeedCardWithModeration,
@@ -106,7 +106,7 @@
 	--modal-border:    oklch(0.92 0.012 145);
 	--modal-backdrop:  oklch(0.18 0.020 145 / 0.42);
 
-	/* Type accents — placeholder slots. matcha's lexicons aren't
+	/* Type accents — placeholder slots. oolong's lexicons aren't
 	   authored yet; once they are, each entity Noun gets a hue here.
 	   The green/amber duo gives a foundation: greens for tea/leaf/plant
 	   entities, ambers for vessel/equipment. Replace per-noun once the

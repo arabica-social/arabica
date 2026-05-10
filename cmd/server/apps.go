@@ -17,8 +17,8 @@ import (
 // Renaming checklist when teaAppName changes:
 //  1. Bump this constant.
 //  2. Rename internal/entities/<old>/ if a tea entities tree exists.
-//  3. Update the matcha section of nix/module.nix accordingly.
-const teaAppName = "matcha"
+//  3. Update the oolong section of nix/module.nix accordingly.
+const teaAppName = "oolong"
 
 // newArabicaApp builds the App value for the coffee-tracking app.
 func newArabicaApp() *domain.App {

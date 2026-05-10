@@ -12,7 +12,7 @@
 After Phase G, **every page that doesn't render entity-specific
 content** is parameterised by `*domain.App` (which carries
 `Descriptors`, `Brand`, `Name`, etc.) and renders identically for
-arabica and matcha. Per-entity content (record fields, modal bodies,
+arabica and oolong. Per-entity content (record fields, modal bodies,
 view pages) stays bespoke per app.
 
 ## What's in scope
@@ -141,7 +141,7 @@ view pages) stays bespoke per app.
 - Modal shell is one templ component used by all 6 modals; the LOC
   reduction is real, not just relocation.
 - Brand strings live exactly once per app (in the `App` constructor in
-  `cmd/{arabica,matcha}/main.go`).
+  `cmd/{arabica,oolong}/main.go`).
 - All tests green; integration suite preserves behaviour.
-- A hypothetical matcha modal needs only its own field-body templ; the
+- A hypothetical oolong modal needs only its own field-body templ; the
   shell, header, footer, error strip, and submit button come for free.

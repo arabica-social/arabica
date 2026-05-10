@@ -1,6 +1,6 @@
 // Command server is the unified entrypoint for the arabica coffee
 // tracker and its tea-tracking sister app. By default it boots both
-// apps in one process on distinct ports; APPS=arabica or APPS=matcha
+// apps in one process on distinct ports; APPS=arabica or APPS=oolong
 // (or whatever teaAppName is set to in apps.go) selects a single app.
 //
 // Both apps share one tracing pipeline, one logging stream, and one
@@ -85,7 +85,7 @@ type appEntry struct {
 
 // selectApps resolves the APPS env var into the list of apps to boot.
 // Empty or "all" boots every registered app. A comma-separated list
-// (e.g. "arabica" or "arabica,matcha") boots just those.
+// (e.g. "arabica" or "arabica,oolong") boots just those.
 func selectApps(envValue string) ([]appEntry, error) {
 	all := []appEntry{
 		{App: newArabicaApp(), DefaultPort: "18910", DefaultMetricsPort: "9101"},

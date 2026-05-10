@@ -20,10 +20,12 @@ integration-test:
 verbose-integration-test:
     @cd tests/integration && INTEGRATION_LOGS=true go test -v ./... -count=1 
 
-style: style-arabica style-matcha
+style: style-arabica
+
+# style-oolong
 
 style-arabica:
     @nix develop --command tailwindcss -i static/css/app.css -o static/css/output.css --minify
 
-style-matcha:
-    @nix develop --command tailwindcss -i static/css/app-matcha.css -o static/css/output-matcha.css --minify
+style-oolong:
+    @nix develop --command tailwindcss -i static/css/app-oolong.css -o static/css/output-oolong.css --minify

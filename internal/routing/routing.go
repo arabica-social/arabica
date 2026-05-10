@@ -110,7 +110,7 @@ func SetupRouter(cfg Config) http.Handler {
 	// Per-entity routes for the simple entities (bean, roaster, grinder,
 	// brewer): view pages, OG images, JSON CRUD, modal partials. Driven
 	// by the route bundles + the App's descriptor list so a sister app
-	// (matcha) reuses the loop without duplicating wiring.
+	// (oolong) reuses the loop without duplicating wiring.
 	registerEntityRoutes(mux, cop, cfg.App, h.EntityRouteBundles())
 
 	mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)

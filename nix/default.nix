@@ -10,7 +10,7 @@ buildGoModule {
 
   preBuild = ''
     tailwindcss -i static/css/app.css -o static/css/output.css --minify
-    tailwindcss -i static/css/app-matcha.css -o static/css/output-matcha.css --minify
+    tailwindcss -i static/css/app-oolong.css -o static/css/output-oolong.css --minify
     templ generate
   '';
 

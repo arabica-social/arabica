@@ -579,25 +579,6 @@
     border-bottom: 1px solid var(--surface-border);
   }
 
-  .record-view-header-brew {
-    background: linear-gradient(to bottom, var(--type-brew-tint), transparent);
-  }
-  .record-view-header-bean {
-    background: linear-gradient(to bottom, var(--type-bean-tint), transparent);
-  }
-  .record-view-header-recipe {
-    background: linear-gradient(to bottom, var(--type-recipe-tint), transparent);
-  }
-  .record-view-header-roaster {
-    background: linear-gradient(to bottom, var(--type-roaster-tint), transparent);
-  }
-  .record-view-header-grinder {
-    background: linear-gradient(to bottom, var(--type-grinder-tint), transparent);
-  }
-  .record-view-header-brewer {
-    background: linear-gradient(to bottom, var(--type-brewer-tint), transparent);
-  }
-
   /* Record view — author line */
   .record-view-author {
     @apply flex items-center gap-3 mb-4;
@@ -1197,6 +1178,10 @@
   /* Native Dialog Element */
   .modal-dialog {
     @apply p-0 bg-transparent border-none shadow-none max-w-md w-full;
+    /* Tailwind v4 preflight resets `margin: 0` on `*`, which clobbers the
+       browser-default `margin: auto` that centers a top-layer <dialog>
+       opened via showModal(). Restore it so modals don't snap to 0,0. */
+    margin: auto;
   }
 
   .modal-dialog::backdrop {
