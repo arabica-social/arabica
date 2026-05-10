@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/models"
 )
 
@@ -47,7 +48,7 @@ templ popularRecipeCard(recipe *models.Recipe) {
 				if recipe.AuthorDisplay != "" {
 					{ recipe.AuthorDisplay }
 				} else if recipe.AuthorHandle != "" {
-					{ recipe.AuthorHandle }
+					{ atproto.DisplayHandle(recipe.AuthorHandle) }
 				}
 			</span>
 		</div>
@@ -103,7 +104,7 @@ func authorInitial(recipe *models.Recipe) string {
 		return string([]rune(recipe.AuthorDisplay)[:1])
 	}
 	if recipe.AuthorHandle != "" {
-		return string([]rune(recipe.AuthorHandle)[:1])
+		return string([]rune(atproto.DisplayHandle(recipe.AuthorHandle))[:1])
 	}
 	return "?"
 }

@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/models"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -106,7 +107,7 @@ func notifActorName(notif NotificationItem) string {
 		return notif.ActorDisplayName
 	}
 	if notif.ActorHandle != "" {
-		return notif.ActorHandle
+		return atproto.DisplayHandle(notif.ActorHandle)
 	}
 	return notif.ActorDID
 }

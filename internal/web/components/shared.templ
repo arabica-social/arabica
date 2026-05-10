@@ -141,7 +141,7 @@ templ RecordViewHeader(props RecordViewHeaderProps) {
 							</a>
 						}
 						<a href={ templ.SafeURL("/profile/" + props.AuthorHandle) } class="record-view-author-handle">
-							{ "@" + props.AuthorHandle }
+							{ "@" + atproto.DisplayHandle(props.AuthorHandle) }
 						</a>
 					</div>
 					<div class="record-view-meta">
