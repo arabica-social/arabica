@@ -17,7 +17,7 @@ to hold the general-purpose layer.
 | ------------------ | ----- | ------------------------------------------------------------- | ---------- |
 | `client.go`        | 308   | OTel/metrics/UA wrapping of `atp.Client` + I/O type wrappers  | TODO       |
 | `oauth.go`         | 360   | OAuth flow management, auth middleware, context helpers       | TODO       |
-| `resolver.go`      | 155   | Record resolution engine (`resolveRef` generic) + AT-URI parsing wrappers + entity-specific resolvers | TODO       |
+| `resolver.go`      | 0     | ~~Record resolution engine + entity-specific resolvers~~ | Deleted ✅ |
 | `public_client.go` | ~70   | Thin OTel/UA wrapper around `atp.PublicClient`                | Slimmed ✅ |
 | `store.go`         | 1250+ | `AtprotoStore` implementing `database.Store` for all entities | TODO       |
 | `store_generic.go` | 170   | Generic fetch/put/delete helpers used by store.go             | TODO       |
@@ -77,9 +77,7 @@ to hold the general-purpose layer.
 
 ---
 
-## Remaining Work
-
-### Phase C — Upstream `resolveRef` → `atp.ResolveRecord`
+## Completed — Phase C ✅
 
 `resolveRef[T]` in `resolver.go` is a generic helper that parses an AT-URI,
 validates the collection matches the expected NSID, fetches the record from the
@@ -144,42 +142,35 @@ Key changes from the arabica version:
 4. `ATURIComponents` / `ResolveATURI` deleted — all ~50 call sites cut over
    to `atp.RKeyFromURI` (22) or `atp.ParseATURI` (4).
 
-### Phase D — Move arabica resolvers to `entities/arabica`
+---
+
+## Completed — Phase D ✅
 
 The remaining entity resolvers (`ResolveBeanRefWithRoaster`,
 `ResolveRoasterRef`, `ResolveGrinderRef`, `ResolveBrewerRef`,
-`ResolveRecipeRef`, `ResolveBrewRefs`) are arabica-specific: they hardcode
+`ResolveRecipeRef`, `ResolveBrewRefs`) were arabica-specific: they hardcoded
 `arabica.Bean`, `arabica.NSIDRoaster`, `arabica.RecordToBean`, etc. After
-Phase C they are thin callers of `atp.ResolveRecord`. They belong next to
+Phase C they were thin callers of `atp.ResolveRecord`. They belong next to
 the typed models and `RecordToX` converters they wrap
 (`internal/entities/arabica/records.go`), not in the store/cache
-infrastructure layer. Putting them under `internal/store/atproto/` would
-either fork that package per app or force it to import every app's entities
-— both are wrong. Co-locating with the typed models is symmetric: oolong
+infrastructure layer. Co-locating with the typed models is symmetric: oolong
 gets `entities/oolong/resolve.go` for free.
 
-**Prerequisite**: Phase C done. The resolvers should take an `*atp.Client`
-(or the `RecordFetcher` interface) directly instead of the OTel-wrapped
-`*atproto.Client`. Either flatten the wrapper first (Phase E step 3) or just
-change the resolver signatures as part of this phase — `*atp.Client` is
-already DID-scoped, so the `sessionID` parameter falls away.
-
-1. **Create `internal/entities/arabica/resolve.go`** with `ResolveBean`,
+1. **Created `internal/entities/arabica/resolve.go`** with `ResolveBean`,
    `ResolveRoaster`, `ResolveGrinder`, `ResolveBrewer`, `ResolveRecipe`,
-   `ResolveBrewRefs`. Each takes `(ctx, *atp.Client, atURI)` and calls
-   `atp.ResolveRecord(ctx, client, atURI, NSIDx, RecordToX)`. `ResolveBean`
-   keeps the nested-roaster logic (raw record fetch → `RecordToBean` →
-   delegate roaster ref to `ResolveRoaster`).
+   `ResolveBrewRefs`. Each takes `(ctx, *atp.Client, ...)` — dropping the
+   `sessionID` parameter. `ResolveBean` keeps the nested-roaster logic
+   (raw record fetch → `RecordToBean` → delegate roaster ref to
+   `ResolveRoaster`).
 
-2. **Update `internal/atproto/store.go` callers** (the brew read fan-out for
-   bean/grinder/brewer, recipe attachment on brew, brewer attachment on
-   recipe, roaster attachment on cafe — ~6 call sites). Calls become
-   `arabica.ResolveBean(ctx, atpClient, beanRef)` etc.; drop the `sessionID`
-   argument.
+2. **Updated `internal/atproto/store.go` callers** (~5 call sites in
+   `resolveBrewRefs`, `CreateBrew`, `resolveBeanRefs`, `resolveRecipeRefs`).
+   Added `atpClient()` helper on `AtprotoStore` to get the DID-scoped
+   `*atp.Client`. Calls became `arabica.ResolveBean(ctx, atpClient, beanRef)`
+   etc.
 
-3. **Delete the resolver functions from `internal/atproto/resolver.go`**.
-   Combined with Phase C's removal of `resolveRef` and `ATURIComponents`,
-   `resolver.go` is now empty and is deleted in Phase E.
+3. **Deleted `internal/atproto/resolver.go`** — all resolver functions and
+   the `atpClientForURI` helper moved/removed. The file is now gone.
 
 4. **Store/cache/witness package extraction is deferred and out of scope
    here.** With resolvers gone, `store.go`/`store_generic.go`/`cache.go`/
@@ -206,8 +197,7 @@ Remove remaining duplication and thin abstractions:
    `atp.PublicClient` methods directly, the thin
    `PublicListRecordsOutput`/`PublicRecordEntry` wrappers can go away.
 
-5. **Delete `resolver.go`** — after Phase D (entity resolvers moved) and the
-   above cleanup, the file is empty.
+5. ~~**Delete `resolver.go`**~~ ✅ — done in Phase D.
 
 ### End state
 

@@ -48,6 +48,11 @@ func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string
 	}
 }
 
+// atpClient returns an *atp.Client scoped to this store's DID and session.
+func (s *AtprotoStore) atpClient(ctx context.Context) (*atp.Client, error) {
+	return s.client.AtpClient(ctx, s.did, s.sessionID)
+}
+
 // witnessRecordToMap is a package-internal alias for WitnessRecordToMap.
 func witnessRecordToMap(wr *WitnessRecord) (map[string]any, error) {
 	return WitnessRecordToMap(wr)
@@ -287,7 +292,7 @@ func brewModelFromRequest(req *arabica.CreateBrewRequest, createdAt time.Time) *
 // the witness cache (fromWitness=true), all refs are resolved from witness
 // only — keeps the read path PDS-free. When the brew came from PDS,
 // references go to the PDS resolvers (ResolveBrewRefs handles
-// bean/grinder/brewer; ResolveRecipeRef handles recipe). Failures are
+// bean/grinder/brewer; arabica.ResolveRecipe handles recipe). Failures are
 // logged but do not fail the brew read.
 func (s *AtprotoStore) resolveBrewRefs(ctx context.Context, brew *arabica.Brew, record map[string]any, fromWitness bool) {
 	if fromWitness {
@@ -297,11 +302,16 @@ func (s *AtprotoStore) resolveBrewRefs(ctx context.Context, brew *arabica.Brew, 
 	beanRef, _ := record["beanRef"].(string)
 	grinderRef, _ := record["grinderRef"].(string)
 	brewerRef, _ := record["brewerRef"].(string)
-	if err := ResolveBrewRefs(ctx, s.client, brew, beanRef, grinderRef, brewerRef, s.sessionID); err != nil {
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("get atp client for brew refs")
+		return
+	}
+	if err := arabica.ResolveBrewRefs(ctx, atpClient, brew, beanRef, grinderRef, brewerRef); err != nil {
 		log.Warn().Err(err).Msg("resolve brew refs")
 	}
 	if recipeRef, _ := record["recipeRef"].(string); recipeRef != "" {
-		recipe, err := ResolveRecipeRef(ctx, s.client, recipeRef, s.sessionID)
+		recipe, err := arabica.ResolveRecipe(ctx, atpClient, recipeRef)
 		if err != nil {
 			log.Warn().Err(err).Str("ref", recipeRef).Msg("resolve recipe ref")
 		} else {
@@ -341,8 +351,10 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *arabica.CreateBrewR
 	}
 	model.RKey = rkey
 	// Populate Bean/GrinderObj/BrewerObj for the response.
-	if err := ResolveBrewRefs(ctx, s.client, model, beanURI, grinderURI, brewerURI, s.sessionID); err != nil {
-		log.Warn().Err(err).Str("brew_rkey", rkey).Msg("resolve brew refs after create")
+	if atpClient, err := s.atpClient(ctx); err == nil {
+		if err := arabica.ResolveBrewRefs(ctx, atpClient, model, beanURI, grinderURI, brewerURI); err != nil {
+			log.Warn().Err(err).Str("brew_rkey", rkey).Msg("resolve brew refs after create")
+		}
 	}
 	return model, nil
 }
@@ -622,7 +634,12 @@ func (s *AtprotoStore) resolveBeanRefs(ctx context.Context, bean *arabica.Bean, 
 	}
 	// Fall back to PDS resolver
 	if len(roasterRef) > 10 && (roasterRef[:5] == "at://" || roasterRef[:4] == "did:") {
-		roaster, err := ResolveRoasterRef(ctx, s.client, roasterRef, s.sessionID)
+		atpClient, err := s.atpClient(ctx)
+		if err != nil {
+			log.Warn().Err(err).Msg("get atp client for roaster ref")
+			return
+		}
+		roaster, err := arabica.ResolveRoaster(ctx, atpClient, roasterRef)
 		if err != nil {
 			log.Warn().Err(err).Str("ref", roasterRef).Msg("resolve roaster ref")
 			return
@@ -1046,7 +1063,7 @@ type RecipeRecord struct {
 
 // resolveRecipeRefs populates recipe.BrewerRKey and recipe.BrewerObj from
 // the record's brewerRef field. Tries the witness cache first, falls back
-// to ResolveBrewerRef.
+// to arabica.ResolveBrewer.
 func (s *AtprotoStore) resolveRecipeRefs(ctx context.Context, recipe *arabica.Recipe, record map[string]any) {
 	brewerRef, ok := record["brewerRef"].(string)
 	if !ok || brewerRef == "" {
@@ -1064,7 +1081,12 @@ func (s *AtprotoStore) resolveRecipeRefs(ctx context.Context, recipe *arabica.Re
 			}
 		}
 	}
-	brewer, err := ResolveBrewerRef(ctx, s.client, brewerRef, s.sessionID)
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("get atp client for brewer ref")
+		return
+	}
+	brewer, err := arabica.ResolveBrewer(ctx, atpClient, brewerRef)
 	if err != nil {
 		log.Warn().Err(err).Str("ref", brewerRef).Msg("resolve brewer ref")
 		return
