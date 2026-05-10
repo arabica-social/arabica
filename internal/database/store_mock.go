@@ -12,7 +12,7 @@ type MockStore struct {
 	// Brew operations
 	CreateBrewFunc       func(ctx context.Context, brew *arabica.CreateBrewRequest, userID int) (*arabica.Brew, error)
 	GetBrewByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Brew, error)
-	ListBrewsFunc        func(ctx context.Context, userID int) ([]*arabica.Brew, error)
+	ListBrewsFunc        func(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error)
 	UpdateBrewByRKeyFunc func(ctx context.Context, rkey string, brew *arabica.CreateBrewRequest) error
 	DeleteBrewByRKeyFunc func(ctx context.Context, rkey string) error
 
@@ -64,9 +64,9 @@ func (m *MockStore) GetBrewByRKey(ctx context.Context, rkey string) (*arabica.Br
 }
 
 // ListBrews calls the mock function or returns empty slice if not set
-func (m *MockStore) ListBrews(ctx context.Context, userID int) ([]*arabica.Brew, error) {
+func (m *MockStore) ListBrews(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
 	if m.ListBrewsFunc != nil {
-		return m.ListBrewsFunc(ctx, userID)
+		return m.ListBrewsFunc(ctx, userID, offset, limit)
 	}
 	return []*arabica.Brew{}, nil
 }

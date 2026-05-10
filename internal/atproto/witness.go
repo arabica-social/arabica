@@ -43,6 +43,15 @@ type WitnessCache interface {
 	// Returns an empty (non-nil) slice when none are found.
 	ListWitnessRecords(ctx context.Context, did, collection string) ([]*WitnessRecord, error)
 
+	// ListWitnessRecordsPaginated returns a page of cached records for a
+	// DID+collection pair, ordered by created_at descending.
+	// When limit <= 0, returns all records (same as ListWitnessRecords).
+	ListWitnessRecordsPaginated(ctx context.Context, did, collection string, offset, limit int) ([]*WitnessRecord, error)
+
+	// CountWitnessRecords returns the total count of cached records for a
+	// DID+collection pair. Returns 0 when none are found or on error.
+	CountWitnessRecords(ctx context.Context, did, collection string) (int, error)
+
 	// UpsertWitnessRecord inserts or updates a record in the cache.
 	// Used for write-through caching after successful PDS mutations.
 	UpsertWitnessRecord(ctx context.Context, did, collection, rkey, cid string, record json.RawMessage) error

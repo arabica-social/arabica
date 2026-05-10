@@ -16,7 +16,8 @@ type Store interface {
 	// It remains for SQLite compatibility but should not be relied upon
 	CreateBrew(ctx context.Context, brew *arabica.CreateBrewRequest, userID int) (*arabica.Brew, error)
 	GetBrewByRKey(ctx context.Context, rkey string) (*arabica.Brew, error)
-	ListBrews(ctx context.Context, userID int) ([]*arabica.Brew, error)
+	// When limit <= 0, returns all records.
+	ListBrews(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error)
 	UpdateBrewByRKey(ctx context.Context, rkey string, brew *arabica.CreateBrewRequest) error
 	DeleteBrewByRKey(ctx context.Context, rkey string) error
 

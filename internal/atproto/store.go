@@ -403,7 +403,15 @@ func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*B
 	return &BrewRecord{Brew: brew, URI: uri, CID: cid}, nil
 }
 
-func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*arabica.Brew, error) {
+func (s *AtprotoStore) ListBrews(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
+	// For paginated requests, skip session cache and go directly to the witness
+	// cache (local SQLite) with LIMIT/OFFSET. The session cache is only useful for
+	// the "fetch all" case (e.g., export, client-side cache).
+	if limit > 0 {
+		return s.listBrewsPage(ctx, offset, limit)
+	}
+
+	// Non-paginated: use session cache then fetch all records.
 	if uc := s.cache.Get(s.sessionID); uc != nil && uc.Brews() != nil && uc.IsValid() {
 		return uc.Brews(), nil
 	}
@@ -411,6 +419,28 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*arabica.Br
 	if err != nil {
 		return nil, err
 	}
+	brews := s.convertBrewRecords(raws)
+	// Resolve references in bulk
+	s.resolveBrewReferences(ctx, brews)
+	s.cache.SetRecords(s.sessionID, arabica.NSIDBrew, brews)
+	s.cache.ClearDirty(s.sessionID, arabica.NSIDBrew)
+	return brews, nil
+}
+
+// listBrewsPage fetches a single page of brews from the witness cache with
+// LIMIT/OFFSET, resolving references in bulk.
+func (s *AtprotoStore) listBrewsPage(ctx context.Context, offset, limit int) ([]*arabica.Brew, error) {
+	raws, err := s.fetchPaginatedRecords(ctx, arabica.NSIDBrew, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	brews := s.convertBrewRecords(raws)
+	s.resolveBrewReferences(ctx, brews)
+	return brews, nil
+}
+
+// convertBrewRecords converts raw records to typed Brew models.
+func (s *AtprotoStore) convertBrewRecords(raws []rawRecord) []*arabica.Brew {
 	brews := make([]*arabica.Brew, 0, len(raws))
 	for _, r := range raws {
 		brew, err := arabica.RecordToBrew(r.Record, r.URI)
@@ -422,9 +452,11 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*arabica.Br
 		ExtractBrewRefRKeys(brew, r.Record)
 		brews = append(brews, brew)
 	}
+	return brews
+}
 
-	// Resolve references in bulk to avoid N+1: fetch each entity collection
-	// once (from cache when warm) and link in memory.
+// resolveBrewReferences fetches entity collections and links them to brews.
+func (s *AtprotoStore) resolveBrewReferences(ctx context.Context, brews []*arabica.Brew) {
 	beans, _ := s.ListBeans(ctx)
 	grinders, _ := s.ListGrinders(ctx)
 	brewers, _ := s.ListBrewers(ctx)
@@ -467,10 +499,6 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int) ([]*arabica.Br
 			brew.RecipeObj = recipeMap[brew.RecipeRKey]
 		}
 	}
-
-	s.cache.SetRecords(s.sessionID, arabica.NSIDBrew, brews)
-	s.cache.ClearDirty(s.sessionID, arabica.NSIDBrew)
-	return brews, nil
 }
 
 func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *arabica.CreateBrewRequest) error {

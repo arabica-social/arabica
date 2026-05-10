@@ -23,7 +23,7 @@ func TestHandleBrewListPartial_Success(t *testing.T) {
 	fixtures := tc.Fixtures
 
 	// Mock store to return test brews
-	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*arabica.Brew, error) {
+	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
 		return []*arabica.Brew{fixtures.Brew}, nil
 	}
 
@@ -199,7 +199,7 @@ func TestHandleBrewExport(t *testing.T) {
 	tc := NewTestContext()
 	fixtures := tc.Fixtures
 
-	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*arabica.Brew, error) {
+	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
 		return []*arabica.Brew{fixtures.Brew}, nil
 	}
 
@@ -230,7 +230,7 @@ func TestHandleAPIListAll(t *testing.T) {
 	tc.MockStore.ListBrewersFunc = func(ctx context.Context) ([]*arabica.Brewer, error) {
 		return []*arabica.Brewer{fixtures.Brewer}, nil
 	}
-	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int) ([]*arabica.Brew, error) {
+	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
 		return []*arabica.Brew{fixtures.Brew}, nil
 	}
 

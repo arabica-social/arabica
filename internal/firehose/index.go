@@ -382,11 +382,31 @@ func (idx *FeedIndex) GetWitnessRecord(ctx context.Context, uri string) (*atprot
 // ListWitnessRecords returns all indexed records for a DID+collection pair,
 // ordered by created_at descending. Returns an empty slice when none are found.
 func (idx *FeedIndex) ListWitnessRecords(ctx context.Context, did, collection string) ([]*atproto.WitnessRecord, error) {
-	rows, err := idx.db.QueryContext(ctx, `
+	return idx.listWitnessRecords(ctx, did, collection, 0, 0)
+}
+
+// ListWitnessRecordsPaginated returns a page of cached records for a
+// DID+collection pair, ordered by created_at descending.
+// When limit <= 0, returns all records.
+func (idx *FeedIndex) ListWitnessRecordsPaginated(ctx context.Context, did, collection string, offset, limit int) ([]*atproto.WitnessRecord, error) {
+	return idx.listWitnessRecords(ctx, did, collection, offset, limit)
+}
+
+// listWitnessRecords is the shared implementation with optional LIMIT/OFFSET.
+func (idx *FeedIndex) listWitnessRecords(ctx context.Context, did, collection string, offset, limit int) ([]*atproto.WitnessRecord, error) {
+	query := `
 		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
 		FROM records WHERE did = ? AND collection = ?
 		ORDER BY created_at DESC
-	`, did, collection)
+	`
+	var args []any
+	args = append(args, did, collection)
+	if limit > 0 {
+		query += ` LIMIT ? OFFSET ?`
+		args = append(args, limit, offset)
+	}
+
+	rows, err := idx.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -409,6 +429,19 @@ func (idx *FeedIndex) ListWitnessRecords(ctx context.Context, did, collection st
 		return nil, err
 	}
 	return records, nil
+}
+
+// CountWitnessRecords returns the total count of cached records for a
+// DID+collection pair.
+func (idx *FeedIndex) CountWitnessRecords(ctx context.Context, did, collection string) (int, error) {
+	var count int
+	err := idx.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM records WHERE did = ? AND collection = ?
+	`, did, collection).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 // Close closes the index database

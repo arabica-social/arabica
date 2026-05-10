@@ -176,7 +176,7 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		var err error
-		brews, err = store.ListBrews(ctx, 1) // User ID not used with atproto
+		brews, err = store.ListBrews(ctx, 1, 0, 0) // limit=0 returns all
 		return err
 	})
 

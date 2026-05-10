@@ -36,12 +36,13 @@ type ProfileContentPartialProps struct {
 	// Brew pagination
 	BrewsHasMore    bool
 	BrewsNextOffset int
+	TotalBrews      int // total brew count (for stats; may differ from len(Brews) when paginated)
 }
 
 // ProfileContentPartial renders the profile tabs content (for HTMX loading)
 templ ProfileContentPartial(props ProfileContentPartialProps) {
 	<!-- Hidden div with stats data for JavaScript -->
-	<div id="profile-stats-data" class="hidden" data-brews={ strconv.Itoa(len(props.Brews)) } data-beans={ strconv.Itoa(len(props.Beans)) } data-roasters={ strconv.Itoa(len(props.Roasters)) } data-grinders={ strconv.Itoa(len(props.Grinders)) } data-brewers={ strconv.Itoa(len(props.Brewers)) }></div>
+	<div id="profile-stats-data" class="hidden" data-brews={ strconv.Itoa(props.TotalBrews) } data-beans={ strconv.Itoa(len(props.Beans)) } data-roasters={ strconv.Itoa(len(props.Roasters)) } data-grinders={ strconv.Itoa(len(props.Grinders)) } data-brewers={ strconv.Itoa(len(props.Brewers)) }></div>
 	<!-- Brews Tab -->
 	<div x-show="activeTab === 'brews'">
 		@ProfileBrewCards(ProfileBrewCardsProps{

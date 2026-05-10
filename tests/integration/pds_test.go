@@ -264,7 +264,7 @@ func TestPDS_FullBrewSession(t *testing.T) {
 	assert.Equal(t, brewer.RKey, fetched.BrewerRKey)
 
 	// List brews
-	brews, err := store.ListBrews(ctx, 0)
+	brews, err := store.ListBrews(ctx, 0, 0, 0)
 	require.NoError(t, err)
 	assert.Len(t, brews, 1)
 }

@@ -136,34 +136,25 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 		limit = 25
 	}
 
-	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
+	// Request limit+1 to detect if there are more results beyond this page.
+	brews, err := store.ListBrews(r.Context(), 1, offset, limit+1)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch brews")
 		handleStoreError(w, err, "Failed to fetch brews")
 		return
 	}
 
-	// Apply pagination (brews are already sorted newest-first from the store)
-	totalBrews := len(brews)
-	end := offset + limit
-	if end > totalBrews {
-		end = totalBrews
-	}
-	hasMore := end < totalBrews
-	if offset > totalBrews {
-		offset = totalBrews
-	}
-	if offset < totalBrews {
-		brews = brews[offset:end]
-	} else {
-		brews = nil
+	// If we got limit+1 records, the extra one signals there are more pages.
+	hasMore := len(brews) > limit
+	if hasMore {
+		brews = brews[:limit]
 	}
 
 	if err := components.BrewListTablePartial(components.BrewListTableProps{
 		Brews:        brews,
 		IsOwnProfile: true,
 		HasMore:      hasMore,
-		NextOffset:   end,
+		NextOffset:   offset + limit,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew list partial")
@@ -961,7 +952,7 @@ func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	brews, err := store.ListBrews(r.Context(), 1) // User ID is not used with atproto
+	brews, err := store.ListBrews(r.Context(), 1, 0, 0) // limit=0 returns all
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list brews for export")
 		handleStoreError(w, err, "Failed to fetch brews")

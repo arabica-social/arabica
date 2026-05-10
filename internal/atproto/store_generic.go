@@ -89,6 +89,42 @@ func (s *AtprotoStore) fetchAllRecords(ctx context.Context, nsid string) ([]rawR
 	return out, nil
 }
 
+// fetchPaginatedRecords returns a page of records of the given NSID, ordered by
+// created_at descending. Uses the paginated witness cache when limit > 0 and the
+// cache is available and not dirty. Falls back to PDS ListAllRecords when the
+// witness cache misses (returning all records — callers should slice in Go for
+// the PDS fallback case, which only happens before firehose indexing).
+func (s *AtprotoStore) fetchPaginatedRecords(ctx context.Context, nsid string, offset, limit int) ([]rawRecord, error) {
+	if limit > 0 && s.witnessCache != nil {
+		if userCache := s.cache.Get(s.sessionID); !userCache.IsDirty(nsid) {
+			wRecords, err := s.witnessCache.ListWitnessRecordsPaginated(ctx, s.did.String(), nsid, offset, limit)
+			if err != nil {
+				log.Debug().Err(err).Str("collection", nsid).Msg("witness: ListWitnessRecordsPaginated error")
+			} else {
+				// Paginated query returned results (or empty at end of page) — use them.
+				// An empty slice means end of results; nil means cache miss (shouldn't happen
+				// when the non-paginated ListWitnessRecords succeeds, but we handle it gracefully).
+				if wRecords != nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues(metricLabelFor(nsid)).Inc()
+					out := make([]rawRecord, 0, len(wRecords))
+					for _, wr := range wRecords {
+						m, err := witnessRecordToMap(wr)
+						if err != nil {
+							log.Warn().Err(err).Str("uri", wr.URI).Msg("witness: parse failed in paginated list, skipping")
+							continue
+						}
+						out = append(out, rawRecord{URI: wr.URI, RKey: wr.RKey, CID: wr.CID, Record: m})
+					}
+					return out, nil
+				}
+			}
+		}
+	}
+	metrics.WitnessCacheMissesTotal.WithLabelValues(metricLabelFor(nsid)).Inc()
+	// Fall back to fetching all records from PDS
+	return s.fetchAllRecords(ctx, nsid)
+}
+
 // putRecord creates or updates a record at nsid/rkey. If rkey is empty,
 // a new record is created and the PDS-assigned rkey is returned along
 // with the CID. For updates (rkey non-empty), the underlying PDS API

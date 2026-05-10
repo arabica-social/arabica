@@ -23,19 +23,20 @@ import (
 
 // ProfileDataBundle holds all user data fetched from their PDS for profile display
 type ProfileDataBundle struct {
-	Beans    []*arabica.Bean
-	Roasters []*arabica.Roaster
-	Grinders []*arabica.Grinder
-	Brewers  []*arabica.Brewer
-	Brews    []*arabica.Brew
+	Beans      []*arabica.Bean
+	Roasters   []*arabica.Roaster
+	Grinders   []*arabica.Grinder
+	Brewers    []*arabica.Brewer
+	Brews      []*arabica.Brew
+	TotalBrews int // total brew count (may differ from len(Brews) when paginated)
 }
 
 // fetchUserProfileData fetches all user data for profile display.
 // Tries the witness cache first (firehose index), falling back to the PDS via publicClient.
 // Brews are sorted in reverse chronological order (newest first).
-func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicClient *atp.PublicClient) (*ProfileDataBundle, error) {
+func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicClient *atp.PublicClient, brewsOffset, brewsLimit int) (*ProfileDataBundle, error) {
 	// Try witness cache first — all records for this user may already be indexed
-	if bundle := h.fetchProfileFromWitness(ctx, did); bundle != nil {
+	if bundle := h.fetchProfileFromWitness(ctx, did, brewsOffset, brewsLimit); bundle != nil {
 		return bundle, nil
 	}
 
@@ -43,8 +44,10 @@ func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicCl
 }
 
 // fetchProfileFromWitness loads all profile data from the witness cache.
+// brewsOffset and brewsLimit control pagination of the brews collection;
+// other collections (beans, roasters, etc.) are always fully fetched.
 // Returns nil if the witness cache is not configured or the user has no indexed records.
-func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *ProfileDataBundle {
+func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string, brewsOffset, brewsLimit int) *ProfileDataBundle {
 	if h.witnessCache == nil {
 		return nil
 	}
@@ -55,20 +58,38 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 		records    []*atproto.WitnessRecord
 	}
 
-	collections := []string{
-		arabica.NSIDBean, arabica.NSIDRoaster, arabica.NSIDGrinder,
-		arabica.NSIDBrewer, arabica.NSIDBrew,
-	}
-
 	results := make(map[string][]*atproto.WitnessRecord)
 	totalRecords := 0
-	for _, coll := range collections {
+
+	// Fetch non-brew collections in full (they're small)
+	for _, coll := range []string{arabica.NSIDBean, arabica.NSIDRoaster, arabica.NSIDGrinder, arabica.NSIDBrewer} {
 		records, err := h.witnessCache.ListWitnessRecords(ctx, did, coll)
 		if err != nil {
 			log.Debug().Err(err).Str("did", did).Str("collection", coll).Msg("witness: profile collection error")
 			return nil
 		}
 		results[coll] = records
+		totalRecords += len(records)
+	}
+
+	// Fetch brews with pagination when limit > 0
+	if brewsLimit > 0 {
+		records, err := h.witnessCache.ListWitnessRecordsPaginated(ctx, did, arabica.NSIDBrew, brewsOffset, brewsLimit)
+		if err != nil {
+			log.Debug().Err(err).Str("did", did).Msg("witness: profile brews paginated error")
+			return nil
+		}
+		if records != nil {
+			results[arabica.NSIDBrew] = records
+			totalRecords += len(records)
+		}
+	} else {
+		records, err := h.witnessCache.ListWitnessRecords(ctx, did, arabica.NSIDBrew)
+		if err != nil {
+			log.Debug().Err(err).Str("did", did).Msg("witness: profile brews error")
+			return nil
+		}
+		results[arabica.NSIDBrew] = records
 		totalRecords += len(records)
 	}
 
@@ -207,12 +228,21 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 		return brews[i].CreatedAt.After(brews[j].CreatedAt)
 	})
 
+	// Get total brew count from witness cache for accurate stats display.
+	totalBrews := len(brews)
+	if brewsLimit > 0 {
+		if c, err := h.witnessCache.CountWitnessRecords(ctx, did, arabica.NSIDBrew); err == nil {
+			totalBrews = c
+		}
+	}
+
 	return &ProfileDataBundle{
-		Beans:    beans,
-		Roasters: roasters,
-		Grinders: grinders,
-		Brewers:  brewers,
-		Brews:    brews,
+		Beans:      beans,
+		Roasters:   roasters,
+		Grinders:   grinders,
+		Brewers:    brewers,
+		Brews:      brews,
+		TotalBrews: totalBrews,
 	}
 }
 
@@ -385,11 +415,12 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 	})
 
 	return &ProfileDataBundle{
-		Beans:    beans,
-		Roasters: roasters,
-		Grinders: grinders,
-		Brewers:  brewers,
-		Brews:    brews,
+		Beans:      beans,
+		Roasters:   roasters,
+		Grinders:   grinders,
+		Brewers:    brewers,
+		Brews:      brews,
+		TotalBrews: len(brews),
 	}, nil
 }
 
@@ -455,8 +486,8 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch all user data from their PDS
-	profileData, err := h.fetchUserProfileData(ctx, did, publicClient)
+	// Fetch all user data from their PDS (no pagination — we just need count for isArabicaUser check)
+	profileData, err := h.fetchUserProfileData(ctx, did, publicClient, 0, 0)
 	if err != nil {
 		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data")
 		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
@@ -574,7 +605,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch all user data from their PDS
-	profileData, err := h.fetchUserProfileData(ctx, did, publicClient)
+	profileData, err := h.fetchUserProfileData(ctx, did, publicClient, brewsOffset, brewsLimit)
 	if err != nil {
 		log.Error().Err(err).Str("did", did).Msg("Failed to fetch user data for profile partial")
 		http.Error(w, "Failed to load profile data", http.StatusInternalServerError)
@@ -683,17 +714,19 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Apply pagination to brews (brews are already sorted newest-first)
-	totalBrews := len(profileData.Brews)
+	// Determine pagination state from total count.
+	totalBrews := profileData.TotalBrews
+	if totalBrews == 0 {
+		totalBrews = len(profileData.Brews)
+	}
 	brewEnd := brewsOffset + brewsLimit
 	if brewEnd > totalBrews {
 		brewEnd = totalBrews
 	}
 	brewsHasMore := brewEnd < totalBrews
-	if brewsOffset < totalBrews {
-		profileData.Brews = profileData.Brews[brewsOffset:brewEnd]
-	} else {
-		profileData.Brews = nil
+	// Trim to page size (harmless no-op when witness already paginated).
+	if len(profileData.Brews) > brewsLimit {
+		profileData.Brews = profileData.Brews[:brewsLimit]
 	}
 
 	// On load-more requests (offset > 0), render just the brew cards fragment
@@ -740,6 +773,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		ProfileDID:            did,
 		BrewsHasMore:          brewsHasMore,
 		BrewsNextOffset:       brewEnd,
+		TotalBrews:            totalBrews,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile partial")
