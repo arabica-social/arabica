@@ -1,0 +1,40 @@
+---
+title: BrewToRecord/gongfu full
+test_name: TestBrewToRecord_Gongfu
+file_name: records_brew_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.brew",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "leafGrams": 55,
+  "methodParams": map[string]interface{}{
+    "$type": "social.oolong.alpha.brew#gongfuParams",
+    "rinse": true,
+    "rinseSeconds": 5,
+    "steeps": []map[string]interface{}{
+      {
+        "number": 1,
+        "tastingNotes": "Bright, floral",
+        "timeSeconds": 10,
+      },
+      {
+        "number": 2,
+        "tastingNotes": "Deeper, nutty",
+        "timeSeconds": 12,
+      },
+      {
+        "number": 3,
+        "temperature": 980,
+        "timeSeconds": 15,
+      },
+    },
+    "totalSteeps": 6,
+  },
+  "rating": 8,
+  "style": "gongfu",
+  "tastingNotes": "Sweet, nutty",
+  "teaRef": "at://did:plc:test/social.oolong.alpha.tea/t1",
+  "temperature": 950,
+  "vesselMl": 120,
+}

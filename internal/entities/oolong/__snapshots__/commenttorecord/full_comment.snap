@@ -1,0 +1,15 @@
+---
+title: CommentToRecord/full comment
+test_name: TestCommentRoundTrip
+file_name: records_social_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.comment",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "subject": map[string]interface{}{
+    "cid": "bafyreig...",
+    "uri": "at://did:plc:author/social.oolong.alpha.tea/tea1",
+  },
+  "text": "Beautiful first steep",
+}

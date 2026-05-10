@@ -1,0 +1,17 @@
+---
+title: DrinkToRecord/full drink
+test_name: TestDrinkRoundTrip
+file_name: records_drink_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.drink",
+  "cafeRef": "at://did:plc:test/social.oolong.alpha.cafe/c1",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "name": "Iced hojicha latte",
+  "priceUsdCents": 750,
+  "rating": 8,
+  "style": "milkTea",
+  "tastingNotes": "Toasty, smooth",
+  "teaRef": "at://did:plc:test/social.oolong.alpha.tea/t1",
+}

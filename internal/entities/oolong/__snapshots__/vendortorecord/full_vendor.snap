@@ -1,0 +1,14 @@
+---
+title: VendorToRecord/full vendor
+test_name: TestVendorToRecord/full_vendor
+file_name: records_vendor_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.vendor",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "description": "Importer focused on Chinese and Taiwanese teas",
+  "location": "Chicago, IL",
+  "name": "Spirit Tea",
+  "website": "https://spirittea.co",
+}

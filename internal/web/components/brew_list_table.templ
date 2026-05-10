@@ -11,6 +11,8 @@ type BrewListTableProps struct {
 	Brews         []*arabica.Brew
 	IsOwnProfile  bool
 	ProfileHandle string
+	HasMore       bool
+	NextOffset    int
 }
 
 // BrewListTablePartial renders the brew list as feed cards (for HTMX loading)
@@ -32,6 +34,18 @@ templ BrewListTablePartial(props BrewListTableProps) {
 		<div class="space-y-3">
 			for _, brew := range props.Brews {
 				@brewListCard(brew, props.IsOwnProfile, props.ProfileHandle)
+			}
+			if props.HasMore {
+				<!-- Load More button — replaces itself with next batch -->
+				<div
+					id="brew-list-load-more"
+					hx-get={ templ.URL(fmt.Sprintf("/api/brews?offset=%d&limit=25", props.NextOffset)) }
+					hx-target="#brew-list-load-more"
+					hx-swap="outerHTML"
+					class="text-center py-4"
+				>
+					<button class="btn-secondary px-6 py-2">Load More</button>
+				</div>
 			}
 		</div>
 	}

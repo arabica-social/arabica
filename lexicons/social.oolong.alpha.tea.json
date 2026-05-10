@@ -1,0 +1,120 @@
+{
+  "lexicon": 1,
+  "id": "social.oolong.alpha.tea",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A tea variety tracked by the user",
+      "record": {
+        "type": "object",
+        "required": ["name", "createdAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Name of the tea (e.g., 'Long Jing 2024 Spring', 'Da Hong Pao')"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 50,
+            "knownValues": [
+              "green", "yellow", "white", "oolong", "red", "dark",
+              "flavored", "blend", "other"
+            ],
+            "description": "Broad tea category. Known values: green, yellow, white, oolong, red, dark, flavored, blend, other"
+          },
+          "subStyle": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Specific style (e.g., 'Yue Guang Bai', 'Baozhong', 'Wuyi', 'Raw Puerh', 'Hei Cha')"
+          },
+          "origin": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Region or country of origin"
+          },
+          "cultivar": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Plant cultivar (e.g., 'Yabukita', 'Tieguanyin', 'Da Ye')"
+          },
+          "cultivarRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "Reserved for future cultivar records"
+          },
+          "farm": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "farmRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "Reserved for future farm records"
+          },
+          "harvestYear": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2100
+          },
+          "processing": {
+            "type": "array",
+            "description": "Ordered processing steps (e.g., [{step:'shaded',detail:'20 days'}, {step:'steamed'}, {step:'rolled'}])",
+            "items": {
+              "type": "ref",
+              "ref": "#processingStep"
+            }
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "vendorRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI to a social.oolong.alpha.vendor record"
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "closed": {
+            "type": "boolean",
+            "description": "Whether the bag/pouch is finished"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "sourceRef": {
+            "type": "string",
+            "format": "at-uri"
+          }
+        }
+      }
+    },
+    "processingStep": {
+      "type": "object",
+      "description": "A single step in the tea's processing chain",
+      "required": ["step"],
+      "properties": {
+        "step": {
+          "type": "string",
+          "maxLength": 50,
+          "knownValues": [
+            "steamed", "pan-fired", "rolled", "oxidized", "shaded",
+            "roasted", "aged", "fermented", "compressed", "scented",
+            "smoked", "blended", "flavored", "other"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Freeform detail (e.g., '20 days under kanreisha', 'stone-pressed cake', '1995 vintage')"
+        }
+      }
+    }
+  }
+}

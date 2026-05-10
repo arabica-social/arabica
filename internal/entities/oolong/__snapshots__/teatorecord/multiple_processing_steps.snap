@@ -1,0 +1,26 @@
+---
+title: TeaToRecord/multiple processing steps
+test_name: TestTeaToRecord/tea_with_multiple_processing_steps
+file_name: records_tea_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.tea",
+  "category": "green",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "name": "Gyokuro",
+  "origin": "Yame",
+  "processing": []map[string]interface{}{
+    {
+      "detail": "20 days under kanreisha",
+      "step": "shaded",
+    },
+    {
+      "step": "steamed",
+    },
+    {
+      "step": "rolled",
+    },
+  },
+  "subStyle": "Gyokuro",
+}

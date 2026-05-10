@@ -1,0 +1,26 @@
+{
+  "lexicon": 1,
+  "id": "social.oolong.alpha.like",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A like on an Oolong record (or any AT-URI-addressable record)",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "The AT-URI and CID of the record being liked"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

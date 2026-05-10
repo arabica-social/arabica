@@ -88,7 +88,7 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 	if brew == nil {
 		metrics.WitnessCacheMissesTotal.WithLabelValues("brew_og").Inc()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrew, rkey)
+		record, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDBrew, rkey)
 		if err != nil {
 			log.Error().Err(err).Str("did", ownerDID).Str("rkey", rkey).Msg("Failed to get brew for OG image")
 			http.Error(w, "Brew not found", http.StatusNotFound)
@@ -236,7 +236,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		if brew == nil {
 			// PDS fallback
 			metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
-			record, err := publicClient.GetRecord(r.Context(), brewOwnerDID, arabica.NSIDBrew, rkey)
+			record, err := publicClient.GetPublicRecord(r.Context(), brewOwnerDID, arabica.NSIDBrew, rkey)
 			if err != nil {
 				log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
 				http.Error(w, "Brew not found", http.StatusNotFound)
@@ -378,7 +378,7 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew,
 
 	// Resolve bean reference
 	if beanRef, ok := record["beanRef"].(string); ok && beanRef != "" {
-		beanRecord, err := publicClient.GetRecord(
+		beanRecord, err := publicClient.GetPublicRecord(
 			ctx,
 			ownerDID,
 			arabica.NSIDBean, atp.RKeyFromURI(beanRef),
@@ -389,7 +389,7 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew,
 
 				// Resolve roaster reference for the bean
 				if roasterRef, ok := beanRecord.Value["roasterRef"].(string); ok && roasterRef != "" {
-					roasterRecord, err := publicClient.GetRecord(
+					roasterRecord, err := publicClient.GetPublicRecord(
 						ctx,
 						ownerDID,
 						arabica.NSIDRoaster,
@@ -407,7 +407,7 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew,
 
 	// Resolve grinder reference
 	if grinderRef, ok := record["grinderRef"].(string); ok && grinderRef != "" {
-		grinderRecord, err := publicClient.GetRecord(
+		grinderRecord, err := publicClient.GetPublicRecord(
 			ctx,
 			ownerDID,
 			arabica.NSIDGrinder,
@@ -422,7 +422,7 @@ func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew,
 
 	// Resolve brewer reference
 	if brewerRef, ok := record["brewerRef"].(string); ok && brewerRef != "" {
-		brewerRecord, err := publicClient.GetRecord(
+		brewerRecord, err := publicClient.GetPublicRecord(
 			ctx,
 			ownerDID,
 			arabica.NSIDBrewer,

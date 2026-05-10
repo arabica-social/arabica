@@ -1,0 +1,63 @@
+{
+  "lexicon": 1,
+  "id": "social.oolong.alpha.drink",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A tea ordered at a cafe",
+      "record": {
+        "type": "object",
+        "required": ["cafeRef", "createdAt"],
+        "properties": {
+          "cafeRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI to a social.oolong.alpha.cafe record"
+          },
+          "teaRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "Optional AT-URI to a social.oolong.alpha.tea record"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Menu item name (e.g., 'Iced hojicha latte', 'Jasmine pearls')"
+          },
+          "style": {
+            "type": "string",
+            "maxLength": 50,
+            "knownValues": ["gongfu", "matcha", "longSteep", "milkTea", "other"]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "tastingNotes": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "priceUsdCents": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Optional price in US cents"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "sourceRef": {
+            "type": "string",
+            "format": "at-uri"
+          }
+        }
+      }
+    }
+  }
+}

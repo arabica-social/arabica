@@ -291,7 +291,7 @@ func (h *Handler) enrichReports(ctx context.Context, reports []moderation.Report
 }
 
 // getPostContentSummary fetches a summary of post content from an AT-URI
-func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atproto.PublicClient, atURI string) string {
+func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atp.PublicClient, atURI string) string {
 	// Parse AT-URI to get DID, collection, and rkey
 	uriParts, err := atp.ParseATURI(atURI)
 	if err != nil {
@@ -299,7 +299,7 @@ func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atpro
 	}
 
 	// Fetch the record
-	record, err := publicClient.GetRecord(ctx, uriParts.DID, uriParts.Collection, uriParts.RKey)
+	record, err := publicClient.GetPublicRecord(ctx, uriParts.DID, uriParts.Collection, uriParts.RKey)
 	if err != nil {
 		return ""
 	}

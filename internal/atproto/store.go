@@ -1270,24 +1270,24 @@ func (s *AtprotoStore) CreateLike(ctx context.Context, req *arabica.CreateLikeRe
 		return nil, fmt.Errorf("failed to create like record: %w", err)
 	}
 
-	atURI, err := syntax.ParseATURI(output.URI)
+	atURI, err := syntax.ParseATURI(uri)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse returned AT-URI: %w", err)
 	}
 
 	likeModel.RKey = atURI.RecordKey().String()
 
-	s.writeThroughWitness(arabica.NSIDLike, likeModel.RKey, output.CID, record)
+	s.writeThroughWitness(arabica.NSIDLike, likeModel.RKey, cid, record)
 
 	return likeModel, nil
 }
 
 func (s *AtprotoStore) DeleteLikeByRKey(ctx context.Context, rkey string) error {
-	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
-		Collection: arabica.NSIDLike,
-		RKey:       rkey,
-	})
+	atpClient, err := s.atpClient(ctx)
 	if err != nil {
+		return fmt.Errorf("get atp client: %w", err)
+	}
+	if err := atpClient.DeleteRecord(ctx, arabica.NSIDLike, rkey); err != nil {
 		return fmt.Errorf("failed to delete like record: %w", err)
 	}
 	s.deleteFromWitness(arabica.NSIDLike, rkey)
@@ -1311,14 +1311,18 @@ func (s *AtprotoStore) GetUserLikeForSubject(ctx context.Context, subjectURI str
 }
 
 func (s *AtprotoStore) ListUserLikes(ctx context.Context) ([]*arabica.Like, error) {
-	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, arabica.NSIDLike)
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get atp client: %w", err)
+	}
+	records, err := atpClient.ListAllRecords(ctx, arabica.NSIDLike)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list like records: %w", err)
 	}
 
-	likes := make([]*arabica.Like, 0, len(output.Records))
+	likes := make([]*arabica.Like, 0, len(records))
 
-	for _, rec := range output.Records {
+	for _, rec := range records {
 		like, err := arabica.RecordToLike(rec.Value, rec.URI)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert like record")
@@ -1363,34 +1367,35 @@ func (s *AtprotoStore) CreateComment(ctx context.Context, req *arabica.CreateCom
 		return nil, fmt.Errorf("failed to convert comment to record: %w", err)
 	}
 
-	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
-		Collection: arabica.NSIDComment,
-		Record:     record,
-	})
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get atp client: %w", err)
+	}
+	uri, cid, err := atpClient.CreateRecord(ctx, arabica.NSIDComment, record)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create comment record: %w", err)
 	}
 
-	atURI, err := syntax.ParseATURI(output.URI)
+	atURI, err := syntax.ParseATURI(uri)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse returned AT-URI: %w", err)
 	}
 
 	commentModel.RKey = atURI.RecordKey().String()
 	// Store the CID of this comment record (useful for threading)
-	commentModel.CID = output.CID
+	commentModel.CID = cid
 
-	s.writeThroughWitness(arabica.NSIDComment, commentModel.RKey, output.CID, record)
+	s.writeThroughWitness(arabica.NSIDComment, commentModel.RKey, cid, record)
 
 	return commentModel, nil
 }
 
 func (s *AtprotoStore) DeleteCommentByRKey(ctx context.Context, rkey string) error {
-	err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
-		Collection: arabica.NSIDComment,
-		RKey:       rkey,
-	})
+	atpClient, err := s.atpClient(ctx)
 	if err != nil {
+		return fmt.Errorf("get atp client: %w", err)
+	}
+	if err := atpClient.DeleteRecord(ctx, arabica.NSIDComment, rkey); err != nil {
 		return fmt.Errorf("failed to delete comment record: %w", err)
 	}
 	s.deleteFromWitness(arabica.NSIDComment, rkey)
@@ -1417,14 +1422,18 @@ func (s *AtprotoStore) GetCommentsForSubject(ctx context.Context, subjectURI str
 }
 
 func (s *AtprotoStore) ListUserComments(ctx context.Context) ([]*arabica.Comment, error) {
-	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, arabica.NSIDComment)
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get atp client: %w", err)
+	}
+	records, err := atpClient.ListAllRecords(ctx, arabica.NSIDComment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list comment records: %w", err)
 	}
 
-	comments := make([]*arabica.Comment, 0, len(output.Records))
+	comments := make([]*arabica.Comment, 0, len(records))
 
-	for _, rec := range output.Records {
+	for _, rec := range records {
 		comment, err := arabica.RecordToComment(rec.Value, rec.URI)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", rec.URI).Msg("Failed to convert comment record")

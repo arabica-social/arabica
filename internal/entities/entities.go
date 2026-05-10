@@ -7,6 +7,7 @@ package entities
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
@@ -63,6 +64,22 @@ func All() []*Descriptor {
 	out := make([]*Descriptor, 0, len(registry))
 	for _, d := range registry {
 		out = append(out, d)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Type < out[j].Type })
+	return out
+}
+
+// AllForApp returns descriptors whose NSID begins with `nsidBase + "."`,
+// in stable RecordType order. Use this from per-app App constructors so
+// that the global registry (which may hold descriptors from sister apps)
+// doesn't leak across app boundaries.
+func AllForApp(nsidBase string) []*Descriptor {
+	prefix := nsidBase + "."
+	out := make([]*Descriptor, 0, len(registry))
+	for _, d := range registry {
+		if strings.HasPrefix(d.NSID, prefix) {
+			out = append(out, d)
+		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Type < out[j].Type })
 	return out

@@ -32,7 +32,7 @@ type ProfileDataBundle struct {
 // fetchUserProfileData fetches all user data for profile display.
 // Tries the witness cache first (firehose index), falling back to the PDS via publicClient.
 // Brews are sorted in reverse chronological order (newest first).
-func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicClient *atproto.PublicClient) (*ProfileDataBundle, error) {
+func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicClient *atp.PublicClient) (*ProfileDataBundle, error) {
 	// Try witness cache first — all records for this user may already be indexed
 	if bundle := h.fetchProfileFromWitness(ctx, did); bundle != nil {
 		return bundle, nil
@@ -216,7 +216,7 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 }
 
 // fetchProfileFromPDS fetches all user data from their PDS via publicClient in parallel.
-func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicClient *atproto.PublicClient) (*ProfileDataBundle, error) {
+func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicClient *atp.PublicClient) (*ProfileDataBundle, error) {
 	metrics.WitnessCacheMissesTotal.WithLabelValues("profile").Inc()
 
 	// Fetch all user data in parallel
@@ -237,14 +237,14 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch beans
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDBean, 100)
+		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDBean, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
 			return err
 		}
 		beanMap = make(map[string]*arabica.Bean)
 		beanRoasterRefMap = make(map[string]string)
-		beans = make([]*arabica.Bean, 0, len(output.Records))
-		for _, record := range output.Records {
+		beans = make([]*arabica.Bean, 0, len(records))
+		for _, record := range records {
 			bean, err := arabica.RecordToBean(record.Value, record.URI)
 			if err != nil {
 				continue
@@ -260,13 +260,13 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch roasters
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDRoaster, 100)
+		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDRoaster, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
 			return err
 		}
 		roasterMap = make(map[string]*arabica.Roaster)
-		roasters = make([]*arabica.Roaster, 0, len(output.Records))
-		for _, record := range output.Records {
+		roasters = make([]*arabica.Roaster, 0, len(records))
+		for _, record := range records {
 			roaster, err := arabica.RecordToRoaster(record.Value, record.URI)
 			if err != nil {
 				continue
@@ -279,13 +279,13 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch grinders
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDGrinder, 100)
+		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDGrinder, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
 			return err
 		}
 		grinderMap = make(map[string]*arabica.Grinder)
-		grinders = make([]*arabica.Grinder, 0, len(output.Records))
-		for _, record := range output.Records {
+		grinders = make([]*arabica.Grinder, 0, len(records))
+		for _, record := range records {
 			grinder, err := arabica.RecordToGrinder(record.Value, record.URI)
 			if err != nil {
 				continue
@@ -298,13 +298,13 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch brewers
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDBrewer, 100)
+		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDBrewer, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
 			return err
 		}
 		brewerMap = make(map[string]*arabica.Brewer)
-		brewers = make([]*arabica.Brewer, 0, len(output.Records))
-		for _, record := range output.Records {
+		brewers = make([]*arabica.Brewer, 0, len(records))
+		for _, record := range records {
 			brewer, err := arabica.RecordToBrewer(record.Value, record.URI)
 			if err != nil {
 				continue
@@ -317,12 +317,12 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 
 	// Fetch brews
 	g.Go(func() error {
-		output, err := publicClient.ListRecords(gCtx, did, arabica.NSIDBrew, 100)
+		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDBrew, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
 			return err
 		}
-		brews = make([]*arabica.Brew, 0, len(output.Records))
-		for _, record := range output.Records {
+		brews = make([]*arabica.Brew, 0, len(records))
+		for _, record := range records {
 			brew, err := arabica.RecordToBrew(record.Value, record.URI)
 			if err != nil {
 				continue

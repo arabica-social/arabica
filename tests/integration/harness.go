@@ -228,7 +228,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	app := &domain.App{
 		Name:        "arabica",
 		NSIDBase:    arabica.NSIDBase,
-		Descriptors: entities.All(),
+		Descriptors: entities.AllForApp(arabica.NSIDBase),
 	}
 	h.SetApp(app)
 	router := routing.SetupRouter(routing.Config{

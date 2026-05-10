@@ -1,0 +1,26 @@
+---
+title: TeaToRecord/full tea with processing
+test_name: TestTeaToRecord/full_tea_with_processing
+file_name: records_tea_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.tea",
+  "category": "green",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "cultivar": "Qun Ti",
+  "description": "Pre-Qingming pluck",
+  "farm": "Mei Jia Wu village",
+  "harvestYear": 2024,
+  "name": "Long Jing 2024 Spring",
+  "origin": "Hangzhou, Zhejiang",
+  "processing": []map[string]interface{}{
+    {
+      "detail": "Hand-fired in iron wok",
+      "step": "pan-fired",
+    },
+  },
+  "rating": 9,
+  "subStyle": "Xi Hu Long Jing",
+  "vendorRef": "at://did:plc:test/social.oolong.alpha.vendor/v1",
+}

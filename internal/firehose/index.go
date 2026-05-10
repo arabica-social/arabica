@@ -63,7 +63,7 @@ type CachedProfile struct {
 // FeedIndex provides persistent storage for firehose events
 type FeedIndex struct {
 	db           *sql.DB
-	publicClient *atproto.PublicClient
+	publicClient *atp.PublicClient
 	profileTTL   time.Duration
 
 	// In-memory cache for hot data
@@ -1816,13 +1816,13 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 
 	recordCount := 0
 	for _, collection := range collections {
-		records, err := idx.publicClient.ListRecords(ctx, did, collection, 100)
+		recs, _, err := idx.publicClient.ListPublicRecords(ctx, did, collection, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
 			log.Warn().Err(err).Str("did", did).Str("collection", collection).Msg("failed to list records for backfill")
 			continue
 		}
 
-		for _, record := range records.Records {
+		for _, record := range recs {
 			parts := strings.Split(record.URI, "/")
 			if len(parts) < 3 {
 				continue

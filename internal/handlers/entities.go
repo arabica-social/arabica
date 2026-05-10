@@ -432,14 +432,20 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		refreshCtx, refreshSpan := tracing.HandlerSpan(r.Context(), "manage.refresh.witness_sync",
 			attribute.String("user.did", didStr),
 		)
+		atpClient, err := h.atprotoClient.AtpClient(refreshCtx, did, sessionID)
+		if err != nil {
+			log.Warn().Err(err).Msg("refresh: failed to get atp client")
+			refreshSpan.End()
+			return
+		}
 		var batch []atproto.WitnessWriteRecord
 		for _, collection := range entityCollections {
-			output, err := h.atprotoClient.ListAllRecords(refreshCtx, did, sessionID, collection)
+			records, err := atpClient.ListAllRecords(refreshCtx, collection)
 			if err != nil {
 				log.Warn().Err(err).Str("collection", collection).Msg("refresh: failed to list records from PDS")
 				continue
 			}
-			for _, rec := range output.Records {
+			for _, rec := range records {
 				rkey := atp.RKeyFromURI(rec.URI)
 				if rkey == "" {
 					continue
@@ -457,7 +463,7 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 			short := collection[strings.LastIndex(collection, ".")+1:]
-			log.Info().Str("collection", short).Int("count", len(output.Records)).Msg("refresh: fetched collection from PDS")
+			log.Info().Str("collection", short).Int("count", len(records)).Msg("refresh: fetched collection from PDS")
 		}
 		if err := h.witnessCache.UpsertWitnessRecordBatch(refreshCtx, batch); err != nil {
 			log.Error().Err(err).Msg("refresh: failed to batch upsert records")

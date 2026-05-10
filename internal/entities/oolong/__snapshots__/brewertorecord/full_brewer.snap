@@ -1,0 +1,15 @@
+---
+title: BrewerToRecord/full brewer
+test_name: TestBrewerRoundTrip
+file_name: records_brewer_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.brewer",
+  "capacityMl": 180,
+  "createdAt": "2026-05-10T12:00:00Z",
+  "description": "Side-handle, fine mesh",
+  "material": "stoneware",
+  "name": "Tokoname kyusu",
+  "style": "kyusu",
+}

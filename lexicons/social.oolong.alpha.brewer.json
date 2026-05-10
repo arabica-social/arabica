@@ -1,0 +1,53 @@
+{
+  "lexicon": 1,
+  "id": "social.oolong.alpha.brewer",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A tea brewing vessel",
+      "record": {
+        "type": "object",
+        "required": ["name", "createdAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Name of the brewer (e.g., '120ml gaiwan', 'Tokoname kyusu')"
+          },
+          "style": {
+            "type": "string",
+            "maxLength": 50,
+            "knownValues": [
+              "gaiwan", "kyusu", "teapot", "matcha-bowl",
+              "infuser", "thermos", "other"
+            ],
+            "description": "Vessel style. Known values: gaiwan, kyusu, teapot, matcha-bowl, infuser, thermos, other"
+          },
+          "capacityMl": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Vessel capacity in millilitres"
+          },
+          "material": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Material (e.g., 'porcelain', 'yixing clay', 'glass', 'cast iron')"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "sourceRef": {
+            "type": "string",
+            "format": "at-uri"
+          }
+        }
+      }
+    }
+  }
+}

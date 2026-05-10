@@ -15,6 +15,18 @@ const (
 	RecordTypeRoaster RecordType = "roaster"
 )
 
+const (
+	RecordTypeOolongTea     RecordType = "oolong-tea"
+	RecordTypeOolongBrew    RecordType = "oolong-brew"
+	RecordTypeOolongBrewer  RecordType = "oolong-brewer"
+	RecordTypeOolongRecipe  RecordType = "oolong-recipe"
+	RecordTypeOolongVendor  RecordType = "oolong-vendor"
+	RecordTypeOolongCafe    RecordType = "oolong-cafe"
+	RecordTypeOolongDrink   RecordType = "oolong-drink"
+	RecordTypeOolongComment RecordType = "oolong-comment"
+	RecordTypeOolongLike    RecordType = "oolong-like"
+)
+
 // String returns the string representation of the RecordType.
 func (r RecordType) String() string {
 	return string(r)
@@ -24,6 +36,8 @@ func (r RecordType) String() string {
 func ParseRecordType(s string) RecordType {
 	switch RecordType(s) {
 	case RecordTypeBean, RecordTypeBrew, RecordTypeBrewer, RecordTypeGrinder, RecordTypeRecipe, RecordTypeRoaster:
+		return RecordType(s)
+	case RecordTypeOolongTea, RecordTypeOolongBrew, RecordTypeOolongBrewer, RecordTypeOolongRecipe, RecordTypeOolongVendor, RecordTypeOolongCafe, RecordTypeOolongDrink, RecordTypeOolongComment, RecordTypeOolongLike:
 		return RecordType(s)
 	default:
 		return ""
@@ -47,6 +61,24 @@ func (r RecordType) DisplayName() string {
 		return "Recipe"
 	case RecordTypeRoaster:
 		return "Roaster"
+	case RecordTypeOolongTea:
+		return "Tea"
+	case RecordTypeOolongBrew:
+		return "Tea Brew"
+	case RecordTypeOolongBrewer:
+		return "Tea Brewer"
+	case RecordTypeOolongRecipe:
+		return "Tea Recipe"
+	case RecordTypeOolongVendor:
+		return "Tea Vendor"
+	case RecordTypeOolongCafe:
+		return "Tea Cafe"
+	case RecordTypeOolongDrink:
+		return "Tea Drink"
+	case RecordTypeOolongComment:
+		return "Tea Comment"
+	case RecordTypeOolongLike:
+		return "Tea Like"
 	default:
 		return string(r)
 	}

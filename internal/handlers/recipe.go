@@ -193,7 +193,7 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 	if ownerDID != "" {
 		// Fetch from the recipe owner's PDS via public client
 		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
+		record, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
 		if err != nil {
 			http.Error(w, "Recipe not found", http.StatusNotFound)
 			log.Warn().Err(err).Str("rkey", rkey).Str("owner", ownerDID).Msg("Failed to get recipe from owner PDS")
@@ -215,7 +215,7 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
 			brewerRKey := atp.RKeyFromURI(brewerRef)
 			if brewerRKey != "" {
-				brewerRecord, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey)
+				brewerRecord, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey)
 				if err == nil {
 					if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
 						brewer.RKey = brewerRKey
@@ -351,7 +351,7 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch the source recipe via public client
 	publicClient := atproto.NewPublicClient()
-	record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
+	record, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
 	if err != nil {
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		log.Warn().Err(err).Str("rkey", rkey).Str("owner", owner).Msg("Failed to fetch recipe for fork")
@@ -373,7 +373,7 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		// Fetch the source brewer to get name and type for matching
 		brewerRKeySource := atp.RKeyFromURI(brewerRef)
 		if brewerRKeySource != "" {
-			if sourceBrewer, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKeySource); err == nil {
+			if sourceBrewer, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKeySource); err == nil {
 				var sourceName, sourceType string
 				if n, ok := sourceBrewer.Value["name"].(string); ok {
 					sourceName = n

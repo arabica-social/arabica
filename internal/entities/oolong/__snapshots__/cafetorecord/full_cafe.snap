@@ -1,0 +1,16 @@
+---
+title: CafeToRecord/full cafe
+test_name: TestCafeToRecord/full_cafe
+file_name: records_cafe_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.cafe",
+  "address": "243 W 72nd St",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "description": "Specialty teahouse",
+  "location": "New York, NY",
+  "name": "Floating Mountain",
+  "vendorRef": "at://did:plc:test/social.oolong.alpha.vendor/v1",
+  "website": "https://floatingmountain.tea",
+}

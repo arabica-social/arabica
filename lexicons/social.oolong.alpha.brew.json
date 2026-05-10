@@ -1,0 +1,203 @@
+{
+  "lexicon": 1,
+  "id": "social.oolong.alpha.brew",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A tea brewing session",
+      "record": {
+        "type": "object",
+        "required": ["teaRef", "style", "createdAt"],
+        "properties": {
+          "teaRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI to a social.oolong.alpha.tea record"
+          },
+          "style": {
+            "type": "string",
+            "maxLength": 50,
+            "knownValues": ["gongfu", "matcha", "longSteep", "milkTea"],
+            "description": "Brewing style. Required. Canonical filterable axis."
+          },
+          "brewerRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI to a social.oolong.alpha.brewer record"
+          },
+          "recipeRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI to a social.oolong.alpha.recipe record"
+          },
+          "temperature": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Water temperature in tenths of °C (e.g. 850 = 85.0°C)"
+          },
+          "leafGrams": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Leaf weight in tenths of a gram (e.g. 50 = 5.0g)"
+          },
+          "vesselMl": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total water / vessel volume in millilitres"
+          },
+          "timeSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total brew time in seconds. Primarily for longSteep and milkTea; gongfu records per-steep times inside #gongfuParams"
+          },
+          "tastingNotes": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "methodParams": {
+            "type": "union",
+            "refs": [
+              "#gongfuParams",
+              "#matchaParams",
+              "#milkTeaParams"
+            ],
+            "description": "Style-specific parameters. Absent for longSteep style."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    },
+    "gongfuParams": {
+      "type": "object",
+      "description": "Parameters specific to gong fu (flash steep) brewing",
+      "properties": {
+        "rinse": {
+          "type": "boolean",
+          "description": "Whether the leaf was rinsed before brewing"
+        },
+        "rinseSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "steeps": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "#steep"
+          }
+        },
+        "totalSteeps": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total steeps performed, in case not every one was logged"
+        }
+      }
+    },
+    "steep": {
+      "type": "object",
+      "required": ["number", "timeSeconds"],
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-indexed steep number"
+        },
+        "timeSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "temperature": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Temperature override for this steep, tenths of °C"
+        },
+        "tastingNotes": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "rating": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      }
+    },
+    "matchaParams": {
+      "type": "object",
+      "description": "Parameters specific to matcha preparation",
+      "properties": {
+        "preparation": {
+          "type": "string",
+          "maxLength": 50,
+          "knownValues": ["usucha", "koicha", "iced", "other"]
+        },
+        "sieved": {
+          "type": "boolean"
+        },
+        "whiskType": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "waterMl": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "milkTeaParams": {
+      "type": "object",
+      "description": "Parameters specific to milk tea / tea-based beverages",
+      "properties": {
+        "preparation": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "#ingredient"
+          }
+        },
+        "iced": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ingredient": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Quantity in tenths of `unit`"
+        },
+        "unit": {
+          "type": "string",
+          "maxLength": 20,
+          "knownValues": ["g", "ml", "tsp", "tbsp", "cup", "pcs", "other"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    }
+  }
+}

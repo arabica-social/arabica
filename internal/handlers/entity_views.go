@@ -80,7 +80,7 @@ func resolveOwnerDID(ctx context.Context, owner string) (string, error) {
 type entityViewConfig struct {
 	descriptor  *entities.Descriptor
 	fromWitness func(ctx context.Context, m map[string]any, uri, rkey, ownerDID string) (any, error)
-	fromPDS     func(ctx context.Context, e *atproto.PublicRecordEntry, rkey, ownerDID string) (any, error)
+	fromPDS     func(ctx context.Context, e *atp.Record, rkey, ownerDID string) (any, error)
 	fromStore   func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error)
 	displayName func(record any) string
 	ogSubtitle  func(record any) string
@@ -134,7 +134,7 @@ func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg e
 		if record == nil {
 			metrics.WitnessCacheMissesTotal.WithLabelValues(cfg.descriptor.Noun).Inc()
 			pub := atproto.NewPublicClient()
-			entry, err := pub.GetRecord(r.Context(), entityOwnerDID, cfg.descriptor.NSID, rkey)
+			entry, err := pub.GetPublicRecord(r.Context(), entityOwnerDID, cfg.descriptor.NSID, rkey)
 			if err != nil {
 				log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msgf("Failed to get %s record", cfg.descriptor.Noun)
 				http.Error(w, cfg.descriptor.DisplayName+" not found", http.StatusNotFound)
@@ -229,7 +229,7 @@ func (h *Handler) roasterViewConfig() entityViewConfig {
 			r.RKey = rkey
 			return r, nil
 		},
-		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
+		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
 			r, err := arabica.RecordToRoaster(e.Value, e.URI)
 			if err != nil {
 				return nil, err
@@ -281,7 +281,7 @@ func (h *Handler) grinderViewConfig() entityViewConfig {
 			g.RKey = rkey
 			return g, nil
 		},
-		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
+		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
 			g, err := arabica.RecordToGrinder(e.Value, e.URI)
 			if err != nil {
 				return nil, err
@@ -327,7 +327,7 @@ func (h *Handler) brewerViewConfig() entityViewConfig {
 			b.RKey = rkey
 			return b, nil
 		},
-		fromPDS: func(_ context.Context, e *atproto.PublicRecordEntry, rkey, _ string) (any, error) {
+		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
 			b, err := arabica.RecordToBrewer(e.Value, e.URI)
 			if err != nil {
 				return nil, err
@@ -388,7 +388,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 			}
 			return bean, nil
 		},
-		fromPDS: func(ctx context.Context, e *atproto.PublicRecordEntry, rkey, ownerDID string) (any, error) {
+		fromPDS: func(ctx context.Context, e *atp.Record, rkey, ownerDID string) (any, error) {
 			bean, err := arabica.RecordToBean(e.Value, e.URI)
 			if err != nil {
 				return nil, err
@@ -398,7 +398,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 				if roasterRKey := atp.RKeyFromURI(roasterRef); roasterRKey != "" {
 					bean.RoasterRKey = roasterRKey
 					pub := atproto.NewPublicClient()
-					if rr, err := pub.GetRecord(ctx, ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
+					if rr, err := pub.GetPublicRecord(ctx, ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
 						if roaster, err := arabica.RecordToRoaster(rr.Value, rr.URI); err == nil {
 							roaster.RKey = roasterRKey
 							bean.Roaster = roaster
@@ -526,7 +526,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 			// PDS fallback
 			metrics.WitnessCacheMissesTotal.WithLabelValues("recipe").Inc()
 			publicClient := atproto.NewPublicClient()
-			record, err := publicClient.GetRecord(r.Context(), entityOwnerDID, arabica.NSIDRecipe, rkey)
+			record, err := publicClient.GetPublicRecord(r.Context(), entityOwnerDID, arabica.NSIDRecipe, rkey)
 			if err != nil {
 				http.Error(w, "Recipe not found", http.StatusNotFound)
 				return
@@ -546,7 +546,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 			if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
 				if brewerRKey := atp.RKeyFromURI(brewerRef); brewerRKey != "" {
 					recipe.BrewerRKey = brewerRKey
-					brewerRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, arabica.NSIDBrewer, brewerRKey)
+					brewerRecord, err := publicClient.GetPublicRecord(r.Context(), entityOwnerDID, arabica.NSIDBrewer, brewerRKey)
 					if err == nil {
 						if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
 							brewer.RKey = brewerRKey
@@ -697,7 +697,7 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 	if bean == nil {
 		metrics.WitnessCacheMissesTotal.WithLabelValues("bean_og").Inc()
 		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBean, rkey)
+		record, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDBean, rkey)
 		if err != nil {
 			http.Error(w, "Bean not found", http.StatusNotFound)
 			return
@@ -711,7 +711,7 @@ func (h *Handler) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 		if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
 			roasterRKey := atp.RKeyFromURI(roasterRef)
 			if roasterRKey != "" {
-				if rr, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
+				if rr, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
 					if roaster, err := arabica.RecordToRoaster(rr.Value, rr.URI); err == nil {
 						bean.Roaster = roaster
 					}
@@ -769,7 +769,7 @@ func (h *Handler) handleSimpleOGImage(w http.ResponseWriter, r *http.Request, cf
 	if record == nil {
 		metrics.WitnessCacheMissesTotal.WithLabelValues(cfg.metricLabel).Inc()
 		pub := atproto.NewPublicClient()
-		pr, err := pub.GetRecord(r.Context(), ownerDID, cfg.nsid, rkey)
+		pr, err := pub.GetPublicRecord(r.Context(), ownerDID, cfg.nsid, rkey)
 		if err != nil {
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
@@ -883,7 +883,7 @@ func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 	if recipe == nil {
 		metrics.WitnessCacheMissesTotal.WithLabelValues("recipe_og").Inc()
 		publicClient := atproto.NewPublicClient()
-		record, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
+		record, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
 		if err != nil {
 			http.Error(w, "Recipe not found", http.StatusNotFound)
 			return
@@ -897,7 +897,7 @@ func (h *Handler) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
 			brewerRKey := atp.RKeyFromURI(brewerRef)
 			if brewerRKey != "" {
-				if br, err := publicClient.GetRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey); err == nil {
+				if br, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey); err == nil {
 					if brewer, err := arabica.RecordToBrewer(br.Value, br.URI); err == nil {
 						recipe.BrewerObj = brewer
 					}

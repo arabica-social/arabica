@@ -1,0 +1,35 @@
+---
+title: RecipeToRecord/gongfu standard
+test_name: TestRecipeRoundTrip
+file_name: records_recipe_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.recipe",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "leafGrams": 55,
+  "methodParams": map[string]interface{}{
+    "$type": "social.oolong.alpha.brew#gongfuParams",
+    "rinse": true,
+    "steeps": []map[string]interface{}{
+      {
+        "number": 1,
+        "timeSeconds": 10,
+      },
+      {
+        "number": 2,
+        "timeSeconds": 12,
+      },
+      {
+        "number": 3,
+        "timeSeconds": 15,
+      },
+    },
+    "totalSteeps": 6,
+  },
+  "name": "Standard gaiwan gongfu",
+  "notes": "Adjust steep times to taste",
+  "style": "gongfu",
+  "temperature": 950,
+  "vesselMl": 120,
+}

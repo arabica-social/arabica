@@ -6,6 +6,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 )
 
 // teaAppName is the single source of truth for the tea-tracking sister
@@ -25,7 +26,7 @@ func newArabicaApp() *domain.App {
 	return &domain.App{
 		Name:        "arabica",
 		NSIDBase:    arabica.NSIDBase,
-		Descriptors: entities.All(),
+		Descriptors: entities.AllForApp(arabica.NSIDBase),
 		Brand: domain.BrandConfig{
 			DisplayName: "Arabica",
 			Tagline:     "Your brew, your data",
@@ -41,8 +42,8 @@ func newArabicaApp() *domain.App {
 func newTeaApp() *domain.App {
 	return &domain.App{
 		Name:        teaAppName,
-		NSIDBase:    "social." + teaAppName + ".alpha",
-		Descriptors: nil,
+		NSIDBase:    oolong.NSIDBase,
+		Descriptors: entities.AllForApp(oolong.NSIDBase),
 		Brand: domain.BrandConfig{
 			DisplayName: strings.ToUpper(teaAppName[:1]) + teaAppName[1:],
 			Tagline:     "Your tea, your data",

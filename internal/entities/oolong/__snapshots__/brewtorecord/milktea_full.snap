@@ -1,0 +1,37 @@
+---
+title: BrewToRecord/milkTea full
+test_name: TestBrewToRecord_MilkTea
+file_name: records_brew_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.brew",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "methodParams": map[string]interface{}{
+    "$type": "social.oolong.alpha.brew#milkTeaParams",
+    "ingredients": []map[string]interface{}{
+      {
+        "amount": 2000,
+        "name": "Whole milk",
+        "unit": "ml",
+      },
+      {
+        "amount": 40,
+        "name": "Cardamom pods",
+        "unit": "pcs",
+      },
+      {
+        "amount": 15,
+        "name": "Sugar",
+        "notes": "Demerara",
+        "unit": "tsp",
+      },
+    },
+    "preparation": "stovetop simmer",
+  },
+  "rating": 7,
+  "style": "milkTea",
+  "teaRef": "at://did:plc:test/social.oolong.alpha.tea/t1",
+  "temperature": 950,
+  "timeSeconds": 600,
+}
