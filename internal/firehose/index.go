@@ -1043,8 +1043,8 @@ func resolveBrewFeedRefs(brew *arabica.Brew, recordData map[string]any, refMap m
 	}
 
 	if recipeRef, ok := recordData["recipeRef"].(string); ok && recipeRef != "" {
-		if c, err := atproto.ResolveATURI(recipeRef); err == nil {
-			brew.RecipeRKey = c.RKey
+		if rkey := atp.RKeyFromURI(recipeRef); rkey != "" {
+			brew.RecipeRKey = rkey
 		}
 		if recipeRecord, found := refMap[recipeRef]; found {
 			var recipeData map[string]any

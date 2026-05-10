@@ -97,8 +97,8 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string) *Prof
 		beanMap[wr.URI] = bean
 		if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
 			beanRoasterRefMap[wr.URI] = roasterRef
-			if c, err := atproto.ResolveATURI(roasterRef); err == nil {
-				bean.RoasterRKey = c.RKey
+			if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
+				bean.RoasterRKey = rkey
 			}
 		}
 	}

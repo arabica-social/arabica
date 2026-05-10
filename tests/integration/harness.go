@@ -26,6 +26,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -462,9 +463,7 @@ func harnessAuthMiddleware(next http.Handler) http.Handler {
 		did := r.Header.Get(testAuthDIDHeader)
 		sessionID := r.Header.Get(testAuthSessionHeader)
 		if did != "" && sessionID != "" {
-			ctx := context.WithValue(r.Context(), "atp_did", did)
-		ctx = context.WithValue(ctx, "atp_session_id", sessionID)
-		r = r.WithContext(ctx)
+			r = r.WithContext(atpmiddleware.ContextWithAuth(r.Context(), did, sessionID))
 		}
 		next.ServeHTTP(w, r)
 	})

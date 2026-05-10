@@ -10,69 +10,17 @@ import (
 	"tangled.org/pdewey.com/atp"
 )
 
-// ATURIComponents holds the parsed components of an AT-URI
-type ATURIComponents struct {
-	DID        string
-	Collection string
-	RKey       string
-}
-
-// ResolveATURI parses an AT-URI and returns its components.
-// AT-URI format: at://did:plc:abc123/social.arabica.brew/3jxyabc
-func ResolveATURI(uri string) (*ATURIComponents, error) {
-	did, collection, rkey, err := atp.ParseATURI(uri)
+// atpClientForURI gets an *atp.Client scoped to the DID in the given AT-URI.
+func atpClientForURI(ctx context.Context, client *Client, atURI string, sessionID string) (*atp.Client, error) {
+	u, err := atp.ParseATURI(atURI)
 	if err != nil {
 		return nil, err
 	}
-
-	return &ATURIComponents{
-		DID:        did,
-		Collection: collection,
-		RKey:       rkey,
-	}, nil
-}
-
-// resolveRef is a generic helper that fetches and converts a record from an AT-URI
-func resolveRef[T any](
-	ctx context.Context,
-	client *Client,
-	atURI string,
-	sessionID string,
-	expectedCollection string,
-	convert func(map[string]any, string) (*T, error),
-) (*T, error) {
-	if atURI == "" {
-		return nil, nil
-	}
-
-	components, err := ResolveATURI(atURI)
-	if err != nil {
-		return nil, err
-	}
-
-	if components.Collection != expectedCollection {
-		return nil, fmt.Errorf("expected %s collection, got %s", expectedCollection, components.Collection)
-	}
-
-	didObj, err := syntax.ParseDID(components.DID)
+	didObj, err := syntax.ParseDID(u.DID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid DID: %w", err)
 	}
-
-	output, err := client.GetRecord(ctx, didObj, sessionID, &GetRecordInput{
-		Collection: components.Collection,
-		RKey:       components.RKey,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch %s record: %w", expectedCollection, err)
-	}
-
-	result, err := convert(output.Value, atURI)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert %s record: %w", expectedCollection, err)
-	}
-
-	return result, nil
+	return client.AtpClient(ctx, didObj, sessionID)
 }
 
 // ResolveBeanRefWithRoaster fetches a bean record and also resolves its roaster reference
@@ -81,39 +29,37 @@ func ResolveBeanRefWithRoaster(ctx context.Context, client *Client, atURI string
 		return nil, nil
 	}
 
-	components, err := ResolveATURI(atURI)
+	atpClient, err := atpClientForURI(ctx, client, atURI, sessionID)
 	if err != nil {
 		return nil, err
 	}
 
-	if components.Collection != arabica.NSIDBean {
-		return nil, fmt.Errorf("expected %s collection, got %s", arabica.NSIDBean, components.Collection)
-	}
-
-	didObj, err := syntax.ParseDID(components.DID)
+	// Fetch raw record so we can extract the roasterRef before converting.
+	// RecordToBean doesn't store the raw roasterRef URI, only the parsed RKey.
+	beanURI, err := atp.ParseATURI(atURI)
 	if err != nil {
-		return nil, fmt.Errorf("invalid DID: %w", err)
+		return nil, err
+	}
+	if beanURI.Collection != arabica.NSIDBean {
+		return nil, fmt.Errorf("expected %s collection, got %s", arabica.NSIDBean, beanURI.Collection)
 	}
 
-	output, err := client.GetRecord(ctx, didObj, sessionID, &GetRecordInput{
-		Collection: components.Collection,
-		RKey:       components.RKey,
-	})
+	rec, err := atpClient.GetRecord(ctx, beanURI.Collection, beanURI.RKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch bean record: %w", err)
 	}
 
-	bean, err := arabica.RecordToBean(output.Value, atURI)
+	// Convert raw record to typed model
+	bean, err := arabica.RecordToBean(rec.Value, atURI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert bean record: %w", err)
 	}
 
-	// Extract and resolve roaster reference if present
-	if roasterRef, ok := output.Value["roasterRef"].(string); ok && roasterRef != "" {
-		// Extract rkey
-		if roasterComponents, err := ResolveATURI(roasterRef); err == nil {
-			bean.RoasterRKey = roasterComponents.RKey
-		}
+	// Extract and resolve roaster reference if present.
+	// Needs to come from the raw record since the Bean model doesn't store
+	// the full roasterRef URI, only its parsed RKey (RoasterRKey).
+	if roasterRef, ok := rec.Value["roasterRef"].(string); ok && roasterRef != "" {
+		bean.RoasterRKey = atp.RKeyFromURI(roasterRef)
 		// Resolve the roaster
 		bean.Roaster, err = ResolveRoasterRef(ctx, client, roasterRef, sessionID)
 		if err != nil {
@@ -127,22 +73,38 @@ func ResolveBeanRefWithRoaster(ctx context.Context, client *Client, atURI string
 
 // ResolveRoasterRef fetches a roaster record from an AT-URI
 func ResolveRoasterRef(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Roaster, error) {
-	return resolveRef(ctx, client, atURI, sessionID, arabica.NSIDRoaster, arabica.RecordToRoaster)
+	atpClient, err := atpClientForURI(ctx, client, atURI, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	return atp.ResolveRecord(ctx, atpClient, atURI, arabica.NSIDRoaster, arabica.RecordToRoaster)
 }
 
 // ResolveGrinderRef fetches a grinder record from an AT-URI
 func ResolveGrinderRef(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Grinder, error) {
-	return resolveRef(ctx, client, atURI, sessionID, arabica.NSIDGrinder, arabica.RecordToGrinder)
+	atpClient, err := atpClientForURI(ctx, client, atURI, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	return atp.ResolveRecord(ctx, atpClient, atURI, arabica.NSIDGrinder, arabica.RecordToGrinder)
 }
 
 // ResolveBrewerRef fetches a brewer record from an AT-URI
 func ResolveBrewerRef(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Brewer, error) {
-	return resolveRef(ctx, client, atURI, sessionID, arabica.NSIDBrewer, arabica.RecordToBrewer)
+	atpClient, err := atpClientForURI(ctx, client, atURI, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	return atp.ResolveRecord(ctx, atpClient, atURI, arabica.NSIDBrewer, arabica.RecordToBrewer)
 }
 
 // ResolveRecipeRef fetches a recipe record from an AT-URI
 func ResolveRecipeRef(ctx context.Context, client *Client, atURI string, sessionID string) (*arabica.Recipe, error) {
-	return resolveRef(ctx, client, atURI, sessionID, arabica.NSIDRecipe, arabica.RecordToRecipe)
+	atpClient, err := atpClientForURI(ctx, client, atURI, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	return atp.ResolveRecord(ctx, atpClient, atURI, arabica.NSIDRecipe, arabica.RecordToRecipe)
 }
 
 // ResolveBrewRefs resolves all references within a brew record

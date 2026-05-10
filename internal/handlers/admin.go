@@ -16,6 +16,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/prometheus/client_golang/prometheus"
@@ -292,13 +293,13 @@ func (h *Handler) enrichReports(ctx context.Context, reports []moderation.Report
 // getPostContentSummary fetches a summary of post content from an AT-URI
 func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atproto.PublicClient, atURI string) string {
 	// Parse AT-URI to get DID, collection, and rkey
-	components, err := atproto.ResolveATURI(atURI)
+	uriParts, err := atp.ParseATURI(atURI)
 	if err != nil {
 		return ""
 	}
 
 	// Fetch the record
-	record, err := publicClient.GetRecord(ctx, components.DID, components.Collection, components.RKey)
+	record, err := publicClient.GetRecord(ctx, uriParts.DID, uriParts.Collection, uriParts.RKey)
 	if err != nil {
 		return ""
 	}
@@ -1000,9 +1001,9 @@ func (h *Handler) HandleAdminFetchPDSRecords(w http.ResponseWriter, r *http.Requ
 		}
 		entries := make([]pdsRecord, 0, len(records))
 		for _, rec := range records {
-			rkey := ""
-			if comp, err := atproto.ResolveATURI(rec.URI); err == nil {
-				rkey = comp.RKey
+			var rkey string
+			if rk := atp.RKeyFromURI(rec.URI); rk != "" {
+				rkey = rk
 			}
 			entries = append(entries, pdsRecord{
 				URI:    rec.URI,

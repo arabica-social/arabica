@@ -93,6 +93,12 @@ func (c *Client) getAtpClient(ctx context.Context, did syntax.DID, sessionID str
 	return c.getClient(ctx, did, sessionID)
 }
 
+// AtpClient returns an authenticated atp.Client for the given DID and session.
+// The returned client is scoped to the provided DID for PDS operations.
+func (c *Client) AtpClient(ctx context.Context, did syntax.DID, sessionID string) (*atp.Client, error) {
+	return c.getAtpClient(ctx, did, sessionID)
+}
+
 // --- Input/Output types (kept for caller compatibility) ---
 
 type CreateRecordInput struct {

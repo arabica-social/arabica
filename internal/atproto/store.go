@@ -155,8 +155,8 @@ func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *ara
 					bean.RKey = beanWR.RKey
 					// Resolve roaster ref from witness too
 					if roasterRef, ok := beanMap["roasterRef"].(string); ok && roasterRef != "" {
-						if c, err := ResolveATURI(roasterRef); err == nil {
-							bean.RoasterRKey = c.RKey
+						if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
+							bean.RoasterRKey = rkey
 						}
 						if roasterWR := s.getWitnessRecordByURI(ctx, roasterRef); roasterWR != nil {
 							if roasterMap, err := witnessRecordToMap(roasterWR); err == nil {
@@ -205,8 +205,8 @@ func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *ara
 					recipe.RKey = recipeWR.RKey
 					// Resolve recipe's brewer ref from witness
 					if brewerRef, ok := recipeMap["brewerRef"].(string); ok && brewerRef != "" {
-						if c, err := ResolveATURI(brewerRef); err == nil {
-							recipe.BrewerRKey = c.RKey
+						if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+							recipe.BrewerRKey = rkey
 						}
 						if brewerWR := s.getWitnessRecordByURI(ctx, brewerRef); brewerWR != nil {
 							if brewerMap, err := witnessRecordToMap(brewerWR); err == nil {
@@ -229,23 +229,23 @@ func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *ara
 // ExtractBrewRefRKeys extracts rkeys from AT-URI references in a brew record's raw values.
 func ExtractBrewRefRKeys(brew *arabica.Brew, record map[string]any) {
 	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
-		if c, err := ResolveATURI(beanRef); err == nil {
-			brew.BeanRKey = c.RKey
+		if rkey := atp.RKeyFromURI(beanRef); rkey != "" {
+			brew.BeanRKey = rkey
 		}
 	}
 	if grinderRef, _ := record["grinderRef"].(string); grinderRef != "" {
-		if c, err := ResolveATURI(grinderRef); err == nil {
-			brew.GrinderRKey = c.RKey
+		if rkey := atp.RKeyFromURI(grinderRef); rkey != "" {
+			brew.GrinderRKey = rkey
 		}
 	}
 	if brewerRef, _ := record["brewerRef"].(string); brewerRef != "" {
-		if c, err := ResolveATURI(brewerRef); err == nil {
-			brew.BrewerRKey = c.RKey
+		if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+			brew.BrewerRKey = rkey
 		}
 	}
 	if recipeRef, _ := record["recipeRef"].(string); recipeRef != "" {
-		if c, err := ResolveATURI(recipeRef); err == nil {
-			brew.RecipeRKey = c.RKey
+		if rkey := atp.RKeyFromURI(recipeRef); rkey != "" {
+			brew.RecipeRKey = rkey
 		}
 	}
 }
@@ -607,8 +607,8 @@ func (s *AtprotoStore) resolveBeanRefs(ctx context.Context, bean *arabica.Bean, 
 	if !ok || roasterRef == "" {
 		return
 	}
-	if components, err := ResolveATURI(roasterRef); err == nil {
-		bean.RoasterRKey = components.RKey
+	if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
+		bean.RoasterRKey = rkey
 	}
 	// Try witness cache first
 	if wr := s.getWitnessRecordByURI(ctx, roasterRef); wr != nil {
@@ -639,8 +639,8 @@ func extractBeanRoasterRKey(bean *arabica.Bean, record map[string]any) {
 	if !ok || roasterRef == "" {
 		return
 	}
-	if components, err := ResolveATURI(roasterRef); err == nil {
-		bean.RoasterRKey = components.RKey
+	if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
+		bean.RoasterRKey = rkey
 	}
 }
 
@@ -1052,8 +1052,8 @@ func (s *AtprotoStore) resolveRecipeRefs(ctx context.Context, recipe *arabica.Re
 	if !ok || brewerRef == "" {
 		return
 	}
-	if components, err := ResolveATURI(brewerRef); err == nil {
-		recipe.BrewerRKey = components.RKey
+	if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+		recipe.BrewerRKey = rkey
 	}
 	if wr := s.getWitnessRecordByURI(ctx, brewerRef); wr != nil {
 		if m, err := witnessRecordToMap(wr); err == nil {
@@ -1079,8 +1079,8 @@ func extractRecipeBrewerRKey(recipe *arabica.Recipe, record map[string]any) {
 	if !ok || brewerRef == "" {
 		return
 	}
-	if components, err := ResolveATURI(brewerRef); err == nil {
-		recipe.BrewerRKey = components.RKey
+	if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+		recipe.BrewerRKey = rkey
 	}
 }
 
@@ -1303,8 +1303,8 @@ func (s *AtprotoStore) ListUserLikes(ctx context.Context) ([]*arabica.Like, erro
 		}
 
 		// Extract rkey from URI
-		if components, err := ResolveATURI(rec.URI); err == nil {
-			like.RKey = components.RKey
+		if rkey := atp.RKeyFromURI(rec.URI); rkey != "" {
+			like.RKey = rkey
 		}
 
 		likes = append(likes, like)
@@ -1409,8 +1409,8 @@ func (s *AtprotoStore) ListUserComments(ctx context.Context) ([]*arabica.Comment
 		}
 
 		// Extract rkey from URI
-		if components, err := ResolveATURI(rec.URI); err == nil {
-			comment.RKey = components.RKey
+		if rkey := atp.RKeyFromURI(rec.URI); rkey != "" {
+			comment.RKey = rkey
 		}
 
 		comments = append(comments, comment)

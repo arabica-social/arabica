@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,14 +8,14 @@ import (
 	"testing"
 
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func authenticatedRequest(did string) *http.Request {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
-	ctx := context.WithValue(req.Context(), "atp_did", did)
-	return req.WithContext(ctx)
+	return req.WithContext(atpmiddleware.ContextWithAuth(req.Context(), did, "test-session"))
 }
 
 func unauthenticatedRequest() *http.Request {

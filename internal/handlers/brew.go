@@ -453,8 +453,8 @@ func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *arabica.
 					bean.RKey = wr.RKey
 					// Resolve roaster
 					if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
-						if c, err := atproto.ResolveATURI(roasterRef); err == nil {
-							bean.RoasterRKey = c.RKey
+						if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
+							bean.RoasterRKey = rkey
 						}
 						if rwr, _ := h.witnessCache.GetWitnessRecord(ctx, roasterRef); rwr != nil {
 							if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
@@ -503,8 +503,8 @@ func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *arabica.
 					recipe.RKey = wr.RKey
 					// Resolve recipe's brewer
 					if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
-						if c, err := atproto.ResolveATURI(brewerRef); err == nil {
-							recipe.BrewerRKey = c.RKey
+						if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+							recipe.BrewerRKey = rkey
 						}
 						if bwr, _ := h.witnessCache.GetWitnessRecord(ctx, brewerRef); bwr != nil {
 							if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {

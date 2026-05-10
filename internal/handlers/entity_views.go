@@ -372,8 +372,8 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 			}
 			bean.RKey = rkey
 			if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
-				if c, err := atproto.ResolveATURI(roasterRef); err == nil {
-					bean.RoasterRKey = c.RKey
+				if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
+					bean.RoasterRKey = rkey
 				}
 				if h.witnessCache != nil {
 					if rwr, _ := h.witnessCache.GetWitnessRecord(ctx, roasterRef); rwr != nil {
@@ -395,11 +395,8 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 			}
 			bean.RKey = rkey
 			if roasterRef, ok := e.Value["roasterRef"].(string); ok && roasterRef != "" {
-				if c, err := atproto.ResolveATURI(roasterRef); err == nil {
-					bean.RoasterRKey = c.RKey
-				}
-				roasterRKey := atp.RKeyFromURI(roasterRef)
-				if roasterRKey != "" {
+				if roasterRKey := atp.RKeyFromURI(roasterRef); roasterRKey != "" {
+					bean.RoasterRKey = roasterRKey
 					pub := atproto.NewPublicClient()
 					if rr, err := pub.GetRecord(ctx, ownerDID, arabica.NSIDRoaster, roasterRKey); err == nil {
 						if roaster, err := arabica.RecordToRoaster(rr.Value, rr.URI); err == nil {
@@ -505,8 +502,8 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 						subjectCID = wr.CID
 						// Resolve brewer from witness
 						if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
-							if c, err := atproto.ResolveATURI(brewerRef); err == nil {
-								recipe.BrewerRKey = c.RKey
+							if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+								recipe.BrewerRKey = rkey
 							}
 							if bwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerRef); bwr != nil {
 								if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
@@ -547,11 +544,8 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 
 			// Resolve brewer reference if present
 			if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
-				if c, err := atproto.ResolveATURI(brewerRef); err == nil {
-					recipe.BrewerRKey = c.RKey
-				}
-				brewerRKey := atp.RKeyFromURI(brewerRef)
-				if brewerRKey != "" {
+				if brewerRKey := atp.RKeyFromURI(brewerRef); brewerRKey != "" {
+					recipe.BrewerRKey = brewerRKey
 					brewerRecord, err := publicClient.GetRecord(r.Context(), entityOwnerDID, arabica.NSIDBrewer, brewerRKey)
 					if err == nil {
 						if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
@@ -636,10 +630,10 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 
 	// Resolve source recipe provenance if this is a fork
 	if props.Recipe.SourceRef != "" {
-		if sourceComponents, err := atproto.ResolveATURI(props.Recipe.SourceRef); err == nil {
+		if srcURI, err := atp.ParseATURI(props.Recipe.SourceRef); err == nil {
 			// Build a view URL for the source recipe
-			sourceOwner := sourceComponents.DID
-			if profile, err := h.feedIndex.GetProfile(r.Context(), sourceComponents.DID); err == nil && profile != nil {
+			sourceOwner := srcURI.DID
+			if profile, err := h.feedIndex.GetProfile(r.Context(), srcURI.DID); err == nil && profile != nil {
 				sourceOwner = profile.Handle
 				if profile.DisplayName != nil && *profile.DisplayName != "" {
 					props.SourceRecipeAuthor = *profile.DisplayName
@@ -647,7 +641,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 					props.SourceRecipeAuthor = profile.Handle
 				}
 			}
-			props.SourceRecipeURL = fmt.Sprintf("/recipes/%s?owner=%s", sourceComponents.RKey, sourceOwner)
+			props.SourceRecipeURL = fmt.Sprintf("/recipes/%s?owner=%s", srcURI.RKey, sourceOwner)
 		}
 	}
 

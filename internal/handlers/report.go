@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
+	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
 )
@@ -79,12 +79,12 @@ func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the subject URI to get the content owner's DID
-	uriComponents, err := atproto.ResolveATURI(req.SubjectURI)
+	uriParts, err := atp.ParseATURI(req.SubjectURI)
 	if err != nil {
 		writeReportError(w, "Invalid subject_uri format", http.StatusBadRequest)
 		return
 	}
-	subjectDID := uriComponents.DID
+	subjectDID := uriParts.DID
 
 	// Prevent self-reporting
 	if subjectDID == reporterDID {

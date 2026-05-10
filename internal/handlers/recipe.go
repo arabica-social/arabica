@@ -547,11 +547,11 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recip
 
 		pr := parsedRecord{uri: records[i].URI, did: records[i].DID, data: recordData, recipe: recipe}
 		if recipe.SourceRef != "" {
-			if c, err := atproto.ResolveATURI(recipe.SourceRef); err == nil {
-				pr.sourceDID = c.DID
-				pr.sourceRKey = c.RKey
+			if srcURI, err := atp.ParseATURI(recipe.SourceRef); err == nil {
+				pr.sourceDID = srcURI.DID
+				pr.sourceRKey = srcURI.RKey
 				pr.sourceRef = recipe.SourceRef
-				didSet[c.DID] = struct{}{}
+				didSet[srcURI.DID] = struct{}{}
 			}
 		}
 		parsed = append(parsed, pr)
@@ -607,8 +607,8 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recip
 
 		// Resolve brewer reference from the record data
 		if brewerRef, ok := pr.data["brewerRef"].(string); ok && brewerRef != "" {
-			if c, parseErr := atproto.ResolveATURI(brewerRef); parseErr == nil {
-				recipe.BrewerRKey = c.RKey
+			if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+				recipe.BrewerRKey = rkey
 			}
 			if brewerRec, ok := brewerRecords[brewerRef]; ok {
 				var brewerData map[string]any
