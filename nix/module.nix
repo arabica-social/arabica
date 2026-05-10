@@ -266,65 +266,65 @@ in
     # reads <APP>_PORT, <APP>_PUBLIC_URL, <APP>_OAUTH_*, <APP>_DATA_DIR,
     # <APP>_METRICS_PORT, <APP>_BIND_ADDR — where <APP> is the
     # uppercase teaName ("OOLONG" today).
-    oolong = {
-      port = lib.mkOption {
-        type = lib.types.port;
-        default = 18920;
-        description = "Port on which the tea (oolong) server listens.";
-      };
-
-      bindAddr = lib.mkOption {
-        type = lib.types.str;
-        default = "0.0.0.0";
-        description = "Bind address for the tea (oolong) HTTP listener.";
-      };
-
-      metricsPort = lib.mkOption {
-        type = lib.types.port;
-        default = 9102;
-        description = "Localhost-only Prometheus metrics port for the tea app.";
-      };
-
-      publicUrl = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = ''
-          Public-facing URL of the tea server (e.g. https://oolong.social).
-          Used for absolute URLs in OpenGraph metadata and OAuth callbacks
-          when the corresponding oauth.* options are unset.
-        '';
-        example = "https://oolong.social";
-      };
-
-      dataDir = lib.mkOption {
-        type = lib.types.path;
-        default = "/var/lib/oolong";
-        description = "Data directory for the tea app.";
-      };
-
-      oauth = {
-        clientId = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-          description = ''
-            OAuth client ID for the tea app. If null, the binary falls
-            back to localhost development mode for the tea listener.
-          '';
-        };
-
-        redirectUri = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-          description = "OAuth redirect URI for the tea app.";
-        };
-      };
-
-      openFirewall = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Whether to open the firewall for the tea app's HTTP port.";
-      };
-    };
+    # oolong = {
+    #   port = lib.mkOption {
+    #     type = lib.types.port;
+    #     default = 18920;
+    #     description = "Port on which the tea (oolong) server listens.";
+    #   };
+    #
+    #   bindAddr = lib.mkOption {
+    #     type = lib.types.str;
+    #     default = "0.0.0.0";
+    #     description = "Bind address for the tea (oolong) HTTP listener.";
+    #   };
+    #
+    #   metricsPort = lib.mkOption {
+    #     type = lib.types.port;
+    #     default = 9102;
+    #     description = "Localhost-only Prometheus metrics port for the tea app.";
+    #   };
+    #
+    #   publicUrl = lib.mkOption {
+    #     type = lib.types.nullOr lib.types.str;
+    #     default = null;
+    #     description = ''
+    #       Public-facing URL of the tea server (e.g. https://oolong.social).
+    #       Used for absolute URLs in OpenGraph metadata and OAuth callbacks
+    #       when the corresponding oauth.* options are unset.
+    #     '';
+    #     example = "https://oolong.social";
+    #   };
+    #
+    #   dataDir = lib.mkOption {
+    #     type = lib.types.path;
+    #     default = "/var/lib/oolong";
+    #     description = "Data directory for the tea app.";
+    #   };
+    #
+    #   oauth = {
+    #     clientId = lib.mkOption {
+    #       type = lib.types.nullOr lib.types.str;
+    #       default = null;
+    #       description = ''
+    #         OAuth client ID for the tea app. If null, the binary falls
+    #         back to localhost development mode for the tea listener.
+    #       '';
+    #     };
+    #
+    #     redirectUri = lib.mkOption {
+    #       type = lib.types.nullOr lib.types.str;
+    #       default = null;
+    #       description = "OAuth redirect URI for the tea app.";
+    #     };
+    #   };
+    #
+    #   openFirewall = lib.mkOption {
+    #     type = lib.types.bool;
+    #     default = false;
+    #     description = "Whether to open the firewall for the tea app's HTTP port.";
+    #   };
+    # };
 
     user = lib.mkOption {
       type = lib.types.str;
