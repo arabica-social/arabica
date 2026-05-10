@@ -39,7 +39,7 @@ templ BrewListTablePartial(props BrewListTableProps) {
 				<!-- Load More button — replaces itself with next batch -->
 				<div
 					id="brew-list-load-more"
-					hx-get={ templ.URL(fmt.Sprintf("/api/brews?offset=%d&limit=25", props.NextOffset)) }
+					hx-get={ templ.SafeURL(fmt.Sprintf("/api/brews?offset=%d&limit=25", props.NextOffset)) }
 					hx-target="#brew-list-load-more"
 					hx-swap="outerHTML"
 					class="text-center py-4"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
@@ -537,6 +538,13 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	publicClient := atproto.NewPublicClient()
 
+	// Parse pagination params for brews tab
+	brewsOffset, _ := strconv.Atoi(r.URL.Query().Get("brews_offset"))
+	brewsLimit, _ := strconv.Atoi(r.URL.Query().Get("brews_limit"))
+	if brewsLimit <= 0 || brewsLimit > 100 {
+		brewsLimit = 25
+	}
+
 	// Determine if actor is a DID or handle
 	var did string
 	var err error
@@ -616,8 +624,9 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		profileHandle = did // Fallback to DID if we can't get handle
 	}
 
-	// Get like counts and CIDs for brews from firehose index
+	// Get like counts, comment counts, and CIDs for brews from firehose index
 	brewLikeCounts := make(map[string]int)
+	brewCommentCounts := make(map[string]int)
 	brewLikedByUser := make(map[string]bool)
 	brewCIDs := make(map[string]string)
 	var beanBrewCounts, grinderBrewCounts, brewerBrewCounts, roasterBeanCounts map[string]int
@@ -632,13 +641,14 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 			uriToRKey[uri] = brew.RKey
 		}
 
-		// Batch fetch like counts, liked status, and records
+		// Batch fetch like counts, liked status, records, and comment counts
 		batchLikes := h.feedIndex.GetLikeCountsBatch(ctx, brewURIs)
 		batchRecords := h.feedIndex.GetRecordsBatch(ctx, brewURIs)
 		var batchLiked map[string]bool
 		if isAuthenticated {
 			batchLiked = h.feedIndex.HasUserLikedBatch(ctx, didStr, brewURIs)
 		}
+		batchComments := h.feedIndex.GetCommentCountsBatch(ctx, brewURIs)
 
 		for uri, rkey := range uriToRKey {
 			brewLikeCounts[rkey] = batchLikes[uri]
@@ -648,6 +658,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 			if rec, ok := batchRecords[uri]; ok {
 				brewCIDs[rkey] = rec.CID
 			}
+			brewCommentCounts[rkey] = batchComments[uri]
 		}
 
 		// Entity usage counts
@@ -672,6 +683,40 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Apply pagination to brews (brews are already sorted newest-first)
+	totalBrews := len(profileData.Brews)
+	brewEnd := brewsOffset + brewsLimit
+	if brewEnd > totalBrews {
+		brewEnd = totalBrews
+	}
+	brewsHasMore := brewEnd < totalBrews
+	if brewsOffset < totalBrews {
+		profileData.Brews = profileData.Brews[brewsOffset:brewEnd]
+	} else {
+		profileData.Brews = nil
+	}
+
+	// On load-more requests (offset > 0), render just the brew cards fragment
+	if brewsOffset > 0 {
+		if err := components.ProfileBrewCards(components.ProfileBrewCardsProps{
+			Brews:           profileData.Brews,
+			IsOwnProfile:    isOwnProfile,
+			ProfileHandle:   profileHandle,
+			Profile:         profile,
+			LikeCounts:      brewLikeCounts,
+			CommentCounts:   brewCommentCounts,
+			LikedByUser:     brewLikedByUser,
+			BrewCIDs:        brewCIDs,
+			IsAuthenticated: isAuthenticated,
+			HasMore:         brewsHasMore,
+			NextOffset:      brewEnd,
+		}).Render(r.Context(), w); err != nil {
+			http.Error(w, "Failed to render content", http.StatusInternalServerError)
+			log.Error().Err(err).Msg("Failed to render profile brew cards")
+		}
+		return
+	}
+
 	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
 		Brews:                 profileData.Brews,
 		Beans:                 profileData.Beans,
@@ -682,6 +727,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		ProfileHandle:         profileHandle,
 		Profile:               profile,
 		BrewLikeCounts:        brewLikeCounts,
+		BrewCommentCounts:     brewCommentCounts,
 		BrewLikedByUser:       brewLikedByUser,
 		BrewCIDs:              brewCIDs,
 		IsAuthenticated:       isAuthenticated,
@@ -692,6 +738,8 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		BeanAvgBrewRatings:    beanAvgBrewRatings,
 		RoasterAvgBrewRatings: roasterAvgBrewRatings,
 		ProfileDID:            did,
+		BrewsHasMore:          brewsHasMore,
+		BrewsNextOffset:       brewEnd,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile partial")

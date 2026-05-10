@@ -1,6 +1,7 @@
 package components
 
 import (
+	"fmt"
 	"strconv"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
@@ -32,6 +33,9 @@ type ProfileContentPartialProps struct {
 	BeanAvgBrewRatings    map[string]float64 // bean URI -> avg brew rating
 	RoasterAvgBrewRatings map[string]float64 // roaster URI -> avg brew rating
 	ProfileDID            string             // DID of the profile being viewed
+	// Brew pagination
+	BrewsHasMore    bool
+	BrewsNextOffset int
 }
 
 // ProfileContentPartial renders the profile tabs content (for HTMX loading)
@@ -50,6 +54,8 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 			LikedByUser:     props.BrewLikedByUser,
 			BrewCIDs:        props.BrewCIDs,
 			IsAuthenticated: props.IsAuthenticated,
+			HasMore:         props.BrewsHasMore,
+			NextOffset:      props.BrewsNextOffset,
 		})
 	</div>
 	<!-- Beans Tab -->
@@ -196,6 +202,8 @@ type ProfileBrewCardsProps struct {
 	LikedByUser     map[string]bool
 	IsAuthenticated bool
 	BrewCIDs        map[string]string // CIDs keyed by brew RKey
+	HasMore         bool
+	NextOffset      int
 }
 
 // ProfileBrewCards renders brews as feed-style cards
@@ -226,6 +234,18 @@ templ ProfileBrewCards(props ProfileBrewCardsProps) {
 					IsAuthenticated: props.IsAuthenticated,
 					SubjectCID:      getBrewCID(props.BrewCIDs, brew.RKey),
 				})
+			}
+			if props.HasMore {
+				<!-- Load More button — replaces itself with next batch -->
+				<div
+					id="profile-brews-load-more"
+					hx-get={ templ.SafeURL(fmt.Sprintf("/api/profile/%s?brews_offset=%d&brews_limit=25", props.ProfileHandle, props.NextOffset)) }
+					hx-target="#profile-brews-load-more"
+					hx-swap="outerHTML"
+					class="text-center py-4"
+				>
+					<button class="btn-secondary px-6 py-2">Load More</button>
+				</div>
 			}
 		</div>
 	}
