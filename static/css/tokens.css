@@ -1,0 +1,389 @@
+/* ========================================
+   tokens.css — Design Tokens
+   ========================================
+   Palette tokens, semantic tokens, and type-tag tokens.
+   Theme-aware tokens swap values in dark-mode blocks below.
+   ======================================== */
+
+/* ========================================
+   PaletteToken — frozen across themes
+   ======================================== */
+:root {
+  --brand-brown-50:  #fdf8f6;
+  --brand-brown-100: #f2e8e5;
+  --brand-brown-200: #eaddd7;
+  --brand-brown-300: #e0cec7;
+  --brand-brown-400: #d2bab0;
+  --brand-brown-500: #bfa094;
+  --brand-brown-600: #7f5539;
+  --brand-brown-700: #6b4423;
+  --brand-brown-800: #4a2c2a;
+  --brand-brown-900: #3d2319;
+  --brand-brown-950: #2a1610;
+
+  --brand-amber-50:  #fffbeb;
+  --brand-amber-100: #fef3c7;
+  --brand-amber-200: #fde68a;
+  --brand-amber-300: #fcd34d;
+  --brand-amber-400: #fbbf24;
+  --brand-amber-500: #f59e0b;
+  --brand-amber-600: #d97706;
+  --brand-amber-700: #b45309;
+  --brand-amber-800: #92400e;
+  --brand-amber-900: #78350f;
+
+  --brand-red-50:  #fef2f2;
+  --brand-red-100: #fee2e2;
+  --brand-red-200: #fecaca;
+  --brand-red-300: #fca5a5;
+  --brand-red-400: #f87171;
+  --brand-red-500: #ef4444;
+  --brand-red-600: #dc2626;
+  --brand-red-700: #b91c1c;
+  --brand-red-800: #991b1b;
+  --brand-red-900: #7f1d1d;
+
+  --brand-green-100: #dcfce7;
+  --brand-green-200: #bbf7d0;
+  --brand-green-500: #22c55e;
+  --brand-green-600: #16a34a;
+  --brand-green-700: #15803d;
+  --brand-green-800: #166534;
+
+  --brand-blue-100: #dbeafe;
+  --brand-blue-200: #bfdbfe;
+  --brand-blue-400: #60a5fa;
+  --brand-blue-700: #1d4ed8;
+  --brand-blue-800: #1e40af;
+
+  --brand-purple-100: #f3e8ff;
+  --brand-purple-200: #e9d5ff;
+  --brand-purple-700: #7e22ce;
+  --brand-purple-800: #6b21a8;
+
+  --brand-gray-100: #f3f4f6;
+  --brand-gray-800: #1f2937;
+
+  --brand-cream-50: #FAF7F5;
+}
+
+/* ========================================
+   Texture & Surface Tokens
+   ======================================== */
+:root {
+  /* Corkboard — organic, fine-grained, warm */
+  --texture-cork: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.3 0 0 0 0.15 0.2 0 0 0 0.08 0.1 0 0 0 0.02 0 0 0 0.15 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23c)'/%3E%3C/svg%3E");
+  /* Feed board — warm cork brown */
+  --feed-board-bg: #C4A882;
+  --feed-board-border: #B09470;
+  /* Sticky note base — warm off-white */
+  --feed-card-bg: #FFFDF5;
+  /* Dot-grid + kraft — defined once per theme, theme blocks just swap the active alias */
+  --texture-dotgrid-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%23d2bab0' fill-opacity='0.35'/%3E%3C/svg%3E");
+  --texture-dotgrid-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%235A4A40' fill-opacity='0.4'/%3E%3C/svg%3E");
+  --texture-kraft-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.15 0 0 0 0.1 0.1 0 0 0 0.06 0.05 0 0 0 0.02 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+  --texture-kraft-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.08 0 0 0 0.04 0.06 0 0 0 0.03 0.03 0 0 0 0.01 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+  --texture-dotgrid: var(--texture-dotgrid-light);
+  --texture-kraft: var(--texture-kraft-light);
+  /* Journal paper — warm cream */
+  --journal-bg: #FFFDF5;
+  /* Kraft — slightly warmer/darker than card bg */
+  --kraft-bg: #F7F0E8;
+}
+
+/* ========================================
+   SemanticToken — Light theme (default)
+   ======================================== */
+:root {
+  /* Page */
+  --page-bg: #FAF7F5;
+  --page-text: #3d2319;
+
+  /* Cards */
+  --card-bg: #FFFFFF;
+  --card-border: #eaddd7;
+  --card-shadow: rgba(61, 35, 25, 0.06);
+  --card-shadow-hover: rgba(61, 35, 25, 0.10);
+
+  /* Surfaces (inset areas inside cards) */
+  --surface-bg: rgba(250, 247, 245, 0.5);
+  --surface-border: #f2e8e5;
+
+  /* Header */
+  --header-bg-from: #4a2c2a;
+  --header-bg-to: #3d2319;
+  --header-border: #7f5539;
+  --header-text: #FAF7F5;
+
+  /* Text hierarchy */
+  --text-primary: #3d2319;
+  --text-secondary: #4a2c2a;
+  --text-muted: #7f5539;
+  --text-faint: #bfa094;
+  --text-placeholder: #d2bab0;
+
+  /* Interactive */
+  --btn-primary-bg: #4a2c2a;
+  --btn-primary-bg-hover: #3d2319;
+  --btn-primary-text: #FAF7F5;
+  --btn-secondary-bg: #FFFFFF;
+  --btn-secondary-border: #e0cec7;
+  --btn-secondary-text: #6b4423;
+  --btn-secondary-bg-hover: #FAF7F5;
+
+  /* Forms */
+  --input-bg: #FFFFFF;
+  --input-border: #e0cec7;
+  --input-border-focus: #7f5539;
+  --input-ring-focus: rgba(127, 85, 57, 0.15);
+  --input-bg-focus: rgba(250, 247, 245, 0.3);
+
+  /* Tables */
+  --table-bg: #FFFFFF;
+  --table-header-bg: #FAF7F5;
+  --table-border: #eaddd7;
+  --table-row-hover: #FAF7F5;
+  --table-divider: #f2e8e5;
+
+  /* Modals */
+  --modal-bg: #FFFFFF;
+  --modal-border: #eaddd7;
+  --modal-backdrop: rgba(0, 0, 0, 0.4);
+
+  /* Avatar ring */
+  --avatar-ring: #6b4423;
+  --avatar-ring-hover: #4a2c2a;
+
+  /* TypeTagToken — entity-type accent colors */
+  --type-brew: #6b4423;
+  --type-bean: #b45309;
+  --type-recipe: #a0522d;
+  --type-roaster: #92400e;
+  --type-grinder: #78716c;
+  --type-brewer: #5b6e4e;
+
+  /* Type background tints */
+  --type-brew-tint: rgba(107, 68, 35, 0.14);
+  --type-bean-tint: rgba(180, 83, 9, 0.12);
+  --type-recipe-tint: rgba(160, 82, 45, 0.12);
+  --type-roaster-tint: rgba(146, 64, 14, 0.12);
+  --type-grinder-tint: rgba(120, 113, 108, 0.10);
+  --type-brewer-tint: rgba(91, 110, 78, 0.12);
+
+  /* Rating badges */
+  --rating-bg: #fef3c7;
+  --rating-text: #78350f;
+
+  /* Status text — danger / success */
+  --text-danger: #b91c1c;
+  --text-success: #15803d;
+
+  /* Alerts/warnings */
+  --alert-warning-bg: #fffbeb;
+  --alert-warning-border: #fbbf24;
+  --alert-warning-text: #78350f;
+  --alert-warning-text-muted: #92400e;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px var(--card-shadow);
+  --shadow-md: 0 4px 12px var(--card-shadow-hover);
+  --shadow-lg: 0 10px 25px var(--card-shadow-hover);
+
+  /* Footer */
+  --footer-bg: #FAF7F5;
+  --footer-border: #eaddd7;
+}
+
+/* ========================================
+   Dark theme — via OS preference
+   ======================================== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Page */
+    --page-bg: #0F0A08;
+    --page-text: #FAF7F5;
+
+    /* Cards */
+    --card-bg: #1C1210;
+    --card-border: #2E211B;
+    --card-shadow: rgba(0, 0, 0, 0.3);
+    --card-shadow-hover: rgba(0, 0, 0, 0.4);
+
+    /* Surfaces (inset areas inside cards) */
+    --surface-bg: rgba(36, 26, 22, 0.6);
+    --surface-border: #2E211B;
+
+    /* Journal/label page backgrounds */
+    --texture-dotgrid: var(--texture-dotgrid-dark);
+    --texture-kraft: var(--texture-kraft-dark);
+    --journal-bg: #1A1210;
+    --kraft-bg: #201814;
+
+    /* Feed board — noticeably lighter than cards for contrast */
+    --feed-board-bg: #3D2D22;
+    --feed-board-border: #4A3828;
+    /* Sticky notes — dark, sitting on the lighter board */
+    --feed-card-bg: #1A1210;
+
+    /* Header */
+    --header-bg-from: #0F0A08;
+    --header-bg-to: #0F0A08;
+    --header-border: #2E211B;
+    --header-text: #FAF7F5;
+
+    /* Text hierarchy */
+    --text-primary: #FAF7F5;
+    --text-secondary: #E0CEC4;
+    --text-muted: #C4A898;
+    --text-faint: #8B7265;
+    --text-placeholder: #5A4A40;
+
+    /* Interactive */
+    --btn-primary-bg: #7f5539;
+    --btn-primary-bg-hover: #6b4423;
+    --btn-primary-text: #FAF7F5;
+    --btn-secondary-bg: #241A16;
+    --btn-secondary-border: #3D2D24;
+    --btn-secondary-text: #E0CEC4;
+    --btn-secondary-bg-hover: #2E211B;
+
+    /* Forms */
+    --input-bg: #241A16;
+    --input-border: #3D2D24;
+    --input-border-focus: #fbbf24;
+    --input-ring-focus: rgba(251, 191, 36, 0.15);
+    --input-bg-focus: rgba(36, 26, 22, 0.8);
+
+    /* Tables */
+    --table-bg: #1C1210;
+    --table-header-bg: #241A16;
+    --table-border: #2E211B;
+    --table-row-hover: #241A16;
+    --table-divider: #241A16;
+
+    /* Modals */
+    --modal-bg: #1C1210;
+    --modal-border: #2E211B;
+    --modal-backdrop: rgba(0, 0, 0, 0.6);
+
+    /* Avatar ring */
+    --avatar-ring: #3D2D24;
+    --avatar-ring-hover: #5A4A40;
+
+    /* TypeTagToken — entity-type accent colors */
+    --type-brew: #a67c52;
+    --type-bean: #d97706;
+    --type-recipe: #c4724a;
+    --type-roaster: #c2610e;
+    --type-grinder: #a8a29e;
+    --type-brewer: #8ba37a;
+
+    /* Type background tints */
+    --type-brew-tint: rgba(166, 124, 82, 0.18);
+    --type-bean-tint: rgba(217, 119, 6, 0.15);
+    --type-recipe-tint: rgba(196, 114, 74, 0.15);
+    --type-roaster-tint: rgba(194, 97, 14, 0.15);
+    --type-grinder-tint: rgba(168, 162, 158, 0.12);
+    --type-brewer-tint: rgba(139, 163, 122, 0.15);
+
+    /* Rating badges */
+    --rating-bg: rgba(251, 191, 36, 0.15);
+    --rating-text: #fbbf24;
+
+    /* Status text — danger / success */
+    --text-danger: #fca5a5;
+    --text-success: #86efac;
+
+    /* Alerts/warnings */
+    --alert-warning-bg: rgba(251, 191, 36, 0.08);
+    --alert-warning-border: rgba(251, 191, 36, 0.3);
+    --alert-warning-text: #fde68a;
+    --alert-warning-text-muted: #fcd34d;
+
+    /* Shadows - darker, less visible on dark bg */
+    --shadow-sm: 0 1px 3px var(--card-shadow);
+    --shadow-md: 0 4px 12px var(--card-shadow-hover);
+    --shadow-lg: 0 10px 25px var(--card-shadow-hover);
+
+    /* Footer */
+    --footer-bg: #0F0A08;
+    --footer-border: #2E211B;
+  }
+}
+
+/* ========================================
+   Dark theme — forced via data-theme="dark"
+   ======================================== */
+:root[data-theme="dark"] {
+  --page-bg: #0F0A08;
+  --page-text: #FAF7F5;
+  --card-bg: #1C1210;
+  --card-border: #2E211B;
+  --card-shadow: rgba(0, 0, 0, 0.3);
+  --card-shadow-hover: rgba(0, 0, 0, 0.4);
+  --surface-bg: rgba(36, 26, 22, 0.6);
+  --surface-border: #2E211B;
+  --feed-board-bg: #3D2D22;
+  --feed-board-border: #4A3828;
+  --feed-card-bg: #1A1210;
+  --texture-dotgrid: var(--texture-dotgrid-dark);
+  --texture-kraft: var(--texture-kraft-dark);
+  --journal-bg: #1A1210;
+  --kraft-bg: #201814;
+  --header-bg-from: #0F0A08;
+  --header-bg-to: #0F0A08;
+  --header-border: #2E211B;
+  --header-text: #FAF7F5;
+  --text-primary: #FAF7F5;
+  --text-secondary: #E0CEC4;
+  --text-muted: #C4A898;
+  --text-faint: #8B7265;
+  --text-placeholder: #5A4A40;
+  --btn-primary-bg: #7f5539;
+  --btn-primary-bg-hover: #6b4423;
+  --btn-primary-text: #FAF7F5;
+  --btn-secondary-bg: #241A16;
+  --btn-secondary-border: #3D2D24;
+  --btn-secondary-text: #E0CEC4;
+  --btn-secondary-bg-hover: #2E211B;
+  --input-bg: #241A16;
+  --input-border: #3D2D24;
+  --input-border-focus: #fbbf24;
+  --input-ring-focus: rgba(251, 191, 36, 0.15);
+  --input-bg-focus: rgba(36, 26, 22, 0.8);
+  --table-bg: #1C1210;
+  --table-header-bg: #241A16;
+  --table-border: #2E211B;
+  --table-row-hover: #241A16;
+  --table-divider: #241A16;
+  --modal-bg: #1C1210;
+  --modal-border: #2E211B;
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
+  --avatar-ring: #3D2D24;
+  --avatar-ring-hover: #5A4A40;
+  --type-brew: #a67c52;
+  --type-bean: #d97706;
+  --type-recipe: #c4724a;
+  --type-roaster: #c2610e;
+  --type-grinder: #a8a29e;
+  --type-brewer: #8ba37a;
+  --type-brew-tint: rgba(166, 124, 82, 0.18);
+  --type-bean-tint: rgba(217, 119, 6, 0.15);
+  --type-recipe-tint: rgba(196, 114, 74, 0.15);
+  --type-roaster-tint: rgba(194, 97, 14, 0.15);
+  --type-grinder-tint: rgba(168, 162, 158, 0.12);
+  --type-brewer-tint: rgba(139, 163, 122, 0.15);
+  --rating-bg: rgba(251, 191, 36, 0.15);
+  --rating-text: #fbbf24;
+  --text-danger: #fca5a5;
+  --text-success: #86efac;
+  --alert-warning-bg: rgba(251, 191, 36, 0.08);
+  --alert-warning-border: rgba(251, 191, 36, 0.3);
+  --alert-warning-text: #fde68a;
+  --alert-warning-text-muted: #fcd34d;
+  --shadow-sm: 0 1px 3px var(--card-shadow);
+  --shadow-md: 0 4px 12px var(--card-shadow-hover);
+  --shadow-lg: 0 10px 25px var(--card-shadow-hover);
+  --footer-bg: #0F0A08;
+  --footer-border: #2E211B;
+}
