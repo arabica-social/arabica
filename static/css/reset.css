@@ -1,0 +1,148 @@
+/* ========================================
+   reset.css — Preflight-equivalent
+   ========================================
+   Minimal reset based on Tailwind v4 Preflight.
+   ======================================== */
+
+/* Box-sizing border-box by default */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Remove default margin */
+html,
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ol,
+ul,
+li,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+/* Set core body defaults */
+body {
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove list styling */
+ol,
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+/* Make images easier to work with */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* Inherit fonts for form elements */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* Remove default button styling */
+button {
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Remove default link styling */
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/* Reset heading font weight */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Remove textarea resize default */
+textarea {
+  resize: vertical;
+}
+
+/* Reset all scrolling to auto */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Default border color shim */
+*,
+::after,
+::before,
+::file-selector-button {
+  border-color: var(--card-border, currentcolor);
+}
+
+/* h1-h3 font-weight from app.css base layer */
+h1, h2, h3 {
+  font-weight: 600;
+}
+
+/* 44px touch targets for interactive elements */
+button,
+input[type="submit"],
+input[type="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Filter pills opt out of the 44px touch target */
+[class*="filter-pill"] {
+  min-height: auto;
+  min-width: auto;
+}
+
+/* Global keyboard focus ring */
+:focus-visible {
+  outline: 2px solid var(--input-border-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Prevent iOS zoom on input focus */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
