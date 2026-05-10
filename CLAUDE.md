@@ -137,7 +137,7 @@ The full stack for a new entity requires changes across many files. Follow the
 pattern of an existing entity (e.g., roaster for simple entities, brew for
 entities with references):
 
-1. **Lexicon JSON** in `lexicons/`
+1. **Lexicon JSON** in `lexicons/<namespace>/` (path mirrors the NSID, e.g. `lexicons/social/arabica/alpha/bean.json`)
 2. **NSID constant** in `internal/atproto/nsid.go`
 3. **RecordType constant** in `internal/lexicons/record_type.go` (const + ParseRecordType + DisplayName)
 4. **Model + request types + validation** in `internal/models/models.go`
