@@ -25,13 +25,24 @@ go test ./internal/models/... -run TestBeanIsIncomplete
 templ generate            # all files
 templ generate -f <file>  # single file
 
-# Rebuild Tailwind CSS (required after CSS/class changes)
+# Rebuild CSS bundle (required after CSS changes)
 just style
 
 # Verify after changes
 go vet ./...
 go build ./...
 ```
+
+## Version Control
+
+Prefer `jj` over `git` for all version control operations in this repo. Fall
+back to `git` only when `jj` cannot accomplish the task.
+
+Commit messages MUST follow [Conventional Commits](https://www.conventionalcommits.org/)
+(e.g. `feat:`, `fix:`, `refactor:`, `chore:`, optionally scoped like
+`feat(oolong): …`). Keep messages to the subject line only — do NOT add a long
+description unless there is something genuinely important to note (e.g. lexicon
+schema changes, breaking changes, non-obvious migrations).
 
 ## Workflow Rules
 
@@ -62,7 +73,7 @@ within 5 minutes, fall back to doing the work directly.
 
 - **Language:** Go 1.21+, stdlib `net/http` with Go 1.22 routing
 - **Storage:** AT Protocol PDS (user data), BoltDB (sessions), SQLite (firehose index)
-- **Frontend:** HTMX + Alpine.js + Tailwind CSS
+- **Frontend:** HTMX + Alpine.js + plain CSS (utility-class pattern)
 - **Templates:** [Templ](https://templ.guide/) (type-safe Go templates)
 - **Logging:** zerolog
 
@@ -215,6 +226,11 @@ When making CSS/style changes, bump the version query parameter in
 ```html
 <link rel="stylesheet" href="/static/css/output.css?v=0.1.3" />
 ```
+
+The build pipeline concatenates four source files into `output.css`:
+`tokens.css + reset.css + utilities.css + components.css`. No build step
+beyond `cat`. After editing any CSS source file, run `just style` and bump
+the cache buster.
 
 ## Testing Conventions
 
