@@ -189,13 +189,22 @@ Remove remaining duplication and thin abstractions:
 
 2. ~~**Delete `resolveRef`**~~ ✅ — done in Phase C.
 
-3. **Delete `client.go` I/O types**: `CreateRecordInput`, `GetRecordOutput`,
-   etc. are thin wrappers around `atp.Client` methods. Replace with direct
-   `atp.Client` usage. Keep only the UA/metrics constructor wiring.
+3. ~~**Delete `client.go` I/O types**~~ ✅ — All I/O types (`CreateRecordInput`,
+   `CreateRecordOutput`, `GetRecordInput`, `GetRecordOutput`, `ListRecordsInput`,
+   `ListRecordsOutput`, `PutRecordInput`, `DeleteRecordInput`) and their 6 CRUD
+   wrapper methods deleted. `store_generic.go` and `store.go` now call
+   `atpClient.GetRecord`/`CreateRecord`/`PutRecord`/`DeleteRecord` directly via
+   the `atpClient()` helper. `client.go` retains only `Client` struct,
+   constructors, `AtpClient()` factory, `NewPublicClient()`, `Profile` alias,
+   UA transport, and OTel wiring.
 
-4. **Delete `public_client.go` entirely**: Once all callers use
-   `atp.PublicClient` methods directly, the thin
-   `PublicListRecordsOutput`/`PublicRecordEntry` wrappers can go away.
+4. ~~**Delete `public_client.go` entirely**~~ ✅ — `PublicClient` struct,
+   `PublicRecordEntry`, `PublicListRecordsOutput`, and the backward-compat
+   `ListRecords`/`GetRecord`/`ListAllRecords` methods deleted. A thin
+   `NewPublicClient()` constructor (returning `*atp.PublicClient` with
+   OTel+UA transport) lives in `client.go`. All ~33 handler call sites
+   updated to use `GetPublicRecord()`/`ListPublicRecords()`/`ListAllRecords()`
+   directly from `*atp.PublicClient`.
 
 5. ~~**Delete `resolver.go`**~~ ✅ — done in Phase D.
 

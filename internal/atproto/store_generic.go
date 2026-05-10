@@ -38,14 +38,15 @@ func (s *AtprotoStore) fetchRecord(ctx context.Context, nsid, rkey string) (reco
 		metrics.WitnessCacheMissesTotal.WithLabelValues(metricLabelFor(nsid)).Inc()
 	}
 
-	output, err := s.client.GetRecord(ctx, s.did, s.sessionID, &GetRecordInput{
-		Collection: nsid,
-		RKey:       rkey,
-	})
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		return nil, "", "", false, false, fmt.Errorf("get atp client: %w", err)
+	}
+	rec, err := atpClient.GetRecord(ctx, nsid, rkey)
 	if err != nil {
 		return nil, "", "", false, false, fmt.Errorf("get record %s/%s: %w", nsid, rkey, err)
 	}
-	return output.Value, output.URI, output.CID, true, false, nil
+	return rec.Value, rec.URI, rec.CID, true, false, nil
 }
 
 // fetchAllRecords returns every record of the given NSID, hitting the
@@ -68,12 +69,16 @@ func (s *AtprotoStore) fetchAllRecords(ctx context.Context, nsid string) ([]rawR
 	}
 	metrics.WitnessCacheMissesTotal.WithLabelValues(metricLabelFor(nsid)).Inc()
 
-	output, err := s.client.ListAllRecords(ctx, s.did, s.sessionID, nsid)
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get atp client: %w", err)
+	}
+	records, err := atpClient.ListAllRecords(ctx, nsid)
 	if err != nil {
 		return nil, fmt.Errorf("list records %s: %w", nsid, err)
 	}
-	out := make([]rawRecord, 0, len(output.Records))
-	for _, rec := range output.Records {
+	out := make([]rawRecord, 0, len(records))
+	for _, rec := range records {
 		atURI, err := syntax.ParseATURI(rec.URI)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", rec.URI).Msg("list: invalid AT-URI, skipping")
@@ -90,29 +95,27 @@ func (s *AtprotoStore) fetchAllRecords(ctx context.Context, nsid string) ([]rawR
 // does not return a CID, so cid will be "". The witness cache is updated
 // write-through and the session cache is invalidated for the NSID.
 func (s *AtprotoStore) putRecord(ctx context.Context, nsid, rkey string, record any) (resultRKey, cid string, err error) {
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("get atp client: %w", err)
+	}
+
 	if rkey == "" {
-		out, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
-			Collection: nsid,
-			Record:     record,
-		})
+		newURI, newCID, err := atpClient.CreateRecord(ctx, nsid, record)
 		if err != nil {
 			return "", "", fmt.Errorf("create record %s: %w", nsid, err)
 		}
-		atURI, err := syntax.ParseATURI(out.URI)
+		atURI, err := syntax.ParseATURI(newURI)
 		if err != nil {
-			return "", "", fmt.Errorf("parse created URI %q: %w", out.URI, err)
+			return "", "", fmt.Errorf("parse created URI %q: %w", newURI, err)
 		}
 		newRKey := atURI.RecordKey().String()
-		s.writeThroughWitness(nsid, newRKey, out.CID, record)
+		s.writeThroughWitness(nsid, newRKey, newCID, record)
 		s.cache.InvalidateRecords(s.sessionID, nsid)
-		return newRKey, out.CID, nil
+		return newRKey, newCID, nil
 	}
 
-	if err := s.client.PutRecord(ctx, s.did, s.sessionID, &PutRecordInput{
-		Collection: nsid,
-		RKey:       rkey,
-		Record:     record,
-	}); err != nil {
+	if _, _, err := atpClient.PutRecord(ctx, nsid, rkey, record); err != nil {
 		return "", "", fmt.Errorf("put record %s/%s: %w", nsid, rkey, err)
 	}
 	// PutRecord does not return a CID; pass empty string to writeThroughWitness,
@@ -124,10 +127,11 @@ func (s *AtprotoStore) putRecord(ctx context.Context, nsid, rkey string, record 
 
 // removeRecord deletes from PDS, witness, and invalidates session cache.
 func (s *AtprotoStore) removeRecord(ctx context.Context, nsid, rkey string) error {
-	if err := s.client.DeleteRecord(ctx, s.did, s.sessionID, &DeleteRecordInput{
-		Collection: nsid,
-		RKey:       rkey,
-	}); err != nil {
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		return fmt.Errorf("get atp client: %w", err)
+	}
+	if err := atpClient.DeleteRecord(ctx, nsid, rkey); err != nil {
 		return fmt.Errorf("delete record %s/%s: %w", nsid, rkey, err)
 	}
 	s.deleteFromWitness(nsid, rkey)

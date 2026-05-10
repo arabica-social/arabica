@@ -1261,10 +1261,11 @@ func (s *AtprotoStore) CreateLike(ctx context.Context, req *arabica.CreateLikeRe
 		return nil, fmt.Errorf("failed to convert like to record: %w", err)
 	}
 
-	output, err := s.client.CreateRecord(ctx, s.did, s.sessionID, &CreateRecordInput{
-		Collection: arabica.NSIDLike,
-		Record:     record,
-	})
+	atpClient, err := s.atpClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get atp client: %w", err)
+	}
+	uri, cid, err := atpClient.CreateRecord(ctx, arabica.NSIDLike, record)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create like record: %w", err)
 	}
