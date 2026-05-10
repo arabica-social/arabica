@@ -889,6 +889,36 @@ func (h *Handler) HandleAdminRebuildDID(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// HandleAdminRefreshHandles re-fetches every cached profile from the AppView so
+// stale handles get corrected. A less-destructive alternative to purge+rebuild
+// when the only thing wrong with a profile is a stale handle from an identity-
+// event race. Auth and admin checks are handled by RequireAdmin.
+func (h *Handler) HandleAdminRefreshHandles(w http.ResponseWriter, r *http.Request) {
+	if h.feedIndex == nil {
+		http.Error(w, "feed index not configured", http.StatusServiceUnavailable)
+		return
+	}
+	actor, _ := atproto.GetAuthenticatedDID(r.Context())
+
+	start := time.Now()
+	refreshed, failed := h.feedIndex.RefreshAllProfiles(r.Context())
+
+	log.Info().
+		Str("actor", actor).
+		Int("refreshed", refreshed).
+		Int("failed", failed).
+		Dur("duration", time.Since(start)).
+		Msg("admin refresh handles: complete")
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"refreshed":  refreshed,
+		"failed":     failed,
+		"durationMs": time.Since(start).Milliseconds(),
+		"finishedAt": time.Now().UTC(),
+	})
+}
+
 // pdsRecord is the per-record shape in the PDS fetch payload.
 type pdsRecord struct {
 	URI    string         `json:"uri"`

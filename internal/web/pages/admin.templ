@@ -443,6 +443,31 @@ templ AdminDashboardBody(props AdminProps) {
 					</form>
 				</div>
 				<div class="card card-inner">
+					<h2 class="section-title">Refresh All Handles</h2>
+					<p class="text-sm text-brown-600 mb-4">
+						Re-fetch every cached profile from the AppView. Use this when an
+						identity-event race left a stale handle in the cache — non-destructive,
+						no records are touched.
+					</p>
+					<form
+						hx-post="/_mod/refresh-handles"
+						hx-confirm="Refresh every cached profile from the AppView?"
+						hx-swap="innerHTML"
+						hx-target="#refresh-handles-result"
+						hx-indicator="#refresh-handles-indicator"
+						class="flex flex-col gap-3 sm:flex-row sm:items-end"
+					>
+						<button
+							type="submit"
+							class="text-sm bg-brown-300 text-brown-900 hover:bg-brown-400 px-4 py-2 rounded font-medium transition-colors"
+						>
+							Refresh All Handles
+						</button>
+						<span id="refresh-handles-indicator" class="htmx-indicator text-sm text-brown-600 italic">refreshing…</span>
+					</form>
+					<div id="refresh-handles-result" class="mt-3 text-sm text-brown-700 font-mono"></div>
+				</div>
+				<div class="card card-inner">
 					<h2 class="section-title">Rebuild Witness Cache from PDS</h2>
 					<p class="text-sm text-brown-600 mb-4">
 						Re-fetch every Arabica record for a DID from their PDS and write the

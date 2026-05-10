@@ -1262,6 +1262,71 @@ func (idx *FeedIndex) RefreshProfile(ctx context.Context, did string) {
 	idx.storeProfile(ctx, did, profile)
 }
 
+// RefreshAllProfiles re-fetches every cached profile from the AppView and
+// rewrites the result to both the in-memory and persistent caches. Used as a
+// non-destructive recovery for stale handle data — anything an identity-event
+// race left behind gets corrected since AppView has caught up by the time the
+// admin runs this. Returns refreshed and failed counts. Honours ctx cancel.
+func (idx *FeedIndex) RefreshAllProfiles(ctx context.Context) (refreshed, failed int) {
+	rows, err := idx.db.QueryContext(ctx, `SELECT did FROM profiles`)
+	if err != nil {
+		log.Warn().Err(err).Msg("refresh all profiles: query failed")
+		return 0, 0
+	}
+	dids := make([]string, 0, 128)
+	for rows.Next() {
+		var did string
+		if err := rows.Scan(&did); err == nil {
+			dids = append(dids, did)
+		}
+	}
+	rows.Close()
+
+	log.Info().Int("count", len(dids)).Msg("refresh all profiles: starting")
+
+	for _, did := range dids {
+		if err := ctx.Err(); err != nil {
+			log.Warn().Err(err).Int("refreshed", refreshed).Int("failed", failed).Int("remaining", len(dids)-refreshed-failed).Msg("refresh all profiles: cancelled")
+			return
+		}
+
+		var oldHandle string
+		idx.profileCacheMu.RLock()
+		if cached, ok := idx.profileCache[did]; ok && cached.Profile != nil {
+			oldHandle = cached.Profile.Handle
+		}
+		idx.profileCacheMu.RUnlock()
+
+		profile, err := idx.publicClient.GetProfile(ctx, did)
+		if err != nil {
+			log.Warn().Err(err).Str("did", did).Msg("refresh all profiles: fetch failed")
+			failed++
+			continue
+		}
+		idx.storeProfile(ctx, did, profile)
+		refreshed++
+
+		newHandle := ""
+		if profile != nil {
+			newHandle = profile.Handle
+		}
+		if oldHandle != newHandle {
+			log.Info().
+				Str("did", did).
+				Str("old_handle", oldHandle).
+				Str("new_handle", newHandle).
+				Msg("refresh all profiles: handle updated")
+		} else {
+			log.Debug().
+				Str("did", did).
+				Str("handle", newHandle).
+				Msg("refresh all profiles: refreshed")
+		}
+	}
+	log.Info().Int("refreshed", refreshed).Int("failed", failed).Msg("refresh all profiles: complete")
+	return refreshed, failed
+}
+
 // InvalidatePublicCachesForDID drops the public client's cached PDS endpoint
 // and any handle→DID mappings pointing at this DID. Used when an account is
 // deleted/takendown so subsequent lookups don't keep hitting the tombstoned DID.

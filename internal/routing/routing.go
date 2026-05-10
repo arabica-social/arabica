@@ -202,6 +202,8 @@ func SetupRouter(cfg Config) http.Handler {
 		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleAdminPurgeDID))))
 	mux.Handle("POST /_mod/rebuild", cop.Handler(
 		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleAdminRebuildDID))))
+	mux.Handle("POST /_mod/refresh-handles", cop.Handler(
+		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleAdminRefreshHandles))))
 	mux.Handle("GET /_mod/pds-records", middleware.RequireModerator(modSvc,
 		http.HandlerFunc(h.HandleAdminFetchPDSRecords)))
 
