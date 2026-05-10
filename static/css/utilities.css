@@ -155,6 +155,7 @@
 .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem; }
 
 .space-x-4 > :not([hidden]) ~ :not([hidden]) { margin-left: 1rem; }
+.-space-x-1\.5 > :not([hidden]) ~ :not([hidden]) { margin-left: -0.375rem; }
 .space-x-8 > :not([hidden]) ~ :not([hidden]) { margin-left: 2rem; }
 
 /* ── Section 3: Sizing ── */
@@ -171,6 +172,7 @@
 .h-12 { height: 3rem; }
 .h-16 { height: 4rem; }
 .h-full { height: 100%; }
+.h-\[18px\] { height: 18px; }
 .min-h-full { min-height: 100%; }
 .max-h-48 { max-height: 12rem; }
 
@@ -200,9 +202,13 @@
 .w-2\/5 { width: 40%; }
 .w-3\/5 { width: 60%; }
 .w-full { width: 100%; }
+.w-\[18px\] { width: 18px; }
+.w-\[200px\] { width: 200px; }
 
 .min-w-0 { min-width: 0; }
+.min-w-\[18px\] { min-width: 18px; }
 .max-w-none { max-width: none; }
+.max-w-\[200px\] { max-width: 200px; }
 .max-w-xl { max-width: 36rem; }
 .max-w-md { max-width: 28rem; }
 
@@ -222,6 +228,8 @@
 .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
 .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
 .text-6xl { font-size: 3.75rem; line-height: 1; }
+.text-\[10px\] { font-size: 10px; }
+.text-\[0\.9375rem\] { font-size: 0.9375rem; }
 
 /* Font weight */
 .font-medium { font-weight: 500; }
@@ -487,6 +495,8 @@
 /* Top / Right / Bottom / Left */
 .top-0 { top: 0; }
 .top-1\/2 { top: 50%; }
+.-top-1 { top: -0.25rem; }
+.-right-1 { right: -0.25rem; }
 
 .bottom-6 { bottom: 1.5rem; }
 .bottom-full { bottom: 100%; }
@@ -496,6 +506,7 @@
 
 /* Transforms */
 .-translate-x-1\/2 { transform: translateX(-50%); }
+.-translate-y-1\/2 { transform: translateY(-50%); }
 
 /* ── Section 9: Overflow & Misc ── */
 

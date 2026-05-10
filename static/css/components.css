@@ -1,33 +1,175 @@
-/* Page Containers — inlined rather than chained via @apply because
-     v4's @apply only resolves built-in utilities and @utility blocks,
-     not classes defined inside @layer components. */
+/* ========================================
+   Dark mode — utility class overrides
+   ========================================
+   These override the base utility classes (defined in utilities.css)
+   when the user is in dark mode. !important ensures they win over
+   the base utility regardless of cascade order.
+   ======================================== */
+@media (prefers-color-scheme: dark) {
+  .text-brown-900 { color: var(--text-primary) !important; }
+  .text-brown-800 { color: var(--text-primary) !important; }
+  .text-brown-700 { color: var(--text-secondary) !important; }
+  .text-brown-600 { color: var(--text-muted) !important; }
+  .text-brown-500 { color: var(--text-faint) !important; }
+  .text-brown-400 { color: var(--text-placeholder) !important; }
+
+  .bg-brown-50 { background-color: var(--page-bg) !important; }
+  .bg-brown-100 { background-color: var(--surface-bg) !important; }
+  .bg-brown-200 { background-color: var(--card-border) !important; }
+  .bg-brown-300 { background-color: var(--surface-bg) !important; }
+
+  .border-brown-200 { border-color: var(--card-border) !important; }
+  .border-brown-300 { border-color: var(--card-border) !important; }
+
+  .bg-white { background-color: var(--card-bg) !important; }
+  .bg-white\/60 { background-color: var(--surface-bg) !important; }
+
+  /* Amber badges stay visible on dark */
+  .bg-amber-50 { background-color: rgba(251, 191, 36, 0.1); }
+  .bg-amber-100 { background-color: rgba(251, 191, 36, 0.15); }
+  .bg-amber-400 { background-color: #fbbf24; }
+  .text-amber-900 { color: #fde68a; }
+  .text-amber-700 { color: #fcd34d; }
+  .text-amber-600 { color: #fbbf24; }
+  .border-amber-400 { border-color: rgba(251, 191, 36, 0.4); }
+
+  .bg-green-50 { background-color: rgba(251, 191, 36, 0.08) !important; }
+
+  .hover\:bg-brown-200:hover { background-color: var(--surface-bg) !important; }
+  .hover\:bg-brown-100:hover { background-color: var(--surface-bg) !important; }
+  .hover\:bg-brown-50:hover { background-color: var(--surface-bg) !important; }
+  .hover\:text-brown-900:hover { color: var(--text-primary) !important; }
+  .hover\:text-brown-800:hover { color: var(--text-primary) !important; }
+  .hover\:text-brown-700:hover { color: var(--text-secondary) !important; }
+
+  .divide-brown-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--card-border) !important; }
+  .divide-brown-300 > :not([hidden]) ~ :not([hidden]) { border-color: var(--card-border) !important; }
+
+  .ring-brown-500 { --ring-color: #3D2D24 !important; }
+  .hover\:ring-brown-400:hover { --ring-color: #5A4A40 !important; }
+
+  .bg-brown-50\/60 { background-color: var(--surface-bg) !important; }
+  .bg-brown-200\/60 { background-color: var(--card-border) !important; }
+  .border-brown-200\/60 { border-color: var(--card-border) !important; }
+
+  .group-hover\/author\:text-brown-900:hover,
+  .group\/author:hover .group-hover\/author\:text-brown-900 { color: var(--text-primary) !important; }
+  .group-hover\/author\:text-brown-800:hover,
+  .group\/author:hover .group-hover\/author\:text-brown-800 { color: var(--text-primary) !important; }
+
+  .border-white { border-color: var(--card-bg) !important; }
+  .decoration-brown-300 { text-decoration-color: var(--card-border) !important; }
+  .hover\:decoration-brown-500:hover { text-decoration-color: var(--text-faint) !important; }
+}
+
+:root[data-theme="dark"] .text-brown-900,
+:root[data-theme="dark"] .text-brown-800 { color: var(--text-primary) !important; }
+:root[data-theme="dark"] .text-brown-700 { color: var(--text-secondary) !important; }
+:root[data-theme="dark"] .text-brown-600 { color: var(--text-muted) !important; }
+:root[data-theme="dark"] .text-brown-500 { color: var(--text-faint) !important; }
+:root[data-theme="dark"] .text-brown-400 { color: var(--text-placeholder) !important; }
+:root[data-theme="dark"] .bg-brown-50 { background-color: var(--page-bg) !important; }
+:root[data-theme="dark"] .bg-brown-100 { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .bg-brown-200 { background-color: var(--card-border) !important; }
+:root[data-theme="dark"] .bg-brown-300 { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .border-brown-200,
+:root[data-theme="dark"] .border-brown-300 { border-color: var(--card-border) !important; }
+:root[data-theme="dark"] .bg-white { background-color: var(--card-bg) !important; }
+:root[data-theme="dark"] .bg-white\/60 { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .bg-amber-50 { background-color: rgba(251, 191, 36, 0.1); }
+:root[data-theme="dark"] .bg-amber-100 { background-color: rgba(251, 191, 36, 0.15); }
+:root[data-theme="dark"] .text-amber-900 { color: #fde68a; }
+:root[data-theme="dark"] .text-amber-700 { color: #fcd34d; }
+:root[data-theme="dark"] .text-amber-600 { color: #fbbf24; }
+:root[data-theme="dark"] .border-amber-400 { border-color: rgba(251, 191, 36, 0.4); }
+:root[data-theme="dark"] .bg-green-50 { background-color: rgba(251, 191, 36, 0.08) !important; }
+:root[data-theme="dark"] .hover\:bg-brown-200:hover,
+:root[data-theme="dark"] .hover\:bg-brown-100:hover,
+:root[data-theme="dark"] .hover\:bg-brown-50:hover { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .hover\:text-brown-900:hover,
+:root[data-theme="dark"] .hover\:text-brown-800:hover { color: var(--text-primary) !important; }
+:root[data-theme="dark"] .hover\:text-brown-700:hover { color: var(--text-secondary) !important; }
+:root[data-theme="dark"] .divide-brown-200 > :not([hidden]) ~ :not([hidden]),
+:root[data-theme="dark"] .divide-brown-300 > :not([hidden]) ~ :not([hidden]) { border-color: var(--card-border) !important; }
+:root[data-theme="dark"] .ring-brown-500 { --ring-color: #3D2D24 !important; }
+:root[data-theme="dark"] .hover\:ring-brown-400:hover { --ring-color: #5A4A40 !important; }
+:root[data-theme="dark"] .bg-brown-50\/60 { background-color: var(--surface-bg) !important; }
+:root[data-theme="dark"] .bg-brown-200\/60 { background-color: var(--card-border) !important; }
+:root[data-theme="dark"] .border-brown-200\/60 { border-color: var(--card-border) !important; }
+:root[data-theme="dark"] .border-white { border-color: var(--card-bg) !important; }
+:root[data-theme="dark"] .decoration-brown-300 { text-decoration-color: var(--card-border) !important; }
+:root[data-theme="dark"] .hover\:decoration-brown-500:hover { text-decoration-color: var(--text-faint) !important; }
+
+/* ========================================
+   Page Containers
+   ======================================== */
 .page-container {
+  margin-left: auto;
+  margin-right: auto;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
 }
+@media (min-width: 640px) {
+  .page-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
 
 .page-container-sm {
+  margin-left: auto;
+  margin-right: auto;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   max-width: 42rem;
 }
+@media (min-width: 640px) {
+  .page-container-sm {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
 
 .page-container-md {
+  margin-left: auto;
+  margin-right: auto;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   max-width: 48rem;
 }
+@media (min-width: 640px) {
+  .page-container-md {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
 
 .page-container-lg {
+  margin-left: auto;
+  margin-right: auto;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   max-width: 56rem;
 }
+@media (min-width: 640px) {
+  .page-container-lg {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
 
 .page-container-xl {
+  margin-left: auto;
+  margin-right: auto;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   max-width: 72rem;
+}
+@media (min-width: 640px) {
+  .page-container-xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
 }
 
 /* Cards and Containers */
@@ -63,11 +205,16 @@
 
 /* Record view — tinted header region */
 .record-view-header {
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  margin-top: -1.5rem;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
   padding-top: 1.25rem;
   padding-bottom: 1rem;
   margin-bottom: 1.5rem;
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
   border-bottom: 1px solid var(--surface-border);
 }
 
@@ -1209,6 +1356,12 @@ select.form-input optgroup {
   overflow: hidden;
 }
 
+@media (min-width: 640px) {
+  .feed-card {
+    padding: 1rem;
+  }
+}
+
 .feed-card:hover {
   box-shadow: var(--shadow-md);
 }
@@ -1310,6 +1463,11 @@ select.form-input optgroup {
   border: 1px solid var(--feed-board-border);
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.12);
 }
+@media (min-width: 640px) {
+  .feed-grid {
+    padding: 1.25rem;
+  }
+}
 
 .feed-masonry-col {
   display: flex;
@@ -1333,6 +1491,11 @@ select.form-input optgroup {
 /* Brew cards get extra presence without spanning columns */
 .feed-card-brew {
   padding: 1rem;
+}
+@media (min-width: 640px) {
+  .feed-card-brew {
+    padding: 1.25rem;
+  }
 }
 
 /* Inner content boxes inside tinted cards — blend with outer card */
@@ -1440,10 +1603,11 @@ select.form-input optgroup {
   width: 2rem;
   height: 2rem;
   box-shadow: 0 0 0 2px var(--ring-color, currentColor);
-  --tw-ring-color: var(--avatar-ring);
+  --ring-color: var(--avatar-ring);
 }
 .avatar-sm:hover {
-  --tw-ring-color: var(--avatar-ring-hover);
+  --ring-color: var(--avatar-ring-hover);
+  box-shadow: 0 0 0 4px var(--ring-color, currentColor);
 }
 
 .avatar-md {
@@ -1456,10 +1620,11 @@ select.form-input optgroup {
   width: 3rem;
   height: 3rem;
   box-shadow: 0 0 0 2px var(--ring-color, currentColor);
-  --tw-ring-color: var(--avatar-ring);
+  --ring-color: var(--avatar-ring);
 }
 .avatar-md:hover {
-  --tw-ring-color: var(--avatar-ring-hover);
+  --ring-color: var(--avatar-ring-hover);
+  box-shadow: 0 0 0 4px var(--ring-color, currentColor);
 }
 
 .avatar-lg {
@@ -1472,7 +1637,13 @@ select.form-input optgroup {
   width: 5rem;
   height: 5rem;
   border-width: 2px;
+  border-style: solid;
   border-color: var(--brand-brown-300);
+}
+
+.avatar-lg:hover {
+  border-color: var(--brand-brown-400);
+  border-width: 4px;
 }
 
 /* Avatar placeholder - for missing images */
@@ -1501,10 +1672,11 @@ select.form-input optgroup {
   width: 2rem;
   height: 2rem;
   box-shadow: 0 0 0 2px var(--ring-color, currentColor);
-  --tw-ring-color: var(--avatar-ring);
+  --ring-color: var(--avatar-ring);
 }
 .avatar-placeholder-sm:hover {
-  --tw-ring-color: var(--avatar-ring-hover);
+  --ring-color: var(--avatar-ring-hover);
+  box-shadow: 0 0 0 4px var(--ring-color, currentColor);
 }
 
 .avatar-placeholder-md {
@@ -1520,10 +1692,11 @@ select.form-input optgroup {
   width: 3rem;
   height: 3rem;
   box-shadow: 0 0 0 2px var(--ring-color, currentColor);
-  --tw-ring-color: var(--avatar-ring);
+  --ring-color: var(--avatar-ring);
 }
 .avatar-placeholder-md:hover {
-  --tw-ring-color: var(--avatar-ring-hover);
+  --ring-color: var(--avatar-ring-hover);
+  box-shadow: 0 0 0 4px var(--ring-color, currentColor);
 }
 
 .avatar-placeholder-lg {
@@ -2199,6 +2372,8 @@ select.form-input optgroup {
 /* Action Menu (More dropdown) */
 .action-menu {
   position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   width: 9rem;
   border-radius: 0.5rem;
   padding-top: 0.25rem;
@@ -2437,6 +2612,9 @@ select.form-input optgroup {
 /* Incomplete-entity nudge toast (manage-page.js) */
 .nudge-toast {
   position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 50;
   max-width: 28rem;
   width: 100%;
