@@ -1,5 +1,5 @@
 {
-  description = "Arabica - Coffee brew tracking application";
+  description = "Arabica & Oolong — AT Protocol brew/tea tracking apps";
   inputs = { nixpkgs.url = "nixpkgs/nixpkgs-unstable"; };
   outputs = { nixpkgs, self, ... }:
     let
@@ -13,7 +13,8 @@
       });
 
       packages = forAllSystems (pkgs: system: rec {
-        arabica = pkgs.callPackage ./nix/default.nix { };
+        arabica = pkgs.callPackage ./nix/default.nix { appName = "arabica"; };
+        oolong = pkgs.callPackage ./nix/default.nix { appName = "oolong"; };
         default = arabica;
       });
 
@@ -21,6 +22,14 @@
         default = {
           type = "app";
           program = "${self.packages.${system}.arabica}/bin/arabica";
+        };
+        arabica = {
+          type = "app";
+          program = "${self.packages.${system}.arabica}/bin/arabica";
+        };
+        oolong = {
+          type = "app";
+          program = "${self.packages.${system}.oolong}/bin/oolong";
         };
         tailwind = {
           type = "app";
@@ -32,6 +41,10 @@
         monitoring = import ./nix/monitoring.nix { inherit pkgs; };
       });
 
-      nixosModules.default = import ./nix/module.nix;
+      nixosModules = {
+        arabica = import ./nix/module.nix;
+        oolong = import ./nix/oolong-module.nix;
+        default = self.nixosModules.arabica;
+      };
     };
 }

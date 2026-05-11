@@ -97,6 +97,24 @@ func appName(a *domain.App) string {
 	return a.Name
 }
 
+// CookieNames returns the auth cookie names for a given app. Arabica
+// keeps the legacy unprefixed names so prod sessions don't break;
+// every other app gets a per-app prefix so multiple apps can run on
+// localhost without clobbering each other's cookies (loopback OAuth
+// pins us to 127.0.0.1, so the browser shares one cookie jar across
+// ports).
+func CookieNames(app string) (did, sess string) {
+	if app == "" || app == "arabica" {
+		return "account_did", "session_id"
+	}
+	return app + "_account_did", app + "_session_id"
+}
+
+// cookieNames returns this handler's auth cookie names.
+func (h *Handler) cookieNames() (did, sess string) {
+	return CookieNames(appName(h.app))
+}
+
 // appNSIDs returns the running app's NSID list. Returns nil if SetApp
 // was never called — admin handlers handle nil gracefully (empty
 // export rather than crash) so tests that skip wiring still work.

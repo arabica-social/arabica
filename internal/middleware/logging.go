@@ -147,7 +147,7 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 }
 
 func getCookies(r *http.Request) string {
-	loggedCookies := []string{"account_did", "session_id"}
+	loggedCookies := []string{"account_did", "session_id", "oolong_account_did", "oolong_session_id"}
 	cookies := make([]string, 0, len(loggedCookies))
 	for _, name := range loggedCookies {
 		if c, err := r.Cookie(name); err == nil {

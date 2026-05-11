@@ -88,8 +88,9 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set session cookies
+	didCookieName, sessCookieName := h.cookieNames()
 	http.SetCookie(w, &http.Cookie{
-		Name:     "account_did",
+		Name:     didCookieName,
 		Value:    sessData.DID.String(),
 		Path:     "/",
 		HttpOnly: true,
@@ -99,7 +100,7 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
+		Name:     sessCookieName,
 		Value:    sessData.SessionID,
 		Path:     "/",
 		HttpOnly: true,
@@ -134,8 +135,9 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 // login flow so the user doesn't have to re-enter their handle.
 func (h *Handler) HandleReauth(w http.ResponseWriter, r *http.Request) {
 	// Clear the stale session
-	didCookie, err1 := r.Cookie("account_did")
-	sessionCookie, err2 := r.Cookie("session_id")
+	didCookieName, sessCookieName := h.cookieNames()
+	didCookie, err1 := r.Cookie(didCookieName)
+	sessionCookie, err2 := r.Cookie(sessCookieName)
 	if err1 == nil && err2 == nil {
 		if did, err := syntax.ParseDID(didCookie.Value); err == nil {
 			if h.oauth != nil {
@@ -148,12 +150,12 @@ func (h *Handler) HandleReauth(w http.ResponseWriter, r *http.Request) {
 
 	// Clear session cookies
 	http.SetCookie(w, &http.Cookie{
-		Name: "account_did", Value: "", Path: "/",
+		Name: didCookieName, Value: "", Path: "/",
 		HttpOnly: true, Secure: h.config.SecureCookies,
 		SameSite: http.SameSiteLaxMode, MaxAge: -1,
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name: "session_id", Value: "", Path: "/",
+		Name: sessCookieName, Value: "", Path: "/",
 		HttpOnly: true, Secure: h.config.SecureCookies,
 		SameSite: http.SameSiteLaxMode, MaxAge: -1,
 	})
@@ -179,8 +181,9 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session cookies
-	didCookie, err1 := r.Cookie("account_did")
-	sessionCookie, err2 := r.Cookie("session_id")
+	didCookieName, sessCookieName := h.cookieNames()
+	didCookie, err1 := r.Cookie(didCookieName)
+	sessionCookie, err2 := r.Cookie(sessCookieName)
 
 	if err1 == nil && err2 == nil {
 		// Parse DID
@@ -196,7 +199,7 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 
 	// Clear session cookies
 	http.SetCookie(w, &http.Cookie{
-		Name:     "account_did",
+		Name:     didCookieName,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
@@ -206,7 +209,7 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
+		Name:     sessCookieName,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,

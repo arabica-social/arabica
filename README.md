@@ -14,7 +14,7 @@ Development is on Tangled, and is mirrored to GitHub:
 nix run
 
 # Or with Go
-go run cmd/server/main.go
+go run ./cmd/arabica
 ```
 
 Access at http://localhost:18910
@@ -50,13 +50,13 @@ With Nix:
 nix develop
 
 # Run server
-go run cmd/server/main.go
+go run ./cmd/arabica
 
 # Run tests
 go test ./...
 
 # Build
-go build -o arabica cmd/server/main.go
+go build -o arabica ./cmd/arabica
 ```
 
 Without Nix, you'll need to have Go and Templ installed (just is optional but
@@ -67,7 +67,7 @@ tool needed.
 # Compile Templ
 templ generate
 # Run the appview
-go run cmd/server/main.go
+go run ./cmd/arabica
 
 # with just
 just run

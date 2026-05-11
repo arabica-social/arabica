@@ -6,7 +6,7 @@
 }:
 
 let
-  cfg = config.services.arabica;
+  cfg = config.services.oolong;
 
   moderatorUserType = lib.types.submodule {
     options = {
@@ -36,8 +36,7 @@ let
     };
   };
 
-  # Build the moderators JSON config file from Nix settings
-  moderatorsConfigFile = pkgs.writeText "moderators.json" (
+  moderatorsConfigFile = pkgs.writeText "oolong-moderators.json" (
     builtins.toJSON {
       roles = {
         admin = {
@@ -74,7 +73,6 @@ let
     }
   );
 
-  # Resolve the config path: explicit file takes priority, then generated from moderators list
   effectiveConfigPath =
     if cfg.moderation.configFile != null then
       cfg.moderation.configFile
@@ -84,21 +82,21 @@ let
       null;
 in
 {
-  options.services.arabica = {
-    enable = lib.mkEnableOption "Arabica coffee brew tracking service";
+  options.services.oolong = {
+    enable = lib.mkEnableOption "Oolong tea brew tracking service";
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.callPackage ./default.nix { };
-      defaultText = lib.literalExpression "pkgs.callPackage ./default.nix { }";
-      description = "The arabica package to use.";
+      default = pkgs.callPackage ./default.nix { appName = "oolong"; };
+      defaultText = lib.literalExpression ''pkgs.callPackage ./default.nix { appName = "oolong"; }'';
+      description = "The oolong package to use.";
     };
 
     settings = {
       port = lib.mkOption {
         type = lib.types.port;
-        default = 18910;
-        description = "Port on which the arabica server listens.";
+        default = 18920;
+        description = "Port on which the oolong server listens.";
       };
 
       logLevel = lib.mkOption {
@@ -109,7 +107,7 @@ in
           "error"
         ];
         default = "info";
-        description = "Log level for the arabica server.";
+        description = "Log level for the oolong server.";
       };
 
       logFormat = lib.mkOption {
@@ -131,11 +129,11 @@ in
         type = lib.types.nullOr lib.types.str;
         default = null;
         description = ''
-          Public-facing URL of the server (e.g. https://arabica.social).
+          Public-facing URL of the server (e.g. https://oolong.example.com).
           Used for absolute URLs in OpenGraph metadata. If not set, the
           server derives it from the Host header at request time.
         '';
-        example = "https://arabica.social";
+        example = "https://oolong.example.com";
       };
     };
 
@@ -145,10 +143,9 @@ in
         default = null;
         description = ''
           Path to a moderators JSON config file. If set, this takes priority
-          over the `moderators` list option. See the project README for the
-          expected format.
+          over the `moderators` list option.
         '';
-        example = "/etc/arabica/moderators.json";
+        example = "/etc/oolong/moderators.json";
       };
 
       moderators = lib.mkOption {
@@ -158,12 +155,6 @@ in
           List of moderator users. When set, a config file is generated
           automatically with the standard admin and moderator roles.
           Ignored if `configFile` is set.
-        '';
-        example = lib.literalExpression ''
-          [
-            { did = "did:plc:abc123"; role = "admin"; handle = "alice.bsky.social"; note = "Platform owner"; }
-            { did = "did:plc:def456"; role = "moderator"; handle = "bob.bsky.social"; }
-          ]
         '';
       };
     };
@@ -196,7 +187,7 @@ in
         type = lib.types.str;
         default = "";
         description = "Sender address for outgoing email. Can also be set via SMTP_FROM in an environment file.";
-        example = "noreply@arabica.example.com";
+        example = "noreply@oolong.example.com";
       };
     };
 
@@ -208,7 +199,7 @@ in
         Useful for secrets like SMTP_USER and SMTP_PASS that should
         not be stored in the Nix store.
       '';
-      example = lib.literalExpression ''[ "/run/secrets/arabica.env" ]'';
+      example = lib.literalExpression ''[ "/run/secrets/oolong.env" ]'';
     };
 
     oauth = {
@@ -216,37 +207,35 @@ in
         type = lib.types.str;
         description = ''
           OAuth client ID. This should be the URL to your client metadata endpoint.
-          For example: https://arabica.example.com/.well-known/oauth-client-metadata.json
         '';
-        example = "https://arabica.example.com/.well-known/oauth-client-metadata.json";
+        example = "https://oolong.example.com/.well-known/oauth-client-metadata.json";
       };
 
       redirectUri = lib.mkOption {
         type = lib.types.str;
         description = ''
           OAuth redirect URI. This is where users are redirected after authentication.
-          For example: https://arabica.example.com/oauth/callback
         '';
-        example = "https://arabica.example.com/oauth/callback";
+        example = "https://oolong.example.com/oauth/callback";
       };
     };
 
     dataDir = lib.mkOption {
       type = lib.types.path;
-      default = "/var/lib/arabica";
-      description = "Directory where arabica stores its data (OAuth sessions, etc.).";
+      default = "/var/lib/oolong";
+      description = "Directory where oolong stores its data (OAuth sessions, etc.).";
     };
 
     user = lib.mkOption {
       type = lib.types.str;
-      default = "arabica";
-      description = "User account under which arabica runs.";
+      default = "oolong";
+      description = "User account under which oolong runs.";
     };
 
     group = lib.mkOption {
       type = lib.types.str;
-      default = "arabica";
-      description = "Group under which arabica runs.";
+      default = "oolong";
+      description = "Group under which oolong runs.";
     };
 
     otelEndpoint = lib.mkOption {
@@ -259,23 +248,23 @@ in
     openFirewall = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Whether to open the firewall for the arabica port.";
+      description = "Whether to open the firewall for the oolong port.";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    users.users.${cfg.user} = lib.mkIf (cfg.user == "arabica") {
+    users.users.${cfg.user} = lib.mkIf (cfg.user == "oolong") {
       isSystemUser = true;
       group = cfg.group;
-      description = "Arabica service user";
+      description = "Oolong service user";
       home = cfg.dataDir;
       createHome = true;
     };
 
-    users.groups.${cfg.group} = lib.mkIf (cfg.group == "arabica") { };
+    users.groups.${cfg.group} = lib.mkIf (cfg.group == "oolong") { };
 
-    systemd.services.arabica = {
-      description = "Arabica Coffee Brew Tracking Service";
+    systemd.services.oolong = {
+      description = "Oolong Tea Brew Tracking Service";
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
 
@@ -283,13 +272,12 @@ in
         Type = "simple";
         User = cfg.user;
         Group = cfg.group;
-        ExecStart = "${cfg.package}/bin/arabica";
+        ExecStart = "${cfg.package}/bin/oolong";
         Restart = "on-failure";
         RestartSec = "10s";
 
         EnvironmentFile = cfg.environmentFiles;
 
-        # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
@@ -316,17 +304,17 @@ in
         LOG_LEVEL = cfg.settings.logLevel;
         LOG_FORMAT = cfg.settings.logFormat;
         SECURE_COOKIES = lib.boolToString cfg.settings.secureCookies;
-        # Arabica per-app env (uppercase prefix matches app.Name).
-        ARABICA_PORT = toString cfg.settings.port;
-        ARABICA_OAUTH_CLIENT_ID = cfg.oauth.clientId;
-        ARABICA_OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
-        ARABICA_DATA_DIR = cfg.dataDir;
+        # Oolong per-app env (uppercase prefix matches app.Name).
+        OOLONG_PORT = toString cfg.settings.port;
+        OOLONG_OAUTH_CLIENT_ID = cfg.oauth.clientId;
+        OOLONG_OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
+        OOLONG_DATA_DIR = cfg.dataDir;
       }
       // lib.optionalAttrs (cfg.settings.publicUrl != null) {
-        ARABICA_PUBLIC_URL = cfg.settings.publicUrl;
+        OOLONG_PUBLIC_URL = cfg.settings.publicUrl;
       }
       // lib.optionalAttrs (effectiveConfigPath != null) {
-        ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;
+        OOLONG_MODERATORS_CONFIG = toString effectiveConfigPath;
       }
       // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.host != "") {
         SMTP_HOST = cfg.smtp.host;

@@ -219,9 +219,16 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// 2. Apply OAuth middleware to add auth context
 	if cfg.OAuthApp != nil {
+		appName := ""
+		if cfg.App != nil {
+			appName = cfg.App.Name
+		}
+		didCookieName, sessCookieName := handlers.CookieNames(appName)
 		handler = atpmiddleware.CookieAuth(atpmiddleware.CookieAuthConfig{
-			OAuthApp: cfg.OAuthApp,
-			OnAuth:   cfg.OnAuth,
+			OAuthApp:       cfg.OAuthApp,
+			DIDCookieName:  didCookieName,
+			SessCookieName: sessCookieName,
+			OnAuth:         cfg.OnAuth,
 		})(handler)
 	}
 
