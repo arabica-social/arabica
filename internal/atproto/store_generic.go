@@ -20,6 +20,13 @@ type rawRecord struct {
 	Record map[string]any
 }
 
+// DID returns the authenticated user's DID for this store. Used by
+// callers that need to build AT-URIs to other records owned by the same
+// user (e.g. a Tea record referencing its Vendor).
+func (s *AtprotoStore) DID() string {
+	return s.did.String()
+}
+
 // FetchRecord is the exported entry point for callers outside this package
 // that need a witness-then-PDS record read for an arbitrary NSID (e.g.
 // per-app view handlers that don't have typed Get* wrappers). It just
@@ -33,6 +40,45 @@ func (s *AtprotoStore) FetchRecord(ctx context.Context, nsid, rkey string) (reco
 		return nil, "", "", fmt.Errorf("record not found: %s/%s", nsid, rkey)
 	}
 	return rec, u, c, nil
+}
+
+// PutRecord exposes the generic create/update primitive. When rkey is "",
+// a new record is created and the assigned rkey + CID are returned. When
+// rkey is non-empty, an existing record is overwritten (CID returned is
+// "" because PutRecord on the underlying client doesn't return one).
+// Witness cache is updated write-through; session cache is invalidated.
+func (s *AtprotoStore) PutRecord(ctx context.Context, nsid, rkey string, record any) (resultRKey, cid string, err error) {
+	return s.putRecord(ctx, nsid, rkey, record)
+}
+
+// RemoveRecord exposes the generic delete primitive. Removes the record
+// from PDS, evicts the witness entry, and invalidates the session cache.
+func (s *AtprotoStore) RemoveRecord(ctx context.Context, nsid, rkey string) error {
+	return s.removeRecord(ctx, nsid, rkey)
+}
+
+// FetchAllRecords exposes the generic list primitive. Returns each
+// record's raw map plus URI/rkey/CID. Callers convert to typed models
+// via their app's RecordTo* function.
+func (s *AtprotoStore) FetchAllRecords(ctx context.Context, nsid string) ([]RawRecord, error) {
+	raw, err := s.fetchAllRecords(ctx, nsid)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]RawRecord, len(raw))
+	for i, r := range raw {
+		out[i] = RawRecord(r)
+	}
+	return out, nil
+}
+
+// RawRecord is the exported shape of fetchAllRecords' result rows.
+// Callers use Record to decode into a typed model.
+type RawRecord struct {
+	URI    string
+	RKey   string
+	CID    string
+	Record map[string]any
 }
 
 // fetchRecord returns the record at nsid/rkey, hitting the witness cache

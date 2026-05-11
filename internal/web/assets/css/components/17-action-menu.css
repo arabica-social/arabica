@@ -29,7 +29,13 @@
 }
 
 .dropdown-item {
-  display: block;
+  /* Flex+gap baked into the component class so templates don't need
+     `flex items-center gap-N` utilities (component CSS loads after
+     utilities, so `display: block` here would silently win and zero
+     out the gap). */
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
   padding-left: 1rem;
   padding-right: 1rem;
   padding-top: 0.5rem;
@@ -48,7 +54,9 @@
 }
 
 .dropdown-item-disabled {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
   padding-left: 1rem;
   padding-right: 1rem;
   padding-top: 0.5rem;

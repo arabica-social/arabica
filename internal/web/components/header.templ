@@ -15,6 +15,7 @@ type HeaderProps struct {
 	IsModerator             bool   // Show admin link in dropdown
 	UnreadNotificationCount int    // Badge count for bell icon
 	BrandName               string // "Arabica"; falls back to "Arabica" when empty
+	AppName                 string // "arabica" or "oolong" — selects the create-new dropdown contents
 }
 
 // brandName returns the configured brand name with the arabica default
@@ -76,89 +77,11 @@ templ HeaderWithProps(props HeaderProps) {
 								</svg>
 							</button>
 							<div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="dropdown-menu w-52" role="menu">
-								<div class="dropdown-header">
-									<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
-								</div>
-								<a href="/brews/new" class="dropdown-item flex items-center gap-3" @click="open = false" role="menuitem">
-									@IconCoffee()
-									New Brew
-								</a>
-								// <button
-								// 	class="dropdown-item flex items-center gap-3 w-full text-left"
-								// 	hx-get="/api/modals/drink/new"
-								// 	hx-target="#modal-container"
-								// 	hx-swap="innerHTML"
-								// 	@click="open = false"
-								// >
-								// 	@IconDroplet() Log Drink
-								// </button>
-								<div class="dropdown-divider">
-									<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
-								</div>
-								<button
-									class="dropdown-item flex items-center gap-3 w-full text-left"
-									hx-get="/api/modals/bean/new"
-									hx-target="#modal-container"
-									hx-swap="innerHTML"
-									@click="open = false"
-									role="menuitem"
-								>
-									@IconLeaf()
-									Bean
-								</button>
-								<button
-									class="dropdown-item flex items-center gap-3 w-full text-left"
-									hx-get="/api/modals/roaster/new"
-									hx-target="#modal-container"
-									hx-swap="innerHTML"
-									@click="open = false"
-									role="menuitem"
-								>
-									@IconStore()
-									Roaster
-								</button>
-								// <button
-								// 	class="dropdown-item flex items-center gap-3 w-full text-left"
-								// 	hx-get="/api/modals/cafe/new"
-								// 	hx-target="#modal-container"
-								// 	hx-swap="innerHTML"
-								// 	@click="open = false"
-								// >
-								// 	@IconMapPin() Cafe
-								// </button>
-								<button
-									class="dropdown-item flex items-center gap-3 w-full text-left"
-									hx-get="/api/modals/grinder/new"
-									hx-target="#modal-container"
-									hx-swap="innerHTML"
-									@click="open = false"
-									role="menuitem"
-								>
-									@IconDisc()
-									Grinder
-								</button>
-								<button
-									class="dropdown-item flex items-center gap-3 w-full text-left"
-									hx-get="/api/modals/brewer/new"
-									hx-target="#modal-container"
-									hx-swap="innerHTML"
-									@click="open = false"
-									role="menuitem"
-								>
-									@IconBrewer()
-									Brewer
-								</button>
-								<button
-									class="dropdown-item flex items-center gap-3 w-full text-left"
-									hx-get="/api/modals/recipe/new"
-									hx-target="#modal-container"
-									hx-swap="innerHTML"
-									@click="open = false"
-									role="menuitem"
-								>
-									@IconFileText()
-									Recipe
-								</button>
+								if props.AppName == "oolong" {
+									@oolongCreateDropdownItems()
+								} else {
+									@arabicaCreateDropdownItems()
+								}
 							</div>
 						</div>
 						<!-- User profile dropdown -->
@@ -315,4 +238,79 @@ func formatNotificationCount(count int) string {
 		return "99+"
 	}
 	return fmt.Sprintf("%d", count)
+}
+
+// arabicaCreateDropdownItems renders the "+" menu entries for the
+// coffee app: log a brew, add a bean / roaster / grinder / brewer /
+// recipe. Each Add-* button opens the relevant modal via HTMX.
+templ arabicaCreateDropdownItems() {
+	<div class="dropdown-header">
+		<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
+	</div>
+	<a href="/brews/new" class="dropdown-item" @click="open = false" role="menuitem">
+		@IconCoffee()
+		New Brew
+	</a>
+	<div class="dropdown-divider">
+		<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
+	</div>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/bean/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconLeaf()
+		Bean
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/roaster/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconStore()
+		Roaster
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/grinder/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconDisc()
+		Grinder
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/brewer/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconBrewer()
+		Brewer
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/recipe/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconFileText()
+		Recipe
+	</button>
+}
+
+// oolongCreateDropdownItems renders the "+" menu entries for the tea
+// app: open the steep/tea/vendor/brewer/recipe/cafe/drink modals.
+templ oolongCreateDropdownItems() {
+	<div class="dropdown-header">
+		<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
+	</div>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/brew/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconDroplet()
+		New Steep
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/drink/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconCoffee()
+		Log Drink
+	</button>
+	<div class="dropdown-divider">
+		<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
+	</div>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/tea/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconLeaf()
+		Tea
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vendor/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconStore()
+		Vendor
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/brewer/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconBrewer()
+		Brewer
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/recipe/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconFileText()
+		Recipe
+	</button>
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/cafe/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconMapPin()
+		Cafe
+	</button>
 }

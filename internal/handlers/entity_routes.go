@@ -90,37 +90,72 @@ func (h *Handler) EntityRouteBundles() []EntityRouteBundle {
 			ModalNew:   h.HandleBrewerModalNew,
 			ModalEdit:  h.HandleBrewerModalEdit,
 		},
-		// Oolong view-only bundles. Create/Update/Delete + OGImage +
-		// ModalNew/ModalEdit are nil — those land in a later phase once
-		// per-entity store wrappers, OG card renderers, and dialog modals
-		// exist for oolong. registerEntityRoutes skips nil slots.
+		// Oolong bundles. View pages + JSON CRUD wired; OGImage +
+		// ModalNew/ModalEdit are nil — those land in a later phase
+		// once OG card renderers and the full dialog modal set exist
+		// for oolong. registerEntityRoutes skips nil slots.
 		{
 			RecordType: lexicons.RecordTypeOolongTea,
+			Create:     h.HandleTeaCreate,
+			Update:     h.HandleTeaUpdate,
+			Delete:     h.HandleTeaDelete,
 			View:       h.HandleTeaView,
+			ModalNew:   h.HandleTeaModalNew,
+			ModalEdit:  h.HandleTeaModalEdit,
 		},
 		{
 			RecordType: lexicons.RecordTypeOolongVendor,
+			Create:     h.HandleOolongVendorCreate,
+			Update:     h.HandleOolongVendorUpdate,
+			Delete:     h.HandleOolongVendorDelete,
 			View:       h.HandleOolongVendorView,
+			ModalNew:   h.HandleOolongVendorModalNew,
+			ModalEdit:  h.HandleOolongVendorModalEdit,
 		},
 		{
 			RecordType: lexicons.RecordTypeOolongBrewer,
+			Create:     h.HandleOolongBrewerCreate,
+			Update:     h.HandleOolongBrewerUpdate,
+			Delete:     h.HandleOolongBrewerDelete,
 			View:       h.HandleOolongBrewerView,
+			ModalNew:   h.HandleOolongBrewerModalNew,
+			ModalEdit:  h.HandleOolongBrewerModalEdit,
 		},
 		{
 			RecordType: lexicons.RecordTypeOolongRecipe,
+			Create:     h.HandleOolongRecipeCreate,
+			Update:     h.HandleOolongRecipeUpdate,
+			Delete:     h.HandleOolongRecipeDelete,
 			View:       h.HandleOolongRecipeView,
+			ModalNew:   h.HandleOolongRecipeModalNew,
+			ModalEdit:  h.HandleOolongRecipeModalEdit,
 		},
 		{
 			RecordType: lexicons.RecordTypeOolongBrew,
+			Create:     h.HandleOolongBrewCreate,
+			Update:     h.HandleOolongBrewUpdate,
+			Delete:     h.HandleOolongBrewDelete,
 			View:       h.HandleOolongBrewView,
+			ModalNew:   h.HandleOolongBrewModalNew,
+			ModalEdit:  h.HandleOolongBrewModalEdit,
 		},
 		{
 			RecordType: lexicons.RecordTypeOolongCafe,
+			Create:     h.HandleOolongCafeCreate,
+			Update:     h.HandleOolongCafeUpdate,
+			Delete:     h.HandleOolongCafeDelete,
 			View:       h.HandleOolongCafeView,
+			ModalNew:   h.HandleOolongCafeModalNew,
+			ModalEdit:  h.HandleOolongCafeModalEdit,
 		},
 		{
 			RecordType: lexicons.RecordTypeOolongDrink,
+			Create:     h.HandleOolongDrinkCreate,
+			Update:     h.HandleOolongDrinkUpdate,
+			Delete:     h.HandleOolongDrinkDelete,
 			View:       h.HandleOolongDrinkView,
+			ModalNew:   h.HandleOolongDrinkModalNew,
+			ModalEdit:  h.HandleOolongDrinkModalEdit,
 		},
 	}
 }

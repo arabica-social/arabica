@@ -1,0 +1,336 @@
+package tea
+
+import (
+	"fmt"
+	"strconv"
+
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// Dialog modals for the 7 oolong entities. Each wraps ModalShell — which
+// owns the <dialog> chrome, hx-post/hx-put dispatch, error banner, and
+// Save/Cancel buttons — and supplies entity-specific form inputs as
+// children. Field name="X" attributes match each request struct's
+// `json:"X"` tag so the form-decoding reflection helper in
+// internal/handlers/oolong_crud.go can populate the request struct
+// without per-entity FormValue() boilerplate.
+//
+// These are intentionally simpler than arabica's BeanDialogModal et al.
+// — no entity suggestions, no autocomplete, no dynamic visibility — to
+// keep the first oolong CRUD surface small and reviewable. Polish
+// (suggestions, combo-select for refs, etc.) lands in a follow-up.
+
+func teaRKey(t *oolong.Tea) string {
+	if t == nil {
+		return ""
+	}
+	return t.RKey
+}
+
+func vendorRKey(v *oolong.Vendor) string {
+	if v == nil {
+		return ""
+	}
+	return v.RKey
+}
+
+func teaBrewerRKey(b *oolong.Brewer) string {
+	if b == nil {
+		return ""
+	}
+	return b.RKey
+}
+
+func teaRecipeRKey(r *oolong.Recipe) string {
+	if r == nil {
+		return ""
+	}
+	return r.RKey
+}
+
+func teaBrewRKey(b *oolong.Brew) string {
+	if b == nil {
+		return ""
+	}
+	return b.RKey
+}
+
+func cafeRKey(c *oolong.Cafe) string {
+	if c == nil {
+		return ""
+	}
+	return c.RKey
+}
+
+func drinkRKey(d *oolong.Drink) string {
+	if d == nil {
+		return ""
+	}
+	return d.RKey
+}
+
+func intStrOrEmpty(n int) string {
+	if n == 0 {
+		return ""
+	}
+	return strconv.Itoa(n)
+}
+
+func floatStrOrEmpty(n float64) string {
+	if n == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%g", n)
+}
+
+func ratingStr(r *int) string {
+	if r == nil {
+		return ""
+	}
+	return strconv.Itoa(*r)
+}
+
+// --- Tea -------------------------------------------------------------
+
+templ TeaDialogModal(t *oolong.Tea) {
+	@ModalShell(ModalShellProps{
+		Type: lexicons.RecordTypeOolongTea,
+		RKey: teaRKey(t),
+	}) {
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Essentials</div>
+			<input type="text" name="name" placeholder="Name *" required class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Name }) }/>
+			<input type="text" name="category" placeholder="Category (e.g. green, oolong, black)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Category }) }/>
+			<input type="text" name="sub_style" placeholder="Sub-style (e.g. sencha, anxi)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.SubStyle }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Origin <span class="form-optional-hint">(optional)</span></div>
+			<input type="text" name="origin" placeholder="Origin (e.g. Yunnan, China)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Origin }) }/>
+			<input type="text" name="cultivar" placeholder="Cultivar" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Cultivar }) }/>
+			<input type="text" name="farm" placeholder="Farm or producer" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Farm }) }/>
+			<input type="number" name="harvest_year" placeholder="Harvest year" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return intStrOrEmpty(t.HarvestYear) }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Tasting</div>
+			<textarea name="description" placeholder="Description / tasting notes" class="w-full form-input" rows="3">{ teaField(t, func(t *oolong.Tea) string { return t.Description }) }</textarea>
+			<input type="number" name="rating" min="1" max="10" placeholder="Rating (1-10)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return ratingStr(t.Rating) }) }/>
+		</div>
+	}
+}
+
+func teaField(t *oolong.Tea, fn func(*oolong.Tea) string) string {
+	if t == nil {
+		return ""
+	}
+	return fn(t)
+}
+
+// --- Vendor ----------------------------------------------------------
+
+templ VendorDialogModal(v *oolong.Vendor) {
+	@ModalShell(ModalShellProps{
+		Type: lexicons.RecordTypeOolongVendor,
+		RKey: vendorRKey(v),
+	}) {
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Essentials</div>
+			<input type="text" name="name" placeholder="Vendor name *" required class="w-full form-input" value={ vendorField(v, func(v *oolong.Vendor) string { return v.Name }) }/>
+			<input type="text" name="location" placeholder="Location" class="w-full form-input" value={ vendorField(v, func(v *oolong.Vendor) string { return v.Location }) }/>
+			<input type="url" name="website" placeholder="Website" class="w-full form-input" value={ vendorField(v, func(v *oolong.Vendor) string { return v.Website }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Notes <span class="form-optional-hint">(optional)</span></div>
+			<textarea name="description" placeholder="Description" class="w-full form-input" rows="3">{ vendorField(v, func(v *oolong.Vendor) string { return v.Description }) }</textarea>
+		</div>
+	}
+}
+
+func vendorField(v *oolong.Vendor, fn func(*oolong.Vendor) string) string {
+	if v == nil {
+		return ""
+	}
+	return fn(v)
+}
+
+// --- Brewer (teaware) ------------------------------------------------
+
+templ BrewerDialogModal(b *oolong.Brewer) {
+	@ModalShell(ModalShellProps{
+		Type: lexicons.RecordTypeOolongBrewer,
+		RKey: teaBrewerRKey(b),
+	}) {
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Essentials</div>
+			<input type="text" name="name" placeholder="Name *" required class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Name }) }/>
+			<input type="text" name="style" placeholder="Style (e.g. gaiwan, yixing, kyusu)" class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Style }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
+			<input type="number" name="capacity_ml" placeholder="Capacity (ml)" class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return intStrOrEmpty(b.CapacityMl) }) }/>
+			<input type="text" name="material" placeholder="Material (e.g. porcelain, clay, glass)" class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Material }) }/>
+			<textarea name="description" placeholder="Notes" class="w-full form-input" rows="3">{ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Description }) }</textarea>
+		</div>
+	}
+}
+
+func teaBrewerField(b *oolong.Brewer, fn func(*oolong.Brewer) string) string {
+	if b == nil {
+		return ""
+	}
+	return fn(b)
+}
+
+// --- Recipe ----------------------------------------------------------
+
+templ RecipeDialogModal(r *oolong.Recipe) {
+	@ModalShell(ModalShellProps{
+		Type: lexicons.RecordTypeOolongRecipe,
+		RKey: teaRecipeRKey(r),
+	}) {
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Essentials</div>
+			<input type="text" name="name" placeholder="Recipe name *" required class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return r.Name }) }/>
+			<input type="text" name="style" placeholder="Style (e.g. gongfu, western)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return r.Style }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">References <span class="form-optional-hint">(rkey of related entity)</span></div>
+			<input type="text" name="tea_rkey" placeholder="Tea rkey" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return r.TeaRKey }) }/>
+			<input type="text" name="brewer_rkey" placeholder="Brewer rkey" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return r.BrewerRKey }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Parameters</div>
+			<input type="number" name="leaf_grams" step="0.1" placeholder="Leaf (g)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return floatStrOrEmpty(r.LeafGrams) }) }/>
+			<input type="number" name="vessel_ml" placeholder="Vessel (ml)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return intStrOrEmpty(r.VesselMl) }) }/>
+			<input type="number" name="temperature" step="0.1" placeholder="Temperature (°C)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return floatStrOrEmpty(r.Temperature) }) }/>
+			<input type="number" name="time_seconds" placeholder="Time (s)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return intStrOrEmpty(r.TimeSeconds) }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Notes <span class="form-optional-hint">(optional)</span></div>
+			<textarea name="notes" placeholder="Notes" class="w-full form-input" rows="3">{ teaRecipeField(r, func(r *oolong.Recipe) string { return r.Notes }) }</textarea>
+		</div>
+	}
+}
+
+func teaRecipeField(r *oolong.Recipe, fn func(*oolong.Recipe) string) string {
+	if r == nil {
+		return ""
+	}
+	return fn(r)
+}
+
+// --- Brew (steep) ----------------------------------------------------
+
+templ BrewDialogModal(b *oolong.Brew) {
+	@ModalShell(ModalShellProps{
+		Type: lexicons.RecordTypeOolongBrew,
+		RKey: teaBrewRKey(b),
+	}) {
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Essentials</div>
+			<input type="text" name="tea_rkey" placeholder="Tea rkey *" required class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.TeaRKey }) }/>
+			<input type="text" name="style" placeholder="Style (e.g. gongfu, western)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.Style }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">References <span class="form-optional-hint">(optional)</span></div>
+			<input type="text" name="brewer_rkey" placeholder="Brewer rkey" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.BrewerRKey }) }/>
+			<input type="text" name="recipe_rkey" placeholder="Recipe rkey" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.RecipeRKey }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Parameters</div>
+			<input type="number" name="leaf_grams" step="0.1" placeholder="Leaf (g)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return floatStrOrEmpty(b.LeafGrams) }) }/>
+			<input type="number" name="vessel_ml" placeholder="Vessel (ml)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.VesselMl) }) }/>
+			<input type="number" name="temperature" step="0.1" placeholder="Temperature (°C)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return floatStrOrEmpty(b.Temperature) }) }/>
+			<input type="number" name="time_seconds" placeholder="Time (s)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.TimeSeconds) }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Tasting</div>
+			<textarea name="tasting_notes" placeholder="Tasting notes" class="w-full form-input" rows="3">{ teaBrewField(b, func(b *oolong.Brew) string { return b.TastingNotes }) }</textarea>
+			<input type="number" name="rating" min="1" max="10" placeholder="Rating (1-10)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.Rating) }) }/>
+		</div>
+	}
+}
+
+func teaBrewField(b *oolong.Brew, fn func(*oolong.Brew) string) string {
+	if b == nil {
+		return ""
+	}
+	return fn(b)
+}
+
+// --- Cafe ------------------------------------------------------------
+
+templ CafeDialogModal(c *oolong.Cafe) {
+	@ModalShell(ModalShellProps{
+		Type: lexicons.RecordTypeOolongCafe,
+		RKey: cafeRKey(c),
+	}) {
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Essentials</div>
+			<input type="text" name="name" placeholder="Cafe name *" required class="w-full form-input" value={ cafeField(c, func(c *oolong.Cafe) string { return c.Name }) }/>
+			<input type="text" name="location" placeholder="City / neighborhood" class="w-full form-input" value={ cafeField(c, func(c *oolong.Cafe) string { return c.Location }) }/>
+			<input type="text" name="address" placeholder="Street address" class="w-full form-input" value={ cafeField(c, func(c *oolong.Cafe) string { return c.Address }) }/>
+			<input type="url" name="website" placeholder="Website" class="w-full form-input" value={ cafeField(c, func(c *oolong.Cafe) string { return c.Website }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
+			<input type="text" name="vendor_rkey" placeholder="Vendor rkey (if any)" class="w-full form-input" value={ cafeField(c, func(c *oolong.Cafe) string { return c.VendorRKey }) }/>
+			<textarea name="description" placeholder="Description" class="w-full form-input" rows="3">{ cafeField(c, func(c *oolong.Cafe) string { return c.Description }) }</textarea>
+		</div>
+	}
+}
+
+func cafeField(c *oolong.Cafe, fn func(*oolong.Cafe) string) string {
+	if c == nil {
+		return ""
+	}
+	return fn(c)
+}
+
+// --- Drink (at a cafe) -----------------------------------------------
+
+templ DrinkDialogModal(d *oolong.Drink) {
+	@ModalShell(ModalShellProps{
+		Type: lexicons.RecordTypeOolongDrink,
+		RKey: drinkRKey(d),
+	}) {
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Essentials</div>
+			<input type="text" name="cafe_rkey" placeholder="Cafe rkey *" required class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return d.CafeRKey }) }/>
+			<input type="text" name="name" placeholder="Drink name" class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return d.Name }) }/>
+			<input type="text" name="style" placeholder="Style (e.g. matcha latte, oolong straight)" class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return d.Style }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">References <span class="form-optional-hint">(optional)</span></div>
+			<input type="text" name="tea_rkey" placeholder="Tea rkey (if known)" class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return d.TeaRKey }) }/>
+		</div>
+		<div class="form-divider"></div>
+		<div class="form-fieldset">
+			<div class="form-fieldset-label">Notes</div>
+			<input type="number" name="price_usd_cents" placeholder="Price (cents)" class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return intStrOrEmpty(d.PriceUsdCents) }) }/>
+			<input type="number" name="rating" min="1" max="10" placeholder="Rating (1-10)" class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return intStrOrEmpty(d.Rating) }) }/>
+			<textarea name="tasting_notes" placeholder="Tasting notes" class="w-full form-input" rows="3">{ drinkField(d, func(d *oolong.Drink) string { return d.TastingNotes }) }</textarea>
+			<textarea name="description" placeholder="Description" class="w-full form-input" rows="2">{ drinkField(d, func(d *oolong.Drink) string { return d.Description }) }</textarea>
+		</div>
+	}
+}
+
+func drinkField(d *oolong.Drink, fn func(*oolong.Drink) string) string {
+	if d == nil {
+		return ""
+	}
+	return fn(d)
+}

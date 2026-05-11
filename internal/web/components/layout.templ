@@ -400,6 +400,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 				IsModerator:             data.IsModerator,
 				UnreadNotificationCount: data.UnreadNotificationCount,
 				BrandName:               data.brandName(),
+				AppName:                 data.AppName,
 			})
 			<main class="grow container mx-auto py-8" data-transition>
 				@content
