@@ -1,6 +1,9 @@
-package components
+package coffee
 
-import "tangled.org/arabica.social/arabica/internal/entities/arabica"
+import (
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
 
 // BeanContent renders bean details inside a card
 templ BeanContent(bean *arabica.Bean) {

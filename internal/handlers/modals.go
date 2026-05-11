@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
-	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
 
 	"github.com/rs/zerolog/log"
 )
@@ -33,7 +33,7 @@ func (h *Handler) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
 		roastersSlice[i] = *r
 	}
 
-	if err := components.BeanDialogModal(nil, roastersSlice).Render(r.Context(), w); err != nil {
+	if err := coffee.BeanDialogModal(nil, roastersSlice).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render bean modal")
 	}
@@ -74,7 +74,7 @@ func (h *Handler) HandleBeanModalEdit(w http.ResponseWriter, r *http.Request) {
 		roastersSlice[i] = *r
 	}
 
-	if err := components.BeanDialogModal(bean, roastersSlice).Render(r.Context(), w); err != nil {
+	if err := coffee.BeanDialogModal(bean, roastersSlice).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render bean modal")
 	}
@@ -89,7 +89,7 @@ func (h *Handler) HandleGrinderModalNew(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := components.GrinderDialogModal(nil).Render(r.Context(), w); err != nil {
+	if err := coffee.GrinderDialogModal(nil).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render grinder modal")
 	}
@@ -117,7 +117,7 @@ func (h *Handler) HandleGrinderModalEdit(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := components.GrinderDialogModal(grinder).Render(r.Context(), w); err != nil {
+	if err := coffee.GrinderDialogModal(grinder).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render grinder modal")
 	}
@@ -132,7 +132,7 @@ func (h *Handler) HandleBrewerModalNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := components.BrewerDialogModal(nil).Render(r.Context(), w); err != nil {
+	if err := coffee.BrewerDialogModal(nil).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brewer modal")
 	}
@@ -160,7 +160,7 @@ func (h *Handler) HandleBrewerModalEdit(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := components.BrewerDialogModal(brewer).Render(r.Context(), w); err != nil {
+	if err := coffee.BrewerDialogModal(brewer).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brewer modal")
 	}
@@ -175,7 +175,7 @@ func (h *Handler) HandleRoasterModalNew(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := components.RoasterDialogModal(nil).Render(r.Context(), w); err != nil {
+	if err := coffee.RoasterDialogModal(nil).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render roaster modal")
 	}
@@ -203,7 +203,7 @@ func (h *Handler) HandleRoasterModalEdit(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := components.RoasterDialogModal(roaster).Render(r.Context(), w); err != nil {
+	if err := coffee.RoasterDialogModal(roaster).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render roaster modal")
 	}

@@ -1,4 +1,4 @@
-package pages
+package coffeepages
 
 import (
 	"fmt"
@@ -8,47 +8,44 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
-type GrinderViewProps struct {
-	Grinder   *arabica.Grinder
+type BrewerViewProps struct {
+	Brewer    *arabica.Brewer
 	BrewCount int
 	EntityViewBase
 }
 
-templ GrinderView(layout *components.LayoutData, props GrinderViewProps) {
-	@components.Layout(layout, GrinderViewContent(props))
+templ BrewerView(layout *components.LayoutData, props BrewerViewProps) {
+	@components.Layout(layout, BrewerViewContent(props))
 }
 
-templ GrinderViewContent(props GrinderViewProps) {
+templ BrewerViewContent(props BrewerViewProps) {
 	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, GrinderViewCard(props))
+		@components.Card(components.CardProps{InnerCard: true}, BrewerViewCard(props))
 	</div>
 }
 
-templ GrinderViewCard(props GrinderViewProps) {
+templ BrewerViewCard(props BrewerViewProps) {
 	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "grinder",
-		Title:         props.Grinder.Name,
-		Timestamp:     props.Grinder.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Grinder.CreatedAt),
+		RecordType:    "brewer",
+		Title:         props.Brewer.Name,
+		Timestamp:     props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Brewer.CreatedAt),
 		AuthorDID:     props.AuthorDID,
 		AuthorHandle:  props.AuthorHandle,
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
 	<div class="record-journal p-4">
-		<div>
-			@components.JournalField(components.DetailStackedProps{Icon: components.IconGear(), Label: "Type", Value: props.Grinder.GrinderType})
-			@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Burr Type", Value: props.Grinder.BurrType})
-		</div>
-		if props.Grinder.Notes != "" {
+		@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Type", Value: props.Brewer.BrewerType})
+		if props.Brewer.Description != "" {
 			<div class="mt-6">
 				<span class="detail-label mb-2 block">
 					<span class="inline-flex items-center gap-1">
 						@components.IconFileText()
-						Notes
+						Description
 					</span>
 				</span>
-				<div class="journal-prose">{ props.Grinder.Notes }</div>
+				<div class="journal-prose">{ props.Brewer.Description }</div>
 			</div>
 		}
 	</div>
@@ -70,11 +67,11 @@ templ GrinderViewCard(props GrinderViewProps) {
 			CommentCount:    props.CommentCount,
 			ShowComments:    true,
 			ShareURL:        props.ShareURL,
-			ShareTitle:      props.Grinder.Name,
-			ShareText:       "Check out this grinder on Arabica",
+			ShareTitle:      props.Brewer.Name,
+			ShareText:       "Check out this brewer on Arabica",
 			IsOwner:         props.IsOwnProfile,
-			EditModalURL:    "/api/modals/grinder/" + props.Grinder.RKey,
-			DeleteURL:       "/api/grinders/" + props.Grinder.RKey,
+			EditModalURL:    "/api/modals/brewer/" + props.Brewer.RKey,
+			DeleteURL:       "/api/brewers/" + props.Brewer.RKey,
 			DeleteRedirect:  "/my-coffee",
 			IsAuthenticated: props.IsAuthenticated,
 			IsModerator:     props.IsModerator,

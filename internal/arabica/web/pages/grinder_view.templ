@@ -1,4 +1,4 @@
-package pages
+package coffeepages
 
 import (
 	"fmt"
@@ -8,68 +8,55 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
-type RoasterViewProps struct {
-	Roaster   *arabica.Roaster
-	BeanCount int
+type GrinderViewProps struct {
+	Grinder   *arabica.Grinder
+	BrewCount int
 	EntityViewBase
 }
 
-templ RoasterView(layout *components.LayoutData, props RoasterViewProps) {
-	@components.Layout(layout, RoasterViewContent(props))
+templ GrinderView(layout *components.LayoutData, props GrinderViewProps) {
+	@components.Layout(layout, GrinderViewContent(props))
 }
 
-templ RoasterViewContent(props RoasterViewProps) {
+templ GrinderViewContent(props GrinderViewProps) {
 	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, RoasterViewCard(props))
+		@components.Card(components.CardProps{InnerCard: true}, GrinderViewCard(props))
 	</div>
 }
 
-templ RoasterViewCard(props RoasterViewProps) {
+templ GrinderViewCard(props GrinderViewProps) {
 	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "roaster",
-		Title:         props.Roaster.Name,
-		Timestamp:     props.Roaster.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Roaster.CreatedAt),
+		RecordType:    "grinder",
+		Title:         props.Grinder.Name,
+		Timestamp:     props.Grinder.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Grinder.CreatedAt),
 		AuthorDID:     props.AuthorDID,
 		AuthorHandle:  props.AuthorHandle,
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="record-label p-4">
-		<div class="label-detail">
-			<span class="detail-label">
-				<span class="inline-flex items-center gap-1">
-					@components.IconMapPin()
-					Location
-				</span>
-			</span>
-			if props.Roaster.Location != "" {
-				<span class="detail-value-lg">{ props.Roaster.Location }</span>
-			} else {
-				<span class="text-sm text-faint">—</span>
-			}
+	<div class="record-journal p-4">
+		<div>
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconGear(), Label: "Type", Value: props.Grinder.GrinderType})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Burr Type", Value: props.Grinder.BurrType})
 		</div>
-		if props.Roaster.Website != "" {
-			<div class="label-detail">
-				<span class="detail-label">
+		if props.Grinder.Notes != "" {
+			<div class="mt-6">
+				<span class="detail-label mb-2 block">
 					<span class="inline-flex items-center gap-1">
-						@components.IconLink()
-						Website
+						@components.IconFileText()
+						Notes
 					</span>
 				</span>
-				if safeWebsite := bff.SafeWebsiteURL(props.Roaster.Website); safeWebsite != "" {
-					<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="detail-value hover:underline">
-						{ safeWebsite }
-					</a>
-				}
+				<div class="journal-prose">{ props.Grinder.Notes }</div>
 			</div>
 		}
 	</div>
-	if props.BeanCount > 0 {
+	if props.BrewCount > 0 {
 		<div class="record-stat-line">
 			<span class="flex items-center gap-1">
-				@components.IconLeaf()
-				{ fmt.Sprintf("%d bean%s", props.BeanCount, pluralS(props.BeanCount)) }
+				@components.IconCoffee()
+				{ fmt.Sprintf("%d brew%s", props.BrewCount, pluralS(props.BrewCount)) }
 			</span>
 		</div>
 	}
@@ -83,11 +70,11 @@ templ RoasterViewCard(props RoasterViewProps) {
 			CommentCount:    props.CommentCount,
 			ShowComments:    true,
 			ShareURL:        props.ShareURL,
-			ShareTitle:      props.Roaster.Name,
-			ShareText:       "Check out this roaster on Arabica",
+			ShareTitle:      props.Grinder.Name,
+			ShareText:       "Check out this grinder on Arabica",
 			IsOwner:         props.IsOwnProfile,
-			EditModalURL:    "/api/modals/roaster/" + props.Roaster.RKey,
-			DeleteURL:       "/api/roasters/" + props.Roaster.RKey,
+			EditModalURL:    "/api/modals/grinder/" + props.Grinder.RKey,
+			DeleteURL:       "/api/grinders/" + props.Grinder.RKey,
 			DeleteRedirect:  "/my-coffee",
 			IsAuthenticated: props.IsAuthenticated,
 			IsModerator:     props.IsModerator,

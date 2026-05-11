@@ -16,7 +16,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -85,7 +85,7 @@ type entityViewConfig struct {
 	displayName func(record any) string
 	ogSubtitle  func(record any) string
 	countLookup func(ctx context.Context, ownerDID, subjectURI string) int
-	render      func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error
+	render      func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base coffeepages.EntityViewBase) error
 }
 
 func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg entityViewConfig) {
@@ -189,7 +189,7 @@ func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg e
 	if authorDID == "" {
 		authorDID = didStr
 	}
-	base := pages.EntityViewBase{
+	base := coffeepages.EntityViewBase{
 		IsOwnProfile:    isOwnProfile,
 		IsAuthenticated: isAuthenticated,
 		SubjectURI:      subjectURI,
@@ -252,9 +252,9 @@ func (h *Handler) roasterViewConfig() entityViewConfig {
 			}
 			return h.feedIndex.BeanCountsByRoasterURI(ctx, ownerDID)[subjectURI]
 		},
-		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base coffeepages.EntityViewBase) error {
 			roaster := record.(*arabica.Roaster)
-			props := pages.RoasterViewProps{
+			props := coffeepages.RoasterViewProps{
 				Roaster:        roaster,
 				EntityViewBase: base,
 			}
@@ -265,7 +265,7 @@ func (h *Handler) roasterViewConfig() entityViewConfig {
 				}
 				props.BeanCount = h.feedIndex.BeanCountsByRoasterURI(ctx, ownerDID)[base.SubjectURI]
 			}
-			return pages.RoasterView(layoutData, props).Render(ctx, w)
+			return coffeepages.RoasterView(layoutData, props).Render(ctx, w)
 		},
 	}
 }
@@ -298,9 +298,9 @@ func (h *Handler) grinderViewConfig() entityViewConfig {
 		},
 		displayName: func(record any) string { return record.(*arabica.Grinder).Name },
 		ogSubtitle:  func(record any) string { return record.(*arabica.Grinder).Name },
-		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base coffeepages.EntityViewBase) error {
 			grinder := record.(*arabica.Grinder)
-			props := pages.GrinderViewProps{
+			props := coffeepages.GrinderViewProps{
 				Grinder:        grinder,
 				EntityViewBase: base,
 			}
@@ -311,7 +311,7 @@ func (h *Handler) grinderViewConfig() entityViewConfig {
 				}
 				props.BrewCount = h.feedIndex.BrewCountsByGrinderURI(ctx, ownerDID)[base.SubjectURI]
 			}
-			return pages.GrinderView(layoutData, props).Render(ctx, w)
+			return coffeepages.GrinderView(layoutData, props).Render(ctx, w)
 		},
 	}
 }
@@ -344,9 +344,9 @@ func (h *Handler) brewerViewConfig() entityViewConfig {
 		},
 		displayName: func(record any) string { return record.(*arabica.Brewer).Name },
 		ogSubtitle:  func(record any) string { return record.(*arabica.Brewer).Name },
-		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base coffeepages.EntityViewBase) error {
 			brewer := record.(*arabica.Brewer)
-			props := pages.BrewerViewProps{
+			props := coffeepages.BrewerViewProps{
 				Brewer:         brewer,
 				EntityViewBase: base,
 			}
@@ -357,7 +357,7 @@ func (h *Handler) brewerViewConfig() entityViewConfig {
 				}
 				props.BrewCount = h.feedIndex.BrewCountsByBrewerURI(ctx, ownerDID)[base.SubjectURI]
 			}
-			return pages.BrewerView(layoutData, props).Render(ctx, w)
+			return coffeepages.BrewerView(layoutData, props).Render(ctx, w)
 		},
 	}
 }
@@ -427,9 +427,9 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 			}
 			return sub
 		},
-		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base coffeepages.EntityViewBase) error {
 			bean := record.(*arabica.Bean)
-			props := pages.BeanViewProps{
+			props := coffeepages.BeanViewProps{
 				Bean:           bean,
 				EntityViewBase: base,
 			}
@@ -440,7 +440,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 				}
 				props.BrewCount = h.feedIndex.BrewCountsByBeanURI(ctx, ownerDID)[base.SubjectURI]
 			}
-			return pages.BeanView(layoutData, props).Render(ctx, w)
+			return coffeepages.BeanView(layoutData, props).Render(ctx, w)
 		},
 	}
 }
@@ -480,7 +480,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 		userProfile = h.getUserProfile(r.Context(), didStr)
 	}
 
-	var props pages.RecipeViewProps
+	var props coffeepages.RecipeViewProps
 	var subjectURI, subjectCID, entityOwnerDID string
 
 	if owner != "" {
@@ -645,7 +645,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := pages.RecipeView(layoutData, props).Render(r.Context(), w); err != nil {
+	if err := coffeepages.RecipeView(layoutData, props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render recipe view")
 	}

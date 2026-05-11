@@ -16,7 +16,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -144,13 +145,13 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// If we got limit+1 records, the extra one signals there are more pages.
+	// If we got limit+1 records, the extra one signals there are more coffeepages.
 	hasMore := len(brews) > limit
 	if hasMore {
 		brews = brews[:limit]
 	}
 
-	if err := components.BrewListTablePartial(components.BrewListTableProps{
+	if err := coffee.BrewListTablePartial(coffee.BrewListTableProps{
 		Brews:        brews,
 		IsOwnProfile: true,
 		HasMore:      hasMore,
@@ -179,13 +180,13 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 	// This makes the page load much faster
 	layoutData, _, _ := h.layoutDataFromRequest(r, "New Brew")
 
-	brewFormProps := pages.BrewFormProps{
+	brewFormProps := coffeepages.BrewFormProps{
 		Brew:           nil,
 		RecipeRKey:     r.URL.Query().Get("recipe"),
 		RecipeOwnerDID: r.URL.Query().Get("recipe_owner"),
 	}
 
-	if err := pages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
+	if err := coffeepages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew form")
 	}
@@ -351,7 +352,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create brew view props
-	brewViewProps := pages.BrewViewProps{
+	brewViewProps := coffeepages.BrewViewProps{
 		Brew:            brew,
 		IsOwnProfile:    isOwner,
 		IsAuthenticated: isAuthenticated,
@@ -382,7 +383,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Render using templ component
-	if err := pages.BrewView(layoutData, brewViewProps).Render(r.Context(), w); err != nil {
+	if err := coffeepages.BrewView(layoutData, brewViewProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew view")
 	}
@@ -563,12 +564,12 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 	// This makes the page load much faster
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Brew")
 
-	brewFormProps := pages.BrewFormProps{
+	brewFormProps := coffeepages.BrewFormProps{
 		Brew:      brew,
 		PoursJSON: bff.PoursToJSON(brew.Pours),
 	}
 
-	if err := pages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
+	if err := coffeepages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew edit form")
 	}

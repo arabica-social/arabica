@@ -12,8 +12,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
-	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -460,7 +460,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	if cf := h.loadContentFilter(ctx); cf != nil && cf.IsBlocked(did) {
 		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
 		w.WriteHeader(http.StatusNotFound)
-		if err := pages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
+		if err := coffeepages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
 			log.Error().Err(err).Msg("Failed to render profile not found page")
 		}
 		return
@@ -506,7 +506,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	if !isArabicaUser {
 		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
 		w.WriteHeader(http.StatusNotFound)
-		if err := pages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
+		if err := coffeepages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
 			log.Error().Err(err).Msg("Failed to render profile not found page")
 		}
 		return
@@ -534,10 +534,10 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, pageTitle)
 
 	// Create roaster options for own profile
-	var roasterOptions []pages.RoasterOption
+	var roasterOptions []coffeepages.RoasterOption
 	if isOwnProfile {
 		for _, roaster := range profileData.Roasters {
-			roasterOptions = append(roasterOptions, pages.RoasterOption{
+			roasterOptions = append(roasterOptions, coffeepages.RoasterOption{
 				RKey: roaster.RKey,
 				Name: roaster.Name,
 			})
@@ -545,14 +545,14 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create profile props
-	profileProps := pages.ProfileProps{
+	profileProps := coffeepages.ProfileProps{
 		Profile:      viewedProfile,
 		IsOwnProfile: isOwnProfile,
 		Roasters:     roasterOptions,
 	}
 
 	// Render using templ component
-	if err := pages.Profile(layoutData, profileProps).Render(r.Context(), w); err != nil {
+	if err := coffeepages.Profile(layoutData, profileProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render profile page")
 	}
@@ -731,7 +731,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 
 	// On load-more requests (offset > 0), render just the brew cards fragment
 	if brewsOffset > 0 {
-		if err := components.ProfileBrewCards(components.ProfileBrewCardsProps{
+		if err := coffee.ProfileBrewCards(coffee.ProfileBrewCardsProps{
 			Brews:           profileData.Brews,
 			IsOwnProfile:    isOwnProfile,
 			ProfileHandle:   profileHandle,
@@ -750,7 +750,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := components.ProfileContentPartial(components.ProfileContentPartialProps{
+	if err := coffee.ProfileContentPartial(coffee.ProfileContentPartialProps{
 		Brews:                 profileData.Brews,
 		Beans:                 profileData.Beans,
 		Roasters:              profileData.Roasters,

@@ -1,4 +1,4 @@
-package pages
+package coffeepages
 
 import (
 	"fmt"
@@ -8,52 +8,68 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
-type BrewerViewProps struct {
-	Brewer    *arabica.Brewer
-	BrewCount int
+type RoasterViewProps struct {
+	Roaster   *arabica.Roaster
+	BeanCount int
 	EntityViewBase
 }
 
-templ BrewerView(layout *components.LayoutData, props BrewerViewProps) {
-	@components.Layout(layout, BrewerViewContent(props))
+templ RoasterView(layout *components.LayoutData, props RoasterViewProps) {
+	@components.Layout(layout, RoasterViewContent(props))
 }
 
-templ BrewerViewContent(props BrewerViewProps) {
+templ RoasterViewContent(props RoasterViewProps) {
 	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, BrewerViewCard(props))
+		@components.Card(components.CardProps{InnerCard: true}, RoasterViewCard(props))
 	</div>
 }
 
-templ BrewerViewCard(props BrewerViewProps) {
+templ RoasterViewCard(props RoasterViewProps) {
 	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "brewer",
-		Title:         props.Brewer.Name,
-		Timestamp:     props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Brewer.CreatedAt),
+		RecordType:    "roaster",
+		Title:         props.Roaster.Name,
+		Timestamp:     props.Roaster.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Roaster.CreatedAt),
 		AuthorDID:     props.AuthorDID,
 		AuthorHandle:  props.AuthorHandle,
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="record-journal p-4">
-		@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Type", Value: props.Brewer.BrewerType})
-		if props.Brewer.Description != "" {
-			<div class="mt-6">
-				<span class="detail-label mb-2 block">
+	<div class="record-label p-4">
+		<div class="label-detail">
+			<span class="detail-label">
+				<span class="inline-flex items-center gap-1">
+					@components.IconMapPin()
+					Location
+				</span>
+			</span>
+			if props.Roaster.Location != "" {
+				<span class="detail-value-lg">{ props.Roaster.Location }</span>
+			} else {
+				<span class="text-sm text-faint">—</span>
+			}
+		</div>
+		if props.Roaster.Website != "" {
+			<div class="label-detail">
+				<span class="detail-label">
 					<span class="inline-flex items-center gap-1">
-						@components.IconFileText()
-						Description
+						@components.IconLink()
+						Website
 					</span>
 				</span>
-				<div class="journal-prose">{ props.Brewer.Description }</div>
+				if safeWebsite := bff.SafeWebsiteURL(props.Roaster.Website); safeWebsite != "" {
+					<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="detail-value hover:underline">
+						{ safeWebsite }
+					</a>
+				}
 			</div>
 		}
 	</div>
-	if props.BrewCount > 0 {
+	if props.BeanCount > 0 {
 		<div class="record-stat-line">
 			<span class="flex items-center gap-1">
-				@components.IconCoffee()
-				{ fmt.Sprintf("%d brew%s", props.BrewCount, pluralS(props.BrewCount)) }
+				@components.IconLeaf()
+				{ fmt.Sprintf("%d bean%s", props.BeanCount, pluralS(props.BeanCount)) }
 			</span>
 		</div>
 	}
@@ -67,11 +83,11 @@ templ BrewerViewCard(props BrewerViewProps) {
 			CommentCount:    props.CommentCount,
 			ShowComments:    true,
 			ShareURL:        props.ShareURL,
-			ShareTitle:      props.Brewer.Name,
-			ShareText:       "Check out this brewer on Arabica",
+			ShareTitle:      props.Roaster.Name,
+			ShareText:       "Check out this roaster on Arabica",
 			IsOwner:         props.IsOwnProfile,
-			EditModalURL:    "/api/modals/brewer/" + props.Brewer.RKey,
-			DeleteURL:       "/api/brewers/" + props.Brewer.RKey,
+			EditModalURL:    "/api/modals/roaster/" + props.Roaster.RKey,
+			DeleteURL:       "/api/roasters/" + props.Roaster.RKey,
 			DeleteRedirect:  "/my-coffee",
 			IsAuthenticated: props.IsAuthenticated,
 			IsModerator:     props.IsModerator,

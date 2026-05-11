@@ -12,8 +12,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/matching"
 	"tangled.org/arabica.social/arabica/internal/moderation"
-	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -729,7 +729,7 @@ func (h *Handler) HandleRecipeModalNew(w http.ResponseWriter, r *http.Request) {
 		brewersSlice[i] = *b
 	}
 
-	if err := components.RecipeDialogModal(nil, brewersSlice).Render(r.Context(), w); err != nil {
+	if err := coffee.RecipeDialogModal(nil, brewersSlice).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render recipe modal")
 	}
@@ -766,7 +766,7 @@ func (h *Handler) HandleRecipeModalEdit(w http.ResponseWriter, r *http.Request) 
 		brewersSlice[i] = *b
 	}
 
-	if err := components.RecipeDialogModal(recipe, brewersSlice).Render(r.Context(), w); err != nil {
+	if err := coffee.RecipeDialogModal(recipe, brewersSlice).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render recipe modal")
 	}
@@ -782,7 +782,7 @@ func (h *Handler) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
 
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Explore Recipes")
 
-	if err := pages.RecipeExplorePage(layoutData, pages.RecipeExploreProps{
+	if err := coffeepages.RecipeExplorePage(layoutData, coffeepages.RecipeExploreProps{
 		IsAuthenticated: authenticated,
 		UserDID:         layoutData.UserDID,
 	}).Render(r.Context(), w); err != nil {
@@ -811,7 +811,7 @@ func (h *Handler) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Req
 		recipes = recipes[:maxRecipes]
 	}
 
-	if err := components.PopularRecipes(components.PopularRecipesProps{
+	if err := coffee.PopularRecipes(coffee.PopularRecipesProps{
 		Recipes: recipes,
 	}).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render popular recipes")

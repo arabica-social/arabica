@@ -1,11 +1,8 @@
-// Package components: descriptor_bridge.go wires arabica entities'
-// templ render hooks into the entities.Descriptor registry.
-//
-// This file lives in internal/web/components/ during Phase 1 of the
-// oolong-frontend split (docs/superpowers/specs/2026-05-11-oolong-frontend-split-design.md);
-// it moves to internal/arabica/web/components/ in Phase 2 alongside
-// the arabica-specific record_*.templ files.
-package components
+// Package coffee: descriptor_bridge.go wires arabica entities' templ
+// render hooks into the entities.Descriptor registry. Importing this
+// package for side effects (blank import in cmd/server) runs init() to
+// populate hooks for all arabica record types.
+package coffee
 
 import (
 	"fmt"

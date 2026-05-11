@@ -9,7 +9,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -94,7 +95,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch entity usage counts and avg ratings from witness cache
-	props := components.ManagePartialProps{
+	props := coffee.ManagePartialProps{
 		Beans:    beans,
 		Roasters: roasters,
 		Grinders: grinders,
@@ -119,7 +120,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Render manage partial
-	if err := components.ManagePartial(props).Render(r.Context(), w); err != nil {
+	if err := coffee.ManagePartial(props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage partial")
 	}
@@ -342,7 +343,7 @@ func (h *Handler) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
 
 	layoutData, _, _ := h.layoutDataFromRequest(r, "My Coffee")
 
-	if err := pages.MyCoffee(layoutData, pages.MyCoffeeProps{}).Render(r.Context(), w); err != nil {
+	if err := coffeepages.MyCoffee(layoutData, coffeepages.MyCoffeeProps{}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render my coffee page")
 	}
@@ -526,7 +527,7 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	refreshProps := components.ManagePartialProps{
+	refreshProps := coffee.ManagePartialProps{
 		Beans:    beans,
 		Roasters: roasters,
 		Grinders: grinders,
@@ -549,7 +550,7 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := components.ManagePartial(refreshProps).Render(r.Context(), w); err != nil {
+	if err := coffee.ManagePartial(refreshProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render manage partial after refresh")
 	}

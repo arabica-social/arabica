@@ -1,4 +1,4 @@
-package pages
+package coffeepages
 
 import "tangled.org/arabica.social/arabica/internal/firehose"
 

@@ -1,6 +1,9 @@
-package components
+package coffee
 
-import "tangled.org/arabica.social/arabica/internal/entities/arabica"
+import (
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
 
 // BrewerContent renders brewer details inside a card
 templ BrewerContent(brewer *arabica.Brewer) {
