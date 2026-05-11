@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -125,68 +126,39 @@ func (f *FeedItem) Recipe() *arabica.Recipe {
 }
 
 // RKey returns the record key of whichever typed record is set on this
-// item, or "" if none. Lets callers build URLs without a type switch.
+// item, or "" if none. Dispatched through entities.Descriptor so each
+// app's record types contribute their own RKey extractor without this
+// shared package needing to know about them.
 func (f *FeedItem) RKey() string {
-	switch m := f.Record.(type) {
-	case *arabica.Bean:
-		return m.RKey
-	case *arabica.Roaster:
-		return m.RKey
-	case *arabica.Grinder:
-		return m.RKey
-	case *arabica.Brewer:
-		return m.RKey
-	case *arabica.Recipe:
-		return m.RKey
-	case *arabica.Brew:
-		return m.RKey
+	if f == nil || f.Record == nil {
+		return ""
 	}
-	return ""
+	d := entities.Get(f.RecordType)
+	if d == nil || d.RKey == nil {
+		return ""
+	}
+	return d.RKey(f.Record)
 }
 
-// DisplayTitle returns a human-readable title for share UI. Brew is
-// special-cased: brews don't have a name field, so we fall back to the
-// associated bean's name (or origin).
+// DisplayTitle returns a human-readable title for share UI. Each
+// descriptor's DisplayTitle hook handles the record-specific logic
+// (e.g. brew falls back to the associated bean name). When the record
+// is nil or the hook returns "", the descriptor's DisplayName is used
+// as a fallback ("Bean", "Tea", etc.).
 func (f *FeedItem) DisplayTitle() string {
-	switch m := f.Record.(type) {
-	case *arabica.Brew:
-		if m.Bean != nil {
-			if m.Bean.Name != "" {
-				return m.Bean.Name
-			}
-			return m.Bean.Origin
-		}
-		return "Coffee Brew"
-	case *arabica.Bean:
-		if m.Name != "" {
-			return m.Name
-		}
-		return m.Origin
-	case *arabica.Roaster:
-		return m.Name
-	case *arabica.Grinder:
-		return m.Name
-	case *arabica.Brewer:
-		return m.Name
-	case *arabica.Recipe:
-		return m.Name
+	if f == nil {
+		return ""
 	}
-	// Fall back to type-based default when Record is nil.
-	switch f.RecordType {
-	case lexicons.RecordTypeBrew:
-		return "Coffee Brew"
-	case lexicons.RecordTypeBean:
-		return "Coffee Bean"
-	case lexicons.RecordTypeRoaster:
-		return "Roaster"
-	case lexicons.RecordTypeGrinder:
-		return "Grinder"
-	case lexicons.RecordTypeBrewer:
-		return "Brewer"
-	case lexicons.RecordTypeRecipe:
-		return "Recipe"
+	d := entities.Get(f.RecordType)
+	if d == nil {
+		return ""
 	}
-	return "Arabica"
+	if d.DisplayTitle != nil && f.Record != nil {
+		if title := d.DisplayTitle(f.Record); title != "" {
+			return title
+		}
+	}
+	return d.DisplayName
 }
 
 // publicFeedCache holds cached feed items for unauthenticated users

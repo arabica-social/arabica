@@ -1,0 +1,109 @@
+package components
+
+import (
+	"fmt"
+
+	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/feed"
+)
+
+// feedItemShareURL mirrors getFeedItemShareURL in pages/feed.templ.
+// Duplicated here so this file is self-contained when it moves to
+// internal/arabica/web/components/ in Phase 2 of the oolong-frontend
+// split. The pages/feed.templ helper stays for the file's other uses.
+func feedItemShareURL(item *feed.FeedItem) string {
+	if d := entities.Get(item.RecordType); d != nil {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/%s/%s?owner=%s", d.URLPath, rkey, item.Author.DID)
+		}
+	}
+	return fmt.Sprintf("/profile/%s", item.Author.DID)
+}
+
+templ BeanFeedContent(item *feed.FeedItem) {
+	if item.Bean() != nil {
+		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+			@BeanContent(item.Bean())
+		</a>
+	}
+}
+
+templ RoasterFeedContent(item *feed.FeedItem) {
+	if item.Roaster() != nil {
+		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+			@RoasterContent(item.Roaster())
+		</a>
+	}
+}
+
+templ GrinderFeedContent(item *feed.FeedItem) {
+	if item.Grinder() != nil {
+		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+			@GrinderContent(item.Grinder())
+		</a>
+	}
+}
+
+templ BrewerFeedContent(item *feed.FeedItem) {
+	if item.Brewer() != nil {
+		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+			@BrewerContent(item.Brewer())
+		</a>
+	}
+}
+
+// FeedBrewContentClickable renders brew content wrapped in a clickable link.
+// Moved from pages/feed.templ during Phase 1 of the oolong-frontend split.
+templ FeedBrewContentClickable(item *feed.FeedItem) {
+	if item.Brew() != nil {
+		<a
+			href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", item.Brew().RKey, item.Author.DID)) }
+			class="block hover:opacity-90 transition-opacity"
+		>
+			@BrewContent(item.Brew())
+		</a>
+	}
+}
+
+// FeedRecipeContent renders recipe content in a feed card, wrapped in a
+// clickable link. Moved from pages/feed.templ during Phase 1.
+templ FeedRecipeContent(item *feed.FeedItem) {
+	if item.Recipe() != nil {
+		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+			<div class="feed-content-box-sm">
+				<div class="text-base mb-2">
+					<span class="font-bold text-primary">{ item.Recipe().Name }</span>
+				</div>
+				<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+					if item.Recipe().CoffeeAmount > 0 {
+						<span class="inline-flex items-center gap-1">
+							@IconCoffee()
+							{ fmt.Sprintf("%.1fg", item.Recipe().CoffeeAmount) }
+						</span>
+					}
+					if item.Recipe().WaterAmount > 0 {
+						<span class="inline-flex items-center gap-1">
+							@IconDroplet()
+							{ fmt.Sprintf("%.1fg", item.Recipe().WaterAmount) }
+						</span>
+					}
+					if item.Recipe().BrewerObj != nil {
+						<span class="inline-flex items-center gap-1">
+							@IconBrewer()
+							{ item.Recipe().BrewerObj.Name }
+						</span>
+					} else if item.Recipe().BrewerType != "" {
+						<span class="inline-flex items-center gap-1">
+							@IconBrewer()
+							{ item.Recipe().BrewerType }
+						</span>
+					}
+				</div>
+				if item.Recipe().Notes != "" {
+					<div class="mt-2 text-sm text-secondary italic">"{ item.Recipe().Notes }"</div>
+				}
+			</div>
+		</a>
+	}
+}
+

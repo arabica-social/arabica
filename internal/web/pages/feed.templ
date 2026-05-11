@@ -5,7 +5,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
 )
@@ -213,40 +212,10 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 		<div class="mb-2 text-sm text-emphasis">
 			@ActionText(item)
 		</div>
-		<!-- Record content (clickable for brews) -->
-		switch item.RecordType {
-			case lexicons.RecordTypeBrew:
-				@FeedBrewContentClickable(item)
-			case lexicons.RecordTypeBean:
-				if item.Bean() != nil {
-					<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-						@components.BeanContent(item.Bean())
-					</a>
-				}
-			case lexicons.RecordTypeRoaster:
-				if item.Roaster() != nil {
-					<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-						@components.RoasterContent(item.Roaster())
-					</a>
-				}
-			case lexicons.RecordTypeGrinder:
-				if item.Grinder() != nil {
-					<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-						@components.GrinderContent(item.Grinder())
-					</a>
-				}
-			case lexicons.RecordTypeBrewer:
-				if item.Brewer() != nil {
-					<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-						@components.BrewerContent(item.Brewer())
-					</a>
-				}
-			case lexicons.RecordTypeRecipe:
-				if item.Recipe() != nil {
-					<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-						@FeedRecipeContent(item)
-					</a>
-				}
+		<!-- Record content — dispatched via entities.Descriptor.RenderFeedContent,
+		     wired by internal/web/components/descriptor_bridge.go. -->
+		if d := entities.Get(item.RecordType); d != nil && d.RenderFeedContent != nil {
+			@d.RenderFeedContent(item)
 		}
 		<!-- Action bar -->
 		if item.SubjectURI != "" && item.SubjectCID != "" {
@@ -302,174 +271,9 @@ templ ActionText(item *feed.FeedItem) {
 	}
 }
 
-// FeedBrewContentClickable renders brew content wrapped in a clickable link
-templ FeedBrewContentClickable(item *feed.FeedItem) {
-	if item.Brew() != nil {
-		<a
-			href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", item.Brew().RKey, item.Author.DID)) }
-			class="block hover:opacity-90 transition-opacity"
-		>
-			@components.BrewContent(item.Brew())
-		</a>
-	}
-}
-
-// FeedBrewContent renders brew content in a feed card
-templ FeedBrewContent(item *feed.FeedItem) {
-	if item.Brew() != nil {
-		<div class="feed-content-box">
-			<!-- Bean info with rating -->
-			<div class="flex items-start justify-between gap-3 mb-3">
-				<div class="flex-1 min-w-0">
-					if item.Brew().Bean != nil {
-						<div class="font-bold text-primary text-base">
-							if item.Brew().Bean.Name != "" {
-								{ item.Brew().Bean.Name }
-							} else {
-								{ item.Brew().Bean.Origin }
-							}
-						</div>
-						if item.Brew().Bean.Roaster != nil && item.Brew().Bean.Roaster.Name != "" {
-							<div class="text-sm text-emphasis mt-0.5">
-								<span class="inline-flex items-center gap-1 font-medium">
-									@components.IconStore()
-									{ item.Brew().Bean.Roaster.Name }
-								</span>
-							</div>
-						}
-						<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
-							if item.Brew().Bean.Origin != "" {
-								<span class="inline-flex items-center gap-1">
-									@components.IconMapPin()
-									{ item.Brew().Bean.Origin }
-								</span>
-							}
-							if item.Brew().Bean.RoastLevel != "" {
-								<span class="inline-flex items-center gap-1">
-									@components.IconFlame()
-									{ item.Brew().Bean.RoastLevel }
-								</span>
-							}
-							if item.Brew().Bean.Process != "" {
-								<span class="inline-flex items-center gap-1">
-									@components.IconSprout()
-									{ item.Brew().Bean.Process }
-								</span>
-							}
-							if item.Brew().CoffeeAmount > 0 {
-								<span class="inline-flex items-center gap-1">
-									@components.IconScale()
-									{ fmt.Sprintf("%dg", item.Brew().CoffeeAmount) }
-								</span>
-							}
-						</div>
-					}
-				</div>
-				if item.Brew().Rating > 0 {
-					<span class="badge-rating">
-						@components.IconStar()
-						{ fmt.Sprintf("%d/10", item.Brew().Rating) }
-					</span>
-				}
-			</div>
-			<!-- Brewer -->
-			if item.Brew().BrewerObj != nil || item.Brew().Method != "" {
-				<div class="mb-2">
-					<span class="text-meta">Brewer:</span>
-					<span class="text-sm font-semibold text-primary">
-						if item.Brew().BrewerObj != nil {
-							{ item.Brew().BrewerObj.Name }
-						} else if item.Brew().Method != "" {
-							{ item.Brew().Method }
-						}
-					</span>
-				</div>
-			}
-			<!-- Brew parameters in compact grid -->
-			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emphasis">
-				if item.Brew().GrinderObj != nil {
-					<div>
-						<span class="text-label">Grinder:</span>
-						{ " " }{ item.Brew().GrinderObj.Name }
-						if item.Brew().GrindSize != "" {
-							({ item.Brew().GrindSize })
-						}
-					</div>
-				} else if item.Brew().GrindSize != "" {
-					<div>
-						<span class="text-label">Grind:</span> { item.Brew().GrindSize }
-					</div>
-				}
-				if len(item.Brew().Pours) > 0 {
-					<div class="col-span-2">
-						<span class="text-label">Pours:</span>
-						for _, pour := range item.Brew().Pours {
-							<div class="pl-2 text-muted">• { fmt.Sprintf("%dg @ %s", pour.WaterAmount, bff.FormatTime(pour.TimeSeconds)) }</div>
-						}
-					</div>
-				} else if item.Brew().WaterAmount > 0 {
-					<div>
-						<span class="text-label">Water:</span> { fmt.Sprintf("%dg", item.Brew().WaterAmount) }
-					</div>
-				}
-				if bff.HasTemp(item.Brew().Temperature) {
-					<div>
-						<span class="text-label">Temp:</span> { bff.FormatTemp(item.Brew().Temperature) }
-					</div>
-				}
-				if item.Brew().TimeSeconds > 0 {
-					<div>
-						<span class="text-label">Time:</span> { bff.FormatTime(item.Brew().TimeSeconds) }
-					</div>
-				}
-			</div>
-			if item.Brew().TastingNotes != "" {
-				<div class="mt-3 text-sm text-secondary italic border-t border-brown-200 pt-2">
-					"{ item.Brew().TastingNotes }"
-				</div>
-			}
-		</div>
-	}
-}
-
-// FeedRecipeContent renders recipe content in a feed card
-templ FeedRecipeContent(item *feed.FeedItem) {
-	if item.Recipe() != nil {
-		<div class="feed-content-box-sm">
-			<div class="text-base mb-2">
-				<span class="font-bold text-primary">{ item.Recipe().Name }</span>
-			</div>
-			<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
-				if item.Recipe().CoffeeAmount > 0 {
-					<span class="inline-flex items-center gap-1">
-						@components.IconCoffee()
-						{ fmt.Sprintf("%.1fg", item.Recipe().CoffeeAmount) }
-					</span>
-				}
-				if item.Recipe().WaterAmount > 0 {
-					<span class="inline-flex items-center gap-1">
-						@components.IconDroplet()
-						{ fmt.Sprintf("%.1fg", item.Recipe().WaterAmount) }
-					</span>
-				}
-				if item.Recipe().BrewerObj != nil {
-					<span class="inline-flex items-center gap-1">
-						@components.IconBrewer()
-						{ item.Recipe().BrewerObj.Name }
-					</span>
-				} else if item.Recipe().BrewerType != "" {
-					<span class="inline-flex items-center gap-1">
-						@components.IconBrewer()
-						{ item.Recipe().BrewerType }
-					</span>
-				}
-			</div>
-			if item.Recipe().Notes != "" {
-				<div class="mt-2 text-sm text-secondary italic">"{ item.Recipe().Notes }"</div>
-			}
-		</div>
-	}
-}
+// Per-entity feed content (BrewContentClickable, RecipeContent, and the
+// other four entity wrappers) lives in internal/web/components/feed_content.templ
+// and is dispatched via entities.Descriptor.RenderFeedContent.
 
 // feedCardClass returns the full class string for a feed card, including
 // the entity-specific accent class (feed-card-{noun}) and the compact
@@ -478,10 +282,9 @@ func feedCardClass(item *feed.FeedItem) string {
 	classes := "feed-card"
 	if d := entities.Get(item.RecordType); d != nil {
 		classes += " feed-card-" + d.Noun
-	}
-	switch item.RecordType {
-	case lexicons.RecordTypeGrinder, lexicons.RecordTypeBrewer, lexicons.RecordTypeRoaster:
-		classes += " feed-card-compact"
+		if d.FeedCardCompact {
+			classes += " feed-card-compact"
+		}
 	}
 	return classes
 }
@@ -511,15 +314,13 @@ func getFeedItemShareText(item *feed.FeedItem) string {
 	return fmt.Sprintf("Check out this %s by %s on Arabica", item.RecordType, displayName)
 }
 
-// getEditURL returns the edit URL for a feed item
+// getEditURL returns the edit URL for a feed item, sourced from the
+// entity descriptor. Beans, roasters, grinders, and brewers are edited
+// via modals on the manage page and have no EditURL.
 func getEditURL(item *feed.FeedItem) string {
-	switch item.RecordType {
-	case lexicons.RecordTypeBrew:
-		if item.Brew() != nil {
-			return fmt.Sprintf("/brews/%s/edit", item.Brew().RKey)
-		}
+	if d := entities.Get(item.RecordType); d != nil && d.EditURL != nil {
+		return d.EditURL(item)
 	}
-	// Beans, roasters, grinders, and brewers are edited via modals on the manage page
 	return ""
 }
 

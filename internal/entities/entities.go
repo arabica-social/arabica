@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/a-h/templ"
+
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
@@ -35,6 +37,37 @@ type Descriptor struct {
 	// callers type-assert. nil callback means the entity does not appear in
 	// the feed pipeline.
 	RecordToModel func(record map[string]any, uri string) (any, error)
+
+	// RenderFeedContent returns the entity-specific clickable block for
+	// feed.templ (anchor wrapper + entity content). The argument is a
+	// *feed.FeedItem typed as any to avoid an import cycle (entities is
+	// imported by feed via the descriptor registry). Callers in
+	// internal/web/components/ type-assert. nil means the entity does
+	// not render a content slot in the feed.
+	RenderFeedContent func(item any) templ.Component
+
+	// FeedCardCompact applies the .feed-card-compact CSS modifier to the
+	// feed card wrapper. Used by entities with sparse content
+	// (grinder/brewer/roaster).
+	FeedCardCompact bool
+
+	// EditURL returns the dedicated edit-page URL for an item, or "" if
+	// the entity has no edit page (edited via modal on the manage page).
+	// Item is *feed.FeedItem typed as any (see RenderFeedContent note).
+	EditURL func(item any) string
+
+	// RKey returns the record key of a typed record. The argument is the
+	// concrete record pointer (e.g. *arabica.Bean) typed as any to avoid
+	// import cycles. Returns "" if the assertion fails or the record is
+	// nil. Used by feed.FeedItem.RKey() to build share/view URLs without
+	// hard-coding each app's record types.
+	RKey func(record any) string
+
+	// DisplayTitle returns a human-readable title for a typed record
+	// (used in share UI, OG cards, etc.). Empty string means "use the
+	// descriptor's DisplayName as fallback." Special cases (e.g. brew
+	// returns the bean's name) live in each app's implementation.
+	DisplayTitle func(record any) string
 }
 
 var (
