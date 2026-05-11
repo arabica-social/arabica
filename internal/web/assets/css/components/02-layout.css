@@ -1,0 +1,71 @@
+/* ========================================
+   Page Containers
+   ======================================== */
+.page-container {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+@media (min-width: 640px) {
+  .page-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.page-container-sm {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  max-width: 42rem;
+}
+@media (min-width: 640px) {
+  .page-container-sm {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.page-container-md {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  max-width: 48rem;
+}
+@media (min-width: 640px) {
+  .page-container-md {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.page-container-lg {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  max-width: 56rem;
+}
+@media (min-width: 640px) {
+  .page-container-lg {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.page-container-xl {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  max-width: 72rem;
+}
+@media (min-width: 640px) {
+  .page-container-xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

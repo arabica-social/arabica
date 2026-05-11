@@ -59,12 +59,11 @@ go test ./...
 go build -o arabica cmd/server/main.go
 ```
 
-Without Nix, you'll need to have Go, Templ, and tailwindcss installed (just is
-optional but recommended).
+Without Nix, you'll need to have Go and Templ installed (just is optional but
+recommended). CSS is bundled in-process at server startup — no external build
+tool needed.
 
 ```sh
-# Generate CSS files
-tailwindcss -i static/css/app.css -o static/css/output.css --minify
 # Compile Templ
 templ generate
 # Run the appview

@@ -1,0 +1,154 @@
+/* Alert banners */
+.alert-warning {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: var(--alert-warning-bg);
+  border: 1px solid var(--alert-warning-border);
+  color: var(--alert-warning-text);
+}
+
+.alert-warning-muted {
+  color: var(--alert-warning-text-muted);
+}
+
+/* Home page action buttons */
+.home-action-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  background: linear-gradient(135deg, #6b4423, #4a2c2a);
+  color: #faf7f5;
+  border: 1px solid #6b4423;
+  box-shadow: var(--shadow-sm);
+}
+
+.home-action-primary:hover {
+  box-shadow: var(--shadow-md);
+  filter: brightness(1.1);
+}
+
+.home-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1.5px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.home-action-secondary:hover {
+  border-color: var(--input-border-focus);
+  box-shadow: var(--shadow-md);
+}
+
+/* Tab navigation — underline variant (no base border, profile page) */
+.tab-underline-active {
+  border-bottom: 2px solid var(--btn-primary-bg);
+  color: var(--text-primary);
+}
+.tab-underline-inactive {
+  color: var(--text-muted);
+}
+.tab-underline-inactive:hover {
+  color: var(--text-primary);
+}
+
+/* Tab navigation — row variant (element has border-b-2; my_coffee, manage) */
+.tab-row-active {
+  border-color: var(--btn-primary-bg);
+  color: var(--text-primary);
+}
+.tab-row-inactive {
+  border-color: transparent;
+  color: var(--text-muted);
+}
+.tab-row-inactive:hover {
+  border-color: #d2bab0; /* brown-400 — matches pre-bespoke original */
+  color: var(--text-primary);
+}
+
+/* Tab navigation — pill variant (admin moderation tabs) */
+.tab-pill-active {
+  background: var(--card-border);
+  color: var(--text-primary);
+  border-color: #d2bab0; /* brown-400 — matches pre-bespoke original */
+}
+.tab-pill-inactive {
+  background: var(--surface-bg);
+  color: var(--text-muted);
+  border-color: var(--card-border);
+}
+.tab-pill-inactive:hover {
+  background: var(--card-border);
+}
+
+/* Incomplete-entity nudge toast (manage-page.js) */
+.nudge-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: 28rem;
+  width: 100%;
+  margin-left: 1rem;
+  margin-right: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Handle autocomplete row internals (handle-autocomplete.js) */
+.handle-result-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.handle-result-text {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+@font-face {
+  font-family: "Iosevka Patrick";
+  src: url("/static/fonts/IosevkaPatrickNerdFont-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Iosevka Patrick";
+  src: url("/static/fonts/IosevkaPatrickNerdFont-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Iosevka Patrick";
+  src: url("/static/fonts/IosevkaPatrickNerdFont-SemiBold.woff2")
+    format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}

@@ -1,0 +1,226 @@
+/* ========================================
+   HTMX Transition Classes
+   ======================================== */
+
+/* CRITICAL: Prevent content from being stuck invisible during history restore */
+/* Override HTMX transition classes during history restoration */
+body.htmx-history-restoring main,
+body.htmx-history-restoring .htmx-swapping,
+body.htmx-history-restoring .htmx-transitioning {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* During swap transition */
+.htmx-swapping {
+  opacity: 0;
+  transform: translateY(5px);
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out;
+}
+
+/* After content is added */
+.htmx-added {
+  opacity: 0;
+  animation: fade-in-slide-up 200ms ease-out forwards;
+}
+
+/* During settling phase */
+.htmx-settling {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 100ms ease-in,
+    transform 100ms ease-in;
+}
+
+/* Transitioning state (no overlay - looks bad) */
+.htmx-transitioning {
+  position: relative;
+  /* Removed overlay ::after pseudo-element - it created unwanted shadow effects */
+}
+
+/* ========================================
+   Component-Specific Transitions
+   ======================================== */
+
+/* Feed cards appear with stagger effect (only inside the pinboard) */
+.feed-grid .feed-card {
+  animation: fade-in-slide-up 300ms ease-out backwards;
+}
+
+.feed-grid .feed-card:nth-child(1) {
+  animation-delay: 0ms;
+}
+.feed-grid .feed-card:nth-child(2) {
+  animation-delay: 60ms;
+}
+.feed-grid .feed-card:nth-child(3) {
+  animation-delay: 120ms;
+}
+.feed-grid .feed-card:nth-child(4) {
+  animation-delay: 160ms;
+}
+.feed-grid .feed-card:nth-child(5) {
+  animation-delay: 200ms;
+}
+.feed-grid .feed-card:nth-child(6) {
+  animation-delay: 230ms;
+}
+.feed-grid .feed-card:nth-child(n + 7) {
+  animation-delay: 260ms;
+}
+
+/* Modal transitions (enhanced) */
+.modal-backdrop {
+  animation: fade-in 100ms ease-out;
+}
+
+.modal-content {
+  animation: modal-appear 150ms ease-out;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* HTML5 Dialog Element Transitions */
+.modal-dialog {
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out,
+    overlay 100ms ease-out allow-discrete,
+    display 100ms ease-out allow-discrete;
+}
+
+.modal-dialog[open] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Backdrop fade-in transition */
+.modal-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0);
+  transition:
+    background-color 100ms ease-out,
+    backdrop-filter 100ms ease-out,
+    display 100ms ease-out allow-discrete,
+    overlay 100ms ease-out allow-discrete;
+}
+
+.modal-dialog[open]::backdrop {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Starting style for new browsers that support @starting-style */
+@supports (transition-behavior: allow-discrete) {
+  @starting-style {
+    .modal-dialog[open] {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    .modal-dialog[open]::backdrop {
+      background-color: rgba(0, 0, 0, 0);
+    }
+  }
+}
+
+/* Modal content inside dialog - no separate animation needed */
+/* The dialog element itself handles the transition */
+
+/* ========================================
+   Keyframes
+   ======================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Like button pop animation */
+@keyframes like-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Like button shrink animation for unlike */
+@keyframes like-shrink {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.8);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ========================================
+   Loading States
+   ======================================== */
+
+/* Enhance skeleton loading animations */
+.animate-pulse {
+  animation: enhanced-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes enhanced-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ========================================
+   Reduced Motion Override
+   ======================================== */
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

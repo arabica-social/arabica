@@ -1,0 +1,243 @@
+/* Feed Components — Sticky Notes on Corkboard */
+.feed-card {
+  background-color: var(--feed-card-bg);
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  transition-duration: 200ms;
+  box-shadow:
+    1px 2px 4px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  break-inside: avoid;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .feed-card {
+    padding: 1rem;
+  }
+}
+
+.feed-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Sticky-note rotation only inside the feed pinboard.
+     Uses the independent `rotate` property so it doesn't conflict
+     with the fade-in-slide-up animation's `transform`. */
+@media (min-width: 768px) {
+  .feed-grid .feed-card {
+    rotate: var(--card-rotate, 0deg);
+    backface-visibility: hidden;
+  }
+
+  .feed-grid .feed-card:hover {
+    /* var(... , 0deg) form prevents Lightning CSS (v4's bundled
+         minifier) from dead-stripping `rotate: 0deg` as an initial
+         value. Without this, the minified output drops the un-tilt
+         on hover and the cards stay rotated. */
+    rotate: var(--feed-card-hover-rotate, 0deg);
+    transform: translateY(-2px);
+  }
+
+  /* --card-rotate values are assigned per-card via JS in feed-masonry.js */
+}
+
+/* Brew cards — the main sticky note, slightly larger presence */
+.feed-card-brew {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-brew-tint),
+    var(--type-brew-tint)
+  );
+  border-radius: 0.25rem;
+  box-shadow:
+    2px 3px 6px rgba(0, 0, 0, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.feed-card-brew:hover {
+  box-shadow:
+    3px 4px 10px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Compact cards — equipment and roasters */
+.feed-card-compact {
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+}
+
+/* Feed card type tints — colored sticky notes */
+.feed-card-bean {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-bean-tint),
+    var(--type-bean-tint)
+  );
+}
+.feed-card-recipe {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-recipe-tint),
+    var(--type-recipe-tint)
+  );
+}
+.feed-card-roaster {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-roaster-tint),
+    var(--type-roaster-tint)
+  );
+}
+.feed-card-grinder {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-grinder-tint),
+    var(--type-grinder-tint)
+  );
+}
+.feed-card-brewer {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-brewer-tint),
+    var(--type-brewer-tint)
+  );
+}
+
+/* Feed grid layout — starts as normal grid, JS adds masonry class for tight packing */
+.feed-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+  overflow: hidden;
+  background-image: var(--texture-cork);
+  background-color: var(--feed-board-bg);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--feed-board-border);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+@media (min-width: 640px) {
+  .feed-grid {
+    padding: 1.25rem;
+  }
+}
+
+.feed-masonry-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .feed-grid {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 1.25rem;
+    row-gap: 1.25rem;
+  }
+
+  .feed-masonry-col {
+    gap: 1.25rem;
+  }
+}
+
+/* Brew cards get extra presence without spanning columns */
+.feed-card-brew {
+  padding: 1rem;
+}
+@media (min-width: 640px) {
+  .feed-card-brew {
+    padding: 1.25rem;
+  }
+}
+
+/* Inner content boxes inside tinted cards — blend with outer card */
+.feed-card .feed-content-box,
+.feed-card .feed-content-box-sm {
+  background: transparent;
+}
+
+/* Type badges — inline pill with icon + label */
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  border: 1px solid currentColor;
+  opacity: 0.8;
+}
+
+.type-badge svg {
+  color: inherit;
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.type-badge-brew {
+  color: var(--type-brew);
+}
+.type-badge-bean {
+  color: var(--type-bean);
+}
+.type-badge-recipe {
+  color: var(--type-recipe);
+}
+.type-badge-roaster {
+  color: var(--type-roaster);
+}
+.type-badge-grinder {
+  color: var(--type-grinder);
+}
+.type-badge-brewer {
+  color: var(--type-brewer);
+}
+
+/* Entity card type dot — small colored indicator in card headers */
+.entity-card-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.entity-card-dot-bean {
+  background: var(--type-bean);
+}
+.entity-card-dot-roaster {
+  background: var(--type-roaster);
+}
+.entity-card-dot-grinder {
+  background: var(--type-grinder);
+}
+.entity-card-dot-brewer {
+  background: var(--type-brewer);
+}
+.entity-card-dot-recipe {
+  background: var(--type-recipe);
+}
+
+.feed-content-box {
+  background: var(--surface-bg);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.feed-content-box-sm {
+  background: var(--surface-bg);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}

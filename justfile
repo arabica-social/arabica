@@ -1,11 +1,13 @@
 [private]
-default: style templ-generate run
+default: templ-generate run
 
+# Run dev server with CSS hot-reload — edit any file under
+# internal/web/assets/css/ and refresh; no rebuild needed.
 run:
-    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json go run ./cmd/server -known-dids known-dids.txt
+    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_CSS_HOTRELOAD=1 go run ./cmd/server -known-dids known-dids.txt
 
 templ-watch:
-    @templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/server -known-dids known-dids.txt"
+    @templ generate --watch --proxy="http://localhost:18080" --cmd="ARABICA_CSS_HOTRELOAD=1 go run ./cmd/server -known-dids known-dids.txt"
 
 templ-generate:
     @templ generate
@@ -15,17 +17,7 @@ test:
     @go test ./... -cover -coverprofile=cover.out
 
 integration-test:
-    @cd tests/integration && go test -v ./... -count=1 
+    @cd tests/integration && go test -v ./... -count=1
 
 verbose-integration-test:
-    @cd tests/integration && INTEGRATION_LOGS=true go test -v ./... -count=1 
-
-style: style-arabica
-
-# style-oolong
-
-style-arabica:
-    @cat static/css/tokens.css static/css/reset.css static/css/utilities.css static/css/components.css > static/css/output.css
-
-style-oolong:
-    @cat static/css/tokens.css static/css/reset.css static/css/utilities.css static/css/components.css static/css/themes/oolong.css > static/css/output-oolong.css
+    @cd tests/integration && INTEGRATION_LOGS=true go test -v ./... -count=1

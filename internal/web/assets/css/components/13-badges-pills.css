@@ -1,0 +1,199 @@
+/* Badges */
+.badge-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  background: var(--rating-bg);
+  color: var(--rating-text);
+}
+
+.badge-rating-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  background: var(--rating-bg);
+  color: var(--rating-text);
+}
+
+/* Filter Pills */
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--card-border);
+}
+
+.filter-pill:hover {
+  color: var(--text-secondary);
+  border-color: var(--input-border-focus);
+  background: var(--surface-bg);
+}
+
+/* Type-aware hover */
+.filter-pill[data-tab="brew"]:hover {
+  border-color: var(--type-brew);
+  color: var(--type-brew);
+}
+.filter-pill[data-tab="bean"]:hover {
+  border-color: var(--type-bean);
+  color: var(--type-bean);
+}
+.filter-pill[data-tab="recipe"]:hover {
+  border-color: var(--type-recipe);
+  color: var(--type-recipe);
+}
+.filter-pill[data-tab="grinder"]:hover {
+  border-color: var(--type-grinder);
+  color: var(--type-grinder);
+}
+.filter-pill[data-tab="brewer"]:hover {
+  border-color: var(--type-brewer);
+  color: var(--type-brewer);
+}
+
+.filter-pill-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  color: var(--btn-primary-text);
+  background: var(--btn-primary-bg);
+  border: 1px solid var(--btn-primary-bg);
+}
+
+.filter-pill-active:hover {
+  background: var(--btn-primary-bg-hover);
+  border-color: var(--btn-primary-bg-hover);
+}
+
+/* Type-colored active pills */
+.filter-pill-brew,
+.filter-pill-bean,
+.filter-pill-recipe,
+.filter-pill-grinder,
+.filter-pill-brewer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  color: var(--btn-primary-text);
+}
+
+.filter-pill-brew {
+  background: var(--type-brew);
+  border: 1px solid var(--type-brew);
+}
+
+.filter-pill-bean {
+  background: var(--type-bean);
+  border: 1px solid var(--type-bean);
+}
+
+.filter-pill-recipe {
+  background: var(--type-recipe);
+  border: 1px solid var(--type-recipe);
+}
+
+.filter-pill-grinder {
+  background: var(--type-grinder);
+  border: 1px solid var(--type-grinder);
+}
+
+.filter-pill-brewer {
+  background: var(--type-brewer);
+  border: 1px solid var(--type-brewer);
+}
+
+.feed-sort-btn {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--card-border);
+}
+
+.feed-sort-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--input-border-focus);
+}
+
+.feed-sort-btn-active {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  color: var(--btn-primary-text);
+  background: var(--btn-primary-bg);
+  border: 1px solid var(--btn-primary-bg);
+}

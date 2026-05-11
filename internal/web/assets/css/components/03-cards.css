@@ -1,0 +1,180 @@
+/* Cards and Containers */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 200ms ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card-inner {
+  padding: 1.5rem;
+}
+
+.card-sm {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Section box for lighter content areas */
+.section-box {
+  background: var(--surface-bg);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+/* Record view — tinted header region */
+.record-view-header {
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  margin-top: -1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  padding-top: 1.25rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+/* Record view — author line */
+.record-view-author {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.record-view-author-info {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.record-view-author-names {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.record-view-author-displayname {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.record-view-author-handle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.record-view-author-handle:hover {
+  color: var(--text-secondary);
+}
+
+.record-view-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text-muted);
+}
+
+/* Record view — title area */
+.record-view-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.record-view-timestamp {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+}
+
+/* ── Shared record view tokens ── */
+.detail-label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.detail-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.detail-value-lg {
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  color: var(--text-primary);
+}
+
+.detail-value a {
+  color: var(--text-primary);
+}
+.detail-value a:hover {
+  text-decoration: underline;
+}
+
+.detail-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.record-view-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 1.5rem;
+}
+
+.record-stat-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  padding-top: 0.75rem;
+  color: var(--text-muted);
+}
+
+.brew-rating-hero {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}

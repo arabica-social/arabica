@@ -31,6 +31,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/tracing"
+	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -358,6 +359,19 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		log.Info().Msg("Email notifications disabled (SMTP_HOST not set), join requests will be saved to database only")
 	}
 
+	// CSS bundle: concat tokens + reset + utilities + components/*.css at
+	// startup (embedded) or per-request (hot-reload). The hash-based URL
+	// replaces the manually-bumped ?v= query param.
+	cssBundle := assets.New(assets.Config{
+		AppName: app.Name,
+		DevDir:  cssHotReloadDir(envPrefix),
+	})
+	cssBundle.MustBuild()
+	assets.Register(cssBundle)
+	if dir := cssHotReloadDir(envPrefix); dir != "" {
+		log.Info().Str("dir", dir).Msg("CSS hot-reload enabled — bundle re-reads from disk on each request")
+	}
+
 	// Router
 	handler := routing.SetupRouter(routing.Config{
 		App:               app,
@@ -367,6 +381,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		Logger:            log.Logger,
 		ModerationService: moderationSvc,
 		FirehoseConsumer:  firehoseConsumer,
+		CSSBundle:         cssBundle,
 	})
 
 	// Internal metrics server (localhost-only)
@@ -458,6 +473,22 @@ func resolveDataDir(envPrefix, appName string) (string, error) {
 		root = filepath.Join(home, ".local", "share")
 	}
 	return filepath.Join(root, appName), nil
+}
+
+// cssHotReloadDir returns the directory the CSS bundler should re-read
+// from on every request, or "" to use the embedded bytes. Set
+// <APP>_CSS_HOTRELOAD=1 (or any truthy value) for the default source
+// path, or set it to an explicit directory to override.
+func cssHotReloadDir(envPrefix string) string {
+	v := lookupAppEnv(envPrefix, "CSS_HOTRELOAD")
+	switch v {
+	case "", "0", "false":
+		return ""
+	case "1", "true", "yes", "on":
+		return "internal/web/assets/css"
+	default:
+		return v
+	}
 }
 
 // lookupAppEnv returns os.Getenv("<envPrefix>_<key>") if set, falling

@@ -1,6 +1,9 @@
 package components
 
-import "tangled.org/arabica.social/arabica/internal/web/bff"
+import (
+	"tangled.org/arabica.social/arabica/internal/web/assets"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
+)
 
 // LayoutData contains all the data needed for the layout
 type LayoutData struct {
@@ -34,16 +37,11 @@ type LayoutData struct {
 	OGUrl         string // Canonical URL for the page
 }
 
-// stylesheetHref returns the compiled CSS file for the running app.
-// Each app has its own Tailwind build (see static/css/app-<name>.css);
-// arabica is the default since it's the canonical input.
+// stylesheetHref returns the cache-busted CSS URL for the running app.
+// The bundle is concatenated at server startup from internal/web/assets/css/;
+// the ?h=<hash> query param invalidates automatically when content changes.
 func (d *LayoutData) stylesheetHref() string {
-	switch d.AppName {
-	case "oolong":
-		return "/static/css/output-oolong.css?v=0.15.0"
-	default:
-		return "/static/css/output.css?v=0.15.0"
-	}
+	return assets.HrefFor(d.AppName)
 }
 
 // brandName returns the configured brand display name, defaulting to

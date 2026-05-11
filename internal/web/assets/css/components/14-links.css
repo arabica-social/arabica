@@ -1,0 +1,25 @@
+/* Links */
+.link {
+  color: var(--text-muted);
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.link:hover {
+  color: var(--text-primary);
+}
+
+.link-bold {
+  color: var(--text-muted);
+  font-weight: 500;
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.link-bold:hover {
+  color: var(--text-primary);
+}

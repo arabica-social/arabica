@@ -1,0 +1,353 @@
+/* Bean hero header: title/byline on the left, rating fills empty space on the
+     right. Wraps the rating to a new line on narrow screens. */
+.bean-hero-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  column-gap: 1.5rem;
+  row-gap: 0.75rem;
+}
+
+.bean-hero-text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bean-hero-row .brew-rating-hero {
+  flex-shrink: 0;
+}
+
+.brew-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 2rem;
+  row-gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.brew-summary-stats {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1.5rem;
+  row-gap: 0.75rem;
+  flex: 1 1 auto;
+}
+
+.brew-summary-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.brew-summary-stat dt {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.brew-summary-stat dd {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.brew-rating-value {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  font-size: clamp(3.25rem, 6vw + 1rem, 4.5rem);
+  color: var(--rating-text);
+  /* Trim the line-box to the cap/alphabetic edges so the big number sits
+       flush against the "/ 10" baseline without phantom leading whitespace.
+       Progressive enhancement — older browsers ignore these. */
+  text-box: trim-both cap alphabetic;
+}
+
+.brew-rating-max {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* ── Treatment 1: Brew Journal ──
+     Dot-grid paper, ledger-style fields, for brews/recipes/equipment */
+
+.record-journal {
+  background-color: var(--journal-bg);
+  background-image: var(--texture-dotgrid);
+  border-radius: 0.5rem;
+}
+
+/* Ledger field: label left, value right, separated by faint line */
+.journal-field {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.journal-field:last-child {
+  border-bottom: none;
+}
+
+.journal-field .detail-label {
+  flex-shrink: 0;
+  width: 9rem;
+}
+
+.journal-field .detail-value,
+.journal-field .detail-value-lg {
+  text-align: right;
+  flex: 1 1 0%;
+}
+
+.journal-field a.detail-value {
+  text-align: right;
+}
+
+/* On mobile, stack journal fields vertically */
+@media (max-width: 480px) {
+  .journal-field {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  .journal-field .detail-value,
+  .journal-field .detail-value-lg {
+    text-align: left;
+  }
+}
+
+/* Section heading inside the journal ledger — separates Inputs/Process/Output */
+.ledger-section {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-top: 1.75rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.25rem;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--surface-border);
+}
+.ledger-section:first-child {
+  margin-top: 0;
+}
+
+/* Kraft tape chip — used for recipe fork provenance */
+.fork-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  margin-bottom: 1.25rem;
+  background-color: var(--kraft-bg);
+  background-image: var(--texture-kraft);
+  color: var(--text-secondary);
+  border: 1px solid var(--surface-border);
+  border-radius: 2px;
+  transform: rotate(-1.25deg);
+  box-shadow: var(--shadow-sm);
+}
+.fork-chip a {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--text-faint);
+  text-underline-offset: 2px;
+}
+.fork-chip a:hover {
+  text-decoration-color: var(--text-muted);
+}
+
+/* Pour rows: shared by brew and recipe views */
+.pour-row {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+.pour-row:last-child {
+  border-bottom: none;
+}
+
+/* Prose section in journal context */
+.journal-prose {
+  white-space: pre-wrap;
+  line-height: 1.625;
+  color: var(--text-primary);
+}
+
+/* Bean reference inside a journal brew page */
+.journal-bean-ref {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  background: var(--surface-bg);
+  transition: background 0.15s ease;
+}
+
+.journal-bean-ref:hover {
+  background: var(--type-bean-tint);
+}
+
+/* ── Treatment 2: Craft Label ──
+     Kraft paper texture, bold typographic hierarchy, for beans/roasters */
+
+.record-label {
+  background-color: var(--kraft-bg);
+  background-image: var(--texture-kraft);
+  border-radius: 0.5rem;
+}
+
+/* Origin hero — the biggest element on a bean label */
+.label-origin-hero {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+/* Roaster byline under bean name */
+.label-byline {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+}
+
+.label-byline a {
+  color: var(--text-secondary);
+}
+
+.label-byline a:hover {
+  text-decoration: underline;
+  color: var(--text-primary);
+}
+
+/* Inline tag strip: variety / process / roast level — stamp marks, not pills */
+.label-tags {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.label-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  letter-spacing: 0.14em;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--text-muted);
+  border-radius: 2px;
+}
+
+.label-tag-closed {
+  color: var(--text-muted);
+  border-color: var(--text-faint);
+  border-style: dashed;
+}
+
+/* Category-tinted label tags — muted, earthy hues that fit the palette.
+     Use bg + border + text together so each pill reads as one tone. */
+.label-tag-origin {
+  background: #eef0e8;
+  border-color: #b6c0a6;
+  color: #4a5a3a;
+}
+
+.label-tag-variety {
+  background: #efe5ec;
+  border-color: #b89aae;
+  color: #5c3a52;
+}
+
+.label-tag-process {
+  background: #e7ebef;
+  border-color: #a4b1bd;
+  color: #3e4a57;
+}
+
+/* Roast level — graduated amber/brown by darkness */
+.label-tag-roast-1 {
+  background: #fdf3dc;
+  border-color: #e6c97a;
+  color: #6b4f1a;
+}
+.label-tag-roast-2 {
+  background: #f7e6c2;
+  border-color: #d4a85a;
+  color: #5a3d10;
+}
+.label-tag-roast-3 {
+  background: #ebd2a4;
+  border-color: #b88947;
+  color: #4a2f0c;
+}
+.label-tag-roast-4 {
+  background: #d9b483;
+  border-color: #8a6332;
+  color: #3a2408;
+}
+.label-tag-roast-5 {
+  background: #b8895a;
+  border-color: #5e3f1c;
+  color: #2a1604;
+}
+.label-tag-roast-6 {
+  background: #6b4423;
+  border-color: #2a1604;
+  color: #fdf3dc;
+}
+
+/* Description on a label — flowing paragraph, no indent */
+.label-description {
+  line-height: 1.625;
+  margin-top: 1.5rem;
+  color: var(--text-primary);
+  max-width: 65ch;
+}
+
+/* Stacked detail for label pages (location, website) */
+.label-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.label-detail:last-child {
+  border-bottom: none;
+}

@@ -1,0 +1,159 @@
+/* Modals */
+.modal-backdrop {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+  background: var(--modal-backdrop);
+  /* backdrop-filter removed — solid overlay for performance */
+}
+
+.modal-content {
+  background: var(--modal-bg);
+  border: 1px solid var(--modal-border);
+  color: var(--text-primary);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  max-width: 28rem;
+  width: 100%;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+/* Native Dialog Element */
+.modal-dialog {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  max-width: 28rem;
+  width: 100%;
+  /* Tailwind v4 preflight resets `margin: 0` on `*`, which clobbers the
+       browser-default `margin: auto` that centers a top-layer <dialog>
+       opened via showModal(). Restore it so modals don't snap to 0,0. */
+  margin: auto;
+}
+
+.modal-dialog::backdrop {
+  background: var(--modal-backdrop);
+  /* backdrop-filter removed — solid overlay for performance */
+}
+
+.modal-dialog .modal-content {
+  background: var(--modal-bg);
+  border: 1px solid var(--modal-border);
+  color: var(--text-primary);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  width: 100%;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Handle autocomplete typeahead dropdown */
+.handle-dropdown {
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  margin-top: 0.25rem;
+  border-radius: 0.5rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.handle-result {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  color: var(--text-primary);
+}
+
+.handle-result:hover {
+  background: var(--surface-bg);
+}
+
+.handle-result .handle-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.handle-result .handle-at {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.handle-no-results {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text-muted);
+}
+
+/* Entity suggestion typeahead dropdown */
+.suggestions-dropdown {
+  position: absolute;
+  z-index: 50;
+  margin-top: 0.25rem;
+  border-radius: 0.5rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-md);
+}
+
+.suggestions-item {
+  width: 100%;
+  text-align: left;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.suggestions-item:hover {
+  background: var(--surface-bg);
+}

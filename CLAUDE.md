@@ -218,19 +218,25 @@ public (via `?owner=` parameter) access. They:
 4. Fetch social data (likes, comments, moderation state)
 5. Render the templ page with all props
 
-### CSS Cache Busting
+### CSS
 
-When making CSS/style changes, bump the version query parameter in
-`internal/web/components/layout.templ`:
+Source files live in `internal/web/assets/css/`:
 
-```html
-<link rel="stylesheet" href="/static/css/output.css?v=0.1.3" />
-```
+- `tokens.css`, `reset.css`, `utilities.css` — base layers
+- `components/*.css` — numbered files (`01-dark-mode.css`, `02-layout.css`,
+  …) loaded in alphabetical order so the numeric prefix preserves cascade
+- `themes/<app>.css` — per-app overlay (e.g. `themes/oolong.css`)
 
-The build pipeline concatenates four source files into `output.css`:
-`tokens.css + reset.css + utilities.css + components.css`. No build step
-beyond `cat`. After editing any CSS source file, run `just style` and bump
-the cache buster.
+The `internal/web/assets` package embeds these via `go:embed` and bundles
+them at server startup. The bundle is served at `/static/css/output.css`
+(or `/static/css/output-<app>.css` for non-arabica apps) with a
+sha256-derived `?h=<hash>` cache buster — no manual version bumps. There
+is no separate build step; `go run` (or `just run`) is the build.
+
+For dev, set `ARABICA_CSS_HOTRELOAD=1` (already on in the `just run`
+recipe). The handler then re-reads the source directory on every request,
+so editing a CSS file and refreshing the browser picks up the change
+without a server restart.
 
 ## Testing Conventions
 
