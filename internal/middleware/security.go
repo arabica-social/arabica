@@ -179,8 +179,19 @@ func NewDefaultRateLimitConfig() *RateLimitConfig {
 func RateLimitMiddleware(config *RateLimitConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := GetClientIP(r)
 			path := r.URL.Path
+
+			// Static assets are served from in-memory caches behind ETag and
+			// don't represent the threat model rate-limiting protects against
+			// (auth brute force, API scraping). A page load fans out into
+			// 15+ revalidation requests in dev mode, which would otherwise
+			// burn through the global bucket in a handful of refreshes.
+			if strings.HasPrefix(path, "/static/") || path == "/favicon.ico" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			ip := GetClientIP(r)
 
 			var limiter *RateLimiter
 

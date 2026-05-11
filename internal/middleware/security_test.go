@@ -208,6 +208,19 @@ func TestRateLimitMiddleware(t *testing.T) {
 		wrapped.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusTooManyRequests, rec.Code)
 	})
+
+	t.Run("static paths and favicon bypass all limiters", func(t *testing.T) {
+		// Hammer well past the global limit; every request must still be 200.
+		for _, path := range []string{"/static/css/output.css", "/static/js/combo-select.js", "/favicon.ico"} {
+			for range 20 {
+				req := httptest.NewRequest(http.MethodGet, path, nil)
+				req.RemoteAddr = "5.5.5.5:1234"
+				rec := httptest.NewRecorder()
+				wrapped.ServeHTTP(rec, req)
+				assert.Equal(t, http.StatusOK, rec.Code, "path %s should bypass rate limiting", path)
+			}
+		}
+	})
 }
 
 func TestRequireHTMXMiddleware(t *testing.T) {
