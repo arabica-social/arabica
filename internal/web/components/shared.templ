@@ -350,51 +350,73 @@ templ PageHeader(props PageHeaderProps) {
 type WelcomeCardProps struct {
 	IsAuthenticated bool
 	UserDID         string
+	AppName         string // "arabica" or "oolong" — toggles per-app copy + buttons
 }
 
 // WelcomeCard renders the authenticated welcome with action buttons (used on home page)
 templ WelcomeCard(props WelcomeCardProps) {
 	if props.IsAuthenticated {
-		@WelcomeAuthenticated(props.UserDID)
+		if props.AppName == "oolong" {
+			@welcomeAuthenticatedOolong(props.UserDID)
+		} else {
+			@welcomeAuthenticatedArabica(props.UserDID)
+		}
 	}
 }
 
+// WelcomeAuthenticated is the legacy two-arg entry point retained for
+// any caller still using it. New callers should pass WelcomeCardProps
+// (with AppName) so the per-app variants render.
 templ WelcomeAuthenticated(userDID string) {
+	@welcomeAuthenticatedArabica(userDID)
+}
+
+templ welcomeAuthenticatedArabica(userDID string) {
 	<div class="text-center mb-8 pt-4">
 		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">Your coffee journey, documented.</h1>
-		// <p class="text-sm text-faint mb-6">
-		// 	Logged in as <span class="font-mono text-emphasis font-medium">{ userDID }</span>
-		// </p>
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto">
-			<a
-				href="/brews/new"
-				class="home-action-primary block text-center py-4 px-4 rounded-xl"
-			>
+			<a href="/brews/new" class="home-action-primary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">Log Brew</span>
 			</a>
-			<a
-				href="/my-coffee"
-				class="home-action-secondary block text-center py-4 px-4 rounded-xl"
-			>
+			<a href="/my-coffee" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">My Coffee</span>
 			</a>
-			<a
-				href="/recipes"
-				class="home-action-secondary block text-center py-4 px-4 rounded-xl"
-			>
+			<a href="/recipes" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">Recipes</span>
 			</a>
-			<a
-				href={ templ.SafeURL("/profile/" + userDID) }
-				class="home-action-secondary block text-center py-4 px-4 rounded-xl"
-			>
+			<a href={ templ.SafeURL("/profile/" + userDID) } class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">Profile</span>
 			</a>
 		</div>
 	</div>
 }
 
-// WelcomeHero renders the landing hero for unauthenticated users
+templ welcomeAuthenticatedOolong(userDID string) {
+	<div class="text-center mb-8 pt-4">
+		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">Your tea journey, documented.</h1>
+		<div class="grid grid-cols-3 gap-3 max-w-xl mx-auto">
+			<button
+				type="button"
+				class="home-action-primary block text-center py-4 px-4 rounded-xl"
+				hx-get="/api/modals/brew/new"
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+			>
+				<span class="text-base font-semibold">Log Steep</span>
+			</button>
+			<a href="/my-tea" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
+				<span class="text-base font-semibold">My Tea</span>
+			</a>
+			<a href={ templ.SafeURL("/profile/" + userDID) } class="home-action-secondary block text-center py-4 px-4 rounded-xl">
+				<span class="text-base font-semibold">Profile</span>
+			</a>
+		</div>
+	</div>
+}
+
+// WelcomeHero renders the landing hero for unauthenticated users.
+// Currently a single coffee-flavored variant. Per-app messaging on
+// the hero (and the per-app /about / /terms pages) lands in Phase 4e.
 templ WelcomeHero() {
 	<div class="text-center mb-8 pt-4">
 		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-3">Your coffee journey, documented.</h1>
@@ -403,6 +425,23 @@ templ WelcomeHero() {
 			<a href="/atproto" class="hover:text-emphasis transition-colors">Built on AT Protocol</a> — you own your data.
 		</p>
 	</div>
+}
+
+// WelcomeHeroFor returns the hero matching the running app. Unauth'd
+// homepage callers pass the app name so the tea variant lands in
+// oolong without an extra page-per-app.
+templ WelcomeHeroFor(appName string) {
+	if appName == "oolong" {
+		<div class="text-center mb-8 pt-4">
+			<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-3">Your tea journey, documented.</h1>
+			<p class="text-lg text-emphasis max-w-xl mx-auto mb-3">Log every steep, track your teaware and vendors, and share your tea story with the community.</p>
+			<p class="text-sm text-faint">
+				<a href="/atproto" class="hover:text-emphasis transition-colors">Built on AT Protocol</a> — you own your data.
+			</p>
+		</div>
+	} else {
+		@WelcomeHero()
+	}
 }
 
 // WelcomeLoginCard renders a compact login card for unauthenticated users

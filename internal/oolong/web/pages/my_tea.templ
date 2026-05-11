@@ -1,0 +1,173 @@
+package teapages
+
+import (
+	"fmt"
+	"strconv"
+
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// MyTeaProps holds the user's owned records across all 7 oolong
+// entity types. Empty slices render as "no X yet" rather than being
+// hidden, so the create entry points are always discoverable.
+type MyTeaProps struct {
+	Teas    []*oolong.Tea
+	Vendors []*oolong.Vendor
+	Brewers []*oolong.Brewer
+	Recipes []*oolong.Recipe
+	Brews   []*oolong.Brew
+	Cafes   []*oolong.Cafe
+	Drinks  []*oolong.Drink
+}
+
+templ MyTea(layout *components.LayoutData, props MyTeaProps) {
+	@components.Layout(layout, MyTeaContent(props))
+}
+
+templ MyTeaContent(props MyTeaProps) {
+	<div class="page-container-xl">
+		<div class="flex items-center gap-3 mb-6">
+			<h2 class="text-2xl font-semibold text-primary">My Tea</h2>
+		</div>
+		<div id="modal-container"></div>
+		@MyTeaSection("Teas", "tea", "/api/modals/tea/new", len(props.Teas)) {
+			for _, t := range props.Teas {
+				@myTeaRow(t.RKey, t.Name, "tea", "/teas/"+t.RKey)
+			}
+		}
+		@MyTeaSection("Vendors", "vendor", "/api/modals/vendor/new", len(props.Vendors)) {
+			for _, v := range props.Vendors {
+				@myTeaRow(v.RKey, v.Name, "vendor", "/vendors/"+v.RKey)
+			}
+		}
+		@MyTeaSection("Brewers", "brewer", "/api/modals/brewer/new", len(props.Brewers)) {
+			for _, b := range props.Brewers {
+				@myTeaRow(b.RKey, b.Name, "brewer", "/brewers/"+b.RKey)
+			}
+		}
+		@MyTeaSection("Recipes", "recipe", "/api/modals/recipe/new", len(props.Recipes)) {
+			for _, r := range props.Recipes {
+				@myTeaRow(r.RKey, r.Name, "recipe", "/recipes/"+r.RKey)
+			}
+		}
+		@MyTeaSection("Steeps", "brew", "/api/modals/brew/new", len(props.Brews)) {
+			for _, b := range props.Brews {
+				@myTeaRow(b.RKey, brewLabel(b), "brew", "/brews/"+b.RKey)
+			}
+		}
+		@MyTeaSection("Cafes", "cafe", "/api/modals/cafe/new", len(props.Cafes)) {
+			for _, c := range props.Cafes {
+				@myTeaRow(c.RKey, c.Name, "cafe", "/cafes/"+c.RKey)
+			}
+		}
+		@MyTeaSection("Drinks", "drink", "/api/modals/drink/new", len(props.Drinks)) {
+			for _, d := range props.Drinks {
+				@myTeaRow(d.RKey, drinkLabel(d), "drink", "/drinks/"+d.RKey)
+			}
+		}
+	</div>
+}
+
+// MyTeaSection renders one collapsible section with a "+ Add" button
+// and the per-row list inside. Children are the rendered rows for this
+// entity.
+templ MyTeaSection(title, noun, addModalURL string, count int) {
+	<section class="card p-4 mb-4">
+		<header class="flex items-center justify-between mb-3">
+			<div class="flex items-baseline gap-2">
+				<h3 class="text-lg font-semibold text-primary">{ title }</h3>
+				<span class="text-sm text-muted">{ strconv.Itoa(count) }</span>
+			</div>
+			<button
+				type="button"
+				class="btn-secondary text-sm"
+				hx-get={ addModalURL }
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+			>
+				+ Add { title[:len(title)-1] }
+			</button>
+		</header>
+		if count == 0 {
+			<p class="text-sm text-muted italic">No { noun }s yet.</p>
+		} else {
+			<ul class="divide-y divide-brown-200">
+				{ children... }
+			</ul>
+		}
+	</section>
+}
+
+// myTeaRow renders one list row: name + view link + edit + delete.
+templ myTeaRow(rkey, label, noun, viewURL string) {
+	<li class="flex items-center justify-between py-2">
+		<a href={ templ.SafeURL(viewURL) } class="text-sm text-emphasis hover:underline">{ label }</a>
+		<div class="flex items-center gap-2">
+			<button
+				type="button"
+				class="text-xs text-muted hover:text-primary"
+				hx-get={ "/api/modals/" + noun + "/" + rkey }
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+			>
+				Edit
+			</button>
+			<button
+				type="button"
+				class="text-xs text-muted hover:text-red-600"
+				hx-delete={ "/api/" + nounToURLPath(noun) + "/" + rkey }
+				hx-confirm={ "Delete this " + noun + "?" }
+				hx-target="closest li"
+				hx-swap="outerHTML"
+			>
+				Delete
+			</button>
+		</div>
+	</li>
+}
+
+// brewLabel formats a steep for the list view — prefer the tea's name
+// when joined, otherwise fall back to the brew rkey.
+func brewLabel(b *oolong.Brew) string {
+	if b.Tea != nil && b.Tea.Name != "" {
+		return b.Tea.Name
+	}
+	if b.TeaRKey != "" {
+		return fmt.Sprintf("Steep · tea %s", b.TeaRKey)
+	}
+	return "Steep"
+}
+
+func drinkLabel(d *oolong.Drink) string {
+	if d.Name != "" {
+		return d.Name
+	}
+	if d.Tea != nil && d.Tea.Name != "" {
+		return d.Tea.Name
+	}
+	return "Drink"
+}
+
+// nounToURLPath maps a singular noun to its plural URL segment.
+// MyTeaSection takes the modal URL directly, but the delete button
+// uses /api/{plural} which the section doesn't carry.
+func nounToURLPath(noun string) string {
+	switch noun {
+	case "tea":
+		return "teas"
+	case "vendor":
+		return "vendors"
+	case "brewer":
+		return "brewers"
+	case "recipe":
+		return "recipes"
+	case "brew":
+		return "brews"
+	case "cafe":
+		return "cafes"
+	case "drink":
+		return "drinks"
+	}
+	return noun + "s"
+}

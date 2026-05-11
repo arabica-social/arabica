@@ -113,12 +113,18 @@ templ HeaderWithProps(props HeaderProps) {
 								<a href={ templ.SafeURL("/profile/" + getProfileIdentifier(props.UserProfile, props.UserDID)) } class="dropdown-item" role="menuitem">
 									View Profile
 								</a>
-								<a href="/my-coffee" class="dropdown-item" role="menuitem">
-									My Coffee
-								</a>
-								<a href="/recipes" class="dropdown-item" role="menuitem">
-									Recipes
-								</a>
+								if props.AppName == "oolong" {
+									<a href="/my-tea" class="dropdown-item" role="menuitem">
+										My Tea
+									</a>
+								} else {
+									<a href="/my-coffee" class="dropdown-item" role="menuitem">
+										My Coffee
+									</a>
+									<a href="/recipes" class="dropdown-item" role="menuitem">
+										Recipes
+									</a>
+								}
 								<a href="/settings" class="dropdown-item" role="menuitem">
 									Settings
 								</a>

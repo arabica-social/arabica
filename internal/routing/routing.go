@@ -74,12 +74,19 @@ func SetupRouter(cfg Config) http.Handler {
 	// HTMX partials (loaded async via HTMX)
 	// These return HTML fragments and should only be accessed via HTMX
 	mux.Handle("GET /api/feed", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleFeedPartial)))
-	mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleBrewListPartial)))
-	mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleManagePartial)))
-	mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleIncompleteRecordsPartial)))
-	mux.Handle("GET /api/popular-recipes", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandlePopularRecipesPartial)))
-	mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(h.HandleManageRefresh)))
 	mux.Handle("GET /api/profile/{actor}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleProfilePartial)))
+
+	// Arabica-only HTMX partials. These handlers read arabica-typed
+	// records (Brew, Bean, Recipe, etc.) and have no oolong analog yet;
+	// home.templ skips firing /api/incomplete-records and
+	// /api/popular-recipes when AppName == "oolong".
+	if cfg.App.Name == "arabica" {
+		mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleBrewListPartial)))
+		mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleManagePartial)))
+		mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleIncompleteRecordsPartial)))
+		mux.Handle("GET /api/popular-recipes", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandlePopularRecipesPartial)))
+		mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(h.HandleManageRefresh)))
+	}
 
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
@@ -131,6 +138,13 @@ func SetupRouter(cfg Config) http.Handler {
 		// Recipe modal stays explicit (no JSON CRUD bundle).
 		mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
 		mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
+	}
+
+	// Oolong-specific page routes. The CRUD endpoints + modal partials
+	// land via the bundle below; only the manage-style page needs an
+	// explicit handler.
+	if cfg.App.Name == "oolong" {
+		mux.HandleFunc("GET /my-tea", h.HandleMyTea)
 	}
 
 	// Per-entity routes for the simple entities. Driven by the route

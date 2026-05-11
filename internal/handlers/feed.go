@@ -61,8 +61,12 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	layoutData, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Home")
 
 	// Set OG metadata for the home page
-	layoutData.OGTitle = "Arabica"
-	layoutData.OGDescription = "Coffee journaling for the open social web. Track, share, and own your brews."
+	layoutData.OGTitle = h.brand.DisplayName
+	if h.app != nil && h.app.Name == "oolong" {
+		layoutData.OGDescription = "Tea journaling for the open social web. Log every steep, track your teaware, share your tea story."
+	} else {
+		layoutData.OGDescription = "Coffee journaling for the open social web. Track, share, and own your brews."
+	}
 	baseURL := h.publicBaseURL(r)
 	if baseURL != "" {
 		layoutData.OGImage = baseURL + "/og-image"
@@ -71,12 +75,15 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	// Create home props
 	var descriptors []*entities.Descriptor
+	var appName string
 	if h.app != nil {
 		descriptors = h.app.Descriptors
+		appName = h.app.Name
 	}
 	homeProps := pages.HomeProps{
 		IsAuthenticated: isAuthenticated,
 		UserDID:         didStr,
+		AppName:         appName,
 		Descriptors:     descriptors,
 	}
 

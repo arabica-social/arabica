@@ -4,27 +4,43 @@ import (
 	"net/http"
 
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
 
-// About page
+// About page — dispatches to the oolong variant when the running app
+// is the tea sister. Both pages share the same layout chrome; only the
+// per-app copy and entity-noun references differ.
 func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	data, _, _ := h.layoutDataFromRequest(r, "About")
 
-	if err := pages.About(data).Render(r.Context(), w); err != nil {
+	var err error
+	if h.app != nil && h.app.Name == "oolong" {
+		err = teapages.About(data).Render(r.Context(), w)
+	} else {
+		err = pages.About(data).Render(r.Context(), w)
+	}
+	if err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render about page")
 	}
 }
 
-// Terms of Service page
+// Terms of Service page — dispatches per app for the same reason
+// HandleAbout does: brand strings and entity-noun references differ.
 func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Terms of Service")
 
-	if err := pages.Terms(layoutData).Render(r.Context(), w); err != nil {
+	var err error
+	if h.app != nil && h.app.Name == "oolong" {
+		err = teapages.Terms(layoutData).Render(r.Context(), w)
+	} else {
+		err = pages.Terms(layoutData).Render(r.Context(), w)
+	}
+	if err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render terms page")
 	}

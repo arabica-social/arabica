@@ -8,6 +8,7 @@ import (
 type HomeProps struct {
 	IsAuthenticated bool
 	UserDID         string
+	AppName         string                 // "arabica" or "oolong" — toggles welcome + dashboard embeds
 	Descriptors     []*entities.Descriptor // App-scoped descriptors for feed filter tabs
 }
 
@@ -21,15 +22,18 @@ templ HomeContent(props HomeProps) {
 			@components.WelcomeCard(components.WelcomeCardProps{
 				IsAuthenticated: props.IsAuthenticated,
 				UserDID:         props.UserDID,
+				AppName:         props.AppName,
 			})
-			<!-- Incomplete records loaded async -->
-			<div id="incomplete-records-section" hx-get="/api/incomplete-records" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML"></div>
-			<!-- Modal container for entity edit dialogs opened from dashboard -->
+			<!-- Modal container for entity create/edit dialogs opened from dashboard -->
 			<div id="modal-container"></div>
-			<!-- Popular recipes loaded async -->
-			<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML"></div>
+			if props.AppName != "oolong" {
+				<!-- Incomplete records loaded async (arabica-only; oolong has no equivalent surface yet). -->
+				<div id="incomplete-records-section" hx-get="/api/incomplete-records" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML"></div>
+				<!-- Popular recipes loaded async (arabica-only handler). -->
+				<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML"></div>
+			}
 		} else {
-			@components.WelcomeHero()
+			@components.WelcomeHeroFor(props.AppName)
 		}
 		@CommunityFeedSection(props.IsAuthenticated, props.Descriptors)
 		if props.IsAuthenticated {
