@@ -1,0 +1,41 @@
+package tea
+
+import (
+	"fmt"
+
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// BrewerContent renders tea brewer details inside a card. Mirrors arabica's
+// BrewerContent.
+templ BrewerContent(b *oolong.Brewer) {
+	<div class="feed-content-box-sm">
+		<div class="text-base mb-2">
+			<span class="font-bold text-primary">{ b.Name }</span>
+		</div>
+		<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+			if b.Style != "" {
+				<span class="inline-flex items-center gap-1">
+					@IconTag()
+					{ b.Style }
+				</span>
+			}
+			if b.CapacityMl > 0 {
+				<span class="inline-flex items-center gap-1">
+					@IconScale()
+					{ fmt.Sprintf("%d ml", b.CapacityMl) }
+				</span>
+			}
+			if b.Material != "" {
+				<span class="inline-flex items-center gap-1">
+					@IconDisc()
+					{ b.Material }
+				</span>
+			}
+		</div>
+		if b.Description != "" {
+			<div class="mt-2 text-sm text-secondary italic">"{ b.Description }"</div>
+		}
+	</div>
+}

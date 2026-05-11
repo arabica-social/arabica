@@ -122,6 +122,22 @@
 	--type-vessel-tint: oklch(0.50 0.038 56  / 0.12);
 	--type-leaf-tint:   oklch(0.50 0.090 132 / 0.12);
 
+	/* Per-entity accents — override the coffee-themed defaults from
+	   tokens.css so oolong pills/badges have a tea-appropriate hue. */
+	--type-vendor:  oklch(0.55 0.110 64);    /* amber — vendor storefront */
+	--type-brewer:  oklch(0.55 0.060 36);    /* terracotta — clay teaware */
+	--type-recipe:  oklch(0.55 0.100 102);   /* warm yellow-green */
+	--type-brew:    oklch(0.50 0.090 132);   /* deep leaf — the steeped cup */
+	--type-cafe:    oklch(0.50 0.080 18);    /* warm rust — teahouse */
+	--type-drink:   oklch(0.55 0.095 76);    /* warm gold — drink to-go */
+
+	--type-vendor-tint: oklch(0.55 0.110 64  / 0.14);
+	--type-brewer-tint: oklch(0.55 0.060 36  / 0.13);
+	--type-recipe-tint: oklch(0.55 0.100 102 / 0.13);
+	--type-brew-tint:   oklch(0.50 0.090 132 / 0.13);
+	--type-cafe-tint:   oklch(0.50 0.080 18  / 0.13);
+	--type-drink-tint:  oklch(0.55 0.095 76  / 0.14);
+
 	/* Rating / quality indicators — warm amber, tea-coloured. */
 	--rating-bg:   oklch(0.93 0.058 76);
 	--rating-text: oklch(0.36 0.080 60);
@@ -219,6 +235,20 @@
 		--type-vessel-tint: oklch(0.66 0.044 56  / 0.18);
 		--type-leaf-tint:   oklch(0.72 0.090 132 / 0.18);
 
+		--type-vendor:  oklch(0.74 0.120 64);
+		--type-brewer:  oklch(0.70 0.072 36);
+		--type-recipe:  oklch(0.74 0.100 102);
+		--type-brew:    oklch(0.72 0.090 132);
+		--type-cafe:    oklch(0.70 0.090 18);
+		--type-drink:   oklch(0.74 0.105 76);
+
+		--type-vendor-tint: oklch(0.74 0.120 64  / 0.22);
+		--type-brewer-tint: oklch(0.70 0.072 36  / 0.20);
+		--type-recipe-tint: oklch(0.74 0.100 102 / 0.20);
+		--type-brew-tint:   oklch(0.72 0.090 132 / 0.20);
+		--type-cafe-tint:   oklch(0.70 0.090 18  / 0.20);
+		--type-drink-tint:  oklch(0.74 0.105 76  / 0.22);
+
 		--rating-bg:   oklch(0.32 0.080 60);
 		--rating-text: oklch(0.86 0.080 80);
 
@@ -300,6 +330,20 @@
 	--type-oolong-tint: oklch(0.74 0.120 64  / 0.20);
 	--type-vessel-tint: oklch(0.66 0.044 56  / 0.18);
 	--type-leaf-tint:   oklch(0.72 0.090 132 / 0.18);
+
+	--type-vendor:  oklch(0.74 0.120 64);
+	--type-brewer:  oklch(0.70 0.072 36);
+	--type-recipe:  oklch(0.74 0.100 102);
+	--type-brew:    oklch(0.72 0.090 132);
+	--type-cafe:    oklch(0.70 0.090 18);
+	--type-drink:   oklch(0.74 0.105 76);
+
+	--type-vendor-tint: oklch(0.74 0.120 64  / 0.22);
+	--type-brewer-tint: oklch(0.70 0.072 36  / 0.20);
+	--type-recipe-tint: oklch(0.74 0.100 102 / 0.20);
+	--type-brew-tint:   oklch(0.72 0.090 132 / 0.20);
+	--type-cafe-tint:   oklch(0.70 0.090 18  / 0.20);
+	--type-drink-tint:  oklch(0.74 0.105 76  / 0.22);
 
 	--rating-bg:   oklch(0.32 0.080 60);
 	--rating-text: oklch(0.86 0.080 80);

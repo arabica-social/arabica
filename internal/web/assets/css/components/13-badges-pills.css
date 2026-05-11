@@ -99,6 +99,26 @@
   border-color: var(--type-brewer);
   color: var(--type-brewer);
 }
+.filter-pill[data-tab="roaster"]:hover {
+  border-color: var(--type-roaster);
+  color: var(--type-roaster);
+}
+.filter-pill[data-tab="tea"]:hover {
+  border-color: var(--type-tea);
+  color: var(--type-tea);
+}
+.filter-pill[data-tab="vendor"]:hover {
+  border-color: var(--type-vendor);
+  color: var(--type-vendor);
+}
+.filter-pill[data-tab="cafe"]:hover {
+  border-color: var(--type-cafe);
+  color: var(--type-cafe);
+}
+.filter-pill[data-tab="drink"]:hover {
+  border-color: var(--type-drink);
+  color: var(--type-drink);
+}
 
 .filter-pill-active {
   display: inline-flex;
@@ -131,7 +151,12 @@
 .filter-pill-bean,
 .filter-pill-recipe,
 .filter-pill-grinder,
-.filter-pill-brewer {
+.filter-pill-brewer,
+.filter-pill-roaster,
+.filter-pill-tea,
+.filter-pill-vendor,
+.filter-pill-cafe,
+.filter-pill-drink {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -173,6 +198,31 @@
 .filter-pill-brewer {
   background: var(--type-brewer);
   border: 1px solid var(--type-brewer);
+}
+
+.filter-pill-roaster {
+  background: var(--type-roaster);
+  border: 1px solid var(--type-roaster);
+}
+
+.filter-pill-tea {
+  background: var(--type-tea);
+  border: 1px solid var(--type-tea);
+}
+
+.filter-pill-vendor {
+  background: var(--type-vendor);
+  border: 1px solid var(--type-vendor);
+}
+
+.filter-pill-cafe {
+  background: var(--type-cafe);
+  border: 1px solid var(--type-cafe);
+}
+
+.filter-pill-drink {
+  background: var(--type-drink);
+  border: 1px solid var(--type-drink);
 }
 
 .feed-sort-btn {

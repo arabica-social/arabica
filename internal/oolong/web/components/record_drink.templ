@@ -1,0 +1,57 @@
+package tea
+
+import (
+	"fmt"
+
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// DrinkContent renders a tea drink (ordered at a cafe) inside a card.
+templ DrinkContent(d *oolong.Drink) {
+	<div class="feed-content-box-sm">
+		<div class="flex items-start justify-between gap-3 mb-2">
+			<div class="flex-1 min-w-0">
+				<div class="font-bold text-primary text-base">
+					if d.Name != "" {
+						{ d.Name }
+					} else if d.Tea != nil && d.Tea.Name != "" {
+						{ d.Tea.Name }
+					} else {
+						Tea Drink
+					}
+				</div>
+				if d.Cafe != nil && d.Cafe.Name != "" {
+					<div class="text-sm text-emphasis mt-0.5">
+						<span class="inline-flex items-center gap-1 font-medium">
+							@IconStore()
+							{ d.Cafe.Name }
+						</span>
+					</div>
+				}
+			</div>
+			if d.Rating > 0 {
+				<span class="badge-rating">
+					@IconStar()
+					{ fmt.Sprintf("%d/10", d.Rating) }
+				</span>
+			}
+		</div>
+		<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+			if d.Style != "" {
+				<span class="inline-flex items-center gap-1">
+					@IconTag()
+					{ d.Style }
+				</span>
+			}
+			if d.PriceUsdCents > 0 {
+				<span class="inline-flex items-center gap-1">
+					{ fmt.Sprintf("$%.2f", float64(d.PriceUsdCents)/100) }
+				</span>
+			}
+		</div>
+		if d.TastingNotes != "" {
+			<div class="mt-2 text-sm text-secondary italic">"{ d.TastingNotes }"</div>
+		}
+	</div>
+}

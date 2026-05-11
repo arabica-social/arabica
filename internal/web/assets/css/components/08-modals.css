@@ -41,6 +41,10 @@
        browser-default `margin: auto` that centers a top-layer <dialog>
        opened via showModal(). Restore it so modals don't snap to 0,0. */
   margin: auto;
+  /* UA default for <dialog> is `border: solid`, which renders as a
+       thin rectangular outline in the page text color outside the
+       modal-content card. Reset it. */
+  border: none;
 }
 
 .modal-dialog::backdrop {

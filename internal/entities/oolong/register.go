@@ -17,6 +17,20 @@ func init() {
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToTea(rec, uri)
 		},
+		RKey: func(rec any) string {
+			t, _ := rec.(*Tea)
+			if t == nil {
+				return ""
+			}
+			return t.RKey
+		},
+		DisplayTitle: func(rec any) string {
+			t, _ := rec.(*Tea)
+			if t == nil {
+				return ""
+			}
+			return t.Name
+		},
 	})
 	entities.Register(&entities.Descriptor{
 		Type:            lexicons.RecordTypeOolongVendor,
@@ -28,6 +42,20 @@ func init() {
 		GetField:        vendorField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToVendor(rec, uri)
+		},
+		RKey: func(rec any) string {
+			v, _ := rec.(*Vendor)
+			if v == nil {
+				return ""
+			}
+			return v.RKey
+		},
+		DisplayTitle: func(rec any) string {
+			v, _ := rec.(*Vendor)
+			if v == nil {
+				return ""
+			}
+			return v.Name
 		},
 	})
 	entities.Register(&entities.Descriptor{
@@ -41,6 +69,20 @@ func init() {
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrewer(rec, uri)
 		},
+		RKey: func(rec any) string {
+			b, _ := rec.(*Brewer)
+			if b == nil {
+				return ""
+			}
+			return b.RKey
+		},
+		DisplayTitle: func(rec any) string {
+			b, _ := rec.(*Brewer)
+			if b == nil {
+				return ""
+			}
+			return b.Name
+		},
 	})
 	entities.Register(&entities.Descriptor{
 		Type:            lexicons.RecordTypeOolongRecipe,
@@ -52,6 +94,20 @@ func init() {
 		GetField:        recipeField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToRecipe(rec, uri)
+		},
+		RKey: func(rec any) string {
+			r, _ := rec.(*Recipe)
+			if r == nil {
+				return ""
+			}
+			return r.RKey
+		},
+		DisplayTitle: func(rec any) string {
+			r, _ := rec.(*Recipe)
+			if r == nil {
+				return ""
+			}
+			return r.Name
 		},
 	})
 	entities.Register(&entities.Descriptor{
@@ -65,6 +121,24 @@ func init() {
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrew(rec, uri)
 		},
+		RKey: func(rec any) string {
+			b, _ := rec.(*Brew)
+			if b == nil {
+				return ""
+			}
+			return b.RKey
+		},
+		DisplayTitle: func(rec any) string {
+			b, _ := rec.(*Brew)
+			if b == nil {
+				return ""
+			}
+			// Brew has no name; fall back to the associated tea's name.
+			if b.Tea != nil && b.Tea.Name != "" {
+				return b.Tea.Name
+			}
+			return "Tea Brew"
+		},
 	})
 	entities.Register(&entities.Descriptor{
 		Type:            lexicons.RecordTypeOolongCafe,
@@ -77,6 +151,20 @@ func init() {
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToCafe(rec, uri)
 		},
+		RKey: func(rec any) string {
+			c, _ := rec.(*Cafe)
+			if c == nil {
+				return ""
+			}
+			return c.RKey
+		},
+		DisplayTitle: func(rec any) string {
+			c, _ := rec.(*Cafe)
+			if c == nil {
+				return ""
+			}
+			return c.Name
+		},
 	})
 	entities.Register(&entities.Descriptor{
 		Type:            lexicons.RecordTypeOolongDrink,
@@ -88,6 +176,23 @@ func init() {
 		GetField:        drinkField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToDrink(rec, uri)
+		},
+		RKey: func(rec any) string {
+			d, _ := rec.(*Drink)
+			if d == nil {
+				return ""
+			}
+			return d.RKey
+		},
+		DisplayTitle: func(rec any) string {
+			d, _ := rec.(*Drink)
+			if d == nil {
+				return ""
+			}
+			if d.Name != "" {
+				return d.Name
+			}
+			return "Tea Drink"
 		},
 	})
 	// Comment and Like are intentionally NOT registered.

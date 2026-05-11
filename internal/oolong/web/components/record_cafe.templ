@@ -1,0 +1,40 @@
+package tea
+
+import (
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// CafeContent renders tea cafe details inside a card.
+templ CafeContent(c *oolong.Cafe) {
+	<div class="feed-content-box-sm">
+		<div class="text-base mb-2">
+			<span class="font-bold text-primary">{ c.Name }</span>
+		</div>
+		<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+			if c.Location != "" {
+				<span class="inline-flex items-center gap-1">
+					@IconMapPin()
+					{ c.Location }
+				</span>
+			}
+			if c.Address != "" {
+				<span class="inline-flex items-center gap-1 text-muted">
+					{ c.Address }
+				</span>
+			}
+			if c.Website != "" {
+				if safeURL := bff.SafeWebsiteURL(c.Website); safeURL != "" {
+					<span class="inline-flex items-center gap-1">
+						@IconGlobe()
+						<a href={ templ.SafeURL(safeURL) } target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">{ safeURL }</a>
+					</span>
+				}
+			}
+		</div>
+		if c.Description != "" {
+			<div class="mt-2 text-sm text-secondary italic">"{ c.Description }"</div>
+		}
+	</div>
+}

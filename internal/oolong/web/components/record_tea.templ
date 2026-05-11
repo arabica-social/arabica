@@ -1,0 +1,71 @@
+package tea
+
+import (
+	"fmt"
+	"strconv"
+
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// TeaContent renders tea details inside a feed/profile card.
+templ TeaContent(t *oolong.Tea) {
+	<div class="feed-content-box-sm">
+		@TeaSummary(t)
+		if t.Description != "" {
+			<div class="mt-2 text-sm text-secondary italic">"{ t.Description }"</div>
+		}
+	</div>
+}
+
+// TeaSummary renders the tea name, vendor, and attribute tags. Mirrors
+// arabica's BeanSummary in shared.templ.
+templ TeaSummary(t *oolong.Tea) {
+	<div class="font-bold text-primary text-base">{ t.Name }</div>
+	if t.Vendor != nil && t.Vendor.Name != "" {
+		<div class="text-sm text-emphasis mt-0.5">
+			<span class="inline-flex items-center gap-1 font-medium">
+				@IconStore()
+				{ t.Vendor.Name }
+			</span>
+		</div>
+	}
+	<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+		if t.Origin != "" {
+			<span class="inline-flex items-center gap-1">
+				@IconMapPin()
+				{ t.Origin }
+			</span>
+		}
+		if t.Category != "" {
+			<span class="inline-flex items-center gap-1">
+				@IconLeaf()
+				{ t.Category }
+			</span>
+		}
+		if t.SubStyle != "" {
+			<span class="inline-flex items-center gap-1">
+				@IconSprout()
+				{ t.SubStyle }
+			</span>
+		}
+		if t.HarvestYear > 0 {
+			<span class="inline-flex items-center gap-1">
+				@IconCalendar()
+				{ strconv.Itoa(t.HarvestYear) }
+			</span>
+		}
+		if t.Cultivar != "" {
+			<span class="inline-flex items-center gap-1">
+				@IconTag()
+				{ t.Cultivar }
+			</span>
+		}
+		if t.Rating != nil {
+			<span class="inline-flex items-center gap-1">
+				@IconStar()
+				{ fmt.Sprintf("%d/10", *t.Rating) }
+			</span>
+		}
+	</div>
+}

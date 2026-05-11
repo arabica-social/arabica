@@ -8,9 +8,10 @@ import (
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 
-	// Blank import to run init() in internal/arabica/web/components, which
-	// wires arabica entities' templ render hooks onto descriptors.
+	// Blank imports run init() in each app's web/components package, which
+	// wires per-app templ render hooks onto descriptors.
 	_ "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	_ "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 )
 
 // teaAppName is the single source of truth for the tea-tracking sister
