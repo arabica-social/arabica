@@ -20,6 +20,21 @@ type rawRecord struct {
 	Record map[string]any
 }
 
+// FetchRecord is the exported entry point for callers outside this package
+// that need a witness-then-PDS record read for an arbitrary NSID (e.g.
+// per-app view handlers that don't have typed Get* wrappers). It just
+// forwards to fetchRecord with a simplified return shape.
+func (s *AtprotoStore) FetchRecord(ctx context.Context, nsid, rkey string) (record map[string]any, uri, cid string, err error) {
+	rec, u, c, hit, _, err := s.fetchRecord(ctx, nsid, rkey)
+	if err != nil {
+		return nil, "", "", err
+	}
+	if !hit {
+		return nil, "", "", fmt.Errorf("record not found: %s/%s", nsid, rkey)
+	}
+	return rec, u, c, nil
+}
+
 // fetchRecord returns the record at nsid/rkey, hitting the witness cache
 // first and falling back to PDS. The "hit" return is true when the record
 // was found anywhere; uri/cid are set in either case. fromWitness is true

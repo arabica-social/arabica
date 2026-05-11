@@ -1,0 +1,79 @@
+package teapages
+
+import (
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
+)
+
+type CafeViewProps struct {
+	Cafe *oolong.Cafe
+	pages.EntityViewBase
+}
+
+templ CafeView(layout *components.LayoutData, props CafeViewProps) {
+	@components.Layout(layout, CafeViewContent(props))
+}
+
+templ CafeViewContent(props CafeViewProps) {
+	<div class="page-container-sm">
+		@components.Card(components.CardProps{InnerCard: true}, CafeViewCard(props))
+	</div>
+}
+
+templ CafeViewCard(props CafeViewProps) {
+	@components.RecordViewHeader(components.RecordViewHeaderProps{
+		RecordType:    "cafe",
+		Title:         "",
+		Timestamp:     props.Cafe.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Cafe.CreatedAt),
+		AuthorDID:     props.AuthorDID,
+		AuthorHandle:  props.AuthorHandle,
+		AuthorDisplay: props.AuthorDisplayName,
+		AuthorAvatar:  props.AuthorAvatar,
+	})
+	<div class="p-4">
+		@tea.CafeContent(props.Cafe)
+	</div>
+	<div class="record-view-footer">
+		<div class="flex items-center gap-3">
+			@components.BackButton()
+		</div>
+		if props.SubjectURI != "" && props.SubjectCID != "" {
+			@components.ActionBar(components.ActionBarProps{
+				SubjectURI:      props.SubjectURI,
+				SubjectCID:      props.SubjectCID,
+				IsLiked:         props.IsLiked,
+				LikeCount:       props.LikeCount,
+				CommentCount:    props.CommentCount,
+				ShowComments:    true,
+				ShareURL:        props.ShareURL,
+				ShareTitle:      props.Cafe.Name,
+				ShareText:       "Check out this tea cafe",
+				IsOwner:         props.IsOwnProfile,
+				DeleteURL:       "/api/cafes/" + props.Cafe.RKey,
+				IsAuthenticated: props.IsAuthenticated,
+				IsModerator:     props.IsModerator,
+				CanHideRecord:   props.CanHideRecord,
+				CanBlockUser:    props.CanBlockUser,
+				IsRecordHidden:  props.IsRecordHidden,
+				AuthorDID:       props.AuthorDID,
+			})
+		}
+	</div>
+	@components.CommentSection(components.CommentSectionProps{
+		SubjectURI:      props.SubjectURI,
+		SubjectCID:      props.SubjectCID,
+		Comments:        props.Comments,
+		IsAuthenticated: props.IsAuthenticated,
+		CurrentUserDID:  props.CurrentUserDID,
+		ModCtx: components.CommentModerationContext{
+			IsModerator:   props.IsModerator,
+			CanHideRecord: props.CanHideRecord,
+			CanBlockUser:  props.CanBlockUser,
+		},
+		ViewURL: props.ShareURL,
+	})
+}

@@ -6,12 +6,13 @@ import (
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
 type BeanViewProps struct {
 	Bean      *arabica.Bean
 	BrewCount int
-	EntityViewBase
+	pages.EntityViewBase
 }
 
 templ BeanView(layout *components.LayoutData, props BeanViewProps) {

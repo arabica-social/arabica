@@ -90,5 +90,37 @@ func (h *Handler) EntityRouteBundles() []EntityRouteBundle {
 			ModalNew:   h.HandleBrewerModalNew,
 			ModalEdit:  h.HandleBrewerModalEdit,
 		},
+		// Oolong view-only bundles. Create/Update/Delete + OGImage +
+		// ModalNew/ModalEdit are nil — those land in a later phase once
+		// per-entity store wrappers, OG card renderers, and dialog modals
+		// exist for oolong. registerEntityRoutes skips nil slots.
+		{
+			RecordType: lexicons.RecordTypeOolongTea,
+			View:       h.HandleTeaView,
+		},
+		{
+			RecordType: lexicons.RecordTypeOolongVendor,
+			View:       h.HandleOolongVendorView,
+		},
+		{
+			RecordType: lexicons.RecordTypeOolongBrewer,
+			View:       h.HandleOolongBrewerView,
+		},
+		{
+			RecordType: lexicons.RecordTypeOolongRecipe,
+			View:       h.HandleOolongRecipeView,
+		},
+		{
+			RecordType: lexicons.RecordTypeOolongBrew,
+			View:       h.HandleOolongBrewView,
+		},
+		{
+			RecordType: lexicons.RecordTypeOolongCafe,
+			View:       h.HandleOolongCafeView,
+		},
+		{
+			RecordType: lexicons.RecordTypeOolongDrink,
+			View:       h.HandleOolongDrinkView,
+		},
 	}
 }

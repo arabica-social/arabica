@@ -91,41 +91,53 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /join/create", h.HandleCreateAccount)
 	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
 	mux.HandleFunc("GET /atproto", h.HandleATProto)
-	mux.HandleFunc("GET /my-coffee", h.HandleMyCoffee)
-	mux.HandleFunc("GET /manage", h.HandleManage)
-	mux.HandleFunc("GET /brews", h.HandleBrewList)
-	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
-	// Brew is registered explicitly: edit page and export endpoint don't
-	// fit the simple-entity route shape.
-	mux.HandleFunc("GET /brews/{id}/og-image", h.HandleBrewOGImage)
-	mux.HandleFunc("GET /brews/{id}", h.HandleBrewView)
-	mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
-	mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
-	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
-	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
-	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
 
-	// Recipe view + OG image are registered here; the API CRUD ops below
-	// have additional endpoints (from-brew, fork) that don't fit the
-	// simple-entity bundle.
-	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
-	mux.HandleFunc("GET /recipes/{id}/og-image", h.HandleRecipeOGImage)
-	mux.HandleFunc("GET /recipes/{id}", h.HandleRecipeView)
+	// Arabica-specific page and CRUD routes. These reference handlers that
+	// know about arabica's typed entities (Brew, Recipe, etc.) and templ
+	// pages that live in internal/arabica/web/. Gated on cfg.App.Name so
+	// they don't collide with oolong's equivalent registrations or 404
+	// silently when the sister app is the active one.
+	if cfg.App.Name == "arabica" {
+		mux.HandleFunc("GET /my-coffee", h.HandleMyCoffee)
+		mux.HandleFunc("GET /manage", h.HandleManage)
+		mux.HandleFunc("GET /brews", h.HandleBrewList)
+		mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
+		// Brew is registered explicitly: edit page and export endpoint don't
+		// fit the simple-entity route shape.
+		mux.HandleFunc("GET /brews/{id}/og-image", h.HandleBrewOGImage)
+		mux.HandleFunc("GET /brews/{id}", h.HandleBrewView)
+		mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
+		mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
+		mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
+		mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
+		mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
 
-	// Per-entity routes for the simple entities (bean, roaster, grinder,
-	// brewer): view pages, OG images, JSON CRUD, modal partials. Driven
-	// by the route bundles + the App's descriptor list so a sister app
-	// (oolong) reuses the loop without duplicating wiring.
+		// Recipe view + OG image are registered here; the API CRUD ops below
+		// have additional endpoints (from-brew, fork) that don't fit the
+		// simple-entity bundle.
+		mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
+		mux.HandleFunc("GET /recipes/{id}/og-image", h.HandleRecipeOGImage)
+		mux.HandleFunc("GET /recipes/{id}", h.HandleRecipeView)
+
+		mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
+		mux.HandleFunc("GET /api/recipes/suggestions", h.HandleRecipeSuggestions)
+		mux.HandleFunc("GET /api/recipes/{id}", h.HandleRecipeGet)
+		mux.Handle("POST /api/recipes", cop.Handler(http.HandlerFunc(h.HandleRecipeCreate)))
+		mux.Handle("PUT /api/recipes/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeUpdate)))
+		mux.Handle("DELETE /api/recipes/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeDelete)))
+		mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeCreateFromBrew)))
+		mux.Handle("POST /api/recipes/fork/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeFork)))
+
+		// Recipe modal stays explicit (no JSON CRUD bundle).
+		mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
+		mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
+	}
+
+	// Per-entity routes for the simple entities. Driven by the route
+	// bundles + the App's descriptor list — registerEntityRoutes skips
+	// any bundle whose RecordType isn't on the current app's descriptors,
+	// so arabica and oolong each get only their own entity routes.
 	registerEntityRoutes(mux, cop, cfg.App, h.EntityRouteBundles())
-
-	mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
-	mux.HandleFunc("GET /api/recipes/suggestions", h.HandleRecipeSuggestions)
-	mux.HandleFunc("GET /api/recipes/{id}", h.HandleRecipeGet)
-	mux.Handle("POST /api/recipes", cop.Handler(http.HandlerFunc(h.HandleRecipeCreate)))
-	mux.Handle("PUT /api/recipes/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeUpdate)))
-	mux.Handle("DELETE /api/recipes/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeDelete)))
-	mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeCreateFromBrew)))
-	mux.Handle("POST /api/recipes/fork/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeFork)))
 
 	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
 	mux.Handle("POST /api/report", cop.Handler(http.HandlerFunc(h.HandleReport)))
@@ -134,10 +146,6 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("GET /api/comments", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleCommentList)))
 	mux.Handle("POST /api/comments", cop.Handler(http.HandlerFunc(h.HandleCommentCreate)))
 	mux.Handle("DELETE /api/comments/{id}", cop.Handler(http.HandlerFunc(h.HandleCommentDelete)))
-
-	// Recipe modal stays explicit (no JSON CRUD bundle).
-	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
-	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
 
 	// Notification routes
 	mux.HandleFunc("GET /notifications", h.HandleNotifications)

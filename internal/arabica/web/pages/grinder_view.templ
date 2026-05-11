@@ -6,12 +6,13 @@ import (
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
 type GrinderViewProps struct {
 	Grinder   *arabica.Grinder
 	BrewCount int
-	EntityViewBase
+	pages.EntityViewBase
 }
 
 templ GrinderView(layout *components.LayoutData, props GrinderViewProps) {
