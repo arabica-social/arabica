@@ -1,6 +1,9 @@
 package pages
 
-import "tangled.org/arabica.social/arabica/internal/web/components"
+import (
+	"tangled.org/arabica.social/arabica/internal/web/assets"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
 
 // ManageProps defines the data for the manage page
 type ManageProps struct{}
@@ -12,7 +15,7 @@ templ Manage(layout *components.LayoutData, props ManageProps) {
 
 // ManageContent renders the manage page content
 templ ManageContent(props ManageProps) {
-	<script src="/static/js/manage-page.js?v=0.3.1"></script>
+	<script src={ assets.JSHrefFor("manage-page.js") }></script>
 	<div class="page-container-xl" x-data="managePage()">
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()

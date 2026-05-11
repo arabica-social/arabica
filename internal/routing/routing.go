@@ -30,6 +30,7 @@ type Config struct {
 	ModerationService *moderation.Service
 	FirehoseConsumer  *firehose.Consumer
 	CSSBundle         *assets.Bundle
+	JSAssets          *assets.JSAssets
 }
 
 // SetupRouter creates and configures the HTTP router with all routes and middleware
@@ -188,12 +189,14 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("GET /_mod/pds-records", middleware.RequireModerator(modSvc,
 		http.HandlerFunc(h.HandleAdminFetchPDSRecords)))
 
-	// CSS bundle: serve the in-memory bundled bytes at a specific path so
-	// the catch-all FileServer below never sees this request. The URL path
-	// the bundle picks (e.g. /static/css/output.css) is what HrefFor returns
-	// to the templ layout helper.
+	// CSS bundle + JS assets: serve from in-memory caches at specific paths
+	// so the catch-all FileServer below never sees these requests. The URLs
+	// are what HrefFor / JSHrefFor return to the templ layout helper.
 	if cfg.CSSBundle != nil {
 		mux.Handle("GET "+cfg.CSSBundle.URLPath(), cfg.CSSBundle.Handler())
+	}
+	if cfg.JSAssets != nil {
+		mux.Handle("GET /static/js/{name}", cfg.JSAssets.Handler())
 	}
 
 	// Static files (must come after specific routes)

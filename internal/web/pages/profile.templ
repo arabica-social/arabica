@@ -2,6 +2,7 @@ package pages
 
 import (
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
@@ -27,9 +28,9 @@ templ Profile(layout *components.LayoutData, props ProfileProps) {
 // ProfileContent renders the profile page content
 templ ProfileContent(props ProfileProps) {
 	if props.IsOwnProfile {
-		<script src="/static/js/manage-page.js?v=0.4.0"></script>
+		<script src={ assets.JSHrefFor("manage-page.js") }></script>
 	}
-	<script src="/static/js/profile-stats.js?v=0.2.0"></script>
+	<script src={ assets.JSHrefFor("profile-stats.js") }></script>
 	if props.IsOwnProfile {
 		<div class="page-container-lg" x-data="managePage()">
 			@ProfileHeader(props.Profile)

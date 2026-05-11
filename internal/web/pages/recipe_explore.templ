@@ -3,6 +3,7 @@ package pages
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -19,7 +20,7 @@ templ RecipeExplorePage(layout *components.LayoutData, props RecipeExploreProps)
 
 // RecipeExploreContent renders the recipe explore page content
 templ RecipeExploreContent(props RecipeExploreProps) {
-	<script src="/static/js/recipe-explore.js?v=0.2.0"></script>
+	<script src={ assets.JSHrefFor("recipe-explore.js") }></script>
 	<div
 		class="page-container-xl"
 		x-data={ fmt.Sprintf("recipeExplore(%t, '%s')", props.IsAuthenticated, props.UserDID) }

@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/pdewey.com/atp"
 )
@@ -439,7 +440,7 @@ templ WelcomeLoginCard() {
 				One account { "for" } the entire <a href="/atproto" class="link">AT Protocol</a> ecosystem. Sign up once and use it across Arabica, <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a>, <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a>, and more. Your data is portable — you own it.
 			</p>
 		</details>
-		<script src="/static/js/handle-autocomplete.js?v=0.2.0"></script>
+		<script src={ assets.JSHrefFor("handle-autocomplete.js") }></script>
 	</div>
 }
 

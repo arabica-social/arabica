@@ -218,25 +218,39 @@ public (via `?owner=` parameter) access. They:
 4. Fetch social data (likes, comments, moderation state)
 5. Render the templ page with all props
 
-### CSS
+### Static assets (CSS + JS)
 
-Source files live in `internal/web/assets/css/`:
+The `internal/web/assets` package owns the front-end source tree:
 
-- `tokens.css`, `reset.css`, `utilities.css` — base layers
-- `components/*.css` — numbered files (`01-dark-mode.css`, `02-layout.css`,
-  …) loaded in alphabetical order so the numeric prefix preserves cascade
-- `themes/<app>.css` — per-app overlay (e.g. `themes/oolong.css`)
+- `assets/css/tokens.css`, `reset.css`, `utilities.css` — base CSS layers
+- `assets/css/components/*.css` — numbered (`01-dark-mode.css`, …) so the
+  prefix preserves cascade under alphabetical glob expansion
+- `assets/css/themes/<app>.css` — per-app theme overlay
+- `assets/js/*.js` — every JS module the templates reference
 
-The `internal/web/assets` package embeds these via `go:embed` and bundles
-them at server startup. The bundle is served at `/static/css/output.css`
-(or `/static/css/output-<app>.css` for non-arabica apps) with a
-sha256-derived `?h=<hash>` cache buster — no manual version bumps. There
-is no separate build step; `go run` (or `just run`) is the build.
+All files are `go:embed`ed and served from in-memory caches:
 
-For dev, set `ARABICA_CSS_HOTRELOAD=1` (already on in the `just run`
-recipe). The handler then re-reads the source directory on every request,
-so editing a CSS file and refreshing the browser picks up the change
-without a server restart.
+- **CSS**: concatenated into one bundle per app at startup; URL is
+  `/static/css/output.css` (or `/static/css/output-<app>.css`) with
+  `?h=<sha256-prefix>` cache buster auto-derived from content
+- **JS**: served per-file at `/static/js/<name>` with the same `?h=...`
+  query param; templates reference each file via
+  `{ assets.JSHrefFor("name.js") }`
+
+Both subsystems set `Cache-Control: public, max-age=31536000, immutable`
+in production and honor `If-None-Match` for 304s. Manual `?v=X.Y.Z` bumps
+are gone.
+
+For dev, set `ARABICA_HOTRELOAD=1` (already on in the `just run` recipe).
+Each subsystem then re-reads its source directory on every request, so
+editing a CSS or JS file and refreshing picks up the change without a
+server restart. There is no separate build step beyond `go run` / `just
+run`.
+
+`static/service-worker.js` stays a regular static file (the browser
+handles its own update lifecycle). Fonts and images under `static/` are
+also still served by the plain FileServer — they don't change often
+enough to warrant the asset-handler treatment.
 
 ## Testing Conventions
 

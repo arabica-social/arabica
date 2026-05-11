@@ -331,22 +331,22 @@ templ Layout(data *LayoutData, content templ.Component) {
 			});
 		</script>
 			<!-- Load entity manager and dropdown manager modules before Alpine components -->
-			<script src="/static/js/entity-manager.js?v=0.1.0"></script>
-			<script src="/static/js/dropdown-manager.js?v=0.1.0"></script>
+			<script src={ assets.JSHrefFor("entity-manager.js") }></script>
+			<script src={ assets.JSHrefFor("dropdown-manager.js") }></script>
 			<!-- Load Alpine components BEFORE Alpine.js initializes -->
-			<script src="/static/js/theme.js?v=0.1.0"></script>
-			<script src="/static/js/brew-form.js?v=0.6.0"></script>
-			<script src="/static/js/entity-suggest.js?v=0.1.0"></script>
-			<script src="/static/js/combo-select.js?v=0.5.0"></script>
+			<script src={ assets.JSHrefFor("theme.js") }></script>
+			<script src={ assets.JSHrefFor("brew-form.js") }></script>
+			<script src={ assets.JSHrefFor("entity-suggest.js") }></script>
+			<script src={ assets.JSHrefFor("combo-select.js") }></script>
 			<!-- Load Alpine.js core with defer (will initialize after DOM loads) -->
-			<script src="/static/js/alpine.min.js?v=0.2.0" defer></script>
+			<script src={ assets.JSHrefFor("alpine.min.js") } defer></script>
 			<!-- Load HTMX and other utilities -->
-			<script src="/static/js/htmx.min.js?v=0.2.0"></script>
-			<script src="/static/js/transitions.js?v=0.3.3"></script>
-			<script src="/static/js/entity-helpers.js?v=0.8.0"></script>
-			<script src="/static/js/data-cache.js?v=0.3.0"></script>
-			<script src="/static/js/sw-register.js?v=0.2.0"></script>
-			<script src="/static/js/feed-masonry.js?v=0.1.1"></script>
+			<script src={ assets.JSHrefFor("htmx.min.js") }></script>
+			<script src={ assets.JSHrefFor("transitions.js") }></script>
+			<script src={ assets.JSHrefFor("entity-helpers.js") }></script>
+			<script src={ assets.JSHrefFor("data-cache.js") }></script>
+			<script src={ assets.JSHrefFor("sw-register.js") }></script>
+			<script src={ assets.JSHrefFor("feed-masonry.js") }></script>
 		</head>
 		if tp := bff.Traceparent(ctx); tp != "" {
 			<meta name="traceparent" content={ tp }/>

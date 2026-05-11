@@ -359,18 +359,23 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		log.Info().Msg("Email notifications disabled (SMTP_HOST not set), join requests will be saved to database only")
 	}
 
-	// CSS bundle: concat tokens + reset + utilities + components/*.css at
-	// startup (embedded) or per-request (hot-reload). The hash-based URL
-	// replaces the manually-bumped ?v= query param.
-	cssBundle := assets.New(assets.Config{
-		AppName: app.Name,
-		DevDir:  cssHotReloadDir(envPrefix),
-	})
+	// Static assets: CSS bundle + per-file JS. Embedded at build time, or
+	// re-read from disk per-request when <APP>_HOTRELOAD is set. The hash-
+	// based URLs replace the manually-bumped ?v= query params.
+	hotReload := hotReloadEnabled(envPrefix)
+	cssDevDir := ""
+	jsDevDir := ""
+	if hotReload {
+		cssDevDir = "internal/web/assets/css"
+		jsDevDir = "internal/web/assets/js"
+		log.Info().Msg("CSS+JS hot-reload enabled — assets re-read from disk on each request")
+	}
+	cssBundle := assets.New(assets.Config{AppName: app.Name, DevDir: cssDevDir})
 	cssBundle.MustBuild()
 	assets.Register(cssBundle)
-	if dir := cssHotReloadDir(envPrefix); dir != "" {
-		log.Info().Str("dir", dir).Msg("CSS hot-reload enabled — bundle re-reads from disk on each request")
-	}
+	jsAssets := assets.NewJSAssets(assets.JSConfig{DevDir: jsDevDir})
+	jsAssets.MustBuild()
+	assets.RegisterJS(jsAssets)
 
 	// Router
 	handler := routing.SetupRouter(routing.Config{
@@ -382,6 +387,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		ModerationService: moderationSvc,
 		FirehoseConsumer:  firehoseConsumer,
 		CSSBundle:         cssBundle,
+		JSAssets:          jsAssets,
 	})
 
 	// Internal metrics server (localhost-only)
@@ -475,19 +481,16 @@ func resolveDataDir(envPrefix, appName string) (string, error) {
 	return filepath.Join(root, appName), nil
 }
 
-// cssHotReloadDir returns the directory the CSS bundler should re-read
-// from on every request, or "" to use the embedded bytes. Set
-// <APP>_CSS_HOTRELOAD=1 (or any truthy value) for the default source
-// path, or set it to an explicit directory to override.
-func cssHotReloadDir(envPrefix string) string {
-	v := lookupAppEnv(envPrefix, "CSS_HOTRELOAD")
+// hotReloadEnabled reports whether <APP>_HOTRELOAD is set to a truthy
+// value, switching CSS+JS asset handlers from the embedded bytes to
+// re-reading from disk on every request.
+func hotReloadEnabled(envPrefix string) bool {
+	v := lookupAppEnv(envPrefix, "HOTRELOAD")
 	switch v {
-	case "", "0", "false":
-		return ""
-	case "1", "true", "yes", "on":
-		return "internal/web/assets/css"
+	case "", "0", "false", "off", "no":
+		return false
 	default:
-		return v
+		return true
 	}
 }
 
