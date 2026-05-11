@@ -27,7 +27,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 	>
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()
-			<h2 class="text-2xl font-semibold text-brown-900">Explore Recipes</h2>
+			<h2 class="text-2xl font-semibold text-primary">Explore Recipes</h2>
 			<div class="ml-auto">
 				<button
 					hx-get="/api/modals/recipe/new"
@@ -137,7 +137,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 		<!-- Sort + results count bar -->
 		<div class="flex items-center justify-between mb-3">
 			<template x-if="!loading && recipes.length > 0">
-				<p class="text-sm text-brown-600">
+				<p class="text-sm text-muted">
 					<span x-text="recipes.length"></span> recipe(s) found
 				</p>
 			</template>
@@ -145,7 +145,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				<div></div>
 			</template>
 			<div class="flex items-center gap-1 text-sm">
-				<span class="text-brown-500 mr-1">Sort:</span>
+				<span class="text-faint mr-1">Sort:</span>
 				<button
 					type="button"
 					class="filter-pill text-xs"
@@ -178,7 +178,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 				<div class="card card-inner">
 					<div class="flex justify-between items-start mb-4">
 						<div class="min-w-0 flex-1">
-							<h3 class="text-xl font-bold text-brown-900 wrap-break-word" x-text="selectedRecipe.name"></h3>
+							<h3 class="text-xl font-bold text-primary wrap-break-word" x-text="selectedRecipe.name"></h3>
 							<a
 								:href="'/profile/' + selectedRecipe.author_did"
 								class="flex items-center gap-2 mt-1 group/author"
@@ -187,13 +187,13 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 									<img :src="selectedRecipe.author_avatar" class="w-6 h-6 rounded-full object-cover" :alt="selectedRecipe.author_display || ''" loading="lazy" width="24" height="24"/>
 								</template>
 								<template x-if="!selectedRecipe.author_avatar">
-									<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(selectedRecipe.author_display || selectedRecipe.author_handle || '?')[0].toUpperCase()"></div>
+									<div class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-muted text-xs font-bold" x-text="(selectedRecipe.author_display || selectedRecipe.author_handle || '?')[0].toUpperCase()"></div>
 								</template>
 								<div>
 									<template x-if="selectedRecipe.author_display">
-										<span class="block text-sm font-medium text-brown-700 group-hover/author:text-brown-900 group-hover/author:underline transition-colors" x-text="selectedRecipe.author_display"></span>
+										<span class="block text-sm font-medium text-emphasis group-hover/author:text-primary group-hover/author:underline transition-colors" x-text="selectedRecipe.author_display"></span>
 									</template>
-									<span class="block text-xs text-brown-600 group-hover/author:text-brown-800 transition-colors" x-text="selectedRecipe.author_handle || ''"></span>
+									<span class="block text-xs text-muted group-hover/author:text-secondary transition-colors" x-text="selectedRecipe.author_handle || ''"></span>
 								</div>
 							</a>
 						</div>
@@ -243,39 +243,39 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 									</template>
 								</div>
 							</div>
-							<button @click="selectedRecipe = null" class="text-brown-500 hover:text-brown-700 text-lg font-bold" aria-label="Close recipe details">&times;</button>
+							<button @click="selectedRecipe = null" class="text-faint hover:text-emphasis text-lg font-bold" aria-label="Close recipe details">&times;</button>
 						</div>
 					</div>
 					<template x-if="getBrewerDisplay(selectedRecipe) !== '-'">
 						<div class="mb-4">
-							<span class="text-xs text-brown-600 uppercase">Brewer</span>
-							<p class="font-medium text-brown-900" x-text="getBrewerDisplay(selectedRecipe)"></p>
+							<span class="text-xs text-muted uppercase">Brewer</span>
+							<p class="font-medium text-primary" x-text="getBrewerDisplay(selectedRecipe)"></p>
 						</div>
 					</template>
 					<div class="grid grid-cols-3 gap-4 mb-4">
 						<div>
-							<span class="text-xs text-brown-600 uppercase">Coffee</span>
-							<p class="font-medium text-brown-900" x-text="selectedRecipe.coffee_amount > 0 ? selectedRecipe.coffee_amount.toFixed(1) + 'g' : '-'"></p>
+							<span class="text-xs text-muted uppercase">Coffee</span>
+							<p class="font-medium text-primary" x-text="selectedRecipe.coffee_amount > 0 ? selectedRecipe.coffee_amount.toFixed(1) + 'g' : '-'"></p>
 						</div>
 						<div>
-							<span class="text-xs text-brown-600 uppercase">Water</span>
-							<p class="font-medium text-brown-900" x-text="selectedRecipe.water_amount > 0 ? selectedRecipe.water_amount.toFixed(1) + 'g' : '-'"></p>
+							<span class="text-xs text-muted uppercase">Water</span>
+							<p class="font-medium text-primary" x-text="selectedRecipe.water_amount > 0 ? selectedRecipe.water_amount.toFixed(1) + 'g' : '-'"></p>
 						</div>
 						<div>
-							<span class="text-xs text-brown-600 uppercase">Ratio</span>
-							<p class="font-medium text-brown-900" x-text="formatRatio(selectedRecipe)"></p>
+							<span class="text-xs text-muted uppercase">Ratio</span>
+							<p class="font-medium text-primary" x-text="formatRatio(selectedRecipe)"></p>
 						</div>
 					</div>
 					<template x-if="selectedRecipe.pours && selectedRecipe.pours.length > 0">
 						<div class="mb-4">
-							<span class="text-xs text-brown-600 uppercase">Pours</span>
+							<span class="text-xs text-muted uppercase">Pours</span>
 							<div class="flex flex-wrap gap-2 mt-1">
 								<template x-for="(pour, i) in selectedRecipe.pours" :key="i">
 									<span class="inline-flex items-center gap-1.5 text-xs bg-brown-50 px-2.5 py-1 rounded-full border border-brown-200">
-										<span class="font-medium text-brown-800" x-text="(i+1)"></span>
-										<span class="text-brown-700" x-text="pour.water_amount + 'g'"></span>
-										<span class="text-brown-400">&middot;</span>
-										<span class="text-brown-600" x-text="pour.time_seconds + 's'"></span>
+										<span class="font-medium text-secondary" x-text="(i+1)"></span>
+										<span class="text-emphasis" x-text="pour.water_amount + 'g'"></span>
+										<span class="text-placeholder">&middot;</span>
+										<span class="text-muted" x-text="pour.time_seconds + 's'"></span>
 									</span>
 								</template>
 							</div>
@@ -283,12 +283,12 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 					</template>
 					<template x-if="selectedRecipe.notes">
 						<div class="mb-4">
-							<span class="text-xs text-brown-600 uppercase">Notes</span>
-							<p class="text-sm text-brown-800 mt-1 whitespace-pre-wrap" x-text="selectedRecipe.notes"></p>
+							<span class="text-xs text-muted uppercase">Notes</span>
+							<p class="text-sm text-secondary mt-1 whitespace-pre-wrap" x-text="selectedRecipe.notes"></p>
 						</div>
 					</template>
 					<template x-if="selectedRecipe.brew_count > 0 || selectedRecipe.fork_count > 0">
-						<div class="flex items-center gap-4 mb-4 text-sm text-brown-600">
+						<div class="flex items-center gap-4 mb-4 text-sm text-muted">
 							<template x-if="selectedRecipe.brew_count > 0">
 								<span class="flex items-center gap-1.5">
 									<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"></path></svg>
@@ -311,12 +311,12 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 						</div>
 					</template>
 					<template x-if="selectedRecipe.source_ref">
-						<p class="text-sm text-brown-500 mb-3">
+						<p class="text-sm text-faint mb-3">
 							Forked from&#32;
 							<template x-if="selectedRecipe.source_author_display || selectedRecipe.source_author_handle">
 								<a
 									:href="getSourceRecipeURL(selectedRecipe)"
-									class="text-brown-700 underline hover:text-brown-900"
+									class="text-emphasis underline hover:text-primary"
 									@click.stop
 									x-text="(selectedRecipe.source_author_display || selectedRecipe.source_author_handle) + '\'s recipe'"
 								></a>
@@ -390,8 +390,8 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 			</template>
 			<template x-if="!loading && recipes.length === 0">
 				<div class="card card-inner text-center py-8">
-					<p class="text-brown-700 text-lg font-medium">No recipes found</p>
-					<p class="text-sm text-brown-600 mt-2">Try adjusting your filters or search terms</p>
+					<p class="text-emphasis text-lg font-medium">No recipes found</p>
+					<p class="text-sm text-muted mt-2">Try adjusting your filters or search terms</p>
 				</div>
 			</template>
 			<template x-if="!loading && recipes.length > 0">
@@ -412,39 +412,39 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 									<img :src="recipe.author_avatar" class="w-7 h-7 rounded-full object-cover" :alt="recipe.author_display || recipe.author_handle || ''" loading="lazy" width="28" height="28"/>
 								</template>
 								<template x-if="!recipe.author_avatar">
-									<div class="w-7 h-7 rounded-full bg-brown-200 flex items-center justify-center text-brown-600 text-xs font-bold" x-text="(recipe.author_display || recipe.author_handle || '?')[0].toUpperCase()"></div>
+									<div class="w-7 h-7 rounded-full bg-brown-200 flex items-center justify-center text-muted text-xs font-bold" x-text="(recipe.author_display || recipe.author_handle || '?')[0].toUpperCase()"></div>
 								</template>
 								<div class="min-w-0 flex-1">
 									<template x-if="recipe.author_display">
-										<span class="block truncate text-sm font-medium text-brown-700 group-hover/author:text-brown-900 group-hover/author:underline transition-colors" x-text="recipe.author_display"></span>
+										<span class="block truncate text-sm font-medium text-emphasis group-hover/author:text-primary group-hover/author:underline transition-colors" x-text="recipe.author_display"></span>
 									</template>
-									<span class="block truncate text-xs text-brown-600 group-hover/author:text-brown-800 transition-colors" x-text="recipe.author_handle || ''"></span>
+									<span class="block truncate text-xs text-muted group-hover/author:text-secondary transition-colors" x-text="recipe.author_handle || ''"></span>
 								</div>
 							</a>
 							<!-- Recipe name -->
-							<h3 class="font-semibold text-brown-900 mb-2 truncate" x-text="recipe.name"></h3>
+							<h3 class="font-semibold text-primary mb-2 truncate" x-text="recipe.name"></h3>
 							<!-- Brewer -->
 							<template x-if="getBrewerDisplay(recipe) !== '-'">
-								<p class="text-sm text-brown-600 mb-3" x-text="getBrewerDisplay(recipe)"></p>
+								<p class="text-sm text-muted mb-3" x-text="getBrewerDisplay(recipe)"></p>
 							</template>
 							<!-- Stats grid -->
 							<div class="grid grid-cols-3 gap-2 mb-3">
 								<div class="text-center bg-brown-50/60 rounded-md py-1.5">
-									<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Coffee</span>
-									<span class="block text-sm font-medium text-brown-900" x-text="recipe.coffee_amount > 0 ? recipe.coffee_amount.toFixed(1) + 'g' : '-'"></span>
+									<span class="stat-label-micro">Coffee</span>
+									<span class="block text-sm font-medium text-primary" x-text="recipe.coffee_amount > 0 ? recipe.coffee_amount.toFixed(1) + 'g' : '-'"></span>
 								</div>
 								<div class="text-center bg-brown-50/60 rounded-md py-1.5">
-									<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Water</span>
-									<span class="block text-sm font-medium text-brown-900" x-text="recipe.water_amount > 0 ? recipe.water_amount.toFixed(1) + 'g' : '-'"></span>
+									<span class="stat-label-micro">Water</span>
+									<span class="block text-sm font-medium text-primary" x-text="recipe.water_amount > 0 ? recipe.water_amount.toFixed(1) + 'g' : '-'"></span>
 								</div>
 								<div class="text-center bg-brown-50/60 rounded-md py-1.5">
-									<span class="block text-[10px] text-brown-500 uppercase tracking-wide">Ratio</span>
-									<span class="block text-sm font-medium text-brown-900" x-text="formatRatio(recipe)"></span>
+									<span class="stat-label-micro">Ratio</span>
+									<span class="block text-sm font-medium text-primary" x-text="formatRatio(recipe)"></span>
 								</div>
 							</div>
 							<!-- Counts row -->
 							<template x-if="recipe.brew_count > 0 || recipe.fork_count > 0">
-								<div class="flex items-center gap-3 pt-2 border-t border-brown-200/60 text-xs text-brown-500">
+								<div class="flex items-center gap-3 pt-2 border-t border-brown-200/60 text-xs text-faint">
 									<template x-if="recipe.brew_count > 0">
 										<span class="flex items-center gap-1" :title="recipe.brew_count + ' brews'">
 											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"></path></svg>
@@ -507,7 +507,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 					"
 						class="space-y-4"
 					>
-						<p class="text-sm text-brown-700">
+						<p class="text-sm text-emphasis">
 							Please describe why you're reporting this content. Reports are reviewed by moderators.
 						</p>
 						<div>
@@ -520,7 +520,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 								maxlength="500"
 								class="w-full form-textarea"
 							></textarea>
-							<div class="flex justify-between text-xs text-brown-500 mt-1">
+							<div class="flex justify-between text-xs text-faint mt-1">
 								<span>Optional, but helpful for moderators</span>
 								<span x-text="charCount + '/500'"></span>
 							</div>
@@ -555,8 +555,8 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 								<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
 							</svg>
 						</div>
-						<p class="font-medium text-brown-900">Report Submitted</p>
-						<p class="text-sm text-brown-600 mt-1">Thank you for helping keep our community safe.</p>
+						<p class="font-medium text-primary">Report Submitted</p>
+						<p class="text-sm text-muted mt-1">Thank you for helping keep our community safe.</p>
 					</div>
 				</template>
 			</div>

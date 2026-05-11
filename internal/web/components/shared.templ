@@ -18,7 +18,7 @@ type BeanSummaryProps struct {
 // BeanSummary renders the bean name, roaster, and attribute tags.
 templ BeanSummary(props BeanSummaryProps) {
 	if props.Bean != nil {
-		<div class="font-bold text-brown-900 text-base">
+		<div class="font-bold text-primary text-base">
 			if props.Bean.Name != "" {
 				{ props.Bean.Name }
 			} else {
@@ -26,14 +26,14 @@ templ BeanSummary(props BeanSummaryProps) {
 			}
 		</div>
 		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
-			<div class="text-sm text-brown-700 mt-0.5">
+			<div class="text-sm text-emphasis mt-0.5">
 				<span class="inline-flex items-center gap-1 font-medium">
 					@IconStore()
 					{ props.Bean.Roaster.Name }
 				</span>
 			</div>
 		}
-		<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
+		<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
 			if props.Bean.Origin != "" {
 				<span class="inline-flex items-center gap-1">
 					@IconMapPin()
@@ -177,9 +177,9 @@ templ EmptyState(props EmptyStateProps) {
 }
 
 templ emptyStateContent(props EmptyStateProps) {
-	<p class="text-brown-800 text-lg mb-4 font-medium">{ props.Message }</p>
+	<p class="text-secondary text-lg mb-4 font-medium">{ props.Message }</p>
 	if props.SubMessage != "" {
-		<p class="text-sm text-brown-700 mb-4">{ props.SubMessage }</p>
+		<p class="text-sm text-emphasis mb-4">{ props.SubMessage }</p>
 	}
 	if props.ActionURL != "" && props.ActionText != "" {
 		<a
@@ -202,7 +202,7 @@ type DetailFieldProps struct {
 // DetailField renders a labeled value with a "Not specified" fallback
 templ DetailField(props DetailFieldProps) {
 	<div class="section-box">
-		<h3 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-2">
+		<h3 class="text-sm font-medium text-muted uppercase tracking-wider mb-2">
 			if props.Icon != nil {
 				<span class="inline-flex items-center gap-1">
 					@props.Icon
@@ -213,11 +213,11 @@ templ DetailField(props DetailFieldProps) {
 			}
 		</h3>
 		if props.Value != "" && props.LinkHref != "" {
-			<a href={ templ.SafeURL(props.LinkHref) } class="font-semibold text-brown-900 hover:underline">{ props.Value }</a>
+			<a href={ templ.SafeURL(props.LinkHref) } class="font-semibold text-primary hover:underline">{ props.Value }</a>
 		} else if props.Value != "" {
-			<div class="font-semibold text-brown-900">{ props.Value }</div>
+			<div class="font-semibold text-primary">{ props.Value }</div>
 		} else {
-			<span class="text-brown-400">Not specified</span>
+			<span class="text-placeholder">Not specified</span>
 		}
 	</div>
 }
@@ -361,9 +361,9 @@ templ WelcomeCard(props WelcomeCardProps) {
 
 templ WelcomeAuthenticated(userDID string) {
 	<div class="text-center mb-8 pt-4">
-		<h1 class="text-3xl sm:text-4xl font-semibold text-brown-900 mb-6">Your coffee journey, documented.</h1>
-		// <p class="text-sm text-brown-500 mb-6">
-		// 	Logged in as <span class="font-mono text-brown-700 font-medium">{ userDID }</span>
+		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">Your coffee journey, documented.</h1>
+		// <p class="text-sm text-faint mb-6">
+		// 	Logged in as <span class="font-mono text-emphasis font-medium">{ userDID }</span>
 		// </p>
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto">
 			<a
@@ -397,10 +397,10 @@ templ WelcomeAuthenticated(userDID string) {
 // WelcomeHero renders the landing hero for unauthenticated users
 templ WelcomeHero() {
 	<div class="text-center mb-8 pt-4">
-		<h1 class="text-3xl sm:text-4xl font-semibold text-brown-900 mb-3">Your coffee journey, documented.</h1>
-		<p class="text-lg text-brown-700 max-w-xl mx-auto mb-3">Log every brew, track your beans and equipment, and share your coffee story with the community.</p>
-		<p class="text-sm text-brown-500">
-			<a href="/atproto" class="hover:text-brown-700 transition-colors">Built on AT Protocol</a> — you own your data.
+		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-3">Your coffee journey, documented.</h1>
+		<p class="text-lg text-emphasis max-w-xl mx-auto mb-3">Log every brew, track your beans and equipment, and share your coffee story with the community.</p>
+		<p class="text-sm text-faint">
+			<a href="/atproto" class="hover:text-emphasis transition-colors">Built on AT Protocol</a> — you own your data.
 		</p>
 	</div>
 }
@@ -408,7 +408,7 @@ templ WelcomeHero() {
 // WelcomeLoginCard renders a compact login card for unauthenticated users
 templ WelcomeLoginCard() {
 	<div class="card p-6 mb-8 max-w-md mx-auto">
-		<h2 class="text-lg font-semibold text-brown-900 mb-4 text-center">Log in to get started</h2>
+		<h2 class="text-lg font-semibold text-primary mb-4 text-center">Log in to get started</h2>
 		<form method="POST" action="/auth/login">
 			<div class="relative">
 				<input
@@ -429,14 +429,14 @@ templ WelcomeLoginCard() {
 				Log In
 			</button>
 		</form>
-		<div class="mt-4 text-sm text-brown-600 text-center">
-			<a href="/join/create" class="font-medium text-brown-800 hover:text-brown-900 transition-colors hover:underline">Create an account</a>
-			<span class="mx-1.5 text-brown-400">&middot;</span>
-			<a href="/about" class="text-brown-600 hover:text-brown-800 transition-colors hover:underline">Learn more</a>
+		<div class="mt-4 text-sm text-muted text-center">
+			<a href="/join/create" class="font-medium text-secondary hover:text-primary transition-colors hover:underline">Create an account</a>
+			<span class="mx-1.5 text-placeholder">&middot;</span>
+			<a href="/about" class="text-muted hover:text-secondary transition-colors hover:underline">Learn more</a>
 		</div>
 		<details class="mt-4">
-			<summary class="text-brown-500 text-sm cursor-pointer hover:text-brown-700 transition-colors text-center">What's an Atmosphere account?</summary>
-			<p class="text-brown-600 mt-2 text-sm leading-relaxed">
+			<summary class="text-faint text-sm cursor-pointer hover:text-emphasis transition-colors text-center">What's an Atmosphere account?</summary>
+			<p class="text-muted mt-2 text-sm leading-relaxed">
 				One account { "for" } the entire <a href="/atproto" class="link">AT Protocol</a> ecosystem. Sign up once and use it across Arabica, <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a>, <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a>, and more. Your data is portable — you own it.
 			</p>
 		</details>
@@ -446,15 +446,15 @@ templ WelcomeLoginCard() {
 
 templ AboutInfoCard() {
 	<div class="card p-6 mb-6">
-		<h3 class="text-lg font-bold text-brown-900 mb-3">About Arabica</h3>
-		<ul class="text-brown-800 space-y-2 leading-relaxed mb-3">
+		<h3 class="text-lg font-bold text-primary mb-3">About Arabica</h3>
+		<ul class="text-secondary space-y-2 leading-relaxed mb-3">
 			<li>Add tasting notes and ratings to each brew</li>
 			<li>Track brewing variables like temperature, time, and grind size</li>
 			<li>Organize beans by origin and roaster</li>
 			<li><strong>Portable:</strong> Own your coffee brewing history</li>
 			<li><strong>Decentralized:</strong> Your data lives in your Personal Data Server (PDS)</li>
 		</ul>
-		<a href="/about" class="text-sm text-brown-700 hover:text-brown-900 transition-colors hover:underline">Learn more</a>
+		<a href="/about" class="text-sm text-emphasis hover:text-primary transition-colors hover:underline">Learn more</a>
 	</div>
 }
 
@@ -489,8 +489,8 @@ templ UserBadge(props UserBadgeProps) {
 					<a
 						href={ templ.SafeURL(props.ProfileURL) }
 						class={ templ.Classes(
-							"text-brown-900 truncate",
-							templ.KV("font-medium hover:text-brown-700", props.Size == "sm"),
+							"text-primary truncate",
+							templ.KV("font-medium hover:text-emphasis", props.Size == "sm"),
 							templ.KV("link-bold", props.Size == "md" || props.Size == ""),
 						) }
 					>
@@ -501,18 +501,18 @@ templ UserBadge(props UserBadgeProps) {
 					href={ templ.SafeURL(props.ProfileURL) }
 					class={ templ.Classes(
 						"truncate",
-						templ.KV("text-sm text-brown-600 hover:text-brown-800", props.Size == "sm"),
+						templ.KV("text-sm text-muted hover:text-secondary", props.Size == "sm"),
 						templ.KV("link text-sm", props.Size == "md" || props.Size == ""),
 					) }
 				>
 					{ "@" + atp.DisplayHandle(props.Handle) }
 				</a>
 				if props.Size == "sm" && props.TimeAgo != "" {
-					<span class="text-brown-500 text-sm">{ props.TimeAgo }</span>
+					<span class="text-faint text-sm">{ props.TimeAgo }</span>
 				}
 			</div>
 			if (props.Size == "md" || props.Size == "") && props.TimeAgo != "" {
-				<span class="text-brown-500 text-sm">{ props.TimeAgo }</span>
+				<span class="text-faint text-sm">{ props.TimeAgo }</span>
 			}
 		</div>
 	</div>

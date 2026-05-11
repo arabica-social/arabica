@@ -68,6 +68,7 @@
 	   stay coherent. */
 	--text-primary:     oklch(0.22 0.018 145);
 	--text-secondary:   oklch(0.32 0.020 145);
+	--text-emphasis:    oklch(0.38 0.022 145);
 	--text-muted:       oklch(0.46 0.022 145);
 	--text-faint:       oklch(0.62 0.018 145);
 	--text-placeholder: oklch(0.74 0.014 145);
@@ -176,6 +177,7 @@
 
 		--text-primary:     oklch(0.94 0.012 148);
 		--text-secondary:   oklch(0.82 0.014 148);
+		--text-emphasis:    oklch(0.82 0.014 148);
 		--text-muted:       oklch(0.66 0.016 148);
 		--text-faint:       oklch(0.50 0.014 148);
 		--text-placeholder: oklch(0.40 0.014 148);
@@ -259,6 +261,7 @@
 
 	--text-primary:     oklch(0.94 0.012 148);
 	--text-secondary:   oklch(0.82 0.014 148);
+	--text-emphasis:    oklch(0.82 0.014 148);
 	--text-muted:       oklch(0.66 0.016 148);
 	--text-faint:       oklch(0.50 0.014 148);
 	--text-placeholder: oklch(0.40 0.014 148);

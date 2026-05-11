@@ -32,7 +32,7 @@ templ notificationsContent(props NotificationsProps) {
 		<div class="flex items-center justify-between mb-8">
 			<div class="flex items-center gap-3">
 				@components.BackButton()
-				<h1 class="text-2xl font-semibold text-brown-900">Notifications</h1>
+				<h1 class="text-2xl font-semibold text-primary">Notifications</h1>
 			</div>
 			if len(props.Notifications) > 0 {
 				<form method="POST" action="/api/notifications/read">
@@ -82,14 +82,14 @@ templ notificationRow(notif NotificationItem) {
 		</div>
 		<!-- Content -->
 		<div class="flex-1 min-w-0">
-			<p class="text-sm text-brown-800">
-				<span class="font-semibold text-brown-900">
+			<p class="text-sm text-secondary">
+				<span class="font-semibold text-primary">
 					{ notifActorName(notif) }
 				</span>
 				{ " " }
 				{ notif.ActionText }
 			</p>
-			<p class="text-xs text-brown-400 mt-1">
+			<p class="text-xs text-placeholder mt-1">
 				{ bff.FormatTimeAgo(notif.CreatedAt) }
 			</p>
 		</div>

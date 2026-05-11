@@ -26,15 +26,15 @@ templ FooterWithBrand(brandName, tagline string) {
 	<footer class="mt-auto" style="background: var(--footer-bg); border-top: 1px solid var(--footer-border);">
 		<div class="container mx-auto px-4 py-8">
 			<div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-				<div class="text-sm text-brown-700">
-					<span class="font-semibold text-brown-900">{ footerBrandName(brandName) }</span> - { footerTagline(tagline) }
+				<div class="text-sm text-emphasis">
+					<span class="font-semibold text-primary">{ footerBrandName(brandName) }</span> - { footerTagline(tagline) }
 				</div>
 				<nav class="flex flex-wrap justify-center gap-6 text-sm">
-					<a href="/about" class="text-brown-700 hover:text-brown-900 transition-colors">About</a>
-					<a href="/terms" class="text-brown-700 hover:text-brown-900 transition-colors">Terms of Service</a>
-					<a href="https://tangled.org/arabica.social/arabica" target="_blank" rel="noopener noreferrer" class="text-brown-700 hover:text-brown-900 transition-colors">Source Code</a>
-					<a href="/atproto" class="text-brown-700 hover:text-brown-900 transition-colors">AT Protocol</a>
-					<a href="/about#support" class="text-brown-700 hover:text-brown-900 transition-colors">Support</a>
+					<a href="/about" class="text-emphasis hover:text-primary transition-colors">About</a>
+					<a href="/terms" class="text-emphasis hover:text-primary transition-colors">Terms of Service</a>
+					<a href="https://tangled.org/arabica.social/arabica" target="_blank" rel="noopener noreferrer" class="text-emphasis hover:text-primary transition-colors">Source Code</a>
+					<a href="/atproto" class="text-emphasis hover:text-primary transition-colors">AT Protocol</a>
+					<a href="/about#support" class="text-emphasis hover:text-primary transition-colors">Support</a>
 				</nav>
 			</div>
 		</div>

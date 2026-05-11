@@ -181,7 +181,7 @@ templ BeanCloseBagConfirm(props BeanViewProps) {
 	>
 		<div class="modal-content">
 			<h3 id={ "close-bag-title-" + props.Bean.RKey } class="modal-title">Close Bag</h3>
-			<p class="text-brown-700 text-sm mb-4">
+			<p class="text-emphasis text-sm mb-4">
 				Mark this bag as finished? You can reopen it later from the edit menu.
 			</p>
 			<div class="flex gap-2">
@@ -231,7 +231,7 @@ templ BeanRateModal(props BeanViewProps) {
 					class="w-full accent-brown-700"
 					aria-label="Bag rating, 1 to 10"
 				/>
-				<div class="text-center text-3xl font-bold text-brown-800" aria-hidden="true">
+				<div class="text-center text-3xl font-bold text-secondary" aria-hidden="true">
 					<span x-text="rating"></span>/10
 				</div>
 			</div>

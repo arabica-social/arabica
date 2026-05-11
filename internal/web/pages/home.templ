@@ -40,7 +40,7 @@ templ HomeContent(props HomeProps) {
 
 templ CommunityFeedSection(isAuthenticated bool, descriptors []*entities.Descriptor) {
 	<div class="card p-2 sm:p-6 mb-8">
-		<h3 class="text-xl font-bold text-brown-900 mb-4">Community Activity</h3>
+		<h3 class="text-xl font-bold text-primary mb-4">Community Activity</h3>
 		if isAuthenticated {
 			@FeedFilterBar(FeedQueryState{IsAuthenticated: isAuthenticated, Descriptors: descriptors})
 		}

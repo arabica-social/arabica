@@ -32,7 +32,7 @@ templ ManagePartial(props ManagePartialProps) {
 templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
 	<div x-show="tab === 'beans'">
 		<div class="mb-4 flex justify-between items-center">
-			<h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
+			<h3 class="text-xl font-semibold text-primary">Coffee Beans</h3>
 			<button
 				hx-get="/api/modals/bean/new"
 				hx-target="#modal-container"
@@ -44,7 +44,7 @@ templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRa
 		</div>
 		<div class="space-y-6">
 			<div>
-				<h4 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h4>
+				<h4 class="text-lg font-semibold text-primary mb-3">Open Bags</h4>
 				@BeanCards(BeanCardsProps{
 					Beans:          filterOpenBeans(beans),
 					ShowActions:    true,
@@ -54,7 +54,7 @@ templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRa
 				})
 			</div>
 			<div>
-				<h4 class="text-lg font-semibold text-brown-900 mb-3">Closed Bags</h4>
+				<h4 class="text-lg font-semibold text-primary mb-3">Closed Bags</h4>
 				@BeanCards(BeanCardsProps{
 					Beans:          filterClosedBeans(beans),
 					ShowActions:    true,
@@ -71,7 +71,7 @@ templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRa
 templ ManageRoastersTab(roasters []*arabica.Roaster, beanCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
 	<div x-show="tab === 'roasters'">
 		<div class="mb-4 flex justify-between items-center">
-			<h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
+			<h3 class="text-xl font-semibold text-primary">Roasters</h3>
 			<button
 				hx-get="/api/modals/roaster/new"
 				hx-target="#modal-container"
@@ -95,7 +95,7 @@ templ ManageRoastersTab(roasters []*arabica.Roaster, beanCounts map[string]int, 
 templ ManageGrindersTab(grinders []*arabica.Grinder, brewCounts map[string]int, ownerDID string) {
 	<div x-show="tab === 'grinders'">
 		<div class="mb-4 flex justify-between items-center">
-			<h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
+			<h3 class="text-xl font-semibold text-primary">Grinders</h3>
 			<button
 				hx-get="/api/modals/grinder/new"
 				hx-target="#modal-container"
@@ -118,7 +118,7 @@ templ ManageGrindersTab(grinders []*arabica.Grinder, brewCounts map[string]int, 
 templ ManageBrewersTab(brewers []*arabica.Brewer, brewCounts map[string]int, ownerDID string) {
 	<div x-show="tab === 'brewers'">
 		<div class="mb-4 flex justify-between items-center">
-			<h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
+			<h3 class="text-xl font-semibold text-primary">Brewers</h3>
 			<button
 				hx-get="/api/modals/brewer/new"
 				hx-target="#modal-container"
@@ -142,7 +142,7 @@ templ ManageRecipesTab(recipes []*arabica.Recipe) {
 	<div x-show="tab === 'recipes'">
 		@RecipeAlphaWarning()
 		<div class="mb-4 flex justify-between items-center">
-			<h3 class="text-xl font-semibold text-brown-900">Recipes</h3>
+			<h3 class="text-xl font-semibold text-primary">Recipes</h3>
 			<button
 				hx-get="/api/modals/recipe/new"
 				hx-target="#modal-container"

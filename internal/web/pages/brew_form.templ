@@ -51,7 +51,7 @@ templ BrewFormCard(props BrewFormProps) {
 templ BrewFormHeader(props BrewFormProps) {
 	<div class="flex items-center gap-3 mb-6">
 		@components.BackButton()
-		<h2 class="text-2xl font-semibold text-brown-900">
+		<h2 class="text-2xl font-semibold text-primary">
 			if props.Brew != nil {
 				Edit Brew
 			} else {
@@ -114,14 +114,14 @@ templ RecipeModeSection(props BrewFormProps) {
 		<!-- Recipe summary bar -->
 		<div class="section-box" x-show="activeRecipe" x-cloak>
 			<div class="flex items-center justify-between gap-2">
-				<p class="text-sm text-brown-700 flex-1" x-text="recipeSummaryText"></p>
+				<p class="text-sm text-emphasis flex-1" x-text="recipeSummaryText"></p>
 				<button type="button" @click="recipeSummaryExpanded = !recipeSummaryExpanded" class="text-sm btn-secondary">
 					<span x-text="recipeSummaryExpanded ? 'Collapse' : 'Edit'"></span>
 				</button>
 			</div>
 		</div>
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-brown-800 px-2">Coffee</legend>
+			<legend class="text-sm font-semibold text-secondary px-2">Coffee</legend>
 			@BeanSelectField(props)
 			<div x-show="recipeSummaryExpanded || !activeRecipe" x-cloak>
 				@CoffeeAmountField(props)
@@ -130,7 +130,7 @@ templ RecipeModeSection(props BrewFormProps) {
 			@GrindSizeField(props)
 		</fieldset>
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-brown-800 px-2">Brewing</legend>
+			<legend class="text-sm font-semibold text-secondary px-2">Brewing</legend>
 			<div x-show="recipeSummaryExpanded || !activeRecipe" x-cloak class="space-y-6">
 				@BrewerSelectField(props)
 				@WaterAmountField(props)
@@ -142,7 +142,7 @@ templ RecipeModeSection(props BrewFormProps) {
 		@EspressoParamsSection(props)
 		@PouroverParamsSection(props)
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-brown-800 px-2">Results</legend>
+			<legend class="text-sm font-semibold text-secondary px-2">Results</legend>
 			@TastingNotesField(props)
 			@RatingField(props)
 		</fieldset>
@@ -159,7 +159,7 @@ templ RecipeSelectField(props BrewFormProps) {
 		}
 	>
 		<label class="form-label">Recipe (Optional)</label>
-		<p class="text-sm text-brown-600 mb-2">Select a recipe to autofill brew parameters</p>
+		<p class="text-sm text-muted mb-2">Select a recipe to autofill brew parameters</p>
 		<div class="alert-warning px-3 py-2 mb-2 text-xs">
 			Recipes are in early alpha &mdash; the format may change. Your brew data won't be affected.
 		</div>
@@ -314,7 +314,7 @@ templ comboSelectInput(sectionLabel string) {
 			type="button"
 			x-show="selectedRKey"
 			@click="clear()"
-			class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
+			class="absolute right-2 top-1/2 -translate-y-1/2 text-placeholder hover:text-muted"
 			x-cloak
 		>
 			@components.IconX()
@@ -393,7 +393,7 @@ templ comboSelectInput(sectionLabel string) {
 	</div>
 	<!-- Inline create form with extra details -->
 	<div x-show="showCreateForm" x-transition x-cloak class="mt-2 p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
-		<p class="text-sm font-medium text-brown-900 mb-2">
+		<p class="text-sm font-medium text-primary mb-2">
 			Creating: <span x-text="createFormData.name" class="font-semibold"></span>
 		</p>
 		<template x-if="extraFields.length > 0">
@@ -550,14 +550,14 @@ templ PoursSection(props BrewFormProps) {
 	<div>
 		<!-- Toggle link when pours are hidden -->
 		<div x-show="!showPours" x-cloak>
-			<button type="button" @click="togglePours()" class="text-sm text-brown-600 hover:text-brown-800 font-medium">
+			<button type="button" @click="togglePours()" class="text-sm text-muted hover:text-secondary font-medium">
 				+ Add pours
 			</button>
 		</div>
 		<!-- Pours editor when visible -->
 		<div x-show="showPours" x-cloak>
 			<div class="flex items-center justify-between mb-2">
-				<label class="block text-sm font-medium text-brown-900">Pours</label>
+				<label class="block text-sm font-medium text-primary">Pours</label>
 				<button
 					type="button"
 					@click="addPour()"
@@ -566,12 +566,12 @@ templ PoursSection(props BrewFormProps) {
 					+ Add Pour
 				</button>
 			</div>
-			<p class="text-sm text-brown-700 mb-3">Track individual pours for bloom and subsequent additions</p>
+			<p class="text-sm text-emphasis mb-3">Track individual pours for bloom and subsequent additions</p>
 			<div class="space-y-3">
 				<template x-for="(pour, index) in pours" :key="index">
 					<div class="flex gap-2 items-center p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
 						<div class="flex-1">
-							<label class="text-xs text-brown-700 font-medium" x-text="'Pour ' + (index + 1)"></label>
+							<label class="text-xs text-emphasis font-medium" x-text="'Pour ' + (index + 1)"></label>
 							<input
 								type="number"
 								:name="'pour_water_' + index"
@@ -581,7 +581,7 @@ templ PoursSection(props BrewFormProps) {
 							/>
 						</div>
 						<div class="flex-1">
-							<label class="text-xs text-brown-700 font-medium">Time (sec)</label>
+							<label class="text-xs text-emphasis font-medium">Time (sec)</label>
 							<input
 								type="number"
 								:name="'pour_time_' + index"
@@ -593,7 +593,7 @@ templ PoursSection(props BrewFormProps) {
 						<button
 							type="button"
 							@click="removePour(index)"
-							class="text-brown-700 hover:text-brown-900 mt-5 font-bold"
+							class="text-emphasis hover:text-primary mt-5 font-bold"
 							x-show="pours.length > 0"
 						>
 							@components.IconX()
@@ -681,7 +681,7 @@ templ RatingField(props BrewFormProps) {
 			x-init="rating = $el.value"
 			class="w-full accent-brown-700"
 		/>
-		<div class="text-center text-2xl font-bold text-brown-800">
+		<div class="text-center text-2xl font-bold text-secondary">
 			<span x-text="rating"></span>/10
 		</div>
 	</div>
@@ -713,7 +713,7 @@ templ SubmitButton(props BrewFormProps) {
 templ EspressoParamsSection(props BrewFormProps) {
 	<div x-show="brewerCategory === 'espresso'" x-cloak>
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-brown-800 px-2">Espresso</legend>
+			<legend class="text-sm font-semibold text-secondary px-2">Espresso</legend>
 			@components.FormField(
 				components.FormFieldProps{
 					Label:      "Yield Weight (grams)",
@@ -757,7 +757,7 @@ templ EspressoParamsSection(props BrewFormProps) {
 templ PouroverParamsSection(props BrewFormProps) {
 	<div x-show="brewerCategory === 'pourover'" x-cloak>
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-brown-800 px-2">Pour-over Details</legend>
+			<legend class="text-sm font-semibold text-secondary px-2">Pour-over Details</legend>
 			<div class="grid grid-cols-2 gap-4">
 				@components.FormField(
 					components.FormFieldProps{

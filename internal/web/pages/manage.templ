@@ -19,7 +19,7 @@ templ ManageContent(props ManageProps) {
 	<div class="page-container-xl" x-data="managePage()">
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()
-			<h2 class="text-2xl font-semibold text-brown-900">Manage</h2>
+			<h2 class="text-2xl font-semibold text-primary">Manage</h2>
 			<div class="ml-auto">
 				@ManageRefreshButton()
 			</div>
@@ -86,7 +86,7 @@ templ ManageRefreshButton() {
 		x-data="{ syncing: false }"
 		@click="syncing = true; htmx.ajax('POST', '/api/manage/refresh', { target: '#manage-content', swap: 'innerHTML' }).then(() => syncing = false).catch(() => syncing = false)"
 		:disabled="syncing"
-		class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-brown-700 hover:text-brown-900 border border-brown-300 hover:border-brown-400 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+		class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-emphasis hover:text-primary border border-brown-300 hover:border-brown-400 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
 		title="Refresh all data from your PDS"
 	>
 		<svg :class="syncing && 'animate-spin'" class="inline-block w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -107,7 +107,7 @@ templ ManageLoadingSkeleton() {
 		<!-- Beans Tab Skeleton -->
 		<div x-show="tab === 'beans'">
 			<div class="mb-4 flex justify-between items-center">
-				<h3 class="text-xl font-semibold text-brown-900">Coffee Beans</h3>
+				<h3 class="text-xl font-semibold text-primary">Coffee Beans</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
 			</div>
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -141,7 +141,7 @@ templ ManageLoadingSkeleton() {
 		<!-- Roasters Tab Skeleton -->
 		<div x-show="tab === 'roasters'">
 			<div class="mb-4 flex justify-between items-center">
-				<h3 class="text-xl font-semibold text-brown-900">Roasters</h3>
+				<h3 class="text-xl font-semibold text-primary">Roasters</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
 			</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -167,7 +167,7 @@ templ ManageLoadingSkeleton() {
 		<!-- Grinders Tab Skeleton -->
 		<div x-show="tab === 'grinders'">
 			<div class="mb-4 flex justify-between items-center">
-				<h3 class="text-xl font-semibold text-brown-900">Grinders</h3>
+				<h3 class="text-xl font-semibold text-primary">Grinders</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
 			</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -194,7 +194,7 @@ templ ManageLoadingSkeleton() {
 		<!-- Brewers Tab Skeleton -->
 		<div x-show="tab === 'brewers'">
 			<div class="mb-4 flex justify-between items-center">
-				<h3 class="text-xl font-semibold text-brown-900">Brewers</h3>
+				<h3 class="text-xl font-semibold text-primary">Brewers</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
 			</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -220,7 +220,7 @@ templ ManageLoadingSkeleton() {
 		<!-- Recipes Tab Skeleton -->
 		<div x-show="tab === 'recipes'">
 			<div class="mb-4 flex justify-between items-center">
-				<h3 class="text-xl font-semibold text-brown-900">Recipes</h3>
+				<h3 class="text-xl font-semibold text-primary">Recipes</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
 			</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

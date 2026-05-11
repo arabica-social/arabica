@@ -662,7 +662,11 @@
 
 /* ── Section 5: Colors (ColorUtility) ── */
 
-/* --- Brown palette --- */
+/* --- Brown palette ---
+   The full text-brown-{X} family has been migrated to semantic tokens
+   (text-primary/secondary/emphasis/muted/faint/placeholder in
+   12-text-utilities.css). A few rare 50/100/300 variants remain for cases
+   where the brown shade IS the intent (e.g. inverse text on dark headers). */
 .text-brown-50 {
   color: var(--brand-brown-50);
 }
@@ -671,24 +675,6 @@
 }
 .text-brown-300 {
   color: var(--brand-brown-300);
-}
-.text-brown-400 {
-  color: var(--brand-brown-400);
-}
-.text-brown-500 {
-  color: var(--brand-brown-500);
-}
-.text-brown-600 {
-  color: var(--brand-brown-600);
-}
-.text-brown-700 {
-  color: var(--brand-brown-700);
-}
-.text-brown-800 {
-  color: var(--brand-brown-800);
-}
-.text-brown-900 {
-  color: var(--brand-brown-900);
 }
 
 .bg-brown-50 {
@@ -1096,6 +1082,16 @@
     max-width: 1024px;
   }
 }
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
+  }
+}
 
 /* List styles */
 .list-disc {
@@ -1259,18 +1255,29 @@
   background-color: var(--brand-brown-700);
 }
 
-.hover\:text-brown-600:hover {
-  color: var(--brand-brown-600);
+/* Semantic hover variants — derive from --text-* tokens so they swap
+   automatically in dark mode without needing an explicit override. */
+.hover\:text-primary:hover {
+  color: var(--text-primary);
 }
-.hover\:text-brown-700:hover {
-  color: var(--brand-brown-700);
+.hover\:text-secondary:hover {
+  color: var(--text-secondary);
 }
-.hover\:text-brown-800:hover {
-  color: var(--brand-brown-800);
+.hover\:text-emphasis:hover {
+  color: var(--text-emphasis);
 }
-.hover\:text-brown-900:hover {
-  color: var(--brand-brown-900);
+.hover\:text-muted:hover {
+  color: var(--text-muted);
 }
+.hover\:text-faint:hover {
+  color: var(--text-faint);
+}
+.hover\:text-placeholder:hover {
+  color: var(--text-placeholder);
+}
+
+/* Brown-palette hover variants kept for the few remaining non-semantic call
+   sites (hover:text-brown-950, etc.). Prefer the semantic variants above. */
 .hover\:text-brown-950:hover {
   color: var(--brand-brown-950);
 }
@@ -1382,12 +1389,13 @@
 
 /* ── Section 11: Group Variants ── */
 
-/* Group hover / author — named group */
-.group\/author:hover .group-hover\/author\:text-brown-800 {
-  color: var(--brand-brown-800);
+/* Group hover / author — named group. Semantic targets derive from
+   --text-* tokens so they swap automatically in dark mode. */
+.group\/author:hover .group-hover\/author\:text-primary {
+  color: var(--text-primary);
 }
-.group\/author:hover .group-hover\/author\:text-brown-900 {
-  color: var(--brand-brown-900);
+.group\/author:hover .group-hover\/author\:text-secondary {
+  color: var(--text-secondary);
 }
 .group\/author:hover .group-hover\/author\:underline {
   text-decoration-line: underline;

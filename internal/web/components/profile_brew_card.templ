@@ -35,11 +35,11 @@ templ ProfileBrewCard(props ProfileBrewCardProps) {
 			})
 		</div>
 		<!-- Action text -->
-		<div class="mb-2 text-sm text-brown-700">
+		<div class="mb-2 text-sm text-emphasis">
 			added a
 			<a
 				href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle)) }
-				class="underline hover:text-brown-900"
+				class="underline hover:text-primary"
 			>
 				new brew
 			</a>

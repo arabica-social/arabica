@@ -1,4 +1,22 @@
 /* Badges */
+.badge-alpha {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.125rem;
+  background: var(--brand-amber-400);
+  color: var(--text-primary);
+}
+
+.stat-label-micro {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
 .badge-rating {
   display: inline-flex;
   align-items: center;

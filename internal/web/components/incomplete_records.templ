@@ -27,7 +27,7 @@ templ IncompleteRecords(props IncompleteRecordsProps) {
 				<svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"></path>
 				</svg>
-				<h3 class="text-lg font-semibold text-brown-900">
+				<h3 class="text-lg font-semibold text-primary">
 					{ fmt.Sprintf("%d", len(props.Records)) } { incompleteNoun(len(props.Records)) } need details
 				</h3>
 			</div>
@@ -35,8 +35,8 @@ templ IncompleteRecords(props IncompleteRecordsProps) {
 				for _, rec := range props.Records {
 					<div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
 						<div>
-							<span class="font-medium text-brown-900">{ rec.Name }</span>
-							<span class="text-sm text-brown-600 ml-2">
+							<span class="font-medium text-primary">{ rec.Name }</span>
+							<span class="text-sm text-muted ml-2">
 								missing { strings.Join(rec.MissingFields, ", ") }
 							</span>
 						</div>
@@ -44,7 +44,7 @@ templ IncompleteRecords(props IncompleteRecordsProps) {
 							hx-get={ fmt.Sprintf("/api/modals/%s/%s", rec.EntityType, rec.RKey) }
 							hx-target="#modal-container"
 							hx-swap="innerHTML"
-							class="text-sm font-medium text-brown-700 hover:text-brown-900 cursor-pointer whitespace-nowrap ml-2"
+							class="text-sm font-medium text-emphasis hover:text-primary cursor-pointer whitespace-nowrap ml-2"
 						>
 							Complete
 						</button>
@@ -52,7 +52,7 @@ templ IncompleteRecords(props IncompleteRecordsProps) {
 				}
 			</div>
 			if len(props.Records) > 3 {
-				<a href="/my-coffee" class="block text-center text-sm text-brown-600 hover:text-brown-800 mt-3">
+				<a href="/my-coffee" class="block text-center text-sm text-muted hover:text-secondary mt-3">
 					View all in My Coffee
 				</a>
 			}

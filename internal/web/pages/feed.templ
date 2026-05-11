@@ -112,8 +112,8 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 			} else {
 				<div class="rounded-xl p-8 text-center" style="background: var(--surface-bg); border: 2px dashed var(--card-border); grid-column: 1 / -1;">
 					<div class="text-4xl mb-3">☕</div>
-					<p class="text-brown-700 font-medium mb-1">The board's quiet today</p>
-					<p class="text-sm text-brown-500">Follow some brewers to fill it up, or log your first brew to get started.</p>
+					<p class="text-emphasis font-medium mb-1">The board's quiet today</p>
+					<p class="text-sm text-faint">Follow some brewers to fill it up, or log your first brew to get started.</p>
 				</div>
 			}
 		</div>
@@ -210,7 +210,7 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 			})
 		</div>
 		<!-- Action header -->
-		<div class="mb-2 text-sm text-brown-700">
+		<div class="mb-2 text-sm text-emphasis">
 			@ActionText(item)
 		</div>
 		<!-- Record content (clickable for brews) -->
@@ -294,7 +294,7 @@ func getDisplayName(displayName *string) string {
 templ ActionText(item *feed.FeedItem) {
 	if d := entities.Get(item.RecordType); d != nil && item.Record != nil {
 		added a
-		<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-brown-900">new { d.Noun }</a>
+		<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-primary">new { d.Noun }</a>
 		{ " " }
 		@components.TypeBadge(d.Noun)
 	} else {
@@ -322,7 +322,7 @@ templ FeedBrewContent(item *feed.FeedItem) {
 			<div class="flex items-start justify-between gap-3 mb-3">
 				<div class="flex-1 min-w-0">
 					if item.Brew().Bean != nil {
-						<div class="font-bold text-brown-900 text-base">
+						<div class="font-bold text-primary text-base">
 							if item.Brew().Bean.Name != "" {
 								{ item.Brew().Bean.Name }
 							} else {
@@ -330,14 +330,14 @@ templ FeedBrewContent(item *feed.FeedItem) {
 							}
 						</div>
 						if item.Brew().Bean.Roaster != nil && item.Brew().Bean.Roaster.Name != "" {
-							<div class="text-sm text-brown-700 mt-0.5">
+							<div class="text-sm text-emphasis mt-0.5">
 								<span class="inline-flex items-center gap-1 font-medium">
 									@components.IconStore()
 									{ item.Brew().Bean.Roaster.Name }
 								</span>
 							</div>
 						}
-						<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
+						<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
 							if item.Brew().Bean.Origin != "" {
 								<span class="inline-flex items-center gap-1">
 									@components.IconMapPin()
@@ -376,7 +376,7 @@ templ FeedBrewContent(item *feed.FeedItem) {
 			if item.Brew().BrewerObj != nil || item.Brew().Method != "" {
 				<div class="mb-2">
 					<span class="text-meta">Brewer:</span>
-					<span class="text-sm font-semibold text-brown-900">
+					<span class="text-sm font-semibold text-primary">
 						if item.Brew().BrewerObj != nil {
 							{ item.Brew().BrewerObj.Name }
 						} else if item.Brew().Method != "" {
@@ -386,7 +386,7 @@ templ FeedBrewContent(item *feed.FeedItem) {
 				</div>
 			}
 			<!-- Brew parameters in compact grid -->
-			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-brown-700">
+			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emphasis">
 				if item.Brew().GrinderObj != nil {
 					<div>
 						<span class="text-label">Grinder:</span>
@@ -404,7 +404,7 @@ templ FeedBrewContent(item *feed.FeedItem) {
 					<div class="col-span-2">
 						<span class="text-label">Pours:</span>
 						for _, pour := range item.Brew().Pours {
-							<div class="pl-2 text-brown-600">• { fmt.Sprintf("%dg @ %s", pour.WaterAmount, bff.FormatTime(pour.TimeSeconds)) }</div>
+							<div class="pl-2 text-muted">• { fmt.Sprintf("%dg @ %s", pour.WaterAmount, bff.FormatTime(pour.TimeSeconds)) }</div>
 						}
 					</div>
 				} else if item.Brew().WaterAmount > 0 {
@@ -424,7 +424,7 @@ templ FeedBrewContent(item *feed.FeedItem) {
 				}
 			</div>
 			if item.Brew().TastingNotes != "" {
-				<div class="mt-3 text-sm text-brown-800 italic border-t border-brown-200 pt-2">
+				<div class="mt-3 text-sm text-secondary italic border-t border-brown-200 pt-2">
 					"{ item.Brew().TastingNotes }"
 				</div>
 			}
@@ -437,9 +437,9 @@ templ FeedRecipeContent(item *feed.FeedItem) {
 	if item.Recipe() != nil {
 		<div class="feed-content-box-sm">
 			<div class="text-base mb-2">
-				<span class="font-bold text-brown-900">{ item.Recipe().Name }</span>
+				<span class="font-bold text-primary">{ item.Recipe().Name }</span>
 			</div>
-			<div class="text-xs text-brown-600 mt-1 flex flex-wrap gap-x-2 gap-y-1">
+			<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
 				if item.Recipe().CoffeeAmount > 0 {
 					<span class="inline-flex items-center gap-1">
 						@components.IconCoffee()
@@ -465,7 +465,7 @@ templ FeedRecipeContent(item *feed.FeedItem) {
 				}
 			</div>
 			if item.Recipe().Notes != "" {
-				<div class="mt-2 text-sm text-brown-800 italic">"{ item.Recipe().Notes }"</div>
+				<div class="mt-2 text-sm text-secondary italic">"{ item.Recipe().Notes }"</div>
 			}
 		</div>
 	}

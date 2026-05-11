@@ -118,6 +118,7 @@
   /* Text hierarchy */
   --text-primary: #3d2319;
   --text-secondary: #4a2c2a;
+  --text-emphasis: #6b4423;
   --text-muted: #7f5539;
   --text-faint: #bfa094;
   --text-placeholder: #d2bab0;
@@ -234,6 +235,7 @@
     /* Text hierarchy */
     --text-primary: #FAF7F5;
     --text-secondary: #E0CEC4;
+    --text-emphasis: #E0CEC4;
     --text-muted: #C4A898;
     --text-faint: #8B7265;
     --text-placeholder: #5A4A40;
@@ -336,6 +338,7 @@
   --header-text: #FAF7F5;
   --text-primary: #FAF7F5;
   --text-secondary: #E0CEC4;
+  --text-emphasis: #E0CEC4;
   --text-muted: #C4A898;
   --text-faint: #8B7265;
   --text-placeholder: #5A4A40;

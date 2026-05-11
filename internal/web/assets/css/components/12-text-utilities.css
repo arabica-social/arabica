@@ -22,14 +22,23 @@
   color: var(--text-muted);
 }
 
+.text-primary {
+  color: var(--text-primary);
+}
 .text-secondary {
   color: var(--text-secondary);
+}
+.text-emphasis {
+  color: var(--text-emphasis);
 }
 .text-muted {
   color: var(--text-muted);
 }
 .text-faint {
   color: var(--text-faint);
+}
+.text-placeholder {
+  color: var(--text-placeholder);
 }
 .text-danger {
   color: var(--text-danger);

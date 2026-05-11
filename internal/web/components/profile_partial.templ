@@ -105,7 +105,7 @@ templ ProfileBeansTab(props ProfileBeansTabProps) {
 	<div class="space-y-6">
 		<!-- Open Bags Section -->
 		<div>
-			<h4 class="text-lg font-semibold text-brown-900 mb-3">Open Bags</h4>
+			<h4 class="text-lg font-semibold text-primary mb-3">Open Bags</h4>
 			if len(filterOpenBeans(props.Beans)) == 0 {
 				if props.IsOwnProfile {
 					@EmptyState(EmptyStateProps{
@@ -131,7 +131,7 @@ templ ProfileBeansTab(props ProfileBeansTabProps) {
 		</div>
 		<!-- Roasters Section -->
 		<div>
-			<h4 class="text-lg font-semibold text-brown-900 mb-3">Roasters</h4>
+			<h4 class="text-lg font-semibold text-primary mb-3">Roasters</h4>
 			if len(props.Roasters) == 0 {
 				if props.IsOwnProfile {
 					@EmptyState(EmptyStateProps{Message: "No roasters added yet."})
@@ -151,7 +151,7 @@ templ ProfileBeansTab(props ProfileBeansTabProps) {
 		</div>
 		<!-- Closed Bags Section -->
 		<div>
-			<h4 class="text-lg font-semibold text-brown-900 mb-3">Closed Bags</h4>
+			<h4 class="text-lg font-semibold text-primary mb-3">Closed Bags</h4>
 			if len(filterClosedBeans(props.Beans)) == 0 {
 				@EmptyState(EmptyStateProps{
 					Message: "No closed bags.",
@@ -296,7 +296,7 @@ templ ProfileEquipmentTab(props ProfileEquipmentTabProps) {
 	<div class="space-y-6">
 		<!-- Grinders Section -->
 		<div>
-			<h4 class="text-lg font-semibold text-brown-900 mb-3">Grinders</h4>
+			<h4 class="text-lg font-semibold text-primary mb-3">Grinders</h4>
 			if len(props.Grinders) == 0 {
 				if props.IsOwnProfile {
 					@EmptyState(EmptyStateProps{Message: "No grinders added yet."})
@@ -315,7 +315,7 @@ templ ProfileEquipmentTab(props ProfileEquipmentTabProps) {
 		</div>
 		<!-- Brewers Section -->
 		<div>
-			<h4 class="text-lg font-semibold text-brown-900 mb-3">Brewers</h4>
+			<h4 class="text-lg font-semibold text-primary mb-3">Brewers</h4>
 			if len(props.Brewers) == 0 {
 				if props.IsOwnProfile {
 					@EmptyState(EmptyStateProps{Message: "No brewing devices added yet."})

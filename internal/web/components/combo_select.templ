@@ -83,7 +83,7 @@ templ ComboSelectInput(sectionLabel string) {
 			type="button"
 			x-show="selectedRKey"
 			@click="clear()"
-			class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
+			class="absolute right-2 top-1/2 -translate-y-1/2 text-placeholder hover:text-muted"
 			x-cloak
 			aria-label="Clear selection"
 		>
@@ -169,7 +169,7 @@ templ ComboSelectInput(sectionLabel string) {
 	<div class="sr-only" aria-live="polite" x-text="allItems.length + ' results available'"></div>
 	<!-- Inline create form with extra details -->
 	<div x-show="showCreateForm" x-transition x-cloak class="mt-2 p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
-		<p class="text-sm font-medium text-brown-900 mb-2">
+		<p class="text-sm font-medium text-primary mb-2">
 			Creating: <span x-text="createFormData.name" class="font-semibold"></span>
 		</p>
 		<template x-if="extraFields.length > 0">
@@ -216,7 +216,7 @@ templ ComboSelectInput(sectionLabel string) {
 								type="button"
 								x-show="selectedRoasterRKey || creatingNewRoaster"
 								@click="clearRoaster()"
-								class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
+								class="absolute right-2 top-1/2 -translate-y-1/2 text-placeholder hover:text-muted"
 								x-cloak
 								aria-label="Clear roaster"
 							>
@@ -267,7 +267,7 @@ templ ComboSelectInput(sectionLabel string) {
 						<!-- New roaster detail fields -->
 						<template x-if="creatingNewRoaster">
 							<div class="mt-2 ml-3 space-y-2 pl-3 rounded-lg py-2 pr-2" style="background: var(--surface-bg);">
-								<p class="text-xs text-brown-500">
+								<p class="text-xs text-faint">
 									New roaster: <span x-text="newRoasterName" class="font-medium"></span>
 								</p>
 								<input

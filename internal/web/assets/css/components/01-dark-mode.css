@@ -1,30 +1,15 @@
 /* ========================================
    Dark mode — utility class overrides
    ========================================
-   These override the base utility classes (defined in utilities.css)
-   when the user is in dark mode. !important ensures they win over
-   the base utility regardless of cascade order.
+   Overrides for utility classes whose values aren't yet expressed as
+   semantic tokens. Semantic classes (text-primary, text-emphasis, etc.)
+   derive from --text-* / --surface-* / --card-* tokens which swap
+   automatically in tokens.css, so they don't need entries here.
+
+   Two parallel blocks: the @media query handles OS preference, and the
+   :root[data-theme="dark"] selector handles a manual theme toggle.
    ======================================== */
 @media (prefers-color-scheme: dark) {
-  .text-brown-900 {
-    color: var(--text-primary) !important;
-  }
-  .text-brown-800 {
-    color: var(--text-primary) !important;
-  }
-  .text-brown-700 {
-    color: var(--text-secondary) !important;
-  }
-  .text-brown-600 {
-    color: var(--text-muted) !important;
-  }
-  .text-brown-500 {
-    color: var(--text-faint) !important;
-  }
-  .text-brown-400 {
-    color: var(--text-placeholder) !important;
-  }
-
   .bg-brown-50 {
     background-color: var(--page-bg) !important;
   }
@@ -48,9 +33,6 @@
   .bg-white {
     background-color: var(--card-bg) !important;
   }
-  .bg-white\/60 {
-    background-color: var(--surface-bg) !important;
-  }
 
   /* Amber badges stay visible on dark */
   .bg-amber-50 {
@@ -62,21 +44,11 @@
   .bg-amber-400 {
     background-color: #fbbf24;
   }
-  .text-amber-900 {
-    color: #fde68a;
-  }
   .text-amber-700 {
     color: #fcd34d;
   }
   .text-amber-600 {
     color: #fbbf24;
-  }
-  .border-amber-400 {
-    border-color: rgba(251, 191, 36, 0.4);
-  }
-
-  .bg-green-50 {
-    background-color: rgba(251, 191, 36, 0.08) !important;
   }
 
   .hover\:bg-brown-200:hover {
@@ -87,22 +59,6 @@
   }
   .hover\:bg-brown-50:hover {
     background-color: var(--surface-bg) !important;
-  }
-  .hover\:text-brown-900:hover {
-    color: var(--text-primary) !important;
-  }
-  .hover\:text-brown-800:hover {
-    color: var(--text-primary) !important;
-  }
-  .hover\:text-brown-700:hover {
-    color: var(--text-secondary) !important;
-  }
-
-  .divide-brown-200 > :not([hidden]) ~ :not([hidden]) {
-    border-color: var(--card-border) !important;
-  }
-  .divide-brown-300 > :not([hidden]) ~ :not([hidden]) {
-    border-color: var(--card-border) !important;
   }
 
   .ring-brown-500 {
@@ -115,49 +71,18 @@
   .bg-brown-50\/60 {
     background-color: var(--surface-bg) !important;
   }
-  .bg-brown-200\/60 {
-    background-color: var(--card-border) !important;
-  }
   .border-brown-200\/60 {
     border-color: var(--card-border) !important;
   }
 
-  .group-hover\/author\:text-brown-900:hover,
-  .group\/author:hover .group-hover\/author\:text-brown-900 {
-    color: var(--text-primary) !important;
-  }
-  .group-hover\/author\:text-brown-800:hover,
-  .group\/author:hover .group-hover\/author\:text-brown-800 {
-    color: var(--text-primary) !important;
-  }
-
   .border-white {
     border-color: var(--card-bg) !important;
-  }
-  .decoration-brown-300 {
-    text-decoration-color: var(--card-border) !important;
   }
   .hover\:decoration-brown-500:hover {
     text-decoration-color: var(--text-faint) !important;
   }
 }
 
-:root[data-theme="dark"] .text-brown-900,
-:root[data-theme="dark"] .text-brown-800 {
-  color: var(--text-primary) !important;
-}
-:root[data-theme="dark"] .text-brown-700 {
-  color: var(--text-secondary) !important;
-}
-:root[data-theme="dark"] .text-brown-600 {
-  color: var(--text-muted) !important;
-}
-:root[data-theme="dark"] .text-brown-500 {
-  color: var(--text-faint) !important;
-}
-:root[data-theme="dark"] .text-brown-400 {
-  color: var(--text-placeholder) !important;
-}
 :root[data-theme="dark"] .bg-brown-50 {
   background-color: var(--page-bg) !important;
 }
@@ -177,17 +102,11 @@
 :root[data-theme="dark"] .bg-white {
   background-color: var(--card-bg) !important;
 }
-:root[data-theme="dark"] .bg-white\/60 {
-  background-color: var(--surface-bg) !important;
-}
 :root[data-theme="dark"] .bg-amber-50 {
   background-color: rgba(251, 191, 36, 0.1);
 }
 :root[data-theme="dark"] .bg-amber-100 {
   background-color: rgba(251, 191, 36, 0.15);
-}
-:root[data-theme="dark"] .text-amber-900 {
-  color: #fde68a;
 }
 :root[data-theme="dark"] .text-amber-700 {
   color: #fcd34d;
@@ -195,27 +114,10 @@
 :root[data-theme="dark"] .text-amber-600 {
   color: #fbbf24;
 }
-:root[data-theme="dark"] .border-amber-400 {
-  border-color: rgba(251, 191, 36, 0.4);
-}
-:root[data-theme="dark"] .bg-green-50 {
-  background-color: rgba(251, 191, 36, 0.08) !important;
-}
 :root[data-theme="dark"] .hover\:bg-brown-200:hover,
 :root[data-theme="dark"] .hover\:bg-brown-100:hover,
 :root[data-theme="dark"] .hover\:bg-brown-50:hover {
   background-color: var(--surface-bg) !important;
-}
-:root[data-theme="dark"] .hover\:text-brown-900:hover,
-:root[data-theme="dark"] .hover\:text-brown-800:hover {
-  color: var(--text-primary) !important;
-}
-:root[data-theme="dark"] .hover\:text-brown-700:hover {
-  color: var(--text-secondary) !important;
-}
-:root[data-theme="dark"] .divide-brown-200 > :not([hidden]) ~ :not([hidden]),
-:root[data-theme="dark"] .divide-brown-300 > :not([hidden]) ~ :not([hidden]) {
-  border-color: var(--card-border) !important;
 }
 :root[data-theme="dark"] .ring-brown-500 {
   --ring-color: #3d2d24 !important;
@@ -226,17 +128,11 @@
 :root[data-theme="dark"] .bg-brown-50\/60 {
   background-color: var(--surface-bg) !important;
 }
-:root[data-theme="dark"] .bg-brown-200\/60 {
-  background-color: var(--card-border) !important;
-}
 :root[data-theme="dark"] .border-brown-200\/60 {
   border-color: var(--card-border) !important;
 }
 :root[data-theme="dark"] .border-white {
   border-color: var(--card-bg) !important;
-}
-:root[data-theme="dark"] .decoration-brown-300 {
-  text-decoration-color: var(--card-border) !important;
 }
 :root[data-theme="dark"] .hover\:decoration-brown-500:hover {
   text-decoration-color: var(--text-faint) !important;

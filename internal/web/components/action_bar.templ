@@ -324,7 +324,7 @@ templ ReportModal(props ReportModalProps) {
 					`, props.ID, escapeForJS(props.SubjectURI), escapeForJS(props.SubjectCID)) }
 					class="space-y-4"
 				>
-					<p class="text-sm text-brown-700">
+					<p class="text-sm text-emphasis">
 						Please describe why you're reporting this content. Reports are reviewed by moderators.
 					</p>
 					<div>
@@ -338,7 +338,7 @@ templ ReportModal(props ReportModalProps) {
 							class="w-full form-textarea"
 							aria-label="Report reason"
 						></textarea>
-						<div class="flex justify-between text-xs text-brown-500 mt-1">
+						<div class="flex justify-between text-xs text-faint mt-1">
 							<span>Optional, but helpful for moderators</span>
 							<span x-text="charCount + '/500'"></span>
 						</div>
@@ -373,8 +373,8 @@ templ ReportModal(props ReportModalProps) {
 							<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
 						</svg>
 					</div>
-					<p class="font-medium text-brown-900">Report Submitted</p>
-					<p class="text-sm text-brown-600 mt-1">Thank you for helping keep our community safe.</p>
+					<p class="font-medium text-primary">Report Submitted</p>
+					<p class="text-sm text-muted mt-1">Thank you for helping keep our community safe.</p>
 				</div>
 			</template>
 		</div>

@@ -133,13 +133,13 @@ templ CreateAccountContent(props CreateAccountProps) {
 	<div class="page-container-md">
 		<div class="flex items-center gap-3 mb-8">
 			@components.BackButton()
-			<h1 class="text-4xl font-bold text-brown-900">Create an Atmosphere Account</h1>
+			<h1 class="text-4xl font-bold text-primary">Create an Atmosphere Account</h1>
 		</div>
-		<p class="text-brown-800 leading-relaxed mb-2">
+		<p class="text-secondary leading-relaxed mb-2">
 			An Atmosphere account is your passport to Arabica and the wider <a href="/atproto" class="link-bold">AT Protocol</a> ecosystem.
 			One account works across every compatible app — no more creating new logins.
 		</p>
-		<p class="text-sm text-brown-600 mb-6">
+		<p class="text-sm text-muted mb-6">
 			Choose a provider below. Your data is portable — you can move to a different provider at any time.
 		</p>
 		if props.Error != "" {
@@ -149,8 +149,8 @@ templ CreateAccountContent(props CreateAccountProps) {
 		}
 		for _, cat := range pdsCategories() {
 			<div class="mb-6">
-				<h2 class="text-sm font-medium text-brown-600 uppercase tracking-wider mb-3">{ cat.Title }</h2>
-				<p class="text-sm text-brown-500 mb-3">{ cat.Description }</p>
+				<h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-3">{ cat.Title }</h2>
+				<p class="text-sm text-faint mb-3">{ cat.Description }</p>
 				<div class="space-y-3">
 					for _, p := range cat.Providers {
 						@pdsCard(p)
@@ -159,10 +159,10 @@ templ CreateAccountContent(props CreateAccountProps) {
 			</div>
 		}
 		<!-- Self-hosted note -->
-		<div class="text-sm text-brown-500 mb-6">
-			<strong class="text-brown-700">Self-hosted:</strong> Technical users can <a href="https://atproto.com/guides/self-hosting" target="_blank" rel="noopener noreferrer" class="link">run their own provider</a> { "for" } full control over their data.
+		<div class="text-sm text-faint mb-6">
+			<strong class="text-emphasis">Self-hosted:</strong> Technical users can <a href="https://atproto.com/guides/self-hosting" target="_blank" rel="noopener noreferrer" class="link">run their own provider</a> { "for" } full control over their data.
 		</div>
-		<p class="text-sm text-brown-600 text-center">
+		<p class="text-sm text-muted text-center">
 			Already have an Atmosphere account?
 			<a href="/login" class="link-bold">Log in here</a>.
 		</p>
@@ -198,20 +198,20 @@ templ pdsCard(p PDSProvider) {
 }
 
 templ pdsCardInfo(p PDSProvider) {
-	<p class="flex items-baseline gap-2 text-lg font-semibold text-brown-900">
+	<p class="flex items-baseline gap-2 text-lg font-semibold text-primary">
 		{ p.Name }
 		<span class={ "relative -top-px inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", "bg-" + p.BadgeColor + "-100", "text-" + p.BadgeColor + "-800" }>
 			{ p.Badge }
 		</span>
 	</p>
-	<p class="text-sm text-brown-700">
+	<p class="text-sm text-emphasis">
 		{ p.Description }
 		if p.OperatorName != "" {
 			{ " hosted by " }
 			<a href={ templ.SafeURL(p.OperatorURL) } target="_blank" rel="noopener noreferrer" class="link-bold">{ p.OperatorName }</a>.
 		}
 	</p>
-	<p class="flex items-center gap-1 text-xs text-brown-500">
+	<p class="flex items-center gap-1 text-xs text-faint">
 		{ p.Domain } ·
 		@locationPin()
 		{ p.Location }

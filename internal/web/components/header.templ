@@ -41,7 +41,7 @@ templ HeaderWithProps(props HeaderProps) {
 				<!-- Logo - always visible -->
 				<a href="/" class="flex items-center gap-2 hover:opacity-80 transition">
 					<h1 class="text-2xl font-bold">☕ { props.brandName() }</h1>
-					<span class="text-[10px] bg-amber-400 text-brown-900 px-1.5 py-0.5 rounded-sm font-semibold">ALPHA</span>
+					<span class="badge-alpha">ALPHA</span>
 				</a>
 				<!-- Navigation links -->
 				<div class="flex items-center gap-4">
@@ -63,7 +63,7 @@ templ HeaderWithProps(props HeaderProps) {
 								<path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"></path>
 							</svg>
 							if props.UnreadNotificationCount > 0 {
-								<span class="absolute -top-1 -right-1 bg-amber-400 text-brown-900 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-xs">
+								<span class="absolute -top-1 -right-1 bg-amber-400 text-primary text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-xs">
 									{ formatNotificationCount(props.UnreadNotificationCount) }
 								</span>
 							}
@@ -77,7 +77,7 @@ templ HeaderWithProps(props HeaderProps) {
 							</button>
 							<div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="dropdown-menu w-52" role="menu">
 								<div class="dropdown-header">
-									<p class="text-xs font-semibold uppercase tracking-wider text-brown-500">Log</p>
+									<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
 								</div>
 								<a href="/brews/new" class="dropdown-item flex items-center gap-2" @click="open = false" role="menuitem">
 									@IconCoffee()
@@ -93,7 +93,7 @@ templ HeaderWithProps(props HeaderProps) {
 								// 	@IconDroplet() Log Drink
 								// </button>
 								<div class="dropdown-divider">
-									<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-brown-500">Add</p>
+									<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
 								</div>
 								<button
 									class="dropdown-item flex items-center gap-2 w-full text-left"
@@ -177,14 +177,14 @@ templ HeaderWithProps(props HeaderProps) {
 							<div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="dropdown-menu" role="menu">
 								if props.UserProfile != nil && props.UserProfile.Handle != "" {
 									<div class="dropdown-header">
-										<p class="text-sm font-medium text-brown-900 truncate">
+										<p class="text-sm font-medium text-primary truncate">
 											if props.UserProfile.DisplayName != "" {
 												{ props.UserProfile.DisplayName }
 											} else {
 												{ atp.DisplayHandle(props.UserProfile.Handle) }
 											}
 										</p>
-										<p class="text-xs text-brown-500 truncate">{ "@" + atp.DisplayHandle(props.UserProfile.Handle) }</p>
+										<p class="text-xs text-faint truncate">{ "@" + atp.DisplayHandle(props.UserProfile.Handle) }</p>
 									</div>
 								}
 								<a href={ templ.SafeURL("/profile/" + getProfileIdentifier(props.UserProfile, props.UserDID)) } class="dropdown-item" role="menuitem">
@@ -210,7 +210,7 @@ templ HeaderWithProps(props HeaderProps) {
 								}
 								<div class="dropdown-divider">
 									<form action="/logout" method="POST" @submit="if(window.ArabicaCache)window.ArabicaCache.invalidateCache()">
-										<button type="submit" class="w-full text-left px-4 py-2 text-sm text-brown-700 hover:bg-brown-50 transition-colors" role="menuitem">
+										<button type="submit" class="w-full text-left px-4 py-2 text-sm text-emphasis hover:bg-brown-50 transition-colors" role="menuitem">
 											Logout
 										</button>
 									</form>
@@ -236,7 +236,7 @@ templ LoginModal() {
 				<button
 					type="button"
 					@click="$el.closest('dialog').close()"
-					class="text-brown-400 hover:text-brown-600 transition-colors"
+					class="text-placeholder hover:text-muted transition-colors"
 					aria-label="Close"
 				>
 					@IconX()
@@ -244,7 +244,7 @@ templ LoginModal() {
 			</div>
 			<form method="POST" action="/auth/login" class="space-y-4">
 				<div class="relative">
-					<label { "for" }="login-handle" class="block text-sm font-medium text-brown-900 mb-2">Handle</label>
+					<label { "for" }="login-handle" class="block text-sm font-medium text-primary mb-2">Handle</label>
 					<input
 						type="text"
 						id="login-handle"
@@ -263,14 +263,14 @@ templ LoginModal() {
 					Log In
 				</button>
 			</form>
-			<div class="mt-4 text-sm text-brown-600 text-center">
-				<a href="/join/create" class="font-medium text-brown-800 hover:text-brown-900 transition-colors hover:underline">Create an account</a>
-				<span class="mx-1.5 text-brown-400">&middot;</span>
-				<a href="/about" class="text-brown-600 hover:text-brown-800 transition-colors hover:underline">Learn more</a>
+			<div class="mt-4 text-sm text-muted text-center">
+				<a href="/join/create" class="font-medium text-secondary hover:text-primary transition-colors hover:underline">Create an account</a>
+				<span class="mx-1.5 text-placeholder">&middot;</span>
+				<a href="/about" class="text-muted hover:text-secondary transition-colors hover:underline">Learn more</a>
 			</div>
 			<details class="mt-4">
-				<summary class="text-brown-500 text-sm cursor-pointer hover:text-brown-700 transition-colors">What's an Atmosphere account?</summary>
-				<p class="text-brown-600 mt-2 text-sm leading-relaxed">
+				<summary class="text-faint text-sm cursor-pointer hover:text-emphasis transition-colors">What's an Atmosphere account?</summary>
+				<p class="text-muted mt-2 text-sm leading-relaxed">
 					One account { "for" } the entire <a href="/atproto" class="link">AT Protocol</a> ecosystem. Sign up once and use it across Arabica, <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a>, <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a>, and more. Your data is portable — you own it.
 				</p>
 			</details>

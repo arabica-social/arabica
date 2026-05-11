@@ -48,10 +48,10 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 								>
 									<span class="font-medium" x-text="s.name"></span>
 									<template x-if="s.fields.origin">
-										<span class="text-xs text-brown-500" x-text="s.fields.origin"></span>
+										<span class="text-xs text-faint" x-text="s.fields.origin"></span>
 									</template>
 									<template x-if="s.count > 1">
-										<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+										<span class="text-xs text-placeholder" x-text="s.count + ' users'"></span>
 									</template>
 								</button>
 							</template>
@@ -109,7 +109,7 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 					type="button"
 					x-show="(selectedRKey || newRoasterName) && !showDetails"
 					@click="clear()"
-					class="absolute right-2 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600 text-sm"
+					class="absolute right-2 top-1/2 -translate-y-1/2 text-placeholder hover:text-muted text-sm"
 					x-cloak
 				>
 					&times;
@@ -134,7 +134,7 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 				</div>
 				<!-- Inline details for new roaster -->
 				<div x-show="showDetails" x-transition x-cloak class="p-3 rounded-lg space-y-2" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
-					<p class="text-sm font-medium text-brown-900">
+					<p class="text-sm font-medium text-primary">
 						New roaster: <span x-text="newRoasterName" class="font-semibold"></span>
 					</p>
 					<input
@@ -152,7 +152,7 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 					<button
 						type="button"
 						@click="cancelCreate()"
-						class="text-xs text-brown-500 hover:text-brown-700"
+						class="text-xs text-faint hover:text-emphasis"
 					>
 						Cancel
 					</button>
@@ -197,7 +197,7 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 					<button
 						type="button"
 						@click="showRating = true; if (rating === 0) rating = 5"
-						class="text-sm font-medium text-brown-700 hover:text-brown-900 flex items-center gap-1"
+						class="text-sm font-medium text-emphasis hover:text-primary flex items-center gap-1"
 					>
 						@IconStar()
 						Add Rating
@@ -209,7 +209,7 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 						<button
 							type="button"
 							@click="showRating = false; rating = 0"
-							class="text-xs text-brown-500 hover:text-brown-700"
+							class="text-xs text-faint hover:text-emphasis"
 						>
 							Remove rating
 						</button>
@@ -221,7 +221,7 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 						x-model.number="rating"
 						class="w-full accent-brown-700"
 					/>
-					<div class="text-center text-2xl font-bold text-brown-800">
+					<div class="text-center text-2xl font-bold text-secondary">
 						<span x-text="rating"></span>/10
 					</div>
 					<input type="hidden" name="rating" :value="showRating ? rating : ''"/>
@@ -240,9 +240,9 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 					if bean != nil && bean.Closed {
 						checked
 					}
-					class="rounded-sm border-brown-300 text-brown-700 focus:ring-brown-500"
+					class="rounded-sm border-brown-300 text-emphasis focus:ring-brown-500"
 				/>
-				<label for="bean-closed-checkbox-modal" class="text-sm text-brown-900">
+				<label for="bean-closed-checkbox-modal" class="text-sm text-primary">
 					Bag is closed/finished
 				</label>
 			</div>
@@ -284,10 +284,10 @@ templ GrinderDialogModal(grinder *arabica.Grinder) {
 								>
 									<span class="font-medium" x-text="s.name"></span>
 									<template x-if="s.fields.grinderType">
-										<span class="text-xs text-brown-500" x-text="s.fields.grinderType"></span>
+										<span class="text-xs text-faint" x-text="s.fields.grinderType"></span>
 									</template>
 									<template x-if="s.count > 1">
-										<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+										<span class="text-xs text-placeholder" x-text="s.count + ' users'"></span>
 									</template>
 								</button>
 							</template>
@@ -386,10 +386,10 @@ templ BrewerDialogModal(brewer *arabica.Brewer) {
 								>
 									<span class="font-medium" x-text="s.name"></span>
 									<template x-if="s.fields.brewerType">
-										<span class="text-xs text-brown-500" x-text="s.fields.brewerType"></span>
+										<span class="text-xs text-faint" x-text="s.fields.brewerType"></span>
 									</template>
 									<template x-if="s.count > 1">
-										<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+										<span class="text-xs text-placeholder" x-text="s.count + ' users'"></span>
 									</template>
 								</button>
 							</template>
@@ -503,10 +503,10 @@ templ RoasterDialogModal(roaster *arabica.Roaster) {
 								>
 									<span class="font-medium" x-text="s.name"></span>
 									<template x-if="s.fields.location">
-										<span class="text-xs text-brown-500" x-text="s.fields.location"></span>
+										<span class="text-xs text-faint" x-text="s.fields.location"></span>
 									</template>
 									<template x-if="s.count > 1">
-										<span class="text-xs text-brown-400" x-text="s.count + ' users'"></span>
+										<span class="text-xs text-placeholder" x-text="s.count + ' users'"></span>
 									</template>
 								</button>
 							</template>
@@ -640,7 +640,7 @@ templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 				<template x-for="(pour, index) in pours" :key="index">
 					<div class="flex gap-2 items-center p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
 						<div class="flex-1">
-							<label class="text-xs text-brown-700 font-medium" x-text="'Pour ' + (index + 1)"></label>
+							<label class="text-xs text-emphasis font-medium" x-text="'Pour ' + (index + 1)"></label>
 							<input
 								type="number"
 								:name="'pour_water_' + index"
@@ -650,7 +650,7 @@ templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 							/>
 						</div>
 						<div class="flex-1">
-							<label class="text-xs text-brown-700 font-medium">Time (sec)</label>
+							<label class="text-xs text-emphasis font-medium">Time (sec)</label>
 							<input
 								type="number"
 								:name="'pour_time_' + index"
@@ -662,7 +662,7 @@ templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 						<button
 							type="button"
 							@click="removePour(index)"
-							class="text-brown-700 hover:text-brown-900 mt-5 font-bold"
+							class="text-emphasis hover:text-primary mt-5 font-bold"
 						>
 							@IconX()
 						</button>
