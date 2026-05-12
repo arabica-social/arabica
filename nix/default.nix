@@ -2,7 +2,6 @@
   lib,
   buildGoModule,
   templ,
-  tailwindcss_4,
   appName ? "arabica",
 }:
 
@@ -14,11 +13,9 @@ buildGoModule {
 
   nativeBuildInputs = [
     templ
-    tailwindcss_4
   ];
 
   preBuild = ''
-    tailwindcss -i static/css/app.css -o static/css/output.css --minify
     templ generate
   '';
 

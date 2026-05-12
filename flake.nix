@@ -31,13 +31,6 @@
           type = "app";
           program = "${self.packages.${system}.oolong}/bin/oolong";
         };
-        tailwind = {
-          type = "app";
-          program = toString (pkgs.writeShellScript "tailwind-build" ''
-            cd ${./.}
-            cat static/css/tokens.css static/css/reset.css static/css/utilities.css static/css/components.css > static/css/output.css
-          '');
-        };
         monitoring = import ./nix/monitoring.nix { inherit pkgs; };
       });
 
