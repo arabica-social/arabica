@@ -430,6 +430,11 @@ func (h *Handler) HandleOolongBrewCreate(w http.ResponseWriter, r *http.Request)
 	}
 	b.RKey = rkey
 	h.invalidateFeedCache()
+	if redirect := r.FormValue("__redirect"); redirect != "" {
+		w.Header().Set("HX-Redirect", redirect)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	writeJSON(w, b, "brew")
 }
 
@@ -464,6 +469,11 @@ func (h *Handler) HandleOolongBrewUpdate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	h.invalidateFeedCache()
+	if redirect := r.FormValue("__redirect"); redirect != "" {
+		w.Header().Set("HX-Redirect", redirect)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	writeJSON(w, b, "brew")
 }
 

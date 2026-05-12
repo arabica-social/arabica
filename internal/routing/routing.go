@@ -145,6 +145,8 @@ func SetupRouter(cfg Config) http.Handler {
 	// explicit handler.
 	if cfg.App.Name == "oolong" {
 		mux.HandleFunc("GET /my-tea", h.HandleMyTea)
+		mux.HandleFunc("GET /brews/new", h.HandleOolongSteepNew)
+		mux.HandleFunc("GET /brews/{id}/edit", h.HandleOolongSteepEdit)
 	}
 
 	// Per-entity routes for the simple entities. Driven by the route

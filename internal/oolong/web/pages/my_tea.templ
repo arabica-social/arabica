@@ -38,13 +38,13 @@ templ MyTeaContent(props MyTeaProps) {
 		@MyTeaTabs()
 		<div id="modal-container"></div>
 		<div x-show="tab === 'steeps'">
-			@myTeaSectionHeader("Steeps", "brew", "/api/modals/brew/new", len(props.Brews))
+			@mySteepSectionHeader(len(props.Brews))
 			if len(props.Brews) == 0 {
 				@myTeaEmpty("steeps")
 			} else {
 				<div class="feed-grid">
 					for _, b := range props.Brews {
-						@myTeaCard("brew", b.RKey, "/brews/"+b.RKey) {
+						@mySteepCard(b.RKey) {
 							@tea.BrewContent(b)
 						}
 					}
@@ -208,6 +208,53 @@ templ myTeaCard(noun, rkey, viewURL string) {
 			</button>
 		</div>
 		<a href={ templ.SafeURL(viewURL) } class="block hover:opacity-95 transition-opacity">
+			{ children... }
+		</a>
+	</div>
+}
+
+// mySteepSectionHeader is the variant of myTeaSectionHeader for steeps —
+// the "+ New" button navigates to /brews/new instead of opening a modal,
+// because the steep form is a full page.
+templ mySteepSectionHeader(count int) {
+	<div class="flex items-center justify-between mb-4">
+		<div class="flex items-baseline gap-2">
+			<span class="text-sm text-muted">{ fmt.Sprintf("%d Steeps", count) }</span>
+		</div>
+		<a
+			href="/brews/new"
+			class="btn-primary text-sm shadow-lg hover:shadow-xl"
+		>
+			+ New Steep
+		</a>
+	</div>
+}
+
+// mySteepCard mirrors myTeaCard but with an Edit anchor pointing at the
+// full-page edit form instead of an HTMX modal trigger.
+templ mySteepCard(rkey string) {
+	<div class="feed-card relative group">
+		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+			<a
+				href={ templ.SafeURL("/brews/" + rkey + "/edit") }
+				class="bg-brown-100 hover:bg-brown-200 text-emphasis text-xs px-2 py-1 rounded shadow-sm"
+				aria-label="Edit steep"
+			>
+				Edit
+			</a>
+			<button
+				type="button"
+				class="bg-brown-100 hover:bg-red-100 text-emphasis hover:text-red-700 text-xs px-2 py-1 rounded shadow-sm"
+				hx-delete={ "/api/brews/" + rkey }
+				hx-confirm="Delete this steep?"
+				hx-target="closest .feed-card"
+				hx-swap="outerHTML swap:300ms"
+				aria-label="Delete steep"
+			>
+				Delete
+			</button>
+		</div>
+		<a href={ templ.SafeURL("/brews/" + rkey) } class="block hover:opacity-95 transition-opacity">
 			{ children... }
 		</a>
 	</div>

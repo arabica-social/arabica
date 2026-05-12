@@ -395,15 +395,12 @@ templ welcomeAuthenticatedOolong(userDID string) {
 	<div class="text-center mb-8 pt-4">
 		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">Your tea journey, documented.</h1>
 		<div class="grid grid-cols-3 gap-3 max-w-xl mx-auto">
-			<button
-				type="button"
+			<a
+				href="/brews/new"
 				class="home-action-primary block text-center py-4 px-4 rounded-xl"
-				hx-get="/api/modals/brew/new"
-				hx-target="#modal-container"
-				hx-swap="innerHTML"
 			>
 				<span class="text-base font-semibold">Log Steep</span>
-			</button>
+			</a>
 			<a href="/my-tea" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">My Tea</span>
 			</a>

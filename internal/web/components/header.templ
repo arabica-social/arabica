@@ -288,10 +288,10 @@ templ oolongCreateDropdownItems() {
 	<div class="dropdown-header">
 		<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
 	</div>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/brew/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<a href="/brews/new" class="dropdown-item w-full text-left" @click="open = false" role="menuitem">
 		@IconDroplet()
 		New Steep
-	</button>
+	</a>
 	<button class="dropdown-item w-full text-left" hx-get="/api/modals/drink/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
 		@IconCoffee()
 		Log Drink

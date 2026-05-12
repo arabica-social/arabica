@@ -72,6 +72,59 @@ func listOolong[T any](
 	return out
 }
 
+// HandleOolongSteepNew renders the new-steep page (oolong brew create form).
+// Mirrors arabica's /brews/new, but for tea: full page form instead of
+// modal so the form can grow without crowding a dialog.
+func (h *Handler) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) {
+	store, ok := h.requireOolongStore(w, r)
+	if !ok {
+		return
+	}
+	props := teapages.SteepFormProps{
+		Brew:    nil,
+		Teas:    listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Brewers: listOolong(r.Context(), store, oolong.NSIDBrewer, oolong.RecordToBrewer),
+		Recipes: listOolong(r.Context(), store, oolong.NSIDRecipe, oolong.RecordToRecipe),
+	}
+	layoutData, _, _ := h.layoutDataFromRequest(r, "New Steep")
+	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render new-steep page")
+	}
+}
+
+// HandleOolongSteepEdit renders the edit-steep page for an existing brew.
+func (h *Handler) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) {
+	store, ok := h.requireOolongStore(w, r)
+	if !ok {
+		return
+	}
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDBrew, rkey)
+	if err != nil {
+		http.Error(w, "Brew not found", http.StatusNotFound)
+		return
+	}
+	b, err := oolong.RecordToBrew(rec, uri)
+	if err != nil {
+		http.Error(w, "Failed to decode brew", http.StatusInternalServerError)
+		return
+	}
+	b.RKey = rkey
+	props := teapages.SteepFormProps{
+		Brew:    b,
+		Teas:    listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Brewers: listOolong(r.Context(), store, oolong.NSIDBrewer, oolong.RecordToBrewer),
+		Recipes: listOolong(r.Context(), store, oolong.NSIDRecipe, oolong.RecordToRecipe),
+	}
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Steep")
+	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render edit-steep page")
+	}
+}
+
 // HandleOolongProfile renders /profile/{actor} for the oolong app.
 // Intentionally smaller surface than arabica's HandleProfile: it
 // resolves the actor → DID, fetches their public profile + oolong

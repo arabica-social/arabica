@@ -1,0 +1,373 @@
+package teapages
+
+import (
+	"fmt"
+	"strconv"
+
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// SteepFormProps holds the data needed to render the steep (oolong brew)
+// create/edit page. Brew is nil for new. Teas/Brewers/Recipes populate
+// the reference selects.
+type SteepFormProps struct {
+	Brew    *oolong.Brew
+	Teas    []*oolong.Tea
+	Brewers []*oolong.Brewer
+	Recipes []*oolong.Recipe
+}
+
+// SteepFormPage renders the full steep form page with layout.
+templ SteepFormPage(layout *components.LayoutData, props SteepFormProps) {
+	@components.Layout(layout, SteepFormContent(props))
+}
+
+templ SteepFormContent(props SteepFormProps) {
+	<div class="page-container-sm">
+		@components.Card(
+			components.CardProps{InnerCard: true},
+			SteepFormCard(props),
+		)
+	</div>
+}
+
+templ SteepFormCard(props SteepFormProps) {
+	<div class="flex items-center gap-3 mb-6">
+		@components.BackButton()
+		<h2 class="text-2xl font-semibold text-primary">
+			if props.Brew != nil {
+				Edit Steep
+			} else {
+				New Steep
+			}
+		</h2>
+	</div>
+	@SteepFormElement(props)
+}
+
+templ SteepFormElement(props SteepFormProps) {
+	<form
+		if props.Brew != nil {
+			hx-put={ "/api/brews/" + props.Brew.RKey }
+		} else {
+			hx-post="/api/brews"
+		}
+		hx-swap="none"
+		x-data="{ serverError: '' }"
+		hx-on::after-request="if(event.detail.successful) { /* HX-Redirect handled by browser */ } else if(event.detail.xhr && event.detail.xhr.status === 401) { window.__showSessionExpiredModal && window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? (event.detail.xhr.responseText || 'Something went wrong. Please try again.') : 'Connection error. Check your network.'; }"
+		class="space-y-6"
+	>
+		<input type="hidden" name="__redirect" value="/my-tea"/>
+		<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
+		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<legend class="text-sm font-semibold text-secondary px-2">Essentials</legend>
+			@TeaSelectField(props)
+			@StyleSelectField(props)
+		</fieldset>
+		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<legend class="text-sm font-semibold text-secondary px-2">References <span class="form-optional-hint font-normal">(optional)</span></legend>
+			@BrewerSelectField(props)
+			@RecipeSelectField(props)
+		</fieldset>
+		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<legend class="text-sm font-semibold text-secondary px-2">Parameters</legend>
+			@LeafGramsField(props)
+			@VesselMlField(props)
+			@TemperatureField(props)
+			@TimeSecondsField(props)
+		</fieldset>
+		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<legend class="text-sm font-semibold text-secondary px-2">Tasting</legend>
+			@TastingNotesField(props)
+			@RatingField(props)
+		</fieldset>
+		@SubmitButton(props)
+	</form>
+}
+
+templ TeaSelectField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Tea", Required: true},
+		components.Select(components.SelectProps{
+			Name:        "tea_rkey",
+			Placeholder: "Select a tea…",
+			Required:    true,
+			Class:       "w-full form-input-lg",
+			Options:     teaOptions(props),
+		}),
+	)
+}
+
+func teaOptions(props SteepFormProps) []components.SelectOption {
+	selected := ""
+	if props.Brew != nil {
+		selected = props.Brew.TeaRKey
+	}
+	opts := make([]components.SelectOption, 0, len(props.Teas))
+	for _, t := range props.Teas {
+		opts = append(opts, components.SelectOption{
+			Value:    t.RKey,
+			Label:    teaLabel(t),
+			Selected: t.RKey == selected,
+		})
+	}
+	return opts
+}
+
+func teaLabel(t *oolong.Tea) string {
+	if t == nil {
+		return ""
+	}
+	if t.Name != "" {
+		return t.Name
+	}
+	return t.RKey
+}
+
+templ StyleSelectField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Style", Required: true},
+		components.Select(components.SelectProps{
+			Name:        "style",
+			Placeholder: "Select a style…",
+			Required:    true,
+			Class:       "w-full form-input-lg",
+			Options:     styleOptions(props),
+		}),
+	)
+}
+
+func styleOptions(props SteepFormProps) []components.SelectOption {
+	selected := ""
+	if props.Brew != nil {
+		selected = props.Brew.Style
+	}
+	opts := make([]components.SelectOption, 0, len(oolong.StyleKnownValues))
+	for _, s := range oolong.StyleKnownValues {
+		label := oolong.StyleLabels[s]
+		if label == "" {
+			label = s
+		}
+		opts = append(opts, components.SelectOption{
+			Value:    s,
+			Label:    label,
+			Selected: s == selected,
+		})
+	}
+	return opts
+}
+
+templ BrewerSelectField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Brewer"},
+		components.Select(components.SelectProps{
+			Name:        "brewer_rkey",
+			Placeholder: "No brewer",
+			Class:       "w-full form-input-lg",
+			Options:     brewerOptions(props),
+		}),
+	)
+}
+
+func brewerOptions(props SteepFormProps) []components.SelectOption {
+	selected := ""
+	if props.Brew != nil {
+		selected = props.Brew.BrewerRKey
+	}
+	opts := make([]components.SelectOption, 0, len(props.Brewers))
+	for _, b := range props.Brewers {
+		opts = append(opts, components.SelectOption{
+			Value:    b.RKey,
+			Label:    brewerLabelTea(b),
+			Selected: b.RKey == selected,
+		})
+	}
+	return opts
+}
+
+func brewerLabelTea(b *oolong.Brewer) string {
+	if b == nil {
+		return ""
+	}
+	if b.Name != "" {
+		return b.Name
+	}
+	return b.RKey
+}
+
+templ RecipeSelectField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Recipe"},
+		components.Select(components.SelectProps{
+			Name:        "recipe_rkey",
+			Placeholder: "No recipe",
+			Class:       "w-full form-input-lg",
+			Options:     recipeOptions(props),
+		}),
+	)
+}
+
+func recipeOptions(props SteepFormProps) []components.SelectOption {
+	selected := ""
+	if props.Brew != nil {
+		selected = props.Brew.RecipeRKey
+	}
+	opts := make([]components.SelectOption, 0, len(props.Recipes))
+	for _, r := range props.Recipes {
+		opts = append(opts, components.SelectOption{
+			Value:    r.RKey,
+			Label:    recipeLabelTea(r),
+			Selected: r.RKey == selected,
+		})
+	}
+	return opts
+}
+
+func recipeLabelTea(r *oolong.Recipe) string {
+	if r == nil {
+		return ""
+	}
+	if r.Name != "" {
+		return r.Name
+	}
+	return r.RKey
+}
+
+templ LeafGramsField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Leaf (g)"},
+		components.NumberInput(components.NumberInputProps{
+			Name:        "leaf_grams",
+			Value:       leafGramsValue(props),
+			Placeholder: "e.g. 5.0",
+			Step:        "0.1",
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+func leafGramsValue(props SteepFormProps) string {
+	if props.Brew != nil && props.Brew.LeafGrams > 0 {
+		return strconv.FormatFloat(props.Brew.LeafGrams, 'f', -1, 64)
+	}
+	return ""
+}
+
+templ VesselMlField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Vessel (ml)"},
+		components.NumberInput(components.NumberInputProps{
+			Name:        "vessel_ml",
+			Value:       vesselMlValue(props),
+			Placeholder: "e.g. 120",
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+func vesselMlValue(props SteepFormProps) string {
+	if props.Brew != nil && props.Brew.VesselMl > 0 {
+		return strconv.Itoa(props.Brew.VesselMl)
+	}
+	return ""
+}
+
+templ TemperatureField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Temperature (°C)"},
+		components.NumberInput(components.NumberInputProps{
+			Name:        "temperature",
+			Value:       temperatureValue(props),
+			Placeholder: "e.g. 95",
+			Step:        "0.1",
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+func temperatureValue(props SteepFormProps) string {
+	if props.Brew != nil && props.Brew.Temperature > 0 {
+		return strconv.FormatFloat(props.Brew.Temperature, 'f', -1, 64)
+	}
+	return ""
+}
+
+templ TimeSecondsField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Time (seconds)"},
+		components.NumberInput(components.NumberInputProps{
+			Name:        "time_seconds",
+			Value:       timeSecondsValue(props),
+			Placeholder: "e.g. 30",
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+func timeSecondsValue(props SteepFormProps) string {
+	if props.Brew != nil && props.Brew.TimeSeconds > 0 {
+		return strconv.Itoa(props.Brew.TimeSeconds)
+	}
+	return ""
+}
+
+templ TastingNotesField(props SteepFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Tasting Notes"},
+		components.TextArea(components.TextAreaProps{
+			Name:        "tasting_notes",
+			Value:       tastingNotesValue(props),
+			Placeholder: "Describe the flavors, aroma, and your thoughts…",
+			Rows:        4,
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+func tastingNotesValue(props SteepFormProps) string {
+	if props.Brew != nil {
+		return props.Brew.TastingNotes
+	}
+	return ""
+}
+
+templ RatingField(props SteepFormProps) {
+	<div x-data={ fmt.Sprintf("{ rating: %s }", ratingInitial(props)) }>
+		<label class="form-label">Rating</label>
+		<input
+			type="range"
+			name="rating"
+			min="1"
+			max="10"
+			value={ ratingInitial(props) }
+			x-model="rating"
+			class="w-full accent-brown-700"
+		/>
+		<div class="text-center text-2xl font-bold text-secondary">
+			<span x-text="rating"></span>/10
+		</div>
+	</div>
+}
+
+func ratingInitial(props SteepFormProps) string {
+	if props.Brew != nil && props.Brew.Rating > 0 {
+		return strconv.Itoa(props.Brew.Rating)
+	}
+	return "5"
+}
+
+templ SubmitButton(props SteepFormProps) {
+	<div>
+		<button
+			type="submit"
+			class="w-full btn-primary py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl"
+		>
+			if props.Brew != nil {
+				Update Steep
+			} else {
+				Save Steep
+			}
+		</button>
+	</div>
+}
