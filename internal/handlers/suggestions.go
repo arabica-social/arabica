@@ -1,16 +1,42 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/suggestions"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
+
+// suggestionSource adapts *firehose.FeedIndex to suggestions.RecordSource.
+// The suggestions package defines its own IndexedRecord type so it can
+// stay free of the firehose dependency (which in turn imports the
+// arabica entity package and would create a cycle).
+type suggestionSource struct {
+	idx *firehose.FeedIndex
+}
+
+func (s suggestionSource) ListRecordsByCollectionOldest(ctx context.Context, collection string) ([]suggestions.IndexedRecord, error) {
+	raw, err := s.idx.ListRecordsByCollectionOldest(ctx, collection)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]suggestions.IndexedRecord, len(raw))
+	for i, r := range raw {
+		out[i] = suggestions.IndexedRecord{URI: r.URI, DID: r.DID, Record: r.Record}
+	}
+	return out, nil
+}
+
+func (s suggestionSource) CountReferencesToURI(ctx context.Context, uri string) (int, error) {
+	return s.idx.CountReferencesToURI(ctx, uri)
+}
 
 // entityTypeToNSID maps URL path segments to collection NSIDs.
 // Built from the descriptor registry so new entities appear automatically.
@@ -84,7 +110,7 @@ func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request
 	// community records, not their own data echoed back.
 	excludeDID, _ := atpmiddleware.GetDID(r.Context())
 
-	results, err := suggestions.Search(r.Context(), h.feedIndex, nsid, query, limit, excludeDID)
+	results, err := suggestions.Search(r.Context(), suggestionSource{idx: h.feedIndex}, nsid, query, limit, excludeDID)
 	if err != nil {
 		log.Error().Err(err).Str("entity", entityType).Str("query", query).Msg("Failed to search suggestions")
 		http.Error(w, "Failed to search suggestions", http.StatusInternalServerError)

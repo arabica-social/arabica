@@ -6,10 +6,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
-	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	"tangled.org/arabica.social/arabica/internal/firehose"
 )
 
 // EntitySuggestion represents a suggestion for auto-completing an entity
@@ -20,9 +16,19 @@ type EntitySuggestion struct {
 	Count     int               `json:"count"`
 }
 
+// IndexedRecord is the projection of a stored record that the
+// suggestion engine cares about. Defined here (rather than imported
+// from firehose) so the suggestions package stays free of
+// app-specific transitive imports.
+type IndexedRecord struct {
+	URI    string
+	DID    string
+	Record []byte
+}
+
 // RecordSource provides read access to indexed records.
 type RecordSource interface {
-	ListRecordsByCollectionOldest(ctx context.Context, collection string) ([]firehose.IndexedRecord, error)
+	ListRecordsByCollectionOldest(ctx context.Context, collection string) ([]IndexedRecord, error)
 	CountReferencesToURI(ctx context.Context, uri string) (int, error)
 }
 
@@ -31,196 +37,43 @@ type RecordSource interface {
 // preferred DIDs get a scoring bonus during deduplication.
 var PreferredDIDs = map[string]struct{}{}
 
-// entityFieldConfig defines which fields to extract and search for each entity type
-type entityFieldConfig struct {
-	allFields    []string
-	searchFields []string
-	nameField    string
-	dedupKey     func(fields map[string]string) string
+// FieldConfig declares which fields to extract from a record, which
+// of those participate in the typeahead search, and how to dedupe
+// merged candidates. Apps populate this via Register at init() time
+// — the suggestions package itself doesn't import any app's entity
+// schema, so each binary only carries the configs its own app needs.
+//
+// Prepare and Enrich form an optional hook for joining cross-collection
+// data into the result (e.g. arabica's bean config resolves the bean's
+// roasterRef AT-URI to a roaster name). Prepare runs once per Search
+// and returns an opaque value passed to Enrich for each record.
+type FieldConfig struct {
+	AllFields    []string
+	SearchFields []string
+	NameField    string
+	DedupKey     func(fields map[string]string) string
+	Prepare      func(ctx context.Context, source RecordSource) any
+	Enrich       func(prepared any, record map[string]any, fields map[string]string)
 }
 
-var entityConfigs = map[string]entityFieldConfig{
-	arabica.NSIDRoaster: {
-		allFields:    []string{"name", "location", "website"},
-		searchFields: []string{"name", "location", "website"},
-		nameField:    "name",
-		dedupKey:     roasterDedupKey,
-	},
-	arabica.NSIDGrinder: {
-		allFields:    []string{"name", "grinderType", "burrType"},
-		searchFields: []string{"name", "grinderType", "burrType"},
-		nameField:    "name",
-		dedupKey:     grinderDedupKey,
-	},
-	arabica.NSIDBrewer: {
-		allFields:    []string{"name", "brewerType", "description"},
-		searchFields: []string{"name", "brewerType"},
-		nameField:    "name",
-		dedupKey:     brewerDedupKey,
-	},
-	arabica.NSIDBean: {
-		allFields:    []string{"name", "origin", "roastLevel", "process"},
-		searchFields: []string{"name", "origin", "roastLevel"},
-		nameField:    "name",
-		dedupKey:     beanDedupKey,
-	},
-	arabica.NSIDRecipe: {
-		allFields:    []string{"name", "brewerType"},
-		searchFields: []string{"name", "brewerType"},
-		nameField:    "name",
-		dedupKey:     recipeDedupKey,
-	},
-	oolong.NSIDTea: {
-		allFields:    []string{"name", "category", "subStyle", "origin", "cultivar"},
-		searchFields: []string{"name", "category", "origin", "cultivar"},
-		nameField:    "name",
-		dedupKey:     teaDedupKey,
-	},
-	oolong.NSIDBrewer: {
-		allFields:    []string{"name", "style", "material"},
-		searchFields: []string{"name", "style"},
-		nameField:    "name",
-		dedupKey:     teaBrewerDedupKey,
-	},
-	oolong.NSIDRecipe: {
-		allFields:    []string{"name", "style"},
-		searchFields: []string{"name", "style"},
-		nameField:    "name",
-		dedupKey:     teaRecipeDedupKey,
-	},
-	oolong.NSIDVendor: {
-		allFields:    []string{"name", "location", "website"},
-		searchFields: []string{"name", "location"},
-		nameField:    "name",
-		dedupKey:     vendorDedupKey,
-	},
-	oolong.NSIDCafe: {
-		allFields:    []string{"name", "location", "website"},
-		searchFields: []string{"name", "location"},
-		nameField:    "name",
-		dedupKey:     teaCafeDedupKey,
-	},
-}
+var entityConfigs = map[string]FieldConfig{}
 
-// --- Dedup key functions ---
-// Each returns a string that groups "same entity" records together.
-// Records with the same dedup key are merged; different keys stay separate.
-
-// roasterDedupKey: fuzzy name + normalized location.
-// "Counter Culture Coffee" in "Durham, NC" vs "Counter Culture" in "Durham" → same.
-// "Stumptown" in "Portland" vs "Stumptown" in "NYC" → different.
-// Website is not included because it's too sparse — many records lack one,
-// causing false splits. Website is still kept in Fields for display.
-func roasterDedupKey(fields map[string]string) string {
-	parts := []string{fuzzyName(fields["name"])}
-	if loc := normalize(fields["location"]); loc != "" {
-		parts = append(parts, loc)
-	}
-	return strings.Join(parts, "|")
-}
-
-// grinderDedupKey: exact name + grinder type + burr type.
-// "1Zpresso JX Pro" hand/conical vs "1Zpresso JX Pro" electric/flat → different.
-func grinderDedupKey(fields map[string]string) string {
-	parts := []string{normalize(fields["name"])}
-	if gt := normalize(fields["grinderType"]); gt != "" {
-		parts = append(parts, gt)
-	}
-	if bt := normalize(fields["burrType"]); bt != "" {
-		parts = append(parts, bt)
-	}
-	return strings.Join(parts, "|")
-}
-
-// brewerDedupKey: exact name + brewer type.
-// "Hario V60" pour-over vs "Hario V60" dripper → different (if someone miscategorized).
-func brewerDedupKey(fields map[string]string) string {
-	parts := []string{normalize(fields["name"])}
-	if bt := normalize(fields["brewerType"]); bt != "" {
-		parts = append(parts, bt)
-	}
-	return strings.Join(parts, "|")
-}
-
-// beanDedupKey: exact name + origin + process.
-// "Yirgacheffe" from Ethiopia/washed vs "Yirgacheffe" from Ethiopia/natural → different.
-func beanDedupKey(fields map[string]string) string {
-	parts := []string{normalize(fields["name"])}
-	if o := normalize(fields["origin"]); o != "" {
-		parts = append(parts, o)
-	}
-	if p := normalize(fields["process"]); p != "" {
-		parts = append(parts, p)
-	}
-	return strings.Join(parts, "|")
-}
-
-// recipeDedupKey: exact name + brewer type.
-// "V60 Standard" pourover vs "V60 Standard" immersion → different.
-func recipeDedupKey(fields map[string]string) string {
-	parts := []string{normalize(fields["name"])}
-	if bt := normalize(fields["brewerType"]); bt != "" {
-		parts = append(parts, bt)
-	}
-	return strings.Join(parts, "|")
-}
-
-// teaDedupKey: tea name + category + origin. Two pu-erh teas with the
-// same name from different origins stay separate; the same tea logged
-// twice merges.
-func teaDedupKey(fields map[string]string) string {
-	parts := []string{normalize(fields["name"])}
-	if cat := normalize(fields["category"]); cat != "" {
-		parts = append(parts, cat)
-	}
-	if o := normalize(fields["origin"]); o != "" {
-		parts = append(parts, o)
-	}
-	return strings.Join(parts, "|")
-}
-
-// teaBrewerDedupKey: name + style. A gaiwan and a yixing of identical
-// name stay separate (style is intrinsic).
-func teaBrewerDedupKey(fields map[string]string) string {
-	parts := []string{normalize(fields["name"])}
-	if s := normalize(fields["style"]); s != "" {
-		parts = append(parts, s)
-	}
-	return strings.Join(parts, "|")
-}
-
-// teaRecipeDedupKey: name + style.
-func teaRecipeDedupKey(fields map[string]string) string {
-	parts := []string{normalize(fields["name"])}
-	if s := normalize(fields["style"]); s != "" {
-		parts = append(parts, s)
-	}
-	return strings.Join(parts, "|")
-}
-
-// vendorDedupKey: fuzzy name + normalized location, mirroring roaster.
-func vendorDedupKey(fields map[string]string) string {
-	parts := []string{fuzzyName(fields["name"])}
-	if loc := normalize(fields["location"]); loc != "" {
-		parts = append(parts, loc)
-	}
-	return strings.Join(parts, "|")
-}
-
-// teaCafeDedupKey: name + location, exact (cafes are physical, location-bound).
-func teaCafeDedupKey(fields map[string]string) string {
-	parts := []string{normalize(fields["name"])}
-	if loc := normalize(fields["location"]); loc != "" {
-		parts = append(parts, loc)
-	}
-	return strings.Join(parts, "|")
+// Register installs a FieldConfig for the given collection NSID. Called
+// from each app's entity-registration init() — see
+// internal/entities/{arabica,oolong}/suggestions.go. Duplicate
+// registrations overwrite, on the theory that test fixtures may want
+// to replace a real config.
+func Register(nsid string, cfg FieldConfig) {
+	entityConfigs[nsid] = cfg
 }
 
 // --- Normalization helpers ---
 
-// normalize lowercases, trims whitespace, and collapses internal whitespace.
-func normalize(s string) string {
-	return collapseSpaces(strings.ToLower(strings.TrimSpace(s)))
+// Normalize lowercases, trims whitespace, and collapses internal whitespace.
+// Exported so per-app dedup keys (registered via Register) can share a
+// single canonical normalization.
+func Normalize(s string) string {
+	return CollapseSpaces(strings.ToLower(strings.TrimSpace(s)))
 }
 
 // Common suffixes stripped during fuzzy name normalization for roasters/brewers.
@@ -238,13 +91,13 @@ var commonSuffixes = []string{
 	"co.",
 }
 
-// fuzzyName normalizes a name by lowercasing, stripping common coffee-industry
-// suffixes, punctuation, and extra whitespace. This lets "Counter Culture Coffee"
-// and "Counter Culture" merge, while still keeping genuinely different names apart.
-func fuzzyName(name string) string {
+// FuzzyName normalizes a name by lowercasing, stripping common
+// coffee-industry suffixes, punctuation, and extra whitespace. Lets
+// "Counter Culture Coffee" merge with "Counter Culture" while keeping
+// genuinely different names apart.
+func FuzzyName(name string) string {
 	s := strings.ToLower(strings.TrimSpace(name))
 
-	// Strip common suffixes
 	for _, suffix := range commonSuffixes {
 		if strings.HasSuffix(s, suffix) {
 			s = strings.TrimSpace(s[:len(s)-len(suffix)])
@@ -252,10 +105,8 @@ func fuzzyName(name string) string {
 		}
 	}
 
-	// Remove punctuation (keep letters, digits, spaces)
 	s = stripPunctuation(s)
-
-	return collapseSpaces(s)
+	return CollapseSpaces(s)
 }
 
 var nonAlphanumSpace = regexp.MustCompile(`[^a-z0-9\s]`)
@@ -266,7 +117,8 @@ func stripPunctuation(s string) string {
 
 var multiSpace = regexp.MustCompile(`\s+`)
 
-func collapseSpaces(s string) string {
+// CollapseSpaces trims and collapses runs of internal whitespace.
+func CollapseSpaces(s string) string {
 	return strings.TrimSpace(multiSpace.ReplaceAllString(s, " "))
 }
 
@@ -323,12 +175,13 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 		return nil, err
 	}
 
-	// For beans, build a roaster URI -> name map so we can include the
-	// roaster name in suggestion fields. This lets clients verify the
-	// roaster matches before setting source_ref.
-	var roasterNames map[string]string
-	if collection == arabica.NSIDBean {
-		roasterNames = buildRoasterNameMap(ctx, source)
+	// Run the config-provided Prepare hook once. Apps use this to load
+	// cross-collection data (e.g. arabica's bean config builds a
+	// roaster URI → name map here) without the suggestions package
+	// itself needing to know any collection NSIDs.
+	var prepared any
+	if config.Prepare != nil {
+		prepared = config.Prepare(ctx, source)
 	}
 
 	// dedupKey -> aggregated suggestion
@@ -352,29 +205,24 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 
 		// Extract fields
 		fields := make(map[string]string)
-		for _, f := range config.allFields {
+		for _, f := range config.AllFields {
 			if v, ok := recordData[f].(string); ok && v != "" {
 				fields[f] = v
 			}
 		}
 
-		// For beans, resolve roasterRef to a roaster name
-		if roasterNames != nil {
-			if ref, ok := recordData["roasterRef"].(string); ok && ref != "" {
-				if rn, ok := roasterNames[ref]; ok {
-					fields["roasterName"] = rn
-				}
-			}
+		if config.Enrich != nil {
+			config.Enrich(prepared, recordData, fields)
 		}
 
-		name := fields[config.nameField]
+		name := fields[config.NameField]
 		if name == "" {
 			continue
 		}
 
 		// Check if any searchable field matches the query
 		matched := false
-		for _, sf := range config.searchFields {
+		for _, sf := range config.SearchFields {
 			val := strings.ToLower(fields[sf])
 			if val == "" {
 				continue
@@ -389,7 +237,7 @@ func Search(ctx context.Context, source RecordSource, collection, query string, 
 		}
 
 		// Deduplicate using entity-specific key
-		key := config.dedupKey(fields)
+		key := config.DedupKey(fields)
 
 		score := scoreRecord(ctx, source, indexed.URI, indexed.DID, fields)
 
@@ -460,11 +308,12 @@ func scoreRecord(ctx context.Context, source RecordSource, uri, did string, fiel
 	return score
 }
 
-// buildRoasterNameMap loads all indexed roaster records and returns a map
-// from AT-URI to roaster name. Used to resolve roaster references in bean
-// suggestions so the client can verify roaster match before setting source_ref.
-func buildRoasterNameMap(ctx context.Context, source RecordSource) map[string]string {
-	records, err := source.ListRecordsByCollectionOldest(ctx, arabica.NSIDRoaster)
+// BuildNameMap loads every record of `nsid` indexed locally and
+// returns an AT-URI → record-`name` map. Configs use this in their
+// Prepare hook to resolve cross-collection references (e.g. resolving
+// a bean's `roasterRef` to the roaster's name).
+func BuildNameMap(ctx context.Context, source RecordSource, nsid string) map[string]string {
+	records, err := source.ListRecordsByCollectionOldest(ctx, nsid)
 	if err != nil {
 		return nil
 	}

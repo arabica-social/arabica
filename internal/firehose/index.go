@@ -720,15 +720,21 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*feed.Fee
 	return idx.getFeedItems(ctx, nil, limit, "")
 }
 
-// recordTypeToNSID maps a lexicons.RecordType to its NSID collection string
-var recordTypeToNSID = map[lexicons.RecordType]string{
-	lexicons.RecordTypeBrew:    arabica.NSIDBrew,
-	lexicons.RecordTypeBean:    arabica.NSIDBean,
-	lexicons.RecordTypeRoaster: arabica.NSIDRoaster,
-	lexicons.RecordTypeGrinder: arabica.NSIDGrinder,
-	lexicons.RecordTypeBrewer:  arabica.NSIDBrewer,
-	lexicons.RecordTypeRecipe:  arabica.NSIDRecipe,
-}
+// recordTypeToNSID maps a feedable lexicons.RecordType to its NSID
+// collection string. Built from the descriptor registry so every
+// registered app contributes its own entries — no app-specific
+// imports in this package. Only types listed in FeedableRecordTypes
+// participate; entries from sister apps that aren't installed in the
+// running binary simply never appear in the registry.
+var recordTypeToNSID = func() map[lexicons.RecordType]string {
+	m := make(map[lexicons.RecordType]string)
+	for _, d := range entities.All() {
+		if FeedableRecordTypes[d.Type] && d.NSID != "" {
+			m[d.Type] = d.NSID
+		}
+	}
+	return m
+}()
 
 // feedableCollections is the set of collection NSIDs that appear in the feed
 var feedableCollections = func() []string {
