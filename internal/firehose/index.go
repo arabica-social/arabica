@@ -39,6 +39,14 @@ var FeedableRecordTypes = map[lexicons.RecordType]bool{
 	lexicons.RecordTypeGrinder: true,
 	lexicons.RecordTypeBrewer:  true,
 	lexicons.RecordTypeRecipe:  true,
+
+	lexicons.RecordTypeOolongTea:    true,
+	lexicons.RecordTypeOolongBrew:   true,
+	lexicons.RecordTypeOolongBrewer: true,
+	lexicons.RecordTypeOolongRecipe: true,
+	lexicons.RecordTypeOolongVendor: true,
+	lexicons.RecordTypeOolongCafe:   true,
+	lexicons.RecordTypeOolongDrink:  true,
 }
 
 // IndexedRecord represents a record stored in the index

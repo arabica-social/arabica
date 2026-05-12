@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 )
 
@@ -68,6 +69,36 @@ var entityConfigs = map[string]entityFieldConfig{
 		searchFields: []string{"name", "brewerType"},
 		nameField:    "name",
 		dedupKey:     recipeDedupKey,
+	},
+	oolong.NSIDTea: {
+		allFields:    []string{"name", "category", "subStyle", "origin", "cultivar"},
+		searchFields: []string{"name", "category", "origin", "cultivar"},
+		nameField:    "name",
+		dedupKey:     teaDedupKey,
+	},
+	oolong.NSIDBrewer: {
+		allFields:    []string{"name", "style", "material"},
+		searchFields: []string{"name", "style"},
+		nameField:    "name",
+		dedupKey:     teaBrewerDedupKey,
+	},
+	oolong.NSIDRecipe: {
+		allFields:    []string{"name", "style"},
+		searchFields: []string{"name", "style"},
+		nameField:    "name",
+		dedupKey:     teaRecipeDedupKey,
+	},
+	oolong.NSIDVendor: {
+		allFields:    []string{"name", "location", "website"},
+		searchFields: []string{"name", "location"},
+		nameField:    "name",
+		dedupKey:     vendorDedupKey,
+	},
+	oolong.NSIDCafe: {
+		allFields:    []string{"name", "location", "website"},
+		searchFields: []string{"name", "location"},
+		nameField:    "name",
+		dedupKey:     teaCafeDedupKey,
 	},
 }
 
@@ -130,6 +161,57 @@ func recipeDedupKey(fields map[string]string) string {
 	parts := []string{normalize(fields["name"])}
 	if bt := normalize(fields["brewerType"]); bt != "" {
 		parts = append(parts, bt)
+	}
+	return strings.Join(parts, "|")
+}
+
+// teaDedupKey: tea name + category + origin. Two pu-erh teas with the
+// same name from different origins stay separate; the same tea logged
+// twice merges.
+func teaDedupKey(fields map[string]string) string {
+	parts := []string{normalize(fields["name"])}
+	if cat := normalize(fields["category"]); cat != "" {
+		parts = append(parts, cat)
+	}
+	if o := normalize(fields["origin"]); o != "" {
+		parts = append(parts, o)
+	}
+	return strings.Join(parts, "|")
+}
+
+// teaBrewerDedupKey: name + style. A gaiwan and a yixing of identical
+// name stay separate (style is intrinsic).
+func teaBrewerDedupKey(fields map[string]string) string {
+	parts := []string{normalize(fields["name"])}
+	if s := normalize(fields["style"]); s != "" {
+		parts = append(parts, s)
+	}
+	return strings.Join(parts, "|")
+}
+
+// teaRecipeDedupKey: name + style.
+func teaRecipeDedupKey(fields map[string]string) string {
+	parts := []string{normalize(fields["name"])}
+	if s := normalize(fields["style"]); s != "" {
+		parts = append(parts, s)
+	}
+	return strings.Join(parts, "|")
+}
+
+// vendorDedupKey: fuzzy name + normalized location, mirroring roaster.
+func vendorDedupKey(fields map[string]string) string {
+	parts := []string{fuzzyName(fields["name"])}
+	if loc := normalize(fields["location"]); loc != "" {
+		parts = append(parts, loc)
+	}
+	return strings.Join(parts, "|")
+}
+
+// teaCafeDedupKey: name + location, exact (cafes are physical, location-bound).
+func teaCafeDedupKey(fields map[string]string) string {
+	parts := []string{normalize(fields["name"])}
+	if loc := normalize(fields["location"]); loc != "" {
+		parts = append(parts, loc)
 	}
 	return strings.Join(parts, "|")
 }

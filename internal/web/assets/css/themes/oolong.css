@@ -161,6 +161,12 @@
 	/* Footer */
 	--footer-bg:     oklch(0.97 0.012 145);
 	--footer-border: oklch(0.92 0.012 145);
+
+	/* Feed pinboard — override arabica's cork-brown with a matcha sage
+	   wash so the feed wrapper reads as part of the oolong palette. */
+	--feed-board-bg:     oklch(0.82 0.048 148);
+	--feed-board-border: oklch(0.72 0.060 146);
+	--feed-card-bg:      oklch(0.995 0.003 145);
 }
 
 /* ============================================================
@@ -262,6 +268,10 @@
 
 		--footer-bg:     oklch(0.20 0.018 148);
 		--footer-border: oklch(0.28 0.020 148);
+
+		--feed-board-bg:     oklch(0.22 0.024 148);
+		--feed-board-border: oklch(0.32 0.030 148);
+		--feed-card-bg:      oklch(0.22 0.018 148);
 	}
 }
 
@@ -358,4 +368,8 @@
 
 	--footer-bg:     oklch(0.20 0.018 148);
 	--footer-border: oklch(0.28 0.020 148);
+
+	--feed-board-bg:     oklch(0.22 0.024 148);
+	--feed-board-border: oklch(0.32 0.030 148);
+	--feed-card-bg:      oklch(0.22 0.018 148);
 }

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/firehose"
@@ -16,8 +18,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 

@@ -112,7 +112,7 @@ templ teaProfileStat(label string, count int) {
 templ TeaProfileTabs() {
 	<div>
 		<div class="card shadow-md mb-4">
-			<div class="flex border-b border-brown-300">
+			<div class="flex border-b" style="border-color: var(--card-border)">
 				@teaProfileTabBtn("steeps", "Steeps")
 				@teaProfileTabBtn("teas", "Teas")
 				@teaProfileTabBtn("gear", "Gear")

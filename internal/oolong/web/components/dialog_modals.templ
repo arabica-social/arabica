@@ -92,8 +92,198 @@ func ratingStr(r *int) string {
 	return strconv.Itoa(*r)
 }
 
-// --- Tea -------------------------------------------------------------
+// comboSelectField renders a labelled combo-select inside a dialog
+// modal. selectedRKey + selectedLabel pre-populate the field on edit.
+// label is the visible field label, sectionLabel is the heading shown
+// above the user's own records in the dropdown. required toggles the
+// asterisk and the underlying combo-select required flag.
+templ comboSelectField(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, label, sectionLabel, selectedRKey, selectedLabel string, required bool) {
+	<div
+		class="combo-select"
+		x-data={ ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, required) }
+		if selectedRKey != "" {
+			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", selectedRKey, EscapeJS(selectedLabel)) }
+		}
+	>
+		<label class="form-label">
+			{ label }
+			if required {
+				<span class="text-red-600">*</span>
+			}
+		</label>
+		<input type="hidden" :name="inputName" :value="selectedRKey"/>
+		@ComboSelectInput(sectionLabel)
+	</div>
+}
 
+// labelTea returns a human-readable label for a Tea (name + category/origin),
+// used to pre-populate combo-select fields on edit modals.
+func labelTea(t *oolong.Tea) string {
+	if t == nil {
+		return ""
+	}
+	name := t.Name
+	if name == "" {
+		name = t.RKey
+	}
+	switch {
+	case t.Category != "" && t.Origin != "":
+		return name + " (" + t.Category + " · " + t.Origin + ")"
+	case t.Category != "":
+		return name + " (" + t.Category + ")"
+	case t.Origin != "":
+		return name + " (" + t.Origin + ")"
+	}
+	return name
+}
+
+func labelOolongBrewer(b *oolong.Brewer) string {
+	if b == nil {
+		return ""
+	}
+	name := b.Name
+	if name == "" {
+		name = b.RKey
+	}
+	if b.Style != "" {
+		return name + " (" + b.Style + ")"
+	}
+	return name
+}
+
+func labelOolongRecipe(r *oolong.Recipe) string {
+	if r == nil {
+		return ""
+	}
+	name := r.Name
+	if name == "" {
+		name = r.RKey
+	}
+	if r.Style != "" {
+		return name + " (" + r.Style + ")"
+	}
+	return name
+}
+
+func labelOolongVendor(v *oolong.Vendor) string {
+	if v == nil {
+		return ""
+	}
+	name := v.Name
+	if name == "" {
+		name = v.RKey
+	}
+	if v.Location != "" {
+		return name + " (" + v.Location + ")"
+	}
+	return name
+}
+
+// brewTea returns the Tea joined onto the Brew, or a synthetic Tea
+// holding just the referenced RKey so combo-selects on edit modals can
+// show the rkey as fallback label when reference resolution didn't
+// run.
+func brewTea(b *oolong.Brew) *oolong.Tea {
+	if b == nil {
+		return nil
+	}
+	if b.Tea != nil {
+		return b.Tea
+	}
+	if b.TeaRKey == "" {
+		return nil
+	}
+	return &oolong.Tea{RKey: b.TeaRKey}
+}
+
+func brewBrewer(b *oolong.Brew) *oolong.Brewer {
+	if b == nil {
+		return nil
+	}
+	if b.BrewerObj != nil {
+		return b.BrewerObj
+	}
+	if b.BrewerRKey == "" {
+		return nil
+	}
+	return &oolong.Brewer{RKey: b.BrewerRKey}
+}
+
+func brewRecipe(b *oolong.Brew) *oolong.Recipe {
+	if b == nil {
+		return nil
+	}
+	if b.RecipeObj != nil {
+		return b.RecipeObj
+	}
+	if b.RecipeRKey == "" {
+		return nil
+	}
+	return &oolong.Recipe{RKey: b.RecipeRKey}
+}
+
+func recipeTea(r *oolong.Recipe) *oolong.Tea {
+	if r == nil {
+		return nil
+	}
+	if r.Tea != nil {
+		return r.Tea
+	}
+	if r.TeaRKey == "" {
+		return nil
+	}
+	return &oolong.Tea{RKey: r.TeaRKey}
+}
+
+func recipeBrewer(r *oolong.Recipe) *oolong.Brewer {
+	if r == nil {
+		return nil
+	}
+	if r.BrewerObj != nil {
+		return r.BrewerObj
+	}
+	if r.BrewerRKey == "" {
+		return nil
+	}
+	return &oolong.Brewer{RKey: r.BrewerRKey}
+}
+
+func cafeVendor(c *oolong.Cafe) *oolong.Vendor {
+	if c == nil || c.VendorRKey == "" {
+		return nil
+	}
+	return &oolong.Vendor{RKey: c.VendorRKey}
+}
+
+func drinkCafe(d *oolong.Drink) *oolong.Cafe {
+	if d == nil || d.CafeRKey == "" {
+		return nil
+	}
+	return &oolong.Cafe{RKey: d.CafeRKey}
+}
+
+func drinkTea(d *oolong.Drink) *oolong.Tea {
+	if d == nil || d.TeaRKey == "" {
+		return nil
+	}
+	return &oolong.Tea{RKey: d.TeaRKey}
+}
+
+func labelOolongCafe(c *oolong.Cafe) string {
+	if c == nil {
+		return ""
+	}
+	name := c.Name
+	if name == "" {
+		name = c.RKey
+	}
+	if c.Location != "" {
+		return name + " (" + c.Location + ")"
+	}
+	return name
+}
+
+// --- Tea -------------------------------------------------------------
 templ TeaDialogModal(t *oolong.Tea) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeOolongTea,
@@ -130,7 +320,6 @@ func teaField(t *oolong.Tea, fn func(*oolong.Tea) string) string {
 }
 
 // --- Vendor ----------------------------------------------------------
-
 templ VendorDialogModal(v *oolong.Vendor) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeOolongVendor,
@@ -158,7 +347,6 @@ func vendorField(v *oolong.Vendor, fn func(*oolong.Vendor) string) string {
 }
 
 // --- Brewer (teaware) ------------------------------------------------
-
 templ BrewerDialogModal(b *oolong.Brewer) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeOolongBrewer,
@@ -187,7 +375,6 @@ func teaBrewerField(b *oolong.Brewer, fn func(*oolong.Brewer) string) string {
 }
 
 // --- Recipe ----------------------------------------------------------
-
 templ RecipeDialogModal(r *oolong.Recipe) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeOolongRecipe,
@@ -200,9 +387,19 @@ templ RecipeDialogModal(r *oolong.Recipe) {
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
-			<div class="form-fieldset-label">References <span class="form-optional-hint">(rkey of related entity)</span></div>
-			<input type="text" name="tea_rkey" placeholder="Tea rkey" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return r.TeaRKey }) }/>
-			<input type="text" name="brewer_rkey" placeholder="Brewer rkey" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return r.BrewerRKey }) }/>
+			<div class="form-fieldset-label">References <span class="form-optional-hint">(optional)</span></div>
+			@comboSelectField(
+				"tea", "/api/teas", "/api/suggestions/teas", "tea_rkey",
+				"Search or create a tea…", "Tea", "Your teas",
+				teaRecipeField(r, func(r *oolong.Recipe) string { return r.TeaRKey }),
+				labelTea(recipeTea(r)), false,
+			)
+			@comboSelectField(
+				"oolongBrewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey",
+				"Search or create a brewer…", "Brewer", "Your brewers",
+				teaRecipeField(r, func(r *oolong.Recipe) string { return r.BrewerRKey }),
+				labelOolongBrewer(recipeBrewer(r)), false,
+			)
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
@@ -228,7 +425,6 @@ func teaRecipeField(r *oolong.Recipe, fn func(*oolong.Recipe) string) string {
 }
 
 // --- Brew (steep) ----------------------------------------------------
-
 templ BrewDialogModal(b *oolong.Brew) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeOolongBrew,
@@ -236,14 +432,29 @@ templ BrewDialogModal(b *oolong.Brew) {
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
-			<input type="text" name="tea_rkey" placeholder="Tea rkey *" required class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.TeaRKey }) }/>
+			@comboSelectField(
+				"tea", "/api/teas", "/api/suggestions/teas", "tea_rkey",
+				"Search or create a tea…", "Tea", "Your teas",
+				teaBrewField(b, func(b *oolong.Brew) string { return b.TeaRKey }),
+				labelTea(brewTea(b)), true,
+			)
 			<input type="text" name="style" placeholder="Style (e.g. gongfu, western)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.Style }) }/>
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">References <span class="form-optional-hint">(optional)</span></div>
-			<input type="text" name="brewer_rkey" placeholder="Brewer rkey" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.BrewerRKey }) }/>
-			<input type="text" name="recipe_rkey" placeholder="Recipe rkey" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.RecipeRKey }) }/>
+			@comboSelectField(
+				"oolongBrewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey",
+				"Search or create a brewer…", "Brewer", "Your brewers",
+				teaBrewField(b, func(b *oolong.Brew) string { return b.BrewerRKey }),
+				labelOolongBrewer(brewBrewer(b)), false,
+			)
+			@comboSelectField(
+				"oolongRecipe", "/api/recipes", "/api/suggestions/recipes", "recipe_rkey",
+				"Search recipes…", "Recipe", "Your recipes",
+				teaBrewField(b, func(b *oolong.Brew) string { return b.RecipeRKey }),
+				labelOolongRecipe(brewRecipe(b)), false,
+			)
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
@@ -270,7 +481,6 @@ func teaBrewField(b *oolong.Brew, fn func(*oolong.Brew) string) string {
 }
 
 // --- Cafe ------------------------------------------------------------
-
 templ CafeDialogModal(c *oolong.Cafe) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeOolongCafe,
@@ -286,7 +496,12 @@ templ CafeDialogModal(c *oolong.Cafe) {
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
-			<input type="text" name="vendor_rkey" placeholder="Vendor rkey (if any)" class="w-full form-input" value={ cafeField(c, func(c *oolong.Cafe) string { return c.VendorRKey }) }/>
+			@comboSelectField(
+				"vendor", "/api/vendors", "/api/suggestions/vendors", "vendor_rkey",
+				"Search or create a vendor…", "Vendor", "Your vendors",
+				cafeField(c, func(c *oolong.Cafe) string { return c.VendorRKey }),
+				labelOolongVendor(cafeVendor(c)), false,
+			)
 			<textarea name="description" placeholder="Description" class="w-full form-input" rows="3">{ cafeField(c, func(c *oolong.Cafe) string { return c.Description }) }</textarea>
 		</div>
 	}
@@ -300,7 +515,6 @@ func cafeField(c *oolong.Cafe, fn func(*oolong.Cafe) string) string {
 }
 
 // --- Drink (at a cafe) -----------------------------------------------
-
 templ DrinkDialogModal(d *oolong.Drink) {
 	@ModalShell(ModalShellProps{
 		Type: lexicons.RecordTypeOolongDrink,
@@ -308,14 +522,24 @@ templ DrinkDialogModal(d *oolong.Drink) {
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
-			<input type="text" name="cafe_rkey" placeholder="Cafe rkey *" required class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return d.CafeRKey }) }/>
+			@comboSelectField(
+				"cafe", "/api/cafes", "/api/suggestions/cafes", "cafe_rkey",
+				"Search or create a cafe…", "Cafe", "Your cafes",
+				drinkField(d, func(d *oolong.Drink) string { return d.CafeRKey }),
+				labelOolongCafe(drinkCafe(d)), true,
+			)
 			<input type="text" name="name" placeholder="Drink name" class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return d.Name }) }/>
 			<input type="text" name="style" placeholder="Style (e.g. matcha latte, oolong straight)" class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return d.Style }) }/>
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">References <span class="form-optional-hint">(optional)</span></div>
-			<input type="text" name="tea_rkey" placeholder="Tea rkey (if known)" class="w-full form-input" value={ drinkField(d, func(d *oolong.Drink) string { return d.TeaRKey }) }/>
+			@comboSelectField(
+				"tea", "/api/teas", "/api/suggestions/teas", "tea_rkey",
+				"Search or create a tea…", "Tea", "Your teas",
+				drinkField(d, func(d *oolong.Drink) string { return d.TeaRKey }),
+				labelTea(drinkTea(d)), false,
+			)
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">

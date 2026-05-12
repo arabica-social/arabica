@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 
 	"github.com/rs/zerolog/log"
 )

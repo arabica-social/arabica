@@ -177,13 +177,21 @@ document.addEventListener("alpine:init", () => {
         case "bean":
           return dm.beans || [];
         case "brewer":
+        case "oolongBrewer":
           return dm.brewers || [];
         case "grinder":
           return dm.grinders || [];
         case "recipe":
+        case "oolongRecipe":
           return dm.recipes || [];
         case "roaster":
           return dm.roasters || [];
+        case "tea":
+          return dm.teas || [];
+        case "vendor":
+          return dm.vendors || [];
+        case "cafe":
+          return dm.cafes || [];
         default:
           return [];
       }

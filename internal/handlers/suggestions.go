@@ -14,6 +14,10 @@ import (
 
 // entityTypeToNSID maps URL path segments to collection NSIDs.
 // Built from the descriptor registry so new entities appear automatically.
+// Note: when arabica and oolong both register an entity at the same URL
+// path (e.g. "brewers", "recipes"), iteration order picks one. The
+// per-app lookup below prefers descriptors that belong to the running
+// app to keep suggestions scoped to the active dataset.
 var entityTypeToNSID = func() map[string]string {
 	m := make(map[string]string)
 	for _, d := range entities.All() {
@@ -24,6 +28,20 @@ var entityTypeToNSID = func() map[string]string {
 	return m
 }()
 
+// nsidForEntity returns the NSID to query for the requested entity URL
+// segment, preferring the running app's descriptor when one is wired.
+// Falls back to the global cross-app map for legacy callers.
+func (h *Handler) nsidForEntity(entityType string) string {
+	if h.app != nil {
+		for _, d := range h.app.Descriptors {
+			if d.URLPath == entityType && d.NSID != "" {
+				return d.NSID
+			}
+		}
+	}
+	return entityTypeToNSID[entityType]
+}
+
 // HandleEntitySuggestions returns typeahead suggestions for entity creation
 func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
@@ -33,8 +51,8 @@ func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request
 	}
 
 	entityType := r.PathValue("entity")
-	nsid, ok := entityTypeToNSID[entityType]
-	if !ok {
+	nsid := h.nsidForEntity(entityType)
+	if nsid == "" {
 		http.Error(w, "Unknown entity type", http.StatusBadRequest)
 		return
 	}

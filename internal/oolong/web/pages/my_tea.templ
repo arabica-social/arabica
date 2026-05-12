@@ -139,7 +139,7 @@ templ MyTeaContent(props MyTeaProps) {
 }
 
 templ MyTeaTabs() {
-	<div class="mb-6 border-b-2 border-brown-300">
+	<div class="mb-6 border-b-2" style="border-color: var(--card-border)">
 		<nav class="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto">
 			@myTeaTab("steeps", "Steeps")
 			@myTeaTab("teas", "Teas")
@@ -187,7 +187,7 @@ templ myTeaCard(noun, rkey, viewURL string) {
 		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 			<button
 				type="button"
-				class="bg-brown-100 hover:bg-brown-200 text-emphasis text-xs px-2 py-1 rounded shadow-sm"
+				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm"
 				hx-get={ "/api/modals/" + noun + "/" + rkey }
 				hx-target="#modal-container"
 				hx-swap="innerHTML"
@@ -197,7 +197,7 @@ templ myTeaCard(noun, rkey, viewURL string) {
 			</button>
 			<button
 				type="button"
-				class="bg-brown-100 hover:bg-red-100 text-emphasis hover:text-red-700 text-xs px-2 py-1 rounded shadow-sm"
+				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm hover:!bg-red-50 hover:!text-red-700"
 				hx-delete={ "/api/" + myTeaURLPath(noun) + "/" + rkey }
 				hx-confirm={ "Delete this " + noun + "?" }
 				hx-target="closest .feed-card"
@@ -237,14 +237,14 @@ templ mySteepCard(rkey string) {
 		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 			<a
 				href={ templ.SafeURL("/brews/" + rkey + "/edit") }
-				class="bg-brown-100 hover:bg-brown-200 text-emphasis text-xs px-2 py-1 rounded shadow-sm"
+				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm"
 				aria-label="Edit steep"
 			>
 				Edit
 			</a>
 			<button
 				type="button"
-				class="bg-brown-100 hover:bg-red-100 text-emphasis hover:text-red-700 text-xs px-2 py-1 rounded shadow-sm"
+				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm hover:!bg-red-50 hover:!text-red-700"
 				hx-delete={ "/api/brews/" + rkey }
 				hx-confirm="Delete this steep?"
 				hx-target="closest .feed-card"

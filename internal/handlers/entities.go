@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strings"
 
+	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -129,6 +129,14 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 // API endpoint to list all user data (beans, roasters, grinders, brewers, brews)
 // Used by client-side cache for faster page loads
 func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
+	// Dispatch to oolong's entity set when the running app is oolong —
+	// keeps a single /api/data endpoint serving whichever app is wired
+	// in cfg, so the client-side ArabicaCache works uniformly.
+	if appName(h.app) == "oolong" {
+		h.HandleOolongAPIListAll(w, r)
+		return
+	}
+
 	store, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)

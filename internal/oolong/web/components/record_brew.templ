@@ -83,7 +83,7 @@ templ BrewContent(b *oolong.Brew) {
 			}
 		</div>
 		if b.TastingNotes != "" {
-			<div class="mt-3 text-sm text-secondary italic border-t border-brown-200 pt-2">
+			<div class="mt-3 text-sm text-secondary italic border-t pt-2" style="border-color: var(--card-border)">
 				"{ b.TastingNotes }"
 			</div>
 		}
