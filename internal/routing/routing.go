@@ -170,7 +170,11 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /api/settings/profile-visibility", cop.Handler(http.HandlerFunc(h.HandleSettingsProfileVisibility)))
 
 	// Profile routes (public user profiles)
-	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
+	if cfg.App.Name == "oolong" {
+		mux.HandleFunc("GET /profile/{actor}", h.HandleOolongProfile)
+	} else {
+		mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
+	}
 
 	// Moderation routes
 	// HandleAdmin keeps its own auth check (redirects to / instead of 401)

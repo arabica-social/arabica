@@ -2,15 +2,15 @@ package teapages
 
 import (
 	"fmt"
-	"strconv"
 
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 // MyTeaProps holds the user's owned records across all 7 oolong
 // entity types. Empty slices render as "no X yet" rather than being
-// hidden, so the create entry points are always discoverable.
+// hidden, so the create entry points stay discoverable.
 type MyTeaProps struct {
 	Teas    []*oolong.Tea
 	Vendors []*oolong.Vendor
@@ -25,134 +25,201 @@ templ MyTea(layout *components.LayoutData, props MyTeaProps) {
 	@components.Layout(layout, MyTeaContent(props))
 }
 
+// MyTeaContent renders the My Tea page: header + tabs + per-tab card
+// lists. Tabs are Alpine.js-driven (x-data on the container); all 7
+// tab panels are server-rendered up front and toggled with x-show.
+// No HTMX async loading — keeps the page simpler than arabica's
+// my-coffee while still feeling like a real manage UI.
 templ MyTeaContent(props MyTeaProps) {
-	<div class="page-container-xl">
+	<div class="page-container-xl" x-data="{ tab: 'steeps' }">
 		<div class="flex items-center gap-3 mb-6">
 			<h2 class="text-2xl font-semibold text-primary">My Tea</h2>
 		</div>
+		@MyTeaTabs()
 		<div id="modal-container"></div>
-		@MyTeaSection("Teas", "tea", "/api/modals/tea/new", len(props.Teas)) {
-			for _, t := range props.Teas {
-				@myTeaRow(t.RKey, t.Name, "tea", "/teas/"+t.RKey)
+		<div x-show="tab === 'steeps'">
+			@myTeaSectionHeader("Steeps", "brew", "/api/modals/brew/new", len(props.Brews))
+			if len(props.Brews) == 0 {
+				@myTeaEmpty("steeps")
+			} else {
+				<div class="feed-grid">
+					for _, b := range props.Brews {
+						@myTeaCard("brew", b.RKey, "/brews/"+b.RKey) {
+							@tea.BrewContent(b)
+						}
+					}
+				</div>
 			}
-		}
-		@MyTeaSection("Vendors", "vendor", "/api/modals/vendor/new", len(props.Vendors)) {
-			for _, v := range props.Vendors {
-				@myTeaRow(v.RKey, v.Name, "vendor", "/vendors/"+v.RKey)
+		</div>
+		<div x-show="tab === 'teas'" x-cloak>
+			@myTeaSectionHeader("Teas", "tea", "/api/modals/tea/new", len(props.Teas))
+			if len(props.Teas) == 0 {
+				@myTeaEmpty("teas")
+			} else {
+				<div class="feed-grid">
+					for _, t := range props.Teas {
+						@myTeaCard("tea", t.RKey, "/teas/"+t.RKey) {
+							@tea.TeaContent(t)
+						}
+					}
+				</div>
 			}
-		}
-		@MyTeaSection("Brewers", "brewer", "/api/modals/brewer/new", len(props.Brewers)) {
-			for _, b := range props.Brewers {
-				@myTeaRow(b.RKey, b.Name, "brewer", "/brewers/"+b.RKey)
+		</div>
+		<div x-show="tab === 'vendors'" x-cloak>
+			@myTeaSectionHeader("Vendors", "vendor", "/api/modals/vendor/new", len(props.Vendors))
+			if len(props.Vendors) == 0 {
+				@myTeaEmpty("vendors")
+			} else {
+				<div class="feed-grid">
+					for _, v := range props.Vendors {
+						@myTeaCard("vendor", v.RKey, "/vendors/"+v.RKey) {
+							@tea.VendorContent(v)
+						}
+					}
+				</div>
 			}
-		}
-		@MyTeaSection("Recipes", "recipe", "/api/modals/recipe/new", len(props.Recipes)) {
-			for _, r := range props.Recipes {
-				@myTeaRow(r.RKey, r.Name, "recipe", "/recipes/"+r.RKey)
+		</div>
+		<div x-show="tab === 'brewers'" x-cloak>
+			@myTeaSectionHeader("Brewers", "brewer", "/api/modals/brewer/new", len(props.Brewers))
+			if len(props.Brewers) == 0 {
+				@myTeaEmpty("brewers")
+			} else {
+				<div class="feed-grid">
+					for _, b := range props.Brewers {
+						@myTeaCard("brewer", b.RKey, "/brewers/"+b.RKey) {
+							@tea.BrewerContent(b)
+						}
+					}
+				</div>
 			}
-		}
-		@MyTeaSection("Steeps", "brew", "/api/modals/brew/new", len(props.Brews)) {
-			for _, b := range props.Brews {
-				@myTeaRow(b.RKey, brewLabel(b), "brew", "/brews/"+b.RKey)
+		</div>
+		<div x-show="tab === 'recipes'" x-cloak>
+			@myTeaSectionHeader("Recipes", "recipe", "/api/modals/recipe/new", len(props.Recipes))
+			if len(props.Recipes) == 0 {
+				@myTeaEmpty("recipes")
+			} else {
+				<div class="feed-grid">
+					for _, r := range props.Recipes {
+						@myTeaCard("recipe", r.RKey, "/recipes/"+r.RKey) {
+							@tea.RecipeContent(r)
+						}
+					}
+				</div>
 			}
-		}
-		@MyTeaSection("Cafes", "cafe", "/api/modals/cafe/new", len(props.Cafes)) {
-			for _, c := range props.Cafes {
-				@myTeaRow(c.RKey, c.Name, "cafe", "/cafes/"+c.RKey)
+		</div>
+		<div x-show="tab === 'cafes'" x-cloak>
+			@myTeaSectionHeader("Cafes", "cafe", "/api/modals/cafe/new", len(props.Cafes))
+			if len(props.Cafes) == 0 {
+				@myTeaEmpty("cafes")
+			} else {
+				<div class="feed-grid">
+					for _, c := range props.Cafes {
+						@myTeaCard("cafe", c.RKey, "/cafes/"+c.RKey) {
+							@tea.CafeContent(c)
+						}
+					}
+				</div>
 			}
-		}
-		@MyTeaSection("Drinks", "drink", "/api/modals/drink/new", len(props.Drinks)) {
-			for _, d := range props.Drinks {
-				@myTeaRow(d.RKey, drinkLabel(d), "drink", "/drinks/"+d.RKey)
+		</div>
+		<div x-show="tab === 'drinks'" x-cloak>
+			@myTeaSectionHeader("Drinks", "drink", "/api/modals/drink/new", len(props.Drinks))
+			if len(props.Drinks) == 0 {
+				@myTeaEmpty("drinks")
+			} else {
+				<div class="feed-grid">
+					for _, d := range props.Drinks {
+						@myTeaCard("drink", d.RKey, "/drinks/"+d.RKey) {
+							@tea.DrinkContent(d)
+						}
+					}
+				</div>
 			}
-		}
+		</div>
 	</div>
 }
 
-// MyTeaSection renders one collapsible section with a "+ Add" button
-// and the per-row list inside. Children are the rendered rows for this
-// entity.
-templ MyTeaSection(title, noun, addModalURL string, count int) {
-	<section class="card p-4 mb-4">
-		<header class="flex items-center justify-between mb-3">
-			<div class="flex items-baseline gap-2">
-				<h3 class="text-lg font-semibold text-primary">{ title }</h3>
-				<span class="text-sm text-muted">{ strconv.Itoa(count) }</span>
-			</div>
-			<button
-				type="button"
-				class="btn-secondary text-sm"
-				hx-get={ addModalURL }
-				hx-target="#modal-container"
-				hx-swap="innerHTML"
-			>
-				+ Add { title[:len(title)-1] }
-			</button>
-		</header>
-		if count == 0 {
-			<p class="text-sm text-muted italic">No { noun }s yet.</p>
-		} else {
-			<ul class="divide-y divide-brown-200">
-				{ children... }
-			</ul>
-		}
-	</section>
+templ MyTeaTabs() {
+	<div class="mb-6 border-b-2 border-brown-300">
+		<nav class="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto">
+			@myTeaTab("steeps", "Steeps")
+			@myTeaTab("teas", "Teas")
+			@myTeaTab("vendors", "Vendors")
+			@myTeaTab("brewers", "Brewers")
+			@myTeaTab("recipes", "Recipes")
+			@myTeaTab("cafes", "Cafes")
+			@myTeaTab("drinks", "Drinks")
+		</nav>
+	</div>
 }
 
-// myTeaRow renders one list row: name + view link + edit + delete.
-templ myTeaRow(rkey, label, noun, viewURL string) {
-	<li class="flex items-center justify-between py-2">
-		<a href={ templ.SafeURL(viewURL) } class="text-sm text-emphasis hover:underline">{ label }</a>
-		<div class="flex items-center gap-2">
+templ myTeaTab(key, label string) {
+	<button
+		@click={ "tab = '" + key + "'" }
+		:class={ "tab === '" + key + "' ? 'tab-row-active' : 'tab-row-inactive'" }
+		class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+	>
+		{ label }
+	</button>
+}
+
+// myTeaSectionHeader renders the row above each tab body: count + Add button.
+templ myTeaSectionHeader(title, noun, addModalURL string, count int) {
+	<div class="flex items-center justify-between mb-4">
+		<div class="flex items-baseline gap-2">
+			<span class="text-sm text-muted">{ fmt.Sprintf("%d %s", count, title) }</span>
+		</div>
+		<button
+			type="button"
+			class="btn-primary text-sm shadow-lg hover:shadow-xl"
+			hx-get={ addModalURL }
+			hx-target="#modal-container"
+			hx-swap="innerHTML"
+		>
+			+ New { title[:len(title)-1] }
+		</button>
+	</div>
+}
+
+// myTeaCard wraps an entity's record-content templ in a feed-style card
+// with edit + delete buttons in the corner. Hover surfaces the actions.
+templ myTeaCard(noun, rkey, viewURL string) {
+	<div class="feed-card relative group">
+		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 			<button
 				type="button"
-				class="text-xs text-muted hover:text-primary"
+				class="bg-brown-100 hover:bg-brown-200 text-emphasis text-xs px-2 py-1 rounded shadow-sm"
 				hx-get={ "/api/modals/" + noun + "/" + rkey }
 				hx-target="#modal-container"
 				hx-swap="innerHTML"
+				aria-label={ "Edit " + noun }
 			>
 				Edit
 			</button>
 			<button
 				type="button"
-				class="text-xs text-muted hover:text-red-600"
-				hx-delete={ "/api/" + nounToURLPath(noun) + "/" + rkey }
+				class="bg-brown-100 hover:bg-red-100 text-emphasis hover:text-red-700 text-xs px-2 py-1 rounded shadow-sm"
+				hx-delete={ "/api/" + myTeaURLPath(noun) + "/" + rkey }
 				hx-confirm={ "Delete this " + noun + "?" }
-				hx-target="closest li"
-				hx-swap="outerHTML"
+				hx-target="closest .feed-card"
+				hx-swap="outerHTML swap:300ms"
+				aria-label={ "Delete " + noun }
 			>
 				Delete
 			</button>
 		</div>
-	</li>
+		<a href={ templ.SafeURL(viewURL) } class="block hover:opacity-95 transition-opacity">
+			{ children... }
+		</a>
+	</div>
 }
 
-// brewLabel formats a steep for the list view — prefer the tea's name
-// when joined, otherwise fall back to the brew rkey.
-func brewLabel(b *oolong.Brew) string {
-	if b.Tea != nil && b.Tea.Name != "" {
-		return b.Tea.Name
-	}
-	if b.TeaRKey != "" {
-		return fmt.Sprintf("Steep · tea %s", b.TeaRKey)
-	}
-	return "Steep"
+templ myTeaEmpty(noun string) {
+	<div class="card p-8 text-center">
+		<p class="text-sm text-muted italic">No { noun } yet.</p>
+	</div>
 }
 
-func drinkLabel(d *oolong.Drink) string {
-	if d.Name != "" {
-		return d.Name
-	}
-	if d.Tea != nil && d.Tea.Name != "" {
-		return d.Tea.Name
-	}
-	return "Drink"
-}
-
-// nounToURLPath maps a singular noun to its plural URL segment.
-// MyTeaSection takes the modal URL directly, but the delete button
-// uses /api/{plural} which the section doesn't carry.
-func nounToURLPath(noun string) string {
+func myTeaURLPath(noun string) string {
 	switch noun {
 	case "tea":
 		return "teas"

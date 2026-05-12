@@ -1,0 +1,246 @@
+package teapages
+
+import (
+	"strconv"
+
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/pdewey.com/atp"
+)
+
+// ProfileProps mirrors coffeepages.ProfileProps for the tea app. The
+// public profile view surfaces the user's owned records across the
+// seven oolong entity types so the visitor can browse what they've
+// shared. Owner-only modal editing flows live on /my-tea — the
+// profile page stays read-only.
+type ProfileProps struct {
+	Profile      *bff.UserProfile
+	DID          string
+	IsOwnProfile bool
+	Brews        []*oolong.Brew
+	Teas         []*oolong.Tea
+	Vendors      []*oolong.Vendor
+	Brewers      []*oolong.Brewer
+	Recipes      []*oolong.Recipe
+	Cafes        []*oolong.Cafe
+	Drinks       []*oolong.Drink
+}
+
+// Profile renders the full profile page.
+templ Profile(layout *components.LayoutData, props ProfileProps) {
+	@components.Layout(layout, ProfileContent(props))
+}
+
+// ProfileNotFound is rendered when the AT Protocol actor exists but
+// hasn't published any oolong records.
+templ ProfileNotFound(layout *components.LayoutData) {
+	@components.Layout(layout, ProfileNotFoundContent())
+}
+
+templ ProfileNotFoundContent() {
+	<div class="page-container-md text-center py-16">
+		<h1 class="text-2xl font-semibold text-primary mb-3">Profile not found</h1>
+		<p class="text-emphasis">This user hasn't shared any tea on Oolong yet.</p>
+		<div class="mt-8">
+			<a href="/" class="btn-primary py-3 px-6 shadow-lg hover:shadow-xl">
+				Back to Home
+			</a>
+		</div>
+	</div>
+}
+
+// ProfileContent renders the profile page. Mirrors coffeepages.Profile
+// structure: header card, stat row, tab nav, tab bodies. Tabs are
+// alpine-driven (`x-data="{ activeTab: 'steeps' }"`); panels render
+// server-side and toggle with x-show. No HTMX async — counts and
+// records both come in the initial render.
+templ ProfileContent(props ProfileProps) {
+	<div class="page-container-lg" x-data="{ activeTab: 'steeps' }">
+		@TeaProfileHeader(props.Profile)
+		@TeaProfileStats(props)
+		@TeaProfileTabs()
+		@teaProfileBody(props)
+	</div>
+}
+
+// TeaProfileHeader renders the avatar + name + handle card.
+templ TeaProfileHeader(profile *bff.UserProfile) {
+	<div class="card p-6 mb-6">
+		<div class="flex items-center gap-4">
+			@components.Avatar(components.AvatarProps{
+				AvatarURL:   profile.Avatar,
+				DisplayName: profile.DisplayName,
+				Size:        "lg",
+			})
+			<div>
+				if profile.DisplayName != "" {
+					<h1 class="text-2xl font-bold text-primary">{ profile.DisplayName }</h1>
+				}
+				<p class="text-emphasis">{ "@" + atp.DisplayHandle(profile.Handle) }</p>
+			</div>
+		</div>
+	</div>
+}
+
+// TeaProfileStats renders the count grid. Five cards mirror arabica's
+// five-stat layout: Steeps, Teas, Vendors, Brewers, Cafes. (Recipes +
+// Drinks are surfaced inside the Gear tab body; they don't get their
+// own stat tile to keep the row uncluttered.)
+templ TeaProfileStats(props ProfileProps) {
+	<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+		@teaProfileStat("Steeps", len(props.Brews))
+		@teaProfileStat("Teas", len(props.Teas))
+		@teaProfileStat("Vendors", len(props.Vendors))
+		@teaProfileStat("Brewers", len(props.Brewers))
+		@teaProfileStat("Cafes", len(props.Cafes))
+	</div>
+}
+
+templ teaProfileStat(label string, count int) {
+	<div class="card-sm p-4">
+		<div class="text-2xl font-bold text-secondary">{ strconv.Itoa(count) }</div>
+		<div class="text-sm text-emphasis">{ label }</div>
+	</div>
+}
+
+// TeaProfileTabs renders the tab navigation. Three tabs: Steeps,
+// Teas, Gear — matches arabica's three-tab Profile UI. "Gear" groups
+// the supporting entities (vendors, brewers, recipes, cafes, drinks)
+// so visitors can browse without seven flat tabs.
+templ TeaProfileTabs() {
+	<div>
+		<div class="card shadow-md mb-4">
+			<div class="flex border-b border-brown-300">
+				@teaProfileTabBtn("steeps", "Steeps")
+				@teaProfileTabBtn("teas", "Teas")
+				@teaProfileTabBtn("gear", "Gear")
+			</div>
+		</div>
+	</div>
+}
+
+templ teaProfileTabBtn(key, label string) {
+	<button
+		@click={ "activeTab = '" + key + "'" }
+		:class={ "activeTab === '" + key + "' ? 'tab-underline-active' : 'tab-underline-inactive'" }
+		class="flex-1 py-3 px-4 text-center font-medium transition-colors"
+	>
+		{ label }
+	</button>
+}
+
+// teaProfileBody renders the per-tab panels. Each panel server-renders
+// its entity list as feed-style cards; tab switching is pure x-show
+// so the data is already on the page when the user clicks.
+templ teaProfileBody(props ProfileProps) {
+	<div id="profile-content">
+		<div x-show="activeTab === 'steeps'">
+			if len(props.Brews) == 0 {
+				@teaProfileEmpty("steeps")
+			} else {
+				<div class="feed-grid">
+					for _, b := range props.Brews {
+						<a href={ templ.SafeURL("/brews/" + b.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+							<div class="feed-card feed-card-brew">
+								@tea.BrewContent(b)
+							</div>
+						</a>
+					}
+				</div>
+			}
+		</div>
+		<div x-show="activeTab === 'teas'" x-cloak>
+			if len(props.Teas) == 0 {
+				@teaProfileEmpty("teas")
+			} else {
+				<div class="feed-grid">
+					for _, t := range props.Teas {
+						<a href={ templ.SafeURL("/teas/" + t.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+							<div class="feed-card feed-card-tea">
+								@tea.TeaContent(t)
+							</div>
+						</a>
+					}
+				</div>
+			}
+		</div>
+		<div x-show="activeTab === 'gear'" x-cloak>
+			@teaProfileGearGroup(props, "Vendors", "vendor", len(props.Vendors)) {
+				for _, v := range props.Vendors {
+					<a href={ templ.SafeURL("/vendors/" + v.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+						<div class="feed-card feed-card-vendor feed-card-compact">
+							@tea.VendorContent(v)
+						</div>
+					</a>
+				}
+			}
+			@teaProfileGearGroup(props, "Brewers", "brewer", len(props.Brewers)) {
+				for _, b := range props.Brewers {
+					<a href={ templ.SafeURL("/brewers/" + b.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+						<div class="feed-card feed-card-brewer feed-card-compact">
+							@tea.BrewerContent(b)
+						</div>
+					</a>
+				}
+			}
+			@teaProfileGearGroup(props, "Recipes", "recipe", len(props.Recipes)) {
+				for _, r := range props.Recipes {
+					<a href={ templ.SafeURL("/recipes/" + r.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+						<div class="feed-card feed-card-recipe">
+							@tea.RecipeContent(r)
+						</div>
+					</a>
+				}
+			}
+			@teaProfileGearGroup(props, "Cafes", "cafe", len(props.Cafes)) {
+				for _, c := range props.Cafes {
+					<a href={ templ.SafeURL("/cafes/" + c.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+						<div class="feed-card feed-card-cafe">
+							@tea.CafeContent(c)
+						</div>
+					</a>
+				}
+			}
+			@teaProfileGearGroup(props, "Drinks", "drink", len(props.Drinks)) {
+				for _, d := range props.Drinks {
+					<a href={ templ.SafeURL("/drinks/" + d.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+						<div class="feed-card feed-card-drink">
+							@tea.DrinkContent(d)
+						</div>
+					</a>
+				}
+			}
+		</div>
+	</div>
+}
+
+// teaProfileGearGroup wraps a labeled subsection inside the Gear tab.
+// Headings make the grouping legible without forcing a second tab
+// layer. Empty groups still render the heading + an italic "none yet"
+// line on the owner's own profile (so they see what they could add);
+// other viewers see only non-empty groups.
+templ teaProfileGearGroup(props ProfileProps, title, noun string, count int) {
+	if count > 0 || props.IsOwnProfile {
+		<section class="mb-6">
+			<header class="flex items-baseline justify-between mb-3">
+				<h2 class="text-lg font-semibold text-primary">{ title }</h2>
+				<span class="text-sm text-muted">{ strconv.Itoa(count) }</span>
+			</header>
+			if count == 0 {
+				<p class="text-sm text-muted italic">No { noun }s yet.</p>
+			} else {
+				<div class="feed-grid">
+					{ children... }
+				</div>
+			}
+		</section>
+	}
+}
+
+templ teaProfileEmpty(noun string) {
+	<div class="card p-8 text-center">
+		<p class="text-sm text-muted italic">No { noun } yet.</p>
+	</div>
+}

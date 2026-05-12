@@ -3,12 +3,15 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/rs/zerolog/log"
+	atp "tangled.org/pdewey.com/atp"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
 
 // HandleMyTea renders /my-tea — the oolong equivalent of arabica's
@@ -62,6 +65,144 @@ func listOolong[T any](
 		t, err := decode(r.Record, r.URI)
 		if err != nil {
 			log.Warn().Err(err).Str("uri", r.URI).Msg("decode failed; skipping record")
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// HandleOolongProfile renders /profile/{actor} for the oolong app.
+// Intentionally smaller surface than arabica's HandleProfile: it
+// resolves the actor → DID, fetches their public profile + oolong
+// records (brews, teas, vendors), and renders a minimal page. The
+// owner-only tabs, equipment management, and modal-driven editing
+// flows live on /my-tea instead — public profiles stay read-only.
+func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
+	actor := r.PathValue("actor")
+	if actor == "" {
+		http.Error(w, "Actor parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	publicClient := atproto.NewPublicClient()
+
+	// Resolve actor → DID (handle or did:plc:...).
+	var did string
+	var err error
+	if strings.HasPrefix(actor, "did:") {
+		did = actor
+	} else {
+		if h.feedIndex != nil {
+			did, _ = h.feedIndex.GetDIDByHandle(ctx, actor)
+		}
+		if did == "" {
+			did, err = publicClient.ResolveHandle(ctx, actor)
+			if err != nil {
+				http.Error(w, "User not found", http.StatusNotFound)
+				return
+			}
+		}
+	}
+
+	// Fetch atproto profile (display name, avatar, handle).
+	var profile *atproto.Profile
+	if h.feedIndex != nil {
+		profile, _ = h.feedIndex.GetProfile(ctx, did)
+	}
+	if profile == nil {
+		profile, err = publicClient.GetProfile(ctx, did)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+	}
+
+	// Canonical-handle redirect.
+	if strings.HasPrefix(actor, "did:") && profile.Handle != "" {
+		http.Redirect(w, r, "/profile/"+profile.Handle, http.StatusFound)
+		return
+	}
+
+	viewedProfile := &bff.UserProfile{Handle: profile.Handle}
+	if profile.DisplayName != nil {
+		viewedProfile.DisplayName = *profile.DisplayName
+	}
+	if profile.Avatar != nil {
+		viewedProfile.Avatar = *profile.Avatar
+	}
+
+	// Fetch oolong records the user has published. Public reads via
+	// the AT Protocol client — viewer doesn't need to be logged in to
+	// the owner's PDS. All seven entity types are loaded server-side
+	// so tab switching on the rendered page stays instant.
+	brews := listOolongPublic(ctx, publicClient, did, oolong.NSIDBrew, oolong.RecordToBrew)
+	teas := listOolongPublic(ctx, publicClient, did, oolong.NSIDTea, oolong.RecordToTea)
+	vendors := listOolongPublic(ctx, publicClient, did, oolong.NSIDVendor, oolong.RecordToVendor)
+	brewers := listOolongPublic(ctx, publicClient, did, oolong.NSIDBrewer, oolong.RecordToBrewer)
+	recipes := listOolongPublic(ctx, publicClient, did, oolong.NSIDRecipe, oolong.RecordToRecipe)
+	cafes := listOolongPublic(ctx, publicClient, did, oolong.NSIDCafe, oolong.RecordToCafe)
+	drinks := listOolongPublic(ctx, publicClient, did, oolong.NSIDDrink, oolong.RecordToDrink)
+
+	_, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Profile")
+	isOwn := isAuthenticated && didStr == did
+
+	if len(brews) == 0 && len(teas) == 0 && len(vendors) == 0 &&
+		len(brewers) == 0 && len(recipes) == 0 && len(cafes) == 0 && len(drinks) == 0 &&
+		!h.feedRegistry.IsRegistered(did) {
+		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
+		w.WriteHeader(http.StatusNotFound)
+		if err := teapages.ProfileNotFound(layoutData).Render(ctx, w); err != nil {
+			log.Error().Err(err).Msg("Failed to render oolong profile-not-found page")
+		}
+		return
+	}
+
+	pageTitle := "@" + viewedProfile.Handle
+	if viewedProfile.DisplayName != "" {
+		pageTitle = viewedProfile.DisplayName + " (@" + viewedProfile.Handle + ")"
+	}
+	layoutData, _, _ := h.layoutDataFromRequest(r, pageTitle)
+
+	props := teapages.ProfileProps{
+		Profile:      viewedProfile,
+		DID:          did,
+		IsOwnProfile: isOwn,
+		Brews:        brews,
+		Teas:         teas,
+		Vendors:      vendors,
+		Brewers:      brewers,
+		Recipes:      recipes,
+		Cafes:        cafes,
+		Drinks:       drinks,
+	}
+	if err := teapages.Profile(layoutData, props).Render(ctx, w); err != nil {
+		log.Error().Err(err).Msg("Failed to render oolong profile page")
+	}
+}
+
+// listOolongPublic mirrors listOolong but reads from an arbitrary DID's
+// PDS via the public client rather than the authenticated AtprotoStore.
+// Used by HandleOolongProfile to surface another user's records.
+func listOolongPublic[T any](
+	ctx context.Context,
+	client *atp.PublicClient,
+	did, nsid string,
+	decode func(map[string]any, string) (*T, error),
+) []*T {
+	records, err := client.ListAllRecords(ctx, did, nsid)
+	if err != nil {
+		// Not having a record type isn't an error from the user's POV — it
+		// just means they haven't created any of that entity. The PDS may
+		// return 404 for an empty collection; degrade to empty list.
+		return nil
+	}
+	out := make([]*T, 0, len(records))
+	for _, rec := range records {
+		t, err := decode(rec.Value, rec.URI)
+		if err != nil {
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("oolong profile: decode failed; skipping record")
 			continue
 		}
 		out = append(out, t)
