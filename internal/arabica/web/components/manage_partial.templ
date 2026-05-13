@@ -28,7 +28,7 @@ templ ManagePartial(props ManagePartialProps) {
 	@ManageRoastersTab(props.Roasters, props.RoasterBeanCounts, props.RoasterAvgBrewRatings, props.OwnerDID)
 	@ManageGrindersTab(props.Grinders, props.GrinderBrewCounts, props.OwnerDID)
 	@ManageBrewersTab(props.Brewers, props.BrewerBrewCounts, props.OwnerDID)
-	@ManageRecipesTab(props.Recipes)
+	@ManageRecipesTab(props.Recipes, props.OwnerDID)
 }
 
 // ManageBeansTab renders the beans tab content with open/closed sections
@@ -141,7 +141,7 @@ templ ManageBrewersTab(brewers []*arabica.Brewer, brewCounts map[string]int, own
 }
 
 // ManageRecipesTab renders the recipes tab content
-templ ManageRecipesTab(recipes []*arabica.Recipe) {
+templ ManageRecipesTab(recipes []*arabica.Recipe, ownerDID string) {
 	<div x-show="tab === 'recipes'">
 		@RecipeAlphaWarning()
 		<div class="mb-4 flex justify-between items-center">
@@ -158,6 +158,7 @@ templ ManageRecipesTab(recipes []*arabica.Recipe) {
 		@RecipesTable(RecipesTableProps{
 			Recipes:     recipes,
 			ShowActions: true,
+			OwnerDID:    ownerDID,
 		})
 	</div>
 }

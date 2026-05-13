@@ -42,7 +42,7 @@ templ BeanViewCard(props BeanViewProps) {
 				<h1 class="label-origin-hero">{ beanViewTitle(props.Bean) }</h1>
 				if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
 					<div class="label-byline">
-						<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", props.Bean.Roaster.RKey, getOwnerFromShareURL(props.ShareURL))) }>
+						<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s/%s", getOwnerFromShareURL(props.ShareURL), props.Bean.Roaster.RKey)) }>
 							{ props.Bean.Roaster.Name }
 						</a>
 						if props.Bean.Roaster.Location != "" {
@@ -351,13 +351,10 @@ func pluralS(n int) string {
 }
 
 func getOwnerFromShareURL(shareURL string) string {
-	// Extract owner from URLs like "/beans/rkey?owner=handle"
-	if idx := strings.Index(shareURL, "owner="); idx >= 0 {
-		owner := shareURL[idx+len("owner="):]
-		if ampIdx := strings.Index(owner, "&"); ampIdx >= 0 {
-			return owner[:ampIdx]
-		}
-		return owner
+	// Extract owner from URLs like "/beans/handle/rkey" (the second path segment).
+	parts := strings.Split(strings.TrimPrefix(shareURL, "/"), "/")
+	if len(parts) >= 3 {
+		return parts[1]
 	}
 	return ""
 }

@@ -53,11 +53,12 @@ func TestHTTP_EntityViewSmoke(t *testing.T) {
 	brewerResp := h.PostForm("/api/brewers", form("name", "View Brewer"))
 	brewer := mustRKey(t, brewerResp, "brewer")
 
+	actor := h.PrimaryAccount.DID
 	views := map[string]string{
-		"roaster": "/roasters/" + roaster,
-		"bean":    "/beans/" + bean,
-		"grinder": "/grinders/" + grinder,
-		"brewer":  "/brewers/" + brewer,
+		"roaster": "/roasters/" + actor + "/" + roaster,
+		"bean":    "/beans/" + actor + "/" + bean,
+		"grinder": "/grinders/" + actor + "/" + grinder,
+		"brewer":  "/brewers/" + actor + "/" + brewer,
 	}
 
 	for label, path := range views {

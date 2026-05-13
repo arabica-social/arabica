@@ -343,7 +343,7 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 							</button>
 						</template>
 						<a
-							:href="'/recipes/' + selectedRecipe.rkey + '?owner=' + encodeURIComponent(selectedRecipe.author_handle || selectedRecipe.author_did)"
+							:href="'/recipes/' + encodeURIComponent(selectedRecipe.author_handle || selectedRecipe.author_did) + '/' + selectedRecipe.rkey"
 							class="btn-secondary text-sm text-center"
 						>
 							View Recipe

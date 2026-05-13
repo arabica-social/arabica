@@ -39,7 +39,7 @@ templ ProfileBrewCard(props ProfileBrewCardProps) {
 		<div class="mb-2 text-sm text-emphasis">
 			added a
 			<a
-				href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle)) }
+				href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", props.ProfileHandle, props.Brew.RKey)) }
 				class="underline hover:text-primary"
 			>
 				new brew
@@ -47,7 +47,7 @@ templ ProfileBrewCard(props ProfileBrewCardProps) {
 		</div>
 		<!-- Brew content (clickable) -->
 		<a
-			href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle)) }
+			href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", props.ProfileHandle, props.Brew.RKey)) }
 			class="block hover:opacity-90 transition-opacity"
 		>
 			@BrewContent(props.Brew)
@@ -60,8 +60,8 @@ templ ProfileBrewCard(props ProfileBrewCardProps) {
 			LikeCount:       props.LikeCount,
 			CommentCount:    props.CommentCount,
 			ShowComments:    true,
-			ViewURL:         fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle),
-			ShareURL:        fmt.Sprintf("/brews/%s?owner=%s", props.Brew.RKey, props.ProfileHandle),
+			ViewURL:         fmt.Sprintf("/brews/%s/%s", props.ProfileHandle, props.Brew.RKey),
+			ShareURL:        fmt.Sprintf("/brews/%s/%s", props.ProfileHandle, props.Brew.RKey),
 			ShareTitle:      getBrewShareTitle(props.Brew),
 			ShareText:       getBrewShareText(props.Brew, props.ProfileHandle),
 			IsOwner:         props.IsOwnProfile,

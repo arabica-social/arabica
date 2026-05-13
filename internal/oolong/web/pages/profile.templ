@@ -142,7 +142,7 @@ templ teaProfileBody(props ProfileProps) {
 			} else {
 				<div class="feed-grid">
 					for _, b := range props.Brews {
-						<a href={ templ.SafeURL("/brews/" + b.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+						<a href={ templ.SafeURL("/brews/" + profileActor(props) + "/" + b.RKey) } class="block hover:opacity-95 transition-opacity">
 							<div class="feed-card feed-card-brew">
 								@tea.BrewContent(b)
 							</div>
@@ -157,7 +157,7 @@ templ teaProfileBody(props ProfileProps) {
 			} else {
 				<div class="feed-grid">
 					for _, t := range props.Teas {
-						<a href={ templ.SafeURL("/teas/" + t.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+						<a href={ templ.SafeURL("/teas/" + profileActor(props) + "/" + t.RKey) } class="block hover:opacity-95 transition-opacity">
 							<div class="feed-card feed-card-tea">
 								@tea.TeaContent(t)
 							</div>
@@ -169,7 +169,7 @@ templ teaProfileBody(props ProfileProps) {
 		<div x-show="activeTab === 'gear'" x-cloak>
 			@teaProfileGearGroup(props, "Vendors", "vendor", len(props.Vendors)) {
 				for _, v := range props.Vendors {
-					<a href={ templ.SafeURL("/vendors/" + v.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+					<a href={ templ.SafeURL("/vendors/" + profileActor(props) + "/" + v.RKey) } class="block hover:opacity-95 transition-opacity">
 						<div class="feed-card feed-card-vendor feed-card-compact">
 							@tea.VendorContent(v)
 						</div>
@@ -178,7 +178,7 @@ templ teaProfileBody(props ProfileProps) {
 			}
 			@teaProfileGearGroup(props, "Brewers", "brewer", len(props.Brewers)) {
 				for _, b := range props.Brewers {
-					<a href={ templ.SafeURL("/brewers/" + b.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+					<a href={ templ.SafeURL("/brewers/" + profileActor(props) + "/" + b.RKey) } class="block hover:opacity-95 transition-opacity">
 						<div class="feed-card feed-card-brewer feed-card-compact">
 							@tea.BrewerContent(b)
 						</div>
@@ -187,7 +187,7 @@ templ teaProfileBody(props ProfileProps) {
 			}
 			@teaProfileGearGroup(props, "Recipes", "recipe", len(props.Recipes)) {
 				for _, r := range props.Recipes {
-					<a href={ templ.SafeURL("/recipes/" + r.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+					<a href={ templ.SafeURL("/recipes/" + profileActor(props) + "/" + r.RKey) } class="block hover:opacity-95 transition-opacity">
 						<div class="feed-card feed-card-recipe">
 							@tea.RecipeContent(r)
 						</div>
@@ -196,7 +196,7 @@ templ teaProfileBody(props ProfileProps) {
 			}
 			@teaProfileGearGroup(props, "Cafes", "cafe", len(props.Cafes)) {
 				for _, c := range props.Cafes {
-					<a href={ templ.SafeURL("/cafes/" + c.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+					<a href={ templ.SafeURL("/cafes/" + profileActor(props) + "/" + c.RKey) } class="block hover:opacity-95 transition-opacity">
 						<div class="feed-card feed-card-cafe">
 							@tea.CafeContent(c)
 						</div>
@@ -205,7 +205,7 @@ templ teaProfileBody(props ProfileProps) {
 			}
 			@teaProfileGearGroup(props, "Drinks", "drink", len(props.Drinks)) {
 				for _, d := range props.Drinks {
-					<a href={ templ.SafeURL("/drinks/" + d.RKey + "?owner=" + props.DID) } class="block hover:opacity-95 transition-opacity">
+					<a href={ templ.SafeURL("/drinks/" + profileActor(props) + "/" + d.RKey) } class="block hover:opacity-95 transition-opacity">
 						<div class="feed-card feed-card-drink">
 							@tea.DrinkContent(d)
 						</div>
@@ -243,4 +243,13 @@ templ teaProfileEmpty(noun string) {
 	<div class="card p-8 text-center">
 		<p class="text-sm text-muted italic">No { noun } yet.</p>
 	</div>
+}
+
+// profileActor returns the handle when known, falling back to the DID. Used
+// to build the {actor} segment of /{slug}/{actor}/{rkey} record URLs.
+func profileActor(props ProfileProps) string {
+	if props.Profile != nil && props.Profile.Handle != "" {
+		return props.Profile.Handle
+	}
+	return props.DID
 }

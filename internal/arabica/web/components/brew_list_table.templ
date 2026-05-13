@@ -62,7 +62,9 @@ templ brewListCard(brew *arabica.Brew, isOwnProfile bool, profileHandle string) 
 			</div>
 			<div class="flex items-center gap-1">
 				if isOwnProfile {
-					<a href={ templ.SafeURL("/brews/" + brew.RKey) } class="text-muted hover:text-primary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200">View</a>
+					if profileHandle != "" {
+						<a href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", profileHandle, brew.RKey)) } class="text-muted hover:text-primary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200">View</a>
+					}
 					<a href={ templ.SafeURL("/brews/" + brew.RKey + "/edit") } class="text-muted hover:text-primary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200">Edit</a>
 					<button
 						hx-delete={ "/brews/" + brew.RKey }
@@ -72,9 +74,7 @@ templ brewListCard(brew *arabica.Brew, isOwnProfile bool, profileHandle string) 
 						class="text-faint hover:text-secondary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200"
 					>Delete</button>
 				} else if profileHandle != "" {
-					<a href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", brew.RKey, profileHandle)) } class="text-muted hover:text-primary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200">View</a>
-				} else {
-					<a href={ templ.SafeURL("/brews/" + brew.RKey) } class="text-muted hover:text-primary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200">View</a>
+					<a href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", profileHandle, brew.RKey)) } class="text-muted hover:text-primary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200">View</a>
 				}
 			</div>
 		</div>

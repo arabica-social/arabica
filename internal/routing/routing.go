@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/middleware"
@@ -111,9 +112,12 @@ func SetupRouter(cfg Config) http.Handler {
 		mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
 		// Brew is registered explicitly: edit page and export endpoint don't
 		// fit the simple-entity route shape.
-		mux.HandleFunc("GET /brews/{id}/og-image", h.HandleBrewOGImage)
-		mux.HandleFunc("GET /brews/{id}", h.HandleBrewView)
 		mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
+		// Canonical record view: /brews/{actor}/{rkey}. The actor segment
+		// (handle or did:*) is promoted into ?owner= so the existing
+		// handler logic is reused unchanged.
+		mux.HandleFunc("GET /brews/{actor}/{id}/og-image", rewriteActorToOwner(h.HandleBrewOGImage))
+		mux.HandleFunc("GET /brews/{actor}/{id}", rewriteActorToOwner(h.HandleBrewView))
 		mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
 		mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
 		mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
@@ -123,8 +127,8 @@ func SetupRouter(cfg Config) http.Handler {
 		// have additional endpoints (from-brew, fork) that don't fit the
 		// simple-entity bundle.
 		mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
-		mux.HandleFunc("GET /recipes/{id}/og-image", h.HandleRecipeOGImage)
-		mux.HandleFunc("GET /recipes/{id}", h.HandleRecipeView)
+		mux.HandleFunc("GET /recipes/{actor}/{id}/og-image", rewriteActorToOwner(h.HandleRecipeOGImage))
+		mux.HandleFunc("GET /recipes/{actor}/{id}", rewriteActorToOwner(h.HandleRecipeView))
 
 		mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
 		mux.HandleFunc("GET /api/recipes/suggestions", h.HandleRecipeSuggestions)
@@ -157,6 +161,21 @@ func SetupRouter(cfg Config) http.Handler {
 
 	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
 	mux.Handle("POST /api/report", cop.Handler(http.HandlerFunc(h.HandleReport)))
+
+	// AT-URI shaped redirect: /at/{nsid}/{actor}/{rkey} -> /{slug}/{actor}/{rkey}.
+	// Lets power users paste the lexicon-shaped URL and land on the canonical
+	// friendly-slug page.
+	mux.HandleFunc("GET /at/{nsid}/{actor}/{id}", func(w http.ResponseWriter, r *http.Request) {
+		nsid := r.PathValue("nsid")
+		actor := r.PathValue("actor")
+		rkey := r.PathValue("id")
+		desc := entities.GetByNSID(nsid)
+		if desc == nil {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, "/"+desc.URLPath+"/"+actor+"/"+rkey, http.StatusFound)
+	})
 
 	// Comment routes
 	mux.Handle("GET /api/comments", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleCommentList)))
@@ -349,10 +368,10 @@ func registerEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 
 		urlPath := desc.URLPath
 		if b.View != nil {
-			mux.HandleFunc("GET /"+urlPath+"/{id}", b.View)
+			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}", rewriteActorToOwner(b.View))
 		}
 		if b.OGImage != nil {
-			mux.HandleFunc("GET /"+urlPath+"/{id}/og-image", b.OGImage)
+			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/og-image", rewriteActorToOwner(b.OGImage))
 		}
 		if b.Create != nil {
 			mux.Handle("POST /api/"+urlPath, cop.Handler(b.Create))
@@ -369,6 +388,22 @@ func registerEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		if b.ModalEdit != nil {
 			mux.HandleFunc("GET /api/modals/"+desc.Noun+"/{id}", b.ModalEdit)
 		}
+	}
+}
+
+// rewriteActorToOwner promotes the {actor} path segment to the ?owner= query
+// param so the existing record view/og-image handlers (which key off ?owner=)
+// can serve the new /{slug}/{actor}/{rkey} canonical route without changes.
+// The actor segment may be either a did:* identifier or a handle; both are
+// already accepted by the downstream resolver.
+func rewriteActorToOwner(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if actor := r.PathValue("actor"); actor != "" {
+			q := r.URL.Query()
+			q.Set("owner", actor)
+			r.URL.RawQuery = q.Encode()
+		}
+		h(w, r)
 	}
 }
 

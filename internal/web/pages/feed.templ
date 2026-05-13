@@ -293,7 +293,11 @@ func feedCardClass(item *feed.FeedItem) string {
 func getFeedItemShareURL(item *feed.FeedItem) string {
 	if d := entities.Get(item.RecordType); d != nil {
 		if rkey := item.RKey(); rkey != "" {
-			return fmt.Sprintf("/%s/%s?owner=%s", d.URLPath, rkey, item.Author.DID)
+			actor := item.Author.Handle
+			if actor == "" {
+				actor = item.Author.DID
+			}
+			return fmt.Sprintf("/%s/%s/%s", d.URLPath, actor, rkey)
 		}
 	}
 	return fmt.Sprintf("/profile/%s", item.Author.DID)

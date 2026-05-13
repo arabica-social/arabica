@@ -108,15 +108,34 @@ func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg e
 	var subjectURI, subjectCID, entityOwnerDID string
 	isOwnProfile := false
 
-	if owner != "" {
-		var err error
-		entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
-		if err != nil {
-			log.Warn().Err(err).Str("handle", owner).Msgf("Failed to resolve handle for %s view", cfg.descriptor.Noun)
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
+	if owner == "" {
+		http.Error(w, "owner required", http.StatusBadRequest)
+		return
+	}
 
+	var err error
+	entityOwnerDID, err = resolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		log.Warn().Err(err).Str("handle", owner).Msgf("Failed to resolve handle for %s view", cfg.descriptor.Noun)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+	isOwnProfile = isAuthenticated && didStr == entityOwnerDID
+
+	// If the viewer owns the record, read through the authenticated
+	// AtprotoStore so locally-written records that the firehose hasn't
+	// caught up to are still visible.
+	if isOwnProfile {
+		if store, ok := h.getAtprotoStore(r); ok {
+			if atprotoStore, ok := store.(*atproto.AtprotoStore); ok {
+				if rec, uri, cid, err := cfg.fromStore(r.Context(), atprotoStore, rkey); err == nil {
+					record, subjectURI, subjectCID = rec, uri, cid
+				}
+			}
+		}
+	}
+
+	if record == nil {
 		entityURI := atp.BuildATURI(entityOwnerDID, cfg.descriptor.NSID, rkey)
 		if h.witnessCache != nil {
 			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), entityURI); wr != nil {
@@ -126,58 +145,37 @@ func (h *Handler) handleEntityView(w http.ResponseWriter, r *http.Request, cfg e
 						record = rec
 						subjectURI = wr.URI
 						subjectCID = wr.CID
-						isOwnProfile = isAuthenticated && didStr == entityOwnerDID
 					}
 				}
 			}
 		}
+	}
 
-		if record == nil {
-			metrics.WitnessCacheMissesTotal.WithLabelValues(cfg.descriptor.Noun).Inc()
-			pub := atproto.NewPublicClient()
-			entry, err := pub.GetPublicRecord(r.Context(), entityOwnerDID, cfg.descriptor.NSID, rkey)
-			if err != nil {
-				log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msgf("Failed to get %s record", cfg.descriptor.Noun)
-				http.Error(w, cfg.descriptor.DisplayName+" not found", http.StatusNotFound)
-				return
-			}
-			rec, err := cfg.fromPDS(r.Context(), entry, rkey, entityOwnerDID)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to convert %s record", cfg.descriptor.Noun)
-				http.Error(w, "Failed to load "+cfg.descriptor.Noun, http.StatusInternalServerError)
-				return
-			}
-			record = rec
-			subjectURI = entry.URI
-			subjectCID = entry.CID
-			isOwnProfile = isAuthenticated && didStr == entityOwnerDID
-		}
-	} else {
-		store, authenticated := h.getAtprotoStore(r)
-		if !authenticated {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-		atprotoStore, ok := store.(*atproto.AtprotoStore)
-		if !ok {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
-			return
-		}
-		rec, uri, cid, err := cfg.fromStore(r.Context(), atprotoStore, rkey)
+	if record == nil {
+		metrics.WitnessCacheMissesTotal.WithLabelValues(cfg.descriptor.Noun).Inc()
+		pub := atproto.NewPublicClient()
+		entry, err := pub.GetPublicRecord(r.Context(), entityOwnerDID, cfg.descriptor.NSID, rkey)
 		if err != nil {
+			log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msgf("Failed to get %s record", cfg.descriptor.Noun)
 			http.Error(w, cfg.descriptor.DisplayName+" not found", http.StatusNotFound)
-			log.Error().Err(err).Str("rkey", rkey).Msgf("Failed to get %s for view", cfg.descriptor.Noun)
 			return
 		}
-		record, subjectURI, subjectCID = rec, uri, cid
-		isOwnProfile = true
+		rec, err := cfg.fromPDS(r.Context(), entry, rkey, entityOwnerDID)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to convert %s record", cfg.descriptor.Noun)
+			http.Error(w, "Failed to load "+cfg.descriptor.Noun, http.StatusInternalServerError)
+			return
+		}
+		record = rec
+		subjectURI = entry.URI
+		subjectCID = entry.CID
 	}
 
 	var shareURL string
 	if owner != "" {
-		shareURL = fmt.Sprintf("/%s/%s?owner=%s", cfg.descriptor.URLPath, rkey, owner)
+		shareURL = fmt.Sprintf("/%s/%s/%s", cfg.descriptor.URLPath, owner, rkey)
 	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/%s/%s?owner=%s", cfg.descriptor.URLPath, rkey, userProfile.Handle)
+		shareURL = fmt.Sprintf("/%s/%s/%s", cfg.descriptor.URLPath, userProfile.Handle, rkey)
 	}
 
 	ownerHandle := h.resolveOwnerHandle(r.Context(), owner)
@@ -484,114 +482,108 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	var props coffeepages.RecipeViewProps
 	var subjectURI, subjectCID, entityOwnerDID string
 
-	if owner != "" {
-		entityOwnerDID, err := resolveOwnerDID(r.Context(), owner)
-		if err != nil {
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
+	if owner == "" {
+		http.Error(w, "owner required", http.StatusBadRequest)
+		return
+	}
 
-		// Try witness cache first
+	resolvedDID, err := resolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+	entityOwnerDID = resolvedDID
+	props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
+
+	// When the viewer owns the record, hit the authenticated AtprotoStore
+	// first — it sees locally-written records that the firehose may not
+	// have observed yet.
+	if props.IsOwnProfile {
+		if store, ok := h.getAtprotoStore(r); ok {
+			if atprotoStore, ok := store.(*atproto.AtprotoStore); ok {
+				if recipeRecord, err := atprotoStore.GetRecipeRecordByRKey(r.Context(), rkey); err == nil {
+					recipeRecord.Recipe.Interpolate()
+					props.Recipe = recipeRecord.Recipe
+					subjectURI = recipeRecord.URI
+					subjectCID = recipeRecord.CID
+				}
+			}
+		}
+	}
+
+	if props.Recipe == nil && h.witnessCache != nil {
+		// Try witness cache.
 		recipeURI := atp.BuildATURI(entityOwnerDID, arabica.NSIDRecipe, rkey)
-		if h.witnessCache != nil {
-			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), recipeURI); wr != nil {
-				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if recipe, err := arabica.RecordToRecipe(m, wr.URI); err == nil {
-						metrics.WitnessCacheHitsTotal.WithLabelValues("recipe").Inc()
-						recipe.RKey = rkey
-						subjectURI = wr.URI
-						subjectCID = wr.CID
-						// Resolve brewer from witness
-						if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
-							if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
-								recipe.BrewerRKey = rkey
-							}
-							if bwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerRef); bwr != nil {
-								if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
-									if brewer, err := arabica.RecordToBrewer(bm, bwr.URI); err == nil {
-										brewer.RKey = bwr.RKey
-										recipe.BrewerObj = brewer
-									}
+		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), recipeURI); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				if recipe, err := arabica.RecordToRecipe(m, wr.URI); err == nil {
+					metrics.WitnessCacheHitsTotal.WithLabelValues("recipe").Inc()
+					recipe.RKey = rkey
+					subjectURI = wr.URI
+					subjectCID = wr.CID
+					if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
+						if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+							recipe.BrewerRKey = rkey
+						}
+						if bwr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewerRef); bwr != nil {
+							if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
+								if brewer, err := arabica.RecordToBrewer(bm, bwr.URI); err == nil {
+									brewer.RKey = bwr.RKey
+									recipe.BrewerObj = brewer
 								}
 							}
 						}
-						recipe.Interpolate()
-						props.Recipe = recipe
-						props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
 					}
+					recipe.Interpolate()
+					props.Recipe = recipe
 				}
 			}
 		}
+	}
 
-		if props.Recipe == nil {
-			// PDS fallback
-			metrics.WitnessCacheMissesTotal.WithLabelValues("recipe").Inc()
-			publicClient := atproto.NewPublicClient()
-			record, err := publicClient.GetPublicRecord(r.Context(), entityOwnerDID, arabica.NSIDRecipe, rkey)
-			if err != nil {
-				http.Error(w, "Recipe not found", http.StatusNotFound)
-				return
-			}
-
-			subjectURI = record.URI
-			subjectCID = record.CID
-
-			recipe, err := arabica.RecordToRecipe(record.Value, record.URI)
-			if err != nil {
-				http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
-				return
-			}
-			recipe.RKey = rkey
-
-			// Resolve brewer reference if present
-			if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
-				if brewerRKey := atp.RKeyFromURI(brewerRef); brewerRKey != "" {
-					recipe.BrewerRKey = brewerRKey
-					brewerRecord, err := publicClient.GetPublicRecord(r.Context(), entityOwnerDID, arabica.NSIDBrewer, brewerRKey)
-					if err == nil {
-						if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
-							brewer.RKey = brewerRKey
-							recipe.BrewerObj = brewer
-						}
-					}
-				}
-			}
-
-			recipe.Interpolate()
-			props.Recipe = recipe
-			props.IsOwnProfile = isAuthenticated && didStr == entityOwnerDID
-		}
-	} else {
-		store, authenticated := h.getAtprotoStore(r)
-		if !authenticated {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
-		atprotoStore, ok := store.(*atproto.AtprotoStore)
-		if !ok {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
-			return
-		}
-
-		recipeRecord, err := atprotoStore.GetRecipeRecordByRKey(r.Context(), rkey)
+	if props.Recipe == nil {
+		// PDS fallback
+		metrics.WitnessCacheMissesTotal.WithLabelValues("recipe").Inc()
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetPublicRecord(r.Context(), entityOwnerDID, arabica.NSIDRecipe, rkey)
 		if err != nil {
 			http.Error(w, "Recipe not found", http.StatusNotFound)
 			return
 		}
 
-		recipeRecord.Recipe.Interpolate()
-		props.Recipe = recipeRecord.Recipe
-		subjectURI = recipeRecord.URI
-		subjectCID = recipeRecord.CID
-		props.IsOwnProfile = true
+		subjectURI = record.URI
+		subjectCID = record.CID
+
+		recipe, err := arabica.RecordToRecipe(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
+			return
+		}
+		recipe.RKey = rkey
+
+		// Resolve brewer reference if present.
+		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
+			if brewerRKey := atp.RKeyFromURI(brewerRef); brewerRKey != "" {
+				recipe.BrewerRKey = brewerRKey
+				brewerRecord, err := publicClient.GetPublicRecord(r.Context(), entityOwnerDID, arabica.NSIDBrewer, brewerRKey)
+				if err == nil {
+					if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+						brewer.RKey = brewerRKey
+						recipe.BrewerObj = brewer
+					}
+				}
+			}
+		}
+
+		recipe.Interpolate()
+		props.Recipe = recipe
 	}
 
 	var shareURL string
 	if owner != "" {
-		shareURL = fmt.Sprintf("/recipes/%s?owner=%s", rkey, owner)
+		shareURL = fmt.Sprintf("/recipes/%s/%s", owner, rkey)
 	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/recipes/%s?owner=%s", rkey, userProfile.Handle)
+		shareURL = fmt.Sprintf("/recipes/%s/%s", userProfile.Handle, rkey)
 	}
 
 	layoutData := h.buildLayoutData(r, props.Recipe.Name, isAuthenticated, didStr, userProfile)
@@ -642,7 +634,7 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 					props.SourceRecipeAuthor = profile.Handle
 				}
 			}
-			props.SourceRecipeURL = fmt.Sprintf("/recipes/%s?owner=%s", srcURI.RKey, sourceOwner)
+			props.SourceRecipeURL = fmt.Sprintf("/recipes/%s/%s", sourceOwner, srcURI.RKey)
 		}
 	}
 

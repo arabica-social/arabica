@@ -130,6 +130,15 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	didStr, _ := atpmiddleware.GetDID(r.Context())
+	var profileHandle string
+	if p := h.getUserProfile(r.Context(), didStr); p != nil {
+		profileHandle = p.Handle
+	}
+	if profileHandle == "" {
+		profileHandle = didStr
+	}
+
 	// Parse pagination params
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -152,10 +161,11 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := coffee.BrewListTablePartial(coffee.BrewListTableProps{
-		Brews:        brews,
-		IsOwnProfile: true,
-		HasMore:      hasMore,
-		NextOffset:   offset + limit,
+		Brews:         brews,
+		IsOwnProfile:  true,
+		ProfileHandle: profileHandle,
+		HasMore:       hasMore,
+		NextOffset:    offset + limit,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew list partial")
@@ -215,24 +225,44 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	var isOwner bool
 	var subjectURI, subjectCID string
 
-	if owner != "" {
-		// Viewing someone else's brew - use public client
-		publicClient := atproto.NewPublicClient()
+	if owner == "" {
+		http.Error(w, "owner required", http.StatusBadRequest)
+		return
+	}
 
-		// Resolve owner to DID if it's a handle
-		if strings.HasPrefix(owner, "did:") {
-			brewOwnerDID = owner
-		} else {
-			resolved, err := publicClient.ResolveHandle(r.Context(), owner)
-			if err != nil {
-				log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for brew view")
-				http.Error(w, "User not found", http.StatusNotFound)
-				return
-			}
-			brewOwnerDID = resolved
+	publicClient := atproto.NewPublicClient()
+
+	// Resolve owner to DID if it's a handle.
+	if strings.HasPrefix(owner, "did:") {
+		brewOwnerDID = owner
+	} else {
+		resolved, err := publicClient.ResolveHandle(r.Context(), owner)
+		if err != nil {
+			log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for brew view")
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
 		}
+		brewOwnerDID = resolved
+	}
+	isOwner = isAuthenticated && didStr == brewOwnerDID
 
-		// Try witness cache first for the brew and all its references
+	// When the viewer owns the record, hit the authenticated AtprotoStore
+	// first — it includes the session cache of locally-written records that
+	// the firehose may not have observed yet.
+	if isOwner {
+		if store, ok := h.getAtprotoStore(r); ok {
+			if atprotoStore, ok := store.(*atproto.AtprotoStore); ok {
+				if brewRecord, err := atprotoStore.GetBrewRecordByRKey(r.Context(), rkey); err == nil {
+					brew = brewRecord.Brew
+					subjectURI = brewRecord.URI
+					subjectCID = brewRecord.CID
+				}
+			}
+		}
+	}
+
+	if brew == nil {
+		// Try witness cache first for the brew and all its references.
 		brewURI := atp.BuildATURI(brewOwnerDID, arabica.NSIDBrew, rkey)
 		if h.witnessCache != nil {
 			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
@@ -249,72 +279,39 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+	}
 
-		if brew == nil {
-			// PDS fallback
-			metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
-			record, err := publicClient.GetPublicRecord(r.Context(), brewOwnerDID, arabica.NSIDBrew, rkey)
-			if err != nil {
-				log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
-				http.Error(w, "Brew not found", http.StatusNotFound)
-				return
-			}
-
-			// Store URI and CID for like button
-			subjectURI = record.URI
-			subjectCID = record.CID
-
-			// Convert record to brew
-			brew, err = arabica.RecordToBrew(record.Value, record.URI)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to convert brew record")
-				http.Error(w, "Failed to load brew", http.StatusInternalServerError)
-				return
-			}
-
-			// Resolve references (bean, grinder, brewer)
-			if err := h.resolveBrewReferences(r.Context(), brew, brewOwnerDID, record.Value); err != nil {
-				log.Warn().Err(err).Msg("Failed to resolve some brew references")
-			}
-		}
-
-		// Check if viewing user is the owner
-		isOwner = isAuthenticated && didStr == brewOwnerDID
-	} else {
-		// Viewing own brew - require authentication
-		store, authenticated := h.getAtprotoStore(r)
-		if !authenticated {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
-		// Use type assertion to access GetBrewRecordByRKey
-		atprotoStore, ok := store.(*atproto.AtprotoStore)
-		if !ok {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
-			log.Error().Msg("Failed to cast store to AtprotoStore")
-			return
-		}
-
-		brewRecord, err := atprotoStore.GetBrewRecordByRKey(r.Context(), rkey)
+	if brew == nil {
+		// PDS fallback
+		metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
+		record, err := publicClient.GetPublicRecord(r.Context(), brewOwnerDID, arabica.NSIDBrew, rkey)
 		if err != nil {
+			log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
 			http.Error(w, "Brew not found", http.StatusNotFound)
-			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for view")
 			return
 		}
 
-		brew = brewRecord.Brew
-		subjectURI = brewRecord.URI
-		subjectCID = brewRecord.CID
-		isOwner = true
+		subjectURI = record.URI
+		subjectCID = record.CID
+
+		brew, err = arabica.RecordToBrew(record.Value, record.URI)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to convert brew record")
+			http.Error(w, "Failed to load brew", http.StatusInternalServerError)
+			return
+		}
+
+		if err := h.resolveBrewReferences(r.Context(), brew, brewOwnerDID, record.Value); err != nil {
+			log.Warn().Err(err).Msg("Failed to resolve some brew references")
+		}
 	}
 
 	// Construct share URL (needed for both OG metadata and props)
 	var shareURL string
 	if owner != "" {
-		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, owner)
+		shareURL = fmt.Sprintf("/brews/%s/%s", owner, rkey)
 	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/brews/%s?owner=%s", rkey, userProfile.Handle)
+		shareURL = fmt.Sprintf("/brews/%s/%s", userProfile.Handle, rkey)
 	}
 
 	// Create layout data with OpenGraph metadata

@@ -15,10 +15,19 @@ import (
 func feedItemShareURL(item *feed.FeedItem) string {
 	if d := entities.Get(item.RecordType); d != nil {
 		if rkey := item.RKey(); rkey != "" {
-			return fmt.Sprintf("/%s/%s?owner=%s", d.URLPath, rkey, item.Author.DID)
+			return fmt.Sprintf("/%s/%s/%s", d.URLPath, feedActor(item), rkey)
 		}
 	}
 	return fmt.Sprintf("/profile/%s", item.Author.DID)
+}
+
+// feedActor returns the handle when known, falling back to the DID. Used to
+// build the {actor} segment of /{slug}/{actor}/{rkey} URLs from feed items.
+func feedActor(item *feed.FeedItem) string {
+	if item.Author.Handle != "" {
+		return item.Author.Handle
+	}
+	return item.Author.DID
 }
 
 templ BeanFeedContent(item *feed.FeedItem) {
@@ -58,7 +67,7 @@ templ BrewerFeedContent(item *feed.FeedItem) {
 templ FeedBrewContentClickable(item *feed.FeedItem) {
 	if item.Brew() != nil {
 		<a
-			href={ templ.SafeURL(fmt.Sprintf("/brews/%s?owner=%s", item.Brew().RKey, item.Author.DID)) }
+			href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", feedActor(item), item.Brew().RKey)) }
 			class="block hover:opacity-90 transition-opacity"
 		>
 			@BrewContent(item.Brew())

@@ -111,7 +111,7 @@ var collectionDisplayName = map[string]string{
 }
 
 // resolveNotificationLink converts a SubjectURI (AT-URI) to a local page URL.
-// Format: at://did:plc:xxx/social.arabica.alpha.brew/rkey -> /brews/rkey?owner=did:plc:xxx
+// Format: at://did:plc:xxx/social.arabica.alpha.brew/rkey -> /brews/did:plc:xxx/rkey
 func resolveNotificationLink(subjectURI string) string {
 	if !strings.HasPrefix(subjectURI, "at://") {
 		return ""
@@ -128,7 +128,7 @@ func resolveNotificationLink(subjectURI string) string {
 	rkey := parts[2]
 
 	if prefix, ok := collectionURLPath[collection]; ok {
-		return fmt.Sprintf("%s%s?owner=%s", prefix, rkey, did)
+		return fmt.Sprintf("%s%s/%s", prefix, did, rkey)
 	}
 	return ""
 }

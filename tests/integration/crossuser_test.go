@@ -41,7 +41,7 @@ func TestHTTP_CrossUserView(t *testing.T) {
 	defer withClient(h, bobClient)()
 
 	// Bob fetches Alice's roaster view via ?owner=did:alice.
-	viewURL := "/roasters/" + roaster.RKey + "?owner=" + url.QueryEscape(h.PrimaryAccount.DID)
+	viewURL := "/roasters/" + url.PathEscape(h.PrimaryAccount.DID) + "/" + roaster.RKey
 	resp := h.Get(viewURL)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))

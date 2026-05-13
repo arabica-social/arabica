@@ -309,7 +309,7 @@ func TestHTTP_LikeAndCommentTogether(t *testing.T) {
 
 	// Render the roaster view page — it should show like + comment data
 	// pulled from the same feed index. This is the visible end-to-end check.
-	viewResp := h.Get("/roasters/" + rkey)
+	viewResp := h.Get("/roasters/" + h.PrimaryAccount.DID + "/" + rkey)
 	viewBody := ReadBody(t, viewResp)
 	require.Equal(t, 200, viewResp.StatusCode, statusErr(viewResp, viewBody))
 	assert.Contains(t, viewBody, "first impressions: solid",

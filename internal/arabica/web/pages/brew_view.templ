@@ -216,7 +216,7 @@ templ BrewBeanSection(brew *arabica.Brew, owner string) {
 					Coffee Bean
 				</span>
 			</span>
-			<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s?owner=%s", brew.Bean.RKey, owner)) } class="detail-value-lg hover:underline">
+			<a href={ templ.SafeURL(fmt.Sprintf("/beans/%s/%s", owner, brew.Bean.RKey)) } class="detail-value-lg hover:underline">
 				if brew.Bean.Name != "" {
 					{ brew.Bean.Name }
 				} else {
@@ -227,7 +227,7 @@ templ BrewBeanSection(brew *arabica.Brew, owner string) {
 				<div class="text-sm mt-1 text-secondary">
 					<span class="inline-flex items-center gap-1">
 						@components.IconStore()
-						<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s?owner=%s", brew.Bean.Roaster.RKey, owner)) } class="hover:underline">
+						<a href={ templ.SafeURL(fmt.Sprintf("/roasters/%s/%s", owner, brew.Bean.Roaster.RKey)) } class="hover:underline">
 							{ brew.Bean.Roaster.Name }
 						</a>
 					</span>
@@ -332,14 +332,14 @@ func getBrewTimeDisplay(brew *arabica.Brew) string {
 
 func getGrinderViewURL(brew *arabica.Brew, owner string) string {
 	if brew.GrinderObj != nil && brew.GrinderObj.RKey != "" && owner != "" {
-		return fmt.Sprintf("/grinders/%s?owner=%s", brew.GrinderObj.RKey, owner)
+		return fmt.Sprintf("/grinders/%s/%s", owner, brew.GrinderObj.RKey)
 	}
 	return ""
 }
 
 func getBrewerViewURL(brew *arabica.Brew, owner string) string {
 	if brew.BrewerObj != nil && brew.BrewerObj.RKey != "" && owner != "" {
-		return fmt.Sprintf("/brewers/%s?owner=%s", brew.BrewerObj.RKey, owner)
+		return fmt.Sprintf("/brewers/%s/%s", owner, brew.BrewerObj.RKey)
 	}
 	return ""
 }
@@ -415,7 +415,7 @@ func saveAsRecipeData(brewRKey string) string {
 templ BrewRecipeSection(recipe *arabica.Recipe, owner string) {
 	<div>
 		<span class="detail-label mb-2 block">Recipe</span>
-		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, owner)) } class="detail-value-lg hover:underline">{ recipe.Name }</a>
+		<a href={ templ.SafeURL(fmt.Sprintf("/recipes/%s/%s", owner, recipe.RKey)) } class="detail-value-lg hover:underline">{ recipe.Name }</a>
 		<div class="flex flex-wrap gap-3 mt-2 text-sm text-muted">
 			if recipe.CoffeeAmount > 0 {
 				<span class="inline-flex items-center gap-1">

@@ -33,7 +33,7 @@ templ PopularRecipes(props PopularRecipesProps) {
 
 templ popularRecipeCard(recipe *arabica.Recipe) {
 	<a
-		href={ templ.SafeURL(fmt.Sprintf("/recipes/%s?owner=%s", recipe.RKey, recipe.AuthorDID)) }
+		href={ templ.SafeURL(fmt.Sprintf("/recipes/%s/%s", recipeAuthorActor(recipe), recipe.RKey)) }
 		class="feed-card feed-card-recipe block hover:shadow-md transition-shadow"
 	>
 		<!-- Author -->
@@ -142,4 +142,13 @@ func plural(n int) string {
 		return ""
 	}
 	return "s"
+}
+
+// recipeAuthorActor returns the recipe's author handle when set, otherwise
+// the DID. Used to build /{slug}/{actor}/{rkey} URLs.
+func recipeAuthorActor(recipe *arabica.Recipe) string {
+	if recipe.AuthorHandle != "" {
+		return recipe.AuthorHandle
+	}
+	return recipe.AuthorDID
 }

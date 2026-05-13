@@ -191,7 +191,7 @@ func recipeBrewerLink(props RecipeViewProps) string {
 	}
 	owner := getOwnerFromShareURL(props.ShareURL)
 	if owner != "" {
-		return fmt.Sprintf("/brewers/%s?owner=%s", props.Recipe.BrewerRKey, owner)
+		return fmt.Sprintf("/brewers/%s/%s", owner, props.Recipe.BrewerRKey)
 	}
 	return ""
 }

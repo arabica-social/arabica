@@ -94,7 +94,7 @@ document.addEventListener("alpine:init", () => {
     getRecipeShareURL(recipe) {
       if (!recipe) return "";
       const owner = recipe.author_handle || recipe.author_did;
-      return `/recipes/${recipe.rkey}?owner=${encodeURIComponent(owner)}`;
+      return `/recipes/${encodeURIComponent(owner)}/${recipe.rkey}`;
     },
 
     shareRecipe() {
@@ -125,7 +125,7 @@ document.addEventListener("alpine:init", () => {
       const rkey = parts[2];
       const owner =
         recipe.source_author_handle || recipe.source_author_display || parts[0];
-      return `/recipes/${rkey}?owner=${encodeURIComponent(owner)}`;
+      return `/recipes/${encodeURIComponent(owner)}/${rkey}`;
     },
 
     async forkRecipe() {
