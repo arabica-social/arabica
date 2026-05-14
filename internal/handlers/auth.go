@@ -13,6 +13,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
 	"tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 )
 
 const (
@@ -40,7 +41,13 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-// HandleLoginSubmit initiates the OAuth flow
+// HandleLoginSubmit initiates the OAuth flow with the app's base scope set.
+// The OAuthApp is configured with the full superset (base + Bluesky profile
+// scopes) for client metadata, but at login time we request only what's
+// needed for arabica's own collections so users aren't prompted to grant
+// profile-write access up front. The scope-upgrade flow (see
+// HandleScopeUpgrade) re-runs OAuth with the superset when a user opts in
+// to editing their Bluesky profile.
 func (h *Handler) HandleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	if h.oauth == nil {
 		http.Error(w, "OAuth not configured", http.StatusInternalServerError)
@@ -53,17 +60,34 @@ func (h *Handler) HandleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Initiate OAuth flow
-	authURL, err := h.oauth.StartLogin(r.Context(), handle)
+	scopes := h.baseOAuthScopes()
+	authURL, err := h.oauth.StartLoginWithScopes(r.Context(), handle, scopes)
 	if err != nil {
 		log.Error().Err(err).Str("handle", handle).Msg("Failed to initiate login")
 		http.Error(w, "Failed to initiate login", http.StatusInternalServerError)
 		return
 	}
 
-	// Redirect to PDS authorization endpoint
-	// State and PKCE are handled automatically by the OAuth client
 	http.Redirect(w, r, authURL, http.StatusFound)
+}
+
+// baseOAuthScopes returns the scope subset used for default login. Falls
+// back to whatever the OAuthApp was configured with if SetApp hasn't been
+// called (defensive against tests / partial bootstraps).
+func (h *Handler) baseOAuthScopes() []string {
+	if h.app != nil {
+		return h.app.OAuthScopes()
+	}
+	return nil
+}
+
+// elevatedOAuthScopes returns the superset including Bluesky profile +
+// blob scopes. Used by HandleScopeUpgrade.
+func (h *Handler) elevatedOAuthScopes() []string {
+	if h.app != nil {
+		return h.app.OAuthScopesWithProfile()
+	}
+	return nil
 }
 
 // HandleOAuthCallback handles the OAuth callback from the PDS
@@ -129,6 +153,74 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, redirectTo, http.StatusFound)
+}
+
+// HandleScopeUpgrade triggers an OAuth re-auth that requests the elevated
+// scope set (base + Bluesky profile). The current session is revoked so the
+// auth server issues a fresh grant with the new scopes; the user lands back
+// on the page given by the return_to form value (defaulting to /settings).
+//
+// Why revoke-and-reauth: atproto OAuth does not yet support incremental
+// scope addition to an existing session. prompt=consent is advertised but
+// known-broken in implementations as of 2026-05, so the only reliable path
+// is to revoke and run a fresh authorize with the wider scope list.
+func (h *Handler) HandleScopeUpgrade(w http.ResponseWriter, r *http.Request) {
+	if h.oauth == nil {
+		http.Error(w, "OAuth not configured", http.StatusInternalServerError)
+		return
+	}
+
+	didStr, ok := atpmiddleware.GetDID(r.Context())
+	if !ok || didStr == "" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	did, err := syntax.ParseDID(didStr)
+	if err != nil {
+		log.Warn().Err(err).Str("did", didStr).Msg("Invalid DID in scope-upgrade")
+		http.Error(w, "Invalid session", http.StatusBadRequest)
+		return
+	}
+
+	// Revoke the current session so a fresh grant lands with the new scopes.
+	didCookieName, sessCookieName := h.cookieNames()
+	if sessCookie, err := r.Cookie(sessCookieName); err == nil && sessCookie.Value != "" {
+		if err := h.oauth.DeleteSession(r.Context(), did, sessCookie.Value); err != nil {
+			log.Warn().Err(err).Str("user_did", didStr).Msg("Failed to delete session during scope-upgrade")
+		}
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: didCookieName, Value: "", Path: "/",
+		HttpOnly: true, Secure: h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode, MaxAge: -1,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name: sessCookieName, Value: "", Path: "/",
+		HttpOnly: true, Secure: h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode, MaxAge: -1,
+	})
+
+	// Stash the return path so the OAuth callback redirects back to settings.
+	returnTo := r.FormValue("return_to")
+	if returnTo == "" {
+		returnTo = "/settings"
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: "reauth_return", Value: returnTo, Path: "/",
+		HttpOnly: true, Secure: h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode, MaxAge: 300,
+	})
+
+	// Request the elevated scope set. StartLoginWithScopes accepts a DID
+	// directly via syntax.ParseAtIdentifier, so we don't need to round-trip
+	// through the handle.
+	authURL, err := h.oauth.StartLoginWithScopes(r.Context(), did.String(), h.elevatedOAuthScopes())
+	if err != nil {
+		log.Error().Err(err).Str("user_did", didStr).Msg("Failed to start scope upgrade")
+		http.Error(w, "Failed to start re-authorization", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
 // HandleReauth clears the stale session and immediately restarts the OAuth

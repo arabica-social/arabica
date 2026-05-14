@@ -246,3 +246,59 @@ select.form-input optgroup {
 .form-input-lg::placeholder {
   color: var(--text-placeholder);
 }
+
+/* File input — the native ::file-selector-button looks like a 1995 OS
+   widget by default. We hide it visually behind ours: the input itself is
+   styled like .form-input, and the selector button inside is restyled as
+   a compact secondary button so the whole control reads as one tidy field
+   with a "Choose file" affordance on the left. */
+.form-file {
+  display: block;
+  width: 100%;
+  border-radius: 0.5rem;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.375rem;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.form-file:hover {
+  border-color: var(--input-border-focus);
+}
+
+.form-file:focus-within {
+  border-color: var(--input-border-focus);
+  box-shadow: 0 0 0 2px var(--input-ring-focus);
+  background: var(--input-bg-focus);
+  outline: none;
+}
+
+.form-file::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg-focus, var(--input-bg));
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.form-file::file-selector-button:hover {
+  border-color: var(--input-border-focus);
+  background: var(--input-bg);
+  color: var(--text-primary);
+}

@@ -7,6 +7,20 @@ import (
 
 type SettingsProps struct {
 	ProfileStatsVisibility arabica.ProfileStatsVisibility
+	BlueskyProfile         BlueskyProfileSettings
+}
+
+// BlueskyProfileSettings drives the optional "Bluesky profile" card on the
+// settings page. HasScopes gates the edit form vs. the "grant elevated
+// permissions" CTA: the OAuth session arabica issues by default doesn't
+// include profile-write scopes, so editing only lights up after the user
+// runs the scope-upgrade reauth flow.
+type BlueskyProfileSettings struct {
+	HasScopes      bool
+	DisplayName    string
+	AvatarURL      string
+	LoadError      string
+	NeedsAuthAgain bool
 }
 
 templ settingsContent(props SettingsProps) {
@@ -75,6 +89,7 @@ templ settingsContent(props SettingsProps) {
 				</div>
 			</form>
 		</div>
+		@blueskyProfileCard(props.BlueskyProfile)
 		<div class="card card-inner mt-4">
 			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Developer</h2>
 			<p class="text-sm mb-4" style="color: var(--text-muted);">Tools for inspecting AT Protocol data.</p>
@@ -90,6 +105,55 @@ templ settingsContent(props SettingsProps) {
 				</label>
 			</div>
 		</div>
+	</div>
+}
+
+templ blueskyProfileCard(p BlueskyProfileSettings) {
+	<div class="card card-inner mt-4">
+		<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Bluesky Profile</h2>
+		<p class="text-sm mb-4" style="color: var(--text-muted);">
+			Edit the display name and avatar on your Bluesky profile record. These changes write directly to your PDS and apply across every app that reads <code>app.bsky.actor.profile</code> — not just Arabica.
+		</p>
+		if p.NeedsAuthAgain {
+			<p class="text-sm" style="color: var(--text-muted);">Your session expired. <a class="link" href="/login">Sign in again</a> to continue.</p>
+		} else if !p.HasScopes {
+			<p class="text-sm mb-4" style="color: var(--text-muted);">
+				Arabica didn't ask for permission to edit your Bluesky profile when you signed in. Granting it now means your PDS will prompt you to re-approve Arabica with a wider scope. After approval you'll land back here.
+			</p>
+			<form method="POST" action="/settings/bluesky-profile/upgrade-scopes">
+				<input type="hidden" name="return_to" value="/settings"/>
+				<button type="submit" class="btn-primary">Grant permission to edit Bluesky profile</button>
+			</form>
+		} else {
+			if p.LoadError != "" {
+				<p class="text-sm mb-3" style="color: var(--danger, #c44);">{ p.LoadError }</p>
+			}
+			<form
+				hx-post="/api/settings/bluesky-profile"
+				hx-encoding="multipart/form-data"
+				hx-target="#bsky-profile-save-status"
+				hx-swap="innerHTML"
+			>
+				<div class="space-y-4">
+					<div>
+						<label class="form-label" for="bsky-display-name">Display name</label>
+						<input id="bsky-display-name" type="text" name="displayName" class="form-input" maxlength="640" value={ p.DisplayName }/>
+					</div>
+					<div>
+						<label class="form-label" for="bsky-avatar">Avatar</label>
+						if p.AvatarURL != "" {
+							<div class="mb-2"><img src={ p.AvatarURL } alt="Current avatar" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;"/></div>
+						}
+						<input id="bsky-avatar" type="file" name="avatar" accept="image/*" class="form-file"/>
+						<p class="text-xs mt-1" style="color: var(--text-muted);">Optional. Leave empty to keep your current avatar. Max 1MB.</p>
+					</div>
+				</div>
+				<div class="mt-4 flex items-center gap-3">
+					<button type="submit" class="btn-primary">Save Bluesky profile</button>
+					<span id="bsky-profile-save-status"></span>
+				</div>
+			</form>
+		}
 	</div>
 }
 

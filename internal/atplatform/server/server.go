@@ -157,10 +157,15 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 			log.Info().Msg("Using localhost OAuth mode (for development)")
 		}
 	}
+	// Declare the superset of scopes in client metadata so the auth server
+	// accepts both the default login (base scopes) and the elevated
+	// scope-upgrade flow (base + Bluesky profile scopes) when a user opts in
+	// to editing their Bluesky profile from settings. The default
+	// HandleLoginSubmit requests only the base subset.
 	oauthApp, err := atp.NewOAuthApp(atp.OAuthConfig{
 		ClientID:    clientID,
 		RedirectURI: redirectURI,
-		Scopes:      app.OAuthScopes(),
+		Scopes:      app.OAuthScopesWithProfile(),
 		Store:       sessionStore,
 		AppName:     app.Brand.DisplayName,
 	})

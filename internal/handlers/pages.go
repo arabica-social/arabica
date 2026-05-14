@@ -63,16 +63,27 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	didStr, _ := atpmiddleware.GetDID(r.Context())
+	sessionID, _ := atpmiddleware.GetSessionID(r.Context())
+
 	var statsVis arabica.ProfileStatsVisibility
 	if h.feedIndex != nil {
-		didStr, _ := atpmiddleware.GetDID(r.Context())
 		statsVis = h.feedIndex.GetProfileStatsVisibility(r.Context(), didStr)
 	} else {
 		statsVis = arabica.DefaultProfileStatsVisibility()
 	}
 
+	bskyForm := h.loadBlueskyProfileForm(r.Context(), didStr, sessionID)
+
 	if err := pages.Settings(data, pages.SettingsProps{
 		ProfileStatsVisibility: statsVis,
+		BlueskyProfile: pages.BlueskyProfileSettings{
+			HasScopes:      bskyForm.HasScopes,
+			DisplayName:    bskyForm.DisplayName,
+			AvatarURL:      bskyForm.AvatarURL,
+			LoadError:      bskyForm.LoadError,
+			NeedsAuthAgain: bskyForm.NeedsAuthAgain,
+		},
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render settings page")
