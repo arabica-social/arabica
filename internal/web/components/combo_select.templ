@@ -1,83 +1,44 @@
 package components
 
-import "fmt"
+import (
+	"encoding/json"
+	"strings"
+)
 
-// ComboSelectConfig generates the x-data attribute for a combo-select Alpine.js component.
-// entityType: one of "bean", "brewer", "grinder", "recipe", "roaster", "cafe"
-// apiEndpoint: URL to list user's own records (e.g. "/api/beans")
-// suggestEndpoint: URL for community suggestions (e.g. "/api/suggestions/beans")
-// inputName: the hidden input name for the selected rkey
-// placeholder: input placeholder text
-// required: whether the field is required
+// ComboSelectConfig builds the x-data expression for an Alpine combo-select.
+//
+// The per-entityType formatLabel / formatCreateData / extraFields used to live
+// here as JS function literals inside Go strings; they now live in
+// window.__comboSelectEntities in combo-select.js. This helper only emits the
+// "wiring" config (endpoints, input name, placeholder, flags); the Alpine
+// factory merges that with the registry entry to produce the data object.
+//
+// entityType: one of "bean", "brewer", "grinder", "recipe", "roaster", "cafe",
+// "tea", "oolongBrewer", "oolongRecipe", "vendor"
 // passthrough: if true, value is passed through without create (for recipe refs)
 func ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder string, required bool, passthrough ...bool) string {
-	requiredStr := "false"
-	if required {
-		requiredStr = "true"
+	cfg := struct {
+		EntityType      string `json:"entityType"`
+		APIEndpoint     string `json:"apiEndpoint"`
+		SuggestEndpoint string `json:"suggestEndpoint"`
+		InputName       string `json:"inputName"`
+		Placeholder     string `json:"placeholder"`
+		Required        bool   `json:"required"`
+		Passthrough     bool   `json:"passthrough"`
+	}{
+		EntityType:      entityType,
+		APIEndpoint:     apiEndpoint,
+		SuggestEndpoint: suggestEndpoint,
+		InputName:       inputName,
+		Placeholder:     placeholder,
+		Required:        required,
+		Passthrough:     len(passthrough) > 0 && passthrough[0],
 	}
-	passthroughStr := "false"
-	if len(passthrough) > 0 && passthrough[0] {
-		passthroughStr = "true"
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return "comboSelect({})"
 	}
-
-	var formatLabel, formatCreateData, extraFields string
-	switch entityType {
-	case "bean":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const o = e.origin || e.Origin || ''; const r = e.roast_level || e.RoastLevel || ''; if (o && r) return n + ' (' + o + ' - ' + r + ')'; if (o) return n + ' (' + o + ')'; return n; }`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.origin) d.origin = s.fields.origin; if (s.fields.roastLevel) d.roast_level = s.fields.roastLevel; if (s.fields.process) d.process = s.fields.process; if (s.fields.roasterName) d._source_roaster_name = s.fields.roasterName; } return d; }`
-		extraFields = `[{name:'origin',label:'Origin',type:'text',placeholder:'e.g. Ethiopia, Colombia'},{name:'roast_level',label:'Roast Level',type:'select',options:['Ultra-Light','Light','Medium-Light','Medium','Medium-Dark','Dark']},{name:'process',label:'Process',type:'text',placeholder:'e.g. Washed, Natural, Honey'}]`
-	case "brewer":
-		formatLabel = `(e) => e.name || e.Name || ''`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields && s.fields.brewerType) d.brewer_type = s.fields.brewerType; return d; }`
-		extraFields = `[{name:'brewer_type',label:'Type',type:'select',options:['pourover','espresso','immersion','mokapot','coldbrew','cupping','other']}]`
-	case "grinder":
-		formatLabel = `(e) => e.name || e.Name || ''`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.grinderType) d.grinder_type = s.fields.grinderType; if (s.fields.burrType) d.burr_type = s.fields.burrType; } return d; }`
-		extraFields = `[{name:'grinder_type',label:'Type',type:'select',options:['Hand','Electric','Portable Electric']},{name:'burr_type',label:'Burr Type',type:'select',options:['Conical','Flat']}]`
-	case "recipe":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const bt = e.brewer_type || e.BrewerType || (e.fields && e.fields.brewerType) || ''; return bt ? n + ' (' + bt + ')' : n; }`
-		formatCreateData = `(name) => ({ name })`
-		extraFields = `[]`
-	case "roaster":
-		formatLabel = `(e) => e.name || e.Name || ''`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.location) d.location = s.fields.location; if (s.fields.website) d.website = s.fields.website; } return d; }`
-		extraFields = `[{name:'location',label:'Location',type:'text',placeholder:'e.g. Portland, OR'},{name:'website',label:'Website',type:'text',placeholder:'https://...'}]`
-	case "cafe":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const l = e.location || e.Location || ''; return l ? n + ' (' + l + ')' : n; }`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.location) d.location = s.fields.location; if (s.fields.website) d.website = s.fields.website; } return d; }`
-		extraFields = `[{name:'location',label:'Location',type:'text',placeholder:'e.g. Portland, OR'},{name:'website',label:'Website',type:'text',placeholder:'https://...'}]`
-	case "tea":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const c = e.category || e.Category || ''; const o = e.origin || e.Origin || ''; if (c && o) return n + ' (' + c + ' · ' + o + ')'; if (c) return n + ' (' + c + ')'; if (o) return n + ' (' + o + ')'; return n; }`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.category) d.category = s.fields.category; if (s.fields.subStyle) d.sub_style = s.fields.subStyle; if (s.fields.origin) d.origin = s.fields.origin; if (s.fields.cultivar) d.cultivar = s.fields.cultivar; } return d; }`
-		extraFields = `[{name:'category',label:'Category',type:'select',options:['green','white','yellow','oolong','black','puerh-sheng','puerh-shou','herbal','blend','other']},{name:'origin',label:'Origin',type:'text',placeholder:'e.g. Taiwan, Yunnan'},{name:'cultivar',label:'Cultivar',type:'text',placeholder:'e.g. Qing Xin'}]`
-	case "oolongBrewer":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const st = e.style || e.Style || ''; return st ? n + ' (' + st + ')' : n; }`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.style) d.style = s.fields.style; if (s.fields.material) d.material = s.fields.material; } return d; }`
-		extraFields = `[{name:'style',label:'Style',type:'select',options:['gaiwan','yixing','kyusu','teapot','glass','french-press','tetsubin','other']},{name:'material',label:'Material',type:'text',placeholder:'e.g. porcelain, clay, glass'}]`
-	case "oolongRecipe":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const st = e.style || e.Style || ''; return st ? n + ' (' + st + ')' : n; }`
-		formatCreateData = `(name) => ({ name })`
-		extraFields = `[]`
-	case "vendor":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const l = e.location || e.Location || ''; return l ? n + ' (' + l + ')' : n; }`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.location) d.location = s.fields.location; if (s.fields.website) d.website = s.fields.website; } return d; }`
-		extraFields = `[{name:'location',label:'Location',type:'text',placeholder:'e.g. Taipei, Taiwan'},{name:'website',label:'Website',type:'text',placeholder:'https://...'}]`
-	case "oolongVessel":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const st = e.style || e.Style || ''; return st ? n + ' (' + st + ')' : n; }`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.style) d.style = s.fields.style; if (s.fields.material) d.material = s.fields.material; } return d; }`
-		extraFields = `[{name:'style',label:'Style',type:'select',options:['teapot','mug','jar','matcha-bowl','other']},{name:'material',label:'Material',type:'text',placeholder:'e.g. porcelain, clay, glass'}]`
-	case "oolongInfuser":
-		formatLabel = `(e) => { const n = e.name || e.Name || ''; const st = e.style || e.Style || ''; return st ? n + ' (' + st + ')' : n; }`
-		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields && s.fields.style) d.style = s.fields.style; return d; }`
-		extraFields = `[{name:'style',label:'Style',type:'select',options:['basket','ball','sock','other']}]`
-	default:
-		formatLabel = `(e) => e.name || e.Name || ''`
-		formatCreateData = `(name) => ({ name })`
-		extraFields = `[]`
-	}
-
-	return fmt.Sprintf(`comboSelect({ entityType: '%s', apiEndpoint: '%s', suggestEndpoint: '%s', inputName: '%s', placeholder: '%s', required: %s, passthrough: %s, formatLabel: %s, formatCreateData: %s, extraFields: %s })`,
-		entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, requiredStr, passthroughStr, formatLabel, formatCreateData, extraFields)
+	return "comboSelect(" + string(b) + ")"
 }
 
 // ComboSelectInput renders the shared input + dropdown markup for combo-select fields.
@@ -336,15 +297,16 @@ templ ComboSelectInput(sectionLabel string) {
 
 // EscapeJS escapes a string for safe embedding in JavaScript string literals.
 func EscapeJS(s string) string {
-	result := ""
+	var result strings.Builder
 	for _, c := range s {
-		if c == '\'' {
-			result += "\\'"
-		} else if c == '\\' {
-			result += "\\\\"
-		} else {
-			result += string(c)
+		switch c {
+		case '\'':
+			result.WriteString("\\'")
+		case '\\':
+			result.WriteString("\\\\")
+		default:
+			result.WriteRune(c)
 		}
 	}
-	return result
+	return result.String()
 }

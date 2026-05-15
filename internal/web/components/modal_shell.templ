@@ -46,6 +46,8 @@ templ ModalShell(props ModalShellProps) {
 					}
 					hx-trigger="submit"
 					hx-swap="none"
+					hx-sync="this:drop"
+					hx-disabled-elt="find button[type='submit']"
 					x-data={ modalShellXData(props.ExtraXData) }
 					hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? 'Something went wrong. Please try again.' : 'Connection error. Check your network.'; }"
 					class="space-y-5"
