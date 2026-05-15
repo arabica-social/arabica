@@ -1039,5 +1039,7 @@ modernc.org/token v1.1.0/go.mod h1:UGzOrNV1mAFSEB63lOFHIpNRUVMvYTc6yu1SMY/XTDM=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
+tangled.org/pdewey.com/atp v0.0.0-20260514012649-1bb15c67ff75 h1:r39IOb7NrKOropC0AhRlHaGSF0/PT0h7b03h2+qrYKc=
+tangled.org/pdewey.com/atp v0.0.0-20260514012649-1bb15c67ff75/go.mod h1:CTWwPERRjSjSOotPIr555OrnNlOcok+s+fPmT/+/ViQ=
 tangled.org/pdewey.com/chrysalis v0.0.0-20260510160834-e539fd062370 h1:6QasxkvFX0SmvcuEImVURHPyp+lYFNOn0GjsxnVckRQ=
 tangled.org/pdewey.com/chrysalis v0.0.0-20260510160834-e539fd062370/go.mod h1:RxrHMM9hwsufUQ/ds1eZPwgXwBymtvktX5Z0VpNTtaU=
