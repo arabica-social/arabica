@@ -23,7 +23,7 @@ require (
 	golang.org/x/sync v0.20.0
 	gorm.io/gorm v1.31.1
 	modernc.org/sqlite v1.48.1
-	tangled.org/pdewey.com/atp v0.0.0-20260510162548-f4356d375902
+	tangled.org/pdewey.com/atp v0.0.0-20260514012649-1bb15c67ff75
 	tangled.org/pdewey.com/chrysalis v0.0.0-20260510160834-e539fd062370
 )
 
