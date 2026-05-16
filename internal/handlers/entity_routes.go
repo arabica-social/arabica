@@ -100,8 +100,8 @@ func (h *Handler) EntityRouteBundles() []EntityRouteBundle {
 			Update:     h.HandleTeaUpdate,
 			Delete:     h.HandleTeaDelete,
 			View:       h.HandleTeaView,
-			ModalNew:   h.HandleTeaModalNew,
-			ModalEdit:  h.HandleTeaModalEdit,
+			// Tea uses a full-page form (/teas/new + /teas/{id}/edit)
+			// instead of a modal partial.
 		},
 		{
 			RecordType: lexicons.RecordTypeOolongVendor,

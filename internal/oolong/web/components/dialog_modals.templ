@@ -283,39 +283,6 @@ func labelOolongCafe(c *oolong.Cafe) string {
 	return name
 }
 
-// --- Tea -------------------------------------------------------------
-templ TeaDialogModal(t *oolong.Tea) {
-	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongTea,
-		RKey: teaRKey(t),
-	}) {
-		<div class="form-fieldset">
-			<div class="form-fieldset-label">Essentials</div>
-			<input type="text" name="name" placeholder="Name *" required class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Name }) }/>
-			<input type="text" name="category" placeholder="Category (e.g. green, oolong, red)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Category }) }/>
-		</div>
-		<div class="form-divider"></div>
-		<div class="form-fieldset">
-			<div class="form-fieldset-label">Origin <span class="form-optional-hint">(optional)</span></div>
-			<input type="text" name="origin" placeholder="Origin (e.g. Yunnan, China)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Origin }) }/>
-			<input type="number" name="harvest_year" placeholder="Harvest year" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return intStrOrEmpty(t.HarvestYear) }) }/>
-		</div>
-		<div class="form-divider"></div>
-		<div class="form-fieldset">
-			<div class="form-fieldset-label">Tasting</div>
-			<textarea name="description" placeholder="Description / tasting notes" class="w-full form-input" rows="3">{ teaField(t, func(t *oolong.Tea) string { return t.Description }) }</textarea>
-			<input type="number" name="rating" min="1" max="10" placeholder="Rating (1-10)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return ratingStr(t.Rating) }) }/>
-		</div>
-	}
-}
-
-func teaField(t *oolong.Tea, fn func(*oolong.Tea) string) string {
-	if t == nil {
-		return ""
-	}
-	return fn(t)
-}
-
 // --- Vendor ----------------------------------------------------------
 templ VendorDialogModal(v *oolong.Vendor) {
 	@ModalShell(ModalShellProps{

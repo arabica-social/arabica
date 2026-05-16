@@ -299,10 +299,10 @@ templ oolongCreateDropdownItems() {
 	<div class="dropdown-divider">
 		<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
 	</div>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/tea/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<a href="/teas/new" class="dropdown-item w-full text-left" @click="open = false" role="menuitem">
 		@IconLeaf()
 		Tea
-	</button>
+	</a>
 	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vendor/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
 		@IconStore()
 		Vendor

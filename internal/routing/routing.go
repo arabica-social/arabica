@@ -152,6 +152,8 @@ func SetupRouter(cfg Config) http.Handler {
 		mux.HandleFunc("GET /my-tea", h.HandleMyTea)
 		mux.HandleFunc("GET /brews/new", h.HandleOolongSteepNew)
 		mux.HandleFunc("GET /brews/{id}/edit", h.HandleOolongSteepEdit)
+		mux.HandleFunc("GET /teas/new", h.HandleOolongTeaNew)
+		mux.HandleFunc("GET /teas/{id}/edit", h.HandleOolongTeaEdit)
 	}
 
 	// Per-entity routes for the simple entities. Driven by the route

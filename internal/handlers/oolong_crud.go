@@ -97,6 +97,11 @@ func (h *Handler) HandleTeaCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	tea.RKey = rkey
 	h.invalidateFeedCache()
+	if redirect := r.FormValue("__redirect"); redirect != "" {
+		w.Header().Set("HX-Redirect", redirect)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	writeJSON(w, tea, "tea")
 }
 
@@ -133,6 +138,11 @@ func (h *Handler) HandleTeaUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.invalidateFeedCache()
+	if redirect := r.FormValue("__redirect"); redirect != "" {
+		w.Header().Set("HX-Redirect", redirect)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	writeJSON(w, tea, "tea")
 }
 

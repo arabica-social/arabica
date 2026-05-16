@@ -1,0 +1,215 @@
+package teapages
+
+import (
+	"fmt"
+	"strconv"
+
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// TeaFormProps holds the data needed to render the tea create/edit page.
+// Tea is nil for new. Rating is intentionally hidden on initial creation
+// — it only appears in the edit form once the tea exists.
+type TeaFormProps struct {
+	Tea *oolong.Tea
+}
+
+templ TeaFormPage(layout *components.LayoutData, props TeaFormProps) {
+	@components.Layout(layout, TeaFormContent(props))
+}
+
+templ TeaFormContent(props TeaFormProps) {
+	<div class="page-container-sm">
+		@components.Card(
+			components.CardProps{InnerCard: true},
+			TeaFormCard(props),
+		)
+	</div>
+}
+
+templ TeaFormCard(props TeaFormProps) {
+	<div class="flex items-center gap-3 mb-6">
+		@components.BackButton()
+		<h2 class="text-2xl font-semibold text-primary">
+			if props.Tea != nil {
+				Edit Tea
+			} else {
+				New Tea
+			}
+		</h2>
+	</div>
+	@TeaFormElement(props)
+}
+
+templ TeaFormElement(props TeaFormProps) {
+	<form
+		if props.Tea != nil {
+			hx-put={ "/api/teas/" + props.Tea.RKey }
+		} else {
+			hx-post="/api/teas"
+		}
+		hx-swap="none"
+		x-data="{ serverError: '' }"
+		hx-on::after-request="if(event.detail.successful) { /* HX-Redirect handled by browser */ } else if(event.detail.xhr && event.detail.xhr.status === 401) { window.__showSessionExpiredModal && window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? (event.detail.xhr.responseText || 'Something went wrong. Please try again.') : 'Connection error. Check your network.'; }"
+		class="space-y-6"
+	>
+		<input type="hidden" name="__redirect" value="/my-tea"/>
+		<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
+		<fieldset class="space-y-6 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
+			<legend class="text-sm font-semibold text-secondary px-2">Essentials</legend>
+			@TeaNameField(props)
+			@TeaCategoryField(props)
+		</fieldset>
+		<fieldset class="space-y-6 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
+			<legend class="text-sm font-semibold text-secondary px-2">Origin <span class="form-optional-hint font-normal">(optional)</span></legend>
+			@TeaOriginField(props)
+			@TeaHarvestYearField(props)
+		</fieldset>
+		<fieldset class="space-y-6 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
+			<legend class="text-sm font-semibold text-secondary px-2">Notes</legend>
+			@TeaDescriptionField(props)
+			if props.Tea != nil {
+				@TeaRatingField(props)
+			}
+		</fieldset>
+		@TeaSubmitButton(props)
+	</form>
+}
+
+templ TeaNameField(props TeaFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Name", Required: true},
+		components.TextInput(components.TextInputProps{
+			Name:        "name",
+			Value:       teaFormValue(props, func(t *oolong.Tea) string { return t.Name }),
+			Placeholder: "e.g. Long Jing 2024 Spring",
+			Required:    true,
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+templ TeaCategoryField(props TeaFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Category"},
+		components.Select(components.SelectProps{
+			Name:        "category",
+			Placeholder: "Select a category…",
+			Class:       "w-full form-input-lg",
+			Options:     teaCategoryOptions(props),
+		}),
+	)
+}
+
+func teaCategoryOptions(props TeaFormProps) []components.SelectOption {
+	selected := ""
+	if props.Tea != nil {
+		selected = props.Tea.Category
+	}
+	opts := make([]components.SelectOption, 0, len(oolong.CategoryKnownValues))
+	for _, c := range oolong.CategoryKnownValues {
+		label := oolong.CategoryLabels[c]
+		if label == "" {
+			label = c
+		}
+		opts = append(opts, components.SelectOption{
+			Value:    c,
+			Label:    label,
+			Selected: c == selected,
+		})
+	}
+	return opts
+}
+
+templ TeaOriginField(props TeaFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Origin"},
+		components.TextInput(components.TextInputProps{
+			Name:        "origin",
+			Value:       teaFormValue(props, func(t *oolong.Tea) string { return t.Origin }),
+			Placeholder: "e.g. Yunnan, China",
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+templ TeaHarvestYearField(props TeaFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Harvest year"},
+		components.NumberInput(components.NumberInputProps{
+			Name:        "harvest_year",
+			Value:       teaHarvestYearValue(props),
+			Placeholder: "e.g. 2024",
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+func teaHarvestYearValue(props TeaFormProps) string {
+	if props.Tea != nil && props.Tea.HarvestYear > 0 {
+		return strconv.Itoa(props.Tea.HarvestYear)
+	}
+	return ""
+}
+
+templ TeaDescriptionField(props TeaFormProps) {
+	@components.FormField(
+		components.FormFieldProps{Label: "Notes"},
+		components.TextArea(components.TextAreaProps{
+			Name:        "description",
+			Value:       teaFormValue(props, func(t *oolong.Tea) string { return t.Description }),
+			Placeholder: "Describe the tea — flavors, aroma, processing, vendor notes…",
+			Rows:        4,
+			Class:       "w-full form-input-lg",
+		}),
+	)
+}
+
+templ TeaRatingField(props TeaFormProps) {
+	<div x-data={ fmt.Sprintf("{ rating: %s }", teaRatingInitial(props)) }>
+		<label class="form-label">Rating</label>
+		<input
+			type="range"
+			name="rating"
+			min="1"
+			max="10"
+			value={ teaRatingInitial(props) }
+			x-model="rating"
+			class="w-full"
+			style="accent-color: var(--btn-primary-bg)"
+		/>
+		<div class="text-center text-2xl font-bold text-secondary">
+			<span x-text="rating"></span>/10
+		</div>
+	</div>
+}
+
+func teaRatingInitial(props TeaFormProps) string {
+	if props.Tea != nil && props.Tea.Rating != nil && *props.Tea.Rating > 0 {
+		return strconv.Itoa(*props.Tea.Rating)
+	}
+	return "5"
+}
+
+templ TeaSubmitButton(props TeaFormProps) {
+	<div>
+		<button
+			type="submit"
+			class="w-full btn-primary py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl"
+		>
+			if props.Tea != nil {
+				Update Tea
+			} else {
+				Save Tea
+			}
+		</button>
+	</div>
+}
+
+func teaFormValue(props TeaFormProps, fn func(*oolong.Tea) string) string {
+	if props.Tea == nil {
+		return ""
+	}
+	return fn(props.Tea)
+}

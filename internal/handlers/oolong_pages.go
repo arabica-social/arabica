@@ -72,6 +72,44 @@ func listOolong[T any](
 	return out
 }
 
+// HandleOolongTeaNew renders the new-tea page.
+func (h *Handler) HandleOolongTeaNew(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.requireOolongStore(w, r); !ok {
+		return
+	}
+	layoutData, _, _ := h.layoutDataFromRequest(r, "New Tea")
+	if err := teapages.TeaFormPage(layoutData, teapages.TeaFormProps{Tea: nil}).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render new-tea page")
+	}
+}
+
+// HandleOolongTeaEdit renders the edit-tea page for an existing tea.
+func (h *Handler) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
+	store, ok := h.requireOolongStore(w, r)
+	if !ok {
+		return
+	}
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDTea, rkey)
+	if err != nil {
+		http.Error(w, "Tea not found", http.StatusNotFound)
+		return
+	}
+	t, err := oolong.RecordToTea(rec, uri)
+	if err != nil {
+		http.Error(w, "Failed to decode tea", http.StatusInternalServerError)
+		return
+	}
+	t.RKey = rkey
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Tea")
+	if err := teapages.TeaFormPage(layoutData, teapages.TeaFormProps{Tea: t}).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render edit-tea page")
+	}
+}
+
 // HandleOolongSteepNew renders the new-steep page (oolong brew create form).
 // Mirrors arabica's /brews/new, but for tea: full page form instead of
 // modal so the form can grow without crowding a dialog.

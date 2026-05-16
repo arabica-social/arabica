@@ -19,41 +19,8 @@ import (
 // and /api/{urlpath}/{id} for update. The handlers here only render the
 // dialog HTML — the actual write goes through oolong_crud.go.
 
-// --- Tea -------------------------------------------------------------
-
-func (h *Handler) HandleTeaModalNew(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.requireOolongStore(w, r); !ok {
-		return
-	}
-	if err := tea.TeaDialogModal(nil).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea modal (new)")
-	}
-}
-
-func (h *Handler) HandleTeaModalEdit(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDTea, rkey)
-	if err != nil {
-		http.Error(w, "Tea not found", http.StatusNotFound)
-		return
-	}
-	t, err := oolong.RecordToTea(rec, uri)
-	if err != nil {
-		http.Error(w, "Failed to decode tea", http.StatusInternalServerError)
-		return
-	}
-	t.RKey = rkey
-	if err := tea.TeaDialogModal(t).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea modal (edit)")
-	}
-}
+// Tea uses a full-page form (HandleOolongTeaNew/Edit) instead of a
+// modal — see internal/oolong/web/pages/tea_form.templ.
 
 // --- Vendor ----------------------------------------------------------
 

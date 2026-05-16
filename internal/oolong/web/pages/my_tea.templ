@@ -52,13 +52,13 @@ templ MyTeaContent(props MyTeaProps) {
 			}
 		</div>
 		<div x-show="tab === 'teas'" x-cloak>
-			@myTeaSectionHeader("Teas", "tea", "/api/modals/tea/new", len(props.Teas))
+			@myTeaPageSectionHeader("Teas", "/teas/new", len(props.Teas))
 			if len(props.Teas) == 0 {
 				@myTeaEmpty("teas")
 			} else {
 				<div class="feed-grid">
 					for _, t := range props.Teas {
-						@myTeaCard("tea", t.RKey, "/teas/"+t.RKey) {
+						@myTeaPageCard("tea", t.RKey, "/teas/"+t.RKey, "/teas/"+t.RKey+"/edit", "/api/teas/"+t.RKey) {
 							@tea.TeaContent(t)
 						}
 					}
@@ -199,6 +199,53 @@ templ myTeaCard(noun, rkey, viewURL string) {
 				type="button"
 				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm hover:!bg-red-50 hover:!text-red-700"
 				hx-delete={ "/api/" + myTeaURLPath(noun) + "/" + rkey }
+				hx-confirm={ "Delete this " + noun + "?" }
+				hx-target="closest .feed-card"
+				hx-swap="outerHTML swap:300ms"
+				aria-label={ "Delete " + noun }
+			>
+				Delete
+			</button>
+		</div>
+		<a href={ templ.SafeURL(viewURL) } class="block hover:opacity-95 transition-opacity">
+			{ children... }
+		</a>
+	</div>
+}
+
+// myTeaPageSectionHeader mirrors myTeaSectionHeader but the "+ New"
+// button is an anchor to a full-page form (e.g. /teas/new) instead of
+// an HTMX modal trigger.
+templ myTeaPageSectionHeader(title, addPageURL string, count int) {
+	<div class="flex items-center justify-between mb-4">
+		<div class="flex items-baseline gap-2">
+			<span class="text-sm text-muted">{ fmt.Sprintf("%d %s", count, title) }</span>
+		</div>
+		<a
+			href={ templ.SafeURL(addPageURL) }
+			class="btn-primary text-sm shadow-lg hover:shadow-xl"
+		>
+			+ New { title[:len(title)-1] }
+		</a>
+	</div>
+}
+
+// myTeaPageCard mirrors myTeaCard but Edit is an anchor to a full-page
+// form (e.g. /teas/{rkey}/edit) instead of an HTMX modal trigger.
+templ myTeaPageCard(noun, rkey, viewURL, editURL, deleteURL string) {
+	<div class="feed-card relative group">
+		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+			<a
+				href={ templ.SafeURL(editURL) }
+				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm"
+				aria-label={ "Edit " + noun }
+			>
+				Edit
+			</a>
+			<button
+				type="button"
+				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm hover:!bg-red-50 hover:!text-red-700"
+				hx-delete={ deleteURL }
 				hx-confirm={ "Delete this " + noun + "?" }
 				hx-target="closest .feed-card"
 				hx-swap="outerHTML swap:300ms"
