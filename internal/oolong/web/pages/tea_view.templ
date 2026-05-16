@@ -3,7 +3,6 @@ package teapages
 import (
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -14,59 +13,36 @@ type TeaViewProps struct {
 }
 
 templ TeaView(layout *components.LayoutData, props TeaViewProps) {
-	@components.Layout(layout, TeaViewContent(props))
-}
-
-templ TeaViewContent(props TeaViewProps) {
-	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, TeaViewCard(props))
-	</div>
-}
-
-templ TeaViewCard(props TeaViewProps) {
-	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "tea",
-		Title:         "",
-		Timestamp:     props.Tea.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Tea.CreatedAt),
-		AuthorDID:     props.AuthorDID,
-		AuthorHandle:  props.AuthorHandle,
-		AuthorDisplay: props.AuthorDisplayName,
-		AuthorAvatar:  props.AuthorAvatar,
-	})
-	<div class="p-4">
-		@tea.TeaContent(props.Tea)
-	</div>
-	<div class="record-view-footer">
-		<div class="flex items-center gap-3">
-			@components.BackButton()
-		</div>
-		if props.SubjectURI != "" && props.SubjectCID != "" {
-			@components.ActionBar(components.ActionBarProps{
-				SubjectURI:      props.SubjectURI,
-				SubjectCID:      props.SubjectCID,
-				IsLiked:         props.IsLiked,
-				LikeCount:       props.LikeCount,
-				CommentCount:    props.CommentCount,
-				ShowComments:    true,
-				ShareURL:        props.ShareURL,
-				ShareTitle:      props.Tea.Name,
-				ShareText:       "Check out this tea",
-				IsOwner:         props.IsOwnProfile,
-				EditURL:         "/teas/" + props.Tea.RKey + "/edit",
-				DeleteURL:       "/api/teas/" + props.Tea.RKey,
-				IsAuthenticated: props.IsAuthenticated,
-				IsModerator:     props.IsModerator,
-				CanHideRecord:   props.CanHideRecord,
-				CanBlockUser:    props.CanBlockUser,
-				IsRecordHidden:  props.IsRecordHidden,
-				AuthorDID:       props.AuthorDID,
-			})
-		}
-	</div>
-	@components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      props.SubjectURI,
-		SubjectCID:      props.SubjectCID,
+	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
+		RecordType:        "tea",
+		Title:             "",
+		CreatedAt:         props.Tea.CreatedAt,
+		AuthorDID:         props.AuthorDID,
+		AuthorHandle:      props.AuthorHandle,
+		AuthorDisplayName: props.AuthorDisplayName,
+		AuthorAvatar:      props.AuthorAvatar,
+		Body:              teaBody(props.Tea),
+		GuardActionBar:    true,
+		ActionBar: components.ActionBarProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			IsLiked:         props.IsLiked,
+			LikeCount:       props.LikeCount,
+			CommentCount:    props.CommentCount,
+			ShowComments:    true,
+			ShareURL:        props.ShareURL,
+			ShareTitle:      props.Tea.Name,
+			ShareText:       "Check out this tea",
+			IsOwner:         props.IsOwnProfile,
+			EditURL:         "/teas/" + props.Tea.RKey + "/edit",
+			DeleteURL:       "/api/teas/" + props.Tea.RKey,
+			IsAuthenticated: props.IsAuthenticated,
+			IsModerator:     props.IsModerator,
+			CanHideRecord:   props.CanHideRecord,
+			CanBlockUser:    props.CanBlockUser,
+			IsRecordHidden:  props.IsRecordHidden,
+			AuthorDID:       props.AuthorDID,
+		},
 		Comments:        props.Comments,
 		IsAuthenticated: props.IsAuthenticated,
 		CurrentUserDID:  props.CurrentUserDID,
@@ -75,6 +51,11 @@ templ TeaViewCard(props TeaViewProps) {
 			CanHideRecord: props.CanHideRecord,
 			CanBlockUser:  props.CanBlockUser,
 		},
-		ViewURL: props.ShareURL,
 	})
+}
+
+templ teaBody(t *oolong.Tea) {
+	<div class="p-4">
+		@tea.TeaContent(t)
+	</div>
 }

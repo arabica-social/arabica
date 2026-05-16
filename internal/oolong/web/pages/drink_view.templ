@@ -3,7 +3,6 @@ package teapages
 import (
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -14,58 +13,35 @@ type DrinkViewProps struct {
 }
 
 templ DrinkView(layout *components.LayoutData, props DrinkViewProps) {
-	@components.Layout(layout, DrinkViewContent(props))
-}
-
-templ DrinkViewContent(props DrinkViewProps) {
-	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, DrinkViewCard(props))
-	</div>
-}
-
-templ DrinkViewCard(props DrinkViewProps) {
-	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "drink",
-		Title:         drinkViewShareTitle(props.Drink),
-		Timestamp:     props.Drink.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Drink.CreatedAt),
-		AuthorDID:     props.AuthorDID,
-		AuthorHandle:  props.AuthorHandle,
-		AuthorDisplay: props.AuthorDisplayName,
-		AuthorAvatar:  props.AuthorAvatar,
-	})
-	<div class="p-4">
-		@tea.DrinkContent(props.Drink)
-	</div>
-	<div class="record-view-footer">
-		<div class="flex items-center gap-3">
-			@components.BackButton()
-		</div>
-		if props.SubjectURI != "" && props.SubjectCID != "" {
-			@components.ActionBar(components.ActionBarProps{
-				SubjectURI:      props.SubjectURI,
-				SubjectCID:      props.SubjectCID,
-				IsLiked:         props.IsLiked,
-				LikeCount:       props.LikeCount,
-				CommentCount:    props.CommentCount,
-				ShowComments:    true,
-				ShareURL:        props.ShareURL,
-				ShareTitle:      drinkViewShareTitle(props.Drink),
-				ShareText:       "Check out this tea drink",
-				IsOwner:         props.IsOwnProfile,
-				DeleteURL:       "/api/drinks/" + props.Drink.RKey,
-				IsAuthenticated: props.IsAuthenticated,
-				IsModerator:     props.IsModerator,
-				CanHideRecord:   props.CanHideRecord,
-				CanBlockUser:    props.CanBlockUser,
-				IsRecordHidden:  props.IsRecordHidden,
-				AuthorDID:       props.AuthorDID,
-			})
-		}
-	</div>
-	@components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      props.SubjectURI,
-		SubjectCID:      props.SubjectCID,
+	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
+		RecordType:        "drink",
+		Title:             drinkViewShareTitle(props.Drink),
+		CreatedAt:         props.Drink.CreatedAt,
+		AuthorDID:         props.AuthorDID,
+		AuthorHandle:      props.AuthorHandle,
+		AuthorDisplayName: props.AuthorDisplayName,
+		AuthorAvatar:      props.AuthorAvatar,
+		Body:              drinkBody(props.Drink),
+		GuardActionBar:    true,
+		ActionBar: components.ActionBarProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			IsLiked:         props.IsLiked,
+			LikeCount:       props.LikeCount,
+			CommentCount:    props.CommentCount,
+			ShowComments:    true,
+			ShareURL:        props.ShareURL,
+			ShareTitle:      drinkViewShareTitle(props.Drink),
+			ShareText:       "Check out this tea drink",
+			IsOwner:         props.IsOwnProfile,
+			DeleteURL:       "/api/drinks/" + props.Drink.RKey,
+			IsAuthenticated: props.IsAuthenticated,
+			IsModerator:     props.IsModerator,
+			CanHideRecord:   props.CanHideRecord,
+			CanBlockUser:    props.CanBlockUser,
+			IsRecordHidden:  props.IsRecordHidden,
+			AuthorDID:       props.AuthorDID,
+		},
 		Comments:        props.Comments,
 		IsAuthenticated: props.IsAuthenticated,
 		CurrentUserDID:  props.CurrentUserDID,
@@ -74,8 +50,13 @@ templ DrinkViewCard(props DrinkViewProps) {
 			CanHideRecord: props.CanHideRecord,
 			CanBlockUser:  props.CanBlockUser,
 		},
-		ViewURL: props.ShareURL,
 	})
+}
+
+templ drinkBody(d *oolong.Drink) {
+	<div class="p-4">
+		@tea.DrinkContent(d)
+	</div>
 }
 
 func drinkViewShareTitle(d *oolong.Drink) string {

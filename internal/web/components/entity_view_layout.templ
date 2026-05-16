@@ -1,0 +1,88 @@
+package components
+
+import (
+	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
+	"time"
+)
+
+// EntityViewLayoutProps bundles everything a simple entity view page
+// renders: card-style header, an entity-specific body component, an
+// optional stat-line (e.g. "5 beans"), the action bar (like/share/edit/
+// delete), and the comment section. Pages compose this with a
+// templ.Component body to avoid hand-cloning the 70-line shell per
+// entity.
+//
+// GuardActionBar gates rendering of ActionBar (and the gap-3 wrapper
+// around BackButton) behind a SubjectURI/SubjectCID non-empty check —
+// oolong views use this because freshly-created records may not yet be
+// indexed by the firehose; arabica views always render the bar.
+type EntityViewLayoutProps struct {
+	RecordType        string
+	Title             string
+	CreatedAt         time.Time
+	AuthorDID         string
+	AuthorHandle      string
+	AuthorDisplayName string
+	AuthorAvatar      string
+
+	Body     templ.Component
+	StatLine templ.Component
+
+	ActionBar      ActionBarProps
+	GuardActionBar bool
+
+	Comments        []firehose.IndexedComment
+	IsAuthenticated bool
+	CurrentUserDID  string
+	ModCtx          CommentModerationContext
+}
+
+templ EntityViewLayout(layout *LayoutData, props EntityViewLayoutProps) {
+	@Layout(layout, EntityViewLayoutContent(props))
+}
+
+templ EntityViewLayoutContent(props EntityViewLayoutProps) {
+	<div class="page-container-sm">
+		@Card(CardProps{InnerCard: true}, EntityViewLayoutCard(props))
+	</div>
+}
+
+templ EntityViewLayoutCard(props EntityViewLayoutProps) {
+	@RecordViewHeader(RecordViewHeaderProps{
+		RecordType:    props.RecordType,
+		Title:         props.Title,
+		Timestamp:     props.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.CreatedAt),
+		AuthorDID:     props.AuthorDID,
+		AuthorHandle:  props.AuthorHandle,
+		AuthorDisplay: props.AuthorDisplayName,
+		AuthorAvatar:  props.AuthorAvatar,
+	})
+	@props.Body
+	if props.StatLine != nil {
+		@props.StatLine
+	}
+	<div class="record-view-footer">
+		if props.GuardActionBar {
+			<div class="flex items-center gap-3">
+				@BackButton()
+			</div>
+			if props.ActionBar.SubjectURI != "" && props.ActionBar.SubjectCID != "" {
+				@ActionBar(props.ActionBar)
+			}
+		} else {
+			@BackButton()
+			@ActionBar(props.ActionBar)
+		}
+	</div>
+	@CommentSection(CommentSectionProps{
+		SubjectURI:      props.ActionBar.SubjectURI,
+		SubjectCID:      props.ActionBar.SubjectCID,
+		Comments:        props.Comments,
+		IsAuthenticated: props.IsAuthenticated,
+		CurrentUserDID:  props.CurrentUserDID,
+		ModCtx:          props.ModCtx,
+		ViewURL:         props.ActionBar.ShareURL,
+	})
+}

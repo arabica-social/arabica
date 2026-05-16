@@ -3,7 +3,6 @@ package teapages
 import (
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -14,59 +13,36 @@ type BrewViewProps struct {
 }
 
 templ BrewView(layout *components.LayoutData, props BrewViewProps) {
-	@components.Layout(layout, BrewViewContent(props))
-}
-
-templ BrewViewContent(props BrewViewProps) {
-	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, BrewViewCard(props))
-	</div>
-}
-
-templ BrewViewCard(props BrewViewProps) {
-	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "brew",
-		Title:         brewViewShareTitle(props.Brew),
-		Timestamp:     props.Brew.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Brew.CreatedAt),
-		AuthorDID:     props.AuthorDID,
-		AuthorHandle:  props.AuthorHandle,
-		AuthorDisplay: props.AuthorDisplayName,
-		AuthorAvatar:  props.AuthorAvatar,
-	})
-	<div class="p-4">
-		@tea.BrewContent(props.Brew)
-	</div>
-	<div class="record-view-footer">
-		<div class="flex items-center gap-3">
-			@components.BackButton()
-		</div>
-		if props.SubjectURI != "" && props.SubjectCID != "" {
-			@components.ActionBar(components.ActionBarProps{
-				SubjectURI:      props.SubjectURI,
-				SubjectCID:      props.SubjectCID,
-				IsLiked:         props.IsLiked,
-				LikeCount:       props.LikeCount,
-				CommentCount:    props.CommentCount,
-				ShowComments:    true,
-				ShareURL:        props.ShareURL,
-				ShareTitle:      brewViewShareTitle(props.Brew),
-				ShareText:       "Check out this tea brew",
-				IsOwner:         props.IsOwnProfile,
-				EditURL:         "/brews/" + props.Brew.RKey + "/edit",
-				DeleteURL:       "/api/brews/" + props.Brew.RKey,
-				IsAuthenticated: props.IsAuthenticated,
-				IsModerator:     props.IsModerator,
-				CanHideRecord:   props.CanHideRecord,
-				CanBlockUser:    props.CanBlockUser,
-				IsRecordHidden:  props.IsRecordHidden,
-				AuthorDID:       props.AuthorDID,
-			})
-		}
-	</div>
-	@components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      props.SubjectURI,
-		SubjectCID:      props.SubjectCID,
+	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
+		RecordType:        "brew",
+		Title:             brewViewShareTitle(props.Brew),
+		CreatedAt:         props.Brew.CreatedAt,
+		AuthorDID:         props.AuthorDID,
+		AuthorHandle:      props.AuthorHandle,
+		AuthorDisplayName: props.AuthorDisplayName,
+		AuthorAvatar:      props.AuthorAvatar,
+		Body:              brewBody(props.Brew),
+		GuardActionBar:    true,
+		ActionBar: components.ActionBarProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			IsLiked:         props.IsLiked,
+			LikeCount:       props.LikeCount,
+			CommentCount:    props.CommentCount,
+			ShowComments:    true,
+			ShareURL:        props.ShareURL,
+			ShareTitle:      brewViewShareTitle(props.Brew),
+			ShareText:       "Check out this tea brew",
+			IsOwner:         props.IsOwnProfile,
+			EditURL:         "/brews/" + props.Brew.RKey + "/edit",
+			DeleteURL:       "/api/brews/" + props.Brew.RKey,
+			IsAuthenticated: props.IsAuthenticated,
+			IsModerator:     props.IsModerator,
+			CanHideRecord:   props.CanHideRecord,
+			CanBlockUser:    props.CanBlockUser,
+			IsRecordHidden:  props.IsRecordHidden,
+			AuthorDID:       props.AuthorDID,
+		},
 		Comments:        props.Comments,
 		IsAuthenticated: props.IsAuthenticated,
 		CurrentUserDID:  props.CurrentUserDID,
@@ -75,8 +51,13 @@ templ BrewViewCard(props BrewViewProps) {
 			CanHideRecord: props.CanHideRecord,
 			CanBlockUser:  props.CanBlockUser,
 		},
-		ViewURL: props.ShareURL,
 	})
+}
+
+templ brewBody(b *oolong.Brew) {
+	<div class="p-4">
+		@tea.BrewContent(b)
+	</div>
 }
 
 func brewViewShareTitle(b *oolong.Brew) string {

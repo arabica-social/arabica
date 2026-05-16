@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -16,51 +15,17 @@ type BrewerViewProps struct {
 }
 
 templ BrewerView(layout *components.LayoutData, props BrewerViewProps) {
-	@components.Layout(layout, BrewerViewContent(props))
-}
-
-templ BrewerViewContent(props BrewerViewProps) {
-	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, BrewerViewCard(props))
-	</div>
-}
-
-templ BrewerViewCard(props BrewerViewProps) {
-	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "brewer",
-		Title:         props.Brewer.Name,
-		Timestamp:     props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Brewer.CreatedAt),
-		AuthorDID:     props.AuthorDID,
-		AuthorHandle:  props.AuthorHandle,
-		AuthorDisplay: props.AuthorDisplayName,
-		AuthorAvatar:  props.AuthorAvatar,
-	})
-	<div class="record-journal p-4">
-		@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Type", Value: props.Brewer.BrewerType})
-		if props.Brewer.Description != "" {
-			<div class="mt-6">
-				<span class="detail-label mb-2 block">
-					<span class="inline-flex items-center gap-1">
-						@components.IconFileText()
-						Description
-					</span>
-				</span>
-				<div class="journal-prose">{ props.Brewer.Description }</div>
-			</div>
-		}
-	</div>
-	if props.BrewCount > 0 {
-		<div class="record-stat-line">
-			<span class="flex items-center gap-1">
-				@components.IconCoffee()
-				{ fmt.Sprintf("%d brew%s", props.BrewCount, pluralS(props.BrewCount)) }
-			</span>
-		</div>
-	}
-	<div class="record-view-footer">
-		@components.BackButton()
-		@components.ActionBar(components.ActionBarProps{
+	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
+		RecordType:        "brewer",
+		Title:             props.Brewer.Name,
+		CreatedAt:         props.Brewer.CreatedAt,
+		AuthorDID:         props.AuthorDID,
+		AuthorHandle:      props.AuthorHandle,
+		AuthorDisplayName: props.AuthorDisplayName,
+		AuthorAvatar:      props.AuthorAvatar,
+		Body:              brewerBody(props.Brewer),
+		StatLine:          brewerStatLine(props.BrewCount),
+		ActionBar: components.ActionBarProps{
 			SubjectURI:      props.SubjectURI,
 			SubjectCID:      props.SubjectCID,
 			IsLiked:         props.IsLiked,
@@ -80,11 +45,7 @@ templ BrewerViewCard(props BrewerViewProps) {
 			CanBlockUser:    props.CanBlockUser,
 			IsRecordHidden:  props.IsRecordHidden,
 			AuthorDID:       props.AuthorDID,
-		})
-	</div>
-	@components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      props.SubjectURI,
-		SubjectCID:      props.SubjectCID,
+		},
 		Comments:        props.Comments,
 		IsAuthenticated: props.IsAuthenticated,
 		CurrentUserDID:  props.CurrentUserDID,
@@ -93,6 +54,33 @@ templ BrewerViewCard(props BrewerViewProps) {
 			CanHideRecord: props.CanHideRecord,
 			CanBlockUser:  props.CanBlockUser,
 		},
-		ViewURL: props.ShareURL,
 	})
+}
+
+templ brewerBody(b *arabica.Brewer) {
+	<div class="record-journal p-4">
+		@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Type", Value: b.BrewerType})
+		if b.Description != "" {
+			<div class="mt-6">
+				<span class="detail-label mb-2 block">
+					<span class="inline-flex items-center gap-1">
+						@components.IconFileText()
+						Description
+					</span>
+				</span>
+				<div class="journal-prose">{ b.Description }</div>
+			</div>
+		}
+	</div>
+}
+
+templ brewerStatLine(count int) {
+	if count > 0 {
+		<div class="record-stat-line">
+			<span class="flex items-center gap-1">
+				@components.IconCoffee()
+				{ fmt.Sprintf("%d brew%s", count, pluralS(count)) }
+			</span>
+		</div>
+	}
 }
