@@ -1,8 +1,9 @@
 package teapages
 
 import (
+	"fmt"
+
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -34,8 +35,36 @@ templ BrewViewCard(props BrewViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="p-4">
-		@tea.BrewContent(props.Brew)
+	<div class="record-journal p-4">
+		@BrewSummary(props.Brew)
+		@brewTeaSection(props.Brew, getOwnerFromShareURL(props.ShareURL))
+		<div class="my-6">
+			<div class="ledger-section">Inputs</div>
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconScale(), Label: "Leaves", Value: getLeafGramsDisplay(props.Brew)})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Water", Value: getWaterAmountDisplay(props.Brew)})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconThermometer(), Label: "Temperature", Value: getTemperatureDisplay(props.Brew)})
+			@components.JournalField(components.DetailStackedProps{
+				Icon:     components.IconDisc(),
+				Label:    "Vessel",
+				Value:    getVesselName(props.Brew),
+				LinkHref: getVesselViewURL(props.Brew, getOwnerFromShareURL(props.ShareURL)),
+			})
+			@components.JournalField(components.DetailStackedProps{
+				Icon:     components.IconSliders(),
+				Label:    "Infuser",
+				Value:    getInfuserName(props.Brew),
+				LinkHref: getInfuserViewURL(props.Brew, getOwnerFromShareURL(props.ShareURL)),
+			})
+			<div class="ledger-section">Process</div>
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Style", Value: brewStyleLabel(props.Brew.Style)})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconTag(), Label: "Method", Value: brewMethodLabel(props.Brew.InfusionMethod)})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconClock(), Label: "Steep Time", Value: getSteepTimeDisplay(props.Brew)})
+		</div>
+		<div class="space-y-6">
+			if props.Brew.TastingNotes != "" {
+				@BrewTastingNotes(props.Brew.TastingNotes)
+			}
+		</div>
 	</div>
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">
@@ -79,9 +108,188 @@ templ BrewViewCard(props BrewViewProps) {
 	})
 }
 
+// BrewSummary renders the at-a-glance headline at the top of the journal:
+// rating on the left, compact recipe stats (ratio / time / method) on the
+// right. Mirrors arabica's BrewSummary exactly.
+templ BrewSummary(brew *oolong.Brew) {
+	if brew.Rating > 0 || hasBrewSummaryStats(brew) {
+		<div class="brew-summary">
+			if brew.Rating > 0 {
+				<div class="brew-rating-hero">
+					<span class="brew-rating-value">{ fmt.Sprintf("%d", brew.Rating) }</span>
+					<span class="brew-rating-max">/10</span>
+				</div>
+			}
+			if hasBrewSummaryStats(brew) {
+				<dl class="brew-summary-stats">
+					if ratio := getBrewRatioDisplay(brew); ratio != "" {
+						<div class="brew-summary-stat">
+							<dt>Ratio</dt>
+							<dd>{ ratio }</dd>
+						</div>
+					}
+					if t := getSteepTimeDisplay(brew); t != "" {
+						<div class="brew-summary-stat">
+							<dt>Time</dt>
+							<dd>{ t }</dd>
+						</div>
+					}
+					if m := brewMethodLabel(brew.InfusionMethod); m != "" {
+						<div class="brew-summary-stat">
+							<dt>Method</dt>
+							<dd>{ m }</dd>
+						</div>
+					}
+				</dl>
+			}
+		</div>
+	}
+}
+
+// BrewTastingNotes renders the tasting-notes block. Mirrors arabica's
+// BrewTastingNotes — detail label + journal-prose, no ledger-section
+// heading so it reads as a flowing paragraph rather than a fielded row.
+templ BrewTastingNotes(notes string) {
+	<div>
+		<span class="detail-label mb-2 block">
+			<span class="inline-flex items-center gap-1">
+				@components.IconFileText()
+				Tasting Notes
+			</span>
+		</span>
+		<div class="journal-prose">{ notes }</div>
+	</div>
+}
+
+// brewTeaSection renders the steep's tea as a prominent reference card,
+// mirroring arabica's BrewBeanSection. Sits above the ledger fields so
+// the tea identity reads first.
+templ brewTeaSection(brew *oolong.Brew, owner string) {
+	if brew.Tea != nil {
+		<div class="journal-bean-ref mb-2">
+			<span class="detail-label mb-2 block">
+				<span class="inline-flex items-center gap-1">
+					@components.IconLeaf()
+					Tea
+				</span>
+			</span>
+			<a href={ templ.SafeURL(fmt.Sprintf("/teas/%s/%s", owner, brew.Tea.RKey)) } class="detail-value-lg hover:underline">
+				{ brew.Tea.Name }
+			</a>
+			if brew.Tea.Vendor != nil && brew.Tea.Vendor.Name != "" {
+				<div class="text-sm mt-1 text-secondary">
+					<span class="inline-flex items-center gap-1">
+						@components.IconStore()
+						<a href={ templ.SafeURL(fmt.Sprintf("/vendors/%s/%s", owner, brew.Tea.Vendor.RKey)) } class="hover:underline">
+							{ brew.Tea.Vendor.Name }
+						</a>
+					</span>
+				</div>
+			}
+			<div class="flex flex-wrap gap-3 mt-2 text-sm text-muted">
+				if brew.Tea.Origin != "" {
+					<span class="inline-flex items-center gap-1">
+						@components.IconMapPin()
+						{ brew.Tea.Origin }
+					</span>
+				}
+				if brew.Tea.Category != "" {
+					<span class="inline-flex items-center gap-1">
+						@components.IconTag()
+						{ teaCategoryLabel(brew.Tea.Category) }
+					</span>
+				}
+			</div>
+		</div>
+	}
+}
+
 func brewViewShareTitle(b *oolong.Brew) string {
 	if b.Tea != nil && b.Tea.Name != "" {
 		return b.Tea.Name
 	}
 	return "Tea Brew"
+}
+
+func hasBrewSummaryStats(brew *oolong.Brew) bool {
+	return getBrewRatioDisplay(brew) != "" || getSteepTimeDisplay(brew) != "" || brewMethodLabel(brew.InfusionMethod) != ""
+}
+
+// getBrewRatioDisplay returns the leaf:water ratio as "1:NN" (g leaves
+// to ml water). Mirrors arabica's coffee:water ratio in BrewSummary.
+func getBrewRatioDisplay(brew *oolong.Brew) string {
+	if brew.LeafGrams > 0 && brew.WaterAmount > 0 {
+		return fmt.Sprintf("1:%.0f", float64(brew.WaterAmount)/brew.LeafGrams)
+	}
+	return ""
+}
+
+func getLeafGramsDisplay(brew *oolong.Brew) string {
+	if brew.LeafGrams > 0 {
+		return fmt.Sprintf("%.1fg", brew.LeafGrams)
+	}
+	return ""
+}
+
+func getWaterAmountDisplay(brew *oolong.Brew) string {
+	if brew.WaterAmount > 0 {
+		return fmt.Sprintf("%d ml", brew.WaterAmount)
+	}
+	return ""
+}
+
+func getTemperatureDisplay(brew *oolong.Brew) string {
+	if brew.Temperature > 0 {
+		return fmt.Sprintf("%.0f°C", brew.Temperature)
+	}
+	return ""
+}
+
+func getSteepTimeDisplay(brew *oolong.Brew) string {
+	if brew.TimeSeconds > 0 {
+		return fmt.Sprintf("%ds", brew.TimeSeconds)
+	}
+	return ""
+}
+
+func getVesselName(brew *oolong.Brew) string {
+	if brew.Vessel != nil {
+		return brew.Vessel.Name
+	}
+	return ""
+}
+
+func getVesselViewURL(brew *oolong.Brew, owner string) string {
+	if brew.Vessel == nil || owner == "" {
+		return ""
+	}
+	return fmt.Sprintf("/vessels/%s/%s", owner, brew.Vessel.RKey)
+}
+
+func getInfuserName(brew *oolong.Brew) string {
+	if brew.Infuser != nil {
+		return brew.Infuser.Name
+	}
+	return ""
+}
+
+func getInfuserViewURL(brew *oolong.Brew, owner string) string {
+	if brew.Infuser == nil || owner == "" {
+		return ""
+	}
+	return fmt.Sprintf("/infusers/%s/%s", owner, brew.Infuser.RKey)
+}
+
+func brewStyleLabel(raw string) string {
+	if label, ok := oolong.StyleLabels[raw]; ok {
+		return label
+	}
+	return raw
+}
+
+func brewMethodLabel(raw string) string {
+	if label, ok := oolong.InfusionMethodLabels[raw]; ok {
+		return label
+	}
+	return raw
 }

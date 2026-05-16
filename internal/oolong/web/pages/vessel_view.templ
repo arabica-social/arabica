@@ -1,8 +1,9 @@
 package teapages
 
 import (
+	"fmt"
+
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -34,8 +35,24 @@ templ VesselViewCard(props VesselViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="p-4">
-		@tea.VesselContent(props.Vessel)
+	<div class="record-journal p-4">
+		<h1 class="label-origin-hero mb-4">{ props.Vessel.Name }</h1>
+		@components.JournalField(components.DetailStackedProps{Icon: components.IconTag(), Label: "Style", Value: props.Vessel.Style})
+		if props.Vessel.CapacityMl > 0 {
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconScale(), Label: "Capacity", Value: fmt.Sprintf("%d ml", props.Vessel.CapacityMl)})
+		}
+		@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Material", Value: props.Vessel.Material})
+		if props.Vessel.Description != "" {
+			<div class="mt-6">
+				<span class="detail-label mb-2 block">
+					<span class="inline-flex items-center gap-1">
+						@components.IconFileText()
+						Description
+					</span>
+				</span>
+				<div class="journal-prose">{ props.Vessel.Description }</div>
+			</div>
+		}
 	</div>
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">

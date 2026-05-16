@@ -123,12 +123,50 @@ func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 		actor = layoutData.UserProfile.Handle
 	}
 
+	teas := listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea)
+	vendors := listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor)
+	vessels := listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel)
+	infusers := listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser)
+	brews := listOolong(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew)
+
+	// Join references so the steep cards can show tea name, vessel, infuser.
+	vendorByRKey := make(map[string]*oolong.Vendor, len(vendors))
+	for _, v := range vendors {
+		vendorByRKey[v.RKey] = v
+	}
+	teaByRKey := make(map[string]*oolong.Tea, len(teas))
+	for _, t := range teas {
+		if t.Vendor == nil && t.VendorRKey != "" {
+			t.Vendor = vendorByRKey[t.VendorRKey]
+		}
+		teaByRKey[t.RKey] = t
+	}
+	vesselByRKey := make(map[string]*oolong.Vessel, len(vessels))
+	for _, v := range vessels {
+		vesselByRKey[v.RKey] = v
+	}
+	infuserByRKey := make(map[string]*oolong.Infuser, len(infusers))
+	for _, i := range infusers {
+		infuserByRKey[i.RKey] = i
+	}
+	for _, b := range brews {
+		if b.Tea == nil && b.TeaRKey != "" {
+			b.Tea = teaByRKey[b.TeaRKey]
+		}
+		if b.Vessel == nil && b.VesselRKey != "" {
+			b.Vessel = vesselByRKey[b.VesselRKey]
+		}
+		if b.Infuser == nil && b.InfuserRKey != "" {
+			b.Infuser = infuserByRKey[b.InfuserRKey]
+		}
+	}
+
 	props := teapages.MyTeaProps{
-		Teas:     listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
-		Vendors:  listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
-		Vessels:  listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
-		Infusers: listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
-		Brews:    listOolong(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew),
+		Teas:     teas,
+		Vendors:  vendors,
+		Vessels:  vessels,
+		Infusers: infusers,
+		Brews:    brews,
 		Actor:    actor,
 	}
 
@@ -333,6 +371,41 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	vendors := listOolongPublic(ctx, publicClient, did, oolong.NSIDVendor, oolong.RecordToVendor)
 	vessels := listOolongPublic(ctx, publicClient, did, oolong.NSIDVessel, oolong.RecordToVessel)
 	infusers := listOolongPublic(ctx, publicClient, did, oolong.NSIDInfuser, oolong.RecordToInfuser)
+
+	// Resolve brew → tea/vessel/infuser joins so cards can render the
+	// tea name (and gear) without a separate fetch per item.
+	teaByRKey := make(map[string]*oolong.Tea, len(teas))
+	for _, t := range teas {
+		teaByRKey[t.RKey] = t
+	}
+	vendorByRKey := make(map[string]*oolong.Vendor, len(vendors))
+	for _, v := range vendors {
+		vendorByRKey[v.RKey] = v
+	}
+	vesselByRKey := make(map[string]*oolong.Vessel, len(vessels))
+	for _, v := range vessels {
+		vesselByRKey[v.RKey] = v
+	}
+	infuserByRKey := make(map[string]*oolong.Infuser, len(infusers))
+	for _, i := range infusers {
+		infuserByRKey[i.RKey] = i
+	}
+	for _, t := range teas {
+		if t.Vendor == nil && t.VendorRKey != "" {
+			t.Vendor = vendorByRKey[t.VendorRKey]
+		}
+	}
+	for _, b := range brews {
+		if b.Tea == nil && b.TeaRKey != "" {
+			b.Tea = teaByRKey[b.TeaRKey]
+		}
+		if b.Vessel == nil && b.VesselRKey != "" {
+			b.Vessel = vesselByRKey[b.VesselRKey]
+		}
+		if b.Infuser == nil && b.InfuserRKey != "" {
+			b.Infuser = infuserByRKey[b.InfuserRKey]
+		}
+	}
 
 	_, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Profile")
 	isOwn := isAuthenticated && didStr == did

@@ -21,6 +21,26 @@ import (
 // same path with a non-empty rkey. Delete extracts the rkey from the
 // URL and calls store.RemoveRecord.
 
+// existingOolongCreatedAt returns the createdAt timestamp of an existing
+// record so Update handlers can preserve it instead of stamping time.Now().
+// Falls back to time.Now() if the record can't be fetched or lacks a valid
+// createdAt — this keeps Update working even if the record was corrupted.
+func existingOolongCreatedAt(ctx context.Context, store *atproto.AtprotoStore, nsid, rkey string) time.Time {
+	rec, _, _, err := store.FetchRecord(ctx, nsid, rkey)
+	if err != nil {
+		return time.Now()
+	}
+	s, ok := rec["createdAt"].(string)
+	if !ok {
+		return time.Now()
+	}
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return time.Now()
+	}
+	return t
+}
+
 // putOolongRecord is the shared write path for all oolong CRUD Create
 // and Update endpoints.
 func putOolongRecord(
@@ -117,6 +137,7 @@ func (h *Handler) HandleTeaUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	tea := teaFromCreateRequest(&createReq)
 	tea.RKey = rkey
+	tea.CreatedAt = existingOolongCreatedAt(r.Context(), store, oolong.NSIDTea, rkey)
 	if _, err := putOolongRecord(r.Context(), store, oolong.NSIDTea, rkey, func(s *atproto.AtprotoStore) (map[string]any, error) {
 		var vendorURI string
 		if createReq.VendorRKey != "" {
@@ -219,7 +240,7 @@ func (h *Handler) HandleOolongVendorUpdate(w http.ResponseWriter, r *http.Reques
 		RKey: rkey,
 		Name: createReq.Name, Location: createReq.Location, Website: createReq.Website,
 		Description: createReq.Description, SourceRef: createReq.SourceRef,
-		CreatedAt: time.Now(),
+		CreatedAt: existingOolongCreatedAt(r.Context(), store, oolong.NSIDVendor, rkey),
 	}
 	if _, err := putOolongRecord(r.Context(), store, oolong.NSIDVendor, rkey, func(*atproto.AtprotoStore) (map[string]any, error) {
 		return oolong.VendorToRecord(v)
@@ -293,7 +314,8 @@ func (h *Handler) HandleOolongVesselUpdate(w http.ResponseWriter, r *http.Reques
 		RKey: rkey,
 		Name: createReq.Name, Style: createReq.Style, CapacityMl: createReq.CapacityMl,
 		Material: createReq.Material, Description: createReq.Description,
-		SourceRef: createReq.SourceRef, CreatedAt: time.Now(),
+		SourceRef: createReq.SourceRef,
+		CreatedAt: existingOolongCreatedAt(r.Context(), store, oolong.NSIDVessel, rkey),
 	}
 	if _, err := putOolongRecord(r.Context(), store, oolong.NSIDVessel, rkey, func(*atproto.AtprotoStore) (map[string]any, error) {
 		return oolong.VesselToRecord(v)
@@ -367,7 +389,8 @@ func (h *Handler) HandleOolongInfuserUpdate(w http.ResponseWriter, r *http.Reque
 		RKey: rkey,
 		Name: createReq.Name, Style: createReq.Style,
 		Material: createReq.Material, Description: createReq.Description,
-		SourceRef: createReq.SourceRef, CreatedAt: time.Now(),
+		SourceRef: createReq.SourceRef,
+		CreatedAt: existingOolongCreatedAt(r.Context(), store, oolong.NSIDInfuser, rkey),
 	}
 	if _, err := putOolongRecord(r.Context(), store, oolong.NSIDInfuser, rkey, func(*atproto.AtprotoStore) (map[string]any, error) {
 		return oolong.InfuserToRecord(i)
@@ -442,6 +465,7 @@ func (h *Handler) HandleOolongBrewUpdate(w http.ResponseWriter, r *http.Request)
 	}
 	b := brewFromCreateRequest(&req)
 	b.RKey = rkey
+	b.CreatedAt = existingOolongCreatedAt(r.Context(), store, oolong.NSIDBrew, rkey)
 	if _, err := putOolongRecord(r.Context(), store, oolong.NSIDBrew, rkey, func(s *atproto.AtprotoStore) (map[string]any, error) {
 		teaURI := buildOolongRef(s, req.TeaRKey, oolong.NSIDTea)
 		vesselURI := buildOolongRef(s, req.VesselRKey, oolong.NSIDVessel)

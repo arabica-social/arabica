@@ -256,7 +256,7 @@ templ mySteepSectionHeader(count int) {
 // mySteepCard mirrors myTeaCard but with an Edit anchor pointing at the
 // full-page edit form instead of an HTMX modal trigger.
 templ mySteepCard(actor, rkey string) {
-	<div class="feed-card relative group">
+	<div class="feed-card feed-card-brew relative group">
 		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 			<a
 				href={ templ.SafeURL("/brews/" + rkey + "/edit") }

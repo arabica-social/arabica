@@ -5,6 +5,24 @@ import (
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
+type rkeyer interface{ RKey() string }
+
+func itemRKey(item any) string {
+	if it, ok := item.(rkeyer); ok && it != nil {
+		return it.RKey()
+	}
+	return ""
+}
+
+func modalEditURL(noun string) func(any) string {
+	return func(item any) string {
+		if r := itemRKey(item); r != "" {
+			return "/api/modals/" + noun + "/" + r
+		}
+		return ""
+	}
+}
+
 func init() {
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeBean, NSID: NSIDBean,
@@ -31,6 +49,7 @@ func init() {
 			}
 			return b.Origin
 		},
+		EditModalURL: modalEditURL("bean"),
 	})
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeRoaster, NSID: NSIDRoaster,
@@ -55,6 +74,7 @@ func init() {
 			}
 			return r.Name
 		},
+		EditModalURL: modalEditURL("roaster"),
 	})
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeGrinder, NSID: NSIDGrinder,
@@ -78,6 +98,7 @@ func init() {
 			}
 			return g.Name
 		},
+		EditModalURL: modalEditURL("grinder"),
 	})
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeBrewer, NSID: NSIDBrewer,
@@ -101,6 +122,7 @@ func init() {
 			}
 			return b.Name
 		},
+		EditModalURL: modalEditURL("brewer"),
 	})
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeRecipe, NSID: NSIDRecipe,
@@ -124,6 +146,7 @@ func init() {
 			}
 			return r.Name
 		},
+		EditModalURL: modalEditURL("recipe"),
 	})
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeBrew, NSID: NSIDBrew,
@@ -153,6 +176,12 @@ func init() {
 				return b.Bean.Origin
 			}
 			return "Coffee Brew"
+		},
+		EditURL: func(item any) string {
+			if r := itemRKey(item); r != "" {
+				return "/brews/" + r + "/edit"
+			}
+			return ""
 		},
 	})
 	// Like is intentionally omitted — has no entity page or modal.

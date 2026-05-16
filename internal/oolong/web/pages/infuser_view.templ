@@ -2,7 +2,6 @@ package teapages
 
 import (
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -34,8 +33,21 @@ templ InfuserViewCard(props InfuserViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="p-4">
-		@tea.InfuserContent(props.Infuser)
+	<div class="record-journal p-4">
+		<h1 class="label-origin-hero mb-4">{ props.Infuser.Name }</h1>
+		@components.JournalField(components.DetailStackedProps{Icon: components.IconTag(), Label: "Style", Value: props.Infuser.Style})
+		@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Material", Value: props.Infuser.Material})
+		if props.Infuser.Description != "" {
+			<div class="mt-6">
+				<span class="detail-label mb-2 block">
+					<span class="inline-flex items-center gap-1">
+						@components.IconFileText()
+						Description
+					</span>
+				</span>
+				<div class="journal-prose">{ props.Infuser.Description }</div>
+			</div>
+		}
 	</div>
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">

@@ -232,6 +232,7 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 				ShareText:       getFeedItemShareText(item),
 				IsOwner:         item.IsOwner,
 				EditURL:         getEditURL(item),
+				EditModalURL:    getEditModalURL(item),
 				DeleteURL:       getDeleteURL(item),
 				IsAuthenticated: isAuthenticated,
 				IsModerator:     modCtx.IsModerator,
@@ -324,6 +325,15 @@ func getFeedItemShareText(item *feed.FeedItem) string {
 func getEditURL(item *feed.FeedItem) string {
 	if d := entities.Get(item.RecordType); d != nil && d.EditURL != nil {
 		return d.EditURL(item)
+	}
+	return ""
+}
+
+// getEditModalURL returns the HTMX modal URL for editing a feed item,
+// or "" if the entity uses a dedicated edit page (EditURL) instead.
+func getEditModalURL(item *feed.FeedItem) string {
+	if d := entities.Get(item.RecordType); d != nil && d.EditModalURL != nil {
+		return d.EditModalURL(item)
 	}
 	return ""
 }

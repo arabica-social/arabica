@@ -2,7 +2,6 @@ package teapages
 
 import (
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -34,8 +33,41 @@ templ VendorViewCard(props VendorViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="p-4">
-		@tea.VendorContent(props.Vendor)
+	<div class="record-label p-4">
+		<h1 class="label-origin-hero">{ props.Vendor.Name }</h1>
+		<div class="mt-4">
+			<div class="label-detail">
+				<span class="detail-label">
+					<span class="inline-flex items-center gap-1">
+						@components.IconMapPin()
+						Location
+					</span>
+				</span>
+				if props.Vendor.Location != "" {
+					<span class="detail-value-lg">{ props.Vendor.Location }</span>
+				} else {
+					<span class="text-sm" style="color: var(--text-muted)">—</span>
+				}
+			</div>
+			if props.Vendor.Website != "" {
+				<div class="label-detail">
+					<span class="detail-label">
+						<span class="inline-flex items-center gap-1">
+							@components.IconLink()
+							Website
+						</span>
+					</span>
+					if safeWebsite := bff.SafeWebsiteURL(props.Vendor.Website); safeWebsite != "" {
+						<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="detail-value hover:underline">
+							{ safeWebsite }
+						</a>
+					}
+				</div>
+			}
+		</div>
+		if props.Vendor.Description != "" {
+			<div class="label-description">{ props.Vendor.Description }</div>
+		}
 	</div>
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">

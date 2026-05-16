@@ -101,9 +101,7 @@ templ teaProfileStat(label string, count int) {
 }
 
 // TeaProfileTabs renders the tab navigation. Three tabs: Steeps,
-// Teas, Gear — matches arabica's three-tab Profile UI. "Gear" groups
-// the supporting entities (vendors, brewers, recipes, cafes, drinks)
-// so visitors can browse without seven flat tabs.
+// Teas (teas + vendors), and Gear (vessels + infusers).
 templ TeaProfileTabs() {
 	<div>
 		<div class="card shadow-md mb-4">
@@ -147,21 +145,15 @@ templ teaProfileBody(props ProfileProps) {
 			}
 		</div>
 		<div x-show="activeTab === 'teas'" x-cloak>
-			if len(props.Teas) == 0 {
-				@teaProfileEmpty("teas")
-			} else {
-				<div class="feed-grid">
-					for _, t := range props.Teas {
-						<a href={ templ.SafeURL("/teas/" + profileActor(props) + "/" + t.RKey) } class="block hover:opacity-95 transition-opacity">
-							<div class="feed-card feed-card-tea">
-								@tea.TeaContent(t)
-							</div>
-						</a>
-					}
-				</div>
+			@teaProfileGearGroup(props, "Teas", "tea", len(props.Teas)) {
+				for _, t := range props.Teas {
+					<a href={ templ.SafeURL("/teas/" + profileActor(props) + "/" + t.RKey) } class="block hover:opacity-95 transition-opacity">
+						<div class="feed-card feed-card-tea">
+							@tea.TeaContent(t)
+						</div>
+					</a>
+				}
 			}
-		</div>
-		<div x-show="activeTab === 'gear'" x-cloak>
 			@teaProfileGearGroup(props, "Vendors", "vendor", len(props.Vendors)) {
 				for _, v := range props.Vendors {
 					<a href={ templ.SafeURL("/vendors/" + profileActor(props) + "/" + v.RKey) } class="block hover:opacity-95 transition-opacity">
@@ -171,6 +163,8 @@ templ teaProfileBody(props ProfileProps) {
 					</a>
 				}
 			}
+		</div>
+		<div x-show="activeTab === 'gear'" x-cloak>
 			@teaProfileGearGroup(props, "Vessels", "vessel", len(props.Vessels)) {
 				for _, v := range props.Vessels {
 					<a href={ templ.SafeURL("/vessels/" + profileActor(props) + "/" + v.RKey) } class="block hover:opacity-95 transition-opacity">

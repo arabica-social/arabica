@@ -161,6 +161,13 @@
 	--feed-board-bg:     oklch(0.82 0.048 148);
 	--feed-board-border: oklch(0.72 0.060 146);
 	--feed-card-bg:      oklch(0.995 0.003 145);
+
+	/* Record-view treatments — override arabica's warm cream/kraft
+	   surfaces so the journal (brews, vessels, infusers) and label
+	   (teas, vendors) backgrounds sit in the matcha palette instead
+	   of reading as brown. */
+	--journal-bg: oklch(0.985 0.008 145);
+	--kraft-bg:   oklch(0.96 0.018 148);
 }
 
 /* ============================================================
@@ -260,6 +267,9 @@
 		--feed-board-bg:     oklch(0.22 0.024 148);
 		--feed-board-border: oklch(0.32 0.030 148);
 		--feed-card-bg:      oklch(0.22 0.018 148);
+
+		--journal-bg: oklch(0.20 0.020 148);
+		--kraft-bg:   oklch(0.24 0.026 148);
 	}
 }
 
@@ -360,4 +370,7 @@
 	--feed-board-bg:     oklch(0.22 0.024 148);
 	--feed-board-border: oklch(0.32 0.030 148);
 	--feed-card-bg:      oklch(0.22 0.018 148);
+
+	--journal-bg: oklch(0.20 0.020 148);
+	--kraft-bg:   oklch(0.24 0.026 148);
 }

@@ -1,8 +1,11 @@
 package teapages
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -34,8 +37,45 @@ templ TeaViewCard(props TeaViewProps) {
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
-	<div class="p-4">
-		@tea.TeaContent(props.Tea)
+	<div class="record-label p-4">
+		<div class="bean-hero-row">
+			<div class="bean-hero-text">
+				<h1 class="label-origin-hero">{ props.Tea.Name }</h1>
+				if props.Tea.Vendor != nil && props.Tea.Vendor.Name != "" {
+					<div class="label-byline">
+						<a href={ templ.SafeURL(fmt.Sprintf("/vendors/%s/%s", getOwnerFromShareURL(props.ShareURL), props.Tea.Vendor.RKey)) }>
+							{ props.Tea.Vendor.Name }
+						</a>
+						if props.Tea.Vendor.Location != "" {
+							<span class="text-faint">· { props.Tea.Vendor.Location }</span>
+						}
+					</div>
+				}
+			</div>
+			if props.Tea.Rating != nil {
+				<div class="brew-rating-hero">
+					<span class="brew-rating-value">{ strconv.Itoa(*props.Tea.Rating) }</span>
+					<span class="brew-rating-max">/ 10</span>
+				</div>
+			}
+		</div>
+		<div class="label-tags">
+			if props.Tea.Origin != "" {
+				<span class="label-tag label-tag-origin">{ props.Tea.Origin }</span>
+			}
+			if props.Tea.Category != "" {
+				<span class="label-tag label-tag-variety">{ teaCategoryLabel(props.Tea.Category) }</span>
+			}
+			if props.Tea.HarvestYear > 0 {
+				<span class="label-tag label-tag-process">{ strconv.Itoa(props.Tea.HarvestYear) }</span>
+			}
+			if props.Tea.Closed {
+				<span class="label-tag label-tag-closed">Closed</span>
+			}
+		</div>
+		if props.Tea.Description != "" {
+			<div class="label-description">{ props.Tea.Description }</div>
+		}
 	</div>
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">
@@ -77,4 +117,19 @@ templ TeaViewCard(props TeaViewProps) {
 		},
 		ViewURL: props.ShareURL,
 	})
+}
+
+func teaCategoryLabel(raw string) string {
+	if label, ok := oolong.CategoryLabels[raw]; ok {
+		return label
+	}
+	return raw
+}
+
+func getOwnerFromShareURL(shareURL string) string {
+	parts := strings.Split(strings.TrimPrefix(shareURL, "/"), "/")
+	if len(parts) >= 3 {
+		return parts[1]
+	}
+	return ""
 }
