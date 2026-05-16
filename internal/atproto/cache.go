@@ -4,8 +4,6 @@ import (
 	"maps"
 	"sync"
 	"time"
-
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
 // CacheTTL is how long cached data remains valid.
@@ -68,57 +66,16 @@ func (c *UserCache) clone() *UserCache {
 	}
 }
 
-// Beans returns the cached []*arabica.Bean slice, or nil if not cached.
-func (c *UserCache) Beans() []*arabica.Bean {
+// CachedSlice retrieves the cached typed slice for a given NSID, or nil
+// when the cache is empty, missing the entry, or holds a value of the
+// wrong type. Generic over the element type so callers stay typed: the
+// previous per-entity accessor methods (Beans/Roasters/etc.) were
+// near-clones of this helper.
+func CachedSlice[M any](c *UserCache, nsid string) []*M {
 	if c == nil {
 		return nil
 	}
-	v, _ := c.Records[arabica.NSIDBean].([]*arabica.Bean)
-	return v
-}
-
-// Roasters returns the cached []*arabica.Roaster slice, or nil if not cached.
-func (c *UserCache) Roasters() []*arabica.Roaster {
-	if c == nil {
-		return nil
-	}
-	v, _ := c.Records[arabica.NSIDRoaster].([]*arabica.Roaster)
-	return v
-}
-
-// Grinders returns the cached []*arabica.Grinder slice, or nil if not cached.
-func (c *UserCache) Grinders() []*arabica.Grinder {
-	if c == nil {
-		return nil
-	}
-	v, _ := c.Records[arabica.NSIDGrinder].([]*arabica.Grinder)
-	return v
-}
-
-// Brewers returns the cached []*arabica.Brewer slice, or nil if not cached.
-func (c *UserCache) Brewers() []*arabica.Brewer {
-	if c == nil {
-		return nil
-	}
-	v, _ := c.Records[arabica.NSIDBrewer].([]*arabica.Brewer)
-	return v
-}
-
-// Recipes returns the cached []*arabica.Recipe slice, or nil if not cached.
-func (c *UserCache) Recipes() []*arabica.Recipe {
-	if c == nil {
-		return nil
-	}
-	v, _ := c.Records[arabica.NSIDRecipe].([]*arabica.Recipe)
-	return v
-}
-
-// Brews returns the cached []*arabica.Brew slice, or nil if not cached.
-func (c *UserCache) Brews() []*arabica.Brew {
-	if c == nil {
-		return nil
-	}
-	v, _ := c.Records[arabica.NSIDBrew].([]*arabica.Brew)
+	v, _ := c.Records[nsid].([]*M)
 	return v
 }
 

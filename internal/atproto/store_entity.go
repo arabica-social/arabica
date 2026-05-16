@@ -18,15 +18,27 @@ import (
 // resolution a stable identity); SetRKey assigns the PDS-returned rkey
 // to the model field.
 type EntityCodec[M any] struct {
-	NSID       string
-	ToRecord   func(*M) (any, error)
+	NSID string
+	// ToRecord receives the store so encoders for entities with foreign
+	// references (e.g. Bean → Roaster) can call s.DID() to build AT-URIs.
+	// Simple entities ignore the first argument.
+	ToRecord   func(s *AtprotoStore, m *M) (any, error)
 	FromRecord func(rec map[string]any, uri string) (*M, error)
 	SetRKey    func(model *M, rkey string)
+	// PostGet runs once after a Get decodes the model. Typical use is
+	// resolving foreign references (witness lookup, PDS fallback) — it
+	// may make network calls. Optional.
+	PostGet func(ctx context.Context, s *AtprotoStore, m *M, rec map[string]any)
+	// PostList runs after each List element is decoded. Must be pure
+	// (no I/O) — runs in a tight loop. Typical use is extracting
+	// foreign rkeys from raw refs so callers can batch-resolve later
+	// (see LinkBeansToRoasters). Optional.
+	PostList func(m *M, rec map[string]any)
 }
 
 // CreateEntity creates a new record and returns the freshly-keyed model.
 func CreateEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], model *M) (*M, error) {
-	rec, err := c.ToRecord(model)
+	rec, err := c.ToRecord(s, model)
 	if err != nil {
 		return nil, fmt.Errorf("convert %s: %w", c.NSID, err)
 	}
@@ -39,6 +51,7 @@ func CreateEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M]
 }
 
 // GetEntity reads one record from witness or PDS and converts it to *M.
+// PostGet, if set, runs after decode to resolve foreign references.
 func GetEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], rkey string) (*M, error) {
 	rec, uri, _, hit, _, err := s.fetchRecord(ctx, c.NSID, rkey)
 	if err != nil {
@@ -52,6 +65,9 @@ func GetEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], r
 		return nil, fmt.Errorf("convert %s: %w", c.NSID, err)
 	}
 	c.SetRKey(model, rkey)
+	if c.PostGet != nil {
+		c.PostGet(ctx, s, model, rec)
+	}
 	return model, nil
 }
 
@@ -80,6 +96,9 @@ func ListEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], 
 			continue
 		}
 		c.SetRKey(model, r.RKey)
+		if c.PostList != nil {
+			c.PostList(model, r.Record)
+		}
 		out = append(out, model)
 	}
 	s.cache.SetRecords(s.sessionID, c.NSID, out)
@@ -91,7 +110,7 @@ func ListEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], 
 // already carry whatever fields should be preserved across the update
 // (e.g. CreatedAt copied from the existing record by the caller).
 func UpdateEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], rkey string, model *M) error {
-	rec, err := c.ToRecord(model)
+	rec, err := c.ToRecord(s, model)
 	if err != nil {
 		return fmt.Errorf("convert %s: %w", c.NSID, err)
 	}

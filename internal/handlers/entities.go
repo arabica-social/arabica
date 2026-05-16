@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -294,46 +296,18 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 
 // API endpoint to create roaster
 func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	var req arabica.CreateRoasterRequest
-
-	// Decode request (JSON or form)
-	if err := decodeRequest(r, &req, func() error {
-		req = arabica.CreateRoasterRequest{
-			Name:      r.FormValue("name"),
-			Location:  r.FormValue("location"),
-			Website:   r.FormValue("website"),
-			SourceRef: r.FormValue("source_ref"),
-		}
-		return nil
-	}); err != nil {
-		log.Warn().Err(err).Msg("Failed to decode roaster create request")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	if err := req.Validate(); err != nil {
-		log.Warn().Err(err).Str("name", req.Name).Msg("Roaster create validation failed")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	roaster, err := store.CreateRoaster(r.Context(), &req)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create roaster")
-		handleStoreError(w, err, "Failed to create roaster")
-		return
-	}
-
-	h.invalidateFeedCache()
-	writeJSON(w, roaster, "roaster")
+	arabicaCRUDCreate[arabica.CreateRoasterRequest, *arabica.CreateRoasterRequest, arabica.Roaster](
+		h, w, r, "roaster", "roaster",
+		func(r *http.Request) arabica.CreateRoasterRequest {
+			return arabica.CreateRoasterRequest{
+				Name: r.FormValue("name"), Location: r.FormValue("location"),
+				Website: r.FormValue("website"), SourceRef: r.FormValue("source_ref"),
+			}
+		},
+		func(ctx context.Context, s database.Store, req *arabica.CreateRoasterRequest) (*arabica.Roaster, error) {
+			return s.CreateRoaster(ctx, req)
+		},
+	)
 }
 
 // Manage page
@@ -665,57 +639,21 @@ func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
 
 // Roaster update/delete handlers
 func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	var req arabica.UpdateRoasterRequest
-
-	// Decode request (JSON or form)
-	if err := decodeRequest(r, &req, func() error {
-		req = arabica.UpdateRoasterRequest{
-			Name:      r.FormValue("name"),
-			Location:  r.FormValue("location"),
-			Website:   r.FormValue("website"),
-			SourceRef: r.FormValue("source_ref"),
-		}
-		return nil
-	}); err != nil {
-		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to decode roaster update request")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	if err := req.Validate(); err != nil {
-		log.Warn().Err(err).Str("rkey", rkey).Msg("Roaster update validation failed")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := store.UpdateRoasterByRKey(r.Context(), rkey, &req); err != nil {
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update roaster")
-		handleStoreError(w, err, "Failed to update roaster")
-		return
-	}
-
-	roaster, err := store.GetRoasterByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Failed to fetch updated roaster", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get roaster after update")
-		return
-	}
-
-	h.invalidateFeedCache()
-	writeJSON(w, roaster, "roaster")
+	arabicaCRUDUpdate[arabica.UpdateRoasterRequest, *arabica.UpdateRoasterRequest, arabica.Roaster](
+		h, w, r, "roaster", "roaster",
+		func(r *http.Request) arabica.UpdateRoasterRequest {
+			return arabica.UpdateRoasterRequest{
+				Name: r.FormValue("name"), Location: r.FormValue("location"),
+				Website: r.FormValue("website"), SourceRef: r.FormValue("source_ref"),
+			}
+		},
+		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateRoasterRequest) error {
+			return s.UpdateRoasterByRKey(ctx, rkey, req)
+		},
+		func(ctx context.Context, s database.Store, rkey string) (*arabica.Roaster, error) {
+			return s.GetRoasterByRKey(ctx, rkey)
+		},
+	)
 }
 
 func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
@@ -728,103 +666,37 @@ func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // Grinder CRUD handlers
+func grinderFormDecoder(r *http.Request) arabica.CreateGrinderRequest {
+	return arabica.CreateGrinderRequest{
+		Name: r.FormValue("name"), GrinderType: r.FormValue("grinder_type"),
+		BurrType: r.FormValue("burr_type"), Notes: r.FormValue("notes"),
+		SourceRef: r.FormValue("source_ref"),
+	}
+}
+
 func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	var req arabica.CreateGrinderRequest
-
-	// Decode request (JSON or form)
-	if err := decodeRequest(r, &req, func() error {
-		req = arabica.CreateGrinderRequest{
-			Name:        r.FormValue("name"),
-			GrinderType: r.FormValue("grinder_type"),
-			BurrType:    r.FormValue("burr_type"),
-			Notes:       r.FormValue("notes"),
-			SourceRef:   r.FormValue("source_ref"),
-		}
-		return nil
-	}); err != nil {
-		log.Warn().Err(err).Msg("Failed to decode grinder create request")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	if err := req.Validate(); err != nil {
-		log.Warn().Err(err).Str("name", req.Name).Msg("Grinder create validation failed")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	grinder, err := store.CreateGrinder(r.Context(), &req)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create grinder")
-		handleStoreError(w, err, "Failed to create grinder")
-		return
-	}
-
-	h.invalidateFeedCache()
-	writeJSON(w, grinder, "grinder")
+	arabicaCRUDCreate[arabica.CreateGrinderRequest, *arabica.CreateGrinderRequest, arabica.Grinder](
+		h, w, r, "grinder", "grinder",
+		grinderFormDecoder,
+		func(ctx context.Context, s database.Store, req *arabica.CreateGrinderRequest) (*arabica.Grinder, error) {
+			return s.CreateGrinder(ctx, req)
+		},
+	)
 }
 
 func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	var req arabica.UpdateGrinderRequest
-
-	// Decode request (JSON or form)
-	if err := decodeRequest(r, &req, func() error {
-		req = arabica.UpdateGrinderRequest{
-			Name:        r.FormValue("name"),
-			GrinderType: r.FormValue("grinder_type"),
-			BurrType:    r.FormValue("burr_type"),
-			Notes:       r.FormValue("notes"),
-			SourceRef:   r.FormValue("source_ref"),
-		}
-		return nil
-	}); err != nil {
-		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to decode grinder update request")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	if err := req.Validate(); err != nil {
-		log.Warn().Err(err).Str("rkey", rkey).Msg("Grinder update validation failed")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := store.UpdateGrinderByRKey(r.Context(), rkey, &req); err != nil {
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update grinder")
-		handleStoreError(w, err, "Failed to update grinder")
-		return
-	}
-
-	grinder, err := store.GetGrinderByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Failed to fetch updated grinder", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get grinder after update")
-		return
-	}
-
-	h.invalidateFeedCache()
-	writeJSON(w, grinder, "grinder")
+	arabicaCRUDUpdate[arabica.UpdateGrinderRequest, *arabica.UpdateGrinderRequest, arabica.Grinder](
+		h, w, r, "grinder", "grinder",
+		func(r *http.Request) arabica.UpdateGrinderRequest {
+			return arabica.UpdateGrinderRequest(grinderFormDecoder(r))
+		},
+		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateGrinderRequest) error {
+			return s.UpdateGrinderByRKey(ctx, rkey, req)
+		},
+		func(ctx context.Context, s database.Store, rkey string) (*arabica.Grinder, error) {
+			return s.GetGrinderByRKey(ctx, rkey)
+		},
+	)
 }
 
 func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
@@ -837,101 +709,36 @@ func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // Brewer CRUD handlers
+func brewerFormDecoder(r *http.Request) arabica.CreateBrewerRequest {
+	return arabica.CreateBrewerRequest{
+		Name: r.FormValue("name"), BrewerType: r.FormValue("brewer_type"),
+		Description: r.FormValue("description"), SourceRef: r.FormValue("source_ref"),
+	}
+}
+
 func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	var req arabica.CreateBrewerRequest
-
-	// Decode request (JSON or form)
-	if err := decodeRequest(r, &req, func() error {
-		req = arabica.CreateBrewerRequest{
-			Name:        r.FormValue("name"),
-			BrewerType:  r.FormValue("brewer_type"),
-			Description: r.FormValue("description"),
-			SourceRef:   r.FormValue("source_ref"),
-		}
-		return nil
-	}); err != nil {
-		log.Warn().Err(err).Msg("Failed to decode brewer create request")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	if err := req.Validate(); err != nil {
-		log.Warn().Err(err).Str("name", req.Name).Msg("Brewer create validation failed")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	brewer, err := store.CreateBrewer(r.Context(), &req)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create brewer")
-		handleStoreError(w, err, "Failed to create brewer")
-		return
-	}
-
-	h.invalidateFeedCache()
-	writeJSON(w, brewer, "brewer")
+	arabicaCRUDCreate[arabica.CreateBrewerRequest, *arabica.CreateBrewerRequest, arabica.Brewer](
+		h, w, r, "brewer", "brewer",
+		brewerFormDecoder,
+		func(ctx context.Context, s database.Store, req *arabica.CreateBrewerRequest) (*arabica.Brewer, error) {
+			return s.CreateBrewer(ctx, req)
+		},
+	)
 }
 
 func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	var req arabica.UpdateBrewerRequest
-
-	// Decode request (JSON or form)
-	if err := decodeRequest(r, &req, func() error {
-		req = arabica.UpdateBrewerRequest{
-			Name:        r.FormValue("name"),
-			BrewerType:  r.FormValue("brewer_type"),
-			Description: r.FormValue("description"),
-			SourceRef:   r.FormValue("source_ref"),
-		}
-		return nil
-	}); err != nil {
-		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to decode brewer update request")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	if err := req.Validate(); err != nil {
-		log.Warn().Err(err).Str("rkey", rkey).Msg("Brewer update validation failed")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := store.UpdateBrewerByRKey(r.Context(), rkey, &req); err != nil {
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update brewer")
-		handleStoreError(w, err, "Failed to update brewer")
-		return
-	}
-
-	brewer, err := store.GetBrewerByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Failed to fetch updated brewer", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brewer after update")
-		return
-	}
-
-	h.invalidateFeedCache()
-	writeJSON(w, brewer, "brewer")
+	arabicaCRUDUpdate[arabica.UpdateBrewerRequest, *arabica.UpdateBrewerRequest, arabica.Brewer](
+		h, w, r, "brewer", "brewer",
+		func(r *http.Request) arabica.UpdateBrewerRequest {
+			return arabica.UpdateBrewerRequest(brewerFormDecoder(r))
+		},
+		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateBrewerRequest) error {
+			return s.UpdateBrewerByRKey(ctx, rkey, req)
+		},
+		func(ctx context.Context, s database.Store, rkey string) (*arabica.Brewer, error) {
+			return s.GetBrewerByRKey(ctx, rkey)
+		},
+	)
 }
 
 func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {

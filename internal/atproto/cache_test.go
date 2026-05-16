@@ -104,16 +104,16 @@ func TestUserCache_clone(t *testing.T) {
 		require.NotNil(t, cloned)
 
 		// Verify all slices are copied (shallow copy)
-		assert.Equal(t, len(original.Beans()), len(cloned.Beans()))
-		assert.Equal(t, len(original.Roasters()), len(cloned.Roasters()))
-		assert.Equal(t, len(original.Grinders()), len(cloned.Grinders()))
-		assert.Equal(t, len(original.Brewers()), len(cloned.Brewers()))
-		assert.Equal(t, len(original.Brews()), len(cloned.Brews()))
+		assert.Equal(t, len(CachedSlice[arabica.Bean](original, arabica.NSIDBean)), len(CachedSlice[arabica.Bean](cloned, arabica.NSIDBean)))
+		assert.Equal(t, len(CachedSlice[arabica.Roaster](original, arabica.NSIDRoaster)), len(CachedSlice[arabica.Roaster](cloned, arabica.NSIDRoaster)))
+		assert.Equal(t, len(CachedSlice[arabica.Grinder](original, arabica.NSIDGrinder)), len(CachedSlice[arabica.Grinder](cloned, arabica.NSIDGrinder)))
+		assert.Equal(t, len(CachedSlice[arabica.Brewer](original, arabica.NSIDBrewer)), len(CachedSlice[arabica.Brewer](cloned, arabica.NSIDBrewer)))
+		assert.Equal(t, len(CachedSlice[arabica.Brew](original, arabica.NSIDBrew)), len(CachedSlice[arabica.Brew](cloned, arabica.NSIDBrew)))
 		assert.Equal(t, original.Timestamp, cloned.Timestamp)
 
 		// Verify shallow copy: modifying slice element affects both
-		original.Beans()[0].Name = "Modified"
-		assert.Equal(t, "Modified", cloned.Beans()[0].Name)
+		CachedSlice[arabica.Bean](original, arabica.NSIDBean)[0].Name = "Modified"
+		assert.Equal(t, "Modified", CachedSlice[arabica.Bean](cloned, arabica.NSIDBean)[0].Name)
 	})
 
 	t.Run("clone is independent reference", func(t *testing.T) {
@@ -130,7 +130,7 @@ func TestUserCache_clone(t *testing.T) {
 		original.Records[arabica.NSIDBean] = []*arabica.Bean{{RKey: "bean2"}}
 
 		// Cloned should still have old reference
-		assert.Equal(t, "bean1", cloned.Beans()[0].RKey)
+		assert.Equal(t, "bean1", CachedSlice[arabica.Bean](cloned, arabica.NSIDBean)[0].RKey)
 	})
 }
 
@@ -161,8 +161,8 @@ func TestSessionCache_GetSetInvalidate(t *testing.T) {
 		cache.Set(sessionID, userCache)
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
-		assert.Equal(t, 1, len(result.Beans()))
-		assert.Equal(t, "bean1", result.Beans()[0].RKey)
+		assert.Equal(t, 1, len(CachedSlice[arabica.Bean](result, arabica.NSIDBean)))
+		assert.Equal(t, "bean1", CachedSlice[arabica.Bean](result, arabica.NSIDBean)[0].RKey)
 	})
 
 	t.Run("invalidate removes session", func(t *testing.T) {
@@ -204,14 +204,14 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		require.NotNil(t, result)
 
 		// Beans should be updated
-		assert.Len(t, result.Beans(), 2)
-		assert.Equal(t, "bean2", result.Beans()[0].RKey)
+		assert.Len(t, CachedSlice[arabica.Bean](result, arabica.NSIDBean), 2)
+		assert.Equal(t, "bean2", CachedSlice[arabica.Bean](result, arabica.NSIDBean)[0].RKey)
 
 		// Other collections unchanged
-		assert.Len(t, result.Roasters(), 1)
-		assert.Len(t, result.Grinders(), 1)
-		assert.Len(t, result.Brewers(), 1)
-		assert.Len(t, result.Brews(), 1)
+		assert.Len(t, CachedSlice[arabica.Roaster](result, arabica.NSIDRoaster), 1)
+		assert.Len(t, CachedSlice[arabica.Grinder](result, arabica.NSIDGrinder), 1)
+		assert.Len(t, CachedSlice[arabica.Brewer](result, arabica.NSIDBrewer), 1)
+		assert.Len(t, CachedSlice[arabica.Brew](result, arabica.NSIDBrew), 1)
 
 		// Timestamp should be updated
 		assert.True(t, result.Timestamp.After(initial.Timestamp))
@@ -223,9 +223,9 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Len(t, result.Roasters(), 1)
-		assert.Equal(t, "roaster2", result.Roasters()[0].RKey)
-		assert.Len(t, result.Beans(), 2) // From previous test
+		assert.Len(t, CachedSlice[arabica.Roaster](result, arabica.NSIDRoaster), 1)
+		assert.Equal(t, "roaster2", CachedSlice[arabica.Roaster](result, arabica.NSIDRoaster)[0].RKey)
+		assert.Len(t, CachedSlice[arabica.Bean](result, arabica.NSIDBean), 2) // From previous test
 	})
 
 	t.Run("SetGrinders updates only grinders", func(t *testing.T) {
@@ -234,8 +234,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Len(t, result.Grinders(), 1)
-		assert.Equal(t, "grinder2", result.Grinders()[0].RKey)
+		assert.Len(t, CachedSlice[arabica.Grinder](result, arabica.NSIDGrinder), 1)
+		assert.Equal(t, "grinder2", CachedSlice[arabica.Grinder](result, arabica.NSIDGrinder)[0].RKey)
 	})
 
 	t.Run("SetBrewers updates only brewers", func(t *testing.T) {
@@ -244,8 +244,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Len(t, result.Brewers(), 1)
-		assert.Equal(t, "brewer2", result.Brewers()[0].RKey)
+		assert.Len(t, CachedSlice[arabica.Brewer](result, arabica.NSIDBrewer), 1)
+		assert.Equal(t, "brewer2", CachedSlice[arabica.Brewer](result, arabica.NSIDBrewer)[0].RKey)
 	})
 
 	t.Run("SetBrews updates only brews", func(t *testing.T) {
@@ -254,8 +254,8 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Len(t, result.Brews(), 1)
-		assert.Equal(t, "brew2", result.Brews()[0].RKey)
+		assert.Len(t, CachedSlice[arabica.Brew](result, arabica.NSIDBrew), 1)
+		assert.Equal(t, "brew2", CachedSlice[arabica.Brew](result, arabica.NSIDBrew)[0].RKey)
 	})
 }
 
@@ -284,11 +284,11 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Beans())
-		assert.NotNil(t, result.Roasters())
-		assert.NotNil(t, result.Grinders())
-		assert.NotNil(t, result.Brewers())
-		assert.NotNil(t, result.Brews())
+		assert.Nil(t, CachedSlice[arabica.Bean](result, arabica.NSIDBean))
+		assert.NotNil(t, CachedSlice[arabica.Roaster](result, arabica.NSIDRoaster))
+		assert.NotNil(t, CachedSlice[arabica.Grinder](result, arabica.NSIDGrinder))
+		assert.NotNil(t, CachedSlice[arabica.Brewer](result, arabica.NSIDBrewer))
+		assert.NotNil(t, CachedSlice[arabica.Brew](result, arabica.NSIDBrew))
 	})
 
 	t.Run("Roaster invalidation cascades to beans (call-site pattern)", func(t *testing.T) {
@@ -303,11 +303,11 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Roasters())
-		assert.Nil(t, result.Beans())
-		assert.NotNil(t, result.Grinders())
-		assert.NotNil(t, result.Brewers())
-		assert.NotNil(t, result.Brews())
+		assert.Nil(t, CachedSlice[arabica.Roaster](result, arabica.NSIDRoaster))
+		assert.Nil(t, CachedSlice[arabica.Bean](result, arabica.NSIDBean))
+		assert.NotNil(t, CachedSlice[arabica.Grinder](result, arabica.NSIDGrinder))
+		assert.NotNil(t, CachedSlice[arabica.Brewer](result, arabica.NSIDBrewer))
+		assert.NotNil(t, CachedSlice[arabica.Brew](result, arabica.NSIDBrew))
 	})
 
 	t.Run("InvalidateGrinders clears only grinders", func(t *testing.T) {
@@ -317,9 +317,9 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Grinders())
-		assert.NotNil(t, result.Beans())
-		assert.NotNil(t, result.Roasters())
+		assert.Nil(t, CachedSlice[arabica.Grinder](result, arabica.NSIDGrinder))
+		assert.NotNil(t, CachedSlice[arabica.Bean](result, arabica.NSIDBean))
+		assert.NotNil(t, CachedSlice[arabica.Roaster](result, arabica.NSIDRoaster))
 	})
 
 	t.Run("InvalidateBrewers clears only brewers", func(t *testing.T) {
@@ -329,8 +329,8 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Brewers())
-		assert.NotNil(t, result.Beans())
+		assert.Nil(t, CachedSlice[arabica.Brewer](result, arabica.NSIDBrewer))
+		assert.NotNil(t, CachedSlice[arabica.Bean](result, arabica.NSIDBean))
 	})
 
 	t.Run("InvalidateBrews clears only brews", func(t *testing.T) {
@@ -340,8 +340,8 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		assert.Nil(t, result.Brews())
-		assert.NotNil(t, result.Beans())
+		assert.Nil(t, CachedSlice[arabica.Brew](result, arabica.NSIDBrew))
+		assert.NotNil(t, CachedSlice[arabica.Bean](result, arabica.NSIDBean))
 	})
 
 	t.Run("invalidate on nonexistent session is safe", func(t *testing.T) {
@@ -588,7 +588,7 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 	// Get reference before update
 	before := cache.Get(sessionID)
 	require.NotNil(t, before)
-	assert.Equal(t, "Original", before.Beans()[0].Name)
+	assert.Equal(t, "Original", CachedSlice[arabica.Bean](before, arabica.NSIDBean)[0].Name)
 
 	// Update beans
 	newBeans := []*arabica.Bean{{RKey: "bean2", Name: "Updated"}}
@@ -599,8 +599,8 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 	require.NotNil(t, after)
 
 	// Verify copy-on-write: old reference still has old data
-	assert.Equal(t, "Original", before.Beans()[0].Name)
-	assert.Equal(t, "Updated", after.Beans()[0].Name)
+	assert.Equal(t, "Original", CachedSlice[arabica.Bean](before, arabica.NSIDBean)[0].Name)
+	assert.Equal(t, "Updated", CachedSlice[arabica.Bean](after, arabica.NSIDBean)[0].Name)
 
 	// Verify they are different instances
 	assert.NotEqual(t, before, after)
@@ -669,11 +669,11 @@ func TestSessionCache_MultipleSessionsIsolation(t *testing.T) {
 	// Verify isolation
 	s1 := cache.Get("session1")
 	require.NotNil(t, s1)
-	assert.Equal(t, "bean1", s1.Beans()[0].RKey)
+	assert.Equal(t, "bean1", CachedSlice[arabica.Bean](s1, arabica.NSIDBean)[0].RKey)
 
 	s2 := cache.Get("session2")
 	require.NotNil(t, s2)
-	assert.Equal(t, "bean2-updated", s2.Beans()[0].RKey)
+	assert.Equal(t, "bean2-updated", CachedSlice[arabica.Bean](s2, arabica.NSIDBean)[0].RKey)
 
 	s3 := cache.Get("session3")
 	assert.Nil(t, s3)
