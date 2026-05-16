@@ -412,15 +412,11 @@ func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*arabica
 	return brew, nil
 }
 
-// BrewRecord contains a brew with its AT Protocol metadata
-type BrewRecord struct {
-	Brew *arabica.Brew
-	URI  string
-	CID  string
-}
-
-// GetBrewRecordByRKey fetches a brew by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*BrewRecord, error) {
+// GetBrewRecordByRKey fetches a brew by rkey and returns it with its AT
+// Protocol metadata. Brew's ref-resolution is too complex for the
+// EntityCodec PostGet hook (bulk witness-batch lookups), so this stays
+// bespoke even though the wrapper shape is shared.
+func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Brew], error) {
 	rec, uri, cid, hit, fromWitness, err := s.fetchRecord(ctx, arabica.NSIDBrew, rkey)
 	if err != nil {
 		return nil, err
@@ -435,7 +431,7 @@ func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*B
 	brew.RKey = rkey
 	ExtractBrewRefRKeys(brew, rec)
 	s.resolveBrewRefs(ctx, brew, rec, fromWitness)
-	return &BrewRecord{Brew: brew, URI: uri, CID: cid}, nil
+	return &EntityRecord[arabica.Brew]{Model: brew, URI: uri, CID: cid}, nil
 }
 
 func (s *AtprotoStore) ListBrews(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
@@ -573,101 +569,20 @@ func (s *AtprotoStore) DeleteBrewByRKey(ctx context.Context, rkey string) error 
 	return s.removeRecord(ctx, arabica.NSIDBrew, rkey)
 }
 
-// BeanRecord contains a bean with its AT Protocol metadata
-type BeanRecord struct {
-	Bean *arabica.Bean
-	URI  string
-	CID  string
+func (s *AtprotoStore) GetBeanRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Bean], error) {
+	return GetEntityRecord(ctx, s, beanCodec, rkey)
 }
 
-// GetBeanRecordByRKey fetches a bean by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetBeanRecordByRKey(ctx context.Context, rkey string) (*BeanRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDBean, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("bean record %s not found", rkey)
-	}
-	bean, err := arabica.RecordToBean(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert bean: %w", err)
-	}
-	bean.RKey = rkey
-	s.resolveBeanRefs(ctx, bean, rec)
-	return &BeanRecord{Bean: bean, URI: uri, CID: cid}, nil
+func (s *AtprotoStore) GetRoasterRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Roaster], error) {
+	return GetEntityRecord(ctx, s, roasterCodec, rkey)
 }
 
-// RoasterRecord contains a roaster with its AT Protocol metadata
-type RoasterRecord struct {
-	Roaster *arabica.Roaster
-	URI     string
-	CID     string
+func (s *AtprotoStore) GetGrinderRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Grinder], error) {
+	return GetEntityRecord(ctx, s, grinderCodec, rkey)
 }
 
-// GetRoasterRecordByRKey fetches a roaster by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetRoasterRecordByRKey(ctx context.Context, rkey string) (*RoasterRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDRoaster, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("roaster record %s not found", rkey)
-	}
-	roaster, err := arabica.RecordToRoaster(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert roaster: %w", err)
-	}
-	roaster.RKey = rkey
-	return &RoasterRecord{Roaster: roaster, URI: uri, CID: cid}, nil
-}
-
-// GrinderRecord contains a grinder with its AT Protocol metadata
-type GrinderRecord struct {
-	Grinder *arabica.Grinder
-	URI     string
-	CID     string
-}
-
-// GetGrinderRecordByRKey fetches a grinder by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetGrinderRecordByRKey(ctx context.Context, rkey string) (*GrinderRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDGrinder, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("grinder record %s not found", rkey)
-	}
-	grinder, err := arabica.RecordToGrinder(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert grinder: %w", err)
-	}
-	grinder.RKey = rkey
-	return &GrinderRecord{Grinder: grinder, URI: uri, CID: cid}, nil
-}
-
-// BrewerRecord contains a brewer with its AT Protocol metadata
-type BrewerRecord struct {
-	Brewer *arabica.Brewer
-	URI    string
-	CID    string
-}
-
-// GetBrewerRecordByRKey fetches a brewer by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetBrewerRecordByRKey(ctx context.Context, rkey string) (*BrewerRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDBrewer, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("brewer record %s not found", rkey)
-	}
-	brewer, err := arabica.RecordToBrewer(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert brewer: %w", err)
-	}
-	brewer.RKey = rkey
-	return &BrewerRecord{Brewer: brewer, URI: uri, CID: cid}, nil
+func (s *AtprotoStore) GetBrewerRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Brewer], error) {
+	return GetEntityRecord(ctx, s, brewerCodec, rkey)
 }
 
 // ========== Bean Operations ==========
@@ -931,13 +846,6 @@ func (s *AtprotoStore) DeleteBrewerByRKey(ctx context.Context, rkey string) erro
 
 // ========== Recipe Operations ==========
 
-// RecipeRecord contains a recipe with its AT Protocol metadata
-type RecipeRecord struct {
-	Recipe *arabica.Recipe
-	URI    string
-	CID    string
-}
-
 // resolveRecipeRefs populates recipe.BrewerRKey and recipe.BrewerObj from
 // the record's brewerRef field. Tries the witness cache first, falls back
 // to arabica.ResolveBrewer.
@@ -1011,22 +919,8 @@ func (s *AtprotoStore) GetRecipeByRKey(ctx context.Context, rkey string) (*arabi
 	return GetEntity(ctx, s, recipeCodec, rkey)
 }
 
-// GetRecipeRecordByRKey fetches a recipe by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetRecipeRecordByRKey(ctx context.Context, rkey string) (*RecipeRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDRecipe, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("recipe record %s not found", rkey)
-	}
-	recipe, err := arabica.RecordToRecipe(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert recipe: %w", err)
-	}
-	recipe.RKey = rkey
-	s.resolveRecipeRefs(ctx, recipe, rec)
-	return &RecipeRecord{Recipe: recipe, URI: uri, CID: cid}, nil
+func (s *AtprotoStore) GetRecipeRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Recipe], error) {
+	return GetEntityRecord(ctx, s, recipeCodec, rkey)
 }
 
 func (s *AtprotoStore) ListRecipes(ctx context.Context) ([]*arabica.Recipe, error) {

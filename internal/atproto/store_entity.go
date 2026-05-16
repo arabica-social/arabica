@@ -122,3 +122,36 @@ func UpdateEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M]
 func DeleteEntity(ctx context.Context, s *AtprotoStore, nsid, rkey string) error {
 	return s.removeRecord(ctx, nsid, rkey)
 }
+
+// EntityRecord pairs a typed model with the AT Protocol metadata
+// (URI + CID) needed for like/comment subject references. Replaces
+// the per-entity wrapper structs (BeanRecord, RoasterRecord, …) that
+// were structurally identical.
+type EntityRecord[M any] struct {
+	Model *M
+	URI   string
+	CID   string
+}
+
+// GetEntityRecord is like GetEntity but additionally returns the URI
+// and CID of the fetched record, wrapped in EntityRecord[M]. View
+// handlers use these to wire like/comment widgets to the subject.
+// PostGet runs the same as in GetEntity.
+func GetEntityRecord[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], rkey string) (*EntityRecord[M], error) {
+	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, c.NSID, rkey)
+	if err != nil {
+		return nil, err
+	}
+	if !hit {
+		return nil, fmt.Errorf("%s record %s not found", c.NSID, rkey)
+	}
+	model, err := c.FromRecord(rec, uri)
+	if err != nil {
+		return nil, fmt.Errorf("convert %s: %w", c.NSID, err)
+	}
+	c.SetRKey(model, rkey)
+	if c.PostGet != nil {
+		c.PostGet(ctx, s, model, rec)
+	}
+	return &EntityRecord[M]{Model: model, URI: uri, CID: cid}, nil
+}

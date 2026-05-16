@@ -253,7 +253,7 @@ func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 		if store, ok := h.getAtprotoStore(r); ok {
 			if atprotoStore, ok := store.(*atproto.AtprotoStore); ok {
 				if brewRecord, err := atprotoStore.GetBrewRecordByRKey(r.Context(), rkey); err == nil {
-					brew = brewRecord.Brew
+					brew = brewRecord.Model
 					subjectURI = brewRecord.URI
 					subjectCID = brewRecord.CID
 				}

@@ -241,7 +241,7 @@ func (h *Handler) roasterViewConfig() entityViewConfig {
 			if err != nil {
 				return nil, "", "", err
 			}
-			return rec.Roaster, rec.URI, rec.CID, nil
+			return rec.Model, rec.URI, rec.CID, nil
 		},
 		displayName: func(record any) string { return record.(*arabica.Roaster).Name },
 		ogSubtitle:  func(record any) string { return record.(*arabica.Roaster).Name },
@@ -293,7 +293,7 @@ func (h *Handler) grinderViewConfig() entityViewConfig {
 			if err != nil {
 				return nil, "", "", err
 			}
-			return rec.Grinder, rec.URI, rec.CID, nil
+			return rec.Model, rec.URI, rec.CID, nil
 		},
 		displayName: func(record any) string { return record.(*arabica.Grinder).Name },
 		ogSubtitle:  func(record any) string { return record.(*arabica.Grinder).Name },
@@ -339,7 +339,7 @@ func (h *Handler) brewerViewConfig() entityViewConfig {
 			if err != nil {
 				return nil, "", "", err
 			}
-			return rec.Brewer, rec.URI, rec.CID, nil
+			return rec.Model, rec.URI, rec.CID, nil
 		},
 		displayName: func(record any) string { return record.(*arabica.Brewer).Name },
 		ogSubtitle:  func(record any) string { return record.(*arabica.Brewer).Name },
@@ -412,7 +412,7 @@ func (h *Handler) beanViewConfig() entityViewConfig {
 			if err != nil {
 				return nil, "", "", err
 			}
-			return rec.Bean, rec.URI, rec.CID, nil
+			return rec.Model, rec.URI, rec.CID, nil
 		},
 		displayName: func(record any) string { return record.(*arabica.Bean).Name },
 		ogSubtitle: func(record any) string {
@@ -502,8 +502,8 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 		if store, ok := h.getAtprotoStore(r); ok {
 			if atprotoStore, ok := store.(*atproto.AtprotoStore); ok {
 				if recipeRecord, err := atprotoStore.GetRecipeRecordByRKey(r.Context(), rkey); err == nil {
-					recipeRecord.Recipe.Interpolate()
-					props.Recipe = recipeRecord.Recipe
+					recipeRecord.Model.Interpolate()
+					props.Recipe = recipeRecord.Model
 					subjectURI = recipeRecord.URI
 					subjectCID = recipeRecord.CID
 				}
