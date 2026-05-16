@@ -493,6 +493,81 @@ func (h *Handler) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	h.handleEntityView(w, r, h.recipeViewConfig())
 }
 
+func (h *Handler) brewViewConfig() entityViewConfig {
+	fromWitness, fromPDS, _ := standardViewTriple(
+		arabica.NSIDBrew, arabica.RecordToBrew,
+		func(b *arabica.Brew, k string) { b.RKey = k },
+	)
+	// Custom fromStore that also extracts the rkeys from ref AT-URIs.
+	// We deliberately bypass GetBrewRecordByRKey here: that path resolves
+	// refs via the authenticated atpClient as a fallback for session-cache
+	// hits that aren't in witness yet, but in practice users select refs
+	// from existing entities, so witness lookup via resolveRefs covers it.
+	// Worst case: a fresh brew whose refs are also fresh-writes shows
+	// unresolved refs until the next firehose catchup.
+	fromStore := func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, map[string]any, string, string, error) {
+		raw, uri, cid, err := s.FetchRecord(ctx, arabica.NSIDBrew, rkey)
+		if err != nil {
+			return nil, nil, "", "", err
+		}
+		brew, err := arabica.RecordToBrew(raw, uri)
+		if err != nil {
+			return nil, nil, "", "", err
+		}
+		brew.RKey = rkey
+		atproto.ExtractBrewRefRKeys(brew, raw)
+		return brew, raw, uri, cid, nil
+	}
+	return entityViewConfig{
+		descriptor:  entities.Get(lexicons.RecordTypeBrew),
+		fromWitness: fromWitness,
+		fromPDS:     fromPDS,
+		fromStore:   fromStore,
+		resolveRefs: func(_ context.Context, model any, raw map[string]any, lookup func(string) (map[string]any, bool)) {
+			brew := model.(*arabica.Brew)
+			atproto.ExtractBrewRefRKeys(brew, raw)
+			resolveBrewRefsViaLookup(brew, raw, lookup)
+		},
+		displayName: func(any) string { return "Brew Details" },
+		ogSubtitle: func(record any) string {
+			brew := record.(*arabica.Brew)
+			var sub string
+			if brew.Bean != nil {
+				sub = brew.Bean.Name
+				if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
+					sub += " from " + brew.Bean.Roaster.Name
+				}
+			}
+			return sub
+		},
+		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
+			brew := record.(*arabica.Brew)
+			props := coffeepages.BrewViewProps{
+				Brew:              brew,
+				IsOwnProfile:      base.IsOwnProfile,
+				IsAuthenticated:   base.IsAuthenticated,
+				SubjectURI:        base.SubjectURI,
+				SubjectCID:        base.SubjectCID,
+				IsLiked:           base.IsLiked,
+				LikeCount:         base.LikeCount,
+				CommentCount:      base.CommentCount,
+				Comments:          base.Comments,
+				CurrentUserDID:    base.CurrentUserDID,
+				ShareURL:          base.ShareURL,
+				IsModerator:       base.IsModerator,
+				CanHideRecord:     base.CanHideRecord,
+				CanBlockUser:      base.CanBlockUser,
+				IsRecordHidden:    base.IsRecordHidden,
+				AuthorDID:         base.AuthorDID,
+				AuthorHandle:      base.AuthorHandle,
+				AuthorDisplayName: base.AuthorDisplayName,
+				AuthorAvatar:      base.AuthorAvatar,
+			}
+			return coffeepages.BrewView(layoutData, props).Render(ctx, w)
+		},
+	}
+}
+
 // OG image handlers for entity types
 
 // HandleBeanOGImage generates a 1200x630 PNG preview card for a bean.
