@@ -3,19 +3,21 @@ package oolong
 import "time"
 
 const (
-	StyleGongfu    = "gongfu"
-	StyleMatcha    = "matcha"
 	StyleLongSteep = "longSteep"
-	StyleMilkTea   = "milkTea"
+	StyleColdBrew  = "coldBrew"
+
+	// Deprecated: dropped from the lexicon in the alpha trim-down. Kept
+	// only so existing references and historical tests still compile.
+	StyleGongfu  = "gongfu"
+	StyleMatcha  = "matcha"
+	StyleMilkTea = "milkTea"
 )
 
-var StyleKnownValues = []string{StyleGongfu, StyleMatcha, StyleLongSteep, StyleMilkTea}
+var StyleKnownValues = []string{StyleLongSteep, StyleColdBrew}
 
 var StyleLabels = map[string]string{
-	StyleGongfu:    "Gong Fu",
-	StyleMatcha:    "Matcha",
 	StyleLongSteep: "Long Steep",
-	StyleMilkTea:   "Milk Tea",
+	StyleColdBrew:  "Cold Brew",
 }
 
 const (

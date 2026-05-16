@@ -84,7 +84,6 @@ func (h *Handler) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) {
 		Brew:    nil,
 		Teas:    listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
 		Brewers: listOolong(r.Context(), store, oolong.NSIDBrewer, oolong.RecordToBrewer),
-		Recipes: listOolong(r.Context(), store, oolong.NSIDRecipe, oolong.RecordToRecipe),
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "New Steep")
 	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
@@ -117,7 +116,6 @@ func (h *Handler) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) 
 		Brew:    b,
 		Teas:    listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
 		Brewers: listOolong(r.Context(), store, oolong.NSIDBrewer, oolong.RecordToBrewer),
-		Recipes: listOolong(r.Context(), store, oolong.NSIDRecipe, oolong.RecordToRecipe),
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Steep")
 	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {

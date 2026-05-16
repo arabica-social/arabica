@@ -9,13 +9,12 @@ import (
 )
 
 // SteepFormProps holds the data needed to render the steep (oolong brew)
-// create/edit page. Brew is nil for new. Teas/Brewers/Recipes populate
-// the reference selects.
+// create/edit page. Brew is nil for new. Teas/Brewers populate the
+// reference selects.
 type SteepFormProps struct {
 	Brew    *oolong.Brew
 	Teas    []*oolong.Tea
 	Brewers []*oolong.Brewer
-	Recipes []*oolong.Recipe
 }
 
 // SteepFormPage renders the full steep form page with layout.
@@ -68,7 +67,6 @@ templ SteepFormElement(props SteepFormProps) {
 		<fieldset class="space-y-6 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
 			<legend class="text-sm font-semibold text-secondary px-2">References <span class="form-optional-hint font-normal">(optional)</span></legend>
 			@BrewerSelectField(props)
-			@RecipeSelectField(props)
 		</fieldset>
 		<fieldset class="space-y-6 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
 			<legend class="text-sm font-semibold text-secondary px-2">Parameters</legend>
@@ -200,43 +198,6 @@ func brewerLabelTea(b *oolong.Brewer) string {
 	return name
 }
 
-templ RecipeSelectField(props SteepFormProps) {
-	<div
-		class="combo-select"
-		x-data={ components.ComboSelectConfig("oolongRecipe", "/api/recipes", "/api/suggestions/recipes", "recipe_rkey", "Search recipes…", false) }
-		if props.Brew != nil && props.Brew.RecipeRKey != "" {
-			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Brew.RecipeRKey, components.EscapeJS(recipeLabelTea(findRecipe(props, props.Brew.RecipeRKey)))) }
-		}
-	>
-		<label class="form-label">Recipe</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@components.ComboSelectInput("Your recipes")
-	</div>
-}
-
-func findRecipe(props SteepFormProps, rkey string) *oolong.Recipe {
-	for _, r := range props.Recipes {
-		if r.RKey == rkey {
-			return r
-		}
-	}
-	return nil
-}
-
-func recipeLabelTea(r *oolong.Recipe) string {
-	if r == nil {
-		return ""
-	}
-	name := r.Name
-	if name == "" {
-		name = r.RKey
-	}
-	if r.Style != "" {
-		return name + " (" + r.Style + ")"
-	}
-	return name
-}
-
 templ LeafGramsField(props SteepFormProps) {
 	@components.FormField(
 		components.FormFieldProps{Label: "Leaf (g)"},
@@ -259,7 +220,7 @@ func leafGramsValue(props SteepFormProps) string {
 
 templ VesselMlField(props SteepFormProps) {
 	@components.FormField(
-		components.FormFieldProps{Label: "Vessel (ml)"},
+		components.FormFieldProps{Label: "Water (g/ml)"},
 		components.NumberInput(components.NumberInputProps{
 			Name:        "vessel_ml",
 			Value:       vesselMlValue(props),

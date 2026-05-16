@@ -19,10 +19,9 @@
             "type": "string",
             "maxLength": 50,
             "knownValues": [
-              "gaiwan", "kyusu", "teapot", "matcha-bowl",
-              "infuser", "thermos", "other"
+              "teapot", "matcha-bowl", "infuser", "other"
             ],
-            "description": "Vessel style. Known values: gaiwan, kyusu, teapot, matcha-bowl, infuser, thermos, other"
+            "description": "Vessel style. Known values: teapot, matcha-bowl, infuser, other"
           },
           "capacityMl": {
             "type": "integer",

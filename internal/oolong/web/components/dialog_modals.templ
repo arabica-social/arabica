@@ -292,15 +292,12 @@ templ TeaDialogModal(t *oolong.Tea) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
 			<input type="text" name="name" placeholder="Name *" required class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Name }) }/>
-			<input type="text" name="category" placeholder="Category (e.g. green, oolong, black)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Category }) }/>
-			<input type="text" name="sub_style" placeholder="Sub-style (e.g. sencha, anxi)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.SubStyle }) }/>
+			<input type="text" name="category" placeholder="Category (e.g. green, oolong, red)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Category }) }/>
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Origin <span class="form-optional-hint">(optional)</span></div>
 			<input type="text" name="origin" placeholder="Origin (e.g. Yunnan, China)" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Origin }) }/>
-			<input type="text" name="cultivar" placeholder="Cultivar" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Cultivar }) }/>
-			<input type="text" name="farm" placeholder="Farm or producer" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return t.Farm }) }/>
 			<input type="number" name="harvest_year" placeholder="Harvest year" class="w-full form-input" value={ teaField(t, func(t *oolong.Tea) string { return intStrOrEmpty(t.HarvestYear) }) }/>
 		</div>
 		<div class="form-divider"></div>
@@ -355,7 +352,7 @@ templ BrewerDialogModal(b *oolong.Brewer) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
 			<input type="text" name="name" placeholder="Name *" required class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Name }) }/>
-			<input type="text" name="style" placeholder="Style (e.g. gaiwan, yixing, kyusu)" class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Style }) }/>
+			<input type="text" name="style" placeholder="Style (e.g. teapot, infuser, matcha-bowl)" class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Style }) }/>
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
@@ -438,7 +435,7 @@ templ BrewDialogModal(b *oolong.Brew) {
 				teaBrewField(b, func(b *oolong.Brew) string { return b.TeaRKey }),
 				labelTea(brewTea(b)), true,
 			)
-			<input type="text" name="style" placeholder="Style (e.g. gongfu, western)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.Style }) }/>
+			<input type="text" name="style" placeholder="Style (e.g. longSteep, coldBrew)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.Style }) }/>
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
@@ -449,18 +446,12 @@ templ BrewDialogModal(b *oolong.Brew) {
 				teaBrewField(b, func(b *oolong.Brew) string { return b.BrewerRKey }),
 				labelOolongBrewer(brewBrewer(b)), false,
 			)
-			@comboSelectField(
-				"oolongRecipe", "/api/recipes", "/api/suggestions/recipes", "recipe_rkey",
-				"Search recipes…", "Recipe", "Your recipes",
-				teaBrewField(b, func(b *oolong.Brew) string { return b.RecipeRKey }),
-				labelOolongRecipe(brewRecipe(b)), false,
-			)
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Parameters</div>
 			<input type="number" name="leaf_grams" step="0.1" placeholder="Leaf (g)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return floatStrOrEmpty(b.LeafGrams) }) }/>
-			<input type="number" name="vessel_ml" placeholder="Vessel (ml)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.VesselMl) }) }/>
+			<input type="number" name="vessel_ml" placeholder="Water (g/ml)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.VesselMl) }) }/>
 			<input type="number" name="temperature" step="0.1" placeholder="Temperature (°C)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return floatStrOrEmpty(b.Temperature) }) }/>
 			<input type="number" name="time_seconds" placeholder="Time (s)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.TimeSeconds) }) }/>
 		</div>
