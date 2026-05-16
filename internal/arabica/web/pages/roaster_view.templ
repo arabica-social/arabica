@@ -16,67 +16,17 @@ type RoasterViewProps struct {
 }
 
 templ RoasterView(layout *components.LayoutData, props RoasterViewProps) {
-	@components.Layout(layout, RoasterViewContent(props))
-}
-
-templ RoasterViewContent(props RoasterViewProps) {
-	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, RoasterViewCard(props))
-	</div>
-}
-
-templ RoasterViewCard(props RoasterViewProps) {
-	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "roaster",
-		Title:         props.Roaster.Name,
-		Timestamp:     props.Roaster.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Roaster.CreatedAt),
-		AuthorDID:     props.AuthorDID,
-		AuthorHandle:  props.AuthorHandle,
-		AuthorDisplay: props.AuthorDisplayName,
-		AuthorAvatar:  props.AuthorAvatar,
-	})
-	<div class="record-label p-4">
-		<div class="label-detail">
-			<span class="detail-label">
-				<span class="inline-flex items-center gap-1">
-					@components.IconMapPin()
-					Location
-				</span>
-			</span>
-			if props.Roaster.Location != "" {
-				<span class="detail-value-lg">{ props.Roaster.Location }</span>
-			} else {
-				<span class="text-sm text-faint">—</span>
-			}
-		</div>
-		if props.Roaster.Website != "" {
-			<div class="label-detail">
-				<span class="detail-label">
-					<span class="inline-flex items-center gap-1">
-						@components.IconLink()
-						Website
-					</span>
-				</span>
-				if safeWebsite := bff.SafeWebsiteURL(props.Roaster.Website); safeWebsite != "" {
-					<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="detail-value hover:underline">
-						{ safeWebsite }
-					</a>
-				}
-			</div>
-		}
-	</div>
-	if props.BeanCount > 0 {
-		<div class="record-stat-line">
-			<span class="flex items-center gap-1">
-				@components.IconLeaf()
-				{ fmt.Sprintf("%d bean%s", props.BeanCount, pluralS(props.BeanCount)) }
-			</span>
-		</div>
-	}
-	<div class="record-view-footer">
-		@components.BackButton()
-		@components.ActionBar(components.ActionBarProps{
+	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
+		RecordType:        "roaster",
+		Title:             props.Roaster.Name,
+		CreatedAt:         props.Roaster.CreatedAt,
+		AuthorDID:         props.AuthorDID,
+		AuthorHandle:      props.AuthorHandle,
+		AuthorDisplayName: props.AuthorDisplayName,
+		AuthorAvatar:      props.AuthorAvatar,
+		Body:              roasterBody(props.Roaster),
+		StatLine:          roasterStatLine(props.BeanCount),
+		ActionBar: components.ActionBarProps{
 			SubjectURI:      props.SubjectURI,
 			SubjectCID:      props.SubjectCID,
 			IsLiked:         props.IsLiked,
@@ -96,11 +46,7 @@ templ RoasterViewCard(props RoasterViewProps) {
 			CanBlockUser:    props.CanBlockUser,
 			IsRecordHidden:  props.IsRecordHidden,
 			AuthorDID:       props.AuthorDID,
-		})
-	</div>
-	@components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      props.SubjectURI,
-		SubjectCID:      props.SubjectCID,
+		},
 		Comments:        props.Comments,
 		IsAuthenticated: props.IsAuthenticated,
 		CurrentUserDID:  props.CurrentUserDID,
@@ -109,6 +55,49 @@ templ RoasterViewCard(props RoasterViewProps) {
 			CanHideRecord: props.CanHideRecord,
 			CanBlockUser:  props.CanBlockUser,
 		},
-		ViewURL: props.ShareURL,
 	})
+}
+
+templ roasterBody(r *arabica.Roaster) {
+	<div class="record-label p-4">
+		<div class="label-detail">
+			<span class="detail-label">
+				<span class="inline-flex items-center gap-1">
+					@components.IconMapPin()
+					Location
+				</span>
+			</span>
+			if r.Location != "" {
+				<span class="detail-value-lg">{ r.Location }</span>
+			} else {
+				<span class="text-sm text-faint">—</span>
+			}
+		</div>
+		if r.Website != "" {
+			<div class="label-detail">
+				<span class="detail-label">
+					<span class="inline-flex items-center gap-1">
+						@components.IconLink()
+						Website
+					</span>
+				</span>
+				if safeWebsite := bff.SafeWebsiteURL(r.Website); safeWebsite != "" {
+					<a href={ templ.SafeURL(safeWebsite) } target="_blank" rel="noopener noreferrer" class="detail-value hover:underline">
+						{ safeWebsite }
+					</a>
+				}
+			</div>
+		}
+	</div>
+}
+
+templ roasterStatLine(count int) {
+	if count > 0 {
+		<div class="record-stat-line">
+			<span class="flex items-center gap-1">
+				@components.IconLeaf()
+				{ fmt.Sprintf("%d bean%s", count, pluralS(count)) }
+			</span>
+		</div>
+	}
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -16,54 +15,17 @@ type GrinderViewProps struct {
 }
 
 templ GrinderView(layout *components.LayoutData, props GrinderViewProps) {
-	@components.Layout(layout, GrinderViewContent(props))
-}
-
-templ GrinderViewContent(props GrinderViewProps) {
-	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, GrinderViewCard(props))
-	</div>
-}
-
-templ GrinderViewCard(props GrinderViewProps) {
-	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "grinder",
-		Title:         props.Grinder.Name,
-		Timestamp:     props.Grinder.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Grinder.CreatedAt),
-		AuthorDID:     props.AuthorDID,
-		AuthorHandle:  props.AuthorHandle,
-		AuthorDisplay: props.AuthorDisplayName,
-		AuthorAvatar:  props.AuthorAvatar,
-	})
-	<div class="record-journal p-4">
-		<div>
-			@components.JournalField(components.DetailStackedProps{Icon: components.IconGear(), Label: "Type", Value: props.Grinder.GrinderType})
-			@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Burr Type", Value: props.Grinder.BurrType})
-		</div>
-		if props.Grinder.Notes != "" {
-			<div class="mt-6">
-				<span class="detail-label mb-2 block">
-					<span class="inline-flex items-center gap-1">
-						@components.IconFileText()
-						Notes
-					</span>
-				</span>
-				<div class="journal-prose">{ props.Grinder.Notes }</div>
-			</div>
-		}
-	</div>
-	if props.BrewCount > 0 {
-		<div class="record-stat-line">
-			<span class="flex items-center gap-1">
-				@components.IconCoffee()
-				{ fmt.Sprintf("%d brew%s", props.BrewCount, pluralS(props.BrewCount)) }
-			</span>
-		</div>
-	}
-	<div class="record-view-footer">
-		@components.BackButton()
-		@components.ActionBar(components.ActionBarProps{
+	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
+		RecordType:        "grinder",
+		Title:             props.Grinder.Name,
+		CreatedAt:         props.Grinder.CreatedAt,
+		AuthorDID:         props.AuthorDID,
+		AuthorHandle:      props.AuthorHandle,
+		AuthorDisplayName: props.AuthorDisplayName,
+		AuthorAvatar:      props.AuthorAvatar,
+		Body:              grinderBody(props.Grinder),
+		StatLine:          grinderStatLine(props.BrewCount),
+		ActionBar: components.ActionBarProps{
 			SubjectURI:      props.SubjectURI,
 			SubjectCID:      props.SubjectCID,
 			IsLiked:         props.IsLiked,
@@ -83,11 +45,7 @@ templ GrinderViewCard(props GrinderViewProps) {
 			CanBlockUser:    props.CanBlockUser,
 			IsRecordHidden:  props.IsRecordHidden,
 			AuthorDID:       props.AuthorDID,
-		})
-	</div>
-	@components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      props.SubjectURI,
-		SubjectCID:      props.SubjectCID,
+		},
 		Comments:        props.Comments,
 		IsAuthenticated: props.IsAuthenticated,
 		CurrentUserDID:  props.CurrentUserDID,
@@ -96,6 +54,36 @@ templ GrinderViewCard(props GrinderViewProps) {
 			CanHideRecord: props.CanHideRecord,
 			CanBlockUser:  props.CanBlockUser,
 		},
-		ViewURL: props.ShareURL,
 	})
+}
+
+templ grinderBody(g *arabica.Grinder) {
+	<div class="record-journal p-4">
+		<div>
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconGear(), Label: "Type", Value: g.GrinderType})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Burr Type", Value: g.BurrType})
+		</div>
+		if g.Notes != "" {
+			<div class="mt-6">
+				<span class="detail-label mb-2 block">
+					<span class="inline-flex items-center gap-1">
+						@components.IconFileText()
+						Notes
+					</span>
+				</span>
+				<div class="journal-prose">{ g.Notes }</div>
+			</div>
+		}
+	</div>
+}
+
+templ grinderStatLine(count int) {
+	if count > 0 {
+		<div class="record-stat-line">
+			<span class="flex items-center gap-1">
+				@components.IconCoffee()
+				{ fmt.Sprintf("%d brew%s", count, pluralS(count)) }
+			</span>
+		</div>
+	}
 }

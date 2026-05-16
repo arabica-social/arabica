@@ -1,12 +1,10 @@
 package teapages
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
+	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -17,96 +15,36 @@ type TeaViewProps struct {
 }
 
 templ TeaView(layout *components.LayoutData, props TeaViewProps) {
-	@components.Layout(layout, TeaViewContent(props))
-}
-
-templ TeaViewContent(props TeaViewProps) {
-	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, TeaViewCard(props))
-	</div>
-}
-
-templ TeaViewCard(props TeaViewProps) {
-	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "tea",
-		Title:         "",
-		Timestamp:     props.Tea.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Tea.CreatedAt),
-		AuthorDID:     props.AuthorDID,
-		AuthorHandle:  props.AuthorHandle,
-		AuthorDisplay: props.AuthorDisplayName,
-		AuthorAvatar:  props.AuthorAvatar,
-	})
-	<div class="record-label p-4">
-		<div class="bean-hero-row">
-			<div class="bean-hero-text">
-				<h1 class="label-origin-hero">{ props.Tea.Name }</h1>
-				if props.Tea.Vendor != nil && props.Tea.Vendor.Name != "" {
-					<div class="label-byline">
-						<a href={ templ.SafeURL(fmt.Sprintf("/vendors/%s/%s", getOwnerFromShareURL(props.ShareURL), props.Tea.Vendor.RKey)) }>
-							{ props.Tea.Vendor.Name }
-						</a>
-						if props.Tea.Vendor.Location != "" {
-							<span class="text-faint">· { props.Tea.Vendor.Location }</span>
-						}
-					</div>
-				}
-			</div>
-			if props.Tea.Rating != nil {
-				<div class="brew-rating-hero">
-					<span class="brew-rating-value">{ strconv.Itoa(*props.Tea.Rating) }</span>
-					<span class="brew-rating-max">/ 10</span>
-				</div>
-			}
-		</div>
-		<div class="label-tags">
-			if props.Tea.Origin != "" {
-				<span class="label-tag label-tag-origin">{ props.Tea.Origin }</span>
-			}
-			if props.Tea.Category != "" {
-				<span class="label-tag label-tag-variety">{ teaCategoryLabel(props.Tea.Category) }</span>
-			}
-			if props.Tea.HarvestYear > 0 {
-				<span class="label-tag label-tag-process">{ strconv.Itoa(props.Tea.HarvestYear) }</span>
-			}
-			if props.Tea.Closed {
-				<span class="label-tag label-tag-closed">Closed</span>
-			}
-		</div>
-		if props.Tea.Description != "" {
-			<div class="label-description">{ props.Tea.Description }</div>
-		}
-	</div>
-	<div class="record-view-footer">
-		<div class="flex items-center gap-3">
-			@components.BackButton()
-		</div>
-		if props.SubjectURI != "" && props.SubjectCID != "" {
-			@components.ActionBar(components.ActionBarProps{
-				SubjectURI:      props.SubjectURI,
-				SubjectCID:      props.SubjectCID,
-				IsLiked:         props.IsLiked,
-				LikeCount:       props.LikeCount,
-				CommentCount:    props.CommentCount,
-				ShowComments:    true,
-				ShareURL:        props.ShareURL,
-				ShareTitle:      props.Tea.Name,
-				ShareText:       "Check out this tea",
-				IsOwner:         props.IsOwnProfile,
-				EditURL:         "/teas/" + props.Tea.RKey + "/edit",
-				DeleteURL:       "/api/teas/" + props.Tea.RKey,
-				IsAuthenticated: props.IsAuthenticated,
-				IsModerator:     props.IsModerator,
-				CanHideRecord:   props.CanHideRecord,
-				CanBlockUser:    props.CanBlockUser,
-				IsRecordHidden:  props.IsRecordHidden,
-				AuthorDID:       props.AuthorDID,
-			})
-		}
-	</div>
-	@components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      props.SubjectURI,
-		SubjectCID:      props.SubjectCID,
+	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
+		RecordType:        "tea",
+		Title:             "",
+		CreatedAt:         props.Tea.CreatedAt,
+		AuthorDID:         props.AuthorDID,
+		AuthorHandle:      props.AuthorHandle,
+		AuthorDisplayName: props.AuthorDisplayName,
+		AuthorAvatar:      props.AuthorAvatar,
+		Body:              teaBody(props.Tea),
+		GuardActionBar:    true,
+		ActionBar: components.ActionBarProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			IsLiked:         props.IsLiked,
+			LikeCount:       props.LikeCount,
+			CommentCount:    props.CommentCount,
+			ShowComments:    true,
+			ShareURL:        props.ShareURL,
+			ShareTitle:      props.Tea.Name,
+			ShareText:       "Check out this tea",
+			IsOwner:         props.IsOwnProfile,
+			EditURL:         "/teas/" + props.Tea.RKey + "/edit",
+			DeleteURL:       "/api/teas/" + props.Tea.RKey,
+			IsAuthenticated: props.IsAuthenticated,
+			IsModerator:     props.IsModerator,
+			CanHideRecord:   props.CanHideRecord,
+			CanBlockUser:    props.CanBlockUser,
+			IsRecordHidden:  props.IsRecordHidden,
+			AuthorDID:       props.AuthorDID,
+		},
 		Comments:        props.Comments,
 		IsAuthenticated: props.IsAuthenticated,
 		CurrentUserDID:  props.CurrentUserDID,
@@ -115,8 +53,13 @@ templ TeaViewCard(props TeaViewProps) {
 			CanHideRecord: props.CanHideRecord,
 			CanBlockUser:  props.CanBlockUser,
 		},
-		ViewURL: props.ShareURL,
 	})
+}
+
+templ teaBody(t *oolong.Tea) {
+	<div class="p-4">
+		@tea.TeaContent(t)
+	</div>
 }
 
 func teaCategoryLabel(raw string) string {

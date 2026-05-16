@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,9 +11,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
-	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -71,7 +68,8 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 		ownerDID = resolved
 	}
 
-	// Fetch brew (witness cache first, then PDS fallback)
+	// Fetch brew (witness cache first, then PDS fallback). Refs are
+	// resolved via the source-bound lookup so both paths share one walk.
 	var brew *arabica.Brew
 	brewURI := atp.BuildATURI(ownerDID, arabica.NSIDBrew, rkey)
 	if h.witnessCache != nil {
@@ -82,7 +80,7 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 					brew = b
 					brew.RKey = rkey
 					atproto.ExtractBrewRefRKeys(brew, m)
-					h.resolveBrewRefsFromWitness(r.Context(), brew, ownerDID, m)
+					resolveBrewRefsViaLookup(brew, m, h.witnessLookup(r.Context()))
 				}
 			}
 		}
@@ -101,9 +99,9 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to load brew", http.StatusInternalServerError)
 			return
 		}
-		if err := h.resolveBrewReferences(r.Context(), brew, ownerDID, record.Value); err != nil {
-			log.Warn().Err(err).Msg("Failed to resolve some brew references for OG image")
-		}
+		brew.RKey = rkey
+		atproto.ExtractBrewRefRKeys(brew, record.Value)
+		resolveBrewRefsViaLookup(brew, record.Value, publicLookup(r.Context()))
 	}
 
 	// Generate card
@@ -204,336 +202,7 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 
 // Show brew view page
 func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Check if owner (DID or handle) is specified in query params
-	owner := r.URL.Query().Get("owner")
-
-	// Check authentication
-	didStr, isAuthenticated := atpmiddleware.GetDID(r.Context())
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr) //nolint: only partially uses layoutDataFromRequest due to complex flow
-	}
-
-	var brew *arabica.Brew
-	var brewOwnerDID string
-	var isOwner bool
-	var subjectURI, subjectCID string
-
-	if owner == "" {
-		http.Error(w, "owner required", http.StatusBadRequest)
-		return
-	}
-
-	publicClient := atproto.NewPublicClient()
-
-	// Resolve owner to DID if it's a handle.
-	if strings.HasPrefix(owner, "did:") {
-		brewOwnerDID = owner
-	} else {
-		resolved, err := publicClient.ResolveHandle(r.Context(), owner)
-		if err != nil {
-			log.Warn().Err(err).Str("handle", owner).Msg("Failed to resolve handle for brew view")
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-		brewOwnerDID = resolved
-	}
-	isOwner = isAuthenticated && didStr == brewOwnerDID
-
-	// When the viewer owns the record, hit the authenticated AtprotoStore
-	// first — it includes the session cache of locally-written records that
-	// the firehose may not have observed yet.
-	if isOwner {
-		if store, ok := h.getAtprotoStore(r); ok {
-			if atprotoStore, ok := store.(*atproto.AtprotoStore); ok {
-				if brewRecord, err := atprotoStore.GetBrewRecordByRKey(r.Context(), rkey); err == nil {
-					brew = brewRecord.Brew
-					subjectURI = brewRecord.URI
-					subjectCID = brewRecord.CID
-				}
-			}
-		}
-	}
-
-	if brew == nil {
-		// Try witness cache first for the brew and all its references.
-		brewURI := atp.BuildATURI(brewOwnerDID, arabica.NSIDBrew, rkey)
-		if h.witnessCache != nil {
-			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
-				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if b, err := arabica.RecordToBrew(m, wr.URI); err == nil {
-						metrics.WitnessCacheHitsTotal.WithLabelValues("brew").Inc()
-						brew = b
-						brew.RKey = rkey
-						atproto.ExtractBrewRefRKeys(brew, m)
-						subjectURI = wr.URI
-						subjectCID = wr.CID
-						h.resolveBrewRefsFromWitness(r.Context(), brew, brewOwnerDID, m)
-					}
-				}
-			}
-		}
-	}
-
-	if brew == nil {
-		// PDS fallback
-		metrics.WitnessCacheMissesTotal.WithLabelValues("brew").Inc()
-		record, err := publicClient.GetPublicRecord(r.Context(), brewOwnerDID, arabica.NSIDBrew, rkey)
-		if err != nil {
-			log.Error().Err(err).Str("did", brewOwnerDID).Str("rkey", rkey).Msg("Failed to get brew record")
-			http.Error(w, "Brew not found", http.StatusNotFound)
-			return
-		}
-
-		subjectURI = record.URI
-		subjectCID = record.CID
-
-		brew, err = arabica.RecordToBrew(record.Value, record.URI)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to convert brew record")
-			http.Error(w, "Failed to load brew", http.StatusInternalServerError)
-			return
-		}
-
-		if err := h.resolveBrewReferences(r.Context(), brew, brewOwnerDID, record.Value); err != nil {
-			log.Warn().Err(err).Msg("Failed to resolve some brew references")
-		}
-	}
-
-	// Construct share URL (needed for both OG metadata and props)
-	var shareURL string
-	if owner != "" {
-		shareURL = fmt.Sprintf("/brews/%s/%s", owner, rkey)
-	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/brews/%s/%s", userProfile.Handle, rkey)
-	}
-
-	// Create layout data with OpenGraph metadata
-	layoutData := h.buildLayoutData(r, "Brew Details", isAuthenticated, didStr, userProfile)
-	h.populateBrewOGMetadata(layoutData, brew, h.resolveOwnerHandle(r.Context(), owner), h.publicBaseURL(r), shareURL)
-
-	// Get like data
-	var isLiked bool
-	var likeCount int
-	if h.feedIndex != nil && subjectURI != "" {
-		likeCount = h.feedIndex.GetLikeCount(r.Context(), subjectURI)
-		if isAuthenticated {
-			isLiked = h.feedIndex.HasUserLiked(r.Context(), didStr, subjectURI)
-		}
-	}
-
-	// Get comment data
-	var commentCount int
-	var comments []firehose.IndexedComment
-	if h.feedIndex != nil && subjectURI != "" {
-		commentCount = h.feedIndex.GetCommentCount(r.Context(), subjectURI)
-		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
-		comments = h.filterHiddenComments(r.Context(), comments)
-	}
-
-	// Get moderation data
-	var isModerator, canHideRecord, canBlockUser, isRecordHidden bool
-	if h.moderationService != nil && isAuthenticated {
-		isModerator = h.moderationService.IsModerator(didStr)
-		canHideRecord = h.moderationService.HasPermission(didStr, moderation.PermissionHideRecord)
-		canBlockUser = h.moderationService.HasPermission(didStr, moderation.PermissionBlacklistUser)
-	}
-	if h.moderationStore != nil && isModerator && subjectURI != "" {
-		isRecordHidden = h.moderationStore.IsRecordHidden(r.Context(), subjectURI)
-	}
-
-	// Create brew view props
-	brewViewProps := coffeepages.BrewViewProps{
-		Brew:            brew,
-		IsOwnProfile:    isOwner,
-		IsAuthenticated: isAuthenticated,
-		SubjectURI:      subjectURI,
-		SubjectCID:      subjectCID,
-		IsLiked:         isLiked,
-		LikeCount:       likeCount,
-		CommentCount:    commentCount,
-		Comments:        comments,
-		CurrentUserDID:  didStr,
-		ShareURL:        shareURL,
-		IsModerator:     isModerator,
-		CanHideRecord:   canHideRecord,
-		CanBlockUser:    canBlockUser,
-		IsRecordHidden:  isRecordHidden,
-		AuthorDID:       brewOwnerDID,
-	}
-
-	// Fetch author profile for display
-	authorDIDForProfile := brewOwnerDID
-	if authorDIDForProfile == "" {
-		authorDIDForProfile = didStr
-	}
-	if authorProfile := h.getUserProfile(r.Context(), authorDIDForProfile); authorProfile != nil {
-		brewViewProps.AuthorHandle = authorProfile.Handle
-		brewViewProps.AuthorDisplayName = authorProfile.DisplayName
-		brewViewProps.AuthorAvatar = authorProfile.Avatar
-	}
-
-	// Render using templ component
-	if err := coffeepages.BrewView(layoutData, brewViewProps).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew view")
-	}
-}
-
-// resolveBrewReferences resolves bean, grinder, and brewer references for a brew
-func (h *Handler) resolveBrewReferences(ctx context.Context, brew *arabica.Brew, ownerDID string, record map[string]any) error {
-	publicClient := atproto.NewPublicClient()
-
-	// Resolve bean reference
-	if beanRef, ok := record["beanRef"].(string); ok && beanRef != "" {
-		beanRecord, err := publicClient.GetPublicRecord(
-			ctx,
-			ownerDID,
-			arabica.NSIDBean, atp.RKeyFromURI(beanRef),
-		)
-		if err == nil {
-			if bean, err := arabica.RecordToBean(beanRecord.Value, beanRecord.URI); err == nil {
-				brew.Bean = bean
-
-				// Resolve roaster reference for the bean
-				if roasterRef, ok := beanRecord.Value["roasterRef"].(string); ok && roasterRef != "" {
-					roasterRecord, err := publicClient.GetPublicRecord(
-						ctx,
-						ownerDID,
-						arabica.NSIDRoaster,
-						atp.RKeyFromURI(roasterRef),
-					)
-					if err == nil {
-						if roaster, err := arabica.RecordToRoaster(roasterRecord.Value, roasterRecord.URI); err == nil {
-							brew.Bean.Roaster = roaster
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Resolve grinder reference
-	if grinderRef, ok := record["grinderRef"].(string); ok && grinderRef != "" {
-		grinderRecord, err := publicClient.GetPublicRecord(
-			ctx,
-			ownerDID,
-			arabica.NSIDGrinder,
-			atp.RKeyFromURI(grinderRef),
-		)
-		if err == nil {
-			if grinder, err := arabica.RecordToGrinder(grinderRecord.Value, grinderRecord.URI); err == nil {
-				brew.GrinderObj = grinder
-			}
-		}
-	}
-
-	// Resolve brewer reference
-	if brewerRef, ok := record["brewerRef"].(string); ok && brewerRef != "" {
-		brewerRecord, err := publicClient.GetPublicRecord(
-			ctx,
-			ownerDID,
-			arabica.NSIDBrewer,
-			atp.RKeyFromURI(brewerRef),
-		)
-		if err == nil {
-			if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
-				brew.BrewerObj = brewer
-			}
-		}
-	}
-
-	return nil
-}
-
-// resolveBrewRefsFromWitness resolves a brew's references (bean, grinder, brewer, recipe)
-// from the witness cache, avoiding PDS calls for public brew views.
-func (h *Handler) resolveBrewRefsFromWitness(ctx context.Context, brew *arabica.Brew, ownerDID string, record map[string]any) {
-	if h.witnessCache == nil {
-		return
-	}
-
-	// Resolve bean (and its roaster)
-	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
-		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, beanRef); wr != nil {
-			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if bean, err := arabica.RecordToBean(m, wr.URI); err == nil {
-					bean.RKey = wr.RKey
-					// Resolve roaster
-					if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
-						if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
-							bean.RoasterRKey = rkey
-						}
-						if rwr, _ := h.witnessCache.GetWitnessRecord(ctx, roasterRef); rwr != nil {
-							if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
-								if roaster, err := arabica.RecordToRoaster(rm, rwr.URI); err == nil {
-									roaster.RKey = rwr.RKey
-									bean.Roaster = roaster
-								}
-							}
-						}
-					}
-					brew.Bean = bean
-				}
-			}
-		}
-	}
-
-	// Resolve grinder
-	if grinderRef, _ := record["grinderRef"].(string); grinderRef != "" {
-		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, grinderRef); wr != nil {
-			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if grinder, err := arabica.RecordToGrinder(m, wr.URI); err == nil {
-					grinder.RKey = wr.RKey
-					brew.GrinderObj = grinder
-				}
-			}
-		}
-	}
-
-	// Resolve brewer
-	if brewerRef, _ := record["brewerRef"].(string); brewerRef != "" {
-		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, brewerRef); wr != nil {
-			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if brewer, err := arabica.RecordToBrewer(m, wr.URI); err == nil {
-					brewer.RKey = wr.RKey
-					brew.BrewerObj = brewer
-				}
-			}
-		}
-	}
-
-	// Resolve recipe
-	if recipeRef, _ := record["recipeRef"].(string); recipeRef != "" {
-		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, recipeRef); wr != nil {
-			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-				if recipe, err := arabica.RecordToRecipe(m, wr.URI); err == nil {
-					recipe.RKey = wr.RKey
-					// Resolve recipe's brewer
-					if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
-						if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
-							recipe.BrewerRKey = rkey
-						}
-						if bwr, _ := h.witnessCache.GetWitnessRecord(ctx, brewerRef); bwr != nil {
-							if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
-								if brewer, err := arabica.RecordToBrewer(bm, bwr.URI); err == nil {
-									brewer.RKey = bwr.RKey
-									recipe.BrewerObj = brewer
-								}
-							}
-						}
-					}
-					brew.RecipeObj = recipe
-				}
-			}
-		}
-	}
+	h.handleEntityView(w, r, h.brewViewConfig())
 }
 
 // Show edit brew form

@@ -412,15 +412,11 @@ func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*arabica
 	return brew, nil
 }
 
-// BrewRecord contains a brew with its AT Protocol metadata
-type BrewRecord struct {
-	Brew *arabica.Brew
-	URI  string
-	CID  string
-}
-
-// GetBrewRecordByRKey fetches a brew by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*BrewRecord, error) {
+// GetBrewRecordByRKey fetches a brew by rkey and returns it with its AT
+// Protocol metadata. Brew's ref-resolution is too complex for the
+// EntityCodec PostGet hook (bulk witness-batch lookups), so this stays
+// bespoke even though the wrapper shape is shared.
+func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Brew], error) {
 	rec, uri, cid, hit, fromWitness, err := s.fetchRecord(ctx, arabica.NSIDBrew, rkey)
 	if err != nil {
 		return nil, err
@@ -435,7 +431,7 @@ func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*B
 	brew.RKey = rkey
 	ExtractBrewRefRKeys(brew, rec)
 	s.resolveBrewRefs(ctx, brew, rec, fromWitness)
-	return &BrewRecord{Brew: brew, URI: uri, CID: cid}, nil
+	return &EntityRecord[arabica.Brew]{Model: brew, URI: uri, CID: cid}, nil
 }
 
 func (s *AtprotoStore) ListBrews(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
@@ -447,8 +443,8 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int, offset, limit 
 	}
 
 	// Non-paginated: use session cache then fetch all records.
-	if uc := s.cache.Get(s.sessionID); uc != nil && uc.Brews() != nil && uc.IsValid() {
-		return uc.Brews(), nil
+	if uc := s.cache.Get(s.sessionID); uc != nil && CachedSlice[arabica.Brew](uc, arabica.NSIDBrew) != nil && uc.IsValid() {
+		return CachedSlice[arabica.Brew](uc, arabica.NSIDBrew), nil
 	}
 	raws, err := s.fetchAllRecords(ctx, arabica.NSIDBrew)
 	if err != nil {
@@ -573,101 +569,20 @@ func (s *AtprotoStore) DeleteBrewByRKey(ctx context.Context, rkey string) error 
 	return s.removeRecord(ctx, arabica.NSIDBrew, rkey)
 }
 
-// BeanRecord contains a bean with its AT Protocol metadata
-type BeanRecord struct {
-	Bean *arabica.Bean
-	URI  string
-	CID  string
+func (s *AtprotoStore) GetBeanRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Bean], error) {
+	return GetEntityRecord(ctx, s, beanCodec, rkey)
 }
 
-// GetBeanRecordByRKey fetches a bean by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetBeanRecordByRKey(ctx context.Context, rkey string) (*BeanRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDBean, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("bean record %s not found", rkey)
-	}
-	bean, err := arabica.RecordToBean(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert bean: %w", err)
-	}
-	bean.RKey = rkey
-	s.resolveBeanRefs(ctx, bean, rec)
-	return &BeanRecord{Bean: bean, URI: uri, CID: cid}, nil
+func (s *AtprotoStore) GetRoasterRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Roaster], error) {
+	return GetEntityRecord(ctx, s, roasterCodec, rkey)
 }
 
-// RoasterRecord contains a roaster with its AT Protocol metadata
-type RoasterRecord struct {
-	Roaster *arabica.Roaster
-	URI     string
-	CID     string
+func (s *AtprotoStore) GetGrinderRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Grinder], error) {
+	return GetEntityRecord(ctx, s, grinderCodec, rkey)
 }
 
-// GetRoasterRecordByRKey fetches a roaster by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetRoasterRecordByRKey(ctx context.Context, rkey string) (*RoasterRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDRoaster, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("roaster record %s not found", rkey)
-	}
-	roaster, err := arabica.RecordToRoaster(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert roaster: %w", err)
-	}
-	roaster.RKey = rkey
-	return &RoasterRecord{Roaster: roaster, URI: uri, CID: cid}, nil
-}
-
-// GrinderRecord contains a grinder with its AT Protocol metadata
-type GrinderRecord struct {
-	Grinder *arabica.Grinder
-	URI     string
-	CID     string
-}
-
-// GetGrinderRecordByRKey fetches a grinder by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetGrinderRecordByRKey(ctx context.Context, rkey string) (*GrinderRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDGrinder, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("grinder record %s not found", rkey)
-	}
-	grinder, err := arabica.RecordToGrinder(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert grinder: %w", err)
-	}
-	grinder.RKey = rkey
-	return &GrinderRecord{Grinder: grinder, URI: uri, CID: cid}, nil
-}
-
-// BrewerRecord contains a brewer with its AT Protocol metadata
-type BrewerRecord struct {
-	Brewer *arabica.Brewer
-	URI    string
-	CID    string
-}
-
-// GetBrewerRecordByRKey fetches a brewer by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetBrewerRecordByRKey(ctx context.Context, rkey string) (*BrewerRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDBrewer, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("brewer record %s not found", rkey)
-	}
-	brewer, err := arabica.RecordToBrewer(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert brewer: %w", err)
-	}
-	brewer.RKey = rkey
-	return &BrewerRecord{Brewer: brewer, URI: uri, CID: cid}, nil
+func (s *AtprotoStore) GetBrewerRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Brewer], error) {
+	return GetEntityRecord(ctx, s, brewerCodec, rkey)
 }
 
 // ========== Bean Operations ==========
@@ -725,11 +640,7 @@ func extractBeanRoasterRKey(bean *arabica.Bean, record map[string]any) {
 }
 
 func (s *AtprotoStore) CreateBean(ctx context.Context, bean *arabica.CreateBeanRequest) (*arabica.Bean, error) {
-	var roasterURI string
-	if bean.RoasterRKey != "" {
-		roasterURI = atp.BuildATURI(s.did.String(), arabica.NSIDRoaster, bean.RoasterRKey)
-	}
-	model := &arabica.Bean{
+	return CreateEntity(ctx, s, beanCodec, &arabica.Bean{
 		Name:        bean.Name,
 		Origin:      bean.Origin,
 		Variety:     bean.Variety,
@@ -740,60 +651,17 @@ func (s *AtprotoStore) CreateBean(ctx context.Context, bean *arabica.CreateBeanR
 		Rating:      bean.Rating,
 		SourceRef:   bean.SourceRef,
 		CreatedAt:   time.Now().UTC(),
-	}
-	record, err := arabica.BeanToRecord(model, roasterURI)
-	if err != nil {
-		return nil, fmt.Errorf("convert bean: %w", err)
-	}
-	rkey, _, err := s.putRecord(ctx, arabica.NSIDBean, "", record)
-	if err != nil {
-		return nil, err
-	}
-	model.RKey = rkey
-	return model, nil
+	})
 }
 
 func (s *AtprotoStore) GetBeanByRKey(ctx context.Context, rkey string) (*arabica.Bean, error) {
-	rec, uri, _, hit, _, err := s.fetchRecord(ctx, arabica.NSIDBean, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("bean %s not found", rkey)
-	}
-	bean, err := arabica.RecordToBean(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert bean: %w", err)
-	}
-	bean.RKey = rkey
-	s.resolveBeanRefs(ctx, bean, rec)
-	return bean, nil
+	return GetEntity(ctx, s, beanCodec, rkey)
 }
 
 func (s *AtprotoStore) ListBeans(ctx context.Context) ([]*arabica.Bean, error) {
-	if uc := s.cache.Get(s.sessionID); uc != nil && uc.Beans() != nil && uc.IsValid() {
-		return uc.Beans(), nil
-	}
-	raws, err := s.fetchAllRecords(ctx, arabica.NSIDBean)
-	if err != nil {
-		return nil, err
-	}
-	beans := make([]*arabica.Bean, 0, len(raws))
-	for _, r := range raws {
-		bean, err := arabica.RecordToBean(r.Record, r.URI)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", r.URI).Msg("Failed to convert bean record")
-			continue
-		}
-		bean.RKey = r.RKey
-		// List uses cheap rkey-only ref extraction; callers run
-		// LinkBeansToRoasters separately to avoid N+1 lookups.
-		extractBeanRoasterRKey(bean, r.Record)
-		beans = append(beans, bean)
-	}
-	s.cache.SetRecords(s.sessionID, arabica.NSIDBean, beans)
-	s.cache.ClearDirty(s.sessionID, arabica.NSIDBean)
-	return beans, nil
+	return ListEntity(ctx, s, beanCodec, func() []*arabica.Bean {
+		return CachedSlice[arabica.Bean](s.cache.Get(s.sessionID), arabica.NSIDBean)
+	})
 }
 
 // LinkBeansToRoasters populates the Roaster field on beans using a pre-fetched roasters map
@@ -818,11 +686,7 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 	if err != nil {
 		return fmt.Errorf("get existing bean: %w", err)
 	}
-	var roasterURI string
-	if bean.RoasterRKey != "" {
-		roasterURI = atp.BuildATURI(s.did.String(), arabica.NSIDRoaster, bean.RoasterRKey)
-	}
-	model := &arabica.Bean{
+	return UpdateEntity(ctx, s, beanCodec, rkey, &arabica.Bean{
 		Name:        bean.Name,
 		Origin:      bean.Origin,
 		Variety:     bean.Variety,
@@ -834,78 +698,33 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 		Closed:      bean.Closed,
 		SourceRef:   bean.SourceRef,
 		CreatedAt:   existing.CreatedAt,
-	}
-	record, err := arabica.BeanToRecord(model, roasterURI)
-	if err != nil {
-		return fmt.Errorf("convert bean: %w", err)
-	}
-	_, _, err = s.putRecord(ctx, arabica.NSIDBean, rkey, record)
-	return err
+	})
 }
 
 func (s *AtprotoStore) DeleteBeanByRKey(ctx context.Context, rkey string) error {
-	return s.removeRecord(ctx, arabica.NSIDBean, rkey)
+	return DeleteEntity(ctx, s, arabica.NSIDBean, rkey)
 }
 
 // ========== Roaster Operations ==========
 
 func (s *AtprotoStore) CreateRoaster(ctx context.Context, roaster *arabica.CreateRoasterRequest) (*arabica.Roaster, error) {
-	model := &arabica.Roaster{
+	return CreateEntity(ctx, s, roasterCodec, &arabica.Roaster{
 		Name:      roaster.Name,
 		Location:  roaster.Location,
 		Website:   roaster.Website,
 		SourceRef: roaster.SourceRef,
 		CreatedAt: time.Now().UTC(),
-	}
-	record, err := arabica.RoasterToRecord(model)
-	if err != nil {
-		return nil, fmt.Errorf("convert roaster: %w", err)
-	}
-	rkey, _, err := s.putRecord(ctx, arabica.NSIDRoaster, "", record)
-	if err != nil {
-		return nil, err
-	}
-	model.RKey = rkey
-	return model, nil
+	})
 }
 
 func (s *AtprotoStore) GetRoasterByRKey(ctx context.Context, rkey string) (*arabica.Roaster, error) {
-	rec, uri, _, hit, _, err := s.fetchRecord(ctx, arabica.NSIDRoaster, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("roaster %s not found", rkey)
-	}
-	roaster, err := arabica.RecordToRoaster(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert roaster: %w", err)
-	}
-	roaster.RKey = rkey
-	return roaster, nil
+	return GetEntity(ctx, s, roasterCodec, rkey)
 }
 
 func (s *AtprotoStore) ListRoasters(ctx context.Context) ([]*arabica.Roaster, error) {
-	if uc := s.cache.Get(s.sessionID); uc != nil && uc.Roasters() != nil && uc.IsValid() {
-		return uc.Roasters(), nil
-	}
-	raws, err := s.fetchAllRecords(ctx, arabica.NSIDRoaster)
-	if err != nil {
-		return nil, err
-	}
-	roasters := make([]*arabica.Roaster, 0, len(raws))
-	for _, r := range raws {
-		roaster, err := arabica.RecordToRoaster(r.Record, r.URI)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", r.URI).Msg("Failed to convert roaster record")
-			continue
-		}
-		roaster.RKey = r.RKey
-		roasters = append(roasters, roaster)
-	}
-	s.cache.SetRecords(s.sessionID, arabica.NSIDRoaster, roasters)
-	s.cache.ClearDirty(s.sessionID, arabica.NSIDRoaster)
-	return roasters, nil
+	return ListEntity(ctx, s, roasterCodec, func() []*arabica.Roaster {
+		return CachedSlice[arabica.Roaster](s.cache.Get(s.sessionID), arabica.NSIDRoaster)
+	})
 }
 
 func (s *AtprotoStore) UpdateRoasterByRKey(ctx context.Context, rkey string, roaster *arabica.UpdateRoasterRequest) error {
@@ -913,29 +732,23 @@ func (s *AtprotoStore) UpdateRoasterByRKey(ctx context.Context, rkey string, roa
 	if err != nil {
 		return fmt.Errorf("get existing roaster: %w", err)
 	}
-	model := &arabica.Roaster{
+	err = UpdateEntity(ctx, s, roasterCodec, rkey, &arabica.Roaster{
 		Name:      roaster.Name,
 		Location:  roaster.Location,
 		Website:   roaster.Website,
 		SourceRef: roaster.SourceRef,
 		CreatedAt: existing.CreatedAt,
-	}
-	record, err := arabica.RoasterToRecord(model)
+	})
 	if err != nil {
-		return fmt.Errorf("convert roaster: %w", err)
-	}
-	if _, _, err := s.putRecord(ctx, arabica.NSIDRoaster, rkey, record); err != nil {
 		return err
 	}
-	// Beans denormalize roaster data, so invalidate them too. This
-	// cross-collection coupling moves to the call site after Phase C
-	// removed the typed cache wrappers' cascade.
+	// Beans denormalize roaster data; invalidate them too.
 	s.cache.InvalidateRecords(s.sessionID, arabica.NSIDBean)
 	return nil
 }
 
 func (s *AtprotoStore) DeleteRoasterByRKey(ctx context.Context, rkey string) error {
-	if err := s.removeRecord(ctx, arabica.NSIDRoaster, rkey); err != nil {
+	if err := DeleteEntity(ctx, s, arabica.NSIDRoaster, rkey); err != nil {
 		return err
 	}
 	// Beans denormalize roaster data; invalidate them too.
@@ -946,63 +759,24 @@ func (s *AtprotoStore) DeleteRoasterByRKey(ctx context.Context, rkey string) err
 // ========== Grinder Operations ==========
 
 func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *arabica.CreateGrinderRequest) (*arabica.Grinder, error) {
-	model := &arabica.Grinder{
+	return CreateEntity(ctx, s, grinderCodec, &arabica.Grinder{
 		Name:        grinder.Name,
 		GrinderType: grinder.GrinderType,
 		BurrType:    grinder.BurrType,
 		Notes:       grinder.Notes,
 		SourceRef:   grinder.SourceRef,
 		CreatedAt:   time.Now().UTC(),
-	}
-	record, err := arabica.GrinderToRecord(model)
-	if err != nil {
-		return nil, fmt.Errorf("convert grinder: %w", err)
-	}
-	rkey, _, err := s.putRecord(ctx, arabica.NSIDGrinder, "", record)
-	if err != nil {
-		return nil, err
-	}
-	model.RKey = rkey
-	return model, nil
+	})
 }
 
 func (s *AtprotoStore) GetGrinderByRKey(ctx context.Context, rkey string) (*arabica.Grinder, error) {
-	rec, uri, _, hit, _, err := s.fetchRecord(ctx, arabica.NSIDGrinder, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("grinder %s not found", rkey)
-	}
-	grinder, err := arabica.RecordToGrinder(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert grinder: %w", err)
-	}
-	grinder.RKey = rkey
-	return grinder, nil
+	return GetEntity(ctx, s, grinderCodec, rkey)
 }
 
 func (s *AtprotoStore) ListGrinders(ctx context.Context) ([]*arabica.Grinder, error) {
-	if uc := s.cache.Get(s.sessionID); uc != nil && uc.Grinders() != nil && uc.IsValid() {
-		return uc.Grinders(), nil
-	}
-	raws, err := s.fetchAllRecords(ctx, arabica.NSIDGrinder)
-	if err != nil {
-		return nil, err
-	}
-	grinders := make([]*arabica.Grinder, 0, len(raws))
-	for _, r := range raws {
-		grinder, err := arabica.RecordToGrinder(r.Record, r.URI)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", r.URI).Msg("Failed to convert grinder record")
-			continue
-		}
-		grinder.RKey = r.RKey
-		grinders = append(grinders, grinder)
-	}
-	s.cache.SetRecords(s.sessionID, arabica.NSIDGrinder, grinders)
-	s.cache.ClearDirty(s.sessionID, arabica.NSIDGrinder)
-	return grinders, nil
+	return ListEntity(ctx, s, grinderCodec, func() []*arabica.Grinder {
+		return CachedSlice[arabica.Grinder](s.cache.Get(s.sessionID), arabica.NSIDGrinder)
+	})
 }
 
 func (s *AtprotoStore) UpdateGrinderByRKey(ctx context.Context, rkey string, grinder *arabica.UpdateGrinderRequest) error {
@@ -1033,62 +807,23 @@ func (s *AtprotoStore) DeleteGrinderByRKey(ctx context.Context, rkey string) err
 // ========== Brewer Operations ==========
 
 func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *arabica.CreateBrewerRequest) (*arabica.Brewer, error) {
-	model := &arabica.Brewer{
+	return CreateEntity(ctx, s, brewerCodec, &arabica.Brewer{
 		Name:        brewer.Name,
 		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
 		SourceRef:   brewer.SourceRef,
 		CreatedAt:   time.Now().UTC(),
-	}
-	record, err := arabica.BrewerToRecord(model)
-	if err != nil {
-		return nil, fmt.Errorf("convert brewer: %w", err)
-	}
-	rkey, _, err := s.putRecord(ctx, arabica.NSIDBrewer, "", record)
-	if err != nil {
-		return nil, err
-	}
-	model.RKey = rkey
-	return model, nil
+	})
 }
 
 func (s *AtprotoStore) GetBrewerByRKey(ctx context.Context, rkey string) (*arabica.Brewer, error) {
-	rec, uri, _, hit, _, err := s.fetchRecord(ctx, arabica.NSIDBrewer, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("brewer %s not found", rkey)
-	}
-	brewer, err := arabica.RecordToBrewer(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert brewer: %w", err)
-	}
-	brewer.RKey = rkey
-	return brewer, nil
+	return GetEntity(ctx, s, brewerCodec, rkey)
 }
 
 func (s *AtprotoStore) ListBrewers(ctx context.Context) ([]*arabica.Brewer, error) {
-	if uc := s.cache.Get(s.sessionID); uc != nil && uc.Brewers() != nil && uc.IsValid() {
-		return uc.Brewers(), nil
-	}
-	raws, err := s.fetchAllRecords(ctx, arabica.NSIDBrewer)
-	if err != nil {
-		return nil, err
-	}
-	brewers := make([]*arabica.Brewer, 0, len(raws))
-	for _, r := range raws {
-		brewer, err := arabica.RecordToBrewer(r.Record, r.URI)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", r.URI).Msg("Failed to convert brewer record")
-			continue
-		}
-		brewer.RKey = r.RKey
-		brewers = append(brewers, brewer)
-	}
-	s.cache.SetRecords(s.sessionID, arabica.NSIDBrewer, brewers)
-	s.cache.ClearDirty(s.sessionID, arabica.NSIDBrewer)
-	return brewers, nil
+	return ListEntity(ctx, s, brewerCodec, func() []*arabica.Brewer {
+		return CachedSlice[arabica.Brewer](s.cache.Get(s.sessionID), arabica.NSIDBrewer)
+	})
 }
 
 func (s *AtprotoStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *arabica.UpdateBrewerRequest) error {
@@ -1096,19 +831,13 @@ func (s *AtprotoStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brew
 	if err != nil {
 		return fmt.Errorf("get existing brewer: %w", err)
 	}
-	model := &arabica.Brewer{
+	return UpdateEntity(ctx, s, brewerCodec, rkey, &arabica.Brewer{
 		Name:        brewer.Name,
 		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
 		SourceRef:   brewer.SourceRef,
 		CreatedAt:   existing.CreatedAt,
-	}
-	record, err := arabica.BrewerToRecord(model)
-	if err != nil {
-		return fmt.Errorf("convert brewer: %w", err)
-	}
-	_, _, err = s.putRecord(ctx, arabica.NSIDBrewer, rkey, record)
-	return err
+	})
 }
 
 func (s *AtprotoStore) DeleteBrewerByRKey(ctx context.Context, rkey string) error {
@@ -1116,13 +845,6 @@ func (s *AtprotoStore) DeleteBrewerByRKey(ctx context.Context, rkey string) erro
 }
 
 // ========== Recipe Operations ==========
-
-// RecipeRecord contains a recipe with its AT Protocol metadata
-type RecipeRecord struct {
-	Recipe *arabica.Recipe
-	URI    string
-	CID    string
-}
 
 // resolveRecipeRefs populates recipe.BrewerRKey and recipe.BrewerObj from
 // the record's brewerRef field. Tries the witness cache first, falls back
@@ -1190,90 +912,27 @@ func recipeModelFromCreate(req *arabica.CreateRecipeRequest) *arabica.Recipe {
 }
 
 func (s *AtprotoStore) CreateRecipe(ctx context.Context, req *arabica.CreateRecipeRequest) (*arabica.Recipe, error) {
-	var brewerURI string
-	if req.BrewerRKey != "" {
-		brewerURI = atp.BuildATURI(s.did.String(), arabica.NSIDBrewer, req.BrewerRKey)
-	}
-	model := recipeModelFromCreate(req)
-	record, err := arabica.RecipeToRecord(model, brewerURI)
-	if err != nil {
-		return nil, fmt.Errorf("convert recipe: %w", err)
-	}
-	rkey, _, err := s.putRecord(ctx, arabica.NSIDRecipe, "", record)
-	if err != nil {
-		return nil, err
-	}
-	model.RKey = rkey
-	return model, nil
+	return CreateEntity(ctx, s, recipeCodec, recipeModelFromCreate(req))
 }
 
 func (s *AtprotoStore) GetRecipeByRKey(ctx context.Context, rkey string) (*arabica.Recipe, error) {
-	rec, uri, _, hit, _, err := s.fetchRecord(ctx, arabica.NSIDRecipe, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("recipe %s not found", rkey)
-	}
-	recipe, err := arabica.RecordToRecipe(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert recipe: %w", err)
-	}
-	recipe.RKey = rkey
-	s.resolveRecipeRefs(ctx, recipe, rec)
-	return recipe, nil
+	return GetEntity(ctx, s, recipeCodec, rkey)
 }
 
-// GetRecipeRecordByRKey fetches a recipe by rkey and returns it with its AT Protocol metadata
-func (s *AtprotoStore) GetRecipeRecordByRKey(ctx context.Context, rkey string) (*RecipeRecord, error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, arabica.NSIDRecipe, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("recipe record %s not found", rkey)
-	}
-	recipe, err := arabica.RecordToRecipe(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert recipe: %w", err)
-	}
-	recipe.RKey = rkey
-	s.resolveRecipeRefs(ctx, recipe, rec)
-	return &RecipeRecord{Recipe: recipe, URI: uri, CID: cid}, nil
+func (s *AtprotoStore) GetRecipeRecordByRKey(ctx context.Context, rkey string) (*EntityRecord[arabica.Recipe], error) {
+	return GetEntityRecord(ctx, s, recipeCodec, rkey)
 }
 
 func (s *AtprotoStore) ListRecipes(ctx context.Context) ([]*arabica.Recipe, error) {
-	if uc := s.cache.Get(s.sessionID); uc != nil && uc.Recipes() != nil && uc.IsValid() {
-		return uc.Recipes(), nil
-	}
-	raws, err := s.fetchAllRecords(ctx, arabica.NSIDRecipe)
-	if err != nil {
-		return nil, err
-	}
-	recipes := make([]*arabica.Recipe, 0, len(raws))
-	for _, r := range raws {
-		recipe, err := arabica.RecordToRecipe(r.Record, r.URI)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", r.URI).Msg("Failed to convert recipe record")
-			continue
-		}
-		recipe.RKey = r.RKey
-		extractRecipeBrewerRKey(recipe, r.Record)
-		recipes = append(recipes, recipe)
-	}
-	s.cache.SetRecords(s.sessionID, arabica.NSIDRecipe, recipes)
-	s.cache.ClearDirty(s.sessionID, arabica.NSIDRecipe)
-	return recipes, nil
+	return ListEntity(ctx, s, recipeCodec, func() []*arabica.Recipe {
+		return CachedSlice[arabica.Recipe](s.cache.Get(s.sessionID), arabica.NSIDRecipe)
+	})
 }
 
 func (s *AtprotoStore) UpdateRecipeByRKey(ctx context.Context, rkey string, req *arabica.UpdateRecipeRequest) error {
 	existing, err := s.GetRecipeByRKey(ctx, rkey)
 	if err != nil {
 		return fmt.Errorf("get existing recipe: %w", err)
-	}
-	var brewerURI string
-	if req.BrewerRKey != "" {
-		brewerURI = atp.BuildATURI(s.did.String(), arabica.NSIDBrewer, req.BrewerRKey)
 	}
 	model := &arabica.Recipe{
 		Name:         req.Name,
@@ -1291,16 +950,11 @@ func (s *AtprotoStore) UpdateRecipeByRKey(ctx context.Context, rkey string, req 
 			model.Pours[i] = &arabica.Pour{WaterAmount: p.WaterAmount, TimeSeconds: p.TimeSeconds}
 		}
 	}
-	record, err := arabica.RecipeToRecord(model, brewerURI)
-	if err != nil {
-		return fmt.Errorf("convert recipe: %w", err)
-	}
-	_, _, err = s.putRecord(ctx, arabica.NSIDRecipe, rkey, record)
-	return err
+	return UpdateEntity(ctx, s, recipeCodec, rkey, model)
 }
 
 func (s *AtprotoStore) DeleteRecipeByRKey(ctx context.Context, rkey string) error {
-	return s.removeRecord(ctx, arabica.NSIDRecipe, rkey)
+	return DeleteEntity(ctx, s, arabica.NSIDRecipe, rkey)
 }
 
 // ========== Like Operations ==========

@@ -46,6 +46,7 @@ func init() {
 			}
 			return ""
 		},
+		ResolveRefs: resolveTeaFeedRef,
 	})
 	entities.Register(&entities.Descriptor{
 		Type:            lexicons.RecordTypeOolongVendor,
@@ -178,6 +179,7 @@ func init() {
 			}
 			return ""
 		},
+		ResolveRefs: resolveBrewFeedRefs,
 	})
 
 	// Cafe and Drink are deferred for the v1 launch. Their models and

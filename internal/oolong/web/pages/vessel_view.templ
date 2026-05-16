@@ -1,10 +1,8 @@
 package teapages
 
 import (
-	"fmt"
-
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
+	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -15,75 +13,36 @@ type VesselViewProps struct {
 }
 
 templ VesselView(layout *components.LayoutData, props VesselViewProps) {
-	@components.Layout(layout, VesselViewContent(props))
-}
-
-templ VesselViewContent(props VesselViewProps) {
-	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, VesselViewCard(props))
-	</div>
-}
-
-templ VesselViewCard(props VesselViewProps) {
-	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "vessel",
-		Title:         "",
-		Timestamp:     props.Vessel.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Vessel.CreatedAt),
-		AuthorDID:     props.AuthorDID,
-		AuthorHandle:  props.AuthorHandle,
-		AuthorDisplay: props.AuthorDisplayName,
-		AuthorAvatar:  props.AuthorAvatar,
-	})
-	<div class="record-journal p-4">
-		<h1 class="label-origin-hero mb-4">{ props.Vessel.Name }</h1>
-		@components.JournalField(components.DetailStackedProps{Icon: components.IconTag(), Label: "Style", Value: props.Vessel.Style})
-		if props.Vessel.CapacityMl > 0 {
-			@components.JournalField(components.DetailStackedProps{Icon: components.IconScale(), Label: "Capacity", Value: fmt.Sprintf("%d ml", props.Vessel.CapacityMl)})
-		}
-		@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Material", Value: props.Vessel.Material})
-		if props.Vessel.Description != "" {
-			<div class="mt-6">
-				<span class="detail-label mb-2 block">
-					<span class="inline-flex items-center gap-1">
-						@components.IconFileText()
-						Description
-					</span>
-				</span>
-				<div class="journal-prose">{ props.Vessel.Description }</div>
-			</div>
-		}
-	</div>
-	<div class="record-view-footer">
-		<div class="flex items-center gap-3">
-			@components.BackButton()
-		</div>
-		if props.SubjectURI != "" && props.SubjectCID != "" {
-			@components.ActionBar(components.ActionBarProps{
-				SubjectURI:      props.SubjectURI,
-				SubjectCID:      props.SubjectCID,
-				IsLiked:         props.IsLiked,
-				LikeCount:       props.LikeCount,
-				CommentCount:    props.CommentCount,
-				ShowComments:    true,
-				ShareURL:        props.ShareURL,
-				ShareTitle:      props.Vessel.Name,
-				ShareText:       "Check out this tea vessel",
-				IsOwner:         props.IsOwnProfile,
-				EditModalURL:    "/api/modals/vessel/" + props.Vessel.RKey,
-				DeleteURL:       "/api/vessels/" + props.Vessel.RKey,
-				IsAuthenticated: props.IsAuthenticated,
-				IsModerator:     props.IsModerator,
-				CanHideRecord:   props.CanHideRecord,
-				CanBlockUser:    props.CanBlockUser,
-				IsRecordHidden:  props.IsRecordHidden,
-				AuthorDID:       props.AuthorDID,
-			})
-		}
-	</div>
-	@components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      props.SubjectURI,
-		SubjectCID:      props.SubjectCID,
+	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
+		RecordType:        "vessel",
+		Title:             "",
+		CreatedAt:         props.Vessel.CreatedAt,
+		AuthorDID:         props.AuthorDID,
+		AuthorHandle:      props.AuthorHandle,
+		AuthorDisplayName: props.AuthorDisplayName,
+		AuthorAvatar:      props.AuthorAvatar,
+		Body:              vesselBody(props.Vessel),
+		GuardActionBar:    true,
+		ActionBar: components.ActionBarProps{
+			SubjectURI:      props.SubjectURI,
+			SubjectCID:      props.SubjectCID,
+			IsLiked:         props.IsLiked,
+			LikeCount:       props.LikeCount,
+			CommentCount:    props.CommentCount,
+			ShowComments:    true,
+			ShareURL:        props.ShareURL,
+			ShareTitle:      props.Vessel.Name,
+			ShareText:       "Check out this tea vessel",
+			IsOwner:         props.IsOwnProfile,
+			EditModalURL:    "/api/modals/vessel/" + props.Vessel.RKey,
+			DeleteURL:       "/api/vessels/" + props.Vessel.RKey,
+			IsAuthenticated: props.IsAuthenticated,
+			IsModerator:     props.IsModerator,
+			CanHideRecord:   props.CanHideRecord,
+			CanBlockUser:    props.CanBlockUser,
+			IsRecordHidden:  props.IsRecordHidden,
+			AuthorDID:       props.AuthorDID,
+		},
 		Comments:        props.Comments,
 		IsAuthenticated: props.IsAuthenticated,
 		CurrentUserDID:  props.CurrentUserDID,
@@ -92,6 +51,11 @@ templ VesselViewCard(props VesselViewProps) {
 			CanHideRecord: props.CanHideRecord,
 			CanBlockUser:  props.CanBlockUser,
 		},
-		ViewURL: props.ShareURL,
 	})
+}
+
+templ vesselBody(v *oolong.Vessel) {
+	<div class="p-4">
+		@tea.VesselContent(v)
+	</div>
 }

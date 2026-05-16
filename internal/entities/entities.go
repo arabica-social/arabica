@@ -73,6 +73,16 @@ type Descriptor struct {
 	// descriptor's DisplayName as fallback." Special cases (e.g. brew
 	// returns the bean's name) live in each app's implementation.
 	DisplayTitle func(record any) string
+
+	// ResolveRefs hydrates cross-entity references on a typed model using
+	// records already pulled from the firehose index. model is the typed
+	// pointer returned by RecordToModel; recordData is the same raw map
+	// the model was decoded from (used to read foreign ref URIs);
+	// lookup returns a pre-decoded record map for a given AT-URI, or
+	// (nil, false) if not in the batch. Implementations should silently
+	// skip missing refs — feed cards render fine with partial data.
+	// nil means the entity has no cross-record references to resolve.
+	ResolveRefs func(model any, recordData map[string]any, lookup func(refURI string) (map[string]any, bool))
 }
 
 var (
