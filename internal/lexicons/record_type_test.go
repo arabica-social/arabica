@@ -55,13 +55,11 @@ func TestOolongRecordTypes(t *testing.T) {
 	}{
 		{"oolong-tea", RecordTypeOolongTea, "Tea"},
 		{"oolong-brew", RecordTypeOolongBrew, "Tea Brew"},
-		{"oolong-brewer", RecordTypeOolongBrewer, "Tea Brewer"},
-		{"oolong-recipe", RecordTypeOolongRecipe, "Tea Recipe"},
+		{"oolong-vessel", RecordTypeOolongVessel, "Vessel"},
+		{"oolong-infuser", RecordTypeOolongInfuser, "Infuser"},
 		{"oolong-vendor", RecordTypeOolongVendor, "Tea Vendor"},
 		{"oolong-cafe", RecordTypeOolongCafe, "Tea Cafe"},
 		{"oolong-drink", RecordTypeOolongDrink, "Tea Drink"},
-		{"oolong-comment", RecordTypeOolongComment, "Tea Comment"},
-		{"oolong-like", RecordTypeOolongLike, "Tea Like"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.raw, func(t *testing.T) {

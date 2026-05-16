@@ -1,0 +1,17 @@
+---
+title: TeaToRecord/full tea
+test_name: TestTeaToRecord/full_tea
+file_name: records_tea_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.tea",
+  "category": "green",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "description": "Pre-Qingming pluck",
+  "harvestYear": 2024,
+  "name": "Long Jing 2024 Spring",
+  "origin": "Hangzhou, Zhejiang",
+  "rating": 9,
+  "vendorRef": "at://did:plc:test/social.oolong.alpha.vendor/v1",
+}

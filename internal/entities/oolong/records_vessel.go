@@ -7,47 +7,47 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
-func BrewerToRecord(b *Brewer) (map[string]any, error) {
-	if b.Name == "" {
+func VesselToRecord(v *Vessel) (map[string]any, error) {
+	if v.Name == "" {
 		return nil, ErrNameRequired
 	}
 	rec := map[string]any{
-		"$type":     NSIDBrewer,
-		"name":      b.Name,
-		"createdAt": b.CreatedAt.Format(time.RFC3339),
+		"$type":     NSIDVessel,
+		"name":      v.Name,
+		"createdAt": v.CreatedAt.Format(time.RFC3339),
 	}
-	if b.Style != "" {
-		rec["style"] = b.Style
+	if v.Style != "" {
+		rec["style"] = v.Style
 	}
-	if b.CapacityMl > 0 {
-		rec["capacityMl"] = b.CapacityMl
+	if v.CapacityMl > 0 {
+		rec["capacityMl"] = v.CapacityMl
 	}
-	if b.Material != "" {
-		rec["material"] = b.Material
+	if v.Material != "" {
+		rec["material"] = v.Material
 	}
-	if b.Description != "" {
-		rec["description"] = b.Description
+	if v.Description != "" {
+		rec["description"] = v.Description
 	}
-	if b.SourceRef != "" {
-		rec["sourceRef"] = b.SourceRef
+	if v.SourceRef != "" {
+		rec["sourceRef"] = v.SourceRef
 	}
 	return rec, nil
 }
 
-func RecordToBrewer(record map[string]any, atURI string) (*Brewer, error) {
-	b := &Brewer{}
+func RecordToVessel(record map[string]any, atURI string) (*Vessel, error) {
+	v := &Vessel{}
 	if atURI != "" {
 		parsed, err := syntax.ParseATURI(atURI)
 		if err != nil {
 			return nil, fmt.Errorf("invalid AT-URI: %w", err)
 		}
-		b.RKey = parsed.RecordKey().String()
+		v.RKey = parsed.RecordKey().String()
 	}
 	name, ok := record["name"].(string)
 	if !ok || name == "" {
 		return nil, ErrNameRequired
 	}
-	b.Name = name
+	v.Name = name
 
 	createdStr, ok := record["createdAt"].(string)
 	if !ok {
@@ -57,22 +57,22 @@ func RecordToBrewer(record map[string]any, atURI string) (*Brewer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid createdAt: %w", err)
 	}
-	b.CreatedAt = t
+	v.CreatedAt = t
 
 	if s, ok := record["style"].(string); ok {
-		b.Style = s
+		v.Style = s
 	}
-	if v, ok := toFloat64(record["capacityMl"]); ok {
-		b.CapacityMl = int(v)
+	if n, ok := toFloat64(record["capacityMl"]); ok {
+		v.CapacityMl = int(n)
 	}
 	if s, ok := record["material"].(string); ok {
-		b.Material = s
+		v.Material = s
 	}
 	if s, ok := record["description"].(string); ok {
-		b.Description = s
+		v.Description = s
 	}
 	if s, ok := record["sourceRef"].(string); ok {
-		b.SourceRef = s
+		v.SourceRef = s
 	}
-	return b, nil
+	return v, nil
 }

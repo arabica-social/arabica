@@ -1,0 +1,52 @@
+{
+  "lexicon": 1,
+  "id": "social.oolong.alpha.vessel",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A tea brewing vessel — holds water during brewing",
+      "record": {
+        "type": "object",
+        "required": ["name", "createdAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Name of the vessel (e.g., '500ml glass teapot', 'Tokoname kyusu')"
+          },
+          "style": {
+            "type": "string",
+            "maxLength": 50,
+            "knownValues": [
+              "teapot", "mug", "jar", "matcha-bowl", "other"
+            ],
+            "description": "Vessel form-factor. Known values: teapot, mug, jar, matcha-bowl, other"
+          },
+          "capacityMl": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Vessel capacity in millilitres"
+          },
+          "material": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Material (e.g., 'porcelain', 'yixing clay', 'glass', 'cast iron')"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "sourceRef": {
+            "type": "string",
+            "format": "at-uri"
+          }
+        }
+      }
+    }
+  }
+}

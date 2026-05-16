@@ -19,37 +19,11 @@ func TeaToRecord(t *Tea, vendorURI string) (map[string]any, error) {
 	if t.Category != "" {
 		rec["category"] = t.Category
 	}
-	if t.SubStyle != "" {
-		rec["subStyle"] = t.SubStyle
-	}
 	if t.Origin != "" {
 		rec["origin"] = t.Origin
 	}
-	if t.Cultivar != "" {
-		rec["cultivar"] = t.Cultivar
-	}
-	if t.CultivarRef != "" {
-		rec["cultivarRef"] = t.CultivarRef
-	}
-	if t.Farm != "" {
-		rec["farm"] = t.Farm
-	}
-	if t.FarmRef != "" {
-		rec["farmRef"] = t.FarmRef
-	}
 	if t.HarvestYear > 0 {
 		rec["harvestYear"] = t.HarvestYear
-	}
-	if len(t.Processing) > 0 {
-		steps := make([]map[string]any, len(t.Processing))
-		for i, p := range t.Processing {
-			m := map[string]any{"step": p.Step}
-			if p.Detail != "" {
-				m["detail"] = p.Detail
-			}
-			steps[i] = m
-		}
-		rec["processing"] = steps
 	}
 	if t.Description != "" {
 		rec["description"] = t.Description
@@ -98,60 +72,11 @@ func RecordToTea(record map[string]any, atURI string) (*Tea, error) {
 	if s, ok := record["category"].(string); ok {
 		t.Category = s
 	}
-	if s, ok := record["subStyle"].(string); ok {
-		t.SubStyle = s
-	}
 	if s, ok := record["origin"].(string); ok {
 		t.Origin = s
 	}
-	if s, ok := record["cultivar"].(string); ok {
-		t.Cultivar = s
-	}
-	if s, ok := record["cultivarRef"].(string); ok {
-		t.CultivarRef = s
-	}
-	if s, ok := record["farm"].(string); ok {
-		t.Farm = s
-	}
-	if s, ok := record["farmRef"].(string); ok {
-		t.FarmRef = s
-	}
 	if v, ok := toFloat64(record["harvestYear"]); ok {
 		t.HarvestYear = int(v)
-	}
-	// processing may be []any (after JSON decode) or []map[string]any
-	// (when constructed in-memory). Handle both.
-	switch raw := record["processing"].(type) {
-	case []any:
-		t.Processing = make([]ProcessingStep, 0, len(raw))
-		for _, item := range raw {
-			m, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-			step, _ := m["step"].(string)
-			if step == "" {
-				continue
-			}
-			ps := ProcessingStep{Step: step}
-			if d, ok := m["detail"].(string); ok {
-				ps.Detail = d
-			}
-			t.Processing = append(t.Processing, ps)
-		}
-	case []map[string]any:
-		t.Processing = make([]ProcessingStep, 0, len(raw))
-		for _, m := range raw {
-			step, _ := m["step"].(string)
-			if step == "" {
-				continue
-			}
-			ps := ProcessingStep{Step: step}
-			if d, ok := m["detail"].(string); ok {
-				ps.Detail = d
-			}
-			t.Processing = append(t.Processing, ps)
-		}
 	}
 	if s, ok := record["description"].(string); ok {
 		t.Description = s

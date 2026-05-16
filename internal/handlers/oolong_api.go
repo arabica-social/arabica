@@ -12,7 +12,7 @@ import (
 )
 
 // HandleOolongAPIListAll is the oolong analog of HandleAPIListAll: it
-// returns every record across the 7 oolong entity types the
+// returns every record across the oolong entity types the
 // authenticated user owns, in a JSON shape the client-side
 // ArabicaCache understands. The combo-select system reads this cache
 // to filter user-owned entries during typeahead.
@@ -26,13 +26,11 @@ func (h *Handler) HandleOolongAPIListAll(w http.ResponseWriter, r *http.Request)
 	userDID, _ := atpmiddleware.GetDID(ctx)
 
 	var (
-		teas    []*oolong.Tea
-		vendors []*oolong.Vendor
-		brewers []*oolong.Brewer
-		recipes []*oolong.Recipe
-		brews   []*oolong.Brew
-		cafes   []*oolong.Cafe
-		drinks  []*oolong.Drink
+		teas     []*oolong.Tea
+		vendors  []*oolong.Vendor
+		vessels  []*oolong.Vessel
+		infusers []*oolong.Infuser
+		brews    []*oolong.Brew
 	)
 
 	g, gctx := errgroup.WithContext(ctx)
@@ -45,36 +43,26 @@ func (h *Handler) HandleOolongAPIListAll(w http.ResponseWriter, r *http.Request)
 		return nil
 	})
 	g.Go(func() error {
-		brewers = listOolong(gctx, store, oolong.NSIDBrewer, oolong.RecordToBrewer)
+		vessels = listOolong(gctx, store, oolong.NSIDVessel, oolong.RecordToVessel)
 		return nil
 	})
 	g.Go(func() error {
-		recipes = listOolong(gctx, store, oolong.NSIDRecipe, oolong.RecordToRecipe)
+		infusers = listOolong(gctx, store, oolong.NSIDInfuser, oolong.RecordToInfuser)
 		return nil
 	})
 	g.Go(func() error {
 		brews = listOolong(gctx, store, oolong.NSIDBrew, oolong.RecordToBrew)
 		return nil
 	})
-	g.Go(func() error {
-		cafes = listOolong(gctx, store, oolong.NSIDCafe, oolong.RecordToCafe)
-		return nil
-	})
-	g.Go(func() error {
-		drinks = listOolong(gctx, store, oolong.NSIDDrink, oolong.RecordToDrink)
-		return nil
-	})
 	_ = g.Wait()
 
 	response := map[string]any{
-		"did":     userDID,
-		"teas":    teas,
-		"vendors": vendors,
-		"brewers": brewers,
-		"recipes": recipes,
-		"brews":   brews,
-		"cafes":   cafes,
-		"drinks":  drinks,
+		"did":      userDID,
+		"teas":     teas,
+		"vendors":  vendors,
+		"vessels":  vessels,
+		"infusers": infusers,
+		"brews":    brews,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

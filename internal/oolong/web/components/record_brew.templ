@@ -47,11 +47,18 @@ templ BrewContent(b *oolong.Brew) {
 				</span>
 			}
 		</div>
-		<!-- Brewer -->
-		if b.BrewerObj != nil && b.BrewerObj.Name != "" {
+		<!-- Vessel -->
+		if b.Vessel != nil && b.Vessel.Name != "" {
 			<div class="mb-2">
-				<span class="text-meta">Brewer:</span>
-				<span class="text-sm font-semibold text-primary">{ b.BrewerObj.Name }</span>
+				<span class="text-meta">Vessel:</span>
+				<span class="text-sm font-semibold text-primary">{ b.Vessel.Name }</span>
+			</div>
+		}
+		<!-- Infuser -->
+		if b.Infuser != nil && b.Infuser.Name != "" {
+			<div class="mb-2">
+				<span class="text-meta">Infuser:</span>
+				<span class="text-sm font-semibold text-primary">{ b.Infuser.Name }</span>
 			</div>
 		}
 		<!-- Steep parameters in compact grid -->
@@ -66,9 +73,14 @@ templ BrewContent(b *oolong.Brew) {
 					<span class="text-label">Leaves:</span> { fmt.Sprintf("%.1fg", b.LeafGrams) }
 				</div>
 			}
-			if b.VesselMl > 0 {
+			if b.WaterAmount > 0 {
 				<div>
-					<span class="text-label">Vessel:</span> { fmt.Sprintf("%d ml", b.VesselMl) }
+					<span class="text-label">Water:</span> { fmt.Sprintf("%d ml", b.WaterAmount) }
+				</div>
+			}
+			if b.InfusionMethod != "" {
+				<div>
+					<span class="text-label">Method:</span> { b.InfusionMethod }
 				</div>
 			}
 			if b.Temperature > 0 {

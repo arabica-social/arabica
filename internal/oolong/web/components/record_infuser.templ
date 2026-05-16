@@ -1,0 +1,32 @@
+package tea
+
+import (
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// InfuserContent renders infuser details inside a card.
+templ InfuserContent(i *oolong.Infuser) {
+	<div class="feed-content-box-sm">
+		<div class="text-base mb-2">
+			<span class="font-bold text-primary">{ i.Name }</span>
+		</div>
+		<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+			if i.Style != "" {
+				<span class="inline-flex items-center gap-1">
+					@IconTag()
+					{ i.Style }
+				</span>
+			}
+			if i.Material != "" {
+				<span class="inline-flex items-center gap-1">
+					@IconDisc()
+					{ i.Material }
+				</span>
+			}
+		</div>
+		if i.Description != "" {
+			<div class="mt-2 text-sm text-secondary italic">"{ i.Description }"</div>
+		}
+	</div>
+}

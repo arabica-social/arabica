@@ -1,11 +1,11 @@
 {
   "lexicon": 1,
-  "id": "social.oolong.alpha.brewer",
+  "id": "social.oolong.alpha.infuser",
   "defs": {
     "main": {
       "type": "record",
       "key": "tid",
-      "description": "A tea brewing vessel",
+      "description": "A standalone infuser used inside a vessel to contain loose leaf during brewing (basket, ball, sock, etc.). Tea bags and loose-leaf-in-vessel are not infusers — they are infusion methods on the brew record.",
       "record": {
         "type": "object",
         "required": ["name", "createdAt"],
@@ -13,25 +13,20 @@
           "name": {
             "type": "string",
             "maxLength": 200,
-            "description": "Name of the brewer (e.g., '120ml gaiwan', 'Tokoname kyusu')"
+            "description": "Name of the infuser (e.g., 'stainless basket', 'silicone tea ball', 'cotton sock')"
           },
           "style": {
             "type": "string",
             "maxLength": 50,
             "knownValues": [
-              "teapot", "matcha-bowl", "infuser", "other"
+              "basket", "ball", "sock", "other"
             ],
-            "description": "Vessel style. Known values: teapot, matcha-bowl, infuser, other"
-          },
-          "capacityMl": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "Vessel capacity in millilitres"
+            "description": "Infuser form-factor. Known values: basket, ball, sock, other"
           },
           "material": {
             "type": "string",
             "maxLength": 200,
-            "description": "Material (e.g., 'porcelain', 'yixing clay', 'glass', 'cast iron')"
+            "description": "Material (e.g., 'stainless steel', 'silicone', 'cotton', 'paper')"
           },
           "description": {
             "type": "string",

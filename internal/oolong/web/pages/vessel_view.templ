@@ -8,34 +8,34 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
-type BrewerViewProps struct {
-	Brewer *oolong.Brewer
+type VesselViewProps struct {
+	Vessel *oolong.Vessel
 	pages.EntityViewBase
 }
 
-templ BrewerView(layout *components.LayoutData, props BrewerViewProps) {
-	@components.Layout(layout, BrewerViewContent(props))
+templ VesselView(layout *components.LayoutData, props VesselViewProps) {
+	@components.Layout(layout, VesselViewContent(props))
 }
 
-templ BrewerViewContent(props BrewerViewProps) {
+templ VesselViewContent(props VesselViewProps) {
 	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, BrewerViewCard(props))
+		@components.Card(components.CardProps{InnerCard: true}, VesselViewCard(props))
 	</div>
 }
 
-templ BrewerViewCard(props BrewerViewProps) {
+templ VesselViewCard(props VesselViewProps) {
 	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "brewer",
+		RecordType:    "vessel",
 		Title:         "",
-		Timestamp:     props.Brewer.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Brewer.CreatedAt),
+		Timestamp:     props.Vessel.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Vessel.CreatedAt),
 		AuthorDID:     props.AuthorDID,
 		AuthorHandle:  props.AuthorHandle,
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
 	<div class="p-4">
-		@tea.BrewerContent(props.Brewer)
+		@tea.VesselContent(props.Vessel)
 	</div>
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">
@@ -50,10 +50,10 @@ templ BrewerViewCard(props BrewerViewProps) {
 				CommentCount:    props.CommentCount,
 				ShowComments:    true,
 				ShareURL:        props.ShareURL,
-				ShareTitle:      props.Brewer.Name,
-				ShareText:       "Check out this tea brewer",
+				ShareTitle:      props.Vessel.Name,
+				ShareText:       "Check out this tea vessel",
 				IsOwner:         props.IsOwnProfile,
-				DeleteURL:       "/api/brewers/" + props.Brewer.RKey,
+				DeleteURL:       "/api/vessels/" + props.Vessel.RKey,
 				IsAuthenticated: props.IsAuthenticated,
 				IsModerator:     props.IsModerator,
 				CanHideRecord:   props.CanHideRecord,

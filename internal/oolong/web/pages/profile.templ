@@ -22,10 +22,8 @@ type ProfileProps struct {
 	Brews        []*oolong.Brew
 	Teas         []*oolong.Tea
 	Vendors      []*oolong.Vendor
-	Brewers      []*oolong.Brewer
-	Recipes      []*oolong.Recipe
-	Cafes        []*oolong.Cafe
-	Drinks       []*oolong.Drink
+	Vessels      []*oolong.Vessel
+	Infusers     []*oolong.Infuser
 }
 
 // Profile renders the full profile page.
@@ -84,17 +82,14 @@ templ TeaProfileHeader(profile *bff.UserProfile) {
 	</div>
 }
 
-// TeaProfileStats renders the count grid. Five cards mirror arabica's
-// five-stat layout: Steeps, Teas, Vendors, Brewers, Cafes. (Recipes +
-// Drinks are surfaced inside the Gear tab body; they don't get their
-// own stat tile to keep the row uncluttered.)
+// TeaProfileStats renders the count grid.
 templ TeaProfileStats(props ProfileProps) {
 	<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
 		@teaProfileStat("Steeps", len(props.Brews))
 		@teaProfileStat("Teas", len(props.Teas))
 		@teaProfileStat("Vendors", len(props.Vendors))
-		@teaProfileStat("Brewers", len(props.Brewers))
-		@teaProfileStat("Cafes", len(props.Cafes))
+		@teaProfileStat("Vessels", len(props.Vessels))
+		@teaProfileStat("Infusers", len(props.Infusers))
 	</div>
 }
 
@@ -176,38 +171,20 @@ templ teaProfileBody(props ProfileProps) {
 					</a>
 				}
 			}
-			@teaProfileGearGroup(props, "Brewers", "brewer", len(props.Brewers)) {
-				for _, b := range props.Brewers {
-					<a href={ templ.SafeURL("/brewers/" + profileActor(props) + "/" + b.RKey) } class="block hover:opacity-95 transition-opacity">
-						<div class="feed-card feed-card-brewer feed-card-compact">
-							@tea.BrewerContent(b)
+			@teaProfileGearGroup(props, "Vessels", "vessel", len(props.Vessels)) {
+				for _, v := range props.Vessels {
+					<a href={ templ.SafeURL("/vessels/" + profileActor(props) + "/" + v.RKey) } class="block hover:opacity-95 transition-opacity">
+						<div class="feed-card feed-card-vessel feed-card-compact">
+							@tea.VesselContent(v)
 						</div>
 					</a>
 				}
 			}
-			@teaProfileGearGroup(props, "Recipes", "recipe", len(props.Recipes)) {
-				for _, r := range props.Recipes {
-					<a href={ templ.SafeURL("/recipes/" + profileActor(props) + "/" + r.RKey) } class="block hover:opacity-95 transition-opacity">
-						<div class="feed-card feed-card-recipe">
-							@tea.RecipeContent(r)
-						</div>
-					</a>
-				}
-			}
-			@teaProfileGearGroup(props, "Cafes", "cafe", len(props.Cafes)) {
-				for _, c := range props.Cafes {
-					<a href={ templ.SafeURL("/cafes/" + profileActor(props) + "/" + c.RKey) } class="block hover:opacity-95 transition-opacity">
-						<div class="feed-card feed-card-cafe">
-							@tea.CafeContent(c)
-						</div>
-					</a>
-				}
-			}
-			@teaProfileGearGroup(props, "Drinks", "drink", len(props.Drinks)) {
-				for _, d := range props.Drinks {
-					<a href={ templ.SafeURL("/drinks/" + profileActor(props) + "/" + d.RKey) } class="block hover:opacity-95 transition-opacity">
-						<div class="feed-card feed-card-drink">
-							@tea.DrinkContent(d)
+			@teaProfileGearGroup(props, "Infusers", "infuser", len(props.Infusers)) {
+				for _, i := range props.Infusers {
+					<a href={ templ.SafeURL("/infusers/" + profileActor(props) + "/" + i.RKey) } class="block hover:opacity-95 transition-opacity">
+						<div class="feed-card feed-card-infuser feed-card-compact">
+							@tea.InfuserContent(i)
 						</div>
 					</a>
 				}

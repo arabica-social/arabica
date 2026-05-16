@@ -5,7 +5,7 @@ file_name: records_social_test.go
 version: 0.1.0
 ---
 map[string]interface{}{
-  "$type": "social.oolong.alpha.like",
+  "$type": "social.arabica.alpha.like",
   "createdAt": "2026-05-10T12:00:00Z",
   "subject": map[string]interface{}{
     "cid": "bafyreig...",

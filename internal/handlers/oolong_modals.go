@@ -9,15 +9,10 @@ import (
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 )
 
-// Modal-partial handlers for the 7 oolong entities. New variants render
+// Modal-partial handlers for the oolong entities. New variants render
 // an empty modal; Edit variants fetch the existing record via the
 // generic AtprotoStore.FetchRecord + oolong.RecordTo* decoder, then
 // render the modal pre-filled.
-//
-// The dialog modal templ files in internal/oolong/web/components/ are
-// driven by ModalShell, which posts back to /api/{urlpath} for create
-// and /api/{urlpath}/{id} for update. The handlers here only render the
-// dialog HTML — the actual write goes through oolong_crud.go.
 
 // Tea uses a full-page form (HandleOolongTeaNew/Edit) instead of a
 // modal — see internal/oolong/web/pages/tea_form.templ.
@@ -58,18 +53,18 @@ func (h *Handler) HandleOolongVendorModalEdit(w http.ResponseWriter, r *http.Req
 	}
 }
 
-// --- Brewer ----------------------------------------------------------
+// --- Vessel ----------------------------------------------------------
 
-func (h *Handler) HandleOolongBrewerModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleOolongVesselModalNew(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.requireOolongStore(w, r); !ok {
 		return
 	}
-	if err := tea.BrewerDialogModal(nil).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea brewer modal (new)")
+	if err := tea.VesselDialogModal(nil).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render vessel modal (new)")
 	}
 }
 
-func (h *Handler) HandleOolongBrewerModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleOolongVesselModalEdit(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
@@ -78,34 +73,34 @@ func (h *Handler) HandleOolongBrewerModalEdit(w http.ResponseWriter, r *http.Req
 	if rkey == "" {
 		return
 	}
-	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDBrewer, rkey)
+	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDVessel, rkey)
 	if err != nil {
-		http.Error(w, "Brewer not found", http.StatusNotFound)
+		http.Error(w, "Vessel not found", http.StatusNotFound)
 		return
 	}
-	b, err := oolong.RecordToBrewer(rec, uri)
+	v, err := oolong.RecordToVessel(rec, uri)
 	if err != nil {
-		http.Error(w, "Failed to decode brewer", http.StatusInternalServerError)
+		http.Error(w, "Failed to decode vessel", http.StatusInternalServerError)
 		return
 	}
-	b.RKey = rkey
-	if err := tea.BrewerDialogModal(b).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea brewer modal (edit)")
+	v.RKey = rkey
+	if err := tea.VesselDialogModal(v).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render vessel modal (edit)")
 	}
 }
 
-// --- Recipe ----------------------------------------------------------
+// --- Infuser ---------------------------------------------------------
 
-func (h *Handler) HandleOolongRecipeModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleOolongInfuserModalNew(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.requireOolongStore(w, r); !ok {
 		return
 	}
-	if err := tea.RecipeDialogModal(nil).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea recipe modal (new)")
+	if err := tea.InfuserDialogModal(nil).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render infuser modal (new)")
 	}
 }
 
-func (h *Handler) HandleOolongRecipeModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleOolongInfuserModalEdit(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
@@ -114,19 +109,19 @@ func (h *Handler) HandleOolongRecipeModalEdit(w http.ResponseWriter, r *http.Req
 	if rkey == "" {
 		return
 	}
-	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDRecipe, rkey)
+	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDInfuser, rkey)
 	if err != nil {
-		http.Error(w, "Recipe not found", http.StatusNotFound)
+		http.Error(w, "Infuser not found", http.StatusNotFound)
 		return
 	}
-	rcp, err := oolong.RecordToRecipe(rec, uri)
+	i, err := oolong.RecordToInfuser(rec, uri)
 	if err != nil {
-		http.Error(w, "Failed to decode recipe", http.StatusInternalServerError)
+		http.Error(w, "Failed to decode infuser", http.StatusInternalServerError)
 		return
 	}
-	rcp.RKey = rkey
-	if err := tea.RecipeDialogModal(rcp).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea recipe modal (edit)")
+	i.RKey = rkey
+	if err := tea.InfuserDialogModal(i).Render(r.Context(), w); err != nil {
+		log.Error().Err(err).Msg("Failed to render infuser modal (edit)")
 	}
 }
 
@@ -166,74 +161,4 @@ func (h *Handler) HandleOolongBrewModalEdit(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// --- Cafe ------------------------------------------------------------
-
-func (h *Handler) HandleOolongCafeModalNew(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.requireOolongStore(w, r); !ok {
-		return
-	}
-	if err := tea.CafeDialogModal(nil).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea cafe modal (new)")
-	}
-}
-
-func (h *Handler) HandleOolongCafeModalEdit(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDCafe, rkey)
-	if err != nil {
-		http.Error(w, "Cafe not found", http.StatusNotFound)
-		return
-	}
-	c, err := oolong.RecordToCafe(rec, uri)
-	if err != nil {
-		http.Error(w, "Failed to decode cafe", http.StatusInternalServerError)
-		return
-	}
-	c.RKey = rkey
-	if err := tea.CafeDialogModal(c).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea cafe modal (edit)")
-	}
-}
-
-// --- Drink -----------------------------------------------------------
-
-func (h *Handler) HandleOolongDrinkModalNew(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.requireOolongStore(w, r); !ok {
-		return
-	}
-	if err := tea.DrinkDialogModal(nil).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea drink modal (new)")
-	}
-}
-
-func (h *Handler) HandleOolongDrinkModalEdit(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-	rec, uri, _, err := store.FetchRecord(r.Context(), oolong.NSIDDrink, rkey)
-	if err != nil {
-		http.Error(w, "Drink not found", http.StatusNotFound)
-		return
-	}
-	d, err := oolong.RecordToDrink(rec, uri)
-	if err != nil {
-		http.Error(w, "Failed to decode drink", http.StatusInternalServerError)
-		return
-	}
-	d.RKey = rkey
-	if err := tea.DrinkDialogModal(d).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render tea drink modal (edit)")
-	}
-}
+// Cafe and Drink modal handlers are deferred for v1.

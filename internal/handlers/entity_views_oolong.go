@@ -17,10 +17,7 @@ import (
 
 // Oolong entity view handlers. Each builds an entityViewConfig that
 // converts witness/PDS/store reads into the appropriate typed oolong
-// model and renders the matching teapages templ. fromStore uses the
-// generic AtprotoStore.FetchRecord since oolong doesn't have per-entity
-// Get*ByRKey wrappers yet — those will land alongside CRUD in a later
-// phase.
+// model and renders the matching teapages templ.
 
 func (h *Handler) teaViewConfig() entityViewConfig {
 	return entityViewConfig{
@@ -106,84 +103,84 @@ func (h *Handler) oolongVendorViewConfig() entityViewConfig {
 	}
 }
 
-func (h *Handler) oolongBrewerViewConfig() entityViewConfig {
+func (h *Handler) oolongVesselViewConfig() entityViewConfig {
 	return entityViewConfig{
-		descriptor: entities.Get(lexicons.RecordTypeOolongBrewer),
+		descriptor: entities.Get(lexicons.RecordTypeOolongVessel),
 		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
-			b, err := oolong.RecordToBrewer(m, uri)
+			v, err := oolong.RecordToVessel(m, uri)
 			if err != nil {
 				return nil, err
 			}
-			b.RKey = rkey
-			return b, nil
+			v.RKey = rkey
+			return v, nil
 		},
 		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
-			b, err := oolong.RecordToBrewer(e.Value, e.URI)
+			v, err := oolong.RecordToVessel(e.Value, e.URI)
 			if err != nil {
 				return nil, err
 			}
-			b.RKey = rkey
-			return b, nil
+			v.RKey = rkey
+			return v, nil
 		},
 		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
-			m, uri, cid, err := s.FetchRecord(ctx, oolong.NSIDBrewer, rkey)
+			m, uri, cid, err := s.FetchRecord(ctx, oolong.NSIDVessel, rkey)
 			if err != nil {
 				return nil, "", "", err
 			}
-			b, err := oolong.RecordToBrewer(m, uri)
+			v, err := oolong.RecordToVessel(m, uri)
 			if err != nil {
 				return nil, "", "", err
 			}
-			b.RKey = rkey
-			return b, uri, cid, nil
+			v.RKey = rkey
+			return v, uri, cid, nil
 		},
-		displayName: func(record any) string { return record.(*oolong.Brewer).Name },
-		ogSubtitle:  func(record any) string { return record.(*oolong.Brewer).Name },
+		displayName: func(record any) string { return record.(*oolong.Vessel).Name },
+		ogSubtitle:  func(record any) string { return record.(*oolong.Vessel).Name },
 		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			return teapages.BrewerView(layoutData, teapages.BrewerViewProps{
-				Brewer:         record.(*oolong.Brewer),
+			return teapages.VesselView(layoutData, teapages.VesselViewProps{
+				Vessel:         record.(*oolong.Vessel),
 				EntityViewBase: base,
 			}).Render(ctx, w)
 		},
 	}
 }
 
-func (h *Handler) oolongRecipeViewConfig() entityViewConfig {
+func (h *Handler) oolongInfuserViewConfig() entityViewConfig {
 	return entityViewConfig{
-		descriptor: entities.Get(lexicons.RecordTypeOolongRecipe),
+		descriptor: entities.Get(lexicons.RecordTypeOolongInfuser),
 		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
-			r, err := oolong.RecordToRecipe(m, uri)
+			i, err := oolong.RecordToInfuser(m, uri)
 			if err != nil {
 				return nil, err
 			}
-			r.RKey = rkey
-			return r, nil
+			i.RKey = rkey
+			return i, nil
 		},
 		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
-			r, err := oolong.RecordToRecipe(e.Value, e.URI)
+			i, err := oolong.RecordToInfuser(e.Value, e.URI)
 			if err != nil {
 				return nil, err
 			}
-			r.RKey = rkey
-			return r, nil
+			i.RKey = rkey
+			return i, nil
 		},
 		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
-			m, uri, cid, err := s.FetchRecord(ctx, oolong.NSIDRecipe, rkey)
+			m, uri, cid, err := s.FetchRecord(ctx, oolong.NSIDInfuser, rkey)
 			if err != nil {
 				return nil, "", "", err
 			}
-			r, err := oolong.RecordToRecipe(m, uri)
+			i, err := oolong.RecordToInfuser(m, uri)
 			if err != nil {
 				return nil, "", "", err
 			}
-			r.RKey = rkey
-			return r, uri, cid, nil
+			i.RKey = rkey
+			return i, uri, cid, nil
 		},
-		displayName: func(record any) string { return record.(*oolong.Recipe).Name },
-		ogSubtitle:  func(record any) string { return record.(*oolong.Recipe).Name },
+		displayName: func(record any) string { return record.(*oolong.Infuser).Name },
+		ogSubtitle:  func(record any) string { return record.(*oolong.Infuser).Name },
 		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			return teapages.RecipeView(layoutData, teapages.RecipeViewProps{
-				Recipe:         record.(*oolong.Recipe),
+			return teapages.InfuserView(layoutData, teapages.InfuserViewProps{
+				Infuser:        record.(*oolong.Infuser),
 				EntityViewBase: base,
 			}).Render(ctx, w)
 		},
@@ -244,105 +241,6 @@ func (h *Handler) oolongBrewViewConfig() entityViewConfig {
 	}
 }
 
-func (h *Handler) oolongCafeViewConfig() entityViewConfig {
-	return entityViewConfig{
-		descriptor: entities.Get(lexicons.RecordTypeOolongCafe),
-		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
-			c, err := oolong.RecordToCafe(m, uri)
-			if err != nil {
-				return nil, err
-			}
-			c.RKey = rkey
-			return c, nil
-		},
-		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
-			c, err := oolong.RecordToCafe(e.Value, e.URI)
-			if err != nil {
-				return nil, err
-			}
-			c.RKey = rkey
-			return c, nil
-		},
-		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
-			m, uri, cid, err := s.FetchRecord(ctx, oolong.NSIDCafe, rkey)
-			if err != nil {
-				return nil, "", "", err
-			}
-			c, err := oolong.RecordToCafe(m, uri)
-			if err != nil {
-				return nil, "", "", err
-			}
-			c.RKey = rkey
-			return c, uri, cid, nil
-		},
-		displayName: func(record any) string { return record.(*oolong.Cafe).Name },
-		ogSubtitle:  func(record any) string { return record.(*oolong.Cafe).Name },
-		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			return teapages.CafeView(layoutData, teapages.CafeViewProps{
-				Cafe:           record.(*oolong.Cafe),
-				EntityViewBase: base,
-			}).Render(ctx, w)
-		},
-	}
-}
-
-func (h *Handler) oolongDrinkViewConfig() entityViewConfig {
-	return entityViewConfig{
-		descriptor: entities.Get(lexicons.RecordTypeOolongDrink),
-		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
-			d, err := oolong.RecordToDrink(m, uri)
-			if err != nil {
-				return nil, err
-			}
-			d.RKey = rkey
-			return d, nil
-		},
-		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
-			d, err := oolong.RecordToDrink(e.Value, e.URI)
-			if err != nil {
-				return nil, err
-			}
-			d.RKey = rkey
-			return d, nil
-		},
-		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
-			m, uri, cid, err := s.FetchRecord(ctx, oolong.NSIDDrink, rkey)
-			if err != nil {
-				return nil, "", "", err
-			}
-			d, err := oolong.RecordToDrink(m, uri)
-			if err != nil {
-				return nil, "", "", err
-			}
-			d.RKey = rkey
-			return d, uri, cid, nil
-		},
-		displayName: func(record any) string {
-			d := record.(*oolong.Drink)
-			if d.Name != "" {
-				return d.Name
-			}
-			if d.Tea != nil && d.Tea.Name != "" {
-				return d.Tea.Name
-			}
-			return "Tea Drink"
-		},
-		ogSubtitle: func(record any) string {
-			d := record.(*oolong.Drink)
-			if d.Name != "" {
-				return d.Name
-			}
-			return "Tea Drink"
-		},
-		render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			return teapages.DrinkView(layoutData, teapages.DrinkViewProps{
-				Drink:          record.(*oolong.Drink),
-				EntityViewBase: base,
-			}).Render(ctx, w)
-		},
-	}
-}
-
 // HTTP entry points.
 
 func (h *Handler) HandleTeaView(w http.ResponseWriter, r *http.Request) {
@@ -353,22 +251,14 @@ func (h *Handler) HandleOolongVendorView(w http.ResponseWriter, r *http.Request)
 	h.handleEntityView(w, r, h.oolongVendorViewConfig())
 }
 
-func (h *Handler) HandleOolongBrewerView(w http.ResponseWriter, r *http.Request) {
-	h.handleEntityView(w, r, h.oolongBrewerViewConfig())
+func (h *Handler) HandleOolongVesselView(w http.ResponseWriter, r *http.Request) {
+	h.handleEntityView(w, r, h.oolongVesselViewConfig())
 }
 
-func (h *Handler) HandleOolongRecipeView(w http.ResponseWriter, r *http.Request) {
-	h.handleEntityView(w, r, h.oolongRecipeViewConfig())
+func (h *Handler) HandleOolongInfuserView(w http.ResponseWriter, r *http.Request) {
+	h.handleEntityView(w, r, h.oolongInfuserViewConfig())
 }
 
 func (h *Handler) HandleOolongBrewView(w http.ResponseWriter, r *http.Request) {
 	h.handleEntityView(w, r, h.oolongBrewViewConfig())
-}
-
-func (h *Handler) HandleOolongCafeView(w http.ResponseWriter, r *http.Request) {
-	h.handleEntityView(w, r, h.oolongCafeViewConfig())
-}
-
-func (h *Handler) HandleOolongDrinkView(w http.ResponseWriter, r *http.Request) {
-	h.handleEntityView(w, r, h.oolongDrinkViewConfig())
 }

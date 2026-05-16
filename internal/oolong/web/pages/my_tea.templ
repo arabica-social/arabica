@@ -12,13 +12,11 @@ import (
 // entity types. Empty slices render as "no X yet" rather than being
 // hidden, so the create entry points stay discoverable.
 type MyTeaProps struct {
-	Teas    []*oolong.Tea
-	Vendors []*oolong.Vendor
-	Brewers []*oolong.Brewer
-	Recipes []*oolong.Recipe
-	Brews   []*oolong.Brew
-	Cafes   []*oolong.Cafe
-	Drinks  []*oolong.Drink
+	Teas     []*oolong.Tea
+	Vendors  []*oolong.Vendor
+	Vessels  []*oolong.Vessel
+	Infusers []*oolong.Infuser
+	Brews    []*oolong.Brew
 }
 
 templ MyTea(layout *components.LayoutData, props MyTeaProps) {
@@ -79,57 +77,29 @@ templ MyTeaContent(props MyTeaProps) {
 				</div>
 			}
 		</div>
-		<div x-show="tab === 'brewers'" x-cloak>
-			@myTeaSectionHeader("Brewers", "brewer", "/api/modals/brewer/new", len(props.Brewers))
-			if len(props.Brewers) == 0 {
-				@myTeaEmpty("brewers")
+		<div x-show="tab === 'vessels'" x-cloak>
+			@myTeaSectionHeader("Vessels", "vessel", "/api/modals/vessel/new", len(props.Vessels))
+			if len(props.Vessels) == 0 {
+				@myTeaEmpty("vessels")
 			} else {
 				<div class="feed-grid">
-					for _, b := range props.Brewers {
-						@myTeaCard("brewer", b.RKey, "/brewers/"+b.RKey) {
-							@tea.BrewerContent(b)
+					for _, v := range props.Vessels {
+						@myTeaCard("vessel", v.RKey, "/vessels/"+v.RKey) {
+							@tea.VesselContent(v)
 						}
 					}
 				</div>
 			}
 		</div>
-		<div x-show="tab === 'recipes'" x-cloak>
-			@myTeaSectionHeader("Recipes", "recipe", "/api/modals/recipe/new", len(props.Recipes))
-			if len(props.Recipes) == 0 {
-				@myTeaEmpty("recipes")
+		<div x-show="tab === 'infusers'" x-cloak>
+			@myTeaSectionHeader("Infusers", "infuser", "/api/modals/infuser/new", len(props.Infusers))
+			if len(props.Infusers) == 0 {
+				@myTeaEmpty("infusers")
 			} else {
 				<div class="feed-grid">
-					for _, r := range props.Recipes {
-						@myTeaCard("recipe", r.RKey, "/recipes/"+r.RKey) {
-							@tea.RecipeContent(r)
-						}
-					}
-				</div>
-			}
-		</div>
-		<div x-show="tab === 'cafes'" x-cloak>
-			@myTeaSectionHeader("Cafes", "cafe", "/api/modals/cafe/new", len(props.Cafes))
-			if len(props.Cafes) == 0 {
-				@myTeaEmpty("cafes")
-			} else {
-				<div class="feed-grid">
-					for _, c := range props.Cafes {
-						@myTeaCard("cafe", c.RKey, "/cafes/"+c.RKey) {
-							@tea.CafeContent(c)
-						}
-					}
-				</div>
-			}
-		</div>
-		<div x-show="tab === 'drinks'" x-cloak>
-			@myTeaSectionHeader("Drinks", "drink", "/api/modals/drink/new", len(props.Drinks))
-			if len(props.Drinks) == 0 {
-				@myTeaEmpty("drinks")
-			} else {
-				<div class="feed-grid">
-					for _, d := range props.Drinks {
-						@myTeaCard("drink", d.RKey, "/drinks/"+d.RKey) {
-							@tea.DrinkContent(d)
+					for _, i := range props.Infusers {
+						@myTeaCard("infuser", i.RKey, "/infusers/"+i.RKey) {
+							@tea.InfuserContent(i)
 						}
 					}
 				</div>
@@ -144,10 +114,8 @@ templ MyTeaTabs() {
 			@myTeaTab("steeps", "Steeps")
 			@myTeaTab("teas", "Teas")
 			@myTeaTab("vendors", "Vendors")
-			@myTeaTab("brewers", "Brewers")
-			@myTeaTab("recipes", "Recipes")
-			@myTeaTab("cafes", "Cafes")
-			@myTeaTab("drinks", "Drinks")
+			@myTeaTab("vessels", "Vessels")
+			@myTeaTab("infusers", "Infusers")
 		</nav>
 	</div>
 }
@@ -319,16 +287,12 @@ func myTeaURLPath(noun string) string {
 		return "teas"
 	case "vendor":
 		return "vendors"
-	case "brewer":
-		return "brewers"
-	case "recipe":
-		return "recipes"
+	case "vessel":
+		return "vessels"
+	case "infuser":
+		return "infusers"
 	case "brew":
 		return "brews"
-	case "cafe":
-		return "cafes"
-	case "drink":
-		return "drinks"
 	}
 	return noun + "s"
 }

@@ -21,10 +21,21 @@
             "knownValues": ["longSteep", "coldBrew"],
             "description": "Brewing style. Required. Canonical filterable axis."
           },
-          "brewerRef": {
+          "vesselRef": {
             "type": "string",
             "format": "at-uri",
             "description": "AT-URI to a social.oolong.alpha.brewer record"
+          },
+          "infusionMethod": {
+            "type": "string",
+            "maxLength": 50,
+            "knownValues": ["tea-bag", "loose-leaf", "infuser"],
+            "description": "How the leaf was contained during brewing"
+          },
+          "infuserRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI to a social.oolong.alpha.infuser record. Only meaningful when infusionMethod=infuser."
           },
           "temperature": {
             "type": "integer",

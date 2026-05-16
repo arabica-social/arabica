@@ -1,0 +1,15 @@
+---
+title: VesselToRecord/full vessel
+test_name: TestVesselRoundTrip
+file_name: records_vessel_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.vessel",
+  "capacityMl": 500,
+  "createdAt": "2026-05-10T12:00:00Z",
+  "description": "Built-in strainer, side handle",
+  "material": "glass",
+  "name": "500ml glass teapot",
+  "style": "teapot",
+}

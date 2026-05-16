@@ -31,72 +31,33 @@ var CategoryLabels = map[string]string{
 	CategoryOther:    "Other",
 }
 
-const (
-	ProcessingSteamed    = "steamed"
-	ProcessingPanFired   = "pan-fired"
-	ProcessingRolled     = "rolled"
-	ProcessingOxidized   = "oxidized"
-	ProcessingShaded     = "shaded"
-	ProcessingRoasted    = "roasted"
-	ProcessingAged       = "aged"
-	ProcessingFermented  = "fermented"
-	ProcessingCompressed = "compressed"
-	ProcessingScented    = "scented"
-	ProcessingSmoked     = "smoked"
-	ProcessingBlended    = "blended"
-	ProcessingFlavored   = "flavored"
-	ProcessingOther      = "other"
-)
-
-var ProcessingKnownValues = []string{
-	ProcessingSteamed, ProcessingPanFired, ProcessingRolled, ProcessingOxidized,
-	ProcessingShaded, ProcessingRoasted, ProcessingAged, ProcessingFermented,
-	ProcessingCompressed, ProcessingScented, ProcessingSmoked, ProcessingBlended,
-	ProcessingFlavored, ProcessingOther,
-}
-
-type ProcessingStep struct {
-	Step   string `json:"step"`
-	Detail string `json:"detail,omitempty"`
-}
-
 type Tea struct {
-	RKey        string           `json:"rkey"`
-	Name        string           `json:"name"`
-	Category    string           `json:"category"`
-	SubStyle    string           `json:"sub_style"`
-	Origin      string           `json:"origin"`
-	Cultivar    string           `json:"cultivar"`
-	CultivarRef string           `json:"cultivar_ref,omitempty"`
-	Farm        string           `json:"farm"`
-	FarmRef     string           `json:"farm_ref,omitempty"`
-	HarvestYear int              `json:"harvest_year,omitempty"`
-	Processing  []ProcessingStep `json:"processing,omitempty"`
-	Description string           `json:"description"`
-	VendorRKey  string           `json:"vendor_rkey,omitempty"`
-	Rating      *int             `json:"rating,omitempty"`
-	Closed      bool             `json:"closed"`
-	SourceRef   string           `json:"source_ref,omitempty"`
-	CreatedAt   time.Time        `json:"created_at"`
+	RKey        string    `json:"rkey"`
+	Name        string    `json:"name"`
+	Category    string    `json:"category"`
+	Origin      string    `json:"origin"`
+	HarvestYear int       `json:"harvest_year,omitempty"`
+	Description string    `json:"description"`
+	VendorRKey  string    `json:"vendor_rkey,omitempty"`
+	Rating      *int      `json:"rating,omitempty"`
+	Closed      bool      `json:"closed"`
+	SourceRef   string    `json:"source_ref,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
 
 	// Joined data for display
 	Vendor *Vendor `json:"vendor,omitempty"`
 }
 
 type CreateTeaRequest struct {
-	Name        string           `json:"name"`
-	Category    string           `json:"category"`
-	SubStyle    string           `json:"sub_style"`
-	Origin      string           `json:"origin"`
-	Cultivar    string           `json:"cultivar"`
-	Farm        string           `json:"farm"`
-	HarvestYear int              `json:"harvest_year,omitempty"`
-	Processing  []ProcessingStep `json:"processing,omitempty"`
-	Description string           `json:"description"`
-	VendorRKey  string           `json:"vendor_rkey,omitempty"`
-	Rating      *int             `json:"rating,omitempty"`
-	Closed      bool             `json:"closed"`
-	SourceRef   string           `json:"source_ref,omitempty"`
+	Name        string `json:"name"`
+	Category    string `json:"category"`
+	Origin      string `json:"origin"`
+	HarvestYear int    `json:"harvest_year,omitempty"`
+	Description string `json:"description"`
+	VendorRKey  string `json:"vendor_rkey,omitempty"`
+	Rating      *int   `json:"rating,omitempty"`
+	Closed      bool   `json:"closed"`
+	SourceRef   string `json:"source_ref,omitempty"`
 }
 
 type UpdateTeaRequest CreateTeaRequest
@@ -111,17 +72,7 @@ func (r *CreateTeaRequest) Validate() error {
 	if len(r.Category) > MaxCategoryLength {
 		return ErrFieldTooLong
 	}
-	// Note: category is an open enum — unknown values are preserved (mirrors arabica's pattern).
-	if len(r.SubStyle) > MaxSubStyleLength {
-		return ErrFieldTooLong
-	}
 	if len(r.Origin) > MaxOriginLength {
-		return ErrFieldTooLong
-	}
-	if len(r.Cultivar) > MaxCultivarLength {
-		return ErrFieldTooLong
-	}
-	if len(r.Farm) > MaxFarmLength {
 		return ErrFieldTooLong
 	}
 	if len(r.Description) > MaxDescriptionLength {
@@ -129,14 +80,6 @@ func (r *CreateTeaRequest) Validate() error {
 	}
 	if r.Rating != nil && (*r.Rating < 1 || *r.Rating > 10) {
 		return ErrRatingOutOfRange
-	}
-	for _, p := range r.Processing {
-		if len(p.Step) > MaxStepLength {
-			return ErrFieldTooLong
-		}
-		if len(p.Detail) > MaxStepDetailLength {
-			return ErrFieldTooLong
-		}
 	}
 	return nil
 }

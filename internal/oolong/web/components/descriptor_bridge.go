@@ -30,16 +30,17 @@ func init() {
 		}
 		d.FeedCardCompact = true
 	}
-	if d := entities.Get(lexicons.RecordTypeOolongBrewer); d != nil {
+	if d := entities.Get(lexicons.RecordTypeOolongVessel); d != nil {
 		d.RenderFeedContent = func(item any) templ.Component {
-			return BrewerFeedContent(item.(*feed.FeedItem))
+			return VesselFeedContent(item.(*feed.FeedItem))
 		}
 		d.FeedCardCompact = true
 	}
-	if d := entities.Get(lexicons.RecordTypeOolongRecipe); d != nil {
+	if d := entities.Get(lexicons.RecordTypeOolongInfuser); d != nil {
 		d.RenderFeedContent = func(item any) templ.Component {
-			return RecipeFeedContent(item.(*feed.FeedItem))
+			return InfuserFeedContent(item.(*feed.FeedItem))
 		}
+		d.FeedCardCompact = true
 	}
 	if d := entities.Get(lexicons.RecordTypeOolongBrew); d != nil {
 		d.RenderFeedContent = func(item any) templ.Component {
@@ -54,14 +55,6 @@ func init() {
 			return fmt.Sprintf("/brews/%s/edit", rkey)
 		}
 	}
-	if d := entities.Get(lexicons.RecordTypeOolongCafe); d != nil {
-		d.RenderFeedContent = func(item any) templ.Component {
-			return CafeFeedContent(item.(*feed.FeedItem))
-		}
-	}
-	if d := entities.Get(lexicons.RecordTypeOolongDrink); d != nil {
-		d.RenderFeedContent = func(item any) templ.Component {
-			return DrinkFeedContent(item.(*feed.FeedItem))
-		}
-	}
+	// Cafe and Drink hooks are wired but the descriptors aren't registered
+	// for v1, so the if-blocks no-op. Re-enable when those entities ship.
 }

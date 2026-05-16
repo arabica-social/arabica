@@ -43,22 +43,10 @@ templ TeaSummary(t *oolong.Tea) {
 				{ t.Category }
 			</span>
 		}
-		if t.SubStyle != "" {
-			<span class="inline-flex items-center gap-1">
-				@IconSprout()
-				{ t.SubStyle }
-			</span>
-		}
 		if t.HarvestYear > 0 {
 			<span class="inline-flex items-center gap-1">
 				@IconCalendar()
 				{ strconv.Itoa(t.HarvestYear) }
-			</span>
-		}
-		if t.Cultivar != "" {
-			<span class="inline-flex items-center gap-1">
-				@IconTag()
-				{ t.Cultivar }
 			</span>
 		}
 		if t.Rating != nil {

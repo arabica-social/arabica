@@ -249,10 +249,8 @@ func TestOolongLexicons(t *testing.T) {
 
 	teaURI := "at://did:plc:test/social.oolong.alpha.tea/tea123"
 	vendorURI := "at://did:plc:test/social.oolong.alpha.vendor/vendor123"
-	brewerURI := "at://did:plc:test/social.oolong.alpha.brewer/brewer123"
-	recipeURI := "at://did:plc:test/social.oolong.alpha.recipe/recipe123"
-	cafeURI := "at://did:plc:test/social.oolong.alpha.cafe/cafe123"
-	commentURI := "at://did:plc:test/social.oolong.alpha.comment/comment123"
+	vesselURI := "at://did:plc:test/social.oolong.alpha.vessel/vessel123"
+	infuserURI := "at://did:plc:test/social.oolong.alpha.infuser/infuser123"
 
 	var samples []sample
 
@@ -276,113 +274,70 @@ func TestOolongLexicons(t *testing.T) {
 		samples = append(samples, sample{"tea/minimal", oolong.NSIDTea, minimal})
 	}
 
-	// Brewer
+	// Vessel
 	{
-		minimal, err := oolong.BrewerToRecord(&oolong.Brewer{
-			Name:      "Gaiwan",
+		minimal, err := oolong.VesselToRecord(&oolong.Vessel{
+			Name:      "Glass teapot",
 			CreatedAt: createdAt,
 		})
 		require.NoError(t, err)
-		samples = append(samples, sample{"oolong-brewer/minimal", oolong.NSIDBrewer, minimal})
+		samples = append(samples, sample{"oolong-vessel/minimal", oolong.NSIDVessel, minimal})
 
-		full, err := oolong.BrewerToRecord(&oolong.Brewer{
-			Name:        "Gaiwan",
-			Style:       "gaiwan",
-			CapacityMl:  120,
-			Material:    "porcelain",
-			Description: "Standard 120ml gaiwan",
-			SourceRef:   brewerURI,
+		full, err := oolong.VesselToRecord(&oolong.Vessel{
+			Name:        "Glass teapot",
+			Style:       "teapot",
+			CapacityMl:  500,
+			Material:    "glass",
+			Description: "Standard 500ml glass teapot",
+			SourceRef:   vesselURI,
 			CreatedAt:   createdAt,
 		})
 		require.NoError(t, err)
-		samples = append(samples, sample{"oolong-brewer/full", oolong.NSIDBrewer, full})
+		samples = append(samples, sample{"oolong-vessel/full", oolong.NSIDVessel, full})
 	}
 
-	// Recipe
+	// Infuser
 	{
-		minimal, err := oolong.RecipeToRecord(&oolong.Recipe{
-			Name:      "Standard gongfu",
+		minimal, err := oolong.InfuserToRecord(&oolong.Infuser{
+			Name:      "Stainless basket",
 			CreatedAt: createdAt,
-		}, brewerURI, teaURI)
+		})
 		require.NoError(t, err)
-		samples = append(samples, sample{"oolong-recipe/minimal", oolong.NSIDRecipe, minimal})
+		samples = append(samples, sample{"oolong-infuser/minimal", oolong.NSIDInfuser, minimal})
+
+		full, err := oolong.InfuserToRecord(&oolong.Infuser{
+			Name:        "Stainless basket",
+			Style:       "basket",
+			Material:    "stainless steel",
+			Description: "Fine mesh basket",
+			CreatedAt:   createdAt,
+		})
+		require.NoError(t, err)
+		samples = append(samples, sample{"oolong-infuser/full", oolong.NSIDInfuser, full})
 	}
 
-	// Brew (Style is required by the converter; minimal still has it)
+	// Brew
 	{
 		minimal, err := oolong.BrewToRecord(&oolong.Brew{
-			Style:     oolong.StyleGongfu,
+			Style:     oolong.StyleLongSteep,
 			CreatedAt: createdAt,
 		}, teaURI, "", "")
 		require.NoError(t, err)
 		samples = append(samples, sample{"oolong-brew/minimal", oolong.NSIDBrew, minimal})
 
 		full, err := oolong.BrewToRecord(&oolong.Brew{
-			Style:        oolong.StyleGongfu,
-			Temperature:  95,
-			LeafGrams:    5,
-			VesselMl:     120,
-			TimeSeconds:  20,
-			TastingNotes: "Mineral, stone fruit",
-			Rating:       8,
-			CreatedAt:    createdAt,
-		}, teaURI, brewerURI, recipeURI)
+			Style:          oolong.StyleColdBrew,
+			InfusionMethod: oolong.InfusionMethodInfuser,
+			Temperature:    4,
+			LeafGrams:      10,
+			WaterAmount:    1000,
+			TimeSeconds:    43200,
+			TastingNotes:   "Smooth, low astringency",
+			Rating:         8,
+			CreatedAt:      createdAt,
+		}, teaURI, vesselURI, infuserURI)
 		require.NoError(t, err)
 		samples = append(samples, sample{"oolong-brew/full", oolong.NSIDBrew, full})
-	}
-
-	// Cafe
-	{
-		minimal, err := oolong.CafeToRecord(&oolong.Cafe{
-			Name:      "Floating Mountain",
-			CreatedAt: createdAt,
-		}, vendorURI)
-		require.NoError(t, err)
-		samples = append(samples, sample{"cafe/minimal", oolong.NSIDCafe, minimal})
-	}
-
-	// Drink
-	{
-		minimal, err := oolong.DrinkToRecord(&oolong.Drink{
-			Name:      "House Oolong",
-			CreatedAt: createdAt,
-		}, cafeURI, teaURI)
-		require.NoError(t, err)
-		samples = append(samples, sample{"drink/minimal", oolong.NSIDDrink, minimal})
-	}
-
-	// Like
-	{
-		like, err := oolong.LikeToRecord(&oolong.Like{
-			SubjectURI: teaURI,
-			SubjectCID: sampleCID,
-			CreatedAt:  createdAt,
-		})
-		require.NoError(t, err)
-		samples = append(samples, sample{"oolong-like/full", oolong.NSIDLike, like})
-	}
-
-	// Comment
-	{
-		minimal, err := oolong.CommentToRecord(&oolong.Comment{
-			SubjectURI: teaURI,
-			SubjectCID: sampleCID,
-			Text:       "Lovely roast",
-			CreatedAt:  createdAt,
-		})
-		require.NoError(t, err)
-		samples = append(samples, sample{"oolong-comment/minimal", oolong.NSIDComment, minimal})
-
-		full, err := oolong.CommentToRecord(&oolong.Comment{
-			SubjectURI: teaURI,
-			SubjectCID: sampleCID,
-			ParentURI:  commentURI,
-			ParentCID:  sampleCID,
-			Text:       "A reply",
-			CreatedAt:  createdAt,
-		})
-		require.NoError(t, err)
-		samples = append(samples, sample{"oolong-comment/full", oolong.NSIDComment, full})
 	}
 
 	runSamples(t, cat, samples)

@@ -36,18 +36,18 @@ func vendorRKey(v *oolong.Vendor) string {
 	return v.RKey
 }
 
-func teaBrewerRKey(b *oolong.Brewer) string {
-	if b == nil {
+func vesselRKey(v *oolong.Vessel) string {
+	if v == nil {
 		return ""
 	}
-	return b.RKey
+	return v.RKey
 }
 
-func teaRecipeRKey(r *oolong.Recipe) string {
-	if r == nil {
+func infuserRKey(i *oolong.Infuser) string {
+	if i == nil {
 		return ""
 	}
-	return r.RKey
+	return i.RKey
 }
 
 func teaBrewRKey(b *oolong.Brew) string {
@@ -137,30 +137,30 @@ func labelTea(t *oolong.Tea) string {
 	return name
 }
 
-func labelOolongBrewer(b *oolong.Brewer) string {
-	if b == nil {
+func labelOolongVessel(v *oolong.Vessel) string {
+	if v == nil {
 		return ""
 	}
-	name := b.Name
+	name := v.Name
 	if name == "" {
-		name = b.RKey
+		name = v.RKey
 	}
-	if b.Style != "" {
-		return name + " (" + b.Style + ")"
+	if v.Style != "" {
+		return name + " (" + v.Style + ")"
 	}
 	return name
 }
 
-func labelOolongRecipe(r *oolong.Recipe) string {
-	if r == nil {
+func labelOolongInfuser(i *oolong.Infuser) string {
+	if i == nil {
 		return ""
 	}
-	name := r.Name
+	name := i.Name
 	if name == "" {
-		name = r.RKey
+		name = i.RKey
 	}
-	if r.Style != "" {
-		return name + " (" + r.Style + ")"
+	if i.Style != "" {
+		return name + " (" + i.Style + ")"
 	}
 	return name
 }
@@ -196,56 +196,30 @@ func brewTea(b *oolong.Brew) *oolong.Tea {
 	return &oolong.Tea{RKey: b.TeaRKey}
 }
 
-func brewBrewer(b *oolong.Brew) *oolong.Brewer {
+func brewVessel(b *oolong.Brew) *oolong.Vessel {
 	if b == nil {
 		return nil
 	}
-	if b.BrewerObj != nil {
-		return b.BrewerObj
+	if b.Vessel != nil {
+		return b.Vessel
 	}
-	if b.BrewerRKey == "" {
+	if b.VesselRKey == "" {
 		return nil
 	}
-	return &oolong.Brewer{RKey: b.BrewerRKey}
+	return &oolong.Vessel{RKey: b.VesselRKey}
 }
 
-func brewRecipe(b *oolong.Brew) *oolong.Recipe {
+func brewInfuser(b *oolong.Brew) *oolong.Infuser {
 	if b == nil {
 		return nil
 	}
-	if b.RecipeObj != nil {
-		return b.RecipeObj
+	if b.Infuser != nil {
+		return b.Infuser
 	}
-	if b.RecipeRKey == "" {
+	if b.InfuserRKey == "" {
 		return nil
 	}
-	return &oolong.Recipe{RKey: b.RecipeRKey}
-}
-
-func recipeTea(r *oolong.Recipe) *oolong.Tea {
-	if r == nil {
-		return nil
-	}
-	if r.Tea != nil {
-		return r.Tea
-	}
-	if r.TeaRKey == "" {
-		return nil
-	}
-	return &oolong.Tea{RKey: r.TeaRKey}
-}
-
-func recipeBrewer(r *oolong.Recipe) *oolong.Brewer {
-	if r == nil {
-		return nil
-	}
-	if r.BrewerObj != nil {
-		return r.BrewerObj
-	}
-	if r.BrewerRKey == "" {
-		return nil
-	}
-	return &oolong.Brewer{RKey: r.BrewerRKey}
+	return &oolong.Infuser{RKey: b.InfuserRKey}
 }
 
 func cafeVendor(c *oolong.Cafe) *oolong.Vendor {
@@ -310,82 +284,59 @@ func vendorField(v *oolong.Vendor, fn func(*oolong.Vendor) string) string {
 	return fn(v)
 }
 
-// --- Brewer (teaware) ------------------------------------------------
-templ BrewerDialogModal(b *oolong.Brewer) {
+// --- Vessel ----------------------------------------------------------
+templ VesselDialogModal(v *oolong.Vessel) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongBrewer,
-		RKey: teaBrewerRKey(b),
+		Type: lexicons.RecordTypeOolongVessel,
+		RKey: vesselRKey(v),
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
-			<input type="text" name="name" placeholder="Name *" required class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Name }) }/>
-			<input type="text" name="style" placeholder="Style (e.g. teapot, infuser, matcha-bowl)" class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Style }) }/>
+			<input type="text" name="name" placeholder="Name *" required class="w-full form-input" value={ vesselField(v, func(v *oolong.Vessel) string { return v.Name }) }/>
+			<input type="text" name="style" placeholder="Style (e.g. teapot, mug, jar, matcha-bowl)" class="w-full form-input" value={ vesselField(v, func(v *oolong.Vessel) string { return v.Style }) }/>
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
-			<input type="number" name="capacity_ml" placeholder="Capacity (ml)" class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return intStrOrEmpty(b.CapacityMl) }) }/>
-			<input type="text" name="material" placeholder="Material (e.g. porcelain, clay, glass)" class="w-full form-input" value={ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Material }) }/>
-			<textarea name="description" placeholder="Notes" class="w-full form-input" rows="3">{ teaBrewerField(b, func(b *oolong.Brewer) string { return b.Description }) }</textarea>
+			<input type="number" name="capacity_ml" placeholder="Capacity (ml)" class="w-full form-input" value={ vesselField(v, func(v *oolong.Vessel) string { return intStrOrEmpty(v.CapacityMl) }) }/>
+			<input type="text" name="material" placeholder="Material (e.g. porcelain, clay, glass)" class="w-full form-input" value={ vesselField(v, func(v *oolong.Vessel) string { return v.Material }) }/>
+			<textarea name="description" placeholder="Notes" class="w-full form-input" rows="3">{ vesselField(v, func(v *oolong.Vessel) string { return v.Description }) }</textarea>
 		</div>
 	}
 }
 
-func teaBrewerField(b *oolong.Brewer, fn func(*oolong.Brewer) string) string {
-	if b == nil {
+func vesselField(v *oolong.Vessel, fn func(*oolong.Vessel) string) string {
+	if v == nil {
 		return ""
 	}
-	return fn(b)
+	return fn(v)
 }
 
-// --- Recipe ----------------------------------------------------------
-templ RecipeDialogModal(r *oolong.Recipe) {
+// --- Infuser ---------------------------------------------------------
+templ InfuserDialogModal(i *oolong.Infuser) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongRecipe,
-		RKey: teaRecipeRKey(r),
+		Type: lexicons.RecordTypeOolongInfuser,
+		RKey: infuserRKey(i),
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
-			<input type="text" name="name" placeholder="Recipe name *" required class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return r.Name }) }/>
-			<input type="text" name="style" placeholder="Style (e.g. gongfu, western)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return r.Style }) }/>
+			<input type="text" name="name" placeholder="Name *" required class="w-full form-input" value={ infuserField(i, func(i *oolong.Infuser) string { return i.Name }) }/>
+			<input type="text" name="style" placeholder="Style (basket, ball, sock, …)" class="w-full form-input" value={ infuserField(i, func(i *oolong.Infuser) string { return i.Style }) }/>
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
-			<div class="form-fieldset-label">References <span class="form-optional-hint">(optional)</span></div>
-			@comboSelectField(
-				"tea", "/api/teas", "/api/suggestions/teas", "tea_rkey",
-				"Search or create a tea…", "Tea", "Your teas",
-				teaRecipeField(r, func(r *oolong.Recipe) string { return r.TeaRKey }),
-				labelTea(recipeTea(r)), false,
-			)
-			@comboSelectField(
-				"oolongBrewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey",
-				"Search or create a brewer…", "Brewer", "Your brewers",
-				teaRecipeField(r, func(r *oolong.Recipe) string { return r.BrewerRKey }),
-				labelOolongBrewer(recipeBrewer(r)), false,
-			)
-		</div>
-		<div class="form-divider"></div>
-		<div class="form-fieldset">
-			<div class="form-fieldset-label">Parameters</div>
-			<input type="number" name="leaf_grams" step="0.1" placeholder="Leaf (g)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return floatStrOrEmpty(r.LeafGrams) }) }/>
-			<input type="number" name="vessel_ml" placeholder="Vessel (ml)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return intStrOrEmpty(r.VesselMl) }) }/>
-			<input type="number" name="temperature" step="0.1" placeholder="Temperature (°C)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return floatStrOrEmpty(r.Temperature) }) }/>
-			<input type="number" name="time_seconds" placeholder="Time (s)" class="w-full form-input" value={ teaRecipeField(r, func(r *oolong.Recipe) string { return intStrOrEmpty(r.TimeSeconds) }) }/>
-		</div>
-		<div class="form-divider"></div>
-		<div class="form-fieldset">
-			<div class="form-fieldset-label">Notes <span class="form-optional-hint">(optional)</span></div>
-			<textarea name="notes" placeholder="Notes" class="w-full form-input" rows="3">{ teaRecipeField(r, func(r *oolong.Recipe) string { return r.Notes }) }</textarea>
+			<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
+			<input type="text" name="material" placeholder="Material (e.g. stainless, silicone, cotton)" class="w-full form-input" value={ infuserField(i, func(i *oolong.Infuser) string { return i.Material }) }/>
+			<textarea name="description" placeholder="Notes" class="w-full form-input" rows="3">{ infuserField(i, func(i *oolong.Infuser) string { return i.Description }) }</textarea>
 		</div>
 	}
 }
 
-func teaRecipeField(r *oolong.Recipe, fn func(*oolong.Recipe) string) string {
-	if r == nil {
+func infuserField(i *oolong.Infuser, fn func(*oolong.Infuser) string) string {
+	if i == nil {
 		return ""
 	}
-	return fn(r)
+	return fn(i)
 }
 
 // --- Brew (steep) ----------------------------------------------------
@@ -408,17 +359,24 @@ templ BrewDialogModal(b *oolong.Brew) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">References <span class="form-optional-hint">(optional)</span></div>
 			@comboSelectField(
-				"oolongBrewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey",
-				"Search or create a brewer…", "Brewer", "Your brewers",
-				teaBrewField(b, func(b *oolong.Brew) string { return b.BrewerRKey }),
-				labelOolongBrewer(brewBrewer(b)), false,
+				"oolongVessel", "/api/vessels", "/api/suggestions/vessels", "vessel_rkey",
+				"Search or create a vessel…", "Vessel", "Your vessels",
+				teaBrewField(b, func(b *oolong.Brew) string { return b.VesselRKey }),
+				labelOolongVessel(brewVessel(b)), false,
+			)
+			<input type="text" name="infusion_method" placeholder="Infusion method (tea-bag, loose-leaf, infuser)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return b.InfusionMethod }) }/>
+			@comboSelectField(
+				"oolongInfuser", "/api/infusers", "/api/suggestions/infusers", "infuser_rkey",
+				"Search or create an infuser…", "Infuser", "Your infusers",
+				teaBrewField(b, func(b *oolong.Brew) string { return b.InfuserRKey }),
+				labelOolongInfuser(brewInfuser(b)), false,
 			)
 		</div>
 		<div class="form-divider"></div>
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Parameters</div>
 			<input type="number" name="leaf_grams" step="0.1" placeholder="Leaf (g)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return floatStrOrEmpty(b.LeafGrams) }) }/>
-			<input type="number" name="vessel_ml" placeholder="Water (g/ml)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.VesselMl) }) }/>
+			<input type="number" name="water_amount" placeholder="Water (g/ml)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.WaterAmount) }) }/>
 			<input type="number" name="temperature" step="0.1" placeholder="Temperature (°C)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return floatStrOrEmpty(b.Temperature) }) }/>
 			<input type="number" name="time_seconds" placeholder="Time (s)" class="w-full form-input" value={ teaBrewField(b, func(b *oolong.Brew) string { return intStrOrEmpty(b.TimeSeconds) }) }/>
 		</div>

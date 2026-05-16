@@ -11,34 +11,28 @@ import (
 // can stay free of oolong's NSID constants and dedup logic.
 func init() {
 	suggestions.Register(NSIDTea, suggestions.FieldConfig{
-		AllFields:    []string{"name", "category", "subStyle", "origin", "cultivar"},
-		SearchFields: []string{"name", "category", "origin", "cultivar"},
+		AllFields:    []string{"name", "category", "origin"},
+		SearchFields: []string{"name", "category", "origin"},
 		NameField:    "name",
 		DedupKey:     teaDedupKey,
 	})
-	suggestions.Register(NSIDBrewer, suggestions.FieldConfig{
+	suggestions.Register(NSIDVessel, suggestions.FieldConfig{
 		AllFields:    []string{"name", "style", "material"},
 		SearchFields: []string{"name", "style"},
 		NameField:    "name",
-		DedupKey:     teaBrewerDedupKey,
+		DedupKey:     vesselDedupKey,
 	})
-	suggestions.Register(NSIDRecipe, suggestions.FieldConfig{
-		AllFields:    []string{"name", "style"},
+	suggestions.Register(NSIDInfuser, suggestions.FieldConfig{
+		AllFields:    []string{"name", "style", "material"},
 		SearchFields: []string{"name", "style"},
 		NameField:    "name",
-		DedupKey:     teaRecipeDedupKey,
+		DedupKey:     infuserDedupKey,
 	})
 	suggestions.Register(NSIDVendor, suggestions.FieldConfig{
 		AllFields:    []string{"name", "location", "website"},
 		SearchFields: []string{"name", "location"},
 		NameField:    "name",
 		DedupKey:     vendorDedupKey,
-	})
-	suggestions.Register(NSIDCafe, suggestions.FieldConfig{
-		AllFields:    []string{"name", "location", "website"},
-		SearchFields: []string{"name", "location"},
-		NameField:    "name",
-		DedupKey:     teaCafeDedupKey,
 	})
 }
 
@@ -56,7 +50,7 @@ func teaDedupKey(fields map[string]string) string {
 	return strings.Join(parts, "|")
 }
 
-func teaBrewerDedupKey(fields map[string]string) string {
+func vesselDedupKey(fields map[string]string) string {
 	parts := []string{suggestions.Normalize(fields["name"])}
 	if s := suggestions.Normalize(fields["style"]); s != "" {
 		parts = append(parts, s)
@@ -64,7 +58,7 @@ func teaBrewerDedupKey(fields map[string]string) string {
 	return strings.Join(parts, "|")
 }
 
-func teaRecipeDedupKey(fields map[string]string) string {
+func infuserDedupKey(fields map[string]string) string {
 	parts := []string{suggestions.Normalize(fields["name"])}
 	if s := suggestions.Normalize(fields["style"]); s != "" {
 		parts = append(parts, s)
@@ -74,16 +68,6 @@ func teaRecipeDedupKey(fields map[string]string) string {
 
 func vendorDedupKey(fields map[string]string) string {
 	parts := []string{suggestions.FuzzyName(fields["name"])}
-	if loc := suggestions.Normalize(fields["location"]); loc != "" {
-		parts = append(parts, loc)
-	}
-	return strings.Join(parts, "|")
-}
-
-// teaCafeDedupKey: exact name + location (cafes are physical, two
-// branches of the same chain in different cities aren't dupes).
-func teaCafeDedupKey(fields map[string]string) string {
-	parts := []string{suggestions.Normalize(fields["name"])}
 	if loc := suggestions.Normalize(fields["location"]); loc != "" {
 		parts = append(parts, loc)
 	}

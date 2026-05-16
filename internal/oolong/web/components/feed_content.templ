@@ -44,18 +44,18 @@ templ VendorFeedContent(item *feed.FeedItem) {
 	}
 }
 
-templ BrewerFeedContent(item *feed.FeedItem) {
-	if b, ok := item.Record.(*oolong.Brewer); ok && b != nil {
+templ VesselFeedContent(item *feed.FeedItem) {
+	if v, ok := item.Record.(*oolong.Vessel); ok && v != nil {
 		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-			@BrewerContent(b)
+			@VesselContent(v)
 		</a>
 	}
 }
 
-templ RecipeFeedContent(item *feed.FeedItem) {
-	if r, ok := item.Record.(*oolong.Recipe); ok && r != nil {
+templ InfuserFeedContent(item *feed.FeedItem) {
+	if i, ok := item.Record.(*oolong.Infuser); ok && i != nil {
 		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-			@RecipeContent(r)
+			@InfuserContent(i)
 		</a>
 	}
 }
@@ -64,22 +64,6 @@ templ BrewFeedContent(item *feed.FeedItem) {
 	if b, ok := item.Record.(*oolong.Brew); ok && b != nil {
 		<a href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", feedActor(item), b.RKey)) } class="block hover:opacity-90 transition-opacity">
 			@BrewContent(b)
-		</a>
-	}
-}
-
-templ CafeFeedContent(item *feed.FeedItem) {
-	if c, ok := item.Record.(*oolong.Cafe); ok && c != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-			@CafeContent(c)
-		</a>
-	}
-}
-
-templ DrinkFeedContent(item *feed.FeedItem) {
-	if d, ok := item.Record.(*oolong.Drink); ok && d != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
-			@DrinkContent(d)
 		</a>
 	}
 }

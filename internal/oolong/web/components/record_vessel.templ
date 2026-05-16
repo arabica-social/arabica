@@ -7,35 +7,34 @@ import (
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 )
 
-// BrewerContent renders tea brewer details inside a card. Mirrors arabica's
-// BrewerContent.
-templ BrewerContent(b *oolong.Brewer) {
+// VesselContent renders vessel details inside a card.
+templ VesselContent(v *oolong.Vessel) {
 	<div class="feed-content-box-sm">
 		<div class="text-base mb-2">
-			<span class="font-bold text-primary">{ b.Name }</span>
+			<span class="font-bold text-primary">{ v.Name }</span>
 		</div>
 		<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
-			if b.Style != "" {
+			if v.Style != "" {
 				<span class="inline-flex items-center gap-1">
 					@IconTag()
-					{ b.Style }
+					{ v.Style }
 				</span>
 			}
-			if b.CapacityMl > 0 {
+			if v.CapacityMl > 0 {
 				<span class="inline-flex items-center gap-1">
 					@IconScale()
-					{ fmt.Sprintf("%d ml", b.CapacityMl) }
+					{ fmt.Sprintf("%d ml", v.CapacityMl) }
 				</span>
 			}
-			if b.Material != "" {
+			if v.Material != "" {
 				<span class="inline-flex items-center gap-1">
 					@IconDisc()
-					{ b.Material }
+					{ v.Material }
 				</span>
 			}
 		</div>
-		if b.Description != "" {
-			<div class="mt-2 text-sm text-secondary italic">"{ b.Description }"</div>
+		if v.Description != "" {
+			<div class="mt-2 text-sm text-secondary italic">"{ v.Description }"</div>
 		}
 	</div>
 }

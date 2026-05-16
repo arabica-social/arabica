@@ -59,55 +59,55 @@ func init() {
 		},
 	})
 	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongBrewer,
-		NSID:            NSIDBrewer,
-		DisplayName:     "Tea Brewer",
-		Noun:            "brewer",
-		URLPath:         "brewers",
-		FeedFilterLabel: "Brewers",
-		GetField:        brewerField,
+		Type:            lexicons.RecordTypeOolongVessel,
+		NSID:            NSIDVessel,
+		DisplayName:     "Vessel",
+		Noun:            "vessel",
+		URLPath:         "vessels",
+		FeedFilterLabel: "Vessels",
+		GetField:        vesselField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
-			return RecordToBrewer(rec, uri)
+			return RecordToVessel(rec, uri)
 		},
 		RKey: func(rec any) string {
-			b, _ := rec.(*Brewer)
-			if b == nil {
+			v, _ := rec.(*Vessel)
+			if v == nil {
 				return ""
 			}
-			return b.RKey
+			return v.RKey
 		},
 		DisplayTitle: func(rec any) string {
-			b, _ := rec.(*Brewer)
-			if b == nil {
+			v, _ := rec.(*Vessel)
+			if v == nil {
 				return ""
 			}
-			return b.Name
+			return v.Name
 		},
 	})
 	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongRecipe,
-		NSID:            NSIDRecipe,
-		DisplayName:     "Tea Recipe",
-		Noun:            "recipe",
-		URLPath:         "recipes",
-		FeedFilterLabel: "Recipes",
-		GetField:        recipeField,
+		Type:            lexicons.RecordTypeOolongInfuser,
+		NSID:            NSIDInfuser,
+		DisplayName:     "Infuser",
+		Noun:            "infuser",
+		URLPath:         "infusers",
+		FeedFilterLabel: "Infusers",
+		GetField:        infuserField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
-			return RecordToRecipe(rec, uri)
+			return RecordToInfuser(rec, uri)
 		},
 		RKey: func(rec any) string {
-			r, _ := rec.(*Recipe)
-			if r == nil {
+			i, _ := rec.(*Infuser)
+			if i == nil {
 				return ""
 			}
-			return r.RKey
+			return i.RKey
 		},
 		DisplayTitle: func(rec any) string {
-			r, _ := rec.(*Recipe)
-			if r == nil {
+			i, _ := rec.(*Infuser)
+			if i == nil {
 				return ""
 			}
-			return r.Name
+			return i.Name
 		},
 	})
 	entities.Register(&entities.Descriptor{
@@ -140,63 +140,15 @@ func init() {
 			return "Tea Brew"
 		},
 	})
-	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongCafe,
-		NSID:            NSIDCafe,
-		DisplayName:     "Tea Cafe",
-		Noun:            "cafe",
-		URLPath:         "cafes",
-		FeedFilterLabel: "Cafes",
-		GetField:        cafeField,
-		RecordToModel: func(rec map[string]any, uri string) (any, error) {
-			return RecordToCafe(rec, uri)
-		},
-		RKey: func(rec any) string {
-			c, _ := rec.(*Cafe)
-			if c == nil {
-				return ""
-			}
-			return c.RKey
-		},
-		DisplayTitle: func(rec any) string {
-			c, _ := rec.(*Cafe)
-			if c == nil {
-				return ""
-			}
-			return c.Name
-		},
-	})
-	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongDrink,
-		NSID:            NSIDDrink,
-		DisplayName:     "Tea Drink",
-		Noun:            "drink",
-		URLPath:         "drinks",
-		FeedFilterLabel: "Drinks",
-		GetField:        drinkField,
-		RecordToModel: func(rec map[string]any, uri string) (any, error) {
-			return RecordToDrink(rec, uri)
-		},
-		RKey: func(rec any) string {
-			d, _ := rec.(*Drink)
-			if d == nil {
-				return ""
-			}
-			return d.RKey
-		},
-		DisplayTitle: func(rec any) string {
-			d, _ := rec.(*Drink)
-			if d == nil {
-				return ""
-			}
-			if d.Name != "" {
-				return d.Name
-			}
-			return "Tea Drink"
-		},
-	})
+
+	// Cafe and Drink are deferred for the v1 launch. Their models and
+	// record conversions remain in tree but are intentionally not
+	// registered as descriptors, so they don't appear in the oolong
+	// feed, manage UI, or OAuth scopes. Re-enable when the cafe/drink
+	// experience is ready to ship.
+
 	// Comment and Like are intentionally NOT registered.
 	// App.NSIDs() in internal/atplatform/domain/app.go appends them
-	// unconditionally — registering them as descriptors would produce
-	// duplicates. Same convention as internal/entities/arabica/register.go.
+	// unconditionally using SocialNSIDBase. Registering them as
+	// descriptors would produce duplicates.
 }

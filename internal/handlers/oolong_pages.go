@@ -31,13 +31,11 @@ func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 	}
 
 	props := teapages.MyTeaProps{
-		Teas:    listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
-		Vendors: listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
-		Brewers: listOolong(r.Context(), store, oolong.NSIDBrewer, oolong.RecordToBrewer),
-		Recipes: listOolong(r.Context(), store, oolong.NSIDRecipe, oolong.RecordToRecipe),
-		Brews:   listOolong(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew),
-		Cafes:   listOolong(r.Context(), store, oolong.NSIDCafe, oolong.RecordToCafe),
-		Drinks:  listOolong(r.Context(), store, oolong.NSIDDrink, oolong.RecordToDrink),
+		Teas:     listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Vendors:  listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
+		Vessels:  listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
+		Infusers: listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
+		Brews:    listOolong(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew),
 	}
 
 	layoutData, _, _ := h.layoutDataFromRequest(r, "My Tea")
@@ -119,9 +117,10 @@ func (h *Handler) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	props := teapages.SteepFormProps{
-		Brew:    nil,
-		Teas:    listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
-		Brewers: listOolong(r.Context(), store, oolong.NSIDBrewer, oolong.RecordToBrewer),
+		Brew:     nil,
+		Teas:     listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Vessels:  listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
+		Infusers: listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "New Steep")
 	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
@@ -151,9 +150,10 @@ func (h *Handler) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) 
 	}
 	b.RKey = rkey
 	props := teapages.SteepFormProps{
-		Brew:    b,
-		Teas:    listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
-		Brewers: listOolong(r.Context(), store, oolong.NSIDBrewer, oolong.RecordToBrewer),
+		Brew:     b,
+		Teas:     listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Vessels:  listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
+		Infusers: listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Steep")
 	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
@@ -229,16 +229,14 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	brews := listOolongPublic(ctx, publicClient, did, oolong.NSIDBrew, oolong.RecordToBrew)
 	teas := listOolongPublic(ctx, publicClient, did, oolong.NSIDTea, oolong.RecordToTea)
 	vendors := listOolongPublic(ctx, publicClient, did, oolong.NSIDVendor, oolong.RecordToVendor)
-	brewers := listOolongPublic(ctx, publicClient, did, oolong.NSIDBrewer, oolong.RecordToBrewer)
-	recipes := listOolongPublic(ctx, publicClient, did, oolong.NSIDRecipe, oolong.RecordToRecipe)
-	cafes := listOolongPublic(ctx, publicClient, did, oolong.NSIDCafe, oolong.RecordToCafe)
-	drinks := listOolongPublic(ctx, publicClient, did, oolong.NSIDDrink, oolong.RecordToDrink)
+	vessels := listOolongPublic(ctx, publicClient, did, oolong.NSIDVessel, oolong.RecordToVessel)
+	infusers := listOolongPublic(ctx, publicClient, did, oolong.NSIDInfuser, oolong.RecordToInfuser)
 
 	_, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Profile")
 	isOwn := isAuthenticated && didStr == did
 
 	if len(brews) == 0 && len(teas) == 0 && len(vendors) == 0 &&
-		len(brewers) == 0 && len(recipes) == 0 && len(cafes) == 0 && len(drinks) == 0 &&
+		len(vessels) == 0 && len(infusers) == 0 &&
 		!h.feedRegistry.IsRegistered(did) {
 		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
 		w.WriteHeader(http.StatusNotFound)
@@ -261,10 +259,8 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 		Brews:        brews,
 		Teas:         teas,
 		Vendors:      vendors,
-		Brewers:      brewers,
-		Recipes:      recipes,
-		Cafes:        cafes,
-		Drinks:       drinks,
+		Vessels:      vessels,
+		Infusers:     infusers,
 	}
 	if err := teapages.Profile(layoutData, props).Render(ctx, w); err != nil {
 		log.Error().Err(err).Msg("Failed to render oolong profile page")

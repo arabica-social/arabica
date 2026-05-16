@@ -13,15 +13,13 @@ func TestOolongApp_NSIDs(t *testing.T) {
 	sort.Strings(got)
 
 	want := []string{
+		"social.arabica.alpha.comment",
+		"social.arabica.alpha.like",
 		"social.oolong.alpha.brew",
-		"social.oolong.alpha.brewer",
-		"social.oolong.alpha.cafe",
-		"social.oolong.alpha.comment",
-		"social.oolong.alpha.drink",
-		"social.oolong.alpha.like",
-		"social.oolong.alpha.recipe",
+		"social.oolong.alpha.infuser",
 		"social.oolong.alpha.tea",
 		"social.oolong.alpha.vendor",
+		"social.oolong.alpha.vessel",
 	}
 	sort.Strings(want)
 
@@ -35,15 +33,13 @@ func TestOolongApp_OAuthScopes(t *testing.T) {
 
 	want := []string{
 		"atproto",
+		"repo:social.arabica.alpha.comment",
+		"repo:social.arabica.alpha.like",
 		"repo:social.oolong.alpha.brew",
-		"repo:social.oolong.alpha.brewer",
-		"repo:social.oolong.alpha.cafe",
-		"repo:social.oolong.alpha.comment",
-		"repo:social.oolong.alpha.drink",
-		"repo:social.oolong.alpha.like",
-		"repo:social.oolong.alpha.recipe",
+		"repo:social.oolong.alpha.infuser",
 		"repo:social.oolong.alpha.tea",
 		"repo:social.oolong.alpha.vendor",
+		"repo:social.oolong.alpha.vessel",
 	}
 	sort.Strings(want)
 

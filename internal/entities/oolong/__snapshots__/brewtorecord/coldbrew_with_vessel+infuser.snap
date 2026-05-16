@@ -1,0 +1,21 @@
+---
+title: BrewToRecord/coldBrew with vessel+infuser
+test_name: TestBrewToRecord_ColdBrew
+file_name: records_brew_test.go
+version: 0.1.0
+---
+map[string]interface{}{
+  "$type": "social.oolong.alpha.brew",
+  "createdAt": "2026-05-10T12:00:00Z",
+  "infuserRef": "at://did:plc:test/social.oolong.alpha.infuser/i1",
+  "infusionMethod": "infuser",
+  "leafGrams": 100,
+  "rating": 8,
+  "style": "coldBrew",
+  "tastingNotes": "Smooth, low astringency",
+  "teaRef": "at://did:plc:test/social.oolong.alpha.tea/t1",
+  "temperature": 40,
+  "timeSeconds": 43200,
+  "vesselRef": "at://did:plc:test/social.oolong.alpha.vessel/v1",
+  "waterAmount": 1000,
+}

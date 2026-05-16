@@ -7,18 +7,15 @@ var (
 	// Categories are the broad tea classifications.
 	Categories = CategoryKnownValues
 
-	// BrewerStyles are vessel styles (gaiwan, kyusu, ...).
-	BrewerStyles = BrewerStyleKnownValues
+	// VesselStyles are vessel form-factors (teapot, mug, jar, ...).
+	VesselStyles = VesselStyleKnownValues
 
-	// BrewStyles are the four brewing styles (gongfu, matcha, longSteep, milkTea).
+	// InfuserStyles are infuser form-factors (basket, ball, sock, ...).
+	InfuserStyles = InfuserStyleKnownValues
+
+	// BrewStyles are the brewing styles in scope for v1 (longSteep, coldBrew).
 	BrewStyles = StyleKnownValues
 
-	// MatchaPreparations enumerate matcha prep variants.
-	MatchaPreparations = MatchaPreparationKnownValues
-
-	// IngredientUnits are units of measure for milk-tea ingredients.
-	IngredientUnits = IngredientUnitKnownValues
-
-	// ProcessingSteps are tea processing chain steps.
-	ProcessingSteps = ProcessingKnownValues
+	// InfusionMethods enumerate how the leaf was contained in a brew.
+	InfusionMethods = InfusionMethodKnownValues
 )

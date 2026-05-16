@@ -283,7 +283,8 @@ templ arabicaCreateDropdownItems() {
 }
 
 // oolongCreateDropdownItems renders the "+" menu entries for the tea
-// app: open the steep/tea/vendor/brewer/recipe/cafe/drink modals.
+// app: open the steep/tea/vendor/vessel/infuser modals. Cafe, drink,
+// and recipe entries are deferred for v1.
 templ oolongCreateDropdownItems() {
 	<div class="dropdown-header">
 		<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
@@ -292,10 +293,6 @@ templ oolongCreateDropdownItems() {
 		@IconDroplet()
 		New Steep
 	</a>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/drink/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
-		@IconCoffee()
-		Log Drink
-	</button>
 	<div class="dropdown-divider">
 		<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
 	</div>
@@ -307,16 +304,12 @@ templ oolongCreateDropdownItems() {
 		@IconStore()
 		Vendor
 	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/brewer/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vessel/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
 		@IconBrewer()
-		Brewer
+		Vessel
 	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/recipe/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
-		@IconFileText()
-		Recipe
-	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/cafe/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
-		@IconMapPin()
-		Cafe
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/infuser/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+		@IconDisc()
+		Infuser
 	</button>
 }

@@ -40,13 +40,15 @@ var FeedableRecordTypes = map[lexicons.RecordType]bool{
 	lexicons.RecordTypeBrewer:  true,
 	lexicons.RecordTypeRecipe:  true,
 
-	lexicons.RecordTypeOolongTea:    true,
-	lexicons.RecordTypeOolongBrew:   true,
-	lexicons.RecordTypeOolongBrewer: true,
-	lexicons.RecordTypeOolongRecipe: true,
-	lexicons.RecordTypeOolongVendor: true,
-	lexicons.RecordTypeOolongCafe:   true,
-	lexicons.RecordTypeOolongDrink:  true,
+	lexicons.RecordTypeOolongTea:     true,
+	lexicons.RecordTypeOolongBrew:    true,
+	lexicons.RecordTypeOolongVessel:  true,
+	lexicons.RecordTypeOolongInfuser: true,
+	lexicons.RecordTypeOolongVendor:  true,
+	// Cafe and Drink are deferred for the v1 oolong launch; once their
+	// UI ships, flip these back to true.
+	// lexicons.RecordTypeOolongCafe:   true,
+	// lexicons.RecordTypeOolongDrink:  true,
 }
 
 // IndexedRecord represents a record stored in the index

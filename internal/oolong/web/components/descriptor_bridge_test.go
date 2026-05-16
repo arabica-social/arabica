@@ -13,11 +13,9 @@ func TestOolongDescriptorBridge_AllEntitiesHaveFeedRenderer(t *testing.T) {
 	want := []lexicons.RecordType{
 		lexicons.RecordTypeOolongTea,
 		lexicons.RecordTypeOolongVendor,
-		lexicons.RecordTypeOolongBrewer,
-		lexicons.RecordTypeOolongRecipe,
+		lexicons.RecordTypeOolongVessel,
+		lexicons.RecordTypeOolongInfuser,
 		lexicons.RecordTypeOolongBrew,
-		lexicons.RecordTypeOolongCafe,
-		lexicons.RecordTypeOolongDrink,
 	}
 	for _, rt := range want {
 		d := entities.Get(rt)
@@ -40,7 +38,8 @@ func TestOolongDescriptorBridge_BrewHasEditURL(t *testing.T) {
 func TestOolongDescriptorBridge_CompactEntities(t *testing.T) {
 	for _, rt := range []lexicons.RecordType{
 		lexicons.RecordTypeOolongVendor,
-		lexicons.RecordTypeOolongBrewer,
+		lexicons.RecordTypeOolongVessel,
+		lexicons.RecordTypeOolongInfuser,
 	} {
 		d := entities.Get(rt)
 		assert.NotNil(t, d)
@@ -54,10 +53,7 @@ func TestOolongDescriptorBridge_CompactEntities(t *testing.T) {
 func TestOolongDescriptorBridge_NonCompactEntities(t *testing.T) {
 	for _, rt := range []lexicons.RecordType{
 		lexicons.RecordTypeOolongTea,
-		lexicons.RecordTypeOolongRecipe,
 		lexicons.RecordTypeOolongBrew,
-		lexicons.RecordTypeOolongCafe,
-		lexicons.RecordTypeOolongDrink,
 	} {
 		d := entities.Get(rt)
 		assert.NotNil(t, d)

@@ -8,34 +8,34 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
-type RecipeViewProps struct {
-	Recipe *oolong.Recipe
+type InfuserViewProps struct {
+	Infuser *oolong.Infuser
 	pages.EntityViewBase
 }
 
-templ RecipeView(layout *components.LayoutData, props RecipeViewProps) {
-	@components.Layout(layout, RecipeViewContent(props))
+templ InfuserView(layout *components.LayoutData, props InfuserViewProps) {
+	@components.Layout(layout, InfuserViewContent(props))
 }
 
-templ RecipeViewContent(props RecipeViewProps) {
+templ InfuserViewContent(props InfuserViewProps) {
 	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, RecipeViewCard(props))
+		@components.Card(components.CardProps{InnerCard: true}, InfuserViewCard(props))
 	</div>
 }
 
-templ RecipeViewCard(props RecipeViewProps) {
+templ InfuserViewCard(props InfuserViewProps) {
 	@components.RecordViewHeader(components.RecordViewHeaderProps{
-		RecordType:    "recipe",
+		RecordType:    "infuser",
 		Title:         "",
-		Timestamp:     props.Recipe.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
-		TimestampISO:  bff.FormatISO(props.Recipe.CreatedAt),
+		Timestamp:     props.Infuser.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		TimestampISO:  bff.FormatISO(props.Infuser.CreatedAt),
 		AuthorDID:     props.AuthorDID,
 		AuthorHandle:  props.AuthorHandle,
 		AuthorDisplay: props.AuthorDisplayName,
 		AuthorAvatar:  props.AuthorAvatar,
 	})
 	<div class="p-4">
-		@tea.RecipeContent(props.Recipe)
+		@tea.InfuserContent(props.Infuser)
 	</div>
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">
@@ -50,10 +50,10 @@ templ RecipeViewCard(props RecipeViewProps) {
 				CommentCount:    props.CommentCount,
 				ShowComments:    true,
 				ShareURL:        props.ShareURL,
-				ShareTitle:      props.Recipe.Name,
-				ShareText:       "Check out this tea recipe",
+				ShareTitle:      props.Infuser.Name,
+				ShareText:       "Check out this tea infuser",
 				IsOwner:         props.IsOwnProfile,
-				DeleteURL:       "/api/recipes/" + props.Recipe.RKey,
+				DeleteURL:       "/api/infusers/" + props.Infuser.RKey,
 				IsAuthenticated: props.IsAuthenticated,
 				IsModerator:     props.IsModerator,
 				CanHideRecord:   props.CanHideRecord,
