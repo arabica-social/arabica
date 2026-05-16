@@ -1,210 +1,161 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
-
+	"github.com/a-h/templ"
 	"github.com/rs/zerolog/log"
+
+	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/database"
+	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
 
-// Modal dialog handlers for entity management
+// Modal dialog handlers for entity management.
+//
+// The simple entities (Grinder, Brewer, Roaster) share a one-step
+// fetch-then-render flow, factored into arabicaModalNew/Edit below.
+// Bean is bespoke because its modal needs the roaster list for the
+// select dropdown.
 
-// HandleBeanModalNew renders a new bean modal dialog
-func (h *Handler) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
+// arabicaModalNew renders an empty (create-mode) modal after asserting
+// the caller is authenticated.
+func (h *Handler) arabicaModalNew(w http.ResponseWriter, r *http.Request, name string, render func() templ.Component) {
+	if _, authenticated := h.getAtprotoStore(r); !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+	if err := render().Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Failed to render %s modal", name)
+	}
+}
+
+// arabicaModalEdit fetches a record by rkey via fetch and renders the
+// pre-filled edit modal.
+func arabicaModalEdit[Model any](
+	h *Handler,
+	w http.ResponseWriter,
+	r *http.Request,
+	name string,
+	fetch func(context.Context, database.Store, string) (*Model, error),
+	render func(*Model) templ.Component,
+) {
+	rkey := validateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
 	store, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-
-	// Fetch roasters for the select dropdown
-	roasters, err := store.ListRoasters(r.Context())
+	m, err := fetch(r.Context(), store, rkey)
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to fetch roasters for bean modal")
-		roasters = []*arabica.Roaster{} // Empty list on error
+		http.Error(w, name+" not found", http.StatusNotFound)
+		log.Error().Err(err).Str("rkey", rkey).Msgf("Failed to get %s for modal", name)
+		return
 	}
-
-	// Convert to slice for template
-	roastersSlice := make([]arabica.Roaster, len(roasters))
-	for i, r := range roasters {
-		roastersSlice[i] = *r
+	if err := render(m).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Failed to render %s modal", name)
 	}
+}
 
-	if err := coffee.BeanDialogModal(nil, roastersSlice).Render(r.Context(), w); err != nil {
+// --- Bean ------------------------------------------------------------
+//
+// Bean is bespoke because the modal needs the roaster list for the
+// select dropdown.
+
+func (h *Handler) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.getAtprotoStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+	if err := coffee.BeanDialogModal(nil, beanModalRoasters(r.Context(), store)).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render bean modal")
 	}
 }
 
-// HandleBeanModalEdit renders an edit bean modal dialog
 func (h *Handler) HandleBeanModalEdit(w http.ResponseWriter, r *http.Request) {
 	rkey := validateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
-
-	// Require authentication
 	store, authenticated := h.getAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-
-	// Fetch the bean
 	bean, err := store.GetBeanByRKey(r.Context(), rkey)
 	if err != nil {
 		http.Error(w, "Bean not found", http.StatusNotFound)
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get bean for modal")
 		return
 	}
-
-	// Fetch roasters for the select dropdown
-	roasters, err := store.ListRoasters(r.Context())
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to fetch roasters for bean modal")
-		roasters = []*arabica.Roaster{}
-	}
-
-	// Convert to slice for template
-	roastersSlice := make([]arabica.Roaster, len(roasters))
-	for i, r := range roasters {
-		roastersSlice[i] = *r
-	}
-
-	if err := coffee.BeanDialogModal(bean, roastersSlice).Render(r.Context(), w); err != nil {
+	if err := coffee.BeanDialogModal(bean, beanModalRoasters(r.Context(), store)).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render bean modal")
 	}
 }
 
-// HandleGrinderModalNew renders a new grinder modal dialog
+func beanModalRoasters(ctx context.Context, store database.Store) []arabica.Roaster {
+	roasters, err := store.ListRoasters(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to fetch roasters for bean modal")
+		return []arabica.Roaster{}
+	}
+	out := make([]arabica.Roaster, len(roasters))
+	for i, r := range roasters {
+		out[i] = *r
+	}
+	return out
+}
+
+// --- Grinder ---------------------------------------------------------
+
 func (h *Handler) HandleGrinderModalNew(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	_, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	if err := coffee.GrinderDialogModal(nil).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render grinder modal")
-	}
+	h.arabicaModalNew(w, r, "grinder", func() templ.Component { return coffee.GrinderDialogModal(nil) })
 }
 
-// HandleGrinderModalEdit renders an edit grinder modal dialog
 func (h *Handler) HandleGrinderModalEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	// Fetch the grinder
-	grinder, err := store.GetGrinderByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Grinder not found", http.StatusNotFound)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get grinder for modal")
-		return
-	}
-
-	if err := coffee.GrinderDialogModal(grinder).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render grinder modal")
-	}
+	arabicaModalEdit(h, w, r, "grinder",
+		func(ctx context.Context, s database.Store, rkey string) (*arabica.Grinder, error) {
+			return s.GetGrinderByRKey(ctx, rkey)
+		},
+		func(g *arabica.Grinder) templ.Component { return coffee.GrinderDialogModal(g) },
+	)
 }
 
-// HandleBrewerModalNew renders a new brewer modal dialog
+// --- Brewer ----------------------------------------------------------
+
 func (h *Handler) HandleBrewerModalNew(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	_, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	if err := coffee.BrewerDialogModal(nil).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brewer modal")
-	}
+	h.arabicaModalNew(w, r, "brewer", func() templ.Component { return coffee.BrewerDialogModal(nil) })
 }
 
-// HandleBrewerModalEdit renders an edit brewer modal dialog
 func (h *Handler) HandleBrewerModalEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	// Fetch the brewer
-	brewer, err := store.GetBrewerByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Brewer not found", http.StatusNotFound)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brewer for modal")
-		return
-	}
-
-	if err := coffee.BrewerDialogModal(brewer).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brewer modal")
-	}
+	arabicaModalEdit(h, w, r, "brewer",
+		func(ctx context.Context, s database.Store, rkey string) (*arabica.Brewer, error) {
+			return s.GetBrewerByRKey(ctx, rkey)
+		},
+		func(b *arabica.Brewer) templ.Component { return coffee.BrewerDialogModal(b) },
+	)
 }
 
-// HandleRoasterModalNew renders a new roaster modal dialog
+// --- Roaster ---------------------------------------------------------
+
 func (h *Handler) HandleRoasterModalNew(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	_, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	if err := coffee.RoasterDialogModal(nil).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render roaster modal")
-	}
+	h.arabicaModalNew(w, r, "roaster", func() templ.Component { return coffee.RoasterDialogModal(nil) })
 }
 
-// HandleRoasterModalEdit renders an edit roaster modal dialog
 func (h *Handler) HandleRoasterModalEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	// Fetch the roaster
-	roaster, err := store.GetRoasterByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Roaster not found", http.StatusNotFound)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get roaster for modal")
-		return
-	}
-
-	if err := coffee.RoasterDialogModal(roaster).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render roaster modal")
-	}
+	arabicaModalEdit(h, w, r, "roaster",
+		func(ctx context.Context, s database.Store, rkey string) (*arabica.Roaster, error) {
+			return s.GetRoasterByRKey(ctx, rkey)
+		},
+		func(r *arabica.Roaster) templ.Component { return coffee.RoasterDialogModal(r) },
+	)
 }

@@ -158,78 +158,53 @@ func teaFromCreateRequest(req *oolong.CreateTeaRequest) *oolong.Tea {
 
 // --- Vendor ----------------------------------------------------------
 
+func vendorFromCreate(req *oolong.CreateVendorRequest) *oolong.Vendor {
+	return &oolong.Vendor{
+		Name: req.Name, Location: req.Location, Website: req.Website,
+		Description: req.Description, SourceRef: req.SourceRef,
+		CreatedAt: time.Now(),
+	}
+}
+
+func vendorFromUpdate(req *oolong.UpdateVendorRequest) *oolong.Vendor {
+	return &oolong.Vendor{
+		Name: req.Name, Location: req.Location, Website: req.Website,
+		Description: req.Description, SourceRef: req.SourceRef,
+		CreatedAt: time.Now(),
+	}
+}
+
+func setVendorRKey(v *oolong.Vendor, rkey string) { v.RKey = rkey }
+
+func encodeVendor(_ *atproto.AtprotoStore, _ *oolong.CreateVendorRequest, m *oolong.Vendor) (map[string]any, error) {
+	return oolong.VendorToRecord(m)
+}
+
+func encodeVendorUpdate(_ *atproto.AtprotoStore, _ *oolong.UpdateVendorRequest, m *oolong.Vendor) (map[string]any, error) {
+	return oolong.VendorToRecord(m)
+}
+
 func (h *Handler) HandleOolongVendorCreate(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	var req oolong.CreateVendorRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := req.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	v := &oolong.Vendor{
-		Name:        req.Name,
-		Location:    req.Location,
-		Website:     req.Website,
-		Description: req.Description,
-		SourceRef:   req.SourceRef,
-		CreatedAt:   time.Now(),
-	}
-	rkey, err := putOolongRecord(r.Context(), store, oolong.NSIDVendor, "", func(*atproto.AtprotoStore) (map[string]any, error) {
-		return oolong.VendorToRecord(v)
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create vendor")
-		handleStoreError(w, err, "Failed to create vendor")
-		return
-	}
-	v.RKey = rkey
-	h.invalidateFeedCache()
-	writeJSON(w, v, "vendor")
+	oolongCRUDWrite[oolong.CreateVendorRequest, *oolong.CreateVendorRequest, oolong.Vendor](
+		h, w, r, oolong.NSIDVendor, "vendor", "",
+		vendorFromCreate, setVendorRKey, encodeVendor, false,
+	)
 }
 
 func (h *Handler) HandleOolongVendorUpdate(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := updateRKey(w, r)
 	if rkey == "" {
 		return
 	}
-	var req oolong.UpdateVendorRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	createReq := oolong.CreateVendorRequest{
-		Name: req.Name, Location: req.Location, Website: req.Website,
-		Description: req.Description, SourceRef: req.SourceRef,
-	}
-	if err := createReq.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	v := &oolong.Vendor{
-		RKey: rkey,
-		Name: createReq.Name, Location: createReq.Location, Website: createReq.Website,
-		Description: createReq.Description, SourceRef: createReq.SourceRef,
-		CreatedAt: time.Now(),
-	}
-	if _, err := putOolongRecord(r.Context(), store, oolong.NSIDVendor, rkey, func(*atproto.AtprotoStore) (map[string]any, error) {
-		return oolong.VendorToRecord(v)
-	}); err != nil {
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update vendor")
-		handleStoreError(w, err, "Failed to update vendor")
-		return
-	}
-	h.invalidateFeedCache()
-	writeJSON(w, v, "vendor")
+	oolongCRUDWrite[oolong.UpdateVendorRequest, *oolong.UpdateVendorRequest, oolong.Vendor](
+		h, w, r, oolong.NSIDVendor, "vendor", rkey,
+		func(req *oolong.UpdateVendorRequest) *oolong.Vendor {
+			m := vendorFromUpdate(req)
+			m.RKey = rkey
+			return m
+		},
+		setVendorRKey, encodeVendorUpdate, false,
+	)
 }
 
 func (h *Handler) HandleOolongVendorDelete(w http.ResponseWriter, r *http.Request) {
@@ -238,72 +213,50 @@ func (h *Handler) HandleOolongVendorDelete(w http.ResponseWriter, r *http.Reques
 
 // --- Vessel ----------------------------------------------------------
 
-func (h *Handler) HandleOolongVesselCreate(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	var req oolong.CreateVesselRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := req.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	v := &oolong.Vessel{
+func vesselFromCreate(req *oolong.CreateVesselRequest) *oolong.Vessel {
+	return &oolong.Vessel{
 		Name: req.Name, Style: req.Style, CapacityMl: req.CapacityMl,
 		Material: req.Material, Description: req.Description,
 		SourceRef: req.SourceRef, CreatedAt: time.Now(),
 	}
-	rkey, err := putOolongRecord(r.Context(), store, oolong.NSIDVessel, "", func(*atproto.AtprotoStore) (map[string]any, error) {
-		return oolong.VesselToRecord(v)
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create vessel")
-		handleStoreError(w, err, "Failed to create vessel")
-		return
-	}
-	v.RKey = rkey
-	h.invalidateFeedCache()
-	writeJSON(w, v, "vessel")
+}
+
+func vesselFromUpdate(req *oolong.UpdateVesselRequest) *oolong.Vessel {
+	c := oolong.CreateVesselRequest(*req)
+	return vesselFromCreate(&c)
+}
+
+func setVesselRKey(v *oolong.Vessel, rkey string) { v.RKey = rkey }
+
+func encodeVessel(_ *atproto.AtprotoStore, _ *oolong.CreateVesselRequest, m *oolong.Vessel) (map[string]any, error) {
+	return oolong.VesselToRecord(m)
+}
+
+func encodeVesselUpdate(_ *atproto.AtprotoStore, _ *oolong.UpdateVesselRequest, m *oolong.Vessel) (map[string]any, error) {
+	return oolong.VesselToRecord(m)
+}
+
+func (h *Handler) HandleOolongVesselCreate(w http.ResponseWriter, r *http.Request) {
+	oolongCRUDWrite[oolong.CreateVesselRequest, *oolong.CreateVesselRequest, oolong.Vessel](
+		h, w, r, oolong.NSIDVessel, "vessel", "",
+		vesselFromCreate, setVesselRKey, encodeVessel, false,
+	)
 }
 
 func (h *Handler) HandleOolongVesselUpdate(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := updateRKey(w, r)
 	if rkey == "" {
 		return
 	}
-	var req oolong.UpdateVesselRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	createReq := oolong.CreateVesselRequest(req)
-	if err := createReq.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	v := &oolong.Vessel{
-		RKey: rkey,
-		Name: createReq.Name, Style: createReq.Style, CapacityMl: createReq.CapacityMl,
-		Material: createReq.Material, Description: createReq.Description,
-		SourceRef: createReq.SourceRef, CreatedAt: time.Now(),
-	}
-	if _, err := putOolongRecord(r.Context(), store, oolong.NSIDVessel, rkey, func(*atproto.AtprotoStore) (map[string]any, error) {
-		return oolong.VesselToRecord(v)
-	}); err != nil {
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update vessel")
-		handleStoreError(w, err, "Failed to update vessel")
-		return
-	}
-	h.invalidateFeedCache()
-	writeJSON(w, v, "vessel")
+	oolongCRUDWrite[oolong.UpdateVesselRequest, *oolong.UpdateVesselRequest, oolong.Vessel](
+		h, w, r, oolong.NSIDVessel, "vessel", rkey,
+		func(req *oolong.UpdateVesselRequest) *oolong.Vessel {
+			m := vesselFromUpdate(req)
+			m.RKey = rkey
+			return m
+		},
+		setVesselRKey, encodeVesselUpdate, false,
+	)
 }
 
 func (h *Handler) HandleOolongVesselDelete(w http.ResponseWriter, r *http.Request) {
@@ -312,72 +265,50 @@ func (h *Handler) HandleOolongVesselDelete(w http.ResponseWriter, r *http.Reques
 
 // --- Infuser ---------------------------------------------------------
 
-func (h *Handler) HandleOolongInfuserCreate(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	var req oolong.CreateInfuserRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := req.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	i := &oolong.Infuser{
+func infuserFromCreate(req *oolong.CreateInfuserRequest) *oolong.Infuser {
+	return &oolong.Infuser{
 		Name: req.Name, Style: req.Style,
 		Material: req.Material, Description: req.Description,
 		SourceRef: req.SourceRef, CreatedAt: time.Now(),
 	}
-	rkey, err := putOolongRecord(r.Context(), store, oolong.NSIDInfuser, "", func(*atproto.AtprotoStore) (map[string]any, error) {
-		return oolong.InfuserToRecord(i)
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create infuser")
-		handleStoreError(w, err, "Failed to create infuser")
-		return
-	}
-	i.RKey = rkey
-	h.invalidateFeedCache()
-	writeJSON(w, i, "infuser")
+}
+
+func infuserFromUpdate(req *oolong.UpdateInfuserRequest) *oolong.Infuser {
+	c := oolong.CreateInfuserRequest(*req)
+	return infuserFromCreate(&c)
+}
+
+func setInfuserRKey(v *oolong.Infuser, rkey string) { v.RKey = rkey }
+
+func encodeInfuser(_ *atproto.AtprotoStore, _ *oolong.CreateInfuserRequest, m *oolong.Infuser) (map[string]any, error) {
+	return oolong.InfuserToRecord(m)
+}
+
+func encodeInfuserUpdate(_ *atproto.AtprotoStore, _ *oolong.UpdateInfuserRequest, m *oolong.Infuser) (map[string]any, error) {
+	return oolong.InfuserToRecord(m)
+}
+
+func (h *Handler) HandleOolongInfuserCreate(w http.ResponseWriter, r *http.Request) {
+	oolongCRUDWrite[oolong.CreateInfuserRequest, *oolong.CreateInfuserRequest, oolong.Infuser](
+		h, w, r, oolong.NSIDInfuser, "infuser", "",
+		infuserFromCreate, setInfuserRKey, encodeInfuser, false,
+	)
 }
 
 func (h *Handler) HandleOolongInfuserUpdate(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
-	if !ok {
-		return
-	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := updateRKey(w, r)
 	if rkey == "" {
 		return
 	}
-	var req oolong.UpdateInfuserRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	createReq := oolong.CreateInfuserRequest(req)
-	if err := createReq.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	i := &oolong.Infuser{
-		RKey: rkey,
-		Name: createReq.Name, Style: createReq.Style,
-		Material: createReq.Material, Description: createReq.Description,
-		SourceRef: createReq.SourceRef, CreatedAt: time.Now(),
-	}
-	if _, err := putOolongRecord(r.Context(), store, oolong.NSIDInfuser, rkey, func(*atproto.AtprotoStore) (map[string]any, error) {
-		return oolong.InfuserToRecord(i)
-	}); err != nil {
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update infuser")
-		handleStoreError(w, err, "Failed to update infuser")
-		return
-	}
-	h.invalidateFeedCache()
-	writeJSON(w, i, "infuser")
+	oolongCRUDWrite[oolong.UpdateInfuserRequest, *oolong.UpdateInfuserRequest, oolong.Infuser](
+		h, w, r, oolong.NSIDInfuser, "infuser", rkey,
+		func(req *oolong.UpdateInfuserRequest) *oolong.Infuser {
+			m := infuserFromUpdate(req)
+			m.RKey = rkey
+			return m
+		},
+		setInfuserRKey, encodeInfuserUpdate, false,
+	)
 }
 
 func (h *Handler) HandleOolongInfuserDelete(w http.ResponseWriter, r *http.Request) {
