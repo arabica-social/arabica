@@ -92,6 +92,19 @@ func Get(rt lexicons.RecordType) *Descriptor { return registry[rt] }
 // Used by the firehose feed pipeline which dispatches on collection NSID.
 func GetByNSID(nsid string) *Descriptor { return nsidIndex[nsid] }
 
+// GetByNoun returns the descriptor whose Noun matches, or nil if none.
+// Used by the feed handler to map URL `?type=<noun>` to a RecordType for
+// apps where Noun differs from the RecordType string (e.g. oolong's
+// "tea" Noun maps to RecordType "oolong-tea").
+func GetByNoun(noun string) *Descriptor {
+	for _, d := range registry {
+		if d.Noun == noun {
+			return d
+		}
+	}
+	return nil
+}
+
 // All returns descriptors in stable order (by RecordType). Use for route loops.
 func All() []*Descriptor {
 	out := make([]*Descriptor, 0, len(registry))

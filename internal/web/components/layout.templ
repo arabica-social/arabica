@@ -357,6 +357,9 @@ templ Layout(data *LayoutData, content templ.Component) {
 			if data.UserDID != "" {
 				data-user-did={ data.UserDID }
 			}
+			if data.AppName != "" {
+				data-app={ data.AppName }
+			}
 		>
 			<!-- Session expired modal -->
 			<dialog id="session-expired-modal" class="modal-dialog">

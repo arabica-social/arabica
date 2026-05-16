@@ -19,10 +19,10 @@
             "type": "string",
             "maxLength": 50,
             "knownValues": [
-              "green", "yellow", "white", "oolong", "red", "dark",
+              "green", "yellow", "white", "oolong", "red", "black", "dark",
               "flavored", "blend", "other"
             ],
-            "description": "Broad tea category. Known values: green, yellow, white, oolong, red, dark, flavored, blend, other"
+            "description": "Broad tea category. Known values: green, yellow, white, oolong, red, black, dark, flavored, blend, other"
           },
           "origin": {
             "type": "string",

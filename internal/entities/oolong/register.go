@@ -38,7 +38,7 @@ func init() {
 		DisplayName:     "Tea Vendor",
 		Noun:            "vendor",
 		URLPath:         "vendors",
-		FeedFilterLabel: "", // reference entity — no dedicated feed tab
+		FeedFilterLabel: "Vendors",
 		GetField:        vendorField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToVendor(rec, uri)

@@ -62,6 +62,14 @@ func ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, plac
 		formatLabel = `(e) => { const n = e.name || e.Name || ''; const l = e.location || e.Location || ''; return l ? n + ' (' + l + ')' : n; }`
 		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.location) d.location = s.fields.location; if (s.fields.website) d.website = s.fields.website; } return d; }`
 		extraFields = `[{name:'location',label:'Location',type:'text',placeholder:'e.g. Taipei, Taiwan'},{name:'website',label:'Website',type:'text',placeholder:'https://...'}]`
+	case "oolongVessel":
+		formatLabel = `(e) => { const n = e.name || e.Name || ''; const st = e.style || e.Style || ''; return st ? n + ' (' + st + ')' : n; }`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields) { if (s.fields.style) d.style = s.fields.style; if (s.fields.material) d.material = s.fields.material; } return d; }`
+		extraFields = `[{name:'style',label:'Style',type:'select',options:['teapot','mug','jar','matcha-bowl','other']},{name:'material',label:'Material',type:'text',placeholder:'e.g. porcelain, clay, glass'}]`
+	case "oolongInfuser":
+		formatLabel = `(e) => { const n = e.name || e.Name || ''; const st = e.style || e.Style || ''; return st ? n + ' (' + st + ')' : n; }`
+		formatCreateData = `(name, s) => { const d = { name }; if (s && s.fields && s.fields.style) d.style = s.fields.style; return d; }`
+		extraFields = `[{name:'style',label:'Style',type:'select',options:['basket','ball','sock','other']}]`
 	default:
 		formatLabel = `(e) => e.name || e.Name || ''`
 		formatCreateData = `(name) => ({ name })`

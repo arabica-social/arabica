@@ -49,6 +49,7 @@ function setCache(data) {
       version: CACHE_VERSION,
       timestamp: Date.now(),
       did: data.did || null, // Store user DID for cache validation
+      app: getCurrentApp(), // Store running app so cross-app loads invalidate
       data: data,
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
@@ -72,6 +73,13 @@ function isCacheValid() {
   const cache = getCache();
   if (!cache) return false;
 
+  // A cache from a different app or user is treated as invalid so callers
+  // re-fetch via the running app's /api/data handler.
+  const currentDID = getCurrentUserDID();
+  if (currentDID && cache.did && currentDID !== cache.did) return false;
+  const currentApp = getCurrentApp();
+  if (currentApp && cache.app && currentApp !== cache.app) return false;
+
   const age = Date.now() - cache.timestamp;
   return age < CACHE_TTL_MS;
 }
@@ -81,6 +89,15 @@ function isCacheValid() {
  */
 function getCurrentUserDID() {
   return document.body?.dataset?.userDid || null;
+}
+
+/**
+ * Get the running app's identifier from the page (e.g. "arabica", "oolong").
+ * The /api/data endpoint returns different entity shapes per app, so the
+ * cache must invalidate when the user navigates across apps.
+ */
+function getCurrentApp() {
+  return document.body?.dataset?.app || null;
 }
 
 /**
@@ -97,6 +114,16 @@ function getCachedData() {
   // If we have both DIDs and they don't match, cache is invalid
   if (currentDID && cachedDID && currentDID !== cachedDID) {
     console.log("Cache belongs to different user, invalidating");
+    invalidateCache();
+    return null;
+  }
+
+  // Each app (arabica, oolong) returns a different entity shape from /api/data.
+  // If the cache was populated by a different app, the entity keys won't match
+  // what callers expect, so drop it and force a refresh.
+  const currentApp = getCurrentApp();
+  const cachedApp = cache.app;
+  if (currentApp && cachedApp && currentApp !== cachedApp) {
     invalidateCache();
     return null;
   }

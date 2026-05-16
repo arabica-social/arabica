@@ -86,6 +86,15 @@ document.addEventListener("alpine:init", () => {
           this.clear();
         }
       });
+
+      // Ensure the user's entities are loaded so typeahead can match them.
+      // Some pages (e.g. the oolong steep form) don't otherwise prime the
+      // cache, leaving getUserEntities() empty until a refresh happens.
+      if (window.ArabicaCache) {
+        window.ArabicaCache.getData().catch((err) => {
+          console.warn("comboSelect: failed to load user data cache:", err);
+        });
+      }
     },
 
     open() {
@@ -192,6 +201,10 @@ document.addEventListener("alpine:init", () => {
           return dm.vendors || [];
         case "cafe":
           return dm.cafes || [];
+        case "oolongVessel":
+          return dm.vessels || [];
+        case "oolongInfuser":
+          return dm.infusers || [];
         default:
           return [];
       }

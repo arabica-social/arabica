@@ -119,6 +119,14 @@
   border-color: var(--type-drink);
   color: var(--type-drink);
 }
+.filter-pill[data-tab="vessel"]:hover {
+  border-color: var(--type-vessel);
+  color: var(--type-vessel);
+}
+.filter-pill[data-tab="infuser"]:hover {
+  border-color: var(--type-infuser);
+  color: var(--type-infuser);
+}
 
 .filter-pill-active {
   display: inline-flex;
@@ -156,7 +164,9 @@
 .filter-pill-tea,
 .filter-pill-vendor,
 .filter-pill-cafe,
-.filter-pill-drink {
+.filter-pill-drink,
+.filter-pill-vessel,
+.filter-pill-infuser {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -223,6 +233,16 @@
 .filter-pill-drink {
   background: var(--type-drink);
   border: 1px solid var(--type-drink);
+}
+
+.filter-pill-vessel {
+  background: var(--type-vessel);
+  border: 1px solid var(--type-vessel);
+}
+
+.filter-pill-infuser {
+  background: var(--type-infuser);
+  border: 1px solid var(--type-infuser);
 }
 
 .feed-sort-btn {

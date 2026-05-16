@@ -12,7 +12,8 @@ import (
 // Tea is nil for new. Rating is intentionally hidden on initial creation
 // — it only appears in the edit form once the tea exists.
 type TeaFormProps struct {
-	Tea *oolong.Tea
+	Tea     *oolong.Tea
+	Vendors []*oolong.Vendor
 }
 
 templ TeaFormPage(layout *components.LayoutData, props TeaFormProps) {
@@ -65,6 +66,7 @@ templ TeaFormElement(props TeaFormProps) {
 			<legend class="text-sm font-semibold text-secondary px-2">Origin <span class="form-optional-hint font-normal">(optional)</span></legend>
 			@TeaOriginField(props)
 			@TeaHarvestYearField(props)
+			@TeaVendorField(props)
 		</fieldset>
 		<fieldset class="space-y-6 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
 			<legend class="text-sm font-semibold text-secondary px-2">Notes</legend>
@@ -151,6 +153,43 @@ func teaHarvestYearValue(props TeaFormProps) string {
 		return strconv.Itoa(props.Tea.HarvestYear)
 	}
 	return ""
+}
+
+templ TeaVendorField(props TeaFormProps) {
+	<div
+		class="combo-select"
+		x-data={ components.ComboSelectConfig("vendor", "/api/vendors", "/api/suggestions/vendors", "vendor_rkey", "Search or create a vendor…", false) }
+		if props.Tea != nil && props.Tea.VendorRKey != "" {
+			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", props.Tea.VendorRKey, components.EscapeJS(teaVendorLabel(findTeaVendor(props, props.Tea.VendorRKey)))) }
+		}
+	>
+		<label class="form-label">Vendor</label>
+		<input type="hidden" :name="inputName" :value="selectedRKey"/>
+		@components.ComboSelectInput("Your vendors")
+	</div>
+}
+
+func findTeaVendor(props TeaFormProps, rkey string) *oolong.Vendor {
+	for _, v := range props.Vendors {
+		if v.RKey == rkey {
+			return v
+		}
+	}
+	return nil
+}
+
+func teaVendorLabel(v *oolong.Vendor) string {
+	if v == nil {
+		return ""
+	}
+	name := v.Name
+	if name == "" {
+		name = v.RKey
+	}
+	if v.Location != "" {
+		return name + " (" + v.Location + ")"
+	}
+	return name
 }
 
 templ TeaDescriptionField(props TeaFormProps) {

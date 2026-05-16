@@ -8,6 +8,7 @@ const (
 	CategoryWhite    = "white"
 	CategoryOolong   = "oolong"
 	CategoryRed      = "red"
+	CategoryBlack    = "black"
 	CategoryDark     = "dark"
 	CategoryFlavored = "flavored"
 	CategoryBlend    = "blend"
@@ -16,7 +17,7 @@ const (
 
 var CategoryKnownValues = []string{
 	CategoryGreen, CategoryYellow, CategoryWhite, CategoryOolong,
-	CategoryRed, CategoryDark, CategoryFlavored, CategoryBlend, CategoryOther,
+	CategoryRed, CategoryBlack, CategoryDark, CategoryFlavored, CategoryBlend, CategoryOther,
 }
 
 var CategoryLabels = map[string]string{
@@ -24,7 +25,8 @@ var CategoryLabels = map[string]string{
 	CategoryYellow:   "Yellow",
 	CategoryWhite:    "White",
 	CategoryOolong:   "Oolong",
-	CategoryRed:      "Red / Black",
+	CategoryRed:      "Red",
+	CategoryBlack:    "Black",
 	CategoryDark:     "Dark / Fermented",
 	CategoryFlavored: "Flavored",
 	CategoryBlend:    "Blend",

@@ -121,6 +121,14 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	typeParam := r.URL.Query().Get("type")
 	typeFilter := lexicons.ParseRecordType(typeParam)
+	if typeFilter == "" && typeParam != "" {
+		// Fall back to descriptor lookup by noun so apps where Noun
+		// differs from RecordType (e.g. oolong: "tea" → "oolong-tea")
+		// still filter correctly.
+		if d := entities.GetByNoun(typeParam); d != nil {
+			typeFilter = d.Type
+		}
+	}
 	var typeFilters []lexicons.RecordType
 	if typeParam == "equipment" {
 		typeFilters = []lexicons.RecordType{lexicons.RecordTypeGrinder, lexicons.RecordTypeBrewer}

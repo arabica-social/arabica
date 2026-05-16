@@ -72,11 +72,16 @@ func listOolong[T any](
 
 // HandleOolongTeaNew renders the new-tea page.
 func (h *Handler) HandleOolongTeaNew(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.requireOolongStore(w, r); !ok {
+	store, ok := h.requireOolongStore(w, r)
+	if !ok {
 		return
 	}
+	props := teapages.TeaFormProps{
+		Tea:     nil,
+		Vendors: listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
+	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "New Tea")
-	if err := teapages.TeaFormPage(layoutData, teapages.TeaFormProps{Tea: nil}).Render(r.Context(), w); err != nil {
+	if err := teapages.TeaFormPage(layoutData, props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render new-tea page")
 	}
 }
@@ -102,8 +107,12 @@ func (h *Handler) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	t.RKey = rkey
+	props := teapages.TeaFormProps{
+		Tea:     t,
+		Vendors: listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
+	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Tea")
-	if err := teapages.TeaFormPage(layoutData, teapages.TeaFormProps{Tea: t}).Render(r.Context(), w); err != nil {
+	if err := teapages.TeaFormPage(layoutData, props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render edit-tea page")
 	}
 }
