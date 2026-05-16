@@ -1047,16 +1047,21 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	item.Record = model
 
 	// Per-entity reference resolution. The ref shape is genuinely
-	// entity-specific (brew has four refs, bean has one, recipe has one) and
-	// the resolved values land on per-entity fields. Keep these inline
-	// until a future descriptor extension generalises ref resolution.
-	switch m := model.(type) {
-	case *arabica.Brew:
-		resolveBrewFeedRefs(m, recordData, refMap)
-	case *arabica.Bean:
-		resolveBeanFeedRef(m, recordData, refMap)
-	case *arabica.Recipe:
-		resolveRecipeFeedRef(m, recordData, refMap)
+	// entity-specific; per-app descriptors register a ResolveRefs hook
+	// that hydrates their typed fields from refMap.
+	if desc.ResolveRefs != nil {
+		lookup := func(refURI string) (map[string]any, bool) {
+			rec, found := refMap[refURI]
+			if !found {
+				return nil, false
+			}
+			var data map[string]any
+			if err := json.Unmarshal(rec.Record, &data); err != nil {
+				return nil, false
+			}
+			return data, true
+		}
+		desc.ResolveRefs(model, recordData, lookup)
 	}
 
 	// Populate subject fields (like/comment counts are set by caller via batch)
@@ -1064,101 +1069,6 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	item.SubjectCID = record.CID
 
 	return item, nil
-}
-
-// resolveBrewFeedRefs hydrates bean/grinder/brewer/recipe references on a
-// brew using already-fetched indexed records in refMap. Missing refs are
-// silently skipped — feed cards render fine with partial reference data.
-func resolveBrewFeedRefs(brew *arabica.Brew, recordData map[string]any, refMap map[string]*IndexedRecord) {
-	if beanRef, ok := recordData["beanRef"].(string); ok && beanRef != "" {
-		if beanRecord, found := refMap[beanRef]; found {
-			var beanData map[string]any
-			if err := json.Unmarshal(beanRecord.Record, &beanData); err == nil {
-				bean, _ := arabica.RecordToBean(beanData, beanRef)
-				brew.Bean = bean
-
-				// Resolve roaster reference for the bean.
-				if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
-					if roasterRecord, found := refMap[roasterRef]; found {
-						var roasterData map[string]any
-						if err := json.Unmarshal(roasterRecord.Record, &roasterData); err == nil {
-							roaster, _ := arabica.RecordToRoaster(roasterData, roasterRef)
-							brew.Bean.Roaster = roaster
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if grinderRef, ok := recordData["grinderRef"].(string); ok && grinderRef != "" {
-		if grinderRecord, found := refMap[grinderRef]; found {
-			var grinderData map[string]any
-			if err := json.Unmarshal(grinderRecord.Record, &grinderData); err == nil {
-				grinder, _ := arabica.RecordToGrinder(grinderData, grinderRef)
-				brew.GrinderObj = grinder
-			}
-		}
-	}
-
-	if brewerRef, ok := recordData["brewerRef"].(string); ok && brewerRef != "" {
-		if brewerRecord, found := refMap[brewerRef]; found {
-			var brewerData map[string]any
-			if err := json.Unmarshal(brewerRecord.Record, &brewerData); err == nil {
-				brewer, _ := arabica.RecordToBrewer(brewerData, brewerRef)
-				brew.BrewerObj = brewer
-			}
-		}
-	}
-
-	if recipeRef, ok := recordData["recipeRef"].(string); ok && recipeRef != "" {
-		if rkey := atp.RKeyFromURI(recipeRef); rkey != "" {
-			brew.RecipeRKey = rkey
-		}
-		if recipeRecord, found := refMap[recipeRef]; found {
-			var recipeData map[string]any
-			if err := json.Unmarshal(recipeRecord.Record, &recipeData); err == nil {
-				recipe, _ := arabica.RecordToRecipe(recipeData, recipeRef)
-				brew.RecipeObj = recipe
-			}
-		}
-	}
-}
-
-// resolveBeanFeedRef hydrates a bean's roaster reference from refMap.
-func resolveBeanFeedRef(bean *arabica.Bean, recordData map[string]any, refMap map[string]*IndexedRecord) {
-	roasterRef, ok := recordData["roasterRef"].(string)
-	if !ok || roasterRef == "" {
-		return
-	}
-	roasterRecord, found := refMap[roasterRef]
-	if !found {
-		return
-	}
-	var roasterData map[string]any
-	if err := json.Unmarshal(roasterRecord.Record, &roasterData); err != nil {
-		return
-	}
-	roaster, _ := arabica.RecordToRoaster(roasterData, roasterRef)
-	bean.Roaster = roaster
-}
-
-// resolveRecipeFeedRef hydrates a recipe's brewer reference from refMap.
-func resolveRecipeFeedRef(recipe *arabica.Recipe, recordData map[string]any, refMap map[string]*IndexedRecord) {
-	brewerRef, ok := recordData["brewerRef"].(string)
-	if !ok || brewerRef == "" {
-		return
-	}
-	brewerRecord, found := refMap[brewerRef]
-	if !found {
-		return
-	}
-	var brewerData map[string]any
-	if err := json.Unmarshal(brewerRecord.Record, &brewerData); err != nil {
-		return
-	}
-	brewer, _ := arabica.RecordToBrewer(brewerData, brewerRef)
-	recipe.BrewerObj = brewer
 }
 
 // GetProfile fetches a profile, using cache when possible. The persistent

@@ -31,6 +31,7 @@ func init() {
 			}
 			return b.Origin
 		},
+		ResolveRefs: resolveBeanFeedRef,
 	})
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeRoaster, NSID: NSIDRoaster,
@@ -124,6 +125,7 @@ func init() {
 			}
 			return r.Name
 		},
+		ResolveRefs: resolveRecipeFeedRef,
 	})
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeBrew, NSID: NSIDBrew,
@@ -154,6 +156,7 @@ func init() {
 			}
 			return "Coffee Brew"
 		},
+		ResolveRefs: resolveBrewFeedRefs,
 	})
 	// Like is intentionally omitted — has no entity page or modal.
 }
