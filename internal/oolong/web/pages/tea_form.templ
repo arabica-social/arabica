@@ -81,7 +81,7 @@ templ TeaFormElement(props TeaFormProps) {
 
 templ TeaNameField(props TeaFormProps) {
 	@components.FormField(
-		components.FormFieldProps{Label: "Name", Required: true},
+		components.FormFieldProps{Label: "Tea", Required: true},
 		components.TextInput(components.TextInputProps{
 			Name:        "name",
 			Value:       teaFormValue(props, func(t *oolong.Tea) string { return t.Name }),

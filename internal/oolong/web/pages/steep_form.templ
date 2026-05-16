@@ -54,7 +54,8 @@ templ SteepFormElement(props SteepFormProps) {
 			hx-post="/api/brews"
 		}
 		hx-swap="none"
-		x-data="{ serverError: '' }"
+		x-data={ fmt.Sprintf("{ serverError: '', infusionMethod: '%s' }", initialInfusionMethod(props)) }
+		x-on:change="if ($event.target.name === 'infusion_method') { infusionMethod = $event.target.value }"
 		hx-on::after-request="if(event.detail.successful) { /* HX-Redirect handled by browser */ } else if(event.detail.xhr && event.detail.xhr.status === 401) { window.__showSessionExpiredModal && window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? (event.detail.xhr.responseText || 'Something went wrong. Please try again.') : 'Connection error. Check your network.'; }"
 		class="space-y-6"
 	>
@@ -69,7 +70,9 @@ templ SteepFormElement(props SteepFormProps) {
 			<legend class="text-sm font-semibold text-secondary px-2">References <span class="form-optional-hint font-normal">(optional)</span></legend>
 			@VesselSelectField(props)
 			@InfusionMethodField(props)
-			@InfuserSelectField(props)
+			<div x-show="infusionMethod === 'infuser'" x-cloak>
+				@InfuserSelectField(props)
+			</div>
 		</fieldset>
 		<fieldset class="space-y-6 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
 			<legend class="text-sm font-semibold text-secondary px-2">Parameters</legend>
@@ -199,6 +202,13 @@ func vesselLabel(v *oolong.Vessel) string {
 		return name + " (" + v.Style + ")"
 	}
 	return name
+}
+
+func initialInfusionMethod(props SteepFormProps) string {
+	if props.Brew != nil {
+		return components.EscapeJS(props.Brew.InfusionMethod)
+	}
+	return ""
 }
 
 templ InfusionMethodField(props SteepFormProps) {

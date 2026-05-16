@@ -15,6 +15,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/tracing"
@@ -888,7 +889,7 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 		// Collect reference URIs from the record data
 		var recordData map[string]any
 		if err := json.Unmarshal(rec.Record, &recordData); err == nil {
-			for _, key := range []string{"beanRef", "roasterRef", "grinderRef", "brewerRef"} {
+			for _, key := range []string{"beanRef", "roasterRef", "grinderRef", "brewerRef", "teaRef", "vendorRef", "vesselRef", "infuserRef"} {
 				if ref, ok := recordData[key].(string); ok && ref != "" {
 					refURIs[ref] = true
 				}
@@ -935,6 +936,29 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 				rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
 				rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
 				recordsByURI[rec.URI] = &rec
+
+				// If this is an oolong tea, check if it references a vendor we also need
+				if rec.Collection == oolong.NSIDTea {
+					var teaData map[string]any
+					if err := json.Unmarshal(rec.Record, &teaData); err == nil {
+						if vendorRef, ok := teaData["vendorRef"].(string); ok && vendorRef != "" {
+							if _, ok := recordsByURI[vendorRef]; !ok {
+								var vRec IndexedRecord
+								var vStr, vIdxAt, vCreAt string
+								err := idx.db.QueryRowContext(ctx,
+									`SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri = ?`,
+									vendorRef).Scan(&vRec.URI, &vRec.DID, &vRec.Collection, &vRec.RKey,
+									&vStr, &vRec.CID, &vIdxAt, &vCreAt)
+								if err == nil {
+									vRec.Record = json.RawMessage(vStr)
+									vRec.IndexedAt, _ = time.Parse(time.RFC3339Nano, vIdxAt)
+									vRec.CreatedAt, _ = time.Parse(time.RFC3339Nano, vCreAt)
+									recordsByURI[vRec.URI] = &vRec
+								}
+							}
+						}
+					}
+				}
 
 				// If this is a bean, check if it references a roaster we also need
 				if rec.Collection == arabica.NSIDBean {
@@ -1057,6 +1081,10 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		resolveBeanFeedRef(m, recordData, refMap)
 	case *arabica.Recipe:
 		resolveRecipeFeedRef(m, recordData, refMap)
+	case *oolong.Brew:
+		resolveOolongBrewFeedRefs(m, recordData, refMap)
+	case *oolong.Tea:
+		resolveOolongTeaFeedRef(m, recordData, refMap)
 	}
 
 	// Populate subject fields (like/comment counts are set by caller via batch)
@@ -1141,6 +1169,70 @@ func resolveBeanFeedRef(bean *arabica.Bean, recordData map[string]any, refMap ma
 	}
 	roaster, _ := arabica.RecordToRoaster(roasterData, roasterRef)
 	bean.Roaster = roaster
+}
+
+// resolveOolongBrewFeedRefs hydrates tea (with nested vendor), vessel and
+// infuser references on an oolong brew using refMap.
+func resolveOolongBrewFeedRefs(brew *oolong.Brew, recordData map[string]any, refMap map[string]*IndexedRecord) {
+	if teaRef, ok := recordData["teaRef"].(string); ok && teaRef != "" {
+		if teaRecord, found := refMap[teaRef]; found {
+			var teaData map[string]any
+			if err := json.Unmarshal(teaRecord.Record, &teaData); err == nil {
+				tea, _ := oolong.RecordToTea(teaData, teaRef)
+				brew.Tea = tea
+
+				if tea != nil {
+					if vendorRef, ok := teaData["vendorRef"].(string); ok && vendorRef != "" {
+						if vendorRecord, found := refMap[vendorRef]; found {
+							var vendorData map[string]any
+							if err := json.Unmarshal(vendorRecord.Record, &vendorData); err == nil {
+								vendor, _ := oolong.RecordToVendor(vendorData, vendorRef)
+								brew.Tea.Vendor = vendor
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if vesselRef, ok := recordData["vesselRef"].(string); ok && vesselRef != "" {
+		if vesselRecord, found := refMap[vesselRef]; found {
+			var vesselData map[string]any
+			if err := json.Unmarshal(vesselRecord.Record, &vesselData); err == nil {
+				vessel, _ := oolong.RecordToVessel(vesselData, vesselRef)
+				brew.Vessel = vessel
+			}
+		}
+	}
+
+	if infuserRef, ok := recordData["infuserRef"].(string); ok && infuserRef != "" {
+		if infuserRecord, found := refMap[infuserRef]; found {
+			var infuserData map[string]any
+			if err := json.Unmarshal(infuserRecord.Record, &infuserData); err == nil {
+				infuser, _ := oolong.RecordToInfuser(infuserData, infuserRef)
+				brew.Infuser = infuser
+			}
+		}
+	}
+}
+
+// resolveOolongTeaFeedRef hydrates a tea's vendor reference from refMap.
+func resolveOolongTeaFeedRef(tea *oolong.Tea, recordData map[string]any, refMap map[string]*IndexedRecord) {
+	vendorRef, ok := recordData["vendorRef"].(string)
+	if !ok || vendorRef == "" {
+		return
+	}
+	vendorRecord, found := refMap[vendorRef]
+	if !found {
+		return
+	}
+	var vendorData map[string]any
+	if err := json.Unmarshal(vendorRecord.Record, &vendorData); err != nil {
+		return
+	}
+	vendor, _ := oolong.RecordToVendor(vendorData, vendorRef)
+	tea.Vendor = vendor
 }
 
 // resolveRecipeFeedRef hydrates a recipe's brewer reference from refMap.

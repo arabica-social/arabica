@@ -72,7 +72,7 @@ type ShareButtonProps struct {
 templ ShareButton(props ShareButtonProps) {
 	<button
 		type="button"
-		x-data={ "{ copied: false, share() { const fullUrl = window.location.origin + '" + props.URL + "'; if (navigator.share) { navigator.share({ title: '" + props.Title + "', text: '" + props.Text + "', url: fullUrl }).catch(() => {}); } else { navigator.clipboard.writeText(fullUrl).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000); }); } } }" }
+		x-data={ "{ copied: false, share() { const fullUrl = window.location.origin + '" + escapeForJS(props.URL) + "'; if (navigator.share) { navigator.share({ title: '" + escapeForJS(props.Title) + "', text: '" + escapeForJS(props.Text) + "', url: fullUrl }).catch(() => {}); } else { navigator.clipboard.writeText(fullUrl).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000); }); } } }" }
 		@click="share()"
 		class="share-btn"
 		aria-label="Share"

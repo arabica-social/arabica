@@ -264,7 +264,7 @@ templ ActionBar(props ActionBarProps) {
 templ ActionBarShareButton(props ActionBarProps) {
 	<button
 		type="button"
-		x-data={ fmt.Sprintf("{ copied: false, share() { const fullUrl = window.location.origin + '%s'; if (navigator.share) { navigator.share({ title: '%s', text: '%s', url: fullUrl }).catch(() => {}); } else { navigator.clipboard.writeText(fullUrl).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000); }); } } }", props.ShareURL, props.ShareTitle, props.ShareText) }
+		x-data={ fmt.Sprintf("{ copied: false, share() { const fullUrl = window.location.origin + '%s'; if (navigator.share) { navigator.share({ title: '%s', text: '%s', url: fullUrl }).catch(() => {}); } else { navigator.clipboard.writeText(fullUrl).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000); }); } } }", escapeForJS(props.ShareURL), escapeForJS(props.ShareTitle), escapeForJS(props.ShareText)) }
 		@click="share()"
 		class="action-btn"
 		aria-label="Share"

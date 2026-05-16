@@ -17,6 +17,10 @@ type MyTeaProps struct {
 	Vessels  []*oolong.Vessel
 	Infusers []*oolong.Infuser
 	Brews    []*oolong.Brew
+	// Actor is the {actor} segment used to build /{slug}/{actor}/{rkey}
+	// view URLs for the signed-in user's own records. Handle preferred,
+	// DID as fallback.
+	Actor string
 }
 
 templ MyTea(layout *components.LayoutData, props MyTeaProps) {
@@ -32,6 +36,10 @@ templ MyTeaContent(props MyTeaProps) {
 	<div class="page-container-xl" x-data="{ tab: 'steeps' }">
 		<div class="flex items-center gap-3 mb-6">
 			<h2 class="text-2xl font-semibold text-primary">My Tea</h2>
+			<div class="ml-auto flex items-center gap-2">
+				<a href="/brews/new" class="btn-primary shadow-lg hover:shadow-xl">+ New Steep</a>
+				@TeaRefreshButton()
+			</div>
 		</div>
 		@MyTeaTabs()
 		<div id="modal-container"></div>
@@ -42,7 +50,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, b := range props.Brews {
-						@mySteepCard(b.RKey) {
+						@mySteepCard(props.Actor, b.RKey) {
 							@tea.BrewContent(b)
 						}
 					}
@@ -56,7 +64,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, t := range props.Teas {
-						@myTeaPageCard("tea", t.RKey, "/teas/"+t.RKey, "/teas/"+t.RKey+"/edit", "/api/teas/"+t.RKey) {
+						@myTeaPageCard("tea", t.RKey, viewURL("teas", props.Actor, t.RKey), "/teas/"+t.RKey+"/edit", "/api/teas/"+t.RKey) {
 							@tea.TeaContent(t)
 						}
 					}
@@ -70,7 +78,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, v := range props.Vendors {
-						@myTeaCard("vendor", v.RKey, "/vendors/"+v.RKey) {
+						@myTeaCard("vendor", v.RKey, viewURL("vendors", props.Actor, v.RKey)) {
 							@tea.VendorContent(v)
 						}
 					}
@@ -84,7 +92,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, v := range props.Vessels {
-						@myTeaCard("vessel", v.RKey, "/vessels/"+v.RKey) {
+						@myTeaCard("vessel", v.RKey, viewURL("vessels", props.Actor, v.RKey)) {
 							@tea.VesselContent(v)
 						}
 					}
@@ -98,7 +106,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, i := range props.Infusers {
-						@myTeaCard("infuser", i.RKey, "/infusers/"+i.RKey) {
+						@myTeaCard("infuser", i.RKey, viewURL("infusers", props.Actor, i.RKey)) {
 							@tea.InfuserContent(i)
 						}
 					}
@@ -247,7 +255,7 @@ templ mySteepSectionHeader(count int) {
 
 // mySteepCard mirrors myTeaCard but with an Edit anchor pointing at the
 // full-page edit form instead of an HTMX modal trigger.
-templ mySteepCard(rkey string) {
+templ mySteepCard(actor, rkey string) {
 	<div class="feed-card relative group">
 		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 			<a
@@ -269,16 +277,51 @@ templ mySteepCard(rkey string) {
 				Delete
 			</button>
 		</div>
-		<a href={ templ.SafeURL("/brews/" + rkey) } class="block hover:opacity-95 transition-opacity">
+		<a href={ templ.SafeURL(viewURL("brews", actor, rkey)) } class="block hover:opacity-95 transition-opacity">
 			{ children... }
 		</a>
 	</div>
+}
+
+// TeaRefreshButton renders the sync-from-PDS button for the oolong
+// my-tea page. The page is server-rendered, so on success we reload
+// to pick up the freshly populated witness cache.
+templ TeaRefreshButton() {
+	<button
+		type="button"
+		x-data="{ syncing: false }"
+		@click="syncing = true; fetch('/api/tea/refresh', { method: 'POST' }).then(() => window.location.reload()).catch(() => syncing = false)"
+		:disabled="syncing"
+		class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-emphasis hover:text-primary border rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+		style="border-color: var(--card-border)"
+		title="Refresh all data from your PDS"
+	>
+		<svg :class="syncing && 'animate-spin'" class="inline-block w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M21.5 2v6h-6"></path>
+			<path d="M2.5 22v-6h6"></path>
+			<path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8"></path>
+			<path d="M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"></path>
+		</svg>
+		<span x-text="syncing ? 'Syncing...' : 'Sync from PDS'"></span>
+	</button>
 }
 
 templ myTeaEmpty(noun string) {
 	<div class="card p-8 text-center">
 		<p class="text-sm text-muted italic">No { noun } yet.</p>
 	</div>
+}
+
+// viewURL builds the canonical /{slug}/{actor}/{rkey} view URL. When
+// actor is empty (signed-out edge case) it falls back to a relative
+// rkey path that will 404, matching previous behavior — the my-tea
+// page is auth-gated so this branch should not be reachable in
+// practice.
+func viewURL(slug, actor, rkey string) string {
+	if actor == "" {
+		return "/" + slug + "/" + rkey
+	}
+	return "/" + slug + "/" + actor + "/" + rkey
 }
 
 func myTeaURLPath(noun string) string {

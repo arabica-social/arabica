@@ -150,6 +150,7 @@ func SetupRouter(cfg Config) http.Handler {
 	// explicit handler.
 	if cfg.App.Name == "oolong" {
 		mux.HandleFunc("GET /my-tea", h.HandleMyTea)
+		mux.Handle("POST /api/tea/refresh", cop.Handler(http.HandlerFunc(h.HandleTeaRefresh)))
 		mux.HandleFunc("GET /brews/new", h.HandleOolongSteepNew)
 		mux.HandleFunc("GET /brews/{id}/edit", h.HandleOolongSteepEdit)
 		mux.HandleFunc("GET /teas/new", h.HandleOolongTeaNew)

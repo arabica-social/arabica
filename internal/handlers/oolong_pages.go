@@ -2,17 +2,104 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/attribute"
 	atp "tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
+	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
+
+// HandleTeaRefresh is the oolong equivalent of HandleManageRefresh.
+// Invalidates session cache, re-fetches every oolong entity collection
+// from the user's PDS, and writes them through to the witness cache.
+// Returns 204 — the my-tea page is server-rendered, so the client
+// reloads after the POST resolves.
+func (h *Handler) HandleTeaRefresh(w http.ResponseWriter, r *http.Request) {
+	store, ok := h.requireOolongStore(w, r)
+	if !ok {
+		return
+	}
+
+	sessionID, ok := atpmiddleware.GetSessionID(r.Context())
+	if !ok {
+		http.Error(w, "Session required", http.StatusUnauthorized)
+		return
+	}
+	didStr, ok := atpmiddleware.GetDID(r.Context())
+	if !ok {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+	did, err := syntax.ParseDID(didStr)
+	if err != nil {
+		http.Error(w, "Invalid DID", http.StatusInternalServerError)
+		return
+	}
+
+	h.sessionCache.Invalidate(sessionID)
+
+	collections := []string{
+		oolong.NSIDTea, oolong.NSIDVendor, oolong.NSIDVessel,
+		oolong.NSIDInfuser, oolong.NSIDBrew,
+	}
+
+	if h.witnessCache != nil {
+		ctx, span := tracing.HandlerSpan(r.Context(), "tea.refresh.witness_sync",
+			attribute.String("user.did", didStr),
+		)
+		defer span.End()
+		atpClient, err := h.atprotoClient.AtpClient(ctx, did, sessionID)
+		if err != nil {
+			log.Warn().Err(err).Msg("tea refresh: failed to get atp client")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		var batch []atproto.WitnessWriteRecord
+		for _, collection := range collections {
+			records, err := atpClient.ListAllRecords(ctx, collection)
+			if err != nil {
+				log.Warn().Err(err).Str("collection", collection).Msg("tea refresh: list failed")
+				continue
+			}
+			for _, rec := range records {
+				rkey := atp.RKeyFromURI(rec.URI)
+				if rkey == "" {
+					continue
+				}
+				recordJSON, jsonErr := json.Marshal(rec.Value)
+				if jsonErr != nil {
+					continue
+				}
+				batch = append(batch, atproto.WitnessWriteRecord{
+					DID:        didStr,
+					Collection: collection,
+					RKey:       rkey,
+					CID:        rec.CID,
+					Record:     recordJSON,
+				})
+			}
+			short := collection[strings.LastIndex(collection, ".")+1:]
+			log.Info().Str("collection", short).Int("count", len(records)).Msg("tea refresh: fetched")
+		}
+		if err := h.witnessCache.UpsertWitnessRecordBatch(ctx, batch); err != nil {
+			log.Error().Err(err).Msg("tea refresh: batch upsert failed")
+		}
+		span.SetAttributes(attribute.Int("refresh.total_records", len(batch)))
+	}
+
+	_ = store
+	w.WriteHeader(http.StatusNoContent)
+}
 
 // HandleMyTea renders /my-tea — the oolong equivalent of arabica's
 // /my-coffee. Fetches all 7 entity types the authenticated user owns
@@ -30,15 +117,21 @@ func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	layoutData, did, _ := h.layoutDataFromRequest(r, "My Tea")
+	actor := did
+	if layoutData != nil && layoutData.UserProfile != nil && layoutData.UserProfile.Handle != "" {
+		actor = layoutData.UserProfile.Handle
+	}
+
 	props := teapages.MyTeaProps{
 		Teas:     listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
 		Vendors:  listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
 		Vessels:  listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
 		Infusers: listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
 		Brews:    listOolong(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew),
+		Actor:    actor,
 	}
 
-	layoutData, _, _ := h.layoutDataFromRequest(r, "My Tea")
 	if err := teapages.MyTea(layoutData, props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render my-tea page")
 	}

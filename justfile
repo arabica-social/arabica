@@ -1,15 +1,14 @@
-[private]
-default: templ-generate run
+arabica: templ-watch-arabica
 
-# Run dev server with CSS+JS hot-reload — edit any file under
-# internal/web/assets/{css,js}/ and refresh; no rebuild needed.
+oolong: templ-watch-oolong
+
 run:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_HOTRELOAD=1 go run ./cmd/arabica -known-dids known-dids.txt
 
-run-oolong:
+run-oolong: templ-generate
     @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_HOTRELOAD=1 go run ./cmd/oolong
 
-templ-watch:
+templ-watch-arabica:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_HOTRELOAD=1 templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/arabica -known-dids known-dids.txt"
 
 templ-watch-oolong:

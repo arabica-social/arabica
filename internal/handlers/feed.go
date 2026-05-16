@@ -120,13 +120,19 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 
 	// Parse query parameters
 	typeParam := r.URL.Query().Get("type")
-	typeFilter := lexicons.ParseRecordType(typeParam)
-	if typeFilter == "" && typeParam != "" {
-		// Fall back to descriptor lookup by noun so apps where Noun
-		// differs from RecordType (e.g. oolong: "tea" → "oolong-tea")
-		// still filter correctly.
+	// Filter pills send the descriptor's Noun (e.g. "brew", "tea").
+	// Prefer a noun lookup against the running app's registered descriptors
+	// so apps where Noun differs from RecordType (oolong: "tea" → "oolong-tea",
+	// "brew" → "oolong-brew") resolve correctly. ParseRecordType is a global
+	// validator and would otherwise hand back the wrong type (e.g. "brew" →
+	// arabica's RecordTypeBrew) in the oolong binary, causing the NSID lookup
+	// to miss and the feed to come back empty.
+	var typeFilter lexicons.RecordType
+	if typeParam != "" {
 		if d := entities.GetByNoun(typeParam); d != nil {
 			typeFilter = d.Type
+		} else {
+			typeFilter = lexicons.ParseRecordType(typeParam)
 		}
 	}
 	var typeFilters []lexicons.RecordType

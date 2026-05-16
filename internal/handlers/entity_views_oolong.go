@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	atp "tangled.org/pdewey.com/atp"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
@@ -22,20 +23,22 @@ import (
 func (h *Handler) teaViewConfig() entityViewConfig {
 	return entityViewConfig{
 		descriptor: entities.Get(lexicons.RecordTypeOolongTea),
-		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
+		fromWitness: func(ctx context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
 			t, err := oolong.RecordToTea(m, uri)
 			if err != nil {
 				return nil, err
 			}
 			t.RKey = rkey
+			h.resolveOolongTeaVendor(ctx, t, m)
 			return t, nil
 		},
-		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
+		fromPDS: func(ctx context.Context, e *atp.Record, rkey, _ string) (any, error) {
 			t, err := oolong.RecordToTea(e.Value, e.URI)
 			if err != nil {
 				return nil, err
 			}
 			t.RKey = rkey
+			h.resolveOolongTeaVendor(ctx, t, e.Value)
 			return t, nil
 		},
 		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
@@ -48,6 +51,7 @@ func (h *Handler) teaViewConfig() entityViewConfig {
 				return nil, "", "", err
 			}
 			t.RKey = rkey
+			h.resolveOolongTeaVendor(ctx, t, m)
 			return t, uri, cid, nil
 		},
 		displayName: func(record any) string { return record.(*oolong.Tea).Name },
@@ -190,20 +194,22 @@ func (h *Handler) oolongInfuserViewConfig() entityViewConfig {
 func (h *Handler) oolongBrewViewConfig() entityViewConfig {
 	return entityViewConfig{
 		descriptor: entities.Get(lexicons.RecordTypeOolongBrew),
-		fromWitness: func(_ context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
+		fromWitness: func(ctx context.Context, m map[string]any, uri, rkey, _ string) (any, error) {
 			b, err := oolong.RecordToBrew(m, uri)
 			if err != nil {
 				return nil, err
 			}
 			b.RKey = rkey
+			h.resolveOolongBrewReferences(ctx, b, m)
 			return b, nil
 		},
-		fromPDS: func(_ context.Context, e *atp.Record, rkey, _ string) (any, error) {
+		fromPDS: func(ctx context.Context, e *atp.Record, rkey, _ string) (any, error) {
 			b, err := oolong.RecordToBrew(e.Value, e.URI)
 			if err != nil {
 				return nil, err
 			}
 			b.RKey = rkey
+			h.resolveOolongBrewReferences(ctx, b, e.Value)
 			return b, nil
 		},
 		fromStore: func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, string, string, error) {
@@ -216,6 +222,7 @@ func (h *Handler) oolongBrewViewConfig() entityViewConfig {
 				return nil, "", "", err
 			}
 			b.RKey = rkey
+			h.resolveOolongBrewReferences(ctx, b, m)
 			return b, uri, cid, nil
 		},
 		displayName: func(record any) string {
@@ -261,4 +268,103 @@ func (h *Handler) HandleOolongInfuserView(w http.ResponseWriter, r *http.Request
 
 func (h *Handler) HandleOolongBrewView(w http.ResponseWriter, r *http.Request) {
 	h.handleEntityView(w, r, h.oolongBrewViewConfig())
+}
+
+// resolveOolongBrewReferences hydrates tea (with nested vendor), vessel and
+// infuser on an oolong brew. Tries the witness cache first, falls back to a
+// public PDS read for any ref not in the cache.
+func (h *Handler) resolveOolongBrewReferences(ctx context.Context, brew *oolong.Brew, record map[string]any) {
+	teaRef, _ := record["teaRef"].(string)
+	vesselRef, _ := record["vesselRef"].(string)
+	infuserRef, _ := record["infuserRef"].(string)
+
+	var pub *atp.PublicClient
+	getPub := func() *atp.PublicClient {
+		if pub == nil {
+			pub = atproto.NewPublicClient()
+		}
+		return pub
+	}
+
+	if teaRef != "" {
+		teaMap, teaURI := h.fetchOolongRefMap(ctx, teaRef, getPub)
+		if teaMap != nil {
+			if tea, err := oolong.RecordToTea(teaMap, teaURI); err == nil {
+				tea.RKey = atp.RKeyFromURI(teaURI)
+				brew.Tea = tea
+				if vendorRef, _ := teaMap["vendorRef"].(string); vendorRef != "" {
+					vendorMap, vendorURI := h.fetchOolongRefMap(ctx, vendorRef, getPub)
+					if vendorMap != nil {
+						if vendor, err := oolong.RecordToVendor(vendorMap, vendorURI); err == nil {
+							vendor.RKey = atp.RKeyFromURI(vendorURI)
+							brew.Tea.Vendor = vendor
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if vesselRef != "" {
+		m, uri := h.fetchOolongRefMap(ctx, vesselRef, getPub)
+		if m != nil {
+			if v, err := oolong.RecordToVessel(m, uri); err == nil {
+				v.RKey = atp.RKeyFromURI(uri)
+				brew.Vessel = v
+			}
+		}
+	}
+
+	if infuserRef != "" {
+		m, uri := h.fetchOolongRefMap(ctx, infuserRef, getPub)
+		if m != nil {
+			if i, err := oolong.RecordToInfuser(m, uri); err == nil {
+				i.RKey = atp.RKeyFromURI(uri)
+				brew.Infuser = i
+			}
+		}
+	}
+}
+
+// resolveOolongTeaVendor hydrates the vendor on a tea record from the witness
+// cache or PDS.
+func (h *Handler) resolveOolongTeaVendor(ctx context.Context, tea *oolong.Tea, record map[string]any) {
+	vendorRef, _ := record["vendorRef"].(string)
+	if vendorRef == "" {
+		return
+	}
+	pub := atproto.NewPublicClient()
+	m, uri := h.fetchOolongRefMap(ctx, vendorRef, func() *atp.PublicClient { return pub })
+	if m == nil {
+		return
+	}
+	if v, err := oolong.RecordToVendor(m, uri); err == nil {
+		v.RKey = atp.RKeyFromURI(uri)
+		tea.Vendor = v
+	}
+}
+
+// fetchOolongRefMap returns the record map and resolved URI for an AT-URI
+// reference, trying the witness cache first and falling back to a public PDS
+// read. Returns (nil, "") on any error.
+func (h *Handler) fetchOolongRefMap(ctx context.Context, atURI string, getPub func() *atp.PublicClient) (map[string]any, string) {
+	if h.witnessCache != nil {
+		if wr, _ := h.witnessCache.GetWitnessRecord(ctx, atURI); wr != nil {
+			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
+				return m, wr.URI
+			}
+		}
+	}
+	parsed, err := syntax.ParseATURI(atURI)
+	if err != nil {
+		return nil, ""
+	}
+	did := parsed.Authority().String()
+	collection := parsed.Collection().String()
+	rkey := parsed.RecordKey().String()
+	rec, err := getPub().GetPublicRecord(ctx, did, collection, rkey)
+	if err != nil || rec == nil {
+		return nil, ""
+	}
+	return rec.Value, rec.URI
 }
