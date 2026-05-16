@@ -340,5 +340,41 @@ func TestOolongLexicons(t *testing.T) {
 		samples = append(samples, sample{"oolong-brew/full", oolong.NSIDBrew, full})
 	}
 
+	// Like
+	{
+		like, err := oolong.LikeToRecord(&oolong.Like{
+			SubjectURI: teaURI,
+			SubjectCID: sampleCID,
+			CreatedAt:  createdAt,
+		})
+		require.NoError(t, err)
+		samples = append(samples, sample{"oolong-like/full", oolong.NSIDLike, like})
+	}
+
+	// Comment
+	{
+		commentURI := "at://did:plc:test/social.oolong.alpha.comment/comment123"
+
+		minimal, err := oolong.CommentToRecord(&oolong.Comment{
+			SubjectURI: teaURI,
+			SubjectCID: sampleCID,
+			Text:       "Lovely tea",
+			CreatedAt:  createdAt,
+		})
+		require.NoError(t, err)
+		samples = append(samples, sample{"oolong-comment/minimal", oolong.NSIDComment, minimal})
+
+		full, err := oolong.CommentToRecord(&oolong.Comment{
+			SubjectURI: teaURI,
+			SubjectCID: sampleCID,
+			ParentURI:  commentURI,
+			ParentCID:  sampleCID,
+			Text:       "Reply to a comment",
+			CreatedAt:  createdAt,
+		})
+		require.NoError(t, err)
+		samples = append(samples, sample{"oolong-comment/full", oolong.NSIDComment, full})
+	}
+
 	runSamples(t, cat, samples)
 }

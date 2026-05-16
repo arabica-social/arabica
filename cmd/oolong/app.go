@@ -13,10 +13,9 @@ import (
 // newOolongApp builds the App value for the tea-tracking app.
 func newOolongApp() *domain.App {
 	return &domain.App{
-		Name:           "oolong",
-		NSIDBase:       oolong.NSIDBase,
-		SocialNSIDBase: oolong.SocialNSIDBase,
-		Descriptors:    entities.AllForApp(oolong.NSIDBase),
+		Name:        "oolong",
+		NSIDBase:    oolong.NSIDBase,
+		Descriptors: entities.AllForApp(oolong.NSIDBase),
 		Brand: domain.BrandConfig{
 			DisplayName: "Oolong",
 			Tagline:     "Your tea, your data",

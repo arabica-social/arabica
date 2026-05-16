@@ -10,7 +10,10 @@ run-oolong:
     @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_HOTRELOAD=1 go run ./cmd/oolong
 
 templ-watch:
-    @templ generate --watch --proxy="http://localhost:18080" --cmd="ARABICA_HOTRELOAD=1 go run ./cmd/arabica -known-dids known-dids.txt"
+    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_HOTRELOAD=1 templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/arabica -known-dids known-dids.txt"
+
+templ-watch-oolong:
+    @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_HOTRELOAD=1 templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/oolong"
 
 templ-generate:
     @templ generate

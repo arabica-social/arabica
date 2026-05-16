@@ -53,6 +53,7 @@ templ VesselViewCard(props VesselViewProps) {
 				ShareTitle:      props.Vessel.Name,
 				ShareText:       "Check out this tea vessel",
 				IsOwner:         props.IsOwnProfile,
+				EditModalURL:    "/api/modals/vessel/" + props.Vessel.RKey,
 				DeleteURL:       "/api/vessels/" + props.Vessel.RKey,
 				IsAuthenticated: props.IsAuthenticated,
 				IsModerator:     props.IsModerator,

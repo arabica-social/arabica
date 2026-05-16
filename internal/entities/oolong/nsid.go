@@ -6,13 +6,9 @@
 package oolong
 
 const (
-	// NSIDBase is the base namespace for all Oolong-owned lexicons.
+	// NSIDBase is the base namespace for all Oolong-owned lexicons,
+	// including its own like + comment social lexicons.
 	NSIDBase = "social.oolong.alpha"
-
-	// SocialNSIDBase is the namespace whose like + comment lexicons
-	// oolong reuses. Oolong intentionally does not define its own like
-	// or comment record types — it federates against arabica's.
-	SocialNSIDBase = "social.arabica.alpha"
 
 	NSIDTea     = NSIDBase + ".tea"
 	NSIDBrew    = NSIDBase + ".brew"
@@ -26,7 +22,8 @@ const (
 	NSIDCafe  = NSIDBase + ".cafe"
 	NSIDDrink = NSIDBase + ".drink"
 
-	// Social NSIDs federate via arabica's lexicons.
-	NSIDLike    = SocialNSIDBase + ".like"
-	NSIDComment = SocialNSIDBase + ".comment"
+	// Social NSIDs in oolong's own namespace. Mirror arabica's shape
+	// minus the lexicon id.
+	NSIDLike    = NSIDBase + ".like"
+	NSIDComment = NSIDBase + ".comment"
 )

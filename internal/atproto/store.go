@@ -23,6 +23,13 @@ type AtprotoStore struct {
 	sessionID    string
 	cache        *SessionCache
 	witnessCache WitnessCache // optional; enables cache-first reads without PDS calls
+
+	// likeNSID and commentNSID are the collection NSIDs this store reads
+	// and writes for likes/comments. They default to arabica's collections
+	// when unset (legacy callers / tests) but should be set per-app by
+	// production callers so oolong writes to social.oolong.alpha.{like,comment}.
+	likeNSID    string
+	commentNSID string
 }
 
 // NewAtprotoStore creates a new atproto store for a specific user session.
@@ -46,6 +53,34 @@ func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string
 		cache:        cache,
 		witnessCache: witness,
 	}
+}
+
+// NewAtprotoStoreForApp builds a store wired with per-app like/comment NSIDs.
+// Pass empty strings to fall back to arabica's defaults.
+func NewAtprotoStoreForApp(client *Client, did syntax.DID, sessionID string, cache *SessionCache, witness WitnessCache, likeNSID, commentNSID string) database.Store {
+	return &AtprotoStore{
+		client:       client,
+		did:          did,
+		sessionID:    sessionID,
+		cache:        cache,
+		witnessCache: witness,
+		likeNSID:     likeNSID,
+		commentNSID:  commentNSID,
+	}
+}
+
+func (s *AtprotoStore) likeCollection() string {
+	if s.likeNSID != "" {
+		return s.likeNSID
+	}
+	return arabica.NSIDLike
+}
+
+func (s *AtprotoStore) commentCollection() string {
+	if s.commentNSID != "" {
+		return s.commentNSID
+	}
+	return arabica.NSIDComment
 }
 
 // atpClient returns an *atp.Client scoped to this store's DID and session.
@@ -1288,12 +1323,14 @@ func (s *AtprotoStore) CreateLike(ctx context.Context, req *arabica.CreateLikeRe
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert like to record: %w", err)
 	}
+	collection := s.likeCollection()
+	record["$type"] = collection
 
 	atpClient, err := s.atpClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get atp client: %w", err)
 	}
-	uri, cid, err := atpClient.CreateRecord(ctx, arabica.NSIDLike, record)
+	uri, cid, err := atpClient.CreateRecord(ctx, collection, record)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create like record: %w", err)
 	}
@@ -1305,7 +1342,7 @@ func (s *AtprotoStore) CreateLike(ctx context.Context, req *arabica.CreateLikeRe
 
 	likeModel.RKey = atURI.RecordKey().String()
 
-	s.writeThroughWitness(arabica.NSIDLike, likeModel.RKey, cid, record)
+	s.writeThroughWitness(collection, likeModel.RKey, cid, record)
 
 	return likeModel, nil
 }
@@ -1315,10 +1352,11 @@ func (s *AtprotoStore) DeleteLikeByRKey(ctx context.Context, rkey string) error 
 	if err != nil {
 		return fmt.Errorf("get atp client: %w", err)
 	}
-	if err := atpClient.DeleteRecord(ctx, arabica.NSIDLike, rkey); err != nil {
+	collection := s.likeCollection()
+	if err := atpClient.DeleteRecord(ctx, collection, rkey); err != nil {
 		return fmt.Errorf("failed to delete like record: %w", err)
 	}
-	s.deleteFromWitness(arabica.NSIDLike, rkey)
+	s.deleteFromWitness(collection, rkey)
 	return nil
 }
 
@@ -1343,7 +1381,7 @@ func (s *AtprotoStore) ListUserLikes(ctx context.Context) ([]*arabica.Like, erro
 	if err != nil {
 		return nil, fmt.Errorf("get atp client: %w", err)
 	}
-	records, err := atpClient.ListAllRecords(ctx, arabica.NSIDLike)
+	records, err := atpClient.ListAllRecords(ctx, s.likeCollection())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list like records: %w", err)
 	}
@@ -1394,12 +1432,14 @@ func (s *AtprotoStore) CreateComment(ctx context.Context, req *arabica.CreateCom
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert comment to record: %w", err)
 	}
+	collection := s.commentCollection()
+	record["$type"] = collection
 
 	atpClient, err := s.atpClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get atp client: %w", err)
 	}
-	uri, cid, err := atpClient.CreateRecord(ctx, arabica.NSIDComment, record)
+	uri, cid, err := atpClient.CreateRecord(ctx, collection, record)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create comment record: %w", err)
 	}
@@ -1413,7 +1453,7 @@ func (s *AtprotoStore) CreateComment(ctx context.Context, req *arabica.CreateCom
 	// Store the CID of this comment record (useful for threading)
 	commentModel.CID = cid
 
-	s.writeThroughWitness(arabica.NSIDComment, commentModel.RKey, cid, record)
+	s.writeThroughWitness(collection, commentModel.RKey, cid, record)
 
 	return commentModel, nil
 }
@@ -1423,10 +1463,11 @@ func (s *AtprotoStore) DeleteCommentByRKey(ctx context.Context, rkey string) err
 	if err != nil {
 		return fmt.Errorf("get atp client: %w", err)
 	}
-	if err := atpClient.DeleteRecord(ctx, arabica.NSIDComment, rkey); err != nil {
+	collection := s.commentCollection()
+	if err := atpClient.DeleteRecord(ctx, collection, rkey); err != nil {
 		return fmt.Errorf("failed to delete comment record: %w", err)
 	}
-	s.deleteFromWitness(arabica.NSIDComment, rkey)
+	s.deleteFromWitness(collection, rkey)
 	return nil
 }
 
@@ -1454,7 +1495,7 @@ func (s *AtprotoStore) ListUserComments(ctx context.Context) ([]*arabica.Comment
 	if err != nil {
 		return nil, fmt.Errorf("get atp client: %w", err)
 	}
-	records, err := atpClient.ListAllRecords(ctx, arabica.NSIDComment)
+	records, err := atpClient.ListAllRecords(ctx, s.commentCollection())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list comment records: %w", err)
 	}

@@ -149,6 +149,6 @@ func init() {
 
 	// Comment and Like are intentionally NOT registered.
 	// App.NSIDs() in internal/atplatform/domain/app.go appends them
-	// unconditionally using SocialNSIDBase. Registering them as
-	// descriptors would produce duplicates.
+	// unconditionally using NSIDBase. Registering them as descriptors
+	// would produce duplicates.
 }

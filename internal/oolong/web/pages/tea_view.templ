@@ -53,6 +53,7 @@ templ TeaViewCard(props TeaViewProps) {
 				ShareTitle:      props.Tea.Name,
 				ShareText:       "Check out this tea",
 				IsOwner:         props.IsOwnProfile,
+				EditURL:         "/teas/" + props.Tea.RKey + "/edit",
 				DeleteURL:       "/api/teas/" + props.Tea.RKey,
 				IsAuthenticated: props.IsAuthenticated,
 				IsModerator:     props.IsModerator,

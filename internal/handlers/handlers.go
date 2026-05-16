@@ -322,12 +322,15 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 		return nil, false
 	}
 
-	// Create user-scoped atproto store with injected cache
-	if h.witnessCache != nil {
-		store := atproto.NewAtprotoStoreWithWitness(h.atprotoClient, did, sessionID, h.sessionCache, h.witnessCache)
-		return store, true
+	// Create user-scoped atproto store with injected cache. App-specific
+	// social NSIDs are plumbed in so oolong stores write to
+	// social.oolong.alpha.{like,comment} rather than arabica's collections.
+	var likeNSID, commentNSID string
+	if h.app != nil {
+		likeNSID = h.app.LikeNSID()
+		commentNSID = h.app.CommentNSID()
 	}
-	store := atproto.NewAtprotoStore(h.atprotoClient, did, sessionID, h.sessionCache)
+	store := atproto.NewAtprotoStoreForApp(h.atprotoClient, did, sessionID, h.sessionCache, h.witnessCache, likeNSID, commentNSID)
 	return store, true
 }
 
@@ -615,9 +618,13 @@ func (h *Handler) filterHiddenComments(ctx context.Context, comments []firehose.
 	}
 
 	// Build set of hidden comment rkeys for depth adjustment
+	commentNSID := "social.arabica.alpha.comment"
+	if h.app != nil {
+		commentNSID = h.app.CommentNSID()
+	}
 	hiddenRKeys := make(map[string]bool)
 	for _, c := range comments {
-		uri := fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", c.ActorDID, c.RKey)
+		uri := fmt.Sprintf("at://%s/%s/%s", c.ActorDID, commentNSID, c.RKey)
 		if h.moderationStore.IsRecordHidden(ctx, uri) {
 			hiddenRKeys[c.RKey] = true
 		}

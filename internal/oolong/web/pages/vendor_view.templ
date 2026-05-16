@@ -53,6 +53,7 @@ templ VendorViewCard(props VendorViewProps) {
 				ShareTitle:      props.Vendor.Name,
 				ShareText:       "Check out this tea vendor",
 				IsOwner:         props.IsOwnProfile,
+				EditModalURL:    "/api/modals/vendor/" + props.Vendor.RKey,
 				DeleteURL:       "/api/vendors/" + props.Vendor.RKey,
 				IsAuthenticated: props.IsAuthenticated,
 				IsModerator:     props.IsModerator,

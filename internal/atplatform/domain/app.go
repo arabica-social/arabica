@@ -9,14 +9,10 @@ import (
 )
 
 type App struct {
-	Name     string
-	NSIDBase string
-	// SocialNSIDBase, when non-empty, overrides NSIDBase for the
-	// like and comment NSIDs derived by NSIDs(). Sister apps reuse
-	// arabica's social lexicons by setting this to "social.arabica.alpha".
-	SocialNSIDBase string
-	Descriptors    []*entities.Descriptor
-	Brand          BrandConfig
+	Name        string
+	NSIDBase    string
+	Descriptors []*entities.Descriptor
+	Brand       BrandConfig
 }
 
 type BrandConfig struct {
@@ -25,17 +21,23 @@ type BrandConfig struct {
 }
 
 func (a *App) NSIDs() []string {
-	socialBase := a.SocialNSIDBase
-	if socialBase == "" {
-		socialBase = a.NSIDBase
-	}
 	out := make([]string, 0, len(a.Descriptors)+2)
 	for _, d := range a.Descriptors {
 		out = append(out, d.NSID)
 	}
-	out = append(out, socialBase+".like")
-	out = append(out, socialBase+".comment")
+	out = append(out, a.NSIDBase+".like")
+	out = append(out, a.NSIDBase+".comment")
 	return out
+}
+
+// LikeNSID returns the like collection NSID for this app.
+func (a *App) LikeNSID() string {
+	return a.NSIDBase + ".like"
+}
+
+// CommentNSID returns the comment collection NSID for this app.
+func (a *App) CommentNSID() string {
+	return a.NSIDBase + ".comment"
 }
 
 func (a *App) OAuthScopes() []string {

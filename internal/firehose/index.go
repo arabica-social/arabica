@@ -76,12 +76,32 @@ type FeedIndex struct {
 	publicClient *atp.PublicClient
 	profileTTL   time.Duration
 
+	// commentNSID is the comment collection this index's binary serves
+	// (e.g. social.arabica.alpha.comment or social.oolong.alpha.comment).
+	// Used when rebuilding comment AT-URIs from indexed rows. Falls back
+	// to arabica.NSIDComment when unset for backwards-compat with tests
+	// that construct a FeedIndex directly via NewFeedIndex.
+	commentNSID string
+
 	// In-memory cache for hot data
 	profileCache   map[string]*CachedProfile
 	profileCacheMu sync.RWMutex
 
 	ready   bool
 	readyMu sync.RWMutex
+}
+
+// SetCommentNSID configures the comment collection NSID used when
+// reconstructing comment AT-URIs from rows in the comments table.
+func (idx *FeedIndex) SetCommentNSID(nsid string) {
+	idx.commentNSID = nsid
+}
+
+func (idx *FeedIndex) commentCollection() string {
+	if idx.commentNSID != "" {
+		return idx.commentNSID
+	}
+	return arabica.NSIDComment
 }
 
 // FeedSort defines the sort order for feed queries
@@ -1009,7 +1029,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	}
 	item.Author = profile
 
-	if record.Collection == arabica.NSIDLike {
+	if strings.HasSuffix(record.Collection, ".like") {
 		return nil, fmt.Errorf("unexpected: likes should be filtered before conversion")
 	}
 
@@ -1889,8 +1909,8 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 			}
 			recordCount++
 
-			switch collection {
-			case arabica.NSIDLike:
+			switch {
+			case strings.HasSuffix(collection, ".like"):
 				if subject, ok := record.Value["subject"].(map[string]any); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
 						if err := idx.UpsertLike(ctx, did, rkey, subjectURI); err != nil {
@@ -1898,7 +1918,7 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 						}
 					}
 				}
-			case arabica.NSIDComment:
+			case strings.HasSuffix(collection, ".comment"):
 				if subject, ok := record.Value["subject"].(map[string]any); ok {
 					if subjectURI, ok := subject["uri"].(string); ok {
 						text, _ := record.Value["text"].(string)
@@ -2182,7 +2202,7 @@ func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI stri
 	commentURIs := make([]string, len(comments))
 	didSet := make(map[string]struct{}, len(comments))
 	for i, c := range comments {
-		commentURIs[i] = fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", c.ActorDID, c.RKey)
+		commentURIs[i] = fmt.Sprintf("at://%s/%s/%s", c.ActorDID, idx.commentCollection(), c.RKey)
 		didSet[c.ActorDID] = struct{}{}
 	}
 	likeCounts := idx.GetLikeCountsBatch(ctx, commentURIs)

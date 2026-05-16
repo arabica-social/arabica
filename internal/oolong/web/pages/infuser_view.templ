@@ -53,6 +53,7 @@ templ InfuserViewCard(props InfuserViewProps) {
 				ShareTitle:      props.Infuser.Name,
 				ShareText:       "Check out this tea infuser",
 				IsOwner:         props.IsOwnProfile,
+				EditModalURL:    "/api/modals/infuser/" + props.Infuser.RKey,
 				DeleteURL:       "/api/infusers/" + props.Infuser.RKey,
 				IsAuthenticated: props.IsAuthenticated,
 				IsModerator:     props.IsModerator,

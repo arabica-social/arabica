@@ -382,8 +382,9 @@ func (c *Consumer) processCommit(event JetstreamEvent) error {
 			return fmt.Errorf("failed to upsert record: %w", err)
 		}
 
-		// Special handling for likes - index for counts
-		if commit.Collection == "social.arabica.alpha.like" {
+		// Special handling for likes - index for counts. Matches any
+		// app's like collection (arabica + oolong both use ".like" suffix).
+		if strings.HasSuffix(commit.Collection, ".like") {
 			var recordData map[string]any
 			if err := json.Unmarshal(commit.Record, &recordData); err == nil {
 				if subject, ok := recordData["subject"].(map[string]any); ok {
@@ -398,8 +399,9 @@ func (c *Consumer) processCommit(event JetstreamEvent) error {
 			}
 		}
 
-		// Special handling for comments - index for counts and retrieval
-		if commit.Collection == "social.arabica.alpha.comment" {
+		// Special handling for comments - index for counts and retrieval.
+		// Matches any app's comment collection.
+		if strings.HasSuffix(commit.Collection, ".comment") {
 			var recordData map[string]any
 			if err := json.Unmarshal(commit.Record, &recordData); err == nil {
 				if subject, ok := recordData["subject"].(map[string]any); ok {
@@ -432,7 +434,7 @@ func (c *Consumer) processCommit(event JetstreamEvent) error {
 
 	case "delete":
 		// Special handling for likes - need to look up subject URI before delete
-		if commit.Collection == "social.arabica.alpha.like" {
+		if strings.HasSuffix(commit.Collection, ".like") {
 			// Try to get the existing record to find its subject
 			if existingRecord, err := c.index.GetRecord(
 				context.Background(),
@@ -453,7 +455,7 @@ func (c *Consumer) processCommit(event JetstreamEvent) error {
 		}
 
 		// Special handling for comments - need to look up subject URI before delete
-		if commit.Collection == "social.arabica.alpha.comment" {
+		if strings.HasSuffix(commit.Collection, ".comment") {
 			// Try to get the existing record to find its subject
 			if existingRecord, err := c.index.GetRecord(
 				context.Background(),

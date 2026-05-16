@@ -190,6 +190,9 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	if err != nil {
 		return fmt.Errorf("create feed index at %s: %w", feedIndexPath, err)
 	}
+	// Tell the index which comment collection this binary owns so it can
+	// reconstruct comment AT-URIs for moderation / like-count lookups.
+	feedIndex.SetCommentNSID(app.CommentNSID())
 	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
 
 	// One-time seed from legacy BoltDB feed_registry bucket.
