@@ -22,11 +22,6 @@ func Init(ctx context.Context) (*sdktrace.TracerProvider, error) {
 	return atptracing.Init(ctx, "arabica")
 }
 
-// BoltSpan starts a span for a BoltDB operation.
-func BoltSpan(ctx context.Context, op, bucket string) (context.Context, trace.Span) {
-	return atptracing.BoltSpan(ctx, op, bucket)
-}
-
 // SqliteSpan starts a span for a SQLite operation.
 func SqliteSpan(ctx context.Context, op, table string) (context.Context, trace.Span) {
 	return atptracing.SqliteSpan(ctx, op, table)

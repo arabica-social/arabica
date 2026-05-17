@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	bolt "go.etcd.io/bbolt"
 )
 
 // StatsSource provides functions to retrieve current counts for gauge metrics.
@@ -19,7 +18,6 @@ type StatsSource struct {
 	CommentCount            func() int
 	RecordCountByCollection func() map[string]int
 	FirehoseConnected       func() bool
-	BoltStats               func() bolt.Stats
 	SQLiteStats             func() sql.DBStats
 }
 
@@ -73,12 +71,6 @@ func collect(src StatsSource) {
 		} else {
 			FirehoseConnectionState.Set(0)
 		}
-	}
-	if src.BoltStats != nil {
-		s := src.BoltStats()
-		BoltReadTxTotal.Set(float64(s.TxN))
-		BoltOpenReadTx.Set(float64(s.OpenTxN))
-		BoltWriteOpsTotal.Set(float64(s.TxStats.Write))
 	}
 	if src.SQLiteStats != nil {
 		s := src.SQLiteStats()

@@ -20,7 +20,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
-	"tangled.org/arabica.social/arabica/internal/database/boltstore"
 	"tangled.org/arabica.social/arabica/internal/database/sqlitestore"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
@@ -32,7 +31,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/pdewey.com/atp"
 
-	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
@@ -120,14 +118,6 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	}
 
 	// All persistent files live under dataDir (per-app, see resolveDataDir).
-	dbPath := filepath.Join(dataDir, app.Name+".db")
-	store, err := boltstore.Open(boltstore.Options{Path: dbPath})
-	if err != nil {
-		return fmt.Errorf("open database at %s: %w", dbPath, err)
-	}
-	defer func() { _ = store.Close() }()
-	log.Info().Str("path", dbPath).Msg("Database opened")
-
 	feedIndexPath := filepath.Join(dataDir, "feed-index.sqlite")
 
 	// Firehose config -- wantedCollections come from app.NSIDs() so the
@@ -153,27 +143,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	feedIndex.SetCommentNSID(app.CommentNSID())
 	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
 
-	// OAuth session store: flip useSQLiteOAuth to true to migrate bolt -> sqlite
-	// and cut over in the same boot (migration is idempotent).
-	// TODO: remove all of this once we drop bolt
-	const useSQLiteOAuth = true
-	var sessionStore oauth.ClientAuthStore
-	if useSQLiteOAuth {
-		res, err := store.MigrateOAuthToSQLite(ctx, feedIndex.DB())
-		if err != nil {
-			return fmt.Errorf("migrate OAuth bolt->sqlite: %w", err)
-		}
-		log.Info().
-			Bool("sqlite", true).
-			Int("migrated_sessions", res.Sessions).
-			Int("migrated_auth_requests", res.AuthRequests).
-			Msg("OAuth store: SQLite (bolt backfilled)")
-		// TODO: remove everything here except for this line once the cut-over happens
-		sessionStore = sqlitestore.NewOAuthStore(feedIndex.DB())
-	} else {
-		log.Info().Bool("sqlite", false).Msg("OAuth store: BoltDB")
-		sessionStore = store.SessionStore()
-	}
+	sessionStore := sqlitestore.NewOAuthStore(feedIndex.DB())
 
 	// OAuth manager
 	// REFACTOR: this feels a bit messy
@@ -207,17 +177,6 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		return fmt.Errorf("initialize OAuth: %w", err)
 	}
 
-	// One-time seed from legacy BoltDB feed_registry bucket.
-	// TODO: remove once seeded
-	if legacyDIDs := store.LegacyFeedDIDs(); len(legacyDIDs) > 0 {
-		added, err := feedIndex.SeedRegisteredDIDs(legacyDIDs)
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed to seed registered DIDs from legacy feed registry")
-		} else if added > 0 {
-			log.Info().Int("seeded", added).Msg("Seeded registered_dids from legacy BoltDB feed registry")
-		}
-	}
-
 	feedRegistry := feed.NewPersistentRegistry(feedIndex)
 	feedService := feed.NewService(feedRegistry)
 	log.Info().Int("registered_users", feedRegistry.Count()).Msg("Feed service initialised")
@@ -244,7 +203,6 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		CommentCount:            feedIndex.TotalCommentCount,
 		RecordCountByCollection: feedIndex.RecordCountByCollection,
 		FirehoseConnected:       firehoseConsumer.IsConnected,
-		BoltStats:               store.Stats,
 		SQLiteStats:             feedIndex.DB().Stats,
 	}, 60*time.Second)
 
@@ -417,7 +375,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 			Str("address", bindAddr+":"+port).
 			Str("url", "http://localhost:"+port).
 			Bool("secure_cookies", secureCookies).
-			Str("database", dbPath).
+			Str("database", feedIndexPath).
 			Msg("Starting HTTP server")
 
 		err := httpServer.ListenAndServe()

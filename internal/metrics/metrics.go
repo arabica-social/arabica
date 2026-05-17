@@ -127,24 +127,6 @@ var (
 	})
 )
 
-// BoltDB metrics
-var (
-	BoltReadTxTotal = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "arabica_bolt_read_tx_total",
-		Help: "Total number of started read transactions in BoltDB (cumulative since process start)",
-	})
-
-	BoltOpenReadTx = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "arabica_bolt_open_read_tx",
-		Help: "Number of currently open read transactions in BoltDB",
-	})
-
-	BoltWriteOpsTotal = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "arabica_bolt_write_ops_total",
-		Help: "Total number of write operations performed in BoltDB (cumulative since process start)",
-	})
-)
-
 // SQLite metrics
 var (
 	SQLiteOpenConnections = promauto.NewGauge(prometheus.GaugeOpts{
