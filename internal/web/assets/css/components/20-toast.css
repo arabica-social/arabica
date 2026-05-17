@@ -1,0 +1,47 @@
+/* Toast notification region. Toasts are inserted by the global notify
+   handler (see layout.templ) and removed after their CSS animation ends. */
+.toast-region {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-md);
+  animation:
+    toast-in 180ms ease-out,
+    toast-out 220ms ease-in 2.4s forwards;
+  max-width: min(90vw, 28rem);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}

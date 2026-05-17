@@ -95,8 +95,6 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /og-image", h.HandleSiteOGImage)
 	mux.HandleFunc("GET /about", h.HandleAbout)
 	mux.HandleFunc("GET /terms", h.HandleTerms)
-	mux.HandleFunc("GET /join", h.HandleJoin)
-	mux.Handle("POST /join", cop.Handler(http.HandlerFunc(h.HandleJoinSubmit)))
 	mux.HandleFunc("GET /join/create", h.HandleCreateAccount)
 	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
 	mux.HandleFunc("GET /atproto", h.HandleATProto)
@@ -225,10 +223,6 @@ func SetupRouter(cfg Config) http.Handler {
 		middleware.RequirePermission(modSvc, moderation.PermissionManageLabels, http.HandlerFunc(h.HandleAddLabel))))
 	mux.Handle("POST /_mod/label/remove", cop.Handler(
 		middleware.RequirePermission(modSvc, moderation.PermissionManageLabels, http.HandlerFunc(h.HandleRemoveLabel))))
-	mux.Handle("POST /_mod/invite", cop.Handler(
-		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleCreateInvite))))
-	mux.Handle("POST /_mod/dismiss-join", cop.Handler(
-		middleware.RequireAdmin(modSvc, http.HandlerFunc(h.HandleDismissJoinRequest))))
 	mux.Handle("GET /_mod/stats", middleware.RequireAdmin(modSvc,
 		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
 	mux.Handle("GET /_mod/export", middleware.RequireAdmin(modSvc,

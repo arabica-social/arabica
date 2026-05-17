@@ -49,8 +49,8 @@ templ HeaderWithProps(props HeaderProps) {
 					if !props.IsAuthenticated {
 						<div class="flex items-center gap-4">
 							<button
-								x-data
-								@click="$dispatch('open-login')"
+								type="button"
+								data-action="open-modal" data-target="login-modal"
 								class="text-sm font-semibold text-brown-100 hover:text-white transition-colors"
 							>
 								Log In
@@ -92,7 +92,7 @@ templ HeaderWithProps(props HeaderProps) {
 									DisplayName: getHeaderDisplayName(props.UserProfile),
 									Size:        "sm",
 								})
-								<svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg :class="['w-4', 'h-4', 'transition-transform', { 'rotate-180': open }]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 								</svg>
 							</button>
@@ -158,13 +158,13 @@ templ HeaderWithProps(props HeaderProps) {
 
 // LoginModal renders the login dialog for unauthenticated users
 templ LoginModal() {
-	<dialog id="login-modal" class="modal-dialog" x-data @open-login.window="$el.showModal()">
+	<dialog id="login-modal" class="modal-dialog">
 		<div class="modal-content">
 			<div class="flex items-center justify-between mb-4">
 				<h2 class="modal-title mb-0">Log in with your Atmosphere account</h2>
 				<button
 					type="button"
-					@click="$el.closest('dialog').close()"
+					data-action="close-dialog"
 					class="text-placeholder hover:text-muted transition-colors"
 					aria-label="Close"
 				>

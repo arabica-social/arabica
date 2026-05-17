@@ -212,11 +212,11 @@ combo-select pattern with typeahead search, community suggestions, and inline
 creation:
 
 - **Go config**: `components.ComboSelectConfig()` in
-  `components/combo_select.templ` generates Alpine.js `x-data` with
+  `components/combo_select.templ` generates petite-vue directive with
   entity-specific label formatting and create data mapping.
 - **Templ markup**: `components.ComboSelectInput()` renders the shared dropdown
   UI.
-- **JS behavior**: `static/js/combo-select.js` — Alpine.js component that
+- **JS behavior**: `static/js/combo-select.js` — petite-vue directive that
   searches user records (from client-side cache), community suggestions (from
   `/api/suggestions/{entity}`), and creates new entities inline via POST.
 - **Suggestions backend**: `internal/suggestions/suggestions.go` — entity

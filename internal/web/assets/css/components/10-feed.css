@@ -205,6 +205,23 @@
   color: var(--type-brewer);
 }
 
+/* Load more button — HTMX adds `.htmx-request` while a request is in flight,
+   which swaps the idle/busy text and dims the button. */
+.load-more-btn .load-more-busy {
+  display: none;
+}
+.load-more-btn.htmx-request .load-more-idle {
+  display: none;
+}
+.load-more-btn.htmx-request .load-more-busy {
+  display: inline;
+}
+.load-more-btn:disabled,
+.load-more-btn.htmx-request {
+  opacity: 0.5;
+  cursor: progress;
+}
+
 /* Entity card type dot — small colored indicator in card headers */
 .entity-card-dot {
   display: inline-block;

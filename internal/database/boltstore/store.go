@@ -1,6 +1,5 @@
 // Package boltstore provides persistent storage using BoltDB (bbolt).
-// It implements the oauth.ClientAuthStore interface for session persistence
-// and provides storage for join requests.
+// It implements the oauth.ClientAuthStore interface for session persistence.
 package boltstore
 
 import (
@@ -19,9 +18,6 @@ var (
 
 	// BucketAuthRequests stores pending OAuth auth requests keyed by state
 	BucketAuthRequests = []byte("oauth_auth_requests")
-
-	// BucketJoinRequests stores PDS account join requests
-	BucketJoinRequests = []byte("join_requests")
 )
 
 // Store wraps a BoltDB database and provides access to specialized stores.
@@ -86,7 +82,6 @@ func Open(opts Options) (*Store, error) {
 		buckets := [][]byte{
 			BucketSessions,
 			BucketAuthRequests,
-			BucketJoinRequests,
 		}
 
 		for _, bucket := range buckets {
@@ -124,11 +119,6 @@ func (s *Store) SessionStore() *SessionStore {
 	return &SessionStore{db: s.db}
 }
 
-// JoinStore returns a join request store backed by this database.
-func (s *Store) JoinStore() *JoinStore {
-	return &JoinStore{db: s.db}
-}
-
 // LegacyFeedDIDs reads DIDs from the old feed_registry bucket that existed
 // before the feed registry was moved to SQLite. Used for one-time migration
 // seeding on first startup after the transition.
@@ -147,7 +137,7 @@ func (s *Store) LegacyFeedDIDs() []string {
 	return dids
 }
 
-// Stats returns database statistics.
 func (s *Store) Stats() bolt.Stats {
 	return s.db.Stats()
 }
+

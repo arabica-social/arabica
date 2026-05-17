@@ -16,7 +16,7 @@ templ Manage(layout *components.LayoutData, props ManageProps) {
 // ManageContent renders the manage page content
 templ ManageContent(props ManageProps) {
 	<script src={ assets.JSHrefFor("manage-page.js") }></script>
-	<div class="page-container-xl" x-data="managePage()">
+	<div class="page-container-xl" v-scope="managePage()" @vue:mounted="setup" :data-active-tab="tab">
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()
 			<h2 class="text-2xl font-semibold text-primary">Manage</h2>
@@ -83,19 +83,19 @@ templ ManageContentLoader() {
 templ ManageRefreshButton() {
 	<button
 		type="button"
-		x-data="{ syncing: false }"
-		@click="syncing = true; htmx.ajax('POST', '/api/manage/refresh', { target: '#manage-content', swap: 'innerHTML' }).then(() => syncing = false).catch(() => syncing = false)"
+		v-scope="{ syncing: false, doSync() { this.syncing = true; htmx.ajax('POST', '/api/manage/refresh', { target: '#manage-content', swap: 'innerHTML' }).then(() => { this.syncing = false; }).catch(() => { this.syncing = false; }); } }"
+		@click="doSync"
 		:disabled="syncing"
 		class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-emphasis hover:text-primary border border-brown-300 hover:border-brown-400 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
 		title="Refresh all data from your PDS"
 	>
-		<svg :class="syncing && 'animate-spin'" class="inline-block w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<svg :class="['inline-block w-4 h-4 flex-shrink-0', { 'animate-spin': syncing }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<path d="M21.5 2v6h-6"></path>
 			<path d="M2.5 22v-6h6"></path>
 			<path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8"></path>
 			<path d="M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"></path>
 		</svg>
-		<span x-text="syncing ? 'Syncing...' : 'Sync from PDS'"></span>
+		<span v-text="syncing ? 'Syncing...' : 'Sync from PDS'"></span>
 	</button>
 }
 
@@ -105,7 +105,7 @@ const ntabs int = 3
 templ ManageLoadingSkeleton() {
 	<div class="animate-pulse">
 		<!-- Beans Tab Skeleton -->
-		<div x-show="tab === 'beans'">
+		<div data-tab-panel="beans">
 			<div class="mb-4 flex justify-between items-center">
 				<h3 class="text-xl font-semibold text-primary">Coffee Beans</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
@@ -139,7 +139,7 @@ templ ManageLoadingSkeleton() {
 			</div>
 		</div>
 		<!-- Roasters Tab Skeleton -->
-		<div x-show="tab === 'roasters'">
+		<div data-tab-panel="roasters">
 			<div class="mb-4 flex justify-between items-center">
 				<h3 class="text-xl font-semibold text-primary">Roasters</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
@@ -165,7 +165,7 @@ templ ManageLoadingSkeleton() {
 			</div>
 		</div>
 		<!-- Grinders Tab Skeleton -->
-		<div x-show="tab === 'grinders'">
+		<div data-tab-panel="grinders">
 			<div class="mb-4 flex justify-between items-center">
 				<h3 class="text-xl font-semibold text-primary">Grinders</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
@@ -192,7 +192,7 @@ templ ManageLoadingSkeleton() {
 			</div>
 		</div>
 		<!-- Brewers Tab Skeleton -->
-		<div x-show="tab === 'brewers'">
+		<div data-tab-panel="brewers">
 			<div class="mb-4 flex justify-between items-center">
 				<h3 class="text-xl font-semibold text-primary">Brewers</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>
@@ -218,7 +218,7 @@ templ ManageLoadingSkeleton() {
 			</div>
 		</div>
 		<!-- Recipes Tab Skeleton -->
-		<div x-show="tab === 'recipes'">
+		<div data-tab-panel="recipes">
 			<div class="mb-4 flex justify-between items-center">
 				<h3 class="text-xl font-semibold text-primary">Recipes</h3>
 				<div class="h-10 bg-brown-300 rounded-sm w-28"></div>

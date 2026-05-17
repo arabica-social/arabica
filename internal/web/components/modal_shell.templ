@@ -8,16 +8,8 @@ import (
 // ModalShellProps configures the shared dialog wrapper used by entity
 // create/edit modals. Body content is passed as templ children.
 type ModalShellProps struct {
-	Type       lexicons.RecordType
-	RKey       string // "" = create, non-empty = edit
-	ExtraXData string // optional Alpine x-data; if empty, "{ serverError: '' }" is used
-}
-
-func modalShellXData(extra string) string {
-	if extra != "" {
-		return extra
-	}
-	return "{ serverError: '' }"
+	Type lexicons.RecordType
+	RKey string // "" = create, non-empty = edit
 }
 
 func modalActionURL(d *entities.Descriptor, rkey string) string {
@@ -48,17 +40,17 @@ templ ModalShell(props ModalShellProps) {
 					hx-swap="none"
 					hx-sync="this:drop"
 					hx-disabled-elt="find button[type='submit']"
-					x-data={ modalShellXData(props.ExtraXData) }
-					hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); htmx.trigger('body', 'refreshManage'); } else if(event.detail.xhr && event.detail.xhr.status === 401) { this.closest('dialog').close(); window.__showSessionExpiredModal(); } else { this._x_dataStack[0].serverError = event.detail.xhr ? 'Something went wrong. Please try again.' : 'Connection error. Check your network.'; }"
+					v-scope="ModalShell()"
+					@vue:mounted="setup($el)"
 					class="space-y-5"
 				>
-					<div x-show="serverError" x-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" x-text="serverError"></div>
+					<div v-show="!!serverError" v-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" v-text="serverError"></div>
 					{ children... }
 					<div class="flex gap-2 pt-2">
 						<button type="submit" class="flex-1 btn-primary">Save</button>
 						<button
 							type="button"
-							@click="$el.closest('dialog').close()"
+							data-action="close-dialog"
 							class="flex-1 btn-secondary"
 						>
 							Cancel

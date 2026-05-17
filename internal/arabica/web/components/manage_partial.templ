@@ -33,7 +33,7 @@ templ ManagePartial(props ManagePartialProps) {
 
 // ManageBeansTab renders the beans tab content with open/closed sections
 templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
-	<div x-show="tab === 'beans'">
+	<div data-tab-panel="beans">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-primary">Coffee Beans</h3>
 			<button
@@ -72,7 +72,7 @@ templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRa
 
 // ManageRoastersTab renders the roasters tab content
 templ ManageRoastersTab(roasters []*arabica.Roaster, beanCounts map[string]int, avgBrewRatings map[string]float64, ownerDID string) {
-	<div x-show="tab === 'roasters'">
+	<div data-tab-panel="roasters">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-primary">Roasters</h3>
 			<button
@@ -96,7 +96,7 @@ templ ManageRoastersTab(roasters []*arabica.Roaster, beanCounts map[string]int, 
 
 // ManageGrindersTab renders the grinders tab content
 templ ManageGrindersTab(grinders []*arabica.Grinder, brewCounts map[string]int, ownerDID string) {
-	<div x-show="tab === 'grinders'">
+	<div data-tab-panel="grinders">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-primary">Grinders</h3>
 			<button
@@ -119,7 +119,7 @@ templ ManageGrindersTab(grinders []*arabica.Grinder, brewCounts map[string]int, 
 
 // ManageBrewersTab renders the brewers tab content
 templ ManageBrewersTab(brewers []*arabica.Brewer, brewCounts map[string]int, ownerDID string) {
-	<div x-show="tab === 'brewers'">
+	<div data-tab-panel="brewers">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-primary">Brewers</h3>
 			<button
@@ -142,7 +142,7 @@ templ ManageBrewersTab(brewers []*arabica.Brewer, brewCounts map[string]int, own
 
 // ManageRecipesTab renders the recipes tab content
 templ ManageRecipesTab(recipes []*arabica.Recipe, ownerDID string) {
-	<div x-show="tab === 'recipes'">
+	<div data-tab-panel="recipes">
 		@RecipeAlphaWarning()
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-primary">Recipes</h3>

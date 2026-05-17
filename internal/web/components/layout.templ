@@ -160,7 +160,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
 			<link rel="stylesheet" href={ data.stylesheetHref() }/>
 			<style>
-			[x-cloak], [v-cloak] { display: none !important; }
+			[v-cloak] { display: none !important; }
 		</style>
 			<link rel="manifest" href="/static/manifest.json"/>
 			<script nonce={ data.CSPNonce }>
@@ -233,7 +233,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 							if (attempts >= maxAttempts) clearInterval(interval);
 							return;
 						}
-						// Wait until selects have options (dropdowns populated by Alpine)
+						// Wait until selects have options (dropdowns populated by petite-vue)
 						var selects = form.querySelectorAll('select');
 						var ready = true;
 						for (var i = 0; i < selects.length; i++) {
@@ -330,17 +330,20 @@ templ Layout(data *LayoutData, content templ.Component) {
 				}
 			});
 		</script>
-			<!-- Load entity manager and dropdown manager modules before Alpine components -->
+			<!-- Entity manager + dropdown manager modules (used by manage-page/brew-form). -->
 			<script src={ assets.JSHrefFor("entity-manager.js") }></script>
 			<script src={ assets.JSHrefFor("dropdown-manager.js") }></script>
-			<!-- Load Alpine components BEFORE Alpine.js initializes -->
+			<!-- data-action event delegation for CSP-safe button handlers. -->
+			<script src={ assets.JSHrefFor("actions.js") }></script>
+			<!-- Petite-vue factories defined by sibling scripts. Order matters:
+				these set window.* globals that arabica-vue.js picks up at mount. -->
 			<script src={ assets.JSHrefFor("theme.js") }></script>
 			<script src={ assets.JSHrefFor("brew-form.js") }></script>
 			<script src={ assets.JSHrefFor("entity-suggest.js") }></script>
 			<script src={ assets.JSHrefFor("combo-select.js") }></script>
-			<!-- Load Alpine.js core with defer (will initialize after DOM loads) -->
-			<script src={ assets.JSHrefFor("alpine.min.js") } defer></script>
-			<!-- Petite-vue: scoped reactive components that coexist with Alpine. -->
+			<script src={ assets.JSHrefFor("manage-page.js") }></script>
+			<script src={ assets.JSHrefFor("recipe-explore.js") }></script>
+			<!-- Petite-vue runtime + bootstrap. -->
 			<script src={ assets.JSHrefFor("petite-vue.iife.js") }></script>
 			<script src={ assets.JSHrefFor("arabica-vue.js") }></script>
 			<!-- Load HTMX and other utilities -->
@@ -414,6 +417,65 @@ templ Layout(data *LayoutData, content templ.Component) {
 			@FooterWithBrand(data.brandName(), data.brandTagline())
 			<!-- Modal container for entity dialogs -->
 			<div id="modal-container"></div>
+			<!-- Toast notifications (fed by `notify` window events and
+			     `HX-Trigger: {"notify":{"message":"..."}}` response headers). -->
+			<div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="false"></div>
+			<script nonce={ data.CSPNonce }>
+				(function () {
+					var region = document.getElementById("toast-region");
+					if (!region) return;
+					function showToast(message) {
+						if (!message) return;
+						var el = document.createElement("div");
+						el.className = "toast";
+						el.setAttribute("role", "status");
+						el.textContent = String(message);
+						region.appendChild(el);
+						// Match animation: 180ms in + 2400ms delay + 220ms out = ~2800ms.
+						setTimeout(function () { el.remove(); }, 2900);
+					}
+					function extractMessage(detail) {
+						if (!detail) return "";
+						// HX-Trigger: {"notify": {"message": "..."}} → detail.value
+						if (detail.value && typeof detail.value === "object") {
+							return detail.value.message || "";
+						}
+						// HX-Trigger: {"notify": "string"} or window CustomEvent path
+						if (typeof detail.value === "string") return detail.value;
+						if (detail.message) return detail.message;
+						return "";
+					}
+					// One listener at the window level: htmx fires HX-Trigger
+					// events on document.body (they bubble) and scope code
+					// dispatches bubbling CustomEvents — both reach window.
+					// Listening on both window and body would double-toast.
+					window.addEventListener("notify", function (e) {
+						showToast(extractMessage(e.detail));
+					});
+					// Auto-close <dialog> by id, optionally delayed.
+					// HX-Trigger: {"close-dialog": {"id": "...", "delay": 2000}}
+					document.body.addEventListener("close-dialog", function (e) {
+						var v = e.detail && e.detail.value;
+						if (!v) return;
+						var id = typeof v === "string" ? v : v.id;
+						var delay = (typeof v === "object" && v.delay) || 0;
+						if (!id) return;
+						setTimeout(function () {
+							var d = document.getElementById(id);
+							if (d && d.close) d.close();
+						}, delay);
+					});
+					// Generic dismiss: any `[data-dialog-close]` element closes
+					// its nearest <dialog> on click. Survives htmx swaps because
+					// the listener is delegated on document.body.
+					document.body.addEventListener("click", function (e) {
+						var t = e.target.closest && e.target.closest("[data-dialog-close]");
+						if (!t) return;
+						var d = t.closest("dialog");
+						if (d && d.close) d.close();
+					});
+				})();
+			</script>
 		</body>
 	</html>
 }

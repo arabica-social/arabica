@@ -157,12 +157,5 @@
     setTimeout(forceContentVisibility, 500);
   });
 
-  // Re-initialize Alpine after HTMX swaps content (needed for profile page)
-  if (document.body && typeof Alpine !== 'undefined') {
-    document.body.addEventListener('htmx:afterSwap', function(evt) {
-      if (evt.target && evt.target.id === 'profile-content') {
-        Alpine.initTree(evt.target);
-      }
-    });
-  }
+  // Petite-vue remount on HTMX swaps is handled in arabica-vue.js.
 })();

@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// ActionBarProps defines properties for the action bar below feed/profile cards
 type ActionBarProps struct {
 	// Subject reference for likes
 	SubjectURI string
@@ -18,7 +17,6 @@ type ActionBarProps struct {
 	// Comment state
 	CommentCount int
 	ViewURL      string // URL to view the item (for comment link)
-	ShowComments bool   // Whether to show the comment button
 
 	// Share props
 	ShareURL   string
@@ -37,14 +35,13 @@ type ActionBarProps struct {
 	IsAuthenticated bool
 
 	// Moderation state
-	IsModerator    bool   // User has moderator role
-	CanHideRecord  bool   // User has hide_record permission
-	CanBlockUser   bool   // User has blacklist_user permission
-	IsRecordHidden bool   // This record is currently hidden
+	IsModerator    bool // User has moderator role
+	CanHideRecord  bool // User has hide_record permission
+	CanBlockUser   bool // User has blacklist_user permission
+	IsRecordHidden bool
 	AuthorDID      string // DID of the content author (for block action)
 }
 
-// getCommentHref returns the href for the comment button.
 func (p ActionBarProps) getCommentHref() string {
 	if p.ViewURL != "" {
 		return p.ViewURL + "#comment-section"
@@ -52,7 +49,6 @@ func (p ActionBarProps) getCommentHref() string {
 	return "#comment-section"
 }
 
-// getDeleteTarget returns the HTMX target for the delete button.
 func (p ActionBarProps) getDeleteTarget() string {
 	if p.DeleteTarget != "" {
 		return p.DeleteTarget
@@ -60,34 +56,29 @@ func (p ActionBarProps) getDeleteTarget() string {
 	return "closest .feed-card"
 }
 
-// hasModActions returns true if any moderation menu items will render.
 func (p ActionBarProps) hasModActions() bool {
 	return (p.CanHideRecord && p.SubjectURI != "") ||
 		(p.CanBlockUser && p.AuthorDID != "" && !p.IsOwner)
 }
 
-// hasReportAction returns true if the report menu item will render.
 func (p ActionBarProps) hasReportAction() bool {
 	return p.IsAuthenticated && !p.IsOwner
 }
 
 // ActionBar renders the action bar with Comments, Like, Share, and More menu
-// Order: [💬 Comments] [♡ Like] [↗ Share] [⋯ More]
 templ ActionBar(props ActionBarProps) {
-	<div class="action-bar" x-data="{ moreOpen: false, openUp: true }">
+	<div class="action-bar" v-scope="MoreMenu()" @vue:mounted="setup($el)" @vue:unmounted="teardown">
 		<!-- Comments -->
-		if props.ShowComments {
-			<a
-				href={ templ.SafeURL(props.getCommentHref()) }
-				class="action-btn"
-				title="View comments"
-			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
-				</svg>
-				<span>{ fmt.Sprintf("%d", props.CommentCount) }</span>
-			</a>
-		}
+		<a
+			href={ templ.SafeURL(props.getCommentHref()) }
+			class="action-btn"
+			title="View comments"
+		>
+			<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
+			</svg>
+			<span>{ fmt.Sprintf("%d", props.CommentCount) }</span>
+		</a>
 		<!-- Hidden indicator (visible to moderators) -->
 		if props.IsModerator && props.IsRecordHidden {
 			<span class="hidden-badge" title="This record is hidden from the public feed">
@@ -115,8 +106,7 @@ templ ActionBar(props ActionBarProps) {
 		<div class="relative z-10">
 			<button
 				type="button"
-				@click="if (!moreOpen) { openUp = $el.getBoundingClientRect().top > window.innerHeight * 0.25 }; moreOpen = !moreOpen"
-				@click.away="moreOpen = false"
+				@click="toggle"
 				class="action-btn"
 				aria-label="More options"
 			>
@@ -126,17 +116,9 @@ templ ActionBar(props ActionBarProps) {
 			</button>
 			<!-- Dropdown menu -->
 			<div
-				x-show="moreOpen"
-				x-transition:enter="transition ease-out duration-100"
-				x-transition:enter-start="transform opacity-0 scale-95"
-				x-transition:enter-end="transform opacity-100 scale-100"
-				x-transition:leave="transition ease-in duration-75"
-				x-transition:leave-start="transform opacity-100 scale-100"
-				x-transition:leave-end="transform opacity-0 scale-95"
 				class="action-menu"
 				role="menu"
-				:class="openUp ? 'bottom-full mb-1' : 'top-full mt-1'"
-				x-cloak
+				:class="[moreOpen && 'is-open', openUp ? 'bottom-full mb-1' : 'top-full mt-1']"
 			>
 				if props.IsOwner {
 					if props.EditURL != "" {
@@ -160,19 +142,18 @@ templ ActionBar(props ActionBarProps) {
 					}
 				}
 				if props.SubjectURI != "" {
-					<template x-if="localStorage.getItem('devMode') === 'true'">
-						<button
-							type="button"
-							@click={ fmt.Sprintf("navigator.clipboard.writeText('%s'); moreOpen = false; $dispatch('notify', {message: 'AT URI copied'})", props.SubjectURI) }
-							class="action-menu-item"
-							role="menuitem"
-						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"></path>
-							</svg>
-							Copy AT URI
-						</button>
-					</template>
+					<button
+						v-if="isDevMode()"
+						type="button"
+						@click={ fmt.Sprintf("copyURI('%s')", escapeForJS(props.SubjectURI)) }
+						class="action-menu-item"
+						role="menuitem"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"></path>
+						</svg>
+						Copy AT URI
+					</button>
 				}
 				<!-- Moderation actions (for moderators/admins) -->
 				if props.CanHideRecord && props.SubjectURI != "" {
@@ -182,7 +163,7 @@ templ ActionBar(props ActionBarProps) {
 							hx-post="/_mod/unhide"
 							hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, props.SubjectURI) }
 							hx-swap="none"
-							@click="moreOpen = false; $dispatch('notify', {message: 'Record unhidden'})"
+							@click="closeMenu"
 							class="action-menu-item"
 							role="menuitem"
 						>
@@ -199,7 +180,7 @@ templ ActionBar(props ActionBarProps) {
 							hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, props.SubjectURI) }
 							hx-swap="none"
 							hx-confirm="Hide this record from the public feed?"
-							@click="moreOpen = false; $dispatch('notify', {message: 'Record hidden from feed'})"
+							@click="closeMenu"
 							class="action-menu-item action-menu-item-warning"
 							role="menuitem"
 						>
@@ -220,7 +201,7 @@ templ ActionBar(props ActionBarProps) {
 						hx-vals={ fmt.Sprintf(`{"did": "%s"}`, props.AuthorDID) }
 						hx-swap="none"
 						hx-confirm="Block this user? All their content will be hidden from the feed."
-						@click="moreOpen = false; $dispatch('notify', {message: 'User blocked'})"
+						@click="closeMenu"
 						class="action-menu-item action-menu-item-danger"
 						role="menuitem"
 					>
@@ -237,7 +218,7 @@ templ ActionBar(props ActionBarProps) {
 				if props.IsAuthenticated && !props.IsOwner {
 					<button
 						type="button"
-						@click={ fmt.Sprintf("moreOpen = false; document.getElementById('report-modal-%s').showModal()", escapeForAlpine(props.SubjectURI)) }
+						@click={ fmt.Sprintf("closeMenu(); document.getElementById('report-modal-%s').showModal()", sanitizeID(props.SubjectURI)) }
 						class="action-menu-item"
 						role="menuitem"
 					>
@@ -252,7 +233,7 @@ templ ActionBar(props ActionBarProps) {
 		<!-- Report modal (only for authenticated non-owners) -->
 		if props.IsAuthenticated && !props.IsOwner && props.SubjectURI != "" {
 			@ReportModal(ReportModalProps{
-				ID:         fmt.Sprintf("report-modal-%s", escapeForAlpine(props.SubjectURI)),
+				ID:         fmt.Sprintf("report-modal-%s", sanitizeID(props.SubjectURI)),
 				SubjectURI: props.SubjectURI,
 				SubjectCID: props.SubjectCID,
 			})
@@ -260,7 +241,6 @@ templ ActionBar(props ActionBarProps) {
 	</div>
 }
 
-// ActionBarShareButton renders the share button for the action bar
 templ ActionBarShareButton(props ActionBarProps) {
 	<button
 		type="button"
@@ -279,61 +259,89 @@ templ ActionBarShareButton(props ActionBarProps) {
 	</button>
 }
 
-// ReportModalProps defines properties for the report modal
 type ReportModalProps struct {
 	ID         string // Unique ID for the dialog
 	SubjectURI string
 	SubjectCID string
 }
 
-// ReportModal renders an inline report modal for the action bar
+type ReportFormProps struct {
+	DialogID     string // <dialog> id this form lives in (so swap targets resolve)
+	SubjectURI   string
+	SubjectCID   string
+	Reason       string
+	ErrorMessage string
+}
+
 templ ReportModal(props ReportModalProps) {
-	<dialog
-		id={ props.ID }
-		class="modal-dialog"
-		aria-labelledby={ props.ID + "-title" }
-		v-scope={ fmt.Sprintf("ReportModal('%s', '%s', '%s')", props.ID, escapeForJS(props.SubjectURI), escapeForJS(props.SubjectCID)) }
-	>
-		<div class="modal-content">
-			<h3 id={ props.ID + "-title" } class="modal-title">Report Content</h3>
-			<form v-if="!success" @submit.prevent="submit" class="space-y-4">
-				<p class="text-sm text-emphasis">
-					Please describe why you're reporting this content. Reports are reviewed by moderators.
-				</p>
-				<div>
-					<textarea
-						v-model="reason"
-						name="reason"
-						placeholder="Describe the issue (optional)"
-						rows="4"
-						maxlength="500"
-						class="w-full form-textarea"
-						aria-label="Report reason"
-					></textarea>
-					<div class="flex justify-between text-xs text-faint mt-1">
-						<span>Optional, but helpful for moderators</span>
-						<span v-text="reason.length + '/500'"></span>
-					</div>
-				</div>
-				<div v-if="error" v-cloak class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm" v-text="error"></div>
-				<div class="flex gap-2">
-					<button type="submit" class="flex-1 btn-primary" :disabled="submitting" v-text="submitting ? 'Submitting...' : 'Submit Report'"></button>
-					<button type="button" @click="close" class="flex-1 btn-secondary" :disabled="submitting">
-						Cancel
-					</button>
-				</div>
-			</form>
-			<div v-if="success" v-cloak class="text-center py-4">
-				<div class="text-green-600 mb-2">
-					<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
-					</svg>
-				</div>
-				<p class="font-medium text-primary">Report Submitted</p>
-				<p class="text-sm text-muted mt-1">Thank you for helping keep our community safe.</p>
-			</div>
+	<dialog id={ props.ID } class="modal-dialog" aria-labelledby={ props.ID + "-title" }>
+		<div id={ props.ID + "-body" } class="modal-content">
+			@ReportForm(ReportFormProps{
+				DialogID:   props.ID,
+				SubjectURI: props.SubjectURI,
+				SubjectCID: props.SubjectCID,
+			})
 		</div>
 	</dialog>
+}
+
+templ ReportForm(props ReportFormProps) {
+	<h3 id={ props.DialogID + "-title" } class="modal-title">Report Content</h3>
+	<form
+		hx-post="/api/report"
+		hx-target={ "#" + props.DialogID + "-body" }
+		hx-swap="innerHTML"
+		hx-disabled-elt="find button[type='submit']"
+		class="space-y-4"
+	>
+		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
+		<input type="hidden" name="subject_cid" value={ props.SubjectCID }/>
+		<input type="hidden" name="dialog_id" value={ props.DialogID }/>
+		<p class="text-sm text-emphasis">
+			Please describe why you're reporting this content. Reports are reviewed by moderators.
+		</p>
+		<div>
+			<textarea
+				name="reason"
+				placeholder="Describe the issue (optional)"
+				rows="4"
+				maxlength="500"
+				class="w-full form-textarea"
+				aria-label="Report reason"
+			>{ props.Reason }</textarea>
+			<div class="flex justify-between text-xs text-faint mt-1">
+				<span>Optional, but helpful for moderators</span>
+			</div>
+		</div>
+		if props.ErrorMessage != "" {
+			<div class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm">
+				{ props.ErrorMessage }
+			</div>
+		}
+		<div class="flex gap-2">
+			<button type="submit" class="flex-1 btn-primary">
+				Submit Report
+			</button>
+			<button type="button" class="flex-1 btn-secondary" data-dialog-close>
+				Cancel
+			</button>
+		</div>
+	</form>
+}
+
+templ ReportSuccess() {
+	<div class="text-center py-4">
+		<div class="text-green-600 mb-2">
+			<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+			</svg>
+		</div>
+		<p class="font-medium text-primary">Report Submitted</p>
+		<p class="text-sm text-muted mt-1">Thank you for helping keep our community safe.</p>
+		<div class="mt-4 flex justify-center">
+			<button type="button" class="btn-secondary px-6" data-dialog-close>Close</button>
+		</div>
+	</div>
 }
 
 // deleteRedirectScript returns an inline script for redirecting after a successful HTMX delete
@@ -342,11 +350,11 @@ func deleteRedirectScript(url string) string {
 }
 
 // editModalAfterSwapScript returns an inline script for opening a modal after HTMX swap and reloading on save
+// REFACTOR: this is gross, feels like this should be in a js file
 func editModalAfterSwapScript() string {
 	return "var d=document.querySelector('#modal-container dialog');if(d){d.showModal();var h=function(){window.location.reload()};document.body.addEventListener('refreshManage',h,{once:true});d.addEventListener('close',function(){document.body.removeEventListener('refreshManage',h)},{once:true})}"
 }
 
-// ActionBarDeleteRedirect renders a delete button that redirects after success (for view pages)
 templ ActionBarDeleteRedirect(props ActionBarProps) {
 	<button
 		type="button"
@@ -364,7 +372,6 @@ templ ActionBarDeleteRedirect(props ActionBarProps) {
 	</button>
 }
 
-// ActionBarDeleteSwap renders a delete button that swaps out the target element (for feed cards)
 templ ActionBarDeleteSwap(props ActionBarProps) {
 	<button
 		type="button"
@@ -391,7 +398,7 @@ templ ActionBarEditModal(props ActionBarProps) {
 		hx-swap="innerHTML"
 		class="action-menu-item"
 		role="menuitem"
-		@click="moreOpen = false"
+		@click="closeMenu"
 		hx-on--after-swap={ editModalAfterSwapScript() }
 	>
 		<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
@@ -401,10 +408,9 @@ templ ActionBarEditModal(props ActionBarProps) {
 	</button>
 }
 
-// escapeForAlpine escapes special characters in a string for use in Alpine.js expressions.
-// This creates a safe ID by replacing problematic characters.
-func escapeForAlpine(s string) string {
-	// Replace characters that are problematic in HTML IDs and Alpine expressions
+// sanitizeID turns a string safe for use as part of an HTML id attribute.
+// AT URIs include `:` `/` `.` which break querySelector lookups otherwise.
+func sanitizeID(s string) string {
 	s = strings.ReplaceAll(s, ":", "_")
 	s = strings.ReplaceAll(s, "/", "_")
 	s = strings.ReplaceAll(s, ".", "_")

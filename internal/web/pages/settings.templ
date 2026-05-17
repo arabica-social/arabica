@@ -28,7 +28,7 @@ templ settingsContent(props SettingsProps) {
 		<h1 class="page-title mb-6">Settings</h1>
 		<div class="card card-inner">
 			<h2 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">Appearance</h2>
-			<div x-data="themeSettings()">
+			<div v-scope="themeSettings()">
 				<label class="form-label">Theme</label>
 				<p class="text-sm mb-3" style="color: var(--text-muted);">Choose how Arabica looks for you. System will follow your OS setting.</p>
 				<div class="flex flex-wrap gap-2">
@@ -93,12 +93,12 @@ templ settingsContent(props SettingsProps) {
 		<div class="card card-inner mt-4">
 			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Developer</h2>
 			<p class="text-sm mb-4" style="color: var(--text-muted);">Tools for inspecting AT Protocol data.</p>
-			<div x-data="{ devMode: localStorage.getItem('devMode') === 'true' }">
+			<div v-scope="DevModeToggle()">
 				<label class="flex items-center gap-2 cursor-pointer">
 					<input
 						type="checkbox"
 						:checked="devMode"
-						@change="devMode = !devMode; localStorage.setItem('devMode', devMode)"
+						@change="toggle"
 						class="form-checkbox"
 					/>
 					<span class="text-sm" style="color: var(--text-primary);">Show "Copy AT URI" in action menus</span>

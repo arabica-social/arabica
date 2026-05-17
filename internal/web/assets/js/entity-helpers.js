@@ -20,53 +20,35 @@ window.openEntityModal = function (modalUrl) {
  * @param {string} newRkey - RKey of the newly created entity to auto-select
  */
 window.refreshEntityDropdown = async function (entityType, selectName, newRkey) {
-  // Check if we're on the manage page by looking for the manage content loader
+  // On the manage page, the manage partial is HTMX-driven — just trigger a refresh.
   const manageLoader = document.querySelector('[hx-get="/api/manage"]');
-
   if (manageLoader) {
-    // We're on the manage page - reload the manage partial by dispatching a custom event
     document.body.dispatchEvent(new CustomEvent('refreshManage'));
-  } else {
-    // We're on another page (like brew form) - refresh dropdowns
-    const selectElement = document.querySelector(`select[name="${selectName}"]`);
+    return;
+  }
 
-    if (selectElement) {
-      // Get the Alpine component instance if it exists
-      const formElement = selectElement.closest('[x-data]');
-      let dropdownManager = null;
+  // Otherwise (e.g. brew form) refresh the dropdown cache + repopulate.
+  // The brew-form petite-vue scope owns its dropdownManager but listens
+  // for a `refresh-dropdowns` event to invalidate it; we also do a cache
+  // refresh ourselves so any non-scope select stays in sync.
+  document.body.dispatchEvent(new CustomEvent('refresh-dropdowns', { bubbles: true }));
 
-      if (formElement && formElement._x_dataStack) {
-        // Access Alpine data stack to get the dropdown manager
-        const alpineData = formElement._x_dataStack[0];
-        if (alpineData && alpineData.dropdownManager) {
-          dropdownManager = alpineData.dropdownManager;
-        }
-      }
-
-      // Refresh data through the dropdown manager if available
-      if (dropdownManager && dropdownManager.invalidateAndRefresh) {
-        await dropdownManager.invalidateAndRefresh();
-      } else if (window.ArabicaCache) {
-        // Fallback: refresh cache and manually repopulate dropdowns
-        const freshData = await window.ArabicaCache.invalidateAndRefresh();
-        if (freshData) {
-          // Create a temporary dropdown manager to repopulate
-          const tempManager = window.createDropdownManager();
-          tempManager.applyData(freshData);
-          tempManager.populateDropdowns();
-        }
-      }
-
-      // Auto-select the newly created item if we have its rkey
-      if (newRkey && selectElement) {
-        // Small delay to ensure dropdown is populated
-        setTimeout(() => {
-          selectElement.value = newRkey;
-          // Trigger change event in case there are listeners
-          selectElement.dispatchEvent(new Event('change', { bubbles: true }));
-        }, 50);
-      }
+  if (window.ArabicaCache) {
+    const freshData = await window.ArabicaCache.invalidateAndRefresh();
+    if (freshData && window.createDropdownManager) {
+      const tempManager = window.createDropdownManager();
+      tempManager.applyData(freshData);
+      tempManager.populateDropdowns();
     }
+  }
+
+  // Auto-select the newly created item if we have its rkey.
+  const selectElement = document.querySelector(`select[name="${selectName}"]`);
+  if (newRkey && selectElement) {
+    setTimeout(() => {
+      selectElement.value = newRkey;
+      selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+    }, 50);
   }
 };
 

@@ -51,11 +51,11 @@ templ ProfileNotFoundContent() {
 
 // ProfileContent renders the profile page. Mirrors coffeepages.Profile
 // structure: header card, stat row, tab nav, tab bodies. Tabs are
-// alpine-driven (`x-data="{ activeTab: 'steeps' }"`); panels render
-// server-side and toggle with x-show. No HTMX async — counts and
+// petite-vue-driven (`v-scope="{ activeTab: 'steeps' }"`); panels render
+// server-side and toggle with v-show. No HTMX async — counts and
 // records both come in the initial render.
 templ ProfileContent(props ProfileProps) {
-	<div class="page-container-lg" x-data="{ activeTab: 'steeps' }">
+	<div class="page-container-lg" v-scope="{ activeTab: 'steeps' }" :data-active-tab="activeTab">
 		@TeaProfileHeader(props.Profile)
 		@TeaProfileStats(props)
 		@TeaProfileTabs()
@@ -125,11 +125,11 @@ templ teaProfileTabBtn(key, label string) {
 }
 
 // teaProfileBody renders the per-tab panels. Each panel server-renders
-// its entity list as feed-style cards; tab switching is pure x-show
+// its entity list as feed-style cards; tab switching is pure v-show
 // so the data is already on the page when the user clicks.
 templ teaProfileBody(props ProfileProps) {
 	<div id="profile-content">
-		<div x-show="activeTab === 'steeps'">
+		<div data-tab-panel="steeps">
 			if len(props.Brews) == 0 {
 				@teaProfileEmpty("steeps")
 			} else {
@@ -144,7 +144,7 @@ templ teaProfileBody(props ProfileProps) {
 				</div>
 			}
 		</div>
-		<div x-show="activeTab === 'teas'" x-cloak>
+		<div data-tab-panel="teas">
 			@teaProfileGearGroup(props, "Teas", "tea", len(props.Teas)) {
 				for _, t := range props.Teas {
 					<a href={ templ.SafeURL("/teas/" + profileActor(props) + "/" + t.RKey) } class="block hover:opacity-95 transition-opacity">
@@ -164,7 +164,7 @@ templ teaProfileBody(props ProfileProps) {
 				}
 			}
 		</div>
-		<div x-show="activeTab === 'gear'" x-cloak>
+		<div data-tab-panel="gear">
 			@teaProfileGearGroup(props, "Vessels", "vessel", len(props.Vessels)) {
 				for _, v := range props.Vessels {
 					<a href={ templ.SafeURL("/vessels/" + profileActor(props) + "/" + v.RKey) } class="block hover:opacity-95 transition-opacity">

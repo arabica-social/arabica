@@ -56,8 +56,8 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
 		// Content Security Policy
-		// Allows: self for scripts/styles, inline styles (for Tailwind), inline HTMX/Alpine
-		// Note: unsafe-eval required for Alpine.js standard build (CSP build has CDN MIME type issues)
+		// Allows: self for scripts/styles, inline styles (for Tailwind), inline HTMX
+		// Note: unsafe-eval required for petite-vue (it builds expression handlers with `new Function`)
 		// Note: form-action allows https: for OAuth redirects to external authorization servers
 		// TODO: set nonce/hash on unsafe tags -- needs to be set in elements as well
 		csp := strings.Join([]string{

@@ -131,21 +131,19 @@ templ RecipeViewCard(props RecipeViewProps) {
 			if props.IsAuthenticated && !props.IsOwnProfile {
 				<button
 					type="button"
-					x-data="{ forking: false }"
+					v-scope="{ forking: false }"
 					@click={ fmt.Sprintf(`
 						if (forking) return;
 						forking = true;
 						fetch('/api/recipes/fork/%s?owner=%s', { method: 'POST', credentials: 'same-origin' })
 							.then(r => { if (r.status === 401) { window.__showSessionExpiredModal(); forking = false; return; } if (!r.ok) throw new Error('Failed'); return r.json(); })
-							.then(d => { if (d) { $dispatch('notify', { message: 'Recipe copied to your library!' }); } forking = false; })
-							.catch(() => { $dispatch('notify', { message: 'Failed to copy recipe' }); forking = false; });
+							.then(d => { if (d) { window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Recipe copied to your library!' } })); } forking = false; })
+							.catch(() => { window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Failed to copy recipe' } })); forking = false; });
 					`, props.Recipe.RKey, props.AuthorDID) }
 					class="btn-secondary text-sm"
 					:disabled="forking"
-				>
-					<span x-show="!forking">Copy Recipe</span>
-					<span x-show="forking">Copying...</span>
-				</button>
+					v-text="forking ? 'Copying...' : 'Copy Recipe'"
+				></button>
 			}
 		</div>
 		@components.ActionBar(components.ActionBarProps{
@@ -154,7 +152,6 @@ templ RecipeViewCard(props RecipeViewProps) {
 			IsLiked:         props.IsLiked,
 			LikeCount:       props.LikeCount,
 			CommentCount:    props.CommentCount,
-			ShowComments:    true,
 			ShareURL:        props.ShareURL,
 			ShareTitle:      props.Recipe.Name,
 			ShareText:       "Check out this recipe on Arabica",

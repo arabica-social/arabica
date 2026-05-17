@@ -1,7 +1,11 @@
-// Apply saved theme to document
-// Called on initial load (from head script), HTMX navigations, and history restores
+// @ts-check
+// Re-apply the saved theme after HTMX swaps and history restores.
+// The initial application happens in a head-script in layout.templ so the
+// dark-mode flash never reaches the user; the function lives on window so
+// the petite-vue theme picker (arabica-vue.js) can call it after a change.
+
 function applyTheme() {
-  var t = localStorage.getItem("arabica-theme");
+  const t = localStorage.getItem("arabica-theme");
   if (t === "dark" || t === "light") {
     document.documentElement.setAttribute("data-theme", t);
   } else {
@@ -9,22 +13,7 @@ function applyTheme() {
   }
 }
 
-// Re-apply theme after HTMX swaps and history restores
+/** @type {any} */ (window).applyTheme = applyTheme;
+
 document.addEventListener("htmx:afterSettle", applyTheme);
 document.addEventListener("htmx:historyRestore", applyTheme);
-
-// Theme settings Alpine.js component
-function themeSettings() {
-  return {
-    theme: localStorage.getItem("arabica-theme") || "system",
-    setTheme(value) {
-      this.theme = value;
-      if (value === "system") {
-        localStorage.removeItem("arabica-theme");
-      } else {
-        localStorage.setItem("arabica-theme", value);
-      }
-      applyTheme();
-    },
-  };
-}

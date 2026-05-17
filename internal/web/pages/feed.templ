@@ -123,9 +123,7 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 templ FeedFilterBar(qs FeedQueryState) {
 	<div
 		class="mb-5"
-		data-type-filter={ qs.TypeFilter }
-		data-sort={ qs.Sort }
-		x-data="{ typeFilter: $el.dataset.typeFilter, sort: $el.dataset.sort, pillClass(tab) { if (this.typeFilter !== tab) return 'filter-pill'; if (!tab) return 'filter-pill-active'; return 'filter-pill-' + tab; }, feedURL(t, s) { let u = '/api/feed', sep = '?'; if (t) { if (t === 'equipment') { u += sep + 'type=grinder&type=brewer'; } else { u += sep + 'type=' + t; } sep = '&'; } if (s) { if (s !== 'recent') { u += sep + 'sort=' + s; } } return u; }, changeFilter(t) { this.typeFilter = t; htmx.ajax('GET', this.feedURL(t, this.sort), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); }, changeSort(s) { this.sort = s; htmx.ajax('GET', this.feedURL(this.typeFilter, s), {target: '#feed-items', swap: 'outerHTML', select: '#feed-items'}); } }"
+		v-scope={ fmt.Sprintf("FeedFilters(%q, %q)", qs.TypeFilter, qs.Sort) }
 	>
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<!-- Type filter pills -->
@@ -133,9 +131,8 @@ templ FeedFilterBar(qs FeedQueryState) {
 				for _, tab := range feedFilterTabs(qs.Descriptors) {
 					<button
 						class="filter-pill"
-						:class="pillClass($el.dataset.tab)"
-						data-tab={ tab.Value }
-						@click="changeFilter($el.dataset.tab)"
+						:class={ fmt.Sprintf("pillClass(%q)", tab.Value) }
+						@click={ fmt.Sprintf("changeFilter(%q)", tab.Value) }
 					>
 						{ tab.Label }
 					</button>
@@ -144,15 +141,15 @@ templ FeedFilterBar(qs FeedQueryState) {
 			<!-- Sort selector -->
 			<div class="flex items-center gap-1 flex-shrink-0">
 				<button
-					class="feed-sort-btn"
-					:class="(sort === '' || sort === 'recent') ? 'feed-sort-btn-active' : 'feed-sort-btn'"
+					class="filter-pill"
+					:class="(sort === '' || sort === 'recent') ? 'filter-pill-active' : 'filter-pill'"
 					@click="changeSort('recent')"
 				>
 					New
 				</button>
 				<button
-					class="feed-sort-btn"
-					:class="sort === 'popular' ? 'feed-sort-btn-active' : 'feed-sort-btn'"
+					class="filter-pill"
+					:class="sort === 'popular' ? 'filter-pill-active' : 'filter-pill'"
 					@click="changeSort('popular')"
 				>
 					Popular
@@ -162,19 +159,20 @@ templ FeedFilterBar(qs FeedQueryState) {
 	</div>
 }
 
-// FeedLoadMoreButton renders a "Load more" button for pagination
+// FeedLoadMoreButton renders a "Load more" button for pagination.
+// HTMX's `htmx-request` class on the button drives the loading-text CSS
+// transition — no JS framework needed.
 templ FeedLoadMoreButton(qs FeedQueryState) {
-	<div class="text-center pt-2" style="grid-column: 1 / -1;" x-data="{ loading: false }">
+	<div class="text-center pt-2" style="grid-column: 1 / -1;">
 		<button
-			class="btn-secondary text-sm disabled:opacity-50"
+			class="btn-secondary text-sm load-more-btn"
 			hx-get={ buildFeedURLWithCursor(qs.TypeFilter, qs.Sort, qs.NextCursor) }
 			hx-target="closest div"
 			hx-swap="outerHTML"
-			@htmx:before-request="loading = true"
-			x-bind:disabled="loading"
+			hx-disabled-elt="this"
 		>
-			<span x-show="!loading">Load more</span>
-			<span x-show="loading" x-cloak>Loading...</span>
+			<span class="load-more-idle">Load more</span>
+			<span class="load-more-busy">Loading...</span>
 		</button>
 	</div>
 }
@@ -226,7 +224,6 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 				LikeCount:       item.LikeCount,
 				CommentCount:    item.CommentCount,
 				ViewURL:         getFeedItemShareURL(item),
-				ShowComments:    true,
 				ShareURL:        getFeedItemShareURL(item),
 				ShareTitle:      getFeedItemShareTitle(item),
 				ShareText:       getFeedItemShareText(item),

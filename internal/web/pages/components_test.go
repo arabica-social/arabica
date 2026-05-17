@@ -43,7 +43,7 @@ func TestButtonComponents(t *testing.T) {
 		html := renderToString(t, ctx, components.BackButton())
 
 		assert.Contains(t, html, `type="button"`)
-		assert.Contains(t, html, `@click="history.back()"`)
+		assert.Contains(t, html, `data-action="history-back"`)
 		assert.Contains(t, html, "<svg")
 		assert.Contains(t, html, "Go back")
 	})

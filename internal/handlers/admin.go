@@ -10,7 +10,6 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/database/boltstore"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
@@ -83,7 +82,7 @@ func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
 		Str("by", userDID).
 		Msg("Record hidden from feed")
 
-	w.Header().Set("HX-Trigger", "mod-action")
+	w.Header().Set("HX-Trigger", `{"mod-action":null,"notify":{"message":"Record hidden from feed"}}`)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -131,7 +130,7 @@ func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
 		Str("by", userDID).
 		Msg("Record unhidden")
 
-	w.Header().Set("HX-Trigger", "mod-action")
+	w.Header().Set("HX-Trigger", `{"mod-action":null,"notify":{"message":"Record unhidden"}}`)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -180,10 +179,6 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepag
 
 	isAdmin := h.moderationService.IsAdmin(userDID)
 
-	var joinRequests []*boltstore.JoinRequest
-	if isAdmin && h.joinStore != nil {
-		joinRequests, _ = h.joinStore.ListRequests(ctx)
-	}
 
 	// Build stats for admin users
 	var stats coffeepages.AdminStats
@@ -197,7 +192,6 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepag
 		Reports:          enrichedReports,
 		BlockedUsers:     blockedUsers,
 		Labels:           labels,
-		JoinRequests:     joinRequests,
 		Stats:            stats,
 		CanHide:          canHide,
 		CanUnhide:        canUnhide,
@@ -395,7 +389,7 @@ func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
 		Str("by", userDID).
 		Msg("User blocked")
 
-	w.Header().Set("HX-Trigger", "mod-action")
+	w.Header().Set("HX-Trigger", `{"mod-action":null,"notify":{"message":"User blocked"}}`)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -676,12 +670,6 @@ func (h *Handler) collectAdminStats(ctx context.Context) coffeepages.AdminStats 
 
 	if h.feedRegistry != nil {
 		stats.RegisteredUsers = h.feedRegistry.Count()
-	}
-
-	if h.joinStore != nil {
-		if reqs, err := h.joinStore.ListRequests(ctx); err == nil {
-			stats.PendingJoinRequests = len(reqs)
-		}
 	}
 
 	// Read firehose connection state from the Prometheus gauge

@@ -32,7 +32,7 @@ templ ProfileContent(props ProfileProps) {
 	}
 	<script src={ assets.JSHrefFor("profile-stats.js") }></script>
 	if props.IsOwnProfile {
-		<div class="page-container-lg" x-data="managePage()">
+		<div class="page-container-lg" v-scope="managePage()" @vue:mounted="setup" :data-active-tab="activeTab">
 			@ProfileHeader(props.Profile)
 			@ProfileStats()
 			@ProfileTabs(props.IsOwnProfile)
@@ -40,7 +40,7 @@ templ ProfileContent(props ProfileProps) {
 			@ProfileModals(props.Roasters)
 		</div>
 	} else {
-		<div class="page-container-lg" x-data="{ activeTab: 'brews' }">
+		<div class="page-container-lg" v-scope="{ activeTab: 'brews' }" :data-active-tab="activeTab">
 			@ProfileHeader(props.Profile)
 			@ProfileStats()
 			@ProfileTabs(props.IsOwnProfile)
@@ -129,7 +129,7 @@ templ ProfileContentLoader(handle string) {
 templ ProfileLoadingSkeleton() {
 	<div class="animate-pulse">
 		<!-- Brews Tab Skeleton -->
-		<div x-show="activeTab === 'brews'">
+		<div data-tab-panel="brews">
 			<div class="space-y-4">
 				for i := 0; i < 3; i++ {
 					<div class="feed-card feed-card-brew">
@@ -169,7 +169,7 @@ templ ProfileLoadingSkeleton() {
 			</div>
 		</div>
 		<!-- Beans Tab Skeleton -->
-		<div x-show="activeTab === 'beans'">
+		<div data-tab-panel="beans">
 			<div class="space-y-6">
 				<!-- Open Bags Section -->
 				<div>
@@ -220,7 +220,7 @@ templ ProfileLoadingSkeleton() {
 			</div>
 		</div>
 		<!-- Equipment Tab Skeleton -->
-		<div x-show="activeTab === 'equipment'">
+		<div data-tab-panel="equipment">
 			<div class="space-y-6">
 				<!-- Grinders Section -->
 				<div>
@@ -296,31 +296,31 @@ templ ProfileModals(roasters []RoasterOption) {
 templ BeanFormModalProfile(roasters []RoasterOption) {
 	<dialog id="bean-modal" class="modal-dialog">
 		<div class="modal-content">
-			<h3 class="modal-title" x-text="editingBean ? 'Edit Bean' : 'Add Bean'"></h3>
+			<h3 class="modal-title" v-text="editingBean ? 'Edit Bean' : 'Add Bean'"></h3>
 			<div class="space-y-4">
-				<input type="text" x-model="beanForm.name" placeholder="Name *" class="w-full form-input"/>
-				<input type="text" x-model="beanForm.origin" placeholder="Origin *" class="w-full form-input"/>
-				<select x-model="beanForm.roaster_rkey" class="w-full form-input">
+				<input type="text" v-model="beanForm.name" placeholder="Name *" class="w-full form-input"/>
+				<input type="text" v-model="beanForm.origin" placeholder="Origin *" class="w-full form-input"/>
+				<select v-model="beanForm.roaster_rkey" class="w-full form-input">
 					<option value="">Select Roaster (Optional)</option>
 					for _, roaster := range roasters {
 						<option value={ roaster.RKey }>{ roaster.Name }</option>
 					}
 				</select>
-				<select x-model="beanForm.roast_level" class="w-full form-input">
+				<select v-model="beanForm.roast_level" class="w-full form-input">
 					<option value="">Select Roast Level (Optional)</option>
 					for _, level := range arabica.RoastLevels {
 						<option value={ level }>{ level }</option>
 					}
 				</select>
-				<input type="text" x-model="beanForm.process" placeholder="Process (e.g. Washed, Natural, Honey)" class="w-full form-input"/>
-				<textarea x-model="beanForm.description" placeholder="Description" rows="3" class="w-full form-textarea"></textarea>
+				<input type="text" v-model="beanForm.process" placeholder="Process (e.g. Washed, Natural, Honey)" class="w-full form-input"/>
+				<textarea v-model="beanForm.description" placeholder="Description" rows="3" class="w-full form-textarea"></textarea>
 				<div class="flex items-center gap-2">
-					<input type="checkbox" x-model="beanForm.closed" id="bean-closed-checkbox" class="rounded-sm border-brown-300 text-emphasis focus:ring-brown-500"/>
+					<input type="checkbox" v-model="beanForm.closed" id="bean-closed-checkbox" class="rounded-sm border-brown-300 text-emphasis focus:ring-brown-500"/>
 					<label for="bean-closed-checkbox" class="text-sm text-primary">Bag is closed/finished</label>
 				</div>
 				<div class="flex gap-2">
 					<button @click="saveBean()" class="flex-1 btn-primary">Save</button>
-					<button type="button" @click="$el.closest('dialog').close()" class="flex-1 btn-secondary">Cancel</button>
+					<button type="button" data-action="close-dialog" class="flex-1 btn-secondary">Cancel</button>
 				</div>
 			</div>
 		</div>
@@ -331,14 +331,14 @@ templ BeanFormModalProfile(roasters []RoasterOption) {
 templ RoasterFormModal() {
 	<dialog id="roaster-modal" class="modal-dialog">
 		<div class="modal-content">
-			<h3 class="modal-title" x-text="editingRoaster ? 'Edit Roaster' : 'Add Roaster'"></h3>
+			<h3 class="modal-title" v-text="editingRoaster ? 'Edit Roaster' : 'Add Roaster'"></h3>
 			<div class="space-y-4">
-				<input type="text" x-model="roasterForm.name" placeholder="Name *" class="w-full form-input"/>
-				<input type="text" x-model="roasterForm.location" placeholder="Location" class="w-full form-input"/>
-				<input type="url" x-model="roasterForm.website" placeholder="Website" class="w-full form-input"/>
+				<input type="text" v-model="roasterForm.name" placeholder="Name *" class="w-full form-input"/>
+				<input type="text" v-model="roasterForm.location" placeholder="Location" class="w-full form-input"/>
+				<input type="url" v-model="roasterForm.website" placeholder="Website" class="w-full form-input"/>
 				<div class="flex gap-2">
 					<button @click="saveRoaster()" class="flex-1 btn-primary">Save</button>
-					<button type="button" @click="$el.closest('dialog').close()" class="flex-1 btn-secondary">Cancel</button>
+					<button type="button" data-action="close-dialog" class="flex-1 btn-secondary">Cancel</button>
 				</div>
 			</div>
 		</div>
@@ -349,25 +349,25 @@ templ RoasterFormModal() {
 templ GrinderFormModal() {
 	<dialog id="grinder-modal" class="modal-dialog">
 		<div class="modal-content">
-			<h3 class="modal-title" x-text="editingGrinder ? 'Edit Grinder' : 'Add Grinder'"></h3>
+			<h3 class="modal-title" v-text="editingGrinder ? 'Edit Grinder' : 'Add Grinder'"></h3>
 			<div class="space-y-4">
-				<input type="text" x-model="grinderForm.name" placeholder="Name *" class="w-full form-input"/>
-				<select x-model="grinderForm.grinder_type" class="w-full form-input">
+				<input type="text" v-model="grinderForm.name" placeholder="Name *" class="w-full form-input"/>
+				<select v-model="grinderForm.grinder_type" class="w-full form-input">
 					<option value="">Select Grinder Type *</option>
 					for _, gType := range arabica.GrinderTypes {
 						<option value={ gType }>{ gType }</option>
 					}
 				</select>
-				<select x-model="grinderForm.burr_type" class="w-full form-input">
+				<select v-model="grinderForm.burr_type" class="w-full form-input">
 					<option value="">Select Burr Type (Optional)</option>
 					for _, bType := range arabica.BurrTypes {
 						<option value={ bType }>{ bType }</option>
 					}
 				</select>
-				<textarea x-model="grinderForm.notes" placeholder="Notes" rows="3" class="w-full form-textarea"></textarea>
+				<textarea v-model="grinderForm.notes" placeholder="Notes" rows="3" class="w-full form-textarea"></textarea>
 				<div class="flex gap-2">
 					<button @click="saveGrinder()" class="flex-1 btn-primary">Save</button>
-					<button type="button" @click="$el.closest('dialog').close()" class="flex-1 btn-secondary">Cancel</button>
+					<button type="button" data-action="close-dialog" class="flex-1 btn-secondary">Cancel</button>
 				</div>
 			</div>
 		</div>
@@ -378,10 +378,10 @@ templ GrinderFormModal() {
 templ BrewerFormModal() {
 	<dialog id="brewer-modal" class="modal-dialog">
 		<div class="modal-content">
-			<h3 class="modal-title" x-text="editingBrewer ? 'Edit Brewer' : 'Add Brewer'"></h3>
+			<h3 class="modal-title" v-text="editingBrewer ? 'Edit Brewer' : 'Add Brewer'"></h3>
 			<div class="space-y-4">
-				<input type="text" x-model="brewerForm.name" placeholder="Name *" class="w-full form-input"/>
-				<select x-model="brewerForm.brewer_type" class="w-full form-select">
+				<input type="text" v-model="brewerForm.name" placeholder="Name *" class="w-full form-input"/>
+				<select v-model="brewerForm.brewer_type" class="w-full form-select">
 					<option value="">Select type...</option>
 					<option value="pourover">Pour-over</option>
 					<option value="espresso">Espresso</option>
@@ -391,10 +391,10 @@ templ BrewerFormModal() {
 					<option value="cupping">Cupping</option>
 					<option value="other">Other</option>
 				</select>
-				<textarea x-model="brewerForm.description" placeholder="Description" rows="3" class="w-full form-textarea"></textarea>
+				<textarea v-model="brewerForm.description" placeholder="Description" rows="3" class="w-full form-textarea"></textarea>
 				<div class="flex gap-2">
 					<button @click="saveBrewer()" class="flex-1 btn-primary">Save</button>
-					<button type="button" @click="$el.closest('dialog').close()" class="flex-1 btn-secondary">Cancel</button>
+					<button type="button" data-action="close-dialog" class="flex-1 btn-secondary">Cancel</button>
 				</div>
 			</div>
 		</div>

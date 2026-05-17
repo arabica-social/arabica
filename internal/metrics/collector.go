@@ -15,7 +15,6 @@ type StatsSource struct {
 	KnownDIDCount           func() int
 	RegisteredCount         func() int
 	RecordCount             func() int
-	PendingJoinCount        func() int
 	LikeCount               func() int
 	CommentCount            func() int
 	RecordCountByCollection func() map[string]int
@@ -56,9 +55,6 @@ func collect(src StatsSource) {
 	}
 	if src.RecordCount != nil {
 		IndexedRecordsTotal.Set(float64(src.RecordCount()))
-	}
-	if src.PendingJoinCount != nil {
-		JoinRequestsPending.Set(float64(src.PendingJoinCount()))
 	}
 	if src.LikeCount != nil {
 		IndexedLikesTotal.Set(float64(src.LikeCount()))

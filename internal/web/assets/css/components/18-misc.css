@@ -1,3 +1,18 @@
+/* Scroll-to-top button — petite-vue toggles `.is-visible` based on scroll. */
+.scroll-top-btn {
+  opacity: 0;
+  transform: translateY(0.5rem);
+  pointer-events: none;
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
+}
+.scroll-top-btn.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
 /* Alert banners */
 .alert-warning {
   border-radius: 0.5rem;

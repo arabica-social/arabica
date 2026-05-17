@@ -92,10 +92,10 @@ templ BeanViewCard(props BeanViewProps) {
 			@components.BackButton()
 			if props.IsOwnProfile {
 				if !props.Bean.Closed {
-					<div x-data="{ showConfirm: false, _saving: false }">
+					<div v-scope="{ _saving: false }">
 						<button
 							type="button"
-							@click="showConfirm = true"
+							@click="$refs.closeDialog.showModal()"
 							class="btn-secondary text-sm text-center"
 						>
 							Close Bag
@@ -103,7 +103,7 @@ templ BeanViewCard(props BeanViewProps) {
 						@BeanCloseBagConfirm(props)
 					</div>
 				}
-				<div x-data={ beanRateInitData(props.Bean) }>
+				<div v-scope={ beanRateInitData(props.Bean) }>
 					<button
 						type="button"
 						@click="$refs.rateDialog.showModal()"
@@ -125,7 +125,6 @@ templ BeanViewCard(props BeanViewProps) {
 			IsLiked:         props.IsLiked,
 			LikeCount:       props.LikeCount,
 			CommentCount:    props.CommentCount,
-			ShowComments:    true,
 			ShareURL:        props.ShareURL,
 			ShareTitle:      getBeanShareTitle(props.Bean),
 			ShareText:       "Check out this bean on Arabica",
@@ -175,9 +174,7 @@ templ BeanCloseBagConfirm(props BeanViewProps) {
 	<dialog
 		id={ "close-bag-confirm-" + props.Bean.RKey }
 		class="modal-dialog"
-		x-ref="closeDialog"
-		x-init="$watch('showConfirm', v => { if (v) $refs.closeDialog.showModal() })"
-		@close="showConfirm = false"
+		ref="closeDialog"
 		aria-labelledby={ "close-bag-title-" + props.Bean.RKey }
 	>
 		<div class="modal-content">
@@ -192,12 +189,12 @@ templ BeanCloseBagConfirm(props BeanViewProps) {
 					class="flex-1 btn-primary"
 					:disabled="_saving"
 				>
-					<span x-show="!_saving">Close Bag</span>
-					<span x-show="_saving">Closing...</span>
+					<span v-show="!_saving">Close Bag</span>
+					<span v-show="_saving" v-cloak>Closing...</span>
 				</button>
 				<button
 					type="button"
-					@click="$refs.closeDialog.close()"
+					data-action="close-dialog"
 					class="flex-1 btn-secondary"
 				>
 					Cancel
@@ -212,7 +209,7 @@ templ BeanRateModal(props BeanViewProps) {
 	<dialog
 		id={ "rate-bag-modal-" + props.Bean.RKey }
 		class="modal-dialog"
-		x-ref="rateDialog"
+		ref="rateDialog"
 		aria-labelledby={ "rate-bag-title-" + props.Bean.RKey }
 	>
 		<div class="modal-content">
@@ -228,12 +225,12 @@ templ BeanRateModal(props BeanViewProps) {
 					type="range"
 					min="1"
 					max="10"
-					x-model.number="rating"
+					v-model.number="rating"
 					class="w-full accent-brown-700"
 					aria-label="Bag rating, 1 to 10"
 				/>
 				<div class="text-center text-3xl font-bold text-secondary" aria-hidden="true">
-					<span x-text="rating"></span>/10
+					<span v-text="rating"></span>/10
 				</div>
 			</div>
 			<div class="flex gap-2 mt-4">
@@ -243,8 +240,8 @@ templ BeanRateModal(props BeanViewProps) {
 					class="flex-1 btn-primary"
 					:disabled="_saving"
 				>
-					<span x-show="!_saving">Save</span>
-					<span x-show="_saving">Saving...</span>
+					<span v-show="!_saving">Save</span>
+					<span v-show="_saving" v-cloak>Saving...</span>
 				</button>
 				if props.Bean.Rating != nil {
 					<button
@@ -253,13 +250,13 @@ templ BeanRateModal(props BeanViewProps) {
 						class="flex-1 btn-secondary text-danger"
 						:disabled="_saving"
 					>
-						<span x-show="!_saving">Remove</span>
-						<span x-show="_saving">Removing...</span>
+						<span v-show="!_saving">Remove</span>
+						<span v-show="_saving" v-cloak>Removing...</span>
 					</button>
 				}
 				<button
 					type="button"
-					@click="$refs.rateDialog.close()"
+					data-action="close-dialog"
 					class="flex-1 btn-secondary"
 				>
 					Cancel
@@ -280,8 +277,8 @@ func beanRateInitData(bean *arabica.Bean) string {
 // overrideExpr is a JS expression for the fields to override (e.g. `{ "closed": true }`).
 func beanPatchAction(bean *arabica.Bean, overrideExpr string, errorMsg string) string {
 	return fmt.Sprintf(`
-		if (this._saving) return;
-		this._saving = true;
+		if (_saving) return;
+		_saving = true;
 		const base = %s;
 		const body = Object.assign(base, %s);
 		fetch('/api/beans/%s', {
@@ -290,13 +287,13 @@ func beanPatchAction(bean *arabica.Bean, overrideExpr string, errorMsg string) s
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(body)
 		}).then(r => {
-			if (r.status === 401) { window.__showSessionExpiredModal(); this._saving = false; return; }
+			if (r.status === 401) { window.__showSessionExpiredModal(); _saving = false; return; }
 			if (!r.ok) throw new Error('Failed');
 			localStorage.removeItem('htmx-history-cache');
 			window.location.reload();
 		}).catch(() => {
-			$dispatch('notify', { message: '%s' });
-			this._saving = false;
+			window.dispatchEvent(new CustomEvent('notify', { detail: { message: '%s' } }));
+			_saving = false;
 		});
 	`, beanBaseJSON(bean), overrideExpr, bean.RKey, errorMsg)
 }

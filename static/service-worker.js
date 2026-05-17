@@ -1,6 +1,6 @@
 const CACHE_NAME = "arabica-v2";
 const STATIC_ASSETS = [
-  "/static/js/alpine.min.js",
+  "/static/js/petite-vue.min.js",
   "/static/js/htmx.min.js",
 ];
 

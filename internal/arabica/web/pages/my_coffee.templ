@@ -16,7 +16,7 @@ templ MyCoffee(layout *components.LayoutData, props MyCoffeeProps) {
 // MyCoffeeContent renders the My Coffee page content
 templ MyCoffeeContent(props MyCoffeeProps) {
 	<script src={ assets.JSHrefFor("manage-page.js") }></script>
-	<div class="page-container-xl" x-data="managePage()">
+	<div class="page-container-xl" v-scope="managePage()" @vue:mounted="setup" :data-active-tab="tab">
 		<div class="flex items-center gap-3 mb-6">
 			<h2 class="text-2xl font-semibold text-primary">My Coffee</h2>
 			<div class="ml-auto flex items-center gap-2">
@@ -26,13 +26,16 @@ templ MyCoffeeContent(props MyCoffeeProps) {
 		</div>
 		@MyCoffeeTabs()
 		<!-- Brews tab: standalone HTMX loader -->
-		<div x-show="tab === 'brews'">
+		<div data-tab-panel="brews">
 			<div hx-get="/api/brews" hx-trigger="load" hx-swap="innerHTML">
 				@BrewListLoadingSkeleton()
 			</div>
 		</div>
-		<!-- Entity tabs: loaded from manage partial -->
-		<div id="manage-content" x-show="tab !== 'brews'" hx-get="/api/manage" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML">
+		<!-- Entity tabs: loaded from manage partial. Each rendered panel inside
+			carries data-tab-panel and visibility is controlled by CSS on the
+			outer :data-active-tab binding, so HTMX-swapped content doesn't need
+			petite-vue re-binding. -->
+		<div id="manage-content" hx-get="/api/manage" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML">
 			@ManageLoadingSkeleton()
 		</div>
 		<!-- Modal container for HTMX-loaded dialogs -->

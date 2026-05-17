@@ -45,7 +45,7 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 	<!-- Hidden div with stats data for JavaScript -->
 	<div id="profile-stats-data" class="hidden" data-brews={ strconv.Itoa(props.TotalBrews) } data-beans={ strconv.Itoa(len(props.Beans)) } data-roasters={ strconv.Itoa(len(props.Roasters)) } data-grinders={ strconv.Itoa(len(props.Grinders)) } data-brewers={ strconv.Itoa(len(props.Brewers)) }></div>
 	<!-- Brews Tab -->
-	<div x-show="activeTab === 'brews'">
+	<div data-tab-panel="brews">
 		@ProfileBrewCards(ProfileBrewCardsProps{
 			Brews:           props.Brews,
 			IsOwnProfile:    props.IsOwnProfile,
@@ -61,7 +61,7 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 		})
 	</div>
 	<!-- Beans Tab -->
-	<div x-show="activeTab === 'beans'">
+	<div data-tab-panel="beans">
 		@ProfileBeansTab(ProfileBeansTabProps{
 			Beans:                 props.Beans,
 			Roasters:              props.Roasters,
@@ -75,7 +75,7 @@ templ ProfileContentPartial(props ProfileContentPartialProps) {
 		})
 	</div>
 	<!-- Equipment Tab -->
-	<div x-show="activeTab === 'equipment'">
+	<div data-tab-panel="equipment">
 		@ProfileEquipmentTab(ProfileEquipmentTabProps{
 			Grinders:          props.Grinders,
 			Brewers:           props.Brewers,

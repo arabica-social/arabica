@@ -12,8 +12,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/database/boltstore"
-	"tangled.org/arabica.social/arabica/internal/email"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
@@ -22,6 +20,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -55,12 +54,6 @@ type Handler struct {
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
 	moderationStore   moderation.Store
-
-	// Join request dependencies (optional)
-	emailSender   *email.Sender
-	joinStore     *boltstore.JoinStore
-	pdsAdminURL   string
-	pdsAdminToken string
 
 	// Brand carries the per-app display name and tagline. Set via
 	// SetBrand at startup; consumed by buildLayoutData so templ
@@ -164,14 +157,6 @@ func (h *Handler) SetWitnessCache(wc atproto.WitnessCache) {
 func (h *Handler) SetModeration(svc *moderation.Service, store moderation.Store) {
 	h.moderationService = svc
 	h.moderationStore = store
-}
-
-// SetJoin configures the handler with email sender and join request store
-func (h *Handler) SetJoin(sender *email.Sender, store *boltstore.JoinStore, pdsURL, pdsAdminToken string) {
-	h.emailSender = sender
-	h.joinStore = store
-	h.pdsAdminURL = pdsURL
-	h.pdsAdminToken = pdsAdminToken
 }
 
 // invalidateFeedCache clears the public feed cache after a mutation.
@@ -690,4 +675,62 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render comment section")
 	}
+}
+
+// signupAllowedPDSURLs is the set of PDS URLs that are allowed for signup.
+// This must match the URLs hardcoded in create_account.templ.
+var signupAllowedPDSURLs = map[string]bool{
+	"https://arabica.systems":   true,
+	"https://selfhosted.social": true,
+	"https://bsky.social":       true,
+}
+
+// HandleCreateAccount renders the account creation page (GET /join/create).
+// PDS server options are defined in create_account.templ.
+func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
+	layoutData, _, _ := h.layoutDataFromRequest(r, "Create Account")
+
+	props := pages.CreateAccountProps{
+		Error: r.URL.Query().Get("error"),
+	}
+
+	if err := pages.CreateAccount(layoutData, props).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render create account page")
+	}
+}
+
+// HandleCreateAccountSubmit initiates the OAuth prompt=create flow (POST /join/create).
+func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Request) {
+	if h.oauth == nil {
+		http.Error(w, "OAuth not configured", http.StatusInternalServerError)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	pdsURL := r.FormValue("pds_url")
+	if pdsURL == "" {
+		http.Redirect(w, r, "/join/create?error=Please+select+a+server", http.StatusSeeOther)
+		return
+	}
+
+	if !signupAllowedPDSURLs[pdsURL] {
+		log.Warn().Str("pds_url", pdsURL).Msg("Signup attempt with unlisted PDS URL")
+		http.Redirect(w, r, "/join/create?error=Invalid+server+selection", http.StatusSeeOther)
+		return
+	}
+
+	// Initiate OAuth flow with prompt=create
+	authURL, err := h.oauth.StartSignup(r.Context(), pdsURL)
+	if err != nil {
+		log.Error().Err(err).Str("pds_url", pdsURL).Msg("Failed to initiate signup flow")
+		http.Redirect(w, r, "/join/create?error=Failed+to+connect+to+server.+Please+try+again.", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, authURL, http.StatusFound)
 }

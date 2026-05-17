@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,7 +22,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/database/boltstore"
 	"tangled.org/arabica.social/arabica/internal/database/sqlitestore"
-	"tangled.org/arabica.social/arabica/internal/email"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
@@ -138,19 +136,21 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	if err != nil {
 		return fmt.Errorf("open database at %s: %w", dbPath, err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 	log.Info().Str("path", dbPath).Msg("Database opened")
 
 	sessionStore := store.SessionStore()
 
 	// OAuth manager
+	// REFACTOR: this feels a bit messy
 	clientID := lookupAppEnv(envPrefix, "OAUTH_CLIENT_ID")
 	redirectURI := lookupAppEnv(envPrefix, "OAUTH_REDIRECT_URI")
 	if clientID == "" && redirectURI == "" {
 		if publicURL != "" {
 			redirectURI = publicURL + "/oauth/callback"
 			clientID = publicURL + "/.well-known/oauth-client-metadata.json"
-			log.Info().Str("public_url", publicURL).Msg("Using public URL for OAuth (reverse proxy mode)")
+			log.Info().Str("public_url", publicURL).
+				Msg("Using public URL for OAuth (reverse proxy mode)")
 		} else {
 			redirectURI = fmt.Sprintf("http://127.0.0.1:%s/oauth/callback", port)
 			clientID = "" // Empty triggers indigo localhost mode
@@ -186,7 +186,10 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		}
 	}
 
-	feedIndex, err := firehose.NewFeedIndex(feedIndexPath, time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second)
+	feedIndex, err := firehose.NewFeedIndex(
+		feedIndexPath,
+		time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second,
+	)
 	if err != nil {
 		return fmt.Errorf("create feed index at %s: %w", feedIndexPath, err)
 	}
@@ -224,16 +227,9 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 
 	// Periodic gauge collector
 	metrics.StartCollector(ctx, metrics.StatsSource{
-		KnownDIDCount:   feedIndex.KnownDIDCount,
-		RegisteredCount: feedRegistry.Count,
-		RecordCount:     feedIndex.RecordCount,
-		PendingJoinCount: func() int {
-			joinStore := store.JoinStore()
-			if reqs, err := joinStore.ListRequests(context.Background()); err == nil {
-				return len(reqs)
-			}
-			return 0
-		},
+		KnownDIDCount:           feedIndex.KnownDIDCount,
+		RegisteredCount:         feedRegistry.Count,
+		RecordCount:             feedIndex.RecordCount,
 		LikeCount:               feedIndex.TotalLikeCount,
 		CommentCount:            feedIndex.TotalCommentCount,
 		RecordCountByCollection: feedIndex.RecordCountByCollection,
@@ -245,7 +241,8 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	// Log known DIDs already in the index.
 	if knownDIDsFromDB, err := feedIndex.GetKnownDIDs(context.Background()); err == nil {
 		if len(knownDIDsFromDB) > 0 {
-			log.Info().Int("count", len(knownDIDsFromDB)).Strs("dids", knownDIDsFromDB).Msg("Known DIDs from firehose index")
+			log.Info().Int("count", len(knownDIDsFromDB)).Strs("dids", knownDIDsFromDB).
+				Msg("Known DIDs from firehose index")
 		} else {
 			log.Info().Msg("No known DIDs in firehose index yet (will populate as events arrive)")
 		}
@@ -268,9 +265,11 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	}
 
 	if clientID == "" {
-		log.Info().Str("mode", "localhost development").Str("redirect_uri", redirectURI).Msg("OAuth configured")
+		log.Info().Str("mode", "localhost development").Str("redirect_uri", redirectURI).
+			Msg("OAuth configured")
 	} else {
-		log.Info().Str("mode", "public").Str("client_id", clientID).Str("redirect_uri", redirectURI).Msg("OAuth configured")
+		log.Info().Str("mode", "public").Str("client_id", clientID).
+			Str("redirect_uri", redirectURI).Msg("OAuth configured")
 	}
 
 	atprotoClient := atproto.NewClient(oauthApp)
@@ -342,31 +341,6 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		log.Info().Str("dir", backupDir).Msg("Automated backups enabled")
 	}
 
-	// Join request handling
-	smtpPort := 587
-	if portStr := os.Getenv("SMTP_PORT"); portStr != "" {
-		if p, err := strconv.Atoi(portStr); err == nil {
-			smtpPort = p
-		}
-	}
-	emailSender := email.NewSender(email.Config{
-		Host:       os.Getenv("SMTP_HOST"),
-		Port:       smtpPort,
-		User:       os.Getenv("SMTP_USER"),
-		Pass:       os.Getenv("SMTP_PASS"),
-		From:       os.Getenv("SMTP_FROM"),
-		AdminEmail: os.Getenv("ADMIN_EMAIL"),
-	})
-	joinStore := store.JoinStore()
-	pdsAdminURL := os.Getenv("PDS_ADMIN_URL")
-	pdsAdminToken := os.Getenv("PDS_ADMIN_PASSWORD")
-	h.SetJoin(emailSender, joinStore, pdsAdminURL, pdsAdminToken)
-	if emailSender.Enabled() {
-		log.Info().Str("host", os.Getenv("SMTP_HOST")).Msg("Email notifications enabled for join requests")
-	} else {
-		log.Info().Msg("Email notifications disabled (SMTP_HOST not set), join requests will be saved to database only")
-	}
-
 	// Static assets: CSS bundle + per-file JS. Embedded at build time, or
 	// re-read from disk per-request when <APP>_HOTRELOAD is set. The hash-
 	// based URLs replace the manually-bumped ?v= query params.
@@ -413,7 +387,8 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		Handler: metricsMux,
 	}
 	go func() {
-		log.Info().Str("address", "127.0.0.1:"+metricsPort).Msg("Starting metrics server (localhost only)")
+		log.Info().Str("address", "127.0.0.1:"+metricsPort).
+			Msg("Starting metrics server (localhost only)")
 		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error().Err(err).Msg("Metrics server failed to start")
 		}
@@ -561,7 +536,8 @@ func runBackfill(ctx context.Context, firehoseConsumer *firehose.Consumer, feedR
 			for _, did := range knownDIDs {
 				didsToBackfill[did] = struct{}{}
 			}
-			log.Info().Int("count", len(knownDIDs)).Str("file", knownDIDsFile).Strs("dids", knownDIDs).Msg("Loaded known DIDs from file")
+			log.Info().Int("count", len(knownDIDs)).Str("file", knownDIDsFile).
+				Strs("dids", knownDIDs).Msg("Loaded known DIDs from file")
 		}
 	}
 	collectSpan.SetAttributes(attribute.Int("backfill.total_dids", len(didsToBackfill)))
@@ -614,7 +590,7 @@ func loadKnownDIDs(filePath string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var dids []string
 	scanner := bufio.NewScanner(file)
@@ -626,7 +602,8 @@ func loadKnownDIDs(filePath string) ([]string, error) {
 			continue
 		}
 		if !strings.HasPrefix(line, "did:") {
-			log.Warn().Str("file", filePath).Int("line", lineNum).Str("content", line).Msg("Skipping invalid DID (must start with 'did:')")
+			log.Warn().Str("file", filePath).Int("line", lineNum).Str("content", line).
+				Msg("Skipping invalid DID (must start with 'did:')")
 			continue
 		}
 		dids = append(dids, line)

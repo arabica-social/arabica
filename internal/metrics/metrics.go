@@ -88,11 +88,6 @@ var (
 		Help: "Total number of indexed records",
 	})
 
-	JoinRequestsPending = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "arabica_join_requests_pending",
-		Help: "Number of pending join requests",
-	})
-
 	IndexedLikesTotal = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "arabica_indexed_likes_total",
 		Help: "Total number of indexed likes",
@@ -115,16 +110,6 @@ var (
 		Name: "arabica_auth_logins_total",
 		Help: "Total number of login attempts",
 	}, []string{"status"})
-
-	JoinRequestsTotal = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "arabica_join_requests_total",
-		Help: "Total number of join request submissions",
-	})
-
-	InvitesCreatedTotal = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "arabica_invites_created_total",
-		Help: "Total number of invites created",
-	})
 
 	LikesTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "arabica_likes_total",

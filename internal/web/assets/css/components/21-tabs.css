@@ -1,0 +1,25 @@
+/* Tab panel visibility.
+   Parent element binds `:data-active-tab="X"` reactively via petite-vue.
+   Each panel carries `data-tab-panel="Y"`. CSS shows the matching one.
+   This avoids relying on `v-show` directives inside HTMX-swapped subtrees,
+   which petite-vue never re-binds after the initial mount. */
+
+[data-tab-panel] {
+  display: none;
+}
+
+[data-active-tab="brews"] [data-tab-panel="brews"],
+[data-active-tab="beans"] [data-tab-panel="beans"],
+[data-active-tab="roasters"] [data-tab-panel="roasters"],
+[data-active-tab="grinders"] [data-tab-panel="grinders"],
+[data-active-tab="brewers"] [data-tab-panel="brewers"],
+[data-active-tab="recipes"] [data-tab-panel="recipes"],
+[data-active-tab="equipment"] [data-tab-panel="equipment"],
+[data-active-tab="steeps"] [data-tab-panel="steeps"],
+[data-active-tab="teas"] [data-tab-panel="teas"],
+[data-active-tab="gear"] [data-tab-panel="gear"],
+[data-active-tab="vendors"] [data-tab-panel="vendors"],
+[data-active-tab="vessels"] [data-tab-panel="vessels"],
+[data-active-tab="infusers"] [data-tab-panel="infusers"] {
+  display: block;
+}

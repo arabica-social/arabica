@@ -210,6 +210,24 @@
   padding-bottom: 2rem;
 }
 
+/* Reply form reveal — petite-vue toggles `.is-open` on this wrapper. */
+.reply-form-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    grid-template-rows 150ms ease-out,
+    opacity 150ms ease-out;
+}
+.reply-form-wrap.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.reply-form-wrap > * {
+  min-height: 0;
+}
+
 .comment-item {
   position: relative;
   border-radius: 0.5rem;

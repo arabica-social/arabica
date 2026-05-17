@@ -1,34 +1,39 @@
-/**
- * Alpine.js component for the manage page
- * Handles CRUD operations for beans, roasters, grinders, and brewers
- * Uses shared entity-manager module to eliminate duplication
- */
+// @ts-check
+// Petite-vue factory for the manage / my-coffee / profile pages.
+// Owns the active tab + the four entity managers (bean/roaster/grinder/brewer)
+// that profile.templ's modals bind to.
+
 function managePage() {
   return {
-    tab: localStorage.getItem("manageTab") || "brews",
+    // Tab state — persisted to localStorage via the setter so we don't need
+    // a reactive watcher.
+    _tab: (function () {
+      try {
+        return localStorage.getItem("manageTab") || "brews";
+      } catch (e) {
+        return "brews";
+      }
+    })(),
+    get tab() {
+      return this._tab;
+    },
+    set tab(value) {
+      this._tab = value;
+      try {
+        localStorage.setItem("manageTab", value);
+      } catch (e) {}
+    },
     activeTab: "brews", // Always default to brews tab on profile
 
-    // Entity managers for each entity type
-    beanManager: null,
-    roasterManager: null,
-    grinderManager: null,
-    brewerManager: null,
+    /** @type {any} */ beanManager: null,
+    /** @type {any} */ roasterManager: null,
+    /** @type {any} */ grinderManager: null,
+    /** @type {any} */ brewerManager: null,
 
-    init() {
-      // Watch tab changes and persist to localStorage
-      this.$watch("tab", (value) => {
-        localStorage.setItem("manageTab", value);
-      });
-
-      // Initialize cache in background
-      if (window.ArabicaCache) {
-        window.ArabicaCache.init();
-      }
-
-      // Initialize entity managers
+    setup() {
+      const cache = /** @type {any} */ (window).ArabicaCache;
+      if (cache) cache.init();
       this.initEntityManagers();
-
-      // Check for incomplete entity nudge from brew save
       this.showIncompleteNudge();
     },
 
@@ -40,33 +45,54 @@ function managePage() {
         const nudge = JSON.parse(raw);
         if (!nudge.name || !nudge.missing) return;
 
-        // Create toast element
         const toast = document.createElement("div");
         toast.className = "nudge-toast";
-        toast.innerHTML = `
-          <div class="flex-1 text-sm">
-            <strong>${nudge.name}</strong> is missing ${nudge.missing}
-          </div>
-          <button class="text-sm font-medium hover:opacity-80 whitespace-nowrap" style="color: var(--accent-primary, #5d4037);"
-            onclick="this.closest('div').remove(); document.querySelector('#modal-container') && htmx.ajax('GET', '/api/modals/${nudge.entity_type}/${nudge.rkey}', {target: '#modal-container', swap: 'innerHTML'});">
-            Complete
-          </button>
-          <button class="text-brown-400 hover:text-brown-600" onclick="this.closest('div').remove();">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        `;
-        document.body.appendChild(toast);
 
-        // Auto-dismiss after 10 seconds
+        const body = document.createElement("div");
+        body.className = "flex-1 text-sm";
+        const strong = document.createElement("strong");
+        strong.textContent = nudge.name;
+        body.appendChild(strong);
+        body.appendChild(document.createTextNode(" is missing " + nudge.missing));
+
+        const complete = document.createElement("button");
+        complete.className =
+          "text-sm font-medium hover:opacity-80 whitespace-nowrap";
+        complete.style.color = "var(--accent-primary, #5d4037)";
+        complete.textContent = "Complete";
+        complete.addEventListener("click", () => {
+          toast.remove();
+          const slot = document.querySelector("#modal-container");
+          const htmx = /** @type {any} */ (window).htmx;
+          if (slot && htmx) {
+            htmx.ajax(
+              "GET",
+              `/api/modals/${nudge.entity_type}/${nudge.rkey}`,
+              { target: "#modal-container", swap: "innerHTML" },
+            );
+          }
+        });
+
+        const dismiss = document.createElement("button");
+        dismiss.className = "text-brown-400 hover:text-brown-600";
+        dismiss.innerHTML =
+          '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
+        dismiss.addEventListener("click", () => toast.remove());
+
+        toast.append(body, complete, dismiss);
+        document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 10000);
       } catch (_) {
-        // Ignore errors
+        // ignore
       }
     },
 
     initEntityManagers() {
-      // Bean entity manager
-      this.beanManager = window.createEntityManager({
+      const w = /** @type {any} */ (window);
+      const refresh = () =>
+        document.body.dispatchEvent(new CustomEvent("refreshManage"));
+
+      this.beanManager = w.createEntityManager({
         entityType: "bean",
         apiEndpoint: "/api/beans",
         dialogId: "bean-modal",
@@ -79,42 +105,21 @@ function managePage() {
           roaster_rkey: "",
           closed: false,
         },
-        validate: (data) => {
-          if (!data.name || !data.origin) {
-            return "Name and Origin are required";
-          }
-          return null;
-        },
-        onSuccess: () => {
-          // Reload the manage partial via HTMX by dispatching a custom event
-          document.body.dispatchEvent(new CustomEvent('refreshManage'));
-        },
+        validate: (data) =>
+          !data.name || !data.origin ? "Name and Origin are required" : null,
+        onSuccess: refresh,
       });
 
-      // Roaster entity manager
-      this.roasterManager = window.createEntityManager({
+      this.roasterManager = w.createEntityManager({
         entityType: "roaster",
         apiEndpoint: "/api/roasters",
         dialogId: "roaster-modal",
-        defaultFormData: {
-          name: "",
-          location: "",
-          website: "",
-        },
-        validate: (data) => {
-          if (!data.name) {
-            return "Name is required";
-          }
-          return null;
-        },
-        onSuccess: () => {
-          // Reload the manage partial via HTMX by dispatching a custom event
-          document.body.dispatchEvent(new CustomEvent('refreshManage'));
-        },
+        defaultFormData: { name: "", location: "", website: "" },
+        validate: (data) => (!data.name ? "Name is required" : null),
+        onSuccess: refresh,
       });
 
-      // Grinder entity manager
-      this.grinderManager = window.createEntityManager({
+      this.grinderManager = w.createEntityManager({
         entityType: "grinder",
         apiEndpoint: "/api/grinders",
         dialogId: "grinder-modal",
@@ -124,127 +129,91 @@ function managePage() {
           burr_type: "",
           notes: "",
         },
-        validate: (data) => {
-          if (!data.name || !data.grinder_type) {
-            return "Name and Grinder Type are required";
-          }
-          return null;
-        },
-        onSuccess: () => {
-          // Reload the manage partial via HTMX by dispatching a custom event
-          document.body.dispatchEvent(new CustomEvent('refreshManage'));
-        },
+        validate: (data) =>
+          !data.name || !data.grinder_type
+            ? "Name and Grinder Type are required"
+            : null,
+        onSuccess: refresh,
       });
 
-      // Brewer entity manager
-      this.brewerManager = window.createEntityManager({
+      this.brewerManager = w.createEntityManager({
         entityType: "brewer",
         apiEndpoint: "/api/brewers",
         dialogId: "brewer-modal",
-        defaultFormData: {
-          name: "",
-          brewer_type: "",
-          description: "",
-        },
-        validate: (data) => {
-          if (!data.name) {
-            return "Name is required";
-          }
-          return null;
-        },
-        onSuccess: () => {
-          // Reload the manage partial via HTMX by dispatching a custom event
-          document.body.dispatchEvent(new CustomEvent('refreshManage'));
-        },
+        defaultFormData: { name: "", brewer_type: "", description: "" },
+        validate: (data) => (!data.name ? "Name is required" : null),
+        onSuccess: refresh,
       });
     },
 
-    // Expose entity manager modal state to Alpine
+    // Bridges between the entity-manager state and template bindings.
+    // Each manager has a `formData` object whose mutations need to be
+    // reactive in petite-vue. petite-vue's deep reactivity wraps nested
+    // accessed values, so reading via these getters gives a reactive proxy.
     get showBeanForm() {
       return this.beanManager?.showForm || false;
     },
-    set showBeanForm(value) {
-      if (this.beanManager) this.beanManager.showForm = value;
+    set showBeanForm(v) {
+      if (this.beanManager) this.beanManager.showForm = v;
     },
-
     get showRoasterForm() {
       return this.roasterManager?.showForm || false;
     },
-    set showRoasterForm(value) {
-      if (this.roasterManager) this.roasterManager.showForm = value;
+    set showRoasterForm(v) {
+      if (this.roasterManager) this.roasterManager.showForm = v;
     },
-
     get showGrinderForm() {
       return this.grinderManager?.showForm || false;
     },
-    set showGrinderForm(value) {
-      if (this.grinderManager) this.grinderManager.showForm = value;
+    set showGrinderForm(v) {
+      if (this.grinderManager) this.grinderManager.showForm = v;
     },
-
     get showBrewerForm() {
       return this.brewerManager?.showForm || false;
     },
-    set showBrewerForm(value) {
-      if (this.brewerManager) this.brewerManager.showForm = value;
+    set showBrewerForm(v) {
+      if (this.brewerManager) this.brewerManager.showForm = v;
     },
 
-    // Expose entity manager editing state to Alpine (for modal titles)
     get editingBean() {
       return this.beanManager?.editingId !== null;
     },
-
     get editingRoaster() {
       return this.roasterManager?.editingId !== null;
     },
-
     get editingGrinder() {
       return this.grinderManager?.editingId !== null;
     },
-
     get editingBrewer() {
       return this.brewerManager?.editingId !== null;
     },
 
-    // Expose entity manager form data to Alpine
     get beanForm() {
       return this.beanManager?.formData || {};
     },
-    set beanForm(value) {
-      if (this.beanManager) this.beanManager.formData = value;
+    set beanForm(v) {
+      if (this.beanManager) this.beanManager.formData = v;
     },
-
     get roasterForm() {
       return this.roasterManager?.formData || {};
     },
-    set roasterForm(value) {
-      if (this.roasterManager) this.roasterManager.formData = value;
+    set roasterForm(v) {
+      if (this.roasterManager) this.roasterManager.formData = v;
     },
-
     get grinderForm() {
       return this.grinderManager?.formData || {};
     },
-    set grinderForm(value) {
-      if (this.grinderManager) this.grinderManager.formData = value;
+    set grinderForm(v) {
+      if (this.grinderManager) this.grinderManager.formData = v;
     },
-
     get brewerForm() {
       return this.brewerManager?.formData || {};
     },
-    set brewerForm(value) {
-      if (this.brewerManager) this.brewerManager.formData = value;
+    set brewerForm(v) {
+      if (this.brewerManager) this.brewerManager.formData = v;
     },
 
-    // Edit methods - populate form and open modal
-    editBean(
-      rkey,
-      name,
-      origin,
-      roast_level,
-      process,
-      description,
-      roaster_rkey,
-      closed,
-    ) {
+    editBean(rkey, name, origin, roast_level, process, description, roaster_rkey, closed) {
       this.beanManager.openEdit(rkey, {
         name,
         origin,
@@ -255,11 +224,9 @@ function managePage() {
         closed: closed || false,
       });
     },
-
     editRoaster(rkey, name, location, website) {
       this.roasterManager.openEdit(rkey, { name, location, website });
     },
-
     editGrinder(rkey, name, grinder_type, burr_type, notes) {
       this.grinderManager.openEdit(rkey, {
         name,
@@ -268,67 +235,48 @@ function managePage() {
         notes,
       });
     },
-
     editBrewer(rkey, name, brewer_type, description) {
       this.brewerManager.openEdit(rkey, { name, brewer_type, description });
     },
-
     editBrewerFromRow(row) {
-      const rkey = row.dataset.rkey;
-      const name = row.dataset.name;
-      const brewer_type = row.dataset.brewerType || "";
-      const description = row.dataset.description || "";
-      this.editBrewer(rkey, name, brewer_type, description);
+      this.editBrewer(
+        row.dataset.rkey,
+        row.dataset.name,
+        row.dataset.brewerType || "",
+        row.dataset.description || "",
+      );
     },
 
-    // Delegate save methods to entity managers
     async saveBean() {
       await this.beanManager.save();
     },
-
     async saveRoaster() {
       await this.roasterManager.save();
     },
-
     async saveGrinder() {
       await this.grinderManager.save();
     },
-
     async saveBrewer() {
       await this.brewerManager.save();
     },
 
-    // Delegate delete methods to entity managers
     async deleteBean(rkey) {
-      const success = await this.beanManager.delete(rkey);
-      // Explicitly trigger refresh after successful delete
-      if (success) {
-        document.body.dispatchEvent(new CustomEvent('refreshManage'));
-      }
+      const ok = await this.beanManager.delete(rkey);
+      if (ok) document.body.dispatchEvent(new CustomEvent("refreshManage"));
     },
-
     async deleteRoaster(rkey) {
-      const success = await this.roasterManager.delete(rkey);
-      // Explicitly trigger refresh after successful delete
-      if (success) {
-        document.body.dispatchEvent(new CustomEvent('refreshManage'));
-      }
+      const ok = await this.roasterManager.delete(rkey);
+      if (ok) document.body.dispatchEvent(new CustomEvent("refreshManage"));
     },
-
     async deleteGrinder(rkey) {
-      const success = await this.grinderManager.delete(rkey);
-      // Explicitly trigger refresh after successful delete
-      if (success) {
-        document.body.dispatchEvent(new CustomEvent('refreshManage'));
-      }
+      const ok = await this.grinderManager.delete(rkey);
+      if (ok) document.body.dispatchEvent(new CustomEvent("refreshManage"));
     },
-
     async deleteBrewer(rkey) {
-      const success = await this.brewerManager.delete(rkey);
-      // Explicitly trigger refresh after successful delete
-      if (success) {
-        document.body.dispatchEvent(new CustomEvent('refreshManage'));
-      }
+      const ok = await this.brewerManager.delete(rkey);
+      if (ok) document.body.dispatchEvent(new CustomEvent("refreshManage"));
     },
   };
 }
+
+/** @type {any} */ (window).managePage = managePage;

@@ -44,21 +44,18 @@ func getButtonType(t string) string {
 	return t
 }
 
-// BackButton renders a simple back navigation button using browser history
-// Self-contained with its own Alpine.js context, works anywhere without parent x-data
+// BackButton renders a simple back navigation button using browser history.
 templ BackButton() {
-	<div x-data="{}">
-		<button
-			type="button"
-			@click="history.back()"
-			class="inline-flex items-center text-emphasis hover:text-primary font-medium transition-colors cursor-pointer"
-			aria-label="Go back"
-		>
-			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-			</svg>
-		</button>
-	</div>
+	<button
+		type="button"
+		data-action="history-back"
+		class="inline-flex items-center text-emphasis hover:text-primary font-medium transition-colors cursor-pointer"
+		aria-label="Go back"
+	>
+		<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+		</svg>
+	</button>
 }
 
 // ShareButtonProps defines properties for the share button
@@ -68,22 +65,22 @@ type ShareButtonProps struct {
 	Text  string // Text for native share dialog
 }
 
-// ShareButton renders a share button using Web Share API with clipboard fallback
+// ShareButton renders a share button using Web Share API with clipboard fallback.
 templ ShareButton(props ShareButtonProps) {
 	<button
 		type="button"
-		x-data={ "{ copied: false, share() { const fullUrl = window.location.origin + '" + escapeForJS(props.URL) + "'; if (navigator.share) { navigator.share({ title: '" + escapeForJS(props.Title) + "', text: '" + escapeForJS(props.Text) + "', url: fullUrl }).catch(() => {}); } else { navigator.clipboard.writeText(fullUrl).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000); }); } } }" }
-		@click="share()"
+		v-scope={ fmt.Sprintf("ShareButton('%s', '%s', '%s')", escapeForJS(props.URL), escapeForJS(props.Title), escapeForJS(props.Text)) }
+		@click="share"
 		class="share-btn"
 		aria-label="Share"
 	>
-		<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+		<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
 		</svg>
-		<svg x-show="copied" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+		<svg v-show="copied" v-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 			<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"></path>
 		</svg>
-		<span x-show="copied" x-cloak>Copied!</span>
+		<span v-show="copied" v-cloak>Copied!</span>
 	</button>
 }
 

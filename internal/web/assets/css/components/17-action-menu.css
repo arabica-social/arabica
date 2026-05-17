@@ -2,7 +2,6 @@
 .action-menu {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
   width: 9rem;
   border-radius: 0.5rem;
   padding-top: 0.25rem;
@@ -11,6 +10,19 @@
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-md);
+  /* Closed state — petite-vue toggles `.is-open` to reveal. */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) scale(0.95);
+  transform-origin: top center;
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out;
+}
+.action-menu.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) scale(1);
 }
 
 /* Dropdown menu (top-positioned, for headers/nav) */
@@ -26,6 +38,19 @@
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-md);
+  /* Closed state — petite-vue toggles `.is-open` to reveal. */
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+  transform-origin: top right;
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out;
+}
+.dropdown-menu.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
 }
 
 .dropdown-item {

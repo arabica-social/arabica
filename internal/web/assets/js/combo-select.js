@@ -7,7 +7,7 @@
  * (single source of truth — previously these were built as JS function literals
  * inside Go strings in ComboSelectConfig()). Templ callsites now only pass the
  * "wiring" config (entityType, endpoints, inputName, placeholder, flags); the
- * factory merges that with ENTITIES[entityType] to produce the Alpine data.
+ * factory merges that with ENTITIES[entityType] to produce the scope.
  */
 
 // Per-entityType registry. formatLabel / formatCreateData / extraFields are
@@ -367,11 +367,12 @@ const _DEFAULT_ENTITY = {
   extraFields: [],
 };
 
-document.addEventListener("alpine:init", () => {
-  Alpine.data("comboSelect", (config) => {
-    const entity =
-      window.__comboSelectEntities[config.entityType] || _DEFAULT_ENTITY;
-    return {
+// Petite-vue factory. Registered on window so arabica-vue.js can include it
+// in the petite-vue globals map at mount time.
+function comboSelect(config) {
+  const entity =
+    window.__comboSelectEntities[config.entityType] || _DEFAULT_ENTITY;
+  return {
       // Config (wiring from templ + entity defaults from the registry)
       entityType: config.entityType || "",
       apiEndpoint: config.apiEndpoint || "",
@@ -391,7 +392,7 @@ document.addEventListener("alpine:init", () => {
       isOpen: false,
       highlightIndex: -1,
       isCreating: false,
-      // Synchronous re-entry guards. `isCreating` is reactive Alpine state —
+      // Synchronous re-entry guards. `isCreating` is reactive scope state —
       // between a click and the next microtask the disabled button is still
       // clickable, so a double-click could fire two POSTs (and for bean
       // creation, that means 2 roasters AND 2 beans).
@@ -449,9 +450,14 @@ document.addEventListener("alpine:init", () => {
         );
       },
 
-      init() {
+      // $root is the v-scope element captured in setup; petite-vue exposes
+      // `$el` as a directive-expression variable, not a `this` property.
+      $root: null,
+
+      setup($el) {
+        this.$root = $el;
         // Listen for external set events (e.g., from recipe autofill)
-        this.$el.addEventListener("combo-set", (e) => {
+        $el.addEventListener("combo-set", (e) => {
           if (e.detail.rkey) {
             this.selectedRKey = e.detail.rkey;
             this.selectedLabel = e.detail.label || "";
@@ -460,7 +466,16 @@ document.addEventListener("alpine:init", () => {
             this.clear();
           }
         });
-
+        // Preselect from `data-combo-initial-rkey`/`data-combo-initial-label`
+        // attributes set by the templ wrapper. Keeps the Go config helper
+        // Caller sets these data attributes on the v-scope wrapper to
+        // preselect an entity on edit forms.
+        const initRKey = $el.getAttribute("data-combo-initial-rkey");
+        if (initRKey) {
+          this.selectedRKey = initRKey;
+          this.selectedLabel = $el.getAttribute("data-combo-initial-label") || "";
+          this.query = this.selectedLabel;
+        }
         // Ensure the user's entities are loaded so typeahead can match them.
         // Some pages (e.g. the oolong steep form) don't otherwise prime the
         // cache, leaving getUserEntities() empty until a refresh happens.
@@ -468,6 +483,14 @@ document.addEventListener("alpine:init", () => {
           window.ArabicaCache.getData().catch((err) => {
             console.warn("comboSelect: failed to load user data cache:", err);
           });
+        }
+      },
+
+      _dispatch(name, detail) {
+        if (this.$root) {
+          this.$root.dispatchEvent(
+            new CustomEvent(name, { detail, bubbles: true }),
+          );
         }
       },
 
@@ -592,9 +615,10 @@ document.addEventListener("alpine:init", () => {
         this.query = this.selectedLabel;
         this.isOpen = false;
 
-        // Dispatch change event for other listeners (e.g., onBrewerChange)
-        this.$nextTick(() => {
-          this.$dispatch("combo-change", {
+        // Dispatch change event for other listeners (e.g., onBrewerChange).
+        // Petite-vue updates synchronously, so a microtask is enough.
+        queueMicrotask(() => {
+          this._dispatch("combo-change", {
             entityType: this.entityType,
             rkey,
             entity,
@@ -614,8 +638,8 @@ document.addEventListener("alpine:init", () => {
           this.query = this.selectedLabel;
           this.isOpen = false;
 
-          this.$nextTick(() => {
-            this.$dispatch("combo-change", {
+          queueMicrotask(() => {
+            this._dispatch("combo-change", {
               entityType: this.entityType,
               rkey,
               suggestion,
@@ -888,8 +912,8 @@ document.addEventListener("alpine:init", () => {
             window.ArabicaCache.invalidateAndRefresh();
           }
 
-          this.$nextTick(() => {
-            this.$dispatch("combo-change", {
+          queueMicrotask(() => {
+            this._dispatch("combo-change", {
               entityType: this.entityType,
               rkey,
             });
@@ -931,11 +955,12 @@ document.addEventListener("alpine:init", () => {
         this.query = "";
         this.showCreateForm = false;
         this.createFormData = {};
-        this.$dispatch("combo-change", {
+        this._dispatch("combo-change", {
           entityType: this.entityType,
           rkey: "",
         });
       },
     };
-  });
-});
+}
+
+/** @type {any} */ (window).comboSelect = comboSelect;

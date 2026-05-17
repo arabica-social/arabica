@@ -119,7 +119,6 @@ templ BrewViewCard(props BrewViewProps) {
 			IsLiked:         props.IsLiked,
 			LikeCount:       props.LikeCount,
 			CommentCount:    props.CommentCount,
-			ShowComments:    true,
 			ShareURL:        props.ShareURL,
 			ShareTitle:      getBrewShareTitle(props.Brew),
 			ShareText:       "Check out this brew on Arabica",
@@ -356,54 +355,35 @@ func getBrewShareTitle(brew *arabica.Brew) string {
 
 // SaveAsRecipeButton renders a button to save brew parameters as a recipe
 templ SaveAsRecipeButton(brewRKey string) {
-	<div x-data={ saveAsRecipeData(brewRKey) }>
-		<template x-if="!showForm && !success">
-			<button
-				@click="showForm = true"
-				class="w-full btn-secondary text-sm"
-			>
-				Save as Recipe
-			</button>
-		</template>
-		<template x-if="showForm && !success">
-			<div class="space-y-3">
-				<h3 class="text-sm font-medium text-muted uppercase tracking-wider">Save as Recipe</h3>
-				<label for={ "save-recipe-name-" + brewRKey } class="sr-only">Recipe name</label>
-				<input
-					id={ "save-recipe-name-" + brewRKey }
-					type="text"
-					x-model="name"
-					placeholder="Recipe name"
-					required
-					aria-required="true"
-					class="w-full form-input"
-				/>
-				<template x-if="error">
-					<div class="text-danger text-sm" x-text="error"></div>
-				</template>
-				<div class="flex gap-2">
-					<button
-						@click="saveRecipe()"
-						:disabled="saving"
-						class="flex-1 btn-primary text-sm"
-					>
-						<span x-show="!saving">Save</span>
-						<span x-show="saving">Saving...</span>
-					</button>
-					<button
-						@click="showForm = false; error = ''"
-						class="flex-1 btn-secondary text-sm"
-					>
-						Cancel
-					</button>
-				</div>
+	<div v-scope={ saveAsRecipeData(brewRKey) }>
+		<button
+			v-if="!showForm && !success"
+			@click="showForm = true"
+			class="w-full btn-secondary text-sm"
+		>
+			Save as Recipe
+		</button>
+		<div v-if="showForm && !success" v-cloak class="space-y-3">
+			<h3 class="text-sm font-medium text-muted uppercase tracking-wider">Save as Recipe</h3>
+			<label for={ "save-recipe-name-" + brewRKey } class="sr-only">Recipe name</label>
+			<input
+				id={ "save-recipe-name-" + brewRKey }
+				type="text"
+				v-model="name"
+				placeholder="Recipe name"
+				required
+				aria-required="true"
+				class="w-full form-input"
+			/>
+			<div v-if="error" v-cloak class="text-danger text-sm" v-text="error"></div>
+			<div class="flex gap-2">
+				<button @click="saveRecipe" :disabled="saving" class="flex-1 btn-primary text-sm" v-text="saving ? 'Saving...' : 'Save'"></button>
+				<button @click="showForm = false; error = ''" class="flex-1 btn-secondary text-sm">Cancel</button>
 			</div>
-		</template>
-		<template x-if="success">
-			<div class="text-center text-success text-sm font-medium py-2">
-				Recipe saved!
-			</div>
-		</template>
+		</div>
+		<div v-if="success" v-cloak class="text-center text-success text-sm font-medium py-2">
+			Recipe saved!
+		</div>
 	</div>
 }
 

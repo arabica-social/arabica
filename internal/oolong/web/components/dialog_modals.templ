@@ -100,9 +100,12 @@ func ratingStr(r *int) string {
 templ comboSelectField(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, label, sectionLabel, selectedRKey, selectedLabel string, required bool) {
 	<div
 		class="combo-select"
-		x-data={ ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, required) }
+		data-combo-entity-type={ entityType }
+		v-scope={ ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, required) }
+		@vue:mounted="setup($el)"
 		if selectedRKey != "" {
-			x-init={ fmt.Sprintf("selectedRKey = '%s'; query = '%s'; selectedLabel = query", selectedRKey, EscapeJS(selectedLabel)) }
+			data-combo-initial-rkey={ selectedRKey }
+			data-combo-initial-label={ selectedLabel }
 		}
 	>
 		<label class="form-label">
