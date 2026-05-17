@@ -12,7 +12,7 @@ templ-watch-arabica:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_HOTRELOAD=1 templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/arabica -known-dids known-dids.txt"
 
 templ-watch-oolong:
-    @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_HOTRELOAD=1 templ generate --watch --proxy="http://localhost:18080" --cmd="go run ./cmd/oolong"
+    @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_HOTRELOAD=1 templ generate --watch --proxy="http://localhost:18081" --cmd="go run ./cmd/oolong"
 
 templ-generate:
     @templ generate

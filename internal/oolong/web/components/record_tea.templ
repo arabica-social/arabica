@@ -18,6 +18,73 @@ templ TeaContent(t *oolong.Tea) {
 	</div>
 }
 
+// TeaCardContent renders a tea for the My Tea management grid. Mirrors
+// arabica's BeanCard inner layout: name + vendor on the left, rating
+// badge with brew-count badge next to it on the right, attribute icon
+// strip below, optional description, no inline rating text (the badge
+// is canonical).
+templ TeaCardContent(t *oolong.Tea, brewCount int) {
+	<div class="feed-content-box-sm">
+		<div class="mb-2">
+			<div class="font-bold text-primary text-base wrap-break-word">{ t.Name }</div>
+			if t.Vendor != nil && t.Vendor.Name != "" {
+				<div class="text-sm text-emphasis mt-0.5">
+					<span class="font-medium inline-flex items-center gap-1">
+						@IconStore()
+						{ t.Vendor.Name }
+					</span>
+				</div>
+			}
+		</div>
+		<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+			if t.Origin != "" {
+				<span class="inline-flex items-center gap-1">
+					@IconMapPin()
+					{ t.Origin }
+				</span>
+			}
+			if t.Category != "" {
+				<span class="inline-flex items-center gap-1">
+					@IconLeaf()
+					{ t.Category }
+				</span>
+			}
+			if t.HarvestYear > 0 {
+				<span class="inline-flex items-center gap-1">
+					@IconCalendar()
+					{ strconv.Itoa(t.HarvestYear) }
+				</span>
+			}
+		</div>
+		if t.Description != "" {
+			<div class="mt-2 text-sm text-secondary italic line-clamp-2">"{ t.Description }"</div>
+		}
+		if t.Rating != nil || brewCount > 0 {
+			<div class="flex items-center gap-3 pt-2 mt-2 border-t border-brown-200/60 text-xs text-faint">
+				if brewCount > 0 {
+					<span class="flex items-center gap-1">
+						@IconTeapot()
+						{ fmt.Sprintf("%d steep%s", brewCount, teaPluralS(brewCount)) }
+					</span>
+				}
+				if t.Rating != nil {
+					<span class="flex items-center gap-1">
+						@IconStar()
+						{ fmt.Sprintf("%d/10", *t.Rating) }
+					</span>
+				}
+			</div>
+		}
+	</div>
+}
+
+func teaPluralS(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
+}
+
 // TeaSummary renders the tea name, vendor, and attribute tags. Mirrors
 // arabica's BeanSummary in shared.templ.
 templ TeaSummary(t *oolong.Tea) {

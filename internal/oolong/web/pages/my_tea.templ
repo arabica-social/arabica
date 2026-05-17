@@ -2,9 +2,11 @@ package teapages
 
 import (
 	"fmt"
+	"time"
 
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -17,6 +19,10 @@ type MyTeaProps struct {
 	Vessels  []*oolong.Vessel
 	Infusers []*oolong.Infuser
 	Brews    []*oolong.Brew
+	// BrewCountByTea maps a tea's RKey to the number of steeps the
+	// signed-in user has logged with that tea. Used to render the brew
+	// count badge alongside the rating on each tea card.
+	BrewCountByTea map[string]int
 	// Actor is the {actor} segment used to build /{slug}/{actor}/{rkey}
 	// view URLs for the signed-in user's own records. Handle preferred,
 	// DID as fallback.
@@ -50,7 +56,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, b := range props.Brews {
-						@mySteepCard(props.Actor, b.RKey) {
+						@mySteepCard(props.Actor, b.RKey, b.CreatedAt) {
 							@tea.BrewContent(b)
 						}
 					}
@@ -64,8 +70,8 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, t := range props.Teas {
-						@myTeaPageCard("tea", t.RKey, viewURL("teas", props.Actor, t.RKey), "/teas/"+t.RKey+"/edit", "/api/teas/"+t.RKey) {
-							@tea.TeaContent(t)
+						@myTeaPageCard("tea", t.RKey, viewURL("teas", props.Actor, t.RKey), "/teas/"+t.RKey+"/edit", "/api/teas/"+t.RKey, t.CreatedAt) {
+							@tea.TeaCardContent(t, props.BrewCountByTea[t.RKey])
 						}
 					}
 				</div>
@@ -78,7 +84,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, v := range props.Vendors {
-						@myTeaCard("vendor", v.RKey, viewURL("vendors", props.Actor, v.RKey)) {
+						@myTeaCard("vendor", v.RKey, viewURL("vendors", props.Actor, v.RKey), v.CreatedAt) {
 							@tea.VendorContent(v)
 						}
 					}
@@ -92,7 +98,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, v := range props.Vessels {
-						@myTeaCard("vessel", v.RKey, viewURL("vessels", props.Actor, v.RKey)) {
+						@myTeaCard("vessel", v.RKey, viewURL("vessels", props.Actor, v.RKey), v.CreatedAt) {
 							@tea.VesselContent(v)
 						}
 					}
@@ -106,7 +112,7 @@ templ MyTeaContent(props MyTeaProps) {
 			} else {
 				<div class="feed-grid">
 					for _, i := range props.Infusers {
-						@myTeaCard("infuser", i.RKey, viewURL("infusers", props.Actor, i.RKey)) {
+						@myTeaCard("infuser", i.RKey, viewURL("infusers", props.Actor, i.RKey), i.CreatedAt) {
 							@tea.InfuserContent(i)
 						}
 					}
@@ -156,33 +162,13 @@ templ myTeaSectionHeader(title, noun, addModalURL string, count int) {
 	</div>
 }
 
-// myTeaCard wraps an entity's record-content templ in a feed-style card
-// with edit + delete buttons in the corner. Hover surfaces the actions.
-templ myTeaCard(noun, rkey, viewURL string) {
-	<div class="feed-card relative group">
-		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-			<button
-				type="button"
-				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm"
-				hx-get={ "/api/modals/" + noun + "/" + rkey }
-				hx-target="#modal-container"
-				hx-swap="innerHTML"
-				aria-label={ "Edit " + noun }
-			>
-				Edit
-			</button>
-			<button
-				type="button"
-				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm hover:!bg-red-50 hover:!text-red-700"
-				hx-delete={ "/api/" + myTeaURLPath(noun) + "/" + rkey }
-				hx-confirm={ "Delete this " + noun + "?" }
-				hx-target="closest .feed-card"
-				hx-swap="outerHTML swap:300ms"
-				aria-label={ "Delete " + noun }
-			>
-				Delete
-			</button>
-		</div>
+// myTeaCard wraps an entity's record-content templ in a feed-style card.
+// Header mirrors arabica's entityCardHeader: colored type dot + created
+// date on the left, inline Edit + Delete actions on the right (always
+// visible, not gated on hover).
+templ myTeaCard(noun, rkey, viewURL string, createdAt time.Time) {
+	<div class={ "feed-card", "feed-card-" + noun }>
+		@teaEntityCardHeader(createdAt, noun, "/api/modals/"+noun+"/"+rkey, "/api/"+myTeaURLPath(noun)+"/"+rkey)
 		<a href={ templ.SafeURL(viewURL) } class="block hover:opacity-95 transition-opacity">
 			{ children... }
 		</a>
@@ -208,28 +194,9 @@ templ myTeaPageSectionHeader(title, addPageURL string, count int) {
 
 // myTeaPageCard mirrors myTeaCard but Edit is an anchor to a full-page
 // form (e.g. /teas/{rkey}/edit) instead of an HTMX modal trigger.
-templ myTeaPageCard(noun, rkey, viewURL, editURL, deleteURL string) {
-	<div class="feed-card relative group">
-		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-			<a
-				href={ templ.SafeURL(editURL) }
-				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm"
-				aria-label={ "Edit " + noun }
-			>
-				Edit
-			</a>
-			<button
-				type="button"
-				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm hover:!bg-red-50 hover:!text-red-700"
-				hx-delete={ deleteURL }
-				hx-confirm={ "Delete this " + noun + "?" }
-				hx-target="closest .feed-card"
-				hx-swap="outerHTML swap:300ms"
-				aria-label={ "Delete " + noun }
-			>
-				Delete
-			</button>
-		</div>
+templ myTeaPageCard(noun, rkey, viewURL, editURL, deleteURL string, createdAt time.Time) {
+	<div class={ "feed-card", "feed-card-" + noun }>
+		@teaEntityCardHeaderEditLink(createdAt, noun, editURL, deleteURL)
 		<a href={ templ.SafeURL(viewURL) } class="block hover:opacity-95 transition-opacity">
 			{ children... }
 		</a>
@@ -255,31 +222,68 @@ templ mySteepSectionHeader(count int) {
 
 // mySteepCard mirrors myTeaCard but with an Edit anchor pointing at the
 // full-page edit form instead of an HTMX modal trigger.
-templ mySteepCard(actor, rkey string) {
-	<div class="feed-card feed-card-brew relative group">
-		<div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-			<a
-				href={ templ.SafeURL("/brews/" + rkey + "/edit") }
-				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm"
-				aria-label="Edit steep"
-			>
-				Edit
-			</a>
-			<button
-				type="button"
-				class="btn-secondary text-xs px-2 py-1 rounded shadow-sm hover:!bg-red-50 hover:!text-red-700"
-				hx-delete={ "/api/brews/" + rkey }
-				hx-confirm="Delete this steep?"
-				hx-target="closest .feed-card"
-				hx-swap="outerHTML swap:300ms"
-				aria-label="Delete steep"
-			>
-				Delete
-			</button>
-		</div>
+templ mySteepCard(actor, rkey string, createdAt time.Time) {
+	<div class="feed-card feed-card-brew">
+		@teaEntityCardHeaderEditLink(createdAt, "brew", "/brews/"+rkey+"/edit", "/api/brews/"+rkey)
 		<a href={ templ.SafeURL(viewURL("brews", actor, rkey)) } class="block hover:opacity-95 transition-opacity">
 			{ children... }
 		</a>
+	</div>
+}
+
+// teaEntityCardHeader renders the date + type dot + edit (HTMX modal) +
+// delete actions header used by entity cards on the My Tea page.
+// Mirrors arabica's entityCardHeader for visual parity.
+templ teaEntityCardHeader(createdAt time.Time, entityType, modalPath, deletePath string) {
+	<div class="flex items-center justify-between mb-2">
+		<div class="flex items-center gap-2 text-sm text-muted">
+			<span class={ "entity-card-dot", "entity-card-dot-" + entityType }></span>
+			if !createdAt.IsZero() {
+				<time datetime={ bff.FormatISO(createdAt) } data-local="date">{ createdAt.Format("Jan 2, 2006") }</time>
+			}
+		</div>
+		<div class="flex items-center gap-1">
+			<button
+				hx-get={ modalPath }
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+				class="text-muted hover:text-primary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200"
+			>Edit</button>
+			<button
+				hx-delete={ deletePath }
+				hx-confirm={ "Are you sure you want to delete this " + entityType + "?" }
+				hx-target="closest .feed-card"
+				hx-swap="outerHTML swap:0.3s"
+				class="text-faint hover:text-secondary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200"
+			>Delete</button>
+		</div>
+	</div>
+}
+
+// teaEntityCardHeaderEditLink is the variant of teaEntityCardHeader for
+// entities whose Edit affordance is a full-page form (anchor) rather
+// than an HTMX modal trigger — currently teas and brews/steeps.
+templ teaEntityCardHeaderEditLink(createdAt time.Time, entityType, editURL, deletePath string) {
+	<div class="flex items-center justify-between mb-2">
+		<div class="flex items-center gap-2 text-sm text-muted">
+			<span class={ "entity-card-dot", "entity-card-dot-" + entityType }></span>
+			if !createdAt.IsZero() {
+				<time datetime={ bff.FormatISO(createdAt) } data-local="date">{ createdAt.Format("Jan 2, 2006") }</time>
+			}
+		</div>
+		<div class="flex items-center gap-1">
+			<a
+				href={ templ.SafeURL(editURL) }
+				class="text-muted hover:text-primary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200"
+			>Edit</a>
+			<button
+				hx-delete={ deletePath }
+				hx-confirm={ "Are you sure you want to delete this " + entityType + "?" }
+				hx-target="closest .feed-card"
+				hx-swap="outerHTML swap:0.3s"
+				class="text-faint hover:text-secondary text-sm font-medium px-2.5 py-1.5 rounded-sm hover:bg-brown-200"
+			>Delete</button>
+		</div>
 	</div>
 }
 

@@ -18,6 +18,11 @@ templ Home(layout *components.LayoutData, props HomeProps) {
 
 templ HomeContent(props HomeProps) {
 	<div class="page-container-lg">
+		if props.AppName == "oolong" {
+			<div class="alert-warning mb-4">
+				<strong>Heads up:</strong> oolong is <em>very</em> new and unstable. Breaking lexicon changes <strong>will</strong> happen frequently.
+			</div>
+		}
 		if props.IsAuthenticated {
 			@components.WelcomeCard(components.WelcomeCardProps{
 				IsAuthenticated: props.IsAuthenticated,

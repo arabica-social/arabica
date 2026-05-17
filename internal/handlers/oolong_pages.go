@@ -149,6 +149,7 @@ func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 	for _, i := range infusers {
 		infuserByRKey[i.RKey] = i
 	}
+	brewCountByTea := make(map[string]int, len(teas))
 	for _, b := range brews {
 		if b.Tea == nil && b.TeaRKey != "" {
 			b.Tea = teaByRKey[b.TeaRKey]
@@ -159,15 +160,19 @@ func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 		if b.Infuser == nil && b.InfuserRKey != "" {
 			b.Infuser = infuserByRKey[b.InfuserRKey]
 		}
+		if b.TeaRKey != "" {
+			brewCountByTea[b.TeaRKey]++
+		}
 	}
 
 	props := teapages.MyTeaProps{
-		Teas:     teas,
-		Vendors:  vendors,
-		Vessels:  vessels,
-		Infusers: infusers,
-		Brews:    brews,
-		Actor:    actor,
+		Teas:           teas,
+		Vendors:        vendors,
+		Vessels:        vessels,
+		Infusers:       infusers,
+		Brews:          brews,
+		BrewCountByTea: brewCountByTea,
+		Actor:          actor,
 	}
 
 	if err := teapages.MyTea(layoutData, props).Render(r.Context(), w); err != nil {

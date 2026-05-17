@@ -107,6 +107,34 @@
     var(--type-brewer-tint)
   );
 }
+.feed-card-tea {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-tea-tint),
+    var(--type-tea-tint)
+  );
+}
+.feed-card-vendor {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-vendor-tint),
+    var(--type-vendor-tint)
+  );
+}
+.feed-card-vessel {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-vessel-tint),
+    var(--type-vessel-tint)
+  );
+}
+.feed-card-infuser {
+  background-color: var(--feed-card-bg);
+  background-image: linear-gradient(
+    var(--type-infuser-tint),
+    var(--type-infuser-tint)
+  );
+}
 
 /* Feed grid layout — starts as normal grid, JS adds masonry class for tight packing */
 .feed-grid {
@@ -245,6 +273,21 @@
 }
 .entity-card-dot-recipe {
   background: var(--type-recipe);
+}
+.entity-card-dot-tea {
+  background: var(--type-tea);
+}
+.entity-card-dot-vendor {
+  background: var(--type-vendor);
+}
+.entity-card-dot-vessel {
+  background: var(--type-vessel);
+}
+.entity-card-dot-infuser {
+  background: var(--type-infuser);
+}
+.entity-card-dot-brew {
+  background: var(--type-brew);
 }
 
 .feed-content-box {
