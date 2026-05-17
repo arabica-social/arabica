@@ -76,5 +76,5 @@ nix build .#arabica
 nix run .#arabica
 ```
 
-By default the wrapper stores data at `~/.local/share/arabica/arabica.db` when
-`ARABICA_DB_PATH` is not set.
+The service stores its databases in `dataDir` (`/var/lib/arabica` by default),
+with paths set via `ARABICA_DB_PATH` and `ARABICA_FEED_INDEX_PATH`.

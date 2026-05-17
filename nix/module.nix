@@ -316,14 +316,10 @@ in
         LOG_LEVEL = cfg.settings.logLevel;
         LOG_FORMAT = cfg.settings.logFormat;
         SECURE_COOKIES = lib.boolToString cfg.settings.secureCookies;
-        # Arabica per-app env (uppercase prefix matches app.Name).
         ARABICA_PORT = toString cfg.settings.port;
+        ARABICA_PUBLIC_URL = cfg.settings.publicUrl;
         ARABICA_OAUTH_CLIENT_ID = cfg.oauth.clientId;
         ARABICA_OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
-        ARABICA_DATA_DIR = cfg.dataDir;
-      }
-      // lib.optionalAttrs (cfg.settings.publicUrl != null) {
-        ARABICA_PUBLIC_URL = cfg.settings.publicUrl;
       }
       // lib.optionalAttrs (effectiveConfigPath != null) {
         ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;

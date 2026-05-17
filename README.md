@@ -14,10 +14,11 @@ Development is on Tangled, and is mirrored to GitHub:
 nix run
 
 # Or with Go
+templ generate
 go run ./cmd/arabica
 ```
 
-Access at http://localhost:18910
+Access at http://127.0.0.1:18910 (arabica) or http://127.0.0.1:18920 (oolong)
 
 ## Configuration
 
@@ -31,11 +32,11 @@ Access at http://localhost:18910
 - `PORT` - Server port (default: 18910)
 - `SERVER_PUBLIC_URL` - Public URL for reverse proxy deployments (e.g.,
   https://arabica.example.com)
-- `ARABICA_DB_PATH` - BoltDB path (default: ~/.local/share/arabica/arabica.db)
-- `ARABICA_FEED_INDEX_PATH` - Firehose index BoltDB path (default:
-  ~/.local/share/arabica/feed-index.db)
+- `ARABICA_DB_PATH` - OAuth session database path. Defaults to
+  <XDG_DATA_HOME or ~/.local/share>/arabica/arabica.db. Only needed to override
+  the default location.
 - `ARABICA_PROFILE_CACHE_TTL` - Profile cache duration (default: 1h)
-- `OAUTH_CLIENT_ID` - OAuth client ID (optional, uses localhost mode if not set)
+- `OAUTH_CLIENT_ID` - OAuth client ID (optional, uses loopback mode if not set)
 - `OAUTH_REDIRECT_URI` - OAuth redirect URI (optional)
 - `SECURE_COOKIES` - Set to true for HTTPS (default: false)
 - `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
@@ -43,35 +44,41 @@ Access at http://localhost:18910
 
 ## Development
 
+### Prerequisites
+
+- [Go](https://go.dev/) 1.26+
+- [Templ](https://templ.guide/):
+  `go install github.com/a-h/templ/cmd/templ@latest`
+- [just](https://github.com/casey/just) (optional but recommended); run helpers
+  in `justfile`
+
+### Setup
+
+1. Create `roles.json` with moderator roles. Env var:
+   `ARABICA_MODERATORS_CONFIG=roles.json`
+2. (Optional) Create `known-dids.txt` with one DID per line. Flag:
+   `-known-dids known-dids.txt`
+
+### Running
+
 With Nix:
 
 ```bash
-# Enter development environment
 nix develop
-
-# Run server
+templ generate
 go run ./cmd/arabica
-
-# Run tests
-go test ./...
-
-# Build
-go build -o arabica ./cmd/arabica
 ```
 
-Without Nix, you'll need to have Go and Templ installed (just is optional but
-recommended). CSS is bundled in-process at server startup — no external build
-tool needed.
+Without Nix, there are run helpers in `justfile`:
 
 ```sh
-# Compile Templ
-templ generate
-# Run the appview
-go run ./cmd/arabica
-
-# with just
-just run
+just run          # dev server: debug logging, hot reload, moderator config
+just test         # run tests (regenerates templ first)
+just templ-watch  # run with live template regeneration
 ```
+
+CSS and JS are bundled in-process at server startup — no external build step
+needed. For development with hot reload set `ARABICA_HOTRELOAD=1`.
 
 ---
 
@@ -88,7 +95,7 @@ SERVER_PUBLIC_URL=https://arabica.example.com
 SECURE_COOKIES=true
 PORT=18910
 
-# The server listens on localhost:18910
+# The server listens on 127.0.0.1:18910
 # But OAuth callbacks use https://arabica.example.com/oauth/callback
 ```
 
@@ -99,3 +106,4 @@ via a different URL than it's running on.
 ## License
 
 MIT
+
