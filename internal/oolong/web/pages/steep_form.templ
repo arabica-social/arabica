@@ -56,6 +56,7 @@ templ SteepFormElement(props SteepFormProps) {
 		hx-swap="none"
 		v-scope={ fmt.Sprintf("SteepForm(%q)", initialInfusionMethod(props)) }
 		@vue:mounted="setup($el)"
+		data-rating={ ratingInitial(props) }
 		@change="if ($event.target.name === 'infusion_method') infusionMethod = $event.target.value"
 		class="space-y-6"
 	>
@@ -388,7 +389,7 @@ func tastingNotesValue(props SteepFormProps) string {
 }
 
 templ RatingField(props SteepFormProps) {
-	<div v-scope={ fmt.Sprintf("{ rating: %s }", ratingInitial(props)) }>
+	<div>
 		<label class="form-label">Rating</label>
 		<input
 			type="range"

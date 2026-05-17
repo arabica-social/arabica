@@ -441,7 +441,16 @@ function AddLabelForm() {
 function PageForm() {
   return {
     serverError: "",
+    rating: 5,
     setup($el) {
+      // Seed rating from form data attribute. We can't rely on the slider's
+      // own `value=` attribute because petite-vue's `v-model` writes the
+      // scope default to the DOM before any @vue:mounted hook can read it.
+      const ratingAttr = $el.getAttribute("data-rating");
+      if (ratingAttr) {
+        const r = Number(ratingAttr);
+        if (!Number.isNaN(r)) this.rating = r;
+      }
       $el.addEventListener(
         "htmx:afterRequest",
         /** @param {Event} evt */ (evt) => {
@@ -473,7 +482,13 @@ function SteepForm(initialInfusionMethod) {
   return {
     serverError: "",
     infusionMethod: initialInfusionMethod || "",
+    rating: 5,
     setup($el) {
+      const ratingAttr = $el.getAttribute("data-rating");
+      if (ratingAttr) {
+        const r = Number(ratingAttr);
+        if (!Number.isNaN(r)) this.rating = r;
+      }
       $el.addEventListener(
         "htmx:afterRequest",
         /** @param {Event} evt */ (evt) => {

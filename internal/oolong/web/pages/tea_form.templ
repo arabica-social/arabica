@@ -1,7 +1,6 @@
 package teapages
 
 import (
-	"fmt"
 	"strconv"
 
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
@@ -53,6 +52,7 @@ templ TeaFormElement(props TeaFormProps) {
 		hx-swap="none"
 		v-scope="PageForm()"
 		@vue:mounted="setup($el)"
+		data-rating={ teaRatingInitial(props) }
 		class="space-y-6"
 	>
 		<input type="hidden" name="__redirect" value="/my-tea"/>
@@ -209,7 +209,7 @@ templ TeaDescriptionField(props TeaFormProps) {
 }
 
 templ TeaRatingField(props TeaFormProps) {
-	<div v-scope={ fmt.Sprintf("{ rating: %s }", teaRatingInitial(props)) }>
+	<div>
 		<label class="form-label">Rating</label>
 		<input
 			type="range"
