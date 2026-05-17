@@ -4,11 +4,6 @@
 
 ### Bugs
 
-- Editing a record triggers a new feed item to show up, should match arabica
-  behavior (edit in place from the feed's perspective)
-  - Edits seem to do a delete and create rather than edit, or maybe also replace
-    the created date, either way, this is not the correct behavior
-
 - Remove the divider in feed cards above the notes/description of a brew
 
 - Tea name is not shown for steep in the "my tea" page

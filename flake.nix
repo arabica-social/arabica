@@ -24,7 +24,6 @@
           };
         }
       );
-
       packages = forAllSystems (
         pkgs: system: rec {
           arabica = pkgs.callPackage ./nix/default.nix { appName = "arabica"; };
@@ -32,7 +31,6 @@
           default = arabica;
         }
       );
-
       apps = forAllSystems (
         pkgs: system: {
           default = {
@@ -50,7 +48,6 @@
           monitoring = import ./nix/monitoring.nix { inherit pkgs; };
         }
       );
-
       nixosModules = {
         arabica = import ./nix/module.nix;
         oolong = import ./nix/oolong-module.nix;
