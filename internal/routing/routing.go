@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"strings"
 
+	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/middleware"
+	teahandlers "tangled.org/arabica.social/arabica/internal/oolong/handlers"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/pdewey.com/atp"
@@ -37,6 +39,8 @@ type Config struct {
 // SetupRouter creates and configures the HTTP router with all routes and middleware
 func SetupRouter(cfg Config) http.Handler {
 	h := cfg.Handlers
+	coffee := coffeehandlers.New(h)
+	tea := teahandlers.New(h)
 	mux := http.NewServeMux()
 
 	// Create CrossOriginProtection for CSRF protection
@@ -67,8 +71,13 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /api/search-actors", h.HandleSearchActors)
 
 	// API route for fetching all user data (used by client-side cache via fetch())
-	// Auth-protected but accessible without HTMX header (called from JavaScript)
-	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
+	// Auth-protected but accessible without HTMX header (called from JavaScript).
+	// Each app owns its own list-all handler since the entity sets differ.
+	if cfg.App.Name == "oolong" {
+		mux.HandleFunc("GET /api/data", tea.HandleOolongAPIListAll)
+	} else {
+		mux.HandleFunc("GET /api/data", coffee.HandleAPIListAll)
+	}
 
 	// Suggestion routes for entity typeahead (auth-protected, read-only GET)
 	mux.HandleFunc("GET /api/suggestions/{entity}", h.HandleEntitySuggestions)
@@ -83,11 +92,11 @@ func SetupRouter(cfg Config) http.Handler {
 	// home.templ skips firing /api/incomplete-records and
 	// /api/popular-recipes when AppName == "oolong".
 	if cfg.App.Name == "arabica" {
-		mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleBrewListPartial)))
-		mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleManagePartial)))
-		mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleIncompleteRecordsPartial)))
-		mux.Handle("GET /api/popular-recipes", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandlePopularRecipesPartial)))
-		mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(h.HandleManageRefresh)))
+		mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleBrewListPartial)))
+		mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleManagePartial)))
+		mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleIncompleteRecordsPartial)))
+		mux.Handle("GET /api/popular-recipes", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandlePopularRecipesPartial)))
+		mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(coffee.HandleManageRefresh)))
 	}
 
 	// Page routes (must come before static files)
@@ -105,61 +114,67 @@ func SetupRouter(cfg Config) http.Handler {
 	// they don't collide with oolong's equivalent registrations or 404
 	// silently when the sister app is the active one.
 	if cfg.App.Name == "arabica" {
-		mux.HandleFunc("GET /my-coffee", h.HandleMyCoffee)
-		mux.HandleFunc("GET /manage", h.HandleManage)
-		mux.HandleFunc("GET /brews", h.HandleBrewList)
-		mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
+		mux.HandleFunc("GET /my-coffee", coffee.HandleMyCoffee)
+		mux.HandleFunc("GET /manage", coffee.HandleManage)
+		mux.HandleFunc("GET /brews", coffee.HandleBrewList)
+		mux.HandleFunc("GET /brews/new", coffee.HandleBrewNew)
 		// Brew is registered explicitly: edit page and export endpoint don't
 		// fit the simple-entity route shape.
-		mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
+		mux.HandleFunc("GET /brews/{id}/edit", coffee.HandleBrewEdit)
 		// Canonical record view: /brews/{actor}/{rkey}. The actor segment
 		// (handle or did:*) is promoted into ?owner= so the existing
 		// handler logic is reused unchanged.
-		mux.HandleFunc("GET /brews/{actor}/{id}/og-image", rewriteActorToOwner(h.HandleBrewOGImage))
-		mux.HandleFunc("GET /brews/{actor}/{id}", rewriteActorToOwner(h.HandleBrewView))
-		mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
-		mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
-		mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
-		mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
+		mux.HandleFunc("GET /brews/{actor}/{id}/og-image", rewriteActorToOwner(coffee.HandleBrewOGImage))
+		mux.HandleFunc("GET /brews/{actor}/{id}", rewriteActorToOwner(coffee.HandleBrewView))
+		mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(coffee.HandleBrewCreate)))
+		mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(coffee.HandleBrewUpdate)))
+		mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(coffee.HandleBrewDelete)))
+		mux.HandleFunc("GET /brews/export", coffee.HandleBrewExport)
 
 		// Recipe view + OG image are registered here; the API CRUD ops below
 		// have additional endpoints (from-brew, fork) that don't fit the
 		// simple-entity bundle.
-		mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
-		mux.HandleFunc("GET /recipes/{actor}/{id}/og-image", rewriteActorToOwner(h.HandleRecipeOGImage))
-		mux.HandleFunc("GET /recipes/{actor}/{id}", rewriteActorToOwner(h.HandleRecipeView))
+		mux.HandleFunc("GET /recipes", coffee.HandleRecipeExplore)
+		mux.HandleFunc("GET /recipes/{actor}/{id}/og-image", rewriteActorToOwner(coffee.HandleRecipeOGImage))
+		mux.HandleFunc("GET /recipes/{actor}/{id}", rewriteActorToOwner(coffee.HandleRecipeView))
 
-		mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
-		mux.HandleFunc("GET /api/recipes/suggestions", h.HandleRecipeSuggestions)
-		mux.HandleFunc("GET /api/recipes/{id}", h.HandleRecipeGet)
-		mux.Handle("POST /api/recipes", cop.Handler(http.HandlerFunc(h.HandleRecipeCreate)))
-		mux.Handle("PUT /api/recipes/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeUpdate)))
-		mux.Handle("DELETE /api/recipes/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeDelete)))
-		mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeCreateFromBrew)))
-		mux.Handle("POST /api/recipes/fork/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeFork)))
+		mux.HandleFunc("GET /api/recipes", coffee.HandleRecipeList)
+		mux.HandleFunc("GET /api/recipes/suggestions", coffee.HandleRecipeSuggestions)
+		mux.HandleFunc("GET /api/recipes/{id}", coffee.HandleRecipeGet)
+		mux.Handle("POST /api/recipes", cop.Handler(http.HandlerFunc(coffee.HandleRecipeCreate)))
+		mux.Handle("PUT /api/recipes/{id}", cop.Handler(http.HandlerFunc(coffee.HandleRecipeUpdate)))
+		mux.Handle("DELETE /api/recipes/{id}", cop.Handler(http.HandlerFunc(coffee.HandleRecipeDelete)))
+		mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(coffee.HandleRecipeCreateFromBrew)))
+		mux.Handle("POST /api/recipes/fork/{id}", cop.Handler(http.HandlerFunc(coffee.HandleRecipeFork)))
 
 		// Recipe modal stays explicit (no JSON CRUD bundle).
-		mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
-		mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
+		mux.HandleFunc("GET /api/modals/recipe/new", coffee.HandleRecipeModalNew)
+		mux.HandleFunc("GET /api/modals/recipe/{id}", coffee.HandleRecipeModalEdit)
 	}
 
 	// Oolong-specific page routes. The CRUD endpoints + modal partials
 	// land via the bundle below; only the manage-style page needs an
 	// explicit handler.
 	if cfg.App.Name == "oolong" {
-		mux.HandleFunc("GET /my-tea", h.HandleMyTea)
-		mux.Handle("POST /api/tea/refresh", cop.Handler(http.HandlerFunc(h.HandleTeaRefresh)))
-		mux.HandleFunc("GET /brews/new", h.HandleOolongSteepNew)
-		mux.HandleFunc("GET /brews/{id}/edit", h.HandleOolongSteepEdit)
-		mux.HandleFunc("GET /teas/new", h.HandleOolongTeaNew)
-		mux.HandleFunc("GET /teas/{id}/edit", h.HandleOolongTeaEdit)
+		mux.HandleFunc("GET /my-tea", tea.HandleMyTea)
+		mux.Handle("POST /api/tea/refresh", cop.Handler(http.HandlerFunc(tea.HandleTeaRefresh)))
+		mux.HandleFunc("GET /brews/new", tea.HandleOolongSteepNew)
+		mux.HandleFunc("GET /brews/{id}/edit", tea.HandleOolongSteepEdit)
+		mux.HandleFunc("GET /teas/new", tea.HandleOolongTeaNew)
+		mux.HandleFunc("GET /teas/{id}/edit", tea.HandleOolongTeaEdit)
 	}
 
-	// Per-entity routes for the simple entities. Driven by the route
-	// bundles + the App's descriptor list — registerEntityRoutes skips
-	// any bundle whose RecordType isn't on the current app's descriptors,
-	// so arabica and oolong each get only their own entity routes.
-	registerEntityRoutes(mux, cop, cfg.App, h.EntityRouteBundles())
+	// Per-entity routes for the simple entities. Each app contributes its
+	// own bundle list; registerEntityRoutes skips any bundle whose
+	// RecordType isn't on the current app's descriptors.
+	var bundles []handlers.EntityRouteBundle
+	switch cfg.App.Name {
+	case "oolong":
+		bundles = tea.EntityRouteBundles()
+	default:
+		bundles = coffee.EntityRouteBundles()
+	}
+	registerEntityRoutes(mux, cop, cfg.App, bundles)
 
 	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
 	mux.Handle("POST /api/report", cop.Handler(http.HandlerFunc(h.HandleReport)))
@@ -196,7 +211,7 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// Profile routes (public user profiles)
 	if cfg.App.Name == "oolong" {
-		mux.HandleFunc("GET /profile/{actor}", h.HandleOolongProfile)
+		mux.HandleFunc("GET /profile/{actor}", tea.HandleOolongProfile)
 	} else {
 		mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
 	}

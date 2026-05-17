@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
+	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -226,7 +226,7 @@ func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userProfile := h.getUserProfile(r.Context(), userDID)
+	userProfile := h.GetUserProfile(r.Context(), userDID)
 	adminProps := h.buildAdminProps(r.Context(), userDID)
 
 	layoutData := &components.LayoutData{

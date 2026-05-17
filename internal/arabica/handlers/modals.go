@@ -1,4 +1,4 @@
-package handlers
+package coffeehandlers
 
 import (
 	"context"
@@ -7,9 +7,10 @@ import (
 	"github.com/a-h/templ"
 	"github.com/rs/zerolog/log"
 
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 )
 
 // Modal dialog handlers for entity management.
@@ -21,8 +22,8 @@ import (
 
 // arabicaModalNew renders an empty (create-mode) modal after asserting
 // the caller is authenticated.
-func (h *Handler) arabicaModalNew(w http.ResponseWriter, r *http.Request, name string, render func() templ.Component) {
-	if _, authenticated := h.getAtprotoStore(r); !authenticated {
+func (h *Handlers) arabicaModalNew(w http.ResponseWriter, r *http.Request, name string, render func() templ.Component) {
+	if _, authenticated := h.GetAtprotoStore(r); !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -35,18 +36,18 @@ func (h *Handler) arabicaModalNew(w http.ResponseWriter, r *http.Request, name s
 // arabicaModalEdit fetches a record by rkey via fetch and renders the
 // pre-filled edit modal.
 func arabicaModalEdit[Model any](
-	h *Handler,
+	h *Handlers,
 	w http.ResponseWriter,
 	r *http.Request,
 	name string,
 	fetch func(context.Context, database.Store, string) (*Model, error),
 	render func(*Model) templ.Component,
 ) {
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -68,8 +69,8 @@ func arabicaModalEdit[Model any](
 // Bean is bespoke because the modal needs the roaster list for the
 // select dropdown.
 
-func (h *Handler) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -80,12 +81,12 @@ func (h *Handler) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) HandleBeanModalEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleBeanModalEdit(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -117,11 +118,11 @@ func beanModalRoasters(ctx context.Context, store database.Store) []arabica.Roas
 
 // --- Grinder ---------------------------------------------------------
 
-func (h *Handler) HandleGrinderModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleGrinderModalNew(w http.ResponseWriter, r *http.Request) {
 	h.arabicaModalNew(w, r, "grinder", func() templ.Component { return coffee.GrinderDialogModal(nil) })
 }
 
-func (h *Handler) HandleGrinderModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleGrinderModalEdit(w http.ResponseWriter, r *http.Request) {
 	arabicaModalEdit(h, w, r, "grinder",
 		func(ctx context.Context, s database.Store, rkey string) (*arabica.Grinder, error) {
 			return s.GetGrinderByRKey(ctx, rkey)
@@ -132,11 +133,11 @@ func (h *Handler) HandleGrinderModalEdit(w http.ResponseWriter, r *http.Request)
 
 // --- Brewer ----------------------------------------------------------
 
-func (h *Handler) HandleBrewerModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewerModalNew(w http.ResponseWriter, r *http.Request) {
 	h.arabicaModalNew(w, r, "brewer", func() templ.Component { return coffee.BrewerDialogModal(nil) })
 }
 
-func (h *Handler) HandleBrewerModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewerModalEdit(w http.ResponseWriter, r *http.Request) {
 	arabicaModalEdit(h, w, r, "brewer",
 		func(ctx context.Context, s database.Store, rkey string) (*arabica.Brewer, error) {
 			return s.GetBrewerByRKey(ctx, rkey)
@@ -147,11 +148,11 @@ func (h *Handler) HandleBrewerModalEdit(w http.ResponseWriter, r *http.Request) 
 
 // --- Roaster ---------------------------------------------------------
 
-func (h *Handler) HandleRoasterModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleRoasterModalNew(w http.ResponseWriter, r *http.Request) {
 	h.arabicaModalNew(w, r, "roaster", func() templ.Component { return coffee.RoasterDialogModal(nil) })
 }
 
-func (h *Handler) HandleRoasterModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleRoasterModalEdit(w http.ResponseWriter, r *http.Request) {
 	arabicaModalEdit(h, w, r, "roaster",
 		func(ctx context.Context, s database.Store, rkey string) (*arabica.Roaster, error) {
 			return s.GetRoasterByRKey(ctx, rkey)

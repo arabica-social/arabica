@@ -7,15 +7,14 @@ import (
 	atp "tangled.org/pdewey.com/atp"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
-// listRecords fetches every record of nsid the authenticated user owns
+// ListRecords fetches every record of nsid the authenticated user owns
 // and decodes each one. Records that fail to decode are logged and
 // skipped — callers degrade to "missing record" rather than 500ing.
 //
 // Not tied to a particular app; works for any (nsid, decoder) pair.
-func listRecords[T any](
+func ListRecords[T any](
 	ctx context.Context,
 	store *atproto.AtprotoStore,
 	nsid string,
@@ -38,10 +37,10 @@ func listRecords[T any](
 	return out
 }
 
-// listPublicRecords mirrors listRecords but reads from an arbitrary
+// ListPublicRecords mirrors ListRecords but reads from an arbitrary
 // DID's PDS via an unauthenticated public client. Used by profile
 // handlers that surface another user's records.
-func listPublicRecords[T any](
+func ListPublicRecords[T any](
 	ctx context.Context,
 	client *atp.PublicClient,
 	did, nsid string,
@@ -57,7 +56,7 @@ func listPublicRecords[T any](
 	for _, rec := range records {
 		t, err := decode(rec.Value, rec.URI)
 		if err != nil {
-			log.Warn().Err(err).Str("uri", rec.URI).Msg("listPublicRecords: decode failed; skipping record")
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("ListPublicRecords: decode failed; skipping record")
 			continue
 		}
 		out = append(out, t)
@@ -65,12 +64,12 @@ func listPublicRecords[T any](
 	return out
 }
 
-// standardViewTriple builds the fromWitness/fromPDS/fromStore lambdas
+// StandardViewTriple builds the fromWitness/fromPDS/fromStore lambdas
 // for an entity view config from a record decoder. The three paths
 // (witness cache, PDS public client, authenticated own-store) all
 // share the same decode-and-set-rkey shape; per-entity ref resolution
-// belongs in entityViewConfig.resolveRefs, not in these lambdas.
-func standardViewTriple[M any](
+// belongs in EntityViewConfig.resolveRefs, not in these lambdas.
+func StandardViewTriple[M any](
 	nsid string,
 	decode func(map[string]any, string) (*M, error),
 	setRKey func(*M, string),
@@ -110,10 +109,10 @@ func standardViewTriple[M any](
 	return
 }
 
-// witnessLookup returns a lookup closure suitable for resolveRefs that
+// WitnessLookup returns a lookup closure suitable for resolveRefs that
 // reads foreign records from the witness cache. Returns false if the
 // witness cache is unavailable or the URI is not indexed.
-func (h *Handler) witnessLookup(ctx context.Context) func(refURI string) (map[string]any, bool) {
+func (h *Handler) WitnessLookup(ctx context.Context) func(refURI string) (map[string]any, bool) {
 	return func(refURI string) (map[string]any, bool) {
 		if h.witnessCache == nil || refURI == "" {
 			return nil, false
@@ -130,105 +129,11 @@ func (h *Handler) witnessLookup(ctx context.Context) func(refURI string) (map[st
 	}
 }
 
-// resolveBrewRefsViaLookup walks a brew's foreign references
-// (bean+roaster, grinder, brewer, recipe+brewer) and populates the
-// typed fields on the brew via the supplied lookup. The caller binds
-// lookup to a specific source (witness cache, public PDS client, etc.)
-// so this function is source-agnostic.
-//
-// Idempotent: each branch checks whether the target field is already
-// populated and skips lookup work when so. This matters because the
-// own-store path resolves refs at the store layer before this runs,
-// and we don't want to redo or clobber that work.
-func resolveBrewRefsViaLookup(brew *arabica.Brew, raw map[string]any, lookup func(refURI string) (map[string]any, bool)) {
-	if brew == nil || raw == nil {
-		return
-	}
-
-	// Bean + nested roaster.
-	if brew.Bean == nil {
-		if beanRef, _ := raw["beanRef"].(string); beanRef != "" {
-			if m, ok := lookup(beanRef); ok {
-				if bean, err := arabica.RecordToBean(m, beanRef); err == nil {
-					if rk := atp.RKeyFromURI(beanRef); rk != "" {
-						bean.RKey = rk
-					}
-					if roasterRef, _ := m["roasterRef"].(string); roasterRef != "" {
-						if rk := atp.RKeyFromURI(roasterRef); rk != "" {
-							bean.RoasterRKey = rk
-						}
-						if rm, ok := lookup(roasterRef); ok {
-							if roaster, err := arabica.RecordToRoaster(rm, roasterRef); err == nil {
-								roaster.RKey = bean.RoasterRKey
-								bean.Roaster = roaster
-							}
-						}
-					}
-					brew.Bean = bean
-				}
-			}
-		}
-	}
-
-	// Grinder.
-	if brew.GrinderObj == nil {
-		if grinderRef, _ := raw["grinderRef"].(string); grinderRef != "" {
-			if m, ok := lookup(grinderRef); ok {
-				if grinder, err := arabica.RecordToGrinder(m, grinderRef); err == nil {
-					if rk := atp.RKeyFromURI(grinderRef); rk != "" {
-						grinder.RKey = rk
-					}
-					brew.GrinderObj = grinder
-				}
-			}
-		}
-	}
-
-	// Brewer.
-	if brew.BrewerObj == nil {
-		if brewerRef, _ := raw["brewerRef"].(string); brewerRef != "" {
-			if m, ok := lookup(brewerRef); ok {
-				if brewer, err := arabica.RecordToBrewer(m, brewerRef); err == nil {
-					if rk := atp.RKeyFromURI(brewerRef); rk != "" {
-						brewer.RKey = rk
-					}
-					brew.BrewerObj = brewer
-				}
-			}
-		}
-	}
-
-	// Recipe + nested brewer.
-	if brew.RecipeObj == nil {
-		if recipeRef, _ := raw["recipeRef"].(string); recipeRef != "" {
-			if m, ok := lookup(recipeRef); ok {
-				if recipe, err := arabica.RecordToRecipe(m, recipeRef); err == nil {
-					if rk := atp.RKeyFromURI(recipeRef); rk != "" {
-						recipe.RKey = rk
-					}
-					if brewerRef, _ := m["brewerRef"].(string); brewerRef != "" {
-						if rk := atp.RKeyFromURI(brewerRef); rk != "" {
-							recipe.BrewerRKey = rk
-						}
-						if bm, ok := lookup(brewerRef); ok {
-							if brewer, err := arabica.RecordToBrewer(bm, brewerRef); err == nil {
-								brewer.RKey = recipe.BrewerRKey
-								recipe.BrewerObj = brewer
-							}
-						}
-					}
-					brew.RecipeObj = recipe
-				}
-			}
-		}
-	}
-}
-
-// publicLookup returns a lookup closure suitable for resolveRefs that
+// PublicLookup returns a lookup closure suitable for resolveRefs that
 // reads foreign records through the unauthenticated PDS public client.
 // Use this on the PDS fallback path where the witness cache may be
 // stale or missing.
-func publicLookup(ctx context.Context) func(refURI string) (map[string]any, bool) {
+func PublicLookup(ctx context.Context) func(refURI string) (map[string]any, bool) {
 	pub := atproto.NewPublicClient()
 	return func(refURI string) (map[string]any, bool) {
 		if refURI == "" {

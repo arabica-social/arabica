@@ -1,4 +1,4 @@
-package handlers
+package teahandlers
 
 import (
 	"encoding/json"
@@ -12,7 +12,8 @@ import (
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
@@ -23,7 +24,7 @@ import (
 // from the user's PDS, and writes them through to the witness cache.
 // Returns 204 — the my-tea page is server-rendered, so the client
 // reloads after the POST resolves.
-func (h *Handler) HandleTeaRefresh(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleTeaRefresh(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
@@ -45,19 +46,19 @@ func (h *Handler) HandleTeaRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.sessionCache.Invalidate(sessionID)
+	h.SessionCache().Invalidate(sessionID)
 
 	collections := []string{
 		oolong.NSIDTea, oolong.NSIDVendor, oolong.NSIDVessel,
 		oolong.NSIDInfuser, oolong.NSIDBrew,
 	}
 
-	if h.witnessCache != nil {
+	if h.WitnessCache() != nil {
 		ctx, span := tracing.HandlerSpan(r.Context(), "tea.refresh.witness_sync",
 			attribute.String("user.did", didStr),
 		)
 		defer span.End()
-		atpClient, err := h.atprotoClient.AtpClient(ctx, did, sessionID)
+		atpClient, err := h.AtprotoClient().AtpClient(ctx, did, sessionID)
 		if err != nil {
 			log.Warn().Err(err).Msg("tea refresh: failed to get atp client")
 			w.WriteHeader(http.StatusNoContent)
@@ -90,7 +91,7 @@ func (h *Handler) HandleTeaRefresh(w http.ResponseWriter, r *http.Request) {
 			short := collection[strings.LastIndex(collection, ".")+1:]
 			log.Info().Str("collection", short).Int("count", len(records)).Msg("tea refresh: fetched")
 		}
-		if err := h.witnessCache.UpsertWitnessRecordBatch(ctx, batch); err != nil {
+		if err := h.WitnessCache().UpsertWitnessRecordBatch(ctx, batch); err != nil {
 			log.Error().Err(err).Msg("tea refresh: batch upsert failed")
 		}
 		span.SetAttributes(attribute.Int("refresh.total_records", len(batch)))
@@ -110,23 +111,23 @@ func (h *Handler) HandleTeaRefresh(w http.ResponseWriter, r *http.Request) {
 // (which don't exist for oolong yet). Reference fields (Vendor on
 // Tea, etc.) are not joined here — the row label uses the entity's
 // own Name or a sensible fallback.
-func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
 
-	layoutData, did, _ := h.layoutDataFromRequest(r, "My Tea")
+	layoutData, did, _ := h.LayoutDataFromRequest(r, "My Tea")
 	actor := did
 	if layoutData != nil && layoutData.UserProfile != nil && layoutData.UserProfile.Handle != "" {
 		actor = layoutData.UserProfile.Handle
 	}
 
-	teas := listRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea)
-	vendors := listRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor)
-	vessels := listRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel)
-	infusers := listRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser)
-	brews := listRecords(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew)
+	teas := handlers.ListRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea)
+	vendors := handlers.ListRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor)
+	vessels := handlers.ListRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel)
+	infusers := handlers.ListRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser)
+	brews := handlers.ListRecords(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew)
 
 	// Join references so the steep cards can show tea name, vessel, infuser.
 	vendorByRKey := make(map[string]*oolong.Vendor, len(vendors))
@@ -180,28 +181,28 @@ func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleOolongTeaNew renders the new-tea page.
-func (h *Handler) HandleOolongTeaNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongTeaNew(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
 	props := teapages.TeaFormProps{
 		Tea:     nil,
-		Vendors: listRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
+		Vendors: handlers.ListRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
 	}
-	layoutData, _, _ := h.layoutDataFromRequest(r, "New Tea")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "New Tea")
 	if err := teapages.TeaFormPage(layoutData, props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render new-tea page")
 	}
 }
 
 // HandleOolongTeaEdit renders the edit-tea page for an existing tea.
-func (h *Handler) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
@@ -218,9 +219,9 @@ func (h *Handler) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
 	t.RKey = rkey
 	props := teapages.TeaFormProps{
 		Tea:     t,
-		Vendors: listRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
+		Vendors: handlers.ListRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
 	}
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Tea")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Edit Tea")
 	if err := teapages.TeaFormPage(layoutData, props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render edit-tea page")
 	}
@@ -229,30 +230,30 @@ func (h *Handler) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
 // HandleOolongSteepNew renders the new-steep page (oolong brew create form).
 // Mirrors arabica's /brews/new, but for tea: full page form instead of
 // modal so the form can grow without crowding a dialog.
-func (h *Handler) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
 	props := teapages.SteepFormProps{
 		Brew:     nil,
-		Teas:     listRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
-		Vessels:  listRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
-		Infusers: listRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
+		Teas:     handlers.ListRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Vessels:  handlers.ListRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
+		Infusers: handlers.ListRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
 	}
-	layoutData, _, _ := h.layoutDataFromRequest(r, "New Steep")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "New Steep")
 	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render new-steep page")
 	}
 }
 
 // HandleOolongSteepEdit renders the edit-steep page for an existing brew.
-func (h *Handler) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
@@ -269,11 +270,11 @@ func (h *Handler) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) 
 	b.RKey = rkey
 	props := teapages.SteepFormProps{
 		Brew:     b,
-		Teas:     listRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
-		Vessels:  listRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
-		Infusers: listRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
+		Teas:     handlers.ListRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Vessels:  handlers.ListRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
+		Infusers: handlers.ListRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
 	}
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Steep")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Edit Steep")
 	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render edit-steep page")
 	}
@@ -285,7 +286,7 @@ func (h *Handler) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) 
 // records (brews, teas, vendors), and renders a minimal page. The
 // owner-only tabs, equipment management, and modal-driven editing
 // flows live on /my-tea instead — public profiles stay read-only.
-func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	actor := r.PathValue("actor")
 	if actor == "" {
 		http.Error(w, "Actor parameter is required", http.StatusBadRequest)
@@ -301,8 +302,8 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(actor, "did:") {
 		did = actor
 	} else {
-		if h.feedIndex != nil {
-			did, _ = h.feedIndex.GetDIDByHandle(ctx, actor)
+		if h.FeedIndex() != nil {
+			did, _ = h.FeedIndex().GetDIDByHandle(ctx, actor)
 		}
 		if did == "" {
 			did, err = publicClient.ResolveHandle(ctx, actor)
@@ -315,8 +316,8 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch atproto profile (display name, avatar, handle).
 	var profile *atproto.Profile
-	if h.feedIndex != nil {
-		profile, _ = h.feedIndex.GetProfile(ctx, did)
+	if h.FeedIndex() != nil {
+		profile, _ = h.FeedIndex().GetProfile(ctx, did)
 	}
 	if profile == nil {
 		profile, err = publicClient.GetProfile(ctx, did)
@@ -344,11 +345,11 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	// the AT Protocol client — viewer doesn't need to be logged in to
 	// the owner's PDS. All seven entity types are loaded server-side
 	// so tab switching on the rendered page stays instant.
-	brews := listPublicRecords(ctx, publicClient, did, oolong.NSIDBrew, oolong.RecordToBrew)
-	teas := listPublicRecords(ctx, publicClient, did, oolong.NSIDTea, oolong.RecordToTea)
-	vendors := listPublicRecords(ctx, publicClient, did, oolong.NSIDVendor, oolong.RecordToVendor)
-	vessels := listPublicRecords(ctx, publicClient, did, oolong.NSIDVessel, oolong.RecordToVessel)
-	infusers := listPublicRecords(ctx, publicClient, did, oolong.NSIDInfuser, oolong.RecordToInfuser)
+	brews := handlers.ListPublicRecords(ctx, publicClient, did, oolong.NSIDBrew, oolong.RecordToBrew)
+	teas := handlers.ListPublicRecords(ctx, publicClient, did, oolong.NSIDTea, oolong.RecordToTea)
+	vendors := handlers.ListPublicRecords(ctx, publicClient, did, oolong.NSIDVendor, oolong.RecordToVendor)
+	vessels := handlers.ListPublicRecords(ctx, publicClient, did, oolong.NSIDVessel, oolong.RecordToVessel)
+	infusers := handlers.ListPublicRecords(ctx, publicClient, did, oolong.NSIDInfuser, oolong.RecordToInfuser)
 
 	// Resolve brew → tea/vessel/infuser joins so cards can render the
 	// tea name (and gear) without a separate fetch per item.
@@ -389,13 +390,13 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Profile")
+	_, didStr, isAuthenticated := h.LayoutDataFromRequest(r, "Profile")
 	isOwn := isAuthenticated && didStr == did
 
 	if len(brews) == 0 && len(teas) == 0 && len(vendors) == 0 &&
 		len(vessels) == 0 && len(infusers) == 0 &&
-		!h.feedRegistry.IsRegistered(did) {
-		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
+		!h.FeedRegistry().IsRegistered(did) {
+		layoutData, _, _ := h.LayoutDataFromRequest(r, "Profile Not Found")
 		w.WriteHeader(http.StatusNotFound)
 		if err := teapages.ProfileNotFound(layoutData).Render(ctx, w); err != nil {
 			log.Error().Err(err).Msg("Failed to render oolong profile-not-found page")
@@ -407,7 +408,7 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	if viewedProfile.DisplayName != "" {
 		pageTitle = viewedProfile.DisplayName + " (@" + viewedProfile.Handle + ")"
 	}
-	layoutData, _, _ := h.layoutDataFromRequest(r, pageTitle)
+	layoutData, _, _ := h.LayoutDataFromRequest(r, pageTitle)
 
 	props := teapages.ProfileProps{
 		Profile:        viewedProfile,
@@ -424,4 +425,3 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Failed to render oolong profile page")
 	}
 }
-

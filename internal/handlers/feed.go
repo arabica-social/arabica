@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/entities"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -58,7 +58,7 @@ func (h *Handler) buildModerationContext(ctx context.Context, viewerDID string, 
 
 // Home page
 func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
-	layoutData, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Home")
+	layoutData, didStr, isAuthenticated := h.LayoutDataFromRequest(r, "Home")
 
 	// Set OG metadata for the home page
 	layoutData.OGTitle = h.brand.DisplayName
@@ -67,7 +67,7 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	} else {
 		layoutData.OGDescription = "Coffee journaling for the open social web. Track, share, and own your brews."
 	}
-	baseURL := h.publicBaseURL(r)
+	baseURL := h.PublicBaseURL(r)
 	if baseURL != "" {
 		layoutData.OGImage = baseURL + "/og-image"
 		layoutData.OGUrl = baseURL + "/"
@@ -247,7 +247,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 // HandleLikeToggle handles creating or deleting a like on a record
 func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -274,7 +274,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 	existingLike, err := store.GetUserLikeForSubject(r.Context(), subjectURI)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check existing like")
-		handleStoreError(w, err, "Failed to check like status")
+		HandleStoreError(w, err, "Failed to check like status")
 		return
 	}
 
@@ -285,7 +285,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 		// Unlike: delete the existing like
 		if err := store.DeleteLikeByRKey(r.Context(), existingLike.RKey); err != nil {
 			log.Error().Err(err).Msg("Failed to delete like")
-			handleStoreError(w, err, "Failed to unlike")
+			HandleStoreError(w, err, "Failed to unlike")
 			return
 		}
 		isLiked = false
@@ -308,7 +308,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 		like, err := store.CreateLike(r.Context(), req)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create like")
-			handleStoreError(w, err, "Failed to like")
+			HandleStoreError(w, err, "Failed to like")
 			return
 		}
 		isLiked = true

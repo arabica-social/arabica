@@ -1,11 +1,11 @@
-package handlers
+package teahandlers
 
 import (
 	"net/http"
 
 	"github.com/a-h/templ"
 
-	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 )
 
@@ -19,11 +19,11 @@ import (
 
 // --- Vendor ----------------------------------------------------------
 
-func (h *Handler) HandleOolongVendorModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVendorModalNew(w http.ResponseWriter, r *http.Request) {
 	h.oolongModalNew(w, r, "vendor", func() templ.Component { return tea.VendorDialogModal(nil) })
 }
 
-func (h *Handler) HandleOolongVendorModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVendorModalEdit(w http.ResponseWriter, r *http.Request) {
 	oolongModalEdit(h, w, r, oolong.NSIDVendor, "vendor",
 		oolong.RecordToVendor,
 		func(v *oolong.Vendor, rkey string) { v.RKey = rkey },
@@ -33,11 +33,11 @@ func (h *Handler) HandleOolongVendorModalEdit(w http.ResponseWriter, r *http.Req
 
 // --- Vessel ----------------------------------------------------------
 
-func (h *Handler) HandleOolongVesselModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVesselModalNew(w http.ResponseWriter, r *http.Request) {
 	h.oolongModalNew(w, r, "vessel", func() templ.Component { return tea.VesselDialogModal(nil) })
 }
 
-func (h *Handler) HandleOolongVesselModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVesselModalEdit(w http.ResponseWriter, r *http.Request) {
 	oolongModalEdit(h, w, r, oolong.NSIDVessel, "vessel",
 		oolong.RecordToVessel,
 		func(v *oolong.Vessel, rkey string) { v.RKey = rkey },
@@ -47,11 +47,11 @@ func (h *Handler) HandleOolongVesselModalEdit(w http.ResponseWriter, r *http.Req
 
 // --- Infuser ---------------------------------------------------------
 
-func (h *Handler) HandleOolongInfuserModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongInfuserModalNew(w http.ResponseWriter, r *http.Request) {
 	h.oolongModalNew(w, r, "infuser", func() templ.Component { return tea.InfuserDialogModal(nil) })
 }
 
-func (h *Handler) HandleOolongInfuserModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongInfuserModalEdit(w http.ResponseWriter, r *http.Request) {
 	oolongModalEdit(h, w, r, oolong.NSIDInfuser, "infuser",
 		oolong.RecordToInfuser,
 		func(i *oolong.Infuser, rkey string) { i.RKey = rkey },
@@ -61,11 +61,11 @@ func (h *Handler) HandleOolongInfuserModalEdit(w http.ResponseWriter, r *http.Re
 
 // --- Brew (steep) ----------------------------------------------------
 
-func (h *Handler) HandleOolongBrewModalNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongBrewModalNew(w http.ResponseWriter, r *http.Request) {
 	h.oolongModalNew(w, r, "tea brew", func() templ.Component { return tea.BrewDialogModal(nil) })
 }
 
-func (h *Handler) HandleOolongBrewModalEdit(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongBrewModalEdit(w http.ResponseWriter, r *http.Request) {
 	oolongModalEdit(h, w, r, oolong.NSIDBrew, "tea brew",
 		oolong.RecordToBrew,
 		func(b *oolong.Brew, rkey string) { b.RKey = rkey },

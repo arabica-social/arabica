@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -14,7 +14,7 @@ import (
 
 // HandleNotifications renders the notifications page
 func (h *Handler) HandleNotifications(w http.ResponseWriter, r *http.Request) {
-	layoutData, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Notifications")
+	layoutData, didStr, isAuthenticated := h.LayoutDataFromRequest(r, "Notifications")
 	if !isAuthenticated {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return

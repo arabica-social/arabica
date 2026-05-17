@@ -1,4 +1,4 @@
-package handlers
+package teahandlers
 
 import (
 	"encoding/json"
@@ -7,7 +7,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 
-	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 )
 
@@ -16,7 +17,7 @@ import (
 // authenticated user owns, in a JSON shape the client-side
 // AppCache understands. The combo-select system reads this cache
 // to filter user-owned entries during typeahead.
-func (h *Handler) HandleOolongAPIListAll(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongAPIListAll(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
@@ -35,23 +36,23 @@ func (h *Handler) HandleOolongAPIListAll(w http.ResponseWriter, r *http.Request)
 
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		teas = listRecords(gctx, store, oolong.NSIDTea, oolong.RecordToTea)
+		teas = handlers.ListRecords(gctx, store, oolong.NSIDTea, oolong.RecordToTea)
 		return nil
 	})
 	g.Go(func() error {
-		vendors = listRecords(gctx, store, oolong.NSIDVendor, oolong.RecordToVendor)
+		vendors = handlers.ListRecords(gctx, store, oolong.NSIDVendor, oolong.RecordToVendor)
 		return nil
 	})
 	g.Go(func() error {
-		vessels = listRecords(gctx, store, oolong.NSIDVessel, oolong.RecordToVessel)
+		vessels = handlers.ListRecords(gctx, store, oolong.NSIDVessel, oolong.RecordToVessel)
 		return nil
 	})
 	g.Go(func() error {
-		infusers = listRecords(gctx, store, oolong.NSIDInfuser, oolong.RecordToInfuser)
+		infusers = handlers.ListRecords(gctx, store, oolong.NSIDInfuser, oolong.RecordToInfuser)
 		return nil
 	})
 	g.Go(func() error {
-		brews = listRecords(gctx, store, oolong.NSIDBrew, oolong.RecordToBrew)
+		brews = handlers.ListRecords(gctx, store, oolong.NSIDBrew, oolong.RecordToBrew)
 		return nil
 	})
 	_ = g.Wait()

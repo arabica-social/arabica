@@ -1,4 +1,4 @@
-package handlers
+package teahandlers
 
 import (
 	"context"
@@ -12,7 +12,8 @@ import (
 	atp "tangled.org/pdewey.com/atp"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 )
 
 // Oolong CRUD handlers. Each Create handler decodes the request, builds
@@ -63,8 +64,8 @@ func putOolongRecord(
 	return newRKey, nil
 }
 
-func (h *Handler) requireOolongStore(w http.ResponseWriter, r *http.Request) (*atproto.AtprotoStore, bool) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) requireOolongStore(w http.ResponseWriter, r *http.Request) (*atproto.AtprotoStore, bool) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return nil, false
@@ -79,13 +80,13 @@ func (h *Handler) requireOolongStore(w http.ResponseWriter, r *http.Request) (*a
 
 // --- Tea -------------------------------------------------------------
 
-func (h *Handler) HandleTeaCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleTeaCreate(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
 	var req oolong.CreateTeaRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
+	if err := handlers.DecodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -103,30 +104,30 @@ func (h *Handler) HandleTeaCreate(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create tea")
-		handleStoreError(w, err, "Failed to create tea")
+		handlers.HandleStoreError(w, err, "Failed to create tea")
 		return
 	}
 	tea.RKey = rkey
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	if redirect := r.FormValue("__redirect"); redirect != "" {
 		w.Header().Set("HX-Redirect", redirect)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	writeJSON(w, tea, "tea")
+	handlers.WriteJSON(w, tea, "tea")
 }
 
-func (h *Handler) HandleTeaUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleTeaUpdate(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 	var req oolong.UpdateTeaRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
+	if err := handlers.DecodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -146,19 +147,19 @@ func (h *Handler) HandleTeaUpdate(w http.ResponseWriter, r *http.Request) {
 		return oolong.TeaToRecord(tea, vendorURI)
 	}); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update tea")
-		handleStoreError(w, err, "Failed to update tea")
+		handlers.HandleStoreError(w, err, "Failed to update tea")
 		return
 	}
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	if redirect := r.FormValue("__redirect"); redirect != "" {
 		w.Header().Set("HX-Redirect", redirect)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	writeJSON(w, tea, "tea")
+	handlers.WriteJSON(w, tea, "tea")
 }
 
-func (h *Handler) HandleTeaDelete(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleTeaDelete(w http.ResponseWriter, r *http.Request) {
 	h.handleOolongDelete(w, r, oolong.NSIDTea, "tea")
 }
 
@@ -205,14 +206,14 @@ func encodeVendorUpdate(_ *atproto.AtprotoStore, _ *oolong.UpdateVendorRequest, 
 	return oolong.VendorToRecord(m)
 }
 
-func (h *Handler) HandleOolongVendorCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVendorCreate(w http.ResponseWriter, r *http.Request) {
 	oolongCRUDWrite[oolong.CreateVendorRequest, *oolong.CreateVendorRequest, oolong.Vendor](
 		h, w, r, oolong.NSIDVendor, "vendor", "",
 		vendorFromCreate, setVendorRKey, encodeVendor, false,
 	)
 }
 
-func (h *Handler) HandleOolongVendorUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVendorUpdate(w http.ResponseWriter, r *http.Request) {
 	rkey := updateRKey(w, r)
 	if rkey == "" {
 		return
@@ -228,7 +229,7 @@ func (h *Handler) HandleOolongVendorUpdate(w http.ResponseWriter, r *http.Reques
 	)
 }
 
-func (h *Handler) HandleOolongVendorDelete(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVendorDelete(w http.ResponseWriter, r *http.Request) {
 	h.handleOolongDelete(w, r, oolong.NSIDVendor, "vendor")
 }
 
@@ -257,14 +258,14 @@ func encodeVesselUpdate(_ *atproto.AtprotoStore, _ *oolong.UpdateVesselRequest, 
 	return oolong.VesselToRecord(m)
 }
 
-func (h *Handler) HandleOolongVesselCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVesselCreate(w http.ResponseWriter, r *http.Request) {
 	oolongCRUDWrite[oolong.CreateVesselRequest, *oolong.CreateVesselRequest, oolong.Vessel](
 		h, w, r, oolong.NSIDVessel, "vessel", "",
 		vesselFromCreate, setVesselRKey, encodeVessel, false,
 	)
 }
 
-func (h *Handler) HandleOolongVesselUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVesselUpdate(w http.ResponseWriter, r *http.Request) {
 	rkey := updateRKey(w, r)
 	if rkey == "" {
 		return
@@ -280,7 +281,7 @@ func (h *Handler) HandleOolongVesselUpdate(w http.ResponseWriter, r *http.Reques
 	)
 }
 
-func (h *Handler) HandleOolongVesselDelete(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongVesselDelete(w http.ResponseWriter, r *http.Request) {
 	h.handleOolongDelete(w, r, oolong.NSIDVessel, "vessel")
 }
 
@@ -309,14 +310,14 @@ func encodeInfuserUpdate(_ *atproto.AtprotoStore, _ *oolong.UpdateInfuserRequest
 	return oolong.InfuserToRecord(m)
 }
 
-func (h *Handler) HandleOolongInfuserCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongInfuserCreate(w http.ResponseWriter, r *http.Request) {
 	oolongCRUDWrite[oolong.CreateInfuserRequest, *oolong.CreateInfuserRequest, oolong.Infuser](
 		h, w, r, oolong.NSIDInfuser, "infuser", "",
 		infuserFromCreate, setInfuserRKey, encodeInfuser, false,
 	)
 }
 
-func (h *Handler) HandleOolongInfuserUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongInfuserUpdate(w http.ResponseWriter, r *http.Request) {
 	rkey := updateRKey(w, r)
 	if rkey == "" {
 		return
@@ -332,19 +333,19 @@ func (h *Handler) HandleOolongInfuserUpdate(w http.ResponseWriter, r *http.Reque
 	)
 }
 
-func (h *Handler) HandleOolongInfuserDelete(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongInfuserDelete(w http.ResponseWriter, r *http.Request) {
 	h.handleOolongDelete(w, r, oolong.NSIDInfuser, "infuser")
 }
 
 // --- Brew (steep) ----------------------------------------------------
 
-func (h *Handler) HandleOolongBrewCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongBrewCreate(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
 	var req oolong.CreateBrewRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
+	if err := handlers.DecodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -361,30 +362,30 @@ func (h *Handler) HandleOolongBrewCreate(w http.ResponseWriter, r *http.Request)
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create tea brew")
-		handleStoreError(w, err, "Failed to create brew")
+		handlers.HandleStoreError(w, err, "Failed to create brew")
 		return
 	}
 	b.RKey = rkey
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	if redirect := r.FormValue("__redirect"); redirect != "" {
 		w.Header().Set("HX-Redirect", redirect)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	writeJSON(w, b, "brew")
+	handlers.WriteJSON(w, b, "brew")
 }
 
-func (h *Handler) HandleOolongBrewUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 	var req oolong.CreateBrewRequest
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
+	if err := handlers.DecodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -402,19 +403,19 @@ func (h *Handler) HandleOolongBrewUpdate(w http.ResponseWriter, r *http.Request)
 		return oolong.BrewToRecord(b, teaURI, vesselURI, infuserURI)
 	}); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update tea brew")
-		handleStoreError(w, err, "Failed to update brew")
+		handlers.HandleStoreError(w, err, "Failed to update brew")
 		return
 	}
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	if redirect := r.FormValue("__redirect"); redirect != "" {
 		w.Header().Set("HX-Redirect", redirect)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	writeJSON(w, b, "brew")
+	handlers.WriteJSON(w, b, "brew")
 }
 
-func (h *Handler) HandleOolongBrewDelete(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleOolongBrewDelete(w http.ResponseWriter, r *http.Request) {
 	h.handleOolongDelete(w, r, oolong.NSIDBrew, "brew")
 }
 
@@ -444,21 +445,21 @@ func brewFromCreateRequest(req *oolong.CreateBrewRequest) *oolong.Brew {
 // --- Shared helpers ---------------------------------------------------
 
 // handleOolongDelete is the shared body for every oolong Delete handler.
-func (h *Handler) handleOolongDelete(w http.ResponseWriter, r *http.Request, nsid, entityName string) {
+func (h *Handlers) handleOolongDelete(w http.ResponseWriter, r *http.Request, nsid, entityName string) {
 	store, ok := h.requireOolongStore(w, r)
 	if !ok {
 		return
 	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 	if err := store.RemoveRecord(r.Context(), nsid, rkey); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Str("nsid", nsid).Msgf("Failed to delete %s", entityName)
-		handleStoreError(w, err, "Failed to delete "+entityName)
+		handlers.HandleStoreError(w, err, "Failed to delete "+entityName)
 		return
 	}
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	w.WriteHeader(http.StatusNoContent)
 }
 

@@ -71,7 +71,7 @@ func (h *Handler) nsidForEntity(entityType string) string {
 // HandleEntitySuggestions returns typeahead suggestions for entity creation
 func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	if _, authenticated := h.getAtprotoStore(r); !authenticated {
+	if _, authenticated := h.GetAtprotoStore(r); !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}

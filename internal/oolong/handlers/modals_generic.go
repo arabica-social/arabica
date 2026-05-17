@@ -1,17 +1,18 @@
-package handlers
+package teahandlers
 
 import (
 	"net/http"
 
 	"github.com/a-h/templ"
 	"github.com/rs/zerolog/log"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 )
 
 // oolongModalNew renders an empty (create-mode) dialog modal after
 // confirming the caller has an authenticated oolong store. The render
 // callback is parameterised on a nil model so each entity's modal
 // signature can stay typed (e.g. *oolong.Vendor).
-func (h *Handler) oolongModalNew(w http.ResponseWriter, r *http.Request, name string, render func() templ.Component) {
+func (h *Handlers) oolongModalNew(w http.ResponseWriter, r *http.Request, name string, render func() templ.Component) {
 	if _, ok := h.requireOolongStore(w, r); !ok {
 		return
 	}
@@ -25,7 +26,7 @@ func (h *Handler) oolongModalNew(w http.ResponseWriter, r *http.Request, name st
 // typed model; setRKey writes the rkey back; render produces the modal
 // component with the decoded model.
 func oolongModalEdit[Model any](
-	h *Handler,
+	h *Handlers,
 	w http.ResponseWriter,
 	r *http.Request,
 	nsid, name string,
@@ -37,7 +38,7 @@ func oolongModalEdit[Model any](
 	if !ok {
 		return
 	}
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}

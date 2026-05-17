@@ -1,4 +1,4 @@
-package handlers
+package coffeehandlers
 
 import (
 	"bytes"
@@ -11,7 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 
 	"github.com/stretchr/testify/assert"
@@ -161,7 +162,7 @@ func TestValidateRKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
-			result := validateRKey(rec, tt.rkey)
+			result := handlers.ValidateRKey(rec, tt.rkey)
 
 			if tt.wantEmpty {
 				assert.Empty(t, result)
@@ -188,7 +189,7 @@ func TestValidateOptionalRKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := validateOptionalRKey(tt.rkey, tt.fieldName)
+			result := handlers.ValidateOptionalRKey(tt.rkey, tt.fieldName)
 			assert.Equal(t, tt.wantError, result)
 		})
 	}
@@ -525,11 +526,8 @@ func TestPopulateBrewOGMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &Handler{
-				config: Config{
-					PublicURL: tt.publicURL,
-				},
-			}
+			base := handlers.NewHandler(nil, nil, nil, nil, nil, handlers.Config{PublicURL: tt.publicURL})
+			h := &Handlers{Handler: base}
 			layoutData := &components.LayoutData{}
 
 			h.populateBrewOGMetadata(layoutData, tt.brew, tt.owner, tt.publicURL, tt.shareURL)

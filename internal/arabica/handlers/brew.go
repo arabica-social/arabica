@@ -1,4 +1,4 @@
-package handlers
+package coffeehandlers
 
 import (
 	"encoding/json"
@@ -7,10 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
@@ -23,7 +24,7 @@ import (
 
 // populateBrewOGMetadata sets OpenGraph metadata on layoutData for a brew page.
 // This enriches social media previews when brew links are shared.
-func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew *arabica.Brew, owner, baseURL, shareURL string) {
+func (h *Handlers) populateBrewOGMetadata(layoutData *components.LayoutData, brew *arabica.Brew, owner, baseURL, shareURL string) {
 	if brew == nil {
 		return
 	}
@@ -36,13 +37,13 @@ func (h *Handler) populateBrewOGMetadata(layoutData *components.LayoutData, brew
 		}
 	}
 
-	populateOGFields(layoutData, subtitle, "brew", owner, baseURL, shareURL)
+	handlers.PopulateOGFields(layoutData, subtitle, "brew", owner, baseURL, shareURL)
 }
 
 // HandleBrewOGImage generates a 1200x630 PNG preview card for a brew.
 // Used as the og:image for social media embeds.
-func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
@@ -72,15 +73,15 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 	// resolved via the source-bound lookup so both paths share one walk.
 	var brew *arabica.Brew
 	brewURI := atp.BuildATURI(ownerDID, arabica.NSIDBrew, rkey)
-	if h.witnessCache != nil {
-		if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), brewURI); wr != nil {
+	if h.WitnessCache() != nil {
+		if wr, _ := h.WitnessCache().GetWitnessRecord(r.Context(), brewURI); wr != nil {
 			if m, err := atproto.WitnessRecordToMap(wr); err == nil {
 				if b, err := arabica.RecordToBrew(m, wr.URI); err == nil {
 					metrics.WitnessCacheHitsTotal.WithLabelValues("brew_og").Inc()
 					brew = b
 					brew.RKey = rkey
 					atproto.ExtractBrewRefRKeys(brew, m)
-					resolveBrewRefsViaLookup(brew, m, h.witnessLookup(r.Context()))
+					resolveBrewRefsViaLookup(brew, m, h.WitnessLookup(r.Context()))
 				}
 			}
 		}
@@ -101,7 +102,7 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 		}
 		brew.RKey = rkey
 		atproto.ExtractBrewRefRKeys(brew, record.Value)
-		resolveBrewRefsViaLookup(brew, record.Value, publicLookup(r.Context()))
+		resolveBrewRefsViaLookup(brew, record.Value, handlers.PublicLookup(r.Context()))
 	}
 
 	// Generate card
@@ -120,9 +121,9 @@ func (h *Handler) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 }
 
 // Brew list partial (loaded async via HTMX)
-func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -130,7 +131,7 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 
 	didStr, _ := atpmiddleware.GetDID(r.Context())
 	var profileHandle string
-	if p := h.getUserProfile(r.Context(), didStr); p != nil {
+	if p := h.GetUserProfile(r.Context(), didStr); p != nil {
 		profileHandle = p.Handle
 	}
 	if profileHandle == "" {
@@ -148,7 +149,7 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 	brews, err := store.ListBrews(r.Context(), 1, offset, limit+1)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch brews")
-		handleStoreError(w, err, "Failed to fetch brews")
+		handlers.HandleStoreError(w, err, "Failed to fetch brews")
 		return
 	}
 
@@ -171,14 +172,14 @@ func (h *Handler) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) 
 }
 
 // List all brews
-func (h *Handler) HandleBrewList(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/my-coffee", http.StatusMovedPermanently)
 }
 
 // Show new brew form
-func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	_, authenticated := h.getAtprotoStore(r)
+	_, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -186,7 +187,7 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch data from PDS - client will populate dropdowns from cache
 	// This makes the page load much faster
-	layoutData, _, _ := h.layoutDataFromRequest(r, "New Brew")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "New Brew")
 
 	brewFormProps := coffeepages.BrewFormProps{
 		Brew:           nil,
@@ -201,19 +202,19 @@ func (h *Handler) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 }
 
 // Show brew view page
-func (h *Handler) HandleBrewView(w http.ResponseWriter, r *http.Request) {
-	h.handleEntityView(w, r, h.brewViewConfig())
+func (h *Handlers) HandleBrewView(w http.ResponseWriter, r *http.Request) {
+	h.RenderEntityView(w, r, h.brewViewConfig())
 }
 
 // Show edit brew form
-func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -228,7 +229,7 @@ func (h *Handler) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 	// Don't fetch dropdown data from PDS - client will populate from cache
 	// This makes the page load much faster
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Brew")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Edit Brew")
 
 	brewFormProps := coffeepages.BrewFormProps{
 		Brew:      brew,
@@ -397,9 +398,9 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 }
 
 // Create new brew
-func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication first
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -434,19 +435,19 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Validate optional rkeys
 	grinderRKey := r.FormValue("grinder_rkey")
-	if errMsg := validateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
 		log.Warn().Str("grinder_rkey", grinderRKey).Msg("Brew create: invalid grinder rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 	brewerRKey := r.FormValue("brewer_rkey")
-	if errMsg := validateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
 		log.Warn().Str("brewer_rkey", brewerRKey).Msg("Brew create: invalid brewer rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 	recipeRKey := r.FormValue("recipe_rkey")
-	if errMsg := validateOptionalRKey(recipeRKey, "Recipe selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(recipeRKey, "Recipe selection"); errMsg != "" {
 		log.Warn().Str("recipe_rkey", recipeRKey).Msg("Brew create: invalid recipe rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
@@ -480,11 +481,11 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	_, err := store.CreateBrew(r.Context(), req, 1) // User ID not used with atproto
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create brew")
-		handleStoreError(w, err, "Failed to create brew")
+		handlers.HandleStoreError(w, err, "Failed to create brew")
 		return
 	}
 
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 
 	// Check if the bean is incomplete and include nudge info in response header.
 	// The brew form JS reads this before HTMX processes the redirect.
@@ -502,14 +503,14 @@ func (h *Handler) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 // Update existing brew
-func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -544,19 +545,19 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Validate optional rkeys
 	grinderRKey := r.FormValue("grinder_rkey")
-	if errMsg := validateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
 		log.Warn().Str("rkey", rkey).Str("grinder_rkey", grinderRKey).Msg("Brew update: invalid grinder rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 	brewerRKey := r.FormValue("brewer_rkey")
-	if errMsg := validateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
 		log.Warn().Str("rkey", rkey).Str("brewer_rkey", brewerRKey).Msg("Brew update: invalid brewer rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 	recipeRKey := r.FormValue("recipe_rkey")
-	if errMsg := validateOptionalRKey(recipeRKey, "Recipe selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(recipeRKey, "Recipe selection"); errMsg != "" {
 		log.Warn().Str("rkey", rkey).Str("recipe_rkey", recipeRKey).Msg("Brew update: invalid recipe rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
@@ -590,30 +591,30 @@ func (h *Handler) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	err := store.UpdateBrewByRKey(r.Context(), rkey, req)
 	if err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update brew")
-		handleStoreError(w, err, "Failed to update brew")
+		handlers.HandleStoreError(w, err, "Failed to update brew")
 		return
 	}
 
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 
 	w.Header().Set("HX-Redirect", "/my-coffee")
 	w.WriteHeader(http.StatusOK)
 }
 
 // Delete brew
-func (h *Handler) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBrewByRKey, "brew", arabica.NSIDBrew)
+	h.DeleteEntity(w, r, store.DeleteBrewByRKey, "brew", arabica.NSIDBrew)
 }
 
 // Export brews as JSON
-func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -622,7 +623,7 @@ func (h *Handler) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 	brews, err := store.ListBrews(r.Context(), 1, 0, 0) // limit=0 returns all
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list brews for export")
-		handleStoreError(w, err, "Failed to fetch brews")
+		handlers.HandleStoreError(w, err, "Failed to fetch brews")
 		return
 	}
 

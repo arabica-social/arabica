@@ -1,4 +1,4 @@
-package handlers
+package coffeehandlers
 
 import (
 	"context"
@@ -6,8 +6,9 @@ import (
 	"net/http/httptest"
 	"time"
 
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 )
 
 // TestFixtures contains sample data for testing
@@ -90,7 +91,7 @@ func NewTestFixtures() *TestFixtures {
 
 // TestContext contains test dependencies
 type TestContext struct {
-	Handler   *Handler
+	Handler   *Handlers
 	MockStore *database.MockStore
 	Fixtures  *TestFixtures
 	Request   *http.Request
@@ -102,20 +103,8 @@ func NewTestContext() *TestContext {
 	mockStore := &database.MockStore{}
 	fixtures := NewTestFixtures()
 
-	// Create minimal handler dependencies
-	// Note: OAuth and Client are nil in tests - handlers should check for nil
-	config := Config{
-		SecureCookies: false,
-	}
-
-	handler := &Handler{
-		oauth:         nil, // Tests will mock auth via context
-		atprotoClient: nil,
-		sessionCache:  nil,
-		config:        config,
-		feedService:   nil, // Can be set later if needed
-		feedRegistry:  nil, // Can be set later if needed
-	}
+	base := handlers.NewHandler(nil, nil, nil, nil, nil, handlers.Config{SecureCookies: false})
+	handler := &Handlers{Handler: base}
 
 	return &TestContext{
 		Handler:   handler,

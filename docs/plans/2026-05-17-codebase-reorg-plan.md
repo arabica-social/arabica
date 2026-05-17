@@ -7,6 +7,21 @@ Companion to: `2026-05-17-codebase-audit.md`
 > shippable, ends in a clean build + green tests, and can be paused
 > between. Order is dependency-driven: earlier phases unblock later ones.
 
+## Status (2026-05-17)
+
+| Phase | Status | Commit |
+|---|---|---|
+| 1. Promote per-app entity packages to `internal/{app}/entities/` | ✅ Done | `53a9f138` |
+| 2. Move per-app handlers to `internal/{app}/handlers/` | ✅ Done | `22528f43` |
+| 3. Unify the duplicate generic CRUD helpers | Deferred | — |
+| 4. Split `atproto/store.go` (optional) | Not started | — |
+| (Sidebar) Decouple `atproto/` from arabica-typed code | Deferred to own plan | — |
+
+887 tests pass across 38 packages on commit `2da132b9`. No browser
+smoke test was performed — the refactor is mechanical with no intended
+behavior changes, but a missing route would 404 silently. Run
+`just run` for both apps before relying on the new structure.
+
 ## Goal
 
 Reorganize per-app code (arabica, oolong) into top-level
@@ -42,8 +57,12 @@ Three phases, in dependency order:
    ✅ Completed 2026-05-17.
 2. **Move per-app handlers into `internal/{app}/handlers/`** — the
    largest move; finishes the vertical-slice structure.
-3. **Unify the duplicate generic CRUD helpers** — easier once both
-   sides are isolated.
+   ✅ Completed 2026-05-17.
+3. **Unify the duplicate generic CRUD helpers** — investigated and
+   deferred 2026-05-17. The helpers are behavior-different (arabica
+   preserves `CreatedAt` and does cross-collection cache invalidation;
+   oolong does neither), so unification needs more machinery than the
+   dedup is worth. See Phase 3 section below for the full rationale.
 
 A fourth optional phase splits `atproto/store.go` internally.
 
@@ -124,11 +143,36 @@ those.
 
 ---
 
-## Phase 2: Move per-app handlers into `internal/{app}/handlers/`
+## Phase 2: Move per-app handlers into `internal/{app}/handlers/` ✅
 
-**Why now:** With per-app entities at their final home, handlers can
-move next to them. Largest move (~3-4K LOC), but each app's move is
-independent.
+Completed 2026-05-17. See commit message for details.
+
+**Design notes from the actual move:**
+
+- Per-app types embed `*handlers.Handler` (Option B from the brainstorming).
+  `type Handlers struct { *handlers.Handler }` in both
+  `coffeehandlers` (arabica) and `teahandlers` (oolong). Promoted
+  methods give access to shared helpers without a `*Deps` indirection.
+- Required exporting a substantial slice of internal `*Handler`
+  methods and package-level helpers (`GetAtprotoStore`,
+  `InvalidateFeedCache`, `LayoutDataFromRequest`, `DeleteEntity`,
+  `WitnessLookup`, `RenderEntityView`, `FetchSocialData`,
+  `ValidateRKey`, `DecodeRequest`, `WriteJSON`, `HandleStoreError`,
+  `PopulateOGFields`, `ResolveOwnerDID`, `StandardViewTriple`,
+  `PublicLookup`, `ListRecords`, `ListPublicRecords`, `WriteOGImage`,
+  …) plus accessor methods for private fields (`AtprotoClient()`,
+  `SessionCache()`, `FeedRegistry()`, `WitnessCache()`, `App()`).
+- `EntityViewConfig` and `OGImageConfig` structs had their fields
+  exported so per-app packages can construct them directly.
+- Handler tests (`handlers_test.go`, `testutil.go`) moved to
+  `coffeehandlers/` since they test arabica-specific handlers.
+- `EntityRouteBundles()` split per-app: `coffeehandlers.(*Handlers).EntityRouteBundles`
+  and `teahandlers.(*Handlers).EntityRouteBundles`. Routing now
+  switches on app name to pick the right bundle list.
+
+**Why now (original rationale):** With per-app entities at their
+final home, handlers can move next to them. Largest move (~3-4K LOC),
+but each app's move is independent.
 
 **Scope:** All handler files exclusively about one app's entities.
 Shared infrastructure stays in `internal/handlers/`.
@@ -215,9 +259,35 @@ renamed. Keep it minimal; add fields as compile errors demand them.
 
 ---
 
-## Phase 3: Unify the generic CRUD helpers
+## Phase 3: Unify the generic CRUD helpers — DEFERRED
 
-**Why after Phase 2:** `arabica_crud_generic.go` and
+Investigated 2026-05-17 and deferred. The two helpers
+(`arabicaCRUDCreate`/`Update` in coffeehandlers, `oolongCRUDWrite` in
+teahandlers) aren't merely shape-different — they're behavior-different:
+
+- The arabica path goes through typed `store.UpdateRoasterByRKey`-style
+  methods on `*AtprotoStore` that preserve `CreatedAt` from the existing
+  record and invalidate cross-collection caches (e.g. beans denormalize
+  roaster, so a roaster update invalidates the bean cache).
+- The oolong path goes through generic `store.PutRecord(nsid, rkey, …)`
+  with no pre-fetch and no cross-collection invalidation.
+
+A full unification would need explicit hooks (prePut/afterPut) to express
+arabica's behaviors, and the typed `database.Store` methods would still
+be needed by arabica's bespoke bean handlers. With per-app handlers now
+in their own packages (Phase 2), the remaining duplication is in
+parallel files inside each app's package — not painful enough to justify
+the refactor.
+
+Revisit when (a) more entities need the same kind of cross-collection
+invalidation logic and the cost of duplicating it across per-app helpers
+becomes real, or (b) the deferred "decouple atproto/store from arabica"
+work happens, at which point the typed methods on `*AtprotoStore` get
+unwound anyway.
+
+### Original Phase 3 notes (kept for context)
+
+`arabica_crud_generic.go` and
 `oolong_crud_generic.go` look similar but call different store APIs
 (arabica uses typed `store.CreateBean`-style methods; oolong uses
 generic `putRecord(nsid, ...)`). Unifying requires aligning one onto

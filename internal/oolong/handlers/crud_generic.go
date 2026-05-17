@@ -1,10 +1,11 @@
-package handlers
+package teahandlers
 
 import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 )
 
 // oolongValidator is a pointer-constraint that lets the generic CRUD
@@ -18,7 +19,7 @@ type oolongValidator[T any] interface {
 
 // oolongCRUDWrite is the shared body for every oolong Create + Update
 // handler that follows the standard shape: require store -> decode +
-// validate request -> build model -> put record -> writeJSON. rkey is
+// validate request -> build model -> put record -> handlers.WriteJSON. rkey is
 // empty for create, non-empty for update.
 //
 // Build receives the decoded request and is expected to construct the
@@ -30,7 +31,7 @@ type oolongValidator[T any] interface {
 // allowRedirect mirrors the HX-Redirect short-circuit that the Tea/Brew
 // handlers had; entities without an inline form path pass false.
 func oolongCRUDWrite[Req any, PReq oolongValidator[Req], Model any](
-	h *Handler,
+	h *Handlers,
 	w http.ResponseWriter,
 	r *http.Request,
 	nsid, jsonKey, rkey string,
@@ -44,7 +45,7 @@ func oolongCRUDWrite[Req any, PReq oolongValidator[Req], Model any](
 		return
 	}
 	var req Req
-	if err := decodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
+	if err := handlers.DecodeRequest(r, &req, func() error { return decodeOolongForm(r, &req) }); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -58,11 +59,11 @@ func oolongCRUDWrite[Req any, PReq oolongValidator[Req], Model any](
 	})
 	if err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Str("nsid", nsid).Msgf("Failed to write %s", jsonKey)
-		handleStoreError(w, err, "Failed to save "+jsonKey)
+		handlers.HandleStoreError(w, err, "Failed to save "+jsonKey)
 		return
 	}
 	setRKey(model, newRKey)
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	if allowRedirect {
 		if redirect := r.FormValue("__redirect"); redirect != "" {
 			w.Header().Set("HX-Redirect", redirect)
@@ -70,7 +71,7 @@ func oolongCRUDWrite[Req any, PReq oolongValidator[Req], Model any](
 			return
 		}
 	}
-	writeJSON(w, model, jsonKey)
+	handlers.WriteJSON(w, model, jsonKey)
 }
 
 // updateRKey is a small helper for handlers that need to extract +
@@ -78,5 +79,5 @@ func oolongCRUDWrite[Req any, PReq oolongValidator[Req], Model any](
 // oolongCRUDWrite. Returns "" when validation already wrote an error
 // response (caller should return immediately).
 func updateRKey(w http.ResponseWriter, r *http.Request) string {
-	return validateRKey(w, r.PathValue("id"))
+	return handlers.ValidateRKey(w, r.PathValue("id"))
 }

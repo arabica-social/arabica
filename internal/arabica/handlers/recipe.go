@@ -1,4 +1,4 @@
-package handlers
+package coffeehandlers
 
 import (
 	"context"
@@ -8,10 +8,11 @@ import (
 	"sort"
 	"strconv"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/matching"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/pdewey.com/atp"
@@ -21,8 +22,8 @@ import (
 )
 
 // HandleRecipeCreate creates a new recipe
-func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -30,7 +31,7 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 
 	var req arabica.CreateRecipeRequest
 
-	if err := decodeRequest(r, &req, func() error {
+	if err := handlers.DecodeRequest(r, &req, func() error {
 		req = arabica.CreateRecipeRequest{
 			Name:       r.FormValue("name"),
 			BrewerRKey: r.FormValue("brewer_rkey"),
@@ -62,7 +63,7 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errMsg := validateOptionalRKey(req.BrewerRKey, "Brewer selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(req.BrewerRKey, "Brewer selection"); errMsg != "" {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -70,22 +71,22 @@ func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 	recipe, err := store.CreateRecipe(r.Context(), &req)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create recipe")
-		handleStoreError(w, err, "Failed to create recipe")
+		handlers.HandleStoreError(w, err, "Failed to create recipe")
 		return
 	}
 
-	h.invalidateFeedCache()
-	writeJSON(w, recipe, "recipe")
+	h.InvalidateFeedCache()
+	handlers.WriteJSON(w, recipe, "recipe")
 }
 
 // HandleRecipeUpdate updates an existing recipe
-func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -93,7 +94,7 @@ func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req arabica.UpdateRecipeRequest
 
-	if err := decodeRequest(r, &req, func() error {
+	if err := handlers.DecodeRequest(r, &req, func() error {
 		req = arabica.UpdateRecipeRequest{
 			Name:       r.FormValue("name"),
 			BrewerRKey: r.FormValue("brewer_rkey"),
@@ -124,29 +125,29 @@ func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errMsg := validateOptionalRKey(req.BrewerRKey, "Brewer selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(req.BrewerRKey, "Brewer selection"); errMsg != "" {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
 	if err := store.UpdateRecipeByRKey(r.Context(), rkey, &req); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update recipe")
-		handleStoreError(w, err, "Failed to update recipe")
+		handlers.HandleStoreError(w, err, "Failed to update recipe")
 		return
 	}
 
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	w.WriteHeader(http.StatusOK)
 }
 
 // HandleRecipeDelete deletes a recipe
-func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -154,34 +155,34 @@ func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 
 	if err := store.DeleteRecipeByRKey(r.Context(), rkey); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe")
-		handleStoreError(w, err, "Failed to delete recipe")
+		handlers.HandleStoreError(w, err, "Failed to delete recipe")
 		return
 	}
 
 	// Remove from firehose feed index
-	if h.feedIndex != nil {
+	if h.FeedIndex() != nil {
 		didStr, _ := atpmiddleware.GetDID(r.Context())
 		if didStr != "" {
-			if err := h.feedIndex.DeleteRecord(r.Context(), didStr, arabica.NSIDRecipe, rkey); err != nil {
+			if err := h.FeedIndex().DeleteRecord(r.Context(), didStr, arabica.NSIDRecipe, rkey); err != nil {
 				log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe from feed index")
 			}
 		}
 	}
 
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	w.Header().Set("HX-Trigger", "entityDeleted")
 	w.WriteHeader(http.StatusOK)
 }
 
 // HandleRecipeGet returns a single recipe as JSON (for autofill)
 // Accepts optional ?owner= query param to fetch from another user's PDS.
-func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -247,17 +248,17 @@ func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	recipe.Interpolate()
-	writeJSON(w, recipe, "recipe")
+	handlers.WriteJSON(w, recipe, "recipe")
 }
 
 // HandleRecipeCreateFromBrew creates a recipe pre-populated from an existing brew's parameters
-func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Request) {
-	brewRKey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Request) {
+	brewRKey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if brewRKey == "" {
 		return
 	}
 
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -315,23 +316,23 @@ func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Requ
 	recipe, err := store.CreateRecipe(r.Context(), req)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create recipe from brew")
-		handleStoreError(w, err, "Failed to create recipe")
+		handlers.HandleStoreError(w, err, "Failed to create recipe")
 		return
 	}
 
-	h.invalidateFeedCache()
-	writeJSON(w, recipe, "recipe")
+	h.InvalidateFeedCache()
+	handlers.WriteJSON(w, recipe, "recipe")
 }
 
 // HandleRecipeFork creates a copy of another user's recipe in the current user's PDS.
 // The source recipe is identified by rkey + owner query param (handle or DID).
-func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -343,7 +344,7 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ownerDID, err := resolveOwnerDID(r.Context(), owner)
+	ownerDID, err := handlers.ResolveOwnerDID(r.Context(), owner)
 	if err != nil {
 		http.Error(w, "Could not resolve owner", http.StatusNotFound)
 		return
@@ -426,18 +427,18 @@ func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 	recipe, err := store.CreateRecipe(r.Context(), req)
 	if err != nil {
 		log.Error().Err(err).Str("source", sourceURI).Msg("Failed to fork recipe")
-		handleStoreError(w, err, "Failed to fork recipe")
+		handlers.HandleStoreError(w, err, "Failed to fork recipe")
 		return
 	}
 
-	h.invalidateFeedCache()
-	writeJSON(w, recipe, "recipe")
+	h.InvalidateFeedCache()
+	handlers.WriteJSON(w, recipe, "recipe")
 }
 
 // HandleRecipeSuggestions returns filtered recipes from all users via the feed index.
 // Query params: q (text search), brewer_type, min_coffee, max_coffee, min_water, max_water, category
-func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request) {
+	_, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -508,12 +509,12 @@ func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request
 
 // listAllRecipesFromIndex loads all recipe records from the feed index,
 // converts them to Recipe models, and populates author info.
-func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recipe, error) {
-	if h.feedIndex == nil {
+func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recipe, error) {
+	if h.FeedIndex() == nil {
 		return nil, fmt.Errorf("feed index not available")
 	}
 
-	records, err := h.feedIndex.ListRecordsByCollection(ctx, arabica.NSIDRecipe)
+	records, err := h.FeedIndex().ListRecordsByCollection(ctx, arabica.NSIDRecipe)
 	if err != nil {
 		return nil, err
 	}
@@ -560,7 +561,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recip
 	// Resolve profiles for all DIDs (authors + source authors)
 	profiles := make(map[string]*atproto.Profile, len(didSet))
 	for did := range didSet {
-		profile, err := h.feedIndex.GetProfile(ctx, did)
+		profile, err := h.FeedIndex().GetProfile(ctx, did)
 		if err == nil && profile != nil {
 			profiles[did] = profile
 		}
@@ -589,7 +590,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recip
 	}
 
 	// Batch query brew counts per recipe
-	brewCounts := h.feedIndex.BrewCountsByRecipeURI(ctx)
+	brewCounts := h.FeedIndex().BrewCountsByRecipeURI(ctx)
 
 	// Batch-fetch brewer records referenced by recipes
 	brewerURIs := make([]string, 0)
@@ -598,7 +599,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recip
 			brewerURIs = append(brewerURIs, brewerRef)
 		}
 	}
-	brewerRecords := h.feedIndex.GetRecordsBatch(ctx, brewerURIs)
+	brewerRecords := h.FeedIndex().GetRecordsBatch(ctx, brewerURIs)
 
 	// Build final recipe list
 	recipes := make([]*arabica.Recipe, 0, len(parsed))
@@ -665,7 +666,7 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recip
 	}
 
 	// Filter moderated content (hidden records + blacklisted users)
-	if cf := h.loadContentFilter(ctx); cf != nil {
+	if cf := h.LoadContentFilter(ctx); cf != nil {
 		recipes = moderation.FilterSlice(cf, recipes, func(r *arabica.Recipe) (string, string) {
 			if r.AuthorDID != "" && r.RKey != "" {
 				return atp.BuildATURI(r.AuthorDID, arabica.NSIDRecipe, r.RKey), r.AuthorDID
@@ -678,8 +679,8 @@ func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recip
 }
 
 // HandleRecipeList returns all recipes as JSON
-func (h *Handler) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -711,8 +712,8 @@ func (h *Handler) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleRecipeModalNew returns the recipe creation modal HTML
-func (h *Handler) HandleRecipeModalNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleRecipeModalNew(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -736,13 +737,13 @@ func (h *Handler) HandleRecipeModalNew(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleRecipeModalEdit returns the recipe edit modal HTML
-func (h *Handler) HandleRecipeModalEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleRecipeModalEdit(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -773,14 +774,14 @@ func (h *Handler) HandleRecipeModalEdit(w http.ResponseWriter, r *http.Request) 
 }
 
 // HandleRecipeExplore renders the recipe explore page
-func (h *Handler) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
+	_, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Explore Recipes")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Explore Recipes")
 
 	if err := coffeepages.RecipeExplorePage(layoutData, coffeepages.RecipeExploreProps{
 		IsAuthenticated: authenticated,
@@ -792,7 +793,7 @@ func (h *Handler) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandlePopularRecipesPartial returns an HTML fragment of popular recipes for the home page.
-func (h *Handler) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Request) {
 	recipes, err := h.listAllRecipesFromIndex(r.Context())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch recipes for popular section")

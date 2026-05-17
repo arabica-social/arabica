@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
@@ -457,8 +457,8 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user is blacklisted
-	if cf := h.loadContentFilter(ctx); cf != nil && cf.IsBlocked(did) {
-		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
+	if cf := h.LoadContentFilter(ctx); cf != nil && cf.IsBlocked(did) {
+		layoutData, _, _ := h.LayoutDataFromRequest(r, "Profile Not Found")
 		w.WriteHeader(http.StatusNotFound)
 		if err := coffeepages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
 			log.Error().Err(err).Msg("Failed to render profile not found page")
@@ -495,7 +495,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if current user is authenticated (for nav bar state)
-	_, didStr, isAuthenticated := h.layoutDataFromRequest(r, "Profile")
+	_, didStr, isAuthenticated := h.LayoutDataFromRequest(r, "Profile")
 
 	// Check if this is an Arabica user (has records or is registered in feed)
 	isArabicaUser := h.feedRegistry.IsRegistered(did) ||
@@ -504,7 +504,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		len(profileData.Brewers) > 0
 
 	if !isArabicaUser {
-		layoutData, _, _ := h.layoutDataFromRequest(r, "Profile Not Found")
+		layoutData, _, _ := h.LayoutDataFromRequest(r, "Profile Not Found")
 		w.WriteHeader(http.StatusNotFound)
 		if err := coffeepages.ProfileNotFound(layoutData).Render(r.Context(), w); err != nil {
 			log.Error().Err(err).Msg("Failed to render profile not found page")
@@ -531,7 +531,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	if viewedProfile.DisplayName != "" {
 		pageTitle = viewedProfile.DisplayName + " (@" + viewedProfile.Handle + ")"
 	}
-	layoutData, _, _ := h.layoutDataFromRequest(r, pageTitle)
+	layoutData, _, _ := h.LayoutDataFromRequest(r, pageTitle)
 
 	// Create roaster options for own profile
 	var roasterOptions []coffeepages.RoasterOption
@@ -598,7 +598,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user is blacklisted
-	cf := h.loadContentFilter(ctx)
+	cf := h.LoadContentFilter(ctx)
 	if cf != nil && cf.IsBlocked(did) {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return

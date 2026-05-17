@@ -1,4 +1,4 @@
-package handlers
+package coffeehandlers
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"tangled.org/arabica.social/arabica/internal/database"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 )
 
 // arabicaValidator is a pointer-constraint so the generic factories
@@ -18,26 +19,26 @@ type arabicaValidator[T any] interface {
 
 // arabicaCRUDCreate is the shared body for arabica Create handlers
 // that follow the standard: require store -> decode (JSON or form) ->
-// validate -> call typed store.CreateX -> invalidate cache -> writeJSON.
+// validate -> call typed store.CreateX -> invalidate cache -> handlers.WriteJSON.
 //
 // decodeForm fills the request from r.Form for non-JSON requests
 // (arabica handlers use bespoke field-name mappings rather than
 // reflection-based decoding). create calls the typed store method.
 func arabicaCRUDCreate[Req any, PReq arabicaValidator[Req], Model any](
-	h *Handler,
+	h *Handlers,
 	w http.ResponseWriter,
 	r *http.Request,
 	name, jsonKey string,
 	decodeForm func(r *http.Request) Req,
 	create func(ctx context.Context, store database.Store, req *Req) (*Model, error),
 ) {
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	var req Req
-	if err := decodeRequest(r, &req, func() error {
+	if err := handlers.DecodeRequest(r, &req, func() error {
 		req = decodeForm(r)
 		return nil
 	}); err != nil {
@@ -53,11 +54,11 @@ func arabicaCRUDCreate[Req any, PReq arabicaValidator[Req], Model any](
 	model, err := create(r.Context(), store, &req)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to create %s", name)
-		handleStoreError(w, err, "Failed to create "+name)
+		handlers.HandleStoreError(w, err, "Failed to create "+name)
 		return
 	}
-	h.invalidateFeedCache()
-	writeJSON(w, model, jsonKey)
+	h.InvalidateFeedCache()
+	handlers.WriteJSON(w, model, jsonKey)
 }
 
 // arabicaCRUDUpdate is the shared body for arabica Update handlers.
@@ -65,7 +66,7 @@ func arabicaCRUDCreate[Req any, PReq arabicaValidator[Req], Model any](
 // response carries the freshly-persisted record (matching the
 // pre-refactor behavior of the hand-cloned handlers).
 func arabicaCRUDUpdate[Req any, PReq arabicaValidator[Req], Model any](
-	h *Handler,
+	h *Handlers,
 	w http.ResponseWriter,
 	r *http.Request,
 	name, jsonKey string,
@@ -73,17 +74,17 @@ func arabicaCRUDUpdate[Req any, PReq arabicaValidator[Req], Model any](
 	update func(ctx context.Context, store database.Store, rkey string, req *Req) error,
 	refetch func(ctx context.Context, store database.Store, rkey string) (*Model, error),
 ) {
-	rkey := validateRKey(w, r.PathValue("id"))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	var req Req
-	if err := decodeRequest(r, &req, func() error {
+	if err := handlers.DecodeRequest(r, &req, func() error {
 		req = decodeForm(r)
 		return nil
 	}); err != nil {
@@ -98,7 +99,7 @@ func arabicaCRUDUpdate[Req any, PReq arabicaValidator[Req], Model any](
 	}
 	if err := update(r.Context(), store, rkey, &req); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msgf("Failed to update %s", name)
-		handleStoreError(w, err, "Failed to update "+name)
+		handlers.HandleStoreError(w, err, "Failed to update "+name)
 		return
 	}
 	model, err := refetch(r.Context(), store, rkey)
@@ -107,6 +108,6 @@ func arabicaCRUDUpdate[Req any, PReq arabicaValidator[Req], Model any](
 		http.Error(w, "Failed to fetch updated "+name, http.StatusInternalServerError)
 		return
 	}
-	h.invalidateFeedCache()
-	writeJSON(w, model, jsonKey)
+	h.InvalidateFeedCache()
+	handlers.WriteJSON(w, model, jsonKey)
 }

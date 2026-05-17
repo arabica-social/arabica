@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -15,7 +15,7 @@ import (
 // is the tea sister. Both pages share the same layout chrome; only the
 // per-app copy and entity-noun references differ.
 func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
-	data, _, _ := h.layoutDataFromRequest(r, "About")
+	data, _, _ := h.LayoutDataFromRequest(r, "About")
 
 	var err error
 	if h.app != nil && h.app.Name == "oolong" {
@@ -32,7 +32,7 @@ func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 // Terms of Service page — dispatches per app for the same reason
 // HandleAbout does: brand strings and entity-noun references differ.
 func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Terms of Service")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Terms of Service")
 
 	var err error
 	if h.app != nil && h.app.Name == "oolong" {
@@ -47,7 +47,7 @@ func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleATProto(w http.ResponseWriter, r *http.Request) {
-	layoutData, _, _ := h.layoutDataFromRequest(r, "AT Protocol")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "AT Protocol")
 
 	if err := pages.ATProto(layoutData).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
@@ -57,7 +57,7 @@ func (h *Handler) HandleATProto(w http.ResponseWriter, r *http.Request) {
 
 // Settings page
 func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
-	data, _, isAuthenticated := h.layoutDataFromRequest(r, "Settings")
+	data, _, isAuthenticated := h.LayoutDataFromRequest(r, "Settings")
 	if !isAuthenticated {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -130,7 +130,7 @@ func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http
 
 // HandleNotFound renders the 404 page
 func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Page Not Found")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Page Not Found")
 
 	w.WriteHeader(http.StatusNotFound)
 	if err := pages.NotFound(layoutData).Render(r.Context(), w); err != nil {

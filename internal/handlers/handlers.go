@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -158,6 +158,22 @@ func (h *Handler) SetWitnessCache(wc atproto.WitnessCache) {
 	h.witnessCache = wc
 }
 
+// WitnessCache exposes the witness cache for per-app handler packages.
+func (h *Handler) WitnessCache() atproto.WitnessCache { return h.witnessCache }
+
+// AtprotoClient exposes the AT Protocol client for per-app handler packages.
+func (h *Handler) AtprotoClient() *atproto.Client { return h.atprotoClient }
+
+// SessionCache exposes the session cache for per-app handler packages.
+func (h *Handler) SessionCache() *atproto.SessionCache { return h.sessionCache }
+
+// FeedRegistry exposes the feed registry for per-app handler packages.
+func (h *Handler) FeedRegistry() *feed.Registry { return h.feedRegistry }
+
+// App exposes the per-app config for handler packages that need to inspect
+// app identity (e.g. for branch logic in cross-app endpoints).
+func (h *Handler) App() *domain.App { return h.app }
+
 // SetModeration configures the handler with moderation service and store
 func (h *Handler) SetModeration(svc *moderation.Service, store moderation.Store) {
 	h.moderationService = svc
@@ -171,7 +187,7 @@ func (h *Handler) SetBackupService(svc *backup.Service) {
 }
 
 // invalidateFeedCache clears the public feed cache after a mutation.
-func (h *Handler) invalidateFeedCache() {
+func (h *Handler) InvalidateFeedCache() {
 	if h.feedService != nil {
 		h.feedService.InvalidatePublicFeedCache()
 	}
@@ -179,7 +195,7 @@ func (h *Handler) invalidateFeedCache() {
 
 // loadContentFilter creates a ContentFilter from the moderation store.
 // Returns nil if moderation is not configured.
-func (h *Handler) loadContentFilter(ctx context.Context) *moderation.ContentFilter {
+func (h *Handler) LoadContentFilter(ctx context.Context) *moderation.ContentFilter {
 	if h.moderationStore == nil {
 		return nil
 	}
@@ -191,9 +207,9 @@ func (h *Handler) loadContentFilter(ctx context.Context) *moderation.ContentFilt
 	return f
 }
 
-// validateRKey validates and returns an rkey from a path parameter.
+// ValidateRKey validates and returns an rkey from a path parameter.
 // Returns the rkey if valid, or writes an error response and returns empty string if invalid.
-func validateRKey(w http.ResponseWriter, rkey string) string {
+func ValidateRKey(w http.ResponseWriter, rkey string) string {
 	if rkey == "" {
 		http.Error(w, "Record key is required", http.StatusBadRequest)
 		return ""
@@ -205,9 +221,9 @@ func validateRKey(w http.ResponseWriter, rkey string) string {
 	return rkey
 }
 
-// validateOptionalRKey validates an optional rkey from form data.
+// ValidateOptionalRKey validates an optional rkey from form data.
 // Returns an error message if invalid, empty string if valid or empty.
-func validateOptionalRKey(rkey, fieldName string) string {
+func ValidateOptionalRKey(rkey, fieldName string) string {
 	if rkey == "" {
 		return ""
 	}
@@ -217,17 +233,17 @@ func validateOptionalRKey(rkey, fieldName string) string {
 	return ""
 }
 
-// isJSONRequest checks if the request Content-Type is JSON
-func isJSONRequest(r *http.Request) bool {
+// IsJSONRequest checks if the request Content-Type is JSON
+func IsJSONRequest(r *http.Request) bool {
 	contentType := r.Header.Get("Content-Type")
 	return strings.Contains(contentType, "application/json")
 }
 
-// decodeRequest decodes either JSON or form data into the target interface based on Content-Type.
+// DecodeRequest decodes either JSON or form data into the target interface based on Content-Type.
 // The parseForm function is called when the request is form-encoded (not JSON).
 // Returns an error if parsing fails.
-func decodeRequest(r *http.Request, target any, parseForm func() error) error {
-	if isJSONRequest(r) {
+func DecodeRequest(r *http.Request, target any, parseForm func() error) error {
+	if IsJSONRequest(r) {
 		// Parse as JSON
 		if err := json.NewDecoder(r.Body).Decode(target); err != nil {
 			return err
@@ -244,8 +260,8 @@ func decodeRequest(r *http.Request, target any, parseForm func() error) error {
 	return nil
 }
 
-// parseOptionalInt parses a form value as *int. Returns nil for empty strings.
-func parseOptionalInt(s string) *int {
+// ParseOptionalInt parses a form value as *int. Returns nil for empty strings.
+func ParseOptionalInt(s string) *int {
 	if s == "" {
 		return nil
 	}
@@ -256,8 +272,8 @@ func parseOptionalInt(s string) *int {
 	return &v
 }
 
-// writeJSON encodes and writes a JSON response
-func writeJSON(w http.ResponseWriter, v any, entityName string) {
+// WriteJSON encodes and writes a JSON response
+func WriteJSON(w http.ResponseWriter, v any, entityName string) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		log.Error().Err(err).Msg("Failed to encode " + entityName + " response")
@@ -268,7 +284,7 @@ func writeJSON(w http.ResponseWriter, v any, entityName string) {
 // Routes through feedIndex (invalidated by ProfileWatcher on profile updates)
 // so the header stays fresh without a separate cache layer.
 // Returns nil if unable to fetch profile (non-fatal error).
-func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfile {
+func (h *Handler) GetUserProfile(ctx context.Context, did string) *bff.UserProfile {
 	if did == "" {
 		return nil
 	}
@@ -299,7 +315,7 @@ func (h *Handler) getUserProfile(ctx context.Context, did string) *bff.UserProfi
 
 // getAtprotoStore creates a user-scoped atproto store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
-func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
+func (h *Handler) GetAtprotoStore(r *http.Request) (database.Store, bool) {
 	// Get authenticated DID from context
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
@@ -332,22 +348,22 @@ func (h *Handler) getAtprotoStore(r *http.Request) (database.Store, bool) {
 
 // layoutDataFromRequest extracts auth state from the request and builds layout data.
 // Returns the layout data, the user's DID (empty if not authenticated), and whether authenticated.
-func (h *Handler) layoutDataFromRequest(r *http.Request, title string) (layoutData *components.LayoutData, didStr string, isAuthenticated bool) {
+func (h *Handler) LayoutDataFromRequest(r *http.Request, title string) (layoutData *components.LayoutData, didStr string, isAuthenticated bool) {
 	didStr, isAuthenticated = atpmiddleware.GetDID(r.Context())
 
 	var userProfile *bff.UserProfile
 	if isAuthenticated {
-		userProfile = h.getUserProfile(r.Context(), didStr)
+		userProfile = h.GetUserProfile(r.Context(), didStr)
 	}
 
-	layoutData = h.buildLayoutData(r, title, isAuthenticated, didStr, userProfile)
+	layoutData = h.BuildLayoutData(r, title, isAuthenticated, didStr, userProfile)
 	return
 }
 
-// handleStoreError writes the appropriate HTTP error for a store operation failure.
+// HandleStoreError writes the appropriate HTTP error for a store operation failure.
 // If the error indicates an expired OAuth session, it returns 401 Unauthorized with
 // a user-friendly message. Otherwise it returns 500 with the fallbackMessage.
-func handleStoreError(w http.ResponseWriter, err error, fallbackMessage string) {
+func HandleStoreError(w http.ResponseWriter, err error, fallbackMessage string) {
 	if errors.Is(err, atproto.ErrSessionExpired) {
 		http.Error(w, "Your session has expired. Please log in again.", http.StatusUnauthorized)
 		return
@@ -357,14 +373,14 @@ func handleStoreError(w http.ResponseWriter, err error, fallbackMessage string) 
 
 // deleteEntity validates the rkey, calls the delete function, removes the record
 // from the firehose feed index, and returns 200.
-func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn func(context.Context, string) error, entityName string, collection string) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handler) DeleteEntity(w http.ResponseWriter, r *http.Request, deleteFn func(context.Context, string) error, entityName string, collection string) {
+	rkey := ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 	if err := deleteFn(r.Context(), rkey); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete " + entityName)
-		handleStoreError(w, err, "Failed to delete "+entityName)
+		HandleStoreError(w, err, "Failed to delete "+entityName)
 		return
 	}
 	// Remove from firehose feed index
@@ -376,7 +392,7 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 			}
 		}
 	}
-	h.invalidateFeedCache()
+	h.InvalidateFeedCache()
 	w.Header().Set("HX-Trigger", "entityDeleted")
 	w.WriteHeader(http.StatusOK)
 }
@@ -384,7 +400,7 @@ func (h *Handler) deleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 // resolveOwnerHandle returns a human-readable handle for the owner string.
 // If the owner is already a handle, it is returned as-is. If it is a DID,
 // the feed index profile cache is consulted to resolve it to a handle.
-func (h *Handler) resolveOwnerHandle(ctx context.Context, owner string) string {
+func (h *Handler) ResolveOwnerHandle(ctx context.Context, owner string) string {
 	if !strings.HasPrefix(owner, "did:") {
 		return owner
 	}
@@ -396,10 +412,10 @@ func (h *Handler) resolveOwnerHandle(ctx context.Context, owner string) string {
 	return owner
 }
 
-// populateOGFields sets the standard OG metadata fields for an entity page.
+// PopulateOGFields sets the standard OG metadata fields for an entity page.
 // The title follows the pattern "{type} from {owner} on arabica.social".
 // The subtitle (OG description) shows record-specific detail like the bean name.
-func populateOGFields(layoutData *components.LayoutData, subtitle, recordType, owner, baseURL, shareURL string) {
+func PopulateOGFields(layoutData *components.LayoutData, subtitle, recordType, owner, baseURL, shareURL string) {
 	layoutData.OGType = "article"
 
 	if owner != "" {
@@ -422,7 +438,7 @@ func populateOGFields(layoutData *components.LayoutData, subtitle, recordType, o
 
 // publicBaseURL returns the public-facing base URL for constructing absolute URLs.
 // It prefers the configured PublicURL, falling back to deriving it from the request.
-func (h *Handler) publicBaseURL(r *http.Request) string {
+func (h *Handler) PublicBaseURL(r *http.Request) string {
 	if h.config.PublicURL != "" {
 		return h.config.PublicURL
 	}
@@ -434,7 +450,7 @@ func (h *Handler) publicBaseURL(r *http.Request) string {
 }
 
 // buildLayoutData creates a LayoutData struct with common fields populated from the request
-func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
+func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
 	// Check if user is a moderator
 	isModerator := false
 	if h.moderationService != nil && didStr != "" {
@@ -464,7 +480,7 @@ func (h *Handler) buildLayoutData(r *http.Request, title string, isAuthenticated
 // HandleCommentCreate handles creating a new comment
 func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -520,7 +536,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 	comment, err := store.CreateComment(r.Context(), req)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create comment")
-		handleStoreError(w, err, "Failed to create comment")
+		HandleStoreError(w, err, "Failed to create comment")
 		return
 	}
 
@@ -564,7 +580,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 // HandleCommentDelete handles deleting a comment
 func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -581,7 +597,7 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 	// Delete the comment from the user's PDS
 	if err := store.DeleteCommentByRKey(r.Context(), rkey); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Str("did", didStr).Msg("Failed to delete comment from PDS")
-		handleStoreError(w, err, "Failed to delete comment")
+		HandleStoreError(w, err, "Failed to delete comment")
 		return
 	}
 
@@ -608,7 +624,7 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 
 // filterHiddenComments removes comments that have been hidden by moderation.
 // Children of hidden comments are kept but shifted up in depth.
-func (h *Handler) filterHiddenComments(ctx context.Context, comments []firehose.IndexedComment) []firehose.IndexedComment {
+func (h *Handler) FilterHiddenComments(ctx context.Context, comments []firehose.IndexedComment) []firehose.IndexedComment {
 	if h.moderationStore == nil || len(comments) == 0 {
 		return comments
 	}
@@ -662,7 +678,7 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 	var comments []firehose.IndexedComment
 	if h.feedIndex != nil {
 		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
-		comments = h.filterHiddenComments(r.Context(), comments)
+		comments = h.FilterHiddenComments(r.Context(), comments)
 	}
 
 	// Build moderation context
@@ -691,7 +707,7 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 // HandleCreateAccount renders the account creation page (GET /join/create).
 // PDS server options come from the internal/signup catalog.
 func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
-	layoutData, _, _ := h.layoutDataFromRequest(r, "Create Account")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Create Account")
 
 	props := pages.CreateAccountProps{
 		Error: r.URL.Query().Get("error"),

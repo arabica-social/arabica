@@ -1,4 +1,4 @@
-package handlers
+package coffeehandlers
 
 import (
 	"context"
@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -23,9 +24,9 @@ import (
 )
 
 // Manage page partial (loaded async via HTMX)
-func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -35,7 +36,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	// rather than serving potentially stale in-memory data. The witness cache
 	// is a local SQLite read so this is cheap.
 	if sessionID, ok := atpmiddleware.GetSessionID(r.Context()); ok {
-		h.sessionCache.Invalidate(sessionID)
+		h.SessionCache().Invalidate(sessionID)
 	}
 
 	ctx := r.Context()
@@ -78,7 +79,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 
 	if err := g.Wait(); err != nil {
 		log.Error().Err(err).Msg("Failed to fetch manage page data")
-		handleStoreError(w, err, "Failed to fetch data")
+		handlers.HandleStoreError(w, err, "Failed to fetch data")
 		return
 	}
 
@@ -104,19 +105,19 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 		Brewers:  brewers,
 		Recipes:  recipes,
 	}
-	if h.feedIndex != nil {
+	if h.FeedIndex() != nil {
 		did, _ := atpmiddleware.GetDID(r.Context())
 		props.OwnerDID = did
-		props.BeanBrewCounts = h.feedIndex.BrewCountsByBeanURI(r.Context(), did)
-		props.GrinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(r.Context(), did)
-		props.BrewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(r.Context(), did)
-		props.RoasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(r.Context(), did)
+		props.BeanBrewCounts = h.FeedIndex().BrewCountsByBeanURI(r.Context(), did)
+		props.GrinderBrewCounts = h.FeedIndex().BrewCountsByGrinderURI(r.Context(), did)
+		props.BrewerBrewCounts = h.FeedIndex().BrewCountsByBrewerURI(r.Context(), did)
+		props.RoasterBeanCounts = h.FeedIndex().BeanCountsByRoasterURI(r.Context(), did)
 		props.BeanAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(r.Context(), did) {
+		for uri, stats := range h.FeedIndex().AvgBrewRatingByBeanURI(r.Context(), did) {
 			props.BeanAvgBrewRatings[uri] = stats.Average
 		}
 		props.RoasterAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(r.Context(), did) {
+		for uri, stats := range h.FeedIndex().AvgBrewRatingByRoasterURI(r.Context(), did) {
 			props.RoasterAvgBrewRatings[uri] = stats.Average
 		}
 	}
@@ -129,17 +130,10 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 }
 
 // API endpoint to list all user data (beans, roasters, grinders, brewers, brews)
-// Used by client-side cache for faster page loads
-func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
-	// Dispatch to oolong's entity set when the running app is oolong —
-	// keeps a single /api/data endpoint serving whichever app is wired
-	// in cfg, so the client-side AppCache works uniformly.
-	if appName(h.app) == "oolong" {
-		h.HandleOolongAPIListAll(w, r)
-		return
-	}
-
-	store, authenticated := h.getAtprotoStore(r)
+// Used by client-side cache for faster page loads. Arabica-specific —
+// oolong has its own /api/data handler registered via teahandlers.
+func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -193,7 +187,7 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 
 	if err := g.Wait(); err != nil {
 		log.Error().Err(err).Msg("Failed to fetch all data for API")
-		handleStoreError(w, err, "Failed to fetch data")
+		handlers.HandleStoreError(w, err, "Failed to fetch data")
 		return
 	}
 
@@ -217,9 +211,9 @@ func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 }
 
 // API endpoint to create bean
-func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -228,7 +222,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	var req arabica.CreateBeanRequest
 
 	// Decode request (JSON or form)
-	if err := decodeRequest(r, &req, func() error {
+	if err := handlers.DecodeRequest(r, &req, func() error {
 		req = arabica.CreateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
@@ -237,7 +231,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
-			Rating:      parseOptionalInt(r.FormValue("rating")),
+			Rating:      handlers.ParseOptionalInt(r.FormValue("rating")),
 			Closed:      r.FormValue("closed") == "true",
 			SourceRef:   r.FormValue("source_ref"),
 		}
@@ -269,7 +263,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		})
 		if roasterErr != nil {
 			log.Error().Err(roasterErr).Str("name", newRoasterName).Msg("Failed to create roaster for bean")
-			handleStoreError(w, roasterErr, "Failed to create roaster")
+			handlers.HandleStoreError(w, roasterErr, "Failed to create roaster")
 			return
 		}
 		req.RoasterRKey = roaster.RKey
@@ -277,7 +271,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate optional roaster rkey
-	if errMsg := validateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
 		log.Warn().Str("roaster_rkey", req.RoasterRKey).Msg("Bean create: invalid roaster rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
@@ -286,16 +280,16 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	bean, err := store.CreateBean(r.Context(), &req)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create bean")
-		handleStoreError(w, err, "Failed to create bean")
+		handlers.HandleStoreError(w, err, "Failed to create bean")
 		return
 	}
 
-	h.invalidateFeedCache()
-	writeJSON(w, bean, "bean")
+	h.InvalidateFeedCache()
+	handlers.WriteJSON(w, bean, "bean")
 }
 
 // API endpoint to create roaster
-func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 	arabicaCRUDCreate[arabica.CreateRoasterRequest, *arabica.CreateRoasterRequest, arabica.Roaster](
 		h, w, r, "roaster", "roaster",
 		func(r *http.Request) arabica.CreateRoasterRequest {
@@ -311,19 +305,19 @@ func (h *Handler) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 // Manage page
-func (h *Handler) HandleManage(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleManage(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/my-coffee", http.StatusMovedPermanently)
 }
 
 // HandleMyCoffee renders the unified My Coffee page (replaces both /brews and /manage)
-func (h *Handler) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
+	_, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 
-	layoutData, _, _ := h.layoutDataFromRequest(r, "My Coffee")
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "My Coffee")
 
 	if err := coffeepages.MyCoffee(layoutData, coffeepages.MyCoffeeProps{}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
@@ -332,8 +326,8 @@ func (h *Handler) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleIncompleteRecordsPartial returns an HTML fragment for incomplete records on the home dashboard.
-func (h *Handler) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		return
 	}
@@ -378,8 +372,8 @@ func (h *Handler) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.
 // HandleManageRefresh invalidates all caches and re-fetches records from the
 // user's PDS, writing them through to the witness cache so subsequent reads
 // are up to date. Returns the refreshed manage partial.
-func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -403,7 +397,7 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Nuke the entire session cache so List* calls fall through to PDS
-	h.sessionCache.Invalidate(sessionID)
+	h.SessionCache().Invalidate(sessionID)
 
 	// Re-fetch all entity collections from PDS and write-through to witness
 	entityCollections := []string{
@@ -411,11 +405,11 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		arabica.NSIDBrewer, arabica.NSIDRecipe, arabica.NSIDBrew,
 	}
 
-	if h.witnessCache != nil {
+	if h.WitnessCache() != nil {
 		refreshCtx, refreshSpan := tracing.HandlerSpan(r.Context(), "manage.refresh.witness_sync",
 			attribute.String("user.did", didStr),
 		)
-		atpClient, err := h.atprotoClient.AtpClient(refreshCtx, did, sessionID)
+		atpClient, err := h.AtprotoClient().AtpClient(refreshCtx, did, sessionID)
 		if err != nil {
 			log.Warn().Err(err).Msg("refresh: failed to get atp client")
 			refreshSpan.End()
@@ -448,7 +442,7 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 			short := collection[strings.LastIndex(collection, ".")+1:]
 			log.Info().Str("collection", short).Int("count", len(records)).Msg("refresh: fetched collection from PDS")
 		}
-		if err := h.witnessCache.UpsertWitnessRecordBatch(refreshCtx, batch); err != nil {
+		if err := h.WitnessCache().UpsertWitnessRecordBatch(refreshCtx, batch); err != nil {
 			log.Error().Err(err).Msg("refresh: failed to batch upsert records")
 		}
 		refreshSpan.SetAttributes(attribute.Int("refresh.total_records", len(batch)))
@@ -493,7 +487,7 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 
 	if err := g.Wait(); err != nil {
 		log.Error().Err(err).Msg("Failed to fetch manage page data after refresh")
-		handleStoreError(w, err, "Failed to fetch data")
+		handlers.HandleStoreError(w, err, "Failed to fetch data")
 		return
 	}
 
@@ -516,18 +510,18 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		Brewers:  brewers,
 		Recipes:  recipes,
 	}
-	if h.feedIndex != nil {
+	if h.FeedIndex() != nil {
 		refreshProps.OwnerDID = didStr
-		refreshProps.BeanBrewCounts = h.feedIndex.BrewCountsByBeanURI(r.Context(), didStr)
-		refreshProps.GrinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(r.Context(), didStr)
-		refreshProps.BrewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(r.Context(), didStr)
-		refreshProps.RoasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(r.Context(), didStr)
+		refreshProps.BeanBrewCounts = h.FeedIndex().BrewCountsByBeanURI(r.Context(), didStr)
+		refreshProps.GrinderBrewCounts = h.FeedIndex().BrewCountsByGrinderURI(r.Context(), didStr)
+		refreshProps.BrewerBrewCounts = h.FeedIndex().BrewCountsByBrewerURI(r.Context(), didStr)
+		refreshProps.RoasterBeanCounts = h.FeedIndex().BeanCountsByRoasterURI(r.Context(), didStr)
 		refreshProps.BeanAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(r.Context(), didStr) {
+		for uri, stats := range h.FeedIndex().AvgBrewRatingByBeanURI(r.Context(), didStr) {
 			refreshProps.BeanAvgBrewRatings[uri] = stats.Average
 		}
 		refreshProps.RoasterAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(r.Context(), didStr) {
+		for uri, stats := range h.FeedIndex().AvgBrewRatingByRoasterURI(r.Context(), didStr) {
 			refreshProps.RoasterAvgBrewRatings[uri] = stats.Average
 		}
 	}
@@ -539,14 +533,14 @@ func (h *Handler) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 }
 
 // Bean update/delete handlers
-func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
-	rkey := validateRKey(w, r.PathValue("id"))
+func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
 	// Require authentication
-	store, authenticated := h.getAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -555,7 +549,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 	var req arabica.UpdateBeanRequest
 
 	// Decode request (JSON or form)
-	if err := decodeRequest(r, &req, func() error {
+	if err := handlers.DecodeRequest(r, &req, func() error {
 		req = arabica.UpdateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
@@ -564,7 +558,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
-			Rating:      parseOptionalInt(r.FormValue("rating")),
+			Rating:      handlers.ParseOptionalInt(r.FormValue("rating")),
 			Closed:      r.FormValue("closed") == "true",
 			SourceRef:   r.FormValue("source_ref"),
 		}
@@ -597,7 +591,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		})
 		if roasterErr != nil {
 			log.Error().Err(roasterErr).Str("name", newRoasterName).Msg("Failed to create roaster for bean update")
-			handleStoreError(w, roasterErr, "Failed to create roaster")
+			handlers.HandleStoreError(w, roasterErr, "Failed to create roaster")
 			return
 		}
 		req.RoasterRKey = roaster.RKey
@@ -605,7 +599,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate optional roaster rkey
-	if errMsg := validateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
+	if errMsg := handlers.ValidateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
 		log.Warn().Str("rkey", rkey).Str("roaster_rkey", req.RoasterRKey).Msg("Bean update: invalid roaster rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
@@ -613,7 +607,7 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err := store.UpdateBeanByRKey(r.Context(), rkey, &req); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update bean")
-		handleStoreError(w, err, "Failed to update bean")
+		handlers.HandleStoreError(w, err, "Failed to update bean")
 		return
 	}
 
@@ -624,21 +618,21 @@ func (h *Handler) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.invalidateFeedCache()
-	writeJSON(w, bean, "bean")
+	h.InvalidateFeedCache()
+	handlers.WriteJSON(w, bean, "bean")
 }
 
-func (h *Handler) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBeanByRKey, "bean", arabica.NSIDBean)
+	h.DeleteEntity(w, r, store.DeleteBeanByRKey, "bean", arabica.NSIDBean)
 }
 
 // Roaster update/delete handlers
-func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 	arabicaCRUDUpdate[arabica.UpdateRoasterRequest, *arabica.UpdateRoasterRequest, arabica.Roaster](
 		h, w, r, "roaster", "roaster",
 		func(r *http.Request) arabica.UpdateRoasterRequest {
@@ -656,13 +650,13 @@ func (h *Handler) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteRoasterByRKey, "roaster", arabica.NSIDRoaster)
+	h.DeleteEntity(w, r, store.DeleteRoasterByRKey, "roaster", arabica.NSIDRoaster)
 }
 
 // Grinder CRUD handlers
@@ -674,7 +668,7 @@ func grinderFormDecoder(r *http.Request) arabica.CreateGrinderRequest {
 	}
 }
 
-func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 	arabicaCRUDCreate[arabica.CreateGrinderRequest, *arabica.CreateGrinderRequest, arabica.Grinder](
 		h, w, r, "grinder", "grinder",
 		grinderFormDecoder,
@@ -684,7 +678,7 @@ func (h *Handler) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 	arabicaCRUDUpdate[arabica.UpdateGrinderRequest, *arabica.UpdateGrinderRequest, arabica.Grinder](
 		h, w, r, "grinder", "grinder",
 		func(r *http.Request) arabica.UpdateGrinderRequest {
@@ -699,13 +693,13 @@ func (h *Handler) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteGrinderByRKey, "grinder", arabica.NSIDGrinder)
+	h.DeleteEntity(w, r, store.DeleteGrinderByRKey, "grinder", arabica.NSIDGrinder)
 }
 
 // Brewer CRUD handlers
@@ -716,7 +710,7 @@ func brewerFormDecoder(r *http.Request) arabica.CreateBrewerRequest {
 	}
 }
 
-func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 	arabicaCRUDCreate[arabica.CreateBrewerRequest, *arabica.CreateBrewerRequest, arabica.Brewer](
 		h, w, r, "brewer", "brewer",
 		brewerFormDecoder,
@@ -726,7 +720,7 @@ func (h *Handler) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 	arabicaCRUDUpdate[arabica.UpdateBrewerRequest, *arabica.UpdateBrewerRequest, arabica.Brewer](
 		h, w, r, "brewer", "brewer",
 		func(r *http.Request) arabica.UpdateBrewerRequest {
@@ -741,11 +735,11 @@ func (h *Handler) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.getAtprotoStore(r)
+func (h *Handlers) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.deleteEntity(w, r, store.DeleteBrewerByRKey, "brewer", arabica.NSIDBrewer)
+	h.DeleteEntity(w, r, store.DeleteBrewerByRKey, "brewer", arabica.NSIDBrewer)
 }
