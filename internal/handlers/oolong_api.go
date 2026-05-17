@@ -14,7 +14,7 @@ import (
 // HandleOolongAPIListAll is the oolong analog of HandleAPIListAll: it
 // returns every record across the oolong entity types the
 // authenticated user owns, in a JSON shape the client-side
-// ArabicaCache understands. The combo-select system reads this cache
+// AppCache understands. The combo-select system reads this cache
 // to filter user-owned entries during typeahead.
 func (h *Handler) HandleOolongAPIListAll(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
@@ -35,23 +35,23 @@ func (h *Handler) HandleOolongAPIListAll(w http.ResponseWriter, r *http.Request)
 
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		teas = listOolong(gctx, store, oolong.NSIDTea, oolong.RecordToTea)
+		teas = listRecords(gctx, store, oolong.NSIDTea, oolong.RecordToTea)
 		return nil
 	})
 	g.Go(func() error {
-		vendors = listOolong(gctx, store, oolong.NSIDVendor, oolong.RecordToVendor)
+		vendors = listRecords(gctx, store, oolong.NSIDVendor, oolong.RecordToVendor)
 		return nil
 	})
 	g.Go(func() error {
-		vessels = listOolong(gctx, store, oolong.NSIDVessel, oolong.RecordToVessel)
+		vessels = listRecords(gctx, store, oolong.NSIDVessel, oolong.RecordToVessel)
 		return nil
 	})
 	g.Go(func() error {
-		infusers = listOolong(gctx, store, oolong.NSIDInfuser, oolong.RecordToInfuser)
+		infusers = listRecords(gctx, store, oolong.NSIDInfuser, oolong.RecordToInfuser)
 		return nil
 	})
 	g.Go(func() error {
-		brews = listOolong(gctx, store, oolong.NSIDBrew, oolong.RecordToBrew)
+		brews = listRecords(gctx, store, oolong.NSIDBrew, oolong.RecordToBrew)
 		return nil
 	})
 	_ = g.Wait()

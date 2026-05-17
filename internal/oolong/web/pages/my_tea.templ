@@ -54,7 +54,7 @@ templ MyTeaContent(props MyTeaProps) {
 			if len(props.Brews) == 0 {
 				@myTeaEmpty("steeps")
 			} else {
-				<div class="feed-grid">
+				<div class="space-y-3">
 					for _, b := range props.Brews {
 						@mySteepCard(props.Actor, b.RKey, b.CreatedAt) {
 							@tea.BrewContent(b)
@@ -68,7 +68,7 @@ templ MyTeaContent(props MyTeaProps) {
 			if len(props.Teas) == 0 {
 				@myTeaEmpty("teas")
 			} else {
-				<div class="feed-grid">
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 					for _, t := range props.Teas {
 						@myTeaPageCard("tea", t.RKey, viewURL("teas", props.Actor, t.RKey), "/teas/"+t.RKey+"/edit", "/api/teas/"+t.RKey, t.CreatedAt) {
 							@tea.TeaCardContent(t, props.BrewCountByTea[t.RKey])
@@ -82,7 +82,7 @@ templ MyTeaContent(props MyTeaProps) {
 			if len(props.Vendors) == 0 {
 				@myTeaEmpty("vendors")
 			} else {
-				<div class="feed-grid">
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 					for _, v := range props.Vendors {
 						@myTeaCard("vendor", v.RKey, viewURL("vendors", props.Actor, v.RKey), v.CreatedAt) {
 							@tea.VendorContent(v)
@@ -96,7 +96,7 @@ templ MyTeaContent(props MyTeaProps) {
 			if len(props.Vessels) == 0 {
 				@myTeaEmpty("vessels")
 			} else {
-				<div class="feed-grid">
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 					for _, v := range props.Vessels {
 						@myTeaCard("vessel", v.RKey, viewURL("vessels", props.Actor, v.RKey), v.CreatedAt) {
 							@tea.VesselContent(v)
@@ -110,7 +110,7 @@ templ MyTeaContent(props MyTeaProps) {
 			if len(props.Infusers) == 0 {
 				@myTeaEmpty("infusers")
 			} else {
-				<div class="feed-grid">
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 					for _, i := range props.Infusers {
 						@myTeaCard("infuser", i.RKey, viewURL("infusers", props.Actor, i.RKey), i.CreatedAt) {
 							@tea.InfuserContent(i)

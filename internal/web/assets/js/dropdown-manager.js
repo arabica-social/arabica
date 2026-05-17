@@ -23,15 +23,15 @@ function createDropdownManager() {
      * @param {boolean} forceRefresh - Force a fresh fetch from server
      */
     async loadDropdownData(forceRefresh = false) {
-      if (!window.ArabicaCache) {
-        console.warn("ArabicaCache not available");
+      if (!window.AppCache) {
+        console.warn("AppCache not available");
         return;
       }
 
       // If forcing refresh, always get fresh data
       if (forceRefresh) {
         try {
-          const freshData = await window.ArabicaCache.refreshCache(true);
+          const freshData = await window.AppCache.refreshCache(true);
           if (freshData) {
             this.applyData(freshData);
           }
@@ -43,15 +43,15 @@ function createDropdownManager() {
 
       // First, try to immediately populate from cached data (sync)
       // This prevents flickering by showing data instantly
-      const cachedData = window.ArabicaCache.getCachedData();
+      const cachedData = window.AppCache.getCachedData();
       if (cachedData) {
         this.applyData(cachedData);
       }
 
       // Then refresh in background if cache is stale
-      if (!window.ArabicaCache.isCacheValid()) {
+      if (!window.AppCache.isCacheValid()) {
         try {
-          const freshData = await window.ArabicaCache.refreshCache();
+          const freshData = await window.AppCache.refreshCache();
           if (freshData) {
             this.applyData(freshData);
           }
@@ -255,8 +255,8 @@ function createDropdownManager() {
      * @returns {Promise<Object>} Fresh data from cache
      */
     async invalidateAndRefresh() {
-      if (window.ArabicaCache) {
-        const freshData = await window.ArabicaCache.invalidateAndRefresh();
+      if (window.AppCache) {
+        const freshData = await window.AppCache.invalidateAndRefresh();
         if (freshData) {
           this.applyData(freshData);
           this.populateDropdowns();

@@ -133,7 +133,7 @@ func (h *Handler) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	// Dispatch to oolong's entity set when the running app is oolong —
 	// keeps a single /api/data endpoint serving whichever app is wired
-	// in cfg, so the client-side ArabicaCache works uniformly.
+	// in cfg, so the client-side AppCache works uniformly.
 	if appName(h.app) == "oolong" {
 		h.HandleOolongAPIListAll(w, r)
 		return

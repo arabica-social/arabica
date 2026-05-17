@@ -108,8 +108,8 @@ function createEntityManager(config) {
         const result = await response.json();
 
         // Invalidate cache
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
+        if (window.AppCache) {
+          window.AppCache.invalidateCache();
         }
 
         // Call success callback if provided
@@ -161,8 +161,8 @@ function createEntityManager(config) {
         }
 
         // Invalidate cache
-        if (window.ArabicaCache) {
-          window.ArabicaCache.invalidateCache();
+        if (window.AppCache) {
+          window.AppCache.invalidateCache();
         }
 
         // Call success callback if provided

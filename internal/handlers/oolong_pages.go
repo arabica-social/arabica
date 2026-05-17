@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -123,11 +122,11 @@ func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 		actor = layoutData.UserProfile.Handle
 	}
 
-	teas := listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea)
-	vendors := listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor)
-	vessels := listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel)
-	infusers := listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser)
-	brews := listOolong(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew)
+	teas := listRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea)
+	vendors := listRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor)
+	vessels := listRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel)
+	infusers := listRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser)
+	brews := listRecords(r.Context(), store, oolong.NSIDBrew, oolong.RecordToBrew)
 
 	// Join references so the steep cards can show tea name, vessel, infuser.
 	vendorByRKey := make(map[string]*oolong.Vendor, len(vendors))
@@ -180,32 +179,6 @@ func (h *Handler) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// listOolong fetches every record of nsid the user owns and decodes
-// each one. Records that fail to decode are logged and skipped — the
-// page degrades to "this record is missing" rather than 500ing.
-func listOolong[T any](
-	ctx context.Context,
-	store *atproto.AtprotoStore,
-	nsid string,
-	decode func(map[string]any, string) (*T, error),
-) []*T {
-	raw, err := store.FetchAllRecords(ctx, nsid)
-	if err != nil {
-		log.Warn().Err(err).Str("nsid", nsid).Msg("FetchAllRecords failed; rendering empty list")
-		return nil
-	}
-	out := make([]*T, 0, len(raw))
-	for _, r := range raw {
-		t, err := decode(r.Record, r.URI)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", r.URI).Msg("decode failed; skipping record")
-			continue
-		}
-		out = append(out, t)
-	}
-	return out
-}
-
 // HandleOolongTeaNew renders the new-tea page.
 func (h *Handler) HandleOolongTeaNew(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.requireOolongStore(w, r)
@@ -214,7 +187,7 @@ func (h *Handler) HandleOolongTeaNew(w http.ResponseWriter, r *http.Request) {
 	}
 	props := teapages.TeaFormProps{
 		Tea:     nil,
-		Vendors: listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
+		Vendors: listRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "New Tea")
 	if err := teapages.TeaFormPage(layoutData, props).Render(r.Context(), w); err != nil {
@@ -245,7 +218,7 @@ func (h *Handler) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
 	t.RKey = rkey
 	props := teapages.TeaFormProps{
 		Tea:     t,
-		Vendors: listOolong(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
+		Vendors: listRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Tea")
 	if err := teapages.TeaFormPage(layoutData, props).Render(r.Context(), w); err != nil {
@@ -263,9 +236,9 @@ func (h *Handler) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) {
 	}
 	props := teapages.SteepFormProps{
 		Brew:     nil,
-		Teas:     listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
-		Vessels:  listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
-		Infusers: listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
+		Teas:     listRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Vessels:  listRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
+		Infusers: listRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "New Steep")
 	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
@@ -296,9 +269,9 @@ func (h *Handler) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) 
 	b.RKey = rkey
 	props := teapages.SteepFormProps{
 		Brew:     b,
-		Teas:     listOolong(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
-		Vessels:  listOolong(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
-		Infusers: listOolong(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
+		Teas:     listRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),
+		Vessels:  listRecords(r.Context(), store, oolong.NSIDVessel, oolong.RecordToVessel),
+		Infusers: listRecords(r.Context(), store, oolong.NSIDInfuser, oolong.RecordToInfuser),
 	}
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Edit Steep")
 	if err := teapages.SteepFormPage(layoutData, props).Render(r.Context(), w); err != nil {
@@ -371,11 +344,11 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	// the AT Protocol client — viewer doesn't need to be logged in to
 	// the owner's PDS. All seven entity types are loaded server-side
 	// so tab switching on the rendered page stays instant.
-	brews := listOolongPublic(ctx, publicClient, did, oolong.NSIDBrew, oolong.RecordToBrew)
-	teas := listOolongPublic(ctx, publicClient, did, oolong.NSIDTea, oolong.RecordToTea)
-	vendors := listOolongPublic(ctx, publicClient, did, oolong.NSIDVendor, oolong.RecordToVendor)
-	vessels := listOolongPublic(ctx, publicClient, did, oolong.NSIDVessel, oolong.RecordToVessel)
-	infusers := listOolongPublic(ctx, publicClient, did, oolong.NSIDInfuser, oolong.RecordToInfuser)
+	brews := listPublicRecords(ctx, publicClient, did, oolong.NSIDBrew, oolong.RecordToBrew)
+	teas := listPublicRecords(ctx, publicClient, did, oolong.NSIDTea, oolong.RecordToTea)
+	vendors := listPublicRecords(ctx, publicClient, did, oolong.NSIDVendor, oolong.RecordToVendor)
+	vessels := listPublicRecords(ctx, publicClient, did, oolong.NSIDVessel, oolong.RecordToVessel)
+	infusers := listPublicRecords(ctx, publicClient, did, oolong.NSIDInfuser, oolong.RecordToInfuser)
 
 	// Resolve brew → tea/vessel/infuser joins so cards can render the
 	// tea name (and gear) without a separate fetch per item.
@@ -452,30 +425,3 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// listOolongPublic mirrors listOolong but reads from an arbitrary DID's
-// PDS via the public client rather than the authenticated AtprotoStore.
-// Used by HandleOolongProfile to surface another user's records.
-func listOolongPublic[T any](
-	ctx context.Context,
-	client *atp.PublicClient,
-	did, nsid string,
-	decode func(map[string]any, string) (*T, error),
-) []*T {
-	records, err := client.ListAllRecords(ctx, did, nsid)
-	if err != nil {
-		// Not having a record type isn't an error from the user's POV — it
-		// just means they haven't created any of that entity. The PDS may
-		// return 404 for an empty collection; degrade to empty list.
-		return nil
-	}
-	out := make([]*T, 0, len(records))
-	for _, rec := range records {
-		t, err := decode(rec.Value, rec.URI)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", rec.URI).Msg("oolong profile: decode failed; skipping record")
-			continue
-		}
-		out = append(out, t)
-	}
-	return out
-}

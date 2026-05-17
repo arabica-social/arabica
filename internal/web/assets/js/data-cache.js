@@ -305,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Export as global for use in other scripts
-window.ArabicaCache = {
+window.AppCache = {
   getData,
   getCachedData,
   refreshCache,

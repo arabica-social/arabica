@@ -140,8 +140,8 @@ templ HeaderWithProps(props HeaderProps) {
 									</a>
 								}
 								<div class="dropdown-divider">
-									<form action="/logout" method="POST" @submit="if(window.ArabicaCache)window.ArabicaCache.invalidateCache()">
-										<button type="submit" class="w-full text-left px-4 py-2 text-sm text-emphasis hover:bg-brown-50 transition-colors" role="menuitem">
+									<form action="/logout" method="POST" @submit="if(window.AppCache)window.AppCache.invalidateCache()">
+										<button type="submit" class="dropdown-item w-full text-left" role="menuitem">
 											Logout
 										</button>
 									</form>

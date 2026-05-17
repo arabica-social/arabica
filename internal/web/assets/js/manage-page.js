@@ -31,7 +31,7 @@ function managePage() {
     /** @type {any} */ brewerManager: null,
 
     setup() {
-      const cache = /** @type {any} */ (window).ArabicaCache;
+      const cache = /** @type {any} */ (window).AppCache;
       if (cache) cache.init();
       this.initEntityManagers();
       this.showIncompleteNudge();
@@ -53,7 +53,9 @@ function managePage() {
         const strong = document.createElement("strong");
         strong.textContent = nudge.name;
         body.appendChild(strong);
-        body.appendChild(document.createTextNode(" is missing " + nudge.missing));
+        body.appendChild(
+          document.createTextNode(" is missing " + nudge.missing),
+        );
 
         const complete = document.createElement("button");
         complete.className =
@@ -65,11 +67,10 @@ function managePage() {
           const slot = document.querySelector("#modal-container");
           const htmx = /** @type {any} */ (window).htmx;
           if (slot && htmx) {
-            htmx.ajax(
-              "GET",
-              `/api/modals/${nudge.entity_type}/${nudge.rkey}`,
-              { target: "#modal-container", swap: "innerHTML" },
-            );
+            htmx.ajax("GET", `/api/modals/${nudge.entity_type}/${nudge.rkey}`, {
+              target: "#modal-container",
+              swap: "innerHTML",
+            });
           }
         });
 
@@ -213,7 +214,16 @@ function managePage() {
       if (this.brewerManager) this.brewerManager.formData = v;
     },
 
-    editBean(rkey, name, origin, roast_level, process, description, roaster_rkey, closed) {
+    editBean(
+      rkey,
+      name,
+      origin,
+      roast_level,
+      process,
+      description,
+      roaster_rkey,
+      closed,
+    ) {
       this.beanManager.openEdit(rkey, {
         name,
         origin,

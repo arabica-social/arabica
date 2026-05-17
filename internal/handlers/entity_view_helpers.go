@@ -3,11 +3,67 @@ package handlers
 import (
 	"context"
 
+	"github.com/rs/zerolog/log"
 	atp "tangled.org/pdewey.com/atp"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 )
+
+// listRecords fetches every record of nsid the authenticated user owns
+// and decodes each one. Records that fail to decode are logged and
+// skipped — callers degrade to "missing record" rather than 500ing.
+//
+// Not tied to a particular app; works for any (nsid, decoder) pair.
+func listRecords[T any](
+	ctx context.Context,
+	store *atproto.AtprotoStore,
+	nsid string,
+	decode func(map[string]any, string) (*T, error),
+) []*T {
+	raw, err := store.FetchAllRecords(ctx, nsid)
+	if err != nil {
+		log.Warn().Err(err).Str("nsid", nsid).Msg("FetchAllRecords failed; rendering empty list")
+		return nil
+	}
+	out := make([]*T, 0, len(raw))
+	for _, r := range raw {
+		t, err := decode(r.Record, r.URI)
+		if err != nil {
+			log.Warn().Err(err).Str("uri", r.URI).Msg("decode failed; skipping record")
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// listPublicRecords mirrors listRecords but reads from an arbitrary
+// DID's PDS via an unauthenticated public client. Used by profile
+// handlers that surface another user's records.
+func listPublicRecords[T any](
+	ctx context.Context,
+	client *atp.PublicClient,
+	did, nsid string,
+	decode func(map[string]any, string) (*T, error),
+) []*T {
+	records, err := client.ListAllRecords(ctx, did, nsid)
+	if err != nil {
+		// An empty collection is not an error from the user's POV — the PDS
+		// may 404 a never-written collection. Degrade to empty list.
+		return nil
+	}
+	out := make([]*T, 0, len(records))
+	for _, rec := range records {
+		t, err := decode(rec.Value, rec.URI)
+		if err != nil {
+			log.Warn().Err(err).Str("uri", rec.URI).Msg("listPublicRecords: decode failed; skipping record")
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
 
 // standardViewTriple builds the fromWitness/fromPDS/fromStore lambdas
 // for an entity view config from a record decoder. The three paths

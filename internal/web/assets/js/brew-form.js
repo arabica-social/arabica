@@ -78,7 +78,7 @@ function brewForm() {
       this.dropdownManager.populateDropdowns();
 
       this.recipes = this.dropdownManager.recipes || [];
-      const cache = /** @type {any} */ (window).ArabicaCache;
+      const cache = /** @type {any} */ (window).AppCache;
       if (cache) {
         cache.addListener(
           /** @param {any} data */ (data) => {

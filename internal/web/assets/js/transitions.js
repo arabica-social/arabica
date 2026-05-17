@@ -21,7 +21,7 @@
           "htmx-transitioning",
           "htmx-settling",
           "htmx-added",
-          "transitioning"
+          "transitioning",
         );
         el.style.opacity = "1";
         el.style.transform = "none";
@@ -108,7 +108,7 @@
             "htmx-transitioning",
             "htmx-settling",
             "htmx-added",
-            "transitioning"
+            "transitioning",
           );
           // Force visibility
           el.style.opacity = "1";

@@ -479,8 +479,8 @@ function comboSelect(config) {
         // Ensure the user's entities are loaded so typeahead can match them.
         // Some pages (e.g. the oolong steep form) don't otherwise prime the
         // cache, leaving getUserEntities() empty until a refresh happens.
-        if (window.ArabicaCache) {
-          window.ArabicaCache.getData().catch((err) => {
+        if (window.AppCache) {
+          window.AppCache.getData().catch((err) => {
             console.warn("comboSelect: failed to load user data cache:", err);
           });
         }
@@ -578,7 +578,7 @@ function comboSelect(config) {
       },
 
       getUserEntities() {
-        const dm = window.ArabicaCache?.getCachedData?.() || {};
+        const dm = window.AppCache?.getCachedData?.() || {};
         switch (this.entityType) {
           case "bean":
             return dm.beans || [];
@@ -788,7 +788,7 @@ function comboSelect(config) {
       searchRoasters() {
         const q = this.roasterQuery.trim().toLowerCase();
         const roasters =
-          (window.ArabicaCache?.getCachedData?.() || {}).roasters || [];
+          (window.AppCache?.getCachedData?.() || {}).roasters || [];
         if (!q) {
           this.roasterResults = roasters.slice(0, 8);
         } else {
@@ -821,7 +821,7 @@ function comboSelect(config) {
           if (resp.ok) {
             const data = await resp.json();
             const roasters =
-              (window.ArabicaCache?.getCachedData?.() || {}).roasters || [];
+              (window.AppCache?.getCachedData?.() || {}).roasters || [];
             const ownNames = new Set(
               roasters.map((r) => (r.name || r.Name || "").toLowerCase()),
             );
@@ -908,8 +908,8 @@ function comboSelect(config) {
           this.query = data.name;
           this.isOpen = false;
 
-          if (window.ArabicaCache) {
-            window.ArabicaCache.invalidateAndRefresh();
+          if (window.AppCache) {
+            window.AppCache.invalidateAndRefresh();
           }
 
           queueMicrotask(() => {

@@ -33,8 +33,8 @@ window.refreshEntityDropdown = async function (entityType, selectName, newRkey) 
   // refresh ourselves so any non-scope select stays in sync.
   document.body.dispatchEvent(new CustomEvent('refresh-dropdowns', { bubbles: true }));
 
-  if (window.ArabicaCache) {
-    const freshData = await window.ArabicaCache.invalidateAndRefresh();
+  if (window.AppCache) {
+    const freshData = await window.AppCache.invalidateAndRefresh();
     if (freshData && window.createDropdownManager) {
       const tempManager = window.createDropdownManager();
       tempManager.applyData(freshData);
