@@ -632,6 +632,29 @@ func (idx *FeedIndex) UpsertWitnessRecord(ctx context.Context, did, collection, 
 	return idx.UpsertRecord(ctx, did, collection, rkey, cid, record, time.Now().UnixMicro())
 }
 
+// UpdateWitnessRecord updates an existing row's record body and indexed_at
+// without touching cid. No-op when the row does not yet exist — the firehose
+// event for this commit will INSERT it with the real cid.
+func (idx *FeedIndex) UpdateWitnessRecord(ctx context.Context, did, collection, rkey string, record json.RawMessage) error {
+	uri := atp.BuildATURI(did, collection, rkey)
+	ctx, span := tracing.SqliteSpan(ctx, "update", "records")
+	span.SetAttributes(
+		attribute.String("record.did", did),
+		attribute.String("record.collection", collection),
+		attribute.String("record.rkey", rkey),
+	)
+	defer span.End()
+
+	_, err := idx.db.ExecContext(ctx,
+		`UPDATE records SET record = ?, indexed_at = ? WHERE uri = ?`,
+		string(record), time.Now().UTC().Format(time.RFC3339Nano), uri)
+	if err != nil {
+		tracing.EndWithError(span, err)
+		return fmt.Errorf("failed to update record: %w", err)
+	}
+	return nil
+}
+
 // UpsertWitnessRecordBatch implements atproto.WitnessCache batch upsert.
 // All records are inserted in a single transaction for efficiency.
 func (idx *FeedIndex) UpsertWitnessRecordBatch(ctx context.Context, records []atproto.WitnessWriteRecord) error {

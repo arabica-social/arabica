@@ -157,6 +157,24 @@ func (s *AtprotoStore) writeThroughWitness(collection, rkey, cid string, record 
 	}
 }
 
+// updateThroughWitness updates a witness record's body without touching cid,
+// for use after a successful PDS PutRecord (which doesn't return a CID).
+func (s *AtprotoStore) updateThroughWitness(collection, rkey string, record any) {
+	if s.witnessCache == nil {
+		return
+	}
+	data, err := json.Marshal(record)
+	if err != nil {
+		log.Warn().Err(err).Str("collection", collection).Str("rkey", rkey).
+			Msg("witness write-through: failed to marshal record")
+		return
+	}
+	if err := s.witnessCache.UpdateWitnessRecord(context.Background(), s.did.String(), collection, rkey, data); err != nil {
+		log.Warn().Err(err).Str("collection", collection).Str("rkey", rkey).
+			Msg("witness write-through: failed to update record")
+	}
+}
+
 // deleteFromWitness removes a record from the witness cache after a
 // successful PDS deletion.
 func (s *AtprotoStore) deleteFromWitness(collection, rkey string) {

@@ -56,6 +56,13 @@ type WitnessCache interface {
 	// Used for write-through caching after successful PDS mutations.
 	UpsertWitnessRecord(ctx context.Context, did, collection, rkey, cid string, record json.RawMessage) error
 
+	// UpdateWitnessRecord updates a record's body in the cache without
+	// touching its CID. Used by the write-through path for PDS PutRecord
+	// (which does not return a CID), leaving cid to be authoritatively
+	// set by the next firehose event. If no row exists yet, this is a
+	// no-op — the firehose event will insert it.
+	UpdateWitnessRecord(ctx context.Context, did, collection, rkey string, record json.RawMessage) error
+
 	// UpsertWitnessRecordBatch inserts or updates multiple records in a single
 	// transaction. Used for bulk operations like refresh/backfill.
 	UpsertWitnessRecordBatch(ctx context.Context, records []WitnessWriteRecord) error

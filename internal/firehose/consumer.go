@@ -58,8 +58,9 @@ type JetstreamEvent struct {
 
 // Consumer consumes events from Jetstream and indexes them
 type Consumer struct {
-	config *Config
-	index  *FeedIndex
+	config      *Config
+	index       *FeedIndex
+	wantedSet   map[string]struct{} // membership lookup over config.WantedCollections
 
 	// Connection state
 	conn               *websocket.Conn
@@ -90,9 +91,15 @@ func NewConsumer(config *Config, index *FeedIndex) *Consumer {
 		log.Fatal().Err(err).Msg("firehose: failed to create zstd decoder")
 	}
 
+	wantedSet := make(map[string]struct{}, len(config.WantedCollections))
+	for _, coll := range config.WantedCollections {
+		wantedSet[coll] = struct{}{}
+	}
+
 	c := &Consumer{
 		config:      config,
 		index:       index,
+		wantedSet:   wantedSet,
 		stopCh:      make(chan struct{}),
 		zstdDecoder: decoder,
 	}
@@ -332,8 +339,11 @@ func (c *Consumer) processMessage(data []byte) error {
 
 	commit := event.Commit
 
-	// Verify it's an Arabica collection
-	if !strings.HasPrefix(commit.Collection, "social.arabica.alpha.") {
+	// Only process collections this app subscribed to. WantedCollections is
+	// populated from the running app's NSIDs at startup, so this gates
+	// arabica binaries to social.arabica.alpha.* and oolong to
+	// social.oolong.alpha.* without hardcoding a prefix.
+	if !c.isWantedCollection(commit.Collection) {
 		return nil
 	}
 
@@ -356,10 +366,22 @@ func (c *Consumer) ProcessEvent(event JetstreamEvent) error {
 	if event.Kind != "commit" || event.Commit == nil {
 		return nil
 	}
-	if !strings.HasPrefix(event.Commit.Collection, "social.arabica.alpha.") {
+	if !c.isWantedCollection(event.Commit.Collection) {
 		return nil
 	}
 	return c.processCommit(event)
+}
+
+// isWantedCollection reports whether the collection NSID is in this
+// consumer's WantedCollections set. When the set is empty (e.g. test
+// fixtures that didn't configure it), everything is accepted so the
+// existing behavior of those tests is preserved.
+func (c *Consumer) isWantedCollection(collection string) bool {
+	if len(c.wantedSet) == 0 {
+		return true
+	}
+	_, ok := c.wantedSet[collection]
+	return ok
 }
 
 func (c *Consumer) processCommit(event JetstreamEvent) error {

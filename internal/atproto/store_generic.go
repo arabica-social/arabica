@@ -215,9 +215,10 @@ func (s *AtprotoStore) putRecord(ctx context.Context, nsid, rkey string, record 
 	if _, _, err := atpClient.PutRecord(ctx, nsid, rkey, record); err != nil {
 		return "", "", fmt.Errorf("put record %s/%s: %w", nsid, rkey, err)
 	}
-	// PutRecord does not return a CID; pass empty string to writeThroughWitness,
-	// matching the behavior of pre-refactor per-entity Update methods.
-	s.writeThroughWitness(nsid, rkey, "", record)
+	// PutRecord does not return a CID. Update the witness record body in
+	// place without touching cid — the firehose event for this commit will
+	// carry the real cid and overwrite it.
+	s.updateThroughWitness(nsid, rkey, record)
 	s.cache.InvalidateRecords(s.sessionID, nsid)
 	return rkey, "", nil
 }
