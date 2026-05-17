@@ -35,17 +35,19 @@ func TestValidateAppName(t *testing.T) {
 
 func TestResolveDataDir_Override(t *testing.T) {
 	t.Setenv("ARABICA_DATA_DIR", "/srv/arabica")
-	got, err := resolveDataDir("ARABICA", "arabica")
+	got, source, err := resolveDataDir("ARABICA", "arabica")
 	assert.NoError(t, err)
 	assert.Equal(t, "/srv/arabica", got)
+	assert.Equal(t, "env:ARABICA_DATA_DIR", source)
 }
 
 func TestResolveDataDir_XDGFallback(t *testing.T) {
 	t.Setenv("ARABICA_DATA_DIR", "")
 	t.Setenv("XDG_DATA_HOME", "/tmp/xdg")
-	got, err := resolveDataDir("ARABICA", "arabica")
+	got, source, err := resolveDataDir("ARABICA", "arabica")
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.Join("/tmp/xdg", "arabica"), got)
+	assert.Equal(t, "env:XDG_DATA_HOME", source)
 }
 
 func TestResolveDataDir_PerApp(t *testing.T) {
@@ -53,7 +55,7 @@ func TestResolveDataDir_PerApp(t *testing.T) {
 	t.Setenv("ARABICA_DATA_DIR", "")
 	t.Setenv("OOLONG_DATA_DIR", "")
 	t.Setenv("XDG_DATA_HOME", "/tmp/xdg")
-	a, _ := resolveDataDir("ARABICA", "arabica")
-	m, _ := resolveDataDir("OOLONG", "oolong")
+	a, _, _ := resolveDataDir("ARABICA", "arabica")
+	m, _, _ := resolveDataDir("OOLONG", "oolong")
 	assert.NotEqual(t, a, m)
 }

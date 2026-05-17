@@ -62,18 +62,22 @@ var tracingOnce sync.Once
 // caller wires up. Returns nil on graceful shutdown, non-nil on a
 // fatal startup error or an HTTP server failure.
 //
-// All persistent files (BoltDB, feed-index SQLite, backups) live under
-// a single per-app data directory: <APP>_DATA_DIR if set, otherwise
-// <XDG_DATA_HOME or ~/.local/share>/<app.Name>. This keeps multi-tenant
-// hosts (one box running both arabica and oolong) collision-free with a
-// single env-var to point at the right disk in production.
+// All persistent state — the SQLite db (<app>.db) holding feed index,
+// OAuth sessions, and moderation; plus the backups/ subdir — lives
+// under a single per-app data directory resolved by resolveDataDir.
+//
+// Production deploys should always set <APP>_DATA_DIR explicitly
+// (e.g. /var/lib/arabica). Relying on the XDG fallback is fragile
+// under systemd, where HOME is the service user's state dir and the
+// fallback resolves to e.g. /var/lib/arabica/.local/share/arabica —
+// technically functional, but easy to mistake for orphaned data.
 func Run(ctx context.Context, app *domain.App, opts Options) error {
 	if err := validateAppName(app.Name); err != nil {
 		return err
 	}
 	envPrefix := strings.ToUpper(app.Name)
 
-	dataDir, err := resolveDataDir(envPrefix, app.Name)
+	dataDir, dataDirSource, err := resolveDataDir(envPrefix, app.Name)
 	if err != nil {
 		return fmt.Errorf("resolve data dir: %w", err)
 	}
@@ -85,6 +89,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		Str("app", app.Name).
 		Int("descriptors", len(app.Descriptors)).
 		Str("data_dir", dataDir).
+		Str("data_dir_source", dataDirSource).
 		Msg("Constructed app config")
 
 	// Initialize OpenTelemetry tracing once per process. Multi-app boot
@@ -118,12 +123,17 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	}
 
 	// All persistent files live under dataDir (per-app, see resolveDataDir).
-	feedIndexPath := filepath.Join(dataDir, "feed-index.sqlite")
+	// The single SQLite file holds the feed index, OAuth sessions, and
+	// moderation state; it's named after the app for clarity.
+	dbPath := filepath.Join(dataDir, app.Name+".db")
+	if err := migrateLegacyDBPath(dataDir, app.Name); err != nil {
+		return fmt.Errorf("migrate legacy db path: %w", err)
+	}
 
 	// Firehose config -- wantedCollections come from app.NSIDs() so the
 	// jetstream subscription tracks the running app's entity set.
 	firehoseConfig := firehose.DefaultConfig()
-	firehoseConfig.IndexPath = feedIndexPath
+	firehoseConfig.IndexPath = dbPath
 	firehoseConfig.WantedCollections = app.NSIDs()
 	if ttlStr := os.Getenv(envPrefix + "_PROFILE_CACHE_TTL"); ttlStr != "" {
 		if ttl, err := time.ParseDuration(ttlStr); err == nil {
@@ -132,16 +142,16 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	}
 
 	feedIndex, err := firehose.NewFeedIndex(
-		feedIndexPath,
+		dbPath,
 		time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second,
 	)
 	if err != nil {
-		return fmt.Errorf("create feed index at %s: %w", feedIndexPath, err)
+		return fmt.Errorf("open database at %s: %w", dbPath, err)
 	}
 	// Tell the index which comment collection this binary owns so it can
 	// reconstruct comment AT-URIs for moderation / like-count lookups.
 	feedIndex.SetCommentNSID(app.CommentNSID())
-	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
+	log.Info().Str("path", dbPath).Msg("Database opened")
 
 	sessionStore := sqlitestore.NewOAuthStore(feedIndex.DB())
 
@@ -310,7 +320,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 			Retain:       2,
 			Dest:         backupDest,
 		})
-		backupSvc.AddSource(backup.NewSQLiteSource("feed-index", feedIndex.DB()))
+		backupSvc.AddSource(backup.NewSQLiteSource(app.Name, feedIndex.DB()))
 		backupSvc.Start(ctx)
 		h.SetBackupService(backupSvc)
 		log.Info().Str("dir", backupDir).Msg("Automated backups enabled")
@@ -381,7 +391,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 			Str("address", bindAddr+":"+port).
 			Str("url", "http://localhost:"+port).
 			Bool("secure_cookies", secureCookies).
-			Str("database", feedIndexPath).
+			Str("database", dbPath).
 			Msg("Starting HTTP server")
 
 		err := httpServer.ListenAndServe()
@@ -420,23 +430,60 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	return nil
 }
 
-// resolveDataDir returns the per-app data directory: <APP>_DATA_DIR if
-// set (used to point production at /var/lib/<app> or similar), otherwise
-// <XDG_DATA_HOME or ~/.local/share>/<appName>. Both arabica and oolong
-// running on the same host get isolated dirs by default.
-func resolveDataDir(envPrefix, appName string) (string, error) {
+// resolveDataDir returns the per-app data directory and the source
+// that determined it. Precedence:
+//
+//  1. <APP>_DATA_DIR — explicit override, used by production
+//     (e.g. ARABICA_DATA_DIR=/var/lib/arabica). Source: "env".
+//  2. $XDG_DATA_HOME/<appName> — XDG spec compliance for local dev
+//     when the user has customized XDG. Source: "xdg".
+//  3. ~/.local/share/<appName> — default for local dev on Linux.
+//     Source: "home".
+//
+// Both arabica and oolong running on the same host get isolated dirs
+// regardless of which branch fires (the appName segment ensures that).
+//
+// The source string is returned so startup can log *why* a given path
+// was chosen — invaluable when systemd's HOME setting silently shifts
+// the fallback path on a production host.
+func resolveDataDir(envPrefix, appName string) (string, string, error) {
 	if d := os.Getenv(envPrefix + "_DATA_DIR"); d != "" {
-		return d, nil
+		return d, "env:" + envPrefix + "_DATA_DIR", nil
 	}
-	root := os.Getenv("XDG_DATA_HOME")
-	if root == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
+	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
+		return filepath.Join(xdg, appName), "env:XDG_DATA_HOME", nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", "", err
+	}
+	return filepath.Join(home, ".local", "share", appName), "home:~/.local/share", nil
+}
+
+// migrateLegacyDBPath renames the pre-rename feed-index.sqlite{,-wal,-shm}
+// trio to <appName>.db{,-wal,-shm} when the old files exist and the new
+// target does not. One-shot for existing deployments; safe to leave in.
+func migrateLegacyDBPath(dataDir, appName string) error {
+	oldMain := filepath.Join(dataDir, "feed-index.sqlite")
+	newMain := filepath.Join(dataDir, appName+".db")
+	if _, err := os.Stat(newMain); err == nil {
+		return nil
+	}
+	if _, err := os.Stat(oldMain); err != nil {
+		return nil
+	}
+	for _, suffix := range []string{"", "-wal", "-shm"} {
+		from := oldMain + suffix
+		to := newMain + suffix
+		if _, err := os.Stat(from); err != nil {
+			continue
 		}
-		root = filepath.Join(home, ".local", "share")
+		if err := os.Rename(from, to); err != nil {
+			return fmt.Errorf("rename %s -> %s: %w", from, to, err)
+		}
 	}
-	return filepath.Join(root, appName), nil
+	log.Info().Str("from", oldMain).Str("to", newMain).Msg("Migrated legacy db filename")
+	return nil
 }
 
 // hotReloadEnabled reports whether <APP>_HOTRELOAD is set to a truthy
