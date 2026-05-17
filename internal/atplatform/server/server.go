@@ -32,15 +32,14 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/pdewey.com/atp"
 
+	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 // Options collects the per-invocation knobs that don't live in the App
-// or in environment variables. CLI flags map into this; everything else
-// (paths, ports, SMTP creds) reads from env in Run so each binary can
-// override without forcing main to enumerate every knob.
+// or in environment variables.
 type Options struct {
 	// KnownDIDsPath is the optional file of DIDs to backfill at startup
 	// (one per line, # comments allowed). Empty skips file-based backfill.
@@ -64,12 +63,6 @@ var tracingOnce sync.Once
 // cancelled or a SIGINT/SIGTERM arrives at the signal handler the
 // caller wires up. Returns nil on graceful shutdown, non-nil on a
 // fatal startup error or an HTTP server failure.
-//
-// Environment variables are scoped by app.Name uppercased: the arabica
-// binary reads ARABICA_DATA_DIR, ARABICA_MODERATORS_CONFIG,
-// ARABICA_PROFILE_CACHE_TTL. oolong reads OOLONG_*. Universal env vars
-// (PORT, SERVER_PUBLIC_URL, SECURE_COOKIES, OAUTH_*, SMTP_*, ADMIN_EMAIL,
-// PDS_ADMIN_*, METRICS_PORT) are app-agnostic.
 //
 // All persistent files (BoltDB, feed-index SQLite, backups) live under
 // a single per-app data directory: <APP>_DATA_DIR if set, otherwise
@@ -115,16 +108,12 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	if port == "" {
 		port = opts.DefaultPort
 	}
-	if port == "" {
-		port = "18910"
-	}
 
 	bindAddr := lookupAppEnv(envPrefix, "BIND_ADDR")
 	if bindAddr == "" {
 		bindAddr = "0.0.0.0"
 	}
 
-	// Public URL for reverse proxy deployments
 	publicURL := lookupAppEnv(envPrefix, "PUBLIC_URL")
 	if publicURL == "" {
 		publicURL = os.Getenv("SERVER_PUBLIC_URL")
@@ -139,7 +128,52 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	defer func() { _ = store.Close() }()
 	log.Info().Str("path", dbPath).Msg("Database opened")
 
-	sessionStore := store.SessionStore()
+	feedIndexPath := filepath.Join(dataDir, "feed-index.sqlite")
+
+	// Firehose config -- wantedCollections come from app.NSIDs() so the
+	// jetstream subscription tracks the running app's entity set.
+	firehoseConfig := firehose.DefaultConfig()
+	firehoseConfig.IndexPath = feedIndexPath
+	firehoseConfig.WantedCollections = app.NSIDs()
+	if ttlStr := os.Getenv(envPrefix + "_PROFILE_CACHE_TTL"); ttlStr != "" {
+		if ttl, err := time.ParseDuration(ttlStr); err == nil {
+			firehoseConfig.ProfileCacheTTL = int64(ttl.Seconds())
+		}
+	}
+
+	feedIndex, err := firehose.NewFeedIndex(
+		feedIndexPath,
+		time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second,
+	)
+	if err != nil {
+		return fmt.Errorf("create feed index at %s: %w", feedIndexPath, err)
+	}
+	// Tell the index which comment collection this binary owns so it can
+	// reconstruct comment AT-URIs for moderation / like-count lookups.
+	feedIndex.SetCommentNSID(app.CommentNSID())
+	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
+
+	// OAuth session store: flip useSQLiteOAuth to true to migrate bolt -> sqlite
+	// and cut over in the same boot (migration is idempotent).
+	// TODO: remove all of this once we drop bolt
+	const useSQLiteOAuth = true
+	var sessionStore oauth.ClientAuthStore
+	if useSQLiteOAuth {
+		res, err := store.MigrateOAuthToSQLite(ctx, feedIndex.DB())
+		if err != nil {
+			return fmt.Errorf("migrate OAuth bolt->sqlite: %w", err)
+		}
+		log.Info().
+			Bool("sqlite", true).
+			Int("migrated_sessions", res.Sessions).
+			Int("migrated_auth_requests", res.AuthRequests).
+			Msg("OAuth store: SQLite (bolt backfilled)")
+		// TODO: remove everything here except for this line once the cut-over happens
+		sessionStore = sqlitestore.NewOAuthStore(feedIndex.DB())
+	} else {
+		log.Info().Bool("sqlite", false).Msg("OAuth store: BoltDB")
+		sessionStore = store.SessionStore()
+	}
 
 	// OAuth manager
 	// REFACTOR: this feels a bit messy
@@ -173,32 +207,8 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		return fmt.Errorf("initialize OAuth: %w", err)
 	}
 
-	feedIndexPath := filepath.Join(dataDir, "feed-index.sqlite")
-
-	// Firehose config — wantedCollections come from app.NSIDs() so the
-	// jetstream subscription tracks the running app's entity set.
-	firehoseConfig := firehose.DefaultConfig()
-	firehoseConfig.IndexPath = feedIndexPath
-	firehoseConfig.WantedCollections = app.NSIDs()
-	if ttlStr := os.Getenv(envPrefix + "_PROFILE_CACHE_TTL"); ttlStr != "" {
-		if ttl, err := time.ParseDuration(ttlStr); err == nil {
-			firehoseConfig.ProfileCacheTTL = int64(ttl.Seconds())
-		}
-	}
-
-	feedIndex, err := firehose.NewFeedIndex(
-		feedIndexPath,
-		time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second,
-	)
-	if err != nil {
-		return fmt.Errorf("create feed index at %s: %w", feedIndexPath, err)
-	}
-	// Tell the index which comment collection this binary owns so it can
-	// reconstruct comment AT-URIs for moderation / like-count lookups.
-	feedIndex.SetCommentNSID(app.CommentNSID())
-	log.Info().Str("path", feedIndexPath).Msg("Feed index opened")
-
 	// One-time seed from legacy BoltDB feed_registry bucket.
+	// TODO: remove once seeded
 	if legacyDIDs := store.LegacyFeedDIDs(); len(legacyDIDs) > 0 {
 		added, err := feedIndex.SeedRegisteredDIDs(legacyDIDs)
 		if err != nil {

@@ -272,6 +272,21 @@ CREATE TABLE IF NOT EXISTS user_settings (
     did  TEXT PRIMARY KEY,
     profile_stats_visibility TEXT NOT NULL DEFAULT '{}'
 );
+
+CREATE TABLE IF NOT EXISTS oauth_sessions (
+    did        TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (did, session_id)
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_sessions_did ON oauth_sessions(did);
+
+CREATE TABLE IF NOT EXISTS oauth_auth_requests (
+    state      TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 `
 
 // NewFeedIndex creates a new feed index backed by SQLite
