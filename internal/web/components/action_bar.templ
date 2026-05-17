@@ -264,18 +264,18 @@ templ ActionBar(props ActionBarProps) {
 templ ActionBarShareButton(props ActionBarProps) {
 	<button
 		type="button"
-		x-data={ fmt.Sprintf("{ copied: false, share() { const fullUrl = window.location.origin + '%s'; if (navigator.share) { navigator.share({ title: '%s', text: '%s', url: fullUrl }).catch(() => {}); } else { navigator.clipboard.writeText(fullUrl).then(() => { this.copied = true; setTimeout(() => this.copied = false, 2000); }); } } }", escapeForJS(props.ShareURL), escapeForJS(props.ShareTitle), escapeForJS(props.ShareText)) }
-		@click="share()"
+		v-scope={ fmt.Sprintf("ShareButton('%s', '%s', '%s')", escapeForJS(props.ShareURL), escapeForJS(props.ShareTitle), escapeForJS(props.ShareText)) }
+		@click="share"
 		class="action-btn"
 		aria-label="Share"
 	>
-		<svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+		<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
 		</svg>
-		<svg x-show="copied" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+		<svg v-show="copied" v-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"></path>
 		</svg>
-		<span x-show="copied" x-cloak>Copied!</span>
+		<span v-show="copied" v-cloak>Copied!</span>
 	</button>
 }
 
@@ -288,95 +288,50 @@ type ReportModalProps struct {
 
 // ReportModal renders an inline report modal for the action bar
 templ ReportModal(props ReportModalProps) {
-	<dialog id={ props.ID } class="modal-dialog" aria-labelledby={ props.ID + "-title" } x-data="{ reason: '', charCount: 0, submitting: false, error: '', success: false }">
+	<dialog
+		id={ props.ID }
+		class="modal-dialog"
+		aria-labelledby={ props.ID + "-title" }
+		v-scope={ fmt.Sprintf("ReportModal('%s', '%s', '%s')", props.ID, escapeForJS(props.SubjectURI), escapeForJS(props.SubjectCID)) }
+	>
 		<div class="modal-content">
 			<h3 id={ props.ID + "-title" } class="modal-title">Report Content</h3>
-			<template x-if="!success">
-				<form
-					@submit.prevent={ fmt.Sprintf(`
-						submitting = true;
-						error = '';
-						const dialog = document.getElementById('%s');
-						const body = new URLSearchParams({
-							subject_uri: '%s',
-							subject_cid: '%s',
-							reason: reason
-						});
-						fetch('/api/report', {
-							method: 'POST',
-							headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-							body: body
-						})
-						.then(r => r.json().then(data => ({ok: r.ok, data})))
-						.then(({ok, data}) => {
-							submitting = false;
-							if (ok) {
-								success = true;
-								setTimeout(() => dialog.close(), 2000);
-							} else {
-								error = data.message || 'Failed to submit report';
-							}
-						})
-						.catch(() => {
-							submitting = false;
-							error = 'Network error. Please try again.';
-						});
-					`, props.ID, escapeForJS(props.SubjectURI), escapeForJS(props.SubjectCID)) }
-					class="space-y-4"
-				>
-					<p class="text-sm text-emphasis">
-						Please describe why you're reporting this content. Reports are reviewed by moderators.
-					</p>
-					<div>
-						<textarea
-							x-model="reason"
-							@input="charCount = reason.length"
-							name="reason"
-							placeholder="Describe the issue (optional)"
-							rows="4"
-							maxlength="500"
-							class="w-full form-textarea"
-							aria-label="Report reason"
-						></textarea>
-						<div class="flex justify-between text-xs text-faint mt-1">
-							<span>Optional, but helpful for moderators</span>
-							<span x-text="charCount + '/500'"></span>
-						</div>
+			<form v-if="!success" @submit.prevent="submit" class="space-y-4">
+				<p class="text-sm text-emphasis">
+					Please describe why you're reporting this content. Reports are reviewed by moderators.
+				</p>
+				<div>
+					<textarea
+						v-model="reason"
+						name="reason"
+						placeholder="Describe the issue (optional)"
+						rows="4"
+						maxlength="500"
+						class="w-full form-textarea"
+						aria-label="Report reason"
+					></textarea>
+					<div class="flex justify-between text-xs text-faint mt-1">
+						<span>Optional, but helpful for moderators</span>
+						<span v-text="reason.length + '/500'"></span>
 					</div>
-					<template x-if="error">
-						<div class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm" x-text="error"></div>
-					</template>
-					<div class="flex gap-2">
-						<button
-							type="submit"
-							class="flex-1 btn-primary"
-							x-bind:disabled="submitting"
-						>
-							<span x-show="!submitting">Submit Report</span>
-							<span x-show="submitting">Submitting...</span>
-						</button>
-						<button
-							type="button"
-							@click="$el.closest('dialog').close()"
-							class="flex-1 btn-secondary"
-							x-bind:disabled="submitting"
-						>
-							Cancel
-						</button>
-					</div>
-				</form>
-			</template>
-			<template x-if="success">
-				<div class="text-center py-4">
-					<div class="text-green-600 mb-2">
-						<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
-						</svg>
-					</div>
-					<p class="font-medium text-primary">Report Submitted</p>
-					<p class="text-sm text-muted mt-1">Thank you for helping keep our community safe.</p>
 				</div>
-			</template>
+				<div v-if="error" v-cloak class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm" v-text="error"></div>
+				<div class="flex gap-2">
+					<button type="submit" class="flex-1 btn-primary" :disabled="submitting" v-text="submitting ? 'Submitting...' : 'Submit Report'"></button>
+					<button type="button" @click="close" class="flex-1 btn-secondary" :disabled="submitting">
+						Cancel
+					</button>
+				</div>
+			</form>
+			<div v-if="success" v-cloak class="text-center py-4">
+				<div class="text-green-600 mb-2">
+					<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+					</svg>
+				</div>
+				<p class="font-medium text-primary">Report Submitted</p>
+				<p class="text-sm text-muted mt-1">Thank you for helping keep our community safe.</p>
+			</div>
 		</div>
 	</dialog>
 }

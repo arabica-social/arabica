@@ -160,7 +160,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
 			<link rel="stylesheet" href={ data.stylesheetHref() }/>
 			<style>
-			[x-cloak] { display: none !important; }
+			[x-cloak], [v-cloak] { display: none !important; }
 		</style>
 			<link rel="manifest" href="/static/manifest.json"/>
 			<script nonce={ data.CSPNonce }>
@@ -340,6 +340,9 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<script src={ assets.JSHrefFor("combo-select.js") }></script>
 			<!-- Load Alpine.js core with defer (will initialize after DOM loads) -->
 			<script src={ assets.JSHrefFor("alpine.min.js") } defer></script>
+			<!-- Petite-vue: scoped reactive components that coexist with Alpine. -->
+			<script src={ assets.JSHrefFor("petite-vue.iife.js") }></script>
+			<script src={ assets.JSHrefFor("arabica-vue.js") }></script>
 			<!-- Load HTMX and other utilities -->
 			<script src={ assets.JSHrefFor("htmx.min.js") }></script>
 			<script src={ assets.JSHrefFor("transitions.js") }></script>

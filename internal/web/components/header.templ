@@ -70,13 +70,13 @@ templ HeaderWithProps(props HeaderProps) {
 							}
 						</a>
 						<!-- Create new dropdown -->
-						<div x-data="{ open: false }" class="relative">
-							<button @click="open = !open" @click.outside="open = false" class="hover:opacity-80 transition p-2 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400/50 rounded-sm" title="Create new" aria-label="Create new" :aria-expanded="open">
+						<div v-scope="Disclosure()" @vue:mounted="setup($el)" @vue:unmounted="teardown" class="relative">
+							<button @click="toggle" class="hover:opacity-80 transition p-2 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400/50 rounded-sm" title="Create new" aria-label="Create new" :aria-expanded="open">
 								<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
 								</svg>
 							</button>
-							<div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="dropdown-menu w-52" role="menu">
+							<div :class="{ 'is-open': open }" class="dropdown-menu w-52" role="menu">
 								if props.AppName == "oolong" {
 									@oolongCreateDropdownItems()
 								} else {
@@ -85,8 +85,8 @@ templ HeaderWithProps(props HeaderProps) {
 							</div>
 						</div>
 						<!-- User profile dropdown -->
-						<div x-data="{ open: false }" class="relative">
-							<button @click="open = !open" @click.outside="open = false" class="flex items-center gap-2 hover:opacity-80 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400/50 rounded-sm" aria-label="User menu" :aria-expanded="open">
+						<div v-scope="Disclosure()" @vue:mounted="setup($el)" @vue:unmounted="teardown" class="relative">
+							<button @click="toggle" class="flex items-center gap-2 hover:opacity-80 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400/50 rounded-sm" aria-label="User menu" :aria-expanded="open">
 								@Avatar(AvatarProps{
 									AvatarURL:   getHeaderAvatarURL(props.UserProfile),
 									DisplayName: getHeaderDisplayName(props.UserProfile),
@@ -97,7 +97,7 @@ templ HeaderWithProps(props HeaderProps) {
 								</svg>
 							</button>
 							<!-- Dropdown menu -->
-							<div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="dropdown-menu" role="menu">
+							<div :class="{ 'is-open': open }" class="dropdown-menu" role="menu">
 								if props.UserProfile != nil && props.UserProfile.Handle != "" {
 									<div class="dropdown-header">
 										<p class="text-sm font-medium text-primary truncate">
