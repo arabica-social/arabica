@@ -53,18 +53,18 @@
   height: 5rem;
   border-width: 2px;
   border-style: solid;
-  border-color: var(--brand-brown-300);
+  border-color: var(--avatar-border, var(--brand-brown-300));
 }
 
 .avatar-lg:hover {
-  border-color: var(--brand-brown-400);
+  border-color: var(--avatar-border-hover, var(--brand-brown-400));
   border-width: 4px;
 }
 
 /* Avatar placeholder - for missing images */
 .avatar-placeholder {
   border-radius: 9999px;
-  background: var(--brand-brown-300);
+  background: var(--avatar-bg, var(--brand-brown-300));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,7 +76,7 @@
 
 .avatar-placeholder-sm {
   border-radius: 9999px;
-  background: var(--brand-brown-300);
+  background: var(--avatar-bg, var(--brand-brown-300));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +96,7 @@
 
 .avatar-placeholder-md {
   border-radius: 9999px;
-  background: var(--brand-brown-300);
+  background: var(--avatar-bg, var(--brand-brown-300));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,7 +116,7 @@
 
 .avatar-placeholder-lg {
   border-radius: 9999px;
-  background: var(--brand-brown-300);
+  background: var(--avatar-bg, var(--brand-brown-300));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,19 +130,19 @@
 
 /* Avatar text sizing */
 .avatar-text-sm {
-  color: var(--brand-brown-600);
+  color: var(--avatar-text, var(--brand-brown-600));
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
 
 .avatar-text-md {
-  color: var(--brand-brown-600);
+  color: var(--avatar-text, var(--brand-brown-600));
   font-size: 1rem;
   line-height: 1.5rem;
 }
 
 .avatar-text-lg {
-  color: var(--brand-brown-600);
+  color: var(--avatar-text, var(--brand-brown-600));
   font-size: 1.5rem;
   line-height: 2rem;
 }

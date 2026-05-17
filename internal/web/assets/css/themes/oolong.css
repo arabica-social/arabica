@@ -156,10 +156,12 @@
 	--footer-bg:     oklch(0.97 0.012 145);
 	--footer-border: oklch(0.92 0.012 145);
 
-	/* Feed pinboard — override arabica's cork-brown with a matcha sage
-	   wash so the feed wrapper reads as part of the oolong palette. */
-	--feed-board-bg:     oklch(0.82 0.048 148);
-	--feed-board-border: oklch(0.72 0.060 146);
+	/* Feed pinboard — share arabica's warm cork brown in light mode.
+	   The corkboard texture pairs nicely with the matcha header and
+	   gives the feed a tactile, journal-adjacent feel that pure sage
+	   couldn't carry. Dark mode keeps its green-tinted board below. */
+	--feed-board-bg:     #C4A882;
+	--feed-board-border: #B09470;
 	--feed-card-bg:      oklch(0.995 0.003 145);
 
 	/* Record-view treatments — override arabica's warm cream/kraft
@@ -168,6 +170,15 @@
 	   of reading as brown. */
 	--journal-bg: oklch(0.985 0.008 145);
 	--kraft-bg:   oklch(0.96 0.018 148);
+
+	/* Avatar ring + placeholder — sage greens so profile chrome
+	   carries the matcha palette instead of arabica's brown. */
+	--avatar-ring:         oklch(0.66 0.110 144);
+	--avatar-ring-hover:   oklch(0.50 0.115 144);
+	--avatar-bg:           oklch(0.86 0.048 148);
+	--avatar-border:       oklch(0.74 0.080 144);
+	--avatar-border-hover: oklch(0.60 0.110 144);
+	--avatar-text:         oklch(0.32 0.045 148);
 }
 
 /* ============================================================
@@ -270,6 +281,13 @@
 
 		--journal-bg: oklch(0.20 0.020 148);
 		--kraft-bg:   oklch(0.24 0.026 148);
+
+		--avatar-ring:         oklch(0.44 0.060 148);
+		--avatar-ring-hover:   oklch(0.60 0.090 148);
+		--avatar-bg:           oklch(0.32 0.030 148);
+		--avatar-border:       oklch(0.44 0.060 148);
+		--avatar-border-hover: oklch(0.60 0.090 148);
+		--avatar-text:         oklch(0.88 0.030 148);
 	}
 }
 
@@ -373,4 +391,11 @@
 
 	--journal-bg: oklch(0.20 0.020 148);
 	--kraft-bg:   oklch(0.24 0.026 148);
+
+	--avatar-ring:         oklch(0.44 0.060 148);
+	--avatar-ring-hover:   oklch(0.60 0.090 148);
+	--avatar-bg:           oklch(0.32 0.030 148);
+	--avatar-border:       oklch(0.44 0.060 148);
+	--avatar-border-hover: oklch(0.60 0.090 148);
+	--avatar-text:         oklch(0.88 0.030 148);
 }

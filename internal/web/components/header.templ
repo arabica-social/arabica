@@ -36,7 +36,7 @@ templ Header(isAuthenticated bool, userProfile *bff.UserProfile, userDID string)
 }
 
 templ HeaderWithProps(props HeaderProps) {
-	<nav class="sticky top-0 z-50 text-white" style="background: linear-gradient(135deg, var(--header-bg-from), var(--header-bg-to)); border-bottom: 1px solid var(--header-border); box-shadow: var(--shadow-sm); view-transition-name: header-nav;">
+	<nav class="sticky top-0 z-50" style="color: var(--header-text); background: linear-gradient(135deg, var(--header-bg-from), var(--header-bg-to)); border-bottom: 1px solid var(--header-border); box-shadow: var(--shadow-sm); view-transition-name: header-nav;">
 		<div class="container mx-auto px-4 py-3">
 			<div class="flex items-center justify-between">
 				<!-- Logo - always visible -->
@@ -52,7 +52,8 @@ templ HeaderWithProps(props HeaderProps) {
 								type="button"
 								data-action="open-modal"
 								data-target="login-modal"
-								class="text-sm font-semibold text-brown-100 hover:text-white transition-colors"
+								class="text-sm font-semibold transition-colors hover:opacity-80"
+								style="color: var(--header-text);"
 							>
 								Log In
 							</button>
