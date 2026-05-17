@@ -6,7 +6,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 )
 

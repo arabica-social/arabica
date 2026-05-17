@@ -9,7 +9,7 @@ import (
 
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // Modal dialog handlers for entity management.

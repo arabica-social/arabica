@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 
 	"github.com/stretchr/testify/assert"
 )

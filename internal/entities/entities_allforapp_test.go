@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"tangled.org/arabica.social/arabica/internal/entities"
-	_ "tangled.org/arabica.social/arabica/internal/entities/arabica"
-	_ "tangled.org/arabica.social/arabica/internal/entities/oolong"
+	_ "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	_ "tangled.org/arabica.social/arabica/internal/oolong/entities"
 )
 
 func TestAllForApp_filtersByNSIDPrefix(t *testing.T) {

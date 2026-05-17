@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
-	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 )
 
 const sampleCID = "bafyreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy"

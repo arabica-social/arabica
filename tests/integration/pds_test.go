@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"

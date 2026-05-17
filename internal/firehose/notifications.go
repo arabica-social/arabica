@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 
 	"github.com/rs/zerolog/log"
 )

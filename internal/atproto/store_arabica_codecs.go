@@ -5,7 +5,7 @@ import (
 
 	atp "tangled.org/pdewey.com/atp"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // Codec registrations for arabica entities riding the generic CRUD

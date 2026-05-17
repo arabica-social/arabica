@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 
-	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 )
 

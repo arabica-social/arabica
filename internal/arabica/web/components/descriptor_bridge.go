@@ -14,7 +14,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 
 	// Ensure arabica descriptors are registered before we attach hooks.
-	_ "tangled.org/arabica.social/arabica/internal/entities/arabica"
+	_ "tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 func init() {

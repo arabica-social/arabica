@@ -6,7 +6,7 @@ package arabica_test
 import (
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/pdewey.com/atp"
 )
 

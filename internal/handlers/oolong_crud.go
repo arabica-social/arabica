@@ -12,7 +12,7 @@ import (
 	atp "tangled.org/pdewey.com/atp"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 )
 
 // Oolong CRUD handlers. Each Create handler decodes the request, builds

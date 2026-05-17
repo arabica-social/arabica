@@ -3,7 +3,7 @@ package main
 import (
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/entities"
-	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 
 	// Blank import runs init() in oolong's web/components package,
 	// wiring per-app templ render hooks onto descriptors.

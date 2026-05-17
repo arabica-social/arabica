@@ -5,7 +5,7 @@ import (
 
 	"github.com/a-h/templ"
 
-	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 )
 

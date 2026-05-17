@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"tangled.org/arabica.social/arabica/internal/entities"
-	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
 	"tangled.org/arabica.social/arabica/internal/web/components"

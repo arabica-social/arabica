@@ -15,7 +15,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 
 	// Ensure oolong descriptors are registered before we attach hooks.
-	_ "tangled.org/arabica.social/arabica/internal/entities/oolong"
+	_ "tangled.org/arabica.social/arabica/internal/oolong/entities"
 )
 
 func init() {

@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"

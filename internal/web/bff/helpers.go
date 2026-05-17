@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // UserProfile contains user profile data for header display

@@ -7,7 +7,7 @@ import (
 
 	"github.com/ptdewey/shutter"
 	"github.com/stretchr/testify/require"
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // scrubPDS returns shutter options that replace PDS-generated dynamic values

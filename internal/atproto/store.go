@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"

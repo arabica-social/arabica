@@ -7,7 +7,7 @@ import (
 	atp "tangled.org/pdewey.com/atp"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // listRecords fetches every record of nsid the authenticated user owns

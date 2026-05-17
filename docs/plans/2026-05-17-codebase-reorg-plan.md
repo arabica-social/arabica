@@ -31,22 +31,32 @@ internal/
     web/          ← already exists
   entities/       ← keeps cross-app registry (entities.go) only
   handlers/       ← shared only: auth, admin, feed, profile, modals, ...
-  atproto/        ← app-agnostic after Phase 1
+  atproto/        ← decoupling deferred (see note below)
   (everything else unchanged)
 ```
 
-Four phases, in dependency order:
+Three phases, in dependency order:
 
-1. **Decouple `atproto/store` from arabica codecs** — required before
-   per-app code can live cleanly in its own root.
-2. **Promote `internal/entities/{app}/` → `internal/{app}/entities/`** —
+1. **Promote `internal/entities/{app}/` → `internal/{app}/entities/`** —
    mechanical rename that establishes the per-app root pattern.
-3. **Move per-app handlers into `internal/{app}/handlers/`** — the
+   ✅ Completed 2026-05-17.
+2. **Move per-app handlers into `internal/{app}/handlers/`** — the
    largest move; finishes the vertical-slice structure.
-4. **Unify the duplicate generic CRUD helpers** — easier once both
+3. **Unify the duplicate generic CRUD helpers** — easier once both
    sides are isolated.
 
-A fifth optional phase splits `atproto/store.go` internally.
+A fourth optional phase splits `atproto/store.go` internally.
+
+### Phase originally numbered 1 (decouple `atproto` from arabica) — deferred
+
+The audit suggested injecting a codec registry to make `atproto/`
+app-agnostic. On closer inspection, the coupling runs much deeper than
+a codec table: `*AtprotoStore` carries typed methods (`CreateBean`,
+`ListBeans`, `resolveBeanRefs`, …) and the `database.Store` interface
+is entirely arabica-typed. Unwinding all of that is a significant
+refactor on its own — not a prerequisite for the package rename
+(Phase 2 originally; now Phase 1), which is purely a sed over import
+paths. Deferred to a dedicated future plan.
 
 ## Tech Stack
 
@@ -64,60 +74,14 @@ SQLite, testify. No new dependencies.
 
 ---
 
-## Phase 1: Decouple `atproto/store` from arabica codecs
+## Phase 1: Promote per-app entity packages to top-level roots ✅
 
-**Why first:** While `atproto/` imports `internal/entities/arabica`
-directly, any rename of that package ripples through the store. Sever
-the dependency first so the rename in Phase 2 is purely mechanical.
+Completed 2026-05-17.
 
-**Scope:** ~200 LOC moved, plus injection wiring.
-
-**Files involved:**
-
-- Move: `internal/atproto/store_arabica_codecs.go` →
-  `internal/entities/arabica/codec.go` (will move again in Phase 2)
-- Modify: `internal/atproto/store.go` — accept a codec registry at
-  construction; remove direct imports of `internal/entities/arabica`
-- Modify: `internal/atproto/store_entity.go`,
-  `internal/atproto/store_generic.go` — read codecs from injected
-  registry
-- Modify: every `atproto.NewAtprotoStore(...)` caller (binary main +
-  handler tests)
-
-**Steps:**
-
-- [ ] **1.1** — Define a `CodecRegistry` interface in
-  `internal/atproto/`. Methods: `EncodeRecord(nsid string, model any) (map[string]any, error)`
-  and `DecodeRecord(nsid string, raw map[string]any) (any, error)`.
-- [ ] **1.2** — Implement `arabica.NewCodecRegistry()` in
-  `internal/entities/arabica/codec.go` wrapping the existing conversion
-  functions. Add an oolong equivalent if the store path is exercised by
-  oolong handlers (check `handlers/oolong_*.go` callers).
-- [ ] **1.3** — Add required `codecs CodecRegistry` arg to
-  `NewAtprotoStore`. No shim — fix all callers in the same change.
-- [ ] **1.4** — Replace references to `store_arabica_codecs.go` symbols
-  inside `atproto/` with registry lookups. Delete the file.
-- [ ] **1.5** — Update every store constructor call site to pass the
-  registry. Run `go vet ./... && go build ./... && go test ./...`.
-- [ ] **1.6** — Commit: `refactor(atproto): inject codec registry instead of hardcoding arabica`.
-
-**Verification:**
-
-```
-grep -r "entities/arabica" internal/atproto/   # expect zero hits
-go test ./internal/atproto/...
-go test ./...
-```
-
-**Rollback:** Revert the commit.
-
----
-
-## Phase 2: Promote per-app entity packages to top-level roots
-
-**Why now:** With Phase 1 done, `internal/atproto/` no longer imports
-the arabica entity package. Now safe to rename. Establishes the
-`internal/{app}/` pattern that Phase 3 fills out.
+**Why first:** Establishes the `internal/{app}/` pattern that Phase 2
+fills out. Pure sed-based rename — no architectural impediment from
+`atproto/`'s coupling to arabica because the package name stays the
+same; only the import path changes.
 
 **Scope:** Two package moves. ~50 files relocate. Pure renames — no
 code changes inside files except import paths.
@@ -131,49 +95,36 @@ code changes inside files except import paths.
 - `internal/entities/entities.go` and `internal/entities/entities_*test.go`
   **stay** at `internal/entities/` — this is the cross-app registry
 
-**Steps:**
+**Steps (all completed):**
 
-- [ ] **2.1** — `git mv internal/entities/arabica internal/arabica/entities`.
-  (`internal/arabica/` already exists with `web/`; the move creates
-  `internal/arabica/entities/` as a sibling.)
-- [ ] **2.2** — Update the package declaration in the moved files only
-  if the package name was `arabica` — verify with `head -1 internal/arabica/entities/*.go`. Package name stays `arabica` regardless of path.
-- [ ] **2.3** — Bulk-rewrite imports across the repo:
-  ```
-  find . -name '*.go' -exec sed -i \
-    's|tangled.org/arabica.social/arabica/internal/entities/arabica|tangled.org/arabica.social/arabica/internal/arabica/entities|g' {} +
-  ```
-  (Verify exact module path with `head -1 go.mod` first.)
-- [ ] **2.4** — `go build ./...` and `go test ./...`. Fix any
-  templ-generated files (`*_templ.go`) by running `templ generate` if
-  any `.templ` references the old path.
-- [ ] **2.5** — Repeat 2.1-2.4 for oolong:
-  `git mv internal/entities/oolong internal/oolong/entities`, rewrite
-  imports, build, test.
-- [ ] **2.6** — Confirm `internal/entities/` now contains only
-  `entities.go`, `entities_test.go`, `entities_allforapp_test.go`. If
-  the package name `entities` no longer fits the leftover content
-  (it's a thin registry), leave the name as-is — this is the registry
-  package and the name still describes it.
-- [ ] **2.7** — Commit: `refactor: promote per-app entity packages to internal/{app}/entities`.
+- [x] **1.1** — `mv internal/entities/arabica internal/arabica/entities`.
+- [x] **1.2** — Verified package decl stays `arabica`. No change needed.
+- [x] **1.3** — Bulk import rewrite via `find ... -print0 | xargs -0 sed -i`.
+- [x] **1.4** — `go build ./...` clean.
+- [x] **1.5** — Repeat for oolong.
+- [x] **1.6** — `internal/entities/` now contains only registry files
+  (`entities.go`, `entities_test.go`, `entities_allforapp_test.go`).
+- [x] **1.7** — `go vet ./...` clean, `go test ./...` all 887 tests
+  pass across 36 packages.
+- [x] **1.8** — Commit: `refactor: promote per-app entity packages to internal/{app}/entities`.
 
-**Verification:**
+**Verification (passed):**
 
 ```
-grep -r "internal/entities/arabica\|internal/entities/oolong" .   # expect zero hits
-ls internal/arabica/entities/ internal/oolong/entities/
-go test ./...
+grep -r "internal/entities/arabica\|internal/entities/oolong" .   # zero hits
+ls internal/arabica/entities/ internal/oolong/entities/             # populated
+go test ./...                                                       # 887 passed
 ```
 
 **Rollback:** Revert commit. Pure rename so revert is clean.
 
 **Risk:** Low. Mechanical. The main hazard is missing an import path
-in a templ-generated file or test fixture — Phase 2.4's build catches
+in a templ-generated file or test fixture — step 1.4's build catches
 those.
 
 ---
 
-## Phase 3: Move per-app handlers into `internal/{app}/handlers/`
+## Phase 2: Move per-app handlers into `internal/{app}/handlers/`
 
 **Why now:** With per-app entities at their final home, handlers can
 move next to them. Largest move (~3-4K LOC), but each app's move is
@@ -211,13 +162,13 @@ Shared infrastructure stays in `internal/handlers/`.
 
 **Steps:**
 
-- [ ] **3.1** — Create `internal/arabica/handlers/` and
+- [ ] **2.1** — Create `internal/arabica/handlers/` and
   `internal/oolong/handlers/` (empty packages with a placeholder
   `doc.go`).
-- [ ] **3.2** — Move `handlers/brew.go` and `handlers/recipe.go` to
+- [ ] **2.2** — Move `handlers/brew.go` and `handlers/recipe.go` to
   `internal/arabica/handlers/`. Update package declaration. Update
-  imports. Build (will fail — proceed to 3.3).
-- [ ] **3.3** — Per-app handlers currently hang methods off
+  imports. Build (will fail — proceed to 2.3).
+- [ ] **2.3** — Per-app handlers currently hang methods off
   `*handlers.Handler`. Extract the subset of dependencies they actually
   use (atproto store getter, suggestions, feed service, templ
   renderer, session lookup) into a smaller `*Deps` struct exported
@@ -225,25 +176,25 @@ Shared infrastructure stays in `internal/handlers/`.
   `*ArabicaHandlers` / `*OolongHandlers` types that hold `*Deps` and
   carry the moved methods. Constructor:
   `arabicahandlers.New(deps *handlers.Deps) *ArabicaHandlers`.
-- [ ] **3.4** — Move `arabica_crud_generic.go` into
+- [ ] **2.4** — Move `arabica_crud_generic.go` into
   `internal/arabica/handlers/`. Helpers become package-level functions
   on `*Deps`.
-- [ ] **3.5** — Repeat 3.2-3.4 for oolong (all six listed files). Move
+- [ ] **2.5** — Repeat 2.2-2.4 for oolong (all six listed files). Move
   + repackage + wire to `*Deps`. Build green after this step.
-- [ ] **3.6** — Split `handlers/entities.go` and
+- [ ] **2.6** — Split `handlers/entities.go` and
   `handlers/entity_views.go`. Cross-app helpers stay. The
   `switch RecordType` blocks split: each case body moves to its app
   package, and the switch becomes a dispatch table the router builds
   from app registrations (each app registers a handler set for the
   record types it owns).
-- [ ] **3.7** — Update `internal/routing/routing.go`. Per-app route
+- [ ] **2.7** — Update `internal/routing/routing.go`. Per-app route
   registration moves into `arabicahandlers.Register(mux, deps)` /
   `oolonghandlers.Register(mux, deps)`. Shared routes continue to be
   registered from `internal/handlers/`.
-- [ ] **3.8** — `go test ./...` + manual smoke test of both apps
+- [ ] **2.8** — `go test ./...` + manual smoke test of both apps
   (login, CRUD for one entity per app, view page, feed cards). Run
   `templ generate` first if any `.templ` imports changed.
-- [ ] **3.9** — Commit: `refactor: relocate per-app handlers into internal/{app}/handlers`.
+- [ ] **2.9** — Commit: `refactor: relocate per-app handlers into internal/{app}/handlers`.
 
 **Verification:**
 
@@ -258,15 +209,15 @@ just run                                       # exercise both apps in browser
 
 **Risk:** Highest-risk phase. Handler interdependencies are subtle
 (shared session helpers, response writers, error formatters). The
-`*Deps` shape from 3.3 is the linchpin — too narrow and per-app
+`*Deps` shape from 2.3 is the linchpin — too narrow and per-app
 handlers refactor twice; too wide and `*Deps` is just `*Handler`
 renamed. Keep it minimal; add fields as compile errors demand them.
 
 ---
 
-## Phase 4: Unify the generic CRUD helpers
+## Phase 3: Unify the generic CRUD helpers
 
-**Why after Phase 3:** `arabica_crud_generic.go` and
+**Why after Phase 2:** `arabica_crud_generic.go` and
 `oolong_crud_generic.go` look similar but call different store APIs
 (arabica uses typed `store.CreateBean`-style methods; oolong uses
 generic `putRecord(nsid, ...)`). Unifying requires aligning one onto
@@ -278,19 +229,19 @@ from `AtprotoStore` API.
 
 **Steps:**
 
-- [ ] **4.1** — Pick target shape. Recommended: a generic
+- [ ] **3.1** — Pick target shape. Recommended: a generic
   `CRUDHelper[Req, Model]` type with hooks for build/encode/decode,
   living in a new shared `internal/entities/crud/` package (neither
   app owns it; both depend on it).
-- [ ] **4.2** — Implement the helper covering create, update, delete.
+- [ ] **3.2** — Implement the helper covering create, update, delete.
   Reuse the existing oolong shape (generic `putRecord`) since it
   doesn't depend on entity-specific store methods.
-- [ ] **4.3** — Migrate oolong handlers to use it. Run tests.
-- [ ] **4.4** — Migrate arabica handlers to use it. Removes typed
+- [ ] **3.3** — Migrate oolong handlers to use it. Run tests.
+- [ ] **3.4** — Migrate arabica handlers to use it. Removes typed
   `store.CreateBean`/`CreateBrew`/etc. methods from `AtprotoStore`
   if no other callers remain — verify with grep.
-- [ ] **4.5** — Delete both old `*_crud_generic.go` files.
-- [ ] **4.6** — Commit: `refactor(handlers): unify arabica/oolong CRUD generators`.
+- [ ] **3.5** — Delete both old `*_crud_generic.go` files.
+- [ ] **3.6** — Commit: `refactor(handlers): unify arabica/oolong CRUD generators`.
 
 **Verification:**
 
@@ -303,10 +254,10 @@ go test ./...
 
 ---
 
-## Phase 5 (optional): Split `atproto/store.go`
+## Phase 4 (optional): Split `atproto/store.go`
 
 **Why optional:** `store.go` is 1198 LOC. Large but not unmanageable.
-After Phases 1-4 it should be smaller (codecs extracted; typed CRUD
+After Phases 1-3 it should be smaller (codecs extracted; typed CRUD
 methods possibly removed). Reassess then.
 
 **Trigger:** Skip unless `store.go` still exceeds ~1000 LOC and
@@ -322,7 +273,7 @@ developers report navigation friction.
 
 **Steps:**
 
-- [ ] **5.1** — Split by responsibility. No behavior changes. Compile,
+- [ ] **4.1** — Split by responsibility. No behavior changes. Compile,
   test, commit.
 
 ---
@@ -342,11 +293,11 @@ developers report navigation friction.
 - Run each phase in a separate worktree (`jj` or `git worktree`);
   merge to main when green.
 - `templ generate` is required after any move that touches `.templ`
-  imports. Phase 2 and Phase 3 both need this.
-- `just run` smoke-tested at the end of Phases 1, 2, 3, 4 for both
+  imports. Phase 2 and Phase 2 both need this.
+- `just run` smoke-tested at the end of Phases 1, 2, 3 for both
   arabica and oolong app flows.
 - Commit messages follow Conventional Commits per `CLAUDE.md`. Use
   `refactor:` scope; no breaking-change footers (no public API).
-- Phases 2 and 3 produce churn-heavy diffs. Coordinate with any
+- Phases 1 and 2 produce churn-heavy diffs. Coordinate with any
   in-flight feature branches before starting — rebases through these
   commits will be painful.

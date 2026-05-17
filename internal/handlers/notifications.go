@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 

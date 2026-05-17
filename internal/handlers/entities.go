@@ -10,7 +10,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/database"
-	"tangled.org/arabica.social/arabica/internal/entities/arabica"
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"

@@ -12,7 +12,7 @@ import (
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/entities/oolong"
+	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
