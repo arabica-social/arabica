@@ -129,10 +129,23 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	// to miss and the feed to come back empty.
 	var typeFilter lexicons.RecordType
 	if typeParam != "" {
-		if d := entities.GetByNoun(typeParam); d != nil {
-			typeFilter = d.Type
-		} else {
-			typeFilter = lexicons.ParseRecordType(typeParam)
+		// Scan the running app's descriptors first so apps that share a
+		// Noun (arabica + oolong both register Noun "brew") don't collide
+		// via the global registry's non-deterministic map iteration.
+		if h.app != nil {
+			for _, d := range h.app.Descriptors {
+				if d.Noun == typeParam {
+					typeFilter = d.Type
+					break
+				}
+			}
+		}
+		if typeFilter == "" {
+			if d := entities.GetByNoun(typeParam); d != nil {
+				typeFilter = d.Type
+			} else {
+				typeFilter = lexicons.ParseRecordType(typeParam)
+			}
 		}
 	}
 	var typeFilters []lexicons.RecordType
