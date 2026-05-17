@@ -400,6 +400,7 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 			t.Vendor = vendorByRKey[t.VendorRKey]
 		}
 	}
+	brewCountByTea := make(map[string]int, len(teas))
 	for _, b := range brews {
 		if b.Tea == nil && b.TeaRKey != "" {
 			b.Tea = teaByRKey[b.TeaRKey]
@@ -409,6 +410,9 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 		}
 		if b.Infuser == nil && b.InfuserRKey != "" {
 			b.Infuser = infuserByRKey[b.InfuserRKey]
+		}
+		if b.TeaRKey != "" {
+			brewCountByTea[b.TeaRKey]++
 		}
 	}
 
@@ -433,14 +437,15 @@ func (h *Handler) HandleOolongProfile(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, pageTitle)
 
 	props := teapages.ProfileProps{
-		Profile:      viewedProfile,
-		DID:          did,
-		IsOwnProfile: isOwn,
-		Brews:        brews,
-		Teas:         teas,
-		Vendors:      vendors,
-		Vessels:      vessels,
-		Infusers:     infusers,
+		Profile:        viewedProfile,
+		DID:            did,
+		IsOwnProfile:   isOwn,
+		Brews:          brews,
+		Teas:           teas,
+		Vendors:        vendors,
+		Vessels:        vessels,
+		Infusers:       infusers,
+		BrewCountByTea: brewCountByTea,
 	}
 	if err := teapages.Profile(layoutData, props).Render(ctx, w); err != nil {
 		log.Error().Err(err).Msg("Failed to render oolong profile page")

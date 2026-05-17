@@ -1,7 +1,9 @@
 package teapages
 
 import (
+	"fmt"
 	"strconv"
+	"time"
 
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
@@ -24,6 +26,10 @@ type ProfileProps struct {
 	Vendors      []*oolong.Vendor
 	Vessels      []*oolong.Vessel
 	Infusers     []*oolong.Infuser
+	// BrewCountByTea maps a tea's RKey to the count of steeps logged
+	// with it (across the loaded brews). Drives the steep-count footer
+	// badge on tea cards, mirroring the my-tea page layout.
+	BrewCountByTea map[string]int
 }
 
 // Profile renders the full profile page.
@@ -82,7 +88,8 @@ templ TeaProfileHeader(profile *bff.UserProfile) {
 	</div>
 }
 
-// TeaProfileStats renders the count grid.
+// TeaProfileStats renders the stat grid — five boxed cards mirroring
+// arabica's ProfileStats: 2 cols on mobile, 5 cols on desktop.
 templ TeaProfileStats(props ProfileProps) {
 	<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
 		@teaProfileStat("Steeps", len(props.Brews))
@@ -133,57 +140,136 @@ templ teaProfileBody(props ProfileProps) {
 			if len(props.Brews) == 0 {
 				@teaProfileEmpty("steeps")
 			} else {
-				<div class="feed-grid">
+				<div class="space-y-4">
 					for _, b := range props.Brews {
-						<a href={ templ.SafeURL("/brews/" + profileActor(props) + "/" + b.RKey) } class="block hover:opacity-95 transition-opacity">
-							<div class="feed-card feed-card-brew">
-								@tea.BrewContent(b)
-							</div>
-						</a>
+						@teaProfileSteepCard(props, b)
 					}
 				</div>
 			}
 		</div>
 		<div data-tab-panel="teas">
-			@teaProfileGearGroup(props, "Teas", "tea", len(props.Teas)) {
+			@teaProfileGearGroup(props, "Teas", "tea", len(props.Teas), "grid grid-cols-1 lg:grid-cols-2 gap-4") {
 				for _, t := range props.Teas {
-					<a href={ templ.SafeURL("/teas/" + profileActor(props) + "/" + t.RKey) } class="block hover:opacity-95 transition-opacity">
-						<div class="feed-card feed-card-tea">
-							@tea.TeaContent(t)
-						</div>
-					</a>
+					@teaProfileCard("tea", "/teas/"+profileActor(props)+"/"+t.RKey, t.CreatedAt) {
+						@tea.TeaCardContent(t, props.BrewCountByTea[t.RKey])
+					}
 				}
 			}
-			@teaProfileGearGroup(props, "Vendors", "vendor", len(props.Vendors)) {
+			@teaProfileGearGroup(props, "Vendors", "vendor", len(props.Vendors), "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3") {
 				for _, v := range props.Vendors {
-					<a href={ templ.SafeURL("/vendors/" + profileActor(props) + "/" + v.RKey) } class="block hover:opacity-95 transition-opacity">
-						<div class="feed-card feed-card-vendor feed-card-compact">
-							@tea.VendorContent(v)
-						</div>
-					</a>
+					@teaProfileCard("vendor", "/vendors/"+profileActor(props)+"/"+v.RKey, v.CreatedAt) {
+						@tea.VendorContent(v)
+					}
 				}
 			}
 		</div>
 		<div data-tab-panel="gear">
-			@teaProfileGearGroup(props, "Vessels", "vessel", len(props.Vessels)) {
+			@teaProfileGearGroup(props, "Vessels", "vessel", len(props.Vessels), "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3") {
 				for _, v := range props.Vessels {
-					<a href={ templ.SafeURL("/vessels/" + profileActor(props) + "/" + v.RKey) } class="block hover:opacity-95 transition-opacity">
-						<div class="feed-card feed-card-vessel feed-card-compact">
-							@tea.VesselContent(v)
-						</div>
-					</a>
+					@teaProfileCard("vessel", "/vessels/"+profileActor(props)+"/"+v.RKey, v.CreatedAt) {
+						@tea.VesselContent(v)
+					}
 				}
 			}
-			@teaProfileGearGroup(props, "Infusers", "infuser", len(props.Infusers)) {
+			@teaProfileGearGroup(props, "Infusers", "infuser", len(props.Infusers), "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3") {
 				for _, i := range props.Infusers {
-					<a href={ templ.SafeURL("/infusers/" + profileActor(props) + "/" + i.RKey) } class="block hover:opacity-95 transition-opacity">
-						<div class="feed-card feed-card-infuser feed-card-compact">
-							@tea.InfuserContent(i)
-						</div>
-					</a>
+					@teaProfileCard("infuser", "/infusers/"+profileActor(props)+"/"+i.RKey, i.CreatedAt) {
+						@tea.InfuserContent(i)
+					}
 				}
 			}
 		</div>
+	</div>
+}
+
+// teaProfileSteepCard renders a brew on the profile feed in arabica's
+// ProfileBrewCard layout: author row at top, action text, clickable
+// brew content, action bar at bottom. Like and comment counts are
+// rendered as zeros for now — the profile handler does not yet fetch
+// social aggregates for oolong brews; wire those up later if needed.
+templ teaProfileSteepCard(props ProfileProps, b *oolong.Brew) {
+	<div class="feed-card feed-card-brew">
+		<div class="mb-3">
+			@components.UserBadge(components.UserBadgeProps{
+				ProfileURL:  "/profile/" + profileActor(props),
+				AvatarURL:   profileAvatarURL(props.Profile),
+				DisplayName: props.Profile.DisplayName,
+				Handle:      props.Profile.Handle,
+				TimeAgo:     bff.FormatTimeAgo(b.CreatedAt),
+				Size:        "md",
+			})
+		</div>
+		<div class="mb-2 text-sm text-emphasis">
+			added a
+			<a
+				href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", profileActor(props), b.RKey)) }
+				class="underline hover:text-primary"
+			>
+				new steep
+			</a>
+		</div>
+		<a
+			href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", profileActor(props), b.RKey)) }
+			class="block hover:opacity-90 transition-opacity"
+		>
+			@tea.BrewContent(b)
+		</a>
+		@components.ActionBar(components.ActionBarProps{
+			SubjectURI:      fmt.Sprintf("at://%s/%s/%s", props.DID, oolong.NSIDBrew, b.RKey),
+			ViewURL:         fmt.Sprintf("/brews/%s/%s", profileActor(props), b.RKey),
+			ShareURL:        fmt.Sprintf("/brews/%s/%s", profileActor(props), b.RKey),
+			ShareTitle:      "Steep on Oolong",
+			ShareText:       fmt.Sprintf("Check out this steep by @%s on Oolong", profileActor(props)),
+			IsOwner:         props.IsOwnProfile,
+			EditURL:         steepEditURL(b.RKey, props.IsOwnProfile),
+			DeleteURL:       steepDeleteURL(b.RKey, props.IsOwnProfile),
+			IsAuthenticated: props.IsOwnProfile,
+		})
+	</div>
+}
+
+func profileAvatarURL(p *bff.UserProfile) string {
+	if p == nil {
+		return ""
+	}
+	return p.Avatar
+}
+
+func steepEditURL(rkey string, isOwner bool) string {
+	if !isOwner {
+		return ""
+	}
+	return "/brews/" + rkey + "/edit"
+}
+
+func steepDeleteURL(rkey string, isOwner bool) string {
+	if !isOwner {
+		return ""
+	}
+	return "/api/brews/" + rkey
+}
+
+// teaProfileCard is the read-only profile counterpart to myTeaCard:
+// same feed-card + entity-tinted background + dot/date header, but
+// without Edit/Delete affordances (those live on /my-tea for the
+// owner). The whole card is a click target to the entity's view page.
+templ teaProfileCard(entityType, viewURL string, createdAt time.Time) {
+	<div class={ "feed-card", "feed-card-" + entityType }>
+		@teaProfileCardHeader(createdAt, entityType)
+		<a href={ templ.SafeURL(viewURL) } class="block hover:opacity-95 transition-opacity">
+			{ children... }
+		</a>
+	</div>
+}
+
+// teaProfileCardHeader renders the colored type dot + creation date.
+// Mirrors teaEntityCardHeader (my-tea) minus the action buttons.
+templ teaProfileCardHeader(createdAt time.Time, entityType string) {
+	<div class="flex items-center gap-2 text-sm text-muted mb-2">
+		<span class={ "entity-card-dot", "entity-card-dot-" + entityType }></span>
+		if !createdAt.IsZero() {
+			<time datetime={ bff.FormatISO(createdAt) } data-local="date">{ createdAt.Format("Jan 2, 2006") }</time>
+		}
 	</div>
 }
 
@@ -192,7 +278,7 @@ templ teaProfileBody(props ProfileProps) {
 // layer. Empty groups still render the heading + an italic "none yet"
 // line on the owner's own profile (so they see what they could add);
 // other viewers see only non-empty groups.
-templ teaProfileGearGroup(props ProfileProps, title, noun string, count int) {
+templ teaProfileGearGroup(props ProfileProps, title, noun string, count int, gridClass string) {
 	if count > 0 || props.IsOwnProfile {
 		<section class="mb-6">
 			<header class="flex items-baseline justify-between mb-3">
@@ -202,7 +288,7 @@ templ teaProfileGearGroup(props ProfileProps, title, noun string, count int) {
 			if count == 0 {
 				<p class="text-sm text-muted italic">No { noun }s yet.</p>
 			} else {
-				<div class="feed-grid">
+				<div class={ gridClass }>
 					{ children... }
 				</div>
 			}
