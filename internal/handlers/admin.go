@@ -10,6 +10,7 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
@@ -181,8 +182,12 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepag
 
 	// Build stats for admin users
 	var stats coffeepages.AdminStats
+	var backups []backup.SourceStatus
 	if isAdmin {
 		stats = h.collectAdminStats(ctx)
+		if h.backupService != nil {
+			backups = h.backupService.Status()
+		}
 	}
 
 	return coffeepages.AdminProps{
@@ -192,6 +197,7 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepag
 		BlockedUsers:     blockedUsers,
 		Labels:           labels,
 		Stats:            stats,
+		Backups:          backups,
 		CanHide:          canHide,
 		CanUnhide:        canUnhide,
 		CanViewLogs:      canViewLogs,
@@ -693,8 +699,12 @@ func getGaugeValue(g prometheus.Gauge) float64 {
 // Auth and admin checks are handled by RequireAdmin middleware.
 func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
 	stats := h.collectAdminStats(r.Context())
+	var backups []backup.SourceStatus
+	if h.backupService != nil {
+		backups = h.backupService.Status()
+	}
 
-	if err := coffeepages.AdminStatsContent(stats).Render(r.Context(), w); err != nil {
+	if err := coffeepages.AdminStatsPanel(stats, backups).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render admin stats partial")
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
 	}

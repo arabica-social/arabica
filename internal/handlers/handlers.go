@@ -11,6 +11,7 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/entities/arabica"
 	"tangled.org/arabica.social/arabica/internal/feed"
@@ -55,6 +56,9 @@ type Handler struct {
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
 	moderationStore   moderation.Store
+
+	// Backup service (optional) — exposes per-source status to admin views.
+	backupService *backup.Service
 
 	// Brand carries the per-app display name and tagline. Set via
 	// SetBrand at startup; consumed by buildLayoutData so templ
@@ -158,6 +162,12 @@ func (h *Handler) SetWitnessCache(wc atproto.WitnessCache) {
 func (h *Handler) SetModeration(svc *moderation.Service, store moderation.Store) {
 	h.moderationService = svc
 	h.moderationStore = store
+}
+
+// SetBackupService wires the backup service so admin handlers can surface
+// per-source backup status. Optional — handlers tolerate a nil service.
+func (h *Handler) SetBackupService(svc *backup.Service) {
+	h.backupService = svc
 }
 
 // invalidateFeedCache clears the public feed cache after a mutation.

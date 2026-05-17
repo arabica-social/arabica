@@ -8,10 +8,34 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
 )
+
+// SourceStatus is a snapshot of the most recent backup activity for a single
+// source, suitable for rendering in an admin dashboard.
+type SourceStatus struct {
+	Source        string
+	LastRun       time.Time
+	LastSuccess   time.Time
+	LastFailure   time.Time
+	LastError     string
+	LastDuration  time.Duration
+	LastSize      int64
+	RetainedCount int
+	NextRun       time.Time
+}
+
+// Healthy reports whether the most recent run for this source succeeded.
+// Returns false if the source has never run.
+func (s SourceStatus) Healthy() bool {
+	if s.LastRun.IsZero() {
+		return false
+	}
+	return !s.LastSuccess.IsZero() && !s.LastSuccess.Before(s.LastFailure)
+}
 
 // Source represents a database that can be backed up.
 type Source interface {
@@ -34,13 +58,49 @@ type Config struct {
 type Service struct {
 	config  Config
 	sources []Source
+
+	mu     sync.RWMutex
+	status map[string]SourceStatus
 }
 
 func NewService(cfg Config) *Service {
 	if cfg.Retain == 0 {
 		cfg.Retain = 2
 	}
-	return &Service{config: cfg}
+	return &Service{
+		config: cfg,
+		status: make(map[string]SourceStatus),
+	}
+}
+
+// Status returns a snapshot of the most recent run state for each registered
+// source. Sources that have never run still appear with zero-valued time fields
+// and a populated NextRun.
+func (s *Service) Status() []SourceStatus {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	next := nextOccurrence(time.Now().UTC(), s.config.ScheduleHour)
+	out := make([]SourceStatus, 0, len(s.sources))
+	for _, src := range s.sources {
+		st, ok := s.status[src.Name()]
+		if !ok {
+			st = SourceStatus{Source: src.Name()}
+		}
+		st.NextRun = next
+		out = append(out, st)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Source < out[j].Source })
+	return out
+}
+
+func (s *Service) updateStatus(name string, mutate func(*SourceStatus)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	st := s.status[name]
+	st.Source = name
+	mutate(&st)
+	s.status[name] = st
 }
 
 func (s *Service) AddSource(src Source) {
@@ -95,26 +155,37 @@ func (s *Service) runAll(ctx context.Context) {
 }
 
 func (s *Service) backupSource(ctx context.Context, src Source) error {
-	timestamp := time.Now().UTC().Format("20060102-150405")
-	filename := fmt.Sprintf("%s-%s.bak", src.Name(), timestamp)
+	name := src.Name()
+	start := time.Now().UTC()
+	timestamp := start.Format("20060102-150405")
+	filename := fmt.Sprintf("%s-%s.bak", name, timestamp)
 
 	tmpDir := os.TempDir()
 	tmpPath := filepath.Join(tmpDir, filename)
 	defer func() { _ = os.Remove(tmpPath) }()
 
 	if err := src.Backup(ctx, tmpPath); err != nil {
+		s.recordFailure(name, start, fmt.Errorf("creating backup: %w", err))
 		return fmt.Errorf("creating backup: %w", err)
 	}
 
 	if err := s.config.Dest.Write(ctx, filename, tmpPath); err != nil {
+		s.recordFailure(name, start, fmt.Errorf("writing backup: %w", err))
 		return fmt.Errorf("writing backup: %w", err)
 	}
 
+	// Capture size before pruning so the gauge reflects the run we just did.
+	var size int64
+	if info, err := os.Stat(tmpPath); err == nil {
+		size = info.Size()
+	}
+
 	// Prune old backups.
-	prefix := src.Name() + "-"
+	prefix := name + "-"
 	keys, err := s.config.Dest.List(ctx, prefix)
 	if err != nil {
-		log.Warn().Err(err).Str("source", src.Name()).Msg("Failed to list backups for pruning")
+		log.Warn().Err(err).Str("source", name).Msg("Failed to list backups for pruning")
+		s.recordSuccess(name, start, size, 0)
 		return nil // backup itself succeeded
 	}
 	if len(keys) > s.config.Retain {
@@ -125,9 +196,45 @@ func (s *Service) backupSource(ctx context.Context, src Source) error {
 				log.Info().Str("key", key).Msg("Pruned old backup")
 			}
 		}
+		keys = keys[:s.config.Retain]
 	}
 
+	s.recordSuccess(name, start, size, len(keys))
 	return nil
+}
+
+func (s *Service) recordSuccess(name string, start time.Time, size int64, retained int) {
+	end := time.Now().UTC()
+	duration := end.Sub(start)
+	s.updateStatus(name, func(st *SourceStatus) {
+		st.LastRun = end
+		st.LastSuccess = end
+		st.LastError = ""
+		st.LastDuration = duration
+		st.LastSize = size
+		st.RetainedCount = retained
+	})
+
+	lastSuccessTimestamp.WithLabelValues(name).Set(float64(end.Unix()))
+	lastDurationSeconds.WithLabelValues(name).Set(duration.Seconds())
+	lastSizeBytes.WithLabelValues(name).Set(float64(size))
+	retainedCount.WithLabelValues(name).Set(float64(retained))
+	runsTotal.WithLabelValues(name, "success").Inc()
+}
+
+func (s *Service) recordFailure(name string, start time.Time, runErr error) {
+	end := time.Now().UTC()
+	duration := end.Sub(start)
+	s.updateStatus(name, func(st *SourceStatus) {
+		st.LastRun = end
+		st.LastFailure = end
+		st.LastError = runErr.Error()
+		st.LastDuration = duration
+	})
+
+	lastFailureTimestamp.WithLabelValues(name).Set(float64(end.Unix()))
+	lastDurationSeconds.WithLabelValues(name).Set(duration.Seconds())
+	runsTotal.WithLabelValues(name, "failure").Inc()
 }
 
 type SQLiteSource struct {

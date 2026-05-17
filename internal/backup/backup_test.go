@@ -3,6 +3,7 @@ package backup
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,6 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
+
+// failingSource implements Source but always errors out, for failure-path tests.
+type failingSource struct{ name string }
+
+func (f *failingSource) Name() string { return f.name }
+func (f *failingSource) Backup(_ context.Context, _ string) error {
+	return errors.New("synthetic backup failure")
+}
 
 func TestSQLiteBackup(t *testing.T) {
 	// Create a temp SQLite DB with some data.
@@ -118,6 +127,71 @@ func TestServicePrunesOldBackups(t *testing.T) {
 	keys, err := dest.List(ctx, "test-")
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(keys))
+}
+
+func TestServiceStatusOnSuccess(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	defer db.Close()
+	_, err = db.Exec("CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT)")
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO t (val) VALUES ('a'), ('b'), ('c')")
+	require.NoError(t, err)
+
+	dest, err := NewLocalDestination(t.TempDir())
+	require.NoError(t, err)
+
+	svc := NewService(Config{Retain: 2, Dest: dest})
+	svc.AddSource(NewSQLiteSource("statustest", db))
+
+	svc.runAll(context.Background())
+
+	statuses := svc.Status()
+	require.Len(t, statuses, 1)
+	st := statuses[0]
+	assert.Equal(t, "statustest", st.Source)
+	assert.True(t, st.Healthy())
+	assert.False(t, st.LastSuccess.IsZero())
+	assert.True(t, st.LastFailure.IsZero())
+	assert.Empty(t, st.LastError)
+	assert.Greater(t, st.LastSize, int64(0))
+	assert.Greater(t, st.LastDuration, time.Duration(0))
+	assert.Equal(t, 1, st.RetainedCount)
+	assert.False(t, st.NextRun.IsZero())
+}
+
+func TestServiceStatusOnFailure(t *testing.T) {
+	dest, err := NewLocalDestination(t.TempDir())
+	require.NoError(t, err)
+
+	svc := NewService(Config{Retain: 2, Dest: dest})
+	svc.AddSource(&failingSource{name: "broken"})
+
+	svc.runAll(context.Background())
+
+	statuses := svc.Status()
+	require.Len(t, statuses, 1)
+	st := statuses[0]
+	assert.Equal(t, "broken", st.Source)
+	assert.False(t, st.Healthy())
+	assert.True(t, st.LastSuccess.IsZero())
+	assert.False(t, st.LastFailure.IsZero())
+	assert.Contains(t, st.LastError, "synthetic backup failure")
+}
+
+func TestServiceStatusBeforeAnyRun(t *testing.T) {
+	dest, err := NewLocalDestination(t.TempDir())
+	require.NoError(t, err)
+	svc := NewService(Config{Retain: 2, Dest: dest})
+	svc.AddSource(&failingSource{name: "never-ran"})
+
+	statuses := svc.Status()
+	require.Len(t, statuses, 1)
+	assert.Equal(t, "never-ran", statuses[0].Source)
+	assert.True(t, statuses[0].LastRun.IsZero())
+	assert.False(t, statuses[0].NextRun.IsZero())
+	assert.False(t, statuses[0].Healthy())
 }
 
 func TestNextOccurrence(t *testing.T) {

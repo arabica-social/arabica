@@ -338,6 +338,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		})
 		backupSvc.AddSource(backup.NewSQLiteSource("feed-index", feedIndex.DB()))
 		backupSvc.Start(ctx)
+		h.SetBackupService(backupSvc)
 		log.Info().Str("dir", backupDir).Msg("Automated backups enabled")
 	}
 

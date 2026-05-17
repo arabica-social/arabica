@@ -2,6 +2,8 @@ package coffeepages
 
 import (
 	"fmt"
+	"time"
+	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -34,6 +36,7 @@ type AdminProps struct {
 	BlockedUsers     []moderation.BlacklistedUser
 	Labels           []moderation.Label
 	Stats            AdminStats
+	Backups          []backup.SourceStatus
 	CanHide          bool
 	CanUnhide        bool
 	CanViewLogs      bool
@@ -337,7 +340,7 @@ templ AdminDashboardBody(props AdminProps) {
 					hx-trigger="every 300s [document.visibilityState === 'visible']"
 					hx-swap="innerHTML"
 				>
-					@AdminStatsContent(props.Stats)
+					@AdminStatsPanel(props.Stats, props.Backups)
 				</div>
 			</div>
 		}
@@ -1067,6 +1070,147 @@ templ statCardWarning(title, value, subtitle string) {
 		<div class="text-sm font-medium text-red-600 mt-1">{ title }</div>
 		<div class="text-xs text-red-500 mt-0.5">{ subtitle }</div>
 	</div>
+}
+
+// AdminStatsPanel bundles the system-stats card and the backup-status card so
+// the admin stats tab swaps both together on its HTMX refresh.
+templ AdminStatsPanel(stats AdminStats, backups []backup.SourceStatus) {
+	<div class="space-y-4">
+		@AdminStatsContent(stats)
+		@AdminBackupsCard(backups)
+	</div>
+}
+
+templ AdminBackupsCard(backups []backup.SourceStatus) {
+	<div class="card card-inner">
+		<h2 class="section-title">Database Backups</h2>
+		if len(backups) == 0 {
+			<p class="text-sm text-muted">No backup sources are configured. Set a writable backup directory to enable automated backups.</p>
+		} else {
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				for _, b := range backups {
+					@backupRow(b)
+				}
+			</div>
+		}
+	</div>
+}
+
+templ backupRow(b backup.SourceStatus) {
+	<div class={ "rounded-lg border p-4", backupBorderClass(b) }>
+		<div class="flex items-center justify-between">
+			<div class="font-semibold text-emphasis">{ b.Source }</div>
+			@backupBadge(b)
+		</div>
+		<dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+			<dt class="text-faint">Last run</dt>
+			<dd class="text-emphasis">{ formatBackupRunTime(b) }</dd>
+			<dt class="text-faint">Duration</dt>
+			<dd class="text-emphasis">{ formatBackupDuration(b.LastDuration) }</dd>
+			<dt class="text-faint">Size</dt>
+			<dd class="text-emphasis">{ formatBackupBytes(b.LastSize) }</dd>
+			<dt class="text-faint">Retained on disk</dt>
+			<dd class="text-emphasis">{ fmt.Sprintf("%d", b.RetainedCount) }</dd>
+			<dt class="text-faint">Next run</dt>
+			<dd class="text-emphasis">{ formatBackupNextRun(b.NextRun) }</dd>
+		</dl>
+		if !b.LastFailure.IsZero() && !b.Healthy() {
+			<div class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2 break-words">
+				{ b.LastError }
+			</div>
+		}
+	</div>
+}
+
+templ backupBadge(b backup.SourceStatus) {
+	if b.LastRun.IsZero() {
+		<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-brown-100 text-muted">Pending</span>
+	} else if b.Healthy() {
+		<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Healthy</span>
+	} else {
+		<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Failed</span>
+	}
+}
+
+func backupBorderClass(b backup.SourceStatus) string {
+	if b.LastRun.IsZero() {
+		return "bg-brown-50 border-brown-200"
+	}
+	if b.Healthy() {
+		return "bg-brown-50 border-brown-200"
+	}
+	return "bg-red-50 border-red-200"
+}
+
+func formatBackupRunTime(b backup.SourceStatus) string {
+	if b.LastRun.IsZero() {
+		return "Never"
+	}
+	return formatBackupRelative(b.LastRun)
+}
+
+func formatBackupNextRun(t time.Time) string {
+	if t.IsZero() {
+		return "—"
+	}
+	d := time.Until(t)
+	if d <= 0 {
+		return "imminent"
+	}
+	return "in " + formatBackupShortDuration(d)
+}
+
+func formatBackupRelative(t time.Time) string {
+	d := time.Since(t)
+	if d < 0 {
+		return t.UTC().Format("2006-01-02 15:04 UTC")
+	}
+	if d < time.Minute {
+		return "just now"
+	}
+	return formatBackupShortDuration(d) + " ago"
+}
+
+func formatBackupShortDuration(d time.Duration) string {
+	if d < time.Minute {
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	}
+	if d < 24*time.Hour {
+		return fmt.Sprintf("%dh", int(d.Hours()))
+	}
+	return fmt.Sprintf("%dd", int(d.Hours()/24))
+}
+
+func formatBackupDuration(d time.Duration) string {
+	if d <= 0 {
+		return "—"
+	}
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	if d < time.Minute {
+		return fmt.Sprintf("%.1fs", d.Seconds())
+	}
+	return fmt.Sprintf("%dm%ds", int(d.Minutes()), int(d.Seconds())%60)
+}
+
+func formatBackupBytes(n int64) string {
+	if n <= 0 {
+		return "—"
+	}
+	const unit = 1024
+	if n < unit {
+		return fmt.Sprintf("%d B", n)
+	}
+	div, exp := int64(unit), 0
+	for x := n / unit; x >= unit; x /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
 }
 
 func collectionLabel(nsid string) string {
