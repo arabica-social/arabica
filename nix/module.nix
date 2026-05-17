@@ -320,6 +320,7 @@ in
         ARABICA_PUBLIC_URL = cfg.settings.publicUrl;
         ARABICA_OAUTH_CLIENT_ID = cfg.oauth.clientId;
         ARABICA_OAUTH_REDIRECT_URI = cfg.oauth.redirectUri;
+        ARABICA_DATA_DIR = cfg.dataDir;
       }
       // lib.optionalAttrs (effectiveConfigPath != null) {
         ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;
