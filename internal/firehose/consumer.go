@@ -58,9 +58,9 @@ type JetstreamEvent struct {
 
 // Consumer consumes events from Jetstream and indexes them
 type Consumer struct {
-	config      *Config
-	index       *FeedIndex
-	wantedSet   map[string]struct{} // membership lookup over config.WantedCollections
+	config    *Config
+	index     *FeedIndex
+	wantedSet map[string]struct{} // membership lookup over config.WantedCollections
 
 	// Connection state
 	conn               *websocket.Conn

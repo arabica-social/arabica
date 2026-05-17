@@ -841,4 +841,3 @@ func writeOGImage(w http.ResponseWriter, card *ogcard.Card) {
 		log.Error().Err(err).Msg("Failed to encode OG image")
 	}
 }
-

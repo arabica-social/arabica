@@ -1,122 +1,9 @@
 package pages
 
-import "tangled.org/arabica.social/arabica/internal/web/components"
-
-// PDSProvider describes a single PDS hosting option.
-type PDSProvider struct {
-	URL          string // Full URL for the signup form (e.g. "https://arabica.systems")
-	Name         string // Display name (e.g. "Arabica")
-	Domain       string // Display domain (e.g. "arabica.systems")
-	Description  string // Short description shown under the name
-	Location     string // Geographic location (e.g. "United States")
-	Badge        string // Status badge text (e.g. "Invite Only", "Open")
-	BadgeColor   string // Tailwind color prefix for badge (e.g. "amber", "green")
-	OperatorName string // Optional: handle of community operator (e.g. "@baileytownsend.dev")
-	OperatorURL  string // Optional: link to operator profile
-	SignupURL    string // Optional: if set, link directly to this URL instead of using prompt=create
-}
-
-// PDSCategory groups providers under a heading.
-type PDSCategory struct {
-	Title       string
-	Description string
-	Providers   []PDSProvider
-}
-
-// pdsCategories returns the list of PDS provider categories shown on the create account page.
-func pdsCategories() []PDSCategory {
-	return []PDSCategory{
-		{
-			Title:       "Recommended",
-			Description: "A reliable, open community provider — a great default if you're unsure where to start.",
-			Providers: []PDSProvider{
-				{
-					URL:          "https://selfhosted.social",
-					Name:         "selfhosted.social",
-					Domain:       "selfhosted.social",
-					Description:  "Community provider",
-					Location:     "United States",
-					Badge:        "Open",
-					BadgeColor:   "green",
-					OperatorName: "@baileytownsend.dev",
-					OperatorURL:  "https://bsky.app/profile/baileytownsend.dev",
-				},
-			},
-		},
-		{
-			Title:       "App Providers",
-			Description: "These apps host your account and data for you.",
-			Providers: []PDSProvider{
-				{
-					URL:         "https://arabica.systems",
-					Name:        "Arabica",
-					Domain:      "arabica.systems",
-					Description: "The official Arabica provider.",
-					Location:    "United States",
-					Badge:       "Invite Only",
-					BadgeColor:  "amber",
-				},
-				{
-					URL:         "https://bsky.social",
-					Name:        "Bluesky",
-					Domain:      "bsky.social",
-					Description: "The largest PDS provider.",
-					Location:    "United States",
-					Badge:       "Open",
-					BadgeColor:  "green",
-					SignupURL:   "https://bsky.app",
-				},
-				// {
-				// 	URL:         "https://tngl.sh",
-				// 	Name:        "Tangled",
-				// 	Domain:      "tngl.sh",
-				// 	Description: "Developer-focused AT Protocol hosting.",
-				// 	Location:    "Europe",
-				// 	Badge:       "Open",
-				// 	BadgeColor:  "green",
-				// 	SignupURL:   "https://tangled.sh",
-				// },
-				{
-					URL:         "https://npmx.social",
-					Name:        "npmx",
-					Domain:      "npmx.social",
-					Description: "Developer-focused Community provider.",
-					Location:    "Europe",
-					Badge:       "Open",
-					BadgeColor:  "green",
-					SignupURL:   "https://npmx.social",
-				},
-			},
-		},
-		{
-			Title:       "Independent Providers",
-			Description: "Account hosts run by the community. They hold your account and data, independent of any single app.",
-			Providers: []PDSProvider{
-				{
-					URL:          "https://selfhosted.social",
-					Name:         "selfhosted.social",
-					Domain:       "selfhosted.social",
-					Description:  "Community provider",
-					Location:     "United States",
-					Badge:        "Open",
-					BadgeColor:   "green",
-					OperatorName: "@baileytownsend.dev",
-					OperatorURL:  "https://bsky.app/profile/baileytownsend.dev",
-				},
-				{
-					URL:         "https://eurosky.social",
-					Name:        "Eurosky",
-					Domain:      "eurosky.social",
-					Description: "Sovereign European PDS hosting.",
-					Location:    "Europe",
-					Badge:       "Open",
-					BadgeColor:  "green",
-					SignupURL:   "https://portal.eurosky.tech/create-account",
-				},
-			},
-		},
-	}
-}
+import (
+	"tangled.org/arabica.social/arabica/internal/signup"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
 
 // CreateAccountProps holds state for the account creation page.
 type CreateAccountProps struct {
@@ -147,7 +34,7 @@ templ CreateAccountContent(props CreateAccountProps) {
 				{ props.Error }
 			</div>
 		}
-		for _, cat := range pdsCategories() {
+		for _, cat := range signup.Categories() {
 			<div class="mb-6">
 				<h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-3">{ cat.Title }</h2>
 				<p class="text-sm text-faint mb-3">{ cat.Description }</p>
@@ -174,7 +61,7 @@ templ locationPin() {
 }
 
 // pdsCard renders a PDS server option card with a sign-up button.
-templ pdsCard(p PDSProvider) {
+templ pdsCard(p signup.Provider) {
 	<div class="card card-inner">
 		@pdsCardInfo(p)
 		<div class="mt-3">
@@ -197,7 +84,7 @@ templ pdsCard(p PDSProvider) {
 	</div>
 }
 
-templ pdsCardInfo(p PDSProvider) {
+templ pdsCardInfo(p signup.Provider) {
 	<p class="flex items-baseline gap-2 text-lg font-semibold text-primary">
 		{ p.Name }
 		<span class={ "relative -top-px inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", "bg-" + p.BadgeColor + "-100", "text-" + p.BadgeColor + "-800" }>

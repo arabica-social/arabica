@@ -101,8 +101,8 @@ templ RecipeExploreContent(props RecipeExploreProps) {
 						<h3 class="text-xl font-bold text-primary wrap-break-word" v-text="selectedRecipe?.name"></h3>
 						<a :href="'/profile/' + selectedRecipe?.author_did" class="flex items-center gap-2 mt-1 group/author">
 							<template v-if="selectedRecipe?.author_avatar">
-									<img :src="selectedRecipe?.author_avatar || ''" class="w-6 h-6 rounded-full object-cover" :alt="selectedRecipe?.author_display || ''" loading="lazy" width="24" height="24"/>
-								</template>
+								<img :src="selectedRecipe?.author_avatar || ''" class="w-6 h-6 rounded-full object-cover" :alt="selectedRecipe?.author_display || ''" loading="lazy" width="24" height="24"/>
+							</template>
 							<div v-if="!selectedRecipe?.author_avatar" class="w-6 h-6 rounded-full bg-brown-200 flex items-center justify-center text-muted text-xs font-bold" v-text="(selectedRecipe?.author_display || selectedRecipe?.author_handle || '?')[0].toUpperCase()"></div>
 							<div>
 								<span v-if="selectedRecipe?.author_display" class="block text-sm font-medium text-emphasis group-hover/author:text-primary group-hover/author:underline transition-colors" v-text="selectedRecipe?.author_display"></span>

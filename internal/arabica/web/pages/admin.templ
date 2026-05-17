@@ -249,7 +249,8 @@ templ AdminDashboardBody(props AdminProps) {
 						<h2 class="section-title mb-0">Labels</h2>
 						<button
 							type="button"
-							data-action="dispatch-event" data-event="open-add-label"
+							data-action="dispatch-event"
+							data-event="open-add-label"
 							class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
 						>
 							Add Label
@@ -324,10 +325,10 @@ templ AdminDashboardBody(props AdminProps) {
 							</button>
 						</div>
 					</form>
-		</div>
-		</div>
-	}
-	<!-- Stats Tab (admin only) -->
+				</div>
+			</div>
+		}
+		<!-- Stats Tab (admin only) -->
 		if props.IsAdmin {
 			<div v-show="activeTab === 'stats'" v-cloak>
 				<div
@@ -937,7 +938,6 @@ templ AuditActionBadge(action moderation.AuditAction) {
 			</span>
 	}
 }
-
 
 templ LabelCard(label moderation.Label) {
 	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">

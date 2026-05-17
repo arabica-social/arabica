@@ -140,4 +140,3 @@ func (s *Store) LegacyFeedDIDs() []string {
 func (s *Store) Stats() bolt.Stats {
 	return s.db.Stats()
 }
-

@@ -18,6 +18,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/signup"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -677,16 +678,8 @@ func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// signupAllowedPDSURLs is the set of PDS URLs that are allowed for signup.
-// This must match the URLs hardcoded in create_account.templ.
-var signupAllowedPDSURLs = map[string]bool{
-	"https://arabica.systems":   true,
-	"https://selfhosted.social": true,
-	"https://bsky.social":       true,
-}
-
 // HandleCreateAccount renders the account creation page (GET /join/create).
-// PDS server options are defined in create_account.templ.
+// PDS server options come from the internal/signup catalog.
 func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.layoutDataFromRequest(r, "Create Account")
 
@@ -718,7 +711,7 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if !signupAllowedPDSURLs[pdsURL] {
+	if !signup.IsAllowedPDSURL(pdsURL) {
 		log.Warn().Str("pds_url", pdsURL).Msg("Signup attempt with unlisted PDS URL")
 		http.Redirect(w, r, "/join/create?error=Invalid+server+selection", http.StatusSeeOther)
 		return

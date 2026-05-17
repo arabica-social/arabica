@@ -506,7 +506,7 @@ func decodeOolongForm(r *http.Request, target any) error {
 			}
 		case reflect.Bool:
 			fv.SetBool(raw == "true" || raw == "on" || raw == "1")
-		case reflect.Ptr:
+		case reflect.Pointer:
 			if fv.Type().Elem().Kind() == reflect.Int {
 				if n, err := strconv.Atoi(raw); err == nil {
 					fv.Set(reflect.ValueOf(&n))

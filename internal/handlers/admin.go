@@ -179,7 +179,6 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepag
 
 	isAdmin := h.moderationService.IsAdmin(userDID)
 
-
 	// Build stats for admin users
 	var stats coffeepages.AdminStats
 	if isAdmin {

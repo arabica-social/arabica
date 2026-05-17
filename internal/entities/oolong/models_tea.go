@@ -1,5 +1,7 @@
 package oolong
 
+import "slices"
+
 import "time"
 
 const (
@@ -108,10 +110,5 @@ func (t *Tea) MissingFields() []string {
 }
 
 func isKnownValue(s string, known []string) bool {
-	for _, k := range known {
-		if s == k {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(known, s)
 }

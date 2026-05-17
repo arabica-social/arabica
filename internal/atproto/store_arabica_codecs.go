@@ -69,4 +69,3 @@ var (
 		PostList: extractRecipeBrewerRKey,
 	}
 )
-

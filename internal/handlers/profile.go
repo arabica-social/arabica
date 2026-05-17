@@ -719,10 +719,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	if totalBrews == 0 {
 		totalBrews = len(profileData.Brews)
 	}
-	brewEnd := brewsOffset + brewsLimit
-	if brewEnd > totalBrews {
-		brewEnd = totalBrews
-	}
+	brewEnd := min(brewsOffset+brewsLimit, totalBrews)
 	brewsHasMore := brewEnd < totalBrews
 	// Trim to page size (harmless no-op when witness already paginated).
 	if len(profileData.Brews) > brewsLimit {

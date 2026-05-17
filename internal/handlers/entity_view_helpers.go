@@ -189,4 +189,3 @@ func publicLookup(ctx context.Context) func(refURI string) (map[string]any, bool
 		return rec.Value, true
 	}
 }
-
