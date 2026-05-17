@@ -1,10 +1,11 @@
 package teapages
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/entities/oolong"
-	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -23,7 +24,7 @@ templ TeaView(layout *components.LayoutData, props TeaViewProps) {
 		AuthorHandle:      props.AuthorHandle,
 		AuthorDisplayName: props.AuthorDisplayName,
 		AuthorAvatar:      props.AuthorAvatar,
-		Body:              teaBody(props.Tea),
+		Body:              teaBody(props.Tea, props.ShareURL),
 		GuardActionBar:    true,
 		ActionBar: components.ActionBarProps{
 			SubjectURI:      props.SubjectURI,
@@ -55,9 +56,46 @@ templ TeaView(layout *components.LayoutData, props TeaViewProps) {
 	})
 }
 
-templ teaBody(t *oolong.Tea) {
-	<div class="p-4">
-		@tea.TeaContent(t)
+templ teaBody(t *oolong.Tea, shareURL string) {
+	<div class="record-label p-4">
+		<div class="bean-hero-row">
+			<div class="bean-hero-text">
+				<h1 class="label-origin-hero">{ t.Name }</h1>
+				if t.Vendor != nil && t.Vendor.Name != "" {
+					<div class="label-byline">
+						<a href={ templ.SafeURL(fmt.Sprintf("/vendors/%s/%s", getOwnerFromShareURL(shareURL), t.Vendor.RKey)) }>
+							{ t.Vendor.Name }
+						</a>
+						if t.Vendor.Location != "" {
+							<span class="text-faint">· { t.Vendor.Location }</span>
+						}
+					</div>
+				}
+			</div>
+			if t.Rating != nil {
+				<div class="brew-rating-hero">
+					<span class="brew-rating-value">{ fmt.Sprintf("%d", *t.Rating) }</span>
+					<span class="brew-rating-max">/ 10</span>
+				</div>
+			}
+		</div>
+		<div class="label-tags">
+			if t.Origin != "" {
+				<span class="label-tag label-tag-origin">{ t.Origin }</span>
+			}
+			if t.Category != "" {
+				<span class="label-tag label-tag-variety">{ teaCategoryLabel(t.Category) }</span>
+			}
+			if t.HarvestYear > 0 {
+				<span class="label-tag label-tag-process">{ strconv.Itoa(t.HarvestYear) }</span>
+			}
+			if t.Closed {
+				<span class="label-tag label-tag-closed">Finished</span>
+			}
+		</div>
+		if t.Description != "" {
+			<div class="label-description">{ t.Description }</div>
+		}
 	</div>
 }
 
