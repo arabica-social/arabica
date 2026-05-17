@@ -9,6 +9,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/rs/zerolog/log"
 )
 
 // OAuthStore implements oauth.ClientAuthStore using SQLite.
@@ -132,4 +133,65 @@ func (s *OAuthStore) CountSessions(ctx context.Context) (int, error) {
 	var count int
 	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM oauth_sessions`).Scan(&count)
 	return count, err
+}
+
+// CleanupExpired removes stale rows from both OAuth tables. Sessions whose
+// updated_at is older than sessionMaxAge are deleted; auth requests older than
+// authRequestMaxAge are deleted. Auth requests are short-lived state tokens
+// from incomplete OAuth callbacks; sessions are bounded by the upstream
+// refresh-token lifetime (~90 days on bsky PDS).
+func (s *OAuthStore) CleanupExpired(ctx context.Context, sessionMaxAge, authRequestMaxAge time.Duration) (sessions, authRequests int64, err error) {
+	now := time.Now().UTC()
+	sessCutoff := now.Add(-sessionMaxAge).Format(time.RFC3339Nano)
+	reqCutoff := now.Add(-authRequestMaxAge).Format(time.RFC3339Nano)
+
+	res, err := s.db.ExecContext(ctx, `DELETE FROM oauth_sessions WHERE updated_at < ?`, sessCutoff)
+	if err != nil {
+		return 0, 0, fmt.Errorf("cleanup sessions: %w", err)
+	}
+	sessions, _ = res.RowsAffected()
+
+	res, err = s.db.ExecContext(ctx, `DELETE FROM oauth_auth_requests WHERE created_at < ?`, reqCutoff)
+	if err != nil {
+		return sessions, 0, fmt.Errorf("cleanup auth requests: %w", err)
+	}
+	authRequests, _ = res.RowsAffected()
+	return sessions, authRequests, nil
+}
+
+// StartCleanup launches a goroutine that calls CleanupExpired on a ticker.
+// Runs an initial pass immediately, then every interval until ctx is cancelled.
+func (s *OAuthStore) StartCleanup(ctx context.Context, interval, sessionMaxAge, authRequestMaxAge time.Duration) {
+	run := func() {
+		sess, reqs, err := s.CleanupExpired(ctx, sessionMaxAge, authRequestMaxAge)
+		if err != nil {
+			log.Warn().Err(err).Msg("OAuth cleanup failed")
+			return
+		}
+		if sess > 0 || reqs > 0 {
+			log.Info().
+				Int64("sessions", sess).
+				Int64("auth_requests", reqs).
+				Msg("Pruned expired OAuth rows")
+		}
+	}
+
+	run()
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				run()
+			}
+		}
+	}()
+	log.Info().
+		Dur("interval", interval).
+		Dur("session_max_age", sessionMaxAge).
+		Dur("auth_request_max_age", authRequestMaxAge).
+		Msg("OAuth cleanup started")
 }

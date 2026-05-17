@@ -206,6 +206,12 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		SQLiteStats:             feedIndex.DB().Stats,
 	}, 60*time.Second)
 
+	// Prune abandoned auth requests hourly and sessions inactive for >90 days
+	// (refresh tokens on bsky PDS top out around there). Indigo only deletes
+	// rows on explicit logout or successful callback; closed tabs / lost
+	// devices leak otherwise.
+	sessionStore.StartCleanup(ctx, time.Hour, 90*24*time.Hour, time.Hour)
+
 	// Log known DIDs already in the index.
 	if knownDIDsFromDB, err := feedIndex.GetKnownDIDs(context.Background()); err == nil {
 		if len(knownDIDsFromDB) > 0 {
