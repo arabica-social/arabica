@@ -217,9 +217,18 @@ func (h *Handlers) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	t.RKey = rkey
+	vendors := handlers.ListRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor)
+	if t.VendorRKey != "" {
+		for _, v := range vendors {
+			if v.RKey == t.VendorRKey {
+				t.Vendor = v
+				break
+			}
+		}
+	}
 	props := teapages.TeaFormProps{
 		Tea:     t,
-		Vendors: handlers.ListRecords(r.Context(), store, oolong.NSIDVendor, oolong.RecordToVendor),
+		Vendors: vendors,
 	}
 	layoutData, _, _ := h.LayoutDataFromRequest(r, "Edit Tea")
 	if err := teapages.TeaFormPage(layoutData, props).Render(r.Context(), w); err != nil {
