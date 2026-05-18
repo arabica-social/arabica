@@ -11,6 +11,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/onboarding"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -80,11 +81,24 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 		descriptors = h.app.Descriptors
 		appName = h.app.Name
 	}
+
+	var readiness *onboarding.ReadinessStatus
+	if isAuthenticated && appName != "oolong" {
+		if store, ok := h.GetAtprotoStore(r); ok {
+			if status, err := onboarding.CheckBrewReadiness(r.Context(), store); err != nil {
+				log.Warn().Err(err).Msg("readiness check failed; treating user as ready to avoid false block")
+			} else {
+				readiness = &status
+			}
+		}
+	}
+
 	homeProps := pages.HomeProps{
 		IsAuthenticated: isAuthenticated,
 		UserDID:         didStr,
 		AppName:         appName,
 		Descriptors:     descriptors,
+		Readiness:       readiness,
 	}
 
 	// Render using templ component

@@ -386,6 +386,7 @@ type WelcomeCardProps struct {
 	IsAuthenticated bool
 	UserDID         string
 	AppName         string // "arabica" or "oolong" — toggles per-app copy + buttons
+	Ready           bool
 }
 
 // WelcomeCard renders the authenticated welcome with action buttons (used on home page)
@@ -394,7 +395,7 @@ templ WelcomeCard(props WelcomeCardProps) {
 		if props.AppName == "oolong" {
 			@welcomeAuthenticatedOolong(props.UserDID)
 		} else {
-			@welcomeAuthenticatedArabica(props.UserDID)
+			@welcomeAuthenticatedArabica(props)
 		}
 	}
 }
@@ -403,23 +404,29 @@ templ WelcomeCard(props WelcomeCardProps) {
 // any caller still using it. New callers should pass WelcomeCardProps
 // (with AppName) so the per-app variants render.
 templ WelcomeAuthenticated(userDID string) {
-	@welcomeAuthenticatedArabica(userDID)
+	@welcomeAuthenticatedArabica(WelcomeCardProps{UserDID: userDID, Ready: true})
 }
 
-templ welcomeAuthenticatedArabica(userDID string) {
+templ welcomeAuthenticatedArabica(props WelcomeCardProps) {
 	<div class="text-center mb-8 pt-4">
 		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">Your coffee journey, documented.</h1>
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto">
-			<a href="/brews/new" class="home-action-primary block text-center py-4 px-4 rounded-xl">
-				<span class="text-base font-semibold">Log Brew</span>
-			</a>
+			if props.Ready {
+				<a href="/brews/new" class="home-action-primary block text-center py-4 px-4 rounded-xl">
+					<span class="text-base font-semibold">Log Brew</span>
+				</a>
+			} else {
+				<a href="#get-started" class="home-action-primary block text-center py-4 px-4 rounded-xl opacity-60" aria-disabled="true">
+					<span class="text-base font-semibold">Log Brew — finish setup ↑</span>
+				</a>
+			}
 			<a href="/my-coffee" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">My Coffee</span>
 			</a>
 			<a href="/recipes" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">Recipes</span>
 			</a>
-			<a href={ templ.SafeURL("/profile/" + userDID) } class="home-action-secondary block text-center py-4 px-4 rounded-xl">
+			<a href={ templ.SafeURL("/profile/" + props.UserDID) } class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">Profile</span>
 			</a>
 		</div>

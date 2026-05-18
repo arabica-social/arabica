@@ -2,6 +2,7 @@ package pages
 
 import (
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/onboarding"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -10,6 +11,7 @@ type HomeProps struct {
 	UserDID         string
 	AppName         string                 // "arabica" or "oolong" — toggles welcome + dashboard embeds
 	Descriptors     []*entities.Descriptor // App-scoped descriptors for feed filter tabs
+	Readiness       *onboarding.ReadinessStatus // nil for unauth or non-arabica
 }
 
 templ Home(layout *components.LayoutData, props HomeProps) {
@@ -24,10 +26,16 @@ templ HomeContent(props HomeProps) {
 			</div>
 		}
 		if props.IsAuthenticated {
+			if props.AppName != "oolong" && props.Readiness != nil && !props.Readiness.Ready() {
+				<!-- Onboarding slot: loaded + refreshed via HTMX on entity-create
+				     success events so newly-added beans/brewers show up live. -->
+				<div id="get-started" hx-get="/api/get-started-card" hx-trigger="load, refreshManage from:body" hx-swap="outerHTML"></div>
+			}
 			@components.WelcomeCard(components.WelcomeCardProps{
 				IsAuthenticated: props.IsAuthenticated,
 				UserDID:         props.UserDID,
 				AppName:         props.AppName,
+				Ready:           props.Readiness == nil || props.Readiness.Ready(),
 			})
 			<!-- Modal container for entity create/edit dialogs opened from dashboard -->
 			<div id="modal-container"></div>
