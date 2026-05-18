@@ -533,22 +533,10 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	layoutData, _, _ := h.LayoutDataFromRequest(r, pageTitle)
 
-	// Create roaster options for own profile
-	var roasterOptions []coffeepages.RoasterOption
-	if isOwnProfile {
-		for _, roaster := range profileData.Roasters {
-			roasterOptions = append(roasterOptions, coffeepages.RoasterOption{
-				RKey: roaster.RKey,
-				Name: roaster.Name,
-			})
-		}
-	}
-
 	// Create profile props
 	profileProps := coffeepages.ProfileProps{
 		Profile:      viewedProfile,
 		IsOwnProfile: isOwnProfile,
-		Roasters:     roasterOptions,
 	}
 
 	// Render using templ component

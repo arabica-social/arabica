@@ -1,7 +1,6 @@
 package coffeepages
 
 import (
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -12,12 +11,6 @@ import (
 type ProfileProps struct {
 	Profile      *bff.UserProfile
 	IsOwnProfile bool
-	Roasters     []RoasterOption // For own profile only - used in bean form modal
-}
-
-type RoasterOption struct {
-	RKey string
-	Name string
 }
 
 // Profile renders the full profile page
@@ -37,7 +30,6 @@ templ ProfileContent(props ProfileProps) {
 			@ProfileStats()
 			@ProfileTabs(props.IsOwnProfile)
 			@ProfileContentLoader(props.Profile.Handle)
-			@ProfileModals(props.Roasters)
 		</div>
 	} else {
 		<div class="page-container-lg" v-scope="{ activeTab: 'brews' }" :data-active-tab="activeTab">
@@ -282,121 +274,4 @@ templ profileNotFoundContent() {
 			</a>
 		</div>
 	</div>
-}
-
-// ProfileModals renders entity form modals for own profile
-templ ProfileModals(roasters []RoasterOption) {
-	@BeanFormModalProfile(roasters)
-	@RoasterFormModal()
-	@GrinderFormModal()
-	@BrewerFormModal()
-}
-
-// BeanFormModalProfile renders the bean form modal with roaster options
-templ BeanFormModalProfile(roasters []RoasterOption) {
-	<dialog id="bean-modal" class="modal-dialog">
-		<div class="modal-content">
-			<h3 class="modal-title" v-text="editingBean ? 'Edit Bean' : 'Add Bean'"></h3>
-			<div class="space-y-4">
-				<input type="text" v-model="beanForm.name" placeholder="Name *" class="w-full form-input"/>
-				<input type="text" v-model="beanForm.origin" placeholder="Origin *" class="w-full form-input"/>
-				<select v-model="beanForm.roaster_rkey" class="w-full form-input">
-					<option value="">Select Roaster (Optional)</option>
-					for _, roaster := range roasters {
-						<option value={ roaster.RKey }>{ roaster.Name }</option>
-					}
-				</select>
-				<select v-model="beanForm.roast_level" class="w-full form-input">
-					<option value="">Select Roast Level (Optional)</option>
-					for _, level := range arabica.RoastLevels {
-						<option value={ level }>{ level }</option>
-					}
-				</select>
-				<input type="text" v-model="beanForm.process" placeholder="Process (e.g. Washed, Natural, Honey)" class="w-full form-input"/>
-				<textarea v-model="beanForm.description" placeholder="Description" rows="3" class="w-full form-textarea"></textarea>
-				<div class="flex items-center gap-2">
-					<input type="checkbox" v-model="beanForm.closed" id="bean-closed-checkbox" class="rounded-sm border-brown-300 text-emphasis focus:ring-brown-500"/>
-					<label for="bean-closed-checkbox" class="text-sm text-primary">Bag is closed/finished</label>
-				</div>
-				<div class="flex gap-2">
-					<button @click="saveBean()" class="flex-1 btn-primary">Save</button>
-					<button type="button" data-action="close-dialog" class="flex-1 btn-secondary">Cancel</button>
-				</div>
-			</div>
-		</div>
-	</dialog>
-}
-
-// RoasterFormModal renders the roaster form modal
-templ RoasterFormModal() {
-	<dialog id="roaster-modal" class="modal-dialog">
-		<div class="modal-content">
-			<h3 class="modal-title" v-text="editingRoaster ? 'Edit Roaster' : 'Add Roaster'"></h3>
-			<div class="space-y-4">
-				<input type="text" v-model="roasterForm.name" placeholder="Name *" class="w-full form-input"/>
-				<input type="text" v-model="roasterForm.location" placeholder="Location" class="w-full form-input"/>
-				<input type="url" v-model="roasterForm.website" placeholder="Website" class="w-full form-input"/>
-				<div class="flex gap-2">
-					<button @click="saveRoaster()" class="flex-1 btn-primary">Save</button>
-					<button type="button" data-action="close-dialog" class="flex-1 btn-secondary">Cancel</button>
-				</div>
-			</div>
-		</div>
-	</dialog>
-}
-
-// GrinderFormModal renders the grinder form modal
-templ GrinderFormModal() {
-	<dialog id="grinder-modal" class="modal-dialog">
-		<div class="modal-content">
-			<h3 class="modal-title" v-text="editingGrinder ? 'Edit Grinder' : 'Add Grinder'"></h3>
-			<div class="space-y-4">
-				<input type="text" v-model="grinderForm.name" placeholder="Name *" class="w-full form-input"/>
-				<select v-model="grinderForm.grinder_type" class="w-full form-input">
-					<option value="">Select Grinder Type *</option>
-					for _, gType := range arabica.GrinderTypes {
-						<option value={ gType }>{ gType }</option>
-					}
-				</select>
-				<select v-model="grinderForm.burr_type" class="w-full form-input">
-					<option value="">Select Burr Type (Optional)</option>
-					for _, bType := range arabica.BurrTypes {
-						<option value={ bType }>{ bType }</option>
-					}
-				</select>
-				<textarea v-model="grinderForm.notes" placeholder="Notes" rows="3" class="w-full form-textarea"></textarea>
-				<div class="flex gap-2">
-					<button @click="saveGrinder()" class="flex-1 btn-primary">Save</button>
-					<button type="button" data-action="close-dialog" class="flex-1 btn-secondary">Cancel</button>
-				</div>
-			</div>
-		</div>
-	</dialog>
-}
-
-// BrewerFormModal renders the brewer form modal
-templ BrewerFormModal() {
-	<dialog id="brewer-modal" class="modal-dialog">
-		<div class="modal-content">
-			<h3 class="modal-title" v-text="editingBrewer ? 'Edit Brewer' : 'Add Brewer'"></h3>
-			<div class="space-y-4">
-				<input type="text" v-model="brewerForm.name" placeholder="Name *" class="w-full form-input"/>
-				<select v-model="brewerForm.brewer_type" class="w-full form-select">
-					<option value="">Select type...</option>
-					<option value="pourover">Pour-over</option>
-					<option value="espresso">Espresso</option>
-					<option value="immersion">Immersion</option>
-					<option value="mokapot">Moka Pot</option>
-					<option value="coldbrew">Cold Brew</option>
-					<option value="cupping">Cupping</option>
-					<option value="other">Other</option>
-				</select>
-				<textarea v-model="brewerForm.description" placeholder="Description" rows="3" class="w-full form-textarea"></textarea>
-				<div class="flex gap-2">
-					<button @click="saveBrewer()" class="flex-1 btn-primary">Save</button>
-					<button type="button" data-action="close-dialog" class="flex-1 btn-secondary">Cancel</button>
-				</div>
-			</div>
-		</div>
-	</dialog>
 }
