@@ -94,9 +94,28 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// siteCardOpts builds per-app SiteCardOpts so the site OG image picks up
+// the right brand name, tagline, and logo for the running binary.
+func (h *Handler) siteCardOpts() ogcard.SiteCardOpts {
+	opts := ogcard.SiteCardOpts{
+		Wordmark: "arabica.social",
+		Tagline:  "coffee journaling for the open social web",
+		Detail:   "track, share, and own your brews",
+	}
+	if h.app != nil {
+		opts.AppName = h.app.Name
+		if h.app.Name == "oolong" {
+			opts.Wordmark = h.brand.DisplayName
+			opts.Tagline = "tea journaling for the open social web"
+			opts.Detail = "log every steep, share your tea story"
+		}
+	}
+	return opts
+}
+
 // HandleSiteOGImage generates a 1200x630 PNG preview card for the site.
 func (h *Handler) HandleSiteOGImage(w http.ResponseWriter, r *http.Request) {
-	card, err := ogcard.DrawSiteCard()
+	card, err := ogcard.DrawSiteCard(h.siteCardOpts())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate site OG image")
 		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
