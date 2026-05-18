@@ -13,17 +13,29 @@ import (
 
 func TestBrewNewReady_True(t *testing.T) {
 	store := &database.MockStore{
-		ListBeansFunc:   func(ctx context.Context) ([]*arabica.Bean, error) { return []*arabica.Bean{{RKey: "a"}}, nil },
-		ListBrewersFunc: func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "b"}}, nil },
+		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return []*arabica.Bean{{RKey: "a"}}, nil },
+		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "b"}}, nil },
+		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return []*arabica.Roaster{{RKey: "c"}}, nil },
 	}
 
 	assert.True(t, brewNewReady(context.Background(), store))
 }
 
-func TestBrewNewReady_FalseWhenMissing(t *testing.T) {
+func TestBrewNewReady_FalseWhenMissingBean(t *testing.T) {
 	store := &database.MockStore{
-		ListBeansFunc:   func(ctx context.Context) ([]*arabica.Bean, error) { return nil, nil },
-		ListBrewersFunc: func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "b"}}, nil },
+		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return nil, nil },
+		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "b"}}, nil },
+		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return []*arabica.Roaster{{RKey: "c"}}, nil },
+	}
+
+	assert.False(t, brewNewReady(context.Background(), store))
+}
+
+func TestBrewNewReady_FalseWhenMissingRoaster(t *testing.T) {
+	store := &database.MockStore{
+		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return []*arabica.Bean{{RKey: "a"}}, nil },
+		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "b"}}, nil },
+		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return nil, nil },
 	}
 
 	assert.False(t, brewNewReady(context.Background(), store))
@@ -31,8 +43,9 @@ func TestBrewNewReady_FalseWhenMissing(t *testing.T) {
 
 func TestBrewNewReady_FalseOnError(t *testing.T) {
 	store := &database.MockStore{
-		ListBeansFunc:   func(ctx context.Context) ([]*arabica.Bean, error) { return nil, errors.New("pds down") },
-		ListBrewersFunc: func(ctx context.Context) ([]*arabica.Brewer, error) { return nil, nil },
+		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return nil, errors.New("pds down") },
+		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return nil, nil },
+		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return nil, nil },
 	}
 
 	assert.False(t, brewNewReady(context.Background(), store))

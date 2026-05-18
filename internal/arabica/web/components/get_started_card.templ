@@ -30,12 +30,12 @@ templ GetStartedCard(props GetStartedCardProps) {
 		<header class="mb-4">
 			<h2 class="text-xl font-bold text-primary">Get Started</h2>
 			<p class="text-sm text-emphasis mt-1">
-				Add at least one brewer and one bean before logging your first brew.
+				Add a brewer, a roaster, and a bean to start logging brews. (You can add more of any of these later, and individual beans can skip the roaster for blends.)
 			</p>
 		</header>
 		@getStartedSection("Brewers", true, "brewer", brewerLabels(props.Brewers))
+		@getStartedSection("Roasters", true, "roaster", roasterLabels(props.Roasters))
 		@getStartedSection("Beans", true, "bean", beanLabels(props.Beans))
-		@getStartedSection("Roasters", false, "roaster", roasterLabels(props.Roasters))
 		@getStartedSection("Grinders", false, "grinder", grinderLabels(props.Grinders))
 		@getStartedFooter(props.Readiness)
 	</section>
@@ -84,6 +84,12 @@ templ getStartedFooter(r onboarding.ReadinessStatus) {
 				<span class="text-success">✓ brewer</span>
 			} else {
 				<span class="text-faint">✗ brewer</span>
+			}
+			<span class="mx-2 text-faint">·</span>
+			if r.HasRoaster {
+				<span class="text-success">✓ roaster</span>
+			} else {
+				<span class="text-faint">✗ roaster</span>
 			}
 			<span class="mx-2 text-faint">·</span>
 			if r.HasBean {

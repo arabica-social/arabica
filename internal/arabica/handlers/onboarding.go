@@ -15,9 +15,8 @@ import (
 // This allows tests to pass *database.MockStore without implementing the
 // full database.Store interface.
 type getStartedCardStore interface {
-	onboarding.BrewPrerequisiteStore // ListBeans + ListBrewers
+	onboarding.BrewPrerequisiteStore // ListBeans + ListBrewers + ListRoasters
 	ListGrinders(ctx context.Context) ([]*arabica.Grinder, error)
-	ListRoasters(ctx context.Context) ([]*arabica.Roaster, error)
 }
 
 // HandleGetStartedCard returns the rendered onboarding card. Reloaded via
