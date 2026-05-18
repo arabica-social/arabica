@@ -1,6 +1,7 @@
 package coffeehandlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/onboarding"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
@@ -178,27 +180,39 @@ func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 
 // Show new brew form
 func (h *Handlers) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	_, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 
-	// Don't fetch data from PDS - client will populate dropdowns from cache
-	// This makes the page load much faster
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "New Brew")
+	if !brewNewReady(r.Context(), store) {
+		http.Redirect(w, r, "/#get-started", http.StatusFound)
+		return
+	}
 
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "New Brew")
 	brewFormProps := coffeepages.BrewFormProps{
 		Brew:           nil,
 		RecipeRKey:     r.URL.Query().Get("recipe"),
 		RecipeOwnerDID: r.URL.Query().Get("recipe_owner"),
 	}
-
 	if err := coffeepages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew form")
 	}
+}
+
+// brewNewReady wraps onboarding.CheckBrewReadiness with logging. A readiness
+// check failure (rare; PDS down) is treated as "not ready" so the user gets
+// the onboarding card instead of a blank brew form they can't submit.
+func brewNewReady(ctx context.Context, store onboarding.BrewPrerequisiteStore) bool {
+	status, err := onboarding.CheckBrewReadiness(ctx, store)
+	if err != nil {
+		log.Warn().Err(err).Msg("brew-readiness check failed; treating as not ready")
+		return false
+	}
+	return status.Ready()
 }
 
 // Show brew view page
