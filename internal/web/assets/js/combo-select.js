@@ -381,6 +381,9 @@ function comboSelect(config) {
       placeholder: config.placeholder || "Search...",
       required: config.required || false,
       passthrough: config.passthrough || false,
+      // Default true so existing callsites (which don't pass the flag)
+      // keep the current "+ Create new" behavior.
+      allowCreate: config.allowCreate !== false,
       formatLabel: entity.formatLabel,
       formatCreateData: entity.formatCreateData,
       extraFields: entity.extraFields,
@@ -433,7 +436,7 @@ function comboSelect(config) {
         for (const r of this.communityResults) {
           items.push({ type: "community", suggestion: r });
         }
-        if (this.query.trim() && !this.exactMatch && !this.passthrough) {
+        if (this.allowCreate && this.query.trim() && !this.exactMatch && !this.passthrough) {
           items.push({ type: "create", name: this.query.trim() });
         }
         return items;
@@ -673,6 +676,7 @@ function comboSelect(config) {
 
       // Create a brand new entity — show detail form if extraFields configured
       createNew() {
+        if (!this.allowCreate) return;
         const name = this.query.trim();
         if (!name) return;
 

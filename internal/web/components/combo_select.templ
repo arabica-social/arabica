@@ -18,6 +18,19 @@ import (
 // "tea", "oolongBrewer", "oolongRecipe", "vendor"
 // passthrough: if true, value is passed through without create (for recipe refs)
 func ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder string, required bool, passthrough ...bool) string {
+	pt := len(passthrough) > 0 && passthrough[0]
+	return comboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, required, pt, true)
+}
+
+// ComboSelectConfigNoCreate is like ComboSelectConfig but with inline entity
+// creation disabled. Used on forms (e.g. /brews/new) where prerequisite
+// entities must already exist; the user is sent through the onboarding
+// flow to create them.
+func ComboSelectConfigNoCreate(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder string, required bool) string {
+	return comboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, required, false, false)
+}
+
+func comboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder string, required, passthrough, allowCreate bool) string {
 	cfg := struct {
 		EntityType      string `json:"entityType"`
 		APIEndpoint     string `json:"apiEndpoint"`
@@ -26,6 +39,7 @@ func ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, plac
 		Placeholder     string `json:"placeholder"`
 		Required        bool   `json:"required"`
 		Passthrough     bool   `json:"passthrough"`
+		AllowCreate     bool   `json:"allowCreate"`
 	}{
 		EntityType:      entityType,
 		APIEndpoint:     apiEndpoint,
@@ -33,7 +47,8 @@ func ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, plac
 		InputName:       inputName,
 		Placeholder:     placeholder,
 		Required:        required,
-		Passthrough:     len(passthrough) > 0 && passthrough[0],
+		Passthrough:     passthrough,
+		AllowCreate:     allowCreate,
 	}
 	b, err := json.Marshal(cfg)
 	if err != nil {
@@ -129,7 +144,7 @@ templ ComboSelectInput(sectionLabel string) {
 				</template>
 			</div>
 			<div
-				v-if="query.trim() && !exactMatch"
+				v-if="allowCreate && query.trim() && !exactMatch"
 				class="combo-item-create"
 				role="option"
 				:data-highlighted="highlightIndex === userResults.length + closedResults.length + communityResults.length"
