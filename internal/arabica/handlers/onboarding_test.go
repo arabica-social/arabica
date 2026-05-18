@@ -37,3 +37,37 @@ func TestBrewNewReady_FalseOnError(t *testing.T) {
 
 	assert.False(t, brewNewReady(context.Background(), store))
 }
+
+func TestBuildGetStartedCardProps_Empty(t *testing.T) {
+	store := &database.MockStore{
+		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return nil, nil },
+		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return nil, nil },
+		ListGrindersFunc: func(ctx context.Context) ([]*arabica.Grinder, error) { return nil, nil },
+		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return nil, nil },
+	}
+
+	props, err := buildGetStartedCardProps(context.Background(), store)
+
+	assert.NoError(t, err)
+	assert.False(t, props.Readiness.Ready())
+	assert.Empty(t, props.Beans)
+	assert.Empty(t, props.Brewers)
+}
+
+func TestBuildGetStartedCardProps_Populated(t *testing.T) {
+	store := &database.MockStore{
+		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return []*arabica.Bean{{RKey: "b1", Name: "Ethiopia"}}, nil },
+		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "br1", Name: "V60"}}, nil },
+		ListGrindersFunc: func(ctx context.Context) ([]*arabica.Grinder, error) { return nil, nil },
+		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return []*arabica.Roaster{{RKey: "r1", Name: "Onyx"}}, nil },
+	}
+
+	props, err := buildGetStartedCardProps(context.Background(), store)
+
+	assert.NoError(t, err)
+	assert.True(t, props.Readiness.Ready())
+	assert.Len(t, props.Beans, 1)
+	assert.Len(t, props.Brewers, 1)
+	assert.Len(t, props.Roasters, 1)
+	assert.Equal(t, "Ethiopia", props.Beans[0].Name)
+}
