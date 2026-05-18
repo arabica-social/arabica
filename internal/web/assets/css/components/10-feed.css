@@ -232,6 +232,27 @@
 .type-badge-brewer {
   color: var(--type-brewer);
 }
+.type-badge-steep {
+  color: var(--type-brew);
+}
+.type-badge-tea {
+  color: var(--type-tea);
+}
+.type-badge-vendor {
+  color: var(--type-vendor);
+}
+.type-badge-infuser {
+  color: var(--type-infuser);
+}
+.type-badge-vessel {
+  color: var(--type-vessel);
+}
+.type-badge-cafe {
+  color: var(--type-cafe);
+}
+.type-badge-drink {
+  color: var(--type-drink);
+}
 
 /* Load more button — HTMX adds `.htmx-request` while a request is in flight,
    which swaps the idle/busy text and dims the button. */

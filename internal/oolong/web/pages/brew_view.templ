@@ -15,7 +15,7 @@ type BrewViewProps struct {
 
 templ BrewView(layout *components.LayoutData, props BrewViewProps) {
 	@components.EntityViewLayout(layout, components.EntityViewLayoutProps{
-		RecordType:        "brew",
+		RecordType:        "steep",
 		Title:             brewViewShareTitle(props.Brew),
 		CreatedAt:         props.Brew.CreatedAt,
 		AuthorDID:         props.AuthorDID,
