@@ -2,12 +2,15 @@
 // It indexes records into a local SQLite database for fast feed queries.
 package firehose
 
-// Default Jetstream public endpoints
+// Default Jetstream public endpoints. The consumer rotates through this list
+// on connection failure, so mixing operators (bsky.network, fire.hose.cam)
+// gives us resilience against single-provider outages.
 var DefaultJetstreamEndpoints = []string{
 	"wss://jetstream1.us-east.bsky.network/subscribe",
 	"wss://jetstream2.us-east.bsky.network/subscribe",
 	"wss://jetstream1.us-west.bsky.network/subscribe",
 	"wss://jetstream2.us-west.bsky.network/subscribe",
+	"wss://jetstream1.us-east.fire.hose.cam/subscribe",
 }
 
 // NSIDBlueskyProfile is the AT Protocol collection for user profile records.

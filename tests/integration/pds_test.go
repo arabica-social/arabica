@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
 	"github.com/bluesky-social/indigo/atproto/syntax"

@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
-	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/oolong/entities"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/pdewey.com/atp"
 

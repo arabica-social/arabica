@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"

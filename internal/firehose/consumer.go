@@ -17,6 +17,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Jetstream's wantedCollections filter is server-side, so a connection
+// can sit silent indefinitely if no matching events are flowing.
+// Application-level pings keep the socket warm and let us distinguish
+// "upstream has nothing for us" from "upstream is dead". The read
+// deadline must be comfortably greater than 2× the ping interval so a
+// single dropped pong doesn't trip the timeout.
+const (
+	jetstreamPingInterval     = 30 * time.Second
+	jetstreamReadDeadline     = 90 * time.Second
+	jetstreamPingWriteTimeout = 10 * time.Second
+)
+
 // JetstreamCommit represents the commit data within a Jetstream event.
 type JetstreamCommit struct {
 	Rev        string          `json:"rev"`
@@ -233,6 +245,44 @@ func (c *Consumer) connectAndConsume(ctx context.Context, endpoint string) error
 		metrics.FirehoseConnectionState.Set(0)
 	}()
 
+	// writeMu serializes control-frame writes from the ping goroutine
+	// with any future writers. gorilla/websocket is not safe for
+	// concurrent writes.
+	var writeMu sync.Mutex
+	pingCtx, cancelPing := context.WithCancel(ctx)
+	// Ensure the ping goroutine stops before the deferred conn.Close
+	// runs (defers are LIFO, so this fires first).
+	defer cancelPing()
+
+	conn.SetReadDeadline(time.Now().Add(jetstreamReadDeadline))
+	conn.SetPongHandler(func(string) error {
+		return conn.SetReadDeadline(time.Now().Add(jetstreamReadDeadline))
+	})
+
+	go func() {
+		t := time.NewTicker(jetstreamPingInterval)
+		defer t.Stop()
+		for {
+			select {
+			case <-pingCtx.Done():
+				return
+			case <-t.C:
+				writeMu.Lock()
+				err := conn.WriteControl(
+					websocket.PingMessage,
+					nil,
+					time.Now().Add(jetstreamPingWriteTimeout),
+				)
+				writeMu.Unlock()
+				if err != nil {
+					// The read loop will surface the underlying
+					// connection failure; we just stop pinging.
+					return
+				}
+			}
+		}
+	}()
+
 	// Read events
 	for {
 		select {
@@ -243,13 +293,14 @@ func (c *Consumer) connectAndConsume(ctx context.Context, endpoint string) error
 		default:
 		}
 
-		// Set read deadline
-		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			return fmt.Errorf("read error: %w", err)
 		}
+
+		// Extend the deadline after each successful read. The
+		// PongHandler covers idle periods; this covers active ones.
+		conn.SetReadDeadline(time.Now().Add(jetstreamReadDeadline))
 
 		c.bytesReceived.Add(int64(len(message)))
 

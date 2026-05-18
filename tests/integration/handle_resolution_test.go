@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/pdewey.com/atp"
 
