@@ -8,6 +8,7 @@ import (
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/onboarding"
 )
 
@@ -17,6 +18,35 @@ import (
 type getStartedCardStore interface {
 	onboarding.BrewPrerequisiteStore // ListBeans + ListBrewers + ListRoasters
 	ListGrinders(ctx context.Context) ([]*arabica.Grinder, error)
+}
+
+// HandleOnboarding renders the dedicated /onboarding page. If the user is
+// already ready to brew, redirects to the homepage — there's nothing to do
+// here for them.
+func (h *Handlers) HandleOnboarding(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	props, err := buildGetStartedCardProps(r.Context(), store)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to build onboarding props")
+		http.Error(w, "Failed to load", http.StatusInternalServerError)
+		return
+	}
+
+	if props.Readiness.Ready() {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Get Started")
+	if err := coffeepages.Onboarding(layoutData, coffeepages.OnboardingProps{Card: props}).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render onboarding page")
+	}
 }
 
 // HandleGetStartedCard returns the rendered onboarding card. Reloaded via

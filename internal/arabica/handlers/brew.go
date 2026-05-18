@@ -187,7 +187,7 @@ func (h *Handlers) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !brewNewReady(r.Context(), store) {
-		http.Redirect(w, r, "/#get-started", http.StatusFound)
+		http.Redirect(w, r, "/onboarding", http.StatusFound)
 		return
 	}
 

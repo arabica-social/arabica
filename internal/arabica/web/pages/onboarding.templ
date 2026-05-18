@@ -1,0 +1,32 @@
+package coffeepages
+
+import (
+	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// OnboardingProps carries the initial GetStartedCard props. The card
+// re-fetches itself via /api/get-started-card on each refreshManage event,
+// so this initial render only needs to be correct at page load — adding
+// entities through the modal flow updates the card live.
+type OnboardingProps struct {
+	Card coffee.GetStartedCardProps
+}
+
+templ Onboarding(layout *components.LayoutData, props OnboardingProps) {
+	@components.Layout(layout, OnboardingContent(props))
+}
+
+templ OnboardingContent(props OnboardingProps) {
+	<div class="page-container-md">
+		<div class="mb-6">
+			<h1 class="text-3xl font-semibold text-primary mb-1">Get Started</h1>
+			<p class="text-sm text-emphasis">
+				A few things to set up before your first brew.
+			</p>
+		</div>
+		@coffee.GetStartedCard(props.Card)
+		<!-- Modal container for entity create/edit dialogs opened from the card -->
+		<div id="modal-container"></div>
+	</div>
+}

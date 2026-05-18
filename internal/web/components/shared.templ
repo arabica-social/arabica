@@ -410,14 +410,23 @@ templ WelcomeAuthenticated(userDID string) {
 templ welcomeAuthenticatedArabica(props WelcomeCardProps) {
 	<div class="text-center mb-8 pt-4">
 		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">Your coffee journey, documented.</h1>
+		if !props.Ready {
+			<div class="alert-warning mb-6 max-w-xl mx-auto flex items-center justify-between gap-3 text-left">
+				<div>
+					<strong>Welcome!</strong>
+					<span class="alert-warning-muted">A brewer, a roaster, and a bean — then you're ready to log brews.</span>
+				</div>
+				<a href="/onboarding" class="btn-primary text-sm whitespace-nowrap">Get Started →</a>
+			</div>
+		}
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto">
 			if props.Ready {
 				<a href="/brews/new" class="home-action-primary block text-center py-4 px-4 rounded-xl">
 					<span class="text-base font-semibold">Log Brew</span>
 				</a>
 			} else {
-				<a href="#get-started" class="home-action-primary block text-center py-4 px-4 rounded-xl opacity-60" aria-disabled="true">
-					<span class="text-base font-semibold">Log Brew — finish setup ↑</span>
+				<a href="/onboarding" class="home-action-primary block text-center py-4 px-4 rounded-xl opacity-60" aria-disabled="true">
+					<span class="text-base font-semibold">Log Brew — finish setup</span>
 				</a>
 			}
 			<a href="/my-coffee" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
