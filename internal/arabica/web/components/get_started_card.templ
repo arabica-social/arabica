@@ -1,0 +1,150 @@
+package coffee
+
+import (
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/onboarding"
+)
+
+// GetStartedCardProps is what the /api/get-started-card handler renders.
+// Beans / Brewers / Grinders / Roasters are the user's current entities,
+// shown as a short list per section.
+type GetStartedCardProps struct {
+	Readiness onboarding.ReadinessStatus
+	Beans     []*arabica.Bean
+	Brewers   []*arabica.Brewer
+	Grinders  []*arabica.Grinder
+	Roasters  []*arabica.Roaster
+}
+
+// GetStartedCard is the homepage onboarding surface. It always re-issues
+// itself with the same id + hx-trigger so a `refreshManage` event
+// (fired by entity-create modals on success) reloads it in place.
+templ GetStartedCard(props GetStartedCardProps) {
+	<section
+		id="get-started"
+		hx-get="/api/get-started-card"
+		hx-trigger="refreshManage from:body"
+		hx-swap="outerHTML"
+		class="card p-4 sm:p-6 mb-6"
+	>
+		<header class="mb-4">
+			<h2 class="text-xl font-bold text-primary">Get Started</h2>
+			<p class="text-sm text-emphasis mt-1">
+				Add at least one brewer and one bean before logging your first brew.
+			</p>
+		</header>
+		@getStartedSection("Brewers", true, "brewer", brewerLabels(props.Brewers))
+		@getStartedSection("Beans", true, "bean", beanLabels(props.Beans))
+		@getStartedSection("Roasters", false, "roaster", roasterLabels(props.Roasters))
+		@getStartedSection("Grinders", false, "grinder", grinderLabels(props.Grinders))
+		@getStartedFooter(props.Readiness)
+	</section>
+}
+
+// getStartedSection renders one entity bucket: heading + (required)/(optional)
+// label, existing items, and the "+ Add" button that opens the modal.
+templ getStartedSection(title string, required bool, entityNoun string, items []string) {
+	<div class="mb-4">
+		<div class="flex items-baseline gap-2 mb-2">
+			<h3 class="font-semibold text-primary">{ title }</h3>
+			if required {
+				<span class="text-xs uppercase tracking-wide text-amber-600">Required</span>
+			} else {
+				<span class="text-xs uppercase tracking-wide text-faint">Optional</span>
+			}
+		</div>
+		if len(items) > 0 {
+			<ul class="text-sm text-emphasis mb-2 space-y-1">
+				for _, label := range items {
+					<li>· { label }</li>
+				}
+			</ul>
+		} else {
+			<p class="text-sm text-faint italic mb-2">None yet.</p>
+		}
+		<button
+			type="button"
+			class="btn-secondary text-sm"
+			hx-get={ "/api/modals/" + entityNoun + "/new" }
+			hx-target="#modal-container"
+			hx-swap="innerHTML"
+			onclick="setTimeout(function(){var d=document.querySelector('#modal-container dialog');if(d&&d.showModal)d.showModal();},0)"
+		>
+			+ Add a { entityNoun }
+		</button>
+	</div>
+}
+
+// getStartedFooter shows current status and unlocks the "log your first brew"
+// CTA once both required prereqs are satisfied.
+templ getStartedFooter(r onboarding.ReadinessStatus) {
+	<div class="border-t pt-3 mt-2 flex items-center justify-between flex-wrap gap-3">
+		<p class="text-sm text-emphasis">
+			if r.HasBrewer {
+				<span class="text-success">✓ brewer</span>
+			} else {
+				<span class="text-faint">✗ brewer</span>
+			}
+			<span class="mx-2 text-faint">·</span>
+			if r.HasBean {
+				<span class="text-success">✓ bean</span>
+			} else {
+				<span class="text-faint">✗ bean</span>
+			}
+			if r.Ready() {
+				<span class="ml-2 font-medium">Ready to brew!</span>
+			} else {
+				<span class="ml-2 text-faint">— add 1 of each to start logging brews</span>
+			}
+		</p>
+		if r.Ready() {
+			<a href="/brews/new" class="btn-primary text-sm">
+				Log your first brew →
+			</a>
+		}
+	</div>
+}
+
+func brewerLabels(brewers []*arabica.Brewer) []string {
+	out := make([]string, 0, len(brewers))
+	for _, b := range brewers {
+		if b == nil {
+			continue
+		}
+		out = append(out, b.Name)
+	}
+	return out
+}
+
+func beanLabels(beans []*arabica.Bean) []string {
+	out := make([]string, 0, len(beans))
+	for _, b := range beans {
+		if b == nil {
+			continue
+		}
+		out = append(out, b.Name)
+	}
+	return out
+}
+
+func grinderLabels(grinders []*arabica.Grinder) []string {
+	out := make([]string, 0, len(grinders))
+	for _, g := range grinders {
+		if g == nil {
+			continue
+		}
+		out = append(out, g.Name)
+	}
+	return out
+}
+
+func roasterLabels(roasters []*arabica.Roaster) []string {
+	out := make([]string, 0, len(roasters))
+	for _, r := range roasters {
+		if r == nil {
+			continue
+		}
+		out = append(out, r.Name)
+	}
+	return out
+}
