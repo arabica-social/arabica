@@ -4,29 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/metrics"
+	atpjetstream "tangled.org/pdewey.com/atp/jetstream"
 
-	"github.com/gorilla/websocket"
-	"github.com/klauspost/compress/zstd"
 	"github.com/rs/zerolog/log"
-)
-
-// Jetstream's wantedCollections filter is server-side, so a connection
-// can sit silent indefinitely if no matching events are flowing.
-// Application-level pings keep the socket warm and let us distinguish
-// "upstream has nothing for us" from "upstream is dead". The read
-// deadline must be comfortably greater than 2× the ping interval so a
-// single dropped pong doesn't trip the timeout.
-const (
-	jetstreamPingInterval     = 30 * time.Second
-	jetstreamReadDeadline     = 90 * time.Second
-	jetstreamPingWriteTimeout = 10 * time.Second
 )
 
 // JetstreamCommit represents the commit data within a Jetstream event.
@@ -58,7 +42,9 @@ type JetstreamAccount struct {
 	Time   string `json:"time"`
 }
 
-// JetstreamEvent represents an event from Jetstream
+// JetstreamEvent represents an event from Jetstream. Retained as a package-local
+// type so integration tests and ProfileWatcher can pass events through
+// ProcessEvent without depending on the upstream atp/jetstream Event shape.
 type JetstreamEvent struct {
 	DID      string             `json:"did"`
 	TimeUS   int64              `json:"time_us"`
@@ -68,346 +54,108 @@ type JetstreamEvent struct {
 	Account  *JetstreamAccount  `json:"account,omitempty"`
 }
 
-// Consumer consumes events from Jetstream and indexes them
+// Consumer consumes events from Jetstream and indexes them. Connection
+// lifecycle, decompression, and cursor persistence are delegated to the
+// atp/jetstream package; this type owns the arabica-specific indexing
+// pipeline and metrics.
 type Consumer struct {
 	config    *Config
 	index     *FeedIndex
 	wantedSet map[string]struct{} // membership lookup over config.WantedCollections
-
-	// Connection state
-	conn               *websocket.Conn
-	connMu             sync.Mutex
-	currentEndpointIdx int
-
-	// Zstd decoder for compressed messages
-	zstdDecoder *zstd.Decoder
-
-	// Cursor for resume
-	cursor atomic.Int64
-
-	// Stats
-	eventsReceived atomic.Int64
-	bytesReceived  atomic.Int64
-
-	// Control
-	connected atomic.Bool
-	stopCh    chan struct{}
-	wg        sync.WaitGroup
+	upstream  *atpjetstream.Consumer
 }
 
 // NewConsumer creates a new Jetstream consumer
 func NewConsumer(config *Config, index *FeedIndex) *Consumer {
-	// Create zstd decoder for compressed messages
-	decoder, err := zstd.NewReader(nil, zstd.WithDecoderConcurrency(1))
-	if err != nil {
-		log.Fatal().Err(err).Msg("firehose: failed to create zstd decoder")
-	}
-
 	wantedSet := make(map[string]struct{}, len(config.WantedCollections))
 	for _, coll := range config.WantedCollections {
 		wantedSet[coll] = struct{}{}
 	}
 
 	c := &Consumer{
-		config:      config,
-		index:       index,
-		wantedSet:   wantedSet,
-		stopCh:      make(chan struct{}),
-		zstdDecoder: decoder,
+		config:    config,
+		index:     index,
+		wantedSet: wantedSet,
 	}
 
-	// Load cursor from index
 	if cursor, err := index.GetCursor(context.Background()); err == nil && cursor > 0 {
-		c.cursor.Store(cursor)
 		log.Info().Int64("cursor", cursor).Msg("firehose: loaded cursor from index")
 	}
+
+	c.upstream = atpjetstream.New(&atpjetstream.Config{
+		Endpoints:         config.Endpoints,
+		WantedCollections: config.WantedCollections,
+		Compress:          config.Compress,
+		CursorStore:       index,
+		OnConnect: func() {
+			metrics.FirehoseConnectionState.Set(1)
+			log.Info().Str("endpoint", c.upstream.CurrentEndpoint()).Msg("firehose: connected to Jetstream")
+			c.index.SetReady(true)
+		},
+		OnDisconnect: func() {
+			metrics.FirehoseConnectionState.Set(0)
+			log.Warn().Str("endpoint", c.upstream.CurrentEndpoint()).Msg("firehose: disconnected from Jetstream")
+		},
+		OnError: func(err error, _ *atpjetstream.Event) {
+			metrics.FirehoseErrorsTotal.Inc()
+			log.Warn().Err(err).Msg("firehose: event processing error")
+		},
+	}, c.handleEvent)
 
 	return c
 }
 
 // Start begins consuming events in a background goroutine
 func (c *Consumer) Start(ctx context.Context) {
-	c.wg.Go(func() {
-		c.run(ctx)
-	})
+	c.upstream.Start(ctx)
 }
 
 // Stop gracefully stops the consumer
 func (c *Consumer) Stop() {
-	close(c.stopCh)
-	c.connMu.Lock()
-	if c.conn != nil {
-		c.conn.Close()
-	}
-	c.connMu.Unlock()
-	c.wg.Wait()
-
-	// Close zstd decoder
-	if c.zstdDecoder != nil {
-		c.zstdDecoder.Close()
-	}
+	c.upstream.Stop()
 }
 
 // IsConnected returns true if currently connected to Jetstream
 func (c *Consumer) IsConnected() bool {
-	return c.connected.Load()
+	return c.upstream.IsConnected()
 }
 
 // Stats returns consumer statistics
 func (c *Consumer) Stats() (eventsReceived, bytesReceived int64) {
-	return c.eventsReceived.Load(), c.bytesReceived.Load()
+	return c.upstream.Stats()
 }
 
-func (c *Consumer) run(ctx context.Context) {
-	backoff := time.Second
-	maxBackoff := 30 * time.Second
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Info().Msg("firehose: context cancelled, stopping consumer")
-			return
-		case <-c.stopCh:
-			log.Info().Msg("firehose: stop requested, stopping consumer")
-			return
-		default:
-		}
-
-		endpoint := c.config.Endpoints[c.currentEndpointIdx]
-		err := c.connectAndConsume(ctx, endpoint)
-
-		if err != nil {
-			c.connected.Store(false)
-			log.Warn().Err(err).Str("endpoint", endpoint).Msg("firehose: connection error")
-
-			// Rotate to next endpoint
-			c.currentEndpointIdx = (c.currentEndpointIdx + 1) % len(c.config.Endpoints)
-
-			// Backoff before retry
-			select {
-			case <-ctx.Done():
-				return
-			case <-c.stopCh:
-				return
-			case <-time.After(backoff):
-			}
-
-			// Increase backoff
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-		} else {
-			// Reset backoff on successful connection
-			backoff = time.Second
-		}
+// handleEvent bridges atp/jetstream events into the arabica indexing pipeline.
+func (c *Consumer) handleEvent(_ context.Context, evt *atpjetstream.Event) error {
+	if evt == nil || evt.Kind != "commit" || evt.Commit == nil {
+		return nil
 	}
-}
-
-func (c *Consumer) connectAndConsume(ctx context.Context, endpoint string) error {
-	// Build WebSocket URL with query parameters
-	wsURL, err := c.buildWebSocketURL(endpoint)
-	if err != nil {
-		return fmt.Errorf("failed to build WebSocket URL: %w", err)
-	}
-
-	log.Info().Str("url", wsURL).Msg("firehose: connecting to Jetstream")
-
-	// Connect
-	dialer := websocket.Dialer{
-		HandshakeTimeout: 10 * time.Second,
-	}
-
-	conn, _, err := dialer.DialContext(ctx, wsURL, nil)
-	if err != nil {
-		return fmt.Errorf("failed to connect: %w", err)
-	}
-
-	c.connMu.Lock()
-	c.conn = conn
-	c.connMu.Unlock()
-
-	c.connected.Store(true)
-	metrics.FirehoseConnectionState.Set(1)
-	log.Info().Str("endpoint", endpoint).Msg("firehose: connected to Jetstream")
-
-	// Mark index as ready once connected
-	c.index.SetReady(true)
-
-	defer func() {
-		c.connMu.Lock()
-		if c.conn != nil {
-			c.conn.Close()
-			c.conn = nil
-		}
-		c.connMu.Unlock()
-		c.connected.Store(false)
-		metrics.FirehoseConnectionState.Set(0)
-	}()
-
-	// writeMu serializes control-frame writes from the ping goroutine
-	// with any future writers. gorilla/websocket is not safe for
-	// concurrent writes.
-	var writeMu sync.Mutex
-	pingCtx, cancelPing := context.WithCancel(ctx)
-	// Ensure the ping goroutine stops before the deferred conn.Close
-	// runs (defers are LIFO, so this fires first).
-	defer cancelPing()
-
-	conn.SetReadDeadline(time.Now().Add(jetstreamReadDeadline))
-	conn.SetPongHandler(func(string) error {
-		return conn.SetReadDeadline(time.Now().Add(jetstreamReadDeadline))
-	})
-
-	go func() {
-		t := time.NewTicker(jetstreamPingInterval)
-		defer t.Stop()
-		for {
-			select {
-			case <-pingCtx.Done():
-				return
-			case <-t.C:
-				writeMu.Lock()
-				err := conn.WriteControl(
-					websocket.PingMessage,
-					nil,
-					time.Now().Add(jetstreamPingWriteTimeout),
-				)
-				writeMu.Unlock()
-				if err != nil {
-					// The read loop will surface the underlying
-					// connection failure; we just stop pinging.
-					return
-				}
-			}
-		}
-	}()
-
-	// Read events
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-c.stopCh:
-			return nil
-		default:
-		}
-
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			return fmt.Errorf("read error: %w", err)
-		}
-
-		// Extend the deadline after each successful read. The
-		// PongHandler covers idle periods; this covers active ones.
-		conn.SetReadDeadline(time.Now().Add(jetstreamReadDeadline))
-
-		c.bytesReceived.Add(int64(len(message)))
-
-		if err := c.processMessage(message); err != nil {
-			metrics.FirehoseErrorsTotal.Inc()
-			log.Warn().Err(err).Msg("firehose: failed to process message")
-		}
-	}
-}
-
-func (c *Consumer) buildWebSocketURL(endpoint string) (string, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return "", err
-	}
-
-	q := u.Query()
-
-	// Add wanted collections
-	for _, coll := range c.config.WantedCollections {
-		q.Add("wantedCollections", coll)
-	}
-
-	// Add compression
-	if c.config.Compress {
-		q.Set("compress", "true")
-	}
-
-	// Add cursor if we have one (rewind slightly for safety)
-	cursor := c.cursor.Load()
-	if cursor > 0 {
-		// Rewind by 5 seconds to handle any gaps
-		cursor -= 5 * time.Second.Microseconds()
-		q.Set("cursor", fmt.Sprintf("%d", cursor))
-	}
-
-	u.RawQuery = q.Encode()
-	return u.String(), nil
-}
-
-func (c *Consumer) processMessage(data []byte) error {
-	// Try to decompress if compression is enabled and data looks compressed
-	// Zstd compressed data starts with magic number 0x28 0xB5 0x2F 0xFD
-	if c.config.Compress && len(data) >= 4 && data[0] == 0x28 && data[1] == 0xB5 && data[2] == 0x2F && data[3] == 0xFD {
-		decompressed, err := c.zstdDecoder.DecodeAll(data, nil)
-		if err != nil {
-			return fmt.Errorf("failed to decompress message: %w", err)
-		}
-		data = decompressed
-	} else if c.config.Compress && len(data) > 0 && data[0] != '{' {
-		// Try decompression anyway if it doesn't look like JSON
-		decompressed, err := c.zstdDecoder.DecodeAll(data, nil)
-		if err == nil {
-			data = decompressed
-		}
-		// If decompression fails, try parsing as-is (maybe it's uncompressed)
-	}
-
-	var event JetstreamEvent
-	if err := json.Unmarshal(data, &event); err != nil {
-		// Log the first few bytes for debugging
-		preview := data
-		if len(preview) > 50 {
-			preview = preview[:50]
-		}
-		return fmt.Errorf("failed to unmarshal event (first bytes: %q): %w", preview, err)
-	}
-
-	c.eventsReceived.Add(1)
-
-	// Update cursor
-	if event.TimeUS > 0 {
-		c.cursor.Store(event.TimeUS)
-
-		// Persist cursor periodically (every 1000 events)
-		if c.eventsReceived.Load()%1000 == 0 {
-			if err := c.index.SetCursor(context.Background(), event.TimeUS); err != nil {
-				log.Warn().Err(err).Msg("firehose: failed to persist cursor")
-			}
-		}
-	}
-
-	// Only process commit events
-	if event.Kind != "commit" || event.Commit == nil {
+	if !c.isWantedCollection(evt.Commit.Collection) {
 		return nil
 	}
 
-	commit := event.Commit
-
-	// Only process collections this app subscribed to. WantedCollections is
-	// populated from the running app's NSIDs at startup, so this gates
-	// arabica binaries to social.arabica.alpha.* and oolong to
-	// social.oolong.alpha.* without hardcoding a prefix.
-	if !c.isWantedCollection(commit.Collection) {
-		return nil
-	}
-
-	metrics.FirehoseEventsTotal.WithLabelValues(commit.Collection, commit.Operation).Inc()
+	metrics.FirehoseEventsTotal.WithLabelValues(evt.Commit.Collection, evt.Commit.Operation).Inc()
 
 	log.Debug().
-		Str("did", event.DID).
-		Str("collection", commit.Collection).
-		Str("operation", commit.Operation).
-		Str("rkey", commit.RKey).
+		Str("did", evt.DID).
+		Str("collection", evt.Commit.Collection).
+		Str("operation", evt.Commit.Operation).
+		Str("rkey", evt.Commit.RKey).
 		Msg("firehose: processing event")
 
-	return c.processCommit(event)
+	return c.processCommit(JetstreamEvent{
+		DID:    evt.DID,
+		TimeUS: evt.TimeUS,
+		Kind:   evt.Kind,
+		Commit: &JetstreamCommit{
+			Rev:        evt.Commit.Rev,
+			Operation:  evt.Commit.Operation,
+			Collection: evt.Commit.Collection,
+			RKey:       evt.Commit.RKey,
+			Record:     evt.Commit.Record,
+			CID:        evt.Commit.CID,
+		},
+	})
 }
 
 // ProcessEvent processes a single Jetstream event through the indexing pipeline.

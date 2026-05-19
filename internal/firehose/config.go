@@ -43,7 +43,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Endpoints:         DefaultJetstreamEndpoints,
 		WantedCollections: nil,
-		Compress:          false, // Disabled: Jetstream uses custom zstd dictionary
+		Compress:          true, // atp/jetstream embeds the shared zstd dictionary
 		IndexPath:         "",    // Will be set based on data directory
 		ProfileCacheTTL:   3600,  // 1 hour
 	}

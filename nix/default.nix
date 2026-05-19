@@ -9,7 +9,7 @@ buildGoModule {
   pname = appName;
   version = "0.1.0";
   src = ../.;
-  vendorHash = "sha256-WbXAoNVMhsQ3Tngqjgv6QBhSWiMGLGxDUTzLJRyXS8c=";
+  vendorHash = "sha256-ijMOM9B4KDdoKxKKmJvip/L1tLNoFLcFtS1pjQocqrM=";
 
   nativeBuildInputs = [
     templ

@@ -3,12 +3,10 @@ package firehose
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"net/url"
 	"sync"
-	"time"
 
-	"github.com/gorilla/websocket"
+	atpjetstream "tangled.org/pdewey.com/atp/jetstream"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,27 +14,22 @@ import (
 // app.bsky.actor.profile events for known Arabica users only. Because Jetstream
 // uses AND semantics when both wantedCollections and wantedDids are set, this
 // must be a separate connection from the main consumer (which has no DID filter).
+//
+// The upstream consumer is created lazily on the first Watch() so an instance
+// with no watched DIDs does not connect — connecting with an empty wantedDids
+// would cause the relay to deliver every profile event globally.
 type ProfileWatcher struct {
 	index     *FeedIndex
 	endpoints []string
-
-	conn   *websocket.Conn
-	connMu sync.Mutex
+	ctx       context.Context
 
 	watchedDIDs   map[string]struct{}
 	watchedDIDsMu sync.RWMutex
 
-	endpointIdx int
-	stopCh      chan struct{}
-	wg          sync.WaitGroup
-}
+	upstreamMu sync.Mutex
+	upstream   *atpjetstream.Consumer
 
-type profileOptionsUpdate struct {
-	Type    string `json:"type"`
-	Payload struct {
-		WantedCollections []string `json:"wantedCollections"`
-		WantedDids        []string `json:"wantedDids"`
-	} `json:"payload"`
+	stopCh chan struct{}
 }
 
 // NewProfileWatcher creates a ProfileWatcher seeded with all currently known
@@ -55,16 +48,22 @@ func NewProfileWatcher(config *Config, index *FeedIndex) *ProfileWatcher {
 	}
 }
 
-// Watch adds a DID to the subscription. If connected, an options update is sent
-// immediately so Jetstream begins delivering that user's profile events.
+// Watch adds a DID to the subscription. If a connection is already open, an
+// options_update frame is sent immediately so Jetstream begins delivering that
+// user's profile events.
 func (pw *ProfileWatcher) Watch(did string) {
 	pw.watchedDIDsMu.Lock()
 	_, already := pw.watchedDIDs[did]
 	pw.watchedDIDs[did] = struct{}{}
 	pw.watchedDIDsMu.Unlock()
 
-	if !already {
-		pw.sendOptionsUpdate()
+	if already {
+		return
+	}
+	if u := pw.ensureUpstream(); u != nil {
+		if err := u.UpdateOptions([]string{NSIDBlueskyProfile}, pw.snapshotDIDs()); err != nil {
+			log.Warn().Err(err).Msg("profile watcher: options_update failed")
+		}
 	}
 }
 
@@ -76,218 +75,137 @@ func (pw *ProfileWatcher) Unwatch(did string) {
 	delete(pw.watchedDIDs, did)
 	pw.watchedDIDsMu.Unlock()
 
-	if present {
-		pw.sendOptionsUpdate()
+	if !present {
+		return
+	}
+	pw.upstreamMu.Lock()
+	u := pw.upstream
+	pw.upstreamMu.Unlock()
+	if u == nil {
+		return
+	}
+	if err := u.UpdateOptions([]string{NSIDBlueskyProfile}, pw.snapshotDIDs()); err != nil {
+		log.Warn().Err(err).Msg("profile watcher: options_update failed")
 	}
 }
 
-// Start begins the profile watcher in a background goroutine. It will reconnect
-// automatically on failure, rotating through endpoints with exponential backoff.
+// Start begins the profile watcher. If the index already seeded watchedDIDs,
+// the upstream consumer connects immediately; otherwise the first Watch() call
+// will spin it up.
 func (pw *ProfileWatcher) Start(ctx context.Context) {
-	pw.wg.Go(func() {
-		pw.run(ctx)
-	})
+	pw.ctx = ctx
+	pw.watchedDIDsMu.RLock()
+	n := len(pw.watchedDIDs)
+	pw.watchedDIDsMu.RUnlock()
+	if n > 0 {
+		pw.ensureUpstream()
+	}
 }
 
 // Stop gracefully shuts down the watcher.
 func (pw *ProfileWatcher) Stop() {
 	close(pw.stopCh)
-	pw.connMu.Lock()
-	if pw.conn != nil {
-		pw.conn.Close()
-	}
-	pw.connMu.Unlock()
-	pw.wg.Wait()
-}
-
-func (pw *ProfileWatcher) run(ctx context.Context) {
-	backoff := time.Second
-	maxBackoff := 30 * time.Second
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-pw.stopCh:
-			return
-		default:
-		}
-
-		// Skip connecting if we have no DIDs to watch yet — wait for the first Watch() call
-		pw.watchedDIDsMu.RLock()
-		n := len(pw.watchedDIDs)
-		pw.watchedDIDsMu.RUnlock()
-		if n == 0 {
-			select {
-			case <-ctx.Done():
-				return
-			case <-pw.stopCh:
-				return
-			case <-time.After(5 * time.Second):
-			}
-			continue
-		}
-
-		endpoint := pw.endpoints[pw.endpointIdx]
-		err := pw.connectAndConsume(ctx, endpoint)
-
-		if err != nil {
-			log.Warn().Err(err).Str("endpoint", endpoint).Msg("profile watcher: connection error")
-			pw.endpointIdx = (pw.endpointIdx + 1) % len(pw.endpoints)
-
-			select {
-			case <-ctx.Done():
-				return
-			case <-pw.stopCh:
-				return
-			case <-time.After(backoff):
-			}
-
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-		} else {
-			backoff = time.Second
-		}
+	pw.upstreamMu.Lock()
+	u := pw.upstream
+	pw.upstreamMu.Unlock()
+	if u != nil {
+		u.Stop()
 	}
 }
 
-func (pw *ProfileWatcher) connectAndConsume(ctx context.Context, endpoint string) error {
-	wsURL := pw.buildURL(endpoint)
-	log.Info().Str("url", wsURL).Msg("profile watcher: connecting")
-
-	dialer := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
-	conn, _, err := dialer.DialContext(ctx, wsURL, nil)
-	if err != nil {
-		return fmt.Errorf("failed to connect: %w", err)
+func (pw *ProfileWatcher) snapshotDIDs() []string {
+	pw.watchedDIDsMu.RLock()
+	defer pw.watchedDIDsMu.RUnlock()
+	out := make([]string, 0, len(pw.watchedDIDs))
+	for did := range pw.watchedDIDs {
+		out = append(out, did)
 	}
+	return out
+}
 
-	pw.connMu.Lock()
-	pw.conn = conn
-	pw.connMu.Unlock()
-
-	log.Info().Str("endpoint", endpoint).Msg("profile watcher: connected")
-
-	defer func() {
-		pw.connMu.Lock()
-		if pw.conn != nil {
-			pw.conn.Close()
-			pw.conn = nil
-		}
-		pw.connMu.Unlock()
-	}()
-
-	const pingInterval = 30 * time.Second
-	const readTimeout = 90 * time.Second
-
-	conn.SetPongHandler(func(string) error {
-		conn.SetReadDeadline(time.Now().Add(readTimeout))
+// ensureUpstream lazily creates and starts the upstream consumer on the first
+// call after Start. Returns nil if Start has not yet been invoked (the consumer
+// will be created when Start is eventually called).
+func (pw *ProfileWatcher) ensureUpstream() *atpjetstream.Consumer {
+	pw.upstreamMu.Lock()
+	defer pw.upstreamMu.Unlock()
+	if pw.upstream != nil {
+		return pw.upstream
+	}
+	if pw.ctx == nil {
 		return nil
-	})
-
-	pingTicker := time.NewTicker(pingInterval)
-	defer pingTicker.Stop()
-
-	go func() {
-		for {
-			select {
-			case <-pingTicker.C:
-				pw.connMu.Lock()
-				c := pw.conn
-				pw.connMu.Unlock()
-				if c == nil {
-					return
-				}
-				c.SetWriteDeadline(time.Now().Add(10 * time.Second))
-				if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
-					return
-				}
-			case <-ctx.Done():
-				return
-			case <-pw.stopCh:
-				return
-			}
-		}
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-pw.stopCh:
-			return nil
-		default:
-		}
-
-		conn.SetReadDeadline(time.Now().Add(readTimeout))
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			return fmt.Errorf("read error: %w", err)
-		}
-
-		pw.processMessage(message)
 	}
+
+	pw.upstream = atpjetstream.New(&atpjetstream.Config{
+		Endpoints:         pw.endpoints,
+		WantedCollections: []string{NSIDBlueskyProfile},
+		WantedDIDs:        pw.snapshotDIDs(),
+		OnConnect: func() {
+			log.Info().Msg("profile watcher: connected")
+		},
+		OnDisconnect: func() {
+			log.Warn().Msg("profile watcher: disconnected")
+		},
+		OnError: func(err error, _ *atpjetstream.Event) {
+			log.Warn().Err(err).Msg("profile watcher: event processing error")
+		},
+	}, pw.handleEvent)
+
+	pw.upstream.Start(pw.ctx)
+	return pw.upstream
 }
 
-func (pw *ProfileWatcher) buildURL(endpoint string) string {
-	u, _ := url.Parse(endpoint)
-	q := u.Query()
-	q.Set("wantedCollections", NSIDBlueskyProfile)
-
-	pw.watchedDIDsMu.RLock()
-	for did := range pw.watchedDIDs {
-		q.Add("wantedDids", did)
+func (pw *ProfileWatcher) handleEvent(_ context.Context, evt *atpjetstream.Event) error {
+	if evt == nil {
+		return nil
 	}
-	pw.watchedDIDsMu.RUnlock()
-
-	u.RawQuery = q.Encode()
-	return u.String()
+	pw.dispatch(toLegacyEvent(evt))
+	return nil
 }
 
-func (pw *ProfileWatcher) sendOptionsUpdate() {
-	pw.connMu.Lock()
-	conn := pw.conn
-	pw.connMu.Unlock()
-
-	if conn == nil {
-		return // will be applied via URL on next reconnect
-	}
-
-	pw.watchedDIDsMu.RLock()
-	dids := make([]string, 0, len(pw.watchedDIDs))
-	for did := range pw.watchedDIDs {
-		dids = append(dids, did)
-	}
-	pw.watchedDIDsMu.RUnlock()
-
-	var msg profileOptionsUpdate
-	msg.Type = "options_update"
-	msg.Payload.WantedCollections = []string{NSIDBlueskyProfile}
-	msg.Payload.WantedDids = dids
-
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return
-	}
-
-	pw.connMu.Lock()
-	defer pw.connMu.Unlock()
-	if pw.conn != nil {
-		if err := pw.conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			log.Warn().Err(err).Msg("profile watcher: failed to send options update")
+// toLegacyEvent converts an atp/jetstream Event into the package-local
+// JetstreamEvent so dispatch() and ProcessEvent() share a single signature.
+func toLegacyEvent(evt *atpjetstream.Event) JetstreamEvent {
+	out := JetstreamEvent{DID: evt.DID, TimeUS: evt.TimeUS, Kind: evt.Kind}
+	if evt.Commit != nil {
+		out.Commit = &JetstreamCommit{
+			Rev:        evt.Commit.Rev,
+			Operation:  evt.Commit.Operation,
+			Collection: evt.Commit.Collection,
+			RKey:       evt.Commit.RKey,
+			Record:     evt.Commit.Record,
+			CID:        evt.Commit.CID,
 		}
 	}
+	if evt.Identity != nil {
+		out.Identity = &JetstreamIdentity{
+			DID:    evt.Identity.DID,
+			Handle: evt.Identity.Handle,
+			Seq:    evt.Identity.Seq,
+			Time:   evt.Identity.Time,
+		}
+	}
+	if evt.Account != nil {
+		out.Account = &JetstreamAccount{
+			Active: evt.Account.Active,
+			DID:    evt.Account.DID,
+			Seq:    evt.Account.Seq,
+			Status: evt.Account.Status,
+			Time:   evt.Account.Time,
+		}
+	}
+	return out
 }
 
 // ProcessEvent processes a single Jetstream event through the profile-watcher
 // pipeline. Exported for use in integration tests where events are fed from a
-// test PDS firehose rather than a live Jetstream connection. Production code
-// reaches this path via processMessage.
+// test PDS firehose rather than a live Jetstream connection.
 func (pw *ProfileWatcher) ProcessEvent(event JetstreamEvent) {
 	pw.dispatch(event)
 }
 
+// processMessage parses a raw Jetstream frame and dispatches it. Retained
+// because profile_watcher_test.go exercises this path with raw JSON fixtures.
 func (pw *ProfileWatcher) processMessage(data []byte) {
 	var event JetstreamEvent
 	if err := json.Unmarshal(data, &event); err != nil {
