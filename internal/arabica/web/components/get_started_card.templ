@@ -39,6 +39,7 @@ templ GetStartedCard(props GetStartedCardProps) {
 				Required: true,
 				Done:     props.Readiness.HasBrewer,
 				Items:    brewerLabels(props.Brewers),
+				UseDrawer: true,
 			})
 			@station(stationProps{
 				No: "02", Kind: "roaster", Title: "Roaster",
@@ -54,6 +55,10 @@ templ GetStartedCard(props GetStartedCardProps) {
 				Done:     props.Readiness.HasBean,
 				Items:    beanLabels(props.Beans),
 			})
+			<!-- Drawer slot sits inside the grid as a full-width row
+			     between the three required stations and the optional
+			     grinder row. Stays display:none when empty (CSS). -->
+			<div id="station-drawer-slot" class="station-drawer-row"></div>
 			@station(stationProps{
 				No: "04", Kind: "grinder", Title: "Grinder",
 				Hint:     "Optional — skip this if you brew with pre-ground beans.",
@@ -113,6 +118,10 @@ type stationProps struct {
 	Done     bool
 	Items    []string
 	Optional bool
+	// UseDrawer routes the "+ Add" click to the inline drawer slot
+	// instead of the modal container. Acts as the proof-of-concept
+	// for portable form bodies — same *FormBody, different surface.
+	UseDrawer bool
 }
 
 templ station(p stationProps) {
@@ -131,17 +140,33 @@ templ station(p stationProps) {
 		</header>
 		<p class="station-hint">{ p.Hint }</p>
 		@stationItems(p)
-		<button
-			type="button"
-			class="station-add"
-			hx-get={ "/api/modals/" + p.Kind + "/new" }
-			hx-target="#modal-container"
-			hx-swap="innerHTML"
-			onclick="setTimeout(function(){var d=document.querySelector('#modal-container dialog');if(d&&d.showModal)d.showModal();},0)"
-		>
-			<span class="station-add-icon" aria-hidden="true">+</span>
-			{ addLabel(p) }
-		</button>
+		if p.UseDrawer {
+			<button
+				type="button"
+				class="station-add"
+				hx-get={ "/api/onboarding/station-form/" + p.Kind }
+				hx-target="#station-drawer-slot"
+				hx-swap="innerHTML"
+			>
+				<span class="station-add-icon" aria-hidden="true">+</span>
+				{ addLabel(p) }
+			</button>
+		} else {
+			<!-- The modal-style "+ Add" button. The entity-helpers.js
+			     htmx:afterSwap listener calls dialog.showModal() once
+			     the modal markup lands in #modal-container, so no
+			     inline onclick is needed (and CSP forbids one). -->
+			<button
+				type="button"
+				class="station-add"
+				hx-get={ "/api/modals/" + p.Kind + "/new" }
+				hx-target="#modal-container"
+				hx-swap="innerHTML"
+			>
+				<span class="station-add-icon" aria-hidden="true">+</span>
+				{ addLabel(p) }
+			</button>
+		}
 	</article>
 }
 

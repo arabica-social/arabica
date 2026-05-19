@@ -1,0 +1,193 @@
+package coffee
+
+import (
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/entities"
+)
+
+// Form *bodies* — just the fields, no <form>, no <dialog>, no submit row.
+// The container (ModalShell, drawer, full page) owns the <form> element,
+// the submit/cancel buttons, and the action URL. Bodies stay pure so they
+// can be slotted into any surface.
+
+// StationDrawerProps holds the descriptor info the drawer needs. The
+// onboarding handler computes these from the entity registry so the
+// templ stays oblivious to the lookup.
+type StationDrawerProps struct {
+	Kind        string // "brewer" — matches the station data-kind for tint
+	DisplayName string // "Brewer" — used in the drawer title
+	URLPath     string // "brewers" — used to build the hx-post URL
+}
+
+// StationFormDrawer renders the inline create form for an onboarding
+// station. Slots the same *FormBody used by the modal into a non-dialog
+// container so the form can live below its station card. Uses
+// data-action="close-drawer" for CSP-safe close handling — see
+// internal/web/assets/js/actions.js.
+templ StationFormDrawer(p StationDrawerProps) {
+	<div class="station-drawer" data-drawer data-kind={ p.Kind }>
+		<header class="station-drawer-head">
+			<div class="station-drawer-eyebrow">adding</div>
+			<h3 class="station-drawer-title">{ p.DisplayName }</h3>
+			<button
+				type="button"
+				class="station-drawer-close"
+				data-action="close-drawer"
+				aria-label="Cancel"
+			>
+				<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+					<path d="M5 5l10 10M15 5l-10 10"></path>
+				</svg>
+			</button>
+		</header>
+		<form
+			hx-post={ "/api/" + p.URLPath }
+			hx-trigger="submit"
+			hx-swap="none"
+			hx-sync="this:drop"
+			hx-disabled-elt="find button[type='submit']"
+			v-scope="ModalShell()"
+			@vue:mounted="setup($el)"
+			class="station-drawer-form space-y-5"
+		>
+			<div v-show="!!serverError" v-cloak class="station-drawer-error" v-text="serverError"></div>
+			switch p.Kind {
+				case "brewer":
+					@BrewerFormBody(nil)
+				default:
+					<p class="station-drawer-empty">Inline drawer not yet wired for "{ p.Kind }". Use the modal for now.</p>
+			}
+			<div class="station-drawer-actions">
+				<button type="submit" class="btn-primary station-drawer-save">Save { p.DisplayName }</button>
+				<button
+					type="button"
+					class="btn-secondary"
+					data-action="close-drawer"
+				>Cancel</button>
+			</div>
+		</form>
+	</div>
+}
+
+// StationDrawerPropsForKind builds drawer props from the entity registry.
+// Returns the zero value + false if the kind has no descriptor. Kept
+// next to the templ so callers (the handler) don't need to know the
+// registry shape.
+func StationDrawerPropsForKind(kind string) (StationDrawerProps, bool) {
+	d := entities.GetByNoun(kind)
+	if d == nil {
+		return StationDrawerProps{}, false
+	}
+	return StationDrawerProps{
+		Kind:        kind,
+		DisplayName: d.DisplayName,
+		URLPath:     d.URLPath,
+	}, true
+}
+
+// BrewerFormBody renders the brewer create/edit fields. Pass nil for the
+// create path; pass an existing brewer to pre-fill edit fields.
+templ BrewerFormBody(brewer *arabica.Brewer) {
+	<!-- Essentials -->
+	<div class="form-fieldset">
+		<div class="form-fieldset-label">Essentials</div>
+		if brewer == nil {
+			<div v-scope="entitySuggest('/api/suggestions/brewers')" @vue:mounted="setup($el)" class="relative">
+				<input
+					type="text"
+					name="name"
+					placeholder="Name *"
+					required
+					class="w-full form-input"
+					v-model="query"
+					@input="onInput"
+					@blur="onBlur"
+					@focus="onFocus"
+					autocomplete="off"
+				/>
+				<input type="hidden" name="source_ref" v-model="sourceRef"/>
+				<div v-if="showSuggestions && suggestions.length > 0" v-cloak class="suggestions-dropdown">
+					<template v-for="s in suggestions" :key="s.source_uri">
+						<button
+							type="button"
+							class="suggestions-item"
+							@mousedown.prevent="selectBrewerSuggestion(s)"
+						>
+							<span class="font-medium" v-text="s.name"></span>
+							<span v-if="s.fields.brewerType" class="text-xs text-faint" v-text="s.fields.brewerType"></span>
+							<span v-if="s.count > 1" class="text-xs text-placeholder" v-text="s.count + ' users'"></span>
+						</button>
+					</template>
+				</div>
+			</div>
+		} else {
+			<input
+				type="text"
+				name="name"
+				value={ getStringValue(brewer, "name") }
+				placeholder="Name *"
+				required
+				class="w-full form-input"
+			/>
+		}
+		<select
+			name="brewer_type"
+			class="w-full form-select"
+		>
+			<option value="">Select type...</option>
+			<option
+				value="pourover"
+				if getStringValue(brewer, "brewer_type") == "pourover" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "pourover" {
+					selected
+				}
+			>Pour-over</option>
+			<option
+				value="espresso"
+				if getStringValue(brewer, "brewer_type") == "espresso" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "espresso" {
+					selected
+				}
+			>Espresso</option>
+			<option
+				value="immersion"
+				if getStringValue(brewer, "brewer_type") == "immersion" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "immersion" {
+					selected
+				}
+			>Immersion</option>
+			<option
+				value="mokapot"
+				if getStringValue(brewer, "brewer_type") == "mokapot" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "mokapot" {
+					selected
+				}
+			>Moka Pot</option>
+			<option
+				value="coldbrew"
+				if getStringValue(brewer, "brewer_type") == "coldbrew" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "coldbrew" {
+					selected
+				}
+			>Cold Brew</option>
+			<option
+				value="cupping"
+				if getStringValue(brewer, "brewer_type") == "cupping" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "cupping" {
+					selected
+				}
+			>Cupping</option>
+			<option
+				value="other"
+				if getStringValue(brewer, "brewer_type") == "other" || arabica.NormalizeBrewerType(getStringValue(brewer, "brewer_type")) == "other" {
+					selected
+				}
+			>Other</option>
+		</select>
+	</div>
+	<div class="form-divider"></div>
+	<!-- Description -->
+	<div class="form-fieldset">
+		<div class="form-fieldset-label">Description <span class="form-optional-hint">(optional)</span></div>
+		<textarea
+			name="description"
+			placeholder="Description"
+			rows="3"
+			class="w-full form-textarea"
+		>{ getStringValue(brewer, "description") }</textarea>
+	</div>
+}

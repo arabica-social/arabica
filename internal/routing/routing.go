@@ -96,6 +96,7 @@ func SetupRouter(cfg Config) http.Handler {
 		mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleManagePartial)))
 		mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleIncompleteRecordsPartial)))
 		mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleGetStartedCard)))
+		mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleOnboardingStationForm)))
 		mux.Handle("GET /api/popular-recipes", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandlePopularRecipesPartial)))
 		mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(coffee.HandleManageRefresh)))
 	}

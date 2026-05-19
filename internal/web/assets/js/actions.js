@@ -8,6 +8,7 @@
 //   data-action="close-dialog"          closest <dialog>.close()
 //   data-action="open-modal"            document.getElementById(data-target).showModal()
 //   data-action="dispatch-event"        window.dispatchEvent(new CustomEvent(data-event))
+//   data-action="close-drawer"          closest [data-drawer].remove()
 
 document.addEventListener("click", (e) => {
   const target = /** @type {Element | null} */ (e.target);
@@ -37,6 +38,11 @@ document.addEventListener("click", (e) => {
     case "dispatch-event": {
       const name = el.getAttribute("data-event");
       if (name) window.dispatchEvent(new CustomEvent(name));
+      break;
+    }
+    case "close-drawer": {
+      const drawer = el.closest("[data-drawer]");
+      if (drawer) drawer.remove();
       break;
     }
   }
