@@ -13,21 +13,68 @@ type OnboardingProps struct {
 	Card coffee.GetStartedCardProps
 }
 
+// HeroProps drives the page header above the get-started card.
+// Used by both the first-run onboarding flow and the ongoing "add records"
+// page so the same surface can be reframed by context.
+type HeroProps struct {
+	Eyebrow string
+	Title   string
+	Lede    templ.Component
+}
+
 templ Onboarding(layout *components.LayoutData, props OnboardingProps) {
 	@components.Layout(layout, OnboardingContent(props))
 }
 
 templ OnboardingContent(props OnboardingProps) {
 	<div class="onboarding-wrap">
-		<header class="onboarding-hero">
-			<span class="onboarding-eyebrow">welcome to arabica</span>
-			<h1 class="onboarding-title">Let's get you started.</h1>
-			<p class="onboarding-lede">
-				Add a <strong>brewer</strong>, a <strong>roaster</strong>, and your first bag of <strong>beans</strong> — that's all you need to start logging brews. Takes about two minutes.
-			</p>
-		</header>
+		@OnboardingHero(HeroProps{
+			Eyebrow: "welcome to arabica",
+			Title:   "Let's get you started.",
+			Lede:    onboardingLede(),
+		})
 		@coffee.GetStartedCard(props.Card)
 		<!-- Modal container for entity create/edit dialogs opened from the card -->
 		<div id="modal-container"></div>
 	</div>
+}
+
+// AddRecords renders the same get-started surface as a reusable "add to your
+// shelf" page (library mode — no progress strip, no ready CTA).
+templ AddRecords(layout *components.LayoutData, props OnboardingProps) {
+	@components.Layout(layout, AddRecordsContent(props))
+}
+
+templ AddRecordsContent(props OnboardingProps) {
+	<div class="onboarding-wrap">
+		@OnboardingHero(HeroProps{
+			Eyebrow: "your coffee bar",
+			Title:   "Add records.",
+			Lede:    addRecordsLede(),
+		})
+		@coffee.GetStartedCard(props.Card)
+		<div id="modal-container"></div>
+	</div>
+}
+
+templ OnboardingHero(h HeroProps) {
+	<header class="onboarding-hero">
+		<span class="onboarding-eyebrow">{ h.Eyebrow }</span>
+		<h1 class="onboarding-title">{ h.Title }</h1>
+		if h.Lede != nil {
+			@h.Lede
+		}
+	</header>
+}
+
+templ onboardingLede() {
+	<p class="onboarding-lede">
+		Add a <strong>brewer</strong>, a <strong>roaster</strong>, and your first bag of <strong>beans</strong> — that's all you need to start logging brews. Takes about two minutes.
+	</p>
+}
+
+templ addRecordsLede() {
+	<p class="onboarding-lede">
+		Add a <strong>brewer</strong>, <strong>roaster</strong>, <strong>bean</strong>, or <strong>grinder</strong> — anything new on the shelf shows up across your brews.
+	</p>
 }

@@ -117,6 +117,7 @@ func SetupRouter(cfg Config) http.Handler {
 	// silently when the sister app is the active one.
 	if cfg.App.Name == "arabica" {
 		mux.HandleFunc("GET /onboarding", coffee.HandleOnboarding)
+		mux.HandleFunc("GET /add", coffee.HandleAddRecords)
 		mux.HandleFunc("GET /my-coffee", coffee.HandleMyCoffee)
 		mux.HandleFunc("GET /manage", coffee.HandleManage)
 		mux.HandleFunc("GET /brews", coffee.HandleBrewList)

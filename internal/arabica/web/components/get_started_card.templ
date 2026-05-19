@@ -11,24 +11,32 @@ import (
 // GetStartedCardProps is what the /api/get-started-card handler renders.
 // Beans / Brewers / Grinders / Roasters are the user's current entities,
 // shown as a short list per section.
+//
+// Mode controls onboarding-only UI (progress stamps, "X steps to go" / "ready
+// to brew" panel). Zero value ("" or "onboarding") shows everything; "library"
+// hides the readiness UI for use on an ongoing "add records" page.
 type GetStartedCardProps struct {
 	Readiness onboarding.ReadinessStatus
 	Beans     []*arabica.Bean
 	Brewers   []*arabica.Brewer
 	Grinders  []*arabica.Grinder
 	Roasters  []*arabica.Roaster
+	Mode      string
 }
 
 // Re-issues itself with the same id+hx-trigger so refreshManage reloads it in place.
 templ GetStartedCard(props GetStartedCardProps) {
 	<section
 		id="get-started"
-		hx-get="/api/get-started-card"
+		hx-get={ getStartedRefreshURL(props.Mode) }
 		hx-trigger="refreshManage from:body"
 		hx-swap="outerHTML"
 		class="onboarding-card"
+		data-mode={ cardMode(props.Mode) }
 	>
-		@progressStrip(props.Readiness)
+		if !isLibraryMode(props.Mode) {
+			@progressStrip(props.Readiness)
+		}
 		<div class="stations">
 			@station(stationProps{
 				No: "01", Kind: "brewer", Title: "Brewer",
@@ -67,8 +75,28 @@ templ GetStartedCard(props GetStartedCardProps) {
 			})
 			<div id="station-drawer-slot-bottom" class="station-drawer-row"></div>
 		</div>
-		@readyPanel(props.Readiness)
+		if !isLibraryMode(props.Mode) {
+			@readyPanel(props.Readiness)
+		}
 	</section>
+}
+
+func isLibraryMode(mode string) bool {
+	return mode == "library"
+}
+
+func cardMode(mode string) string {
+	if mode == "" {
+		return "onboarding"
+	}
+	return mode
+}
+
+func getStartedRefreshURL(mode string) string {
+	if isLibraryMode(mode) {
+		return "/api/get-started-card?mode=library"
+	}
+	return "/api/get-started-card"
 }
 
 templ progressStrip(r onboarding.ReadinessStatus) {

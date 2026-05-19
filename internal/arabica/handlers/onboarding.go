@@ -55,6 +55,9 @@ func (h *Handlers) HandleOnboarding(w http.ResponseWriter, r *http.Request) {
 // When the user is fully ready, the card still renders (with the green
 // "Log your first brew" CTA). The home template decides whether to mount
 // the card slot at all on the initial server render.
+//
+// The ?mode=library query param hides the onboarding-only progress/ready UI
+// so the same card can be reused on the ongoing "add records" page.
 func (h *Handlers) HandleGetStartedCard(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetAtprotoStore(r)
 	if !authenticated {
@@ -68,10 +71,36 @@ func (h *Handlers) HandleGetStartedCard(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Failed to load", http.StatusInternalServerError)
 		return
 	}
+	props.Mode = r.URL.Query().Get("mode")
 
 	if err := coffee.GetStartedCard(props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render get-started card")
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
+	}
+}
+
+// HandleAddRecords renders the "add records" library page — same get-started
+// card as onboarding, but in library mode (no progress strip, no ready CTA)
+// and reachable regardless of brew readiness.
+func (h *Handlers) HandleAddRecords(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetAtprotoStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	props, err := buildGetStartedCardProps(r.Context(), store)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to build add-records props")
+		http.Error(w, "Failed to load", http.StatusInternalServerError)
+		return
+	}
+	props.Mode = "library"
+
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Add records.")
+	if err := coffeepages.AddRecords(layoutData, coffeepages.OnboardingProps{Card: props}).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render add-records page")
 	}
 }
 
