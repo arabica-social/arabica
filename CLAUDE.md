@@ -258,7 +258,7 @@ All files are `go:embed`ed and served from in-memory caches:
 Both subsystems set `Cache-Control: public, max-age=31536000, immutable` in
 production and honor `If-None-Match` for 304s. Manual `?v=X.Y.Z` bumps are gone.
 
-For dev, set `ARABICA_HOTRELOAD=1` (already on in the `just run` recipe). Each
+For dev, set `ARABICA_DEV=1` (already on in the `just run` recipe). Each
 subsystem then re-reads its source directory on every request, so editing a CSS
 or JS file and refreshing picks up the change without a server restart. There is
 no separate build step beyond `go run` / `just run`.

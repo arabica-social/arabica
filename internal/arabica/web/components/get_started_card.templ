@@ -19,10 +19,7 @@ type GetStartedCardProps struct {
 	Roasters  []*arabica.Roaster
 }
 
-// GetStartedCard is the onboarding page's main surface. It always re-issues
-// itself with the same id + hx-trigger so a `refreshManage` event (fired
-// by entity-create modals on success) reloads it in place — that's how
-// newly-added entities appear without a full page reload.
+// Re-issues itself with the same id+hx-trigger so refreshManage reloads it in place.
 templ GetStartedCard(props GetStartedCardProps) {
 	<section
 		id="get-started"
@@ -43,39 +40,37 @@ templ GetStartedCard(props GetStartedCardProps) {
 			})
 			@station(stationProps{
 				No: "02", Kind: "roaster", Title: "Roaster",
-				Hint:     "Who roasted the beans. Pick a favorite local roaster to start.",
-				Required: true,
-				Done:     props.Readiness.HasRoaster,
-				Items:    roasterLabels(props.Roasters),
+				Hint:      "Who roasted the beans. Pick a favorite local roaster to start.",
+				Required:  true,
+				Done:      props.Readiness.HasRoaster,
+				Items:     roasterLabels(props.Roasters),
+				UseDrawer: true,
 			})
 			@station(stationProps{
 				No: "03", Kind: "bean", Title: "Bean",
-				Hint:     "Your current bag — single origin, blend, anything you're drinking.",
-				Required: true,
-				Done:     props.Readiness.HasBean,
-				Items:    beanLabels(props.Beans),
+				Hint:      "Your current bag — single origin, blend, anything you're drinking.",
+				Required:  true,
+				Done:      props.Readiness.HasBean,
+				Items:     beanLabels(props.Beans),
+				UseDrawer: true,
 			})
-			<!-- Drawer slot sits inside the grid as a full-width row
-			     between the three required stations and the optional
-			     grinder row. Stays display:none when empty (CSS). -->
 			<div id="station-drawer-slot" class="station-drawer-row"></div>
 			@station(stationProps{
 				No: "04", Kind: "grinder", Title: "Grinder",
-				Hint:     "Optional — skip this if you brew with pre-ground beans.",
-				Required: false,
-				Done:     len(props.Grinders) > 0,
-				Items:    grinderLabels(props.Grinders),
-				Optional: true,
+				Hint:       "Optional — skip this if you brew with pre-ground beans.",
+				Required:   false,
+				Done:       len(props.Grinders) > 0,
+				Items:      grinderLabels(props.Grinders),
+				Optional:   true,
+				UseDrawer:  true,
+				DrawerSlot: "station-drawer-slot-bottom",
 			})
+			<div id="station-drawer-slot-bottom" class="station-drawer-row"></div>
 		</div>
 		@readyPanel(props.Readiness)
 	</section>
 }
 
-// progressStrip is the three-stamp progress indicator above the stations.
-// Done stamps fill in with the entity's tint, lines between stamps fill
-// when the preceding stamp is done, and the next-incomplete stamp shows
-// a pulse to signal where to go next.
 templ progressStrip(r onboarding.ReadinessStatus) {
 	<div class="onboarding-progress" role="group" aria-label={ progressAria(r) }>
 		@stamp("brewer", r.HasBrewer, nextRequired(r) == "brewer")
@@ -107,21 +102,17 @@ templ stampLine(filled bool, kind string) {
 	}
 }
 
-// stationProps groups the per-station rendering inputs so the template
-// signature stays clean. Order matches visual order on the page.
 type stationProps struct {
-	No       string
-	Kind     string
-	Title    string
-	Hint     string
-	Required bool
-	Done     bool
-	Items    []string
-	Optional bool
-	// UseDrawer routes the "+ Add" click to the inline drawer slot
-	// instead of the modal container. Acts as the proof-of-concept
-	// for portable form bodies — same *FormBody, different surface.
-	UseDrawer bool
+	No         string
+	Kind       string
+	Title      string
+	Hint       string
+	Required   bool
+	Done       bool
+	Items      []string
+	Optional   bool
+	UseDrawer  bool   // route "+ Add" to the inline drawer slot, not the modal
+	DrawerSlot string // slot element id; defaults to "station-drawer-slot"
 }
 
 templ station(p stationProps) {
@@ -145,17 +136,14 @@ templ station(p stationProps) {
 				type="button"
 				class="station-add"
 				hx-get={ "/api/onboarding/station-form/" + p.Kind }
-				hx-target="#station-drawer-slot"
+				hx-target={ "#" + drawerSlotID(p) }
 				hx-swap="innerHTML"
 			>
 				<span class="station-add-icon" aria-hidden="true">+</span>
 				{ addLabel(p) }
 			</button>
 		} else {
-			<!-- The modal-style "+ Add" button. The entity-helpers.js
-			     htmx:afterSwap listener calls dialog.showModal() once
-			     the modal markup lands in #modal-container, so no
-			     inline onclick is needed (and CSP forbids one). -->
+			<!-- entity-helpers.js auto-opens the dialog on swap into #modal-container. -->
 			<button
 				type="button"
 				class="station-add"
@@ -203,9 +191,6 @@ templ stationItems(p stationProps) {
 	}
 }
 
-// readyPanel sits below the stations. When the required three are added,
-// it switches to a warm CTA. Until then, it shows a friendly count of
-// what's left so the user knows exactly how close they are.
 templ readyPanel(r onboarding.ReadinessStatus) {
 	if r.Ready() {
 		<div class="ready-panel" data-state="ready">
@@ -233,9 +218,6 @@ templ readyPanel(r onboarding.ReadinessStatus) {
 	}
 }
 
-// ───────────────────────────────────────────────────────────────────
-// Helpers — kept inline so the whole onboarding surface lives in one file.
-
 const maxVisibleItems = 3
 
 func visibleItems(items []string) []string {
@@ -246,7 +228,6 @@ func visibleItems(items []string) []string {
 }
 
 // nextRequired returns the first incomplete required step in display order.
-// Used to mark the "current" stamp with a pulse.
 func nextRequired(r onboarding.ReadinessStatus) string {
 	switch {
 	case !r.HasBrewer:
@@ -270,9 +251,6 @@ func stampState(done, current bool) string {
 	return "todo"
 }
 
-// stampStyle injects the per-entity tint color into the stamp so done /
-// current states pull from the right token. Returned as templ.SafeCSS
-// since templ requires a typed value for style attributes.
 func stampStyle(kind string) templ.SafeCSS {
 	c := tintVar(kind)
 	return templ.SafeCSS(fmt.Sprintf("--stamp-color: %s;", c))
@@ -345,8 +323,6 @@ func pluralStep(n int) string {
 	return "steps"
 }
 
-// encouragement gives a contextual sub-line based on what's missing.
-// Keeps the tone calm and unhurried — matches the brand voice.
 func encouragement(r onboarding.ReadinessStatus) string {
 	var missing []string
 	if !r.HasBrewer {
@@ -370,6 +346,13 @@ func encouragement(r onboarding.ReadinessStatus) string {
 	}
 }
 
+func drawerSlotID(p stationProps) string {
+	if p.DrawerSlot != "" {
+		return p.DrawerSlot
+	}
+	return "station-drawer-slot"
+}
+
 func addLabel(p stationProps) string {
 	if len(p.Items) > 0 {
 		return "Add another"
@@ -377,9 +360,6 @@ func addLabel(p stationProps) string {
 	return "Add " + indefinite(p.Title)
 }
 
-// indefinite returns the noun with the right article. Falls back to "a"
-// for the (currently impossible) case of an unexpected leading vowel —
-// none of the current entity names start with a vowel.
 func indefinite(noun string) string {
 	if noun == "" {
 		return noun
@@ -393,9 +373,6 @@ func indefinite(noun string) string {
 	}
 }
 
-// emptyCue tells the user what to do next when a station is empty.
-// Action-oriented copy that teaches the interface rather than just
-// announcing emptiness.
 func emptyCue(kind string) string {
 	switch kind {
 	case "brewer":
@@ -424,8 +401,6 @@ templ iconCheckSmall() {
 		<path d="M4 10.5l4 4 8-9"></path>
 	</svg>
 }
-
-// ── Label helpers (unchanged from previous version) ──────────────────
 
 func brewerLabels(brewers []*arabica.Brewer) []string {
 	out := make([]string, 0, len(brewers))

@@ -7,7 +7,8 @@ import (
 
 // CreateAccountProps holds state for the account creation page.
 type CreateAccountProps struct {
-	Error string // Error message from failed signup attempt
+	Error      string             // Error message from failed signup attempt
+	Categories []signup.Category  // PDS provider catalog (already dev-filtered)
 }
 
 // CreateAccount renders the account creation page with layout.
@@ -34,30 +35,16 @@ templ CreateAccountContent(props CreateAccountProps) {
 				{ props.Error }
 			</div>
 		}
-		for _, cat := range signup.Categories() {
-			if cat.DevOnly {
-				<div v-scope="{ devMode: (() => { try { return localStorage.getItem('devMode') === 'true' } catch(e) { return false } })() }">
-					<div class="mb-6" v-if="devMode" v-cloak>
-						<h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-3">{ cat.Title }</h2>
-						<p class="text-sm text-faint mb-3">{ cat.Description }</p>
-						<div class="space-y-3">
-							for _, p := range cat.Providers {
-								@pdsCard(p)
-							}
-						</div>
-					</div>
+		for _, cat := range props.Categories {
+			<div class="mb-6">
+				<h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-3">{ cat.Title }</h2>
+				<p class="text-sm text-faint mb-3">{ cat.Description }</p>
+				<div class="space-y-3">
+					for _, p := range cat.Providers {
+						@pdsCard(p)
+					}
 				</div>
-			} else {
-				<div class="mb-6">
-					<h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-3">{ cat.Title }</h2>
-					<p class="text-sm text-faint mb-3">{ cat.Description }</p>
-					<div class="space-y-3">
-						for _, p := range cat.Providers {
-							@pdsCard(p)
-						}
-					</div>
-				</div>
-			}
+			</div>
 		}
 		<!-- Self-hosted note -->
 		<div class="text-sm text-faint mb-6">

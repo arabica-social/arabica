@@ -26,8 +26,24 @@ type Category struct {
 
 // Categories returns the list of PDS provider categories shown on the
 // create account page. This is the single source of truth for both the
-// rendered view and the server-side allowlist.
-func Categories() []Category {
+// rendered view and the server-side allowlist. When devMode is false,
+// categories flagged DevOnly are excluded.
+func Categories(devMode bool) []Category {
+	all := allCategories()
+	if devMode {
+		return all
+	}
+	out := make([]Category, 0, len(all))
+	for _, c := range all {
+		if c.DevOnly {
+			continue
+		}
+		out = append(out, c)
+	}
+	return out
+}
+
+func allCategories() []Category {
 	return []Category{
 		{
 			Title:       "Recommended",
@@ -130,9 +146,10 @@ func Categories() []Category {
 // IsAllowedPDSURL reports whether the given PDS URL is in the catalog as
 // a prompt=create destination (i.e. a provider without an external
 // SignupURL override). External-redirect providers are excluded because
-// they never POST to the signup handler.
-func IsAllowedPDSURL(url string) bool {
-	for _, cat := range Categories() {
+// they never POST to the signup handler. DevOnly categories are only
+// considered when devMode is true.
+func IsAllowedPDSURL(url string, devMode bool) bool {
+	for _, cat := range Categories(devMode) {
 		for _, p := range cat.Providers {
 			if p.SignupURL == "" && p.URL == url {
 				return true

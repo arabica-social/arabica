@@ -1,12 +1,4 @@
-/* ========================================
-   22-onboarding.css — first-run setup page
-   ========================================
-   The /onboarding page. Three required stations (brewer / roaster /
-   bean), one optional (grinder), a stamp-strip progress indicator,
-   and a ready panel that swaps in a brew CTA once required entities
-   exist. Colors are pulled from the per-entity --type-* tokens so
-   each station carries its own identity.
-   ======================================== */
+/* 22-onboarding.css — /onboarding page styles. */
 
 .onboarding-wrap {
   display: flex;
@@ -86,7 +78,6 @@
 }
 
 .onboarding-card::before {
-  /* Faint top-edge ink line — like the perforation on a coffee bag */
   content: "";
   position: absolute;
   top: 0;
@@ -151,7 +142,6 @@
 }
 
 .stamp-mark::after {
-  /* Inner dotted ring — a faux postage-stamp imprint */
   content: "";
   position: absolute;
   inset: 4px;
@@ -302,7 +292,6 @@
 }
 
 .station::before {
-  /* Number watermark in the corner — quiet decorative element */
   content: attr(data-no);
   position: absolute;
   top: -0.5rem;
@@ -317,7 +306,6 @@
 }
 
 .station::after {
-  /* Tinted wash behind the content — subtle entity-color presence */
   content: "";
   position: absolute;
   inset: 0;
@@ -664,32 +652,20 @@
 }
 
 /* ── Station drawer (inline add form) ─────────────── */
-/* Sits inside .stations as a full-width grid row between the three
-   required stations and the optional grinder row. The drawer matches
-   the visual treatment of its originating station (tinted wash, same
-   border + radius) so it reads as an extension of that card. A small
-   connector notch above the drawer points to the column it came from. */
-
-#station-drawer-slot {
-  /* Drawer slot is a grid item. Spans full width when filled and
-     collapses entirely when empty so the grinder row sits flush
-     against the row-1 stations. */
-}
 
 @media (min-width: 640px) {
-  #station-drawer-slot {
+  .station-drawer-row {
     grid-column: 1 / -1;
   }
 }
 
-#station-drawer-slot:empty {
+.station-drawer-row:empty {
   display: none;
 }
 
 .station-drawer {
   --tint: var(--type-brewer);
   --tint-bg: var(--type-brewer-tint);
-  /* Default connector position — overridden per data-kind below. */
   --connector-x: 16.67%;
   position: relative;
   background: var(--card-bg);
@@ -705,9 +681,7 @@
   box-shadow: var(--shadow-md);
 }
 
-/* Per-entity tint + connector position. Connector x sits at the
-   horizontal center of the station the drawer came from, which on
-   the 3-column grid is at 1/6, 1/2, and 5/6 of the grid width. */
+/* --connector-x sits at the horizontal center of the originating column. */
 .station-drawer[data-kind="brewer"] {
   --tint: var(--type-brewer);
   --tint-bg: var(--type-brewer-tint);
@@ -729,8 +703,6 @@
   --connector-x: 50%;
 }
 
-/* Single-column layout: connector always centers under whichever
-   card was clicked (each card is full-width). */
 @media (max-width: 639px) {
   .station-drawer {
     --connector-x: 50% !important;
@@ -738,9 +710,6 @@
 }
 
 .station-drawer::before {
-  /* Connector notch — a small upward-pointing triangle aligned to
-     the column of the originating station. Rendered with the
-     drawer border color so it visually continues the card edge. */
   content: "";
   position: absolute;
   top: -7px;
@@ -755,8 +724,6 @@
 }
 
 .station-drawer::after {
-  /* Tinted wash matching the station's background treatment so the
-     drawer reads as the same surface as the card it came from. */
   content: "";
   position: absolute;
   inset: 0;

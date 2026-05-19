@@ -528,6 +528,26 @@ function RecipePours(initialPours) {
   };
 }
 
+/**
+ * @typedef {object} BeanRatingScope
+ * @property {boolean} showRating
+ * @property {number} rating
+ */
+
+/**
+ * Rating sub-scope for the bean create/edit form.
+ * @param {number} [initialRating] — 1-10 when editing, 0 on create
+ * @returns {BeanRatingScope}
+ */
+function BeanRating(initialRating) {
+  const r = Number(initialRating);
+  const has = Number.isFinite(r) && r > 0;
+  return {
+    showRating: has,
+    rating: has ? r : 0,
+  };
+}
+
 (function () {
   const w = /** @type {Window & ArabicaWindow} */ (window);
   if (typeof w.PetiteVue === "undefined") return;
@@ -544,6 +564,7 @@ function RecipePours(initialPours) {
     FeedFilters,
     ModalShell,
     RecipePours,
+    BeanRating,
     RoasterPicker,
     PageForm,
     SteepForm,
@@ -560,9 +581,12 @@ function RecipePours(initialPours) {
 
   /** @param {Element | Document | null | undefined} root */
   function mountWithin(root) {
-    // Mount only top-level v-scope elements; petite-vue handles nested
-    // v-scope children as part of the same app tree.
+    // petite-vue removes the v-scope attribute as it walks, so the
+    // `closest("[v-scope]")` ancestor check misses already-mounted
+    // parents and double-mounts their nested scopes. data-pv-root
+    // survives the walk and keeps the descendant check honest.
     const scope = root && "querySelectorAll" in root ? root : document;
+    const ANCESTOR_SELECTOR = "[v-scope],[data-pv-root]";
     if (
       root &&
       root instanceof Element &&
@@ -570,14 +594,16 @@ function RecipePours(initialPours) {
       !(/** @type {any} */ (root).__pv)
     ) {
       /** @type {any} */ (root).__pv = true;
+      root.setAttribute("data-pv-root", "");
       PetiteVue.createApp(globals).mount(root);
     }
     scope.querySelectorAll("[v-scope]").forEach((el) => {
       const tagged = /** @type {any} */ (el);
       if (tagged.__pv) return;
-      // Skip nested v-scope; the ancestor's mount already covers it.
-      if (el.parentElement && el.parentElement.closest("[v-scope]")) return;
+      if (el.parentElement && el.parentElement.closest(ANCESTOR_SELECTOR))
+        return;
       tagged.__pv = true;
+      el.setAttribute("data-pv-root", "");
       PetiteVue.createApp(globals).mount(el);
     });
   }

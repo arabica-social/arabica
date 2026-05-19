@@ -78,7 +78,8 @@ just templ-watch  # run with live template regeneration
 ```
 
 CSS and JS are bundled in-process at server startup — no external build step
-needed. For development with hot reload set `ARABICA_HOTRELOAD=1`.
+needed. For development set `ARABICA_DEV=1` to enable CSS+JS hot reload and
+unlock dev-only signup providers (e.g. pds.rip on `/join/create`).
 
 ---
 

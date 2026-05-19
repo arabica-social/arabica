@@ -327,15 +327,16 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	}
 
 	// Static assets: CSS bundle + per-file JS. Embedded at build time, or
-	// re-read from disk per-request when <APP>_HOTRELOAD is set. The hash-
-	// based URLs replace the manually-bumped ?v= query params.
-	hotReload := hotReloadEnabled(envPrefix)
+	// re-read from disk per-request when <APP>_DEV is set. The hash-based
+	// URLs replace the manually-bumped ?v= query params.
+	devMode := devModeEnabled(envPrefix)
+	h.SetDevMode(devMode)
 	cssDevDir := ""
 	jsDevDir := ""
-	if hotReload {
+	if devMode {
 		cssDevDir = "internal/web/assets/css"
 		jsDevDir = "internal/web/assets/js"
-		log.Info().Msg("CSS+JS hot-reload enabled — assets re-read from disk on each request")
+		log.Info().Msg("Dev mode enabled — assets re-read from disk on each request; dev-only signup providers visible")
 	}
 	cssBundle := assets.New(assets.Config{AppName: app.Name, DevDir: cssDevDir})
 	cssBundle.MustBuild()
@@ -486,11 +487,14 @@ func migrateLegacyDBPath(dataDir, appName string) error {
 	return nil
 }
 
-// hotReloadEnabled reports whether <APP>_HOTRELOAD is set to a truthy
-// value, switching CSS+JS asset handlers from the embedded bytes to
-// re-reading from disk on every request.
-func hotReloadEnabled(envPrefix string) bool {
-	v := lookupAppEnv(envPrefix, "HOTRELOAD")
+// devModeEnabled reports whether <APP>_DEV is set to a truthy value.
+// Dev mode unlocks:
+//   - CSS+JS hot-reload (re-read assets from disk on every request)
+//   - DevOnly entries in the signup PDS catalog (e.g. pds.rip)
+//   - any other developer-facing affordances gated by the handler's
+//     devMode flag
+func devModeEnabled(envPrefix string) bool {
+	v := lookupAppEnv(envPrefix, "DEV")
 	switch v {
 	case "", "0", "false", "off", "no":
 		return false

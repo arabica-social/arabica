@@ -69,6 +69,16 @@ type Handler struct {
 	// list (admin export, NSID-keyed loops) can read app.NSIDs(). Set
 	// via SetApp at startup.
 	app *domain.App
+
+	// devMode reflects <APP>_DEV at startup. Gates dev-only PDS providers
+	// in the signup catalog and any other developer-facing affordances.
+	devMode bool
+}
+
+// SetDevMode toggles dev-mode features. Called once at startup from the
+// server bootstrap based on the <APP>_DEV env var.
+func (h *Handler) SetDevMode(v bool) {
+	h.devMode = v
 }
 
 // SetBrand wires the per-app branding into the handler. Called once at
@@ -710,7 +720,8 @@ func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.LayoutDataFromRequest(r, "Create Account")
 
 	props := pages.CreateAccountProps{
-		Error: r.URL.Query().Get("error"),
+		Error:      r.URL.Query().Get("error"),
+		Categories: signup.Categories(h.devMode),
 	}
 
 	if err := pages.CreateAccount(layoutData, props).Render(r.Context(), w); err != nil {
@@ -737,7 +748,7 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if !signup.IsAllowedPDSURL(pdsURL) {
+	if !signup.IsAllowedPDSURL(pdsURL, h.devMode) {
 		log.Warn().Str("pds_url", pdsURL).Msg("Signup attempt with unlisted PDS URL")
 		http.Redirect(w, r, "/join/create?error=Invalid+server+selection", http.StatusSeeOther)
 		return

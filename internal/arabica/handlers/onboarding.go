@@ -75,12 +75,10 @@ func (h *Handlers) HandleGetStartedCard(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// HandleOnboardingStationForm returns the inline drawer form for adding
-// an entity from the onboarding page. Renders the same *FormBody used by
-// the modal flow — but inside a non-dialog container so the form can sit
-// in a slot beneath its station card.
+// HandleOnboardingStationForm renders the inline drawer add-form for a station.
 func (h *Handlers) HandleOnboardingStationForm(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.GetAtprotoStore(r); !ok {
+	store, ok := h.GetAtprotoStore(r)
+	if !ok {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -89,6 +87,9 @@ func (h *Handlers) HandleOnboardingStationForm(w http.ResponseWriter, r *http.Re
 	if !ok {
 		http.Error(w, "Unknown entity kind", http.StatusBadRequest)
 		return
+	}
+	if kind == "bean" {
+		props.Roasters = beanModalRoasters(r.Context(), store)
 	}
 	if err := coffee.StationFormDrawer(props).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render station form drawer")
