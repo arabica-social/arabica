@@ -266,6 +266,9 @@
 @media (min-width: 640px) {
   .stations {
     grid-template-columns: repeat(3, 1fr);
+    /* Dense flow so an active drawer slot (full-row) doesn't leave gaps —
+       remaining cards backfill the originating row. */
+    grid-auto-flow: dense;
   }
   .stations .station[data-optional="true"] {
     grid-column: 1 / -1;

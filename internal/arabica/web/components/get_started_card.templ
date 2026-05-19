@@ -40,12 +40,13 @@ templ GetStartedCard(props GetStartedCardProps) {
 		<div class="stations">
 			@station(stationProps{
 				No: "01", Kind: "brewer", Title: "Brewer",
-				Hint:     "Espresso machine, V60, French press — whatever you brew with.",
-				Required: true,
-				Done:     props.Readiness.HasBrewer,
-				Items:    brewerLabels(props.Brewers),
+				Hint:      "Espresso machine, V60, French press — whatever you brew with.",
+				Required:  true,
+				Done:      props.Readiness.HasBrewer,
+				Items:     brewerLabels(props.Brewers),
 				UseDrawer: true,
 			})
+			<div id="station-drawer-slot-brewer" class="station-drawer-row"></div>
 			@station(stationProps{
 				No: "02", Kind: "roaster", Title: "Roaster",
 				Hint:      "Who roasted the beans. Pick a favorite local roaster to start.",
@@ -54,6 +55,7 @@ templ GetStartedCard(props GetStartedCardProps) {
 				Items:     roasterLabels(props.Roasters),
 				UseDrawer: true,
 			})
+			<div id="station-drawer-slot-roaster" class="station-drawer-row"></div>
 			@station(stationProps{
 				No: "03", Kind: "bean", Title: "Bean",
 				Hint:      "Your current bag — single origin, blend, anything you're drinking.",
@@ -62,18 +64,17 @@ templ GetStartedCard(props GetStartedCardProps) {
 				Items:     beanLabels(props.Beans),
 				UseDrawer: true,
 			})
-			<div id="station-drawer-slot" class="station-drawer-row"></div>
+			<div id="station-drawer-slot-bean" class="station-drawer-row"></div>
 			@station(stationProps{
 				No: "04", Kind: "grinder", Title: "Grinder",
-				Hint:       "Optional — skip this if you brew with pre-ground beans.",
-				Required:   false,
-				Done:       len(props.Grinders) > 0,
-				Items:      grinderLabels(props.Grinders),
-				Optional:   true,
-				UseDrawer:  true,
-				DrawerSlot: "station-drawer-slot-bottom",
+				Hint:      "Optional — skip this if you brew with pre-ground beans.",
+				Required:  false,
+				Done:      len(props.Grinders) > 0,
+				Items:     grinderLabels(props.Grinders),
+				Optional:  true,
+				UseDrawer: true,
 			})
-			<div id="station-drawer-slot-bottom" class="station-drawer-row"></div>
+			<div id="station-drawer-slot-grinder" class="station-drawer-row"></div>
 		</div>
 		if !isLibraryMode(props.Mode) {
 			@readyPanel(props.Readiness)
@@ -131,16 +132,15 @@ templ stampLine(filled bool, kind string) {
 }
 
 type stationProps struct {
-	No         string
-	Kind       string
-	Title      string
-	Hint       string
-	Required   bool
-	Done       bool
-	Items      []string
-	Optional   bool
-	UseDrawer  bool   // route "+ Add" to the inline drawer slot, not the modal
-	DrawerSlot string // slot element id; defaults to "station-drawer-slot"
+	No        string
+	Kind      string
+	Title     string
+	Hint      string
+	Required  bool
+	Done      bool
+	Items     []string
+	Optional  bool
+	UseDrawer bool // route "+ Add" to the inline per-kind drawer slot, not the modal
 }
 
 templ station(p stationProps) {
@@ -375,10 +375,7 @@ func encouragement(r onboarding.ReadinessStatus) string {
 }
 
 func drawerSlotID(p stationProps) string {
-	if p.DrawerSlot != "" {
-		return p.DrawerSlot
-	}
-	return "station-drawer-slot"
+	return "station-drawer-slot-" + p.Kind
 }
 
 func addLabel(p stationProps) string {
