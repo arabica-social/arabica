@@ -10,6 +10,21 @@
 //   data-action="dispatch-event"        window.dispatchEvent(new CustomEvent(data-event))
 //   data-action="close-drawer"          closest [data-drawer].remove()
 
+// Only one onboarding station drawer may be open at a time. When any "Add"
+// button is clicked, clear all drawer slots before htmx swaps the new drawer
+// into its target.
+document.addEventListener("click", (e) => {
+  const target = /** @type {Element | null} */ (e.target);
+  if (!target) return;
+  const addBtn = target.closest(".station-add[hx-target^='#station-drawer-slot-']");
+  if (!addBtn) return;
+  document
+    .querySelectorAll(".station-drawer-row")
+    .forEach((slot) => {
+      slot.innerHTML = "";
+    });
+});
+
 document.addEventListener("click", (e) => {
   const target = /** @type {Element | null} */ (e.target);
   if (!target) return;
