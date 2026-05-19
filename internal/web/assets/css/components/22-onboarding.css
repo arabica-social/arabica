@@ -1,0 +1,664 @@
+/* ========================================
+   22-onboarding.css — first-run setup page
+   ========================================
+   The /onboarding page. Three required stations (brewer / roaster /
+   bean), one optional (grinder), a stamp-strip progress indicator,
+   and a ready panel that swaps in a brew CTA once required entities
+   exist. Colors are pulled from the per-entity --type-* tokens so
+   each station carries its own identity.
+   ======================================== */
+
+.onboarding-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 4vw, 3rem);
+  padding-top: clamp(1.5rem, 4vw, 3rem);
+  padding-bottom: 4rem;
+  max-width: 56rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+/* ── Hero ─────────────────────────────────────────── */
+.onboarding-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 38rem;
+}
+
+.onboarding-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--type-bean);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.onboarding-eyebrow::before {
+  content: "";
+  display: block;
+  width: 1.75rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.onboarding-title {
+  font-size: clamp(2rem, 5.5vw, 3rem);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.onboarding-lede {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--text-emphasis);
+  max-width: 36rem;
+  margin: 0;
+}
+
+.onboarding-lede strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ── Container card ───────────────────────────────── */
+.onboarding-card {
+  background: var(--card-bg);
+  background-image: var(--texture-kraft);
+  background-blend-mode: multiply;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-md);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 3vw, 2.25rem);
+  position: relative;
+  overflow: hidden;
+}
+
+.onboarding-card::before {
+  /* Faint top-edge ink line — like the perforation on a coffee bag */
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background:
+    linear-gradient(
+      to right,
+      var(--type-brewer) 0%,
+      var(--type-brewer) 33%,
+      var(--type-roaster) 33%,
+      var(--type-roaster) 66%,
+      var(--type-bean) 66%,
+      var(--type-bean) 100%
+    );
+  opacity: 0.85;
+}
+
+/* ── Progress stamps ──────────────────────────────── */
+.onboarding-progress {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transform: rotate(var(--stamp-tilt, 0deg));
+}
+
+.stamp:nth-child(1) {
+  --stamp-tilt: -2deg;
+}
+
+.stamp:nth-child(3) {
+  --stamp-tilt: 1.5deg;
+}
+
+.stamp:nth-child(5) {
+  --stamp-tilt: -1deg;
+}
+
+.stamp-mark {
+  width: clamp(2.5rem, 8vw, 3.25rem);
+  aspect-ratio: 1 / 1;
+  border: 1.5px dashed var(--text-faint);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-bg);
+  position: relative;
+  transition: all 250ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.stamp-mark::after {
+  /* Inner dotted ring — a faux postage-stamp imprint */
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1px dotted currentColor;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.stamp[data-state="done"] .stamp-mark {
+  background: var(--stamp-color, var(--type-brewer));
+  border-color: var(--stamp-color, var(--type-brewer));
+  border-style: solid;
+  color: var(--brand-cream-50);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.12);
+  animation: stamp-press 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stamp[data-state="done"] .stamp-mark::after {
+  border-color: var(--brand-cream-50);
+  opacity: 0.35;
+}
+
+.stamp[data-state="current"] .stamp-mark {
+  border-color: var(--stamp-color, var(--type-roaster));
+  color: var(--stamp-color, var(--type-roaster));
+  border-style: solid;
+}
+
+.stamp[data-state="current"] .stamp-mark::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid var(--stamp-color, var(--type-roaster));
+  opacity: 0;
+  animation: stamp-pulse 2.4s ease-out infinite;
+}
+
+.stamp-glyph {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.stamp-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.stamp[data-state="done"] .stamp-label {
+  color: var(--stamp-color, var(--type-brewer));
+}
+
+.stamp[data-state="current"] .stamp-label {
+  color: var(--text-primary);
+}
+
+.stamp-line {
+  height: 1.5px;
+  border-radius: 1px;
+  background-image: linear-gradient(
+    to right,
+    var(--text-faint) 0,
+    var(--text-faint) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  background-size: 12px 1.5px;
+  background-repeat: repeat-x;
+  position: relative;
+  align-self: start;
+  margin-top: clamp(1.25rem, 4vw, 1.625rem);
+  opacity: 0.6;
+  transition: background 250ms ease;
+}
+
+.stamp-line[data-filled="true"] {
+  background-image: none;
+  background: var(--stamp-fill, var(--type-brewer));
+  opacity: 0.55;
+}
+
+@keyframes stamp-press {
+  0% {
+    transform: scale(1.4) rotate(0deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.94) rotate(var(--stamp-tilt, 0deg));
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(var(--stamp-tilt, 0deg));
+    opacity: 1;
+  }
+}
+
+@keyframes stamp-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* ── Stations grid ────────────────────────────────── */
+.stations {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .stations {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .stations .station[data-optional="true"] {
+    grid-column: 1 / -1;
+  }
+}
+
+.station {
+  --tint: var(--type-brewer);
+  --tint-bg: var(--type-brewer-tint);
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.875rem;
+  padding: 1.25rem 1.25rem 1.125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-height: 12rem;
+  overflow: hidden;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+
+.station::before {
+  /* Number watermark in the corner — quiet decorative element */
+  content: attr(data-no);
+  position: absolute;
+  top: -0.5rem;
+  right: 0.5rem;
+  font-size: 4.5rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: var(--tint);
+  opacity: 0.07;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.station::after {
+  /* Tinted wash behind the content — subtle entity-color presence */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--tint-bg);
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.station > * {
+  position: relative;
+  z-index: 1;
+}
+
+.station:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in oklch, var(--tint) 28%, var(--card-border));
+}
+
+.station[data-kind="brewer"] {
+  --tint: var(--type-brewer);
+  --tint-bg: var(--type-brewer-tint);
+}
+.station[data-kind="roaster"] {
+  --tint: var(--type-roaster);
+  --tint-bg: var(--type-roaster-tint);
+}
+.station[data-kind="bean"] {
+  --tint: var(--type-bean);
+  --tint-bg: var(--type-bean-tint);
+}
+.station[data-kind="grinder"] {
+  --tint: var(--type-grinder);
+  --tint-bg: var(--type-grinder-tint);
+}
+
+.station-head {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
+.station-no {
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+.station-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.station-tag {
+  margin-left: auto;
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--tint);
+  color: var(--brand-cream-50);
+}
+
+.station-tag[data-tag="optional"] {
+  background: transparent;
+  color: var(--text-faint);
+  border: 1px solid var(--text-faint);
+}
+
+.station-tag[data-tag="done"] {
+  background: var(--brand-green-100);
+  color: var(--brand-green-800);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .station-tag[data-tag="done"] {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+  }
+}
+
+:root[data-theme="dark"] .station-tag[data-tag="done"] {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+
+.station-hint {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 26ch;
+}
+
+.station-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+  flex: 1;
+}
+
+.station-item {
+  font-size: 0.875rem;
+  color: var(--text-emphasis);
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.1875rem 0;
+}
+
+.station-item-bullet {
+  display: inline-block;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: var(--tint);
+  flex-shrink: 0;
+  transform: translateY(-1px);
+}
+
+.station-item-more {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  padding-left: 0.875rem;
+  font-style: italic;
+}
+
+.station-empty {
+  font-size: 0.8125rem;
+  font-style: italic;
+  color: var(--text-faint);
+  margin: 0;
+  padding: 0.375rem 0;
+  flex: 1;
+}
+
+.station-empty strong {
+  font-style: normal;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.station-add {
+  align-self: flex-start;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4375rem 0.75rem 0.4375rem 0.625rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--tint);
+  border: 1.5px solid color-mix(in oklch, var(--tint) 40%, transparent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: all 150ms ease;
+  font-family: inherit;
+}
+
+.station-add:hover {
+  background: var(--tint);
+  color: var(--brand-cream-50);
+  border-color: var(--tint);
+  transform: translateY(-1px);
+}
+
+.station-add-icon {
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 400;
+  display: inline-block;
+  transform: translateY(-1px);
+}
+
+/* ── Ready panel ──────────────────────────────────── */
+.ready-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  background: var(--surface-bg);
+  border: 1px dashed var(--card-border);
+}
+
+.ready-panel[data-state="ready"] {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--type-roaster) 18%, var(--card-bg)),
+    color-mix(in oklch, var(--type-bean) 12%, var(--card-bg))
+  );
+  border: 1px solid color-mix(in oklch, var(--type-roaster) 32%, transparent);
+  padding: 1.25rem 1.5rem;
+}
+
+.ready-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.ready-headline {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+
+.ready-panel[data-state="ready"] .ready-headline {
+  font-size: 1.125rem;
+}
+
+.ready-sub {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ready-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6875rem 1.25rem;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+
+.ready-cta:hover {
+  background: var(--btn-primary-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.ready-cta-arrow {
+  display: inline-block;
+  transition: transform 200ms ease;
+}
+
+.ready-cta:hover .ready-cta-arrow {
+  transform: translateX(3px);
+}
+
+.ready-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ready-count-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--type-roaster);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* ── Stagger entrance ─────────────────────────────── */
+.station {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: station-in 380ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.station[data-kind="brewer"] {
+  animation-delay: 80ms;
+}
+.station[data-kind="roaster"] {
+  animation-delay: 160ms;
+}
+.station[data-kind="bean"] {
+  animation-delay: 240ms;
+}
+.station[data-kind="grinder"] {
+  animation-delay: 320ms;
+}
+
+@keyframes station-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onboarding-hero {
+  opacity: 0;
+  transform: translateY(-6px);
+  animation: hero-in 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes hero-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station,
+  .onboarding-hero,
+  .stamp[data-state="done"] .stamp-mark,
+  .stamp[data-state="current"] .stamp-mark::before {
+    animation: none;
+  }
+  .station {
+    opacity: 1;
+    transform: none;
+  }
+  .onboarding-hero {
+    opacity: 1;
+    transform: none;
+  }
+}

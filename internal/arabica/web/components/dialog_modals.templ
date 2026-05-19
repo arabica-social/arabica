@@ -178,70 +178,80 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 			/>
 		</div>
 		<div class="form-divider"></div>
-		<!-- Notes & rating -->
+		<!-- Notes -->
 		<div class="form-fieldset">
-			<div class="form-fieldset-label">Notes & Rating <span class="form-optional-hint">(optional)</span></div>
+			<div class="form-fieldset-label">Notes <span class="form-optional-hint">(optional)</span></div>
 			<textarea
 				name="description"
 				placeholder="Description"
 				rows="3"
 				class="w-full form-textarea"
 			>{ getStringValue(bean, "description") }</textarea>
-			<div v-scope={ beanRatingInitData(bean) }>
-				<div v-show="!showRating">
-					<button
-						type="button"
-						@click="showRating = true; if (rating === 0) rating = 5"
-						class="text-sm font-medium text-emphasis hover:text-primary flex items-center gap-1"
-					>
-						@IconStar()
-						Add Rating
-					</button>
-				</div>
-				<div v-show="showRating" v-cloak class="space-y-2">
-					<div class="flex items-center justify-between">
-						<label class="form-label mb-0">Rating</label>
+		</div>
+		<div class="form-divider"></div>
+		<!-- Extra details: rating + bag status, collapsed by default on create, open when editing -->
+		<details
+			class="form-fieldset"
+			if bean != nil {
+				open
+			}
+		>
+			<summary class="form-fieldset-label cursor-pointer hover:text-primary transition-colors flex items-center gap-2">
+				<span>Extra details <span class="form-optional-hint">(optional)</span></span>
+			</summary>
+			<div class="mt-3 space-y-4">
+				<div v-scope={ beanRatingInitData(bean) }>
+					<div v-show="!showRating">
 						<button
 							type="button"
-							@click="showRating = false; rating = 0"
-							class="text-xs text-faint hover:text-emphasis"
+							@click="showRating = true; if (rating === 0) rating = 5"
+							class="text-sm font-medium text-emphasis hover:text-primary flex items-center gap-1"
 						>
-							Remove rating
+							@IconStar()
+							Add Rating
 						</button>
 					</div>
-					<input
-						type="range"
-						min="1"
-						max="10"
-						v-model.number="rating"
-						class="w-full accent-brown-700"
-					/>
-					<div class="text-center text-2xl font-bold text-secondary">
-						<span v-text="rating"></span>/10
+					<div v-show="showRating" v-cloak class="space-y-2">
+						<div class="flex items-center justify-between">
+							<label class="form-label mb-0">Rating</label>
+							<button
+								type="button"
+								@click="showRating = false; rating = 0"
+								class="text-xs text-faint hover:text-emphasis"
+							>
+								Remove rating
+							</button>
+						</div>
+						<input
+							type="range"
+							min="1"
+							max="10"
+							v-model.number="rating"
+							class="w-full accent-brown-700"
+						/>
+						<div class="text-center text-2xl font-bold text-secondary">
+							<span v-text="rating"></span>/10
+						</div>
+						<input type="hidden" name="rating" :value="showRating ? rating : ''"/>
 					</div>
-					<input type="hidden" name="rating" :value="showRating ? rating : ''"/>
+				</div>
+				<div class="flex items-center gap-2">
+					<input
+						type="checkbox"
+						name="closed"
+						value="true"
+						id="bean-closed-checkbox-modal"
+						if bean != nil && bean.Closed {
+							checked
+						}
+						class="rounded-sm border-brown-300 text-emphasis focus:ring-brown-500"
+					/>
+					<label for="bean-closed-checkbox-modal" class="text-sm text-primary">
+						Bag is closed/finished
+					</label>
 				</div>
 			</div>
-		</div>
-		// Only show "close bag check" when editing
-		if bean != nil {
-			<div class="form-divider"></div>
-			<div class="flex items-center gap-2">
-				<input
-					type="checkbox"
-					name="closed"
-					value="true"
-					id="bean-closed-checkbox-modal"
-					if bean != nil && bean.Closed {
-						checked
-					}
-					class="rounded-sm border-brown-300 text-emphasis focus:ring-brown-500"
-				/>
-				<label for="bean-closed-checkbox-modal" class="text-sm text-primary">
-					Bag is closed/finished
-				</label>
-			</div>
-		}
+		</details>
 	}
 }
 

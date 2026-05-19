@@ -35,15 +35,29 @@ templ CreateAccountContent(props CreateAccountProps) {
 			</div>
 		}
 		for _, cat := range signup.Categories() {
-			<div class="mb-6">
-				<h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-3">{ cat.Title }</h2>
-				<p class="text-sm text-faint mb-3">{ cat.Description }</p>
-				<div class="space-y-3">
-					for _, p := range cat.Providers {
-						@pdsCard(p)
-					}
+			if cat.DevOnly {
+				<div v-scope="{ devMode: (() => { try { return localStorage.getItem('devMode') === 'true' } catch(e) { return false } })() }">
+					<div class="mb-6" v-if="devMode" v-cloak>
+						<h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-3">{ cat.Title }</h2>
+						<p class="text-sm text-faint mb-3">{ cat.Description }</p>
+						<div class="space-y-3">
+							for _, p := range cat.Providers {
+								@pdsCard(p)
+							}
+						</div>
+					</div>
 				</div>
-			</div>
+			} else {
+				<div class="mb-6">
+					<h2 class="text-sm font-medium text-muted uppercase tracking-wider mb-3">{ cat.Title }</h2>
+					<p class="text-sm text-faint mb-3">{ cat.Description }</p>
+					<div class="space-y-3">
+						for _, p := range cat.Providers {
+							@pdsCard(p)
+						}
+					</div>
+				</div>
+			}
 		}
 		<!-- Self-hosted note -->
 		<div class="text-sm text-faint mb-6">

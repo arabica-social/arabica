@@ -1,6 +1,9 @@
 package coffee
 
 import (
+	"fmt"
+	"strings"
+
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/onboarding"
 )
@@ -16,100 +19,388 @@ type GetStartedCardProps struct {
 	Roasters  []*arabica.Roaster
 }
 
-// GetStartedCard is the homepage onboarding surface. It always re-issues
-// itself with the same id + hx-trigger so a `refreshManage` event
-// (fired by entity-create modals on success) reloads it in place.
+// GetStartedCard is the onboarding page's main surface. It always re-issues
+// itself with the same id + hx-trigger so a `refreshManage` event (fired
+// by entity-create modals on success) reloads it in place — that's how
+// newly-added entities appear without a full page reload.
 templ GetStartedCard(props GetStartedCardProps) {
 	<section
 		id="get-started"
 		hx-get="/api/get-started-card"
 		hx-trigger="refreshManage from:body"
 		hx-swap="outerHTML"
-		class="card p-4 sm:p-6 mb-6"
+		class="onboarding-card"
 	>
-		<header class="mb-4">
-			<h2 class="text-xl font-bold text-primary">Get Started</h2>
-			<p class="text-sm text-emphasis mt-1">
-				Add a brewer, a roaster, and a bean to start logging brews. (You can add more of any of these later, and individual beans can skip the roaster for blends.)
-			</p>
-		</header>
-		@getStartedSection("Brewers", true, "brewer", brewerLabels(props.Brewers))
-		@getStartedSection("Roasters", true, "roaster", roasterLabels(props.Roasters))
-		@getStartedSection("Beans", true, "bean", beanLabels(props.Beans))
-		@getStartedSection("Grinders", false, "grinder", grinderLabels(props.Grinders))
-		@getStartedFooter(props.Readiness)
+		@progressStrip(props.Readiness)
+		<div class="stations">
+			@station(stationProps{
+				No: "01", Kind: "brewer", Title: "Brewer",
+				Hint:     "Espresso machine, V60, French press — whatever you brew with.",
+				Required: true,
+				Done:     props.Readiness.HasBrewer,
+				Items:    brewerLabels(props.Brewers),
+			})
+			@station(stationProps{
+				No: "02", Kind: "roaster", Title: "Roaster",
+				Hint:     "Who roasted the beans. Pick a favorite local roaster to start.",
+				Required: true,
+				Done:     props.Readiness.HasRoaster,
+				Items:    roasterLabels(props.Roasters),
+			})
+			@station(stationProps{
+				No: "03", Kind: "bean", Title: "Bean",
+				Hint:     "Your current bag — single origin, blend, anything you're drinking.",
+				Required: true,
+				Done:     props.Readiness.HasBean,
+				Items:    beanLabels(props.Beans),
+			})
+			@station(stationProps{
+				No: "04", Kind: "grinder", Title: "Grinder",
+				Hint:     "Optional — skip this if you brew with pre-ground beans.",
+				Required: false,
+				Done:     len(props.Grinders) > 0,
+				Items:    grinderLabels(props.Grinders),
+				Optional: true,
+			})
+		</div>
+		@readyPanel(props.Readiness)
 	</section>
 }
 
-// getStartedSection renders one entity bucket: heading + (required)/(optional)
-// label, existing items, and the "+ Add" button that opens the modal.
-templ getStartedSection(title string, required bool, entityNoun string, items []string) {
-	<div class="mb-4">
-		<div class="flex items-baseline gap-2 mb-2">
-			<h3 class="font-semibold text-primary">{ title }</h3>
-			if required {
-				<span class="text-xs uppercase tracking-wide text-amber-600">Required</span>
+// progressStrip is the three-stamp progress indicator above the stations.
+// Done stamps fill in with the entity's tint, lines between stamps fill
+// when the preceding stamp is done, and the next-incomplete stamp shows
+// a pulse to signal where to go next.
+templ progressStrip(r onboarding.ReadinessStatus) {
+	<div class="onboarding-progress" role="group" aria-label={ progressAria(r) }>
+		@stamp("brewer", r.HasBrewer, nextRequired(r) == "brewer")
+		@stampLine(r.HasBrewer, "brewer")
+		@stamp("roaster", r.HasRoaster, nextRequired(r) == "roaster")
+		@stampLine(r.HasRoaster, "roaster")
+		@stamp("bean", r.HasBean, nextRequired(r) == "bean")
+	</div>
+}
+
+templ stamp(kind string, done bool, current bool) {
+	<div class="stamp" data-state={ stampState(done, current) } style={ stampStyle(kind) }>
+		<span class="stamp-mark" aria-hidden="true">
+			if done {
+				@iconCheck()
 			} else {
-				<span class="text-xs uppercase tracking-wide text-faint">Optional</span>
+				{ stampNumber(kind) }
 			}
-		</div>
-		if len(items) > 0 {
-			<ul class="text-sm text-emphasis mb-2 space-y-1">
-				for _, label := range items {
-					<li>· { label }</li>
-				}
-			</ul>
-		} else {
-			<p class="text-sm text-faint italic mb-2">None yet.</p>
+		</span>
+		<span class="stamp-label">{ kind }</span>
+	</div>
+}
+
+templ stampLine(filled bool, kind string) {
+	if filled {
+		<span class="stamp-line" data-filled="true" style={ stampLineStyle(kind) }></span>
+	} else {
+		<span class="stamp-line"></span>
+	}
+}
+
+// stationProps groups the per-station rendering inputs so the template
+// signature stays clean. Order matches visual order on the page.
+type stationProps struct {
+	No       string
+	Kind     string
+	Title    string
+	Hint     string
+	Required bool
+	Done     bool
+	Items    []string
+	Optional bool
+}
+
+templ station(p stationProps) {
+	<article
+		class="station"
+		data-no={ p.No }
+		data-kind={ p.Kind }
+		if p.Optional {
+			data-optional="true"
 		}
+	>
+		<header class="station-head">
+			<span class="station-no">{ p.No }</span>
+			<h3 class="station-title">{ p.Title }</h3>
+			@stationTag(p)
+		</header>
+		<p class="station-hint">{ p.Hint }</p>
+		@stationItems(p)
 		<button
 			type="button"
-			class="btn-secondary text-sm"
-			hx-get={ "/api/modals/" + entityNoun + "/new" }
+			class="station-add"
+			hx-get={ "/api/modals/" + p.Kind + "/new" }
 			hx-target="#modal-container"
 			hx-swap="innerHTML"
 			onclick="setTimeout(function(){var d=document.querySelector('#modal-container dialog');if(d&&d.showModal)d.showModal();},0)"
 		>
-			+ Add a { entityNoun }
+			<span class="station-add-icon" aria-hidden="true">+</span>
+			{ addLabel(p) }
 		</button>
-	</div>
+	</article>
 }
 
-// getStartedFooter shows current status and unlocks the "log your first brew"
-// CTA once both required prereqs are satisfied.
-templ getStartedFooter(r onboarding.ReadinessStatus) {
-	<div class="border-t pt-3 mt-2 flex items-center justify-between flex-wrap gap-3">
-		<p class="text-sm text-emphasis">
-			if r.HasBrewer {
-				<span class="text-success">✓ brewer</span>
-			} else {
-				<span class="text-faint">✗ brewer</span>
-			}
-			<span class="mx-2 text-faint">·</span>
-			if r.HasRoaster {
-				<span class="text-success">✓ roaster</span>
-			} else {
-				<span class="text-faint">✗ roaster</span>
-			}
-			<span class="mx-2 text-faint">·</span>
-			if r.HasBean {
-				<span class="text-success">✓ bean</span>
-			} else {
-				<span class="text-faint">✗ bean</span>
-			}
-			if r.Ready() {
-				<span class="ml-2 font-medium">Ready to brew!</span>
-			} else {
-				<span class="ml-2 text-faint">— add 1 of each to start logging brews</span>
-			}
-		</p>
-		if r.Ready() {
-			<a href="/brews/new" class="btn-primary text-sm">
-				Log your first brew →
-			</a>
-		}
-	</div>
+templ stationTag(p stationProps) {
+	if p.Done {
+		<span class="station-tag" data-tag="done">
+			@iconCheckSmall()
+			added
+		</span>
+	} else if p.Required {
+		<span class="station-tag" data-tag="required">required</span>
+	} else {
+		<span class="station-tag" data-tag="optional">optional</span>
+	}
 }
+
+templ stationItems(p stationProps) {
+	if len(p.Items) > 0 {
+		<ul class="station-items">
+			for _, label := range visibleItems(p.Items) {
+				<li class="station-item">
+					<span class="station-item-bullet" aria-hidden="true"></span>
+					<span>{ label }</span>
+				</li>
+			}
+			if len(p.Items) > maxVisibleItems {
+				<li class="station-item-more">+ { fmt.Sprint(len(p.Items)-maxVisibleItems) } more</li>
+			}
+		</ul>
+	} else {
+		<p class="station-empty">
+			Nothing here yet — <strong>{ emptyCue(p.Kind) }</strong>
+		</p>
+	}
+}
+
+// readyPanel sits below the stations. When the required three are added,
+// it switches to a warm CTA. Until then, it shows a friendly count of
+// what's left so the user knows exactly how close they are.
+templ readyPanel(r onboarding.ReadinessStatus) {
+	if r.Ready() {
+		<div class="ready-panel" data-state="ready">
+			<div class="ready-copy">
+				<p class="ready-headline">You're ready to brew.</p>
+				<p class="ready-sub">Your kit is set up. Pour something good.</p>
+			</div>
+			<a href="/brews/new" class="ready-cta">
+				Log your first brew
+				<span class="ready-cta-arrow" aria-hidden="true">→</span>
+			</a>
+		</div>
+	} else {
+		<div class="ready-panel" data-state="not-ready">
+			<div class="ready-copy">
+				<p class="ready-headline">
+					<span class="ready-count">
+						<span class="ready-count-num">{ fmt.Sprint(remaining(r)) }</span>
+						{ pluralStep(remaining(r)) } to go.
+					</span>
+				</p>
+				<p class="ready-sub">{ encouragement(r) }</p>
+			</div>
+		</div>
+	}
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Helpers — kept inline so the whole onboarding surface lives in one file.
+
+const maxVisibleItems = 3
+
+func visibleItems(items []string) []string {
+	if len(items) <= maxVisibleItems {
+		return items
+	}
+	return items[:maxVisibleItems]
+}
+
+// nextRequired returns the first incomplete required step in display order.
+// Used to mark the "current" stamp with a pulse.
+func nextRequired(r onboarding.ReadinessStatus) string {
+	switch {
+	case !r.HasBrewer:
+		return "brewer"
+	case !r.HasRoaster:
+		return "roaster"
+	case !r.HasBean:
+		return "bean"
+	default:
+		return ""
+	}
+}
+
+func stampState(done, current bool) string {
+	if done {
+		return "done"
+	}
+	if current {
+		return "current"
+	}
+	return "todo"
+}
+
+// stampStyle injects the per-entity tint color into the stamp so done /
+// current states pull from the right token. Returned as templ.SafeCSS
+// since templ requires a typed value for style attributes.
+func stampStyle(kind string) templ.SafeCSS {
+	c := tintVar(kind)
+	return templ.SafeCSS(fmt.Sprintf("--stamp-color: %s;", c))
+}
+
+func stampLineStyle(kind string) templ.SafeCSS {
+	return templ.SafeCSS(fmt.Sprintf("--stamp-fill: %s;", tintVar(kind)))
+}
+
+func tintVar(kind string) string {
+	switch kind {
+	case "brewer":
+		return "var(--type-brewer)"
+	case "roaster":
+		return "var(--type-roaster)"
+	case "bean":
+		return "var(--type-bean)"
+	case "grinder":
+		return "var(--type-grinder)"
+	default:
+		return "var(--text-muted)"
+	}
+}
+
+func stampNumber(kind string) string {
+	switch kind {
+	case "brewer":
+		return "1"
+	case "roaster":
+		return "2"
+	case "bean":
+		return "3"
+	default:
+		return "·"
+	}
+}
+
+func progressAria(r onboarding.ReadinessStatus) string {
+	done := 0
+	if r.HasBrewer {
+		done++
+	}
+	if r.HasRoaster {
+		done++
+	}
+	if r.HasBean {
+		done++
+	}
+	return fmt.Sprintf("Setup progress: %d of 3 required items added", done)
+}
+
+func remaining(r onboarding.ReadinessStatus) int {
+	n := 0
+	if !r.HasBrewer {
+		n++
+	}
+	if !r.HasRoaster {
+		n++
+	}
+	if !r.HasBean {
+		n++
+	}
+	return n
+}
+
+func pluralStep(n int) string {
+	if n == 1 {
+		return "step"
+	}
+	return "steps"
+}
+
+// encouragement gives a contextual sub-line based on what's missing.
+// Keeps the tone calm and unhurried — matches the brand voice.
+func encouragement(r onboarding.ReadinessStatus) string {
+	var missing []string
+	if !r.HasBrewer {
+		missing = append(missing, "brewer")
+	}
+	if !r.HasRoaster {
+		missing = append(missing, "roaster")
+	}
+	if !r.HasBean {
+		missing = append(missing, "bean")
+	}
+	switch len(missing) {
+	case 3:
+		return "Start anywhere — they all take less than a minute."
+	case 2:
+		return fmt.Sprintf("Add a %s and a %s to unlock your first brew.", missing[0], missing[1])
+	case 1:
+		return fmt.Sprintf("Just a %s left — you're almost there.", missing[0])
+	default:
+		return ""
+	}
+}
+
+func addLabel(p stationProps) string {
+	if len(p.Items) > 0 {
+		return "Add another"
+	}
+	return "Add " + indefinite(p.Title)
+}
+
+// indefinite returns the noun with the right article. Falls back to "a"
+// for the (currently impossible) case of an unexpected leading vowel —
+// none of the current entity names start with a vowel.
+func indefinite(noun string) string {
+	if noun == "" {
+		return noun
+	}
+	first := strings.ToLower(noun[:1])
+	switch first {
+	case "a", "e", "i", "o", "u":
+		return "an " + strings.ToLower(noun)
+	default:
+		return "a " + strings.ToLower(noun)
+	}
+}
+
+// emptyCue tells the user what to do next when a station is empty.
+// Action-oriented copy that teaches the interface rather than just
+// announcing emptiness.
+func emptyCue(kind string) string {
+	switch kind {
+	case "brewer":
+		return "add the one you brew with most"
+	case "roaster":
+		return "add a roaster you love"
+	case "bean":
+		return "add the bag you're on now"
+	case "grinder":
+		return "skip if you brew pre-ground"
+	default:
+		return "add one to start"
+	}
+}
+
+// ── Icons ──────────────────────────────────────────
+
+templ iconCheck() {
+	<svg class="stamp-glyph" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<path d="M4 10.5l4 4 8-9"></path>
+	</svg>
+}
+
+templ iconCheckSmall() {
+	<svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<path d="M4 10.5l4 4 8-9"></path>
+	</svg>
+}
+
+// ── Label helpers (unchanged from previous version) ──────────────────
 
 func brewerLabels(brewers []*arabica.Brewer) []string {
 	out := make([]string, 0, len(brewers))

@@ -21,6 +21,7 @@ type Category struct {
 	Title       string
 	Description string
 	Providers   []Provider
+	DevOnly     bool // If true, only shown to clients with devMode enabled
 }
 
 // Categories returns the list of PDS provider categories shown on the
@@ -77,6 +78,22 @@ func Categories() []Category {
 					Badge:       "Open",
 					BadgeColor:  "green",
 					SignupURL:   "https://npmx.social",
+				},
+			},
+		},
+		{
+			Title:       "Developer",
+			Description: "Experimental providers for testing. Only shown when developer mode is enabled.",
+			DevOnly:     true,
+			Providers: []Provider{
+				{
+					URL:         "https://pds.rip",
+					Name:        "pds.rip",
+					Domain:      "pds.rip",
+					Description: "Experimental PDS for developers.",
+					Location:    "United States",
+					Badge:       "Dev",
+					BadgeColor:  "amber",
 				},
 			},
 		},
