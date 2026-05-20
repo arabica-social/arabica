@@ -274,7 +274,7 @@ templ GrinderSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
 		data-combo-entity-type="grinder"
-		v-scope={ components.ComboSelectConfigNoCreate("grinder", "/api/grinders", "/api/suggestions/grinders", "grinder_rkey", "Search grinders...", false) }
+		v-scope={ components.ComboSelectConfig("grinder", "/api/grinders", "/api/suggestions/grinders", "grinder_rkey", "Search grinders...", false) }
 		@vue:mounted="setup($el)"
 		if props.Brew != nil && props.Brew.GrinderRKey != "" {
 			data-combo-initial-rkey={ props.Brew.GrinderRKey }
@@ -315,7 +315,7 @@ templ BrewerSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
 		data-combo-entity-type="brewer"
-		v-scope={ components.ComboSelectConfigNoCreate("brewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey", "Search brew methods...", false) }
+		v-scope={ components.ComboSelectConfig("brewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey", "Search brew methods...", false) }
 		@vue:mounted="setup($el)"
 		if props.Brew != nil && props.Brew.BrewerRKey != "" {
 			data-combo-initial-rkey={ props.Brew.BrewerRKey }
