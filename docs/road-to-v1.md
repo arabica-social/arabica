@@ -55,6 +55,21 @@
   - [ ] Allow threads more than 3 messages deep
   - [ ] Make comments collapsible
 
+- [ ] UX Improvements
+  - My coffee page
+    - [ ] Brew should not have "view" button, clicking name of bean should view
+          (or maybe clicking the card itself)
+    - [ ] Clicking roaster name on bean/brew should probably go to view page
+    - [ ] Make links on cards clickable (and maybe prettify)
+    - [ ] Show links for bean, grinder, and brewer
+  - Profile page
+    - [ ] Click target for viewing is inconsistent, currently sometimes the card
+          (brew), sometimes the name (everything else)
+    - [ ] Roaster on bean/brew is not clickable
+    - [ ] Show links
+  - Cards
+    - [ ] More actions menu gets cut off by the top of a card
+
 ## Breaking Changes
 
 Brew lexicon changes:

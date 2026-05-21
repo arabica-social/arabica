@@ -36,6 +36,7 @@ templ BrewView(layout *components.LayoutData, props BrewViewProps) {
 			IsOwner:         props.IsOwnProfile,
 			EditURL:         "/brews/" + props.Brew.RKey + "/edit",
 			DeleteURL:       "/api/brews/" + props.Brew.RKey,
+			DeleteRedirect:  "/my-tea",
 			IsAuthenticated: props.IsAuthenticated,
 			IsModerator:     props.IsModerator,
 			CanHideRecord:   props.CanHideRecord,

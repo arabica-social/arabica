@@ -35,6 +35,7 @@ templ InfuserView(layout *components.LayoutData, props InfuserViewProps) {
 			IsOwner:         props.IsOwnProfile,
 			EditModalURL:    "/api/modals/infuser/" + props.Infuser.RKey,
 			DeleteURL:       "/api/infusers/" + props.Infuser.RKey,
+			DeleteRedirect:  "/my-tea",
 			IsAuthenticated: props.IsAuthenticated,
 			IsModerator:     props.IsModerator,
 			CanHideRecord:   props.CanHideRecord,

@@ -34,6 +34,7 @@ templ CafeView(layout *components.LayoutData, props CafeViewProps) {
 			ShareText:       "Check out this tea cafe",
 			IsOwner:         props.IsOwnProfile,
 			DeleteURL:       "/api/cafes/" + props.Cafe.RKey,
+			DeleteRedirect:  "/my-tea",
 			IsAuthenticated: props.IsAuthenticated,
 			IsModerator:     props.IsModerator,
 			CanHideRecord:   props.CanHideRecord,

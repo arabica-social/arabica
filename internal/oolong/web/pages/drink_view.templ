@@ -34,6 +34,7 @@ templ DrinkView(layout *components.LayoutData, props DrinkViewProps) {
 			ShareText:       "Check out this tea drink",
 			IsOwner:         props.IsOwnProfile,
 			DeleteURL:       "/api/drinks/" + props.Drink.RKey,
+			DeleteRedirect:  "/my-tea",
 			IsAuthenticated: props.IsAuthenticated,
 			IsModerator:     props.IsModerator,
 			CanHideRecord:   props.CanHideRecord,

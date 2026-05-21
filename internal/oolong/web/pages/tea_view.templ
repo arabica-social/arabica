@@ -39,6 +39,7 @@ templ TeaView(layout *components.LayoutData, props TeaViewProps) {
 			IsOwner:         props.IsOwnProfile,
 			EditURL:         "/teas/" + props.Tea.RKey + "/edit",
 			DeleteURL:       "/api/teas/" + props.Tea.RKey,
+			DeleteRedirect:  "/my-tea",
 			IsAuthenticated: props.IsAuthenticated,
 			IsModerator:     props.IsModerator,
 			CanHideRecord:   props.CanHideRecord,
