@@ -110,6 +110,8 @@ window.closeModal = function (dialogId) {
     // Find the dialog element that was just loaded
     const dialog = modalContainer.querySelector("dialog#entity-modal");
     if (dialog && typeof dialog.showModal === "function") {
+      const mountPetiteVue = window.__arabicaMountPetiteVue;
+      if (typeof mountPetiteVue === "function") mountPetiteVue(modalContainer);
       // Small delay to ensure DOM is fully settled
       setTimeout(() => {
         dialog.showModal();

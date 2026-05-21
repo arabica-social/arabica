@@ -612,6 +612,9 @@ function BeanRating(initialRating) {
     mountWithin(document);
   }
 
+  /** Allow non-petite helpers (notably HTMX modal openers) to mount freshly swapped content. */
+  w.__arabicaMountPetiteVue = mountWithin;
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
@@ -621,9 +624,13 @@ function BeanRating(initialRating) {
   document.addEventListener("htmx:afterSwap", (evt) => {
     const detail = /** @type {any} */ (evt).detail;
     const target =
-      /** @type {Element | null} */ (evt.target) ||
       (detail && detail.target) ||
+      /** @type {Element | null} */ (evt.target) ||
       null;
     if (target) mountWithin(target);
+  });
+
+  document.addEventListener("htmx:load", (evt) => {
+    mountWithin(/** @type {Element | null} */ (evt.target));
   });
 })();

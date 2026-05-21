@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -59,6 +60,19 @@ templ BrewerView(layout *components.LayoutData, props BrewerViewProps) {
 templ brewerBody(b *arabica.Brewer) {
 	<div class="record-journal p-4">
 		@components.JournalField(components.DetailStackedProps{Icon: components.IconCoffee(), Label: "Type", Value: b.BrewerType})
+		if b.Link != "" {
+			if safeLink := bff.SafeWebsiteURL(b.Link); safeLink != "" {
+				<div class="journal-field">
+					<span class="detail-label">
+						<span class="inline-flex items-center gap-1">
+							@components.IconLink()
+							Link
+						</span>
+					</span>
+					<a href={ templ.SafeURL(safeLink) } target="_blank" rel="noopener noreferrer" class="detail-value hover:underline">{ safeLink }</a>
+				</div>
+			}
+		}
 		if b.Description != "" {
 			<div class="mt-6">
 				<span class="detail-label mb-2 block">

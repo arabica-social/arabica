@@ -78,6 +78,14 @@ templ BeanViewCard(props BeanViewProps) {
 		if props.Bean.Description != "" {
 			<div class="label-description">{ props.Bean.Description }</div>
 		}
+		if props.Bean.Link != "" {
+			if safeLink := bff.SafeWebsiteURL(props.Bean.Link); safeLink != "" {
+				<div class="mt-4 text-sm inline-flex items-center gap-1">
+					@components.IconLink()
+					<a href={ templ.SafeURL(safeLink) } target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">{ safeLink }</a>
+				</div>
+			}
+		}
 	</div>
 	if props.BrewCount > 0 {
 		<div class="record-stat-line">

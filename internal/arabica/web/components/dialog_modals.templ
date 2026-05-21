@@ -211,16 +211,31 @@ func roasterPickerInit(bean *arabica.Bean, roasters []arabica.Roaster) string {
 	}
 	selectedRKey := ""
 	selectedName := ""
-	if bean != nil && bean.RoasterRKey != "" {
+	if bean != nil {
 		selectedRKey = bean.RoasterRKey
 		if bean.Roaster != nil {
+			if selectedRKey == "" {
+				selectedRKey = bean.Roaster.RKey
+			}
 			selectedName = bean.Roaster.Name
 		} else {
 			for _, r := range roasters {
-				if r.RKey == bean.RoasterRKey {
+				if r.RKey == selectedRKey {
 					selectedName = r.Name
 					break
 				}
+			}
+		}
+		if selectedRKey != "" && selectedName != "" {
+			found := false
+			for _, r := range rows {
+				if r.RKey == selectedRKey {
+					found = true
+					break
+				}
+			}
+			if !found {
+				rows = append(rows, row{RKey: selectedRKey, Name: selectedName})
 			}
 		}
 	}
@@ -230,6 +245,35 @@ func roasterPickerInit(bean *arabica.Bean, roasters []arabica.Roaster) string {
 		InitialName string `json:"initialName"`
 	}{rows, selectedRKey, selectedName})
 	return "RoasterPicker(" + string(payload) + ")"
+}
+
+func beanRoasterRKey(bean *arabica.Bean) string {
+	if bean == nil {
+		return ""
+	}
+	if bean.RoasterRKey != "" {
+		return bean.RoasterRKey
+	}
+	if bean.Roaster != nil {
+		return bean.Roaster.RKey
+	}
+	return ""
+}
+
+func beanRoasterName(bean *arabica.Bean, roasters []arabica.Roaster) string {
+	if bean == nil {
+		return ""
+	}
+	if bean.Roaster != nil && bean.Roaster.Name != "" {
+		return bean.Roaster.Name
+	}
+	rkey := beanRoasterRKey(bean)
+	for _, r := range roasters {
+		if r.RKey == rkey {
+			return r.Name
+		}
+	}
+	return ""
 }
 
 // beanRatingInitData returns the petite-vue `v-scope` expression for the

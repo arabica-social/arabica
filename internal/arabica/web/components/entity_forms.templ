@@ -419,6 +419,7 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 		<div v-scope={ roasterPickerInit(bean, roasters) } class="relative">
 			<input
 				type="text"
+				value={ beanRoasterName(bean, roasters) }
 				v-model="query"
 				v-show="!showDetails"
 				@input="filter"
@@ -429,7 +430,7 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 				class="w-full form-input"
 				autocomplete="off"
 			/>
-			<input type="hidden" name="roaster_rkey" :value="selectedRKey"/>
+			<input type="hidden" name="roaster_rkey" value={ beanRoasterRKey(bean) } :value="selectedRKey"/>
 			<input type="hidden" name="new_roaster_name" :value="newRoasterName"/>
 			<input type="hidden" name="new_roaster_location" :value="newRoasterLocation"/>
 			<input type="hidden" name="new_roaster_website" :value="newRoasterWebsite"/>

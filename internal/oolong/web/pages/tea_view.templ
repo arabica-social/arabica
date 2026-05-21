@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
@@ -95,6 +96,14 @@ templ teaBody(t *oolong.Tea, shareURL string) {
 		</div>
 		if t.Description != "" {
 			<div class="label-description">{ t.Description }</div>
+		}
+		if t.Link != "" {
+			if safeLink := bff.SafeWebsiteURL(t.Link); safeLink != "" {
+				<div class="mt-4 text-sm inline-flex items-center gap-1">
+					@components.IconLink()
+					<a href={ templ.SafeURL(safeLink) } target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">{ safeLink }</a>
+				</div>
+			}
 		}
 	</div>
 }
