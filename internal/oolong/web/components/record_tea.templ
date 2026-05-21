@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -14,6 +15,14 @@ templ TeaContent(t *oolong.Tea) {
 		@TeaSummary(t)
 		if t.Description != "" {
 			<div class="mt-2 text-sm text-secondary italic">"{ t.Description }"</div>
+		}
+		if t.Link != "" {
+			if safeLink := bff.SafeWebsiteURL(t.Link); safeLink != "" {
+				<div class="mt-2 text-xs text-muted inline-flex items-center gap-1">
+					@IconLink()
+					<a href={ templ.SafeURL(safeLink) } target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">{ safeLink }</a>
+				</div>
+			}
 		}
 	</div>
 }
@@ -58,6 +67,14 @@ templ TeaCardContent(t *oolong.Tea, brewCount int) {
 		</div>
 		if t.Description != "" {
 			<div class="mt-2 text-sm text-secondary italic line-clamp-2">"{ t.Description }"</div>
+		}
+		if t.Link != "" {
+			if safeLink := bff.SafeWebsiteURL(t.Link); safeLink != "" {
+				<div class="mt-2 text-xs text-muted inline-flex items-center gap-1">
+					@IconLink()
+					<a href={ templ.SafeURL(safeLink) } target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline truncate">{ safeLink }</a>
+				</div>
+			}
 		}
 		if t.Rating != nil || brewCount > 0 {
 			<div class="flex items-center gap-3 pt-2 mt-2 border-t border-brown-200/60 text-xs text-faint">

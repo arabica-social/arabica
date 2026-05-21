@@ -48,6 +48,7 @@ type Tea struct {
 	Origin      string    `json:"origin"`
 	HarvestYear int       `json:"harvest_year,omitempty"`
 	Description string    `json:"description"`
+	Link        string    `json:"link"`
 	VendorRKey  string    `json:"vendor_rkey,omitempty"`
 	Rating      *int      `json:"rating,omitempty"`
 	Closed      bool      `json:"closed"`
@@ -64,6 +65,7 @@ type CreateTeaRequest struct {
 	Origin      string `json:"origin"`
 	HarvestYear int    `json:"harvest_year,omitempty"`
 	Description string `json:"description"`
+	Link        string `json:"link"`
 	VendorRKey  string `json:"vendor_rkey,omitempty"`
 	Rating      *int   `json:"rating,omitempty"`
 	Closed      bool   `json:"closed"`
@@ -87,6 +89,9 @@ func (r *CreateTeaRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
 	}
 	if r.Rating != nil && (*r.Rating < 1 || *r.Rating > 10) {
 		return ErrRatingOutOfRange

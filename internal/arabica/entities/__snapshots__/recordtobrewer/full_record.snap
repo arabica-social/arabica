@@ -9,6 +9,7 @@ version: 0.1.0
   Name: "Hario V60",
   BrewerType: "",
   Description: "Pour-over dripper",
+  Link: "",
   SourceRef: "",
   CreatedAt: time.Time{
     wall: 0x0,

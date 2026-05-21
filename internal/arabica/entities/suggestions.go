@@ -19,19 +19,19 @@ func init() {
 		DedupKey:     roasterDedupKey,
 	})
 	suggestions.Register(NSIDGrinder, suggestions.FieldConfig{
-		AllFields:    []string{"name", "grinderType", "burrType"},
+		AllFields:    []string{"name", "grinderType", "burrType", "link"},
 		SearchFields: []string{"name", "grinderType", "burrType"},
 		NameField:    "name",
 		DedupKey:     grinderDedupKey,
 	})
 	suggestions.Register(NSIDBrewer, suggestions.FieldConfig{
-		AllFields:    []string{"name", "brewerType", "description"},
+		AllFields:    []string{"name", "brewerType", "description", "link"},
 		SearchFields: []string{"name", "brewerType"},
 		NameField:    "name",
 		DedupKey:     brewerDedupKey,
 	})
 	suggestions.Register(NSIDBean, suggestions.FieldConfig{
-		AllFields:    []string{"name", "origin", "roastLevel", "process"},
+		AllFields:    []string{"name", "origin", "roastLevel", "process", "link"},
 		SearchFields: []string{"name", "origin", "roastLevel"},
 		NameField:    "name",
 		DedupKey:     beanDedupKey,

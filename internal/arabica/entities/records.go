@@ -380,6 +380,9 @@ func BeanToRecord(bean *Bean, roasterURI string) (map[string]any, error) {
 	if bean.Description != "" {
 		record["description"] = bean.Description
 	}
+	if bean.Link != "" {
+		record["link"] = bean.Link
+	}
 	if roasterURI != "" {
 		record["roasterRef"] = roasterURI
 	}
@@ -441,6 +444,9 @@ func RecordToBean(record map[string]any, atURI string) (*Bean, error) {
 	}
 	if description, ok := record["description"].(string); ok {
 		bean.Description = description
+	}
+	if link, ok := record["link"].(string); ok {
+		bean.Link = link
 	}
 	if rating, ok := record["rating"].(float64); ok {
 		r := int(rating)
@@ -583,6 +589,9 @@ func GrinderToRecord(grinder *Grinder) (map[string]any, error) {
 	if grinder.Notes != "" {
 		record["notes"] = grinder.Notes
 	}
+	if grinder.Link != "" {
+		record["link"] = grinder.Link
+	}
 	if grinder.SourceRef != "" {
 		record["sourceRef"] = grinder.SourceRef
 	}
@@ -638,6 +647,9 @@ func RecordToGrinder(record map[string]any, atURI string) (*Grinder, error) {
 	if notes, ok := record["notes"].(string); ok {
 		grinder.Notes = notes
 	}
+	if link, ok := record["link"].(string); ok {
+		grinder.Link = link
+	}
 	if sourceRef, ok := record["sourceRef"].(string); ok {
 		grinder.SourceRef = sourceRef
 	}
@@ -658,6 +670,9 @@ func BrewerToRecord(brewer *Brewer) (map[string]any, error) {
 	// Optional fields
 	if brewer.Description != "" {
 		record["description"] = brewer.Description
+	}
+	if brewer.Link != "" {
+		record["link"] = brewer.Link
 	}
 	if brewer.BrewerType != "" {
 		record["brewerType"] = brewer.BrewerType
@@ -703,6 +718,9 @@ func RecordToBrewer(record map[string]any, atURI string) (*Brewer, error) {
 	// Optional fields
 	if description, ok := record["description"].(string); ok {
 		brewer.Description = description
+	}
+	if link, ok := record["link"].(string); ok {
+		brewer.Link = link
 	}
 	if brewerType, ok := record["brewerType"].(string); ok {
 		brewer.BrewerType = brewerType

@@ -665,6 +665,7 @@ func (s *AtprotoStore) CreateBean(ctx context.Context, bean *arabica.CreateBeanR
 		RoastLevel:  bean.RoastLevel,
 		Process:     bean.Process,
 		Description: bean.Description,
+		Link:        bean.Link,
 		RoasterRKey: bean.RoasterRKey,
 		Rating:      bean.Rating,
 		SourceRef:   bean.SourceRef,
@@ -711,6 +712,7 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 		RoastLevel:  bean.RoastLevel,
 		Process:     bean.Process,
 		Description: bean.Description,
+		Link:        bean.Link,
 		RoasterRKey: bean.RoasterRKey,
 		Rating:      bean.Rating,
 		Closed:      bean.Closed,
@@ -782,6 +784,7 @@ func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *arabica.Creat
 		GrinderType: grinder.GrinderType,
 		BurrType:    grinder.BurrType,
 		Notes:       grinder.Notes,
+		Link:        grinder.Link,
 		SourceRef:   grinder.SourceRef,
 		CreatedAt:   time.Now().UTC(),
 	})
@@ -807,6 +810,7 @@ func (s *AtprotoStore) UpdateGrinderByRKey(ctx context.Context, rkey string, gri
 		GrinderType: grinder.GrinderType,
 		BurrType:    grinder.BurrType,
 		Notes:       grinder.Notes,
+		Link:        grinder.Link,
 		SourceRef:   grinder.SourceRef,
 		CreatedAt:   existing.CreatedAt,
 	}
@@ -829,6 +833,7 @@ func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *arabica.CreateB
 		Name:        brewer.Name,
 		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
+		Link:        brewer.Link,
 		SourceRef:   brewer.SourceRef,
 		CreatedAt:   time.Now().UTC(),
 	})
@@ -853,6 +858,7 @@ func (s *AtprotoStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brew
 		Name:        brewer.Name,
 		BrewerType:  brewer.BrewerType,
 		Description: brewer.Description,
+		Link:        brewer.Link,
 		SourceRef:   brewer.SourceRef,
 		CreatedAt:   existing.CreatedAt,
 	})

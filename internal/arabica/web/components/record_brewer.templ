@@ -2,6 +2,7 @@ package coffee
 
 import (
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -21,6 +22,14 @@ templ BrewerContent(brewer *arabica.Brewer) {
 		}
 		if brewer.Description != "" {
 			<div class="mt-2 text-sm text-secondary italic">"{ brewer.Description }"</div>
+		}
+		if brewer.Link != "" {
+			if safeLink := bff.SafeWebsiteURL(brewer.Link); safeLink != "" {
+				<div class="mt-2 text-xs text-muted inline-flex items-center gap-1">
+					@IconLink()
+					<a href={ templ.SafeURL(safeLink) } target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">{ safeLink }</a>
+				</div>
+			}
 		}
 	</div>
 }

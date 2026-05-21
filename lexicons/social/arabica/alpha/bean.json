@@ -40,6 +40,12 @@
             "maxLength": 1000,
             "description": "Additional notes about the beans"
           },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 500,
+            "description": "Optional product, vendor, or information URL for the beans"
+          },
           "roasterRef": {
             "type": "string",
             "format": "at-uri",

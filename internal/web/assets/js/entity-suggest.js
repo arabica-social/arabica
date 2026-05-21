@@ -106,6 +106,7 @@ function entitySuggest(endpoint) {
       if (s.fields.grinderType)
         _setSelect(form, "grinder_type", s.fields.grinderType);
       if (s.fields.burrType) _setSelect(form, "burr_type", s.fields.burrType);
+      if (s.fields.link) _setInput(form, "link", s.fields.link);
     },
 
     selectBrewerSuggestion(s) {
@@ -114,6 +115,7 @@ function entitySuggest(endpoint) {
       if (!form) return;
       if (s.fields.brewerType)
         _setInput(form, "brewer_type", s.fields.brewerType);
+      if (s.fields.link) _setInput(form, "link", s.fields.link);
     },
 
     selectBeanSuggestion(s) {
@@ -124,6 +126,7 @@ function entitySuggest(endpoint) {
       if (s.fields.roastLevel)
         _setSelect(form, "roast_level", s.fields.roastLevel);
       if (s.fields.process) _setInput(form, "process", s.fields.process);
+      if (s.fields.link) _setInput(form, "link", s.fields.link);
     },
   };
 }

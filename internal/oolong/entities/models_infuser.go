@@ -50,6 +50,7 @@ type Infuser struct {
 	Style       string    `json:"style"`
 	Material    string    `json:"material"`
 	Description string    `json:"description"`
+	Link        string    `json:"link"`
 	SourceRef   string    `json:"source_ref,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -59,6 +60,7 @@ type CreateInfuserRequest struct {
 	Style       string `json:"style"`
 	Material    string `json:"material"`
 	Description string `json:"description"`
+	Link        string `json:"link"`
 	SourceRef   string `json:"source_ref,omitempty"`
 }
 
@@ -79,6 +81,9 @@ func (r *CreateInfuserRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
 	}
 	return nil
 }

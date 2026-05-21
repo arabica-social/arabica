@@ -37,6 +37,12 @@
             "type": "string",
             "maxLength": 1000
           },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 500,
+            "description": "Optional product, manual, or information URL for the vessel"
+          },
           "createdAt": {
             "type": "string",
             "format": "datetime"

@@ -28,6 +28,9 @@ func VesselToRecord(v *Vessel) (map[string]any, error) {
 	if v.Description != "" {
 		rec["description"] = v.Description
 	}
+	if v.Link != "" {
+		rec["link"] = v.Link
+	}
 	if v.SourceRef != "" {
 		rec["sourceRef"] = v.SourceRef
 	}
@@ -70,6 +73,9 @@ func RecordToVessel(record map[string]any, atURI string) (*Vessel, error) {
 	}
 	if s, ok := record["description"].(string); ok {
 		v.Description = s
+	}
+	if s, ok := record["link"].(string); ok {
+		v.Link = s
 	}
 	if s, ok := record["sourceRef"].(string); ok {
 		v.SourceRef = s

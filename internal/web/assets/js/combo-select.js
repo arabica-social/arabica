@@ -33,6 +33,7 @@ window.__comboSelectEntities = {
         if (s.fields.origin) d.origin = s.fields.origin;
         if (s.fields.roastLevel) d.roast_level = s.fields.roastLevel;
         if (s.fields.process) d.process = s.fields.process;
+        if (s.fields.link) d.link = s.fields.link;
         if (s.fields.roasterName) d._source_roaster_name = s.fields.roasterName;
       }
       return d;
@@ -63,6 +64,12 @@ window.__comboSelectEntities = {
         type: "text",
         placeholder: "e.g. Washed, Natural, Honey",
       },
+      {
+        name: "link",
+        label: "Link",
+        type: "url",
+        placeholder: "https://...",
+      },
     ],
   },
   brewer: {
@@ -71,6 +78,7 @@ window.__comboSelectEntities = {
       const d = { name };
       if (s && s.fields && s.fields.brewerType)
         d.brewer_type = s.fields.brewerType;
+      if (s && s.fields && s.fields.link) d.link = s.fields.link;
       return d;
     },
     extraFields: [
@@ -88,6 +96,12 @@ window.__comboSelectEntities = {
           "other",
         ],
       },
+      {
+        name: "link",
+        label: "Link",
+        type: "url",
+        placeholder: "https://...",
+      },
     ],
   },
   grinder: {
@@ -97,6 +111,7 @@ window.__comboSelectEntities = {
       if (s && s.fields) {
         if (s.fields.grinderType) d.grinder_type = s.fields.grinderType;
         if (s.fields.burrType) d.burr_type = s.fields.burrType;
+        if (s.fields.link) d.link = s.fields.link;
       }
       return d;
     },
@@ -112,6 +127,12 @@ window.__comboSelectEntities = {
         label: "Burr Type",
         type: "select",
         options: ["Conical", "Flat"],
+      },
+      {
+        name: "link",
+        label: "Link",
+        type: "url",
+        placeholder: "https://...",
       },
     ],
   },
@@ -245,6 +266,7 @@ window.__comboSelectEntities = {
       if (s && s.fields) {
         if (s.fields.style) d.style = s.fields.style;
         if (s.fields.material) d.material = s.fields.material;
+        if (s.fields.link) d.link = s.fields.link;
       }
       return d;
     },
@@ -269,6 +291,12 @@ window.__comboSelectEntities = {
         label: "Material",
         type: "text",
         placeholder: "e.g. porcelain, clay, glass",
+      },
+      {
+        name: "link",
+        label: "Link",
+        type: "url",
+        placeholder: "https://...",
       },
     ],
   },
@@ -309,7 +337,10 @@ window.__comboSelectEntities = {
     },
     formatCreateData: (name, s) => {
       const d = { name };
-      if (s && s.fields && s.fields.style) d.style = s.fields.style;
+      if (s && s.fields) {
+        if (s.fields.style) d.style = s.fields.style;
+        if (s.fields.link) d.link = s.fields.link;
+      }
       return d;
     },
     extraFields: [
@@ -318,6 +349,12 @@ window.__comboSelectEntities = {
         label: "Style",
         type: "select",
         options: ["basket", "ball", "sock", "other"],
+      },
+      {
+        name: "link",
+        label: "Link",
+        type: "url",
+        placeholder: "https://...",
       },
     ],
   },

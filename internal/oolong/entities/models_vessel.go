@@ -56,6 +56,7 @@ type Vessel struct {
 	CapacityMl  int       `json:"capacity_ml"`
 	Material    string    `json:"material"`
 	Description string    `json:"description"`
+	Link        string    `json:"link"`
 	SourceRef   string    `json:"source_ref,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -66,6 +67,7 @@ type CreateVesselRequest struct {
 	CapacityMl  int    `json:"capacity_ml"`
 	Material    string `json:"material"`
 	Description string `json:"description"`
+	Link        string `json:"link"`
 	SourceRef   string `json:"source_ref,omitempty"`
 }
 
@@ -86,6 +88,9 @@ func (r *CreateVesselRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
 	}
 	return nil
 }

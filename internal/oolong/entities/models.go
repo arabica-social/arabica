@@ -8,6 +8,7 @@ const (
 	MaxLocationLength     = 200
 	MaxAddressLength      = 500
 	MaxWebsiteLength      = 500
+	MaxLinkLength         = 500
 	MaxDescriptionLength  = 1000
 	MaxNotesLength        = 2000
 	MaxOriginLength       = 200
@@ -30,6 +31,7 @@ var (
 	ErrFieldTooLong          = errors.New("field value is too long")
 	ErrLocationTooLong       = errors.New("location is too long")
 	ErrWebsiteTooLong        = errors.New("website is too long")
+	ErrLinkTooLong           = errors.New("link is too long")
 	ErrDescTooLong           = errors.New("description is too long")
 	ErrRatingOutOfRange      = errors.New("rating must be between 1 and 10")
 	ErrTeaRefRequired        = errors.New("teaRef is required")

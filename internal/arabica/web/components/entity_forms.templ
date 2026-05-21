@@ -170,6 +170,13 @@ templ BrewerFormBody(brewer *arabica.Brewer) {
 				}
 			>Other</option>
 		</select>
+		<input
+			type="url"
+			name="link"
+			value={ getStringValue(brewer, "link") }
+			placeholder="Link"
+			class="w-full form-input"
+		/>
 	</div>
 	<div class="form-divider"></div>
 	<!-- Description -->
@@ -330,6 +337,13 @@ templ GrinderFormBody(grinder *arabica.Grinder) {
 				</option>
 			}
 		</select>
+		<input
+			type="url"
+			name="link"
+			value={ getStringValue(grinder, "link") }
+			placeholder="Link"
+			class="w-full form-input"
+		/>
 		<textarea
 			name="notes"
 			placeholder="Notes"
@@ -505,6 +519,13 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 			rows="3"
 			class="w-full form-textarea"
 		>{ getStringValue(bean, "description") }</textarea>
+		<input
+			type="url"
+			name="link"
+			value={ getStringValue(bean, "link") }
+			placeholder="Link"
+			class="w-full form-input"
+		/>
 	</div>
 	<div class="form-divider"></div>
 	<!-- Extra details: rating + bag status, collapsed by default on create, open when editing -->

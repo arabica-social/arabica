@@ -10,6 +10,7 @@ version: 0.1.0
   GrinderType: "Hand",
   BurrType: "Conical",
   Notes: "Great for travel",
+  Link: "",
   SourceRef: "",
   CreatedAt: time.Time{
     wall: 0x0,

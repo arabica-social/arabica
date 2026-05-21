@@ -303,6 +303,7 @@ templ VesselDialogModal(v *oolong.Vessel) {
 			<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
 			<input type="number" name="capacity_ml" placeholder="Capacity (ml)" class="w-full form-input" value={ vesselField(v, func(v *oolong.Vessel) string { return intStrOrEmpty(v.CapacityMl) }) }/>
 			<input type="text" name="material" placeholder="Material (e.g. porcelain, clay, glass)" class="w-full form-input" value={ vesselField(v, func(v *oolong.Vessel) string { return v.Material }) }/>
+			<input type="url" name="link" placeholder="Link" class="w-full form-input" value={ vesselField(v, func(v *oolong.Vessel) string { return v.Link }) }/>
 			<textarea name="description" placeholder="Notes" class="w-full form-input" rows="3">{ vesselField(v, func(v *oolong.Vessel) string { return v.Description }) }</textarea>
 		</div>
 	}
@@ -330,6 +331,7 @@ templ InfuserDialogModal(i *oolong.Infuser) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Details <span class="form-optional-hint">(optional)</span></div>
 			<input type="text" name="material" placeholder="Material (e.g. stainless, silicone, cotton)" class="w-full form-input" value={ infuserField(i, func(i *oolong.Infuser) string { return i.Material }) }/>
+			<input type="url" name="link" placeholder="Link" class="w-full form-input" value={ infuserField(i, func(i *oolong.Infuser) string { return i.Link }) }/>
 			<textarea name="description" placeholder="Notes" class="w-full form-input" rows="3">{ infuserField(i, func(i *oolong.Infuser) string { return i.Description }) }</textarea>
 		</div>
 	}

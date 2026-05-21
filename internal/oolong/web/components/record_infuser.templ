@@ -2,6 +2,7 @@ package tea
 
 import (
 	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -27,6 +28,14 @@ templ InfuserContent(i *oolong.Infuser) {
 		</div>
 		if i.Description != "" {
 			<div class="mt-2 text-sm text-secondary italic">"{ i.Description }"</div>
+		}
+		if i.Link != "" {
+			if safeLink := bff.SafeWebsiteURL(i.Link); safeLink != "" {
+				<div class="mt-2 text-xs text-muted inline-flex items-center gap-1">
+					@IconLink()
+					<a href={ templ.SafeURL(safeLink) } target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">{ safeLink }</a>
+				</div>
+			}
 		}
 	</div>
 }

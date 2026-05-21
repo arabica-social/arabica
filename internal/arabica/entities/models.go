@@ -11,6 +11,7 @@ const (
 	MaxNameLength         = 200
 	MaxLocationLength     = 200
 	MaxWebsiteLength      = 500
+	MaxLinkLength         = 500
 	MaxDescriptionLength  = 2000
 	MaxNotesLength        = 2000
 	MaxOriginLength       = 200
@@ -122,6 +123,7 @@ var (
 	ErrNameTooLong      = errors.New("name is too long")
 	ErrLocationTooLong  = errors.New("location is too long")
 	ErrWebsiteTooLong   = errors.New("website is too long")
+	ErrLinkTooLong      = errors.New("link is too long")
 	ErrDescTooLong      = errors.New("description is too long")
 	ErrNotesTooLong     = errors.New("notes is too long")
 	ErrOriginTooLong    = errors.New("origin is too long")
@@ -140,6 +142,7 @@ type Bean struct {
 	RoastLevel  string    `json:"roast_level"`
 	Process     string    `json:"process"`
 	Description string    `json:"description"`
+	Link        string    `json:"link"`
 	RoasterRKey string    `json:"roaster_rkey"`     // AT Protocol reference
 	Rating      *int      `json:"rating,omitempty"` // User rating (1-10), nil means unrated
 	Closed      bool      `json:"closed"`           // Whether the bag is closed/finished
@@ -165,6 +168,7 @@ type Grinder struct {
 	GrinderType string    `json:"grinder_type"` // Hand, Electric, Portable Electric
 	BurrType    string    `json:"burr_type"`    // Conical, Flat, Blade, or empty
 	Notes       string    `json:"notes"`
+	Link        string    `json:"link"`
 	SourceRef   string    `json:"source_ref,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -174,6 +178,7 @@ type Brewer struct {
 	Name        string    `json:"name"`
 	BrewerType  string    `json:"brewer_type"`
 	Description string    `json:"description"`
+	Link        string    `json:"link"`
 	SourceRef   string    `json:"source_ref,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -316,6 +321,7 @@ type CreateBeanRequest struct {
 	RoastLevel  string `json:"roast_level"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
+	Link        string `json:"link"`
 	RoasterRKey string `json:"roaster_rkey"`
 	Rating      *int   `json:"rating,omitempty"`
 	Closed      bool   `json:"closed"`
@@ -334,6 +340,7 @@ type CreateGrinderRequest struct {
 	GrinderType string `json:"grinder_type"`
 	BurrType    string `json:"burr_type"`
 	Notes       string `json:"notes"`
+	Link        string `json:"link"`
 	SourceRef   string `json:"source_ref,omitempty"`
 }
 
@@ -341,6 +348,7 @@ type CreateBrewerRequest struct {
 	Name        string `json:"name"`
 	BrewerType  string `json:"brewer_type"`
 	Description string `json:"description"`
+	Link        string `json:"link"`
 	SourceRef   string `json:"source_ref,omitempty"`
 }
 
@@ -372,6 +380,7 @@ type UpdateBeanRequest struct {
 	RoastLevel  string `json:"roast_level"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
+	Link        string `json:"link"`
 	RoasterRKey string `json:"roaster_rkey"`
 	Rating      *int   `json:"rating,omitempty"`
 	Closed      bool   `json:"closed"`
@@ -390,6 +399,7 @@ type UpdateGrinderRequest struct {
 	GrinderType string `json:"grinder_type"`
 	BurrType    string `json:"burr_type"`
 	Notes       string `json:"notes"`
+	Link        string `json:"link"`
 	SourceRef   string `json:"source_ref,omitempty"`
 }
 
@@ -397,6 +407,7 @@ type UpdateBrewerRequest struct {
 	Name        string `json:"name"`
 	BrewerType  string `json:"brewer_type"`
 	Description string `json:"description"`
+	Link        string `json:"link"`
 	SourceRef   string `json:"source_ref,omitempty"`
 }
 
@@ -505,6 +516,9 @@ func (r *CreateBeanRequest) Validate() error {
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
 	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
+	}
 	if r.Rating != nil && (*r.Rating < 1 || *r.Rating > 10) {
 		return ErrRatingOutOfRange
 	}
@@ -533,6 +547,9 @@ func (r *UpdateBeanRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
 	}
 	if r.Rating != nil && (*r.Rating < 1 || *r.Rating > 10) {
 		return ErrRatingOutOfRange
@@ -591,6 +608,9 @@ func (r *CreateGrinderRequest) Validate() error {
 	if len(r.Notes) > MaxNotesLength {
 		return ErrNotesTooLong
 	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
+	}
 	return nil
 }
 
@@ -611,6 +631,9 @@ func (r *UpdateGrinderRequest) Validate() error {
 	if len(r.Notes) > MaxNotesLength {
 		return ErrNotesTooLong
 	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
+	}
 	return nil
 }
 
@@ -627,6 +650,9 @@ func (r *CreateBrewerRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
 	}
 	return nil
 }
@@ -692,6 +718,9 @@ func (r *UpdateBrewerRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	if len(r.Link) > MaxLinkLength {
+		return ErrLinkTooLong
 	}
 	return nil
 }

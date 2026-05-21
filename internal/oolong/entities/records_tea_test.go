@@ -86,3 +86,18 @@ func TestTeaRoundTrip(t *testing.T) {
 	assert.Equal(t, original.Name, round.Name)
 	assert.Equal(t, *original.Rating, *round.Rating)
 }
+
+func TestTeaLinkRoundTrip(t *testing.T) {
+	original := &Tea{
+		Name:      "Da Hong Pao",
+		Link:      "https://example.com/tea",
+		CreatedAt: time.Date(2026, 5, 10, 12, 0, 0, 0, time.UTC),
+	}
+	rec, err := TeaToRecord(original, "")
+	require.NoError(t, err)
+	assert.Equal(t, original.Link, rec["link"])
+
+	round, err := RecordToTea(rec, "at://did:plc:test/social.oolong.alpha.tea/abc")
+	require.NoError(t, err)
+	assert.Equal(t, original.Link, round.Link)
+}

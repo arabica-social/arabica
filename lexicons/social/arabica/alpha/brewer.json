@@ -34,6 +34,12 @@
             "maxLength": 1000,
             "description": "Description or notes about the brewer"
           },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 500,
+            "description": "Optional product, manual, or information URL for the brewer"
+          },
           "createdAt": {
             "type": "string",
             "format": "datetime",

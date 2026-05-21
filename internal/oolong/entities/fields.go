@@ -16,6 +16,8 @@ func teaField(e any, field string) (string, bool) {
 		return t.Origin, true
 	case "description":
 		return t.Description, true
+	case "link":
+		return t.Link, true
 	}
 	return "", false
 }
@@ -52,6 +54,8 @@ func vesselField(e any, field string) (string, bool) {
 		return v.Material, true
 	case "description":
 		return v.Description, true
+	case "link":
+		return v.Link, true
 	case "capacity_ml":
 		if v.CapacityMl > 0 {
 			return fmt.Sprintf("%d", v.CapacityMl), true
@@ -75,6 +79,8 @@ func infuserField(e any, field string) (string, bool) {
 		return i.Material, true
 	case "description":
 		return i.Description, true
+	case "link":
+		return i.Link, true
 	}
 	return "", false
 }

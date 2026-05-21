@@ -28,6 +28,9 @@ func TeaToRecord(t *Tea, vendorURI string) (map[string]any, error) {
 	if t.Description != "" {
 		rec["description"] = t.Description
 	}
+	if t.Link != "" {
+		rec["link"] = t.Link
+	}
 	if vendorURI != "" {
 		rec["vendorRef"] = vendorURI
 	}
@@ -80,6 +83,9 @@ func RecordToTea(record map[string]any, atURI string) (*Tea, error) {
 	}
 	if s, ok := record["description"].(string); ok {
 		t.Description = s
+	}
+	if s, ok := record["link"].(string); ok {
+		t.Link = s
 	}
 	if s, ok := record["vendorRef"].(string); ok && s != "" {
 		parsed, err := syntax.ParseATURI(s)

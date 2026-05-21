@@ -170,6 +170,7 @@ func teaFromCreateRequest(req *oolong.CreateTeaRequest) *oolong.Tea {
 		Origin:      req.Origin,
 		HarvestYear: req.HarvestYear,
 		Description: req.Description,
+		Link:        req.Link,
 		VendorRKey:  req.VendorRKey,
 		Rating:      req.Rating,
 		Closed:      req.Closed,
@@ -239,7 +240,7 @@ func vesselFromCreate(req *oolong.CreateVesselRequest) *oolong.Vessel {
 	return &oolong.Vessel{
 		Name: req.Name, Style: req.Style, CapacityMl: req.CapacityMl,
 		Material: req.Material, Description: req.Description,
-		SourceRef: req.SourceRef, CreatedAt: time.Now(),
+		Link: req.Link, SourceRef: req.SourceRef, CreatedAt: time.Now(),
 	}
 }
 
@@ -291,7 +292,7 @@ func infuserFromCreate(req *oolong.CreateInfuserRequest) *oolong.Infuser {
 	return &oolong.Infuser{
 		Name: req.Name, Style: req.Style,
 		Material: req.Material, Description: req.Description,
-		SourceRef: req.SourceRef, CreatedAt: time.Now(),
+		Link: req.Link, SourceRef: req.SourceRef, CreatedAt: time.Now(),
 	}
 }
 

@@ -11,19 +11,19 @@ import (
 // can stay free of oolong's NSID constants and dedup logic.
 func init() {
 	suggestions.Register(NSIDTea, suggestions.FieldConfig{
-		AllFields:    []string{"name", "category", "origin"},
+		AllFields:    []string{"name", "category", "origin", "link"},
 		SearchFields: []string{"name", "category", "origin"},
 		NameField:    "name",
 		DedupKey:     teaDedupKey,
 	})
 	suggestions.Register(NSIDVessel, suggestions.FieldConfig{
-		AllFields:    []string{"name", "style", "material"},
+		AllFields:    []string{"name", "style", "material", "link"},
 		SearchFields: []string{"name", "style"},
 		NameField:    "name",
 		DedupKey:     vesselDedupKey,
 	})
 	suggestions.Register(NSIDInfuser, suggestions.FieldConfig{
-		AllFields:    []string{"name", "style", "material"},
+		AllFields:    []string{"name", "style", "material", "link"},
 		SearchFields: []string{"name", "style"},
 		NameField:    "name",
 		DedupKey:     infuserDedupKey,

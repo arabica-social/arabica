@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -35,6 +36,14 @@ templ VesselContent(v *oolong.Vessel) {
 		</div>
 		if v.Description != "" {
 			<div class="mt-2 text-sm text-secondary italic">"{ v.Description }"</div>
+		}
+		if v.Link != "" {
+			if safeLink := bff.SafeWebsiteURL(v.Link); safeLink != "" {
+				<div class="mt-2 text-xs text-muted inline-flex items-center gap-1">
+					@IconLink()
+					<a href={ templ.SafeURL(safeLink) } target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">{ safeLink }</a>
+				</div>
+			}
 		}
 	</div>
 }

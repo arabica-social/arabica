@@ -265,6 +265,43 @@ func TestRecordToBrewer(t *testing.T) {
 	})
 }
 
+func TestLinkRoundTrip(t *testing.T) {
+	createdAt := time.Date(2025, 1, 10, 12, 0, 0, 0, time.UTC)
+
+	t.Run("bean", func(t *testing.T) {
+		original := &Bean{Name: "Ethiopian Yirgacheffe", Link: "https://example.com/bean", CreatedAt: createdAt}
+		record, err := BeanToRecord(original, "")
+		require.NoError(t, err)
+		assert.Equal(t, original.Link, record["link"])
+
+		restored, err := RecordToBean(record, "at://did:plc:test/social.arabica.alpha.bean/bean123")
+		require.NoError(t, err)
+		assert.Equal(t, original.Link, restored.Link)
+	})
+
+	t.Run("grinder", func(t *testing.T) {
+		original := &Grinder{Name: "Comandante C40", Link: "https://example.com/grinder", CreatedAt: createdAt}
+		record, err := GrinderToRecord(original)
+		require.NoError(t, err)
+		assert.Equal(t, original.Link, record["link"])
+
+		restored, err := RecordToGrinder(record, "at://did:plc:test/social.arabica.alpha.grinder/grinder123")
+		require.NoError(t, err)
+		assert.Equal(t, original.Link, restored.Link)
+	})
+
+	t.Run("brewer", func(t *testing.T) {
+		original := &Brewer{Name: "Hario V60", Link: "https://example.com/brewer", CreatedAt: createdAt}
+		record, err := BrewerToRecord(original)
+		require.NoError(t, err)
+		assert.Equal(t, original.Link, record["link"])
+
+		restored, err := RecordToBrewer(record, "at://did:plc:test/social.arabica.alpha.brewer/brewer123")
+		require.NoError(t, err)
+		assert.Equal(t, original.Link, restored.Link)
+	})
+}
+
 func TestRoundTrip(t *testing.T) {
 	createdAt := time.Date(2025, 1, 10, 12, 0, 0, 0, time.UTC)
 

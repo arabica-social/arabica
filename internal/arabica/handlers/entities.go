@@ -230,6 +230,7 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			RoastLevel:  r.FormValue("roast_level"),
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
+			Link:        r.FormValue("link"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
 			Rating:      handlers.ParseOptionalInt(r.FormValue("rating")),
 			Closed:      r.FormValue("closed") == "true",
@@ -557,6 +558,7 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 			RoastLevel:  r.FormValue("roast_level"),
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
+			Link:        r.FormValue("link"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
 			Rating:      handlers.ParseOptionalInt(r.FormValue("rating")),
 			Closed:      r.FormValue("closed") == "true",
@@ -664,7 +666,7 @@ func grinderFormDecoder(r *http.Request) arabica.CreateGrinderRequest {
 	return arabica.CreateGrinderRequest{
 		Name: r.FormValue("name"), GrinderType: r.FormValue("grinder_type"),
 		BurrType: r.FormValue("burr_type"), Notes: r.FormValue("notes"),
-		SourceRef: r.FormValue("source_ref"),
+		Link: r.FormValue("link"), SourceRef: r.FormValue("source_ref"),
 	}
 }
 
@@ -706,7 +708,8 @@ func (h *Handlers) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
 func brewerFormDecoder(r *http.Request) arabica.CreateBrewerRequest {
 	return arabica.CreateBrewerRequest{
 		Name: r.FormValue("name"), BrewerType: r.FormValue("brewer_type"),
-		Description: r.FormValue("description"), SourceRef: r.FormValue("source_ref"),
+		Description: r.FormValue("description"), Link: r.FormValue("link"),
+		SourceRef: r.FormValue("source_ref"),
 	}
 }
 

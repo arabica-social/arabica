@@ -25,6 +25,9 @@ func InfuserToRecord(i *Infuser) (map[string]any, error) {
 	if i.Description != "" {
 		rec["description"] = i.Description
 	}
+	if i.Link != "" {
+		rec["link"] = i.Link
+	}
 	if i.SourceRef != "" {
 		rec["sourceRef"] = i.SourceRef
 	}
@@ -64,6 +67,9 @@ func RecordToInfuser(record map[string]any, atURI string) (*Infuser, error) {
 	}
 	if s, ok := record["description"].(string); ok {
 		i.Description = s
+	}
+	if s, ok := record["link"].(string); ok {
+		i.Link = s
 	}
 	if s, ok := record["sourceRef"].(string); ok {
 		i.SourceRef = s

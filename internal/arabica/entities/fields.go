@@ -20,6 +20,8 @@ func beanField(e any, field string) (string, bool) {
 		return b.Process, true
 	case "description":
 		return b.Description, true
+	case "link":
+		return b.Link, true
 	}
 	return "", false
 }
@@ -50,6 +52,8 @@ func grinderField(e any, field string) (string, bool) {
 		return g.Name, true
 	case "notes":
 		return g.Notes, true
+	case "link":
+		return g.Link, true
 	}
 	return "", false
 }
@@ -66,6 +70,8 @@ func brewerField(e any, field string) (string, bool) {
 		return b.BrewerType, true
 	case "description":
 		return b.Description, true
+	case "link":
+		return b.Link, true
 	}
 	return "", false
 }
