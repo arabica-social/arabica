@@ -9,6 +9,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestRecordToRecipe(t *testing.T) {
+	record := map[string]any{
+		"$type":     NSIDRecipe,
+		"name":      "Shared V60",
+		"createdAt": "2025-01-10T12:00:00Z",
+	}
+
+	recipe, err := RecordToRecipe(record, "at://did:plc:recipeowner/social.arabica.alpha.recipe/recipe123")
+
+	require.NoError(t, err)
+	assert.Equal(t, "recipe123", recipe.RKey)
+	assert.Equal(t, "did:plc:recipeowner", recipe.AuthorDID)
+}
+
 func TestBrewToRecord(t *testing.T) {
 	createdAt := time.Date(2025, 1, 10, 12, 0, 0, 0, time.UTC)
 

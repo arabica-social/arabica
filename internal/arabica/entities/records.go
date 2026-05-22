@@ -73,6 +73,7 @@ func RecordToRecipe(record map[string]any, atURI string) (*Recipe, error) {
 			return nil, fmt.Errorf("invalid AT-URI: %w", err)
 		}
 		recipe.RKey = parsedURI.RecordKey().String()
+		recipe.AuthorDID = parsedURI.Authority().String()
 	}
 
 	name, ok := record["name"].(string)
