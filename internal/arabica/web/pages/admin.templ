@@ -436,26 +436,26 @@ templ AdminDashboardBody(props AdminProps) {
 				<div class="card card-inner">
 					<h2 class="section-title">Rebuild Witness Cache from PDS</h2>
 					<p class="text-sm text-muted mb-4">
-						Re-fetch every Arabica record for a DID from their PDS and write the
-						results back into the witness cache. Pair with Purge to fully recycle
+						Re-fetch every Arabica record for a DID or handle from their PDS and
+						write the results back into the witness cache. Pair with Purge to fully recycle
 						a user's witness data — purge clears the backfill marker, so this runs
 						a fresh pass instead of short-circuiting.
 					</p>
 					<form
 						hx-post="/_mod/rebuild"
-						hx-confirm="Rebuild the witness cache for this DID from their PDS?"
+						hx-confirm="Rebuild the witness cache for this DID or handle from their PDS?"
 						hx-swap="innerHTML"
 						hx-target="#rebuild-result"
 						class="flex flex-col gap-3 sm:flex-row sm:items-end"
 					>
 						<div class="flex-1">
-							<label for="rebuild-did" class="block text-sm font-medium text-emphasis mb-1">DID</label>
+							<label for="rebuild-did" class="block text-sm font-medium text-emphasis mb-1">DID or handle</label>
 							<input
 								id="rebuild-did"
 								type="text"
 								name="did"
 								required
-								placeholder="did:plc:..."
+								placeholder="did:plc:... or alice.example.com"
 								class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
 							/>
 						</div>

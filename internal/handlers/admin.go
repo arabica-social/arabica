@@ -848,19 +848,14 @@ func (h *Handler) HandleAdminPurgeDID(w http.ResponseWriter, r *http.Request) {
 //
 // Auth and admin checks are handled by RequireAdmin.
 func (h *Handler) HandleAdminRebuildDID(w http.ResponseWriter, r *http.Request) {
-	rawDID := strings.TrimSpace(r.URL.Query().Get("did"))
-	if rawDID == "" {
+	actorInput := strings.TrimSpace(r.URL.Query().Get("did"))
+	if actorInput == "" {
 		if err := r.ParseForm(); err == nil {
-			rawDID = strings.TrimSpace(r.FormValue("did"))
+			actorInput = strings.TrimSpace(r.FormValue("did"))
 		}
 	}
-	if rawDID == "" {
+	if actorInput == "" {
 		http.Error(w, "missing 'did' parameter", http.StatusBadRequest)
-		return
-	}
-	did, err := syntax.ParseDID(rawDID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("invalid DID: %v", err), http.StatusBadRequest)
 		return
 	}
 	if h.feedIndex == nil {
@@ -868,20 +863,43 @@ func (h *Handler) HandleAdminRebuildDID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	didStr := did.String()
+	var didStr, handle string
+	if strings.HasPrefix(actorInput, "did:") {
+		did, err := syntax.ParseDID(actorInput)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("invalid DID: %v", err), http.StatusBadRequest)
+			return
+		}
+		didStr = did.String()
+	} else {
+		handle = atp.NormalizeHandle(actorInput)
+		if handle == "" {
+			http.Error(w, "invalid handle", http.StatusBadRequest)
+			return
+		}
+		resolved, err := atproto.NewPublicClient().ResolveHandle(r.Context(), handle)
+		if err != nil {
+			log.Warn().Err(err).Str("handle", handle).Msg("admin rebuild: ResolveHandle failed")
+			http.Error(w, fmt.Sprintf("could not resolve handle %q: %v", handle, err), http.StatusNotFound)
+			return
+		}
+		didStr = resolved
+	}
+
 	actor, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := h.feedIndex.BackfillUser(r.Context(), didStr, nil); err != nil {
-		log.Error().Err(err).Str("did", didStr).Str("actor", actor).Msg("admin rebuild: BackfillUser failed")
+		log.Error().Err(err).Str("did", didStr).Str("handle", handle).Str("actor", actor).Msg("admin rebuild: BackfillUser failed")
 		http.Error(w, "rebuild failed", http.StatusInternalServerError)
 		return
 	}
 
-	log.Warn().Str("did", didStr).Str("actor", actor).Msg("admin rebuild: refilled witness cache from PDS")
+	log.Warn().Str("did", didStr).Str("handle", handle).Str("actor", actor).Msg("admin rebuild: refilled witness cache from PDS")
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"did":       didStr,
+		"handle":    handle,
 		"rebuilt":   true,
 		"rebuiltAt": time.Now().UTC(),
 	})
