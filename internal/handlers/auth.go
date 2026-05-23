@@ -364,7 +364,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		// Read the error body for better debugging
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Warn().
@@ -413,7 +413,7 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer profileResp.Body.Close()
 
-	if profileResp.StatusCode != 200 {
+	if profileResp.StatusCode != http.StatusOK {
 		// Return just the DID if we can't get the profile
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(map[string]any{
@@ -492,7 +492,7 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Warn().
 			Str("query", query).

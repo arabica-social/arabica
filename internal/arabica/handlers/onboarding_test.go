@@ -69,10 +69,16 @@ func TestBuildGetStartedCardProps_Empty(t *testing.T) {
 
 func TestBuildGetStartedCardProps_Populated(t *testing.T) {
 	store := &database.MockStore{
-		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return []*arabica.Bean{{RKey: "b1", Name: "Ethiopia"}}, nil },
-		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "br1", Name: "V60"}}, nil },
+		ListBeansFunc: func(ctx context.Context) ([]*arabica.Bean, error) {
+			return []*arabica.Bean{{RKey: "b1", Name: "Ethiopia"}}, nil
+		},
+		ListBrewersFunc: func(ctx context.Context) ([]*arabica.Brewer, error) {
+			return []*arabica.Brewer{{RKey: "br1", Name: "V60"}}, nil
+		},
 		ListGrindersFunc: func(ctx context.Context) ([]*arabica.Grinder, error) { return nil, nil },
-		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return []*arabica.Roaster{{RKey: "r1", Name: "Onyx"}}, nil },
+		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) {
+			return []*arabica.Roaster{{RKey: "r1", Name: "Onyx"}}, nil
+		},
 	}
 
 	props, err := buildGetStartedCardProps(context.Background(), store)

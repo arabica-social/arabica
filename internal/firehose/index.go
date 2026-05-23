@@ -144,6 +144,46 @@ CREATE INDEX IF NOT EXISTS idx_records_did ON records(did);
 CREATE INDEX IF NOT EXISTS idx_records_coll_created ON records(collection, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_records_did_coll ON records(did, collection, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS explore_documents (
+    uri              TEXT PRIMARY KEY,
+    did              TEXT NOT NULL,
+    app              TEXT NOT NULL,
+    record_type      TEXT NOT NULL,
+    cluster_key      TEXT NOT NULL,
+    canonical_rank   REAL NOT NULL DEFAULT 0,
+    title            TEXT,
+    summary          TEXT,
+    search_text      TEXT,
+    own_rating       REAL,
+    community_rating REAL,
+    rating_count     INTEGER NOT NULL DEFAULT 0,
+    like_count       INTEGER NOT NULL DEFAULT 0,
+    comment_count    INTEGER NOT NULL DEFAULT 0,
+    source_ref_count INTEGER NOT NULL DEFAULT 0,
+    popular_score    REAL NOT NULL DEFAULT 0,
+    created_at       TEXT NOT NULL,
+    FOREIGN KEY (uri) REFERENCES records(uri) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_explore_documents_app_type_created ON explore_documents(app, record_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_explore_documents_app_cluster ON explore_documents(app, cluster_key);
+CREATE INDEX IF NOT EXISTS idx_explore_documents_popular ON explore_documents(app, popular_score DESC, created_at DESC, cluster_key);
+CREATE INDEX IF NOT EXISTS idx_explore_documents_rating ON explore_documents(app, community_rating DESC, own_rating DESC, created_at DESC, cluster_key);
+
+CREATE TABLE IF NOT EXISTS explore_values (
+    uri         TEXT NOT NULL,
+    did         TEXT NOT NULL,
+    app         TEXT NOT NULL,
+    record_type TEXT NOT NULL,
+    field       TEXT NOT NULL,
+    value_text  TEXT,
+    value_num   REAL,
+    created_at  TEXT NOT NULL,
+    FOREIGN KEY (uri) REFERENCES records(uri) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_explore_values_text ON explore_values(app, record_type, field, value_text);
+CREATE INDEX IF NOT EXISTS idx_explore_values_num ON explore_values(app, record_type, field, value_num);
+CREATE INDEX IF NOT EXISTS idx_explore_values_uri ON explore_values(uri);
+
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value BLOB
@@ -350,6 +390,7 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	if err := idx.backfillHandleIndex(); err != nil {
 		log.Warn().Err(err).Msg("did_by_handle backfill failed; lookups will populate lazily")
 	}
+	idx.ensureExploreIndex(context.Background())
 
 	// If the database already has records from a previous run, mark ready immediately
 	// so the feed is served from persisted data while the firehose reconnects.
@@ -577,6 +618,18 @@ ON CONFLICT(uri) DO UPDATE SET
 		return fmt.Errorf("failed to track known DID: %w", err)
 	}
 
+	if err := idx.reindexExploreRecord(ctx, uri); err != nil {
+		log.Warn().Err(err).Str("uri", uri).Msg("failed to refresh explore document")
+		idx.markExploreDirty(ctx, err)
+	} else if err := idx.reindexExploreDependents(ctx, uri, collection); err != nil {
+		log.Warn().Err(err).Str("uri", uri).Msg("failed to refresh explore dependents")
+		idx.markExploreDirty(ctx, err)
+	} else if sourceRef := exploreSourceRef(record); sourceRef != "" {
+		if err := idx.refreshExploreStats(ctx, sourceRef); err != nil {
+			idx.markExploreDirty(ctx, err)
+		}
+	}
+
 	return nil
 }
 
@@ -599,6 +652,7 @@ func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey st
 // should outlive the account.
 func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
 	uriPrefix := fmt.Sprintf("at://%s/%%", did)
+	affectedExploreSubjects := idx.exploreSubjectsAffectedByDID(ctx, did, uriPrefix)
 
 	tx, err := idx.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -638,6 +692,12 @@ func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
 	idx.profileCacheMu.Lock()
 	delete(idx.profileCache, did)
 	idx.profileCacheMu.Unlock()
+
+	for subject := range affectedExploreSubjects {
+		if err := idx.refreshExploreStats(ctx, subject); err != nil {
+			idx.markExploreDirty(ctx, err)
+		}
+	}
 
 	return nil
 }
@@ -1931,6 +1991,11 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 func (idx *FeedIndex) UpsertLike(ctx context.Context, actorDID, rkey, subjectURI string) error {
 	_, err := idx.db.ExecContext(ctx, `INSERT OR IGNORE INTO likes (subject_uri, actor_did, rkey) VALUES (?, ?, ?)`,
 		subjectURI, actorDID, rkey)
+	if err == nil {
+		if refreshErr := idx.refreshExploreStats(ctx, subjectURI); refreshErr != nil {
+			idx.markExploreDirty(ctx, refreshErr)
+		}
+	}
 	return err
 }
 
@@ -1938,6 +2003,11 @@ func (idx *FeedIndex) UpsertLike(ctx context.Context, actorDID, rkey, subjectURI
 func (idx *FeedIndex) DeleteLike(ctx context.Context, actorDID, subjectURI string) error {
 	_, err := idx.db.ExecContext(ctx, `DELETE FROM likes WHERE subject_uri = ? AND actor_did = ?`,
 		subjectURI, actorDID)
+	if err == nil {
+		if refreshErr := idx.refreshExploreStats(ctx, subjectURI); refreshErr != nil {
+			idx.markExploreDirty(ctx, refreshErr)
+		}
+	}
 	return err
 }
 
@@ -2125,12 +2195,22 @@ func (idx *FeedIndex) UpsertComment(ctx context.Context, actorDID, rkey, subject
 			text = excluded.text,
 			created_at = excluded.created_at
 	`, actorDID, rkey, subjectURI, parentURI, parentRKey, cid, text, createdAt.Format(time.RFC3339Nano))
+	if err == nil {
+		if refreshErr := idx.refreshExploreStats(ctx, subjectURI); refreshErr != nil {
+			idx.markExploreDirty(ctx, refreshErr)
+		}
+	}
 	return err
 }
 
 // DeleteComment removes a comment from the index
 func (idx *FeedIndex) DeleteComment(ctx context.Context, actorDID, rkey, subjectURI string) error {
 	_, err := idx.db.ExecContext(ctx, `DELETE FROM comments WHERE actor_did = ? AND rkey = ?`, actorDID, rkey)
+	if err == nil {
+		if refreshErr := idx.refreshExploreStats(ctx, subjectURI); refreshErr != nil {
+			idx.markExploreDirty(ctx, refreshErr)
+		}
+	}
 	return err
 }
 

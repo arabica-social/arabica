@@ -3,10 +3,64 @@ package components
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/pdewey.com/atp"
 )
+
+templ AuthorByline(profile *atproto.Profile, fallbackDID string) {
+	if profile != nil {
+		<a href={ templ.SafeURL("/profile/" + authorProfileID(profile, fallbackDID)) } class="inline-flex items-center gap-2 min-w-0 hover:opacity-85 transition-opacity">
+			@Avatar(AvatarProps{
+				AvatarURL:   authorAvatar(profile),
+				DisplayName: authorDisplay(profile, fallbackDID),
+				Size:        "sm",
+			})
+			<span class="min-w-0 leading-tight">
+				<span class="block text-sm font-semibold text-primary truncate">{ authorDisplay(profile, fallbackDID) }</span>
+				<span class="block text-xs text-muted truncate">{ "@" + atp.DisplayHandle(authorProfileID(profile, fallbackDID)) }</span>
+			</span>
+		</a>
+	} else if fallbackDID != "" {
+		<a href={ templ.SafeURL("/profile/" + fallbackDID) } class="inline-flex items-center gap-2 min-w-0 hover:opacity-85 transition-opacity">
+			@Avatar(AvatarProps{DisplayName: fallbackDID, Size: "sm"})
+			<span class="min-w-0 leading-tight">
+				<span class="block text-sm font-semibold text-primary truncate">{ fallbackDID }</span>
+			</span>
+		</a>
+	}
+}
+
+func authorProfileID(profile *atproto.Profile, fallbackDID string) string {
+	if profile != nil && profile.Handle != "" {
+		return profile.Handle
+	}
+	if profile != nil && profile.DID != "" {
+		return profile.DID
+	}
+	return fallbackDID
+}
+
+func authorDisplay(profile *atproto.Profile, fallbackDID string) string {
+	if profile != nil && profile.DisplayName != nil && *profile.DisplayName != "" {
+		return *profile.DisplayName
+	}
+	if profile != nil && profile.Handle != "" {
+		return atp.DisplayHandle(profile.Handle)
+	}
+	if profile != nil && profile.DID != "" {
+		return profile.DID
+	}
+	return fallbackDID
+}
+
+func authorAvatar(profile *atproto.Profile) string {
+	if profile != nil && profile.Avatar != nil {
+		return *profile.Avatar
+	}
+	return ""
+}
 
 // BeanSummaryProps defines props for displaying bean metadata inline.
 // Used in both bean feed cards and brew feed cards.

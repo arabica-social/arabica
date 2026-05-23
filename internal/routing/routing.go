@@ -123,6 +123,7 @@ func SetupRouter(cfg Config) http.Handler {
 		mux.HandleFunc("GET /onboarding", coffee.HandleOnboarding)
 		mux.HandleFunc("GET /add", coffee.HandleAddRecords)
 		mux.HandleFunc("GET /my-coffee", coffee.HandleMyCoffee)
+		mux.HandleFunc("GET /explore", coffee.HandleExplore)
 		mux.HandleFunc("GET /manage", coffee.HandleManage)
 		mux.HandleFunc("GET /brews", coffee.HandleBrewList)
 		mux.HandleFunc("GET /brews/new", coffee.HandleBrewNew)
@@ -351,6 +352,7 @@ func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.Handle
 		feedIndexCheck := map[string]any{"healthy": false, "ready": false}
 		if idx := h.FeedIndex(); idx != nil {
 			feedIndexCheck["ready"] = idx.IsReady()
+			feedIndexCheck["explore"] = idx.ExploreHealth(r.Context())
 			if err := idx.DB().PingContext(r.Context()); err != nil {
 				feedIndexCheck["healthy"] = false
 				status = "error"
