@@ -7,17 +7,32 @@ package coffeehandlers
 
 import (
 	"context"
+	"net/http"
 
 	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
-	"tangled.org/arabica.social/arabica/internal/database"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // Handlers is the arabica-specific handler set. It embeds the shared
 // *handlers.Handler so promoted methods give access to common helpers.
 type Handlers struct {
 	*handlers.Handler
+}
+
+// GetArabicaStore returns the authenticated request's Arabica-typed store.
+func (h *Handlers) GetArabicaStore(r *http.Request) (arabicastore.Store, bool) {
+	store, ok := h.GetRecordStore(r)
+	if !ok {
+		return nil, false
+	}
+	arabicaStore, ok := store.(arabicastore.Store)
+	if !ok {
+		return nil, false
+	}
+	return arabicaStore, true
 }
 
 // New constructs a Handlers wrapper over an already-configured base.
@@ -31,8 +46,12 @@ func New(base *handlers.Handler) *Handlers {
 			Tagline:  "coffee journaling for the open social web",
 			Detail:   "track, share, and own your brews",
 		},
-		ReadinessChecker: func(ctx context.Context, store database.Store) (bool, error) {
-			status, err := onboarding.CheckBrewReadiness(ctx, store)
+		ReadinessChecker: func(ctx context.Context, store records.Store) (bool, error) {
+			arabicaStore, ok := store.(arabicastore.Store)
+			if !ok {
+				return true, nil
+			}
+			status, err := onboarding.CheckBrewReadiness(ctx, arabicaStore)
 			if err != nil {
 				return true, err
 			}

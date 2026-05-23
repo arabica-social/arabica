@@ -11,10 +11,15 @@ import (
 	"sync"
 	"syscall"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/apps"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
+	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
+	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/logging"
+	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
+	teahandlers "tangled.org/arabica.social/arabica/internal/oolong/handlers"
+	"tangled.org/arabica.social/arabica/internal/routing"
 
 	"github.com/rs/zerolog/log"
 )
@@ -23,6 +28,8 @@ type appRun struct {
 	app                *domain.App
 	defaultPort        string
 	defaultMetricsPort string
+	appRoutes          routing.AppRoutes
+	staticPages        handlers.StaticPageRenderers
 }
 
 func main() {
@@ -43,8 +50,8 @@ func main() {
 	}()
 
 	runs := []appRun{
-		{app: apps.NewArabica(), defaultPort: "18910", defaultMetricsPort: "9101"},
-		{app: apps.NewOolong(), defaultPort: "18920", defaultMetricsPort: "9102"},
+		{app: arabicaapp.New(), defaultPort: "18910", defaultMetricsPort: "9101", appRoutes: coffeehandlers.Routes{}},
+		{app: oolongapp.New(), defaultPort: "18920", defaultMetricsPort: "9102", appRoutes: teahandlers.Routes{}, staticPages: teahandlers.StaticPages()},
 	}
 
 	if err := runApps(ctx, *knownDIDsFile, runs); err != nil {
@@ -66,6 +73,8 @@ func runApps(ctx context.Context, knownDIDsFile string, runs []appRun) error {
 				KnownDIDsPath:      knownDIDsFile,
 				DefaultPort:        run.defaultPort,
 				DefaultMetricsPort: run.defaultMetricsPort,
+				AppRoutes:          run.appRoutes,
+				StaticPages:        run.staticPages,
 			})
 			if err != nil {
 				errCh <- fmt.Errorf("%s: %w", run.app.Name, err)

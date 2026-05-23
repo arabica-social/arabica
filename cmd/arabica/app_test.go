@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"tangled.org/arabica.social/arabica/internal/atplatform/apps"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 )
 
 // TestArabicaApp_OAuthScopes_matchesLegacyList guards against accidental
 // scope drift during the multi-tenant refactor.
 func TestArabicaApp_OAuthScopes_matchesLegacyList(t *testing.T) {
-	app := apps.NewArabica()
+	app := arabicaapp.New()
 	got := app.OAuthScopes()
 	sort.Strings(got)
 
@@ -31,7 +31,7 @@ func TestArabicaApp_OAuthScopes_matchesLegacyList(t *testing.T) {
 }
 
 func TestArabicaApp_NSIDs(t *testing.T) {
-	app := apps.NewArabica()
+	app := arabicaapp.New()
 	got := app.NSIDs()
 	sort.Strings(got)
 

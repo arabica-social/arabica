@@ -26,7 +26,7 @@ import (
 // Manage page partial (loaded async via HTMX)
 func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -133,7 +133,7 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 // Used by client-side cache for faster page loads. Arabica-specific —
 // oolong has its own /api/data handler registered via teahandlers.
 func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -213,7 +213,7 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 // API endpoint to create bean
 func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -315,7 +315,7 @@ func (h *Handlers) HandleManage(w http.ResponseWriter, r *http.Request) {
 
 // HandleMyCoffee renders the unified My Coffee page (replaces both /brews and /manage)
 func (h *Handlers) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.GetAtprotoStore(r)
+	_, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -331,7 +331,7 @@ func (h *Handlers) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
 
 // HandleIncompleteRecordsPartial returns an HTML fragment for incomplete records on the home dashboard.
 func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		return
 	}
@@ -377,7 +377,7 @@ func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http
 // user's PDS, writing them through to the witness cache so subsequent reads
 // are up to date. Returns the refreshed manage partial.
 func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -544,7 +544,7 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -628,7 +628,7 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -663,7 +663,7 @@ func (h *Handlers) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -730,7 +730,7 @@ func (h *Handlers) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -794,7 +794,7 @@ func (h *Handlers) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return

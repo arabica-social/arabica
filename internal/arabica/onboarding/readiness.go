@@ -12,8 +12,8 @@ import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
-// BrewPrerequisiteStore is the narrow slice of database.Store that
-// CheckBrewReadiness needs. Callers may pass any database.Store value.
+// BrewPrerequisiteStore is the narrow slice of Arabica store behavior that
+// CheckBrewReadiness needs.
 type BrewPrerequisiteStore interface {
 	ListBeans(ctx context.Context) ([]*arabica.Bean, error)
 	ListBrewers(ctx context.Context) ([]*arabica.Brewer, error)

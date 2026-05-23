@@ -13,17 +13,12 @@ import (
 // RequireRecordStore returns the authenticated request's app-agnostic record
 // store, writing the appropriate HTTP error when auth or store wiring fails.
 func (h *Handler) RequireRecordStore(w http.ResponseWriter, r *http.Request) (records.Store, bool) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetRecordStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return nil, false
 	}
-	recordStore, ok := store.(records.Store)
-	if !ok {
-		http.Error(w, "Internal error", http.StatusInternalServerError)
-		return nil, false
-	}
-	return recordStore, true
+	return store, true
 }
 
 // ExistingCreatedAt returns the createdAt timestamp of an existing record so

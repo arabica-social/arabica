@@ -9,9 +9,9 @@ import (
 	"context"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // Handlers is the oolong-specific handler set. It embeds the shared
@@ -32,7 +32,7 @@ func New(base *handlers.Handler) *Handlers {
 			Tagline:  "tea journaling for the open social web",
 			Detail:   "log every steep, share your tea story",
 		},
-		ReadinessChecker: func(ctx context.Context, store database.Store) (bool, error) {
+		ReadinessChecker: func(ctx context.Context, store records.Store) (bool, error) {
 			atpStore, ok := store.(*atproto.AtprotoStore)
 			if !ok {
 				return true, nil

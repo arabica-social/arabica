@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // Store defines the interface for all database operations.
@@ -11,6 +12,8 @@ import (
 // All methods accept a context.Context as the first parameter to support
 // cancellation, timeouts, and request-scoped values.
 type Store interface {
+	records.Store
+
 	// Brew operations
 	// Note: userID parameter is deprecated for ATProto (user is implicit from DID)
 	// It remains for SQLite compatibility but should not be relied upon

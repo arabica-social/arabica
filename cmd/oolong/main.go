@@ -12,9 +12,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/apps"
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
 	"tangled.org/arabica.social/arabica/internal/logging"
+	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
 	teahandlers "tangled.org/arabica.social/arabica/internal/oolong/handlers"
 
 	"github.com/rs/zerolog/log"
@@ -42,7 +42,7 @@ func main() {
 		cancel()
 	}()
 
-	app := apps.NewOolong()
+	app := oolongapp.New()
 	log.Info().Str("app", app.Name).Msg("Starting app")
 	err := server.Run(ctx, app, server.Options{
 		KnownDIDsPath:      *knownDIDsFile,

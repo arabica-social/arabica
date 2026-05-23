@@ -79,7 +79,7 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	ready := true
 	if isAuthenticated && h.homeBehavior.ReadinessChecker != nil {
-		if store, ok := h.GetAtprotoStore(r); ok {
+		if store, ok := h.GetRecordStore(r); ok {
 			if isReady, err := h.homeBehavior.ReadinessChecker(r.Context(), store); err != nil {
 				log.Warn().Err(err).Msg("readiness check failed; treating user as ready to avoid false block")
 			} else {
@@ -276,7 +276,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 // HandleLikeToggle handles creating or deleting a like on a record
 func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return

@@ -132,7 +132,7 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 	// AtprotoStore so locally-written records that the firehose hasn't
 	// caught up to are still visible.
 	if isOwnProfile {
-		if store, ok := h.GetAtprotoStore(r); ok {
+		if store, ok := h.GetRecordStore(r); ok {
 			if atprotoStore, ok := store.(*atproto.AtprotoStore); ok {
 				if rec, raw, uri, cid, err := cfg.FromStore(r.Context(), atprotoStore, rkey); err == nil {
 					record, subjectURI, subjectCID = rec, uri, cid

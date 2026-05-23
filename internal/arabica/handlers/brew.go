@@ -125,7 +125,7 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 // Brew list partial (loaded async via HTMX)
 func (h *Handlers) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -180,7 +180,7 @@ func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 
 // Show new brew form
 func (h *Handlers) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -228,7 +228,7 @@ func (h *Handlers) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -414,7 +414,7 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 // Create new brew
 func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication first
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -524,7 +524,7 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -617,7 +617,7 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 // Delete brew
 func (h *Handlers) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -628,7 +628,7 @@ func (h *Handlers) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 // Export brews as JSON
 func (h *Handlers) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return

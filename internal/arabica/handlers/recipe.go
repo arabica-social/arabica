@@ -23,7 +23,7 @@ import (
 
 // HandleRecipeCreate creates a new recipe
 func (h *Handlers) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -86,7 +86,7 @@ func (h *Handlers) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -147,7 +147,7 @@ func (h *Handlers) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -182,7 +182,7 @@ func (h *Handlers) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -258,7 +258,7 @@ func (h *Handlers) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -332,7 +332,7 @@ func (h *Handlers) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -438,7 +438,7 @@ func (h *Handlers) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 // HandleRecipeSuggestions returns filtered recipes from all users via the feed index.
 // Query params: q (text search), brewer_type, min_coffee, max_coffee, min_water, max_water, category
 func (h *Handlers) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.GetAtprotoStore(r)
+	_, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -680,7 +680,7 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 
 // HandleRecipeList returns all recipes as JSON
 func (h *Handlers) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -713,7 +713,7 @@ func (h *Handlers) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
 
 // HandleRecipeModalNew returns the recipe creation modal HTML
 func (h *Handlers) HandleRecipeModalNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -743,7 +743,7 @@ func (h *Handlers) HandleRecipeModalEdit(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -775,7 +775,7 @@ func (h *Handlers) HandleRecipeModalEdit(w http.ResponseWriter, r *http.Request)
 
 // HandleRecipeExplore renders the recipe explore page
 func (h *Handlers) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.GetAtprotoStore(r)
+	_, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return

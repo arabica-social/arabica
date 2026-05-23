@@ -6,9 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"tangled.org/arabica.social/arabica/internal/atplatform/apps"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
 )
 
 func TestRegisterEntityRoutesFiltersUnionByAppDescriptors(t *testing.T) {
@@ -18,12 +19,12 @@ func TestRegisterEntityRoutesFiltersUnionByAppDescriptors(t *testing.T) {
 	}
 
 	arabicaMux := http.NewServeMux()
-	registerEntityRoutes(arabicaMux, http.NewCrossOriginProtection(), apps.NewArabica(), bundles)
+	RegisterEntityRoutes(arabicaMux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles)
 	assertRouteStatus(t, arabicaMux, "GET", "/beans/alice.test/r1", http.StatusOK)
 	assertRouteStatus(t, arabicaMux, "GET", "/teas/alice.test/r1", http.StatusNotFound)
 
 	oolongMux := http.NewServeMux()
-	registerEntityRoutes(oolongMux, http.NewCrossOriginProtection(), apps.NewOolong(), bundles)
+	RegisterEntityRoutes(oolongMux, http.NewCrossOriginProtection(), oolongapp.New(), bundles)
 	assertRouteStatus(t, oolongMux, "GET", "/beans/alice.test/r1", http.StatusNotFound)
 	assertRouteStatus(t, oolongMux, "GET", "/teas/alice.test/r1", http.StatusOK)
 }

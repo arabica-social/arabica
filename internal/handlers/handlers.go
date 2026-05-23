@@ -10,17 +10,16 @@ import (
 	"strings"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
-	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
-	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/signup"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
@@ -51,7 +50,7 @@ type StaticPageRenderers struct {
 	Terms StaticPageRenderer
 }
 
-type HomeReadinessChecker func(context.Context, database.Store) (bool, error)
+type HomeReadinessChecker func(context.Context, records.Store) (bool, error)
 
 type HomeBehavior struct {
 	OGDescription    string
@@ -98,13 +97,13 @@ type Handler struct {
 
 	// storeOverride supports focused handler tests without constructing an
 	// OAuth-backed ATProto client. Production code leaves it nil.
-	storeOverride arabicastore.Store
+	storeOverride records.Store
 }
 
 // SetStoreOverrideForTest injects a request-scoped store for handler tests.
 // Authentication context is still required; only the concrete store creation is
 // bypassed. Passing nil clears the override.
-func (h *Handler) SetStoreOverrideForTest(store arabicastore.Store) {
+func (h *Handler) SetStoreOverrideForTest(store records.Store) {
 	h.storeOverride = store
 }
 
@@ -129,6 +128,12 @@ func (h *Handler) SetHomeBehavior(behavior HomeBehavior) {
 // SetAssetManifest wires the server's configured asset hrefs into layout data.
 func (h *Handler) SetAssetManifest(manifest assets.Manifest) {
 	h.assets = manifest
+}
+
+// SetRecordStoreOverrideForTest injects an app-generic record store for
+// handler tests that do not need Arabica's typed store interface.
+func (h *Handler) SetRecordStoreOverrideForTest(store records.Store) {
+	h.storeOverride = store
 }
 
 // SetDevMode toggles dev-mode features. Called once at startup from the
@@ -379,9 +384,9 @@ func (h *Handler) GetUserProfile(ctx context.Context, did string) *bff.UserProfi
 	return userProfile
 }
 
-// getAtprotoStore creates a user-scoped atproto store from the request context.
+// GetRecordStore creates a user-scoped app-generic record store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
-func (h *Handler) GetAtprotoStore(r *http.Request) (arabicastore.Store, bool) {
+func (h *Handler) GetRecordStore(r *http.Request) (records.Store, bool) {
 	// Get authenticated DID from context
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
@@ -413,6 +418,27 @@ func (h *Handler) GetAtprotoStore(r *http.Request) (arabicastore.Store, bool) {
 	}
 	store := atproto.NewAtprotoStoreForApp(h.atprotoClient, did, sessionID, h.sessionCache, h.witnessCache, likeNSID, commentNSID)
 	return store, true
+}
+
+type socialStore interface {
+	records.Store
+	CreateLike(ctx context.Context, req *arabica.CreateLikeRequest) (*arabica.Like, error)
+	DeleteLikeByRKey(ctx context.Context, rkey string) error
+	GetUserLikeForSubject(ctx context.Context, subjectURI string) (*arabica.Like, error)
+	CreateComment(ctx context.Context, req *arabica.CreateCommentRequest) (*arabica.Comment, error)
+	DeleteCommentByRKey(ctx context.Context, rkey string) error
+}
+
+func (h *Handler) getSocialStore(r *http.Request) (socialStore, bool) {
+	store, ok := h.GetRecordStore(r)
+	if !ok {
+		return nil, false
+	}
+	social, ok := store.(socialStore)
+	if !ok {
+		return nil, false
+	}
+	return social, true
 }
 
 // layoutDataFromRequest extracts auth state from the request and builds layout data.
@@ -550,7 +576,7 @@ func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated
 // HandleCommentCreate handles creating a new comment
 func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -650,7 +676,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 // HandleCommentDelete handles deleting a comment
 func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return

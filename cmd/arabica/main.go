@@ -12,8 +12,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
-	"tangled.org/arabica.social/arabica/internal/atplatform/apps"
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
 	"tangled.org/arabica.social/arabica/internal/logging"
 
@@ -42,7 +42,7 @@ func main() {
 		cancel()
 	}()
 
-	app := apps.NewArabica()
+	app := arabicaapp.New()
 	log.Info().Str("app", app.Name).Msg("Starting app")
 	err := server.Run(ctx, app, server.Options{
 		KnownDIDsPath:      *knownDIDsFile,

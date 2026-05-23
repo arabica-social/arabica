@@ -82,7 +82,7 @@ func newTestStore(t *testing.T, pdsURL string, acct testAccount) *atproto.Atprot
 	cache := atproto.NewSessionCache()
 	store := atproto.NewAtprotoStore(client, did, "test-session", cache)
 
-	return store.(*atproto.AtprotoStore)
+	return store
 }
 
 func TestPDS_RoasterCRUD(t *testing.T) {

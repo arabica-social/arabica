@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"tangled.org/arabica.social/arabica/internal/atplatform/apps"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
+	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
 )
 
 func TestServerAppsUseSeparateDefaults(t *testing.T) {
 	runs := []appRun{
-		{app: apps.NewArabica(), defaultPort: "18910", defaultMetricsPort: "9101"},
-		{app: apps.NewOolong(), defaultPort: "18920", defaultMetricsPort: "9102"},
+		{app: arabicaapp.New(), defaultPort: "18910", defaultMetricsPort: "9101"},
+		{app: oolongapp.New(), defaultPort: "18920", defaultMetricsPort: "9102"},
 	}
 
 	got := map[string]appRun{}
@@ -27,8 +28,8 @@ func TestServerAppsUseSeparateDefaults(t *testing.T) {
 
 func TestServerAppsUseDistinctNSIDBases(t *testing.T) {
 	runs := []appRun{
-		{app: apps.NewArabica(), defaultPort: "18910", defaultMetricsPort: "9101"},
-		{app: apps.NewOolong(), defaultPort: "18920", defaultMetricsPort: "9102"},
+		{app: arabicaapp.New(), defaultPort: "18910", defaultMetricsPort: "9101"},
+		{app: oolongapp.New(), defaultPort: "18920", defaultMetricsPort: "9102"},
 	}
 
 	bases := make([]string, 0, len(runs))

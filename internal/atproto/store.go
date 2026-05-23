@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
-	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
 )
 
-// AtprotoStore implements the arabicastore.Store interface using atproto records.
+// AtprotoStore implements generic record CRUD and Arabica's typed store
+// interface using atproto records.
 // Context is passed as a parameter to each method rather than stored in the struct,
 // following Go best practices for context propagation.
 type AtprotoStore struct {
@@ -34,7 +34,7 @@ type AtprotoStore struct {
 
 // NewAtprotoStore creates a new atproto store for a specific user session.
 // The cache parameter allows for dependency injection and testability.
-func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *SessionCache) arabicastore.Store {
+func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *SessionCache) *AtprotoStore {
 	return &AtprotoStore{
 		client:    client,
 		did:       did,
@@ -45,7 +45,7 @@ func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *Se
 
 // NewAtprotoStoreWithWitness creates a store that uses the witness cache for
 // cache-first reads, falling back to the PDS on cache misses.
-func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string, cache *SessionCache, witness WitnessCache) arabicastore.Store {
+func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string, cache *SessionCache, witness WitnessCache) *AtprotoStore {
 	return &AtprotoStore{
 		client:       client,
 		did:          did,
@@ -57,7 +57,7 @@ func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string
 
 // NewAtprotoStoreForApp builds a store wired with per-app like/comment NSIDs.
 // Pass empty strings to fall back to arabica's defaults.
-func NewAtprotoStoreForApp(client *Client, did syntax.DID, sessionID string, cache *SessionCache, witness WitnessCache, likeNSID, commentNSID string) arabicastore.Store {
+func NewAtprotoStoreForApp(client *Client, did syntax.DID, sessionID string, cache *SessionCache, witness WitnessCache, likeNSID, commentNSID string) *AtprotoStore {
 	return &AtprotoStore{
 		client:       client,
 		did:          did,

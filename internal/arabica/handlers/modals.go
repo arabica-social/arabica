@@ -23,7 +23,7 @@ import (
 // arabicaModalNew renders an empty (create-mode) modal after asserting
 // the caller is authenticated.
 func (h *Handlers) arabicaModalNew(w http.ResponseWriter, r *http.Request, name string, render func() templ.Component) {
-	if _, authenticated := h.GetAtprotoStore(r); !authenticated {
+	if _, authenticated := h.GetArabicaStore(r); !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -47,7 +47,7 @@ func arabicaModalEdit[Model any](
 	if rkey == "" {
 		return
 	}
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -70,7 +70,7 @@ func arabicaModalEdit[Model any](
 // select dropdown.
 
 func (h *Handlers) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -86,7 +86,7 @@ func (h *Handlers) HandleBeanModalEdit(w http.ResponseWriter, r *http.Request) {
 	if rkey == "" {
 		return
 	}
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
