@@ -582,11 +582,12 @@ function BeanRating(initialRating) {
   /** @param {Element | Document | null | undefined} root */
   function mountWithin(root) {
     // petite-vue removes the v-scope attribute as it walks, so the
-    // `closest("[v-scope]")` ancestor check misses already-mounted
-    // parents and double-mounts their nested scopes. data-pv-root
-    // survives the walk and keeps the descendant check honest.
+    // descendant loop re-checks `matches("[v-scope]")` before mounting
+    // nodes from the static NodeList. That avoids double-mounting child
+    // scopes after their parent has claimed them, while still allowing
+    // HTMX-swapped fragments nested inside an already-mounted page scope
+    // (for example profile cards) to mount their own fresh scopes.
     const scope = root && "querySelectorAll" in root ? root : document;
-    const ANCESTOR_SELECTOR = "[v-scope],[data-pv-root]";
     if (
       root &&
       root instanceof Element &&
@@ -600,8 +601,8 @@ function BeanRating(initialRating) {
     scope.querySelectorAll("[v-scope]").forEach((el) => {
       const tagged = /** @type {any} */ (el);
       if (tagged.__pv) return;
-      if (el.parentElement && el.parentElement.closest(ANCESTOR_SELECTOR))
-        return;
+      if (!el.matches("[v-scope]")) return;
+      if (el.parentElement && el.parentElement.closest("[v-scope]")) return;
       tagged.__pv = true;
       el.setAttribute("data-pv-root", "");
       PetiteVue.createApp(globals).mount(el);
