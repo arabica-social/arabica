@@ -370,7 +370,7 @@ func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.Handle
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(httpStatus)
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}
 }
 

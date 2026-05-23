@@ -26,19 +26,13 @@ func (h *Handlers) HandleExplore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query := parseExploreQuery(r)
-	result, err := h.FeedIndex().GetExplore(r.Context(), query)
+	cf := h.LoadContentFilter(r.Context())
+	result, err := h.getModeratedExplore(r, query, cf)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to query explore")
 		http.Error(w, "Failed to load explore", http.StatusInternalServerError)
 		return
 	}
-	cf := h.LoadContentFilter(r.Context())
-	result.Items = moderation.FilterSlice(cf, result.Items, func(item *feed.FeedItem) (string, string) {
-		if item == nil || item.Author == nil {
-			return "", ""
-		}
-		return item.SubjectURI, item.Author.DID
-	})
 	uris := make([]string, 0, len(result.Items))
 	for _, item := range result.Items {
 		uris = append(uris, item.SubjectURI)
@@ -54,6 +48,60 @@ func (h *Handlers) HandleExplore(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("failed to render explore page")
 	}
+}
+
+func (h *Handlers) getModeratedExplore(r *http.Request, query firehose.ExploreQuery, cf *moderation.ContentFilter) (*firehose.ExploreResult, error) {
+	requested := query.Limit
+	if requested <= 0 {
+		requested = 20
+	}
+	if requested > 50 {
+		requested = 50
+	}
+	query.Limit = requested * 3
+	if query.Limit > 50 {
+		query.Limit = 50
+	}
+
+	out := &firehose.ExploreResult{Documents: make(map[string]firehose.ExploreDocument)}
+	cursor := query.Cursor
+	for attempts := 0; attempts < 4 && len(out.Items) < requested; attempts++ {
+		query.Cursor = cursor
+		page, err := h.FeedIndex().GetExplore(r.Context(), query)
+		if err != nil {
+			return nil, err
+		}
+		if attempts == 0 {
+			out.FacetCounts = page.FacetCounts
+		}
+		visible := moderation.FilterSlice(cf, page.Items, func(item *feed.FeedItem) (string, string) {
+			if item == nil || item.Author == nil {
+				return "", ""
+			}
+			return item.SubjectURI, item.Author.DID
+		})
+		for _, item := range visible {
+			if len(out.Items) >= requested {
+				break
+			}
+			out.Items = append(out.Items, item)
+			if doc, ok := page.Documents[item.SubjectURI]; ok {
+				out.Documents[item.SubjectURI] = doc
+			}
+		}
+		out.NextCursor = page.NextCursor
+		if page.NextCursor == "" {
+			break
+		}
+		cursor = page.NextCursor
+	}
+	if len(out.Items) >= requested {
+		last := out.Items[requested-1]
+		if doc, ok := out.Documents[last.SubjectURI]; ok {
+			out.NextCursor = firehose.ExploreCursor(query.Sort, doc)
+		}
+	}
+	return out, nil
 }
 
 func parseExploreQuery(r *http.Request) firehose.ExploreQuery {

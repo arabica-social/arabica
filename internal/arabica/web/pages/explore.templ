@@ -3,7 +3,6 @@ package coffeepages
 import (
 	"fmt"
 	"net/url"
-	"strings"
 
 	coffeecomponents "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	"tangled.org/arabica.social/arabica/internal/entities"
@@ -25,11 +24,11 @@ templ ExplorePage(layout *components.LayoutData, props ExploreProps) {
 }
 
 templ ExploreContent(props ExploreProps) {
-	<section class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+	<section class="explore-page py-8 space-y-6">
 		<div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 			<div class="space-y-2">
 				<p class="text-sm uppercase tracking-[0.18em] text-muted">Community library</p>
-				<h2 class="text-3xl font-semibold text-primary">Explore coffee records</h2>
+				<h2 class="text-3xl font-semibold text-primary">Explore</h2>
 				<p class="text-emphasis max-w-2xl">Find beans, roasters, gear, and recipes other people have made public. Results are clustered when someone reused another record.</p>
 			</div>
 			if props.Health.Dirty {
@@ -38,73 +37,74 @@ templ ExploreContent(props ExploreProps) {
 				</div>
 			}
 		</div>
-		<form method="GET" action="/explore" class="card card-inner space-y-4">
-			<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
-				<label class="block">
-					<span class="block text-sm font-medium text-muted mb-1">Search</span>
-					<input class="form-input w-full" type="search" name="q" value={ props.Query.Q } placeholder="Try Ethiopia, conical, V60, washed..."/>
-				</label>
-				<label class="block">
-					<span class="block text-sm font-medium text-muted mb-1">Type</span>
-					<select class="form-select" name="type">
-						<option value="" selected?={ props.Query.Type == "" }>All records</option>
-						@typeOption(props.Query.Type, lexicons.RecordTypeBean, "Beans")
-						@typeOption(props.Query.Type, lexicons.RecordTypeRoaster, "Roasters")
-						@typeOption(props.Query.Type, lexicons.RecordTypeGrinder, "Grinders")
-						@typeOption(props.Query.Type, lexicons.RecordTypeBrewer, "Brewers")
-						@typeOption(props.Query.Type, lexicons.RecordTypeRecipe, "Recipes")
-					</select>
-				</label>
-				<label class="block">
-					<span class="block text-sm font-medium text-muted mb-1">Sort</span>
-					<select class="form-select" name="sort">
-						<option value="recent" selected?={ props.Query.Sort == "" || props.Query.Sort == "recent" }>Recent</option>
-						<option value="popular" selected?={ props.Query.Sort == "popular" }>Popular</option>
-						<option value="rating_high" selected?={ props.Query.Sort == "rating_high" }>Rating high</option>
-					</select>
-				</label>
-			</div>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-				@filterInput(props, "origin", "Origin")
-				@filterInput(props, "roaster", "Roaster")
-				@filterInput(props, "roast_level", "Roast level")
-				@filterInput(props, "process", "Process")
-				@filterInput(props, "variety", "Variety")
-				@filterInput(props, "location", "Location")
-				@filterInput(props, "grinder_type", "Grinder type")
-				@filterInput(props, "burr_type", "Burr type")
-				@filterInput(props, "brewer_type", "Brewer type")
-				@filterInput(props, "min_rating", "Minimum rating")
-				@filterInput(props, "ratio_min", "Ratio min")
-				@filterInput(props, "ratio_max", "Ratio max")
-				<label class="block">
-					<span class="block text-sm font-medium text-muted mb-1">Closed beans</span>
-					<select class="form-select w-full" name="closed">
-						<option value="" selected?={ selectedFilter(props, "closed") == "" }>Any</option>
-						<option value="true" selected?={ selectedFilter(props, "closed") == "true" }>Closed</option>
-						<option value="false" selected?={ selectedFilter(props, "closed") == "false" }>Open</option>
-					</select>
-				</label>
-			</div>
-			<div class="flex flex-wrap gap-2 items-center">
-				<button class="btn-primary" type="submit">Explore</button>
-				<a class="btn-secondary" href="/explore">Clear</a>
-				if props.Result != nil {
-					<span class="text-sm text-muted ml-auto">{ fmt.Sprintf("%d shown", len(props.Result.Items)) }</span>
-				}
-			</div>
-		</form>
-		if props.Result != nil && len(props.Result.FacetCounts) > 0 {
-			<div class="card card-inner">
-				<h3 class="text-sm font-semibold text-primary mb-3">Facet counts</h3>
-				<div class="flex flex-wrap gap-2">
-					for _, c := range props.Result.FacetCounts {
-						<span class="badge bg-muted/20 text-muted">{ facetLabel(c.Field) }: { c.Value } ({ fmt.Sprintf("%d", c.Count) })</span>
+		<details class="explore-controls card card-inner" open?={ hasExploreControls(props) }>
+			<summary class="explore-controls-summary cursor-pointer">
+				<span class="explore-controls-title">
+					<span class="block text-sm font-semibold text-primary">Search and filters</span>
+					<span class="block text-xs text-muted">Collapsed by default so the community records stay first.</span>
+				</span>
+				<span class="explore-controls-count badge">{ exploreActiveLabel(props) }</span>
+			</summary>
+			<form method="GET" action="/explore" class="explore-controls-form space-y-4">
+				<div class="explore-primary-filters grid grid-cols-1 gap-3 items-end">
+					<label class="block">
+						<span class="block text-sm font-medium text-muted mb-1">Search</span>
+						<input class="form-input w-full" type="search" name="q" value={ props.Query.Q } placeholder="Ethiopia, V60, washed"/>
+					</label>
+					<label class="block">
+						<span class="block text-sm font-medium text-muted mb-1">Type</span>
+						<select class="form-select w-full" name="type">
+							<option value="" selected?={ props.Query.Type == "" }>All records</option>
+							@typeOption(props.Query.Type, lexicons.RecordTypeBean, "Beans")
+							@typeOption(props.Query.Type, lexicons.RecordTypeRoaster, "Roasters")
+							@typeOption(props.Query.Type, lexicons.RecordTypeGrinder, "Grinders")
+							@typeOption(props.Query.Type, lexicons.RecordTypeBrewer, "Brewers")
+							@typeOption(props.Query.Type, lexicons.RecordTypeRecipe, "Recipes")
+						</select>
+					</label>
+					<label class="block">
+						<span class="block text-sm font-medium text-muted mb-1">Sort</span>
+						<select class="form-select w-full" name="sort">
+							<option value="recent" selected?={ props.Query.Sort == "" || props.Query.Sort == "recent" }>Recent</option>
+							<option value="popular" selected?={ props.Query.Sort == "popular" }>Popular</option>
+							<option value="rating_high" selected?={ props.Query.Sort == "rating_high" }>Rating high</option>
+						</select>
+					</label>
+				</div>
+				<details class="explore-advanced-filters" open?={ hasAdvancedFilters(props) }>
+					<summary class="text-sm font-medium text-emphasis cursor-pointer">Advanced filters</summary>
+					<div class="explore-filter-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+						@filterInput(props, "origin", "Origin")
+						@filterInput(props, "roaster", "Roaster")
+						@filterInput(props, "roast_level", "Roast level")
+						@filterInput(props, "process", "Process")
+						@filterInput(props, "variety", "Variety")
+						@filterInput(props, "location", "Location")
+						@filterInput(props, "grinder_type", "Grinder type")
+						@filterInput(props, "burr_type", "Burr type")
+						@filterInput(props, "brewer_type", "Brewer type")
+						@filterInput(props, "min_rating", "Minimum rating")
+						@filterInput(props, "ratio_min", "Ratio min")
+						@filterInput(props, "ratio_max", "Ratio max")
+						<label class="block">
+							<span class="block text-sm font-medium text-muted mb-1">Closed beans</span>
+							<select class="form-select w-full" name="closed">
+								<option value="" selected?={ selectedFilter(props, "closed") == "" }>Any</option>
+								<option value="true" selected?={ selectedFilter(props, "closed") == "true" }>Closed</option>
+								<option value="false" selected?={ selectedFilter(props, "closed") == "false" }>Open</option>
+							</select>
+						</label>
+					</div>
+				</details>
+				<div class="flex flex-wrap gap-2 items-center">
+					<button class="btn-primary" type="submit">Explore</button>
+					<a class="btn-secondary" href="/explore">Clear</a>
+					if props.Result != nil {
+						<span class="text-sm text-muted ml-auto">{ fmt.Sprintf("%d shown", len(props.Result.Items)) }</span>
 					}
 				</div>
-				<p class="text-xs text-faint mt-3">Counts are raw index counts and may include records hidden by moderation.</p>
-			</div>
-		}
+			</form>
+		</details>
 		if props.Result == nil || len(props.Result.Items) == 0 {
 			@components.EmptyState(components.EmptyStateProps{Message: "No matching records yet.", SubMessage: "Try fewer filters, or come back after the witness cache sees more community records."})
 		} else {
@@ -142,7 +142,11 @@ templ ExploreCard(item *feed.FeedItem, doc firehose.ExploreDocument) {
 		</a>
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
 			if doc.OwnRating.Valid {
-				<span class="inline-flex items-center gap-1">@components.IconStar() { fmt.Sprintf("%.0f/10", doc.OwnRating.Float64) }</span>
+				<span class="inline-flex items-center gap-1">
+					@components.IconStar() {
+						fmt.Sprintf("%.0f/10", doc.OwnRating.Float64) 
+					}
+				</span>
 			}
 			<span>{ fmt.Sprintf("%d likes", item.LikeCount) }</span>
 			<span>{ fmt.Sprintf("%d comments", item.CommentCount) }</span>
@@ -176,8 +180,39 @@ func selectedFilter(props ExploreProps, name string) string {
 	return props.Query.Filters[name]
 }
 
-func facetLabel(field string) string {
-	return strings.ReplaceAll(strings.Title(strings.ReplaceAll(field, "_", " ")), "Id", "ID")
+func hasExploreControls(props ExploreProps) bool {
+	return props.Query.Q != "" || props.Query.Type != "" || (props.Query.Sort != "" && props.Query.Sort != "recent") || hasAdvancedFilters(props)
+}
+
+func hasAdvancedFilters(props ExploreProps) bool {
+	for _, val := range props.Query.Filters {
+		if val != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func exploreActiveLabel(props ExploreProps) string {
+	count := 0
+	if props.Query.Q != "" {
+		count++
+	}
+	if props.Query.Type != "" {
+		count++
+	}
+	if props.Query.Sort != "" && props.Query.Sort != "recent" {
+		count++
+	}
+	for _, val := range props.Query.Filters {
+		if val != "" {
+			count++
+		}
+	}
+	if count == 0 {
+		return "No filters"
+	}
+	return fmt.Sprintf("%d active", count)
 }
 
 func exploreItemURL(item *feed.FeedItem) string {
@@ -198,10 +233,22 @@ func exploreItemURL(item *feed.FeedItem) string {
 
 func nextExploreURL(props ExploreProps) string {
 	v := url.Values{}
-	if props.Query.Type != "" { v.Set("type", string(props.Query.Type)) }
-	if props.Query.Q != "" { v.Set("q", props.Query.Q) }
-	if props.Query.Sort != "" { v.Set("sort", props.Query.Sort) }
-	for k, val := range props.Query.Filters { if val != "" { v.Set(k, val) } }
-	if props.Result != nil && props.Result.NextCursor != "" { v.Set("cursor", props.Result.NextCursor) }
+	if props.Query.Type != "" {
+		v.Set("type", string(props.Query.Type))
+	}
+	if props.Query.Q != "" {
+		v.Set("q", props.Query.Q)
+	}
+	if props.Query.Sort != "" {
+		v.Set("sort", props.Query.Sort)
+	}
+	for k, val := range props.Query.Filters {
+		if val != "" {
+			v.Set(k, val)
+		}
+	}
+	if props.Result != nil && props.Result.NextCursor != "" {
+		v.Set("cursor", props.Result.NextCursor)
+	}
 	return "/explore?" + v.Encode()
 }

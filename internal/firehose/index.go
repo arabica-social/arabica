@@ -629,6 +629,12 @@ ON CONFLICT(uri) DO UPDATE SET
 			idx.markExploreDirty(ctx, err)
 		}
 	}
+	if collection == recordTypeToNSID[lexicons.RecordTypeBrew] {
+		if err := idx.reindexExploreBrewReferences(ctx, record); err != nil {
+			log.Warn().Err(err).Str("uri", uri).Msg("failed to refresh explore brew ratings")
+			idx.markExploreDirty(ctx, err)
+		}
+	}
 
 	return nil
 }
@@ -636,7 +642,24 @@ ON CONFLICT(uri) DO UPDATE SET
 // DeleteRecord removes a record from the index
 func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey string) error {
 	uri := atp.BuildATURI(did, collection, rkey)
+	var deletedRecord json.RawMessage
+	var raw string
+	if err := idx.db.QueryRowContext(ctx, `SELECT record FROM records WHERE uri = ?`, uri).Scan(&raw); err == nil {
+		deletedRecord = json.RawMessage(raw)
+	}
 	_, err := idx.db.ExecContext(ctx, `DELETE FROM records WHERE uri = ?`, uri)
+	if err == nil {
+		if sourceRef := exploreSourceRef(deletedRecord); sourceRef != "" {
+			if refreshErr := idx.refreshExploreStats(ctx, sourceRef); refreshErr != nil {
+				idx.markExploreDirty(ctx, refreshErr)
+			}
+		}
+		if collection == recordTypeToNSID[lexicons.RecordTypeBrew] && len(deletedRecord) > 0 {
+			if refreshErr := idx.reindexExploreBrewReferences(ctx, deletedRecord); refreshErr != nil {
+				idx.markExploreDirty(ctx, refreshErr)
+			}
+		}
+	}
 	return err
 }
 
@@ -653,6 +676,9 @@ func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey st
 func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
 	uriPrefix := fmt.Sprintf("at://%s/%%", did)
 	affectedExploreSubjects := idx.exploreSubjectsAffectedByDID(ctx, did, uriPrefix)
+	for sourceRef := range idx.exploreSourceRefsByDID(ctx, did) {
+		affectedExploreSubjects[sourceRef] = struct{}{}
+	}
 
 	tx, err := idx.db.BeginTx(ctx, nil)
 	if err != nil {

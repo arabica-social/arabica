@@ -196,6 +196,7 @@ func (idx *FeedIndex) reindexExploreRecord(ctx context.Context, uri string) erro
 	likeCount, commentCount := idx.GetLikeCount(ctx, uri), idx.GetCommentCount(ctx, uri)
 	sourceRefCount := idx.countSourceRefs(ctx, uri)
 	popular := float64(sourceRefCount*popularSourceRefWeight + likeCount*popularLikeWeight + commentCount*popularCommentWeight)
+	communityRating, ratingCount := idx.exploreCommunityRating(ctx, typ.RecordType, uri)
 	tx, err := idx.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -207,7 +208,7 @@ func (idx *FeedIndex) reindexExploreRecord(ctx context.Context, uri string) erro
 	if _, err := tx.ExecContext(ctx, `INSERT INTO explore_documents(uri,did,app,record_type,cluster_key,canonical_rank,title,summary,search_text,own_rating,community_rating,rating_count,like_count,comment_count,source_ref_count,popular_score,created_at)
 		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(uri) DO UPDATE SET did=excluded.did, app=excluded.app, record_type=excluded.record_type, cluster_key=excluded.cluster_key, canonical_rank=excluded.canonical_rank, title=excluded.title, summary=excluded.summary, search_text=excluded.search_text, own_rating=excluded.own_rating, community_rating=excluded.community_rating, rating_count=excluded.rating_count, like_count=excluded.like_count, comment_count=excluded.comment_count, source_ref_count=excluded.source_ref_count, popular_score=excluded.popular_score, created_at=excluded.created_at`,
-		uri, rec.DID, typ.App, string(typ.RecordType), clusterKey, canonicalRank, doc.Title, doc.Summary, doc.SearchText, doc.OwnRating, nil, 0, likeCount, commentCount, sourceRefCount, popular, createdAtStr); err != nil {
+		uri, rec.DID, typ.App, string(typ.RecordType), clusterKey, canonicalRank, doc.Title, doc.Summary, doc.SearchText, doc.OwnRating, communityRating, ratingCount, likeCount, commentCount, sourceRefCount, popular, createdAtStr); err != nil {
 		return err
 	}
 	for _, v := range doc.Values {
@@ -228,6 +229,54 @@ func (idx *FeedIndex) countSourceRefs(ctx context.Context, uri string) int {
 	return count
 }
 
+func (idx *FeedIndex) exploreCommunityRating(ctx context.Context, recordType lexicons.RecordType, uri string) (any, int) {
+	brewNSID := recordTypeToNSID[lexicons.RecordTypeBrew]
+	if brewNSID == "" {
+		return nil, 0
+	}
+	var field string
+	switch recordType {
+	case lexicons.RecordTypeBean:
+		field = "beanRef"
+	case lexicons.RecordTypeGrinder:
+		field = "grinderRef"
+	case lexicons.RecordTypeBrewer:
+		field = "brewerRef"
+	case lexicons.RecordTypeRecipe:
+		field = "recipeRef"
+	case lexicons.RecordTypeRoaster:
+		return idx.exploreRoasterCommunityRating(ctx, uri)
+	default:
+		return nil, 0
+	}
+	return idx.exploreAverageBrewRating(ctx, brewNSID, field, uri)
+}
+
+func (idx *FeedIndex) exploreAverageBrewRating(ctx context.Context, brewNSID, refField, refURI string) (any, int) {
+	var avg sql.NullFloat64
+	var count int
+	_ = idx.db.QueryRowContext(ctx, `SELECT AVG(CAST(json_extract(record, '$.rating') AS REAL)), COUNT(*) FROM records WHERE collection = ? AND json_extract(record, '$.`+refField+`') = ? AND json_type(record, '$.rating') IS NOT NULL`, brewNSID, refURI).Scan(&avg, &count)
+	if !avg.Valid || count == 0 {
+		return nil, 0
+	}
+	return avg.Float64, count
+}
+
+func (idx *FeedIndex) exploreRoasterCommunityRating(ctx context.Context, roasterURI string) (any, int) {
+	brewNSID := recordTypeToNSID[lexicons.RecordTypeBrew]
+	beanNSID := recordTypeToNSID[lexicons.RecordTypeBean]
+	if brewNSID == "" || beanNSID == "" {
+		return nil, 0
+	}
+	var avg sql.NullFloat64
+	var count int
+	_ = idx.db.QueryRowContext(ctx, `SELECT AVG(CAST(json_extract(brew.record, '$.rating') AS REAL)), COUNT(*) FROM records brew WHERE brew.collection = ? AND json_type(brew.record, '$.rating') IS NOT NULL AND json_extract(brew.record, '$.beanRef') IN (SELECT bean.uri FROM records bean WHERE bean.collection = ? AND json_extract(bean.record, '$.roasterRef') = ?)`, brewNSID, beanNSID, roasterURI).Scan(&avg, &count)
+	if !avg.Valid || count == 0 {
+		return nil, 0
+	}
+	return avg.Float64, count
+}
+
 func exploreSourceRef(record json.RawMessage) string {
 	var data map[string]any
 	if err := json.Unmarshal(record, &data); err != nil {
@@ -235,6 +284,48 @@ func exploreSourceRef(record json.RawMessage) string {
 	}
 	v, _ := data["sourceRef"].(string)
 	return strings.TrimSpace(v)
+}
+
+func (idx *FeedIndex) reindexExploreBrewReferences(ctx context.Context, record json.RawMessage) error {
+	var data map[string]any
+	if err := json.Unmarshal(record, &data); err != nil {
+		return err
+	}
+	seen := make(map[string]struct{})
+	for _, field := range []string{"beanRef", "grinderRef", "brewerRef", "recipeRef"} {
+		uri, _ := data[field].(string)
+		if uri == "" {
+			continue
+		}
+		if _, ok := seen[uri]; !ok {
+			seen[uri] = struct{}{}
+			if err := idx.reindexExploreRecord(ctx, uri); err != nil {
+				return err
+			}
+		}
+		if field == "beanRef" {
+			roasterURI := idx.roasterRefForBean(ctx, uri)
+			if roasterURI != "" {
+				if err := idx.reindexExploreRecord(ctx, roasterURI); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (idx *FeedIndex) roasterRefForBean(ctx context.Context, beanURI string) string {
+	var raw string
+	if err := idx.db.QueryRowContext(ctx, `SELECT record FROM records WHERE uri = ?`, beanURI).Scan(&raw); err != nil {
+		return ""
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(raw), &data); err != nil {
+		return ""
+	}
+	uri, _ := data["roasterRef"].(string)
+	return uri
 }
 
 func (idx *FeedIndex) refreshExploreStats(ctx context.Context, uri string) error {
@@ -270,6 +361,22 @@ func (idx *FeedIndex) exploreSubjectsAffectedByDID(ctx context.Context, did, uri
 		_ = rows.Close()
 	}
 	return affected
+}
+
+func (idx *FeedIndex) exploreSourceRefsByDID(ctx context.Context, did string) map[string]struct{} {
+	refs := make(map[string]struct{})
+	rows, err := idx.db.QueryContext(ctx, `SELECT json_extract(record, '$.sourceRef') FROM records WHERE did = ? AND json_type(record, '$.sourceRef') IS NOT NULL`, did)
+	if err != nil {
+		return refs
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ref string
+		if err := rows.Scan(&ref); err == nil && ref != "" {
+			refs[ref] = struct{}{}
+		}
+	}
+	return refs
 }
 
 func (idx *FeedIndex) reindexExploreDependents(ctx context.Context, uri, collection string) error {
@@ -445,6 +552,11 @@ func encodeExploreCursor(sort string, d ExploreDocument) string {
 	}
 	return base64.RawURLEncoding.EncodeToString([]byte(raw))
 }
+
+func ExploreCursor(sort string, d ExploreDocument) string {
+	return encodeExploreCursor(sort, d)
+}
+
 func decodeExploreCursor(s string) []string {
 	if s == "" {
 		return nil

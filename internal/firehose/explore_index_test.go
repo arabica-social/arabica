@@ -94,6 +94,24 @@ func TestExploreClustersBySourceRefAndFallsBackWhenCanonicalDeleted(t *testing.T
 	assert.Equal(t, fork, res.Items[0].SubjectURI)
 }
 
+func TestExploreDeletingForkRefreshesSourceRefPopularity(t *testing.T) {
+	idx := newExploreTestIndex(t)
+	ctx := context.Background()
+	original := upsertExploreRecord(t, idx, "did:plc:one", arabica.NSIDBean, "b1", map[string]any{"$type": arabica.NSIDBean, "name": "Original", "origin": "Kenya"}, 1)
+	upsertExploreRecord(t, idx, "did:plc:two", arabica.NSIDBean, "b2", map[string]any{"$type": arabica.NSIDBean, "name": "Fork", "origin": "Kenya", "sourceRef": original}, 2)
+
+	res, err := idx.GetExplore(ctx, ExploreQuery{App: "arabica", Type: lexicons.RecordTypeBean})
+	require.NoError(t, err)
+	assert.Equal(t, 1, res.Documents[original].SourceRefCount)
+	assert.Equal(t, float64(popularSourceRefWeight), res.Documents[original].PopularScore)
+
+	require.NoError(t, idx.DeleteRecord(ctx, "did:plc:two", arabica.NSIDBean, "b2"))
+	res, err = idx.GetExplore(ctx, ExploreQuery{App: "arabica", Type: lexicons.RecordTypeBean})
+	require.NoError(t, err)
+	assert.Equal(t, 0, res.Documents[original].SourceRefCount)
+	assert.Equal(t, 0.0, res.Documents[original].PopularScore)
+}
+
 func TestExplorePopularAndSocialStatsRefresh(t *testing.T) {
 	idx := newExploreTestIndex(t)
 	ctx := context.Background()
@@ -137,6 +155,30 @@ func TestExploreRatingSortAndCursor(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, res.Items, 1)
 	assert.Equal(t, unrated, res.Items[0].SubjectURI)
+}
+
+func TestExploreRatingSortUsesCommunityRatingThenOwnRating(t *testing.T) {
+	idx := newExploreTestIndex(t)
+	ctx := context.Background()
+	community := upsertExploreRecord(t, idx, "did:plc:one", arabica.NSIDBean, "b1", map[string]any{"$type": arabica.NSIDBean, "name": "Community", "rating": 10}, 1)
+	own := upsertExploreRecord(t, idx, "did:plc:two", arabica.NSIDBean, "b2", map[string]any{"$type": arabica.NSIDBean, "name": "Own", "rating": 7}, 2)
+	brew := upsertExploreRecord(t, idx, "did:plc:three", arabica.NSIDBrew, "brew1", map[string]any{"$type": arabica.NSIDBrew, "beanRef": community, "rating": 4}, 3)
+
+	res, err := idx.GetExplore(ctx, ExploreQuery{App: "arabica", Type: lexicons.RecordTypeBean, Sort: explore.SortRatingHigh})
+	require.NoError(t, err)
+	require.Len(t, res.Items, 2)
+	assert.Equal(t, own, res.Items[0].SubjectURI)
+	assert.Equal(t, community, res.Items[1].SubjectURI)
+	assert.Equal(t, 4.0, res.Documents[community].CommunityRating.Float64)
+	assert.Equal(t, 1, res.Documents[community].RatingCount)
+
+	require.NoError(t, idx.DeleteRecord(ctx, "did:plc:three", arabica.NSIDBrew, "brew1"))
+	res, err = idx.GetExplore(ctx, ExploreQuery{App: "arabica", Type: lexicons.RecordTypeBean, Sort: explore.SortRatingHigh})
+	require.NoError(t, err)
+	require.Len(t, res.Items, 2)
+	assert.Equal(t, community, res.Items[0].SubjectURI)
+	assert.False(t, res.Documents[community].CommunityRating.Valid)
+	assert.NotEmpty(t, brew)
 }
 
 func TestExploreCascadeDeleteAndVersionedRebuild(t *testing.T) {
