@@ -707,7 +707,10 @@ body[data-app="oolong"] .onboarding-card::before {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  overflow: hidden;
+  /* Combo-select dropdowns in onboarding drawers are absolutely positioned
+     under their input; keep them visible instead of clipping them to the
+     rounded drawer box. */
+  overflow: visible;
   animation: drawer-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--shadow-md);
 }

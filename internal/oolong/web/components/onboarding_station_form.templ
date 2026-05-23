@@ -38,30 +38,56 @@ templ StationFormDrawer(p StationDrawerProps) {
 }
 
 templ vendorDrawerFields() {
-	<input class="w-full form-input" name="name" placeholder="Vendor name *" required/>
+	@suggestedNameInput("/api/suggestions/vendors", "Vendor name *")
 	<input class="w-full form-input" name="location" placeholder="Location"/>
 	<input class="w-full form-input" name="website" placeholder="Website"/>
 }
 
 templ vesselDrawerFields() {
-	<input class="w-full form-input" name="name" placeholder="Vessel name *" required/>
+	@suggestedNameInput("/api/suggestions/vessels", "Vessel name *")
 	<input class="w-full form-input" name="style" placeholder="Style"/>
 	<input class="w-full form-input" name="material" placeholder="Material"/>
 }
 
 templ infuserDrawerFields() {
-	<input class="w-full form-input" name="name" placeholder="Infuser name *" required/>
+	@suggestedNameInput("/api/suggestions/infusers", "Infuser name *")
 	<input class="w-full form-input" name="style" placeholder="Style"/>
 	<input class="w-full form-input" name="material" placeholder="Material"/>
 }
 
 templ teaDrawerFields(vendors []*oolong.Vendor) {
-	<input class="w-full form-input" name="name" placeholder="Tea name *" required/>
+	@suggestedNameInput("/api/suggestions/teas", "Tea name *")
 	<input class="w-full form-input" name="category" placeholder="Category"/>
 	@onboardingComboSelectField(
 		"vendor", "/api/vendors", "/api/suggestions/vendors", "vendor_rkey",
 		"Search or create a vendor…", "Vendor", "Your vendors", false,
 	)
+}
+
+templ suggestedNameInput(endpoint, placeholder string) {
+	<div v-scope={ "entitySuggest('" + endpoint + "')" } @vue:mounted="setup($el)" class="relative">
+		<input
+			type="text"
+			name="name"
+			placeholder={ placeholder }
+			required
+			class="w-full form-input"
+			v-model="query"
+			@input="onInput"
+			@blur="onBlur"
+			@focus="onFocus"
+			autocomplete="off"
+		/>
+		<input type="hidden" name="source_ref" v-model="sourceRef"/>
+		<div v-if="showSuggestions && suggestions.length > 0" v-cloak class="suggestions-dropdown">
+			<template v-for="s in suggestions" :key="s.source_uri">
+				<button type="button" class="suggestions-item" @mousedown.prevent="selectOolongSuggestion(s)">
+					<span class="font-medium" v-text="s.name"></span>
+					<span v-if="s.count > 1" class="text-xs text-placeholder" v-text="s.count + ' users'"></span>
+				</button>
+			</template>
+		</div>
+	</div>
 }
 
 templ onboardingComboSelectField(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, label, sectionLabel string, required bool) {

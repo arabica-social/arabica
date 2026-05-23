@@ -520,9 +520,18 @@ function comboSelect(config) {
         // Some pages (e.g. the oolong steep form) don't otherwise prime the
         // cache, leaving getUserEntities() empty until a refresh happens.
         if (window.AppCache) {
-          window.AppCache.getData().catch((err) => {
-            console.warn("comboSelect: failed to load user data cache:", err);
-          });
+          window.AppCache.getData()
+            .then(() => {
+              // If the user focused/typed before the async cache request
+              // completed, rerun local matching so freshly-loaded entities
+              // appear in the open dropdown. This matters most for HTMX
+              // onboarding drawers, which can mount combo-select before any
+              // page-level data cache has been primed.
+              if (this.isOpen || this.query.trim()) this.search();
+            })
+            .catch((err) => {
+              console.warn("comboSelect: failed to load user data cache:", err);
+            });
         }
       },
 

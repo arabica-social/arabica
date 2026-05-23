@@ -25,6 +25,7 @@
  *   selectGrinderSuggestion: (s: Suggestion) => void,
  *   selectBrewerSuggestion: (s: Suggestion) => void,
  *   selectBeanSuggestion: (s: Suggestion) => void,
+ *   selectOolongSuggestion: (s: Suggestion) => void,
  * }} EntitySuggestScope
  */
 
@@ -128,6 +129,16 @@ function entitySuggest(endpoint) {
       if (s.fields.process) _setInput(form, "process", s.fields.process);
       if (s.fields.link) _setInput(form, "link", s.fields.link);
     },
+
+    selectOolongSuggestion(s) {
+      _applyBase(this, s);
+      const form = _form(this);
+      if (!form) return;
+      for (const [name, value] of Object.entries(s.fields || {})) {
+        _setInput(form, name, value);
+        _setSelect(form, name, value);
+      }
+    },
   };
 }
 
@@ -174,7 +185,7 @@ function _setSelect(form, name, value) {
   const el = /** @type {HTMLSelectElement | null} */ (
     form.querySelector('[name="' + name + '"]')
   );
-  if (!el) return;
+  if (!el || !(el instanceof HTMLSelectElement)) return;
   for (const opt of Array.from(el.options)) {
     if (
       opt.value === value ||
