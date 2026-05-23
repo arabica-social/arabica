@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // rawRecord is what fetchAllRecords returns: a parsed record map plus the
@@ -74,12 +75,9 @@ func (s *AtprotoStore) FetchAllRecords(ctx context.Context, nsid string) ([]RawR
 
 // RawRecord is the exported shape of fetchAllRecords' result rows.
 // Callers use Record to decode into a typed model.
-type RawRecord struct {
-	URI    string
-	RKey   string
-	CID    string
-	Record map[string]any
-}
+type RawRecord = records.RawRecord
+
+var _ records.Store = (*AtprotoStore)(nil)
 
 // fetchRecord returns the record at nsid/rkey, hitting the witness cache
 // first and falling back to PDS. The "hit" return is true when the record

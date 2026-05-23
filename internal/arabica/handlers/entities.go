@@ -1,17 +1,17 @@
 package coffeehandlers
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/handlers"
+	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -291,17 +291,20 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 
 // API endpoint to create roaster
 func (h *Handlers) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDCreate[arabica.CreateRoasterRequest, *arabica.CreateRoasterRequest, arabica.Roaster](
-		h, w, r, "roaster", "roaster",
-		func(r *http.Request) arabica.CreateRoasterRequest {
-			return arabica.CreateRoasterRequest{
-				Name: r.FormValue("name"), Location: r.FormValue("location"),
-				Website: r.FormValue("website"), SourceRef: r.FormValue("source_ref"),
-			}
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	handlers.RecordCRUDWrite[arabica.CreateRoasterRequest, *arabica.CreateRoasterRequest, arabica.Roaster](
+		w, r, store, arabica.NSIDRoaster, "roaster", "", decodeRoasterCreateForm,
+		func(req *arabica.CreateRoasterRequest) *arabica.Roaster {
+			return roasterFromCreate(req, time.Now())
 		},
-		func(ctx context.Context, s database.Store, req *arabica.CreateRoasterRequest) (*arabica.Roaster, error) {
-			return s.CreateRoaster(ctx, req)
+		func(m *arabica.Roaster, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.CreateRoasterRequest, m *arabica.Roaster) (map[string]any, error) {
+			return arabica.RoasterToRecord(m)
 		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
@@ -635,20 +638,27 @@ func (h *Handlers) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
 
 // Roaster update/delete handlers
 func (h *Handlers) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDUpdate[arabica.UpdateRoasterRequest, *arabica.UpdateRoasterRequest, arabica.Roaster](
-		h, w, r, "roaster", "roaster",
-		func(r *http.Request) arabica.UpdateRoasterRequest {
-			return arabica.UpdateRoasterRequest{
-				Name: r.FormValue("name"), Location: r.FormValue("location"),
-				Website: r.FormValue("website"), SourceRef: r.FormValue("source_ref"),
-			}
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDRoaster, rkey)
+	handlers.RecordCRUDWrite[arabica.UpdateRoasterRequest, *arabica.UpdateRoasterRequest, arabica.Roaster](
+		w, r, store, arabica.NSIDRoaster, "roaster", rkey, decodeRoasterUpdateForm,
+		func(req *arabica.UpdateRoasterRequest) *arabica.Roaster {
+			m := roasterFromUpdate(req, createdAt)
+			m.RKey = rkey
+			return m
 		},
-		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateRoasterRequest) error {
-			return s.UpdateRoasterByRKey(ctx, rkey, req)
+		func(m *arabica.Roaster, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.UpdateRoasterRequest, m *arabica.Roaster) (map[string]any, error) {
+			return arabica.RoasterToRecord(m)
 		},
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Roaster, error) {
-			return s.GetRoasterByRKey(ctx, rkey)
-		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
@@ -671,27 +681,51 @@ func grinderFormDecoder(r *http.Request) arabica.CreateGrinderRequest {
 }
 
 func (h *Handlers) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDCreate[arabica.CreateGrinderRequest, *arabica.CreateGrinderRequest, arabica.Grinder](
-		h, w, r, "grinder", "grinder",
-		grinderFormDecoder,
-		func(ctx context.Context, s database.Store, req *arabica.CreateGrinderRequest) (*arabica.Grinder, error) {
-			return s.CreateGrinder(ctx, req)
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	handlers.RecordCRUDWrite[arabica.CreateGrinderRequest, *arabica.CreateGrinderRequest, arabica.Grinder](
+		w, r, store, arabica.NSIDGrinder, "grinder", "",
+		func(r *http.Request, req *arabica.CreateGrinderRequest) error {
+			*req = grinderFormDecoder(r)
+			return nil
 		},
+		func(req *arabica.CreateGrinderRequest) *arabica.Grinder { return grinderFromCreate(req, time.Now()) },
+		func(m *arabica.Grinder, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.CreateGrinderRequest, m *arabica.Grinder) (map[string]any, error) {
+			return arabica.GrinderToRecord(m)
+		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
 func (h *Handlers) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDUpdate[arabica.UpdateGrinderRequest, *arabica.UpdateGrinderRequest, arabica.Grinder](
-		h, w, r, "grinder", "grinder",
-		func(r *http.Request) arabica.UpdateGrinderRequest {
-			return arabica.UpdateGrinderRequest(grinderFormDecoder(r))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDGrinder, rkey)
+	handlers.RecordCRUDWrite[arabica.UpdateGrinderRequest, *arabica.UpdateGrinderRequest, arabica.Grinder](
+		w, r, store, arabica.NSIDGrinder, "grinder", rkey,
+		func(r *http.Request, req *arabica.UpdateGrinderRequest) error {
+			*req = arabica.UpdateGrinderRequest(grinderFormDecoder(r))
+			return nil
 		},
-		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateGrinderRequest) error {
-			return s.UpdateGrinderByRKey(ctx, rkey, req)
+		func(req *arabica.UpdateGrinderRequest) *arabica.Grinder {
+			m := grinderFromUpdate(req, createdAt)
+			m.RKey = rkey
+			return m
 		},
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Grinder, error) {
-			return s.GetGrinderByRKey(ctx, rkey)
+		func(m *arabica.Grinder, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.UpdateGrinderRequest, m *arabica.Grinder) (map[string]any, error) {
+			return arabica.GrinderToRecord(m)
 		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
@@ -714,27 +748,48 @@ func brewerFormDecoder(r *http.Request) arabica.CreateBrewerRequest {
 }
 
 func (h *Handlers) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDCreate[arabica.CreateBrewerRequest, *arabica.CreateBrewerRequest, arabica.Brewer](
-		h, w, r, "brewer", "brewer",
-		brewerFormDecoder,
-		func(ctx context.Context, s database.Store, req *arabica.CreateBrewerRequest) (*arabica.Brewer, error) {
-			return s.CreateBrewer(ctx, req)
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	handlers.RecordCRUDWrite[arabica.CreateBrewerRequest, *arabica.CreateBrewerRequest, arabica.Brewer](
+		w, r, store, arabica.NSIDBrewer, "brewer", "",
+		func(r *http.Request, req *arabica.CreateBrewerRequest) error { *req = brewerFormDecoder(r); return nil },
+		func(req *arabica.CreateBrewerRequest) *arabica.Brewer { return brewerFromCreate(req, time.Now()) },
+		func(m *arabica.Brewer, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.CreateBrewerRequest, m *arabica.Brewer) (map[string]any, error) {
+			return arabica.BrewerToRecord(m)
 		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
 func (h *Handlers) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDUpdate[arabica.UpdateBrewerRequest, *arabica.UpdateBrewerRequest, arabica.Brewer](
-		h, w, r, "brewer", "brewer",
-		func(r *http.Request) arabica.UpdateBrewerRequest {
-			return arabica.UpdateBrewerRequest(brewerFormDecoder(r))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDBrewer, rkey)
+	handlers.RecordCRUDWrite[arabica.UpdateBrewerRequest, *arabica.UpdateBrewerRequest, arabica.Brewer](
+		w, r, store, arabica.NSIDBrewer, "brewer", rkey,
+		func(r *http.Request, req *arabica.UpdateBrewerRequest) error {
+			*req = arabica.UpdateBrewerRequest(brewerFormDecoder(r))
+			return nil
 		},
-		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateBrewerRequest) error {
-			return s.UpdateBrewerByRKey(ctx, rkey, req)
+		func(req *arabica.UpdateBrewerRequest) *arabica.Brewer {
+			m := brewerFromUpdate(req, createdAt)
+			m.RKey = rkey
+			return m
 		},
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Brewer, error) {
-			return s.GetBrewerByRKey(ctx, rkey)
+		func(m *arabica.Brewer, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.UpdateBrewerRequest, m *arabica.Brewer) (map[string]any, error) {
+			return arabica.BrewerToRecord(m)
 		},
+		h.InvalidateFeedCache, false,
 	)
 }
 

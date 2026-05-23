@@ -13,8 +13,8 @@ import (
 )
 
 // getStartedCardStore is a narrow interface for buildGetStartedCardProps.
-// This allows tests to pass *database.MockStore without implementing the
-// full database.Store interface.
+// This allows tests to pass *arabicastore.MockStore without implementing the
+// full arabicastore.Store interface.
 type getStartedCardStore interface {
 	onboarding.BrewPrerequisiteStore // ListBeans + ListBrewers + ListRoasters
 	ListGrinders(ctx context.Context) ([]*arabica.Grinder, error)

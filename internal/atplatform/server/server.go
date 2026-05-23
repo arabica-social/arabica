@@ -28,6 +28,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
 	"tangled.org/arabica.social/arabica/internal/routing"
+	"tangled.org/arabica.social/arabica/internal/sqlitestore"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/pdewey.com/atp"

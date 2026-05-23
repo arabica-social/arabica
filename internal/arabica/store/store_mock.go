@@ -1,9 +1,10 @@
-package database
+package arabicastore
 
 import (
 	"context"
 
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // MockStore is a mock implementation of the Store interface for testing.
@@ -38,6 +39,28 @@ type MockStore struct {
 	ListBrewersFunc        func(ctx context.Context) ([]*arabica.Brewer, error)
 	UpdateBrewerByRKeyFunc func(ctx context.Context, rkey string, brewer *arabica.UpdateBrewerRequest) error
 	DeleteBrewerByRKeyFunc func(ctx context.Context, rkey string) error
+
+	CreateRecipeFunc       func(ctx context.Context, recipe *arabica.CreateRecipeRequest) (*arabica.Recipe, error)
+	GetRecipeByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Recipe, error)
+	ListRecipesFunc        func(ctx context.Context) ([]*arabica.Recipe, error)
+	UpdateRecipeByRKeyFunc func(ctx context.Context, rkey string, recipe *arabica.UpdateRecipeRequest) error
+	DeleteRecipeByRKeyFunc func(ctx context.Context, rkey string) error
+
+	CreateLikeFunc            func(ctx context.Context, req *arabica.CreateLikeRequest) (*arabica.Like, error)
+	DeleteLikeByRKeyFunc      func(ctx context.Context, rkey string) error
+	GetUserLikeForSubjectFunc func(ctx context.Context, subjectURI string) (*arabica.Like, error)
+	ListUserLikesFunc         func(ctx context.Context) ([]*arabica.Like, error)
+
+	CreateCommentFunc         func(ctx context.Context, req *arabica.CreateCommentRequest) (*arabica.Comment, error)
+	DeleteCommentByRKeyFunc   func(ctx context.Context, rkey string) error
+	GetCommentsForSubjectFunc func(ctx context.Context, subjectURI string) ([]*arabica.Comment, error)
+	ListUserCommentsFunc      func(ctx context.Context) ([]*arabica.Comment, error)
+
+	DIDFunc             func() string
+	FetchRecordFunc     func(ctx context.Context, nsid, rkey string) (record map[string]any, uri, cid string, err error)
+	FetchAllRecordsFunc func(ctx context.Context, nsid string) ([]records.RawRecord, error)
+	PutRecordFunc       func(ctx context.Context, nsid, rkey string, record any) (resultRKey, cid string, err error)
+	RemoveRecordFunc    func(ctx context.Context, nsid, rkey string) error
 
 	CloseFunc func() error
 }
@@ -214,6 +237,135 @@ func (m *MockStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brewer 
 func (m *MockStore) DeleteBrewerByRKey(ctx context.Context, rkey string) error {
 	if m.DeleteBrewerByRKeyFunc != nil {
 		return m.DeleteBrewerByRKeyFunc(ctx, rkey)
+	}
+	return nil
+}
+
+func (m *MockStore) CreateRecipe(ctx context.Context, recipe *arabica.CreateRecipeRequest) (*arabica.Recipe, error) {
+	if m.CreateRecipeFunc != nil {
+		return m.CreateRecipeFunc(ctx, recipe)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) GetRecipeByRKey(ctx context.Context, rkey string) (*arabica.Recipe, error) {
+	if m.GetRecipeByRKeyFunc != nil {
+		return m.GetRecipeByRKeyFunc(ctx, rkey)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) ListRecipes(ctx context.Context) ([]*arabica.Recipe, error) {
+	if m.ListRecipesFunc != nil {
+		return m.ListRecipesFunc(ctx)
+	}
+	return []*arabica.Recipe{}, nil
+}
+
+func (m *MockStore) UpdateRecipeByRKey(ctx context.Context, rkey string, recipe *arabica.UpdateRecipeRequest) error {
+	if m.UpdateRecipeByRKeyFunc != nil {
+		return m.UpdateRecipeByRKeyFunc(ctx, rkey, recipe)
+	}
+	return nil
+}
+
+func (m *MockStore) DeleteRecipeByRKey(ctx context.Context, rkey string) error {
+	if m.DeleteRecipeByRKeyFunc != nil {
+		return m.DeleteRecipeByRKeyFunc(ctx, rkey)
+	}
+	return nil
+}
+
+func (m *MockStore) CreateLike(ctx context.Context, req *arabica.CreateLikeRequest) (*arabica.Like, error) {
+	if m.CreateLikeFunc != nil {
+		return m.CreateLikeFunc(ctx, req)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) DeleteLikeByRKey(ctx context.Context, rkey string) error {
+	if m.DeleteLikeByRKeyFunc != nil {
+		return m.DeleteLikeByRKeyFunc(ctx, rkey)
+	}
+	return nil
+}
+
+func (m *MockStore) GetUserLikeForSubject(ctx context.Context, subjectURI string) (*arabica.Like, error) {
+	if m.GetUserLikeForSubjectFunc != nil {
+		return m.GetUserLikeForSubjectFunc(ctx, subjectURI)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) ListUserLikes(ctx context.Context) ([]*arabica.Like, error) {
+	if m.ListUserLikesFunc != nil {
+		return m.ListUserLikesFunc(ctx)
+	}
+	return []*arabica.Like{}, nil
+}
+
+func (m *MockStore) CreateComment(ctx context.Context, req *arabica.CreateCommentRequest) (*arabica.Comment, error) {
+	if m.CreateCommentFunc != nil {
+		return m.CreateCommentFunc(ctx, req)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) DeleteCommentByRKey(ctx context.Context, rkey string) error {
+	if m.DeleteCommentByRKeyFunc != nil {
+		return m.DeleteCommentByRKeyFunc(ctx, rkey)
+	}
+	return nil
+}
+
+func (m *MockStore) GetCommentsForSubject(ctx context.Context, subjectURI string) ([]*arabica.Comment, error) {
+	if m.GetCommentsForSubjectFunc != nil {
+		return m.GetCommentsForSubjectFunc(ctx, subjectURI)
+	}
+	return []*arabica.Comment{}, nil
+}
+
+func (m *MockStore) ListUserComments(ctx context.Context) ([]*arabica.Comment, error) {
+	if m.ListUserCommentsFunc != nil {
+		return m.ListUserCommentsFunc(ctx)
+	}
+	return []*arabica.Comment{}, nil
+}
+
+func (m *MockStore) DID() string {
+	if m.DIDFunc != nil {
+		return m.DIDFunc()
+	}
+	return "did:plc:test123456789"
+}
+
+func (m *MockStore) FetchRecord(ctx context.Context, nsid, rkey string) (map[string]any, string, string, error) {
+	if m.FetchRecordFunc != nil {
+		return m.FetchRecordFunc(ctx, nsid, rkey)
+	}
+	return nil, "", "", nil
+}
+
+func (m *MockStore) FetchAllRecords(ctx context.Context, nsid string) ([]records.RawRecord, error) {
+	if m.FetchAllRecordsFunc != nil {
+		return m.FetchAllRecordsFunc(ctx, nsid)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) PutRecord(ctx context.Context, nsid, rkey string, record any) (string, string, error) {
+	if m.PutRecordFunc != nil {
+		return m.PutRecordFunc(ctx, nsid, rkey, record)
+	}
+	if rkey != "" {
+		return rkey, "", nil
+	}
+	return "test-rkey", "test-cid", nil
+}
+
+func (m *MockStore) RemoveRecord(ctx context.Context, nsid, rkey string) error {
+	if m.RemoveRecordFunc != nil {
+		return m.RemoveRecordFunc(ctx, nsid, rkey)
 	}
 	return nil
 }

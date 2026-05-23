@@ -7,7 +7,7 @@ import (
 	"time"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
-	"tangled.org/arabica.social/arabica/internal/database"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 )
 
@@ -92,7 +92,7 @@ func NewTestFixtures() *TestFixtures {
 // TestContext contains test dependencies
 type TestContext struct {
 	Handler   *Handlers
-	MockStore *database.MockStore
+	MockStore *arabicastore.MockStore
 	Fixtures  *TestFixtures
 	Request   *http.Request
 	Recorder  *httptest.ResponseRecorder
@@ -100,7 +100,7 @@ type TestContext struct {
 
 // NewTestContext creates a test context with mock dependencies
 func NewTestContext() *TestContext {
-	mockStore := &database.MockStore{}
+	mockStore := &arabicastore.MockStore{}
 	fixtures := NewTestFixtures()
 
 	base := handlers.NewHandler(nil, nil, nil, nil, nil, handlers.Config{SecureCookies: false})
@@ -117,7 +117,9 @@ func NewTestContext() *TestContext {
 func NewAuthenticatedRequest(method, path string, body any) *http.Request {
 	req := httptest.NewRequest(method, path, nil)
 
-	// Add authenticated DID to context using the same keys as atp/middleware.CookieAuth
+	// Add authenticated DID to context using the legacy string keys. Most
+	// historical tests intentionally don't satisfy atp/middleware.GetDID, so
+	// handlers take the unauthenticated path instead of constructing real stores.
 	ctx := context.WithValue(req.Context(), "atp_did", "did:plc:test123456789")
 	ctx = context.WithValue(ctx, "atp_session_id", "test-session-id")
 

@@ -110,7 +110,7 @@ keys use TID format (timestamp-based identifiers).
 
 ### Store Interface
 
-`internal/database/store.go` defines the `Store` interface with CRUD methods for
+`internal/arabica/store/store.go` defines the `Store` interface with CRUD methods for
 all entity types. `AtprotoStore` is the production implementation backed by the
 user's PDS with witness cache and session cache layers.
 
@@ -161,7 +161,7 @@ entities with references):
 4. **Model + request types + validation** in `internal/models/models.go`
 5. **Record conversion** (`XToRecord`/`RecordToX`) in
    `internal/atproto/records.go`
-6. **Store interface methods** in `internal/database/store.go`
+6. **Store interface methods** in `internal/arabica/store/store.go`
 7. **AtprotoStore implementation** in `internal/atproto/store.go` (CRUD +
    witness + cache)
 8. **Cache fields + Set/Invalidate methods** in `internal/atproto/cache.go`

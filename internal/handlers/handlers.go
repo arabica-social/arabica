@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
@@ -94,6 +95,17 @@ type Handler struct {
 	staticPages  StaticPageRenderers
 	homeBehavior HomeBehavior
 	assets       assets.Manifest
+
+	// storeOverride supports focused handler tests without constructing an
+	// OAuth-backed ATProto client. Production code leaves it nil.
+	storeOverride arabicastore.Store
+}
+
+// SetStoreOverrideForTest injects a request-scoped store for handler tests.
+// Authentication context is still required; only the concrete store creation is
+// bypassed. Passing nil clears the override.
+func (h *Handler) SetStoreOverrideForTest(store arabicastore.Store) {
+	h.storeOverride = store
 }
 
 // SetStaticPageRenderers wires app-owned static page templates into the shared
@@ -369,7 +381,7 @@ func (h *Handler) GetUserProfile(ctx context.Context, did string) *bff.UserProfi
 
 // getAtprotoStore creates a user-scoped atproto store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
-func (h *Handler) GetAtprotoStore(r *http.Request) (database.Store, bool) {
+func (h *Handler) GetAtprotoStore(r *http.Request) (arabicastore.Store, bool) {
 	// Get authenticated DID from context
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
@@ -386,6 +398,9 @@ func (h *Handler) GetAtprotoStore(r *http.Request) (database.Store, bool) {
 	sessionID, ok := atpmiddleware.GetSessionID(r.Context())
 	if !ok {
 		return nil, false
+	}
+	if h.storeOverride != nil {
+		return h.storeOverride, true
 	}
 
 	// Create user-scoped atproto store with injected cache. App-specific

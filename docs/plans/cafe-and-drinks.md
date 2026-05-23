@@ -140,7 +140,7 @@ Record conversion, store interface, store implementation, cache.
 - `DrinkToRecord(drink, cafeURI, beanURI)` / `RecordToDrink(record, atURI)` —
   cafeRef required, beanRef optional
 
-**`internal/database/store.go`** — add to interface:
+**`internal/arabica/store/store.go`** — add to interface:
 - Cafe: `CreateCafe`, `GetCafeByRKey`, `ListCafes`, `UpdateCafeByRKey`,
   `DeleteCafeByRKey`
 - Drink: `CreateDrink`, `GetDrinkByRKey`, `ListDrinks`, `UpdateDrinkByRKey`,

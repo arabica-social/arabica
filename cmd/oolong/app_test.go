@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"tangled.org/arabica.social/arabica/internal/atplatform/apps"
 )
 
 func TestOolongApp_NSIDs(t *testing.T) {
-	app := newOolongApp()
+	app := apps.NewOolong()
 	got := app.NSIDs()
 	sort.Strings(got)
 
@@ -27,7 +28,7 @@ func TestOolongApp_NSIDs(t *testing.T) {
 }
 
 func TestOolongApp_OAuthScopes(t *testing.T) {
-	app := newOolongApp()
+	app := apps.NewOolong()
 	got := app.OAuthScopes()
 	sort.Strings(got)
 

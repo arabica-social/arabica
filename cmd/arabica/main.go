@@ -8,17 +8,15 @@ package main
 import (
 	"context"
 	"flag"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
+	"tangled.org/arabica.social/arabica/internal/atplatform/apps"
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
 	"tangled.org/arabica.social/arabica/internal/logging"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -31,7 +29,7 @@ func main() {
 	knownDIDsFile := flag.String("known-dids", "", "Path to file containing DIDs to backfill on startup (one per line)")
 	flag.Parse()
 
-	configureLogging()
+	logging.ConfigureFromEnv(os.Stdout)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -44,7 +42,7 @@ func main() {
 		cancel()
 	}()
 
-	app := newArabicaApp()
+	app := apps.NewArabica()
 	log.Info().Str("app", app.Name).Msg("Starting app")
 	err := server.Run(ctx, app, server.Options{
 		KnownDIDsPath:      *knownDIDsFile,
@@ -56,28 +54,4 @@ func main() {
 		log.Fatal().Err(err).Str("app", app.Name).Msg("App exited with error")
 	}
 	log.Info().Msg("Stopped")
-}
-
-func configureLogging() {
-	switch os.Getenv("LOG_LEVEL") {
-	case "debug":
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	case "warn":
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	case "error":
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	default:
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
-
-	if os.Getenv("LOG_FORMAT") == "json" {
-		log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
-	} else {
-		log.Logger = log.Output(zerolog.ConsoleWriter{
-			Out:        os.Stdout,
-			TimeFormat: time.RFC3339,
-		})
-	}
-
-	slog.SetDefault(slog.New(logging.NewZerologHandler(log.Logger)))
 }

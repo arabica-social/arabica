@@ -1,4 +1,4 @@
-package database
+package arabicastore
 
 import (
 	"context"
