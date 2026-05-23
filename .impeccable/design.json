@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-23T00:00:00-05:00",
+  "title": "Design System: Arabica",
+  "extensions": {
+    "colorMeta": {
+      "espresso-ink": {
+        "role": "primary",
+        "displayName": "Espresso Ink",
+        "canonical": "#4a2c2a",
+        "tonalRamp": ["#1b0d09", "#2a1610", "#3d2319", "#4a2c2a", "#6b4423", "#7f5539", "#bfa094", "#f2e8e5"]
+      },
+      "paper-cream": {
+        "role": "neutral",
+        "displayName": "Paper Cream",
+        "canonical": "#FAF7F5",
+        "tonalRamp": ["#2a1610", "#3d2319", "#6b4423", "#bfa094", "#e0cec7", "#eaddd7", "#f2e8e5", "#FAF7F5"]
+      },
+      "roaster-amber": {
+        "role": "secondary",
+        "displayName": "Roaster Amber",
+        "canonical": "#fbbf24",
+        "tonalRamp": ["#451a03", "#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fcd34d", "#fffbeb"]
+      },
+      "pinboard-cork": {
+        "role": "tertiary",
+        "displayName": "Pinboard Cork",
+        "canonical": "#C4A882",
+        "tonalRamp": ["#2b2118", "#4a3828", "#6d5339", "#90724f", "#b09470", "#C4A882", "#dec7a6", "#f7ead6"]
+      },
+      "bean-copper": {
+        "role": "secondary",
+        "displayName": "Bean Copper",
+        "canonical": "#b45309",
+        "tonalRamp": ["#431407", "#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fde68a", "#fffbeb"]
+      },
+      "brewer-green": {
+        "role": "secondary",
+        "displayName": "Brewer Green",
+        "canonical": "#5b6e4e",
+        "tonalRamp": ["#172111", "#24351c", "#38522d", "#5b6e4e", "#6f875f", "#8ba37a", "#bbd1ad", "#eef6e9"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Static-page heroes and rare large product moments."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles, record titles, and major section names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default product UI, forms, lists, and dense data."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase section labels, tags, metadata, and stamp-like status."
+      }
+    },
+    "shadows": [
+      {
+        "name": "low-surface",
+        "value": "0 1px 3px var(--card-shadow)",
+        "purpose": "Default cards and small containers."
+      },
+      {
+        "name": "raised-surface",
+        "value": "0 4px 12px var(--card-shadow-hover)",
+        "purpose": "Hovered cards, dropdowns, and focused panels."
+      },
+      {
+        "name": "floating-surface",
+        "value": "0 10px 25px var(--card-shadow-hover)",
+        "purpose": "Modals, combo dropdowns, and high-priority overlays."
+      },
+      {
+        "name": "sticky-note",
+        "value": "1px 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)",
+        "purpose": "Feed cards on corkboard surfaces."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fast",
+        "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default button, input, tab, and dropdown state changes."
+      },
+      {
+        "name": "entrance-soft",
+        "value": "300ms ease-out",
+        "purpose": "Feed card entrances and light page reveals."
+      },
+      {
+        "name": "craft-expo",
+        "value": "380ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Onboarding and crafted static-page entrance moments."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action button for login, save, and primary page actions.",
+      "html": "<button class=\"ds-btn-primary\">Get Started</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; border: 0; border-radius: 8px; background: var(--btn-primary-bg); color: var(--btn-primary-text); font-family: 'Iosevka Patrick', ui-monospace, monospace; font-weight: 500; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: var(--btn-primary-bg-hover); } .ds-btn-primary:focus-visible { outline: 2px solid var(--input-border-focus); outline-offset: 2px; } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A bordered lower-priority action with warm surface treatment.",
+      "html": "<button class=\"ds-btn-secondary\">Add another</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; border: 1px solid var(--btn-secondary-border); border-radius: 8px; background: var(--btn-secondary-bg); color: var(--btn-secondary-text); font-family: 'Iosevka Patrick', ui-monospace, monospace; font-weight: 500; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-secondary:hover { background: var(--btn-secondary-bg-hover); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--input-border-focus); outline-offset: 2px; }"
+    },
+    {
+      "name": "Form Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "The default text field vocabulary for forms and modals.",
+      "html": "<label class=\"ds-field\"><span>Bean name</span><input class=\"ds-input\" placeholder=\"Ethiopia Guji\" /></label>",
+      "css": ".ds-field { display: grid; gap: 8px; color: var(--text-primary); font-family: 'Iosevka Patrick', ui-monospace, monospace; font-size: 14px; font-weight: 500; } .ds-input { min-height: 44px; padding: 8px 12px; border: 1px solid var(--input-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font: inherit; font-size: 16px; transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease; } .ds-input::placeholder { color: var(--text-placeholder); } .ds-input:focus { border-color: var(--input-border-focus); box-shadow: 0 0 0 2px var(--input-ring-focus); background: var(--input-bg-focus); outline: none; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A warm bordered product container with modest lift.",
+      "html": "<article class=\"ds-card\"><h3>Track Your Brews</h3><p>Log beans, grind, water, time, and tasting notes.</p></article>",
+      "css": ".ds-card { padding: 24px; border: 1px solid var(--card-border); border-radius: 12px; background: var(--card-bg); color: var(--text-primary); box-shadow: var(--shadow-sm); font-family: 'Iosevka Patrick', ui-monospace, monospace; transition: box-shadow 200ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); } .ds-card h3 { margin: 0 0 8px; font-size: 20px; line-height: 1.4; font-weight: 600; } .ds-card p { margin: 0; color: var(--text-secondary); line-height: 1.6; }"
+    },
+    {
+      "name": "Filter Pill",
+      "kind": "chip",
+      "refersTo": "filter-pill",
+      "description": "A compact entity or filter selector with quiet inactive state and strong active state.",
+      "html": "<button class=\"ds-filter-pill\">Beans</button><button class=\"ds-filter-pill ds-filter-pill-active\">Brews</button>",
+      "css": ".ds-filter-pill { display: inline-flex; align-items: center; gap: 6px; margin-right: 8px; padding: 4px 12px; border: 1px solid var(--card-border); border-radius: 9999px; background: transparent; color: var(--text-muted); font-family: 'Iosevka Patrick', ui-monospace, monospace; font-size: 12px; line-height: 16px; font-weight: 500; cursor: pointer; transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), background-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-filter-pill:hover { color: var(--text-secondary); border-color: var(--input-border-focus); background: var(--surface-bg); } .ds-filter-pill-active { color: var(--btn-primary-text); background: var(--btn-primary-bg); border-color: var(--btn-primary-bg); } .ds-filter-pill:focus-visible { outline: 2px solid var(--input-border-focus); outline-offset: 2px; }"
+    },
+    {
+      "name": "Feed Note",
+      "kind": "card",
+      "refersTo": "feed-card",
+      "description": "A sticky-note style feed card on the community corkboard.",
+      "html": "<article class=\"ds-feed-note\"><span class=\"ds-type\">Brew</span><h3>Morning V60</h3><p>Bright, peachy, dialed a touch finer.</p></article>",
+      "css": ".ds-feed-note { max-width: 280px; padding: 16px; border: 0; border-radius: 4px; background-color: var(--feed-card-bg); background-image: linear-gradient(var(--type-brew-tint), var(--type-brew-tint)); color: var(--text-primary); box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06); rotate: -1deg; font-family: 'Iosevka Patrick', ui-monospace, monospace; transition: box-shadow 200ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1), rotate 200ms ease; } .ds-feed-note:hover { rotate: 0deg; transform: translateY(-2px); box-shadow: var(--shadow-md); } .ds-type { display: inline-flex; padding: 2px 6px; border: 1px solid currentColor; border-radius: 4px; color: var(--type-brew); font-size: 12px; font-weight: 500; } .ds-feed-note h3 { margin: 12px 0 6px; font-size: 18px; font-weight: 600; } .ds-feed-note p { margin: 0; color: var(--text-secondary); line-height: 1.5; }"
+    },
+    {
+      "name": "Combo Dropdown",
+      "kind": "custom",
+      "refersTo": "combo-select",
+      "description": "The entity picker dropdown used for beans, roasters, brewers, grinders, and related records.",
+      "html": "<div class=\"ds-combo\"><div class=\"ds-combo-label\">Your beans</div><div class=\"ds-combo-item\">Ethiopia Guji<span>Passenger Coffee</span></div><div class=\"ds-combo-create\">Create new bean</div></div>",
+      "css": ".ds-combo { width: 320px; overflow: hidden; border: 1px solid var(--input-border); border-radius: 8px; background: var(--card-bg); color: var(--text-primary); box-shadow: var(--shadow-lg); font-family: 'Iosevka Patrick', ui-monospace, monospace; } .ds-combo-label { padding: 6px 12px; background: var(--surface-bg); color: var(--text-muted); font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; } .ds-combo-item, .ds-combo-create { padding: 8px 12px; cursor: pointer; font-size: 14px; line-height: 20px; } .ds-combo-item:hover, .ds-combo-create:hover { background: var(--surface-bg); } .ds-combo-item span { display: block; color: var(--text-muted); font-size: 12px; } .ds-combo-create { border-top: 1px solid var(--surface-border); color: var(--text-muted); font-weight: 500; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Neighborhood Brew Journal",
+    "overview": "Arabica should feel like a well-used coffee notebook left on the counter at a neighborhood cafe. It is social, but not performative. It is technical, but never cold. The interface supports the ritual of brewing: slow enough to feel intentional, structured enough to keep data useful, warm enough to invite return visits.\n\nThe visual system blends community cafe atmosphere with analog lab notes. Product surfaces use familiar app patterns so people can log a brew, edit a bean, or scan a feed without learning invented controls. Craft details carry the personality: kraft texture, corkboard feed surfaces, sticky-note cards, entity-tinted washes, dashed rubber-stamp progress, and coffee-toned neutrals.\n\nArabica explicitly rejects generic SaaS dashboards, corporate productivity tools, overly techy developer aesthetics, and social media feed clones. Data should feel warm, not cold. The feed should feel like overhearing conversations at a cafe, not scrolling a timeline.",
+    "keyCharacteristics": [
+      "Cozy, social, inviting, and grounded in coffee ritual.",
+      "Familiar product UI with craft details, not novelty controls.",
+      "Warm brown and cream neutrals with restrained amber and entity accents.",
+      "Tactile texture and modest lift, not glass, neon, or glossy polish.",
+      "Light and dark themes both supported, with the same coffee-shop warmth."
+    ],
+    "rules": [
+      { "name": "The Brown Paper Rule", "body": "Tint every neutral toward coffee. New surfaces should start from Paper Cream, Sticky Paper, Paper Blush, or Espresso Ink, never from sterile gray.", "section": "colors" },
+      { "name": "The Accent Has a Job Rule", "body": "Amber is for attention and state. Entity colors are for entity identity. Do not use saturated color as decoration without a semantic role.", "section": "colors" },
+      { "name": "The Corkboard Rule", "body": "Social feed surfaces may be more tactile than utility pages. Cork texture and sticky-note treatment belong in community context, not every settings panel.", "section": "colors" },
+      { "name": "The Notebook Mono Rule", "body": "Iosevka Patrick is the default voice. Do not introduce a second typeface unless a page genuinely needs a softer display voice and the choice is documented.", "section": "typography" },
+      { "name": "The Label Restraint Rule", "body": "Uppercase tracking is for labels and tags, not whole paragraphs or button-heavy regions.", "section": "typography" },
+      { "name": "The Border First Rule", "body": "Use a warm 1px border before reaching for a large shadow. The interface should feel printed and tactile, not floating in space.", "section": "elevation" },
+      { "name": "The Lift on Intent Rule", "body": "A 2px hover lift is enough. Elevation should confirm interaction, not perform choreography.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use Paper Cream as the environmental base and Espresso Ink as the main anchor.",
+      "Do keep product flows familiar: standard buttons, inputs, dropdowns, tabs, and modals with predictable states.",
+      "Do use entity colors for entity identity: bean, brew, brewer, grinder, roaster, recipe, tea, vendor, cafe, and drink.",
+      "Do add texture where it supports the metaphor: kraft containers, cork feed boards, and sticky notes.",
+      "Do keep motion short and state-based: 100 to 250ms for most UI, 300 to 380ms only for page or feed entrances.",
+      "Do write empty states that name the next action, such as \"add the bag you're on now\".",
+      "Do preserve dark mode warmth. Dark surfaces should be coffee-black and brown, not neutral charcoal."
+    ],
+    "donts": [
+      "Don't make Arabica look like generic SaaS dashboards or corporate productivity tools.",
+      "Don't use an overly techy/developer aesthetic. Data should feel warm, not cold.",
+      "Don't make the feed feel like Instagram, Twitter, or any social media feed clone with no personality.",
+      "Don't use colored `border-left` or `border-right` accents greater than 1px on cards, callouts, alerts, or list items.",
+      "Don't use gradient text, decorative glassmorphism, neon-on-black, or hero-metric SaaS templates.",
+      "Don't wrap everything in identical card grids. Use cards when they clarify grouping, not as the default answer.",
+      "Don't add new pure black or pure white neutrals. Existing legacy white card tokens should not be the model for new surfaces.",
+      "Don't use emoji as primary UI glyphs. Use inline SVG with `stroke=\"currentColor\"`.",
+      "Don't animate layout properties or use bounce/elastic easings. Motion should feel like a hand placing a note, not an app trying to impress."
+    ]
+  }
+}
