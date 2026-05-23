@@ -244,6 +244,16 @@ func (h *Handlers) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
+	ready, err := h.oolongReadyToBrew(r.Context(), store)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to check oolong setup readiness")
+		http.Error(w, "Failed to load", http.StatusInternalServerError)
+		return
+	}
+	if !ready {
+		http.Redirect(w, r, "/onboarding", http.StatusFound)
+		return
+	}
 	props := teapages.SteepFormProps{
 		Brew:     nil,
 		Teas:     handlers.ListRecords(r.Context(), store, oolong.NSIDTea, oolong.RecordToTea),

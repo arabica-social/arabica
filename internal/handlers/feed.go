@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -12,6 +13,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/onboarding"
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -82,13 +84,24 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 		appName = h.app.Name
 	}
 
+	ready := true
 	var readiness *onboarding.ReadinessStatus
-	if isAuthenticated && appName != "oolong" {
+	if isAuthenticated && appName == "oolong" {
+		if store, ok := h.GetAtprotoStore(r); ok {
+			if atpStore, ok := store.(*atproto.AtprotoStore); ok {
+				hasVendor := len(ListRecords(r.Context(), atpStore, oolong.NSIDVendor, oolong.RecordToVendor)) > 0
+				hasVessel := len(ListRecords(r.Context(), atpStore, oolong.NSIDVessel, oolong.RecordToVessel)) > 0
+				hasTea := len(ListRecords(r.Context(), atpStore, oolong.NSIDTea, oolong.RecordToTea)) > 0
+				ready = hasVendor && hasVessel && hasTea
+			}
+		}
+	} else if isAuthenticated {
 		if store, ok := h.GetAtprotoStore(r); ok {
 			if status, err := onboarding.CheckBrewReadiness(r.Context(), store); err != nil {
 				log.Warn().Err(err).Msg("readiness check failed; treating user as ready to avoid false block")
 			} else {
 				readiness = &status
+				ready = status.Ready()
 			}
 		}
 	}
@@ -99,6 +112,7 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 		AppName:         appName,
 		Descriptors:     descriptors,
 		Readiness:       readiness,
+		Ready:           ready,
 	}
 
 	// Render using templ component

@@ -91,7 +91,8 @@ func SetupRouter(cfg Config) http.Handler {
 	// records (Brew, Bean, Recipe, etc.) and have no oolong analog yet;
 	// home.templ skips firing /api/incomplete-records and
 	// /api/popular-recipes when AppName == "oolong".
-	if cfg.App.Name == "arabica" {
+	switch cfg.App.Name {
+	case "arabica":
 		mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleBrewListPartial)))
 		mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleManagePartial)))
 		mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleIncompleteRecordsPartial)))
@@ -99,6 +100,9 @@ func SetupRouter(cfg Config) http.Handler {
 		mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandleOnboardingStationForm)))
 		mux.Handle("GET /api/popular-recipes", middleware.RequireHTMXMiddleware(http.HandlerFunc(coffee.HandlePopularRecipesPartial)))
 		mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(coffee.HandleManageRefresh)))
+	case "oolong":
+		mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(tea.HandleOolongGetStartedCard)))
+		mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(tea.HandleOolongOnboardingStationForm)))
 	}
 
 	// Page routes (must come before static files)
@@ -160,6 +164,7 @@ func SetupRouter(cfg Config) http.Handler {
 	// land via the bundle below; only the manage-style page needs an
 	// explicit handler.
 	if cfg.App.Name == "oolong" {
+		mux.HandleFunc("GET /onboarding", tea.HandleOolongOnboarding)
 		mux.HandleFunc("GET /my-tea", tea.HandleMyTea)
 		mux.Handle("POST /api/tea/refresh", cop.Handler(http.HandlerFunc(tea.HandleTeaRefresh)))
 		mux.HandleFunc("GET /brews/new", tea.HandleOolongSteepNew)

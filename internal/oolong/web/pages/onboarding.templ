@@ -1,0 +1,49 @@
+package teapages
+
+import (
+	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+type OnboardingProps struct {
+	Card tea.GetStartedCardProps
+}
+
+type HeroProps struct {
+	Eyebrow string
+	Title   string
+	Lede    templ.Component
+}
+
+templ Onboarding(layout *components.LayoutData, props OnboardingProps) {
+	@components.Layout(layout, OnboardingContent(props))
+}
+
+templ OnboardingContent(props OnboardingProps) {
+	<div class="onboarding-wrap">
+		@OnboardingHero(HeroProps{
+			Eyebrow: "welcome to oolong",
+			Title:   "Let's get you started.",
+			Lede:    onboardingLede(),
+		})
+		@tea.GetStartedCard(props.Card)
+		<!-- Modal container for entity create/edit dialogs opened from the card -->
+		<div id="modal-container"></div>
+	</div>
+}
+
+templ OnboardingHero(h HeroProps) {
+	<header class="onboarding-hero">
+		<span class="onboarding-eyebrow">{ h.Eyebrow }</span>
+		<h1 class="onboarding-title">{ h.Title }</h1>
+		if h.Lede != nil {
+			@h.Lede
+		}
+	</header>
+}
+
+templ onboardingLede() {
+	<p class="onboarding-lede">
+		Add a <strong>vendor</strong>, a <strong>vessel</strong>, and your first <strong>tea</strong> — that's all you need to start logging steeps. An infuser is optional.
+	</p>
+}

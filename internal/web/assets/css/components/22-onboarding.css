@@ -97,6 +97,18 @@
   opacity: 0.85;
 }
 
+body[data-app="oolong"] .onboarding-card::before {
+  background: linear-gradient(
+    to right,
+    var(--type-vendor) 0%,
+    var(--type-vendor) 33%,
+    var(--type-vessel) 33%,
+    var(--type-vessel) 66%,
+    var(--type-tea) 66%,
+    var(--type-tea) 100%
+  );
+}
+
 /* ── Progress stamps ──────────────────────────────── */
 .onboarding-progress {
   display: grid;
@@ -344,6 +356,22 @@
 .station[data-kind="grinder"] {
   --tint: var(--type-grinder);
   --tint-bg: var(--type-grinder-tint);
+}
+.station[data-kind="vendor"] {
+  --tint: var(--type-vendor);
+  --tint-bg: var(--type-vendor-tint);
+}
+.station[data-kind="vessel"] {
+  --tint: var(--type-vessel);
+  --tint-bg: var(--type-vessel-tint);
+}
+.station[data-kind="tea"] {
+  --tint: var(--type-tea);
+  --tint-bg: var(--type-tea-tint);
+}
+.station[data-kind="infuser"] {
+  --tint: var(--type-infuser);
+  --tint-bg: var(--type-infuser-tint);
 }
 
 .station-head {
@@ -703,6 +731,26 @@
 .station-drawer[data-kind="grinder"] {
   --tint: var(--type-grinder);
   --tint-bg: var(--type-grinder-tint);
+  --connector-x: 50%;
+}
+.station-drawer[data-kind="vendor"] {
+  --tint: var(--type-vendor);
+  --tint-bg: var(--type-vendor-tint);
+  --connector-x: 16.67%;
+}
+.station-drawer[data-kind="vessel"] {
+  --tint: var(--type-vessel);
+  --tint-bg: var(--type-vessel-tint);
+  --connector-x: 50%;
+}
+.station-drawer[data-kind="tea"] {
+  --tint: var(--type-tea);
+  --tint-bg: var(--type-tea-tint);
+  --connector-x: 83.33%;
+}
+.station-drawer[data-kind="infuser"] {
+  --tint: var(--type-infuser);
+  --tint-bg: var(--type-infuser-tint);
   --connector-x: 50%;
 }
 

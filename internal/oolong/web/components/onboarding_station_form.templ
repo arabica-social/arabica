@@ -1,0 +1,91 @@
+package tea
+
+import (
+	"tangled.org/arabica.social/arabica/internal/entities"
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+type StationDrawerProps struct {
+	Kind        string
+	DisplayName string
+	URLPath     string
+	Vendors     []*oolong.Vendor
+}
+
+templ StationFormDrawer(p StationDrawerProps) {
+	<div class="station-drawer" data-drawer data-kind={ p.Kind }>
+		<header class="station-drawer-head">
+			<div class="station-drawer-eyebrow">adding</div>
+			<h3 class="station-drawer-title">{ p.DisplayName }</h3>
+			<button type="button" class="station-drawer-close" data-action="close-drawer" aria-label="Cancel">×</button>
+		</header>
+		<form hx-post={ "/api/" + p.URLPath } hx-trigger="submit" hx-swap="none" hx-sync="this:drop" hx-disabled-elt="find button[type='submit']" v-scope="ModalShell()" @vue:mounted="setup($el)" class="station-drawer-form space-y-5">
+			<div v-show="!!serverError" v-cloak class="station-drawer-error" v-text="serverError"></div>
+			switch p.Kind {
+				case "vendor":
+					@vendorDrawerFields()
+				case "vessel":
+					@vesselDrawerFields()
+				case "tea":
+					@teaDrawerFields(p.Vendors)
+				case "infuser":
+					@infuserDrawerFields()
+			}
+			<div class="station-drawer-actions"><button type="submit" class="btn-primary station-drawer-save">Save { p.DisplayName }</button><button type="button" class="btn-secondary" data-action="close-drawer">Cancel</button></div>
+		</form>
+	</div>
+}
+
+templ vendorDrawerFields() {
+	<input class="w-full form-input" name="name" placeholder="Vendor name *" required/>
+	<input class="w-full form-input" name="location" placeholder="Location"/>
+	<input class="w-full form-input" name="website" placeholder="Website"/>
+}
+
+templ vesselDrawerFields() {
+	<input class="w-full form-input" name="name" placeholder="Vessel name *" required/>
+	<input class="w-full form-input" name="style" placeholder="Style"/>
+	<input class="w-full form-input" name="material" placeholder="Material"/>
+}
+
+templ infuserDrawerFields() {
+	<input class="w-full form-input" name="name" placeholder="Infuser name *" required/>
+	<input class="w-full form-input" name="style" placeholder="Style"/>
+	<input class="w-full form-input" name="material" placeholder="Material"/>
+}
+
+templ teaDrawerFields(vendors []*oolong.Vendor) {
+	<input class="w-full form-input" name="name" placeholder="Tea name *" required/>
+	<input class="w-full form-input" name="category" placeholder="Category"/>
+	@onboardingComboSelectField(
+		"vendor", "/api/vendors", "/api/suggestions/vendors", "vendor_rkey",
+		"Search or create a vendor…", "Vendor", "Your vendors", false,
+	)
+}
+
+templ onboardingComboSelectField(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, label, sectionLabel string, required bool) {
+	<div
+		class="combo-select"
+		data-combo-entity-type={ entityType }
+		v-scope={ ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, required) }
+		@vue:mounted="setup($el)"
+	>
+		<label class="form-label">
+			{ label }
+			if required {
+				<span class="text-red-600">*</span>
+			}
+		</label>
+		<input type="hidden" :name="inputName" :value="selectedRKey"/>
+		@ComboSelectInput(sectionLabel)
+	</div>
+}
+
+func StationDrawerPropsForKind(kind string) (StationDrawerProps, bool) {
+	d := entities.GetByNoun(kind)
+	if d == nil {
+		return StationDrawerProps{}, false
+	}
+	return StationDrawerProps{Kind: kind, DisplayName: d.DisplayName, URLPath: d.URLPath}, true
+}

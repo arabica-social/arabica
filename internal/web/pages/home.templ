@@ -9,9 +9,10 @@ import (
 type HomeProps struct {
 	IsAuthenticated bool
 	UserDID         string
-	AppName         string                 // "arabica" or "oolong" — toggles welcome + dashboard embeds
-	Descriptors     []*entities.Descriptor // App-scoped descriptors for feed filter tabs
+	AppName         string                      // "arabica" or "oolong" — toggles welcome + dashboard embeds
+	Descriptors     []*entities.Descriptor      // App-scoped descriptors for feed filter tabs
 	Readiness       *onboarding.ReadinessStatus // nil for unauth or non-arabica
+	Ready           bool                        // false when the running app's required first-run records are missing
 }
 
 templ Home(layout *components.LayoutData, props HomeProps) {
@@ -30,7 +31,7 @@ templ HomeContent(props HomeProps) {
 				IsAuthenticated: props.IsAuthenticated,
 				UserDID:         props.UserDID,
 				AppName:         props.AppName,
-				Ready:           props.Readiness == nil || props.Readiness.Ready(),
+				Ready:           props.Ready,
 			})
 			<!-- Modal container for entity create/edit dialogs opened from dashboard -->
 			<div id="modal-container"></div>

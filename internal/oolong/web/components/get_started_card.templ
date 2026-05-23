@@ -1,0 +1,393 @@
+package tea
+
+import (
+	"fmt"
+	"strings"
+
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
+)
+
+type ReadinessStatus struct {
+	HasTea     bool
+	HasVendor  bool
+	HasVessel  bool
+	HasInfuser bool
+}
+
+func (s ReadinessStatus) Ready() bool { return s.HasTea && s.HasVendor && s.HasVessel }
+
+type GetStartedCardProps struct {
+	Readiness ReadinessStatus
+	Teas      []*oolong.Tea
+	Vendors   []*oolong.Vendor
+	Vessels   []*oolong.Vessel
+	Infusers  []*oolong.Infuser
+	Mode      string
+}
+
+templ GetStartedCard(props GetStartedCardProps) {
+	<section
+		id="get-started"
+		hx-get={ getStartedRefreshURL(props.Mode) }
+		hx-trigger="refreshManage from:body"
+		hx-swap="outerHTML"
+		class="onboarding-card"
+		data-mode={ cardMode(props.Mode) }
+	>
+		if !isLibraryMode(props.Mode) {
+			@progressStrip(props.Readiness)
+		}
+		<div class="stations">
+			@station(stationProps{
+				No: "01", Kind: "vendor", Title: "Vendor",
+				Hint:      "A tea shop, farm, brand, or market you buy from.",
+				Required:  true,
+				Done:      props.Readiness.HasVendor,
+				Items:     vendorLabels(props.Vendors),
+				UseDrawer: true,
+			})
+			<div id="station-drawer-slot-vendor" class="station-drawer-row"></div>
+			@station(stationProps{
+				No: "02", Kind: "vessel", Title: "Vessel",
+				Hint:      "Mug, gaiwan, pot, tumbler — whatever holds the steep.",
+				Required:  true,
+				Done:      props.Readiness.HasVessel,
+				Items:     vesselLabels(props.Vessels),
+				UseDrawer: true,
+			})
+			<div id="station-drawer-slot-vessel" class="station-drawer-row"></div>
+			@station(stationProps{
+				No: "03", Kind: "tea", Title: "Tea",
+				Hint:      "Your current leaves, bag, blend, or bottle.",
+				Required:  true,
+				Done:      props.Readiness.HasTea,
+				Items:     teaLabels(props.Teas),
+				UseDrawer: true,
+			})
+			<div id="station-drawer-slot-tea" class="station-drawer-row"></div>
+			@station(stationProps{
+				No: "04", Kind: "infuser", Title: "Infuser",
+				Hint:      "Optional — tea bag drinkers and grandpa-style steeps can skip this.",
+				Required:  false,
+				Done:      props.Readiness.HasInfuser,
+				Items:     infuserLabels(props.Infusers),
+				Optional:  true,
+				UseDrawer: true,
+			})
+			<div id="station-drawer-slot-infuser" class="station-drawer-row"></div>
+		</div>
+		if !isLibraryMode(props.Mode) {
+			@readyPanel(props.Readiness)
+		}
+	</section>
+}
+
+func isLibraryMode(mode string) bool { return mode == "library" }
+func cardMode(mode string) string {
+	if mode == "" {
+		return "onboarding"
+	}
+	return mode
+}
+func getStartedRefreshURL(mode string) string {
+	if isLibraryMode(mode) {
+		return "/api/get-started-card?mode=library"
+	}
+	return "/api/get-started-card"
+}
+
+templ progressStrip(r ReadinessStatus) {
+	<div class="onboarding-progress" role="group" aria-label={ progressAria(r) }>
+		@stamp("vendor", r.HasVendor, nextRequired(r) == "vendor")
+		@stampLine(r.HasVendor, "vendor")
+		@stamp("vessel", r.HasVessel, nextRequired(r) == "vessel")
+		@stampLine(r.HasVessel, "vessel")
+		@stamp("tea", r.HasTea, nextRequired(r) == "tea")
+	</div>
+}
+
+templ stamp(kind string, done bool, current bool) {
+	<div class="stamp" data-state={ stampState(done, current) } style={ stampStyle(kind) }>
+		<span class="stamp-mark" aria-hidden="true">
+			if done {
+				@iconCheck()
+			} else {
+				{ stampNumber(kind) }
+			}
+		</span>
+		<span class="stamp-label">{ kind }</span>
+	</div>
+}
+
+templ stampLine(filled bool, kind string) {
+	if filled {
+		<span class="stamp-line" data-filled="true" style={ stampLineStyle(kind) }></span>
+	} else {
+		<span class="stamp-line"></span>
+	}
+}
+
+type stationProps struct {
+	No        string
+	Kind      string
+	Title     string
+	Hint      string
+	Required  bool
+	Done      bool
+	Items     []string
+	Optional  bool
+	UseDrawer bool
+}
+
+templ station(p stationProps) {
+	<article class="station" data-no={ p.No } data-kind={ p.Kind } if p.Optional {
+	data-optional="true"
+}>
+		<header class="station-head">
+			<span class="station-no">{ p.No }</span>
+			<h3 class="station-title">{ p.Title }</h3>
+			@stationTag(p)
+		</header>
+		<p class="station-hint">{ p.Hint }</p>
+		@stationItems(p)
+		<button type="button" class="station-add" hx-get={ "/api/onboarding/station-form/" + p.Kind } hx-target={ "#" + drawerSlotID(p) } hx-swap="innerHTML">
+			<span class="station-add-icon" aria-hidden="true">+</span>
+			{ addLabel(p) }
+		</button>
+	</article>
+}
+
+templ stationTag(p stationProps) {
+	if p.Done {
+		<span class="station-tag" data-tag="done">
+			@iconCheckSmall()
+			added
+		</span>
+	} else if p.Required {
+		<span class="station-tag" data-tag="required">required</span>
+	} else {
+		<span class="station-tag" data-tag="optional">optional</span>
+	}
+}
+
+templ stationItems(p stationProps) {
+	if len(p.Items) > 0 {
+		<ul class="station-items">
+			for _, label := range visibleItems(p.Items) {
+				<li class="station-item"><span class="station-item-bullet" aria-hidden="true"></span><span>{ label }</span></li>
+			}
+			if len(p.Items) > maxVisibleItems {
+				<li class="station-item-more">+ { fmt.Sprint(len(p.Items)-maxVisibleItems) } more</li>
+			}
+		</ul>
+	} else {
+		<p class="station-empty">Nothing here yet — <strong>{ emptyCue(p.Kind) }</strong></p>
+	}
+}
+
+templ readyPanel(r ReadinessStatus) {
+	if r.Ready() {
+		<div class="ready-panel" data-state="ready">
+			<div class="ready-copy"><p class="ready-headline">You're ready to steep.</p><p class="ready-sub">Your tea shelf is set up. Pour something good.</p></div>
+			<a href="/brews/new" class="ready-cta">Log your first steep<span class="ready-cta-arrow" aria-hidden="true">→</span></a>
+		</div>
+	} else {
+		<div class="ready-panel" data-state="not-ready">
+			<div class="ready-copy"><p class="ready-headline"><span class="ready-count"><span class="ready-count-num">{ fmt.Sprint(remaining(r)) }</span> { pluralStep(remaining(r)) } to go.</span></p><p class="ready-sub">{ encouragement(r) }</p></div>
+		</div>
+	}
+}
+
+const maxVisibleItems = 3
+
+func visibleItems(items []string) []string {
+	if len(items) <= maxVisibleItems {
+		return items
+	}
+	return items[:maxVisibleItems]
+}
+func nextRequired(r ReadinessStatus) string {
+	switch {
+	case !r.HasVendor:
+		return "vendor"
+	case !r.HasVessel:
+		return "vessel"
+	case !r.HasTea:
+		return "tea"
+	default:
+		return ""
+	}
+}
+func stampState(done, current bool) string {
+	if done {
+		return "done"
+	}
+	if current {
+		return "current"
+	}
+	return "todo"
+}
+func stampStyle(kind string) templ.SafeCSS {
+	return templ.SafeCSS(fmt.Sprintf("--stamp-color: %s;", tintVar(kind)))
+}
+func stampLineStyle(kind string) templ.SafeCSS {
+	return templ.SafeCSS(fmt.Sprintf("--stamp-fill: %s;", tintVar(kind)))
+}
+func tintVar(kind string) string {
+	switch kind {
+	case "vendor":
+		return "var(--type-vendor)"
+	case "vessel":
+		return "var(--type-vessel)"
+	case "tea":
+		return "var(--type-tea)"
+	case "infuser":
+		return "var(--type-infuser)"
+	default:
+		return "var(--text-muted)"
+	}
+}
+func stampNumber(kind string) string {
+	switch kind {
+	case "vendor":
+		return "1"
+	case "vessel":
+		return "2"
+	case "tea":
+		return "3"
+	default:
+		return "·"
+	}
+}
+func progressAria(r ReadinessStatus) string {
+	done := 0
+	if r.HasVendor {
+		done++
+	}
+	if r.HasVessel {
+		done++
+	}
+	if r.HasTea {
+		done++
+	}
+	return fmt.Sprintf("Setup progress: %d of 3 required items added", done)
+}
+func remaining(r ReadinessStatus) int {
+	n := 0
+	if !r.HasVendor {
+		n++
+	}
+	if !r.HasVessel {
+		n++
+	}
+	if !r.HasTea {
+		n++
+	}
+	return n
+}
+func pluralStep(n int) string {
+	if n == 1 {
+		return "step"
+	}
+	return "steps"
+}
+func encouragement(r ReadinessStatus) string {
+	var missing []string
+	if !r.HasVendor {
+		missing = append(missing, "vendor")
+	}
+	if !r.HasVessel {
+		missing = append(missing, "vessel")
+	}
+	if !r.HasTea {
+		missing = append(missing, "tea")
+	}
+	switch len(missing) {
+	case 3:
+		return "Start anywhere — they all take less than a minute."
+	case 2:
+		return fmt.Sprintf("Add a %s and a %s to unlock your first steep.", missing[0], missing[1])
+	case 1:
+		return fmt.Sprintf("Just a %s left — you're almost there.", missing[0])
+	default:
+		return ""
+	}
+}
+func drawerSlotID(p stationProps) string { return "station-drawer-slot-" + p.Kind }
+func addLabel(p stationProps) string {
+	if len(p.Items) > 0 {
+		return "Add another"
+	}
+	return "Add " + indefinite(p.Title)
+}
+func indefinite(noun string) string {
+	if noun == "" {
+		return noun
+	}
+	first := strings.ToLower(noun[:1])
+	switch first {
+	case "a", "e", "i", "o", "u":
+		return "an " + strings.ToLower(noun)
+	default:
+		return "a " + strings.ToLower(noun)
+	}
+}
+func emptyCue(kind string) string {
+	switch kind {
+	case "vendor":
+		return "add a tea source you like"
+	case "vessel":
+		return "add what you steep in most"
+	case "tea":
+		return "add the tea you're drinking now"
+	case "infuser":
+		return "skip if you don't use one"
+	default:
+		return "add one to start"
+	}
+}
+
+templ iconCheck() {
+	<svg class="stamp-glyph" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>
+}
+
+templ iconCheckSmall() {
+	<svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>
+}
+
+func teaLabels(teas []*oolong.Tea) []string {
+	out := make([]string, 0, len(teas))
+	for _, t := range teas {
+		if t != nil {
+			out = append(out, t.Name)
+		}
+	}
+	return out
+}
+func vendorLabels(vendors []*oolong.Vendor) []string {
+	out := make([]string, 0, len(vendors))
+	for _, v := range vendors {
+		if v != nil {
+			out = append(out, v.Name)
+		}
+	}
+	return out
+}
+func vesselLabels(vessels []*oolong.Vessel) []string {
+	out := make([]string, 0, len(vessels))
+	for _, v := range vessels {
+		if v != nil {
+			out = append(out, v.Name)
+		}
+	}
+	return out
+}
+func infuserLabels(infusers []*oolong.Infuser) []string {
+	out := make([]string, 0, len(infusers))
+	for _, i := range infusers {
+		if i != nil {
+			out = append(out, i.Name)
+		}
+	}
+	return out
+}

@@ -393,7 +393,7 @@ type WelcomeCardProps struct {
 templ WelcomeCard(props WelcomeCardProps) {
 	if props.IsAuthenticated {
 		if props.AppName == "oolong" {
-			@welcomeAuthenticatedOolong(props.UserDID)
+			@welcomeAuthenticatedOolong(props)
 		} else {
 			@welcomeAuthenticatedArabica(props)
 		}
@@ -442,20 +442,32 @@ templ welcomeAuthenticatedArabica(props WelcomeCardProps) {
 	</div>
 }
 
-templ welcomeAuthenticatedOolong(userDID string) {
+templ welcomeAuthenticatedOolong(props WelcomeCardProps) {
 	<div class="text-center mb-8 pt-4">
 		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">Your tea journey, documented.</h1>
+		if !props.Ready {
+			<div class="alert-warning mb-6 max-w-xl mx-auto flex items-center justify-between gap-3 text-left">
+				<div>
+					<strong>Welcome!</strong>
+					<span class="alert-warning-muted">A vendor, a vessel, and a tea — then you're ready to log steeps.</span>
+				</div>
+				<a href="/onboarding" class="btn-primary text-sm whitespace-nowrap">Get Started →</a>
+			</div>
+		}
 		<div class="grid grid-cols-3 gap-3 max-w-xl mx-auto">
-			<a
-				href="/brews/new"
-				class="home-action-primary block text-center py-4 px-4 rounded-xl"
-			>
-				<span class="text-base font-semibold">Log Steep</span>
-			</a>
+			if props.Ready {
+				<a href="/brews/new" class="home-action-primary block text-center py-4 px-4 rounded-xl">
+					<span class="text-base font-semibold">Log Steep</span>
+				</a>
+			} else {
+				<a href="/onboarding" class="home-action-primary block text-center py-4 px-4 rounded-xl opacity-60" aria-disabled="true">
+					<span class="text-base font-semibold">Log Steep — finish setup</span>
+				</a>
+			}
 			<a href="/my-tea" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">My Tea</span>
 			</a>
-			<a href={ templ.SafeURL("/profile/" + userDID) } class="home-action-secondary block text-center py-4 px-4 rounded-xl">
+			<a href={ templ.SafeURL("/profile/" + props.UserDID) } class="home-action-secondary block text-center py-4 px-4 rounded-xl">
 				<span class="text-base font-semibold">Profile</span>
 			</a>
 		</div>
