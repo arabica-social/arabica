@@ -150,7 +150,12 @@ body[data-app="oolong"] .onboarding-card::before {
   color: var(--text-muted);
   background: var(--surface-bg);
   position: relative;
-  transition: all 250ms cubic-bezier(0.2, 0, 0, 1);
+  transition:
+    color 250ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 250ms cubic-bezier(0.2, 0, 0, 1),
+    border-color 250ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 250ms cubic-bezier(0.2, 0, 0, 1),
+    transform 250ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .stamp-mark::after {
@@ -507,7 +512,12 @@ body[data-app="oolong"] .onboarding-card::before {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  transition: all 150ms ease;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
   font-family: inherit;
 }
 

@@ -3,27 +3,35 @@ package teapages
 import "tangled.org/arabica.social/arabica/internal/web/components"
 
 // Terms renders the Terms of Service page for Oolong. Substantively
-// identical to Arabica's terms — the legal/policy framework is shared
-// since both apps run on the same infrastructure — with brand-specific
+// identical to Arabica's terms. The legal/policy framework is shared
+// since both apps run on the same infrastructure, with brand-specific
 // nouns (steeps, teas, teaware) swapped in.
 templ Terms(layout *components.LayoutData) {
 	@components.Layout(layout, TermsContent())
 }
 
 templ TermsContent() {
-	<div class="page-container-md">
-		<div class="flex items-center gap-3 mb-8">
-			@components.BackButton()
-			<h1 class="text-4xl font-bold text-secondary">Terms of Service</h1>
+	<div class="info-page info-page-narrow">
+		<div class="info-hero">
+			<div class="info-title-group">
+				<div class="info-eyebrow">
+					@components.BackButton()
+					<span>Plain terms for a portable-data tea app</span>
+				</div>
+				<h1 class="info-title">Terms of Service</h1>
+				<p class="info-deck">
+					The short version: your PDS is the source of truth, Oolong is the client and community layer around it.
+				</p>
+			</div>
 		</div>
-		<div class="prose prose-lg max-w-none space-y-6">
-			<section class="card p-6 mb-8">
+		<div class="prose prose-lg max-w-none legal-doc">
+			<section class="legal-lede">
 				<h2 class="text-2xl font-semibold text-primary mb-4">The Simple Truth</h2>
 				<p class="text-secondary text-lg leading-relaxed">
 					<strong>You own all of your data.</strong> Period. Your steep logs, teas, teaware,
 					and any other data you create in Oolong belongs to you and is stored in your Personal Data Server (PDS).
 					Your PDS is always the source of truth. Oolong maintains a local cache to power the community feed
-					and improve performance, but your PDS is what matters &mdash; if Oolong's cache and your PDS ever disagree,
+					and improve performance, but your PDS is what matters. If Oolong's cache and your PDS ever disagree,
 					your PDS wins.
 				</p>
 			</section>
@@ -46,7 +54,7 @@ templ TermsContent() {
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-emphasis mt-3">
 					<li>You retain ownership of your data and choose where it is hosted</li>
-					<li>You can delete your data at any time &mdash; deletes are respected immediately (see below)</li>
+					<li>You can delete your data at any time. Deletes are respected immediately (see below)</li>
 					<li>You can migrate to a different PDS provider without losing your data or identity</li>
 					<li>You can stop using Oolong and your data remains in your PDS</li>
 				</ul>
@@ -57,16 +65,16 @@ templ TermsContent() {
 					In addition to your PDS, Oolong's servers store the following data:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-emphasis">
-					<li><strong>Session information</strong> - Authentication tokens to keep you logged in</li>
-					<li><strong>Feed registry</strong> - List of users who've opted into the community feed</li>
+					<li><strong>Session information</strong>. Authentication tokens to keep you logged in</li>
+					<li><strong>Feed registry</strong>. List of users who've opted into the community feed</li>
 					<li>
-						<strong>Witness cache</strong> - A copy of your Oolong records (steeps, teas, teaware, recipes)
+						<strong>Witness cache</strong>. A copy of your Oolong records (steeps, teas, teaware, recipes)
 						indexed from the AT Protocol firehose. This powers the community feed and enables features like
 						like counts and comments without repeatedly querying your PDS. Your PDS remains the authoritative
-						source &mdash; the witness cache is a read-optimized mirror, not a replacement.
+						source. The witness cache is a read-optimized mirror, not a replacement.
 					</li>
-					<li><strong>Social interactions</strong> - Likes and comments are indexed locally for fast retrieval</li>
-					<li><strong>Profile cache</strong> - A short-lived cache of user profiles that expires automatically</li>
+					<li><strong>Social interactions</strong>. Likes and comments are indexed locally for fast retrieval</li>
+					<li><strong>Profile cache</strong>. A short-lived cache of user profiles that expires automatically</li>
 				</ul>
 			</section>
 			<section>
@@ -101,7 +109,7 @@ templ TermsContent() {
 					the witness cache to power the community feed and social features like likes and comments.
 				</p>
 				<p class="text-emphasis leading-relaxed mt-3">
-					This indexing only applies to records using Oolong's lexicons &mdash; we do not read or store
+					This indexing only applies to records using Oolong's lexicons. We do not read or store
 					any of your data from other atproto applications.
 				</p>
 			</section>
@@ -120,13 +128,13 @@ templ TermsContent() {
 					Oolong has a moderation system to maintain a safe and welcoming community. Moderators may:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-emphasis">
-					<li><strong>Hide content</strong> &mdash; Records that violate community standards may be hidden from the community feed. Hidden records remain in your PDS and are not deleted.</li>
-					<li><strong>Restrict accounts</strong> &mdash; Accounts that repeatedly violate community standards may be restricted from appearing in the community feed.</li>
-					<li><strong>Auto-moderation</strong> &mdash; Oolong uses automated content filtering that may automatically hide records pending moderator review.</li>
+					<li><strong>Hide content</strong>. Records that violate community standards may be hidden from the community feed. Hidden records remain in your PDS and are not deleted.</li>
+					<li><strong>Restrict accounts</strong>. Accounts that repeatedly violate community standards may be restricted from appearing in the community feed.</li>
+					<li><strong>Auto-moderation</strong>. Oolong uses automated content filtering that may automatically hide records pending moderator review.</li>
 				</ul>
 				<p class="text-emphasis leading-relaxed mt-3">
 					Users can report content they believe violates community standards. All moderation actions are
-					logged in an audit trail. Moderation only affects visibility within Oolong &mdash; your data
+					logged in an audit trail. Moderation only affects visibility within Oolong; your data
 					in your PDS is never modified or deleted by moderators.
 				</p>
 			</section>
@@ -135,7 +143,7 @@ templ TermsContent() {
 				<p class="text-emphasis leading-relaxed">
 					Oolong may restrict or terminate your access to the service if you violate these terms or
 					community standards. Because your data lives in your PDS, termination from Oolong does not
-					affect your data or your AT Protocol identity &mdash; you can still access your records through
+					affect your data or your AT Protocol identity. You can still access your records through
 					other AT Protocol applications.
 				</p>
 			</section>
@@ -167,8 +175,8 @@ templ TermsContent() {
 			<section>
 				<h2 class="text-2xl font-semibold text-secondary mb-4">11. Privacy</h2>
 				<p class="text-emphasis leading-relaxed mb-3">
-					<strong>All data on the AT Protocol is public.</strong> Records you create in Oolong &mdash; steeps,
-					teas, teaware, likes, comments &mdash; are publicly accessible on your PDS and through the AT
+					<strong>All data on the AT Protocol is public.</strong> Records you create in Oolong (steeps,
+					teas, teaware, likes, comments) are publicly accessible on your PDS and through the AT
 					Protocol firehose. There is no expectation of privacy for data stored via the AT Protocol. Do not
 					store sensitive or personal information in your steep records.
 				</p>
@@ -179,20 +187,20 @@ templ TermsContent() {
 					<li>We don't sell your data</li>
 					<li>We don't track you across websites</li>
 					<li>We use minimal analytics to understand service usage</li>
-					<li>We only index records using Oolong's own lexicons &mdash; we don't read your data from other apps</li>
+					<li>We only index records using Oolong's own lexicons. We don't read your data from other apps</li>
 				</ul>
 			</section>
 			<section>
 				<h2 class="text-2xl font-semibold text-secondary mb-4">12. Your Data Rights</h2>
 				<p class="text-emphasis leading-relaxed mb-3">
 					Regardless of where you are located, you have the following rights regarding data stored on
-					Oolong's servers (the witness cache, session data, and moderation data &mdash; for data in
-					your PDS, contact your PDS provider):
+					Oolong's servers (the witness cache, session data, and moderation data). For data in
+					your PDS, contact your PDS provider:
 				</p>
 				<ul class="list-disc list-inside space-y-2 text-emphasis">
-					<li><strong>Right to access</strong> &mdash; You can request a copy of the data we hold about you on our servers</li>
-					<li><strong>Right to deletion</strong> &mdash; You can request that we remove your data from our witness cache, feed registry, and other server-side storage</li>
-					<li><strong>Right to correction</strong> &mdash; Since your PDS is the source of truth, corrections are made by updating your PDS records, and the witness cache will reflect the change</li>
+					<li><strong>Right to access</strong>. You can request a copy of the data we hold about you on our servers</li>
+					<li><strong>Right to deletion</strong>. You can request that we remove your data from our witness cache, feed registry, and other server-side storage</li>
+					<li><strong>Right to correction</strong>. Since your PDS is the source of truth, corrections are made by updating your PDS records, and the witness cache will reflect the change</li>
 				</ul>
 				<p class="text-emphasis leading-relaxed mt-3">
 					To exercise these rights, contact us at
@@ -234,7 +242,7 @@ templ TermsContent() {
 					<a href="mailto:mail@arabica.systems" class="link-bold">mail@arabica.systems</a>.
 				</p>
 			</section>
-			<section class="card p-6 mt-8">
+			<section class="legal-dates">
 				<p class="text-sm text-emphasis">
 					<strong>Last Updated:</strong> May 11, 2026
 					<br/>
@@ -242,8 +250,8 @@ templ TermsContent() {
 				</p>
 			</section>
 		</div>
-		<div class="mt-12 text-center">
-			<a href="/" class="btn-primary px-8 py-3 font-semibold shadow-lg hover:shadow-xl">
+		<div class="info-cta">
+			<a href="/" class="btn-primary px-8 py-3 font-semibold">
 				Back to Home
 			</a>
 		</div>

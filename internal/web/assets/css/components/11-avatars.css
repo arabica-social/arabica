@@ -2,7 +2,7 @@
 .avatar {
   border-radius: 9999px;
   object-fit: cover;
-  transition-property: all;
+  transition-property: box-shadow, border-color, background-color, color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   transition-duration: 200ms;
@@ -11,7 +11,7 @@
 .avatar-sm {
   border-radius: 9999px;
   object-fit: cover;
-  transition-property: all;
+  transition-property: box-shadow, border-color, background-color, color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   transition-duration: 200ms;
@@ -28,7 +28,7 @@
 .avatar-md {
   border-radius: 9999px;
   object-fit: cover;
-  transition-property: all;
+  transition-property: box-shadow, border-color, background-color, color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   transition-duration: 200ms;
@@ -45,7 +45,7 @@
 .avatar-lg {
   border-radius: 9999px;
   object-fit: cover;
-  transition-property: all;
+  transition-property: box-shadow, border-color, background-color, color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   transition-duration: 200ms;
@@ -68,7 +68,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition-property: all;
+  transition-property: box-shadow, border-color, background-color, color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   transition-duration: 200ms;
@@ -80,7 +80,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition-property: all;
+  transition-property: box-shadow, border-color, background-color, color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   transition-duration: 200ms;
@@ -100,7 +100,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition-property: all;
+  transition-property: box-shadow, border-color, background-color, color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   transition-duration: 200ms;
@@ -120,7 +120,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition-property: all;
+  transition-property: box-shadow, border-color, background-color, color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   transition-duration: 200ms;

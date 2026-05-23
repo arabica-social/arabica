@@ -1,0 +1,269 @@
+/* Static information pages: about, AT Protocol, terms */
+.info-page {
+  --info-accent: oklch(58% 0.095 58);
+  max-width: 50rem;
+  margin-inline: auto;
+  padding-inline: 0.75rem;
+}
+
+.info-page-narrow {
+  max-width: 50rem;
+}
+
+.info-page .prose {
+  max-width: none;
+}
+
+.info-hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid var(--card-border);
+  border-radius: 1.35rem;
+  background:
+    var(--texture-kraft),
+    var(--card-bg);
+  background-blend-mode: multiply, normal;
+  box-shadow: var(--shadow-md);
+}
+
+.info-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: linear-gradient(90deg, var(--type-bean), var(--type-roaster), var(--type-brewer));
+}
+
+.info-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.info-hero-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.info-title-group {
+  max-width: 42rem;
+}
+
+.info-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.info-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  font-weight: 700;
+}
+
+.info-deck {
+  max-width: 64ch;
+  margin-top: 1rem;
+  color: var(--text-secondary);
+  font-size: 1.06rem;
+  line-height: 1.75;
+}
+
+.info-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.38rem 0.65rem;
+  border: 1px solid color-mix(in oklch, var(--brand-amber-400) 65%, var(--card-border));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--brand-amber-100) 70%, var(--card-bg));
+  color: var(--brand-amber-900);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-sm);
+}
+
+.info-alert,
+.info-card,
+.info-feature,
+.info-callout,
+.legal-doc > section,
+.legal-dates {
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.info-alert {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 0.9rem;
+  background: color-mix(in oklch, var(--brand-amber-100) 32%, var(--card-bg));
+}
+
+.info-card,
+.info-callout,
+.legal-doc > section,
+.legal-dates {
+  padding: clamp(0.85rem, 2vw, 1.1rem);
+}
+
+.info-card-kraft {
+  background-image: var(--texture-kraft);
+  background-blend-mode: multiply;
+}
+
+.info-stack {
+  display: grid;
+  gap: 1.4rem;
+}
+
+.info-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+}
+
+.info-feature {
+  position: relative;
+  overflow: hidden;
+  padding: 0.85rem 0.95rem;
+  transition:
+    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.info-feature > * {
+  position: relative;
+  z-index: 1;
+}
+
+.info-feature:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklch, var(--info-accent) 45%, var(--card-border));
+  box-shadow: var(--shadow-md);
+}
+
+.info-feature h3,
+.info-feature h4,
+.info-card h2,
+.info-card h3,
+.info-callout h3,
+.legal-doc h2 {
+  margin-top: 0;
+  color: var(--text-primary);
+}
+
+.info-card > :last-child,
+.info-callout > :last-child,
+.info-feature > :last-child,
+.legal-doc > section > :last-child,
+.info-alert > :last-child {
+  margin-bottom: 0;
+}
+
+.info-feature p,
+.info-card p,
+.info-callout p,
+.legal-doc p,
+.legal-doc li {
+  color: var(--text-secondary);
+}
+
+.info-list,
+.info-steps {
+  display: grid;
+  gap: 0.7rem;
+  margin-left: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.info-page .info-list,
+.info-page .info-steps {
+  padding-left: 0;
+}
+
+.info-list li,
+.info-steps li {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 0.8rem;
+  background: var(--surface-bg);
+}
+
+.info-steps {
+  counter-reset: info-step;
+}
+
+.info-steps li {
+  counter-increment: info-step;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+}
+
+.info-steps li::before {
+  content: counter(info-step, decimal-leading-zero);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.info-cta {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.legal-doc {
+  display: grid;
+  gap: 1rem;
+}
+
+.legal-doc > section {
+  background: var(--card-bg);
+}
+
+.legal-doc h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin-bottom: 0.8rem;
+  font-size: 1.2rem;
+}
+
+.legal-doc ul,
+.legal-doc ol {
+  padding-left: 1.25rem;
+}
+
+.legal-doc li + li {
+  margin-top: 0.45rem;
+}
+
+@media (max-width: 640px) {
+  .info-page {
+    padding-inline: 0.5rem;
+  }
+
+  .info-hero {
+    border-radius: 1rem;
+  }
+}

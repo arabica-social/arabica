@@ -63,7 +63,7 @@
   line-height: 1rem;
   font-weight: 500;
   border-radius: 9999px;
-  transition-property: all;
+  transition-property: color, background-color, border-color, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   cursor: pointer;
@@ -140,7 +140,7 @@
   line-height: 1rem;
   font-weight: 500;
   border-radius: 9999px;
-  transition-property: all;
+  transition-property: color, background-color, border-color, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   cursor: pointer;
@@ -178,7 +178,7 @@
   line-height: 1rem;
   font-weight: 500;
   border-radius: 9999px;
-  transition-property: all;
+  transition-property: color, background-color, border-color, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   cursor: pointer;
@@ -228,6 +228,25 @@
 .filter-pill-cafe {
   background: var(--type-cafe);
   border: 1px solid var(--type-cafe);
+}
+
+@media (max-width: 640px) {
+  .filter-pill,
+  .filter-pill-active,
+  .filter-pill-brew,
+  .filter-pill-bean,
+  .filter-pill-recipe,
+  .filter-pill-grinder,
+  .filter-pill-brewer,
+  .filter-pill-roaster,
+  .filter-pill-tea,
+  .filter-pill-vendor,
+  .filter-pill-cafe,
+  .filter-pill-drink,
+  .filter-pill-vessel,
+  .filter-pill-infuser {
+    min-height: 44px;
+  }
 }
 
 .filter-pill-drink {

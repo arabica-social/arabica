@@ -115,7 +115,6 @@ body.htmx-history-restoring .htmx-transitioning {
   background-color: rgba(0, 0, 0, 0);
   transition:
     background-color 100ms ease-out,
-    backdrop-filter 100ms ease-out,
     display 100ms ease-out allow-discrete,
     overlay 100ms ease-out allow-discrete;
 }

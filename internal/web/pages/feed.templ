@@ -127,12 +127,14 @@ templ FeedFilterBar(qs FeedQueryState) {
 	>
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<!-- Type filter pills -->
-			<div class="flex flex-wrap gap-1" role="tablist" aria-label="Feed filters">
+			<div class="flex flex-wrap gap-1" role="group" aria-label="Feed filters">
 				for _, tab := range feedFilterTabs(qs.Descriptors) {
 					<button
+						type="button"
 						class="filter-pill"
 						:class={ fmt.Sprintf("pillClass(%q)", tab.Value) }
 						@click={ fmt.Sprintf("changeFilter(%q)", tab.Value) }
+						data-tab={ tab.Value }
 					>
 						{ tab.Label }
 					</button>
@@ -141,14 +143,18 @@ templ FeedFilterBar(qs FeedQueryState) {
 			<!-- Sort selector -->
 			<div class="flex items-center gap-1 flex-shrink-0">
 				<button
+					type="button"
 					class="filter-pill"
+					:aria-pressed="(sort === '' || sort === 'recent') ? 'true' : 'false'"
 					:class="(sort === '' || sort === 'recent') ? 'filter-pill-active' : 'filter-pill'"
 					@click="changeSort('recent')"
 				>
 					New
 				</button>
 				<button
+					type="button"
 					class="filter-pill"
+					:aria-pressed="sort === 'popular' ? 'true' : 'false'"
 					:class="sort === 'popular' ? 'filter-pill-active' : 'filter-pill'"
 					@click="changeSort('popular')"
 				>

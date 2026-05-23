@@ -32,13 +32,13 @@
   align-items: center;
   justify-content: center;
   font-weight: 500;
-  transition-property: all;
+  transition-property: color, background-color, border-color, box-shadow, filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   cursor: pointer;
-  background: linear-gradient(135deg, #6b4423, #4a2c2a);
-  color: #faf7f5;
-  border: 1px solid #6b4423;
+  background: linear-gradient(135deg, var(--brand-brown-700), var(--btn-primary-bg));
+  color: var(--btn-primary-text);
+  border: 1px solid var(--brand-brown-700);
   box-shadow: var(--shadow-sm);
 }
 
@@ -52,7 +52,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 500;
-  transition-property: all;
+  transition-property: color, background-color, border-color, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   cursor: pointer;
@@ -89,7 +89,7 @@
   color: var(--text-muted);
 }
 .tab-row-inactive:hover {
-  border-color: #d2bab0; /* brown-400 — matches pre-bespoke original */
+  border-color: var(--brand-brown-400);
   color: var(--text-primary);
 }
 
@@ -97,7 +97,7 @@
 .tab-pill-active {
   background: var(--card-border);
   color: var(--text-primary);
-  border-color: #d2bab0; /* brown-400 — matches pre-bespoke original */
+  border-color: var(--brand-brown-400);
 }
 .tab-pill-inactive {
   background: var(--surface-bg);

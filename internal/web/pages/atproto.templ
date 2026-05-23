@@ -9,13 +9,21 @@ templ ATProto(layout *components.LayoutData) {
 
 // ATProtoContent renders the AT Protocol explanation content
 templ ATProtoContent() {
-	<div class="page-container-md">
-		<div class="flex items-center gap-3 mb-8">
-			@components.BackButton()
-			<h1 class="text-4xl font-bold text-primary">The AT Protocol</h1>
+	<div class="info-page">
+		<div class="info-hero">
+			<div class="info-title-group">
+				<div class="info-eyebrow">
+					@components.BackButton()
+					<span>Portable identity, portable coffee records</span>
+				</div>
+				<h1 class="info-title">The AT Protocol</h1>
+				<p class="info-deck">
+					Arabica stores your coffee data where your account lives. The app is a client, your PDS is the notebook.
+				</p>
+			</div>
 		</div>
-		<div class="prose prose-lg max-w-none space-y-6">
-			<section class="card p-6">
+		<div class="prose prose-lg max-w-none info-stack">
+			<section class="info-card info-card-kraft">
 				<h2 class="text-2xl font-semibold text-primary mb-4">What is the AT Protocol?</h2>
 				<p class="text-secondary leading-relaxed mb-3">
 					Arabica uses the <strong>AT Protocol</strong> (Authenticated Transfer Protocol) to power many of its social features,
@@ -29,8 +37,8 @@ templ ATProtoContent() {
 			</section>
 			<section>
 				<h2 class="text-2xl font-semibold text-primary mb-4">Key Concepts</h2>
-				<div class="space-y-4">
-					<div class="card p-4">
+				<div class="info-grid">
+					<div class="info-feature">
 						<h3 class="font-semibold text-primary mb-2">Personal Data Server (PDS)</h3>
 						<p class="text-emphasis text-sm">
 							Your PDS is where all your data lives. It can be hosted by a large provider like
@@ -44,7 +52,7 @@ templ ATProtoContent() {
 							your PDS, not on Arabica's servers.
 						</p>
 					</div>
-					<div class="card p-4">
+					<div class="info-feature">
 						<h3 class="font-semibold text-primary mb-2">Decentralized Identity (DID)</h3>
 						<p class="text-emphasis text-sm">
 							Your identity is represented by a DID (Decentralized Identifier) that you own.
@@ -52,7 +60,7 @@ templ ATProtoContent() {
 							(e.g. yourname.arabica.systems) is just a human-friendly alias { "for" } your DID.
 						</p>
 					</div>
-					<div class="card p-4">
+					<div class="info-feature">
 						<h3 class="font-semibold text-primary mb-2">Lexicons</h3>
 						<p class="text-emphasis text-sm">
 							Lexicons define the structure of data in the AT Protocol. Arabica uses custom lexicons
@@ -60,7 +68,7 @@ templ ATProtoContent() {
 							ensure data consistency and enable interoperability with other coffee apps.
 						</p>
 					</div>
-					<div class="card p-4">
+					<div class="info-feature">
 						<h3 class="font-semibold text-primary mb-2">AT-URIs</h3>
 						<p class="text-emphasis text-sm">
 							Records reference each other using AT-URIs, which look like:
@@ -75,7 +83,7 @@ templ ATProtoContent() {
 				<p class="text-secondary leading-relaxed mb-4">
 					When you use Arabica, here's what happens behind the scenes:
 				</p>
-				<ol class="list-decimal list-inside space-y-3 text-secondary">
+				<ol class="info-steps text-secondary">
 					<li>
 						<strong>Authentication:</strong> You log in via OAuth with your PDS (not with Arabica).
 						Arabica never sees your password.
@@ -96,26 +104,26 @@ templ ATProtoContent() {
 			</section>
 			<section>
 				<h2 class="text-2xl font-semibold text-primary mb-4">Why This Matters</h2>
-				<div class="grid md:grid-cols-2 gap-4">
-					<div class="card p-4">
+				<div class="info-grid">
+					<div class="info-feature">
 						<h4 class="font-semibold text-primary mb-2">Data Ownership</h4>
 						<p class="text-emphasis text-sm">
 							Your coffee data is yours. If Arabica shuts down, your data remains safe in your PDS.
 						</p>
 					</div>
-					<div class="card p-4">
+					<div class="info-feature">
 						<h4 class="font-semibold text-primary mb-2">Portability</h4>
 						<p class="text-emphasis text-sm">
 							Switch PDS providers without losing anything. Your identity and data move with you.
 						</p>
 					</div>
-					<div class="card p-4">
+					<div class="info-feature">
 						<h4 class="font-semibold text-primary mb-2">Interoperability</h4>
 						<p class="text-emphasis text-sm">
 							Other apps can build on the same data. Future coffee apps could read your Arabica brews.
 						</p>
 					</div>
-					<div class="card p-4">
+					<div class="info-feature">
 						<h4 class="font-semibold text-primary mb-2">Transparency</h4>
 						<p class="text-emphasis text-sm">
 							Open protocol means no hidden algorithms. You can see exactly how your data is handled.
@@ -123,28 +131,28 @@ templ ATProtoContent() {
 					</div>
 				</div>
 			</section>
-			<section class="card p-6">
+			<section class="info-callout">
 				<h3 class="text-xl font-semibold text-primary mb-3">Learn More</h3>
 				<p class="text-secondary mb-4">
 					The AT Protocol is an open standard with comprehensive documentation. To dive deeper:
 				</p>
-				<ul class="list-disc list-inside space-y-2 text-secondary">
+				<ul class="info-list text-secondary">
 					<li>
-						<a href="https://atproto.com" class="link-bold" target="_blank" rel="noopener noreferrer">atproto.com</a> -
+						<a href="https://atproto.com" class="link-bold" target="_blank" rel="noopener noreferrer">atproto.com</a>,
 						Official AT Protocol website and documentation
 					</li>
 					<li>
-						<a href="https://atproto.com/guides/overview" class="link-bold" target="_blank" rel="noopener noreferrer">Protocol Overview</a> -
+						<a href="https://atproto.com/guides/overview" class="link-bold" target="_blank" rel="noopener noreferrer">Protocol Overview</a>,
 						Technical introduction to the protocol
 					</li>
 					<li>
-						<a href="https://bsky.app" class="link-bold" target="_blank" rel="noopener noreferrer">Bluesky</a> -
+						<a href="https://bsky.app" class="link-bold" target="_blank" rel="noopener noreferrer">Bluesky</a>,
 						A microblogging social network built on AT Protocol
 					</li>
 				</ul>
 			</section>
 		</div>
-		<div class="mt-12 text-center">
+		<div class="info-cta">
 			<a href="/" class="btn-primary px-8 py-3 font-semibold">
 				Back to Home
 			</a>

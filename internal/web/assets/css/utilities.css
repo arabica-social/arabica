@@ -842,13 +842,13 @@
 
 /* --- Utility colors --- */
 .text-white {
-  color: #ffffff;
+  color: var(--btn-primary-text);
 }
 .bg-white {
-  background-color: #ffffff;
+  background-color: var(--card-bg);
 }
 .border-white {
-  border-color: #ffffff;
+  border-color: var(--btn-primary-text);
 }
 
 /* --- Gradient (from output.css) --- */
@@ -978,7 +978,7 @@
 .transition {
   transition-property:
     color, background-color, border-color, text-decoration-color, fill, stroke,
-    opacity, box-shadow, transform, filter, backdrop-filter;
+    opacity, box-shadow, transform, filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
@@ -1173,9 +1173,11 @@
   color: var(--text-primary);
 }
 .prose blockquote {
-  border-left: 3px solid var(--card-border);
-  padding-left: 1em;
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  padding: 1em;
   margin: 1em 0;
+  background: var(--surface-bg);
   color: var(--text-secondary);
 }
 .prose code {
@@ -1283,7 +1285,7 @@
 }
 
 .hover\:text-white:hover {
-  color: #ffffff;
+  color: var(--btn-primary-text);
 }
 
 .hover\:border-brown-400:hover {
