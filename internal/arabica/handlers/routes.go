@@ -22,6 +22,7 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.Handle("GET /api/brews", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleBrewListPartial)))
 	mux.Handle("GET /api/manage", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleManagePartial)))
 	mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleIncompleteRecordsPartial)))
+	mux.Handle("GET /api/profile/{actor}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleProfilePartial)))
 	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleGetStartedCard)))
 	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOnboardingStationForm)))
 	mux.Handle("GET /api/popular-recipes", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandlePopularRecipesPartial)))
@@ -58,7 +59,7 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
 
 	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles())
-	mux.HandleFunc("GET /profile/{actor}", ctx.Handlers.HandleProfile)
+	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
 }
 
 // EntityRouteBundles returns the per-entity handler bundles for arabica's

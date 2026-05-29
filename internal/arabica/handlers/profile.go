@@ -1,4 +1,4 @@
-package handlers
+package coffeehandlers
 
 import (
 	"context"
@@ -34,7 +34,7 @@ type ProfileDataBundle struct {
 // fetchUserProfileData fetches all user data for profile display.
 // Tries the witness cache first (firehose index), falling back to the PDS via publicClient.
 // Brews are sorted in reverse chronological order (newest first).
-func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicClient *atp.PublicClient, brewsOffset, brewsLimit int) (*ProfileDataBundle, error) {
+func (h *Handlers) fetchUserProfileData(ctx context.Context, did string, publicClient *atp.PublicClient, brewsOffset, brewsLimit int) (*ProfileDataBundle, error) {
 	// Try witness cache first — all records for this user may already be indexed
 	if bundle := h.fetchProfileFromWitness(ctx, did, brewsOffset, brewsLimit); bundle != nil {
 		return bundle, nil
@@ -47,8 +47,9 @@ func (h *Handler) fetchUserProfileData(ctx context.Context, did string, publicCl
 // brewsOffset and brewsLimit control pagination of the brews collection;
 // other collections (beans, roasters, etc.) are always fully fetched.
 // Returns nil if the witness cache is not configured or the user has no indexed records.
-func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string, brewsOffset, brewsLimit int) *ProfileDataBundle {
-	if h.witnessCache == nil {
+func (h *Handlers) fetchProfileFromWitness(ctx context.Context, did string, brewsOffset, brewsLimit int) *ProfileDataBundle {
+	witnessCache := h.WitnessCache()
+	if witnessCache == nil {
 		return nil
 	}
 
@@ -63,7 +64,7 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string, brews
 
 	// Fetch non-brew collections in full (they're small)
 	for _, coll := range []string{arabica.NSIDBean, arabica.NSIDRoaster, arabica.NSIDGrinder, arabica.NSIDBrewer} {
-		records, err := h.witnessCache.ListWitnessRecords(ctx, did, coll)
+		records, err := witnessCache.ListWitnessRecords(ctx, did, coll)
 		if err != nil {
 			log.Debug().Err(err).Str("did", did).Str("collection", coll).Msg("witness: profile collection error")
 			return nil
@@ -74,7 +75,7 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string, brews
 
 	// Fetch brews with pagination when limit > 0
 	if brewsLimit > 0 {
-		records, err := h.witnessCache.ListWitnessRecordsPaginated(ctx, did, arabica.NSIDBrew, brewsOffset, brewsLimit)
+		records, err := witnessCache.ListWitnessRecordsPaginated(ctx, did, arabica.NSIDBrew, brewsOffset, brewsLimit)
 		if err != nil {
 			log.Debug().Err(err).Str("did", did).Msg("witness: profile brews paginated error")
 			return nil
@@ -84,7 +85,7 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string, brews
 			totalRecords += len(records)
 		}
 	} else {
-		records, err := h.witnessCache.ListWitnessRecords(ctx, did, arabica.NSIDBrew)
+		records, err := witnessCache.ListWitnessRecords(ctx, did, arabica.NSIDBrew)
 		if err != nil {
 			log.Debug().Err(err).Str("did", did).Msg("witness: profile brews error")
 			return nil
@@ -231,7 +232,7 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string, brews
 	// Get total brew count from witness cache for accurate stats display.
 	totalBrews := len(brews)
 	if brewsLimit > 0 {
-		if c, err := h.witnessCache.CountWitnessRecords(ctx, did, arabica.NSIDBrew); err == nil {
+		if c, err := witnessCache.CountWitnessRecords(ctx, did, arabica.NSIDBrew); err == nil {
 			totalBrews = c
 		}
 	}
@@ -247,7 +248,7 @@ func (h *Handler) fetchProfileFromWitness(ctx context.Context, did string, brews
 }
 
 // fetchProfileFromPDS fetches all user data from their PDS via publicClient in parallel.
-func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicClient *atp.PublicClient) (*ProfileDataBundle, error) {
+func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicClient *atp.PublicClient) (*ProfileDataBundle, error) {
 	metrics.WitnessCacheMissesTotal.WithLabelValues("profile").Inc()
 
 	// Fetch all user data in parallel
@@ -425,7 +426,7 @@ func (h *Handler) fetchProfileFromPDS(ctx context.Context, did string, publicCli
 }
 
 // HandleProfile displays a user's public profile with their brews and gear
-func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	actor := r.PathValue("actor")
 	if actor == "" {
 		http.Error(w, "Actor parameter is required", http.StatusBadRequest)
@@ -443,8 +444,8 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		did = actor
 	} else {
 		// Try feed index cache first, fall back to API
-		if h.feedIndex != nil {
-			did, _ = h.feedIndex.GetDIDByHandle(ctx, actor)
+		if h.FeedIndex() != nil {
+			did, _ = h.FeedIndex().GetDIDByHandle(ctx, actor)
 		}
 		if did == "" {
 			did, err = publicClient.ResolveHandle(ctx, actor)
@@ -468,8 +469,8 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch profile — try feed index cache first, fall back to API
 	var profile *atproto.Profile
-	if h.feedIndex != nil {
-		profile, _ = h.feedIndex.GetProfile(ctx, did)
+	if h.FeedIndex() != nil {
+		profile, _ = h.FeedIndex().GetProfile(ctx, did)
 	}
 	if profile == nil {
 		profile, err = publicClient.GetProfile(ctx, did)
@@ -498,7 +499,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	_, didStr, isAuthenticated := h.LayoutDataFromRequest(r, "Profile")
 
 	// Check if this is an Arabica user (has records or is registered in feed)
-	isArabicaUser := h.feedRegistry.IsRegistered(did) ||
+	isArabicaUser := h.FeedRegistry().IsRegistered(did) ||
 		len(profileData.Brews) > 0 || len(profileData.Beans) > 0 ||
 		len(profileData.Roasters) > 0 || len(profileData.Grinders) > 0 ||
 		len(profileData.Brewers) > 0
@@ -547,7 +548,7 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleProfilePartial returns profile data content (loaded async via HTMX)
-func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	actor := r.PathValue("actor")
 	if actor == "" {
 		http.Error(w, "Actor parameter is required", http.StatusBadRequest)
@@ -572,8 +573,8 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		did = actor
 	} else {
 		// Try feed index cache first, fall back to API
-		if h.feedIndex != nil {
-			did, _ = h.feedIndex.GetDIDByHandle(ctx, actor)
+		if h.FeedIndex() != nil {
+			did, _ = h.FeedIndex().GetDIDByHandle(ctx, actor)
 		}
 		if did == "" {
 			did, err = publicClient.ResolveHandle(ctx, actor)
@@ -608,7 +609,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if this is an Arabica user (has records or is registered in feed)
-	isArabicaUser := h.feedRegistry.IsRegistered(did) ||
+	isArabicaUser := h.FeedRegistry().IsRegistered(did) ||
 		len(profileData.Brews) > 0 || len(profileData.Beans) > 0 ||
 		len(profileData.Roasters) > 0 || len(profileData.Grinders) > 0 ||
 		len(profileData.Brewers) > 0
@@ -624,8 +625,8 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 
 	// Get profile for card rendering — try feed index cache first
 	var profile *atproto.Profile
-	if h.feedIndex != nil {
-		profile, _ = h.feedIndex.GetProfile(ctx, did)
+	if h.FeedIndex() != nil {
+		profile, _ = h.FeedIndex().GetProfile(ctx, did)
 	}
 	if profile == nil {
 		profile, err = publicClient.GetProfile(ctx, did)
@@ -650,7 +651,7 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 	brewCIDs := make(map[string]string)
 	var beanBrewCounts, grinderBrewCounts, brewerBrewCounts, roasterBeanCounts map[string]int
 	var beanAvgBrewRatings, roasterAvgBrewRatings map[string]float64
-	if h.feedIndex != nil && profile != nil {
+	if h.FeedIndex() != nil && profile != nil {
 		// Collect all brew URIs for batch lookup
 		brewURIs := make([]string, 0, len(profileData.Brews))
 		uriToRKey := make(map[string]string, len(profileData.Brews))
@@ -661,13 +662,13 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Batch fetch like counts, liked status, records, and comment counts
-		batchLikes := h.feedIndex.GetLikeCountsBatch(ctx, brewURIs)
-		batchRecords := h.feedIndex.GetRecordsBatch(ctx, brewURIs)
+		batchLikes := h.FeedIndex().GetLikeCountsBatch(ctx, brewURIs)
+		batchRecords := h.FeedIndex().GetRecordsBatch(ctx, brewURIs)
 		var batchLiked map[string]bool
 		if isAuthenticated {
-			batchLiked = h.feedIndex.HasUserLikedBatch(ctx, didStr, brewURIs)
+			batchLiked = h.FeedIndex().HasUserLikedBatch(ctx, didStr, brewURIs)
 		}
-		batchComments := h.feedIndex.GetCommentCountsBatch(ctx, brewURIs)
+		batchComments := h.FeedIndex().GetCommentCountsBatch(ctx, brewURIs)
 
 		for uri, rkey := range uriToRKey {
 			brewLikeCounts[rkey] = batchLikes[uri]
@@ -681,22 +682,22 @@ func (h *Handler) HandleProfilePartial(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Entity usage counts
-		beanBrewCounts = h.feedIndex.BrewCountsByBeanURI(ctx, did)
-		grinderBrewCounts = h.feedIndex.BrewCountsByGrinderURI(ctx, did)
-		brewerBrewCounts = h.feedIndex.BrewCountsByBrewerURI(ctx, did)
-		roasterBeanCounts = h.feedIndex.BeanCountsByRoasterURI(ctx, did)
+		beanBrewCounts = h.FeedIndex().BrewCountsByBeanURI(ctx, did)
+		grinderBrewCounts = h.FeedIndex().BrewCountsByGrinderURI(ctx, did)
+		brewerBrewCounts = h.FeedIndex().BrewCountsByBrewerURI(ctx, did)
+		roasterBeanCounts = h.FeedIndex().BeanCountsByRoasterURI(ctx, did)
 
 		// Average brew ratings — respect profile visibility settings
-		statsVis := h.feedIndex.GetProfileStatsVisibility(ctx, did)
+		statsVis := h.FeedIndex().GetProfileStatsVisibility(ctx, did)
 		if isOwnProfile || statsVis.BeanAvgRating == arabica.VisibilityPublic {
 			beanAvgBrewRatings = make(map[string]float64)
-			for uri, stats := range h.feedIndex.AvgBrewRatingByBeanURI(ctx, did) {
+			for uri, stats := range h.FeedIndex().AvgBrewRatingByBeanURI(ctx, did) {
 				beanAvgBrewRatings[uri] = stats.Average
 			}
 		}
 		if isOwnProfile || statsVis.RoasterAvgRating == arabica.VisibilityPublic {
 			roasterAvgBrewRatings = make(map[string]float64)
-			for uri, stats := range h.feedIndex.AvgBrewRatingByRoasterURI(ctx, did) {
+			for uri, stats := range h.FeedIndex().AvgBrewRatingByRoasterURI(ctx, did) {
 				roasterAvgBrewRatings[uri] = stats.Average
 			}
 		}

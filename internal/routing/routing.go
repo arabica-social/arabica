@@ -88,7 +88,6 @@ func SetupRouter(cfg Config) http.Handler {
 	// HTMX partials (loaded async via HTMX)
 	// These return HTML fragments and should only be accessed via HTMX
 	mux.Handle("GET /api/feed", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleFeedPartial)))
-	mux.Handle("GET /api/profile/{actor}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleProfilePartial)))
 
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
