@@ -77,6 +77,7 @@ type FeedIndex struct {
 	publicClient   *atp.PublicClient
 	profileTTL     time.Duration
 	profileStorage *profileIndexStorage
+	notifications  *notificationIndexStorage
 
 	// commentNSID is the comment collection this index's binary serves
 	// (e.g. social.arabica.alpha.comment or social.oolong.alpha.comment).
@@ -344,6 +345,7 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		publicClient:   atproto.NewPublicClient(),
 		profileTTL:     profileTTL,
 		profileStorage: newProfileIndexStorage(db),
+		notifications:  newNotificationIndexStorage(db),
 		profileCache:   make(map[string]*CachedProfile),
 	}
 

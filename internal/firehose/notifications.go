@@ -23,107 +23,46 @@ func (idx *FeedIndex) CreateNotification(targetDID string, notif arabica.Notific
 		notif.ID = fmt.Sprintf("%d", notif.CreatedAt.UnixNano())
 	}
 
-	// INSERT OR IGNORE deduplicates via the unique index on (target_did, type, actor_did, subject_uri)
-	_, err := idx.db.Exec(`
-		INSERT OR IGNORE INTO notifications (id, target_did, type, actor_did, subject_uri, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, notif.ID, targetDID, string(notif.Type), notif.ActorDID, notif.SubjectURI,
-		notif.CreatedAt.Format(time.RFC3339Nano))
-	return err
+	return idx.notifications.create(targetDID, storedNotification{
+		ID:         notif.ID,
+		Type:       string(notif.Type),
+		ActorDID:   notif.ActorDID,
+		SubjectURI: notif.SubjectURI,
+		CreatedAt:  notif.CreatedAt,
+	})
 }
 
 // GetNotifications returns notifications for a user, newest first.
 // Uses cursor-based pagination. Returns notifications, next cursor, and error.
 func (idx *FeedIndex) GetNotifications(targetDID string, limit int, cursor string) ([]arabica.Notification, string, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-
-	lastRead := idx.getLastRead(targetDID)
-
-	var args []any
-	query := `SELECT id, type, actor_did, subject_uri, created_at
-		FROM notifications WHERE target_did = ?`
-	args = append(args, targetDID)
-
-	if cursor != "" {
-		query += ` AND created_at < ?`
-		args = append(args, cursor)
-	}
-
-	query += ` ORDER BY created_at DESC LIMIT ?`
-	// Fetch one extra to determine if there's a next page
-	args = append(args, limit+1)
-
-	rows, err := idx.db.Query(query, args...)
+	stored, nextCursor, err := idx.notifications.list(targetDID, limit, cursor)
 	if err != nil {
 		return nil, "", err
 	}
-	defer rows.Close()
 
-	var notifications []arabica.Notification
-	for rows.Next() {
-		var notif arabica.Notification
-		var typeStr, createdAtStr string
-		if err := rows.Scan(&notif.ID, &typeStr, &notif.ActorDID, &notif.SubjectURI, &createdAtStr); err != nil {
-			continue
-		}
-		notif.Type = arabica.NotificationType(typeStr)
-		notif.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-
-		if !lastRead.IsZero() && !notif.CreatedAt.After(lastRead) {
-			notif.Read = true
-		}
-
-		notifications = append(notifications, notif)
+	notifications := make([]arabica.Notification, 0, len(stored))
+	for _, storedNotif := range stored {
+		notifications = append(notifications, arabica.Notification{
+			ID:         storedNotif.ID,
+			Type:       arabica.NotificationType(storedNotif.Type),
+			ActorDID:   storedNotif.ActorDID,
+			SubjectURI: storedNotif.SubjectURI,
+			CreatedAt:  storedNotif.CreatedAt,
+			Read:       storedNotif.Read,
+		})
 	}
 
-	var nextCursor string
-	if len(notifications) > limit {
-		// There are more results
-		last := notifications[limit-1]
-		nextCursor = last.CreatedAt.Format(time.RFC3339Nano)
-		notifications = notifications[:limit]
-	}
-
-	return notifications, nextCursor, rows.Err()
+	return notifications, nextCursor, nil
 }
 
 // GetUnreadCount returns the number of unread notifications for a user.
 func (idx *FeedIndex) GetUnreadCount(targetDID string) int {
-	if targetDID == "" {
-		return 0
-	}
-
-	lastRead := idx.getLastRead(targetDID)
-
-	var count int
-	if lastRead.IsZero() {
-		_ = idx.db.QueryRow(`SELECT COUNT(*) FROM notifications WHERE target_did = ?`, targetDID).Scan(&count)
-	} else {
-		_ = idx.db.QueryRow(`SELECT COUNT(*) FROM notifications WHERE target_did = ? AND created_at > ?`,
-			targetDID, lastRead.Format(time.RFC3339Nano)).Scan(&count)
-	}
-
-	return count
+	return idx.notifications.unreadCount(targetDID)
 }
 
 // MarkAllRead updates the last_read timestamp to now for the user.
 func (idx *FeedIndex) MarkAllRead(targetDID string) error {
-	_, err := idx.db.Exec(`INSERT OR REPLACE INTO notifications_meta (target_did, last_read) VALUES (?, ?)`,
-		targetDID, time.Now().Format(time.RFC3339Nano))
-	return err
-}
-
-// getLastRead returns the last_read timestamp for a user.
-func (idx *FeedIndex) getLastRead(targetDID string) time.Time {
-	var lastReadStr string
-	err := idx.db.QueryRow(`SELECT last_read FROM notifications_meta WHERE target_did = ?`, targetDID).Scan(&lastReadStr)
-	if err != nil {
-		return time.Time{}
-	}
-	t, _ := time.Parse(time.RFC3339Nano, lastReadStr)
-	return t
+	return idx.notifications.markAllRead(targetDID)
 }
 
 // parseTargetDID extracts the DID from an AT-URI (at://did:plc:xxx/collection/rkey)
@@ -150,11 +89,7 @@ func (idx *FeedIndex) DeleteNotification(targetDID string, notifType arabica.Not
 		return
 	}
 
-	_, err := idx.db.Exec(`
-		DELETE FROM notifications
-		WHERE target_did = ? AND type = ? AND actor_did = ? AND subject_uri = ?
-	`, targetDID, string(notifType), actorDID, subjectURI)
-	if err != nil {
+	if err := idx.notifications.delete(targetDID, string(notifType), actorDID, subjectURI); err != nil {
 		log.Warn().Err(err).Str("target", targetDID).Str("actor", actorDID).Msg("failed to delete notification")
 	}
 }
