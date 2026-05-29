@@ -36,16 +36,6 @@ type Descriptor struct {
 	// the feed pipeline.
 	RecordToModel func(record map[string]any, uri string) (any, error)
 
-	// EditURL returns the dedicated edit-page URL for an item, or "" if
-	// the entity has no edit page (edited via modal on the manage page).
-	// Item is *feed.FeedItem typed as any to avoid an import cycle.
-	EditURL func(item any) string
-
-	// EditModalURL returns the HTMX URL to load the entity's edit modal,
-	// or "" if the entity has a dedicated edit page (EditURL) instead.
-	// Item is *feed.FeedItem typed as any to avoid an import cycle.
-	EditModalURL func(item any) string
-
 	// RKey returns the record key of a typed record. The argument is the
 	// concrete record pointer (e.g. *arabica.Bean) typed as any to avoid
 	// import cycles. Returns "" if the assertion fails or the record is

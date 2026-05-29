@@ -5,7 +5,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
@@ -29,10 +31,17 @@ func TestFeedViews_AllArabicaEntitiesHaveFeedRenderer(t *testing.T) {
 	}
 }
 
-func TestFeedViews_BrewDescriptorKeepsEditURL(t *testing.T) {
-	d := entities.Get(lexicons.RecordTypeBrew)
-	assert.NotNil(t, d)
-	assert.NotNil(t, d.EditURL, "Brew should have EditURL wired")
+func TestFeedViews_ActionURLs(t *testing.T) {
+	views := FeedViews()
+
+	assert.Equal(t, "/brews/b1/edit", views.EditURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeBrew,
+		Record:     &arabica.Brew{RKey: "b1"},
+	}))
+	assert.Equal(t, "/api/modals/bean/bean1", views.EditModalURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeBean,
+		Record:     &arabica.Bean{RKey: "bean1"},
+	}))
 }
 
 func TestFeedViews_CompactEntities(t *testing.T) {

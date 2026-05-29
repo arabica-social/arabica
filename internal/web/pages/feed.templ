@@ -235,8 +235,8 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 				ShareTitle:      getFeedItemShareTitle(item),
 				ShareText:       getFeedItemShareText(item),
 				IsOwner:         item.IsOwner,
-				EditURL:         getEditURL(item),
-				EditModalURL:    getEditModalURL(item),
+				EditURL:         views.EditURL(item),
+				EditModalURL:    views.EditModalURL(item),
 				DeleteURL:       getDeleteURL(item),
 				IsAuthenticated: isAuthenticated,
 				IsModerator:     modCtx.IsModerator,
@@ -317,25 +317,6 @@ func getFeedItemShareText(item *feed.FeedItem) string {
 		displayName = *item.Author.DisplayName
 	}
 	return fmt.Sprintf("Check out this %s by %s on Arabica", item.RecordType, displayName)
-}
-
-// getEditURL returns the edit URL for a feed item, sourced from the
-// entity descriptor. Beans, roasters, grinders, and brewers are edited
-// via modals on the manage page and have no EditURL.
-func getEditURL(item *feed.FeedItem) string {
-	if d := entities.Get(item.RecordType); d != nil && d.EditURL != nil {
-		return d.EditURL(item)
-	}
-	return ""
-}
-
-// getEditModalURL returns the HTMX modal URL for editing a feed item,
-// or "" if the entity uses a dedicated edit page (EditURL) instead.
-func getEditModalURL(item *feed.FeedItem) string {
-	if d := entities.Get(item.RecordType); d != nil && d.EditModalURL != nil {
-		return d.EditModalURL(item)
-	}
-	return ""
 }
 
 // getDeleteURL returns the delete URL for a feed item

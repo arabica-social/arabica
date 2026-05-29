@@ -6,7 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 )
 
 func TestOolongFeedViews_AllEntitiesHaveFeedRenderer(t *testing.T) {
@@ -30,10 +32,21 @@ func TestOolongFeedViews_AllEntitiesHaveFeedRenderer(t *testing.T) {
 	}
 }
 
-func TestOolongFeedViews_BrewDescriptorKeepsEditURL(t *testing.T) {
-	d := entities.Get(lexicons.RecordTypeOolongBrew)
-	assert.NotNil(t, d)
-	assert.NotNil(t, d.EditURL, "Oolong Brew should have EditURL wired")
+func TestOolongFeedViews_ActionURLs(t *testing.T) {
+	views := FeedViews()
+
+	assert.Equal(t, "/teas/t1/edit", views.EditURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongTea,
+		Record:     &oolong.Tea{RKey: "t1"},
+	}))
+	assert.Equal(t, "/brews/b1/edit", views.EditURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongBrew,
+		Record:     &oolong.Brew{RKey: "b1"},
+	}))
+	assert.Equal(t, "/api/modals/vendor/v1", views.EditModalURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongVendor,
+		Record:     &oolong.Vendor{RKey: "v1"},
+	}))
 }
 
 func TestOolongFeedViews_CompactEntities(t *testing.T) {

@@ -5,15 +5,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
-type rkeyer interface{ RKey() string }
-
-func itemRKey(item any) string {
-	if it, ok := item.(rkeyer); ok && it != nil {
-		return it.RKey()
-	}
-	return ""
-}
-
 func init() {
 	entities.Register(&entities.Descriptor{
 		Type:            lexicons.RecordTypeOolongTea,
@@ -39,12 +30,6 @@ func init() {
 				return ""
 			}
 			return t.Name
-		},
-		EditURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/teas/" + r + "/edit"
-			}
-			return ""
 		},
 		ResolveRefs: resolveTeaFeedRef,
 	})
@@ -73,12 +58,6 @@ func init() {
 			}
 			return v.Name
 		},
-		EditModalURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/api/modals/vendor/" + r
-			}
-			return ""
-		},
 	})
 	entities.Register(&entities.Descriptor{
 		Type:            lexicons.RecordTypeOolongVessel,
@@ -105,12 +84,6 @@ func init() {
 			}
 			return v.Name
 		},
-		EditModalURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/api/modals/vessel/" + r
-			}
-			return ""
-		},
 	})
 	entities.Register(&entities.Descriptor{
 		Type:            lexicons.RecordTypeOolongInfuser,
@@ -136,12 +109,6 @@ func init() {
 				return ""
 			}
 			return i.Name
-		},
-		EditModalURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/api/modals/infuser/" + r
-			}
-			return ""
 		},
 	})
 	entities.Register(&entities.Descriptor{
@@ -172,12 +139,6 @@ func init() {
 				return b.Tea.Name
 			}
 			return "Tea Brew"
-		},
-		EditURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/brews/" + r + "/edit"
-			}
-			return ""
 		},
 		ResolveRefs: resolveBrewFeedRefs,
 	})

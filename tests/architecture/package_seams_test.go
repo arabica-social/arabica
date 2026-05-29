@@ -54,6 +54,14 @@ func TestDomainEntityRegistryDoesNotImportTempl(t *testing.T) {
 	assert.False(t, importsTempl, "internal/entities is domain metadata; feed rendering belongs in app-owned web packages")
 }
 
+func TestDomainEntityDescriptorDoesNotOwnFeedActions(t *testing.T) {
+	fields := structFields(t, "../../internal/entities/entities.go", "Descriptor")
+	assert.NotContains(t, fields, "RenderFeedContent")
+	assert.NotContains(t, fields, "FeedCardCompact")
+	assert.NotContains(t, fields, "EditURL")
+	assert.NotContains(t, fields, "EditModalURL")
+}
+
 func sharedAppImports(t *testing.T) map[string]struct{} {
 	t.Helper()
 
@@ -128,6 +136,45 @@ func importsForDir(t *testing.T, dir string) map[string]struct{} {
 	})
 	assert.NoError(t, err)
 	return imports
+}
+
+func structFields(t *testing.T, path, typeName string) map[string]struct{} {
+	t.Helper()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, path, nil, 0)
+	assert.NoError(t, err)
+	if err != nil {
+		return nil
+	}
+
+	fields := map[string]struct{}{}
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok || typeSpec.Name.Name != typeName {
+				continue
+			}
+			structType, ok := typeSpec.Type.(*ast.StructType)
+			assert.True(t, ok, "%s should be a struct", typeName)
+			if !ok {
+				return fields
+			}
+			for _, field := range structType.Fields.List {
+				for _, name := range field.Names {
+					fields[name.Name] = struct{}{}
+				}
+			}
+			return fields
+		}
+	}
+
+	assert.Fail(t, "struct not found", typeName)
+	return fields
 }
 
 func unquoteImportPath(t *testing.T, spec *ast.ImportSpec) string {
