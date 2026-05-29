@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -44,7 +43,7 @@ const (
 // by the feed service and templates. The like/comment counts and
 // SubjectURI/CID populate during indexing; IsLikedByViewer and IsOwner
 // populate per-request when an authenticated viewer is present and stay
-// zero otherwise. Accessor methods (Brew, Bean, …) are nil-safe.
+// zero otherwise.
 type FeedItem struct {
 	RecordType lexicons.RecordType // Use lexicons.RecordTypeBrew, lexicons.RecordTypeBean, etc.
 	Action     string              // "added a new brew", "added a new bean", etc.
@@ -69,60 +68,6 @@ type FeedItem struct {
 	// when an authenticated viewer is present. Zero otherwise.
 	IsLikedByViewer bool
 	IsOwner         bool
-}
-
-// Brew returns f.Record cast to *arabica.Brew, or nil. Nil-safe on f.
-func (f *FeedItem) Brew() *arabica.Brew {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Brew)
-	return v
-}
-
-// Bean returns f.Record cast to *arabica.Bean, or nil. Nil-safe.
-func (f *FeedItem) Bean() *arabica.Bean {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Bean)
-	return v
-}
-
-// Roaster returns f.Record cast to *arabica.Roaster, or nil. Nil-safe.
-func (f *FeedItem) Roaster() *arabica.Roaster {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Roaster)
-	return v
-}
-
-// Grinder returns f.Record cast to *arabica.Grinder, or nil. Nil-safe.
-func (f *FeedItem) Grinder() *arabica.Grinder {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Grinder)
-	return v
-}
-
-// Brewer returns f.Record cast to *arabica.Brewer, or nil. Nil-safe.
-func (f *FeedItem) Brewer() *arabica.Brewer {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Brewer)
-	return v
-}
-
-// Recipe returns f.Record cast to *arabica.Recipe, or nil. Nil-safe.
-func (f *FeedItem) Recipe() *arabica.Recipe {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Recipe)
-	return v
 }
 
 // RKey returns the record key of whichever typed record is set on this

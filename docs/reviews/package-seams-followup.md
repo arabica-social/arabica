@@ -29,6 +29,7 @@ Updated 2026-05-29: the following follow-up items have been addressed in the cur
 - Feed card nouns plus share/delete URL construction moved out of the shared feed page's descriptor lookups and into app-owned feed views; the seam guard now rejects descriptor route-field reads from `feed.templ`.
 - Entity route paths and nouns moved from domain descriptors into app-owned `domain.App.EntityRoutes`; routing, suggestions, notifications, modal action URLs, and entity share URLs now resolve through app route metadata.
 - Record codec/accessor hooks moved out of domain descriptors into a separate `entities.RecordBehavior` registry; descriptors now carry identity/display metadata only, while feed title/rkey extraction, firehose record conversion/ref hydration, and modal field prefill use behavior lookups.
+- Arabica-specific typed feed accessors moved from shared `internal/feed` into Arabica feed components; the shared feed package no longer imports Arabica entities.
 
 Verification for the cleanup stack:
 
