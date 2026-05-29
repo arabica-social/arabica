@@ -210,7 +210,7 @@ func TestFirehose_FeedQueryReturnsIndexedRecords(t *testing.T) {
 	h.WaitForRecord(grinderURI, firehoseWait)
 
 	// Query the feed — all three should appear.
-	result, err := h.FeedIndex.GetFeedWithQuery(ctx, firehose.FeedQuery{Limit: 10})
+	result, err := h.FeedIndex.GetFeedWithQuery(ctx, feed.FeedQuery{Limit: 10})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.GreaterOrEqual(t, len(result.Items), 3, "feed should contain at least 3 items")
@@ -238,7 +238,7 @@ func TestFirehose_FeedQueryTypeFilter(t *testing.T) {
 	h.WaitForRecord(roasterURI, firehoseWait)
 
 	// Filter to roasters only.
-	result, err := h.FeedIndex.GetFeedWithQuery(ctx, firehose.FeedQuery{
+	result, err := h.FeedIndex.GetFeedWithQuery(ctx, feed.FeedQuery{
 		Limit:      10,
 		TypeFilter: lexicons.RecordTypeRoaster,
 	})
@@ -285,7 +285,7 @@ func TestFirehose_FeedQueryWithLikeAndCommentCounts(t *testing.T) {
 	})
 
 	// Query the feed and find the roaster item.
-	result, err := h.FeedIndex.GetFeedWithQuery(ctx, firehose.FeedQuery{
+	result, err := h.FeedIndex.GetFeedWithQuery(ctx, feed.FeedQuery{
 		Limit:      10,
 		TypeFilter: lexicons.RecordTypeRoaster,
 	})

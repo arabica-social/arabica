@@ -136,34 +136,19 @@ type FeedResult struct {
 	NextCursor string
 }
 
-// FirehoseIndex is the interface for the firehose feed index
-// This allows the feed service to use firehose data when available
-type FirehoseIndex interface {
+// Source is the feed service's storage seam. Implementations hide whether
+// items come from the firehose witness index, a cache, or another reader.
+type Source interface {
 	IsReady() bool
 	GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error)
-	GetFeedWithQuery(ctx context.Context, q FirehoseFeedQuery) (*FirehoseFeedResult, error)
-}
-
-// FirehoseFeedQuery mirrors FeedQuery for the firehose layer
-type FirehoseFeedQuery struct {
-	Limit       int
-	Cursor      string
-	TypeFilter  lexicons.RecordType
-	TypeFilters []lexicons.RecordType
-	Sort        string // "recent" or "popular"
-}
-
-// FirehoseFeedResult mirrors FeedResult for the firehose layer
-type FirehoseFeedResult struct {
-	Items      []*FeedItem
-	NextCursor string
+	GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error)
 }
 
 // Service fetches and aggregates brews from registered users
 type Service struct {
 	registry         *Registry
 	cache            *publicFeedCache
-	firehoseIndex    FirehoseIndex
+	source           Source
 	moderationFilter ModerationFilter
 }
 
@@ -175,10 +160,16 @@ func NewService(registry *Registry) *Service {
 	}
 }
 
-// SetFirehoseIndex configures the service to use firehose-based feed
-func (s *Service) SetFirehoseIndex(index FirehoseIndex) {
-	s.firehoseIndex = index
-	log.Info().Msg("feed: firehose index configured")
+// SetSource configures the service's feed reader.
+func (s *Service) SetSource(source Source) {
+	s.source = source
+	log.Info().Msg("feed: source configured")
+}
+
+// SetFirehoseIndex configures the service to use a firehose-backed feed reader.
+// Kept as a named convenience for the server bootstrap; the seam is Source.
+func (s *Service) SetFirehoseIndex(index Source) {
+	s.SetSource(index)
 }
 
 // SetModerationFilter configures the service to filter moderated content
@@ -318,7 +309,7 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 // Returns up to `limit` items sorted by most recent first
 // Moderated content (hidden records, blacklisted users) is filtered out
 func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem, error) {
-	if s.firehoseIndex == nil || !s.firehoseIndex.IsReady() {
+	if s.source == nil || !s.source.IsReady() {
 		log.Warn().Msg("feed: firehose index not ready")
 		return nil, fmt.Errorf("firehose index not ready")
 	}
@@ -350,7 +341,7 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 
 // GetFeedWithQuery fetches feed items with filtering, sorting, and pagination
 func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error) {
-	if s.firehoseIndex == nil || !s.firehoseIndex.IsReady() {
+	if s.source == nil || !s.source.IsReady() {
 		return nil, fmt.Errorf("firehose index not ready")
 	}
 
@@ -367,12 +358,12 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 		fetchLimit = q.Limit + 10
 	}
 
-	firehoseResult, err := s.firehoseIndex.GetFeedWithQuery(ctx, FirehoseFeedQuery{
+	sourceResult, err := s.source.GetFeedWithQuery(ctx, FeedQuery{
 		Limit:       fetchLimit,
 		Cursor:      q.Cursor,
 		TypeFilter:  q.TypeFilter,
 		TypeFilters: q.TypeFilters,
-		Sort:        string(q.Sort),
+		Sort:        q.Sort,
 	})
 	if err != nil {
 		return nil, err
@@ -380,11 +371,11 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 
 	// Apply moderation filtering. IsLikedByViewer/IsOwner are zero here
 	// and populated by the handler once a viewer is identified.
-	items := s.filterModeratedItems(ctx, firehoseResult.Items)
+	items := s.filterModeratedItems(ctx, sourceResult.Items)
 
 	// Trim to requested limit
 	result := &FeedResult{
-		NextCursor: firehoseResult.NextCursor,
+		NextCursor: sourceResult.NextCursor,
 	}
 	if len(items) > q.Limit {
 		result.Items = items[:q.Limit]
@@ -397,7 +388,7 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 
 // getRecentRecordsFromFirehose fetches feed items from the firehose index
 func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) ([]*FeedItem, error) {
-	items, err := s.firehoseIndex.GetRecentFeed(ctx, limit)
+	items, err := s.source.GetRecentFeed(ctx, limit)
 	if err != nil {
 		log.Warn().Err(err).Msg("feed: firehose index error")
 		return nil, err
