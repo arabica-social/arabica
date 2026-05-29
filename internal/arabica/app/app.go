@@ -3,9 +3,12 @@ package arabicaapp
 
 import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 func New() *domain.App {
@@ -24,6 +27,12 @@ func New() *domain.App {
 		Brand: domain.BrandConfig{
 			DisplayName: "Arabica",
 			Tagline:     "Your brew, your data",
+		},
+		RecordStore: func(store records.Store) records.Store {
+			if atpStore, ok := store.(*atproto.AtprotoStore); ok {
+				return arabicastore.NewAtprotoStore(atpStore)
+			}
+			return store
 		},
 	}
 }

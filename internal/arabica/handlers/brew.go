@@ -11,6 +11,7 @@ import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	coffeeogcard "tangled.org/arabica.social/arabica/internal/arabica/ogcard"
 	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
@@ -81,7 +82,7 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 					metrics.WitnessCacheHitsTotal.WithLabelValues("brew_og").Inc()
 					brew = b
 					brew.RKey = rkey
-					atproto.ExtractBrewRefRKeys(brew, m)
+					arabicastore.ExtractBrewRefRKeys(brew, m)
 					resolveBrewRefsViaLookup(brew, m, h.WitnessLookup(r.Context()))
 				}
 			}
@@ -102,7 +103,7 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		brew.RKey = rkey
-		atproto.ExtractBrewRefRKeys(brew, record.Value)
+		arabicastore.ExtractBrewRefRKeys(brew, record.Value)
 		resolveBrewRefsViaLookup(brew, record.Value, handlers.PublicLookup(r.Context()))
 	}
 

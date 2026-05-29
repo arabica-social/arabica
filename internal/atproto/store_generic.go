@@ -9,6 +9,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/records"
+	"tangled.org/pdewey.com/atp"
 )
 
 // rawRecord is what fetchAllRecords returns: a parsed record map plus the
@@ -28,6 +29,26 @@ func (s *AtprotoStore) DID() string {
 	return s.did.String()
 }
 
+// SessionID returns the cache key backing this store.
+func (s *AtprotoStore) SessionID() string {
+	return s.sessionID
+}
+
+// Cache returns the session cache backing this store.
+func (s *AtprotoStore) Cache() *SessionCache {
+	return s.cache
+}
+
+// ATPClient returns an *atp.Client scoped to this store's DID and session.
+func (s *AtprotoStore) ATPClient(ctx context.Context) (*atp.Client, error) {
+	return s.atpClient(ctx)
+}
+
+// WitnessRecordByURI fetches one raw witness record by AT-URI.
+func (s *AtprotoStore) WitnessRecordByURI(ctx context.Context, uri string) *WitnessRecord {
+	return s.getWitnessRecordByURI(ctx, uri)
+}
+
 // FetchRecord is the exported entry point for callers outside this package
 // that need a witness-then-PDS record read for an arbitrary NSID (e.g.
 // per-app view handlers that don't have typed Get* wrappers). It just
@@ -41,6 +62,12 @@ func (s *AtprotoStore) FetchRecord(ctx context.Context, nsid, rkey string) (reco
 		return nil, "", "", fmt.Errorf("record not found: %s/%s", nsid, rkey)
 	}
 	return rec, u, c, nil
+}
+
+// FetchRecordSource is FetchRecord with cache-hit metadata retained for
+// app-owned typed adapters that need source-aware reference resolution.
+func (s *AtprotoStore) FetchRecordSource(ctx context.Context, nsid, rkey string) (record map[string]any, uri, cid string, hit, fromWitness bool, err error) {
+	return s.fetchRecord(ctx, nsid, rkey)
 }
 
 // PutRecord exposes the generic create/update primitive. When rkey is "",
@@ -63,6 +90,19 @@ func (s *AtprotoStore) RemoveRecord(ctx context.Context, nsid, rkey string) erro
 // via their app's RecordTo* function.
 func (s *AtprotoStore) FetchAllRecords(ctx context.Context, nsid string) ([]RawRecord, error) {
 	raw, err := s.fetchAllRecords(ctx, nsid)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]RawRecord, len(raw))
+	for i, r := range raw {
+		out[i] = RawRecord(r)
+	}
+	return out, nil
+}
+
+// FetchPaginatedRecords exposes the page-oriented witness/PDS list primitive.
+func (s *AtprotoStore) FetchPaginatedRecords(ctx context.Context, nsid string, offset, limit int) ([]RawRecord, error) {
+	raw, err := s.fetchPaginatedRecords(ctx, nsid, offset, limit)
 	if err != nil {
 		return nil, err
 	}

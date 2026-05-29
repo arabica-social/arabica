@@ -37,6 +37,8 @@ Updated 2026-05-29: the following follow-up items have been addressed in the cur
 - Shared like/comment request and model types moved to `internal/social`; shared feed/comment handlers no longer import Arabica entities for social operations.
 - Arabica entity OG card renderers moved into `internal/arabica/ogcard`; shared `internal/ogcard` now keeps generic drawing primitives and site-card rendering without Arabica entity imports.
 - Generic Atproto witness-cache metric labels now derive from shared entity descriptors, so `internal/atproto/store_generic.go` no longer imports Arabica entities.
+- Arabica Atproto entity codec definitions moved into Arabica-owned code and a neutral `internal/atproto/storecodec` contract, deleting the shared store's Arabica codec file.
+- Arabica's typed Atproto store moved into `internal/arabica/store`; shared `internal/atproto` now owns generic record and social primitives without importing Arabica entities, and the app/shared import ratchet baseline is empty.
 
 Verification for the cleanup stack:
 
@@ -44,7 +46,7 @@ Verification for the cleanup stack:
 env GOCACHE=/tmp/arabica-go-cache go test ./...
 ```
 
-Remaining large seams include descriptor/rendering split, `AtprotoStore`, further `FeedIndex` decomposition, feed/firehose ownership, remaining asset globals, middleware package boundaries, and the web BFF/view helper split.
+Remaining large seams include descriptor/rendering split follow-through, further `FeedIndex` decomposition, remaining asset globals, middleware package boundaries, and the web BFF/view helper split.
 
 ## App/shared package seams follow-up review
 
@@ -1386,3 +1388,4 @@ The code-judo move is to push ownership upward into explicit app/server composit
 5. Use tests as pressure: if a test must mutate a package global, the seam is wrong.
 
 - 2026-05-29: Moved coffee bean summary and incomplete-record dashboard components from shared web components into `internal/arabica/web/components`, removing the shared web package's Arabica entity imports.
+- 2026-05-29: Moved Arabica typed AtprotoStore methods into `internal/arabica/store`, leaving `internal/atproto` as the generic PDS/record primitive and removing the final guarded shared-package Arabica import.

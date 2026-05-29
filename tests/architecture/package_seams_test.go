@@ -17,9 +17,7 @@ import (
 
 const modulePath = "tangled.org/arabica.social/arabica"
 
-var existingSharedAppImports = []string{
-	"internal/atproto/store.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
-}
+var existingSharedAppImports = []string{}
 
 func TestSharedPackagesDoNotAddAppImports(t *testing.T) {
 	actual := sharedAppImports(t)

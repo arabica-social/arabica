@@ -7,6 +7,7 @@ import (
 	"time"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
@@ -83,7 +84,7 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Link beans to their roasters
-	atproto.LinkBeansToRoasters(beans, roasters)
+	arabicastore.LinkBeansToRoasters(beans, roasters)
 
 	// Link recipes to their brewers
 	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
@@ -191,7 +192,7 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Link beans to roasters
-	atproto.LinkBeansToRoasters(beans, roasters)
+	arabicastore.LinkBeansToRoasters(beans, roasters)
 
 	response := map[string]any{
 		"did":      userDID,
@@ -494,7 +495,7 @@ func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	atproto.LinkBeansToRoasters(beans, roasters)
+	arabicastore.LinkBeansToRoasters(beans, roasters)
 
 	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
 	for _, b := range brewers {

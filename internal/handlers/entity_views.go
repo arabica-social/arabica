@@ -34,6 +34,10 @@ type SocialData struct {
 	IsRecordHidden bool
 }
 
+type rawAtprotoStore interface {
+	RawAtprotoStore() *atproto.AtprotoStore
+}
+
 // fetchSocialData retrieves likes, comments, and moderation state for a record
 func (h *Handler) FetchSocialData(ctx context.Context, subjectURI, didStr string, isAuthenticated bool) SocialData {
 	var sd SocialData
@@ -139,7 +143,13 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 	// caught up to are still visible.
 	if isOwnProfile {
 		if store, ok := h.GetRecordStore(r); ok {
-			if atprotoStore, ok := store.(*atproto.AtprotoStore); ok {
+			atprotoStore, _ := store.(*atproto.AtprotoStore)
+			if atprotoStore == nil {
+				if wrapped, ok := store.(rawAtprotoStore); ok {
+					atprotoStore = wrapped.RawAtprotoStore()
+				}
+			}
+			if atprotoStore != nil {
 				if rec, raw, uri, cid, err := cfg.FromStore(r.Context(), atprotoStore, rkey); err == nil {
 					record, subjectURI, subjectCID = rec, uri, cid
 					if cfg.ResolveRefs != nil {

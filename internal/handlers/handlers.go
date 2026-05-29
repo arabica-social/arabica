@@ -423,6 +423,9 @@ func (h *Handler) GetRecordStore(r *http.Request) (records.Store, bool) {
 		commentNSID = h.app.CommentNSID()
 	}
 	store := atproto.NewAtprotoStoreForApp(h.atprotoClient, did, sessionID, h.sessionCache, h.witnessCache, likeNSID, commentNSID)
+	if h.app != nil && h.app.RecordStore != nil {
+		return h.app.RecordStore(store), true
+	}
 	return store, true
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 type App struct {
@@ -16,6 +17,7 @@ type App struct {
 	Descriptors  []*entities.Descriptor
 	EntityRoutes []EntityRoute
 	Brand        BrandConfig
+	RecordStore  func(records.Store) records.Store
 }
 
 type EntityRoute struct {

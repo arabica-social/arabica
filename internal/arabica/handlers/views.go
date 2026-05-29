@@ -7,6 +7,7 @@ import (
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	coffeeogcard "tangled.org/arabica.social/arabica/internal/arabica/ogcard"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
@@ -394,7 +395,7 @@ func (h *Handlers) brewViewConfig() handlers.EntityViewConfig {
 			return nil, nil, "", "", err
 		}
 		brew.RKey = rkey
-		atproto.ExtractBrewRefRKeys(brew, raw)
+		arabicastore.ExtractBrewRefRKeys(brew, raw)
 		return brew, raw, uri, cid, nil
 	}
 	return handlers.EntityViewConfig{
@@ -404,7 +405,7 @@ func (h *Handlers) brewViewConfig() handlers.EntityViewConfig {
 		FromStore:   fromStore,
 		ResolveRefs: func(_ context.Context, model any, raw map[string]any, lookup func(string) (map[string]any, bool)) {
 			brew := model.(*arabica.Brew)
-			atproto.ExtractBrewRefRKeys(brew, raw)
+			arabicastore.ExtractBrewRefRKeys(brew, raw)
 			resolveBrewRefsViaLookup(brew, raw, lookup)
 		},
 		DisplayName: func(any) string { return "Brew Details" },
