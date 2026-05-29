@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 )
 
 // Field length limits for validation
@@ -27,37 +29,18 @@ const (
 	MaxCommentLength      = 1000
 )
 
-// Visibility controls who can see a piece of profile data.
-type Visibility string
+type Visibility = profileprefs.Visibility
 
 const (
-	VisibilityPublic  Visibility = "public"
-	VisibilityPrivate Visibility = "private"
-	// Future: VisibilityFriends Visibility = "friends"
+	VisibilityPublic  = profileprefs.VisibilityPublic
+	VisibilityPrivate = profileprefs.VisibilityPrivate
 )
 
-// IsValid returns true if the visibility value is recognized.
-func (v Visibility) IsValid() bool {
-	switch v {
-	case VisibilityPublic, VisibilityPrivate:
-		return true
-	}
-	return false
-}
-
-// ProfileStatsVisibility controls the visibility of aggregate stats on a user's profile.
-// Each field maps to a record type whose average rating can be shown or hidden.
-type ProfileStatsVisibility struct {
-	BeanAvgRating    Visibility `json:"bean_avg_rating"`
-	RoasterAvgRating Visibility `json:"roaster_avg_rating"`
-}
+type ProfileStatsVisibility = profileprefs.ProfileStatsVisibility
 
 // DefaultProfileStatsVisibility returns the default visibility (all public).
 func DefaultProfileStatsVisibility() ProfileStatsVisibility {
-	return ProfileStatsVisibility{
-		BeanAvgRating:    VisibilityPublic,
-		RoasterAvgRating: VisibilityPublic,
-	}
+	return profileprefs.DefaultProfileStatsVisibility()
 }
 
 // Brewer type categories (knownValues from lexicon)

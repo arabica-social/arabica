@@ -45,7 +45,8 @@ func registerTea() {
 			}
 			return t.Name
 		},
-		ResolveRefs: resolveTeaFeedRef,
+		ReferenceFields: []string{"vendorRef"},
+		ResolveRefs:     resolveTeaFeedRef,
 	})
 }
 
@@ -145,6 +146,7 @@ func registerBrew() {
 			}
 			return "Tea Brew"
 		},
-		ResolveRefs: resolveBrewFeedRefs,
+		ReferenceFields: []string{"teaRef", "vesselRef", "infuserRef"},
+		ResolveRefs:     resolveBrewFeedRefs,
 	})
 }

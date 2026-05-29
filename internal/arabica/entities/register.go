@@ -39,7 +39,8 @@ func registerBean() {
 			}
 			return b.Origin
 		},
-		ResolveRefs: resolveBeanFeedRef,
+		ReferenceFields: []string{"roasterRef"},
+		ResolveRefs:     resolveBeanFeedRef,
 	})
 }
 
@@ -136,7 +137,8 @@ func registerRecipe() {
 			}
 			return r.Name
 		},
-		ResolveRefs: resolveRecipeFeedRef,
+		ReferenceFields: []string{"brewerRef"},
+		ResolveRefs:     resolveRecipeFeedRef,
 	})
 }
 
@@ -167,6 +169,7 @@ func registerBrew() {
 			}
 			return "Coffee Brew"
 		},
-		ResolveRefs: resolveBrewFeedRefs,
+		ReferenceFields: []string{"beanRef", "grinderRef", "brewerRef", "recipeRef"},
+		ResolveRefs:     resolveBrewFeedRefs,
 	})
 }

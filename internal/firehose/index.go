@@ -12,12 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/pdewey.com/atp"
 
@@ -83,7 +82,7 @@ type FeedIndex struct {
 	// commentNSID is the comment collection this index's binary serves
 	// (e.g. social.arabica.alpha.comment or social.oolong.alpha.comment).
 	// Used when rebuilding comment AT-URIs from indexed rows. Falls back
-	// to arabica.NSIDComment when unset for backwards-compat with tests
+	// to the Arabica comment collection when unset for backwards-compat with tests
 	// that construct a FeedIndex directly via NewFeedIndex.
 	commentNSID string
 
@@ -105,7 +104,7 @@ func (idx *FeedIndex) commentCollection() string {
 	if idx.commentNSID != "" {
 		return idx.commentNSID
 	}
-	return arabica.NSIDComment
+	return "social.arabica.alpha.comment"
 }
 
 // FeedSort defines the sort order for feed queries
@@ -897,14 +896,9 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 		rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
 		records = append(records, &rec)
 
-		// Collect reference URIs from the record data
 		var recordData map[string]any
 		if err := json.Unmarshal(rec.Record, &recordData); err == nil {
-			for _, key := range []string{"beanRef", "roasterRef", "grinderRef", "brewerRef", "teaRef", "vendorRef", "vesselRef", "infuserRef"} {
-				if ref, ok := recordData[key].(string); ok && ref != "" {
-					refURIs[ref] = true
-				}
-			}
+			collectRecordRefs(refURIs, rec.Collection, recordData)
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -917,86 +911,7 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 		recordsByURI[r.URI] = r
 	}
 
-	// Fetch referenced records that we don't already have
-	var missingURIs []string
-	for uri := range refURIs {
-		if _, ok := recordsByURI[uri]; !ok {
-			missingURIs = append(missingURIs, uri)
-		}
-	}
-
-	if len(missingURIs) > 0 {
-		placeholders := make([]string, len(missingURIs))
-		refArgs := make([]any, len(missingURIs))
-		for i, uri := range missingURIs {
-			placeholders[i] = "?"
-			refArgs[i] = uri
-		}
-		refQuery := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri IN (` + strings.Join(placeholders, ",") + `)`
-		refRows, err := idx.db.QueryContext(ctx, refQuery, refArgs...)
-		if err == nil {
-			defer refRows.Close()
-			for refRows.Next() {
-				var rec IndexedRecord
-				var recordStr, indexedAtStr, createdAtStr string
-				if err := refRows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
-					&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
-					continue
-				}
-				rec.Record = json.RawMessage(recordStr)
-				rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
-				rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-				recordsByURI[rec.URI] = &rec
-
-				// If this is an oolong tea, check if it references a vendor we also need
-				if rec.Collection == oolong.NSIDTea {
-					var teaData map[string]any
-					if err := json.Unmarshal(rec.Record, &teaData); err == nil {
-						if vendorRef, ok := teaData["vendorRef"].(string); ok && vendorRef != "" {
-							if _, ok := recordsByURI[vendorRef]; !ok {
-								var vRec IndexedRecord
-								var vStr, vIdxAt, vCreAt string
-								err := idx.db.QueryRowContext(ctx,
-									`SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri = ?`,
-									vendorRef).Scan(&vRec.URI, &vRec.DID, &vRec.Collection, &vRec.RKey,
-									&vStr, &vRec.CID, &vIdxAt, &vCreAt)
-								if err == nil {
-									vRec.Record = json.RawMessage(vStr)
-									vRec.IndexedAt, _ = time.Parse(time.RFC3339Nano, vIdxAt)
-									vRec.CreatedAt, _ = time.Parse(time.RFC3339Nano, vCreAt)
-									recordsByURI[vRec.URI] = &vRec
-								}
-							}
-						}
-					}
-				}
-
-				// If this is a bean, check if it references a roaster we also need
-				if rec.Collection == arabica.NSIDBean {
-					var beanData map[string]any
-					if err := json.Unmarshal(rec.Record, &beanData); err == nil {
-						if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
-							if _, ok := recordsByURI[roasterRef]; !ok {
-								// Fetch this roaster too
-								var rRec IndexedRecord
-								var rStr, rIdxAt, rCreAt string
-								err := idx.db.QueryRowContext(ctx,
-									`SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri = ?`,
-									roasterRef).Scan(&rRec.URI, &rRec.DID, &rRec.Collection, &rRec.RKey,
-									&rStr, &rRec.CID, &rIdxAt, &rCreAt)
-								if err == nil {
-									rRec.Record = json.RawMessage(rStr)
-									rRec.IndexedAt, _ = time.Parse(time.RFC3339Nano, rIdxAt)
-									rRec.CreatedAt, _ = time.Parse(time.RFC3339Nano, rCreAt)
-									recordsByURI[rRec.URI] = &rRec
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	idx.fetchReferenceRecords(ctx, recordsByURI, refURIs)
 
 	// Batch-fetch social data for all records
 	recordURIs := make([]string, 0, len(records))
@@ -1105,6 +1020,66 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	item.SubjectCID = record.CID
 
 	return item, nil
+}
+
+func collectRecordRefs(refURIs map[string]bool, collection string, recordData map[string]any) {
+	behavior := entities.BehaviorByNSID(collection)
+	if behavior == nil {
+		return
+	}
+	for _, key := range behavior.ReferenceFields {
+		if ref, ok := recordData[key].(string); ok && ref != "" {
+			refURIs[ref] = true
+		}
+	}
+}
+
+func (idx *FeedIndex) fetchReferenceRecords(ctx context.Context, recordsByURI map[string]*IndexedRecord, refURIs map[string]bool) {
+	attempted := make(map[string]bool)
+	for {
+		missingURIs := make([]string, 0, len(refURIs))
+		for uri := range refURIs {
+			if _, found := recordsByURI[uri]; found || attempted[uri] {
+				continue
+			}
+			attempted[uri] = true
+			missingURIs = append(missingURIs, uri)
+		}
+		if len(missingURIs) == 0 {
+			return
+		}
+
+		placeholders := make([]string, len(missingURIs))
+		refArgs := make([]any, len(missingURIs))
+		for i, uri := range missingURIs {
+			placeholders[i] = "?"
+			refArgs[i] = uri
+		}
+		refQuery := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri IN (` + strings.Join(placeholders, ",") + `)`
+		refRows, err := idx.db.QueryContext(ctx, refQuery, refArgs...)
+		if err != nil {
+			return
+		}
+
+		for refRows.Next() {
+			var rec IndexedRecord
+			var recordStr, indexedAtStr, createdAtStr string
+			if err := refRows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
+				&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
+				continue
+			}
+			rec.Record = json.RawMessage(recordStr)
+			rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
+			rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+			recordsByURI[rec.URI] = &rec
+
+			var recordData map[string]any
+			if err := json.Unmarshal(rec.Record, &recordData); err == nil {
+				collectRecordRefs(refURIs, rec.Collection, recordData)
+			}
+		}
+		refRows.Close()
+	}
 }
 
 // GetProfile fetches a profile, using cache when possible. The persistent
@@ -1654,8 +1629,8 @@ func (idx *FeedIndex) AvgBrewRatingByRoasterURI(ctx context.Context, did string)
 
 // GetProfileStatsVisibility returns the profile stats visibility settings for a user.
 // Returns default (all public) if no settings are stored.
-func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string) arabica.ProfileStatsVisibility {
-	defaults := arabica.DefaultProfileStatsVisibility()
+func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string) profileprefs.ProfileStatsVisibility {
+	defaults := profileprefs.DefaultProfileStatsVisibility()
 	if did == "" {
 		return defaults
 	}
@@ -1663,22 +1638,22 @@ func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string)
 	if !ok {
 		return defaults
 	}
-	var settings arabica.ProfileStatsVisibility
+	var settings profileprefs.ProfileStatsVisibility
 	if err := json.Unmarshal([]byte(raw), &settings); err != nil {
 		return defaults
 	}
 	// Fill in defaults for any empty fields
 	if settings.BeanAvgRating == "" {
-		settings.BeanAvgRating = arabica.VisibilityPublic
+		settings.BeanAvgRating = profileprefs.VisibilityPublic
 	}
 	if settings.RoasterAvgRating == "" {
-		settings.RoasterAvgRating = arabica.VisibilityPublic
+		settings.RoasterAvgRating = profileprefs.VisibilityPublic
 	}
 	return settings
 }
 
 // SetProfileStatsVisibility saves the profile stats visibility settings for a user.
-func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string, settings arabica.ProfileStatsVisibility) error {
+func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string, settings profileprefs.ProfileStatsVisibility) error {
 	raw, err := json.Marshal(settings)
 	if err != nil {
 		return fmt.Errorf("marshal settings: %w", err)

@@ -29,6 +29,12 @@ type RecordBehavior struct {
 	// Empty string means "use the descriptor's DisplayName as fallback."
 	DisplayTitle func(record any) string
 
+	// ReferenceFields lists AT-URI string fields that should be fetched with a
+	// feed record before ResolveRefs runs. Firehose follows these fields
+	// transitively through fetched reference records so nested refs, such as a
+	// bean's roaster, stay app-owned without app imports in firehose.
+	ReferenceFields []string
+
 	// ResolveRefs hydrates cross-entity references on a typed model using
 	// records already pulled from the firehose index. nil means the entity has
 	// no cross-record references to resolve.
