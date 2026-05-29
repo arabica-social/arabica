@@ -16,6 +16,7 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
 	"tangled.org/arabica.social/arabica/internal/logging"
+	teahandlers "tangled.org/arabica.social/arabica/internal/oolong/handlers"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -49,6 +50,7 @@ func main() {
 		KnownDIDsPath:      *knownDIDsFile,
 		DefaultPort:        defaultPort,
 		DefaultMetricsPort: defaultMetricsPort,
+		AppRoutes:          teahandlers.Routes{},
 	})
 	if err != nil {
 		log.Fatal().Err(err).Str("app", app.Name).Msg("App exited with error")

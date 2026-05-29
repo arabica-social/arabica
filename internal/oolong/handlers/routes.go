@@ -1,9 +1,37 @@
 package teahandlers
 
 import (
+	"net/http"
+
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/middleware"
+	"tangled.org/arabica.social/arabica/internal/routing"
 )
+
+// Routes owns Oolong-specific HTTP route registration. Keeping this in the app
+// package prevents the shared router from importing tea handlers.
+type Routes struct{}
+
+func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext) {
+	h := New(ctx.Handlers)
+	cop := ctx.CSRF
+
+	mux.HandleFunc("GET /api/data", h.HandleOolongAPIListAll)
+	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOolongGetStartedCard)))
+	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOolongOnboardingStationForm)))
+
+	mux.HandleFunc("GET /onboarding", h.HandleOolongOnboarding)
+	mux.HandleFunc("GET /my-tea", h.HandleMyTea)
+	mux.Handle("POST /api/tea/refresh", cop.Handler(http.HandlerFunc(h.HandleTeaRefresh)))
+	mux.HandleFunc("GET /brews/new", h.HandleOolongSteepNew)
+	mux.HandleFunc("GET /brews/{id}/edit", h.HandleOolongSteepEdit)
+	mux.HandleFunc("GET /teas/new", h.HandleOolongTeaNew)
+	mux.HandleFunc("GET /teas/{id}/edit", h.HandleOolongTeaEdit)
+
+	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles())
+	mux.HandleFunc("GET /profile/{actor}", h.HandleOolongProfile)
+}
 
 // EntityRouteBundles returns the per-entity handler bundles for oolong's
 // public surface. Mirrors the shared

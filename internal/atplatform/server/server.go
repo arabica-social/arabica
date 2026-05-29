@@ -50,6 +50,10 @@ type Options struct {
 	// DefaultMetricsPort is the localhost metrics port used when
 	// <APP>_METRICS_PORT is unset. Empty falls back to "9101".
 	DefaultMetricsPort string
+
+	// AppRoutes registers app-owned routes into the shared HTTP router.
+	// Supplying this keeps internal/routing app-agnostic.
+	AppRoutes routing.AppRoutes
 }
 
 // tracingOnce ensures the global OpenTelemetry provider is initialised
@@ -356,6 +360,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		FirehoseConsumer:  firehoseConsumer,
 		CSSBundle:         cssBundle,
 		JSAssets:          jsAssets,
+		AppRoutes:         opts.AppRoutes,
 	})
 
 	// Internal metrics server (localhost-only)

@@ -39,8 +39,6 @@ var existingSharedAppImports = []string{
 	"internal/ogcard/brew.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/ogcard/entities.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/onboarding/readiness.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
-	"internal/routing/routing.go imports tangled.org/arabica.social/arabica/internal/arabica/handlers",
-	"internal/routing/routing.go imports tangled.org/arabica.social/arabica/internal/oolong/handlers",
 	"internal/web/bff/helpers.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/web/components/incomplete_records_templ.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/web/components/shared_templ.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",

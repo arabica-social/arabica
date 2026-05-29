@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
@@ -232,10 +233,11 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	}
 	h.SetApp(app)
 	router := routing.SetupRouter(routing.Config{
-		App:      app,
-		Handlers: h,
-		OAuthApp: oauthApp,
-		Logger:   logger,
+		App:       app,
+		Handlers:  h,
+		OAuthApp:  oauthApp,
+		Logger:    logger,
+		AppRoutes: coffeehandlers.Routes{},
 	})
 
 	// Wrap the router with the harness auth middleware so tests can pose as
