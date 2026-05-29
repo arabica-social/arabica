@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -64,11 +64,11 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 	didStr, _ := atpmiddleware.GetDID(r.Context())
 	sessionID, _ := atpmiddleware.GetSessionID(r.Context())
 
-	var statsVis arabica.ProfileStatsVisibility
+	var statsVis profileprefs.ProfileStatsVisibility
 	if h.feedIndex != nil {
 		statsVis = h.feedIndex.GetProfileStatsVisibility(r.Context(), didStr)
 	} else {
-		statsVis = arabica.DefaultProfileStatsVisibility()
+		statsVis = profileprefs.DefaultProfileStatsVisibility()
 	}
 
 	bskyForm := h.loadBlueskyProfileForm(r.Context(), didStr, sessionID)
@@ -100,17 +100,17 @@ func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http
 		return
 	}
 
-	settings := arabica.ProfileStatsVisibility{
-		BeanAvgRating:    arabica.Visibility(r.FormValue("bean_avg_rating")),
-		RoasterAvgRating: arabica.Visibility(r.FormValue("roaster_avg_rating")),
+	settings := profileprefs.ProfileStatsVisibility{
+		BeanAvgRating:    profileprefs.Visibility(r.FormValue("bean_avg_rating")),
+		RoasterAvgRating: profileprefs.Visibility(r.FormValue("roaster_avg_rating")),
 	}
 
 	// Validate — fall back to public for unrecognized values
 	if !settings.BeanAvgRating.IsValid() {
-		settings.BeanAvgRating = arabica.VisibilityPublic
+		settings.BeanAvgRating = profileprefs.VisibilityPublic
 	}
 	if !settings.RoasterAvgRating.IsValid() {
-		settings.RoasterAvgRating = arabica.VisibilityPublic
+		settings.RoasterAvgRating = profileprefs.VisibilityPublic
 	}
 
 	if h.feedIndex != nil {
