@@ -13,6 +13,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/records"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
 // Handlers is the oolong-specific handler set. It embeds the shared
@@ -26,6 +27,13 @@ type Handlers struct {
 func New(base *handlers.Handler) *Handlers {
 	h := &Handlers{Handler: base}
 	base.SetFeedViews(tea.FeedViews())
+	base.SetFeedPresentation(handlers.FeedPresentation{
+		EmptyState: pages.FeedEmptyState{
+			Icon:  "🍵",
+			Title: "The tea table's quiet today",
+			Body:  "Follow some tea people, or log your first steep to get started.",
+		},
+	})
 	base.SetHomeBehavior(handlers.HomeBehavior{
 		OGDescription: "Tea journaling for the open social web. Log every steep, track your teaware, share your tea story.",
 		SiteCardOpts: ogcard.SiteCardOpts{

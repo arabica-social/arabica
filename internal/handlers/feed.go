@@ -154,16 +154,15 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	// current product's record type instead of the global lexicon default.
 	var typeFilter lexicons.RecordType
 	if typeParam != "" {
-		if route, ok := h.app.EntityRouteByNoun(typeParam); ok {
-			typeFilter = route.Type
+		if h.app != nil {
+			if route, ok := h.app.EntityRouteByNoun(typeParam); ok {
+				typeFilter = route.Type
+			} else {
+				typeFilter = lexicons.ParseRecordType(typeParam)
+			}
 		} else {
 			typeFilter = lexicons.ParseRecordType(typeParam)
 		}
-	}
-	var typeFilters []lexicons.RecordType
-	if typeParam == "equipment" {
-		typeFilters = []lexicons.RecordType{lexicons.RecordTypeGrinder, lexicons.RecordTypeBrewer}
-		typeFilter = "" // Clear single filter when using multi
 	}
 	sortBy := feed.FeedSort(r.URL.Query().Get("sort"))
 	cursor := r.URL.Query().Get("cursor")
@@ -175,11 +174,10 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	if h.feedService != nil {
 		if isAuthenticated {
 			result, err := h.feedService.GetFeedWithQuery(r.Context(), feed.FeedQuery{
-				Limit:       feed.FeedLimit,
-				Cursor:      cursor,
-				TypeFilter:  typeFilter,
-				TypeFilters: typeFilters,
-				Sort:        sortBy,
+				Limit:      feed.FeedLimit,
+				Cursor:     cursor,
+				TypeFilter: typeFilter,
+				Sort:       sortBy,
 			})
 			if err != nil {
 				log.Error().Err(err).Str("sort", string(sortBy)).Str("type", string(typeFilter)).Msg("Failed to query feed")
@@ -226,13 +224,11 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 
 	// Build query state for template
 	typeFilterStr := string(typeFilter)
-	if len(typeFilters) > 0 {
-		typeFilterStr = "equipment"
-	}
 	var descriptors []*entities.Descriptor
 	if h.app != nil {
 		descriptors = h.app.Descriptors
 	}
+	brandName := h.brand.DisplayName
 	queryState := pages.FeedQueryState{
 		TypeFilter:      typeFilterStr,
 		Sort:            string(sortBy),
@@ -240,6 +236,8 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		IsAuthenticated: isAuthenticated,
 		Descriptors:     descriptors,
 		FeedViews:       h.feedViews,
+		BrandName:       brandName,
+		EmptyState:      h.feedPresentation.EmptyState,
 	}
 
 	// If this is a "load more" request (has cursor), render just the additional items

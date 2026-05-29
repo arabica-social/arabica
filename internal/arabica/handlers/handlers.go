@@ -15,6 +15,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/records"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
 // Handlers is the arabica-specific handler set. It embeds the shared
@@ -40,6 +41,13 @@ func (h *Handlers) GetArabicaStore(r *http.Request) (arabicastore.Store, bool) {
 // The base handler is shared across all per-app handler sets in a binary.
 func New(base *handlers.Handler) *Handlers {
 	base.SetFeedViews(coffee.FeedViews())
+	base.SetFeedPresentation(handlers.FeedPresentation{
+		EmptyState: pages.FeedEmptyState{
+			Icon:  "☕",
+			Title: "The board's quiet today",
+			Body:  "Follow some brewers to fill it up, or log your first brew to get started.",
+		},
+	})
 	base.SetHomeBehavior(handlers.HomeBehavior{
 		OGDescription: "Coffee journaling for the open social web. Track, share, and own your brews.",
 		SiteCardOpts: ogcard.SiteCardOpts{

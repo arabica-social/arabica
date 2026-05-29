@@ -59,6 +59,10 @@ type HomeBehavior struct {
 	ReadinessChecker HomeReadinessChecker
 }
 
+type FeedPresentation struct {
+	EmptyState pages.FeedEmptyState
+}
+
 // Handler contains all HTTP handler methods and their dependencies.
 // Dependencies are injected via the constructor for better testability.
 type Handler struct {
@@ -92,10 +96,11 @@ type Handler struct {
 	// in the signup catalog and any other developer-facing affordances.
 	devMode bool
 
-	staticPages  StaticPageRenderers
-	homeBehavior HomeBehavior
-	assets       assets.Manifest
-	feedViews    feedviews.Registry
+	staticPages      StaticPageRenderers
+	homeBehavior     HomeBehavior
+	feedPresentation FeedPresentation
+	assets           assets.Manifest
+	feedViews        feedviews.Registry
 
 	// storeOverride supports focused handler tests without constructing an
 	// OAuth-backed ATProto client. Production code leaves it nil.
@@ -125,6 +130,10 @@ func (h *Handler) SetHomeReadinessChecker(checker HomeReadinessChecker) {
 // handler.
 func (h *Handler) SetHomeBehavior(behavior HomeBehavior) {
 	h.homeBehavior = behavior
+}
+
+func (h *Handler) SetFeedPresentation(presentation FeedPresentation) {
+	h.feedPresentation = presentation
 }
 
 // SetAssetManifest wires the server's configured asset hrefs into layout data.
