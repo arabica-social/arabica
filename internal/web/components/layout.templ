@@ -52,6 +52,10 @@ func (d *LayoutData) scriptHref(name string) string {
 	return d.Assets.ScriptHref(name)
 }
 
+func (d *LayoutData) ScriptHref(name string) string {
+	return d.scriptHref(name)
+}
+
 // brandName returns the configured brand display name, defaulting to
 // "Arabica" when unset (covers tests and any pre-Phase-G call site that
 // hasn't been threaded yet).
@@ -410,13 +414,14 @@ templ Layout(data *LayoutData, content templ.Component) {
 				</div>
 			</dialog>
 			@HeaderWithProps(HeaderProps{
-				IsAuthenticated:         data.IsAuthenticated,
-				UserProfile:             data.UserProfile,
-				UserDID:                 data.UserDID,
-				IsModerator:             data.IsModerator,
-				UnreadNotificationCount: data.UnreadNotificationCount,
-				BrandName:               data.brandName(),
-				AppName:                 data.AppName,
+				IsAuthenticated:              data.IsAuthenticated,
+				UserProfile:                  data.UserProfile,
+				UserDID:                      data.UserDID,
+				IsModerator:                  data.IsModerator,
+				UnreadNotificationCount:      data.UnreadNotificationCount,
+				BrandName:                    data.brandName(),
+				AppName:                      data.AppName,
+				HandleAutocompleteScriptHref: data.scriptHref("handle-autocomplete.js"),
 			})
 			<main class="grow container mx-auto py-8" data-transition>
 				@content

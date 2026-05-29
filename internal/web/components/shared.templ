@@ -3,7 +3,6 @@ package components
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
-	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/pdewey.com/atp"
 )
@@ -506,6 +505,10 @@ templ WelcomeHeroFor(appName string) {
 
 // WelcomeLoginCard renders a compact login card for unauthenticated users
 templ WelcomeLoginCard() {
+	@WelcomeLoginCardWithScript("/static/js/handle-autocomplete.js")
+}
+
+templ WelcomeLoginCardWithScript(handleAutocompleteScriptHref string) {
 	<div class="card p-6 mb-8 max-w-md mx-auto">
 		<h2 class="text-lg font-semibold text-primary mb-4 text-center">Log in to get started</h2>
 		<form method="POST" action="/auth/login">
@@ -539,7 +542,7 @@ templ WelcomeLoginCard() {
 				One account { "for" } the entire <a href="/atproto" class="link">AT Protocol</a> ecosystem. Sign up once and use it across Arabica, <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a>, <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a>, and more. Your data is portable — you own it.
 			</p>
 		</details>
-		<script src={ assets.JSHrefFor("handle-autocomplete.js") }></script>
+		<script src={ handleAutocompleteScriptHref }></script>
 	</div>
 }
 

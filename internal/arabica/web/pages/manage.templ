@@ -1,21 +1,18 @@
 package coffeepages
 
-import (
-	"tangled.org/arabica.social/arabica/internal/web/assets"
-	"tangled.org/arabica.social/arabica/internal/web/components"
-)
+import "tangled.org/arabica.social/arabica/internal/web/components"
 
 // ManageProps defines the data for the manage page
 type ManageProps struct{}
 
 // Manage renders the full manage page
 templ Manage(layout *components.LayoutData, props ManageProps) {
-	@components.Layout(layout, ManageContent(props))
+	@components.Layout(layout, ManageContent(props, layout.ScriptHref("manage-page.js")))
 }
 
 // ManageContent renders the manage page content
-templ ManageContent(props ManageProps) {
-	<script src={ assets.JSHrefFor("manage-page.js") }></script>
+templ ManageContent(props ManageProps, manageScriptHref string) {
+	<script src={ manageScriptHref }></script>
 	<div class="page-container-xl" v-scope="managePage()" @vue:mounted="setup" :data-active-tab="tab">
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()
