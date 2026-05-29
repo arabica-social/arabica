@@ -149,32 +149,15 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 
 	// Parse query parameters
 	typeParam := r.URL.Query().Get("type")
-	// Filter pills send the descriptor's Noun (e.g. "brew", "tea").
-	// Prefer a noun lookup against the running app's registered descriptors
-	// so apps where Noun differs from RecordType (oolong: "tea" → "oolong-tea",
-	// "brew" → "oolong-brew") resolve correctly. ParseRecordType is a global
-	// validator and would otherwise hand back the wrong type (e.g. "brew" →
-	// arabica's RecordTypeBrew) in the oolong binary, causing the NSID lookup
-	// to miss and the feed to come back empty.
+	// Filter pills send the app entity route noun (e.g. "brew", "tea").
+	// Resolve through the running app so shared nouns like "brew" map to the
+	// current product's record type instead of the global lexicon default.
 	var typeFilter lexicons.RecordType
 	if typeParam != "" {
-		// Scan the running app's descriptors first so apps that share a
-		// Noun (arabica + oolong both register Noun "brew") don't collide
-		// via the global registry's non-deterministic map iteration.
-		if h.app != nil {
-			for _, d := range h.app.Descriptors {
-				if d.Noun == typeParam {
-					typeFilter = d.Type
-					break
-				}
-			}
-		}
-		if typeFilter == "" {
-			if d := entities.GetByNoun(typeParam); d != nil {
-				typeFilter = d.Type
-			} else {
-				typeFilter = lexicons.ParseRecordType(typeParam)
-			}
+		if route, ok := h.app.EntityRouteByNoun(typeParam); ok {
+			typeFilter = route.Type
+		} else {
+			typeFilter = lexicons.ParseRecordType(typeParam)
 		}
 	}
 	var typeFilters []lexicons.RecordType

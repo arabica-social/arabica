@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
@@ -100,6 +101,11 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 	if rkey == "" {
 		return
 	}
+	route := h.entityRouteFor(cfg.Descriptor)
+	entityNoun := route.Noun
+	if entityNoun == "" {
+		entityNoun = "content"
+	}
 
 	owner := r.URL.Query().Get("owner")
 	didStr, _ := atpmiddleware.GetDID(r.Context())
@@ -122,7 +128,7 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 	var err error
 	entityOwnerDID, err = ResolveOwnerDID(r.Context(), owner)
 	if err != nil {
-		log.Warn().Err(err).Str("handle", owner).Msgf("Failed to resolve handle for %s view", cfg.Descriptor.Noun)
+		log.Warn().Err(err).Str("handle", owner).Msgf("Failed to resolve handle for %s view", entityNoun)
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
@@ -150,7 +156,7 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), entityURI); wr != nil {
 				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
 					if rec, err := cfg.FromWitness(r.Context(), m, wr.URI, rkey, entityOwnerDID); err == nil {
-						metrics.WitnessCacheHitsTotal.WithLabelValues(cfg.Descriptor.Noun).Inc()
+						metrics.WitnessCacheHitsTotal.WithLabelValues(entityNoun).Inc()
 						record = rec
 						subjectURI = wr.URI
 						subjectCID = wr.CID
@@ -164,18 +170,18 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 	}
 
 	if record == nil {
-		metrics.WitnessCacheMissesTotal.WithLabelValues(cfg.Descriptor.Noun).Inc()
+		metrics.WitnessCacheMissesTotal.WithLabelValues(entityNoun).Inc()
 		pub := atproto.NewPublicClient()
 		entry, err := pub.GetPublicRecord(r.Context(), entityOwnerDID, cfg.Descriptor.NSID, rkey)
 		if err != nil {
-			log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msgf("Failed to get %s record", cfg.Descriptor.Noun)
+			log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msgf("Failed to get %s record", entityNoun)
 			http.Error(w, cfg.Descriptor.DisplayName+" not found", http.StatusNotFound)
 			return
 		}
 		rec, err := cfg.FromPDS(r.Context(), entry, rkey, entityOwnerDID)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to convert %s record", cfg.Descriptor.Noun)
-			http.Error(w, "Failed to load "+cfg.Descriptor.Noun, http.StatusInternalServerError)
+			log.Error().Err(err).Msgf("Failed to convert %s record", entityNoun)
+			http.Error(w, "Failed to load "+entityNoun, http.StatusInternalServerError)
 			return
 		}
 		record = rec
@@ -187,15 +193,15 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 	}
 
 	var shareURL string
-	if owner != "" {
-		shareURL = fmt.Sprintf("/%s/%s/%s", cfg.Descriptor.URLPath, owner, rkey)
-	} else if userProfile != nil && userProfile.Handle != "" {
-		shareURL = fmt.Sprintf("/%s/%s/%s", cfg.Descriptor.URLPath, userProfile.Handle, rkey)
+	if owner != "" && route.Path != "" {
+		shareURL = fmt.Sprintf("/%s/%s/%s", route.Path, owner, rkey)
+	} else if userProfile != nil && userProfile.Handle != "" && route.Path != "" {
+		shareURL = fmt.Sprintf("/%s/%s/%s", route.Path, userProfile.Handle, rkey)
 	}
 
 	ownerHandle := h.ResolveOwnerHandle(r.Context(), owner)
 	layoutData := h.BuildLayoutData(r, cfg.DisplayName(record), isAuthenticated, didStr, userProfile)
-	PopulateOGFields(layoutData, cfg.OGSubtitle(record), cfg.Descriptor.Noun, ownerHandle, h.PublicBaseURL(r), shareURL)
+	PopulateOGFields(layoutData, cfg.OGSubtitle(record), entityNoun, ownerHandle, h.PublicBaseURL(r), shareURL)
 
 	sd := h.FetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
 
@@ -228,8 +234,18 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 
 	if err := cfg.Render(r.Context(), w, layoutData, record, base); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Failed to render %s view", cfg.Descriptor.Noun)
+		log.Error().Err(err).Msgf("Failed to render %s view", entityNoun)
 	}
+}
+
+func (h *Handler) entityRouteFor(desc *entities.Descriptor) domain.EntityRoute {
+	if desc == nil {
+		return domain.EntityRoute{}
+	}
+	if route, ok := h.app.EntityRouteByType(desc.Type); ok {
+		return route
+	}
+	return domain.EntityRoute{Type: desc.Type, Noun: strings.ToLower(desc.DisplayName)}
 }
 
 // OGImageConfig captures per-entity behavior for HandleSimpleOGImage.

@@ -12,7 +12,10 @@ import (
 func TestResolveNotificationLinkUsesActiveAppDescriptor(t *testing.T) {
 	app := &domain.App{
 		Descriptors: []*entities.Descriptor{
-			{NSID: "social.oolong.alpha.tea", URLPath: "teas", Noun: "tea"},
+			{Type: "oolong-tea", NSID: "social.oolong.alpha.tea"},
+		},
+		EntityRoutes: []domain.EntityRoute{
+			{Type: "oolong-tea", Path: "teas", Noun: "tea"},
 		},
 	}
 
@@ -24,7 +27,10 @@ func TestResolveNotificationLinkUsesActiveAppDescriptor(t *testing.T) {
 func TestResolveNotificationLinkRejectsUnknownCollections(t *testing.T) {
 	app := &domain.App{
 		Descriptors: []*entities.Descriptor{
-			{NSID: "social.arabica.alpha.bean", URLPath: "beans", Noun: "bean"},
+			{Type: "bean", NSID: "social.arabica.alpha.bean"},
+		},
+		EntityRoutes: []domain.EntityRoute{
+			{Type: "bean", Path: "beans", Noun: "bean"},
 		},
 	}
 
@@ -35,8 +41,12 @@ func TestResolveNotificationLinkRejectsUnknownCollections(t *testing.T) {
 func TestResolveNotificationEntityNameUsesDescriptorNounWithFallback(t *testing.T) {
 	app := &domain.App{
 		Descriptors: []*entities.Descriptor{
-			{NSID: "social.arabica.alpha.bean", URLPath: "beans", Noun: "bean"},
-			{NSID: "social.arabica.alpha.recipe", URLPath: "recipes", DisplayName: "Recipe"},
+			{Type: "bean", NSID: "social.arabica.alpha.bean"},
+			{Type: "recipe", NSID: "social.arabica.alpha.recipe", DisplayName: "Recipe"},
+		},
+		EntityRoutes: []domain.EntityRoute{
+			{Type: "bean", Path: "beans", Noun: "bean"},
+			{Type: "recipe", Path: "recipes"},
 		},
 	}
 

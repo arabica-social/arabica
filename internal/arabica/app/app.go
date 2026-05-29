@@ -5,6 +5,7 @@ import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
 func New() *domain.App {
@@ -12,6 +13,14 @@ func New() *domain.App {
 		Name:        "arabica",
 		NSIDBase:    arabica.NSIDBase,
 		Descriptors: entities.AllForApp(arabica.NSIDBase),
+		EntityRoutes: []domain.EntityRoute{
+			{Type: lexicons.RecordTypeBean, Path: "beans", Noun: "bean"},
+			{Type: lexicons.RecordTypeRoaster, Path: "roasters", Noun: "roaster"},
+			{Type: lexicons.RecordTypeGrinder, Path: "grinders", Noun: "grinder"},
+			{Type: lexicons.RecordTypeBrewer, Path: "brewers", Noun: "brewer"},
+			{Type: lexicons.RecordTypeRecipe, Path: "recipes", Noun: "recipe"},
+			{Type: lexicons.RecordTypeBrew, Path: "brews", Noun: "brew"},
+		},
 		Brand: domain.BrandConfig{
 			DisplayName: "Arabica",
 			Tagline:     "Your brew, your data",

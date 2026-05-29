@@ -99,8 +99,8 @@ func resolveNotificationLink(app *domain.App, subjectURI string) string {
 		return ""
 	}
 
-	if desc := app.DescriptorByNSID(collection); desc != nil && desc.URLPath != "" {
-		return fmt.Sprintf("/%s/%s/%s", desc.URLPath, did, rkey)
+	if route, ok := app.EntityRouteByNSID(collection); ok && route.Path != "" {
+		return fmt.Sprintf("/%s/%s/%s", route.Path, did, rkey)
 	}
 	return ""
 }
@@ -111,13 +111,11 @@ func resolveNotificationEntityName(app *domain.App, subjectURI string) string {
 	if !ok || app == nil {
 		return "content"
 	}
-	if desc := app.DescriptorByNSID(collection); desc != nil {
-		if desc.Noun != "" {
-			return desc.Noun
-		}
-		if desc.DisplayName != "" {
-			return strings.ToLower(desc.DisplayName)
-		}
+	if route, ok := app.EntityRouteByNSID(collection); ok && route.Noun != "" {
+		return route.Noun
+	}
+	if desc := app.DescriptorByNSID(collection); desc != nil && desc.DisplayName != "" {
+		return strings.ToLower(desc.DisplayName)
 	}
 	return "content"
 }

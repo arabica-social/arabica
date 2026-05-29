@@ -2,7 +2,6 @@ package coffee
 
 import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
-	"tangled.org/arabica.social/arabica/internal/entities"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -12,7 +11,7 @@ import (
 type StationDrawerProps struct {
 	Kind        string
 	DisplayName string
-	URLPath     string
+	ActionPath  string
 	Roasters    []arabica.Roaster // only for Kind == "bean"
 }
 
@@ -33,7 +32,7 @@ templ StationFormDrawer(p StationDrawerProps) {
 			</button>
 		</header>
 		<form
-			hx-post={ "/api/" + p.URLPath }
+			hx-post={ "/api/" + p.ActionPath }
 			hx-trigger="submit"
 			hx-swap="none"
 			hx-sync="this:drop"
@@ -68,15 +67,18 @@ templ StationFormDrawer(p StationDrawerProps) {
 }
 
 func StationDrawerPropsForKind(kind string) (StationDrawerProps, bool) {
-	d := entities.GetByNoun(kind)
-	if d == nil {
+	switch kind {
+	case "brewer":
+		return StationDrawerProps{Kind: kind, DisplayName: "Brewer", ActionPath: "brewers"}, true
+	case "roaster":
+		return StationDrawerProps{Kind: kind, DisplayName: "Roaster", ActionPath: "roasters"}, true
+	case "bean":
+		return StationDrawerProps{Kind: kind, DisplayName: "Bean", ActionPath: "beans"}, true
+	case "grinder":
+		return StationDrawerProps{Kind: kind, DisplayName: "Grinder", ActionPath: "grinders"}, true
+	default:
 		return StationDrawerProps{}, false
 	}
-	return StationDrawerProps{
-		Kind:        kind,
-		DisplayName: d.DisplayName,
-		URLPath:     d.URLPath,
-	}, true
 }
 
 templ BrewerFormBody(brewer *arabica.Brewer) {

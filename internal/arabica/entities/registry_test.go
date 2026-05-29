@@ -30,8 +30,6 @@ func TestArabicaRegistry_KnownTypes(t *testing.T) {
 		assert.Equal(t, rt, d.Type)
 		assert.NotEmpty(t, d.NSID)
 		assert.NotEmpty(t, d.DisplayName)
-		assert.NotEmpty(t, d.Noun)
-		assert.NotEmpty(t, d.URLPath)
 	}
 }
 

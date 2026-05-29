@@ -4,15 +4,24 @@
 package domain
 
 import (
+	"strings"
+
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
 type App struct {
-	Name        string
-	NSIDBase    string
-	Descriptors []*entities.Descriptor
-	Brand       BrandConfig
+	Name         string
+	NSIDBase     string
+	Descriptors  []*entities.Descriptor
+	EntityRoutes []EntityRoute
+	Brand        BrandConfig
+}
+
+type EntityRoute struct {
+	Type lexicons.RecordType
+	Path string
+	Noun string
 }
 
 type BrandConfig struct {
@@ -109,4 +118,63 @@ func (a *App) DescriptorByType(rt lexicons.RecordType) *entities.Descriptor {
 		}
 	}
 	return nil
+}
+
+func (a *App) EntityRouteByType(rt lexicons.RecordType) (EntityRoute, bool) {
+	if a == nil {
+		return EntityRoute{}, false
+	}
+	for _, route := range a.EntityRoutes {
+		if route.Type == rt {
+			return route, true
+		}
+	}
+	return EntityRoute{}, false
+}
+
+func (a *App) EntityRouteByNSID(nsid string) (EntityRoute, bool) {
+	if a == nil {
+		return EntityRoute{}, false
+	}
+	for _, d := range a.Descriptors {
+		if d.NSID != nsid {
+			continue
+		}
+		return a.EntityRouteByType(d.Type)
+	}
+	return EntityRoute{}, false
+}
+
+func (a *App) EntityRouteByPath(path string) (EntityRoute, bool) {
+	if a == nil {
+		return EntityRoute{}, false
+	}
+	for _, route := range a.EntityRoutes {
+		if route.Path == path {
+			return route, true
+		}
+	}
+	return EntityRoute{}, false
+}
+
+func (a *App) EntityRouteByNoun(noun string) (EntityRoute, bool) {
+	if a == nil {
+		return EntityRoute{}, false
+	}
+	for _, route := range a.EntityRoutes {
+		if route.Noun == noun {
+			return route, true
+		}
+	}
+	return EntityRoute{}, false
+}
+
+func (a *App) EntityNoun(rt lexicons.RecordType) string {
+	if route, ok := a.EntityRouteByType(rt); ok && route.Noun != "" {
+		return route.Noun
+	}
+	if d := a.DescriptorByType(rt); d != nil && d.DisplayName != "" {
+		return strings.ToLower(d.DisplayName)
+	}
+	return "content"
 }

@@ -1078,7 +1078,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	}
 
 	item.RecordType = desc.Type
-	item.Action = "added a new " + desc.Noun
+	item.Action = "added a new " + strings.ToLower(desc.DisplayName)
 	item.Record = model
 
 	// Per-entity reference resolution. The ref shape is genuinely

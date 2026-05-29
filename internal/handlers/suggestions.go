@@ -42,12 +42,12 @@ func (s suggestionSource) CountReferencesToURI(ctx context.Context, uri string) 
 // handlers without an app return an empty string so suggestions cannot bleed
 // across app registries when URL paths collide.
 func (h *Handler) nsidForEntity(entityType string) string {
-	if h.app != nil {
-		for _, d := range h.app.Descriptors {
-			if d.URLPath == entityType && d.NSID != "" {
-				return d.NSID
-			}
-		}
+	route, ok := h.app.EntityRouteByPath(entityType)
+	if !ok {
+		return ""
+	}
+	if d := h.app.DescriptorByType(route.Type); d != nil {
+		return d.NSID
 	}
 	return ""
 }

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -116,12 +115,16 @@ func SetupRouter(cfg Config) http.Handler {
 		nsid := r.PathValue("nsid")
 		actor := r.PathValue("actor")
 		rkey := r.PathValue("id")
-		desc := entities.GetByNSID(nsid)
-		if desc == nil {
+		if cfg.App == nil {
 			http.NotFound(w, r)
 			return
 		}
-		http.Redirect(w, r, "/"+desc.URLPath+"/"+actor+"/"+rkey, http.StatusFound)
+		route, ok := cfg.App.EntityRouteByNSID(nsid)
+		if !ok || route.Path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, "/"+route.Path+"/"+actor+"/"+rkey, http.StatusFound)
 	})
 
 	// Comment routes
@@ -290,21 +293,24 @@ func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.Handle
 // image, JSON CRUD, and modal partials — for every bundle whose
 // RecordType has a matching descriptor on app.
 //
-// The descriptor's URLPath becomes the URL segment (e.g., "beans"); the
-// descriptor's Noun becomes the modal path segment (e.g., "bean"). A
+// The app entity route path becomes the URL segment (e.g., "beans"); the
+// app entity route noun becomes the modal path segment (e.g., "bean"). A
 // nil handler in a bundle field skips the corresponding route, letting
 // future entities omit (say) modal partials without forcing every app
 // to publish stubs.
 func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *domain.App, bundles []handlers.EntityRouteBundle) {
 	for _, b := range bundles {
-		desc := app.DescriptorByType(b.RecordType)
-		if desc == nil {
+		if app.DescriptorByType(b.RecordType) == nil {
 			// Bundle declared a route for an entity this app doesn't run.
 			// Skip silently — supports app-specific entity subsets.
 			continue
 		}
+		route, ok := app.EntityRouteByType(b.RecordType)
+		if !ok || route.Path == "" {
+			continue
+		}
 
-		urlPath := desc.URLPath
+		urlPath := route.Path
 		if b.View != nil {
 			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.View))
 		}
@@ -320,11 +326,11 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		if b.Delete != nil {
 			mux.Handle("DELETE /api/"+urlPath+"/{id}", cop.Handler(b.Delete))
 		}
-		if b.ModalNew != nil {
-			mux.HandleFunc("GET /api/modals/"+desc.Noun+"/new", b.ModalNew)
+		if b.ModalNew != nil && route.Noun != "" {
+			mux.HandleFunc("GET /api/modals/"+route.Noun+"/new", b.ModalNew)
 		}
-		if b.ModalEdit != nil {
-			mux.HandleFunc("GET /api/modals/"+desc.Noun+"/{id}", b.ModalEdit)
+		if b.ModalEdit != nil && route.Noun != "" {
+			mux.HandleFunc("GET /api/modals/"+route.Noun+"/{id}", b.ModalEdit)
 		}
 	}
 }

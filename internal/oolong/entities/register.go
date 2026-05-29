@@ -10,8 +10,6 @@ func init() {
 		Type:        lexicons.RecordTypeOolongTea,
 		NSID:        NSIDTea,
 		DisplayName: "Tea",
-		Noun:        "tea",
-		URLPath:     "teas",
 		GetField:    teaField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToTea(rec, uri)
@@ -36,8 +34,6 @@ func init() {
 		Type:        lexicons.RecordTypeOolongVendor,
 		NSID:        NSIDVendor,
 		DisplayName: "Tea Vendor",
-		Noun:        "vendor",
-		URLPath:     "vendors",
 		GetField:    vendorField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToVendor(rec, uri)
@@ -61,8 +57,6 @@ func init() {
 		Type:        lexicons.RecordTypeOolongVessel,
 		NSID:        NSIDVessel,
 		DisplayName: "Vessel",
-		Noun:        "vessel",
-		URLPath:     "vessels",
 		GetField:    vesselField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToVessel(rec, uri)
@@ -86,8 +80,6 @@ func init() {
 		Type:        lexicons.RecordTypeOolongInfuser,
 		NSID:        NSIDInfuser,
 		DisplayName: "Infuser",
-		Noun:        "infuser",
-		URLPath:     "infusers",
 		GetField:    infuserField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToInfuser(rec, uri)
@@ -111,8 +103,6 @@ func init() {
 		Type:        lexicons.RecordTypeOolongBrew,
 		NSID:        NSIDBrew,
 		DisplayName: "Tea Brew",
-		Noun:        "brew",
-		URLPath:     "brews",
 		GetField:    nil, // brew has no edit modal that needs prefill
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrew(rec, uri)

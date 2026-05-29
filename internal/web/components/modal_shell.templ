@@ -8,15 +8,16 @@ import (
 // ModalShellProps configures the shared dialog wrapper used by entity
 // create/edit modals. Body content is passed as templ children.
 type ModalShellProps struct {
-	Type lexicons.RecordType
-	RKey string // "" = create, non-empty = edit
+	Type       lexicons.RecordType
+	ActionPath string
+	RKey       string // "" = create, non-empty = edit
 }
 
-func modalActionURL(d *entities.Descriptor, rkey string) string {
+func modalActionURL(path, rkey string) string {
 	if rkey != "" {
-		return "/api/" + d.URLPath + "/" + rkey
+		return "/api/" + path + "/" + rkey
 	}
-	return "/api/" + d.URLPath
+	return "/api/" + path
 }
 
 templ ModalShell(props ModalShellProps) {
@@ -32,9 +33,9 @@ templ ModalShell(props ModalShellProps) {
 				</h3>
 				<form
 					if props.RKey != "" {
-						hx-put={ modalActionURL(d, props.RKey) }
+						hx-put={ modalActionURL(props.ActionPath, props.RKey) }
 					} else {
-						hx-post={ modalActionURL(d, "") }
+						hx-post={ modalActionURL(props.ActionPath, "") }
 					}
 					hx-trigger="submit"
 					hx-swap="none"

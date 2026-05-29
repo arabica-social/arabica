@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
-	"tangled.org/arabica.social/arabica/internal/entities"
-	"tangled.org/arabica.social/arabica/internal/lexicons"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // entityStartY computes the starting Y to vertically center contentH within the card.
@@ -20,7 +18,7 @@ var maxTextWidth = contentW - leftPad
 
 // DrawBeanCard generates a 1200x630 OG image for a bean record.
 func DrawBeanCard(bean *arabica.Bean) (*Card, error) {
-	card, err := newTypedCard(AccentBean, entities.Get(lexicons.RecordTypeBean).Noun)
+	card, err := newTypedCard(AccentBean, "bean")
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +103,7 @@ func DrawBeanCard(bean *arabica.Bean) (*Card, error) {
 
 // DrawRoasterCard generates a 1200x630 OG image for a roaster record.
 func DrawRoasterCard(roaster *arabica.Roaster) (*Card, error) {
-	card, err := newTypedCard(AccentRoaster, entities.Get(lexicons.RecordTypeRoaster).Noun)
+	card, err := newTypedCard(AccentRoaster, "roaster")
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +146,7 @@ func DrawRoasterCard(roaster *arabica.Roaster) (*Card, error) {
 
 // DrawGrinderCard generates a 1200x630 OG image for a grinder record.
 func DrawGrinderCard(grinder *arabica.Grinder) (*Card, error) {
-	card, err := newTypedCard(AccentGrinder, entities.Get(lexicons.RecordTypeGrinder).Noun)
+	card, err := newTypedCard(AccentGrinder, "grinder")
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +197,7 @@ func DrawGrinderCard(grinder *arabica.Grinder) (*Card, error) {
 
 // DrawBrewerCard generates a 1200x630 OG image for a brewer record.
 func DrawBrewerCard(brewer *arabica.Brewer) (*Card, error) {
-	card, err := newTypedCard(AccentBrewer, entities.Get(lexicons.RecordTypeBrewer).Noun)
+	card, err := newTypedCard(AccentBrewer, "brewer")
 	if err != nil {
 		return nil, err
 	}

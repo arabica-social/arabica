@@ -57,6 +57,8 @@ func TestDomainEntityRegistryDoesNotImportTempl(t *testing.T) {
 
 func TestDomainEntityDescriptorDoesNotOwnFeedActions(t *testing.T) {
 	fields := structFields(t, "../../internal/entities/entities.go", "Descriptor")
+	assert.NotContains(t, fields, "Noun")
+	assert.NotContains(t, fields, "URLPath")
 	assert.NotContains(t, fields, "RenderFeedContent")
 	assert.NotContains(t, fields, "FeedCardCompact")
 	assert.NotContains(t, fields, "FeedFilterLabel")

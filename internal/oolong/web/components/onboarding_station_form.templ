@@ -1,7 +1,6 @@
 package tea
 
 import (
-	"tangled.org/arabica.social/arabica/internal/entities"
 	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 )
@@ -9,7 +8,7 @@ import (
 type StationDrawerProps struct {
 	Kind        string
 	DisplayName string
-	URLPath     string
+	ActionPath  string
 	Vendors     []*oolong.Vendor
 }
 
@@ -20,7 +19,7 @@ templ StationFormDrawer(p StationDrawerProps) {
 			<h3 class="station-drawer-title">{ p.DisplayName }</h3>
 			<button type="button" class="station-drawer-close" data-action="close-drawer" aria-label="Cancel">×</button>
 		</header>
-		<form hx-post={ "/api/" + p.URLPath } hx-trigger="submit" hx-swap="none" hx-sync="this:drop" hx-disabled-elt="find button[type='submit']" v-scope="ModalShell()" @vue:mounted="setup($el)" class="station-drawer-form space-y-5">
+		<form hx-post={ "/api/" + p.ActionPath } hx-trigger="submit" hx-swap="none" hx-sync="this:drop" hx-disabled-elt="find button[type='submit']" v-scope="ModalShell()" @vue:mounted="setup($el)" class="station-drawer-form space-y-5">
 			<div v-show="!!serverError" v-cloak class="station-drawer-error" v-text="serverError"></div>
 			switch p.Kind {
 				case "vendor":
@@ -109,9 +108,16 @@ templ onboardingComboSelectField(entityType, apiEndpoint, suggestEndpoint, input
 }
 
 func StationDrawerPropsForKind(kind string) (StationDrawerProps, bool) {
-	d := entities.GetByNoun(kind)
-	if d == nil {
+	switch kind {
+	case "vendor":
+		return StationDrawerProps{Kind: kind, DisplayName: "Tea Vendor", ActionPath: "vendors"}, true
+	case "vessel":
+		return StationDrawerProps{Kind: kind, DisplayName: "Vessel", ActionPath: "vessels"}, true
+	case "infuser":
+		return StationDrawerProps{Kind: kind, DisplayName: "Infuser", ActionPath: "infusers"}, true
+	case "tea":
+		return StationDrawerProps{Kind: kind, DisplayName: "Tea", ActionPath: "teas"}, true
+	default:
 		return StationDrawerProps{}, false
 	}
-	return StationDrawerProps{Kind: kind, DisplayName: d.DisplayName, URLPath: d.URLPath}, true
 }

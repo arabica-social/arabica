@@ -17,11 +17,9 @@ import (
 	"testing"
 	"time"
 
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
@@ -224,11 +222,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 
 	// Build the router with no moderation service (most tests don't need it).
 	logger := zerolog.Nop()
-	app := &domain.App{
-		Name:        "arabica",
-		NSIDBase:    arabica.NSIDBase,
-		Descriptors: entities.AllForApp(arabica.NSIDBase),
-	}
+	app := arabicaapp.New()
 	h.SetApp(app)
 	router := routing.SetupRouter(routing.Config{
 		App:       app,

@@ -14,7 +14,10 @@ func TestNSIDForEntityUsesActiveAppDescriptors(t *testing.T) {
 	h.SetApp(&domain.App{
 		Name: "oolong",
 		Descriptors: []*entities.Descriptor{
-			{URLPath: "brewers", NSID: "social.oolong.alpha.brewer"},
+			{Type: "oolong-brewer", NSID: "social.oolong.alpha.brewer"},
+		},
+		EntityRoutes: []domain.EntityRoute{
+			{Type: "oolong-brewer", Path: "brewers", Noun: "brewer"},
 		},
 	})
 
@@ -29,7 +32,10 @@ func TestNSIDForEntityRejectsUnknownOrUnconfiguredPaths(t *testing.T) {
 	h.SetApp(&domain.App{
 		Name: "arabica",
 		Descriptors: []*entities.Descriptor{
-			{URLPath: "beans", NSID: "social.arabica.alpha.bean"},
+			{Type: "bean", NSID: "social.arabica.alpha.bean"},
+		},
+		EntityRoutes: []domain.EntityRoute{
+			{Type: "bean", Path: "beans", Noun: "bean"},
 		},
 	})
 
