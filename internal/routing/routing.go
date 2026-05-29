@@ -9,6 +9,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
+	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
@@ -225,7 +226,7 @@ func SetupRouter(cfg Config) http.Handler {
 	handler = middleware.SecurityHeadersMiddleware(handler)
 
 	// 5. Apply logging middleware
-	handler = middleware.LoggingMiddleware(cfg.Logger)(handler)
+	handler = middleware.LoggingMiddleware(cfg.Logger, metrics.HTTPRequestObserver{})(handler)
 
 	// 6. Inject trace_id into zerolog context (runs after otelhttp creates the span)
 	handler = middleware.RequestIDMiddleware(cfg.Logger)(handler)

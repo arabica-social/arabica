@@ -3,15 +3,18 @@ package middleware
 import (
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/metrics"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog"
 )
+
+// RequestObserver records completed HTTP request observations.
+type RequestObserver interface {
+	ObserveRequest(method, path string, status int, duration time.Duration)
+}
 
 // GetClientIP extracts the real client IP address from the request,
 // checking X-Forwarded-For and X-Real-IP headers for reverse proxy setups.
@@ -40,7 +43,7 @@ func GetClientIP(r *http.Request) string {
 }
 
 // LoggingMiddleware returns a middleware that logs HTTP request details with structured logging
-func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
+func LoggingMiddleware(logger zerolog.Logger, observers ...RequestObserver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -113,10 +116,11 @@ func LoggingMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler {
 
 			logEvent.Msgf("Incoming HTTP request: %s %s %d", r.Method, r.URL.Path, rw.statusCode)
 
-			// Record Prometheus metrics
-			normalizedPath := metrics.NormalizePath(r.URL.Path)
-			metrics.HTTPRequestsTotal.WithLabelValues(r.Method, normalizedPath, strconv.Itoa(rw.statusCode)).Inc()
-			metrics.HTTPRequestDuration.WithLabelValues(r.Method, normalizedPath).Observe(duration.Seconds())
+			for _, observer := range observers {
+				if observer != nil {
+					observer.ObserveRequest(r.Method, r.URL.Path, rw.statusCode, duration)
+				}
+			}
 		})
 	}
 }
