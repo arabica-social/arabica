@@ -1,5 +1,5 @@
-// Package sqlitestore provides SQLite-backed store implementations.
-package sqlitestore
+// Package sqlite provides a SQLite-backed moderation store.
+package sqlite
 
 import (
 	"context"

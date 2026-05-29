@@ -1,4 +1,5 @@
-package sqlitestore
+// Package oauthsqlite provides a SQLite-backed OAuth session store.
+package oauthsqlite
 
 import (
 	"context"

@@ -19,13 +19,14 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/atproto/oauthsqlite"
 	"tangled.org/arabica.social/arabica/internal/backup"
-	"tangled.org/arabica.social/arabica/internal/database/sqlitestore"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
@@ -161,7 +162,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	feedIndex.SetCommentNSID(app.CommentNSID())
 	log.Info().Str("path", dbPath).Msg("Database opened")
 
-	sessionStore := sqlitestore.NewOAuthStore(feedIndex.DB())
+	sessionStore := oauthsqlite.NewOAuthStore(feedIndex.DB())
 
 	// OAuth manager
 	// REFACTOR: this feels a bit messy
@@ -208,7 +209,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	adapter := firehose.NewFeedIndexAdapter(feedIndex)
 	feedService.SetFirehoseIndex(adapter)
 
-	moderationStore := sqlitestore.NewModerationStore(feedIndex.DB())
+	moderationStore := moderationsqlite.NewModerationStore(feedIndex.DB())
 	feedService.SetModerationFilter(moderationStore)
 	log.Info().Msg("Firehose consumer started")
 
