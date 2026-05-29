@@ -5,14 +5,12 @@ import (
 	"net/http"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
-	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -64,11 +62,7 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	// Set OG metadata for the home page
 	layoutData.OGTitle = h.brand.DisplayName
-	if h.app != nil && h.app.Name == "oolong" {
-		layoutData.OGDescription = "Tea journaling for the open social web. Log every steep, track your teaware, share your tea story."
-	} else {
-		layoutData.OGDescription = "Coffee journaling for the open social web. Track, share, and own your brews."
-	}
+	layoutData.OGDescription = h.homeOGDescription()
 	baseURL := h.PublicBaseURL(r)
 	if baseURL != "" {
 		layoutData.OGImage = baseURL + "/og-image"
@@ -84,18 +78,9 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ready := true
-	if isAuthenticated && appName == "oolong" {
+	if isAuthenticated && h.homeBehavior.ReadinessChecker != nil {
 		if store, ok := h.GetAtprotoStore(r); ok {
-			if atpStore, ok := store.(*atproto.AtprotoStore); ok {
-				hasVendor := len(ListRecords(r.Context(), atpStore, oolong.NSIDVendor, oolong.RecordToVendor)) > 0
-				hasVessel := len(ListRecords(r.Context(), atpStore, oolong.NSIDVessel, oolong.RecordToVessel)) > 0
-				hasTea := len(ListRecords(r.Context(), atpStore, oolong.NSIDTea, oolong.RecordToTea)) > 0
-				ready = hasVendor && hasVessel && hasTea
-			}
-		}
-	} else if isAuthenticated && h.homeReadinessChecker != nil {
-		if store, ok := h.GetAtprotoStore(r); ok {
-			if isReady, err := h.homeReadinessChecker(r.Context(), store); err != nil {
+			if isReady, err := h.homeBehavior.ReadinessChecker(r.Context(), store); err != nil {
 				log.Warn().Err(err).Msg("readiness check failed; treating user as ready to avoid false block")
 			} else {
 				ready = isReady
@@ -118,23 +103,24 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) homeOGDescription() string {
+	if h.homeBehavior.OGDescription != "" {
+		return h.homeBehavior.OGDescription
+	}
+	return "Coffee journaling for the open social web. Track, share, and own your brews."
+}
+
 // siteCardOpts builds per-app SiteCardOpts so the site OG image picks up
 // the right brand name, tagline, and logo for the running binary.
 func (h *Handler) siteCardOpts() ogcard.SiteCardOpts {
-	opts := ogcard.SiteCardOpts{
+	if h.homeBehavior.SiteCardOpts != (ogcard.SiteCardOpts{}) {
+		return h.homeBehavior.SiteCardOpts
+	}
+	return ogcard.SiteCardOpts{
 		Wordmark: "arabica.social",
 		Tagline:  "coffee journaling for the open social web",
 		Detail:   "track, share, and own your brews",
 	}
-	if h.app != nil {
-		opts.AppName = h.app.Name
-		if h.app.Name == "oolong" {
-			opts.Wordmark = h.brand.DisplayName
-			opts.Tagline = "tea journaling for the open social web"
-			opts.Detail = "log every steep, share your tea story"
-		}
-	}
-	return opts
 }
 
 // HandleSiteOGImage generates a 1200x630 PNG preview card for the site.

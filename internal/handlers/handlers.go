@@ -19,6 +19,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/signup"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -49,6 +50,12 @@ type StaticPageRenderers struct {
 }
 
 type HomeReadinessChecker func(context.Context, database.Store) (bool, error)
+
+type HomeBehavior struct {
+	OGDescription    string
+	SiteCardOpts     ogcard.SiteCardOpts
+	ReadinessChecker HomeReadinessChecker
+}
 
 // Handler contains all HTTP handler methods and their dependencies.
 // Dependencies are injected via the constructor for better testability.
@@ -83,8 +90,8 @@ type Handler struct {
 	// in the signup catalog and any other developer-facing affordances.
 	devMode bool
 
-	staticPages          StaticPageRenderers
-	homeReadinessChecker HomeReadinessChecker
+	staticPages  StaticPageRenderers
+	homeBehavior HomeBehavior
 }
 
 // SetStaticPageRenderers wires app-owned static page templates into the shared
@@ -96,7 +103,13 @@ func (h *Handler) SetStaticPageRenderers(renderers StaticPageRenderers) {
 // SetHomeReadinessChecker wires app-owned first-run readiness logic into the
 // shared home handler.
 func (h *Handler) SetHomeReadinessChecker(checker HomeReadinessChecker) {
-	h.homeReadinessChecker = checker
+	h.homeBehavior.ReadinessChecker = checker
+}
+
+// SetHomeBehavior wires app-owned home-page behavior into the shared home
+// handler.
+func (h *Handler) SetHomeBehavior(behavior HomeBehavior) {
+	h.homeBehavior = behavior
 }
 
 // SetDevMode toggles dev-mode features. Called once at startup from the

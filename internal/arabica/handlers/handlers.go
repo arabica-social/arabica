@@ -11,6 +11,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
 	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/handlers"
+	"tangled.org/arabica.social/arabica/internal/ogcard"
 )
 
 // Handlers is the arabica-specific handler set. It embeds the shared
@@ -22,12 +23,21 @@ type Handlers struct {
 // New constructs a Handlers wrapper over an already-configured base.
 // The base handler is shared across all per-app handler sets in a binary.
 func New(base *handlers.Handler) *Handlers {
-	base.SetHomeReadinessChecker(func(ctx context.Context, store database.Store) (bool, error) {
-		status, err := onboarding.CheckBrewReadiness(ctx, store)
-		if err != nil {
-			return true, err
-		}
-		return status.Ready(), nil
+	base.SetHomeBehavior(handlers.HomeBehavior{
+		OGDescription: "Coffee journaling for the open social web. Track, share, and own your brews.",
+		SiteCardOpts: ogcard.SiteCardOpts{
+			AppName:  "arabica",
+			Wordmark: "arabica.social",
+			Tagline:  "coffee journaling for the open social web",
+			Detail:   "track, share, and own your brews",
+		},
+		ReadinessChecker: func(ctx context.Context, store database.Store) (bool, error) {
+			status, err := onboarding.CheckBrewReadiness(ctx, store)
+			if err != nil {
+				return true, err
+			}
+			return status.Ready(), nil
+		},
 	})
 	return &Handlers{Handler: base}
 }
