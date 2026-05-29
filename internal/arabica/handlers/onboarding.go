@@ -7,9 +7,9 @@ import (
 	"github.com/rs/zerolog/log"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
-	"tangled.org/arabica.social/arabica/internal/onboarding"
 )
 
 // getStartedCardStore is a narrow interface for buildGetStartedCardProps.

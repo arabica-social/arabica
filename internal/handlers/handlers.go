@@ -48,6 +48,8 @@ type StaticPageRenderers struct {
 	Terms StaticPageRenderer
 }
 
+type HomeReadinessChecker func(context.Context, database.Store) (bool, error)
+
 // Handler contains all HTTP handler methods and their dependencies.
 // Dependencies are injected via the constructor for better testability.
 type Handler struct {
@@ -81,13 +83,20 @@ type Handler struct {
 	// in the signup catalog and any other developer-facing affordances.
 	devMode bool
 
-	staticPages StaticPageRenderers
+	staticPages          StaticPageRenderers
+	homeReadinessChecker HomeReadinessChecker
 }
 
 // SetStaticPageRenderers wires app-owned static page templates into the shared
 // page handlers. Nil renderers fall back to the default Arabica pages.
 func (h *Handler) SetStaticPageRenderers(renderers StaticPageRenderers) {
 	h.staticPages = renderers
+}
+
+// SetHomeReadinessChecker wires app-owned first-run readiness logic into the
+// shared home handler.
+func (h *Handler) SetHomeReadinessChecker(checker HomeReadinessChecker) {
+	h.homeReadinessChecker = checker
 }
 
 // SetDevMode toggles dev-mode features. Called once at startup from the

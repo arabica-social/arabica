@@ -1,4 +1,4 @@
-// Package onboarding holds shared helpers for the new-user onboarding flow.
+// Package onboarding holds Arabica helpers for the new-user onboarding flow.
 //
 // Currently it derives "is this user ready to log a brew?" from the user's
 // PDS state. There is no persistence: deleting all beans puts the user back
@@ -13,8 +13,7 @@ import (
 )
 
 // BrewPrerequisiteStore is the narrow slice of database.Store that
-// CheckBrewReadiness needs. Callers may pass any database.Store value;
-// tests may use database.MockStore directly.
+// CheckBrewReadiness needs. Callers may pass any database.Store value.
 type BrewPrerequisiteStore interface {
 	ListBeans(ctx context.Context) ([]*arabica.Bean, error)
 	ListBrewers(ctx context.Context) ([]*arabica.Brewer, error)

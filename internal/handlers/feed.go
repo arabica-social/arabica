@@ -12,7 +12,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
-	"tangled.org/arabica.social/arabica/internal/onboarding"
 	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -85,7 +84,6 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ready := true
-	var readiness *onboarding.ReadinessStatus
 	if isAuthenticated && appName == "oolong" {
 		if store, ok := h.GetAtprotoStore(r); ok {
 			if atpStore, ok := store.(*atproto.AtprotoStore); ok {
@@ -95,13 +93,12 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 				ready = hasVendor && hasVessel && hasTea
 			}
 		}
-	} else if isAuthenticated {
+	} else if isAuthenticated && h.homeReadinessChecker != nil {
 		if store, ok := h.GetAtprotoStore(r); ok {
-			if status, err := onboarding.CheckBrewReadiness(r.Context(), store); err != nil {
+			if isReady, err := h.homeReadinessChecker(r.Context(), store); err != nil {
 				log.Warn().Err(err).Msg("readiness check failed; treating user as ready to avoid false block")
 			} else {
-				readiness = &status
-				ready = status.Ready()
+				ready = isReady
 			}
 		}
 	}
@@ -111,7 +108,6 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 		UserDID:         didStr,
 		AppName:         appName,
 		Descriptors:     descriptors,
-		Readiness:       readiness,
 		Ready:           ready,
 	}
 

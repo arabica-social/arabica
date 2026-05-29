@@ -6,6 +6,10 @@
 package coffeehandlers
 
 import (
+	"context"
+
+	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
+	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 )
 
@@ -18,5 +22,12 @@ type Handlers struct {
 // New constructs a Handlers wrapper over an already-configured base.
 // The base handler is shared across all per-app handler sets in a binary.
 func New(base *handlers.Handler) *Handlers {
+	base.SetHomeReadinessChecker(func(ctx context.Context, store database.Store) (bool, error) {
+		status, err := onboarding.CheckBrewReadiness(ctx, store)
+		if err != nil {
+			return true, err
+		}
+		return status.Ready(), nil
+	})
 	return &Handlers{Handler: base}
 }

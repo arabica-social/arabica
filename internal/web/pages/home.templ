@@ -2,17 +2,15 @@ package pages
 
 import (
 	"tangled.org/arabica.social/arabica/internal/entities"
-	"tangled.org/arabica.social/arabica/internal/onboarding"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 type HomeProps struct {
 	IsAuthenticated bool
 	UserDID         string
-	AppName         string                      // "arabica" or "oolong" — toggles welcome + dashboard embeds
-	Descriptors     []*entities.Descriptor      // App-scoped descriptors for feed filter tabs
-	Readiness       *onboarding.ReadinessStatus // nil for unauth or non-arabica
-	Ready           bool                        // false when the running app's required first-run records are missing
+	AppName         string                 // "arabica" or "oolong" — toggles welcome + dashboard embeds
+	Descriptors     []*entities.Descriptor // App-scoped descriptors for feed filter tabs
+	Ready           bool                   // false when the running app's required first-run records are missing
 }
 
 templ Home(layout *components.LayoutData, props HomeProps) {
