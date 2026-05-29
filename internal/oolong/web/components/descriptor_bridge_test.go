@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -28,6 +29,7 @@ func TestOolongFeedViews_AllEntitiesHaveFeedRenderer(t *testing.T) {
 		}
 		assert.NotNil(t, views[rt].Render, "feed renderer not wired for %s", rt)
 		assert.Equal(t, filterLabel, views.FilterLabel(rt), "feed filter label for %s", rt)
+		assert.NotEmpty(t, views.CardClassNoun(rt), "feed card noun for %s", rt)
 		assert.NotNil(t, d.RKey, "RKey not wired for %s", rt)
 		assert.NotNil(t, d.DisplayTitle, "DisplayTitle not wired for %s", rt)
 	}
@@ -50,6 +52,29 @@ func TestOolongFeedViews_ActionURLs(t *testing.T) {
 	}))
 }
 
+func TestOolongFeedViews_RecordURLs(t *testing.T) {
+	views := FeedViews()
+
+	assert.Equal(t, "/teas/patrick.test/t1", views.ShareURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongTea,
+		Record:     &oolong.Tea{RKey: "t1"},
+		Author:     author("did:plc:alice", "patrick.test"),
+	}))
+	assert.Equal(t, "/profile/did:plc:alice", views.ShareURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongTea,
+		Record:     &oolong.Tea{},
+		Author:     author("did:plc:alice", ""),
+	}))
+	assert.Equal(t, "/api/vendors/v1", views.DeleteURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongVendor,
+		Record:     &oolong.Vendor{RKey: "v1"},
+	}))
+	assert.Equal(t, "/brews/b1", views.DeleteURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongBrew,
+		Record:     &oolong.Brew{RKey: "b1"},
+	}))
+}
+
 func TestOolongFeedViews_CompactEntities(t *testing.T) {
 	views := FeedViews()
 	for _, rt := range []lexicons.RecordType{
@@ -59,6 +84,10 @@ func TestOolongFeedViews_CompactEntities(t *testing.T) {
 	} {
 		assert.True(t, views.Compact(rt), "%s should be compact", rt)
 	}
+}
+
+func author(did, handle string) *atproto.Profile {
+	return &atproto.Profile{DID: did, Handle: handle}
 }
 
 func TestOolongFeedViews_NonCompactEntities(t *testing.T) {

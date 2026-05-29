@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
-	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 	"tangled.org/pdewey.com/atp"
@@ -52,7 +51,7 @@ func feedFilterTabs(descriptors []*entities.Descriptor, views feedviews.Registry
 		if label == "" {
 			continue
 		}
-		tabs = append(tabs, feedFilterTab{Label: label, Value: d.Noun})
+		tabs = append(tabs, feedFilterTab{Label: label, Value: views.FilterValue(d.Type)})
 	}
 	return tabs
 }
@@ -215,7 +214,7 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 		</div>
 		<!-- Action header -->
 		<div class="mb-2 text-sm text-emphasis">
-			@ActionText(item)
+			@ActionText(item, views)
 		</div>
 		<!-- Record content is dispatched through the app-scoped feed view registry. -->
 		if content := views.Render(item); content != nil {
@@ -229,14 +228,14 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 				IsLiked:         item.IsLikedByViewer,
 				LikeCount:       item.LikeCount,
 				CommentCount:    item.CommentCount,
-				ViewURL:         getFeedItemShareURL(item),
-				ShareURL:        getFeedItemShareURL(item),
+				ViewURL:         views.ShareURL(item),
+				ShareURL:        views.ShareURL(item),
 				ShareTitle:      getFeedItemShareTitle(item),
 				ShareText:       getFeedItemShareText(item),
 				IsOwner:         item.IsOwner,
 				EditURL:         views.EditURL(item),
 				EditModalURL:    views.EditModalURL(item),
-				DeleteURL:       getDeleteURL(item),
+				DeleteURL:       views.DeleteURL(item),
 				IsAuthenticated: isAuthenticated,
 				IsModerator:     modCtx.IsModerator,
 				CanHideRecord:   modCtx.CanHideRecord,
@@ -264,12 +263,12 @@ func getDisplayName(displayName *string) string {
 }
 
 // ActionText renders the action text with clickable links for record names
-templ ActionText(item *feed.FeedItem) {
-	if d := entities.Get(item.RecordType); d != nil && item.Record != nil {
+templ ActionText(item *feed.FeedItem, views feedviews.Registry) {
+	if noun := views.ActionNoun(item.RecordType); noun != "" && item.Record != nil {
 		added a
-		<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-primary">new { d.Noun }</a>
+		<a href={ templ.SafeURL(views.ShareURL(item)) } class="underline hover:text-primary">new { noun }</a>
 		{ " " }
-		@components.TypeBadge(d.Noun)
+		@components.TypeBadge(noun)
 	} else {
 		{ item.Action }
 	}
@@ -280,27 +279,13 @@ templ ActionText(item *feed.FeedItem) {
 // modifier for entities with sparse content.
 func feedCardClass(item *feed.FeedItem, views feedviews.Registry) string {
 	classes := "feed-card"
-	if d := entities.Get(item.RecordType); d != nil {
-		classes += " feed-card-" + d.Noun
+	if noun := views.CardClassNoun(item.RecordType); noun != "" {
+		classes += " feed-card-" + noun
 		if views.Compact(item.RecordType) {
 			classes += " feed-card-compact"
 		}
 	}
 	return classes
-}
-
-// Helper functions for share button
-func getFeedItemShareURL(item *feed.FeedItem) string {
-	if d := entities.Get(item.RecordType); d != nil {
-		if rkey := item.RKey(); rkey != "" {
-			actor := item.Author.Handle
-			if actor == "" {
-				actor = item.Author.DID
-			}
-			return fmt.Sprintf("/%s/%s/%s", d.URLPath, actor, rkey)
-		}
-	}
-	return fmt.Sprintf("/profile/%s", item.Author.DID)
 }
 
 func getFeedItemShareTitle(item *feed.FeedItem) string {
@@ -316,19 +301,4 @@ func getFeedItemShareText(item *feed.FeedItem) string {
 		displayName = *item.Author.DisplayName
 	}
 	return fmt.Sprintf("Check out this %s by %s on Arabica", item.RecordType, displayName)
-}
-
-// getDeleteURL returns the delete URL for a feed item
-func getDeleteURL(item *feed.FeedItem) string {
-	rkey := item.RKey()
-	if rkey == "" {
-		return ""
-	}
-	if item.RecordType == lexicons.RecordTypeBrew {
-		return fmt.Sprintf("/brews/%s", rkey)
-	}
-	if d := entities.Get(item.RecordType); d != nil {
-		return fmt.Sprintf("/api/%s/%s", d.URLPath, rkey)
-	}
-	return ""
 }

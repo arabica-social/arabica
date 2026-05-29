@@ -26,6 +26,7 @@ Updated 2026-05-29: the following follow-up items have been addressed in the cur
 - Feed rendering hooks moved out of domain descriptors into an explicit app-owned feed view registry; app constructors no longer blank-import web components for descriptor mutation.
 - Feed edit action URLs moved out of domain descriptors and into app-owned feed views; architecture tests now guard descriptors against feed/web action fields.
 - Feed filter labels moved out of domain descriptors and into app-owned feed views; descriptor guards now reject feed UI fields.
+- Feed card nouns plus share/delete URL construction moved out of the shared feed page's descriptor lookups and into app-owned feed views; the seam guard now rejects descriptor route-field reads from `feed.templ`.
 
 Verification for the cleanup stack:
 

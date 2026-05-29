@@ -3,34 +3,23 @@ package tea
 import (
 	"fmt"
 
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 )
 
 // feedItemShareURL builds the share/view URL for an oolong feed item.
 // Mirrors arabica's helper of the same name.
-func feedItemShareURL(item *feed.FeedItem) string {
-	if d := entities.Get(item.RecordType); d != nil {
-		if rkey := item.RKey(); rkey != "" {
-			return fmt.Sprintf("/%s/%s/%s", d.URLPath, feedActor(item), rkey)
-		}
+func feedItemShareURL(item *feed.FeedItem, path string) string {
+	if rkey := item.RKey(); rkey != "" {
+		return fmt.Sprintf("/%s/%s/%s", path, feedviews.Actor(item), rkey)
 	}
 	return fmt.Sprintf("/profile/%s", item.Author.DID)
 }
 
-// feedActor returns the handle when known, falling back to the DID. Used to
-// build the {actor} segment of /{slug}/{actor}/{rkey} URLs from feed items.
-func feedActor(item *feed.FeedItem) string {
-	if item.Author.Handle != "" {
-		return item.Author.Handle
-	}
-	return item.Author.DID
-}
-
 templ TeaFeedContent(item *feed.FeedItem) {
 	if t, ok := item.Record.(*oolong.Tea); ok && t != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "teas")) } class="block hover:opacity-90 transition-opacity">
 			@TeaContent(t)
 		</a>
 	}
@@ -38,7 +27,7 @@ templ TeaFeedContent(item *feed.FeedItem) {
 
 templ VendorFeedContent(item *feed.FeedItem) {
 	if v, ok := item.Record.(*oolong.Vendor); ok && v != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "vendors")) } class="block hover:opacity-90 transition-opacity">
 			@VendorContent(v)
 		</a>
 	}
@@ -46,7 +35,7 @@ templ VendorFeedContent(item *feed.FeedItem) {
 
 templ VesselFeedContent(item *feed.FeedItem) {
 	if v, ok := item.Record.(*oolong.Vessel); ok && v != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "vessels")) } class="block hover:opacity-90 transition-opacity">
 			@VesselContent(v)
 		</a>
 	}
@@ -54,7 +43,7 @@ templ VesselFeedContent(item *feed.FeedItem) {
 
 templ InfuserFeedContent(item *feed.FeedItem) {
 	if i, ok := item.Record.(*oolong.Infuser); ok && i != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "infusers")) } class="block hover:opacity-90 transition-opacity">
 			@InfuserContent(i)
 		</a>
 	}
@@ -62,7 +51,7 @@ templ InfuserFeedContent(item *feed.FeedItem) {
 
 templ BrewFeedContent(item *feed.FeedItem) {
 	if b, ok := item.Record.(*oolong.Brew); ok && b != nil {
-		<a href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", feedActor(item), b.RKey)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", feedviews.Actor(item), b.RKey)) } class="block hover:opacity-90 transition-opacity">
 			@BrewContent(b)
 		</a>
 	}

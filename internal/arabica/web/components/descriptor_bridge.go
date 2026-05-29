@@ -14,37 +14,82 @@ import (
 func FeedViews() feedviews.Registry {
 	return feedviews.Registry{
 		lexicons.RecordTypeBean: {
-			Render:       BeanFeedContent,
-			FilterLabel:  "Beans",
-			EditModalURL: modalEditURL("bean"),
+			Render:        BeanFeedContent,
+			CardClassNoun: "bean",
+			FilterLabel:   "Beans",
+			ShareURL:      shareURL("beans"),
+			DeleteURL:     apiDeleteURL("beans"),
+			EditModalURL:  modalEditURL("bean"),
 		},
 		lexicons.RecordTypeRoaster: {
-			Render:       RoasterFeedContent,
-			Compact:      true,
-			EditModalURL: modalEditURL("roaster"),
+			Render:        RoasterFeedContent,
+			Compact:       true,
+			CardClassNoun: "roaster",
+			ShareURL:      shareURL("roasters"),
+			DeleteURL:     apiDeleteURL("roasters"),
+			EditModalURL:  modalEditURL("roaster"),
 		},
 		lexicons.RecordTypeGrinder: {
-			Render:       GrinderFeedContent,
-			Compact:      true,
-			FilterLabel:  "Grinders",
-			EditModalURL: modalEditURL("grinder"),
+			Render:        GrinderFeedContent,
+			Compact:       true,
+			CardClassNoun: "grinder",
+			FilterLabel:   "Grinders",
+			ShareURL:      shareURL("grinders"),
+			DeleteURL:     apiDeleteURL("grinders"),
+			EditModalURL:  modalEditURL("grinder"),
 		},
 		lexicons.RecordTypeBrewer: {
-			Render:       BrewerFeedContent,
-			Compact:      true,
-			FilterLabel:  "Brewers",
-			EditModalURL: modalEditURL("brewer"),
+			Render:        BrewerFeedContent,
+			Compact:       true,
+			CardClassNoun: "brewer",
+			FilterLabel:   "Brewers",
+			ShareURL:      shareURL("brewers"),
+			DeleteURL:     apiDeleteURL("brewers"),
+			EditModalURL:  modalEditURL("brewer"),
 		},
 		lexicons.RecordTypeRecipe: {
-			Render:       FeedRecipeContent,
-			FilterLabel:  "Recipes",
-			EditModalURL: modalEditURL("recipe"),
+			Render:        FeedRecipeContent,
+			CardClassNoun: "recipe",
+			FilterLabel:   "Recipes",
+			ShareURL:      shareURL("recipes"),
+			DeleteURL:     apiDeleteURL("recipes"),
+			EditModalURL:  modalEditURL("recipe"),
 		},
 		lexicons.RecordTypeBrew: {
-			Render:      FeedBrewContentClickable,
-			FilterLabel: "Brews",
-			EditURL:     editPageURL("brews"),
+			Render:        FeedBrewContentClickable,
+			CardClassNoun: "brew",
+			FilterLabel:   "Brews",
+			ShareURL:      shareURL("brews"),
+			DeleteURL:     pageDeleteURL("brews"),
+			EditURL:       editPageURL("brews"),
 		},
+	}
+}
+
+func shareURL(path string) feedviews.ActionURL {
+	return func(item *feed.FeedItem) string {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/%s/%s/%s", path, feedviews.Actor(item), rkey)
+		}
+		return ""
+	}
+}
+
+func apiDeleteURL(path string) feedviews.ActionURL {
+	return func(item *feed.FeedItem) string {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/api/%s/%s", path, rkey)
+		}
+		return ""
+	}
+}
+
+func pageDeleteURL(path string) feedviews.ActionURL {
+	return func(item *feed.FeedItem) string {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/%s/%s", path, rkey)
+		}
+		return ""
 	}
 }
 

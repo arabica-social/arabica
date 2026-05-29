@@ -3,36 +3,21 @@ package coffee
 import (
 	"fmt"
 
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 )
 
-// feedItemShareURL mirrors getFeedItemShareURL in pages/feed.templ.
-// Duplicated here so this file is self-contained when it moves to
-// internal/arabica/web/components/ in Phase 2 of the oolong-frontend
-// split. The pages/feed.templ helper stays for the file's other uses.
-func feedItemShareURL(item *feed.FeedItem) string {
-	if d := entities.Get(item.RecordType); d != nil {
-		if rkey := item.RKey(); rkey != "" {
-			return fmt.Sprintf("/%s/%s/%s", d.URLPath, feedActor(item), rkey)
-		}
+func feedItemShareURL(item *feed.FeedItem, path string) string {
+	if rkey := item.RKey(); rkey != "" {
+		return fmt.Sprintf("/%s/%s/%s", path, feedviews.Actor(item), rkey)
 	}
 	return fmt.Sprintf("/profile/%s", item.Author.DID)
 }
 
-// feedActor returns the handle when known, falling back to the DID. Used to
-// build the {actor} segment of /{slug}/{actor}/{rkey} URLs from feed items.
-func feedActor(item *feed.FeedItem) string {
-	if item.Author.Handle != "" {
-		return item.Author.Handle
-	}
-	return item.Author.DID
-}
-
 templ BeanFeedContent(item *feed.FeedItem) {
 	if item.Bean() != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "beans")) } class="block hover:opacity-90 transition-opacity">
 			@BeanContent(item.Bean())
 		</a>
 	}
@@ -40,7 +25,7 @@ templ BeanFeedContent(item *feed.FeedItem) {
 
 templ RoasterFeedContent(item *feed.FeedItem) {
 	if item.Roaster() != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "roasters")) } class="block hover:opacity-90 transition-opacity">
 			@RoasterContent(item.Roaster())
 		</a>
 	}
@@ -48,7 +33,7 @@ templ RoasterFeedContent(item *feed.FeedItem) {
 
 templ GrinderFeedContent(item *feed.FeedItem) {
 	if item.Grinder() != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "grinders")) } class="block hover:opacity-90 transition-opacity">
 			@GrinderContent(item.Grinder())
 		</a>
 	}
@@ -56,7 +41,7 @@ templ GrinderFeedContent(item *feed.FeedItem) {
 
 templ BrewerFeedContent(item *feed.FeedItem) {
 	if item.Brewer() != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "brewers")) } class="block hover:opacity-90 transition-opacity">
 			@BrewerContent(item.Brewer())
 		</a>
 	}
@@ -67,7 +52,7 @@ templ BrewerFeedContent(item *feed.FeedItem) {
 templ FeedBrewContentClickable(item *feed.FeedItem) {
 	if item.Brew() != nil {
 		<a
-			href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", feedActor(item), item.Brew().RKey)) }
+			href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", feedviews.Actor(item), item.Brew().RKey)) }
 			class="block hover:opacity-90 transition-opacity"
 		>
 			@BrewContent(item.Brew())
@@ -79,7 +64,7 @@ templ FeedBrewContentClickable(item *feed.FeedItem) {
 // clickable link. Moved from pages/feed.templ during Phase 1.
 templ FeedRecipeContent(item *feed.FeedItem) {
 	if item.Recipe() != nil {
-		<a href={ templ.SafeURL(feedItemShareURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(feedItemShareURL(item, "recipes")) } class="block hover:opacity-90 transition-opacity">
 			<div class="feed-content-box-sm">
 				<div class="text-base mb-2">
 					<span class="font-bold text-primary">{ item.Recipe().Name }</span>

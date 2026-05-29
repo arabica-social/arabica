@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -61,6 +62,16 @@ func TestDomainEntityDescriptorDoesNotOwnFeedActions(t *testing.T) {
 	assert.NotContains(t, fields, "FeedFilterLabel")
 	assert.NotContains(t, fields, "EditURL")
 	assert.NotContains(t, fields, "EditModalURL")
+}
+
+func TestFeedPageDoesNotReadDescriptorRouteFields(t *testing.T) {
+	content, err := os.ReadFile("../../internal/web/pages/feed.templ")
+	assert.NoError(t, err)
+
+	source := string(content)
+	assert.NotContains(t, source, "entities.Get(")
+	assert.NotContains(t, source, ".Noun")
+	assert.NotContains(t, source, ".URLPath")
 }
 
 func sharedAppImports(t *testing.T) map[string]struct{} {
