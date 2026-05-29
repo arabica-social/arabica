@@ -281,7 +281,8 @@ Goal: make package names match ownership after the backend merge.
 Tasks:
 
 - [x] Move SQLite infrastructure adapters out of `internal/database/sqlitestore`
-      to `internal/sqlitestore`.
+      to owner packages (`internal/atproto/oauthsqlite` and
+      `internal/moderation/sqlite`).
 - [x] If `arabicastore.Store` remains Arabica-only, move it to
       `internal/arabica/store`.
 - [x] Update docs and AGENTS guidance for the new package boundaries.
