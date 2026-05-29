@@ -13,20 +13,21 @@ import (
 
 func TestOolongFeedViews_AllEntitiesHaveFeedRenderer(t *testing.T) {
 	views := FeedViews()
-	want := []lexicons.RecordType{
-		lexicons.RecordTypeOolongTea,
-		lexicons.RecordTypeOolongVendor,
-		lexicons.RecordTypeOolongVessel,
-		lexicons.RecordTypeOolongInfuser,
-		lexicons.RecordTypeOolongBrew,
+	want := map[lexicons.RecordType]string{
+		lexicons.RecordTypeOolongTea:     "Teas",
+		lexicons.RecordTypeOolongVendor:  "Vendors",
+		lexicons.RecordTypeOolongVessel:  "Vessels",
+		lexicons.RecordTypeOolongInfuser: "Infusers",
+		lexicons.RecordTypeOolongBrew:    "Brews",
 	}
-	for _, rt := range want {
+	for rt, filterLabel := range want {
 		d := entities.Get(rt)
 		assert.NotNil(t, d, "descriptor missing for %s", rt)
 		if d == nil {
 			continue
 		}
 		assert.NotNil(t, views[rt].Render, "feed renderer not wired for %s", rt)
+		assert.Equal(t, filterLabel, views.FilterLabel(rt), "feed filter label for %s", rt)
 		assert.NotNil(t, d.RKey, "RKey not wired for %s", rt)
 		assert.NotNil(t, d.DisplayTitle, "DisplayTitle not wired for %s", rt)
 	}

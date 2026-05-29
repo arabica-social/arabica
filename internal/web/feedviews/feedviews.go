@@ -13,6 +13,7 @@ type ActionURL func(*feed.FeedItem) string
 type View struct {
 	Render       Renderer
 	Compact      bool
+	FilterLabel  string
 	EditURL      ActionURL
 	EditModalURL ActionURL
 }
@@ -33,6 +34,14 @@ func (r Registry) Render(item *feed.FeedItem) templ.Component {
 func (r Registry) Compact(rt lexicons.RecordType) bool {
 	view, ok := r[rt]
 	return ok && view.Compact
+}
+
+func (r Registry) FilterLabel(rt lexicons.RecordType) string {
+	view, ok := r[rt]
+	if !ok {
+		return ""
+	}
+	return view.FilterLabel
 }
 
 func (r Registry) EditURL(item *feed.FeedItem) string {

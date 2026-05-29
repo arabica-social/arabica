@@ -9,8 +9,7 @@ func init() {
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeBean, NSID: NSIDBean,
 		DisplayName: "Bean", Noun: "bean", URLPath: "beans",
-		FeedFilterLabel: "Beans",
-		GetField:        beanField,
+		GetField: beanField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBean(rec, uri)
 		},
@@ -36,8 +35,6 @@ func init() {
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeRoaster, NSID: NSIDRoaster,
 		DisplayName: "Roaster", Noun: "roaster", URLPath: "roasters",
-		// FeedFilterLabel intentionally empty — roasters are reference
-		// entities that rarely warrant a dedicated feed filter tab.
 		GetField: roasterField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToRoaster(rec, uri)
@@ -60,8 +57,7 @@ func init() {
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeGrinder, NSID: NSIDGrinder,
 		DisplayName: "Grinder", Noun: "grinder", URLPath: "grinders",
-		FeedFilterLabel: "Grinders",
-		GetField:        grinderField,
+		GetField: grinderField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToGrinder(rec, uri)
 		},
@@ -83,8 +79,7 @@ func init() {
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeBrewer, NSID: NSIDBrewer,
 		DisplayName: "Brewer", Noun: "brewer", URLPath: "brewers",
-		FeedFilterLabel: "Brewers",
-		GetField:        brewerField,
+		GetField: brewerField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrewer(rec, uri)
 		},
@@ -106,8 +101,7 @@ func init() {
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeRecipe, NSID: NSIDRecipe,
 		DisplayName: "Recipe", Noun: "recipe", URLPath: "recipes",
-		FeedFilterLabel: "Recipes",
-		GetField:        recipeField,
+		GetField: recipeField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToRecipe(rec, uri)
 		},
@@ -130,8 +124,7 @@ func init() {
 	entities.Register(&entities.Descriptor{
 		Type: lexicons.RecordTypeBrew, NSID: NSIDBrew,
 		DisplayName: "Brew", Noun: "brew", URLPath: "brews",
-		FeedFilterLabel: "Brews",
-		GetField:        nil, // brew has no edit modal that needs prefill
+		GetField: nil, // brew has no edit modal that needs prefill
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrew(rec, uri)
 		},

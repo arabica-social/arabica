@@ -14,27 +14,32 @@ import (
 func FeedViews() feedviews.Registry {
 	return feedviews.Registry{
 		lexicons.RecordTypeOolongTea: {
-			Render:  TeaFeedContent,
-			EditURL: editPageURL("teas"),
+			Render:      TeaFeedContent,
+			FilterLabel: "Teas",
+			EditURL:     editPageURL("teas"),
 		},
 		lexicons.RecordTypeOolongVendor: {
 			Render:       VendorFeedContent,
 			Compact:      true,
+			FilterLabel:  "Vendors",
 			EditModalURL: modalEditURL("vendor"),
 		},
 		lexicons.RecordTypeOolongVessel: {
 			Render:       VesselFeedContent,
 			Compact:      true,
+			FilterLabel:  "Vessels",
 			EditModalURL: modalEditURL("vessel"),
 		},
 		lexicons.RecordTypeOolongInfuser: {
 			Render:       InfuserFeedContent,
 			Compact:      true,
+			FilterLabel:  "Infusers",
 			EditModalURL: modalEditURL("infuser"),
 		},
 		lexicons.RecordTypeOolongBrew: {
-			Render:  BrewFeedContent,
-			EditURL: editPageURL("brews"),
+			Render:      BrewFeedContent,
+			FilterLabel: "Brews",
+			EditURL:     editPageURL("brews"),
 		},
 	}
 }

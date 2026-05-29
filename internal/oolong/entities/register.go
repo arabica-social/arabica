@@ -7,13 +7,12 @@ import (
 
 func init() {
 	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongTea,
-		NSID:            NSIDTea,
-		DisplayName:     "Tea",
-		Noun:            "tea",
-		URLPath:         "teas",
-		FeedFilterLabel: "Teas",
-		GetField:        teaField,
+		Type:        lexicons.RecordTypeOolongTea,
+		NSID:        NSIDTea,
+		DisplayName: "Tea",
+		Noun:        "tea",
+		URLPath:     "teas",
+		GetField:    teaField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToTea(rec, uri)
 		},
@@ -34,13 +33,12 @@ func init() {
 		ResolveRefs: resolveTeaFeedRef,
 	})
 	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongVendor,
-		NSID:            NSIDVendor,
-		DisplayName:     "Tea Vendor",
-		Noun:            "vendor",
-		URLPath:         "vendors",
-		FeedFilterLabel: "Vendors",
-		GetField:        vendorField,
+		Type:        lexicons.RecordTypeOolongVendor,
+		NSID:        NSIDVendor,
+		DisplayName: "Tea Vendor",
+		Noun:        "vendor",
+		URLPath:     "vendors",
+		GetField:    vendorField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToVendor(rec, uri)
 		},
@@ -60,13 +58,12 @@ func init() {
 		},
 	})
 	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongVessel,
-		NSID:            NSIDVessel,
-		DisplayName:     "Vessel",
-		Noun:            "vessel",
-		URLPath:         "vessels",
-		FeedFilterLabel: "Vessels",
-		GetField:        vesselField,
+		Type:        lexicons.RecordTypeOolongVessel,
+		NSID:        NSIDVessel,
+		DisplayName: "Vessel",
+		Noun:        "vessel",
+		URLPath:     "vessels",
+		GetField:    vesselField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToVessel(rec, uri)
 		},
@@ -86,13 +83,12 @@ func init() {
 		},
 	})
 	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongInfuser,
-		NSID:            NSIDInfuser,
-		DisplayName:     "Infuser",
-		Noun:            "infuser",
-		URLPath:         "infusers",
-		FeedFilterLabel: "Infusers",
-		GetField:        infuserField,
+		Type:        lexicons.RecordTypeOolongInfuser,
+		NSID:        NSIDInfuser,
+		DisplayName: "Infuser",
+		Noun:        "infuser",
+		URLPath:     "infusers",
+		GetField:    infuserField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToInfuser(rec, uri)
 		},
@@ -112,13 +108,12 @@ func init() {
 		},
 	})
 	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongBrew,
-		NSID:            NSIDBrew,
-		DisplayName:     "Tea Brew",
-		Noun:            "brew",
-		URLPath:         "brews",
-		FeedFilterLabel: "Brews",
-		GetField:        nil, // brew has no edit modal that needs prefill
+		Type:        lexicons.RecordTypeOolongBrew,
+		NSID:        NSIDBrew,
+		DisplayName: "Tea Brew",
+		Noun:        "brew",
+		URLPath:     "brews",
+		GetField:    nil, // brew has no edit modal that needs prefill
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrew(rec, uri)
 		},

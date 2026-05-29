@@ -15,6 +15,7 @@ func FeedViews() feedviews.Registry {
 	return feedviews.Registry{
 		lexicons.RecordTypeBean: {
 			Render:       BeanFeedContent,
+			FilterLabel:  "Beans",
 			EditModalURL: modalEditURL("bean"),
 		},
 		lexicons.RecordTypeRoaster: {
@@ -25,20 +26,24 @@ func FeedViews() feedviews.Registry {
 		lexicons.RecordTypeGrinder: {
 			Render:       GrinderFeedContent,
 			Compact:      true,
+			FilterLabel:  "Grinders",
 			EditModalURL: modalEditURL("grinder"),
 		},
 		lexicons.RecordTypeBrewer: {
 			Render:       BrewerFeedContent,
 			Compact:      true,
+			FilterLabel:  "Brewers",
 			EditModalURL: modalEditURL("brewer"),
 		},
 		lexicons.RecordTypeRecipe: {
 			Render:       FeedRecipeContent,
+			FilterLabel:  "Recipes",
 			EditModalURL: modalEditURL("recipe"),
 		},
 		lexicons.RecordTypeBrew: {
-			Render:  FeedBrewContentClickable,
-			EditURL: editPageURL("brews"),
+			Render:      FeedBrewContentClickable,
+			FilterLabel: "Brews",
+			EditURL:     editPageURL("brews"),
 		},
 	}
 }

@@ -13,21 +13,22 @@ import (
 
 func TestFeedViews_AllArabicaEntitiesHaveFeedRenderer(t *testing.T) {
 	views := FeedViews()
-	want := []lexicons.RecordType{
-		lexicons.RecordTypeBean,
-		lexicons.RecordTypeRoaster,
-		lexicons.RecordTypeGrinder,
-		lexicons.RecordTypeBrewer,
-		lexicons.RecordTypeRecipe,
-		lexicons.RecordTypeBrew,
+	want := map[lexicons.RecordType]string{
+		lexicons.RecordTypeBean:    "Beans",
+		lexicons.RecordTypeRoaster: "",
+		lexicons.RecordTypeGrinder: "Grinders",
+		lexicons.RecordTypeBrewer:  "Brewers",
+		lexicons.RecordTypeRecipe:  "Recipes",
+		lexicons.RecordTypeBrew:    "Brews",
 	}
-	for _, rt := range want {
+	for rt, filterLabel := range want {
 		d := entities.Get(rt)
 		assert.NotNil(t, d, "descriptor missing for %s", rt)
 		if d == nil {
 			continue
 		}
 		assert.NotNil(t, views[rt].Render, "feed renderer not wired for %s", rt)
+		assert.Equal(t, filterLabel, views.FilterLabel(rt), "feed filter label for %s", rt)
 	}
 }
 

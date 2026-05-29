@@ -25,6 +25,7 @@ Updated 2026-05-29: the following follow-up items have been addressed in the cur
 - Remaining direct template script hrefs now flow through explicit layout/page data instead of calling asset package globals from templates.
 - Feed rendering hooks moved out of domain descriptors into an explicit app-owned feed view registry; app constructors no longer blank-import web components for descriptor mutation.
 - Feed edit action URLs moved out of domain descriptors and into app-owned feed views; architecture tests now guard descriptors against feed/web action fields.
+- Feed filter labels moved out of domain descriptors and into app-owned feed views; descriptor guards now reject feed UI fields.
 
 Verification for the cleanup stack:
 
