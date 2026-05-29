@@ -26,7 +26,6 @@ var existingSharedAppImports = []string{
 	"internal/firehose/index.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/firehose/index.go imports tangled.org/arabica.social/arabica/internal/oolong/entities",
 	"internal/firehose/notifications.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
-	"internal/handlers/admin.go imports tangled.org/arabica.social/arabica/internal/arabica/web/pages",
 	"internal/handlers/feed.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/handlers/feed.go imports tangled.org/arabica.social/arabica/internal/oolong/entities",
 	"internal/handlers/handlers.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
