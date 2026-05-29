@@ -21,6 +21,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/signup"
+	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -92,6 +93,7 @@ type Handler struct {
 
 	staticPages  StaticPageRenderers
 	homeBehavior HomeBehavior
+	assets       assets.Manifest
 }
 
 // SetStaticPageRenderers wires app-owned static page templates into the shared
@@ -110,6 +112,11 @@ func (h *Handler) SetHomeReadinessChecker(checker HomeReadinessChecker) {
 // handler.
 func (h *Handler) SetHomeBehavior(behavior HomeBehavior) {
 	h.homeBehavior = behavior
+}
+
+// SetAssetManifest wires the server's configured asset hrefs into layout data.
+func (h *Handler) SetAssetManifest(manifest assets.Manifest) {
+	h.assets = manifest
 }
 
 // SetDevMode toggles dev-mode features. Called once at startup from the
@@ -521,6 +528,7 @@ func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated
 		BrandName:               h.brand.DisplayName,
 		BrandTagline:            h.brand.Tagline,
 		AppName:                 appName(h.app),
+		Assets:                  h.assets,
 	}
 }
 

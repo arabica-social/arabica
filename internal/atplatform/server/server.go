@@ -354,6 +354,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	jsAssets := assets.NewJSAssets(assets.JSConfig{DevDir: jsDevDir})
 	jsAssets.MustBuild()
 	assets.RegisterJS(jsAssets)
+	h.SetAssetManifest(assets.NewManifest(cssBundle, jsAssets))
 
 	// Router
 	handler := routing.SetupRouter(routing.Config{
