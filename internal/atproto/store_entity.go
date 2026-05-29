@@ -5,36 +5,10 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	"tangled.org/arabica.social/arabica/internal/atproto/storecodec"
 )
 
-// EntityCodec describes how to move one typed record kind between the
-// store's wire format (map[string]any) and a Go model. It lets the
-// generic CRUD helpers below replace the bodies of every per-entity
-// Create/Get/List/Update/Delete method without losing type safety at
-// the call site.
-//
-// ToRecord converts a populated model into the value PutRecord expects;
-// FromRecord is the inverse for fetched records (URI gives reference
-// resolution a stable identity); SetRKey assigns the PDS-returned rkey
-// to the model field.
-type EntityCodec[M any] struct {
-	NSID string
-	// ToRecord receives the store so encoders for entities with foreign
-	// references (e.g. Bean → Roaster) can call s.DID() to build AT-URIs.
-	// Simple entities ignore the first argument.
-	ToRecord   func(s *AtprotoStore, m *M) (any, error)
-	FromRecord func(rec map[string]any, uri string) (*M, error)
-	SetRKey    func(model *M, rkey string)
-	// PostGet runs once after a Get decodes the model. Typical use is
-	// resolving foreign references (witness lookup, PDS fallback) — it
-	// may make network calls. Optional.
-	PostGet func(ctx context.Context, s *AtprotoStore, m *M, rec map[string]any)
-	// PostList runs after each List element is decoded. Must be pure
-	// (no I/O) — runs in a tight loop. Typical use is extracting
-	// foreign rkeys from raw refs so callers can batch-resolve later
-	// (see LinkBeansToRoasters). Optional.
-	PostList func(m *M, rec map[string]any)
-}
+type EntityCodec[M any] = storecodec.EntityCodec[M]
 
 // CreateEntity creates a new record and returns the freshly-keyed model.
 func CreateEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], model *M) (*M, error) {

@@ -668,12 +668,13 @@ The main simplification is to make cache/witness logic decorate raw record acces
 Evidence:
 
 - `internal/atproto/store.go:9` imports `internal/arabica/entities`.
-- `internal/atproto/store_arabica_codecs.go:8` imports `internal/arabica/entities`.
-- `internal/atproto/store_generic.go:9` imports `internal/arabica/entities`.
-- `internal/atproto/store_arabica_codecs.go:17` starts Arabica-specific codecs such as `roasterCodec`.
-- `internal/atproto/store_arabica_codecs.go:49-50` wires `PostGet` to `resolveBeanRefs`.
+- `internal/atproto/store.go` bridges to Arabica-owned codecs while still owning typed Arabica methods.
 - `internal/atproto/store.go:613` defines `resolveBeanRefs`.
 - `internal/atproto/store.go:876` defines `resolveRecipeRefs`.
+
+Progress:
+
+- Moved Arabica entity codec definitions to `internal/arabica/entities/atproto_codecs.go` and deleted `internal/atproto/store_arabica_codecs.go`.
 
 Why this is structurally bad:
 
@@ -683,10 +684,9 @@ This dependency direction makes reuse impossible without dragging Arabica into p
 
 Code-judo proposal:
 
-- Move `store_arabica_codecs.go` out of `internal/atproto`.
+- Continue moving typed Arabica store behavior out of `internal/atproto/store.go`.
 - Put typed Arabica repository/codecs under an Arabica-owned package, for example:
   - `internal/arabica/repository`
-  - `internal/arabica/atproto`
 - Leave only generic record operations in `internal/atproto`.
 - Make reference resolution a domain repository concern, not an ATProto transport concern.
 
@@ -1021,7 +1021,6 @@ Then move methods one group at a time. No schema migration required.
 
 Target files:
 
-- `internal/atproto/store_arabica_codecs.go`
 - Arabica-specific methods in `internal/atproto/store.go`
 - Arabica-specific imports in `internal/atproto/store_generic.go`
 

@@ -32,6 +32,14 @@ type AtprotoStore struct {
 	commentNSID string
 }
 
+var (
+	roasterCodec = arabica.AtprotoRoasterCodec
+	grinderCodec = arabica.AtprotoGrinderCodec
+	brewerCodec  = arabica.AtprotoBrewerCodec
+	beanCodec    = arabica.AtprotoBeanCodec
+	recipeCodec  = arabica.AtprotoRecipeCodec
+)
+
 // NewAtprotoStore creates a new atproto store for a specific user session.
 // The cache parameter allows for dependency injection and testability.
 func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *SessionCache) *AtprotoStore {
@@ -644,17 +652,8 @@ func (s *AtprotoStore) resolveBeanRefs(ctx context.Context, bean *arabica.Bean, 
 	}
 }
 
-// extractBeanRoasterRKey is the cheap variant for list paths: only the
-// RoasterRKey is populated; full Roaster resolution happens later via
-// LinkBeansToRoasters to avoid N+1 lookups.
-func extractBeanRoasterRKey(bean *arabica.Bean, record map[string]any) {
-	roasterRef, ok := record["roasterRef"].(string)
-	if !ok || roasterRef == "" {
-		return
-	}
-	if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
-		bean.RoasterRKey = rkey
-	}
+func (s *AtprotoStore) ResolveBeanRefs(ctx context.Context, bean *arabica.Bean, record map[string]any) {
+	s.resolveBeanRefs(ctx, bean, record)
 }
 
 func (s *AtprotoStore) CreateBean(ctx context.Context, bean *arabica.CreateBeanRequest) (*arabica.Bean, error) {
@@ -903,16 +902,8 @@ func (s *AtprotoStore) resolveRecipeRefs(ctx context.Context, recipe *arabica.Re
 	recipe.BrewerObj = brewer
 }
 
-// extractRecipeBrewerRKey populates recipe.BrewerRKey only (no full
-// resolution). Used by list paths.
-func extractRecipeBrewerRKey(recipe *arabica.Recipe, record map[string]any) {
-	brewerRef, ok := record["brewerRef"].(string)
-	if !ok || brewerRef == "" {
-		return
-	}
-	if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
-		recipe.BrewerRKey = rkey
-	}
+func (s *AtprotoStore) ResolveRecipeRefs(ctx context.Context, recipe *arabica.Recipe, record map[string]any) {
+	s.resolveRecipeRefs(ctx, recipe, record)
 }
 
 func recipeModelFromCreate(req *arabica.CreateRecipeRequest) *arabica.Recipe {
