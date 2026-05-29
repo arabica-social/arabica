@@ -73,9 +73,10 @@ type CachedProfile struct {
 
 // FeedIndex provides persistent storage for firehose events
 type FeedIndex struct {
-	db           *sql.DB
-	publicClient *atp.PublicClient
-	profileTTL   time.Duration
+	db             *sql.DB
+	publicClient   *atp.PublicClient
+	profileTTL     time.Duration
+	profileStorage *profileIndexStorage
 
 	// commentNSID is the comment collection this index's binary serves
 	// (e.g. social.arabica.alpha.comment or social.oolong.alpha.comment).
@@ -339,15 +340,16 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	}
 
 	idx := &FeedIndex{
-		db:           db,
-		publicClient: atproto.NewPublicClient(),
-		profileTTL:   profileTTL,
-		profileCache: make(map[string]*CachedProfile),
+		db:             db,
+		publicClient:   atproto.NewPublicClient(),
+		profileTTL:     profileTTL,
+		profileStorage: newProfileIndexStorage(db),
+		profileCache:   make(map[string]*CachedProfile),
 	}
 
 	// One-time backfill: populate did_by_handle from any pre-existing profile rows
 	// so handle resolution works for users observed before this table existed.
-	if err := idx.backfillHandleIndex(); err != nil {
+	if err := idx.profileStorage.backfillHandleIndex(); err != nil {
 		log.Warn().Err(err).Msg("did_by_handle backfill failed; lookups will populate lazily")
 	}
 
@@ -359,39 +361,6 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	}
 
 	return idx, nil
-}
-
-// backfillHandleIndex populates did_by_handle from the profiles table. Idempotent.
-// Iterates every cached profile and inserts (handle, did) — last writer wins,
-// matching the live storeProfile semantics, so a handle that existed on multiple
-// DIDs resolves to whichever profile was inserted most recently in the iteration.
-func (idx *FeedIndex) backfillHandleIndex() error {
-	var n int
-	if err := idx.db.QueryRow(`SELECT COUNT(*) FROM did_by_handle`).Scan(&n); err == nil && n > 0 {
-		return nil
-	}
-
-	rows, err := idx.db.Query(`SELECT did, data FROM profiles`)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	now := time.Now().Format(time.RFC3339Nano)
-	for rows.Next() {
-		var did, dataStr string
-		if err := rows.Scan(&did, &dataStr); err != nil {
-			continue
-		}
-		cached := &CachedProfile{}
-		if err := json.Unmarshal([]byte(dataStr), cached); err != nil || cached.Profile == nil || cached.Profile.Handle == "" {
-			continue
-		}
-		_, _ = idx.db.Exec(
-			`INSERT OR REPLACE INTO did_by_handle (handle, did, updated_at) VALUES (?, ?, ?)`,
-			cached.Profile.Handle, did, now)
-	}
-	return rows.Err()
 }
 
 // Compile-time check: FeedIndex must satisfy the atproto.WitnessCache interface.
@@ -1146,18 +1115,13 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 	idx.profileCacheMu.RUnlock()
 
 	// Check persistent store — no TTL, firehose keeps it fresh
-	var dataStr string
-	err := idx.db.QueryRowContext(ctx, `SELECT data FROM profiles WHERE did = ?`, did).Scan(&dataStr)
-	if err == nil {
-		cached := &CachedProfile{}
-		if err := json.Unmarshal([]byte(dataStr), cached); err == nil {
-			// Promote to in-memory cache
-			cached.ExpiresAt = time.Now().Add(idx.profileTTL)
-			idx.profileCacheMu.Lock()
-			idx.profileCache[did] = cached
-			idx.profileCacheMu.Unlock()
-			return cached.Profile, nil
-		}
+	if cached, ok := idx.profileStorage.loadProfile(ctx, did); ok {
+		// Promote to in-memory cache
+		cached.ExpiresAt = time.Now().Add(idx.profileTTL)
+		idx.profileCacheMu.Lock()
+		idx.profileCache[did] = cached
+		idx.profileCacheMu.Unlock()
+		return cached.Profile, nil
 	}
 
 	// Unknown DID — fetch from API
@@ -1193,21 +1157,7 @@ func (idx *FeedIndex) storeProfile(ctx context.Context, did string, profile *atp
 	idx.profileCache[did] = cached
 	idx.profileCacheMu.Unlock()
 
-	data, _ := json.Marshal(cached)
-	_, _ = idx.db.ExecContext(ctx, `INSERT OR REPLACE INTO profiles (did, data, expires_at) VALUES (?, ?, ?)`,
-		did, string(data), cached.ExpiresAt.Format(time.RFC3339Nano))
-
-	if profile != nil && profile.Handle != "" {
-		// Drop any prior row pointing this DID at a different handle (handle change).
-		_, _ = idx.db.ExecContext(ctx,
-			`DELETE FROM did_by_handle WHERE did = ? AND handle != ?`, did, profile.Handle)
-		// Last writer wins on handle — this naturally resolves handle reassignment
-		// from an old DID to a new one, since the new profile's INSERT OR REPLACE
-		// overwrites the old DID's mapping.
-		_, _ = idx.db.ExecContext(ctx,
-			`INSERT OR REPLACE INTO did_by_handle (handle, did, updated_at) VALUES (?, ?, ?)`,
-			profile.Handle, did, now.Format(time.RFC3339Nano))
-	}
+	idx.profileStorage.storeProfile(ctx, did, cached)
 }
 
 // GetDIDByHandle looks up a DID from the handle index. Returns the DID and
@@ -1217,13 +1167,7 @@ func (idx *FeedIndex) storeProfile(ctx context.Context, did string, profile *atp
 // been reassigned to a new DID resolves to that new DID once the new profile
 // is observed (via the firehose profile watcher or a GetProfile call).
 func (idx *FeedIndex) GetDIDByHandle(ctx context.Context, handle string) (string, bool) {
-	var did string
-	err := idx.db.QueryRowContext(ctx,
-		`SELECT did FROM did_by_handle WHERE handle = ?`, handle).Scan(&did)
-	if err != nil || did == "" {
-		return "", false
-	}
-	return did, true
+	return idx.profileStorage.didByHandle(ctx, handle)
 }
 
 // InvalidateProfile removes a DID's profile from both the in-memory and persistent
@@ -1233,8 +1177,7 @@ func (idx *FeedIndex) InvalidateProfile(did string) {
 	delete(idx.profileCache, did)
 	idx.profileCacheMu.Unlock()
 
-	_, _ = idx.db.Exec(`DELETE FROM profiles WHERE did = ?`, did)
-	_, _ = idx.db.Exec(`DELETE FROM did_by_handle WHERE did = ?`, did)
+	idx.profileStorage.deleteProfile(did)
 }
 
 // ProfileCachedInMemory reports whether the in-memory profile cache currently
@@ -1267,19 +1210,11 @@ func (idx *FeedIndex) RefreshProfile(ctx context.Context, did string) {
 // race left behind gets corrected since AppView has caught up by the time the
 // admin runs this. Returns refreshed and failed counts. Honours ctx cancel.
 func (idx *FeedIndex) RefreshAllProfiles(ctx context.Context) (refreshed, failed int) {
-	rows, err := idx.db.QueryContext(ctx, `SELECT did FROM profiles`)
+	dids, err := idx.profileStorage.profileDIDs(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("refresh all profiles: query failed")
 		return 0, 0
 	}
-	dids := make([]string, 0, 128)
-	for rows.Next() {
-		var did string
-		if err := rows.Scan(&did); err == nil {
-			dids = append(dids, did)
-		}
-	}
-	rows.Close()
 
 	log.Info().Int("count", len(dids)).Msg("refresh all profiles: starting")
 
@@ -1362,21 +1297,14 @@ func (idx *FeedIndex) OnIdentityEvent(ctx context.Context, did, newHandle string
 	idx.profileCacheMu.RUnlock()
 	if oldHandle == "" {
 		// Fall back to persistent store.
-		var dataStr string
-		if err := idx.db.QueryRowContext(ctx, `SELECT data FROM profiles WHERE did = ?`, did).Scan(&dataStr); err == nil {
-			cached := &CachedProfile{}
-			if err := json.Unmarshal([]byte(dataStr), cached); err == nil && cached.Profile != nil {
-				oldHandle = cached.Profile.Handle
-			}
+		if cached, ok := idx.profileStorage.loadProfile(ctx, did); ok && cached.Profile != nil {
+			oldHandle = cached.Profile.Handle
 		}
 	}
 
 	if newHandle != "" {
 		// Evict any prior owner of newHandle (other than `did` itself).
-		var priorDID string
-		err := idx.db.QueryRowContext(ctx,
-			`SELECT did FROM did_by_handle WHERE handle = ? AND did != ?`, newHandle, did).Scan(&priorDID)
-		if err == nil && priorDID != "" {
+		if priorDID, ok := idx.profileStorage.didByHandleExcept(ctx, newHandle, did); ok {
 			log.Warn().
 				Str("handle", newHandle).
 				Str("prior_did", priorDID).
@@ -1730,11 +1658,8 @@ func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string)
 	if did == "" {
 		return defaults
 	}
-	var raw string
-	err := idx.db.QueryRowContext(ctx,
-		`SELECT profile_stats_visibility FROM user_settings WHERE did = ?`, did,
-	).Scan(&raw)
-	if err != nil {
+	raw, ok := idx.profileStorage.profileStatsVisibility(ctx, did)
+	if !ok {
 		return defaults
 	}
 	var settings arabica.ProfileStatsVisibility
@@ -1757,12 +1682,7 @@ func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string,
 	if err != nil {
 		return fmt.Errorf("marshal settings: %w", err)
 	}
-	_, err = idx.db.ExecContext(ctx,
-		`INSERT INTO user_settings (did, profile_stats_visibility) VALUES (?, ?)
-		 ON CONFLICT(did) DO UPDATE SET profile_stats_visibility = excluded.profile_stats_visibility`,
-		did, string(raw),
-	)
-	return err
+	return idx.profileStorage.setProfileStatsVisibility(ctx, did, string(raw))
 }
 
 func formatTimeAgo(t time.Time) string {
