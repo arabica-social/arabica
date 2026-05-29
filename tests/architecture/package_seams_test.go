@@ -21,17 +21,14 @@ var existingSharedAppImports = []string{
 	"internal/atproto/store.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/atproto/store_arabica_codecs.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/atproto/store_generic.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
-	"internal/firehose/notifications.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/handlers/feed.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/handlers/handlers.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
-	"internal/handlers/notifications.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/handlers/pages.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/ogcard/brew.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/ogcard/entities.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/web/bff/helpers.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/web/components/incomplete_records_templ.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/web/components/shared_templ.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
-	"internal/web/pages/notifications_templ.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/web/pages/settings_templ.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 }
 

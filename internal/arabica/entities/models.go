@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/notifications"
 	"tangled.org/arabica.social/arabica/internal/profileprefs"
 )
 
@@ -730,23 +731,16 @@ func (r *CreateCommentRequest) Validate() error {
 }
 
 // NotificationType represents the type of notification
-type NotificationType string
+type NotificationType = notifications.Type
 
 const (
-	NotificationLike         NotificationType = "like"
-	NotificationComment      NotificationType = "comment"
-	NotificationCommentReply NotificationType = "comment_reply"
+	NotificationLike         = notifications.Like
+	NotificationComment      = notifications.Comment
+	NotificationCommentReply = notifications.CommentReply
 )
 
 // Notification represents a notification for a user
-type Notification struct {
-	ID         string           `json:"id"`          // Unique key (timestamp-based)
-	Type       NotificationType `json:"type"`        // like, comment, comment_reply
-	ActorDID   string           `json:"actor_did"`   // Who performed the action
-	SubjectURI string           `json:"subject_uri"` // The brew/comment that was acted on
-	CreatedAt  time.Time        `json:"created_at"`
-	Read       bool             `json:"read"`
-}
+type Notification = notifications.Notification
 
 // Report represents a user-submitted content report
 // TODO: Store reports in database (BoltDB or SQLite) for moderation review

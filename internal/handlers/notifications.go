@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	"tangled.org/arabica.social/arabica/internal/notifications"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -134,14 +134,14 @@ func parseNotificationSubjectURI(subjectURI string) (did, collection, rkey strin
 }
 
 // notifActionText returns human-readable action text for a notification.
-func notifActionText(app *domain.App, notif arabica.Notification) string {
+func notifActionText(app *domain.App, notif notifications.Notification) string {
 	entity := resolveNotificationEntityName(app, notif.SubjectURI)
 	switch notif.Type {
-	case arabica.NotificationLike:
+	case notifications.Like:
 		return "liked your " + entity
-	case arabica.NotificationComment:
+	case notifications.Comment:
 		return "commented on your " + entity
-	case arabica.NotificationCommentReply:
+	case notifications.CommentReply:
 		return "replied to your comment"
 	default:
 		return "interacted with your " + entity
