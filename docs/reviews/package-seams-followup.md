@@ -2,6 +2,34 @@
 
 Additional thermo-nuclear worker passes focused specifically on package seams, code organization, package boundaries, and abstraction lines.
 
+## Progress notes
+
+Updated 2026-05-29: the following follow-up items have been addressed in the current package-seams cleanup stack.
+
+- Added an architecture seam guard so shared-package imports of `internal/arabica` and `internal/oolong` cannot grow unnoticed; the baseline now ratchets down as seams are fixed.
+- App-specific route registration moved out of shared `internal/routing`; Arabica and Oolong route packages now register their own app routes, and the integration harness wires Arabica routes explicitly.
+- Suggestion entity path resolution now uses the active app descriptors instead of the global all-app descriptor registry.
+- Notification links/action labels now derive record URLs and entity names from the active app descriptors instead of hard-coded Arabica route maps.
+- Static About/Terms page selection moved behind app-provided static page renderers.
+- Arabica brew readiness onboarding moved from generic `internal/onboarding` to `internal/arabica/onboarding`; shared home rendering no longer imports the Arabica onboarding package directly.
+- Request logging middleware now depends on a small request observer interface; Prometheus metrics are wired from routing instead of imported directly by middleware.
+- Admin page view models/templates moved from `internal/arabica/web/pages` to shared `internal/web/pages`, so shared admin handlers no longer type against Arabica page structs.
+- Home page readiness, OpenGraph description, and site-card behavior moved behind app-provided home behavior callbacks; shared home/feed handling no longer imports Oolong entities for readiness checks.
+- SQLite store adapters split by owner: OAuth sessions moved to `internal/atproto/oauthsqlite`, and moderation persistence moved to `internal/moderation/sqlite`.
+- Arabica profile handling moved from shared `internal/handlers` into `internal/arabica/handlers`; shared routing no longer owns the Arabica profile routes/partials.
+- Layout rendering now receives an explicit asset manifest from server wiring, reducing reliance on package-level CSS/JS href registries for the main layout.
+- FeedIndex profile persistence moved behind a narrow internal profile storage type while keeping `FeedIndex` as the public facade.
+- The backend unification branch was integrated on top of the package-seams stack; generic record CRUD now uses `internal/records.Store`, Arabica typed store accessors live with Arabica handlers, and app constructors moved into app-owned packages.
+- FeedIndex notification persistence moved behind a narrow internal notification storage type while keeping `FeedIndex` as the public facade.
+
+Verification for the cleanup stack:
+
+```bash
+env GOCACHE=/tmp/arabica-go-cache go test ./...
+```
+
+Remaining large seams include descriptor/rendering split, `AtprotoStore`, further `FeedIndex` decomposition, feed/firehose ownership, remaining asset globals, middleware package boundaries, and the web BFF/view helper split.
+
 ## App/shared package seams follow-up review
 
 Scope reviewed: `internal/arabica/**`, `internal/oolong/**`, `internal/entities`, `internal/handlers`, `internal/routing`, `cmd/arabica`, `cmd/oolong`.
@@ -1341,4 +1369,3 @@ The code-judo move is to push ownership upward into explicit app/server composit
 3. Make observers interfaces at subsystem boundaries.
 4. Delete global registration APIs.
 5. Use tests as pressure: if a test must mutate a package global, the seam is wrong.
-
