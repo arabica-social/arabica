@@ -48,6 +48,12 @@ func TestSharedPackagesDoNotAddAppImports(t *testing.T) {
 	assert.Empty(t, stale, "remove fixed imports from existingSharedAppImports so the seam guard keeps ratcheting down")
 }
 
+func TestDomainEntityRegistryDoesNotImportTempl(t *testing.T) {
+	imports := importsForDir(t, "../../internal/entities")
+	_, importsTempl := imports["github.com/a-h/templ"]
+	assert.False(t, importsTempl, "internal/entities is domain metadata; feed rendering belongs in app-owned web packages")
+}
+
 func sharedAppImports(t *testing.T) map[string]struct{} {
 	t.Helper()
 
@@ -87,6 +93,36 @@ func sharedAppImports(t *testing.T) map[string]struct{} {
 			if isAppImport(importPath) {
 				imports[rel+" imports "+importPath] = struct{}{}
 			}
+		}
+		return nil
+	})
+	assert.NoError(t, err)
+	return imports
+}
+
+func importsForDir(t *testing.T, dir string) map[string]struct{} {
+	t.Helper()
+
+	imports := map[string]struct{}{}
+	fset := token.NewFileSet()
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		assert.NoError(t, err)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		file, parseErr := parser.ParseFile(fset, path, nil, parser.ImportsOnly)
+		assert.NoError(t, parseErr)
+		if parseErr != nil {
+			return parseErr
+		}
+		for _, spec := range file.Imports {
+			imports[unquoteImportPath(t, spec)] = struct{}{}
 		}
 		return nil
 	})

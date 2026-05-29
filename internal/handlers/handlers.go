@@ -24,6 +24,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -94,6 +95,7 @@ type Handler struct {
 	staticPages  StaticPageRenderers
 	homeBehavior HomeBehavior
 	assets       assets.Manifest
+	feedViews    feedviews.Registry
 
 	// storeOverride supports focused handler tests without constructing an
 	// OAuth-backed ATProto client. Production code leaves it nil.
@@ -128,6 +130,10 @@ func (h *Handler) SetHomeBehavior(behavior HomeBehavior) {
 // SetAssetManifest wires the server's configured asset hrefs into layout data.
 func (h *Handler) SetAssetManifest(manifest assets.Manifest) {
 	h.assets = manifest
+}
+
+func (h *Handler) SetFeedViews(views feedviews.Registry) {
+	h.feedViews = views
 }
 
 // SetRecordStoreOverrideForTest injects an app-generic record store for

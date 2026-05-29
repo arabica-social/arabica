@@ -256,6 +256,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		NextCursor:      nextCursor,
 		IsAuthenticated: isAuthenticated,
 		Descriptors:     descriptors,
+		FeedViews:       h.feedViews,
 	}
 
 	// If this is a "load more" request (has cursor), render just the additional items

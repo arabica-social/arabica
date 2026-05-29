@@ -11,6 +11,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	"tangled.org/arabica.social/arabica/internal/records"
 )
 
@@ -24,6 +25,7 @@ type Handlers struct {
 // The base handler is shared across all per-app handler sets in a binary.
 func New(base *handlers.Handler) *Handlers {
 	h := &Handlers{Handler: base}
+	base.SetFeedViews(tea.FeedViews())
 	base.SetHomeBehavior(handlers.HomeBehavior{
 		OGDescription: "Tea journaling for the open social web. Log every steep, track your teaware, share your tea story.",
 		SiteCardOpts: ogcard.SiteCardOpts{

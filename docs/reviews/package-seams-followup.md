@@ -23,6 +23,7 @@ Updated 2026-05-29: the following follow-up items have been addressed in the cur
 - FeedIndex notification persistence moved behind a narrow internal notification storage type while keeping `FeedIndex` as the public facade.
 - FeedIndex social persistence for likes and comments moved behind a narrow internal social storage type while keeping `FeedIndex` as the public facade.
 - Remaining direct template script hrefs now flow through explicit layout/page data instead of calling asset package globals from templates.
+- Feed rendering hooks moved out of domain descriptors into an explicit app-owned feed view registry; app constructors no longer blank-import web components for descriptor mutation.
 
 Verification for the cleanup stack:
 

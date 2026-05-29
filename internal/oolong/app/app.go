@@ -5,10 +5,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
-
-	// Blank import runs init() in Oolong web components, wiring templ render
-	// hooks onto Oolong descriptors until descriptor/view registration is split.
-	_ "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 )
 
 func New() *domain.App {

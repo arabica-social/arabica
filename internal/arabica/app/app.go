@@ -5,10 +5,6 @@ import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/entities"
-
-	// Blank import runs init() in Arabica web components, wiring templ render
-	// hooks onto Arabica descriptors until descriptor/view registration is split.
-	_ "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 )
 
 func New() *domain.App {

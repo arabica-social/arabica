@@ -9,7 +9,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
-func TestOolongDescriptorBridge_AllEntitiesHaveFeedRenderer(t *testing.T) {
+func TestOolongFeedViews_AllEntitiesHaveFeedRenderer(t *testing.T) {
+	views := FeedViews()
 	want := []lexicons.RecordType{
 		lexicons.RecordTypeOolongTea,
 		lexicons.RecordTypeOolongVendor,
@@ -23,43 +24,35 @@ func TestOolongDescriptorBridge_AllEntitiesHaveFeedRenderer(t *testing.T) {
 		if d == nil {
 			continue
 		}
-		assert.NotNil(t, d.RenderFeedContent, "RenderFeedContent not wired for %s", rt)
+		assert.NotNil(t, views[rt].Render, "feed renderer not wired for %s", rt)
 		assert.NotNil(t, d.RKey, "RKey not wired for %s", rt)
 		assert.NotNil(t, d.DisplayTitle, "DisplayTitle not wired for %s", rt)
 	}
 }
 
-func TestOolongDescriptorBridge_BrewHasEditURL(t *testing.T) {
+func TestOolongFeedViews_BrewDescriptorKeepsEditURL(t *testing.T) {
 	d := entities.Get(lexicons.RecordTypeOolongBrew)
 	assert.NotNil(t, d)
 	assert.NotNil(t, d.EditURL, "Oolong Brew should have EditURL wired")
 }
 
-func TestOolongDescriptorBridge_CompactEntities(t *testing.T) {
+func TestOolongFeedViews_CompactEntities(t *testing.T) {
+	views := FeedViews()
 	for _, rt := range []lexicons.RecordType{
 		lexicons.RecordTypeOolongVendor,
 		lexicons.RecordTypeOolongVessel,
 		lexicons.RecordTypeOolongInfuser,
 	} {
-		d := entities.Get(rt)
-		assert.NotNil(t, d)
-		if d == nil {
-			continue
-		}
-		assert.True(t, d.FeedCardCompact, "%s should be FeedCardCompact", rt)
+		assert.True(t, views.Compact(rt), "%s should be compact", rt)
 	}
 }
 
-func TestOolongDescriptorBridge_NonCompactEntities(t *testing.T) {
+func TestOolongFeedViews_NonCompactEntities(t *testing.T) {
+	views := FeedViews()
 	for _, rt := range []lexicons.RecordType{
 		lexicons.RecordTypeOolongTea,
 		lexicons.RecordTypeOolongBrew,
 	} {
-		d := entities.Get(rt)
-		assert.NotNil(t, d)
-		if d == nil {
-			continue
-		}
-		assert.False(t, d.FeedCardCompact, "%s should not be FeedCardCompact", rt)
+		assert.False(t, views.Compact(rt), "%s should not be compact", rt)
 	}
 }

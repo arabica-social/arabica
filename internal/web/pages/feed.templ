@@ -6,6 +6,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 	"tangled.org/pdewey.com/atp"
 )
 
@@ -24,6 +25,7 @@ type FeedQueryState struct {
 	NextCursor      string // Cursor for next page (empty = no more)
 	IsAuthenticated bool
 	Descriptors     []*entities.Descriptor // App-scoped descriptors for filter tabs
+	FeedViews       feedviews.Registry     // App-scoped renderers for feed cards
 }
 
 // feedFilterTab defines a filter tab option
@@ -102,7 +104,7 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 		<div id="feed-items" class="feed-grid">
 			if len(items) > 0 {
 				for _, item := range items {
-					@FeedCardWithModeration(item, isAuthenticated, modCtx)
+					@FeedCardWithModeration(item, isAuthenticated, modCtx, qs.FeedViews)
 				}
 				<!-- Load more button -->
 				if qs.NextCursor != "" {
@@ -186,7 +188,7 @@ templ FeedLoadMoreButton(qs FeedQueryState) {
 // FeedMoreItems renders additional items for "load more" pagination (no filter bar)
 templ FeedMoreItems(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext, qs FeedQueryState) {
 	for _, item := range items {
-		@FeedCardWithModeration(item, isAuthenticated, modCtx)
+		@FeedCardWithModeration(item, isAuthenticated, modCtx, qs.FeedViews)
 	}
 	if qs.NextCursor != "" {
 		@FeedLoadMoreButton(qs)
@@ -195,12 +197,12 @@ templ FeedMoreItems(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedMod
 
 // FeedCard renders a single feed item card (without moderation context)
 templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
-	@FeedCardWithModeration(item, isAuthenticated, FeedModerationContext{})
+	@FeedCardWithModeration(item, isAuthenticated, FeedModerationContext{}, nil)
 }
 
 // FeedCardWithModeration renders a single feed item card with moderation context
-templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext) {
-	<div class={ feedCardClass(item) }>
+templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext, views feedviews.Registry) {
+	<div class={ feedCardClass(item, views) }>
 		<!-- Author row -->
 		<div class="mb-3">
 			@components.UserBadge(components.UserBadgeProps{
@@ -216,10 +218,9 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 		<div class="mb-2 text-sm text-emphasis">
 			@ActionText(item)
 		</div>
-		<!-- Record content — dispatched via entities.Descriptor.RenderFeedContent,
-		     wired by internal/web/components/descriptor_bridge.go. -->
-		if d := entities.Get(item.RecordType); d != nil && d.RenderFeedContent != nil {
-			@d.RenderFeedContent(item)
+		<!-- Record content is dispatched through the app-scoped feed view registry. -->
+		if content := views.Render(item); content != nil {
+			@content
 		}
 		<!-- Action bar -->
 		if item.SubjectURI != "" && item.SubjectCID != "" {
@@ -275,18 +276,14 @@ templ ActionText(item *feed.FeedItem) {
 	}
 }
 
-// Per-entity feed content (BrewContentClickable, RecipeContent, and the
-// other four entity wrappers) lives in internal/web/components/feed_content.templ
-// and is dispatched via entities.Descriptor.RenderFeedContent.
-
 // feedCardClass returns the full class string for a feed card, including
 // the entity-specific accent class (feed-card-{noun}) and the compact
 // modifier for entities with sparse content.
-func feedCardClass(item *feed.FeedItem) string {
+func feedCardClass(item *feed.FeedItem, views feedviews.Registry) string {
 	classes := "feed-card"
 	if d := entities.Get(item.RecordType); d != nil {
 		classes += " feed-card-" + d.Noun
-		if d.FeedCardCompact {
+		if views.Compact(item.RecordType) {
 			classes += " feed-card-compact"
 		}
 	}

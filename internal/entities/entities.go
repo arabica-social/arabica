@@ -9,8 +9,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/a-h/templ"
-
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
@@ -38,27 +36,14 @@ type Descriptor struct {
 	// the feed pipeline.
 	RecordToModel func(record map[string]any, uri string) (any, error)
 
-	// RenderFeedContent returns the entity-specific clickable block for
-	// feed.templ (anchor wrapper + entity content). The argument is a
-	// *feed.FeedItem typed as any to avoid an import cycle (entities is
-	// imported by feed via the descriptor registry). Callers in
-	// internal/web/components/ type-assert. nil means the entity does
-	// not render a content slot in the feed.
-	RenderFeedContent func(item any) templ.Component
-
-	// FeedCardCompact applies the .feed-card-compact CSS modifier to the
-	// feed card wrapper. Used by entities with sparse content
-	// (grinder/brewer/roaster).
-	FeedCardCompact bool
-
 	// EditURL returns the dedicated edit-page URL for an item, or "" if
 	// the entity has no edit page (edited via modal on the manage page).
-	// Item is *feed.FeedItem typed as any (see RenderFeedContent note).
+	// Item is *feed.FeedItem typed as any to avoid an import cycle.
 	EditURL func(item any) string
 
 	// EditModalURL returns the HTMX URL to load the entity's edit modal,
 	// or "" if the entity has a dedicated edit page (EditURL) instead.
-	// Item is *feed.FeedItem typed as any (see RenderFeedContent note).
+	// Item is *feed.FeedItem typed as any to avoid an import cycle.
 	EditModalURL func(item any) string
 
 	// RKey returns the record key of a typed record. The argument is the
