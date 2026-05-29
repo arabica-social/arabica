@@ -36,6 +36,7 @@ Updated 2026-05-29: the following follow-up items have been addressed in the cur
 - Settings profile visibility now uses shared `internal/profileprefs` directly; shared page handlers and settings templates no longer import Arabica entities for preference value types.
 - Shared like/comment request and model types moved to `internal/social`; shared feed/comment handlers no longer import Arabica entities for social operations.
 - Arabica entity OG card renderers moved into `internal/arabica/ogcard`; shared `internal/ogcard` now keeps generic drawing primitives and site-card rendering without Arabica entity imports.
+- Generic Atproto witness-cache metric labels now derive from shared entity descriptors, so `internal/atproto/store_generic.go` no longer imports Arabica entities.
 
 Verification for the cleanup stack:
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/rs/zerolog/log"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/records"
 )
@@ -235,25 +235,11 @@ func (s *AtprotoStore) removeRecord(ctx context.Context, nsid, rkey string) erro
 	return nil
 }
 
-// metricLabelFor returns the short metric label for an NSID. Centralizes
-// the mapping that was previously hardcoded in each typed CRUD method.
-// Unknown NSIDs return "unknown" so metric collection never panics on a
-// new entity that's not yet been added here.
+// metricLabelFor returns the short metric label for an NSID. Unknown NSIDs
+// return "unknown" so metric collection never panics on unregistered records.
 func metricLabelFor(nsid string) string {
-	switch nsid {
-	case arabica.NSIDBean:
-		return "bean"
-	case arabica.NSIDBrew:
-		return "brew"
-	case arabica.NSIDBrewer:
-		return "brewer"
-	case arabica.NSIDGrinder:
-		return "grinder"
-	case arabica.NSIDRecipe:
-		return "recipe"
-	case arabica.NSIDRoaster:
-		return "roaster"
-	default:
-		return "unknown"
+	if descriptor := entities.GetByNSID(nsid); descriptor != nil {
+		return descriptor.Type.String()
 	}
+	return "unknown"
 }
