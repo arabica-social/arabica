@@ -1,12 +1,12 @@
-package components
+package coffee
 
 import (
 	"fmt"
 	"strings"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
-// IncompleteRecord represents a single entity that needs attention
+// IncompleteRecord represents a single entity that needs attention.
 type IncompleteRecord struct {
 	EntityType    string
 	RKey          string
@@ -14,12 +14,12 @@ type IncompleteRecord struct {
 	MissingFields []string
 }
 
-// IncompleteRecordsProps defines the data for the incomplete records section
+// IncompleteRecordsProps defines the data for the incomplete records section.
 type IncompleteRecordsProps struct {
 	Records []IncompleteRecord
 }
 
-// IncompleteRecords renders the incomplete records nudge section
+// IncompleteRecords renders the incomplete records nudge section.
 templ IncompleteRecords(props IncompleteRecordsProps) {
 	if len(props.Records) > 0 {
 		<div class="card p-4 sm:p-6 mb-6">

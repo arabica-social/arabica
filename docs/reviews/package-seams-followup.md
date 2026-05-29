@@ -1382,3 +1382,5 @@ The code-judo move is to push ownership upward into explicit app/server composit
 3. Make observers interfaces at subsystem boundaries.
 4. Delete global registration APIs.
 5. Use tests as pressure: if a test must mutate a package global, the seam is wrong.
+
+- 2026-05-29: Moved coffee bean summary and incomplete-record dashboard components from shared web components into `internal/arabica/web/components`, removing the shared web package's Arabica entity imports.

@@ -25,8 +25,6 @@ var existingSharedAppImports = []string{
 	"internal/handlers/handlers.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/ogcard/brew.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 	"internal/ogcard/entities.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
-	"internal/web/components/incomplete_records_templ.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
-	"internal/web/components/shared_templ.go imports tangled.org/arabica.social/arabica/internal/arabica/entities",
 }
 
 func TestSharedPackagesDoNotAddAppImports(t *testing.T) {

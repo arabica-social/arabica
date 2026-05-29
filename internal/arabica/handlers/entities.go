@@ -13,7 +13,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/tracing"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -364,9 +363,9 @@ func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http
 		return
 	}
 
-	records := components.CollectIncompleteRecords(beans, grinders, brewers, 5)
+	records := coffee.CollectIncompleteRecords(beans, grinders, brewers, 5)
 
-	if err := components.IncompleteRecords(components.IncompleteRecordsProps{
+	if err := coffee.IncompleteRecords(coffee.IncompleteRecordsProps{
 		Records: records,
 	}).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render incomplete records")
