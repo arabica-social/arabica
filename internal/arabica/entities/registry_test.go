@@ -73,11 +73,12 @@ func TestArabicaRegistry_RKey(t *testing.T) {
 		{lexicons.RecordTypeBrew, &arabica.Brew{RKey: "bw1"}, "bw1"},
 	}
 	for _, c := range cases {
-		d := entities.Get(c.rt)
-		assert.NotNil(t, d.RKey, "RKey not wired for %s", c.rt)
-		assert.Equal(t, c.want, d.RKey(c.rec), c.rt)
+		behavior := entities.Behavior(c.rt)
+		assert.NotNil(t, behavior, "behavior not wired for %s", c.rt)
+		assert.NotNil(t, behavior.RKey, "RKey not wired for %s", c.rt)
+		assert.Equal(t, c.want, behavior.RKey(c.rec), c.rt)
 		// Wrong type yields "".
-		assert.Equal(t, "", d.RKey(struct{}{}), "%s should reject wrong type", c.rt)
+		assert.Equal(t, "", behavior.RKey(struct{}{}), "%s should reject wrong type", c.rt)
 	}
 }
 
@@ -97,9 +98,10 @@ func TestArabicaRegistry_DisplayTitle(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			d := entities.Get(c.rt)
-			assert.NotNil(t, d.DisplayTitle, "DisplayTitle not wired for %s", c.rt)
-			assert.Equal(t, c.want, d.DisplayTitle(c.rec))
+			behavior := entities.Behavior(c.rt)
+			assert.NotNil(t, behavior, "behavior not wired for %s", c.rt)
+			assert.NotNil(t, behavior.DisplayTitle, "DisplayTitle not wired for %s", c.rt)
+			assert.Equal(t, c.want, behavior.DisplayTitle(c.rec))
 		})
 	}
 }

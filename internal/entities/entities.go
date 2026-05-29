@@ -1,6 +1,7 @@
-// Package entities provides a registry of descriptors for each record type.
-// A descriptor captures domain and codec behavior for records. App-owned
-// packages own route paths, UI labels, and rendering metadata.
+// Package entities provides registries for record identity metadata and
+// record-specific behavior. Descriptors identify records; record behavior
+// owns codecs, rkey/title extraction, form field extraction, and feed ref
+// hydration.
 package entities
 
 import (
@@ -16,39 +17,6 @@ type Descriptor struct {
 	Type        lexicons.RecordType
 	NSID        string
 	DisplayName string // "Bean"
-
-	// GetField extracts one named string field from a typed model pointer for
-	// form prefill. Returns ("", false) if entity is nil or field is unknown.
-	GetField func(entity any, field string) (string, bool)
-
-	// RecordToModel converts a raw record map (as fetched from PDS or witness
-	// cache) into the typed model for this entity. Returns the model as any;
-	// callers type-assert. nil callback means the entity does not appear in
-	// the feed pipeline.
-	RecordToModel func(record map[string]any, uri string) (any, error)
-
-	// RKey returns the record key of a typed record. The argument is the
-	// concrete record pointer (e.g. *arabica.Bean) typed as any to avoid
-	// import cycles. Returns "" if the assertion fails or the record is
-	// nil. Used by feed.FeedItem.RKey() to build share/view URLs without
-	// hard-coding each app's record types.
-	RKey func(record any) string
-
-	// DisplayTitle returns a human-readable title for a typed record
-	// (used in share UI, OG cards, etc.). Empty string means "use the
-	// descriptor's DisplayName as fallback." Special cases (e.g. brew
-	// returns the bean's name) live in each app's implementation.
-	DisplayTitle func(record any) string
-
-	// ResolveRefs hydrates cross-entity references on a typed model using
-	// records already pulled from the firehose index. model is the typed
-	// pointer returned by RecordToModel; recordData is the same raw map
-	// the model was decoded from (used to read foreign ref URIs);
-	// lookup returns a pre-decoded record map for a given AT-URI, or
-	// (nil, false) if not in the batch. Implementations should silently
-	// skip missing refs — feed cards render fine with partial data.
-	// nil means the entity has no cross-record references to resolve.
-	ResolveRefs func(model any, recordData map[string]any, lookup func(refURI string) (map[string]any, bool))
 }
 
 var (

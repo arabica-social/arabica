@@ -1069,10 +1069,11 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	}
 
 	desc := entities.GetByNSID(record.Collection)
-	if desc == nil || desc.RecordToModel == nil {
+	behavior := entities.BehaviorByNSID(record.Collection)
+	if desc == nil || behavior == nil || behavior.RecordToModel == nil {
 		return nil, fmt.Errorf("unknown collection: %s", record.Collection)
 	}
-	model, err := desc.RecordToModel(recordData, record.URI)
+	model, err := behavior.RecordToModel(recordData, record.URI)
 	if err != nil {
 		return nil, err
 	}
@@ -1082,9 +1083,9 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 	item.Record = model
 
 	// Per-entity reference resolution. The ref shape is genuinely
-	// entity-specific; per-app descriptors register a ResolveRefs hook
+	// entity-specific; per-app record behaviors register a ResolveRefs hook
 	// that hydrates their typed fields from refMap.
-	if desc.ResolveRefs != nil {
+	if behavior.ResolveRefs != nil {
 		lookup := func(refURI string) (map[string]any, bool) {
 			rec, found := refMap[refURI]
 			if !found {
@@ -1096,7 +1097,7 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 			}
 			return data, true
 		}
-		desc.ResolveRefs(model, recordData, lookup)
+		behavior.ResolveRefs(model, recordData, lookup)
 	}
 
 	// Populate subject fields (like/comment counts are set by caller via batch)

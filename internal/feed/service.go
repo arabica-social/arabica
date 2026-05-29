@@ -133,11 +133,11 @@ func (f *FeedItem) RKey() string {
 	if f == nil || f.Record == nil {
 		return ""
 	}
-	d := entities.Get(f.RecordType)
-	if d == nil || d.RKey == nil {
+	b := entities.Behavior(f.RecordType)
+	if b == nil || b.RKey == nil {
 		return ""
 	}
-	return d.RKey(f.Record)
+	return b.RKey(f.Record)
 }
 
 // DisplayTitle returns a human-readable title for share UI. Each
@@ -153,8 +153,8 @@ func (f *FeedItem) DisplayTitle() string {
 	if d == nil {
 		return ""
 	}
-	if d.DisplayTitle != nil && f.Record != nil {
-		if title := d.DisplayTitle(f.Record); title != "" {
+	if b := entities.Behavior(f.RecordType); b != nil && b.DisplayTitle != nil && f.Record != nil {
+		if title := b.DisplayTitle(f.Record); title != "" {
 			return title
 		}
 	}

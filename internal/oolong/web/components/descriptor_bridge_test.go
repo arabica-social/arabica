@@ -30,8 +30,10 @@ func TestOolongFeedViews_AllEntitiesHaveFeedRenderer(t *testing.T) {
 		assert.NotNil(t, views[rt].Render, "feed renderer not wired for %s", rt)
 		assert.Equal(t, filterLabel, views.FilterLabel(rt), "feed filter label for %s", rt)
 		assert.NotEmpty(t, views.CardClassNoun(rt), "feed card noun for %s", rt)
-		assert.NotNil(t, d.RKey, "RKey not wired for %s", rt)
-		assert.NotNil(t, d.DisplayTitle, "DisplayTitle not wired for %s", rt)
+		behavior := entities.Behavior(rt)
+		assert.NotNil(t, behavior, "behavior missing for %s", rt)
+		assert.NotNil(t, behavior.RKey, "RKey not wired for %s", rt)
+		assert.NotNil(t, behavior.DisplayTitle, "DisplayTitle not wired for %s", rt)
 	}
 }
 

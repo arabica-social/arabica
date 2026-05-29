@@ -297,11 +297,11 @@ func getStringValue(entity interface{}, field string) string {
 		return ""
 	}
 	rt := recordTypeOf(entity)
-	d := entities.Get(rt)
-	if d == nil || d.GetField == nil {
+	behavior := entities.Behavior(rt)
+	if behavior == nil || behavior.GetField == nil {
 		return ""
 	}
-	v, _ := d.GetField(entity, field)
+	v, _ := behavior.GetField(entity, field)
 	return v
 }
 

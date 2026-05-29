@@ -6,10 +6,19 @@ import (
 )
 
 func init() {
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeBean, NSID: NSIDBean,
-		DisplayName: "Bean",
-		GetField:    beanField,
+	registerBean()
+	registerRoaster()
+	registerGrinder()
+	registerBrewer()
+	registerRecipe()
+	registerBrew()
+	// Like is intentionally omitted — has no entity page or modal.
+}
+
+func registerBean() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeBean, NSID: NSIDBean, DisplayName: "Bean"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeBean, &entities.RecordBehavior{
+		GetField: beanField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBean(rec, uri)
 		},
@@ -32,10 +41,12 @@ func init() {
 		},
 		ResolveRefs: resolveBeanFeedRef,
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeRoaster, NSID: NSIDRoaster,
-		DisplayName: "Roaster",
-		GetField:    roasterField,
+}
+
+func registerRoaster() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeRoaster, NSID: NSIDRoaster, DisplayName: "Roaster"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeRoaster, &entities.RecordBehavior{
+		GetField: roasterField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToRoaster(rec, uri)
 		},
@@ -54,10 +65,12 @@ func init() {
 			return r.Name
 		},
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeGrinder, NSID: NSIDGrinder,
-		DisplayName: "Grinder",
-		GetField:    grinderField,
+}
+
+func registerGrinder() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeGrinder, NSID: NSIDGrinder, DisplayName: "Grinder"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeGrinder, &entities.RecordBehavior{
+		GetField: grinderField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToGrinder(rec, uri)
 		},
@@ -76,10 +89,12 @@ func init() {
 			return g.Name
 		},
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeBrewer, NSID: NSIDBrewer,
-		DisplayName: "Brewer",
-		GetField:    brewerField,
+}
+
+func registerBrewer() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeBrewer, NSID: NSIDBrewer, DisplayName: "Brewer"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeBrewer, &entities.RecordBehavior{
+		GetField: brewerField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrewer(rec, uri)
 		},
@@ -98,10 +113,12 @@ func init() {
 			return b.Name
 		},
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeRecipe, NSID: NSIDRecipe,
-		DisplayName: "Recipe",
-		GetField:    recipeField,
+}
+
+func registerRecipe() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeRecipe, NSID: NSIDRecipe, DisplayName: "Recipe"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeRecipe, &entities.RecordBehavior{
+		GetField: recipeField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToRecipe(rec, uri)
 		},
@@ -121,10 +138,11 @@ func init() {
 		},
 		ResolveRefs: resolveRecipeFeedRef,
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeBrew, NSID: NSIDBrew,
-		DisplayName: "Brew",
-		GetField:    nil, // brew has no edit modal that needs prefill
+}
+
+func registerBrew() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeBrew, NSID: NSIDBrew, DisplayName: "Brew"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeBrew, &entities.RecordBehavior{
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrew(rec, uri)
 		},
@@ -151,5 +169,4 @@ func init() {
 		},
 		ResolveRefs: resolveBrewFeedRefs,
 	})
-	// Like is intentionally omitted — has no entity page or modal.
 }
