@@ -30,27 +30,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// FeedableRecordTypes are the record types that should appear as feed items.
-// Likes, comments, etc. are indexed but not displayed directly in the feed.
-var FeedableRecordTypes = map[lexicons.RecordType]bool{
-	lexicons.RecordTypeBrew:    true,
-	lexicons.RecordTypeBean:    true,
-	lexicons.RecordTypeRoaster: true,
-	lexicons.RecordTypeGrinder: true,
-	lexicons.RecordTypeBrewer:  true,
-	lexicons.RecordTypeRecipe:  true,
-
-	lexicons.RecordTypeOolongTea:     true,
-	lexicons.RecordTypeOolongBrew:    true,
-	lexicons.RecordTypeOolongVessel:  true,
-	lexicons.RecordTypeOolongInfuser: true,
-	lexicons.RecordTypeOolongVendor:  true,
-	// Cafe and Drink are deferred for the v1 oolong launch; once their
-	// UI ships, flip these back to true.
-	// lexicons.RecordTypeOolongCafe:   true,
-	// lexicons.RecordTypeOolongDrink:  true,
-}
-
 // IndexedRecord represents a record stored in the index
 type IndexedRecord struct {
 	URI        string          `json:"uri"`
@@ -86,12 +65,33 @@ type FeedIndex struct {
 	// that construct a FeedIndex directly via NewFeedIndex.
 	commentNSID string
 
+	// App-scoped feed collections. The running app passes its descriptors at
+	// construction time so feed queries don't depend on package-global entity
+	// registration side effects or include sister-app collections.
+	recordTypeToNSID    map[lexicons.RecordType]string
+	feedableCollections []string
+
 	// In-memory cache for hot data
 	profileCache   map[string]*CachedProfile
 	profileCacheMu sync.RWMutex
 
 	ready   bool
 	readyMu sync.RWMutex
+}
+
+type FeedIndexOption func(*feedIndexConfig)
+
+type feedIndexConfig struct {
+	feedableDescriptors []*entities.Descriptor
+}
+
+// WithFeedableDescriptors configures which app-owned entity descriptors should
+// appear in feed queries. Passing app.Descriptors keeps one FeedIndex scoped to
+// the app whose SQLite database it serves.
+func WithFeedableDescriptors(descriptors []*entities.Descriptor) FeedIndexOption {
+	return func(cfg *feedIndexConfig) {
+		cfg.feedableDescriptors = descriptors
+	}
 }
 
 // SetCommentNSID configures the comment collection NSID used when
@@ -291,11 +291,18 @@ CREATE TABLE IF NOT EXISTS oauth_auth_requests (
 );
 `
 
-// NewFeedIndex creates a new feed index backed by SQLite
-func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
+// NewFeedIndex creates a new feed index backed by SQLite.
+func NewFeedIndex(path string, profileTTL time.Duration, opts ...FeedIndexOption) (*FeedIndex, error) {
 	if path == "" {
 		return nil, fmt.Errorf("index path is required")
 	}
+	cfg := feedIndexConfig{feedableDescriptors: entities.All()}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&cfg)
+		}
+	}
+	recordTypeToNSID, feedableCollections := feedableCollectionsForDescriptors(cfg.feedableDescriptors)
 
 	// Ensure parent directory exists
 	dir := filepath.Dir(path)
@@ -341,13 +348,15 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	}
 
 	idx := &FeedIndex{
-		db:             db,
-		publicClient:   atproto.NewPublicClient(),
-		profileTTL:     profileTTL,
-		profileStorage: newProfileIndexStorage(db),
-		notifications:  newNotificationIndexStorage(db),
-		social:         newSocialIndexStorage(db),
-		profileCache:   make(map[string]*CachedProfile),
+		db:                  db,
+		publicClient:        atproto.NewPublicClient(),
+		profileTTL:          profileTTL,
+		profileStorage:      newProfileIndexStorage(db),
+		notifications:       newNotificationIndexStorage(db),
+		social:              newSocialIndexStorage(db),
+		recordTypeToNSID:    recordTypeToNSID,
+		feedableCollections: feedableCollections,
+		profileCache:        make(map[string]*CachedProfile),
 	}
 
 	// One-time backfill: populate did_by_handle from any pre-existing profile rows
@@ -753,30 +762,18 @@ func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*feed.Fee
 	return idx.getFeedItems(ctx, nil, limit, "")
 }
 
-// recordTypeToNSID maps a feedable lexicons.RecordType to its NSID
-// collection string. Built from the descriptor registry so every
-// registered app contributes its own entries — no app-specific
-// imports in this package. Only types listed in FeedableRecordTypes
-// participate; entries from sister apps that aren't installed in the
-// running binary simply never appear in the registry.
-var recordTypeToNSID = func() map[lexicons.RecordType]string {
+func feedableCollectionsForDescriptors(descriptors []*entities.Descriptor) (map[lexicons.RecordType]string, []string) {
 	m := make(map[lexicons.RecordType]string)
-	for _, d := range entities.All() {
-		if FeedableRecordTypes[d.Type] && d.NSID != "" {
+	collections := make([]string, 0, len(descriptors))
+	for _, d := range descriptors {
+		if d != nil && d.Type != "" && d.NSID != "" {
 			m[d.Type] = d.NSID
+			collections = append(collections, d.NSID)
 		}
 	}
-	return m
-}()
-
-// feedableCollections is the set of collection NSIDs that appear in the feed
-var feedableCollections = func() []string {
-	out := make([]string, 0, len(recordTypeToNSID))
-	for _, nsid := range recordTypeToNSID {
-		out = append(out, nsid)
-	}
-	return out
-}()
+	sort.Strings(collections)
+	return m, collections
+}
 
 // GetFeedWithQuery returns feed items matching the given query with cursor-based pagination
 func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error) {
@@ -791,14 +788,14 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedR
 	var collectionFilters []string
 	if len(q.TypeFilters) > 0 {
 		for _, tf := range q.TypeFilters {
-			nsid, ok := recordTypeToNSID[tf]
+			nsid, ok := idx.recordTypeToNSID[tf]
 			if !ok {
 				return nil, fmt.Errorf("unknown record type: %s", tf)
 			}
 			collectionFilters = append(collectionFilters, nsid)
 		}
 	} else if q.TypeFilter != "" {
-		nsid, ok := recordTypeToNSID[q.TypeFilter]
+		nsid, ok := idx.recordTypeToNSID[q.TypeFilter]
 		if !ok {
 			return nil, fmt.Errorf("unknown record type: %s", q.TypeFilter)
 		}
@@ -855,8 +852,11 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 		query += `collection IN (` + strings.Join(placeholders, ",") + `) `
 	} else {
 		// Only feedable collections
-		placeholders := make([]string, len(feedableCollections))
-		for i, c := range feedableCollections {
+		if len(idx.feedableCollections) == 0 {
+			return nil, nil
+		}
+		placeholders := make([]string, len(idx.feedableCollections))
+		for i, c := range idx.feedableCollections {
 			placeholders[i] = "?"
 			args = append(args, c)
 		}
@@ -939,7 +939,7 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
 			continue
 		}
-		if !FeedableRecordTypes[item.RecordType] {
+		if _, ok := idx.recordTypeToNSID[item.RecordType]; !ok {
 			continue
 		}
 		item.LikeCount = likeCounts[record.URI]

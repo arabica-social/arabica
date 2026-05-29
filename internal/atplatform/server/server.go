@@ -153,6 +153,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	feedIndex, err := firehose.NewFeedIndex(
 		dbPath,
 		time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second,
+		firehose.WithFeedableDescriptors(app.Descriptors),
 	)
 	if err != nil {
 		return fmt.Errorf("open database at %s: %w", dbPath, err)
