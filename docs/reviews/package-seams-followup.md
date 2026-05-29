@@ -21,6 +21,7 @@ Updated 2026-05-29: the following follow-up items have been addressed in the cur
 - FeedIndex profile persistence moved behind a narrow internal profile storage type while keeping `FeedIndex` as the public facade.
 - The backend unification branch was integrated on top of the package-seams stack; generic record CRUD now uses `internal/records.Store`, Arabica typed store accessors live with Arabica handlers, and app constructors moved into app-owned packages.
 - FeedIndex notification persistence moved behind a narrow internal notification storage type while keeping `FeedIndex` as the public facade.
+- FeedIndex social persistence for likes and comments moved behind a narrow internal social storage type while keeping `FeedIndex` as the public facade.
 
 Verification for the cleanup stack:
 

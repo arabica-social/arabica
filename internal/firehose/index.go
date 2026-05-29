@@ -78,6 +78,7 @@ type FeedIndex struct {
 	profileTTL     time.Duration
 	profileStorage *profileIndexStorage
 	notifications  *notificationIndexStorage
+	social         *socialIndexStorage
 
 	// commentNSID is the comment collection this index's binary serves
 	// (e.g. social.arabica.alpha.comment or social.oolong.alpha.comment).
@@ -346,6 +347,7 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		profileTTL:     profileTTL,
 		profileStorage: newProfileIndexStorage(db),
 		notifications:  newNotificationIndexStorage(db),
+		social:         newSocialIndexStorage(db),
 		profileCache:   make(map[string]*CachedProfile),
 	}
 
@@ -577,15 +579,15 @@ func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
 	}
 	defer tx.Rollback() //nolint:errcheck
 
+	if err := idx.social.deleteAllForDID(ctx, tx, did, uriPrefix); err != nil {
+		return fmt.Errorf("delete social data by did: %w", err)
+	}
+
 	stmts := []struct {
 		sql  string
 		args []any
 	}{
 		{`DELETE FROM records WHERE did = ?`, []any{did}},
-		{`DELETE FROM likes WHERE actor_did = ?`, []any{did}},
-		{`DELETE FROM likes WHERE subject_uri LIKE ?`, []any{uriPrefix}},
-		{`DELETE FROM comments WHERE actor_did = ?`, []any{did}},
-		{`DELETE FROM comments WHERE subject_uri LIKE ?`, []any{uriPrefix}},
 		{`DELETE FROM notifications WHERE target_did = ? OR actor_did = ?`, []any{did, did}},
 		{`DELETE FROM notifications_meta WHERE target_did = ?`, []any{did}},
 		{`DELETE FROM profiles WHERE did = ?`, []any{did}},
@@ -1426,16 +1428,12 @@ func (idx *FeedIndex) KnownDIDCount() int {
 
 // TotalLikeCount returns the total number of likes indexed
 func (idx *FeedIndex) TotalLikeCount() int {
-	var count int
-	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM likes`).Scan(&count)
-	return count
+	return idx.social.totalLikeCount()
 }
 
 // TotalCommentCount returns the total number of comments indexed
 func (idx *FeedIndex) TotalCommentCount() int {
-	var count int
-	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM comments`).Scan(&count)
-	return count
+	return idx.social.totalCommentCount()
 }
 
 // RecordCountByCollection returns a breakdown of record counts by collection type
@@ -1851,42 +1849,27 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 
 // UpsertLike adds or updates a like in the index
 func (idx *FeedIndex) UpsertLike(ctx context.Context, actorDID, rkey, subjectURI string) error {
-	_, err := idx.db.ExecContext(ctx, `INSERT OR IGNORE INTO likes (subject_uri, actor_did, rkey) VALUES (?, ?, ?)`,
-		subjectURI, actorDID, rkey)
-	return err
+	return idx.social.upsertLike(ctx, actorDID, rkey, subjectURI)
 }
 
 // DeleteLike removes a like from the index
 func (idx *FeedIndex) DeleteLike(ctx context.Context, actorDID, subjectURI string) error {
-	_, err := idx.db.ExecContext(ctx, `DELETE FROM likes WHERE subject_uri = ? AND actor_did = ?`,
-		subjectURI, actorDID)
-	return err
+	return idx.social.deleteLike(ctx, actorDID, subjectURI)
 }
 
 // GetLikeCount returns the number of likes for a record
 func (idx *FeedIndex) GetLikeCount(ctx context.Context, subjectURI string) int {
-	var count int
-	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM likes WHERE subject_uri = ?`, subjectURI).Scan(&count)
-	return count
+	return idx.social.likeCount(ctx, subjectURI)
 }
 
 // HasUserLiked checks if a user has liked a specific record
 func (idx *FeedIndex) HasUserLiked(ctx context.Context, actorDID, subjectURI string) bool {
-	var exists int
-	err := idx.db.QueryRowContext(ctx, `SELECT 1 FROM likes WHERE actor_did = ? AND subject_uri = ? LIMIT 1`,
-		actorDID, subjectURI).Scan(&exists)
-	return err == nil
+	return idx.social.hasUserLiked(ctx, actorDID, subjectURI)
 }
 
 // GetUserLikeRKey returns the rkey of a user's like for a specific record, or empty string if not found
 func (idx *FeedIndex) GetUserLikeRKey(ctx context.Context, actorDID, subjectURI string) string {
-	var rkey string
-	err := idx.db.QueryRowContext(ctx, `SELECT rkey FROM likes WHERE actor_did = ? AND subject_uri = ?`,
-		actorDID, subjectURI).Scan(&rkey)
-	if err != nil {
-		return ""
-	}
-	return rkey
+	return idx.social.userLikeRKey(ctx, actorDID, subjectURI)
 }
 
 // ========== Batch Query Methods ==========
@@ -1904,74 +1887,17 @@ func placeholders(uris []string) (string, []any) {
 
 // GetLikeCountsBatch returns like counts for multiple subject URIs in a single query.
 func (idx *FeedIndex) GetLikeCountsBatch(ctx context.Context, uris []string) map[string]int {
-	counts := make(map[string]int, len(uris))
-	if len(uris) == 0 {
-		return counts
-	}
-	ph, args := placeholders(uris)
-	rows, err := idx.db.QueryContext(ctx,
-		`SELECT subject_uri, COUNT(*) FROM likes WHERE subject_uri IN (`+ph+`) GROUP BY subject_uri`, args...)
-	if err != nil {
-		return counts
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var uri string
-		var count int
-		if err := rows.Scan(&uri, &count); err == nil {
-			counts[uri] = count
-		}
-	}
-	return counts
+	return idx.social.likeCountsBatch(ctx, uris)
 }
 
 // HasUserLikedBatch checks if a user has liked multiple records in a single query.
 func (idx *FeedIndex) HasUserLikedBatch(ctx context.Context, actorDID string, uris []string) map[string]bool {
-	liked := make(map[string]bool, len(uris))
-	if len(uris) == 0 || actorDID == "" {
-		return liked
-	}
-	ph, args := placeholders(uris)
-	// Prepend actorDID to args
-	allArgs := make([]any, 0, len(args)+1)
-	allArgs = append(allArgs, actorDID)
-	allArgs = append(allArgs, args...)
-	rows, err := idx.db.QueryContext(ctx,
-		`SELECT subject_uri FROM likes WHERE actor_did = ? AND subject_uri IN (`+ph+`)`, allArgs...)
-	if err != nil {
-		return liked
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var uri string
-		if err := rows.Scan(&uri); err == nil {
-			liked[uri] = true
-		}
-	}
-	return liked
+	return idx.social.hasUserLikedBatch(ctx, actorDID, uris)
 }
 
 // GetCommentCountsBatch returns comment counts for multiple subject URIs in a single query.
 func (idx *FeedIndex) GetCommentCountsBatch(ctx context.Context, uris []string) map[string]int {
-	counts := make(map[string]int, len(uris))
-	if len(uris) == 0 {
-		return counts
-	}
-	ph, args := placeholders(uris)
-	rows, err := idx.db.QueryContext(ctx,
-		`SELECT subject_uri, COUNT(*) FROM comments WHERE subject_uri IN (`+ph+`) GROUP BY subject_uri`, args...)
-	if err != nil {
-		return counts
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var uri string
-		var count int
-		if err := rows.Scan(&uri, &count); err == nil {
-			counts[uri] = count
-		}
-	}
-	return counts
+	return idx.social.commentCountsBatch(ctx, uris)
 }
 
 // GetRecordsBatch retrieves multiple records by URI in a single query.
@@ -2027,70 +1953,22 @@ type IndexedComment struct {
 
 // UpsertComment adds or updates a comment in the index
 func (idx *FeedIndex) UpsertComment(ctx context.Context, actorDID, rkey, subjectURI, parentURI, cid, text string, createdAt time.Time) error {
-	// Extract parent rkey from parent URI if present
-	var parentRKey string
-	if parentURI != "" {
-		parts := strings.Split(parentURI, "/")
-		if len(parts) > 0 {
-			parentRKey = parts[len(parts)-1]
-		}
-	}
-
-	_, err := idx.db.ExecContext(ctx, `
-		INSERT INTO comments (actor_did, rkey, subject_uri, parent_uri, parent_rkey, cid, text, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(actor_did, rkey) DO UPDATE SET
-			subject_uri = excluded.subject_uri,
-			parent_uri = excluded.parent_uri,
-			parent_rkey = excluded.parent_rkey,
-			cid = excluded.cid,
-			text = excluded.text,
-			created_at = excluded.created_at
-	`, actorDID, rkey, subjectURI, parentURI, parentRKey, cid, text, createdAt.Format(time.RFC3339Nano))
-	return err
+	return idx.social.upsertComment(ctx, actorDID, rkey, subjectURI, parentURI, cid, text, createdAt)
 }
 
 // DeleteComment removes a comment from the index
 func (idx *FeedIndex) DeleteComment(ctx context.Context, actorDID, rkey, subjectURI string) error {
-	_, err := idx.db.ExecContext(ctx, `DELETE FROM comments WHERE actor_did = ? AND rkey = ?`, actorDID, rkey)
-	return err
+	return idx.social.deleteComment(ctx, actorDID, rkey)
 }
 
 // GetCommentCount returns the number of comments on a record
 func (idx *FeedIndex) GetCommentCount(ctx context.Context, subjectURI string) int {
-	var count int
-	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM comments WHERE subject_uri = ?`, subjectURI).Scan(&count)
-	return count
+	return idx.social.commentCount(ctx, subjectURI)
 }
 
 // GetCommentsForSubject returns all comments for a specific record, ordered by creation time
 func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI string, limit int, viewerDID string) []IndexedComment {
-	query := `SELECT actor_did, rkey, subject_uri, parent_uri, parent_rkey, cid, text, created_at
-		FROM comments WHERE subject_uri = ? ORDER BY created_at`
-	var args []any
-	args = append(args, subjectURI)
-	if limit > 0 {
-		query += ` LIMIT ?`
-		args = append(args, limit)
-	}
-
-	rows, err := idx.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-
-	var comments []IndexedComment
-	for rows.Next() {
-		var c IndexedComment
-		var createdAtStr string
-		if err := rows.Scan(&c.ActorDID, &c.RKey, &c.SubjectURI, &c.ParentURI, &c.ParentRKey,
-			&c.CID, &c.Text, &createdAtStr); err != nil {
-			continue
-		}
-		c.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-		comments = append(comments, c)
-	}
+	comments := idx.social.commentsForSubject(ctx, subjectURI, limit)
 
 	// Batch-fetch profiles and social data for all comments
 	commentURIs := make([]string, len(comments))
