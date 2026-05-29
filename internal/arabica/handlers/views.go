@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffeeogcard "tangled.org/arabica.social/arabica/internal/arabica/ogcard"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
@@ -513,7 +514,7 @@ func (h *Handlers) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	card, err := ogcard.DrawBeanCard(bean)
+	card, err := coffeeogcard.DrawBeanCard(bean)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate bean OG image")
 		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
@@ -534,7 +535,9 @@ func (h *Handlers) HandleRoasterOGImage(w http.ResponseWriter, r *http.Request) 
 			rec.RKey = rkey
 			return rec, nil
 		},
-		DrawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawRoasterCard(rec.(*arabica.Roaster)) },
+		DrawCard: func(rec any) (*ogcard.Card, error) {
+			return coffeeogcard.DrawRoasterCard(rec.(*arabica.Roaster))
+		},
 	})
 }
 
@@ -550,7 +553,9 @@ func (h *Handlers) HandleGrinderOGImage(w http.ResponseWriter, r *http.Request) 
 			rec.RKey = rkey
 			return rec, nil
 		},
-		DrawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawGrinderCard(rec.(*arabica.Grinder)) },
+		DrawCard: func(rec any) (*ogcard.Card, error) {
+			return coffeeogcard.DrawGrinderCard(rec.(*arabica.Grinder))
+		},
 	})
 }
 
@@ -566,7 +571,9 @@ func (h *Handlers) HandleBrewerOGImage(w http.ResponseWriter, r *http.Request) {
 			rec.RKey = rkey
 			return rec, nil
 		},
-		DrawCard: func(rec any) (*ogcard.Card, error) { return ogcard.DrawBrewerCard(rec.(*arabica.Brewer)) },
+		DrawCard: func(rec any) (*ogcard.Card, error) {
+			return coffeeogcard.DrawBrewerCard(rec.(*arabica.Brewer))
+		},
 	})
 }
 
@@ -639,7 +646,7 @@ func (h *Handlers) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 		recipe.Interpolate()
 	}
 
-	card, err := ogcard.DrawRecipeCard(recipe)
+	card, err := coffeeogcard.DrawRecipeCard(recipe)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate recipe OG image")
 		http.Error(w, "Failed to generate image", http.StatusInternalServerError)

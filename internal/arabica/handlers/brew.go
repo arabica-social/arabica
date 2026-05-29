@@ -9,13 +9,13 @@ import (
 	"strings"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffeeogcard "tangled.org/arabica.social/arabica/internal/arabica/ogcard"
 	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -107,7 +107,7 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate card
-	card, err := ogcard.DrawBrewCard(brew)
+	card, err := coffeeogcard.DrawBrewCard(brew)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate OG image")
 		http.Error(w, "Failed to generate image", http.StatusInternalServerError)

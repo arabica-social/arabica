@@ -5,8 +5,11 @@ import (
 	"image/color"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coreogcard "tangled.org/arabica.social/arabica/internal/ogcard"
 )
+
+type Card = coreogcard.Card
 
 // Arabica color palette (warm coffee tones)
 var (
@@ -45,7 +48,7 @@ const (
 
 // newTypedCard creates a 1200x630 card with accent stripe, brand bar, and logo.
 func newTypedCard(accent color.RGBA, typeLabel string) (*Card, error) {
-	card, err := NewCard(cardWidth, cardHeight, ColorBg)
+	card, err := coreogcard.NewCard(cardWidth, cardHeight, ColorBg)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +56,7 @@ func newTypedCard(accent color.RGBA, typeLabel string) (*Card, error) {
 	card.DrawRect(0, 0, stripeW, cardHeight, accent)
 
 	// Logo on right side
-	if logo := GetLogo(); logo != nil {
+	if logo := coreogcard.GetLogo(); logo != nil {
 		logoY := (brandBarY - logoSize) / 2
 		card.DrawImageScaled(logo, logoX, logoY, logoSize, logoSize)
 	}
