@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/http"
 
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/social"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -314,7 +314,7 @@ func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// Like: create a new like
-		req := &arabica.CreateLikeRequest{
+		req := &social.CreateLikeRequest{
 			SubjectURI: subjectURI,
 			SubjectCID: subjectCID,
 		}

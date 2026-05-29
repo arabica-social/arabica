@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
@@ -21,6 +20,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/signup"
+	"tangled.org/arabica.social/arabica/internal/social"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -428,10 +428,10 @@ func (h *Handler) GetRecordStore(r *http.Request) (records.Store, bool) {
 
 type socialStore interface {
 	records.Store
-	CreateLike(ctx context.Context, req *arabica.CreateLikeRequest) (*arabica.Like, error)
+	CreateLike(ctx context.Context, req *social.CreateLikeRequest) (*social.Like, error)
 	DeleteLikeByRKey(ctx context.Context, rkey string) error
-	GetUserLikeForSubject(ctx context.Context, subjectURI string) (*arabica.Like, error)
-	CreateComment(ctx context.Context, req *arabica.CreateCommentRequest) (*arabica.Comment, error)
+	GetUserLikeForSubject(ctx context.Context, subjectURI string) (*social.Like, error)
+	CreateComment(ctx context.Context, req *social.CreateCommentRequest) (*social.Comment, error)
 	DeleteCommentByRKey(ctx context.Context, rkey string) error
 }
 
@@ -614,8 +614,8 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(text) > arabica.MaxCommentLength {
-		log.Warn().Int("length", len(text)).Int("max", arabica.MaxCommentLength).Msg("Comment create: text too long")
+	if len(text) > social.MaxCommentLength {
+		log.Warn().Int("length", len(text)).Int("max", social.MaxCommentLength).Msg("Comment create: text too long")
 		http.Error(w, "comment text is too long", http.StatusBadRequest)
 		return
 	}
@@ -627,7 +627,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &arabica.CreateCommentRequest{
+	req := &social.CreateCommentRequest{
 		SubjectURI: subjectURI,
 		SubjectCID: subjectCID,
 		Text:       text,

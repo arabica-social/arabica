@@ -34,6 +34,7 @@ Updated 2026-05-29: the following follow-up items have been addressed in the cur
 - Notification value types moved to shared `internal/notifications`; firehose and notification handlers no longer import Arabica entities for notification structs/constants.
 - Brew pour JSON serialization moved beside the Arabica brew form view model; shared `internal/web/bff` no longer imports Arabica entities.
 - Settings profile visibility now uses shared `internal/profileprefs` directly; shared page handlers and settings templates no longer import Arabica entities for preference value types.
+- Shared like/comment request and model types moved to `internal/social`; shared feed/comment handlers no longer import Arabica entities for social operations.
 
 Verification for the cleanup stack:
 
