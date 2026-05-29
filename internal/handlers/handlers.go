@@ -41,6 +41,13 @@ type Config struct {
 	PublicURL string
 }
 
+type StaticPageRenderer func(context.Context, http.ResponseWriter, *components.LayoutData) error
+
+type StaticPageRenderers struct {
+	About StaticPageRenderer
+	Terms StaticPageRenderer
+}
+
 // Handler contains all HTTP handler methods and their dependencies.
 // Dependencies are injected via the constructor for better testability.
 type Handler struct {
@@ -73,6 +80,14 @@ type Handler struct {
 	// devMode reflects <APP>_DEV at startup. Gates dev-only PDS providers
 	// in the signup catalog and any other developer-facing affordances.
 	devMode bool
+
+	staticPages StaticPageRenderers
+}
+
+// SetStaticPageRenderers wires app-owned static page templates into the shared
+// page handlers. Nil renderers fall back to the default Arabica pages.
+func (h *Handler) SetStaticPageRenderers(renderers StaticPageRenderers) {
+	h.staticPages = renderers
 }
 
 // SetDevMode toggles dev-mode features. Called once at startup from the

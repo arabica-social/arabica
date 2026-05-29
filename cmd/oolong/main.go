@@ -51,6 +51,7 @@ func main() {
 		DefaultPort:        defaultPort,
 		DefaultMetricsPort: defaultMetricsPort,
 		AppRoutes:          teahandlers.Routes{},
+		StaticPages:        teahandlers.StaticPages(),
 	})
 	if err != nil {
 		log.Fatal().Err(err).Str("app", app.Name).Msg("App exited with error")

@@ -1,17 +1,31 @@
 package teahandlers
 
 import (
+	"context"
 	"net/http"
 
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/middleware"
+	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
 	"tangled.org/arabica.social/arabica/internal/routing"
+	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 // Routes owns Oolong-specific HTTP route registration. Keeping this in the app
 // package prevents the shared router from importing tea handlers.
 type Routes struct{}
+
+func StaticPages() handlers.StaticPageRenderers {
+	return handlers.StaticPageRenderers{
+		About: func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
+			return teapages.About(data).Render(ctx, w)
+		},
+		Terms: func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
+			return teapages.Terms(data).Render(ctx, w)
+		},
+	}
+}
 
 func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext) {
 	h := New(ctx.Handlers)

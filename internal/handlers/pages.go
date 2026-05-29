@@ -1,46 +1,44 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
-	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
+	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
 
-// About page — dispatches to the oolong variant when the running app
-// is the tea sister. Both pages share the same layout chrome; only the
-// per-app copy and entity-noun references differ.
+// About page.
 func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
 	data, _, _ := h.LayoutDataFromRequest(r, "About")
 
-	var err error
-	if h.app != nil && h.app.Name == "oolong" {
-		err = teapages.About(data).Render(r.Context(), w)
-	} else {
-		err = pages.About(data).Render(r.Context(), w)
+	render := h.staticPages.About
+	if render == nil {
+		render = func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
+			return pages.About(data).Render(ctx, w)
+		}
 	}
-	if err != nil {
+	if err := render(r.Context(), w, data); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render about page")
 	}
 }
 
-// Terms of Service page — dispatches per app for the same reason
-// HandleAbout does: brand strings and entity-noun references differ.
+// Terms of Service page.
 func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.LayoutDataFromRequest(r, "Terms of Service")
 
-	var err error
-	if h.app != nil && h.app.Name == "oolong" {
-		err = teapages.Terms(layoutData).Render(r.Context(), w)
-	} else {
-		err = pages.Terms(layoutData).Render(r.Context(), w)
+	render := h.staticPages.Terms
+	if render == nil {
+		render = func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
+			return pages.Terms(data).Render(ctx, w)
+		}
 	}
-	if err != nil {
+	if err := render(r.Context(), w, layoutData); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render terms page")
 	}
