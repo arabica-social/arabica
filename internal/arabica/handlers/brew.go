@@ -16,7 +16,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -247,7 +246,7 @@ func (h *Handlers) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 	brewFormProps := coffeepages.BrewFormProps{
 		Brew:      brew,
-		PoursJSON: bff.PoursToJSON(brew.Pours),
+		PoursJSON: coffeepages.PoursToJSON(brew.Pours),
 	}
 
 	if err := coffeepages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
