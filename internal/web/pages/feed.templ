@@ -102,7 +102,7 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 			@FeedFilterBar(qs)
 		}
 		<!-- Feed items -->
-		<div id="feed-items" class="feed-grid">
+		<div id="feed-items" class="feed-grid" data-feed-masonry data-masonry-card=".feed-card">
 			if len(items) > 0 {
 				for _, item := range items {
 					@FeedCardWithModeration(item, isAuthenticated, modCtx, qs)

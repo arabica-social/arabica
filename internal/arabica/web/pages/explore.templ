@@ -28,8 +28,8 @@ templ ExploreContent(props ExploreProps) {
 		<header class="explore-hero">
 			<div class="explore-hero-copy">
 				<p class="explore-eyebrow">Community library</p>
-				<h1 class="explore-title">Explore the public shelf.</h1>
-				<p class="explore-lede">Find beans, roasters, gear, and recipes people have made public. Reused records gather together, like notes pinned beside the original bag.</p>
+				<h1 class="explore-title">Explore records.</h1>
+				<p class="explore-lede">Find beans, roasters, gear, and recipes.</p>
 			</div>
 			if props.Health.Dirty {
 				<div class="explore-stale-note" role="status" aria-live="polite">
@@ -61,7 +61,6 @@ templ ExploreInteractive(props ExploreProps) {
 			<summary class="explore-controls-summary cursor-pointer">
 				<span class="explore-controls-title">
 					<span class="block text-sm font-semibold text-primary">Search and filters</span>
-					<span class="block text-xs text-muted">Tune the shelf without hiding the discoveries.</span>
 				</span>
 				<span class="explore-controls-count badge">{ exploreActiveLabel(props) }</span>
 			</summary>
@@ -139,18 +138,39 @@ templ ExploreInteractive(props ExploreProps) {
 				@components.EmptyState(components.EmptyStateProps{Message: "No matching records yet.", SubMessage: "Try fewer filters, or come back after the witness cache sees more community records."})
 			</div>
 		} else {
-			<div class="explore-results">
+			<div id="explore-items" class="explore-results feed-grid" data-feed-masonry data-masonry-card=".explore-card">
 				for _, item := range props.Result.Items {
 					@ExploreCard(item, props.Result.Documents[item.SubjectURI], props.RoutePaths)
 				}
 			</div>
-			if props.Result.NextCursor != "" {
-				<div class="explore-more-row">
-					<a class="btn-secondary inline-flex" href={ templ.SafeURL(nextExploreURL(props)) } hx-get={ templ.SafeURL(nextExploreURL(props)) } hx-target="#explore-interactive" hx-select="#explore-interactive" hx-swap="outerHTML" hx-push-url="true">More results</a>
-				</div>
-			}
+			@ExploreMoreRow(props, false)
 		}
 	</div>
+}
+
+templ ExploreAppend(props ExploreProps) {
+	for _, item := range props.Result.Items {
+		@ExploreCard(item, props.Result.Documents[item.SubjectURI], props.RoutePaths)
+	}
+	@ExploreMoreRow(props, true)
+}
+
+templ ExploreMoreRow(props ExploreProps, oob bool) {
+	if oob {
+		<div id="explore-more-row" class="explore-more-row" hx-swap-oob="outerHTML">
+			@exploreMoreLink(props)
+		</div>
+	} else {
+		<div id="explore-more-row" class="explore-more-row">
+			@exploreMoreLink(props)
+		</div>
+	}
+}
+
+templ exploreMoreLink(props ExploreProps) {
+	if props.Result != nil && props.Result.NextCursor != "" {
+		<a class="btn-secondary inline-flex" href={ templ.SafeURL(nextExploreURL(props)) } hx-get={ templ.SafeURL(nextExploreURL(props)) } hx-target="#explore-items" hx-swap="beforeend">More results</a>
+	}
 }
 
 templ typeOption(selected lexicons.RecordType, value lexicons.RecordType, label string) {

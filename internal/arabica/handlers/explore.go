@@ -58,13 +58,21 @@ func (h *Handlers) HandleExplore(w http.ResponseWriter, r *http.Request) {
 	for _, item := range result.Items {
 		item.IsLikedByViewer = liked[item.SubjectURI]
 	}
-	if err := coffeepages.ExplorePage(layoutData, coffeepages.ExploreProps{
+	props := coffeepages.ExploreProps{
 		Query:       query,
 		Result:      result,
 		Health:      h.FeedIndex().ExploreHealth(r.Context()),
 		FilterNames: exploreFilterNames,
 		RoutePaths:  h.exploreRoutePaths(),
-	}).Render(r.Context(), w); err != nil {
+	}
+	if r.Header.Get("HX-Request") == "true" && query.Cursor != "" {
+		if err := coffeepages.ExploreAppend(props).Render(r.Context(), w); err != nil {
+			http.Error(w, "Failed to render page", http.StatusInternalServerError)
+			log.Error().Err(err).Msg("failed to render explore append")
+		}
+		return
+	}
+	if err := coffeepages.ExplorePage(layoutData, props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("failed to render explore page")
 	}

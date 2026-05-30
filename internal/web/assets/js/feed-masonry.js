@@ -1,18 +1,31 @@
 // Feed masonry — pure client-side two-column layout for desktop.
 // Server always renders cards flat in chronological order.
-// This script distributes them into two columns on desktop (768px+).
+// This script distributes marked card lists into two columns on desktop (768px+).
 (function () {
   var MQ = window.matchMedia('(min-width: 768px)');
 
-  function getContainer() {
-    return document.getElementById('feed-items');
+  function getContainers() {
+    var marked = Array.from(document.querySelectorAll('[data-feed-masonry]'));
+    var feed = document.getElementById('feed-items');
+    if (feed && marked.indexOf(feed) === -1) {
+      marked.unshift(feed);
+    }
+    return marked;
   }
 
-  // Get all .feed-card elements that are direct children of container
+  function getCardSelector(container) {
+    return container.getAttribute('data-masonry-card') || '.feed-card';
+  }
+
+  function isCard(container, element) {
+    return element.matches(getCardSelector(container));
+  }
+
+  // Get all masonry card elements that are direct children of container
   function getLooseCards(container) {
     var cards = [];
     for (var i = 0; i < container.children.length; i++) {
-      if (container.children[i].classList.contains('feed-card')) {
+      if (isCard(container, container.children[i])) {
         cards.push(container.children[i]);
       }
     }
@@ -71,7 +84,7 @@
     var ref = null;
     for (var j = 0; j < container.children.length; j++) {
       var ch = container.children[j];
-      if (!ch.classList.contains('feed-masonry-col') && !ch.classList.contains('feed-card')) {
+      if (!ch.classList.contains('feed-masonry-col') && !isCard(container, ch)) {
         ref = ch;
         break;
       }
@@ -85,13 +98,13 @@
   }
 
   function applyLayout() {
-    var container = getContainer();
-    if (!container) return;
-    if (MQ.matches) {
-      masonryLayout(container);
-    } else {
-      flattenLayout(container);
-    }
+    getContainers().forEach(function (container) {
+      if (MQ.matches) {
+        masonryLayout(container);
+      } else {
+        flattenLayout(container);
+      }
+    });
   }
 
   // Initial layout after DOM ready
@@ -107,8 +120,6 @@
   // After any HTMX swap, check if feed has loose cards to distribute.
   // Uses requestAnimationFrame so new DOM has dimensions for height measurement.
   document.addEventListener('htmx:afterSettle', function () {
-    var container = getContainer();
-    if (!container) return;
     requestAnimationFrame(function () {
       applyLayout();
     });

@@ -14,6 +14,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,4 +89,41 @@ func TestGetModeratedExploreOverfetchesHiddenRecords(t *testing.T) {
 	for _, item := range res.Items {
 		assert.False(t, cf.ShouldHide(item.SubjectURI, item.Author.DID))
 	}
+}
+
+func TestHandleExploreHTMXCursorRendersAppendFragment(t *testing.T) {
+	idx, err := firehose.NewFeedIndex(t.TempDir()+"/test.db", time.Hour)
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, idx.Close()) })
+
+	did := "did:plc:exploreappend"
+	for i := range 25 {
+		createdAt := time.Date(2026, 5, 23, 12, 0, i, 0, time.UTC).Format(time.RFC3339)
+		record, err := json.Marshal(map[string]any{"$type": arabica.NSIDBean, "name": fmt.Sprintf("Bean %02d", i), "createdAt": createdAt})
+		require.NoError(t, err)
+		rkey := fmt.Sprintf("b%02d", i)
+		require.NoError(t, idx.UpsertRecord(context.Background(), did, arabica.NSIDBean, rkey, "cid", record, time.Now().Unix()))
+	}
+	firstPage, err := idx.GetExplore(context.Background(), firehose.ExploreQuery{App: "arabica", Type: lexicons.RecordTypeBean, Limit: 20})
+	require.NoError(t, err)
+	require.NotEmpty(t, firstPage.NextCursor)
+
+	tc := NewTestContext()
+	tc.Handler.SetFeedIndex(idx)
+	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
+	req := httptest.NewRequest(http.MethodGet, "/explore?type=bean&cursor="+firstPage.NextCursor, nil)
+	req.Header.Set("HX-Request", "true")
+	req = req.WithContext(atpmiddleware.ContextWithAuth(req.Context(), "did:plc:test123456789", "test-session-id"))
+	rec := httptest.NewRecorder()
+
+	tc.Handler.HandleExplore(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	body := rec.Body.String()
+	assert.Contains(t, body, "Bean 04")
+	assert.Contains(t, body, `hx-swap-oob="outerHTML"`)
+	assert.Contains(t, body, `class="explore-card"`)
+	assert.NotContains(t, body, "Bean 24")
+	assert.NotContains(t, body, `id="explore-interactive"`)
+	assert.NotContains(t, body, "Search and filters")
 }
