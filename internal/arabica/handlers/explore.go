@@ -58,10 +58,14 @@ func (h *Handlers) HandleExplore(w http.ResponseWriter, r *http.Request) {
 	for _, item := range result.Items {
 		item.IsLikedByViewer = liked[item.SubjectURI]
 	}
+	health := firehose.ExploreHealth{}
+	if r.Header.Get("HX-Request") != "true" {
+		health = h.FeedIndex().ExploreReadiness(r.Context())
+	}
 	props := coffeepages.ExploreProps{
 		Query:       query,
 		Result:      result,
-		Health:      h.FeedIndex().ExploreHealth(r.Context()),
+		Health:      health,
 		FilterNames: exploreFilterNames,
 		RoutePaths:  h.exploreRoutePaths(),
 	}

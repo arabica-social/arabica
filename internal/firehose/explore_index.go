@@ -26,13 +26,14 @@ const (
 )
 
 type ExploreQuery struct {
-	App     string
-	Type    lexicons.RecordType
-	Q       string
-	Sort    string
-	Limit   int
-	Cursor  string
-	Filters map[string]string
+	App                string
+	Type               lexicons.RecordType
+	Q                  string
+	Sort               string
+	Limit              int
+	Cursor             string
+	Filters            map[string]string
+	IncludeFacetCounts bool
 }
 
 type ExploreResult struct {
@@ -135,14 +136,21 @@ func (idx *FeedIndex) markExploreDirty(ctx context.Context, cause error) {
 }
 
 func (idx *FeedIndex) ExploreHealth(ctx context.Context) ExploreHealth {
+	h := idx.ExploreReadiness(ctx)
+	_ = idx.db.QueryRowContext(ctx, `SELECT CAST(value AS TEXT) FROM meta WHERE key='explore_last_error'`).Scan(&h.LastError)
+	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM explore_documents`).Scan(&h.DocumentCount)
+	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM explore_values`).Scan(&h.ValueCount)
+	return h
+}
+
+// ExploreReadiness returns the cheap subset needed by request-path rendering.
+// Use ExploreHealth for admin/health endpoints that need counts and last-error detail.
+func (idx *FeedIndex) ExploreReadiness(ctx context.Context) ExploreHealth {
 	h := ExploreHealth{CurrentVersion: exploreIndexVersion}
 	_ = idx.db.QueryRowContext(ctx, `SELECT CAST(value AS TEXT) FROM meta WHERE key='explore_index_version'`).Scan(&h.StoredVersion)
 	var dirty string
 	_ = idx.db.QueryRowContext(ctx, `SELECT CAST(value AS TEXT) FROM meta WHERE key='explore_dirty'`).Scan(&dirty)
 	h.Dirty = dirty == "1"
-	_ = idx.db.QueryRowContext(ctx, `SELECT CAST(value AS TEXT) FROM meta WHERE key='explore_last_error'`).Scan(&h.LastError)
-	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM explore_documents`).Scan(&h.DocumentCount)
-	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM explore_values`).Scan(&h.ValueCount)
 	h.Ready = h.StoredVersion == exploreIndexVersion && !h.Dirty
 	return h
 }
@@ -504,7 +512,7 @@ func (idx *FeedIndex) GetExplore(ctx context.Context, q ExploreQuery) (*ExploreR
 		docs = docs[:q.Limit]
 		uris = uris[:q.Limit]
 	}
-	items, err := idx.feedItemsForURIs(ctx, uris)
+	items, err := idx.feedItemsForExploreDocs(ctx, docs)
 	if err != nil {
 		return nil, err
 	}
@@ -512,7 +520,9 @@ func (idx *FeedIndex) GetExplore(ctx context.Context, q ExploreQuery) (*ExploreR
 	for _, d := range docs {
 		res.Documents[d.URI] = d
 	}
-	res.FacetCounts = idx.exploreFacetCounts(ctx, q)
+	if q.IncludeFacetCounts {
+		res.FacetCounts = idx.exploreFacetCounts(ctx, q)
+	}
 	return res, nil
 }
 
@@ -579,29 +589,32 @@ func decodeExploreCursor(s string) []string {
 	return strings.Split(string(b), "|")
 }
 
-func (idx *FeedIndex) feedItemsForURIs(ctx context.Context, uris []string) ([]*feed.FeedItem, error) {
+func (idx *FeedIndex) feedItemsForExploreDocs(ctx context.Context, docs []ExploreDocument) ([]*feed.FeedItem, error) {
+	uris := make([]string, 0, len(docs))
+	docsByURI := make(map[string]ExploreDocument, len(docs))
+	for _, d := range docs {
+		uris = append(uris, d.URI)
+		docsByURI[d.URI] = d
+	}
+
 	recs := idx.GetRecordsBatch(ctx, uris)
 	refMap := make(map[string]*IndexedRecord, len(recs))
+	refURIs := make(map[string]bool)
 	profiles := make(map[string]*atproto.Profile)
 	for _, r := range recs {
 		refMap[r.URI] = r
 		var data map[string]any
 		if err := json.Unmarshal(r.Record, &data); err == nil {
-			for _, k := range []string{"roasterRef", "brewerRef"} {
-				if u, _ := data[k].(string); u != "" {
-					if rr := idx.GetRecordsBatch(ctx, []string{u})[u]; rr != nil {
-						refMap[u] = rr
-					}
-				}
-			}
+			collectRecordRefs(refURIs, r.Collection, data)
 		}
 		if _, ok := profiles[r.DID]; !ok {
 			p, _ := idx.GetProfile(ctx, r.DID)
 			profiles[r.DID] = p
 		}
 	}
+	idx.fetchReferenceRecords(ctx, refMap, refURIs)
+
 	items := make([]*feed.FeedItem, 0, len(uris))
-	likeCounts, commentCounts := idx.GetLikeCountsBatch(ctx, uris), idx.GetCommentCountsBatch(ctx, uris)
 	for _, uri := range uris {
 		r := recs[uri]
 		if r == nil {
@@ -612,8 +625,9 @@ func (idx *FeedIndex) feedItemsForURIs(ctx context.Context, uris []string) ([]*f
 			continue
 		}
 		item.Action = ""
-		item.LikeCount = likeCounts[uri]
-		item.CommentCount = commentCounts[uri]
+		doc := docsByURI[uri]
+		item.LikeCount = doc.LikeCount
+		item.CommentCount = doc.CommentCount
 		items = append(items, item)
 	}
 	return items, nil
