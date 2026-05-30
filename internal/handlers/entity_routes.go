@@ -36,6 +36,9 @@ type EntityRouteBundle struct {
 	// View renders the public entity detail page.
 	View http.HandlerFunc
 
+	// Backlinks renders the community backlinks detail page for this entity.
+	Backlinks http.HandlerFunc
+
 	// OGImage serves the entity's OpenGraph image.
 	OGImage http.HandlerFunc
 

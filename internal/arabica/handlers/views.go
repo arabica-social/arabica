@@ -166,9 +166,17 @@ func (h *Handlers) HandleBeanView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.beanViewConfig())
 }
 
+func (h *Handlers) HandleBeanBacklinks(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksView(w, r, h.beanViewConfig())
+}
+
 // HandleRoasterView shows a roaster detail page with social features
 func (h *Handlers) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.roasterViewConfig())
+}
+
+func (h *Handlers) HandleRoasterBacklinks(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksView(w, r, h.roasterViewConfig())
 }
 
 // HandleGrinderView shows a grinder detail page with social features
@@ -176,9 +184,17 @@ func (h *Handlers) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.grinderViewConfig())
 }
 
+func (h *Handlers) HandleGrinderBacklinks(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksView(w, r, h.grinderViewConfig())
+}
+
 // HandleBrewerView shows a brewer detail page with social features
 func (h *Handlers) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.brewerViewConfig())
+}
+
+func (h *Handlers) HandleBrewerBacklinks(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksView(w, r, h.brewerViewConfig())
 }
 
 func (h *Handlers) recipeViewConfig() handlers.EntityViewConfig {
@@ -199,25 +215,27 @@ func (h *Handlers) recipeViewConfig() handlers.EntityViewConfig {
 		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
 			recipe := record.(*arabica.Recipe)
 			props := coffeepages.RecipeViewProps{
-				Recipe:            recipe,
-				IsOwnProfile:      base.IsOwnProfile,
-				IsAuthenticated:   base.IsAuthenticated,
-				SubjectURI:        base.SubjectURI,
-				SubjectCID:        base.SubjectCID,
-				IsLiked:           base.IsLiked,
-				LikeCount:         base.LikeCount,
-				CommentCount:      base.CommentCount,
-				Comments:          base.Comments,
-				CurrentUserDID:    base.CurrentUserDID,
-				ShareURL:          base.ShareURL,
-				IsModerator:       base.IsModerator,
-				CanHideRecord:     base.CanHideRecord,
-				CanBlockUser:      base.CanBlockUser,
-				IsRecordHidden:    base.IsRecordHidden,
-				AuthorDID:         base.AuthorDID,
-				AuthorHandle:      base.AuthorHandle,
-				AuthorDisplayName: base.AuthorDisplayName,
-				AuthorAvatar:      base.AuthorAvatar,
+				Recipe:             recipe,
+				IsOwnProfile:       base.IsOwnProfile,
+				IsAuthenticated:    base.IsAuthenticated,
+				SubjectURI:         base.SubjectURI,
+				SubjectCID:         base.SubjectCID,
+				IsLiked:            base.IsLiked,
+				LikeCount:          base.LikeCount,
+				CommentCount:       base.CommentCount,
+				Comments:           base.Comments,
+				CurrentUserDID:     base.CurrentUserDID,
+				ShareURL:           base.ShareURL,
+				IsModerator:        base.IsModerator,
+				CanHideRecord:      base.CanHideRecord,
+				CanBlockUser:       base.CanBlockUser,
+				IsRecordHidden:     base.IsRecordHidden,
+				AuthorDID:          base.AuthorDID,
+				AuthorHandle:       base.AuthorHandle,
+				AuthorDisplayName:  base.AuthorDisplayName,
+				AuthorAvatar:       base.AuthorAvatar,
+				Backlinks:          base.Backlinks,
+				BacklinksDetailURL: base.BacklinksDetailURL,
 			}
 			if recipe.SourceRef != "" {
 				if srcURI, err := atp.ParseATURI(recipe.SourceRef); err == nil {
@@ -243,6 +261,10 @@ func (h *Handlers) recipeViewConfig() handlers.EntityViewConfig {
 // HandleRecipeView displays a recipe detail page
 func (h *Handlers) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.recipeViewConfig())
+}
+
+func (h *Handlers) HandleRecipeBacklinks(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksView(w, r, h.recipeViewConfig())
 }
 
 func (h *Handlers) brewViewConfig() handlers.EntityViewConfig {

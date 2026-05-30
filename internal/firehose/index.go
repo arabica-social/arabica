@@ -700,6 +700,108 @@ func (idx *FeedIndex) ListRecordsByCollectionOldest(ctx context.Context, collect
 	return idx.listRecordsByCollection(ctx, collection, "ASC")
 }
 
+// ListDirectSourceRefs returns records whose sourceRef points directly at uri.
+func (idx *FeedIndex) ListDirectSourceRefs(ctx context.Context, uri string) ([]IndexedRecord, error) {
+	rows, err := idx.db.QueryContext(ctx, `
+		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
+		FROM records
+		WHERE json_extract(record, '$.sourceRef') = ?
+		ORDER BY created_at DESC
+	`, uri)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanIndexedRecords(rows)
+}
+
+// ListSourceRefChain walks sourceRef backlinks breadth-first from uri.
+func (idx *FeedIndex) ListSourceRefChain(ctx context.Context, uri string, maxDepth, maxRecords int) ([]IndexedRecord, error) {
+	if maxDepth <= 0 {
+		maxDepth = 5
+	}
+	if maxRecords <= 0 {
+		maxRecords = 500
+	}
+	seen := map[string]struct{}{uri: {}}
+	frontier := []string{uri}
+	var out []IndexedRecord
+	for depth := 0; depth < maxDepth && len(frontier) > 0 && len(out) < maxRecords; depth++ {
+		var next []string
+		for _, u := range frontier {
+			recs, err := idx.ListDirectSourceRefs(ctx, u)
+			if err != nil {
+				return nil, err
+			}
+			for _, rec := range recs {
+				if _, ok := seen[rec.URI]; ok {
+					continue
+				}
+				seen[rec.URI] = struct{}{}
+				out = append(out, rec)
+				next = append(next, rec.URI)
+				if len(out) >= maxRecords {
+					return out, nil
+				}
+			}
+		}
+		frontier = next
+	}
+	return out, nil
+}
+
+// ListUsageBacklinks returns records in fromCollection whose JSON field equals uri.
+func (idx *FeedIndex) ListUsageBacklinks(ctx context.Context, uri, fromCollection, fieldName string) ([]IndexedRecord, error) {
+	if fieldName == "" || strings.ContainsAny(fieldName, "'\"$.[] ") {
+		return nil, fmt.Errorf("invalid JSON field name: %q", fieldName)
+	}
+	rows, err := idx.db.QueryContext(ctx, fmt.Sprintf(`
+		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
+		FROM records
+		WHERE collection = ? AND json_extract(record, '$.%s') = ?
+		ORDER BY created_at DESC
+	`, fieldName), fromCollection, uri)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanIndexedRecords(rows)
+}
+
+// ListUsageBacklinksPage returns one page of usage backlinks plus the total count.
+func (idx *FeedIndex) ListUsageBacklinksPage(ctx context.Context, uri, fromCollection, fieldName string, limit, offset int) ([]IndexedRecord, int, error) {
+	if fieldName == "" || strings.ContainsAny(fieldName, "'\"$.[] ") {
+		return nil, 0, fmt.Errorf("invalid JSON field name: %q", fieldName)
+	}
+	if limit <= 0 {
+		limit = 25
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	var count int
+	if err := idx.db.QueryRowContext(ctx, fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM records
+		WHERE collection = ? AND json_extract(record, '$.%s') = ?
+	`, fieldName), fromCollection, uri).Scan(&count); err != nil {
+		return nil, 0, err
+	}
+	rows, err := idx.db.QueryContext(ctx, fmt.Sprintf(`
+		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
+		FROM records
+		WHERE collection = ? AND json_extract(record, '$.%s') = ?
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`, fieldName), fromCollection, uri, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	recs, err := scanIndexedRecords(rows)
+	return recs, count, err
+}
+
 func (idx *FeedIndex) listRecordsByCollection(ctx context.Context, collection string, dir string) ([]IndexedRecord, error) {
 	rows, err := idx.db.QueryContext(ctx, fmt.Sprintf(`
 		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
@@ -710,6 +812,10 @@ func (idx *FeedIndex) listRecordsByCollection(ctx context.Context, collection st
 	}
 	defer rows.Close()
 
+	return scanIndexedRecords(rows)
+}
+
+func scanIndexedRecords(rows *sql.Rows) ([]IndexedRecord, error) {
 	var records []IndexedRecord
 	for rows.Next() {
 		var rec IndexedRecord

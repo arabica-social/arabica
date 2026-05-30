@@ -1,0 +1,103 @@
+package components
+
+import (
+	"fmt"
+
+	"tangled.org/arabica.social/arabica/internal/backlinks"
+)
+
+type BacklinksSectionProps struct {
+	Result    *backlinks.Result
+	DetailURL string
+}
+
+templ BacklinksSection(props BacklinksSectionProps) {
+	if props.Result != nil && !props.Result.IsEmpty() {
+		<section class="backlinks-section" aria-labelledby="backlinks-heading">
+			<h2 id="backlinks-heading" class="backlinks-heading">Community</h2>
+			<div class="backlinks-grid">
+				if props.Result.LibraryCount > 0 {
+					@backlinksBlock(fmt.Sprintf("In %d %s", props.Result.LibraryCount, pluralWord("library", "libraries", props.Result.LibraryCount)), entriesToAvatars(props.Result.LibraryEntries, 5), props.Result.LibraryCount, props.DetailURL)
+				}
+				for _, group := range props.Result.Usage {
+					if group.Count > 0 {
+						@backlinksBlock(fmt.Sprintf("Used in %d %s", group.Count, group.Label), entriesToAvatars(group.Entries, 5), group.Count, props.DetailURL)
+					}
+				}
+			</div>
+		</section>
+	}
+}
+
+templ backlinksBlock(label string, avatars []backlinkAvatar, total int, detailURL string) {
+	<div class="backlinks-block">
+		<div class="backlinks-label">{ label }</div>
+		if len(avatars) > 0 {
+			<div class="backlinks-avatars" aria-label={ label }>
+				for _, a := range avatars {
+					<a href={ templ.SafeURL(profileURLForHandle(a.Handle)) } class="backlinks-avatar" title={ a.Title }>
+						if a.AvatarURL != "" {
+							<img src={ a.AvatarURL } alt={ a.Title } loading="lazy"/>
+						} else {
+							<span class="backlinks-avatar-fallback">{ a.Initial }</span>
+						}
+					</a>
+				}
+				if total > len(avatars) {
+					<span class="backlinks-avatar-more">+{ fmt.Sprintf("%d", total-len(avatars)) }</span>
+				}
+			</div>
+		}
+		if detailURL != "" {
+			<a href={ templ.SafeURL(detailURL) } class="backlinks-see-all">See all →</a>
+		}
+	</div>
+}
+
+type backlinkAvatar struct {
+	Handle    string
+	AvatarURL string
+	Title     string
+	Initial   string
+}
+
+func entriesToAvatars(entries []backlinks.Entry, max int) []backlinkAvatar {
+	out := make([]backlinkAvatar, 0, max)
+	seen := map[string]struct{}{}
+	for _, e := range entries {
+		if _, ok := seen[e.DID]; ok {
+			continue
+		}
+		seen[e.DID] = struct{}{}
+		title := e.DisplayName
+		if title == "" {
+			title = e.Handle
+		}
+		if title == "" {
+			title = e.DID
+		}
+		initial := "?"
+		if rs := []rune(title); len(rs) > 0 {
+			initial = string(rs[0])
+		}
+		out = append(out, backlinkAvatar{Handle: e.Handle, AvatarURL: e.AvatarURL, Title: title, Initial: initial})
+		if len(out) >= max {
+			break
+		}
+	}
+	return out
+}
+
+func profileURLForHandle(handle string) string {
+	if handle == "" {
+		return "#"
+	}
+	return "/profile/" + handle
+}
+
+func pluralWord(singular, plural string, n int) string {
+	if n == 1 {
+		return singular
+	}
+	return plural
+}

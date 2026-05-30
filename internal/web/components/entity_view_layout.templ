@@ -28,6 +28,7 @@ type EntityViewLayoutProps struct {
 
 	Body     templ.Component
 	StatLine templ.Component
+	Community templ.Component
 
 	ActionBar      ActionBarProps
 	GuardActionBar bool
@@ -62,6 +63,9 @@ templ EntityViewLayoutCard(props EntityViewLayoutProps) {
 	@props.Body
 	if props.StatLine != nil {
 		@props.StatLine
+	}
+	if props.Community != nil {
+		@props.Community
 	}
 	<div class="record-view-footer">
 		if props.GuardActionBar {

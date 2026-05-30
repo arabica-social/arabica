@@ -26,6 +26,7 @@ templ RoasterView(layout *components.LayoutData, props RoasterViewProps) {
 		AuthorAvatar:      props.AuthorAvatar,
 		Body:              roasterBody(props.Roaster),
 		StatLine:          roasterStatLine(props.BeanCount),
+		Community:         components.BacklinksSection(components.BacklinksSectionProps{Result: props.Backlinks, DetailURL: props.BacklinksDetailURL}),
 		ActionBar: components.ActionBarProps{
 			SubjectURI:      props.SubjectURI,
 			SubjectCID:      props.SubjectCID,

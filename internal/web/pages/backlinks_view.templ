@@ -1,0 +1,161 @@
+package pages
+
+import (
+	"fmt"
+
+	"tangled.org/arabica.social/arabica/internal/backlinks"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+type BacklinksViewProps struct {
+	EntityNoun string
+	EntityName string
+	BackURL    string
+	DetailURL  string
+	Result     *backlinks.Result
+	RoutePaths map[lexicons.RecordType]string
+}
+
+templ BacklinksView(layout *components.LayoutData, props BacklinksViewProps) {
+	@components.Layout(layout, BacklinksViewContent(props))
+}
+
+templ BacklinksViewContent(props BacklinksViewProps) {
+	<div class="page-container-sm">
+		@components.Card(components.CardProps{InnerCard: true}, BacklinksViewCard(props))
+	</div>
+}
+
+templ BacklinksViewCard(props BacklinksViewProps) {
+	<div class="backlinks-page p-4">
+		<a href={ templ.SafeURL(props.BackURL) } class="text-sm text-secondary hover:underline">← back to { props.EntityNoun }</a>
+		<h1 class="page-title mt-2">Community around { props.EntityName }</h1>
+		if props.Result == nil || props.Result.IsEmpty() {
+			<p class="text-secondary mt-4">No community backlinks yet.</p>
+		} else {
+			if props.Result.LibraryCount > 0 {
+				<section class="mt-6">
+					<h2 class="backlinks-heading">In { fmt.Sprintf("%d", props.Result.LibraryCount) } { pluralWordPublic("library", "libraries", props.Result.LibraryCount) }</h2>
+					@backlinksEntryList(props.Result.LibraryEntries, true, props.RoutePaths)
+				</section>
+			}
+			for _, group := range props.Result.Usage {
+				if group.Count > 0 {
+					<section class="mt-6">
+						<h2 class="backlinks-heading">Used in { fmt.Sprintf("%d", group.Count) } { group.Label }</h2>
+						@backlinksEntryList(group.Entries, false, props.RoutePaths)
+						@usagePager(props, group)
+					</section>
+				}
+			}
+		}
+	</div>
+}
+
+templ usagePager(props BacklinksViewProps, group backlinks.UsageGroup) {
+	if group.PerPage > 0 && (group.HasPrev || group.HasNext) {
+		<nav class="backlinks-pager" aria-label={ "Pagination for " + group.Label }>
+			if group.HasPrev {
+				<a class="btn-secondary text-sm" href={ templ.SafeURL(usagePageURL(props, group, group.Page-1)) }>← Newer</a>
+			} else {
+				<span></span>
+			}
+			<span class="backlinks-pager-status">Page { fmt.Sprintf("%d", group.Page) } of { fmt.Sprintf("%d", usagePageCount(group)) }</span>
+			if group.HasNext {
+				<a class="btn-secondary text-sm" href={ templ.SafeURL(usagePageURL(props, group, group.Page+1)) }>Older →</a>
+			}
+		</nav>
+	}
+}
+
+templ backlinksEntryList(entries []backlinks.Entry, showChain bool, routePaths map[lexicons.RecordType]string) {
+	<ul class="backlinks-entry-list">
+		for _, e := range entries {
+			<li class="backlinks-entry">
+				if e.Title != "" && recordViewURL(e, routePaths) != "" {
+					<a href={ templ.SafeURL(recordViewURL(e, routePaths)) } class="backlinks-entry-title">{ e.Title }</a>
+					<a href={ templ.SafeURL(profileURLForHandlePublic(e.Handle)) } class="backlinks-entry-user">
+						if e.AvatarURL != "" {
+							<img src={ e.AvatarURL } alt="" class="backlinks-entry-avatar" loading="lazy"/>
+						}
+						<span class="text-xs text-secondary">by { entryDisplayName(e) }</span>
+					</a>
+				} else {
+					<a href={ templ.SafeURL(profileURLForHandlePublic(e.Handle)) } class="backlinks-entry-user">
+						if e.AvatarURL != "" {
+							<img src={ e.AvatarURL } alt="" class="backlinks-entry-avatar" loading="lazy"/>
+						}
+						<span>{ entryDisplayName(e) }</span>
+					</a>
+				}
+				<span class="backlinks-entry-meta">
+					{ e.CreatedAt.Format("Jan 2, 2006") }
+					if showChain && e.ChainDepth > 1 {
+						<span class="text-faint">· fork depth { fmt.Sprintf("%d", e.ChainDepth) }</span>
+					}
+				</span>
+			</li>
+		}
+	</ul>
+}
+
+func recordViewURL(e backlinks.Entry, routePaths map[lexicons.RecordType]string) string {
+	rt := lexicons.ParseRecordType(collectionTail(e.Collection))
+	path := routePaths[rt]
+	if path == "" || e.RKey == "" {
+		return ""
+	}
+	owner := e.Handle
+	if owner == "" {
+		owner = e.DID
+	}
+	return fmt.Sprintf("/%s/%s/%s", path, owner, e.RKey)
+}
+
+func collectionTail(collection string) string {
+	for i := len(collection) - 1; i >= 0; i-- {
+		if collection[i] == '.' {
+			return collection[i+1:]
+		}
+	}
+	return collection
+}
+
+func entryDisplayName(e backlinks.Entry) string {
+	if e.DisplayName != "" {
+		return e.DisplayName
+	}
+	if e.Handle != "" {
+		return e.Handle
+	}
+	return e.DID
+}
+
+func profileURLForHandlePublic(handle string) string {
+	if handle == "" {
+		return "#"
+	}
+	return "/profile/" + handle
+}
+
+func pluralWordPublic(singular, plural string, n int) string {
+	if n == 1 {
+		return singular
+	}
+	return plural
+}
+
+func usagePageCount(group backlinks.UsageGroup) int {
+	if group.PerPage <= 0 {
+		return 1
+	}
+	return (group.Count + group.PerPage - 1) / group.PerPage
+}
+
+func usagePageURL(props BacklinksViewProps, group backlinks.UsageGroup, page int) string {
+	if page < 1 {
+		page = 1
+	}
+	return fmt.Sprintf("%s?usage=%s&page=%d", props.DetailURL, group.Key, page)
+}

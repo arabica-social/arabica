@@ -315,6 +315,9 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		if b.View != nil {
 			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.View))
 		}
+		if b.Backlinks != nil {
+			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.Backlinks))
+		}
 		if b.OGImage != nil {
 			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/og-image", RewriteActorToOwner(b.OGImage))
 		}

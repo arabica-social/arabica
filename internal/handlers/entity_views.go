@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/backlinks"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
@@ -137,27 +140,30 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 	PopulateOGFields(layoutData, cfg.OGSubtitle(loaded.Record), loaded.EntityNoun, ownerHandle, h.PublicBaseURL(r), shareURL)
 
 	sd := h.FetchSocialData(r.Context(), loaded.SubjectURI, didStr, isAuthenticated)
+	bl, blDetailURL := h.fetchBacklinks(r.Context(), loaded.SubjectURI, loaded.Route.Path, rkey, ownerSegment(owner, userProfile, didStr))
 
 	authorDID := loaded.OwnerDID
 	if authorDID == "" {
 		authorDID = didStr
 	}
 	base := pages.EntityViewBase{
-		IsOwnProfile:    loaded.IsOwnProfile,
-		IsAuthenticated: isAuthenticated,
-		SubjectURI:      loaded.SubjectURI,
-		SubjectCID:      loaded.SubjectCID,
-		IsLiked:         sd.IsLiked,
-		LikeCount:       sd.LikeCount,
-		CommentCount:    sd.CommentCount,
-		Comments:        sd.Comments,
-		CurrentUserDID:  didStr,
-		ShareURL:        shareURL,
-		IsModerator:     sd.IsModerator,
-		CanHideRecord:   sd.CanHideRecord,
-		CanBlockUser:    sd.CanBlockUser,
-		IsRecordHidden:  sd.IsRecordHidden,
-		AuthorDID:       loaded.OwnerDID,
+		IsOwnProfile:       loaded.IsOwnProfile,
+		IsAuthenticated:    isAuthenticated,
+		SubjectURI:         loaded.SubjectURI,
+		SubjectCID:         loaded.SubjectCID,
+		IsLiked:            sd.IsLiked,
+		LikeCount:          sd.LikeCount,
+		CommentCount:       sd.CommentCount,
+		Comments:           sd.Comments,
+		CurrentUserDID:     didStr,
+		ShareURL:           shareURL,
+		IsModerator:        sd.IsModerator,
+		CanHideRecord:      sd.CanHideRecord,
+		CanBlockUser:       sd.CanBlockUser,
+		IsRecordHidden:     sd.IsRecordHidden,
+		AuthorDID:          loaded.OwnerDID,
+		Backlinks:          bl,
+		BacklinksDetailURL: blDetailURL,
 	}
 	if ap := h.GetUserProfile(r.Context(), authorDID); ap != nil {
 		base.AuthorHandle = ap.Handle
@@ -169,6 +175,166 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msgf("Failed to render %s view", loaded.EntityNoun)
 	}
+}
+
+func ownerSegment(owner string, profile *bff.UserProfile, did string) string {
+	if owner != "" {
+		return owner
+	}
+	if profile != nil && profile.Handle != "" {
+		return profile.Handle
+	}
+	return did
+}
+
+func (h *Handler) fetchBacklinks(ctx context.Context, subjectURI, routePath, rkey, owner string) (*backlinks.Result, string) {
+	return h.fetchBacklinksWithOptions(ctx, subjectURI, routePath, rkey, owner, backlinks.LookupOptions{})
+}
+
+func (h *Handler) fetchBacklinksWithOptions(ctx context.Context, subjectURI, routePath, rkey, owner string, opts backlinks.LookupOptions) (*backlinks.Result, string) {
+	detailURL := ""
+	if routePath != "" && rkey != "" && owner != "" {
+		detailURL = fmt.Sprintf("/%s/%s/%s/backlinks", routePath, owner, rkey)
+	}
+	if h.feedIndex == nil || subjectURI == "" {
+		return nil, detailURL
+	}
+	src := backlinkIndexSource{idx: h.feedIndex}
+	svc := backlinks.NewService(src, src)
+	res, err := svc.LookupWithOptions(ctx, subjectURI, opts)
+	if err != nil {
+		log.Warn().Err(err).Str("uri", subjectURI).Msg("backlinks lookup failed")
+		return nil, detailURL
+	}
+	return res, detailURL
+}
+
+type backlinkIndexSource struct{ idx *firehose.FeedIndex }
+
+func (s backlinkIndexSource) ListSourceRefChain(ctx context.Context, uri string, maxDepth, maxRecords int) ([]backlinks.IndexedRecord, error) {
+	recs, err := s.idx.ListSourceRefChain(ctx, uri, maxDepth, maxRecords)
+	return convertBacklinkRecords(recs), err
+}
+
+func (s backlinkIndexSource) ListRecordsByCollectionOldest(ctx context.Context, collection string) ([]backlinks.IndexedRecord, error) {
+	recs, err := s.idx.ListRecordsByCollectionOldest(ctx, collection)
+	return convertBacklinkRecords(recs), err
+}
+
+func (s backlinkIndexSource) ListUsageBacklinks(ctx context.Context, uri, fromCollection, fieldName string) ([]backlinks.IndexedRecord, error) {
+	recs, err := s.idx.ListUsageBacklinks(ctx, uri, fromCollection, fieldName)
+	return convertBacklinkRecords(recs), err
+}
+
+func (s backlinkIndexSource) ListUsageBacklinksPage(ctx context.Context, uri, fromCollection, fieldName string, limit, offset int) ([]backlinks.IndexedRecord, int, error) {
+	recs, count, err := s.idx.ListUsageBacklinksPage(ctx, uri, fromCollection, fieldName, limit, offset)
+	return convertBacklinkRecords(recs), count, err
+}
+
+func (s backlinkIndexSource) GetRecord(ctx context.Context, uri string) (backlinks.IndexedRecord, bool) {
+	rec, err := s.idx.GetRecord(ctx, uri)
+	if err != nil || rec == nil {
+		return backlinks.IndexedRecord{}, false
+	}
+	converted := convertBacklinkRecords([]firehose.IndexedRecord{*rec})
+	return converted[0], true
+}
+
+func convertBacklinkRecords(recs []firehose.IndexedRecord) []backlinks.IndexedRecord {
+	out := make([]backlinks.IndexedRecord, 0, len(recs))
+	for _, rec := range recs {
+		out = append(out, backlinks.IndexedRecord{
+			URI:        rec.URI,
+			DID:        rec.DID,
+			Collection: rec.Collection,
+			RKey:       rec.RKey,
+			Record:     rec.Record,
+			CreatedAt:  rec.CreatedAt,
+		})
+	}
+	return out
+}
+
+func (s backlinkIndexSource) GetProfile(ctx context.Context, did string) (*backlinks.Profile, error) {
+	p, err := s.idx.GetProfile(ctx, did)
+	if err != nil || p == nil {
+		return nil, err
+	}
+	out := &backlinks.Profile{Handle: p.Handle}
+	if p.DisplayName != nil {
+		out.DisplayName = *p.DisplayName
+	}
+	if p.Avatar != nil {
+		out.AvatarURL = *p.Avatar
+	}
+	return out, nil
+}
+
+func (h *Handler) RenderBacklinksView(w http.ResponseWriter, r *http.Request, cfg EntityViewConfig) {
+	rkey := ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	owner := r.URL.Query().Get("owner")
+	didStr, _ := atpmiddleware.GetDID(r.Context())
+	isAuthenticated := didStr != ""
+	if owner == "" && !isAuthenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	var userProfile *bff.UserProfile
+	if isAuthenticated {
+		userProfile = h.GetUserProfile(r.Context(), didStr)
+	}
+
+	loaded, err := h.EntityViewLoader().Load(r, rkey, cfg.loadConfig())
+	if err != nil {
+		if loadErr, ok := err.(*EntityLoadError); ok {
+			http.Error(w, loadErr.Msg, loadErr.HTTPStatus())
+		} else {
+			http.Error(w, "Failed to load record", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	name := cfg.DisplayName(loaded.Record)
+	if name == "" && cfg.Descriptor != nil {
+		name = cfg.Descriptor.DisplayName
+	}
+	ownerID := ownerSegment(owner, userProfile, didStr)
+	backURL := fmt.Sprintf("/%s/%s/%s", loaded.Route.Path, ownerID, rkey)
+	usageKey := r.URL.Query().Get("usage")
+	usagePage, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if usagePage <= 0 {
+		usagePage = 1
+	}
+	result, detailURL := h.fetchBacklinksWithOptions(r.Context(), loaded.SubjectURI, loaded.Route.Path, rkey, ownerID, backlinks.LookupOptions{UsageKey: usageKey, UsagePage: usagePage, UsagePerPage: 25})
+
+	layoutData := h.BuildLayoutData(r, "Community · "+name, isAuthenticated, didStr, userProfile)
+	props := pages.BacklinksViewProps{
+		EntityNoun: strings.ToLower(loaded.EntityNoun),
+		EntityName: name,
+		BackURL:    backURL,
+		DetailURL:  detailURL,
+		Result:     result,
+		RoutePaths: h.entityRoutePaths(),
+	}
+	if err := pages.BacklinksView(layoutData, props).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("failed to render backlinks page")
+	}
+}
+
+func (h *Handler) entityRoutePaths() map[lexicons.RecordType]string {
+	paths := map[lexicons.RecordType]string{}
+	if h.app == nil {
+		return paths
+	}
+	for _, route := range h.app.EntityRoutes {
+		paths[route.Type] = route.Path
+	}
+	return paths
 }
 
 func (h *Handler) entityRouteFor(desc *entities.Descriptor) domain.EntityRoute {

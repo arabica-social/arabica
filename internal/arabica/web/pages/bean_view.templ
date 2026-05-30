@@ -95,6 +95,7 @@ templ BeanViewCard(props BeanViewProps) {
 			</span>
 		</div>
 	}
+	@components.BacklinksSection(components.BacklinksSectionProps{Result: props.Backlinks, DetailURL: props.BacklinksDetailURL})
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">
 			@components.BackButton()

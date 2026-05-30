@@ -3,6 +3,7 @@ package coffeepages
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/backlinks"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
@@ -28,6 +29,8 @@ type RecipeViewProps struct {
 	AuthorHandle       string
 	AuthorDisplayName  string
 	AuthorAvatar       string
+	Backlinks          *backlinks.Result
+	BacklinksDetailURL string
 	SourceRecipeURL    string // view URL for the forked-from recipe
 	SourceRecipeAuthor string // display name or handle of the original author
 }
@@ -122,6 +125,7 @@ templ RecipeViewCard(props RecipeViewProps) {
 			}
 		</div>
 	</div>
+	@components.BacklinksSection(components.BacklinksSectionProps{Result: props.Backlinks, DetailURL: props.BacklinksDetailURL})
 	<div class="record-view-footer">
 		<div class="flex items-center gap-3">
 			@components.BackButton()

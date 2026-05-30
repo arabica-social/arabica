@@ -45,6 +45,7 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 
 	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
 	mux.HandleFunc("GET /recipes/{actor}/{id}/og-image", routing.RewriteActorToOwner(h.HandleRecipeOGImage))
+	mux.HandleFunc("GET /recipes/{actor}/{id}/backlinks", routing.RewriteActorToOwner(h.HandleRecipeBacklinks))
 	mux.HandleFunc("GET /recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeView))
 
 	mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
@@ -74,6 +75,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleBeanUpdate,
 			Delete:     h.HandleBeanDelete,
 			View:       h.HandleBeanView,
+			Backlinks:  h.HandleBeanBacklinks,
 			OGImage:    h.HandleBeanOGImage,
 			ModalNew:   h.HandleBeanModalNew,
 			ModalEdit:  h.HandleBeanModalEdit,
@@ -84,6 +86,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleRoasterUpdate,
 			Delete:     h.HandleRoasterDelete,
 			View:       h.HandleRoasterView,
+			Backlinks:  h.HandleRoasterBacklinks,
 			OGImage:    h.HandleRoasterOGImage,
 			ModalNew:   h.HandleRoasterModalNew,
 			ModalEdit:  h.HandleRoasterModalEdit,
@@ -94,6 +97,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleGrinderUpdate,
 			Delete:     h.HandleGrinderDelete,
 			View:       h.HandleGrinderView,
+			Backlinks:  h.HandleGrinderBacklinks,
 			OGImage:    h.HandleGrinderOGImage,
 			ModalNew:   h.HandleGrinderModalNew,
 			ModalEdit:  h.HandleGrinderModalEdit,
@@ -104,6 +108,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleBrewerUpdate,
 			Delete:     h.HandleBrewerDelete,
 			View:       h.HandleBrewerView,
+			Backlinks:  h.HandleBrewerBacklinks,
 			OGImage:    h.HandleBrewerOGImage,
 			ModalNew:   h.HandleBrewerModalNew,
 			ModalEdit:  h.HandleBrewerModalEdit,
