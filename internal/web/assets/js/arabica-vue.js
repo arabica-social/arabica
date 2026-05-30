@@ -10,6 +10,7 @@
  * @typedef {object} ArabicaWindow
  * @property {PetiteVueAppCtor} [PetiteVue]
  * @property {() => void} [applyTheme]
+ * @property {(brewRKey: string | null) => unknown} [saveAsRecipe]
  */
 
 /** @typedef {{ open: boolean, toggle: () => void, close: () => void }} DisclosureScope */
@@ -573,6 +574,7 @@ function BeanRating(initialRating) {
     // at mount time so script-load order is the only requirement.
     entitySuggest: /** @type {any} */ (window).entitySuggest,
     recipeExplore: /** @type {any} */ (window).recipeExplore,
+    saveAsRecipe: /** @type {any} */ (window).saveAsRecipe,
     comboSelect: /** @type {any} */ (window).comboSelect,
     brewForm: /** @type {any} */ (window).brewForm,
     managePage: /** @type {any} */ (window).managePage,

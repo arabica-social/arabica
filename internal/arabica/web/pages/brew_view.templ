@@ -355,7 +355,7 @@ func getBrewShareTitle(brew *arabica.Brew) string {
 
 // SaveAsRecipeButton renders a button to save brew parameters as a recipe
 templ SaveAsRecipeButton(brewRKey string) {
-	<div v-scope={ saveAsRecipeData(brewRKey) }>
+	<div v-scope={ fmt.Sprintf("saveAsRecipe(%q)", brewRKey) }>
 		<button
 			v-if="!showForm && !success"
 			@click="showForm = true"
@@ -385,10 +385,6 @@ templ SaveAsRecipeButton(brewRKey string) {
 			Recipe saved!
 		</div>
 	</div>
-}
-
-func saveAsRecipeData(brewRKey string) string {
-	return fmt.Sprintf("{ showForm: false, name: '', saving: false, error: '', success: false, brewRKey: '%s', saveRecipe() { if (!this.name.trim()) { this.error = 'Name is required'; return; } this.saving = true; this.error = ''; const body = new URLSearchParams({ name: this.name }); fetch('/api/recipes/from-brew/' + this.brewRKey, { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body, credentials: 'same-origin' }).then(r => { if (!r.ok) throw new Error('Failed'); return r.json(); }).then(() => { this.success = true; this.saving = false; }).catch(() => { this.error = 'Failed to save recipe'; this.saving = false; }); } }", brewRKey)
 }
 
 func getRecipeViewURL(recipe *arabica.Recipe, fallbackOwner string) string {
