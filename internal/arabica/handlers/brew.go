@@ -64,7 +64,7 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 					brew = b
 					brew.RKey = rkey
 					arabicastore.ExtractBrewRefRKeys(brew, m)
-					resolveBrewRefsViaLookup(brew, m, h.WitnessLookup(r.Context()))
+					arabica.HydrateBrewRefs(brew, m, h.WitnessLookup(r.Context()))
 				}
 			}
 		}
@@ -85,7 +85,7 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 		}
 		brew.RKey = rkey
 		arabicastore.ExtractBrewRefRKeys(brew, record.Value)
-		resolveBrewRefsViaLookup(brew, record.Value, handlers.PublicLookup(r.Context()))
+		arabica.HydrateBrewRefs(brew, record.Value, handlers.PublicLookup(r.Context()))
 	}
 
 	// Generate card

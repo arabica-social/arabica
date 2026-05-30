@@ -38,81 +38,18 @@ func (s *AtprotoStore) RawAtprotoStore() *atproto.AtprotoStore {
 }
 
 func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *arabica.Brew, record map[string]any) {
-	// Resolve bean (and its roaster)
-	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
-		if beanWR := s.AtprotoStore.WitnessRecordByURI(ctx, beanRef); beanWR != nil {
-			if beanMap, err := atproto.WitnessRecordToMap(beanWR); err == nil {
-				if bean, err := arabica.RecordToBean(beanMap, beanWR.URI); err == nil {
-					bean.RKey = beanWR.RKey
-					// Resolve roaster ref from witness too
-					if roasterRef, ok := beanMap["roasterRef"].(string); ok && roasterRef != "" {
-						if rkey := atp.RKeyFromURI(roasterRef); rkey != "" {
-							bean.RoasterRKey = rkey
-						}
-						if roasterWR := s.AtprotoStore.WitnessRecordByURI(ctx, roasterRef); roasterWR != nil {
-							if roasterMap, err := atproto.WitnessRecordToMap(roasterWR); err == nil {
-								if roaster, err := arabica.RecordToRoaster(roasterMap, roasterWR.URI); err == nil {
-									roaster.RKey = roasterWR.RKey
-									bean.Roaster = roaster
-								}
-							}
-						}
-					}
-					brew.Bean = bean
-				}
-			}
+	lookup := func(refURI string) (map[string]any, bool) {
+		wr := s.AtprotoStore.WitnessRecordByURI(ctx, refURI)
+		if wr == nil {
+			return nil, false
 		}
-	}
-
-	// Resolve grinder
-	if grinderRef, _ := record["grinderRef"].(string); grinderRef != "" {
-		if grinderWR := s.AtprotoStore.WitnessRecordByURI(ctx, grinderRef); grinderWR != nil {
-			if grinderMap, err := atproto.WitnessRecordToMap(grinderWR); err == nil {
-				if grinder, err := arabica.RecordToGrinder(grinderMap, grinderWR.URI); err == nil {
-					grinder.RKey = grinderWR.RKey
-					brew.GrinderObj = grinder
-				}
-			}
+		record, err := atproto.WitnessRecordToMap(wr)
+		if err != nil {
+			return nil, false
 		}
+		return record, true
 	}
-
-	// Resolve brewer
-	if brewerRef, _ := record["brewerRef"].(string); brewerRef != "" {
-		if brewerWR := s.AtprotoStore.WitnessRecordByURI(ctx, brewerRef); brewerWR != nil {
-			if brewerMap, err := atproto.WitnessRecordToMap(brewerWR); err == nil {
-				if brewer, err := arabica.RecordToBrewer(brewerMap, brewerWR.URI); err == nil {
-					brewer.RKey = brewerWR.RKey
-					brew.BrewerObj = brewer
-				}
-			}
-		}
-	}
-
-	// Resolve recipe
-	if recipeRef, _ := record["recipeRef"].(string); recipeRef != "" {
-		if recipeWR := s.AtprotoStore.WitnessRecordByURI(ctx, recipeRef); recipeWR != nil {
-			if recipeMap, err := atproto.WitnessRecordToMap(recipeWR); err == nil {
-				if recipe, err := arabica.RecordToRecipe(recipeMap, recipeWR.URI); err == nil {
-					recipe.RKey = recipeWR.RKey
-					// Resolve recipe's brewer ref from witness
-					if brewerRef, ok := recipeMap["brewerRef"].(string); ok && brewerRef != "" {
-						if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
-							recipe.BrewerRKey = rkey
-						}
-						if brewerWR := s.AtprotoStore.WitnessRecordByURI(ctx, brewerRef); brewerWR != nil {
-							if brewerMap, err := atproto.WitnessRecordToMap(brewerWR); err == nil {
-								if brewer, err := arabica.RecordToBrewer(brewerMap, brewerWR.URI); err == nil {
-									brewer.RKey = brewerWR.RKey
-									recipe.BrewerObj = brewer
-								}
-							}
-						}
-					}
-					brew.RecipeObj = recipe
-				}
-			}
-		}
-	}
+	arabica.HydrateBrewRefs(brew, record, lookup)
 }
 
 // ========== Brew Helpers ==========

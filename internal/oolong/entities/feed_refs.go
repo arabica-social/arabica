@@ -1,5 +1,9 @@
 package oolong
 
+// RecordLookup returns the raw record for an AT-URI reference. Callers decide
+// whether that source is the feed index, witness cache, or a PDS lookup.
+type RecordLookup func(refURI string) (map[string]any, bool)
+
 // resolveBrewFeedRefs hydrates tea (with nested vendor), vessel and infuser
 // references on an oolong brew. Missing refs are silently skipped.
 func resolveBrewFeedRefs(model any, recordData map[string]any, lookup func(string) (map[string]any, bool)) {
@@ -7,21 +11,22 @@ func resolveBrewFeedRefs(model any, recordData map[string]any, lookup func(strin
 	if !ok || brew == nil {
 		return
 	}
+	HydrateBrewRefs(brew, recordData, lookup)
+}
+
+// HydrateBrewRefs hydrates tea (with nested vendor), vessel and infuser
+// references on an oolong brew. Missing refs are silently skipped.
+func HydrateBrewRefs(brew *Brew, recordData map[string]any, lookup RecordLookup) {
+	if brew == nil || recordData == nil || lookup == nil {
+		return
+	}
 
 	if teaRef, ok := recordData["teaRef"].(string); ok && teaRef != "" {
 		if teaData, found := lookup(teaRef); found {
-			if tea, err := RecordToTea(teaData, teaRef); err == nil {
+			if tea, err := RecordToTea(teaData, teaRef); err == nil && brew.Tea == nil {
 				brew.Tea = tea
-				if tea != nil {
-					if vendorRef, ok := teaData["vendorRef"].(string); ok && vendorRef != "" {
-						if vendorData, found := lookup(vendorRef); found {
-							if vendor, err := RecordToVendor(vendorData, vendorRef); err == nil {
-								brew.Tea.Vendor = vendor
-							}
-						}
-					}
-				}
 			}
+			HydrateTeaRefs(brew.Tea, teaData, lookup)
 		}
 	}
 
@@ -46,6 +51,14 @@ func resolveBrewFeedRefs(model any, recordData map[string]any, lookup func(strin
 func resolveTeaFeedRef(model any, recordData map[string]any, lookup func(string) (map[string]any, bool)) {
 	tea, ok := model.(*Tea)
 	if !ok || tea == nil {
+		return
+	}
+	HydrateTeaRefs(tea, recordData, lookup)
+}
+
+// HydrateTeaRefs hydrates a tea's vendor reference.
+func HydrateTeaRefs(tea *Tea, recordData map[string]any, lookup RecordLookup) {
+	if tea == nil || recordData == nil || lookup == nil || tea.Vendor != nil {
 		return
 	}
 	vendorRef, ok := recordData["vendorRef"].(string)

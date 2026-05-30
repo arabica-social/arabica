@@ -22,97 +22,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// resolveBrewRefsViaLookup walks a brew's foreign references
-// (bean+roaster, grinder, brewer, recipe+brewer) and populates the
-// typed fields on the brew via the supplied lookup. The caller binds
-// lookup to a specific source (witness cache, public PDS client, etc.)
-// so this function is source-agnostic.
-//
-// Idempotent: each branch checks whether the target field is already
-// populated and skips lookup work when so.
-func resolveBrewRefsViaLookup(brew *arabica.Brew, raw map[string]any, lookup func(refURI string) (map[string]any, bool)) {
-	if brew == nil || raw == nil {
-		return
-	}
-
-	// Bean + nested roaster.
-	if brew.Bean == nil {
-		if beanRef, _ := raw["beanRef"].(string); beanRef != "" {
-			if m, ok := lookup(beanRef); ok {
-				if bean, err := arabica.RecordToBean(m, beanRef); err == nil {
-					if rk := atp.RKeyFromURI(beanRef); rk != "" {
-						bean.RKey = rk
-					}
-					if roasterRef, _ := m["roasterRef"].(string); roasterRef != "" {
-						if rk := atp.RKeyFromURI(roasterRef); rk != "" {
-							bean.RoasterRKey = rk
-						}
-						if rm, ok := lookup(roasterRef); ok {
-							if roaster, err := arabica.RecordToRoaster(rm, roasterRef); err == nil {
-								roaster.RKey = bean.RoasterRKey
-								bean.Roaster = roaster
-							}
-						}
-					}
-					brew.Bean = bean
-				}
-			}
-		}
-	}
-
-	// Grinder.
-	if brew.GrinderObj == nil {
-		if grinderRef, _ := raw["grinderRef"].(string); grinderRef != "" {
-			if m, ok := lookup(grinderRef); ok {
-				if grinder, err := arabica.RecordToGrinder(m, grinderRef); err == nil {
-					if rk := atp.RKeyFromURI(grinderRef); rk != "" {
-						grinder.RKey = rk
-					}
-					brew.GrinderObj = grinder
-				}
-			}
-		}
-	}
-
-	// Brewer.
-	if brew.BrewerObj == nil {
-		if brewerRef, _ := raw["brewerRef"].(string); brewerRef != "" {
-			if m, ok := lookup(brewerRef); ok {
-				if brewer, err := arabica.RecordToBrewer(m, brewerRef); err == nil {
-					if rk := atp.RKeyFromURI(brewerRef); rk != "" {
-						brewer.RKey = rk
-					}
-					brew.BrewerObj = brewer
-				}
-			}
-		}
-	}
-
-	// Recipe + nested brewer.
-	if brew.RecipeObj == nil {
-		if recipeRef, _ := raw["recipeRef"].(string); recipeRef != "" {
-			if m, ok := lookup(recipeRef); ok {
-				if recipe, err := arabica.RecordToRecipe(m, recipeRef); err == nil {
-					if rk := atp.RKeyFromURI(recipeRef); rk != "" {
-						recipe.RKey = rk
-					}
-					if brewerRef, _ := m["brewerRef"].(string); brewerRef != "" {
-						if rk := atp.RKeyFromURI(brewerRef); rk != "" {
-							recipe.BrewerRKey = rk
-						}
-						if bm, ok := lookup(brewerRef); ok {
-							if brewer, err := arabica.RecordToBrewer(bm, brewerRef); err == nil {
-								brewer.RKey = recipe.BrewerRKey
-								recipe.BrewerObj = brewer
-							}
-						}
-					}
-					brew.RecipeObj = recipe
-				}
-			}
-		}
-	}
-}
 func (h *Handlers) roasterViewConfig() handlers.EntityViewConfig {
 	fromWitness, fromPDS, fromStore := handlers.StandardViewTriple(
 		arabica.NSIDRoaster, arabica.RecordToRoaster,
@@ -220,27 +129,7 @@ func (h *Handlers) beanViewConfig() handlers.EntityViewConfig {
 		FromPDS:     fromPDS,
 		FromStore:   fromStore,
 		ResolveRefs: func(_ context.Context, model any, raw map[string]any, lookup func(string) (map[string]any, bool)) {
-			bean := model.(*arabica.Bean)
-			roasterRef, _ := raw["roasterRef"].(string)
-			if roasterRef == "" {
-				return
-			}
-			if bean.RoasterRKey == "" {
-				if rk := atp.RKeyFromURI(roasterRef); rk != "" {
-					bean.RoasterRKey = rk
-				}
-			}
-			if bean.Roaster != nil {
-				return
-			}
-			m, ok := lookup(roasterRef)
-			if !ok {
-				return
-			}
-			if roaster, err := arabica.RecordToRoaster(m, roasterRef); err == nil {
-				roaster.RKey = bean.RoasterRKey
-				bean.Roaster = roaster
-			}
+			arabica.HydrateBeanRefs(model.(*arabica.Bean), raw, lookup)
 		},
 		DisplayName: func(record any) string { return record.(*arabica.Bean).Name },
 		OGSubtitle: func(record any) string {
@@ -303,24 +192,7 @@ func (h *Handlers) recipeViewConfig() handlers.EntityViewConfig {
 		FromPDS:     fromPDS,
 		FromStore:   fromStore,
 		ResolveRefs: func(_ context.Context, model any, raw map[string]any, lookup func(string) (map[string]any, bool)) {
-			recipe := model.(*arabica.Recipe)
-			brewerRef, _ := raw["brewerRef"].(string)
-			if brewerRef != "" {
-				if recipe.BrewerRKey == "" {
-					if rk := atp.RKeyFromURI(brewerRef); rk != "" {
-						recipe.BrewerRKey = rk
-					}
-				}
-				if recipe.BrewerObj == nil {
-					if m, ok := lookup(brewerRef); ok {
-						if brewer, err := arabica.RecordToBrewer(m, brewerRef); err == nil {
-							brewer.RKey = recipe.BrewerRKey
-							recipe.BrewerObj = brewer
-						}
-					}
-				}
-			}
-			recipe.Interpolate()
+			arabica.HydrateRecipeRefs(model.(*arabica.Recipe), raw, lookup)
 		},
 		DisplayName: func(record any) string { return record.(*arabica.Recipe).Name },
 		OGSubtitle:  func(record any) string { return record.(*arabica.Recipe).Name },
@@ -406,7 +278,7 @@ func (h *Handlers) brewViewConfig() handlers.EntityViewConfig {
 		ResolveRefs: func(_ context.Context, model any, raw map[string]any, lookup func(string) (map[string]any, bool)) {
 			brew := model.(*arabica.Brew)
 			arabicastore.ExtractBrewRefRKeys(brew, raw)
-			resolveBrewRefsViaLookup(brew, raw, lookup)
+			arabica.HydrateBrewRefs(brew, raw, lookup)
 		},
 		DisplayName: func(any) string { return "Brew Details" },
 		OGSubtitle: func(record any) string {
