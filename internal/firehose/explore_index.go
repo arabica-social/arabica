@@ -135,14 +135,6 @@ func (idx *FeedIndex) markExploreDirty(ctx context.Context, cause error) {
 	}
 }
 
-func (idx *FeedIndex) ExploreHealth(ctx context.Context) ExploreHealth {
-	h := idx.ExploreReadiness(ctx)
-	_ = idx.db.QueryRowContext(ctx, `SELECT CAST(value AS TEXT) FROM meta WHERE key='explore_last_error'`).Scan(&h.LastError)
-	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM explore_documents`).Scan(&h.DocumentCount)
-	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM explore_values`).Scan(&h.ValueCount)
-	return h
-}
-
 // ExploreReadiness returns the cheap subset needed by request-path rendering.
 // Use ExploreHealth for admin/health endpoints that need counts and last-error detail.
 func (idx *FeedIndex) ExploreReadiness(ctx context.Context) ExploreHealth {

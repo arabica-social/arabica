@@ -272,7 +272,7 @@ func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.Handle
 		feedIndexCheck := map[string]any{"healthy": false, "ready": false}
 		if idx := h.FeedIndex(); idx != nil {
 			feedIndexCheck["ready"] = idx.IsReady()
-			feedIndexCheck["explore"] = idx.ExploreHealth(r.Context())
+			// feedIndexCheck["explore"] = idx.ExploreHealth(r.Context())
 			if err := idx.DB().PingContext(r.Context()); err != nil {
 				feedIndexCheck["healthy"] = false
 				status = "error"
