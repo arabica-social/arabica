@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -15,16 +14,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 )
-
-// ModerationFilter provides content filtering for moderation.
-// This interface allows the feed service to filter hidden/blacklisted content.
-type ModerationFilter interface {
-	IsRecordHidden(ctx context.Context, atURI string) bool
-	IsBlacklisted(ctx context.Context, did string) bool
-	// Batch methods load the full sets for efficient in-memory filtering.
-	ListBlacklistedDIDs(ctx context.Context) ([]string, error)
-	ListHiddenURIs(ctx context.Context) ([]string, error)
-}
 
 const (
 	// PublicFeedCacheTTL is the duration for which the public feed cache is valid.
@@ -44,7 +33,7 @@ const (
 // by the feed service and templates. The like/comment counts and
 // SubjectURI/CID populate during indexing; IsLikedByViewer and IsOwner
 // populate per-request when an authenticated viewer is present and stay
-// zero otherwise. Accessor methods (Brew, Bean, …) are nil-safe.
+// zero otherwise.
 type FeedItem struct {
 	RecordType lexicons.RecordType // Use lexicons.RecordTypeBrew, lexicons.RecordTypeBean, etc.
 	Action     string              // "added a new brew", "added a new bean", etc.
@@ -71,60 +60,6 @@ type FeedItem struct {
 	IsOwner         bool
 }
 
-// Brew returns f.Record cast to *arabica.Brew, or nil. Nil-safe on f.
-func (f *FeedItem) Brew() *arabica.Brew {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Brew)
-	return v
-}
-
-// Bean returns f.Record cast to *arabica.Bean, or nil. Nil-safe.
-func (f *FeedItem) Bean() *arabica.Bean {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Bean)
-	return v
-}
-
-// Roaster returns f.Record cast to *arabica.Roaster, or nil. Nil-safe.
-func (f *FeedItem) Roaster() *arabica.Roaster {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Roaster)
-	return v
-}
-
-// Grinder returns f.Record cast to *arabica.Grinder, or nil. Nil-safe.
-func (f *FeedItem) Grinder() *arabica.Grinder {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Grinder)
-	return v
-}
-
-// Brewer returns f.Record cast to *arabica.Brewer, or nil. Nil-safe.
-func (f *FeedItem) Brewer() *arabica.Brewer {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Brewer)
-	return v
-}
-
-// Recipe returns f.Record cast to *arabica.Recipe, or nil. Nil-safe.
-func (f *FeedItem) Recipe() *arabica.Recipe {
-	if f == nil {
-		return nil
-	}
-	v, _ := f.Record.(*arabica.Recipe)
-	return v
-}
-
 // RKey returns the record key of whichever typed record is set on this
 // item, or "" if none. Dispatched through entities.Descriptor so each
 // app's record types contribute their own RKey extractor without this
@@ -133,11 +68,11 @@ func (f *FeedItem) RKey() string {
 	if f == nil || f.Record == nil {
 		return ""
 	}
-	d := entities.Get(f.RecordType)
-	if d == nil || d.RKey == nil {
+	b := entities.Behavior(f.RecordType)
+	if b == nil || b.RKey == nil {
 		return ""
 	}
-	return d.RKey(f.Record)
+	return b.RKey(f.Record)
 }
 
 // DisplayTitle returns a human-readable title for share UI. Each
@@ -153,8 +88,8 @@ func (f *FeedItem) DisplayTitle() string {
 	if d == nil {
 		return ""
 	}
-	if d.DisplayTitle != nil && f.Record != nil {
-		if title := d.DisplayTitle(f.Record); title != "" {
+	if b := entities.Behavior(f.RecordType); b != nil && b.DisplayTitle != nil && f.Record != nil {
+		if title := b.DisplayTitle(f.Record); title != "" {
 			return title
 		}
 	}
@@ -191,35 +126,20 @@ type FeedResult struct {
 	NextCursor string
 }
 
-// FirehoseIndex is the interface for the firehose feed index
-// This allows the feed service to use firehose data when available
-type FirehoseIndex interface {
+// Source is the feed service's storage seam. Implementations hide whether
+// items come from the firehose witness index, a cache, or another reader.
+type Source interface {
 	IsReady() bool
 	GetRecentFeed(ctx context.Context, limit int) ([]*FeedItem, error)
-	GetFeedWithQuery(ctx context.Context, q FirehoseFeedQuery) (*FirehoseFeedResult, error)
-}
-
-// FirehoseFeedQuery mirrors FeedQuery for the firehose layer
-type FirehoseFeedQuery struct {
-	Limit       int
-	Cursor      string
-	TypeFilter  lexicons.RecordType
-	TypeFilters []lexicons.RecordType
-	Sort        string // "recent" or "popular"
-}
-
-// FirehoseFeedResult mirrors FeedResult for the firehose layer
-type FirehoseFeedResult struct {
-	Items      []*FeedItem
-	NextCursor string
+	GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error)
 }
 
 // Service fetches and aggregates brews from registered users
 type Service struct {
 	registry         *Registry
 	cache            *publicFeedCache
-	firehoseIndex    FirehoseIndex
-	moderationFilter ModerationFilter
+	source           Source
+	moderationFilter moderation.FilterSource
 }
 
 // NewService creates a new feed service
@@ -230,14 +150,14 @@ func NewService(registry *Registry) *Service {
 	}
 }
 
-// SetFirehoseIndex configures the service to use firehose-based feed
-func (s *Service) SetFirehoseIndex(index FirehoseIndex) {
-	s.firehoseIndex = index
-	log.Info().Msg("feed: firehose index configured")
+// SetSource configures the service's feed reader.
+func (s *Service) SetSource(source Source) {
+	s.source = source
+	log.Info().Msg("feed: source configured")
 }
 
 // SetModerationFilter configures the service to filter moderated content
-func (s *Service) SetModerationFilter(filter ModerationFilter) {
+func (s *Service) SetModerationFilter(filter moderation.FilterSource) {
 	s.moderationFilter = filter
 	log.Info().Msg("feed: moderation filter configured")
 }
@@ -373,7 +293,7 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 // Returns up to `limit` items sorted by most recent first
 // Moderated content (hidden records, blacklisted users) is filtered out
 func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem, error) {
-	if s.firehoseIndex == nil || !s.firehoseIndex.IsReady() {
+	if s.source == nil || !s.source.IsReady() {
 		log.Warn().Msg("feed: firehose index not ready")
 		return nil, fmt.Errorf("firehose index not ready")
 	}
@@ -405,7 +325,7 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 
 // GetFeedWithQuery fetches feed items with filtering, sorting, and pagination
 func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error) {
-	if s.firehoseIndex == nil || !s.firehoseIndex.IsReady() {
+	if s.source == nil || !s.source.IsReady() {
 		return nil, fmt.Errorf("firehose index not ready")
 	}
 
@@ -422,12 +342,12 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 		fetchLimit = q.Limit + 10
 	}
 
-	firehoseResult, err := s.firehoseIndex.GetFeedWithQuery(ctx, FirehoseFeedQuery{
+	sourceResult, err := s.source.GetFeedWithQuery(ctx, FeedQuery{
 		Limit:       fetchLimit,
 		Cursor:      q.Cursor,
 		TypeFilter:  q.TypeFilter,
 		TypeFilters: q.TypeFilters,
-		Sort:        string(q.Sort),
+		Sort:        q.Sort,
 	})
 	if err != nil {
 		return nil, err
@@ -435,11 +355,11 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 
 	// Apply moderation filtering. IsLikedByViewer/IsOwner are zero here
 	// and populated by the handler once a viewer is identified.
-	items := s.filterModeratedItems(ctx, firehoseResult.Items)
+	items := s.filterModeratedItems(ctx, sourceResult.Items)
 
 	// Trim to requested limit
 	result := &FeedResult{
-		NextCursor: firehoseResult.NextCursor,
+		NextCursor: sourceResult.NextCursor,
 	}
 	if len(items) > q.Limit {
 		result.Items = items[:q.Limit]
@@ -452,7 +372,7 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 
 // getRecentRecordsFromFirehose fetches feed items from the firehose index
 func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) ([]*FeedItem, error) {
-	items, err := s.firehoseIndex.GetRecentFeed(ctx, limit)
+	items, err := s.source.GetRecentFeed(ctx, limit)
 	if err != nil {
 		log.Warn().Err(err).Msg("feed: firehose index error")
 		return nil, err
@@ -460,57 +380,4 @@ func (s *Service) getRecentRecordsFromFirehose(ctx context.Context, limit int) (
 
 	log.Debug().Int("count", len(items)).Msg("feed: returning items from firehose index")
 	return items, nil
-}
-
-// FormatTimeAgo returns a human-readable relative time string
-func FormatTimeAgo(t time.Time) string {
-	now := time.Now()
-	diff := now.Sub(t)
-
-	switch {
-	case diff < time.Minute:
-		return "just now"
-	case diff < time.Hour:
-		mins := int(diff.Minutes())
-		if mins == 1 {
-			return "1 minute ago"
-		}
-		return formatPlural(mins, "minute")
-	case diff < 24*time.Hour:
-		hours := int(diff.Hours())
-		if hours == 1 {
-			return "1 hour ago"
-		}
-		return formatPlural(hours, "hour")
-	case diff < 48*time.Hour:
-		return "yesterday"
-	case diff < 7*24*time.Hour:
-		days := int(diff.Hours() / 24)
-		return formatPlural(days, "day")
-	case diff < 30*24*time.Hour:
-		weeks := int(diff.Hours() / 24 / 7)
-		if weeks == 1 {
-			return "1 week ago"
-		}
-		return formatPlural(weeks, "week")
-	case diff < 365*24*time.Hour:
-		months := int(diff.Hours() / 24 / 30)
-		if months == 1 {
-			return "1 month ago"
-		}
-		return formatPlural(months, "month")
-	default:
-		years := int(diff.Hours() / 24 / 365)
-		if years == 1 {
-			return "1 year ago"
-		}
-		return formatPlural(years, "year")
-	}
-}
-
-func formatPlural(n int, unit string) string {
-	if n == 1 {
-		return "1 " + unit + " ago"
-	}
-	return fmt.Sprintf("%d %ss ago", n, unit)
 }

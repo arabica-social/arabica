@@ -7,24 +7,26 @@ import (
 	"github.com/rs/zerolog/log"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
-	"tangled.org/arabica.social/arabica/internal/onboarding"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // getStartedCardStore is a narrow interface for buildGetStartedCardProps.
-// This allows tests to pass *database.MockStore without implementing the
-// full database.Store interface.
+// This allows tests to pass *arabicastore.MockStore without implementing the
+// full arabicastore.Store interface.
 type getStartedCardStore interface {
-	onboarding.BrewPrerequisiteStore // ListBeans + ListBrewers + ListRoasters
-	ListGrinders(ctx context.Context) ([]*arabica.Grinder, error)
+	records.Store
+	ListBeans(ctx context.Context) ([]*arabica.Bean, error)
+	ListRoasters(ctx context.Context) ([]*arabica.Roaster, error)
 }
 
 // HandleOnboarding renders the dedicated /onboarding page. If the user is
 // already ready to brew, redirects to the homepage — there's nothing to do
 // here for them.
 func (h *Handlers) HandleOnboarding(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -59,7 +61,7 @@ func (h *Handlers) HandleOnboarding(w http.ResponseWriter, r *http.Request) {
 // The ?mode=library query param hides the onboarding-only progress/ready UI
 // so the same card can be reused on the ongoing "add records" page.
 func (h *Handlers) HandleGetStartedCard(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -83,7 +85,7 @@ func (h *Handlers) HandleGetStartedCard(w http.ResponseWriter, r *http.Request) 
 // card as onboarding, but in library mode (no progress strip, no ready CTA)
 // and reachable regardless of brew readiness.
 func (h *Handlers) HandleAddRecords(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -106,7 +108,7 @@ func (h *Handlers) HandleAddRecords(w http.ResponseWriter, r *http.Request) {
 
 // HandleOnboardingStationForm renders the inline drawer add-form for a station.
 func (h *Handlers) HandleOnboardingStationForm(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.GetAtprotoStore(r)
+	store, ok := h.GetArabicaStore(r)
 	if !ok {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -135,11 +137,11 @@ func buildGetStartedCardProps(ctx context.Context, store getStartedCardStore) (c
 	if err != nil {
 		return coffee.GetStartedCardProps{}, err
 	}
-	brewers, err := store.ListBrewers(ctx)
+	brewers, err := listBrewers(ctx, store)
 	if err != nil {
 		return coffee.GetStartedCardProps{}, err
 	}
-	grinders, err := store.ListGrinders(ctx)
+	grinders, err := listGrinders(ctx, store)
 	if err != nil {
 		return coffee.GetStartedCardProps{}, err
 	}

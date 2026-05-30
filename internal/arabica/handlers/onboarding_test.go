@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
-	"tangled.org/arabica.social/arabica/internal/database"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBrewNewReady_True(t *testing.T) {
-	store := &database.MockStore{
+	store := &arabicastore.MockStore{
 		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return []*arabica.Bean{{RKey: "a"}}, nil },
 		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "b"}}, nil },
 		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return []*arabica.Roaster{{RKey: "c"}}, nil },
@@ -22,7 +22,7 @@ func TestBrewNewReady_True(t *testing.T) {
 }
 
 func TestBrewNewReady_FalseWhenMissingBean(t *testing.T) {
-	store := &database.MockStore{
+	store := &arabicastore.MockStore{
 		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return nil, nil },
 		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "b"}}, nil },
 		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return []*arabica.Roaster{{RKey: "c"}}, nil },
@@ -32,7 +32,7 @@ func TestBrewNewReady_FalseWhenMissingBean(t *testing.T) {
 }
 
 func TestBrewNewReady_FalseWhenMissingRoaster(t *testing.T) {
-	store := &database.MockStore{
+	store := &arabicastore.MockStore{
 		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return []*arabica.Bean{{RKey: "a"}}, nil },
 		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return []*arabica.Brewer{{RKey: "b"}}, nil },
 		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return nil, nil },
@@ -42,7 +42,7 @@ func TestBrewNewReady_FalseWhenMissingRoaster(t *testing.T) {
 }
 
 func TestBrewNewReady_FalseOnError(t *testing.T) {
-	store := &database.MockStore{
+	store := &arabicastore.MockStore{
 		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return nil, errors.New("pds down") },
 		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return nil, nil },
 		ListRoastersFunc: func(ctx context.Context) ([]*arabica.Roaster, error) { return nil, nil },
@@ -52,7 +52,7 @@ func TestBrewNewReady_FalseOnError(t *testing.T) {
 }
 
 func TestBuildGetStartedCardProps_Empty(t *testing.T) {
-	store := &database.MockStore{
+	store := &arabicastore.MockStore{
 		ListBeansFunc:    func(ctx context.Context) ([]*arabica.Bean, error) { return nil, nil },
 		ListBrewersFunc:  func(ctx context.Context) ([]*arabica.Brewer, error) { return nil, nil },
 		ListGrindersFunc: func(ctx context.Context) ([]*arabica.Grinder, error) { return nil, nil },
@@ -68,7 +68,7 @@ func TestBuildGetStartedCardProps_Empty(t *testing.T) {
 }
 
 func TestBuildGetStartedCardProps_Populated(t *testing.T) {
-	store := &database.MockStore{
+	store := &arabicastore.MockStore{
 		ListBeansFunc: func(ctx context.Context) ([]*arabica.Bean, error) {
 			return []*arabica.Bean{{RKey: "b1", Name: "Ethiopia"}}, nil
 		},

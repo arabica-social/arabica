@@ -13,7 +13,7 @@ import (
 // callback is parameterised on a nil model so each entity's modal
 // signature can stay typed (e.g. *oolong.Vendor).
 func (h *Handlers) oolongModalNew(w http.ResponseWriter, r *http.Request, name string, render func() templ.Component) {
-	if _, ok := h.requireOolongStore(w, r); !ok {
+	if _, ok := h.RequireRecordStore(w, r); !ok {
 		return
 	}
 	if err := render().Render(r.Context(), w); err != nil {
@@ -34,7 +34,7 @@ func oolongModalEdit[Model any](
 	setRKey func(*Model, string),
 	render func(*Model) templ.Component,
 ) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}

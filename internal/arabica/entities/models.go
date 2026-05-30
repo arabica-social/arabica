@@ -4,6 +4,10 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"tangled.org/arabica.social/arabica/internal/notifications"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
+	"tangled.org/arabica.social/arabica/internal/social"
 )
 
 // Field length limits for validation
@@ -24,41 +28,18 @@ const (
 	MaxGrinderTypeLength  = 50
 	MaxBurrTypeLength     = 50
 	MaxBrewerTypeLength   = 100
-	MaxCommentLength      = 1000
 )
 
-// Visibility controls who can see a piece of profile data.
-type Visibility string
+const MaxCommentLength = social.MaxCommentLength
+
+type Visibility = profileprefs.Visibility
 
 const (
-	VisibilityPublic  Visibility = "public"
-	VisibilityPrivate Visibility = "private"
-	// Future: VisibilityFriends Visibility = "friends"
+	VisibilityPublic  = profileprefs.VisibilityPublic
+	VisibilityPrivate = profileprefs.VisibilityPrivate
 )
 
-// IsValid returns true if the visibility value is recognized.
-func (v Visibility) IsValid() bool {
-	switch v {
-	case VisibilityPublic, VisibilityPrivate:
-		return true
-	}
-	return false
-}
-
-// ProfileStatsVisibility controls the visibility of aggregate stats on a user's profile.
-// Each field maps to a record type whose average rating can be shown or hidden.
-type ProfileStatsVisibility struct {
-	BeanAvgRating    Visibility `json:"bean_avg_rating"`
-	RoasterAvgRating Visibility `json:"roaster_avg_rating"`
-}
-
-// DefaultProfileStatsVisibility returns the default visibility (all public).
-func DefaultProfileStatsVisibility() ProfileStatsVisibility {
-	return ProfileStatsVisibility{
-		BeanAvgRating:    VisibilityPublic,
-		RoasterAvgRating: VisibilityPublic,
-	}
-}
+type ProfileStatsVisibility = profileprefs.ProfileStatsVisibility
 
 // Brewer type categories (knownValues from lexicon)
 const (
@@ -129,8 +110,8 @@ var (
 	ErrOriginTooLong    = errors.New("origin is too long")
 	ErrFieldTooLong     = errors.New("field value is too long")
 	ErrRatingOutOfRange = errors.New("rating must be between 1 and 10")
-	ErrCommentRequired  = errors.New("comment text is required")
-	ErrCommentTooLong   = errors.New("comment text is too long")
+	ErrCommentRequired  = social.ErrCommentRequired
+	ErrCommentTooLong   = social.ErrCommentTooLong
 )
 
 // TODO: maybe add a "rating" field that can be updated when a bag is closed
@@ -456,42 +437,17 @@ func (b *Brewer) MissingFields() []string {
 	return missing
 }
 
-// Like represents a like on an Arabica record
-type Like struct {
-	RKey       string    `json:"rkey"`
-	SubjectURI string    `json:"subject_uri"`
-	SubjectCID string    `json:"subject_cid"`
-	CreatedAt  time.Time `json:"created_at"`
-	ActorDID   string    `json:"actor_did,omitempty"`
-}
+// Like represents a like on an Arabica record.
+type Like = social.Like
 
-// CreateLikeRequest contains the data needed to create a like
-type CreateLikeRequest struct {
-	SubjectURI string `json:"subject_uri"`
-	SubjectCID string `json:"subject_cid"`
-}
+// CreateLikeRequest contains the data needed to create a like.
+type CreateLikeRequest = social.CreateLikeRequest
 
-// Comment represents a comment on an Arabica record
-type Comment struct {
-	RKey       string    `json:"rkey"`
-	CID        string    `json:"cid,omitempty"` // CID of this comment record
-	SubjectURI string    `json:"subject_uri"`
-	SubjectCID string    `json:"subject_cid"`
-	Text       string    `json:"text"`
-	CreatedAt  time.Time `json:"created_at"`
-	ActorDID   string    `json:"actor_did,omitempty"`
-	ParentURI  string    `json:"parent_uri,omitempty"` // AT-URI of parent comment for replies
-	ParentCID  string    `json:"parent_cid,omitempty"` // CID of parent comment for replies
-}
+// Comment represents a comment on an Arabica record.
+type Comment = social.Comment
 
-// CreateCommentRequest contains the data needed to create a comment
-type CreateCommentRequest struct {
-	SubjectURI string `json:"subject_uri"`
-	SubjectCID string `json:"subject_cid"`
-	Text       string `json:"text"`
-	ParentURI  string `json:"parent_uri,omitempty"` // AT-URI of parent comment for replies
-	ParentCID  string `json:"parent_cid,omitempty"` // CID of parent comment for replies
-}
+// CreateCommentRequest contains the data needed to create a comment.
+type CreateCommentRequest = social.CreateCommentRequest
 
 // Validate checks that all fields are within acceptable limits
 func (r *CreateBeanRequest) Validate() error {
@@ -725,45 +681,17 @@ func (r *UpdateBrewerRequest) Validate() error {
 	return nil
 }
 
-// Validate checks that all fields are within acceptable limits
-func (r *CreateCommentRequest) Validate() error {
-	if r.Text == "" {
-		return ErrCommentRequired
-	}
-	if len(r.Text) > MaxCommentLength {
-		return ErrCommentTooLong
-	}
-	if r.SubjectURI == "" {
-		return errors.New("subject_uri is required")
-	}
-	if r.SubjectCID == "" {
-		return errors.New("subject_cid is required")
-	}
-	// If parent fields are provided, both must be present
-	if (r.ParentURI != "" && r.ParentCID == "") || (r.ParentURI == "" && r.ParentCID != "") {
-		return errors.New("both parent_uri and parent_cid must be provided together")
-	}
-	return nil
-}
-
 // NotificationType represents the type of notification
-type NotificationType string
+type NotificationType = notifications.Type
 
 const (
-	NotificationLike         NotificationType = "like"
-	NotificationComment      NotificationType = "comment"
-	NotificationCommentReply NotificationType = "comment_reply"
+	NotificationLike         = notifications.Like
+	NotificationComment      = notifications.Comment
+	NotificationCommentReply = notifications.CommentReply
 )
 
 // Notification represents a notification for a user
-type Notification struct {
-	ID         string           `json:"id"`          // Unique key (timestamp-based)
-	Type       NotificationType `json:"type"`        // like, comment, comment_reply
-	ActorDID   string           `json:"actor_did"`   // Who performed the action
-	SubjectURI string           `json:"subject_uri"` // The brew/comment that was acted on
-	CreatedAt  time.Time        `json:"created_at"`
-	Read       bool             `json:"read"`
-}
+type Notification = notifications.Notification
 
 // Report represents a user-submitted content report
 // TODO: Store reports in database (BoltDB or SQLite) for moderation review

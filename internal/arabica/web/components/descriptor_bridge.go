@@ -1,61 +1,112 @@
-// Package coffee: descriptor_bridge.go wires arabica entities' templ
-// render hooks into the entities.Descriptor registry. Importing this
-// package for side effects (blank import in cmd/server) runs init() to
-// populate hooks for all arabica record types.
 package coffee
 
 import (
 	"fmt"
 
-	"github.com/a-h/templ"
-
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 
 	// Ensure arabica descriptors are registered before we attach hooks.
 	_ "tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
-func init() {
-	if d := entities.Get(lexicons.RecordTypeBean); d != nil {
-		d.RenderFeedContent = func(item any) templ.Component {
-			return BeanFeedContent(item.(*feed.FeedItem))
-		}
+func FeedViews() feedviews.Registry {
+	return feedviews.Registry{
+		lexicons.RecordTypeBean: {
+			Render:        BeanFeedContent,
+			CardClassNoun: "bean",
+			FilterLabel:   "Beans",
+			ShareURL:      shareURL("beans"),
+			DeleteURL:     apiDeleteURL("beans"),
+			EditModalURL:  modalEditURL("bean"),
+		},
+		lexicons.RecordTypeRoaster: {
+			Render:        RoasterFeedContent,
+			Compact:       true,
+			CardClassNoun: "roaster",
+			ShareURL:      shareURL("roasters"),
+			DeleteURL:     apiDeleteURL("roasters"),
+			EditModalURL:  modalEditURL("roaster"),
+		},
+		lexicons.RecordTypeGrinder: {
+			Render:        GrinderFeedContent,
+			Compact:       true,
+			CardClassNoun: "grinder",
+			FilterLabel:   "Grinders",
+			ShareURL:      shareURL("grinders"),
+			DeleteURL:     apiDeleteURL("grinders"),
+			EditModalURL:  modalEditURL("grinder"),
+		},
+		lexicons.RecordTypeBrewer: {
+			Render:        BrewerFeedContent,
+			Compact:       true,
+			CardClassNoun: "brewer",
+			FilterLabel:   "Brewers",
+			ShareURL:      shareURL("brewers"),
+			DeleteURL:     apiDeleteURL("brewers"),
+			EditModalURL:  modalEditURL("brewer"),
+		},
+		lexicons.RecordTypeRecipe: {
+			Render:        FeedRecipeContent,
+			CardClassNoun: "recipe",
+			FilterLabel:   "Recipes",
+			ShareURL:      shareURL("recipes"),
+			DeleteURL:     apiDeleteURL("recipes"),
+			EditModalURL:  modalEditURL("recipe"),
+		},
+		lexicons.RecordTypeBrew: {
+			Render:        FeedBrewContentClickable,
+			CardClassNoun: "brew",
+			FilterLabel:   "Brews",
+			ShareURL:      shareURL("brews"),
+			DeleteURL:     pageDeleteURL("brews"),
+			EditURL:       editPageURL("brews"),
+		},
 	}
-	if d := entities.Get(lexicons.RecordTypeRoaster); d != nil {
-		d.RenderFeedContent = func(item any) templ.Component {
-			return RoasterFeedContent(item.(*feed.FeedItem))
+}
+
+func shareURL(path string) feedviews.ActionURL {
+	return func(item *feed.FeedItem) string {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/%s/%s/%s", path, feedviews.Actor(item), rkey)
 		}
-		d.FeedCardCompact = true
+		return ""
 	}
-	if d := entities.Get(lexicons.RecordTypeGrinder); d != nil {
-		d.RenderFeedContent = func(item any) templ.Component {
-			return GrinderFeedContent(item.(*feed.FeedItem))
+}
+
+func apiDeleteURL(path string) feedviews.ActionURL {
+	return func(item *feed.FeedItem) string {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/api/%s/%s", path, rkey)
 		}
-		d.FeedCardCompact = true
+		return ""
 	}
-	if d := entities.Get(lexicons.RecordTypeBrewer); d != nil {
-		d.RenderFeedContent = func(item any) templ.Component {
-			return BrewerFeedContent(item.(*feed.FeedItem))
+}
+
+func pageDeleteURL(path string) feedviews.ActionURL {
+	return func(item *feed.FeedItem) string {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/%s/%s", path, rkey)
 		}
-		d.FeedCardCompact = true
+		return ""
 	}
-	if d := entities.Get(lexicons.RecordTypeRecipe); d != nil {
-		d.RenderFeedContent = func(item any) templ.Component {
-			return FeedRecipeContent(item.(*feed.FeedItem))
+}
+
+func modalEditURL(noun string) feedviews.ActionURL {
+	return func(item *feed.FeedItem) string {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/api/modals/%s/%s", noun, rkey)
 		}
+		return ""
 	}
-	if d := entities.Get(lexicons.RecordTypeBrew); d != nil {
-		d.RenderFeedContent = func(item any) templ.Component {
-			return FeedBrewContentClickable(item.(*feed.FeedItem))
+}
+
+func editPageURL(path string) feedviews.ActionURL {
+	return func(item *feed.FeedItem) string {
+		if rkey := item.RKey(); rkey != "" {
+			return fmt.Sprintf("/%s/%s/edit", path, rkey)
 		}
-		d.EditURL = func(item any) string {
-			it := item.(*feed.FeedItem)
-			if it.Brew() == nil {
-				return ""
-			}
-			return fmt.Sprintf("/brews/%s/edit", it.Brew().RKey)
-		}
+		return ""
 	}
 }

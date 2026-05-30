@@ -13,7 +13,6 @@ import (
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/handlers"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -442,101 +441,6 @@ func TestValidateBrewRequest(t *testing.T) {
 			_, _, _, _, _, _, errs := validateBrewRequest(req)
 
 			assert.Equal(t, tt.wantErrs, len(errs))
-		})
-	}
-}
-
-// TestPopulateBrewOGMetadata tests OpenGraph metadata generation for brew pages
-func TestPopulateBrewOGMetadata(t *testing.T) {
-	tests := []struct {
-		name            string
-		brew            *arabica.Brew
-		owner           string
-		shareURL        string
-		publicURL       string
-		wantTitle       string
-		wantDescription string
-		wantType        string
-		wantURL         string
-		wantImage       string
-	}{
-		{
-			name:      "nil brew",
-			brew:      nil,
-			owner:     "alice.bsky.social",
-			shareURL:  "/brews/alice.bsky.social/123",
-			publicURL: "https://arabica.example.com",
-		},
-		{
-			name: "brew with bean and roaster",
-			brew: &arabica.Brew{
-				Bean: &arabica.Bean{
-					Name:    "Ethiopian Yirgacheffe",
-					Roaster: &arabica.Roaster{Name: "Sweet Maria's"},
-				},
-			},
-			owner:           "alice.bsky.social",
-			shareURL:        "/brews/alice.bsky.social/123",
-			publicURL:       "https://arabica.example.com",
-			wantTitle:       "brew from alice.bsky.social on arabica.social",
-			wantDescription: "Ethiopian Yirgacheffe from Sweet Maria's",
-			wantType:        "article",
-			wantURL:         "https://arabica.example.com/brews/alice.bsky.social/123",
-			wantImage:       "https://arabica.example.com/brews/alice.bsky.social/123/og-image",
-		},
-		{
-			name:            "brew without bean",
-			brew:            &arabica.Brew{},
-			owner:           "bob.bsky.social",
-			shareURL:        "/brews/bob.bsky.social/789",
-			publicURL:       "https://arabica.example.com",
-			wantTitle:       "brew from bob.bsky.social on arabica.social",
-			wantDescription: "",
-			wantType:        "article",
-			wantURL:         "https://arabica.example.com/brews/bob.bsky.social/789",
-			wantImage:       "https://arabica.example.com/brews/bob.bsky.social/789/og-image",
-		},
-		{
-			name: "no public URL",
-			brew: &arabica.Brew{
-				Bean: &arabica.Bean{Name: "Premium Blend"},
-			},
-			owner:           "alice.bsky.social",
-			shareURL:        "/brews/xyz",
-			publicURL:       "",
-			wantTitle:       "brew from alice.bsky.social on arabica.social",
-			wantDescription: "Premium Blend",
-			wantType:        "article",
-		},
-		{
-			name: "no owner",
-			brew: &arabica.Brew{
-				Bean: &arabica.Bean{Name: "House Blend"},
-			},
-			owner:           "",
-			shareURL:        "/brews/456",
-			publicURL:       "https://arabica.example.com",
-			wantTitle:       "brew on arabica.social",
-			wantDescription: "House Blend",
-			wantType:        "article",
-			wantURL:         "https://arabica.example.com/brews/456",
-			wantImage:       "https://arabica.example.com/brews/456/og-image",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			base := handlers.NewHandler(nil, nil, nil, nil, nil, handlers.Config{PublicURL: tt.publicURL})
-			h := &Handlers{Handler: base}
-			layoutData := &components.LayoutData{}
-
-			h.populateBrewOGMetadata(layoutData, tt.brew, tt.owner, tt.publicURL, tt.shareURL)
-
-			assert.Equal(t, tt.wantTitle, layoutData.OGTitle)
-			assert.Equal(t, tt.wantDescription, layoutData.OGDescription)
-			assert.Equal(t, tt.wantType, layoutData.OGType)
-			assert.Equal(t, tt.wantURL, layoutData.OGUrl)
-			assert.Equal(t, tt.wantImage, layoutData.OGImage)
 		})
 	}
 }

@@ -6,15 +6,15 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 	tea "tangled.org/arabica.social/arabica/internal/oolong/web/components"
 	teapages "tangled.org/arabica.social/arabica/internal/oolong/web/pages"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 func (h *Handlers) HandleOolongOnboarding(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}
@@ -36,7 +36,7 @@ func (h *Handlers) HandleOolongOnboarding(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handlers) HandleOolongGetStartedCard(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}
@@ -54,7 +54,7 @@ func (h *Handlers) HandleOolongGetStartedCard(w http.ResponseWriter, r *http.Req
 }
 
 func (h *Handlers) HandleOolongOnboardingStationForm(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}
@@ -74,7 +74,7 @@ func (h *Handlers) HandleOolongOnboardingStationForm(w http.ResponseWriter, r *h
 	}
 }
 
-func buildOolongGetStartedCardProps(ctx context.Context, store *atproto.AtprotoStore) (tea.GetStartedCardProps, error) {
+func buildOolongGetStartedCardProps(ctx context.Context, store records.Store) (tea.GetStartedCardProps, error) {
 	teas := handlers.ListRecords(ctx, store, oolong.NSIDTea, oolong.RecordToTea)
 	vendors := handlers.ListRecords(ctx, store, oolong.NSIDVendor, oolong.RecordToVendor)
 	vessels := handlers.ListRecords(ctx, store, oolong.NSIDVessel, oolong.RecordToVessel)
@@ -85,7 +85,7 @@ func buildOolongGetStartedCardProps(ctx context.Context, store *atproto.AtprotoS
 	}, nil
 }
 
-func (h *Handlers) oolongReadyToBrew(ctx context.Context, store *atproto.AtprotoStore) (bool, error) {
+func (h *Handlers) oolongReadyToBrew(ctx context.Context, store records.Store) (bool, error) {
 	props, err := buildOolongGetStartedCardProps(ctx, store)
 	if err != nil {
 		return false, err

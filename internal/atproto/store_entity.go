@@ -5,44 +5,26 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	"tangled.org/arabica.social/arabica/internal/atproto/storecodec"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
-// EntityCodec describes how to move one typed record kind between the
-// store's wire format (map[string]any) and a Go model. It lets the
-// generic CRUD helpers below replace the bodies of every per-entity
-// Create/Get/List/Update/Delete method without losing type safety at
-// the call site.
-//
-// ToRecord converts a populated model into the value PutRecord expects;
-// FromRecord is the inverse for fetched records (URI gives reference
-// resolution a stable identity); SetRKey assigns the PDS-returned rkey
-// to the model field.
-type EntityCodec[M any] struct {
-	NSID string
-	// ToRecord receives the store so encoders for entities with foreign
-	// references (e.g. Bean → Roaster) can call s.DID() to build AT-URIs.
-	// Simple entities ignore the first argument.
-	ToRecord   func(s *AtprotoStore, m *M) (any, error)
-	FromRecord func(rec map[string]any, uri string) (*M, error)
-	SetRKey    func(model *M, rkey string)
-	// PostGet runs once after a Get decodes the model. Typical use is
-	// resolving foreign references (witness lookup, PDS fallback) — it
-	// may make network calls. Optional.
-	PostGet func(ctx context.Context, s *AtprotoStore, m *M, rec map[string]any)
-	// PostList runs after each List element is decoded. Must be pure
-	// (no I/O) — runs in a tight loop. Typical use is extracting
-	// foreign rkeys from raw refs so callers can batch-resolve later
-	// (see LinkBeansToRoasters). Optional.
-	PostList func(m *M, rec map[string]any)
+type EntityCodec[M any] = storecodec.EntityCodec[M]
+
+type entityStore interface {
+	records.Store
+	FetchRecordSource(ctx context.Context, nsid, rkey string) (record map[string]any, uri, cid string, hit, fromWitness bool, err error)
+	Cache() *SessionCache
+	SessionID() string
 }
 
 // CreateEntity creates a new record and returns the freshly-keyed model.
-func CreateEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], model *M) (*M, error) {
+func CreateEntity[M any](ctx context.Context, s entityStore, c *EntityCodec[M], model *M) (*M, error) {
 	rec, err := c.ToRecord(s, model)
 	if err != nil {
 		return nil, fmt.Errorf("convert %s: %w", c.NSID, err)
 	}
-	rkey, _, err := s.putRecord(ctx, c.NSID, "", rec)
+	rkey, _, err := s.PutRecord(ctx, c.NSID, "", rec)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +34,8 @@ func CreateEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M]
 
 // GetEntity reads one record from witness or PDS and converts it to *M.
 // PostGet, if set, runs after decode to resolve foreign references.
-func GetEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], rkey string) (*M, error) {
-	rec, uri, _, hit, _, err := s.fetchRecord(ctx, c.NSID, rkey)
+func GetEntity[M any](ctx context.Context, s entityStore, c *EntityCodec[M], rkey string) (*M, error) {
+	rec, uri, _, hit, _, err := s.FetchRecordSource(ctx, c.NSID, rkey)
 	if err != nil {
 		return nil, err
 	}
@@ -76,15 +58,15 @@ func GetEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], r
 // nil signals "not cached"); pass nil to skip the cache short-circuit
 // entirely. The caller's getter exists because UserCache exposes typed
 // accessors (Beans(), Roasters()) that callers reach via concrete types.
-func ListEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], cached func() []*M) ([]*M, error) {
+func ListEntity[M any](ctx context.Context, s entityStore, c *EntityCodec[M], cached func() []*M) ([]*M, error) {
 	if cached != nil {
-		if uc := s.cache.Get(s.sessionID); uc != nil && uc.IsValid() {
+		if uc := s.Cache().Get(s.SessionID()); uc != nil && uc.IsValid() {
 			if cs := cached(); cs != nil {
 				return cs, nil
 			}
 		}
 	}
-	raws, err := s.fetchAllRecords(ctx, c.NSID)
+	raws, err := s.FetchAllRecords(ctx, c.NSID)
 	if err != nil {
 		return nil, err
 	}
@@ -101,26 +83,26 @@ func ListEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], 
 		}
 		out = append(out, model)
 	}
-	s.cache.SetRecords(s.sessionID, c.NSID, out)
-	s.cache.ClearDirty(s.sessionID, c.NSID)
+	s.Cache().SetRecords(s.SessionID(), c.NSID, out)
+	s.Cache().ClearDirty(s.SessionID(), c.NSID)
 	return out, nil
 }
 
 // UpdateEntity overwrites an existing record. The supplied model must
 // already carry whatever fields should be preserved across the update
 // (e.g. CreatedAt copied from the existing record by the caller).
-func UpdateEntity[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], rkey string, model *M) error {
+func UpdateEntity[M any](ctx context.Context, s entityStore, c *EntityCodec[M], rkey string, model *M) error {
 	rec, err := c.ToRecord(s, model)
 	if err != nil {
 		return fmt.Errorf("convert %s: %w", c.NSID, err)
 	}
-	_, _, err = s.putRecord(ctx, c.NSID, rkey, rec)
+	_, _, err = s.PutRecord(ctx, c.NSID, rkey, rec)
 	return err
 }
 
 // DeleteEntity removes a record by rkey.
-func DeleteEntity(ctx context.Context, s *AtprotoStore, nsid, rkey string) error {
-	return s.removeRecord(ctx, nsid, rkey)
+func DeleteEntity(ctx context.Context, s entityStore, nsid, rkey string) error {
+	return s.RemoveRecord(ctx, nsid, rkey)
 }
 
 // EntityRecord pairs a typed model with the AT Protocol metadata
@@ -137,8 +119,8 @@ type EntityRecord[M any] struct {
 // and CID of the fetched record, wrapped in EntityRecord[M]. View
 // handlers use these to wire like/comment widgets to the subject.
 // PostGet runs the same as in GetEntity.
-func GetEntityRecord[M any](ctx context.Context, s *AtprotoStore, c *EntityCodec[M], rkey string) (*EntityRecord[M], error) {
-	rec, uri, cid, hit, _, err := s.fetchRecord(ctx, c.NSID, rkey)
+func GetEntityRecord[M any](ctx context.Context, s entityStore, c *EntityCodec[M], rkey string) (*EntityRecord[M], error) {
+	rec, uri, cid, hit, _, err := s.FetchRecordSource(ctx, c.NSID, rkey)
 	if err != nil {
 		return nil, err
 	}

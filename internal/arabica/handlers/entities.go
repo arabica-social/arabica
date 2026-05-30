@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/handlers"
+	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/tracing"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -26,7 +27,7 @@ import (
 // Manage page partial (loaded async via HTMX)
 func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -63,12 +64,12 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		grinders, err = listGrinders(ctx, store)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		brewers, err = listBrewers(ctx, store)
 		return err
 	})
 	g.Go(func() error {
@@ -84,7 +85,7 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Link beans to their roasters
-	atproto.LinkBeansToRoasters(beans, roasters)
+	arabicastore.LinkBeansToRoasters(beans, roasters)
 
 	// Link recipes to their brewers
 	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
@@ -133,7 +134,7 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 // Used by client-side cache for faster page loads. Arabica-specific —
 // oolong has its own /api/data handler registered via teahandlers.
 func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -166,12 +167,12 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		grinders, err = listGrinders(ctx, store)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		brewers, err = listBrewers(ctx, store)
 		return err
 	})
 	g.Go(func() error {
@@ -192,7 +193,7 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Link beans to roasters
-	atproto.LinkBeansToRoasters(beans, roasters)
+	arabicastore.LinkBeansToRoasters(beans, roasters)
 
 	response := map[string]any{
 		"did":      userDID,
@@ -213,7 +214,7 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 // API endpoint to create bean
 func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -291,17 +292,20 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 
 // API endpoint to create roaster
 func (h *Handlers) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDCreate[arabica.CreateRoasterRequest, *arabica.CreateRoasterRequest, arabica.Roaster](
-		h, w, r, "roaster", "roaster",
-		func(r *http.Request) arabica.CreateRoasterRequest {
-			return arabica.CreateRoasterRequest{
-				Name: r.FormValue("name"), Location: r.FormValue("location"),
-				Website: r.FormValue("website"), SourceRef: r.FormValue("source_ref"),
-			}
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	handlers.RecordCRUDWrite[arabica.CreateRoasterRequest, *arabica.CreateRoasterRequest, arabica.Roaster](
+		w, r, store, arabica.NSIDRoaster, "roaster", "", decodeRoasterCreateForm,
+		func(req *arabica.CreateRoasterRequest) *arabica.Roaster {
+			return roasterFromCreate(req, time.Now())
 		},
-		func(ctx context.Context, s database.Store, req *arabica.CreateRoasterRequest) (*arabica.Roaster, error) {
-			return s.CreateRoaster(ctx, req)
+		func(m *arabica.Roaster, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.CreateRoasterRequest, m *arabica.Roaster) (map[string]any, error) {
+			return arabica.RoasterToRecord(m)
 		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
@@ -312,7 +316,7 @@ func (h *Handlers) HandleManage(w http.ResponseWriter, r *http.Request) {
 
 // HandleMyCoffee renders the unified My Coffee page (replaces both /brews and /manage)
 func (h *Handlers) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.GetAtprotoStore(r)
+	_, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -328,7 +332,7 @@ func (h *Handlers) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
 
 // HandleIncompleteRecordsPartial returns an HTML fragment for incomplete records on the home dashboard.
 func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		return
 	}
@@ -347,12 +351,12 @@ func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		grinders, err = listGrinders(ctx, store)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		brewers, err = listBrewers(ctx, store)
 		return err
 	})
 
@@ -361,9 +365,9 @@ func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http
 		return
 	}
 
-	records := components.CollectIncompleteRecords(beans, grinders, brewers, 5)
+	records := coffee.CollectIncompleteRecords(beans, grinders, brewers, 5)
 
-	if err := components.IncompleteRecords(components.IncompleteRecordsProps{
+	if err := coffee.IncompleteRecords(coffee.IncompleteRecordsProps{
 		Records: records,
 	}).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render incomplete records")
@@ -374,7 +378,7 @@ func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http
 // user's PDS, writing them through to the witness cache so subsequent reads
 // are up to date. Returns the refreshed manage partial.
 func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -472,12 +476,12 @@ func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		grinders, err = listGrinders(ctx, store)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		brewers, err = listBrewers(ctx, store)
 		return err
 	})
 	g.Go(func() error {
@@ -492,7 +496,7 @@ func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	atproto.LinkBeansToRoasters(beans, roasters)
+	arabicastore.LinkBeansToRoasters(beans, roasters)
 
 	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
 	for _, b := range brewers {
@@ -541,7 +545,7 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -625,7 +629,7 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -635,25 +639,32 @@ func (h *Handlers) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
 
 // Roaster update/delete handlers
 func (h *Handlers) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDUpdate[arabica.UpdateRoasterRequest, *arabica.UpdateRoasterRequest, arabica.Roaster](
-		h, w, r, "roaster", "roaster",
-		func(r *http.Request) arabica.UpdateRoasterRequest {
-			return arabica.UpdateRoasterRequest{
-				Name: r.FormValue("name"), Location: r.FormValue("location"),
-				Website: r.FormValue("website"), SourceRef: r.FormValue("source_ref"),
-			}
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDRoaster, rkey)
+	handlers.RecordCRUDWrite[arabica.UpdateRoasterRequest, *arabica.UpdateRoasterRequest, arabica.Roaster](
+		w, r, store, arabica.NSIDRoaster, "roaster", rkey, decodeRoasterUpdateForm,
+		func(req *arabica.UpdateRoasterRequest) *arabica.Roaster {
+			m := roasterFromUpdate(req, createdAt)
+			m.RKey = rkey
+			return m
 		},
-		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateRoasterRequest) error {
-			return s.UpdateRoasterByRKey(ctx, rkey, req)
+		func(m *arabica.Roaster, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.UpdateRoasterRequest, m *arabica.Roaster) (map[string]any, error) {
+			return arabica.RoasterToRecord(m)
 		},
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Roaster, error) {
-			return s.GetRoasterByRKey(ctx, rkey)
-		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
 func (h *Handlers) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -671,37 +682,63 @@ func grinderFormDecoder(r *http.Request) arabica.CreateGrinderRequest {
 }
 
 func (h *Handlers) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDCreate[arabica.CreateGrinderRequest, *arabica.CreateGrinderRequest, arabica.Grinder](
-		h, w, r, "grinder", "grinder",
-		grinderFormDecoder,
-		func(ctx context.Context, s database.Store, req *arabica.CreateGrinderRequest) (*arabica.Grinder, error) {
-			return s.CreateGrinder(ctx, req)
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	handlers.RecordCRUDWrite[arabica.CreateGrinderRequest, *arabica.CreateGrinderRequest, arabica.Grinder](
+		w, r, store, arabica.NSIDGrinder, "grinder", "",
+		func(r *http.Request, req *arabica.CreateGrinderRequest) error {
+			*req = grinderFormDecoder(r)
+			return nil
 		},
+		func(req *arabica.CreateGrinderRequest) *arabica.Grinder { return grinderFromCreate(req, time.Now()) },
+		func(m *arabica.Grinder, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.CreateGrinderRequest, m *arabica.Grinder) (map[string]any, error) {
+			return arabica.GrinderToRecord(m)
+		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
 func (h *Handlers) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDUpdate[arabica.UpdateGrinderRequest, *arabica.UpdateGrinderRequest, arabica.Grinder](
-		h, w, r, "grinder", "grinder",
-		func(r *http.Request) arabica.UpdateGrinderRequest {
-			return arabica.UpdateGrinderRequest(grinderFormDecoder(r))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDGrinder, rkey)
+	handlers.RecordCRUDWrite[arabica.UpdateGrinderRequest, *arabica.UpdateGrinderRequest, arabica.Grinder](
+		w, r, store, arabica.NSIDGrinder, "grinder", rkey,
+		func(r *http.Request, req *arabica.UpdateGrinderRequest) error {
+			*req = arabica.UpdateGrinderRequest(grinderFormDecoder(r))
+			return nil
 		},
-		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateGrinderRequest) error {
-			return s.UpdateGrinderByRKey(ctx, rkey, req)
+		func(req *arabica.UpdateGrinderRequest) *arabica.Grinder {
+			m := grinderFromUpdate(req, createdAt)
+			m.RKey = rkey
+			return m
 		},
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Grinder, error) {
-			return s.GetGrinderByRKey(ctx, rkey)
+		func(m *arabica.Grinder, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.UpdateGrinderRequest, m *arabica.Grinder) (map[string]any, error) {
+			return arabica.GrinderToRecord(m)
 		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
 func (h *Handlers) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.DeleteEntity(w, r, store.DeleteGrinderByRKey, "grinder", arabica.NSIDGrinder)
+	h.DeleteEntity(w, r, func(ctx context.Context, rkey string) error {
+		return store.RemoveRecord(ctx, arabica.NSIDGrinder, rkey)
+	}, "grinder", arabica.NSIDGrinder)
 }
 
 // Brewer CRUD handlers
@@ -714,35 +751,56 @@ func brewerFormDecoder(r *http.Request) arabica.CreateBrewerRequest {
 }
 
 func (h *Handlers) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDCreate[arabica.CreateBrewerRequest, *arabica.CreateBrewerRequest, arabica.Brewer](
-		h, w, r, "brewer", "brewer",
-		brewerFormDecoder,
-		func(ctx context.Context, s database.Store, req *arabica.CreateBrewerRequest) (*arabica.Brewer, error) {
-			return s.CreateBrewer(ctx, req)
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	handlers.RecordCRUDWrite[arabica.CreateBrewerRequest, *arabica.CreateBrewerRequest, arabica.Brewer](
+		w, r, store, arabica.NSIDBrewer, "brewer", "",
+		func(r *http.Request, req *arabica.CreateBrewerRequest) error { *req = brewerFormDecoder(r); return nil },
+		func(req *arabica.CreateBrewerRequest) *arabica.Brewer { return brewerFromCreate(req, time.Now()) },
+		func(m *arabica.Brewer, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.CreateBrewerRequest, m *arabica.Brewer) (map[string]any, error) {
+			return arabica.BrewerToRecord(m)
 		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
 func (h *Handlers) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
-	arabicaCRUDUpdate[arabica.UpdateBrewerRequest, *arabica.UpdateBrewerRequest, arabica.Brewer](
-		h, w, r, "brewer", "brewer",
-		func(r *http.Request) arabica.UpdateBrewerRequest {
-			return arabica.UpdateBrewerRequest(brewerFormDecoder(r))
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	store, ok := h.RequireRecordStore(w, r)
+	if !ok {
+		return
+	}
+	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDBrewer, rkey)
+	handlers.RecordCRUDWrite[arabica.UpdateBrewerRequest, *arabica.UpdateBrewerRequest, arabica.Brewer](
+		w, r, store, arabica.NSIDBrewer, "brewer", rkey,
+		func(r *http.Request, req *arabica.UpdateBrewerRequest) error {
+			*req = arabica.UpdateBrewerRequest(brewerFormDecoder(r))
+			return nil
 		},
-		func(ctx context.Context, s database.Store, rkey string, req *arabica.UpdateBrewerRequest) error {
-			return s.UpdateBrewerByRKey(ctx, rkey, req)
+		func(req *arabica.UpdateBrewerRequest) *arabica.Brewer {
+			m := brewerFromUpdate(req, createdAt)
+			m.RKey = rkey
+			return m
 		},
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Brewer, error) {
-			return s.GetBrewerByRKey(ctx, rkey)
+		func(m *arabica.Brewer, rkey string) { m.RKey = rkey },
+		func(_ records.Store, _ *arabica.UpdateBrewerRequest, m *arabica.Brewer) (map[string]any, error) {
+			return arabica.BrewerToRecord(m)
 		},
+		h.InvalidateFeedCache, false,
 	)
 }
 
 func (h *Handlers) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.DeleteEntity(w, r, store.DeleteBrewerByRKey, "brewer", arabica.NSIDBrewer)
+	h.DeleteEntity(w, r, func(ctx context.Context, rkey string) error { return store.RemoveRecord(ctx, arabica.NSIDBrewer, rkey) }, "brewer", arabica.NSIDBrewer)
 }

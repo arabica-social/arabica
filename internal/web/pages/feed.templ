@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
-	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 	"tangled.org/pdewey.com/atp"
 )
 
@@ -24,6 +24,15 @@ type FeedQueryState struct {
 	NextCursor      string // Cursor for next page (empty = no more)
 	IsAuthenticated bool
 	Descriptors     []*entities.Descriptor // App-scoped descriptors for filter tabs
+	FeedViews       feedviews.Registry     // App-scoped renderers for feed cards
+	BrandName       string
+	EmptyState      FeedEmptyState
+}
+
+type FeedEmptyState struct {
+	Icon  string
+	Title string
+	Body  string
 }
 
 // feedFilterTab defines a filter tab option
@@ -33,25 +42,24 @@ type feedFilterTab struct {
 }
 
 // feedFilterTabs returns the filter pills shown above the feed. The "All"
-// tab is universal; the per-entity tabs come from descriptors with a
-// non-empty FeedFilterLabel, ordered as registered. Adding a new entity
-// to the feed filter is now a one-line FeedFilterLabel addition in
-// register.go rather than an edit here.
+// tab is universal; per-entity labels come from app-owned feed views and
+// descriptor order supplies stable app-specific ordering and filter nouns.
 //
 // descriptors should be the current app's scoped descriptors (from
 // app.Descriptors). If nil, falls back to entities.All() for backward
 // compatibility — callers that know their app should pass descriptors
 // explicitly to avoid leaking sister-app entities into the feed bar.
-func feedFilterTabs(descriptors []*entities.Descriptor) []feedFilterTab {
+func feedFilterTabs(descriptors []*entities.Descriptor, views feedviews.Registry) []feedFilterTab {
 	tabs := []feedFilterTab{{Label: "All", Value: ""}}
 	if descriptors == nil {
 		descriptors = entities.All()
 	}
 	for _, d := range descriptors {
-		if d.FeedFilterLabel == "" {
+		label := views.FilterLabel(d.Type)
+		if label == "" {
 			continue
 		}
-		tabs = append(tabs, feedFilterTab{Label: d.FeedFilterLabel, Value: d.Noun})
+		tabs = append(tabs, feedFilterTab{Label: label, Value: views.FilterValue(d.Type)})
 	}
 	return tabs
 }
@@ -60,13 +68,8 @@ func buildFeedURL(typeFilter, sort string) string {
 	url := "/api/feed"
 	sep := "?"
 	if typeFilter != "" {
-		if typeFilter == "equipment" {
-			url += sep + "type=grinder&type=brewer"
-			sep = "&"
-		} else {
-			url += sep + "type=" + typeFilter
-			sep = "&"
-		}
+		url += sep + "type=" + typeFilter
+		sep = "&"
 	}
 	if sort != "" && sort != "recent" {
 		url += sep + "sort=" + sort
@@ -102,17 +105,18 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 		<div id="feed-items" class="feed-grid">
 			if len(items) > 0 {
 				for _, item := range items {
-					@FeedCardWithModeration(item, isAuthenticated, modCtx)
+					@FeedCardWithModeration(item, isAuthenticated, modCtx, qs)
 				}
 				<!-- Load more button -->
 				if qs.NextCursor != "" {
 					@FeedLoadMoreButton(qs)
 				}
 			} else {
+				{{ empty := feedEmptyState(qs) }}
 				<div class="rounded-xl p-8 text-center" style="background: var(--surface-bg); border: 2px dashed var(--card-border); grid-column: 1 / -1;">
-					<div class="text-4xl mb-3">☕</div>
-					<p class="text-emphasis font-medium mb-1">The board's quiet today</p>
-					<p class="text-sm text-faint">Follow some brewers to fill it up, or log your first brew to get started.</p>
+					<div class="text-4xl mb-3">{ empty.Icon }</div>
+					<p class="text-emphasis font-medium mb-1">{ empty.Title }</p>
+					<p class="text-sm text-faint">{ empty.Body }</p>
 				</div>
 			}
 		</div>
@@ -128,7 +132,7 @@ templ FeedFilterBar(qs FeedQueryState) {
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<!-- Type filter pills -->
 			<div class="flex flex-wrap gap-1" role="group" aria-label="Feed filters">
-				for _, tab := range feedFilterTabs(qs.Descriptors) {
+				for _, tab := range feedFilterTabs(qs.Descriptors, qs.FeedViews) {
 					<button
 						type="button"
 						class="filter-pill"
@@ -186,7 +190,7 @@ templ FeedLoadMoreButton(qs FeedQueryState) {
 // FeedMoreItems renders additional items for "load more" pagination (no filter bar)
 templ FeedMoreItems(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext, qs FeedQueryState) {
 	for _, item := range items {
-		@FeedCardWithModeration(item, isAuthenticated, modCtx)
+		@FeedCardWithModeration(item, isAuthenticated, modCtx, qs)
 	}
 	if qs.NextCursor != "" {
 		@FeedLoadMoreButton(qs)
@@ -195,12 +199,12 @@ templ FeedMoreItems(items []*feed.FeedItem, isAuthenticated bool, modCtx FeedMod
 
 // FeedCard renders a single feed item card (without moderation context)
 templ FeedCard(item *feed.FeedItem, isAuthenticated bool) {
-	@FeedCardWithModeration(item, isAuthenticated, FeedModerationContext{})
+	@FeedCardWithModeration(item, isAuthenticated, FeedModerationContext{}, FeedQueryState{})
 }
 
 // FeedCardWithModeration renders a single feed item card with moderation context
-templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext) {
-	<div class={ feedCardClass(item) }>
+templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx FeedModerationContext, qs FeedQueryState) {
+	<div class={ feedCardClass(item, qs.FeedViews) }>
 		<!-- Author row -->
 		<div class="mb-3">
 			@components.UserBadge(components.UserBadgeProps{
@@ -214,12 +218,11 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 		</div>
 		<!-- Action header -->
 		<div class="mb-2 text-sm text-emphasis">
-			@ActionText(item)
+			@ActionText(item, qs.FeedViews)
 		</div>
-		<!-- Record content — dispatched via entities.Descriptor.RenderFeedContent,
-		     wired by internal/web/components/descriptor_bridge.go. -->
-		if d := entities.Get(item.RecordType); d != nil && d.RenderFeedContent != nil {
-			@d.RenderFeedContent(item)
+		<!-- Record content is dispatched through the app-scoped feed view registry. -->
+		if content := qs.FeedViews.Render(item); content != nil {
+			@content
 		}
 		<!-- Action bar -->
 		if item.SubjectURI != "" && item.SubjectCID != "" {
@@ -229,14 +232,14 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 				IsLiked:         item.IsLikedByViewer,
 				LikeCount:       item.LikeCount,
 				CommentCount:    item.CommentCount,
-				ViewURL:         getFeedItemShareURL(item),
-				ShareURL:        getFeedItemShareURL(item),
-				ShareTitle:      getFeedItemShareTitle(item),
-				ShareText:       getFeedItemShareText(item),
+				ViewURL:         qs.FeedViews.ShareURL(item),
+				ShareURL:        qs.FeedViews.ShareURL(item),
+				ShareTitle:      getFeedItemShareTitle(item, qs),
+				ShareText:       getFeedItemShareText(item, qs),
 				IsOwner:         item.IsOwner,
-				EditURL:         getEditURL(item),
-				EditModalURL:    getEditModalURL(item),
-				DeleteURL:       getDeleteURL(item),
+				EditURL:         qs.FeedViews.EditURL(item),
+				EditModalURL:    qs.FeedViews.EditModalURL(item),
+				DeleteURL:       qs.FeedViews.DeleteURL(item),
 				IsAuthenticated: isAuthenticated,
 				IsModerator:     modCtx.IsModerator,
 				CanHideRecord:   modCtx.CanHideRecord,
@@ -264,94 +267,60 @@ func getDisplayName(displayName *string) string {
 }
 
 // ActionText renders the action text with clickable links for record names
-templ ActionText(item *feed.FeedItem) {
-	if d := entities.Get(item.RecordType); d != nil && item.Record != nil {
+templ ActionText(item *feed.FeedItem, views feedviews.Registry) {
+	if noun := views.ActionNoun(item.RecordType); noun != "" && item.Record != nil {
 		added a
-		<a href={ templ.SafeURL(getFeedItemShareURL(item)) } class="underline hover:text-primary">new { d.Noun }</a>
+		<a href={ templ.SafeURL(views.ShareURL(item)) } class="underline hover:text-primary">new { noun }</a>
 		{ " " }
-		@components.TypeBadge(d.Noun)
+		@components.TypeBadge(noun)
 	} else {
 		{ item.Action }
 	}
 }
 
-// Per-entity feed content (BrewContentClickable, RecipeContent, and the
-// other four entity wrappers) lives in internal/web/components/feed_content.templ
-// and is dispatched via entities.Descriptor.RenderFeedContent.
-
 // feedCardClass returns the full class string for a feed card, including
 // the entity-specific accent class (feed-card-{noun}) and the compact
 // modifier for entities with sparse content.
-func feedCardClass(item *feed.FeedItem) string {
+func feedCardClass(item *feed.FeedItem, views feedviews.Registry) string {
 	classes := "feed-card"
-	if d := entities.Get(item.RecordType); d != nil {
-		classes += " feed-card-" + d.Noun
-		if d.FeedCardCompact {
+	if noun := views.CardClassNoun(item.RecordType); noun != "" {
+		classes += " feed-card-" + noun
+		if views.Compact(item.RecordType) {
 			classes += " feed-card-compact"
 		}
 	}
 	return classes
 }
 
-// Helper functions for share button
-func getFeedItemShareURL(item *feed.FeedItem) string {
-	if d := entities.Get(item.RecordType); d != nil {
-		if rkey := item.RKey(); rkey != "" {
-			actor := item.Author.Handle
-			if actor == "" {
-				actor = item.Author.DID
-			}
-			return fmt.Sprintf("/%s/%s/%s", d.URLPath, actor, rkey)
-		}
-	}
-	return fmt.Sprintf("/profile/%s", item.Author.DID)
-}
-
-func getFeedItemShareTitle(item *feed.FeedItem) string {
+func getFeedItemShareTitle(item *feed.FeedItem, qs FeedQueryState) string {
 	if title := item.DisplayTitle(); title != "" {
 		return title
 	}
-	return "Arabica"
+	return feedBrandName(qs)
 }
 
-func getFeedItemShareText(item *feed.FeedItem) string {
+func getFeedItemShareText(item *feed.FeedItem, qs FeedQueryState) string {
 	displayName := atp.DisplayHandle(item.Author.Handle)
 	if item.Author.DisplayName != nil && *item.Author.DisplayName != "" {
 		displayName = *item.Author.DisplayName
 	}
-	return fmt.Sprintf("Check out this %s by %s on Arabica", item.RecordType, displayName)
+	return fmt.Sprintf("Check out this %s by %s on %s", item.RecordType, displayName, feedBrandName(qs))
 }
 
-// getEditURL returns the edit URL for a feed item, sourced from the
-// entity descriptor. Beans, roasters, grinders, and brewers are edited
-// via modals on the manage page and have no EditURL.
-func getEditURL(item *feed.FeedItem) string {
-	if d := entities.Get(item.RecordType); d != nil && d.EditURL != nil {
-		return d.EditURL(item)
+func feedBrandName(qs FeedQueryState) string {
+	if qs.BrandName != "" {
+		return qs.BrandName
 	}
-	return ""
+	return "this app"
 }
 
-// getEditModalURL returns the HTMX modal URL for editing a feed item,
-// or "" if the entity uses a dedicated edit page (EditURL) instead.
-func getEditModalURL(item *feed.FeedItem) string {
-	if d := entities.Get(item.RecordType); d != nil && d.EditModalURL != nil {
-		return d.EditModalURL(item)
+func feedEmptyState(qs FeedQueryState) FeedEmptyState {
+	if qs.EmptyState.Icon != "" && qs.EmptyState.Title != "" && qs.EmptyState.Body != "" {
+		return qs.EmptyState
 	}
-	return ""
-}
-
-// getDeleteURL returns the delete URL for a feed item
-func getDeleteURL(item *feed.FeedItem) string {
-	rkey := item.RKey()
-	if rkey == "" {
-		return ""
+	return FeedEmptyState{
+		Icon:  "✦",
+		Title: "The feed is quiet today",
+		Body:  "Follow people or add your first record to get started.",
 	}
-	if item.RecordType == lexicons.RecordTypeBrew {
-		return fmt.Sprintf("/brews/%s", rkey)
-	}
-	if d := entities.Get(item.RecordType); d != nil {
-		return fmt.Sprintf("/api/%s/%s", d.URLPath, rkey)
-	}
-	return ""
 }

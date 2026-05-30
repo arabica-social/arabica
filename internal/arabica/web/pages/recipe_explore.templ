@@ -3,7 +3,6 @@ package coffeepages
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
-	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
 
@@ -15,12 +14,12 @@ type RecipeExploreProps struct {
 
 // RecipeExplorePage renders the full recipe explore page
 templ RecipeExplorePage(layout *components.LayoutData, props RecipeExploreProps) {
-	@components.Layout(layout, RecipeExploreContent(props))
+	@components.Layout(layout, RecipeExploreContent(props, layout.ScriptHref("recipe-explore.js")))
 }
 
 // RecipeExploreContent renders the recipe explore page content
-templ RecipeExploreContent(props RecipeExploreProps) {
-	<script src={ assets.JSHrefFor("recipe-explore.js") }></script>
+templ RecipeExploreContent(props RecipeExploreProps, recipeExploreScriptHref string) {
+	<script src={ recipeExploreScriptHref }></script>
 	<div
 		class="page-container-xl"
 		v-scope={ fmt.Sprintf("recipeExplore(%t, %q)", props.IsAuthenticated, props.UserDID) }

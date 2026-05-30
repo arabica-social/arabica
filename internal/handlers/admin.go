@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	sharedpages "tangled.org/arabica.social/arabica/internal/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -141,7 +141,7 @@ func generateTID() string {
 }
 
 // buildAdminProps builds the admin dashboard props for the given moderator.
-func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepages.AdminProps {
+func (h *Handler) buildAdminProps(ctx context.Context, userDID string) sharedpages.AdminProps {
 	canHide := h.moderationService.HasPermission(userDID, moderation.PermissionHideRecord)
 	canUnhide := h.moderationService.HasPermission(userDID, moderation.PermissionUnhideRecord)
 	canViewLogs := h.moderationService.HasPermission(userDID, moderation.PermissionViewAuditLog)
@@ -153,7 +153,7 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepag
 
 	var hiddenRecords []moderation.HiddenRecord
 	var auditLog []moderation.AuditEntry
-	var enrichedReports []coffeepages.EnrichedReport
+	var enrichedReports []sharedpages.EnrichedReport
 	var blockedUsers []moderation.BlacklistedUser
 
 	if (canHide || canUnhide) && h.moderationStore != nil {
@@ -181,7 +181,7 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepag
 	isAdmin := h.moderationService.IsAdmin(userDID)
 
 	// Build stats for admin users
-	var stats coffeepages.AdminStats
+	var stats sharedpages.AdminStats
 	var backups []backup.SourceStatus
 	if isAdmin {
 		stats = h.collectAdminStats(ctx)
@@ -190,7 +190,7 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) coffeepag
 		}
 	}
 
-	return coffeepages.AdminProps{
+	return sharedpages.AdminProps{
 		HiddenRecords:    hiddenRecords,
 		AuditLog:         auditLog,
 		Reports:          enrichedReports,
@@ -238,7 +238,7 @@ func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 		IsModerator:     true,
 	}
 
-	if err := coffeepages.Admin(layoutData, adminProps).Render(r.Context(), w); err != nil {
+	if err := sharedpages.Admin(layoutData, adminProps).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render admin page")
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 	}
@@ -250,23 +250,23 @@ func (h *Handler) HandleAdminPartial(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	adminProps := h.buildAdminProps(r.Context(), userDID)
 
-	if err := coffeepages.AdminDashboardBody(adminProps).Render(r.Context(), w); err != nil {
+	if err := sharedpages.AdminDashboardBody(adminProps).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render admin partial")
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
 	}
 }
 
 // enrichReports resolves handles and fetches post content for reports
-func (h *Handler) enrichReports(ctx context.Context, reports []moderation.Report) []coffeepages.EnrichedReport {
+func (h *Handler) enrichReports(ctx context.Context, reports []moderation.Report) []sharedpages.EnrichedReport {
 	if len(reports) == 0 {
 		return nil
 	}
 
 	publicClient := atproto.NewPublicClient()
-	enriched := make([]coffeepages.EnrichedReport, 0, len(reports))
+	enriched := make([]sharedpages.EnrichedReport, 0, len(reports))
 
 	for _, report := range reports {
-		er := coffeepages.EnrichedReport{
+		er := sharedpages.EnrichedReport{
 			Report: report,
 		}
 
@@ -662,8 +662,8 @@ func (h *Handler) HandleRemoveLabel(w http.ResponseWriter, r *http.Request) {
 }
 
 // collectAdminStats gathers current system statistics from available data sources.
-func (h *Handler) collectAdminStats(ctx context.Context) coffeepages.AdminStats {
-	var stats coffeepages.AdminStats
+func (h *Handler) collectAdminStats(ctx context.Context) sharedpages.AdminStats {
+	var stats sharedpages.AdminStats
 
 	if h.feedIndex != nil {
 		stats.KnownUsers = h.feedIndex.KnownDIDCount()
@@ -704,7 +704,7 @@ func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
 		backups = h.backupService.Status()
 	}
 
-	if err := coffeepages.AdminStatsPanel(stats, backups).Render(r.Context(), w); err != nil {
+	if err := sharedpages.AdminStatsPanel(stats, backups).Render(r.Context(), w); err != nil {
 		log.Error().Err(err).Msg("Failed to render admin stats partial")
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
 	}

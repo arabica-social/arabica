@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffeeogcard "tangled.org/arabica.social/arabica/internal/arabica/ogcard"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 )
 
@@ -17,7 +18,7 @@ func main() {
 	cases := []testCase{
 		// Brew - full V60 pourover with pours + pourover params
 		{"/tmp/og-brew-pourover.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawBrewCard(&arabica.Brew{
+			return coffeeogcard.DrawBrewCard(&arabica.Brew{
 				Rating: 8, Temperature: 93, WaterAmount: 250, CoffeeAmount: 15,
 				TimeSeconds: 195, GrindSize: "22 clicks",
 				Bean: &arabica.Bean{
@@ -40,7 +41,7 @@ func main() {
 
 		// Brew - espresso shot
 		{"/tmp/og-brew-espresso.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawBrewCard(&arabica.Brew{
+			return coffeeogcard.DrawBrewCard(&arabica.Brew{
 				Rating: 9, Temperature: 94, WaterAmount: 36, CoffeeAmount: 18,
 				TimeSeconds: 28, GrindSize: "8",
 				Bean: &arabica.Bean{
@@ -58,7 +59,7 @@ func main() {
 
 		// Brew - minimal (just name + rating)
 		{"/tmp/og-brew-minimal.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawBrewCard(&arabica.Brew{
+			return coffeeogcard.DrawBrewCard(&arabica.Brew{
 				Rating: 6,
 				Bean:   &arabica.Bean{Name: "House Blend"},
 			})
@@ -66,7 +67,7 @@ func main() {
 
 		// Brew - French press immersion
 		{"/tmp/og-brew-immersion.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawBrewCard(&arabica.Brew{
+			return coffeeogcard.DrawBrewCard(&arabica.Brew{
 				Rating: 7, Temperature: 100, WaterAmount: 350, CoffeeAmount: 22,
 				TimeSeconds: 300, GrindSize: "30 clicks",
 				Bean: &arabica.Bean{
@@ -80,7 +81,7 @@ func main() {
 
 		// Brew - no rating, long name, lots of tasting notes
 		{"/tmp/og-brew-long.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawBrewCard(&arabica.Brew{
+			return coffeeogcard.DrawBrewCard(&arabica.Brew{
 				Temperature: 96, WaterAmount: 400, CoffeeAmount: 25, TimeSeconds: 240,
 				Bean: &arabica.Bean{
 					Name: "Finca El Paraiso Double Anaerobic Gesha Lot #147", Origin: "Colombia", RoastLevel: "Light",
@@ -94,7 +95,7 @@ func main() {
 		// Bean - full
 		{"/tmp/og-bean.png", func() (*ogcard.Card, error) {
 			rating := 9
-			return ogcard.DrawBeanCard(&arabica.Bean{
+			return coffeeogcard.DrawBeanCard(&arabica.Bean{
 				Name: "Gesha Village Lot #74", Origin: "Ethiopia", Variety: "Gesha",
 				RoastLevel: "Light", Process: "Washed", Rating: &rating,
 				Roaster:     &arabica.Roaster{Name: "Onyx Coffee Lab"},
@@ -104,14 +105,14 @@ func main() {
 
 		// Bean - minimal
 		{"/tmp/og-bean-minimal.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawBeanCard(&arabica.Bean{
+			return coffeeogcard.DrawBeanCard(&arabica.Bean{
 				Name: "Colombia Supremo", Origin: "Colombia",
 			})
 		}},
 
 		// Roaster
 		{"/tmp/og-roaster.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawRoasterCard(&arabica.Roaster{
+			return coffeeogcard.DrawRoasterCard(&arabica.Roaster{
 				Name: "Onyx Coffee Lab", Location: "Rogers, Arkansas",
 				Website: "https://onyxcoffeelab.com",
 			})
@@ -119,7 +120,7 @@ func main() {
 
 		// Grinder
 		{"/tmp/og-grinder.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawGrinderCard(&arabica.Grinder{
+			return coffeeogcard.DrawGrinderCard(&arabica.Grinder{
 				Name: "Comandante C40 MK4", GrinderType: "Hand Grinder", BurrType: "Steel",
 				Notes: "Outstanding grind consistency across all settings. The MK4 burrs are a significant improvement with faster grinding and better particle distribution.",
 			})
@@ -127,7 +128,7 @@ func main() {
 
 		// Brewer
 		{"/tmp/og-brewer.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawBrewerCard(&arabica.Brewer{
+			return coffeeogcard.DrawBrewerCard(&arabica.Brewer{
 				Name: "Hario V60 02", BrewerType: "pourover",
 				Description: "Classic cone-shaped dripper with spiral ribs. Produces a clean, bright cup that highlights origin characteristics.",
 			})
@@ -135,7 +136,7 @@ func main() {
 
 		// Recipe - full with pours
 		{"/tmp/og-recipe.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawRecipeCard(&arabica.Recipe{
+			return coffeeogcard.DrawRecipeCard(&arabica.Recipe{
 				Name: "James Hoffmann V60 Method", CoffeeAmount: 15, WaterAmount: 250,
 				BrewerType: "pourover", Ratio: 16.7,
 				BrewerObj: &arabica.Brewer{Name: "Hario V60 02"},
@@ -150,7 +151,7 @@ func main() {
 
 		// Recipe - minimal
 		{"/tmp/og-recipe-minimal.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawRecipeCard(&arabica.Recipe{
+			return coffeeogcard.DrawRecipeCard(&arabica.Recipe{
 				Name: "Quick Aeropress", CoffeeAmount: 15, WaterAmount: 200,
 				BrewerType: "immersion",
 			})
@@ -159,7 +160,7 @@ func main() {
 		// Bean - Greek text (non-ASCII unicode)
 		{"/tmp/og-bean-greek.png", func() (*ogcard.Card, error) {
 			rating := 7
-			return ogcard.DrawBeanCard(&arabica.Bean{
+			return coffeeogcard.DrawBeanCard(&arabica.Bean{
 				Name: "Λουμίδης Παπαγάλος Παραδοσιακός Ελληνικός Καφές 100 gr", Origin: "Unspecified Latin American",
 				RoastLevel: "Medium", Process: "Unknown", Rating: &rating, Variety: "Unspecified Arabica",
 				Roaster:     &arabica.Roaster{Name: "Λουμίδης Παπαγάλος"},

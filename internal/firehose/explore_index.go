@@ -159,7 +159,7 @@ func (idx *FeedIndex) reindexExploreRecord(ctx context.Context, uri string) erro
 	}
 	rec.Record = json.RawMessage(recordStr)
 	rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-	reg := explore.NewArabicaRegistry()
+	reg := explore.NewArabicaRegistry(idx.recordTypeToNSID)
 	typ, ok := reg.TypeByNSID(rec.Collection)
 	if !ok {
 		_, _ = idx.db.ExecContext(ctx, `DELETE FROM explore_values WHERE uri=?`, uri)
@@ -230,7 +230,7 @@ func (idx *FeedIndex) countSourceRefs(ctx context.Context, uri string) int {
 }
 
 func (idx *FeedIndex) exploreCommunityRating(ctx context.Context, recordType lexicons.RecordType, uri string) (any, int) {
-	brewNSID := recordTypeToNSID[lexicons.RecordTypeBrew]
+	brewNSID := idx.recordTypeToNSID[lexicons.RecordTypeBrew]
 	if brewNSID == "" {
 		return nil, 0
 	}
@@ -263,8 +263,8 @@ func (idx *FeedIndex) exploreAverageBrewRating(ctx context.Context, brewNSID, re
 }
 
 func (idx *FeedIndex) exploreRoasterCommunityRating(ctx context.Context, roasterURI string) (any, int) {
-	brewNSID := recordTypeToNSID[lexicons.RecordTypeBrew]
-	beanNSID := recordTypeToNSID[lexicons.RecordTypeBean]
+	brewNSID := idx.recordTypeToNSID[lexicons.RecordTypeBrew]
+	beanNSID := idx.recordTypeToNSID[lexicons.RecordTypeBean]
 	if brewNSID == "" || beanNSID == "" {
 		return nil, 0
 	}
@@ -383,9 +383,9 @@ func (idx *FeedIndex) reindexExploreDependents(ctx context.Context, uri, collect
 	// V1 only refreshes narrow first-hop dependencies: roaster -> beans, brewer -> recipes.
 	var field string
 	switch collection {
-	case recordTypeToNSID[lexicons.RecordTypeRoaster]:
+	case idx.recordTypeToNSID[lexicons.RecordTypeRoaster]:
 		field = "roasterRef"
-	case recordTypeToNSID[lexicons.RecordTypeBrewer]:
+	case idx.recordTypeToNSID[lexicons.RecordTypeBrewer]:
 		field = "brewerRef"
 	default:
 		return nil
@@ -408,7 +408,7 @@ func (idx *FeedIndex) reindexExploreDependents(ctx context.Context, uri, collect
 }
 
 func (idx *FeedIndex) GetExplore(ctx context.Context, q ExploreQuery) (*ExploreResult, error) {
-	reg := explore.NewArabicaRegistry()
+	reg := explore.NewArabicaRegistry(idx.recordTypeToNSID)
 	if q.App == "" {
 		q.App = "arabica"
 	}

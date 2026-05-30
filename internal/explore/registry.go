@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
@@ -72,34 +71,41 @@ type Registry struct {
 	byType map[lexicons.RecordType]TypeDef
 }
 
-func NewArabicaRegistry() *Registry {
-	types := []TypeDef{
-		{
-			App: "arabica", RecordType: lexicons.RecordTypeBean, NSID: arabica.NSIDBean, Label: "Beans",
-			Filters: []FilterDef{{"origin", "Origin", FilterFacetText, "origin"}, {"variety", "Variety", FilterFacetText, "variety"}, {"process", "Process", FilterFacetText, "process"}, {"roast_level", "Roast level", FilterFacetText, "roast_level"}, {"roaster", "Roaster", FilterFacetText, "roaster"}, {"min_rating", "Minimum rating", FilterNumberMin, "rating"}, {"closed", "Closed", FilterBool, "closed"}},
-			Extract: extractBean,
-		},
-		{
-			App: "arabica", RecordType: lexicons.RecordTypeRoaster, NSID: arabica.NSIDRoaster, Label: "Roasters",
-			Filters: []FilterDef{{"location", "Location", FilterFacetText, "location"}},
-			Extract: extractRoaster,
-		},
-		{
-			App: "arabica", RecordType: lexicons.RecordTypeGrinder, NSID: arabica.NSIDGrinder, Label: "Grinders",
-			Filters: []FilterDef{{"grinder_type", "Grinder type", FilterFacetText, "grinder_type"}, {"burr_type", "Burr type", FilterFacetText, "burr_type"}},
-			Extract: extractGrinder,
-		},
-		{
-			App: "arabica", RecordType: lexicons.RecordTypeBrewer, NSID: arabica.NSIDBrewer, Label: "Brewers",
-			Filters: []FilterDef{{"brewer_type", "Brewer type", FilterFacetText, "brewer_type"}},
-			Extract: extractBrewer,
-		},
-		{
-			App: "arabica", RecordType: lexicons.RecordTypeRecipe, NSID: arabica.NSIDRecipe, Label: "Recipes",
-			Filters: []FilterDef{{"brewer_type", "Brewer type", FilterFacetText, "brewer_type"}, {"ratio_min", "Ratio minimum", FilterNumberMin, "ratio"}, {"ratio_max", "Ratio maximum", FilterNumberMax, "ratio"}},
-			Extract: extractRecipe,
-		},
+func NewArabicaRegistry(nsidByType map[lexicons.RecordType]string) *Registry {
+	types := make([]TypeDef, 0, 5)
+	add := func(def TypeDef) {
+		def.App = "arabica"
+		def.NSID = nsidByType[def.RecordType]
+		if def.NSID == "" {
+			return
+		}
+		types = append(types, def)
 	}
+	add(TypeDef{
+		RecordType: lexicons.RecordTypeBean, Label: "Beans",
+		Filters: []FilterDef{{"origin", "Origin", FilterFacetText, "origin"}, {"variety", "Variety", FilterFacetText, "variety"}, {"process", "Process", FilterFacetText, "process"}, {"roast_level", "Roast level", FilterFacetText, "roast_level"}, {"roaster", "Roaster", FilterFacetText, "roaster"}, {"min_rating", "Minimum rating", FilterNumberMin, "rating"}, {"closed", "Closed", FilterBool, "closed"}},
+		Extract: extractBean,
+	})
+	add(TypeDef{
+		RecordType: lexicons.RecordTypeRoaster, Label: "Roasters",
+		Filters: []FilterDef{{"location", "Location", FilterFacetText, "location"}},
+		Extract: extractRoaster,
+	})
+	add(TypeDef{
+		RecordType: lexicons.RecordTypeGrinder, Label: "Grinders",
+		Filters: []FilterDef{{"grinder_type", "Grinder type", FilterFacetText, "grinder_type"}, {"burr_type", "Burr type", FilterFacetText, "burr_type"}},
+		Extract: extractGrinder,
+	})
+	add(TypeDef{
+		RecordType: lexicons.RecordTypeBrewer, Label: "Brewers",
+		Filters: []FilterDef{{"brewer_type", "Brewer type", FilterFacetText, "brewer_type"}},
+		Extract: extractBrewer,
+	})
+	add(TypeDef{
+		RecordType: lexicons.RecordTypeRecipe, Label: "Recipes",
+		Filters: []FilterDef{{"brewer_type", "Brewer type", FilterFacetText, "brewer_type"}, {"ratio_min", "Ratio minimum", FilterNumberMin, "ratio"}, {"ratio_max", "Ratio maximum", FilterNumberMax, "ratio"}},
+		Extract: extractRecipe,
+	})
 	r := &Registry{byNSID: make(map[string]TypeDef), byType: make(map[lexicons.RecordType]TypeDef)}
 	for _, t := range types {
 		r.byNSID[t.NSID] = t

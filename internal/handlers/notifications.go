@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	"tangled.org/arabica.social/arabica/internal/notifications"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -38,8 +39,8 @@ func (h *Handler) HandleNotifications(w http.ResponseWriter, r *http.Request) {
 		for _, notif := range notifications {
 			item := pages.NotificationItem{
 				Notification: notif,
-				Link:         resolveNotificationLink(notif.SubjectURI),
-				ActionText:   notifActionText(notif),
+				Link:         resolveNotificationLink(h.app, notif.SubjectURI),
+				ActionText:   notifActionText(h.app, notif),
 			}
 
 			profile, err := h.feedIndex.GetProfile(r.Context(), notif.ActorDID)
@@ -90,74 +91,57 @@ func (h *Handler) HandleNotificationsMarkRead(w http.ResponseWriter, r *http.Req
 	http.Redirect(w, r, "/notifications", http.StatusSeeOther)
 }
 
-// collectionURLPath maps AT Protocol collection NSIDs to their URL path prefixes.
-var collectionURLPath = map[string]string{
-	arabica.NSIDBrew:    "/brews/",
-	arabica.NSIDBean:    "/beans/",
-	arabica.NSIDRoaster: "/roasters/",
-	arabica.NSIDGrinder: "/grinders/",
-	arabica.NSIDBrewer:  "/brewers/",
-	arabica.NSIDRecipe:  "/recipes/",
-}
-
-// collectionDisplayName maps AT Protocol collection NSIDs to human-readable names.
-var collectionDisplayName = map[string]string{
-	arabica.NSIDBrew:    "brew",
-	arabica.NSIDBean:    "bean",
-	arabica.NSIDRoaster: "roaster",
-	arabica.NSIDGrinder: "grinder",
-	arabica.NSIDBrewer:  "brewer",
-	arabica.NSIDRecipe:  "recipe",
-}
-
 // resolveNotificationLink converts a SubjectURI (AT-URI) to a local page URL.
 // Format: at://did:plc:xxx/social.arabica.alpha.brew/rkey -> /brews/did:plc:xxx/rkey
-func resolveNotificationLink(subjectURI string) string {
-	if !strings.HasPrefix(subjectURI, "at://") {
+func resolveNotificationLink(app *domain.App, subjectURI string) string {
+	did, collection, rkey, ok := parseNotificationSubjectURI(subjectURI)
+	if !ok || app == nil {
 		return ""
 	}
 
-	rest := subjectURI[5:] // strip "at://"
-	parts := strings.SplitN(rest, "/", 3)
-	if len(parts) < 3 {
-		return ""
-	}
-
-	did := parts[0]
-	collection := parts[1]
-	rkey := parts[2]
-
-	if prefix, ok := collectionURLPath[collection]; ok {
-		return fmt.Sprintf("%s%s/%s", prefix, did, rkey)
+	if route, ok := app.EntityRouteByNSID(collection); ok && route.Path != "" {
+		return fmt.Sprintf("/%s/%s/%s", route.Path, did, rkey)
 	}
 	return ""
 }
 
 // resolveNotificationEntityName returns the display name for the entity in a SubjectURI.
-func resolveNotificationEntityName(subjectURI string) string {
-	if !strings.HasPrefix(subjectURI, "at://") {
+func resolveNotificationEntityName(app *domain.App, subjectURI string) string {
+	_, collection, _, ok := parseNotificationSubjectURI(subjectURI)
+	if !ok || app == nil {
 		return "content"
 	}
-	rest := subjectURI[5:]
-	parts := strings.SplitN(rest, "/", 3)
-	if len(parts) < 3 {
-		return "content"
+	if route, ok := app.EntityRouteByNSID(collection); ok && route.Noun != "" {
+		return route.Noun
 	}
-	if name, ok := collectionDisplayName[parts[1]]; ok {
-		return name
+	if desc := app.DescriptorByNSID(collection); desc != nil && desc.DisplayName != "" {
+		return strings.ToLower(desc.DisplayName)
 	}
 	return "content"
 }
 
+func parseNotificationSubjectURI(subjectURI string) (did, collection, rkey string, ok bool) {
+	if !strings.HasPrefix(subjectURI, "at://") {
+		return "", "", "", false
+	}
+
+	rest := subjectURI[5:] // strip "at://"
+	parts := strings.SplitN(rest, "/", 3)
+	if len(parts) < 3 {
+		return "", "", "", false
+	}
+	return parts[0], parts[1], parts[2], true
+}
+
 // notifActionText returns human-readable action text for a notification.
-func notifActionText(notif arabica.Notification) string {
-	entity := resolveNotificationEntityName(notif.SubjectURI)
+func notifActionText(app *domain.App, notif notifications.Notification) string {
+	entity := resolveNotificationEntityName(app, notif.SubjectURI)
 	switch notif.Type {
-	case arabica.NotificationLike:
+	case notifications.Like:
 		return "liked your " + entity
-	case arabica.NotificationComment:
+	case notifications.Comment:
 		return "commented on your " + entity
-	case arabica.NotificationCommentReply:
+	case notifications.CommentReply:
 		return "replied to your comment"
 	default:
 		return "interacted with your " + entity

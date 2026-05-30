@@ -23,9 +23,8 @@ import (
 // slot, but the optional shape lets oolong (or future arabica work)
 // declare entities without an OG image or without modal partials.
 type EntityRouteBundle struct {
-	// RecordType identifies the entity. Used to look up the descriptor
-	// when registering routes; the descriptor's URLPath becomes the URL
-	// segment (/api/{URLPath}, /{URLPath}/{id}, etc.).
+	// RecordType identifies the entity. Routing combines this with the active
+	// app's EntityRoute metadata to choose URL and modal path segments.
 	RecordType lexicons.RecordType
 
 	// CRUD over JSON. Create has no rkey path-parameter; Update/Delete
@@ -34,10 +33,10 @@ type EntityRouteBundle struct {
 	Update http.HandlerFunc
 	Delete http.HandlerFunc
 
-	// View renders the public entity detail page (/{URLPath}/{id}).
+	// View renders the public entity detail page.
 	View http.HandlerFunc
 
-	// OGImage serves the entity's OpenGraph image (/{URLPath}/{id}/og-image).
+	// OGImage serves the entity's OpenGraph image.
 	OGImage http.HandlerFunc
 
 	// Modal partials return dialog HTML for create / edit flows.

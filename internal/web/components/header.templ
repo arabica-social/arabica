@@ -2,20 +2,20 @@ package components
 
 import (
 	"fmt"
-	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/pdewey.com/atp"
 )
 
 // HeaderProps contains all properties for the header component
 type HeaderProps struct {
-	IsAuthenticated         bool
-	UserProfile             *bff.UserProfile
-	UserDID                 string
-	IsModerator             bool   // Show admin link in dropdown
-	UnreadNotificationCount int    // Badge count for bell icon
-	BrandName               string // "Arabica"; falls back to "Arabica" when empty
-	AppName                 string // "arabica" or "oolong" — selects the create-new dropdown contents
+	IsAuthenticated              bool
+	UserProfile                  *bff.UserProfile
+	UserDID                      string
+	IsModerator                  bool   // Show admin link in dropdown
+	UnreadNotificationCount      int    // Badge count for bell icon
+	BrandName                    string // "Arabica"; falls back to "Arabica" when empty
+	AppName                      string // "arabica" or "oolong" — selects the create-new dropdown contents
+	HandleAutocompleteScriptHref string
 }
 
 // brandName returns the configured brand name with the arabica default
@@ -29,9 +29,10 @@ func (p HeaderProps) brandName() string {
 
 templ Header(isAuthenticated bool, userProfile *bff.UserProfile, userDID string) {
 	@HeaderWithProps(HeaderProps{
-		IsAuthenticated: isAuthenticated,
-		UserProfile:     userProfile,
-		UserDID:         userDID,
+		IsAuthenticated:              isAuthenticated,
+		UserProfile:                  userProfile,
+		UserDID:                      userDID,
+		HandleAutocompleteScriptHref: "/static/js/handle-autocomplete.js",
 	})
 }
 
@@ -157,12 +158,12 @@ templ HeaderWithProps(props HeaderProps) {
 		</div>
 	</nav>
 	if !props.IsAuthenticated {
-		@LoginModal()
+		@LoginModal(props.HandleAutocompleteScriptHref)
 	}
 }
 
 // LoginModal renders the login dialog for unauthenticated users
-templ LoginModal() {
+templ LoginModal(handleAutocompleteScriptHref string) {
 	<dialog id="login-modal" class="modal-dialog">
 		<div class="modal-content">
 			<div class="flex items-center justify-between mb-4">
@@ -208,7 +209,7 @@ templ LoginModal() {
 					One account { "for" } the entire <a href="/atproto" class="link">AT Protocol</a> ecosystem. Sign up once and use it across Arabica, <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a>, <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a>, and more. Your data is portable — you own it.
 				</p>
 			</details>
-			<script src={ assets.JSHrefFor("handle-autocomplete.js") }></script>
+			<script src={ handleAutocompleteScriptHref }></script>
 		</div>
 	</dialog>
 }

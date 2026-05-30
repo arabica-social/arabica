@@ -258,8 +258,7 @@ function FeedFilters(initialType, initialSort) {
       let u = "/api/feed";
       let sep = "?";
       if (t) {
-        if (t === "equipment") u += sep + "type=grinder&type=brewer";
-        else u += sep + "type=" + t;
+        u += sep + "type=" + t;
         sep = "&";
       }
       if (s && s !== "recent") u += sep + "sort=" + s;

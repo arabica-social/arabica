@@ -5,7 +5,6 @@ import (
 	"net/url"
 
 	coffeecomponents "tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -17,6 +16,7 @@ type ExploreProps struct {
 	Result      *firehose.ExploreResult
 	Health      firehose.ExploreHealth
 	FilterNames []string
+	RoutePaths  map[lexicons.RecordType]string
 }
 
 templ ExplorePage(layout *components.LayoutData, props ExploreProps) {
@@ -110,7 +110,7 @@ templ ExploreContent(props ExploreProps) {
 		} else {
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				for _, item := range props.Result.Items {
-					@ExploreCard(item, props.Result.Documents[item.SubjectURI])
+					@ExploreCard(item, props.Result.Documents[item.SubjectURI], props.RoutePaths)
 				}
 			</div>
 			if props.Result.NextCursor != "" {
@@ -131,13 +131,13 @@ templ filterInput(props ExploreProps, name string, label string) {
 	</label>
 }
 
-templ ExploreCard(item *feed.FeedItem, doc firehose.ExploreDocument) {
+templ ExploreCard(item *feed.FeedItem, doc firehose.ExploreDocument, routePaths map[lexicons.RecordType]string) {
 	<article class="feed-card card space-y-4">
 		<div class="flex items-start justify-between gap-3">
 			@components.AuthorByline(item.Author, doc.DID)
 			@components.TypeBadge(string(item.RecordType))
 		</div>
-		<a href={ templ.SafeURL(exploreItemURL(item)) } class="block hover:opacity-90 transition-opacity">
+		<a href={ templ.SafeURL(exploreItemURL(item, routePaths)) } class="block hover:opacity-90 transition-opacity">
 			@exploreItemContent(item)
 		</a>
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
@@ -215,18 +215,18 @@ func exploreActiveLabel(props ExploreProps) string {
 	return fmt.Sprintf("%d active", count)
 }
 
-func exploreItemURL(item *feed.FeedItem) string {
+func exploreItemURL(item *feed.FeedItem, routePaths map[lexicons.RecordType]string) string {
 	if item == nil {
 		return "/explore"
 	}
-	if d := entities.Get(item.RecordType); d != nil && item.RKey() != "" {
+	if path := routePaths[item.RecordType]; path != "" && item.RKey() != "" {
 		actor := ""
 		if item.Author != nil && item.Author.Handle != "" {
 			actor = item.Author.Handle
 		} else if item.Author != nil {
 			actor = item.Author.DID
 		}
-		return fmt.Sprintf("/%s/%s/%s", d.URLPath, actor, item.RKey())
+		return fmt.Sprintf("/%s/%s/%s", path, actor, item.RKey())
 	}
 	return "/explore"
 }

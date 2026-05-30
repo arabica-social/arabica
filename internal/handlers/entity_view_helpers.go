@@ -7,6 +7,7 @@ import (
 	atp "tangled.org/pdewey.com/atp"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // ListRecords fetches every record of nsid the authenticated user owns
@@ -16,7 +17,7 @@ import (
 // Not tied to a particular app; works for any (nsid, decoder) pair.
 func ListRecords[T any](
 	ctx context.Context,
-	store *atproto.AtprotoStore,
+	store records.Store,
 	nsid string,
 	decode func(map[string]any, string) (*T, error),
 ) []*T {

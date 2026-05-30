@@ -5,30 +5,20 @@ import (
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
-type rkeyer interface{ RKey() string }
-
-func itemRKey(item any) string {
-	if it, ok := item.(rkeyer); ok && it != nil {
-		return it.RKey()
-	}
-	return ""
-}
-
-func modalEditURL(noun string) func(any) string {
-	return func(item any) string {
-		if r := itemRKey(item); r != "" {
-			return "/api/modals/" + noun + "/" + r
-		}
-		return ""
-	}
-}
-
 func init() {
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeBean, NSID: NSIDBean,
-		DisplayName: "Bean", Noun: "bean", URLPath: "beans",
-		FeedFilterLabel: "Beans",
-		GetField:        beanField,
+	registerBean()
+	registerRoaster()
+	registerGrinder()
+	registerBrewer()
+	registerRecipe()
+	registerBrew()
+	// Like is intentionally omitted — has no entity page or modal.
+}
+
+func registerBean() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeBean, NSID: NSIDBean, DisplayName: "Bean"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeBean, &entities.RecordBehavior{
+		GetField: beanField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBean(rec, uri)
 		},
@@ -49,14 +39,14 @@ func init() {
 			}
 			return b.Origin
 		},
-		EditModalURL: modalEditURL("bean"),
-		ResolveRefs:  resolveBeanFeedRef,
+		ReferenceFields: []string{"roasterRef"},
+		ResolveRefs:     resolveBeanFeedRef,
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeRoaster, NSID: NSIDRoaster,
-		DisplayName: "Roaster", Noun: "roaster", URLPath: "roasters",
-		// FeedFilterLabel intentionally empty — roasters are reference
-		// entities that rarely warrant a dedicated feed filter tab.
+}
+
+func registerRoaster() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeRoaster, NSID: NSIDRoaster, DisplayName: "Roaster"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeRoaster, &entities.RecordBehavior{
 		GetField: roasterField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToRoaster(rec, uri)
@@ -75,13 +65,13 @@ func init() {
 			}
 			return r.Name
 		},
-		EditModalURL: modalEditURL("roaster"),
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeGrinder, NSID: NSIDGrinder,
-		DisplayName: "Grinder", Noun: "grinder", URLPath: "grinders",
-		FeedFilterLabel: "Grinders",
-		GetField:        grinderField,
+}
+
+func registerGrinder() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeGrinder, NSID: NSIDGrinder, DisplayName: "Grinder"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeGrinder, &entities.RecordBehavior{
+		GetField: grinderField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToGrinder(rec, uri)
 		},
@@ -99,13 +89,13 @@ func init() {
 			}
 			return g.Name
 		},
-		EditModalURL: modalEditURL("grinder"),
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeBrewer, NSID: NSIDBrewer,
-		DisplayName: "Brewer", Noun: "brewer", URLPath: "brewers",
-		FeedFilterLabel: "Brewers",
-		GetField:        brewerField,
+}
+
+func registerBrewer() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeBrewer, NSID: NSIDBrewer, DisplayName: "Brewer"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeBrewer, &entities.RecordBehavior{
+		GetField: brewerField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrewer(rec, uri)
 		},
@@ -123,13 +113,13 @@ func init() {
 			}
 			return b.Name
 		},
-		EditModalURL: modalEditURL("brewer"),
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeRecipe, NSID: NSIDRecipe,
-		DisplayName: "Recipe", Noun: "recipe", URLPath: "recipes",
-		FeedFilterLabel: "Recipes",
-		GetField:        recipeField,
+}
+
+func registerRecipe() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeRecipe, NSID: NSIDRecipe, DisplayName: "Recipe"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeRecipe, &entities.RecordBehavior{
+		GetField: recipeField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToRecipe(rec, uri)
 		},
@@ -147,14 +137,14 @@ func init() {
 			}
 			return r.Name
 		},
-		EditModalURL: modalEditURL("recipe"),
-		ResolveRefs:  resolveRecipeFeedRef,
+		ReferenceFields: []string{"brewerRef"},
+		ResolveRefs:     resolveRecipeFeedRef,
 	})
-	entities.Register(&entities.Descriptor{
-		Type: lexicons.RecordTypeBrew, NSID: NSIDBrew,
-		DisplayName: "Brew", Noun: "brew", URLPath: "brews",
-		FeedFilterLabel: "Brews",
-		GetField:        nil, // brew has no edit modal that needs prefill
+}
+
+func registerBrew() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeBrew, NSID: NSIDBrew, DisplayName: "Brew"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeBrew, &entities.RecordBehavior{
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrew(rec, uri)
 		},
@@ -179,13 +169,7 @@ func init() {
 			}
 			return "Coffee Brew"
 		},
-		EditURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/brews/" + r + "/edit"
-			}
-			return ""
-		},
-		ResolveRefs: resolveBrewFeedRefs,
+		ReferenceFields: []string{"beanRef", "grinderRef", "brewerRef", "recipeRef"},
+		ResolveRefs:     resolveBrewFeedRefs,
 	})
-	// Like is intentionally omitted — has no entity page or modal.
 }

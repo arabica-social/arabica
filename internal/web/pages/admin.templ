@@ -1,0 +1,1235 @@
+package pages
+
+import (
+	"fmt"
+	"tangled.org/arabica.social/arabica/internal/backup"
+	"tangled.org/arabica.social/arabica/internal/moderation"
+	"tangled.org/arabica.social/arabica/internal/web/bff"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/pdewey.com/atp"
+	"time"
+)
+
+// EnrichedReport wraps a report with resolved profile info
+type EnrichedReport struct {
+	Report         moderation.Report
+	OwnerHandle    string
+	ReporterHandle string
+	PostContent    string // Summary of the reported content
+}
+
+// AdminStats holds aggregate statistics for the admin dashboard
+type AdminStats struct {
+	KnownUsers          int
+	RegisteredUsers     int
+	IndexedRecords      int
+	TotalLikes          int
+	TotalComments       int
+	FirehoseConnected   bool
+	RecordsByCollection map[string]int
+}
+
+type AdminProps struct {
+	HiddenRecords    []moderation.HiddenRecord
+	AuditLog         []moderation.AuditEntry
+	Reports          []EnrichedReport
+	BlockedUsers     []moderation.BlacklistedUser
+	Labels           []moderation.Label
+	Stats            AdminStats
+	Backups          []backup.SourceStatus
+	CanHide          bool
+	CanUnhide        bool
+	CanViewLogs      bool
+	CanViewReports   bool
+	CanBlock         bool
+	CanUnblock       bool
+	CanResetAutoHide bool
+	CanManageLabels  bool
+	IsAdmin          bool
+}
+
+templ Admin(layout *components.LayoutData, props AdminProps) {
+	@components.Layout(layout, AdminContent(props))
+}
+
+templ AdminContent(props AdminProps) {
+	<div class="page-container-lg">
+		<div class="mb-8">
+			<h1 class="page-title flex items-center gap-2">
+				<svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"></path>
+				</svg>
+				Moderation Dashboard
+			</h1>
+			<p class="text-muted mt-2">Manage hidden content, review reports, and view moderation activity.</p>
+		</div>
+		@AdminDashboardBody(props)
+	</div>
+}
+
+// AdminDashboardBody renders the dynamic tabs and panels. This is the HTMX
+// swap target so that the static page header doesn't flicker on refresh.
+templ AdminDashboardBody(props AdminProps) {
+	<div
+		id="mod-dashboard"
+		hx-get="/_mod/content"
+		hx-trigger="mod-action from:body"
+		hx-swap="outerHTML"
+		v-scope="{ _tab: (function(){ try { return sessionStorage.getItem('mod-tab') || 'hidden'; } catch(e) { return 'hidden'; } })(), get activeTab() { return this._tab }, set activeTab(v) { this._tab = v; try { sessionStorage.setItem('mod-tab', v); } catch(e) {} } }"
+		class="space-y-6"
+	>
+		<nav class="flex flex-wrap gap-2">
+			if props.CanHide || props.CanUnhide {
+				<button
+					type="button"
+					@click="activeTab = 'hidden'"
+					:class="activeTab === 'hidden' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Hidden Records
+					if len(props.HiddenRecords) > 0 {
+						<span class="ml-1.5 bg-brown-200 text-emphasis py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.HiddenRecords)) }
+						</span>
+					}
+				</button>
+			}
+			if props.CanBlock || props.CanUnblock {
+				<button
+					type="button"
+					@click="activeTab = 'blocked'"
+					:class="activeTab === 'blocked' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Blocked Users
+					if len(props.BlockedUsers) > 0 {
+						<span class="ml-1.5 bg-red-100 text-red-700 py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.BlockedUsers)) }
+						</span>
+					}
+				</button>
+			}
+			if props.CanViewReports {
+				<button
+					type="button"
+					@click="activeTab = 'reports'"
+					:class="activeTab === 'reports' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Reports
+					if len(props.Reports) > 0 {
+						<span class="ml-1.5 bg-red-100 text-red-700 py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.Reports)) }
+						</span>
+					}
+				</button>
+			}
+			if props.CanViewLogs {
+				<button
+					type="button"
+					@click="activeTab = 'activity'"
+					:class="activeTab === 'activity' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Activity Log
+				</button>
+			}
+			if props.CanManageLabels {
+				<button
+					type="button"
+					@click="activeTab = 'labels'"
+					:class="activeTab === 'labels' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Labels
+					if len(props.Labels) > 0 {
+						<span class="ml-1.5 bg-purple-100 text-purple-700 py-0.5 px-1.5 rounded-full text-xs">
+							{ fmt.Sprintf("%d", len(props.Labels)) }
+						</span>
+					}
+				</button>
+			}
+			if props.IsAdmin {
+				<button
+					type="button"
+					@click="activeTab = 'stats'"
+					:class="activeTab === 'stats' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Stats
+				</button>
+				<button
+					type="button"
+					@click="activeTab = 'cache'"
+					:class="activeTab === 'cache' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
+				>
+					Cache
+				</button>
+			}
+		</nav>
+		<!-- Hidden Records Tab -->
+		if props.CanHide || props.CanUnhide {
+			<div v-show="activeTab === 'hidden'">
+				<div class="card card-inner">
+					<h2 class="section-title">Hidden Records</h2>
+					if len(props.HiddenRecords) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-muted">
+							<p>No records are currently hidden.</p>
+						</div>
+					} else {
+						<div class="space-y-3">
+							for _, record := range props.HiddenRecords {
+								@HiddenRecordCard(record, props.CanUnhide)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+		<!-- Blocked Users Tab -->
+		if props.CanBlock || props.CanUnblock {
+			<div v-show="activeTab === 'blocked'" v-cloak>
+				<div class="card card-inner">
+					<h2 class="section-title">Blocked Users</h2>
+					if len(props.BlockedUsers) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-muted">
+							<p>No users are currently blocked.</p>
+						</div>
+					} else {
+						<div class="space-y-3">
+							for _, user := range props.BlockedUsers {
+								@BlockedUserCard(user, props.CanUnblock)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+		<!-- Reports Tab -->
+		if props.CanViewReports {
+			<div v-show="activeTab === 'reports'" v-cloak>
+				<div class="card card-inner">
+					<h2 class="section-title">Pending Reports</h2>
+					if len(props.Reports) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-muted">
+							<p>No pending reports to review.</p>
+						</div>
+					} else {
+						<div class="space-y-4">
+							for _, report := range props.Reports {
+								@ReportCard(report, props.CanHide, props.CanBlock, props.CanResetAutoHide)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+		<!-- Activity Log Tab -->
+		if props.CanViewLogs {
+			<div v-show="activeTab === 'activity'" v-cloak>
+				<div class="card card-inner">
+					<h2 class="section-title">Recent Activity</h2>
+					if len(props.AuditLog) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-muted">
+							<p>No moderation activity recorded yet.</p>
+						</div>
+					} else {
+						<div class="space-y-3">
+							for _, entry := range props.AuditLog {
+								@AuditLogCard(entry)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+		<!-- Labels Tab -->
+		if props.CanManageLabels {
+			<div v-show="activeTab === 'labels'" v-cloak>
+				<div class="card card-inner">
+					<div class="flex items-center justify-between mb-4">
+						<h2 class="section-title mb-0">Labels</h2>
+						<button
+							type="button"
+							data-action="dispatch-event"
+							data-event="open-add-label"
+							class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
+						>
+							Add Label
+						</button>
+					</div>
+					if len(props.Labels) == 0 {
+						<div class="bg-brown-50 rounded-lg p-4 text-center text-muted">
+							<p>No labels have been applied yet.</p>
+						</div>
+					} else {
+						<div class="space-y-3">
+							for _, label := range props.Labels {
+								@LabelCard(label)
+							}
+						</div>
+					}
+				</div>
+				<!-- Add Label Form -->
+				<div
+					v-scope="AddLabelForm()"
+					@vue:mounted="setup($el)"
+					v-show="open"
+					v-cloak
+					class="card card-inner mt-4"
+				>
+					<h3 class="section-title">Add Label</h3>
+					<form
+						hx-post="/_mod/label/add"
+						hx-swap="none"
+						class="space-y-4"
+						ref="labelForm"
+					>
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div>
+								<label class="block text-sm font-medium text-emphasis mb-1">Entity Type</label>
+								<select name="entity_type" required class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+									<option value="user">User (DID)</option>
+									<option value="record">Record (AT-URI)</option>
+								</select>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-emphasis mb-1">Entity ID</label>
+								<input type="text" name="entity_id" required placeholder="did:plc:... or at://..." class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"/>
+							</div>
+						</div>
+						<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+							<div>
+								<label class="block text-sm font-medium text-emphasis mb-1">Label</label>
+								<input type="text" name="label" required placeholder="e.g. warned, trusted, spam" class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"/>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-emphasis mb-1">Value (optional)</label>
+								<input type="text" name="value" placeholder="Optional value" class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"/>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-emphasis mb-1">Expires (optional)</label>
+								<select name="expires" class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+									<option value="">Never</option>
+									<option value="24h">24 hours</option>
+									<option value="168h">7 days</option>
+									<option value="720h">30 days</option>
+									<option value="2160h">90 days</option>
+								</select>
+							</div>
+						</div>
+						<div class="flex gap-3">
+							<button type="submit" class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-sm font-medium transition-colors">
+								Add Label
+							</button>
+							<button type="button" @click="open = false" class="text-sm text-muted hover:text-secondary px-4 py-2 rounded-sm font-medium transition-colors">
+								Cancel
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		}
+		<!-- Stats Tab (admin only) -->
+		if props.IsAdmin {
+			<div v-show="activeTab === 'stats'" v-cloak>
+				<div
+					id="stats-panel"
+					hx-get="/_mod/stats"
+					hx-trigger="every 300s [document.visibilityState === 'visible']"
+					hx-swap="innerHTML"
+				>
+					@AdminStatsPanel(props.Stats, props.Backups)
+				</div>
+			</div>
+		}
+		<!-- Cache Tab (admin only) -->
+		if props.IsAdmin {
+			<div v-show="activeTab === 'cache'" v-cloak class="space-y-4">
+				<div class="card card-inner">
+					<h2 class="section-title">Export Witness Cache</h2>
+					<p class="text-sm text-muted mb-4">
+						Download every witness-cached record for a DID as a single JSON file. Reads
+						from the local firehose index — does not contact the user's PDS.
+					</p>
+					<form
+						action="/_mod/export"
+						method="get"
+						class="flex flex-col gap-3 sm:flex-row sm:items-end"
+					>
+						<div class="flex-1">
+							<label for="export-did" class="block text-sm font-medium text-emphasis mb-1">DID</label>
+							<input
+								id="export-did"
+								type="text"
+								name="did"
+								required
+								placeholder="did:plc:..."
+								class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+							/>
+						</div>
+						<button
+							type="submit"
+							class="text-sm bg-brown-300 text-primary hover:bg-brown-400 px-4 py-2 rounded-sm font-medium transition-colors"
+						>
+							Export JSON
+						</button>
+					</form>
+				</div>
+				<div class="card card-inner">
+					<h2 class="section-title">Fetch PDS Records</h2>
+					<p class="text-sm text-muted mb-4">
+						Fetch every Arabica record for a user directly from their PDS, bypassing
+						the witness cache. Accepts a DID or a handle. Useful for investigating
+						reports or capturing a snapshot before purging.
+					</p>
+					<form
+						action="/_mod/pds-records"
+						method="get"
+						class="flex flex-col gap-3 sm:flex-row sm:items-end"
+					>
+						<div class="flex-1">
+							<label for="pds-actor" class="block text-sm font-medium text-emphasis mb-1">DID or handle</label>
+							<input
+								id="pds-actor"
+								type="text"
+								name="actor"
+								required
+								placeholder="did:plc:... or alice.example.com"
+								class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+							/>
+						</div>
+						<button
+							type="submit"
+							class="text-sm bg-brown-300 text-primary hover:bg-brown-400 px-4 py-2 rounded-sm font-medium transition-colors"
+						>
+							Fetch JSON
+						</button>
+					</form>
+				</div>
+				<div class="card card-inner">
+					<h2 class="section-title">Refresh All Handles</h2>
+					<p class="text-sm text-muted mb-4">
+						Re-fetch every cached profile from the AppView. Use this when an
+						identity-event race left a stale handle in the cache — non-destructive,
+						no records are touched.
+					</p>
+					<form
+						hx-post="/_mod/refresh-handles"
+						hx-confirm="Refresh every cached profile from the AppView?"
+						hx-swap="innerHTML"
+						hx-target="#refresh-handles-result"
+						hx-indicator="#refresh-handles-indicator"
+						class="flex flex-col gap-3 sm:flex-row sm:items-end"
+					>
+						<button
+							type="submit"
+							class="text-sm bg-brown-300 text-primary hover:bg-brown-400 px-4 py-2 rounded font-medium transition-colors"
+						>
+							Refresh All Handles
+						</button>
+						<span id="refresh-handles-indicator" class="htmx-indicator text-sm text-muted italic">refreshing…</span>
+					</form>
+					<div id="refresh-handles-result" class="mt-3 text-sm text-emphasis font-mono"></div>
+				</div>
+				<div class="card card-inner">
+					<h2 class="section-title">Rebuild Witness Cache from PDS</h2>
+					<p class="text-sm text-muted mb-4">
+						Re-fetch every Arabica record for a DID or handle from their PDS and
+						write the results back into the witness cache. Pair with Purge to fully recycle
+						a user's witness data — purge clears the backfill marker, so this runs
+						a fresh pass instead of short-circuiting.
+					</p>
+					<form
+						hx-post="/_mod/rebuild"
+						hx-confirm="Rebuild the witness cache for this DID or handle from their PDS?"
+						hx-swap="innerHTML"
+						hx-target="#rebuild-result"
+						class="flex flex-col gap-3 sm:flex-row sm:items-end"
+					>
+						<div class="flex-1">
+							<label for="rebuild-did" class="block text-sm font-medium text-emphasis mb-1">DID or handle</label>
+							<input
+								id="rebuild-did"
+								type="text"
+								name="did"
+								required
+								placeholder="did:plc:... or alice.example.com"
+								class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+							/>
+						</div>
+						<button
+							type="submit"
+							class="text-sm bg-brown-300 text-primary hover:bg-brown-400 px-4 py-2 rounded font-medium transition-colors"
+						>
+							Rebuild DID
+						</button>
+					</form>
+					<div id="rebuild-result" class="mt-3 text-sm text-emphasis font-mono"></div>
+				</div>
+				<div class="card card-inner border-red-300">
+					<h2 class="section-title text-red-900">Purge DID from Witness Cache</h2>
+					<p class="text-sm text-muted mb-2">
+						Remove every record, like, comment, notification, profile entry, and
+						handle mapping for a DID from the local witness cache. Moderation tables
+						(reports, audit log, blacklist, labels) are preserved as evidence.
+					</p>
+					<p class="text-sm text-red-800 mb-4">
+						This is irreversible from the dashboard. Use only when an account has
+						orphaned its data — e.g. the user's PDS is gone and no
+						<code class="bg-red-100 px-1 rounded-sm">deleted</code>/<code class="bg-red-100 px-1 rounded-sm">takendown</code>
+						event will ever arrive on the firehose.
+					</p>
+					<form
+						hx-post="/_mod/purge"
+						hx-confirm="Permanently purge this DID from the witness cache? This cannot be undone."
+						hx-swap="innerHTML"
+						hx-target="#purge-result"
+						class="flex flex-col gap-3 sm:flex-row sm:items-end"
+					>
+						<div class="flex-1">
+							<label for="purge-did" class="block text-sm font-medium text-emphasis mb-1">DID</label>
+							<input
+								id="purge-did"
+								type="text"
+								name="did"
+								required
+								placeholder="did:plc:..."
+								class="w-full px-3 py-2 border border-red-300 rounded-lg bg-white text-primary text-sm font-mono focus:ring-2 focus:ring-red-500 focus:border-red-500"
+							/>
+						</div>
+						<button
+							type="submit"
+							class="text-sm bg-red-700 text-white hover:bg-red-800 px-4 py-2 rounded-sm font-medium transition-colors"
+						>
+							Purge DID
+						</button>
+					</form>
+					<div id="purge-result" class="mt-3 text-sm text-emphasis font-mono"></div>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ HiddenRecordCard(record moderation.HiddenRecord, canUnhide bool) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- URI with copy button -->
+			<div>
+				<span class="text-xs font-medium text-faint uppercase tracking-wide">Record URI</span>
+				<div
+					v-scope="CopyText()"
+					class="mt-1 flex items-start gap-2"
+				>
+					<code ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ record.ATURI }</code>
+					<button
+						type="button"
+						@click="copy($refs.uri.textContent)"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-faint hover:text-emphasis hover:bg-brown-200 rounded-sm transition-colors"
+						:title="copied ? 'Copied!' : 'Copy to clipboard'"
+					>
+						<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+						</svg>
+						<svg v-show="copied" v-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+						</svg>
+					</button>
+				</div>
+			</div>
+			<!-- Meta info row -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-faint">Hidden:</span>
+					<span class="text-emphasis ml-1">{ record.HiddenAt.Format("Jan 2, 2006 15:04") }</span>
+				</div>
+				<div>
+					<span class="text-faint">By:</span>
+					<code class="text-emphasis ml-1 text-xs">{ record.HiddenBy }</code>
+					if record.AutoHidden {
+						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-sm">auto</span>
+					}
+				</div>
+				if record.Reason != "" {
+					<div>
+						<span class="text-faint">Reason:</span>
+						<span class="text-emphasis ml-1">{ record.Reason }</span>
+					</div>
+				}
+			</div>
+			<!-- Actions -->
+			if canUnhide {
+				<div class="pt-2 border-t border-brown-200">
+					<button
+						class="text-sm text-amber-600 hover:text-amber-800 font-medium"
+						hx-post="/_mod/unhide"
+						hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, record.ATURI) }
+						hx-swap="none"
+						hx-confirm="Are you sure you want to unhide this record?"
+					>
+						Unhide Record
+					</button>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ BlockedUserCard(user moderation.BlacklistedUser, canUnblock bool) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- DID with copy button -->
+			<div>
+				<span class="text-xs font-medium text-faint uppercase tracking-wide">User DID</span>
+				<div
+					v-scope="CopyText()"
+					class="mt-1 flex items-start gap-2"
+				>
+					<code ref="did" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ user.DID }</code>
+					<button
+						type="button"
+						@click="copy($refs.did.textContent)"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-faint hover:text-emphasis hover:bg-brown-200 rounded-sm transition-colors"
+						:title="copied ? 'Copied!' : 'Copy to clipboard'"
+					>
+						<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+						</svg>
+						<svg v-show="copied" v-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+						</svg>
+					</button>
+				</div>
+			</div>
+			<!-- Meta info row -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-faint">Blocked:</span>
+					<span class="text-emphasis ml-1">{ user.BlacklistedAt.Format("Jan 2, 2006 15:04") }</span>
+				</div>
+				<div>
+					<span class="text-faint">By:</span>
+					<code class="text-emphasis ml-1 text-xs">{ user.BlacklistedBy }</code>
+				</div>
+				if user.Reason != "" {
+					<div>
+						<span class="text-faint">Reason:</span>
+						<span class="text-emphasis ml-1">{ user.Reason }</span>
+					</div>
+				}
+			</div>
+			<!-- Actions -->
+			if canUnblock {
+				<div class="pt-2 border-t border-brown-200">
+					<button
+						class="text-sm text-amber-600 hover:text-amber-800 font-medium"
+						hx-post="/_mod/unblock"
+						hx-vals={ fmt.Sprintf(`{"did": "%s"}`, user.DID) }
+						hx-swap="none"
+						hx-confirm="Are you sure you want to unblock this user? Their content will reappear in the feed."
+					>
+						Unblock User
+					</button>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAutoHide bool) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-4">
+			<!-- Header with status badge and time -->
+			<div class="flex items-center justify-between">
+				@ReportStatusBadge(report.Report.Status)
+				<time class="text-sm text-faint" datetime={ bff.FormatISO(report.Report.CreatedAt) } data-local="short">{ report.Report.CreatedAt.Format("Jan 2, 2006 15:04") }</time>
+			</div>
+			<!-- AT-URI with copy button -->
+			<div>
+				<span class="text-xs font-medium text-faint uppercase tracking-wide">Record URI</span>
+				<div
+					v-scope="CopyText()"
+					class="mt-1 flex items-start gap-2"
+				>
+					<code ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ report.Report.SubjectURI }</code>
+					<button
+						type="button"
+						@click="copy($refs.uri.textContent)"
+						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-faint hover:text-emphasis hover:bg-brown-200 rounded-sm transition-colors"
+						:title="copied ? 'Copied!' : 'Copy to clipboard'"
+					>
+						<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+						</svg>
+						<svg v-show="copied" v-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+						</svg>
+					</button>
+				</div>
+			</div>
+			<!-- Owner info -->
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div>
+					<span class="text-xs font-medium text-faint uppercase tracking-wide">Content Owner</span>
+					<div class="mt-1">
+						if report.OwnerHandle != "" {
+							<a href={ templ.SafeURL("/profile/" + report.OwnerHandle) } class="text-amber-600 hover:text-amber-700 font-medium">
+								{ "@" + atp.DisplayHandle(report.OwnerHandle) }
+							</a>
+						} else {
+							<code class="text-sm text-emphasis">{ report.Report.SubjectDID }</code>
+						}
+						<div
+							v-scope="CopyText()"
+							class="flex items-center gap-1 mt-1"
+						>
+							<code ref="did" class="text-xs text-faint break-all">{ report.Report.SubjectDID }</code>
+							<button
+								type="button"
+								@click="copy($refs.did.textContent)"
+								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-placeholder hover:text-muted rounded-sm transition-colors"
+								:title="copied ? 'Copied!' : 'Copy DID'"
+							>
+								<svg v-show="!copied" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+								</svg>
+								<svg v-show="copied" v-cloak class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+								</svg>
+							</button>
+						</div>
+					</div>
+				</div>
+				<div>
+					<span class="text-xs font-medium text-faint uppercase tracking-wide">Reported By</span>
+					<div class="mt-1">
+						if report.ReporterHandle != "" {
+							<a href={ templ.SafeURL("/profile/" + report.ReporterHandle) } class="text-amber-600 hover:text-amber-700 font-medium">
+								{ "@" + atp.DisplayHandle(report.ReporterHandle) }
+							</a>
+						} else {
+							<code class="text-sm text-emphasis">{ report.Report.ReporterDID }</code>
+						}
+						<div
+							v-scope="CopyText()"
+							class="flex items-center gap-1 mt-1"
+						>
+							<code ref="did" class="text-xs text-faint break-all">{ report.Report.ReporterDID }</code>
+							<button
+								type="button"
+								@click="copy($refs.did.textContent)"
+								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-placeholder hover:text-muted rounded-sm transition-colors"
+								:title="copied ? 'Copied!' : 'Copy DID'"
+							>
+								<svg v-show="!copied" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+								</svg>
+								<svg v-show="copied" v-cloak class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+								</svg>
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Post content preview -->
+			if report.PostContent != "" {
+				<div>
+					<span class="text-xs font-medium text-faint uppercase tracking-wide">Content Preview</span>
+					<div class="mt-1 bg-brown-100 rounded-lg p-3">
+						<p class="text-sm text-emphasis whitespace-pre-wrap">{ report.PostContent }</p>
+					</div>
+				</div>
+			}
+			<!-- Report reason -->
+			if report.Report.Reason != "" {
+				<div>
+					<span class="text-xs font-medium text-faint uppercase tracking-wide">Report Reason</span>
+					<p class="mt-1 text-sm text-emphasis">{ report.Report.Reason }</p>
+				</div>
+			}
+			<!-- Actions -->
+			if report.Report.Status == moderation.ReportStatusPending {
+				<div class="pt-3 border-t border-brown-200 flex flex-wrap gap-3">
+					if canHide {
+						<button
+							class="text-sm bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
+							hx-post="/_mod/hide"
+							hx-vals={ fmt.Sprintf(`{"uri": "%s", "reason": "Reported by user"}`, report.Report.SubjectURI) }
+							hx-swap="none"
+							hx-confirm="Hide this record from the feed?"
+						>
+							Hide Record
+						</button>
+					}
+					if canBlock {
+						<button
+							class="text-sm bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
+							hx-post="/_mod/block"
+							hx-vals={ fmt.Sprintf(`{"did": "%s", "reason": "Reported by user"}`, report.Report.SubjectDID) }
+							hx-swap="none"
+							hx-confirm={ fmt.Sprintf("Block user %s? All their content will be hidden from the feed.", report.Report.SubjectDID) }
+						>
+							Block User
+						</button>
+					}
+					if canResetAutoHide {
+						<button
+							class="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
+							hx-post="/_mod/reset-autohide"
+							hx-vals={ fmt.Sprintf(`{"did": "%s"}`, report.Report.SubjectDID) }
+							hx-swap="none"
+							hx-confirm={ fmt.Sprintf("Reset the auto-hide report counter for %s? Only future reports will count toward the auto-hide threshold.", report.Report.SubjectDID) }
+						>
+							Reset Auto-Hide
+						</button>
+					}
+					<button
+						class="text-sm text-muted hover:text-secondary px-3 py-1.5 rounded-sm font-medium transition-colors"
+						hx-post="/_mod/dismiss-report"
+						hx-vals={ fmt.Sprintf(`{"id": "%s"}`, report.Report.ID) }
+						hx-swap="none"
+						hx-confirm="Dismiss this report?"
+					>
+						Dismiss
+					</button>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ ReportStatusBadge(status moderation.ReportStatus) {
+	switch status {
+		case moderation.ReportStatusPending:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800">
+				Pending
+			</span>
+		case moderation.ReportStatusDismissed:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800">
+				Dismissed
+			</span>
+		case moderation.ReportStatusActioned:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
+				Actioned
+			</span>
+		default:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-brown-100 text-secondary">
+				{ string(status) }
+			</span>
+	}
+}
+
+templ AuditLogCard(entry moderation.AuditEntry) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- Action badge and time -->
+			<div class="flex items-center justify-between">
+				@AuditActionBadge(entry.Action)
+				<span class="text-sm text-faint">{ entry.Timestamp.Format("Jan 2, 2006 15:04") }</span>
+			</div>
+			<!-- Join request details (for dismiss/invite actions) -->
+			if len(entry.Details) > 0 {
+				if entry.Details["email"] != "" {
+					<div class="flex items-center justify-between">
+						<span class="font-medium text-primary">{ entry.Details["email"] }</span>
+					</div>
+				}
+				<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+					if entry.Details["ip"] != "" {
+						<div>
+							<span class="text-faint">IP:</span>
+							<code class="text-emphasis ml-1 text-xs">{ entry.Details["ip"] }</code>
+						</div>
+					}
+				</div>
+				if entry.Details["message"] != "" {
+					<div>
+						<span class="text-xs font-medium text-faint uppercase tracking-wide">Message</span>
+						<p class="mt-1 text-sm text-emphasis">{ entry.Details["message"] }</p>
+					</div>
+				}
+			}
+			<!-- Target URI with copy button -->
+			if entry.TargetURI != "" {
+				<div>
+					<span class="text-xs font-medium text-faint uppercase tracking-wide">Target</span>
+					<div
+						v-scope="CopyText()"
+						class="mt-1 flex items-start gap-2"
+					>
+						<code ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ entry.TargetURI }</code>
+						<button
+							type="button"
+							@click="copy($refs.uri.textContent)"
+							class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-faint hover:text-emphasis hover:bg-brown-200 rounded-sm transition-colors"
+							:title="copied ? 'Copied!' : 'Copy to clipboard'"
+						>
+							<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+							</svg>
+							<svg v-show="copied" v-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+							</svg>
+						</button>
+					</div>
+				</div>
+			}
+			<!-- Actor info -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-faint">Actor:</span>
+					<code class="text-emphasis ml-1 text-xs">{ entry.ActorDID }</code>
+					if entry.AutoMod {
+						<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-sm">auto</span>
+					}
+				</div>
+				if entry.Reason != "" {
+					<div>
+						<span class="text-faint">Reason:</span>
+						<span class="text-emphasis ml-1">{ entry.Reason }</span>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ AuditActionBadge(action moderation.AuditAction) {
+	switch action {
+		case moderation.AuditActionHideRecord:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800">
+				Hide Record
+			</span>
+		case moderation.AuditActionUnhideRecord:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
+				Unhide Record
+			</span>
+		case moderation.AuditActionBlacklistUser:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800">
+				Block User
+			</span>
+		case moderation.AuditActionUnblacklistUser:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
+				Unblock User
+			</span>
+		case moderation.AuditActionResetAutoHide:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">
+				Reset Auto-Hide
+			</span>
+		case moderation.AuditActionDismissJoinRequest:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800">
+				Dismiss Join Request
+			</span>
+		case moderation.AuditActionCreateInvite:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">
+				Send Invite
+			</span>
+		case moderation.AuditActionAddLabel:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">
+				Add Label
+			</span>
+		case moderation.AuditActionRemoveLabel:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">
+				Remove Label
+			</span>
+		default:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-brown-100 text-secondary">
+				{ string(action) }
+			</span>
+	}
+}
+
+templ LabelCard(label moderation.Label) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4">
+		<div class="flex flex-col gap-3">
+			<!-- Label name badge and entity type -->
+			<div class="flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					@LabelBadge(label.Name)
+					<span class="text-xs bg-brown-100 text-muted px-1.5 py-0.5 rounded-sm">{ label.EntityType }</span>
+					if label.Value != "" {
+						<span class="text-xs text-faint">= { label.Value }</span>
+					}
+				</div>
+				<time class="text-sm text-faint" datetime={ bff.FormatISO(label.CreatedAt) }>{ label.CreatedAt.Format("Jan 2, 2006 15:04") }</time>
+			</div>
+			<!-- Entity ID -->
+			<div>
+				<span class="text-xs font-medium text-faint uppercase tracking-wide">
+					if label.EntityType == "user" {
+						User DID
+					} else {
+						Record URI
+					}
+				</span>
+				<code class="mt-1 block text-sm bg-brown-100 px-2 py-1 rounded-sm break-all font-mono">{ label.EntityID }</code>
+			</div>
+			<!-- Meta -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+				<div>
+					<span class="text-faint">By:</span>
+					<code class="text-emphasis ml-1 text-xs">{ label.CreatedBy }</code>
+				</div>
+				if label.ExpiresAt != nil {
+					<div>
+						<span class="text-faint">Expires:</span>
+						<span class="text-emphasis ml-1">{ label.ExpiresAt.Format("Jan 2, 2006 15:04") }</span>
+					</div>
+				} else {
+					<div>
+						<span class="text-faint">Expires:</span>
+						<span class="text-emphasis ml-1">Never</span>
+					</div>
+				}
+			</div>
+			<!-- Actions -->
+			<div class="pt-2 border-t border-brown-200">
+				<button
+					class="text-sm text-red-600 hover:text-red-800 font-medium"
+					hx-post="/_mod/label/remove"
+					hx-vals={ fmt.Sprintf(`{"entity_type": "%s", "entity_id": "%s", "label": "%s"}`, label.EntityType, label.EntityID, label.Name) }
+					hx-swap="none"
+					hx-confirm={ fmt.Sprintf("Remove label '%s' from %s?", label.Name, label.EntityID) }
+				>
+					Remove Label
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
+templ LabelBadge(name string) {
+	switch name {
+		case "warned":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800">
+				{ name }
+			</span>
+		case "trusted":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800">
+				{ name }
+			</span>
+		case "under_review":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">
+				{ name }
+			</span>
+		case "rate_limited":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-orange-100 text-orange-800">
+				{ name }
+			</span>
+		case "spam":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800">
+				{ name }
+			</span>
+		default:
+			<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">
+				{ name }
+			</span>
+	}
+}
+
+templ AdminStatsContent(stats AdminStats) {
+	<div class="card card-inner">
+		<h2 class="section-title">System Stats</h2>
+		<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+			@statCard("Known Users", fmt.Sprintf("%d", stats.KnownUsers), "Unique DIDs indexed")
+			@statCard("Registered Users", fmt.Sprintf("%d", stats.RegisteredUsers), "Feed registry")
+			@statCard("Indexed Records", fmt.Sprintf("%d", stats.IndexedRecords), "Total records")
+			@statCard("Total Likes", fmt.Sprintf("%d", stats.TotalLikes), "Across all records")
+			@statCard("Total Comments", fmt.Sprintf("%d", stats.TotalComments), "Across all records")
+			if stats.FirehoseConnected {
+				@statCard("Firehose", "Connected", "Real-time events")
+			} else {
+				@statCardWarning("Firehose", "Disconnected", "Not receiving events")
+			}
+		</div>
+		if len(stats.RecordsByCollection) > 0 {
+			<h3 class="section-title mt-6">Records by Collection</h3>
+			<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+				for collection, count := range stats.RecordsByCollection {
+					@statCard(collectionLabel(collection), fmt.Sprintf("%d", count), collection)
+				}
+			</div>
+		}
+	</div>
+}
+
+templ statCard(title, value, subtitle string) {
+	<div class="bg-brown-50 border border-brown-200 rounded-lg p-4 text-center">
+		<div class="text-2xl font-bold text-primary">{ value }</div>
+		<div class="text-sm font-medium text-emphasis mt-1">{ title }</div>
+		<div class="text-xs text-faint mt-0.5">{ subtitle }</div>
+	</div>
+}
+
+templ statCardWarning(title, value, subtitle string) {
+	<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+		<div class="text-2xl font-bold text-red-700">{ value }</div>
+		<div class="text-sm font-medium text-red-600 mt-1">{ title }</div>
+		<div class="text-xs text-red-500 mt-0.5">{ subtitle }</div>
+	</div>
+}
+
+// AdminStatsPanel bundles the system-stats card and the backup-status card so
+// the admin stats tab swaps both together on its HTMX refresh.
+templ AdminStatsPanel(stats AdminStats, backups []backup.SourceStatus) {
+	<div class="space-y-4">
+		@AdminStatsContent(stats)
+		@AdminBackupsCard(backups)
+	</div>
+}
+
+templ AdminBackupsCard(backups []backup.SourceStatus) {
+	<div class="card card-inner">
+		<h2 class="section-title">Database Backups</h2>
+		if len(backups) == 0 {
+			<p class="text-sm text-muted">No backup sources are configured. Set a writable backup directory to enable automated backups.</p>
+		} else {
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				for _, b := range backups {
+					@backupRow(b)
+				}
+			</div>
+		}
+	</div>
+}
+
+templ backupRow(b backup.SourceStatus) {
+	<div class={ "rounded-lg border p-4", backupBorderClass(b) }>
+		<div class="flex items-center justify-between">
+			<div class="font-semibold text-emphasis">{ b.Source }</div>
+			@backupBadge(b)
+		</div>
+		<dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+			<dt class="text-faint">Last run</dt>
+			<dd class="text-emphasis">{ formatBackupRunTime(b) }</dd>
+			<dt class="text-faint">Duration</dt>
+			<dd class="text-emphasis">{ formatBackupDuration(b.LastDuration) }</dd>
+			<dt class="text-faint">Size</dt>
+			<dd class="text-emphasis">{ formatBackupBytes(b.LastSize) }</dd>
+			<dt class="text-faint">Retained on disk</dt>
+			<dd class="text-emphasis">{ fmt.Sprintf("%d", b.RetainedCount) }</dd>
+			<dt class="text-faint">Next run</dt>
+			<dd class="text-emphasis">{ formatBackupNextRun(b.NextRun) }</dd>
+		</dl>
+		if !b.LastFailure.IsZero() && !b.Healthy() {
+			<div class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2 break-words">
+				{ b.LastError }
+			</div>
+		}
+	</div>
+}
+
+templ backupBadge(b backup.SourceStatus) {
+	if b.LastRun.IsZero() {
+		<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-brown-100 text-muted">Pending</span>
+	} else if b.Healthy() {
+		<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Healthy</span>
+	} else {
+		<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Failed</span>
+	}
+}
+
+func backupBorderClass(b backup.SourceStatus) string {
+	if b.LastRun.IsZero() {
+		return "bg-brown-50 border-brown-200"
+	}
+	if b.Healthy() {
+		return "bg-brown-50 border-brown-200"
+	}
+	return "bg-red-50 border-red-200"
+}
+
+func formatBackupRunTime(b backup.SourceStatus) string {
+	if b.LastRun.IsZero() {
+		return "Never"
+	}
+	return formatBackupRelative(b.LastRun)
+}
+
+func formatBackupNextRun(t time.Time) string {
+	if t.IsZero() {
+		return "—"
+	}
+	d := time.Until(t)
+	if d <= 0 {
+		return "imminent"
+	}
+	return "in " + formatBackupShortDuration(d)
+}
+
+func formatBackupRelative(t time.Time) string {
+	d := time.Since(t)
+	if d < 0 {
+		return t.UTC().Format("2006-01-02 15:04 UTC")
+	}
+	if d < time.Minute {
+		return "just now"
+	}
+	return formatBackupShortDuration(d) + " ago"
+}
+
+func formatBackupShortDuration(d time.Duration) string {
+	if d < time.Minute {
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	}
+	if d < 24*time.Hour {
+		return fmt.Sprintf("%dh", int(d.Hours()))
+	}
+	return fmt.Sprintf("%dd", int(d.Hours()/24))
+}
+
+func formatBackupDuration(d time.Duration) string {
+	if d <= 0 {
+		return "—"
+	}
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	if d < time.Minute {
+		return fmt.Sprintf("%.1fs", d.Seconds())
+	}
+	return fmt.Sprintf("%dm%ds", int(d.Minutes()), int(d.Seconds())%60)
+}
+
+func formatBackupBytes(n int64) string {
+	if n <= 0 {
+		return "—"
+	}
+	const unit = 1024
+	if n < unit {
+		return fmt.Sprintf("%d B", n)
+	}
+	div, exp := int64(unit), 0
+	for x := n / unit; x >= unit; x /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
+}
+
+func collectionLabel(nsid string) string {
+	switch nsid {
+	case "social.arabica.alpha.brew":
+		return "Brews"
+	case "social.arabica.alpha.bean":
+		return "Beans"
+	case "social.arabica.alpha.roaster":
+		return "Roasters"
+	case "social.arabica.alpha.grinder":
+		return "Grinders"
+	case "social.arabica.alpha.brewer":
+		return "Brewers"
+	case "social.arabica.alpha.like":
+		return "Likes"
+	case "social.arabica.alpha.comment":
+		return "Comments"
+	default:
+		return nsid
+	}
+}

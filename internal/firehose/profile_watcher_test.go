@@ -24,16 +24,9 @@ func TestProfileWatcher_AccountDeleted_PurgesData(t *testing.T) {
 	pw := &ProfileWatcher{
 		index:       idx,
 		watchedDIDs: map[string]struct{}{target: {}},
-		stopCh:      make(chan struct{}),
 	}
 
-	event := []byte(`{
-		"did":"did:plc:victim",
-		"time_us":1700000000000000,
-		"kind":"account",
-		"account":{"active":false,"did":"did:plc:victim","seq":1,"status":"deleted","time":"2025-01-03T00:00:00Z"}
-	}`)
-	pw.processMessage(event)
+	pw.ProcessEvent(accountEvent(target, "deleted"))
 
 	assert.Equal(t, 0, idx.RecordCount(), "records should be purged on account deletion")
 
@@ -58,16 +51,9 @@ func TestProfileWatcher_AccountDeactivated_KeepsData(t *testing.T) {
 	pw := &ProfileWatcher{
 		index:       idx,
 		watchedDIDs: map[string]struct{}{target: {}},
-		stopCh:      make(chan struct{}),
 	}
 
-	event := []byte(`{
-		"did":"did:plc:victim",
-		"time_us":1700000000000000,
-		"kind":"account",
-		"account":{"active":false,"did":"did:plc:victim","seq":1,"status":"deactivated","time":"2025-01-03T00:00:00Z"}
-	}`)
-	pw.processMessage(event)
+	pw.ProcessEvent(accountEvent(target, "deactivated"))
 
 	assert.Equal(t, 1, idx.RecordCount(), "deactivated accounts are reversible — keep data")
 
@@ -92,16 +78,24 @@ func TestProfileWatcher_AccountTakendown_PurgesData(t *testing.T) {
 	pw := &ProfileWatcher{
 		index:       idx,
 		watchedDIDs: map[string]struct{}{target: {}},
-		stopCh:      make(chan struct{}),
 	}
 
-	event := []byte(`{
-		"did":"did:plc:victim",
-		"time_us":1700000000000000,
-		"kind":"account",
-		"account":{"active":false,"did":"did:plc:victim","seq":1,"status":"takendown","time":"2025-01-03T00:00:00Z"}
-	}`)
-	pw.processMessage(event)
+	pw.ProcessEvent(accountEvent(target, "takendown"))
 
 	assert.Equal(t, 0, idx.RecordCount(), "takendown accounts should be purged")
+}
+
+func accountEvent(did, status string) JetstreamEvent {
+	return JetstreamEvent{
+		DID:    did,
+		TimeUS: 1700000000000000,
+		Kind:   "account",
+		Account: &JetstreamAccount{
+			Active: false,
+			DID:    did,
+			Seq:    1,
+			Status: status,
+			Time:   "2025-01-03T00:00:00Z",
+		},
+	}
 }

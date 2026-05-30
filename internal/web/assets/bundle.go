@@ -212,15 +212,3 @@ func HrefFor(appName string) string {
 	}
 	return b.Href()
 }
-
-// Registered returns all registered bundles. Routing uses this to wire one
-// handler per bundle without needing to know app names ahead of time.
-func Registered() []*Bundle {
-	registryMu.RLock()
-	defer registryMu.RUnlock()
-	out := make([]*Bundle, 0, len(registry))
-	for _, b := range registry {
-		out = append(out, b)
-	}
-	return out
-}

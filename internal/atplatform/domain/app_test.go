@@ -14,8 +14,6 @@ func TestApp_NSIDs_includesDescriptorsAndSocialCollections(t *testing.T) {
 		Type:        lexicons.RecordType("test.bean"),
 		NSID:        "test.example.bean",
 		DisplayName: "Bean",
-		Noun:        "bean",
-		URLPath:     "beans",
 	}
 	app := &domain.App{
 		Name:        "test",
@@ -59,4 +57,37 @@ func TestApp_DescriptorByNSID(t *testing.T) {
 	got := app.DescriptorByNSID("test.example.bean")
 	assert.Equal(t, bean, got)
 	assert.Nil(t, app.DescriptorByNSID("test.example.unknown"))
+}
+
+func TestApp_EntityRoutes(t *testing.T) {
+	bean := &entities.Descriptor{
+		Type: lexicons.RecordType("test.bean"),
+		NSID: "test.example.bean",
+	}
+	app := &domain.App{
+		NSIDBase:    "test.example",
+		Descriptors: []*entities.Descriptor{bean},
+		EntityRoutes: []domain.EntityRoute{
+			{Type: bean.Type, Path: "beans", Noun: "bean"},
+		},
+	}
+
+	byType, ok := app.EntityRouteByType(bean.Type)
+	assert.True(t, ok)
+	assert.Equal(t, "beans", byType.Path)
+
+	byNSID, ok := app.EntityRouteByNSID("test.example.bean")
+	assert.True(t, ok)
+	assert.Equal(t, "bean", byNSID.Noun)
+
+	byPath, ok := app.EntityRouteByPath("beans")
+	assert.True(t, ok)
+	assert.Equal(t, bean.Type, byPath.Type)
+
+	byNoun, ok := app.EntityRouteByNoun("bean")
+	assert.True(t, ok)
+	assert.Equal(t, bean.Type, byNoun.Type)
+
+	_, ok = app.EntityRouteByNSID("test.example.unknown")
+	assert.False(t, ok)
 }

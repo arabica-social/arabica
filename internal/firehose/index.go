@@ -3,6 +3,7 @@ package firehose
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,12 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
-	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/oolong/entities"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/pdewey.com/atp"
 
@@ -30,27 +29,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	_ "modernc.org/sqlite"
 )
-
-// FeedableRecordTypes are the record types that should appear as feed items.
-// Likes, comments, etc. are indexed but not displayed directly in the feed.
-var FeedableRecordTypes = map[lexicons.RecordType]bool{
-	lexicons.RecordTypeBrew:    true,
-	lexicons.RecordTypeBean:    true,
-	lexicons.RecordTypeRoaster: true,
-	lexicons.RecordTypeGrinder: true,
-	lexicons.RecordTypeBrewer:  true,
-	lexicons.RecordTypeRecipe:  true,
-
-	lexicons.RecordTypeOolongTea:     true,
-	lexicons.RecordTypeOolongBrew:    true,
-	lexicons.RecordTypeOolongVessel:  true,
-	lexicons.RecordTypeOolongInfuser: true,
-	lexicons.RecordTypeOolongVendor:  true,
-	// Cafe and Drink are deferred for the v1 oolong launch; once their
-	// UI ships, flip these back to true.
-	// lexicons.RecordTypeOolongCafe:   true,
-	// lexicons.RecordTypeOolongDrink:  true,
-}
 
 // IndexedRecord represents a record stored in the index
 type IndexedRecord struct {
@@ -73,16 +51,26 @@ type CachedProfile struct {
 
 // FeedIndex provides persistent storage for firehose events
 type FeedIndex struct {
-	db           *sql.DB
-	publicClient *atp.PublicClient
-	profileTTL   time.Duration
+	db             *sql.DB
+	publicClient   *atp.PublicClient
+	profileTTL     time.Duration
+	profileStorage *profileIndexStorage
+	notifications  *notificationIndexStorage
+	social         *socialIndexStorage
+	witness        *witnessRecordStorage
 
 	// commentNSID is the comment collection this index's binary serves
 	// (e.g. social.arabica.alpha.comment or social.oolong.alpha.comment).
 	// Used when rebuilding comment AT-URIs from indexed rows. Falls back
-	// to arabica.NSIDComment when unset for backwards-compat with tests
+	// to the Arabica comment collection when unset for backwards-compat with tests
 	// that construct a FeedIndex directly via NewFeedIndex.
 	commentNSID string
+
+	// App-scoped feed collections. The running app passes its descriptors at
+	// construction time so feed queries don't depend on package-global entity
+	// registration side effects or include sister-app collections.
+	recordTypeToNSID    map[lexicons.RecordType]string
+	feedableCollections []string
 
 	// In-memory cache for hot data
 	profileCache   map[string]*CachedProfile
@@ -90,6 +78,21 @@ type FeedIndex struct {
 
 	ready   bool
 	readyMu sync.RWMutex
+}
+
+type FeedIndexOption func(*feedIndexConfig)
+
+type feedIndexConfig struct {
+	feedableDescriptors []*entities.Descriptor
+}
+
+// WithFeedableDescriptors configures which app-owned entity descriptors should
+// appear in feed queries. Passing app.Descriptors keeps one FeedIndex scoped to
+// the app whose SQLite database it serves.
+func WithFeedableDescriptors(descriptors []*entities.Descriptor) FeedIndexOption {
+	return func(cfg *feedIndexConfig) {
+		cfg.feedableDescriptors = descriptors
+	}
 }
 
 // SetCommentNSID configures the comment collection NSID used when
@@ -102,238 +105,36 @@ func (idx *FeedIndex) commentCollection() string {
 	if idx.commentNSID != "" {
 		return idx.commentNSID
 	}
-	return arabica.NSIDComment
+	return "social.arabica.alpha.comment"
 }
 
-// FeedSort defines the sort order for feed queries
-type FeedSort string
+// schemaNoTrailingPragma is the firehose SQLite schema. PRAGMAs stay in the
+// connection DSN so the embedded schema remains portable SQL.
+//
+//go:embed sql/schema.sql
+var schemaNoTrailingPragma string
 
-const (
-	FeedSortRecent  FeedSort = "recent"
-	FeedSortPopular FeedSort = "popular"
-)
+const feedIndexSQLiteParams = "?_pragma=busy_timeout(5000)" +
+	"&_pragma=journal_mode(WAL)" +
+	"&_pragma=synchronous(NORMAL)" +
+	"&_pragma=foreign_keys(ON)" +
+	"&_pragma=temp_store(MEMORY)" +
+	"&_pragma=mmap_size(134217728)" +
+	"&_pragma=cache_size(-65536)"
 
-// FeedQuery specifies filtering, sorting, and pagination for feed queries
-type FeedQuery struct {
-	Limit       int                   // Max items to return
-	Cursor      string                // Opaque cursor for pagination (created_at|uri)
-	TypeFilter  lexicons.RecordType   // Filter to a specific record type (empty = all)
-	TypeFilters []lexicons.RecordType // Filter to multiple record types (takes precedence over TypeFilter)
-	Sort        FeedSort              // Sort order (default: recent)
-}
+// NewFeedIndex creates a new feed index backed by SQLite.
+func NewFeedIndex(path string, profileTTL time.Duration, opts ...FeedIndexOption) (*FeedIndex, error) {
 
-// FeedResult contains feed items plus pagination info
-type FeedResult struct {
-	Items      []*feed.FeedItem
-	NextCursor string // Empty if no more results
-}
-
-const schemaNoTrailingPragma = `
-CREATE TABLE IF NOT EXISTS records (
-    uri         TEXT PRIMARY KEY,
-    did         TEXT NOT NULL,
-    collection  TEXT NOT NULL,
-    rkey        TEXT NOT NULL,
-    record      TEXT NOT NULL,
-    cid         TEXT NOT NULL DEFAULT '',
-    indexed_at  TEXT NOT NULL,
-    created_at  TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_records_created ON records(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_records_did ON records(did);
-CREATE INDEX IF NOT EXISTS idx_records_coll_created ON records(collection, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_records_did_coll ON records(did, collection, created_at DESC);
-
-CREATE TABLE IF NOT EXISTS explore_documents (
-    uri              TEXT PRIMARY KEY,
-    did              TEXT NOT NULL,
-    app              TEXT NOT NULL,
-    record_type      TEXT NOT NULL,
-    cluster_key      TEXT NOT NULL,
-    canonical_rank   REAL NOT NULL DEFAULT 0,
-    title            TEXT,
-    summary          TEXT,
-    search_text      TEXT,
-    own_rating       REAL,
-    community_rating REAL,
-    rating_count     INTEGER NOT NULL DEFAULT 0,
-    like_count       INTEGER NOT NULL DEFAULT 0,
-    comment_count    INTEGER NOT NULL DEFAULT 0,
-    source_ref_count INTEGER NOT NULL DEFAULT 0,
-    popular_score    REAL NOT NULL DEFAULT 0,
-    created_at       TEXT NOT NULL,
-    FOREIGN KEY (uri) REFERENCES records(uri) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_explore_documents_app_type_created ON explore_documents(app, record_type, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_explore_documents_app_cluster ON explore_documents(app, cluster_key);
-CREATE INDEX IF NOT EXISTS idx_explore_documents_popular ON explore_documents(app, popular_score DESC, created_at DESC, cluster_key);
-CREATE INDEX IF NOT EXISTS idx_explore_documents_rating ON explore_documents(app, community_rating DESC, own_rating DESC, created_at DESC, cluster_key);
-
-CREATE TABLE IF NOT EXISTS explore_values (
-    uri         TEXT NOT NULL,
-    did         TEXT NOT NULL,
-    app         TEXT NOT NULL,
-    record_type TEXT NOT NULL,
-    field       TEXT NOT NULL,
-    value_text  TEXT,
-    value_num   REAL,
-    created_at  TEXT NOT NULL,
-    FOREIGN KEY (uri) REFERENCES records(uri) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_explore_values_text ON explore_values(app, record_type, field, value_text);
-CREATE INDEX IF NOT EXISTS idx_explore_values_num ON explore_values(app, record_type, field, value_num);
-CREATE INDEX IF NOT EXISTS idx_explore_values_uri ON explore_values(uri);
-
-CREATE TABLE IF NOT EXISTS meta (
-    key   TEXT PRIMARY KEY,
-    value BLOB
-);
-
-CREATE TABLE IF NOT EXISTS known_dids (did TEXT PRIMARY KEY);
-CREATE TABLE IF NOT EXISTS registered_dids (
-    did           TEXT PRIMARY KEY,
-    registered_at TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS backfilled (did TEXT PRIMARY KEY, backfilled_at TEXT NOT NULL);
-
-CREATE TABLE IF NOT EXISTS profiles (
-    did        TEXT PRIMARY KEY,
-    data       TEXT NOT NULL,
-    expires_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS did_by_handle (
-    handle     TEXT PRIMARY KEY,
-    did        TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_did_by_handle_did ON did_by_handle(did);
-
-CREATE TABLE IF NOT EXISTS likes (
-    subject_uri TEXT NOT NULL,
-    actor_did   TEXT NOT NULL,
-    rkey        TEXT NOT NULL,
-    PRIMARY KEY (subject_uri, actor_did)
-);
-CREATE INDEX IF NOT EXISTS idx_likes_actor ON likes(actor_did, subject_uri);
-
-CREATE TABLE IF NOT EXISTS comments (
-    actor_did   TEXT NOT NULL,
-    rkey        TEXT NOT NULL,
-    subject_uri TEXT NOT NULL,
-    parent_uri  TEXT NOT NULL DEFAULT '',
-    parent_rkey TEXT NOT NULL DEFAULT '',
-    cid         TEXT NOT NULL DEFAULT '',
-    text        TEXT NOT NULL,
-    created_at  TEXT NOT NULL,
-    PRIMARY KEY (actor_did, rkey)
-);
-CREATE INDEX IF NOT EXISTS idx_comments_subject ON comments(subject_uri, created_at);
-
-CREATE TABLE IF NOT EXISTS notifications (
-    id          TEXT NOT NULL,
-    target_did  TEXT NOT NULL,
-    type        TEXT NOT NULL,
-    actor_did   TEXT NOT NULL,
-    subject_uri TEXT NOT NULL,
-    created_at  TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_notif_target ON notifications(target_did, created_at DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_notif_dedup ON notifications(target_did, type, actor_did, subject_uri);
-
-CREATE TABLE IF NOT EXISTS notifications_meta (
-    target_did TEXT PRIMARY KEY,
-    last_read  TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS moderation_hidden_records (
-    uri         TEXT PRIMARY KEY,
-    hidden_at   TEXT NOT NULL,
-    hidden_by   TEXT NOT NULL,
-    reason      TEXT NOT NULL DEFAULT '',
-    auto_hidden INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS moderation_blacklist (
-    did            TEXT PRIMARY KEY,
-    blacklisted_at TEXT NOT NULL,
-    blacklisted_by TEXT NOT NULL,
-    reason         TEXT NOT NULL DEFAULT ''
-);
-
-CREATE TABLE IF NOT EXISTS moderation_reports (
-    id           TEXT PRIMARY KEY,
-    subject_uri  TEXT NOT NULL DEFAULT '',
-    subject_did  TEXT NOT NULL DEFAULT '',
-    reporter_did TEXT NOT NULL,
-    reason       TEXT NOT NULL,
-    created_at   TEXT NOT NULL,
-    status       TEXT NOT NULL DEFAULT 'pending',
-    resolved_by  TEXT NOT NULL DEFAULT '',
-    resolved_at  TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_modreports_uri      ON moderation_reports(subject_uri);
-CREATE INDEX IF NOT EXISTS idx_modreports_did      ON moderation_reports(subject_did);
-CREATE INDEX IF NOT EXISTS idx_modreports_reporter ON moderation_reports(reporter_did, created_at);
-CREATE INDEX IF NOT EXISTS idx_modreports_status   ON moderation_reports(status);
-
-CREATE TABLE IF NOT EXISTS moderation_audit_log (
-    id         TEXT PRIMARY KEY,
-    action     TEXT NOT NULL,
-    actor_did  TEXT NOT NULL,
-    target_uri TEXT NOT NULL DEFAULT '',
-    reason     TEXT NOT NULL DEFAULT '',
-    details    TEXT NOT NULL DEFAULT '{}',
-    timestamp  TEXT NOT NULL,
-    auto_mod   INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_modaudit_ts ON moderation_audit_log(timestamp DESC);
-
-CREATE TABLE IF NOT EXISTS moderation_autohide_resets (
-    did      TEXT PRIMARY KEY,
-    reset_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS moderation_labels (
-    id          TEXT PRIMARY KEY,
-    entity_type TEXT NOT NULL,
-    entity_id   TEXT NOT NULL,
-    label       TEXT NOT NULL,
-    value       TEXT NOT NULL DEFAULT '',
-    created_at  TEXT NOT NULL,
-    created_by  TEXT NOT NULL,
-    expires_at  TEXT,
-    UNIQUE(entity_type, entity_id, label)
-);
-CREATE INDEX IF NOT EXISTS idx_modlabels_entity ON moderation_labels(entity_type, entity_id);
-CREATE INDEX IF NOT EXISTS idx_modlabels_expires ON moderation_labels(expires_at) WHERE expires_at IS NOT NULL;
-
-CREATE TABLE IF NOT EXISTS user_settings (
-    did  TEXT PRIMARY KEY,
-    profile_stats_visibility TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE IF NOT EXISTS oauth_sessions (
-    did        TEXT NOT NULL,
-    session_id TEXT NOT NULL,
-    data       TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    PRIMARY KEY (did, session_id)
-);
-CREATE INDEX IF NOT EXISTS idx_oauth_sessions_did ON oauth_sessions(did);
-
-CREATE TABLE IF NOT EXISTS oauth_auth_requests (
-    state      TEXT PRIMARY KEY,
-    data       TEXT NOT NULL,
-    created_at TEXT NOT NULL
-);
-`
-
-// NewFeedIndex creates a new feed index backed by SQLite
-func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	if path == "" {
 		return nil, fmt.Errorf("index path is required")
 	}
+	cfg := feedIndexConfig{feedableDescriptors: entities.All()}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&cfg)
+		}
+	}
+	recordTypeToNSID, feedableCollections := feedableCollectionsForDescriptors(cfg.feedableDescriptors)
 
 	// Ensure parent directory exists
 	dir := filepath.Dir(path)
@@ -343,7 +144,8 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 		}
 	}
 
-	db, err := otelsql.Open("sqlite", "file:"+path+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=temp_store(MEMORY)&_pragma=mmap_size(134217728)&_pragma=cache_size(-65536)",
+	dsn := fmt.Sprintf("file:%s%s", path, feedIndexSQLiteParams)
+	db, err := otelsql.Open("sqlite", dsn,
 		otelsql.WithAttributes(semconv.DBSystemSqlite),
 		otelsql.WithSpanOptions(otelsql.SpanOptions{
 			// Only create SQL spans when there's already a parent span (e.g. from an HTTP request).
@@ -379,15 +181,21 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	}
 
 	idx := &FeedIndex{
-		db:           db,
-		publicClient: atproto.NewPublicClient(),
-		profileTTL:   profileTTL,
-		profileCache: make(map[string]*CachedProfile),
+		db:                  db,
+		publicClient:        atproto.NewPublicClient(),
+		profileTTL:          profileTTL,
+		profileStorage:      newProfileIndexStorage(db),
+		notifications:       newNotificationIndexStorage(db),
+		social:              newSocialIndexStorage(db),
+		witness:             newWitnessRecordStorage(db),
+		recordTypeToNSID:    recordTypeToNSID,
+		feedableCollections: feedableCollections,
+		profileCache:        make(map[string]*CachedProfile),
 	}
 
 	// One-time backfill: populate did_by_handle from any pre-existing profile rows
 	// so handle resolution works for users observed before this table existed.
-	if err := idx.backfillHandleIndex(); err != nil {
+	if err := idx.profileStorage.backfillHandleIndex(); err != nil {
 		log.Warn().Err(err).Msg("did_by_handle backfill failed; lookups will populate lazily")
 	}
 	idx.ensureExploreIndex(context.Background())
@@ -402,39 +210,6 @@ func NewFeedIndex(path string, profileTTL time.Duration) (*FeedIndex, error) {
 	return idx, nil
 }
 
-// backfillHandleIndex populates did_by_handle from the profiles table. Idempotent.
-// Iterates every cached profile and inserts (handle, did) — last writer wins,
-// matching the live storeProfile semantics, so a handle that existed on multiple
-// DIDs resolves to whichever profile was inserted most recently in the iteration.
-func (idx *FeedIndex) backfillHandleIndex() error {
-	var n int
-	if err := idx.db.QueryRow(`SELECT COUNT(*) FROM did_by_handle`).Scan(&n); err == nil && n > 0 {
-		return nil
-	}
-
-	rows, err := idx.db.Query(`SELECT did, data FROM profiles`)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	now := time.Now().Format(time.RFC3339Nano)
-	for rows.Next() {
-		var did, dataStr string
-		if err := rows.Scan(&did, &dataStr); err != nil {
-			continue
-		}
-		cached := &CachedProfile{}
-		if err := json.Unmarshal([]byte(dataStr), cached); err != nil || cached.Profile == nil || cached.Profile.Handle == "" {
-			continue
-		}
-		_, _ = idx.db.Exec(
-			`INSERT OR REPLACE INTO did_by_handle (handle, did, updated_at) VALUES (?, ?, ?)`,
-			cached.Profile.Handle, did, now)
-	}
-	return rows.Err()
-}
-
 // Compile-time check: FeedIndex must satisfy the atproto.WitnessCache interface.
 var _ atproto.WitnessCache = (*FeedIndex)(nil)
 
@@ -446,89 +221,26 @@ func (idx *FeedIndex) DB() *sql.DB {
 // GetWitnessRecord retrieves a single record by AT-URI from the index.
 // Returns (nil, nil) when the record is not found.
 func (idx *FeedIndex) GetWitnessRecord(ctx context.Context, uri string) (*atproto.WitnessRecord, error) {
-	var rec atproto.WitnessRecord
-	var recordStr, indexedAtStr, createdAtStr string
-
-	err := idx.db.QueryRowContext(ctx, `
-		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
-		FROM records WHERE uri = ?
-	`, uri).Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
-		&recordStr, &rec.CID, &indexedAtStr, &createdAtStr)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	rec.Record = json.RawMessage(recordStr)
-	rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
-	rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-	return &rec, nil
+	return idx.witness.get(ctx, uri)
 }
 
 // ListWitnessRecords returns all indexed records for a DID+collection pair,
 // ordered by created_at descending. Returns an empty slice when none are found.
 func (idx *FeedIndex) ListWitnessRecords(ctx context.Context, did, collection string) ([]*atproto.WitnessRecord, error) {
-	return idx.listWitnessRecords(ctx, did, collection, 0, 0)
+	return idx.witness.list(ctx, did, collection, 0, 0)
 }
 
 // ListWitnessRecordsPaginated returns a page of cached records for a
 // DID+collection pair, ordered by created_at descending.
 // When limit <= 0, returns all records.
 func (idx *FeedIndex) ListWitnessRecordsPaginated(ctx context.Context, did, collection string, offset, limit int) ([]*atproto.WitnessRecord, error) {
-	return idx.listWitnessRecords(ctx, did, collection, offset, limit)
-}
-
-// listWitnessRecords is the shared implementation with optional LIMIT/OFFSET.
-func (idx *FeedIndex) listWitnessRecords(ctx context.Context, did, collection string, offset, limit int) ([]*atproto.WitnessRecord, error) {
-	query := `
-		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
-		FROM records WHERE did = ? AND collection = ?
-		ORDER BY created_at DESC
-	`
-	var args []any
-	args = append(args, did, collection)
-	if limit > 0 {
-		query += ` LIMIT ? OFFSET ?`
-		args = append(args, limit, offset)
-	}
-
-	rows, err := idx.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	records := make([]*atproto.WitnessRecord, 0)
-	for rows.Next() {
-		var rec atproto.WitnessRecord
-		var recordStr, indexedAtStr, createdAtStr string
-		if err := rows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
-			&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
-			continue
-		}
-		rec.Record = json.RawMessage(recordStr)
-		rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
-		rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-		records = append(records, &rec)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return records, nil
+	return idx.witness.list(ctx, did, collection, offset, limit)
 }
 
 // CountWitnessRecords returns the total count of cached records for a
 // DID+collection pair.
 func (idx *FeedIndex) CountWitnessRecords(ctx context.Context, did, collection string) (int, error) {
-	var count int
-	err := idx.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM records WHERE did = ? AND collection = ?
-	`, did, collection).Scan(&count)
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
+	return idx.witness.count(ctx, did, collection)
 }
 
 // Close closes the index database
@@ -572,52 +284,12 @@ func (idx *FeedIndex) SetCursor(ctx context.Context, cursor int64) error {
 // UpsertRecord adds or updates a record in the index.
 // The context is used for OTel tracing; pass context.Background() for background operations.
 func (idx *FeedIndex) UpsertRecord(ctx context.Context, did, collection, rkey, cid string, record json.RawMessage, eventTime int64) error {
-	const stmt = `INSERT INTO records (uri, did, collection, rkey, record, cid, indexed_at, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(uri) DO UPDATE SET
-	record = excluded.record,
-	cid = excluded.cid,
-	indexed_at = excluded.indexed_at,
-	created_at = excluded.created_at`
-
-	ctx, span := tracing.SqliteSpan(ctx, "upsert", "records")
-	span.SetAttributes(
-		attribute.String("record.did", did),
-		attribute.String("record.collection", collection),
-		attribute.String("record.rkey", rkey),
-		attribute.String("db.statement", stmt),
-	)
-	defer span.End()
+	err := idx.witness.upsert(ctx, did, collection, rkey, cid, record, eventTime)
+	if err != nil {
+		return err
+	}
 
 	uri := atp.BuildATURI(did, collection, rkey)
-
-	// Parse createdAt from record
-	var recordData map[string]any
-	createdAt := time.Now().UTC()
-	if err := json.Unmarshal(record, &recordData); err == nil {
-		if createdAtStr, ok := recordData["createdAt"].(string); ok {
-			if t, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
-				createdAt = t.UTC()
-			}
-		}
-	}
-
-	now := time.Now().UTC()
-
-	_, err := idx.db.ExecContext(ctx, stmt, uri, did, collection, rkey, string(record), cid,
-		now.Format(time.RFC3339Nano), createdAt.Format(time.RFC3339Nano))
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return fmt.Errorf("failed to upsert record: %w", err)
-	}
-
-	// Track known DID
-	_, err = idx.db.ExecContext(ctx, `INSERT OR IGNORE INTO known_dids (did) VALUES (?)`, did)
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return fmt.Errorf("failed to track known DID: %w", err)
-	}
-
 	if err := idx.reindexExploreRecord(ctx, uri); err != nil {
 		log.Warn().Err(err).Str("uri", uri).Msg("failed to refresh explore document")
 		idx.markExploreDirty(ctx, err)
@@ -629,7 +301,7 @@ ON CONFLICT(uri) DO UPDATE SET
 			idx.markExploreDirty(ctx, err)
 		}
 	}
-	if collection == recordTypeToNSID[lexicons.RecordTypeBrew] {
+	if collection == idx.recordTypeToNSID[lexicons.RecordTypeBrew] {
 		if err := idx.reindexExploreBrewReferences(ctx, record); err != nil {
 			log.Warn().Err(err).Str("uri", uri).Msg("failed to refresh explore brew ratings")
 			idx.markExploreDirty(ctx, err)
@@ -637,6 +309,7 @@ ON CONFLICT(uri) DO UPDATE SET
 	}
 
 	return nil
+
 }
 
 // DeleteRecord removes a record from the index
@@ -647,20 +320,22 @@ func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey st
 	if err := idx.db.QueryRowContext(ctx, `SELECT record FROM records WHERE uri = ?`, uri).Scan(&raw); err == nil {
 		deletedRecord = json.RawMessage(raw)
 	}
-	_, err := idx.db.ExecContext(ctx, `DELETE FROM records WHERE uri = ?`, uri)
+
+	err := idx.witness.delete(ctx, did, collection, rkey)
 	if err == nil {
 		if sourceRef := exploreSourceRef(deletedRecord); sourceRef != "" {
 			if refreshErr := idx.refreshExploreStats(ctx, sourceRef); refreshErr != nil {
 				idx.markExploreDirty(ctx, refreshErr)
 			}
 		}
-		if collection == recordTypeToNSID[lexicons.RecordTypeBrew] && len(deletedRecord) > 0 {
+		if collection == idx.recordTypeToNSID[lexicons.RecordTypeBrew] && len(deletedRecord) > 0 {
 			if refreshErr := idx.reindexExploreBrewReferences(ctx, deletedRecord); refreshErr != nil {
 				idx.markExploreDirty(ctx, refreshErr)
 			}
 		}
 	}
 	return err
+
 }
 
 // DeleteAllByDID removes all data associated with a DID from the index.
@@ -686,15 +361,15 @@ func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
 	}
 	defer tx.Rollback() //nolint:errcheck
 
+	if err := idx.social.deleteAllForDID(ctx, tx, did, uriPrefix); err != nil {
+		return fmt.Errorf("delete social data by did: %w", err)
+	}
+
 	stmts := []struct {
 		sql  string
 		args []any
 	}{
 		{`DELETE FROM records WHERE did = ?`, []any{did}},
-		{`DELETE FROM likes WHERE actor_did = ?`, []any{did}},
-		{`DELETE FROM likes WHERE subject_uri LIKE ?`, []any{uriPrefix}},
-		{`DELETE FROM comments WHERE actor_did = ?`, []any{did}},
-		{`DELETE FROM comments WHERE subject_uri LIKE ?`, []any{uriPrefix}},
 		{`DELETE FROM notifications WHERE target_did = ? OR actor_did = ?`, []any{did, did}},
 		{`DELETE FROM notifications_meta WHERE target_did = ?`, []any{did}},
 		{`DELETE FROM profiles WHERE did = ?`, []any{did}},
@@ -737,100 +412,13 @@ func (idx *FeedIndex) UpsertWitnessRecord(ctx context.Context, did, collection, 
 // without touching cid. No-op when the row does not yet exist — the firehose
 // event for this commit will INSERT it with the real cid.
 func (idx *FeedIndex) UpdateWitnessRecord(ctx context.Context, did, collection, rkey string, record json.RawMessage) error {
-	uri := atp.BuildATURI(did, collection, rkey)
-	ctx, span := tracing.SqliteSpan(ctx, "update", "records")
-	span.SetAttributes(
-		attribute.String("record.did", did),
-		attribute.String("record.collection", collection),
-		attribute.String("record.rkey", rkey),
-	)
-	defer span.End()
-
-	_, err := idx.db.ExecContext(ctx,
-		`UPDATE records SET record = ?, indexed_at = ? WHERE uri = ?`,
-		string(record), time.Now().UTC().Format(time.RFC3339Nano), uri)
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return fmt.Errorf("failed to update record: %w", err)
-	}
-	return nil
+	return idx.witness.update(ctx, did, collection, rkey, record)
 }
 
 // UpsertWitnessRecordBatch implements atproto.WitnessCache batch upsert.
 // All records are inserted in a single transaction for efficiency.
 func (idx *FeedIndex) UpsertWitnessRecordBatch(ctx context.Context, records []atproto.WitnessWriteRecord) error {
-	if len(records) == 0 {
-		return nil
-	}
-
-	const upsertSQL = `INSERT INTO records (uri, did, collection, rkey, record, cid, indexed_at, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(uri) DO UPDATE SET
-	record = excluded.record,
-	cid = excluded.cid,
-	indexed_at = excluded.indexed_at,
-	created_at = excluded.created_at`
-
-	ctx, span := tracing.SqliteSpan(ctx, "upsert_batch", "records")
-	span.SetAttributes(
-		attribute.Int("batch.size", len(records)),
-		attribute.String("db.statement", upsertSQL),
-	)
-	defer span.End()
-
-	tx, err := idx.db.Begin()
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	stmt, err := tx.Prepare(upsertSQL)
-	if err != nil {
-		tracing.EndWithError(span, err)
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
-
-	now := time.Now().UTC()
-	seenDIDs := make(map[string]struct{})
-
-	for _, rec := range records {
-		uri := atp.BuildATURI(rec.DID, rec.Collection, rec.RKey)
-
-		createdAt := now
-		var recordData map[string]any
-		if err := json.Unmarshal(rec.Record, &recordData); err == nil {
-			if createdAtStr, ok := recordData["createdAt"].(string); ok {
-				if t, err := time.Parse(time.RFC3339, createdAtStr); err == nil {
-					createdAt = t.UTC()
-				}
-			}
-		}
-
-		if _, err := stmt.Exec(uri, rec.DID, rec.Collection, rec.RKey,
-			string(rec.Record), rec.CID,
-			now.Format(time.RFC3339Nano), createdAt.Format(time.RFC3339Nano)); err != nil {
-			tracing.EndWithError(span, err)
-			return fmt.Errorf("failed to upsert record %s: %w", uri, err)
-		}
-		seenDIDs[rec.DID] = struct{}{}
-	}
-
-	// Track known DIDs (deduplicated)
-	for did := range seenDIDs {
-		if _, err := tx.Exec(`INSERT OR IGNORE INTO known_dids (did) VALUES (?)`, did); err != nil {
-			tracing.EndWithError(span, err)
-			return fmt.Errorf("failed to track known DID: %w", err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		tracing.EndWithError(span, err)
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return nil
+	return idx.witness.upsertBatch(ctx, records)
 }
 
 // DeleteWitnessRecord implements atproto.WitnessCache for write-through caching.
@@ -840,383 +428,7 @@ func (idx *FeedIndex) DeleteWitnessRecord(ctx context.Context, did, collection, 
 
 // GetRecord retrieves a single record by URI
 func (idx *FeedIndex) GetRecord(ctx context.Context, uri string) (*IndexedRecord, error) {
-	var rec IndexedRecord
-	var recordStr, indexedAtStr, createdAtStr string
-
-	err := idx.db.QueryRowContext(ctx, `
-		SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at
-		FROM records WHERE uri = ?
-	`, uri).Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
-		&recordStr, &rec.CID, &indexedAtStr, &createdAtStr)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	rec.Record = json.RawMessage(recordStr)
-	rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
-	rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-
-	return &rec, nil
-}
-
-// GetRecentFeed returns recent feed items from the index
-func (idx *FeedIndex) GetRecentFeed(ctx context.Context, limit int) ([]*feed.FeedItem, error) {
-	return idx.getFeedItems(ctx, nil, limit, "")
-}
-
-// recordTypeToNSID maps a feedable lexicons.RecordType to its NSID
-// collection string. Built from the descriptor registry so every
-// registered app contributes its own entries — no app-specific
-// imports in this package. Only types listed in FeedableRecordTypes
-// participate; entries from sister apps that aren't installed in the
-// running binary simply never appear in the registry.
-var recordTypeToNSID = func() map[lexicons.RecordType]string {
-	m := make(map[lexicons.RecordType]string)
-	for _, d := range entities.All() {
-		if FeedableRecordTypes[d.Type] && d.NSID != "" {
-			m[d.Type] = d.NSID
-		}
-	}
-	return m
-}()
-
-// feedableCollections is the set of collection NSIDs that appear in the feed
-var feedableCollections = func() []string {
-	out := make([]string, 0, len(recordTypeToNSID))
-	for _, nsid := range recordTypeToNSID {
-		out = append(out, nsid)
-	}
-	return out
-}()
-
-// GetFeedWithQuery returns feed items matching the given query with cursor-based pagination
-func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResult, error) {
-	if q.Limit <= 0 {
-		q.Limit = 20
-	}
-	if q.Sort == "" {
-		q.Sort = FeedSortRecent
-	}
-
-	// Determine collection filters
-	var collectionFilters []string
-	if len(q.TypeFilters) > 0 {
-		for _, tf := range q.TypeFilters {
-			nsid, ok := recordTypeToNSID[tf]
-			if !ok {
-				return nil, fmt.Errorf("unknown record type: %s", tf)
-			}
-			collectionFilters = append(collectionFilters, nsid)
-		}
-	} else if q.TypeFilter != "" {
-		nsid, ok := recordTypeToNSID[q.TypeFilter]
-		if !ok {
-			return nil, fmt.Errorf("unknown record type: %s", q.TypeFilter)
-		}
-		collectionFilters = []string{nsid}
-	}
-
-	// For popular sort, fetch more candidates to re-rank by score
-	fetchLimit := q.Limit + 1
-	if q.Sort == FeedSortPopular {
-		fetchLimit = q.Limit * 5
-	}
-
-	items, err := idx.getFeedItems(ctx, collectionFilters, fetchLimit, q.Cursor)
-	if err != nil {
-		return nil, err
-	}
-
-	if q.Sort == FeedSortPopular {
-		sort.Slice(items, func(i, j int) bool {
-			scoreI := items[i].LikeCount*3 + items[i].CommentCount*2
-			scoreJ := items[j].LikeCount*3 + items[j].CommentCount*2
-			if scoreI != scoreJ {
-				return scoreI > scoreJ
-			}
-			return items[i].Timestamp.After(items[j].Timestamp)
-		})
-	}
-
-	result := &FeedResult{Items: items}
-	if len(items) > q.Limit {
-		result.Items = items[:q.Limit]
-		last := result.Items[q.Limit-1]
-		result.NextCursor = last.Timestamp.Format(time.RFC3339Nano) + "|" + last.SubjectURI
-	}
-
-	return result, nil
-}
-
-// getFeedItems fetches records from SQLite, resolves references, and returns FeedItems.
-func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []string, limit int, cursor string) ([]*feed.FeedItem, error) {
-	// Build query for feedable records
-	var args []any
-	query := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE `
-
-	if len(collectionFilters) == 1 {
-		query += `collection = ? `
-		args = append(args, collectionFilters[0])
-	} else if len(collectionFilters) > 1 {
-		placeholders := make([]string, len(collectionFilters))
-		for i, c := range collectionFilters {
-			placeholders[i] = "?"
-			args = append(args, c)
-		}
-		query += `collection IN (` + strings.Join(placeholders, ",") + `) `
-	} else {
-		// Only feedable collections
-		placeholders := make([]string, len(feedableCollections))
-		for i, c := range feedableCollections {
-			placeholders[i] = "?"
-			args = append(args, c)
-		}
-		query += `collection IN (` + strings.Join(placeholders, ",") + `) `
-	}
-
-	// Cursor-based pagination: cursor format is "created_at|uri"
-	if cursor != "" {
-		parts := strings.SplitN(cursor, "|", 2)
-		if len(parts) == 2 {
-			query += `AND (created_at < ? OR (created_at = ? AND uri < ?)) `
-			args = append(args, parts[0], parts[0], parts[1])
-		}
-	}
-
-	query += `ORDER BY created_at DESC LIMIT ?`
-	args = append(args, limit)
-
-	rows, err := idx.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var records []*IndexedRecord
-	refURIs := make(map[string]bool) // URIs we need to resolve
-
-	for rows.Next() {
-		var rec IndexedRecord
-		var recordStr, indexedAtStr, createdAtStr string
-		if err := rows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
-			&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
-			continue
-		}
-		rec.Record = json.RawMessage(recordStr)
-		rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
-		rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-		records = append(records, &rec)
-
-		// Collect reference URIs from the record data
-		var recordData map[string]any
-		if err := json.Unmarshal(rec.Record, &recordData); err == nil {
-			for _, key := range []string{"beanRef", "roasterRef", "grinderRef", "brewerRef", "teaRef", "vendorRef", "vesselRef", "infuserRef"} {
-				if ref, ok := recordData[key].(string); ok && ref != "" {
-					refURIs[ref] = true
-				}
-			}
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	// Build lookup map starting with the fetched records
-	recordsByURI := make(map[string]*IndexedRecord, len(records))
-	for _, r := range records {
-		recordsByURI[r.URI] = r
-	}
-
-	// Fetch referenced records that we don't already have
-	var missingURIs []string
-	for uri := range refURIs {
-		if _, ok := recordsByURI[uri]; !ok {
-			missingURIs = append(missingURIs, uri)
-		}
-	}
-
-	if len(missingURIs) > 0 {
-		placeholders := make([]string, len(missingURIs))
-		refArgs := make([]any, len(missingURIs))
-		for i, uri := range missingURIs {
-			placeholders[i] = "?"
-			refArgs[i] = uri
-		}
-		refQuery := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri IN (` + strings.Join(placeholders, ",") + `)`
-		refRows, err := idx.db.QueryContext(ctx, refQuery, refArgs...)
-		if err == nil {
-			defer refRows.Close()
-			for refRows.Next() {
-				var rec IndexedRecord
-				var recordStr, indexedAtStr, createdAtStr string
-				if err := refRows.Scan(&rec.URI, &rec.DID, &rec.Collection, &rec.RKey,
-					&recordStr, &rec.CID, &indexedAtStr, &createdAtStr); err != nil {
-					continue
-				}
-				rec.Record = json.RawMessage(recordStr)
-				rec.IndexedAt, _ = time.Parse(time.RFC3339Nano, indexedAtStr)
-				rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-				recordsByURI[rec.URI] = &rec
-
-				// If this is an oolong tea, check if it references a vendor we also need
-				if rec.Collection == oolong.NSIDTea {
-					var teaData map[string]any
-					if err := json.Unmarshal(rec.Record, &teaData); err == nil {
-						if vendorRef, ok := teaData["vendorRef"].(string); ok && vendorRef != "" {
-							if _, ok := recordsByURI[vendorRef]; !ok {
-								var vRec IndexedRecord
-								var vStr, vIdxAt, vCreAt string
-								err := idx.db.QueryRowContext(ctx,
-									`SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri = ?`,
-									vendorRef).Scan(&vRec.URI, &vRec.DID, &vRec.Collection, &vRec.RKey,
-									&vStr, &vRec.CID, &vIdxAt, &vCreAt)
-								if err == nil {
-									vRec.Record = json.RawMessage(vStr)
-									vRec.IndexedAt, _ = time.Parse(time.RFC3339Nano, vIdxAt)
-									vRec.CreatedAt, _ = time.Parse(time.RFC3339Nano, vCreAt)
-									recordsByURI[vRec.URI] = &vRec
-								}
-							}
-						}
-					}
-				}
-
-				// If this is a bean, check if it references a roaster we also need
-				if rec.Collection == arabica.NSIDBean {
-					var beanData map[string]any
-					if err := json.Unmarshal(rec.Record, &beanData); err == nil {
-						if roasterRef, ok := beanData["roasterRef"].(string); ok && roasterRef != "" {
-							if _, ok := recordsByURI[roasterRef]; !ok {
-								// Fetch this roaster too
-								var rRec IndexedRecord
-								var rStr, rIdxAt, rCreAt string
-								err := idx.db.QueryRowContext(ctx,
-									`SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE uri = ?`,
-									roasterRef).Scan(&rRec.URI, &rRec.DID, &rRec.Collection, &rRec.RKey,
-									&rStr, &rRec.CID, &rIdxAt, &rCreAt)
-								if err == nil {
-									rRec.Record = json.RawMessage(rStr)
-									rRec.IndexedAt, _ = time.Parse(time.RFC3339Nano, rIdxAt)
-									rRec.CreatedAt, _ = time.Parse(time.RFC3339Nano, rCreAt)
-									recordsByURI[rRec.URI] = &rRec
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Batch-fetch social data for all records
-	recordURIs := make([]string, 0, len(records))
-	didSet := make(map[string]struct{}, len(records))
-	for _, r := range records {
-		recordURIs = append(recordURIs, r.URI)
-		didSet[r.DID] = struct{}{}
-	}
-	likeCounts := idx.GetLikeCountsBatch(ctx, recordURIs)
-	commentCounts := idx.GetCommentCountsBatch(ctx, recordURIs)
-
-	// Pre-warm profile cache for all unique DIDs
-	profiles := make(map[string]*atproto.Profile, len(didSet))
-	for did := range didSet {
-		if p, err := idx.GetProfile(ctx, did); err == nil {
-			profiles[did] = p
-		}
-	}
-
-	// Convert to FeedItems
-	items := make([]*feed.FeedItem, 0, len(records))
-	for _, record := range records {
-		item, err := idx.recordToFeedItem(ctx, record, recordsByURI, profiles)
-		if err != nil {
-			log.Warn().Err(err).Str("uri", record.URI).Msg("failed to convert record to feed item")
-			continue
-		}
-		if !FeedableRecordTypes[item.RecordType] {
-			continue
-		}
-		item.LikeCount = likeCounts[record.URI]
-		item.CommentCount = commentCounts[record.URI]
-		items = append(items, item)
-	}
-
-	return items, nil
-}
-
-// recordToFeedItem converts an IndexedRecord to a FeedItem.
-// The profiles map provides pre-fetched profiles keyed by DID; if nil or missing,
-// the profile is fetched individually as a fallback.
-func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecord, refMap map[string]*IndexedRecord, profiles map[string]*atproto.Profile) (*feed.FeedItem, error) {
-	var recordData map[string]any
-	if err := json.Unmarshal(record.Record, &recordData); err != nil {
-		return nil, err
-	}
-
-	item := &feed.FeedItem{
-		Timestamp: record.CreatedAt,
-		TimeAgo:   formatTimeAgo(record.CreatedAt),
-	}
-
-	// Get author profile from pre-fetched map or fallback to individual fetch
-	profile, ok := profiles[record.DID]
-	if !ok || profile == nil {
-		var err error
-		profile, err = idx.GetProfile(ctx, record.DID)
-		if err != nil {
-			log.Warn().Err(err).Str("did", record.DID).Msg("failed to get profile")
-			profile = &atproto.Profile{
-				DID:    record.DID,
-				Handle: record.DID,
-			}
-		}
-	}
-	item.Author = profile
-
-	if strings.HasSuffix(record.Collection, ".like") {
-		return nil, fmt.Errorf("unexpected: likes should be filtered before conversion")
-	}
-
-	desc := entities.GetByNSID(record.Collection)
-	if desc == nil || desc.RecordToModel == nil {
-		return nil, fmt.Errorf("unknown collection: %s", record.Collection)
-	}
-	model, err := desc.RecordToModel(recordData, record.URI)
-	if err != nil {
-		return nil, err
-	}
-
-	item.RecordType = desc.Type
-	item.Action = "added a new " + desc.Noun
-	item.Record = model
-
-	// Per-entity reference resolution. The ref shape is genuinely
-	// entity-specific; per-app descriptors register a ResolveRefs hook
-	// that hydrates their typed fields from refMap.
-	if desc.ResolveRefs != nil {
-		lookup := func(refURI string) (map[string]any, bool) {
-			rec, found := refMap[refURI]
-			if !found {
-				return nil, false
-			}
-			var data map[string]any
-			if err := json.Unmarshal(rec.Record, &data); err != nil {
-				return nil, false
-			}
-			return data, true
-		}
-		desc.ResolveRefs(model, recordData, lookup)
-	}
-
-	// Populate subject fields (like/comment counts are set by caller via batch)
-	item.SubjectURI = record.URI
-	item.SubjectCID = record.CID
-
-	return item, nil
+	return idx.witness.getIndexed(ctx, uri)
 }
 
 // GetProfile fetches a profile, using cache when possible. The persistent
@@ -1232,18 +444,13 @@ func (idx *FeedIndex) GetProfile(ctx context.Context, did string) (*atproto.Prof
 	idx.profileCacheMu.RUnlock()
 
 	// Check persistent store — no TTL, firehose keeps it fresh
-	var dataStr string
-	err := idx.db.QueryRowContext(ctx, `SELECT data FROM profiles WHERE did = ?`, did).Scan(&dataStr)
-	if err == nil {
-		cached := &CachedProfile{}
-		if err := json.Unmarshal([]byte(dataStr), cached); err == nil {
-			// Promote to in-memory cache
-			cached.ExpiresAt = time.Now().Add(idx.profileTTL)
-			idx.profileCacheMu.Lock()
-			idx.profileCache[did] = cached
-			idx.profileCacheMu.Unlock()
-			return cached.Profile, nil
-		}
+	if cached, ok := idx.profileStorage.loadProfile(ctx, did); ok {
+		// Promote to in-memory cache
+		cached.ExpiresAt = time.Now().Add(idx.profileTTL)
+		idx.profileCacheMu.Lock()
+		idx.profileCache[did] = cached
+		idx.profileCacheMu.Unlock()
+		return cached.Profile, nil
 	}
 
 	// Unknown DID — fetch from API
@@ -1279,21 +486,7 @@ func (idx *FeedIndex) storeProfile(ctx context.Context, did string, profile *atp
 	idx.profileCache[did] = cached
 	idx.profileCacheMu.Unlock()
 
-	data, _ := json.Marshal(cached)
-	_, _ = idx.db.ExecContext(ctx, `INSERT OR REPLACE INTO profiles (did, data, expires_at) VALUES (?, ?, ?)`,
-		did, string(data), cached.ExpiresAt.Format(time.RFC3339Nano))
-
-	if profile != nil && profile.Handle != "" {
-		// Drop any prior row pointing this DID at a different handle (handle change).
-		_, _ = idx.db.ExecContext(ctx,
-			`DELETE FROM did_by_handle WHERE did = ? AND handle != ?`, did, profile.Handle)
-		// Last writer wins on handle — this naturally resolves handle reassignment
-		// from an old DID to a new one, since the new profile's INSERT OR REPLACE
-		// overwrites the old DID's mapping.
-		_, _ = idx.db.ExecContext(ctx,
-			`INSERT OR REPLACE INTO did_by_handle (handle, did, updated_at) VALUES (?, ?, ?)`,
-			profile.Handle, did, now.Format(time.RFC3339Nano))
-	}
+	idx.profileStorage.storeProfile(ctx, did, cached)
 }
 
 // GetDIDByHandle looks up a DID from the handle index. Returns the DID and
@@ -1303,13 +496,7 @@ func (idx *FeedIndex) storeProfile(ctx context.Context, did string, profile *atp
 // been reassigned to a new DID resolves to that new DID once the new profile
 // is observed (via the firehose profile watcher or a GetProfile call).
 func (idx *FeedIndex) GetDIDByHandle(ctx context.Context, handle string) (string, bool) {
-	var did string
-	err := idx.db.QueryRowContext(ctx,
-		`SELECT did FROM did_by_handle WHERE handle = ?`, handle).Scan(&did)
-	if err != nil || did == "" {
-		return "", false
-	}
-	return did, true
+	return idx.profileStorage.didByHandle(ctx, handle)
 }
 
 // InvalidateProfile removes a DID's profile from both the in-memory and persistent
@@ -1319,8 +506,7 @@ func (idx *FeedIndex) InvalidateProfile(did string) {
 	delete(idx.profileCache, did)
 	idx.profileCacheMu.Unlock()
 
-	_, _ = idx.db.Exec(`DELETE FROM profiles WHERE did = ?`, did)
-	_, _ = idx.db.Exec(`DELETE FROM did_by_handle WHERE did = ?`, did)
+	idx.profileStorage.deleteProfile(did)
 }
 
 // ProfileCachedInMemory reports whether the in-memory profile cache currently
@@ -1353,19 +539,11 @@ func (idx *FeedIndex) RefreshProfile(ctx context.Context, did string) {
 // race left behind gets corrected since AppView has caught up by the time the
 // admin runs this. Returns refreshed and failed counts. Honours ctx cancel.
 func (idx *FeedIndex) RefreshAllProfiles(ctx context.Context) (refreshed, failed int) {
-	rows, err := idx.db.QueryContext(ctx, `SELECT did FROM profiles`)
+	dids, err := idx.profileStorage.profileDIDs(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("refresh all profiles: query failed")
 		return 0, 0
 	}
-	dids := make([]string, 0, 128)
-	for rows.Next() {
-		var did string
-		if err := rows.Scan(&did); err == nil {
-			dids = append(dids, did)
-		}
-	}
-	rows.Close()
 
 	log.Info().Int("count", len(dids)).Msg("refresh all profiles: starting")
 
@@ -1448,21 +626,14 @@ func (idx *FeedIndex) OnIdentityEvent(ctx context.Context, did, newHandle string
 	idx.profileCacheMu.RUnlock()
 	if oldHandle == "" {
 		// Fall back to persistent store.
-		var dataStr string
-		if err := idx.db.QueryRowContext(ctx, `SELECT data FROM profiles WHERE did = ?`, did).Scan(&dataStr); err == nil {
-			cached := &CachedProfile{}
-			if err := json.Unmarshal([]byte(dataStr), cached); err == nil && cached.Profile != nil {
-				oldHandle = cached.Profile.Handle
-			}
+		if cached, ok := idx.profileStorage.loadProfile(ctx, did); ok && cached.Profile != nil {
+			oldHandle = cached.Profile.Handle
 		}
 	}
 
 	if newHandle != "" {
 		// Evict any prior owner of newHandle (other than `did` itself).
-		var priorDID string
-		err := idx.db.QueryRowContext(ctx,
-			`SELECT did FROM did_by_handle WHERE handle = ? AND did != ?`, newHandle, did).Scan(&priorDID)
-		if err == nil && priorDID != "" {
+		if priorDID, ok := idx.profileStorage.didByHandleExcept(ctx, newHandle, did); ok {
 			log.Warn().
 				Str("handle", newHandle).
 				Str("prior_did", priorDID).
@@ -1582,16 +753,12 @@ func (idx *FeedIndex) KnownDIDCount() int {
 
 // TotalLikeCount returns the total number of likes indexed
 func (idx *FeedIndex) TotalLikeCount() int {
-	var count int
-	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM likes`).Scan(&count)
-	return count
+	return idx.social.totalLikeCount()
 }
 
 // TotalCommentCount returns the total number of comments indexed
 func (idx *FeedIndex) TotalCommentCount() int {
-	var count int
-	_ = idx.db.QueryRow(`SELECT COUNT(*) FROM comments`).Scan(&count)
-	return count
+	return idx.social.totalCommentCount()
 }
 
 // RecordCountByCollection returns a breakdown of record counts by collection type
@@ -1811,44 +978,36 @@ func (idx *FeedIndex) AvgBrewRatingByRoasterURI(ctx context.Context, did string)
 
 // GetProfileStatsVisibility returns the profile stats visibility settings for a user.
 // Returns default (all public) if no settings are stored.
-func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string) arabica.ProfileStatsVisibility {
-	defaults := arabica.DefaultProfileStatsVisibility()
+func (idx *FeedIndex) GetProfileStatsVisibility(ctx context.Context, did string) profileprefs.ProfileStatsVisibility {
+	defaults := profileprefs.DefaultProfileStatsVisibility()
 	if did == "" {
 		return defaults
 	}
-	var raw string
-	err := idx.db.QueryRowContext(ctx,
-		`SELECT profile_stats_visibility FROM user_settings WHERE did = ?`, did,
-	).Scan(&raw)
-	if err != nil {
+	raw, ok := idx.profileStorage.profileStatsVisibility(ctx, did)
+	if !ok {
 		return defaults
 	}
-	var settings arabica.ProfileStatsVisibility
+	var settings profileprefs.ProfileStatsVisibility
 	if err := json.Unmarshal([]byte(raw), &settings); err != nil {
 		return defaults
 	}
 	// Fill in defaults for any empty fields
 	if settings.BeanAvgRating == "" {
-		settings.BeanAvgRating = arabica.VisibilityPublic
+		settings.BeanAvgRating = profileprefs.VisibilityPublic
 	}
 	if settings.RoasterAvgRating == "" {
-		settings.RoasterAvgRating = arabica.VisibilityPublic
+		settings.RoasterAvgRating = profileprefs.VisibilityPublic
 	}
 	return settings
 }
 
 // SetProfileStatsVisibility saves the profile stats visibility settings for a user.
-func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string, settings arabica.ProfileStatsVisibility) error {
+func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string, settings profileprefs.ProfileStatsVisibility) error {
 	raw, err := json.Marshal(settings)
 	if err != nil {
 		return fmt.Errorf("marshal settings: %w", err)
 	}
-	_, err = idx.db.ExecContext(ctx,
-		`INSERT INTO user_settings (did, profile_stats_visibility) VALUES (?, ?)
-		 ON CONFLICT(did) DO UPDATE SET profile_stats_visibility = excluded.profile_stats_visibility`,
-		did, string(raw),
-	)
-	return err
+	return idx.profileStorage.setProfileStatsVisibility(ctx, did, string(raw))
 }
 
 func formatTimeAgo(t time.Time) string {
@@ -2015,52 +1174,41 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 
 // UpsertLike adds or updates a like in the index
 func (idx *FeedIndex) UpsertLike(ctx context.Context, actorDID, rkey, subjectURI string) error {
-	_, err := idx.db.ExecContext(ctx, `INSERT OR IGNORE INTO likes (subject_uri, actor_did, rkey) VALUES (?, ?, ?)`,
-		subjectURI, actorDID, rkey)
+	err := idx.social.upsertLike(ctx, actorDID, rkey, subjectURI)
 	if err == nil {
 		if refreshErr := idx.refreshExploreStats(ctx, subjectURI); refreshErr != nil {
 			idx.markExploreDirty(ctx, refreshErr)
 		}
 	}
 	return err
+
 }
 
 // DeleteLike removes a like from the index
 func (idx *FeedIndex) DeleteLike(ctx context.Context, actorDID, subjectURI string) error {
-	_, err := idx.db.ExecContext(ctx, `DELETE FROM likes WHERE subject_uri = ? AND actor_did = ?`,
-		subjectURI, actorDID)
+	err := idx.social.deleteLike(ctx, actorDID, subjectURI)
 	if err == nil {
 		if refreshErr := idx.refreshExploreStats(ctx, subjectURI); refreshErr != nil {
 			idx.markExploreDirty(ctx, refreshErr)
 		}
 	}
 	return err
+
 }
 
 // GetLikeCount returns the number of likes for a record
 func (idx *FeedIndex) GetLikeCount(ctx context.Context, subjectURI string) int {
-	var count int
-	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM likes WHERE subject_uri = ?`, subjectURI).Scan(&count)
-	return count
+	return idx.social.likeCount(ctx, subjectURI)
 }
 
 // HasUserLiked checks if a user has liked a specific record
 func (idx *FeedIndex) HasUserLiked(ctx context.Context, actorDID, subjectURI string) bool {
-	var exists int
-	err := idx.db.QueryRowContext(ctx, `SELECT 1 FROM likes WHERE actor_did = ? AND subject_uri = ? LIMIT 1`,
-		actorDID, subjectURI).Scan(&exists)
-	return err == nil
+	return idx.social.hasUserLiked(ctx, actorDID, subjectURI)
 }
 
 // GetUserLikeRKey returns the rkey of a user's like for a specific record, or empty string if not found
 func (idx *FeedIndex) GetUserLikeRKey(ctx context.Context, actorDID, subjectURI string) string {
-	var rkey string
-	err := idx.db.QueryRowContext(ctx, `SELECT rkey FROM likes WHERE actor_did = ? AND subject_uri = ?`,
-		actorDID, subjectURI).Scan(&rkey)
-	if err != nil {
-		return ""
-	}
-	return rkey
+	return idx.social.userLikeRKey(ctx, actorDID, subjectURI)
 }
 
 // ========== Batch Query Methods ==========
@@ -2078,74 +1226,17 @@ func placeholders(uris []string) (string, []any) {
 
 // GetLikeCountsBatch returns like counts for multiple subject URIs in a single query.
 func (idx *FeedIndex) GetLikeCountsBatch(ctx context.Context, uris []string) map[string]int {
-	counts := make(map[string]int, len(uris))
-	if len(uris) == 0 {
-		return counts
-	}
-	ph, args := placeholders(uris)
-	rows, err := idx.db.QueryContext(ctx,
-		`SELECT subject_uri, COUNT(*) FROM likes WHERE subject_uri IN (`+ph+`) GROUP BY subject_uri`, args...)
-	if err != nil {
-		return counts
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var uri string
-		var count int
-		if err := rows.Scan(&uri, &count); err == nil {
-			counts[uri] = count
-		}
-	}
-	return counts
+	return idx.social.likeCountsBatch(ctx, uris)
 }
 
 // HasUserLikedBatch checks if a user has liked multiple records in a single query.
 func (idx *FeedIndex) HasUserLikedBatch(ctx context.Context, actorDID string, uris []string) map[string]bool {
-	liked := make(map[string]bool, len(uris))
-	if len(uris) == 0 || actorDID == "" {
-		return liked
-	}
-	ph, args := placeholders(uris)
-	// Prepend actorDID to args
-	allArgs := make([]any, 0, len(args)+1)
-	allArgs = append(allArgs, actorDID)
-	allArgs = append(allArgs, args...)
-	rows, err := idx.db.QueryContext(ctx,
-		`SELECT subject_uri FROM likes WHERE actor_did = ? AND subject_uri IN (`+ph+`)`, allArgs...)
-	if err != nil {
-		return liked
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var uri string
-		if err := rows.Scan(&uri); err == nil {
-			liked[uri] = true
-		}
-	}
-	return liked
+	return idx.social.hasUserLikedBatch(ctx, actorDID, uris)
 }
 
 // GetCommentCountsBatch returns comment counts for multiple subject URIs in a single query.
 func (idx *FeedIndex) GetCommentCountsBatch(ctx context.Context, uris []string) map[string]int {
-	counts := make(map[string]int, len(uris))
-	if len(uris) == 0 {
-		return counts
-	}
-	ph, args := placeholders(uris)
-	rows, err := idx.db.QueryContext(ctx,
-		`SELECT subject_uri, COUNT(*) FROM comments WHERE subject_uri IN (`+ph+`) GROUP BY subject_uri`, args...)
-	if err != nil {
-		return counts
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var uri string
-		var count int
-		if err := rows.Scan(&uri, &count); err == nil {
-			counts[uri] = count
-		}
-	}
-	return counts
+	return idx.social.commentCountsBatch(ctx, uris)
 }
 
 // GetRecordsBatch retrieves multiple records by URI in a single query.
@@ -2201,80 +1292,36 @@ type IndexedComment struct {
 
 // UpsertComment adds or updates a comment in the index
 func (idx *FeedIndex) UpsertComment(ctx context.Context, actorDID, rkey, subjectURI, parentURI, cid, text string, createdAt time.Time) error {
-	// Extract parent rkey from parent URI if present
-	var parentRKey string
-	if parentURI != "" {
-		parts := strings.Split(parentURI, "/")
-		if len(parts) > 0 {
-			parentRKey = parts[len(parts)-1]
-		}
-	}
-
-	_, err := idx.db.ExecContext(ctx, `
-		INSERT INTO comments (actor_did, rkey, subject_uri, parent_uri, parent_rkey, cid, text, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(actor_did, rkey) DO UPDATE SET
-			subject_uri = excluded.subject_uri,
-			parent_uri = excluded.parent_uri,
-			parent_rkey = excluded.parent_rkey,
-			cid = excluded.cid,
-			text = excluded.text,
-			created_at = excluded.created_at
-	`, actorDID, rkey, subjectURI, parentURI, parentRKey, cid, text, createdAt.Format(time.RFC3339Nano))
+	err := idx.social.upsertComment(ctx, actorDID, rkey, subjectURI, parentURI, cid, text, createdAt)
 	if err == nil {
 		if refreshErr := idx.refreshExploreStats(ctx, subjectURI); refreshErr != nil {
 			idx.markExploreDirty(ctx, refreshErr)
 		}
 	}
 	return err
+
 }
 
 // DeleteComment removes a comment from the index
 func (idx *FeedIndex) DeleteComment(ctx context.Context, actorDID, rkey, subjectURI string) error {
-	_, err := idx.db.ExecContext(ctx, `DELETE FROM comments WHERE actor_did = ? AND rkey = ?`, actorDID, rkey)
+	err := idx.social.deleteComment(ctx, actorDID, rkey)
 	if err == nil {
 		if refreshErr := idx.refreshExploreStats(ctx, subjectURI); refreshErr != nil {
 			idx.markExploreDirty(ctx, refreshErr)
 		}
 	}
 	return err
+
 }
 
 // GetCommentCount returns the number of comments on a record
 func (idx *FeedIndex) GetCommentCount(ctx context.Context, subjectURI string) int {
-	var count int
-	_ = idx.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM comments WHERE subject_uri = ?`, subjectURI).Scan(&count)
-	return count
+	return idx.social.commentCount(ctx, subjectURI)
 }
 
 // GetCommentsForSubject returns all comments for a specific record, ordered by creation time
 func (idx *FeedIndex) GetCommentsForSubject(ctx context.Context, subjectURI string, limit int, viewerDID string) []IndexedComment {
-	query := `SELECT actor_did, rkey, subject_uri, parent_uri, parent_rkey, cid, text, created_at
-		FROM comments WHERE subject_uri = ? ORDER BY created_at`
-	var args []any
-	args = append(args, subjectURI)
-	if limit > 0 {
-		query += ` LIMIT ?`
-		args = append(args, limit)
-	}
-
-	rows, err := idx.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-
-	var comments []IndexedComment
-	for rows.Next() {
-		var c IndexedComment
-		var createdAtStr string
-		if err := rows.Scan(&c.ActorDID, &c.RKey, &c.SubjectURI, &c.ParentURI, &c.ParentRKey,
-			&c.CID, &c.Text, &createdAtStr); err != nil {
-			continue
-		}
-		c.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-		comments = append(comments, c)
-	}
+	comments := idx.social.commentsForSubject(ctx, subjectURI, limit)
 
 	// Batch-fetch profiles and social data for all comments
 	commentURIs := make([]string, len(comments))

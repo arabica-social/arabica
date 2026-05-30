@@ -19,8 +19,9 @@ type DialogModalProps struct {
 // BeanDialogModal renders the bean creation/edit modal using native <dialog>
 templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeBean,
-		RKey: modalEntityRKey(bean),
+		Type:       lexicons.RecordTypeBean,
+		ActionPath: "beans",
+		RKey:       modalEntityRKey(bean),
 	}) {
 		@BeanFormBody(bean, roasters)
 	}
@@ -29,8 +30,9 @@ templ BeanDialogModal(bean *arabica.Bean, roasters []arabica.Roaster) {
 // GrinderDialogModal renders the grinder creation/edit modal using native <dialog>
 templ GrinderDialogModal(grinder *arabica.Grinder) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeGrinder,
-		RKey: modalEntityRKey(grinder),
+		Type:       lexicons.RecordTypeGrinder,
+		ActionPath: "grinders",
+		RKey:       modalEntityRKey(grinder),
 	}) {
 		@GrinderFormBody(grinder)
 	}
@@ -39,8 +41,9 @@ templ GrinderDialogModal(grinder *arabica.Grinder) {
 // BrewerDialogModal renders the brewer creation/edit modal using native <dialog>
 templ BrewerDialogModal(brewer *arabica.Brewer) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeBrewer,
-		RKey: modalEntityRKey(brewer),
+		Type:       lexicons.RecordTypeBrewer,
+		ActionPath: "brewers",
+		RKey:       modalEntityRKey(brewer),
 	}) {
 		@BrewerFormBody(brewer)
 	}
@@ -49,8 +52,9 @@ templ BrewerDialogModal(brewer *arabica.Brewer) {
 // RoasterDialogModal renders the roaster creation/edit modal using native <dialog>
 templ RoasterDialogModal(roaster *arabica.Roaster) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeRoaster,
-		RKey: modalEntityRKey(roaster),
+		Type:       lexicons.RecordTypeRoaster,
+		ActionPath: "roasters",
+		RKey:       modalEntityRKey(roaster),
 	}) {
 		@RoasterFormBody(roaster)
 	}
@@ -72,8 +76,9 @@ func recipePourJSON(recipe *arabica.Recipe) string {
 // RecipeDialogModal renders the recipe creation/edit modal using native <dialog>
 templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeRecipe,
-		RKey: modalEntityRKey(recipe),
+		Type:       lexicons.RecordTypeRecipe,
+		ActionPath: "recipes",
+		RKey:       modalEntityRKey(recipe),
 	}) {
 		<!-- Essentials -->
 		<div class="form-fieldset">
@@ -292,11 +297,11 @@ func getStringValue(entity interface{}, field string) string {
 		return ""
 	}
 	rt := recordTypeOf(entity)
-	d := entities.Get(rt)
-	if d == nil || d.GetField == nil {
+	behavior := entities.Behavior(rt)
+	if behavior == nil || behavior.GetField == nil {
 		return ""
 	}
-	v, _ := d.GetField(entity, field)
+	v, _ := behavior.GetField(entity, field)
 	return v
 }
 

@@ -9,38 +9,19 @@ import (
 	"strings"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffeeogcard "tangled.org/arabica.social/arabica/internal/arabica/ogcard"
+	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/ogcard"
-	"tangled.org/arabica.social/arabica/internal/onboarding"
-	"tangled.org/arabica.social/arabica/internal/web/bff"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
-
-// populateBrewOGMetadata sets OpenGraph metadata on layoutData for a brew page.
-// This enriches social media previews when brew links are shared.
-func (h *Handlers) populateBrewOGMetadata(layoutData *components.LayoutData, brew *arabica.Brew, owner, baseURL, shareURL string) {
-	if brew == nil {
-		return
-	}
-
-	var subtitle string
-	if brew.Bean != nil {
-		subtitle = brew.Bean.Name
-		if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
-			subtitle += " from " + brew.Bean.Roaster.Name
-		}
-	}
-
-	handlers.PopulateOGFields(layoutData, subtitle, "brew", owner, baseURL, shareURL)
-}
 
 // HandleBrewOGImage generates a 1200x630 PNG preview card for a brew.
 // Used as the og:image for social media embeds.
@@ -82,8 +63,8 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 					metrics.WitnessCacheHitsTotal.WithLabelValues("brew_og").Inc()
 					brew = b
 					brew.RKey = rkey
-					atproto.ExtractBrewRefRKeys(brew, m)
-					resolveBrewRefsViaLookup(brew, m, h.WitnessLookup(r.Context()))
+					arabicastore.ExtractBrewRefRKeys(brew, m)
+					arabica.HydrateBrewRefs(brew, m, h.WitnessLookup(r.Context()))
 				}
 			}
 		}
@@ -103,12 +84,12 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		brew.RKey = rkey
-		atproto.ExtractBrewRefRKeys(brew, record.Value)
-		resolveBrewRefsViaLookup(brew, record.Value, handlers.PublicLookup(r.Context()))
+		arabicastore.ExtractBrewRefRKeys(brew, record.Value)
+		arabica.HydrateBrewRefs(brew, record.Value, handlers.PublicLookup(r.Context()))
 	}
 
 	// Generate card
-	card, err := ogcard.DrawBrewCard(brew)
+	card, err := coffeeogcard.DrawBrewCard(brew)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate OG image")
 		http.Error(w, "Failed to generate image", http.StatusInternalServerError)
@@ -125,7 +106,7 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 // Brew list partial (loaded async via HTMX)
 func (h *Handlers) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -180,7 +161,7 @@ func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 
 // Show new brew form
 func (h *Handlers) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -228,7 +209,7 @@ func (h *Handlers) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -247,7 +228,7 @@ func (h *Handlers) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 
 	brewFormProps := coffeepages.BrewFormProps{
 		Brew:      brew,
-		PoursJSON: bff.PoursToJSON(brew.Pours),
+		PoursJSON: coffeepages.PoursToJSON(brew.Pours),
 	}
 
 	if err := coffeepages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
@@ -414,7 +395,7 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 // Create new brew
 func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication first
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -524,7 +505,7 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -617,7 +598,7 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 // Delete brew
 func (h *Handlers) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -628,7 +609,7 @@ func (h *Handlers) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 // Export brews as JSON
 func (h *Handlers) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return

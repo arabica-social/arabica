@@ -15,7 +15,7 @@ import (
 var exploreFilterNames = []string{"origin", "variety", "process", "roast_level", "roaster", "min_rating", "closed", "location", "grinder_type", "burr_type", "brewer_type", "ratio_min", "ratio_max"}
 
 func (h *Handlers) HandleExplore(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.GetAtprotoStore(r)
+	_, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -44,10 +44,22 @@ func (h *Handlers) HandleExplore(w http.ResponseWriter, r *http.Request) {
 	for _, item := range result.Items {
 		item.IsLikedByViewer = liked[item.SubjectURI]
 	}
-	if err := coffeepages.ExplorePage(layoutData, coffeepages.ExploreProps{Query: query, Result: result, Health: h.FeedIndex().ExploreHealth(r.Context()), FilterNames: exploreFilterNames}).Render(r.Context(), w); err != nil {
+	if err := coffeepages.ExplorePage(layoutData, coffeepages.ExploreProps{Query: query, Result: result, Health: h.FeedIndex().ExploreHealth(r.Context()), FilterNames: exploreFilterNames, RoutePaths: h.exploreRoutePaths()}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("failed to render explore page")
 	}
+}
+
+func (h *Handlers) exploreRoutePaths() map[lexicons.RecordType]string {
+	paths := make(map[lexicons.RecordType]string)
+	app := h.App()
+	if app == nil {
+		return paths
+	}
+	for _, route := range app.EntityRoutes {
+		paths[route.Type] = route.Path
+	}
+	return paths
 }
 
 func (h *Handlers) getModeratedExplore(r *http.Request, query firehose.ExploreQuery, cf *moderation.ContentFilter) (*firehose.ExploreResult, error) {

@@ -5,24 +5,29 @@ import (
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
-type rkeyer interface{ RKey() string }
+func init() {
+	registerTea()
+	registerVendor()
+	registerVessel()
+	registerInfuser()
+	registerBrew()
 
-func itemRKey(item any) string {
-	if it, ok := item.(rkeyer); ok && it != nil {
-		return it.RKey()
-	}
-	return ""
+	// Cafe and Drink are deferred for the v1 launch. Their models and
+	// record conversions remain in tree but are intentionally not
+	// registered as descriptors, so they don't appear in the oolong
+	// feed, manage UI, or OAuth scopes. Re-enable when the cafe/drink
+	// experience is ready to ship.
+
+	// Comment and Like are intentionally NOT registered.
+	// App.NSIDs() in internal/atplatform/domain/app.go appends them
+	// unconditionally using NSIDBase. Registering them as descriptors
+	// would produce duplicates.
 }
 
-func init() {
-	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongTea,
-		NSID:            NSIDTea,
-		DisplayName:     "Tea",
-		Noun:            "tea",
-		URLPath:         "teas",
-		FeedFilterLabel: "Teas",
-		GetField:        teaField,
+func registerTea() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeOolongTea, NSID: NSIDTea, DisplayName: "Tea"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeOolongTea, &entities.RecordBehavior{
+		GetField: teaField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToTea(rec, uri)
 		},
@@ -40,22 +45,15 @@ func init() {
 			}
 			return t.Name
 		},
-		EditURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/teas/" + r + "/edit"
-			}
-			return ""
-		},
-		ResolveRefs: resolveTeaFeedRef,
+		ReferenceFields: []string{"vendorRef"},
+		ResolveRefs:     resolveTeaFeedRef,
 	})
-	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongVendor,
-		NSID:            NSIDVendor,
-		DisplayName:     "Tea Vendor",
-		Noun:            "vendor",
-		URLPath:         "vendors",
-		FeedFilterLabel: "Vendors",
-		GetField:        vendorField,
+}
+
+func registerVendor() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeOolongVendor, NSID: NSIDVendor, DisplayName: "Tea Vendor"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeOolongVendor, &entities.RecordBehavior{
+		GetField: vendorField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToVendor(rec, uri)
 		},
@@ -73,21 +71,13 @@ func init() {
 			}
 			return v.Name
 		},
-		EditModalURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/api/modals/vendor/" + r
-			}
-			return ""
-		},
 	})
-	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongVessel,
-		NSID:            NSIDVessel,
-		DisplayName:     "Vessel",
-		Noun:            "vessel",
-		URLPath:         "vessels",
-		FeedFilterLabel: "Vessels",
-		GetField:        vesselField,
+}
+
+func registerVessel() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeOolongVessel, NSID: NSIDVessel, DisplayName: "Vessel"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeOolongVessel, &entities.RecordBehavior{
+		GetField: vesselField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToVessel(rec, uri)
 		},
@@ -105,21 +95,13 @@ func init() {
 			}
 			return v.Name
 		},
-		EditModalURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/api/modals/vessel/" + r
-			}
-			return ""
-		},
 	})
-	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongInfuser,
-		NSID:            NSIDInfuser,
-		DisplayName:     "Infuser",
-		Noun:            "infuser",
-		URLPath:         "infusers",
-		FeedFilterLabel: "Infusers",
-		GetField:        infuserField,
+}
+
+func registerInfuser() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeOolongInfuser, NSID: NSIDInfuser, DisplayName: "Infuser"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeOolongInfuser, &entities.RecordBehavior{
+		GetField: infuserField,
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToInfuser(rec, uri)
 		},
@@ -137,21 +119,12 @@ func init() {
 			}
 			return i.Name
 		},
-		EditModalURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/api/modals/infuser/" + r
-			}
-			return ""
-		},
 	})
-	entities.Register(&entities.Descriptor{
-		Type:            lexicons.RecordTypeOolongBrew,
-		NSID:            NSIDBrew,
-		DisplayName:     "Tea Brew",
-		Noun:            "brew",
-		URLPath:         "brews",
-		FeedFilterLabel: "Brews",
-		GetField:        nil, // brew has no edit modal that needs prefill
+}
+
+func registerBrew() {
+	entities.Register(&entities.Descriptor{Type: lexicons.RecordTypeOolongBrew, NSID: NSIDBrew, DisplayName: "Tea Brew"})
+	entities.RegisterRecordBehavior(lexicons.RecordTypeOolongBrew, &entities.RecordBehavior{
 		RecordToModel: func(rec map[string]any, uri string) (any, error) {
 			return RecordToBrew(rec, uri)
 		},
@@ -173,23 +146,7 @@ func init() {
 			}
 			return "Tea Brew"
 		},
-		EditURL: func(item any) string {
-			if r := itemRKey(item); r != "" {
-				return "/brews/" + r + "/edit"
-			}
-			return ""
-		},
-		ResolveRefs: resolveBrewFeedRefs,
+		ReferenceFields: []string{"teaRef", "vesselRef", "infuserRef"},
+		ResolveRefs:     resolveBrewFeedRefs,
 	})
-
-	// Cafe and Drink are deferred for the v1 launch. Their models and
-	// record conversions remain in tree but are intentionally not
-	// registered as descriptors, so they don't appear in the oolong
-	// feed, manage UI, or OAuth scopes. Re-enable when the cafe/drink
-	// experience is ready to ship.
-
-	// Comment and Like are intentionally NOT registered.
-	// App.NSIDs() in internal/atplatform/domain/app.go appends them
-	// unconditionally using NSIDBase. Registering them as descriptors
-	// would produce duplicates.
 }

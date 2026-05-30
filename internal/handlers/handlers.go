@@ -9,19 +9,23 @@ import (
 	"strconv"
 	"strings"
 
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
-	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
+	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/signup"
+	"tangled.org/arabica.social/arabica/internal/social"
+	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -41,6 +45,25 @@ type Config struct {
 	PublicURL string
 }
 
+type StaticPageRenderer func(context.Context, http.ResponseWriter, *components.LayoutData) error
+
+type StaticPageRenderers struct {
+	About StaticPageRenderer
+	Terms StaticPageRenderer
+}
+
+type HomeReadinessChecker func(context.Context, records.Store) (bool, error)
+
+type HomeBehavior struct {
+	OGDescription    string
+	SiteCardOpts     ogcard.SiteCardOpts
+	ReadinessChecker HomeReadinessChecker
+}
+
+type FeedPresentation struct {
+	EmptyState pages.FeedEmptyState
+}
+
 // Handler contains all HTTP handler methods and their dependencies.
 // Dependencies are injected via the constructor for better testability.
 type Handler struct {
@@ -55,7 +78,7 @@ type Handler struct {
 
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
-	moderationStore   moderation.Store
+	moderationStore   *moderationsqlite.ModerationStore
 
 	// Backup service (optional) — exposes per-source status to admin views.
 	backupService *backup.Service
@@ -73,6 +96,60 @@ type Handler struct {
 	// devMode reflects <APP>_DEV at startup. Gates dev-only PDS providers
 	// in the signup catalog and any other developer-facing affordances.
 	devMode bool
+
+	staticPages      StaticPageRenderers
+	homeBehavior     HomeBehavior
+	feedPresentation FeedPresentation
+	assets           assets.Manifest
+	feedViews        feedviews.Registry
+
+	// storeOverride supports focused handler tests without constructing an
+	// OAuth-backed ATProto client. Production code leaves it nil.
+	storeOverride records.Store
+}
+
+// SetStoreOverrideForTest injects a request-scoped store for handler tests.
+// Authentication context is still required; only the concrete store creation is
+// bypassed. Passing nil clears the override.
+func (h *Handler) SetStoreOverrideForTest(store records.Store) {
+	h.storeOverride = store
+}
+
+// SetStaticPageRenderers wires app-owned static page templates into the shared
+// page handlers. Nil renderers fall back to the default Arabica pages.
+func (h *Handler) SetStaticPageRenderers(renderers StaticPageRenderers) {
+	h.staticPages = renderers
+}
+
+// SetHomeReadinessChecker wires app-owned first-run readiness logic into the
+// shared home handler.
+func (h *Handler) SetHomeReadinessChecker(checker HomeReadinessChecker) {
+	h.homeBehavior.ReadinessChecker = checker
+}
+
+// SetHomeBehavior wires app-owned home-page behavior into the shared home
+// handler.
+func (h *Handler) SetHomeBehavior(behavior HomeBehavior) {
+	h.homeBehavior = behavior
+}
+
+func (h *Handler) SetFeedPresentation(presentation FeedPresentation) {
+	h.feedPresentation = presentation
+}
+
+// SetAssetManifest wires the server's configured asset hrefs into layout data.
+func (h *Handler) SetAssetManifest(manifest assets.Manifest) {
+	h.assets = manifest
+}
+
+func (h *Handler) SetFeedViews(views feedviews.Registry) {
+	h.feedViews = views
+}
+
+// SetRecordStoreOverrideForTest injects an app-generic record store for
+// handler tests that do not need Arabica's typed store interface.
+func (h *Handler) SetRecordStoreOverrideForTest(store records.Store) {
+	h.storeOverride = store
 }
 
 // SetDevMode toggles dev-mode features. Called once at startup from the
@@ -184,8 +261,8 @@ func (h *Handler) FeedRegistry() *feed.Registry { return h.feedRegistry }
 // app identity (e.g. for branch logic in cross-app endpoints).
 func (h *Handler) App() *domain.App { return h.app }
 
-// SetModeration configures the handler with moderation service and store
-func (h *Handler) SetModeration(svc *moderation.Service, store moderation.Store) {
+// SetModeration configures the handler with moderation service and SQLite store.
+func (h *Handler) SetModeration(svc *moderation.Service, store *moderationsqlite.ModerationStore) {
 	h.moderationService = svc
 	h.moderationStore = store
 }
@@ -323,9 +400,9 @@ func (h *Handler) GetUserProfile(ctx context.Context, did string) *bff.UserProfi
 	return userProfile
 }
 
-// getAtprotoStore creates a user-scoped atproto store from the request context.
+// GetRecordStore creates a user-scoped app-generic record store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
-func (h *Handler) GetAtprotoStore(r *http.Request) (database.Store, bool) {
+func (h *Handler) GetRecordStore(r *http.Request) (records.Store, bool) {
 	// Get authenticated DID from context
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
@@ -343,6 +420,9 @@ func (h *Handler) GetAtprotoStore(r *http.Request) (database.Store, bool) {
 	if !ok {
 		return nil, false
 	}
+	if h.storeOverride != nil {
+		return h.storeOverride, true
+	}
 
 	// Create user-scoped atproto store with injected cache. App-specific
 	// social NSIDs are plumbed in so oolong stores write to
@@ -353,7 +433,31 @@ func (h *Handler) GetAtprotoStore(r *http.Request) (database.Store, bool) {
 		commentNSID = h.app.CommentNSID()
 	}
 	store := atproto.NewAtprotoStoreForApp(h.atprotoClient, did, sessionID, h.sessionCache, h.witnessCache, likeNSID, commentNSID)
+	if h.app != nil && h.app.RecordStore != nil {
+		return h.app.RecordStore(store), true
+	}
 	return store, true
+}
+
+type socialStore interface {
+	records.Store
+	CreateLike(ctx context.Context, req *social.CreateLikeRequest) (*social.Like, error)
+	DeleteLikeByRKey(ctx context.Context, rkey string) error
+	GetUserLikeForSubject(ctx context.Context, subjectURI string) (*social.Like, error)
+	CreateComment(ctx context.Context, req *social.CreateCommentRequest) (*social.Comment, error)
+	DeleteCommentByRKey(ctx context.Context, rkey string) error
+}
+
+func (h *Handler) getSocialStore(r *http.Request) (socialStore, bool) {
+	store, ok := h.GetRecordStore(r)
+	if !ok {
+		return nil, false
+	}
+	social, ok := store.(socialStore)
+	if !ok {
+		return nil, false
+	}
+	return social, true
 }
 
 // layoutDataFromRequest extracts auth state from the request and builds layout data.
@@ -484,13 +588,14 @@ func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated
 		BrandName:               h.brand.DisplayName,
 		BrandTagline:            h.brand.Tagline,
 		AppName:                 appName(h.app),
+		Assets:                  h.assets,
 	}
 }
 
 // HandleCommentCreate handles creating a new comment
 func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -522,8 +627,8 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(text) > arabica.MaxCommentLength {
-		log.Warn().Int("length", len(text)).Int("max", arabica.MaxCommentLength).Msg("Comment create: text too long")
+	if len(text) > social.MaxCommentLength {
+		log.Warn().Int("length", len(text)).Int("max", social.MaxCommentLength).Msg("Comment create: text too long")
 		http.Error(w, "comment text is too long", http.StatusBadRequest)
 		return
 	}
@@ -535,7 +640,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := &arabica.CreateCommentRequest{
+	req := &social.CreateCommentRequest{
 		SubjectURI: subjectURI,
 		SubjectCID: subjectCID,
 		Text:       text,
@@ -590,7 +695,7 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 // HandleCommentDelete handles deleting a comment
 func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return

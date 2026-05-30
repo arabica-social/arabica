@@ -8,8 +8,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	"tangled.org/arabica.social/arabica/internal/database"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 )
 
@@ -23,7 +23,7 @@ import (
 // arabicaModalNew renders an empty (create-mode) modal after asserting
 // the caller is authenticated.
 func (h *Handlers) arabicaModalNew(w http.ResponseWriter, r *http.Request, name string, render func() templ.Component) {
-	if _, authenticated := h.GetAtprotoStore(r); !authenticated {
+	if _, authenticated := h.GetArabicaStore(r); !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -40,14 +40,14 @@ func arabicaModalEdit[Model any](
 	w http.ResponseWriter,
 	r *http.Request,
 	name string,
-	fetch func(context.Context, database.Store, string) (*Model, error),
+	fetch func(context.Context, arabicastore.Store, string) (*Model, error),
 	render func(*Model) templ.Component,
 ) {
 	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -70,7 +70,7 @@ func arabicaModalEdit[Model any](
 // select dropdown.
 
 func (h *Handlers) HandleBeanModalNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -86,7 +86,7 @@ func (h *Handlers) HandleBeanModalEdit(w http.ResponseWriter, r *http.Request) {
 	if rkey == "" {
 		return
 	}
-	store, authenticated := h.GetAtprotoStore(r)
+	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -103,7 +103,7 @@ func (h *Handlers) HandleBeanModalEdit(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func beanModalRoasters(ctx context.Context, store database.Store) []arabica.Roaster {
+func beanModalRoasters(ctx context.Context, store arabicastore.Store) []arabica.Roaster {
 	roasters, err := store.ListRoasters(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to fetch roasters for bean modal")
@@ -124,8 +124,8 @@ func (h *Handlers) HandleGrinderModalNew(w http.ResponseWriter, r *http.Request)
 
 func (h *Handlers) HandleGrinderModalEdit(w http.ResponseWriter, r *http.Request) {
 	arabicaModalEdit(h, w, r, "grinder",
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Grinder, error) {
-			return s.GetGrinderByRKey(ctx, rkey)
+		func(ctx context.Context, s arabicastore.Store, rkey string) (*arabica.Grinder, error) {
+			return getGrinder(ctx, s, rkey)
 		},
 		func(g *arabica.Grinder) templ.Component { return coffee.GrinderDialogModal(g) },
 	)
@@ -139,8 +139,8 @@ func (h *Handlers) HandleBrewerModalNew(w http.ResponseWriter, r *http.Request) 
 
 func (h *Handlers) HandleBrewerModalEdit(w http.ResponseWriter, r *http.Request) {
 	arabicaModalEdit(h, w, r, "brewer",
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Brewer, error) {
-			return s.GetBrewerByRKey(ctx, rkey)
+		func(ctx context.Context, s arabicastore.Store, rkey string) (*arabica.Brewer, error) {
+			return getBrewer(ctx, s, rkey)
 		},
 		func(b *arabica.Brewer) templ.Component { return coffee.BrewerDialogModal(b) },
 	)
@@ -154,7 +154,7 @@ func (h *Handlers) HandleRoasterModalNew(w http.ResponseWriter, r *http.Request)
 
 func (h *Handlers) HandleRoasterModalEdit(w http.ResponseWriter, r *http.Request) {
 	arabicaModalEdit(h, w, r, "roaster",
-		func(ctx context.Context, s database.Store, rkey string) (*arabica.Roaster, error) {
+		func(ctx context.Context, s arabicastore.Store, rkey string) (*arabica.Roaster, error) {
 			return s.GetRoasterByRKey(ctx, rkey)
 		},
 		func(r *arabica.Roaster) templ.Component { return coffee.RoasterDialogModal(r) },

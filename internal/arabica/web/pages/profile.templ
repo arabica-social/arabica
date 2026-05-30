@@ -1,7 +1,6 @@
 package coffeepages
 
 import (
-	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
@@ -15,15 +14,15 @@ type ProfileProps struct {
 
 // Profile renders the full profile page
 templ Profile(layout *components.LayoutData, props ProfileProps) {
-	@components.Layout(layout, ProfileContent(props))
+	@components.Layout(layout, ProfileContent(props, layout.ScriptHref("manage-page.js"), layout.ScriptHref("profile-stats.js")))
 }
 
 // ProfileContent renders the profile page content
-templ ProfileContent(props ProfileProps) {
+templ ProfileContent(props ProfileProps, manageScriptHref string, profileStatsScriptHref string) {
 	if props.IsOwnProfile {
-		<script src={ assets.JSHrefFor("manage-page.js") }></script>
+		<script src={ manageScriptHref }></script>
 	}
-	<script src={ assets.JSHrefFor("profile-stats.js") }></script>
+	<script src={ profileStatsScriptHref }></script>
 	if props.IsOwnProfile {
 		<div class="page-container-lg" v-scope="managePage()" @vue:mounted="setup" :data-active-tab="activeTab">
 			@ProfileHeader(props.Profile)

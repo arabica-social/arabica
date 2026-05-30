@@ -2,7 +2,6 @@ package firehose
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 
 	atpjetstream "tangled.org/pdewey.com/atp/jetstream"
@@ -28,8 +27,6 @@ type ProfileWatcher struct {
 
 	upstreamMu sync.Mutex
 	upstream   *atpjetstream.Consumer
-
-	stopCh chan struct{}
 }
 
 // NewProfileWatcher creates a ProfileWatcher seeded with all currently known
@@ -44,7 +41,6 @@ func NewProfileWatcher(config *Config, index *FeedIndex) *ProfileWatcher {
 		index:       index,
 		endpoints:   config.Endpoints,
 		watchedDIDs: watched,
-		stopCh:      make(chan struct{}),
 	}
 }
 
@@ -99,17 +95,6 @@ func (pw *ProfileWatcher) Start(ctx context.Context) {
 	pw.watchedDIDsMu.RUnlock()
 	if n > 0 {
 		pw.ensureUpstream()
-	}
-}
-
-// Stop gracefully shuts down the watcher.
-func (pw *ProfileWatcher) Stop() {
-	close(pw.stopCh)
-	pw.upstreamMu.Lock()
-	u := pw.upstream
-	pw.upstreamMu.Unlock()
-	if u != nil {
-		u.Stop()
 	}
 }
 
@@ -201,16 +186,6 @@ func toLegacyEvent(evt *atpjetstream.Event) JetstreamEvent {
 // pipeline. Exported for use in integration tests where events are fed from a
 // test PDS firehose rather than a live Jetstream connection.
 func (pw *ProfileWatcher) ProcessEvent(event JetstreamEvent) {
-	pw.dispatch(event)
-}
-
-// processMessage parses a raw Jetstream frame and dispatches it. Retained
-// because profile_watcher_test.go exercises this path with raw JSON fixtures.
-func (pw *ProfileWatcher) processMessage(data []byte) {
-	var event JetstreamEvent
-	if err := json.Unmarshal(data, &event); err != nil {
-		return
-	}
 	pw.dispatch(event)
 }
 

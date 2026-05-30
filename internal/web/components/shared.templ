@@ -1,10 +1,7 @@
 package components
 
 import (
-	"fmt"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/pdewey.com/atp"
 )
@@ -60,72 +57,6 @@ func authorAvatar(profile *atproto.Profile) string {
 		return *profile.Avatar
 	}
 	return ""
-}
-
-// BeanSummaryProps defines props for displaying bean metadata inline.
-// Used in both bean feed cards and brew feed cards.
-type BeanSummaryProps struct {
-	Bean         *arabica.Bean
-	CoffeeAmount int // if > 0, shows scale icon + "Xg" (brew context)
-}
-
-// BeanSummary renders the bean name, roaster, and attribute tags.
-templ BeanSummary(props BeanSummaryProps) {
-	if props.Bean != nil {
-		<div class="font-bold text-primary text-base">
-			if props.Bean.Name != "" {
-				{ props.Bean.Name }
-			} else {
-				{ props.Bean.Origin }
-			}
-		</div>
-		if props.Bean.Roaster != nil && props.Bean.Roaster.Name != "" {
-			<div class="text-sm text-emphasis mt-0.5">
-				<span class="inline-flex items-center gap-1 font-medium">
-					@IconStore()
-					{ props.Bean.Roaster.Name }
-				</span>
-			</div>
-		}
-		<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
-			if props.Bean.Origin != "" {
-				<span class="inline-flex items-center gap-1">
-					@IconMapPin()
-					{ props.Bean.Origin }
-				</span>
-			}
-			if props.Bean.RoastLevel != "" {
-				<span class="inline-flex items-center gap-1">
-					@IconFlame()
-					{ props.Bean.RoastLevel }
-				</span>
-			}
-			if props.Bean.Variety != "" {
-				<span class="inline-flex items-center gap-1">
-					@IconLeaf()
-					{ props.Bean.Variety }
-				</span>
-			}
-			if props.Bean.Process != "" {
-				<span class="inline-flex items-center gap-1">
-					@IconSprout()
-					{ props.Bean.Process }
-				</span>
-			}
-			if props.Bean.Rating != nil {
-				<span class="inline-flex items-center gap-1">
-					@IconStar()
-					{ bff.FormatBeanRating(props.Bean.Rating) }
-				</span>
-			}
-			if props.CoffeeAmount > 0 {
-				<span class="inline-flex items-center gap-1">
-					@IconScale()
-					{ fmt.Sprintf("%dg", props.CoffeeAmount) }
-				</span>
-			}
-		</div>
-	}
 }
 
 // TypeBadge renders a colored pill with an icon and type label for record type identification.
@@ -560,6 +491,10 @@ templ WelcomeHeroFor(appName string) {
 
 // WelcomeLoginCard renders a compact login card for unauthenticated users
 templ WelcomeLoginCard() {
+	@WelcomeLoginCardWithScript("/static/js/handle-autocomplete.js")
+}
+
+templ WelcomeLoginCardWithScript(handleAutocompleteScriptHref string) {
 	<div class="card p-6 mb-8 max-w-md mx-auto">
 		<h2 class="text-lg font-semibold text-primary mb-4 text-center">Log in to get started</h2>
 		<form method="POST" action="/auth/login">
@@ -593,7 +528,7 @@ templ WelcomeLoginCard() {
 				One account { "for" } the entire <a href="/atproto" class="link">AT Protocol</a> ecosystem. Sign up once and use it across Arabica, <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a>, <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a>, and more. Your data is portable — you own it.
 			</p>
 		</details>
-		<script src={ assets.JSHrefFor("handle-autocomplete.js") }></script>
+		<script src={ handleAutocompleteScriptHref }></script>
 	</div>
 }
 

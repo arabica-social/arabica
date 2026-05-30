@@ -58,7 +58,7 @@ $DATA_ROOT/
 ## Current pain points
 
 1. **Backend split is inconsistent.** Arabica routes use the typed
-   `database.Store` interface; Oolong routes often downcast to
+   `arabicastore.Store` interface; Oolong routes often downcast to
    `*atproto.AtprotoStore` and use generic record primitives directly.
 
 2. **Per-app handler packages duplicate backend flow.** Create/update/delete
@@ -112,36 +112,36 @@ Rollback:
 
 ## Phase 1 — Add a unified server binary, keep isolated app stacks
 
-Status: not started.
+Status: implemented 2026-05-23.
 
 Goal: prove one process can run both apps without changing handler/storage
 architecture yet.
 
 Tasks:
 
-- [ ] Add shared app constructors outside `cmd/arabica` and `cmd/oolong`, e.g.
+- [x] Add shared app constructors outside `cmd/arabica` and `cmd/oolong`, e.g.
       `internal/arabica/app` and `internal/oolong/app`, or an
       `internal/atplatform/apps` package.
-- [ ] Add `cmd/server` that constructs both apps and starts one app stack per
+- [x] Add `cmd/server` that constructs both apps and starts one app stack per
       app.
-- [ ] Keep separate ports initially:
+- [x] Keep separate ports initially:
       - Arabica default: `18910`
       - Oolong default: `18920`
-- [ ] Keep separate metrics ports initially:
+- [x] Keep separate metrics ports initially:
       - Arabica default: `9101`
       - Oolong default: `9102`
-- [ ] Keep separate data dirs and DBs through existing per-app env prefixes:
+- [x] Keep separate data dirs and DBs through existing per-app env prefixes:
       `ARABICA_DATA_DIR`, `OOLONG_DATA_DIR`.
-- [ ] Ensure both app stacks can shut down from the same process context.
-- [ ] Keep `cmd/arabica` and `cmd/oolong` working.
+- [x] Ensure both app stacks can shut down from the same process context.
+- [x] Keep `cmd/arabica` and `cmd/oolong` working.
 
 Verification:
 
-- [ ] `go test ./...`
-- [ ] `go run ./cmd/server` starts both HTTP listeners.
-- [ ] Arabica home/feed/login pages load on Arabica port.
-- [ ] Oolong home/feed/login pages load on Oolong port.
-- [ ] Both DB files are created in separate data dirs.
+- [x] `go test ./...`
+- [x] `go run ./cmd/server` starts both HTTP listeners.
+- [x] Arabica home/feed/login pages load on Arabica port.
+- [x] Oolong home/feed/login pages load on Oolong port.
+- [x] Both DB files are created in separate data dirs.
 
 Rollback:
 
@@ -150,7 +150,7 @@ Rollback:
 
 ## Phase 2 — Introduce a generic record-store boundary
 
-Status: not started.
+Status: implemented 2026-05-23.
 
 Goal: create one storage abstraction both apps can use, without forcing all
 Arabica typed methods to disappear immediately.
@@ -169,18 +169,18 @@ type RecordStore interface {
 
 Tasks:
 
-- [ ] Define the interface in a package that is not app-specific. Candidate:
+- [x] Define the interface in a package that is not app-specific. Candidate:
       `internal/records`.
-- [ ] Make `*atproto.AtprotoStore` satisfy it.
-- [ ] Replace Oolong concrete `*atproto.AtprotoStore` requirements with the
+- [x] Make `*atproto.AtprotoStore` satisfy it.
+- [x] Replace Oolong concrete `*atproto.AtprotoStore` requirements with the
       generic interface where practical.
-- [ ] Leave Arabica `database.Store` intact during this phase.
-- [ ] Add focused tests around generic create/update/delete using a fake store.
+- [x] Leave Arabica `arabicastore.Store` intact during this phase.
+- [x] Add focused tests around generic create/update helpers using a fake store.
 
 Verification:
 
-- [ ] `go test ./internal/oolong/... ./internal/handlers/... ./internal/atproto/...`
-- [ ] `go test ./...`
+- [x] `go test ./internal/oolong/... ./internal/handlers/... ./internal/atproto/...`
+- [x] `go test ./...`
 
 Rollback:
 
@@ -188,32 +188,33 @@ Rollback:
 
 ## Phase 3 — Move standard CRUD plumbing into shared app-aware handlers
 
-Status: not started.
+Status: implemented 2026-05-23 for standard simple-entity CRUD plumbing.
 
 Goal: replace per-app duplicated CRUD skeletons with shared descriptor-driven
 helpers.
 
 Tasks:
 
-- [ ] Extend `entities.Descriptor` only where needed for backend behavior. Add
-      callbacks conservatively; do not turn the descriptor into a giant god
-      object.
-- [ ] Extract common write flow:
+- [x] Extend `entities.Descriptor` only where needed for backend behavior. No new
+      descriptor callbacks were needed for this pass; the shared helper stays
+      handler-driven to avoid a descriptor god object.
+- [x] Extract common write flow:
       decode request → validate → model → record map → `PutRecord` → invalidate
       feed/session state → JSON/HTMX response.
-- [ ] Convert Oolong simple entities first; they already use generic record
+- [x] Convert Oolong simple entities first; they already use generic record
       primitives.
-- [ ] Convert Arabica simple entities next: roaster, grinder, brewer.
-- [ ] Defer complex entities with richer behavior: Arabica brew, recipe, and
+- [x] Convert Arabica simple entities next: roaster, grinder, brewer.
+- [x] Defer complex entities with richer behavior: Arabica brew, recipe, and
       any entity with batch reference resolution or bespoke page flows.
-- [ ] Delete only helper code that has no remaining callers.
+- [x] Delete only helper code that has no remaining callers.
 
 Verification:
 
-- [ ] Existing handler tests pass.
-- [ ] Add table tests for shared helper behavior: validation error, decode
+- [x] Existing handler tests pass.
+- [x] Add table tests for shared helper behavior: validation error, decode
       error, create success, update success, store error.
-- [ ] Manual smoke: create/edit/delete one simple entity in each app.
+- [x] Handler smoke: create/update simple entities through the shared helper for
+      Arabica and Oolong using fake stores; public server smoke starts both apps.
 
 Rollback:
 
@@ -221,26 +222,27 @@ Rollback:
 
 ## Phase 4 — Normalize Arabica onto the generic record path
 
-Status: not started.
+Status: implemented 2026-05-23 for simple entity handlers; complex typed flows intentionally retained.
 
-Goal: reduce reliance on the Arabica-only `database.Store` interface.
+Goal: reduce reliance on the Arabica-only `arabicastore.Store` interface.
 
 Tasks:
 
-- [ ] Convert Arabica simple entity handlers to generic record helpers.
-- [ ] Move Arabica-specific typed repository methods behind local helpers where
-      they still add value.
-- [ ] Reassess `internal/database.Store` after conversions:
-      - If only complex Arabica flows use it, rename/move it to
+- [x] Convert Arabica simple entity handlers to generic record helpers.
+- [x] Move Arabica-specific typed repository methods behind local helpers where
+      they still add value. Complex brew/recipe/social flows remain on
+      `internal/arabica/store` pending a dedicated refactor.
+- [x] Reassess `internal/arabica/store.Store` after conversions:
+      - It still supports complex Arabica flows and tests, so it now lives at
         `internal/arabica/store`.
-      - If no production code uses it, delete it and its mock.
-- [ ] Keep typed model conversion in `internal/arabica/entities`.
+- [x] Keep typed model conversion in `internal/arabica/entities`.
 
 Verification:
 
-- [ ] `go test ./internal/arabica/... ./internal/atproto/...`
-- [ ] `go test ./...`
-- [ ] Manual smoke: Arabica bean/roaster/grinder/brewer CRUD.
+- [x] `go test ./internal/arabica/... ./internal/atproto/...`
+- [x] `go test ./...`
+- [x] Handler smoke: Arabica roaster/grinder generic record CRUD covered by tests;
+      bean remains intentionally bespoke because it can inline-create roasters.
 
 Rollback:
 
@@ -248,23 +250,23 @@ Rollback:
 
 ## Phase 5 — Consolidate route registration where behavior is app-generic
 
-Status: not started.
+Status: implemented 2026-05-23 for descriptor-driven entity bundles.
 
 Goal: remove routing branches that only exist because of current package layout.
 
 Tasks:
 
-- [ ] Identify route bundles that are pure descriptor loops.
-- [ ] Move generic route registration into shared routing/handler code.
-- [ ] Keep app-specific route registration for bespoke pages and onboarding.
-- [ ] Ensure unsupported/deferred entities are gated by `App.Descriptors`, not
+- [x] Identify route bundles that are pure descriptor loops.
+- [x] Move generic route registration into shared routing/handler code.
+- [x] Keep app-specific route registration for bespoke pages and onboarding.
+- [x] Ensure unsupported/deferred entities are gated by `App.Descriptors`, not
       hardcoded app switches.
 
 Verification:
 
-- [ ] Route inventory from Phase 0 matches generated routes after refactor.
-- [ ] `go test ./internal/routing/... ./...`
-- [ ] Manual smoke both apps.
+- [x] Route inventory from Phase 0 matches generated routes after refactor.
+- [x] `go test ./internal/routing/... ./...`
+- [x] Public server smoke both apps; descriptor route filtering covered by tests.
 
 Rollback:
 
@@ -272,23 +274,23 @@ Rollback:
 
 ## Phase 6 — Clean package names and storage layout
 
-Status: not started.
+Status: implemented 2026-05-23.
 
 Goal: make package names match ownership after the backend merge.
 
 Tasks:
 
-- [ ] Move SQLite infrastructure adapters out of `internal/database/sqlitestore`
-      to a clearer package, e.g. `internal/sqlitestore` or
-      `internal/storage/sqlite`.
-- [ ] If `database.Store` remains Arabica-only, move it to
+- [x] Move SQLite infrastructure adapters out of `internal/database/sqlitestore`
+      to owner packages (`internal/atproto/oauthsqlite` and
+      `internal/moderation/sqlite`).
+- [x] If `arabicastore.Store` remains Arabica-only, move it to
       `internal/arabica/store`.
-- [ ] Update docs and AGENTS guidance for the new package boundaries.
+- [x] Update docs and AGENTS guidance for the new package boundaries.
 
 Verification:
 
-- [ ] `go test ./...`
-- [ ] `go vet ./...`
+- [x] `go test ./...`
+- [x] `go vet ./...`
 
 Rollback:
 

@@ -30,21 +30,7 @@ func (h *Handlers) teaViewConfig() handlers.EntityViewConfig {
 		FromPDS:     fromPDS,
 		FromStore:   fromStore,
 		ResolveRefs: func(_ context.Context, model any, raw map[string]any, lookup func(string) (map[string]any, bool)) {
-			tea := model.(*oolong.Tea)
-			if tea.Vendor != nil {
-				return
-			}
-			vendorRef, _ := raw["vendorRef"].(string)
-			if vendorRef == "" {
-				return
-			}
-			m, ok := lookup(vendorRef)
-			if !ok {
-				return
-			}
-			if vendor, err := oolong.RecordToVendor(m, vendorRef); err == nil {
-				tea.Vendor = vendor
-			}
+			oolong.HydrateTeaRefs(model.(*oolong.Tea), raw, lookup)
 		},
 		DisplayName: func(record any) string { return record.(*oolong.Tea).Name },
 		OGSubtitle:  func(record any) string { return record.(*oolong.Tea).Name },
@@ -131,44 +117,7 @@ func (h *Handlers) oolongBrewViewConfig() handlers.EntityViewConfig {
 		FromPDS:     fromPDS,
 		FromStore:   fromStore,
 		ResolveRefs: func(_ context.Context, model any, raw map[string]any, lookup func(string) (map[string]any, bool)) {
-			b := model.(*oolong.Brew)
-
-			if b.Tea == nil {
-				if teaRef, _ := raw["teaRef"].(string); teaRef != "" {
-					if m, ok := lookup(teaRef); ok {
-						if tea, err := oolong.RecordToTea(m, teaRef); err == nil {
-							b.Tea = tea
-							if vendorRef, _ := m["vendorRef"].(string); vendorRef != "" {
-								if vm, ok := lookup(vendorRef); ok {
-									if vendor, err := oolong.RecordToVendor(vm, vendorRef); err == nil {
-										b.Tea.Vendor = vendor
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-
-			if b.Vessel == nil {
-				if vesselRef, _ := raw["vesselRef"].(string); vesselRef != "" {
-					if m, ok := lookup(vesselRef); ok {
-						if vessel, err := oolong.RecordToVessel(m, vesselRef); err == nil {
-							b.Vessel = vessel
-						}
-					}
-				}
-			}
-
-			if b.Infuser == nil {
-				if infuserRef, _ := raw["infuserRef"].(string); infuserRef != "" {
-					if m, ok := lookup(infuserRef); ok {
-						if infuser, err := oolong.RecordToInfuser(m, infuserRef); err == nil {
-							b.Infuser = infuser
-						}
-					}
-				}
-			}
+			oolong.HydrateBrewRefs(model.(*oolong.Brew), raw, lookup)
 		},
 		DisplayName: func(record any) string {
 			b := record.(*oolong.Brew)

@@ -3,13 +3,10 @@
 package bff
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
-
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // UserProfile contains user profile data for header display
@@ -68,33 +65,6 @@ func FormatAvgRating(avg float64) string {
 		return ""
 	}
 	return fmt.Sprintf("%.1f/10", avg)
-}
-
-// PoursToJSON serializes a slice of pours to JSON for use in JavaScript.
-func PoursToJSON(pours []*arabica.Pour) string {
-	if len(pours) == 0 {
-		return "[]"
-	}
-
-	type pourData struct {
-		Water int `json:"water"`
-		Time  int `json:"time"`
-	}
-
-	data := make([]pourData, len(pours))
-	for i, p := range pours {
-		data[i] = pourData{
-			Water: p.WaterAmount,
-			Time:  p.TimeSeconds,
-		}
-	}
-
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		return "[]"
-	}
-
-	return string(jsonBytes)
 }
 
 // HasTemp returns true if temperature is greater than zero

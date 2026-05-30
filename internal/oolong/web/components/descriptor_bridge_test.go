@@ -5,61 +5,99 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 )
 
-func TestOolongDescriptorBridge_AllEntitiesHaveFeedRenderer(t *testing.T) {
-	want := []lexicons.RecordType{
-		lexicons.RecordTypeOolongTea,
-		lexicons.RecordTypeOolongVendor,
-		lexicons.RecordTypeOolongVessel,
-		lexicons.RecordTypeOolongInfuser,
-		lexicons.RecordTypeOolongBrew,
+func TestOolongFeedViews_AllEntitiesHaveFeedRenderer(t *testing.T) {
+	views := FeedViews()
+	want := map[lexicons.RecordType]string{
+		lexicons.RecordTypeOolongTea:     "Teas",
+		lexicons.RecordTypeOolongVendor:  "Vendors",
+		lexicons.RecordTypeOolongVessel:  "Vessels",
+		lexicons.RecordTypeOolongInfuser: "Infusers",
+		lexicons.RecordTypeOolongBrew:    "Brews",
 	}
-	for _, rt := range want {
+	for rt, filterLabel := range want {
 		d := entities.Get(rt)
 		assert.NotNil(t, d, "descriptor missing for %s", rt)
 		if d == nil {
 			continue
 		}
-		assert.NotNil(t, d.RenderFeedContent, "RenderFeedContent not wired for %s", rt)
-		assert.NotNil(t, d.RKey, "RKey not wired for %s", rt)
-		assert.NotNil(t, d.DisplayTitle, "DisplayTitle not wired for %s", rt)
+		assert.NotNil(t, views[rt].Render, "feed renderer not wired for %s", rt)
+		assert.Equal(t, filterLabel, views.FilterLabel(rt), "feed filter label for %s", rt)
+		assert.NotEmpty(t, views.CardClassNoun(rt), "feed card noun for %s", rt)
+		behavior := entities.Behavior(rt)
+		assert.NotNil(t, behavior, "behavior missing for %s", rt)
+		assert.NotNil(t, behavior.RKey, "RKey not wired for %s", rt)
+		assert.NotNil(t, behavior.DisplayTitle, "DisplayTitle not wired for %s", rt)
 	}
 }
 
-func TestOolongDescriptorBridge_BrewHasEditURL(t *testing.T) {
-	d := entities.Get(lexicons.RecordTypeOolongBrew)
-	assert.NotNil(t, d)
-	assert.NotNil(t, d.EditURL, "Oolong Brew should have EditURL wired")
+func TestOolongFeedViews_ActionURLs(t *testing.T) {
+	views := FeedViews()
+
+	assert.Equal(t, "/teas/t1/edit", views.EditURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongTea,
+		Record:     &oolong.Tea{RKey: "t1"},
+	}))
+	assert.Equal(t, "/brews/b1/edit", views.EditURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongBrew,
+		Record:     &oolong.Brew{RKey: "b1"},
+	}))
+	assert.Equal(t, "/api/modals/vendor/v1", views.EditModalURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongVendor,
+		Record:     &oolong.Vendor{RKey: "v1"},
+	}))
 }
 
-func TestOolongDescriptorBridge_CompactEntities(t *testing.T) {
+func TestOolongFeedViews_RecordURLs(t *testing.T) {
+	views := FeedViews()
+
+	assert.Equal(t, "/teas/patrick.test/t1", views.ShareURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongTea,
+		Record:     &oolong.Tea{RKey: "t1"},
+		Author:     author("did:plc:alice", "patrick.test"),
+	}))
+	assert.Equal(t, "/profile/did:plc:alice", views.ShareURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongTea,
+		Record:     &oolong.Tea{},
+		Author:     author("did:plc:alice", ""),
+	}))
+	assert.Equal(t, "/api/vendors/v1", views.DeleteURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongVendor,
+		Record:     &oolong.Vendor{RKey: "v1"},
+	}))
+	assert.Equal(t, "/brews/b1", views.DeleteURL(&feed.FeedItem{
+		RecordType: lexicons.RecordTypeOolongBrew,
+		Record:     &oolong.Brew{RKey: "b1"},
+	}))
+}
+
+func TestOolongFeedViews_CompactEntities(t *testing.T) {
+	views := FeedViews()
 	for _, rt := range []lexicons.RecordType{
 		lexicons.RecordTypeOolongVendor,
 		lexicons.RecordTypeOolongVessel,
 		lexicons.RecordTypeOolongInfuser,
 	} {
-		d := entities.Get(rt)
-		assert.NotNil(t, d)
-		if d == nil {
-			continue
-		}
-		assert.True(t, d.FeedCardCompact, "%s should be FeedCardCompact", rt)
+		assert.True(t, views.Compact(rt), "%s should be compact", rt)
 	}
 }
 
-func TestOolongDescriptorBridge_NonCompactEntities(t *testing.T) {
+func author(did, handle string) *atproto.Profile {
+	return &atproto.Profile{DID: did, Handle: handle}
+}
+
+func TestOolongFeedViews_NonCompactEntities(t *testing.T) {
+	views := FeedViews()
 	for _, rt := range []lexicons.RecordType{
 		lexicons.RecordTypeOolongTea,
 		lexicons.RecordTypeOolongBrew,
 	} {
-		d := entities.Get(rt)
-		assert.NotNil(t, d)
-		if d == nil {
-			continue
-		}
-		assert.False(t, d.FeedCardCompact, "%s should not be FeedCardCompact", rt)
+		assert.False(t, views.Compact(rt), "%s should not be compact", rt)
 	}
 }

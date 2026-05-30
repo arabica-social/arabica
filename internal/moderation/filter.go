@@ -7,7 +7,7 @@ import (
 )
 
 // FilterSource provides the data needed to build a ContentFilter.
-// Both moderation.Store and feed.ModerationFilter satisfy this interface.
+// The SQLite moderation store satisfies this interface.
 type FilterSource interface {
 	ListHiddenURIs(ctx context.Context) ([]string, error)
 	ListBlacklistedDIDs(ctx context.Context) ([]string, error)

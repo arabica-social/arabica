@@ -19,13 +19,14 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atproto"
+	"tangled.org/arabica.social/arabica/internal/atproto/oauthsqlite"
 	"tangled.org/arabica.social/arabica/internal/backup"
-	"tangled.org/arabica.social/arabica/internal/database/sqlitestore"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
@@ -50,6 +51,14 @@ type Options struct {
 	// DefaultMetricsPort is the localhost metrics port used when
 	// <APP>_METRICS_PORT is unset. Empty falls back to "9101".
 	DefaultMetricsPort string
+
+	// AppRoutes registers app-owned routes into the shared HTTP router.
+	// Supplying this keeps internal/routing app-agnostic.
+	AppRoutes routing.AppRoutes
+
+	// StaticPages supplies app-owned static page renderers for shared routes
+	// such as /about and /terms.
+	StaticPages handlers.StaticPageRenderers
 }
 
 // tracingOnce ensures the global OpenTelemetry provider is initialised
@@ -144,6 +153,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	feedIndex, err := firehose.NewFeedIndex(
 		dbPath,
 		time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second,
+		firehose.WithFeedableDescriptors(app.Descriptors),
 	)
 	if err != nil {
 		return fmt.Errorf("open database at %s: %w", dbPath, err)
@@ -153,7 +163,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	feedIndex.SetCommentNSID(app.CommentNSID())
 	log.Info().Str("path", dbPath).Msg("Database opened")
 
-	sessionStore := sqlitestore.NewOAuthStore(feedIndex.DB())
+	sessionStore := oauthsqlite.NewOAuthStore(feedIndex.DB())
 
 	// OAuth manager
 	// REFACTOR: this feels a bit messy
@@ -197,10 +207,9 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	profileWatcher := firehose.NewProfileWatcher(firehoseConfig, feedIndex)
 	profileWatcher.Start(ctx)
 
-	adapter := firehose.NewFeedIndexAdapter(feedIndex)
-	feedService.SetFirehoseIndex(adapter)
+	feedService.SetSource(feedIndex)
 
-	moderationStore := sqlitestore.NewModerationStore(feedIndex.DB())
+	moderationStore := moderationsqlite.NewModerationStore(feedIndex.DB())
 	feedService.SetModerationFilter(moderationStore)
 	log.Info().Msg("Firehose consumer started")
 
@@ -281,6 +290,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	h.SetWitnessCache(feedIndex)
 	h.SetBrand(app.Brand)
 	h.SetApp(app)
+	h.SetStaticPageRenderers(opts.StaticPages)
 
 	// Moderation
 	moderatorsConfigPath := os.Getenv(envPrefix + "_MODERATORS_CONFIG")
@@ -344,6 +354,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	jsAssets := assets.NewJSAssets(assets.JSConfig{DevDir: jsDevDir})
 	jsAssets.MustBuild()
 	assets.RegisterJS(jsAssets)
+	h.SetAssetManifest(assets.NewManifest(cssBundle, jsAssets))
 
 	// Router
 	handler := routing.SetupRouter(routing.Config{
@@ -356,6 +367,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		FirehoseConsumer:  firehoseConsumer,
 		CSSBundle:         cssBundle,
 		JSAssets:          jsAssets,
+		AppRoutes:         opts.AppRoutes,
 	})
 
 	// Internal metrics server (localhost-only)

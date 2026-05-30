@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 
 	"github.com/bluesky-social/indigo/atproto/atclient"
@@ -59,8 +60,8 @@ func createAccount(t *testing.T, pdsURL, email, handle, password string) testAcc
 	}
 }
 
-// newTestStore creates an AtprotoStore backed by a real test PDS using password auth.
-func newTestStore(t *testing.T, pdsURL string, acct testAccount) *atproto.AtprotoStore {
+// newTestStore creates an Arabica-typed store backed by a real test PDS using password auth.
+func newTestStore(t *testing.T, pdsURL string, acct testAccount) *arabicastore.AtprotoStore {
 	t.Helper()
 
 	did := syntax.DID(acct.DID)
@@ -80,9 +81,9 @@ func newTestStore(t *testing.T, pdsURL string, acct testAccount) *atproto.Atprot
 	})
 
 	cache := atproto.NewSessionCache()
-	store := atproto.NewAtprotoStore(client, did, "test-session", cache)
+	store := arabicastore.NewAtprotoStore(atproto.NewAtprotoStore(client, did, "test-session", cache))
 
-	return store.(*atproto.AtprotoStore)
+	return store
 }
 
 func TestPDS_RoasterCRUD(t *testing.T) {

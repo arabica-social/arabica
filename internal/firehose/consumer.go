@@ -120,11 +120,6 @@ func (c *Consumer) IsConnected() bool {
 	return c.upstream.IsConnected()
 }
 
-// Stats returns consumer statistics
-func (c *Consumer) Stats() (eventsReceived, bytesReceived int64) {
-	return c.upstream.Stats()
-}
-
 // handleEvent bridges atp/jetstream events into the arabica indexing pipeline.
 func (c *Consumer) handleEvent(_ context.Context, evt *atpjetstream.Event) error {
 	if evt == nil || evt.Kind != "commit" || evt.Commit == nil {

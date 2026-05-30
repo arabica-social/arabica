@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/suggestions"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -38,40 +37,25 @@ func (s suggestionSource) CountReferencesToURI(ctx context.Context, uri string) 
 	return s.idx.CountReferencesToURI(ctx, uri)
 }
 
-// entityTypeToNSID maps URL path segments to collection NSIDs.
-// Built from the descriptor registry so new entities appear automatically.
-// Note: when arabica and oolong both register an entity at the same URL
-// path (e.g. "brewers", "recipes"), iteration order picks one. The
-// per-app lookup below prefers descriptors that belong to the running
-// app to keep suggestions scoped to the active dataset.
-var entityTypeToNSID = func() map[string]string {
-	m := make(map[string]string)
-	for _, d := range entities.All() {
-		if d.NSID != "" {
-			m[d.URLPath] = d.NSID
-		}
-	}
-	return m
-}()
-
 // nsidForEntity returns the NSID to query for the requested entity URL
-// segment, preferring the running app's descriptor when one is wired.
-// Falls back to the global cross-app map for legacy callers.
+// segment using only the running app's descriptor set. Unknown paths and
+// handlers without an app return an empty string so suggestions cannot bleed
+// across app registries when URL paths collide.
 func (h *Handler) nsidForEntity(entityType string) string {
-	if h.app != nil {
-		for _, d := range h.app.Descriptors {
-			if d.URLPath == entityType && d.NSID != "" {
-				return d.NSID
-			}
-		}
+	route, ok := h.app.EntityRouteByPath(entityType)
+	if !ok {
+		return ""
 	}
-	return entityTypeToNSID[entityType]
+	if d := h.app.DescriptorByType(route.Type); d != nil {
+		return d.NSID
+	}
+	return ""
 }
 
 // HandleEntitySuggestions returns typeahead suggestions for entity creation
 func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
-	if _, authenticated := h.GetAtprotoStore(r); !authenticated {
+	if _, authenticated := h.GetRecordStore(r); !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}

@@ -263,8 +263,9 @@ func labelOolongCafe(c *oolong.Cafe) string {
 // --- Vendor ----------------------------------------------------------
 templ VendorDialogModal(v *oolong.Vendor) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongVendor,
-		RKey: vendorRKey(v),
+		Type:       lexicons.RecordTypeOolongVendor,
+		ActionPath: "vendors",
+		RKey:       vendorRKey(v),
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
@@ -290,8 +291,9 @@ func vendorField(v *oolong.Vendor, fn func(*oolong.Vendor) string) string {
 // --- Vessel ----------------------------------------------------------
 templ VesselDialogModal(v *oolong.Vessel) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongVessel,
-		RKey: vesselRKey(v),
+		Type:       lexicons.RecordTypeOolongVessel,
+		ActionPath: "vessels",
+		RKey:       vesselRKey(v),
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
@@ -319,8 +321,9 @@ func vesselField(v *oolong.Vessel, fn func(*oolong.Vessel) string) string {
 // --- Infuser ---------------------------------------------------------
 templ InfuserDialogModal(i *oolong.Infuser) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongInfuser,
-		RKey: infuserRKey(i),
+		Type:       lexicons.RecordTypeOolongInfuser,
+		ActionPath: "infusers",
+		RKey:       infuserRKey(i),
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
@@ -347,8 +350,9 @@ func infuserField(i *oolong.Infuser, fn func(*oolong.Infuser) string) string {
 // --- Brew (steep) ----------------------------------------------------
 templ BrewDialogModal(b *oolong.Brew) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongBrew,
-		RKey: teaBrewRKey(b),
+		Type:       lexicons.RecordTypeOolongBrew,
+		ActionPath: "brews",
+		RKey:       teaBrewRKey(b),
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
@@ -404,8 +408,9 @@ func teaBrewField(b *oolong.Brew, fn func(*oolong.Brew) string) string {
 // --- Cafe ------------------------------------------------------------
 templ CafeDialogModal(c *oolong.Cafe) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongCafe,
-		RKey: cafeRKey(c),
+		Type:       lexicons.RecordTypeOolongCafe,
+		ActionPath: "cafes",
+		RKey:       cafeRKey(c),
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>
@@ -438,8 +443,9 @@ func cafeField(c *oolong.Cafe, fn func(*oolong.Cafe) string) string {
 // --- Drink (at a cafe) -----------------------------------------------
 templ DrinkDialogModal(d *oolong.Drink) {
 	@ModalShell(ModalShellProps{
-		Type: lexicons.RecordTypeOolongDrink,
-		RKey: drinkRKey(d),
+		Type:       lexicons.RecordTypeOolongDrink,
+		ActionPath: "drinks",
+		RKey:       drinkRKey(d),
 	}) {
 		<div class="form-fieldset">
 			<div class="form-fieldset-label">Essentials</div>

@@ -2,12 +2,18 @@ package atproto
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/rs/zerolog/log"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/metrics"
+	"tangled.org/arabica.social/arabica/internal/records"
+	"tangled.org/pdewey.com/atp"
 )
 
 // rawRecord is what fetchAllRecords returns: a parsed record map plus the
@@ -27,6 +33,26 @@ func (s *AtprotoStore) DID() string {
 	return s.did.String()
 }
 
+// SessionID returns the cache key backing this store.
+func (s *AtprotoStore) SessionID() string {
+	return s.sessionID
+}
+
+// Cache returns the session cache backing this store.
+func (s *AtprotoStore) Cache() *SessionCache {
+	return s.cache
+}
+
+// ATPClient returns an *atp.Client scoped to this store's DID and session.
+func (s *AtprotoStore) ATPClient(ctx context.Context) (*atp.Client, error) {
+	return s.atpClient(ctx)
+}
+
+// WitnessRecordByURI fetches one raw witness record by AT-URI.
+func (s *AtprotoStore) WitnessRecordByURI(ctx context.Context, uri string) *WitnessRecord {
+	return s.getWitnessRecordByURI(ctx, uri)
+}
+
 // FetchRecord is the exported entry point for callers outside this package
 // that need a witness-then-PDS record read for an arbitrary NSID (e.g.
 // per-app view handlers that don't have typed Get* wrappers). It just
@@ -40,6 +66,12 @@ func (s *AtprotoStore) FetchRecord(ctx context.Context, nsid, rkey string) (reco
 		return nil, "", "", fmt.Errorf("record not found: %s/%s", nsid, rkey)
 	}
 	return rec, u, c, nil
+}
+
+// FetchRecordSource is FetchRecord with cache-hit metadata retained for
+// app-owned typed adapters that need source-aware reference resolution.
+func (s *AtprotoStore) FetchRecordSource(ctx context.Context, nsid, rkey string) (record map[string]any, uri, cid string, hit, fromWitness bool, err error) {
+	return s.fetchRecord(ctx, nsid, rkey)
 }
 
 // PutRecord exposes the generic create/update primitive. When rkey is "",
@@ -72,14 +104,24 @@ func (s *AtprotoStore) FetchAllRecords(ctx context.Context, nsid string) ([]RawR
 	return out, nil
 }
 
+// FetchPaginatedRecords exposes the page-oriented witness/PDS list primitive.
+func (s *AtprotoStore) FetchPaginatedRecords(ctx context.Context, nsid string, offset, limit int) ([]RawRecord, error) {
+	raw, err := s.fetchPaginatedRecords(ctx, nsid, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]RawRecord, len(raw))
+	for i, r := range raw {
+		out[i] = RawRecord(r)
+	}
+	return out, nil
+}
+
 // RawRecord is the exported shape of fetchAllRecords' result rows.
 // Callers use Record to decode into a typed model.
-type RawRecord struct {
-	URI    string
-	RKey   string
-	CID    string
-	Record map[string]any
-}
+type RawRecord = records.RawRecord
+
+var _ records.Store = (*AtprotoStore)(nil)
 
 // fetchRecord returns the record at nsid/rkey, hitting the witness cache
 // first and falling back to PDS. The "hit" return is true when the record
@@ -136,6 +178,10 @@ func (s *AtprotoStore) fetchAllRecords(ctx context.Context, nsid string) ([]rawR
 	}
 	records, err := atpClient.ListAllRecords(ctx, nsid)
 	if err != nil {
+		if isRepoNotFoundError(err) {
+			log.Debug().Err(err).Str("did", s.did.String()).Str("nsid", nsid).Msg("list records: repo not found, treating as empty")
+			return nil, nil
+		}
 		return nil, fmt.Errorf("list records %s: %w", nsid, err)
 	}
 	out := make([]rawRecord, 0, len(records))
@@ -148,6 +194,18 @@ func (s *AtprotoStore) fetchAllRecords(ctx context.Context, nsid string) ([]rawR
 		out = append(out, rawRecord{URI: rec.URI, RKey: atURI.RecordKey().String(), CID: rec.CID, Record: rec.Value})
 	}
 	return out, nil
+}
+
+func isRepoNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var xerr *xrpc.Error
+	if errors.As(err, &xerr) && xerr.StatusCode != http.StatusBadRequest && xerr.StatusCode != http.StatusNotFound {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "Could not find repo") || strings.Contains(msg, "Repo not found")
 }
 
 // fetchPaginatedRecords returns a page of records of the given NSID, ordered by
@@ -237,25 +295,11 @@ func (s *AtprotoStore) removeRecord(ctx context.Context, nsid, rkey string) erro
 	return nil
 }
 
-// metricLabelFor returns the short metric label for an NSID. Centralizes
-// the mapping that was previously hardcoded in each typed CRUD method.
-// Unknown NSIDs return "unknown" so metric collection never panics on a
-// new entity that's not yet been added here.
+// metricLabelFor returns the short metric label for an NSID. Unknown NSIDs
+// return "unknown" so metric collection never panics on unregistered records.
 func metricLabelFor(nsid string) string {
-	switch nsid {
-	case arabica.NSIDBean:
-		return "bean"
-	case arabica.NSIDBrew:
-		return "brew"
-	case arabica.NSIDBrewer:
-		return "brewer"
-	case arabica.NSIDGrinder:
-		return "grinder"
-	case arabica.NSIDRecipe:
-		return "recipe"
-	case arabica.NSIDRoaster:
-		return "roaster"
-	default:
-		return "unknown"
+	if descriptor := entities.GetByNSID(nsid); descriptor != nil {
+		return descriptor.Type.String()
 	}
+	return "unknown"
 }

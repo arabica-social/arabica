@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/social"
+
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
@@ -735,165 +737,24 @@ func RecordToBrewer(record map[string]any, atURI string) (*Brewer, error) {
 
 // ========== Like Conversions ==========
 
-// LikeToRecord converts a Like to an atproto record map
-// Uses com.atproto.repo.strongRef format for the subject
+// LikeToRecord converts a Like to an atproto record map.
 func LikeToRecord(like *Like) (map[string]any, error) {
-	if like.SubjectURI == "" {
-		return nil, fmt.Errorf("subject URI is required")
-	}
-	if like.SubjectCID == "" {
-		return nil, fmt.Errorf("subject CID is required")
-	}
-
-	record := map[string]any{
-		"$type": NSIDLike,
-		"subject": map[string]any{
-			"uri": like.SubjectURI,
-			"cid": like.SubjectCID,
-		},
-		"createdAt": like.CreatedAt.Format(time.RFC3339),
-	}
-
-	return record, nil
+	return social.LikeToRecord(NSIDLike, like)
 }
 
-// RecordToLike converts an atproto record map to a Like
+// RecordToLike converts an atproto record map to a Like.
 func RecordToLike(record map[string]any, atURI string) (*Like, error) {
-	like := &Like{}
-
-	// Extract rkey from AT-URI
-	if atURI != "" {
-		parsedURI, err := syntax.ParseATURI(atURI)
-		if err != nil {
-			return nil, fmt.Errorf("invalid AT-URI: %w", err)
-		}
-		like.RKey = parsedURI.RecordKey().String()
-	}
-
-	// Required field: subject (strongRef)
-	subject, ok := record["subject"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("subject is required")
-	}
-	subjectURI, ok := subject["uri"].(string)
-	if !ok || subjectURI == "" {
-		return nil, fmt.Errorf("subject.uri is required")
-	}
-	like.SubjectURI = subjectURI
-
-	subjectCID, ok := subject["cid"].(string)
-	if !ok || subjectCID == "" {
-		return nil, fmt.Errorf("subject.cid is required")
-	}
-	like.SubjectCID = subjectCID
-
-	// Required field: createdAt
-	createdAtStr, ok := record["createdAt"].(string)
-	if !ok {
-		return nil, fmt.Errorf("createdAt is required")
-	}
-	createdAt, err := time.Parse(time.RFC3339, createdAtStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid createdAt format: %w", err)
-	}
-	like.CreatedAt = createdAt
-
-	return like, nil
+	return social.RecordToLike(record, atURI)
 }
 
 // ========== Comment Conversions ==========
 
-// CommentToRecord converts a Comment to an atproto record map
-// Uses com.atproto.repo.strongRef format for the subject
+// CommentToRecord converts a Comment to an atproto record map.
 func CommentToRecord(comment *Comment) (map[string]any, error) {
-	if comment.SubjectURI == "" {
-		return nil, fmt.Errorf("subject URI is required")
-	}
-	if comment.SubjectCID == "" {
-		return nil, fmt.Errorf("subject CID is required")
-	}
-	if comment.Text == "" {
-		return nil, fmt.Errorf("text is required")
-	}
-
-	record := map[string]any{
-		"$type": NSIDComment,
-		"subject": map[string]any{
-			"uri": comment.SubjectURI,
-			"cid": comment.SubjectCID,
-		},
-		"text":      comment.Text,
-		"createdAt": comment.CreatedAt.Format(time.RFC3339),
-	}
-
-	// Add optional parent reference for replies
-	if comment.ParentURI != "" && comment.ParentCID != "" {
-		record["parent"] = map[string]any{
-			"uri": comment.ParentURI,
-			"cid": comment.ParentCID,
-		}
-	}
-
-	return record, nil
+	return social.CommentToRecord(NSIDComment, comment)
 }
 
-// RecordToComment converts an atproto record map to a Comment
+// RecordToComment converts an atproto record map to a Comment.
 func RecordToComment(record map[string]any, atURI string) (*Comment, error) {
-	comment := &Comment{}
-
-	// Extract rkey from AT-URI
-	if atURI != "" {
-		parsedURI, err := syntax.ParseATURI(atURI)
-		if err != nil {
-			return nil, fmt.Errorf("invalid AT-URI: %w", err)
-		}
-		comment.RKey = parsedURI.RecordKey().String()
-	}
-
-	// Required field: subject (strongRef)
-	subject, ok := record["subject"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("subject is required")
-	}
-	subjectURI, ok := subject["uri"].(string)
-	if !ok || subjectURI == "" {
-		return nil, fmt.Errorf("subject.uri is required")
-	}
-	comment.SubjectURI = subjectURI
-
-	subjectCID, ok := subject["cid"].(string)
-	if !ok || subjectCID == "" {
-		return nil, fmt.Errorf("subject.cid is required")
-	}
-	comment.SubjectCID = subjectCID
-
-	// Required field: text
-	text, ok := record["text"].(string)
-	if !ok || text == "" {
-		return nil, fmt.Errorf("text is required")
-	}
-	comment.Text = text
-
-	// Required field: createdAt
-	createdAtStr, ok := record["createdAt"].(string)
-	if !ok {
-		return nil, fmt.Errorf("createdAt is required")
-	}
-	createdAt, err := time.Parse(time.RFC3339, createdAtStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid createdAt format: %w", err)
-	}
-	comment.CreatedAt = createdAt
-
-	// Optional field: parent (strongRef for replies)
-	if parent, ok := record["parent"].(map[string]any); ok {
-		if parentURI, ok := parent["uri"].(string); ok && parentURI != "" {
-			comment.ParentURI = parentURI
-		}
-		if parentCID, ok := parent["cid"].(string); ok && parentCID != "" {
-			comment.ParentCID = parentCID
-		}
-	}
-
-	return comment, nil
+	return social.RecordToComment(record, atURI)
 }

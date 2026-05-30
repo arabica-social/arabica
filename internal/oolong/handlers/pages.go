@@ -25,7 +25,7 @@ import (
 // Returns 204 — the my-tea page is server-rendered, so the client
 // reloads after the POST resolves.
 func (h *Handlers) HandleTeaRefresh(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}
@@ -112,7 +112,7 @@ func (h *Handlers) HandleTeaRefresh(w http.ResponseWriter, r *http.Request) {
 // Tea, etc.) are not joined here — the row label uses the entity's
 // own Name or a sensible fallback.
 func (h *Handlers) HandleMyTea(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}
@@ -182,7 +182,7 @@ func (h *Handlers) HandleMyTea(w http.ResponseWriter, r *http.Request) {
 
 // HandleOolongTeaNew renders the new-tea page.
 func (h *Handlers) HandleOolongTeaNew(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}
@@ -198,7 +198,7 @@ func (h *Handlers) HandleOolongTeaNew(w http.ResponseWriter, r *http.Request) {
 
 // HandleOolongTeaEdit renders the edit-tea page for an existing tea.
 func (h *Handlers) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}
@@ -240,7 +240,7 @@ func (h *Handlers) HandleOolongTeaEdit(w http.ResponseWriter, r *http.Request) {
 // Mirrors arabica's /brews/new, but for tea: full page form instead of
 // modal so the form can grow without crowding a dialog.
 func (h *Handlers) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}
@@ -268,7 +268,7 @@ func (h *Handlers) HandleOolongSteepNew(w http.ResponseWriter, r *http.Request) 
 
 // HandleOolongSteepEdit renders the edit-steep page for an existing brew.
 func (h *Handlers) HandleOolongSteepEdit(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}

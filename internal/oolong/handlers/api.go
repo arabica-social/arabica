@@ -18,7 +18,7 @@ import (
 // AppCache understands. The combo-select system reads this cache
 // to filter user-owned entries during typeahead.
 func (h *Handlers) HandleOolongAPIListAll(w http.ResponseWriter, r *http.Request) {
-	store, ok := h.requireOolongStore(w, r)
+	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
 		return
 	}

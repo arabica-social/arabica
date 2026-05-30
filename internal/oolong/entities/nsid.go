@@ -17,8 +17,8 @@ const (
 	NSIDVendor  = NSIDBase + ".vendor"
 
 	// Cafe and Drink lexicons are defined but deferred for the v1 launch.
-	// Their NSID constants are kept so descriptor_bridge and other lookup
-	// sites continue to compile even while the entities are not registered.
+	// Their NSID constants are kept for lookup sites even while the entities
+	// are not registered.
 	NSIDCafe  = NSIDBase + ".cafe"
 	NSIDDrink = NSIDBase + ".drink"
 
