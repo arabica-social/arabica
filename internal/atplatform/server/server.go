@@ -207,7 +207,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	profileWatcher := firehose.NewProfileWatcher(firehoseConfig, feedIndex)
 	profileWatcher.Start(ctx)
 
-	feedService.SetFirehoseIndex(feedIndex)
+	feedService.SetSource(feedIndex)
 
 	moderationStore := moderationsqlite.NewModerationStore(feedIndex.DB())
 	feedService.SetModerationFilter(moderationStore)

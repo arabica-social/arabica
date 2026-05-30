@@ -1,7 +1,5 @@
-// Package profileprefs defines shared profile preference value types.
 package profileprefs
 
-// Visibility controls who can see a piece of profile data.
 type Visibility string
 
 const (

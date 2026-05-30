@@ -15,16 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// ModerationFilter provides content filtering for moderation.
-// This interface allows the feed service to filter hidden/blacklisted content.
-type ModerationFilter interface {
-	IsRecordHidden(ctx context.Context, atURI string) bool
-	IsBlacklisted(ctx context.Context, did string) bool
-	// Batch methods load the full sets for efficient in-memory filtering.
-	ListBlacklistedDIDs(ctx context.Context) ([]string, error)
-	ListHiddenURIs(ctx context.Context) ([]string, error)
-}
-
 const (
 	// PublicFeedCacheTTL is the duration for which the public feed cache is valid.
 	// This value can be adjusted based on desired freshness vs. performance tradeoff.
@@ -149,7 +139,7 @@ type Service struct {
 	registry         *Registry
 	cache            *publicFeedCache
 	source           Source
-	moderationFilter ModerationFilter
+	moderationFilter moderation.FilterSource
 }
 
 // NewService creates a new feed service
@@ -166,14 +156,8 @@ func (s *Service) SetSource(source Source) {
 	log.Info().Msg("feed: source configured")
 }
 
-// SetFirehoseIndex configures the service to use a firehose-backed feed reader.
-// Kept as a named convenience for the server bootstrap; the seam is Source.
-func (s *Service) SetFirehoseIndex(index Source) {
-	s.SetSource(index)
-}
-
 // SetModerationFilter configures the service to filter moderated content
-func (s *Service) SetModerationFilter(filter ModerationFilter) {
+func (s *Service) SetModerationFilter(filter moderation.FilterSource) {
 	s.moderationFilter = filter
 	log.Info().Msg("feed: moderation filter configured")
 }
