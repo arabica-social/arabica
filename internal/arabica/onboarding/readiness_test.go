@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/records"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -34,6 +35,43 @@ func (s *fakeBrewPrerequisiteStore) ListBrewers(ctx context.Context) ([]*arabica
 
 func (s *fakeBrewPrerequisiteStore) ListRoasters(ctx context.Context) ([]*arabica.Roaster, error) {
 	return s.listRoasters(ctx)
+}
+
+func (s *fakeBrewPrerequisiteStore) DID() string { return "did:plc:abcdefghijklmnopqrstuvwx" }
+
+func (s *fakeBrewPrerequisiteStore) FetchRecord(ctx context.Context, nsid, rkey string) (map[string]any, string, string, error) {
+	return nil, "", "", nil
+}
+
+func (s *fakeBrewPrerequisiteStore) FetchAllRecords(ctx context.Context, nsid string) ([]records.RawRecord, error) {
+	if nsid != arabica.NSIDBrewer {
+		return nil, nil
+	}
+	brewers, err := s.listBrewers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]records.RawRecord, 0, len(brewers))
+	for _, b := range brewers {
+		rkey := b.RKey
+		if rkey == "" {
+			rkey = "brewer-test"
+		}
+		rec, err := arabica.BrewerToRecord(b)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, records.RawRecord{URI: "", RKey: rkey, CID: "test-cid", Record: rec})
+	}
+	return out, nil
+}
+
+func (s *fakeBrewPrerequisiteStore) PutRecord(ctx context.Context, nsid, rkey string, record any) (string, string, error) {
+	return rkey, "", nil
+}
+
+func (s *fakeBrewPrerequisiteStore) RemoveRecord(ctx context.Context, nsid, rkey string) error {
+	return nil
 }
 
 func TestCheckBrewReadiness_None(t *testing.T) {

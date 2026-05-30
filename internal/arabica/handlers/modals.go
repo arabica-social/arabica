@@ -125,7 +125,7 @@ func (h *Handlers) HandleGrinderModalNew(w http.ResponseWriter, r *http.Request)
 func (h *Handlers) HandleGrinderModalEdit(w http.ResponseWriter, r *http.Request) {
 	arabicaModalEdit(h, w, r, "grinder",
 		func(ctx context.Context, s arabicastore.Store, rkey string) (*arabica.Grinder, error) {
-			return s.GetGrinderByRKey(ctx, rkey)
+			return getGrinder(ctx, s, rkey)
 		},
 		func(g *arabica.Grinder) templ.Component { return coffee.GrinderDialogModal(g) },
 	)
@@ -140,7 +140,7 @@ func (h *Handlers) HandleBrewerModalNew(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) HandleBrewerModalEdit(w http.ResponseWriter, r *http.Request) {
 	arabicaModalEdit(h, w, r, "brewer",
 		func(ctx context.Context, s arabicastore.Store, rkey string) (*arabica.Brewer, error) {
-			return s.GetBrewerByRKey(ctx, rkey)
+			return getBrewer(ctx, s, rkey)
 		},
 		func(b *arabica.Brewer) templ.Component { return coffee.BrewerDialogModal(b) },
 	)

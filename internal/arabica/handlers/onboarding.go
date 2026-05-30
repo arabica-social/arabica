@@ -10,14 +10,16 @@ import (
 	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // getStartedCardStore is a narrow interface for buildGetStartedCardProps.
 // This allows tests to pass *arabicastore.MockStore without implementing the
 // full arabicastore.Store interface.
 type getStartedCardStore interface {
-	onboarding.BrewPrerequisiteStore // ListBeans + ListBrewers + ListRoasters
-	ListGrinders(ctx context.Context) ([]*arabica.Grinder, error)
+	records.Store
+	ListBeans(ctx context.Context) ([]*arabica.Bean, error)
+	ListRoasters(ctx context.Context) ([]*arabica.Roaster, error)
 }
 
 // HandleOnboarding renders the dedicated /onboarding page. If the user is
@@ -135,11 +137,11 @@ func buildGetStartedCardProps(ctx context.Context, store getStartedCardStore) (c
 	if err != nil {
 		return coffee.GetStartedCardProps{}, err
 	}
-	brewers, err := store.ListBrewers(ctx)
+	brewers, err := listBrewers(ctx, store)
 	if err != nil {
 		return coffee.GetStartedCardProps{}, err
 	}
-	grinders, err := store.ListGrinders(ctx)
+	grinders, err := listGrinders(ctx, store)
 	if err != nil {
 		return coffee.GetStartedCardProps{}, err
 	}

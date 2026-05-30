@@ -10,13 +10,14 @@ import (
 	"fmt"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 // BrewPrerequisiteStore is the narrow slice of Arabica store behavior that
 // CheckBrewReadiness needs.
 type BrewPrerequisiteStore interface {
+	records.Store
 	ListBeans(ctx context.Context) ([]*arabica.Bean, error)
-	ListBrewers(ctx context.Context) ([]*arabica.Brewer, error)
 	ListRoasters(ctx context.Context) ([]*arabica.Roaster, error)
 }
 
@@ -39,14 +40,14 @@ func (s ReadinessStatus) Ready() bool {
 }
 
 // CheckBrewReadiness derives the user's readiness from the store. It calls
-// ListBeans / ListBrewers / ListRoasters; the AtprotoStore implementation
-// uses its caches, so this is cheap on repeat calls within a request.
+// typed bean/roaster readers and uses the generic records.Store path for
+// brewers, keeping the readiness seam narrower than the full Arabica store.
 func CheckBrewReadiness(ctx context.Context, store BrewPrerequisiteStore) (ReadinessStatus, error) {
 	beans, err := store.ListBeans(ctx)
 	if err != nil {
 		return ReadinessStatus{}, fmt.Errorf("list beans: %w", err)
 	}
-	brewers, err := store.ListBrewers(ctx)
+	brewers, err := listBrewers(ctx, store)
 	if err != nil {
 		return ReadinessStatus{}, fmt.Errorf("list brewers: %w", err)
 	}
@@ -59,4 +60,20 @@ func CheckBrewReadiness(ctx context.Context, store BrewPrerequisiteStore) (Readi
 		HasBrewer:  len(brewers) > 0,
 		HasRoaster: len(roasters) > 0,
 	}, nil
+}
+
+func listBrewers(ctx context.Context, store records.Store) ([]*arabica.Brewer, error) {
+	raw, err := store.FetchAllRecords(ctx, arabica.NSIDBrewer)
+	if err != nil {
+		return nil, err
+	}
+	brewers := make([]*arabica.Brewer, 0, len(raw))
+	for _, r := range raw {
+		brewer, err := arabica.RecordToBrewer(r.Record, r.URI)
+		if err != nil {
+			brewer = &arabica.Brewer{RKey: r.RKey}
+		}
+		brewers = append(brewers, brewer)
+	}
+	return brewers, nil
 }

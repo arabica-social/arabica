@@ -340,8 +340,8 @@ func (s *AtprotoStore) convertBrewRecords(raws []atproto.RawRecord) []*arabica.B
 // resolveBrewReferences fetches entity collections and links them to brews.
 func (s *AtprotoStore) resolveBrewReferences(ctx context.Context, brews []*arabica.Brew) {
 	beans, _ := s.ListBeans(ctx)
-	grinders, _ := s.ListGrinders(ctx)
-	brewers, _ := s.ListBrewers(ctx)
+	grinders, _ := s.listGrinders(ctx)
+	brewers, _ := s.listBrewers(ctx)
 	roasters, _ := s.ListRoasters(ctx)
 	recipes, _ := s.ListRecipes(ctx)
 	beanMap := make(map[string]*arabica.Bean, len(beans))
@@ -600,7 +600,7 @@ func (s *AtprotoStore) DeleteRoasterByRKey(ctx context.Context, rkey string) err
 	return nil
 }
 
-// ========== Grinder Operations ==========
+// ========== Grinder/Brewer compatibility helpers ==========
 
 func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *arabica.CreateGrinderRequest) (*arabica.Grinder, error) {
 	return atproto.CreateEntity(ctx, s, grinderCodec, &arabica.Grinder{
@@ -618,40 +618,6 @@ func (s *AtprotoStore) GetGrinderByRKey(ctx context.Context, rkey string) (*arab
 	return atproto.GetEntity(ctx, s, grinderCodec, rkey)
 }
 
-func (s *AtprotoStore) ListGrinders(ctx context.Context) ([]*arabica.Grinder, error) {
-	return atproto.ListEntity(ctx, s, grinderCodec, func() []*arabica.Grinder {
-		return atproto.CachedSlice[arabica.Grinder](s.AtprotoStore.Cache().Get(s.AtprotoStore.SessionID()), arabica.NSIDGrinder)
-	})
-}
-
-func (s *AtprotoStore) UpdateGrinderByRKey(ctx context.Context, rkey string, grinder *arabica.UpdateGrinderRequest) error {
-	existing, err := s.GetGrinderByRKey(ctx, rkey)
-	if err != nil {
-		return fmt.Errorf("get existing grinder: %w", err)
-	}
-	model := &arabica.Grinder{
-		Name:        grinder.Name,
-		GrinderType: grinder.GrinderType,
-		BurrType:    grinder.BurrType,
-		Notes:       grinder.Notes,
-		Link:        grinder.Link,
-		SourceRef:   grinder.SourceRef,
-		CreatedAt:   existing.CreatedAt,
-	}
-	record, err := arabica.GrinderToRecord(model)
-	if err != nil {
-		return fmt.Errorf("convert grinder: %w", err)
-	}
-	_, _, err = s.AtprotoStore.PutRecord(ctx, arabica.NSIDGrinder, rkey, record)
-	return err
-}
-
-func (s *AtprotoStore) DeleteGrinderByRKey(ctx context.Context, rkey string) error {
-	return s.AtprotoStore.RemoveRecord(ctx, arabica.NSIDGrinder, rkey)
-}
-
-// ========== Brewer Operations ==========
-
 func (s *AtprotoStore) CreateBrewer(ctx context.Context, brewer *arabica.CreateBrewerRequest) (*arabica.Brewer, error) {
 	return atproto.CreateEntity(ctx, s, brewerCodec, &arabica.Brewer{
 		Name:        brewer.Name,
@@ -667,29 +633,18 @@ func (s *AtprotoStore) GetBrewerByRKey(ctx context.Context, rkey string) (*arabi
 	return atproto.GetEntity(ctx, s, brewerCodec, rkey)
 }
 
-func (s *AtprotoStore) ListBrewers(ctx context.Context) ([]*arabica.Brewer, error) {
+// ========== Grinder/Brewer list helpers ==========
+
+func (s *AtprotoStore) listGrinders(ctx context.Context) ([]*arabica.Grinder, error) {
+	return atproto.ListEntity(ctx, s, grinderCodec, func() []*arabica.Grinder {
+		return atproto.CachedSlice[arabica.Grinder](s.AtprotoStore.Cache().Get(s.AtprotoStore.SessionID()), arabica.NSIDGrinder)
+	})
+}
+
+func (s *AtprotoStore) listBrewers(ctx context.Context) ([]*arabica.Brewer, error) {
 	return atproto.ListEntity(ctx, s, brewerCodec, func() []*arabica.Brewer {
 		return atproto.CachedSlice[arabica.Brewer](s.AtprotoStore.Cache().Get(s.AtprotoStore.SessionID()), arabica.NSIDBrewer)
 	})
-}
-
-func (s *AtprotoStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *arabica.UpdateBrewerRequest) error {
-	existing, err := s.GetBrewerByRKey(ctx, rkey)
-	if err != nil {
-		return fmt.Errorf("get existing brewer: %w", err)
-	}
-	return atproto.UpdateEntity(ctx, s, brewerCodec, rkey, &arabica.Brewer{
-		Name:        brewer.Name,
-		BrewerType:  brewer.BrewerType,
-		Description: brewer.Description,
-		Link:        brewer.Link,
-		SourceRef:   brewer.SourceRef,
-		CreatedAt:   existing.CreatedAt,
-	})
-}
-
-func (s *AtprotoStore) DeleteBrewerByRKey(ctx context.Context, rkey string) error {
-	return s.AtprotoStore.RemoveRecord(ctx, arabica.NSIDBrewer, rkey)
 }
 
 // ========== Recipe Operations ==========

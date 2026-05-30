@@ -38,20 +38,6 @@ type Store interface {
 	UpdateRoasterByRKey(ctx context.Context, rkey string, roaster *arabica.UpdateRoasterRequest) error
 	DeleteRoasterByRKey(ctx context.Context, rkey string) error
 
-	// Grinder operations
-	CreateGrinder(ctx context.Context, grinder *arabica.CreateGrinderRequest) (*arabica.Grinder, error)
-	GetGrinderByRKey(ctx context.Context, rkey string) (*arabica.Grinder, error)
-	ListGrinders(ctx context.Context) ([]*arabica.Grinder, error)
-	UpdateGrinderByRKey(ctx context.Context, rkey string, grinder *arabica.UpdateGrinderRequest) error
-	DeleteGrinderByRKey(ctx context.Context, rkey string) error
-
-	// Brewer operations
-	CreateBrewer(ctx context.Context, brewer *arabica.CreateBrewerRequest) (*arabica.Brewer, error)
-	GetBrewerByRKey(ctx context.Context, rkey string) (*arabica.Brewer, error)
-	ListBrewers(ctx context.Context) ([]*arabica.Brewer, error)
-	UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *arabica.UpdateBrewerRequest) error
-	DeleteBrewerByRKey(ctx context.Context, rkey string) error
-
 	// Recipe operations
 	CreateRecipe(ctx context.Context, recipe *arabica.CreateRecipeRequest) (*arabica.Recipe, error)
 	GetRecipeByRKey(ctx context.Context, rkey string) (*arabica.Recipe, error)

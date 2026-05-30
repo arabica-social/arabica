@@ -3,7 +3,7 @@ package arabicastore
 import (
 	"context"
 
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/records"
 )
 
@@ -28,17 +28,9 @@ type MockStore struct {
 	UpdateRoasterByRKeyFunc func(ctx context.Context, rkey string, roaster *arabica.UpdateRoasterRequest) error
 	DeleteRoasterByRKeyFunc func(ctx context.Context, rkey string) error
 
-	CreateGrinderFunc       func(ctx context.Context, grinder *arabica.CreateGrinderRequest) (*arabica.Grinder, error)
-	GetGrinderByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Grinder, error)
-	ListGrindersFunc        func(ctx context.Context) ([]*arabica.Grinder, error)
-	UpdateGrinderByRKeyFunc func(ctx context.Context, rkey string, grinder *arabica.UpdateGrinderRequest) error
-	DeleteGrinderByRKeyFunc func(ctx context.Context, rkey string) error
+	ListGrindersFunc func(ctx context.Context) ([]*arabica.Grinder, error)
 
-	CreateBrewerFunc       func(ctx context.Context, brewer *arabica.CreateBrewerRequest) (*arabica.Brewer, error)
-	GetBrewerByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Brewer, error)
-	ListBrewersFunc        func(ctx context.Context) ([]*arabica.Brewer, error)
-	UpdateBrewerByRKeyFunc func(ctx context.Context, rkey string, brewer *arabica.UpdateBrewerRequest) error
-	DeleteBrewerByRKeyFunc func(ctx context.Context, rkey string) error
+	ListBrewersFunc func(ctx context.Context) ([]*arabica.Brewer, error)
 
 	CreateRecipeFunc       func(ctx context.Context, recipe *arabica.CreateRecipeRequest) (*arabica.Recipe, error)
 	GetRecipeByRKeyFunc    func(ctx context.Context, rkey string) (*arabica.Recipe, error)
@@ -170,20 +162,6 @@ func (m *MockStore) DeleteRoasterByRKey(ctx context.Context, rkey string) error 
 	return nil
 }
 
-func (m *MockStore) CreateGrinder(ctx context.Context, grinder *arabica.CreateGrinderRequest) (*arabica.Grinder, error) {
-	if m.CreateGrinderFunc != nil {
-		return m.CreateGrinderFunc(ctx, grinder)
-	}
-	return nil, nil
-}
-
-func (m *MockStore) GetGrinderByRKey(ctx context.Context, rkey string) (*arabica.Grinder, error) {
-	if m.GetGrinderByRKeyFunc != nil {
-		return m.GetGrinderByRKeyFunc(ctx, rkey)
-	}
-	return nil, nil
-}
-
 func (m *MockStore) ListGrinders(ctx context.Context) ([]*arabica.Grinder, error) {
 	if m.ListGrindersFunc != nil {
 		return m.ListGrindersFunc(ctx)
@@ -191,54 +169,11 @@ func (m *MockStore) ListGrinders(ctx context.Context) ([]*arabica.Grinder, error
 	return []*arabica.Grinder{}, nil
 }
 
-func (m *MockStore) UpdateGrinderByRKey(ctx context.Context, rkey string, grinder *arabica.UpdateGrinderRequest) error {
-	if m.UpdateGrinderByRKeyFunc != nil {
-		return m.UpdateGrinderByRKeyFunc(ctx, rkey, grinder)
-	}
-	return nil
-}
-
-// DeleteGrinderByRKey calls the mock function or returns nil if not set
-func (m *MockStore) DeleteGrinderByRKey(ctx context.Context, rkey string) error {
-	if m.DeleteGrinderByRKeyFunc != nil {
-		return m.DeleteGrinderByRKeyFunc(ctx, rkey)
-	}
-	return nil
-}
-
-func (m *MockStore) CreateBrewer(ctx context.Context, brewer *arabica.CreateBrewerRequest) (*arabica.Brewer, error) {
-	if m.CreateBrewerFunc != nil {
-		return m.CreateBrewerFunc(ctx, brewer)
-	}
-	return nil, nil
-}
-
-func (m *MockStore) GetBrewerByRKey(ctx context.Context, rkey string) (*arabica.Brewer, error) {
-	if m.GetBrewerByRKeyFunc != nil {
-		return m.GetBrewerByRKeyFunc(ctx, rkey)
-	}
-	return nil, nil
-}
-
 func (m *MockStore) ListBrewers(ctx context.Context) ([]*arabica.Brewer, error) {
 	if m.ListBrewersFunc != nil {
 		return m.ListBrewersFunc(ctx)
 	}
 	return []*arabica.Brewer{}, nil
-}
-
-func (m *MockStore) UpdateBrewerByRKey(ctx context.Context, rkey string, brewer *arabica.UpdateBrewerRequest) error {
-	if m.UpdateBrewerByRKeyFunc != nil {
-		return m.UpdateBrewerByRKeyFunc(ctx, rkey, brewer)
-	}
-	return nil
-}
-
-func (m *MockStore) DeleteBrewerByRKey(ctx context.Context, rkey string) error {
-	if m.DeleteBrewerByRKeyFunc != nil {
-		return m.DeleteBrewerByRKeyFunc(ctx, rkey)
-	}
-	return nil
 }
 
 func (m *MockStore) CreateRecipe(ctx context.Context, recipe *arabica.CreateRecipeRequest) (*arabica.Recipe, error) {
@@ -336,7 +271,7 @@ func (m *MockStore) DID() string {
 	if m.DIDFunc != nil {
 		return m.DIDFunc()
 	}
-	return "did:plc:test123456789"
+	return "did:plc:abcdefghijklmnopqrstuvwx"
 }
 
 func (m *MockStore) FetchRecord(ctx context.Context, nsid, rkey string) (map[string]any, string, string, error) {
@@ -349,6 +284,51 @@ func (m *MockStore) FetchRecord(ctx context.Context, nsid, rkey string) (map[str
 func (m *MockStore) FetchAllRecords(ctx context.Context, nsid string) ([]records.RawRecord, error) {
 	if m.FetchAllRecordsFunc != nil {
 		return m.FetchAllRecordsFunc(ctx, nsid)
+	}
+	switch nsid {
+	case arabica.NSIDBrewer:
+		if m.ListBrewersFunc == nil {
+			return nil, nil
+		}
+		brewers, err := m.ListBrewersFunc(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]records.RawRecord, 0, len(brewers))
+		for i, b := range brewers {
+			rkey := b.RKey
+			if rkey == "" {
+				rkey = "brewer-test"
+			}
+			rec, err := arabica.BrewerToRecord(b)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, records.RawRecord{URI: "", RKey: rkey, CID: "test-cid", Record: rec})
+			_ = i
+		}
+		return out, nil
+	case arabica.NSIDGrinder:
+		if m.ListGrindersFunc == nil {
+			return nil, nil
+		}
+		grinders, err := m.ListGrindersFunc(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]records.RawRecord, 0, len(grinders))
+		for _, g := range grinders {
+			rkey := g.RKey
+			if rkey == "" {
+				rkey = "grinder-test"
+			}
+			rec, err := arabica.GrinderToRecord(g)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, records.RawRecord{URI: "", RKey: rkey, CID: "test-cid", Record: rec})
+		}
+		return out, nil
 	}
 	return nil, nil
 }

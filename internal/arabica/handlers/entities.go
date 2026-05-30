@@ -1,6 +1,7 @@
 package coffeehandlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -63,12 +64,12 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		grinders, err = listGrinders(ctx, store)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		brewers, err = listBrewers(ctx, store)
 		return err
 	})
 	g.Go(func() error {
@@ -166,12 +167,12 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		grinders, err = listGrinders(ctx, store)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		brewers, err = listBrewers(ctx, store)
 		return err
 	})
 	g.Go(func() error {
@@ -350,12 +351,12 @@ func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		grinders, err = listGrinders(ctx, store)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		brewers, err = listBrewers(ctx, store)
 		return err
 	})
 
@@ -475,12 +476,12 @@ func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		var err error
-		grinders, err = store.ListGrinders(ctx)
+		grinders, err = listGrinders(ctx, store)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		brewers, err = store.ListBrewers(ctx)
+		brewers, err = listBrewers(ctx, store)
 		return err
 	})
 	g.Go(func() error {
@@ -735,7 +736,9 @@ func (h *Handlers) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.DeleteEntity(w, r, store.DeleteGrinderByRKey, "grinder", arabica.NSIDGrinder)
+	h.DeleteEntity(w, r, func(ctx context.Context, rkey string) error {
+		return store.RemoveRecord(ctx, arabica.NSIDGrinder, rkey)
+	}, "grinder", arabica.NSIDGrinder)
 }
 
 // Brewer CRUD handlers
@@ -799,5 +802,5 @@ func (h *Handlers) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.DeleteEntity(w, r, store.DeleteBrewerByRKey, "brewer", arabica.NSIDBrewer)
+	h.DeleteEntity(w, r, func(ctx context.Context, rkey string) error { return store.RemoveRecord(ctx, arabica.NSIDBrewer, rkey) }, "brewer", arabica.NSIDBrewer)
 }
