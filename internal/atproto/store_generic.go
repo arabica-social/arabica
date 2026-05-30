@@ -2,9 +2,13 @@ package atproto
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/rs/zerolog/log"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -174,6 +178,10 @@ func (s *AtprotoStore) fetchAllRecords(ctx context.Context, nsid string) ([]rawR
 	}
 	records, err := atpClient.ListAllRecords(ctx, nsid)
 	if err != nil {
+		if isRepoNotFoundError(err) {
+			log.Debug().Err(err).Str("did", s.did.String()).Str("nsid", nsid).Msg("list records: repo not found, treating as empty")
+			return nil, nil
+		}
 		return nil, fmt.Errorf("list records %s: %w", nsid, err)
 	}
 	out := make([]rawRecord, 0, len(records))
@@ -186,6 +194,18 @@ func (s *AtprotoStore) fetchAllRecords(ctx context.Context, nsid string) ([]rawR
 		out = append(out, rawRecord{URI: rec.URI, RKey: atURI.RecordKey().String(), CID: rec.CID, Record: rec.Value})
 	}
 	return out, nil
+}
+
+func isRepoNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var xerr *xrpc.Error
+	if errors.As(err, &xerr) && xerr.StatusCode != http.StatusBadRequest && xerr.StatusCode != http.StatusNotFound {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "Could not find repo") || strings.Contains(msg, "Repo not found")
 }
 
 // fetchPaginatedRecords returns a page of records of the given NSID, ordered by
