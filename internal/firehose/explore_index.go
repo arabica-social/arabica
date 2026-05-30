@@ -447,7 +447,10 @@ func (idx *FeedIndex) GetExplore(ctx context.Context, q ExploreQuery) (*ExploreR
 		}
 		alias := "v_" + strings.ReplaceAll(name, "-", "_")
 		switch def.Kind {
-		case explore.FilterFacetText, explore.FilterBool:
+		case explore.FilterFacetText:
+			wh = append(wh, fmt.Sprintf("EXISTS (SELECT 1 FROM explore_values %s WHERE %s.uri = d.uri AND %s.field = ? AND lower(%s.value_text) LIKE ? ESCAPE '\\')", alias, alias, alias, alias))
+			args = append(args, def.Field, exploreContainsPattern(val))
+		case explore.FilterBool:
 			wh = append(wh, fmt.Sprintf("EXISTS (SELECT 1 FROM explore_values %s WHERE %s.uri = d.uri AND %s.field = ? AND lower(%s.value_text) = lower(?))", alias, alias, alias, alias))
 			args = append(args, def.Field, val)
 		case explore.FilterNumberMin:
@@ -555,6 +558,14 @@ func encodeExploreCursor(sort string, d ExploreDocument) string {
 
 func ExploreCursor(sort string, d ExploreDocument) string {
 	return encodeExploreCursor(sort, d)
+}
+
+func exploreContainsPattern(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	return "%" + s + "%"
 }
 
 func decodeExploreCursor(s string) []string {

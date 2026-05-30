@@ -75,6 +75,18 @@ func TestExploreIndexesConfiguredArabicaTypesAndValues(t *testing.T) {
 	assert.Len(t, res.Items, 1)
 }
 
+func TestExploreFacetTextFiltersUseCaseInsensitiveContains(t *testing.T) {
+	idx := newExploreTestIndex(t)
+	ctx := context.Background()
+	match := upsertExploreRecord(t, idx, "did:plc:user", arabica.NSIDBean, "b1", map[string]any{"$type": arabica.NSIDBean, "name": "Guji", "origin": "Guji, Ethiopia"}, 1)
+	upsertExploreRecord(t, idx, "did:plc:user", arabica.NSIDBean, "b2", map[string]any{"$type": arabica.NSIDBean, "name": "Nyeri", "origin": "Kenya"}, 2)
+
+	res, err := idx.GetExplore(ctx, ExploreQuery{App: "arabica", Type: lexicons.RecordTypeBean, Filters: map[string]string{"origin": "ethiopia"}})
+	require.NoError(t, err)
+	require.Len(t, res.Items, 1)
+	assert.Equal(t, match, res.Items[0].SubjectURI)
+}
+
 func TestExploreClustersBySourceRefAndFallsBackWhenCanonicalDeleted(t *testing.T) {
 	idx := newExploreTestIndex(t)
 	ctx := context.Background()
