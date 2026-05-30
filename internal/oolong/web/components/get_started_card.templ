@@ -140,9 +140,14 @@ type stationProps struct {
 }
 
 templ station(p stationProps) {
-	<article class="station" data-no={ p.No } data-kind={ p.Kind } if p.Optional {
-	data-optional="true"
-}>
+	<article
+		class="station"
+		data-no={ p.No }
+		data-kind={ p.Kind }
+		if p.Optional {
+			data-optional="true"
+		}
+	>
 		<header class="station-head">
 			<span class="station-no">{ p.No }</span>
 			<h3 class="station-title">{ p.Title }</h3>

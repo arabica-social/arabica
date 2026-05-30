@@ -39,6 +39,20 @@ templ ExploreContent(props ExploreProps) {
 		</header>
 		@ExploreInteractive(props)
 	</section>
+	<!-- Return to top button -->
+	<div v-scope="ScrollTop()" @vue:mounted="setup">
+		<button
+			:class="{ 'is-visible': visible }"
+			@click="scrollTop"
+			class="scroll-top-btn fixed bottom-6 right-6 z-50 bg-brown-800 text-brown-50 rounded-full shadow-lg hover:bg-brown-700 transition-colors cursor-pointer p-3 sm:px-4 sm:py-2.5 sm:rounded-lg flex items-center gap-2"
+			aria-label="Return to top"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+				<path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+			</svg>
+			<span class="hidden sm:inline text-sm font-medium">Back to top</span>
+		</button>
+	</div>
 }
 
 templ ExploreInteractive(props ExploreProps) {
@@ -89,18 +103,18 @@ templ ExploreInteractive(props ExploreProps) {
 				<details class="explore-advanced-filters" open?={ hasAdvancedFilters(props) }>
 					<summary class="text-sm font-medium text-emphasis cursor-pointer">Advanced filters</summary>
 					<div class="explore-filter-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-						@filterInput(props, "origin", "Origin")
-						@filterInput(props, "roaster", "Roaster")
-						@filterInput(props, "roast_level", "Roast level")
-						@filterInput(props, "process", "Process")
-						@filterInput(props, "variety", "Variety")
-						@filterInput(props, "location", "Location")
-						@filterInput(props, "grinder_type", "Grinder type")
-						@filterInput(props, "burr_type", "Burr type")
-						@filterInput(props, "brewer_type", "Brewer type")
-						@filterInput(props, "min_rating", "Minimum rating")
-						@filterInput(props, "ratio_min", "Ratio min")
-						@filterInput(props, "ratio_max", "Ratio max")
+						@filterInput(props, "origin", "Origin", "Ethiopia, Colombia, Kenya…")
+						@filterInput(props, "roaster", "Roaster", "Onyx, Sey, Heart…")
+						@filterInput(props, "roast_level", "Roast level", "Light, medium, dark…")
+						@filterInput(props, "process", "Process", "Washed, natural, honey…")
+						@filterInput(props, "variety", "Variety", "Bourbon, Gesha, Caturra…")
+						@filterInput(props, "location", "Location", "Portland, Tokyo, London…")
+						@filterInput(props, "grinder_type", "Grinder type", "Hand, electric…")
+						@filterInput(props, "burr_type", "Burr type", "Conical, flat…")
+						@filterInput(props, "brewer_type", "Brewer type", "V60, espresso, aeropress…")
+						@filterInput(props, "min_rating", "Minimum rating", "8")
+						@filterInput(props, "ratio_min", "Ratio min", "15")
+						@filterInput(props, "ratio_max", "Ratio max", "17")
 						<label class="block">
 							<span class="block text-sm font-medium text-muted mb-1">Closed beans</span>
 							<select class="form-select w-full" name="closed">
@@ -143,10 +157,10 @@ templ typeOption(selected lexicons.RecordType, value lexicons.RecordType, label 
 	<option value={ string(value) } selected?={ selected == value }>{ label }</option>
 }
 
-templ filterInput(props ExploreProps, name string, label string) {
+templ filterInput(props ExploreProps, name string, label string, placeholder string) {
 	<label class="block">
 		<span class="block text-sm font-medium text-muted mb-1">{ label }</span>
-		<input class="form-input w-full" type="text" name={ name } value={ selectedFilter(props, name) }/>
+		<input class="form-input w-full" type="text" name={ name } value={ selectedFilter(props, name) } placeholder={ placeholder }/>
 	</label>
 }
 

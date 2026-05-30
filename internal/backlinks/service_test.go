@@ -79,10 +79,7 @@ func (f fakeSource) ListUsageBacklinksPage(ctx context.Context, uri, fromCollect
 	if offset >= len(all) {
 		return nil, len(all), nil
 	}
-	end := offset + limit
-	if end > len(all) {
-		end = len(all)
-	}
+	end := min(offset+limit, len(all))
 	return all[offset:end], len(all), nil
 }
 
@@ -142,7 +139,7 @@ func TestLookupPaginatesSelectedUsageGroup(t *testing.T) {
 	})
 	root := testRecord(t, "did:plc:alice", testBean, "b1", 1, map[string]any{"name": "Gesha"})
 	recs := []IndexedRecord{root}
-	for i := 0; i < 30; i++ {
+	for i := range 30 {
 		recs = append(recs, testRecord(t, "did:plc:user", testBrew, fmt.Sprintf("br%d", i), 100-i, map[string]any{"beanRef": root.URI}))
 	}
 

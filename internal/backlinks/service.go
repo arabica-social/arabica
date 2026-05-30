@@ -279,10 +279,7 @@ func (s *Service) usageBacklinks(ctx context.Context, uri string, cfg EntityConf
 				count = len(all)
 				start := (page - 1) * perPage
 				if start < len(all) {
-					end := start + perPage
-					if end > len(all) {
-						end = len(all)
-					}
+					end := min(start+perPage, len(all))
 					recs = all[start:end]
 				}
 			}

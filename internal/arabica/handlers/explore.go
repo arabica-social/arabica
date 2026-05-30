@@ -12,7 +12,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var exploreFilterNames = []string{"origin", "variety", "process", "roast_level", "roaster", "min_rating", "closed", "location", "grinder_type", "burr_type", "brewer_type", "ratio_min", "ratio_max"}
+var exploreFilterNames = []string{
+	"origin",
+	"variety",
+	"process",
+	"roast_level",
+	"roaster",
+	"min_rating",
+	"closed",
+	"location",
+	"grinder_type",
+	"burr_type",
+	"brewer_type",
+	"ratio_min",
+	"ratio_max",
+}
 
 func (h *Handlers) HandleExplore(w http.ResponseWriter, r *http.Request) {
 	_, authenticated := h.GetArabicaStore(r)
@@ -44,7 +58,13 @@ func (h *Handlers) HandleExplore(w http.ResponseWriter, r *http.Request) {
 	for _, item := range result.Items {
 		item.IsLikedByViewer = liked[item.SubjectURI]
 	}
-	if err := coffeepages.ExplorePage(layoutData, coffeepages.ExploreProps{Query: query, Result: result, Health: h.FeedIndex().ExploreHealth(r.Context()), FilterNames: exploreFilterNames, RoutePaths: h.exploreRoutePaths()}).Render(r.Context(), w); err != nil {
+	if err := coffeepages.ExplorePage(layoutData, coffeepages.ExploreProps{
+		Query:       query,
+		Result:      result,
+		Health:      h.FeedIndex().ExploreHealth(r.Context()),
+		FilterNames: exploreFilterNames,
+		RoutePaths:  h.exploreRoutePaths(),
+	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("failed to render explore page")
 	}
@@ -70,10 +90,7 @@ func (h *Handlers) getModeratedExplore(r *http.Request, query firehose.ExploreQu
 	if requested > 50 {
 		requested = 50
 	}
-	query.Limit = requested * 3
-	if query.Limit > 50 {
-		query.Limit = 50
-	}
+	query.Limit = min(requested*3, 50)
 
 	out := &firehose.ExploreResult{Documents: make(map[string]firehose.ExploreDocument)}
 	cursor := query.Cursor
@@ -119,7 +136,15 @@ func (h *Handlers) getModeratedExplore(r *http.Request, query firehose.ExploreQu
 func parseExploreQuery(r *http.Request) firehose.ExploreQuery {
 	v := r.URL.Query()
 	rt := lexicons.ParseRecordType(v.Get("type"))
-	q := firehose.ExploreQuery{App: "arabica", Type: rt, Q: v.Get("q"), Sort: v.Get("sort"), Cursor: v.Get("cursor"), Limit: 20, Filters: make(map[string]string)}
+	q := firehose.ExploreQuery{
+		App:     "arabica",
+		Type:    rt,
+		Q:       v.Get("q"),
+		Sort:    v.Get("sort"),
+		Cursor:  v.Get("cursor"),
+		Limit:   20,
+		Filters: make(map[string]string),
+	}
 	for _, name := range exploreFilterNames {
 		if val := v.Get(name); val != "" {
 			q.Filters[name] = val

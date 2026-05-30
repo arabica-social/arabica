@@ -292,7 +292,7 @@ func beanRatingInitData(bean *arabica.Bean) string {
 	return "BeanRating(0)"
 }
 
-func getStringValue(entity interface{}, field string) string {
+func getStringValue(entity any, field string) string {
 	if entity == nil {
 		return ""
 	}

@@ -65,7 +65,7 @@ func TestGetModeratedExploreOverfetchesHiddenRecords(t *testing.T) {
 	display := "Explore User"
 	idx.StoreProfile(context.Background(), did, &atproto.Profile{DID: did, Handle: "explore.test", DisplayName: &display})
 	var hidden []string
-	for i := 0; i < 40; i++ {
+	for i := range 40 {
 		createdAt := time.Date(2026, 5, 23, 12, 0, i, 0, time.UTC).Format(time.RFC3339)
 		record, err := json.Marshal(map[string]any{"$type": arabica.NSIDBean, "name": fmt.Sprintf("Bean %02d", i), "createdAt": createdAt})
 		require.NoError(t, err)
