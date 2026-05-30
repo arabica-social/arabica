@@ -32,7 +32,7 @@ templ ExploreContent(props ExploreProps) {
 				<p class="explore-lede">Find beans, roasters, gear, and recipes people have made public. Reused records gather together, like notes pinned beside the original bag.</p>
 			</div>
 			if props.Health.Dirty {
-				<div class="explore-stale-note">
+				<div class="explore-stale-note" role="status" aria-live="polite">
 					Explore is catching up. Results may be slightly stale.
 				</div>
 			}
@@ -162,9 +162,8 @@ templ ExploreCard(item *feed.FeedItem, doc firehose.ExploreDocument, routePaths 
 		<div class="explore-card-stats">
 			if doc.OwnRating.Valid {
 				<span class="explore-stat explore-stat-rating">
-					@components.IconStar() {
-						fmt.Sprintf("%.0f/10", doc.OwnRating.Float64) 
-					}
+					@components.IconStar()
+					{ fmt.Sprintf("%.0f/10", doc.OwnRating.Float64) }
 				</span>
 			}
 			<span>{ fmt.Sprintf("%d likes", item.LikeCount) }</span>
