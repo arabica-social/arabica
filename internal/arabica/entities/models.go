@@ -41,11 +41,6 @@ const (
 
 type ProfileStatsVisibility = profileprefs.ProfileStatsVisibility
 
-// DefaultProfileStatsVisibility returns the default visibility (all public).
-func DefaultProfileStatsVisibility() ProfileStatsVisibility {
-	return profileprefs.DefaultProfileStatsVisibility()
-}
-
 // Brewer type categories (knownValues from lexicon)
 const (
 	BrewerTypePourover  = "pourover"

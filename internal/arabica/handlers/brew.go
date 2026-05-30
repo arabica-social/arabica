@@ -17,30 +17,11 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
-
-// populateBrewOGMetadata sets OpenGraph metadata on layoutData for a brew page.
-// This enriches social media previews when brew links are shared.
-func (h *Handlers) populateBrewOGMetadata(layoutData *components.LayoutData, brew *arabica.Brew, owner, baseURL, shareURL string) {
-	if brew == nil {
-		return
-	}
-
-	var subtitle string
-	if brew.Bean != nil {
-		subtitle = brew.Bean.Name
-		if brew.Bean.Roaster != nil && brew.Bean.Roaster.Name != "" {
-			subtitle += " from " + brew.Bean.Roaster.Name
-		}
-	}
-
-	handlers.PopulateOGFields(layoutData, subtitle, "brew", owner, baseURL, shareURL)
-}
 
 // HandleBrewOGImage generates a 1200x630 PNG preview card for a brew.
 // Used as the og:image for social media embeds.

@@ -41,18 +41,6 @@ func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *Se
 	}
 }
 
-// NewAtprotoStoreWithWitness creates a store that uses the witness cache for
-// cache-first reads, falling back to the PDS on cache misses.
-func NewAtprotoStoreWithWitness(client *Client, did syntax.DID, sessionID string, cache *SessionCache, witness WitnessCache) *AtprotoStore {
-	return &AtprotoStore{
-		client:       client,
-		did:          did,
-		sessionID:    sessionID,
-		cache:        cache,
-		witnessCache: witness,
-	}
-}
-
 // NewAtprotoStoreForApp builds a store wired with per-app like/comment NSIDs.
 func NewAtprotoStoreForApp(client *Client, did syntax.DID, sessionID string, cache *SessionCache, witness WitnessCache, likeNSID, commentNSID string) *AtprotoStore {
 	return &AtprotoStore{

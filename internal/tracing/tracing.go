@@ -27,11 +27,6 @@ func SqliteSpan(ctx context.Context, op, table string) (context.Context, trace.S
 	return atptracing.SqliteSpan(ctx, op, table)
 }
 
-// PdsSpan starts a span for a PDS XRPC operation.
-func PdsSpan(ctx context.Context, method, collection, did string) (context.Context, trace.Span) {
-	return atptracing.PdsSpan(ctx, method, collection, did)
-}
-
 // HandlerSpan starts a span for a logical operation within a handler.
 func HandlerSpan(ctx context.Context, name string, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
 	return atptracing.HandlerSpan(ctx, name, attrs...)
