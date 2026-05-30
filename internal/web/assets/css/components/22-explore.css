@@ -1,11 +1,105 @@
 .explore-page {
-  width: min(calc(100% - 2rem), 64rem);
+  width: min(calc(100% - 2rem), 68rem);
   margin-inline: auto;
+  padding-block: clamp(1.5rem, 4vw, 3.5rem) 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.25rem, 3vw, 2rem);
+}
+
+.explore-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.explore-hero-copy {
+  max-width: 43rem;
+}
+
+.explore-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--type-bean);
+  font-weight: 700;
+}
+
+.explore-eyebrow::before {
+  content: "";
+  display: block;
+  width: 1.75rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.72;
+}
+
+.explore-title {
+  margin: 0;
+  font-size: clamp(2.15rem, 6vw, 3.6rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.explore-lede {
+  margin: 0.85rem 0 0;
+  max-width: 40rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--text-emphasis);
+}
+
+.explore-stale-note {
+  flex: 0 1 18rem;
+  padding: 0.9rem 1rem;
+  border: 1px dashed color-mix(in oklch, var(--type-roaster) 44%, var(--card-border));
+  border-radius: 0.875rem;
+  background:
+    var(--texture-kraft),
+    color-mix(in oklch, var(--type-roaster-tint) 70%, var(--card-bg));
+  color: var(--text-emphasis);
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 
 .explore-controls {
   padding: 0;
   overflow: hidden;
+  background: var(--card-bg);
+  background-image: var(--texture-kraft);
+  background-blend-mode: multiply;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+
+.explore-controls::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--type-bean) 0%,
+    var(--type-bean) 25%,
+    var(--type-roaster) 25%,
+    var(--type-roaster) 50%,
+    var(--type-brewer) 50%,
+    var(--type-brewer) 75%,
+    var(--type-recipe) 75%,
+    var(--type-recipe) 100%
+  );
+  opacity: 0.86;
 }
 
 .explore-controls-summary {
@@ -14,8 +108,9 @@
   align-items: center;
   column-gap: 0.75rem;
   row-gap: 0.5rem;
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem 1rem;
   list-style: none;
+  position: relative;
 }
 
 .explore-controls-summary::-webkit-details-marker {
@@ -32,8 +127,10 @@
   height: 1.5rem;
   border: 1px solid var(--card-border);
   border-radius: 999px;
-  color: var(--text-muted);
+  color: var(--type-bean);
   font-weight: 600;
+  background: var(--surface-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, currentColor 12%, transparent);
 }
 
 .explore-controls-title {
@@ -42,6 +139,8 @@
 
 .explore-controls-count {
   justify-self: end;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .explore-controls[open] > .explore-controls-summary::before {
@@ -49,7 +148,7 @@
 }
 
 .explore-controls-form {
-  padding: 0 1.25rem 1.25rem;
+  padding: 0 1.5rem 1.5rem;
   border-top: 1px solid var(--card-border);
 }
 
@@ -59,9 +158,11 @@
 
 .explore-advanced-filters {
   padding: 0.75rem;
-  border: 1px dashed var(--surface-border);
+  border: 1px dashed color-mix(in oklch, var(--type-grinder) 35%, var(--surface-border));
   border-radius: 8px;
-  background: var(--surface-bg);
+  background:
+    var(--texture-dotgrid),
+    color-mix(in oklch, var(--type-grinder-tint) 35%, var(--surface-bg));
 }
 
 .explore-advanced-filters summary {
@@ -75,13 +176,173 @@
   margin-top: 0.75rem;
 }
 
+.explore-results {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.explore-card {
+  --explore-tint: var(--type-bean);
+  --explore-tint-bg: var(--type-bean-tint);
+  position: relative;
+  min-height: 13rem;
+  padding: 1.15rem 1.15rem 1rem;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 0.875rem;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.explore-card::before {
+  content: attr(data-kind);
+  position: absolute;
+  right: 0.45rem;
+  bottom: -0.8rem;
+  color: var(--explore-tint);
+  opacity: 0.07;
+  font-size: clamp(3.25rem, 8vw, 5.4rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.explore-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in oklch, var(--explore-tint) 14%, transparent), transparent 38%),
+    var(--explore-tint-bg);
+  opacity: 0.42;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.explore-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.explore-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in oklch, var(--explore-tint) 32%, var(--card-border));
+}
+
+.explore-card[data-kind="bean"] {
+  --explore-tint: var(--type-bean);
+  --explore-tint-bg: var(--type-bean-tint);
+}
+
+.explore-card[data-kind="roaster"] {
+  --explore-tint: var(--type-roaster);
+  --explore-tint-bg: var(--type-roaster-tint);
+}
+
+.explore-card[data-kind="grinder"] {
+  --explore-tint: var(--type-grinder);
+  --explore-tint-bg: var(--type-grinder-tint);
+}
+
+.explore-card[data-kind="brewer"] {
+  --explore-tint: var(--type-brewer);
+  --explore-tint-bg: var(--type-brewer-tint);
+}
+
+.explore-card[data-kind="recipe"] {
+  --explore-tint: var(--type-recipe);
+  --explore-tint-bg: var(--type-recipe-tint);
+}
+
+.explore-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.explore-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 160ms ease;
+}
+
+.explore-card-link:hover {
+  opacity: 0.92;
+}
+
+.explore-card-stats {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.explore-card-stats > span,
+.explore-card-stats > time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.45rem;
+  border: 1px solid color-mix(in oklch, var(--explore-tint) 18%, var(--card-border));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--card-bg) 74%, var(--explore-tint-bg));
+}
+
+.explore-stat-rating {
+  color: var(--text-emphasis);
+  font-weight: 600;
+}
+
+.explore-stat-rating svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--explore-tint);
+}
+
+.explore-empty {
+  border-radius: 1rem;
+  background-image: var(--texture-kraft);
+  background-blend-mode: multiply;
+}
+
+.explore-more-row {
+  display: flex;
+  justify-content: center;
+}
+
 @media (min-width: 768px) {
   .explore-primary-filters {
     grid-template-columns: minmax(14rem, 24rem) minmax(9rem, 11rem) minmax(9rem, 11rem);
   }
+
+  .explore-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
+  .explore-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .explore-controls-summary {
     align-items: start;
     grid-template-columns: auto minmax(0, 1fr);
@@ -90,5 +351,16 @@
   .explore-controls-count {
     grid-column: 2;
     justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-card,
+  .explore-card-link {
+    transition: none;
+  }
+
+  .explore-card:hover {
+    transform: none;
   }
 }
