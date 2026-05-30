@@ -11,7 +11,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 )
 
-// ModerationStore implements moderation.Store using SQLite.
+// ModerationStore persists moderation state in SQLite.
 // It shares the database connection with the firehose FeedIndex.
 type ModerationStore struct {
 	db *sql.DB
@@ -22,9 +22,6 @@ type ModerationStore struct {
 func NewModerationStore(db *sql.DB) *ModerationStore {
 	return &ModerationStore{db: db}
 }
-
-// Ensure ModerationStore implements the interface at compile time.
-var _ moderation.Store = (*ModerationStore)(nil)
 
 // ========== Hidden Records ==========
 

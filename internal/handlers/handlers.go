@@ -17,6 +17,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
+	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/signup"
@@ -77,7 +78,7 @@ type Handler struct {
 
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
-	moderationStore   moderation.Store
+	moderationStore   *moderationsqlite.ModerationStore
 
 	// Backup service (optional) — exposes per-source status to admin views.
 	backupService *backup.Service
@@ -260,8 +261,8 @@ func (h *Handler) FeedRegistry() *feed.Registry { return h.feedRegistry }
 // app identity (e.g. for branch logic in cross-app endpoints).
 func (h *Handler) App() *domain.App { return h.app }
 
-// SetModeration configures the handler with moderation service and store
-func (h *Handler) SetModeration(svc *moderation.Service, store moderation.Store) {
+// SetModeration configures the handler with moderation service and SQLite store.
+func (h *Handler) SetModeration(svc *moderation.Service, store *moderationsqlite.ModerationStore) {
 	h.moderationService = svc
 	h.moderationStore = store
 }
