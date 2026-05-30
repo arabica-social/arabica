@@ -259,15 +259,12 @@ func (s *Service) usageBacklinks(ctx context.Context, uri string, cfg EntityConf
 	for _, ref := range cfg.UsageRefs {
 		key := ref.key()
 		page, perPage := 1, 0
-		if opts.UsageKey == key {
+		if opts.UsagePerPage > 0 && (opts.UsageKey == "" || opts.UsageKey == key) {
 			page = opts.UsagePage
 			if page <= 0 {
 				page = 1
 			}
 			perPage = opts.UsagePerPage
-			if perPage <= 0 {
-				perPage = 25
-			}
 		}
 
 		var recs []IndexedRecord

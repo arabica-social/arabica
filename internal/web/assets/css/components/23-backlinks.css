@@ -102,6 +102,10 @@
   list-style: none;
 }
 
+.backlinks-entry-list-more {
+  margin-top: 0.5rem;
+}
+
 .backlinks-entry {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -133,17 +137,10 @@
   white-space: nowrap;
 }
 
-.backlinks-pager {
+.backlinks-more-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  justify-content: center;
   margin-top: 1rem;
-}
-
-.backlinks-pager-status {
-  font-size: 0.875rem;
-  color: var(--text-muted);
 }
 
 @media (max-width: 640px) {

@@ -42,10 +42,10 @@ templ BacklinksViewCard(props BacklinksViewProps) {
 			}
 			for _, group := range props.Result.Usage {
 				if group.Count > 0 {
-					<section class="mt-6">
+					<section id={ usageSectionID(group) } class="mt-6">
 						<h2 class="backlinks-heading">Used in { fmt.Sprintf("%d", group.Count) } { group.Label }</h2>
 						@backlinksEntryList(group.Entries, false, props.RoutePaths)
-						@usagePager(props, group)
+						@usageLoadMore(props, group)
 					</section>
 				}
 			}
@@ -53,51 +53,66 @@ templ BacklinksViewCard(props BacklinksViewProps) {
 	</div>
 }
 
-templ usagePager(props BacklinksViewProps, group backlinks.UsageGroup) {
-	if group.PerPage > 0 && (group.HasPrev || group.HasNext) {
-		<nav class="backlinks-pager" aria-label={ "Pagination for " + group.Label }>
-			if group.HasPrev {
-				<a class="btn-secondary text-sm" href={ templ.SafeURL(usagePageURL(props, group, group.Page-1)) }>← Newer</a>
-			} else {
-				<span></span>
-			}
-			<span class="backlinks-pager-status">Page { fmt.Sprintf("%d", group.Page) } of { fmt.Sprintf("%d", usagePageCount(group)) }</span>
-			if group.HasNext {
-				<a class="btn-secondary text-sm" href={ templ.SafeURL(usagePageURL(props, group, group.Page+1)) }>Older →</a>
-			}
-		</nav>
+templ usageLoadMore(props BacklinksViewProps, group backlinks.UsageGroup) {
+	if group.PerPage > 0 && group.HasNext {
+		<div class="backlinks-more-row">
+			<button
+				type="button"
+				class="btn-secondary text-sm load-more-btn"
+				hx-get={ templ.SafeURL(usagePageURL(props, group, group.Page+1)) }
+				hx-target="closest .backlinks-more-row"
+				hx-swap="outerHTML"
+				hx-disabled-elt="this"
+			>
+				<span class="load-more-idle">Load more</span>
+				<span class="load-more-busy">Loading...</span>
+			</button>
+		</div>
 	}
+}
+
+templ BacklinksUsageMore(props BacklinksViewProps, group backlinks.UsageGroup) {
+	<ul class="backlinks-entry-list backlinks-entry-list-more">
+		for _, e := range group.Entries {
+			@backlinksEntry(e, false, props.RoutePaths)
+		}
+	</ul>
+	@usageLoadMore(props, group)
 }
 
 templ backlinksEntryList(entries []backlinks.Entry, showChain bool, routePaths map[lexicons.RecordType]string) {
 	<ul class="backlinks-entry-list">
 		for _, e := range entries {
-			<li class="backlinks-entry">
-				if e.Title != "" && recordViewURL(e, routePaths) != "" {
-					<a href={ templ.SafeURL(recordViewURL(e, routePaths)) } class="backlinks-entry-title">{ e.Title }</a>
-					<a href={ templ.SafeURL(profileURLForHandlePublic(e.Handle)) } class="backlinks-entry-user">
-						if e.AvatarURL != "" {
-							<img src={ e.AvatarURL } alt="" class="backlinks-entry-avatar" loading="lazy"/>
-						}
-						<span class="text-xs text-secondary">by { entryDisplayName(e) }</span>
-					</a>
-				} else {
-					<a href={ templ.SafeURL(profileURLForHandlePublic(e.Handle)) } class="backlinks-entry-user">
-						if e.AvatarURL != "" {
-							<img src={ e.AvatarURL } alt="" class="backlinks-entry-avatar" loading="lazy"/>
-						}
-						<span>{ entryDisplayName(e) }</span>
-					</a>
-				}
-				<span class="backlinks-entry-meta">
-					{ e.CreatedAt.Format("Jan 2, 2006") }
-					if showChain && e.ChainDepth > 1 {
-						<span class="text-faint">· fork depth { fmt.Sprintf("%d", e.ChainDepth) }</span>
-					}
-				</span>
-			</li>
+			@backlinksEntry(e, showChain, routePaths)
 		}
 	</ul>
+}
+
+templ backlinksEntry(e backlinks.Entry, showChain bool, routePaths map[lexicons.RecordType]string) {
+	<li class="backlinks-entry">
+		if e.Title != "" && recordViewURL(e, routePaths) != "" {
+			<a href={ templ.SafeURL(recordViewURL(e, routePaths)) } class="backlinks-entry-title">{ e.Title }</a>
+			<a href={ templ.SafeURL(profileURLForHandlePublic(e.Handle)) } class="backlinks-entry-user">
+				if e.AvatarURL != "" {
+					<img src={ e.AvatarURL } alt="" class="backlinks-entry-avatar" loading="lazy"/>
+				}
+				<span class="text-xs text-secondary">by { entryDisplayName(e) }</span>
+			</a>
+		} else {
+			<a href={ templ.SafeURL(profileURLForHandlePublic(e.Handle)) } class="backlinks-entry-user">
+				if e.AvatarURL != "" {
+					<img src={ e.AvatarURL } alt="" class="backlinks-entry-avatar" loading="lazy"/>
+				}
+				<span>{ entryDisplayName(e) }</span>
+			</a>
+		}
+		<span class="backlinks-entry-meta">
+			{ e.CreatedAt.Format("Jan 2, 2006") }
+			if showChain && e.ChainDepth > 1 {
+				<span class="text-faint">· fork depth { fmt.Sprintf("%d", e.ChainDepth) }</span>
+			}
+		</span>
+	</li>
 }
 
 func recordViewURL(e backlinks.Entry, routePaths map[lexicons.RecordType]string) string {
@@ -146,16 +161,13 @@ func pluralWordPublic(singular, plural string, n int) string {
 	return plural
 }
 
-func usagePageCount(group backlinks.UsageGroup) int {
-	if group.PerPage <= 0 {
-		return 1
-	}
-	return (group.Count + group.PerPage - 1) / group.PerPage
-}
-
 func usagePageURL(props BacklinksViewProps, group backlinks.UsageGroup, page int) string {
 	if page < 1 {
 		page = 1
 	}
 	return fmt.Sprintf("%s?usage=%s&page=%d", props.DetailURL, group.Key, page)
+}
+
+func usageSectionID(group backlinks.UsageGroup) string {
+	return "backlinks-usage-" + group.Key
 }

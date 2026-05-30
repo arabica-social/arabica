@@ -320,6 +320,17 @@ func (h *Handler) RenderBacklinksView(w http.ResponseWriter, r *http.Request, cf
 		Result:     result,
 		RoutePaths: h.entityRoutePaths(),
 	}
+	if r.Header.Get("HX-Request") == "true" && usageKey != "" && usagePage > 1 && result != nil {
+		for _, group := range result.Usage {
+			if group.Key == usageKey {
+				if err := pages.BacklinksUsageMore(props, group).Render(r.Context(), w); err != nil {
+					http.Error(w, "Failed to render", http.StatusInternalServerError)
+					log.Error().Err(err).Msg("failed to render backlinks usage page")
+				}
+				return
+			}
+		}
+	}
 	if err := pages.BacklinksView(layoutData, props).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("failed to render backlinks page")
