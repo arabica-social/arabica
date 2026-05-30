@@ -205,7 +205,11 @@ func SetupRouter(cfg Config) http.Handler {
 	// 1. Limit request body size (innermost - runs first on request)
 	handler = middleware.LimitBodyMiddleware(handler)
 
-	// 2. Apply OAuth middleware to add auth context
+	// 2. Add authenticated user attributes to the active HTTP span. This must
+	// sit inside CookieAuth so the request context already contains the DID.
+	handler = middleware.UserDIDSpanMiddleware(handler)
+
+	// 3. Apply OAuth middleware to add auth context
 	if cfg.OAuthApp != nil {
 		appName := ""
 		if cfg.App != nil {
@@ -220,23 +224,23 @@ func SetupRouter(cfg Config) http.Handler {
 		})(handler)
 	}
 
-	// 3. Apply rate limiting
+	// 4. Apply rate limiting
 	rateLimitConfig := middleware.NewDefaultRateLimitConfig()
 	handler = middleware.RateLimitMiddleware(rateLimitConfig)(handler)
 
-	// 4. Apply security headers
+	// 5. Apply security headers
 	handler = middleware.SecurityHeadersMiddleware(handler)
 
-	// 5. Apply logging middleware
+	// 6. Apply logging middleware
 	handler = middleware.LoggingMiddleware(cfg.Logger, metrics.HTTPRequestObserver{})(handler)
 
-	// 6. Inject trace_id into zerolog context (runs after otelhttp creates the span)
+	// 7. Inject trace_id into zerolog context (runs after otelhttp creates the span)
 	handler = middleware.RequestIDMiddleware(cfg.Logger)(handler)
 
-	// 7. Enrich trace spans with client page context (runs inside otelhttp span)
+	// 8. Enrich trace spans with client page context (runs inside otelhttp span)
 	handler = pageContextMiddleware(handler)
 
-	// 8. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
+	// 9. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
 	handler = otelhttp.NewHandler(handler, "arabica",
 		otelhttp.WithFilter(func(r *http.Request) bool {
 			return !strings.HasPrefix(r.URL.Path, "/static/") && r.URL.Path != "/favicon.ico"
