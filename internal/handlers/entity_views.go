@@ -34,10 +34,6 @@ type SocialData struct {
 	IsRecordHidden bool
 }
 
-type rawAtprotoStore interface {
-	RawAtprotoStore() *atproto.AtprotoStore
-}
-
 // fetchSocialData retrieves likes, comments, and moderation state for a record
 func (h *Handler) FetchSocialData(ctx context.Context, subjectURI, didStr string, isAuthenticated bool) SocialData {
 	var sd SocialData
@@ -87,17 +83,22 @@ type EntityViewConfig struct {
 	FromWitness func(ctx context.Context, m map[string]any, uri, rkey, ownerDID string) (any, error)
 	FromPDS     func(ctx context.Context, e *atp.Record, rkey, ownerDID string) (any, error)
 	FromStore   func(ctx context.Context, s *atproto.AtprotoStore, rkey string) (any, map[string]any, string, string, error)
-	// ResolveRefs, if set, runs after a record is decoded on any of the
-	// three source paths (own-store, witness, PDS). It receives the
-	// typed model, the raw record map (to read ref AT-URIs), and a
-	// source-bound lookup that fetches foreign records. Implementations
-	// must be idempotent — for the own-store path the codec PostGet
-	// may have already populated some ref fields.
 	ResolveRefs func(ctx context.Context, model any, raw map[string]any, lookup func(refURI string) (map[string]any, bool))
+
 	DisplayName func(record any) string
 	OGSubtitle  func(record any) string
 	CountLookup func(ctx context.Context, ownerDID, subjectURI string) int
 	Render      func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error
+}
+
+func (cfg EntityViewConfig) loadConfig() EntityLoadConfig {
+	return EntityLoadConfig{
+		Descriptor:  cfg.Descriptor,
+		FromWitness: cfg.FromWitness,
+		FromPDS:     cfg.FromPDS,
+		FromStore:   cfg.FromStore,
+		ResolveRefs: cfg.ResolveRefs,
+	}
 }
 
 func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg EntityViewConfig) {
@@ -105,12 +106,6 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 	if rkey == "" {
 		return
 	}
-	route := h.entityRouteFor(cfg.Descriptor)
-	entityNoun := route.Noun
-	if entityNoun == "" {
-		entityNoun = "content"
-	}
-
 	owner := r.URL.Query().Get("owner")
 	didStr, _ := atpmiddleware.GetDID(r.Context())
 	isAuthenticated := didStr != ""
@@ -120,110 +115,38 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 		userProfile = h.GetUserProfile(r.Context(), didStr)
 	}
 
-	var record any
-	var subjectURI, subjectCID, entityOwnerDID string
-	isOwnProfile := false
-
-	if owner == "" {
-		http.Error(w, "owner required", http.StatusBadRequest)
-		return
-	}
-
-	var err error
-	entityOwnerDID, err = ResolveOwnerDID(r.Context(), owner)
+	loaded, err := h.EntityViewLoader().Load(r, rkey, cfg.loadConfig())
 	if err != nil {
-		log.Warn().Err(err).Str("handle", owner).Msgf("Failed to resolve handle for %s view", entityNoun)
-		http.Error(w, "User not found", http.StatusNotFound)
+		if loadErr, ok := err.(*EntityLoadError); ok {
+			http.Error(w, loadErr.Msg, loadErr.HTTPStatus())
+		} else {
+			http.Error(w, "Failed to load record", http.StatusInternalServerError)
+		}
 		return
-	}
-	isOwnProfile = isAuthenticated && didStr == entityOwnerDID
-
-	// If the viewer owns the record, read through the authenticated
-	// AtprotoStore so locally-written records that the firehose hasn't
-	// caught up to are still visible.
-	if isOwnProfile {
-		if store, ok := h.GetRecordStore(r); ok {
-			atprotoStore, _ := store.(*atproto.AtprotoStore)
-			if atprotoStore == nil {
-				if wrapped, ok := store.(rawAtprotoStore); ok {
-					atprotoStore = wrapped.RawAtprotoStore()
-				}
-			}
-			if atprotoStore != nil {
-				if rec, raw, uri, cid, err := cfg.FromStore(r.Context(), atprotoStore, rkey); err == nil {
-					record, subjectURI, subjectCID = rec, uri, cid
-					if cfg.ResolveRefs != nil {
-						cfg.ResolveRefs(r.Context(), record, raw, h.WitnessLookup(r.Context()))
-					}
-				}
-			}
-		}
-	}
-
-	if record == nil {
-		entityURI := atp.BuildATURI(entityOwnerDID, cfg.Descriptor.NSID, rkey)
-		if h.witnessCache != nil {
-			if wr, _ := h.witnessCache.GetWitnessRecord(r.Context(), entityURI); wr != nil {
-				if m, err := atproto.WitnessRecordToMap(wr); err == nil {
-					if rec, err := cfg.FromWitness(r.Context(), m, wr.URI, rkey, entityOwnerDID); err == nil {
-						metrics.WitnessCacheHitsTotal.WithLabelValues(entityNoun).Inc()
-						record = rec
-						subjectURI = wr.URI
-						subjectCID = wr.CID
-						if cfg.ResolveRefs != nil {
-							cfg.ResolveRefs(r.Context(), record, m, h.WitnessLookup(r.Context()))
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if record == nil {
-		metrics.WitnessCacheMissesTotal.WithLabelValues(entityNoun).Inc()
-		pub := atproto.NewPublicClient()
-		entry, err := pub.GetPublicRecord(r.Context(), entityOwnerDID, cfg.Descriptor.NSID, rkey)
-		if err != nil {
-			log.Error().Err(err).Str("did", entityOwnerDID).Str("rkey", rkey).Msgf("Failed to get %s record", entityNoun)
-			http.Error(w, cfg.Descriptor.DisplayName+" not found", http.StatusNotFound)
-			return
-		}
-		rec, err := cfg.FromPDS(r.Context(), entry, rkey, entityOwnerDID)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to convert %s record", entityNoun)
-			http.Error(w, "Failed to load "+entityNoun, http.StatusInternalServerError)
-			return
-		}
-		record = rec
-		subjectURI = entry.URI
-		subjectCID = entry.CID
-		if cfg.ResolveRefs != nil {
-			cfg.ResolveRefs(r.Context(), record, entry.Value, PublicLookup(r.Context()))
-		}
 	}
 
 	var shareURL string
-	if owner != "" && route.Path != "" {
-		shareURL = fmt.Sprintf("/%s/%s/%s", route.Path, owner, rkey)
-	} else if userProfile != nil && userProfile.Handle != "" && route.Path != "" {
-		shareURL = fmt.Sprintf("/%s/%s/%s", route.Path, userProfile.Handle, rkey)
+	if owner != "" && loaded.Route.Path != "" {
+		shareURL = fmt.Sprintf("/%s/%s/%s", loaded.Route.Path, owner, rkey)
+	} else if userProfile != nil && userProfile.Handle != "" && loaded.Route.Path != "" {
+		shareURL = fmt.Sprintf("/%s/%s/%s", loaded.Route.Path, userProfile.Handle, rkey)
 	}
 
 	ownerHandle := h.ResolveOwnerHandle(r.Context(), owner)
-	layoutData := h.BuildLayoutData(r, cfg.DisplayName(record), isAuthenticated, didStr, userProfile)
-	PopulateOGFields(layoutData, cfg.OGSubtitle(record), entityNoun, ownerHandle, h.PublicBaseURL(r), shareURL)
+	layoutData := h.BuildLayoutData(r, cfg.DisplayName(loaded.Record), isAuthenticated, didStr, userProfile)
+	PopulateOGFields(layoutData, cfg.OGSubtitle(loaded.Record), loaded.EntityNoun, ownerHandle, h.PublicBaseURL(r), shareURL)
 
-	sd := h.FetchSocialData(r.Context(), subjectURI, didStr, isAuthenticated)
+	sd := h.FetchSocialData(r.Context(), loaded.SubjectURI, didStr, isAuthenticated)
 
-	authorDID := entityOwnerDID
+	authorDID := loaded.OwnerDID
 	if authorDID == "" {
 		authorDID = didStr
 	}
 	base := pages.EntityViewBase{
-		IsOwnProfile:    isOwnProfile,
+		IsOwnProfile:    loaded.IsOwnProfile,
 		IsAuthenticated: isAuthenticated,
-		SubjectURI:      subjectURI,
-		SubjectCID:      subjectCID,
+		SubjectURI:      loaded.SubjectURI,
+		SubjectCID:      loaded.SubjectCID,
 		IsLiked:         sd.IsLiked,
 		LikeCount:       sd.LikeCount,
 		CommentCount:    sd.CommentCount,
@@ -234,7 +157,7 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 		CanHideRecord:   sd.CanHideRecord,
 		CanBlockUser:    sd.CanBlockUser,
 		IsRecordHidden:  sd.IsRecordHidden,
-		AuthorDID:       entityOwnerDID,
+		AuthorDID:       loaded.OwnerDID,
 	}
 	if ap := h.GetUserProfile(r.Context(), authorDID); ap != nil {
 		base.AuthorHandle = ap.Handle
@@ -242,9 +165,9 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 		base.AuthorAvatar = ap.Avatar
 	}
 
-	if err := cfg.Render(r.Context(), w, layoutData, record, base); err != nil {
+	if err := cfg.Render(r.Context(), w, layoutData, loaded.Record, base); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Failed to render %s view", entityNoun)
+		log.Error().Err(err).Msgf("Failed to render %s view", loaded.EntityNoun)
 	}
 }
 
