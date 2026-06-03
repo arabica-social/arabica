@@ -414,7 +414,7 @@ templ PoursSection(props BrewFormProps) {
 // TemperatureField renders the temperature input
 templ TemperatureField(props BrewFormProps) {
 	@components.FormField(
-		components.FormFieldProps{Label: "Temperature"},
+		components.FormFieldProps{Label: "Temperature (°F/°C)"},
 		components.NumberInput(components.NumberInputProps{
 			Name:        "temperature",
 			Value:       getTemperature(props),
