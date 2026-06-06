@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 	"tangled.org/pdewey.com/atp"
@@ -27,6 +28,7 @@ type FeedQueryState struct {
 	FeedViews       feedviews.Registry     // App-scoped renderers for feed cards
 	BrandName       string
 	EmptyState      FeedEmptyState
+	UserPreferences profileprefs.UserPreferences
 }
 
 type FeedEmptyState struct {
@@ -221,7 +223,7 @@ templ FeedCardWithModeration(item *feed.FeedItem, isAuthenticated bool, modCtx F
 			@ActionText(item, qs.FeedViews)
 		</div>
 		<!-- Record content is dispatched through the app-scoped feed view registry. -->
-		if content := qs.FeedViews.Render(item); content != nil {
+		if content := qs.FeedViews.RenderWithPreferences(item, qs.UserPreferences); content != nil {
 			@content
 		}
 		<!-- Action bar -->

@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 )
 
 // UserProfile contains user profile data for header display
@@ -19,17 +21,42 @@ type UserProfile struct {
 // FormatTemp formats a temperature value with unit detection.
 // Returns "N/A" if temp is 0, otherwise determines C/F based on >100 threshold.
 func FormatTemp(temp float64) string {
+	return FormatTempForUnit(temp, "")
+}
+
+func FormatTempForUnit(temp float64, preferred profileprefs.TemperatureUnit) string {
 	if temp == 0 {
 		return "N/A"
 	}
 
-	// REFACTOR: This probably isn't the best way to deal with units
-	unit := 'C'
-	if temp > 100 {
-		unit = 'F'
+	value := temp
+	unit := detectedTempUnit(temp)
+	if preferred == profileprefs.TemperatureUnitRecorded || !preferred.IsValid() {
+		return fmt.Sprintf("%.1f°%s", value, tempUnitSuffix(unit))
 	}
+	if preferred != unit {
+		if preferred == profileprefs.TemperatureUnitCelsius {
+			value = (temp - 32) * 5 / 9
+		} else {
+			value = temp*9/5 + 32
+		}
+		unit = preferred
+	}
+	return fmt.Sprintf("%.1f°%s", value, tempUnitSuffix(unit))
+}
 
-	return fmt.Sprintf("%.1f°%c", temp, unit)
+func detectedTempUnit(temp float64) profileprefs.TemperatureUnit {
+	if temp > 100 {
+		return profileprefs.TemperatureUnitFahrenheit
+	}
+	return profileprefs.TemperatureUnitCelsius
+}
+
+func tempUnitSuffix(unit profileprefs.TemperatureUnit) string {
+	if unit == profileprefs.TemperatureUnitFahrenheit {
+		return "F"
+	}
+	return "C"
 }
 
 // FormatTime formats seconds into a human-readable time string (e.g., "3m 30s").

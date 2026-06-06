@@ -10,6 +10,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/social"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
@@ -230,6 +231,10 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		descriptors = h.app.Descriptors
 	}
 	brandName := h.brand.DisplayName
+	userPrefs := profileprefs.DefaultUserPreferences()
+	if h.feedIndex != nil && viewerDID != "" {
+		userPrefs = h.feedIndex.GetUserPreferences(r.Context(), viewerDID)
+	}
 	queryState := pages.FeedQueryState{
 		TypeFilter:      typeFilterStr,
 		Sort:            string(sortBy),
@@ -239,6 +244,7 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		FeedViews:       h.feedViews,
 		BrandName:       brandName,
 		EmptyState:      h.feedPresentation.EmptyState,
+		UserPreferences: userPrefs,
 	}
 
 	// If this is a "load more" request (has cursor), render just the additional items

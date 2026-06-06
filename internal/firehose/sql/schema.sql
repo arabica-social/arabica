@@ -180,7 +180,8 @@ CREATE INDEX IF NOT EXISTS idx_modlabels_expires ON moderation_labels(expires_at
 
 CREATE TABLE IF NOT EXISTS user_settings (
     did  TEXT PRIMARY KEY,
-    profile_stats_visibility TEXT NOT NULL DEFAULT '{}'
+    profile_stats_visibility TEXT NOT NULL DEFAULT '{}',
+    preferences TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS oauth_sessions (

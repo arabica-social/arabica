@@ -140,3 +140,23 @@ func (s *profileIndexStorage) setProfileStatsVisibility(ctx context.Context, did
 	)
 	return err
 }
+
+func (s *profileIndexStorage) userPreferences(ctx context.Context, did string) (string, bool) {
+	var raw string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT preferences FROM user_settings WHERE did = ?`, did,
+	).Scan(&raw)
+	if err != nil {
+		return "", false
+	}
+	return raw, true
+}
+
+func (s *profileIndexStorage) setUserPreferences(ctx context.Context, did, raw string) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO user_settings (did, preferences) VALUES (?, ?)
+		 ON CONFLICT(did) DO UPDATE SET preferences = excluded.preferences`,
+		did, raw,
+	)
+	return err
+}

@@ -179,6 +179,14 @@ func NewFeedIndex(path string, profileTTL time.Duration, opts ...FeedIndexOption
 		_ = db.Close()
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
+	if _, err := db.Exec(`ALTER TABLE user_settings ADD COLUMN preferences TEXT NOT NULL DEFAULT '{}'`); err != nil {
+		// Existing databases already have this column. SQLite reports that as an
+		// error, so only fail for genuinely unexpected migration problems.
+		if !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+			_ = db.Close()
+			return nil, fmt.Errorf("failed to migrate user settings: %w", err)
+		}
+	}
 
 	idx := &FeedIndex{
 		db:                  db,
@@ -1114,6 +1122,30 @@ func (idx *FeedIndex) SetProfileStatsVisibility(ctx context.Context, did string,
 		return fmt.Errorf("marshal settings: %w", err)
 	}
 	return idx.profileStorage.setProfileStatsVisibility(ctx, did, string(raw))
+}
+
+func (idx *FeedIndex) GetUserPreferences(ctx context.Context, did string) profileprefs.UserPreferences {
+	defaults := profileprefs.DefaultUserPreferences()
+	if did == "" {
+		return defaults
+	}
+	raw, ok := idx.profileStorage.userPreferences(ctx, did)
+	if !ok {
+		return defaults
+	}
+	var prefs profileprefs.UserPreferences
+	if err := json.Unmarshal([]byte(raw), &prefs); err != nil {
+		return defaults
+	}
+	return prefs.WithDefaults()
+}
+
+func (idx *FeedIndex) SetUserPreferences(ctx context.Context, did string, prefs profileprefs.UserPreferences) error {
+	raw, err := json.Marshal(prefs.WithDefaults())
+	if err != nil {
+		return fmt.Errorf("marshal preferences: %w", err)
+	}
+	return idx.profileStorage.setUserPreferences(ctx, did, string(raw))
 }
 
 func formatTimeAgo(t time.Time) string {

@@ -1,6 +1,7 @@
 package components
 
 import (
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
@@ -14,6 +15,7 @@ type LayoutData struct {
 	CSPNonce                string
 	IsModerator             bool // User has moderation permissions
 	UnreadNotificationCount int  // Number of unread notifications
+	UserPreferences         profileprefs.UserPreferences
 
 	// Brand strings, populated from domain.BrandConfig. Empty values fall
 	// back to the arabica defaults via the helper methods below — keeps

@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,6 +31,15 @@ func TestFormatTemp(t *testing.T) {
 			assert.Equal(t, tt.expected, got)
 		})
 	}
+}
+
+func TestFormatTempForUnitConvertsToPreference(t *testing.T) {
+	assert.Equal(t, "93.5°C", FormatTempForUnit(93.5, profileprefs.TemperatureUnitRecorded))
+	assert.Equal(t, "200.0°F", FormatTempForUnit(200, profileprefs.TemperatureUnitRecorded))
+	assert.Equal(t, "93.3°C", FormatTempForUnit(200, profileprefs.TemperatureUnitCelsius))
+	assert.Equal(t, "200.3°F", FormatTempForUnit(93.5, profileprefs.TemperatureUnitFahrenheit))
+	assert.Equal(t, "93.5°C", FormatTempForUnit(93.5, profileprefs.TemperatureUnitCelsius))
+	assert.Equal(t, "200.0°F", FormatTempForUnit(200, profileprefs.TemperatureUnitFahrenheit))
 }
 
 func TestFormatTime(t *testing.T) {

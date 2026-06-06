@@ -19,6 +19,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/signup"
 	"tangled.org/arabica.social/arabica/internal/social"
@@ -573,8 +574,10 @@ func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated
 
 	// Get unread notification count for authenticated users
 	var unreadNotifCount int
+	userPrefs := profileprefs.DefaultUserPreferences()
 	if h.feedIndex != nil && didStr != "" {
 		unreadNotifCount = h.feedIndex.GetUnreadCount(didStr)
+		userPrefs = h.feedIndex.GetUserPreferences(r.Context(), didStr)
 	}
 
 	return &components.LayoutData{
@@ -585,6 +588,7 @@ func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated
 		CSPNonce:                middleware.CSPNonceFromContext(r.Context()),
 		IsModerator:             isModerator,
 		UnreadNotificationCount: unreadNotifCount,
+		UserPreferences:         userPrefs,
 		BrandName:               h.brand.DisplayName,
 		BrandTagline:            h.brand.Tagline,
 		AppName:                 appName(h.app),

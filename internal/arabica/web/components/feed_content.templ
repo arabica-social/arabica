@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"tangled.org/arabica.social/arabica/internal/feed"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 )
@@ -50,12 +51,16 @@ templ BrewerFeedContent(item *feed.FeedItem) {
 // FeedBrewContentClickable renders brew content wrapped in a clickable link.
 // Moved from pages/feed.templ during Phase 1 of the oolong-frontend split.
 templ FeedBrewContentClickable(item *feed.FeedItem) {
+	@FeedBrewContentClickableWithPreferences(item, profileprefs.DefaultUserPreferences())
+}
+
+templ FeedBrewContentClickableWithPreferences(item *feed.FeedItem, prefs profileprefs.UserPreferences) {
 	if b := brew(item); b != nil {
 		<a
 			href={ templ.SafeURL(fmt.Sprintf("/brews/%s/%s", feedviews.Actor(item), b.RKey)) }
 			class="block hover:opacity-90 transition-opacity"
 		>
-			@BrewContent(b)
+			@BrewContentWithTemperatureUnit(b, prefs.WithDefaults().TemperatureUnit)
 		</a>
 	}
 }

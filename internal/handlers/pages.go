@@ -65,8 +65,10 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 	sessionID, _ := atpmiddleware.GetSessionID(r.Context())
 
 	var statsVis profileprefs.ProfileStatsVisibility
+	prefs := profileprefs.DefaultUserPreferences()
 	if h.feedIndex != nil {
 		statsVis = h.feedIndex.GetProfileStatsVisibility(r.Context(), didStr)
+		prefs = h.feedIndex.GetUserPreferences(r.Context(), didStr)
 	} else {
 		statsVis = profileprefs.DefaultProfileStatsVisibility()
 	}
@@ -75,6 +77,7 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 
 	if err := pages.Settings(data, pages.SettingsProps{
 		ProfileStatsVisibility: statsVis,
+		UserPreferences:        prefs,
 		BlueskyProfile: pages.BlueskyProfileSettings{
 			HasScopes:      bskyForm.HasScopes,
 			DisplayName:    bskyForm.DisplayName,
@@ -86,6 +89,34 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render settings page")
 	}
+}
+
+func (h *Handler) HandleSettingsPreferences(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form", http.StatusBadRequest)
+		return
+	}
+
+	didStr, ok := atpmiddleware.GetDID(r.Context())
+	if !ok {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	prefs := profileprefs.UserPreferences{
+		TemperatureUnit: profileprefs.TemperatureUnit(r.FormValue("temperature_unit")),
+	}.WithDefaults()
+
+	if h.feedIndex != nil {
+		if err := h.feedIndex.SetUserPreferences(r.Context(), didStr, prefs); err != nil {
+			log.Error().Err(err).Msg("Failed to save user preferences")
+			http.Error(w, "Failed to save preferences", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(`<span class="text-sm text-green-700 dark:text-green-400">Saved</span>`))
 }
 
 func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 )
@@ -34,18 +35,18 @@ type BrewViewProps struct {
 
 // BrewView renders the full brew view page
 templ BrewView(layout *components.LayoutData, props BrewViewProps) {
-	@components.Layout(layout, BrewViewContent(props))
+	@components.Layout(layout, BrewViewContent(layout, props))
 }
 
 // BrewViewContent renders the brew view page content
-templ BrewViewContent(props BrewViewProps) {
+templ BrewViewContent(layout *components.LayoutData, props BrewViewProps) {
 	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, BrewViewCard(props))
+		@components.Card(components.CardProps{InnerCard: true}, BrewViewCard(layout, props))
 	</div>
 }
 
 // BrewViewCard renders the brew details card
-templ BrewViewCard(props BrewViewProps) {
+templ BrewViewCard(layout *components.LayoutData, props BrewViewProps) {
 	@components.RecordViewHeader(components.RecordViewHeaderProps{
 		RecordType:    "brew",
 		Title:         getBrewShareTitle(props.Brew),
@@ -65,7 +66,7 @@ templ BrewViewCard(props BrewViewProps) {
 			@components.JournalField(components.DetailStackedProps{Icon: components.IconDroplet(), Label: "Water", Value: getWaterAmountDisplay(props.Brew)})
 			@components.JournalField(components.DetailStackedProps{Icon: components.IconGear(), Label: "Grinder", Value: getGrinderName(props.Brew), LinkHref: getGrinderViewURL(props.Brew, getOwnerFromShareURL(props.ShareURL))})
 			@components.JournalField(components.DetailStackedProps{Icon: components.IconDisc(), Label: "Grind Size", Value: getGrindSizeDisplay(props.Brew)})
-			@components.JournalField(components.DetailStackedProps{Icon: components.IconThermometer(), Label: "Temperature", Value: getTemperatureDisplay(props.Brew)})
+			@components.JournalField(components.DetailStackedProps{Icon: components.IconThermometer(), Label: "Temperature", Value: getTemperatureDisplay(props.Brew, layout.UserPreferences.TemperatureUnit)})
 			if props.Brew.PouroverParams != nil && props.Brew.PouroverParams.Filter != "" {
 				@components.JournalField(components.DetailStackedProps{Icon: components.IconSliders(), Label: "Filter", Value: props.Brew.PouroverParams.Filter})
 			}
@@ -315,9 +316,9 @@ func getGrindSizeDisplay(brew *arabica.Brew) string {
 	return brew.GrindSize
 }
 
-func getTemperatureDisplay(brew *arabica.Brew) string {
+func getTemperatureDisplay(brew *arabica.Brew, unit profileprefs.TemperatureUnit) string {
 	if brew.Temperature > 0 {
-		return bff.FormatTemp(brew.Temperature)
+		return bff.FormatTempForUnit(brew.Temperature, unit)
 	}
 	return ""
 }

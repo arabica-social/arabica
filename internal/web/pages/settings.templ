@@ -7,6 +7,7 @@ import (
 
 type SettingsProps struct {
 	ProfileStatsVisibility profileprefs.ProfileStatsVisibility
+	UserPreferences        profileprefs.UserPreferences
 	BlueskyProfile         BlueskyProfileSettings
 }
 
@@ -58,6 +59,22 @@ templ settingsContent(props SettingsProps) {
 					</button>
 				</div>
 			</div>
+		</div>
+		<div class="card card-inner mt-4">
+			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Brewing Preferences</h2>
+			<p class="text-sm mb-4" style="color: var(--text-muted);">These preferences are tied to your DID, so they follow you across devices. Theme stays device-local.</p>
+			<form hx-post="/api/settings/preferences" hx-target="#preferences-save-status" hx-swap="innerHTML">
+				<label class="form-label">Preferred temperature unit</label>
+				<select name="temperature_unit" class="form-select">
+					<option value="recorded" selected?={ props.UserPreferences.TemperatureUnit == "recorded" }>Recorded units (default)</option>
+					<option value="celsius" selected?={ props.UserPreferences.TemperatureUnit == "celsius" }>Celsius (°C)</option>
+					<option value="fahrenheit" selected?={ props.UserPreferences.TemperatureUnit == "fahrenheit" }>Fahrenheit (°F)</option>
+				</select>
+				<div class="mt-4 flex items-center gap-3">
+					<button type="submit" class="btn-primary">Save</button>
+					<span id="preferences-save-status"></span>
+				</div>
+			</form>
 		</div>
 		<div class="card card-inner mt-4">
 			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Profile Visibility</h2>

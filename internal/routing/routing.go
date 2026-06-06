@@ -138,6 +138,7 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// Settings
 	mux.HandleFunc("GET /settings", h.HandleSettings)
+	mux.Handle("POST /api/settings/preferences", cop.Handler(http.HandlerFunc(h.HandleSettingsPreferences)))
 	mux.Handle("POST /api/settings/profile-visibility", cop.Handler(http.HandlerFunc(h.HandleSettingsProfileVisibility)))
 	mux.Handle("POST /api/settings/bluesky-profile", cop.Handler(http.HandlerFunc(h.HandleUpdateBlueskyProfile)))
 	mux.Handle("POST /settings/bluesky-profile/upgrade-scopes", cop.Handler(http.HandlerFunc(h.HandleScopeUpgrade)))

@@ -5,13 +5,16 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 )
 
 type Renderer func(*feed.FeedItem) templ.Component
+type PreferenceRenderer func(*feed.FeedItem, profileprefs.UserPreferences) templ.Component
 type ActionURL func(*feed.FeedItem) string
 
 type View struct {
 	Render        Renderer
+	RenderPrefs   PreferenceRenderer
 	Compact       bool
 	CardClassNoun string
 	ActionNoun    string
@@ -21,6 +24,23 @@ type View struct {
 	DeleteURL     ActionURL
 	EditURL       ActionURL
 	EditModalURL  ActionURL
+}
+
+func (r Registry) RenderWithPreferences(item *feed.FeedItem, prefs profileprefs.UserPreferences) templ.Component {
+	if item == nil {
+		return nil
+	}
+	view, ok := r[item.RecordType]
+	if !ok {
+		return nil
+	}
+	if view.RenderPrefs != nil {
+		return view.RenderPrefs(item, prefs.WithDefaults())
+	}
+	if view.Render == nil {
+		return nil
+	}
+	return view.Render(item)
 }
 
 type Registry map[lexicons.RecordType]View

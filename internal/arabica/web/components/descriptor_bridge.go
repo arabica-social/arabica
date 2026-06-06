@@ -57,6 +57,7 @@ func FeedViews() feedviews.Registry {
 		},
 		lexicons.RecordTypeBrew: {
 			Render:        FeedBrewContentClickable,
+			RenderPrefs:   FeedBrewContentClickableWithPreferences,
 			CardClassNoun: "brew",
 			FilterLabel:   "Brews",
 			ShareURL:      shareURL("brews"),

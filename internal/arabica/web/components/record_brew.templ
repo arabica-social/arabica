@@ -3,12 +3,17 @@ package coffee
 import (
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
 )
 
 // BrewContent renders brew details inside a card
 templ BrewContent(brew *arabica.Brew) {
+	@BrewContentWithTemperatureUnit(brew, profileprefs.DefaultTemperatureUnit())
+}
+
+templ BrewContentWithTemperatureUnit(brew *arabica.Brew, unit profileprefs.TemperatureUnit) {
 	<div class="feed-content-box">
 		<!-- Bean info with rating -->
 		<div class="flex items-start justify-between gap-3 mb-3">
@@ -60,7 +65,7 @@ templ BrewContent(brew *arabica.Brew) {
 			}
 			if bff.HasTemp(brew.Temperature) {
 				<div>
-					<span class="text-label">Temp:</span> { bff.FormatTemp(brew.Temperature) }
+					<span class="text-label">Temp:</span> { bff.FormatTempForUnit(brew.Temperature, unit) }
 				</div>
 			}
 			if brew.TimeSeconds > 0 {
