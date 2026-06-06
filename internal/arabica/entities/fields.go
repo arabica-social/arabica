@@ -16,6 +16,8 @@ func beanField(e any, field string) (string, bool) {
 		return b.Origin, true
 	case "variety":
 		return b.Variety, true
+	case "roast_date":
+		return b.RoastDate, true
 	case "process":
 		return b.Process, true
 	case "description":

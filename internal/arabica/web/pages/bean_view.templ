@@ -7,6 +7,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"time"
 )
 
 type BeanViewProps struct {
@@ -49,6 +50,9 @@ templ BeanViewCard(props BeanViewProps) {
 							<span class="text-faint">· { props.Bean.Roaster.Location }</span>
 						}
 					</div>
+				}
+				if props.Bean.RoastDate != "" {
+					<div class="label-byline text-faint">Roasted { formatRoastDate(props.Bean.RoastDate) }</div>
 				}
 			</div>
 			if props.Bean.Rating != nil {
@@ -347,6 +351,14 @@ func roastLevelTagClass(level string) string {
 		return "label-tag-roast-6"
 	}
 	return ""
+}
+
+func formatRoastDate(date string) string {
+	parsed, err := time.Parse(time.DateOnly, date)
+	if err != nil {
+		return date
+	}
+	return parsed.Format("January 2, 2006")
 }
 
 func pluralS(n int) string {

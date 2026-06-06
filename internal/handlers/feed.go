@@ -93,6 +93,7 @@ func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
 		UserDID:         didStr,
 		AppName:         appName,
 		Descriptors:     descriptors,
+		FeedViews:       h.feedViews,
 		Ready:           ready,
 	}
 

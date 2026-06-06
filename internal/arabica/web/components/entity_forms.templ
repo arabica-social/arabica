@@ -398,26 +398,7 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 				class="w-full form-input"
 			/>
 		}
-		<input
-			type="text"
-			name="origin"
-			value={ getStringValue(bean, "origin") }
-			placeholder="Origin *"
-			required
-			class="w-full form-input"
-		/>
-	</div>
-	<div class="form-divider"></div>
-	<!-- Origin details -->
-	<div class="form-fieldset">
-		<div class="form-fieldset-label">Origin Details <span class="form-optional-hint">(optional)</span></div>
-		<input
-			type="text"
-			name="variety"
-			value={ getStringValue(bean, "variety") }
-			placeholder="Variety (e.g. SL28, Typica, Gesha)"
-			class="w-full form-input"
-		/>
+		// roaster
 		<div v-scope={ roasterPickerInit(bean, roasters) } class="relative">
 			<input
 				type="text"
@@ -488,6 +469,17 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 				</button>
 			</div>
 		</div>
+		// origin 
+		<input
+			type="text"
+			name="origin"
+			value={ getStringValue(bean, "origin") }
+			placeholder="Origin *"
+			required
+			class="w-full form-input"
+		/>
+		// TODO: roast details could probably be its own mini-section?
+		// Roast level
 		<select
 			name="roast_level"
 			class="w-full form-input"
@@ -504,6 +496,29 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 				</option>
 			}
 		</select>
+		// Roast date
+		<div class="space-y-1">
+			<div class="text-xs text-faint">Roast date <span class="form-optional-hint">(optional)</span></div>
+			<input
+				type="date"
+				name="roast_date"
+				value={ getStringValue(bean, "roast_date") }
+				placeholder="Roast date"
+				class="w-full form-input"
+			/>
+		</div>
+	</div>
+	<div class="form-divider"></div>
+	<!-- Origin details -->
+	<div class="form-fieldset">
+		<div class="form-fieldset-label">Origin Details <span class="form-optional-hint">(optional)</span></div>
+		<input
+			type="text"
+			name="variety"
+			value={ getStringValue(bean, "variety") }
+			placeholder="Variety (e.g. SL28, Typica, Gesha)"
+			class="w-full form-input"
+		/>
 		<input
 			type="text"
 			name="process"

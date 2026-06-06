@@ -30,6 +30,11 @@
             "maxLength": 100,
             "description": "Roast level (e.g., 'Light', 'Medium', 'Dark')"
           },
+          "roastDate": {
+            "type": "string",
+            "maxLength": 10,
+            "description": "Optional date when the beans were roasted (YYYY-MM-DD)"
+          },
           "process": {
             "type": "string",
             "maxLength": 100,

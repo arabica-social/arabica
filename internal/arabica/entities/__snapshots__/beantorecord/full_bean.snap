@@ -12,6 +12,7 @@ map[string]interface{}{
   "name": "Ethiopian Yirgacheffe",
   "origin": "Ethiopia",
   "process": "Washed",
+  "roastDate": "2025-01-10",
   "roastLevel": "Light",
   "roasterRef": "at://did:plc:test/social.arabica.alpha.roaster/roaster123",
 }

@@ -377,6 +377,9 @@ func BeanToRecord(bean *Bean, roasterURI string) (map[string]any, error) {
 	if bean.RoastLevel != "" {
 		record["roastLevel"] = bean.RoastLevel
 	}
+	if bean.RoastDate != "" {
+		record["roastDate"] = bean.RoastDate
+	}
 	if bean.Process != "" {
 		record["process"] = bean.Process
 	}
@@ -441,6 +444,9 @@ func RecordToBean(record map[string]any, atURI string) (*Bean, error) {
 	}
 	if roastLevel, ok := record["roastLevel"].(string); ok {
 		bean.RoastLevel = roastLevel
+	}
+	if roastDate, ok := record["roastDate"].(string); ok {
+		bean.RoastDate = roastDate
 	}
 	if process, ok := record["process"].(string); ok {
 		bean.Process = process

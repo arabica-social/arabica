@@ -52,6 +52,11 @@ func TestCreateBeanRequest_Validate(t *testing.T) {
 		assert.ErrorIs(t, req.Validate(), ErrFieldTooLong)
 	})
 
+	t.Run("invalid roast date", func(t *testing.T) {
+		req := &CreateBeanRequest{Name: "Bean", RoastDate: "2025/01/10"}
+		assert.ErrorIs(t, req.Validate(), ErrInvalidRoastDate)
+	})
+
 	t.Run("description too long", func(t *testing.T) {
 		req := &CreateBeanRequest{
 			Name:        "Bean",
@@ -65,6 +70,7 @@ func TestCreateBeanRequest_Validate(t *testing.T) {
 			Name:        "Ethiopian Yirgacheffe",
 			Origin:      "Ethiopia",
 			RoastLevel:  "Light",
+			RoastDate:   "2025-01-10",
 			Process:     "Washed",
 			Description: "Fruity and floral notes",
 			RoasterRKey: "abc123",
@@ -103,6 +109,11 @@ func TestUpdateBeanRequest_Validate(t *testing.T) {
 			Description: strings.Repeat("a", MaxDescriptionLength+1),
 		}
 		assert.ErrorIs(t, req.Validate(), ErrDescTooLong)
+	})
+
+	t.Run("invalid roast date", func(t *testing.T) {
+		req := &UpdateBeanRequest{Name: "Bean", RoastDate: "January 10, 2025"}
+		assert.ErrorIs(t, req.Validate(), ErrInvalidRoastDate)
 	})
 }
 

@@ -110,6 +110,7 @@ var (
 	ErrOriginTooLong    = errors.New("origin is too long")
 	ErrFieldTooLong     = errors.New("field value is too long")
 	ErrRatingOutOfRange = errors.New("rating must be between 1 and 10")
+	ErrInvalidRoastDate = errors.New("roast date must use YYYY-MM-DD format")
 	ErrCommentRequired  = social.ErrCommentRequired
 	ErrCommentTooLong   = social.ErrCommentTooLong
 )
@@ -121,6 +122,7 @@ type Bean struct {
 	Origin      string    `json:"origin"`
 	Variety     string    `json:"variety"`
 	RoastLevel  string    `json:"roast_level"`
+	RoastDate   string    `json:"roast_date,omitempty"`
 	Process     string    `json:"process"`
 	Description string    `json:"description"`
 	Link        string    `json:"link"`
@@ -300,6 +302,7 @@ type CreateBeanRequest struct {
 	Origin      string `json:"origin"`
 	Variety     string `json:"variety"`
 	RoastLevel  string `json:"roast_level"`
+	RoastDate   string `json:"roast_date,omitempty"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
 	Link        string `json:"link"`
@@ -359,6 +362,7 @@ type UpdateBeanRequest struct {
 	Origin      string `json:"origin"`
 	Variety     string `json:"variety"`
 	RoastLevel  string `json:"roast_level"`
+	RoastDate   string `json:"roast_date,omitempty"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
 	Link        string `json:"link"`
@@ -466,6 +470,11 @@ func (r *CreateBeanRequest) Validate() error {
 	if len(r.RoastLevel) > MaxRoastLevelLength {
 		return ErrFieldTooLong
 	}
+	if r.RoastDate != "" {
+		if _, err := time.Parse(time.DateOnly, r.RoastDate); err != nil {
+			return ErrInvalidRoastDate
+		}
+	}
 	if len(r.Process) > MaxProcessLength {
 		return ErrFieldTooLong
 	}
@@ -497,6 +506,11 @@ func (r *UpdateBeanRequest) Validate() error {
 	}
 	if len(r.RoastLevel) > MaxRoastLevelLength {
 		return ErrFieldTooLong
+	}
+	if r.RoastDate != "" {
+		if _, err := time.Parse(time.DateOnly, r.RoastDate); err != nil {
+			return ErrInvalidRoastDate
+		}
 	}
 	if len(r.Process) > MaxProcessLength {
 		return ErrFieldTooLong

@@ -3,6 +3,7 @@ package pages
 import (
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 )
 
 type HomeProps struct {
@@ -10,6 +11,7 @@ type HomeProps struct {
 	UserDID         string
 	AppName         string                 // "arabica" or "oolong" — toggles welcome + dashboard embeds
 	Descriptors     []*entities.Descriptor // App-scoped descriptors for feed filter tabs
+	FeedViews       feedviews.Registry     // App-scoped feed labels/renderers for filter tabs
 	Ready           bool                   // false when the running app's required first-run records are missing
 }
 
@@ -42,18 +44,18 @@ templ HomeContent(props HomeProps) {
 		} else {
 			@components.WelcomeHeroFor(props.AppName)
 		}
-		@CommunityFeedSection(props.IsAuthenticated, props.Descriptors)
+		@CommunityFeedSection(props.IsAuthenticated, props.Descriptors, props.FeedViews)
 		if props.IsAuthenticated {
 			@components.AboutInfoCard()
 		}
 	</div>
 }
 
-templ CommunityFeedSection(isAuthenticated bool, descriptors []*entities.Descriptor) {
+templ CommunityFeedSection(isAuthenticated bool, descriptors []*entities.Descriptor, feedViews feedviews.Registry) {
 	<div class="card p-2 sm:p-6 mb-8">
 		<h3 class="text-xl font-bold text-primary mb-4">Community Activity</h3>
 		if isAuthenticated {
-			@FeedFilterBar(FeedQueryState{IsAuthenticated: isAuthenticated, Descriptors: descriptors})
+			@FeedFilterBar(FeedQueryState{IsAuthenticated: isAuthenticated, Descriptors: descriptors, FeedViews: feedViews})
 		}
 		<div hx-get="/api/feed" hx-trigger="load" hx-swap="outerHTML" hx-select="#feed-items" hx-target="#feed-items" hx-disinherit="*">
 			<div id="feed-items" class="space-y-4">

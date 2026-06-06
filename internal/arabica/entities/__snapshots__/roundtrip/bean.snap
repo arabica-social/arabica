@@ -10,6 +10,7 @@ version: 0.1.0
   Origin: "Ethiopia",
   Variety: "",
   RoastLevel: "Light",
+  RoastDate: "",
   Process: "Washed",
   Description: "Fruity notes",
   Link: "",
