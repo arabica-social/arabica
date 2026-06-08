@@ -12,6 +12,11 @@ svelte-build:
     @npm run check:svelte
     @npm run build:svelte
 
+build:
+    @npm run build:svelte
+    @templ generate
+    @go build ./cmd/arabica
+
 templ-watch-arabica:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 templ generate --watch --proxy="http://localhost:18079" --cmd="go run ./cmd/arabica -known-dids known-dids.txt"
 

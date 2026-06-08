@@ -7,14 +7,13 @@ export default defineConfig({
     emptyOutDir: false,
     lib: {
       entry: 'frontend/svelte/src/main.ts',
-      formats: ['iife'],
-      name: 'ArabicaSvelteIslands',
+      formats: ['es'],
       fileName: () => 'svelte-islands.js'
     },
     outDir: 'internal/web/assets/js',
     rollupOptions: {
       output: {
-        extend: true
+        chunkFileNames: 'svelte-islands-[name]-[hash].js'
       }
     }
   }
