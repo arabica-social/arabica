@@ -740,10 +740,11 @@ async function mountBrewForms() {
 		if (brewFormIslands.has(target)) {
 			return;
 		}
+		target.innerHTML = '';
 		brewFormIslands.set(
 			target,
 			mount(BrewFormIsland, {
-				target: document.body,
+				target,
 				props: { target }
 			})
 		);
