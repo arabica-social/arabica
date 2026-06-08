@@ -1,6 +1,8 @@
 {
   "type": "module",
+  "packageManager": "pnpm@11.1.1",
   "scripts": {
+    "preinstall": "node -e \"const ua = process.env.npm_config_user_agent || ''; if (!ua.startsWith('pnpm/')) { console.error('Use pnpm to install dependencies.'); process.exit(1); }\"",
     "build:svelte": "vite build",
     "check:svelte": "svelte-check --tsconfig ./tsconfig.json",
     "format": "prettier --plugin=prettier-plugin-svelte --write .prettierrc.json package.json pnpm-lock.yaml svelte.config.js tsconfig.json vite.config.js \"internal/web/assets/css/**/*.css\" \"internal/web/assets/svelte/**/*.{svelte,ts}\""

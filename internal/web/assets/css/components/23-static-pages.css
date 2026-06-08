@@ -21,9 +21,7 @@
   padding: clamp(1.25rem, 4vw, 2rem);
   border: 1px solid var(--card-border);
   border-radius: 1.35rem;
-  background:
-    var(--texture-kraft),
-    var(--card-bg);
+  background: var(--texture-kraft), var(--card-bg);
   background-blend-mode: multiply, normal;
   box-shadow: var(--shadow-md);
 }
@@ -33,7 +31,12 @@
   position: absolute;
   inset: 0 0 auto;
   height: 5px;
-  background: linear-gradient(90deg, var(--type-bean), var(--type-roaster), var(--type-brewer));
+  background: linear-gradient(
+    90deg,
+    var(--type-bean),
+    var(--type-roaster),
+    var(--type-brewer)
+  );
 }
 
 .info-hero > * {
@@ -87,7 +90,8 @@
   align-items: center;
   min-height: 2rem;
   padding: 0.38rem 0.65rem;
-  border: 1px solid color-mix(in oklch, var(--brand-amber-400) 65%, var(--card-border));
+  border: 1px solid
+    color-mix(in oklch, var(--brand-amber-400) 65%, var(--card-border));
   border-radius: 999px;
   background: color-mix(in oklch, var(--brand-amber-100) 70%, var(--card-bg));
   color: var(--brand-amber-900);

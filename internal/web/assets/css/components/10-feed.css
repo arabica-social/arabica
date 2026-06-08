@@ -115,10 +115,7 @@
 }
 .feed-card-tea {
   background-color: var(--feed-card-bg);
-  background-image: linear-gradient(
-    var(--type-tea-tint),
-    var(--type-tea-tint)
-  );
+  background-image: linear-gradient(var(--type-tea-tint), var(--type-tea-tint));
 }
 .feed-card-vendor {
   background-color: var(--feed-card-bg);

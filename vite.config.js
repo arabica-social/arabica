@@ -6,15 +6,15 @@ export default defineConfig({
   build: {
     emptyOutDir: false,
     lib: {
-      entry: 'internal/web/assets/svelte/src/main.ts',
-      formats: ['es'],
-      fileName: () => 'svelte-islands.js'
+      entry: "internal/web/assets/svelte/src/main.ts",
+      formats: ["es"],
+      fileName: () => "svelte-islands.js",
     },
     outDir: "internal/web/assets/js",
     rollupOptions: {
       output: {
-        chunkFileNames: 'svelte-islands-[name]-[hash].js'
-      }
-    }
-  }
+        chunkFileNames: "svelte-islands-[name]-[hash].js",
+      },
+    },
+  },
 });

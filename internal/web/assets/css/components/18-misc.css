@@ -32,11 +32,16 @@
   align-items: center;
   justify-content: center;
   font-weight: 500;
-  transition-property: color, background-color, border-color, box-shadow, filter;
+  transition-property:
+    color, background-color, border-color, box-shadow, filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--brand-brown-700), var(--btn-primary-bg));
+  background: linear-gradient(
+    135deg,
+    var(--brand-brown-700),
+    var(--btn-primary-bg)
+  );
   color: var(--btn-primary-text);
   border: 1px solid var(--brand-brown-700);
   box-shadow: var(--shadow-sm);

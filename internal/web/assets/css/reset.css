@@ -109,7 +109,9 @@ html {
 }
 
 /* h1-h3 font-weight from app.css base layer */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-weight: 600;
 }
 
