@@ -15,6 +15,26 @@ type StationDrawerProps struct {
 	Roasters    []arabica.Roaster // only for Kind == "bean"
 }
 
+templ EntitySuggestNameInput(entityType string, endpoint string, placeholder string) {
+	<div
+		data-svelte-entity-suggest
+		data-entity-type={ entityType }
+		data-endpoint={ endpoint }
+		data-placeholder={ placeholder }
+		class="relative"
+	>
+		<input
+			type="text"
+			name="name"
+			placeholder={ placeholder }
+			required
+			class="w-full form-input"
+			autocomplete="off"
+		/>
+		<input type="hidden" name="source_ref"/>
+	</div>
+}
+
 templ StationFormDrawer(p StationDrawerProps) {
 	<div class="station-drawer" data-drawer data-kind={ p.Kind }>
 		<header class="station-drawer-head">
@@ -37,11 +57,10 @@ templ StationFormDrawer(p StationDrawerProps) {
 			hx-swap="none"
 			hx-sync="this:drop"
 			hx-disabled-elt="find button[type='submit']"
-			v-scope="ModalShell()"
-			@vue:mounted="setup($el)"
+			data-svelte-modal-shell
 			class="station-drawer-form space-y-5"
 		>
-			<div v-show="!!serverError" v-cloak class="station-drawer-error" v-text="serverError"></div>
+			<div data-modal-shell-error hidden class="station-drawer-error"></div>
 			switch p.Kind {
 				case "brewer":
 					@BrewerFormBody(nil)
@@ -86,34 +105,7 @@ templ BrewerFormBody(brewer *arabica.Brewer) {
 	<div class="form-fieldset">
 		<div class="form-fieldset-label">Essentials</div>
 		if brewer == nil {
-			<div v-scope="entitySuggest('/api/suggestions/brewers')" @vue:mounted="setup($el)" class="relative">
-				<input
-					type="text"
-					name="name"
-					placeholder="Name *"
-					required
-					class="w-full form-input"
-					v-model="query"
-					@input="onInput"
-					@blur="onBlur"
-					@focus="onFocus"
-					autocomplete="off"
-				/>
-				<input type="hidden" name="source_ref" v-model="sourceRef"/>
-				<div v-if="showSuggestions && suggestions.length > 0" v-cloak class="suggestions-dropdown">
-					<template v-for="s in suggestions" :key="s.source_uri">
-						<button
-							type="button"
-							class="suggestions-item"
-							@mousedown.prevent="selectBrewerSuggestion(s)"
-						>
-							<span class="font-medium" v-text="s.name"></span>
-							<span v-if="s.fields.brewerType" class="text-xs text-faint" v-text="s.fields.brewerType"></span>
-							<span v-if="s.count > 1" class="text-xs text-placeholder" v-text="s.count + ' users'"></span>
-						</button>
-					</template>
-				</div>
-			</div>
+			@EntitySuggestNameInput("brewer", "/api/suggestions/brewers", "Name *")
 		} else {
 			<input
 				type="text"
@@ -198,34 +190,7 @@ templ RoasterFormBody(roaster *arabica.Roaster) {
 	<div class="form-fieldset">
 		<div class="form-fieldset-label">Essentials</div>
 		if roaster == nil {
-			<div v-scope="entitySuggest('/api/suggestions/roasters')" @vue:mounted="setup($el)" class="relative">
-				<input
-					type="text"
-					name="name"
-					placeholder="Name *"
-					required
-					class="w-full form-input"
-					v-model="query"
-					@input="onInput"
-					@blur="onBlur"
-					@focus="onFocus"
-					autocomplete="off"
-				/>
-				<input type="hidden" name="source_ref" v-model="sourceRef"/>
-				<div v-if="showSuggestions && suggestions.length > 0" v-cloak class="suggestions-dropdown">
-					<template v-for="s in suggestions" :key="s.source_uri">
-						<button
-							type="button"
-							class="suggestions-item"
-							@mousedown.prevent="selectRoasterSuggestion(s)"
-						>
-							<span class="font-medium" v-text="s.name"></span>
-							<span v-if="s.fields.location" class="text-xs text-faint" v-text="s.fields.location"></span>
-							<span v-if="s.count > 1" class="text-xs text-placeholder" v-text="s.count + ' users'"></span>
-						</button>
-					</template>
-				</div>
-			</div>
+			@EntitySuggestNameInput("roaster", "/api/suggestions/roasters", "Name *")
 		} else {
 			<input
 				type="text"
@@ -263,34 +228,7 @@ templ GrinderFormBody(grinder *arabica.Grinder) {
 	<div class="form-fieldset">
 		<div class="form-fieldset-label">Essentials</div>
 		if grinder == nil {
-			<div v-scope="entitySuggest('/api/suggestions/grinders')" @vue:mounted="setup($el)" class="relative">
-				<input
-					type="text"
-					name="name"
-					placeholder="Name *"
-					required
-					class="w-full form-input"
-					v-model="query"
-					@input="onInput"
-					@blur="onBlur"
-					@focus="onFocus"
-					autocomplete="off"
-				/>
-				<input type="hidden" name="source_ref" v-model="sourceRef"/>
-				<div v-if="showSuggestions && suggestions.length > 0" v-cloak class="suggestions-dropdown">
-					<template v-for="s in suggestions" :key="s.source_uri">
-						<button
-							type="button"
-							class="suggestions-item"
-							@mousedown.prevent="selectGrinderSuggestion(s)"
-						>
-							<span class="font-medium" v-text="s.name"></span>
-							<span v-if="s.fields.grinderType" class="text-xs text-faint" v-text="s.fields.grinderType"></span>
-							<span v-if="s.count > 1" class="text-xs text-placeholder" v-text="s.count + ' users'"></span>
-						</button>
-					</template>
-				</div>
-			</div>
+			@EntitySuggestNameInput("grinder", "/api/suggestions/grinders", "Name *")
 		} else {
 			<input
 				type="text"
@@ -360,34 +298,7 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 	<div class="form-fieldset">
 		<div class="form-fieldset-label">Essentials</div>
 		if bean == nil {
-			<div v-scope="entitySuggest('/api/suggestions/beans')" @vue:mounted="setup($el)" class="relative">
-				<input
-					type="text"
-					name="name"
-					placeholder="Name *"
-					required
-					class="w-full form-input"
-					v-model="query"
-					@input="onInput"
-					@blur="onBlur"
-					@focus="onFocus"
-					autocomplete="off"
-				/>
-				<input type="hidden" name="source_ref" v-model="sourceRef"/>
-				<div v-if="showSuggestions && suggestions.length > 0" v-cloak class="suggestions-dropdown">
-					<template v-for="s in suggestions" :key="s.source_uri">
-						<button
-							type="button"
-							class="suggestions-item"
-							@mousedown.prevent="selectBeanSuggestion(s)"
-						>
-							<span class="font-medium" v-text="s.name"></span>
-							<span v-if="s.fields.origin" class="text-xs text-faint" v-text="s.fields.origin"></span>
-							<span v-if="s.count > 1" class="text-xs text-placeholder" v-text="s.count + ' users'"></span>
-						</button>
-					</template>
-				</div>
-			</div>
+			@EntitySuggestNameInput("bean", "/api/suggestions/beans", "Name *")
 		} else {
 			<input
 				type="text"
@@ -399,75 +310,24 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 			/>
 		}
 		// roaster
-		<div v-scope={ roasterPickerInit(bean, roasters) } class="relative">
+		<div
+			data-svelte-bean-roaster-picker
+			data-roasters={ roasterPickerRowsJSON(bean, roasters) }
+			data-initial-rkey={ beanRoasterRKey(bean) }
+			data-initial-name={ beanRoasterName(bean, roasters) }
+			class="relative"
+		>
 			<input
 				type="text"
 				value={ beanRoasterName(bean, roasters) }
-				v-model="query"
-				v-show="!showDetails"
-				@input="filter"
-				@focus="showDropdown = true"
-				@blur="setTimeout(() => showDropdown = false, 150)"
-				@keydown.escape.prevent="showDropdown = false"
 				placeholder="Search or create roaster"
 				class="w-full form-input"
 				autocomplete="off"
 			/>
-			<input type="hidden" name="roaster_rkey" value={ beanRoasterRKey(bean) } :value="selectedRKey"/>
-			<input type="hidden" name="new_roaster_name" :value="newRoasterName"/>
-			<input type="hidden" name="new_roaster_location" :value="newRoasterLocation"/>
-			<input type="hidden" name="new_roaster_website" :value="newRoasterWebsite"/>
-			<button
-				type="button"
-				v-show="(selectedRKey || newRoasterName) && !showDetails"
-				@click="clear"
-				class="absolute right-2 top-1/2 -translate-y-1/2 text-placeholder hover:text-muted text-sm"
-				v-cloak
-			>
-				&times;
-			</button>
-			<div v-show="showDropdown && !showDetails" v-cloak class="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto rounded-lg shadow-lg" style="background: var(--card-bg, #fff); border: 1px solid var(--surface-border, #d4c4a8);">
-				<div
-					v-for="r in filtered"
-					:key="r.rkey"
-					class="px-3 py-2 cursor-pointer text-sm hover:bg-brown-100"
-					@mousedown.prevent="selectRoaster(r)"
-					v-text="r.name"
-				></div>
-				<div
-					v-if="query.trim() && !exactMatch"
-					class="px-3 py-2 cursor-pointer text-sm font-medium border-t hover:bg-brown-100"
-					style="border-color: var(--surface-border, #d4c4a8);"
-					@mousedown.prevent="startCreate"
-				>
-					Create "<span v-text="query.trim()"></span>"
-				</div>
-			</div>
-			<!-- Inline details for new roaster -->
-			<div v-show="showDetails" v-cloak class="p-3 rounded-lg space-y-2" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
-				<p class="text-sm font-medium text-primary">
-					New roaster: <span v-text="newRoasterName" class="font-semibold"></span>
-				</p>
-				<input
-					type="text"
-					v-model="newRoasterLocation"
-					placeholder="Location (optional)"
-					class="w-full form-input text-sm"
-				/>
-				<input
-					type="url"
-					v-model="newRoasterWebsite"
-					placeholder="Website (optional)"
-					class="w-full form-input text-sm"
-				/>
-				<button
-					type="button"
-					@click="cancelCreate"
-					class="text-xs text-faint hover:text-emphasis"
-				>
-					Cancel
-				</button>
-			</div>
+			<input type="hidden" name="roaster_rkey" value={ beanRoasterRKey(bean) }/>
+			<input type="hidden" name="new_roaster_name"/>
+			<input type="hidden" name="new_roaster_location"/>
+			<input type="hidden" name="new_roaster_website"/>
 		</div>
 		// origin 
 		<input
@@ -557,40 +417,16 @@ templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
 			<span>Extra details <span class="form-optional-hint">(optional)</span></span>
 		</summary>
 		<div class="mt-3 space-y-4">
-			<div v-scope={ beanRatingInitData(bean) }>
-				<div v-show="!showRating">
-					<button
-						type="button"
-						@click="showRating = true; if (rating === 0) rating = 5"
-						class="text-sm font-medium text-emphasis hover:text-primary flex items-center gap-1"
-					>
+			<div data-svelte-bean-rating data-initial-rating={ beanRatingInitialValue(bean) }>
+				if bean != nil && bean.Rating != nil {
+					<input type="range" min="1" max="10" value={ beanRatingInitialValue(bean) } class="w-full accent-brown-700"/>
+					<input type="hidden" name="rating" value={ beanRatingInitialValue(bean) }/>
+				} else {
+					<button type="button" class="text-sm font-medium text-emphasis hover:text-primary flex items-center gap-1">
 						@IconStar()
 						Add Rating
 					</button>
-				</div>
-				<div v-show="showRating" v-cloak class="space-y-2">
-					<div class="flex items-center justify-between">
-						<label class="form-label mb-0">Rating</label>
-						<button
-							type="button"
-							@click="showRating = false; rating = 0"
-							class="text-xs text-faint hover:text-emphasis"
-						>
-							Remove rating
-						</button>
-					</div>
-					<input
-						type="range"
-						min="1"
-						max="10"
-						v-model.number="rating"
-						class="w-full accent-brown-700"
-					/>
-					<div class="text-center text-2xl font-bold text-secondary">
-						<span v-text="rating"></span>/10
-					</div>
-					<input type="hidden" name="rating" :value="showRating ? rating : ''"/>
-				</div>
+				}
 			</div>
 			<div class="flex items-center gap-2">
 				<input

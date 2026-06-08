@@ -5,6 +5,10 @@
 
 .combo-dropdown {
   position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   z-index: 50;
   width: 100%;
   margin-top: 0.25rem;
@@ -32,6 +36,13 @@
 }
 
 .combo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
   padding-top: 0.5rem;
@@ -39,7 +50,9 @@
   cursor: pointer;
   font-size: 0.875rem;
   line-height: 1.25rem;
+  text-align: left;
   color: var(--text-primary);
+  white-space: normal;
 }
 
 .combo-item:hover,
@@ -48,6 +61,13 @@
 }
 
 .combo-item-create {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
   padding-top: 0.5rem;
@@ -56,8 +76,10 @@
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
+  text-align: left;
   color: var(--accent-primary);
   border-top: 1px solid var(--surface-border);
+  white-space: normal;
 }
 
 .combo-item-create:hover,

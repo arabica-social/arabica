@@ -191,8 +191,8 @@ entities with references):
     `brew.go`)
 25. **Suggestions** config in `internal/suggestions/suggestions.go` + handler
     map in `internal/handlers/suggestions.go`
-26. **Client-side cache** entity case in `static/js/combo-select.js`
-    `getUserEntities()`
+26. **Client-side cache** entity case in
+    `frontend/svelte/src/BrewComboSelectIsland.svelte` `getCachedEntities()`
 
 ### Templ Architecture
 
@@ -205,26 +205,27 @@ props. Components (`internal/web/components/`) are reusable building blocks.
 
 Pattern: `pages.PageName(layoutData, props).Render(r.Context(), w)`
 
-### Combo-Select Component System
+### Svelte Islands & Combo-Select
 
 Entity selection dropdowns (bean, grinder, brewer, roaster, cafe) use a shared
 combo-select pattern with typeahead search, community suggestions, and inline
 creation:
 
-- **Go config**: `components.ComboSelectConfig()` in
-  `components/combo_select.templ` generates petite-vue directive with
-  entity-specific label formatting and create data mapping.
-- **Templ markup**: `components.ComboSelectInput()` renders the shared dropdown
-  UI.
-- **JS behavior**: `static/js/combo-select.js` — petite-vue directive that
-  searches user records (from client-side cache), community suggestions (from
-  `/api/suggestions/{entity}`), and creates new entities inline via POST.
+- **Templ markup**: forms render a `data-svelte-brew-combo` mount point with
+  entity-specific endpoint and initial-value data.
+- **Svelte behavior**: `frontend/svelte/src/BrewComboSelectIsland.svelte`
+  searches user records from the Svelte app cache, community suggestions from
+  `/api/suggestions/{entity}`, and creates new entities inline via POST.
+- **Entity config**: `frontend/svelte/src/comboSelectRegistry.ts` owns
+  entity-specific label formatting, extra fields, and create data mapping.
 - **Suggestions backend**: `internal/suggestions/suggestions.go` — entity
   configs define searchable fields and dedup keys.
 
-To add a new entity to combo-select: add a case to `ComboSelectConfig`, add to
-`getUserEntities()` in `combo-select.js`, add entity config to `suggestions.go`,
-and add to the entity-to-NSID map in `handlers/suggestions.go`.
+To add a new entity to combo-select: add a mount point in the relevant templ
+form, add entity config to `comboSelectRegistry.ts`, add the cached entity case
+to `getCachedEntities()` in `BrewComboSelectIsland.svelte`, add entity config to
+`suggestions.go`, and add to the entity-to-NSID map in
+`handlers/suggestions.go`.
 
 ### Entity View Handler Pattern
 

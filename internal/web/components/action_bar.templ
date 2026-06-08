@@ -67,7 +67,7 @@ func (p ActionBarProps) hasReportAction() bool {
 
 // ActionBar renders the action bar with Comments, Like, Share, and More menu
 templ ActionBar(props ActionBarProps) {
-	<div class="action-bar" v-scope="MoreMenu()" @vue:mounted="setup($el)" @vue:unmounted="teardown">
+	<div class="action-bar" data-svelte-action-more-menu>
 		<!-- Comments -->
 		<a
 			href={ templ.SafeURL(props.getCommentHref()) }
@@ -106,9 +106,10 @@ templ ActionBar(props ActionBarProps) {
 		<div class="relative z-10">
 			<button
 				type="button"
-				@click="toggle"
+				data-more-menu-button
 				class="action-btn"
 				aria-label="More options"
+				aria-expanded="false"
 			>
 				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
@@ -117,8 +118,8 @@ templ ActionBar(props ActionBarProps) {
 			<!-- Dropdown menu -->
 			<div
 				class="action-menu"
+				data-more-menu
 				role="menu"
-				:class="[moreOpen && 'is-open', openUp ? 'bottom-full mb-1' : 'top-full mt-1']"
 			>
 				if props.IsOwner {
 					if props.EditURL != "" {
@@ -143,9 +144,10 @@ templ ActionBar(props ActionBarProps) {
 				}
 				if props.SubjectURI != "" {
 					<button
-						v-if="isDevMode()"
+						hidden
+						data-more-menu-dev-only
 						type="button"
-						@click={ fmt.Sprintf("copyURI('%s')", escapeForJS(props.SubjectURI)) }
+						data-more-menu-copy-uri={ props.SubjectURI }
 						class="action-menu-item"
 						role="menuitem"
 					>
@@ -160,10 +162,11 @@ templ ActionBar(props ActionBarProps) {
 					if props.IsRecordHidden {
 						<button
 							type="button"
-							hx-post="/_mod/unhide"
-							hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, props.SubjectURI) }
-							hx-swap="none"
-							@click="closeMenu"
+							data-more-menu-action="unhide"
+							data-more-menu-action-url="/_mod/unhide"
+							data-more-menu-action-method="POST"
+							data-more-menu-action-payload={ fmt.Sprintf(`{"uri":"%s"}`, props.SubjectURI) }
+							data-more-menu-close
 							class="action-menu-item"
 							role="menuitem"
 						>
@@ -176,11 +179,12 @@ templ ActionBar(props ActionBarProps) {
 					} else {
 						<button
 							type="button"
-							hx-post="/_mod/hide"
-							hx-vals={ fmt.Sprintf(`{"uri": "%s"}`, props.SubjectURI) }
-							hx-swap="none"
-							hx-confirm="Hide this record from the public feed?"
-							@click="closeMenu"
+							data-more-menu-action="hide"
+							data-more-menu-action-url="/_mod/hide"
+							data-more-menu-action-method="POST"
+							data-more-menu-action-payload={ fmt.Sprintf(`{"uri":"%s"}`, props.SubjectURI) }
+							data-more-menu-action-confirm="Hide this record from the public feed?"
+							data-more-menu-close
 							class="action-menu-item action-menu-item-warning"
 							role="menuitem"
 						>
@@ -197,11 +201,12 @@ templ ActionBar(props ActionBarProps) {
 				if props.CanBlockUser && props.AuthorDID != "" && !props.IsOwner {
 					<button
 						type="button"
-						hx-post="/_mod/block"
-						hx-vals={ fmt.Sprintf(`{"did": "%s"}`, props.AuthorDID) }
-						hx-swap="none"
-						hx-confirm="Block this user? All their content will be hidden from the feed."
-						@click="closeMenu"
+						data-more-menu-action="block"
+						data-more-menu-action-url="/_mod/block"
+						data-more-menu-action-method="POST"
+						data-more-menu-action-payload={ fmt.Sprintf(`{"did":"%s"}`, props.AuthorDID) }
+						data-more-menu-action-confirm="Block this user? All their content will be hidden from the feed."
+						data-more-menu-close
 						class="action-menu-item action-menu-item-danger"
 						role="menuitem"
 					>
@@ -218,7 +223,7 @@ templ ActionBar(props ActionBarProps) {
 				if props.IsAuthenticated && !props.IsOwner {
 					<button
 						type="button"
-						@click={ fmt.Sprintf("closeMenu(); document.getElementById('report-modal-%s').showModal()", sanitizeID(props.SubjectURI)) }
+						data-more-menu-report-dialog={ fmt.Sprintf("report-modal-%s", sanitizeID(props.SubjectURI)) }
 						class="action-menu-item"
 						role="menuitem"
 					>
@@ -244,18 +249,17 @@ templ ActionBar(props ActionBarProps) {
 templ ActionBarShareButton(props ActionBarProps) {
 	<button
 		type="button"
-		v-scope={ fmt.Sprintf("ShareButton('%s', '%s', '%s')", escapeForJS(props.ShareURL), escapeForJS(props.ShareTitle), escapeForJS(props.ShareText)) }
-		@click="share"
+		data-svelte-share
+		data-share-url={ props.ShareURL }
+		data-share-title={ props.ShareTitle }
+		data-share-text={ props.ShareText }
 		class="action-btn"
 		aria-label="Share"
 	>
-		<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+		<svg data-share-idle class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
 		</svg>
-		<svg v-show="copied" v-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"></path>
-		</svg>
-		<span v-show="copied" v-cloak>Copied!</span>
+		<span data-share-status hidden class="text-xs text-success" aria-live="polite">Copied!</span>
 	</button>
 }
 
@@ -288,10 +292,9 @@ templ ReportModal(props ReportModalProps) {
 templ ReportForm(props ReportFormProps) {
 	<h3 id={ props.DialogID + "-title" } class="modal-title">Report Content</h3>
 	<form
-		hx-post="/api/report"
-		hx-target={ "#" + props.DialogID + "-body" }
-		hx-swap="innerHTML"
-		hx-disabled-elt="find button[type='submit']"
+		method="POST"
+		action="/api/report"
+		data-svelte-report-form
 		class="space-y-4"
 	>
 		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
@@ -344,24 +347,14 @@ templ ReportSuccess() {
 	</div>
 }
 
-// deleteRedirectScript returns an inline script for redirecting after a successful HTMX delete
-func deleteRedirectScript(url string) string {
-	return fmt.Sprintf("if(event.detail.successful) window.location.href='%s'", url)
-}
-
-// editModalAfterSwapScript returns an inline script for opening a modal after HTMX swap and reloading on save
-// REFACTOR: this is gross, feels like this should be in a js file
-func editModalAfterSwapScript() string {
-	return "var d=document.querySelector('#modal-container dialog');if(d){d.showModal();var h=function(){window.location.reload()};document.body.addEventListener('refreshManage',h,{once:true});d.addEventListener('close',function(){document.body.removeEventListener('refreshManage',h)},{once:true})}"
-}
-
 templ ActionBarDeleteRedirect(props ActionBarProps) {
 	<button
 		type="button"
-		hx-delete={ props.DeleteURL }
-		hx-confirm="Are you sure you want to delete this?"
-		hx-swap="none"
-		hx-on--after-request={ deleteRedirectScript(props.DeleteRedirect) }
+		data-more-menu-action="delete"
+		data-more-menu-action-method="DELETE"
+		data-more-menu-action-url={ props.DeleteURL }
+		data-more-menu-action-confirm="Are you sure you want to delete this?"
+		data-more-menu-action-redirect={ props.DeleteRedirect }
 		class="action-menu-item action-menu-item-danger"
 		role="menuitem"
 	>
@@ -375,10 +368,11 @@ templ ActionBarDeleteRedirect(props ActionBarProps) {
 templ ActionBarDeleteSwap(props ActionBarProps) {
 	<button
 		type="button"
-		hx-delete={ props.DeleteURL }
-		hx-confirm="Are you sure you want to delete this?"
-		hx-target={ props.getDeleteTarget() }
-		hx-swap="outerHTML"
+		data-more-menu-action="delete"
+		data-more-menu-action-method="DELETE"
+		data-more-menu-action-url={ props.DeleteURL }
+		data-more-menu-action-target={ props.getDeleteTarget() }
+		data-more-menu-action-confirm="Are you sure you want to delete this?"
 		class="action-menu-item action-menu-item-danger"
 		role="menuitem"
 	>
@@ -389,17 +383,14 @@ templ ActionBarDeleteSwap(props ActionBarProps) {
 	</button>
 }
 
-// ActionBarEditModal renders an edit button that loads an edit modal via HTMX (for entity view pages)
+// ActionBarEditModal renders an edit button that opens an edit modal.
 templ ActionBarEditModal(props ActionBarProps) {
 	<button
 		type="button"
-		hx-get={ props.EditModalURL }
-		hx-target="#modal-container"
-		hx-swap="innerHTML"
+		data-more-menu-edit-url={ props.EditModalURL }
 		class="action-menu-item"
 		role="menuitem"
-		@click="closeMenu"
-		hx-on--after-swap={ editModalAfterSwapScript() }
+		data-more-menu-close
 	>
 		<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"></path>
@@ -414,14 +405,5 @@ func sanitizeID(s string) string {
 	s = strings.ReplaceAll(s, ":", "_")
 	s = strings.ReplaceAll(s, "/", "_")
 	s = strings.ReplaceAll(s, ".", "_")
-	return s
-}
-
-// escapeForJS escapes special characters in a string for use in JavaScript string literals.
-func escapeForJS(s string) string {
-	s = strings.ReplaceAll(s, "\\", "\\\\")
-	s = strings.ReplaceAll(s, "'", "\\'")
-	s = strings.ReplaceAll(s, "\n", "\\n")
-	s = strings.ReplaceAll(s, "\r", "\\r")
 	return s
 }

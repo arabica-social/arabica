@@ -210,7 +210,7 @@
   padding-bottom: 2rem;
 }
 
-/* Reply form reveal — petite-vue toggles `.is-open` on this wrapper. */
+/* Reply form reveal. Svelte toggles `.is-open` on this wrapper. */
 .reply-form-wrap {
   display: grid;
   grid-template-rows: 0fr;
