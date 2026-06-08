@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import EntityCombo from "./EntityCombo.svelte";
   import Field from "./BrewFormField.svelte";
   import PoursEditor, { type Pour } from "./PoursEditor.svelte";
   import type { AppCacheAPI } from "./appCache";
@@ -10,6 +11,7 @@
 
   let name = $state("");
   let brewerRKey = $state("");
+  let brewerLabel = $state("");
   let brewerType = $state("");
   let coffeeAmount = $state("");
   let waterAmount = $state("");
@@ -42,6 +44,14 @@
   function handleBrewerChange() {
     const selectedType = selectedBrewerType();
     if (selectedType) brewerType = selectedType;
+  }
+
+  function handleBrewerComboChange(detail: Record<string, any>) {
+    brewerRKey = detail.rkey || "";
+    brewerLabel = detail.entity ? brewerName(detail.entity) : "";
+    const selectedType = detail.entity?.brewer_type || detail.entity?.BrewerType || "";
+    if (selectedType) brewerType = selectedType;
+    if (!detail.rkey) brewerType = "";
   }
 
   function parsePours(raw: string) {
@@ -77,6 +87,8 @@
     sourceRef = d.sourceRef || "";
     pours = parsePours(d.pours || "[]");
     brewers = parseBrewers(d.brewers || "[]");
+    const selected = brewers.find((brewer) => rkey(brewer) === brewerRKey);
+    brewerLabel = selected ? brewerName(selected) : "";
   }
 
   onMount(() => {
@@ -115,17 +127,19 @@
       />
     </Field>
     <Field label="Brewer">
-      <select
-        name="brewer_rkey"
-        bind:value={brewerRKey}
-        onchange={handleBrewerChange}
-        class="w-full form-input"
-      >
-        <option value="">Select Brewer</option>
-        {#each brewers as brewer}
-          <option value={rkey(brewer)}>{brewerName(brewer)}</option>
-        {/each}
-      </select>
+      <EntityCombo
+        entityType="brewer"
+        inputName="brewer_rkey"
+        apiEndpoint="/api/brewers"
+        suggestEndpoint="/api/suggestions/brewers"
+        placeholder="Search brewers..."
+        sectionLabel="Your brewers"
+        bind:rkey={brewerRKey}
+        bind:label={brewerLabel}
+        inputClass="w-full form-input"
+        ariaLabel="Search brewers"
+        onChange={handleBrewerComboChange}
+      />
     </Field>
     <Field label="Brewer Type">
       <input

@@ -50,7 +50,6 @@ function loadIsland(id: string, importer: () => Promise<IslandModule>): Promise<
 let mounted = false;
 
 const brewPoursIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
-const brewComboSelectIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const brewRatingIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const brewWaterHelperIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const brewMethodSectionIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
@@ -691,46 +690,6 @@ async function mountProfileStats() {
 	});
 }
 
-async function mountBrewComboSelects() {
-	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-combo]');
-	if (targets.length === 0) {
-		return;
-	}
-	const BrewComboSelectIsland = await loadIsland(
-		'brew-combo-select',
-		() => import('./BrewComboSelectIsland.svelte') as Promise<IslandModule>
-	);
-	targets.forEach((target) => {
-		if (brewComboSelectIslands.has(target)) {
-			return;
-		}
-		const required = target.dataset.required === 'true';
-		const passthrough = target.dataset.passthrough === 'true';
-		const allowCreate = target.dataset.allowCreate !== 'false';
-		target.innerHTML = '';
-		brewComboSelectIslands.set(
-			target,
-			mount(BrewComboSelectIsland, {
-				target,
-				props: {
-					target,
-					entityType: target.dataset.entityType || '',
-					apiEndpoint: target.dataset.apiEndpoint || '',
-					suggestEndpoint: target.dataset.suggestEndpoint || '',
-					inputName: target.dataset.inputName || '',
-					placeholder: target.dataset.placeholder || 'Search...',
-					sectionLabel: target.dataset.sectionLabel || 'Your records',
-					required,
-					passthrough,
-					allowCreate,
-					initialRKey: target.dataset.initialRkey || '',
-					initialLabel: target.dataset.initialLabel || ''
-				}
-			})
-		);
-	});
-}
-
 async function mountBrewForms() {
 	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-form]');
 	if (targets.length === 0) {
@@ -913,7 +872,6 @@ async function mountAll() {
 	await mountCoreIslands();
 	await Promise.all([
 		mountBrewRatings(),
-		mountBrewComboSelects(),
 		mountBrewWaterHelpers(),
 		mountBrewMethodSections(),
 		mountBrewRecipeSummaries(),
