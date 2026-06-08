@@ -9,8 +9,8 @@ run-oolong: templ-generate
     @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 go run ./cmd/oolong
 
 svelte-build:
-    @npm run check:svelte
-    @npm run build:svelte
+    @pnpm run check:svelte
+    @pnpm run build:svelte
 
 build:
     @npm run build:svelte

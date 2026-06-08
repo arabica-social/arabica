@@ -28,6 +28,11 @@
     createData: EntityRecord;
     creating: boolean;
   };
+  type ComboItem =
+    | { kind: "entity"; entity: EntityRecord }
+    | { kind: "closed"; entity: EntityRecord }
+    | { kind: "suggestion"; suggestion: Suggestion }
+    | { kind: "create" };
 
   const comboMeta: Record<
     ComboType,
@@ -370,19 +375,21 @@
     if (type === "brewer") brewerCategory = "";
   }
 
-  function comboItems(type: ComboType) {
+  function comboItems(type: ComboType): ComboItem[] {
     const state = combos[type];
     return [
-      ...state.results.map((entity) => ({ kind: "entity", entity })),
-      ...state.closedResults.map((entity) => ({ kind: "closed", entity })),
+      ...state.results.map((entity): ComboItem => ({ kind: "entity", entity })),
+      ...state.closedResults.map(
+        (entity): ComboItem => ({ kind: "closed", entity }),
+      ),
       ...state.suggestions.map((suggestion) => ({
         kind: "suggestion",
         suggestion,
-      })),
+      }) as ComboItem),
       ...(comboMeta[type].allowCreate !== false &&
       state.query.trim() &&
       !exactMatch(type)
-        ? [{ kind: "create" as const }]
+        ? ([{ kind: "create" }] as ComboItem[])
         : []),
     ];
   }
@@ -391,9 +398,9 @@
     const item = comboItems(type)[combos[type].highlight];
     if (!item) return;
     if (item.kind === "entity" || item.kind === "closed")
-      selectEntity(type, item.entity as EntityRecord);
+      selectEntity(type, item.entity);
     if (item.kind === "suggestion")
-      void selectSuggestion(type, item.suggestion as Suggestion);
+      void selectSuggestion(type, item.suggestion);
     if (item.kind === "create") startCreate(type);
   }
 

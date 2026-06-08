@@ -256,6 +256,7 @@
     if (!apiEndpoint) return;
     isCreating = true;
     try {
+      const appCache = getAppCache();
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -263,7 +264,6 @@
         body: JSON.stringify(data)
       });
       if (!response.ok) {
-        const appCache = getAppCache();
         if (response.status === 401) window.__showSessionExpiredModal?.();
         throw new Error(`Create failed: ${response.status}`);
       }
