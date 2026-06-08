@@ -1,0 +1,17 @@
+{
+  "type": "module",
+  "scripts": {
+    "build:svelte": "vite build",
+    "check:svelte": "svelte-check --tsconfig ./tsconfig.json",
+    "format": "prettier --plugin=prettier-plugin-svelte --write .prettierrc.json package.json pnpm-lock.yaml svelte.config.js tsconfig.json vite.config.js \"internal/web/assets/css/**/*.css\" \"internal/web/assets/svelte/**/*.{svelte,ts}\""
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-svelte": "^4.1.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^6.0.0"
+  }
+}

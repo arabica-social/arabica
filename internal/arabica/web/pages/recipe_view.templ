@@ -133,21 +133,9 @@ templ RecipeViewCard(props RecipeViewProps) {
 				<a href={ templ.SafeURL("/brews/new?recipe=" + props.Recipe.RKey + "&recipe_owner=" + props.Recipe.AuthorDID) } class="btn-primary text-sm text-center">Use in Brew</a>
 			}
 			if props.IsAuthenticated && !props.IsOwnProfile {
-				<button
-					type="button"
-					v-scope="{ forking: false }"
-					@click={ fmt.Sprintf(`
-						if (forking) return;
-						forking = true;
-						fetch('/api/recipes/fork/%s?owner=%s', { method: 'POST', credentials: 'same-origin' })
-							.then(r => { if (r.status === 401) { window.__showSessionExpiredModal(); forking = false; return; } if (!r.ok) throw new Error('Failed'); return r.json(); })
-							.then(d => { if (d) { window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Recipe copied to your library!' } })); } forking = false; })
-							.catch(() => { window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Failed to copy recipe' } })); forking = false; });
-					`, props.Recipe.RKey, props.AuthorDID) }
-					class="btn-secondary text-sm"
-					:disabled="forking"
-					v-text="forking ? 'Copying...' : 'Copy Recipe'"
-				></button>
+				<div data-svelte-recipe-fork data-recipe-rkey={ props.Recipe.RKey } data-owner-did={ props.AuthorDID }>
+					<button type="button" class="btn-secondary text-sm">Copy Recipe</button>
+				</div>
 			}
 		</div>
 		@components.ActionBar(components.ActionBarProps{

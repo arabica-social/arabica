@@ -75,15 +75,14 @@ templ AdminDashboardBody(props AdminProps) {
 		hx-get="/_mod/content"
 		hx-trigger="mod-action from:body"
 		hx-swap="outerHTML"
-		v-scope="{ _tab: (function(){ try { return sessionStorage.getItem('mod-tab') || 'hidden'; } catch(e) { return 'hidden'; } })(), get activeTab() { return this._tab }, set activeTab(v) { this._tab = v; try { sessionStorage.setItem('mod-tab', v); } catch(e) {} } }"
+		data-svelte-admin-dashboard
 		class="space-y-6"
 	>
 		<nav class="flex flex-wrap gap-2">
 			if props.CanHide || props.CanUnhide {
 				<button
 					type="button"
-					@click="activeTab = 'hidden'"
-					:class="activeTab === 'hidden' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					data-admin-tab="hidden"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Hidden Records
@@ -97,8 +96,7 @@ templ AdminDashboardBody(props AdminProps) {
 			if props.CanBlock || props.CanUnblock {
 				<button
 					type="button"
-					@click="activeTab = 'blocked'"
-					:class="activeTab === 'blocked' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					data-admin-tab="blocked"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Blocked Users
@@ -112,8 +110,7 @@ templ AdminDashboardBody(props AdminProps) {
 			if props.CanViewReports {
 				<button
 					type="button"
-					@click="activeTab = 'reports'"
-					:class="activeTab === 'reports' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					data-admin-tab="reports"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Reports
@@ -127,8 +124,7 @@ templ AdminDashboardBody(props AdminProps) {
 			if props.CanViewLogs {
 				<button
 					type="button"
-					@click="activeTab = 'activity'"
-					:class="activeTab === 'activity' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					data-admin-tab="activity"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Activity Log
@@ -137,8 +133,7 @@ templ AdminDashboardBody(props AdminProps) {
 			if props.CanManageLabels {
 				<button
 					type="button"
-					@click="activeTab = 'labels'"
-					:class="activeTab === 'labels' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					data-admin-tab="labels"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Labels
@@ -152,16 +147,14 @@ templ AdminDashboardBody(props AdminProps) {
 			if props.IsAdmin {
 				<button
 					type="button"
-					@click="activeTab = 'stats'"
-					:class="activeTab === 'stats' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					data-admin-tab="stats"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Stats
 				</button>
 				<button
 					type="button"
-					@click="activeTab = 'cache'"
-					:class="activeTab === 'cache' ? 'tab-pill-active' : 'tab-pill-inactive'"
+					data-admin-tab="cache"
 					class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors"
 				>
 					Cache
@@ -170,7 +163,7 @@ templ AdminDashboardBody(props AdminProps) {
 		</nav>
 		<!-- Hidden Records Tab -->
 		if props.CanHide || props.CanUnhide {
-			<div v-show="activeTab === 'hidden'">
+			<div data-admin-panel="hidden" hidden>
 				<div class="card card-inner">
 					<h2 class="section-title">Hidden Records</h2>
 					if len(props.HiddenRecords) == 0 {
@@ -189,7 +182,7 @@ templ AdminDashboardBody(props AdminProps) {
 		}
 		<!-- Blocked Users Tab -->
 		if props.CanBlock || props.CanUnblock {
-			<div v-show="activeTab === 'blocked'" v-cloak>
+			<div data-admin-panel="blocked" hidden>
 				<div class="card card-inner">
 					<h2 class="section-title">Blocked Users</h2>
 					if len(props.BlockedUsers) == 0 {
@@ -208,7 +201,7 @@ templ AdminDashboardBody(props AdminProps) {
 		}
 		<!-- Reports Tab -->
 		if props.CanViewReports {
-			<div v-show="activeTab === 'reports'" v-cloak>
+			<div data-admin-panel="reports" hidden>
 				<div class="card card-inner">
 					<h2 class="section-title">Pending Reports</h2>
 					if len(props.Reports) == 0 {
@@ -227,7 +220,7 @@ templ AdminDashboardBody(props AdminProps) {
 		}
 		<!-- Activity Log Tab -->
 		if props.CanViewLogs {
-			<div v-show="activeTab === 'activity'" v-cloak>
+			<div data-admin-panel="activity" hidden>
 				<div class="card card-inner">
 					<h2 class="section-title">Recent Activity</h2>
 					if len(props.AuditLog) == 0 {
@@ -246,14 +239,13 @@ templ AdminDashboardBody(props AdminProps) {
 		}
 		<!-- Labels Tab -->
 		if props.CanManageLabels {
-			<div v-show="activeTab === 'labels'" v-cloak>
+			<div data-admin-panel="labels" hidden>
 				<div class="card card-inner">
 					<div class="flex items-center justify-between mb-4">
 						<h2 class="section-title mb-0">Labels</h2>
 						<button
 							type="button"
-							data-action="dispatch-event"
-							data-event="open-add-label"
+							data-admin-add-label-open
 							class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-sm font-medium transition-colors"
 						>
 							Add Label
@@ -273,10 +265,8 @@ templ AdminDashboardBody(props AdminProps) {
 				</div>
 				<!-- Add Label Form -->
 				<div
-					v-scope="AddLabelForm()"
-					@vue:mounted="setup($el)"
-					v-show="open"
-					v-cloak
+					data-admin-add-label-form
+					hidden
 					class="card card-inner mt-4"
 				>
 					<h3 class="section-title">Add Label</h3>
@@ -323,7 +313,7 @@ templ AdminDashboardBody(props AdminProps) {
 							<button type="submit" class="text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-sm font-medium transition-colors">
 								Add Label
 							</button>
-							<button type="button" @click="open = false" class="text-sm text-muted hover:text-secondary px-4 py-2 rounded-sm font-medium transition-colors">
+							<button type="button" data-admin-add-label-close class="text-sm text-muted hover:text-secondary px-4 py-2 rounded-sm font-medium transition-colors">
 								Cancel
 							</button>
 						</div>
@@ -333,7 +323,7 @@ templ AdminDashboardBody(props AdminProps) {
 		}
 		<!-- Stats Tab (admin only) -->
 		if props.IsAdmin {
-			<div v-show="activeTab === 'stats'" v-cloak>
+			<div data-admin-panel="stats" hidden>
 				<div
 					id="stats-panel"
 					hx-get="/_mod/stats"
@@ -346,7 +336,7 @@ templ AdminDashboardBody(props AdminProps) {
 		}
 		<!-- Cache Tab (admin only) -->
 		if props.IsAdmin {
-			<div v-show="activeTab === 'cache'" v-cloak class="space-y-4">
+			<div data-admin-panel="cache" hidden class="space-y-4">
 				<div class="card card-inner">
 					<h2 class="section-title">Export Witness Cache</h2>
 					<p class="text-sm text-muted mb-4">
@@ -520,20 +510,20 @@ templ HiddenRecordCard(record moderation.HiddenRecord, canUnhide bool) {
 			<div>
 				<span class="text-xs font-medium text-faint uppercase tracking-wide">Record URI</span>
 				<div
-					v-scope="CopyText()"
+					data-admin-copy
 					class="mt-1 flex items-start gap-2"
 				>
-					<code ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ record.ATURI }</code>
+					<code data-copy-source class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ record.ATURI }</code>
 					<button
 						type="button"
-						@click="copy($refs.uri.textContent)"
+						data-copy-button
 						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-faint hover:text-emphasis hover:bg-brown-200 rounded-sm transition-colors"
-						:title="copied ? 'Copied!' : 'Copy to clipboard'"
+						title="Copy to clipboard"
 					>
-						<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<svg data-copy-idle class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
 						</svg>
-						<svg v-show="copied" v-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<svg data-copy-copied hidden class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
 						</svg>
 					</button>
@@ -584,20 +574,20 @@ templ BlockedUserCard(user moderation.BlacklistedUser, canUnblock bool) {
 			<div>
 				<span class="text-xs font-medium text-faint uppercase tracking-wide">User DID</span>
 				<div
-					v-scope="CopyText()"
+					data-admin-copy
 					class="mt-1 flex items-start gap-2"
 				>
-					<code ref="did" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ user.DID }</code>
+					<code data-copy-source class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ user.DID }</code>
 					<button
 						type="button"
-						@click="copy($refs.did.textContent)"
+						data-copy-button
 						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-faint hover:text-emphasis hover:bg-brown-200 rounded-sm transition-colors"
-						:title="copied ? 'Copied!' : 'Copy to clipboard'"
+						title="Copy to clipboard"
 					>
-						<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<svg data-copy-idle class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
 						</svg>
-						<svg v-show="copied" v-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<svg data-copy-copied hidden class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
 						</svg>
 					</button>
@@ -650,20 +640,20 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 			<div>
 				<span class="text-xs font-medium text-faint uppercase tracking-wide">Record URI</span>
 				<div
-					v-scope="CopyText()"
+					data-admin-copy
 					class="mt-1 flex items-start gap-2"
 				>
-					<code ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ report.Report.SubjectURI }</code>
+					<code data-copy-source class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ report.Report.SubjectURI }</code>
 					<button
 						type="button"
-						@click="copy($refs.uri.textContent)"
+						data-copy-button
 						class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-faint hover:text-emphasis hover:bg-brown-200 rounded-sm transition-colors"
-						:title="copied ? 'Copied!' : 'Copy to clipboard'"
+						title="Copy to clipboard"
 					>
-						<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<svg data-copy-idle class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
 						</svg>
-						<svg v-show="copied" v-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<svg data-copy-copied hidden class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
 						</svg>
 					</button>
@@ -682,20 +672,20 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 							<code class="text-sm text-emphasis">{ report.Report.SubjectDID }</code>
 						}
 						<div
-							v-scope="CopyText()"
+							data-admin-copy
 							class="flex items-center gap-1 mt-1"
 						>
-							<code ref="did" class="text-xs text-faint break-all">{ report.Report.SubjectDID }</code>
+							<code data-copy-source class="text-xs text-faint break-all">{ report.Report.SubjectDID }</code>
 							<button
 								type="button"
-								@click="copy($refs.did.textContent)"
+								data-copy-button
 								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-placeholder hover:text-muted rounded-sm transition-colors"
-								:title="copied ? 'Copied!' : 'Copy DID'"
+								title="Copy DID"
 							>
-								<svg v-show="!copied" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<svg data-copy-idle class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
 								</svg>
-								<svg v-show="copied" v-cloak class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<svg data-copy-copied hidden class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
 								</svg>
 							</button>
@@ -713,20 +703,20 @@ templ ReportCard(report EnrichedReport, canHide bool, canBlock bool, canResetAut
 							<code class="text-sm text-emphasis">{ report.Report.ReporterDID }</code>
 						}
 						<div
-							v-scope="CopyText()"
+							data-admin-copy
 							class="flex items-center gap-1 mt-1"
 						>
-							<code ref="did" class="text-xs text-faint break-all">{ report.Report.ReporterDID }</code>
+							<code data-copy-source class="text-xs text-faint break-all">{ report.Report.ReporterDID }</code>
 							<button
 								type="button"
-								@click="copy($refs.did.textContent)"
+								data-copy-button
 								class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-placeholder hover:text-muted rounded-sm transition-colors"
-								:title="copied ? 'Copied!' : 'Copy DID'"
+								title="Copy DID"
 							>
-								<svg v-show="!copied" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<svg data-copy-idle class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
 								</svg>
-								<svg v-show="copied" v-cloak class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<svg data-copy-copied hidden class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
 								</svg>
 							</button>
@@ -857,20 +847,20 @@ templ AuditLogCard(entry moderation.AuditEntry) {
 				<div>
 					<span class="text-xs font-medium text-faint uppercase tracking-wide">Target</span>
 					<div
-						v-scope="CopyText()"
+						data-admin-copy
 						class="mt-1 flex items-start gap-2"
 					>
-						<code ref="uri" class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ entry.TargetURI }</code>
+						<code data-copy-source class="text-sm bg-brown-100 px-2 py-1 rounded-sm break-all flex-1 font-mono">{ entry.TargetURI }</code>
 						<button
 							type="button"
-							@click="copy($refs.uri.textContent)"
+							data-copy-button
 							class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-faint hover:text-emphasis hover:bg-brown-200 rounded-sm transition-colors"
-							:title="copied ? 'Copied!' : 'Copy to clipboard'"
+							title="Copy to clipboard"
 						>
-							<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<svg data-copy-idle class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
 							</svg>
-							<svg v-show="copied" v-cloak class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<svg data-copy-copied hidden class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
 							</svg>
 						</button>

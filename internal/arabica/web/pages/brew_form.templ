@@ -33,7 +33,7 @@ templ BrewFormPage(layout *components.LayoutData, props BrewFormProps) {
 
 // BrewFormContent renders the brew form content (for use within layout)
 templ BrewFormContent(props BrewFormProps) {
-	<div class="page-container-sm" v-scope="brewForm()" @vue:mounted="setup($el)">
+	<div class="page-container-sm" data-svelte-brew-form>
 		@components.Card(
 			components.CardProps{InnerCard: true},
 			BrewFormCard(props),
@@ -88,7 +88,6 @@ templ BrewFormElement(props BrewFormProps) {
 		}
 		hx-target="body"
 		class="space-y-6"
-		data-rating={ getRating(props) }
 		if props.PoursJSON != "" {
 			data-pours={ props.PoursJSON }
 		}
@@ -110,21 +109,14 @@ templ BrewFormElement(props BrewFormProps) {
 // RecipeModeSection renders recipe select, summary bar, override fields, and non-recipe fields
 templ RecipeModeSection(props BrewFormProps) {
 	<fieldset class="space-y-6 border-0 p-0 m-0 min-w-0">
-		<input type="hidden" name="recipe_owner_did" :value="recipeOwnerDID"/>
+		<input type="hidden" name="recipe_owner_did" value={ getFormRecipeOwnerDID(props) }/>
 		@RecipeSelectField(props)
 		<!-- Recipe summary bar -->
-		<div class="section-box" v-show="activeRecipe" v-cloak>
-			<div class="flex items-center justify-between gap-2">
-				<p class="text-sm text-emphasis flex-1" v-text="recipeSummaryText"></p>
-				<button type="button" @click="recipeSummaryExpanded = !recipeSummaryExpanded" class="text-sm btn-secondary">
-					<span v-text="recipeSummaryExpanded ? 'Collapse' : 'Edit'"></span>
-				</button>
-			</div>
-		</div>
+		<div data-svelte-brew-recipe-summary hidden></div>
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
 			<legend class="text-sm font-semibold text-secondary px-2">Coffee</legend>
 			@BeanSelectField(props)
-			<div v-show="recipeSummaryExpanded || !activeRecipe">
+			<div data-svelte-brew-recipe-overrides>
 				@CoffeeAmountField(props)
 			</div>
 			@GrinderSelectField(props)
@@ -132,7 +124,7 @@ templ RecipeModeSection(props BrewFormProps) {
 		</fieldset>
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
 			<legend class="text-sm font-semibold text-secondary px-2">Brewing</legend>
-			<div v-show="recipeSummaryExpanded || !activeRecipe" class="space-y-6">
+			<div data-svelte-brew-recipe-overrides class="space-y-6">
 				@BrewerSelectField(props)
 				@WaterAmountField(props)
 				@PoursSection(props)
@@ -155,11 +147,17 @@ templ RecipeSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
 		data-combo-entity-type="recipe"
-		v-scope={ components.ComboSelectConfig("recipe", "/api/recipes", "/api/suggestions/recipes", "recipe_rkey", "Search recipes...", false, true) }
-		@vue:mounted="setup($el)"
+		data-svelte-brew-combo
+		data-entity-type="recipe"
+		data-api-endpoint="/api/recipes"
+		data-suggest-endpoint="/api/suggestions/recipes"
+		data-input-name="recipe_rkey"
+		data-placeholder="Search recipes..."
+		data-section-label="Your recipes"
+		data-passthrough="true"
 		if props.Brew != nil && props.Brew.RecipeRKey != "" {
-			data-combo-initial-rkey={ props.Brew.RecipeRKey }
-			data-combo-initial-label={ getRecipeLabel(props) }
+			data-initial-rkey={ props.Brew.RecipeRKey }
+			data-initial-label={ getRecipeLabel(props) }
 		}
 	>
 		<label class="form-label">Recipe (Optional)</label>
@@ -167,10 +165,10 @@ templ RecipeSelectField(props BrewFormProps) {
 		<div class="alert-warning px-3 py-2 mb-2 text-xs">
 			Recipes are in early alpha &mdash; the format may change. Your brew data won't be affected.
 		</div>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
+		<input type="hidden" name="recipe_rkey" value={ getFormRecipeRKey(props) }/>
 		<div class="flex gap-2">
 			<div class="flex-1">
-				@components.ComboSelectInput("Your recipes")
+				<input type="text" value={ getRecipeLabel(props) } placeholder="Search recipes..." class="w-full form-input-lg"/>
 			</div>
 			<button
 				type="button"
@@ -190,19 +188,26 @@ templ BeanSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
 		data-combo-entity-type="bean"
-		v-scope={ components.ComboSelectConfigNoCreate("bean", "/api/beans", "/api/suggestions/beans", "bean_rkey", "Search beans...", true) }
-		@vue:mounted="setup($el)"
+		data-svelte-brew-combo
+		data-entity-type="bean"
+		data-api-endpoint="/api/beans"
+		data-suggest-endpoint="/api/suggestions/beans"
+		data-input-name="bean_rkey"
+		data-placeholder="Search beans..."
+		data-section-label="Your beans"
+		data-required="true"
+		data-allow-create="false"
 		if props.Brew != nil && props.Brew.BeanRKey != "" {
-			data-combo-initial-rkey={ props.Brew.BeanRKey }
-			data-combo-initial-label={ getBeanLabel(props) }
+			data-initial-rkey={ props.Brew.BeanRKey }
+			data-initial-label={ getBeanLabel(props) }
 		}
 	>
 		<label class="form-label">
 			Coffee Bean
 			<span class="text-red-500">*</span>
 		</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@components.ComboSelectInput("Your beans")
+		<input type="hidden" name="bean_rkey" value={ getBeanRKey(props) }/>
+		<input type="text" value={ getBeanLabel(props) } placeholder="Search beans..." class="w-full form-input-lg"/>
 	</div>
 }
 
@@ -220,9 +225,23 @@ func getBeanLabel(props BrewFormProps) string {
 	return ""
 }
 
+func getBeanRKey(props BrewFormProps) string {
+	if props.Brew != nil {
+		return props.Brew.BeanRKey
+	}
+	return ""
+}
+
 func getBrewerLabel(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.BrewerObj != nil {
 		return props.Brew.BrewerObj.Name
+	}
+	return ""
+}
+
+func getBrewerRKey(props BrewFormProps) string {
+	if props.Brew != nil {
+		return props.Brew.BrewerRKey
 	}
 	return ""
 }
@@ -241,6 +260,13 @@ func getRecipeLabel(props BrewFormProps) string {
 func getGrinderLabel(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.GrinderObj != nil {
 		return props.Brew.GrinderObj.Name
+	}
+	return ""
+}
+
+func getGrinderRKey(props BrewFormProps) string {
+	if props.Brew != nil {
+		return props.Brew.GrinderRKey
 	}
 	return ""
 }
@@ -274,16 +300,21 @@ templ GrinderSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
 		data-combo-entity-type="grinder"
-		v-scope={ components.ComboSelectConfig("grinder", "/api/grinders", "/api/suggestions/grinders", "grinder_rkey", "Search grinders...", false) }
-		@vue:mounted="setup($el)"
+		data-svelte-brew-combo
+		data-entity-type="grinder"
+		data-api-endpoint="/api/grinders"
+		data-suggest-endpoint="/api/suggestions/grinders"
+		data-input-name="grinder_rkey"
+		data-placeholder="Search grinders..."
+		data-section-label="Your grinders"
 		if props.Brew != nil && props.Brew.GrinderRKey != "" {
-			data-combo-initial-rkey={ props.Brew.GrinderRKey }
-			data-combo-initial-label={ getGrinderLabel(props) }
+			data-initial-rkey={ props.Brew.GrinderRKey }
+			data-initial-label={ getGrinderLabel(props) }
 		}
 	>
 		<label class="form-label">Grinder</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@components.ComboSelectInput("Your grinders")
+		<input type="hidden" name="grinder_rkey" value={ getGrinderRKey(props) }/>
+		<input type="text" value={ getGrinderLabel(props) } placeholder="Search grinders..." class="w-full form-input-lg"/>
 	</div>
 }
 
@@ -315,16 +346,21 @@ templ BrewerSelectField(props BrewFormProps) {
 	<div
 		class="combo-select"
 		data-combo-entity-type="brewer"
-		v-scope={ components.ComboSelectConfig("brewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey", "Search brew methods...", false) }
-		@vue:mounted="setup($el)"
+		data-svelte-brew-combo
+		data-entity-type="brewer"
+		data-api-endpoint="/api/brewers"
+		data-suggest-endpoint="/api/suggestions/brewers"
+		data-input-name="brewer_rkey"
+		data-placeholder="Search brew methods..."
+		data-section-label="Your brewers"
 		if props.Brew != nil && props.Brew.BrewerRKey != "" {
-			data-combo-initial-rkey={ props.Brew.BrewerRKey }
-			data-combo-initial-label={ getBrewerLabel(props) }
+			data-initial-rkey={ props.Brew.BrewerRKey }
+			data-initial-label={ getBrewerLabel(props) }
 		}
 	>
 		<label class="form-label">Brew Method</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@components.ComboSelectInput("Your brewers")
+		<input type="hidden" name="brewer_rkey" value={ getBrewerRKey(props) }/>
+		<input type="text" value={ getBrewerLabel(props) } placeholder="Search brew methods..." class="w-full form-input-lg"/>
 	</div>
 }
 
@@ -339,8 +375,14 @@ templ WaterAmountField(props BrewFormProps) {
 			Step:        "1",
 			Class:       "w-full form-input-lg",
 		})
-		<p class="text-helper" v-show="!showPours">Total water used</p>
-		<p class="text-helper" v-show="showPours" v-cloak>Total water (pours tracked separately below)</p>
+		<div
+			data-svelte-brew-water-helper
+			if props.PoursJSON != "" {
+				data-initial-show-pours="true"
+			}
+		>
+			<p class="text-helper">Total water used</p>
+		</div>
 	</div>
 }
 
@@ -353,61 +395,15 @@ func getWaterAmount(props BrewFormProps) string {
 
 // PoursSection renders the pours editor with toggle visibility
 templ PoursSection(props BrewFormProps) {
-	<div>
-		<!-- Toggle link when pours are hidden -->
-		<div v-show="!showPours">
-			<button type="button" @click="togglePours" class="text-sm text-muted hover:text-secondary font-medium">
-				+ Add pours
-			</button>
-		</div>
-		<!-- Pours editor when visible -->
-		<div v-show="showPours" v-cloak>
-			<div class="flex items-center justify-between mb-2">
-				<label class="block text-sm font-medium text-primary">Pours</label>
-				<button
-					type="button"
-					@click="addPour"
-					class="text-sm btn-secondary"
-				>
-					+ Add Pour
-				</button>
-			</div>
-			<p class="text-sm text-emphasis mb-3">Track individual pours for bloom and subsequent additions</p>
-			<div class="space-y-3">
-				<template v-for="(pour, index) in pours" :key="index">
-					<div class="flex gap-2 items-center p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
-						<div class="flex-1">
-							<label class="text-xs text-emphasis font-medium" v-text="'Pour ' + (index + 1)"></label>
-							<input
-								type="number"
-								:name="'pour_water_' + index"
-								v-model="pour.water"
-								placeholder="Water (g)"
-								class="w-full form-input text-sm py-2 px-3 mt-1"
-							/>
-						</div>
-						<div class="flex-1">
-							<label class="text-xs text-emphasis font-medium">Time (sec)</label>
-							<input
-								type="number"
-								:name="'pour_time_' + index"
-								v-model="pour.time"
-								placeholder="e.g. 45"
-								class="w-full form-input text-sm py-2 px-3 mt-1"
-							/>
-						</div>
-						<button
-							type="button"
-							@click="removePour(index)"
-							class="text-emphasis hover:text-primary mt-5 font-bold"
-							v-show="pours.length > 0"
-						>
-							@components.IconX()
-						</button>
-					</div>
-				</template>
-			</div>
-		</div>
+	<div
+		data-svelte-brew-pours
+		if props.PoursJSON != "" {
+			data-initial-pours={ props.PoursJSON }
+		}
+	>
+		<button type="button" class="text-sm text-muted hover:text-secondary font-medium">
+			+ Add pours
+		</button>
 	</div>
 }
 
@@ -475,20 +471,18 @@ func getTastingNotes(props BrewFormProps) string {
 
 // RatingField renders the rating slider
 templ RatingField(props BrewFormProps) {
-	<div>
-		<label class="form-label">Rating</label>
+	<div data-svelte-brew-rating data-initial-rating={ getRating(props) }>
+		<label class="form-label" for="brew-rating">Rating</label>
 		<input
+			id="brew-rating"
 			type="range"
 			name="rating"
 			min="1"
 			max="10"
 			value={ getRating(props) }
-			v-model.number="rating"
 			class="w-full accent-brown-700"
 		/>
-		<div class="text-center text-2xl font-bold text-secondary">
-			<span v-text="rating"></span>/10
-		</div>
+		<div class="text-center text-2xl font-bold text-secondary">{ getRating(props) }/10</div>
 	</div>
 }
 
@@ -516,7 +510,12 @@ templ SubmitButton(props BrewFormProps) {
 
 // EspressoParamsSection renders espresso-specific fields (shown when brewer type is espresso)
 templ EspressoParamsSection(props BrewFormProps) {
-	<div v-show="brewerCategory === 'espresso'" v-cloak>
+	<div
+		data-svelte-brew-method-section="espresso"
+		if props.Brew == nil || props.Brew.EspressoParams == nil {
+			hidden
+		}
+	>
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
 			<legend class="text-sm font-semibold text-secondary px-2">Espresso</legend>
 			@components.FormField(
@@ -560,7 +559,12 @@ templ EspressoParamsSection(props BrewFormProps) {
 
 // PouroverParamsSection renders pour-over-specific fields (shown when brewer type is pourover)
 templ PouroverParamsSection(props BrewFormProps) {
-	<div v-show="brewerCategory === 'pourover'" v-cloak>
+	<div
+		data-svelte-brew-method-section="pourover"
+		if props.Brew == nil || props.Brew.PouroverParams == nil {
+			hidden
+		}
+	>
 		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
 			<legend class="text-sm font-semibold text-secondary px-2">Pour-over Details</legend>
 			<div class="grid grid-cols-2 gap-4">

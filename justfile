@@ -8,6 +8,10 @@ run:
 run-oolong: templ-generate
     @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 go run ./cmd/oolong
 
+svelte-build:
+    @npm run check:svelte
+    @npm run build:svelte
+
 templ-watch-arabica:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 templ generate --watch --proxy="http://localhost:18079" --cmd="go run ./cmd/arabica -known-dids known-dids.txt"
 
@@ -18,6 +22,7 @@ templ-generate:
     @templ generate
 
 test:
+    @pnpm run build:svelte
     @templ generate
     @go test ./... -cover -coverprofile=cover.out
 

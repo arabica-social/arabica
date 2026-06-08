@@ -20,6 +20,7 @@ static/css/output.css
 *~
 .DS_Store
 vendor/
+node_modules/
 *.log
 result
 result-*

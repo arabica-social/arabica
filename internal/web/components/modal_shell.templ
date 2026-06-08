@@ -41,11 +41,10 @@ templ ModalShell(props ModalShellProps) {
 					hx-swap="none"
 					hx-sync="this:drop"
 					hx-disabled-elt="find button[type='submit']"
-					v-scope="ModalShell()"
-					@vue:mounted="setup($el)"
+					data-svelte-modal-shell
 					class="space-y-5"
 				>
-					<div v-show="!!serverError" v-cloak class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" v-text="serverError"></div>
+					<div data-modal-shell-error hidden class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800"></div>
 					{ children... }
 					<div class="flex gap-2 pt-2">
 						<button type="submit" class="flex-1 btn-primary">Save</button>

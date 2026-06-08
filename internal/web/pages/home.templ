@@ -64,10 +64,9 @@ templ CommunityFeedSection(isAuthenticated bool, descriptors []*entities.Descrip
 		</div>
 	</div>
 	<!-- Return to top button -->
-	<div v-scope="ScrollTop()" @vue:mounted="setup">
+	<div data-svelte-scroll-top>
 		<button
-			:class="{ 'is-visible': visible }"
-			@click="scrollTop"
+			data-scroll-top-button
 			class="scroll-top-btn fixed bottom-6 right-6 z-50 bg-brown-800 text-brown-50 rounded-full shadow-lg hover:bg-brown-700 transition-colors cursor-pointer p-3 sm:px-4 sm:py-2.5 sm:rounded-lg flex items-center gap-2"
 			aria-label="Return to top"
 		>

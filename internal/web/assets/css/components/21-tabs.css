@@ -1,8 +1,7 @@
 /* Tab panel visibility.
-   Parent element binds `:data-active-tab="X"` reactively via petite-vue.
-   Each panel carries `data-tab-panel="Y"`. CSS shows the matching one.
-   This avoids relying on `v-show` directives inside HTMX-swapped subtrees,
-   which petite-vue never re-binds after the initial mount. */
+   Svelte tab islands update data-active-tab on the parent. Each panel carries
+   data-tab-panel="Y". CSS shows the matching one without rebinding swapped
+   subtree contents. */
 
 [data-tab-panel] {
   display: none;

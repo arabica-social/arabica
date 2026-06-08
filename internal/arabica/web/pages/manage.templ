@@ -7,13 +7,19 @@ type ManageProps struct{}
 
 // Manage renders the full manage page
 templ Manage(layout *components.LayoutData, props ManageProps) {
-	@components.Layout(layout, ManageContent(props, layout.ScriptHref("manage-page.js")))
+	@components.Layout(layout, ManageContent(props))
 }
 
 // ManageContent renders the manage page content
-templ ManageContent(props ManageProps, manageScriptHref string) {
-	<script src={ manageScriptHref }></script>
-	<div class="page-container-xl" v-scope="managePage()" @vue:mounted="setup" :data-active-tab="tab">
+templ ManageContent(props ManageProps) {
+	<div
+		class="page-container-xl"
+		data-svelte-manage-tabs
+		data-initial-tab="beans"
+		data-tab-storage-key="manageTab"
+		data-init-cache="true"
+		data-show-nudge="true"
+	>
 		<div class="flex items-center gap-3 mb-6">
 			@components.BackButton()
 			<h2 class="text-2xl font-semibold text-primary">Manage</h2>
@@ -31,37 +37,47 @@ templ ManageTabs() {
 	<div class="mb-6 border-b-2 border-brown-300">
 		<nav class="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto">
 			<button
-				@click="tab = 'beans'"
-				:class="tab === 'beans' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="beans"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Beans
 			</button>
 			<button
-				@click="tab = 'roasters'"
-				:class="tab === 'roasters' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="roasters"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Roasters
 			</button>
 			<button
-				@click="tab = 'grinders'"
-				:class="tab === 'grinders' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="grinders"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Grinders
 			</button>
 			<button
-				@click="tab = 'brewers'"
-				:class="tab === 'brewers' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="brewers"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Brewers
 			</button>
 			<button
-				@click="tab = 'recipes'"
-				:class="tab === 'recipes' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="recipes"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Recipes
 			</button>
@@ -80,19 +96,18 @@ templ ManageContentLoader() {
 templ ManageRefreshButton() {
 	<button
 		type="button"
-		v-scope="{ syncing: false, doSync() { this.syncing = true; htmx.ajax('POST', '/api/manage/refresh', { target: '#manage-content', swap: 'innerHTML' }).then(() => { this.syncing = false; }).catch(() => { this.syncing = false; }); } }"
-		@click="doSync"
-		:disabled="syncing"
+		data-manage-refresh
 		class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-emphasis hover:text-primary border border-brown-300 hover:border-brown-400 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
 		title="Refresh all data from your PDS"
 	>
-		<svg :class="['inline-block w-4 h-4 flex-shrink-0', { 'animate-spin': syncing }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<svg data-sync-icon class="inline-block w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<path d="M21.5 2v6h-6"></path>
 			<path d="M2.5 22v-6h6"></path>
 			<path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8"></path>
 			<path d="M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"></path>
 		</svg>
-		<span v-text="syncing ? 'Syncing...' : 'Sync from PDS'"></span>
+		<span data-sync-idle>Sync from PDS</span>
+		<span data-sync-busy hidden>Syncing...</span>
 	</button>
 }
 

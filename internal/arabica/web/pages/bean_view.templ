@@ -104,31 +104,25 @@ templ BeanViewCard(props BeanViewProps) {
 		<div class="flex items-center gap-3">
 			@components.BackButton()
 			if props.IsOwnProfile {
-				if !props.Bean.Closed {
-					<div v-scope="{ _saving: false }">
-						<button
-							type="button"
-							@click="$refs.closeDialog.showModal()"
-							class="btn-secondary text-sm text-center"
-						>
-							Close Bag
-						</button>
-						@BeanCloseBagConfirm(props)
-					</div>
-				}
-				<div v-scope={ beanRateInitData(props.Bean) }>
-					<button
-						type="button"
-						@click="$refs.rateDialog.showModal()"
-						class="btn-secondary text-sm text-center"
-					>
+				<div
+					class="flex items-center gap-3"
+					data-svelte-bean-view-actions
+					data-bean-rkey={ props.Bean.RKey }
+					data-base-bean={ beanBaseJSON(props.Bean) }
+					data-initial-rating={ beanRatingInitialValue(props.Bean) }
+					data-has-rating={ boolString(props.Bean.Rating != nil) }
+					data-closed={ boolString(props.Bean.Closed) }
+				>
+					if !props.Bean.Closed {
+						<button type="button" class="btn-secondary text-sm text-center">Close Bag</button>
+					}
+					<button type="button" class="btn-secondary text-sm text-center">
 						if props.Bean.Rating != nil {
 							Edit Rating
 						} else {
 							Rate Bag
 						}
 					</button>
-					@BeanRateModal(props)
 				</div>
 			}
 		</div>
@@ -182,133 +176,18 @@ func getBeanShareTitle(bean *arabica.Bean) string {
 	return bean.Origin
 }
 
-// BeanCloseBagConfirm renders a styled confirmation dialog for closing a bag
-templ BeanCloseBagConfirm(props BeanViewProps) {
-	<dialog
-		id={ "close-bag-confirm-" + props.Bean.RKey }
-		class="modal-dialog"
-		ref="closeDialog"
-		aria-labelledby={ "close-bag-title-" + props.Bean.RKey }
-	>
-		<div class="modal-content">
-			<h3 id={ "close-bag-title-" + props.Bean.RKey } class="modal-title">Close Bag</h3>
-			<p class="text-emphasis text-sm mb-4">
-				Mark this bag as finished? You can reopen it later from the edit menu.
-			</p>
-			<div class="flex gap-2">
-				<button
-					type="button"
-					@click={ beanPatchAction(props.Bean, `{ "closed": true }`, "Failed to close bag") }
-					class="flex-1 btn-primary"
-					:disabled="_saving"
-				>
-					<span v-show="!_saving">Close Bag</span>
-					<span v-show="_saving" v-cloak>Closing...</span>
-				</button>
-				<button
-					type="button"
-					data-action="close-dialog"
-					class="flex-1 btn-secondary"
-				>
-					Cancel
-				</button>
-			</div>
-		</div>
-	</dialog>
-}
-
-// BeanRateModal renders a dialog for rating or editing a bean's rating
-templ BeanRateModal(props BeanViewProps) {
-	<dialog
-		id={ "rate-bag-modal-" + props.Bean.RKey }
-		class="modal-dialog"
-		ref="rateDialog"
-		aria-labelledby={ "rate-bag-title-" + props.Bean.RKey }
-	>
-		<div class="modal-content">
-			<h3 id={ "rate-bag-title-" + props.Bean.RKey } class="modal-title">
-				if props.Bean.Rating != nil {
-					Edit Rating
-				} else {
-					Rate Bag
-				}
-			</h3>
-			<div class="space-y-4">
-				<input
-					type="range"
-					min="1"
-					max="10"
-					v-model.number="rating"
-					class="w-full accent-brown-700"
-					aria-label="Bag rating, 1 to 10"
-				/>
-				<div class="text-center text-3xl font-bold text-secondary" aria-hidden="true">
-					<span v-text="rating"></span>/10
-				</div>
-			</div>
-			<div class="flex gap-2 mt-4">
-				<button
-					type="button"
-					@click={ beanPatchAction(props.Bean, `{ "rating": rating }`, "Failed to save rating") }
-					class="flex-1 btn-primary"
-					:disabled="_saving"
-				>
-					<span v-show="!_saving">Save</span>
-					<span v-show="_saving" v-cloak>Saving...</span>
-				</button>
-				if props.Bean.Rating != nil {
-					<button
-						type="button"
-						@click={ beanPatchAction(props.Bean, `{ "rating": null }`, "Failed to remove rating") }
-						class="flex-1 btn-secondary text-danger"
-						:disabled="_saving"
-					>
-						<span v-show="!_saving">Remove</span>
-						<span v-show="_saving" v-cloak>Removing...</span>
-					</button>
-				}
-				<button
-					type="button"
-					data-action="close-dialog"
-					class="flex-1 btn-secondary"
-				>
-					Cancel
-				</button>
-			</div>
-		</div>
-	</dialog>
-}
-
-func beanRateInitData(bean *arabica.Bean) string {
+func beanRatingInitialValue(bean *arabica.Bean) string {
 	if bean.Rating != nil {
-		return fmt.Sprintf("{ rating: %d, _saving: false }", *bean.Rating)
+		return fmt.Sprintf("%d", *bean.Rating)
 	}
-	return "{ rating: 5, _saving: false }"
+	return "5"
 }
 
-// beanPatchAction generates JS that PUTs the current bean state with overrides applied.
-// overrideExpr is a JS expression for the fields to override (e.g. `{ "closed": true }`).
-func beanPatchAction(bean *arabica.Bean, overrideExpr string, errorMsg string) string {
-	return fmt.Sprintf(`
-		if (_saving) return;
-		_saving = true;
-		const base = %s;
-		const body = Object.assign(base, %s);
-		fetch('/api/beans/%s', {
-			method: 'PUT',
-			credentials: 'same-origin',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(body)
-		}).then(r => {
-			if (r.status === 401) { window.__showSessionExpiredModal(); _saving = false; return; }
-			if (!r.ok) throw new Error('Failed');
-			localStorage.removeItem('htmx-history-cache');
-			window.location.reload();
-		}).catch(() => {
-			window.dispatchEvent(new CustomEvent('notify', { detail: { message: '%s' } }));
-			_saving = false;
-		});
-	`, beanBaseJSON(bean), overrideExpr, bean.RKey, errorMsg)
+func boolString(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
 }
 
 // beanBaseJSON returns a JS object literal with the current bean's editable fields.

@@ -34,12 +34,18 @@ templ MyTea(layout *components.LayoutData, props MyTeaProps) {
 }
 
 // MyTeaContent renders the My Tea page: header + tabs + per-tab card
-// lists. Tabs are petite-vue-driven (v-scope on the container); all
-// tab panels are server-rendered up front and toggled with v-show.
-// No HTMX async loading — keeps the page simpler than arabica's
-// my-coffee while still feeling like a real manage UI.
+// lists. Tabs are Svelte-driven; all tab panels are server-rendered up front
+// and toggled with data-active-tab. No HTMX async loading — keeps the page
+// simpler than arabica's my-coffee while still feeling like a real manage UI.
 templ MyTeaContent(props MyTeaProps) {
-	<div class="page-container-xl" v-scope="{ tab: 'steeps' }" :data-active-tab="tab">
+	<div
+		class="page-container-xl"
+		data-svelte-manage-tabs
+		data-initial-tab="steeps"
+		data-tab-storage-key="oolongMyTeaTab"
+		data-refresh-url="/api/tea/refresh"
+		data-refresh-reload="true"
+	>
 		<div class="flex items-center gap-3 mb-6">
 			<h2 class="text-2xl font-semibold text-primary">My Tea</h2>
 			<div class="ml-auto flex items-center gap-2">
@@ -136,9 +142,11 @@ templ MyTeaTabs() {
 
 templ myTeaTab(key, label string) {
 	<button
-		@click={ "tab = '" + key + "'" }
-		:class={ "tab === '" + key + "' ? 'tab-row-active' : 'tab-row-inactive'" }
 		class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+		data-manage-tab={ key }
+		data-active-class="tab-row-active"
+		data-inactive-class="tab-row-inactive"
+		type="button"
 	>
 		{ label }
 	</button>
@@ -293,20 +301,19 @@ templ teaEntityCardHeaderEditLink(createdAt time.Time, entityType, editURL, dele
 templ TeaRefreshButton() {
 	<button
 		type="button"
-		v-scope="{ syncing: false, doSync() { this.syncing = true; fetch('/api/tea/refresh', { method: 'POST' }).then(() => window.location.reload()).catch(() => { this.syncing = false; }); } }"
-		@click="doSync"
-		:disabled="syncing"
+		data-manage-refresh
 		class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-emphasis hover:text-primary border rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
 		style="border-color: var(--card-border)"
 		title="Refresh all data from your PDS"
 	>
-		<svg :class="['inline-block w-4 h-4 flex-shrink-0', { 'animate-spin': syncing }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<svg data-sync-icon class="inline-block w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<path d="M21.5 2v6h-6"></path>
 			<path d="M2.5 22v-6h6"></path>
 			<path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8"></path>
 			<path d="M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"></path>
 		</svg>
-		<span v-text="syncing ? 'Syncing...' : 'Sync from PDS'"></span>
+		<span data-sync-idle>Sync from PDS</span>
+		<span data-sync-busy hidden>Syncing...</span>
 	</button>
 }
 

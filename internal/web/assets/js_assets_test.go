@@ -14,7 +14,7 @@ func TestJSAssetsLoadsEmbeddedFiles(t *testing.T) {
 	a.MustBuild()
 
 	// Spot-check a file we know exists.
-	bytes, hash, ok := a.lookup("combo-select.js")
+	bytes, hash, ok := a.lookup("htmx.min.js")
 	assert.True(t, ok)
 	assert.NotEmpty(t, bytes)
 	assert.Len(t, hash, 16)
@@ -22,9 +22,9 @@ func TestJSAssetsLoadsEmbeddedFiles(t *testing.T) {
 
 func TestJSAssetsHrefIncludesContentHash(t *testing.T) {
 	a := NewJSAssets(JSConfig{})
-	href := a.Href("combo-select.js")
-	assert.True(t, strings.HasPrefix(href, "/static/js/combo-select.js?h="), "got %q", href)
-	hash := strings.TrimPrefix(href, "/static/js/combo-select.js?h=")
+	href := a.Href("htmx.min.js")
+	assert.True(t, strings.HasPrefix(href, "/static/js/htmx.min.js?h="), "got %q", href)
+	hash := strings.TrimPrefix(href, "/static/js/htmx.min.js?h=")
 	assert.Len(t, hash, 16)
 }
 
@@ -36,8 +36,8 @@ func TestJSAssetsHrefEmptyForUnknownFile(t *testing.T) {
 func TestJSAssetsHandlerServesContentWithCacheHeaders(t *testing.T) {
 	a := NewJSAssets(JSConfig{})
 
-	req := httptest.NewRequest(http.MethodGet, "/static/js/combo-select.js", nil)
-	req.SetPathValue("name", "combo-select.js")
+	req := httptest.NewRequest(http.MethodGet, "/static/js/htmx.min.js", nil)
+	req.SetPathValue("name", "htmx.min.js")
 	rec := httptest.NewRecorder()
 	a.Handler().ServeHTTP(rec, req)
 
@@ -61,11 +61,11 @@ func TestJSAssetsHandlerReturns404ForUnknownFile(t *testing.T) {
 
 func TestJSAssetsHandlerReturns304OnMatchingETag(t *testing.T) {
 	a := NewJSAssets(JSConfig{})
-	hash, ok := a.hashFor("combo-select.js")
+	hash, ok := a.hashFor("htmx.min.js")
 	assert.True(t, ok)
 
-	req := httptest.NewRequest(http.MethodGet, "/static/js/combo-select.js", nil)
-	req.SetPathValue("name", "combo-select.js")
+	req := httptest.NewRequest(http.MethodGet, "/static/js/htmx.min.js", nil)
+	req.SetPathValue("name", "htmx.min.js")
 	req.Header.Set("If-None-Match", `"`+hash+`"`)
 	rec := httptest.NewRecorder()
 	a.Handler().ServeHTTP(rec, req)
@@ -86,7 +86,7 @@ func TestJSHrefForFallsBackWhenUnregistered(t *testing.T) {
 		jsRegistryMu.Unlock()
 	}()
 
-	assert.Equal(t, "/static/js/combo-select.js", JSHrefFor("combo-select.js"))
+	assert.Equal(t, "/static/js/htmx.min.js", JSHrefFor("htmx.min.js"))
 }
 
 func TestJSHrefForUsesRegisteredAssets(t *testing.T) {
@@ -98,6 +98,6 @@ func TestJSHrefForUsesRegisteredAssets(t *testing.T) {
 		jsRegistryMu.Unlock()
 	}()
 
-	href := JSHrefFor("combo-select.js")
-	assert.True(t, strings.HasPrefix(href, "/static/js/combo-select.js?h="), "got %q", href)
+	href := JSHrefFor("htmx.min.js")
+	assert.True(t, strings.HasPrefix(href, "/static/js/htmx.min.js?h="), "got %q", href)
 }

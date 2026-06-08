@@ -3,7 +3,6 @@ package coffee
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -60,17 +59,21 @@ templ RoasterDialogModal(roaster *arabica.Roaster) {
 	}
 }
 
-// recipePourJSON returns a JSON array string of existing pours for the
-// RecipePours petite-vue factory.
+// recipePourJSON returns the existing pours for the Svelte pour editor.
 func recipePourJSON(recipe *arabica.Recipe) string {
 	if recipe == nil || len(recipe.Pours) == 0 {
 		return "[]"
 	}
-	var parts []string
-	for _, p := range recipe.Pours {
-		parts = append(parts, fmt.Sprintf("{water: %d, time: %d}", p.WaterAmount, p.TimeSeconds))
+	type pour struct {
+		Water int `json:"water"`
+		Time  int `json:"time"`
 	}
-	return "[" + strings.Join(parts, ", ") + "]"
+	pours := make([]pour, 0, len(recipe.Pours))
+	for _, p := range recipe.Pours {
+		pours = append(pours, pour{Water: p.WaterAmount, Time: p.TimeSeconds})
+	}
+	payload, _ := json.Marshal(pours)
+	return string(payload)
 }
 
 // RecipeDialogModal renders the recipe creation/edit modal using native <dialog>
@@ -140,51 +143,17 @@ templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 		</div>
 		<div class="form-divider"></div>
 		<!-- Pours -->
-		<div class="form-fieldset" v-scope={ fmt.Sprintf("RecipePours(%s)", recipePourJSON(recipe)) }>
-			<div class="flex items-center justify-between">
-				<div class="form-fieldset-label">Pours <span class="form-optional-hint">(optional)</span></div>
-				<button
-					type="button"
-					@click="addPour"
-					class="text-sm btn-secondary"
-				>
-					+ Add Pour
-				</button>
-			</div>
-			<div class="space-y-2">
-				<div
-					v-for="(pour, index) in pours"
-					:key="index"
-					class="flex gap-2 items-center p-3 rounded-lg"
-					style="background: var(--surface-bg); border: 1px solid var(--surface-border);"
-				>
-					<div class="flex-1">
-						<label class="text-xs text-emphasis font-medium" v-text="'Pour ' + (index + 1)"></label>
-						<input
-							type="number"
-							:name="'pour_water_' + index"
-							v-model="pour.water"
-							placeholder="Water (g)"
-							class="w-full form-input text-sm py-2 px-3 mt-1"
-						/>
-					</div>
-					<div class="flex-1">
-						<label class="text-xs text-emphasis font-medium">Time (sec)</label>
-						<input
-							type="number"
-							:name="'pour_time_' + index"
-							v-model="pour.time"
-							placeholder="e.g. 45"
-							class="w-full form-input text-sm py-2 px-3 mt-1"
-						/>
-					</div>
-					<button
-						type="button"
-						@click="removePour(index)"
-						class="text-emphasis hover:text-primary mt-5 font-bold"
-					>
-						@IconX()
-					</button>
+		<div class="form-fieldset">
+			<div
+				data-svelte-recipe-pours
+				data-current-pours={ recipePourJSON(recipe) }
+				data-start-visible="true"
+				data-title="Pours"
+				data-description=""
+			>
+				<div class="flex items-center justify-between">
+					<div class="form-fieldset-label">Pours <span class="form-optional-hint">(optional)</span></div>
+					<button type="button" class="text-sm btn-secondary">+ Add Pour</button>
 				</div>
 			</div>
 		</div>
@@ -202,10 +171,7 @@ templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 	}
 }
 
-// roasterPickerInit builds the `v-scope="RoasterPicker(...)"` expression
-// for the inline roaster picker. The factory lives in arabica-vue.js; this
-// just feeds it JSON-marshalled seed data.
-func roasterPickerInit(bean *arabica.Bean, roasters []arabica.Roaster) string {
+func roasterPickerRowsJSON(bean *arabica.Bean, roasters []arabica.Roaster) string {
 	type row struct {
 		RKey string `json:"rkey"`
 		Name string `json:"name"`
@@ -244,12 +210,8 @@ func roasterPickerInit(bean *arabica.Bean, roasters []arabica.Roaster) string {
 			}
 		}
 	}
-	payload, _ := json.Marshal(struct {
-		AllRoasters []row  `json:"allRoasters"`
-		InitialRKey string `json:"initialRKey"`
-		InitialName string `json:"initialName"`
-	}{rows, selectedRKey, selectedName})
-	return "RoasterPicker(" + string(payload) + ")"
+	payload, _ := json.Marshal(rows)
+	return string(payload)
 }
 
 func beanRoasterRKey(bean *arabica.Bean) string {
@@ -281,15 +243,11 @@ func beanRoasterName(bean *arabica.Bean, roasters []arabica.Roaster) string {
 	return ""
 }
 
-// beanRatingInitData returns the petite-vue `v-scope` expression for the
-// rating toggle. If bean has a rating, the slider is shown with that
-// value; otherwise hidden.
-// beanRatingInitData returns the v-scope expression for the bean rating sub-scope.
-func beanRatingInitData(bean *arabica.Bean) string {
+func beanRatingInitialValue(bean *arabica.Bean) string {
 	if bean != nil && bean.Rating != nil {
-		return fmt.Sprintf("BeanRating(%d)", *bean.Rating)
+		return fmt.Sprint(*bean.Rating)
 	}
-	return "BeanRating(0)"
+	return "0"
 }
 
 func getStringValue(entity any, field string) string {
