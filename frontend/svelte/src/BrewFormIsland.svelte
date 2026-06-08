@@ -1,13 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import EntityCombo from "./EntityCombo.svelte";
   import Field from "./BrewFormField.svelte";
   import PoursEditor from "./PoursEditor.svelte";
   import type { AppCacheAPI } from "./appCache";
-  import {
-    comboSelectEntities,
-    type EntityRecord,
-    type Suggestion,
-  } from "./comboSelectRegistry";
+  import { comboSelectEntities, type EntityRecord } from "./comboSelectRegistry";
 
   type ComboType = "recipe" | "bean" | "grinder" | "brewer";
   type Pour = {
@@ -16,77 +13,6 @@
     water_amount?: number;
     time_seconds?: number;
   };
-  type ComboState = {
-    rkey: string;
-    label: string;
-    query: string;
-    results: EntityRecord[];
-    closedResults: EntityRecord[];
-    suggestions: Suggestion[];
-    open: boolean;
-    highlight: number;
-    showCreate: boolean;
-    createData: EntityRecord;
-    creating: boolean;
-  };
-  type ComboItem =
-    | { kind: "entity"; entity: EntityRecord }
-    | { kind: "closed"; entity: EntityRecord }
-    | { kind: "suggestion"; suggestion: Suggestion }
-    | { kind: "create" };
-
-  const comboMeta: Record<
-    ComboType,
-    {
-      label: string;
-      inputName: string;
-      endpoint: string;
-      suggestEndpoint: string;
-      placeholder: string;
-      sectionLabel: string;
-      required?: boolean;
-      passthrough?: boolean;
-      allowCreate?: boolean;
-    }
-  > = {
-    recipe: {
-      label: "Recipe (Optional)",
-      inputName: "recipe_rkey",
-      endpoint: "/api/recipes",
-      suggestEndpoint: "/api/suggestions/recipes",
-      placeholder: "Search recipes...",
-      sectionLabel: "Your recipes",
-      passthrough: true,
-      allowCreate: false,
-    },
-    bean: {
-      label: "Coffee Bean",
-      inputName: "bean_rkey",
-      endpoint: "/api/beans",
-      suggestEndpoint: "/api/suggestions/beans",
-      placeholder: "Search beans...",
-      sectionLabel: "Your beans",
-      required: true,
-      allowCreate: false,
-    },
-    grinder: {
-      label: "Grinder",
-      inputName: "grinder_rkey",
-      endpoint: "/api/grinders",
-      suggestEndpoint: "/api/suggestions/grinders",
-      placeholder: "Search grinders...",
-      sectionLabel: "Your grinders",
-    },
-    brewer: {
-      label: "Brew Method",
-      inputName: "brewer_rkey",
-      endpoint: "/api/brewers",
-      suggestEndpoint: "/api/suggestions/brewers",
-      placeholder: "Search brew methods...",
-      sectionLabel: "Your brewers",
-    },
-  };
-
   let { target }: { target: HTMLElement } = $props();
 
   let cachedData = $state<Record<string, any>>({});
@@ -94,10 +20,14 @@
   let activeRecipe = $state<EntityRecord | null>(null);
   let recipeExpanded = $state(false);
   let brewerCategory = $state("");
-  let focusedCombo = $state<ComboType | "">("");
-  let suggestTimers: Partial<Record<ComboType, ReturnType<typeof setTimeout>>> =
-    {};
-
+  let recipeRKey = $state("");
+  let recipeLabel = $state("");
+  let beanRKey = $state("");
+  let beanLabel = $state("");
+  let grinderRKey = $state("");
+  let grinderLabel = $state("");
+  let brewerRKey = $state("");
+  let brewerLabel = $state("");
   let coffeeAmount = $state("");
   let waterAmount = $state("");
   let grindSize = $state("");
@@ -117,29 +47,6 @@
   let pouroverFilter = $state("");
   let submitLabel = $state("Save Brew");
 
-  let combos = $state<Record<ComboType, ComboState>>({
-    recipe: emptyCombo(),
-    bean: emptyCombo(),
-    grinder: emptyCombo(),
-    brewer: emptyCombo(),
-  });
-
-  function emptyCombo(): ComboState {
-    return {
-      rkey: "",
-      label: "",
-      query: "",
-      results: [],
-      closedResults: [],
-      suggestions: [],
-      open: false,
-      highlight: -1,
-      showCreate: false,
-      createData: {},
-      creating: false,
-    };
-  }
-
   function appCache(): AppCacheAPI | undefined {
     return window.AppCache;
   }
@@ -148,7 +55,7 @@
     return comboSelectEntities[type] || {};
   }
 
-  function formatLabel(type: ComboType, entity: EntityRecord | Suggestion) {
+  function formatLabel(type: ComboType, entity: EntityRecord) {
     return (
       config(type).formatLabel?.(entity) ||
       entity.name ||
@@ -204,91 +111,24 @@
     return "";
   }
 
-  function setCombo(type: ComboType, patch: Partial<ComboState>) {
-    combos = { ...combos, [type]: { ...combos[type], ...patch } };
-  }
-
-  function search(type: ComboType, open = true) {
-    const state = combos[type];
-    const q = state.query.trim().toLowerCase();
-    const matches = q
-      ? cachedEntities(type).filter((entity: EntityRecord) =>
-          formatLabel(type, entity).toLowerCase().includes(q),
-        )
-      : cachedEntities(type).slice(0, 10);
-
-    if (type === "bean") {
-      setCombo(type, {
-        results: matches.filter(
-          (bean: EntityRecord) => !bean.closed && !bean.Closed,
-        ),
-        closedResults: q
-          ? matches.filter((bean: EntityRecord) => bean.closed || bean.Closed)
-          : [],
-        open,
-        highlight: -1,
-      });
-    } else {
-      setCombo(type, {
-        results: matches,
-        closedResults: [],
-        open,
-        highlight: -1,
-      });
-    }
-
-    clearTimeout(suggestTimers[type]);
-    if (q.length >= 2) {
-      suggestTimers[type] = setTimeout(
-        () => void fetchSuggestions(type, q),
-        350,
-      );
-    } else {
-      setCombo(type, { suggestions: [] });
-    }
-  }
-
-  async function fetchSuggestions(type: ComboType, q: string) {
-    try {
-      const response = await fetch(
-        `${comboMeta[type].suggestEndpoint}?q=${encodeURIComponent(q)}&limit=5`,
-        { credentials: "same-origin" },
-      );
-      if (!response.ok) return;
-      const data = await response.json();
-      const ownNames = new Set(
-        cachedEntities(type).map((entity: EntityRecord) =>
-          (entity.name || entity.Name || "").toLowerCase(),
-        ),
-      );
-      setCombo(type, {
-        suggestions: (data || []).filter(
-          (suggestion: Suggestion) =>
-            !ownNames.has((suggestion.name || "").toLowerCase()),
-        ),
-      });
-    } catch (error) {
-      console.error("Suggestion fetch failed:", error);
-    }
-  }
-
-  function exactMatch(type: ComboType) {
-    const state = combos[type];
-    const q = state.query.trim().toLowerCase();
-    if (!q) return false;
-    return (
-      [...state.results, ...state.closedResults].some(
-        (entity) => formatLabel(type, entity).toLowerCase() === q,
-      ) ||
-      state.suggestions.some(
-        (suggestion) => (suggestion.name || "").toLowerCase() === q,
-      )
-    );
-  }
-
   function selectEntity(type: ComboType, entity: EntityRecord) {
     const label = formatLabel(type, entity);
-    setCombo(type, { rkey: rkey(entity), label, query: label, open: false });
+    if (type === "recipe") {
+      recipeRKey = rkey(entity);
+      recipeLabel = label;
+    }
+    if (type === "bean") {
+      beanRKey = rkey(entity);
+      beanLabel = label;
+    }
+    if (type === "grinder") {
+      grinderRKey = rkey(entity);
+      grinderLabel = label;
+    }
+    if (type === "brewer") {
+      brewerRKey = rkey(entity);
+      brewerLabel = label;
+    }
     if (type === "brewer")
       brewerCategory = normalizeBrewerCategory(
         entity.brewer_type || entity.BrewerType || "",
@@ -297,122 +137,57 @@
       void applyRecipe(rkey(entity), entity.author_did || "");
   }
 
-  async function selectSuggestion(type: ComboType, suggestion: Suggestion) {
-    if (comboMeta[type].passthrough) {
-      const parts = (suggestion.source_uri || "").split("/");
-      const selectedRKey = parts.length >= 5 ? parts[4] : "";
-      const selectedOwner = parts.length >= 3 ? parts[2] : "";
-      const label = formatLabel(type, suggestion);
-      setCombo(type, { rkey: selectedRKey, label, query: label, open: false });
-      if (type === "recipe") await applyRecipe(selectedRKey, selectedOwner);
-      return;
-    }
-
-    const data = config(type).formatCreateData?.(
-      suggestion.name || "",
-      suggestion,
-    ) || { name: suggestion.name || "" };
-    if (suggestion.source_uri) data.source_ref = suggestion.source_uri;
-    const extras = config(type).extraFields || [];
-    if (extras.length > 0) {
-      for (const field of extras)
-        if (!(field.name in data)) data[field.name] = "";
-      setCombo(type, { createData: data, showCreate: true, open: false });
-      return;
-    }
-    await createEntity(type, data);
-  }
-
-  function startCreate(type: ComboType) {
-    if (comboMeta[type].allowCreate === false) return;
-    const name = combos[type].query.trim();
-    if (!name) return;
-    const data: EntityRecord = { name };
-    for (const field of config(type).extraFields || []) data[field.name] = "";
-    setCombo(type, { createData: data, showCreate: true, open: false });
-  }
-
-  async function createEntity(type: ComboType, data: EntityRecord) {
-    setCombo(type, { creating: true });
-    try {
-      const response = await fetch(comboMeta[type].endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        if (response.status === 401) window.__showSessionExpiredModal?.();
-        throw new Error(`Create failed: ${response.status}`);
-      }
-      const created = await response.json();
-      const label = data.name || formatLabel(type, created);
-      setCombo(type, {
-        rkey: rkey(created),
-        label,
-        query: label,
-        showCreate: false,
-        createData: {},
-        open: false,
-      });
-      const refreshed = await appCache()?.invalidateAndRefresh?.();
-      if (refreshed) cachedData = refreshed;
-      if (type === "brewer")
-        brewerCategory = normalizeBrewerCategory(
-          created.brewer_type || created.BrewerType || "",
-        );
-    } finally {
-      setCombo(type, { creating: false });
-    }
-  }
-
   function clearCombo(type: ComboType) {
-    setCombo(type, { ...emptyCombo() });
     if (type === "recipe") {
+      recipeRKey = "";
+      recipeLabel = "";
       activeRecipe = null;
       recipeOwnerDID = "";
       recipeExpanded = false;
     }
-    if (type === "brewer") brewerCategory = "";
+    if (type === "bean") {
+      beanRKey = "";
+      beanLabel = "";
+    }
+    if (type === "grinder") {
+      grinderRKey = "";
+      grinderLabel = "";
+    }
+    if (type === "brewer") {
+      brewerRKey = "";
+      brewerLabel = "";
+      brewerCategory = "";
+    }
   }
 
-  function comboItems(type: ComboType): ComboItem[] {
-    const state = combos[type];
-    return [
-      ...state.results.map((entity): ComboItem => ({ kind: "entity", entity })),
-      ...state.closedResults.map(
-        (entity): ComboItem => ({ kind: "closed", entity }),
-      ),
-      ...state.suggestions.map((suggestion) => ({
-        kind: "suggestion",
-        suggestion,
-      }) as ComboItem),
-      ...(comboMeta[type].allowCreate !== false &&
-      state.query.trim() &&
-      !exactMatch(type)
-        ? ([{ kind: "create" }] as ComboItem[])
-        : []),
-    ];
-  }
-
-  function selectHighlighted(type: ComboType) {
-    const item = comboItems(type)[combos[type].highlight];
-    if (!item) return;
-    if (item.kind === "entity" || item.kind === "closed")
-      selectEntity(type, item.entity);
-    if (item.kind === "suggestion")
-      void selectSuggestion(type, item.suggestion);
-    if (item.kind === "create") startCreate(type);
-  }
-
-  function moveHighlight(type: ComboType, delta: number) {
-    const items = comboItems(type);
-    if (items.length === 0) return;
-    const next = combos[type].highlight + delta;
-    setCombo(type, {
-      open: true,
-      highlight: next < 0 ? items.length - 1 : next % items.length,
-    });
+  function handleComboChange(type: ComboType, detail: Record<string, any>) {
+    if (!detail.rkey) {
+      clearCombo(type);
+      return;
+    }
+    if (type === "recipe") {
+      recipeRKey = detail.rkey;
+      recipeLabel = detail.entity ? formatLabel(type, detail.entity) : recipeLabel;
+      void applyRecipe(detail.rkey, detail.owner || detail.entity?.author_did || "");
+      return;
+    }
+    if (type === "bean") {
+      beanRKey = detail.rkey;
+      beanLabel = detail.entity ? formatLabel(type, detail.entity) : beanLabel;
+      return;
+    }
+    if (type === "grinder") {
+      grinderRKey = detail.rkey;
+      grinderLabel = detail.entity ? formatLabel(type, detail.entity) : grinderLabel;
+      return;
+    }
+    if (type === "brewer") {
+      brewerRKey = detail.rkey;
+      brewerLabel = detail.entity ? formatLabel(type, detail.entity) : brewerLabel;
+      brewerCategory = normalizeBrewerCategory(
+        detail.entity?.brewer_type || detail.entity?.BrewerType || "",
+      );
+    }
   }
 
   function recipeSummary() {
@@ -507,11 +282,14 @@
     pouroverFilter = d.pouroverFilter || "";
     brewerCategory = d.brewerCategory || "";
 
-    for (const type of ["recipe", "bean", "grinder", "brewer"] as ComboType[]) {
-      const selectedRKey = d[`${type}Rkey`] || "";
-      const label = d[`${type}Label`] || "";
-      setCombo(type, { rkey: selectedRKey, label, query: label });
-    }
+    recipeRKey = d.recipeRkey || "";
+    recipeLabel = d.recipeLabel || "";
+    beanRKey = d.beanRkey || "";
+    beanLabel = d.beanLabel || "";
+    grinderRKey = d.grinderRkey || "";
+    grinderLabel = d.grinderLabel || "";
+    brewerRKey = d.brewerRkey || "";
+    brewerLabel = d.brewerLabel || "";
 
     try {
       pours = JSON.parse(d.pours || "[]").map((pour: Pour) => ({
@@ -529,21 +307,12 @@
     if (cached) cachedData = cached;
     const listener = (data: Record<string, any>) => {
       cachedData = data;
-      for (const type of ["recipe", "bean", "grinder", "brewer"] as ComboType[])
-        search(type, false);
     };
     appCache()?.addListener?.(listener);
     void appCache()
       ?.getData?.()
       .then((data) => {
         if (data) cachedData = data;
-        for (const type of [
-          "recipe",
-          "bean",
-          "grinder",
-          "brewer",
-        ] as ComboType[])
-          search(type, false);
         if (target.dataset.recipeRkey)
           void applyRecipe(
             target.dataset.recipeRkey,
@@ -553,7 +322,6 @@
 
     return () => {
       appCache()?.removeListener?.(listener);
-      Object.values(suggestTimers).forEach(clearTimeout);
     };
   });
 </script>
@@ -570,7 +338,20 @@
       Recipes are in early alpha, the format may change. Your brew data won't be
       affected.
     </div>
-    {@render ComboControl("recipe")}
+    <EntityCombo
+      entityType="recipe"
+      inputName="recipe_rkey"
+      apiEndpoint="/api/recipes"
+      suggestEndpoint="/api/suggestions/recipes"
+      placeholder="Search recipes..."
+      sectionLabel="Your recipes"
+      passthrough={true}
+      allowCreate={false}
+      bind:rkey={recipeRKey}
+      bind:label={recipeLabel}
+      ariaLabel="Search recipes"
+      onChange={(detail) => handleComboChange("recipe", detail)}
+    />
   </div>
 
   {#if activeRecipe}
@@ -594,7 +375,20 @@
       <label class="form-label"
         >Coffee Bean <span class="text-red-500">*</span></label
       >
-      {@render ComboControl("bean")}
+      <EntityCombo
+        entityType="bean"
+        inputName="bean_rkey"
+        apiEndpoint="/api/beans"
+        suggestEndpoint="/api/suggestions/beans"
+        placeholder="Search beans..."
+        sectionLabel="Your beans"
+        required={true}
+        allowCreate={false}
+        bind:rkey={beanRKey}
+        bind:label={beanLabel}
+        ariaLabel="Search coffee beans"
+        onChange={(detail) => handleComboChange("bean", detail)}
+      />
     </div>
     {#if showRecipeOverrides()}
       <Field
@@ -615,7 +409,18 @@
     {/if}
     <div class="combo-select">
       <label class="form-label">Grinder</label>
-      {@render ComboControl("grinder")}
+      <EntityCombo
+        entityType="grinder"
+        inputName="grinder_rkey"
+        apiEndpoint="/api/grinders"
+        suggestEndpoint="/api/suggestions/grinders"
+        placeholder="Search grinders..."
+        sectionLabel="Your grinders"
+        bind:rkey={grinderRKey}
+        bind:label={grinderLabel}
+        ariaLabel="Search grinders"
+        onChange={(detail) => handleComboChange("grinder", detail)}
+      />
     </div>
     <Field
       label="Grind Size"
@@ -636,7 +441,18 @@
     {#if showRecipeOverrides()}
       <div class="combo-select">
         <label class="form-label">Brew Method</label>
-        {@render ComboControl("brewer")}
+        <EntityCombo
+          entityType="brewer"
+          inputName="brewer_rkey"
+          apiEndpoint="/api/brewers"
+          suggestEndpoint="/api/suggestions/brewers"
+          placeholder="Search brew methods..."
+          sectionLabel="Your brewers"
+          bind:rkey={brewerRKey}
+          bind:label={brewerLabel}
+          ariaLabel="Search brew methods"
+          onChange={(detail) => handleComboChange("brewer", detail)}
+        />
       </div>
       <Field
         label="Water Amount (grams)"
@@ -655,7 +471,7 @@
       </Field>
       <PoursEditor bind:pours />
     {:else}
-      <input type="hidden" name="brewer_rkey" value={combos.brewer.rkey} />
+      <input type="hidden" name="brewer_rkey" value={brewerRKey} />
       <input type="hidden" name="water_amount" value={waterAmount} />
       {#each pours as pour, index}
         <input type="hidden" name={`pour_water_${index}`} value={pour.water} />
@@ -812,194 +628,3 @@
     {submitLabel}
   </button>
 </fieldset>
-
-{#snippet ComboControl(type: ComboType)}
-  <input
-    type="hidden"
-    name={comboMeta[type].inputName}
-    value={combos[type].rkey}
-    required={comboMeta[type].required}
-  />
-  <div class="relative">
-    <input
-      type="text"
-      bind:value={combos[type].query}
-      oninput={() => search(type, true)}
-      onfocus={() => {
-        focusedCombo = type;
-        search(type, true);
-      }}
-      onblur={() =>
-        setTimeout(
-          () =>
-            setCombo(type, {
-              open: false,
-              query: combos[type].rkey
-                ? combos[type].label
-                : combos[type].query,
-            }),
-          150,
-        )}
-      onkeydown={(event) => {
-        if (event.key === "Escape") setCombo(type, { open: false });
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          moveHighlight(type, 1);
-        }
-        if (event.key === "ArrowUp") {
-          event.preventDefault();
-          moveHighlight(type, -1);
-        }
-        if (event.key === "Enter") {
-          event.preventDefault();
-          selectHighlighted(type);
-        }
-      }}
-      placeholder={comboMeta[type].placeholder}
-      class="w-full form-input-lg"
-      autocomplete="off"
-      role="combobox"
-      aria-expanded={combos[type].open ? "true" : "false"}
-      aria-label={comboMeta[type].label}
-    />
-    {#if combos[type].rkey}
-      <button
-        type="button"
-        onclick={() => clearCombo(type)}
-        class="absolute right-2 top-1/2 -translate-y-1/2 text-placeholder hover:text-muted"
-        aria-label="Clear selection">×</button
-      >
-    {/if}
-  </div>
-
-  {#if combos[type].open && (comboItems(type).length > 0 || combos[type].query.trim())}
-    <div
-      role="listbox"
-      tabindex="-1"
-      class="combo-dropdown"
-      onmousedown={(event) => event.preventDefault()}
-    >
-      {#if combos[type].creating}
-        <div class="combo-creating">Creating...</div>
-      {:else}
-        {#if combos[type].results.length > 0}
-          <div class="combo-section-label">{comboMeta[type].sectionLabel}</div>
-          {#each combos[type].results as entity, index}
-            <button
-              type="button"
-              class="combo-item"
-              role="option"
-              aria-selected={combos[type].highlight === index}
-              data-highlighted={combos[type].highlight === index}
-              onmouseenter={() => setCombo(type, { highlight: index })}
-              onclick={() => selectEntity(type, entity)}
-            >
-              {formatLabel(type, entity)}
-            </button>
-          {/each}
-        {/if}
-        {#if combos[type].closedResults.length > 0}
-          <div class="combo-section-label">Closed bags</div>
-          {#each combos[type].closedResults as entity, index}
-            <button
-              type="button"
-              class="combo-item opacity-60"
-              role="option"
-              onclick={() => selectEntity(type, entity)}
-              >{formatLabel(type, entity)}</button
-            >
-          {/each}
-        {/if}
-        {#if combos[type].suggestions.length > 0}
-          <div class="combo-section-label">Community</div>
-          {#each combos[type].suggestions as suggestion}
-            <button
-              type="button"
-              class="combo-item"
-              role="option"
-              onclick={() => selectSuggestion(type, suggestion)}
-            >
-              <div>{suggestion.name}</div>
-              <div class="combo-item-sub">
-                {#if suggestion.fields?.origin}{suggestion.fields.origin}{/if}
-                {#if suggestion.fields?.origin && suggestion.fields?.roastLevel}
-                  ·
-                {/if}
-                {#if suggestion.fields?.roastLevel}{suggestion.fields
-                    .roastLevel}{/if}
-                {#if suggestion.fields?.location}{suggestion.fields
-                    .location}{/if}
-                {#if (suggestion.count || 0) > 1}
-                  · {suggestion.count} users{/if}
-              </div>
-            </button>
-          {/each}
-        {/if}
-        {#if comboMeta[type].allowCreate !== false && combos[type].query.trim() && !exactMatch(type)}
-          <button
-            type="button"
-            class="combo-item-create"
-            role="option"
-            onclick={() => startCreate(type)}
-            >Create "{combos[type].query.trim()}"</button
-          >
-        {/if}
-        {#if comboItems(type).length === 0 && combos[type].query.trim()}<div
-            class="combo-creating"
-          >
-            No matches found
-          </div>{/if}
-      {/if}
-    </div>
-  {/if}
-
-  {#if combos[type].showCreate}
-    <div
-      class="mt-2 p-3 rounded-lg"
-      style="background: var(--surface-bg); border: 1px solid var(--surface-border);"
-    >
-      <p class="text-sm font-medium text-primary mb-2">
-        Creating: <span class="font-semibold"
-          >{combos[type].createData.name}</span
-        >
-      </p>
-      <div class="space-y-2">
-        {#each config(type).extraFields || [] as field}
-          {#if field.type === "select"}
-            <select
-              bind:value={combos[type].createData[field.name]}
-              class="w-full form-input text-sm"
-            >
-              <option value="">{field.label} (optional)</option>
-              {#each field.options || [] as option}<option value={option}
-                  >{option}</option
-                >{/each}
-            </select>
-          {:else}
-            <input
-              type={field.type === "url" ? "url" : "text"}
-              bind:value={combos[type].createData[field.name]}
-              placeholder={field.placeholder || `${field.label} (optional)`}
-              class="w-full form-input text-sm"
-            />
-          {/if}
-        {/each}
-      </div>
-      <div class="flex gap-2 mt-3">
-        <button
-          type="button"
-          class="btn-primary text-sm"
-          disabled={combos[type].creating}
-          onclick={() => createEntity(type, { ...combos[type].createData })}
-          >Create</button
-        >
-        <button
-          type="button"
-          class="btn-secondary text-sm"
-          onclick={() => setCombo(type, { showCreate: false, createData: {} })}
-          >Cancel</button
-        >
-      </div>
-    </div>
-  {/if}
-{/snippet}
