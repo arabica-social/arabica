@@ -1,0 +1,114 @@
+.taste-profile {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(240px, 1.18fr);
+  gap: 1.25rem;
+  align-items: center;
+  padding: 1.25rem;
+  border: 1px solid
+    color-mix(in oklch, var(--surface-border), var(--accent-primary) 18%);
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--surface-bg), var(--accent-primary) 5%),
+      var(--surface-bg)
+    ),
+    var(--surface-bg);
+}
+
+.taste-profile-copy {
+  min-width: 0;
+}
+
+.taste-profile-kicker {
+  margin: 0 0 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.taste-profile h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  line-height: 1.05;
+}
+
+.taste-profile-chart {
+  min-width: 0;
+}
+
+.taste-profile svg {
+  display: block;
+  width: min(100%, 430px);
+  margin-inline: auto;
+  overflow: visible;
+}
+
+.taste-rings circle {
+  fill: none;
+  stroke: color-mix(in oklch, var(--surface-border), var(--text-primary) 8%);
+  stroke-width: 1;
+}
+
+.taste-spoke {
+  stroke: color-mix(in oklch, var(--surface-border), var(--text-primary) 5%);
+  stroke-width: 1;
+}
+
+.taste-area {
+  fill: color-mix(in oklch, var(--accent-primary), transparent 74%);
+  stroke: none;
+}
+
+.taste-line {
+  fill: none;
+  stroke: color-mix(in oklch, var(--accent-primary), var(--text-primary) 8%);
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.taste-point {
+  fill: var(--surface-bg);
+  stroke: color-mix(in oklch, var(--accent-primary), var(--text-primary) 8%);
+  stroke-width: 2.5;
+}
+
+.taste-label {
+  fill: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.taste-profile-list {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem 0.9rem;
+}
+
+.taste-profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.taste-profile-row span:first-child {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .taste-profile {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .taste-profile-list {
+    grid-template-columns: 1fr;
+  }
+}

@@ -49,11 +49,6 @@ function loadIsland(id: string, importer: () => Promise<IslandModule>): Promise<
 
 let mounted = false;
 
-const brewPoursIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
-const brewRatingIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
-const brewWaterHelperIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
-const brewMethodSectionIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
-const brewRecipeSummaryIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const feedFiltersIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const recipeExploreIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const manageTabsIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
@@ -79,32 +74,8 @@ const brewFormIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const recipeFormIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const handleAutocompleteIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const profileStatsIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
+const tasteProfileIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 let feedLayoutMounted = false;
-
-async function mountBrewPours() {
-	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-pours], [data-svelte-recipe-pours]');
-	if (targets.length === 0) {
-		return;
-	}
-	const BrewPoursIsland = await loadIsland(
-		'brew-pours',
-		() => import('./BrewPoursIsland.svelte') as Promise<IslandModule>
-	);
-
-	targets.forEach((target) => {
-		if (brewPoursIslands.has(target)) {
-			return;
-		}
-		target.innerHTML = '';
-		brewPoursIslands.set(
-			target,
-			mount(BrewPoursIsland, {
-				target,
-				props: { target }
-			})
-		);
-	});
-}
 
 async function mountFeedFilters() {
 	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-feed-filters]');
@@ -690,6 +661,30 @@ async function mountProfileStats() {
 	});
 }
 
+async function mountTasteProfiles() {
+	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-taste-profile]');
+	if (targets.length === 0) {
+		return;
+	}
+	const TasteProfileIsland = await loadIsland(
+		'taste-profile',
+		() => import('./TasteProfileIsland.svelte') as Promise<IslandModule>
+	);
+	targets.forEach((target) => {
+		if (tasteProfileIslands.has(target)) {
+			return;
+		}
+		target.innerHTML = '';
+		tasteProfileIslands.set(
+			target,
+			mount(TasteProfileIsland, {
+				target,
+				props: { target }
+			})
+		);
+	});
+}
+
 async function mountBrewForms() {
 	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-form]');
 	if (targets.length === 0) {
@@ -727,102 +722,6 @@ async function mountRecipeForms() {
 			mount(RecipeFormIsland, {
 				target,
 				props: { target }
-			})
-		);
-	});
-}
-
-async function mountBrewMethodSections() {
-	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-method-section]');
-	if (targets.length === 0) {
-		return;
-	}
-	const BrewMethodSectionIsland = await loadIsland(
-		'brew-method-section',
-		() => import('./BrewMethodSectionIsland.svelte') as Promise<IslandModule>
-	);
-	targets.forEach((target) => {
-		if (brewMethodSectionIslands.has(target)) {
-			return;
-		}
-		brewMethodSectionIslands.set(
-			target,
-			mount(BrewMethodSectionIsland, {
-				target: document.body,
-				props: {
-					target,
-					method: target.dataset.svelteBrewMethodSection || ''
-				}
-			})
-		);
-	});
-}
-
-async function mountBrewRecipeSummaries() {
-	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-recipe-summary]');
-	if (targets.length === 0) {
-		return;
-	}
-	const BrewRecipeSummaryIsland = await loadIsland(
-		'brew-recipe-summary',
-		() => import('./BrewRecipeSummaryIsland.svelte') as Promise<IslandModule>
-	);
-	targets.forEach((target) => {
-		if (brewRecipeSummaryIslands.has(target)) {
-			return;
-		}
-		target.innerHTML = '';
-		brewRecipeSummaryIslands.set(
-			target,
-			mount(BrewRecipeSummaryIsland, {
-				target,
-				props: { target }
-			})
-		);
-	});
-}
-
-async function mountBrewRatings() {
-	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-rating], [data-svelte-rating-slider]');
-	if (targets.length === 0) {
-		return;
-	}
-	const BrewRatingIsland = await loadIsland('brew-rating', () => import('./BrewRatingIsland.svelte') as Promise<IslandModule>);
-	targets.forEach((target) => {
-		if (brewRatingIslands.has(target)) {
-			return;
-		}
-		const initialRating = Number(target.dataset.initialRating || '5');
-		target.innerHTML = '';
-		brewRatingIslands.set(
-			target,
-			mount(BrewRatingIsland, {
-				target,
-				props: { initialRating: Number.isNaN(initialRating) ? 5 : initialRating }
-			})
-		);
-	});
-}
-
-async function mountBrewWaterHelpers() {
-	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-water-helper]');
-	if (targets.length === 0) {
-		return;
-	}
-	const BrewWaterHelperIsland = await loadIsland(
-		'brew-water-helper',
-		() => import('./BrewWaterHelperIsland.svelte') as Promise<IslandModule>
-	);
-	targets.forEach((target) => {
-		if (brewWaterHelperIslands.has(target)) {
-			return;
-		}
-		target.innerHTML = '';
-		brewWaterHelperIslands.set(
-			target,
-			mount(BrewWaterHelperIsland, {
-				target,
-				props: { initialShowPours: target.dataset.initialShowPours === 'true' }
 			})
 		);
 	});
@@ -871,11 +770,6 @@ async function mountCoreIslands() {
 async function mountAll() {
 	await mountCoreIslands();
 	await Promise.all([
-		mountBrewRatings(),
-		mountBrewWaterHelpers(),
-		mountBrewMethodSections(),
-		mountBrewRecipeSummaries(),
-		mountBrewPours(),
 		mountFeedFilters(),
 		mountRecipeExplore(),
 		mountManageTabs(),
@@ -899,6 +793,7 @@ async function mountAll() {
 		mountRecipeForkButtons(),
 		mountHandleAutocompletes(),
 		mountProfileStats(),
+		mountTasteProfiles(),
 		mountBrewForms(),
 		mountRecipeForms(),
 		mountFeedLayout()

@@ -1,8 +1,10 @@
 package coffee
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	. "tangled.org/arabica.social/arabica/internal/web/components"
@@ -40,10 +42,19 @@ type ProfileContentPartialProps struct {
 	TotalBrews      int // total brew count (for stats; may differ from len(Brews) when paginated)
 }
 
+type TasteProfileAxis struct {
+	ID       string `json:"id"`
+	Label    string `json:"label"`
+	Value    int    `json:"value"`
+	Evidence string `json:"evidence"`
+}
+
 // ProfileContentPartial renders the profile tabs content (for HTMX loading)
 templ ProfileContentPartial(props ProfileContentPartialProps) {
 	<!-- Hidden div with stats data for JavaScript -->
 	<div id="profile-stats-data" class="hidden" data-brews={ strconv.Itoa(props.TotalBrews) } data-beans={ strconv.Itoa(len(props.Beans)) } data-roasters={ strconv.Itoa(len(props.Roasters)) } data-grinders={ strconv.Itoa(len(props.Grinders)) } data-brewers={ strconv.Itoa(len(props.Brewers)) }></div>
+	// TODO: enable the taste profile once its finished
+	// <div id="taste-profile-data" class="hidden" data-profile={ tasteProfileJSON(props) }></div>
 	<!-- Brews Tab -->
 	<div data-tab-panel="brews">
 		@ProfileBrewCards(ProfileBrewCardsProps{
@@ -251,6 +262,97 @@ templ ProfileBrewCards(props ProfileBrewCardsProps) {
 			}
 		</div>
 	}
+}
+
+func tasteProfileJSON(props ProfileContentPartialProps) string {
+	payload, _ := json.Marshal(buildTasteProfileAxes(props))
+	return string(payload)
+}
+
+// TODO: finish this
+func buildTasteProfileAxes(props ProfileContentPartialProps) []TasteProfileAxis {
+	axes := []TasteProfileAxis{
+		{ID: "bright", Label: "Bright", Value: tasteAxisScore(props, []string{"light", "washed", "citrus", "lemon", "lime", "orange", "floral", "tea", "jasmine"})},
+		{ID: "fruit", Label: "Fruit-forward", Value: tasteAxisScore(props, []string{"natural", "honey", "berry", "berries", "strawberry", "blueberry", "fruit", "jam", "wine"})},
+		{ID: "sweet", Label: "Sweet", Value: tasteAxisScore(props, []string{"sweet", "caramel", "honey", "sugar", "brown sugar", "maple", "molasses", "vanilla"})},
+		{ID: "comfort", Label: "Comforting", Value: tasteAxisScore(props, []string{"medium", "dark", "chocolate", "cocoa", "nut", "almond", "hazelnut", "spice", "round"})},
+		{ID: "clarity", Label: "Clarity", Value: tasteAxisScore(props, []string{"clean", "delicate", "transparent", "crisp", "balanced", "structured", "washed"})},
+		{ID: "body", Label: "Body", Value: tasteAxisScore(props, []string{"body", "creamy", "syrupy", "heavy", "rich", "texture", "velvet", "espresso"})},
+	}
+	for i := range axes {
+		axes[i].Evidence = tasteAxisEvidence(axes[i].Value, props.TotalBrews, len(props.Beans))
+	}
+	return axes
+}
+
+func tasteAxisScore(props ProfileContentPartialProps, terms []string) int {
+	score := 0
+	for _, bean := range props.Beans {
+		text := strings.ToLower(strings.Join([]string{
+			bean.Name,
+			bean.Origin,
+			bean.Variety,
+			bean.RoastLevel,
+			bean.Process,
+			bean.Description,
+		}, " "))
+		score += tasteKeywordHits(text, terms) * 16
+		if bean.Rating != nil && *bean.Rating >= 8 {
+			score += tasteKeywordHits(text, terms) * 6
+		}
+	}
+	for _, brew := range props.Brews {
+		text := strings.ToLower(strings.Join([]string{
+			brew.Method,
+			brew.GrindSize,
+			brew.TastingNotes,
+		}, " "))
+		if brew.Bean != nil {
+			text += " " + strings.ToLower(strings.Join([]string{
+				brew.Bean.Name,
+				brew.Bean.Origin,
+				brew.Bean.Variety,
+				brew.Bean.RoastLevel,
+				brew.Bean.Process,
+				brew.Bean.Description,
+			}, " "))
+		}
+		weight := 10
+		if brew.Rating >= 8 {
+			weight = 16
+		}
+		score += tasteKeywordHits(text, terms) * weight
+	}
+	if score > 100 {
+		return 100
+	}
+	if score < 12 && (props.TotalBrews > 0 || len(props.Beans) > 0) {
+		return 12
+	}
+	return score
+}
+
+func tasteKeywordHits(text string, terms []string) int {
+	hits := 0
+	for _, term := range terms {
+		if strings.Contains(text, term) {
+			hits++
+		}
+	}
+	return hits
+}
+
+func tasteAxisEvidence(value, brews, beans int) string {
+	if brews == 0 && beans == 0 {
+		return "No profile data yet"
+	}
+	if value >= 70 {
+		return "Strong signal"
+	}
+	if value >= 35 {
+		return "Emerging signal"
+	}
+	return "Light signal"
 }
 
 func getLikeCount(counts map[string]int, rkey string) int {
