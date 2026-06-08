@@ -54,13 +54,6 @@ implementation. If the task is clear, start writing code immediately. Ask
 clarifying questions rather than endlessly reading the codebase. When given a
 specific implementation task, produce code changes in the same session.
 
-## Work Management
-
-This project uses **cells** for task tracking. See `.cells/AGENTS.md` for usage.
-
-- `./cells list` / `./cells list --status open` / `./cells show <cell-id>`
-- Do NOT use `./cells run` (spawns new agent session, humans only)
-
 ## Dependencies
 
 Prefer standard library solutions over external dependencies. Only add a
@@ -110,9 +103,9 @@ keys use TID format (timestamp-based identifiers).
 
 ### Store Interface
 
-`internal/arabica/store/store.go` defines the `Store` interface with CRUD methods for
-all entity types. `AtprotoStore` is the production implementation backed by the
-user's PDS with witness cache and session cache layers.
+`internal/arabica/store/store.go` defines the `Store` interface with CRUD
+methods for all entity types. `AtprotoStore` is the production implementation
+backed by the user's PDS with witness cache and session cache layers.
 
 ### Three-Layer Caching
 
