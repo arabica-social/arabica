@@ -185,7 +185,7 @@ entities with references):
 25. **Suggestions** config in `internal/suggestions/suggestions.go` + handler
     map in `internal/handlers/suggestions.go`
 26. **Client-side cache** entity case in
-    `frontend/svelte/src/BrewComboSelectIsland.svelte` `getCachedEntities()`
+    `internal/web/assets/svelte/src/EntityCombo.svelte` `cachedEntities()`
 
 ### Templ Architecture
 
@@ -204,20 +204,20 @@ Entity selection dropdowns (bean, grinder, brewer, roaster, cafe) use a shared
 combo-select pattern with typeahead search, community suggestions, and inline
 creation:
 
-- **Templ markup**: forms render a `data-svelte-brew-combo` mount point with
-  entity-specific endpoint and initial-value data.
-- **Svelte behavior**: `frontend/svelte/src/BrewComboSelectIsland.svelte`
+- **Templ markup**: complex forms render Svelte island mount points and use
+  `EntityCombo.svelte` inside the island for entity-specific selections.
+- **Svelte behavior**: `internal/web/assets/svelte/src/EntityCombo.svelte`
   searches user records from the Svelte app cache, community suggestions from
   `/api/suggestions/{entity}`, and creates new entities inline via POST.
-- **Entity config**: `frontend/svelte/src/comboSelectRegistry.ts` owns
+- **Entity config**: `internal/web/assets/svelte/src/comboSelectRegistry.ts` owns
   entity-specific label formatting, extra fields, and create data mapping.
 - **Suggestions backend**: `internal/suggestions/suggestions.go` — entity
   configs define searchable fields and dedup keys.
 
-To add a new entity to combo-select: add a mount point in the relevant templ
-form, add entity config to `comboSelectRegistry.ts`, add the cached entity case
-to `getCachedEntities()` in `BrewComboSelectIsland.svelte`, add entity config to
-`suggestions.go`, and add to the entity-to-NSID map in
+To add a new entity to combo-select: add entity config to
+`comboSelectRegistry.ts`, add the cached entity case to `cachedEntities()` in
+`EntityCombo.svelte`, add entity config to `suggestions.go`, and add to the
+entity-to-NSID map in
 `handlers/suggestions.go`.
 
 ### Entity View Handler Pattern

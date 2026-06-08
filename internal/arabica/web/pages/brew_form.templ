@@ -171,8 +171,6 @@ func getInitialBrewerCategory(props BrewFormProps) string {
 	return ""
 }
 
-
-
 func formatBeanLabel(bean arabica.Bean) string {
 	if bean.Name != "" {
 		return fmt.Sprintf("%s (%s - %s)", bean.Name, bean.Origin, bean.RoastLevel)
@@ -233,15 +231,12 @@ func getGrinderRKey(props BrewFormProps) string {
 	return ""
 }
 
-
 func getCoffeeAmount(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.CoffeeAmount > 0 {
 		return fmt.Sprintf("%d", props.Brew.CoffeeAmount)
 	}
 	return ""
 }
-
-
 
 func getGrindSize(props BrewFormProps) string {
 	if props.Brew != nil {
@@ -250,16 +245,12 @@ func getGrindSize(props BrewFormProps) string {
 	return ""
 }
 
-
-
 func getWaterAmount(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.WaterAmount > 0 {
 		return fmt.Sprintf("%d", props.Brew.WaterAmount)
 	}
 	return ""
 }
-
-
 
 func getTemperature(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.Temperature > 0.0 {
@@ -268,14 +259,12 @@ func getTemperature(props BrewFormProps) string {
 	return ""
 }
 
-
 func getBrewTime(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.TimeSeconds > 0 {
 		return fmt.Sprintf("%d", props.Brew.TimeSeconds)
 	}
 	return ""
 }
-
 
 func getTastingNotes(props BrewFormProps) string {
 	if props.Brew != nil {
@@ -284,16 +273,12 @@ func getTastingNotes(props BrewFormProps) string {
 	return ""
 }
 
-
 func getRating(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.Rating > 0 {
 		return fmt.Sprintf("%d", props.Brew.Rating)
 	}
 	return "5"
 }
-
-
-
 
 func getEspressoYieldWeight(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.EspressoParams != nil && props.Brew.EspressoParams.YieldWeight > 0 {

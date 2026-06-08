@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     emptyOutDir: false,
     lib: {
-      entry: 'frontend/svelte/src/main.ts',
+      entry: 'internal/web/assets/svelte/src/main.ts',
       formats: ['es'],
       fileName: () => 'svelte-islands.js'
     },

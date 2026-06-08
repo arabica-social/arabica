@@ -36,3 +36,8 @@ integration-test:
 
 verbose-integration-test:
     @cd tests/integration && INTEGRATION_LOGS=true go test -v ./... -count=1
+
+format:
+    @pnpm run format
+    @gofmt -w ./
+    @templ fmt . -w

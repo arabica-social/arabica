@@ -8,13 +8,13 @@ import (
 
 // HeaderProps contains all properties for the header component
 type HeaderProps struct {
-	IsAuthenticated              bool
-	UserProfile                  *bff.UserProfile
-	UserDID                      string
-	IsModerator                  bool   // Show admin link in dropdown
-	UnreadNotificationCount      int    // Badge count for bell icon
-	BrandName                    string // "Arabica"; falls back to "Arabica" when empty
-	AppName                      string // "arabica" or "oolong" — selects the create-new dropdown contents
+	IsAuthenticated         bool
+	UserProfile             *bff.UserProfile
+	UserDID                 string
+	IsModerator             bool   // Show admin link in dropdown
+	UnreadNotificationCount int    // Badge count for bell icon
+	BrandName               string // "Arabica"; falls back to "Arabica" when empty
+	AppName                 string // "arabica" or "oolong" — selects the create-new dropdown contents
 }
 
 // brandName returns the configured brand name with the arabica default
@@ -28,9 +28,9 @@ func (p HeaderProps) brandName() string {
 
 templ Header(isAuthenticated bool, userProfile *bff.UserProfile, userDID string) {
 	@HeaderWithProps(HeaderProps{
-		IsAuthenticated:              isAuthenticated,
-		UserProfile:                  userProfile,
-		UserDID:                      userDID,
+		IsAuthenticated: isAuthenticated,
+		UserProfile:     userProfile,
+		UserDID:         userDID,
 	})
 }
 

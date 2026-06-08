@@ -13,5 +13,8 @@
     "module": "ESNext",
     "types": ["svelte"]
   },
-  "include": ["frontend/svelte/**/*.ts", "frontend/svelte/**/*.svelte"]
+  "include": [
+    "internal/web/assets/svelte/**/*.ts",
+    "internal/web/assets/svelte/**/*.svelte"
+  ]
 }

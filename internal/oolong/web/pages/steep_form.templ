@@ -68,7 +68,9 @@ templ SteepFormElement(props SteepFormProps) {
 			<legend class="text-sm font-semibold text-secondary px-2">References <span class="form-optional-hint font-normal">(optional)</span></legend>
 			@VesselSelectField(props)
 			@InfusionMethodField(props)
-			<div data-infusion-section if initialInfusionMethod(props) != "infuser" { hidden }>
+			<div data-infusion-section if initialInfusionMethod(props) != "infuser" {
+	hidden
+}>
 				@InfuserSelectField(props)
 			</div>
 		</fieldset>
