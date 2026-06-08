@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import type { AppCacheAPI } from './appCache';
   import {
     comboSelectEntities,
     type EntityConfig,
@@ -53,7 +54,12 @@
   let communityResults = $state<Suggestion[]>([]);
   let showCreateForm = $state(false);
   let createFormData = $state<EntityRecord>({});
+  let cachedData = $state<Record<string, any> | null>(null);
   let suggestTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function getAppCache(): AppCacheAPI | undefined {
+    return window.AppCache;
+  }
 
   function getEntityConfig() {
     return (comboSelectEntities[entityType] || {}) as EntityConfig;
@@ -88,8 +94,7 @@
     return entity.rkey || entity.RKey || '';
   }
 
-  function getCachedEntities() {
-    const cache = (window as any).AppCache?.getCachedData?.() || {};
+  function getCachedEntities(cache: Record<string, any> = {}) {
     switch (entityType) {
       case 'bean':
         return cache.beans || [];
@@ -118,9 +123,29 @@
     }
   }
 
+  function refreshCachedData() {
+    const appCache = getAppCache();
+    if (!appCache) return;
+    const cached = appCache.getCachedData?.();
+    if (cached) {
+      cachedData = cached;
+    }
+  }
+
   async function primeCache() {
+    const appCache = getAppCache();
+    if (!appCache) {
+      search(false);
+      return;
+    }
+
+    refreshCachedData();
+    search(false);
     try {
-      await (window as any).AppCache?.getData?.();
+      const freshData = await appCache.getData?.();
+      if (freshData) {
+        cachedData = freshData;
+      }
       search(false);
     } catch (error) {
       console.warn('svelte combo-select: failed to load user data cache:', error);
@@ -129,7 +154,7 @@
 
   function search(openOnMatch = false) {
     const q = query.trim().toLowerCase();
-    const entities = getCachedEntities();
+    const entities = getCachedEntities(cachedData || {});
     const matches = q
       ? entities.filter((entity: EntityRecord) => formatLabel(entity).toLowerCase().includes(q))
       : entities.slice(0, 10);
@@ -161,7 +186,9 @@
       if (!response.ok) return;
       const data = await response.json();
       const ownNames = new Set(
-        getCachedEntities().map((entity: EntityRecord) => (entity.name || entity.Name || '').toLowerCase())
+        getCachedEntities(cachedData || {}).map((entity: EntityRecord) =>
+          (entity.name || entity.Name || '').toLowerCase()
+        )
       );
       communityResults = (data || []).filter(
         (suggestion: Suggestion) => !ownNames.has((suggestion.name || '').toLowerCase())
@@ -236,7 +263,8 @@
         body: JSON.stringify(data)
       });
       if (!response.ok) {
-        if (response.status === 401) (window as any).__showSessionExpiredModal?.();
+        const appCache = getAppCache();
+        if (response.status === 401) window.__showSessionExpiredModal?.();
         throw new Error(`Create failed: ${response.status}`);
       }
       const created = await response.json();
@@ -246,7 +274,7 @@
       isOpen = false;
       showCreateForm = false;
       createFormData = {};
-      await (window as any).AppCache?.invalidateAndRefresh?.();
+      await appCache?.invalidateAndRefresh?.();
       dispatchChange({ entityType, rkey: selectedRKey, entity: created });
     } catch (error) {
       console.error('Failed to create entity:', error);
@@ -317,9 +345,15 @@
       }
     };
     target.addEventListener('combo-set', handleSet);
+    const cacheListener = (data: Record<string, any>) => {
+      cachedData = data;
+      search(false);
+    };
+    window.AppCache?.addListener?.(cacheListener);
     void primeCache();
     return () => {
       target.removeEventListener('combo-set', handleSet);
+      window.AppCache?.removeListener?.(cacheListener);
       clearTimeout(suggestTimer);
     };
   });

@@ -177,7 +177,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 			<meta name="htmx-config" content='{"globalViewTransitions":false,"historyCacheSize":20,"allowEval":false}'/>
 			<!-- Load HTMX and other utilities -->
 			<script src={ data.scriptHref("htmx.min.js") }></script>
-			<script src={ data.scriptHref("svelte-islands.js") }></script>
+			<script type="module" src={ data.scriptHref("svelte-islands.js") }></script>
 		</head>
 		if tp := bff.Traceparent(ctx); tp != "" {
 			<meta name="traceparent" content={ tp }/>

@@ -10,8 +10,8 @@
   let statusType = $state<'success' | 'error' | ''>('');
   let statusNode = $state<HTMLElement | null>(null);
 
-  const endpoint = target.dataset.settingsEndpoint || target.action || '';
-  const method = (target.method || 'POST').toUpperCase();
+  const resolveEndpoint = () => target.dataset.settingsEndpoint || target.action || '';
+  const resolveMethod = () => (target.method || 'POST').toUpperCase();
 
   const classes = {
     success: 'text-sm text-green-700 dark:text-green-400',
@@ -47,8 +47,8 @@
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
 
-    if (isSaving || !endpoint) {
-      if (!endpoint) {
+    if (isSaving || !resolveEndpoint()) {
+      if (!resolveEndpoint()) {
         setStatus('Missing settings endpoint', 'error');
       }
       return;
@@ -59,8 +59,8 @@
     setSubmitting(true);
 
     try {
-      const response = await fetch(endpoint, {
-        method,
+      const response = await fetch(resolveEndpoint(), {
+        method: resolveMethod(),
         credentials: 'same-origin',
         body: new FormData(target)
       });

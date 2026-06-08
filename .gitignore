@@ -10,6 +10,8 @@ tmp/
 *.out
 *.secret
 static/css/output.css
+internal/web/assets/js/svelte-islands.js
+internal/web/assets/js/svelte-islands-*.js
 *.db
 *.db-shm
 *.db-wal
