@@ -76,6 +76,20 @@ func recipePourJSON(recipe *arabica.Recipe) string {
 	return string(payload)
 }
 
+func recipeBrewersJSON(brewers []arabica.Brewer) string {
+	type brewer struct {
+		RKey       string `json:"rkey"`
+		Name       string `json:"name"`
+		BrewerType string `json:"brewer_type"`
+	}
+	rows := make([]brewer, 0, len(brewers))
+	for _, b := range brewers {
+		rows = append(rows, brewer{RKey: b.RKey, Name: b.Name, BrewerType: b.BrewerType})
+	}
+	payload, _ := json.Marshal(rows)
+	return string(payload)
+}
+
 // RecipeDialogModal renders the recipe creation/edit modal using native <dialog>
 templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 	@ModalShell(ModalShellProps{
@@ -83,90 +97,21 @@ templ RecipeDialogModal(recipe *arabica.Recipe, brewers []arabica.Brewer) {
 		ActionPath: "recipes",
 		RKey:       modalEntityRKey(recipe),
 	}) {
-		<!-- Essentials -->
-		<div class="form-fieldset">
-			<div class="form-fieldset-label">Essentials</div>
-			<input
-				type="text"
-				name="name"
-				value={ getStringValue(recipe, "name") }
-				placeholder="Name *"
-				required
-				class="w-full form-input"
-			/>
-			<select
-				name="brewer_rkey"
-				class="w-full form-input"
-			>
-				<option value="">Select Brewer</option>
-				for _, brewer := range brewers {
-					<option
-						value={ brewer.RKey }
-						if recipe != nil && recipe.BrewerRKey == brewer.RKey {
-							selected
-						}
-					>
-						{ brewer.Name }
-					</option>
-				}
-			</select>
-			<input
-				type="text"
-				name="brewer_type"
-				value={ getStringValue(recipe, "brewer_type") }
-				placeholder="Brewer Type (e.g., Pour-Over, Immersion)"
-				class="w-full form-input"
-			/>
-		</div>
-		<div class="form-divider"></div>
-		<!-- Amounts -->
-		<div class="form-fieldset">
-			<div class="form-fieldset-label">Amounts <span class="form-optional-hint">(optional)</span></div>
-			<div class="grid grid-cols-2 gap-3">
-				<input
-					type="number"
-					name="coffee_amount"
-					value={ getStringValue(recipe, "coffee_amount") }
-					placeholder="Coffee (g)"
-					step="0.1"
-					class="w-full form-input"
-				/>
-				<input
-					type="number"
-					name="water_amount"
-					value={ getStringValue(recipe, "water_amount") }
-					placeholder="Water (g)"
-					step="0.1"
-					class="w-full form-input"
-				/>
-			</div>
-		</div>
-		<div class="form-divider"></div>
-		<!-- Pours -->
 		<div class="form-fieldset">
 			<div
-				data-svelte-recipe-pours
-				data-current-pours={ recipePourJSON(recipe) }
-				data-start-visible="true"
-				data-title="Pours"
-				data-description=""
+				data-svelte-recipe-form
+				data-name={ getStringValue(recipe, "name") }
+				data-brewer-rkey={ getStringValue(recipe, "brewer_rkey") }
+				data-brewer-type={ getStringValue(recipe, "brewer_type") }
+				data-coffee-amount={ getStringValue(recipe, "coffee_amount") }
+				data-water-amount={ getStringValue(recipe, "water_amount") }
+				data-notes={ getStringValue(recipe, "notes") }
+				data-source-ref={ getStringValue(recipe, "source_ref") }
+				data-pours={ recipePourJSON(recipe) }
+				data-brewers={ recipeBrewersJSON(brewers) }
 			>
-				<div class="flex items-center justify-between">
-					<div class="form-fieldset-label">Pours <span class="form-optional-hint">(optional)</span></div>
-					<button type="button" class="text-sm btn-secondary">+ Add Pour</button>
-				</div>
+				<div class="form-fieldset-label">Recipe</div>
 			</div>
-		</div>
-		<div class="form-divider"></div>
-		<!-- Notes -->
-		<div class="form-fieldset">
-			<div class="form-fieldset-label">Notes <span class="form-optional-hint">(optional)</span></div>
-			<textarea
-				name="notes"
-				placeholder="Notes"
-				rows="3"
-				class="w-full form-textarea"
-			>{ getStringValue(recipe, "notes") }</textarea>
 		</div>
 	}
 }

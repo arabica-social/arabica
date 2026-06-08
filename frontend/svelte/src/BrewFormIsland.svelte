@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Field from "./BrewFormField.svelte";
+  import PoursEditor from "./PoursEditor.svelte";
   import type { AppCacheAPI } from "./appCache";
   import {
     comboSelectEntities,
@@ -484,14 +485,6 @@
     return !activeRecipe || recipeExpanded;
   }
 
-  function addPour() {
-    pours = [...pours, { water: "", time: "" }];
-  }
-
-  function removePour(index: number) {
-    pours = pours.filter((_, i) => i !== index);
-  }
-
   function initializeFromDataset() {
     const d = target.dataset;
     submitLabel = d.submitLabel || "Save Brew";
@@ -660,7 +653,7 @@
           class="w-full form-input-lg"
         />
       </Field>
-      {@render PoursEditor()}
+      <PoursEditor bind:pours />
     {:else}
       <input type="hidden" name="brewer_rkey" value={combos.brewer.rkey} />
       <input type="hidden" name="water_amount" value={waterAmount} />
@@ -1006,71 +999,6 @@
           onclick={() => setCombo(type, { showCreate: false, createData: {} })}
           >Cancel</button
         >
-      </div>
-    </div>
-  {/if}
-{/snippet}
-
-{#snippet PoursEditor()}
-  {#if pours.length === 0}
-    <button
-      type="button"
-      class="text-sm text-muted hover:text-secondary font-medium"
-      onclick={addPour}>+ Add pours</button
-    >
-  {:else}
-    <div>
-      <div class="flex items-center justify-between mb-2">
-        <span class="block text-sm font-medium text-primary">Pours</span>
-        <button type="button" onclick={addPour} class="text-sm btn-secondary"
-          >+ Add Pour</button
-        >
-      </div>
-      <p class="text-sm text-emphasis mb-3">
-        Track individual pours for bloom and subsequent additions
-      </p>
-      <div class="space-y-3">
-        {#each pours as pour, index}
-          <div
-            class="flex gap-2 items-center p-3 rounded-lg"
-            style="background: var(--surface-bg); border: 1px solid var(--surface-border);"
-          >
-            <div class="flex-1">
-              <label
-                class="text-xs text-emphasis font-medium"
-                for={`pour-water-${index}`}>Pour {index + 1}</label
-              >
-              <input
-                id={`pour-water-${index}`}
-                type="number"
-                name={`pour_water_${index}`}
-                bind:value={pour.water}
-                placeholder="Water (g)"
-                class="w-full form-input text-sm py-2 px-3 mt-1"
-              />
-            </div>
-            <div class="flex-1">
-              <label
-                class="text-xs text-emphasis font-medium"
-                for={`pour-time-${index}`}>Time (sec)</label
-              >
-              <input
-                id={`pour-time-${index}`}
-                type="number"
-                name={`pour_time_${index}`}
-                bind:value={pour.time}
-                placeholder="e.g. 45"
-                class="w-full form-input text-sm py-2 px-3 mt-1"
-              />
-            </div>
-            <button
-              type="button"
-              onclick={() => removePour(index)}
-              class="text-emphasis hover:text-primary mt-5 font-bold"
-              aria-label={`Remove pour ${index + 1}`}>×</button
-            >
-          </div>
-        {/each}
       </div>
     </div>
   {/if}

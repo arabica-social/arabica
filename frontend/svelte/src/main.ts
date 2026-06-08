@@ -77,6 +77,7 @@ const adminDashboardIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>
 const saveAsRecipeIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const recipeForkButtonIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const brewFormIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
+const recipeFormIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const handleAutocompleteIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const profileStatsIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 let feedLayoutMounted = false;
@@ -751,6 +752,27 @@ async function mountBrewForms() {
 	});
 }
 
+async function mountRecipeForms() {
+	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-recipe-form]');
+	if (targets.length === 0) {
+		return;
+	}
+	const RecipeFormIsland = await loadIsland('recipe-form', () => import('./RecipeFormIsland.svelte') as Promise<IslandModule>);
+	targets.forEach((target) => {
+		if (recipeFormIslands.has(target)) {
+			return;
+		}
+		target.innerHTML = '';
+		recipeFormIslands.set(
+			target,
+			mount(RecipeFormIsland, {
+				target,
+				props: { target }
+			})
+		);
+	});
+}
+
 async function mountBrewMethodSections() {
 	const targets = document.querySelectorAll<HTMLElement>('[data-svelte-brew-method-section]');
 	if (targets.length === 0) {
@@ -920,6 +942,7 @@ async function mountAll() {
 		mountHandleAutocompletes(),
 		mountProfileStats(),
 		mountBrewForms(),
+		mountRecipeForms(),
 		mountFeedLayout()
 	]);
 
