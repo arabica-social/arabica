@@ -1,4 +1,13 @@
 <script lang="ts">
+  import {
+    extractFragment,
+    fetchHTMXPartial,
+    formToURLSearchParams,
+    postURLEncodedForm,
+    responseTextOrThrow,
+    showSessionExpiredOn401,
+  } from "./domContracts";
+
   interface Props {
     target: HTMLElement;
   }
@@ -25,22 +34,11 @@
       subject_cid: subjectCID,
     });
 
-    const response = await fetch(`/api/comments?${params.toString()}`, {
-      method: "GET",
-      credentials: "same-origin",
-      headers: {
-        "HX-Request": "true",
-      },
-    });
-
-    const html = await response.text();
-    if (!response.ok) {
-      throw new Error(html.trim() || "Failed to load comments");
-    }
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    const nextSection = doc.querySelector("#comment-section");
+    const response = await fetchHTMXPartial(
+      `/api/comments?${params.toString()}`,
+    );
+    const html = await responseTextOrThrow(response, "Failed to load comments");
+    const nextSection = extractFragment(html, "#comment-section");
     if (nextSection) {
       target.innerHTML = nextSection.innerHTML;
     } else {
@@ -84,18 +82,12 @@
     return subjectURI !== "" && subjectCID !== "";
   }
 
-  function commentFormData(form: HTMLFormElement) {
-    const data = new FormData(form);
+  function commentFormBody(form: HTMLFormElement) {
     const textarea = form.querySelector<HTMLTextAreaElement>(
       'textarea[name="text"]',
     );
-    data.set("text", textarea?.value || "");
-    const params = new URLSearchParams();
-    data.forEach((value, key) => {
-      if (typeof value === "string") {
-        params.append(key, value);
-      }
-    });
+    const params = formToURLSearchParams(form);
+    params.set("text", textarea?.value || "");
     return params;
   }
 
@@ -137,8 +129,6 @@
     }
 
     const form = eventTarget;
-    const endpoint = form.getAttribute("action") || "/api/comments";
-    const method = (form.method || "POST").toUpperCase();
     const submitButtons = [
       ...form.querySelectorAll<HTMLButtonElement>('button[type="submit"]'),
     ];
@@ -161,18 +151,12 @@
     });
 
     try {
-      const response = await fetch(endpoint, {
-        method,
-        credentials: "same-origin",
-        body: commentFormData(form),
-      });
+      const response = await postURLEncodedForm(form, commentFormBody(form));
       const responseText = await response.text();
 
       if (!response.ok) {
         setStatus(responseText || "Failed to save comment", "error");
-        if (response.status === 401) {
-          window.__showSessionExpiredModal?.();
-        }
+        showSessionExpiredOn401(response);
         return;
       }
 
