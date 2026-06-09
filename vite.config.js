@@ -3,6 +3,13 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [svelte()],
+  resolve: {
+    conditions: ["browser"],
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["internal/web/assets/svelte/src/testSetup.ts"],
+  },
   build: {
     emptyOutDir: false,
     lib: {

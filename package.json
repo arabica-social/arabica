@@ -5,15 +5,22 @@
     "preinstall": "node -e \"const ua = process.env.npm_config_user_agent || ''; if (!ua.startsWith('pnpm/')) { console.error('Use pnpm to install dependencies.'); process.exit(1); }\"",
     "build:svelte": "vite build",
     "check:svelte": "svelte-check --tsconfig ./tsconfig.json",
-    "format": "prettier --plugin=prettier-plugin-svelte --write .prettierrc.json package.json pnpm-lock.yaml svelte.config.js tsconfig.json vite.config.js \"internal/web/assets/css/**/*.css\" \"internal/web/assets/svelte/**/*.{svelte,ts}\""
+    "format": "prettier --plugin=prettier-plugin-svelte --write .prettierrc.json package.json pnpm-lock.yaml svelte.config.js tsconfig.json vite.config.js \"internal/web/assets/css/**/*.css\" \"internal/web/assets/svelte/**/*.{svelte,ts}\"",
+    "test:svelte": "vitest run",
+    "test:svelte:watch": "vitest"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "jsdom": "^29.1.1",
     "prettier": "^3.8.3",
     "prettier-plugin-svelte": "^4.1.0",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "typescript": "^5.0.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^4.1.8"
   }
 }
