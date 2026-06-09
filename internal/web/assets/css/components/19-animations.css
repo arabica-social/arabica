@@ -43,6 +43,61 @@ body.htmx-history-restoring .htmx-transitioning {
   /* Removed overlay ::after pseudo-element - it created unwanted shadow effects */
 }
 
+/* Feed swaps should keep the corkboard pinned in place. HTMX marks the target
+   as swapping before replacing it; for the feed that target is the board
+   itself, so the global fade made the whole corkboard blink out. Keep the
+   board visible and use a small tactile request mask instead. */
+#feed-items.htmx-swapping,
+#feed-items.htmx-settling {
+  opacity: 1;
+  transform: none;
+}
+
+#feed-items.htmx-transitioning {
+  isolation: isolate;
+}
+
+#feed-items.htmx-transitioning::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      110deg,
+      transparent 0%,
+      color-mix(in oklch, var(--feed-card-bg) 65%, transparent) 42%,
+      color-mix(in oklch, var(--feed-card-bg) 82%, transparent) 50%,
+      color-mix(in oklch, var(--feed-card-bg) 65%, transparent) 58%,
+      transparent 100%
+    ),
+    color-mix(in oklch, var(--feed-board-bg) 18%, transparent);
+  background-size: 220% 100%, auto;
+  animation: feed-request-wash 900ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+#feed-items.htmx-transitioning::after {
+  content: "shuffling notes";
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  z-index: 31;
+  pointer-events: none;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--feed-card-bg) 94%, transparent);
+  color: var(--text-muted);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  animation: feed-request-label 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* ========================================
    Component-Specific Transitions
    ======================================== */
@@ -72,6 +127,49 @@ body.htmx-history-restoring .htmx-transitioning {
 }
 .feed-grid .feed-card:nth-child(n + 7) {
   animation-delay: 260ms;
+}
+
+@keyframes feed-request-wash {
+  from {
+    background-position: 160% 0, 0 0;
+  }
+  to {
+    background-position: -60% 0, 0 0;
+  }
+}
+
+@keyframes feed-request-label {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+[data-tab-panel].tab-panel-enter {
+  animation: tab-panel-place-note 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes tab-panel-place-note {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #feed-items.htmx-transitioning::before,
+  #feed-items.htmx-transitioning::after,
+  [data-tab-panel].tab-panel-enter {
+    animation: none;
+  }
 }
 
 /* Modal transitions (enhanced) */

@@ -46,6 +46,26 @@
       writeStoredTab(storageKey, tab);
     }
     refreshTabButtons();
+    animateActivePanel(tab);
+  }
+
+  function animateActivePanel(tab: string) {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    const panel = target.querySelector<HTMLElement>(
+      `[data-tab-panel="${CSS.escape(tab)}"]`,
+    );
+    if (!panel) {
+      return;
+    }
+    panel.classList.remove("tab-panel-enter");
+    // Re-adding the class in the next frame lets repeated visits to the same
+    // panel replay the short placement animation.
+    requestAnimationFrame(() => {
+      panel.classList.add("tab-panel-enter");
+      window.setTimeout(() => panel.classList.remove("tab-panel-enter"), 260);
+    });
   }
 
   function refreshTabButtons() {

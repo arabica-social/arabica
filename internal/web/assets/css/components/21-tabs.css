@@ -22,3 +22,9 @@
 [data-active-tab="infusers"] [data-tab-panel="infusers"] {
   display: block;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tab-panel].tab-panel-enter {
+    animation: none;
+  }
+}
