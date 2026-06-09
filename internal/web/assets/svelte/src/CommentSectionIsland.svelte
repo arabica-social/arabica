@@ -28,6 +28,9 @@
     const response = await fetch(`/api/comments?${params.toString()}`, {
       method: "GET",
       credentials: "same-origin",
+      headers: {
+        "HX-Request": "true",
+      },
     });
 
     const html = await response.text();
@@ -54,6 +57,65 @@
     }
     statusNode.textContent = message;
     statusNode.className = statusClasses[type];
+  }
+
+  function ensureSubjectFields(form: HTMLFormElement) {
+    const section = form.closest<HTMLElement>("[data-svelte-comment-section]");
+    const subjectURIInput = form.elements.namedItem("subject_uri");
+    const subjectCIDInput = form.elements.namedItem("subject_cid");
+    const subjectURI =
+      (subjectURIInput instanceof HTMLInputElement
+        ? subjectURIInput.value
+        : "") ||
+      section?.dataset.commentSubjectUri ||
+      target.dataset.commentSubjectUri ||
+      "";
+    const subjectCID =
+      (subjectCIDInput instanceof HTMLInputElement
+        ? subjectCIDInput.value
+        : "") ||
+      section?.dataset.commentSubjectCid ||
+      target.dataset.commentSubjectCid ||
+      "";
+
+    upsertHiddenField(form, "subject_uri", subjectURI);
+    upsertHiddenField(form, "subject_cid", subjectCID);
+
+    return subjectURI !== "" && subjectCID !== "";
+  }
+
+  function commentFormData(form: HTMLFormElement) {
+    const data = new FormData(form);
+    const textarea = form.querySelector<HTMLTextAreaElement>(
+      'textarea[name="text"]',
+    );
+    data.set("text", textarea?.value || "");
+    const params = new URLSearchParams();
+    data.forEach((value, key) => {
+      if (typeof value === "string") {
+        params.append(key, value);
+      }
+    });
+    return params;
+  }
+
+  function upsertHiddenField(
+    form: HTMLFormElement,
+    name: string,
+    value: string,
+  ) {
+    const existing = form.elements.namedItem(name);
+    let input: HTMLInputElement;
+    if (existing instanceof HTMLInputElement) {
+      input = existing;
+    } else {
+      const hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = name;
+      form.prepend(hidden);
+      input = hidden;
+    }
+    input.value = value;
   }
 
   async function handleSubmit(event: SubmitEvent) {
@@ -87,6 +149,12 @@
     const previousStatusNode = statusNode;
     statusNode = localStatus;
     isSubmitting = true;
+    if (!ensureSubjectFields(form)) {
+      setStatus("Comments are still loading. Refresh and try again.", "error");
+      isSubmitting = false;
+      statusNode = previousStatusNode;
+      return;
+    }
     setStatus("Posting...", "info");
     submitButtons.forEach((button) => {
       button.disabled = true;
@@ -96,7 +164,7 @@
       const response = await fetch(endpoint, {
         method,
         credentials: "same-origin",
-        body: new FormData(form),
+        body: commentFormData(form),
       });
       const responseText = await response.text();
 

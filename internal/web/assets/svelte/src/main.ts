@@ -297,7 +297,7 @@ async function mountCommentSections() {
     commentSectionIslands.set(
       target,
       mount(CommentSectionIsland, {
-        target,
+        target: document.body,
         props: { target },
       }),
     );

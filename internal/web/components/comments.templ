@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"net/url"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
@@ -72,7 +73,14 @@ templ CommentSection(props CommentSectionProps) {
 			</div>
 		</div>
 		<!-- Comment form or login prompt -->
-		if props.IsAuthenticated {
+		if props.SubjectURI == "" || props.SubjectCID == "" {
+			<div class="comment-login-prompt">
+				<svg class="w-5 h-5 text-faint flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"></path>
+				</svg>
+				<p class="text-sm text-muted">Comments will be available once this record is indexed.</p>
+			</div>
+		} else if props.IsAuthenticated {
 			@CommentForm(CommentFormProps{
 				SubjectURI: props.SubjectURI,
 				SubjectCID: props.SubjectCID,
@@ -110,7 +118,7 @@ type CommentFormProps struct {
 templ CommentForm(props CommentFormProps) {
 	<form
 		method="post"
-		action="/api/comments"
+		action={ commentActionURL(props.SubjectURI, props.SubjectCID) }
 		data-svelte-comment-form
 		class="comment-compose"
 	>
@@ -275,7 +283,7 @@ type ReplyFormProps struct {
 templ ReplyForm(props ReplyFormProps) {
 	<form
 		method="post"
-		action="/api/comments"
+		action={ commentActionURL(props.SubjectURI, props.SubjectCID) }
 		data-svelte-comment-form
 		class="comment-reply-form"
 	>
@@ -351,4 +359,11 @@ func buildCommentURI(comment firehose.IndexedComment) string {
 	// The subject URI contains the DID, format: at://did:plc:xxx/social.arabica.alpha.brew/rkey
 	// We need to extract the DID and build a comment URI: at://did:plc:xxx/social.arabica.alpha.comment/rkey
 	return fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", comment.ActorDID, comment.RKey)
+}
+
+func commentActionURL(subjectURI, subjectCID string) string {
+	values := url.Values{}
+	values.Set("subject_uri", subjectURI)
+	values.Set("subject_cid", subjectCID)
+	return "/api/comments?" + values.Encode()
 }
