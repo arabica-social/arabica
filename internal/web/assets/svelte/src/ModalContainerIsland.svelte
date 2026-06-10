@@ -15,7 +15,7 @@
     if (!dialog || typeof dialog.showModal !== "function") return;
 
     window.setTimeout(() => {
-      if (!dialog.open) dialog.showModal();
+      if (dialog.isConnected && !dialog.open) dialog.showModal();
     }, 10);
   }
 

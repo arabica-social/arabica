@@ -16,6 +16,15 @@
     target.closest("dialog")?.close();
   }
 
+  function discardDialog() {
+    const dialog = target.closest("dialog");
+    if (!dialog) {
+      return;
+    }
+    dialog.close();
+    dialog.remove();
+  }
+
   function modalActionPath() {
     return (
       target.getAttribute("hx-post") || target.getAttribute("hx-put") || ""
@@ -75,8 +84,8 @@
       ).detail;
       if (detail?.successful) {
         setError("");
+        discardDialog();
         void refreshAfterSave(detail.xhr);
-        closeDialog();
         return;
       }
       if (detail?.xhr?.status === 401) {
