@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { getCachedFeedHTML, setCachedFeedHTML } from "./feedCache";
   type FeedTab = {
     label: string;
     value: string;
@@ -44,7 +46,58 @@
     return `filter-pill-active filter-pill-${tab}`;
   }
 
+  function finishFeedSwap() {
+    const feedItems = document.querySelector<HTMLElement>("#feed-items");
+    if (feedItems) {
+      window.htmx?.process?.(feedItems);
+    }
+    window.__arabicaSvelteIslands?.mountAll();
+    window.__arabicaSvelteIslands?.applyFeedMasonry();
+  }
+
+  function replaceFeedFromCache(html: string) {
+    const current = document.querySelector<HTMLElement>("#feed-items");
+    if (!current) {
+      return false;
+    }
+
+    const template = document.createElement("template");
+    template.innerHTML = html.trim();
+    const cached = template.content.querySelector<HTMLElement>("#feed-items");
+    if (!cached) {
+      return false;
+    }
+
+    current.replaceWith(cached);
+    finishFeedSwap();
+    return true;
+  }
+
+  function cacheCurrentFeed(url: string) {
+    const feedItems = document.querySelector<HTMLElement>("#feed-items");
+    if (!feedItems) {
+      return;
+    }
+
+    // The home page starts with a server-rendered loading skeleton before HTMX
+    // swaps in the real feed. Never cache that placeholder, or switching back
+    // to All can restore the skeleton with no HTMX trigger attached.
+    if (
+      feedItems.querySelector(".animate-pulse") &&
+      !feedItems.querySelector(".feed-card")
+    ) {
+      return;
+    }
+
+    setCachedFeedHTML(url, feedItems.outerHTML);
+  }
+
   function applyFeed(url: string) {
+    const cached = getCachedFeedHTML(url);
+    if (cached && replaceFeedFromCache(cached)) {
+      return;
+    }
+
     const htmx = window.htmx;
     if (!htmx?.ajax) {
       window.location.href = url;
@@ -59,7 +112,8 @@
       }),
     ).finally(() => {
       loading = false;
-      window.__arabicaSvelteIslands?.applyFeedMasonry();
+      cacheCurrentFeed(url);
+      finishFeedSwap();
     });
   }
 
@@ -70,6 +124,32 @@
     typeFilter = nextType;
     applyFeed(feedURL(nextType, sort));
   }
+
+  onMount(() => {
+    const handleFeedSwap = (event: Event) => {
+      const detail = (event as CustomEvent).detail as
+        | { target?: Element; pathInfo?: { finalRequestPath?: string } }
+        | undefined;
+      if (
+        !(detail?.target instanceof HTMLElement) ||
+        detail.target.id !== "feed-items"
+      ) {
+        return;
+      }
+      const path =
+        detail.pathInfo?.finalRequestPath || feedURL(typeFilter, sort);
+      if (path.startsWith("/api/feed")) {
+        cacheCurrentFeed(path);
+      }
+    };
+
+    document.body.addEventListener("htmx:afterSwap", handleFeedSwap);
+    cacheCurrentFeed(feedURL(typeFilter, sort));
+
+    return () => {
+      document.body.removeEventListener("htmx:afterSwap", handleFeedSwap);
+    };
+  });
 
   function changeSort(nextSort: string) {
     if ((sort || "recent") === nextSort && !loading) {

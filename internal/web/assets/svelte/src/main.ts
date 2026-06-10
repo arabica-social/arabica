@@ -14,6 +14,7 @@ declare global {
         options: { target: string; swap: string; select?: string },
       ) => Promise<unknown> | unknown;
       trigger?: (target: string | Element, eventName: string) => void;
+      process?: (target: Element | Document) => void;
       config?: {
         globalViewTransitions?: boolean;
       };

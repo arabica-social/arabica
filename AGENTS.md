@@ -199,12 +199,6 @@ public (via `?owner=` parameter) access. They:
 
 The `internal/web/assets` package owns the front-end source tree:
 
-- `assets/css/tokens.css`, `reset.css`, `utilities.css` — base CSS layers
-- `assets/css/components/*.css` — numbered (`01-dark-mode.css`, …) so the prefix
-  preserves cascade under alphabetical glob expansion
-- `assets/css/themes/<app>.css` — per-app theme overlay
-- `assets/js/*.js` — every JS module the templates reference
-
 All files are `go:embed`ed and served from in-memory caches:
 
 - **CSS**: concatenated into one bundle per app at startup; URL is
@@ -213,18 +207,7 @@ All files are `go:embed`ed and served from in-memory caches:
 - **JS**: served per-file at `/static/js/<name>` with the same `?h=...` query
   param; templates reference each file via `{ assets.JSHrefFor("name.js") }`
 
-Both subsystems set `Cache-Control: public, max-age=31536000, immutable` in
-production and honor `If-None-Match` for 304s. Manual `?v=X.Y.Z` bumps are gone.
-
-For dev, set `ARABICA_DEV=1` (already on in the `just run` recipe). Each
-subsystem then re-reads its source directory on every request, so editing a CSS
-or JS file and refreshing picks up the change without a server restart. There is
-no separate build step beyond `go run` / `just run`.
-
-`static/service-worker.js` stays a regular static file (the browser handles its
-own update lifecycle). Fonts and images under `static/` are also still served by
-the plain FileServer — they don't change often enough to warrant the
-asset-handler treatment.
+For dev, set `ARABICA_DEV=1` for hot reloading of assets.
 
 ## Testing Conventions
 
