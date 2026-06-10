@@ -136,24 +136,26 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 		if isAuthenticated {
 			@FeedFilterBar(qs)
 		}
-		<!-- Feed items -->
-		<div id="feed-items" class="feed-grid" data-feed-masonry data-masonry-card=".feed-card">
-			if len(items) > 0 {
-				for _, item := range items {
-					@FeedCardWithModeration(item, isAuthenticated, modCtx, qs)
+		<!-- Feed board stays mounted while HTMX swaps the inner note grid. -->
+		<div id="feed-board" class="feed-board">
+			<div id="feed-items" class="feed-grid" data-feed-masonry data-masonry-card=".feed-card">
+				if len(items) > 0 {
+					for _, item := range items {
+						@FeedCardWithModeration(item, isAuthenticated, modCtx, qs)
+					}
+					<!-- Load more button -->
+					if qs.NextCursor != "" {
+						@FeedLoadMoreButton(qs)
+					}
+				} else {
+					{{ empty := feedEmptyState(qs) }}
+					<div class="rounded-xl p-8 text-center" style="background: var(--surface-bg); border: 2px dashed var(--card-border); grid-column: 1 / -1;">
+						<div class="text-4xl mb-3">{ empty.Icon }</div>
+						<p class="text-emphasis font-medium mb-1">{ empty.Title }</p>
+						<p class="text-sm text-faint">{ empty.Body }</p>
+					</div>
 				}
-				<!-- Load more button -->
-				if qs.NextCursor != "" {
-					@FeedLoadMoreButton(qs)
-				}
-			} else {
-				{{ empty := feedEmptyState(qs) }}
-				<div class="rounded-xl p-8 text-center" style="background: var(--surface-bg); border: 2px dashed var(--card-border); grid-column: 1 / -1;">
-					<div class="text-4xl mb-3">{ empty.Icon }</div>
-					<p class="text-emphasis font-medium mb-1">{ empty.Title }</p>
-					<p class="text-sm text-faint">{ empty.Body }</p>
-				</div>
-			}
+			</div>
 		</div>
 	</div>
 }

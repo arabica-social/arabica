@@ -58,8 +58,10 @@ templ CommunityFeedSection(isAuthenticated bool, descriptors []*entities.Descrip
 			@FeedFilterBar(FeedQueryState{IsAuthenticated: isAuthenticated, Descriptors: descriptors, FeedViews: feedViews})
 		}
 		<div hx-get="/api/feed" hx-trigger="load" hx-swap="outerHTML" hx-select="#feed-items" hx-target="#feed-items" hx-disinherit="*">
-			<div id="feed-items" class="space-y-4">
-				@FeedLoadingSkeleton()
+			<div id="feed-board" class="feed-board">
+				<div id="feed-items" class="feed-grid" data-feed-masonry data-masonry-card=".feed-card">
+					@FeedLoadingSkeleton()
+				</div>
 			</div>
 		</div>
 	</div>

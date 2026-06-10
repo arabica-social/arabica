@@ -43,38 +43,46 @@ body.htmx-history-restoring .htmx-transitioning {
   /* Removed overlay ::after pseudo-element - it created unwanted shadow effects */
 }
 
-/* Feed swaps should keep the corkboard pinned in place. HTMX marks the target
-   as swapping before replacing it; for the feed that target is the board
-   itself, so the global fade made the whole corkboard blink out. Keep the
-   board visible and use a small tactile request mask instead. */
+/* Feed swaps target only the inner note grid; the corkboard shell stays mounted.
+   Keep the note grid visible during HTMX's swap lifecycle and use a small
+   compositor-friendly request sweep instead of repainting the whole board. */
 #feed-items.htmx-swapping,
 #feed-items.htmx-settling {
   opacity: 1;
   transform: none;
 }
 
+#feed-items.htmx-added {
+  opacity: 0;
+  transform: none;
+  animation: feed-grid-soft-appear 120ms ease-out forwards;
+}
+
 #feed-items.htmx-transitioning {
   isolation: isolate;
+  overflow: hidden;
 }
 
 #feed-items.htmx-transitioning::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset-block: 0;
+  left: 0;
+  width: min(18rem, 45%);
   z-index: 30;
   pointer-events: none;
   border-radius: inherit;
-  background:
-    linear-gradient(
-      110deg,
-      transparent 0%,
-      color-mix(in oklch, var(--feed-card-bg) 65%, transparent) 42%,
-      color-mix(in oklch, var(--feed-card-bg) 82%, transparent) 50%,
-      color-mix(in oklch, var(--feed-card-bg) 65%, transparent) 58%,
-      transparent 100%
-    ),
-    color-mix(in oklch, var(--feed-board-bg) 18%, transparent);
-  background-size: 220% 100%, auto;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    color-mix(in oklch, var(--feed-card-bg) 42%, transparent) 45%,
+    color-mix(in oklch, var(--feed-card-bg) 62%, transparent) 50%,
+    color-mix(in oklch, var(--feed-card-bg) 42%, transparent) 55%,
+    transparent 100%
+  );
+  opacity: 0.72;
+  transform: translate3d(-125%, 0, 0);
+  will-change: transform;
   animation: feed-request-wash 900ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
@@ -102,39 +110,18 @@ body.htmx-history-restoring .htmx-transitioning {
    Component-Specific Transitions
    ======================================== */
 
-/* Feed cards appear with stagger effect (only inside the pinboard) */
+/* Feed cards settle softly after filter swaps. Keep this cheap: opacity-only,
+   no stagger, and no transform competing with masonry/card hover transforms. */
 .feed-grid .feed-card {
-  animation: fade-in-slide-up 300ms ease-out backwards;
-}
-
-.feed-grid .feed-card:nth-child(1) {
-  animation-delay: 0ms;
-}
-.feed-grid .feed-card:nth-child(2) {
-  animation-delay: 60ms;
-}
-.feed-grid .feed-card:nth-child(3) {
-  animation-delay: 120ms;
-}
-.feed-grid .feed-card:nth-child(4) {
-  animation-delay: 160ms;
-}
-.feed-grid .feed-card:nth-child(5) {
-  animation-delay: 200ms;
-}
-.feed-grid .feed-card:nth-child(6) {
-  animation-delay: 230ms;
-}
-.feed-grid .feed-card:nth-child(n + 7) {
-  animation-delay: 260ms;
+  animation: feed-card-soft-appear 140ms ease-out both;
 }
 
 @keyframes feed-request-wash {
   from {
-    background-position: 160% 0, 0 0;
+    transform: translate3d(-125%, 0, 0);
   }
   to {
-    background-position: -60% 0, 0 0;
+    transform: translate3d(285%, 0, 0);
   }
 }
 
@@ -146,6 +133,24 @@ body.htmx-history-restoring .htmx-transitioning {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes feed-grid-soft-appear {
+  from {
+    opacity: 0.72;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes feed-card-soft-appear {
+  from {
+    opacity: 0.86;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -167,6 +172,8 @@ body.htmx-history-restoring .htmx-transitioning {
 @media (prefers-reduced-motion: reduce) {
   #feed-items.htmx-transitioning::before,
   #feed-items.htmx-transitioning::after,
+  #feed-items.htmx-added,
+  .feed-grid .feed-card,
   [data-tab-panel].tab-panel-enter {
     animation: none;
   }

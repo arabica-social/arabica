@@ -139,12 +139,8 @@
   );
 }
 
-/* Feed grid layout — starts as normal grid, JS adds masonry class for tight packing */
-.feed-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  align-items: start;
+/* Feed board — visual corkboard shell that stays mounted during filter swaps. */
+.feed-board {
   overflow: hidden;
   background-image: var(--texture-cork);
   background-color: var(--feed-board-bg);
@@ -154,11 +150,20 @@
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-.feed-grid:has(.action-menu.is-open) {
+.feed-board:has(.action-menu.is-open) {
   overflow: visible;
 }
+
+/* Feed grid layout — starts as normal grid, JS adds masonry columns for tight packing. */
+.feed-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
 @media (min-width: 640px) {
-  .feed-grid {
+  .feed-board {
     padding: 1.25rem;
   }
 }
