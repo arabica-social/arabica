@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { appCache } from "./appCache";
-  import { clearFeedCache } from "./feedCache";
+  import { clearFeedCache, dispatchFeedMutation } from "./feedCache";
 
   function clearHTMXHistoryCache() {
     try {
@@ -21,7 +21,7 @@
     };
     const handleEntityDeleted = () => {
       appCache.invalidateCache();
-      clearFeedCache();
+      dispatchFeedMutation({ source: "entity", action: "delete" });
     };
 
     const handleHTMXBeforeRequest = (event: Event) => {

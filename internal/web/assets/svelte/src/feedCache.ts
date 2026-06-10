@@ -10,6 +10,13 @@ type FeedCacheEnvelope = {
 const CACHE_PREFIX = "arabica_feed_cache:";
 const CACHE_VERSION = 1;
 const CACHE_TTL_MS = 60 * 1000;
+export const FEED_MUTATION_EVENT = "arabica:feed-mutation";
+
+export type FeedMutationDetail = {
+  source?: "comment" | "entity" | "unknown";
+  action?: "create" | "delete" | "update" | "unknown";
+  subjectURI?: string;
+};
 
 function currentDID() {
   return document.body?.dataset?.userDid || null;
@@ -81,4 +88,14 @@ export function clearFeedCache() {
   } catch {
     // Ignore storage failures.
   }
+}
+
+export function dispatchFeedMutation(detail: FeedMutationDetail = {}) {
+  clearFeedCache();
+  document.body?.dispatchEvent(
+    new CustomEvent<FeedMutationDetail>(FEED_MUTATION_EVENT, {
+      bubbles: true,
+      detail,
+    }),
+  );
 }

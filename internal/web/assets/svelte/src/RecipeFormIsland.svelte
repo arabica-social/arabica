@@ -20,6 +20,22 @@
   let pours = $state<Pour[]>([]);
   let brewers = $state<BrewerRecord[]>([]);
 
+  function numericValue(value: string | number | null) {
+    if (value === null || value === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+
+  function mustBePositive(value: string | number | null) {
+    const parsed = numericValue(value);
+    return parsed !== null && (!Number.isFinite(parsed) || parsed <= 0);
+  }
+
+  let nameError = $derived(name.trim() === "");
+  let brewerError = $derived(brewerRKey.trim() === "");
+  let coffeeAmountError = $derived(mustBePositive(coffeeAmount));
+  let waterAmountError = $derived(mustBePositive(waterAmount));
+
   function appCache(): AppCacheAPI | undefined {
     return window.AppCache;
   }
@@ -127,7 +143,11 @@
         placeholder="Name"
         required
         class="w-full form-input"
+        aria-invalid={nameError}
       />
+      {#if nameError}
+        <p class="text-xs text-red-600 mt-1">Recipe name is required.</p>
+      {/if}
     </Field>
     <Field label="Brewer">
       <EntityCombo
@@ -143,6 +163,9 @@
         ariaLabel="Search brewers"
         onChange={handleBrewerComboChange}
       />
+      {#if brewerError}
+        <p class="text-xs text-red-600 mt-1">Brewer is required.</p>
+      {/if}
     </Field>
     <Field label="Brewer Type">
       <input
@@ -170,7 +193,13 @@
           placeholder="Coffee (g)"
           step="0.1"
           class="w-full form-input"
+          aria-invalid={coffeeAmountError}
         />
+        {#if coffeeAmountError}
+          <p class="text-xs text-red-600 mt-1">
+            Coffee amount must be greater than 0.
+          </p>
+        {/if}
       </Field>
       <Field label="Water (g)">
         <input
@@ -180,7 +209,13 @@
           placeholder="Water (g)"
           step="0.1"
           class="w-full form-input"
+          aria-invalid={waterAmountError}
         />
+        {#if waterAmountError}
+          <p class="text-xs text-red-600 mt-1">
+            Water amount must be greater than 0.
+          </p>
+        {/if}
       </Field>
     </div>
   </fieldset>
@@ -188,7 +223,12 @@
   <div class="form-divider"></div>
 
   <fieldset class="form-fieldset">
-    <PoursEditor bind:pours description="" emptyLabel="+ Add Pour" />
+    <PoursEditor
+      bind:pours
+      expectedWater={waterAmount}
+      description=""
+      emptyLabel="+ Add Pour"
+    />
   </fieldset>
 
   <div class="form-divider"></div>

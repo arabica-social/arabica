@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { getCachedFeedHTML, setCachedFeedHTML } from "./feedCache";
+  import {
+    FEED_MUTATION_EVENT,
+    clearFeedCache,
+    getCachedFeedHTML,
+    setCachedFeedHTML,
+  } from "./feedCache";
   type FeedTab = {
     label: string;
     value: string;
@@ -144,10 +149,12 @@
     };
 
     document.body.addEventListener("htmx:afterSwap", handleFeedSwap);
+    document.body.addEventListener(FEED_MUTATION_EVENT, clearFeedCache);
     cacheCurrentFeed(feedURL(typeFilter, sort));
 
     return () => {
       document.body.removeEventListener("htmx:afterSwap", handleFeedSwap);
+      document.body.removeEventListener(FEED_MUTATION_EVENT, clearFeedCache);
     };
   });
 

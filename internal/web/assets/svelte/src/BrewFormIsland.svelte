@@ -54,6 +54,22 @@
     return window.AppCache;
   }
 
+  function numericValue(value: string | number | null) {
+    if (value === null || value === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+
+  function mustBePositive(value: string | number | null) {
+    const parsed = numericValue(value);
+    return parsed !== null && (!Number.isFinite(parsed) || parsed <= 0);
+  }
+
+  let coffeeAmountError = $derived(mustBePositive(coffeeAmount));
+  let waterAmountError = $derived(mustBePositive(waterAmount));
+  let temperatureError = $derived(mustBePositive(temperature));
+  let timeSecondsError = $derived(mustBePositive(timeSeconds));
+
   function config(type: ComboType) {
     return comboSelectEntities[type] || {};
   }
@@ -414,7 +430,13 @@
           placeholder="e.g. 18"
           step="1"
           class="w-full form-input-lg"
+          aria-invalid={coffeeAmountError}
         />
+        {#if coffeeAmountError}
+          <p class="text-xs text-red-600 mt-1">
+            Coffee amount must be greater than 0.
+          </p>
+        {/if}
       </Field>
     {:else}
       <input type="hidden" name="coffee_amount" value={coffeeAmount} />
@@ -479,9 +501,15 @@
           placeholder="e.g. 250"
           step="1"
           class="w-full form-input-lg"
+          aria-invalid={waterAmountError}
         />
+        {#if waterAmountError}
+          <p class="text-xs text-red-600 mt-1">
+            Water amount must be greater than 0.
+          </p>
+        {/if}
       </Field>
-      <PoursEditor bind:pours />
+      <PoursEditor bind:pours expectedWater={waterAmount} />
     {:else}
       <input type="hidden" name="brewer_rkey" value={brewerRKey} />
       <input type="hidden" name="water_amount" value={waterAmount} />
@@ -498,7 +526,13 @@
         placeholder="e.g. 93.5"
         step="0.1"
         class="w-full form-input-lg"
+        aria-invalid={temperatureError}
       />
+      {#if temperatureError}
+        <p class="text-xs text-red-600 mt-1">
+          Temperature must be greater than 0.
+        </p>
+      {/if}
     </Field>
     <Field label="Brew Time (seconds)">
       <input
@@ -507,7 +541,13 @@
         bind:value={timeSeconds}
         placeholder="e.g. 180"
         class="w-full form-input-lg"
+        aria-invalid={timeSecondsError}
       />
+      {#if timeSecondsError}
+        <p class="text-xs text-red-600 mt-1">
+          Brew time must be greater than 0.
+        </p>
+      {/if}
     </Field>
   </fieldset>
 

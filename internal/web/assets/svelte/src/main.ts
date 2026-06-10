@@ -60,6 +60,10 @@ const recipeExploreIslands = new WeakMap<
   ReturnType<typeof mount>
 >();
 const manageTabsIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
+const manageCollectionsIslands = new WeakMap<
+  HTMLElement,
+  ReturnType<typeof mount>
+>();
 const commentSectionIslands = new WeakMap<
   HTMLElement,
   ReturnType<typeof mount>
@@ -274,6 +278,32 @@ async function mountManageTabs() {
       target,
       mount(ManageTabsIsland, {
         target: document.body,
+        props: { target },
+      }),
+    );
+  });
+}
+
+async function mountManageCollections() {
+  const targets = document.querySelectorAll<HTMLElement>(
+    "[data-svelte-manage-collections]",
+  );
+  if (targets.length === 0) {
+    return;
+  }
+  const ManageCollectionsIsland = await loadIsland(
+    "manage-collections",
+    () => import("./ManageCollectionsIsland.svelte") as Promise<IslandModule>,
+  );
+  targets.forEach((target) => {
+    if (manageCollectionsIslands.has(target)) {
+      return;
+    }
+    target.innerHTML = "";
+    manageCollectionsIslands.set(
+      target,
+      mount(ManageCollectionsIsland, {
+        target,
         props: { target },
       }),
     );
@@ -974,6 +1004,7 @@ async function mountAll() {
     mountFeedFilters(),
     mountRecipeExplore(),
     mountManageTabs(),
+    mountManageCollections(),
     mountCommentSections(),
     mountEntitySuggests(),
     mountModalContainers(),

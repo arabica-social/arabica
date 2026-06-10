@@ -116,6 +116,33 @@ describe("BrewFormIsland", () => {
     expect(formData.get("rating")).toBe("7");
   });
 
+  it("shows derived pour totals and validation warnings", async () => {
+    const user = userEvent.setup();
+    installAppCache();
+    const { target } = mountTarget();
+
+    render(BrewFormIsland, { target, props: { target } });
+
+    expect(screen.getByTestId("pour-summary")).toHaveTextContent(
+      "1 pour · 50g total · last at 30s",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Pour water totals 50g, which does not match total water 250g.",
+    );
+
+    await user.clear(screen.getByLabelText("Coffee Amount (grams)"));
+    await user.type(screen.getByLabelText("Coffee Amount (grams)"), "0");
+    await user.clear(screen.getByLabelText("Brew Time (seconds)"));
+    await user.type(screen.getByLabelText("Brew Time (seconds)"), "-1");
+
+    expect(
+      screen.getByText("Coffee amount must be greater than 0."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Brew time must be greater than 0."),
+    ).toBeInTheDocument();
+  });
+
   it("shows method-specific fields after selecting an espresso brewer", async () => {
     const user = userEvent.setup();
     installAppCache();

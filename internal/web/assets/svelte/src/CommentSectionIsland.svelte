@@ -7,6 +7,7 @@
     responseTextOrThrow,
     showSessionExpiredOn401,
   } from "./domContracts";
+  import { dispatchFeedMutation } from "./feedCache";
 
   interface Props {
     target: HTMLElement;
@@ -161,6 +162,16 @@
       }
 
       await refreshCommentSection();
+      const subjectURIInput = form.elements.namedItem("subject_uri");
+      dispatchFeedMutation({
+        source: "comment",
+        action: "create",
+        subjectURI:
+          target.dataset.commentSubjectUri ||
+          (subjectURIInput instanceof HTMLInputElement
+            ? subjectURIInput.value
+            : undefined),
+      });
       setStatus("Posted", "success");
       form.reset();
       window.__arabicaSvelteIslands?.mountAll();

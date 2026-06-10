@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  FEED_MUTATION_EVENT,
   clearFeedCache,
+  dispatchFeedMutation,
   feedCacheKey,
   getCachedFeedHTML,
   setCachedFeedHTML,
@@ -54,5 +56,19 @@ describe("feedCache", () => {
 
     expect(getCachedFeedHTML("/api/feed")).toBeNull();
     expect(sessionStorage.getItem("other")).toBe("keep");
+  });
+
+  it("dispatches feed mutation events after clearing cached feed html", () => {
+    const listener = vi.fn();
+    document.body.addEventListener(FEED_MUTATION_EVENT, listener);
+    setCachedFeedHTML("/api/feed", '<div id="feed-items">All</div>');
+
+    dispatchFeedMutation({ source: "comment", action: "create" });
+
+    expect(getCachedFeedHTML("/api/feed")).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener.mock.calls[0][0]).toMatchObject({
+      detail: { source: "comment", action: "create" },
+    });
   });
 });

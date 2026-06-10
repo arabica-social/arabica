@@ -28,6 +28,7 @@ templ ManageContent(props ManageProps) {
 			</div>
 		</div>
 		@ManageTabs()
+		<div data-svelte-manage-collections data-content-selector="#manage-content"></div>
 		@ManageContentLoader()
 	</div>
 }
