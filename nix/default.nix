@@ -18,7 +18,7 @@ buildGoModule rec {
   pnpmDeps = fetchPnpmDeps {
     inherit pname version src;
     fetcherVersion = 3;
-    hash = "sha256-nd7q/aytnaLn70JRuAmUJ85IYe6Cf6iFt4HWN4o/wQA=";
+    hash = "sha256-+wcx1iWS1VMKn19vK0+qR/OcqrJxquZnYm0Qjj2TS1s=";
   };
 
   nativeBuildInputs = [
@@ -33,6 +33,7 @@ buildGoModule rec {
       templ generate
     else
       export HOME=$TMPDIR
+      export npm_config_manage_package_manager_versions=false
       STORE_PATH=$(mktemp -d)
       tar --zstd -xf ${pnpmDeps}/pnpm-store.tar.zst -C "$STORE_PATH"
       chmod -R +w "$STORE_PATH"
