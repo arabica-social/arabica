@@ -69,18 +69,17 @@ type ShareButtonProps struct {
 templ ShareButton(props ShareButtonProps) {
 	<button
 		type="button"
-		v-scope={ fmt.Sprintf("ShareButton('%s', '%s', '%s')", escapeForJS(props.URL), escapeForJS(props.Title), escapeForJS(props.Text)) }
-		@click="share"
+		data-svelte-share
+		data-share-url={ props.URL }
+		data-share-title={ props.Title }
+		data-share-text={ props.Text }
 		class="share-btn"
 		aria-label="Share"
 	>
-		<svg v-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+		<svg data-share-idle class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path>
 		</svg>
-		<svg v-show="copied" v-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-			<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"></path>
-		</svg>
-		<span v-show="copied" v-cloak>Copied!</span>
+		<span data-share-status hidden class="text-xs text-success" aria-live="polite">Copied!</span>
 	</button>
 }
 

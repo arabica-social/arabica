@@ -20,6 +20,9 @@
               go
               templ
               just
+              nodejs
+              pnpm
+              prettier
             ];
           };
         }

@@ -29,31 +29,31 @@ templ settingsContent(props SettingsProps) {
 		<h1 class="page-title mb-6">Settings</h1>
 		<div class="card card-inner">
 			<h2 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">Appearance</h2>
-			<div v-scope="themeSettings()">
+			<div data-svelte-settings-controls>
 				<label class="form-label">Theme</label>
 				<p class="text-sm mb-3" style="color: var(--text-muted);">Choose how Arabica looks for you. System will follow your OS setting.</p>
 				<div class="flex flex-wrap gap-2">
 					<button
 						type="button"
 						class="filter-pill"
-						:class="theme === 'system' ? 'filter-pill-active' : 'filter-pill'"
-						@click="setTheme('system')"
+						data-theme-choice="system"
+						aria-pressed="false"
 					>
 						System
 					</button>
 					<button
 						type="button"
 						class="filter-pill"
-						:class="theme === 'light' ? 'filter-pill-active' : 'filter-pill'"
-						@click="setTheme('light')"
+						data-theme-choice="light"
+						aria-pressed="false"
 					>
 						Light
 					</button>
 					<button
 						type="button"
 						class="filter-pill"
-						:class="theme === 'dark' ? 'filter-pill-active' : 'filter-pill'"
-						@click="setTheme('dark')"
+						data-theme-choice="dark"
+						aria-pressed="false"
 					>
 						Dark
 					</button>
@@ -63,7 +63,7 @@ templ settingsContent(props SettingsProps) {
 		<div class="card card-inner mt-4">
 			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Brewing Preferences</h2>
 			<p class="text-sm mb-4" style="color: var(--text-muted);">These preferences are tied to your DID, so they follow you across devices. Theme stays device-local.</p>
-			<form hx-post="/api/settings/preferences" hx-target="#preferences-save-status" hx-swap="innerHTML">
+			<form method="post" action="/api/settings/preferences" data-svelte-settings-form data-settings-endpoint="/api/settings/preferences">
 				<label class="form-label">Preferred temperature unit</label>
 				<select name="temperature_unit" class="form-select">
 					<option value="recorded" selected?={ props.UserPreferences.TemperatureUnit == "recorded" }>Recorded units (default)</option>
@@ -72,18 +72,14 @@ templ settingsContent(props SettingsProps) {
 				</select>
 				<div class="mt-4 flex items-center gap-3">
 					<button type="submit" class="btn-primary">Save</button>
-					<span id="preferences-save-status"></span>
+					<span data-settings-save-status></span>
 				</div>
 			</form>
 		</div>
 		<div class="card card-inner mt-4">
 			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Profile Visibility</h2>
 			<p class="text-sm mb-4" style="color: var(--text-muted);">Control which aggregate stats are visible to others on your profile page. These settings only affect what other people see — you always see your own stats.</p>
-			<form
-				hx-post="/api/settings/profile-visibility"
-				hx-target="#visibility-save-status"
-				hx-swap="innerHTML"
-			>
+			<form method="post" action="/api/settings/profile-visibility" data-svelte-settings-form data-settings-endpoint="/api/settings/profile-visibility">
 				<div class="space-y-4">
 					<div>
 						<label class="form-label">Bean average brew rating</label>
@@ -102,7 +98,7 @@ templ settingsContent(props SettingsProps) {
 				</div>
 				<div class="mt-4 flex items-center gap-3">
 					<button type="submit" class="btn-primary">Save</button>
-					<span id="visibility-save-status"></span>
+					<span data-settings-save-status></span>
 				</div>
 			</form>
 		</div>
@@ -110,12 +106,11 @@ templ settingsContent(props SettingsProps) {
 		<div class="card card-inner mt-4">
 			<h2 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">Developer</h2>
 			<p class="text-sm mb-4" style="color: var(--text-muted);">Tools for inspecting AT Protocol data.</p>
-			<div v-scope="DevModeToggle()">
+			<div data-svelte-settings-controls>
 				<label class="flex items-center gap-2 cursor-pointer">
 					<input
 						type="checkbox"
-						:checked="devMode"
-						@change="toggle"
+						data-dev-mode-toggle
 						class="form-checkbox"
 					/>
 					<span class="text-sm" style="color: var(--text-primary);">Show "Copy AT URI" in action menus</span>
@@ -146,10 +141,11 @@ templ blueskyProfileCard(p BlueskyProfileSettings) {
 				<p class="text-sm mb-3" style="color: var(--danger, #c44);">{ p.LoadError }</p>
 			}
 			<form
-				hx-post="/api/settings/bluesky-profile"
-				hx-encoding="multipart/form-data"
-				hx-target="#bsky-profile-save-status"
-				hx-swap="innerHTML"
+				method="post"
+				action="/api/settings/bluesky-profile"
+				enctype="multipart/form-data"
+				data-svelte-settings-form
+				data-settings-endpoint="/api/settings/bluesky-profile"
 			>
 				<div class="space-y-4">
 					<div>
@@ -167,7 +163,7 @@ templ blueskyProfileCard(p BlueskyProfileSettings) {
 				</div>
 				<div class="mt-4 flex items-center gap-3">
 					<button type="submit" class="btn-primary">Save Bluesky profile</button>
-					<span id="bsky-profile-save-status"></span>
+					<span data-settings-save-status></span>
 				</div>
 			</form>
 		}

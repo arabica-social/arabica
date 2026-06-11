@@ -57,11 +57,14 @@ templ ProfileNotFoundContent() {
 
 // ProfileContent renders the profile page. Mirrors coffeepages.Profile
 // structure: header card, stat row, tab nav, tab bodies. Tabs are
-// petite-vue-driven (`v-scope="{ activeTab: 'steeps' }"`); panels render
-// server-side and toggle with v-show. No HTMX async — counts and
-// records both come in the initial render.
+// Svelte-driven; panels render server-side and toggle via data-active-tab.
+// No HTMX async — counts and records both come in the initial render.
 templ ProfileContent(props ProfileProps) {
-	<div class="page-container-lg" v-scope="{ activeTab: 'steeps' }" :data-active-tab="activeTab">
+	<div
+		class="page-container-lg"
+		data-svelte-manage-tabs
+		data-initial-tab="steeps"
+	>
 		@TeaProfileHeader(props.Profile)
 		@TeaProfileStats(props)
 		@TeaProfileTabs()
@@ -123,16 +126,18 @@ templ TeaProfileTabs() {
 
 templ teaProfileTabBtn(key, label string) {
 	<button
-		@click={ "activeTab = '" + key + "'" }
-		:class={ "activeTab === '" + key + "' ? 'tab-underline-active' : 'tab-underline-inactive'" }
 		class="flex-1 py-3 px-4 text-center font-medium transition-colors"
+		data-manage-tab={ key }
+		data-active-class="tab-underline-active"
+		data-inactive-class="tab-underline-inactive"
+		type="button"
 	>
 		{ label }
 	</button>
 }
 
 // teaProfileBody renders the per-tab panels. Each panel server-renders
-// its entity list as feed-style cards; tab switching is pure v-show
+// its entity list as feed-style cards; tab switching is local Svelte state
 // so the data is already on the page when the user clicks.
 templ teaProfileBody(props ProfileProps) {
 	<div id="profile-content">

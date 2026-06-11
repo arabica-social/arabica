@@ -8,14 +8,13 @@ import (
 
 // HeaderProps contains all properties for the header component
 type HeaderProps struct {
-	IsAuthenticated              bool
-	UserProfile                  *bff.UserProfile
-	UserDID                      string
-	IsModerator                  bool   // Show admin link in dropdown
-	UnreadNotificationCount      int    // Badge count for bell icon
-	BrandName                    string // "Arabica"; falls back to "Arabica" when empty
-	AppName                      string // "arabica" or "oolong" — selects the create-new dropdown contents
-	HandleAutocompleteScriptHref string
+	IsAuthenticated         bool
+	UserProfile             *bff.UserProfile
+	UserDID                 string
+	IsModerator             bool   // Show admin link in dropdown
+	UnreadNotificationCount int    // Badge count for bell icon
+	BrandName               string // "Arabica"; falls back to "Arabica" when empty
+	AppName                 string // "arabica" or "oolong" — selects the create-new dropdown contents
 }
 
 // brandName returns the configured brand name with the arabica default
@@ -29,10 +28,9 @@ func (p HeaderProps) brandName() string {
 
 templ Header(isAuthenticated bool, userProfile *bff.UserProfile, userDID string) {
 	@HeaderWithProps(HeaderProps{
-		IsAuthenticated:              isAuthenticated,
-		UserProfile:                  userProfile,
-		UserDID:                      userDID,
-		HandleAutocompleteScriptHref: "/static/js/handle-autocomplete.js",
+		IsAuthenticated: isAuthenticated,
+		UserProfile:     userProfile,
+		UserDID:         userDID,
 	})
 }
 
@@ -73,13 +71,13 @@ templ HeaderWithProps(props HeaderProps) {
 							}
 						</a>
 						<!-- Create new dropdown -->
-						<div v-scope="Disclosure()" @vue:mounted="setup($el)" @vue:unmounted="teardown" class="relative">
-							<button @click="toggle" class="hover:opacity-80 transition p-2 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400/50 rounded-sm" title="Create new" aria-label="Create new" :aria-expanded="open">
+						<div data-svelte-disclosure class="relative">
+							<button data-disclosure-button class="hover:opacity-80 transition p-2 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400/50 rounded-sm" title="Create new" aria-label="Create new" aria-expanded="false">
 								<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
 								</svg>
 							</button>
-							<div :class="{ 'is-open': open }" class="dropdown-menu w-52" role="menu">
+							<div data-disclosure-menu class="dropdown-menu w-52" role="menu">
 								if props.AppName == "oolong" {
 									@oolongCreateDropdownItems()
 								} else {
@@ -88,19 +86,19 @@ templ HeaderWithProps(props HeaderProps) {
 							</div>
 						</div>
 						<!-- User profile dropdown -->
-						<div v-scope="Disclosure()" @vue:mounted="setup($el)" @vue:unmounted="teardown" class="relative">
-							<button @click="toggle" class="flex items-center gap-2 hover:opacity-80 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400/50 rounded-sm" aria-label="User menu" :aria-expanded="open">
+						<div data-svelte-disclosure class="relative">
+							<button data-disclosure-button class="flex items-center gap-2 hover:opacity-80 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400/50 rounded-sm" aria-label="User menu" aria-expanded="false">
 								@Avatar(AvatarProps{
 									AvatarURL:   getHeaderAvatarURL(props.UserProfile),
 									DisplayName: getHeaderDisplayName(props.UserProfile),
 									Size:        "sm",
 								})
-								<svg :class="['w-4', 'h-4', 'transition-transform', { 'rotate-180': open }]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg data-disclosure-rotate class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 								</svg>
 							</button>
 							<!-- Dropdown menu -->
-							<div :class="{ 'is-open': open }" class="dropdown-menu" role="menu">
+							<div data-disclosure-menu class="dropdown-menu" role="menu">
 								if props.UserProfile != nil && props.UserProfile.Handle != "" {
 									<div class="dropdown-header">
 										<p class="text-sm font-medium text-primary truncate">
@@ -144,7 +142,7 @@ templ HeaderWithProps(props HeaderProps) {
 									</a>
 								}
 								<div class="dropdown-divider">
-									<form action="/logout" method="POST" @submit="if(window.AppCache)window.AppCache.invalidateCache()">
+									<form action="/logout" method="POST" data-invalidate-app-cache>
 										<button type="submit" class="dropdown-item w-full text-left" role="menuitem">
 											Logout
 										</button>
@@ -158,12 +156,12 @@ templ HeaderWithProps(props HeaderProps) {
 		</div>
 	</nav>
 	if !props.IsAuthenticated {
-		@LoginModal(props.HandleAutocompleteScriptHref)
+		@LoginModal()
 	}
 }
 
 // LoginModal renders the login dialog for unauthenticated users
-templ LoginModal(handleAutocompleteScriptHref string) {
+templ LoginModal() {
 	<dialog id="login-modal" class="modal-dialog">
 		<div class="modal-content">
 			<div class="flex items-center justify-between mb-4">
@@ -178,7 +176,7 @@ templ LoginModal(handleAutocompleteScriptHref string) {
 				</button>
 			</div>
 			<form method="POST" action="/auth/login" class="space-y-4">
-				<div class="relative">
+				<div class="relative" data-handle-autocomplete-root>
 					<label { "for" }="login-handle" class="block text-sm font-medium text-primary mb-2">Handle</label>
 					<input
 						type="text"
@@ -189,7 +187,7 @@ templ LoginModal(handleAutocompleteScriptHref string) {
 						required
 						class="w-full form-input-lg"
 					/>
-					<div id="autocomplete-results" class="hidden handle-dropdown"></div>
+					<div class="handle-dropdown" data-svelte-handle-autocomplete></div>
 				</div>
 				<button
 					type="submit"
@@ -209,7 +207,6 @@ templ LoginModal(handleAutocompleteScriptHref string) {
 					One account { "for" } the entire <a href="/atproto" class="link">AT Protocol</a> ecosystem. Sign up once and use it across Arabica, <a href="https://bsky.app" class="link" target="_blank" rel="noopener noreferrer">Bluesky</a>, <a href="https://leaflet.pub" class="link" target="_blank" rel="noopener noreferrer">Leaflet</a>, and more. Your data is portable — you own it.
 				</p>
 			</details>
-			<script src={ handleAutocompleteScriptHref }></script>
 		</div>
 	</dialog>
 }
@@ -259,30 +256,30 @@ templ arabicaCreateDropdownItems() {
 	<div class="dropdown-header">
 		<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
 	</div>
-	<a href="/brews/new" class="dropdown-item" @click="open = false" role="menuitem">
+	<a href="/brews/new" class="dropdown-item" data-disclosure-close role="menuitem">
 		@IconCoffee()
 		New Brew
 	</a>
 	<div class="dropdown-divider">
 		<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
 	</div>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/bean/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/bean/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconLeaf()
 		Bean
 	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/roaster/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/roaster/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconStore()
 		Roaster
 	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/grinder/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/grinder/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconDisc()
 		Grinder
 	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/brewer/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/brewer/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconBrewer()
 		Brewer
 	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/recipe/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/recipe/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconFileText()
 		Recipe
 	</button>
@@ -295,26 +292,26 @@ templ oolongCreateDropdownItems() {
 	<div class="dropdown-header">
 		<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
 	</div>
-	<a href="/brews/new" class="dropdown-item w-full text-left" @click="open = false" role="menuitem">
+	<a href="/brews/new" class="dropdown-item w-full text-left" data-disclosure-close role="menuitem">
 		@IconDroplet()
 		New Steep
 	</a>
 	<div class="dropdown-divider">
 		<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
 	</div>
-	<a href="/teas/new" class="dropdown-item w-full text-left" @click="open = false" role="menuitem">
+	<a href="/teas/new" class="dropdown-item w-full text-left" data-disclosure-close role="menuitem">
 		@IconLeaf()
 		Tea
 	</a>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vendor/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vendor/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconStore()
 		Vendor
 	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vessel/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vessel/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconBrewer()
 		Vessel
 	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/infuser/new" hx-target="#modal-container" hx-swap="innerHTML" @click="open = false" role="menuitem">
+	<button class="dropdown-item w-full text-left" hx-get="/api/modals/infuser/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconDisc()
 		Infuser
 	</button>

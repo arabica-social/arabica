@@ -1,4 +1,4 @@
-/* Scroll-to-top button — petite-vue toggles `.is-visible` based on scroll. */
+/* Scroll-to-top button. Svelte toggles `.is-visible` based on scroll. */
 .scroll-top-btn {
   opacity: 0;
   transform: translateY(0.5rem);
@@ -32,11 +32,16 @@
   align-items: center;
   justify-content: center;
   font-weight: 500;
-  transition-property: color, background-color, border-color, box-shadow, filter;
+  transition-property:
+    color, background-color, border-color, box-shadow, filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--brand-brown-700), var(--btn-primary-bg));
+  background: linear-gradient(
+    135deg,
+    var(--brand-brown-700),
+    var(--btn-primary-bg)
+  );
   color: var(--btn-primary-text);
   border: 1px solid var(--brand-brown-700);
   box-shadow: var(--shadow-sm);
@@ -108,7 +113,7 @@
   background: var(--card-border);
 }
 
-/* Incomplete-entity nudge toast (manage-page.js) */
+/* Incomplete-entity nudge toast */
 .nudge-toast {
   position: fixed;
   bottom: 1.5rem;
@@ -130,7 +135,7 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* Handle autocomplete row internals (handle-autocomplete.js) */
+/* Handle autocomplete row internals */
 .handle-result-avatar {
   width: 1.5rem;
   height: 1.5rem;

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "types": ["svelte"]
+  },
+  "include": [
+    "internal/web/assets/svelte/**/*.ts",
+    "internal/web/assets/svelte/**/*.svelte"
+  ]
+}

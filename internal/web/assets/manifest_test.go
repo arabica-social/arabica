@@ -11,7 +11,7 @@ func TestManifestZeroValueFallsBack(t *testing.T) {
 	var manifest Manifest
 
 	assert.Equal(t, "/static/css/output.css", manifest.StylesheetHref(""))
-	assert.Equal(t, "/static/js/combo-select.js", manifest.ScriptHref("combo-select.js"))
+	assert.Equal(t, "/static/js/htmx.min.js", manifest.ScriptHref("htmx.min.js"))
 }
 
 func TestManifestUsesConfiguredAssets(t *testing.T) {
@@ -23,5 +23,5 @@ func TestManifestUsesConfiguredAssets(t *testing.T) {
 	manifest := NewManifest(css, js)
 
 	assert.True(t, strings.HasPrefix(manifest.StylesheetHref(""), "/static/css/output.css?h="))
-	assert.True(t, strings.HasPrefix(manifest.ScriptHref("combo-select.js"), "/static/js/combo-select.js?h="))
+	assert.True(t, strings.HasPrefix(manifest.ScriptHref("htmx.min.js"), "/static/js/htmx.min.js?h="))
 }

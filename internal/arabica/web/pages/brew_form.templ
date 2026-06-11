@@ -33,7 +33,7 @@ templ BrewFormPage(layout *components.LayoutData, props BrewFormProps) {
 
 // BrewFormContent renders the brew form content (for use within layout)
 templ BrewFormContent(props BrewFormProps) {
-	<div class="page-container-sm" v-scope="brewForm()" @vue:mounted="setup($el)">
+	<div class="page-container-sm">
 		@components.Card(
 			components.CardProps{InnerCard: true},
 			BrewFormCard(props),
@@ -88,7 +88,6 @@ templ BrewFormElement(props BrewFormProps) {
 		}
 		hx-target="body"
 		class="space-y-6"
-		data-rating={ getRating(props) }
 		if props.PoursJSON != "" {
 			data-pours={ props.PoursJSON }
 		}
@@ -102,108 +101,74 @@ templ BrewFormElement(props BrewFormProps) {
 			data-recipe-owner={ getFormRecipeOwnerDID(props) }
 		}
 	>
-		@RecipeModeSection(props)
-		@SubmitButton(props)
+		@BrewFormIslandMount(props)
 	</form>
 }
 
-// RecipeModeSection renders recipe select, summary bar, override fields, and non-recipe fields
-templ RecipeModeSection(props BrewFormProps) {
-	<fieldset class="space-y-6 border-0 p-0 m-0 min-w-0">
-		<input type="hidden" name="recipe_owner_did" :value="recipeOwnerDID"/>
-		@RecipeSelectField(props)
-		<!-- Recipe summary bar -->
-		<div class="section-box" v-show="activeRecipe" v-cloak>
-			<div class="flex items-center justify-between gap-2">
-				<p class="text-sm text-emphasis flex-1" v-text="recipeSummaryText"></p>
-				<button type="button" @click="recipeSummaryExpanded = !recipeSummaryExpanded" class="text-sm btn-secondary">
-					<span v-text="recipeSummaryExpanded ? 'Collapse' : 'Edit'"></span>
-				</button>
-			</div>
-		</div>
-		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-secondary px-2">Coffee</legend>
-			@BeanSelectField(props)
-			<div v-show="recipeSummaryExpanded || !activeRecipe">
-				@CoffeeAmountField(props)
-			</div>
-			@GrinderSelectField(props)
-			@GrindSizeField(props)
-		</fieldset>
-		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-secondary px-2">Brewing</legend>
-			<div v-show="recipeSummaryExpanded || !activeRecipe" class="space-y-6">
-				@BrewerSelectField(props)
-				@WaterAmountField(props)
-				@PoursSection(props)
-			</div>
-			@TemperatureField(props)
-			@BrewTimeField(props)
-		</fieldset>
-		@EspressoParamsSection(props)
-		@PouroverParamsSection(props)
-		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-secondary px-2">Results</legend>
-			@TastingNotesField(props)
-			@RatingField(props)
-		</fieldset>
-	</fieldset>
-}
-
-// RecipeSelectField renders the recipe selection with combo-select typeahead
-templ RecipeSelectField(props BrewFormProps) {
+// BrewFormIslandMount renders the Svelte-owned brew form controls mount.
+templ BrewFormIslandMount(props BrewFormProps) {
 	<div
-		class="combo-select"
-		data-combo-entity-type="recipe"
-		v-scope={ components.ComboSelectConfig("recipe", "/api/recipes", "/api/suggestions/recipes", "recipe_rkey", "Search recipes...", false, true) }
-		@vue:mounted="setup($el)"
-		if props.Brew != nil && props.Brew.RecipeRKey != "" {
-			data-combo-initial-rkey={ props.Brew.RecipeRKey }
-			data-combo-initial-label={ getRecipeLabel(props) }
-		}
+		data-svelte-brew-form
+		data-submit-label={ getSubmitLabel(props) }
+		data-recipe-rkey={ getFormRecipeRKey(props) }
+		data-recipe-owner={ getFormRecipeOwnerDID(props) }
+		data-recipe-label={ getRecipeLabel(props) }
+		data-bean-rkey={ getBeanRKey(props) }
+		data-bean-label={ getBeanLabel(props) }
+		data-grinder-rkey={ getGrinderRKey(props) }
+		data-grinder-label={ getGrinderLabel(props) }
+		data-brewer-rkey={ getBrewerRKey(props) }
+		data-brewer-label={ getBrewerLabel(props) }
+		data-brewer-category={ getInitialBrewerCategory(props) }
+		data-coffee-amount={ getCoffeeAmount(props) }
+		data-water-amount={ getWaterAmount(props) }
+		data-grind-size={ getGrindSize(props) }
+		data-temperature={ getTemperature(props) }
+		data-time-seconds={ getBrewTime(props) }
+		data-tasting-notes={ getTastingNotes(props) }
+		data-rating={ getRating(props) }
+		data-method={ getMethod(props) }
+		data-pours={ props.PoursJSON }
+		data-espresso-yield-weight={ getEspressoYieldWeight(props) }
+		data-espresso-pressure={ getEspressoPressure(props) }
+		data-espresso-pre-infusion-seconds={ getEspressoPreInfusion(props) }
+		data-pourover-bloom-water={ getPouroverBloomWater(props) }
+		data-pourover-bloom-seconds={ getPouroverBloomSeconds(props) }
+		data-pourover-drawdown-seconds={ getPouroverDrawdown(props) }
+		data-pourover-bypass-water={ getPouroverBypass(props) }
+		data-pourover-filter={ getPouroverFilter(props) }
 	>
-		<label class="form-label">Recipe (Optional)</label>
-		<p class="text-sm text-muted mb-2">Select a recipe to autofill brew parameters</p>
-		<div class="alert-warning px-3 py-2 mb-2 text-xs">
-			Recipes are in early alpha &mdash; the format may change. Your brew data won't be affected.
-		</div>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		<div class="flex gap-2">
-			<div class="flex-1">
-				@components.ComboSelectInput("Your recipes")
-			</div>
-			<button
-				type="button"
-				hx-get="/api/modals/recipe/new"
-				hx-target="#modal-container"
-				hx-swap="innerHTML"
-				class="btn-secondary self-start mt-0"
-			>
-				+ New
-			</button>
-		</div>
+		<noscript>
+			<p class="alert-warning px-3 py-2 text-sm">JavaScript is required to log brews with the current form.</p>
+		</noscript>
 	</div>
 }
 
-// BeanSelectField renders the bean combo-select with typeahead + inline creation.
-templ BeanSelectField(props BrewFormProps) {
-	<div
-		class="combo-select"
-		data-combo-entity-type="bean"
-		v-scope={ components.ComboSelectConfigNoCreate("bean", "/api/beans", "/api/suggestions/beans", "bean_rkey", "Search beans...", true) }
-		@vue:mounted="setup($el)"
-		if props.Brew != nil && props.Brew.BeanRKey != "" {
-			data-combo-initial-rkey={ props.Brew.BeanRKey }
-			data-combo-initial-label={ getBeanLabel(props) }
-		}
-	>
-		<label class="form-label">
-			Coffee Bean
-			<span class="text-red-500">*</span>
-		</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@components.ComboSelectInput("Your beans")
-	</div>
+func getSubmitLabel(props BrewFormProps) string {
+	if props.Brew != nil {
+		return "Update Brew"
+	}
+	return "Save Brew"
+}
+
+func getMethod(props BrewFormProps) string {
+	if props.Brew != nil {
+		return props.Brew.Method
+	}
+	return ""
+}
+
+func getInitialBrewerCategory(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.EspressoParams != nil {
+		return "espresso"
+	}
+	if props.Brew != nil && props.Brew.PouroverParams != nil {
+		return "pourover"
+	}
+	if props.Brew != nil && props.Brew.BrewerObj != nil {
+		return props.Brew.BrewerObj.BrewerType
+	}
+	return ""
 }
 
 func formatBeanLabel(bean arabica.Bean) string {
@@ -220,9 +185,23 @@ func getBeanLabel(props BrewFormProps) string {
 	return ""
 }
 
+func getBeanRKey(props BrewFormProps) string {
+	if props.Brew != nil {
+		return props.Brew.BeanRKey
+	}
+	return ""
+}
+
 func getBrewerLabel(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.BrewerObj != nil {
 		return props.Brew.BrewerObj.Name
+	}
+	return ""
+}
+
+func getBrewerRKey(props BrewFormProps) string {
+	if props.Brew != nil {
+		return props.Brew.BrewerRKey
 	}
 	return ""
 }
@@ -245,21 +224,11 @@ func getGrinderLabel(props BrewFormProps) string {
 	return ""
 }
 
-// CoffeeAmountField renders the coffee amount input
-templ CoffeeAmountField(props BrewFormProps) {
-	@components.FormField(
-		components.FormFieldProps{
-			Label:      "Coffee Amount (grams)",
-			HelperText: "Amount of ground coffee used",
-		},
-		components.NumberInput(components.NumberInputProps{
-			Name:        "coffee_amount",
-			Value:       getCoffeeAmount(props),
-			Placeholder: "e.g. 18",
-			Step:        "1",
-			Class:       "w-full form-input-lg",
-		}),
-	)
+func getGrinderRKey(props BrewFormProps) string {
+	if props.Brew != nil {
+		return props.Brew.GrinderRKey
+	}
+	return ""
 }
 
 func getCoffeeAmount(props BrewFormProps) string {
@@ -269,79 +238,11 @@ func getCoffeeAmount(props BrewFormProps) string {
 	return ""
 }
 
-// GrinderSelectField renders the grinder combo-select with typeahead + inline creation
-templ GrinderSelectField(props BrewFormProps) {
-	<div
-		class="combo-select"
-		data-combo-entity-type="grinder"
-		v-scope={ components.ComboSelectConfig("grinder", "/api/grinders", "/api/suggestions/grinders", "grinder_rkey", "Search grinders...", false) }
-		@vue:mounted="setup($el)"
-		if props.Brew != nil && props.Brew.GrinderRKey != "" {
-			data-combo-initial-rkey={ props.Brew.GrinderRKey }
-			data-combo-initial-label={ getGrinderLabel(props) }
-		}
-	>
-		<label class="form-label">Grinder</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@components.ComboSelectInput("Your grinders")
-	</div>
-}
-
-// GrindSizeField renders the grind size input
-templ GrindSizeField(props BrewFormProps) {
-	@components.FormField(
-		components.FormFieldProps{
-			Label:      "Grind Size",
-			HelperText: "Enter a number (grinder setting) or description (e.g. \"Medium\", \"Fine\")",
-		},
-		components.TextInput(components.TextInputProps{
-			Name:        "grind_size",
-			Value:       getGrindSize(props),
-			Placeholder: "e.g. 18, Medium, 3.5, Fine",
-			Class:       "w-full form-input-lg",
-		}),
-	)
-}
-
 func getGrindSize(props BrewFormProps) string {
 	if props.Brew != nil {
 		return props.Brew.GrindSize
 	}
 	return ""
-}
-
-// BrewerSelectField renders the brewer combo-select with typeahead + inline creation
-templ BrewerSelectField(props BrewFormProps) {
-	<div
-		class="combo-select"
-		data-combo-entity-type="brewer"
-		v-scope={ components.ComboSelectConfig("brewer", "/api/brewers", "/api/suggestions/brewers", "brewer_rkey", "Search brew methods...", false) }
-		@vue:mounted="setup($el)"
-		if props.Brew != nil && props.Brew.BrewerRKey != "" {
-			data-combo-initial-rkey={ props.Brew.BrewerRKey }
-			data-combo-initial-label={ getBrewerLabel(props) }
-		}
-	>
-		<label class="form-label">Brew Method</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@components.ComboSelectInput("Your brewers")
-	</div>
-}
-
-// WaterAmountField renders the water amount input with dynamic helper text
-templ WaterAmountField(props BrewFormProps) {
-	<div>
-		<label class="form-label">Water Amount (grams)</label>
-		@components.NumberInput(components.NumberInputProps{
-			Name:        "water_amount",
-			Value:       getWaterAmount(props),
-			Placeholder: "e.g. 250",
-			Step:        "1",
-			Class:       "w-full form-input-lg",
-		})
-		<p class="text-helper" v-show="!showPours">Total water used</p>
-		<p class="text-helper" v-show="showPours" v-cloak>Total water (pours tracked separately below)</p>
-	</div>
 }
 
 func getWaterAmount(props BrewFormProps) string {
@@ -351,98 +252,11 @@ func getWaterAmount(props BrewFormProps) string {
 	return ""
 }
 
-// PoursSection renders the pours editor with toggle visibility
-templ PoursSection(props BrewFormProps) {
-	<div>
-		<!-- Toggle link when pours are hidden -->
-		<div v-show="!showPours">
-			<button type="button" @click="togglePours" class="text-sm text-muted hover:text-secondary font-medium">
-				+ Add pours
-			</button>
-		</div>
-		<!-- Pours editor when visible -->
-		<div v-show="showPours" v-cloak>
-			<div class="flex items-center justify-between mb-2">
-				<label class="block text-sm font-medium text-primary">Pours</label>
-				<button
-					type="button"
-					@click="addPour"
-					class="text-sm btn-secondary"
-				>
-					+ Add Pour
-				</button>
-			</div>
-			<p class="text-sm text-emphasis mb-3">Track individual pours for bloom and subsequent additions</p>
-			<div class="space-y-3">
-				<template v-for="(pour, index) in pours" :key="index">
-					<div class="flex gap-2 items-center p-3 rounded-lg" style="background: var(--surface-bg); border: 1px solid var(--surface-border);">
-						<div class="flex-1">
-							<label class="text-xs text-emphasis font-medium" v-text="'Pour ' + (index + 1)"></label>
-							<input
-								type="number"
-								:name="'pour_water_' + index"
-								v-model="pour.water"
-								placeholder="Water (g)"
-								class="w-full form-input text-sm py-2 px-3 mt-1"
-							/>
-						</div>
-						<div class="flex-1">
-							<label class="text-xs text-emphasis font-medium">Time (sec)</label>
-							<input
-								type="number"
-								:name="'pour_time_' + index"
-								v-model="pour.time"
-								placeholder="e.g. 45"
-								class="w-full form-input text-sm py-2 px-3 mt-1"
-							/>
-						</div>
-						<button
-							type="button"
-							@click="removePour(index)"
-							class="text-emphasis hover:text-primary mt-5 font-bold"
-							v-show="pours.length > 0"
-						>
-							@components.IconX()
-						</button>
-					</div>
-				</template>
-			</div>
-		</div>
-	</div>
-}
-
-// TemperatureField renders the temperature input
-templ TemperatureField(props BrewFormProps) {
-	@components.FormField(
-		components.FormFieldProps{Label: "Temperature (°F/°C)"},
-		components.NumberInput(components.NumberInputProps{
-			Name:        "temperature",
-			Value:       getTemperature(props),
-			Placeholder: "e.g. 93.5",
-			Step:        "0.1",
-			Class:       "w-full form-input-lg",
-		}),
-	)
-}
-
 func getTemperature(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.Temperature > 0.0 {
 		return fmt.Sprintf("%.1f", props.Brew.Temperature)
 	}
 	return ""
-}
-
-// BrewTimeField renders the brew time input
-templ BrewTimeField(props BrewFormProps) {
-	@components.FormField(
-		components.FormFieldProps{Label: "Brew Time (seconds)"},
-		components.NumberInput(components.NumberInputProps{
-			Name:        "time_seconds",
-			Value:       getBrewTime(props),
-			Placeholder: "e.g. 180",
-			Class:       "w-full form-input-lg",
-		}),
-	)
 }
 
 func getBrewTime(props BrewFormProps) string {
@@ -452,20 +266,6 @@ func getBrewTime(props BrewFormProps) string {
 	return ""
 }
 
-// TastingNotesField renders the tasting notes textarea
-templ TastingNotesField(props BrewFormProps) {
-	@components.FormField(
-		components.FormFieldProps{Label: "Tasting Notes"},
-		components.TextArea(components.TextAreaProps{
-			Name:        "tasting_notes",
-			Value:       getTastingNotes(props),
-			Placeholder: "Describe the flavors, aroma, and your thoughts...",
-			Rows:        4,
-			Class:       "w-full form-input-lg",
-		}),
-	)
-}
-
 func getTastingNotes(props BrewFormProps) string {
 	if props.Brew != nil {
 		return props.Brew.TastingNotes
@@ -473,160 +273,11 @@ func getTastingNotes(props BrewFormProps) string {
 	return ""
 }
 
-// RatingField renders the rating slider
-templ RatingField(props BrewFormProps) {
-	<div>
-		<label class="form-label">Rating</label>
-		<input
-			type="range"
-			name="rating"
-			min="1"
-			max="10"
-			value={ getRating(props) }
-			v-model.number="rating"
-			class="w-full accent-brown-700"
-		/>
-		<div class="text-center text-2xl font-bold text-secondary">
-			<span v-text="rating"></span>/10
-		</div>
-	</div>
-}
-
 func getRating(props BrewFormProps) string {
 	if props.Brew != nil && props.Brew.Rating > 0 {
 		return fmt.Sprintf("%d", props.Brew.Rating)
 	}
 	return "5"
-}
-
-templ SubmitButton(props BrewFormProps) {
-	<div>
-		<button
-			type="submit"
-			class="w-full btn-primary py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl"
-		>
-			if props.Brew != nil {
-				Update Brew
-			} else {
-				Save Brew
-			}
-		</button>
-	</div>
-}
-
-// EspressoParamsSection renders espresso-specific fields (shown when brewer type is espresso)
-templ EspressoParamsSection(props BrewFormProps) {
-	<div v-show="brewerCategory === 'espresso'" v-cloak>
-		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-secondary px-2">Espresso</legend>
-			@components.FormField(
-				components.FormFieldProps{
-					Label:      "Yield Weight (grams)",
-					HelperText: "Weight of espresso output",
-				},
-				components.NumberInput(components.NumberInputProps{
-					Name:        "espresso_yield_weight",
-					Value:       getEspressoYieldWeight(props),
-					Placeholder: "e.g. 36",
-					Step:        "0.1",
-					Class:       "w-full form-input-lg",
-				}),
-			)
-			@components.FormField(
-				components.FormFieldProps{
-					Label:      "Pressure (bar)",
-					HelperText: "Brewing pressure",
-				},
-				components.NumberInput(components.NumberInputProps{
-					Name:        "espresso_pressure",
-					Value:       getEspressoPressure(props),
-					Placeholder: "e.g. 9",
-					Step:        "0.1",
-					Class:       "w-full form-input-lg",
-				}),
-			)
-			@components.FormField(
-				components.FormFieldProps{Label: "Pre-infusion Time (seconds)"},
-				components.NumberInput(components.NumberInputProps{
-					Name:        "espresso_pre_infusion_seconds",
-					Value:       getEspressoPreInfusion(props),
-					Placeholder: "e.g. 5",
-					Class:       "w-full form-input-lg",
-				}),
-			)
-		</fieldset>
-	</div>
-}
-
-// PouroverParamsSection renders pour-over-specific fields (shown when brewer type is pourover)
-templ PouroverParamsSection(props BrewFormProps) {
-	<div v-show="brewerCategory === 'pourover'" v-cloak>
-		<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-			<legend class="text-sm font-semibold text-secondary px-2">Pour-over Details</legend>
-			<div class="grid grid-cols-2 gap-4">
-				@components.FormField(
-					components.FormFieldProps{
-						Label:      "Bloom Water (grams)",
-						HelperText: "Water for bloom",
-					},
-					components.NumberInput(components.NumberInputProps{
-						Name:        "pourover_bloom_water",
-						Value:       getPouroverBloomWater(props),
-						Placeholder: "e.g. 50",
-						Class:       "w-full form-input-lg",
-					}),
-				)
-				@components.FormField(
-					components.FormFieldProps{
-						Label:      "Bloom Time (seconds)",
-						HelperText: "Bloom wait time",
-					},
-					components.NumberInput(components.NumberInputProps{
-						Name:        "pourover_bloom_seconds",
-						Value:       getPouroverBloomSeconds(props),
-						Placeholder: "e.g. 45",
-						Class:       "w-full form-input-lg",
-					}),
-				)
-			</div>
-			@components.FormField(
-				components.FormFieldProps{
-					Label:      "Drawdown Time (seconds)",
-					HelperText: "Time after last pour until bed is dry",
-				},
-				components.NumberInput(components.NumberInputProps{
-					Name:        "pourover_drawdown_seconds",
-					Value:       getPouroverDrawdown(props),
-					Placeholder: "e.g. 30",
-					Class:       "w-full form-input-lg",
-				}),
-			)
-			@components.FormField(
-				components.FormFieldProps{
-					Label:      "Bypass Water (grams)",
-					HelperText: "Water added after brewing",
-				},
-				components.NumberInput(components.NumberInputProps{
-					Name:        "pourover_bypass_water",
-					Value:       getPouroverBypass(props),
-					Placeholder: "e.g. 100",
-					Class:       "w-full form-input-lg",
-				}),
-			)
-			@components.FormField(
-				components.FormFieldProps{
-					Label:      "Filter",
-					HelperText: "Type of filter used",
-				},
-				components.TextInput(components.TextInputProps{
-					Name:        "pourover_filter",
-					Value:       getPouroverFilter(props),
-					Placeholder: "e.g. paper, metal, cloth",
-					Class:       "w-full form-input-lg",
-				}),
-			)
-		</fieldset>
-	</div>
 }
 
 func getEspressoYieldWeight(props BrewFormProps) string {

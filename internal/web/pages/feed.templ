@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"encoding/json"
 	"fmt"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
@@ -66,6 +67,38 @@ func feedFilterTabs(descriptors []*entities.Descriptor, views feedviews.Registry
 	return tabs
 }
 
+func feedFilterTabsJSON(descriptors []*entities.Descriptor, views feedviews.Registry) string {
+	payload, _ := json.Marshal(feedFilterTabs(descriptors, views))
+	return string(payload)
+}
+
+func feedFilterPillClass(currentType, tab string) string {
+	if currentType != tab {
+		return "filter-pill"
+	}
+	if tab == "" {
+		return "filter-pill-active"
+	}
+	return "filter-pill filter-pill-" + tab
+}
+
+func feedSortPillClass(currentSort, sort string) string {
+	if sort == "recent" && (currentSort == "" || currentSort == "recent") {
+		return "filter-pill-active"
+	}
+	if currentSort == sort {
+		return "filter-pill-active"
+	}
+	return "filter-pill"
+}
+
+func boolAttr(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
+}
+
 func buildFeedURL(typeFilter, sort string) string {
 	url := "/api/feed"
 	sep := "?"
@@ -103,24 +136,26 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 		if isAuthenticated {
 			@FeedFilterBar(qs)
 		}
-		<!-- Feed items -->
-		<div id="feed-items" class="feed-grid" data-feed-masonry data-masonry-card=".feed-card">
-			if len(items) > 0 {
-				for _, item := range items {
-					@FeedCardWithModeration(item, isAuthenticated, modCtx, qs)
+		<!-- Feed board stays mounted while HTMX swaps the inner note grid. -->
+		<div id="feed-board" class="feed-board">
+			<div id="feed-items" class="feed-grid" data-feed-masonry data-masonry-card=".feed-card">
+				if len(items) > 0 {
+					for _, item := range items {
+						@FeedCardWithModeration(item, isAuthenticated, modCtx, qs)
+					}
+					<!-- Load more button -->
+					if qs.NextCursor != "" {
+						@FeedLoadMoreButton(qs)
+					}
+				} else {
+					{{ empty := feedEmptyState(qs) }}
+					<div class="rounded-xl p-8 text-center" style="background: var(--surface-bg); border: 2px dashed var(--card-border); grid-column: 1 / -1;">
+						<div class="text-4xl mb-3">{ empty.Icon }</div>
+						<p class="text-emphasis font-medium mb-1">{ empty.Title }</p>
+						<p class="text-sm text-faint">{ empty.Body }</p>
+					</div>
 				}
-				<!-- Load more button -->
-				if qs.NextCursor != "" {
-					@FeedLoadMoreButton(qs)
-				}
-			} else {
-				{{ empty := feedEmptyState(qs) }}
-				<div class="rounded-xl p-8 text-center" style="background: var(--surface-bg); border: 2px dashed var(--card-border); grid-column: 1 / -1;">
-					<div class="text-4xl mb-3">{ empty.Icon }</div>
-					<p class="text-emphasis font-medium mb-1">{ empty.Title }</p>
-					<p class="text-sm text-faint">{ empty.Body }</p>
-				</div>
-			}
+			</div>
 		</div>
 	</div>
 }
@@ -129,7 +164,10 @@ templ FeedPartialWithModeration(items []*feed.FeedItem, isAuthenticated bool, mo
 templ FeedFilterBar(qs FeedQueryState) {
 	<div
 		class="mb-5"
-		v-scope={ fmt.Sprintf("FeedFilters(%q, %q)", qs.TypeFilter, qs.Sort) }
+		data-svelte-feed-filters
+		data-initial-type={ qs.TypeFilter }
+		data-initial-sort={ qs.Sort }
+		data-tabs={ feedFilterTabsJSON(qs.Descriptors, qs.FeedViews) }
 	>
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<!-- Type filter pills -->
@@ -137,10 +175,13 @@ templ FeedFilterBar(qs FeedQueryState) {
 				for _, tab := range feedFilterTabs(qs.Descriptors, qs.FeedViews) {
 					<button
 						type="button"
-						class="filter-pill"
-						:class={ fmt.Sprintf("pillClass(%q)", tab.Value) }
-						@click={ fmt.Sprintf("changeFilter(%q)", tab.Value) }
+						class={ feedFilterPillClass(qs.TypeFilter, tab.Value) }
+						aria-pressed={ boolAttr(qs.TypeFilter == tab.Value) }
 						data-tab={ tab.Value }
+						hx-get={ buildFeedURL(tab.Value, qs.Sort) }
+						hx-target="#feed-items"
+						hx-swap="outerHTML"
+						hx-select="#feed-items"
 					>
 						{ tab.Label }
 					</button>
@@ -150,19 +191,23 @@ templ FeedFilterBar(qs FeedQueryState) {
 			<div class="flex items-center gap-1 flex-shrink-0">
 				<button
 					type="button"
-					class="filter-pill"
-					:aria-pressed="(sort === '' || sort === 'recent') ? 'true' : 'false'"
-					:class="(sort === '' || sort === 'recent') ? 'filter-pill-active' : 'filter-pill'"
-					@click="changeSort('recent')"
+					class={ feedSortPillClass(qs.Sort, "recent") }
+					aria-pressed={ boolAttr(qs.Sort == "" || qs.Sort == "recent") }
+					hx-get={ buildFeedURL(qs.TypeFilter, "recent") }
+					hx-target="#feed-items"
+					hx-swap="outerHTML"
+					hx-select="#feed-items"
 				>
 					New
 				</button>
 				<button
 					type="button"
-					class="filter-pill"
-					:aria-pressed="sort === 'popular' ? 'true' : 'false'"
-					:class="sort === 'popular' ? 'filter-pill-active' : 'filter-pill'"
-					@click="changeSort('popular')"
+					class={ feedSortPillClass(qs.Sort, "popular") }
+					aria-pressed={ boolAttr(qs.Sort == "popular") }
+					hx-get={ buildFeedURL(qs.TypeFilter, "popular") }
+					hx-target="#feed-items"
+					hx-swap="outerHTML"
+					hx-select="#feed-items"
 				>
 					Popular
 				</button>

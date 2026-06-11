@@ -101,11 +101,17 @@ templ comboSelectField(entityType, apiEndpoint, suggestEndpoint, inputName, plac
 	<div
 		class="combo-select"
 		data-combo-entity-type={ entityType }
-		v-scope={ ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, required) }
-		@vue:mounted="setup($el)"
+		data-svelte-brew-combo
+		data-entity-type={ entityType }
+		data-api-endpoint={ apiEndpoint }
+		data-suggest-endpoint={ suggestEndpoint }
+		data-input-name={ inputName }
+		data-placeholder={ placeholder }
+		data-section-label={ sectionLabel }
+		data-required={ boolAttr(required) }
 		if selectedRKey != "" {
-			data-combo-initial-rkey={ selectedRKey }
-			data-combo-initial-label={ selectedLabel }
+			data-initial-rkey={ selectedRKey }
+			data-initial-label={ selectedLabel }
 		}
 	>
 		<label class="form-label">
@@ -114,9 +120,16 @@ templ comboSelectField(entityType, apiEndpoint, suggestEndpoint, inputName, plac
 				<span class="text-red-600">*</span>
 			}
 		</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@ComboSelectInput(sectionLabel)
+		<input type="hidden" name={ inputName } value={ selectedRKey }/>
+		<input type="text" value={ selectedLabel } placeholder={ placeholder } class="w-full form-input-lg"/>
 	</div>
+}
+
+func boolAttr(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
 }
 
 // labelTea returns a human-readable label for a Tea (name + category/origin),

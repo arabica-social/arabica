@@ -7,13 +7,19 @@ type MyCoffeeProps struct{}
 
 // MyCoffee renders the full My Coffee page
 templ MyCoffee(layout *components.LayoutData, props MyCoffeeProps) {
-	@components.Layout(layout, MyCoffeeContent(props, layout.ScriptHref("manage-page.js")))
+	@components.Layout(layout, MyCoffeeContent(props))
 }
 
 // MyCoffeeContent renders the My Coffee page content
-templ MyCoffeeContent(props MyCoffeeProps, manageScriptHref string) {
-	<script src={ manageScriptHref }></script>
-	<div class="page-container-xl" v-scope="managePage()" @vue:mounted="setup" :data-active-tab="tab">
+templ MyCoffeeContent(props MyCoffeeProps) {
+	<div
+		class="page-container-xl"
+		data-svelte-manage-tabs
+		data-initial-tab="brews"
+		data-tab-storage-key="manageTab"
+		data-init-cache="true"
+		data-show-nudge="true"
+	>
 		<div class="flex items-center gap-3 mb-6">
 			<h2 class="text-2xl font-semibold text-primary">My Coffee</h2>
 			<div class="ml-auto flex items-center gap-2">
@@ -32,7 +38,7 @@ templ MyCoffeeContent(props MyCoffeeProps, manageScriptHref string) {
 		<!-- Entity tabs: loaded from manage partial. Each rendered panel inside
 			carries data-tab-panel and visibility is controlled by CSS on the
 			outer :data-active-tab binding, so HTMX-swapped content doesn't need
-			petite-vue re-binding. -->
+			any per-panel JS re-binding. -->
 		<div id="manage-content" hx-get="/api/manage" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML">
 			@ManageLoadingSkeleton()
 		</div>
@@ -46,44 +52,56 @@ templ MyCoffeeTabs() {
 	<div class="mb-6 border-b-2 border-brown-300">
 		<nav class="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto">
 			<button
-				@click="tab = 'brews'"
-				:class="tab === 'brews' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="brews"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Brews
 			</button>
 			<button
-				@click="tab = 'beans'"
-				:class="tab === 'beans' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="beans"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Beans
 			</button>
 			<button
-				@click="tab = 'roasters'"
-				:class="tab === 'roasters' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="roasters"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Roasters
 			</button>
 			<button
-				@click="tab = 'grinders'"
-				:class="tab === 'grinders' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="grinders"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Grinders
 			</button>
 			<button
-				@click="tab = 'brewers'"
-				:class="tab === 'brewers' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="brewers"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Brewers
 			</button>
 			<button
-				@click="tab = 'recipes'"
-				:class="tab === 'recipes' ? 'tab-row-active' : 'tab-row-inactive'"
 				class="whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm"
+				data-manage-tab="recipes"
+				data-active-class="tab-row-active"
+				data-inactive-class="tab-row-inactive"
+				type="button"
 			>
 				Recipes
 			</button>

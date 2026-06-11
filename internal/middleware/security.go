@@ -57,12 +57,11 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 
 		// Content Security Policy
 		// Allows: self for scripts/styles, inline styles (for Tailwind), inline HTMX
-		// Note: unsafe-eval required for petite-vue (it builds expression handlers with `new Function`)
 		// Note: form-action allows https: for OAuth redirects to external authorization servers
 		// TODO: set nonce/hash on unsafe tags -- needs to be set in elements as well
 		csp := strings.Join([]string{
 			"default-src 'self'",
-			"script-src 'self' 'unsafe-eval' 'nonce-" + nonce + "'",
+			"script-src 'self' 'nonce-" + nonce + "'",
 			"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Tailwind
 			"img-src 'self' https: data:",      // Allow external images (avatars) and data URIs
 			"font-src 'self'",

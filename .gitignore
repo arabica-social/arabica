@@ -10,6 +10,8 @@ tmp/
 *.out
 *.secret
 static/css/output.css
+internal/web/assets/js/svelte-islands.js
+internal/web/assets/js/svelte-islands-*.js
 *.db
 *.db-shm
 *.db-wal
@@ -20,6 +22,7 @@ static/css/output.css
 *~
 .DS_Store
 vendor/
+node_modules/
 *.log
 result
 result-*

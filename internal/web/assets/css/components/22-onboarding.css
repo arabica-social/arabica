@@ -84,16 +84,15 @@
   left: 0;
   right: 0;
   height: 4px;
-  background:
-    linear-gradient(
-      to right,
-      var(--type-brewer) 0%,
-      var(--type-brewer) 33%,
-      var(--type-roaster) 33%,
-      var(--type-roaster) 66%,
-      var(--type-bean) 66%,
-      var(--type-bean) 100%
-    );
+  background: linear-gradient(
+    to right,
+    var(--type-brewer) 0%,
+    var(--type-brewer) 33%,
+    var(--type-roaster) 33%,
+    var(--type-roaster) 66%,
+    var(--type-bean) 66%,
+    var(--type-bean) 100%
+  );
   opacity: 0.85;
 }
 

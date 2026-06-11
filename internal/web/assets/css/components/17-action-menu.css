@@ -10,7 +10,7 @@
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-md);
-  /* Closed state — petite-vue toggles `.is-open` to reveal. */
+  /* Closed state: Svelte toggles `.is-open` to reveal. */
   opacity: 0;
   pointer-events: none;
   transform: translateX(-50%) scale(0.95);
@@ -38,7 +38,7 @@
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-md);
-  /* Closed state — petite-vue toggles `.is-open` to reveal. */
+  /* Closed state: Svelte toggles `.is-open` to reveal. */
   opacity: 0;
   pointer-events: none;
   transform: scale(0.95);

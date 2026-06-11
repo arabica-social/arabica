@@ -1,9 +1,6 @@
 package tea
 
-import (
-	oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
-	. "tangled.org/arabica.social/arabica/internal/web/components"
-)
+import oolong "tangled.org/arabica.social/arabica/internal/oolong/entities"
 
 type StationDrawerProps struct {
 	Kind        string
@@ -19,8 +16,8 @@ templ StationFormDrawer(p StationDrawerProps) {
 			<h3 class="station-drawer-title">{ p.DisplayName }</h3>
 			<button type="button" class="station-drawer-close" data-action="close-drawer" aria-label="Cancel">×</button>
 		</header>
-		<form hx-post={ "/api/" + p.ActionPath } hx-trigger="submit" hx-swap="none" hx-sync="this:drop" hx-disabled-elt="find button[type='submit']" v-scope="ModalShell()" @vue:mounted="setup($el)" class="station-drawer-form space-y-5">
-			<div v-show="!!serverError" v-cloak class="station-drawer-error" v-text="serverError"></div>
+		<form hx-post={ "/api/" + p.ActionPath } hx-trigger="submit" hx-swap="none" hx-sync="this:drop" hx-disabled-elt="find button[type='submit']" data-svelte-modal-shell class="station-drawer-form space-y-5">
+			<div data-modal-shell-error hidden class="station-drawer-error"></div>
 			switch p.Kind {
 				case "vendor":
 					@vendorDrawerFields()
@@ -64,28 +61,22 @@ templ teaDrawerFields(vendors []*oolong.Vendor) {
 }
 
 templ suggestedNameInput(endpoint, placeholder string) {
-	<div v-scope={ "entitySuggest('" + endpoint + "')" } @vue:mounted="setup($el)" class="relative">
+	<div
+		data-svelte-entity-suggest
+		data-entity-type="oolong"
+		data-endpoint={ endpoint }
+		data-placeholder={ placeholder }
+		class="relative"
+	>
 		<input
 			type="text"
 			name="name"
 			placeholder={ placeholder }
 			required
 			class="w-full form-input"
-			v-model="query"
-			@input="onInput"
-			@blur="onBlur"
-			@focus="onFocus"
 			autocomplete="off"
 		/>
-		<input type="hidden" name="source_ref" v-model="sourceRef"/>
-		<div v-if="showSuggestions && suggestions.length > 0" v-cloak class="suggestions-dropdown">
-			<template v-for="s in suggestions" :key="s.source_uri">
-				<button type="button" class="suggestions-item" @mousedown.prevent="selectOolongSuggestion(s)">
-					<span class="font-medium" v-text="s.name"></span>
-					<span v-if="s.count > 1" class="text-xs text-placeholder" v-text="s.count + ' users'"></span>
-				</button>
-			</template>
-		</div>
+		<input type="hidden" name="source_ref"/>
 	</div>
 }
 
@@ -93,8 +84,14 @@ templ onboardingComboSelectField(entityType, apiEndpoint, suggestEndpoint, input
 	<div
 		class="combo-select"
 		data-combo-entity-type={ entityType }
-		v-scope={ ComboSelectConfig(entityType, apiEndpoint, suggestEndpoint, inputName, placeholder, required) }
-		@vue:mounted="setup($el)"
+		data-svelte-brew-combo
+		data-entity-type={ entityType }
+		data-api-endpoint={ apiEndpoint }
+		data-suggest-endpoint={ suggestEndpoint }
+		data-input-name={ inputName }
+		data-placeholder={ placeholder }
+		data-section-label={ sectionLabel }
+		data-required={ boolAttr(required) }
 	>
 		<label class="form-label">
 			{ label }
@@ -102,8 +99,8 @@ templ onboardingComboSelectField(entityType, apiEndpoint, suggestEndpoint, input
 				<span class="text-red-600">*</span>
 			}
 		</label>
-		<input type="hidden" :name="inputName" :value="selectedRKey"/>
-		@ComboSelectInput(sectionLabel)
+		<input type="hidden" name={ inputName }/>
+		<input type="text" placeholder={ placeholder } class="w-full form-input-lg"/>
 	</div>
 }
 

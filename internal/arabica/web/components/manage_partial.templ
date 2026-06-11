@@ -46,7 +46,7 @@ templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRa
 			</button>
 		</div>
 		<div class="space-y-6">
-			<div>
+			<div data-manage-section>
 				<h4 class="text-lg font-semibold text-primary mb-3">Open Bags</h4>
 				@BeanCards(BeanCardsProps{
 					Beans:          filterOpenBeans(beans),
@@ -56,7 +56,7 @@ templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRa
 					OwnerDID:       ownerDID,
 				})
 			</div>
-			<div>
+			<div data-manage-section>
 				<h4 class="text-lg font-semibold text-primary mb-3">Closed Bags</h4>
 				@BeanCards(BeanCardsProps{
 					Beans:          filterClosedBeans(beans),

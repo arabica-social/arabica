@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"net/url"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
 )
@@ -18,12 +19,6 @@ type CommentButtonProps struct {
 templ CommentButton(props CommentButtonProps) {
 	<button
 		type="button"
-		if props.IsAuthenticated && props.SubjectURI != "" && props.SubjectCID != "" {
-			hx-get={ fmt.Sprintf("/api/comments?subject_uri=%s", props.SubjectURI) }
-			hx-target="#comment-section"
-			hx-swap="innerHTML"
-			hx-trigger="click"
-		}
 		class="comment-btn"
 		aria-label="Comments"
 	>
@@ -56,7 +51,13 @@ type CommentSectionProps struct {
 
 // CommentSection renders the full comment section with list and form
 templ CommentSection(props CommentSectionProps) {
-	<div id="comment-section" class="comment-section">
+	<div
+		id="comment-section"
+		class="comment-section"
+		data-svelte-comment-section
+		data-comment-subject-uri={ props.SubjectURI }
+		data-comment-subject-cid={ props.SubjectCID }
+	>
 		<!-- Section header -->
 		<div class="comment-section-header">
 			<div class="flex items-center gap-2">
@@ -72,7 +73,14 @@ templ CommentSection(props CommentSectionProps) {
 			</div>
 		</div>
 		<!-- Comment form or login prompt -->
-		if props.IsAuthenticated {
+		if props.SubjectURI == "" || props.SubjectCID == "" {
+			<div class="comment-login-prompt">
+				<svg class="w-5 h-5 text-faint flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"></path>
+				</svg>
+				<p class="text-sm text-muted">Comments will be available once this record is indexed.</p>
+			</div>
+		} else if props.IsAuthenticated {
 			@CommentForm(CommentFormProps{
 				SubjectURI: props.SubjectURI,
 				SubjectCID: props.SubjectCID,
@@ -109,9 +117,9 @@ type CommentFormProps struct {
 // CommentForm renders a form for creating new comments
 templ CommentForm(props CommentFormProps) {
 	<form
-		hx-post="/api/comments"
-		hx-target="#comment-section"
-		hx-swap="innerHTML"
+		method="post"
+		action={ commentActionURL(props.SubjectURI, props.SubjectCID) }
+		data-svelte-comment-form
 		class="comment-compose"
 	>
 		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
@@ -127,6 +135,7 @@ templ CommentForm(props CommentFormProps) {
 		></textarea>
 		<div class="flex justify-between items-center">
 			<span class="text-xs text-placeholder tracking-wide">1000 char limit</span>
+			<span data-comment-form-status></span>
 			<button type="submit" class="btn-primary text-sm py-1.5 px-5">
 				Post
 			</button>
@@ -192,7 +201,9 @@ templ CommentItem(props CommentItemProps) {
 	<div
 		class={ "comment-item", getDepthClass(props.Comment.Depth) }
 		id={ "comment-" + props.Comment.RKey }
-		v-scope="ReplyToggle()"
+		if props.CanReply {
+			data-svelte-comment-reply
+		}
 	>
 		if props.Comment.Depth > 0 {
 			<div class="comment-thread-line"></div>
@@ -211,9 +222,10 @@ templ CommentItem(props CommentItemProps) {
 				if props.CanReply {
 					<button
 						type="button"
-						@click="toggleReply"
+						data-reply-toggle
 						class="comment-reply-btn"
 						aria-label="Reply to comment"
+						aria-expanded="false"
 					>
 						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"></path>
@@ -246,7 +258,7 @@ templ CommentItem(props CommentItemProps) {
 			</div>
 			<!-- Inline reply form (shown when Reply is clicked) -->
 			if props.CanReply {
-				<div :class="{ 'is-open': showReplyForm }" class="reply-form-wrap mt-3 pl-11">
+				<div data-reply-panel class="reply-form-wrap mt-3 pl-11">
 					@ReplyForm(ReplyFormProps{
 						SubjectURI: props.SubjectURI,
 						SubjectCID: props.SubjectCID,
@@ -270,9 +282,9 @@ type ReplyFormProps struct {
 // ReplyForm renders a compact inline reply form
 templ ReplyForm(props ReplyFormProps) {
 	<form
-		hx-post="/api/comments"
-		hx-target="#comment-section"
-		hx-swap="innerHTML"
+		method="post"
+		action={ commentActionURL(props.SubjectURI, props.SubjectCID) }
+		data-svelte-comment-form
 		class="comment-reply-form"
 	>
 		<input type="hidden" name="subject_uri" value={ props.SubjectURI }/>
@@ -289,9 +301,10 @@ templ ReplyForm(props ReplyFormProps) {
 			aria-label="Write a reply"
 		></textarea>
 		<div class="flex justify-end gap-2">
-			<button type="button" @click="closeReply" class="btn-secondary text-xs py-1 px-3">
+			<button type="button" data-reply-close class="btn-secondary text-xs py-1 px-3">
 				Cancel
 			</button>
+			<span data-comment-form-status></span>
 			<button type="submit" class="btn-primary text-xs py-1 px-3">
 				Reply
 			</button>
@@ -346,4 +359,11 @@ func buildCommentURI(comment firehose.IndexedComment) string {
 	// The subject URI contains the DID, format: at://did:plc:xxx/social.arabica.alpha.brew/rkey
 	// We need to extract the DID and build a comment URI: at://did:plc:xxx/social.arabica.alpha.comment/rkey
 	return fmt.Sprintf("at://%s/social.arabica.alpha.comment/%s", comment.ActorDID, comment.RKey)
+}
+
+func commentActionURL(subjectURI, subjectCID string) string {
+	values := url.Values{}
+	values.Set("subject_uri", subjectURI)
+	values.Set("subject_cid", subjectCID)
+	return "/api/comments?" + values.Encode()
 }

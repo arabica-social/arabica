@@ -14,24 +14,30 @@ type ProfileProps struct {
 
 // Profile renders the full profile page
 templ Profile(layout *components.LayoutData, props ProfileProps) {
-	@components.Layout(layout, ProfileContent(props, layout.ScriptHref("manage-page.js"), layout.ScriptHref("profile-stats.js")))
+	@components.Layout(layout, ProfileContent(props))
 }
 
 // ProfileContent renders the profile page content
-templ ProfileContent(props ProfileProps, manageScriptHref string, profileStatsScriptHref string) {
+templ ProfileContent(props ProfileProps) {
 	if props.IsOwnProfile {
-		<script src={ manageScriptHref }></script>
-	}
-	<script src={ profileStatsScriptHref }></script>
-	if props.IsOwnProfile {
-		<div class="page-container-lg" v-scope="managePage()" @vue:mounted="setup" :data-active-tab="activeTab">
+		<div
+			class="page-container-lg"
+			data-svelte-manage-tabs
+			data-initial-tab="brews"
+			data-init-cache="true"
+			data-show-nudge="true"
+		>
 			@ProfileHeader(props.Profile)
 			@ProfileStats()
 			@ProfileTabs(props.IsOwnProfile)
 			@ProfileContentLoader(props.Profile.Handle)
 		</div>
 	} else {
-		<div class="page-container-lg" v-scope="{ activeTab: 'brews' }" :data-active-tab="activeTab">
+		<div
+			class="page-container-lg"
+			data-svelte-manage-tabs
+			data-initial-tab="brews"
+		>
 			@ProfileHeader(props.Profile)
 			@ProfileStats()
 			@ProfileTabs(props.IsOwnProfile)
@@ -61,21 +67,8 @@ templ ProfileHeader(profile *bff.UserProfile) {
 
 // ProfileStats renders the stats grid
 templ ProfileStats() {
-	<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-		@ProfileStat("brews", "Brews")
-		@ProfileStat("beans", "Beans")
-		@ProfileStat("roasters", "Roasters")
-		@ProfileStat("grinders", "Grinders")
-		@ProfileStat("brewers", "Brewers")
-	</div>
-}
-
-// ProfileStat renders a single stat card
-templ ProfileStat(dataKey string, label string) {
-	<div class="card-sm p-4">
-		<div class="text-2xl font-bold text-secondary" data-stat={ dataKey }>-</div>
-		<div class="text-sm text-emphasis">{ label }</div>
-	</div>
+	<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6" data-svelte-profile-stats></div>
+	<div class="mb-6" data-svelte-taste-profile></div>
 }
 
 // ProfileTabs renders the tab navigation
@@ -84,23 +77,29 @@ templ ProfileTabs(isOwnProfile bool) {
 		<div class="card shadow-md mb-4">
 			<div class="flex border-b border-brown-300">
 				<button
-					@click="activeTab = 'brews'"
-					:class="activeTab === 'brews' ? 'tab-underline-active' : 'tab-underline-inactive'"
 					class="flex-1 py-3 px-4 text-center font-medium transition-colors"
+					data-manage-tab="brews"
+					data-active-class="tab-underline-active"
+					data-inactive-class="tab-underline-inactive"
+					type="button"
 				>
 					Brews
 				</button>
 				<button
-					@click="activeTab = 'beans'"
-					:class="activeTab === 'beans' ? 'tab-underline-active' : 'tab-underline-inactive'"
 					class="flex-1 py-3 px-4 text-center font-medium transition-colors"
+					data-manage-tab="beans"
+					data-active-class="tab-underline-active"
+					data-inactive-class="tab-underline-inactive"
+					type="button"
 				>
 					Beans
 				</button>
 				<button
-					@click="activeTab = 'equipment'"
-					:class="activeTab === 'equipment' ? 'tab-underline-active' : 'tab-underline-inactive'"
 					class="flex-1 py-3 px-4 text-center font-medium transition-colors"
+					data-manage-tab="equipment"
+					data-active-class="tab-underline-active"
+					data-inactive-class="tab-underline-inactive"
+					type="button"
 				>
 					Gear
 				</button>
