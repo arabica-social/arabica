@@ -162,6 +162,9 @@
       }
 
       container.innerHTML = responseText;
+      window.htmx?.process?.(container);
+      window.__arabicaSvelteIslands?.mountAll?.();
+
       const dialog = container.querySelector<HTMLDialogElement>("dialog");
       if (!dialog || typeof dialog.showModal !== "function") {
         notify("Failed to open editor");
