@@ -52,6 +52,7 @@ function loadIsland(
 }
 
 let mounted = false;
+let coreMountPromise: Promise<void> | null = null;
 
 const comboSelectIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 const feedFiltersIslands = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
@@ -952,49 +953,60 @@ async function mountCoreIslands() {
   if (mounted) {
     return;
   }
+  if (coreMountPromise) {
+    await coreMountPromise;
+    return;
+  }
 
-  const [
-    AppCacheRuntimeIsland,
-    GlobalActionsIsland,
-    LayoutRuntimeIsland,
-    ThemeRuntimeIsland,
-    TransitionRuntimeIsland,
-    ServiceWorkerIsland,
-  ] = await Promise.all([
-    loadIsland(
-      "app-cache-runtime",
-      () => import("./AppCacheRuntimeIsland.svelte") as Promise<IslandModule>,
-    ),
-    loadIsland(
-      "global-actions",
-      () => import("./GlobalActionsIsland.svelte") as Promise<IslandModule>,
-    ),
-    loadIsland(
-      "layout-runtime",
-      () => import("./LayoutRuntimeIsland.svelte") as Promise<IslandModule>,
-    ),
-    loadIsland(
-      "theme-runtime",
-      () => import("./ThemeRuntimeIsland.svelte") as Promise<IslandModule>,
-    ),
-    loadIsland(
-      "transition-runtime",
-      () => import("./TransitionRuntimeIsland.svelte") as Promise<IslandModule>,
-    ),
-    loadIsland(
-      "service-worker",
-      () => import("./ServiceWorkerIsland.svelte") as Promise<IslandModule>,
-    ),
-  ]);
+  coreMountPromise = (async () => {
+    const [
+      AppCacheRuntimeIsland,
+      GlobalActionsIsland,
+      LayoutRuntimeIsland,
+      ThemeRuntimeIsland,
+      TransitionRuntimeIsland,
+      ServiceWorkerIsland,
+    ] = await Promise.all([
+      loadIsland(
+        "app-cache-runtime",
+        () => import("./AppCacheRuntimeIsland.svelte") as Promise<IslandModule>,
+      ),
+      loadIsland(
+        "global-actions",
+        () => import("./GlobalActionsIsland.svelte") as Promise<IslandModule>,
+      ),
+      loadIsland(
+        "layout-runtime",
+        () => import("./LayoutRuntimeIsland.svelte") as Promise<IslandModule>,
+      ),
+      loadIsland(
+        "theme-runtime",
+        () => import("./ThemeRuntimeIsland.svelte") as Promise<IslandModule>,
+      ),
+      loadIsland(
+        "transition-runtime",
+        () => import("./TransitionRuntimeIsland.svelte") as Promise<IslandModule>,
+      ),
+      loadIsland(
+        "service-worker",
+        () => import("./ServiceWorkerIsland.svelte") as Promise<IslandModule>,
+      ),
+    ]);
 
-  mount(AppCacheRuntimeIsland, { target: document.body });
-  mount(GlobalActionsIsland, { target: document.body });
-  mount(LayoutRuntimeIsland, { target: document.body });
-  mount(ThemeRuntimeIsland, { target: document.body });
-  mount(TransitionRuntimeIsland, { target: document.body });
-  mount(ServiceWorkerIsland, { target: document.body });
+    mount(AppCacheRuntimeIsland, { target: document.body });
+    mount(GlobalActionsIsland, { target: document.body });
+    mount(LayoutRuntimeIsland, { target: document.body });
+    mount(ThemeRuntimeIsland, { target: document.body });
+    mount(TransitionRuntimeIsland, { target: document.body });
+    mount(ServiceWorkerIsland, { target: document.body });
 
-  mounted = true;
+    mounted = true;
+  })().catch((error) => {
+    coreMountPromise = null;
+    throw error;
+  });
+
+  await coreMountPromise;
 }
 
 async function mountAll() {
