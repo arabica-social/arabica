@@ -42,6 +42,8 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
 	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
 	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
+	mux.HandleFunc("GET /beans/new", h.HandleBeanNew)
+	mux.HandleFunc("GET /beans/{id}/edit", h.HandleBeanEdit)
 
 	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
 	mux.HandleFunc("GET /recipes/{actor}/{id}/og-image", routing.RewriteActorToOwner(h.HandleRecipeOGImage))

@@ -80,7 +80,16 @@ templ BeanViewCard(props BeanViewProps) {
 			}
 		</div>
 		if props.Bean.Description != "" {
-			<div class="label-description">{ props.Bean.Description }</div>
+			<div class="mt-4">
+				<div class="form-fieldset-label">Description</div>
+				<div class="label-description mt-1">{ props.Bean.Description }</div>
+			</div>
+		}
+		if props.Bean.Notes != "" {
+			<div class="mt-4">
+				<div class="form-fieldset-label">Personal notes</div>
+				<div class="journal-prose mt-1">{ props.Bean.Notes }</div>
+			</div>
 		}
 		if props.Bean.Link != "" {
 			if safeLink := bff.SafeWebsiteURL(props.Bean.Link); safeLink != "" {
@@ -136,7 +145,7 @@ templ BeanViewCard(props BeanViewProps) {
 			ShareTitle:      getBeanShareTitle(props.Bean),
 			ShareText:       "Check out this bean on Arabica",
 			IsOwner:         props.IsOwnProfile,
-			EditModalURL:    "/api/modals/bean/" + props.Bean.RKey,
+			EditURL:         "/beans/" + props.Bean.RKey + "/edit",
 			DeleteURL:       "/api/beans/" + props.Bean.RKey,
 			DeleteRedirect:  "/my-coffee",
 			IsAuthenticated: props.IsAuthenticated,
@@ -207,11 +216,12 @@ func beanBaseJSON(bean *arabica.Bean) string {
 		"roast_level": %q,
 		"process": %q,
 		"description": %q,
+		"notes": %q,
 		"roaster_rkey": %q,
 		"rating": %s,
 		"closed": %t
 	}`, bean.Name, bean.Origin, bean.Variety, bean.RoastLevel,
-		bean.Process, bean.Description, roasterRKey, ratingStr, bean.Closed)
+		bean.Process, bean.Description, bean.Notes, roasterRKey, ratingStr, bean.Closed)
 }
 
 func roastLevelTagClass(level string) string {

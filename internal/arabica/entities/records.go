@@ -386,6 +386,9 @@ func BeanToRecord(bean *Bean, roasterURI string) (map[string]any, error) {
 	if bean.Description != "" {
 		record["description"] = bean.Description
 	}
+	if bean.Notes != "" {
+		record["notes"] = bean.Notes
+	}
 	if bean.Link != "" {
 		record["link"] = bean.Link
 	}
@@ -453,6 +456,9 @@ func RecordToBean(record map[string]any, atURI string) (*Bean, error) {
 	}
 	if description, ok := record["description"].(string); ok {
 		bean.Description = description
+	}
+	if notes, ok := record["notes"].(string); ok {
+		bean.Notes = notes
 	}
 	if link, ok := record["link"].(string); ok {
 		bean.Link = link

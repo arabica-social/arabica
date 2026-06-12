@@ -36,14 +36,7 @@ templ ManageBeansTab(beans []*arabica.Bean, brewCounts map[string]int, avgBrewRa
 	<div data-tab-panel="beans">
 		<div class="mb-4 flex justify-between items-center">
 			<h3 class="text-xl font-semibold text-primary">Coffee Beans</h3>
-			<button
-				hx-get="/api/modals/bean/new"
-				hx-target="#modal-container"
-				hx-swap="innerHTML"
-				class="btn-primary shadow-lg hover:shadow-xl"
-			>
-				+ Add Bean
-			</button>
+			<a href="/beans/new" class="btn-primary shadow-lg hover:shadow-xl">+ Add Bean</a>
 		</div>
 		<div class="space-y-6">
 			<div data-manage-section>

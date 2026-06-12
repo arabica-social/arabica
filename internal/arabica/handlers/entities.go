@@ -232,6 +232,7 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			RoastDate:   r.FormValue("roast_date"),
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
+			Notes:       r.FormValue("notes"),
 			Link:        r.FormValue("link"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
 			Rating:      handlers.ParseOptionalInt(r.FormValue("rating")),
@@ -288,7 +289,54 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.InvalidateFeedCache()
+	if redirect := r.FormValue("__redirect"); redirect != "" {
+		w.Header().Set("HX-Redirect", redirect)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	handlers.WriteJSON(w, bean, "bean")
+}
+
+// HandleBeanNew renders the full-page bean form.
+func (h *Handlers) HandleBeanNew(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.GetArabicaStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "New Bean")
+	props := coffeepages.BeanFormProps{Roasters: beanModalRoasters(r.Context(), store)}
+	if err := coffeepages.BeanFormPage(layoutData, props).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to render bean form")
+	}
+}
+
+// HandleBeanEdit renders the full-page bean edit form.
+func (h *Handlers) HandleBeanEdit(w http.ResponseWriter, r *http.Request) {
+	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+	store, authenticated := h.GetArabicaStore(r)
+	if !authenticated {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	bean, err := store.GetBeanByRKey(r.Context(), rkey)
+	if err != nil {
+		http.Error(w, "Bean not found", http.StatusNotFound)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get bean for edit")
+		return
+	}
+
+	layoutData, _, _ := h.LayoutDataFromRequest(r, "Edit Bean")
+	props := coffeepages.BeanFormProps{Bean: bean, Roasters: beanModalRoasters(r.Context(), store)}
+	if err := coffeepages.BeanFormPage(layoutData, props).Render(r.Context(), w); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to render bean edit form")
+	}
 }
 
 // API endpoint to create roaster
@@ -297,7 +345,7 @@ func (h *Handlers) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	handlers.RecordCRUDWrite[arabica.CreateRoasterRequest, *arabica.CreateRoasterRequest, arabica.Roaster](
+	handlers.RecordCRUDWrite(
 		w, r, store, arabica.NSIDRoaster, "roaster", "", decodeRoasterCreateForm,
 		func(req *arabica.CreateRoasterRequest) *arabica.Roaster {
 			return roasterFromCreate(req, time.Now())
@@ -564,6 +612,7 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 			RoastDate:   r.FormValue("roast_date"),
 			Process:     r.FormValue("process"),
 			Description: r.FormValue("description"),
+			Notes:       r.FormValue("notes"),
 			Link:        r.FormValue("link"),
 			RoasterRKey: r.FormValue("roaster_rkey"),
 			Rating:      handlers.ParseOptionalInt(r.FormValue("rating")),
@@ -627,6 +676,11 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.InvalidateFeedCache()
+	if redirect := r.FormValue("__redirect"); redirect != "" {
+		w.Header().Set("HX-Redirect", redirect)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	handlers.WriteJSON(w, bean, "bean")
 }
 
@@ -650,7 +704,7 @@ func (h *Handlers) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDRoaster, rkey)
-	handlers.RecordCRUDWrite[arabica.UpdateRoasterRequest, *arabica.UpdateRoasterRequest, arabica.Roaster](
+	handlers.RecordCRUDWrite(
 		w, r, store, arabica.NSIDRoaster, "roaster", rkey, decodeRoasterUpdateForm,
 		func(req *arabica.UpdateRoasterRequest) *arabica.Roaster {
 			m := roasterFromUpdate(req, createdAt)
@@ -688,7 +742,7 @@ func (h *Handlers) HandleGrinderCreate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	handlers.RecordCRUDWrite[arabica.CreateGrinderRequest, *arabica.CreateGrinderRequest, arabica.Grinder](
+	handlers.RecordCRUDWrite(
 		w, r, store, arabica.NSIDGrinder, "grinder", "",
 		func(r *http.Request, req *arabica.CreateGrinderRequest) error {
 			*req = grinderFormDecoder(r)
@@ -713,7 +767,7 @@ func (h *Handlers) HandleGrinderUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDGrinder, rkey)
-	handlers.RecordCRUDWrite[arabica.UpdateGrinderRequest, *arabica.UpdateGrinderRequest, arabica.Grinder](
+	handlers.RecordCRUDWrite(
 		w, r, store, arabica.NSIDGrinder, "grinder", rkey,
 		func(r *http.Request, req *arabica.UpdateGrinderRequest) error {
 			*req = arabica.UpdateGrinderRequest(grinderFormDecoder(r))
@@ -757,7 +811,7 @@ func (h *Handlers) HandleBrewerCreate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	handlers.RecordCRUDWrite[arabica.CreateBrewerRequest, *arabica.CreateBrewerRequest, arabica.Brewer](
+	handlers.RecordCRUDWrite(
 		w, r, store, arabica.NSIDBrewer, "brewer", "",
 		func(r *http.Request, req *arabica.CreateBrewerRequest) error { *req = brewerFormDecoder(r); return nil },
 		func(req *arabica.CreateBrewerRequest) *arabica.Brewer { return brewerFromCreate(req, time.Now()) },
@@ -779,7 +833,7 @@ func (h *Handlers) HandleBrewerUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	createdAt := handlers.ExistingCreatedAt(r.Context(), store, arabica.NSIDBrewer, rkey)
-	handlers.RecordCRUDWrite[arabica.UpdateBrewerRequest, *arabica.UpdateBrewerRequest, arabica.Brewer](
+	handlers.RecordCRUDWrite(
 		w, r, store, arabica.NSIDBrewer, "brewer", rkey,
 		func(r *http.Request, req *arabica.UpdateBrewerRequest) error {
 			*req = arabica.UpdateBrewerRequest(brewerFormDecoder(r))
@@ -804,5 +858,7 @@ func (h *Handlers) HandleBrewerDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	h.DeleteEntity(w, r, func(ctx context.Context, rkey string) error { return store.RemoveRecord(ctx, arabica.NSIDBrewer, rkey) }, "brewer", arabica.NSIDBrewer)
+	h.DeleteEntity(w, r, func(ctx context.Context, rkey string) error {
+		return store.RemoveRecord(ctx, arabica.NSIDBrewer, rkey)
+	}, "brewer", arabica.NSIDBrewer)
 }

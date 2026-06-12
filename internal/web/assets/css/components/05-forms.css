@@ -15,6 +15,27 @@
   color: var(--text-muted);
 }
 
+.form-details-disclosure > summary {
+  list-style: none;
+}
+
+.form-details-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.form-details-triangle {
+  display: inline-block;
+  color: var(--text-faint);
+  font-size: 0.65rem;
+  line-height: 1;
+  transform-origin: center;
+  transition: transform 150ms ease;
+}
+
+.form-details-disclosure[open] > summary .form-details-triangle {
+  transform: rotate(90deg);
+}
+
 .form-divider {
   border-top: 1px solid var(--surface-border);
   margin-top: 0.5rem;

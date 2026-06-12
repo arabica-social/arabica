@@ -32,10 +32,10 @@ test:
     @go test ./... -cover -coverprofile=cover.out
 
 integration-test:
-    @cd tests/integration && go test -v ./... -count=1
+    @cd tests/integration && go test -tags=integration -v ./... -count=1
 
 verbose-integration-test:
-    @cd tests/integration && INTEGRATION_LOGS=true go test -v ./... -count=1
+    @cd tests/integration && INTEGRATION_LOGS=true go test -tags=integration -v ./... -count=1
 
 format:
     @pnpm run format

@@ -1,0 +1,61 @@
+package coffeepages
+
+import (
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
+	"tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+type BeanFormProps struct {
+	Bean     *arabica.Bean
+	Roasters []arabica.Roaster
+}
+
+templ BeanFormPage(layout *components.LayoutData, props BeanFormProps) {
+	@components.Layout(layout, BeanFormContent(props))
+}
+
+templ BeanFormContent(props BeanFormProps) {
+	<div class="page-container-sm">
+		@components.Card(
+			components.CardProps{InnerCard: true},
+			BeanFormCard(props),
+		)
+	</div>
+}
+
+templ BeanFormCard(props BeanFormProps) {
+	<div class="flex items-center gap-3 mb-6">
+		@components.BackButton()
+		<h2 class="text-2xl font-semibold text-primary">
+			if props.Bean != nil {
+				Edit Bean
+			} else {
+				New Bean
+			}
+		</h2>
+	</div>
+	<form
+		if props.Bean != nil {
+			hx-put={ "/api/beans/" + props.Bean.RKey }
+		} else {
+			hx-post="/api/beans"
+		}
+		hx-target="body"
+		hx-swap="none"
+		class="space-y-6"
+	>
+		<input type="hidden" name="__redirect" value="/my-coffee"/>
+		@coffee.BeanFormBody(props.Bean, props.Roasters)
+		<div class="form-actions">
+			<button type="submit" class="btn-primary">
+				if props.Bean != nil {
+					Save Bean
+				} else {
+					Create Bean
+				}
+			</button>
+			<a href="/my-coffee" class="btn-secondary">Cancel</a>
+		</div>
+	</form>
+}

@@ -125,6 +125,7 @@ type Bean struct {
 	RoastDate   string    `json:"roast_date,omitempty"`
 	Process     string    `json:"process"`
 	Description string    `json:"description"`
+	Notes       string    `json:"notes"`
 	Link        string    `json:"link"`
 	RoasterRKey string    `json:"roaster_rkey"`     // AT Protocol reference
 	Rating      *int      `json:"rating,omitempty"` // User rating (1-10), nil means unrated
@@ -305,6 +306,7 @@ type CreateBeanRequest struct {
 	RoastDate   string `json:"roast_date,omitempty"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
+	Notes       string `json:"notes"`
 	Link        string `json:"link"`
 	RoasterRKey string `json:"roaster_rkey"`
 	Rating      *int   `json:"rating,omitempty"`
@@ -365,6 +367,7 @@ type UpdateBeanRequest struct {
 	RoastDate   string `json:"roast_date,omitempty"`
 	Process     string `json:"process"`
 	Description string `json:"description"`
+	Notes       string `json:"notes"`
 	Link        string `json:"link"`
 	RoasterRKey string `json:"roaster_rkey"`
 	Rating      *int   `json:"rating,omitempty"`
@@ -481,6 +484,9 @@ func (r *CreateBeanRequest) Validate() error {
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
 	}
+	if len(r.Notes) > MaxNotesLength {
+		return ErrNotesTooLong
+	}
 	if len(r.Link) > MaxLinkLength {
 		return ErrLinkTooLong
 	}
@@ -517,6 +523,9 @@ func (r *UpdateBeanRequest) Validate() error {
 	}
 	if len(r.Description) > MaxDescriptionLength {
 		return ErrDescTooLong
+	}
+	if len(r.Notes) > MaxNotesLength {
+		return ErrNotesTooLong
 	}
 	if len(r.Link) > MaxLinkLength {
 		return ErrLinkTooLong

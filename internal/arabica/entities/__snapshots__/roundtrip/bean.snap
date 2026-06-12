@@ -13,6 +13,7 @@ version: 0.1.0
   RoastDate: "",
   Process: "Washed",
   Description: "Fruity notes",
+  Notes: "",
   Link: "",
   RoasterRKey: "",
   Rating: (*int)(nil),

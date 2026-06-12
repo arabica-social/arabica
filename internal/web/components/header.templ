@@ -263,10 +263,10 @@ templ arabicaCreateDropdownItems() {
 	<div class="dropdown-divider">
 		<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
 	</div>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/bean/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
+	<a class="dropdown-item w-full text-left" href="/beans/new" data-disclosure-close role="menuitem">
 		@IconLeaf()
 		Bean
-	</button>
+	</a>
 	<button class="dropdown-item w-full text-left" hx-get="/api/modals/roaster/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
 		@IconStore()
 		Roaster

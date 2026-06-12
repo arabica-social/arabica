@@ -22,6 +22,8 @@ func beanField(e any, field string) (string, bool) {
 		return b.Process, true
 	case "description":
 		return b.Description, true
+	case "notes":
+		return b.Notes, true
 	case "link":
 		return b.Link, true
 	}
