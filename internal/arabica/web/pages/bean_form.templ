@@ -46,16 +46,19 @@ templ BeanFormCard(props BeanFormProps) {
 		class="space-y-6"
 	>
 		<input type="hidden" name="__redirect" value="/my-coffee"/>
-		@coffee.BeanFormBody(props.Bean, props.Roasters)
-		<div class="form-actions">
-			<button type="submit" class="btn-primary">
-				if props.Bean != nil {
-					Save Bean
-				} else {
-					Create Bean
-				}
-			</button>
-			<a href="/my-coffee" class="btn-secondary">Cancel</a>
+		<div class="space-y-6">
+			@coffee.BeanFormBody(props.Bean, props.Roasters)
+			<div class="form-divider"></div>
+			<div class="bean-form-actions">
+				<button type="submit" class="btn-primary">
+					if props.Bean != nil {
+						Save Bean
+					} else {
+						Create Bean
+					}
+				</button>
+				<a href="/my-coffee" class="btn-secondary">Cancel</a>
+			</div>
 		</div>
 	</form>
 }

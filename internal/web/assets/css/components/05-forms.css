@@ -36,6 +36,29 @@
   transform: rotate(90deg);
 }
 
+.form-outer-box {
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.form-required-marker {
+  margin-left: 0.25rem;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.bean-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.bean-form-actions > .btn-primary {
+  flex: 1 1 12rem;
+}
+
 .form-divider {
   border-top: 1px solid var(--surface-border);
   margin-top: 0.5rem;

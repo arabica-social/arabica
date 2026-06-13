@@ -1,0 +1,203 @@
+package coffee
+
+import (
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	. "tangled.org/arabica.social/arabica/internal/web/components"
+)
+
+// BeanFormBody renders the coffee bean fields used by the bean page,
+// station drawer, and dialog modal. The container owns the <form>,
+// submit row, and action URL.
+templ BeanFieldLabel(label string, required bool) {
+	<label class="form-label">
+		{ label }
+		if required {
+			<span class="form-required-marker" aria-hidden="true">*</span>
+		}
+	</label>
+}
+
+templ BeanFormBody(bean *arabica.Bean, roasters []arabica.Roaster) {
+	<!-- Essentials -->
+	<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+		<legend class="text-sm font-semibold text-secondary px-2">Essentials</legend>
+		<div class="form-field">
+			@BeanFieldLabel("Name", true)
+			if bean == nil {
+				@EntitySuggestNameInput("bean", "/api/suggestions/beans", "Name")
+			} else {
+				<input
+					type="text"
+					name="name"
+					value={ getStringValue(bean, "name") }
+					placeholder="e.g. Ethiopia Gedeb"
+					required
+					class="w-full form-input"
+				/>
+			}
+		</div>
+		// roaster
+		<div class="form-field">
+			@BeanFieldLabel("Roaster", false)
+			<div
+				data-svelte-bean-roaster-picker
+				data-roasters={ roasterPickerRowsJSON(bean, roasters) }
+				data-initial-rkey={ beanRoasterRKey(bean) }
+				data-initial-name={ beanRoasterName(bean, roasters) }
+				class="relative"
+			>
+				<input
+					type="text"
+					value={ beanRoasterName(bean, roasters) }
+					placeholder="Search or create roaster"
+					class="w-full form-input"
+					autocomplete="off"
+				/>
+				<input type="hidden" name="roaster_rkey" value={ beanRoasterRKey(bean) }/>
+				<input type="hidden" name="new_roaster_name"/>
+				<input type="hidden" name="new_roaster_location"/>
+				<input type="hidden" name="new_roaster_website"/>
+			</div>
+		</div>
+		// origin 
+		<div class="form-field">
+			@BeanFieldLabel("Origin", true)
+			<input
+				type="text"
+				name="origin"
+				value={ getStringValue(bean, "origin") }
+				placeholder="e.g. Colombia, Huila"
+				required
+				class="w-full form-input"
+			/>
+		</div>
+		// TODO: roast details could probably be its own mini-section?
+		// Roast level
+		<div class="form-field">
+			@BeanFieldLabel("Roast level", false)
+			<select
+				name="roast_level"
+				class="w-full form-input"
+			>
+				<option value="">Select roast level</option>
+				for _, level := range arabica.RoastLevels {
+					<option
+						value={ level }
+						if bean != nil && bean.RoastLevel == level {
+							selected
+						}
+					>
+						{ level }
+					</option>
+				}
+			</select>
+		</div>
+		// Roast date
+		<div class="form-field">
+			@BeanFieldLabel("Roast date", false)
+			<input
+				type="date"
+				name="roast_date"
+				value={ getStringValue(bean, "roast_date") }
+				placeholder="Roast date"
+				class="w-full form-input"
+			/>
+		</div>
+	</fieldset>
+	<!-- Origin details -->
+	<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+		<legend class="text-sm font-semibold text-secondary px-2">Origin details <span class="form-optional-hint">(optional)</span></legend>
+		<div class="form-field">
+			@BeanFieldLabel("Variety", false)
+			<input
+				type="text"
+				name="variety"
+				value={ getStringValue(bean, "variety") }
+				placeholder="e.g. SL28, Typica, Gesha"
+				class="w-full form-input"
+			/>
+		</div>
+		<div class="form-field">
+			@BeanFieldLabel("Process", false)
+			<input
+				type="text"
+				name="process"
+				value={ getStringValue(bean, "process") }
+				placeholder="e.g. Washed, Natural, Honey"
+				class="w-full form-input"
+			/>
+		</div>
+	</fieldset>
+	<!-- Details -->
+	<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+		<legend class="text-sm font-semibold text-secondary px-2">Details <span class="form-optional-hint">(optional)</span></legend>
+		<div class="form-field">
+			@BeanFieldLabel("Description", false)
+			<textarea
+				name="description"
+				placeholder="Roaster description, tasting notes, etc."
+				rows="3"
+				class="w-full form-textarea"
+			>{ getStringValue(bean, "description") }</textarea>
+		</div>
+		<div class="form-field">
+			@BeanFieldLabel("Link", false)
+			<input
+				type="url"
+				name="link"
+				value={ getStringValue(bean, "link") }
+				placeholder="https://roaster.example/beans/..."
+				class="w-full form-input"
+			/>
+		</div>
+		<details
+			class="form-details-disclosure"
+			if bean != nil {
+				open
+			}
+		>
+			<summary class="text-sm font-semibold text-secondary cursor-pointer hover:text-primary transition-colors flex items-center gap-2">
+				<span aria-hidden="true" class="form-details-triangle">▶</span>
+				<span>Personal details <span class="form-optional-hint">(optional)</span></span>
+			</summary>
+			<div class="mt-3 space-y-4">
+				<div class="form-field">
+					@BeanFieldLabel("Personal notes", false)
+					<textarea
+						name="notes"
+						placeholder="Your own notes about this bag"
+						rows="3"
+						class="w-full form-textarea"
+					>{ getStringValue(bean, "notes") }</textarea>
+				</div>
+				<div class="form-field" data-svelte-bean-rating data-initial-rating={ beanRatingInitialValue(bean) }>
+					@BeanFieldLabel("Rating", false)
+					if bean != nil && bean.Rating != nil {
+						<input type="range" min="1" max="10" value={ beanRatingInitialValue(bean) } class="w-full accent-brown-700"/>
+						<input type="hidden" name="rating" value={ beanRatingInitialValue(bean) }/>
+					} else {
+						<button type="button" class="text-sm font-medium text-emphasis hover:text-primary flex items-center gap-1">
+							@IconStar()
+							Add Rating
+						</button>
+					}
+				</div>
+				<div class="flex items-center gap-2">
+					<input
+						type="checkbox"
+						name="closed"
+						value="true"
+						id="bean-closed-checkbox-modal"
+						if bean != nil && bean.Closed {
+							checked
+						}
+						class="rounded-sm border-brown-300 text-emphasis focus:ring-brown-500"
+					/>
+					<label for="bean-closed-checkbox-modal" class="text-sm text-primary">
+						Bag is closed/finished
+					</label>
+				</div>
+			</div>
+		</details>
+	</fieldset>
+}
