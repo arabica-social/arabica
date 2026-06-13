@@ -249,6 +249,8 @@
     const cachedRecipe = cachedEntities("recipe").find(
       (recipe: EntityRecord) => rkey(recipe) === selectedRKey,
     );
+    if (cachedRecipe && !recipeLabel)
+      recipeLabel = formatLabel("recipe", cachedRecipe);
     if (!recipeOwnerDID && cachedRecipe?.author_did)
       recipeOwnerDID = cachedRecipe.author_did;
 
@@ -261,6 +263,7 @@
     if (!response.ok) return;
     const recipe = await response.json();
     activeRecipe = recipe;
+    if (!recipeLabel) recipeLabel = formatLabel("recipe", recipe);
     recipeExpanded = false;
     if (recipe.author_did) recipeOwnerDID = recipe.author_did;
     coffeeAmount =
@@ -329,8 +332,9 @@
     }
   }
 
+  initializeFromDataset();
+
   onMount(() => {
-    initializeFromDataset();
     const cached = appCache()?.getCachedData?.();
     if (cached) cachedData = cached;
     const listener = (data: Record<string, any>) => {

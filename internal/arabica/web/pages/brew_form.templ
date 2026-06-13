@@ -207,6 +207,9 @@ func getBrewerRKey(props BrewFormProps) string {
 }
 
 func getRecipeLabel(props BrewFormProps) string {
+	if props.Brew != nil && props.Brew.RecipeObj != nil {
+		return props.Brew.RecipeObj.Name
+	}
 	if props.Brew != nil && props.Brew.RecipeRKey != "" {
 		for _, r := range props.Recipes {
 			if r.RKey == props.Brew.RecipeRKey {

@@ -108,7 +108,6 @@ func TestBrewFormIslandMountContractForEditBrew(t *testing.T) {
 			RecipeObj:      &arabica.Recipe{RKey: "recipe-456", Name: "Morning Shot"},
 		},
 		PoursJSON: `[]`,
-		Recipes:   []arabica.Recipe{{RKey: "recipe-456", Name: "Morning Shot"}},
 	}
 
 	html := renderBrewFormTestComponent(t, BrewFormElement(props))

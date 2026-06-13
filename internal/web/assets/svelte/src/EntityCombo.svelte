@@ -58,6 +58,7 @@
   let showCreateForm = $state(false);
   let createFormData = $state<EntityRecord>({});
   let cachedData = $state<Record<string, any> | null>(null);
+  let previousLabel = $state("");
   let suggestTimer: ReturnType<typeof setTimeout> | undefined;
 
   function appCache(): AppCacheAPI | undefined {
@@ -315,8 +316,18 @@
     if (item.type === "create") startCreate();
   }
 
+  $effect(() => {
+    if (label === previousLabel) return;
+
+    if (!isOpen || query === previousLabel || query === "") {
+      query = label;
+    }
+    previousLabel = label;
+  });
+
   onMount(() => {
     query = label;
+    previousLabel = label;
     const cached = appCache()?.getCachedData?.();
     if (cached) cachedData = cached;
     search(false);

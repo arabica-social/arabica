@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/svelte";
+import { cleanup, render, screen, waitFor } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BrewFormIsland from "./BrewFormIsland.svelte";
@@ -114,6 +114,63 @@ describe("BrewFormIsland", () => {
     expect(formData.get("pour_water_0")).toBe("50");
     expect(formData.get("pour_time_0")).toBe("30");
     expect(formData.get("rating")).toBe("7");
+  });
+
+  it("preserves server-provided combo selections on edit before user interaction", () => {
+    installAppCache();
+    const { form, target } = mountTarget();
+    target.dataset.submitLabel = "Update Brew";
+    target.dataset.beanRkey = "bean-old";
+    target.dataset.beanLabel = "Old Bean";
+    target.dataset.grinderRkey = "grinder-old";
+    target.dataset.grinderLabel = "Old Grinder";
+    target.dataset.brewerRkey = "brewer-old";
+    target.dataset.brewerLabel = "Old Brewer";
+
+    render(BrewFormIsland, { target, props: { target } });
+
+    expect(
+      screen.getByRole("combobox", { name: "Search coffee beans" }),
+    ).toHaveValue("Old Bean");
+    expect(
+      screen.getByRole("combobox", { name: "Search grinders" }),
+    ).toHaveValue("Old Grinder");
+    expect(
+      screen.getByRole("combobox", { name: "Search brew methods" }),
+    ).toHaveValue("Old Brewer");
+
+    const formData = new FormData(form);
+    expect(formData.get("bean_rkey")).toBe("bean-old");
+    expect(formData.get("grinder_rkey")).toBe("grinder-old");
+    expect(formData.get("brewer_rkey")).toBe("brewer-old");
+  });
+
+  it("fills the recipe combo label after detecting the existing recipe", async () => {
+    installAppCache();
+    const { form, target } = mountTarget();
+    target.dataset.recipeRkey = "recipe-old";
+    target.dataset.recipeLabel = "";
+    vi.spyOn(window, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          rkey: "recipe-old",
+          name: "Old Recipe",
+          coffee_amount: 18,
+          water_amount: 250,
+          pours: [],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    render(BrewFormIsland, { target, props: { target } });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("combobox", { name: "Search recipes" }),
+      ).toHaveValue("Old Recipe");
+    });
+    expect(new FormData(form).get("recipe_rkey")).toBe("recipe-old");
   });
 
   it("shows derived pour totals and validation warnings", async () => {
