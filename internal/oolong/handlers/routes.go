@@ -24,6 +24,9 @@ func StaticPages() handlers.StaticPageRenderers {
 		Terms: func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
 			return teapages.Terms(data).Render(ctx, w)
 		},
+		ATProto: func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
+			return teapages.ATProto(data).Render(ctx, w)
+		},
 	}
 }
 
@@ -63,6 +66,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleTeaUpdate,
 			Delete:     h.HandleTeaDelete,
 			View:       h.HandleTeaView,
+			Backlinks:  h.HandleTeaBacklinks,
 		},
 		{
 			RecordType: lexicons.RecordTypeOolongVendor,
@@ -70,6 +74,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleOolongVendorUpdate,
 			Delete:     h.HandleOolongVendorDelete,
 			View:       h.HandleOolongVendorView,
+			Backlinks:  h.HandleOolongVendorBacklinks,
 			ModalNew:   h.HandleOolongVendorModalNew,
 			ModalEdit:  h.HandleOolongVendorModalEdit,
 		},
@@ -79,6 +84,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleOolongVesselUpdate,
 			Delete:     h.HandleOolongVesselDelete,
 			View:       h.HandleOolongVesselView,
+			Backlinks:  h.HandleOolongVesselBacklinks,
 			ModalNew:   h.HandleOolongVesselModalNew,
 			ModalEdit:  h.HandleOolongVesselModalEdit,
 		},
@@ -88,6 +94,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleOolongInfuserUpdate,
 			Delete:     h.HandleOolongInfuserDelete,
 			View:       h.HandleOolongInfuserView,
+			Backlinks:  h.HandleOolongInfuserBacklinks,
 			ModalNew:   h.HandleOolongInfuserModalNew,
 			ModalEdit:  h.HandleOolongInfuserModalEdit,
 		},
@@ -97,6 +104,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleOolongBrewUpdate,
 			Delete:     h.HandleOolongBrewDelete,
 			View:       h.HandleOolongBrewView,
+			Backlinks:  h.HandleOolongBrewBacklinks,
 			ModalNew:   h.HandleOolongBrewModalNew,
 			ModalEdit:  h.HandleOolongBrewModalEdit,
 		},

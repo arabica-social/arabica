@@ -49,8 +49,9 @@ type Config struct {
 type StaticPageRenderer func(context.Context, http.ResponseWriter, *components.LayoutData) error
 
 type StaticPageRenderers struct {
-	About StaticPageRenderer
-	Terms StaticPageRenderer
+	About   StaticPageRenderer
+	Terms   StaticPageRenderer
+	ATProto StaticPageRenderer
 }
 
 type HomeReadinessChecker func(context.Context, records.Store) (bool, error)

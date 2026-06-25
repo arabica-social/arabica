@@ -99,7 +99,28 @@ func (d *LayoutData) ogDescription() string {
 	if d.OGDescription != "" {
 		return d.OGDescription
 	}
-	return "Track your coffee brewing journey. Built on AT Protocol, your data stays yours."
+	return d.siteDescription()
+}
+
+func (d *LayoutData) siteDescription() string {
+	if d.AppName == "oolong" {
+		return d.brandName() + " is a tea tracking app built on AT Protocol. Your steep logs, teas, and teaware are stored in your own Personal Data Server, giving you full ownership and portability."
+	}
+	return d.brandName() + " is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability."
+}
+
+func (d *LayoutData) lightThemeColor() string {
+	if d.AppName == "oolong" {
+		return "#b8d5aa"
+	}
+	return "#4a2c2a"
+}
+
+func (d *LayoutData) darkThemeColor() string {
+	if d.AppName == "oolong" {
+		return "#162018"
+	}
+	return "#0F0A08"
 }
 
 // ogType returns the OpenGraph type, falling back to "website"
@@ -144,7 +165,7 @@ templ Layout(data *LayoutData, content templ.Component) {
 		</script>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<meta name="description" content={ data.brandName() + " is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability." }/>
+			<meta name="description" content={ data.siteDescription() }/>
 			<!-- OpenGraph metadata -->
 			<meta property="og:title" content={ data.ogTitle() }/>
 			<meta property="og:description" content={ data.ogDescription() }/>
@@ -166,8 +187,8 @@ templ Layout(data *LayoutData, content templ.Component) {
 			if data.OGImage != "" {
 				<meta name="twitter:image" content={ data.OGImage }/>
 			}
-			<meta name="theme-color" content="#4a2c2a" media="(prefers-color-scheme: light)"/>
-			<meta name="theme-color" content="#0F0A08" media="(prefers-color-scheme: dark)"/>
+			<meta name="theme-color" content={ data.lightThemeColor() } media="(prefers-color-scheme: light)"/>
+			<meta name="theme-color" content={ data.darkThemeColor() } media="(prefers-color-scheme: dark)"/>
 			<title>{ data.pageTitle() }</title>
 			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 			<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>

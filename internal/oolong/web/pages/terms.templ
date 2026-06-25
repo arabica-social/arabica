@@ -2,10 +2,7 @@ package teapages
 
 import "tangled.org/arabica.social/arabica/internal/web/components"
 
-// Terms renders the Terms of Service page for Oolong. Substantively
-// identical to Arabica's terms. The legal/policy framework is shared
-// since both apps run on the same infrastructure, with brand-specific
-// nouns (steeps, teas, teaware) swapped in.
+// Terms renders the Terms of Service page for Oolong.
 templ Terms(layout *components.LayoutData) {
 	@components.Layout(layout, TermsContent())
 }
@@ -212,8 +209,8 @@ templ TermsContent() {
 			<section>
 				<h2 class="text-2xl font-semibold text-secondary mb-4">13. Open Source</h2>
 				<p class="text-emphasis leading-relaxed">
-					Oolong is open source software and shares its core implementation with its sister app, Arabica.
-					You can review the code, run your own instance, or contribute improvements. The transparency of
+					Oolong is open source software. You can review the code, run your own instance,
+					or contribute improvements. The transparency of
 					open source means you can verify that we're handling your data as described in these terms.
 				</p>
 			</section>
@@ -238,7 +235,7 @@ templ TermsContent() {
 			<section>
 				<h2 class="text-2xl font-semibold text-secondary mb-4">16. Contact</h2>
 				<p class="text-emphasis leading-relaxed">
-					Questions about these terms? You can reach us through our GitHub repository or by email at
+					Questions about these terms? You can reach us at
 					<a href="mailto:mail@arabica.systems" class="link-bold">mail@arabica.systems</a>.
 				</p>
 			</section>

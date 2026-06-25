@@ -22,6 +22,7 @@ templ VesselView(layout *components.LayoutData, props VesselViewProps) {
 		AuthorDisplayName: props.AuthorDisplayName,
 		AuthorAvatar:      props.AuthorAvatar,
 		Body:              vesselBody(props.Vessel),
+		Community:         components.BacklinksSection(components.BacklinksSectionProps{Result: props.Backlinks, DetailURL: props.BacklinksDetailURL}),
 		GuardActionBar:    true,
 		ActionBar: components.ActionBarProps{
 			SubjectURI:      props.SubjectURI,

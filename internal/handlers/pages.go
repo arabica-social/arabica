@@ -47,7 +47,13 @@ func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleATProto(w http.ResponseWriter, r *http.Request) {
 	layoutData, _, _ := h.LayoutDataFromRequest(r, "AT Protocol")
 
-	if err := pages.ATProto(layoutData).Render(r.Context(), w); err != nil {
+	render := h.staticPages.ATProto
+	if render == nil {
+		render = func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
+			return pages.ATProto(data).Render(ctx, w)
+		}
+	}
+	if err := render(r.Context(), w, layoutData); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render AT Protocol page")
 	}
