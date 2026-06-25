@@ -23,19 +23,19 @@ templ BacklinksView(layout *components.LayoutData, props BacklinksViewProps) {
 
 templ BacklinksViewContent(props BacklinksViewProps) {
 	<div class="page-container-sm">
-		@components.Card(components.CardProps{InnerCard: true}, BacklinksViewCard(props))
+		@components.Card(components.CardProps{InnerCard: true, Class: "backlinks-shell"}, BacklinksViewCard(props))
 	</div>
 }
 
 templ BacklinksViewCard(props BacklinksViewProps) {
-	<div class="backlinks-page p-4">
+	<div class="backlinks-page">
 		<a href={ templ.SafeURL(props.BackURL) } class="text-sm text-secondary hover:underline">← back to { props.EntityNoun }</a>
 		<h1 class="page-title mt-2">Community around { props.EntityName }</h1>
 		if props.Result == nil || props.Result.IsEmpty() {
 			<p class="text-secondary mt-4">No community backlinks yet.</p>
 		} else {
 			if props.Result.RatingCount > 0 {
-				<div class="card card-inner mt-5 p-5">
+				<div class="card card-inner backlinks-rating-card mt-5">
 					<div class="text-xs text-uppercase text-secondary">Community brew rating</div>
 					<div class="mt-2">
 						<div class="brew-rating-hero">

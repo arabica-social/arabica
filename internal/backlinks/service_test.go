@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	testBean = "social.test.bean"
-	testBrew = "social.test.brew"
+	testBean   = "social.test.bean"
+	testBrewer = "social.test.brewer"
+	testBrew   = "social.test.brew"
 )
 
 type fakeSource struct{ records []IndexedRecord }
@@ -111,16 +112,17 @@ func TestLookupFindsSourceRefChainFuzzyMatchesAndUsage(t *testing.T) {
 	copy := testRecord(t, "did:plc:bob", testBean, "b2", 2, map[string]any{"name": "Gesha", "origin": "Panama", "sourceRef": root.URI})
 	copyOfCopy := testRecord(t, "did:plc:carol", testBean, "b3", 3, map[string]any{"name": "Gesha", "origin": "Panama", "sourceRef": copy.URI})
 	fuzzy := testRecord(t, "did:plc:dana", testBean, "b4", 4, map[string]any{"name": " gesha ", "origin": "panama"})
-	brew := testRecord(t, "did:plc:erin", testBrew, "br1", 5, map[string]any{"beanRef": root.URI, "rating": 9})
+	brewer := testRecord(t, "did:plc:erin", testBrewer, "brewer1", 5, map[string]any{"name": "V60"})
+	brew := testRecord(t, "did:plc:erin", testBrew, "br1", 6, map[string]any{"beanRef": root.URI, "brewerRef": brewer.URI, "rating": 9})
 
-	res, err := NewService(fakeSource{records: []IndexedRecord{root, copy, copyOfCopy, fuzzy, brew}}, noProfiles{}).Lookup(context.Background(), root.URI)
+	res, err := NewService(fakeSource{records: []IndexedRecord{root, copy, copyOfCopy, fuzzy, brewer, brew}}, noProfiles{}).Lookup(context.Background(), root.URI)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 3, res.LibraryCount)
 	assert.Equal(t, 1, res.UsageCount)
 	assert.Len(t, res.Usage, 1)
 	assert.Equal(t, "brews", res.Usage[0].Label)
-	assert.Equal(t, "Gesha", res.Usage[0].Entries[0].Title)
+	assert.Equal(t, "V60", res.Usage[0].Entries[0].Title)
 	assert.True(t, res.Usage[0].Entries[0].HasRating)
 	assert.Equal(t, 9, res.Usage[0].Entries[0].Rating)
 	assert.Equal(t, 9.0, res.Usage[0].RatingAverage)

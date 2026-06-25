@@ -449,9 +449,10 @@ func isBrewCollection(collection string) bool {
 
 func titleFor(ctx context.Context, src RecordSource, collection string, record json.RawMessage, createdAt time.Time) string {
 	var h struct {
-		Name    string `json:"name"`
-		Origin  string `json:"origin"`
-		BeanRef string `json:"beanRef"`
+		Name      string `json:"name"`
+		Origin    string `json:"origin"`
+		BeanRef   string `json:"beanRef"`
+		BrewerRef string `json:"brewerRef"`
 	}
 	_ = json.Unmarshal(record, &h)
 	if h.Name != "" {
@@ -460,17 +461,33 @@ func titleFor(ctx context.Context, src RecordSource, collection string, record j
 	if h.Origin != "" {
 		return h.Origin
 	}
+	if isBrewCollection(collection) && h.BrewerRef != "" {
+		if title := titleForRef(ctx, src, h.BrewerRef); title != "" {
+			return title
+		}
+	}
 	if h.BeanRef != "" {
-		if lookup, ok := src.(recordLookup); ok {
-			if bean, found := lookup.GetRecord(ctx, h.BeanRef); found {
-				if title := titleFor(ctx, src, bean.Collection, bean.Record, bean.CreatedAt); title != "" && title != "Record" {
-					return title
-				}
-			}
+		if title := titleForRef(ctx, src, h.BeanRef); title != "" {
+			return title
 		}
 	}
 	if !createdAt.IsZero() {
 		return "Brew · " + createdAt.Format("Jan 2")
 	}
 	return "Record"
+}
+
+func titleForRef(ctx context.Context, src RecordSource, ref string) string {
+	lookup, ok := src.(recordLookup)
+	if !ok {
+		return ""
+	}
+	rec, found := lookup.GetRecord(ctx, ref)
+	if !found {
+		return ""
+	}
+	if title := titleFor(ctx, src, rec.Collection, rec.Record, rec.CreatedAt); title != "" && title != "Record" {
+		return title
+	}
+	return ""
 }

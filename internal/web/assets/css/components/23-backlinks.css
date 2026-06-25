@@ -1,9 +1,31 @@
-.backlinks-section {
-  margin: 1rem 1rem 0;
+.backlinks-shell.card-inner {
+  padding: 0.75rem;
+}
+
+.backlinks-rating-card.card-inner {
   padding: 1rem;
+}
+
+.backlinks-section {
+  margin: 1rem 0 0;
+  padding: 0.75rem;
   border: 1px solid var(--card-border);
   border-radius: 0.875rem;
   background: color-mix(in oklch, var(--card-bg) 86%, var(--brand-amber-100));
+}
+
+@media (min-width: 640px) {
+  .backlinks-shell.card-inner {
+    padding: 1.5rem;
+  }
+
+  .backlinks-rating-card.card-inner {
+    padding: 1.5rem;
+  }
+
+  .backlinks-section {
+    padding: 1rem;
+  }
 }
 
 .backlinks-heading {
