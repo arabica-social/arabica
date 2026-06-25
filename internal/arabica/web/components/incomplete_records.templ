@@ -40,14 +40,23 @@ templ IncompleteRecords(props IncompleteRecordsProps) {
 								missing { strings.Join(rec.MissingFields, ", ") }
 							</span>
 						</div>
-						<button
-							hx-get={ fmt.Sprintf("/api/modals/%s/%s", rec.EntityType, rec.RKey) }
-							hx-target="#modal-container"
-							hx-swap="innerHTML"
-							class="text-sm font-medium text-emphasis hover:text-primary cursor-pointer whitespace-nowrap ml-2"
-						>
-							Complete
-						</button>
+						if rec.EntityType == "bean" {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/beans/%s/edit", rec.RKey)) }
+								class="text-sm font-medium text-emphasis hover:text-primary cursor-pointer whitespace-nowrap ml-2"
+							>
+								Complete
+							</a>
+						} else {
+							<button
+								hx-get={ fmt.Sprintf("/api/modals/%s/%s", rec.EntityType, rec.RKey) }
+								hx-target="#modal-container"
+								hx-swap="innerHTML"
+								class="text-sm font-medium text-emphasis hover:text-primary cursor-pointer whitespace-nowrap ml-2"
+							>
+								Complete
+							</button>
+						}
 					</div>
 				}
 			</div>

@@ -117,6 +117,10 @@
         if (!nudge.entity_type || !nudge.rkey) {
           return;
         }
+        if (nudge.entity_type === "bean") {
+          window.location.href = `/beans/${encodeURIComponent(nudge.rkey)}/edit`;
+          return;
+        }
         window.htmx?.ajax?.(
           "GET",
           `/api/modals/${nudge.entity_type}/${nudge.rkey}`,
