@@ -6,6 +6,7 @@ package backlinks
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -73,18 +74,22 @@ type Entry struct {
 	RKey        string
 	CreatedAt   time.Time
 	Title       string
+	Rating      int
+	HasRating   bool
 	ChainDepth  int // 0 = fuzzy match, 1+ = sourceRef chain depth
 }
 
 type UsageGroup struct {
-	Key     string
-	Label   string
-	Entries []Entry
-	Count   int
-	Page    int
-	PerPage int
-	HasPrev bool
-	HasNext bool
+	Key           string
+	Label         string
+	Entries       []Entry
+	Count         int
+	RatingAverage float64
+	RatingCount   int
+	Page          int
+	PerPage       int
+	HasPrev       bool
+	HasNext       bool
 }
 
 type Result struct {
@@ -92,6 +97,8 @@ type Result struct {
 	LibraryCount   int
 	Usage          []UsageGroup
 	UsageCount     int
+	RatingAverage  float64
+	RatingCount    int
 }
 
 type IndexedRecord struct {
@@ -175,7 +182,7 @@ func (s *Service) LookupWithOptions(ctx context.Context, uri string, opts Lookup
 	}
 
 	libEntries, libCount := dedupeLibraryByDID(libByURI)
-	usageGroups, usageTotal := s.usageBacklinks(ctx, uri, cfg, opts)
+	usageGroups, usageTotal, avgRating, ratingCount := s.usageBacklinks(ctx, uri, cfg, opts)
 
 	profiles := s.resolveProfiles(ctx, uniqueDIDs(libEntries, usageGroups))
 	for i := range libEntries {
@@ -187,7 +194,7 @@ func (s *Service) LookupWithOptions(ctx context.Context, uri string, opts Lookup
 		}
 	}
 
-	return &Result{LibraryEntries: libEntries, LibraryCount: libCount, Usage: usageGroups, UsageCount: usageTotal}, nil
+	return &Result{LibraryEntries: libEntries, LibraryCount: libCount, Usage: usageGroups, UsageCount: usageTotal, RatingAverage: avgRating, RatingCount: ratingCount}, nil
 }
 
 func (s *Service) addFuzzyMatches(ctx context.Context, uri string, cfg EntityConfig, libByURI map[string]Entry) {
@@ -253,9 +260,11 @@ type recordLookup interface {
 	GetRecord(ctx context.Context, uri string) (IndexedRecord, bool)
 }
 
-func (s *Service) usageBacklinks(ctx context.Context, uri string, cfg EntityConfig, opts LookupOptions) ([]UsageGroup, int) {
+func (s *Service) usageBacklinks(ctx context.Context, uri string, cfg EntityConfig, opts LookupOptions) ([]UsageGroup, int, float64, int) {
 	groups := make([]UsageGroup, 0, len(cfg.UsageRefs))
 	total := 0
+	ratingTotal := 0
+	ratingCount := 0
 	for _, ref := range cfg.UsageRefs {
 		key := ref.key()
 		page, perPage := 1, 0
@@ -291,18 +300,60 @@ func (s *Service) usageBacklinks(ctx context.Context, uri string, cfg EntityConf
 			continue
 		}
 		entries := make([]Entry, 0, len(recs))
+		groupRatingTotal := 0
+		groupRatingCount := 0
 		for _, rec := range recs {
 			e := entryFor(rec, 0)
 			e.Title = titleFor(ctx, s.src, rec.Collection, rec.Record, rec.CreatedAt)
+			if isBrewCollection(rec.Collection) {
+				e.Rating, e.HasRating = ratingFor(rec.Record)
+			}
+			if e.HasRating {
+				groupRatingTotal += e.Rating
+				groupRatingCount++
+			}
 			entries = append(entries, e)
+		}
+		groupAvg, groupCount := s.usageRatingStats(ctx, uri, ref, groupRatingTotal, groupRatingCount)
+		if groupCount > 0 {
+			ratingTotal += int(math.Round(groupAvg * float64(groupCount)))
+			ratingCount += groupCount
 		}
 		if perPage == 0 && len(entries) > maxEntries {
 			entries = entries[:maxEntries]
 		}
 		total += count
-		groups = append(groups, UsageGroup{Key: key, Label: ref.Label, Entries: entries, Count: count, Page: page, PerPage: perPage, HasPrev: perPage > 0 && page > 1, HasNext: perPage > 0 && page*perPage < count})
+		groups = append(groups, UsageGroup{Key: key, Label: ref.Label, Entries: entries, Count: count, RatingAverage: groupAvg, RatingCount: groupCount, Page: page, PerPage: perPage, HasPrev: perPage > 0 && page > 1, HasNext: perPage > 0 && page*perPage < count})
 	}
-	return groups, total
+	if ratingCount == 0 {
+		return groups, total, 0, 0
+	}
+	return groups, total, float64(ratingTotal) / float64(ratingCount), ratingCount
+}
+
+func (s *Service) usageRatingStats(ctx context.Context, uri string, ref UsageRef, pageTotal, pageCount int) (float64, int) {
+	all, err := s.src.ListUsageBacklinks(ctx, uri, ref.Collection, ref.Field)
+	if err != nil {
+		if pageCount == 0 {
+			return 0, 0
+		}
+		return float64(pageTotal) / float64(pageCount), pageCount
+	}
+	total := 0
+	count := 0
+	for _, rec := range all {
+		if !isBrewCollection(rec.Collection) {
+			continue
+		}
+		if rating, ok := ratingFor(rec.Record); ok {
+			total += rating
+			count++
+		}
+	}
+	if count == 0 {
+		return 0, 0
+	}
+	return float64(total) / float64(count), count
 }
 
 func entryFor(rec IndexedRecord, depth int) Entry {
@@ -380,6 +431,20 @@ func sourceRefOf(record json.RawMessage) string {
 	}
 	_ = json.Unmarshal(record, &h)
 	return h.SourceRef
+}
+
+func ratingFor(record json.RawMessage) (int, bool) {
+	var h struct {
+		Rating *int `json:"rating"`
+	}
+	if err := json.Unmarshal(record, &h); err != nil || h.Rating == nil || *h.Rating <= 0 {
+		return 0, false
+	}
+	return *h.Rating, true
+}
+
+func isBrewCollection(collection string) bool {
+	return collection == "brew" || len(collection) >= len(".brew") && collection[len(collection)-len(".brew"):] == ".brew"
 }
 
 func titleFor(ctx context.Context, src RecordSource, collection string, record json.RawMessage, createdAt time.Time) string {

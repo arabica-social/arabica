@@ -34,15 +34,27 @@ templ BacklinksViewCard(props BacklinksViewProps) {
 		if props.Result == nil || props.Result.IsEmpty() {
 			<p class="text-secondary mt-4">No community backlinks yet.</p>
 		} else {
+			if props.Result.RatingCount > 0 {
+				<div class="card card-inner mt-5 p-5">
+					<div class="text-xs text-uppercase text-secondary">Community brew rating</div>
+					<div class="mt-2">
+						<div class="brew-rating-hero">
+							<span class="brew-rating-value">{ formatBacklinkRatingValue(props.Result.RatingAverage) }</span>
+							<span class="brew-rating-max">/10</span>
+						</div>
+						<div class="text-sm text-secondary mt-2">avg from { fmt.Sprintf("%d", props.Result.RatingCount) } { pluralWordPublic("rating", "ratings", props.Result.RatingCount) }</div>
+					</div>
+				</div>
+			}
 			if props.Result.LibraryCount > 0 {
-				<section class="mt-6">
+				<section class="mt-8">
 					<h2 class="backlinks-heading">In { fmt.Sprintf("%d", props.Result.LibraryCount) } { pluralWordPublic("library", "libraries", props.Result.LibraryCount) }</h2>
 					@backlinksEntryList(props.Result.LibraryEntries, true, props.RoutePaths)
 				</section>
 			}
 			for _, group := range props.Result.Usage {
 				if group.Count > 0 {
-					<section id={ usageSectionID(group) } class="mt-6">
+					<section id={ usageSectionID(group) } class="mt-8">
 						<h2 class="backlinks-heading">Used in { fmt.Sprintf("%d", group.Count) } { group.Label }</h2>
 						@backlinksEntryList(group.Entries, false, props.RoutePaths)
 						@usageLoadMore(props, group)
@@ -107,6 +119,10 @@ templ backlinksEntry(e backlinks.Entry, showChain bool, routePaths map[lexicons.
 			</a>
 		}
 		<span class="backlinks-entry-meta">
+			if e.HasRating {
+				<span class="badge-rating">{ fmt.Sprintf("%d/10", e.Rating) }</span>
+				<span class="text-faint">·</span>
+			}
 			{ e.CreatedAt.Format("Jan 2, 2006") }
 			if showChain && e.ChainDepth > 1 {
 				<span class="text-faint">· fork depth { fmt.Sprintf("%d", e.ChainDepth) }</span>
@@ -170,4 +186,12 @@ func usagePageURL(props BacklinksViewProps, group backlinks.UsageGroup, page int
 
 func usageSectionID(group backlinks.UsageGroup) string {
 	return "backlinks-usage-" + group.Key
+}
+
+func formatBacklinkAverageRatingPublic(avg float64) string {
+	return fmt.Sprintf("%.1f/10", avg)
+}
+
+func formatBacklinkRatingValue(avg float64) string {
+	return fmt.Sprintf("%.1f", avg)
 }

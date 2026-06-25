@@ -17,11 +17,11 @@ templ BacklinksSection(props BacklinksSectionProps) {
 			<h2 id="backlinks-heading" class="backlinks-heading">Community</h2>
 			<div class="backlinks-grid">
 				if props.Result.LibraryCount > 0 {
-					@backlinksBlock(fmt.Sprintf("In %d %s", props.Result.LibraryCount, pluralWord("library", "libraries", props.Result.LibraryCount)), entriesToAvatars(props.Result.LibraryEntries, 5), props.Result.LibraryCount, props.DetailURL)
+					@backlinksBlock(fmt.Sprintf("In %d %s", props.Result.LibraryCount, pluralWord("library", "libraries", props.Result.LibraryCount)), "", entriesToAvatars(props.Result.LibraryEntries, 5), props.Result.LibraryCount, props.DetailURL)
 				}
 				for _, group := range props.Result.Usage {
 					if group.Count > 0 {
-						@backlinksBlock(fmt.Sprintf("Used in %d %s", group.Count, group.Label), entriesToAvatars(group.Entries, 5), group.Count, props.DetailURL)
+						@backlinksBlock(fmt.Sprintf("Used in %d %s", group.Count, group.Label), usageRatingPill(group), entriesToAvatars(group.Entries, 5), group.Count, props.DetailURL)
 					}
 				}
 			</div>
@@ -29,9 +29,14 @@ templ BacklinksSection(props BacklinksSectionProps) {
 	}
 }
 
-templ backlinksBlock(label string, avatars []backlinkAvatar, total int, detailURL string) {
+templ backlinksBlock(label string, ratingPill string, avatars []backlinkAvatar, total int, detailURL string) {
 	<div class="backlinks-block">
-		<div class="backlinks-label">{ label }</div>
+		<div class="backlinks-label">
+			{ label }
+			if ratingPill != "" {
+				<span class="badge-rating">{ ratingPill }</span>
+			}
+		</div>
 		if len(avatars) > 0 {
 			<div class="backlinks-avatars" aria-label={ label }>
 				for _, a := range avatars {
@@ -100,4 +105,15 @@ func pluralWord(singular, plural string, n int) string {
 		return singular
 	}
 	return plural
+}
+
+func formatBacklinkAverageRating(avg float64) string {
+	return fmt.Sprintf("%.1f/10", avg)
+}
+
+func usageRatingPill(group backlinks.UsageGroup) string {
+	if group.RatingCount == 0 {
+		return ""
+	}
+	return formatBacklinkAverageRating(group.RatingAverage) + " avg"
 }

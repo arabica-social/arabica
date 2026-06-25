@@ -111,7 +111,7 @@ func TestLookupFindsSourceRefChainFuzzyMatchesAndUsage(t *testing.T) {
 	copy := testRecord(t, "did:plc:bob", testBean, "b2", 2, map[string]any{"name": "Gesha", "origin": "Panama", "sourceRef": root.URI})
 	copyOfCopy := testRecord(t, "did:plc:carol", testBean, "b3", 3, map[string]any{"name": "Gesha", "origin": "Panama", "sourceRef": copy.URI})
 	fuzzy := testRecord(t, "did:plc:dana", testBean, "b4", 4, map[string]any{"name": " gesha ", "origin": "panama"})
-	brew := testRecord(t, "did:plc:erin", testBrew, "br1", 5, map[string]any{"beanRef": root.URI})
+	brew := testRecord(t, "did:plc:erin", testBrew, "br1", 5, map[string]any{"beanRef": root.URI, "rating": 9})
 
 	res, err := NewService(fakeSource{records: []IndexedRecord{root, copy, copyOfCopy, fuzzy, brew}}, noProfiles{}).Lookup(context.Background(), root.URI)
 
@@ -121,6 +121,10 @@ func TestLookupFindsSourceRefChainFuzzyMatchesAndUsage(t *testing.T) {
 	assert.Len(t, res.Usage, 1)
 	assert.Equal(t, "brews", res.Usage[0].Label)
 	assert.Equal(t, "Gesha", res.Usage[0].Entries[0].Title)
+	assert.True(t, res.Usage[0].Entries[0].HasRating)
+	assert.Equal(t, 9, res.Usage[0].Entries[0].Rating)
+	assert.Equal(t, 9.0, res.Usage[0].RatingAverage)
+	assert.Equal(t, 1, res.Usage[0].RatingCount)
 
 	depths := map[string]int{}
 	for _, e := range res.LibraryEntries {
@@ -140,7 +144,11 @@ func TestLookupPaginatesSelectedUsageGroup(t *testing.T) {
 	root := testRecord(t, "did:plc:alice", testBean, "b1", 1, map[string]any{"name": "Gesha"})
 	recs := []IndexedRecord{root}
 	for i := range 30 {
-		recs = append(recs, testRecord(t, "did:plc:user", testBrew, fmt.Sprintf("br%d", i), 100-i, map[string]any{"beanRef": root.URI}))
+		fields := map[string]any{"beanRef": root.URI}
+		if i < 2 {
+			fields["rating"] = 8 + i
+		}
+		recs = append(recs, testRecord(t, "did:plc:user", testBrew, fmt.Sprintf("br%d", i), 100-i, fields))
 	}
 
 	res, err := NewService(fakeSource{records: recs}, noProfiles{}).LookupWithOptions(context.Background(), root.URI, LookupOptions{UsageKey: "brews", UsagePage: 2, UsagePerPage: 25})
@@ -149,6 +157,10 @@ func TestLookupPaginatesSelectedUsageGroup(t *testing.T) {
 	assert.Len(t, res.Usage, 1)
 	assert.Equal(t, 30, res.Usage[0].Count)
 	assert.Len(t, res.Usage[0].Entries, 5)
+	assert.Equal(t, 8.5, res.Usage[0].RatingAverage)
+	assert.Equal(t, 2, res.Usage[0].RatingCount)
+	assert.Equal(t, 8.5, res.RatingAverage)
+	assert.Equal(t, 2, res.RatingCount)
 	assert.True(t, res.Usage[0].HasPrev)
 	assert.False(t, res.Usage[0].HasNext)
 }
