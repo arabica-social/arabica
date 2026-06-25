@@ -16,7 +16,13 @@
     target.closest("dialog")?.close();
   }
 
-  function discardDialog() {
+  function discardShell() {
+    const drawer = target.closest("[data-drawer]");
+    if (drawer) {
+      drawer.remove();
+      return;
+    }
+
     const dialog = target.closest("dialog");
     if (!dialog) {
       return;
@@ -52,7 +58,8 @@
 
   async function refreshAfterSave(xhr: XMLHttpRequest | undefined) {
     const manageLoader = document.querySelector('[hx-get="/api/manage"]');
-    if (manageLoader) {
+    const getStartedCard = document.querySelector("#get-started[hx-get]");
+    if (manageLoader || getStartedCard) {
       window.htmx?.trigger?.("body", "refreshManage");
       return;
     }
@@ -84,7 +91,7 @@
       ).detail;
       if (detail?.successful) {
         setError("");
-        discardDialog();
+        discardShell();
         void refreshAfterSave(detail.xhr);
         return;
       }

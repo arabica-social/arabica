@@ -21,6 +21,23 @@
       });
   }
 
+  function setMethodMode(method: string, mode: string) {
+    target.dataset.method = method;
+    target.dataset.mode = mode;
+    target
+      .querySelectorAll<HTMLElement>("[data-session-fields]")
+      .forEach((section) => {
+        section.hidden = method !== "gongfu" && mode !== "session";
+      });
+
+    const style = target.querySelector<HTMLInputElement>(
+      'input[name="style"][data-legacy-style-field]',
+    );
+    if (style) {
+      style.value = method === "cold-brew" ? "coldBrew" : "longSteep";
+    }
+  }
+
   onMount(() => {
     const initialMethod =
       target.dataset.initialInfusionMethod ||
@@ -29,6 +46,16 @@
       "";
     setInfusionMethod(initialMethod);
 
+    const initialBrewMethod =
+      target.dataset.initialMethod ||
+      target.querySelector<HTMLSelectElement>('select[name="method"]')?.value ||
+      "";
+    const initialMode =
+      target.dataset.initialMode ||
+      target.querySelector<HTMLSelectElement>('select[name="mode"]')?.value ||
+      "";
+    setMethodMode(initialBrewMethod, initialMode);
+
     const handleChange = (event: Event) => {
       const input = event.target;
       if (
@@ -36,6 +63,18 @@
         input.name === "infusion_method"
       ) {
         setInfusionMethod(input.value);
+      }
+      if (input instanceof HTMLSelectElement && input.name === "method") {
+        const mode =
+          target.querySelector<HTMLSelectElement>('select[name="mode"]')
+            ?.value || "";
+        setMethodMode(input.value, mode);
+      }
+      if (input instanceof HTMLSelectElement && input.name === "mode") {
+        const method =
+          target.querySelector<HTMLSelectElement>('select[name="method"]')
+            ?.value || "";
+        setMethodMode(method, input.value);
       }
     };
 

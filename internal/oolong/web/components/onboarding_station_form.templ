@@ -52,12 +52,105 @@ templ infuserDrawerFields() {
 }
 
 templ teaDrawerFields(vendors []*oolong.Vendor) {
-	@suggestedNameInput("/api/suggestions/teas", "Tea name *")
-	<input class="w-full form-input" name="category" placeholder="Category"/>
-	@onboardingComboSelectField(
-		"vendor", "/api/vendors", "/api/suggestions/vendors", "vendor_rkey",
-		"Search or create a vendor…", "Vendor", "Your vendors", false,
-	)
+	<fieldset class="space-y-4 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
+		<legend class="text-sm font-semibold text-secondary px-2">Essentials</legend>
+		@teaNameSuggestedInput()
+		@onboardingSelectField("category", "Category", "Select a category…", teaCategoryOptions(), false)
+	</fieldset>
+	<fieldset class="space-y-4 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
+		<legend class="text-sm font-semibold text-secondary px-2">Origin <span class="form-optional-hint font-normal">(optional)</span></legend>
+		@onboardingTextField("origin", "Origin", "e.g. Yunnan, China", "text", false)
+		@onboardingTextField("harvest_year", "Harvest year", "e.g. 2024", "number", false)
+		@onboardingComboSelectField(
+			"vendor", "/api/vendors", "/api/suggestions/vendors", "vendor_rkey",
+			"Search or create a vendor…", "Vendor", "Your vendors", false,
+		)
+	</fieldset>
+	<fieldset class="space-y-4 border rounded-lg p-4 min-w-0" style="border-color: var(--card-border)">
+		<legend class="text-sm font-semibold text-secondary px-2">Notes & Rating <span class="form-optional-hint font-normal">(optional)</span></legend>
+		@onboardingTextAreaField("description", "Notes", "Describe the tea — flavors, aroma, processing, vendor notes…")
+		@onboardingTextField("link", "Link", "https://...", "url", false)
+		@onboardingTextField("rating", "Rating", "1–10", "number", false)
+	</fieldset>
+}
+
+templ teaNameSuggestedInput() {
+	<div
+		data-svelte-entity-suggest
+		data-entity-type="oolong"
+		data-endpoint="/api/suggestions/teas"
+		data-placeholder="e.g. Long Jing 2024 Spring"
+		class="relative"
+	>
+		<label class="form-label">
+			Tea <span class="form-required-marker" aria-hidden="true">*</span>
+		</label>
+		<input
+			type="text"
+			name="name"
+			placeholder="e.g. Long Jing 2024 Spring"
+			required
+			class="w-full form-input-lg"
+			autocomplete="off"
+		/>
+		<input type="hidden" name="source_ref"/>
+	</div>
+}
+
+type onboardingOption struct {
+	Value string
+	Label string
+}
+
+templ onboardingSelectField(name, label, placeholder string, options []onboardingOption, required bool) {
+	<div>
+		<label class="form-label">
+			{ label }
+			if required {
+				<span class="form-required-marker" aria-hidden="true">*</span>
+			}
+		</label>
+		<select class="w-full form-select form-input-lg" name={ name } if required { required }>
+			<option value="">{ placeholder }</option>
+			for _, option := range options {
+				<option value={ option.Value }>{ option.Label }</option>
+			}
+		</select>
+	</div>
+}
+
+func teaCategoryOptions() []onboardingOption {
+	options := make([]onboardingOption, 0, len(oolong.CategoryKnownValues))
+	for _, category := range oolong.CategoryKnownValues {
+		options = append(options, onboardingOption{Value: category, Label: teaCategoryLabel(category)})
+	}
+	return options
+}
+
+func teaCategoryLabel(category string) string {
+	if label := oolong.CategoryLabels[category]; label != "" {
+		return label
+	}
+	return category
+}
+
+templ onboardingTextField(name, label, placeholder, inputType string, required bool) {
+	<div>
+		<label class="form-label">
+			{ label }
+			if required {
+				<span class="form-required-marker" aria-hidden="true">*</span>
+			}
+		</label>
+		<input class="w-full form-input-lg" type={ inputType } name={ name } placeholder={ placeholder } if required { required }/>
+	</div>
+}
+
+templ onboardingTextAreaField(name, label, placeholder string) {
+	<div>
+		<label class="form-label">{ label }</label>
+		<textarea class="w-full form-textarea form-input-lg" name={ name } placeholder={ placeholder } rows="3"></textarea>
+	</div>
 }
 
 templ suggestedNameInput(endpoint, placeholder string) {
