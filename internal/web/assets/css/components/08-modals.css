@@ -65,16 +65,24 @@
 
 /* Handle autocomplete typeahead dropdown */
 .handle-dropdown {
-  position: absolute;
-  z-index: 10;
-  width: 100%;
-  margin-top: 0.25rem;
   border-radius: 0.5rem;
   max-height: 15rem;
   overflow-y: auto;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-lg);
+}
+
+/* When shown as a top-layer popover (via showPopover()), the UA forces
+   inset:0 and margin:auto, which fight our inline viewport-relative
+   top/left/width. Zero them so positioning is fully driven by the inline
+   style set from getBoundingClientRect(). */
+.handle-dropdown:popover-open {
+  inset: auto;
+  margin: 0;
+  /* Popovers start at display:none; force a sensible base so the inline
+     max-height/overflow drive the scrollable list. */
+  position: fixed;
 }
 
 .handle-dropdown:empty {
