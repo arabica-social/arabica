@@ -13,7 +13,7 @@ buildGoModule rec {
   pname = appName;
   version = "0.1.0";
   src = ../.;
-  vendorHash = "sha256-Mu7iBEYzGoCxx3jpDyUHv8XA8XKIsVB9CbrCNSah37o=";
+  vendorHash = "sha256-SACrP+f0/n+geNwg27kCNYBFbk90zOvHi3ScBe+hJNM=";
 
   pnpmDeps = fetchPnpmDeps {
     inherit pname version src;

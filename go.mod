@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/XSAM/otelsql v0.41.0
-	github.com/a-h/templ v0.3.1001
+	github.com/a-h/templ v0.3.1020
 	github.com/bluesky-social/indigo v0.0.0-20260409212512-2031017ff411
 	github.com/go-logr/zerologr v1.2.3
 	github.com/prometheus/client_golang v1.23.2
