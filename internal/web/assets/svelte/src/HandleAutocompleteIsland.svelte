@@ -21,6 +21,10 @@
   let searched = $state(false);
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let abortController: AbortController | undefined;
+  // True while we are programmatically setting the input value (e.g. after the
+  // user picks a suggestion). Prevents the dispatched "input" event from
+  // re-triggering our own typeahead search and reopening the dropdown.
+  let suppressSearch = false;
 
   function safeAvatar(actor: Actor) {
     const avatar = actor.avatar || "";
@@ -35,6 +39,7 @@
   }
 
   function clearResults() {
+    window.clearTimeout(debounceTimer);
     actors = [];
     open = false;
     searched = false;
@@ -78,6 +83,7 @@
   }
 
   function scheduleSearch() {
+    if (suppressSearch) return;
     window.clearTimeout(debounceTimer);
     debounceTimer = window.setTimeout(() => {
       void searchActors(input.value);
