@@ -70,6 +70,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-primary);
+  min-width: 0;
 }
 
 .record-view-author-handle {
@@ -79,6 +80,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-muted);
+  min-width: 0;
 }
 
 .record-view-author-handle:hover {
@@ -101,6 +103,7 @@
   font-weight: 700;
   letter-spacing: -0.025em;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
 .record-view-timestamp {
@@ -159,6 +162,13 @@
   gap: 0.75rem;
   padding-top: 1rem;
   margin-top: 1.5rem;
+  min-width: 0;
+}
+
+.record-view-footer > .flex {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
 }
 
 .record-stat-line {

@@ -69,3 +69,49 @@
     padding-right: 1rem;
   }
 }
+
+/* ========================================
+   Footer
+   ======================================== */
+.site-footer {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.site-footer-shell,
+.site-footer-row,
+.site-footer-brand,
+.site-footer-nav {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.site-footer-row {
+  width: 100%;
+}
+
+.site-footer-brand {
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.site-footer-nav {
+  width: 100%;
+  column-gap: clamp(0.875rem, 5vw, 1.5rem);
+  row-gap: 0.75rem;
+}
+
+.site-footer-nav a {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .site-footer-brand {
+    text-align: left;
+  }
+
+  .site-footer-nav {
+    width: auto;
+    justify-content: flex-end;
+  }
+}

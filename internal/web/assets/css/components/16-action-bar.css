@@ -2,10 +2,13 @@
 .action-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--surface-border);
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Action bar inside brew view container - no separator needed */

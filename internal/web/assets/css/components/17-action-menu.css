@@ -1,7 +1,7 @@
 /* Action Menu (More dropdown) */
 .action-menu {
   position: absolute;
-  left: 50%;
+  right: 0;
   width: 9rem;
   border-radius: 0.5rem;
   padding-top: 0.25rem;
@@ -13,8 +13,8 @@
   /* Closed state: Svelte toggles `.is-open` to reveal. */
   opacity: 0;
   pointer-events: none;
-  transform: translateX(-50%) scale(0.95);
-  transform-origin: top center;
+  transform: scale(0.95);
+  transform-origin: top right;
   transition:
     opacity 100ms ease-out,
     transform 100ms ease-out;
@@ -22,7 +22,7 @@
 .action-menu.is-open {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(-50%) scale(1);
+  transform: scale(1);
 }
 
 /* Dropdown menu (top-positioned, for headers/nav) */

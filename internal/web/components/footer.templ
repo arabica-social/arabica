@@ -23,13 +23,13 @@ templ Footer() {
 // FooterWithBrand renders the footer with the configured brand name and
 // tagline. Empty values fall back to arabica defaults.
 templ FooterWithBrand(brandName, tagline string) {
-	<footer class="mt-auto" style="background: var(--footer-bg); border-top: 1px solid var(--footer-border);">
-		<div class="container mx-auto px-4 py-8">
-			<div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-				<div class="text-sm text-emphasis">
+	<footer class="site-footer mt-auto" style="background: var(--footer-bg); border-top: 1px solid var(--footer-border);">
+		<div class="site-footer-shell container mx-auto px-4 py-8">
+			<div class="site-footer-row flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+				<div class="site-footer-brand text-sm text-emphasis">
 					<span class="font-semibold text-primary">{ footerBrandName(brandName) }</span> - { footerTagline(tagline) }
 				</div>
-				<nav class="flex flex-wrap justify-center gap-6 text-sm">
+				<nav class="site-footer-nav flex flex-wrap justify-center gap-6 text-sm">
 					<a href="/about" class="text-emphasis hover:text-primary transition-colors">About</a>
 					<a href="/terms" class="text-emphasis hover:text-primary transition-colors">Terms of Service</a>
 					<a href="https://tangled.org/arabica.social/arabica" target="_blank" rel="noopener noreferrer" class="text-emphasis hover:text-primary transition-colors">Source Code</a>

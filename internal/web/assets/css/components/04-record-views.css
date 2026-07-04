@@ -111,6 +111,8 @@
 .journal-field .detail-value-lg {
   text-align: right;
   flex: 1 1 0%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .journal-field a.detail-value {
@@ -206,6 +208,13 @@
   margin-bottom: 0.5rem;
   background: var(--surface-bg);
   transition: background 0.15s ease;
+  min-width: 0;
+}
+
+.journal-bean-ref .detail-value-lg,
+.journal-bean-ref .text-secondary,
+.journal-bean-ref .text-muted {
+  overflow-wrap: anywhere;
 }
 
 .journal-bean-ref:hover {
@@ -229,6 +238,7 @@
   letter-spacing: -0.025em;
   line-height: 1.25;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
 /* Roaster byline under bean name */
@@ -237,6 +247,7 @@
   line-height: 1.25rem;
   margin-top: 0.25rem;
   color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .label-byline a {
@@ -270,6 +281,8 @@
   color: var(--text-secondary);
   border: 1px solid var(--text-muted);
   border-radius: 2px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .label-tag-closed {
