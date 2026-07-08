@@ -627,6 +627,10 @@ func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated
 
 // HandleCommentCreate handles creating a new comment
 func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleCommentCreateJSON(w, r)
+		return
+	}
 	// Require authentication
 	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
@@ -727,6 +731,10 @@ func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
 
 // HandleCommentDelete handles deleting a comment
 func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleCommentDeleteJSON(w, r)
+		return
+	}
 	// Require authentication
 	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
@@ -810,6 +818,10 @@ func (h *Handler) FilterHiddenComments(ctx context.Context, comments []firehose.
 
 // HandleCommentList returns the comment section for a subject
 func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleCommentListJSON(w, r)
+		return
+	}
 	subjectURI := r.URL.Query().Get("subject_uri")
 	if subjectURI == "" {
 		http.Error(w, "subject_uri is required", http.StatusBadRequest)

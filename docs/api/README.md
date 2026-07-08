@@ -74,11 +74,10 @@ its own file as it is implemented:
 - `manage.md` — `GET /api/manage` (records + stats) **[done]**
 - `brew_list.md` — `GET /api/brews` (paginated brew list) **[done]**
 - `profile.md` — `GET /api/profile/{actor}` (profile data bundle) **[done]**
-- `social.md` — likes, comments, reports (JSON mutations)
-- `manage.md` — `GET /api/manage` (records + stats)
-- `notifications.md` — `GET /api/notifications`
+- `notifications.md` — `GET /api/notifications` **[done]**
+- `explore.md` — `GET /api/explore` **[done]**
+- `social.md` — likes, comments, reports (JSON mutations) **[done]**
 - `settings.md` — `GET /api/settings`, settings mutations
-- `explore.md` — `GET /api/explore`
 - `onboarding.md` — `GET /api/onboarding`, incomplete records
 - `admin.md` — moderation admin endpoints
 - `signup.md` — `GET /api/signup/categories` (PDS provider catalog) **[done]**

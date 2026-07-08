@@ -160,3 +160,68 @@ export interface SocialDataJSON {
   can_block_user: boolean;
   is_record_hidden: boolean;
 }
+
+//////////
+// source: notifications_json.go
+
+/**
+ * NotificationItemJSON is the JSON-serializable view of a notification with
+ * resolved actor profile and link/action text. The underlying notifications.Notification
+ * struct already has json tags, but the actor profile fields (handle, display_name,
+ * avatar) and the link/action_text are computed per-request by the handler.
+ */
+export interface NotificationItemJSON {
+  Notification: any /* notifications.Notification */;
+  actor_handle: string;
+  actor_display_name?: string;
+  actor_avatar?: string;
+  link: string;
+  action_text: string;
+}
+/**
+ * NotificationsResponseJSON is the JSON envelope returned by GET /api/notifications.
+ */
+export interface NotificationsResponseJSON {
+  notifications: NotificationItemJSON[];
+  next_cursor: string;
+}
+
+//////////
+// source: social_json.go
+
+/**
+ * LikeToggleResponseJSON is the JSON response for POST /api/likes/toggle.
+ */
+export interface LikeToggleResponseJSON {
+  is_liked: boolean;
+  like_count: number /* int */;
+  subject_uri: string;
+}
+/**
+ * CommentListResponseJSON is the JSON response for GET /api/comments.
+ */
+export interface CommentListResponseJSON {
+  comments: CommentJSON[];
+  subject_uri: string;
+  is_authenticated: boolean;
+}
+/**
+ * CommentCreateResponseJSON is the JSON response for POST /api/comments.
+ */
+export interface CommentCreateResponseJSON {
+  comment: CommentJSON;
+  comments: CommentJSON[];
+}
+/**
+ * CommentDeleteResponseJSON is the JSON response for DELETE /api/comments/{id}.
+ */
+export interface CommentDeleteResponseJSON {
+  deleted: boolean;
+}
+/**
+ * ReportResponseJSON is the JSON response for POST /api/report.
+ */
+export interface ReportResponseJSON {
+  report_id: string;
+  submitted: boolean;
+}

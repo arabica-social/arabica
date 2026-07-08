@@ -323,6 +323,10 @@ func (h *Handler) handleFeedPartial(w http.ResponseWriter, r *http.Request) {
 
 // HandleLikeToggle handles creating or deleting a like on a record
 func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleLikeToggleJSON(w, r)
+		return
+	}
 	// Require authentication
 	store, authenticated := h.getSocialStore(r)
 	if !authenticated {

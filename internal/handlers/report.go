@@ -33,6 +33,10 @@ const (
 // or a success partial plus an HX-Trigger that toasts and auto-closes the
 // dialog.
 func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleReportJSON(w, r)
+		return
+	}
 	ctx := r.Context()
 
 	if err := r.ParseForm(); err != nil {

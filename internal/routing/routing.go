@@ -135,12 +135,13 @@ func SetupRouter(cfg Config) http.Handler {
 	})
 
 	// Comment routes
-	mux.Handle("GET /api/comments", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleCommentList)))
+	mux.Handle("GET /api/comments", http.HandlerFunc(h.HandleCommentList))
 	mux.Handle("POST /api/comments", cop.Handler(http.HandlerFunc(h.HandleCommentCreate)))
 	mux.Handle("DELETE /api/comments/{id}", cop.Handler(http.HandlerFunc(h.HandleCommentDelete)))
 
 	// Notification routes
 	mux.HandleFunc("GET /notifications", h.HandleNotifications)
+	mux.HandleFunc("GET /api/notifications", h.HandleNotificationsJSON)
 	mux.Handle("POST /api/notifications/read", cop.Handler(http.HandlerFunc(h.HandleNotificationsMarkRead)))
 
 	// Settings

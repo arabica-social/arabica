@@ -26,6 +26,21 @@ export interface BeanNudge {
 }
 
 //////////
+// source: explore_json.go
+
+/**
+ * ExploreResponseJSON is the JSON envelope returned by GET /api/explore for the
+ * SvelteKit SPA. See docs/api/explore.md for the contract.
+ */
+export interface ExploreResponseJSON {
+  items: any /* handlers.FeedItemJSON */[];
+  documents: { [key: string]: any /* firehose.ExploreDocument */};
+  facet_counts: any /* firehose.ExploreFacetCount */[];
+  next_cursor: string;
+  health: any /* firehose.ExploreHealth */;
+}
+
+//////////
 // source: manage_json.go
 
 /**

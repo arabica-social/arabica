@@ -73,6 +73,11 @@ func (h *Handler) HandleNotifications(w http.ResponseWriter, r *http.Request) {
 
 // HandleNotificationsMarkRead marks all notifications as read
 func (h *Handler) HandleNotificationsMarkRead(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleNotificationsMarkReadJSON(w, r)
+		return
+	}
+
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
