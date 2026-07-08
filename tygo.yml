@@ -1,0 +1,72 @@
+# tygo.yml — TypeScript type generation config
+#
+# Generates TypeScript types from Go structs so the SvelteKit frontend and
+# Go backend stay in sync. Run with: tygo generate --config tygo.yml
+#
+# Output: web/src/lib/types/generated/
+#
+# The generated files are committed to the repo so the frontend can import
+# them without running tygo. CI runs `tygo generate` and fails on diff to
+# catch drift.
+
+packages:
+  # Entity models (Bean, Roaster, Brew, etc.)
+  - path: "tangled.org/arabica.social/arabica/internal/arabica/entities"
+    output_path: "web/src/lib/types/generated/entities.ts"
+    type_mappings:
+      time.Time: "string"
+      sql.NullFloat64: "number | null"
+      sql.NullString: "string | null"
+      sql.NullBool: "boolean | null"
+      sql.NullInt64: "number | null"
+    exclude_files:
+      - "records.go"
+      - "atproto_codecs.go"
+      - "backlinks.go"
+      - "feed_refs.go"
+      - "fields.go"
+      - "nsid.go"
+      - "options.go"
+      - "recipe_filter.go"
+      - "register.go"
+      - "resolve.go"
+      - "suggestions.go"
+
+  # Feed types (FeedItem, FeedQuery, FeedResult)
+  - path: "tangled.org/arabica.social/arabica/internal/feed"
+    output_path: "web/src/lib/types/generated/feed.ts"
+    type_mappings:
+      time.Time: "string"
+      sql.NullFloat64: "number | null"
+      sql.NullString: "string | null"
+      sql.NullBool: "boolean | null"
+      sql.NullInt64: "number | null"
+    exclude_files:
+      - "registry.go"
+
+  # Handler types (SocialData, EntityViewConfig, etc.)
+  - path: "tangled.org/arabica.social/arabica/internal/handlers"
+    output_path: "web/src/lib/types/generated/handlers.ts"
+    type_mappings:
+      time.Time: "string"
+      sql.NullFloat64: "number | null"
+      sql.NullString: "string | null"
+      sql.NullBool: "boolean | null"
+      sql.NullInt64: "number | null"
+    exclude_files:
+      - "admin.go"
+      - "auth.go"
+      - "bsky_profile.go"
+      - "entity_routes.go"
+      - "entity_view_loader.go"
+      - "entity_view_helpers.go"
+      - "feed.go"
+      - "handlers.go"
+      - "notifications.go"
+      - "pages.go"
+      - "record_crud.go"
+      - "record_crud_test.go"
+      - "report.go"
+      - "suggestions.go"
+      - "suggestions_test.go"
+      - "notifications_test.go"

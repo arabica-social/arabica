@@ -41,6 +41,10 @@ buildGoModule rec {
       pnpm config set package-import-method clone-or-copy
       pnpm install --offline --ignore-scripts --frozen-lockfile
       pnpm run build:svelte
+      cd web && pnpm install --offline --ignore-scripts --frozen-lockfile && pnpm run build && cd ..
+      # Copy SvelteKit build output to Go embed directory
+      mkdir -p internal/web/spa/build
+      cp -r web/build/* internal/web/spa/build/
       templ generate
     fi
   '';

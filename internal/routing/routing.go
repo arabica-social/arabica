@@ -12,6 +12,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
+	"tangled.org/arabica.social/arabica/internal/web/spa"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -33,6 +34,11 @@ type Config struct {
 	CSSBundle         *assets.Bundle
 	JSAssets          *assets.JSAssets
 	AppRoutes         AppRoutes
+
+	// SPAHandler, when non-nil, serves the SvelteKit SPA shell for unmatched
+	// GET routes (replacing the 404 handler). During migration this is nil
+	// unless explicitly enabled, so existing templ pages work unchanged.
+	SPAHandler http.Handler
 }
 
 // AppRoutes is implemented by app-owned packages that register routes whose
@@ -197,8 +203,25 @@ func SetupRouter(cfg Config) http.Handler {
 		http.ServeFile(w, r, "static/favicon.ico")
 	})
 
-	// Catch-all 404 handler - must be last, catches any unmatched routes
-	mux.HandleFunc("/", h.HandleNotFound)
+	// SvelteKit SPA assets (_app/immutable/**) — versioned JS chunks from
+	// the SvelteKit build. Served from the embedded build filesystem.
+	mux.Handle("GET /_app/", spa.AssetHandler())
+
+	// SvelteKit SPA shell — serves index.html with server-side <head>
+	// injection (OG tags, title, theme, CSS) for any unmatched GET route.
+	// During migration this replaces the catch-all 404: ported pages render
+	// via SvelteKit, unported paths fall through to their existing templ
+	// handlers (which are more specific and match first). When the SPA is
+	// not enabled (nil handler), the original 404 handler is used.
+	//
+	// Only GET requests are intercepted; POST/PUT/DELETE always hit their
+	// registered API handlers or the 404 handler.
+	if cfg.SPAHandler != nil {
+		mux.Handle("GET /", cfg.SPAHandler)
+	} else {
+		// Catch-all 404 handler - must be last, catches any unmatched routes
+		mux.HandleFunc("/", h.HandleNotFound)
+	}
 
 	// Apply middleware in order (outermost first, innermost last)
 	var handler http.Handler = mux

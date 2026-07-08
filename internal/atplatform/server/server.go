@@ -30,6 +30,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/tracing"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
+	"tangled.org/arabica.social/arabica/internal/web/spa"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -354,7 +355,23 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	jsAssets := assets.NewJSAssets(assets.JSConfig{DevDir: jsDevDir})
 	jsAssets.MustBuild()
 	assets.RegisterJS(jsAssets)
-	h.SetAssetManifest(assets.NewManifest(cssBundle, jsAssets))
+	manifest := assets.NewManifest(cssBundle, jsAssets)
+	h.SetAssetManifest(manifest)
+
+	// SvelteKit SPA shell. The handler reads the embedded SvelteKit build
+	// and injects server-side <head> content (OG tags, title, theme, CSS).
+	// Enable only when ARABICA_SPA (or <APP>_SPA) is set, so existing
+	// templ pages continue to work during migration.
+	var spaHandler http.Handler
+	if os.Getenv(envPrefix+"_SPA") == "1" || os.Getenv("SPA") == "1" {
+		sh, err := spa.NewShellHandler(manifest, app.Name)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to create SPA shell handler, SPA disabled")
+		} else {
+			spaHandler = sh
+			log.Info().Msg("SvelteKit SPA shell enabled")
+		}
+	}
 
 	// Router
 	handler := routing.SetupRouter(routing.Config{
@@ -368,6 +385,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		CSSBundle:         cssBundle,
 		JSAssets:          jsAssets,
 		AppRoutes:         opts.AppRoutes,
+		SPAHandler:        spaHandler,
 	})
 
 	// Internal metrics server (localhost-only)
