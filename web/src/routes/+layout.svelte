@@ -1,12 +1,147 @@
 <script lang="ts">
+	import Header from "$lib/components/Header.svelte";
+	import Footer from "$lib/components/Footer.svelte";
+	import { app, session, refreshSession } from "$lib/stores/session";
+	import {
+		toasts,
+		pushToast,
+		dismissToast,
+		extractNotifyMessage,
+	} from "$lib/stores/toasts";
+	import { appCache, installAppCacheGlobal } from "$lib/stores/appCache";
+	import { clearFeedCache } from "$lib/stores/feedCache";
+
 	let { children } = $props();
 
-	// The Go shell route injects these as data attributes on <body> before
-	// serving the SPA. During local `vite dev` they're absent — fall back to
-	// defaults so the app renders without a Go server.
-	const body = typeof document !== "undefined" ? document.body : null;
-	const userDID = $derived(body?.dataset.userDid ?? "");
-	const app = $derived(body?.dataset.app ?? "arabica");
+	let brandName = $derived(
+		$app === "oolong" ? "Oolong" : "Arabica",
+	);
+	let brandTagline = $derived(
+		$app === "oolong" ? "Your tea, your data" : "Your brew, your data",
+	);
+
+	let showSessionModal = $state(false);
+
+	// Theme runtime — applies the saved theme on mount and listens for
+	// storage changes (e.g. theme toggle in another tab). Mirrors
+	// ThemeRuntimeIsland.svelte without the HTMX event hooks.
+	function applyTheme() {
+		try {
+			const theme = localStorage.getItem("arabica-theme");
+			if (theme === "dark" || theme === "light") {
+				document.documentElement.setAttribute("data-theme", theme);
+			} else {
+				document.documentElement.removeAttribute("data-theme");
+			}
+		} catch {
+			document.documentElement.removeAttribute("data-theme");
+		}
+	}
+
+	function handleNotify(event: Event) {
+		const message = extractNotifyMessage((event as CustomEvent).detail);
+		if (message) pushToast(message);
+	}
+
+	function handleRefreshManage() {
+		appCache.invalidateCache();
+		clearFeedCache();
+	}
+
+	function handleEntityDeleted() {
+		appCache.invalidateCache();
+		clearFeedCache();
+	}
+
+	function showSessionExpiredModal() {
+		showSessionModal = true;
+	}
+
+	function dismissSessionModal() {
+		showSessionModal = false;
+	}
+
+	$effect(() => {
+		// Apply theme before first paint to prevent flash.
+		applyTheme();
+
+		// Install the appCache singleton onto window.AppCache so existing
+		// Svelte islands (EntityCombo, BrewFormIsland, …) keep working.
+		installAppCacheGlobal();
+
+		// Preload the user's record cache on authed pages. Non-fatal if it
+		// fails — components fall back to fetching per-route.
+		if ($session.isAuthenticated) {
+			void appCache.init();
+		}
+
+		window.__showSessionExpiredModal = showSessionExpiredModal;
+		window.addEventListener("notify", handleNotify);
+		document.body.addEventListener("refreshManage", handleRefreshManage);
+		document.body.addEventListener("entityDeleted", handleEntityDeleted);
+		window.addEventListener("storage", applyTheme);
+
+		return () => {
+			if (window.__showSessionExpiredModal === showSessionExpiredModal) {
+				delete window.__showSessionExpiredModal;
+			}
+			window.removeEventListener("notify", handleNotify);
+			document.body.removeEventListener("refreshManage", handleRefreshManage);
+			document.body.removeEventListener("entityDeleted", handleEntityDeleted);
+			window.removeEventListener("storage", applyTheme);
+		};
+	});
 </script>
 
-{@render children()}
+<svelte:head>
+	<title>{brandName}</title>
+</svelte:head>
+
+<Header {brandName} />
+
+<main class="grow container mx-auto py-8">
+	{@render children()}
+</main>
+
+<Footer {brandName} tagline={brandTagline} />
+
+<!-- Modal container for entity dialogs (HTMX modals during migration) -->
+<div id="modal-container"></div>
+
+<!-- Toast region -->
+<div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="false">
+	{#each $toasts as toast (toast.id)}
+		<div class="toast" role="status">
+			{toast.message}
+		</div>
+	{/each}
+</div>
+
+<!-- Session expired modal -->
+{#if showSessionModal}
+	<dialog open class="modal-dialog" data-testid="session-expired-modal">
+		<div class="modal-content text-center">
+			<div class="mb-4">
+				<svg class="w-12 h-12 mx-auto text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"></path>
+				</svg>
+			</div>
+			<h3 class="modal-title text-center">Session Expired</h3>
+			<p class="text-emphasis text-sm mb-6">
+				Your login session has expired. Log back in to continue where you left off.
+			</p>
+			<div class="flex flex-col gap-3">
+				<form id="reauth-form" method="POST" action="/reauth">
+					{#if $session.handle}
+						<input type="hidden" name="handle" value={$session.handle} />
+					{/if}
+					<input type="hidden" name="return_to" value={window.location.pathname} />
+					<button type="submit" class="btn-primary w-full">Log In Again</button>
+				</form>
+				<button type="button" onclick={dismissSessionModal} class="btn-secondary w-full">
+					Dismiss
+				</button>
+			</div>
+		</div>
+	</dialog>
+{/if}

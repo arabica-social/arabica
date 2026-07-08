@@ -67,22 +67,10 @@ export const MaxBurrTypeLength = 50;
  * Field length limits for validation
  */
 export const MaxBrewerTypeLength = 100;
-export const MaxCommentLength = 1000;
-
 export const MaxCommentLength = any /* social.MaxCommentLength */;
-export type Visibility = "public" | "private";
-
 export type Visibility = any /* profileprefs.Visibility */;
-export const VisibilityPublic: Visibility = "public";
-export const VisibilityPrivate: Visibility = "private";
-
 export const VisibilityPublic = any /* profileprefs.VisibilityPublic */;
-export const VisibilityPublic: Visibility = "public";
-export const VisibilityPrivate: Visibility = "private";
-
 export const VisibilityPrivate = any /* profileprefs.VisibilityPrivate */;
-export type ProfileStatsVisibility = { bean_avg_rating: boolean; roaster_avg_rating: boolean; };
-
 export type ProfileStatsVisibility = any /* profileprefs.ProfileStatsVisibility */;
 /**
  * Brewer type categories (knownValues from lexicon)
@@ -381,27 +369,13 @@ export type Comment = any /* social.Comment */;
  * CreateCommentRequest contains the data needed to create a comment.
  */
 export type CreateCommentRequest = any /* social.CreateCommentRequest */;
-export type NotificationType = "like" | "comment" | "comment_reply";
 /**
  * NotificationType represents the type of notification
  */
 export type NotificationType = any /* notifications.Type */;
-export const NotificationLike: NotificationType = "like";
-export const NotificationComment: NotificationType = "comment";
-export const NotificationCommentReply: NotificationType = "comment_reply";
-
 export const NotificationLike = any /* notifications.Like */;
-export const NotificationLike: NotificationType = "like";
-export const NotificationComment: NotificationType = "comment";
-export const NotificationCommentReply: NotificationType = "comment_reply";
-
 export const NotificationComment = any /* notifications.Comment */;
-export const NotificationLike: NotificationType = "like";
-export const NotificationComment: NotificationType = "comment";
-export const NotificationCommentReply: NotificationType = "comment_reply";
-
 export const NotificationCommentReply = any /* notifications.CommentReply */;
-export interface Notification { id: string; type: NotificationType; actor_did: string; subject_uri: string; created_at: string; read: boolean; };
 /**
  * Notification represents a notification for a user
  */

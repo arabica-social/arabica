@@ -1,8 +1,6 @@
 package coffee
 
-import (
-	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
-)
+import arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 
 // Form *bodies* — just the fields. The container (ModalShell, drawer,
 // page) owns the <form>, submit row, and action URL.
@@ -33,7 +31,6 @@ templ EntitySuggestNameInput(entityType string, endpoint string, placeholder str
 		<input type="hidden" name="source_ref"/>
 	</div>
 }
-
 
 templ StationFormDrawer(p StationDrawerProps) {
 	<div class="station-drawer" data-drawer data-kind={ p.Kind }>
@@ -292,4 +289,3 @@ templ GrinderFormBody(grinder *arabica.Grinder) {
 		>{ getStringValue(grinder, "notes") }</textarea>
 	</div>
 }
-

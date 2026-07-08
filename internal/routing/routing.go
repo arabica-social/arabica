@@ -90,9 +90,9 @@ func SetupRouter(cfg Config) http.Handler {
 	// Suggestion routes for entity typeahead (auth-protected, read-only GET)
 	mux.HandleFunc("GET /api/suggestions/{entity}", h.HandleEntitySuggestions)
 
-	// HTMX partials (loaded async via HTMX)
-	// These return HTML fragments and should only be accessed via HTMX
-	mux.Handle("GET /api/feed", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleFeedPartial)))
+	// Feed supports content negotiation: Accept: application/json returns
+	// JSON for the SvelteKit SPA; HX-Request returns the HTML partial.
+	mux.HandleFunc("GET /api/feed", h.HandleFeed)
 
 	// Page routes (must come before static files)
 	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
@@ -101,6 +101,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /terms", h.HandleTerms)
 	mux.HandleFunc("GET /join/create", h.HandleCreateAccount)
 	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
+	mux.HandleFunc("GET /api/signup/categories", h.HandleSignupCategories)
 	mux.HandleFunc("GET /atproto", h.HandleATProto)
 
 	if cfg.AppRoutes != nil {
@@ -342,6 +343,9 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		urlPath := route.Path
 		if b.View != nil {
 			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.View))
+		}
+		if b.JSONView != nil {
+			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.JSONView))
 		}
 		if b.Backlinks != nil {
 			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.Backlinks))

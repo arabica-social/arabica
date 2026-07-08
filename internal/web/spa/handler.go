@@ -56,12 +56,21 @@ type ShellData struct {
 	// bundle). The SPA continues to use the same stylesheet during migration.
 	StylesheetHref string
 
+	// Session data injected as data-* attributes on <body> so the SvelteKit
+	// header can render the authenticated state without an extra API call.
+	// All optional — empty values are omitted from the HTML.
+	UserHandle              string
+	UserDisplayName         string
+	UserAvatar              string
+	IsModerator             bool
+	UnreadNotificationCount int
+
 	// Pre-computed values for the template (derived from the fields above).
-	SiteDescription  string
-	PageTitle        string
-	LightThemeColor  string
-	DarkThemeColor   string
-	TwitterCardType  string
+	SiteDescription string
+	PageTitle       string
+	LightThemeColor string
+	DarkThemeColor  string
+	TwitterCardType string
 }
 
 // ShellHandler serves the SvelteKit SPA shell with server-side <head>
@@ -76,7 +85,26 @@ type ShellHandler struct {
 	appName      string
 	brandName    string
 	manifest     assets.Manifest
+	// sessionResolver, when set, provides per-request session data
+	// (profile, unread count, moderator flag) for the authenticated user.
+	// When nil, only the DID from context is injected.
+	sessionResolver SessionResolver
 }
+
+// SessionData carries the authenticated user's display state for the SPA
+// shell. The resolver returns zero values for unauthenticated requests.
+type SessionData struct {
+	Handle                  string
+	DisplayName             string
+	Avatar                  string
+	IsModerator             bool
+	UnreadNotificationCount int
+}
+
+// SessionResolver looks up session data for a DID. The shell handler calls
+// it once per request to populate the <body> data attributes. Implementations
+// should be cheap (cache-backed) since this runs on every SPA page load.
+type SessionResolver func(ctx context.Context, did string) SessionData
 
 // NewShellHandler creates a handler that serves the SPA shell. It reads
 // the embedded index.html at construction time. The assets manifest
@@ -99,9 +127,17 @@ func NewShellHandler(manifest assets.Manifest, appName string) (*ShellHandler, e
 		indexHTML:    indexBytes,
 		headTemplate: tmpl,
 		appName:      appName,
-		brandName:     brandNameForApp(appName),
+		brandName:    brandNameForApp(appName),
 		manifest:     manifest,
 	}, nil
+}
+
+// SetSessionResolver installs a resolver that populates the <body> data
+// attributes with the authenticated user's profile, unread notification
+// count, and moderator flag. Must be called before the handler starts
+// serving requests. Passing nil disables session injection (DID only).
+func (h *ShellHandler) SetSessionResolver(r SessionResolver) {
+	h.sessionResolver = r
 }
 
 // ServeHTTP serves the SPA index.html with injected <head> content.
@@ -117,6 +153,17 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if did, ok := didFromContext(r.Context()); ok {
 		data.UserDID = did
 		data.IsAuthenticated = true
+
+		// Resolve session data (profile, unread count, moderator flag) for
+		// the authenticated user. The resolver is cache-backed and cheap.
+		if h.sessionResolver != nil {
+			session := h.sessionResolver(r.Context(), did)
+			data.UserHandle = session.Handle
+			data.UserDisplayName = session.DisplayName
+			data.UserAvatar = session.Avatar
+			data.IsModerator = session.IsModerator
+			data.UnreadNotificationCount = session.UnreadNotificationCount
+		}
 	}
 	if tp := traceparentFromContext(r.Context()); tp != "" {
 		data.Traceparent = tp
@@ -161,9 +208,10 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(result)
 }
 
-// injectBodyAttrs adds data-user-did and data-app attributes to the <body>
-// tag in the HTML. These are read by the SvelteKit app to determine auth
-// state and which app (arabica/oolong) is running.
+// injectBodyAttrs adds data-* attributes to the <body> tag in the HTML.
+// These are read by the SvelteKit app to determine auth state, which app
+// (arabica/oolong) is running, and the authenticated user's display
+// profile / unread count / moderator flag.
 func injectBodyAttrs(html []byte, data ShellData) []byte {
 	bodyTag := []byte("<body")
 	if !bytes.Contains(html, bodyTag) {
@@ -177,6 +225,21 @@ func injectBodyAttrs(html []byte, data ShellData) []byte {
 	if data.AppName != "" {
 		attrs = append(attrs, []byte(` data-app="`+data.AppName+`"`)...)
 	}
+	if data.UserHandle != "" {
+		attrs = append(attrs, []byte(` data-user-handle="`+htmlEscapeAttr(data.UserHandle)+`"`)...)
+	}
+	if data.UserDisplayName != "" {
+		attrs = append(attrs, []byte(` data-user-display="`+htmlEscapeAttr(data.UserDisplayName)+`"`)...)
+	}
+	if data.UserAvatar != "" {
+		attrs = append(attrs, []byte(` data-user-avatar="`+htmlEscapeAttr(data.UserAvatar)+`"`)...)
+	}
+	if data.IsModerator {
+		attrs = append(attrs, []byte(` data-is-moderator="true"`)...)
+	}
+	if data.UnreadNotificationCount > 0 {
+		attrs = append(attrs, []byte(fmt.Sprintf(` data-unread-notifications="%d"`, data.UnreadNotificationCount))...)
+	}
 
 	// Insert attributes right after "<body".
 	idx := bytes.Index(html, bodyTag)
@@ -189,6 +252,29 @@ func injectBodyAttrs(html []byte, data ShellData) []byte {
 	result = append(result, attrs...)
 	result = append(result, html[insertAt:]...)
 	return result
+}
+
+// htmlEscapeAttr escapes a string for safe inclusion in a double-quoted HTML
+// attribute value. It escapes the minimal set required by the HTML spec:
+// &, ", <, >. This avoids pulling in html/template for a single use.
+func htmlEscapeAttr(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch r {
+		case '&':
+			b.WriteString("&amp;")
+		case '"':
+			b.WriteString("&quot;")
+		case '<':
+			b.WriteString("&lt;")
+		case '>':
+			b.WriteString("&gt;")
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func (d ShellData) siteDescription() string {

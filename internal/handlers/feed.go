@@ -141,15 +141,36 @@ func (h *Handler) HandleSiteOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Community feed partial (loaded async via HTMX)
-func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
-	var feedItems []*feed.FeedItem
-	var nextCursor string
+// HandleFeed serves the community feed with content negotiation.
+// Requests with Accept: application/json (or X-Requested-With: JSON) receive
+// a JSON response for the SvelteKit SPA; HTMX requests (HX-Request: true)
+// receive the existing HTML partial. This lets a single route serve both
+// clients during the migration.
+func (h *Handler) HandleFeed(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.handleFeedJSON(w, r)
+		return
+	}
+	h.handleFeedPartial(w, r)
+}
 
-	// Check if user is authenticated
+// feedQueryResult holds the fetched feed items plus the resolved query state
+// shared by both the HTML and JSON render paths.
+type feedQueryResult struct {
+	items           []*feed.FeedItem
+	nextCursor      string
+	viewerDID       string
+	isAuthenticated bool
+	typeFilter      lexicons.RecordType
+	sortBy          feed.FeedSort
+}
+
+// fetchFeed loads feed items for the request, applying type/sort/cursor query
+// params and populating per-viewer IsLikedByViewer / IsOwner fields. Shared by
+// the HTML partial and JSON handlers so both paths see identical data.
+func (h *Handler) fetchFeed(r *http.Request) feedQueryResult {
 	viewerDID, isAuthenticated := atpmiddleware.GetDID(r.Context())
 
-	// Parse query parameters
 	typeParam := r.URL.Query().Get("type")
 	// Filter pills send the app entity route noun (e.g. "brew", "tea").
 	// Resolve through the running app so shared nouns like "brew" map to the
@@ -173,6 +194,13 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		sortBy = feed.FeedSortRecent
 	}
 
+	res := feedQueryResult{
+		viewerDID:       viewerDID,
+		isAuthenticated: isAuthenticated,
+		typeFilter:      typeFilter,
+		sortBy:          sortBy,
+	}
+
 	if h.feedService != nil {
 		if isAuthenticated {
 			result, err := h.feedService.GetFeedWithQuery(r.Context(), feed.FeedQuery{
@@ -185,33 +213,32 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 				log.Error().Err(err).Str("sort", string(sortBy)).Str("type", string(typeFilter)).Msg("Failed to query feed")
 			}
 			if result != nil {
-				feedItems = result.Items
-				nextCursor = result.NextCursor
+				res.items = result.Items
+				res.nextCursor = result.NextCursor
 			}
 		} else {
 			// Unauthenticated users get a limited feed from the cache (no filtering)
-			var err error
-			feedItems, err = h.feedService.GetCachedPublicFeed(r.Context())
+			items, err := h.feedService.GetCachedPublicFeed(r.Context())
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to get cached public feed")
 			}
+			res.items = items
 		}
 	}
 
 	// Populate IsLikedByViewer and IsOwner for each feed item if user is authenticated
 	if isAuthenticated {
-		// Batch fetch liked status for all feed items
 		var likedByViewer map[string]bool
 		if h.feedIndex != nil {
-			uris := make([]string, 0, len(feedItems))
-			for _, item := range feedItems {
+			uris := make([]string, 0, len(res.items))
+			for _, item := range res.items {
 				if item.SubjectURI != "" {
 					uris = append(uris, item.SubjectURI)
 				}
 			}
 			likedByViewer = h.feedIndex.HasUserLikedBatch(r.Context(), viewerDID, uris)
 		}
-		for _, item := range feedItems {
+		for _, item := range res.items {
 			if item.Author != nil {
 				item.IsOwner = item.Author.DID == viewerDID
 			}
@@ -221,11 +248,43 @@ func (h *Handler) HandleFeedPartial(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	return res
+}
+
+// handleFeedJSON returns the feed as JSON for the SvelteKit SPA.
+func (h *Handler) handleFeedJSON(w http.ResponseWriter, r *http.Request) {
+	res := h.fetchFeed(r)
+	items := make([]FeedItemJSON, 0, len(res.items))
+	for _, item := range res.items {
+		items = append(items, NewFeedItemJSON(item))
+	}
+	WriteJSON(w, FeedResponseJSON{
+		Items:           items,
+		NextCursor:      res.nextCursor,
+		IsAuthenticated: res.isAuthenticated,
+		Query: FeedQueryJSON{
+			Type: string(res.typeFilter),
+			Sort: string(res.sortBy),
+		},
+	}, "feed")
+}
+
+// handleFeedPartial renders the feed as an HTMX HTML partial (existing behavior).
+func (h *Handler) handleFeedPartial(w http.ResponseWriter, r *http.Request) {
+	res := h.fetchFeed(r)
+	feedItems := res.items
+	nextCursor := res.nextCursor
+	viewerDID := res.viewerDID
+	isAuthenticated := res.isAuthenticated
+	typeFilter := res.typeFilter
+	sortBy := res.sortBy
+
 	// Build moderation context for moderators
 	modCtx := h.buildModerationContext(r.Context(), viewerDID, feedItems)
 
 	// Build query state for template
 	typeFilterStr := string(typeFilter)
+	cursor := r.URL.Query().Get("cursor")
 	var descriptors []*entities.Descriptor
 	if h.app != nil {
 		descriptors = h.app.Descriptors

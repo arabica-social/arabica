@@ -1,0 +1,160 @@
+<script lang="ts">
+	import BackButton from "$lib/components/BackButton.svelte";
+</script>
+
+<svelte:head>
+	<title>The AT Protocol - Arabica</title>
+	<meta name="description" content="Arabica stores your coffee data where your account lives. The app is a client, your PDS is the notebook." />
+	<meta property="og:title" content="The AT Protocol - Arabica" />
+	<meta property="og:type" content="website" />
+</svelte:head>
+
+<div class="info-page">
+	<div class="info-hero">
+		<div class="info-title-group">
+			<div class="info-eyebrow">
+				<BackButton />
+				<span>Portable identity, portable coffee records</span>
+			</div>
+			<h1 class="info-title">The AT Protocol</h1>
+			<p class="info-deck">
+				Arabica stores your coffee data where your account lives. The app is a client, your PDS is the notebook.
+			</p>
+		</div>
+	</div>
+	<div class="prose prose-lg max-w-none info-stack">
+		<section class="info-card info-card-kraft">
+			<h2 class="text-2xl font-semibold text-primary mb-4">What is the AT Protocol?</h2>
+			<p class="text-secondary leading-relaxed mb-3">
+				Arabica uses the <strong>AT Protocol</strong> (Authenticated Transfer Protocol) to power many of its social features,
+				allowing you to own your data and use one account across all compatible applications.
+			</p>
+			<p class="text-secondary leading-relaxed">
+				Once you create an account, you can use other apps like
+				<a href="https://bsky.app" class="link-bold" target="_blank" rel="noopener noreferrer">Bluesky</a> and
+				<a href="https://tangled.sh" class="link-bold" target="_blank" rel="noopener noreferrer">Tangled</a> with the same account.
+			</p>
+		</section>
+		<section>
+			<h2 class="text-2xl font-semibold text-primary mb-4">Key Concepts</h2>
+			<div class="info-grid">
+				<div class="info-feature">
+					<h3 class="font-semibold text-primary mb-2">Personal Data Server (PDS)</h3>
+					<p class="text-emphasis text-sm">
+						Your PDS is where all your data lives. It can be hosted by a large provider like
+						<a href="https://bsky.app" class="link-bold" target="_blank" rel="noopener noreferrer">Bluesky</a>,
+						an independent host like
+						<a href="https://selfhosted.social" class="link-bold" target="_blank" rel="noopener noreferrer">selfhosted.social</a> or
+						<a href="https://eurosky.cloud" class="link-bold" target="_blank" rel="noopener noreferrer">Eurosky</a>,
+						or <a href="https://atproto.com/guides/self-hosting" class="link-bold" target="_blank" rel="noopener noreferrer">self-hosted</a>
+						on your own server. You choose where your PDS lives and can migrate between
+						providers at any time. When you create brew logs in Arabica, they're stored in
+						your PDS, not on Arabica's servers.
+					</p>
+				</div>
+				<div class="info-feature">
+					<h3 class="font-semibold text-primary mb-2">Decentralized Identity (DID)</h3>
+					<p class="text-emphasis text-sm">
+						Your identity is represented by a DID (Decentralized Identifier) that you own.
+						This identity is portable across applications and PDS providers. Your handle
+						(e.g. yourname.arabica.systems) is just a human-friendly alias for your DID.
+					</p>
+				</div>
+				<div class="info-feature">
+					<h3 class="font-semibold text-primary mb-2">Lexicons</h3>
+					<p class="text-emphasis text-sm">
+						Lexicons define the structure of data in the AT Protocol. Arabica uses custom lexicons
+						for coffee data: beans, roasters, grinders, brewers, and brew sessions. These schemas
+						ensure data consistency and enable interoperability with other coffee apps.
+					</p>
+				</div>
+				<div class="info-feature">
+					<h3 class="font-semibold text-primary mb-2">AT-URIs</h3>
+					<p class="text-emphasis text-sm">
+						Records reference each other using AT-URIs, which look like:
+						<code class="bg-brown-200 px-1 rounded-sm text-xs">at://did:plc:xxx/collection/recordkey</code>.
+						When a brew references a bean, it uses an AT-URI to point to that bean record in your PDS.
+					</p>
+				</div>
+			</div>
+		</section>
+		<section>
+			<h2 class="text-2xl font-semibold text-primary mb-4">How Arabica Uses AT Protocol</h2>
+			<p class="text-secondary leading-relaxed mb-4">
+				When you use Arabica, here's what happens behind the scenes:
+			</p>
+			<ol class="info-steps text-secondary">
+				<li>
+					<strong>Authentication:</strong> You log in via OAuth with your PDS (not with Arabica).
+					Arabica never sees your password.
+				</li>
+				<li>
+					<strong>Data storage:</strong> Your brew logs, beans, and equipment are stored as records
+					in your PDS using Arabica's lexicons.
+				</li>
+				<li>
+					<strong>Data retrieval:</strong> When you view your brews, Arabica fetches them from your PDS
+					using your authentication token.
+				</li>
+				<li>
+					<strong>Community feed:</strong> Public brews are aggregated from users' PDSes via the
+					AT Protocol firehose.
+				</li>
+			</ol>
+		</section>
+		<section>
+			<h2 class="text-2xl font-semibold text-primary mb-4">Why This Matters</h2>
+			<div class="info-grid">
+				<div class="info-feature">
+					<h4 class="font-semibold text-primary mb-2">Data Ownership</h4>
+					<p class="text-emphasis text-sm">
+						Your coffee data is yours. If Arabica shuts down, your data remains safe in your PDS.
+					</p>
+				</div>
+				<div class="info-feature">
+					<h4 class="font-semibold text-primary mb-2">Portability</h4>
+					<p class="text-emphasis text-sm">
+						Switch PDS providers without losing anything. Your identity and data move with you.
+					</p>
+				</div>
+				<div class="info-feature">
+					<h4 class="font-semibold text-primary mb-2">Interoperability</h4>
+					<p class="text-emphasis text-sm">
+						Other apps can build on the same data. Future coffee apps could read your Arabica brews.
+					</p>
+				</div>
+				<div class="info-feature">
+					<h4 class="font-semibold text-primary mb-2">Transparency</h4>
+					<p class="text-emphasis text-sm">
+						Open protocol means no hidden algorithms. You can see exactly how your data is handled.
+					</p>
+				</div>
+			</div>
+		</section>
+		<section class="info-callout">
+			<h3 class="text-xl font-semibold text-primary mb-3">Learn More</h3>
+			<p class="text-secondary mb-4">
+				The AT Protocol is an open standard with comprehensive documentation. To dive deeper:
+			</p>
+			<ul class="info-links text-secondary">
+				<li>
+					<a href="https://atproto.com" class="link-bold" target="_blank" rel="noopener noreferrer">atproto.com</a>,
+					Official AT Protocol website and documentation
+				</li>
+				<li>
+					<a href="https://atproto.com/guides/overview" class="link-bold" target="_blank" rel="noopener noreferrer">Protocol Overview</a>,
+					Technical introduction to the protocol
+				</li>
+				<li>
+					<a href="https://bsky.app" class="link-bold" target="_blank" rel="noopener noreferrer">Bluesky</a>,
+					A microblogging social network built on AT Protocol
+				</li>
+			</ul>
+		</section>
+	</div>
+	<div class="info-cta">
+		<a href="/" class="btn-primary px-8 py-3 font-semibold">
+			Back to Home
+		</a>
+	</div>
+</div>

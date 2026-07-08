@@ -110,7 +110,13 @@ templ onboardingSelectField(name, label, placeholder string, options []onboardin
 				<span class="form-required-marker" aria-hidden="true">*</span>
 			}
 		</label>
-		<select class="w-full form-select form-input-lg" name={ name } if required { required }>
+		<select
+			class="w-full form-select form-input-lg"
+			name={ name }
+			if required {
+				required
+			}
+		>
 			<option value="">{ placeholder }</option>
 			for _, option := range options {
 				<option value={ option.Value }>{ option.Label }</option>
@@ -142,7 +148,15 @@ templ onboardingTextField(name, label, placeholder, inputType string, required b
 				<span class="form-required-marker" aria-hidden="true">*</span>
 			}
 		</label>
-		<input class="w-full form-input-lg" type={ inputType } name={ name } placeholder={ placeholder } if required { required }/>
+		<input
+			class="w-full form-input-lg"
+			type={ inputType }
+			name={ name }
+			placeholder={ placeholder }
+			if required {
+				required
+			}
+		/>
 	</div>
 }
 

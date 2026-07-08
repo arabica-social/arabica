@@ -368,6 +368,12 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to create SPA shell handler, SPA disabled")
 		} else {
+			// Resolve per-request session data (profile, unread count,
+			// moderator flag) so the SvelteKit header can render the
+			// authenticated state without an extra API call.
+			sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
+				return h.ResolveSessionData(ctx, did)
+			})
 			spaHandler = sh
 			log.Info().Msg("SvelteKit SPA shell enabled")
 		}

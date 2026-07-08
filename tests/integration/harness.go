@@ -222,6 +222,11 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	h.SetFeedIndex(feedIndex)
 	h.SetWitnessCache(feedIndex)
 
+	// Wire the feed index as the feed service source so feed queries read
+	// from the same index the firehose consumer populates. Production does
+	// this in server.go; tests need it for feed-related assertions.
+	feedService.SetSource(feedIndex)
+
 	// Build the router with no moderation service (most tests don't need it).
 	logger := zerolog.Nop()
 	app := arabicaapp.New()
@@ -252,6 +257,11 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		}, feedIndex)
 		harness.Consumer = consumer
 		harness.ProfileWatcher = firehose.NewProfileWatcher(&firehose.Config{}, feedIndex)
+
+		// The harness bridges firehose events manually (see firehoseBridge)
+		// rather than calling consumer.Start, so mark the index ready here —
+		// production does this inside Start once the subscription is live.
+		feedIndex.SetReady(true)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		harness.firehoseCancel = cancel

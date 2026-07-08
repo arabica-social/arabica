@@ -1,6 +1,7 @@
 package spa
 
 import (
+	"context"
 	"io"
 	"net/http/httptest"
 	"strings"
@@ -72,6 +73,59 @@ func TestShellHandler_InjectsBodyAttrs(t *testing.T) {
 	})
 }
 
+func TestShellHandler_InjectsSessionData(t *testing.T) {
+	h, err := NewShellHandler(testManifest(), "arabica")
+	require.NoError(t, err)
+	h.SetSessionResolver(func(_ context.Context, did string) SessionData {
+		if did != "did:plc:test123" {
+			return SessionData{}
+		}
+		return SessionData{
+			Handle:                  "alice.bsky.social",
+			DisplayName:             "Alice",
+			Avatar:                  "https://cdn.example/avatar.png",
+			IsModerator:             true,
+			UnreadNotificationCount: 3,
+		}
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := WithDID(req.Context(), "did:plc:test123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	body, _ := io.ReadAll(w.Result().Body)
+	html := string(body)
+	assert.Contains(t, html, `data-user-handle="alice.bsky.social"`)
+	assert.Contains(t, html, `data-user-display="Alice"`)
+	assert.Contains(t, html, `data-user-avatar="https://cdn.example/avatar.png"`)
+	assert.Contains(t, html, `data-is-moderator="true"`)
+	assert.Contains(t, html, `data-unread-notifications="3"`)
+}
+
+func TestShellHandler_SessionDataEscaped(t *testing.T) {
+	h, err := NewShellHandler(testManifest(), "arabica")
+	require.NoError(t, err)
+	h.SetSessionResolver(func(_ context.Context, _ string) SessionData {
+		return SessionData{
+			DisplayName: `Alice "<script>"`,
+		}
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := WithDID(req.Context(), "did:plc:test123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	body, _ := io.ReadAll(w.Result().Body)
+	html := string(body)
+	assert.Contains(t, html, `data-user-display="Alice &quot;&lt;script&gt;&quot;"`)
+	// The raw, unescaped angle brackets must not leak into the attribute.
+	assert.NotContains(t, html, `data-user-display="Alice "<script>""`)
+}
+
 func TestShellHandler_OolongBranding(t *testing.T) {
 	h, err := NewShellHandler(testManifest(), "oolong")
 	require.NoError(t, err)
@@ -84,7 +138,7 @@ func TestShellHandler_OolongBranding(t *testing.T) {
 	html := string(body)
 
 	assert.Contains(t, html, "tea tracking app")
-	assert.Contains(t, html, "#b8d5aa")       // light theme color
+	assert.Contains(t, html, "#b8d5aa") // light theme color
 	assert.Contains(t, html, `data-app="oolong"`)
 }
 

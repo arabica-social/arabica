@@ -42,14 +42,32 @@ These endpoints already return JSON and need no changes:
 | `/api/{entity}/{id}` | PUT | `<model>` or HX-Redirect |
 | `/brews/export` | GET | `[]Brew` |
 
+## Phase 1 Endpoints (implemented)
+
+These endpoints were added in Phase 1 of the SvelteKit migration:
+
+| Endpoint | Method | Response shape | Spec |
+|----------|--------|----------------|------|
+| `/api/feed` | GET | `{items[], next_cursor, is_authenticated, query}` | [feed.md](feed.md) |
+| `/api/beans/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
+| `/api/roasters/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
+| `/api/grinders/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
+| `/api/brewers/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
+| `/api/brews/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
+| `/api/recipes/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
+| `/brews` | POST | `{brew, incomplete_nudge?}` (JSON) or HX-Redirect | [brews.md](brews.md) |
+| `/brews/{id}` | PUT | `{brew}` (JSON) or HX-Redirect | [brews.md](brews.md) |
+| `/api/signup/categories` | GET | `{categories: [{title, description, providers: [...], dev_only}]}` | P1.14 |
+
 ## Endpoints to Add (Phase 1)
 
 See the migration plan (`docs/plans/2026-07-08-sveltekit-migration.md`) for
-the full list and priority order. Each endpoint's shape will be documented
-in its own file as it's implemented:
+the full list and priority order. Each endpoint's shape is documented in
+its own file as it is implemented:
 
-- `feed.md` — `GET /api/feed` (JSON feed items)
-- `entities.md` — `GET /api/{entity}/{actor}/{id}` (entity view data)
+- `feed.md` — `GET /api/feed` (JSON feed items) **[done]**
+- `entities.md` — `GET /api/{entity}/{actor}/{id}` (entity view data) **[done]**
+- `brews.md` — `POST /brews`, `PUT /brews/{id}` (brew mutations) **[done]**
 - `profile.md` — `GET /api/profile/{actor}` (profile data bundle)
 - `social.md` — likes, comments, reports (JSON mutations)
 - `manage.md` — `GET /api/manage` (records + stats)
@@ -58,3 +76,4 @@ in its own file as it's implemented:
 - `explore.md` — `GET /api/explore`
 - `onboarding.md` — `GET /api/onboarding`, incomplete records
 - `admin.md` — moderation admin endpoints
+- `signup.md` — `GET /api/signup/categories` (PDS provider catalog) **[done]**

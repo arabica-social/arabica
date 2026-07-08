@@ -38,6 +38,7 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
 	mux.HandleFunc("GET /brews/{actor}/{id}/og-image", routing.RewriteActorToOwner(h.HandleBrewOGImage))
 	mux.HandleFunc("GET /brews/{actor}/{id}", routing.RewriteActorToOwner(h.HandleBrewView))
+	mux.HandleFunc("GET /api/brews/{actor}/{id}", routing.RewriteActorToOwner(h.HandleBrewViewJSON))
 	mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
 	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
 	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
@@ -49,6 +50,7 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.HandleFunc("GET /recipes/{actor}/{id}/og-image", routing.RewriteActorToOwner(h.HandleRecipeOGImage))
 	mux.HandleFunc("GET /recipes/{actor}/{id}/backlinks", routing.RewriteActorToOwner(h.HandleRecipeBacklinks))
 	mux.HandleFunc("GET /recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeView))
+	mux.HandleFunc("GET /api/recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeViewJSON))
 
 	mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
 	mux.HandleFunc("GET /api/recipes/suggestions", h.HandleRecipeSuggestions)
@@ -77,6 +79,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleBeanUpdate,
 			Delete:     h.HandleBeanDelete,
 			View:       h.HandleBeanView,
+			JSONView:   h.HandleBeanViewJSON,
 			Backlinks:  h.HandleBeanBacklinks,
 			OGImage:    h.HandleBeanOGImage,
 			ModalNew:   h.HandleBeanModalNew,
@@ -88,6 +91,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleRoasterUpdate,
 			Delete:     h.HandleRoasterDelete,
 			View:       h.HandleRoasterView,
+			JSONView:   h.HandleRoasterViewJSON,
 			Backlinks:  h.HandleRoasterBacklinks,
 			OGImage:    h.HandleRoasterOGImage,
 			ModalNew:   h.HandleRoasterModalNew,
@@ -99,6 +103,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleGrinderUpdate,
 			Delete:     h.HandleGrinderDelete,
 			View:       h.HandleGrinderView,
+			JSONView:   h.HandleGrinderViewJSON,
 			Backlinks:  h.HandleGrinderBacklinks,
 			OGImage:    h.HandleGrinderOGImage,
 			ModalNew:   h.HandleGrinderModalNew,
@@ -110,6 +115,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Update:     h.HandleBrewerUpdate,
 			Delete:     h.HandleBrewerDelete,
 			View:       h.HandleBrewerView,
+			JSONView:   h.HandleBrewerViewJSON,
 			Backlinks:  h.HandleBrewerBacklinks,
 			OGImage:    h.HandleBrewerOGImage,
 			ModalNew:   h.HandleBrewerModalNew,

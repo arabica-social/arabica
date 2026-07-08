@@ -9,6 +9,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["internal/web/assets/svelte/src/testSetup.ts"],
+    // The web/ SvelteKit workspace has its own vitest config; exclude it
+    // so the root runner only covers the legacy Svelte islands.
+    exclude: ["node_modules/**", "web/**"],
   },
   build: {
     emptyOutDir: false,

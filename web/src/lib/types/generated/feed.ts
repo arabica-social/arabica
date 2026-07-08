@@ -3,7 +3,6 @@
 //////////
 // source: service.go
 
-export const PublicFeedCacheTTL = 300000; // 5 minutes in ms
 /**
  * PublicFeedCacheTTL is the duration for which the public feed cache is valid.
  * This value can be adjusted based on desired freshness vs. performance tradeoff.

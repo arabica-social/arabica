@@ -36,6 +36,10 @@ type EntityRouteBundle struct {
 	// View renders the public entity detail page.
 	View http.HandlerFunc
 
+	// JSONView returns the entity detail data as JSON for the SvelteKit SPA.
+	// Served at GET /api/{entity}/{actor}/{id} with content negotiation.
+	JSONView http.HandlerFunc
+
 	// Backlinks renders the community backlinks detail page for this entity.
 	Backlinks http.HandlerFunc
 

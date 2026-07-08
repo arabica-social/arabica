@@ -201,6 +201,11 @@ func (h *Handlers) HandleBrewView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.brewViewConfig())
 }
 
+// HandleBrewViewJSON returns brew detail data as JSON for the SvelteKit SPA.
+func (h *Handlers) HandleBrewViewJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderEntityViewJSON(w, r, h.brewViewConfig())
+}
+
 // Show edit brew form
 func (h *Handlers) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
 	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
@@ -473,7 +478,7 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := store.CreateBrew(r.Context(), req, 1) // User ID not used with atproto
+	brew, err := store.CreateBrew(r.Context(), req, 1) // User ID not used with atproto
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create brew")
 		handlers.HandleStoreError(w, err, "Failed to create brew")
@@ -482,17 +487,32 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 
 	h.InvalidateFeedCache()
 
-	// Check if the bean is incomplete and include nudge info in response header.
-	// The brew form JS reads this before HTMX processes the redirect.
+	// Check if the bean is incomplete and include nudge info.
+	var nudge *BeanNudge
 	ctx := r.Context()
 	if beanRKey != "" {
 		if bean, beanErr := store.GetBeanByRKey(ctx, beanRKey); beanErr == nil && bean != nil && bean.IsIncomplete() {
-			nudge := fmt.Sprintf(`{"entity_type":"bean","rkey":"%s","name":"%s","missing":"%s"}`,
-				bean.RKey, bean.Name, strings.Join(bean.MissingFields(), ", "))
-			w.Header().Set("X-Incomplete-Nudge", nudge)
+			nudge = &BeanNudge{
+				EntityType:    "bean",
+				RKey:          bean.RKey,
+				Name:          bean.Name,
+				MissingFields: strings.Join(bean.MissingFields(), ", "),
+			}
 		}
 	}
 
+	// JSON path: SvelteKit SPA sends Accept: application/json. Return the
+	// brew model + nudge instead of the hardcoded HTMX redirect.
+	if handlers.WantsJSON(r) {
+		handlers.WriteJSON(w, BrewMutationJSONResponse{Brew: brew, IncompleteNudge: nudge}, "brew")
+		return
+	}
+
+	// HTMX path: set the nudge header for the brew form JS, then redirect.
+	if nudge != nil {
+		w.Header().Set("X-Incomplete-Nudge", fmt.Sprintf(`{"entity_type":"bean","rkey":"%s","name":"%s","missing":"%s"}`,
+			nudge.RKey, nudge.Name, nudge.MissingFields))
+	}
 	w.Header().Set("HX-Redirect", "/my-coffee")
 	w.WriteHeader(http.StatusOK)
 }
@@ -591,6 +611,19 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.InvalidateFeedCache()
+
+	// JSON path: SvelteKit SPA sends Accept: application/json. Return the
+	// updated brew model instead of the hardcoded HTMX redirect.
+	if handlers.WantsJSON(r) {
+		updated, err := store.GetBrewByRKey(r.Context(), rkey)
+		if err != nil {
+			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to fetch updated brew for JSON response")
+			handlers.HandleStoreError(w, err, "Failed to fetch updated brew")
+			return
+		}
+		handlers.WriteJSON(w, BrewMutationJSONResponse{Brew: updated}, "brew")
+		return
+	}
 
 	w.Header().Set("HX-Redirect", "/my-coffee")
 	w.WriteHeader(http.StatusOK)

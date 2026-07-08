@@ -28,6 +28,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
+	"tangled.org/arabica.social/arabica/internal/web/spa"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -565,6 +566,33 @@ func (h *Handler) PublicBaseURL(r *http.Request) string {
 	return scheme + "://" + r.Host
 }
 
+// ResolveSessionData returns the authenticated user's display state for the
+// SPA shell. It is the SPA equivalent of the profile/moderator/unread fields
+// that BuildLayoutData populates for templ pages. Returns zero values when
+// the DID is empty or the backing stores are unavailable.
+//
+// This is called once per SPA page load by the shell handler's session
+// resolver; it relies on the feed index profile cache so it stays cheap.
+func (h *Handler) ResolveSessionData(ctx context.Context, did string) spa.SessionData {
+	if did == "" {
+		return spa.SessionData{}
+	}
+
+	var out spa.SessionData
+	if profile := h.GetUserProfile(ctx, did); profile != nil {
+		out.Handle = profile.Handle
+		out.DisplayName = profile.DisplayName
+		out.Avatar = profile.Avatar
+	}
+	if h.moderationService != nil && h.moderationService.IsModerator(did) {
+		out.IsModerator = true
+	}
+	if h.feedIndex != nil {
+		out.UnreadNotificationCount = h.feedIndex.GetUnreadCount(did)
+	}
+	return out
+}
+
 // buildLayoutData creates a LayoutData struct with common fields populated from the request
 func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
 	// Check if user is a moderator
@@ -838,6 +866,14 @@ func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render create account page")
 	}
+}
+
+// HandleSignupCategories returns the PDS provider catalog as JSON
+// (GET /api/signup/categories). Consumed by the SvelteKit /join/create
+// route. Dev-only categories are included when dev mode is enabled.
+func (h *Handler) HandleSignupCategories(w http.ResponseWriter, r *http.Request) {
+	categories := signup.Categories(h.devMode)
+	WriteJSON(w, map[string]any{"categories": categories}, "signup categories")
 }
 
 // HandleCreateAccountSubmit initiates the OAuth prompt=create flow (POST /join/create).
