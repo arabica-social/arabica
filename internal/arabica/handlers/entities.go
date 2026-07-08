@@ -26,101 +26,33 @@ import (
 
 // Manage page partial (loaded async via HTMX)
 func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
-	store, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	// Invalidate the session cache so we read from the witness cache (or PDS)
-	// rather than serving potentially stale in-memory data. The witness cache
-	// is a local SQLite read so this is cheap.
-	if sessionID, ok := atpmiddleware.GetSessionID(r.Context()); ok {
-		h.SessionCache().Invalidate(sessionID)
-	}
-
-	ctx := r.Context()
-
-	// Fetch all collections in parallel using errgroup for proper error handling
-	// and automatic context cancellation on first error
-	g, ctx := errgroup.WithContext(ctx)
-
-	var beans []*arabica.Bean
-	var roasters []*arabica.Roaster
-	var grinders []*arabica.Grinder
-	var brewers []*arabica.Brewer
-	var recipes []*arabica.Recipe
-
-	g.Go(func() error {
-		var err error
-		beans, err = store.ListBeans(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		roasters, err = store.ListRoasters(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		grinders, err = listGrinders(ctx, store)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		brewers, err = listBrewers(ctx, store)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		recipes, err = store.ListRecipes(ctx)
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
+	data, err := h.fetchManageData(r)
+	if err != nil {
+		if err == errManageUnauth {
+			http.Error(w, "Authentication required", http.StatusUnauthorized)
+			return
+		}
 		log.Error().Err(err).Msg("Failed to fetch manage page data")
 		handlers.HandleStoreError(w, err, "Failed to fetch data")
 		return
 	}
 
-	// Link beans to their roasters
-	arabicastore.LinkBeansToRoasters(beans, roasters)
+	did, _ := atpmiddleware.GetDID(r.Context())
+	stats := h.computeManageStats(r.Context(), did)
 
-	// Link recipes to their brewers
-	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
-	for _, b := range brewers {
-		brewerMap[b.RKey] = b
-	}
-	for _, recipe := range recipes {
-		if recipe.BrewerRKey != "" {
-			recipe.BrewerObj = brewerMap[recipe.BrewerRKey]
-		}
-	}
-
-	// Fetch entity usage counts and avg ratings from witness cache
 	props := coffee.ManagePartialProps{
-		Beans:    beans,
-		Roasters: roasters,
-		Grinders: grinders,
-		Brewers:  brewers,
-		Recipes:  recipes,
-	}
-	if h.FeedIndex() != nil {
-		did, _ := atpmiddleware.GetDID(r.Context())
-		props.OwnerDID = did
-		props.BeanBrewCounts = h.FeedIndex().BrewCountsByBeanURI(r.Context(), did)
-		props.GrinderBrewCounts = h.FeedIndex().BrewCountsByGrinderURI(r.Context(), did)
-		props.BrewerBrewCounts = h.FeedIndex().BrewCountsByBrewerURI(r.Context(), did)
-		props.RoasterBeanCounts = h.FeedIndex().BeanCountsByRoasterURI(r.Context(), did)
-		props.BeanAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.FeedIndex().AvgBrewRatingByBeanURI(r.Context(), did) {
-			props.BeanAvgBrewRatings[uri] = stats.Average
-		}
-		props.RoasterAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.FeedIndex().AvgBrewRatingByRoasterURI(r.Context(), did) {
-			props.RoasterAvgBrewRatings[uri] = stats.Average
-		}
+		Beans:                data.beans,
+		Roasters:            data.roasters,
+		Grinders:            data.grinders,
+		Brewers:             data.brewers,
+		Recipes:             data.recipes,
+		OwnerDID:            did,
+		BeanBrewCounts:      stats.BeanBrewCounts,
+		GrinderBrewCounts:   stats.GrinderBrewCounts,
+		BrewerBrewCounts:    stats.BrewerBrewCounts,
+		RoasterBeanCounts:   stats.RoasterBeanCounts,
+		BeanAvgBrewRatings:  stats.BeanAvgBrewRatings,
+		RoasterAvgBrewRatings: stats.RoasterAvgBrewRatings,
 	}
 
 	// Render manage partial

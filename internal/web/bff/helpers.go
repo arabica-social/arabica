@@ -13,9 +13,9 @@ import (
 
 // UserProfile contains user profile data for header display
 type UserProfile struct {
-	Handle      string
-	DisplayName string
-	Avatar      string
+	Handle      string `json:"handle"`
+	DisplayName string `json:"display_name,omitempty"`
+	Avatar      string `json:"avatar,omitempty"`
 }
 
 // FormatTemp formats a temperature value with unit detection.

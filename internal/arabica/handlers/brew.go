@@ -103,13 +103,31 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Brew list partial (loaded async via HTMX)
-func (h *Handlers) HandleBrewListPartial(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
+// HandleBrewList serves the user's brew list with content negotiation.
+// Accept: application/json returns {brews, has_more, next_offset} for the
+// SvelteKit SPA; HX-Request returns the existing HTML table partial.
+func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
+	if handlers.WantsJSON(r) {
+		h.handleBrewListJSON(w, r)
+		return
+	}
+	h.handleBrewListPartial(w, r)
+}
+
+// brewListResult holds the fetched brews and pagination state shared by the
+// HTML and JSON render paths.
+type brewListResult struct {
+	brews       []*arabica.Brew
+	hasMore     bool
+	nextOffset  int
+	profileHandle string
+}
+
+// fetchBrewList loads a page of the user's brews with limit+1 detection.
+func (h *Handlers) fetchBrewList(r *http.Request) (*brewListResult, error) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
+		return nil, errBrewListUnauth
 	}
 
 	didStr, _ := atpmiddleware.GetDID(r.Context())
@@ -121,43 +139,90 @@ func (h *Handlers) HandleBrewListPartial(w http.ResponseWriter, r *http.Request)
 		profileHandle = didStr
 	}
 
-	// Parse pagination params
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit <= 0 || limit > 100 {
 		limit = 25
 	}
 
-	// Request limit+1 to detect if there are more results beyond this page.
 	brews, err := store.ListBrews(r.Context(), 1, offset, limit+1)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to fetch brews")
-		handlers.HandleStoreError(w, err, "Failed to fetch brews")
-		return
+		return nil, err
 	}
 
-	// If we got limit+1 records, the extra one signals there are more coffeepages.
 	hasMore := len(brews) > limit
 	if hasMore {
 		brews = brews[:limit]
 	}
 
+	return &brewListResult{
+		brews:         brews,
+		hasMore:       hasMore,
+		nextOffset:    offset + limit,
+		profileHandle: profileHandle,
+	}, nil
+}
+
+// BrewListJSONResponse is the JSON envelope returned by GET /api/brews for the
+// SvelteKit SPA. See docs/api/brews.md for the contract.
+type BrewListJSONResponse struct {
+	Brews      []*arabica.Brew `json:"brews"`
+	HasMore    bool            `json:"has_more"`
+	NextOffset int             `json:"next_offset"`
+}
+
+// handleBrewListJSON returns the brew list as JSON for the SvelteKit SPA.
+func (h *Handlers) handleBrewListJSON(w http.ResponseWriter, r *http.Request) {
+	res, err := h.fetchBrewList(r)
+	if err != nil {
+		if err == errBrewListUnauth {
+			http.Error(w, "Authentication required", http.StatusUnauthorized)
+			return
+		}
+		log.Error().Err(err).Msg("Failed to fetch brews")
+		handlers.HandleStoreError(w, err, "Failed to fetch brews")
+		return
+	}
+	handlers.WriteJSON(w, BrewListJSONResponse{
+		Brews:      res.brews,
+		HasMore:    res.hasMore,
+		NextOffset: res.nextOffset,
+	}, "brews")
+}
+
+// errBrewListUnauth is a sentinel for unauthenticated requests.
+var errBrewListUnauth = &brewListError{msg: "Authentication required"}
+
+type brewListError struct{ msg string }
+
+func (e *brewListError) Error() string { return e.msg }
+
+// handleBrewListPartial renders the brew list as an HTMX HTML table partial
+// (existing behavior).
+func (h *Handlers) handleBrewListPartial(w http.ResponseWriter, r *http.Request) {
+	res, err := h.fetchBrewList(r)
+	if err != nil {
+		if err == errBrewListUnauth {
+			http.Error(w, "Authentication required", http.StatusUnauthorized)
+			return
+		}
+		log.Error().Err(err).Msg("Failed to fetch brews")
+		handlers.HandleStoreError(w, err, "Failed to fetch brews")
+		return
+	}
+
 	if err := coffee.BrewListTablePartial(coffee.BrewListTableProps{
-		Brews:         brews,
+		Brews:         res.brews,
 		IsOwnProfile:  true,
-		ProfileHandle: profileHandle,
-		HasMore:       hasMore,
-		NextOffset:    offset + limit,
+		ProfileHandle: res.profileHandle,
+		HasMore:       res.hasMore,
+		NextOffset:    res.nextOffset,
 	}).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render content", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to render brew list partial")
 	}
 }
 
-// List all brews
-func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/my-coffee", http.StatusMovedPermanently)
-}
 
 // Show new brew form
 func (h *Handlers) HandleBrewNew(w http.ResponseWriter, r *http.Request) {

@@ -55,8 +55,11 @@ These endpoints were added in Phase 1 of the SvelteKit migration:
 | `/api/brewers/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
 | `/api/brews/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
 | `/api/recipes/{actor}/{id}` | GET | `{record, subject_uri, social, backlinks, ...}` | [entities.md](entities.md) |
-| `/brews` | POST | `{brew, incomplete_nudge?}` (JSON) or HX-Redirect | [brews.md](brews.md) |
+| `/api/brews` | POST | `{brew, incomplete_nudge?}` (JSON) or HX-Redirect | [brews.md](brews.md) |
 | `/brews/{id}` | PUT | `{brew}` (JSON) or HX-Redirect | [brews.md](brews.md) |
+| `/api/manage` | GET | `{did, beans[], roasters[], ..., stats}` | [manage.md](manage.md) |
+| `/api/brews` | GET | `{brews[], has_more, next_offset}` | [brew_list.md](brew_list.md) |
+| `/api/profile/{actor}` | GET | `{profile, brews[], beans[], ..., stats}` | [profile.md](profile.md) |
 | `/api/signup/categories` | GET | `{categories: [{title, description, providers: [...], dev_only}]}` | P1.14 |
 
 ## Endpoints to Add (Phase 1)
@@ -68,7 +71,9 @@ its own file as it is implemented:
 - `feed.md` — `GET /api/feed` (JSON feed items) **[done]**
 - `entities.md` — `GET /api/{entity}/{actor}/{id}` (entity view data) **[done]**
 - `brews.md` — `POST /brews`, `PUT /brews/{id}` (brew mutations) **[done]**
-- `profile.md` — `GET /api/profile/{actor}` (profile data bundle)
+- `manage.md` — `GET /api/manage` (records + stats) **[done]**
+- `brew_list.md` — `GET /api/brews` (paginated brew list) **[done]**
+- `profile.md` — `GET /api/profile/{actor}` (profile data bundle) **[done]**
 - `social.md` — likes, comments, reports (JSON mutations)
 - `manage.md` — `GET /api/manage` (records + stats)
 - `notifications.md` — `GET /api/notifications`

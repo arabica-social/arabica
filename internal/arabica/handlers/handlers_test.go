@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestHandleBrewListPartial_Success tests successful brew list retrieval
-func TestHandleBrewListPartial_Success(t *testing.T) {
+// TestHandleBrewList_Success tests successful brew list retrieval
+func TestHandleBrewList_Success(t *testing.T) {
 	tc := NewTestContext()
 	fixtures := tc.Fixtures
 
@@ -37,21 +37,21 @@ func TestHandleBrewListPartial_Success(t *testing.T) {
 	req := NewAuthenticatedRequest("GET", "/api/brews/list", nil)
 	rec := httptest.NewRecorder()
 
-	handler.HandleBrewListPartial(rec, req)
+	handler.HandleBrewList(rec, req)
 
 	// The handler will try to create an atproto store which will fail without proper setup
 	// This shows we need architectural changes to make handlers testable
 	assert.Equal(t, http.StatusUnauthorized, rec.Code, "Expected unauthorized when OAuth is nil")
 }
 
-// TestHandleBrewListPartial_Unauthenticated tests unauthenticated access
-func TestHandleBrewListPartial_Unauthenticated(t *testing.T) {
+// TestHandleBrewList_Unauthenticated tests unauthenticated access
+func TestHandleBrewList_Unauthenticated(t *testing.T) {
 	tc := NewTestContext()
 
 	req := NewUnauthenticatedRequest("GET", "/api/brews/list")
 	rec := httptest.NewRecorder()
 
-	tc.Handler.HandleBrewListPartial(rec, req)
+	tc.Handler.HandleBrewList(rec, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Authentication required")
