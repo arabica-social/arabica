@@ -33,6 +33,10 @@ type hideRequest struct {
 // HandleHideRecord handles POST /admin/hide
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleHideRecordJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
@@ -90,6 +94,10 @@ func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
 // HandleUnhideRecord handles POST /admin/unhide
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleUnhideRecordJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
@@ -247,6 +255,10 @@ func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
 // HandleAdminPartial renders just the admin dashboard content (for HTMX refresh)
 // Auth and moderator checks are handled by RequireModerator middleware.
 func (h *Handler) HandleAdminPartial(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleAdminJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	adminProps := h.buildAdminProps(r.Context(), userDID)
 
@@ -346,6 +358,10 @@ type blockRequest struct {
 // HandleBlockUser handles POST /_mod/block
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleBlockUserJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
@@ -401,6 +417,10 @@ func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
 // HandleUnblockUser handles POST /_mod/unblock
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleUnblockUserJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
@@ -448,6 +468,10 @@ func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
 // Resets the per-user auto-hide report counter so that only future reports count toward the threshold.
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleResetAutoHideJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
@@ -492,6 +516,10 @@ func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
 // HandleDismissReport handles POST /_mod/dismiss-report
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleDismissReportJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
@@ -536,6 +564,10 @@ func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
 // HandleAddLabel handles POST /_mod/label/add
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleAddLabel(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleAddLabelJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
@@ -611,6 +643,10 @@ func (h *Handler) HandleAddLabel(w http.ResponseWriter, r *http.Request) {
 // HandleRemoveLabel handles POST /_mod/label/remove
 // Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleRemoveLabel(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleRemoveLabelJSON(w, r)
+		return
+	}
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
@@ -698,6 +734,10 @@ func getGaugeValue(g prometheus.Gauge) float64 {
 // HandleAdminStats renders the stats partial for HTMX refresh.
 // Auth and admin checks are handled by RequireAdmin middleware.
 func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleAdminStatsJSON(w, r)
+		return
+	}
 	stats := h.collectAdminStats(r.Context())
 	var backups []backup.SourceStatus
 	if h.backupService != nil {

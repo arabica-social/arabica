@@ -158,6 +158,8 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /_mod", h.HandleAdmin)
 	mux.Handle("GET /_mod/content", middleware.RequireModerator(modSvc,
 		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial))))
+	mux.Handle("GET /api/_mod", middleware.RequireModerator(modSvc,
+		http.HandlerFunc(h.HandleAdminJSON)))
 	mux.Handle("POST /_mod/hide", cop.Handler(
 		middleware.RequirePermission(modSvc, moderation.PermissionHideRecord, http.HandlerFunc(h.HandleHideRecord))))
 	mux.Handle("POST /_mod/unhide", cop.Handler(
@@ -176,6 +178,8 @@ func SetupRouter(cfg Config) http.Handler {
 		middleware.RequirePermission(modSvc, moderation.PermissionManageLabels, http.HandlerFunc(h.HandleRemoveLabel))))
 	mux.Handle("GET /_mod/stats", middleware.RequireAdmin(modSvc,
 		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
+	mux.Handle("GET /api/_mod/stats", middleware.RequireAdmin(modSvc,
+		http.HandlerFunc(h.HandleAdminStatsJSON)))
 	mux.Handle("GET /_mod/export", middleware.RequireAdmin(modSvc,
 		http.HandlerFunc(h.HandleAdminExportDID)))
 	mux.Handle("POST /_mod/purge", cop.Handler(

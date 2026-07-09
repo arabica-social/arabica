@@ -3,7 +3,8 @@
   "title": "P3.3: Playwright E2E setup + critical paths",
   "tags": [],
   "status": "open",
-  "created_at": "2026-07-09T01:49:26.174Z"
+  "created_at": "2026-07-09T01:49:26.174Z",
+  "assigned_to_session": "019f448a-85a1-73ee-8c11-16c0e8e3ce91"
 }
 
 Set up Playwright E2E tests against the integration test harness.

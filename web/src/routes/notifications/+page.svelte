@@ -26,6 +26,7 @@
 		return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 	}
 
+	// svelte-ignore state_referenced_locally
 	let notifications = $state<NotificationItem[]>(data.notifications ?? []);
 	let markingRead = $state(false);
 

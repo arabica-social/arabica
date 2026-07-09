@@ -75,6 +75,9 @@ These endpoints were added in Phase 1 of the SvelteKit migration:
 | `/api/incomplete-records` | GET | `{records[]}` (JSON) or HTML | [onboarding.md](onboarding.md) |
 | `/api/popular-recipes` | GET | `[Recipe]` (JSON) or HTML | [onboarding.md](onboarding.md) |
 | `/api/{entity}/{actor}/{id}/backlinks` | GET | `{entity_noun, entity_name, result}` | [backlinks.md](backlinks.md) |
+| `/api/_mod` | GET | `{hidden_records, reports, audit_log, ...}` | [admin.md](admin.md) |
+| `/api/_mod/stats` | GET | `{stats, backups}` | [admin.md](admin.md) |
+| `/_mod/*` | POST | `{ok, action, message}` (JSON) or HX-Trigger | [admin.md](admin.md) |
 | `/api/signup/categories` | GET | `{categories: [{title, description, providers: [...], dev_only}]}` | P1.14 |
 
 ## Endpoints to Add (Phase 1)
@@ -95,5 +98,5 @@ its own file as it is implemented:
 - `settings.md` — `GET /api/settings`, settings mutations **[done]**
 - `onboarding.md` — `GET /api/onboarding`, incomplete records **[done]**
 - `backlinks.md` — `GET /api/{entity}/{actor}/{id}/backlinks` **[done]**
-- `admin.md` — moderation admin endpoints
+- `admin.md` — moderation admin endpoints **[done]**
 - `signup.md` — `GET /api/signup/categories` (PDS provider catalog) **[done]**
