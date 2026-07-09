@@ -2,7 +2,7 @@
   "id": "fbde820b",
   "title": "P3.3: Playwright E2E setup + critical paths",
   "tags": [],
-  "status": "open",
+  "status": "completed",
   "created_at": "2026-07-09T01:49:26.174Z",
   "assigned_to_session": "019f448a-85a1-73ee-8c11-16c0e8e3ce91"
 }

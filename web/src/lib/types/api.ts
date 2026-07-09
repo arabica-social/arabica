@@ -111,7 +111,110 @@ export type ExploreResponse = {
 	health: ExploreHealth;
 };
 
-// ===== Onboarding =====
+// ===== Admin =====
+
+export type HiddenRecord = {
+	at_uri: string;
+	hidden_at: string;
+	hidden_by: string;
+	reason: string;
+	auto_hidden: boolean;
+};
+
+export type BlacklistedUser = {
+	did: string;
+	blacklisted_at: string;
+	blacklisted_by: string;
+	reason: string;
+};
+
+export type Report = {
+	id: string;
+	subject_uri: string;
+	subject_did: string;
+	reporter_did: string;
+	reason: string;
+	created_at: string;
+	status: string;
+	resolved_by?: string;
+	resolved_at?: string;
+};
+
+export type EnrichedReport = {
+	Report: Report;
+	OwnerHandle: string;
+	ReporterHandle: string;
+	PostContent: string;
+};
+
+export type AuditEntry = {
+	id: string;
+	action: string;
+	actor_did: string;
+	target_uri: string;
+	reason: string;
+	details?: Record<string, string>;
+	timestamp: string;
+	auto_mod: boolean;
+};
+
+export type Label = {
+	id: string;
+	entity_type: string;
+	entity_id: string;
+	label: string;
+	value?: string;
+	created_at: string;
+	created_by: string;
+	expires_at?: string;
+};
+
+export type AdminStats = {
+	KnownUsers: number;
+	RegisteredUsers: number;
+	IndexedRecords: number;
+	TotalLikes: number;
+	TotalComments: number;
+	FirehoseConnected: boolean;
+	RecordsByCollection: Record<string, number>;
+};
+
+export type SourceStatus = {
+	Source: string;
+	LastRun: string;
+	LastSuccess: string;
+	LastFailure: string;
+	LastError: string;
+	LastDuration: number; // nanoseconds
+	LastSize: number;
+	RetainedCount: number;
+	NextRun: string;
+};
+
+export type AdminResponse = {
+	HiddenRecords: HiddenRecord[];
+	AuditLog: AuditEntry[];
+	Reports: EnrichedReport[];
+	BlockedUsers: BlacklistedUser[];
+	Labels: Label[];
+	Stats: AdminStats;
+	Backups: SourceStatus[];
+	CanHide: boolean;
+	CanUnhide: boolean;
+	CanViewLogs: boolean;
+	CanViewReports: boolean;
+	CanBlock: boolean;
+	CanUnblock: boolean;
+	CanResetAutoHide: boolean;
+	CanManageLabels: boolean;
+	IsAdmin: boolean;
+};
+
+export type AdminMutationResponse = {
+	ok: boolean;
+	action: string;
+	message?: string;
+};
 
 export type ReadinessStatus = {
 	HasBean: boolean;

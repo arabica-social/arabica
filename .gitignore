@@ -41,3 +41,10 @@ known-dids.txt
 roles.json
 .superpowers/
 .impeccable/critique/
+
+# E2E test artifacts
+tests/e2e/.server-url
+tests/e2e/.server-did
+e2e-server
+web/test-results/
+/playwright-report/

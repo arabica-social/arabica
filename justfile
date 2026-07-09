@@ -60,6 +60,25 @@ format:
     @gofmt -w ./
     @templ fmt . -w
 
+# Build the SPA (needed before running e2e-server).
+e2e-build:
+    @pnpm run build:svelte
+    @./scripts/build-spa.sh
+
+# Run E2E tests with Playwright. Boots the e2e-server (test PDS + SPA),
+# then runs the Playwright spec files against it.
+e2e: e2e-build
+    @echo 'Starting e2e-server...'
+    @go run -tags=integration ./cmd/e2e-server & echo $$! > /tmp/e2e-server.pid
+    @sleep 3
+    @echo 'Running Playwright tests...'
+    @cd web && CHROMIUM_PATH=$$(nix-shell -p chromium --run 'which chromium' 2>/dev/null | tail -1) pnpm exec playwright test
+    @kill `cat /tmp/e2e-server.pid` 2>/dev/null || true
+
+# Run only the e2e-server (without Playwright) for manual testing.
+e2e-server: e2e-build
+    @go run -tags=integration ./cmd/e2e-server
+
 # Run all CI checks locally (mirrors .github/workflows/ci.yml).
 ci-check:
     @just types-check

@@ -6,15 +6,15 @@
 </script>
 
 <svelte:head>
-	<title>Get Started - Arabica</title>
+	<title>Add Records - Arabica</title>
 </svelte:head>
 
 <div class="onboarding-wrap">
 	<header class="onboarding-hero">
-		<span class="onboarding-eyebrow">welcome to arabica</span>
-		<h1 class="onboarding-title">Let's get you started.</h1>
+		<span class="onboarding-eyebrow">your coffee bar</span>
+		<h1 class="onboarding-title">Add records.</h1>
 		<p class="onboarding-lede">
-			Add a <strong>brewer</strong>, a <strong>roaster</strong>, and your first bag of <strong>beans</strong> — that's all you need to start logging brews. Takes about two minutes.
+			Add a <strong>brewer</strong>, <strong>roaster</strong>, <strong>bean</strong>, or <strong>grinder</strong> — anything new on the shelf shows up across your brews.
 		</p>
 	</header>
 
@@ -24,6 +24,6 @@
 			<a href="/login" class="btn-primary">Log In</a>
 		</div>
 	{:else}
-		<GetStartedCard onboarding={data.onboarding} mode="onboarding" />
+		<GetStartedCard onboarding={data.onboarding} mode="library" />
 	{/if}
 </div>

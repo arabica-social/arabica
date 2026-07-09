@@ -26,6 +26,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/routing"
+	"tangled.org/arabica.social/arabica/internal/web/assets"
+	"tangled.org/arabica.social/arabica/internal/web/spa"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -139,6 +141,11 @@ type HarnessOptions struct {
 	// through the Consumer → FeedIndex pipeline, so records created via the
 	// PDS are automatically indexed. Use WaitForRecord to synchronise.
 	EnableFirehose bool
+	// EnableSPA wires the SvelteKit SPA shell handler so the catch-all
+	// route serves index.html with server-side <head> injection. Used by
+	// E2E (Playwright) tests that need a real browser to load the SPA.
+	// Requires the SPA build to be present in internal/web/spa/build/.
+	EnableSPA bool
 }
 
 // StartHarness boots a test PDS, creates a primary account, builds the full
@@ -231,12 +238,33 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	logger := zerolog.Nop()
 	app := arabicaapp.New()
 	h.SetApp(app)
+
+	var spaHandler http.Handler
+	if opts.EnableSPA {
+		// Build assets manifest (required for SPA shell <head> injection).
+		cssBundle := assets.New(assets.Config{AppName: app.Name})
+		cssBundle.MustBuild()
+		assets.Register(cssBundle)
+		jsAssets := assets.NewJSAssets(assets.JSConfig{})
+		jsAssets.MustBuild()
+		assets.RegisterJS(jsAssets)
+		manifest := assets.NewManifest(cssBundle, jsAssets)
+
+		sh, err := spa.NewShellHandler(manifest, app.Name)
+		require.NoError(t, err)
+		sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
+			return h.ResolveSessionData(ctx, did)
+		})
+		spaHandler = sh
+	}
+
 	router := routing.SetupRouter(routing.Config{
-		App:       app,
-		Handlers:  h,
-		OAuthApp:  oauthApp,
-		Logger:    logger,
-		AppRoutes: coffeehandlers.Routes{},
+		App:        app,
+		Handlers:   h,
+		OAuthApp:   oauthApp,
+		Logger:     logger,
+		AppRoutes:  coffeehandlers.Routes{},
+		SPAHandler: spaHandler,
 	})
 
 	// Wrap the router with the harness auth middleware so tests can pose as

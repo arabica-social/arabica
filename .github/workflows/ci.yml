@@ -76,6 +76,45 @@ jobs:
           git diff --exit-code web/src/lib/types/generated/ || \
             (echo "::error::Generated types are out of date. Run 'just types-generate' and commit." && exit 1)
 
+  # --- E2E tests (Playwright against test PDS + SPA) ---
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: cd web && pnpm exec playwright install --with-deps chromium
+
+      - name: Build SPA
+        run: |
+          pnpm run build:svelte
+          ./scripts/build-spa.sh
+
+      - name: Run E2E tests
+        run: just e2e
+
   # --- SvelteKit frontend: type-check + unit tests ---
   frontend:
     runs-on: ubuntu-latest
@@ -103,3 +142,4 @@ jobs:
 
       - name: Legacy island unit tests
         run: pnpm run test:svelte
+
