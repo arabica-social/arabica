@@ -39,6 +39,11 @@ type Config struct {
 	// GET routes (replacing the 404 handler). During migration this is nil
 	// unless explicitly enabled, so existing templ pages work unchanged.
 	SPAHandler http.Handler
+
+	// SPAEnabled, when true, tells route registrars to skip page-view routes
+	// that would otherwise shadow the SPA catch-all. API, auth, mutation,
+	// OG-image and static routes are still registered.
+	SPAEnabled bool
 }
 
 // AppRoutes is implemented by app-owned packages that register routes whose
@@ -50,9 +55,10 @@ type AppRoutes interface {
 // AppRouteContext exposes the shared dependencies app route registrars need
 // without making routing import either app package.
 type AppRouteContext struct {
-	App      *domain.App
-	Handlers *handlers.Handler
-	CSRF     *http.CrossOriginProtection
+	App        *domain.App
+	Handlers   *handlers.Handler
+	CSRF       *http.CrossOriginProtection
+	SPAEnabled bool
 }
 
 // SetupRouter creates and configures the HTTP router with all routes and middleware
@@ -94,21 +100,33 @@ func SetupRouter(cfg Config) http.Handler {
 	// JSON for the SvelteKit SPA; HX-Request returns the HTML partial.
 	mux.HandleFunc("GET /api/feed", h.HandleFeed)
 
-	// Page routes (must come before static files)
-	mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
+	// Page routes (must come before static files). When the SvelteKit SPA
+	// is enabled, skip HTML page handlers so the SPA catch-all serves those
+	// paths. API, auth, mutation, OG-image and static routes remain.
+	if !cfg.SPAEnabled {
+		mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
+		mux.HandleFunc("GET /about", h.HandleAbout)
+		mux.HandleFunc("GET /terms", h.HandleTerms)
+		mux.HandleFunc("GET /join/create", h.HandleCreateAccount)
+		mux.HandleFunc("GET /atproto", h.HandleATProto)
+		mux.HandleFunc("GET /notifications", h.HandleNotifications)
+		mux.HandleFunc("GET /settings", h.HandleSettings)
+		mux.HandleFunc("GET /_mod", h.HandleAdmin)
+		mux.Handle("GET /_mod/content", middleware.RequireModerator(cfg.ModerationService,
+			middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial))))
+		mux.Handle("GET /_mod/stats", middleware.RequireAdmin(cfg.ModerationService,
+			middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
+	}
 	mux.HandleFunc("GET /og-image", h.HandleSiteOGImage)
-	mux.HandleFunc("GET /about", h.HandleAbout)
-	mux.HandleFunc("GET /terms", h.HandleTerms)
-	mux.HandleFunc("GET /join/create", h.HandleCreateAccount)
 	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
 	mux.HandleFunc("GET /api/signup/categories", h.HandleSignupCategories)
-	mux.HandleFunc("GET /atproto", h.HandleATProto)
 
 	if cfg.AppRoutes != nil {
 		cfg.AppRoutes.RegisterAppRoutes(mux, AppRouteContext{
-			App:      cfg.App,
-			Handlers: h,
-			CSRF:     cop,
+			App:        cfg.App,
+			Handlers:   h,
+			CSRF:       cop,
+			SPAEnabled: cfg.SPAEnabled,
 		})
 	}
 
@@ -140,12 +158,10 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("DELETE /api/comments/{id}", cop.Handler(http.HandlerFunc(h.HandleCommentDelete)))
 
 	// Notification routes
-	mux.HandleFunc("GET /notifications", h.HandleNotifications)
 	mux.HandleFunc("GET /api/notifications", h.HandleNotificationsJSON)
 	mux.Handle("POST /api/notifications/read", cop.Handler(http.HandlerFunc(h.HandleNotificationsMarkRead)))
 
 	// Settings
-	mux.HandleFunc("GET /settings", h.HandleSettings)
 	mux.HandleFunc("GET /api/settings", h.HandleSettingsJSON)
 	mux.Handle("POST /api/settings/preferences", cop.Handler(http.HandlerFunc(h.HandleSettingsPreferences)))
 	mux.Handle("POST /api/settings/profile-visibility", cop.Handler(http.HandlerFunc(h.HandleSettingsProfileVisibility)))
@@ -155,9 +171,6 @@ func SetupRouter(cfg Config) http.Handler {
 	// Moderation routes
 	// HandleAdmin keeps its own auth check (redirects to / instead of 401)
 	modSvc := cfg.ModerationService
-	mux.HandleFunc("GET /_mod", h.HandleAdmin)
-	mux.Handle("GET /_mod/content", middleware.RequireModerator(modSvc,
-		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial))))
 	mux.Handle("GET /api/_mod", middleware.RequireModerator(modSvc,
 		http.HandlerFunc(h.HandleAdminJSON)))
 	mux.Handle("POST /_mod/hide", cop.Handler(
@@ -176,8 +189,6 @@ func SetupRouter(cfg Config) http.Handler {
 		middleware.RequirePermission(modSvc, moderation.PermissionManageLabels, http.HandlerFunc(h.HandleAddLabel))))
 	mux.Handle("POST /_mod/label/remove", cop.Handler(
 		middleware.RequirePermission(modSvc, moderation.PermissionManageLabels, http.HandlerFunc(h.HandleRemoveLabel))))
-	mux.Handle("GET /_mod/stats", middleware.RequireAdmin(modSvc,
-		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
 	mux.Handle("GET /api/_mod/stats", middleware.RequireAdmin(modSvc,
 		http.HandlerFunc(h.HandleAdminStatsJSON)))
 	mux.Handle("GET /_mod/export", middleware.RequireAdmin(modSvc,
@@ -334,7 +345,7 @@ func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.Handle
 // nil handler in a bundle field skips the corresponding route, letting
 // future entities omit (say) modal partials without forcing every app
 // to publish stubs.
-func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *domain.App, bundles []handlers.EntityRouteBundle) {
+func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *domain.App, bundles []handlers.EntityRouteBundle, spaEnabled bool) {
 	for _, b := range bundles {
 		if app.DescriptorByType(b.RecordType) == nil {
 			// Bundle declared a route for an entity this app doesn't run.
@@ -347,14 +358,16 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		}
 
 		urlPath := route.Path
-		if b.View != nil {
-			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.View))
+		if !spaEnabled {
+			if b.View != nil {
+				mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.View))
+			}
+			if b.Backlinks != nil {
+				mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.Backlinks))
+			}
 		}
 		if b.JSONView != nil {
 			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.JSONView))
-		}
-		if b.Backlinks != nil {
-			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.Backlinks))
 		}
 		if b.JSONBacklinks != nil {
 			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.JSONBacklinks))
@@ -371,6 +384,10 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		if b.Delete != nil {
 			mux.Handle("DELETE /api/"+urlPath+"/{id}", cop.Handler(b.Delete))
 		}
+		// Modal partials are kept even in SPA mode because simple-entity
+		// create/edit pages have not been ported to SvelteKit yet. They are
+		// used by both the legacy manage pages and the ported SPA pages
+		// (e.g. recipe edit modal).
 		if b.ModalNew != nil && route.Noun != "" {
 			mux.HandleFunc("GET /api/modals/"+route.Noun+"/new", b.ModalNew)
 		}

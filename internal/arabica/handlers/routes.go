@@ -17,44 +17,29 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	h := New(ctx.Handlers)
 	cop := ctx.CSRF
 
+	// API routes used by both the templ stack and the SvelteKit SPA.
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
-
 	mux.HandleFunc("GET /api/brews", h.HandleBrewList)
 	mux.HandleFunc("GET /api/manage", h.HandleManageAPI)
 	mux.HandleFunc("GET /api/incomplete-records", h.HandleIncompleteRecordsPartial)
 	mux.HandleFunc("GET /api/profile/{actor}", h.HandleProfileAPI)
-	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleGetStartedCard)))
 	mux.HandleFunc("GET /api/onboarding", h.HandleOnboardingJSON)
-	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOnboardingStationForm)))
 	mux.HandleFunc("GET /api/popular-recipes", h.HandlePopularRecipesPartial)
+	mux.HandleFunc("GET /api/explore", h.HandleExploreJSON)
 	mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(h.HandleManageRefresh)))
 
-	mux.HandleFunc("GET /onboarding", h.HandleOnboarding)
-	mux.HandleFunc("GET /add", h.HandleAddRecords)
-	mux.HandleFunc("GET /my-coffee", h.HandleMyCoffee)
-	mux.HandleFunc("GET /explore", h.HandleExplore)
-	mux.HandleFunc("GET /api/explore", h.HandleExploreJSON)
-	mux.HandleFunc("GET /manage", h.HandleManage)
-	mux.HandleFunc("GET /brews", h.HandleBrewList)
-	mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
-	mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
+	// Brew CRUD + OG image.
 	mux.HandleFunc("GET /brews/{actor}/{id}/og-image", routing.RewriteActorToOwner(h.HandleBrewOGImage))
-	mux.HandleFunc("GET /brews/{actor}/{id}", routing.RewriteActorToOwner(h.HandleBrewView))
 	mux.HandleFunc("GET /api/brews/{actor}/{id}", routing.RewriteActorToOwner(h.HandleBrewViewJSON))
 	mux.Handle("POST /brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreate)))
 	mux.Handle("PUT /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdate)))
 	mux.Handle("DELETE /brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewDelete)))
 	mux.HandleFunc("GET /brews/export", h.HandleBrewExport)
-	mux.HandleFunc("GET /beans/new", h.HandleBeanNew)
-	mux.HandleFunc("GET /beans/{id}/edit", h.HandleBeanEdit)
 
-	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
+	// Recipe CRUD + OG image + JSON backlinks.
 	mux.HandleFunc("GET /recipes/{actor}/{id}/og-image", routing.RewriteActorToOwner(h.HandleRecipeOGImage))
-	mux.HandleFunc("GET /recipes/{actor}/{id}/backlinks", routing.RewriteActorToOwner(h.HandleRecipeBacklinks))
 	mux.HandleFunc("GET /api/recipes/{actor}/{id}/backlinks", routing.RewriteActorToOwner(h.HandleRecipeBacklinksJSON))
-	mux.HandleFunc("GET /recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeView))
 	mux.HandleFunc("GET /api/recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeViewJSON))
-
 	mux.HandleFunc("GET /api/recipes", h.HandleRecipeList)
 	mux.HandleFunc("GET /api/recipes/suggestions", h.HandleRecipeSuggestions)
 	mux.HandleFunc("GET /api/recipes/{id}", h.HandleRecipeGet)
@@ -64,11 +49,41 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeCreateFromBrew)))
 	mux.Handle("POST /api/recipes/fork/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeFork)))
 
+	// Entity routes: page views/modals skipped in SPA mode; JSON/OG/mutation
+	// routes remain.
+	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.SPAEnabled)
+
+	// HTML/HTMX routes that have not been ported to SvelteKit yet. They are
+	// registered in both modes so users always have a working fallback.
+	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleGetStartedCard)))
+	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOnboardingStationForm)))
+
+	mux.HandleFunc("GET /manage", h.HandleManage)
+	mux.HandleFunc("GET /brews", h.HandleBrewList)
+	mux.HandleFunc("GET /beans/new", h.HandleBeanNew)
+	mux.HandleFunc("GET /beans/{id}/edit", h.HandleBeanEdit)
+
+	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
+	mux.HandleFunc("GET /recipes/{actor}/{id}/backlinks", routing.RewriteActorToOwner(h.HandleRecipeBacklinks))
+
+	// Recipe modal partials are used by both stacks until recipe create/edit
+	// pages are ported to SvelteKit.
 	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
 	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
 
-	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles())
-	mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
+	if !ctx.SPAEnabled {
+		// Ported SPA routes: only register the templ handlers in legacy
+		// mode. In SPA mode the SvelteKit catch-all serves these paths.
+		mux.HandleFunc("GET /onboarding", h.HandleOnboarding)
+		mux.HandleFunc("GET /add", h.HandleAddRecords)
+		mux.HandleFunc("GET /my-coffee", h.HandleMyCoffee)
+		mux.HandleFunc("GET /explore", h.HandleExplore)
+		mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
+		mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
+		mux.HandleFunc("GET /brews/{actor}/{id}", routing.RewriteActorToOwner(h.HandleBrewView))
+		mux.HandleFunc("GET /recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeView))
+		mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
+	}
 }
 
 // EntityRouteBundles returns the per-entity handler bundles for arabica's
@@ -77,56 +92,56 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 	return []handlers.EntityRouteBundle{
 		{
-			RecordType: lexicons.RecordTypeBean,
-			Create:     h.HandleBeanCreate,
-			Update:     h.HandleBeanUpdate,
-			Delete:     h.HandleBeanDelete,
-			View:       h.HandleBeanView,
-			JSONView:   h.HandleBeanViewJSON,
-			Backlinks:  h.HandleBeanBacklinks,
+			RecordType:    lexicons.RecordTypeBean,
+			Create:        h.HandleBeanCreate,
+			Update:        h.HandleBeanUpdate,
+			Delete:        h.HandleBeanDelete,
+			View:          h.HandleBeanView,
+			JSONView:      h.HandleBeanViewJSON,
+			Backlinks:     h.HandleBeanBacklinks,
 			JSONBacklinks: h.HandleBeanBacklinksJSON,
-			OGImage:    h.HandleBeanOGImage,
-			ModalNew:   h.HandleBeanModalNew,
-			ModalEdit:  h.HandleBeanModalEdit,
+			OGImage:       h.HandleBeanOGImage,
+			ModalNew:      h.HandleBeanModalNew,
+			ModalEdit:     h.HandleBeanModalEdit,
 		},
 		{
-			RecordType: lexicons.RecordTypeRoaster,
-			Create:     h.HandleRoasterCreate,
-			Update:     h.HandleRoasterUpdate,
-			Delete:     h.HandleRoasterDelete,
-			View:       h.HandleRoasterView,
-			JSONView:   h.HandleRoasterViewJSON,
-			Backlinks:  h.HandleRoasterBacklinks,
+			RecordType:    lexicons.RecordTypeRoaster,
+			Create:        h.HandleRoasterCreate,
+			Update:        h.HandleRoasterUpdate,
+			Delete:        h.HandleRoasterDelete,
+			View:          h.HandleRoasterView,
+			JSONView:      h.HandleRoasterViewJSON,
+			Backlinks:     h.HandleRoasterBacklinks,
 			JSONBacklinks: h.HandleRoasterBacklinksJSON,
-			OGImage:    h.HandleRoasterOGImage,
-			ModalNew:   h.HandleRoasterModalNew,
-			ModalEdit:  h.HandleRoasterModalEdit,
+			OGImage:       h.HandleRoasterOGImage,
+			ModalNew:      h.HandleRoasterModalNew,
+			ModalEdit:     h.HandleRoasterModalEdit,
 		},
 		{
-			RecordType: lexicons.RecordTypeGrinder,
-			Create:     h.HandleGrinderCreate,
-			Update:     h.HandleGrinderUpdate,
-			Delete:     h.HandleGrinderDelete,
-			View:       h.HandleGrinderView,
-			JSONView:   h.HandleGrinderViewJSON,
-			Backlinks:  h.HandleGrinderBacklinks,
+			RecordType:    lexicons.RecordTypeGrinder,
+			Create:        h.HandleGrinderCreate,
+			Update:        h.HandleGrinderUpdate,
+			Delete:        h.HandleGrinderDelete,
+			View:          h.HandleGrinderView,
+			JSONView:      h.HandleGrinderViewJSON,
+			Backlinks:     h.HandleGrinderBacklinks,
 			JSONBacklinks: h.HandleGrinderBacklinksJSON,
-			OGImage:    h.HandleGrinderOGImage,
-			ModalNew:   h.HandleGrinderModalNew,
-			ModalEdit:  h.HandleGrinderModalEdit,
+			OGImage:       h.HandleGrinderOGImage,
+			ModalNew:      h.HandleGrinderModalNew,
+			ModalEdit:     h.HandleGrinderModalEdit,
 		},
 		{
-			RecordType: lexicons.RecordTypeBrewer,
-			Create:     h.HandleBrewerCreate,
-			Update:     h.HandleBrewerUpdate,
-			Delete:     h.HandleBrewerDelete,
-			View:       h.HandleBrewerView,
-			JSONView:   h.HandleBrewerViewJSON,
-			Backlinks:  h.HandleBrewerBacklinks,
+			RecordType:    lexicons.RecordTypeBrewer,
+			Create:        h.HandleBrewerCreate,
+			Update:        h.HandleBrewerUpdate,
+			Delete:        h.HandleBrewerDelete,
+			View:          h.HandleBrewerView,
+			JSONView:      h.HandleBrewerViewJSON,
+			Backlinks:     h.HandleBrewerBacklinks,
 			JSONBacklinks: h.HandleBrewerBacklinksJSON,
-			OGImage:    h.HandleBrewerOGImage,
-			ModalNew:   h.HandleBrewerModalNew,
-			ModalEdit:  h.HandleBrewerModalEdit,
+			OGImage:       h.HandleBrewerOGImage,
+			ModalNew:      h.HandleBrewerModalNew,
+			ModalEdit:     h.HandleBrewerModalEdit,
 		},
 	}
 }

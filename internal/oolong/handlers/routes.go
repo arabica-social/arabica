@@ -34,19 +34,28 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	h := New(ctx.Handlers)
 	cop := ctx.CSRF
 
+	// API routes used by both the templ stack and the SvelteKit SPA.
 	mux.HandleFunc("GET /api/data", h.HandleOolongAPIListAll)
+	mux.Handle("POST /api/tea/refresh", cop.Handler(http.HandlerFunc(h.HandleTeaRefresh)))
+
+	// Entity routes: page views/modals skipped in SPA mode; JSON/OG/mutation
+	// routes remain.
+	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.SPAEnabled)
+
+	// Oolong-specific HTML pages and HTMX partials. The SvelteKit SPA does
+	// not yet have oolong equivalents for these routes, so keep them
+	// registered even in SPA mode. The shared /, /about, /terms, /atproto
+	// pages are handled by the SPA catch-all.
 	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOolongGetStartedCard)))
 	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOolongOnboardingStationForm)))
 
 	mux.HandleFunc("GET /onboarding", h.HandleOolongOnboarding)
 	mux.HandleFunc("GET /my-tea", h.HandleMyTea)
-	mux.Handle("POST /api/tea/refresh", cop.Handler(http.HandlerFunc(h.HandleTeaRefresh)))
 	mux.HandleFunc("GET /brews/new", h.HandleOolongSteepNew)
 	mux.HandleFunc("GET /brews/{id}/edit", h.HandleOolongSteepEdit)
 	mux.HandleFunc("GET /teas/new", h.HandleOolongTeaNew)
 	mux.HandleFunc("GET /teas/{id}/edit", h.HandleOolongTeaEdit)
 
-	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles())
 	mux.HandleFunc("GET /profile/{actor}", h.HandleOolongProfile)
 }
 

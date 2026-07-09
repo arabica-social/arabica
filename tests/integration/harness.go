@@ -270,6 +270,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		Logger:     logger,
 		AppRoutes:  coffeehandlers.Routes{},
 		SPAHandler: spaHandler,
+		SPAEnabled: opts.EnableSPA,
 		JSAssets:   jsAssets,
 	})
 
