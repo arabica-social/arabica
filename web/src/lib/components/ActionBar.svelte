@@ -85,15 +85,23 @@
 			const res = await fetch("/api/likes/toggle", {
 				method: "POST",
 				credentials: "same-origin",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Accept: "application/json",
+				},
 				body: new URLSearchParams({
 					subject_uri: subjectURI,
 					subject_cid: subjectCID,
 				}),
 			});
 			if (!res.ok) throw new Error(`Like failed: ${res.status}`);
-			// The HTMX endpoint returns HTML; we ignore the body and trust the
-			// optimistic state. When P1.9 ships a JSON response, parse it here.
+			// Parse JSON response from the social API (P1.9) to sync real state.
+			const contentType = res.headers.get("content-type") ?? "";
+			if (contentType.includes("application/json")) {
+				const data = await res.json();
+				if (typeof data.is_liked === "boolean") isLiked = data.is_liked;
+				if (typeof data.like_count === "number") likeCount = data.like_count;
+			}
 		} catch (error) {
 			// Revert on failure
 			isLiked = prevLiked;

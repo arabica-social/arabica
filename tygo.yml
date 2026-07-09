@@ -98,3 +98,17 @@ packages:
       - "routes.go"
       - "testutil.go"
       - "views.go"
+
+  # Notifications (Notification struct used in the notifications JSON API)
+  - path: "tangled.org/arabica.social/arabica/internal/notifications"
+    output_path: "web/src/lib/types/generated/notifications.ts"
+    type_mappings:
+      time.Time: "string"
+
+  # Backlinks (Result, Entry, UsageGroup used in entity view + backlinks JSON)
+  - path: "tangled.org/arabica.social/arabica/internal/backlinks"
+    output_path: "web/src/lib/types/generated/backlinks.ts"
+    type_mappings:
+      time.Time: "string"
+    exclude_files:
+      - "service_test.go"

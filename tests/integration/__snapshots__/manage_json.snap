@@ -1,0 +1,83 @@
+---
+title: manage json
+test_name: TestSnap_API_ManageJSON
+file_name: api_snapshot_test.go
+version: 0.1.0
+---
+{
+  "beans": [
+    {
+      "closed": false,
+      "created_at": "<TIMESTAMP>",
+      "description": "",
+      "link": "",
+      "name": "Snap Manage Bean",
+      "notes": "",
+      "origin": "",
+      "process": "",
+      "rkey": "<RKEY:bean>",
+      "roast_level": "",
+      "roaster": {
+        "created_at": "<TIMESTAMP>",
+        "location": "",
+        "name": "Snap Manage Roaster",
+        "rkey": "<RKEY:roaster>",
+        "website": ""
+      },
+      "roaster_rkey": "<RKEY:roaster>",
+      "variety": ""
+    }
+  ],
+  "brewers": [
+    {
+      "brewer_type": "",
+      "created_at": "<TIMESTAMP>",
+      "description": "",
+      "link": "",
+      "name": "Snap Manage Brewer",
+      "rkey": "<RKEY:brewer>"
+    }
+  ],
+  "did": "<DID>",
+  "grinders": [
+    {
+      "burr_type": "",
+      "created_at": "<TIMESTAMP>",
+      "grinder_type": "",
+      "link": "",
+      "name": "Snap Manage Grinder",
+      "notes": "",
+      "rkey": "<RKEY:grinder>"
+    }
+  ],
+  "recipes": [],
+  "roasters": [
+    {
+      "created_at": "<TIMESTAMP>",
+      "location": "",
+      "name": "Snap Manage Roaster",
+      "rkey": "<RKEY:roaster>",
+      "website": ""
+    }
+  ],
+  "stats": {
+    "bean_avg_brew_ratings": {
+      "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>": 8
+    },
+    "bean_brew_counts": {
+      "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>": 1
+    },
+    "brewer_brew_counts": {
+      "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>": 1
+    },
+    "grinder_brew_counts": {
+      "at://<DID>/social.arabica.alpha.grinder/<RKEY:grinder>": 1
+    },
+    "roaster_avg_brew_ratings": {
+      "at://<DID>/social.arabica.alpha.roaster/<RKEY:roaster>": 8
+    },
+    "roaster_bean_counts": {
+      "at://<DID>/social.arabica.alpha.roaster/<RKEY:roaster>": 1
+    }
+  }
+}

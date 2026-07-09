@@ -1,0 +1,55 @@
+---
+title: entity view roaster json
+test_name: TestSnap_API_EntityViewRoasterJSON
+file_name: api_snapshot_test.go
+version: 0.1.0
+---
+{
+  "author": {
+    "did": "<DID>"
+  },
+  "backlinks": {
+    "LibraryCount": 0,
+    "LibraryEntries": [],
+    "RatingAverage": 0,
+    "RatingCount": 0,
+    "Usage": [
+      {
+        "Count": 0,
+        "Entries": [],
+        "HasNext": false,
+        "HasPrev": false,
+        "Key": "beans",
+        "Label": "beans",
+        "Page": 1,
+        "PerPage": 0,
+        "RatingAverage": 0,
+        "RatingCount": 0
+      }
+    ],
+    "UsageCount": 0
+  },
+  "entity_count": 0,
+  "entity_type": "roaster",
+  "is_authenticated": true,
+  "is_own_profile": true,
+  "record": {
+    "created_at": "<TIMESTAMP>",
+    "location": "Portland, OR",
+    "name": "Snap Roaster",
+    "rkey": "<RKEY:roaster>",
+    "website": "https://snap.example.com"
+  },
+  "share_url": "/roasters/<DID>/<RKEY:roaster>",
+  "social": {
+    "can_block_user": false,
+    "can_hide_record": false,
+    "comment_count": 0,
+    "comments": null,
+    "is_liked": false,
+    "is_moderator": false,
+    "is_record_hidden": false,
+    "like_count": 0
+  },
+  "subject_uri": "at://<DID>/social.arabica.alpha.roaster/<RKEY:roaster>"
+}

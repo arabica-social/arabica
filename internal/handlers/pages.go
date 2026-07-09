@@ -98,6 +98,10 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleSettingsPreferences(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleSettingsPreferencesJSON(w, r)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid form", http.StatusBadRequest)
 		return
@@ -126,6 +130,10 @@ func (h *Handler) HandleSettingsPreferences(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http.Request) {
+	if WantsJSON(r) {
+		h.HandleSettingsProfileVisibilityJSON(w, r)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid form", http.StatusBadRequest)
 		return

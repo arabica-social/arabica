@@ -60,6 +60,21 @@ These endpoints were added in Phase 1 of the SvelteKit migration:
 | `/api/manage` | GET | `{did, beans[], roasters[], ..., stats}` | [manage.md](manage.md) |
 | `/api/brews` | GET | `{brews[], has_more, next_offset}` | [brew_list.md](brew_list.md) |
 | `/api/profile/{actor}` | GET | `{profile, brews[], beans[], ..., stats}` | [profile.md](profile.md) |
+| `/api/notifications` | GET | `{notifications[], next_cursor}` | [notifications.md](notifications.md) |
+| `/api/notifications/read` | POST | `{read: true}` (JSON) or redirect | [notifications.md](notifications.md) |
+| `/api/explore` | GET | `{items[], documents, facet_counts, next_cursor, health}` | [explore.md](explore.md) |
+| `/api/likes/toggle` | POST | `{is_liked, like_count, subject_uri}` (JSON) or HTML | [social.md](social.md) |
+| `/api/comments` | GET | `{comments[], subject_uri, is_authenticated}` (JSON) or HTML | [social.md](social.md) |
+| `/api/comments` | POST | `{comment, comments[]}` (JSON) or HTML | [social.md](social.md) |
+| `/api/comments/{id}` | DELETE | `{deleted: true}` (JSON) or HX-Trigger | [social.md](social.md) |
+| `/api/report` | POST | `{report_id, submitted}` (JSON) or HTML | [social.md](social.md) |
+| `/api/settings` | GET | `{profile_stats_visibility, user_preferences, bluesky_profile}` | [settings.md](settings.md) |
+| `/api/settings/preferences` | POST | `{saved: true}` (JSON) or HTML | [settings.md](settings.md) |
+| `/api/settings/profile-visibility` | POST | `{saved: true}` (JSON) or HTML | [settings.md](settings.md) |
+| `/api/onboarding` | GET | `{readiness, beans[], brewers[], ...}` | [onboarding.md](onboarding.md) |
+| `/api/incomplete-records` | GET | `{records[]}` (JSON) or HTML | [onboarding.md](onboarding.md) |
+| `/api/popular-recipes` | GET | `[Recipe]` (JSON) or HTML | [onboarding.md](onboarding.md) |
+| `/api/{entity}/{actor}/{id}/backlinks` | GET | `{entity_noun, entity_name, result}` | [backlinks.md](backlinks.md) |
 | `/api/signup/categories` | GET | `{categories: [{title, description, providers: [...], dev_only}]}` | P1.14 |
 
 ## Endpoints to Add (Phase 1)
@@ -77,7 +92,8 @@ its own file as it is implemented:
 - `notifications.md` — `GET /api/notifications` **[done]**
 - `explore.md` — `GET /api/explore` **[done]**
 - `social.md` — likes, comments, reports (JSON mutations) **[done]**
-- `settings.md` — `GET /api/settings`, settings mutations
-- `onboarding.md` — `GET /api/onboarding`, incomplete records
+- `settings.md` — `GET /api/settings`, settings mutations **[done]**
+- `onboarding.md` — `GET /api/onboarding`, incomplete records **[done]**
+- `backlinks.md` — `GET /api/{entity}/{actor}/{id}/backlinks` **[done]**
 - `admin.md` — moderation admin endpoints
 - `signup.md` — `GET /api/signup/categories` (PDS provider catalog) **[done]**

@@ -1,0 +1,66 @@
+---
+title: brew list json
+test_name: TestSnap_API_BrewListJSON
+file_name: api_snapshot_test.go
+version: 0.1.0
+---
+{
+  "brews": [
+    {
+      "bean": {
+        "closed": false,
+        "created_at": "<TIMESTAMP>",
+        "description": "",
+        "link": "",
+        "name": "Snap BrewList Bean",
+        "notes": "",
+        "origin": "",
+        "process": "",
+        "rkey": "<RKEY:bean>",
+        "roast_level": "",
+        "roaster": {
+          "created_at": "<TIMESTAMP>",
+          "location": "",
+          "name": "Snap BrewList Roaster",
+          "rkey": "<RKEY:roaster>",
+          "website": ""
+        },
+        "roaster_rkey": "<RKEY:roaster>",
+        "variety": ""
+      },
+      "bean_rkey": "<RKEY:bean>",
+      "brewer_obj": {
+        "brewer_type": "",
+        "created_at": "<TIMESTAMP>",
+        "description": "",
+        "link": "",
+        "name": "Snap BrewList Brewer",
+        "rkey": "<RKEY:brewer>"
+      },
+      "brewer_rkey": "<RKEY:brewer>",
+      "coffee_amount": 15,
+      "created_at": "<TIMESTAMP>",
+      "grind_size": "",
+      "grinder_obj": {
+        "burr_type": "",
+        "created_at": "<TIMESTAMP>",
+        "grinder_type": "",
+        "link": "",
+        "name": "Snap BrewList Grinder",
+        "notes": "",
+        "rkey": "<RKEY:grinder>"
+      },
+      "grinder_rkey": "<RKEY:grinder>",
+      "method": "Pour Over",
+      "rating": 7,
+      "recipe_rkey": "",
+      "rkey": "<RKEY:brew>",
+      "tasting_notes": "",
+      "temperature": 0,
+      "time_seconds": 0,
+      "water_amount": 250
+    }
+  ],
+  "has_more": false,
+  "next_offset": 25
+}

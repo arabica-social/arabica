@@ -1,0 +1,69 @@
+---
+title: entity view bean json
+test_name: TestSnap_API_EntityViewBeanJSON
+file_name: api_snapshot_test.go
+version: 0.1.0
+---
+{
+  "author": {
+    "did": "<DID>"
+  },
+  "backlinks": {
+    "LibraryCount": 0,
+    "LibraryEntries": [],
+    "RatingAverage": 0,
+    "RatingCount": 0,
+    "Usage": [
+      {
+        "Count": 0,
+        "Entries": [],
+        "HasNext": false,
+        "HasPrev": false,
+        "Key": "brews",
+        "Label": "brews",
+        "Page": 1,
+        "PerPage": 0,
+        "RatingAverage": 0,
+        "RatingCount": 0
+      }
+    ],
+    "UsageCount": 0
+  },
+  "entity_count": 0,
+  "entity_type": "bean",
+  "is_authenticated": true,
+  "is_own_profile": true,
+  "record": {
+    "closed": false,
+    "created_at": "<TIMESTAMP>",
+    "description": "",
+    "link": "",
+    "name": "Snap Bean",
+    "notes": "",
+    "origin": "Colombia",
+    "process": "Washed",
+    "rkey": "<RKEY:bean>",
+    "roast_level": "Medium",
+    "roaster": {
+      "created_at": "<TIMESTAMP>",
+      "location": "",
+      "name": "Snap Bean Roaster",
+      "rkey": "<RKEY:roaster>",
+      "website": ""
+    },
+    "roaster_rkey": "<RKEY:roaster>",
+    "variety": "Caturra"
+  },
+  "share_url": "/beans/<DID>/<RKEY:bean>",
+  "social": {
+    "can_block_user": false,
+    "can_hide_record": false,
+    "comment_count": 0,
+    "comments": null,
+    "is_liked": false,
+    "is_moderator": false,
+    "is_record_hidden": false,
+    "like_count": 0
+  },
+  "subject_uri": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>"
+}

@@ -1,0 +1,19 @@
+---
+title: settings json
+test_name: TestSnap_API_SettingsJSON
+file_name: api_snapshot_test.go
+version: 0.1.0
+---
+{
+  "bluesky_profile": {
+    "has_scopes": false,
+    "needs_auth_again": true
+  },
+  "profile_stats_visibility": {
+    "bean_avg_rating": "private",
+    "roaster_avg_rating": "public"
+  },
+  "user_preferences": {
+    "temperature_unit": "fahrenheit"
+  }
+}

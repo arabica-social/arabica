@@ -76,13 +76,21 @@
 			const res = await fetch("/api/comments", {
 				method: "POST",
 				credentials: "same-origin",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Accept: "application/json",
+				},
 				body,
 			});
 			if (!res.ok) throw new Error(`Comment failed: ${res.status}`);
-			// The HTMX endpoint returns HTML; refetch the JSON comments list to
-			// get the updated thread. When P1.9 ships JSON, parse the response.
-			await refetchComments();
+			// Parse the JSON response (P1.9) to sync the updated comment thread.
+			const contentType = res.headers.get("content-type") ?? "";
+			if (contentType.includes("application/json")) {
+				const data = await res.json();
+				if (Array.isArray(data.comments)) localComments = data.comments;
+			} else {
+				await refetchComments();
+			}
 			commentText = "";
 		} catch (error) {
 			console.error("Comment failed:", error);
@@ -99,11 +107,14 @@
 				`/api/comments?subject_uri=${encodeURIComponent(subjectURI)}`,
 				{ credentials: "same-origin", headers: { Accept: "application/json" } },
 			);
-			// The endpoint currently returns HTML; when it returns JSON we'll
-			// parse it. For now, a full page reload refreshes comments.
 			if (!res.ok) return;
+			const contentType = res.headers.get("content-type") ?? "";
+			if (contentType.includes("application/json")) {
+				const data = await res.json();
+				if (Array.isArray(data.comments)) localComments = data.comments;
+			}
 		} catch {
-			// Ignore — optimistic state is fine until JSON endpoint lands.
+			// Ignore — keep the optimistic state.
 		}
 	}
 
@@ -113,9 +124,17 @@
 			const res = await fetch(`/api/comments/${rkey}`, {
 				method: "DELETE",
 				credentials: "same-origin",
+				headers: { Accept: "application/json" },
 			});
 			if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
-			localComments = localComments.filter((c) => c.rkey !== rkey);
+			// If the endpoint returns the updated thread, sync it.
+			const contentType = res.headers.get("content-type") ?? "";
+			if (contentType.includes("application/json")) {
+				const data = await res.json();
+				if (Array.isArray(data.comments)) localComments = data.comments;
+			} else {
+				localComments = localComments.filter((c) => c.rkey !== rkey);
+			}
 			pushToast("Comment deleted");
 		} catch (error) {
 			console.error("Delete failed:", error);

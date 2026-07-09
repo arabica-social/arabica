@@ -72,6 +72,26 @@ export interface ManageResponseJSON {
 }
 
 //////////
+// source: onboarding_json.go
+
+/**
+ * OnboardingResponseJSON is the JSON envelope returned by GET /api/onboarding.
+ */
+export interface OnboardingResponseJSON {
+  readiness: any /* onboarding.ReadinessStatus */;
+  beans: (any /* arabica.Bean */ | undefined)[];
+  brewers: (any /* arabica.Brewer */ | undefined)[];
+  grinders: (any /* arabica.Grinder */ | undefined)[];
+  roasters: (any /* arabica.Roaster */ | undefined)[];
+}
+/**
+ * IncompleteRecordsResponseJSON is the JSON envelope returned by GET /api/incomplete-records.
+ */
+export interface IncompleteRecordsResponseJSON {
+  records: any /* coffee.IncompleteRecord */[];
+}
+
+//////////
 // source: profile_json.go
 
 /**

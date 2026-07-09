@@ -21,11 +21,12 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 
 	mux.HandleFunc("GET /api/brews", h.HandleBrewList)
 	mux.HandleFunc("GET /api/manage", h.HandleManageAPI)
-	mux.Handle("GET /api/incomplete-records", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleIncompleteRecordsPartial)))
+	mux.HandleFunc("GET /api/incomplete-records", h.HandleIncompleteRecordsPartial)
 	mux.HandleFunc("GET /api/profile/{actor}", h.HandleProfileAPI)
 	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleGetStartedCard)))
+	mux.HandleFunc("GET /api/onboarding", h.HandleOnboardingJSON)
 	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOnboardingStationForm)))
-	mux.Handle("GET /api/popular-recipes", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandlePopularRecipesPartial)))
+	mux.HandleFunc("GET /api/popular-recipes", h.HandlePopularRecipesPartial)
 	mux.Handle("POST /api/manage/refresh", cop.Handler(http.HandlerFunc(h.HandleManageRefresh)))
 
 	mux.HandleFunc("GET /onboarding", h.HandleOnboarding)
@@ -50,6 +51,7 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
 	mux.HandleFunc("GET /recipes/{actor}/{id}/og-image", routing.RewriteActorToOwner(h.HandleRecipeOGImage))
 	mux.HandleFunc("GET /recipes/{actor}/{id}/backlinks", routing.RewriteActorToOwner(h.HandleRecipeBacklinks))
+	mux.HandleFunc("GET /api/recipes/{actor}/{id}/backlinks", routing.RewriteActorToOwner(h.HandleRecipeBacklinksJSON))
 	mux.HandleFunc("GET /recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeView))
 	mux.HandleFunc("GET /api/recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeViewJSON))
 
@@ -82,6 +84,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			View:       h.HandleBeanView,
 			JSONView:   h.HandleBeanViewJSON,
 			Backlinks:  h.HandleBeanBacklinks,
+			JSONBacklinks: h.HandleBeanBacklinksJSON,
 			OGImage:    h.HandleBeanOGImage,
 			ModalNew:   h.HandleBeanModalNew,
 			ModalEdit:  h.HandleBeanModalEdit,
@@ -94,6 +97,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			View:       h.HandleRoasterView,
 			JSONView:   h.HandleRoasterViewJSON,
 			Backlinks:  h.HandleRoasterBacklinks,
+			JSONBacklinks: h.HandleRoasterBacklinksJSON,
 			OGImage:    h.HandleRoasterOGImage,
 			ModalNew:   h.HandleRoasterModalNew,
 			ModalEdit:  h.HandleRoasterModalEdit,
@@ -106,6 +110,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			View:       h.HandleGrinderView,
 			JSONView:   h.HandleGrinderViewJSON,
 			Backlinks:  h.HandleGrinderBacklinks,
+			JSONBacklinks: h.HandleGrinderBacklinksJSON,
 			OGImage:    h.HandleGrinderOGImage,
 			ModalNew:   h.HandleGrinderModalNew,
 			ModalEdit:  h.HandleGrinderModalEdit,
@@ -118,6 +123,7 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			View:       h.HandleBrewerView,
 			JSONView:   h.HandleBrewerViewJSON,
 			Backlinks:  h.HandleBrewerBacklinks,
+			JSONBacklinks: h.HandleBrewerBacklinksJSON,
 			OGImage:    h.HandleBrewerOGImage,
 			ModalNew:   h.HandleBrewerModalNew,
 			ModalEdit:  h.HandleBrewerModalEdit,

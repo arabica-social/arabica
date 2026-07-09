@@ -146,6 +146,7 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// Settings
 	mux.HandleFunc("GET /settings", h.HandleSettings)
+	mux.HandleFunc("GET /api/settings", h.HandleSettingsJSON)
 	mux.Handle("POST /api/settings/preferences", cop.Handler(http.HandlerFunc(h.HandleSettingsPreferences)))
 	mux.Handle("POST /api/settings/profile-visibility", cop.Handler(http.HandlerFunc(h.HandleSettingsProfileVisibility)))
 	mux.Handle("POST /api/settings/bluesky-profile", cop.Handler(http.HandlerFunc(h.HandleUpdateBlueskyProfile)))
@@ -350,6 +351,9 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		}
 		if b.Backlinks != nil {
 			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.Backlinks))
+		}
+		if b.JSONBacklinks != nil {
+			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.JSONBacklinks))
 		}
 		if b.OGImage != nil {
 			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/og-image", RewriteActorToOwner(b.OGImage))

@@ -1,0 +1,135 @@
+---
+title: profile json
+test_name: TestSnap_API_ProfileJSON
+file_name: api_snapshot_test.go
+version: 0.1.0
+---
+{
+  "bean_avg_brew_ratings": null,
+  "bean_brew_counts": {},
+  "beans": [
+    {
+      "closed": false,
+      "created_at": "<TIMESTAMP>",
+      "description": "",
+      "link": "",
+      "name": "Snap Profile Bean",
+      "notes": "",
+      "origin": "",
+      "process": "",
+      "rkey": "<RKEY:bean>",
+      "roast_level": "",
+      "roaster": {
+        "created_at": "<TIMESTAMP>",
+        "location": "",
+        "name": "Snap Profile Roaster",
+        "rkey": "<RKEY:roaster>",
+        "website": ""
+      },
+      "roaster_rkey": "<RKEY:roaster>",
+      "variety": ""
+    }
+  ],
+  "brew_cids": {},
+  "brew_comment_counts": {},
+  "brew_like_counts": {},
+  "brew_liked_by_user": {},
+  "brewer_brew_counts": {},
+  "brewers": [
+    {
+      "brewer_type": "",
+      "created_at": "<TIMESTAMP>",
+      "description": "",
+      "link": "",
+      "name": "Snap Profile Brewer",
+      "rkey": "<RKEY:brewer>"
+    }
+  ],
+  "brews": [
+    {
+      "bean": {
+        "closed": false,
+        "created_at": "<TIMESTAMP>",
+        "description": "",
+        "link": "",
+        "name": "Snap Profile Bean",
+        "notes": "",
+        "origin": "",
+        "process": "",
+        "rkey": "<RKEY:bean>",
+        "roast_level": "",
+        "roaster": {
+          "created_at": "<TIMESTAMP>",
+          "location": "",
+          "name": "Snap Profile Roaster",
+          "rkey": "<RKEY:roaster>",
+          "website": ""
+        },
+        "roaster_rkey": "<RKEY:roaster>",
+        "variety": ""
+      },
+      "bean_rkey": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+      "brewer_obj": {
+        "brewer_type": "",
+        "created_at": "<TIMESTAMP>",
+        "description": "",
+        "link": "",
+        "name": "Snap Profile Brewer",
+        "rkey": "<RKEY:brewer>"
+      },
+      "brewer_rkey": "at://<DID>/social.arabica.alpha.brewer/<RKEY:brewer>",
+      "coffee_amount": 18,
+      "created_at": "<TIMESTAMP>",
+      "grind_size": "",
+      "grinder_obj": {
+        "burr_type": "",
+        "created_at": "<TIMESTAMP>",
+        "grinder_type": "",
+        "link": "",
+        "name": "Snap Profile Grinder",
+        "notes": "",
+        "rkey": "<RKEY:grinder>"
+      },
+      "grinder_rkey": "at://<DID>/social.arabica.alpha.grinder/<RKEY:grinder>",
+      "method": "Pour Over",
+      "rating": 9,
+      "recipe_rkey": "",
+      "rkey": "<RKEY:brew>",
+      "tasting_notes": "",
+      "temperature": 0,
+      "time_seconds": 0,
+      "water_amount": 300
+    }
+  ],
+  "brews_has_more": false,
+  "brews_next_offset": 1,
+  "did": "<DID>",
+  "grinder_brew_counts": {},
+  "grinders": [
+    {
+      "burr_type": "",
+      "created_at": "<TIMESTAMP>",
+      "grinder_type": "",
+      "link": "",
+      "name": "Snap Profile Grinder",
+      "notes": "",
+      "rkey": "<RKEY:grinder>"
+    }
+  ],
+  "is_arabica_user": true,
+  "is_authenticated": true,
+  "is_own_profile": true,
+  "profile": {},
+  "roaster_avg_brew_ratings": null,
+  "roaster_bean_counts": {},
+  "roasters": [
+    {
+      "created_at": "<TIMESTAMP>",
+      "location": "",
+      "name": "Snap Profile Roaster",
+      "rkey": "<RKEY:roaster>",
+      "website": ""
+    }
+  ],
+  "total_brews": 1
+}

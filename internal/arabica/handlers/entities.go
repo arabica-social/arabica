@@ -313,6 +313,10 @@ func (h *Handlers) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
 
 // HandleIncompleteRecordsPartial returns an HTML fragment for incomplete records on the home dashboard.
 func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.Request) {
+	if handlers.WantsJSON(r) {
+		h.HandleIncompleteRecordsJSON(w, r)
+		return
+	}
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		return

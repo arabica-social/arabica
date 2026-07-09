@@ -1,0 +1,70 @@
+---
+title: feed json
+test_name: TestSnap_API_FeedJSON
+file_name: api_snapshot_test.go
+version: 0.1.0
+---
+{
+  "is_authenticated": true,
+  "items": [
+    {
+      "action": "added a new bean",
+      "author": {
+        "did": "<DID>"
+      },
+      "comment_count": 0,
+      "is_liked_by_viewer": false,
+      "is_owner": true,
+      "like_count": 0,
+      "record": {
+        "closed": false,
+        "created_at": "<TIMESTAMP>",
+        "description": "",
+        "link": "",
+        "name": "Snap Feed Bean",
+        "notes": "",
+        "origin": "Ethiopia",
+        "process": "",
+        "rkey": "<RKEY:bean>",
+        "roast_level": "",
+        "roaster": {
+          "created_at": "<TIMESTAMP>",
+          "location": "",
+          "name": "Snap Feed Roaster",
+          "rkey": "<RKEY:roaster>",
+          "website": ""
+        },
+        "roaster_rkey": "<RKEY:roaster>",
+        "variety": ""
+      },
+      "record_type": "bean",
+      "subject_uri": "at://<DID>/social.arabica.alpha.bean/<RKEY:bean>",
+      "timestamp": "<TIMESTAMP>"
+    },
+    {
+      "action": "added a new roaster",
+      "author": {
+        "did": "<DID>"
+      },
+      "comment_count": 0,
+      "is_liked_by_viewer": false,
+      "is_owner": true,
+      "like_count": 0,
+      "record": {
+        "created_at": "<TIMESTAMP>",
+        "location": "",
+        "name": "Snap Feed Roaster",
+        "rkey": "<RKEY:roaster>",
+        "website": ""
+      },
+      "record_type": "roaster",
+      "subject_uri": "at://<DID>/social.arabica.alpha.roaster/<RKEY:roaster>",
+      "timestamp": "<TIMESTAMP>"
+    }
+  ],
+  "next_cursor": "",
+  "query": {
+    "sort": "recent",
+    "type": ""
+  }
+}

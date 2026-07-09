@@ -175,6 +175,11 @@ func (h *Handlers) HandleBeanBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.beanViewConfig())
 }
 
+// HandleBeanBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
+func (h *Handlers) HandleBeanBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.beanViewConfig())
+}
+
 // HandleRoasterView shows a roaster detail page with social features
 func (h *Handlers) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.roasterViewConfig())
@@ -187,6 +192,11 @@ func (h *Handlers) HandleRoasterViewJSON(w http.ResponseWriter, r *http.Request)
 
 func (h *Handlers) HandleRoasterBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.roasterViewConfig())
+}
+
+// HandleRoasterBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
+func (h *Handlers) HandleRoasterBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.roasterViewConfig())
 }
 
 // HandleGrinderView shows a grinder detail page with social features
@@ -203,6 +213,11 @@ func (h *Handlers) HandleGrinderBacklinks(w http.ResponseWriter, r *http.Request
 	h.RenderBacklinksView(w, r, h.grinderViewConfig())
 }
 
+// HandleGrinderBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
+func (h *Handlers) HandleGrinderBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.grinderViewConfig())
+}
+
 // HandleBrewerView shows a brewer detail page with social features
 func (h *Handlers) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.brewerViewConfig())
@@ -215,6 +230,11 @@ func (h *Handlers) HandleBrewerViewJSON(w http.ResponseWriter, r *http.Request) 
 
 func (h *Handlers) HandleBrewerBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.brewerViewConfig())
+}
+
+// HandleBrewerBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
+func (h *Handlers) HandleBrewerBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.brewerViewConfig())
 }
 
 func (h *Handlers) recipeViewConfig() handlers.EntityViewConfig {
@@ -290,6 +310,11 @@ func (h *Handlers) HandleRecipeViewJSON(w http.ResponseWriter, r *http.Request) 
 
 func (h *Handlers) HandleRecipeBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.recipeViewConfig())
+}
+
+// HandleRecipeBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
+func (h *Handlers) HandleRecipeBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.recipeViewConfig())
 }
 
 func (h *Handlers) brewViewConfig() handlers.EntityViewConfig {

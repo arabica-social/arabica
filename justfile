@@ -59,3 +59,15 @@ format:
     @pnpm run format
     @gofmt -w ./
     @templ fmt . -w
+
+# Run all CI checks locally (mirrors .github/workflows/ci.yml).
+ci-check:
+    @just types-check
+    @templ generate
+    @go vet ./...
+    @go build ./cmd/arabica
+    @go test ./... -count=1
+    @cd tests/integration && go test -tags=integration -count=1 ./...
+    @pnpm run check:svelte
+    @cd web && pnpm run test
+    @pnpm run test:svelte

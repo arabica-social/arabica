@@ -43,6 +43,10 @@ type EntityRouteBundle struct {
 	// Backlinks renders the community backlinks detail page for this entity.
 	Backlinks http.HandlerFunc
 
+	// JSONBacklinks returns backlinks data as JSON for the SvelteKit SPA.
+	// Served at GET /api/{entity}/{actor}/{id}/backlinks.
+	JSONBacklinks http.HandlerFunc
+
 	// OGImage serves the entity's OpenGraph image.
 	OGImage http.HandlerFunc
 

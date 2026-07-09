@@ -794,6 +794,10 @@ func (h *Handlers) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
 
 // HandlePopularRecipesPartial returns an HTML fragment of popular recipes for the home page.
 func (h *Handlers) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Request) {
+	if handlers.WantsJSON(r) {
+		h.HandlePopularRecipesJSON(w, r)
+		return
+	}
 	recipes, err := h.listAllRecipesFromIndex(r.Context())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch recipes for popular section")
