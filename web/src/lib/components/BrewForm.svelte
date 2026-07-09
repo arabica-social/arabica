@@ -191,12 +191,16 @@
 		if (submitting) return;
 		submitting = true;
 
-		const formData = new FormData();
-		formData.set("bean_rkey", beanRKey);
-		if (grinderRKey) formData.set("grinder_rkey", grinderRKey);
-		if (brewerRKey) formData.set("brewer_rkey", brewerRKey);
-		if (recipeRKeyValue) {
-			formData.set("recipe_rkey", recipeRKeyValue);
+		const formData = new FormData(e.currentTarget as HTMLFormElement);
+		const selectedBeanRKey = String(formData.get("bean_rkey") ?? beanRKey);
+		const selectedGrinderRKey = String(formData.get("grinder_rkey") ?? grinderRKey);
+		const selectedBrewerRKey = String(formData.get("brewer_rkey") ?? brewerRKey);
+		const selectedRecipeRKey = String(formData.get("recipe_rkey") ?? recipeRKeyValue);
+		formData.set("bean_rkey", selectedBeanRKey || beanRKey);
+		if (selectedGrinderRKey || grinderRKey) formData.set("grinder_rkey", selectedGrinderRKey || grinderRKey);
+		if (selectedBrewerRKey || brewerRKey) formData.set("brewer_rkey", selectedBrewerRKey || brewerRKey);
+		if (selectedRecipeRKey || recipeRKeyValue) {
+			formData.set("recipe_rkey", selectedRecipeRKey || recipeRKeyValue);
 			if (recipeOwner) formData.set("recipe_owner_did", recipeOwner);
 		}
 		if (method) formData.set("method", method);

@@ -76,3 +76,6 @@ Marks all notifications as read.
 |--------|-------|
 | 401 | Not authenticated. |
 | 500 | Failed to mark notifications as read. |
+
+Errors use the shared `{error, code, fields?}` envelope. Authentication
+failures use `authentication_required`; storage failures use `internal_error`.

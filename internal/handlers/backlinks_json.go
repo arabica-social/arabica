@@ -14,18 +14,18 @@ import (
 // BacklinksResponseJSON is the JSON envelope returned by
 // GET /api/{entity}/{actor}/{id}/backlinks. See docs/api/backlinks.md.
 type BacklinksResponseJSON struct {
-	EntityNoun string             `json:"entity_noun"`
-	EntityName string             `json:"entity_name"`
-	BackURL    string             `json:"back_url"`
-	DetailURL  string             `json:"detail_url"`
-	Result     *backlinks.Result  `json:"result"`
+	EntityNoun string            `json:"entity_noun"`
+	EntityName string            `json:"entity_name"`
+	BackURL    string            `json:"back_url"`
+	DetailURL  string            `json:"detail_url"`
+	Result     *backlinks.Result `json:"result"`
 }
 
 // RenderBacklinksViewJSON is the JSON counterpart to RenderBacklinksView. It
 // reuses the same EntityViewLoader.Load pipeline and fetchBacklinksWithOptions,
 // then serializes the result to JSON.
 func (h *Handler) RenderBacklinksViewJSON(w http.ResponseWriter, r *http.Request, cfg EntityViewConfig) {
-	rkey := ValidateRKey(w, r.PathValue("id"))
+	rkey := ValidateRKeyJSON(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
@@ -33,7 +33,7 @@ func (h *Handler) RenderBacklinksViewJSON(w http.ResponseWriter, r *http.Request
 	didStr, _ := atpmiddleware.GetDID(r.Context())
 	isAuthenticated := didStr != ""
 	if owner == "" && !isAuthenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -44,11 +44,7 @@ func (h *Handler) RenderBacklinksViewJSON(w http.ResponseWriter, r *http.Request
 
 	loaded, err := h.EntityViewLoader().Load(r, rkey, cfg.loadConfig())
 	if err != nil {
-		if loadErr, ok := err.(*EntityLoadError); ok {
-			http.Error(w, loadErr.Msg, loadErr.HTTPStatus())
-		} else {
-			http.Error(w, "Failed to load record", http.StatusInternalServerError)
-		}
+		writeEntityLoadJSONError(w, err)
 		return
 	}
 

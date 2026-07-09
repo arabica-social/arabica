@@ -3,10 +3,13 @@ package spa
 import (
 	"context"
 	"io"
+	"io/fs"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 
 	"github.com/stretchr/testify/assert"
@@ -47,6 +50,29 @@ func TestShellHandler_InjectsHeadContent(t *testing.T) {
 	assert.Contains(t, html, "__sveltekit")
 }
 
+func TestShellHandler_InjectsCSPNonce(t *testing.T) {
+	h, err := NewShellHandler(testManifest(), "arabica")
+	require.NoError(t, err)
+
+	// Simulate the security middleware adding a nonce to context.
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := middleware.WithCSPNonce(req.Context(), "test-nonce-xyz")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	body, _ := io.ReadAll(w.Result().Body)
+	html := string(body)
+
+	// Theme script in the injected head fragment.
+	assert.Contains(t, html, `<script nonce="test-nonce-xyz">`)
+	// SvelteKit's bootstrap inline script.
+	assert.Contains(t, html, `<script nonce="test-nonce-xyz">`)
+	assert.Contains(t, html, "__sveltekit")
+	// The nonce should only appear on script tags (not elsewhere).
+	assert.Equal(t, 2, strings.Count(html, `nonce="test-nonce-xyz"`))
+}
+
 func TestShellHandler_InjectsBodyAttrs(t *testing.T) {
 	h, err := NewShellHandler(testManifest(), "arabica")
 	require.NoError(t, err)
@@ -61,6 +87,7 @@ func TestShellHandler_InjectsBodyAttrs(t *testing.T) {
 		body, _ := io.ReadAll(w.Result().Body)
 		assert.Contains(t, string(body), `data-user-did="did:plc:test123"`)
 		assert.Contains(t, string(body), `data-app="arabica"`)
+		assert.Contains(t, string(body), `data-frontend="sveltekit"`)
 	})
 
 	t.Run("without DID", func(t *testing.T) {
@@ -70,6 +97,7 @@ func TestShellHandler_InjectsBodyAttrs(t *testing.T) {
 
 		body, _ := io.ReadAll(w.Result().Body)
 		assert.NotContains(t, string(body), "data-user-did")
+		assert.Contains(t, string(body), `data-frontend="sveltekit"`)
 	})
 }
 
@@ -167,18 +195,50 @@ func TestIsSPAAsset(t *testing.T) {
 	assert.False(t, IsSPAAsset("/beans/actor/rkey"))
 }
 
-func TestAssetHandler_ServesImmutableChunks(t *testing.T) {
+func TestAssetHandler_SetsJavaScriptContentType(t *testing.T) {
 	handler := AssetHandler()
 
-	// The embedded build should have _app/immutable/ files
-	req := httptest.NewRequest("GET", "/immutable/entry/start.js", nil)
-	// StripPrefix removes /_app/, so the path after strip is immutable/...
+	entries, err := fs.Glob(EmbeddedFS(), "_app/immutable/entry/start.*.js")
+	require.NoError(t, err)
+	require.NotEmpty(t, entries)
+	req := httptest.NewRequest("GET", "/"+entries[0], nil)
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
-	// We may or may not have this exact file depending on build state,
-	// but the handler should not panic. A 200 or 404 is acceptable.
-	assert.NotEqual(t, 500, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "text/javascript; charset=utf-8", w.Header().Get("Content-Type"))
+}
+
+func TestAssetHandler_ServesImmutableChunks(t *testing.T) {
+	handler := AssetHandler()
+
+	entries, err := fs.Glob(EmbeddedFS(), "_app/immutable/entry/app.*.js")
+	require.NoError(t, err)
+	require.NotEmpty(t, entries)
+	req := httptest.NewRequest("GET", "/"+entries[0], nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestContentTypeLockingResponseWriter(t *testing.T) {
+	// Simulate a downstream handler that tries to overwrite an explicitly
+	// set Content-Type with text/plain (mimicking http.FileServer on a
+	// system with a broken MIME database).
+	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("// js"))
+	})
+
+	handler := contentTypeMiddleware(downstream)
+	req := httptest.NewRequest("GET", "/immutable/chunk.js", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "text/javascript; charset=utf-8", w.Header().Get("Content-Type"))
 }
 
 func TestShellHandler_TraceparentInjected(t *testing.T) {

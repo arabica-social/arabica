@@ -11,6 +11,7 @@ const __dirname = dirname(__filename);
  * Falls back to a localhost URL if the file doesn't exist.
  */
 function getServerURL(): string {
+	if (process.env.ARABICA_E2E_BASE_URL) return process.env.ARABICA_E2E_BASE_URL;
 	// The path is relative to the repo root (parent of web/).
 	const urlFile = resolve(__dirname, "../tests/e2e/.server-url");
 	try {
@@ -19,7 +20,7 @@ function getServerURL(): string {
 	} catch {
 		// File doesn't exist — use env var or default.
 	}
-	return process.env.ARABICA_E2E_BASE_URL ?? "http://127.0.0.1:8080";
+	return "http://127.0.0.1:8080";
 }
 
 /**
@@ -46,10 +47,13 @@ export default defineConfig({
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 1 : 0,
 	workers: 1,
-	reporter: "list",
+	reporter: process.env.CI
+		? [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]]
+		: "list",
 	use: {
 		baseURL: getServerURL(),
 		trace: "on-first-retry",
+		screenshot: "only-on-failure",
 		headless: true,
 	},
 	projects: [

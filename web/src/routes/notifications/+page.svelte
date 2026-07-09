@@ -3,6 +3,7 @@
 	import BackButton from "$lib/components/BackButton.svelte";
 	import { pushToast } from "$lib/stores/toasts";
 	import { displayHandle } from "$lib/stores/session";
+	import { markAllNotificationsRead } from "$lib/api/notifications";
 	import type { PageData } from "./$types";
 	import type { NotificationItem } from "$lib/types/api";
 
@@ -38,10 +39,7 @@
 		if (markingRead) return;
 		markingRead = true;
 		try {
-			await fetch("/api/notifications/read", {
-				method: "POST",
-				credentials: "same-origin",
-			});
+			await markAllNotificationsRead(fetch);
 			notifications = notifications.map((n) => ({ ...n, read: true }));
 			pushToast("Marked all as read");
 		} catch {

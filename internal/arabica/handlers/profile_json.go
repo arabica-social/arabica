@@ -22,28 +22,28 @@ import (
 // social/usage stats the SvelteKit profile page needs in one response. See
 // docs/api/profile.md for the contract.
 type ProfileJSONResponse struct {
-	Profile          *bff.UserProfile  `json:"profile"`
-	DID              string            `json:"did"`
-	IsOwnProfile     bool              `json:"is_own_profile"`
-	IsAuthenticated  bool              `json:"is_authenticated"`
-	IsArabicaUser   bool              `json:"is_arabica_user"`
-	Brews            []*arabica.Brew   `json:"brews"`
-	TotalBrews       int               `json:"total_brews"`
-	BrewsHasMore     bool              `json:"brews_has_more"`
-	BrewsNextOffset  int               `json:"brews_next_offset"`
-	Beans            []*arabica.Bean   `json:"beans"`
-	Roasters         []*arabica.Roaster `json:"roasters"`
-	Grinders         []*arabica.Grinder `json:"grinders"`
-	Brewers          []*arabica.Brewer  `json:"brewers"`
-	BrewLikeCounts   map[string]int     `json:"brew_like_counts"`
-	BrewCommentCounts map[string]int   `json:"brew_comment_counts"`
-	BrewLikedByUser  map[string]bool    `json:"brew_liked_by_user"`
-	BrewCIDs         map[string]string  `json:"brew_cids"`
-	BeanBrewCounts   map[string]int     `json:"bean_brew_counts"`
-	GrinderBrewCounts map[string]int   `json:"grinder_brew_counts"`
-	BrewerBrewCounts map[string]int     `json:"brewer_brew_counts"`
-	RoasterBeanCounts map[string]int   `json:"roaster_bean_counts"`
-	BeanAvgBrewRatings map[string]float64 `json:"bean_avg_brew_ratings"`
+	Profile               *bff.UserProfile   `json:"profile"`
+	DID                   string             `json:"did"`
+	IsOwnProfile          bool               `json:"is_own_profile"`
+	IsAuthenticated       bool               `json:"is_authenticated"`
+	IsArabicaUser         bool               `json:"is_arabica_user"`
+	Brews                 []*arabica.Brew    `json:"brews"`
+	TotalBrews            int                `json:"total_brews"`
+	BrewsHasMore          bool               `json:"brews_has_more"`
+	BrewsNextOffset       int                `json:"brews_next_offset"`
+	Beans                 []*arabica.Bean    `json:"beans"`
+	Roasters              []*arabica.Roaster `json:"roasters"`
+	Grinders              []*arabica.Grinder `json:"grinders"`
+	Brewers               []*arabica.Brewer  `json:"brewers"`
+	BrewLikeCounts        map[string]int     `json:"brew_like_counts"`
+	BrewCommentCounts     map[string]int     `json:"brew_comment_counts"`
+	BrewLikedByUser       map[string]bool    `json:"brew_liked_by_user"`
+	BrewCIDs              map[string]string  `json:"brew_cids"`
+	BeanBrewCounts        map[string]int     `json:"bean_brew_counts"`
+	GrinderBrewCounts     map[string]int     `json:"grinder_brew_counts"`
+	BrewerBrewCounts      map[string]int     `json:"brewer_brew_counts"`
+	RoasterBeanCounts     map[string]int     `json:"roaster_bean_counts"`
+	BeanAvgBrewRatings    map[string]float64 `json:"bean_avg_brew_ratings"`
 	RoasterAvgBrewRatings map[string]float64 `json:"roaster_avg_brew_ratings"`
 }
 
@@ -65,7 +65,7 @@ func (h *Handlers) HandleProfileAPI(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 	actor := r.PathValue("actor")
 	if actor == "" {
-		http.Error(w, "Actor parameter is required", http.StatusBadRequest)
+		handlers.WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Actor parameter is required")
 		return
 	}
 
@@ -82,13 +82,13 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 	// Resolve actor to DID
 	did, err := h.resolveProfileActor(ctx, actor, publicClient)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
+		handlers.WriteJSONError(w, http.StatusNotFound, "not_found", "User not found")
 		return
 	}
 
 	// Check if user is blacklisted
 	if cf := h.LoadContentFilter(ctx); cf != nil && cf.IsBlocked(did) {
-		http.Error(w, "User not found", http.StatusNotFound)
+		handlers.WriteJSONError(w, http.StatusNotFound, "not_found", "User not found")
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 		// error. The witness cache returned nothing (user has no indexed records)
 		// and the PDS either returned no records or errored.
 		log.Warn().Err(err).Str("did", did).Msg("Failed to fetch user data for profile JSON")
-		http.Error(w, "User not found", http.StatusNotFound)
+		handlers.WriteJSONError(w, http.StatusNotFound, "not_found", "User not found")
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 		len(profileData.Roasters) > 0 || len(profileData.Grinders) > 0 ||
 		len(profileData.Brewers) > 0
 	if !isArabicaUser {
-		http.Error(w, "User not found", http.StatusNotFound)
+		handlers.WriteJSONError(w, http.StatusNotFound, "not_found", "User not found")
 		return
 	}
 

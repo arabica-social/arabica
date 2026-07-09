@@ -1,51 +1,75 @@
 import { test, expect } from "./fixtures";
 
-/**
- * Critical path: Manage entities.
- *
- * Flow: create roaster → create bean referencing roaster → navigate to
- * my-coffee → verify both entities appear in their respective tabs.
- *
- * Note: the my-coffee page loads data via HTMX (hx-get="/api/manage").
- * We wait for the HTMX content to load before asserting. Tab switching
- * uses data-manage-tab attributes with JS-driven visibility.
- */
-test("create roaster and bean via API, verify in my-coffee", async ({
+test("roaster lifecycle: create, reload, edit, manage, delete", async ({
 	authedPage: page,
-	apiRequest,
+	did,
+	waitForIndex,
 }) => {
-	// Create a roaster via the API.
-	const roasterResp = await apiRequest.post("/api/roasters", {
-		form: { name: "E2E Manage Roaster", location: "Seattle, WA" },
-	});
-	expect(roasterResp.ok()).toBeTruthy();
-	const roaster = await roasterResp.json();
-	const roasterRKey = roaster.rkey;
+	const suffix = Date.now().toString(36);
+	const name = `E2E Roaster ${suffix}`;
+	const originalLocation = "Portland, OR";
+	const originalWebsite = `https://original-${suffix}.example`;
+	const updatedLocation = "Seattle, WA";
+	const updatedWebsite = `https://updated-${suffix}.example`;
 
-	// Create a bean referencing the roaster.
-	const beanResp = await apiRequest.post("/api/beans", {
-		form: {
-			name: "E2E Manage Bean",
-			origin: "Colombia",
-			roast_level: "Medium",
-			roaster_rkey: roasterRKey,
-		},
-	});
-	expect(beanResp.ok()).toBeTruthy();
+	await page.goto("/roasters/new");
+	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
 
-	// Wait for the records to be indexed by the firehose.
-	await page.waitForTimeout(2000);
+	await page.getByRole("button", { name: "Add Roaster" }).click();
+	await expect(page.getByRole("alert")).toContainText("Name is required");
 
-	// Navigate to my-coffee. The page loads entity data via HTMX
-	// (hx-get="/api/manage" on load). We wait for the bean name to
-	// appear in the DOM, which means the HTMX swap completed.
+	await page.getByLabel("Name").fill(name);
+	await page.getByLabel("Location").fill(originalLocation);
+	await page.getByLabel("Website").fill(originalWebsite);
+	await page.getByRole("button", { name: "Add Roaster" }).click();
+
+	await page.waitForURL(/\/roasters\/[^/]+\/[^/]+$/);
+	const detailURL = new URL(page.url());
+	const rkey = detailURL.pathname.split("/").at(-1);
+	expect(rkey).toBeTruthy();
+	await expect(page.getByRole("heading", { name })).toBeVisible();
+	await expect(page.getByText(originalLocation)).toBeVisible();
+	await expect(page.getByRole("link", { name: originalWebsite })).toBeVisible();
+
+	await page.reload();
+	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
+	await expect(page.getByRole("heading", { name })).toBeVisible();
+
+	await page.getByRole("button", { name: "More options" }).click();
+	await page.getByRole("menuitem", { name: "Edit" }).click();
+	await expect(page).toHaveURL(`/roasters/${rkey}/edit`);
+	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
+	await expect(page.getByLabel("Name")).toHaveValue(name);
+	await page.getByLabel("Location").fill(updatedLocation);
+	await page.getByLabel("Website").fill(updatedWebsite);
+	await page.getByRole("button", { name: "Save Changes" }).click();
+
+	await page.waitForURL(/\/roasters\/[^/]+\/[^/]+$/);
+	await expect(page.getByText(updatedLocation)).toBeVisible();
+	await expect(page.getByRole("link", { name: updatedWebsite })).toBeVisible();
+
+	const uri = `at://${did}/social.arabica.alpha.roaster/${rkey}`;
+	await waitForIndex(uri);
 	await page.goto("/my-coffee");
-	// Wait for the manage partial to load via HTMX.
-	await expect(page.getByText("E2E Manage Bean")).toBeVisible({ timeout: 15000 });
-
-	// Switch to the Roasters tab.
 	await page.getByRole("button", { name: "Roasters" }).click();
-	await expect(page.getByText("E2E Manage Roaster").first()).toBeVisible();
+	await expect(page.getByRole("link", { name })).toBeVisible();
+	await expect(page.getByText(updatedLocation)).toBeVisible();
+
+	await page.goto("/");
+	await expect(page.getByText(name).first()).toBeVisible();
+
+	await page.goto(detailURL.pathname);
+	await page.getByRole("button", { name: "More options" }).click();
+	page.once("dialog", (dialog) => dialog.accept());
+	await page.getByRole("menuitem", { name: "Delete" }).click();
+	await expect(page).toHaveURL(/\/my-coffee$/);
+	await waitForIndex(uri, false);
+	await page.getByRole("button", { name: "Roasters" }).click();
+	await expect(page.getByRole("link", { name })).toHaveCount(0);
+
+	await page.goto(detailURL.pathname);
+	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
+	await expect(page.getByText("Record not found")).toBeVisible();
 });
 
 /**
@@ -53,7 +77,7 @@ test("create roaster and bean via API, verify in my-coffee", async ({
  *
  * Flow: create roaster → view roaster detail page → verify content.
  */
-test("view entity detail page", async ({ authedPage: page, apiRequest, did }) => {
+test("view entity detail page", async ({ authedPage: page, apiRequest, did, waitForIndex }) => {
 	// Create a roaster.
 	const resp = await apiRequest.post("/api/roasters", {
 		form: {
@@ -64,8 +88,7 @@ test("view entity detail page", async ({ authedPage: page, apiRequest, did }) =>
 	});
 	const roaster = await resp.json();
 
-	// Wait for indexing.
-	await page.waitForTimeout(1500);
+	await waitForIndex(`at://${did}/social.arabica.alpha.roaster/${roaster.rkey}`);
 
 	// Navigate to the roaster view page using the DID + rkey.
 	await page.goto(`/roasters/${did}/${roaster.rkey}`);

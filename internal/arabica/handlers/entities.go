@@ -41,17 +41,17 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 	stats := h.computeManageStats(r.Context(), did)
 
 	props := coffee.ManagePartialProps{
-		Beans:                data.beans,
-		Roasters:            data.roasters,
-		Grinders:            data.grinders,
-		Brewers:             data.brewers,
-		Recipes:             data.recipes,
-		OwnerDID:            did,
-		BeanBrewCounts:      stats.BeanBrewCounts,
-		GrinderBrewCounts:   stats.GrinderBrewCounts,
-		BrewerBrewCounts:    stats.BrewerBrewCounts,
-		RoasterBeanCounts:   stats.RoasterBeanCounts,
-		BeanAvgBrewRatings:  stats.BeanAvgBrewRatings,
+		Beans:                 data.beans,
+		Roasters:              data.roasters,
+		Grinders:              data.grinders,
+		Brewers:               data.brewers,
+		Recipes:               data.recipes,
+		OwnerDID:              did,
+		BeanBrewCounts:        stats.BeanBrewCounts,
+		GrinderBrewCounts:     stats.GrinderBrewCounts,
+		BrewerBrewCounts:      stats.BrewerBrewCounts,
+		RoasterBeanCounts:     stats.RoasterBeanCounts,
+		BeanAvgBrewRatings:    stats.BeanAvgBrewRatings,
 		RoasterAvgBrewRatings: stats.RoasterAvgBrewRatings,
 	}
 
@@ -68,7 +68,7 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		handlers.WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -120,7 +120,7 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 
 	if err := g.Wait(); err != nil {
 		log.Error().Err(err).Msg("Failed to fetch all data for API")
-		handlers.HandleStoreError(w, err, "Failed to fetch data")
+		handlers.HandleStoreJSONError(w, err, "Failed to fetch data")
 		return
 	}
 
@@ -137,10 +137,7 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 		"brews":    brews,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Error().Err(err).Msg("Failed to encode API response")
-	}
+	handlers.WriteJSON(w, response, "data")
 }
 
 // API endpoint to create bean

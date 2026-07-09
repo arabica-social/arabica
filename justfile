@@ -68,12 +68,24 @@ e2e-build:
 # Run E2E tests with Playwright. Boots the e2e-server (test PDS + SPA),
 # then runs the Playwright spec files against it.
 e2e: e2e-build
-    @echo 'Starting e2e-server...'
-    @go run -tags=integration ./cmd/e2e-server & echo $$! > /tmp/e2e-server.pid
-    @sleep 3
-    @echo 'Running Playwright tests...'
-    @cd web && CHROMIUM_PATH=$$(nix-shell -p chromium --run 'which chromium' 2>/dev/null | tail -1) pnpm exec playwright test
-    @kill `cat /tmp/e2e-server.pid` 2>/dev/null || true
+    @set -eu; \
+        rm -f tests/e2e/.server-url tests/e2e/.server-did tests/e2e/.control-url; \
+        server_bin=$(mktemp /tmp/arabica-e2e-server.XXXXXX); \
+        go build -tags=integration -o $server_bin ./cmd/e2e-server; \
+        echo 'Starting e2e-server...'; \
+        $server_bin & server_pid=$!; \
+        trap 'kill $server_pid 2>/dev/null || true; wait $server_pid 2>/dev/null || true; rm -f $server_bin' EXIT INT TERM; \
+        for attempt in $(seq 1 60); do \
+            test -s tests/e2e/.server-url && test -s tests/e2e/.control-url && break; \
+            kill -0 $server_pid 2>/dev/null || { echo 'e2e-server exited before becoming ready' >&2; exit 1; }; \
+            sleep 0.25; \
+        done; \
+        test -s tests/e2e/.server-url && test -s tests/e2e/.control-url || { echo 'timed out waiting for e2e-server' >&2; exit 1; }; \
+        echo 'Running Playwright tests...'; \
+        base_url=$(cat tests/e2e/.server-url); \
+        control_url=$(cat tests/e2e/.control-url); \
+        cd web; \
+        ARABICA_E2E_BASE_URL=$base_url ARABICA_E2E_CONTROL_URL=$control_url CHROMIUM_PATH=$(nix-shell -p chromium --run 'which chromium' 2>/dev/null | tail -1) pnpm exec playwright test
 
 # Run only the e2e-server (without Playwright) for manual testing.
 e2e-server: e2e-build
@@ -88,5 +100,6 @@ ci-check:
     @go test ./... -count=1
     @cd tests/integration && go test -tags=integration -count=1 ./...
     @pnpm run check:svelte
+    @cd web && pnpm run check
     @cd web && pnpm run test
     @pnpm run test:svelte

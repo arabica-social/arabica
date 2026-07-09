@@ -39,7 +39,7 @@ func TestHTTP_EntityViewJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/roasters/"+actor+"/"+rkey)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var view entityViewJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &view))
@@ -142,5 +142,8 @@ func TestHTTP_EntityViewJSONNotFound(t *testing.T) {
 
 	actor := h.PrimaryAccount.DID
 	resp := getJSON(t, h, "/api/roasters/"+actor+"/nonexistentrkey")
-	assert.Equal(t, 404, resp.StatusCode)
+	body := ReadBody(t, resp)
+	assert.Equal(t, 404, resp.StatusCode, statusErr(resp, body))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+	assert.JSONEq(t, `{"error":"Roaster not found","code":"not_found"}`, body)
 }

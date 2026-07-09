@@ -38,7 +38,7 @@ type EntityViewJSONResponse struct {
 // cfg.CountLookup is invoked when available to populate EntityCount (e.g.
 // brew count for a bean, bean count for a roaster).
 func (h *Handler) RenderEntityViewJSON(w http.ResponseWriter, r *http.Request, cfg EntityViewConfig) {
-	rkey := ValidateRKey(w, r.PathValue("id"))
+	rkey := ValidateRKeyJSON(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
@@ -48,11 +48,7 @@ func (h *Handler) RenderEntityViewJSON(w http.ResponseWriter, r *http.Request, c
 
 	loaded, err := h.EntityViewLoader().Load(r, rkey, cfg.loadConfig())
 	if err != nil {
-		if loadErr, ok := err.(*EntityLoadError); ok {
-			http.Error(w, loadErr.Msg, loadErr.HTTPStatus())
-		} else {
-			http.Error(w, "Failed to load record", http.StatusInternalServerError)
-		}
+		writeEntityLoadJSONError(w, err)
 		return
 	}
 
@@ -119,6 +115,27 @@ func (h *Handler) RenderEntityViewJSON(w http.ResponseWriter, r *http.Request, c
 	}
 
 	WriteJSON(w, resp, loaded.EntityNoun+"-json")
+}
+
+func writeEntityLoadJSONError(w http.ResponseWriter, err error) {
+	loadErr, ok := err.(*EntityLoadError)
+	if !ok {
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to load record")
+		return
+	}
+
+	status := loadErr.HTTPStatus()
+	code := "internal_error"
+	message := "Failed to load record"
+	switch status {
+	case http.StatusBadRequest:
+		code = "invalid_request"
+		message = loadErr.Msg
+	case http.StatusNotFound:
+		code = "not_found"
+		message = loadErr.Msg
+	}
+	WriteJSONError(w, status, code, message)
 }
 
 // commentsToMaps converts IndexedComment slices to a JSON-friendly shape that

@@ -25,7 +25,7 @@ type NotificationItemJSON struct {
 // NotificationsResponseJSON is the JSON envelope returned by GET /api/notifications.
 type NotificationsResponseJSON struct {
 	Notifications []NotificationItemJSON `json:"notifications"`
-	NextCursor    string                  `json:"next_cursor"`
+	NextCursor    string                 `json:"next_cursor"`
 }
 
 // HandleNotificationsJSON returns the user's notifications as JSON for the
@@ -34,7 +34,7 @@ type NotificationsResponseJSON struct {
 func (h *Handler) HandleNotificationsJSON(w http.ResponseWriter, r *http.Request) {
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -48,7 +48,7 @@ func (h *Handler) HandleNotificationsJSON(w http.ResponseWriter, r *http.Request
 		notifs, nextCursor, err := h.feedIndex.GetNotifications(didStr, 30, cursor)
 		if err != nil {
 			log.Error().Err(err).Str("did", didStr).Msg("Failed to get notifications")
-			http.Error(w, "Failed to load notifications", http.StatusInternalServerError)
+			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to load notifications")
 			return
 		}
 
@@ -90,14 +90,14 @@ func (h *Handler) HandleNotificationsJSON(w http.ResponseWriter, r *http.Request
 func (h *Handler) HandleNotificationsMarkReadJSON(w http.ResponseWriter, r *http.Request) {
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
 	if h.feedIndex != nil {
 		if err := h.feedIndex.MarkAllRead(didStr); err != nil {
 			log.Error().Err(err).Str("did", didStr).Msg("Failed to mark notifications as read")
-			http.Error(w, "Failed to mark notifications as read", http.StatusInternalServerError)
+			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to mark notifications as read")
 			return
 		}
 	}

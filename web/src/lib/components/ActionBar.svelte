@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { toasts, pushToast } from "../stores/toasts";
-	import { session } from "../stores/session";
+	import { pushToast } from "../stores/toasts";
+	import { goto } from "$app/navigation";
+	import { deleteEntity } from "../api/entities";
 
 	type Props = {
 		subjectURI: string;
@@ -136,13 +137,10 @@
 	async function doDelete() {
 		if (!deleteURL) return;
 		try {
-			const res = await fetch(deleteURL, {
-				method: "DELETE",
-				credentials: "same-origin",
-			});
-			if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+			await deleteEntity(fetch, deleteURL);
+			document.body.dispatchEvent(new CustomEvent("entityDeleted"));
 			if (deleteRedirect) {
-				window.location.href = deleteRedirect;
+				await goto(deleteRedirect);
 			}
 		} catch (error) {
 			console.error("Delete failed:", error);
@@ -211,7 +209,6 @@
 		return () => document.removeEventListener("click", handleOutsideClick);
 	});
 
-	let s = $derived($session);
 </script>
 
 <div class="action-bar">
@@ -276,7 +273,7 @@
 			</svg>
 		</button>
 		{#if menuOpen}
-			<div class="action-menu" role="menu">
+			<div class="action-menu is-open" role="menu">
 				{#if isOwner}
 					{#if editURL}
 						<a href={editURL} class="action-menu-item" role="menuitem">Edit</a>

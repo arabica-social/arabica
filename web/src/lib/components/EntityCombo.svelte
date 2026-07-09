@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { AppCacheAPI } from "../types/appCache";
+  import { appCache as appCacheStore } from "../stores/appCache";
   import {
     comboSelectEntities,
     type EntityConfig,
@@ -62,7 +63,7 @@
   let suggestTimer: ReturnType<typeof setTimeout> | undefined;
 
   function appCache(): AppCacheAPI | undefined {
-    return window.AppCache;
+    return window.AppCache ?? appCacheStore;
   }
 
   function config() {

@@ -1,6 +1,9 @@
-import { cleanup, render, screen } from "@testing-library/svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/svelte";
+import userEvent from "@testing-library/user-event";
+import { get } from "svelte/store";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Notifications from "../../src/routes/notifications/+page.svelte";
+import { clearToasts, toasts } from "../../src/lib/stores/toasts";
 
 const notificationsData = {
 	notifications: [
@@ -39,6 +42,8 @@ describe("Notifications page", () => {
 	afterEach(() => {
 		cleanup();
 		document.body.innerHTML = "";
+		clearToasts();
+		vi.unstubAllGlobals();
 	});
 
 	it("renders the heading", () => {
@@ -87,5 +92,23 @@ describe("Notifications page", () => {
 	it("renders load more link when cursor present", () => {
 		render(Notifications, { data: { ...notificationsData, nextCursor: "cursor123" } });
 		expect(screen.getByText("Load more")).toBeTruthy();
+	});
+
+	it("does not mark notifications read when the mutation fails", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(
+				new Response(JSON.stringify({ error: "Failed to mark notifications as read", code: "internal_error" }), {
+					status: 500,
+					headers: { "Content-Type": "application/json" },
+				}),
+			),
+		);
+		const { container } = render(Notifications, { data: notificationsData });
+
+		await userEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+
+		await waitFor(() => expect(get(toasts).at(-1)?.message).toBe("Failed to mark as read"));
+		expect(container.querySelector(".bg-amber-400")).toBeTruthy();
 	});
 });

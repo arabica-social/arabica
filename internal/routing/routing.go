@@ -34,37 +34,75 @@ type Config struct {
 	CSSBundle         *assets.Bundle
 	JSAssets          *assets.JSAssets
 	AppRoutes         AppRoutes
+	DisableRateLimit  bool
 
 	// SPAHandler, when non-nil, serves the SvelteKit SPA shell for unmatched
-	// GET routes (replacing the 404 handler). During migration this is nil
-	// unless explicitly enabled, so existing templ pages work unchanged.
+	// page routes explicitly owned by AppRoutes.SPAOwnedRoutes. During
+	// migration this is nil unless explicitly enabled, so existing templ
+	// pages work unchanged.
 	SPAHandler http.Handler
-
-	// SPAEnabled, when true, tells route registrars to skip page-view routes
-	// that would otherwise shadow the SPA catch-all. API, auth, mutation,
-	// OG-image and static routes are still registered.
-	SPAEnabled bool
 }
 
 // AppRoutes is implemented by app-owned packages that register routes whose
 // handlers or page models are not shared platform concerns.
 type AppRoutes interface {
 	RegisterAppRoutes(mux *http.ServeMux, ctx AppRouteContext)
+	SPAOwnedRoutes() []string
 }
 
 // AppRouteContext exposes the shared dependencies app route registrars need
 // without making routing import either app package.
 type AppRouteContext struct {
-	App        *domain.App
-	Handlers   *handlers.Handler
-	CSRF       *http.CrossOriginProtection
-	SPAEnabled bool
+	App      *domain.App
+	Handlers *handlers.Handler
+	CSRF     *http.CrossOriginProtection
+	Pages    PageRoutes
+}
+
+// PageRoutes registers each page pattern with either its legacy handler or
+// the SPA shell according to an explicit app-owned allowlist. API, mutation,
+// auth, asset, and unknown routes do not participate in page ownership.
+type PageRoutes struct {
+	spaHandler http.Handler
+	spaOwned   map[string]struct{}
+}
+
+// NewPageRoutes creates a page registrar for the supplied SPA-owned patterns.
+func NewPageRoutes(spaHandler http.Handler, spaOwned []string) PageRoutes {
+	owned := make(map[string]struct{}, len(spaOwned))
+	for _, pattern := range spaOwned {
+		owned[pattern] = struct{}{}
+	}
+	return PageRoutes{spaHandler: spaHandler, spaOwned: owned}
+}
+
+// Register assigns one page route to its explicit owner.
+func (p PageRoutes) Register(mux *http.ServeMux, pattern string, legacy http.Handler) {
+	if p.IsSPA(pattern) {
+		mux.Handle(pattern, p.spaHandler)
+		return
+	}
+	mux.Handle(pattern, legacy)
+}
+
+// IsSPA reports whether a page pattern is explicitly owned by the SPA.
+func (p PageRoutes) IsSPA(pattern string) bool {
+	if p.spaHandler == nil {
+		return false
+	}
+	_, ok := p.spaOwned[pattern]
+	return ok
 }
 
 // SetupRouter creates and configures the HTTP router with all routes and middleware
 func SetupRouter(cfg Config) http.Handler {
 	h := cfg.Handlers
 	mux := http.NewServeMux()
+	var spaOwned []string
+	if cfg.AppRoutes != nil {
+		spaOwned = cfg.AppRoutes.SPAOwnedRoutes()
+	}
+	pages := NewPageRoutes(cfg.SPAHandler, spaOwned)
 
 	// Create CrossOriginProtection for CSRF protection
 	cop := http.NewCrossOriginProtection()
@@ -100,33 +138,30 @@ func SetupRouter(cfg Config) http.Handler {
 	// JSON for the SvelteKit SPA; HX-Request returns the HTML partial.
 	mux.HandleFunc("GET /api/feed", h.HandleFeed)
 
-	// Page routes (must come before static files). When the SvelteKit SPA
-	// is enabled, skip HTML page handlers so the SPA catch-all serves those
-	// paths. API, auth, mutation, OG-image and static routes remain.
-	if !cfg.SPAEnabled {
-		mux.HandleFunc("GET /{$}", h.HandleHome) // {$} means exact match
-		mux.HandleFunc("GET /about", h.HandleAbout)
-		mux.HandleFunc("GET /terms", h.HandleTerms)
-		mux.HandleFunc("GET /join/create", h.HandleCreateAccount)
-		mux.HandleFunc("GET /atproto", h.HandleATProto)
-		mux.HandleFunc("GET /notifications", h.HandleNotifications)
-		mux.HandleFunc("GET /settings", h.HandleSettings)
-		mux.HandleFunc("GET /_mod", h.HandleAdmin)
-		mux.Handle("GET /_mod/content", middleware.RequireModerator(cfg.ModerationService,
-			middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial))))
-		mux.Handle("GET /_mod/stats", middleware.RequireAdmin(cfg.ModerationService,
-			middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
-	}
+	// Page routes (must come before static files). Each route is assigned to
+	// either SvelteKit or its legacy handler by the app-owned allowlist.
+	pages.Register(mux, "GET /{$}", http.HandlerFunc(h.HandleHome)) // {$} means exact match
+	pages.Register(mux, "GET /about", http.HandlerFunc(h.HandleAbout))
+	pages.Register(mux, "GET /terms", http.HandlerFunc(h.HandleTerms))
+	pages.Register(mux, "GET /join/create", http.HandlerFunc(h.HandleCreateAccount))
+	pages.Register(mux, "GET /atproto", http.HandlerFunc(h.HandleATProto))
+	pages.Register(mux, "GET /notifications", http.HandlerFunc(h.HandleNotifications))
+	pages.Register(mux, "GET /settings", http.HandlerFunc(h.HandleSettings))
+	pages.Register(mux, "GET /_mod", http.HandlerFunc(h.HandleAdmin))
+	mux.Handle("GET /_mod/content", middleware.RequireModerator(cfg.ModerationService,
+		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial))))
+	mux.Handle("GET /_mod/stats", middleware.RequireAdmin(cfg.ModerationService,
+		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
 	mux.HandleFunc("GET /og-image", h.HandleSiteOGImage)
 	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
 	mux.HandleFunc("GET /api/signup/categories", h.HandleSignupCategories)
 
 	if cfg.AppRoutes != nil {
 		cfg.AppRoutes.RegisterAppRoutes(mux, AppRouteContext{
-			App:        cfg.App,
-			Handlers:   h,
-			CSRF:       cop,
-			SPAEnabled: cfg.SPAEnabled,
+			App:      cfg.App,
+			Handlers: h,
+			CSRF:     cop,
+			Pages:    pages,
 		})
 	}
 
@@ -225,21 +260,9 @@ func SetupRouter(cfg Config) http.Handler {
 	// the SvelteKit build. Served from the embedded build filesystem.
 	mux.Handle("GET /_app/", spa.AssetHandler())
 
-	// SvelteKit SPA shell — serves index.html with server-side <head>
-	// injection (OG tags, title, theme, CSS) for any unmatched GET route.
-	// During migration this replaces the catch-all 404: ported pages render
-	// via SvelteKit, unported paths fall through to their existing templ
-	// handlers (which are more specific and match first). When the SPA is
-	// not enabled (nil handler), the original 404 handler is used.
-	//
-	// Only GET requests are intercepted; POST/PUT/DELETE always hit their
-	// registered API handlers or the 404 handler.
-	if cfg.SPAHandler != nil {
-		mux.Handle("GET /", cfg.SPAHandler)
-	} else {
-		// Catch-all 404 handler - must be last, catches any unmatched routes
-		mux.HandleFunc("/", h.HandleNotFound)
-	}
+	// Catch-all 404 handler. The SPA is registered only for explicit page
+	// patterns above, so unknown direct loads remain real 404 responses.
+	mux.HandleFunc("/", h.HandleNotFound)
 
 	// Apply middleware in order (outermost first, innermost last)
 	var handler http.Handler = mux
@@ -267,8 +290,10 @@ func SetupRouter(cfg Config) http.Handler {
 	}
 
 	// 4. Apply rate limiting
-	rateLimitConfig := middleware.NewDefaultRateLimitConfig()
-	handler = middleware.RateLimitMiddleware(rateLimitConfig)(handler)
+	if !cfg.DisableRateLimit {
+		rateLimitConfig := middleware.NewDefaultRateLimitConfig()
+		handler = middleware.RateLimitMiddleware(rateLimitConfig)(handler)
+	}
 
 	// 5. Apply security headers
 	handler = middleware.SecurityHeadersMiddleware(handler)
@@ -345,7 +370,7 @@ func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.Handle
 // nil handler in a bundle field skips the corresponding route, letting
 // future entities omit (say) modal partials without forcing every app
 // to publish stubs.
-func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *domain.App, bundles []handlers.EntityRouteBundle, spaEnabled bool) {
+func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *domain.App, bundles []handlers.EntityRouteBundle, pages PageRoutes) {
 	for _, b := range bundles {
 		if app.DescriptorByType(b.RecordType) == nil {
 			// Bundle declared a route for an entity this app doesn't run.
@@ -358,13 +383,11 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		}
 
 		urlPath := route.Path
-		if !spaEnabled {
-			if b.View != nil {
-				mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.View))
-			}
-			if b.Backlinks != nil {
-				mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.Backlinks))
-			}
+		if b.View != nil {
+			pages.Register(mux, "GET /"+urlPath+"/{actor}/{id}", http.HandlerFunc(RewriteActorToOwner(b.View)))
+		}
+		if b.Backlinks != nil {
+			pages.Register(mux, "GET /"+urlPath+"/{actor}/{id}/backlinks", http.HandlerFunc(RewriteActorToOwner(b.Backlinks)))
 		}
 		if b.JSONView != nil {
 			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.JSONView))

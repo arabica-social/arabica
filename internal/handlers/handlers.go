@@ -311,6 +311,20 @@ func ValidateRKey(w http.ResponseWriter, rkey string) string {
 	return rkey
 }
 
+// ValidateRKeyJSON validates a record key and writes the stable JSON error
+// envelope when validation fails.
+func ValidateRKeyJSON(w http.ResponseWriter, rkey string) string {
+	if rkey == "" {
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Record key is required")
+		return ""
+	}
+	if !atp.ValidateRKey(rkey) {
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid record key format")
+		return ""
+	}
+	return rkey
+}
+
 // ValidateOptionalRKey validates an optional rkey from form data.
 // Returns an error message if invalid, empty string if valid or empty.
 func ValidateOptionalRKey(rkey, fieldName string) string {
@@ -362,12 +376,52 @@ func ParseOptionalInt(s string) *int {
 	return &v
 }
 
-// WriteJSON encodes and writes a JSON response
-func WriteJSON(w http.ResponseWriter, v any, entityName string) {
-	w.Header().Set("Content-Type", "application/json")
+// JSONErrorResponse is the stable error envelope returned by SPA-facing JSON
+// endpoints. Code is intentionally low-cardinality so clients can branch on
+// it without parsing the human-readable message.
+type JSONErrorResponse struct {
+	Error  string            `json:"error"`
+	Code   string            `json:"code"`
+	Fields map[string]string `json:"fields,omitempty"`
+}
+
+// WriteJSONStatus encodes one JSON response with the requested status.
+func WriteJSONStatus(w http.ResponseWriter, status int, v any, entityName string) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		log.Error().Err(err).Msg("Failed to encode " + entityName + " response")
 	}
+}
+
+// WriteJSONError writes the stable JSON error envelope.
+func WriteJSONError(w http.ResponseWriter, status int, code, message string) {
+	WriteJSONStatus(w, status, JSONErrorResponse{Error: message, Code: code}, "error")
+}
+
+// WriteJSONValidationError writes the standard field-validation response.
+func WriteJSONValidationError(w http.ResponseWriter, fields map[string]string) {
+	WriteJSONStatus(w, http.StatusBadRequest, JSONErrorResponse{
+		Error:  "Please correct the highlighted fields.",
+		Code:   "validation_failed",
+		Fields: fields,
+	}, "validation error")
+}
+
+// WriteRequestError returns JSON when the request selected the JSON
+// representation, while preserving plain-text errors for legacy form/HTMX
+// callers during the migration.
+func WriteRequestError(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+	if IsJSONRequest(r) || WantsJSON(r) {
+		WriteJSONError(w, status, code, message)
+		return
+	}
+	http.Error(w, message, status)
+}
+
+// WriteJSON encodes and writes a successful JSON response.
+func WriteJSON(w http.ResponseWriter, v any, entityName string) {
+	WriteJSONStatus(w, http.StatusOK, v, entityName)
 }
 
 // getUserProfile fetches the profile for an authenticated user.
@@ -488,6 +542,26 @@ func HandleStoreError(w http.ResponseWriter, err error, fallbackMessage string) 
 	http.Error(w, fallbackMessage, http.StatusInternalServerError)
 }
 
+// HandleStoreJSONError maps store failures to the stable JSON error envelope
+// without exposing internal dependency details.
+func HandleStoreJSONError(w http.ResponseWriter, err error, fallbackMessage string) {
+	if errors.Is(err, atproto.ErrSessionExpired) {
+		WriteJSONError(w, http.StatusUnauthorized, "session_expired", "Your session has expired. Please log in again.")
+		return
+	}
+	WriteJSONError(w, http.StatusInternalServerError, "internal_error", fallbackMessage)
+}
+
+// HandleStoreErrorForRequest preserves the existing store-error semantics but
+// uses the JSON envelope when the request selected JSON.
+func HandleStoreErrorForRequest(w http.ResponseWriter, r *http.Request, err error, fallbackMessage string) {
+	if errors.Is(err, atproto.ErrSessionExpired) {
+		WriteRequestError(w, r, http.StatusUnauthorized, "session_expired", "Your session has expired. Please log in again.")
+		return
+	}
+	WriteRequestError(w, r, http.StatusInternalServerError, "internal_error", fallbackMessage)
+}
+
 // deleteEntity validates the rkey, calls the delete function, removes the record
 // from the firehose feed index, and returns 200.
 func (h *Handler) DeleteEntity(w http.ResponseWriter, r *http.Request, deleteFn func(context.Context, string) error, entityName string, collection string) {
@@ -497,7 +571,7 @@ func (h *Handler) DeleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 	}
 	if err := deleteFn(r.Context(), rkey); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete " + entityName)
-		HandleStoreError(w, err, "Failed to delete "+entityName)
+		HandleStoreErrorForRequest(w, r, err, "Failed to delete "+entityName)
 		return
 	}
 	// Remove from firehose feed index
@@ -511,6 +585,10 @@ func (h *Handler) DeleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 	}
 	h.InvalidateFeedCache()
 	w.Header().Set("HX-Trigger", "entityDeleted")
+	if WantsJSON(r) {
+		WriteJSON(w, map[string]bool{"deleted": true}, entityName+" delete")
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 

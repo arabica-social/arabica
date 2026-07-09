@@ -1,4 +1,5 @@
 import type { EntityViewResponse } from "$lib/types/entity_view";
+import { APIError, requestJSON } from "./client";
 
 /**
  * Fetches an entity view from the JSON API. Used by `+page.ts` load
@@ -16,21 +17,15 @@ export async function fetchEntityView<TRecord>(
 ): Promise<{ data?: EntityViewResponse<TRecord>; error?: string; status: number }> {
 	const url = `/api/${entity}/${encodeURIComponent(actor)}/${encodeURIComponent(id)}`;
 	try {
-		const res = await fetchFn(url, {
-			headers: { Accept: "application/json" },
-		});
-		if (!res.ok) {
-			if (res.status === 404) {
-				return { error: "Record not found", status: 404 };
-			}
-			if (res.status === 401) {
-				return { error: "Authentication required", status: 401 };
-			}
-			return { error: `Failed to load (${res.status})`, status: res.status };
-		}
-		const data = (await res.json()) as EntityViewResponse<TRecord>;
+		const data = await requestJSON<EntityViewResponse<TRecord>>(fetchFn, url);
 		return { data, status: 200 };
-	} catch {
+	} catch (error) {
+		if (error instanceof APIError) {
+			if (error.status === 404) return { error: "Record not found", status: 404 };
+			if (error.status === 401) return { error: "Authentication required", status: 401 };
+			if (error.kind === "network") return { error: "Network error", status: 0 };
+			return { error: error.message || `Failed to load (${error.status})`, status: error.status };
+		}
 		return { error: "Network error", status: 0 };
 	}
 }

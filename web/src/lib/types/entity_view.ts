@@ -14,6 +14,7 @@ export type Roaster = {
 	name: string;
 	location: string;
 	website: string;
+	source_ref?: string;
 	created_at: string;
 };
 

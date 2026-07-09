@@ -24,8 +24,8 @@ type AdminMutationResponseJSON struct {
 
 // AdminStatsResponseJSON is the JSON response for GET /api/_mod/stats.
 type AdminStatsResponseJSON struct {
-	Stats   sharedpages.AdminStats  `json:"stats"`
-	Backups []backup.SourceStatus   `json:"backups"`
+	Stats   sharedpages.AdminStats `json:"stats"`
+	Backups []backup.SourceStatus  `json:"backups"`
 }
 
 // HandleAdminJSON returns the admin dashboard data as JSON for the SvelteKit SPA.
@@ -64,13 +64,13 @@ func writeAdminMutationJSON(w http.ResponseWriter, action, message string) {
 func (h *Handler) HandleHideRecordJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	uri := r.FormValue("uri")
 	reason := r.FormValue("reason")
 	if uri == "" {
-		http.Error(w, "URI is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "URI is required")
 		return
 	}
 	entry := moderation.HiddenRecord{
@@ -80,7 +80,7 @@ func (h *Handler) HandleHideRecordJSON(w http.ResponseWriter, r *http.Request) {
 		Reason:   reason,
 	}
 	if err := h.moderationStore.HideRecord(r.Context(), entry); err != nil {
-		http.Error(w, "Failed to hide record", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to hide record")
 		return
 	}
 	h.moderationStore.LogAction(r.Context(), moderation.AuditEntry{
@@ -98,17 +98,17 @@ func (h *Handler) HandleHideRecordJSON(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleUnhideRecordJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	uri := r.FormValue("uri")
 	reason := r.FormValue("reason")
 	if uri == "" {
-		http.Error(w, "URI is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "URI is required")
 		return
 	}
 	if err := h.moderationStore.UnhideRecord(r.Context(), uri); err != nil {
-		http.Error(w, "Failed to unhide record", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to unhide record")
 		return
 	}
 	h.moderationStore.LogAction(r.Context(), moderation.AuditEntry{
@@ -126,16 +126,16 @@ func (h *Handler) HandleUnhideRecordJSON(w http.ResponseWriter, r *http.Request)
 func (h *Handler) HandleDismissReportJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	reportID := r.FormValue("id")
 	if reportID == "" {
-		http.Error(w, "Report ID is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "Report ID is required")
 		return
 	}
 	if err := h.moderationStore.ResolveReport(r.Context(), reportID, moderation.ReportStatusDismissed, userDID); err != nil {
-		http.Error(w, "Failed to dismiss report", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to dismiss report")
 		return
 	}
 	h.moderationStore.LogAction(r.Context(), moderation.AuditEntry{
@@ -152,13 +152,13 @@ func (h *Handler) HandleDismissReportJSON(w http.ResponseWriter, r *http.Request
 func (h *Handler) HandleBlockUserJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	did := r.FormValue("did")
 	reason := r.FormValue("reason")
 	if did == "" {
-		http.Error(w, "DID is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "DID is required")
 		return
 	}
 	entry := moderation.BlacklistedUser{
@@ -168,7 +168,7 @@ func (h *Handler) HandleBlockUserJSON(w http.ResponseWriter, r *http.Request) {
 		Reason:        reason,
 	}
 	if err := h.moderationStore.BlacklistUser(r.Context(), entry); err != nil {
-		http.Error(w, "Failed to block user", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to block user")
 		return
 	}
 	h.moderationStore.LogAction(r.Context(), moderation.AuditEntry{
@@ -186,16 +186,16 @@ func (h *Handler) HandleBlockUserJSON(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleUnblockUserJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	did := r.FormValue("did")
 	if did == "" {
-		http.Error(w, "DID is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "DID is required")
 		return
 	}
 	if err := h.moderationStore.UnblacklistUser(r.Context(), did); err != nil {
-		http.Error(w, "Failed to unblock user", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to unblock user")
 		return
 	}
 	h.moderationStore.LogAction(r.Context(), moderation.AuditEntry{
@@ -212,17 +212,17 @@ func (h *Handler) HandleUnblockUserJSON(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) HandleResetAutoHideJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	targetDID := r.FormValue("did")
 	if targetDID == "" {
-		http.Error(w, "DID is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "DID is required")
 		return
 	}
 	now := time.Now()
 	if err := h.moderationStore.SetAutoHideReset(r.Context(), targetDID, now); err != nil {
-		http.Error(w, "Failed to reset auto-hide", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to reset auto-hide")
 		return
 	}
 	h.moderationStore.LogAction(r.Context(), moderation.AuditEntry{
@@ -240,18 +240,18 @@ func (h *Handler) HandleResetAutoHideJSON(w http.ResponseWriter, r *http.Request
 func (h *Handler) HandleAddLabelJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	entityType := r.FormValue("entity_type")
 	entityID := r.FormValue("entity_id")
 	labelName := r.FormValue("label")
 	if entityType == "" || entityID == "" || labelName == "" {
-		http.Error(w, "entity_type, entity_id, and label are required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "entity_type, entity_id, and label are required")
 		return
 	}
 	if entityType != "user" && entityType != "record" {
-		http.Error(w, "entity_type must be 'user' or 'record'", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "entity_type must be 'user' or 'record'")
 		return
 	}
 	label := moderation.Label{
@@ -270,7 +270,7 @@ func (h *Handler) HandleAddLabelJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := h.moderationStore.AddLabel(r.Context(), label); err != nil {
-		http.Error(w, "Failed to add label", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to add label")
 		return
 	}
 	h.moderationStore.LogAction(r.Context(), moderation.AuditEntry{
@@ -292,18 +292,18 @@ func (h *Handler) HandleAddLabelJSON(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleRemoveLabelJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	entityType := r.FormValue("entity_type")
 	entityID := r.FormValue("entity_id")
 	labelName := r.FormValue("label")
 	if entityType == "" || entityID == "" || labelName == "" {
-		http.Error(w, "entity_type, entity_id, and label are required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "entity_type, entity_id, and label are required")
 		return
 	}
 	if err := h.moderationStore.RemoveLabel(r.Context(), entityType, entityID, labelName); err != nil {
-		http.Error(w, "Failed to remove label", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to remove label")
 		return
 	}
 	h.moderationStore.LogAction(r.Context(), moderation.AuditEntry{

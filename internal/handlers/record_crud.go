@@ -15,7 +15,7 @@ import (
 func (h *Handler) RequireRecordStore(w http.ResponseWriter, r *http.Request) (records.Store, bool) {
 	store, authenticated := h.GetRecordStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteRequestError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return nil, false
 	}
 	return store, true
@@ -84,7 +84,7 @@ func RecordCRUDWrite[Req any, PReq RequestValidator[Req], Model any](
 	allowRedirect bool,
 ) {
 	if store == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteRequestError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 	var req Req
@@ -94,11 +94,11 @@ func RecordCRUDWrite[Req any, PReq RequestValidator[Req], Model any](
 		}
 		return decodeForm(r, &req)
 	}); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		WriteRequestError(w, r, http.StatusBadRequest, "invalid_request", "Invalid request body")
 		return
 	}
 	if err := PReq(&req).Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteRequestError(w, r, http.StatusBadRequest, "validation_failed", err.Error())
 		return
 	}
 	model := build(&req)
@@ -107,7 +107,7 @@ func RecordCRUDWrite[Req any, PReq RequestValidator[Req], Model any](
 	})
 	if err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Str("nsid", nsid).Msgf("Failed to write %s", jsonKey)
-		HandleStoreError(w, err, "Failed to save "+jsonKey)
+		HandleStoreErrorForRequest(w, r, err, "Failed to save "+jsonKey)
 		return
 	}
 	setRKey(model, newRKey)

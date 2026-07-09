@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/svelte";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import RoasterView from "../../src/routes/roasters/[actor]/[id]/+page.svelte";
 
@@ -86,5 +87,14 @@ describe("Roaster view", () => {
 		render(RoasterView, { data: noOwnerData });
 		// The more menu button is still there (for report), but Edit isn't.
 		expect(screen.queryByText("Edit")).toBeNull();
+	});
+
+	it("links owners to the SvelteKit edit route", async () => {
+		render(RoasterView, { data: roasterData });
+		await userEvent.click(screen.getByRole("button", { name: "More options" }));
+		expect(screen.getByRole("menuitem", { name: "Edit" })).toHaveAttribute(
+			"href",
+			"/roasters/roaster-1/edit",
+		);
 	});
 });

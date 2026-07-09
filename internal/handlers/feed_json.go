@@ -77,16 +77,16 @@ func NewFeedItemJSON(item *feed.FeedItem) FeedItemJSON {
 // via accessor functions. The JSON API flattens these into the comment object
 // so the SPA has everything it needs in one payload.
 type CommentJSON struct {
-	RKey       string    `json:"rkey"`
-	SubjectURI string    `json:"subject_uri"`
-	Text       string    `json:"text"`
-	ActorDID   string    `json:"actor_did"`
-	CreatedAt  time.Time `json:"created_at"`
-	ParentURI  string    `json:"parent_uri,omitempty"`
-	ParentRKey string    `json:"parent_rkey,omitempty"`
-	CID        string    `json:"cid,omitempty"`
-	Depth      int       `json:"depth"`
-	Handle      string   `json:"handle,omitempty"`
+	RKey        string    `json:"rkey"`
+	SubjectURI  string    `json:"subject_uri"`
+	Text        string    `json:"text"`
+	ActorDID    string    `json:"actor_did"`
+	CreatedAt   time.Time `json:"created_at"`
+	ParentURI   string    `json:"parent_uri,omitempty"`
+	ParentRKey  string    `json:"parent_rkey,omitempty"`
+	CID         string    `json:"cid,omitempty"`
+	Depth       int       `json:"depth"`
+	Handle      string    `json:"handle,omitempty"`
 	DisplayName string    `json:"display_name,omitempty"`
 	Avatar      string    `json:"avatar,omitempty"`
 	LikeCount   int       `json:"like_count"`

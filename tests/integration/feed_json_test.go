@@ -48,7 +48,7 @@ func TestHTTP_FeedJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/feed")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var feed feedJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &feed))

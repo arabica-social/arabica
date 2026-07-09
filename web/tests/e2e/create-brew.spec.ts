@@ -1,49 +1,42 @@
 import { test, expect } from "./fixtures";
 
-/**
- * Critical path: Create a brew.
- *
- * Flow: create prerequisites → /brews/new → verify form renders →
- * verify bean in my-coffee.
- *
- * Note: the Go handler for /brews/new redirects to /onboarding if the
- * user doesn't have a bean, brewer, AND roaster. We create all three
- * via the API first so the brew form page renders.
- *
- * The brew form is a Svelte island (data-svelte-brew-form) that hydrates
- * client-side from svelte-islands.js. We wait for hydration before
- * asserting on form content.
- */
-test("create a brew", async ({ authedPage: page, apiRequest }) => {
-	// Create prerequisite entities via the API so the brew form renders
-	// (the server redirects to /onboarding if the user isn't "ready").
-	await apiRequest.post("/api/roasters", {
-		form: { name: "E2E Test Roaster" },
-	});
-	await apiRequest.post("/api/brewers", {
-		form: { name: "E2E Test Brewer" },
-	});
-	await apiRequest.post("/api/beans", {
-		form: { name: "E2E Test Bean", origin: "Ethiopia" },
-	});
+test("new brew form loads indexed prerequisites", async ({ authedPage: page, apiRequest, did, waitForIndex }) => {
+	const suffix = Date.now().toString(36);
+	const beanName = `E2E Brew Bean ${suffix}`;
+	const brewerName = `E2E Brewer ${suffix}`;
 
-	// Wait for indexing.
-	await page.waitForTimeout(1500);
+	const beanResponse = await apiRequest.post("/api/beans", {
+		form: { name: beanName, origin: "Ethiopia" },
+	});
+	expect(beanResponse.ok()).toBeTruthy();
+	const bean = await beanResponse.json();
+	const brewerResponse = await apiRequest.post("/api/brewers", {
+		form: { name: brewerName, brewer_type: "pourover" },
+	});
+	expect(brewerResponse.ok()).toBeTruthy();
+	const brewer = await brewerResponse.json();
+	await Promise.all([
+		waitForIndex(`at://${did}/social.arabica.alpha.bean/${bean.rkey}`),
+		waitForIndex(`at://${did}/social.arabica.alpha.brewer/${brewer.rkey}`),
+	]);
 
-	// Navigate to the new brew form.
+	const dataLoaded = page.waitForResponse((response) =>
+		new URL(response.url()).pathname === "/api/data",
+	);
 	await page.goto("/brews/new");
-	await page.waitForLoadState("networkidle");
-
-	// Verify the page title is present (server-rendered).
+	const dataResponse = await dataLoaded;
+	expect(dataResponse.ok()).toBeTruthy();
+	await expect.poll(async () =>
+		page.evaluate((expectedName) => {
+			const data = window.AppCache?.getCachedData?.() as { beans?: Array<{ name?: string }> } | null;
+			return data?.beans?.some((bean) => bean.name === expectedName) ?? false;
+		}, beanName),
+	).toBe(true);
+	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
 	await expect(page.getByRole("heading", { name: "New Brew" })).toBeVisible();
-
-	// Wait for the Svelte island to hydrate (the brew form mount point
-	// gets populated with form fields by svelte-islands.js).
-	await expect(page.locator("[data-svelte-brew-form]")).toBeVisible();
-	await expect(page.locator("[data-svelte-brew-form] legend").first()).toBeVisible({ timeout: 15000 });
-
-	// Navigate to my-coffee to verify the bean was created.
+	await expect(page.getByRole("group", { name: "Coffee" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save Brew" })).toBeVisible();
 	await page.goto("/my-coffee");
-	// Wait for the HTMX-loaded manage partial to show the bean.
-	await expect(page.getByText("E2E Test Bean")).toBeVisible({ timeout: 15000 });
+	await page.getByRole("button", { name: "Beans" }).click();
+	await expect(page.getByText(beanName)).toBeVisible();
 });

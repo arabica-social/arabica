@@ -16,10 +16,9 @@
 // serves the result. This ensures crawlers and social media bots see
 // correct metadata without executing JavaScript.
 //
-// During migration, the shell route is a catch-all that only activates for
-// paths not handled by existing templ routes. This allows page-by-page
-// migration: ported pages use SvelteKit routes, unported pages fall through
-// to their existing templ handlers.
+// During migration, shared routing registers the shell only for explicit
+// app-owned page patterns. Ported pages use SvelteKit routes, unported pages
+// keep their existing templ handlers, and unknown direct loads remain 404s.
 package spa
 
 import (
@@ -28,10 +27,13 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"text/template"
 
+	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 )
 
 // ShellData holds the server-side data injected into the SPA shell's <head>.
@@ -149,7 +151,8 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		StylesheetHref: h.manifest.StylesheetHref(h.appName),
 	}
 
-	// Populate from request context if available (auth state, traceparent).
+	// Populate from request context if available (auth state, traceparent,
+	// CSP nonce).
 	if did, ok := didFromContext(r.Context()); ok {
 		data.UserDID = did
 		data.IsAuthenticated = true
@@ -165,6 +168,7 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			data.UnreadNotificationCount = session.UnreadNotificationCount
 		}
 	}
+	data.CSPNonce = middleware.CSPNonceFromContext(r.Context())
 	if tp := traceparentFromContext(r.Context()); tp != "" {
 		data.Traceparent = tp
 	}
@@ -203,6 +207,11 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		result = injectBodyAttrs(result, data)
 	}
 
+	// The SvelteKit adapter-static emits a small inline bootstrap script
+	// that loads the app and start chunks. It has no nonce, so the CSP
+	// blocks it. Add the request nonce to that inline script.
+	result = injectSvelteKitScriptNonce(result, data.CSPNonce)
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	_, _ = w.Write(result)
@@ -211,14 +220,15 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // injectBodyAttrs adds data-* attributes to the <body> tag in the HTML.
 // These are read by the SvelteKit app to determine auth state, which app
 // (arabica/oolong) is running, and the authenticated user's display
-// profile / unread count / moderator flag.
+// profile / unread count / moderator flag. data-frontend is an explicit
+// browser-test marker proving that a direct load reached the SvelteKit shell.
 func injectBodyAttrs(html []byte, data ShellData) []byte {
 	bodyTag := []byte("<body")
 	if !bytes.Contains(html, bodyTag) {
 		return html
 	}
 
-	var attrs []byte
+	attrs := []byte(` data-frontend="sveltekit"`)
 	if data.UserDID != "" {
 		attrs = append(attrs, []byte(` data-user-did="`+data.UserDID+`"`)...)
 	}
@@ -252,6 +262,22 @@ func injectBodyAttrs(html []byte, data ShellData) []byte {
 	result = append(result, attrs...)
 	result = append(result, html[insertAt:]...)
 	return result
+}
+
+// injectSvelteKitScriptNonce adds the CSP nonce to the SvelteKit bootstrap
+// inline script. The script is the only inline <script> in the generated
+// index.html; it loads the start/app entry chunks and calls kit.start().
+func injectSvelteKitScriptNonce(html []byte, nonce string) []byte {
+	if nonce == "" {
+		return html
+	}
+	// The inline script is the only <script> in the generated index.html
+	// (the theme script is injected via the head template above). Target the
+	// exact pattern SvelteKit emits so we don't accidentally rewrite other
+	// scripts.
+	target := []byte("<script>\n\t\t\t\t{\n\t\t\t\t\t__sveltekit_")
+	replacement := []byte(`<script nonce="` + htmlEscapeAttr(nonce) + `">` + "\n\t\t\t\t{\n\t\t\t\t\t__sveltekit_")
+	return bytes.Replace(html, target, replacement, 1)
 }
 
 // htmlEscapeAttr escapes a string for safe inclusion in a double-quoted HTML
@@ -330,9 +356,78 @@ func (d ShellData) twitterCardType() string {
 // embedded build filesystem. These are the versioned JS chunks produced by
 // the SvelteKit build.
 func AssetHandler() http.Handler {
-	fsys := EmbeddedFS()
+	fsys, err := fs.Sub(EmbeddedFS(), "_app")
+	if err != nil {
+		panic("spa: embedded _app directory not found: " + err.Error())
+	}
 	fileServer := http.FileServer(http.FS(fsys))
-	return http.StripPrefix("/_app/", fileServer)
+	stripped := http.StripPrefix("/_app/", fileServer)
+	return contentTypeMiddleware(stripped)
+}
+
+// contentTypeMiddleware ensures embedded assets are served with correct
+// Content-Type headers. Go's http.FileServer relies on the host MIME
+// database via mime.TypeByExtension, which can return text/plain on minimal
+// systems (e.g. NixOS without mailcap), breaking module loading.
+//
+// The wrapper locks the Content-Type we compute so that the underlying
+// FileServer cannot overwrite it with its own (possibly wrong) guess.
+func contentTypeMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ct := contentTypeForPath(r.URL.Path)
+		if ct != "" {
+			w.Header().Set("Content-Type", ct)
+			next.ServeHTTP(&contentTypeLockingResponseWriter{ResponseWriter: w, contentType: ct}, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// contentTypeLockingResponseWriter prevents http.FileServer from overwriting
+// a Content-Type header that has already been set explicitly.
+type contentTypeLockingResponseWriter struct {
+	http.ResponseWriter
+	contentType string
+}
+
+func (w *contentTypeLockingResponseWriter) WriteHeader(code int) {
+	w.ResponseWriter.Header().Set("Content-Type", w.contentType)
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *contentTypeLockingResponseWriter) Write(p []byte) (int, error) {
+	w.ResponseWriter.Header().Set("Content-Type", w.contentType)
+	return w.ResponseWriter.Write(p)
+}
+
+func contentTypeForPath(path string) string {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".js", ".mjs":
+		return "text/javascript; charset=utf-8"
+	case ".css":
+		return "text/css; charset=utf-8"
+	case ".svg":
+		return "image/svg+xml"
+	case ".json":
+		return "application/json"
+	case ".woff2":
+		return "font/woff2"
+	case ".woff":
+		return "font/woff"
+	case ".ttf":
+		return "font/ttf"
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".gif":
+		return "image/gif"
+	case ".ico":
+		return "image/x-icon"
+	default:
+		return ""
+	}
 }
 
 // IsSPAAsset returns true if the request path is for a SvelteKit static
@@ -358,7 +453,10 @@ func WithDID(ctx context.Context, did string) context.Context {
 
 func didFromContext(ctx context.Context) (string, bool) {
 	did, ok := ctx.Value(didKey).(string)
-	return did, ok
+	if ok && did != "" {
+		return did, true
+	}
+	return atpmiddleware.GetDID(ctx)
 }
 
 // WithTraceparent stores the W3C traceparent in the request context.

@@ -31,7 +31,7 @@ type IncompleteRecordsResponseJSON struct {
 func (h *Handlers) HandleOnboardingJSON(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		handlers.WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -39,32 +39,32 @@ func (h *Handlers) HandleOnboardingJSON(w http.ResponseWriter, r *http.Request) 
 	status, err := onboarding.CheckBrewReadiness(ctx, store)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to build onboarding JSON")
-		http.Error(w, "Failed to load", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to load")
 		return
 	}
 
 	beans, err := store.ListBeans(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list beans for onboarding JSON")
-		http.Error(w, "Failed to load", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to load")
 		return
 	}
 	brewers, err := listBrewers(ctx, store)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list brewers for onboarding JSON")
-		http.Error(w, "Failed to load", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to load")
 		return
 	}
 	grinders, err := listGrinders(ctx, store)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list grinders for onboarding JSON")
-		http.Error(w, "Failed to load", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to load")
 		return
 	}
 	roasters, err := store.ListRoasters(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list roasters for onboarding JSON")
-		http.Error(w, "Failed to load", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to load")
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h *Handlers) HandleOnboardingJSON(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) HandleIncompleteRecordsJSON(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		handlers.WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -89,19 +89,19 @@ func (h *Handlers) HandleIncompleteRecordsJSON(w http.ResponseWriter, r *http.Re
 	beans, err := store.ListBeans(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch beans for incomplete records JSON")
-		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to fetch data")
 		return
 	}
 	grinders, err := listGrinders(ctx, store)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch grinders for incomplete records JSON")
-		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to fetch data")
 		return
 	}
 	brewers, err := listBrewers(ctx, store)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch brewers for incomplete records JSON")
-		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to fetch data")
 		return
 	}
 
@@ -117,14 +117,14 @@ func (h *Handlers) HandleIncompleteRecordsJSON(w http.ResponseWriter, r *http.Re
 func (h *Handlers) HandlePopularRecipesJSON(w http.ResponseWriter, r *http.Request) {
 	_, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		handlers.WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
 	recipes, err := h.listAllRecipesFromIndex(r.Context())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch recipes for popular JSON")
-		http.Error(w, "Failed to fetch recipes", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to fetch recipes")
 		return
 	}
 

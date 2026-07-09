@@ -7,7 +7,7 @@
 	let {
 		subjectURI = "",
 		subjectCID = "",
-		comments = [],
+		comments,
 		isAuthenticated = false,
 		currentUserDID = "",
 		isModerator = false,
@@ -15,7 +15,7 @@
 	}: {
 		subjectURI?: string;
 		subjectCID?: string;
-		comments?: IndexedComment[];
+		comments?: IndexedComment[] | null;
 		isAuthenticated?: boolean;
 		currentUserDID?: string;
 		isModerator?: boolean;
@@ -28,7 +28,7 @@
 	let localComments = $state<IndexedComment[]>([]);
 
 	$effect(() => {
-		localComments = [...comments];
+		localComments = [...(comments ?? [])];
 	});
 
 	function commentDisplayName(c: IndexedComment): string {

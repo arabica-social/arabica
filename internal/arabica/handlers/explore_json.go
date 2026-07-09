@@ -13,11 +13,11 @@ import (
 // ExploreResponseJSON is the JSON envelope returned by GET /api/explore for the
 // SvelteKit SPA. See docs/api/explore.md for the contract.
 type ExploreResponseJSON struct {
-	Items       []handlers.FeedItemJSON        `json:"items"`
+	Items       []handlers.FeedItemJSON             `json:"items"`
 	Documents   map[string]firehose.ExploreDocument `json:"documents"`
-	FacetCounts []firehose.ExploreFacetCount   `json:"facet_counts"`
-	NextCursor  string                         `json:"next_cursor"`
-	Health      firehose.ExploreHealth          `json:"health"`
+	FacetCounts []firehose.ExploreFacetCount        `json:"facet_counts"`
+	NextCursor  string                              `json:"next_cursor"`
+	Health      firehose.ExploreHealth              `json:"health"`
 }
 
 // HandleExploreJSON returns explore results as JSON for the SvelteKit SPA.
@@ -25,11 +25,11 @@ type ExploreResponseJSON struct {
 func (h *Handlers) HandleExploreJSON(w http.ResponseWriter, r *http.Request) {
 	_, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		handlers.WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 	if h.FeedIndex() == nil {
-		http.Error(w, "Explore is unavailable", http.StatusServiceUnavailable)
+		handlers.WriteJSONError(w, http.StatusServiceUnavailable, "service_unavailable", "Explore is unavailable")
 		return
 	}
 
@@ -40,7 +40,7 @@ func (h *Handlers) HandleExploreJSON(w http.ResponseWriter, r *http.Request) {
 	result, err := h.getModeratedExplore(r, query, cf)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to query explore")
-		http.Error(w, "Failed to load explore", http.StatusInternalServerError)
+		handlers.WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to load explore")
 		return
 	}
 

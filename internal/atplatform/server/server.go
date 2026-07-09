@@ -392,7 +392,6 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		JSAssets:          jsAssets,
 		AppRoutes:         opts.AppRoutes,
 		SPAHandler:        spaHandler,
-		SPAEnabled:        spaHandler != nil,
 	})
 
 	// Internal metrics server (localhost-only)

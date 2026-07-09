@@ -23,9 +23,9 @@ type LikeToggleResponseJSON struct {
 
 // CommentListResponseJSON is the JSON response for GET /api/comments.
 type CommentListResponseJSON struct {
-	Comments       []CommentJSON `json:"comments"`
-	SubjectURI     string        `json:"subject_uri"`
-	IsAuthenticated bool         `json:"is_authenticated"`
+	Comments        []CommentJSON `json:"comments"`
+	SubjectURI      string        `json:"subject_uri"`
+	IsAuthenticated bool          `json:"is_authenticated"`
 }
 
 // CommentCreateResponseJSON is the JSON response for POST /api/comments.
@@ -49,7 +49,7 @@ type ReportResponseJSON struct {
 func (h *Handler) HandleLikeToggleJSON(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -57,7 +57,7 @@ func (h *Handler) HandleLikeToggleJSON(w http.ResponseWriter, r *http.Request) {
 
 	if err := r.ParseForm(); err != nil {
 		log.Warn().Err(err).Msg("Failed to parse like toggle form")
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid form data")
 		return
 	}
 
@@ -65,14 +65,14 @@ func (h *Handler) HandleLikeToggleJSON(w http.ResponseWriter, r *http.Request) {
 	subjectCID := r.FormValue("subject_cid")
 
 	if subjectURI == "" || subjectCID == "" {
-		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "subject_uri and subject_cid are required")
 		return
 	}
 
 	existingLike, err := store.GetUserLikeForSubject(r.Context(), subjectURI)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check existing like")
-		HandleStoreError(w, err, "Failed to check like status")
+		HandleStoreJSONError(w, err, "Failed to check like status")
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *Handler) HandleLikeToggleJSON(w http.ResponseWriter, r *http.Request) {
 	if existingLike != nil {
 		if err := store.DeleteLikeByRKey(r.Context(), existingLike.RKey); err != nil {
 			log.Error().Err(err).Msg("Failed to delete like")
-			HandleStoreError(w, err, "Failed to unlike")
+			HandleStoreJSONError(w, err, "Failed to unlike")
 			return
 		}
 		isLiked = false
@@ -102,7 +102,7 @@ func (h *Handler) HandleLikeToggleJSON(w http.ResponseWriter, r *http.Request) {
 		like, err := store.CreateLike(r.Context(), req)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create like")
-			HandleStoreError(w, err, "Failed to like")
+			HandleStoreJSONError(w, err, "Failed to like")
 			return
 		}
 		isLiked = true
@@ -126,7 +126,7 @@ func (h *Handler) HandleLikeToggleJSON(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleCommentListJSON(w http.ResponseWriter, r *http.Request) {
 	subjectURI := r.URL.Query().Get("subject_uri")
 	if subjectURI == "" {
-		http.Error(w, "subject_uri is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "subject_uri is required")
 		return
 	}
 
@@ -139,8 +139,8 @@ func (h *Handler) HandleCommentListJSON(w http.ResponseWriter, r *http.Request) 
 	}
 
 	WriteJSON(w, CommentListResponseJSON{
-		Comments:       NewCommentsJSON(comments),
-		SubjectURI:     subjectURI,
+		Comments:        NewCommentsJSON(comments),
+		SubjectURI:      subjectURI,
 		IsAuthenticated: isAuthenticated,
 	}, "comments")
 }
@@ -149,14 +149,14 @@ func (h *Handler) HandleCommentListJSON(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) HandleCommentCreateJSON(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
 	didStr, _ := atpmiddleware.GetDID(r.Context())
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid form data")
 		return
 	}
 
@@ -167,15 +167,15 @@ func (h *Handler) HandleCommentCreateJSON(w http.ResponseWriter, r *http.Request
 	parentCID := r.FormValue("parent_cid")
 
 	if subjectURI == "" || subjectCID == "" {
-		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "subject_uri and subject_cid are required")
 		return
 	}
 	if text == "" {
-		http.Error(w, "comment text is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "comment text is required")
 		return
 	}
 	if len(text) > social.MaxCommentLength {
-		http.Error(w, "comment text is too long", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "comment text is too long")
 		return
 	}
 
@@ -190,7 +190,7 @@ func (h *Handler) HandleCommentCreateJSON(w http.ResponseWriter, r *http.Request
 	comment, err := store.CreateComment(r.Context(), req)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create comment")
-		HandleStoreError(w, err, "Failed to create comment")
+		HandleStoreJSONError(w, err, "Failed to create comment")
 		return
 	}
 
@@ -220,7 +220,7 @@ func (h *Handler) HandleCommentCreateJSON(w http.ResponseWriter, r *http.Request
 func (h *Handler) HandleCommentDeleteJSON(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -228,13 +228,13 @@ func (h *Handler) HandleCommentDeleteJSON(w http.ResponseWriter, r *http.Request
 
 	rkey := r.PathValue("id")
 	if rkey == "" {
-		http.Error(w, "Comment ID is required", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Comment ID is required")
 		return
 	}
 
 	if err := store.DeleteCommentByRKey(r.Context(), rkey); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Str("did", didStr).Msg("Failed to delete comment from PDS")
-		HandleStoreError(w, err, "Failed to delete comment")
+		HandleStoreJSONError(w, err, "Failed to delete comment")
 		return
 	}
 
@@ -259,7 +259,7 @@ func (h *Handler) HandleReportJSON(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := r.ParseForm(); err != nil {
-		WriteJSON(w, map[string]string{"error": "Invalid form data"}, "report-error")
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid form data")
 		return
 	}
 	subjectURI := r.FormValue("subject_uri")
@@ -267,30 +267,30 @@ func (h *Handler) HandleReportJSON(w http.ResponseWriter, r *http.Request) {
 
 	reporterDID, ok := atpmiddleware.GetDID(ctx)
 	if !ok {
-		WriteJSON(w, map[string]string{"error": "Authentication required"}, "report-error")
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
 	if h.moderationStore == nil {
 		log.Error().Msg("moderation: store not configured")
-		WriteJSON(w, map[string]string{"error": "Reports are not enabled"}, "report-error")
+		WriteJSONError(w, http.StatusServiceUnavailable, "service_unavailable", "Reports are not enabled")
 		return
 	}
 
 	if subjectURI == "" {
-		WriteJSON(w, map[string]string{"error": "subject_uri is required"}, "report-error")
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "subject_uri is required")
 		return
 	}
 
 	uriParts, err := atp.ParseATURI(subjectURI)
 	if err != nil {
-		WriteJSON(w, map[string]string{"error": "Invalid subject_uri format"}, "report-error")
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid subject_uri format")
 		return
 	}
 	subjectDID := uriParts.DID
 
 	if subjectDID == reporterDID {
-		WriteJSON(w, map[string]string{"error": "You cannot report your own content"}, "report-error")
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "You cannot report your own content")
 		return
 	}
 
@@ -307,22 +307,22 @@ func (h *Handler) HandleReportJSON(w http.ResponseWriter, r *http.Request) {
 	recentCount, err := h.moderationStore.CountReportsFromUserSince(ctx, reporterDID, oneHourAgo)
 	if err != nil {
 		log.Error().Err(err).Str("reporter", reporterDID).Msg("moderation: failed to check rate limit")
-		WriteJSON(w, map[string]string{"error": "Failed to process report"}, "report-error")
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to process report")
 		return
 	}
 	if recentCount >= ReportRateLimitPerHour {
-		WriteJSON(w, map[string]string{"error": "Rate limit exceeded. Please try again later."}, "report-error")
+		WriteJSONError(w, http.StatusTooManyRequests, "rate_limited", "Rate limit exceeded. Please try again later.")
 		return
 	}
 
 	alreadyReported, err := h.moderationStore.HasReportedURI(ctx, reporterDID, subjectURI)
 	if err != nil {
 		log.Error().Err(err).Str("reporter", reporterDID).Msg("moderation: failed to check duplicate")
-		WriteJSON(w, map[string]string{"error": "Failed to process report"}, "report-error")
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to process report")
 		return
 	}
 	if alreadyReported {
-		WriteJSON(w, map[string]string{"error": "You have already reported this content"}, "report-error")
+		WriteJSONError(w, http.StatusConflict, "conflict", "You have already reported this content")
 		return
 	}
 
@@ -338,7 +338,7 @@ func (h *Handler) HandleReportJSON(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.moderationStore.CreateReport(ctx, report); err != nil {
 		log.Error().Err(err).Str("reporter", reporterDID).Msg("moderation: failed to create report")
-		WriteJSON(w, map[string]string{"error": "Failed to save report"}, "report-error")
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to save report")
 		return
 	}
 

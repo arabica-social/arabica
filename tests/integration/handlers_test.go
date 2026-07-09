@@ -146,6 +146,53 @@ func TestHTTP_RoasterDeleteFlow(t *testing.T) {
 	}
 }
 
+func TestHTTP_RoasterJSONLifecycle(t *testing.T) {
+	h := StartHarness(t, nil)
+
+	createResp := h.PostJSON("/api/roasters", map[string]string{
+		"name": "JSON Lifecycle Roaster", "location": "Portland, OR", "website": "https://example.com",
+	})
+	createBody := ReadBody(t, createResp)
+	require.Equal(t, http.StatusOK, createResp.StatusCode, statusErr(createResp, createBody))
+	assert.Equal(t, "application/json; charset=utf-8", createResp.Header.Get("Content-Type"))
+	var created arabica.Roaster
+	require.NoError(t, json.Unmarshal([]byte(createBody), &created))
+	require.NotEmpty(t, created.RKey)
+
+	readResp := h.Get("/api/roasters/" + h.PrimaryAccount.DID + "/" + created.RKey)
+	readBody := ReadBody(t, readResp)
+	require.Equal(t, http.StatusOK, readResp.StatusCode, statusErr(readResp, readBody))
+	assert.Equal(t, "application/json; charset=utf-8", readResp.Header.Get("Content-Type"))
+	assert.Contains(t, readBody, "JSON Lifecycle Roaster")
+
+	updateResp := h.PutJSON("/api/roasters/"+created.RKey, map[string]string{
+		"name": "JSON Lifecycle Roaster", "location": "Seattle, WA", "website": "https://updated.example",
+	})
+	updateBody := ReadBody(t, updateResp)
+	require.Equal(t, http.StatusOK, updateResp.StatusCode, statusErr(updateResp, updateBody))
+	assert.Equal(t, "application/json; charset=utf-8", updateResp.Header.Get("Content-Type"))
+	var updated arabica.Roaster
+	require.NoError(t, json.Unmarshal([]byte(updateBody), &updated))
+	assert.Equal(t, "Seattle, WA", updated.Location)
+	assert.Equal(t, "https://updated.example", updated.Website)
+
+	persisted := h.PDSGetRecord(h.PrimaryAccount, arabica.NSIDRoaster, created.RKey)
+	assert.Equal(t, "Seattle, WA", persisted["location"])
+	assert.Equal(t, "https://updated.example", persisted["website"])
+
+	deleteResp := h.DeleteJSON("/api/roasters/" + created.RKey)
+	deleteBody := ReadBody(t, deleteResp)
+	require.Equal(t, http.StatusOK, deleteResp.StatusCode, statusErr(deleteResp, deleteBody))
+	assert.Equal(t, "application/json; charset=utf-8", deleteResp.Header.Get("Content-Type"))
+	assert.JSONEq(t, `{"deleted":true}`, deleteBody)
+
+	validationResp := h.PostJSON("/api/roasters", map[string]string{"name": ""})
+	validationBody := ReadBody(t, validationResp)
+	require.Equal(t, http.StatusBadRequest, validationResp.StatusCode, statusErr(validationResp, validationBody))
+	assert.Equal(t, "application/json; charset=utf-8", validationResp.Header.Get("Content-Type"))
+	assert.JSONEq(t, `{"error":"name is required","code":"validation_failed"}`, validationBody)
+}
+
 // TestHTTP_BeanCreateLinksToRoaster exercises a multi-step flow: create a
 // roaster, then create a bean referencing it. Verifies the cross-entity
 // reference round-trips through the handler layer.

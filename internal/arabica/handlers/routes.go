@@ -13,6 +13,37 @@ import (
 // app package prevents the shared router from importing coffee handlers.
 type Routes struct{}
 
+// SPAOwnedRoutes is the explicit Arabica page-cutover inventory. A route is
+// added only after its SvelteKit direct-load path exists; unlisted routes keep
+// their legacy handlers during migration.
+func (Routes) SPAOwnedRoutes() []string {
+	return []string{
+		"GET /{$}",
+		"GET /about",
+		"GET /terms",
+		"GET /join/create",
+		"GET /atproto",
+		"GET /notifications",
+		"GET /settings",
+		"GET /_mod",
+		"GET /onboarding",
+		"GET /add",
+		"GET /my-coffee",
+		"GET /explore",
+		"GET /brews/new",
+		"GET /brews/{id}/edit",
+		"GET /brews/{actor}/{id}",
+		"GET /recipes/{actor}/{id}",
+		"GET /profile/{actor}",
+		"GET /beans/{actor}/{id}",
+		"GET /roasters/{actor}/{id}",
+		"GET /roasters/new",
+		"GET /roasters/{id}/edit",
+		"GET /grinders/{actor}/{id}",
+		"GET /brewers/{actor}/{id}",
+	}
+}
+
 func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext) {
 	h := New(ctx.Handlers)
 	cop := ctx.CSRF
@@ -49,41 +80,41 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeCreateFromBrew)))
 	mux.Handle("POST /api/recipes/fork/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeFork)))
 
-	// Entity routes: page views/modals skipped in SPA mode; JSON/OG/mutation
-	// routes remain.
-	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.SPAEnabled)
+	// Entity page routes use explicit ownership; JSON, OG, mutation, and modal
+	// routes remain independent of the frontend owner.
+	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.Pages)
 
 	// HTML/HTMX routes that have not been ported to SvelteKit yet. They are
 	// registered in both modes so users always have a working fallback.
 	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleGetStartedCard)))
 	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOnboardingStationForm)))
 
-	mux.HandleFunc("GET /manage", h.HandleManage)
-	mux.HandleFunc("GET /brews", h.HandleBrewList)
-	mux.HandleFunc("GET /beans/new", h.HandleBeanNew)
-	mux.HandleFunc("GET /beans/{id}/edit", h.HandleBeanEdit)
+	ctx.Pages.Register(mux, "GET /manage", http.HandlerFunc(h.HandleManage))
+	ctx.Pages.Register(mux, "GET /brews", http.HandlerFunc(h.HandleBrewList))
+	ctx.Pages.Register(mux, "GET /beans/new", http.HandlerFunc(h.HandleBeanNew))
+	ctx.Pages.Register(mux, "GET /beans/{id}/edit", http.HandlerFunc(h.HandleBeanEdit))
+	// These forms have no legacy full-page equivalent. When the SPA does not
+	// own them, preserve the previous not-found behavior.
+	ctx.Pages.Register(mux, "GET /roasters/new", http.HandlerFunc(ctx.Handlers.HandleNotFound))
+	ctx.Pages.Register(mux, "GET /roasters/{id}/edit", http.HandlerFunc(ctx.Handlers.HandleNotFound))
 
-	mux.HandleFunc("GET /recipes", h.HandleRecipeExplore)
-	mux.HandleFunc("GET /recipes/{actor}/{id}/backlinks", routing.RewriteActorToOwner(h.HandleRecipeBacklinks))
+	ctx.Pages.Register(mux, "GET /recipes", http.HandlerFunc(h.HandleRecipeExplore))
+	ctx.Pages.Register(mux, "GET /recipes/{actor}/{id}/backlinks", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleRecipeBacklinks)))
 
 	// Recipe modal partials are used by both stacks until recipe create/edit
 	// pages are ported to SvelteKit.
 	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
 	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
 
-	if !ctx.SPAEnabled {
-		// Ported SPA routes: only register the templ handlers in legacy
-		// mode. In SPA mode the SvelteKit catch-all serves these paths.
-		mux.HandleFunc("GET /onboarding", h.HandleOnboarding)
-		mux.HandleFunc("GET /add", h.HandleAddRecords)
-		mux.HandleFunc("GET /my-coffee", h.HandleMyCoffee)
-		mux.HandleFunc("GET /explore", h.HandleExplore)
-		mux.HandleFunc("GET /brews/new", h.HandleBrewNew)
-		mux.HandleFunc("GET /brews/{id}/edit", h.HandleBrewEdit)
-		mux.HandleFunc("GET /brews/{actor}/{id}", routing.RewriteActorToOwner(h.HandleBrewView))
-		mux.HandleFunc("GET /recipes/{actor}/{id}", routing.RewriteActorToOwner(h.HandleRecipeView))
-		mux.HandleFunc("GET /profile/{actor}", h.HandleProfile)
-	}
+	ctx.Pages.Register(mux, "GET /onboarding", http.HandlerFunc(h.HandleOnboarding))
+	ctx.Pages.Register(mux, "GET /add", http.HandlerFunc(h.HandleAddRecords))
+	ctx.Pages.Register(mux, "GET /my-coffee", http.HandlerFunc(h.HandleMyCoffee))
+	ctx.Pages.Register(mux, "GET /explore", http.HandlerFunc(h.HandleExplore))
+	ctx.Pages.Register(mux, "GET /brews/new", http.HandlerFunc(h.HandleBrewNew))
+	ctx.Pages.Register(mux, "GET /brews/{id}/edit", http.HandlerFunc(h.HandleBrewEdit))
+	ctx.Pages.Register(mux, "GET /brews/{actor}/{id}", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleBrewView)))
+	ctx.Pages.Register(mux, "GET /recipes/{actor}/{id}", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleRecipeView)))
+	ctx.Pages.Register(mux, "GET /profile/{actor}", http.HandlerFunc(h.HandleProfile))
 }
 
 // EntityRouteBundles returns the per-entity handler bundles for arabica's

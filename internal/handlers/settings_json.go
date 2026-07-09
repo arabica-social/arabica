@@ -34,7 +34,7 @@ type SettingsSavedResponseJSON struct {
 func (h *Handler) HandleSettingsJSON(w http.ResponseWriter, r *http.Request) {
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 	sessionID, _ := atpmiddleware.GetSessionID(r.Context())
@@ -66,13 +66,13 @@ func (h *Handler) HandleSettingsJSON(w http.ResponseWriter, r *http.Request) {
 // HandleSettingsPreferencesJSON saves user preferences and returns JSON.
 func (h *Handler) HandleSettingsPreferencesJSON(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid form")
 		return
 	}
 
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -83,7 +83,7 @@ func (h *Handler) HandleSettingsPreferencesJSON(w http.ResponseWriter, r *http.R
 	if h.feedIndex != nil {
 		if err := h.feedIndex.SetUserPreferences(r.Context(), didStr, prefs); err != nil {
 			log.Error().Err(err).Msg("Failed to save user preferences")
-			http.Error(w, "Failed to save preferences", http.StatusInternalServerError)
+			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to save preferences")
 			return
 		}
 	}
@@ -94,13 +94,13 @@ func (h *Handler) HandleSettingsPreferencesJSON(w http.ResponseWriter, r *http.R
 // HandleSettingsProfileVisibilityJSON saves profile visibility and returns JSON.
 func (h *Handler) HandleSettingsProfileVisibilityJSON(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Invalid form")
 		return
 	}
 
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *Handler) HandleSettingsProfileVisibilityJSON(w http.ResponseWriter, r *
 	if h.feedIndex != nil {
 		if err := h.feedIndex.SetProfileStatsVisibility(r.Context(), didStr, settings); err != nil {
 			log.Error().Err(err).Msg("Failed to save profile visibility settings")
-			http.Error(w, "Failed to save settings", http.StatusInternalServerError)
+			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to save settings")
 			return
 		}
 	}

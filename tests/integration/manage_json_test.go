@@ -14,7 +14,7 @@ import (
 
 // manageJSONResponse mirrors the GET /api/manage JSON envelope.
 type manageJSONResponse struct {
-	DID      string `json:"did"`
+	DID      string            `json:"did"`
 	Beans    []json.RawMessage `json:"beans"`
 	Roasters []json.RawMessage `json:"roasters"`
 	Grinders []json.RawMessage `json:"grinders"`
@@ -44,7 +44,7 @@ func TestHTTP_ManageJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/manage")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var manage manageJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &manage))

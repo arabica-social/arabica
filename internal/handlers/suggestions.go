@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -56,21 +55,20 @@ func (h *Handler) nsidForEntity(entityType string) string {
 func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request) {
 	// Require authentication
 	if _, authenticated := h.GetRecordStore(r); !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
 	entityType := r.PathValue("entity")
 	nsid := h.nsidForEntity(entityType)
 	if nsid == "" {
-		http.Error(w, "Unknown entity type", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "Unknown entity type")
 		return
 	}
 
 	query := r.URL.Query().Get("q")
 	if len(query) < 2 {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("[]"))
+		WriteJSON(w, []suggestions.EntitySuggestion{}, "suggestions")
 		return
 	}
 
@@ -85,8 +83,7 @@ func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request
 	}
 
 	if h.feedIndex == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("[]"))
+		WriteJSON(w, []suggestions.EntitySuggestion{}, "suggestions")
 		return
 	}
 
@@ -97,7 +94,7 @@ func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request
 	results, err := suggestions.Search(r.Context(), suggestionSource{idx: h.feedIndex}, nsid, query, limit, excludeDID)
 	if err != nil {
 		log.Error().Err(err).Str("entity", entityType).Str("query", query).Msg("Failed to search suggestions")
-		http.Error(w, "Failed to search suggestions", http.StatusInternalServerError)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to search suggestions")
 		return
 	}
 
@@ -105,8 +102,5 @@ func (h *Handler) HandleEntitySuggestions(w http.ResponseWriter, r *http.Request
 		results = []suggestions.EntitySuggestion{}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(results); err != nil {
-		log.Error().Err(err).Msg("Failed to encode suggestions response")
-	}
+	WriteJSON(w, results, "suggestions")
 }

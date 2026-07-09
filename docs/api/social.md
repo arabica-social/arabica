@@ -124,7 +124,10 @@ Submits a content report. Returns the report ID on success.
 ### Response (JSON, error)
 
 ```json
-{"error": "You have already reported this content"}
+{
+  "error": "You have already reported this content",
+  "code": "conflict"
+}
 ```
 
 ### Notes
@@ -140,4 +143,7 @@ Submits a content report. Returns the report ID on success.
 |--------|-------|
 | 401 | Not authenticated. |
 | 400 | Missing subject_uri, invalid URI, or self-report. |
-| 429 | Rate limit exceeded (returned as 200 with error JSON). |
+| 409 | The viewer already reported this content. |
+| 429 | Rate limit exceeded. |
+| 500 | Report storage failed. |
+| 503 | Reporting is not configured. |

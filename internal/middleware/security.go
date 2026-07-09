@@ -29,6 +29,12 @@ func CSPNonceFromContext(ctx context.Context) string {
 	return ""
 }
 
+// WithCSPNonce stores a CSP nonce in the context. Used by tests and by
+// callers that need to inject a nonce before invoking a handler directly.
+func WithCSPNonce(ctx context.Context, nonce string) context.Context {
+	return context.WithValue(ctx, cspNonceKey, nonce)
+}
+
 // SecurityHeadersMiddleware adds security headers to all responses
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -185,7 +191,7 @@ func RateLimitMiddleware(config *RateLimitConfig) func(http.Handler) http.Handle
 			// (auth brute force, API scraping). A page load fans out into
 			// 15+ revalidation requests in dev mode, which would otherwise
 			// burn through the global bucket in a handful of refreshes.
-			if strings.HasPrefix(path, "/static/") || path == "/favicon.ico" {
+			if strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/_app/") || path == "/favicon.ico" {
 				next.ServeHTTP(w, r)
 				return
 			}

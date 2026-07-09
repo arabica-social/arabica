@@ -12,10 +12,25 @@ adding or changing an endpoint, update the spec here first, then implement.
 
 ## Conventions
 
-- All endpoints return JSON with `Content-Type: application/json`.
+- All JSON endpoints return `Content-Type: application/json; charset=utf-8`.
 - Mutations (POST/PUT/DELETE) are CSRF-protected via the `CrossOriginProtection`
   middleware. The SvelteKit frontend sends the same cookies/forms it does today.
-- Error responses use `{"error": "message"}` with appropriate HTTP status codes.
+- Error responses use a stable envelope with an appropriate HTTP status:
+
+  ```json
+  {
+    "error": "Human-readable safe message",
+    "code": "stable_machine_code"
+  }
+  ```
+
+  Validation responses may also include `fields`, a map from field name to a
+  safe validation message. Machine codes are low-cardinality values such as
+  `authentication_required`, `session_expired`, `permission_denied`,
+  `not_found`, `validation_failed`, `invalid_request`, `conflict`,
+  `rate_limited`, `service_unavailable`, and `internal_error`.
+- Error messages must not expose dependency errors, stack traces, tokens,
+  session identifiers, or other internal details.
 - Timestamps are RFC 3339 strings.
 - AT-URIs are full `at://did:plc:.../collection/rkey` strings.
 - Pagination uses cursor strings; an empty `next_cursor` means no more pages.

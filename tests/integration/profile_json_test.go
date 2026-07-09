@@ -13,23 +13,23 @@ import (
 
 // profileJSONResponse mirrors the GET /api/profile/{actor} JSON envelope.
 type profileJSONResponse struct {
-	Profile          json.RawMessage `json:"profile"`
-	DID              string          `json:"did"`
-	IsOwnProfile     bool            `json:"is_own_profile"`
-	IsAuthenticated  bool            `json:"is_authenticated"`
-	IsArabicaUser    bool            `json:"is_arabica_user"`
-	Brews            []json.RawMessage `json:"brews"`
-	TotalBrews       int             `json:"total_brews"`
-	BrewsHasMore     bool            `json:"brews_has_more"`
-	BrewsNextOffset  int             `json:"brews_next_offset"`
-	Beans            []json.RawMessage `json:"beans"`
-	Roasters         []json.RawMessage `json:"roasters"`
-	Grinders         []json.RawMessage `json:"grinders"`
-	Brewers          []json.RawMessage `json:"brewers"`
-	BrewLikeCounts   map[string]int  `json:"brew_like_counts"`
-	BrewCommentCounts map[string]int `json:"brew_comment_counts"`
-	BeanBrewCounts   map[string]int  `json:"bean_brew_counts"`
-	RoasterBeanCounts map[string]int `json:"roaster_bean_counts"`
+	Profile            json.RawMessage    `json:"profile"`
+	DID                string             `json:"did"`
+	IsOwnProfile       bool               `json:"is_own_profile"`
+	IsAuthenticated    bool               `json:"is_authenticated"`
+	IsArabicaUser      bool               `json:"is_arabica_user"`
+	Brews              []json.RawMessage  `json:"brews"`
+	TotalBrews         int                `json:"total_brews"`
+	BrewsHasMore       bool               `json:"brews_has_more"`
+	BrewsNextOffset    int                `json:"brews_next_offset"`
+	Beans              []json.RawMessage  `json:"beans"`
+	Roasters           []json.RawMessage  `json:"roasters"`
+	Grinders           []json.RawMessage  `json:"grinders"`
+	Brewers            []json.RawMessage  `json:"brewers"`
+	BrewLikeCounts     map[string]int     `json:"brew_like_counts"`
+	BrewCommentCounts  map[string]int     `json:"brew_comment_counts"`
+	BeanBrewCounts     map[string]int     `json:"bean_brew_counts"`
+	RoasterBeanCounts  map[string]int     `json:"roaster_bean_counts"`
 	BeanAvgBrewRatings map[string]float64 `json:"bean_avg_brew_ratings"`
 }
 
@@ -65,7 +65,7 @@ func TestHTTP_ProfileJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/profile/"+actor)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var profile profileJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &profile))

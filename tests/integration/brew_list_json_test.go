@@ -47,7 +47,7 @@ func TestHTTP_BrewListJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/brews?limit=2")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var list brewListJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &list))

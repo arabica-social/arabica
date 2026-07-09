@@ -3,8 +3,8 @@
 // social sharing.
 //
 // The SvelteKit app (under web/) builds to web/build/, producing:
-//   - index.html — the SPA fallback page (served for all non-API, non-static
-//     routes that don't match a registered Go handler)
+//   - index.html — the SPA fallback page (served for explicit app-owned page
+//     patterns)
 //   - _app/immutable/** — versioned JS chunks
 //
 // At build time, the SvelteKit output is copied into internal/web/spa/build/
@@ -15,10 +15,9 @@
 // result. This ensures crawlers and social media bots see correct metadata
 // without executing JavaScript.
 //
-// During migration, the shell route is a catch-all that only activates for
-// paths not handled by existing templ routes. This allows page-by-page
-// migration: ported pages use SvelteKit routes, unported pages fall through
-// to their existing templ handlers.
+// During migration, shared routing serves the shell only for explicit
+// app-owned page patterns. Ported pages use SvelteKit routes, unported pages
+// keep their existing templ handlers, and unknown direct loads remain 404s.
 package spa
 
 import (

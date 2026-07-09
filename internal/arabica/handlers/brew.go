@@ -117,9 +117,9 @@ func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 // brewListResult holds the fetched brews and pagination state shared by the
 // HTML and JSON render paths.
 type brewListResult struct {
-	brews       []*arabica.Brew
-	hasMore     bool
-	nextOffset  int
+	brews         []*arabica.Brew
+	hasMore       bool
+	nextOffset    int
 	profileHandle string
 }
 
@@ -222,7 +222,6 @@ func (h *Handlers) handleBrewListPartial(w http.ResponseWriter, r *http.Request)
 		log.Error().Err(err).Msg("Failed to render brew list partial")
 	}
 }
-
 
 // Show new brew form
 func (h *Handlers) HandleBrewNew(w http.ResponseWriter, r *http.Request) {

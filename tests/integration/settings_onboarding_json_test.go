@@ -46,7 +46,7 @@ func TestHTTP_SettingsJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/settings")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var settings settingsJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &settings))
@@ -67,8 +67,10 @@ func TestHTTP_SettingsJSONUnauth(t *testing.T) {
 	req.Header.Set("Accept", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, 401, resp.StatusCode)
+	body := ReadBody(t, resp)
+	assert.Equal(t, 401, resp.StatusCode, statusErr(resp, body))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+	assert.JSONEq(t, `{"error":"Authentication required","code":"authentication_required"}`, body)
 }
 
 // TestHTTP_SettingsPreferencesJSON verifies that POST /api/settings/preferences
@@ -86,7 +88,7 @@ func TestHTTP_SettingsPreferencesJSON(t *testing.T) {
 	require.NoError(t, err)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var result settingsSavedJSON
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
@@ -118,7 +120,7 @@ func TestHTTP_SettingsProfileVisibilityJSON(t *testing.T) {
 	require.NoError(t, err)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var result settingsSavedJSON
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
@@ -204,7 +206,7 @@ func TestHTTP_OnboardingJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/onboarding")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var onboarding onboardingJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &onboarding))
@@ -277,7 +279,7 @@ func TestHTTP_IncompleteRecordsJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/incomplete-records")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var result incompleteRecordsJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
@@ -319,7 +321,7 @@ func TestHTTP_PopularRecipesJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/popular-recipes")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	// The response is a bare JSON array of Recipe objects (not an envelope).
 	var recipes []map[string]any
@@ -370,7 +372,7 @@ func TestHTTP_SignupCategoriesJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/signup/categories")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var result signupCategoriesJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
@@ -396,7 +398,7 @@ func TestHTTP_SignupCategoriesJSONUnauth(t *testing.T) {
 	defer resp.Body.Close()
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var result signupCategoriesJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &result))

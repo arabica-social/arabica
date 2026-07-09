@@ -6,136 +6,124 @@ import { dirname, resolve } from "node:path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-/**
- * Read the server URL from the file written by the Go e2e-server binary.
- */
+export type E2EAccount = {
+	did: string;
+	handle: string;
+	session_id: string;
+};
+
+function readMarker(name: string, fallback = ""): string {
+	const file = resolve(__dirname, `../../../tests/e2e/${name}`);
+	try {
+		return readFileSync(file, "utf-8").trim();
+	} catch {
+		return fallback;
+	}
+}
+
 function readServerURL(): string {
-	const urlFile = resolve(__dirname, "../../../tests/e2e/.server-url");
-	try {
-		return readFileSync(urlFile, "utf-8").trim();
-	} catch {
-		// File doesn't exist.
-	}
-	return process.env.ARABICA_E2E_BASE_URL ?? "http://127.0.0.1:8080";
+	return process.env.ARABICA_E2E_BASE_URL ?? readMarker(".server-url", "http://127.0.0.1:8080");
 }
 
-/**
- * Read the primary test account DID from the file written by the Go
- * e2e-server binary.
- */
+function readControlURL(): string {
+	return process.env.ARABICA_E2E_CONTROL_URL ?? readMarker(".control-url", "");
+}
+
 function readServerDID(): string {
-	const didFile = resolve(__dirname, "../../../tests/e2e/.server-did");
-	try {
-		return readFileSync(didFile, "utf-8").trim();
-	} catch {
-		// File doesn't exist.
-	}
-	return process.env.ARABICA_E2E_DID ?? "";
+	return readMarker(".server-did", process.env.ARABICA_E2E_DID ?? "");
 }
 
-/**
- * Test fixtures providing an authenticated browser page and API request
- * context.
- *
- * The Go test harness authenticates requests via X-Test-Auth-DID and
- * X-Test-Auth-Session headers (bypassing OAuth). We inject these headers
- * in three places:
- *
- * 1. Browser context extraHTTPHeaders — applies to all browser navigation
- *    and fetch() calls from the SPA.
- * 2. Context route interception — catches any requests that don't pick up
- *    the context headers (e.g. cross-origin or redirected requests).
- * 3. apiRequest fixture — a Playwright APIRequestContext with the auth
- *    headers set, for making API calls directly from tests (page.request
- *    doesn't inherit the browser context's extraHTTPHeaders).
- *
- * Usage in a spec:
- *
- *   import { test, expect } from "./fixtures";
- *   test("create brew", async ({ authedPage: page, apiRequest, did }) => {
- *     // Navigate in the browser:
- *     await page.goto("/");
- *     // Make an authenticated API call:
- *     const resp = await apiRequest.post("/api/roasters", { form: {...} });
- *   });
- */
 export const test = base.extend<{
+	account: E2EAccount;
 	authedPage: Page;
 	apiRequest: APIRequestContext;
 	did: string;
+	waitForIndex: (uri: string, present?: boolean) => Promise<void>;
 }>({
-	authedPage: async ({ browser }, use) => {
-		const baseURL = readServerURL();
-		const did = readServerDID();
-
-		if (!did) {
-			throw new Error(
-				"No primary DID found. Is the e2e-server running? " +
-					"Expected tests/e2e/.server-did file.",
-			);
+	account: async ({ playwright }, use) => {
+		const controlURL = readControlURL();
+		if (!controlURL) throw new Error("No E2E control URL found. Is cmd/e2e-server running?");
+		const request = await playwright.request.newContext({ baseURL: controlURL });
+		const response = await request.post("/accounts");
+		if (!response.ok()) {
+			throw new Error(`Failed to provision isolated E2E account: ${response.status()} ${await response.text()}`);
 		}
-
-		const authHeaders = {
-			"X-Test-Auth-DID": did,
-			"X-Test-Auth-Session": `test-session-${did}`,
-			Origin: baseURL,
-		};
-
-		// Create a browser context with auth headers set on every request.
-		const context = await browser.newContext({
-			baseURL,
-			extraHTTPHeaders: authHeaders,
-		});
-
-		// Also use route interception as a fallback for any requests
-		// that don't pick up the context headers.
-		await context.route("**/*", async (route) => {
-			const headers = {
-				...route.request().headers(),
-				...authHeaders,
-			};
-			await route.continue({ headers });
-		});
-
-		const page = await context.newPage();
-		await use(page);
-		await context.close();
+		const account = (await response.json()) as E2EAccount;
+		await request.dispose();
+		await use(account);
 	},
 
-	apiRequest: async ({ playwright }, use) => {
+	authedPage: async ({ browser, account }, use) => {
 		const baseURL = readServerURL();
-		const did = readServerDID();
+		const authHeaders = {
+			"X-Test-Auth-DID": account.did,
+			"X-Test-Auth-Session": account.session_id,
+			Origin: baseURL,
+		};
+		const context = await browser.newContext({ baseURL, extraHTTPHeaders: authHeaders });
+		await context.route("**/*", async (route) => {
+			await route.continue({ headers: { ...route.request().headers(), ...authHeaders } });
+		});
 
-		if (!did) {
-			throw new Error(
-				"No primary DID found. Is the e2e-server running? " +
-					"Expected tests/e2e/.server-did file.",
-			);
-		}
+		const failures: string[] = [];
+		const page = await context.newPage();
+		page.on("pageerror", (error) => failures.push(`page error: ${error.stack ?? error.message}`));
+		page.on("console", (message) => {
+			if (message.type() === "error" && !message.text().startsWith("Failed to load resource:")) {
+				failures.push(`console error: ${message.text()}`);
+			}
+		});
+		page.on("requestfailed", (request) => {
+			if (new URL(request.url()).pathname.startsWith("/api/")) {
+				failures.push(`failed API request: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`);
+			}
+		});
+		page.on("response", (response) => {
+			const pathname = new URL(response.url()).pathname;
+			if ((pathname.startsWith("/_app/") || pathname.startsWith("/static/")) && response.status() >= 400) {
+				failures.push(`asset ${response.status()}: ${pathname}`);
+			}
+			if (pathname.startsWith("/api/") && response.status() >= 500) {
+				failures.push(`API ${response.status()}: ${response.request().method()} ${pathname}`);
+			}
+		});
 
-		// Create an APIRequestContext with auth headers for direct API calls
-		// from tests (page.request doesn't inherit browser context headers).
+		await use(page);
+		await context.close();
+		if (failures.length > 0) throw new Error(failures.join("\n"));
+	},
+
+	apiRequest: async ({ playwright, account }, use) => {
+		const baseURL = readServerURL();
 		const request = await playwright.request.newContext({
 			baseURL,
 			extraHTTPHeaders: {
-				"X-Test-Auth-DID": did,
-				"X-Test-Auth-Session": `test-session-${did}`,
+				"X-Test-Auth-DID": account.did,
+				"X-Test-Auth-Session": account.session_id,
 				Origin: baseURL,
 				Accept: "application/json",
 			},
 		});
-
 		await use(request);
 		await request.dispose();
 	},
 
-	did: async ({}, use) => {
-		const did = readServerDID();
-		if (!did) {
-			throw new Error("No primary DID found. Is the e2e-server running?");
-		}
-		await use(did);
+	did: async ({ account }, use) => {
+		await use(account.did);
+	},
+
+	waitForIndex: async ({ playwright }, use) => {
+		const controlURL = readControlURL();
+		await use(async (uri: string, present = true) => {
+			const request = await playwright.request.newContext({ baseURL: controlURL });
+			const response = await request.get("/wait-index", {
+				params: { uri, present: String(present) },
+			});
+			const body = await response.text();
+			await request.dispose();
+			expect(response.ok(), body).toBeTruthy();
+		});
 	},
 });
 
-export { expect, readServerURL, readServerDID };
+export { expect, readServerURL, readServerDID, readControlURL };

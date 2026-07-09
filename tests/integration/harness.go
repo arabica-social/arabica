@@ -119,6 +119,7 @@ type Harness struct {
 	firehoseCancel context.CancelFunc
 
 	cleanup []func()
+	close   sync.Once
 }
 
 // TestAccount holds credentials for a user on the test PDS.
@@ -141,8 +142,8 @@ type HarnessOptions struct {
 	// through the Consumer → FeedIndex pipeline, so records created via the
 	// PDS are automatically indexed. Use WaitForRecord to synchronise.
 	EnableFirehose bool
-	// EnableSPA wires the SvelteKit SPA shell handler so the catch-all
-	// route serves index.html with server-side <head> injection. Used by
+	// EnableSPA wires the SvelteKit SPA shell handler so explicitly owned
+	// page routes serve index.html with server-side <head> injection. Used by
 	// E2E (Playwright) tests that need a real browser to load the SPA.
 	// Requires the SPA build to be present in internal/web/spa/build/.
 	EnableSPA bool
@@ -152,6 +153,17 @@ type HarnessOptions struct {
 // handler tree, and exposes everything as an httptest server.
 func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	t.Helper()
+	harness, err := StartHarnessRuntime(context.Background(), t.TempDir(), opts)
+	require.NoError(t, err)
+	harness.T = t
+	t.Cleanup(harness.Close)
+	return harness
+}
+
+// StartHarnessRuntime boots the integration environment without depending on
+// testing.T. Standalone tools such as cmd/e2e-server use this entry point and
+// must call Close when finished.
+func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptions) (_ *Harness, retErr error) {
 
 	silenceLogs()
 
@@ -168,25 +180,43 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		opts.PrimaryPassword = "hunter2"
 	}
 
-	pds := testpds.StartT(t, nil)
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create harness data directory: %w", err)
+	}
+	pdsDataDir := dataDir + "/pds"
+	if err := os.MkdirAll(pdsDataDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create test PDS data directory: %w", err)
+	}
+	pds, err := testpds.Start(ctx, &testpds.Options{DataDir: pdsDataDir})
+	if err != nil {
+		return nil, fmt.Errorf("start test PDS: %w", err)
+	}
 
 	// Build an in-process FeedIndex (SQLite, temp dir) to back the witness
 	// cache and the suggestion endpoint. This is the same type production
 	// uses; the firehose consumer is not wired up, so the index is populated
 	// purely via write-through from store CRUD operations.
-	feedIndex, err := firehose.NewFeedIndex(t.TempDir()+"/feed-index.db", 1*time.Hour)
-	require.NoError(t, err)
+	feedIndex, err := firehose.NewFeedIndex(dataDir+"/feed-index.db", 1*time.Hour)
+	if err != nil {
+		pds.Shutdown()
+		return nil, fmt.Errorf("create feed index: %w", err)
+	}
 
 	sessionCache := atproto.NewSessionCache()
 
 	harness := &Harness{
-		T:            t,
 		PDS:          pds,
 		FeedIndex:    feedIndex,
 		SessionCache: sessionCache,
 		accounts:     make(map[string]*atclient.APIClient),
 		atpClients:   make(map[string]*atp.Client),
+		cleanup:      []func(){pds.Shutdown, func() { _ = feedIndex.Close() }},
 	}
+	defer func() {
+		if retErr != nil {
+			harness.Close()
+		}
+	}()
 
 	// Provider routes XRPC calls based on the DID in the request context. The
 	// harness pre-registers each account's APIClient so the right session is
@@ -210,7 +240,9 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		RedirectURI: "http://localhost/oauth/callback",
 		Scopes:      []string{"atproto"},
 	})
-	require.NoError(t, err)
+	if err != nil {
+		return nil, fmt.Errorf("create OAuth app: %w", err)
+	}
 
 	feedRegistry := feed.NewRegistry()
 	feedService := feed.NewService(feedRegistry)
@@ -240,13 +272,14 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	h.SetApp(app)
 
 	var spaHandler http.Handler
+	var cssBundle *assets.Bundle
 	var jsAssets *assets.JSAssets
 	if opts.EnableSPA {
 		// Build assets manifest (required for SPA shell <head> injection
 		// and for the templ layout to include CSS/JS script tags).
 		// Use the dev directory for JS so the legacy Svelte islands are
 		// served from disk (internal/web/assets/js/).
-		cssBundle := assets.New(assets.Config{AppName: app.Name})
+		cssBundle = assets.New(assets.Config{AppName: app.Name})
 		cssBundle.MustBuild()
 		assets.Register(cssBundle)
 		jsAssets = assets.NewJSAssets(assets.JSConfig{DevDir: "internal/web/assets/js"})
@@ -256,7 +289,9 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		h.SetAssetManifest(manifest)
 
 		sh, err := spa.NewShellHandler(manifest, app.Name)
-		require.NoError(t, err)
+		if err != nil {
+			return nil, fmt.Errorf("create SPA shell: %w", err)
+		}
 		sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
 			return h.ResolveSessionData(ctx, did)
 		})
@@ -264,14 +299,15 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	}
 
 	router := routing.SetupRouter(routing.Config{
-		App:        app,
-		Handlers:   h,
-		OAuthApp:   oauthApp,
-		Logger:     logger,
-		AppRoutes:  coffeehandlers.Routes{},
-		SPAHandler: spaHandler,
-		SPAEnabled: opts.EnableSPA,
-		JSAssets:   jsAssets,
+		App:              app,
+		Handlers:         h,
+		OAuthApp:         oauthApp,
+		Logger:           logger,
+		AppRoutes:        coffeehandlers.Routes{},
+		SPAHandler:       spaHandler,
+		CSSBundle:        cssBundle,
+		JSAssets:         jsAssets,
+		DisableRateLimit: true,
 	})
 
 	// Wrap the router with the harness auth middleware so tests can pose as
@@ -282,7 +318,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 
 	harness.Server = server
 	harness.Handler = h
-	harness.cleanup = append(harness.cleanup, server.Close, func() { _ = feedIndex.Close() })
+	harness.cleanup = append(harness.cleanup, server.Close)
 
 	// Wire up the firehose consumer before creating accounts so events are
 	// indexed as they happen.
@@ -298,27 +334,36 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		// production does this inside Start once the subscription is live.
 		feedIndex.SetReady(true)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(ctx)
 		harness.firehoseCancel = cancel
 		harness.cleanup = append(harness.cleanup, cancel)
 
 		ch, err := pds.Subscribe(ctx, 0)
-		require.NoError(t, err)
+		if err != nil {
+			return nil, fmt.Errorf("subscribe to test PDS: %w", err)
+		}
 
 		go harness.firehoseBridge(ctx, ch)
 	}
 
 	// Create the primary account and register it.
-	harness.PrimaryAccount = harness.CreateAccount(opts.PrimaryEmail, opts.PrimaryHandle, opts.PrimaryPassword)
+	harness.PrimaryAccount, err = harness.createAccount(opts.PrimaryEmail, opts.PrimaryHandle, opts.PrimaryPassword)
+	if err != nil {
+		return nil, fmt.Errorf("create primary account: %w", err)
+	}
 	harness.Client = harness.NewClientForAccount(harness.PrimaryAccount)
 
-	t.Cleanup(func() {
-		for _, fn := range harness.cleanup {
-			fn()
+	return harness, nil
+}
+
+// Close releases the HTTP server, firehose bridge, feed index, and test PDS.
+// It is safe to call more than once.
+func (h *Harness) Close() {
+	h.close.Do(func() {
+		for i := len(h.cleanup) - 1; i >= 0; i-- {
+			h.cleanup[i]()
 		}
 	})
-
-	return harness
 }
 
 // CreateAccount registers a new account on the test PDS, logs in via password
@@ -326,20 +371,36 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 // tree can act as that user. Use this for multi-user test scenarios.
 func (h *Harness) CreateAccount(email, handle, password string) TestAccount {
 	h.T.Helper()
+	acct, err := h.createAccount(email, handle, password)
+	require.NoError(h.T, err)
+	return acct
+}
 
-	acct := createAccountOnPDS(h.T, h.PDS.URL, email, handle, password)
+// CreateRuntimeAccount creates an account without depending on testing.T.
+// Standalone integration tools use this to provision isolated browser users.
+func (h *Harness) CreateRuntimeAccount(email, handle, password string) (TestAccount, error) {
+	return h.createAccount(email, handle, password)
+}
+
+func (h *Harness) createAccount(email, handle, password string) (TestAccount, error) {
+	acct, err := createAccountOnPDS(h.PDS.URL, email, handle, password)
+	if err != nil {
+		return TestAccount{}, err
+	}
 
 	apiClient, err := atclient.LoginWithPasswordHost(
 		context.Background(), h.PDS.URL, acct.Handle, password, "", nil,
 	)
-	require.NoError(h.T, err)
+	if err != nil {
+		return TestAccount{}, fmt.Errorf("log in account %s: %w", handle, err)
+	}
 
 	h.accountsMu.Lock()
 	h.accounts[acct.DID] = apiClient
 	h.atpClients[acct.DID] = atp.NewClient(apiClient, syntax.DID(acct.DID))
 	h.accountsMu.Unlock()
 
-	return acct
+	return acct, nil
 }
 
 // NewClientForAccount returns an http.Client that automatically attaches the
@@ -417,6 +478,20 @@ func (h *Harness) PutForm(path string, form url.Values) *http.Response {
 	return resp
 }
 
+// PutJSON sends a JSON body via PUT as the primary account.
+func (h *Harness) PutJSON(path string, body any) *http.Response {
+	h.T.Helper()
+	buf, err := json.Marshal(body)
+	require.NoError(h.T, err)
+	req, err := http.NewRequest("PUT", h.URL(path), bytes.NewReader(buf))
+	require.NoError(h.T, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	resp, err := h.Client.Do(req)
+	require.NoError(h.T, err)
+	return resp
+}
+
 // SessionIDFor returns the test session ID assigned to an account by
 // authInjectingTransport. Tests use it when reaching into the session cache
 // directly (e.g. to evict an entry to force a witness/PDS read).
@@ -484,6 +559,17 @@ func (h *Harness) Delete(path string) *http.Response {
 	return resp
 }
 
+// DeleteJSON sends a DELETE request selecting the JSON representation.
+func (h *Harness) DeleteJSON(path string) *http.Response {
+	h.T.Helper()
+	req, err := http.NewRequest("DELETE", h.URL(path), nil)
+	require.NoError(h.T, err)
+	req.Header.Set("Accept", "application/json")
+	resp, err := h.Client.Do(req)
+	require.NoError(h.T, err)
+	return resp
+}
+
 // ReadBody drains and returns the response body, closing it.
 func ReadBody(t *testing.T, resp *http.Response) string {
 	t.Helper()
@@ -529,37 +615,45 @@ func (t *authInjectingTransport) RoundTrip(req *http.Request) (*http.Response, e
 }
 
 // createAccountOnPDS registers a new account on the test PDS and returns its credentials.
-func createAccountOnPDS(t *testing.T, pdsURL, email, handle, password string) TestAccount {
-	t.Helper()
-
+func createAccountOnPDS(pdsURL, email, handle, password string) (TestAccount, error) {
 	body, err := json.Marshal(map[string]string{
 		"email":    email,
 		"handle":   handle,
 		"password": password,
 	})
-	require.NoError(t, err)
+	if err != nil {
+		return TestAccount{}, fmt.Errorf("encode createAccount request: %w", err)
+	}
 
 	resp, err := http.Post(pdsURL+"/xrpc/com.atproto.server.createAccount", "application/json", bytes.NewReader(body))
-	require.NoError(t, err)
+	if err != nil {
+		return TestAccount{}, fmt.Errorf("create account request: %w", err)
+	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, resp.StatusCode, "createAccount failed: %s", string(respBody))
+	if err != nil {
+		return TestAccount{}, fmt.Errorf("read createAccount response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return TestAccount{}, fmt.Errorf("createAccount failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
 
 	var result struct {
 		AccessJwt string `json:"accessJwt"`
 		Handle    string `json:"handle"`
 		Did       string `json:"did"`
 	}
-	require.NoError(t, json.Unmarshal(respBody, &result))
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return TestAccount{}, fmt.Errorf("decode createAccount response: %w", err)
+	}
 
 	return TestAccount{
 		DID:       result.Did,
 		Handle:    result.Handle,
 		Password:  password,
 		AccessJwt: result.AccessJwt,
-	}
+	}, nil
 }
 
 // --- firehose bridge ---
@@ -689,30 +783,39 @@ func (h *Harness) fetchRecordJSON(did, collection, rkey string) (json.RawMessage
 // indexed, or fails the test after timeout.
 func (h *Harness) WaitForRecord(uri string, timeout time.Duration) {
 	h.T.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		rec, _ := h.FeedIndex.GetRecord(context.Background(), uri)
-		if rec != nil {
-			return
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	h.T.Fatalf("timed out waiting for record %s to be indexed", uri)
+	require.NoError(h.T, h.WaitForRecordState(context.Background(), uri, true, timeout))
 }
 
 // WaitForRecordAbsent polls the FeedIndex until the record with the given
 // AT-URI is no longer present, or fails the test after timeout.
 func (h *Harness) WaitForRecordAbsent(uri string, timeout time.Duration) {
 	h.T.Helper()
+	require.NoError(h.T, h.WaitForRecordState(context.Background(), uri, false, timeout))
+}
+
+// WaitForRecordState polls the real feed index until a record reaches the
+// desired presence state. It is usable by standalone E2E control handlers.
+func (h *Harness) WaitForRecordState(ctx context.Context, uri string, present bool, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		rec, _ := h.FeedIndex.GetRecord(context.Background(), uri)
-		if rec == nil {
-			return
+		rec, err := h.FeedIndex.GetRecord(ctx, uri)
+		if err != nil {
+			return err
 		}
-		time.Sleep(50 * time.Millisecond)
+		if (rec != nil) == present {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(50 * time.Millisecond):
+		}
 	}
-	h.T.Fatalf("timed out waiting for record %s to be removed from index", uri)
+	state := "absent"
+	if present {
+		state = "present"
+	}
+	return fmt.Errorf("timed out waiting for record %s to become %s", uri, state)
 }
 
 // statusErr is a small helper for assertions that print useful diagnostics.

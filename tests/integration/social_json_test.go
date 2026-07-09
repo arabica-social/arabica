@@ -43,7 +43,7 @@ func TestHTTP_NotificationsJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/notifications")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var notifs notificationsJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &notifs))
@@ -74,10 +74,10 @@ func TestHTTP_NotificationsMarkReadJSON(t *testing.T) {
 
 // exploreJSONResponse mirrors the GET /api/explore JSON envelope.
 type exploreJSONResponse struct {
-	Items       []json.RawMessage `json:"items"`
+	Items       []json.RawMessage          `json:"items"`
 	Documents   map[string]json.RawMessage `json:"documents"`
-	FacetCounts []json.RawMessage `json:"facet_counts"`
-	NextCursor  string            `json:"next_cursor"`
+	FacetCounts []json.RawMessage          `json:"facet_counts"`
+	NextCursor  string                     `json:"next_cursor"`
 }
 
 // TestHTTP_ExploreJSON verifies that GET /api/explore returns JSON.
@@ -93,7 +93,7 @@ func TestHTTP_ExploreJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/explore")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var explore exploreJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &explore))
@@ -144,7 +144,7 @@ func TestHTTP_LikeToggleJSON(t *testing.T) {
 	require.NoError(t, err)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var result likeToggleJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
@@ -166,9 +166,9 @@ func TestHTTP_LikeToggleJSON(t *testing.T) {
 
 // commentListJSONResponse mirrors the GET /api/comments JSON envelope.
 type commentListJSONResponse struct {
-	Comments       []json.RawMessage `json:"comments"`
-	SubjectURI     string            `json:"subject_uri"`
-	IsAuthenticated bool             `json:"is_authenticated"`
+	Comments        []json.RawMessage `json:"comments"`
+	SubjectURI      string            `json:"subject_uri"`
+	IsAuthenticated bool              `json:"is_authenticated"`
 }
 
 // commentCreateJSONResponse mirrors the POST /api/comments JSON envelope.
@@ -188,7 +188,7 @@ func TestHTTP_CommentListJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/comments?subject_uri="+url.QueryEscape(subjectURI))
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var list commentListJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &list))
@@ -217,7 +217,7 @@ func TestHTTP_CommentCreateJSON(t *testing.T) {
 	require.NoError(t, err)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var result commentCreateJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &result))

@@ -127,3 +127,6 @@ three paths.
 | 400    | Missing `owner` query param or invalid rkey. |
 | 404    | Owner (handle) not found, or record not found on PDS. |
 | 500    | Internal error loading or decoding record. |
+
+Every error uses the shared `{error, code, fields?}` envelope. The expected
+codes are `invalid_request`, `not_found`, and `internal_error`.

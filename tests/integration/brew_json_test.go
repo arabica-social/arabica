@@ -18,7 +18,7 @@ type brewMutationJSONResponse struct {
 	Brew struct {
 		RKey        string `json:"rkey"`
 		Method      string `json:"method"`
-		BeanRKey     string `json:"bean_rkey"`
+		BeanRKey    string `json:"bean_rkey"`
 		WaterAmount int    `json:"water_amount"`
 		Rating      int    `json:"rating"`
 	} `json:"brew"`
@@ -77,7 +77,7 @@ func TestHTTP_BrewCreateJSON(t *testing.T) {
 	resp := postFormJSON(t, h, "/brews", brewForm.Encode())
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 	// Must NOT have HX-Redirect in the JSON path.
 	assert.Empty(t, resp.Header.Get("HX-Redirect"))
 
@@ -131,7 +131,7 @@ func TestHTTP_BrewUpdateJSON(t *testing.T) {
 	updateResp := putFormJSON(t, h, "/brews/"+brewRKey, updateForm.Encode())
 	updateBody := ReadBody(t, updateResp)
 	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, updateBody))
-	assert.Equal(t, "application/json", updateResp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", updateResp.Header.Get("Content-Type"))
 	assert.Empty(t, updateResp.Header.Get("HX-Redirect"))
 
 	var updated brewMutationJSONResponse

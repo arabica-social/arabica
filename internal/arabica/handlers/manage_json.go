@@ -8,8 +8,8 @@ import (
 	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 
-	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"golang.org/x/sync/errgroup"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 )
 
 // ManageStatsJSON holds the entity usage counts and average ratings computed
@@ -158,10 +158,10 @@ func (h *Handlers) HandleManageJSON(w http.ResponseWriter, r *http.Request) {
 	data, err := h.fetchManageData(r)
 	if err != nil {
 		if err == errManageUnauth {
-			http.Error(w, "Authentication required", http.StatusUnauthorized)
+			handlers.WriteJSONError(w, http.StatusUnauthorized, "authentication_required", "Authentication required")
 			return
 		}
-		handlers.HandleStoreError(w, err, "Failed to fetch data")
+		handlers.HandleStoreJSONError(w, err, "Failed to fetch data")
 		return
 	}
 

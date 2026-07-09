@@ -36,7 +36,7 @@ func TestHTTP_BacklinksJSON(t *testing.T) {
 	resp := getJSON(t, h, "/api/roasters/"+actor+"/"+rkey+"/backlinks")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
 
 	var view backlinksJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &view))

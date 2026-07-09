@@ -16,6 +16,9 @@ import (
 // package prevents the shared router from importing tea handlers.
 type Routes struct{}
 
+// SPAOwnedRoutes remains empty until Oolong page parity is implemented.
+func (Routes) SPAOwnedRoutes() []string { return nil }
+
 func StaticPages() handlers.StaticPageRenderers {
 	return handlers.StaticPageRenderers{
 		About: func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
@@ -38,14 +41,14 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.HandleFunc("GET /api/data", h.HandleOolongAPIListAll)
 	mux.Handle("POST /api/tea/refresh", cop.Handler(http.HandlerFunc(h.HandleTeaRefresh)))
 
-	// Entity routes: page views/modals skipped in SPA mode; JSON/OG/mutation
-	// routes remain.
-	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.SPAEnabled)
+	// Entity page routes use explicit ownership; JSON, OG, mutation, and modal
+	// routes remain independent of the frontend owner.
+	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.Pages)
 
 	// Oolong-specific HTML pages and HTMX partials. The SvelteKit SPA does
 	// not yet have oolong equivalents for these routes, so keep them
-	// registered even in SPA mode. The shared /, /about, /terms, /atproto
-	// pages are handled by the SPA catch-all.
+	// registered even when a SPA handler is available. Oolong's explicit SPA
+	// ownership list is empty, so shared pages also retain legacy handlers.
 	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOolongGetStartedCard)))
 	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOolongOnboardingStationForm)))
 

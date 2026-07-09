@@ -39,9 +39,11 @@ func TestUserCache_IsValid(t *testing.T) {
 			wantValid: true,
 		},
 		{
-			name: "cache at TTL boundary is valid",
+			name: "cache just inside TTL is valid",
 			cache: &UserCache{
-				Timestamp: time.Now().Add(-CacheTTL + time.Millisecond),
+				// Leave enough margin for this table to run under a loaded,
+				// parallel full-suite process without crossing the boundary.
+				Timestamp: time.Now().Add(-CacheTTL + time.Second),
 			},
 			wantValid: true,
 		},
