@@ -240,15 +240,20 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 	h.SetApp(app)
 
 	var spaHandler http.Handler
+	var jsAssets *assets.JSAssets
 	if opts.EnableSPA {
-		// Build assets manifest (required for SPA shell <head> injection).
+		// Build assets manifest (required for SPA shell <head> injection
+		// and for the templ layout to include CSS/JS script tags).
+		// Use the dev directory for JS so the legacy Svelte islands are
+		// served from disk (internal/web/assets/js/).
 		cssBundle := assets.New(assets.Config{AppName: app.Name})
 		cssBundle.MustBuild()
 		assets.Register(cssBundle)
-		jsAssets := assets.NewJSAssets(assets.JSConfig{})
+		jsAssets = assets.NewJSAssets(assets.JSConfig{DevDir: "internal/web/assets/js"})
 		jsAssets.MustBuild()
 		assets.RegisterJS(jsAssets)
 		manifest := assets.NewManifest(cssBundle, jsAssets)
+		h.SetAssetManifest(manifest)
 
 		sh, err := spa.NewShellHandler(manifest, app.Name)
 		require.NoError(t, err)
@@ -265,6 +270,7 @@ func StartHarness(t *testing.T, opts *HarnessOptions) *Harness {
 		Logger:     logger,
 		AppRoutes:  coffeehandlers.Routes{},
 		SPAHandler: spaHandler,
+		JSAssets:   jsAssets,
 	})
 
 	// Wrap the router with the harness auth middleware so tests can pose as

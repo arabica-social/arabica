@@ -1,16 +1,17 @@
-import { test, expect, readServerURL, readServerDID } from "./fixtures";
+import { test, expect } from "./fixtures";
 
 /**
  * Critical path: Social interactions.
  *
  * Flow: create a record → view it → like it → comment → check notifications.
  */
-test("like and comment on a record", async ({ authedPage: page }) => {
-	const baseURL = readServerURL();
-	const did = readServerDID();
-
+test("like and comment on a record", async ({
+	authedPage: page,
+	apiRequest,
+	did,
+}) => {
 	// Create a roaster to interact with.
-	const resp = await page.request.post(`${baseURL}/api/roasters`, {
+	const resp = await apiRequest.post("/api/roasters", {
 		form: { name: "E2E Social Roaster" },
 	});
 	const roaster = await resp.json();
@@ -20,6 +21,7 @@ test("like and comment on a record", async ({ authedPage: page }) => {
 
 	// Navigate to the roaster view page.
 	await page.goto(`/roasters/${did}/${roaster.rkey}`);
+	await page.waitForLoadState("networkidle");
 	await expect(page.getByText("E2E Social Roaster")).toBeVisible();
 
 	// Find and click the like button. The ActionBar renders a like button
@@ -50,19 +52,16 @@ test("like and comment on a record", async ({ authedPage: page }) => {
  * Flow: create a record → like it (generates a notification) →
  * check notifications page.
  */
-test("view notifications", async ({ authedPage: page }) => {
-	const baseURL = readServerURL();
-	const did = readServerDID();
-
+test("view notifications", async ({ authedPage: page, apiRequest, did }) => {
 	// Create a roaster and like it to generate a notification.
-	const resp = await page.request.post(`${baseURL}/api/roasters`, {
+	const resp = await apiRequest.post("/api/roasters", {
 		form: { name: "E2E Notif Roaster" },
 	});
 	const roaster = await resp.json();
 	const subjectURI = `at://${did}/social.arabica.alpha.roaster/${roaster.rkey}`;
 
 	// Like the roaster via the API to generate a notification.
-	await page.request.post(`${baseURL}/api/likes/toggle`, {
+	await apiRequest.post("/api/likes/toggle", {
 		form: { subject_uri: subjectURI, subject_cid: "bafyfake" },
 	});
 
@@ -71,5 +70,6 @@ test("view notifications", async ({ authedPage: page }) => {
 
 	// Navigate to the notifications page.
 	await page.goto("/notifications");
+	await page.waitForLoadState("networkidle");
 	await expect(page).toHaveURL(/\/notifications/);
 });

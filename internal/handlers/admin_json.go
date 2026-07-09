@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
-	"tangled.org/arabica.social/arabica/internal/backup"
+	sharedpages "tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -23,21 +24,8 @@ type AdminMutationResponseJSON struct {
 
 // AdminStatsResponseJSON is the JSON response for GET /api/_mod/stats.
 type AdminStatsResponseJSON struct {
-	Stats   sharedpagesAdminStats      `json:"stats"`
-	Backups []backup.SourceStatus     `json:"backups"`
-}
-
-// sharedpagesAdminStats is a local alias to avoid importing the pages package
-// (which would create a circular dependency). The fields mirror
-// sharedpages.AdminStats exactly.
-type sharedpagesAdminStats = struct {
-	KnownUsers          int            `json:"known_users"`
-	RegisteredUsers     int            `json:"registered_users"`
-	IndexedRecords      int            `json:"indexed_records"`
-	TotalLikes          int            `json:"total_likes"`
-	TotalComments       int            `json:"total_comments"`
-	FirehoseConnected   bool           `json:"firehose_connected"`
-	RecordsByCollection map[string]int `json:"records_by_collection"`
+	Stats   sharedpages.AdminStats  `json:"stats"`
+	Backups []backup.SourceStatus   `json:"backups"`
 }
 
 // HandleAdminJSON returns the admin dashboard data as JSON for the SvelteKit SPA.

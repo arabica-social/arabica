@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Page, type APIRequestContext } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -34,26 +34,36 @@ function readServerDID(): string {
 }
 
 /**
- * Extended test fixture that injects auth headers on every request so
- * the Go test harness authenticates the browser session.
+ * Test fixtures providing an authenticated browser page and API request
+ * context.
  *
- * The harness uses X-Test-Auth-DID and X-Test-Auth-Session headers to
- * bypass OAuth. We inject these headers in two places:
+ * The Go test harness authenticates requests via X-Test-Auth-DID and
+ * X-Test-Auth-Session headers (bypassing OAuth). We inject these headers
+ * in three places:
  *
  * 1. Browser context extraHTTPHeaders — applies to all browser navigation
  *    and fetch() calls from the SPA.
- * 2. page.route interception — catches any requests that don't pick up
+ * 2. Context route interception — catches any requests that don't pick up
  *    the context headers (e.g. cross-origin or redirected requests).
- *
- * For page.request (Playwright's APIRequestContext used in tests), we
- * pass the headers explicitly on each call via a helper.
+ * 3. apiRequest fixture — a Playwright APIRequestContext with the auth
+ *    headers set, for making API calls directly from tests (page.request
+ *    doesn't inherit the browser context's extraHTTPHeaders).
  *
  * Usage in a spec:
  *
  *   import { test, expect } from "./fixtures";
- *   test("create brew", async ({ authedPage: page }) => { ... });
+ *   test("create brew", async ({ authedPage: page, apiRequest, did }) => {
+ *     // Navigate in the browser:
+ *     await page.goto("/");
+ *     // Make an authenticated API call:
+ *     const resp = await apiRequest.post("/api/roasters", { form: {...} });
+ *   });
  */
-export const test = base.extend<{ authedPage: Page }>({
+export const test = base.extend<{
+	authedPage: Page;
+	apiRequest: APIRequestContext;
+	did: string;
+}>({
 	authedPage: async ({ browser }, use) => {
 		const baseURL = readServerURL();
 		const did = readServerDID();
@@ -90,6 +100,41 @@ export const test = base.extend<{ authedPage: Page }>({
 		const page = await context.newPage();
 		await use(page);
 		await context.close();
+	},
+
+	apiRequest: async ({ playwright }, use) => {
+		const baseURL = readServerURL();
+		const did = readServerDID();
+
+		if (!did) {
+			throw new Error(
+				"No primary DID found. Is the e2e-server running? " +
+					"Expected tests/e2e/.server-did file.",
+			);
+		}
+
+		// Create an APIRequestContext with auth headers for direct API calls
+		// from tests (page.request doesn't inherit browser context headers).
+		const request = await playwright.request.newContext({
+			baseURL,
+			extraHTTPHeaders: {
+				"X-Test-Auth-DID": did,
+				"X-Test-Auth-Session": `test-session-${did}`,
+				Origin: baseURL,
+				Accept: "application/json",
+			},
+		});
+
+		await use(request);
+		await request.dispose();
+	},
+
+	did: async ({}, use) => {
+		const did = readServerDID();
+		if (!did) {
+			throw new Error("No primary DID found. Is the e2e-server running?");
+		}
+		await use(did);
 	},
 });
 

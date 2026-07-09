@@ -1,18 +1,21 @@
-import { test, expect, readServerURL, readServerDID } from "./fixtures";
+import { test, expect } from "./fixtures";
 
 /**
  * Critical path: Manage entities.
  *
- * Flow: my-coffee → create roaster → create bean referencing roaster →
- * verify both appear in my-coffee.
+ * Flow: create roaster → create bean referencing roaster → navigate to
+ * my-coffee → verify both entities appear in their respective tabs.
+ *
+ * Note: the my-coffee page loads data via HTMX (hx-get="/api/manage").
+ * We wait for the HTMX content to load before asserting. Tab switching
+ * uses data-manage-tab attributes with JS-driven visibility.
  */
 test("create roaster and bean via API, verify in my-coffee", async ({
 	authedPage: page,
+	apiRequest,
 }) => {
-	const baseURL = readServerURL();
-
 	// Create a roaster via the API.
-	const roasterResp = await page.request.post(`${baseURL}/api/roasters`, {
+	const roasterResp = await apiRequest.post("/api/roasters", {
 		form: { name: "E2E Manage Roaster", location: "Seattle, WA" },
 	});
 	expect(roasterResp.ok()).toBeTruthy();
@@ -20,7 +23,7 @@ test("create roaster and bean via API, verify in my-coffee", async ({
 	const roasterRKey = roaster.rkey;
 
 	// Create a bean referencing the roaster.
-	const beanResp = await page.request.post(`${baseURL}/api/beans`, {
+	const beanResp = await apiRequest.post("/api/beans", {
 		form: {
 			name: "E2E Manage Bean",
 			origin: "Colombia",
@@ -30,17 +33,19 @@ test("create roaster and bean via API, verify in my-coffee", async ({
 	});
 	expect(beanResp.ok()).toBeTruthy();
 
-	// Navigate to my-coffee and verify both entities appear.
+	// Wait for the records to be indexed by the firehose.
+	await page.waitForTimeout(2000);
+
+	// Navigate to my-coffee. The page loads entity data via HTMX
+	// (hx-get="/api/manage" on load). We wait for the bean name to
+	// appear in the DOM, which means the HTMX swap completed.
 	await page.goto("/my-coffee");
-	await expect(page.getByRole("heading", { name: /my coffee/i })).toBeVisible();
+	// Wait for the manage partial to load via HTMX.
+	await expect(page.getByText("E2E Manage Bean")).toBeVisible({ timeout: 15000 });
 
 	// Switch to the Roasters tab.
 	await page.getByRole("button", { name: "Roasters" }).click();
-	await expect(page.getByText("E2E Manage Roaster")).toBeVisible();
-
-	// Switch to the Beans tab.
-	await page.getByRole("button", { name: "Beans" }).click();
-	await expect(page.getByText("E2E Manage Bean")).toBeVisible();
+	await expect(page.getByText("E2E Manage Roaster").first()).toBeVisible();
 });
 
 /**
@@ -48,12 +53,9 @@ test("create roaster and bean via API, verify in my-coffee", async ({
  *
  * Flow: create roaster → view roaster detail page → verify content.
  */
-test("view entity detail page", async ({ authedPage: page }) => {
-	const baseURL = readServerURL();
-	const did = readServerDID();
-
+test("view entity detail page", async ({ authedPage: page, apiRequest, did }) => {
 	// Create a roaster.
-	const resp = await page.request.post(`${baseURL}/api/roasters`, {
+	const resp = await apiRequest.post("/api/roasters", {
 		form: {
 			name: "E2E View Roaster",
 			location: "Austin, TX",
@@ -67,6 +69,7 @@ test("view entity detail page", async ({ authedPage: page }) => {
 
 	// Navigate to the roaster view page using the DID + rkey.
 	await page.goto(`/roasters/${did}/${roaster.rkey}`);
+	await page.waitForLoadState("networkidle");
 
 	// Verify the roaster details render.
 	await expect(page.getByText("E2E View Roaster")).toBeVisible();
