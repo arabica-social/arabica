@@ -99,6 +99,69 @@
 	}
 
 	let bsky = $derived(settings?.bluesky_profile);
+
+	// --- Appearance: theme + developer mode ---
+	type Theme = "system" | "light" | "dark";
+	function readTheme(): Theme {
+		try {
+			const value = localStorage.getItem("arabica-theme");
+			return value === "light" || value === "dark" ? value : "system";
+		} catch {
+			return "system";
+		}
+	}
+	let theme = $state<Theme>("system");
+	let devMode = $state(false);
+
+	function setTheme(value: Theme) {
+		theme = value;
+		try {
+			if (value === "system") {
+				localStorage.removeItem("arabica-theme");
+			} else {
+				localStorage.setItem("arabica-theme", value);
+			}
+		} catch {
+			// localStorage may be unavailable in strict privacy modes.
+		}
+		window.applyTheme?.();
+	}
+
+	function setDevMode(value: boolean) {
+		devMode = value;
+		try {
+			localStorage.setItem("devMode", String(value));
+		} catch {
+			// localStorage may be unavailable in strict privacy modes.
+		}
+		window.dispatchEvent(new CustomEvent("arabica:dev-mode-change"));
+	}
+
+	$effect(() => {
+		theme = readTheme();
+		try {
+			devMode = localStorage.getItem("devMode") === "true";
+		} catch {
+			devMode = false;
+		}
+		const onStorage = () => {
+			theme = readTheme();
+			try {
+				devMode = localStorage.getItem("devMode") === "true";
+			} catch {
+				devMode = false;
+			}
+		};
+		const onThemeChange = () => {
+			theme = readTheme();
+		};
+		window.addEventListener("storage", onStorage);
+		document.body.addEventListener("arabica:theme-change", onThemeChange);
+		return () => {
+			window.removeEventListener("storage", onStorage);
+			document.body.removeEventListener("arabica:theme-change", onThemeChange);
+		};
+	});
 </script>
 
 <svelte:head>
@@ -120,9 +183,9 @@
 			<span class="form-label">Theme</span>
 			<p class="text-sm mb-3 text-muted">Choose how Arabica looks for you. System will follow your OS setting.</p>
 			<div class="flex flex-wrap gap-2">
-				<button type="button" class="filter-pill" data-theme-choice="system">System</button>
-				<button type="button" class="filter-pill" data-theme-choice="light">Light</button>
-				<button type="button" class="filter-pill" data-theme-choice="dark">Dark</button>
+				<button type="button" class={theme === "system" ? "filter-pill-active" : "filter-pill"} aria-pressed={theme === "system"} onclick={() => setTheme("system")}>System</button>
+				<button type="button" class={theme === "light" ? "filter-pill-active" : "filter-pill"} aria-pressed={theme === "light"} onclick={() => setTheme("light")}>Light</button>
+				<button type="button" class={theme === "dark" ? "filter-pill-active" : "filter-pill"} aria-pressed={theme === "dark"} onclick={() => setTheme("dark")}>Dark</button>
 			</div>
 		</div>
 
@@ -223,7 +286,7 @@
 			<h2 class="text-lg font-semibold mb-2 text-primary">Developer</h2>
 			<p class="text-sm mb-4 text-muted">Tools for inspecting AT Protocol data.</p>
 			<label class="flex items-center gap-2 cursor-pointer">
-				<input type="checkbox" class="form-checkbox" />
+				<input type="checkbox" class="form-checkbox" bind:checked={devMode} onchange={(e) => setDevMode((e.currentTarget as HTMLInputElement).checked)} />
 				<span class="text-sm text-primary">Show "Copy AT URI" in action menus</span>
 			</label>
 		</div>

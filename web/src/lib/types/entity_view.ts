@@ -25,6 +25,7 @@ export type Grinder = {
 	burr_type: string;
 	notes: string;
 	link: string;
+	source_ref?: string;
 	created_at: string;
 };
 
@@ -34,6 +35,7 @@ export type Brewer = {
 	brewer_type: string;
 	description: string;
 	link: string;
+	source_ref?: string;
 	created_at: string;
 };
 
@@ -50,6 +52,7 @@ export type Bean = {
 	link: string;
 	rating?: number;
 	closed: boolean;
+	source_ref?: string;
 	created_at: string;
 	roaster?: { name: string; location: string; rkey: string };
 };
@@ -83,6 +86,7 @@ export type Recipe = {
 	coffee_amount: number;
 	water_amount: number;
 	notes: string;
+	source_ref?: string;
 	created_at: string;
 	brewer_obj?: Brewer;
 	pours?: Pour[];

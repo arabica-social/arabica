@@ -98,7 +98,7 @@
 							<Icon name="plus" class="w-6 h-6" />
 						</button>
 						{#if createOpen}
-							<div class="dropdown-menu w-52" role="menu">
+							<div class="dropdown-menu w-52" class:is-open={createOpen} role="menu">
 								<div class="dropdown-header">
 									<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
 								</div>
@@ -156,7 +156,7 @@
 							<Icon name="chevronDown" class="w-4 h-4 transition-transform" />
 						</button>
 						{#if userOpen}
-							<div class="dropdown-menu" role="menu">
+							<div class="dropdown-menu" class:is-open={userOpen} role="menu">
 								{#if s.handle}
 									<div class="dropdown-header">
 										<p class="text-sm font-medium text-primary truncate">

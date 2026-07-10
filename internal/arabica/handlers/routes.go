@@ -99,9 +99,6 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 
 	ctx.Pages.Register(mux, "GET /manage", http.HandlerFunc(h.HandleManage))
 	ctx.Pages.Register(mux, "GET /brews", http.HandlerFunc(h.HandleBrewList))
-	// Bean, grinder, brewer, and recipe create/edit pages are now SPA-owned
-	// (see SPAOwnedRoutes). Roaster new/edit have no legacy full-page
-	// equivalent; they are SPA-owned too and need no legacy fallback here.
 
 	ctx.Pages.Register(mux, "GET /recipes", http.HandlerFunc(h.HandleRecipeExplore))
 	ctx.Pages.Register(mux, "GET /recipes/{actor}/{id}/backlinks", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleRecipeBacklinks)))
@@ -120,6 +117,31 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	ctx.Pages.Register(mux, "GET /brews/{actor}/{id}", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleBrewView)))
 	ctx.Pages.Register(mux, "GET /recipes/{actor}/{id}", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleRecipeView)))
 	ctx.Pages.Register(mux, "GET /profile/{actor}", http.HandlerFunc(h.HandleProfile))
+
+	// Simple-entity create/edit pages (bean, roaster, grinder, brewer,
+	// recipe) are SPA-owned (see SPAOwnedRoutes). They had no legacy
+	// full-page handlers — the templ stack used modal partials for these —
+	// so register them here purely to claim the SPA shell. pages.Register
+	// routes SPA-owned patterns to the SPA handler regardless of the legacy
+	// handler argument; the legacy arg is only a fallback for non-SPA mode,
+	// which is not exercised for these routes. A nil-safe 404 handler is
+	// passed as the legacy fallback so a non-SPA build still responds
+	// predictably instead of panicking on a nil handler.
+	notFound := http.HandlerFunc(h.HandleNotFound)
+	for _, pattern := range []string{
+		"GET /beans/new",
+		"GET /beans/{id}/edit",
+		"GET /roasters/new",
+		"GET /roasters/{id}/edit",
+		"GET /grinders/new",
+		"GET /grinders/{id}/edit",
+		"GET /brewers/new",
+		"GET /brewers/{id}/edit",
+		"GET /recipes/new",
+		"GET /recipes/{id}/edit",
+	} {
+		ctx.Pages.Register(mux, pattern, notFound)
+	}
 }
 
 // EntityRouteBundles returns the per-entity handler bundles for arabica's

@@ -5,10 +5,8 @@ import { test, expect } from "./fixtures";
  *
  * Flow: home → feed loads → verify feed items render → use filter tabs.
  *
- * Note: the current UI uses HTMX for feed filtering. Clicking a filter
- * pill triggers an AJAX request that swaps #feed-items content — the
- * URL doesn't change. We verify the filter pills are present and
- * clickable, and that the feed content area exists.
+ * The SPA home page fetches /api/feed as JSON and re-renders Svelte
+ * client-side. Filter pills trigger a refetch; the URL doesn't change.
  */
 test("view feed and filter", async ({ authedPage: page, apiRequest }) => {
 	// Create a roaster via the API so the feed has data.
@@ -27,21 +25,21 @@ test("view feed and filter", async ({ authedPage: page, apiRequest }) => {
 	// Verify the feed items container exists.
 	await expect(page.locator("#feed-items")).toBeAttached();
 
-	// Verify the filter pills are present. The templ feed filters use
-	// data-tab attributes and HTMX hx-get for filtering.
+	// Verify the filter pills are present. The SPA feed filters refetch
+	// /api/feed with a type parameter when clicked.
 	await expect(page.getByRole("button", { name: "All" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Brews" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Beans" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Recipes" })).toBeVisible();
 
-	// Click the "Brews" filter. HTMX will swap the feed content.
-	await page.getByRole("button", { name: "Brews" }).click();
-	// Wait for the HTMX swap to complete.
-	await page.waitForTimeout(1000);
+	// Click the "Brews" filter and wait for the feed refetch to settle.
+	const brewsFilter = page.getByRole("button", { name: "Brews" });
+	await brewsFilter.click();
+	await expect(page.locator("#feed-items")).toBeVisible();
 
 	// Click "All" to reset.
 	await page.getByRole("button", { name: "All" }).click();
-	await page.waitForTimeout(1000);
+	await expect(page.locator("#feed-items")).toBeVisible();
 });
 
 /**

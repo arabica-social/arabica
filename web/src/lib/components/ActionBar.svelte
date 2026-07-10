@@ -14,7 +14,6 @@
 		shareText?: string;
 		isOwner: boolean;
 		editURL?: string;
-		editModalURL?: string;
 		deleteURL?: string;
 		deleteRedirect?: string;
 		viewURL?: string;
@@ -37,7 +36,6 @@
 		shareText = "",
 		isOwner = false,
 		editURL = "",
-		editModalURL = "",
 		deleteURL = "",
 		deleteRedirect = "",
 		viewURL = "",
@@ -277,9 +275,6 @@
 				{#if isOwner}
 					{#if editURL}
 						<a href={editURL} class="action-menu-item" role="menuitem">Edit</a>
-					{/if}
-					{#if editModalURL}
-						<a href={editModalURL} class="action-menu-item" role="menuitem">Edit</a>
 					{/if}
 					{#if deleteURL}
 						<button type="button" onclick={confirmDelete} class="action-menu-item action-menu-item-danger" role="menuitem">

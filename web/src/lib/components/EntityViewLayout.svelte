@@ -28,7 +28,6 @@
 		shareURL: string;
 		isOwner: boolean;
 		editURL?: string;
-		editModalURL?: string;
 		deleteURL?: string;
 		deleteRedirect?: string;
 		isAuthenticated: boolean;
@@ -61,7 +60,6 @@
 		shareURL,
 		isOwner,
 		editURL = "",
-		editModalURL = "",
 		deleteURL = "",
 		deleteRedirect = "",
 		isAuthenticated,
@@ -117,7 +115,6 @@
 				shareText={`Check out this ${recordType} on Arabica`}
 				{isOwner}
 				{editURL}
-				{editModalURL}
 				{deleteURL}
 				{deleteRedirect}
 				{isAuthenticated}

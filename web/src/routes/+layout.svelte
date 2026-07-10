@@ -25,6 +25,11 @@
 	// Theme runtime — applies the saved theme on mount and listens for
 	// storage changes (e.g. theme toggle in another tab). Mirrors
 	// ThemeRuntimeIsland.svelte without the HTMX event hooks.
+	// applyTheme reads the persisted theme choice and applies it to the
+	// document. "system" (no stored value) removes the data-theme attribute
+	// so CSS prefers-color-scheme drives light/dark. Exposed on window so
+	// the Settings page theme buttons can trigger it after writing
+	// localStorage.
 	function applyTheme() {
 		try {
 			const theme = localStorage.getItem("arabica-theme");
@@ -36,6 +41,9 @@
 		} catch {
 			document.documentElement.removeAttribute("data-theme");
 		}
+		// Notify any listeners (e.g. settings page active-button refresh) that
+		// the theme changed in this tab.
+		document.body.dispatchEvent(new CustomEvent("arabica:theme-change"));
 	}
 
 	function handleNotify(event: Event) {
@@ -76,6 +84,7 @@
 		}
 
 		window.__showSessionExpiredModal = showSessionExpiredModal;
+		window.applyTheme = applyTheme;
 		window.addEventListener("notify", handleNotify);
 		document.body.addEventListener("refreshManage", handleRefreshManage);
 		document.body.addEventListener("entityDeleted", handleEntityDeleted);
@@ -104,9 +113,6 @@
 </main>
 
 <Footer {brandName} tagline={brandTagline} />
-
-<!-- Modal container for entity dialogs (HTMX modals during migration) -->
-<div id="modal-container"></div>
 
 <!-- Toast region -->
 <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="false">

@@ -81,7 +81,6 @@
 			? `/${nounPath(item.record_type)}/${rkeyOf(item)}/edit`
 			: "",
 	);
-	let editModalURL = $derived("");
 	let deleteURL = $derived(
 		item.is_owner
 			? item.record_type === "brew"
@@ -280,7 +279,6 @@
 			shareText={`Check out this ${actionNoun()} by ${item.author.display_name || displayHandle(item.author.handle)} on Arabica`}
 			isOwner={item.is_owner}
 			{editURL}
-			{editModalURL}
 			{deleteURL}
 			deleteRedirect="/my-coffee"
 			viewURL={url}
