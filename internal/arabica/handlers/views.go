@@ -270,6 +270,32 @@ func (h *Handlers) recipeViewConfig() handlers.EntityViewConfig {
 		},
 		DisplayName: func(record any) string { return record.(*arabica.Recipe).Name },
 		OGSubtitle:  func(record any) string { return record.(*arabica.Recipe).Name },
+		ViewExtras: func(ctx context.Context, record any) map[string]any {
+			recipe := record.(*arabica.Recipe)
+			if recipe.SourceRef == "" {
+				return nil
+			}
+			srcURI, err := atp.ParseATURI(recipe.SourceRef)
+			if err != nil {
+				return nil
+			}
+			sourceOwner := srcURI.DID
+			author := ""
+			if h.FeedIndex() != nil {
+				if profile, err := h.FeedIndex().GetProfile(ctx, srcURI.DID); err == nil && profile != nil {
+					sourceOwner = profile.Handle
+					if profile.DisplayName != nil && *profile.DisplayName != "" {
+						author = *profile.DisplayName
+					} else {
+						author = profile.Handle
+					}
+				}
+			}
+			return map[string]any{
+				"source_recipe_url":    fmt.Sprintf("/recipes/%s/%s", sourceOwner, srcURI.RKey),
+				"source_recipe_author": author,
+			}
+		},
 		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
 			recipe := record.(*arabica.Recipe)
 			props := coffeepages.RecipeViewProps{

@@ -128,6 +128,10 @@
 
 	let did = $derived(manage?.did ?? "");
 	let error = $derived(data.error);
+
+	// Bean lists split by closed state — mirrors the old manage partial.
+	let openBeans = $derived((manage?.beans ?? []).filter((bean) => !bean.closed));
+	let closedBeans = $derived((manage?.beans ?? []).filter((bean) => bean.closed));
 </script>
 
 <svelte:head>
@@ -177,7 +181,7 @@
 					</div>
 				{:else}
 					{#each brewsData.brews as brew (brew.rkey)}
-						<a href={`/brews/${did}/${brew.rkey}`} class="feed-card feed-card-brew block hover:shadow-md transition">
+						<a href={`/brews/${did}/${brew.rkey}`} class="feed-card feed-card-brew block">
 							<div class="flex items-center justify-between mb-2">
 								<div class="text-sm text-muted">
 									{new Date(brew.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
@@ -220,65 +224,89 @@
 
 		<!-- Beans tab -->
 		{#if activeTab === "beans"}
-			<div class="space-y-3">
-				{#if manage.beans.length === 0}
-					<div class="card card-inner text-center py-8">
-						<p class="text-secondary">No beans yet. <a href="/beans/new" class="link-bold">Add one</a>.</p>
-					</div>
-				{:else}
-					{#each manage.beans as bean (bean.rkey)}
-						<div class="feed-card feed-card-bean">
-							<div class="flex items-center justify-between mb-2">
-								<a href={`/beans/${did}/${bean.rkey}`} class="font-bold text-primary hover:underline">{bean.name}</a>
-								<div class="flex items-center gap-2">
-									{#if bean.rating}
-										<span class="badge-rating flex items-center gap-1">
-											<Icon name="star" class="w-3 h-3 text-amber-500" />
-											{bean.rating}/10
-										</span>
-									{/if}
-									{#if bean.closed}
-										<span class="text-xs text-faint">Closed</span>
-									{/if}
-								</div>
-							</div>
-							{#if bean.roaster?.name}
-								<div class="text-sm text-muted flex items-center gap-1">
-									<Icon name="store" class="w-3 h-3" />
-									{bean.roaster.name}
-								</div>
-							{/if}
-							<div class="text-xs text-faint mt-1 flex flex-wrap gap-x-3">
-								{#if bean.origin}<span>{bean.origin}</span>{/if}
-								{#if bean.roast_level}<span>{bean.roast_level}</span>{/if}
-								{#if bean.process}<span>{bean.process}</span>{/if}
-							</div>
-							{#if beanBrewCount(did, bean.rkey) > 0 || beanAvgRating(did, bean.rkey) > 0}
-								<div class="flex items-center gap-3 pt-2 mt-2 border-t border-brown-200/60 text-xs text-faint">
-									{#if beanBrewCount(did, bean.rkey) > 0}
-										<span>{beanBrewCount(did, bean.rkey)} brew{pluralS(beanBrewCount(did, bean.rkey))}</span>
-									{/if}
-									{#if beanAvgRating(did, bean.rkey) > 0}
-										<span>{formatAvgRating(beanAvgRating(did, bean.rkey))} avg</span>
-									{/if}
-								</div>
-							{/if}
+			<div class="space-y-6">
+				<!-- Open bags -->
+				<div>
+					<h4 class="text-lg font-semibold text-primary mb-3">Open Bags</h4>
+					{#if openBeans.length === 0}
+						<div class="card card-inner text-center py-8">
+							<p class="text-secondary">No open bags. <a href="/beans/new" class="link-bold">Add one</a>.</p>
 						</div>
-					{/each}
+					{:else}
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+							{#each openBeans as bean (bean.rkey)}
+								<div class="feed-card feed-card-bean">
+									<div class="flex items-center justify-between mb-2">
+										<a href={`/beans/${did}/${bean.rkey}`} class="font-bold text-primary hover:underline">{bean.name}</a>
+										{#if bean.rating}
+											<span class="badge-rating flex items-center gap-1">
+												<Icon name="star" class="w-3 h-3 text-amber-500" />
+												{bean.rating}/10
+											</span>
+										{/if}
+									</div>
+									{#if bean.roaster?.name}
+										<div class="text-sm text-muted flex items-center gap-1">
+											<Icon name="store" class="w-3 h-3" />
+											{bean.roaster.name}
+										</div>
+									{/if}
+									<div class="text-xs text-faint mt-1 flex flex-wrap gap-x-3">
+										{#if bean.origin}<span>{bean.origin}</span>{/if}
+										{#if bean.roast_level}<span>{bean.roast_level}</span>{/if}
+										{#if bean.process}<span>{bean.process}</span>{/if}
+									</div>
+									{#if beanBrewCount(did, bean.rkey) > 0 || beanAvgRating(did, bean.rkey) > 0}
+										<div class="flex items-center gap-3 pt-2 mt-2 border-t border-brown-200/60 text-xs text-faint">
+											{#if beanBrewCount(did, bean.rkey) > 0}
+												<span>{beanBrewCount(did, bean.rkey)} brew{pluralS(beanBrewCount(did, bean.rkey))}</span>
+											{/if}
+											{#if beanAvgRating(did, bean.rkey) > 0}
+												<span>{formatAvgRating(beanAvgRating(did, bean.rkey))} avg</span>
+											{/if}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Closed bags -->
+				{#if closedBeans.length > 0}
+					<div>
+						<h4 class="text-lg font-semibold text-primary mb-3">Closed Bags</h4>
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+							{#each closedBeans as bean (bean.rkey)}
+								<div class="feed-card feed-card-bean opacity-75">
+									<div class="flex items-center justify-between mb-2">
+										<a href={`/beans/${did}/${bean.rkey}`} class="font-bold text-primary hover:underline">{bean.name}</a>
+										<span class="text-xs text-faint">Closed</span>
+									</div>
+									{#if bean.roaster?.name}
+										<div class="text-sm text-muted flex items-center gap-1">
+											<Icon name="store" class="w-3 h-3" />
+											{bean.roaster.name}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
 				{/if}
 			</div>
 		{/if}
 
 		<!-- Roasters tab -->
 		{#if activeTab === "roasters"}
-			<div class="space-y-3">
-				{#if manage.roasters.length === 0}
-					<div class="card card-inner text-center py-8">
-						<p class="text-secondary">No roasters yet.</p>
-					</div>
-				{:else}
+			{#if manage.roasters.length === 0}
+				<div class="card card-inner text-center py-8">
+					<p class="text-secondary">No roasters yet.</p>
+				</div>
+			{:else}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each manage.roasters as roaster (roaster.rkey)}
-						<div class="feed-card">
+						<div class="feed-card feed-card-roaster">
 							<a href={`/roasters/${did}/${roaster.rkey}`} class="font-bold text-primary hover:underline">{roaster.name}</a>
 							{#if roaster.location}
 								<div class="text-sm text-muted">{roaster.location}</div>
@@ -295,20 +323,20 @@
 							{/if}
 						</div>
 					{/each}
-				{/if}
-			</div>
+				</div>
+			{/if}
 		{/if}
 
 		<!-- Grinders tab -->
 		{#if activeTab === "grinders"}
-			<div class="space-y-3">
-				{#if manage.grinders.length === 0}
-					<div class="card card-inner text-center py-8">
-						<p class="text-secondary">No grinders yet.</p>
-					</div>
-				{:else}
+			{#if manage.grinders.length === 0}
+				<div class="card card-inner text-center py-8">
+					<p class="text-secondary">No grinders yet.</p>
+				</div>
+			{:else}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each manage.grinders as grinder (grinder.rkey)}
-						<div class="feed-card">
+						<div class="feed-card feed-card-grinder">
 							<a href={`/grinders/${did}/${grinder.rkey}`} class="font-bold text-primary hover:underline">{grinder.name}</a>
 							<div class="text-sm text-muted">{grinder.grinder_type}{#if grinder.burr_type} · {grinder.burr_type}{/if}</div>
 							{#if grinderBrewCount(did, grinder.rkey) > 0}
@@ -318,20 +346,20 @@
 							{/if}
 						</div>
 					{/each}
-				{/if}
-			</div>
+				</div>
+			{/if}
 		{/if}
 
 		<!-- Brewers tab -->
 		{#if activeTab === "brewers"}
-			<div class="space-y-3">
-				{#if manage.brewers.length === 0}
-					<div class="card card-inner text-center py-8">
-						<p class="text-secondary">No brewers yet.</p>
-					</div>
-				{:else}
+			{#if manage.brewers.length === 0}
+				<div class="card card-inner text-center py-8">
+					<p class="text-secondary">No brewers yet.</p>
+				</div>
+			{:else}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each manage.brewers as brewer (brewer.rkey)}
-						<div class="feed-card">
+						<div class="feed-card feed-card-brewer">
 							<a href={`/brewers/${did}/${brewer.rkey}`} class="font-bold text-primary hover:underline">{brewer.name}</a>
 							<div class="text-sm text-muted">{brewer.brewer_type}</div>
 							{#if brewerBrewCount(did, brewer.rkey) > 0}
@@ -341,20 +369,24 @@
 							{/if}
 						</div>
 					{/each}
-				{/if}
-			</div>
+				</div>
+			{/if}
 		{/if}
 
 		<!-- Recipes tab -->
 		{#if activeTab === "recipes"}
-			<div class="space-y-3">
-				{#if manage.recipes.length === 0}
-					<div class="card card-inner text-center py-8">
-						<p class="text-secondary">No recipes yet.</p>
-					</div>
-				{:else}
+			<div class="alert-warning mb-2">
+				<span class="text-sm font-bold">⚠️ Recipes are in early alpha</span>
+				<span class="text-sm"> — the format may change. Your brews won't break.</span>
+			</div>
+			{#if manage.recipes.length === 0}
+				<div class="card card-inner text-center py-8">
+					<p class="text-secondary">No recipes yet.</p>
+				</div>
+			{:else}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each manage.recipes as recipe (recipe.rkey)}
-						<div class="feed-card">
+						<div class="feed-card feed-card-recipe">
 							<a href={`/recipes/${did}/${recipe.rkey}`} class="font-bold text-primary hover:underline">{recipe.name}</a>
 							<div class="text-sm text-muted">
 								{#if recipe.brewer_obj?.name}{recipe.brewer_obj.name}{:else if recipe.brewer_type}{recipe.brewer_type}{/if}
@@ -368,8 +400,8 @@
 							{/if}
 						</div>
 					{/each}
-				{/if}
-			</div>
+				</div>
+			{/if}
 		{/if}
 	{/if}
 </div>

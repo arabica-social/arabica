@@ -40,6 +40,12 @@ const feedData: FeedResponse = {
 	next_cursor: "",
 	is_authenticated: true,
 	query: { type: "", sort: "recent" },
+	tabs: [
+		{ label: "All", value: "" },
+		{ label: "Brews", value: "brew" },
+		{ label: "Beans", value: "bean" },
+		{ label: "Roasters", value: "roaster" },
+	],
 };
 
 const authedPageData = {
@@ -142,6 +148,12 @@ describe("Feed page (home)", () => {
 			next_cursor: "",
 			is_authenticated: true,
 			query: { type: "roaster", sort: "recent" },
+			tabs: [
+				{ label: "All", value: "" },
+				{ label: "Brews", value: "brew" },
+				{ label: "Beans", value: "bean" },
+				{ label: "Roasters", value: "roaster" },
+			],
 		};
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")

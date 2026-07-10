@@ -184,7 +184,8 @@
 					</div>
 				{:else}
 					{#each profile.brews as brew (brew.rkey)}
-						<a href={`/brews/${did}/${brew.rkey}`} class="feed-card feed-card-brew block hover:shadow-md transition">
+						<div class="feed-card feed-card-brew">
+						<a href={`/brews/${did}/${brew.rkey}`} class="block">
 							<div class="flex items-center justify-between mb-2">
 								<span class="text-sm text-muted">{new Date(brew.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
 								{#if brew.rating > 0}
@@ -207,7 +208,25 @@
 								{#if brew.brewer_obj?.name}<span>{brew.brewer_obj.name}</span>{/if}
 								{#if brew.coffee_amount > 0}<span>{brew.coffee_amount}g</span>{/if}
 							</div>
-						</a>
+					</a>
+					{#if data.isAuthenticated}
+						<ActionBar
+							subjectURI={`at://${did}/social.arabica.alpha.brew/${brew.rkey}`}
+							subjectCID={profile.brew_cids[brew.rkey] ?? ""}
+							isLiked={profile.brew_liked_by_user[brew.rkey] ?? false}
+							likeCount={profile.brew_like_counts[brew.rkey] ?? 0}
+							commentCount={profile.brew_comment_counts[brew.rkey] ?? 0}
+							shareURL={`/brews/${did}/${brew.rkey}`}
+							shareTitle={brew.bean ? (brew.bean.name || brew.bean.origin) : "Brew"}
+							shareText="Check out this brew on Arabica"
+							isOwner={isOwnProfile}
+							deleteURL={isOwnProfile ? `/api/brews/${brew.rkey}` : ""}
+							deleteRedirect="/profile/{data.actor}"
+							viewURL={`/brews/${did}/${brew.rkey}`}
+							isAuthenticated={data.isAuthenticated}
+						/>
+					{/if}
+					</div>
 					{/each}
 					{#if profile.brews_has_more}
 						<div class="text-center py-4">
@@ -231,7 +250,7 @@
 							<p class="text-secondary">{isOwnProfile ? "No open bags yet." : "No open bags yet."}</p>
 						</div>
 					{:else}
-						<div class="space-y-3">
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 							{#each openBeans() as bean (bean.rkey)}
 								<div class="feed-card feed-card-bean">
 									<a href={`/beans/${did}/${bean.rkey}`} class="font-bold text-primary hover:underline">{bean.name || bean.origin}</a>
@@ -259,9 +278,9 @@
 					{#if profile.roasters.length === 0}
 						<div class="card card-inner text-center py-6"><p class="text-secondary">No roasters yet.</p></div>
 					{:else}
-						<div class="space-y-3">
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 							{#each profile.roasters as roaster (roaster.rkey)}
-								<div class="feed-card">
+								<div class="feed-card feed-card-roaster">
 									<a href={`/roasters/${did}/${roaster.rkey}`} class="font-bold text-primary hover:underline">{roaster.name}</a>
 									{#if roaster.location}<div class="text-sm text-muted">{roaster.location}</div>{/if}
 									{#if roasterBeanCount(did, roaster.rkey) > 0 || roasterAvgRating(did, roaster.rkey) > 0}
@@ -279,7 +298,7 @@
 				{#if closedBeans().length > 0}
 					<div>
 						<h4 class="text-lg font-semibold text-primary mb-3">Closed Bags</h4>
-						<div class="space-y-3">
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 							{#each closedBeans() as bean (bean.rkey)}
 								<div class="feed-card feed-card-bean opacity-75">
 									<a href={`/beans/${did}/${bean.rkey}`} class="font-bold text-primary hover:underline">{bean.name || bean.origin}</a>
@@ -301,9 +320,9 @@
 					{#if profile.grinders.length === 0}
 						<div class="card card-inner text-center py-6"><p class="text-secondary">No grinders yet.</p></div>
 					{:else}
-						<div class="space-y-3">
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 							{#each profile.grinders as grinder (grinder.rkey)}
-								<div class="feed-card">
+								<div class="feed-card feed-card-grinder">
 									<a href={`/grinders/${did}/${grinder.rkey}`} class="font-bold text-primary hover:underline">{grinder.name}</a>
 									<div class="text-sm text-muted">{grinder.grinder_type}{#if grinder.burr_type} · {grinder.burr_type}{/if}</div>
 									{#if grinderBrewCount(did, grinder.rkey) > 0}
@@ -320,9 +339,9 @@
 					{#if profile.brewers.length === 0}
 						<div class="card card-inner text-center py-6"><p class="text-secondary">No brewers yet.</p></div>
 					{:else}
-						<div class="space-y-3">
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 							{#each profile.brewers as brewer (brewer.rkey)}
-								<div class="feed-card">
+								<div class="feed-card feed-card-brewer">
 									<a href={`/brewers/${did}/${brewer.rkey}`} class="font-bold text-primary hover:underline">{brewer.name}</a>
 									<div class="text-sm text-muted">{brewer.brewer_type}</div>
 									{#if brewerBrewCount(did, brewer.rkey) > 0}

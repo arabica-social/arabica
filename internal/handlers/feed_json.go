@@ -3,18 +3,21 @@ package handlers
 import (
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
 // FeedResponseJSON is the JSON envelope returned by GET /api/feed for the
 // SvelteKit SPA. See docs/api/feed.md for the contract.
 type FeedResponseJSON struct {
-	Items           []FeedItemJSON `json:"items"`
-	NextCursor      string         `json:"next_cursor"`
-	IsAuthenticated bool           `json:"is_authenticated"`
-	Query           FeedQueryJSON  `json:"query"`
+	Items           []FeedItemJSON     `json:"items"`
+	NextCursor      string             `json:"next_cursor"`
+	IsAuthenticated bool               `json:"is_authenticated"`
+	Query           FeedQueryJSON      `json:"query"`
+	Tabs            []FeedFilterTabJSON `json:"tabs"`
 }
 
 // FeedQueryJSON echoes the active feed query back to the client so the SPA
@@ -22,6 +25,14 @@ type FeedResponseJSON struct {
 type FeedQueryJSON struct {
 	Type string `json:"type"`
 	Sort string `json:"sort"`
+}
+
+// FeedFilterTabJSON is a single filter pill in the feed filter bar. The
+// "All" tab has an empty Value; per-entity tabs use the filter noun from
+// the app's feed views. This is app-scoped so oolong gets its own tabs.
+type FeedFilterTabJSON struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
 }
 
 // FeedItemJSON is the JSON-serializable view of a feed.FeedItem. The typed
@@ -81,6 +92,22 @@ func NewFeedItemJSON(item *feed.FeedItem) FeedItemJSON {
 		out.AuthorDID = item.Author.DID
 	}
 	return out
+}
+
+// BuildFeedTabs returns the filter pills for the feed filter bar, app-scoped
+// to the running app's descriptors + feed views. The "All" tab is always
+// first; per-entity tabs follow descriptor order. Mirrors feedFilterTabs in
+// the templ layer.
+func BuildFeedTabs(descriptors []*entities.Descriptor, views feedviews.Registry) []FeedFilterTabJSON {
+	tabs := []FeedFilterTabJSON{{Label: "All", Value: ""}}
+	for _, d := range descriptors {
+		label := views.FilterLabel(d.Type)
+		if label == "" {
+			continue
+		}
+		tabs = append(tabs, FeedFilterTabJSON{Label: label, Value: views.FilterValue(d.Type)})
+	}
+	return tabs
 }
 
 // ApplyModerationContext populates the per-item moderation fields on a slice

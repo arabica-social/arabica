@@ -77,6 +77,38 @@
 		}
 	}
 
+	// Inline bag rating: mirrors the old BeanViewActionsIsland. PUTs the full
+	// bean with an overridden rating, then reloads so the header badge updates.
+	let rateDialog = $state<HTMLDialogElement | undefined>();
+	let ratingValue = $state(5);
+	let savingRating = $state(false);
+
+	function openRateDialog() {
+		ratingValue = b?.rating ?? 5;
+		rateDialog?.showModal();
+	}
+
+	async function saveRating(remove = false) {
+		if (!b) return;
+		savingRating = true;
+		try {
+			const res = await fetch(`/api/beans/${b.rkey}`, {
+				method: "PUT",
+				credentials: "same-origin",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ ...b, rating: remove ? null : ratingValue }),
+			});
+			if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+			pushToast(remove ? "Rating removed" : "Rating saved");
+			window.location.reload();
+		} catch (error) {
+			console.error("Save rating failed:", error);
+			pushToast("Failed to save rating");
+		} finally {
+			savingRating = false;
+		}
+	}
+
 	let timestampISO = $derived(b ? new Date(b.created_at).toISOString() : "");
 	let timestampDisplay = $derived(
 		b
@@ -191,7 +223,7 @@
 				</div>
 			{/if}
 
-			<BacklinksSection result={v.backlinks} />
+			<BacklinksSection result={v.backlinks} detailURL={v.backlinks_detail_url} />
 
 			<div class="record-view-footer">
 				<div class="flex items-center gap-3">
@@ -207,6 +239,9 @@
 									Reopen Bag
 								</button>
 							{/if}
+							<button type="button" class="btn-secondary text-sm text-center" onclick={openRateDialog}>
+								{b.rating ? "Edit Rating" : "Rate Bag"}
+							</button>
 							<a href={`/beans/${b.rkey}/edit`} class="btn-secondary text-sm text-center">
 								Edit Bean
 							</a>
@@ -246,4 +281,34 @@
 			/>
 		</div>
 	</div>
+
+	<dialog bind:this={rateDialog} class="modal-dialog" aria-labelledby="rate-bag-title">
+		<div class="modal-content">
+			<h3 id="rate-bag-title" class="modal-title">{b?.rating ? "Edit Rating" : "Rate Bag"}</h3>
+			<div class="space-y-4">
+				<input
+					type="range"
+					min="1"
+					max="10"
+					bind:value={ratingValue}
+					class="w-full accent-brown-700"
+					aria-label="Bag rating, 1 to 10"
+				/>
+				<div class="text-center text-3xl font-bold text-secondary" aria-hidden="true">
+					{ratingValue}/10
+				</div>
+			</div>
+			<div class="flex gap-2 mt-4">
+				<button type="button" class="flex-1 btn-primary" disabled={savingRating} onclick={() => saveRating(false)}>
+					{savingRating ? "Saving..." : "Save"}
+				</button>
+				{#if b?.rating}
+					<button type="button" class="flex-1 btn-secondary text-danger" disabled={savingRating} onclick={() => saveRating(true)}>
+						{savingRating ? "Removing..." : "Remove"}
+					</button>
+				{/if}
+				<button type="button" class="flex-1 btn-secondary" onclick={() => rateDialog?.close()}>Cancel</button>
+			</div>
+		</div>
+	</dialog>
 {/if}

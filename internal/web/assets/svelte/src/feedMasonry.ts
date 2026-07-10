@@ -127,6 +127,11 @@ export function applyFeedMasonry() {
   mediaQuery ??= window.matchMedia(DESKTOP_QUERY);
   for (const container of getContainers()) {
     if (mediaQuery.matches) {
+      // Start from a clean slate on every re-layout. If the container already
+      // contains masonry columns (e.g. after a cached filter swap restored
+      // column-wrapped HTML), leaving them in place skews height measurements
+      // and can pile every card into the first column. Flatten first, then repack.
+      flattenLayout(container);
       masonryLayout(container);
     } else {
       flattenLayout(container);

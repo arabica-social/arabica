@@ -4,7 +4,7 @@
 	import ActionBar from "$lib/components/ActionBar.svelte";
 	import CommentSection from "$lib/components/CommentSection.svelte";
 	import Icon from "$lib/components/Icon.svelte";
-	import { formatTime, formatTemp } from "$lib/utils/format";
+	import { formatTime, formatTempForUnit } from "$lib/utils/format";
 	import { pushToast } from "$lib/stores/toasts";
 	import { session } from "$lib/stores/session";
 	import type { PageData } from "./$types";
@@ -235,7 +235,7 @@
 					{#if b.temperature > 0}
 						<div class="journal-field">
 							<span class="detail-label"><span class="inline-flex items-center gap-1"><Icon name="thermometer" class="w-4 h-4 text-red-400" />Temperature</span></span>
-							<span class="detail-value">{formatTemp(b.temperature)}</span>
+							<span class="detail-value">{formatTempForUnit(b.temperature, $session.temperatureUnit)}</span>
 						</div>
 					{/if}
 					{#if b.pourover_params?.filter}

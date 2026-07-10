@@ -42,6 +42,7 @@
 		authorDisplay={v.author?.display_name}
 		authorAvatar={v.author?.avatar}
 		backlinks={v.backlinks}
+		backlinksDetailURL={v.backlinks_detail_url}
 		subjectURI={v.subject_uri}
 		subjectCID={v.subject_cid}
 		isLiked={v.social.is_liked}

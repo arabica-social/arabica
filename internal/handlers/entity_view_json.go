@@ -17,17 +17,22 @@ import (
 // plus all the social, author, and backlink context the SPA needs to render
 // a full entity detail page. See docs/api/entities.md for the contract.
 type EntityViewJSONResponse struct {
-	Record          any             `json:"record"`
-	SubjectURI      string          `json:"subject_uri"`
-	SubjectCID      string          `json:"subject_cid"`
-	Author          *AuthorSummary  `json:"author,omitempty"`
-	Social          SocialDataJSON  `json:"social"`
-	Backlinks       json.RawMessage `json:"backlinks,omitempty"`
-	IsOwnProfile    bool            `json:"is_own_profile"`
-	IsAuthenticated bool            `json:"is_authenticated"`
-	ShareURL        string          `json:"share_url"`
-	EntityType      string          `json:"entity_type"`
-	EntityCount     int             `json:"entity_count"`
+	Record             any             `json:"record"`
+	SubjectURI         string          `json:"subject_uri"`
+	SubjectCID         string          `json:"subject_cid"`
+	Author             *AuthorSummary  `json:"author,omitempty"`
+	Social             SocialDataJSON  `json:"social"`
+	Backlinks          json.RawMessage `json:"backlinks,omitempty"`
+	BacklinksDetailURL string          `json:"backlinks_detail_url,omitempty"`
+	IsOwnProfile       bool            `json:"is_own_profile"`
+	IsAuthenticated    bool            `json:"is_authenticated"`
+	ShareURL           string          `json:"share_url"`
+	EntityType         string          `json:"entity_type"`
+	EntityCount        int             `json:"entity_count"`
+	// Extras carries entity-specific view fields that are not part of the
+	// record model (e.g. a recipe's resolved forked-from URL + author).
+	// Populated via cfg.ViewExtras; nil when the entity has no extras.
+	Extras map[string]any `json:"extras,omitempty"`
 }
 
 // RenderEntityViewJSON is the JSON counterpart to RenderEntityView. It reuses
@@ -58,7 +63,7 @@ func (h *Handler) RenderEntityViewJSON(w http.ResponseWriter, r *http.Request, c
 	}
 
 	sd := h.FetchSocialData(r.Context(), loaded.SubjectURI, didStr, isAuthenticated)
-	bl, _ := h.fetchBacklinks(r.Context(), loaded.SubjectURI, loaded.Route.Path, rkey, owner)
+	bl, blDetailURL := h.fetchBacklinks(r.Context(), loaded.SubjectURI, loaded.Route.Path, rkey, owner)
 
 	authorDID := loaded.OwnerDID
 	if authorDID == "" {
@@ -91,6 +96,11 @@ func (h *Handler) RenderEntityViewJSON(w http.ResponseWriter, r *http.Request, c
 		}
 	}
 
+	var extras map[string]any
+	if cfg.ViewExtras != nil {
+		extras = cfg.ViewExtras(r.Context(), loaded.Record)
+	}
+
 	resp := EntityViewJSONResponse{
 		Record:     loaded.Record,
 		SubjectURI: loaded.SubjectURI,
@@ -106,12 +116,14 @@ func (h *Handler) RenderEntityViewJSON(w http.ResponseWriter, r *http.Request, c
 			CanBlockUser:   sd.CanBlockUser,
 			IsRecordHidden: sd.IsRecordHidden,
 		},
-		Backlinks:       backlinksJSON,
-		IsOwnProfile:    loaded.IsOwnProfile,
-		IsAuthenticated: isAuthenticated,
-		ShareURL:        shareURL,
-		EntityType:      strings.ToLower(loaded.EntityNoun),
-		EntityCount:     entityCount,
+		Backlinks:          backlinksJSON,
+		BacklinksDetailURL: blDetailURL,
+		IsOwnProfile:       loaded.IsOwnProfile,
+		IsAuthenticated:    isAuthenticated,
+		ShareURL:           shareURL,
+		EntityType:         strings.ToLower(loaded.EntityNoun),
+		EntityCount:        entityCount,
+		Extras:             extras,
 	}
 
 	WriteJSON(w, resp, loaded.EntityNoun+"-json")

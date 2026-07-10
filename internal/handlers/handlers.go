@@ -667,6 +667,7 @@ func (h *Handler) ResolveSessionData(ctx context.Context, did string) spa.Sessio
 	}
 	if h.feedIndex != nil {
 		out.UnreadNotificationCount = h.feedIndex.GetUnreadCount(did)
+		out.TemperatureUnit = string(h.feedIndex.GetUserPreferences(ctx, did).TemperatureUnit)
 	}
 	return out
 }

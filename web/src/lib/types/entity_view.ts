@@ -209,9 +209,12 @@ export type EntityViewResponse<TRecord = Record<string, unknown>> = {
   author?: AuthorSummary;
   social: SocialDataJSON;
   backlinks?: BacklinksResult;
+  backlinks_detail_url?: string;
   is_own_profile: boolean;
   is_authenticated: boolean;
   share_url: string;
   entity_type: string;
   entity_count: number;
+  // Entity-specific view fields (e.g. recipe forked-from URL + author).
+  extras?: Record<string, unknown>;
 };

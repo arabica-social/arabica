@@ -66,6 +66,7 @@ type ShellData struct {
 	UserAvatar              string
 	IsModerator             bool
 	UnreadNotificationCount int
+	TemperatureUnit         string
 
 	// Pre-computed values for the template (derived from the fields above).
 	SiteDescription string
@@ -101,6 +102,10 @@ type SessionData struct {
 	Avatar                  string
 	IsModerator             bool
 	UnreadNotificationCount int
+	// TemperatureUnit is the user's preferred brew temperature display
+	// unit ("recorded", "celsius", "fahrenheit"). Injected as a body data
+	// attribute so the SPA can format temperatures without an extra API call.
+	TemperatureUnit string
 }
 
 // SessionResolver looks up session data for a DID. The shell handler calls
@@ -166,6 +171,7 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			data.UserAvatar = session.Avatar
 			data.IsModerator = session.IsModerator
 			data.UnreadNotificationCount = session.UnreadNotificationCount
+			data.TemperatureUnit = session.TemperatureUnit
 		}
 	}
 	data.CSPNonce = middleware.CSPNonceFromContext(r.Context())
@@ -249,6 +255,9 @@ func injectBodyAttrs(html []byte, data ShellData) []byte {
 	}
 	if data.UnreadNotificationCount > 0 {
 		attrs = append(attrs, []byte(fmt.Sprintf(` data-unread-notifications="%d"`, data.UnreadNotificationCount))...)
+	}
+	if data.TemperatureUnit != "" {
+		attrs = append(attrs, []byte(` data-temperature-unit="`+htmlEscapeAttr(data.TemperatureUnit)+`"`)...)
 	}
 
 	// Insert attributes right after "<body".

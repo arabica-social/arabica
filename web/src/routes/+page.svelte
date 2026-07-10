@@ -7,6 +7,7 @@
 	import { goto } from "$app/navigation";
 	import { tick } from "svelte";
 	import { applyFeedMasonry, installFeedMasonry } from "$lib/utils/feedMasonry";
+	import { getCachedFeedJSON, setCachedFeedJSON } from "$lib/stores/feedCache";
 	import type { PageData } from "./$types";
 	import type { FeedItem, FeedResponse } from "$lib/types/feed";
 
@@ -75,14 +76,22 @@
 		typeFilter = nextType;
 		loading = true;
 		updateURL(nextType, sort);
+		const url = buildURL(nextType, sort);
+		// Instant cached display, then refetch to sync.
+		const cached = getCachedFeedJSON<FeedResponse>(url);
+		if (cached) {
+			items = cached.items ?? [];
+			nextCursor = cached.next_cursor ?? "";
+		}
 		try {
-			const res = await fetch(buildURL(nextType, sort), {
+			const res = await fetch(url, {
 				headers: { Accept: "application/json" },
 			});
 			if (!res.ok) throw new Error(`Feed failed: ${res.status}`);
 			const data = (await res.json()) as FeedResponse;
 			items = data.items ?? [];
 			nextCursor = data.next_cursor ?? "";
+			setCachedFeedJSON(url, data);
 		} catch {
 			pushToast("Failed to load feed");
 		} finally {
@@ -95,14 +104,22 @@
 		sort = nextSort;
 		loading = true;
 		updateURL(typeFilter, nextSort);
+		const url = buildURL(typeFilter, nextSort);
+		// Instant cached display, then refetch to sync.
+		const cached = getCachedFeedJSON<FeedResponse>(url);
+		if (cached) {
+			items = cached.items ?? [];
+			nextCursor = cached.next_cursor ?? "";
+		}
 		try {
-			const res = await fetch(buildURL(typeFilter, nextSort), {
+			const res = await fetch(url, {
 				headers: { Accept: "application/json" },
 			});
 			if (!res.ok) throw new Error(`Feed failed: ${res.status}`);
 			const data = (await res.json()) as FeedResponse;
 			items = data.items ?? [];
 			nextCursor = data.next_cursor ?? "";
+			setCachedFeedJSON(url, data);
 		} catch {
 			pushToast("Failed to load feed");
 		} finally {
@@ -113,8 +130,9 @@
 	async function loadMore() {
 		if (!nextCursor || loadingMore) return;
 		loadingMore = true;
+		const url = buildURL(typeFilter, sort, nextCursor);
 		try {
-			const res = await fetch(buildURL(typeFilter, sort, nextCursor), {
+			const res = await fetch(url, {
 				headers: { Accept: "application/json" },
 			});
 			if (!res.ok) throw new Error(`Load more failed: ${res.status}`);
@@ -130,7 +148,19 @@
 
 	let isAuthenticated = $derived(data.isAuthenticated);
 	let appName = $derived(data.appName ?? "arabica");
-	let showFilters = $derived(true); // Filters are useful for all viewers.
+	// Filters only make sense for authenticated viewers — the unauth feed is
+	// an unfiltered cached public list, so showing filter pills would imply
+	// interactivity that doesn't exist. Mirrors the old templ gate.
+	let showFilters = $derived(isAuthenticated);
+	let onboarding = $derived(data.onboarding);
+	let incompleteRecords = $derived(data.incompleteRecords);
+	let popularRecipes = $derived(data.popularRecipes);
+
+	// Brew readiness: if the user hasn't added a bean/brewer/roaster yet,
+	// show a Get Started nudge instead of the Log Brew action.
+	let ready = $derived(
+		!onboarding || (onboarding.readiness.HasBean && onboarding.readiness.HasBrewer && onboarding.readiness.HasRoaster),
+	);
 </script>
 
 <svelte:head>
@@ -151,8 +181,15 @@
 			<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">
 				{appName === "oolong" ? "Your tea journey, documented." : "Your coffee journey, documented."}
 			</h1>
+			{#if !ready}
+				<div class="alert-warning mb-6 max-w-xl mx-auto text-left">
+					<p class="font-semibold mb-1">Get started</p>
+					<p class="text-sm mb-3">Add a bean, brewer, and roaster to start logging brews.</p>
+					<a href="/onboarding" class="btn-primary text-sm">Get Started →</a>
+				</div>
+			{/if}
 			<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto">
-				<a href="/brews/new" class="home-action-primary block text-center py-4 px-4 rounded-xl">
+				<a href="/brews/new" class="home-action-primary block text-center py-4 px-4 rounded-xl" class:opacity-50={!ready} aria-disabled={!ready}>
 					<span class="text-base font-semibold">{appName === "oolong" ? "Log Steep" : "Log Brew"}</span>
 				</a>
 				<a href="/explore" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
@@ -214,6 +251,7 @@
 				{loading}
 				onType={applyFilter}
 				onSort={applySort}
+				tabs={data.feed?.tabs ?? []}
 			/>
 		{/if}
 		<div id="feed-board" class="feed-board">
@@ -268,6 +306,43 @@
 	</div>
 
 	{#if isAuthenticated}
+		<!-- Incomplete records nudge -->
+		{#if incompleteRecords?.records?.length}
+			<div class="card p-6 mb-8">
+				<h3 class="text-lg font-bold text-primary mb-3">Complete your records</h3>
+				<div class="space-y-2">
+					{#each incompleteRecords.records as rec (rec.RKey)}
+						<a href={`/${rec.EntityType}s/${rec.RKey}/edit`} class="block p-3 rounded-lg border border-brown-200 hover:bg-brown-50 transition-colors">
+							<div class="flex items-center justify-between">
+								<span class="font-medium text-primary">{rec.Name}</span>
+								<span class="text-xs text-faint capitalize">{rec.EntityType}</span>
+							</div>
+							{#if rec.MissingFields?.length}
+								<p class="text-sm text-muted mt-1">Missing: {rec.MissingFields.join(", ")}</p>
+							{/if}
+						</a>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Popular recipes -->
+		{#if popularRecipes?.length}
+			<div class="card p-6 mb-8">
+				<h3 class="text-lg font-bold text-primary mb-3">Popular recipes</h3>
+				<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+					{#each popularRecipes as recipe (recipe.rkey)}
+						<a href={`/recipes/${recipe.author_did ?? ""}/${recipe.rkey}`} class="card card-inner p-4 hover:shadow-md transition">
+							<div class="font-semibold text-primary mb-1">{recipe.name}</div>
+							{#if recipe.brewer_obj?.name}
+								<div class="text-sm text-muted">{recipe.brewer_obj.name}</div>
+							{/if}
+						</a>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		<!-- About info card -->
 		<div class="card p-6 mb-8">
 			<h3 class="text-lg font-bold text-primary mb-2">About Arabica</h3>

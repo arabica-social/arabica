@@ -19,6 +19,9 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		const res = await fetch(`/api/explore${query ? `?${query}` : ""}`, {
 			headers: { Accept: "application/json" },
 		});
+		if (res.status === 401) {
+			return { explore: null, error: "Authentication required", isAuthenticated: false };
+		}
 		if (!res.ok) {
 			return { explore: null, error: "Failed to load explore results", isAuthenticated: s.isAuthenticated };
 		}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FEED_TABS } from "../types/feed";
+	import type { FeedFilterTab } from "../types/feed";
 
 	type Props = {
 		typeFilter: string;
@@ -7,9 +7,14 @@
 		loading: boolean;
 		onType: (value: string) => void;
 		onSort: (value: string) => void;
+		tabs?: FeedFilterTab[];
 	};
 
-	let { typeFilter, sort, loading, onType, onSort }: Props = $props();
+	let { typeFilter, sort, loading, onType, onSort, tabs = [] }: Props = $props();
+
+	// Server-provided tabs are app-scoped (arabica vs oolong). Fall back to a
+	// minimal "All" tab when the response hasn't loaded yet.
+	let activeTabs = $derived(tabs.length > 0 ? tabs : [{ label: "All", value: "" }]);
 
 	function pillClass(tab: string, active: string): string {
 		return typeFilter === tab ? "filter-pill-active" : "filter-pill";
@@ -23,7 +28,7 @@
 
 <div class="mb-5 flex flex-wrap items-center justify-between gap-2" aria-busy={loading}>
 	<div class="flex flex-wrap gap-1" role="group" aria-label="Feed filters">
-		{#each FEED_TABS as tab (tab.value)}
+		{#each activeTabs as tab (tab.value)}
 			<button
 				type="button"
 				class={pillClass(tab.value, typeFilter)}
@@ -40,7 +45,7 @@
 		<button
 			type="button"
 			class={sortClass("recent")}
-			aria-pressed={sort === "" || sort === "recent" ? "true" : "false"}
+				aria-pressed={sort === "" || sort === "recent" ? "true" : "false"}
 			disabled={loading}
 			onclick={() => onSort("recent")}
 		>
@@ -49,8 +54,8 @@
 		<button
 			type="button"
 			class={sortClass("popular")}
-			aria-pressed={sort === "popular" ? "true" : "false"}
-			disabled={loading}
+				aria-pressed={sort === "popular" ? "true" : "false"}
+				disabled={loading}
 			onclick={() => onSort("popular")}
 		>
 			Popular

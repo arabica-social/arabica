@@ -105,6 +105,32 @@ describe("feedMasonry", () => {
     expect(grid.querySelectorAll(":scope > .feed-card").length).toBe(3);
   });
 
+  it("rebalances cards into both columns when re-laying out with existing columns", () => {
+    setHeights({ a: 40, b: 40, c: 40, d: 40 });
+    const grid = makeFeedGrid(["a", "b"]);
+    applyFeedMasonry();
+    expect(grid.querySelectorAll(":scope > .feed-masonry-col").length).toBe(2);
+
+    // Simulate a filter/sort swap: remove the old cards from the DOM and
+    // leave the empty masonry columns behind, then inject a fresh set of cards.
+    grid.querySelectorAll(".feed-card").forEach((card) => card.remove());
+    for (const id of ["c", "d"]) {
+      const card = document.createElement("div");
+      card.className = "feed-card";
+      card.dataset.cardId = id;
+      grid.appendChild(card);
+    }
+
+    applyFeedMasonry();
+
+    const columns = grid.querySelectorAll<HTMLElement>(
+      ":scope > .feed-masonry-col",
+    );
+    expect(columns.length).toBe(2);
+    expect(columns[0].children.length).toBeGreaterThan(0);
+    expect(columns[1].children.length).toBeGreaterThan(0);
+  });
+
   it("installFeedMasonry returns a teardown that removes the listener", () => {
     const mq = makeMediaQuery(true);
     vi.stubGlobal("matchMedia", () => mq);

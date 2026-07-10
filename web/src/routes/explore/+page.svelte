@@ -2,8 +2,10 @@
 	import FeedCard from "$lib/components/FeedCard.svelte";
 	import Icon from "$lib/components/Icon.svelte";
 	import { goto } from "$app/navigation";
+	import { tick } from "svelte";
 	import { pushToast } from "$lib/stores/toasts";
 	import { displayHandle } from "$lib/stores/session";
+	import { applyFeedMasonry, installFeedMasonry } from "$lib/utils/feedMasonry";
 	import type { PageData } from "./$types";
 	import type { ExploreResponse, ExploreDocument } from "$lib/types/api";
 	import type { FeedItem } from "$lib/types/feed";
@@ -147,6 +149,24 @@
 	let items = $derived(explore?.items ?? []);
 	let health = $derived(explore?.health);
 	let isAuthenticated = $derived(data.isAuthenticated);
+
+	// Feed masonry: re-pack cards into two corkboard columns whenever the
+	// result set changes (filter/load-more). Mirrors the home feed page.
+	$effect(() => {
+		items;
+		const teardown = installFeedMasonry();
+		void tick().then(() => {
+			requestAnimationFrame(() => {
+				applyFeedMasonry();
+			});
+		});
+		return teardown;
+	});
+
+	// Document stats from the explore response — own rating, "used by N".
+	function docFor(item: FeedItem): ExploreDocument | undefined {
+		return explore?.documents?.[item.subject_uri];
+	}
 </script>
 
 <svelte:head>
@@ -277,7 +297,12 @@
 		<!-- Results -->
 		{#if data.error}
 			<div class="card card-inner text-center py-8">
-				<p class="text-secondary">{data.error}</p>
+				{#if !isAuthenticated}
+					<p class="text-secondary mb-4">{data.error}</p>
+					<a href="/login" class="btn-primary">Log In</a>
+				{:else}
+					<p class="text-secondary">{data.error}</p>
+				{/if}
 			</div>
 		{:else if items.length === 0}
 			<div class="card card-inner text-center py-12">
@@ -286,9 +311,21 @@
 				<p class="text-sm text-muted">Try fewer filters, or come back after the witness cache sees more community records.</p>
 			</div>
 		{:else}
-			<div class="explore-results feed-grid">
+			<div class="explore-results feed-grid" data-feed-masonry>
 				{#each items as item (item.subject_uri)}
-					<FeedCard {item} {isAuthenticated} />
+					<div>
+						<FeedCard {item} {isAuthenticated} />
+						{#if docFor(item)}
+							<div class="explore-doc-stats text-xs text-faint mt-1 px-2 pb-1 flex gap-3">
+								{#if docFor(item)?.SourceRefCount}
+									<span>Used by {docFor(item)?.SourceRefCount}</span>
+								{/if}
+								{#if docFor(item)?.OwnRating?.Valid}
+									<span>Your rating: {docFor(item)?.OwnRating.Float64}/10</span>
+								{/if}
+							</div>
+						{/if}
+					</div>
 				{/each}
 			</div>
 			{#if explore?.next_cursor}

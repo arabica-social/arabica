@@ -67,6 +67,17 @@
 		</div>
 	</div>
 {:else if v && r}
+	<div class="alert-warning mb-6">
+		<div class="flex items-start gap-3">
+			<span class="text-xl leading-none mt-0.5">&#9888;&#65039;</span>
+			<div class="text-sm">
+				<p class="font-bold text-base mb-1">Recipes are in early alpha</p>
+				<p class="mb-2">
+					The recipe format may change significantly as we figure out what works best. If that happens, your brews won't break &ndash; brew fields are filled in from the recipe at creation time, so they stand on their own. Only the recipe record itself would need to be recreated.
+				</p>
+			</div>
+		</div>
+	</div>
 	<EntityViewLayout
 		recordType="recipe"
 		title={r.name}
@@ -76,6 +87,7 @@
 		authorDisplay={v.author?.display_name}
 		authorAvatar={v.author?.avatar}
 		backlinks={v.backlinks}
+		backlinksDetailURL={v.backlinks_detail_url}
 		subjectURI={v.subject_uri}
 		subjectCID={v.subject_cid}
 		isLiked={v.social.is_liked}
@@ -95,6 +107,18 @@
 		currentUserDID=""
 	>
 		{#snippet statLine()}
+			{#if v.extras?.source_recipe_url}
+				<div class="-mt-3 mb-3">
+					<span class="fork-chip">
+						↳ forked from
+						<a href={String(v.extras.source_recipe_url)}>
+							{v.extras.source_recipe_author
+								? `${String(v.extras.source_recipe_author)}'s recipe`
+								: "original recipe"}
+						</a>
+					</span>
+				</div>
+			{/if}
 			<div class="flex items-center gap-3 -mt-3 mb-3">
 				{#if v.is_authenticated}
 					<a href={`/brews/new?recipe=${r.rkey}&recipe_owner=${r.author_did ?? v.author?.did ?? ""}`} class="btn-primary text-sm text-center">Use in Brew</a>

@@ -19,6 +19,8 @@ export type Session = {
   isAuthenticated: boolean;
   isModerator: boolean;
   unreadNotifications: number;
+  /** Preferred brew temperature display unit ("recorded", "celsius", "fahrenheit"). */
+  temperatureUnit: string;
 };
 
 export type AppName = "arabica" | "oolong";
@@ -42,6 +44,7 @@ function readSession(): Session {
     isAuthenticated: did !== "",
     isModerator: ds.isModerator === "true",
     unreadNotifications: Number(ds.unreadNotifications ?? "0") || 0,
+    temperatureUnit: ds.temperatureUnit ?? "recorded",
   };
 }
 

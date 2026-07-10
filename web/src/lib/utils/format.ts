@@ -50,9 +50,39 @@ export function formatTime(seconds: number): string {
 	return `${minutes}m ${remaining}s`;
 }
 
-/** Formats a temperature with unit detection (>100 = F, else C). Mirrors bff.FormatTemp. */
+/**
+ * Formats a temperature with unit detection (>100 = F, else C). Mirrors
+ * bff.FormatTemp (no preference — uses the recorded unit).
+ */
 export function formatTemp(temp: number): string {
 	if (temp === 0) return "N/A";
 	const unit = temp > 100 ? "F" : "C";
 	return `${temp.toFixed(1)}°${unit}`;
+}
+
+/**
+ * Formats a temperature respecting the user's preferred unit. Mirrors
+ * bff.FormatTempForUnit. When the preference is "recorded" (or empty), the
+ * recorded unit is used as-is. Otherwise the value is converted between
+ * Celsius and Fahrenheit to match the preference.
+ */
+export function formatTempForUnit(temp: number, preferred: string): string {
+	if (temp === 0) return "N/A";
+	const recordedUnit = temp > 100 ? "F" : "C";
+	if (!preferred || preferred === "recorded") {
+		return `${temp.toFixed(1)}°${recordedUnit}`;
+	}
+	let value = temp;
+	let unit = recordedUnit;
+	const prefUpper = preferred.charAt(0).toUpperCase() + preferred.slice(1);
+	if (prefUpper !== unit) {
+		if (prefUpper === "C") {
+			value = (temp - 32) * 5 / 9;
+			unit = "C";
+		} else {
+			value = temp * 9 / 5 + 32;
+			unit = "F";
+		}
+	}
+	return `${value.toFixed(1)}°${unit}`;
 }

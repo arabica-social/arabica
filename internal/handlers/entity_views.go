@@ -91,7 +91,12 @@ type EntityViewConfig struct {
 	DisplayName func(record any) string
 	OGSubtitle  func(record any) string
 	CountLookup func(ctx context.Context, ownerDID, subjectURI string) int
-	Render      func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error
+	// ViewExtras returns entity-specific fields the JSON view endpoint should
+	// include in its response but that are not part of the record model itself
+	// (e.g. a recipe's resolved forked-from URL + author). Return nil when the
+	// entity has no extras. Only invoked by the JSON path.
+	ViewExtras func(ctx context.Context, record any) map[string]any
+	Render     func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error
 }
 
 func (cfg EntityViewConfig) loadConfig() EntityLoadConfig {

@@ -132,6 +132,7 @@
 			{isAuthenticated}
 			currentUserDID={currentUserDID}
 			{isModerator}
+			viewURL={shareURL}
 		/>
 	</div>
 </div>

@@ -135,6 +135,51 @@
 			pushToast("Failed to add label");
 		}
 	}
+
+	// Cache management actions (admin only). These POST to the existing
+	// JSON-returning endpoints and show the result inline.
+	let cacheActionLoading = $state("");
+	let cacheActionResult = $state("");
+
+	async function cacheAction(endpoint: string, body: Record<string, string>, label: string) {
+		cacheActionLoading = label;
+		cacheActionResult = "";
+		try {
+			const res = await fetch(endpoint, {
+				method: "POST",
+				credentials: "same-origin",
+				headers: { Accept: "application/json" },
+				body: new URLSearchParams(body),
+			});
+			if (!res.ok) throw new Error(`Failed: ${res.status}`);
+			const data = await res.json();
+			cacheActionResult = JSON.stringify(data, null, 2);
+			pushToast(`${label} complete`);
+		} catch (error) {
+			console.error(`${label} failed:`, error);
+			cacheActionResult = `Error: ${error}`;
+			pushToast(`${label} failed`);
+		} finally {
+			cacheActionLoading = "";
+		}
+	}
+
+	function refreshHandles() {
+		cacheAction("/_mod/refresh-handles", {}, "Refresh handles");
+	}
+
+	let rebuildInput = $state("");
+	function rebuildDID() {
+		if (!rebuildInput.trim()) return;
+		cacheAction("/_mod/rebuild", { did: rebuildInput.trim() }, "Rebuild");
+	}
+
+	let purgeInput = $state("");
+		function purgeDID() {
+		if (!purgeInput.trim()) return;
+		if (!confirm(`Purge ALL witness data for ${purgeInput.trim()}? This cannot be undone.`)) return;
+		cacheAction("/_mod/purge", { did: purgeInput.trim() }, "Purge");
+	}
 </script>
 
 <svelte:head>
@@ -529,6 +574,45 @@
 							<button type="submit" class="text-sm bg-brown-300 text-primary hover:bg-brown-400 px-4 py-2 rounded-sm font-medium transition-colors">Fetch JSON</button>
 						</form>
 					</div>
+					<div class="card card-inner">
+						<h2 class="section-title">Refresh All Handles</h2>
+						<p class="text-sm text-muted mb-4">Re-fetch every cached profile from the AppView so stale handles get corrected. A less-destructive alternative to purge+rebuild.</p>
+						<button type="button" class="text-sm bg-brown-300 text-primary hover:bg-brown-400 px-4 py-2 rounded-sm font-medium transition-colors" disabled={cacheActionLoading === "Refresh handles"} onclick={refreshHandles}>
+							{cacheActionLoading === "Refresh handles" ? "Refreshing..." : "Refresh All Handles"}
+						</button>
+					</div>
+					<div class="card card-inner">
+						<h2 class="section-title">Rebuild Witness Cache from PDS</h2>
+						<p class="text-sm text-muted mb-4">Re-pull every record for a user from their PDS into the witness cache. Pair with purge to fully recycle a user's witness data. Accepts a DID or handle.</p>
+						<div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+							<div class="flex-1">
+								<label for="rebuild-did" class="block text-sm font-medium text-emphasis mb-1">DID or handle</label>
+								<input id="rebuild-did" type="text" bind:value={rebuildInput} placeholder="did:plc:... or alice.example.com" class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm font-mono" />
+							</div>
+							<button type="button" class="text-sm bg-brown-300 text-primary hover:bg-brown-400 px-4 py-2 rounded-sm font-medium transition-colors" disabled={cacheActionLoading === "Rebuild" || !rebuildInput.trim()} onclick={rebuildDID}>
+								{cacheActionLoading === "Rebuild" ? "Rebuilding..." : "Rebuild"}
+							</button>
+						</div>
+					</div>
+					<div class="card card-inner">
+						<h2 class="section-title text-red-900">Purge DID from Witness Cache</h2>
+						<p class="text-sm text-muted mb-4">Remove ALL witness data for a user. This clears their records, profiles, and backfill marker. Pair with rebuild to fully recycle. Accepts a DID.</p>
+						<div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+							<div class="flex-1">
+								<label for="purge-did" class="block text-sm font-medium text-emphasis mb-1">DID</label>
+								<input id="purge-did" type="text" bind:value={purgeInput} placeholder="did:plc:..." class="w-full px-3 py-2 border border-brown-300 rounded-lg bg-white text-primary text-sm font-mono" />
+							</div>
+							<button type="button" class="text-sm bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-sm font-medium transition-colors" disabled={cacheActionLoading === "Purge" || !purgeInput.trim()} onclick={purgeDID}>
+								{cacheActionLoading === "Purge" ? "Purging..." : "Purge"}
+							</button>
+						</div>
+					</div>
+					{#if cacheActionResult}
+						<div class="card card-inner">
+							<h2 class="section-title">Result</h2>
+							<pre class="text-sm text-emphasis font-mono whitespace-pre-wrap break-all">{cacheActionResult}</pre>
+						</div>
+					{/if}
 				</div>
 			{/if}
 		</div>

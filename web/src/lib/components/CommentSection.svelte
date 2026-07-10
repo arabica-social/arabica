@@ -26,6 +26,11 @@
 	let posting = $state(false);
 	// Local copy so we can optimistically add/remove without mutating props.
 	let localComments = $state<IndexedComment[]>([]);
+	// Reply state: the rkey of the comment being replied to ("" = no reply
+	// form open). The old templ stack allowed replies up to depth 2.
+	let replyToRKey = $state("");
+	let replyText = $state("");
+	let postingReply = $state(false);
 
 	// Effective viewer DID: prefer the explicitly-passed prop (entity view
 	// pages may forward it), fall back to the session store DID so the
@@ -122,6 +127,99 @@
 		} catch {
 			// Ignore — keep the optimistic state.
 		}
+	}
+
+	// Build the AT-URI for a comment so it can be liked via /api/likes/toggle.
+	// Mirrors buildCommentURI in the old templ stack.
+	function commentURI(c: IndexedComment): string {
+		return `at://${c.actor_did}/social.arabica.alpha.comment/${c.rkey}`;
+	}
+
+	// Share URL for a comment: the parent record's view URL + #comment-rkey.
+	function commentShareURL(c: IndexedComment): string {
+		if (!viewURL) return "";
+		return `${viewURL}#comment-${c.rkey}`;
+	}
+
+	async function toggleCommentLike(c: IndexedComment) {
+		const uri = commentURI(c);
+		if (!uri || !c.cid) return;
+		try {
+			const res = await fetch("/api/likes/toggle", {
+				method: "POST",
+				credentials: "same-origin",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Accept: "application/json",
+				},
+				body: new URLSearchParams({
+					subject_uri: uri,
+					subject_cid: c.cid,
+				}),
+			});
+			if (!res.ok) throw new Error(`Like failed: ${res.status}`);
+			const contentType = res.headers.get("content-type") ?? "";
+			if (contentType.includes("application/json")) {
+				const data = await res.json();
+				// Update the local comment in place.
+				localComments = localComments.map((lc) =>
+					lc.rkey === c.rkey
+						? { ...lc, is_liked: !!data.is_liked, like_count: data.like_count ?? lc.like_count }
+						: lc,
+				);
+			}
+		} catch (error) {
+			console.error("Comment like failed:", error);
+			pushToast("Failed to like comment");
+		}
+	}
+
+	async function postReply(parentRKey: string) {
+		if (!subjectURI || !subjectCID) return;
+		if (!replyText.trim()) return;
+		postingReply = true;
+		try {
+			const body = new URLSearchParams({
+				subject_uri: subjectURI,
+				subject_cid: subjectCID,
+				text: replyText,
+				parent_rkey: parentRKey,
+			});
+			const res = await fetch("/api/comments", {
+				method: "POST",
+				credentials: "same-origin",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Accept: "application/json",
+				},
+				body,
+			});
+			if (!res.ok) throw new Error(`Reply failed: ${res.status}`);
+			const contentType = res.headers.get("content-type") ?? "";
+			if (contentType.includes("application/json")) {
+				const data = await res.json();
+				if (Array.isArray(data.comments)) localComments = data.comments;
+			} else {
+				await refetchComments();
+			}
+			replyText = "";
+			replyToRKey = "";
+		} catch (error) {
+			console.error("Reply failed:", error);
+			pushToast("Failed to post reply");
+		} finally {
+			postingReply = false;
+		}
+	}
+
+	function startReply(rkey: string) {
+		replyToRKey = replyToRKey === rkey ? "" : rkey;
+		replyText = "";
+	}
+
+	function cancelReply() {
+		replyToRKey = "";
+		replyText = "";
 	}
 
 	async function deleteComment(rkey: string) {
@@ -225,8 +323,32 @@
 						</div>
 						<p class="text-secondary whitespace-pre-wrap wrap-break-word pl-11 text-sm leading-relaxed">{comment.text}</p>
 						<div class="pl-11 mt-1 flex items-center gap-3">
-							{#if comment.like_count > 0}
-								<span class="text-xs text-faint">♥ {comment.like_count}</span>
+							<button
+								type="button"
+								onclick={() => toggleCommentLike(comment)}
+								class={`text-xs ${comment.is_liked ? "text-red-500" : "text-faint hover:text-red-500"}`}
+								aria-label={comment.is_liked ? "Unlike comment" : "Like comment"}
+							>
+								♥ {comment.is_liked ? "Liked" : "Like"}{comment.like_count > 0 ? ` (${comment.like_count})` : ""}
+							</button>
+							{#if isAuthenticated && comment.depth < 2 && comment.cid}
+								<button
+									type="button"
+									onclick={() => startReply(comment.rkey)}
+									class="text-xs text-faint hover:text-secondary"
+									aria-label="Reply to comment"
+								>
+									Reply
+								</button>
+							{/if}
+							{#if commentShareURL(comment)}
+								<a
+									href={commentShareURL(comment)}
+									class="text-xs text-faint hover:text-secondary"
+									aria-label="Share comment"
+								>
+									Share
+								</a>
 							{/if}
 							{#if effectiveCurrentUserDID === comment.actor_did}
 								<button
@@ -238,6 +360,28 @@
 								</button>
 							{/if}
 						</div>
+						{#if replyToRKey === comment.rkey}
+							<form
+								onsubmit={(e) => { e.preventDefault(); void postReply(comment.rkey); }}
+								class="pl-11 mt-2"
+							>
+								<textarea
+									bind:value={replyText}
+									placeholder="Write a reply..."
+									class="comment-textarea"
+									rows="2"
+									maxlength="1000"
+									required
+									aria-label="Write a reply"
+								></textarea>
+								<div class="flex justify-end items-center gap-2 mt-1">
+									<button type="button" class="btn-secondary text-xs py-1 px-3" onclick={cancelReply}>Cancel</button>
+									<button type="submit" class="btn-primary text-xs py-1 px-4" disabled={postingReply}>
+										{postingReply ? "Posting..." : "Reply"}
+									</button>
+								</div>
+							</form>
+						{/if}
 					</div>
 				</div>
 			{/each}
