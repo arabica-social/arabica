@@ -38,6 +38,7 @@ func (Routes) SPAOwnedRoutes() []string {
 		"GET /grinders/{id}/edit",
 		"GET /brewers/new",
 		"GET /brewers/{id}/edit",
+		"GET /recipes",
 		"GET /recipes/new",
 		"GET /recipes/{id}/edit",
 		"GET /brews/{actor}/{id}",

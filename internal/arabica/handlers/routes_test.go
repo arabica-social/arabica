@@ -17,6 +17,7 @@ func TestRoutesSPAOwnedRoutes(t *testing.T) {
 		"GET /roasters/new",
 		"GET /roasters/{id}/edit",
 		"GET /brews/new",
+		"GET /recipes",
 		"GET /recipes/{actor}/{id}",
 	} {
 		assert.Contains(t, routes, pattern)
@@ -25,7 +26,6 @@ func TestRoutesSPAOwnedRoutes(t *testing.T) {
 	for _, pattern := range []string{
 		"GET /manage",
 		"GET /brews",
-		"GET /recipes",
 		"GET /roasters/{actor}/{id}/backlinks",
 		"GET /teas/{actor}/{id}",
 	} {

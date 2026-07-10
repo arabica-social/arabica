@@ -198,6 +198,31 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) sharedpag
 		}
 	}
 
+	// Normalize nil slices/maps to empty so JSON serialization emits []/{} instead
+	// of null. The Svelte admin page accesses .length / Object.keys() directly
+	// on these fields, which throws on null.
+	if hiddenRecords == nil {
+		hiddenRecords = []moderation.HiddenRecord{}
+	}
+	if auditLog == nil {
+		auditLog = []moderation.AuditEntry{}
+	}
+	if enrichedReports == nil {
+		enrichedReports = []sharedpages.EnrichedReport{}
+	}
+	if blockedUsers == nil {
+		blockedUsers = []moderation.BlacklistedUser{}
+	}
+	if labels == nil {
+		labels = []moderation.Label{}
+	}
+	if backups == nil {
+		backups = []backup.SourceStatus{}
+	}
+	if stats.RecordsByCollection == nil {
+		stats.RecordsByCollection = map[string]int{}
+	}
+
 	return sharedpages.AdminProps{
 		HiddenRecords:    hiddenRecords,
 		AuditLog:         auditLog,
