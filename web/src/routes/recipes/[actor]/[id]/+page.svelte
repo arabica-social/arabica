@@ -3,6 +3,7 @@
 	import Icon from "$lib/components/Icon.svelte";
 	import { formatTime } from "$lib/utils/format";
 	import { pushToast } from "$lib/stores/toasts";
+	import { session } from "$lib/stores/session";
 	import type { PageData } from "./$types";
 	import type { Recipe } from "$lib/types/entity_view";
 
@@ -26,14 +27,22 @@
 	async function forkRecipe() {
 		if (!r) return;
 		try {
-			const res = await fetch(`/api/recipes/fork/${r.rkey}`, {
+			// The fork handler requires ?owner= (the source recipe owner's DID
+			// or handle) to fetch the source record from its PDS. Prefer the
+			// author DID from the view payload; fall back to the owner segment
+			// of the share URL.
+			const sourceOwner = r.author_did ?? v?.author?.did ?? owner;
+			const res = await fetch(`/api/recipes/fork/${r.rkey}?owner=${encodeURIComponent(sourceOwner)}`, {
 				method: "POST",
 				credentials: "same-origin",
 			});
 			if (!res.ok) throw new Error(`Fork failed: ${res.status}`);
 			const forked = await res.json();
 			pushToast("Recipe copied to your library!");
-			if (forked.rkey) window.location.href = `/recipes/${owner}/${forked.rkey}`;
+			// The forked copy lives in the CURRENT user's PDS, so navigate to
+			// the viewer's recipe — not the source owner's.
+			const me = $session.did || $session.handle;
+			if (forked.rkey && me) window.location.href = `/recipes/${encodeURIComponent(me)}/${forked.rkey}`;
 		} catch (error) {
 			console.error("Fork failed:", error);
 			pushToast("Failed to copy recipe");

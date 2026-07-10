@@ -62,6 +62,10 @@ func (h *Handlers) HandleExploreJSON(w http.ResponseWriter, r *http.Request) {
 	for _, item := range result.Items {
 		items = append(items, handlers.NewFeedItemJSON(item))
 	}
+	// Apply moderation context so moderators get hide/block controls in
+	// explore — mirroring the feed JSON path.
+	modCtx := h.BuildModerationContext(r.Context(), viewerDID, result.Items)
+	handlers.ApplyModerationContext(items, modCtx)
 
 	health := h.FeedIndex().ExploreReadiness(r.Context())
 

@@ -81,7 +81,10 @@
 	]);
 
 	function addEntity(kind: string) {
-		goto(`/add?entity=${kind}`);
+		// Navigate directly to the entity creation page. The old HTMX stack
+		// opened an inline drawer via /api/onboarding/station-form/{kind}; the
+		// SPA has dedicated new-entity routes instead.
+		goto(`/${kind}s/new`);
 	}
 
 	function logBrew() {

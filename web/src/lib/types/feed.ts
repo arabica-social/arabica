@@ -36,6 +36,13 @@ export type FeedItem = {
 	subject_cid: string;
 	is_liked_by_viewer: boolean;
 	is_owner: boolean;
+	// Moderation context for moderator tooling. Only populated for
+	// moderator viewers; falsy for everyone else.
+	is_moderator: boolean;
+	can_hide_record: boolean;
+	can_block_user: boolean;
+	is_record_hidden: boolean;
+	author_did: string;
 };
 
 export type FeedResponse = {

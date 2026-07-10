@@ -19,9 +19,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// buildModerationContext creates moderation context for feed rendering
+// BuildModerationContext creates moderation context for feed rendering
 // Returns empty context if moderation is not configured or user is not a moderator
-func (h *Handler) buildModerationContext(ctx context.Context, viewerDID string, items []*feed.FeedItem) pages.FeedModerationContext {
+func (h *Handler) BuildModerationContext(ctx context.Context, viewerDID string, items []*feed.FeedItem) pages.FeedModerationContext {
 	modCtx := pages.FeedModerationContext{
 		HiddenURIs: make(map[string]bool),
 	}
@@ -258,6 +258,10 @@ func (h *Handler) handleFeedJSON(w http.ResponseWriter, r *http.Request) {
 	for _, item := range res.items {
 		items = append(items, NewFeedItemJSON(item))
 	}
+	// Build moderation context so moderators see hide/block controls and
+	// hidden-record badges in the feed — mirroring the HTMX partial path.
+	modCtx := h.BuildModerationContext(r.Context(), res.viewerDID, res.items)
+	ApplyModerationContext(items, modCtx)
 	WriteJSON(w, FeedResponseJSON{
 		Items:           items,
 		NextCursor:      res.nextCursor,
@@ -280,7 +284,7 @@ func (h *Handler) handleFeedPartial(w http.ResponseWriter, r *http.Request) {
 	sortBy := res.sortBy
 
 	// Build moderation context for moderators
-	modCtx := h.buildModerationContext(r.Context(), viewerDID, feedItems)
+	modCtx := h.BuildModerationContext(r.Context(), viewerDID, feedItems)
 
 	// Build query state for template
 	typeFilterStr := string(typeFilter)

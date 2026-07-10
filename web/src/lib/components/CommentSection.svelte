@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Avatar from "./Avatar.svelte";
-	import { displayHandle } from "../stores/session";
+	import { displayHandle, session } from "../stores/session";
 	import { pushToast } from "../stores/toasts";
 	import type { IndexedComment } from "../types/entity_view";
 
@@ -26,6 +26,12 @@
 	let posting = $state(false);
 	// Local copy so we can optimistically add/remove without mutating props.
 	let localComments = $state<IndexedComment[]>([]);
+
+	// Effective viewer DID: prefer the explicitly-passed prop (entity view
+	// pages may forward it), fall back to the session store DID so the
+	// delete button renders on the viewer's own comments even when the
+	// page passes an empty string.
+	let effectiveCurrentUserDID = $derived(currentUserDID || $session.did || "");
 
 	$effect(() => {
 		localComments = [...(comments ?? [])];
@@ -222,7 +228,7 @@
 							{#if comment.like_count > 0}
 								<span class="text-xs text-faint">♥ {comment.like_count}</span>
 							{/if}
-							{#if currentUserDID === comment.actor_did}
+							{#if effectiveCurrentUserDID === comment.actor_did}
 								<button
 									type="button"
 									onclick={() => deleteComment(comment.rkey)}

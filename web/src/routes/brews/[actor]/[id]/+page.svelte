@@ -6,6 +6,7 @@
 	import Icon from "$lib/components/Icon.svelte";
 	import { formatTime, formatTemp } from "$lib/utils/format";
 	import { pushToast } from "$lib/stores/toasts";
+	import { session } from "$lib/stores/session";
 	import type { PageData } from "./$types";
 	import type { Brew, Pour } from "$lib/types/entity_view";
 
@@ -81,15 +82,24 @@
 
 	async function saveAsRecipe() {
 		if (!b) return;
+		// The from-brew handler requires a recipe name. Prompt for one,
+		// defaulting to the brew's bean name when available.
+		const defaultName = b.bean ? (b.bean.name || b.bean.origin) : "";
+		const name = window.prompt("Recipe name", defaultName);
+		if (!name || !name.trim()) return;
 		try {
 			const res = await fetch(`/api/recipes/from-brew/${b.rkey}`, {
 				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: new URLSearchParams({ name: name.trim() }),
 				credentials: "same-origin",
 			});
 			if (!res.ok) throw new Error(`Failed: ${res.status}`);
 			const recipe = await res.json();
 			pushToast("Recipe saved!");
-			if (recipe.rkey) window.location.href = `/recipes/${owner}/${recipe.rkey}`;
+			// The new recipe lives in the current user's PDS.
+			const me = $session.did || $session.handle;
+			if (recipe.rkey && me) window.location.href = `/recipes/${encodeURIComponent(me)}/${recipe.rkey}`;
 		} catch (error) {
 			console.error("Save as recipe failed:", error);
 			pushToast("Failed to save recipe");

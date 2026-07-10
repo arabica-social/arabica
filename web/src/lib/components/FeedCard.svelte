@@ -283,6 +283,11 @@
 			deleteRedirect="/my-coffee"
 			viewURL={url}
 			{isAuthenticated}
+			isModerator={item.is_moderator}
+			canHideRecord={item.can_hide_record}
+			canBlockUser={item.can_block_user}
+			isRecordHidden={item.is_record_hidden}
+			authorDID={item.author_did}
 		/>
 	{/if}
 </div>

@@ -70,6 +70,12 @@ func (h *Handlers) grinderViewConfig() handlers.EntityViewConfig {
 		FromStore:   fromStore,
 		DisplayName: func(record any) string { return record.(*arabica.Grinder).Name },
 		OGSubtitle:  func(record any) string { return record.(*arabica.Grinder).Name },
+		CountLookup: func(ctx context.Context, ownerDID, subjectURI string) int {
+			if h.FeedIndex() == nil || subjectURI == "" {
+				return 0
+			}
+			return h.FeedIndex().BrewCountsByGrinderURI(ctx, ownerDID)[subjectURI]
+		},
 		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
 			grinder := record.(*arabica.Grinder)
 			props := coffeepages.GrinderViewProps{
@@ -100,6 +106,12 @@ func (h *Handlers) brewerViewConfig() handlers.EntityViewConfig {
 		FromStore:   fromStore,
 		DisplayName: func(record any) string { return record.(*arabica.Brewer).Name },
 		OGSubtitle:  func(record any) string { return record.(*arabica.Brewer).Name },
+		CountLookup: func(ctx context.Context, ownerDID, subjectURI string) int {
+			if h.FeedIndex() == nil || subjectURI == "" {
+				return 0
+			}
+			return h.FeedIndex().BrewCountsByBrewerURI(ctx, ownerDID)[subjectURI]
+		},
 		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
 			brewer := record.(*arabica.Brewer)
 			props := coffeepages.BrewerViewProps{
@@ -142,6 +154,12 @@ func (h *Handlers) beanViewConfig() handlers.EntityViewConfig {
 				sub += " from " + bean.Roaster.Name
 			}
 			return sub
+		},
+		CountLookup: func(ctx context.Context, ownerDID, subjectURI string) int {
+			if h.FeedIndex() == nil || subjectURI == "" {
+				return 0
+			}
+			return h.FeedIndex().BrewCountsByBeanURI(ctx, ownerDID)[subjectURI]
 		},
 		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
 			bean := record.(*arabica.Bean)

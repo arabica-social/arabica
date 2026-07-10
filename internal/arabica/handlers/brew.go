@@ -568,7 +568,8 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	// JSON path: SvelteKit SPA sends Accept: application/json. Return the
 	// brew model + nudge instead of the hardcoded HTMX redirect.
 	if handlers.WantsJSON(r) {
-		handlers.WriteJSON(w, BrewMutationJSONResponse{Brew: brew, IncompleteNudge: nudge}, "brew")
+		authorDID, _ := atpmiddleware.GetDID(r.Context())
+		handlers.WriteJSON(w, BrewMutationJSONResponse{Brew: brew, AuthorDID: authorDID, IncompleteNudge: nudge}, "brew")
 		return
 	}
 
@@ -685,7 +686,8 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 			handlers.HandleStoreError(w, err, "Failed to fetch updated brew")
 			return
 		}
-		handlers.WriteJSON(w, BrewMutationJSONResponse{Brew: updated}, "brew")
+		authorDID, _ := atpmiddleware.GetDID(r.Context())
+		handlers.WriteJSON(w, BrewMutationJSONResponse{Brew: updated, AuthorDID: authorDID}, "brew")
 		return
 	}
 

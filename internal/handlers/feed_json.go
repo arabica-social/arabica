@@ -5,6 +5,7 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
+	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
 // FeedResponseJSON is the JSON envelope returned by GET /api/feed for the
@@ -39,6 +40,16 @@ type FeedItemJSON struct {
 	SubjectCID      string         `json:"subject_cid"`
 	IsLikedByViewer bool           `json:"is_liked_by_viewer"`
 	IsOwner         bool           `json:"is_owner"`
+
+	// Moderation context for moderator tooling in the feed/explore. These
+	// are only populated for moderator viewers; for regular viewers they
+	// stay zero-valued (falsy). AuthorDID is populated whenever an author
+	// exists so the SPA can pass it to ActionBar for block-user actions.
+	IsModerator     bool   `json:"is_moderator"`
+	CanHideRecord   bool   `json:"can_hide_record"`
+	CanBlockUser    bool   `json:"can_block_user"`
+	IsRecordHidden  bool   `json:"is_record_hidden"`
+	AuthorDID       string `json:"author_did,omitempty"`
 }
 
 // NewFeedItemJSON converts a feed.FeedItem to its JSON-serializable form.
@@ -67,8 +78,26 @@ func NewFeedItemJSON(item *feed.FeedItem) FeedItemJSON {
 		if item.Author.Avatar != nil {
 			out.Author.Avatar = *item.Author.Avatar
 		}
+		out.AuthorDID = item.Author.DID
 	}
 	return out
+}
+
+// ApplyModerationContext populates the per-item moderation fields on a slice
+// of FeedItemJSON from a FeedModerationContext. This mirrors what the templ
+// feed card does with modCtx — moderators get hide/block controls and a
+// hidden-record badge. Non-moderator viewers are unaffected (all fields
+// stay zero-valued). Call this after building the items slice.
+func ApplyModerationContext(items []FeedItemJSON, modCtx pages.FeedModerationContext) {
+	if !modCtx.IsModerator {
+		return
+	}
+	for i := range items {
+		items[i].IsModerator = modCtx.IsModerator
+		items[i].CanHideRecord = modCtx.CanHideRecord
+		items[i].CanBlockUser = modCtx.CanBlockUser
+		items[i].IsRecordHidden = modCtx.HiddenURIs[items[i].SubjectURI]
+	}
 }
 
 // CommentJSON is the JSON-serializable view of a firehose.IndexedComment.

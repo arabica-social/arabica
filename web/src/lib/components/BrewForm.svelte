@@ -5,6 +5,7 @@
 	import PoursEditor from "./PoursEditor.svelte";
 	import BackButton from "./BackButton.svelte";
 	import { appCache } from "../stores/appCache";
+	import { session } from "../stores/session";
 	import { pushToast } from "../stores/toasts";
 	import { goto } from "$app/navigation";
 	import type { Brew, Recipe } from "../types/entity_view";
@@ -242,11 +243,14 @@
 				throw new Error(`Save failed: ${res.status} ${text}`);
 			}
 			const data = await res.json();
-			const createdBrew = data.brew ?? data;
+			const savedBrew = data.brew ?? data;
 			pushToast(isEdit ? "Brew updated!" : "Brew saved!");
-			// Redirect to the brew view or my-coffee.
-			const actor = createdBrew.author_did ?? createdBrew.author?.did ?? "";
-			const rkey = createdBrew.rkey ?? "";
+			// Redirect to the brew view or my-coffee. The JSON envelope carries
+			// author_did at the top level (the Brew record model has no author
+			// field); fall back to the session DID for edits where the envelope
+			// may omit it.
+			const actor = data.author_did ?? $session.did ?? "";
+			const rkey = savedBrew.rkey ?? brew?.rkey ?? "";
 			if (actor && rkey) {
 				goto(`/brews/${actor}/${rkey}`);
 			} else {

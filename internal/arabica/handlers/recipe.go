@@ -137,7 +137,16 @@ func (h *Handlers) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.InvalidateFeedCache()
-	w.WriteHeader(http.StatusOK)
+
+	// Return the updated recipe as JSON so the SPA can navigate to it.
+	// Mirrors HandleRecipeCreate, which returns the created recipe.
+	updated, err := store.GetRecipeByRKey(r.Context(), rkey)
+	if err != nil {
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to fetch updated recipe for JSON response")
+		handlers.HandleStoreError(w, err, "Failed to fetch updated recipe")
+		return
+	}
+	handlers.WriteJSON(w, updated, "recipe")
 }
 
 // HandleRecipeDelete deletes a recipe
