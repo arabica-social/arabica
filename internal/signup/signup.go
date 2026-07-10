@@ -4,24 +4,24 @@ package signup
 
 // Provider describes a single PDS hosting option.
 type Provider struct {
-	URL          string // Full URL for the signup form (e.g. "https://arabica.systems")
-	Name         string // Display name (e.g. "Arabica")
-	Domain       string // Display domain (e.g. "arabica.systems")
-	Description  string // Short description shown under the name
-	Location     string // Geographic location (e.g. "United States")
-	Badge        string // Status badge text (e.g. "Invite Only", "Open")
-	BadgeColor   string // Tailwind color prefix for badge (e.g. "amber", "green")
-	OperatorName string // Optional: handle of community operator (e.g. "@baileytownsend.dev")
-	OperatorURL  string // Optional: link to operator profile
-	SignupURL    string // Optional: if set, link directly to this URL instead of using prompt=create
+	URL          string `json:"url"`           // Full URL for the signup form (e.g. "https://arabica.systems")
+	Name         string `json:"name"`          // Display name (e.g. "Arabica")
+	Domain       string `json:"domain"`        // Display domain (e.g. "arabica.systems")
+	Description  string `json:"description"`   // Short description shown under the name
+	Location     string `json:"location"`      // Geographic location (e.g. "United States")
+	Badge        string `json:"badge"`         // Status badge text (e.g. "Invite Only", "Open")
+	BadgeColor   string `json:"badge_color"`   // Tailwind color prefix for badge (e.g. "amber", "green")
+	OperatorName string `json:"operator_name"` // Optional: handle of community operator (e.g. "@baileytownsend.dev")
+	OperatorURL  string `json:"operator_url"`  // Optional: link to operator profile
+	SignupURL    string `json:"signup_url"`    // Optional: if set, link directly to this URL instead of using prompt=create
 }
 
 // Category groups providers under a heading.
 type Category struct {
-	Title       string
-	Description string
-	Providers   []Provider
-	DevOnly     bool // If true, only shown to clients with devMode enabled
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Providers   []Provider `json:"providers"`
+	DevOnly     bool       `json:"dev_only"` // If true, only shown to clients with devMode enabled
 }
 
 // Categories returns the list of PDS provider categories shown on the

@@ -985,7 +985,8 @@ async function mountCoreIslands() {
       ),
       loadIsland(
         "transition-runtime",
-        () => import("./TransitionRuntimeIsland.svelte") as Promise<IslandModule>,
+        () =>
+          import("./TransitionRuntimeIsland.svelte") as Promise<IslandModule>,
       ),
       loadIsland(
         "service-worker",

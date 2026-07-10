@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Icon from "./Icon.svelte";
 	import Avatar from "./Avatar.svelte";
+	import { afterNavigate } from "$app/navigation";
 	import {
 		session,
 		app,
@@ -50,6 +51,13 @@
 			document.removeEventListener("click", handleOutsideClick);
 			document.removeEventListener("keydown", handleKeydown);
 		};
+	});
+
+	// The Header lives in the root layout, so it persists across SPA
+	// navigations. Close any open dropdown when the route changes so a menu
+	// opened on one page doesn't stay expanded after navigating away.
+	afterNavigate(() => {
+		closeMenus();
 	});
 
 	let isOolong = $derived($app === "oolong");

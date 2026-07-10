@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from "svelte";
 	import ActionBar from "./ActionBar.svelte";
 	import Avatar from "./Avatar.svelte";
 	import TypeBadge from "./TypeBadge.svelte";
@@ -12,9 +13,10 @@
 	type Props = {
 		item: FeedItem;
 		isAuthenticated: boolean;
+		footer?: Snippet;
 	};
 
-	let { item, isAuthenticated }: Props = $props();
+	let { item, isAuthenticated, footer }: Props = $props();
 
 	// Build the share URL for this item's record: /{noun}/{actor}/{rkey}
 	function shareURL(i: FeedItem): string {
@@ -289,5 +291,11 @@
 			isRecordHidden={item.is_record_hidden}
 			authorDID={item.author_did}
 		/>
+	{/if}
+
+	{#if footer}
+		<div class="mt-1">
+			{@render footer()}
+		</div>
 	{/if}
 </div>

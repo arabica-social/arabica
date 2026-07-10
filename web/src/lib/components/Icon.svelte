@@ -39,6 +39,45 @@
 	} as const;
 
 	export type IconName = keyof typeof iconPaths;
+
+	// Per-icon defaults ported from internal/web/components/icons.templ.
+	// Each legacy icon baked in a semantic color class so it read correctly
+	// wherever it was dropped; the SPA Icon applies `color` only when the
+	// caller hasn't passed its own `text-*` color utility (otherwise both
+	// would be present and CSS source order would decide the winner).
+	// `fill` is "currentColor" for icons that should render solid (star);
+	// the default "none" renders a stroked outline, matching legacy.
+	const iconDefaults: Partial<
+		Record<IconName, { color?: string; fill?: string }>
+	> = {
+		coffee: { color: "text-muted" },
+		leaf: { color: "text-green-600" },
+		store: { color: "text-muted" },
+		disc: { color: "text-placeholder" },
+		brewer: { color: "text-faint" },
+		fileText: { color: "text-placeholder" },
+		droplet: { color: "text-blue-400" },
+		bell: {},
+		plus: {},
+		chevronDown: {},
+		shieldCheck: {},
+		x: {},
+		arrowLeft: {},
+		bean: { color: "text-muted" },
+		gear: { color: "text-placeholder" },
+		mapPin: { color: "text-red-400" },
+		teapot: { color: "text-muted" },
+		scale: { color: "text-faint" },
+		thermometer: { color: "text-red-400" },
+		clock: { color: "text-placeholder" },
+		flame: { color: "text-orange-400" },
+		sliders: { color: "text-placeholder" },
+		sprout: { color: "text-faint" },
+		star: { color: "text-amber-500", fill: "currentColor" },
+		link: { color: "text-blue-400" },
+		globe: { color: "text-blue-400" },
+		tag: { color: "text-placeholder" },
+	};
 </script>
 
 <script lang="ts">
@@ -48,9 +87,26 @@
 	}: { name: IconName; class?: string } = $props();
 
 	let paths = $derived(iconPaths[name] ?? "");
+	let defaults = $derived(iconDefaults[name] ?? {});
+
+	// Apply the default color only when the caller hasn't supplied a `text-*`
+	// color utility of its own. The regex matches the palette and semantic
+	// color classes used in this app, but not font-size/alignment utilities
+	// like `text-sm` or `text-center`.
+	let hasExplicitColor = $derived(
+		/\btext-(?:amber|red|green|blue|orange|purple|gray|white|muted|faint|placeholder|primary|secondary|emphasis|danger)[a-z0-9-]*\b/.test(
+			className,
+		),
+	);
+	let resolvedClass = $derived(
+		!hasExplicitColor && defaults.color
+			? `${className} ${defaults.color}`
+			: className,
+	);
+	let resolvedFill = $derived(defaults.fill ?? "none");
 </script>
 
-<svg class={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<svg class={resolvedClass} viewBox="0 0 24 24" fill={resolvedFill} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 	{@html paths}
 </svg>

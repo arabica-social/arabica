@@ -23,6 +23,6 @@
 </script>
 
 <span class={`type-badge type-badge-${recordType}`}>
-	<Icon name={entry.icon} class="inline-block w-4 h-4 flex-shrink-0 text-muted" />
+	<Icon name={entry.icon} class="inline-block w-4 h-4 flex-shrink-0" />
 	{entry.label}
 </span>

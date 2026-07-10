@@ -13,10 +13,10 @@ import (
 // FeedResponseJSON is the JSON envelope returned by GET /api/feed for the
 // SvelteKit SPA. See docs/api/feed.md for the contract.
 type FeedResponseJSON struct {
-	Items           []FeedItemJSON     `json:"items"`
-	NextCursor      string             `json:"next_cursor"`
-	IsAuthenticated bool               `json:"is_authenticated"`
-	Query           FeedQueryJSON      `json:"query"`
+	Items           []FeedItemJSON      `json:"items"`
+	NextCursor      string              `json:"next_cursor"`
+	IsAuthenticated bool                `json:"is_authenticated"`
+	Query           FeedQueryJSON       `json:"query"`
 	Tabs            []FeedFilterTabJSON `json:"tabs"`
 }
 
@@ -56,11 +56,11 @@ type FeedItemJSON struct {
 	// are only populated for moderator viewers; for regular viewers they
 	// stay zero-valued (falsy). AuthorDID is populated whenever an author
 	// exists so the SPA can pass it to ActionBar for block-user actions.
-	IsModerator     bool   `json:"is_moderator"`
-	CanHideRecord   bool   `json:"can_hide_record"`
-	CanBlockUser    bool   `json:"can_block_user"`
-	IsRecordHidden  bool   `json:"is_record_hidden"`
-	AuthorDID       string `json:"author_did,omitempty"`
+	IsModerator    bool   `json:"is_moderator"`
+	CanHideRecord  bool   `json:"can_hide_record"`
+	CanBlockUser   bool   `json:"can_block_user"`
+	IsRecordHidden bool   `json:"is_record_hidden"`
+	AuthorDID      string `json:"author_did,omitempty"`
 }
 
 // NewFeedItemJSON converts a feed.FeedItem to its JSON-serializable form.

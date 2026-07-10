@@ -313,19 +313,20 @@
 		{:else}
 			<div class="explore-results feed-grid" data-feed-masonry>
 				{#each items as item (item.subject_uri)}
-					<div>
-						<FeedCard {item} {isAuthenticated} />
-						{#if docFor(item)}
-							<div class="explore-doc-stats text-xs text-faint mt-1 px-2 pb-1 flex gap-3">
-								{#if docFor(item)?.SourceRefCount}
-									<span>Used by {docFor(item)?.SourceRefCount}</span>
-								{/if}
-								{#if docFor(item)?.OwnRating?.Valid}
-									<span>Your rating: {docFor(item)?.OwnRating.Float64}/10</span>
-								{/if}
-							</div>
-						{/if}
-					</div>
+					<FeedCard {item} {isAuthenticated}>
+						{#snippet footer()}
+							{#if docFor(item)}
+								<div class="explore-doc-stats text-xs text-faint px-2 flex gap-3">
+									{#if docFor(item)?.SourceRefCount}
+										<span>Used by {docFor(item)?.SourceRefCount}</span>
+									{/if}
+									{#if docFor(item)?.OwnRating?.Valid}
+										<span>Your rating: {docFor(item)?.OwnRating.Float64}/10</span>
+									{/if}
+								</div>
+							{/if}
+						{/snippet}
+					</FeedCard>
 				{/each}
 			</div>
 			{#if explore?.next_cursor}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Icon from "$lib/components/Icon.svelte";
-	import { pluralS, formatAvgRating } from "$lib/utils/format";
+	import { pluralS, formatAvgRating, formatTemp, formatTime } from "$lib/utils/format";
 	import { appCache } from "$lib/stores/appCache";
 	import { pushToast } from "$lib/stores/toasts";
 	import type { PageData } from "./$types";
@@ -196,19 +196,38 @@
 							{#if brew.bean}
 								<div class="font-bold text-primary">{brew.bean.name || brew.bean.origin}</div>
 								{#if brew.bean.roaster?.name}
-									<div class="text-sm text-muted">{brew.bean.roaster.name}</div>
+									<div class="text-sm text-muted flex items-center gap-1">
+										<Icon name="store" class="w-3 h-3" />
+										{brew.bean.roaster.name}
+									</div>
 								{/if}
+								<div class="text-xs text-faint mt-1 flex flex-wrap gap-x-2 gap-y-1">
+									{#if brew.bean.origin}<span class="inline-flex items-center gap-1"><Icon name="mapPin" class="w-3 h-3" />{brew.bean.origin}</span>{/if}
+									{#if brew.bean.roast_level}<span class="inline-flex items-center gap-1"><Icon name="flame" class="w-3 h-3" />{brew.bean.roast_level}</span>{/if}
+									{#if brew.coffee_amount > 0}<span class="inline-flex items-center gap-1"><Icon name="scale" class="w-3 h-3" />{brew.coffee_amount}g</span>{/if}
+								</div>
 							{:else}
 								<div class="font-bold text-primary">Brew</div>
 							{/if}
+							{#if brew.brewer_obj?.name || brew.method}
+								<div class="mb-2">
+									<span class="text-meta">Brewer:</span>
+									<span class="text-sm font-semibold text-primary">{brew.brewer_obj?.name ?? brew.method}</span>
+								</div>
+							{/if}
+							<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emphasis">
+								{#if brew.grinder_obj?.name}
+									<div><span class="text-label">Grinder:</span> {brew.grinder_obj.name}{#if brew.grind_size} ({brew.grind_size}){/if}</div>
+								{:else if brew.grind_size}
+									<div><span class="text-label">Grind:</span> {brew.grind_size}</div>
+								{/if}
+								{#if brew.water_amount > 0}<div><span class="text-label">Water:</span> {brew.water_amount}g</div>{/if}
+								{#if brew.temperature > 0}<div><span class="text-label">Temp:</span> {formatTemp(brew.temperature)}</div>{/if}
+								{#if brew.time_seconds > 0}<div><span class="text-label">Time:</span> {formatTime(brew.time_seconds)}</div>{/if}
+							</div>
 							{#if brew.tasting_notes}
 								<div class="text-sm text-secondary mt-1 line-clamp-2">{brew.tasting_notes}</div>
 							{/if}
-							<div class="text-xs text-faint mt-2 flex gap-3">
-								{#if brew.brewer_obj?.name}<span>{brew.brewer_obj.name}</span>{/if}
-								{#if brew.method && !brew.brewer_obj?.name}<span>{brew.method}</span>{/if}
-								{#if brew.coffee_amount > 0}<span>{brew.coffee_amount}g</span>{/if}
-							</div>
 						</a>
 					{/each}
 					{#if brewsData.has_more}
@@ -251,18 +270,19 @@
 											{bean.roaster.name}
 										</div>
 									{/if}
-									<div class="text-xs text-faint mt-1 flex flex-wrap gap-x-3">
-										{#if bean.origin}<span>{bean.origin}</span>{/if}
-										{#if bean.roast_level}<span>{bean.roast_level}</span>{/if}
-										{#if bean.process}<span>{bean.process}</span>{/if}
+									<div class="text-xs text-faint mt-1 flex flex-wrap gap-x-2 gap-y-1">
+										{#if bean.origin}<span class="inline-flex items-center gap-1"><Icon name="mapPin" class="w-3 h-3" />{bean.origin}</span>{/if}
+										{#if bean.roast_level}<span class="inline-flex items-center gap-1"><Icon name="flame" class="w-3 h-3" />{bean.roast_level}</span>{/if}
+										{#if bean.variety}<span class="inline-flex items-center gap-1"><Icon name="leaf" class="w-3 h-3" />{bean.variety}</span>{/if}
+										{#if bean.process}<span class="inline-flex items-center gap-1"><Icon name="sprout" class="w-3 h-3" />{bean.process}</span>{/if}
 									</div>
 									{#if beanBrewCount(did, bean.rkey) > 0 || beanAvgRating(did, bean.rkey) > 0}
 										<div class="flex items-center gap-3 pt-2 mt-2 border-t border-brown-200/60 text-xs text-faint">
 											{#if beanBrewCount(did, bean.rkey) > 0}
-												<span>{beanBrewCount(did, bean.rkey)} brew{pluralS(beanBrewCount(did, bean.rkey))}</span>
+												<span class="inline-flex items-center gap-1"><Icon name="coffee" class="w-3 h-3" />{beanBrewCount(did, bean.rkey)} brew{pluralS(beanBrewCount(did, bean.rkey))}</span>
 											{/if}
 											{#if beanAvgRating(did, bean.rkey) > 0}
-												<span>{formatAvgRating(beanAvgRating(did, bean.rkey))} avg</span>
+												<span class="inline-flex items-center gap-1"><Icon name="star" class="w-3 h-3 text-amber-500" />{formatAvgRating(beanAvgRating(did, bean.rkey))} avg</span>
 											{/if}
 										</div>
 									{/if}
@@ -309,15 +329,17 @@
 						<div class="feed-card feed-card-roaster">
 							<a href={`/roasters/${did}/${roaster.rkey}`} class="font-bold text-primary hover:underline">{roaster.name}</a>
 							{#if roaster.location}
-								<div class="text-sm text-muted">{roaster.location}</div>
+								<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+									<span class="inline-flex items-center gap-1"><Icon name="mapPin" class="w-3 h-3" />{roaster.location}</span>
+								</div>
 							{/if}
 							{#if roasterBeanCount(did, roaster.rkey) > 0 || roasterAvgRating(did, roaster.rkey) > 0}
 								<div class="flex items-center gap-3 pt-2 mt-2 border-t border-brown-200/60 text-xs text-faint">
 									{#if roasterBeanCount(did, roaster.rkey) > 0}
-										<span>{roasterBeanCount(did, roaster.rkey)} bean{pluralS(roasterBeanCount(did, roaster.rkey))}</span>
+										<span class="inline-flex items-center gap-1"><Icon name="leaf" class="w-3 h-3" />{roasterBeanCount(did, roaster.rkey)} bean{pluralS(roasterBeanCount(did, roaster.rkey))}</span>
 									{/if}
 									{#if roasterAvgRating(did, roaster.rkey) > 0}
-										<span>{formatAvgRating(roasterAvgRating(did, roaster.rkey))} avg</span>
+										<span class="inline-flex items-center gap-1"><Icon name="star" class="w-3 h-3 text-amber-500" />{formatAvgRating(roasterAvgRating(did, roaster.rkey))} avg</span>
 									{/if}
 								</div>
 							{/if}
@@ -338,10 +360,13 @@
 					{#each manage.grinders as grinder (grinder.rkey)}
 						<div class="feed-card feed-card-grinder">
 							<a href={`/grinders/${did}/${grinder.rkey}`} class="font-bold text-primary hover:underline">{grinder.name}</a>
-							<div class="text-sm text-muted">{grinder.grinder_type}{#if grinder.burr_type} · {grinder.burr_type}{/if}</div>
+							<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+								{#if grinder.grinder_type}<span class="inline-flex items-center gap-1"><Icon name="tag" class="w-3 h-3" />{grinder.grinder_type}</span>{/if}
+								{#if grinder.burr_type}<span class="inline-flex items-center gap-1"><Icon name="disc" class="w-3 h-3" />{grinder.burr_type}</span>{/if}
+							</div>
 							{#if grinderBrewCount(did, grinder.rkey) > 0}
 								<div class="text-xs text-faint pt-2 mt-2 border-t border-brown-200/60">
-									{grinderBrewCount(did, grinder.rkey)} brew{pluralS(grinderBrewCount(did, grinder.rkey))}
+									<span class="inline-flex items-center gap-1"><Icon name="coffee" class="w-3 h-3" />{grinderBrewCount(did, grinder.rkey)} brew{pluralS(grinderBrewCount(did, grinder.rkey))}</span>
 								</div>
 							{/if}
 						</div>
@@ -361,10 +386,14 @@
 					{#each manage.brewers as brewer (brewer.rkey)}
 						<div class="feed-card feed-card-brewer">
 							<a href={`/brewers/${did}/${brewer.rkey}`} class="font-bold text-primary hover:underline">{brewer.name}</a>
-							<div class="text-sm text-muted">{brewer.brewer_type}</div>
+							{#if brewer.brewer_type}
+								<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+									<span class="inline-flex items-center gap-1"><Icon name="brewer" class="w-3 h-3" />{brewer.brewer_type}</span>
+								</div>
+							{/if}
 							{#if brewerBrewCount(did, brewer.rkey) > 0}
 								<div class="text-xs text-faint pt-2 mt-2 border-t border-brown-200/60">
-									{brewerBrewCount(did, brewer.rkey)} brew{pluralS(brewerBrewCount(did, brewer.rkey))}
+									<span class="inline-flex items-center gap-1"><Icon name="coffee" class="w-3 h-3" />{brewerBrewCount(did, brewer.rkey)} brew{pluralS(brewerBrewCount(did, brewer.rkey))}</span>
 								</div>
 							{/if}
 						</div>
@@ -388,14 +417,15 @@
 					{#each manage.recipes as recipe (recipe.rkey)}
 						<div class="feed-card feed-card-recipe">
 							<a href={`/recipes/${did}/${recipe.rkey}`} class="font-bold text-primary hover:underline">{recipe.name}</a>
-							<div class="text-sm text-muted">
-								{#if recipe.brewer_obj?.name}{recipe.brewer_obj.name}{:else if recipe.brewer_type}{recipe.brewer_type}{/if}
-							</div>
+							{#if recipe.brewer_obj?.name || recipe.brewer_type}
+								<div class="text-sm text-muted">
+									<span class="inline-flex items-center gap-1"><Icon name="brewer" class="w-3 h-3" />{recipe.brewer_obj?.name ?? recipe.brewer_type}</span>
+								</div>
+							{/if}
 							{#if recipe.coffee_amount > 0 || recipe.water_amount > 0}
-								<div class="text-xs text-faint mt-1">
-									{#if recipe.coffee_amount > 0}{recipe.coffee_amount}g{/if}
-									{#if recipe.coffee_amount > 0 && recipe.water_amount > 0} / {/if}
-									{#if recipe.water_amount > 0}{recipe.water_amount}g{/if}
+								<div class="text-xs text-faint mt-1 flex flex-wrap gap-x-2 gap-y-1">
+									{#if recipe.coffee_amount > 0}<span class="inline-flex items-center gap-1"><Icon name="scale" class="w-3 h-3" />{recipe.coffee_amount}g coffee</span>{/if}
+									{#if recipe.water_amount > 0}<span class="inline-flex items-center gap-1"><Icon name="droplet" class="w-3 h-3" />{recipe.water_amount}g water</span>{/if}
 								</div>
 							{/if}
 						</div>

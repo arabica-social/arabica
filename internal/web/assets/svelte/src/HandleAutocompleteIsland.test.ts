@@ -26,10 +26,13 @@ function setup() {
       <div class="handle-dropdown" data-svelte-handle-autocomplete></div>
     </div>
   `;
-  const root = document.querySelector<HTMLElement>("[data-handle-autocomplete-root]")!;
+  const root = document.querySelector<HTMLElement>(
+    "[data-handle-autocomplete-root]",
+  )!;
   const input = root.querySelector<HTMLInputElement>('input[name="handle"]')!;
-  const target =
-    root.querySelector<HTMLElement>("[data-svelte-handle-autocomplete]")!;
+  const target = root.querySelector<HTMLElement>(
+    "[data-svelte-handle-autocomplete]",
+  )!;
   return { root, input, target };
 }
 
