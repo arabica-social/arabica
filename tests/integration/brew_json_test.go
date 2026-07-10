@@ -4,6 +4,7 @@ package integration
 
 import (
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"strings"
 	"testing"
@@ -37,6 +38,26 @@ func postFormJSON(t *testing.T, h *Harness, path string, form string) *http.Resp
 	req, err := http.NewRequest("POST", h.URL(path), strings.NewReader(form))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	resp, err := h.Client.Do(req)
+	require.NoError(t, err)
+	return resp
+}
+
+// postMultipartJSON posts a multipart/form-data body with Accept:
+// application/json, mirroring how the SvelteKit SPA submits forms via
+// FormData. The handler must parse both url-encoded and multipart bodies.
+func postMultipartJSON(t *testing.T, h *Harness, path, method string, fields map[string]string) *http.Response {
+	t.Helper()
+	var body strings.Builder
+	mw := multipart.NewWriter(&body)
+	for k, v := range fields {
+		require.NoError(t, mw.WriteField(k, v))
+	}
+	require.NoError(t, mw.Close())
+	req, err := http.NewRequest(method, h.URL(path), strings.NewReader(body.String()))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
 	req.Header.Set("Accept", "application/json")
 	resp, err := h.Client.Do(req)
 	require.NoError(t, err)
@@ -194,4 +215,58 @@ func TestHTTP_BrewCreateHTMXStillRedirects(t *testing.T) {
 	resp := h.PostForm("/brews", brewForm)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, ReadBody(t, resp)))
 	assert.Equal(t, "/my-coffee", resp.Header.Get("HX-Redirect"))
+}
+
+// TestHTTP_BrewCreateMultipartJSON verifies that POST /brews accepts a
+// multipart/form-data body (as submitted by the SvelteKit SPA via FormData)
+// and returns the created brew as JSON. This is a regression test for a bug
+// where Request.ParseForm leaves multipart PostForm empty, so every field
+// — including the required bean_rkey — read as "" and the handler rejected
+// the request with 400 "Bean selection is required".
+func TestHTTP_BrewCreateMultipartJSON(t *testing.T) {
+	h := StartHarness(t, nil)
+
+	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Multipart Roaster")), "roaster")
+	beanRKey := mustRKey(t, h.PostForm("/api/beans", form("name", "Multipart Bean", "roaster_rkey", roasterRKey)), "bean")
+	grinderRKey := mustRKey(t, h.PostForm("/api/grinders", form("name", "Multipart Grinder")), "grinder")
+	brewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "Multipart Brewer")), "brewer")
+
+	resp := postMultipartJSON(t, h, "/brews", "POST", map[string]string{
+		"bean_rkey":     beanRKey,
+		"grinder_rkey":  grinderRKey,
+		"brewer_rkey":   brewerRKey,
+		"method":        "Pour Over",
+		"water_amount":  "300",
+		"coffee_amount": "18",
+		"rating":        "7",
+	})
+	body := ReadBody(t, resp)
+	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+
+	var result brewMutationJSONResponse
+	require.NoError(t, json.Unmarshal([]byte(body), &result))
+	assert.Equal(t, beanRKey, result.Brew.BeanRKey, "bean_rkey must survive multipart parsing")
+	assert.Equal(t, 300, result.Brew.WaterAmount)
+	assert.Equal(t, 7, result.Brew.Rating)
+	assert.NotEmpty(t, result.Brew.RKey)
+
+	// Update via multipart PUT too — same ParseForm gotcha affected the
+	// update handler.
+	updateResp := postMultipartJSON(t, h, "/brews/"+result.Brew.RKey, "PUT", map[string]string{
+		"bean_rkey":     beanRKey,
+		"grinder_rkey":  grinderRKey,
+		"brewer_rkey":   brewerRKey,
+		"method":        "Pour Over",
+		"water_amount":  "350",
+		"coffee_amount": "20",
+		"rating":        "8",
+	})
+	updateBody := ReadBody(t, updateResp)
+	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, updateBody))
+	var updated brewMutationJSONResponse
+	require.NoError(t, json.Unmarshal([]byte(updateBody), &updated))
+	assert.Equal(t, result.Brew.RKey, updated.Brew.RKey)
+	assert.Equal(t, 350, updated.Brew.WaterAmount)
+	assert.Equal(t, 8, updated.Brew.Rating)
 }

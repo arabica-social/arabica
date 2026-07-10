@@ -48,7 +48,7 @@
 		commentCount={v.social.comment_count}
 		shareURL={v.share_url}
 		isOwner={v.is_own_profile}
-		editModalURL={`/api/modals/brewer/${b.rkey}`}
+		editURL={`/brewers/${b.rkey}/edit`}
 		deleteURL={`/api/brewers/${b.rkey}`}
 		deleteRedirect="/my-coffee"
 		isAuthenticated={v.is_authenticated}

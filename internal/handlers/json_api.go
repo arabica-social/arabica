@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 )
@@ -22,6 +23,27 @@ func WantsJSON(r *http.Request) bool {
 		return true
 	}
 	return r.Header.Get("X-Requested-With") == "JSON"
+}
+
+// ParseFormOrMultipart parses the request body for form values regardless of
+// Content-Type. The SvelteKit SPA submits forms as multipart/form-data (via
+// FormData), while legacy HTMX clients submit application/x-www-form-urlencoded.
+//
+// Request.ParseForm alone only handles url-encoded bodies: for multipart it
+// leaves PostForm empty and, once r.Form is non-nil, subsequent FormValue calls
+// never invoke ParseMultipartForm — so every multipart field reads as empty.
+// ParseMultipartForm handles both encodings (it calls ParseForm internally and
+// then parses the multipart body when present), returning ErrNotMultipart for
+// non-multipart requests, which we ignore.
+//
+// maxMemory is the bytes of multipart file data to keep in memory (the rest
+// spills to disk); pass 0 for form-only requests. It mirrors the argument to
+// http.Request.ParseMultipartForm.
+func ParseFormOrMultipart(r *http.Request, maxMemory int64) error {
+	if err := r.ParseMultipartForm(maxMemory); err != nil && !errors.Is(err, http.ErrNotMultipart) {
+		return err
+	}
+	return nil
 }
 
 // AuthorSummary is the author profile slice included in JSON API responses

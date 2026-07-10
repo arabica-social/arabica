@@ -77,15 +77,11 @@
 	let url = $derived(shareURL(item));
 	let title = $derived(shareTitle());
 	let editURL = $derived(
-		item.is_owner && item.record_type === "brew"
+		item.is_owner
 			? `/${nounPath(item.record_type)}/${rkeyOf(item)}/edit`
 			: "",
 	);
-	let editModalURL = $derived(
-		!item.is_owner || item.record_type === "brew"
-			? ""
-			: `/api/modals/${item.record_type}/${rkeyOf(item)}`,
-	);
+	let editModalURL = $derived("");
 	let deleteURL = $derived(
 		item.is_owner
 			? item.record_type === "brew"

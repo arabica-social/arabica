@@ -5,6 +5,8 @@
 	import { session } from "$lib/stores/session";
 	import { pushToast } from "$lib/stores/toasts";
 	import { goto } from "$app/navigation";
+	import { tick } from "svelte";
+	import { applyFeedMasonry, installFeedMasonry } from "$lib/utils/feedMasonry";
 	import type { PageData } from "./$types";
 	import type { FeedItem, FeedResponse } from "$lib/types/feed";
 
@@ -30,6 +32,23 @@
 		sort = data.sort ?? "recent";
 		items = data.feed?.items ?? [];
 		nextCursor = data.feed?.next_cursor ?? "";
+	});
+
+	// Feed masonry: re-pack cards into two corkboard columns whenever the
+	// item set changes (filter/sort/load-more). `applyFeedMasonry` measures
+	// offsetHeight, so it runs after Svelte commits the DOM (tick) and after
+	// the browser paints (requestAnimationFrame).
+	$effect(() => {
+		// Reference items so the effect re-runs when the array reference
+		// changes (filter/sort swap it for a new array; load-more appends).
+		items;
+		const teardown = installFeedMasonry();
+		void tick().then(() => {
+			requestAnimationFrame(() => {
+				applyFeedMasonry();
+			});
+		});
+		return teardown;
 	});
 
 	function buildURL(nextType: string, nextSort: string, cursor = ""): string {
@@ -198,7 +217,7 @@
 			/>
 		{/if}
 		<div id="feed-board" class="feed-board">
-			<div id="feed-items" class="feed-grid">
+			<div id="feed-items" class="feed-grid" data-feed-masonry>
 				{#if data.error && items.length === 0}
 					<div class="rounded-xl p-8 text-center" style="grid-column: 1 / -1;">
 						<div class="text-4xl mb-3">✦</div>

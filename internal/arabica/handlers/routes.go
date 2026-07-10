@@ -32,6 +32,14 @@ func (Routes) SPAOwnedRoutes() []string {
 		"GET /explore",
 		"GET /brews/new",
 		"GET /brews/{id}/edit",
+		"GET /beans/new",
+		"GET /beans/{id}/edit",
+		"GET /grinders/new",
+		"GET /grinders/{id}/edit",
+		"GET /brewers/new",
+		"GET /brewers/{id}/edit",
+		"GET /recipes/new",
+		"GET /recipes/{id}/edit",
 		"GET /brews/{actor}/{id}",
 		"GET /recipes/{actor}/{id}",
 		"GET /profile/{actor}",
@@ -91,18 +99,15 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 
 	ctx.Pages.Register(mux, "GET /manage", http.HandlerFunc(h.HandleManage))
 	ctx.Pages.Register(mux, "GET /brews", http.HandlerFunc(h.HandleBrewList))
-	ctx.Pages.Register(mux, "GET /beans/new", http.HandlerFunc(h.HandleBeanNew))
-	ctx.Pages.Register(mux, "GET /beans/{id}/edit", http.HandlerFunc(h.HandleBeanEdit))
-	// These forms have no legacy full-page equivalent. When the SPA does not
-	// own them, preserve the previous not-found behavior.
-	ctx.Pages.Register(mux, "GET /roasters/new", http.HandlerFunc(ctx.Handlers.HandleNotFound))
-	ctx.Pages.Register(mux, "GET /roasters/{id}/edit", http.HandlerFunc(ctx.Handlers.HandleNotFound))
+	// Bean, grinder, brewer, and recipe create/edit pages are now SPA-owned
+	// (see SPAOwnedRoutes). Roaster new/edit have no legacy full-page
+	// equivalent; they are SPA-owned too and need no legacy fallback here.
 
 	ctx.Pages.Register(mux, "GET /recipes", http.HandlerFunc(h.HandleRecipeExplore))
 	ctx.Pages.Register(mux, "GET /recipes/{actor}/{id}/backlinks", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleRecipeBacklinks)))
 
-	// Recipe modal partials are used by both stacks until recipe create/edit
-	// pages are ported to SvelteKit.
+	// Recipe modal partials remain for the legacy stack; the SvelteKit SPA
+	// uses /recipes/new and /recipes/{id}/edit pages (SPAOwnedRoutes).
 	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
 	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
 

@@ -470,7 +470,7 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
+	if err := handlers.ParseFormOrMultipart(r, 0); err != nil {
 		log.Warn().Err(err).Msg("Failed to parse brew create form")
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
@@ -595,7 +595,7 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
+	if err := handlers.ParseFormOrMultipart(r, 0); err != nil {
 		log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to parse brew update form")
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
