@@ -1,4 +1,18 @@
 /* Feed Components — Sticky Notes on Corkboard */
+
+/* Section heading above the corkboard — serif to bridge the kraft hero
+   into the feed, quieter than a page title. */
+.feed-section-title {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  line-height: 1.2;
+  font-weight: 600;
+  font-variation-settings: "opsz" 36, "SOFT" 50, "WONK" 0;
+  letter-spacing: -0.012em;
+  color: var(--text-primary);
+}
+
 .feed-card {
   background-color: var(--feed-card-bg);
   border: none;

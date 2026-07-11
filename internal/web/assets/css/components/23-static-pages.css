@@ -62,6 +62,7 @@
   gap: 0.45rem;
   margin-bottom: 0.75rem;
   color: var(--text-muted);
+  font-family: var(--font-mono);
   font-size: 0.73rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -70,17 +71,20 @@
 
 .info-title {
   margin: 0;
+  font-family: var(--font-display);
   color: var(--text-primary);
   font-size: clamp(2rem, 7vw, 3.4rem);
   line-height: 0.98;
-  letter-spacing: -0.055em;
-  font-weight: 700;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  font-variation-settings: "opsz" 96, "SOFT" 50, "WONK" 0;
 }
 
 .info-deck {
   max-width: 64ch;
   margin-top: 1rem;
   color: var(--text-secondary);
+  font-family: var(--font-mono);
   font-size: 1.06rem;
   line-height: 1.75;
 }

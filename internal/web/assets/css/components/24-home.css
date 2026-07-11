@@ -1,0 +1,333 @@
+/* ========================================
+   24-home.css — Home Welcome & Hero Surfaces
+   ========================================
+   The home welcome card and unauthenticated hero are the first thing
+   people see. They previously leaned on centered monospace text and a
+   flat grid of identical action buttons — the most "SaaS" surfaces in
+   the app. These styles apply the documented craft patterns (tinted
+   wash, kraft hero, state-aware CTA, stagger entrance) and pair the
+   Fraunces display serif with Iosevka for data/labels.
+
+   Patterns referenced: tinted-wash cards, container card with kraft
+   texture, state-aware CTA panel, stagger entrance (see DESIGN.md and
+   PRODUCT.md "Established Patterns").
+   ======================================== */
+
+/* ---- Shared hero shell --------------------------------------------- */
+
+/* Authenticated welcome + unauthenticated landing hero share a kraft
+   hero surface so the homepage feels as crafted as the About page.
+   A large faint coffee-bean watermark sits in the corner — the brand
+   mark at scale, not a gradient stripe or stock photo. */
+.home-hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--card-border);
+  border-radius: 1.35rem;
+  background: var(--texture-kraft), var(--card-bg);
+  background-blend-mode: multiply, normal;
+  box-shadow: var(--shadow-md);
+}
+
+/* Oversized bean watermark, bottom-right, hugging off-card. Same bean
+   glyph as the Icon component; currentColor inherits text emphasis so
+   it warms with the theme. Kept faint so it reads as texture, not
+   illustration. */
+.home-hero::before {
+  content: "";
+  position: absolute;
+  right: -3rem;
+  bottom: -4rem;
+  width: 14rem;
+  height: 14rem;
+  background-color: var(--text-emphasis);
+  opacity: 0.06;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .home-hero::before {
+    display: none;
+  }
+}
+
+.home-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Eyebrow over the hero title — mono, tracked, stamp-like. */
+.home-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.6rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* The big serif headline. Fraunces at display optical size with a
+   touch of softness; tight tracking for packaging-label confidence. */
+.home-hero-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-variation-settings: "opsz" 96, "SOFT" 50, "WONK" 0;
+  color: var(--text-primary);
+}
+
+.home-hero-deck {
+  max-width: 56ch;
+  margin-top: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 1.02rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.home-hero-foot {
+  margin-top: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
+.home-hero-foot a {
+  color: var(--text-muted);
+}
+
+.home-hero-foot a:hover {
+  color: var(--text-emphasis);
+}
+
+/* ---- State-aware readiness nudge ----------------------------------- */
+
+/* When the user still needs to finish setup, the nudge is a calm
+   dashed-border surface panel that names what's left. It replaces
+   the old centered alert-warning block. */
+.home-nudge {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--input-border);
+  border-radius: 0.85rem;
+  background: var(--surface-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.home-nudge-copy {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.home-nudge-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.home-nudge-text {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+/* ---- Action rail --------------------------------------------------- */
+
+/* Replaces the flat 4-up button grid. A primary "log" action plus a
+   row of quieter secondary links keeps hierarchy without the SaaS
+   card-grid rhythm. */
+.home-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.home-action-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 0.6rem;
+  background: linear-gradient(
+    135deg,
+    var(--brand-brown-700),
+    var(--btn-primary-bg)
+  );
+  color: var(--btn-primary-text);
+  border: 1px solid var(--brand-brown-700);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 150ms ease;
+}
+
+.home-action-primary:hover {
+  box-shadow: var(--shadow-md);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.home-action-primary[aria-disabled="true"],
+.home-action-primary.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Secondary actions: text-forward links with a leading dot, not
+   bordered clones of the primary. Quieter, less grid-y. */
+.home-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: 0.6rem;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.home-action-secondary::before {
+  content: "";
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--type-brew);
+  opacity: 0.7;
+}
+
+.home-action-secondary:hover {
+  color: var(--text-primary);
+  background: var(--surface-bg);
+}
+
+/* ---- Login card (unauthenticated) ---------------------------------- */
+
+.home-login {
+  margin-top: 1.75rem;
+  max-width: 26rem;
+  margin-inline: auto;
+  padding: 1.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.home-login-title {
+  margin-bottom: 1rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-variation-settings: "opsz" 36, "SOFT" 50, "WONK" 0;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.home-login .form-input-lg {
+  width: 100%;
+}
+
+.home-login .btn-primary {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding-block: 0.75rem;
+  font-weight: 600;
+}
+
+.home-login-foot {
+  margin-top: 1rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.home-login-foot a:hover {
+  text-decoration: underline;
+}
+
+.home-login-sep {
+  margin-inline: 0.4rem;
+  color: var(--text-placeholder);
+}
+
+/* ---- Stagger entrance ---------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-hero,
+  .home-login {
+    animation: home-rise 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .home-login {
+    animation-delay: 80ms;
+  }
+}
+
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Responsive ---------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .home-hero {
+    border-radius: 1rem;
+  }
+
+  .home-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-action-primary,
+  .home-action-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .home-nudge {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

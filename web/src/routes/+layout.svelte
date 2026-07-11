@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Header from "$lib/components/Header.svelte";
 	import Footer from "$lib/components/Footer.svelte";
+	import LoginModal from "$lib/components/LoginModal.svelte";
 	import { app, session, refreshSession } from "$lib/stores/session";
 	import { themeStorageKey } from "$lib/stores/storageKeys";
 	import {
@@ -20,6 +21,7 @@
 	let brandTagline = $derived(appDefinition.tagline);
 
 	let showSessionModal = $state(false);
+	let showLoginModal = $state(false);
 
 	// Theme runtime — applies the saved theme on mount and listens for
 	// storage changes (e.g. theme toggle in another tab). Mirrors
@@ -68,6 +70,14 @@
 		showSessionModal = false;
 	}
 
+	function showLoginModalFn() {
+		showLoginModal = true;
+	}
+
+	function dismissLoginModal() {
+		showLoginModal = false;
+	}
+
 	$effect(() => {
 		// Apply theme before first paint to prevent flash.
 		applyTheme();
@@ -83,6 +93,7 @@
 		}
 
 		window.__showSessionExpiredModal = showSessionExpiredModal;
+		window.__showLoginModal = showLoginModalFn;
 		window.applyTheme = applyTheme;
 		window.addEventListener("notify", handleNotify);
 		document.body.addEventListener("refreshManage", handleRefreshManage);
@@ -92,6 +103,9 @@
 		return () => {
 			if (window.__showSessionExpiredModal === showSessionExpiredModal) {
 				delete window.__showSessionExpiredModal;
+			}
+			if (window.__showLoginModal === showLoginModalFn) {
+				delete window.__showLoginModal;
 			}
 			window.removeEventListener("notify", handleNotify);
 			document.body.removeEventListener("refreshManage", handleRefreshManage);
@@ -150,3 +164,6 @@
 		</div>
 	</dialog>
 {/if}
+
+<!-- Login modal -->
+<LoginModal bind:open={showLoginModal} />

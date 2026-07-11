@@ -8,6 +8,7 @@
 		profileIdentifier,
 		displayHandle,
 		formatNotificationCount,
+		openLoginModal,
 	} from "../stores/session";
 
 	let {
@@ -79,9 +80,14 @@
 
 			<div class="flex items-center gap-4">
 				{#if !s.isAuthenticated}
-					<a href="/login" class="text-sm font-semibold transition-colors hover:opacity-80" style="color: var(--header-text);">
+					<button
+						type="button"
+						onclick={openLoginModal}
+						class="text-sm font-semibold transition-colors hover:opacity-80"
+						style="color: var(--header-text);"
+					>
 						Log In
-					</a>
+					</button>
 				{:else}
 					<!-- Notification bell -->
 					<a href="/notifications" class="relative hover:opacity-80 transition p-2" title="Notifications" aria-label="Notifications">

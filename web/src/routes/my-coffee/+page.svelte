@@ -141,7 +141,7 @@
 
 <div class="page-container-xl">
 	<div class="flex items-center gap-3 mb-6">
-		<h2 class="text-2xl font-semibold text-primary">My Coffee</h2>
+		<h2 class="page-title">My Coffee</h2>
 		<div class="ml-auto flex items-center gap-2">
 			<a href="/add" class="btn-secondary">+ Add records</a>
 			<a href="/brews/new" class="btn-primary shadow-lg hover:shadow-xl">+ New Brew</a>
@@ -246,7 +246,7 @@
 			<div class="space-y-6">
 				<!-- Open bags -->
 				<div>
-					<h4 class="text-lg font-semibold text-primary mb-3">Open Bags</h4>
+					<h4 class="section-heading">Open Bags</h4>
 					{#if openBeans.length === 0}
 						<div class="card card-inner text-center py-8">
 							<p class="text-secondary">No open bags. <a href="/beans/new" class="link-bold">Add one</a>.</p>
@@ -295,7 +295,7 @@
 				<!-- Closed bags -->
 				{#if closedBeans.length > 0}
 					<div>
-						<h4 class="text-lg font-semibold text-primary mb-3">Closed Bags</h4>
+						<h4 class="section-heading">Closed Bags</h4>
 						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 							{#each closedBeans as bean (bean.rkey)}
 								<div class="feed-card feed-card-bean opacity-75">

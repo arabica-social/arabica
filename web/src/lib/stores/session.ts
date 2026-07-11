@@ -11,6 +11,13 @@
 
 import { writable, derived } from "svelte/store";
 
+declare global {
+  interface Window {
+    /** Exposed by +layout.svelte to open the login modal from anywhere. */
+    __showLoginModal?: () => void;
+  }
+}
+
 export type Session = {
   did: string;
   handle: string;
@@ -107,4 +114,11 @@ export function displayHandle(handle: string): string {
 export function formatNotificationCount(count: number): string {
   if (count > 99) return "99+";
   return String(count);
+}
+
+/** Opens the global login modal if the layout has mounted it. */
+export function openLoginModal() {
+  if (typeof window !== "undefined" && typeof window.__showLoginModal === "function") {
+    window.__showLoginModal();
+  }
 }

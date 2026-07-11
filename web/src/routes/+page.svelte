@@ -2,7 +2,7 @@
   import FeedCard from "$lib/components/FeedCard.svelte";
   import FeedFilters from "$lib/components/FeedFilters.svelte";
   import Icon from "$lib/components/Icon.svelte";
-  import { app } from "$lib/stores/session";
+  import { app, openLoginModal } from "$lib/stores/session";
   import { pushToast } from "$lib/stores/toasts";
   import { goto } from "$app/navigation";
   import { tick } from "svelte";
@@ -175,106 +175,58 @@
 
   {#if isAuthenticated}
     <!-- Welcome card (authenticated) -->
-    <div class="text-center mb-8 pt-4">
-      <h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">
-        {appDefinition.heroHeading}
-      </h1>
+    <section class="home-hero">
+      <span class="home-hero-eyebrow">Your journal</span>
+      <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
       {#if !ready}
-        <div class="alert-warning mb-6 max-w-xl mx-auto text-left">
-          <p class="font-semibold mb-1">Get started</p>
-          <p class="text-sm mb-3">
-            {appDefinition.readinessNudge}
-          </p>
+        <div class="home-nudge">
+          <div class="home-nudge-copy">
+            <span class="home-nudge-label">Get started</span>
+            <span class="home-nudge-text">{appDefinition.readinessNudge}</span>
+          </div>
           <a href="/onboarding" class="btn-primary text-sm">Get Started →</a>
         </div>
       {/if}
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto">
+      <div class="home-actions">
         <a
           href="/brews/new"
-          class="home-action-primary block text-center py-4 px-4 rounded-xl"
-          class:opacity-50={!ready}
+          class="home-action-primary"
+          class:is-disabled={!ready}
           aria-disabled={!ready}
         >
-          <span class="text-base font-semibold"
-            >{appDefinition.sessionAction}</span
-          >
+          {appDefinition.sessionAction}
         </a>
-        <a
-          href="/explore"
-          class="home-action-secondary block text-center py-4 px-4 rounded-xl"
+        <a href="/explore" class="home-action-secondary">Explore</a>
+        <a href={appDefinition.libraryPath} class="home-action-secondary"
+          >{appDefinition.libraryLabel}</a
         >
-          <span class="text-base font-semibold">Explore</span>
-        </a>
-        <a
-          href={appDefinition.libraryPath}
-          class="home-action-secondary block text-center py-4 px-4 rounded-xl"
+        <a href="/profile/{data.userDID}" class="home-action-secondary"
+          >Profile</a
         >
-          <span class="text-base font-semibold"
-            >{appDefinition.libraryLabel}</span
-          >
-        </a>
-        <a
-          href="/profile/{data.userDID}"
-          class="home-action-secondary block text-center py-4 px-4 rounded-xl"
-        >
-          <span class="text-base font-semibold">Profile</span>
-        </a>
       </div>
-    </div>
+    </section>
   {:else}
     <!-- Welcome hero (unauthenticated) -->
-    <div class="text-center mb-8 pt-4">
-      <h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-3">
-        {appDefinition.heroHeading}
-      </h1>
-      <p class="text-lg text-emphasis max-w-xl mx-auto mb-3">
-        {appDefinition.heroDescription}
+    <section class="home-hero">
+      <span class="home-hero-eyebrow">Federated coffee journal</span>
+      <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
+      <p class="home-hero-deck">{appDefinition.heroDescription}</p>
+      <p class="home-hero-foot">
+        <a href="/atproto">Built on AT Protocol</a> — you own your data.
       </p>
-      <p class="text-sm text-faint">
-        <a href="/atproto" class="hover:text-emphasis transition-colors"
-          >Built on AT Protocol</a
-        > — you own your data.
-      </p>
-    </div>
-    <!-- Login card -->
-    <div class="card p-6 mb-8 max-w-md mx-auto">
-      <h2 class="text-lg font-semibold text-primary mb-4 text-center">
-        Log in to get started
-      </h2>
-      <form method="POST" action="/auth/login">
-        <input
-          type="text"
-          id="handle"
-          name="handle"
-          placeholder="your-handle.bsky.social"
-          autocomplete="off"
-          required
-          class="w-full form-input-lg"
-        />
-        <button
-          type="submit"
-          class="btn-primary w-full mt-3 py-3 px-8 font-semibold">Log In</button
-        >
-      </form>
-      <div class="mt-4 text-sm text-muted text-center">
-        <a
-          href="/join/create"
-          class="font-medium text-secondary hover:text-primary transition-colors hover:underline"
-          >Create an account</a
-        >
-        <span class="mx-1.5 text-placeholder">·</span>
-        <a
-          href="/about"
-          class="text-muted hover:text-secondary transition-colors hover:underline"
-          >Learn more</a
-        >
+      <div class="home-actions mt-6 justify-center">
+        <button type="button" onclick={openLoginModal} class="home-action-primary">
+          Log In
+        </button>
+        <a href="/join/create" class="home-action-secondary">Create an account</a>
+        <a href="/about" class="home-action-secondary">Learn more</a>
       </div>
-    </div>
+    </section>
   {/if}
 
   <!-- Community feed -->
   <div class="card p-2 sm:p-6 mb-8">
-    <h3 class="text-xl font-bold text-primary mb-4">Community Activity</h3>
+    <h3 class="feed-section-title">Community Activity</h3>
     {#if showFilters}
       <FeedFilters
         {typeFilter}
