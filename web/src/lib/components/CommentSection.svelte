@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Avatar from "./Avatar.svelte";
-	import { app, displayHandle, session } from "../stores/session";
+	import { app, displayHandle, openLoginModal, session } from "../stores/session";
 	import { definitionFor } from "$lib/app/definitions";
 	import { pushToast } from "../stores/toasts";
 	import type { IndexedComment } from "../types/entity_view";
@@ -294,7 +294,7 @@
 	{:else}
 		<div class="comment-login-prompt">
 			<p class="text-sm text-muted">
-				<a href="/login" class="font-semibold text-secondary hover:text-brown-950 underline underline-offset-2 decoration-brown-400 hover:decoration-brown-700 transition-colors">Log in</a> to join the conversation.
+				<button type="button" onclick={openLoginModal} class="font-semibold text-secondary hover:text-brown-950 underline underline-offset-2 decoration-brown-400 hover:decoration-brown-700 transition-colors">Log in</button> to join the conversation.
 			</p>
 		</div>
 	{/if}

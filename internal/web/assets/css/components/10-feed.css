@@ -1,8 +1,13 @@
 /* Feed Components — Sticky Notes on Corkboard */
 
 /* Section heading above the corkboard — serif to bridge the kraft hero
-   into the feed, quieter than a page title. */
+   into the feed, quieter than a page title. A short entity-colored rule
+   under the text echoes the hero wash and signals “activity,” not a
+   flat label. */
 .feed-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   margin: 0 0 1rem;
   font-family: var(--font-display);
   font-size: 1.4rem;
@@ -11,6 +16,18 @@
   font-variation-settings: "opsz" 36, "SOFT" 50, "WONK" 0;
   letter-spacing: -0.012em;
   color: var(--text-primary);
+}
+
+.feed-section-title::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--type-brew) 55%, transparent),
+    transparent
+  );
 }
 
 .feed-card {

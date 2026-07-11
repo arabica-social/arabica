@@ -1,6 +1,6 @@
 <script lang="ts">
 	import BackButton from "$lib/components/BackButton.svelte";
-	import { session } from "$lib/stores/session";
+	import { openLoginModal, session } from "$lib/stores/session";
 
 	let isAuthenticated = $derived($session.isAuthenticated);
 </script>
@@ -120,9 +120,9 @@
 	</div>
 	<div class="info-cta">
 		{#if !isAuthenticated}
-			<a href="/login" class="btn-primary px-8 py-3 font-semibold">
+			<button type="button" onclick={openLoginModal} class="btn-primary px-8 py-3 font-semibold">
 				Get Started
-			</a>
+			</button>
 		{:else}
 			<a href="/" class="btn-primary px-8 py-3 font-semibold">
 				Back to Home

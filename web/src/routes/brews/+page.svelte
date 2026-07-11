@@ -5,7 +5,7 @@
 	import type { PageData } from "./$types";
 	import type { BrewListResponse } from "$lib/types/manage";
 	import type { Brew } from "$lib/types/entity_view";
-	import { session } from "$lib/stores/session";
+	import { openLoginModal, session } from "$lib/stores/session";
 	import { get } from "svelte/store";
 
 	let { data }: { data: PageData } = $props();
@@ -91,7 +91,7 @@
 		<div class="card card-inner text-center py-8">
 			<p class="text-secondary mb-4">{error}</p>
 			{#if error === "Authentication required"}
-				<a href="/login" class="btn-primary">Log In</a>
+				<button type="button" onclick={openLoginModal} class="btn-primary">Log In</button>
 			{/if}
 		</div>
 	{:else if !brewsData || brewsData.brews.length === 0}

@@ -11,7 +11,10 @@
   import ScrollTopButton from "$lib/components/ScrollTopButton.svelte";
   import type { PageData } from "./$types";
   import type { FeedItem, FeedResponse } from "$lib/types/feed";
-  import { definitionFor, entityRouteForCollection } from "$lib/app/definitions";
+  import {
+    definitionFor,
+    entityRouteForCollection,
+  } from "$lib/app/definitions";
 
   let { data }: { data: PageData } = $props();
 
@@ -150,7 +153,8 @@
   let ready = $derived(
     !onboarding ||
       appDefinition.readinessEntityTypes.every((t) => {
-        const key = `Has${t.charAt(0).toUpperCase()}${t.slice(1)}` as keyof typeof onboarding.readiness;
+        const key =
+          `Has${t.charAt(0).toUpperCase()}${t.slice(1)}` as keyof typeof onboarding.readiness;
         return onboarding.readiness[key];
       }),
   );
@@ -158,10 +162,7 @@
 
 <svelte:head>
   <title>{appDefinition.displayName}</title>
-  <meta
-    name="description"
-    content={appDefinition.metaDescription}
-  />
+  <meta name="description" content={appDefinition.metaDescription} />
 </svelte:head>
 
 <div class="page-container-lg">
@@ -176,7 +177,6 @@
   {#if isAuthenticated}
     <!-- Welcome card (authenticated) -->
     <section class="home-hero">
-      <span class="home-hero-eyebrow">Your journal</span>
       <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
       {#if !ready}
         <div class="home-nudge">
@@ -196,11 +196,18 @@
         >
           {appDefinition.sessionAction}
         </a>
-        <a href="/explore" class="home-action-secondary">Explore</a>
-        <a href={appDefinition.libraryPath} class="home-action-secondary"
+        <a
+          href="/explore"
+          class="home-action-secondary home-action-secondary--brewer">Explore</a
+        >
+        <a
+          href={appDefinition.libraryPath}
+          class="home-action-secondary home-action-secondary--bean"
           >{appDefinition.libraryLabel}</a
         >
-        <a href="/profile/{data.userDID}" class="home-action-secondary"
+        <a
+          href="/profile/{data.userDID}"
+          class="home-action-secondary home-action-secondary--roaster"
           >Profile</a
         >
       </div>
@@ -208,18 +215,29 @@
   {:else}
     <!-- Welcome hero (unauthenticated) -->
     <section class="home-hero">
-      <span class="home-hero-eyebrow">Federated coffee journal</span>
       <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
       <p class="home-hero-deck">{appDefinition.heroDescription}</p>
       <p class="home-hero-foot">
         <a href="/atproto">Built on AT Protocol</a> — you own your data.
       </p>
       <div class="home-actions mt-6 justify-center">
-        <button type="button" onclick={openLoginModal} class="home-action-primary">
+        <button
+          type="button"
+          onclick={openLoginModal}
+          class="home-action-primary"
+        >
           Log In
         </button>
-        <a href="/join/create" class="home-action-secondary">Create an account</a>
-        <a href="/about" class="home-action-secondary">Learn more</a>
+        <a
+          href="/join/create"
+          class="home-action-secondary home-action-secondary--brewer"
+          >Create an account</a
+        >
+        <a
+          href="/about"
+          class="home-action-secondary home-action-secondary--amber"
+          >Learn more</a
+        >
       </div>
     </section>
   {/if}
@@ -347,7 +365,9 @@
 
     <!-- About info card -->
     <div class="card p-6 mb-8">
-      <h3 class="text-lg font-bold text-primary mb-2">{appDefinition.aboutHeading}</h3>
+      <h3 class="text-lg font-bold text-primary mb-2">
+        {appDefinition.aboutHeading}
+      </h3>
       <p class="text-sm text-secondary">
         {appDefinition.aboutBody}
       </p>

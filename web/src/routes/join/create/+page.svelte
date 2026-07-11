@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BackButton from "$lib/components/BackButton.svelte";
+	import { openLoginModal } from "$lib/stores/session";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();
@@ -90,6 +91,6 @@
 	</div>
 	<p class="text-sm text-muted text-center">
 		Already have an Atmosphere account?
-		<a href="/login" class="link-bold">Log in here</a>.
+		<button type="button" onclick={openLoginModal} class="link-bold">Log in here</button>.
 	</p>
 </div>

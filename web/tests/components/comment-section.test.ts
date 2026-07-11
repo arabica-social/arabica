@@ -70,7 +70,10 @@ describe("CommentSection component", () => {
 		).toBeTruthy();
 	});
 
-	it("shows a login prompt with a /login link when canComment but not authenticated", () => {
+	it("shows a login prompt with a button that opens the modal when canComment but not authenticated", async () => {
+		const user = userEvent.setup();
+		const showModal = vi.fn();
+		window.__showLoginModal = showModal;
 		render(CommentSection, {
 			subjectURI,
 			subjectCID,
@@ -78,9 +81,11 @@ describe("CommentSection component", () => {
 			isAuthenticated: false,
 			currentUserDID: "",
 		});
-		const loginLink = screen.getByText("Log in");
-		expect(loginLink.getAttribute("href")).toBe("/login");
+		const loginButton = screen.getByText("Log in");
+		expect(loginButton.tagName).toBe("BUTTON");
 		expect(screen.getByText(/to join the conversation/)).toBeTruthy();
+		await user.click(loginButton);
+		expect(showModal).toHaveBeenCalled();
 	});
 
 	it("shows the compose form when canComment and authenticated", () => {

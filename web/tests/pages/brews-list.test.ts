@@ -1,6 +1,8 @@
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/svelte";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Brews from "../../src/routes/brews/+page.svelte";
+import { openLoginModal } from "$lib/stores/session";
 
 // Mock $app/navigation and session store so the page can resolve the owner DID.
 vi.mock("$app/navigation", () => ({
@@ -13,6 +15,7 @@ vi.mock("$lib/stores/session", () => ({
 			return () => {};
 		},
 	},
+	openLoginModal: vi.fn(),
 }));
 
 const brewsData = {
@@ -94,10 +97,19 @@ describe("Brews list page", () => {
 		expect(screen.getByText("Log Your First Brew")).toBeTruthy();
 	});
 
-	it("renders auth error with login link", () => {
+	it("renders auth error with login button that opens the modal", () => {
 		render(Brews, { data: { brews: null, error: "Authentication required" } });
 		expect(screen.getByText("Authentication required")).toBeTruthy();
-		expect(screen.getByText("Log In")).toBeTruthy();
+		const loginButton = screen.getByText("Log In");
+		expect(loginButton.tagName).toBe("BUTTON");
+	});
+
+	it("opens the login modal when the auth error Log In button is clicked", async () => {
+		const user = userEvent.setup();
+		render(Brews, { data: { brews: null, error: "Authentication required" } });
+		const loginButton = screen.getByText("Log In");
+		await user.click(loginButton);
+		expect(openLoginModal).toHaveBeenCalled();
 	});
 
 	it("renders load more button when has_more is true", () => {

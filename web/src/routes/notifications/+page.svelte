@@ -2,7 +2,7 @@
 	import Avatar from "$lib/components/Avatar.svelte";
 	import BackButton from "$lib/components/BackButton.svelte";
 	import { pushToast } from "$lib/stores/toasts";
-	import { displayHandle } from "$lib/stores/session";
+	import { displayHandle, openLoginModal } from "$lib/stores/session";
 	import { markAllNotificationsRead } from "$lib/api/notifications";
 	import type { PageData } from "./$types";
 	import type { NotificationItem } from "$lib/types/api";
@@ -70,7 +70,7 @@
 	{#if data.error}
 		<div class="card card-inner text-center py-8">
 			<p class="text-secondary mb-4">{data.error}</p>
-			<a href="/login" class="btn-primary">Log In</a>
+			<button type="button" onclick={openLoginModal} class="btn-primary">Log In</button>
 		</div>
 	{:else if notifications.length === 0}
 		<div class="card card-inner text-center py-12">

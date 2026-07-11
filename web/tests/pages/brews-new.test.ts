@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/svelte";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BrewNewPage from "../../src/routes/brews/new/+page.svelte";
 
@@ -46,11 +47,23 @@ describe("Brews new page", () => {
 		expect(component).toBeTruthy();
 	});
 
-	it("renders the Log In link when not authenticated", () => {
+	it("renders the Log In button when not authenticated", () => {
 		render(BrewNewPage, {
 			data: { brew: null, error: "Authentication required", recipeRKey: "", recipeOwnerDID: "" },
 		});
-		const loginLink = screen.getByText("Log In");
-		expect(loginLink.closest("a")).toHaveAttribute("href", "/login");
+		const loginButton = screen.getByText("Log In");
+		expect(loginButton.tagName).toBe("BUTTON");
+	});
+
+	it("opens the login modal when the Log In button is clicked", async () => {
+		const user = userEvent.setup();
+		const showModal = vi.fn();
+		window.__showLoginModal = showModal;
+		render(BrewNewPage, {
+			data: { brew: null, error: "Authentication required", recipeRKey: "", recipeOwnerDID: "" },
+		});
+		const loginButton = screen.getByText("Log In");
+		await user.click(loginButton);
+		expect(showModal).toHaveBeenCalled();
 	});
 });

@@ -4,7 +4,7 @@
 	import { goto } from "$app/navigation";
 	import { tick } from "svelte";
 	import { pushToast } from "$lib/stores/toasts";
-	import { displayHandle } from "$lib/stores/session";
+	import { displayHandle, openLoginModal } from "$lib/stores/session";
 	import { applyFeedMasonry, installFeedMasonry } from "$lib/utils/feedMasonry";
 	import type { PageData } from "./$types";
 	import type { ExploreResponse, ExploreDocument } from "$lib/types/api";
@@ -299,7 +299,7 @@
 			<div class="card card-inner text-center py-8">
 				{#if !isAuthenticated}
 					<p class="text-secondary mb-4">{data.error}</p>
-					<a href="/login" class="btn-primary">Log In</a>
+					<button type="button" onclick={openLoginModal} class="btn-primary">Log In</button>
 				{:else}
 					<p class="text-secondary">{data.error}</p>
 				{/if}

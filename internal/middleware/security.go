@@ -175,8 +175,8 @@ type RateLimitConfig struct {
 func NewDefaultRateLimitConfig() *RateLimitConfig {
 	return &RateLimitConfig{
 		AuthLimiter:   NewRateLimiter(5, time.Minute),   // 5 auth attempts per minute
-		APILimiter:    NewRateLimiter(60, time.Minute),  // 60 API calls per minute
-		GlobalLimiter: NewRateLimiter(120, time.Minute), // 120 requests per minute
+		APILimiter:    NewRateLimiter(100, time.Minute), // API calls per minute
+		GlobalLimiter: NewRateLimiter(200, time.Minute), // Requests per minute
 	}
 }
 

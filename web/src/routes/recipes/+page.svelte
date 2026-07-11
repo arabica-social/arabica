@@ -3,7 +3,7 @@
 	import { goto } from "$app/navigation";
 	import { pushToast } from "$lib/stores/toasts";
 	import { get } from "svelte/store";
-	import { session } from "$lib/stores/session";
+	import { openLoginModal, session } from "$lib/stores/session";
 	import type { PageData } from "./$types";
 	import type { Recipe } from "$lib/types/entity_view";
 
@@ -198,7 +198,7 @@
 	<div class="page-container-sm">
 		<div class="card card-inner text-center py-8">
 			<p class="text-secondary text-lg mb-2">Authentication required</p>
-			<a href="/login" class="btn-primary">Log In</a>
+			<button type="button" onclick={openLoginModal} class="btn-primary">Log In</button>
 		</div>
 	</div>
 {:else}

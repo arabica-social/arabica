@@ -26,8 +26,18 @@
   padding: clamp(1.5rem, 4vw, 2.5rem);
   border: 1px solid var(--card-border);
   border-radius: 1.35rem;
-  background: var(--texture-kraft), var(--card-bg);
-  background-blend-mode: multiply, normal;
+  /* Kraft texture over a warm two-tone wash so the hero reads as
+     colored, not just beige. Bean copper + brewer green at low
+     opacity give the cream surface a roasted warmth without
+     becoming a flat color block. */
+  background:
+    var(--texture-kraft),
+    linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--type-bean) 14%, var(--card-bg)),
+      color-mix(in oklch, var(--type-brewer) 10%, var(--card-bg))
+    );
+  background-blend-mode: multiply, normal, normal;
   box-shadow: var(--shadow-md);
 }
 
@@ -203,7 +213,9 @@
 }
 
 /* Secondary actions: text-forward links with a leading dot, not
-   bordered clones of the primary. Quieter, less grid-y. */
+   bordered clones of the primary. Quieter, less grid-y. Each action
+   carries its own entity accent on the dot so the rail reads as a
+   small legend; default stays brew-brown. */
 .home-action-secondary {
   display: inline-flex;
   align-items: center;
@@ -224,8 +236,13 @@
   height: 0.3rem;
   border-radius: 999px;
   background: var(--type-brew);
-  opacity: 0.7;
+  opacity: 0.75;
 }
+
+.home-action-secondary--brewer::before { background: var(--type-brewer); }
+.home-action-secondary--bean::before { background: var(--type-bean); }
+.home-action-secondary--roaster::before { background: var(--type-roaster); }
+.home-action-secondary--amber::before { background: var(--brand-amber-600); }
 
 .home-action-secondary:hover {
   color: var(--text-primary);

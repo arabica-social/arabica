@@ -2,6 +2,7 @@
 	import Icon from "$lib/components/Icon.svelte";
 	import { pluralS, formatAvgRating, formatTemp, formatTime } from "$lib/utils/format";
 	import { appCache } from "$lib/stores/appCache";
+	import { openLoginModal } from "$lib/stores/session";
 	import { pushToast } from "$lib/stores/toasts";
 	import type { PageData } from "./$types";
 	import type { ManageResponseJSON, BrewListResponse } from "$lib/types/manage";
@@ -152,7 +153,7 @@
 	{#if error}
 		<div class="card card-inner text-center py-8">
 			<p class="text-secondary mb-4">{error}</p>
-			<a href="/login" class="btn-primary">Log In</a>
+			<button type="button" onclick={openLoginModal} class="btn-primary">Log In</button>
 		</div>
 	{:else if manage}
 		<!-- Tabs -->

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BacklinksView from "$lib/components/BacklinksView.svelte";
+	import { openLoginModal } from "$lib/stores/session";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();
@@ -20,7 +21,7 @@
 		<div class="card card-inner text-center py-8">
 			<p class="text-secondary mb-4">{data.error}</p>
 			{#if data.error === "Authentication required"}
-				<a href="/login" class="btn-primary">Log In</a>
+				<button type="button" onclick={openLoginModal} class="btn-primary">Log In</button>
 			{/if}
 		</div>
 	</div>

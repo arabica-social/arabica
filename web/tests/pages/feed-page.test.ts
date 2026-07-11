@@ -87,11 +87,12 @@ describe("Feed page (home)", () => {
 		expect(screen.getByText("My Coffee").closest("a")).toHaveAttribute("href", "/my-coffee");
 	});
 
-	it("renders the login form for unauthenticated users", () => {
+	it("renders the unauth hero CTA for unauthenticated users", () => {
 		render(FeedPage, { data: unauthedPageData });
-		expect(screen.getByPlaceholderText("your-handle.bsky.social")).toBeTruthy();
+		expect(screen.queryByPlaceholderText("your-handle.bsky.social")).toBeNull();
 		expect(screen.getByText("Log In")).toBeTruthy();
 		expect(screen.getByText("Create an account")).toBeTruthy();
+		expect(screen.getByText("Learn more")).toBeTruthy();
 	});
 
 	it("renders the Community Activity heading", () => {
