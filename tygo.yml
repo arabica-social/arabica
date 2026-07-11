@@ -32,6 +32,31 @@ packages:
       - "resolve.go"
       - "suggestions.go"
 
+  # Oolong entity models (Tea, Vendor, Vessel, Infuser, Brew, etc.)
+  - path: "tangled.org/arabica.social/arabica/internal/oolong/entities"
+    output_path: "web/src/lib/types/generated/oolong_entities.ts"
+    type_mappings:
+      time.Time: "string"
+      sql.NullFloat64: "number | null"
+      sql.NullString: "string | null"
+      sql.NullBool: "boolean | null"
+      sql.NullInt64: "number | null"
+    exclude_files:
+      - "records_brew.go"
+      - "records_cafe.go"
+      - "records_drink.go"
+      - "records_infuser.go"
+      - "records_social.go"
+      - "records_tea.go"
+      - "records_vendor.go"
+      - "records_vessel.go"
+      - "feed_refs.go"
+      - "fields.go"
+      - "nsid.go"
+      - "options.go"
+      - "register.go"
+      - "suggestions.go"
+
   # Feed types (FeedItem, FeedQuery, FeedResult)
   - path: "tangled.org/arabica.social/arabica/internal/feed"
     output_path: "web/src/lib/types/generated/feed.ts"

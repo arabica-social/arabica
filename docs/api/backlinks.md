@@ -14,8 +14,14 @@ entity (library entries, usage, and ratings).
 | `GET /api/grinders/{actor}/{id}/backlinks` | Grinder |
 | `GET /api/brewers/{actor}/{id}/backlinks` | Brewer |
 | `GET /api/recipes/{actor}/{id}/backlinks` | Recipe |
+| `GET /api/teas/{actor}/{id}/backlinks` | Oolong tea |
+| `GET /api/vendors/{actor}/{id}/backlinks` | Oolong vendor |
+| `GET /api/vessels/{actor}/{id}/backlinks` | Oolong vessel |
+| `GET /api/infusers/{actor}/{id}/backlinks` | Oolong infuser |
+| `GET /api/brews/{actor}/{id}/backlinks` | Oolong steep (when served by Oolong) |
 
-These are registered via the `JSONBacklinks` slot on `EntityRouteBundle`.
+These are registered via the `JSONBacklinks` slot on `EntityRouteBundle`. The
+shared `brews` path is app-scoped, just as its entity-view endpoint is.
 
 ### Request
 

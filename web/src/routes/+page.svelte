@@ -11,6 +11,7 @@
   import ScrollTopButton from "$lib/components/ScrollTopButton.svelte";
   import type { PageData } from "./$types";
   import type { FeedItem, FeedResponse } from "$lib/types/feed";
+  import { definitionFor } from "$lib/app/definitions";
 
   let { data }: { data: PageData } = $props();
 
@@ -153,6 +154,7 @@
 
   let isAuthenticated = $derived(data.isAuthenticated);
   let appName = $derived(data.appName ?? "arabica");
+  let appDefinition = $derived(definitionFor(appName));
   // Filters only make sense for authenticated viewers — the unauth feed is
   // an unfiltered cached public list, so showing filter pills would imply
   // interactivity that doesn't exist. Mirrors the old templ gate.
@@ -223,7 +225,7 @@
           <span class="text-base font-semibold">Explore</span>
         </a>
         <a
-          href="/my-coffee"
+          href={appDefinition.libraryPath}
           class="home-action-secondary block text-center py-4 px-4 rounded-xl"
         >
           <span class="text-base font-semibold"

@@ -10,15 +10,13 @@
 	} from "$lib/stores/toasts";
 	import { appCache, installAppCacheGlobal } from "$lib/stores/appCache";
 	import { clearFeedCache } from "$lib/stores/feedCache";
+	import { definitionFor } from "$lib/app/definitions";
 
 	let { children } = $props();
 
-	let brandName = $derived(
-		$app === "oolong" ? "Oolong" : "Arabica",
-	);
-	let brandTagline = $derived(
-		$app === "oolong" ? "Your tea, your data" : "Your brew, your data",
-	);
+	let appDefinition = $derived(definitionFor($app));
+	let brandName = $derived(appDefinition.displayName);
+	let brandTagline = $derived(appDefinition.tagline);
 
 	let showSessionModal = $state(false);
 

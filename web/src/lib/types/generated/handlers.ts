@@ -16,7 +16,7 @@ export interface AdminMutationResponseJSON {
  * AdminStatsResponseJSON is the JSON response for GET /api/_mod/stats.
  */
 export interface AdminStatsResponseJSON {
-  stats: sharedpagesAdminStats;
+  stats: any /* sharedpages.AdminStats */;
   backups: any /* backup.SourceStatus */[];
 }
 
@@ -51,11 +51,18 @@ export interface EntityViewJSONResponse {
   author?: AuthorSummary;
   social: SocialDataJSON;
   backlinks?: any /* json.RawMessage */;
+  backlinks_detail_url?: string;
   is_own_profile: boolean;
   is_authenticated: boolean;
   share_url: string;
   entity_type: string;
   entity_count: number /* int */;
+  /**
+   * Extras carries entity-specific view fields that are not part of the
+   * record model (e.g. a recipe's resolved forked-from URL + author).
+   * Populated via cfg.ViewExtras; nil when the entity has no extras.
+   */
+  extras?: { [key: string]: any};
 }
 
 //////////
@@ -89,6 +96,13 @@ export interface EntityViewConfig {
   DisplayName: any;
   OGSubtitle: any;
   CountLookup: any;
+  /**
+   * ViewExtras returns entity-specific fields the JSON view endpoint should
+   * include in its response but that are not part of the record model itself
+   * (e.g. a recipe's resolved forked-from URL + author). Return nil when the
+   * entity has no extras. Only invoked by the JSON path.
+   */
+  ViewExtras: any;
   Render: any;
 }
 /**
@@ -114,6 +128,7 @@ export interface FeedResponseJSON {
   next_cursor: string;
   is_authenticated: boolean;
   query: FeedQueryJSON;
+  tabs: FeedFilterTabJSON[];
 }
 /**
  * FeedQueryJSON echoes the active feed query back to the client so the SPA
@@ -122,6 +137,15 @@ export interface FeedResponseJSON {
 export interface FeedQueryJSON {
   type: string;
   sort: string;
+}
+/**
+ * FeedFilterTabJSON is a single filter pill in the feed filter bar. The
+ * "All" tab has an empty Value; per-entity tabs use the filter noun from
+ * the app's feed views. This is app-scoped so oolong gets its own tabs.
+ */
+export interface FeedFilterTabJSON {
+  label: string;
+  value: string;
 }
 /**
  * FeedItemJSON is the JSON-serializable view of a feed.FeedItem. The typed
@@ -141,6 +165,17 @@ export interface FeedItemJSON {
   subject_cid: string;
   is_liked_by_viewer: boolean;
   is_owner: boolean;
+  /**
+   * Moderation context for moderator tooling in the feed/explore. These
+   * are only populated for moderator viewers; for regular viewers they
+   * stay zero-valued (falsy). AuthorDID is populated whenever an author
+   * exists so the SPA can pass it to ActionBar for block-user actions.
+   */
+  is_moderator: boolean;
+  can_hide_record: boolean;
+  can_block_user: boolean;
+  is_record_hidden: boolean;
+  author_did?: string;
 }
 /**
  * CommentJSON is the JSON-serializable view of a firehose.IndexedComment.

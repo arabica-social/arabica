@@ -20,6 +20,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -41,6 +42,9 @@ const controlURLFile = "tests/e2e/.control-url"
 var accountSequence atomic.Uint64
 
 func main() {
+	app := flag.String("app", e2eAppFromEnv(), "app to serve: arabica or oolong")
+	flag.Parse()
+
 	dataDir, err := os.MkdirTemp("", "arabica-e2e-*")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create e2e data directory: %v\n", err)
@@ -49,6 +53,7 @@ func main() {
 	defer os.RemoveAll(dataDir)
 
 	h, err := integration.StartHarnessRuntime(context.Background(), filepath.Join(dataDir, "harness"), &integration.HarnessOptions{
+		App:            *app,
 		EnableFirehose: true,
 		EnableSPA:      true,
 	})
@@ -100,6 +105,13 @@ func main() {
 	fmt.Println("\nShutting down E2E server...")
 	// Give in-flight requests a moment to complete.
 	time.Sleep(200 * time.Millisecond)
+}
+
+func e2eAppFromEnv() string {
+	if app := os.Getenv("ARABICA_E2E_APP"); app != "" {
+		return app
+	}
+	return "arabica"
 }
 
 func e2eControlHandler(h *integration.Harness) http.Handler {

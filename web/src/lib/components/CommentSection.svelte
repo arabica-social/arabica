@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Avatar from "./Avatar.svelte";
-	import { displayHandle, session } from "../stores/session";
+	import { app, displayHandle, session } from "../stores/session";
+	import { definitionFor } from "$lib/app/definitions";
 	import { pushToast } from "../stores/toasts";
 	import type { IndexedComment } from "../types/entity_view";
 
@@ -132,7 +133,7 @@
 	// Build the AT-URI for a comment so it can be liked via /api/likes/toggle.
 	// Mirrors buildCommentURI in the old templ stack.
 	function commentURI(c: IndexedComment): string {
-		return `at://${c.actor_did}/social.arabica.alpha.comment/${c.rkey}`;
+		return `at://${c.actor_did}/${definitionFor($app).commentCollection}/${c.rkey}`;
 	}
 
 	// Share URL for a comment: the parent record's view URL + #comment-rkey.

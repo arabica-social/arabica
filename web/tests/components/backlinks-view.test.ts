@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import BacklinksView from "../../src/lib/components/BacklinksView.svelte";
+import { app } from "../../src/lib/stores/session";
 import type { BacklinksResult } from "../../src/lib/types/entity_view";
 
 const result: BacklinksResult = {
@@ -57,6 +58,7 @@ const result: BacklinksResult = {
 
 describe("BacklinksView component", () => {
 	afterEach(() => {
+		app.set("arabica");
 		cleanup();
 		document.body.innerHTML = "";
 	});
@@ -116,6 +118,30 @@ describe("BacklinksView component", () => {
 		expect(screen.getByText("Used in 1 brews")).toBeTruthy();
 		const link = screen.getByText("Morning cup");
 		expect(link.getAttribute("href")).toBe("/brews/bob.test/brew-1");
+	});
+
+	it("uses the active Oolong app route mapping", () => {
+		app.set("oolong");
+		const oolongResult: BacklinksResult = {
+			...result,
+			LibraryEntries: [
+				{
+					...result.LibraryEntries[0],
+					Collection: "social.oolong.alpha.vendor",
+					RKey: "vendor-1",
+				},
+			],
+		};
+		render(BacklinksView, {
+			result: oolongResult,
+			entityNoun: "vendor",
+			entityName: "Tea House",
+			backURL: "",
+		});
+		expect(screen.getByText("Ethiopian Yirgacheffe")).toHaveAttribute(
+			"href",
+			"/vendors/alice.test/vendor-1",
+		);
 	});
 
 	it("renders empty state when result is null", () => {

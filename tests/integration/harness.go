@@ -25,6 +25,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
+	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
+	teahandlers "tangled.org/arabica.social/arabica/internal/oolong/handlers"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/spa"
@@ -87,9 +89,9 @@ const (
 	testAuthSessionHeader = "X-Test-Auth-Session"
 )
 
-// Harness wires up a full arabica handler tree backed by an in-process test
-// PDS and exposes an httptest.Server. Auth is faked via custom headers so
-// tests can act as any DID without an OAuth dance.
+// Harness wires up a full app handler tree backed by an in-process test PDS
+// and exposes an httptest.Server. Auth is faked via custom headers so tests
+// can act as any DID without an OAuth dance.
 type Harness struct {
 	T              *testing.T
 	PDS            *testpds.TestPDS
@@ -132,6 +134,9 @@ type TestAccount struct {
 
 // HarnessOptions configures harness setup.
 type HarnessOptions struct {
+	// App selects the product handler tree. Supported values are "arabica"
+	// (the default) and "oolong".
+	App string
 	// PrimaryHandle is the handle of the default account. Defaults to "alice.test".
 	PrimaryHandle string
 	// PrimaryEmail is the email of the default account. Defaults to "alice@test.com".
@@ -178,6 +183,9 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	}
 	if opts.PrimaryPassword == "" {
 		opts.PrimaryPassword = "hunter2"
+	}
+	if opts.App == "" {
+		opts.App = "arabica"
 	}
 
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
@@ -269,6 +277,15 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	// Build the router with no moderation service (most tests don't need it).
 	logger := zerolog.Nop()
 	app := arabicaapp.New()
+	var appRoutes routing.AppRoutes = coffeehandlers.Routes{}
+	switch opts.App {
+	case "arabica":
+	case "oolong":
+		app = oolongapp.New()
+		appRoutes = teahandlers.Routes{}
+	default:
+		return nil, fmt.Errorf("unsupported harness app %q", opts.App)
+	}
 	h.SetApp(app)
 
 	var spaHandler http.Handler
@@ -303,7 +320,7 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 		Handlers:         h,
 		OAuthApp:         oauthApp,
 		Logger:           logger,
-		AppRoutes:        coffeehandlers.Routes{},
+		AppRoutes:        appRoutes,
 		SPAHandler:       spaHandler,
 		CSSBundle:        cssBundle,
 		JSAssets:         jsAssets,

@@ -6,6 +6,8 @@
 	import BacklinksSection from "./BacklinksSection.svelte";
 	import type { Snippet } from "svelte";
 	import type { BacklinksResult } from "../types/entity_view";
+	import { definitionFor } from "$lib/app/definitions";
+	import { app } from "$lib/stores/session";
 
 	type Props = {
 		recordType: string;
@@ -81,6 +83,7 @@
 			minute: "2-digit",
 		}),
 	);
+	let appDefinition = $derived(definitionFor($app));
 </script>
 
 <div class="page-container-sm">
@@ -112,7 +115,7 @@
 				{commentCount}
 				{shareURL}
 				shareTitle={title}
-				shareText={`Check out this ${recordType} on Arabica`}
+				shareText={`Check out this ${recordType} on ${appDefinition.displayName}`}
 				{isOwner}
 				{editURL}
 				{deleteURL}

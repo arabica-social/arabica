@@ -4,6 +4,8 @@
 		BacklinkEntry,
 		UsageGroup,
 	} from "../types/entity_view";
+	import { entityRouteForCollection } from "$lib/app/definitions";
+	import { app } from "$lib/stores/session";
 
 	type Props = {
 		result?: BacklinksResult | null;
@@ -14,30 +16,8 @@
 
 	let { result, entityNoun, entityName, backURL = "" }: Props = $props();
 
-	// collection NSID tail (e.g. "social.arabica.alpha.bean" -> "bean") ->
-	// route path segment (e.g. "beans"). Mirrors Go's collectionTail +
-	// entityRoutePaths (domain.EntityRoute.Path). Only arabica collections
-	// appear here today; unknown collections render no record link.
 	function recordPath(collection: string): string {
-		const tail = collection.includes(".")
-			? collection.slice(collection.lastIndexOf(".") + 1)
-			: collection;
-		switch (tail) {
-			case "bean":
-				return "beans";
-			case "roaster":
-				return "roasters";
-			case "grinder":
-				return "grinders";
-			case "brewer":
-				return "brewers";
-			case "recipe":
-				return "recipes";
-			case "brew":
-				return "brews";
-			default:
-				return "";
-		}
+		return entityRouteForCollection($app, collection);
 	}
 
 	function recordViewURL(e: BacklinkEntry): string {

@@ -148,38 +148,78 @@ func (h *Handlers) HandleTeaView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.teaViewConfig())
 }
 
+func (h *Handlers) HandleTeaViewJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderEntityViewJSON(w, r, h.teaViewConfig())
+}
+
 func (h *Handlers) HandleTeaBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.teaViewConfig())
+}
+
+func (h *Handlers) HandleTeaBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.teaViewConfig())
 }
 
 func (h *Handlers) HandleOolongVendorView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.oolongVendorViewConfig())
 }
 
+func (h *Handlers) HandleOolongVendorViewJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderEntityViewJSON(w, r, h.oolongVendorViewConfig())
+}
+
 func (h *Handlers) HandleOolongVendorBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.oolongVendorViewConfig())
+}
+
+func (h *Handlers) HandleOolongVendorBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.oolongVendorViewConfig())
 }
 
 func (h *Handlers) HandleOolongVesselView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.oolongVesselViewConfig())
 }
 
+func (h *Handlers) HandleOolongVesselViewJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderEntityViewJSON(w, r, h.oolongVesselViewConfig())
+}
+
 func (h *Handlers) HandleOolongVesselBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.oolongVesselViewConfig())
+}
+
+func (h *Handlers) HandleOolongVesselBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.oolongVesselViewConfig())
 }
 
 func (h *Handlers) HandleOolongInfuserView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.oolongInfuserViewConfig())
 }
 
+func (h *Handlers) HandleOolongInfuserViewJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderEntityViewJSON(w, r, h.oolongInfuserViewConfig())
+}
+
 func (h *Handlers) HandleOolongInfuserBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.oolongInfuserViewConfig())
+}
+
+func (h *Handlers) HandleOolongInfuserBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.oolongInfuserViewConfig())
 }
 
 func (h *Handlers) HandleOolongBrewView(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityView(w, r, h.oolongBrewViewConfig())
 }
 
+func (h *Handlers) HandleOolongBrewViewJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderEntityViewJSON(w, r, h.oolongBrewViewConfig())
+}
+
 func (h *Handlers) HandleOolongBrewBacklinks(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksView(w, r, h.oolongBrewViewConfig())
+}
+
+func (h *Handlers) HandleOolongBrewBacklinksJSON(w http.ResponseWriter, r *http.Request) {
+	h.RenderBacklinksViewJSON(w, r, h.oolongBrewViewConfig())
 }

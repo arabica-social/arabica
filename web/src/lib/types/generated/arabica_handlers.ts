@@ -9,9 +9,14 @@
  * __redirect form value). The brew model carries json tags so it serializes
  * directly; incomplete_nudge is populated when the referenced bean is missing
  * fields, mirroring the X-Incomplete-Nudge header the HTMX path sets.
+ * AuthorDID carries the owning user's DID so the SPA can navigate to the
+ * brew's view URL (/brews/{actor}/{rkey}) after a create/update. The Brew
+ * record model itself does not carry authorship — it is derived from the
+ * authenticated session.
  */
 export interface BrewMutationJSONResponse {
   brew?: any /* arabica.Brew */;
+  author_did: string;
   incomplete_nudge?: BeanNudge;
 }
 /**
