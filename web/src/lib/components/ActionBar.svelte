@@ -54,6 +54,29 @@
 	let reportReason = $state("");
 	let reportError = $state("");
 	let reportSubmitted = $state(false);
+	let reportDialog = $state<HTMLDialogElement>();
+
+	// Drive the native <dialog> via showModal()/close() so it is promoted to
+	// the top layer (above all content, with a viewport ::backdrop) instead of
+	// rendering inline inside the feed card via the `open` attribute.
+	$effect(() => {
+		const dialog = reportDialog;
+		if (!dialog) return;
+		if (reportOpen && !dialog.open) {
+			dialog.showModal();
+		} else if (!reportOpen && dialog.open) {
+			dialog.close();
+		}
+	});
+
+	function handleReportClose() {
+		// Sync state when the dialog closes (Escape, backdrop, or programmatic).
+		if (reportOpen) reportOpen = false;
+		// Reset for the next time it opens.
+		reportSubmitted = false;
+		reportReason = "";
+		reportError = "";
+	}
 
 	function commentHref() {
 		if (viewURL) return `${viewURL}#comment-section`;
@@ -160,8 +183,11 @@
 			const res = await fetch(url, {
 				method: "POST",
 				credentials: "same-origin",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Accept: "application/json",
+				},
+				body: new URLSearchParams(payload),
 			});
 			if (!res.ok) throw new Error(`${action} failed: ${res.status}`);
 			pushToast(action === "hide" ? "Record hidden" : action === "unhide" ? "Record unhidden" : "User blocked");
@@ -339,53 +365,63 @@
 	</div>
 </div>
 
-<!-- Report modal -->
-{#if reportOpen}
-	<dialog open class="modal-dialog" aria-labelledby="report-title" data-testid="report-modal">
-		<div class="modal-content">
-			{#if reportSubmitted}
-				<div class="text-center py-4">
-					<div class="text-green-600 mb-2">
-						<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
-						</svg>
-					</div>
-					<p class="font-medium text-primary">Report Submitted</p>
-					<p class="text-sm text-muted mt-1">Thank you for helping keep our community safe.</p>
-					<div class="mt-4 flex justify-center">
-						<button type="button" class="btn-secondary px-6" onclick={() => (reportOpen = false)}>Close</button>
-					</div>
+<!-- Report modal: always rendered so showModal()/close() can drive the
+	 top layer. Visibility is controlled by reportOpen via the effect above. -->
+<dialog
+	bind:this={reportDialog}
+	class="modal-dialog"
+	aria-labelledby="report-title"
+	data-testid="report-modal"
+	onclose={handleReportClose}
+	onclick={(e) => {
+		// Clicking the ::backdrop (the dialog itself, not its content)
+		// closes the modal — same UX as the legacy report modal.
+		if (e.target === reportDialog) reportOpen = false;
+	}}
+>
+	<div class="modal-content">
+		{#if reportSubmitted}
+			<div class="text-center py-4">
+				<div class="text-green-600 mb-2">
+					<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+					</svg>
 				</div>
-			{:else}
-				<h3 id="report-title" class="modal-title">Report Content</h3>
-				<form
-					onsubmit={(e) => { e.preventDefault(); void submitReport(); }}
-					class="space-y-4"
-				>
-					<p class="text-sm text-emphasis">
-						Please describe why you're reporting this content. Reports are reviewed by moderators.
-					</p>
-					<div>
-						<textarea
-							bind:value={reportReason}
-							placeholder="Describe the issue (optional)"
-							rows="4"
-							maxlength="500"
-							class="w-full form-textarea"
-							aria-label="Report reason"
-						></textarea>
+				<p class="font-medium text-primary">Report Submitted</p>
+				<p class="text-sm text-muted mt-1">Thank you for helping keep our community safe.</p>
+				<div class="mt-4 flex justify-center">
+					<button type="button" class="btn-secondary px-6" onclick={() => (reportOpen = false)}>Close</button>
+				</div>
+			</div>
+		{:else}
+			<h3 id="report-title" class="modal-title">Report Content</h3>
+			<form
+				onsubmit={(e) => { e.preventDefault(); void submitReport(); }}
+				class="space-y-4"
+			>
+				<p class="text-sm text-emphasis">
+					Please describe why you're reporting this content. Reports are reviewed by moderators.
+				</p>
+				<div>
+					<textarea
+						bind:value={reportReason}
+						placeholder="Describe the issue (optional)"
+						rows="4"
+						maxlength="500"
+						class="w-full form-textarea"
+						aria-label="Report reason"
+					></textarea>
+				</div>
+				{#if reportError}
+					<div class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm">
+						{reportError}
 					</div>
-					{#if reportError}
-						<div class="bg-red-100 border border-red-300 text-red-800 px-3 py-2 rounded-lg text-sm">
-							{reportError}
-						</div>
-					{/if}
-					<div class="flex gap-2">
-						<button type="submit" class="flex-1 btn-primary">Submit Report</button>
-						<button type="button" class="flex-1 btn-secondary" onclick={() => (reportOpen = false)}>Cancel</button>
-					</div>
-				</form>
-			{/if}
-		</div>
-	</dialog>
-{/if}
+				{/if}
+				<div class="flex gap-2">
+					<button type="submit" class="flex-1 btn-primary">Submit Report</button>
+					<button type="button" class="flex-1 btn-secondary" onclick={() => (reportOpen = false)}>Cancel</button>
+				</div>
+			</form>
+		{/if}
+	</div>
+</dialog>

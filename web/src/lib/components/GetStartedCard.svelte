@@ -7,7 +7,10 @@
     mode?: "onboarding" | "library";
   };
   let { onboarding, mode = "onboarding" }: Props = $props();
-  let currentOnboarding = $state<OnboardingResponse | null>(onboarding);
+  // Local override populated by refreshAfterSave(); falls back to the prop
+  // so the component stays reactive to parent updates.
+  let refreshedOnboarding = $state<OnboardingResponse | null>(null);
+  let currentOnboarding = $derived(refreshedOnboarding ?? onboarding);
   let openDrawer = $state("");
   let refreshing = $state(false);
   let isLibrary = $derived(mode === "library");
@@ -71,7 +74,7 @@
         headers: { Accept: "application/json" },
       });
       if (response.ok)
-        currentOnboarding = (await response.json()) as OnboardingResponse;
+        refreshedOnboarding = (await response.json()) as OnboardingResponse;
     } finally {
       refreshing = false;
     }

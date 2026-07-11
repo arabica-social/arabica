@@ -172,7 +172,7 @@
 </script>
 
 <svelte:head>
-  <title>Arabica — Coffee Brew Tracking on AT Protocol</title>
+  <title>Arabica</title>
   <meta
     name="description"
     content="Log every brew, track your beans and equipment, and share your coffee story with the community. Built on AT Protocol — you own your data."

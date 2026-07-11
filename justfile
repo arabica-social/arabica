@@ -65,9 +65,9 @@ e2e-build:
     @pnpm run build:svelte
     @./scripts/build-spa.sh
 
-# Run E2E tests with Playwright. Boots the e2e-server (test PDS + SPA),
-# then runs the Playwright spec files against it.
-e2e: e2e-build
+# Boot the e2e-server (test PDS + SPA) and run Playwright with the given args.
+# Private helper; call via `e2e` or `e2e-update-snapshots`.
+_e2e-run *args:
     @set -eu; \
         rm -f tests/e2e/.server-url tests/e2e/.server-did tests/e2e/.control-url; \
         server_bin=$(mktemp /tmp/arabica-e2e-server.XXXXXX); \
@@ -85,7 +85,21 @@ e2e: e2e-build
         base_url=$(cat tests/e2e/.server-url); \
         control_url=$(cat tests/e2e/.control-url); \
         cd web; \
-        ARABICA_E2E_BASE_URL=$base_url ARABICA_E2E_CONTROL_URL=$control_url CHROMIUM_PATH=$(nix-shell -p chromium --run 'which chromium' 2>/dev/null | tail -1) pnpm exec playwright test
+        ARABICA_E2E_BASE_URL=$base_url ARABICA_E2E_CONTROL_URL=$control_url CHROMIUM_PATH=$(nix-shell -p chromium --run 'which chromium' 2>/dev/null | tail -1) pnpm exec playwright test {{args}}
+
+# Run E2E tests with Playwright. Boots the e2e-server (test PDS + SPA),
+# then runs the Playwright spec files against it.
+e2e: e2e-build
+    @just _e2e-run
+
+# Update Playwright screenshot baselines after intentional UI changes.
+# Defaults to the visual-regression spec; pass a spec + extra Playwright args
+# to scope the update, e.g. after moving a single button:
+#   just e2e-update-snapshots
+#   just e2e-update-snapshots tests/e2e/visual-regression.spec.ts -g "brew view"
+# Updated baselines land in web/tests/e2e/visual-regression.spec.ts-snapshots/.
+e2e-update-snapshots testfile='tests/e2e/visual-regression.spec.ts' *args='': e2e-build
+    @just _e2e-run {{testfile}} --update-snapshots {{args}}
 
 # Run only the e2e-server (without Playwright) for manual testing.
 e2e-server: e2e-build
