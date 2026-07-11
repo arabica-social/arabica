@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { pushToast } from "$lib/stores/toasts";
+	import { themeStorageKey } from "$lib/stores/storageKeys";
 	import type { PageData } from "./$types";
 	import type { SettingsResponse } from "$lib/types/api";
 
@@ -104,7 +105,7 @@
 	type Theme = "system" | "light" | "dark";
 	function readTheme(): Theme {
 		try {
-			const value = localStorage.getItem("arabica-theme");
+			const value = localStorage.getItem(themeStorageKey());
 			return value === "light" || value === "dark" ? value : "system";
 		} catch {
 			return "system";
@@ -117,9 +118,9 @@
 		theme = value;
 		try {
 			if (value === "system") {
-				localStorage.removeItem("arabica-theme");
+				localStorage.removeItem(themeStorageKey());
 			} else {
-				localStorage.setItem("arabica-theme", value);
+				localStorage.setItem(themeStorageKey(), value);
 			}
 		} catch {
 			// localStorage may be unavailable in strict privacy modes.

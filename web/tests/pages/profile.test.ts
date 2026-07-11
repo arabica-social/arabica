@@ -13,7 +13,7 @@ const profileData = {
 			did: "did:plc:abc",
 			is_own_profile: true,
 			is_authenticated: true,
-			is_arabica_user: true,
+			is_app_user: true,
 			brews: [
 				{
 					rkey: "brew-1",

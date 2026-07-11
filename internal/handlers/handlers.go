@@ -584,11 +584,11 @@ func (h *Handler) DeleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 		}
 	}
 	h.InvalidateFeedCache()
-	w.Header().Set("HX-Trigger", "entityDeleted")
 	if WantsJSON(r) {
 		WriteJSON(w, map[string]bool{"deleted": true}, entityName+" delete")
 		return
 	}
+	w.Header().Set("HX-Trigger", "entityDeleted")
 	w.WriteHeader(http.StatusOK)
 }
 

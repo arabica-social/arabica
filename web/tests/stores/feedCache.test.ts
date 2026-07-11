@@ -34,35 +34,35 @@ describe("feedCache store", () => {
 	});
 
 	describe("feedCacheKey", () => {
-		it("produces the arabica_feed_cache:{app}:{did}:{path}{search} format", () => {
+		it("produces the {app}_feed_cache:{did}:{path}{search} format", () => {
 			expect(feedCacheKey("/api/feed")).toBe(
-				`${CACHE_PREFIX}arabica:did:plc:alice:/api/feed`,
+				`${CACHE_PREFIX}did:plc:alice:/api/feed`,
 			);
 		});
 
 		it("includes the query string", () => {
 			expect(feedCacheKey("/api/feed?cursor=abc&limit=20")).toBe(
-				`${CACHE_PREFIX}arabica:did:plc:alice:/api/feed?cursor=abc&limit=20`,
+				`${CACHE_PREFIX}did:plc:alice:/api/feed?cursor=abc&limit=20`,
 			);
 		});
 
 		it("strips the hash fragment", () => {
 			expect(feedCacheKey("/api/feed#section")).toBe(
-				`${CACHE_PREFIX}arabica:did:plc:alice:/api/feed`,
+				`${CACHE_PREFIX}did:plc:alice:/api/feed`,
 			);
 			expect(feedCacheKey("/api/feed?x=1#frag")).toBe(
-				`${CACHE_PREFIX}arabica:did:plc:alice:/api/feed?x=1`,
+				`${CACHE_PREFIX}did:plc:alice:/api/feed?x=1`,
 			);
 		});
 
-		it("falls back to 'app' and 'anon' when body dataset is unset", () => {
+		it("falls back to default app and 'anon' when body dataset is unset", () => {
 			clearBody();
-			expect(feedCacheKey("/api/feed")).toBe(`${CACHE_PREFIX}app:anon:/api/feed`);
+			expect(feedCacheKey("/api/feed")).toBe(`${CACHE_PREFIX}anon:/api/feed`);
 		});
 
 		it("normalizes a bare relative URL against window.location.origin", () => {
 			// relative URL resolves against origin; pathname/search preserved
-			expect(feedCacheKey("feed")).toBe(`${CACHE_PREFIX}arabica:did:plc:alice:/feed`);
+			expect(feedCacheKey("feed")).toBe(`${CACHE_PREFIX}did:plc:alice:/feed`);
 		});
 	});
 
@@ -169,7 +169,7 @@ describe("feedCache store", () => {
 			expect(getCachedFeedJSON("/api/feed")).toBeNull();
 		});
 
-		it("dispatches arabica:feed-mutation CustomEvent on document.body", () => {
+		it("dispatches {app}:feed-mutation CustomEvent on document.body", () => {
 			const handler = vi.fn();
 			document.body.addEventListener(FEED_MUTATION_EVENT, handler);
 

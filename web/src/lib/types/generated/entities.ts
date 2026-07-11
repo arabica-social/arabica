@@ -67,10 +67,10 @@ export const MaxBurrTypeLength = 50;
  * Field length limits for validation
  */
 export const MaxBrewerTypeLength = 100;
-export const MaxCommentLength = any /* social.MaxCommentLength */;
-export type Visibility = any /* profileprefs.Visibility */;
-export const VisibilityPublic = any /* profileprefs.VisibilityPublic */;
-export const VisibilityPrivate = any /* profileprefs.VisibilityPrivate */;
+export const MaxCommentLength = 1000;
+export type Visibility = string;
+export const VisibilityPublic = "public";
+export const VisibilityPrivate = "private";
 export type ProfileStatsVisibility = any /* profileprefs.ProfileStatsVisibility */;
 /**
  * Brewer type categories (knownValues from lexicon)
@@ -372,10 +372,10 @@ export type CreateCommentRequest = any /* social.CreateCommentRequest */;
 /**
  * NotificationType represents the type of notification
  */
-export type NotificationType = any /* notifications.Type */;
-export const NotificationLike = any /* notifications.Like */;
-export const NotificationComment = any /* notifications.Comment */;
-export const NotificationCommentReply = any /* notifications.CommentReply */;
+export type NotificationType = string;
+export const NotificationLike = "like" /* notifications.Like */;
+export const NotificationComment = "comment" /* notifications.Comment */;
+export const NotificationCommentReply = "comment_reply" /* notifications.CommentReply */;
 /**
  * Notification represents a notification for a user
  */

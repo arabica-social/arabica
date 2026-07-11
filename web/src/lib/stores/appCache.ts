@@ -15,6 +15,7 @@
 
 import { writable, type Writable } from "svelte/store";
 import type { AppCacheAPI } from "../types/appCache";
+import { dataCacheKey } from "./storageKeys";
 
 type CacheEnvelope = {
   version: number;
@@ -24,7 +25,6 @@ type CacheEnvelope = {
   data: Record<string, unknown>;
 };
 
-const CACHE_KEY = "arabica_data_cache";
 const CACHE_VERSION = 1;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -38,19 +38,19 @@ function getCurrentApp() {
 
 function getCache(): CacheEnvelope | null {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(dataCacheKey());
     if (!raw) return null;
 
     const cache = JSON.parse(raw) as CacheEnvelope;
     if (cache.version !== CACHE_VERSION) {
-      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(dataCacheKey());
       return null;
     }
 
     return cache;
   } catch (error) {
     console.warn("Failed to read cache:", error);
-    localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(dataCacheKey());
     return null;
   }
 }
@@ -64,7 +64,7 @@ function setCache(data: Record<string, unknown>) {
       app: getCurrentApp(),
       data,
     };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    localStorage.setItem(dataCacheKey(), JSON.stringify(cache));
   } catch (error) {
     console.warn("Failed to write cache:", error);
   }
@@ -75,7 +75,7 @@ function getCachedDID() {
 }
 
 function invalidateCacheStorage() {
-  localStorage.removeItem(CACHE_KEY);
+  localStorage.removeItem(dataCacheKey());
 }
 
 function isCacheValid() {

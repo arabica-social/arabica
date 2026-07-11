@@ -2,6 +2,7 @@
 	import Header from "$lib/components/Header.svelte";
 	import Footer from "$lib/components/Footer.svelte";
 	import { app, session, refreshSession } from "$lib/stores/session";
+	import { themeStorageKey } from "$lib/stores/storageKeys";
 	import {
 		toasts,
 		pushToast,
@@ -30,7 +31,7 @@
 	// localStorage.
 	function applyTheme() {
 		try {
-			const theme = localStorage.getItem("arabica-theme");
+			const theme = localStorage.getItem(themeStorageKey());
 			if (theme === "dark" || theme === "light") {
 				document.documentElement.setAttribute("data-theme", theme);
 			} else {

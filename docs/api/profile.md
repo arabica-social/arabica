@@ -31,7 +31,7 @@ entity lists, brew social stats, and entity usage counts — all in one response
   "did": "did:plc:...",
   "is_own_profile": true,
   "is_authenticated": true,
-  "is_arabica_user": true,
+  "is_app_user": true,
   "brews": [Brew],
   "total_brews": 42,
   "brews_has_more": true,
@@ -59,7 +59,7 @@ entity lists, brew social stats, and entity usage counts — all in one response
 | `did` | `string` | The profile owner's DID. |
 | `is_own_profile` | `bool` | Whether the viewer owns this profile. |
 | `is_authenticated` | `bool` | Whether the viewer is authenticated. |
-| `is_arabica_user` | `bool` | Whether the user has arabica records. |
+| `is_app_user` | `bool` | Whether the user has app records. |
 | `brews` | `Brew[]` | Paginated brews (newest first). |
 | `total_brews` | `int` | Total brew count (may exceed `len(brews)`). |
 | `brews_has_more` | `bool` | Whether there are more brews. |

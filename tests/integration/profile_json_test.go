@@ -17,7 +17,7 @@ type profileJSONResponse struct {
 	DID                string             `json:"did"`
 	IsOwnProfile       bool               `json:"is_own_profile"`
 	IsAuthenticated    bool               `json:"is_authenticated"`
-	IsArabicaUser      bool               `json:"is_arabica_user"`
+	IsArabicaUser      bool               `json:"is_app_user"`
 	Brews              []json.RawMessage  `json:"brews"`
 	TotalBrews         int                `json:"total_brews"`
 	BrewsHasMore       bool               `json:"brews_has_more"`

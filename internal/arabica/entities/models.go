@@ -8,6 +8,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/notifications"
 	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/social"
+	"tangled.org/arabica.social/arabica/internal/validation"
 )
 
 // Field length limits for validation
@@ -458,40 +459,44 @@ type CreateCommentRequest = social.CreateCommentRequest
 
 // Validate checks that all fields are within acceptable limits
 func (r *CreateBeanRequest) Validate() error {
+	v := validation.New()
 	if r.Name == "" {
-		return ErrNameRequired
+		v.AddErr("name", ErrNameRequired)
 	}
 	if len(r.Name) > MaxNameLength {
-		return ErrNameTooLong
+		v.AddErr("name", ErrNameTooLong)
 	}
 	if len(r.Origin) > MaxOriginLength {
-		return ErrOriginTooLong
+		v.AddErr("origin", ErrOriginTooLong)
 	}
 	if len(r.Variety) > MaxVarietyLength {
-		return ErrFieldTooLong
+		v.AddErr("variety", ErrFieldTooLong)
 	}
 	if len(r.RoastLevel) > MaxRoastLevelLength {
-		return ErrFieldTooLong
+		v.AddErr("roast_level", ErrFieldTooLong)
 	}
 	if r.RoastDate != "" {
 		if _, err := time.Parse(time.DateOnly, r.RoastDate); err != nil {
-			return ErrInvalidRoastDate
+			v.AddErr("roast_date", ErrInvalidRoastDate)
 		}
 	}
 	if len(r.Process) > MaxProcessLength {
-		return ErrFieldTooLong
+		v.AddErr("process", ErrFieldTooLong)
 	}
 	if len(r.Description) > MaxDescriptionLength {
-		return ErrDescTooLong
+		v.AddErr("description", ErrDescTooLong)
 	}
 	if len(r.Notes) > MaxNotesLength {
-		return ErrNotesTooLong
+		v.AddErr("notes", ErrNotesTooLong)
 	}
 	if len(r.Link) > MaxLinkLength {
-		return ErrLinkTooLong
+		v.AddErr("link", ErrLinkTooLong)
 	}
 	if r.Rating != nil && (*r.Rating < 1 || *r.Rating > 10) {
-		return ErrRatingOutOfRange
+		v.AddErr("rating", ErrRatingOutOfRange)
+	}
+	if v.HasErrors() {
+		return v
 	}
 	return nil
 }

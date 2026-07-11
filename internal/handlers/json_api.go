@@ -19,8 +19,17 @@ import (
 // HTMX requests (HX-Request: true) without a JSON Accept are served HTML.
 func WantsJSON(r *http.Request) bool {
 	accept := r.Header.Get("Accept")
-	if accept != "" && strings.Contains(accept, "application/json") {
-		return true
+	if accept != "" {
+		for _, part := range strings.Split(accept, ",") {
+			mediaType := strings.TrimSpace(part)
+			// Strip q-value parameters (e.g. "application/json; q=0.9")
+			if semi := strings.IndexByte(mediaType, ';'); semi != -1 {
+				mediaType = strings.TrimSpace(mediaType[:semi])
+			}
+			if mediaType == "application/json" {
+				return true
+			}
+		}
 	}
 	return r.Header.Get("X-Requested-With") == "JSON"
 }
@@ -60,12 +69,12 @@ type AuthorSummary struct {
 // SocialDataJSON is the JSON-serializable view of SocialData (likes,
 // comments, and moderation state) returned by entity view endpoints.
 type SocialDataJSON struct {
-	IsLiked        bool             `json:"is_liked"`
-	LikeCount      int              `json:"like_count"`
-	CommentCount   int              `json:"comment_count"`
-	Comments       []map[string]any `json:"comments"`
-	IsModerator    bool             `json:"is_moderator"`
-	CanHideRecord  bool             `json:"can_hide_record"`
-	CanBlockUser   bool             `json:"can_block_user"`
-	IsRecordHidden bool             `json:"is_record_hidden"`
+	IsLiked        bool         `json:"is_liked"`
+	LikeCount      int          `json:"like_count"`
+	CommentCount   int          `json:"comment_count"`
+	Comments       []CommentJSON `json:"comments"`
+	IsModerator    bool         `json:"is_moderator"`
+	CanHideRecord  bool         `json:"can_hide_record"`
+	CanBlockUser   bool         `json:"can_block_user"`
+	IsRecordHidden bool         `json:"is_record_hidden"`
 }

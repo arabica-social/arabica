@@ -71,7 +71,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 			"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Tailwind
 			"img-src 'self' https: data:",      // Allow external images (avatars) and data URIs
 			"font-src 'self'",
-			"connect-src 'self' https:", // Allow connections to external APIs (OAuth, PDS)
+			"connect-src 'self'", // SPA only fetches from same-origin Go backend
 			"frame-ancestors 'none'",
 			"base-uri 'self'",
 			"form-action 'self' https:", // Allow form submissions to external OAuth servers

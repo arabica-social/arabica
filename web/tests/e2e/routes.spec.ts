@@ -62,7 +62,14 @@ test("explore page loads with search and filters", async ({ authedPage: page, ap
 	await apiRequest.post("/api/roasters", {
 		form: { name: "Explore Route Roaster", location: "Brooklyn, NY" },
 	});
-	await page.waitForTimeout(2000);
+
+	// Poll the explore API until the seeded record is indexed (bounded).
+	await expect.poll(async () => {
+		const res = await apiRequest.get("/api/explore?q=Explore%20Route%20Roaster");
+		if (!res.ok()) return [];
+		const body = await res.json();
+		return body.items ?? [];
+	}, { timeout: 10_000, intervals: [500, 1000, 2000] }).toHaveLength(1);
 
 	await page.goto("/explore");
 	await page.waitForLoadState("networkidle");

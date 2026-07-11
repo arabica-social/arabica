@@ -18,8 +18,5 @@
     "src/**/*.ts",
     "src/**/*.js",
     "src/**/*.svelte"
-  ],
-  "exclude": [
-    "src/lib/types/generated/**"
   ]
 }

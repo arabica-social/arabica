@@ -110,7 +110,7 @@ export interface ProfileJSONResponse {
   did: string;
   is_own_profile: boolean;
   is_authenticated: boolean;
-  is_arabica_user: boolean;
+  is_app_user: boolean;
   brews: (any /* arabica.Brew */ | undefined)[];
   total_brews: number /* int */;
   brews_has_more: boolean;

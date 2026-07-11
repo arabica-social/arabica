@@ -12,9 +12,14 @@ version: 0.1.0
       "author": {
         "did": "<DID>"
       },
+      "author_did": "<DID>",
+      "can_block_user": false,
+      "can_hide_record": false,
       "comment_count": 0,
       "is_liked_by_viewer": false,
+      "is_moderator": false,
       "is_owner": true,
+      "is_record_hidden": false,
       "like_count": 0,
       "record": {
         "closed": false,
@@ -46,9 +51,14 @@ version: 0.1.0
       "author": {
         "did": "<DID>"
       },
+      "author_did": "<DID>",
+      "can_block_user": false,
+      "can_hide_record": false,
       "comment_count": 0,
       "is_liked_by_viewer": false,
+      "is_moderator": false,
       "is_owner": true,
+      "is_record_hidden": false,
       "like_count": 0,
       "record": {
         "created_at": "<TIMESTAMP>",
@@ -66,5 +76,31 @@ version: 0.1.0
   "query": {
     "sort": "recent",
     "type": ""
-  }
+  },
+  "tabs": [
+    {
+      "label": "All",
+      "value": ""
+    },
+    {
+      "label": "Beans",
+      "value": "bean"
+    },
+    {
+      "label": "Brews",
+      "value": "brew"
+    },
+    {
+      "label": "Brewers",
+      "value": "brewer"
+    },
+    {
+      "label": "Grinders",
+      "value": "grinder"
+    },
+    {
+      "label": "Recipes",
+      "value": "recipe"
+    }
+  ]
 }

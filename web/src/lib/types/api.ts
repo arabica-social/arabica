@@ -10,7 +10,7 @@ export type ProfileResponse = {
 	did: string;
 	is_own_profile: boolean;
 	is_authenticated: boolean;
-	is_arabica_user: boolean;
+	is_app_user: boolean;
 	brews: Brew[];
 	total_brews: number;
 	brews_has_more: boolean;

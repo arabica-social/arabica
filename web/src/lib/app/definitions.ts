@@ -9,11 +9,21 @@ export type AppDefinition = {
 	displayName: string;
 	tagline: string;
 	libraryPath: string;
+	libraryLabel: string;
 	sessionNoun: string;
 	sessionAction: string;
 	commentCollection: string;
 	entityRoutes: EntityRouteDefinition;
 	feedRecordTypes: string[];
+	// Home page content
+	heroHeading: string;
+	heroDescription: string;
+	metaDescription: string;
+	// Readiness: the entity types a user must have before they can log a session
+	readinessEntityTypes: string[];
+	readinessNudge: string;
+	aboutHeading: string;
+	aboutBody: string;
 };
 
 export const appDefinitions: Record<AppName, AppDefinition> = { arabica, oolong };

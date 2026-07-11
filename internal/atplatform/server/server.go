@@ -374,6 +374,12 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 			sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
 				return h.ResolveSessionData(ctx, did)
 			})
+			// Resolve entity-specific OG metadata for entity-view URL
+			// patterns so social shares show record-specific title,
+			// description, and image without executing JavaScript.
+			sh.SetOGResolver(func(r *http.Request) spa.OGData {
+				return resolveEntityOG(r, h, app)
+			})
 			spaHandler = sh
 			log.Info().Msg("SvelteKit SPA shell enabled")
 		}
@@ -674,4 +680,62 @@ func loadKnownDIDs(filePath string) ([]string, error) {
 		return nil, fmt.Errorf("read: %w", err)
 	}
 	return dids, nil
+}
+
+// resolveEntityOG inspects the request URL for entity-view patterns
+// (/{entity}/{actor}/{id}) and returns OG metadata for social sharing.
+// When the URL is not an entity view or the record can't be resolved,
+// it returns zero-value OGData and the shell falls back to brand defaults.
+func resolveEntityOG(r *http.Request, h *handlers.Handler, app *domain.App) spa.OGData {
+	// Path patterns: /{entity_path}/{actor}/{id}
+	// Skip non-entity paths immediately.
+	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(segments) < 3 {
+		return spa.OGData{}
+	}
+
+	entityPath := segments[0]
+	actor := segments[1]
+	rkey := segments[2]
+
+	// Skip /api/ and other non-page paths.
+	if entityPath == "api" || entityPath == "static" || entityPath == "_app" {
+		return spa.OGData{}
+	}
+
+	// Match the entity path against the app's entity routes.
+	var noun string
+	for _, route := range app.EntityRoutes {
+		if route.Path == entityPath {
+			noun = route.Noun
+			break
+		}
+	}
+	if noun == "" {
+		return spa.OGData{}
+	}
+
+	// Build the share URL (relative path).
+	shareURL := "/" + entityPath + "/" + actor + "/" + rkey
+
+	// Construct absolute base URL.
+	baseURL := h.PublicBaseURL(r)
+
+	// Resolve owner handle for a readable title.
+	ownerHandle := h.ResolveOwnerHandle(r.Context(), actor)
+
+	// Build OG metadata following the same pattern as PopulateOGFields.
+	og := spa.OGData{
+		Type:    "article",
+		URL:      baseURL + shareURL,
+		Image:    baseURL + shareURL + "/og-image",
+		ImageAlt: noun + " on " + app.Brand.DisplayName,
+	}
+	if ownerHandle != "" {
+		og.Title = fmt.Sprintf("%s from %s on %s", noun, ownerHandle, app.Brand.DisplayName)
+	} else {
+		og.Title = fmt.Sprintf("%s on %s", noun, app.Brand.DisplayName)
+	}
+
+	return og
 }

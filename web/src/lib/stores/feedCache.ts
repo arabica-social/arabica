@@ -5,10 +5,12 @@
 // consumes JSON from `GET /api/feed`, so this cache stores parsed JSON
 // payloads keyed by the request URL (path + query).
 //
-// The invalidation contract is unchanged: mutations dispatch the
-// `arabica:feed-mutation` event on `document.body`, which clears the cache
+// The invalidation contract is unchanged: mutations dispatch a
+// `{app}:feed-mutation` event on `document.body`, which clears the cache
 // and lets feed components refetch. The TTL is short (60s) to match the
 // legacy behavior.
+
+import { feedCachePrefix, feedMutationEvent } from "./storageKeys";
 
 type FeedCacheEnvelope = {
   version: number;
@@ -19,10 +21,9 @@ type FeedCacheEnvelope = {
   json: unknown;
 };
 
-const CACHE_PREFIX = "arabica_feed_cache:";
 const CACHE_VERSION = 2;
 const CACHE_TTL_MS = 60 * 1000;
-export const FEED_MUTATION_EVENT = "arabica:feed-mutation";
+export const FEED_MUTATION_EVENT = feedMutationEvent();
 
 export type FeedMutationDetail = {
   source?: "comment" | "entity" | "unknown";
@@ -41,7 +42,7 @@ function currentApp() {
 export function feedCacheKey(url: string) {
   const normalized = new URL(url, window.location.origin);
   normalized.hash = "";
-  return `${CACHE_PREFIX}${currentApp() || "app"}:${currentDID() || "anon"}:${normalized.pathname}${normalized.search}`;
+  return `${feedCachePrefix()}${currentDID() || "anon"}:${normalized.pathname}${normalized.search}`;
 }
 
 function isEnvelopeValid(envelope: FeedCacheEnvelope, url: string) {
@@ -96,7 +97,7 @@ export function clearFeedCache() {
   try {
     for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
       const key = sessionStorage.key(index);
-      if (key?.startsWith(CACHE_PREFIX)) {
+      if (key?.startsWith(feedCachePrefix())) {
         sessionStorage.removeItem(key);
       }
     }
@@ -106,7 +107,7 @@ export function clearFeedCache() {
 }
 
 /**
- * Clears the feed cache and dispatches `arabica:feed-mutation` on
+ * Clears the feed cache and dispatches `{app}:feed-mutation` on
  * `document.body`. Feed components listen for this event to refetch.
  */
 export function dispatchFeedMutation(detail: FeedMutationDetail = {}) {

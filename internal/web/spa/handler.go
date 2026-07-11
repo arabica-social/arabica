@@ -25,11 +25,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"io/fs"
 	"net/http"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
@@ -92,6 +92,12 @@ type ShellHandler struct {
 	// (profile, unread count, moderator flag) for the authenticated user.
 	// When nil, only the DID from context is injected.
 	sessionResolver SessionResolver
+	// ogResolver, when set, resolves entity-specific OG metadata for the
+	// request URL. This allows social sharing and crawlers to see
+	// record-specific title, description, and image on SPA-owned entity
+	// view pages without executing JavaScript. When nil, default brand-level
+	// OG tags are used.
+	ogResolver OGResolver
 }
 
 // SessionData carries the authenticated user's display state for the SPA
@@ -112,6 +118,26 @@ type SessionData struct {
 // it once per request to populate the <body> data attributes. Implementations
 // should be cheap (cache-backed) since this runs on every SPA page load.
 type SessionResolver func(ctx context.Context, did string) SessionData
+
+// OGData carries entity-specific OpenGraph metadata for the SPA shell.
+// When an OGResolver returns non-zero values, they override the default
+// brand-level OG tags in the shell's <head>.
+type OGData struct {
+	Title       string
+	Description string
+	Image       string
+	ImageAlt    string
+	URL         string
+	Type        string
+}
+
+// OGResolver resolves entity-specific OG metadata for a request URL.
+// The shell handler calls it for every SPA page load. Implementations
+// should inspect the URL path, and if it matches an entity-view pattern
+// (e.g. /beans/{actor}/{id}), load the record and return its OG metadata.
+// If the URL is not an entity view or the record can't be resolved,
+// return zero-value OGData and the shell falls back to brand defaults.
+type OGResolver func(r *http.Request) OGData
 
 // NewShellHandler creates a handler that serves the SPA shell. It reads
 // the embedded index.html at construction time. The assets manifest
@@ -147,6 +173,14 @@ func (h *ShellHandler) SetSessionResolver(r SessionResolver) {
 	h.sessionResolver = r
 }
 
+// SetOGResolver installs a resolver that populates entity-specific OG
+// metadata (title, description, image, URL) for entity-view URL patterns.
+// When nil or when the resolver returns empty data, the shell falls back
+// to default brand-level OG tags.
+func (h *ShellHandler) SetOGResolver(r OGResolver) {
+	h.ogResolver = r
+}
+
 // ServeHTTP serves the SPA index.html with injected <head> content.
 func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	data := ShellData{
@@ -179,8 +213,33 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Traceparent = tp
 	}
 
-	// Default OG metadata. Entity-specific OG (title, image, description)
-	// will be set by middleware or a pre-shell resolver in later phases.
+	// Resolve entity-specific OG metadata for entity-view URL patterns.
+	// Falls back to brand defaults when the URL is not an entity view or
+	// the resolver returns empty data.
+	if h.ogResolver != nil {
+		og := h.ogResolver(r)
+		if og.Title != "" {
+			data.OGTitle = og.Title
+			data.Title = og.Title
+		}
+		if og.Description != "" {
+			data.OGDescription = og.Description
+		}
+		if og.Image != "" {
+			data.OGImage = og.Image
+		}
+		if og.ImageAlt != "" {
+			data.OGImageAlt = og.ImageAlt
+		}
+		if og.URL != "" {
+			data.OGUrl = og.URL
+		}
+		if og.Type != "" {
+			data.OGType = og.Type
+		}
+	}
+
+	// Default OG metadata when no entity-specific data was resolved.
 	if data.OGTitle == "" {
 		data.OGTitle = data.BrandName
 	}
@@ -494,7 +553,7 @@ const headMarker = `<meta name="arabica-spa-head" content="" />`
 const headFragmentTemplate = `
 		<script nonce="{{.CSPNonce}}">
 			(function() {
-				var t = localStorage.getItem('arabica-theme');
+				var t = localStorage.getItem('{{.AppName}}-theme');
 				if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
 			})();
 		</script>

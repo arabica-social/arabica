@@ -116,7 +116,7 @@ version: 0.1.0
       "rkey": "<RKEY:grinder>"
     }
   ],
-  "is_arabica_user": true,
+  "is_app_user": true,
   "is_authenticated": true,
   "is_own_profile": true,
   "profile": {},

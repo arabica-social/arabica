@@ -8,7 +8,7 @@
  * This value can be adjusted based on desired freshness vs. performance tradeoff.
  * Consider values between 5-10 minutes for a good balance.
  */
-export const PublicFeedCacheTTL = 5 * any /* time.Minute */;
+export const PublicFeedCacheTTL = 300000000000 /* 5 * time.Minute */;
 /**
  * PublicFeedCacheSize is the number of items to cache in the server
  */

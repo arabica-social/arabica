@@ -7,8 +7,8 @@ import {
 	appCacheLoading,
 	installAppCacheGlobal,
 } from "../../src/lib/stores/appCache";
+import { dataCacheKey } from "../../src/lib/stores/storageKeys";
 
-const CACHE_KEY = "arabica_data_cache";
 const CACHE_VERSION = 1;
 
 type Envelope = {
@@ -21,7 +21,7 @@ type Envelope = {
 
 function writeCache(envelope: Partial<Envelope> & { data?: Record<string, unknown> }) {
 	localStorage.setItem(
-		CACHE_KEY,
+		dataCacheKey(),
 		JSON.stringify({
 			version: envelope.version ?? CACHE_VERSION,
 			timestamp: envelope.timestamp ?? Date.now(),
@@ -115,7 +115,7 @@ describe("appCache store", () => {
 
 			await appCache.getData();
 
-			const raw = localStorage.getItem(CACHE_KEY);
+			const raw = localStorage.getItem(dataCacheKey());
 			expect(raw).not.toBeNull();
 			const stored = JSON.parse(raw as string) as Envelope;
 			expect(stored.version).toBe(CACHE_VERSION);
@@ -169,7 +169,7 @@ describe("appCache store", () => {
 			});
 
 			expect(appCache.getCachedData()).toBeNull();
-			expect(localStorage.getItem(CACHE_KEY)).toBeNull();
+			expect(localStorage.getItem(dataCacheKey())).toBeNull();
 		});
 	});
 
@@ -218,12 +218,12 @@ describe("appCache store", () => {
 			setBody("did:plc:alice", "arabica");
 			vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okResponse({ did: "did:plc:alice" })));
 			await appCache.getData();
-			expect(localStorage.getItem(CACHE_KEY)).not.toBeNull();
+			expect(localStorage.getItem(dataCacheKey())).not.toBeNull();
 			expect(get(appCacheData)).not.toBeNull();
 
 			appCache.invalidateCache();
 
-			expect(localStorage.getItem(CACHE_KEY)).toBeNull();
+			expect(localStorage.getItem(dataCacheKey())).toBeNull();
 			expect(get(appCacheData)).toBeNull();
 		});
 	});
@@ -245,7 +245,7 @@ describe("appCache store", () => {
 
 			expect(fetchFn).toHaveBeenCalledTimes(1);
 			expect(result).toEqual({ did: "did:plc:alice", fresh: true });
-			const stored = JSON.parse(localStorage.getItem(CACHE_KEY) as string) as Envelope;
+			const stored = JSON.parse(localStorage.getItem(dataCacheKey()) as string) as Envelope;
 			expect(stored.data).toEqual({ did: "did:plc:alice", fresh: true });
 		});
 	});
@@ -284,7 +284,7 @@ describe("appCache store", () => {
 			writeCache({ version: 999, did: "did:plc:alice", app: "arabica", data: {} });
 			// getCache drops it on version mismatch; isCacheValid() reads through getCache
 			expect(appCache.isCacheValid()).toBe(false);
-			expect(localStorage.getItem(CACHE_KEY)).toBeNull();
+			expect(localStorage.getItem(dataCacheKey())).toBeNull();
 		});
 	});
 

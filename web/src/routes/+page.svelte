@@ -2,7 +2,7 @@
   import FeedCard from "$lib/components/FeedCard.svelte";
   import FeedFilters from "$lib/components/FeedFilters.svelte";
   import Icon from "$lib/components/Icon.svelte";
-  import { session } from "$lib/stores/session";
+  import { app } from "$lib/stores/session";
   import { pushToast } from "$lib/stores/toasts";
   import { goto } from "$app/navigation";
   import { tick } from "svelte";
@@ -11,7 +11,7 @@
   import ScrollTopButton from "$lib/components/ScrollTopButton.svelte";
   import type { PageData } from "./$types";
   import type { FeedItem, FeedResponse } from "$lib/types/feed";
-  import { definitionFor } from "$lib/app/definitions";
+  import { definitionFor, entityRouteForCollection } from "$lib/app/definitions";
 
   let { data }: { data: PageData } = $props();
 
@@ -77,12 +77,10 @@
     });
   }
 
-  async function applyFilter(nextType: string) {
-    if (typeFilter === nextType && !loading) return;
-    typeFilter = nextType;
+  async function loadFeed(nextType: string, nextSort: string) {
     loading = true;
-    updateURL(nextType, sort);
-    const url = buildURL(nextType, sort);
+    updateURL(nextType, nextSort);
+    const url = buildURL(nextType, nextSort);
     // Instant cached display, then refetch to sync.
     const cached = getCachedFeedJSON<FeedResponse>(url);
     if (cached) {
@@ -105,32 +103,16 @@
     }
   }
 
+  async function applyFilter(nextType: string) {
+    if (typeFilter === nextType && !loading) return;
+    typeFilter = nextType;
+    await loadFeed(nextType, sort);
+  }
+
   async function applySort(nextSort: string) {
     if ((sort || "recent") === nextSort && !loading) return;
     sort = nextSort;
-    loading = true;
-    updateURL(typeFilter, nextSort);
-    const url = buildURL(typeFilter, nextSort);
-    // Instant cached display, then refetch to sync.
-    const cached = getCachedFeedJSON<FeedResponse>(url);
-    if (cached) {
-      items = cached.items ?? [];
-      nextCursor = cached.next_cursor ?? "";
-    }
-    try {
-      const res = await fetch(url, {
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) throw new Error(`Feed failed: ${res.status}`);
-      const data = (await res.json()) as FeedResponse;
-      items = data.items ?? [];
-      nextCursor = data.next_cursor ?? "";
-      setCachedFeedJSON(url, data);
-    } catch {
-      pushToast("Failed to load feed");
-    } finally {
-      loading = false;
-    }
+    await loadFeed(typeFilter, nextSort);
   }
 
   async function loadMore() {
@@ -163,21 +145,22 @@
   let incompleteRecords = $derived(data.incompleteRecords);
   let popularRecipes = $derived(data.popularRecipes);
 
-  // Brew readiness: if the user hasn't added a bean/brewer/roaster yet,
-  // show a Get Started nudge instead of the Log Brew action.
+  // Brew readiness: if the user hasn't added the required entity types yet,
+  // show a Get Started nudge instead of the Log session action.
   let ready = $derived(
     !onboarding ||
-      (onboarding.readiness.HasBean &&
-        onboarding.readiness.HasBrewer &&
-        onboarding.readiness.HasRoaster),
+      appDefinition.readinessEntityTypes.every((t) => {
+        const key = `Has${t.charAt(0).toUpperCase()}${t.slice(1)}` as keyof typeof onboarding.readiness;
+        return onboarding.readiness[key];
+      }),
   );
 </script>
 
 <svelte:head>
-  <title>Arabica</title>
+  <title>{appDefinition.displayName}</title>
   <meta
     name="description"
-    content="Log every brew, track your beans and equipment, and share your coffee story with the community. Built on AT Protocol — you own your data."
+    content={appDefinition.metaDescription}
   />
 </svelte:head>
 
@@ -194,15 +177,13 @@
     <!-- Welcome card (authenticated) -->
     <div class="text-center mb-8 pt-4">
       <h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">
-        {appName === "oolong"
-          ? "Your tea journey, documented."
-          : "Your coffee journey, documented."}
+        {appDefinition.heroHeading}
       </h1>
       {#if !ready}
         <div class="alert-warning mb-6 max-w-xl mx-auto text-left">
           <p class="font-semibold mb-1">Get started</p>
           <p class="text-sm mb-3">
-            Add a bean, brewer, and roaster to start logging brews.
+            {appDefinition.readinessNudge}
           </p>
           <a href="/onboarding" class="btn-primary text-sm">Get Started →</a>
         </div>
@@ -215,7 +196,7 @@
           aria-disabled={!ready}
         >
           <span class="text-base font-semibold"
-            >{appName === "oolong" ? "Log Steep" : "Log Brew"}</span
+            >{appDefinition.sessionAction}</span
           >
         </a>
         <a
@@ -229,7 +210,7 @@
           class="home-action-secondary block text-center py-4 px-4 rounded-xl"
         >
           <span class="text-base font-semibold"
-            >{appName === "oolong" ? "My Tea" : "My Coffee"}</span
+            >{appDefinition.libraryLabel}</span
           >
         </a>
         <a
@@ -244,14 +225,10 @@
     <!-- Welcome hero (unauthenticated) -->
     <div class="text-center mb-8 pt-4">
       <h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-3">
-        {appName === "oolong"
-          ? "Your tea journey, documented."
-          : "Your coffee journey, documented."}
+        {appDefinition.heroHeading}
       </h1>
       <p class="text-lg text-emphasis max-w-xl mx-auto mb-3">
-        {appName === "oolong"
-          ? "Log every steep, track your teaware and vendors, and share your tea story with the community."
-          : "Log every brew, track your beans and equipment, and share your coffee story with the community."}
+        {appDefinition.heroDescription}
       </p>
       <p class="text-sm text-faint">
         <a href="/atproto" class="hover:text-emphasis transition-colors"
@@ -379,7 +356,7 @@
         <div class="space-y-2">
           {#each incompleteRecords.records as rec (rec.RKey)}
             <a
-              href={`/${rec.EntityType}s/${rec.RKey}/edit`}
+              href={`/${entityRouteForCollection($app, rec.EntityType)}/${rec.RKey}/edit`}
               class="block p-3 rounded-lg border border-brown-200 hover:bg-brown-50 transition-colors"
             >
               <div class="flex items-center justify-between">
@@ -418,11 +395,9 @@
 
     <!-- About info card -->
     <div class="card p-6 mb-8">
-      <h3 class="text-lg font-bold text-primary mb-2">About Arabica</h3>
+      <h3 class="text-lg font-bold text-primary mb-2">{appDefinition.aboutHeading}</h3>
       <p class="text-sm text-secondary">
-        Arabica is a coffee brew tracking app built on AT Protocol. Your brewing
-        data is stored in your own Personal Data Server, giving you full
-        ownership and portability.
+        {appDefinition.aboutBody}
       </p>
       <a
         href="/about"

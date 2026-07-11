@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/firehose"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
@@ -60,6 +59,12 @@ func (h *Handler) RenderEntityViewJSON(w http.ResponseWriter, r *http.Request, c
 	var shareURL string
 	if owner != "" && loaded.Route.Path != "" {
 		shareURL = fmt.Sprintf("/%s/%s/%s", loaded.Route.Path, owner, rkey)
+	} else if loaded.IsOwnProfile && didStr != "" && loaded.Route.Path != "" {
+		// Owner viewing their own record without ?owner= param: build
+		// the share URL from their profile handle, mirroring the HTML path.
+		if ap := h.GetUserProfile(r.Context(), didStr); ap != nil && ap.Handle != "" {
+			shareURL = fmt.Sprintf("/%s/%s/%s", loaded.Route.Path, ap.Handle, rkey)
+		}
 	}
 
 	sd := h.FetchSocialData(r.Context(), loaded.SubjectURI, didStr, isAuthenticated)
@@ -110,7 +115,7 @@ func (h *Handler) RenderEntityViewJSON(w http.ResponseWriter, r *http.Request, c
 			IsLiked:        sd.IsLiked,
 			LikeCount:      sd.LikeCount,
 			CommentCount:   sd.CommentCount,
-			Comments:       commentsToMaps(sd.Comments),
+			Comments:       NewCommentsJSON(sd.Comments),
 			IsModerator:    sd.IsModerator,
 			CanHideRecord:  sd.CanHideRecord,
 			CanBlockUser:   sd.CanBlockUser,
@@ -148,46 +153,4 @@ func writeEntityLoadJSONError(w http.ResponseWriter, err error) {
 		message = loadErr.Msg
 	}
 	WriteJSONError(w, status, code, message)
-}
-
-// commentsToMaps converts IndexedComment slices to a JSON-friendly shape that
-// includes the computed profile fields (Handle, DisplayName, Avatar) that the
-// firehose.IndexedComment struct marks with json:"-".
-func commentsToMaps(comments []firehose.IndexedComment) []map[string]any {
-	if len(comments) == 0 {
-		return nil
-	}
-	out := make([]map[string]any, 0, len(comments))
-	for _, c := range comments {
-		m := map[string]any{
-			"rkey":        c.RKey,
-			"subject_uri": c.SubjectURI,
-			"text":        c.Text,
-			"actor_did":   c.ActorDID,
-			"created_at":  c.CreatedAt,
-			"depth":       c.Depth,
-			"like_count":  c.LikeCount,
-			"is_liked":    c.IsLiked,
-		}
-		if c.ParentURI != "" {
-			m["parent_uri"] = c.ParentURI
-		}
-		if c.ParentRKey != "" {
-			m["parent_rkey"] = c.ParentRKey
-		}
-		if c.CID != "" {
-			m["cid"] = c.CID
-		}
-		if c.Handle != "" {
-			m["handle"] = c.Handle
-		}
-		if c.DisplayName != nil {
-			m["display_name"] = *c.DisplayName
-		}
-		if c.Avatar != nil {
-			m["avatar"] = *c.Avatar
-		}
-		out = append(out, m)
-	}
-	return out
 }

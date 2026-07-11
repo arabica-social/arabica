@@ -29,6 +29,7 @@ version: 0.1.0
     ],
     "UsageCount": 0
   },
+  "backlinks_detail_url": "/roasters/<DID>/<RKEY:roaster>/backlinks",
   "entity_count": 0,
   "entity_type": "roaster",
   "is_authenticated": true,
@@ -45,7 +46,7 @@ version: 0.1.0
     "can_block_user": false,
     "can_hide_record": false,
     "comment_count": 0,
-    "comments": null,
+    "comments": [],
     "is_liked": false,
     "is_moderator": false,
     "is_record_hidden": false,

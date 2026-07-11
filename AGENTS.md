@@ -5,23 +5,6 @@ Arabica is a coffee brew tracking application built on AT Protocol. User data
 (PDS), not locally. The app authenticates via OAuth, then performs CRUD through
 XRPC calls to the user's PDS.
 
-## Build & Development Commands
-
-```bash
-# Run tests
-go test ./...
-
-# Regenerate templ after changes
-templ generate
-
-# Verify after changes
-go vet ./...
-go build ./...
-
-# Format
-just format
-```
-
 ## Version Control
 
 Prefer `jj` over `git` for all version control operations in this repo. Fall
@@ -31,13 +14,6 @@ back to `git` only when `jj` cannot accomplish the task.
 
 Prefer standard library solutions over external dependencies. Only add a
 third-party dependency if stdlib genuinely cannot handle the requirement.
-
-## Tech Stack
-
-- Language: Go 1.26+, stdlib `net/http` with Go 1.22 routing
-- Storage: atproto PDS (user data), SQLite (firehose index, auth sessions)
-- Frontend: HTMX + Svelte islands + plain CSS (utility-class pattern) + Templ
-  (templates)
 
 ## Architecture
 
@@ -65,12 +41,6 @@ Collections (NSIDs) — defined in `internal/atproto/nsid.go`:
 
 Records reference each other via AT-URIs (`at://did/collection/rkey`). Record
 keys use TID format (timestamp-based identifiers).
-
-### Store Interface
-
-`internal/arabica/store/store.go` defines the `Store` interface with CRUD
-methods for all entity types. `AtprotoStore` is the production implementation
-backed by the user's PDS with witness cache and session cache layers.
 
 ### Three-Layer Caching
 
@@ -162,65 +132,6 @@ Pages (`internal/web/pages/`) accept `*components.LayoutData` + page-specific
 props. Components (`internal/web/components/`) are reusable building blocks.
 
 Pattern: `pages.PageName(layoutData, props).Render(r.Context(), w)`
-
-### Svelte Islands & Combo-Select
-
-Entity selection dropdowns (bean, grinder, brewer, roaster, cafe) use a shared
-combo-select pattern with typeahead search, community suggestions, and inline
-creation:
-
-- **Templ markup**: complex forms render Svelte island mount points and use
-  `EntityCombo.svelte` inside the island for entity-specific selections.
-- **Svelte behavior**: `internal/web/assets/svelte/src/EntityCombo.svelte`
-  searches user records from the Svelte app cache, community suggestions from
-  `/api/suggestions/{entity}`, and creates new entities inline via POST.
-- **Entity config**: `internal/web/assets/svelte/src/comboSelectRegistry.ts`
-  owns entity-specific label formatting, extra fields, and create data mapping.
-- **Suggestions backend**: `internal/suggestions/suggestions.go` — entity
-  configs define searchable fields and dedup keys.
-
-To add a new entity to combo-select: add entity config to
-`comboSelectRegistry.ts`, add the cached entity case to `cachedEntities()` in
-`EntityCombo.svelte`, add entity config to `suggestions.go`, and add to the
-entity-to-NSID map in `handlers/suggestions.go`.
-
-### Entity View Handler Pattern
-
-View handlers (`HandleXView`) support both authenticated (own records) and
-public (via `?owner=` parameter) access. They:
-
-1. Try witness cache first, fall back to PDS
-2. Resolve references (e.g., roaster for cafe)
-3. Populate OG metadata for social sharing
-4. Fetch social data (likes, comments, moderation state)
-5. Render the templ page with all props
-
-### Static assets (CSS + JS)
-
-The `internal/web/assets` package owns the front-end source tree:
-
-All files are `go:embed`ed and served from in-memory caches:
-
-- **CSS**: concatenated into one bundle per app at startup; URL is
-  `/static/css/output.css` (or `/static/css/output-<app>.css`) with
-  `?h=<sha256-prefix>` cache buster auto-derived from content
-- **JS**: served per-file at `/static/js/<name>` with the same `?h=...` query
-  param; templates reference each file via `{ assets.JSHrefFor("name.js") }`
-
-For dev, set `ARABICA_DEV=1` for hot reloading of assets.
-
-## Testing Conventions
-
-All tests MUST use testify:
-
-```go
-assert.Equal(t, expected, actual)
-assert.NoError(t, err)
-assert.Contains(t, haystack, needle)
-assert.True(t, value)
-```
-
-Prefer table driven tests.
 
 ## Using Go Tooling
 

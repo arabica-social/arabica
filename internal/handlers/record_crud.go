@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -44,6 +45,15 @@ func ExistingCreatedAt(ctx context.Context, store records.Store, nsid, rkey stri
 type RequestValidator[T any] interface {
 	*T
 	Validate() error
+}
+
+// FieldError is implemented by validation errors that carry per-field
+// messages. When a Validate() call returns a FieldError, RecordCRUDWrite
+// uses it to emit the documented {error, code, fields} envelope so the
+// SPA can bind server errors to specific form inputs.
+type FieldError interface {
+	error
+	FieldErrors() map[string]string
 }
 
 // PutRecord is the shared create/update primitive for handlers that encode a
@@ -98,6 +108,17 @@ func RecordCRUDWrite[Req any, PReq RequestValidator[Req], Model any](
 		return
 	}
 	if err := PReq(&req).Validate(); err != nil {
+		// If the error carries per-field messages, emit the documented
+		// {error, code, fields} envelope so the SPA can bind errors to
+		// form inputs. Otherwise fall back to a plain validation_failed
+		// response with the error message.
+		var fe FieldError
+		if errors.As(err, &fe) {
+			if WantsJSON(r) || IsJSONRequest(r) {
+				WriteJSONValidationError(w, fe.FieldErrors())
+				return
+			}
+		}
 		WriteRequestError(w, r, http.StatusBadRequest, "validation_failed", err.Error())
 		return
 	}

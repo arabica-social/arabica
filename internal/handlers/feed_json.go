@@ -177,7 +177,7 @@ func NewCommentJSON(c firehose.IndexedComment) CommentJSON {
 // NewCommentsJSON converts a slice of IndexedComment to JSON form.
 func NewCommentsJSON(comments []firehose.IndexedComment) []CommentJSON {
 	if len(comments) == 0 {
-		return nil
+		return []CommentJSON{}
 	}
 	out := make([]CommentJSON, 0, len(comments))
 	for _, c := range comments {
