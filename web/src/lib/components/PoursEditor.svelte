@@ -55,11 +55,13 @@
 </script>
 
 {#if pours.length === 0}
-  <button
-    type="button"
-    class="text-sm text-muted hover:text-secondary font-medium"
-    onclick={addPour}>{emptyLabel}</button
-  >
+  <div class="flex justify-end mb-2">
+    <button
+      type="button"
+      class="text-sm text-muted hover:text-secondary font-medium"
+      onclick={addPour}>{emptyLabel}</button
+    >
+  </div>
 {:else}
   <div>
     <div class="flex items-center justify-between mb-2">

@@ -20,6 +20,8 @@ func (Routes) SPAOwnedRoutes() []string {
 	return []string{
 		"GET /{$}",
 		"GET /about",
+		"GET /manage", // redirects to /my-coffee via SPA
+		"GET /brews", // brew list page
 		"GET /terms",
 		"GET /join/create",
 		"GET /atproto",
@@ -45,11 +47,16 @@ func (Routes) SPAOwnedRoutes() []string {
 		"GET /recipes/{actor}/{id}",
 		"GET /profile/{actor}",
 		"GET /beans/{actor}/{id}",
+		"GET /beans/{actor}/{id}/backlinks",
 		"GET /roasters/{actor}/{id}",
+		"GET /roasters/{actor}/{id}/backlinks",
 		"GET /roasters/new",
 		"GET /roasters/{id}/edit",
 		"GET /grinders/{actor}/{id}",
+		"GET /grinders/{actor}/{id}/backlinks",
 		"GET /brewers/{actor}/{id}",
+		"GET /brewers/{actor}/{id}/backlinks",
+		"GET /recipes/{actor}/{id}/backlinks",
 	}
 }
 

@@ -49,3 +49,7 @@ tests/e2e/.control-url
 e2e-server
 web/test-results/
 /playwright-report/
+web/playwright-report/
+# Playwright screenshot diff outputs (baselines under tests/e2e/*.png are committed)
+web/tests/e2e/*-actual.png
+web/tests/e2e/*-diff.png

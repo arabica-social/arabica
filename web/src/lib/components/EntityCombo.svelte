@@ -291,6 +291,8 @@
     userResults = [];
     closedResults = [];
     communityResults = [];
+    showCreateForm = false;
+    createFormData = {};
     changed({ entityType, rkey: "", entity: null });
   }
 
@@ -398,16 +400,14 @@
       aria-label="Clear selection">×</button
     >
   {/if}
-</div>
-
-{#if isOpen && (allItems.length > 0 || query.trim())}
-  <div
-    id={`${entityType}-combo-listbox`}
-    role="listbox"
-    tabindex="-1"
-    class="combo-dropdown"
-    onmousedown={(event) => event.preventDefault()}
-  >
+  {#if isOpen && (allItems.length > 0 || query.trim())}
+    <div
+      id={`${entityType}-combo-listbox`}
+      role="listbox"
+      tabindex="-1"
+      class="combo-dropdown"
+      onmousedown={(event) => event.preventDefault()}
+    >
     {#if isCreating}
       <div class="combo-creating">Creating...</div>
     {:else}
@@ -498,7 +498,8 @@
       {/if}
     {/if}
   </div>
-{/if}
+  {/if}
+</div>
 
 <div class="sr-only" aria-live="polite">
   {allItems.length} results available

@@ -2,6 +2,7 @@
 	import { goto } from "$app/navigation";
 	import BackButton from "./BackButton.svelte";
 	import EntityCombo from "./EntityCombo.svelte";
+	import NameSuggest from "./NameSuggest.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createBean, updateBean } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -49,6 +50,8 @@
 	let rating = $state<number | undefined>(bean?.rating);
 	// svelte-ignore state_referenced_locally
 	let closed = $state(bean?.closed ?? false);
+	// svelte-ignore state_referenced_locally
+	let sourceRef = $state(bean?.source_ref ?? "");
 
 	let nameError = $state("");
 	let originError = $state("");
@@ -85,7 +88,7 @@
 			roaster_rkey: roasterRKey,
 			rating,
 			closed,
-			...(bean?.source_ref ? { source_ref: bean.source_ref } : {}),
+			...(sourceRef ? { source_ref: sourceRef } : {}),
 		};
 
 		try {
@@ -136,20 +139,38 @@
 				<div>
 					<label class="form-label" for="bean-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
 					<p id="bean-name-help" class="text-sm text-muted mb-2">The coffee name shown in your journal.</p>
-					<input
-						id="bean-name"
-						name="name"
-						type="text"
-						class="w-full form-input-lg"
-						bind:value={name}
-						placeholder="e.g. Ethiopia Gedeb"
-						aria-label="Name"
-						required
-						autocomplete="off"
-						aria-invalid={nameError !== ""}
-						aria-describedby={nameError ? "bean-name-help bean-name-error" : "bean-name-help"}
-						oninput={() => { if (nameError && name.trim()) nameError = ""; }}
-					/>
+					{#if isEdit}
+						<input
+							id="bean-name"
+							name="name"
+							type="text"
+							class="w-full form-input-lg"
+							bind:value={name}
+							placeholder="e.g. Ethiopia Gedeb"
+							aria-label="Name"
+							required
+							autocomplete="off"
+							aria-invalid={nameError !== ""}
+							aria-describedby={nameError ? "bean-name-help bean-name-error" : "bean-name-help"}
+							oninput={() => { if (nameError && name.trim()) nameError = ""; }}
+						/>
+					{:else}
+						<NameSuggest
+							endpoint="/api/suggestions/beans"
+							placeholder="e.g. Ethiopia Gedeb"
+							inputId="bean-name"
+							ariaLabel="Name"
+							ariaDescribedby={nameError ? "bean-name-help bean-name-error" : "bean-name-help"}
+							bind:name
+							bind:origin
+							bind:roastLevel
+							bind:process
+							bind:link
+							bind:sourceRef
+							error={nameError}
+							oninput={() => { if (nameError && name.trim()) nameError = ""; }}
+						/>
+					{/if}
 					{#if nameError}
 						<p id="bean-name-error" class="text-sm text-red-600 mt-2" role="alert">{nameError}</p>
 					{/if}

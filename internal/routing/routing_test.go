@@ -48,9 +48,18 @@ func TestRegisterEntityRoutesUsesExplicitPageOwnership(t *testing.T) {
 	RegisterEntityRoutes(mux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, pages)
 
 	// Only the explicitly owned detail route uses the SPA. Backlinks retain
-	// their working legacy handler until that SvelteKit route exists.
+	// their working legacy handler when not listed as SPA-owned.
 	assertRouteBody(t, mux, "GET", "/beans/alice.test/r1", http.StatusOK, "spa")
 	assertRouteBody(t, mux, "GET", "/beans/alice.test/r1/backlinks", http.StatusOK, "bean-backlinks")
+
+	// When the backlinks pattern IS SPA-owned, it routes to the SPA shell.
+	pagesWithBacklinks := NewPageRoutes(okHandler("spa"), []string{
+		"GET /beans/{actor}/{id}",
+		"GET /beans/{actor}/{id}/backlinks",
+	})
+	mux2 := http.NewServeMux()
+	RegisterEntityRoutes(mux2, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, pagesWithBacklinks)
+	assertRouteBody(t, mux2, "GET", "/beans/alice.test/r1/backlinks", http.StatusOK, "spa")
 
 	// JSON view/backlinks, OG image, mutations and modal partials remain.
 	assertRouteStatus(t, mux, "GET", "/api/beans/alice.test/r1", http.StatusOK)

@@ -58,7 +58,7 @@
 					</div>
 					{#if entriesToAvatars(result.LibraryEntries, 5).length > 0}
 						<div class="backlinks-avatars" aria-label={`In ${result.LibraryCount} ${pluralWord("library", "libraries", result.LibraryCount)}`}>
-							{#each entriesToAvatars(result.LibraryEntries, 5) as a (a.handle)}
+							{#each entriesToAvatars(result.LibraryEntries, 5) as a, i (i)}
 								<a href={profileURL(a.handle)} class="backlinks-avatar" title={a.title}>
 									{#if a.avatarURL}
 										<img src={a.avatarURL} alt={a.title} loading="lazy" />
@@ -88,7 +88,7 @@
 						</div>
 						{#if entriesToAvatars(group.Entries, 5).length > 0}
 							<div class="backlinks-avatars" aria-label={`Used in ${group.Count} ${group.Label}`}>
-								{#each entriesToAvatars(group.Entries, 5) as a (a.handle)}
+								{#each entriesToAvatars(group.Entries, 5) as a, i (i)}
 									<a href={profileURL(a.handle)} class="backlinks-avatar" title={a.title}>
 										{#if a.avatarURL}
 											<img src={a.avatarURL} alt={a.title} loading="lazy" />

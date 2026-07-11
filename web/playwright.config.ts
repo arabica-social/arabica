@@ -59,10 +59,27 @@ export default defineConfig({
 	projects: [
 		{
 			name: "chromium",
+			testIgnore: /mobile\.spec\.ts$/,
 			use: {
 				...devices["Desktop Chrome"],
 				// Use the system Chromium if available (e.g. via Nix), otherwise
 				// fall back to Playwright's bundled browser.
+				...(process.env.CHROMIUM_PATH
+					? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } }
+					: {}),
+			},
+		},
+		{
+			name: "mobile",
+			testMatch: /mobile\.spec\.ts$/,
+			use: {
+				// Custom mobile viewport (chromium) — iPhone-class width without
+				// requiring a separate webkit browser install.
+				viewport: { width: 375, height: 812 },
+				isMobile: true,
+				hasTouch: true,
+				userAgent:
+					"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
 				...(process.env.CHROMIUM_PATH
 					? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } }
 					: {}),
