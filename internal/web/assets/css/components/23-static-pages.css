@@ -26,19 +26,6 @@
   box-shadow: var(--shadow-md);
 }
 
-.info-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 5px;
-  background: linear-gradient(
-    90deg,
-    var(--type-bean),
-    var(--type-roaster),
-    var(--type-brewer)
-  );
-}
-
 .info-hero > * {
   position: relative;
   z-index: 1;
@@ -77,14 +64,17 @@
   line-height: 0.98;
   letter-spacing: -0.025em;
   font-weight: 600;
-  font-variation-settings: "opsz" 96, "SOFT" 50, "WONK" 0;
+  font-variation-settings:
+    "opsz" 96,
+    "SOFT" 50,
+    "WONK" 0;
 }
 
 .info-deck {
   max-width: 64ch;
   margin-top: 1rem;
   color: var(--text-secondary);
-  font-family: var(--font-prose);
+  font-family: var(--font-mono);
   font-size: 1.06rem;
   line-height: 1.75;
 }

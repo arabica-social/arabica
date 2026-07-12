@@ -1,5 +1,5 @@
 /* ========================================
-   00-fonts.css — Font Faces & Display/Prose Tokens
+   00-fonts.css — Font Faces & Typography Tokens
    ========================================
    Iosevka Patrick remains the body/UI/data voice (faces declared below
    in 18-misc.css). Fraunces is the display serif: a warm "Old Style"
@@ -7,32 +7,28 @@
    titles, record titles, eyebrow labels) to soften the technical feel
    of an all-monospace system.
 
-   Lora is the prose/reading voice: long-form explanations and intros
-   that sit next to display headings. It keeps the heading-to-body
-   transition warm and readable without competing with Fraunces' label
-   personality.
+   Iosevka Patrick remains the reading voice as well. Fraunces is a
+   deliberately short-form accent, never a replacement for logged,
+   data-forward body copy.
 
-   See DESIGN.md §3 "The Notebook Mono Rule" for the documented pairing.
+   See DESIGN.md §3 "The Two-Font Rule" for the documented pairing.
    ======================================== */
 
 :root {
   /* Display serif — heroes, page titles, record titles, eyebrow labels.
      Falls back through Iosevka + system mono so a missing font file
      never breaks layout. */
-  --font-display: "Fraunces", "Iosevka Patrick", ui-serif, Georgia,
-    "Times New Roman", serif;
-
-  /* Prose/reading voice — long-form explanations and intros that sit
-     next to display headings. */
-  --font-prose: "Lora", "Iosevka Patrick", ui-serif, Georgia,
-    "Times New Roman", serif;
+  --font-display:
+    "Fraunces", "Iosevka Patrick", ui-serif, Georgia, "Times New Roman", serif;
 
   /* Body / UI / data voice — unchanged. Kept here as the single
      source of truth so future weights resolve centrally. */
-  --font-sans: "Iosevka Patrick", ui-monospace, SFMono-Regular, Menlo,
-    Monaco, Consolas, monospace;
-  --font-mono: "Iosevka Patrick", ui-monospace, SFMono-Regular, Menlo,
-    Monaco, Consolas, monospace;
+  --font-sans:
+    "Iosevka Patrick", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  --font-mono:
+    "Iosevka Patrick", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
 }
 
 /* Fraunces variable — latin subset, weight + optical-size axes.
@@ -55,23 +51,4 @@
   font-style: italic;
   font-display: swap;
   font-stretch: 75% 125%;
-}
-
-/* Lora variable — latin subset, weight axis only.
-   One upright + one italic file cover the prose range.
-   font-display: swap keeps text visible while the serif loads. */
-@font-face {
-  font-family: "Lora";
-  src: url("/static/fonts/lora-latin.woff2") format("woff2-variations");
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Lora";
-  src: url("/static/fonts/lora-latin-italic.woff2") format("woff2-variations");
-  font-weight: 400 700;
-  font-style: italic;
-  font-display: swap;
 }

@@ -26,7 +26,7 @@ Mixed audience ranging from casual home brewers to serious hobbyists. The core u
 
 **Theme:** Light + dark (both supported, OS preference + manual toggle). The warm brown palette (#4a2c2a family) and cream backgrounds (#FAF7F5) are core to the identity.
 
-**Typography:** Iosevka Patrick (custom monospace Nerd Font) is the established body/UI font and well-liked by users. Open to pairing with a warmer display font for headings to soften the technical feel while keeping Iosevka's character for body text and data.
+**Typography:** Iosevka Patrick (custom monospace Nerd Font) is the established body, UI, and reading font and well-liked by users. Fraunces is its only companion, reserved for short display moments such as major titles and selected record names.
 
 ### Design Principles
 
@@ -68,13 +68,13 @@ Empty states never say "nothing here" alone. They name the next action: `Nothing
 Status panels name exactly what's left, not just a count. "Add a roaster and a bean to unlock your first brew." beats "2 items remaining." The encouragement scales: 3 remaining → "Start anywhere", 2 → name both, 1 → "Just a {x} left — you're almost there."
 
 #### Container card with kraft texture
-Page-level containers that need warmth get `background-image: var(--texture-kraft)` with `background-blend-mode: multiply` on top of `--card-bg`. A 4px multi-color top edge using a hard-stop `linear-gradient` between entity colors signals scope at a glance (e.g. brewer green / roaster amber / bean orange across three steps).
+Page-level containers that need warmth get `background-image: var(--texture-kraft)` with `background-blend-mode: multiply` on top of a single solid or entity-tinted field. Use a thin ledger rule or an indexed label to signal scope. Hard-stop entity-color diagrams are reserved for flows where the segments convey real structure.
 
 #### "Required / Optional / Done" tag triad
 Tags in the top-right of a card section, sized 0.625rem with 0.16em tracking, uppercase. `required` uses the entity's solid tint with cream text. `optional` is a transparent outline in `--text-faint`. `done` is `--brand-green-100` background with an inline check glyph. Always position right-aligned in the section header via `margin-left: auto`.
 
 #### State-aware CTA panel
-A panel that changes both copy and visual treatment based on completion state. Not-ready: dashed border on `--surface-bg`, calm informative copy with a large numeric count. Ready: solid border, warm diagonal gradient mixing two entity tints via `color-mix(in oklch, ...)`, larger headline, and the primary CTA with a hover-glide arrow (`translateX(3px)` on hover).
+A panel that changes both copy and visual treatment based on completion state. Not-ready: dashed border on `--surface-bg`, calm informative copy with a large numeric count. Ready: solid border, a single primary-action tint, larger headline, and the primary CTA with a hover-glide arrow (`translateX(3px)` on hover).
 
 #### Stagger entrance
 Page sections fade in with translateY(8px) → 0 over ~380ms with `cubic-bezier(0.16, 1, 0.3, 1)`. Each sibling gets +80ms delay. Always paired with `@media (prefers-reduced-motion: reduce)` killing the animation. Hero gets a smaller translateY(-6px) for differentiation.

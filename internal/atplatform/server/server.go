@@ -380,9 +380,23 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 			sh.SetOGResolver(func(r *http.Request) spa.OGData {
 				return resolveEntityOG(r, h, app)
 			})
+			// In dev mode, re-read index.html from disk on each request
+			// so `vite build --watch` output appears on the next refresh
+			// without a Go restart. web/build is where vite writes.
+			if devMode {
+				sh.SetDevDir("web/build")
+			}
 			spaHandler = sh
 			log.Info().Msg("SvelteKit SPA shell enabled")
 		}
+	}
+
+	// In dev mode with the SPA enabled, serve SPA assets (_app/**) from the
+	// on-disk SvelteKit build so `vite build --watch` output appears on the
+	// next refresh without a Go restart.
+	spaAssetDevDir := ""
+	if devMode && spaHandler != nil {
+		spaAssetDevDir = "web/build"
 	}
 
 	// Router
@@ -398,6 +412,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		JSAssets:          jsAssets,
 		AppRoutes:         opts.AppRoutes,
 		SPAHandler:        spaHandler,
+		SPAAssetDevDir:    spaAssetDevDir,
 	})
 
 	// Internal metrics server (localhost-only)
@@ -726,7 +741,7 @@ func resolveEntityOG(r *http.Request, h *handlers.Handler, app *domain.App) spa.
 
 	// Build OG metadata following the same pattern as PopulateOGFields.
 	og := spa.OGData{
-		Type:    "article",
+		Type:     "article",
 		URL:      baseURL + shareURL,
 		Image:    baseURL + shareURL + "/og-image",
 		ImageAlt: noun + " on " + app.Brand.DisplayName,

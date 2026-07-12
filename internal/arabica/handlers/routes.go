@@ -21,7 +21,7 @@ func (Routes) SPAOwnedRoutes() []string {
 		"GET /{$}",
 		"GET /about",
 		"GET /manage", // redirects to /my-coffee via SPA
-		"GET /brews", // brew list page
+		"GET /brews",  // brew list page
 		"GET /terms",
 		"GET /join/create",
 		"GET /atproto",

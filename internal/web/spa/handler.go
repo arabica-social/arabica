@@ -28,6 +28,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -98,6 +99,12 @@ type ShellHandler struct {
 	// view pages without executing JavaScript. When nil, default brand-level
 	// OG tags are used.
 	ogResolver OGResolver
+	// devDir, when non-empty, is a path to the SvelteKit build output on
+	// disk (e.g. web/build). ServeHTTP re-reads index.html from it on every
+	// request so `vite build --watch` output appears on the next browser
+	// refresh without restarting the Go server. Empty in production, where
+	// the embedded copy read at construction time is always used.
+	devDir string
 }
 
 // SessionData carries the authenticated user's display state for the SPA
@@ -179,6 +186,17 @@ func (h *ShellHandler) SetSessionResolver(r SessionResolver) {
 // to default brand-level OG tags.
 func (h *ShellHandler) SetOGResolver(r OGResolver) {
 	h.ogResolver = r
+}
+
+// SetDevDir enables dev mode for the shell handler. When set to a non-empty
+// path (the SvelteKit build output directory, e.g. web/build), ServeHTTP
+// re-reads index.html from disk on every request so edits produced by
+// `vite build --watch` appear on the next refresh without a Go restart.
+// When empty (the default), the embedded copy read at construction time is
+// always used. The dev path falls back to the embedded copy if the on-disk
+// file is missing, so dev works before the first vite build completes.
+func (h *ShellHandler) SetDevDir(dir string) {
+	h.devDir = dir
 }
 
 // ServeHTTP serves the SPA index.html with injected <head> content.
@@ -264,8 +282,17 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Inject the head fragment at the marker, replacing it.
-	result := bytes.Replace(h.indexHTML, []byte(headMarker), headBuf.Bytes(), 1)
+	// Inject the head fragment at the marker, replacing it. In dev mode,
+	// re-read index.html from disk so changes from `vite build --watch` are
+	// served on the next refresh without a Go restart; fall back to the
+	// embedded copy read at construction if the dev file is missing.
+	indexBytes := h.indexHTML
+	if h.devDir != "" {
+		if b, err := fs.ReadFile(os.DirFS(h.devDir), "index.html"); err == nil {
+			indexBytes = b
+		}
+	}
+	result := bytes.Replace(indexBytes, []byte(headMarker), headBuf.Bytes(), 1)
 
 	// Inject body data attributes (user-did, app) into the <body> tag.
 	if data.UserDID != "" || data.AppName != "" {
@@ -431,6 +458,30 @@ func AssetHandler() http.Handler {
 	fileServer := http.FileServer(http.FS(fsys))
 	stripped := http.StripPrefix("/_app/", fileServer)
 	return contentTypeMiddleware(stripped)
+}
+
+// AssetHandlerWithDevDir serves SvelteKit static assets from a build
+// directory on disk (e.g. web/build) instead of the embedded filesystem.
+// Intended for dev mode: `vite build --watch` writes new chunks to the
+// directory and they are served on the next refresh without a Go restart.
+// Responses carry Cache-Control: no-cache so stale chunks are never cached
+// by the browser. The _app subdirectory is resolved relative to devDir to
+// mirror the embedded layout (build/_app/**).
+func AssetHandlerWithDevDir(devDir string) http.Handler {
+	fsys := os.DirFS(filepath.Join(devDir, "_app"))
+	fileServer := http.FileServer(http.FS(fsys))
+	stripped := http.StripPrefix("/_app/", fileServer)
+	return contentTypeMiddleware(noCacheMiddleware(stripped))
+}
+
+// noCacheMiddleware sets Cache-Control: no-cache so dev-mode responses are
+// always revalidated against the on-disk source rather than served from the
+// browser cache. Only used by the disk-backed dev asset handler.
+func noCacheMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // contentTypeMiddleware ensures embedded assets are served with correct

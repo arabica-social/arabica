@@ -40,7 +40,7 @@ typography:
     fontWeight: 400
     lineHeight: 1.5
   prose:
-    fontFamily: "Lora, Iosevka Patrick, ui-serif, Georgia, serif"
+    fontFamily: "Iosevka Patrick, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
     fontSize: "1.0625rem"
     fontWeight: 400
     lineHeight: 1.75
@@ -151,22 +151,25 @@ The palette is espresso, paper, cork, and roast labels: warm neutrals first, the
 ## 3. Typography
 
 **Display Font:** Fraunces (variable, self-hosted), with ui-serif, Georgia, and Iosevka Patrick fallbacks.
-**Prose Font:** Lora at text weights for long-form reading and explanatory copy.
-**Label/Mono Font:** Iosevka Patrick, with ui-monospace and system monospace fallbacks.
+**Reading, UI, and Label Font:** Iosevka Patrick, with ui-monospace and system monospace fallbacks.
 
-**Character:** Arabica pairs a warm display serif (Fraunces) with a readable prose serif (Lora) and a measured monospace body (Iosevka Patrick). Fraunces carries the display/headline tier — heroes, page titles, record titles, section headings — with its soft old-style personality. Lora handles longer reading surfaces — about, terms, onboarding explanation, hero decks — where Fraunces' quirks would tire the eye. Iosevka Patrick keeps the logged, measured, notebook quality for all product UI, data, forms, labels, brew views, and feed cards.
+**Character:** Arabica uses two typefaces only: a warm display serif (Fraunces) and a measured monospace voice (Iosevka Patrick). Fraunces carries short display moments — heroes, page titles, selected record titles, and occasional pull quotes. Iosevka carries everything else, including long-form reading, so the product retains a consistent logged, notebook quality.
 
 ### Hierarchy
 - **Display** (600, 2rem to 3.4rem, 0.98 line-height): Use Fraunces for static-page heroes and rare large product moments. Tight tracking is allowed when the heading needs packaging-label confidence.
 - **Headline** (600, 1.5rem, 2rem line-height): Use Fraunces for page titles, record titles, and primary section names.
 - **Title** (600, 1.25rem, 1.75rem line-height): Use Fraunces for modal titles, card headings, and focused content modules.
 - **Body** (400, 1rem, 1.5 line-height): Use Iosevka Patrick for product UI, forms, lists, table content, and any data-dense surface.
-- **Prose** (400–500, 1.0625rem, 1.75 line-height): Use Lora for about, AT Protocol, terms, onboarding explanation, hero decks, and other long reading surfaces. Keep prose line length to 65 to 75 characters.
+- **Prose** (400–500, 1.0625rem, 1.75 line-height): Use Iosevka Patrick for about, AT Protocol, terms, onboarding explanation, hero decks, and other long reading surfaces. Keep prose line length to 65 to 75 characters.
 - **Label** (600, 0.75rem, 0.1em tracking, uppercase): Use Iosevka Patrick for section labels, filter metadata, field groups, and stamp-like status text.
 
 ### Named Rules
 
-**The Notebook Mono Rule.** Iosevka Patrick is the default voice for UI, data, labels, forms, tables, brew views, and feed cards. Lora is the documented display and prose serif: use it for the display/headline tier (heroes, page titles, record titles, section headings) and for long-form reading/explanatory body copy (about, terms, onboarding ledes, hero decks). Do not introduce a third typeface. The serif never carries table data, form fields, feed cards, or compact UI labels — those stay monospace so the data-first surfaces keep their measured, logged quality.
+**The Two-Font Rule.** Iosevka Patrick is the default voice for body copy, UI, data, labels, forms, tables, brew views, feed cards, and explanatory pages. Fraunces is an identity accent for major page titles, heroes, selected record titles, and short introductory statements. Do not introduce a third typeface. Text longer than roughly two lines should usually stay in Iosevka, and Fraunces never carries table data, form fields, feed cards, or compact UI labels.
+
+**The Coffee Ledger Rule.** Build personality from ledger rules, indexed labels, metadata, restrained stamps, and occasional line engravings. Use entity colors as isolated solid inks, not blended decoration. Kraft and other textures are enhancements, not the identity itself.
+
+**The Gradient Restraint Rule.** Do not use soft decorative gradients in headers, heroes, banners, or primary actions. Prefer solid espresso and paper fields, a single tinted texture, rules, and deliberate adjacent color blocks. Hard-stop diagrams, single-color tint layers, and implementation gradients such as loading shimmers may remain when they communicate structure or state.
 
 **The Label Restraint Rule.** Uppercase tracking is for labels and tags, not whole paragraphs or button-heavy regions.
 
@@ -246,7 +249,7 @@ Components should be familiar product UI with craft details. Controls need predi
 - **Don't** use an overly techy/developer aesthetic. Data should feel warm, not cold.
 - **Don't** make the feed feel like Instagram, Twitter, or any social media feed clone with no personality.
 - **Don't** use colored `border-left` or `border-right` accents greater than 1px on cards, callouts, alerts, or list items.
-- **Don't** use gradient text, decorative glassmorphism, neon-on-black, or hero-metric SaaS templates.
+- **Don't** use gradient text, decorative gradients, glassmorphism, neon-on-black, or hero-metric SaaS templates.
 - **Don't** wrap everything in identical card grids. Use cards when they clarify grouping, not as the default answer.
 - **Don't** add new pure black or pure white neutrals. Existing legacy white card tokens should not be the model for new surfaces.
 - **Don't** use emoji as primary UI glyphs. Use inline SVG with `stroke="currentColor"`.

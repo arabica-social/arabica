@@ -32,24 +32,20 @@
   align-items: center;
   justify-content: center;
   font-weight: 500;
-  transition-property:
-    color, background-color, border-color, box-shadow, filter;
+  transition-property: color, background-color, border-color, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   cursor: pointer;
-  background: linear-gradient(
-    135deg,
-    var(--brand-brown-700),
-    var(--btn-primary-bg)
-  );
+  background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
-  border: 1px solid var(--brand-brown-700);
+  border: 1px solid var(--btn-primary-bg);
   box-shadow: var(--shadow-sm);
 }
 
 .home-action-primary:hover {
+  background: var(--btn-primary-bg-hover);
+  border-color: var(--btn-primary-bg-hover);
   box-shadow: var(--shadow-md);
-  filter: brightness(1.1);
 }
 
 .home-action-secondary {

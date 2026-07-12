@@ -69,12 +69,12 @@ type AuthorSummary struct {
 // SocialDataJSON is the JSON-serializable view of SocialData (likes,
 // comments, and moderation state) returned by entity view endpoints.
 type SocialDataJSON struct {
-	IsLiked        bool         `json:"is_liked"`
-	LikeCount      int          `json:"like_count"`
-	CommentCount   int          `json:"comment_count"`
+	IsLiked        bool          `json:"is_liked"`
+	LikeCount      int           `json:"like_count"`
+	CommentCount   int           `json:"comment_count"`
 	Comments       []CommentJSON `json:"comments"`
-	IsModerator    bool         `json:"is_moderator"`
-	CanHideRecord  bool         `json:"can_hide_record"`
-	CanBlockUser   bool         `json:"can_block_user"`
-	IsRecordHidden bool         `json:"is_record_hidden"`
+	IsModerator    bool          `json:"is_moderator"`
+	CanHideRecord  bool          `json:"can_hide_record"`
+	CanBlockUser   bool          `json:"can_block_user"`
+	IsRecordHidden bool          `json:"is_record_hidden"`
 }

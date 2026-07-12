@@ -198,16 +198,16 @@
         </a>
         <a
           href="/explore"
-          class="home-action-secondary home-action-secondary--brewer">Explore</a
+          class="home-action-secondary">Explore</a
         >
         <a
           href={appDefinition.libraryPath}
-          class="home-action-secondary home-action-secondary--bean"
+          class="home-action-secondary"
           >{appDefinition.libraryLabel}</a
         >
         <a
           href="/profile/{data.userDID}"
-          class="home-action-secondary home-action-secondary--roaster"
+          class="home-action-secondary"
           >Profile</a
         >
       </div>
@@ -230,12 +230,12 @@
         </button>
         <a
           href="/join/create"
-          class="home-action-secondary home-action-secondary--brewer"
+          class="home-action-secondary"
           >Create an account</a
         >
         <a
           href="/about"
-          class="home-action-secondary home-action-secondary--amber"
+          class="home-action-secondary"
           >Learn more</a
         >
       </div>

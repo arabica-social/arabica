@@ -110,8 +110,7 @@
   --surface-border: #f2e8e5;
 
   /* Header */
-  --header-bg-from: #4a2c2a;
-  --header-bg-to: #3d2319;
+  --header-bg: #4a2c2a;
   --header-border: #7f5539;
   --header-text: #faf7f5;
 
@@ -238,8 +237,7 @@
     --feed-card-bg: #1a1210;
 
     /* Header */
-    --header-bg-from: #0f0a08;
-    --header-bg-to: #0f0a08;
+    --header-bg: #0f0a08;
     --header-border: #2e211b;
     --header-text: #faf7f5;
 
@@ -351,8 +349,7 @@
   --texture-kraft: var(--texture-kraft-dark);
   --journal-bg: #1a1210;
   --kraft-bg: #201814;
-  --header-bg-from: #0f0a08;
-  --header-bg-to: #0f0a08;
+  --header-bg: #0f0a08;
   --header-border: #2e211b;
   --header-text: #faf7f5;
   --text-primary: #faf7f5;

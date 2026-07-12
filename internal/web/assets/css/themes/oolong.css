@@ -53,13 +53,9 @@
   --surface-bg: oklch(0.97 0.011 145 / 0.7);
   --surface-border: oklch(0.93 0.014 145);
 
-  /* Header — the matcha-latte banner.
-	   Light pastel green. Dark text sits on it (see --header-text).
-	   Gradient runs from a slightly more saturated jade to a paler
-	   wash, evoking a cup of matcha viewed from above where the foam
-	   thins toward one side. Keep chroma low — pastels don't shout. */
-  --header-bg-from: oklch(0.84 0.072 148); /* sage matcha */
-  --header-bg-to: oklch(0.9 0.048 152); /* paler wash */
+  /* Header — a solid matcha-latte field. Dark text keeps the
+	   intentional inversion from Arabica's espresso header. */
+  --header-bg: oklch(0.84 0.072 148);
   --header-border: oklch(0.74 0.092 144); /* deeper edge */
   --header-text: oklch(0.22 0.02 145); /* near-black, green-tinted */
   --header-text-muted: oklch(0.38 0.022 145);
@@ -199,12 +195,9 @@
     --surface-bg: oklch(0.2 0.02 148 / 0.6);
     --surface-border: oklch(0.28 0.022 148);
 
-    /* Header in dark mode: the pastel green steps WAY down, but the
-		   hue stays so the brand identity carries through. The
-		   gradient is tighter (less contrast between stops) since dark
-		   surfaces don't tolerate as much variation. */
-    --header-bg-from: oklch(0.2 0.024 148);
-    --header-bg-to: oklch(0.24 0.026 150);
+    /* Header in dark mode keeps the tea hue, at a low enough lightness
+	   to preserve contrast without a decorative wash. */
+    --header-bg: oklch(0.22 0.026 149);
     --header-border: oklch(0.34 0.04 146);
     --header-text: oklch(0.92 0.02 148);
     --header-text-muted: oklch(0.72 0.022 148);
@@ -309,8 +302,7 @@
   --surface-bg: oklch(0.2 0.02 148 / 0.6);
   --surface-border: oklch(0.28 0.022 148);
 
-  --header-bg-from: oklch(0.2 0.024 148);
-  --header-bg-to: oklch(0.24 0.026 150);
+  --header-bg: oklch(0.22 0.026 149);
   --header-border: oklch(0.34 0.04 146);
   --header-text: oklch(0.92 0.02 148);
   --header-text-muted: oklch(0.72 0.022 148);

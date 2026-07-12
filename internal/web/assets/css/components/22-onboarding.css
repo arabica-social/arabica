@@ -50,7 +50,7 @@
 }
 
 .onboarding-lede {
-  font-family: var(--font-prose);
+  font-family: var(--font-mono);
   font-size: 1.0625rem;
   line-height: 1.6;
   color: var(--text-emphasis);
@@ -551,12 +551,8 @@ body[data-app="oolong"] .onboarding-card::before {
 }
 
 .ready-panel[data-state="ready"] {
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--type-roaster) 18%, var(--card-bg)),
-    color-mix(in oklch, var(--type-bean) 12%, var(--card-bg))
-  );
-  border: 1px solid color-mix(in oklch, var(--type-roaster) 32%, transparent);
+  background: color-mix(in oklch, var(--btn-primary-bg) 10%, var(--card-bg));
+  border: 1px solid color-mix(in oklch, var(--btn-primary-bg) 32%, transparent);
   padding: 1.25rem 1.5rem;
 }
 

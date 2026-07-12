@@ -26,18 +26,11 @@
   padding: clamp(1.5rem, 4vw, 2.5rem);
   border: 1px solid var(--card-border);
   border-radius: 1.35rem;
-  /* Kraft texture over a warm two-tone wash so the hero reads as
-     colored, not just beige. Bean copper + brewer green at low
-     opacity give the cream surface a roasted warmth without
-     becoming a flat color block. */
-  background:
-    var(--texture-kraft),
-    linear-gradient(
-      135deg,
-      color-mix(in oklch, var(--type-bean) 14%, var(--card-bg)),
-      color-mix(in oklch, var(--type-brewer) 10%, var(--card-bg))
-    );
-  background-blend-mode: multiply, normal, normal;
+  /* A single bean-copper tint gives the texture warmth without a
+     decorative two-color wash. */
+  background-color: color-mix(in oklch, var(--type-bean) 10%, var(--card-bg));
+  background-image: var(--texture-kraft);
+  background-blend-mode: multiply;
   box-shadow: var(--shadow-md);
 }
 
@@ -54,8 +47,10 @@
   height: 14rem;
   background-color: var(--text-emphasis);
   opacity: 0.06;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E")
+    center / contain no-repeat;
   pointer-events: none;
 }
 
@@ -93,14 +88,17 @@
   line-height: 1.02;
   letter-spacing: -0.02em;
   font-weight: 600;
-  font-variation-settings: "opsz" 96, "SOFT" 50, "WONK" 0;
+  font-variation-settings:
+    "opsz" 96,
+    "SOFT" 50,
+    "WONK" 0;
   color: var(--text-primary);
 }
 
 .home-hero-deck {
   max-width: 56ch;
   margin-top: 0.85rem;
-  font-family: var(--font-prose);
+  font-family: var(--font-mono);
   font-size: 1.02rem;
   line-height: 1.65;
   color: var(--text-secondary);
@@ -186,23 +184,20 @@
   font-weight: 600;
   letter-spacing: 0.01em;
   border-radius: 0.6rem;
-  background: linear-gradient(
-    135deg,
-    var(--brand-brown-700),
-    var(--btn-primary-bg)
-  );
+  background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
-  border: 1px solid var(--brand-brown-700);
+  border: 1px solid var(--btn-primary-bg);
   box-shadow: var(--shadow-sm);
   transition:
     transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
-    filter 150ms ease;
+    background-color 150ms ease;
 }
 
 .home-action-primary:hover {
+  background: var(--btn-primary-bg-hover);
+  border-color: var(--btn-primary-bg-hover);
   box-shadow: var(--shadow-md);
-  filter: brightness(1.08);
   transform: translateY(-1px);
 }
 
@@ -212,41 +207,32 @@
   pointer-events: none;
 }
 
-/* Secondary actions: text-forward links with a leading dot, not
-   bordered clones of the primary. Quieter, less grid-y. Each action
-   carries its own entity accent on the dot so the rail reads as a
-   small legend; default stays brew-brown. */
+/* Secondary actions are a quiet ledger rail, not a set of decorative
+   entity markers or bordered clones of the primary action. */
 .home-action-secondary {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: flex-start;
   min-height: 2.75rem;
-  padding: 0.6rem 0.85rem;
+  padding: 0.6rem 0.25rem;
   font-family: var(--font-mono);
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-secondary);
-  border-radius: 0.6rem;
-  transition: color 150ms ease, background-color 150ms ease;
+  border: 0;
+  border-bottom: 1px solid
+    color-mix(in oklch, var(--text-faint) 45%, transparent);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
 }
-
-.home-action-secondary::before {
-  content: "";
-  width: 0.3rem;
-  height: 0.3rem;
-  border-radius: 999px;
-  background: var(--type-brew);
-  opacity: 0.75;
-}
-
-.home-action-secondary--brewer::before { background: var(--type-brewer); }
-.home-action-secondary--bean::before { background: var(--type-bean); }
-.home-action-secondary--roaster::before { background: var(--type-roaster); }
-.home-action-secondary--amber::before { background: var(--brand-amber-600); }
 
 .home-action-secondary:hover {
   color: var(--text-primary);
-  background: var(--surface-bg);
+  border-bottom-color: var(--text-primary);
 }
 
 /* ---- Login card (unauthenticated) ---------------------------------- */
@@ -268,7 +254,10 @@
   font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 600;
-  font-variation-settings: "opsz" 36, "SOFT" 50, "WONK" 0;
+  font-variation-settings:
+    "opsz" 36,
+    "SOFT" 50,
+    "WONK" 0;
   letter-spacing: -0.01em;
   color: var(--text-primary);
 }

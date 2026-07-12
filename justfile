@@ -18,6 +18,11 @@ spa-build:
 spa-dev:
     @cd web && pnpm run dev
 
+# Watch web/ source and rebuild the SvelteKit SPA to web/build on every change.
+# Used by run-spa-dev / run-oolong-spa-dev; run standalone to just rebuild on save.
+spa-watch:
+    @./scripts/watch-spa.sh
+
 types-generate:
     @tygo generate --config tygo.yml
 
@@ -28,10 +33,26 @@ types-check:
 run-spa:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 go run ./cmd/arabica -known-dids known-dids.txt
 
+# Run Arabica with SPA dev hot-reload. scripts/watch-spa.sh rebuilds the
+# SvelteKit bundle to web/build on every source change; ARABICA_DEV=1 makes
+# the Go server re-read index.html and /_app/ chunks from disk on each
+# request, so changes appear on the next browser refresh without restarting
+# Go. Requires `pnpm` and `inotifywait` (inotify-tools).
+run-spa-dev:
+    @./scripts/watch-spa.sh & \
+        trap 'kill $$!' EXIT; \
+        LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 go run ./cmd/arabica -known-dids known-dids.txt
+
 # Run Oolong with the embedded SvelteKit shell enabled. Only routes listed in
 # Oolong's SPAOwnedRoutes are served by the SPA; all other pages stay legacy.
 run-oolong-spa: spa-build
     @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 OOLONG_SPA=1 go run ./cmd/oolong
+
+# Run Oolong with SPA dev hot-reload (see run-spa-dev).
+run-oolong-spa-dev:
+    @./scripts/watch-spa.sh & \
+        trap 'kill $$!' EXIT; \
+        LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 OOLONG_SPA=1 go run ./cmd/oolong
 
 build:
     @pnpm run build:svelte

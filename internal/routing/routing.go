@@ -36,6 +36,12 @@ type Config struct {
 	AppRoutes         AppRoutes
 	DisableRateLimit  bool
 
+	// SPAAssetDevDir, when non-empty, is a path to the SvelteKit build
+	// output on disk (e.g. web/build). The /_app/ route serves from it
+	// instead of the embedded filesystem, picking up `vite build --watch`
+	// output on refresh without a Go restart. Empty in production.
+	SPAAssetDevDir string
+
 	// SPAHandler, when non-nil, serves the SvelteKit SPA shell for unmatched
 	// page routes explicitly owned by AppRoutes.SPAOwnedRoutes. During
 	// migration this is nil unless explicitly enabled, so existing templ
@@ -257,8 +263,14 @@ func SetupRouter(cfg Config) http.Handler {
 	})
 
 	// SvelteKit SPA assets (_app/immutable/**) — versioned JS chunks from
-	// the SvelteKit build. Served from the embedded build filesystem.
-	mux.Handle("GET /_app/", spa.AssetHandler())
+	// the SvelteKit build. Served from the embedded build filesystem, or
+	// from disk when SPAAssetDevDir is set so dev-mode `vite build --watch`
+	// output appears on the next refresh without a Go restart.
+	assetHandler := spa.AssetHandler()
+	if cfg.SPAAssetDevDir != "" {
+		assetHandler = spa.AssetHandlerWithDevDir(cfg.SPAAssetDevDir)
+	}
+	mux.Handle("GET /_app/", assetHandler)
 
 	// Catch-all 404 handler. The SPA is registered only for explicit page
 	// patterns above, so unknown direct loads remain real 404 responses.

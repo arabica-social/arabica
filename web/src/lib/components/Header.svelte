@@ -68,7 +68,7 @@
 
 <nav
 	class="sticky top-0 z-50"
-	style="color: var(--header-text); background: linear-gradient(135deg, var(--header-bg-from), var(--header-bg-to)); border-bottom: 1px solid var(--header-border); box-shadow: var(--shadow-sm);"
+	style="color: var(--header-text); background: var(--header-bg); border-bottom: 1px solid var(--header-border); box-shadow: var(--shadow-sm);"
 >
 	<div class="container mx-auto px-4 py-3">
 		<div class="flex items-center justify-between">
