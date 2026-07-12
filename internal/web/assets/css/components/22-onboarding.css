@@ -40,6 +40,7 @@
 }
 
 .onboarding-title {
+  font-family: var(--font-display);
   font-size: clamp(2rem, 5.5vw, 3rem);
   line-height: 1.05;
   font-weight: 700;

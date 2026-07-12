@@ -107,7 +107,8 @@
   color: var(--text-primary);
 }
 
-.handle-result:hover {
+.handle-result:hover,
+.handle-result.active {
   background: var(--surface-bg);
 }
 

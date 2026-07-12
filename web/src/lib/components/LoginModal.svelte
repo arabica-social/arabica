@@ -27,6 +27,7 @@
 	let popoverEl = $state<HTMLDivElement>();
 	let dropdownStyle = $state("");
 	let suppressSearch = $state(false);
+	let activeIndex = $state(-1);
 
 	function safeAvatar(actor: Actor) {
 		const avatar = actor.avatar || "";
@@ -129,12 +130,58 @@
 		handle = actor.handle;
 		suppressSearch = true;
 		clearResults();
+		activeIndex = -1;
 		// Refocus the input after selection so the user can submit.
 		setTimeout(() => {
 			handleInput?.focus();
 			suppressSearch = false;
 		}, 0);
 	}
+
+	function handleSuggestionClick(event: MouseEvent, actor: Actor) {
+		// Prevent the suggestion click from accidentally submitting the form.
+		// The button is type="button", but explicit prevention keeps the
+		// behavior robust across browsers and focus changes.
+		event.preventDefault();
+		event.stopPropagation();
+		selectActor(actor);
+	}
+
+	function handleInputKeydown(event: KeyboardEvent) {
+		if (!autocompleteOpen) return;
+
+		switch (event.key) {
+			case "ArrowDown":
+				event.preventDefault();
+				activeIndex =
+					activeIndex < actors.length - 1 ? activeIndex + 1 : 0;
+				break;
+			case "ArrowUp":
+				event.preventDefault();
+				activeIndex =
+					activeIndex > 0 ? activeIndex - 1 : actors.length - 1;
+				break;
+			case "Enter":
+				event.preventDefault();
+				if (actors.length > 0) {
+					selectActor(actors[activeIndex >= 0 ? activeIndex : 0]);
+				}
+				break;
+			case "Escape":
+				event.preventDefault();
+				clearResults();
+				activeIndex = -1;
+				break;
+		}
+	}
+
+	$effect(() => {
+		if (actors.length === 0) {
+			activeIndex = -1;
+		} else if (activeIndex >= actors.length) {
+			activeIndex = actors.length - 1;
+		}
+	});
 
 	$effect(() => {
 		if (autocompleteOpen) {
@@ -238,6 +285,7 @@
 					class="w-full form-input-lg"
 					bind:value={handle}
 					oninput={scheduleSearch}
+					onkeydown={handleInputKeydown}
 					onfocus={() => {
 						if (searched && handle.trim().length >= 3) autocompleteOpen = true;
 					}}
@@ -296,12 +344,13 @@
 	{:else if actors.length === 0}
 		<div class="handle-no-results">No accounts found</div>
 	{:else}
-		{#each actors as actor (actor.handle)}
+		{#each actors as actor, i (actor.handle)}
 			<button
 				type="button"
 				class="handle-result"
+				class:active={activeIndex === i}
 				data-handle={actor.handle}
-				onclick={() => selectActor(actor)}
+				onclick={(event) => handleSuggestionClick(event, actor)}
 			>
 				<Avatar
 					avatarURL={safeAvatar(actor)}
