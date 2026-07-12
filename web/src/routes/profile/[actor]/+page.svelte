@@ -106,69 +106,50 @@
 		</div>
 	</div>
 {:else if profile}
-	<div class="page-container-lg">
-		<!-- Header -->
-		<div class="card p-6 mb-6">
-			<div class="flex items-center gap-4">
-				<Avatar avatarURL={safeAvatarURL(profile.profile.avatar)} displayName={profile.profile.display_name || profile.profile.handle} size="lg" />
-				<div>
-					{#if profile.profile.display_name}
-						<h1 class="text-2xl font-bold text-primary">{profile.profile.display_name}</h1>
-					{/if}
-					<p class="text-emphasis">@{displayHandle(profile.profile.handle)}</p>
-				</div>
-				{#if isOwnProfile}
-					<div class="ml-auto">
-						<a href="/settings" class="btn-secondary text-sm">Settings</a>
-					</div>
-				{/if}
+	<div class="profile-ledger">
+		<header class="profile-masthead">
+			<Avatar avatarURL={safeAvatarURL(profile.profile.avatar)} displayName={profile.profile.display_name || profile.profile.handle} size="lg" />
+			<div class="profile-identity">
+				<p class="profile-label">Coffee ledger</p>
+				<h1>{profile.profile.display_name || displayHandle(profile.profile.handle)}</h1>
+				<p class="profile-handle">@{displayHandle(profile.profile.handle)}</p>
 			</div>
-		</div>
+			{#if isOwnProfile}<a href="/settings" class="btn-secondary text-sm">Settings</a>{/if}
+		</header>
 
-		<!-- Stats -->
-		<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-			<div class="card card-inner text-center">
-				<div class="text-2xl font-bold text-primary">{profile.total_brews}</div>
-				<div class="text-xs text-muted">Brews</div>
-			</div>
-			<div class="card card-inner text-center">
-				<div class="text-2xl font-bold text-primary">{profile.beans.length}</div>
-				<div class="text-xs text-muted">Beans</div>
-			</div>
-			<div class="card card-inner text-center">
-				<div class="text-2xl font-bold text-primary">{profile.roasters.length}</div>
-				<div class="text-xs text-muted">Roasters</div>
-			</div>
-			<div class="card card-inner text-center">
-				<div class="text-2xl font-bold text-primary">{profile.grinders.length}</div>
-				<div class="text-xs text-muted">Grinders</div>
-			</div>
-			<div class="card card-inner text-center">
-				<div class="text-2xl font-bold text-primary">{profile.brewers.length}</div>
-				<div class="text-xs text-muted">Brewers</div>
-			</div>
-		</div>
+		<section class="profile-stats" aria-label="Coffee collection statistics">
+			<div><strong>{profile.total_brews}</strong><span>Brews</span></div>
+			<div><strong>{profile.beans.length}</strong><span>Beans</span></div>
+			<div><strong>{profile.roasters.length}</strong><span>Roasters</span></div>
+			<div><strong>{profile.grinders.length}</strong><span>Grinders</span></div>
+			<div><strong>{profile.brewers.length}</strong><span>Brewers</span></div>
+		</section>
 
-		<!-- Tabs -->
-		<div class="card shadow-md mb-4">
-			<div class="flex border-b border-brown-300">
+		<div class="profile-grid">
+			<aside class="profile-index" aria-label="Profile sections">
+				<p class="profile-label">Index</p>
+				<div role="tablist" aria-label="Profile collections">
 				<button
 					type="button"
 					onclick={() => (activeTab = "brews")}
-					class={`flex-1 py-3 px-4 text-center font-medium transition-colors ${activeTab === "brews" ? "tab-underline-active" : "tab-underline-inactive"}`}
+					class:active={activeTab === "brews"}
+					role="tab" aria-selected={activeTab === "brews"}
 				>Brews</button>
 				<button
 					type="button"
 					onclick={() => (activeTab = "beans")}
-					class={`flex-1 py-3 px-4 text-center font-medium transition-colors ${activeTab === "beans" ? "tab-underline-active" : "tab-underline-inactive"}`}
+					class:active={activeTab === "beans"}
+					role="tab" aria-selected={activeTab === "beans"}
 				>Beans</button>
 				<button
 					type="button"
 					onclick={() => (activeTab = "equipment")}
-					class={`flex-1 py-3 px-4 text-center font-medium transition-colors ${activeTab === "equipment" ? "tab-underline-active" : "tab-underline-inactive"}`}
+					class:active={activeTab === "equipment"}
+					role="tab" aria-selected={activeTab === "equipment"}
 				>Gear</button>
-			</div>
-		</div>
+				</div>
+			</aside>
+			<main class="profile-content">
 
 		<!-- Brews tab -->
 		{#if activeTab === "brews"}
@@ -412,5 +393,34 @@
 				</div>
 			</div>
 		{/if}
+			</main>
+		</div>
 	</div>
 {/if}
+
+<style>
+	.profile-ledger { width: 100%; max-width: 76rem; margin-inline: auto; padding-inline: clamp(.5rem, 2.2vw, 2rem); }
+	.profile-masthead { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 1rem; padding: .75rem 0 1.5rem; border-bottom: 1px solid var(--card-border); }
+	.profile-label { margin: 0 0 .35rem; color: var(--text-muted); font-size: .65rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+	.profile-identity h1 { margin: 0; color: var(--text-primary); font-family: var(--font-display); font-size: clamp(2rem,4vw,3rem); font-weight: 600; line-height: 1; letter-spacing: -.025em; }
+	.profile-handle { margin: .4rem 0 0; color: var(--text-emphasis); font-size: .85rem; }
+	.profile-stats { display: grid; grid-template-columns: repeat(5,minmax(7rem,1fr)); overflow-x: auto; margin-bottom: 1.75rem; border-bottom: 1px solid var(--card-border); }
+	.profile-stats div { display: flex; align-items: baseline; gap: .45rem; min-width: 7rem; padding: .9rem 1rem .9rem 0; border-right: 1px solid var(--card-border); }
+	.profile-stats div:last-child { border-right: 0; }
+	.profile-stats strong { color: var(--text-primary); font-family: var(--font-display); font-size: 1.45rem; font-variant-numeric: tabular-nums; }
+	.profile-stats span { color: var(--text-muted); font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; }
+	.profile-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+	.profile-index { min-width: 0; }
+	.profile-index [role="tablist"] { display: flex; overflow-x: auto; border-block: 1px solid var(--card-border); }
+	.profile-index button { min-width: max-content; min-height: 2.75rem; padding: .6rem .85rem; color: var(--text-muted); border-bottom: 2px solid transparent; font-size: .78rem; }
+	.profile-index button.active { color: var(--text-primary); border-bottom-color: var(--text-secondary); font-weight: 600; }
+	.profile-content { min-width: 0; }
+	@media (min-width: 860px) {
+		.profile-grid { grid-template-columns: minmax(9rem,.55fr) minmax(0,2.8fr); gap: clamp(1.5rem,3vw,3rem); align-items: start; }
+		.profile-index { position: sticky; top: 5rem; }
+		.profile-index [role="tablist"] { display: block; overflow: visible; border-block: 0; border-top: 2px solid var(--text-secondary); }
+		.profile-index button { width: 100%; display: block; text-align: left; border-bottom: 1px dotted var(--card-border); border-left: 2px solid transparent; }
+		.profile-index button.active { border-bottom-color: var(--card-border); border-left-color: var(--text-secondary); }
+	}
+	@media (max-width: 560px) { .profile-masthead { grid-template-columns: auto 1fr; } .profile-masthead > :global(a) { grid-column: 1/-1; text-align: center; } }
+</style>

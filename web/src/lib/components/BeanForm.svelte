@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import BackButton from "./BackButton.svelte";
 	import EntityCombo from "./EntityCombo.svelte";
 	import NameSuggest from "./NameSuggest.svelte";
+	import FormWorkspace from "./FormWorkspace.svelte";
+	import LedgerHeader from "./LedgerHeader.svelte";
+	import RailSection from "./RailSection.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createBean, updateBean } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -118,22 +120,20 @@
 	}
 </script>
 
-<div class="page-container-sm">
-	<div class="card card-inner">
-		<div class="flex items-center gap-3 mb-6">
-			<BackButton />
-			<div>
-				<p class="text-xs font-semibold uppercase tracking-wider text-faint">Bean</p>
-				<h1 class="text-2xl font-semibold text-primary">{isEdit ? "Edit Bean" : "Add a Bean"}</h1>
-			</div>
-		</div>
+<FormWorkspace>
+	<LedgerHeader
+		title={isEdit ? "Edit Bean" : "Add a Bean"}
+		eyebrow="Coffee label"
+		description="Capture the details you will want when you come back to this bag later."
+		showBack={true}
+	/>
 
-		<form class="space-y-6" novalidate onsubmit={submit}>
+	<form class="bean-form-sheet" novalidate onsubmit={submit}>
 			{#if formError}
 				<div class="alert-error" role="alert">{formError}</div>
 			{/if}
 
-			<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<fieldset class="bean-form-ledger space-y-6 min-w-0">
 				<legend class="text-sm font-semibold text-secondary px-2">Essentials</legend>
 
 				<div>
@@ -238,7 +238,7 @@
 				</div>
 			</fieldset>
 
-			<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<fieldset class="bean-form-ledger space-y-6 min-w-0">
 				<legend class="text-sm font-semibold text-secondary px-2">Origin details <span class="form-optional-hint">(optional)</span></legend>
 				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 					<div>
@@ -270,7 +270,7 @@
 				</div>
 			</fieldset>
 
-			<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
+			<fieldset class="bean-form-ledger space-y-6 min-w-0">
 				<legend class="text-sm font-semibold text-secondary px-2">Details <span class="form-optional-hint">(optional)</span></legend>
 				<div>
 					<label class="form-label" for="bean-description">Description</label>
@@ -351,6 +351,28 @@
 					{submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Bean"}
 				</button>
 			</div>
-		</form>
-	</div>
-</div>
+	</form>
+
+	{#snippet rail()}
+		<RailSection title={name || "Untitled coffee"} eyebrow="Bean label" lead={true}>
+			<p>{roastLevel || "Roast not selected"}</p>
+			<p>{origin || "Add an origin to place this coffee."}</p>
+			{#if variety || process}<p>{[variety, process].filter(Boolean).join(" · ")}</p>{/if}
+		</RailSection>
+		<RailSection title="Record completeness" eyebrow="Journal status">
+			<p>{[name, origin, roasterRKey, roastLevel, variety, process].filter(Boolean).length} of 6 useful details recorded.</p>
+			<p>Name and origin are required. Everything else helps future-you compare bags.</p>
+		</RailSection>
+		<RailSection title="What belongs here" eyebrow="Field notes">
+			<p>Use Description for the roaster's public copy. Keep your own impressions and dial-in notes under Personal details.</p>
+		</RailSection>
+	{/snippet}
+</FormWorkspace>
+
+<style>
+	.bean-form-sheet { padding-top: 1.5rem; }
+	.bean-form-ledger { margin: 0; padding: 1.4rem 0 1.75rem; border: 0; border-top: 1px solid var(--card-border); }
+	.bean-form-ledger:first-of-type { border-top: 2px solid var(--text-secondary); }
+	.bean-form-ledger legend { padding: 0 .75rem 0 0; color: var(--text-primary); font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
+	.bean-form-sheet > :global(.alert-error) { margin-bottom: 1rem; }
+</style>

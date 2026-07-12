@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
+  import LedgerHeader from "$lib/components/LedgerHeader.svelte";
   import {
     pluralS,
     formatAvgRating,
@@ -184,6 +185,11 @@
   let closedBeans = $derived(
     (manage?.beans ?? []).filter((bean) => bean.closed),
   );
+
+  function collectionCount(tab: Tab): number {
+    if (tab === "brews") return brewsData?.brews.length ?? 0;
+    return manage?.[tab]?.length ?? 0;
+  }
 </script>
 
 <svelte:head>
@@ -194,22 +200,15 @@
   />
 </svelte:head>
 
-<div class="page-container-xl">
-  <div class="flex items-center gap-3 mb-6">
-    <h2 class="page-title">My Coffee</h2>
-    <div class="ml-auto flex items-center gap-2">
-      <a href="/add" class="btn-secondary">+ Add records</a>
-      <a href="/brews/new" class="btn-primary shadow-lg hover:shadow-xl"
-        >+ New Brew</a
-      >
-      <button
-        type="button"
-        class="btn-secondary"
-        onclick={refresh}
-        aria-label="Refresh">↻</button
-      >
-    </div>
-  </div>
+<div class="coffee-library">
+  <LedgerHeader title="My Coffee" eyebrow="Personal collection" description="Your brewing archive, working shelf, and equipment ledger.">
+    {#snippet actions()}
+      <div class="coffee-library-actions">
+        <a href="/add" class="btn-secondary">Add records</a>
+        <a href="/brews/new" class="btn-primary">Log brew</a>
+      </div>
+    {/snippet}
+  </LedgerHeader>
 
   {#if error}
     <div class="card card-inner text-center py-8">
@@ -219,20 +218,24 @@
       >
     </div>
   {:else if manage}
-    <!-- Tabs -->
-    <div class="mb-6 border-b-2 border-brown-300">
-      <nav class="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto">
+    <div class="coffee-library-grid">
+      <aside class="collection-index" aria-label="Coffee collections">
+        <p class="collection-label">Collections</p>
+        <nav>
         {#each tabs as tab (tab.id)}
           <button
             type="button"
             onclick={() => switchTab(tab.id)}
-            class={`whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-sm ${activeTab === tab.id ? "tab-row-active" : "tab-row-inactive"}`}
+            class:active={activeTab === tab.id}
+            aria-current={activeTab === tab.id ? "page" : undefined}
+            data-count={collectionCount(tab.id)}
           >
             {tab.label}
           </button>
         {/each}
-      </nav>
-    </div>
+        </nav>
+      </aside>
+      <main class="coffee-collection">
 
     <!-- Brews tab -->
     {#if activeTab === "brews"}
@@ -752,5 +755,52 @@
         </div>
       {/if}
     {/if}
+      </main>
+      <aside class="coffee-library-rail" aria-label="Collection tools">
+        <section class="library-rail-section lead">
+          <p class="collection-label">On the counter</p>
+          <h2>{openBeans.length} open {openBeans.length === 1 ? "bag" : "bags"}</h2>
+          <p>{manage.brewers.length} brewers and {manage.grinders.length} grinders are ready for your next entry.</p>
+        </section>
+        <section class="library-rail-section">
+          <p class="collection-label">Current view</p>
+          <h2>Collection summary</h2>
+          <p>{collectionCount(activeTab)} {tabs.find((tab) => tab.id === activeTab)?.label.toLowerCase()} loaded in this view.</p>
+        </section>
+        <section class="library-rail-section">
+          <p class="collection-label">Keep it current</p>
+          <p>Refresh after editing records from another device or app.</p>
+          <button type="button" class="library-refresh" onclick={refresh}><Icon name="coffee" />Refresh collection</button>
+        </section>
+      </aside>
+    </div>
   {/if}
 </div>
+
+<style>
+  .coffee-library { width: 100%; max-width: 88rem; margin-inline: auto; padding-inline: clamp(.5rem, 2.2vw, 2rem); }
+  .coffee-library-actions { display: flex; gap: .6rem; }
+  .coffee-library-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; padding-top: 1.5rem; }
+  .coffee-collection { min-width: 0; order: 1; }
+  .collection-index { order: 0; min-width: 0; }
+  .coffee-library-rail { order: 2; min-width: 0; }
+  .collection-label { margin: 0 0 .45rem; color: var(--text-muted); font-size: .65rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .collection-index nav { display: flex; overflow-x: auto; border-block: 1px solid var(--card-border); }
+  .collection-index button { display: flex; min-width: max-content; min-height: 2.75rem; align-items: center; gap: .5rem; padding: .55rem .8rem; color: var(--text-muted); border-bottom: 2px solid transparent; font-size: .78rem; }
+  .collection-index button::after { content: attr(data-count); color: var(--text-faint); font-size: .7rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .collection-index button.active { color: var(--text-primary); border-bottom-color: var(--text-secondary); font-weight: 600; }
+  .library-rail-section { padding: 1rem 0 1.2rem; border-top: 1px solid var(--card-border); }
+  .library-rail-section.lead { border-top: 2px solid var(--text-secondary); }
+  .library-rail-section h2 { margin: 0 0 .45rem; color: var(--text-primary); font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
+  .library-rail-section p:not(.collection-label) { margin: 0 0 .7rem; color: var(--text-muted); font-size: .75rem; line-height: 1.55; }
+  .library-refresh { display: inline-flex; min-height: 2.75rem; align-items: center; gap: .45rem; color: var(--text-emphasis); font-size: .75rem; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+  @media (min-width: 1040px) {
+    .coffee-library-grid { grid-template-columns: minmax(10rem,.65fr) minmax(34rem,2.5fr) minmax(12rem,.8fr); gap: clamp(1.25rem,2.2vw,2.5rem); align-items: start; }
+    .coffee-collection, .collection-index, .coffee-library-rail { order: initial; }
+    .collection-index, .coffee-library-rail { position: sticky; top: 5rem; }
+    .collection-index nav { display: block; overflow: visible; border-block: 0; border-top: 2px solid var(--text-secondary); }
+    .collection-index button { width: 100%; justify-content: space-between; border-bottom: 1px dotted var(--card-border); border-left: 2px solid transparent; padding-inline: .65rem; }
+    .collection-index button.active { border-bottom-color: var(--card-border); border-left-color: var(--text-secondary); }
+  }
+  @media (max-width: 640px) { .coffee-library-actions { width: 100%; } .coffee-library-actions a { flex: 1; text-align: center; } }
+</style>
