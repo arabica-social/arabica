@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BackButton from "$lib/components/BackButton.svelte";
+	import StampTag from "$lib/components/StampTag.svelte";
 	import { goto } from "$app/navigation";
 	import { pushToast } from "$lib/stores/toasts";
 	import { get } from "svelte/store";
@@ -248,14 +249,7 @@
 
 				<div class="flex flex-wrap gap-2" role="group" aria-label="Recipe size filters">
 					{#each categories as option}
-						<button
-							type="button"
-							class={category === option.value ? "filter-pill-active" : "filter-pill"}
-							aria-pressed={category === option.value ? "true" : "false"}
-							onclick={() => setCategory(option.value)}
-						>
-							{option.label}
-						</button>
+						<StampTag label={option.label} active={category === option.value} tone="recipe" onclick={() => setCategory(option.value)} />
 					{/each}
 				</div>
 
@@ -308,16 +302,9 @@
 				<div></div>
 			{/if}
 			<div class="flex items-center gap-1 text-sm">
-				<span class="text-faint mr-1">Sort:</span>
+				<span class="stamp-sort-label">Sort</span>
 				{#each sorts as option}
-					<button
-						type="button"
-						class={sortBy === option.value ? "filter-pill-active text-xs" : "filter-pill text-xs"}
-						aria-pressed={sortBy === option.value ? "true" : "false"}
-						onclick={() => setSort(option.value)}
-					>
-						{option.label}
-					</button>
+					<StampTag label={option.label} active={sortBy === option.value} onclick={() => setSort(option.value)} />
 				{/each}
 			</div>
 		</div>
@@ -636,3 +623,14 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.stamp-sort-label {
+		margin-right: .2rem;
+		color: var(--text-faint);
+		font-size: .62rem;
+		font-weight: 600;
+		letter-spacing: .12em;
+		text-transform: uppercase;
+	}
+</style>

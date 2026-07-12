@@ -3,7 +3,10 @@
 	import EntityCombo from "./EntityCombo.svelte";
 	import Field from "./BrewFormField.svelte";
 	import PoursEditor from "./PoursEditor.svelte";
-	import BackButton from "./BackButton.svelte";
+	import FormWorkspace from "./FormWorkspace.svelte";
+	import LedgerHeader from "./LedgerHeader.svelte";
+	import FormSection from "./FormSection.svelte";
+	import RailSection from "./RailSection.svelte";
 	import { appCache } from "../stores/appCache";
 	import { session } from "../stores/session";
 	import { pushToast } from "../stores/toasts";
@@ -265,23 +268,66 @@
 	}
 
 	let submitLabel = $derived(isEdit ? "Update Brew" : "Save Brew");
+
+	// --- Live brew context rail derivations ---
+	function num(value: string): number {
+		const n = Number(value);
+		return Number.isFinite(n) ? n : 0;
+	}
+	let coffeeValue = $derived(num(coffeeAmount));
+	let waterValue = $derived(num(waterAmount));
+	let ratio = $derived(coffeeValue > 0 && waterValue > 0 ? waterValue / coffeeValue : null);
+	let brewerCategoryLabel = $derived(
+		brewerCategory === "pourover"
+			? "Pour-over"
+			: brewerCategory === "espresso"
+				? "Espresso"
+				: brewerCategory === "immersion"
+					? "Immersion"
+					: brewerCategory === "mokapot"
+						? "Moka pot"
+						: brewerCategory === "coldbrew"
+							? "Cold brew"
+							: brewerCategory === "cupping"
+								? "Cupping"
+								: brewerCategory === "other"
+									? "Other"
+									: "",
+	);
+	let pourCount = $derived(pours.filter((p) => p.water !== "" || p.time !== "").length);
+	let ratingValue = $derived(num(rating));
+	// Useful details for a brew: bean, brewer, grinder, coffee, water, time,
+	// temperature, tasting notes, rating.
+	let completeness = $derived(
+		[
+			beanRKey,
+			brewerRKey,
+			grinderRKey,
+			coffeeAmount ? "coffee" : "",
+			waterAmount ? "water" : "",
+			timeSeconds ? "time" : "",
+			temperature ? "temperature" : "",
+			tastingNotes.trim() ? "notes" : "",
+			ratingValue > 0 ? "rating" : "",
+		].filter(Boolean).length,
+	);
 </script>
 
-<div class="page-container-sm">
-	<div class="card card-inner">
-		<div class="flex items-center gap-3 mb-6">
-			<BackButton />
-			<h2 class="text-2xl font-semibold text-primary">{isEdit ? "Edit Brew" : "New Brew"}</h2>
-		</div>
+<FormWorkspace>
+	<LedgerHeader
+		title={isEdit ? "Edit Brew" : "New Brew"}
+		eyebrow="Brew session"
+		description="Log the recipe, equipment, and results so you can repeat the good ones."
+		showBack={true}
+	/>
 
-		<form onsubmit={submitForm} class="space-y-6">
-			<!-- Recipe (optional) -->
+	<form class="brew-form-sheet" novalidate onsubmit={submitForm}>
+		<!-- Recipe (optional) -->
+		<FormSection title="Recipe (Optional)" description="Select a recipe to autofill brew parameters.">
+			<div class="alert-warning px-3 py-2 mb-2 text-xs">
+				Recipes are in early alpha, the format may change. Your brew data won't be affected.
+			</div>
 			<div class="combo-select">
-				<span class="form-label">Recipe (Optional)</span>
-				<p class="text-sm text-muted mb-2">Select a recipe to autofill brew parameters</p>
-				<div class="alert-warning px-3 py-2 mb-2 text-xs">
-					Recipes are in early alpha, the format may change. Your brew data won't be affected.
-				</div>
 				<EntityCombo
 					entityType="recipe"
 					inputName="recipe_rkey"
@@ -308,144 +354,174 @@
 					</div>
 				</div>
 			{/if}
+		</FormSection>
 
-			<!-- Coffee section -->
-			<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-				<legend class="text-sm font-semibold text-secondary px-2">Coffee</legend>
+		<!-- Coffee section -->
+		<FormSection title="Coffee" description="The bean, grinder, and dose set up the brew.">
+			<div class="combo-select">
+				<span class="form-label">Coffee Bean <span class="text-red-500" aria-hidden="true">*</span></span>
+				<EntityCombo
+					entityType="bean"
+					inputName="bean_rkey"
+					apiEndpoint="/api/beans"
+					suggestEndpoint="/api/suggestions/beans"
+					placeholder="Search beans..."
+					sectionLabel="Your beans"
+					required={true}
+					allowCreate={false}
+					bind:rkey={beanRKey}
+					bind:label={beanLabel}
+					ariaLabel="Search coffee beans"
+					onChange={(detail) => handleComboChange("bean", detail)}
+				/>
+			</div>
+			{#if showRecipeOverrides()}
+				<Field label="Coffee Amount (grams)" helper="Amount of ground coffee used">
+					<input type="number" bind:value={coffeeAmount} placeholder="e.g. 18" step="1" class="w-full form-input-lg" aria-invalid={coffeeAmountError} />
+					{#if coffeeAmountError}<p class="text-xs text-red-600 mt-1">Coffee amount must be greater than 0.</p>{/if}
+				</Field>
+			{/if}
+			<div class="combo-select">
+				<span class="form-label">Grinder</span>
+				<EntityCombo
+					entityType="grinder"
+					inputName="grinder_rkey"
+					apiEndpoint="/api/grinders"
+					suggestEndpoint="/api/suggestions/grinders"
+					placeholder="Search grinders..."
+					sectionLabel="Your grinders"
+					bind:rkey={grinderRKey}
+					bind:label={grinderLabel}
+					ariaLabel="Search grinders"
+					onChange={(detail) => handleComboChange("grinder", detail)}
+				/>
+			</div>
+			<Field label="Grind Size" helper={'Enter a number (grinder setting) or description (e.g. "Medium", "Fine")'}>
+				<input type="text" bind:value={grindSize} placeholder="e.g. 18, Medium, 3.5, Fine" class="w-full form-input-lg" />
+			</Field>
+		</FormSection>
+
+		<!-- Brewing section -->
+		<FormSection title="Brewing" description="Water, method, and timing drive extraction.">
+			{#if showRecipeOverrides()}
 				<div class="combo-select">
-					<span class="form-label">Coffee Bean <span class="text-red-500">*</span></span>
+					<span class="form-label">Brew Method</span>
 					<EntityCombo
-						entityType="bean"
-						inputName="bean_rkey"
-						apiEndpoint="/api/beans"
-						suggestEndpoint="/api/suggestions/beans"
-						placeholder="Search beans..."
-						sectionLabel="Your beans"
-						required={true}
-						allowCreate={false}
-						bind:rkey={beanRKey}
-						bind:label={beanLabel}
-						ariaLabel="Search coffee beans"
-						onChange={(detail) => handleComboChange("bean", detail)}
+						entityType="brewer"
+						inputName="brewer_rkey"
+						apiEndpoint="/api/brewers"
+						suggestEndpoint="/api/suggestions/brewers"
+						placeholder="Search brew methods..."
+						sectionLabel="Your brewers"
+						bind:rkey={brewerRKey}
+						bind:label={brewerLabel}
+						ariaLabel="Search brew methods"
+						onChange={(detail) => handleComboChange("brewer", detail)}
 					/>
 				</div>
-				{#if showRecipeOverrides()}
-					<Field label="Coffee Amount (grams)" helper="Amount of ground coffee used">
-						<input type="number" bind:value={coffeeAmount} placeholder="e.g. 18" step="1" class="w-full form-input-lg" aria-invalid={coffeeAmountError} />
-						{#if coffeeAmountError}<p class="text-xs text-red-600 mt-1">Coffee amount must be greater than 0.</p>{/if}
-					</Field>
-				{/if}
-				<div class="combo-select">
-					<span class="form-label">Grinder</span>
-					<EntityCombo
-						entityType="grinder"
-						inputName="grinder_rkey"
-						apiEndpoint="/api/grinders"
-						suggestEndpoint="/api/suggestions/grinders"
-						placeholder="Search grinders..."
-						sectionLabel="Your grinders"
-						bind:rkey={grinderRKey}
-						bind:label={grinderLabel}
-						ariaLabel="Search grinders"
-						onChange={(detail) => handleComboChange("grinder", detail)}
-					/>
-				</div>
-				<Field label="Grind Size" helper={'Enter a number (grinder setting) or description (e.g. "Medium", "Fine")'}>
-					<input type="text" bind:value={grindSize} placeholder="e.g. 18, Medium, 3.5, Fine" class="w-full form-input-lg" />
+				<Field label="Water Amount (grams)" helper={pours.length > 0 ? "Total water (pours tracked separately below)" : "Total water used"}>
+					<input type="number" bind:value={waterAmount} placeholder="e.g. 250" step="1" class="w-full form-input-lg" aria-invalid={waterAmountError} />
+					{#if waterAmountError}<p class="text-xs text-red-600 mt-1">Water amount must be greater than 0.</p>{/if}
 				</Field>
-			</fieldset>
-
-			<!-- Brewing section -->
-			<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-				<legend class="text-sm font-semibold text-secondary px-2">Brewing</legend>
-				{#if showRecipeOverrides()}
-					<div class="combo-select">
-						<span class="form-label">Brew Method</span>
-						<EntityCombo
-							entityType="brewer"
-							inputName="brewer_rkey"
-							apiEndpoint="/api/brewers"
-							suggestEndpoint="/api/suggestions/brewers"
-							placeholder="Search brew methods..."
-							sectionLabel="Your brewers"
-							bind:rkey={brewerRKey}
-							bind:label={brewerLabel}
-							ariaLabel="Search brew methods"
-							onChange={(detail) => handleComboChange("brewer", detail)}
-						/>
-					</div>
-					<Field label="Water Amount (grams)" helper={pours.length > 0 ? "Total water (pours tracked separately below)" : "Total water used"}>
-						<input type="number" bind:value={waterAmount} placeholder="e.g. 250" step="1" class="w-full form-input-lg" aria-invalid={waterAmountError} />
-						{#if waterAmountError}<p class="text-xs text-red-600 mt-1">Water amount must be greater than 0.</p>{/if}
-					</Field>
-					<PoursEditor bind:pours expectedWater={waterAmount} />
-				{/if}
-				<Field label="Temperature (°F/°C)">
-					<input type="number" bind:value={temperature} placeholder="e.g. 93.5" step="0.1" class="w-full form-input-lg" aria-invalid={temperatureError} />
-					{#if temperatureError}<p class="text-xs text-red-600 mt-1">Temperature must be greater than 0.</p>{/if}
-				</Field>
-				<Field label="Brew Time (seconds)">
-					<input type="number" bind:value={timeSeconds} placeholder="e.g. 180" class="w-full form-input-lg" aria-invalid={timeSecondsError} />
-					{#if timeSecondsError}<p class="text-xs text-red-600 mt-1">Brew time must be greater than 0.</p>{/if}
-				</Field>
-			</fieldset>
-
-			<!-- Espresso params -->
-			{#if brewerCategory === "espresso"}
-				<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-					<legend class="text-sm font-semibold text-secondary px-2">Espresso</legend>
-					<Field label="Yield Weight (grams)" helper="Weight of espresso output">
-						<input type="number" bind:value={espressoYieldWeight} placeholder="e.g. 36" step="0.1" class="w-full form-input-lg" />
-					</Field>
-					<Field label="Pressure (bar)" helper="Brewing pressure">
-						<input type="number" bind:value={espressoPressure} placeholder="e.g. 9" step="0.1" class="w-full form-input-lg" />
-					</Field>
-					<Field label="Pre-infusion Time (seconds)">
-						<input type="number" bind:value={espressoPreInfusionSeconds} placeholder="e.g. 5" class="w-full form-input-lg" />
-					</Field>
-				</fieldset>
+				<PoursEditor bind:pours expectedWater={waterAmount} />
 			{/if}
+			<Field label="Temperature (°F/°C)">
+				<input type="number" bind:value={temperature} placeholder="e.g. 93.5" step="0.1" class="w-full form-input-lg" aria-invalid={temperatureError} />
+				{#if temperatureError}<p class="text-xs text-red-600 mt-1">Temperature must be greater than 0.</p>{/if}
+			</Field>
+			<Field label="Brew Time (seconds)">
+				<input type="number" bind:value={timeSeconds} placeholder="e.g. 180" class="w-full form-input-lg" aria-invalid={timeSecondsError} />
+				{#if timeSecondsError}<p class="text-xs text-red-600 mt-1">Brew time must be greater than 0.</p>{/if}
+			</Field>
+		</FormSection>
 
-			<!-- Pourover params -->
-			{#if brewerCategory === "pourover"}
-				<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-					<legend class="text-sm font-semibold text-secondary px-2">Pour-over Details</legend>
-					<div class="grid grid-cols-2 gap-4">
-						<Field label="Bloom Water (grams)" helper="Water for bloom">
-							<input type="number" bind:value={pouroverBloomWater} placeholder="e.g. 50" class="w-full form-input-lg" />
-						</Field>
-						<Field label="Bloom Time (seconds)" helper="Bloom wait time">
-							<input type="number" bind:value={pouroverBloomSeconds} placeholder="e.g. 45" class="w-full form-input-lg" />
-						</Field>
-					</div>
-					<Field label="Drawdown Time (seconds)" helper="Time after last pour until bed is dry">
-						<input type="number" bind:value={pouroverDrawdownSeconds} placeholder="e.g. 30" class="w-full form-input-lg" />
-					</Field>
-					<Field label="Bypass Water (grams)" helper="Water added after brewing">
-						<input type="number" bind:value={pouroverBypassWater} placeholder="e.g. 100" class="w-full form-input-lg" />
-					</Field>
-					<Field label="Filter" helper="Type of filter used">
-						<input type="text" bind:value={pouroverFilter} placeholder="e.g. paper, metal, cloth" class="w-full form-input-lg" />
-					</Field>
-				</fieldset>
-			{/if}
-
-			<!-- Results -->
-			<fieldset class="space-y-6 border border-brown-200 rounded-lg p-4 min-w-0">
-				<legend class="text-sm font-semibold text-secondary px-2">Results</legend>
-				<Field label="Tasting Notes">
-					<textarea bind:value={tastingNotes} placeholder="Describe the flavors, aroma, and your thoughts..." rows="4" class="w-full form-input-lg"></textarea>
+		<!-- Espresso params -->
+		{#if brewerCategory === "espresso"}
+			<FormSection title="Espresso" description="Shot output, pressure, and pre-infusion.">
+				<Field label="Yield Weight (grams)" helper="Weight of espresso output">
+					<input type="number" bind:value={espressoYieldWeight} placeholder="e.g. 36" step="0.1" class="w-full form-input-lg" />
 				</Field>
-				<div>
-					<label class="form-label" for="brew-rating">Rating</label>
-					<input id="brew-rating" type="range" min="1" max="10" bind:value={rating} class="w-full accent-brown-700" />
-					<div class="text-center text-2xl font-bold text-secondary">{rating}/10</div>
-				</div>
-			</fieldset>
+				<Field label="Pressure (bar)" helper="Brewing pressure">
+					<input type="number" bind:value={espressoPressure} placeholder="e.g. 9" step="0.1" class="w-full form-input-lg" />
+				</Field>
+				<Field label="Pre-infusion Time (seconds)">
+					<input type="number" bind:value={espressoPreInfusionSeconds} placeholder="e.g. 5" class="w-full form-input-lg" />
+				</Field>
+			</FormSection>
+		{/if}
 
-			<button type="submit" class="w-full btn-primary py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl" disabled={submitting}>
+		<!-- Pourover params -->
+		{#if brewerCategory === "pourover"}
+			<FormSection title="Pour-over Details" description="Bloom, drawdown, and filter shape the cup.">
+				<div class="grid grid-cols-2 gap-4">
+					<Field label="Bloom Water (grams)" helper="Water for bloom">
+						<input type="number" bind:value={pouroverBloomWater} placeholder="e.g. 50" class="w-full form-input-lg" />
+					</Field>
+					<Field label="Bloom Time (seconds)" helper="Bloom wait time">
+						<input type="number" bind:value={pouroverBloomSeconds} placeholder="e.g. 45" class="w-full form-input-lg" />
+					</Field>
+				</div>
+				<Field label="Drawdown Time (seconds)" helper="Time after last pour until bed is dry">
+					<input type="number" bind:value={pouroverDrawdownSeconds} placeholder="e.g. 30" class="w-full form-input-lg" />
+				</Field>
+				<Field label="Bypass Water (grams)" helper="Water added after brewing">
+					<input type="number" bind:value={pouroverBypassWater} placeholder="e.g. 100" class="w-full form-input-lg" />
+				</Field>
+				<Field label="Filter" helper="Type of filter used">
+					<input type="text" bind:value={pouroverFilter} placeholder="e.g. paper, metal, cloth" class="w-full form-input-lg" />
+				</Field>
+			</FormSection>
+		{/if}
+
+		<!-- Results -->
+		<FormSection title="Results" description="Tasting notes and a rating close out the session.">
+			<Field label="Tasting Notes">
+				<textarea bind:value={tastingNotes} placeholder="Describe the flavors, aroma, and your thoughts..." rows="4" class="w-full form-input-lg"></textarea>
+			</Field>
+			<div>
+				<label class="form-label" for="brew-rating">Rating</label>
+				<input id="brew-rating" type="range" min="1" max="10" bind:value={rating} class="w-full accent-brown-700" />
+				<div class="text-center text-2xl font-bold text-secondary">{rating}/10</div>
+			</div>
+		</FormSection>
+
+		<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+			<a href={isEdit && brew ? `/brews/${encodeURIComponent($session.did || $session.handle)}/${encodeURIComponent(brew.rkey)}` : "/my-coffee"} class="btn-secondary text-center">Cancel</a>
+			<button type="submit" class="btn-primary" disabled={submitting}>
 				{submitting ? "Saving..." : submitLabel}
 			</button>
-		</form>
-	</div>
-</div>
+		</div>
+	</form>
+
+	{#snippet rail()}
+		<RailSection title={beanLabel || "Untitled brew"} eyebrow="Brew session" lead={true}>
+			{#if activeRecipe}
+				<p>Recipe: {recipeSummary() || activeRecipe.name}</p>
+			{:else}
+				<p>No recipe selected — fields are freehand.</p>
+			{/if}
+			{#if ratio !== null}
+				<p>Ratio 1:{ratio.toFixed(1)} ({coffeeValue}g → {waterValue}g)</p>
+			{:else if coffeeValue > 0 || waterValue > 0}
+				<p>Add both coffee and water to see the brew ratio.</p>
+			{/if}
+			{#if brewerCategoryLabel}<p>Method: {brewerCategoryLabel}</p>{/if}
+			{#if pourCount > 0}<p>{pourCount} {pourCount === 1 ? "pour" : "pours"} tracked.</p>{/if}
+		</RailSection>
+		<RailSection title="Record completeness" eyebrow="Brew status">
+			<p>{completeness} of 9 useful details recorded.</p>
+			<p>A bean is required. Brewer, grinder, and timing make the brew reproducible; notes and rating make it worth revisiting.</p>
+		</RailSection>
+		<RailSection title="What belongs here" eyebrow="Field notes">
+			<p>Use Tasting Notes for what you tasted, not what you did — technique lives in the recipe. Rating is your overall impression of the cup.</p>
+		</RailSection>
+	{/snippet}
+</FormWorkspace>
+
+<style>
+	.brew-form-sheet { padding-top: 1.5rem; }
+	.brew-form-sheet :global(.form-section) { margin: 0; }
+	.brew-form-sheet :global(.form-section) + :global(.form-section) { margin-top: 0; }
+	.brew-form-sheet :global(.combo-select) { margin-bottom: 1.5rem; }
+	.brew-form-sheet :global(.combo-select:last-child) { margin-bottom: 0; }
+</style>

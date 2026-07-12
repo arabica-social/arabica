@@ -230,22 +230,29 @@
   </section>
 {/snippet}
 
-{#if isAuthenticated && appName === "arabica"}
+{#if appName === "arabica"}
   <div class="cafe-counter">
     <aside class="cafe-rail cafe-rail-left" aria-label="Your coffee journal">
       <section class="cafe-rail-section cafe-rail-lead">
-        <p class="cafe-label">Your journal</p>
-        <h2>Keep the counter current.</h2>
-        <p>Your beans, equipment, and recipes stay close at hand.</p>
-        <nav class="cafe-shortcuts" aria-label="Coffee journal shortcuts">
-          <a href={appDefinition.libraryPath}><Icon name="bean" /><span>{appDefinition.libraryLabel}</span></a>
-          <a href="/explore"><Icon name="brewer" /><span>Explore</span></a>
-          <a href="/recipes"><Icon name="fileText" /><span>Recipes</span></a>
-          <a href="/profile/{data.userDID}"><Icon name="coffee" /><span>Your profile</span></a>
-        </nav>
+        {#if isAuthenticated}
+          <p class="cafe-label">Your journal</p>
+          <h2>Keep the counter current.</h2>
+          <p>Your beans, equipment, and recipes stay close at hand.</p>
+          <nav class="cafe-shortcuts" aria-label="Coffee journal shortcuts">
+            <a href={appDefinition.libraryPath}><Icon name="bean" /><span>{appDefinition.libraryLabel}</span></a>
+            <a href="/explore"><Icon name="brewer" /><span>Explore</span></a>
+            <a href="/recipes"><Icon name="fileText" /><span>Recipes</span></a>
+            <a href="/profile/{data.userDID}"><Icon name="coffee" /><span>Your profile</span></a>
+          </nav>
+        {:else}
+          <p class="cafe-label">Your coffee notebook</p>
+          <h2>Keep the details worth repeating.</h2>
+          <p>Record beans, equipment, recipes, and the small adjustments that make a cup click.</p>
+          <button type="button" onclick={openLoginModal} class="cafe-text-link cafe-rail-action">Log in to your journal</button>
+        {/if}
       </section>
 
-      {#if incompleteRecords?.records?.length}
+      {#if isAuthenticated && incompleteRecords?.records?.length}
         <section class="cafe-rail-section">
           <p class="cafe-label">Needs attention</p>
           <h2>{incompleteRecords.records.length} {incompleteRecords.records.length === 1 ? "record" : "records"} need details.</h2>
@@ -264,17 +271,25 @@
     <main class="cafe-main">
       <header class="cafe-journal-head">
         <div>
-          <p class="cafe-label">Your home coffee journal</p>
-          <h1>Good coffee deserves a record.</h1>
-          <p class="cafe-deck">Keep the details that helped a cup click, then compare notes with people brewing around the Atmosphere.</p>
+          <p class="cafe-label">{isAuthenticated ? "Your home coffee journal" : "A coffee journal on the Atmosphere"}</p>
+          <h1>{isAuthenticated ? "Good coffee deserves a record." : appDefinition.heroHeading}</h1>
+          <p class="cafe-deck">{isAuthenticated ? "Keep the details that helped a cup click, then compare notes with people brewing around the Atmosphere." : appDefinition.heroDescription}</p>
+          {#if !isAuthenticated}
+            <p class="cafe-ownership"><a href="/atproto">Built on AT Protocol</a>. Your journal stays yours.</p>
+          {/if}
         </div>
         <div class="cafe-actions">
-          <a href={ready ? "/brews/new" : "/onboarding"} class="home-action-primary">
-            {ready ? `${appDefinition.sessionAction} →` : "Finish setup →"}
-          </a>
-          <a href={appDefinition.libraryPath} class="cafe-text-link">Browse your journal</a>
+          {#if isAuthenticated}
+            <a href={ready ? "/brews/new" : "/onboarding"} class="home-action-primary">
+              {ready ? `${appDefinition.sessionAction} →` : "Finish setup →"}
+            </a>
+            <a href={appDefinition.libraryPath} class="cafe-text-link">Browse your journal</a>
+          {:else}
+            <button type="button" onclick={openLoginModal} class="home-action-primary">Log In</button>
+            <a href="/join/create" class="cafe-text-link">Create an account</a>
+          {/if}
         </div>
-        {#if !ready}
+        {#if isAuthenticated && !ready}
           <div class="cafe-setup-nudge">
             <span><strong>First brew</strong>{appDefinition.readinessNudge}</span>
             <a href="/onboarding">Open setup</a>
@@ -285,7 +300,7 @@
     </main>
 
     <aside class="cafe-rail cafe-rail-right" aria-label="Around the café">
-      {#if popularRecipes?.length}
+      {#if isAuthenticated && popularRecipes?.length}
         <section class="cafe-rail-section cafe-rail-lead">
           <p class="cafe-label">Popular recipes</p>
           <h2>What people are brewing.</h2>
@@ -313,13 +328,21 @@
         <p>Arabica stores your coffee records in your own Personal Data Server, not in a private app database.</p>
         <a href="/atproto" class="cafe-text-link">How ownership works</a>
       </section>
+      {#if !isAuthenticated}
+        <section class="cafe-rail-section">
+          <p class="cafe-label">Come as you are</p>
+          <h2>See what the café is brewing.</h2>
+          <p>The community board is public, so you can browse before starting a journal of your own.</p>
+          <a href="/about" class="cafe-text-link">Learn more</a>
+        </section>
+      {/if}
       <section class="cafe-rail-section">
         <p class="cafe-label">About Arabica</p>
         <p>A federated coffee journal for people who enjoy keeping the useful details.</p>
         <a href="/about" class="cafe-text-link">Read the story</a>
       </section>
     </aside>
-    <ScrollTopButton />
+    {#if isAuthenticated}<ScrollTopButton />{/if}
   </div>
 {:else}
   <div class="page-container-lg">
@@ -369,13 +392,18 @@
   .cafe-main { order: 1; min-width: 0; }
   .cafe-rail-left { order: 2; }
   .cafe-rail-right { order: 3; }
-  .cafe-journal-head { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: clamp(1.25rem,3vw,2.5rem); margin-bottom: 1.75rem; padding: .5rem 0 1.4rem; border-bottom: 1px solid var(--card-border); }
+  .cafe-journal-head { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: clamp(1.25rem,3vw,2.5rem); margin-bottom: 1.75rem; padding: .5rem clamp(.25rem,2vw,1.25rem) 1.4rem 0; border-bottom: 1px solid var(--card-border); }
+  .cafe-journal-head::before { content: ""; position: absolute; right: clamp(-1rem,-1vw,-.25rem); bottom: -7.5rem; width: clamp(17rem,30vw,25rem); height: clamp(17rem,30vw,25rem); background-color: var(--text-emphasis); opacity: .045; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E") center / contain no-repeat; pointer-events: none; }
+  .cafe-journal-head > * { position: relative; z-index: 1; }
   .cafe-journal-head h1 { max-width: 13ch; margin: .35rem 0 .8rem; color: var(--text-primary); font-family: var(--font-display); font-size: clamp(2.35rem,5vw,3.9rem); font-weight: 600; line-height: .96; letter-spacing: -.025em; font-variation-settings: "opsz" 96,"SOFT" 50,"WONK" 0; }
   .cafe-deck { max-width: 60ch; margin: 0; color: var(--text-secondary); font-size: .95rem; line-height: 1.65; }
+  .cafe-ownership { margin: .8rem 0 0; color: var(--text-faint); font-size: .72rem; }
+  .cafe-ownership a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
   .cafe-label { margin: 0 0 .45rem; color: var(--text-muted); font-size: .65rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
   .cafe-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .55rem; }
   .cafe-text-link { display: inline-flex; min-height: 2.75rem; align-items: center; color: var(--text-emphasis); font-size: .75rem; font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in oklch,var(--text-faint) 45%,transparent); text-underline-offset: 4px; }
   .cafe-text-link:hover { color: var(--text-primary); text-decoration-color: currentColor; }
+  .cafe-rail-action { padding: 0; border: 0; background: transparent; cursor: pointer; }
   .cafe-setup-nudge { grid-column: 1/-1; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-top: 1px dashed var(--card-border); color: var(--text-secondary); font-size: .78rem; }
   .cafe-setup-nudge span { display: flex; gap: .65rem; align-items: baseline; }
   .cafe-setup-nudge strong { color: var(--text-muted); font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; }
@@ -418,4 +446,5 @@
     .cafe-feed-heading { align-items: stretch; flex-direction: column; }
     .cafe-shortcuts { grid-template-columns: 1fr; }
   }
+  @media (prefers-reduced-transparency: reduce) { .cafe-journal-head::before { display: none; } }
 </style>

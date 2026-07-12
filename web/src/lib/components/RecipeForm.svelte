@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import BackButton from "./BackButton.svelte";
 	import EntityCombo from "./EntityCombo.svelte";
 	import PoursEditor from "./PoursEditor.svelte";
+	import FormWorkspace from "./FormWorkspace.svelte";
+	import LedgerHeader from "./LedgerHeader.svelte";
+	import FormSection from "./FormSection.svelte";
+	import RailSection from "./RailSection.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createRecipe, updateRecipe } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -20,6 +23,10 @@
 		{ value: "cupping", label: "Cupping" },
 		{ value: "other", label: "Other" },
 	];
+
+	const BREWER_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+		BREWER_TYPES.map((t) => [t.value, t.label]),
+	);
 
 	type Props = {
 		recipe: Recipe | null;
@@ -110,23 +117,48 @@
 			submitting = false;
 		}
 	}
+
+	// Live recipe context rail derivations.
+	let coffeeValue = $derived(num(coffeeAmount));
+	let waterValue = $derived(num(waterAmount));
+	let ratio = $derived(
+		coffeeValue > 0 && waterValue > 0 ? waterValue / coffeeValue : null,
+	);
+	let brewerTypeLabel = $derived(
+		brewerType ? (BREWER_TYPE_LABELS[brewerType] ?? brewerType) : "",
+	);
+	let pourCount = $derived(
+		pours.filter((p) => p.water !== "" || p.time !== "").length,
+	);
+	// Useful details for a reusable recipe: name, brewer, brewer type,
+	// coffee, water, pours, notes.
+	let completeness = $derived(
+		[
+			name.trim(),
+			brewerRKey,
+			brewerType,
+			coffeeAmount !== "" ? String(coffeeAmount) : "",
+			waterAmount !== "" ? String(waterAmount) : "",
+			pourCount > 0 ? "pours" : "",
+			notes.trim(),
+		].filter(Boolean).length,
+	);
 </script>
 
-<div class="page-container-sm">
-	<div class="card card-inner">
-		<div class="flex items-center gap-3 mb-6">
-			<BackButton />
-			<div>
-				<p class="text-xs font-semibold uppercase tracking-wider text-faint">Recipe</p>
-				<h1 class="text-2xl font-semibold text-primary">{isEdit ? "Edit Recipe" : "Add a Recipe"}</h1>
-			</div>
-		</div>
+<FormWorkspace>
+	<LedgerHeader
+		title={isEdit ? "Edit Recipe" : "Add a Recipe"}
+		eyebrow="Recipe"
+		description="Lay out a repeatable brew recipe so future sessions stay on track."
+		showBack={true}
+	/>
 
-		<form class="space-y-6" novalidate onsubmit={submit}>
-			{#if formError}
-				<div class="alert-error" role="alert">{formError}</div>
-			{/if}
+	<form class="recipe-form-sheet" novalidate onsubmit={submit}>
+		{#if formError}
+			<div class="alert-error" role="alert">{formError}</div>
+		{/if}
 
+		<FormSection title="Essentials">
 			<div>
 				<label class="form-label" for="recipe-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
 				<p id="recipe-name-help" class="text-sm text-muted mb-2">A memorable name for this recipe.</p>
@@ -164,7 +196,9 @@
 					allowCreate={true}
 				/>
 			</div>
+		</FormSection>
 
+		<FormSection title="Measurements" description="Coffee and water set the recipe's strength. Brewer type keeps it sorted.">
 			<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 				<div>
 					<label class="form-label" for="recipe-brewer-type">Brewer type</label>
@@ -204,15 +238,17 @@
 					/>
 				</div>
 			</div>
+		</FormSection>
 
-			<div>
-				<PoursEditor
-					bind:pours
-					expectedWater={waterAmount}
-					title="Pours"
-				/>
-			</div>
+		<FormSection title="Pours" description="Break the total water into stages for bloom and dilution.">
+			<PoursEditor
+				bind:pours
+				expectedWater={waterAmount}
+				title="Pours"
+			/>
+		</FormSection>
 
+		<FormSection title="Recipe notes" description="Grind size, technique, and tasting targets belong here.">
 			<div>
 				<label class="form-label" for="recipe-notes">Notes</label>
 				<textarea
@@ -225,13 +261,37 @@
 					aria-label="Notes"
 				></textarea>
 			</div>
+		</FormSection>
 
-			<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
-				<a href={isEdit && recipe ? `/recipes/${encodeURIComponent(actor())}/${encodeURIComponent(recipe.rkey)}` : "/my-coffee"} class="btn-secondary text-center">Cancel</a>
-				<button type="submit" class="btn-primary" disabled={submitting}>
-					{submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Recipe"}
-				</button>
-			</div>
-		</form>
-	</div>
-</div>
+		<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+			<a href={isEdit && recipe ? `/recipes/${encodeURIComponent(actor())}/${encodeURIComponent(recipe.rkey)}` : "/my-coffee"} class="btn-secondary text-center">Cancel</a>
+			<button type="submit" class="btn-primary" disabled={submitting}>
+				{submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Recipe"}
+			</button>
+		</div>
+	</form>
+
+	{#snippet rail()}
+		<RailSection title={name.trim() || "Untitled recipe"} eyebrow="Recipe" lead={true}>
+			<p>{brewerTypeLabel || "Brewer type not selected"}</p>
+			{#if ratio !== null}
+				<p>Ratio 1:{ratio.toFixed(1)} ({num(coffeeAmount)}g → {num(waterAmount)}g)</p>
+			{:else}
+				<p>Add coffee and water to see the brew ratio.</p>
+			{/if}
+		</RailSection>
+		<RailSection title="Record completeness" eyebrow="Recipe status">
+			<p>{completeness} of 7 useful details recorded.</p>
+			<p>Name is required. Brewer, measurements, and pours make the recipe reproducible.</p>
+		</RailSection>
+		<RailSection title="What belongs here" eyebrow="Field notes">
+			<p>Recipes are reusable templates. Use Notes for grind and technique; track actual results in a brew that references this recipe.</p>
+		</RailSection>
+	{/snippet}
+</FormWorkspace>
+
+<style>
+	.recipe-form-sheet { padding-top: 1.5rem; }
+	.recipe-form-sheet > :global(.alert-error) { margin-bottom: 1rem; }
+	.recipe-form-sheet :global(.form-section) { margin: 0; }
+</style>

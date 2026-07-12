@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arabica sort &amp; filter controls study</title>
+  <style>
+    :root {
+      color-scheme: light;
+      /* Palette — frozen across themes, mirrored from tokens.css. */
+      --page: oklch(0.975 0.012 58);
+      --paper: oklch(0.992 0.006 62);
+      --paper-warm: #fffdf5;
+      --kraft-bg: #f7f0e8;
+      --surface: oklch(0.96 0.018 66 / 0.72);
+      --border: oklch(0.89 0.028 55);
+      --border-soft: oklch(0.91 0.025 60);
+      --ink: #3d2319;
+      --ink-soft: #4a2c2a;
+      --ink-deep: #2a1610;
+      --muted: #7f5539;
+      --faint: #8a6758;
+      --header: #3f3027;
+      --copper: oklch(0.62 0.15 45);
+      --copper-dark: oklch(0.55 0.16 42);
+      --copper-soft: oklch(0.9 0.055 66);
+      --leaf: #65745a;
+      --leaf-soft: #edf0e9;
+      --cork: #c4a882;
+      --cork-edge: #b09470;
+      --amber: #fbbf24;
+      --amber-deep: #92400e;
+      /* Entity type inks (used for type-aware hover, as in production). */
+      --type-brew: #6b4423;
+      --type-bean: #b45309;
+      --type-recipe: #a0522d;
+      --type-brewer: #65745a;
+      --type-roaster: oklch(0.51 0.135 40);
+      --type-grinder: #78716c;
+      --type-brew-tint: rgba(107, 68, 35, 0.14);
+      --type-bean-tint: rgba(180, 83, 9, 0.12);
+      --type-recipe-tint: rgba(160, 82, 45, 0.12);
+      --type-brewer-tint: rgba(101, 116, 90, 0.14);
+      /* Tactile textures (inline SVG, no external deps). */
+      --kraft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='.15 0 0 0 .1 .1 0 0 0 .06 .05 0 0 0 .02 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23k)'/%3E%3C/svg%3E");
+      --cork-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='.3 0 0 0 .15 .2 0 0 0 .08 .1 0 0 0 .02 0 0 0 .15 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23c)'/%3E%3C/svg%3E");
+      --dotgrid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%23d2bab0' fill-opacity='0.35'/%3E%3C/svg%3E");
+      --mono: "Iosevka Patrick", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+      --display: Fraunces, "Iosevka Patrick", ui-serif, Georgia, serif;
+      --shadow: 0 1px 3px rgba(61, 35, 25, 0.08);
+      --shadow-raised: 0 4px 12px rgba(61, 35, 25, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eadfd8; color: var(--ink); font-family: var(--mono); }
+    button { font: inherit; }
+    h2, h3, p { margin-top: 0; }
+    .display { font-family: var(--display); font-weight: 600; letter-spacing: -.02em; }
+    .eyebrow { color: var(--muted); font-size: .65rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+    .text-link { color: var(--ink-soft); text-underline-offset: 4px; cursor: pointer; }
+
+    /* ---------- Study chrome ---------- */
+    .study-bar {
+      position: sticky; top: 0; z-index: 20; display: grid;
+      grid-template-columns: minmax(15rem, 1fr) auto auto; gap: 1rem; align-items: center;
+      padding: .85rem clamp(1rem, 3vw, 2.5rem); color: #faf7f5; background: #211712;
+      border-bottom: 1px solid #71533d; box-shadow: 0 4px 18px rgb(33 23 18 / .22);
+    }
+    .study-title { font-family: var(--display); font-size: 1.2rem; font-weight: 600; }
+    .study-subtitle { margin-top: .1rem; color: #d8c7bd; font-size: .72rem; }
+    .controls { display: flex; gap: .3rem; flex-wrap: wrap; }
+    .control {
+      padding: .46rem .68rem; color: #f2e8e5; background: transparent;
+      border: 1px solid #71533d; border-radius: 6px; cursor: pointer;
+    }
+    .control:hover, .control[aria-pressed="true"] { color: #211712; background: #f2e8e5; }
+    .recommendation { color: #fcd34d; font-size: .72rem; text-align: right; }
+
+    .notes {
+      max-width: 92rem; margin: 1.2rem auto; padding: 0 1rem; display: grid;
+      grid-template-columns: 1fr auto; gap: 1rem; align-items: end;
+    }
+    .notes h1 { margin: 0 0 .3rem; font-family: var(--display); font-size: clamp(1.5rem, 3vw, 2.3rem); }
+    .notes p { max-width: 76ch; margin: 0; color: var(--muted); line-height: 1.55; font-size: .85rem; }
+    .selection { min-width: 16rem; padding: .7rem .9rem; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; font-size: .74rem; }
+    .selection strong { display: block; color: var(--copper-dark); margin-bottom: .2rem; }
+
+    /* ---------- Browser frame ---------- */
+    .stage { padding: 0 1rem 3rem; overflow: auto; }
+    .browser {
+      width: min(100%, 92rem); min-width: 64rem; margin: 0 auto; overflow: hidden;
+      background: var(--page); border: 1px solid #bba89c; border-radius: 9px;
+      box-shadow: 0 24px 70px rgb(61 35 25 / .2); transition: width .25s ease;
+    }
+    .browser.mobile { width: 25rem; min-width: 25rem; }
+    .chrome { height: 24px; display: flex; gap: 6px; align-items: center; padding: 0 10px; background: #d8c9c0; border-bottom: 1px solid #bba89c; }
+    .chrome i { width: 7px; height: 7px; border-radius: 50%; background: #9a7a68; }
+    .header { min-height: 60px; padding: 0 clamp(1rem, 3vw, 2.2rem); display: flex; align-items: center; justify-content: space-between; color: #faf7f5; background: var(--header); border-bottom: 1px solid #71533d; }
+    .brand { display: flex; gap: .6rem; align-items: center; font-size: 1.15rem; font-weight: 700; letter-spacing: .03em; }
+    .brand svg { width: 22px; height: 22px; }
+    .alpha { padding: .14rem .3rem; color: var(--ink); background: var(--amber); border-radius: 2px; font-size: .55rem; letter-spacing: .08em; }
+    .nav { display: flex; align-items: center; gap: 1.1rem; font-size: .74rem; }
+    .avatar { display: grid; place-items: center; width: 30px; height: 30px; color: var(--ink); background: #e8d8c9; border: 2px solid #8e5d3a; border-radius: 50%; font-size: .72rem; }
+
+    .app { padding: clamp(1.2rem, 3vw, 2.2rem) clamp(1rem, 4vw, 3rem); }
+    .section-rule { display: flex; align-items: center; gap: .75rem; margin: 0 0 .2rem; font-family: var(--display); font-size: 1.3rem; }
+    .section-rule::after { content: ""; height: 1px; flex: 1; background: var(--border); }
+
+    /* ---------- Context blocks (shared content) ---------- */
+    .context { margin-bottom: 2.2rem; }
+    .context-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; }
+    .context-head h2 { margin: .2rem 0 0; font-family: var(--display); font-size: 1.5rem; }
+    .context-head .muted-line { color: var(--muted); font-size: .74rem; }
+
+    /* The control rows are where variants differ. Each variant has its own
+       .ctrl-<name> wrapper. Rows are flex, wrap on narrow widths. */
+    .ctrl-row { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-bottom: 1rem; }
+    .ctrl-row.sort { justify-content: flex-end; margin-top: -.4rem; margin-bottom: 1.1rem; }
+    .ctrl-row .row-label { color: var(--faint); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; margin-right: .25rem; }
+    .ctrl { cursor: pointer; font-family: var(--mono); border: 1px solid transparent; background: transparent; color: var(--muted); padding: .25rem .6rem; font-size: .75rem; line-height: 1rem; transition: color .15s, background-color .15s, border-color .15s, box-shadow .15s, transform .15s; }
+
+    /* Feed board (homepage context). */
+    .feed-board { padding: 1rem; background-color: var(--cork); background-image: var(--cork-texture); border: 1px solid var(--cork-edge); box-shadow: inset 0 2px 8px rgb(61 35 25 / .15); border-radius: 4px; }
+    .feed-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
+    .note { min-height: 116px; padding: .85rem; background: var(--paper-warm); border-radius: 3px; box-shadow: 2px 3px 6px rgb(61 35 25 / .16); transform: rotate(var(--tilt, 0deg)); }
+    .note.bean { background: linear-gradient(var(--type-bean-tint), var(--type-bean-tint)), var(--paper-warm); }
+    .note.brew { background: linear-gradient(var(--type-brew-tint), var(--type-brew-tint)), var(--paper-warm); }
+    .note.recipe { background: linear-gradient(var(--type-recipe-tint), var(--type-recipe-tint)), var(--paper-warm); }
+    .note-meta { color: var(--muted); font-size: .6rem; letter-spacing: .04em; }
+    .note h4 { margin: .4rem 0 .3rem; font-size: .82rem; color: var(--ink-soft); }
+    .note p { margin: 0; color: var(--ink-soft); font-size: .68rem; line-height: 1.45; }
+    .note-foot { display: flex; justify-content: space-between; margin-top: .6rem; color: var(--faint); font-size: .58rem; }
+
+    /* Recipes list (recipes context). */
+    .recipe-search { width: 100%; padding: .55rem .7rem; background: var(--paper-warm); border: 1px solid var(--border); border-radius: 8px; color: var(--ink); font-family: var(--mono); font-size: .8rem; margin-bottom: .9rem; }
+    .recipe-search::placeholder { color: var(--faint); }
+    .recipe-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
+    .recipe-card { padding: .85rem 1rem; background: var(--paper); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+    .recipe-card .rc-meta { color: var(--faint); font-size: .6rem; letter-spacing: .03em; }
+    .recipe-card h4 { margin: .25rem 0 .3rem; font-size: .82rem; color: var(--ink-soft); }
+    .recipe-card p { margin: 0; color: var(--muted); font-size: .66rem; line-height: 1.45; }
+    .recipe-card .rc-foot { margin-top: .5rem; color: var(--faint); font-size: .58rem; }
+    .recipe-count { color: var(--muted); font-size: .72rem; }
+
+    /* =====================================================================
+       VARIANT 0 — Current pills (control). Mirrors production .filter-pill.
+       Rounded capsules, copper active fill, type-aware hover.
+       ===================================================================== */
+    .ctrl-current { border-radius: 9999px; border-color: var(--border); padding: .25rem .75rem; }
+    .ctrl-current:hover { color: var(--ink-soft); border-color: var(--copper); background: var(--surface); }
+    .ctrl-current[data-tab="brew"]:hover { border-color: var(--type-brew); color: var(--type-brew); }
+    .ctrl-current[data-tab="bean"]:hover { border-color: var(--type-bean); color: var(--type-bean); }
+    .ctrl-current[data-tab="recipe"]:hover { border-color: var(--type-recipe); color: var(--type-recipe); }
+    .ctrl-current[data-tab="brewer"]:hover { border-color: var(--type-brewer); color: var(--type-brewer); }
+    .ctrl-current.active { color: #faf7f5; background: var(--copper); border-color: var(--copper); font-weight: 500; }
+    .ctrl-current.active:hover { background: var(--copper-dark); border-color: var(--copper-dark); }
+
+    /* =====================================================================
+       VARIANT 1 — Ledger Index. Sharp 2px corners, indexed numerals,
+       ink rule under the active entry. No fills; structure from rules.
+       Fits the Coffee Ledger Rule.
+       ===================================================================== */
+    .ctrl-ledger { border-radius: 2px; border: none; border-bottom: 1px solid transparent; padding: .3rem .2rem .3rem 0; color: var(--muted); font-size: .72rem; display: inline-flex; align-items: baseline; gap: .35rem; }
+    .ctrl-ledger .idx { color: var(--faint); font-size: .58rem; font-variant-numeric: tabular-nums; }
+    .ctrl-ledger:hover { color: var(--ink-soft); border-bottom-color: var(--border); }
+    .ctrl-ledger.active { color: var(--ink); border-bottom: 2px solid var(--ink-soft); font-weight: 600; background: transparent; }
+    .ctrl-ledger.active .idx { color: var(--ink-soft); }
+    .ctrl-ledger.active[data-tab="bean"] { border-bottom-color: var(--type-bean); }
+    .ctrl-ledger.active[data-tab="brew"] { border-bottom-color: var(--type-brew); }
+    .ctrl-ledger.active[data-tab="recipe"] { border-bottom-color: var(--type-recipe); }
+    .ctrl-ledger.active[data-tab="brewer"] { border-bottom-color: var(--type-brewer); }
+
+    /* =====================================================================
+       VARIANT 2 — Stamp Tags. Dashed border, slight rotation when active
+       like an inked rubber stamp, punched-hole dot. Craft stamp detail.
+       ===================================================================== */
+    .ctrl-stamp { border-radius: 3px; border: 1.5px dashed var(--faint); padding: .28rem .6rem .28rem .85rem; position: relative; color: var(--muted); font-size: .7rem; letter-spacing: .02em; }
+    .ctrl-stamp::before { content: ""; position: absolute; left: .32rem; top: 50%; transform: translateY(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
+    .ctrl-stamp:hover { border-color: var(--muted); color: var(--ink-soft); background: var(--surface); }
+    .ctrl-stamp.active { border-style: solid; border-color: var(--ink-soft); border-width: 1.5px; color: #faf7f5; background: var(--ink-soft); transform: rotate(-2deg); box-shadow: 1px 2px 0 rgba(61,35,25,.18); font-weight: 600; }
+    .ctrl-stamp.active::before { background: var(--amber); }
+    .ctrl-stamp.active[data-tab="bean"] { background: var(--type-bean); border-color: var(--type-bean); }
+    .ctrl-stamp.active[data-tab="brew"] { background: var(--type-brew); border-color: var(--type-brew); }
+    .ctrl-stamp.active[data-tab="recipe"] { background: var(--type-recipe); border-color: var(--type-recipe); }
+    .ctrl-stamp.active[data-tab="brewer"] { background: var(--type-brewer); border-color: var(--type-brewer); }
+
+    /* =====================================================================
+       VARIANT 3 — Folder Register. Kraft manila-tab shape (trapezoid via
+       clip-path), folded edge, lifted when active. Tactile paper feel.
+       ===================================================================== */
+    .ctrl-folder { border-radius: 4px 4px 0 0; border: 1px solid var(--cork-edge); border-bottom: none; padding: .34rem .7rem .4rem; color: var(--muted); font-size: .7rem; background: var(--kraft-bg); background-image: var(--kraft); position: relative; clip-path: polygon(6% 0, 100% 0, 100% 100%, 0 100%); box-shadow: 0 1px 0 var(--border-soft); margin-bottom: -1px; }
+    .ctrl-folder:hover { color: var(--ink-soft); border-color: var(--copper); }
+    .ctrl-folder.active { color: var(--ink); background: var(--paper-warm); background-image: none; border-color: var(--ink-soft); border-bottom: 1px solid var(--paper-warm); font-weight: 600; transform: translateY(-2px); box-shadow: 0 -2px 4px rgba(61,35,25,.1); z-index: 1; }
+    .ctrl-folder.active[data-tab="bean"] { border-color: var(--type-bean); }
+    .ctrl-folder.active[data-tab="brew"] { border-color: var(--type-brew); }
+    .ctrl-folder.active[data-tab="recipe"] { border-color: var(--type-recipe); }
+    .ctrl-folder.active[data-tab="brewer"] { border-color: var(--type-brewer); }
+    /* Sort row folders read as a small register strip; give them a baseline rule. */
+    .ctrl-row.sort.folder-row { border-bottom: 1px solid var(--border); padding-bottom: 2px; }
+
+    .variant { display: none; }
+    .variant.active { display: block; }
+
+    /* ---------- Tradeoff notes ---------- */
+    .tradeoffs { max-width: 92rem; margin: 1rem auto 0; padding: 0 1rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem; }
+    .tradeoff { padding: .9rem 1rem; background: var(--paper); border: 1px solid var(--border); border-left: 3px solid var(--copper); border-radius: 6px; }
+    .tradeoff h4 { margin: 0 0 .35rem; font-family: var(--display); font-size: .92rem; }
+    .tradeoff .pros { color: var(--leaf); font-size: .68rem; margin: 0 0 .25rem; }
+    .tradeoff .cons { color: var(--amber-deep); font-size: .68rem; margin: 0; }
+    .tradeoff.recommended { border-left-color: var(--leaf); background: var(--leaf-soft); }
+
+    /* ---------- Pick row ---------- */
+    .pick-row { display: flex; gap: .55rem; justify-content: center; align-items: center; padding: 1.2rem; color: var(--muted); background: #eadfd8; font-size: .72rem; }
+    .pick { padding: .45rem .8rem; color: var(--ink-soft); background: var(--paper); border: 1px solid #bba89c; border-radius: 6px; cursor: pointer; }
+    .pick.selected { color: #faf7f5; background: var(--copper-dark); border-color: var(--copper-dark); }
+
+    /* ---------- Mobile ---------- */
+    .browser.mobile .feed-grid { grid-template-columns: 1fr; }
+    .browser.mobile .recipe-list { grid-template-columns: 1fr; }
+    .browser.mobile .context-head { flex-direction: column; align-items: flex-start; }
+    .browser.mobile .ctrl-row.sort { justify-content: flex-start; }
+    .browser.mobile .tradeoffs { grid-template-columns: 1fr; }
+
+    @media (max-width: 760px) {
+      .study-bar { position: static; grid-template-columns: 1fr; }
+      .recommendation { text-align: left; }
+      .notes { grid-template-columns: 1fr; }
+      .stage { padding-inline: .4rem; }
+      .tradeoffs { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="study-bar">
+    <div>
+      <div class="study-title">Arabica sort &amp; filter controls study</div>
+      <div class="study-subtitle">Homepage feed + recipes page · four control languages on the Café Counter baseline</div>
+    </div>
+    <div class="controls" aria-label="Study controls">
+      <button class="control variant-control" data-variant="current" aria-pressed="true">Current pills</button>
+      <button class="control variant-control" data-variant="ledger" aria-pressed="false">Ledger Index</button>
+      <button class="control variant-control" data-variant="stamp" aria-pressed="false">Stamp Tags</button>
+      <button class="control variant-control" data-variant="folder" aria-pressed="false">Folder Register</button>
+      <button class="control viewport-control" data-viewport="desktop" aria-pressed="true">Desktop</button>
+      <button class="control viewport-control" data-viewport="mobile" aria-pressed="false">Mobile</button>
+    </div>
+    <div class="recommendation">Recommended baseline: Ledger Index</div>
+  </header>
+
+  <section class="notes">
+    <div>
+      <h1 id="variant-name">Current pills</h1>
+      <p id="variant-note">The control: rounded capsules with a copper active fill and type-aware hover, as shipped in production today. Included as the reference point.</p>
+    </div>
+    <div class="selection" aria-live="polite"><strong>Your selection</strong><span id="selection-text">No direction selected yet</span></div>
+  </section>
+
+  <main class="stage">
+    <div class="browser" id="browser">
+      <div class="chrome"><i></i><i></i><i></i></div>
+      <header class="header">
+        <div class="brand">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M8 8h15v9a8 8 0 0 1-8 8 7 7 0 0 1-7-7V8Zm15 3h2.5a4 4 0 0 1 0 8H23v-2h2.5a2 2 0 0 0 0-4H23v-2ZM6 27h19v2H6z"/></svg>
+          Arabica <span class="alpha">ALPHA</span>
+        </div>
+        <nav class="nav"><span>Explore</span><span>My coffee</span><span>Recipes</span><span class="avatar">P</span></nav>
+      </header>
+
+      <div class="app">
+
+        <!-- ====== HOMEPAGE FEED CONTEXT ====== -->
+        <div class="context">
+          <div class="context-head">
+            <div>
+              <span class="eyebrow">Around the café</span>
+              <h2 class="display">Community Activity</h2>
+            </div>
+            <span class="muted-line">Home journal · Sunday, July 12</span>
+          </div>
+
+          <!-- Current pills -->
+          <section class="variant active" data-panel="current">
+            <div class="ctrl-row" role="group" aria-label="Feed type filters">
+              <button class="ctrl ctrl-current active" data-tab="">All</button>
+              <button class="ctrl ctrl-current" data-tab="bean">Beans</button>
+              <button class="ctrl ctrl-current" data-tab="brew">Brews</button>
+              <button class="ctrl ctrl-current" data-tab="brewer">Brewers</button>
+              <button class="ctrl ctrl-current" data-tab="recipe">Recipes</button>
+            </div>
+            <div class="ctrl-row sort" role="group" aria-label="Feed sort">
+              <span class="row-label">Sort</span>
+              <button class="ctrl ctrl-current active" data-sort="recent">New</button>
+              <button class="ctrl ctrl-current" data-sort="popular">Popular</button>
+            </div>
+          </section>
+
+          <!-- Ledger Index -->
+          <section class="variant" data-panel="ledger">
+            <div class="ctrl-row" role="group" aria-label="Feed type filters">
+              <button class="ctrl ctrl-ledger active" data-tab=""><span class="idx">01</span>All</button>
+              <button class="ctrl ctrl-ledger" data-tab="bean"><span class="idx">02</span>Beans</button>
+              <button class="ctrl ctrl-ledger" data-tab="brew"><span class="idx">03</span>Brews</button>
+              <button class="ctrl ctrl-ledger" data-tab="brewer"><span class="idx">04</span>Brewers</button>
+              <button class="ctrl ctrl-ledger" data-tab="recipe"><span class="idx">05</span>Recipes</button>
+            </div>
+            <div class="ctrl-row sort" role="group" aria-label="Feed sort">
+              <span class="row-label">Sort</span>
+              <button class="ctrl ctrl-ledger active" data-sort="recent"><span class="idx">a</span>New</button>
+              <button class="ctrl ctrl-ledger" data-sort="popular"><span class="idx">b</span>Popular</button>
+            </div>
+          </section>
+
+          <!-- Stamp Tags -->
+          <section class="variant" data-panel="stamp">
+            <div class="ctrl-row" role="group" aria-label="Feed type filters">
+              <button class="ctrl ctrl-stamp active" data-tab="">All</button>
+              <button class="ctrl ctrl-stamp" data-tab="bean">Beans</button>
+              <button class="ctrl ctrl-stamp" data-tab="brew">Brews</button>
+              <button class="ctrl ctrl-stamp" data-tab="brewer">Brewers</button>
+              <button class="ctrl ctrl-stamp" data-tab="recipe">Recipes</button>
+            </div>
+            <div class="ctrl-row sort" role="group" aria-label="Feed sort">
+              <span class="row-label">Sort</span>
+              <button class="ctrl ctrl-stamp active" data-sort="recent">New</button>
+              <button class="ctrl ctrl-stamp" data-sort="popular">Popular</button>
+            </div>
+          </section>
+
+          <!-- Folder Register -->
+          <section class="variant" data-panel="folder">
+            <div class="ctrl-row" role="group" aria-label="Feed type filters" style="border-bottom:1px solid var(--border);">
+              <button class="ctrl ctrl-folder active" data-tab="">All</button>
+              <button class="ctrl ctrl-folder" data-tab="bean">Beans</button>
+              <button class="ctrl ctrl-folder" data-tab="brew">Brews</button>
+              <button class="ctrl ctrl-folder" data-tab="brewer">Brewers</button>
+              <button class="ctrl ctrl-folder" data-tab="recipe">Recipes</button>
+            </div>
+            <div class="ctrl-row sort folder-row" role="group" aria-label="Feed sort">
+              <span class="row-label">Sort</span>
+              <button class="ctrl ctrl-folder active" data-sort="recent">New</button>
+              <button class="ctrl ctrl-folder" data-sort="popular">Popular</button>
+            </div>
+          </section>
+
+          <div class="feed-board">
+            <div class="feed-grid">
+              <article class="note brew" style="--tilt:-.6deg"><span class="note-meta">BREW · 8 min ago</span><h4>V60, Ethiopia Hamasho</h4><p>15g in · 250g out · 2:48<br>Peach tea, bergamot, honey.</p><div class="note-foot"><span>@patrick</span><span>♡ 4 · 2 replies</span></div></article>
+              <article class="note bean" style="--tilt:.45deg"><span class="note-meta">NEW BEAN · 21 min ago</span><h4>Flower Child, Colombia</h4><p>Washed Pink Bourbon from Huila, resting until Friday.</p><div class="note-foot"><span>@mira</span><span>♡ 7</span></div></article>
+              <article class="note recipe" style="--tilt:.2deg"><span class="note-meta">RECIPE · 34 min ago</span><h4>Soft-water April recipe</h4><p>Three pours with a longer bloom. Built for tea-like coffees.</p><div class="note-foot"><span>@coffeechris</span><span>Copied 12×</span></div></article>
+              <article class="note brew" style="--tilt:-.35deg"><span class="note-meta">BREW · 51 min ago</span><h4>AeroPress at the office</h4><p>18g · 220g · 1:45<br>Chocolate, cherry, clean.</p><div class="note-foot"><span>@annelies</span><span>♡ 3</span></div></article>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== RECIPES PAGE CONTEXT ====== -->
+        <div class="context">
+          <div class="context-head">
+            <div>
+              <span class="eyebrow">Explore Recipes</span>
+              <h2 class="display">Browse &amp; fork recipes</h2>
+            </div>
+            <span class="muted-line">14 recipes found</span>
+          </div>
+
+          <input class="recipe-search" type="text" placeholder="Search recipes by name..." aria-label="Search recipes" />
+
+          <!-- Current pills -->
+          <section class="variant active" data-panel="current">
+            <div class="ctrl-row" role="group" aria-label="Recipe size filters">
+              <button class="ctrl ctrl-current active" data-tab="">All</button>
+              <button class="ctrl ctrl-current" data-tab="recipe">Small (≤12g)</button>
+              <button class="ctrl ctrl-current" data-tab="recipe">Single cup (12–22g)</button>
+              <button class="ctrl ctrl-current" data-tab="recipe">Large (22g+)</button>
+              <button class="ctrl ctrl-current" data-tab="recipe">Batch (500g+ water)</button>
+            </div>
+            <div class="ctrl-row sort" role="group" aria-label="Recipe sort">
+              <span class="row-label">Sort</span>
+              <button class="ctrl ctrl-current active" data-sort="popular">Popular</button>
+              <button class="ctrl ctrl-current" data-sort="recent">Newest</button>
+              <button class="ctrl ctrl-current" data-sort="most_forked">Most Forked</button>
+            </div>
+          </section>
+
+          <!-- Ledger Index -->
+          <section class="variant" data-panel="ledger">
+            <div class="ctrl-row" role="group" aria-label="Recipe size filters">
+              <button class="ctrl ctrl-ledger active" data-tab=""><span class="idx">01</span>All</button>
+              <button class="ctrl ctrl-ledger" data-tab="recipe"><span class="idx">02</span>Small (≤12g)</button>
+              <button class="ctrl ctrl-ledger" data-tab="recipe"><span class="idx">03</span>Single cup</button>
+              <button class="ctrl ctrl-ledger" data-tab="recipe"><span class="idx">04</span>Large (22g+)</button>
+              <button class="ctrl ctrl-ledger" data-tab="recipe"><span class="idx">05</span>Batch</button>
+            </div>
+            <div class="ctrl-row sort" role="group" aria-label="Recipe sort">
+              <span class="row-label">Sort</span>
+              <button class="ctrl ctrl-ledger active" data-sort="popular"><span class="idx">a</span>Popular</button>
+              <button class="ctrl ctrl-ledger" data-sort="recent"><span class="idx">b</span>Newest</button>
+              <button class="ctrl ctrl-ledger" data-sort="most_forked"><span class="idx">c</span>Most Forked</button>
+            </div>
+          </section>
+
+          <!-- Stamp Tags -->
+          <section class="variant" data-panel="stamp">
+            <div class="ctrl-row" role="group" aria-label="Recipe size filters">
+              <button class="ctrl ctrl-stamp active" data-tab="">All</button>
+              <button class="ctrl ctrl-stamp" data-tab="recipe">Small (≤12g)</button>
+              <button class="ctrl ctrl-stamp" data-tab="recipe">Single cup</button>
+              <button class="ctrl ctrl-stamp" data-tab="recipe">Large (22g+)</button>
+              <button class="ctrl ctrl-stamp" data-tab="recipe">Batch</button>
+            </div>
+            <div class="ctrl-row sort" role="group" aria-label="Recipe sort">
+              <span class="row-label">Sort</span>
+              <button class="ctrl ctrl-stamp active" data-sort="popular">Popular</button>
+              <button class="ctrl ctrl-stamp" data-sort="recent">Newest</button>
+              <button class="ctrl ctrl-stamp" data-sort="most_forked">Most Forked</button>
+            </div>
+          </section>
+
+          <!-- Folder Register -->
+          <section class="variant" data-panel="folder">
+            <div class="ctrl-row" role="group" aria-label="Recipe size filters" style="border-bottom:1px solid var(--border);">
+              <button class="ctrl ctrl-folder active" data-tab="">All</button>
+              <button class="ctrl ctrl-folder" data-tab="recipe">Small</button>
+              <button class="ctrl ctrl-folder" data-tab="recipe">Single cup</button>
+              <button class="ctrl ctrl-folder" data-tab="recipe">Large</button>
+              <button class="ctrl ctrl-folder" data-tab="recipe">Batch</button>
+            </div>
+            <div class="ctrl-row sort folder-row" role="group" aria-label="Recipe sort">
+              <span class="row-label">Sort</span>
+              <button class="ctrl ctrl-folder active" data-sort="popular">Popular</button>
+              <button class="ctrl ctrl-folder" data-sort="recent">Newest</button>
+              <button class="ctrl ctrl-folder" data-sort="most_forked">Most Forked</button>
+            </div>
+          </section>
+
+          <div class="recipe-list">
+            <article class="recipe-card"><span class="rc-meta">POUR-OVER · 15g</span><h4>Rao-inspired V60</h4><p>One pour, high agitation, straight off the boil. Forgiving for light roasts.</p><div class="rc-foot">Copied 18× · @hugo</div></article>
+            <article class="recipe-card"><span class="rc-meta">POUR-OVER · 22g</span><h4>Soft-water April recipe</h4><p>Three pours, longer bloom, gentle agitation. Tea-like coffees.</p><div class="rc-foot">Copied 12× · @coffeechris</div></article>
+            <article class="recipe-card"><span class="rc-meta">IMMERSION · 18g</span><h4>Office AeroPress</h4><p>Inverted, 1:45, skip the scale gymnastics. Chocolate and cherry.</p><div class="rc-foot">Copied 9× · @annelies</div></article>
+            <article class="recipe-card"><span class="rc-meta">POUR-OVER · 30g</span><h4>Fast flat-bottom</h4><p>Flat-bottom filter, big single pour. Built for Nordic light roasts.</p><div class="rc-foot">Copied 7× · @mira</div></article>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="tradeoffs" id="tradeoffs">
+      <div class="tradeoff" data-tradeoff="current">
+        <h4>Current pills</h4>
+        <p style="margin:0 0 .4rem;color:var(--muted);font-size:.72rem;line-height:1.5;">Rounded capsules, copper active fill, type-aware hover. Familiar, production-shipped, mobile-safe (44px).</p>
+        <p class="pros">+ Already shipped; zero migration cost.</p>
+        <p class="cons">− Capsules read as generic SaaS chips, not coffee-ledger language. Competes with the corkboard for roundness.</p>
+      </div>
+      <div class="tradeoff recommended" data-tradeoff="ledger">
+        <h4>Ledger Index <span style="font-size:.6rem;color:var(--leaf);letter-spacing:.08em;">RECOMMENDED</span></h4>
+        <p style="margin:0 0 .4rem;color:var(--muted);font-size:.72rem;line-height:1.5;">Sharp corners, indexed numerals, ink rule under the active entry. No fills — structure from rules, per the Coffee Ledger Rule.</p>
+        <p class="pros">+ Reinforces the ledger identity; cheapest ink budget; scales to long sort lists; reads at small sizes.</p>
+        <p class="cons">− Lowest chroma — type-aware color is subtle. Needs the bottom rule to read as a control, not plain text.</p>
+      </div>
+      <div class="tradeoff" data-tradeoff="stamp">
+        <h4>Stamp Tags</h4>
+        <p style="margin:0 0 .4rem;color:var(--muted);font-size:.72rem;line-height:1.5;">Dashed border, punched-hole dot, active state tilts like an inked rubber stamp. Most tactile of the four.</p>
+        <p class="pros">+ Strongest craft personality; matches the stamp progress cues already in the app.</p>
+        <p class="cons">− Rotation can feel busy across a full row; dashed inactive border adds visual noise on dense recipe filters.</p>
+      </div>
+      <div class="tradeoff" data-tradeoff="folder">
+        <h4>Folder Register</h4>
+        <p style="margin:0 0 .4rem;color:var(--muted);font-size:.72rem;line-height:1.5;">Kraft manila-tab shape, lifted when active, baseline rule like a folder spine. Most literal paper metaphor.</p>
+        <p class="pros">+ Very tactile; active tab “lifts” clearly; kraft texture ties to the corkboard.</p>
+        <p class="cons">− Trapezoid clip-path is fragile at small sizes and on the sort row; tabs need a shared baseline rule or they float. Heaviest to implement.</p>
+      </div>
+    </div>
+
+    <div class="pick-row">
+      <span>Which control direction should production follow?</span>
+      <button class="pick" data-pick="Current pills">Current</button>
+      <button class="pick" data-pick="Ledger Index">Ledger Index</button>
+      <button class="pick" data-pick="Stamp Tags">Stamp Tags</button>
+      <button class="pick" data-pick="Folder Register">Folder Register</button>
+    </div>
+  </main>
+
+  <script>
+    const descriptions = {
+      current: ["Current pills", "The control: rounded capsules with a copper active fill and type-aware hover, as shipped in production today. Included as the reference point."],
+      ledger: ["Ledger Index", "Sharp 2px corners, indexed numerals, and an ink rule under the active entry. No fills — structure comes from rules and labels, true to the Coffee Ledger Rule. Scales cleanly to long sort lists."],
+      stamp: ["Stamp Tags", "Dashed borders with a punched-hole dot; the active state fills with ink and tilts slightly like a rubber stamp. The most tactile option, echoing the app's dashed rubber-stamp progress cues."],
+      folder: ["Folder Register", "Kraft manila-tab shapes that lift when active, sitting on a shared baseline rule like a folder spine. The most literal paper metaphor, tying the control to the corkboard surface."]
+    };
+
+    // Variant switching.
+    document.querySelectorAll(".variant-control").forEach(button => {
+      button.addEventListener("click", () => {
+        const variant = button.dataset.variant;
+        document.querySelectorAll(".variant-control").forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+        // Each context (homepage + recipes) has its own set of variant panels.
+        document.querySelectorAll(".variant").forEach(panel => panel.classList.toggle("active", panel.dataset.panel === variant));
+        document.getElementById("variant-name").textContent = descriptions[variant][0];
+        document.getElementById("variant-note").textContent = descriptions[variant][1];
+        // Highlight the matching tradeoff card.
+        document.querySelectorAll(".tradeoff").forEach(card => {
+          card.classList.toggle("recommended", card.dataset.tradeoff === variant);
+        });
+      });
+    });
+
+    // Viewport toggle.
+    document.querySelectorAll(".viewport-control").forEach(button => {
+      button.addEventListener("click", () => {
+        const mobile = button.dataset.viewport === "mobile";
+        document.getElementById("browser").classList.toggle("mobile", mobile);
+        document.querySelectorAll(".viewport-control").forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+      });
+    });
+
+    // Interactive active-state switching within the visible variant, scoped
+    // per control row (type-filter row vs sort row) so picking a sort does
+    // not clear the type filter, mirroring production behavior.
+    document.addEventListener("click", event => {
+      const button = event.target.closest(".ctrl");
+      if (!button) return;
+      const row = button.closest(".ctrl-row");
+      if (!row) return;
+      row.querySelectorAll(".ctrl").forEach(item => item.classList.remove("active"));
+      button.classList.add("active");
+    });
+
+    // Selection tracking (persisted across reloads, as in the prior study).
+    document.querySelectorAll(".pick").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".pick").forEach(item => item.classList.toggle("selected", item === button));
+        document.getElementById("selection-text").textContent = button.dataset.pick;
+        localStorage.setItem("arabica-sort-controls-study-pick", button.dataset.pick);
+      });
+    });
+
+    const saved = localStorage.getItem("arabica-sort-controls-study-pick");
+    if (saved) {
+      const match = [...document.querySelectorAll(".pick")].find(button => button.dataset.pick === saved);
+      if (match) match.click();
+    }
+  </script>
+</body>
+</html>

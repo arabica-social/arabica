@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import BackButton from "./BackButton.svelte";
+	import FormWorkspace from "./FormWorkspace.svelte";
+	import LedgerHeader from "./LedgerHeader.svelte";
+	import FormSection from "./FormSection.svelte";
+	import RailSection from "./RailSection.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createBrewer, updateBrewer } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -86,90 +89,121 @@
 			submitting = false;
 		}
 	}
+
+	let brewerTypeLabel = $derived(
+		brewerType ? BREWER_TYPES.find((t) => t.value === brewerType)?.label ?? brewerType : "",
+	);
+	let completeness = $derived(
+		[name, brewerType, description, link].filter((v) => v.trim() !== "").length,
+	);
 </script>
 
-<div class="page-container-sm">
-	<div class="card card-inner">
-		<div class="flex items-center gap-3 mb-6">
-			<BackButton />
-			<div>
-				<p class="text-xs font-semibold uppercase tracking-wider text-faint">Brewer</p>
-				<h1 class="text-2xl font-semibold text-primary">{isEdit ? "Edit Brewer" : "Add a Brewer"}</h1>
+<FormWorkspace>
+	<LedgerHeader
+		title={isEdit ? "Edit Brewer" : "Add a Brewer"}
+		eyebrow="Brewer"
+		description="Log a brewing device once and reuse it across recipes and brews."
+		showBack={true}
+	/>
+
+	<form class="brewer-form-sheet" novalidate onsubmit={submit}>
+		{#if formError}
+			<div class="alert-error" role="alert">{formError}</div>
+		{/if}
+
+		<FormSection title="Essentials" description="The name is required. Type groups brewers in your journal.">
+			<div class="space-y-6">
+				<div>
+					<label class="form-label" for="brewer-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
+					<p id="brewer-name-help" class="text-sm text-muted mb-2">The brewer name shown in your journal.</p>
+					<input
+						id="brewer-name"
+						name="name"
+						type="text"
+						class="w-full form-input-lg"
+						bind:value={name}
+						placeholder="e.g. Hario V60-02"
+						aria-label="Name"
+						required
+						autocomplete="off"
+						aria-invalid={nameError !== ""}
+						aria-describedby={nameError ? "brewer-name-help brewer-name-error" : "brewer-name-help"}
+						oninput={() => { if (nameError && name.trim()) nameError = ""; }}
+					/>
+					{#if nameError}
+						<p id="brewer-name-error" class="text-sm text-red-600 mt-2" role="alert">{nameError}</p>
+					{/if}
+				</div>
+
+				<div>
+					<label class="form-label" for="brewer-type">Type</label>
+					<select id="brewer-type" name="brewer_type" class="w-full form-input-lg" bind:value={brewerType}>
+						<option value="">Select type</option>
+						{#each BREWER_TYPES as t}
+							<option value={t.value}>{t.label}</option>
+						{/each}
+					</select>
+				</div>
 			</div>
+		</FormSection>
+
+		<FormSection title="Details" description="Optional description and a link for future reference.">
+			<div class="space-y-6">
+				<div>
+					<label class="form-label" for="brewer-description">Description</label>
+					<p id="brewer-description-help" class="text-sm text-muted mb-2">Notes about this brewer.</p>
+					<textarea
+						id="brewer-description"
+						name="description"
+						rows="3"
+						class="w-full form-textarea"
+						bind:value={description}
+						placeholder="Capacity, material, etc."
+						aria-label="Description"
+						aria-describedby="brewer-description-help"
+					></textarea>
+				</div>
+
+				<div>
+					<label class="form-label" for="brewer-link">Link</label>
+					<input
+						id="brewer-link"
+						name="link"
+						type="url"
+						class="w-full form-input-lg"
+						bind:value={link}
+						placeholder="https://example.com/brewer"
+						aria-label="Link"
+						autocomplete="url"
+					/>
+				</div>
+			</div>
+		</FormSection>
+
+		<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+			<a href={isEdit && brewer ? `/brewers/${encodeURIComponent(actor())}/${encodeURIComponent(brewer.rkey)}` : "/my-coffee"} class="btn-secondary text-center">Cancel</a>
+			<button type="submit" class="btn-primary" disabled={submitting}>
+				{submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Brewer"}
+			</button>
 		</div>
+	</form>
 
-		<form class="space-y-6" novalidate onsubmit={submit}>
-			{#if formError}
-				<div class="alert-error" role="alert">{formError}</div>
-			{/if}
+	{#snippet rail()}
+		<RailSection title={name || "Untitled brewer"} eyebrow="Brewer" lead={true}>
+			<p>{brewerTypeLabel || "Type not selected"}</p>
+			{#if link}<p>{link}</p>{/if}
+		</RailSection>
+		<RailSection title="Record completeness" eyebrow="Journal status">
+			<p>{completeness} of 4 fields recorded.</p>
+			<p>Only the name is required. Picking a type helps filter your recipes later.</p>
+		</RailSection>
+		<RailSection title="What belongs here" eyebrow="Field notes">
+			<p>Brewers are reusable across recipes and brews. Note capacity or material under Description so you can match recipes to gear.</p>
+		</RailSection>
+	{/snippet}
+</FormWorkspace>
 
-			<div>
-				<label class="form-label" for="brewer-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
-				<p id="brewer-name-help" class="text-sm text-muted mb-2">The brewer name shown in your journal.</p>
-				<input
-					id="brewer-name"
-					name="name"
-					type="text"
-					class="w-full form-input-lg"
-					bind:value={name}
-					placeholder="e.g. Hario V60-02"
-					aria-label="Name"
-					required
-					autocomplete="off"
-					aria-invalid={nameError !== ""}
-					aria-describedby={nameError ? "brewer-name-help brewer-name-error" : "brewer-name-help"}
-					oninput={() => { if (nameError && name.trim()) nameError = ""; }}
-				/>
-				{#if nameError}
-					<p id="brewer-name-error" class="text-sm text-red-600 mt-2" role="alert">{nameError}</p>
-				{/if}
-			</div>
-
-			<div>
-				<label class="form-label" for="brewer-type">Type</label>
-				<select id="brewer-type" name="brewer_type" class="w-full form-input-lg" bind:value={brewerType}>
-					<option value="">Select type</option>
-					{#each BREWER_TYPES as t}
-						<option value={t.value}>{t.label}</option>
-					{/each}
-				</select>
-			</div>
-
-			<div>
-				<label class="form-label" for="brewer-description">Description</label>
-				<p id="brewer-description-help" class="text-sm text-muted mb-2">Notes about this brewer.</p>
-				<textarea
-					id="brewer-description"
-					name="description"
-					rows="3"
-					class="w-full form-textarea"
-					bind:value={description}
-					placeholder="Capacity, material, etc."
-					aria-label="Description"
-					aria-describedby="brewer-description-help"
-				></textarea>
-			</div>
-
-			<div>
-				<label class="form-label" for="brewer-link">Link</label>
-				<input
-					id="brewer-link"
-					name="link"
-					type="url"
-					class="w-full form-input-lg"
-					bind:value={link}
-					placeholder="https://example.com/brewer"
-					aria-label="Link"
-					autocomplete="url"
-				/>
-			</div>
-
-			<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
-				<a href={isEdit && brewer ? `/brewers/${encodeURIComponent(actor())}/${encodeURIComponent(brewer.rkey)}` : "/my-coffee"} class="btn-secondary text-center">Cancel</a>
-				<button type="submit" class="btn-primary" disabled={submitting}>
-					{submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Brewer"}
-				</button>
-			</div>
-		</form>
-	</div>
-</div>
+<style>
+	.brewer-form-sheet { padding-top: 1.5rem; }
+	.brewer-form-sheet > :global(.alert-error) { margin-bottom: 1rem; }
+</style>
