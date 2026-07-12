@@ -77,6 +77,7 @@
   line-height: 0.98;
   letter-spacing: -0.025em;
   font-weight: 600;
+  font-variation-settings: "opsz" 96, "SOFT" 50, "WONK" 0;
 }
 
 .info-deck {

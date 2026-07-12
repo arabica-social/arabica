@@ -18,19 +18,19 @@ colors:
   success-green: "#15803d"
 typography:
   display:
-    fontFamily: "Lora, Iosevka Patrick, ui-serif, Georgia, serif"
+    fontFamily: "Fraunces, Iosevka Patrick, ui-serif, Georgia, serif"
     fontSize: "2rem to 3.4rem"
     fontWeight: 600
     lineHeight: 0.98
     letterSpacing: "-0.02em"
   headline:
-    fontFamily: "Lora, Iosevka Patrick, ui-serif, Georgia, serif"
+    fontFamily: "Fraunces, Iosevka Patrick, ui-serif, Georgia, serif"
     fontSize: "1.5rem"
     fontWeight: 600
     lineHeight: 1.33
     letterSpacing: "-0.015em"
   title:
-    fontFamily: "Lora, Iosevka Patrick, ui-serif, Georgia, serif"
+    fontFamily: "Fraunces, Iosevka Patrick, ui-serif, Georgia, serif"
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.4
@@ -150,16 +150,16 @@ The palette is espresso, paper, cork, and roast labels: warm neutrals first, the
 
 ## 3. Typography
 
-**Display Font:** Lora (variable, self-hosted), with ui-serif, Georgia, and Iosevka Patrick fallbacks.
-**Body/Prose Font:** Lora at text weights for long-form reading and explanatory copy.
+**Display Font:** Fraunces (variable, self-hosted), with ui-serif, Georgia, and Iosevka Patrick fallbacks.
+**Prose Font:** Lora at text weights for long-form reading and explanatory copy.
 **Label/Mono Font:** Iosevka Patrick, with ui-monospace and system monospace fallbacks.
 
-**Character:** Arabica pairs a warm display/prose serif with a measured monospace body. Lora softens the technical feel of an all-monospace system at the display tier (heroes, page titles, record titles, section headings) and carries longer reading surfaces (about, terms, onboarding explanation). Iosevka Patrick keeps the logged, measured, notebook quality for all product UI, data, forms, labels, brew views, and feed cards. The serif is the coffee-bag-label voice; the mono is the brew-log voice.
+**Character:** Arabica pairs a warm display serif (Fraunces) with a readable prose serif (Lora) and a measured monospace body (Iosevka Patrick). Fraunces carries the display/headline tier — heroes, page titles, record titles, section headings — with its soft old-style personality. Lora handles longer reading surfaces — about, terms, onboarding explanation, hero decks — where Fraunces' quirks would tire the eye. Iosevka Patrick keeps the logged, measured, notebook quality for all product UI, data, forms, labels, brew views, and feed cards.
 
 ### Hierarchy
-- **Display** (600, 2rem to 3.4rem, 0.98 line-height): Use Lora for static-page heroes and rare large product moments. Tight tracking is allowed when the heading needs packaging-label confidence.
-- **Headline** (600, 1.5rem, 2rem line-height): Use Lora for page titles, record titles, and primary section names.
-- **Title** (600, 1.25rem, 1.75rem line-height): Use Lora for modal titles, card headings, and focused content modules.
+- **Display** (600, 2rem to 3.4rem, 0.98 line-height): Use Fraunces for static-page heroes and rare large product moments. Tight tracking is allowed when the heading needs packaging-label confidence.
+- **Headline** (600, 1.5rem, 2rem line-height): Use Fraunces for page titles, record titles, and primary section names.
+- **Title** (600, 1.25rem, 1.75rem line-height): Use Fraunces for modal titles, card headings, and focused content modules.
 - **Body** (400, 1rem, 1.5 line-height): Use Iosevka Patrick for product UI, forms, lists, table content, and any data-dense surface.
 - **Prose** (400–500, 1.0625rem, 1.75 line-height): Use Lora for about, AT Protocol, terms, onboarding explanation, hero decks, and other long reading surfaces. Keep prose line length to 65 to 75 characters.
 - **Label** (600, 0.75rem, 0.1em tracking, uppercase): Use Iosevka Patrick for section labels, filter metadata, field groups, and stamp-like status text.

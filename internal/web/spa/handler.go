@@ -579,7 +579,7 @@ const headFragmentTemplate = `
 		<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
 		<link rel="icon" href="/static/favicon-32.svg" type="image/svg+xml" sizes="32x32"/>
 		<link rel="apple-touch-icon" href="/static/icon-192.svg"/>
-		<link rel="preload" href="/static/fonts/lora-latin.woff2" as="font" type="font/woff2" crossorigin/>
+		<link rel="preload" href="/static/fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin/>
 		<link rel="stylesheet" href="{{.StylesheetHref}}"/>
 		<link rel="manifest" href="/static/manifest.json"/>
 		{{if .Traceparent}}<meta name="traceparent" content="{{.Traceparent}}"/>{{end}}

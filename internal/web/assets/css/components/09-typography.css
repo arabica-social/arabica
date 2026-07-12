@@ -15,6 +15,7 @@
   font-size: 1.75rem;
   line-height: 1.15;
   font-weight: 600;
+  font-variation-settings: "opsz" 36, "SOFT" 50, "WONK" 0;
   letter-spacing: -0.015em;
   color: var(--text-primary);
 }
@@ -27,6 +28,7 @@
   font-size: 1.15rem;
   line-height: 1.3;
   font-weight: 600;
+  font-variation-settings: "opsz" 24, "SOFT" 50, "WONK" 0;
   letter-spacing: -0.008em;
   margin-bottom: 0.75rem;
   color: var(--text-primary);
@@ -42,10 +44,12 @@
 }
 .text-display {
   font-family: var(--font-display);
+  font-variation-settings: "opsz" 96, "SOFT" 50, "WONK" 0;
   font-weight: 600;
 }
 .text-display-tight {
   font-family: var(--font-display);
+  font-variation-settings: "opsz" 96, "SOFT" 30, "WONK" 0;
   font-weight: 600;
   letter-spacing: -0.02em;
 }

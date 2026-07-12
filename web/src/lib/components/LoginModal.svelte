@@ -128,10 +128,9 @@
 		}, 300);
 	}
 
-	function selectActor(actor: Actor) {
+	function selectActor(actor: Actor, deferClose = false) {
 		handle = actor.handle;
 		suppressSearch = true;
-		clearResults();
 		activeIndex = -1;
 		// Briefly flag that a suggestion was just picked. This lets the
 		// form's submit handler ignore any spurious submit events that some
@@ -141,18 +140,24 @@
 		justSelectedTimer = window.setTimeout(() => {
 			justSelected = false;
 		}, 500);
-		// Refocus the input after selection so the user can submit.
-		setTimeout(() => {
-			handleInput?.focus();
-			suppressSearch = false;
-		}, 0);
-	}
 
-	function handleSuggestionPointerDown(event: PointerEvent) {
-		// Consume the pointerdown so the browser cannot retarget a later
-		// click to the submit button when the popover closes mid-click.
-		event.preventDefault();
-		event.stopPropagation();
+		const finish = () => {
+			clearResults();
+			// Refocus the input after selection so the user can submit.
+			setTimeout(() => {
+				handleInput?.focus();
+				suppressSearch = false;
+			}, 0);
+		};
+
+		if (deferClose) {
+			// Defer closing the dropdown until after the current click sequence
+			// completes so the browser doesn't retarget the click to the submit
+			// button underneath the popover.
+			window.setTimeout(finish, 0);
+		} else {
+			finish();
+		}
 	}
 
 	function handleSuggestionClick(event: MouseEvent, actor: Actor) {
@@ -161,7 +166,7 @@
 		// behavior robust across browsers and focus changes.
 		event.preventDefault();
 		event.stopPropagation();
-		selectActor(actor);
+		selectActor(actor, true);
 	}
 
 	function handleFormSubmit(event: SubmitEvent) {
@@ -323,8 +328,52 @@
 						if (searched && handle.trim().length >= 3) autocompleteOpen = true;
 					}}
 				/>
+				<!--
+					The dropdown is rendered as a manual popover so it paints above
+					the dialog's ::backdrop. We keep it inside the form's relative
+					container so clicks on suggestion buttons are part of the same
+					interaction tree and work reliably across browsers.
+				-->
+				<div
+					bind:this={popoverEl}
+					popover="manual"
+					class="handle-dropdown"
+					style={dropdownStyle}
+				>
+					{#if loading && actors.length === 0}
+						<div class="handle-no-results">Searching...</div>
+					{:else if actors.length === 0}
+						<div class="handle-no-results">No accounts found</div>
+					{:else}
+						{#each actors as actor, i (actor.handle)}
+							<button
+								type="button"
+								class="handle-result"
+								class:active={activeIndex === i}
+								data-handle={actor.handle}
+								onclick={(event) => handleSuggestionClick(event, actor)}
+							>
+								<Avatar
+									avatarURL={safeAvatar(actor)}
+									displayName={displayName(actor)}
+									size="sm"
+								/>
+								<span class="handle-result-text">
+									<span class="handle-name">{displayName(actor)}</span>
+									<span class="handle-at">@{actor.handle}</span>
+								</span>
+							</button>
+						{/each}
+					{/if}
+				</div>
 			</div>
-			<button type="submit" class="btn-primary w-full py-3 font-semibold">
+			<button
+				type="submit"
+				disabled={autocompleteOpen}
+				class="btn-primary w-full py-3 font-semibold"
+				class:opacity-50={autocompleteOpen}
+				class:cursor-not-allowed={autocompleteOpen}
+			>
 				Log In
 			</button>
 		</form>
@@ -363,39 +412,3 @@
 		</details>
 	</div>
 </dialog>
-
-<!-- Autocomplete dropdown rendered as a manual popover so it escapes the
-	 modal's containing block and paints above the dialog backdrop. -->
-<div
-	bind:this={popoverEl}
-	popover="manual"
-	class="handle-dropdown"
-	style={dropdownStyle}
->
-	{#if loading && actors.length === 0}
-		<div class="handle-no-results">Searching...</div>
-	{:else if actors.length === 0}
-		<div class="handle-no-results">No accounts found</div>
-	{:else}
-		{#each actors as actor, i (actor.handle)}
-			<button
-				type="button"
-				class="handle-result"
-				class:active={activeIndex === i}
-				data-handle={actor.handle}
-				onpointerdown={handleSuggestionPointerDown}
-				onclick={(event) => handleSuggestionClick(event, actor)}
-			>
-				<Avatar
-					avatarURL={safeAvatar(actor)}
-					displayName={displayName(actor)}
-					size="sm"
-				/>
-				<span class="handle-result-text">
-					<span class="handle-name">{displayName(actor)}</span>
-					<span class="handle-at">@{actor.handle}</span>
-				</span>
-			</button>
-		{/each}
-	{/if}
-</div>

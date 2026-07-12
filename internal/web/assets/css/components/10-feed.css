@@ -13,6 +13,7 @@
   font-size: 1.4rem;
   line-height: 1.2;
   font-weight: 600;
+  font-variation-settings: "opsz" 36, "SOFT" 50, "WONK" 0;
   letter-spacing: -0.012em;
   color: var(--text-primary);
 }

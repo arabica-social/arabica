@@ -97,6 +97,33 @@ describe("LoginModal component", () => {
 		expect(submitSpy).not.toHaveBeenCalled();
 	});
 
+	it("disables the submit button while the dropdown is open", async () => {
+		const user = userEvent.setup();
+		const fetchMock = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(actorsResponse([ACTOR]));
+
+		render(LoginModal, { props: { open: true } });
+
+		const input = screen.getByPlaceholderText(
+			"your-handle.bsky.social",
+		) as HTMLInputElement;
+		const submitButton = screen.getByText("Log In") as HTMLButtonElement;
+
+		expect(submitButton).not.toBeDisabled();
+
+		await user.type(input, "alic");
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		await waitFor(() => screen.getByText(`@${ACTOR.handle}`));
+
+		expect(submitButton).toBeDisabled();
+
+		// Selecting a suggestion closes the dropdown and re-enables the button.
+		const option = screen.getByText(`@${ACTOR.handle}`);
+		await user.click(option);
+		await waitFor(() => expect(submitButton).not.toBeDisabled());
+	});
+
 	it("submits the form normally when Enter is pressed with the dropdown closed", async () => {
 		const user = userEvent.setup();
 		const submitSpy = vi.fn();
