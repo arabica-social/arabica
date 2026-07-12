@@ -539,6 +539,9 @@
 .font-mono {
   font-family: "Iosevka Patrick", ui-monospace, monospace;
 }
+.font-prose {
+  font-family: var(--font-prose);
+}
 
 /* Font size */
 .text-xs {
@@ -1142,6 +1145,7 @@
 
 /* Prose — for rich text content (atproto pages, about, terms) */
 .prose {
+  font-family: var(--font-prose);
   max-width: 65ch;
   color: var(--text-primary);
   line-height: 1.75;

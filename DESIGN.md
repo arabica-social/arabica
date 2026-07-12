@@ -40,7 +40,7 @@ typography:
     fontWeight: 400
     lineHeight: 1.5
   prose:
-    fontFamily: "Iosevka Patrick, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+    fontFamily: "Lora, Iosevka Patrick, ui-serif, Georgia, serif"
     fontSize: "1.0625rem"
     fontWeight: 400
     lineHeight: 1.75
@@ -151,22 +151,22 @@ The palette is espresso, paper, cork, and roast labels: warm neutrals first, the
 ## 3. Typography
 
 **Display Font:** Lora (variable, self-hosted), with ui-serif, Georgia, and Iosevka Patrick fallbacks.
-**Body Font:** Iosevka Patrick, with ui-monospace and system monospace fallbacks.
-**Label/Mono Font:** Iosevka Patrick.
+**Body/Prose Font:** Lora at text weights for long-form reading and explanatory copy.
+**Label/Mono Font:** Iosevka Patrick, with ui-monospace and system monospace fallbacks.
 
-**Character:** Arabica pairs a warm display serif with a measured monospace body. Lora softens the technical feel of an all-monospace system at the display tier (heroes, page titles, record titles, section headings), while Iosevka Patrick keeps the logged, measured, notebook quality for all product UI, data, forms, and labels. The serif is the coffee-bag-label voice; the mono is the brew-log voice.
+**Character:** Arabica pairs a warm display/prose serif with a measured monospace body. Lora softens the technical feel of an all-monospace system at the display tier (heroes, page titles, record titles, section headings) and carries longer reading surfaces (about, terms, onboarding explanation). Iosevka Patrick keeps the logged, measured, notebook quality for all product UI, data, forms, labels, brew views, and feed cards. The serif is the coffee-bag-label voice; the mono is the brew-log voice.
 
 ### Hierarchy
 - **Display** (600, 2rem to 3.4rem, 0.98 line-height): Use Lora for static-page heroes and rare large product moments. Tight tracking is allowed when the heading needs packaging-label confidence.
 - **Headline** (600, 1.5rem, 2rem line-height): Use Lora for page titles, record titles, and primary section names.
 - **Title** (600, 1.25rem, 1.75rem line-height): Use Lora for modal titles, card headings, and focused content modules.
-- **Body** (400, 1rem, 1.5 line-height): Use Iosevka Patrick for product UI, forms, lists, and table content.
-- **Prose** (400, 1.0625rem, 1.75 line-height): Use Iosevka Patrick for about, AT Protocol, terms, onboarding explanation, and other long reading surfaces. Keep prose line length to 65 to 75 characters.
+- **Body** (400, 1rem, 1.5 line-height): Use Iosevka Patrick for product UI, forms, lists, table content, and any data-dense surface.
+- **Prose** (400–500, 1.0625rem, 1.75 line-height): Use Lora for about, AT Protocol, terms, onboarding explanation, hero decks, and other long reading surfaces. Keep prose line length to 65 to 75 characters.
 - **Label** (600, 0.75rem, 0.1em tracking, uppercase): Use Iosevka Patrick for section labels, filter metadata, field groups, and stamp-like status text.
 
 ### Named Rules
 
-**The Notebook Mono Rule.** Iosevka Patrick is the default voice for body, UI, data, and labels. Lora is the documented display serif: use it only for the display/headline tier (heroes, page titles, record titles, section headings). Do not introduce a third typeface. The serif never carries body text, table data, form fields, or feed cards — those stay monospace so the data-first surfaces keep their measured, logged quality.
+**The Notebook Mono Rule.** Iosevka Patrick is the default voice for UI, data, labels, forms, tables, brew views, and feed cards. Lora is the documented display and prose serif: use it for the display/headline tier (heroes, page titles, record titles, section headings) and for long-form reading/explanatory body copy (about, terms, onboarding ledes, hero decks). Do not introduce a third typeface. The serif never carries table data, form fields, feed cards, or compact UI labels — those stay monospace so the data-first surfaces keep their measured, logged quality.
 
 **The Label Restraint Rule.** Uppercase tracking is for labels and tags, not whole paragraphs or button-heavy regions.
 

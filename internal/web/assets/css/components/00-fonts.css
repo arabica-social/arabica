@@ -17,6 +17,12 @@
   --font-display: "Lora", "Iosevka Patrick", ui-serif, Georgia,
     "Times New Roman", serif;
 
+  /* Prose/reading voice — long-form explanations and intros that sit
+     next to display headings. Same Lora family at text weights so the
+     heading-to-body transition stays within one typeface. */
+  --font-prose: "Lora", "Iosevka Patrick", ui-serif, Georgia,
+    "Times New Roman", serif;
+
   /* Body / UI / data voice — unchanged. Kept here as the single
      source of truth so future weights resolve centrally. */
   --font-sans: "Iosevka Patrick", ui-monospace, SFMono-Regular, Menlo,

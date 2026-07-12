@@ -50,6 +50,7 @@
 }
 
 .onboarding-lede {
+  font-family: var(--font-prose);
   font-size: 1.0625rem;
   line-height: 1.6;
   color: var(--text-emphasis);

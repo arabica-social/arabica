@@ -99,7 +99,7 @@
 .home-hero-deck {
   max-width: 56ch;
   margin-top: 0.85rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-prose);
   font-size: 1.02rem;
   line-height: 1.65;
   color: var(--text-secondary);

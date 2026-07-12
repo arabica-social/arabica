@@ -117,4 +117,38 @@ describe("LoginModal component", () => {
 
 		expect(submitSpy).toHaveBeenCalledTimes(1);
 	});
+
+	it("prevents a spurious submit event right after selecting a suggestion", async () => {
+		const user = userEvent.setup();
+		const fetchMock = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(actorsResponse([ACTOR]));
+		let lastDefaultPrevented = false;
+
+		render(LoginModal, { props: { open: true } });
+
+		const input = screen.getByPlaceholderText(
+			"your-handle.bsky.social",
+		) as HTMLInputElement;
+		const form = input.closest("form") as HTMLFormElement;
+		form.addEventListener("submit", (event) => {
+			lastDefaultPrevented = event.defaultPrevented;
+			event.preventDefault();
+		});
+
+		await user.type(input, "alic");
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+		const option = await waitFor(() =>
+			screen.getByText(`@${ACTOR.handle}`),
+		);
+		await user.click(option);
+		expect(input).toHaveValue(ACTOR.handle);
+
+		// Simulate the browser synthesizing a submit event immediately after
+		// the popover button disappears during the click.
+		form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true }));
+
+		expect(lastDefaultPrevented).toBe(true);
+	});
 });

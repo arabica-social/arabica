@@ -83,7 +83,7 @@
   max-width: 64ch;
   margin-top: 1rem;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
+  font-family: var(--font-prose);
   font-size: 1.06rem;
   line-height: 1.75;
 }

@@ -37,6 +37,9 @@
 .font-display {
   font-family: var(--font-display);
 }
+.font-prose {
+  font-family: var(--font-prose);
+}
 .text-display {
   font-family: var(--font-display);
   font-weight: 600;

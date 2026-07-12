@@ -28,6 +28,8 @@
 	let dropdownStyle = $state("");
 	let suppressSearch = $state(false);
 	let activeIndex = $state(-1);
+	let justSelected = $state(false);
+	let justSelectedTimer: ReturnType<typeof setTimeout> | undefined;
 
 	function safeAvatar(actor: Actor) {
 		const avatar = actor.avatar || "";
@@ -131,11 +133,26 @@
 		suppressSearch = true;
 		clearResults();
 		activeIndex = -1;
+		// Briefly flag that a suggestion was just picked. This lets the
+		// form's submit handler ignore any spurious submit events that some
+		// browsers synthesize when a popover button is removed during a click.
+		justSelected = true;
+		window.clearTimeout(justSelectedTimer);
+		justSelectedTimer = window.setTimeout(() => {
+			justSelected = false;
+		}, 500);
 		// Refocus the input after selection so the user can submit.
 		setTimeout(() => {
 			handleInput?.focus();
 			suppressSearch = false;
 		}, 0);
+	}
+
+	function handleSuggestionPointerDown(event: PointerEvent) {
+		// Consume the pointerdown so the browser cannot retarget a later
+		// click to the submit button when the popover closes mid-click.
+		event.preventDefault();
+		event.stopPropagation();
 	}
 
 	function handleSuggestionClick(event: MouseEvent, actor: Actor) {
@@ -145,6 +162,15 @@
 		event.preventDefault();
 		event.stopPropagation();
 		selectActor(actor);
+	}
+
+	function handleFormSubmit(event: SubmitEvent) {
+		// If the user just picked a suggestion, ignore the submit event. This
+		// catches spurious submissions that some browsers emit when the
+		// popover button disappears during the click.
+		if (justSelected) {
+			event.preventDefault();
+		}
 	}
 
 	function handleInputKeydown(event: KeyboardEvent) {
@@ -242,6 +268,7 @@
 			window.removeEventListener("scroll", updateDropdownPosition, true);
 			closeDropdown();
 			window.clearTimeout(debounceTimer);
+			window.clearTimeout(justSelectedTimer);
 			abortController?.abort();
 		};
 	});
@@ -269,7 +296,13 @@
 				<Icon name="x" class="w-5 h-5" />
 			</button>
 		</div>
-		<form method="POST" action="/auth/login" class="space-y-4">
+		<form
+			method="POST"
+			action="/auth/login"
+			class="space-y-4"
+			data-testid="login-form"
+			onsubmit={handleFormSubmit}
+		>
 			<div class="relative">
 				<label for="login-handle" class="block text-sm font-medium text-primary mb-2"
 					>Handle</label
@@ -350,6 +383,7 @@
 				class="handle-result"
 				class:active={activeIndex === i}
 				data-handle={actor.handle}
+				onpointerdown={handleSuggestionPointerDown}
 				onclick={(event) => handleSuggestionClick(event, actor)}
 			>
 				<Avatar
