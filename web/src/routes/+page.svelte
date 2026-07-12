@@ -165,135 +165,53 @@
   <meta name="description" content={appDefinition.metaDescription} />
 </svelte:head>
 
-<div class="page-container-lg">
-  {#if appName === "oolong"}
-    <div class="alert-warning mb-4">
-      <strong>Heads up:</strong> oolong is <em>very</em> new and unstable
-      (initial release was May 17th). Breaking lexicon changes
-      <strong>will</strong> happen frequently.
-    </div>
-  {/if}
-
-  {#if isAuthenticated}
-    <!-- Welcome card (authenticated) -->
-    <section class="home-hero">
-      <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
-      {#if !ready}
-        <div class="home-nudge">
-          <div class="home-nudge-copy">
-            <span class="home-nudge-label">Get started</span>
-            <span class="home-nudge-text">{appDefinition.readinessNudge}</span>
-          </div>
-          <a href="/onboarding" class="btn-primary text-sm">Get Started →</a>
-        </div>
+{#snippet feedSection()}
+  <section class="cafe-feed" aria-labelledby="community-activity-title">
+    <div class="cafe-feed-heading">
+      <div>
+        <p class="cafe-label">Around the café</p>
+        <h2 id="community-activity-title">Community Activity</h2>
+      </div>
+      {#if showFilters}
+        <FeedFilters
+          {typeFilter}
+          {sort}
+          {loading}
+          onType={applyFilter}
+          onSort={applySort}
+          tabs={data.feed?.tabs ?? []}
+        />
       {/if}
-      <div class="home-actions">
-        <a
-          href="/brews/new"
-          class="home-action-primary"
-          class:is-disabled={!ready}
-          aria-disabled={!ready}
-        >
-          {appDefinition.sessionAction}
-        </a>
-        <a
-          href="/explore"
-          class="home-action-secondary">Explore</a
-        >
-        <a
-          href={appDefinition.libraryPath}
-          class="home-action-secondary"
-          >{appDefinition.libraryLabel}</a
-        >
-        <a
-          href="/profile/{data.userDID}"
-          class="home-action-secondary"
-          >Profile</a
-        >
-      </div>
-    </section>
-  {:else}
-    <!-- Welcome hero (unauthenticated) -->
-    <section class="home-hero">
-      <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
-      <p class="home-hero-deck">{appDefinition.heroDescription}</p>
-      <p class="home-hero-foot">
-        <a href="/atproto">Built on AT Protocol</a> — you own your data.
-      </p>
-      <div class="home-actions mt-6 justify-center">
-        <button
-          type="button"
-          onclick={openLoginModal}
-          class="home-action-primary"
-        >
-          Log In
-        </button>
-        <a
-          href="/join/create"
-          class="home-action-secondary"
-          >Create an account</a
-        >
-        <a
-          href="/about"
-          class="home-action-secondary"
-          >Learn more</a
-        >
-      </div>
-    </section>
-  {/if}
-
-  <!-- Community feed -->
-  <div class="card p-2 sm:p-6 mb-8">
-    <h3 class="feed-section-title">Community Activity</h3>
-    {#if showFilters}
-      <FeedFilters
-        {typeFilter}
-        {sort}
-        {loading}
-        onType={applyFilter}
-        onSort={applySort}
-        tabs={data.feed?.tabs ?? []}
-      />
-    {/if}
-    <div id="feed-board" class="feed-board">
+    </div>
+    <div id="feed-board" class="feed-board cafe-feed-board">
       <div id="feed-items" class="feed-grid" data-feed-masonry>
         {#if data.error && items.length === 0}
-          <div class="rounded-xl p-8 text-center" style="grid-column: 1 / -1;">
-            <div class="text-4xl mb-3">✦</div>
-            <p class="text-emphasis font-medium mb-1">
-              The feed is quiet today
-            </p>
+          <div class="cafe-feed-state" style="grid-column: 1 / -1;">
+            <Icon name="coffee" class="w-8 h-8 text-muted mb-3" />
+            <p class="text-emphasis font-medium mb-1">The feed is quiet today</p>
             <p class="text-sm text-faint">{data.error}</p>
           </div>
         {:else if loading && items.length === 0}
-          <!-- Loading skeleton -->
           <div class="space-y-4 animate-pulse" style="grid-column: 1 / -1;">
             <div class="section-box">
               <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-full bg-brown-300"></div>
+                <div class="w-10 h-10 rounded-full cafe-skeleton"></div>
                 <div class="flex-1">
-                  <div class="h-4 bg-brown-300 rounded-sm w-1/4 mb-2"></div>
-                  <div class="h-3 bg-brown-200 rounded-sm w-1/6"></div>
+                  <div class="h-4 cafe-skeleton rounded-sm w-1/4 mb-2"></div>
+                  <div class="h-3 cafe-skeleton rounded-sm w-1/6"></div>
                 </div>
               </div>
-              <div class="bg-brown-200 rounded-lg p-3">
-                <div class="h-4 bg-brown-300 rounded-sm w-3/4 mb-2"></div>
-                <div class="h-3 bg-brown-200 rounded-sm w-1/2"></div>
+              <div class="cafe-skeleton-soft p-3">
+                <div class="h-4 cafe-skeleton rounded-sm w-3/4 mb-2"></div>
+                <div class="h-3 cafe-skeleton rounded-sm w-1/2"></div>
               </div>
             </div>
           </div>
         {:else if items.length === 0}
-          <div
-            class="rounded-xl p-8 text-center"
-            style="grid-column: 1 / -1; background: var(--surface-bg); border: 2px dashed var(--card-border);"
-          >
-            <div class="text-4xl mb-3">✦</div>
-            <p class="text-emphasis font-medium mb-1">
-              The feed is quiet today
-            </p>
-            <p class="text-sm text-faint">
-              Follow people or add your first record to get started.
-            </p>
+          <div class="cafe-feed-state" style="grid-column: 1 / -1;">
+            <Icon name="coffee" class="w-8 h-8 text-muted mb-3" />
+            <p class="text-emphasis font-medium mb-1">The feed is quiet today</p>
+            <p class="text-sm text-faint">Follow people or add your first record to get started.</p>
           </div>
         {:else}
           {#each items as item (item.subject_uri)}
@@ -301,11 +219,7 @@
           {/each}
           {#if nextCursor}
             <div class="text-center pt-2" style="grid-column: 1 / -1;">
-              <button
-                class="btn-secondary text-sm load-more-btn"
-                disabled={loadingMore}
-                onclick={loadMore}
-              >
+              <button class="btn-secondary text-sm load-more-btn" disabled={loadingMore} onclick={loadMore}>
                 {loadingMore ? "Loading..." : "Load more"}
               </button>
             </div>
@@ -313,69 +227,195 @@
         {/if}
       </div>
     </div>
-  </div>
+  </section>
+{/snippet}
 
-  {#if isAuthenticated}
-    <ScrollTopButton />
-    <!-- Incomplete records nudge -->
-    {#if incompleteRecords?.records?.length}
-      <div class="card p-6 mb-8">
-        <h3 class="text-lg font-bold text-primary mb-3">
-          Complete your records
-        </h3>
-        <div class="space-y-2">
-          {#each incompleteRecords.records as rec (rec.RKey)}
-            <a
-              href={`/${entityRouteForCollection($app, rec.EntityType)}/${rec.RKey}/edit`}
-              class="block p-3 rounded-lg border border-brown-200 hover:bg-brown-50 transition-colors"
-            >
-              <div class="flex items-center justify-between">
-                <span class="font-medium text-primary">{rec.Name}</span>
-                <span class="text-xs text-faint capitalize"
-                  >{rec.EntityType}</span
-                >
-              </div>
-              {#if rec.MissingFields?.length}
-                <p class="text-sm text-muted mt-1">
-                  Missing: {rec.MissingFields.join(", ")}
-                </p>
-              {/if}
-            </a>
-          {/each}
+{#if isAuthenticated && appName === "arabica"}
+  <div class="cafe-counter">
+    <aside class="cafe-rail cafe-rail-left" aria-label="Your coffee journal">
+      <section class="cafe-rail-section cafe-rail-lead">
+        <p class="cafe-label">Your journal</p>
+        <h2>Keep the counter current.</h2>
+        <p>Your beans, equipment, and recipes stay close at hand.</p>
+        <nav class="cafe-shortcuts" aria-label="Coffee journal shortcuts">
+          <a href={appDefinition.libraryPath}><Icon name="bean" /><span>{appDefinition.libraryLabel}</span></a>
+          <a href="/explore"><Icon name="brewer" /><span>Explore</span></a>
+          <a href="/recipes"><Icon name="fileText" /><span>Recipes</span></a>
+          <a href="/profile/{data.userDID}"><Icon name="coffee" /><span>Your profile</span></a>
+        </nav>
+      </section>
+
+      {#if incompleteRecords?.records?.length}
+        <section class="cafe-rail-section">
+          <p class="cafe-label">Needs attention</p>
+          <h2>{incompleteRecords.records.length} {incompleteRecords.records.length === 1 ? "record" : "records"} need details.</h2>
+          <div class="cafe-record-list">
+            {#each incompleteRecords.records as rec (rec.RKey)}
+              <a href={`/${entityRouteForCollection($app, rec.EntityType)}/${rec.RKey}/edit`}>
+                <span><strong>{rec.Name}</strong>{#if rec.MissingFields?.length}<small>Missing {rec.MissingFields.join(", ")}</small>{/if}</span>
+                <span aria-hidden="true">→</span>
+              </a>
+            {/each}
+          </div>
+        </section>
+      {/if}
+    </aside>
+
+    <main class="cafe-main">
+      <header class="cafe-journal-head">
+        <div>
+          <p class="cafe-label">Your home coffee journal</p>
+          <h1>Good coffee deserves a record.</h1>
+          <p class="cafe-deck">Keep the details that helped a cup click, then compare notes with people brewing around the Atmosphere.</p>
         </div>
+        <div class="cafe-actions">
+          <a href={ready ? "/brews/new" : "/onboarding"} class="home-action-primary">
+            {ready ? `${appDefinition.sessionAction} →` : "Finish setup →"}
+          </a>
+          <a href={appDefinition.libraryPath} class="cafe-text-link">Browse your journal</a>
+        </div>
+        {#if !ready}
+          <div class="cafe-setup-nudge">
+            <span><strong>First brew</strong>{appDefinition.readinessNudge}</span>
+            <a href="/onboarding">Open setup</a>
+          </div>
+        {/if}
+      </header>
+      {@render feedSection()}
+    </main>
+
+    <aside class="cafe-rail cafe-rail-right" aria-label="Around the café">
+      {#if popularRecipes?.length}
+        <section class="cafe-rail-section cafe-rail-lead">
+          <p class="cafe-label">Popular recipes</p>
+          <h2>What people are brewing.</h2>
+          <div class="cafe-recipe-list">
+            {#each popularRecipes.slice(0, 3) as recipe (recipe.rkey)}
+              <a
+                href={recipe.author_handle || recipe.author_did
+                  ? `/recipes/${encodeURIComponent(recipe.author_handle || recipe.author_did || "")}/${encodeURIComponent(recipe.rkey)}`
+                  : "/recipes"}
+              >
+                <strong>{recipe.name}</strong>
+                <span>{recipe.brewer_obj?.name || recipe.brewer_type || "Coffee recipe"}</span>
+                {#if recipe.brew_count || recipe.fork_count}
+                  <small>{recipe.brew_count || 0} brews · {recipe.fork_count || 0} forks</small>
+                {/if}
+              </a>
+            {/each}
+          </div>
+          <a href="/recipes" class="cafe-text-link">Explore all recipes</a>
+        </section>
+      {/if}
+      <section class="cafe-rail-section" class:cafe-rail-lead={!popularRecipes?.length}>
+        <p class="cafe-label">Your data</p>
+        <h2>A journal you can take with you.</h2>
+        <p>Arabica stores your coffee records in your own Personal Data Server, not in a private app database.</p>
+        <a href="/atproto" class="cafe-text-link">How ownership works</a>
+      </section>
+      <section class="cafe-rail-section">
+        <p class="cafe-label">About Arabica</p>
+        <p>A federated coffee journal for people who enjoy keeping the useful details.</p>
+        <a href="/about" class="cafe-text-link">Read the story</a>
+      </section>
+    </aside>
+    <ScrollTopButton />
+  </div>
+{:else}
+  <div class="page-container-lg">
+    {#if appName === "oolong"}
+      <div class="alert-warning mb-4">
+        <strong>Heads up:</strong> oolong is <em>very</em> new and unstable (initial release was May 17th). Breaking lexicon changes <strong>will</strong> happen frequently.
       </div>
     {/if}
+    <section class="home-hero">
+      <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
+      {#if isAuthenticated && !ready}
+        <div class="home-nudge">
+          <div class="home-nudge-copy"><span class="home-nudge-label">Get started</span><span class="home-nudge-text">{appDefinition.readinessNudge}</span></div>
+          <a href="/onboarding" class="btn-primary text-sm">Get Started →</a>
+        </div>
+      {/if}
+      {#if !isAuthenticated}
+        <p class="home-hero-deck">{appDefinition.heroDescription}</p>
+        <p class="home-hero-foot"><a href="/atproto">Built on AT Protocol</a> — you own your data.</p>
+      {/if}
+      <div class="home-actions mt-6 justify-center">
+        {#if isAuthenticated}
+          <a href="/brews/new" class="home-action-primary" class:is-disabled={!ready} aria-disabled={!ready}>{appDefinition.sessionAction}</a>
+          <a href={appDefinition.libraryPath} class="home-action-secondary">{appDefinition.libraryLabel}</a>
+          <a href="/profile/{data.userDID}" class="home-action-secondary">Profile</a>
+        {:else}
+          <button type="button" onclick={openLoginModal} class="home-action-primary">Log In</button>
+          <a href="/join/create" class="home-action-secondary">Create an account</a>
+          <a href="/about" class="home-action-secondary">Learn more</a>
+        {/if}
+      </div>
+    </section>
+    {@render feedSection()}
+    {#if isAuthenticated}
+      <ScrollTopButton />
+      <div class="card p-6 mb-8">
+        <h2 class="text-lg font-bold text-primary mb-2">{appDefinition.aboutHeading}</h2>
+        <p class="text-sm text-secondary">{appDefinition.aboutBody}</p>
+        <a href="/about" class="text-sm text-secondary hover:text-primary hover:underline mt-2 inline-block">Learn more →</a>
+      </div>
+    {/if}
+  </div>
+{/if}
 
-    <!-- Popular recipes -->
-    <!-- {#if popularRecipes?.length} -->
-    <!-- 	<div class="card p-6 mb-8"> -->
-    <!-- 		<h3 class="text-lg font-bold text-primary mb-3">Popular recipes</h3> -->
-    <!-- 		<div class="grid grid-cols-1 sm:grid-cols-3 gap-4"> -->
-    <!-- 			{#each popularRecipes as recipe (recipe.rkey)} -->
-    <!-- 				<a href={`/recipes/${recipe.author_did ?? ""}/${recipe.rkey}`} class="card card-inner p-4 hover:shadow-md transition"> -->
-    <!-- 					<div class="font-semibold text-primary mb-1">{recipe.name}</div> -->
-    <!-- 					{#if recipe.brewer_obj?.name} -->
-    <!-- 						<div class="text-sm text-muted">{recipe.brewer_obj.name}</div> -->
-    <!-- 					{/if} -->
-    <!-- 				</a> -->
-    <!-- 			{/each} -->
-    <!-- 		</div> -->
-    <!-- 	</div> -->
-    <!-- {/if} -->
-
-    <!-- About info card -->
-    <div class="card p-6 mb-8">
-      <h3 class="text-lg font-bold text-primary mb-2">
-        {appDefinition.aboutHeading}
-      </h3>
-      <p class="text-sm text-secondary">
-        {appDefinition.aboutBody}
-      </p>
-      <a
-        href="/about"
-        class="text-sm text-secondary hover:text-primary hover:underline mt-2 inline-block"
-        >Learn more →</a
-      >
-    </div>
-  {/if}
-</div>
+<style>
+  .cafe-counter { width: 100%; max-width: 90rem; margin-inline: auto; padding-inline: clamp(.5rem, 2.2vw, 2rem); display: flex; flex-direction: column; gap: 1.5rem; }
+  .cafe-main { order: 1; min-width: 0; }
+  .cafe-rail-left { order: 2; }
+  .cafe-rail-right { order: 3; }
+  .cafe-journal-head { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: clamp(1.25rem,3vw,2.5rem); margin-bottom: 1.75rem; padding: .5rem 0 1.4rem; border-bottom: 1px solid var(--card-border); }
+  .cafe-journal-head h1 { max-width: 13ch; margin: .35rem 0 .8rem; color: var(--text-primary); font-family: var(--font-display); font-size: clamp(2.35rem,5vw,3.9rem); font-weight: 600; line-height: .96; letter-spacing: -.025em; font-variation-settings: "opsz" 96,"SOFT" 50,"WONK" 0; }
+  .cafe-deck { max-width: 60ch; margin: 0; color: var(--text-secondary); font-size: .95rem; line-height: 1.65; }
+  .cafe-label { margin: 0 0 .45rem; color: var(--text-muted); font-size: .65rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .cafe-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .55rem; }
+  .cafe-text-link { display: inline-flex; min-height: 2.75rem; align-items: center; color: var(--text-emphasis); font-size: .75rem; font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in oklch,var(--text-faint) 45%,transparent); text-underline-offset: 4px; }
+  .cafe-text-link:hover { color: var(--text-primary); text-decoration-color: currentColor; }
+  .cafe-setup-nudge { grid-column: 1/-1; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-top: 1px dashed var(--card-border); color: var(--text-secondary); font-size: .78rem; }
+  .cafe-setup-nudge span { display: flex; gap: .65rem; align-items: baseline; }
+  .cafe-setup-nudge strong { color: var(--text-muted); font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; }
+  .cafe-setup-nudge a { min-height: 2.75rem; display: inline-flex; align-items: center; color: var(--text-emphasis); font-weight: 600; }
+  .cafe-feed { min-width: 0; margin-bottom: 2rem; }
+  .cafe-feed-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding-top: .2rem; }
+  .cafe-feed-heading h2 { margin: 0; color: var(--text-primary); font-family: var(--font-display); font-size: 1.45rem; font-weight: 600; letter-spacing: -.012em; }
+  .cafe-feed-board { border-radius: 4px; }
+  .cafe-feed-state { display: grid; justify-items: center; padding: 2rem; text-align: center; background: var(--surface-bg); border: 1px dashed var(--card-border); border-radius: 4px; }
+  .cafe-skeleton { background: var(--surface-border); }
+  .cafe-skeleton-soft { background: var(--surface-bg); border-radius: 4px; }
+  .cafe-rail { min-width: 0; }
+  .cafe-rail-section { padding: 1rem 0 1.2rem; border-top: 1px solid var(--card-border); }
+  .cafe-rail-lead { border-top: 2px solid var(--text-secondary); }
+  .cafe-rail-section h2 { margin: 0 0 .5rem; color: var(--text-primary); font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; line-height: 1.25; letter-spacing: -.01em; }
+  .cafe-rail-section p:not(.cafe-label) { margin: 0 0 .75rem; color: var(--text-muted); font-size: .76rem; line-height: 1.55; }
+  .cafe-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-top: 1px dotted var(--card-border); }
+  .cafe-shortcuts a { display: flex; min-height: 2.75rem; align-items: center; gap: .5rem; color: var(--text-secondary); border-bottom: 1px dotted var(--card-border); font-size: .75rem; }
+  .cafe-shortcuts a:hover { color: var(--text-primary); }
+  .cafe-record-list, .cafe-recipe-list { border-top: 1px dotted var(--card-border); }
+  .cafe-record-list a { display: flex; min-height: 3.2rem; align-items: center; justify-content: space-between; gap: .5rem; color: var(--text-secondary); border-bottom: 1px dotted var(--card-border); font-size: .72rem; }
+  .cafe-record-list strong, .cafe-record-list small { display: block; }
+  .cafe-record-list small { margin-top: .15rem; color: var(--text-faint); font-weight: 400; }
+  .cafe-recipe-list a { display: block; padding: .8rem 0; color: var(--text-secondary); border-bottom: 1px dotted var(--card-border); }
+  .cafe-recipe-list strong, .cafe-recipe-list span, .cafe-recipe-list small { display: block; }
+  .cafe-recipe-list strong { color: var(--text-primary); font-size: .78rem; }
+  .cafe-recipe-list span, .cafe-recipe-list small { margin-top: .2rem; color: var(--text-muted); font-size: .66rem; }
+  @media (min-width: 1040px) {
+    .cafe-counter { display: grid; grid-template-columns: minmax(10.5rem,.72fr) minmax(34rem,2.5fr) minmax(12rem,.85fr); align-items: start; gap: clamp(1.25rem,2.2vw,2.5rem); }
+    .cafe-main, .cafe-rail-left, .cafe-rail-right { order: initial; }
+    .cafe-rail { position: sticky; top: 4rem; padding-top: 1.5rem; }
+    .cafe-shortcuts { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 719px) {
+    .cafe-journal-head { grid-template-columns: 1fr; align-items: start; padding-top: 0; }
+    .cafe-actions { align-items: stretch; }
+    .cafe-actions :global(.home-action-primary) { width: 100%; justify-content: center; }
+    .cafe-text-link { justify-content: center; }
+    .cafe-setup-nudge { align-items: flex-start; flex-direction: column; }
+    .cafe-feed-heading { align-items: stretch; flex-direction: column; }
+    .cafe-shortcuts { grid-template-columns: 1fr; }
+  }
+</style>

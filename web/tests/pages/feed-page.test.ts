@@ -77,14 +77,21 @@ describe("Feed page (home)", () => {
 
 	it("renders the welcome heading for authenticated users", () => {
 		render(FeedPage, { data: authedPageData });
-		expect(screen.getByText("Your coffee journey, documented.")).toBeTruthy();
+		expect(screen.getByText("Good coffee deserves a record.")).toBeTruthy();
 	});
 
 	it("renders quick action links for authenticated users", () => {
 		render(FeedPage, { data: authedPageData });
-		expect(screen.getByText("Log Brew").closest("a")).toHaveAttribute("href", "/brews/new");
+		expect(screen.getByText("Log Brew →").closest("a")).toHaveAttribute("href", "/brews/new");
 		expect(screen.getByText("Explore").closest("a")).toHaveAttribute("href", "/explore");
 		expect(screen.getByText("My Coffee").closest("a")).toHaveAttribute("href", "/my-coffee");
+	});
+
+	it("renders the Cafe Counter side rails for authenticated Arabica users", () => {
+		render(FeedPage, { data: authedPageData });
+		expect(screen.getByRole("complementary", { name: "Your coffee journal" })).toBeTruthy();
+		expect(screen.getByRole("complementary", { name: "Around the café" })).toBeTruthy();
+		expect(screen.getByText("A journal you can take with you.")).toBeTruthy();
 	});
 
 	it("renders the unauth hero CTA for unauthenticated users", () => {
