@@ -31,6 +31,19 @@
         pkgs: system: rec {
           arabica = pkgs.callPackage ./nix/default.nix { appName = "arabica"; };
           oolong = pkgs.callPackage ./nix/default.nix { appName = "oolong"; };
+          # Alternate packages that boot the embedded SvelteKit SPA (SPA=1).
+          # Non-default: keep the legacy templ/HTMX packages as `default`
+          # until the SPA migration is the primary surface.
+          arabica-spa = pkgs.callPackage ./nix/spa-wrapper.nix {
+            inherit (pkgs) lib stdenvNoCC;
+            base = arabica;
+            appName = "arabica";
+          };
+          oolong-spa = pkgs.callPackage ./nix/spa-wrapper.nix {
+            inherit (pkgs) lib stdenvNoCC;
+            base = oolong;
+            appName = "oolong";
+          };
           default = arabica;
         }
       );
@@ -47,6 +60,14 @@
           oolong = {
             type = "app";
             program = "${self.packages.${system}.oolong}/bin/oolong";
+          };
+          arabica-spa = {
+            type = "app";
+            program = "${self.packages.${system}.arabica-spa}/bin/arabica-spa";
+          };
+          oolong-spa = {
+            type = "app";
+            program = "${self.packages.${system}.oolong-spa}/bin/oolong-spa";
           };
           monitoring = import ./nix/monitoring.nix { inherit pkgs; };
         }

@@ -65,6 +65,15 @@
   --brand-gray-800: #1f2937;
 
   --brand-cream-50: #faf7f5;
+
+  /* Coffee-led brand inks. Copper is the primary action/registration
+     color; leaf is the botanical counterpoint, not the success color. */
+  --brand-copper: oklch(0.62 0.15 45);
+  --brand-copper-bright: oklch(0.72 0.17 52);
+  --brand-copper-soft: oklch(0.9 0.055 66);
+  --brand-leaf: #8fa07f;
+  --brand-leaf-deep: #65745a;
+  --brand-leaf-soft: #edf0e9;
 }
 
 /* ========================================
@@ -96,22 +105,22 @@
    ======================================== */
 :root {
   /* Page */
-  --page-bg: #faf7f5;
+  --page-bg: oklch(0.975 0.012 58);
   --page-text: #3d2319;
 
   /* Cards */
-  --card-bg: #ffffff;
-  --card-border: #eaddd7;
+  --card-bg: oklch(0.992 0.006 62);
+  --card-border: oklch(0.89 0.028 55);
   --card-shadow: rgba(61, 35, 25, 0.06);
   --card-shadow-hover: rgba(61, 35, 25, 0.1);
 
   /* Surfaces (inset areas inside cards) */
-  --surface-bg: rgba(250, 247, 245, 0.5);
-  --surface-border: #f2e8e5;
+  --surface-bg: oklch(0.96 0.018 66 / 0.72);
+  --surface-border: oklch(0.91 0.025 60);
 
   /* Header */
-  --header-bg: #4a2c2a;
-  --header-border: #7f5539;
+  --header-bg: #3f3027;
+  --header-border: #71533d;
   --header-text: #faf7f5;
 
   /* Text hierarchy */
@@ -123,10 +132,10 @@
   --text-placeholder: #d2bab0;
 
   /* Interactive */
-  --btn-primary-bg: #4a2c2a;
-  --btn-primary-bg-hover: #3d2319;
+  --btn-primary-bg: var(--brand-copper);
+  --btn-primary-bg-hover: oklch(0.55 0.16 42);
   --btn-primary-text: #faf7f5;
-  --btn-secondary-bg: #ffffff;
+  --btn-secondary-bg: oklch(0.992 0.006 62);
   --btn-secondary-border: #e0cec7;
   --btn-secondary-text: #6b4423;
   --btn-secondary-bg-hover: #faf7f5;
@@ -134,8 +143,8 @@
   /* Forms */
   --input-bg: #ffffff;
   --input-border: #e0cec7;
-  --input-border-focus: #7f5539;
-  --input-ring-focus: rgba(127, 85, 57, 0.15);
+  --input-border-focus: var(--brand-copper);
+  --input-ring-focus: oklch(0.62 0.15 45 / 0.18);
   --input-bg-focus: rgba(250, 247, 245, 0.3);
 
   /* Tables */
@@ -158,9 +167,9 @@
   --type-brew: #6b4423;
   --type-bean: #b45309;
   --type-recipe: #a0522d;
-  --type-roaster: #92400e;
+  --type-roaster: oklch(0.51 0.135 40);
   --type-grinder: #78716c;
-  --type-brewer: #5b6e4e;
+  --type-brewer: var(--brand-leaf-deep);
   /* Cross-app accent fallbacks (oolong overrides these in its theme;
      arabica picks defaults so the same pill classes render reasonably
      even if arabica eventually exposes these entities). */
@@ -173,9 +182,9 @@
   --type-brew-tint: rgba(107, 68, 35, 0.14);
   --type-bean-tint: rgba(180, 83, 9, 0.12);
   --type-recipe-tint: rgba(160, 82, 45, 0.12);
-  --type-roaster-tint: rgba(146, 64, 14, 0.12);
+  --type-roaster-tint: oklch(0.51 0.135 40 / 0.13);
   --type-grinder-tint: rgba(120, 113, 108, 0.1);
-  --type-brewer-tint: rgba(91, 110, 78, 0.12);
+  --type-brewer-tint: rgb(143 160 127 / 0.14);
   --type-tea-tint: rgba(74, 103, 65, 0.12);
   --type-vendor-tint: rgba(146, 64, 14, 0.12);
   --type-cafe-tint: rgba(125, 90, 58, 0.12);
@@ -211,34 +220,34 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     /* Page */
-    --page-bg: #0f0a08;
+    --page-bg: oklch(0.15 0.014 55);
     --page-text: #faf7f5;
 
     /* Cards */
-    --card-bg: #1c1210;
-    --card-border: #2e211b;
+    --card-bg: oklch(0.205 0.022 50);
+    --card-border: oklch(0.31 0.035 55);
     --card-shadow: rgba(0, 0, 0, 0.3);
     --card-shadow-hover: rgba(0, 0, 0, 0.4);
 
     /* Surfaces (inset areas inside cards) */
-    --surface-bg: rgba(36, 26, 22, 0.6);
-    --surface-border: #2e211b;
+    --surface-bg: oklch(0.245 0.028 55 / 0.82);
+    --surface-border: oklch(0.32 0.035 58);
 
     /* Journal/label page backgrounds */
     --texture-dotgrid: var(--texture-dotgrid-dark);
     --texture-kraft: var(--texture-kraft-dark);
-    --journal-bg: #1a1210;
-    --kraft-bg: #201814;
+    --journal-bg: oklch(0.19 0.02 52);
+    --kraft-bg: oklch(0.235 0.032 58);
 
     /* Feed board — noticeably lighter than cards for contrast */
     --feed-board-bg: #3d2d22;
     --feed-board-border: #4a3828;
     /* Sticky notes — dark, sitting on the lighter board */
-    --feed-card-bg: #1a1210;
+    --feed-card-bg: oklch(0.195 0.021 52);
 
     /* Header */
-    --header-bg: #0f0a08;
-    --header-border: #2e211b;
+    --header-bg: #17130f;
+    --header-border: #3b3027;
     --header-text: #faf7f5;
 
     /* Text hierarchy */
@@ -250,9 +259,9 @@
     --text-placeholder: #5a4a40;
 
     /* Interactive */
-    --btn-primary-bg: #7f5539;
-    --btn-primary-bg-hover: #6b4423;
-    --btn-primary-text: #faf7f5;
+    --btn-primary-bg: var(--brand-copper-bright);
+    --btn-primary-bg-hover: oklch(0.78 0.16 58);
+    --btn-primary-text: oklch(0.18 0.025 30);
     --btn-secondary-bg: #241a16;
     --btn-secondary-border: #3d2d24;
     --btn-secondary-text: #e0cec4;
@@ -261,8 +270,8 @@
     /* Forms */
     --input-bg: #241a16;
     --input-border: #3d2d24;
-    --input-border-focus: #fbbf24;
-    --input-ring-focus: rgba(251, 191, 36, 0.15);
+    --input-border-focus: var(--brand-copper-bright);
+    --input-ring-focus: oklch(0.72 0.17 52 / 0.22);
     --input-bg-focus: rgba(36, 26, 22, 0.8);
 
     /* Tables */
@@ -285,9 +294,9 @@
     --type-brew: #a67c52;
     --type-bean: #d97706;
     --type-recipe: #c4724a;
-    --type-roaster: #c2610e;
+    --type-roaster: oklch(0.68 0.16 45);
     --type-grinder: #a8a29e;
-    --type-brewer: #8ba37a;
+    --type-brewer: var(--brand-leaf);
     --type-tea: #94b585;
     --type-vendor: #c2610e;
     --type-cafe: #b89472;
@@ -297,9 +306,9 @@
     --type-brew-tint: rgba(166, 124, 82, 0.18);
     --type-bean-tint: rgba(217, 119, 6, 0.15);
     --type-recipe-tint: rgba(196, 114, 74, 0.15);
-    --type-roaster-tint: rgba(194, 97, 14, 0.15);
+    --type-roaster-tint: oklch(0.68 0.16 45 / 0.2);
     --type-grinder-tint: rgba(168, 162, 158, 0.12);
-    --type-brewer-tint: rgba(139, 163, 122, 0.15);
+    --type-brewer-tint: rgb(143 160 127 / 0.18);
     --type-tea-tint: rgba(148, 181, 133, 0.18);
     --type-vendor-tint: rgba(194, 97, 14, 0.15);
     --type-cafe-tint: rgba(184, 148, 114, 0.15);
@@ -334,23 +343,23 @@
    Dark theme — forced via data-theme="dark"
    ======================================== */
 :root[data-theme="dark"] {
-  --page-bg: #0f0a08;
+  --page-bg: oklch(0.15 0.014 55);
   --page-text: #faf7f5;
-  --card-bg: #1c1210;
-  --card-border: #2e211b;
+  --card-bg: oklch(0.205 0.022 50);
+  --card-border: oklch(0.31 0.035 55);
   --card-shadow: rgba(0, 0, 0, 0.3);
   --card-shadow-hover: rgba(0, 0, 0, 0.4);
-  --surface-bg: rgba(36, 26, 22, 0.6);
-  --surface-border: #2e211b;
+  --surface-bg: oklch(0.245 0.028 55 / 0.82);
+  --surface-border: oklch(0.32 0.035 58);
   --feed-board-bg: #3d2d22;
   --feed-board-border: #4a3828;
-  --feed-card-bg: #1a1210;
+  --feed-card-bg: oklch(0.195 0.021 52);
   --texture-dotgrid: var(--texture-dotgrid-dark);
   --texture-kraft: var(--texture-kraft-dark);
-  --journal-bg: #1a1210;
-  --kraft-bg: #201814;
-  --header-bg: #0f0a08;
-  --header-border: #2e211b;
+  --journal-bg: oklch(0.19 0.02 52);
+  --kraft-bg: oklch(0.235 0.032 58);
+  --header-bg: #17130f;
+  --header-border: #3b3027;
   --header-text: #faf7f5;
   --text-primary: #faf7f5;
   --text-secondary: #e0cec4;
@@ -358,17 +367,17 @@
   --text-muted: #c4a898;
   --text-faint: #a98f82;
   --text-placeholder: #5a4a40;
-  --btn-primary-bg: #7f5539;
-  --btn-primary-bg-hover: #6b4423;
-  --btn-primary-text: #faf7f5;
+  --btn-primary-bg: var(--brand-copper-bright);
+  --btn-primary-bg-hover: oklch(0.78 0.16 58);
+  --btn-primary-text: oklch(0.18 0.025 30);
   --btn-secondary-bg: #241a16;
   --btn-secondary-border: #3d2d24;
   --btn-secondary-text: #e0cec4;
   --btn-secondary-bg-hover: #2e211b;
   --input-bg: #241a16;
   --input-border: #3d2d24;
-  --input-border-focus: #fbbf24;
-  --input-ring-focus: rgba(251, 191, 36, 0.15);
+  --input-border-focus: var(--brand-copper-bright);
+  --input-ring-focus: oklch(0.72 0.17 52 / 0.22);
   --input-bg-focus: rgba(36, 26, 22, 0.8);
   --table-bg: #1c1210;
   --table-header-bg: #241a16;
@@ -383,15 +392,15 @@
   --type-brew: #a67c52;
   --type-bean: #d97706;
   --type-recipe: #c4724a;
-  --type-roaster: #c2610e;
+  --type-roaster: oklch(0.68 0.16 45);
   --type-grinder: #a8a29e;
-  --type-brewer: #8ba37a;
+  --type-brewer: var(--brand-leaf);
   --type-brew-tint: rgba(166, 124, 82, 0.18);
   --type-bean-tint: rgba(217, 119, 6, 0.15);
   --type-recipe-tint: rgba(196, 114, 74, 0.15);
-  --type-roaster-tint: rgba(194, 97, 14, 0.15);
+  --type-roaster-tint: oklch(0.68 0.16 45 / 0.2);
   --type-grinder-tint: rgba(168, 162, 158, 0.12);
-  --type-brewer-tint: rgba(139, 163, 122, 0.15);
+  --type-brewer-tint: rgb(143 160 127 / 0.18);
   --rating-bg: rgba(251, 191, 36, 0.15);
   --rating-text: #fbbf24;
   --text-danger: #fca5a5;

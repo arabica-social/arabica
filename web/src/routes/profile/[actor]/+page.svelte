@@ -331,10 +331,23 @@
 							{#each closedBeans() as bean (bean.rkey)}
 								<div class="feed-card feed-card-bean opacity-75">
 									<a href={`/beans/${did}/${bean.rkey}`} class="font-bold text-primary hover:underline">{bean.name || bean.origin}</a>
+									<span class="text-xs text-faint">Closed</span>
 									{#if bean.roaster?.name}
 										<div class="text-sm text-muted flex items-center gap-1">
 											<Icon name="store" class="w-3 h-3" />
 											{bean.roaster.name}
+										</div>
+									{/if}
+									<div class="text-xs text-faint mt-1 flex flex-wrap gap-x-2 gap-y-1">
+										{#if bean.origin}<span class="inline-flex items-center gap-1"><Icon name="mapPin" class="w-3 h-3" />{bean.origin}</span>{/if}
+										{#if bean.roast_level}<span class="inline-flex items-center gap-1"><Icon name="flame" class="w-3 h-3" />{bean.roast_level}</span>{/if}
+										{#if bean.variety}<span class="inline-flex items-center gap-1"><Icon name="leaf" class="w-3 h-3" />{bean.variety}</span>{/if}
+										{#if bean.process}<span class="inline-flex items-center gap-1"><Icon name="sprout" class="w-3 h-3" />{bean.process}</span>{/if}
+									</div>
+									{#if beanBrewCount(did, bean.rkey) > 0 || beanAvgRating(did, bean.rkey) > 0}
+										<div class="text-xs text-faint pt-2 mt-2 border-t border-brown-200/60 flex gap-3">
+											{#if beanBrewCount(did, bean.rkey) > 0}<span class="inline-flex items-center gap-1"><Icon name="coffee" class="w-3 h-3" />{beanBrewCount(did, bean.rkey)} brew{pluralS(beanBrewCount(did, bean.rkey))}</span>{/if}
+											{#if beanAvgRating(did, bean.rkey) > 0}<span class="inline-flex items-center gap-1"><Icon name="star" class="w-3 h-3 text-amber-500" />{formatAvgRating(beanAvgRating(did, bean.rkey))} avg</span>{/if}
 										</div>
 									{/if}
 								</div>
