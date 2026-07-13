@@ -84,6 +84,7 @@ describe("BeanForm", () => {
 		vi.stubGlobal("fetch", fetchMock);
 		render(BeanForm, { bean: null, isEdit: false });
 
+		expect(screen.queryByLabelText("Rating")).not.toBeInTheDocument();
 		await userEvent.type(screen.getByLabelText("Name"), "Ethiopia Gedeb");
 		await userEvent.type(screen.getByLabelText("Origin"), "Ethiopia, Gedeb");
 		await userEvent.click(screen.getByRole("button", { name: "Add Bean" }));
@@ -93,6 +94,32 @@ describe("BeanForm", () => {
 			"/api/beans",
 			expect.objectContaining({ method: "POST" }),
 		);
+		const [, request] = fetchMock.mock.calls[0];
+		expect(JSON.parse(request.body)).not.toHaveProperty("rating");
+	});
+
+	it("only includes a rating after the user adds one", async () => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ ...existing, rkey: "created-rkey" }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			}),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+		render(BeanForm, { bean: null, isEdit: false });
+
+		await userEvent.type(screen.getByLabelText("Name"), "Ethiopia Gedeb");
+		await userEvent.type(screen.getByLabelText("Origin"), "Ethiopia, Gedeb");
+		await userEvent.click(
+			screen.getByText(/^Personal details/, { selector: "summary span" }),
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Add rating" }));
+		expect(screen.getByLabelText("Rating")).toHaveValue("5");
+		await userEvent.click(screen.getByRole("button", { name: "Add Bean" }));
+
+		await waitFor(() => expect(goto).toHaveBeenCalledWith("/beans/did%3Aplc%3Aalice/created-rkey"));
+		const [, request] = fetchMock.mock.calls[0];
+		expect(JSON.parse(request.body)).toMatchObject({ rating: 5 });
 	});
 
 	it("prepopulates the edit form", () => {

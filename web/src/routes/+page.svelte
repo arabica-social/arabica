@@ -188,7 +188,9 @@
         {#if data.error && items.length === 0}
           <div class="cafe-feed-state" style="grid-column: 1 / -1;">
             <Icon name="coffee" class="w-8 h-8 text-muted mb-3" />
-            <p class="text-emphasis font-medium mb-1">The feed is quiet today</p>
+            <p class="text-emphasis font-medium mb-1">
+              The feed is quiet today
+            </p>
             <p class="text-sm text-faint">{data.error}</p>
           </div>
         {:else if loading && items.length === 0}
@@ -210,8 +212,12 @@
         {:else if items.length === 0}
           <div class="cafe-feed-state" style="grid-column: 1 / -1;">
             <Icon name="coffee" class="w-8 h-8 text-muted mb-3" />
-            <p class="text-emphasis font-medium mb-1">The feed is quiet today</p>
-            <p class="text-sm text-faint">Follow people or add your first record to get started.</p>
+            <p class="text-emphasis font-medium mb-1">
+              The feed is quiet today
+            </p>
+            <p class="text-sm text-faint">
+              Follow people or add your first record to get started.
+            </p>
           </div>
         {:else}
           {#each items as item (item.subject_uri)}
@@ -219,7 +225,11 @@
           {/each}
           {#if nextCursor}
             <div class="text-center pt-2" style="grid-column: 1 / -1;">
-              <button class="btn-secondary text-sm load-more-btn" disabled={loadingMore} onclick={loadMore}>
+              <button
+                class="btn-secondary text-sm load-more-btn"
+                disabled={loadingMore}
+                onclick={loadMore}
+              >
                 {loadingMore ? "Loading..." : "Load more"}
               </button>
             </div>
@@ -239,27 +249,49 @@
           <h2>Keep the counter current.</h2>
           <p>Your beans, equipment, and recipes stay close at hand.</p>
           <nav class="cafe-shortcuts" aria-label="Coffee journal shortcuts">
-            <a href={appDefinition.libraryPath}><Icon name="bean" /><span>{appDefinition.libraryLabel}</span></a>
+            <a href={appDefinition.libraryPath}
+              ><Icon name="bean" /><span>{appDefinition.libraryLabel}</span></a
+            >
             <a href="/explore"><Icon name="brewer" /><span>Explore</span></a>
             <a href="/recipes"><Icon name="fileText" /><span>Recipes</span></a>
-            <a href="/profile/{data.userDID}"><Icon name="coffee" /><span>Your profile</span></a>
+            <a href="/profile/{data.userDID}"
+              ><Icon name="coffee" /><span>Your profile</span></a
+            >
           </nav>
         {:else}
           <p class="cafe-label">Your coffee notebook</p>
           <h2>Keep the details worth repeating.</h2>
-          <p>Record beans, equipment, recipes, and the small adjustments that make a cup click.</p>
-          <button type="button" onclick={openLoginModal} class="cafe-text-link cafe-rail-action">Log in to your journal</button>
+          <p>
+            Record beans, equipment, recipes, and the small adjustments that
+            make a cup click.
+          </p>
+          <button
+            type="button"
+            onclick={openLoginModal}
+            class="cafe-text-link cafe-rail-action"
+            >Log in to your journal</button
+          >
         {/if}
       </section>
 
       {#if isAuthenticated && incompleteRecords?.records?.length}
         <section class="cafe-rail-section">
           <p class="cafe-label">Needs attention</p>
-          <h2>{incompleteRecords.records.length} {incompleteRecords.records.length === 1 ? "record" : "records"} need details.</h2>
+          <h2>
+            {incompleteRecords.records.length}
+            {incompleteRecords.records.length === 1 ? "record" : "records"} need details.
+          </h2>
           <div class="cafe-record-list">
             {#each incompleteRecords.records as rec (rec.RKey)}
-              <a href={`/${entityRouteForCollection($app, rec.EntityType)}/${rec.RKey}/edit`}>
-                <span><strong>{rec.Name}</strong>{#if rec.MissingFields?.length}<small>Missing {rec.MissingFields.join(", ")}</small>{/if}</span>
+              <a
+                href={`/${entityRouteForCollection($app, rec.EntityType)}/${rec.RKey}/edit`}
+              >
+                <span
+                  ><strong>{rec.Name}</strong
+                  >{#if rec.MissingFields?.length}<small
+                      >Missing {rec.MissingFields.join(", ")}</small
+                    >{/if}</span
+                >
                 <span aria-hidden="true">→</span>
               </a>
             {/each}
@@ -271,27 +303,53 @@
     <main class="cafe-main">
       <header class="cafe-journal-head">
         <div>
-          <p class="cafe-label">{isAuthenticated ? "Your home coffee journal" : "A coffee journal on the Atmosphere"}</p>
-          <h1>{isAuthenticated ? "Good coffee deserves a record." : appDefinition.heroHeading}</h1>
-          <p class="cafe-deck">{isAuthenticated ? "Keep the details that helped a cup click, then compare notes with people brewing around the Atmosphere." : appDefinition.heroDescription}</p>
+          <p class="cafe-label">
+            {isAuthenticated
+              ? "Your home coffee journal"
+              : "A coffee journal on the Atmosphere"}
+          </p>
+          <h1>
+            {isAuthenticated
+              ? "Good coffee deserves a record."
+              : appDefinition.heroHeading}
+          </h1>
+          <p class="cafe-deck">
+            {isAuthenticated
+              ? "Keep the details that helped a cup click, then compare notes with people brewing around the Atmosphere."
+              : appDefinition.heroDescription}
+          </p>
           {#if !isAuthenticated}
-            <p class="cafe-ownership"><a href="/atproto">Built on AT Protocol</a>. Your journal stays yours.</p>
+            <p class="cafe-ownership">
+              <a href="/atproto">Built on AT Protocol</a>. Your journal stays
+              yours.
+            </p>
           {/if}
         </div>
         <div class="cafe-actions">
           {#if isAuthenticated}
-            <a href={ready ? "/brews/new" : "/onboarding"} class="home-action-primary">
+            <a
+              href={ready ? "/brews/new" : "/onboarding"}
+              class="home-action-primary"
+            >
               {ready ? `${appDefinition.sessionAction} →` : "Finish setup →"}
             </a>
-            <a href={appDefinition.libraryPath} class="cafe-text-link">Browse your journal</a>
+            <a href={appDefinition.libraryPath} class="cafe-text-link"
+              >Browse your journal</a
+            >
           {:else}
-            <button type="button" onclick={openLoginModal} class="home-action-primary">Log In</button>
+            <button
+              type="button"
+              onclick={openLoginModal}
+              class="home-action-primary">Log In</button
+            >
             <a href="/join/create" class="cafe-text-link">Create an account</a>
           {/if}
         </div>
         {#if isAuthenticated && !ready}
           <div class="cafe-setup-nudge">
-            <span><strong>First brew</strong>{appDefinition.readinessNudge}</span>
+            <span
+              ><strong>First brew</strong>{appDefinition.readinessNudge}</span
+            >
             <a href="/onboarding">Open setup</a>
           </div>
         {/if}
@@ -312,9 +370,21 @@
                   : "/recipes"}
               >
                 <strong>{recipe.name}</strong>
-                <span>{recipe.brewer_obj?.name || recipe.brewer_type || "Coffee recipe"}</span>
+                <span
+                  >{recipe.brewer_obj?.name ||
+                    recipe.brewer_type ||
+                    "Coffee recipe"}</span
+                >
                 {#if recipe.brew_count || recipe.fork_count}
-                  <small>{recipe.brew_count || 0} brews · {recipe.fork_count || 0} forks</small>
+                  <small
+                    >{recipe.brew_count || 0} brews {#if recipe.fork_count}
+                      · {#if recipe.fork_count == 1}
+                        fork
+                      {:else}
+                        {recipe.fork_count} forks
+                      {/if}
+                    {/if}</small
+                  >
                 {/if}
               </a>
             {/each}
@@ -322,23 +392,35 @@
           <a href="/recipes" class="cafe-text-link">Explore all recipes</a>
         </section>
       {/if}
-      <section class="cafe-rail-section" class:cafe-rail-lead={!popularRecipes?.length}>
+      <section
+        class="cafe-rail-section"
+        class:cafe-rail-lead={!popularRecipes?.length}
+      >
         <p class="cafe-label">Your data</p>
         <h2>A journal you can take with you.</h2>
-        <p>Arabica stores your coffee records in your own Personal Data Server, not in a private app database.</p>
+        <p>
+          Arabica stores your coffee records in your own Personal Data Server,
+          not in a private app database.
+        </p>
         <a href="/atproto" class="cafe-text-link">How ownership works</a>
       </section>
       {#if !isAuthenticated}
         <section class="cafe-rail-section">
           <p class="cafe-label">Come as you are</p>
           <h2>See what the café is brewing.</h2>
-          <p>The community board is public, so you can browse before starting a journal of your own.</p>
+          <p>
+            The community board is public, so you can browse before starting a
+            journal of your own.
+          </p>
           <a href="/about" class="cafe-text-link">Learn more</a>
         </section>
       {/if}
       <section class="cafe-rail-section">
         <p class="cafe-label">About Arabica</p>
-        <p>A federated coffee journal for people who enjoy keeping the useful details.</p>
+        <p>
+          A federated coffee journal for people who enjoy keeping the useful
+          details.
+        </p>
         <a href="/about" class="cafe-text-link">Read the story</a>
       </section>
     </aside>
@@ -348,29 +430,52 @@
   <div class="page-container-lg">
     {#if appName === "oolong"}
       <div class="alert-warning mb-4">
-        <strong>Heads up:</strong> oolong is <em>very</em> new and unstable (initial release was May 17th). Breaking lexicon changes <strong>will</strong> happen frequently.
+        <strong>Heads up:</strong> oolong is <em>very</em> new and unstable
+        (initial release was May 17th). Breaking lexicon changes
+        <strong>will</strong> happen frequently.
       </div>
     {/if}
     <section class="home-hero">
       <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
       {#if isAuthenticated && !ready}
         <div class="home-nudge">
-          <div class="home-nudge-copy"><span class="home-nudge-label">Get started</span><span class="home-nudge-text">{appDefinition.readinessNudge}</span></div>
+          <div class="home-nudge-copy">
+            <span class="home-nudge-label">Get started</span><span
+              class="home-nudge-text">{appDefinition.readinessNudge}</span
+            >
+          </div>
           <a href="/onboarding" class="btn-primary text-sm">Get Started →</a>
         </div>
       {/if}
       {#if !isAuthenticated}
         <p class="home-hero-deck">{appDefinition.heroDescription}</p>
-        <p class="home-hero-foot"><a href="/atproto">Built on AT Protocol</a> — you own your data.</p>
+        <p class="home-hero-foot">
+          <a href="/atproto">Built on AT Protocol</a> — you own your data.
+        </p>
       {/if}
       <div class="home-actions mt-6 justify-center">
         {#if isAuthenticated}
-          <a href="/brews/new" class="home-action-primary" class:is-disabled={!ready} aria-disabled={!ready}>{appDefinition.sessionAction}</a>
-          <a href={appDefinition.libraryPath} class="home-action-secondary">{appDefinition.libraryLabel}</a>
-          <a href="/profile/{data.userDID}" class="home-action-secondary">Profile</a>
+          <a
+            href="/brews/new"
+            class="home-action-primary"
+            class:is-disabled={!ready}
+            aria-disabled={!ready}>{appDefinition.sessionAction}</a
+          >
+          <a href={appDefinition.libraryPath} class="home-action-secondary"
+            >{appDefinition.libraryLabel}</a
+          >
+          <a href="/profile/{data.userDID}" class="home-action-secondary"
+            >Profile</a
+          >
         {:else}
-          <button type="button" onclick={openLoginModal} class="home-action-primary">Log In</button>
-          <a href="/join/create" class="home-action-secondary">Create an account</a>
+          <button
+            type="button"
+            onclick={openLoginModal}
+            class="home-action-primary">Log In</button
+          >
+          <a href="/join/create" class="home-action-secondary"
+            >Create an account</a
+          >
           <a href="/about" class="home-action-secondary">Learn more</a>
         {/if}
       </div>
@@ -379,72 +484,348 @@
     {#if isAuthenticated}
       <ScrollTopButton />
       <div class="card p-6 mb-8">
-        <h2 class="text-lg font-bold text-primary mb-2">{appDefinition.aboutHeading}</h2>
+        <h2 class="text-lg font-bold text-primary mb-2">
+          {appDefinition.aboutHeading}
+        </h2>
         <p class="text-sm text-secondary">{appDefinition.aboutBody}</p>
-        <a href="/about" class="text-sm text-secondary hover:text-primary hover:underline mt-2 inline-block">Learn more →</a>
+        <a
+          href="/about"
+          class="text-sm text-secondary hover:text-primary hover:underline mt-2 inline-block"
+          >Learn more →</a
+        >
       </div>
     {/if}
   </div>
 {/if}
 
 <style>
-  .cafe-counter { width: 100%; max-width: 90rem; margin-inline: auto; padding-inline: clamp(.5rem, 2.2vw, 2rem); display: flex; flex-direction: column; gap: 1.5rem; }
-  .cafe-main { order: 1; min-width: 0; }
-  .cafe-rail-left { order: 2; }
-  .cafe-rail-right { order: 3; }
-  .cafe-journal-head { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: clamp(1.25rem,3vw,2.5rem); margin-bottom: 1.75rem; padding: .5rem clamp(.25rem,2vw,1.25rem) 1.4rem 0; border-bottom: 1px solid var(--card-border); }
-  .cafe-journal-head::before { content: ""; position: absolute; right: clamp(-1rem,-1vw,-.25rem); bottom: -7.5rem; width: clamp(17rem,30vw,25rem); height: clamp(17rem,30vw,25rem); background-color: var(--text-emphasis); opacity: .045; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E") center / contain no-repeat; pointer-events: none; }
-  .cafe-journal-head > * { position: relative; z-index: 1; }
-  .cafe-journal-head h1 { max-width: 13ch; margin: .35rem 0 .8rem; color: var(--text-primary); font-family: var(--font-display); font-size: clamp(2.35rem,5vw,3.9rem); font-weight: 600; line-height: .96; letter-spacing: -.025em; font-variation-settings: "opsz" 96,"SOFT" 50,"WONK" 0; }
-  .cafe-deck { max-width: 60ch; margin: 0; color: var(--text-secondary); font-size: .95rem; line-height: 1.65; }
-  .cafe-ownership { margin: .8rem 0 0; color: var(--text-faint); font-size: .72rem; }
-  .cafe-ownership a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
-  .cafe-label { margin: 0 0 .45rem; color: var(--text-muted); font-size: .65rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-  .cafe-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .55rem; }
-  .cafe-text-link { display: inline-flex; min-height: 2.75rem; align-items: center; color: var(--text-emphasis); font-size: .75rem; font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in oklch,var(--text-faint) 45%,transparent); text-underline-offset: 4px; }
-  .cafe-text-link:hover { color: var(--text-primary); text-decoration-color: currentColor; }
-  .cafe-rail-action { padding: 0; border: 0; background: transparent; cursor: pointer; }
-  .cafe-setup-nudge { grid-column: 1/-1; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-top: 1px dashed var(--card-border); color: var(--text-secondary); font-size: .78rem; }
-  .cafe-setup-nudge span { display: flex; gap: .65rem; align-items: baseline; }
-  .cafe-setup-nudge strong { color: var(--text-muted); font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; }
-  .cafe-setup-nudge a { min-height: 2.75rem; display: inline-flex; align-items: center; color: var(--text-emphasis); font-weight: 600; }
-  .cafe-feed { min-width: 0; margin-bottom: 2rem; }
-  .cafe-feed-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding-top: .2rem; }
-  .cafe-feed-heading h2 { margin: 0; color: var(--text-primary); font-family: var(--font-display); font-size: 1.45rem; font-weight: 600; letter-spacing: -.012em; }
-  .cafe-feed-board { border-radius: 4px; }
-  .cafe-feed-state { display: grid; justify-items: center; padding: 2rem; text-align: center; background: var(--surface-bg); border: 1px dashed var(--card-border); border-radius: 4px; }
-  .cafe-skeleton { background: var(--surface-border); }
-  .cafe-skeleton-soft { background: var(--surface-bg); border-radius: 4px; }
-  .cafe-rail { min-width: 0; }
-  .cafe-rail-section { padding: 1rem 0 1.2rem; border-top: 1px solid var(--card-border); }
-  .cafe-rail-lead { border-top: 2px solid var(--text-secondary); }
-  .cafe-rail-section h2 { margin: 0 0 .5rem; color: var(--text-primary); font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; line-height: 1.25; letter-spacing: -.01em; }
-  .cafe-rail-section p:not(.cafe-label) { margin: 0 0 .75rem; color: var(--text-muted); font-size: .76rem; line-height: 1.55; }
-  .cafe-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-top: 1px dotted var(--card-border); }
-  .cafe-shortcuts a { display: flex; min-height: 2.75rem; align-items: center; gap: .5rem; color: var(--text-secondary); border-bottom: 1px dotted var(--card-border); font-size: .75rem; }
-  .cafe-shortcuts a:hover { color: var(--text-primary); }
-  .cafe-record-list, .cafe-recipe-list { border-top: 1px dotted var(--card-border); }
-  .cafe-record-list a { display: flex; min-height: 3.2rem; align-items: center; justify-content: space-between; gap: .5rem; color: var(--text-secondary); border-bottom: 1px dotted var(--card-border); font-size: .72rem; }
-  .cafe-record-list strong, .cafe-record-list small { display: block; }
-  .cafe-record-list small { margin-top: .15rem; color: var(--text-faint); font-weight: 400; }
-  .cafe-recipe-list a { display: block; padding: .8rem 0; color: var(--text-secondary); border-bottom: 1px dotted var(--card-border); }
-  .cafe-recipe-list strong, .cafe-recipe-list span, .cafe-recipe-list small { display: block; }
-  .cafe-recipe-list strong { color: var(--text-primary); font-size: .78rem; }
-  .cafe-recipe-list span, .cafe-recipe-list small { margin-top: .2rem; color: var(--text-muted); font-size: .66rem; }
+  .cafe-counter {
+    width: 100%;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: clamp(0.5rem, 2.2vw, 2rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .cafe-main {
+    order: 1;
+    min-width: 0;
+  }
+  .cafe-rail-left {
+    order: 2;
+  }
+  .cafe-rail-right {
+    order: 3;
+  }
+  .cafe-journal-head {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+    margin-bottom: 1.75rem;
+    padding: 0.5rem clamp(0.25rem, 2vw, 1.25rem) 1.4rem 0;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .cafe-journal-head::before {
+    content: "";
+    position: absolute;
+    right: clamp(-1rem, -1vw, -0.25rem);
+    bottom: -7.5rem;
+    width: clamp(17rem, 30vw, 25rem);
+    height: clamp(17rem, 30vw, 25rem);
+    background-color: var(--text-emphasis);
+    opacity: 0.045;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    pointer-events: none;
+  }
+  .cafe-journal-head > * {
+    position: relative;
+    z-index: 1;
+  }
+  .cafe-journal-head h1 {
+    max-width: 13ch;
+    margin: 0.35rem 0 0.8rem;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: clamp(2.35rem, 5vw, 3.9rem);
+    font-weight: 600;
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    font-variation-settings:
+      "opsz" 96,
+      "SOFT" 50,
+      "WONK" 0;
+  }
+  .cafe-deck {
+    max-width: 60ch;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+  .cafe-ownership {
+    margin: 0.8rem 0 0;
+    color: var(--text-faint);
+    font-size: 0.72rem;
+  }
+  .cafe-ownership a {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .cafe-label {
+    margin: 0 0 0.45rem;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .cafe-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.55rem;
+  }
+  .cafe-text-link {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    color: var(--text-emphasis);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: color-mix(
+      in oklch,
+      var(--text-faint) 45%,
+      transparent
+    );
+    text-underline-offset: 4px;
+  }
+  .cafe-text-link:hover {
+    color: var(--text-primary);
+    text-decoration-color: currentColor;
+  }
+  .cafe-rail-action {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .cafe-setup-nudge {
+    grid-column: 1/-1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 0;
+    border-top: 1px dashed var(--card-border);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+  }
+  .cafe-setup-nudge span {
+    display: flex;
+    gap: 0.65rem;
+    align-items: baseline;
+  }
+  .cafe-setup-nudge strong {
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .cafe-setup-nudge a {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-emphasis);
+    font-weight: 600;
+  }
+  .cafe-feed {
+    min-width: 0;
+    margin-bottom: 2rem;
+  }
+  .cafe-feed-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-top: 0.2rem;
+  }
+  .cafe-feed-heading h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+  }
+  .cafe-feed-board {
+    border-radius: 4px;
+  }
+  .cafe-feed-state {
+    display: grid;
+    justify-items: center;
+    padding: 2rem;
+    text-align: center;
+    background: var(--surface-bg);
+    border: 1px dashed var(--card-border);
+    border-radius: 4px;
+  }
+  .cafe-skeleton {
+    background: var(--surface-border);
+  }
+  .cafe-skeleton-soft {
+    background: var(--surface-bg);
+    border-radius: 4px;
+  }
+  .cafe-rail {
+    min-width: 0;
+  }
+  .cafe-rail-section {
+    padding: 1rem 0 1.2rem;
+    border-top: 1px solid var(--card-border);
+  }
+  .cafe-rail-lead {
+    border-top: 2px solid var(--text-secondary);
+  }
+  .cafe-rail-section h2 {
+    margin: 0 0 0.5rem;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .cafe-rail-section p:not(.cafe-label) {
+    margin: 0 0 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    line-height: 1.55;
+  }
+  .cafe-shortcuts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px dotted var(--card-border);
+  }
+  .cafe-shortcuts a {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    border-bottom: 1px dotted var(--card-border);
+    font-size: 0.75rem;
+  }
+  .cafe-shortcuts a:hover {
+    color: var(--text-primary);
+  }
+  .cafe-record-list,
+  .cafe-recipe-list {
+    border-top: 1px dotted var(--card-border);
+  }
+  .cafe-record-list a {
+    display: flex;
+    min-height: 3.2rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    border-bottom: 1px dotted var(--card-border);
+    font-size: 0.72rem;
+  }
+  .cafe-record-list strong,
+  .cafe-record-list small {
+    display: block;
+  }
+  .cafe-record-list small {
+    margin-top: 0.15rem;
+    color: var(--text-faint);
+    font-weight: 400;
+  }
+  .cafe-recipe-list a {
+    display: block;
+    padding: 0.8rem 0;
+    color: var(--text-secondary);
+    border-bottom: 1px dotted var(--card-border);
+  }
+  .cafe-recipe-list strong,
+  .cafe-recipe-list span,
+  .cafe-recipe-list small {
+    display: block;
+  }
+  .cafe-recipe-list strong {
+    color: var(--text-primary);
+    font-size: 0.78rem;
+  }
+  .cafe-recipe-list span,
+  .cafe-recipe-list small {
+    margin-top: 0.2rem;
+    color: var(--text-muted);
+    font-size: 0.66rem;
+  }
   @media (min-width: 1040px) {
-    .cafe-counter { display: grid; grid-template-columns: minmax(10.5rem,.72fr) minmax(34rem,2.5fr) minmax(12rem,.85fr); align-items: start; gap: clamp(1.25rem,2.2vw,2.5rem); }
-    .cafe-main, .cafe-rail-left, .cafe-rail-right { order: initial; }
-    .cafe-rail { position: sticky; top: 4rem; padding-top: 1.5rem; }
-    .cafe-shortcuts { grid-template-columns: 1fr; }
+    .cafe-counter {
+      display: grid;
+      grid-template-columns:
+        minmax(10.5rem, 0.72fr) minmax(34rem, 2.5fr)
+        minmax(12rem, 0.85fr);
+      align-items: start;
+      gap: clamp(1.25rem, 2.2vw, 2.5rem);
+    }
+    .cafe-main,
+    .cafe-rail-left,
+    .cafe-rail-right {
+      order: initial;
+    }
+    .cafe-rail {
+      position: sticky;
+      top: 4rem;
+      padding-top: 1.5rem;
+    }
+    .cafe-shortcuts {
+      grid-template-columns: 1fr;
+    }
   }
   @media (max-width: 719px) {
-    .cafe-journal-head { grid-template-columns: 1fr; align-items: start; padding-top: 0; }
-    .cafe-actions { align-items: stretch; }
-    .cafe-actions :global(.home-action-primary) { width: 100%; justify-content: center; }
-    .cafe-text-link { justify-content: center; }
-    .cafe-setup-nudge { align-items: flex-start; flex-direction: column; }
-    .cafe-feed-heading { align-items: stretch; flex-direction: column; }
-    .cafe-shortcuts { grid-template-columns: 1fr; }
+    .cafe-journal-head {
+      grid-template-columns: 1fr;
+      align-items: start;
+      padding-top: 0;
+    }
+    .cafe-actions {
+      align-items: stretch;
+    }
+    .cafe-actions :global(.home-action-primary) {
+      width: 100%;
+      justify-content: center;
+    }
+    .cafe-text-link {
+      justify-content: center;
+    }
+    .cafe-setup-nudge {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .cafe-feed-heading {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .cafe-shortcuts {
+      grid-template-columns: 1fr;
+    }
   }
-  @media (prefers-reduced-transparency: reduce) { .cafe-journal-head::before { display: none; } }
+  @media (prefers-reduced-transparency: reduce) {
+    .cafe-journal-head::before {
+      display: none;
+    }
+  }
 </style>

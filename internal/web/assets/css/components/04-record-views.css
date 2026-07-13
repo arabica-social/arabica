@@ -345,6 +345,7 @@
 
 /* Description on a label — flowing paragraph, no indent */
 .label-description {
+  white-space: pre-line;
   line-height: 1.625;
   margin-top: 1.5rem;
   color: var(--text-primary);

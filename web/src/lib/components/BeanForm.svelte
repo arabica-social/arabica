@@ -51,6 +51,10 @@
 	let roasterRKey = $state(bean?.roaster?.rkey ?? "");
 	// svelte-ignore state_referenced_locally
 	let rating = $state<number | undefined>(bean?.rating);
+	// Keep rating opt-in for new beans. A native range input supplies a default
+	// value when rendered, so render it only after the user explicitly adds one.
+	// svelte-ignore state_referenced_locally
+	let showRating = $state(bean?.rating !== undefined);
 	// svelte-ignore state_referenced_locally
 	let closed = $state(bean?.closed ?? false);
 	// svelte-ignore state_referenced_locally
@@ -71,6 +75,16 @@
 		return $session.did || $session.handle;
 	}
 
+	function addRating() {
+		showRating = true;
+		rating ??= 5;
+	}
+
+	function removeRating() {
+		showRating = false;
+		rating = undefined;
+	}
+
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		if (submitting) return;
@@ -89,7 +103,7 @@
 			notes: notes.trim(),
 			link: link.trim(),
 			roaster_rkey: roasterRKey,
-			rating,
+			...(showRating && rating !== undefined ? { rating } : {}),
 			closed,
 			...(sourceRef ? { source_ref: sourceRef } : {}),
 		};
@@ -317,22 +331,31 @@
 									aria-label="Personal notes"
 								></textarea>
 							</div>
-							<div>
-								<label class="form-label" for="bean-rating">Rating</label>
-								<div class="flex items-center gap-3">
-									<input
-										id="bean-rating"
-										name="rating"
-										type="range"
-										min="1"
-										max="10"
-										bind:value={rating}
-										class="w-full accent-brown-700"
-										aria-label="Rating"
-									/>
-									<span class="text-sm font-medium text-emphasis min-w-[2.5rem]">{rating ?? "—"}</span>
+							{#if showRating}
+								<div class="space-y-2">
+									<div class="flex items-center justify-between">
+										<label class="form-label mb-0" for="bean-rating">Rating</label>
+										<button type="button" onclick={removeRating} class="text-xs text-faint hover:text-emphasis">
+											Remove rating
+										</button>
+									</div>
+									<div class="flex items-center gap-3">
+										<input
+											id="bean-rating"
+											name="rating"
+											type="range"
+											min="1"
+											max="10"
+											bind:value={rating}
+											class="w-full accent-brown-700"
+											aria-label="Rating"
+										/>
+										<span class="text-sm font-medium text-emphasis min-w-[2.5rem]">{rating}/10</span>
+									</div>
 								</div>
-							</div>
+							{:else}
+								<button type="button" onclick={addRating} class="btn-secondary text-sm">Add rating</button>
+							{/if}
 							<div class="flex items-center gap-2">
 								<input
 									id="bean-closed-checkbox"
