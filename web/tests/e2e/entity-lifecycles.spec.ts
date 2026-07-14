@@ -32,12 +32,12 @@ test("bean lifecycle: create, reload, edit, delete", async ({
 	await expect(page.getByText("Origin is required")).toBeVisible();
 
 	await page.getByLabel("Name").fill(name);
-	await page.getByLabel("Origin").fill(origin);
+	await page.getByRole("textbox", { name: "Origin" }).fill(origin);
 	await page.getByLabel("Variety").fill(variety);
 	await page.getByLabel("Roast level").selectOption("Light");
 	await page.getByLabel("Process").fill("Washed");
 	// Expand the personal-details disclosure to reveal notes.
-	await page.getByText("Personal details").click();
+	await page.getByText("Personal details (optional)").click();
 	await page.getByLabel("Personal notes").fill("Initial notes");
 	await page.getByRole("button", { name: "Add Bean" }).click();
 
@@ -236,7 +236,7 @@ test("recipe lifecycle: create, reload, edit, delete", async ({
 	await page.getByLabel("Brewer type").selectOption("pourover");
 	await page.getByLabel("Coffee amount in grams").fill("15");
 	await page.getByLabel("Water amount in grams").fill("250");
-	await page.getByLabel("Notes").fill("Standard 1:16 ratio");
+	await page.getByRole("textbox", { name: "Notes" }).fill("Standard 1:16 ratio");
 	await page.getByRole("button", { name: "Add Recipe" }).click();
 
 	await page.waitForURL(/\/recipes\/[^/]+\/[^/]+$/);
@@ -256,7 +256,7 @@ test("recipe lifecycle: create, reload, edit, delete", async ({
 	// Edit.
 	await page.goto(`/recipes/${rkey}/edit`);
 	await expect(page.getByLabel("Name")).toHaveValue(name);
-	await page.getByLabel("Notes").fill(updatedNotes);
+	await page.getByRole("textbox", { name: "Notes" }).fill(updatedNotes);
 	await page.getByRole("button", { name: "Save Changes" }).click();
 
 	await page.waitForURL(/\/recipes\/[^/]+\/[^/]+$/);

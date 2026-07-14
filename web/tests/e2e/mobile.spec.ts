@@ -44,9 +44,9 @@ test("brew form is usable on mobile — fields visible and not clipped", async (
 	await expect(page.getByRole("heading", { name: "New Brew" })).toBeVisible();
 
 	// The form sections should be visible (not clipped off-screen).
-	await expect(page.getByRole("group", { name: "Coffee" })).toBeVisible();
-	await expect(page.getByRole("group", { name: "Brewing" })).toBeVisible();
-	await expect(page.getByRole("group", { name: "Results" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Coffee" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Brewing" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Results" })).toBeVisible();
 
 	// The submit button should be visible without horizontal scrolling.
 	const submitButton = page.getByRole("button", { name: "Save Brew" });
@@ -87,7 +87,7 @@ test("my coffee tabs scroll horizontally on mobile", async ({ authedPage: page }
 	await expect(nav).toBeVisible();
 	// Clicking a tab further down the list should work even on narrow screens.
 	await page.getByRole("button", { name: "Recipes" }).click();
-	await expect(page.getByRole("button", { name: "Recipes" })).toHaveClass(/tab-row-active/);
+	await expect(page.getByRole("button", { name: "Recipes" })).toHaveAttribute("aria-current", "page");
 });
 
 test("entity view page renders without horizontal overflow on mobile", async ({

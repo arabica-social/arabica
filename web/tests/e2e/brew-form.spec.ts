@@ -109,7 +109,7 @@ test("brew form: create, view, edit", async ({
 	// --- Submit the form. ---
 	const saveResponse = page.waitForResponse(
 		(response) =>
-			new URL(response.url()).pathname === "/brews" && response.request().method() === "POST",
+			new URL(response.url()).pathname === "/api/brews" && response.request().method() === "POST",
 	);
 	await page.getByRole("button", { name: "Save Brew" }).click();
 	const brewResp = await saveResponse;
@@ -157,7 +157,7 @@ test("brew form: create, view, edit", async ({
 
 	const updateResponse = page.waitForResponse(
 		(response) =>
-			new URL(response.url()).pathname === `/brews/${rkey}` &&
+			new URL(response.url()).pathname === `/api/brews/${rkey}` &&
 			response.request().method() === "PUT",
 	);
 	await page.getByRole("button", { name: "Update Brew" }).click();

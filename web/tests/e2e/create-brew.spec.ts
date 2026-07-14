@@ -34,7 +34,7 @@ test("new brew form loads indexed prerequisites", async ({ authedPage: page, api
 	).toBe(true);
 	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
 	await expect(page.getByRole("heading", { name: "New Brew" })).toBeVisible();
-	await expect(page.getByRole("group", { name: "Coffee" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Coffee" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Save Brew" })).toBeVisible();
 	await page.goto("/my-coffee");
 	await page.getByRole("button", { name: "Beans" }).click();
