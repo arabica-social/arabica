@@ -15,11 +15,13 @@ svelte-build:
 spa-build:
     @./scripts/build-spa.sh
 
+# Start only Vite's HMR server for isolated frontend work. It does not render
+# Go's injected document head, so use `run-spa-dev` for normal local work.
 spa-dev:
-    @cd web && pnpm run dev
+    @VITE_BACKEND_URL=http://127.0.0.1:18910 VITE_DEV_PORT=5173 pnpm --dir web run dev
 
-# Watch web/ source and rebuild the SvelteKit SPA to web/build on every change.
-# Used by run-spa-dev / run-oolong-spa-dev; run standalone to just rebuild on save.
+# Legacy rebuild-on-refresh loop for exercising Go's disk-backed SPA shell.
+# Use run-spa-dev or run-oolong-spa-dev for normal Vite HMR development.
 spa-watch:
     @./scripts/watch-spa.sh
 
@@ -33,26 +35,78 @@ types-check:
 run-spa:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 go run ./cmd/arabica -known-dids known-dids.txt
 
-# Run Arabica with SPA dev hot-reload. scripts/watch-spa.sh rebuilds the
-# SvelteKit bundle to web/build on every source change; ARABICA_DEV=1 makes
-# the Go server re-read index.html and /_app/ chunks from disk on each
-# request, so changes appear on the next browser refresh without restarting
-# Go. Requires `pnpm` and `inotifywait` (inotify-tools).
+# Run Arabica's Go backend and disk-backed SPA rebuild watcher together. Open
+# http://127.0.0.1:18910; refresh after a successful rebuild. OAuth returns to
+# Go's browser-facing development origin, which serves the app's CSS and assets.
 run-spa-dev:
-    @./scripts/watch-spa.sh & \
-        trap 'kill $$!' EXIT; \
-        LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 go run ./cmd/arabica -known-dids known-dids.txt
+    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt & \
+        backend_pid=$$!; \
+        ./scripts/watch-spa.sh & \
+        watcher_pid=$$!; \
+        trap 'kill $$watcher_pid $$backend_pid 2>/dev/null || true; wait $$watcher_pid 2>/dev/null || true; wait $$backend_pid 2>/dev/null || true' EXIT INT TERM; \
+        wait $$watcher_pid
+
+# Launch the Go backend and SPA rebuild watcher in a new tab in the current
+# Herdr workspace. Pass workspace=true for a dedicated persistent workspace
+# (which `just herdr-spa-dev-stop` closes). Outside Herdr, a dedicated
+# workspace is created automatically.
+herdr-spa-dev workspace='false':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v herdr >/dev/null || { echo "error: herdr is required" >&2; exit 1; }
+    command -v jq >/dev/null || { echo "error: jq is required" >&2; exit 1; }
+    create_workspace="{{workspace}}"
+    case "$create_workspace" in
+        true|workspace=true) create_workspace=true ;;
+        false|workspace=false) create_workspace=false ;;
+        *) echo "error: workspace must be true or false" >&2; exit 2 ;;
+    esac
+    workspace_label="arabica spa dev"
+    if [[ "$create_workspace" == "true" || "${HERDR_ENV:-}" != "1" ]]; then
+        herdr workspace list | jq -r --arg label "$workspace_label" '.result.workspaces[] | select(.label == $label) | .workspace_id' | while IFS= read -r workspace_id; do
+            [[ -z "$workspace_id" ]] || herdr workspace close "$workspace_id" >/dev/null
+        done
+        workspace_json="$(herdr workspace create --cwd "$PWD" --label "$workspace_label" --focus)"
+        workspace_id="$(jq -er '.result.workspace.workspace_id' <<<"$workspace_json")"
+        backend_pane="$(jq -er '.result.root_pane.pane_id' <<<"$workspace_json")"
+    else
+        tab_json="$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "Arabica SPA dev" --focus)"
+        backend_pane="$(jq -er '.result.root_pane.pane_id' <<<"$tab_json")"
+        workspace_id=""
+    fi
+    herdr pane rename "$backend_pane" "Arabica backend" >/dev/null
+    herdr pane run "$backend_pane" 'exec env LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt' >/dev/null
+    watcher_pane="$(herdr pane split "$backend_pane" --direction right --cwd "$PWD" --no-focus | jq -er '.result.pane.pane_id')"
+    herdr pane rename "$watcher_pane" "SPA rebuilds" >/dev/null
+    herdr pane run "$watcher_pane" 'exec ./scripts/watch-spa.sh' >/dev/null
+    if [[ -n "$workspace_id" && "${HERDR_ENV:-}" == "1" ]]; then
+        echo "Started Herdr workspace '$workspace_label' ($workspace_id); switch to it to view the backend and rebuild panes."
+    elif [[ -n "$workspace_id" ]]; then
+        exec herdr
+    else
+        echo "Started Arabica backend and SPA rebuild panes in a new Herdr tab."
+    fi
+
+herdr-spa-dev-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v herdr >/dev/null || { echo "error: herdr is required" >&2; exit 1; }
+    command -v jq >/dev/null || { echo "error: jq is required" >&2; exit 1; }
+    herdr workspace list | jq -r --arg label "arabica spa dev" '.result.workspaces[] | select(.label == $label) | .workspace_id' | while IFS= read -r workspace_id; do
+        [[ -z "$workspace_id" ]] || herdr workspace close "$workspace_id" >/dev/null
+    done
 
 # Run Oolong with the embedded SvelteKit shell enabled. Only routes listed in
 # Oolong's SPAOwnedRoutes are served by the SPA; all other pages stay legacy.
 run-oolong-spa: spa-build
     @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 OOLONG_SPA=1 go run ./cmd/oolong
 
-# Run Oolong with SPA dev hot-reload (see run-spa-dev).
+# Run Oolong's Go backend and Vite's SPA HMR server together (see run-spa-dev).
 run-oolong-spa-dev:
-    @./scripts/watch-spa.sh & \
-        trap 'kill $$!' EXIT; \
-        LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 OOLONG_SPA=1 go run ./cmd/oolong
+    @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 OOLONG_SPA=1 OOLONG_OAUTH_REDIRECT_URI=http://127.0.0.1:5174/oauth/callback go run ./cmd/oolong & \
+        backend_pid=$$!; \
+        trap 'kill $$backend_pid 2>/dev/null || true; wait $$backend_pid 2>/dev/null || true' EXIT INT TERM; \
+        VITE_APP=oolong VITE_BACKEND_URL=http://127.0.0.1:18920 VITE_DEV_PORT=5174 pnpm --dir web run dev
 
 build:
     @pnpm run build:svelte

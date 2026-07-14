@@ -57,16 +57,64 @@ function readSession(): Session {
 
 function readApp(): AppName {
   const body = readBody();
-  return (body.dataset.app as AppName) ?? "arabica";
+  if (body.dataset.app === "arabica" || body.dataset.app === "oolong") {
+    return body.dataset.app;
+  }
+  return import.meta.env.VITE_APP === "oolong" ? "oolong" : "arabica";
 }
 
 export const session = writable<Session>(readSession());
 export const app = writable<AppName>(readApp());
 
-/** Re-read the body data attributes (e.g. after a login-triggered reload). */
-export function refreshSession() {
-  session.set(readSession());
-  app.set(readApp());
+type SessionResponse = {
+  did?: string;
+  handle?: string;
+  display_name?: string;
+  avatar?: string;
+  is_authenticated?: boolean;
+  is_moderator?: boolean;
+  unread_notifications?: number;
+  temperature_unit?: string;
+  app?: AppName;
+};
+
+/**
+ * Re-read the body data attributes, or fetch their API equivalent in Vite
+ * development. Production keeps the server-injected values and avoids an
+ * additional request on the initial paint.
+ */
+export async function refreshSession() {
+  const bodySession = readSession();
+  const bodyApp = readApp();
+  const hasServerShellData =
+    typeof document !== "undefined" &&
+    (document.body.dataset.app !== undefined || bodySession.did !== "");
+  if (hasServerShellData || !import.meta.env.DEV) {
+    session.set(bodySession);
+    app.set(bodyApp);
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/session", { credentials: "same-origin" });
+    if (!response.ok) throw new Error(`Session request failed: ${response.status}`);
+    const data = (await response.json()) as SessionResponse;
+    session.set({
+      did: data.did ?? "",
+      handle: data.handle ?? "",
+      displayName: data.display_name ?? "",
+      avatar: data.avatar ?? "",
+      isAuthenticated: data.is_authenticated ?? false,
+      isModerator: data.is_moderator ?? false,
+      unreadNotifications: data.unread_notifications ?? 0,
+      temperatureUnit: data.temperature_unit || "recorded",
+    });
+    app.set(data.app ?? bodyApp);
+  } catch (error) {
+    console.warn("Unable to load development session state:", error);
+    session.set(bodySession);
+    app.set(bodyApp);
+  }
 }
 
 /** Returns the profile identifier (handle preferred, DID fallback) for URLs. */

@@ -131,6 +131,7 @@ func SetupRouter(cfg Config) http.Handler {
 		http.ServeFile(w, r, "static/robots.txt")
 	})
 	mux.HandleFunc("GET /healthz", handleHealthz(h, cfg.FirehoseConsumer))
+	mux.HandleFunc("GET /api/session", h.HandleSessionJSON)
 
 	// API routes for handle resolution (used by login autocomplete)
 	// These are intentionally public and don't require HTMX headers

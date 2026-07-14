@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
 import {
 	app,
@@ -34,14 +34,26 @@ function setBodyDataset(overrides: Partial<Record<(typeof DATASET_KEYS)[number],
 describe("session store", () => {
 	beforeEach(() => {
 		setBodyDataset({});
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue({
+				ok: true,
+				json: async () => ({
+					is_authenticated: false,
+					temperature_unit: "recorded",
+					app: "arabica",
+				}),
+			}),
+		);
 	});
 
 	afterEach(() => {
 		setBodyDataset({});
+		vi.unstubAllGlobals();
 	});
 
 	describe("refreshSession", () => {
-		it("reads an authenticated session from body dataset", () => {
+		it("reads an authenticated session from body dataset", async () => {
 			setBodyDataset({
 				userDid: "did:plc:alice",
 				userHandle: "alice.test",
@@ -52,7 +64,7 @@ describe("session store", () => {
 				temperatureUnit: "celsius",
 				app: "arabica",
 			});
-			refreshSession();
+			await refreshSession();
 
 			expect(get(session)).toEqual({
 				did: "did:plc:alice",
@@ -67,8 +79,8 @@ describe("session store", () => {
 			expect(get(app)).toBe("arabica");
 		});
 
-		it("defaults to an unauthenticated session with empty body dataset", () => {
-			refreshSession();
+		it("loads an unauthenticated session from the development API when body data is absent", async () => {
+			await refreshSession();
 
 			expect(get(session)).toEqual({
 				did: "",
@@ -82,53 +94,53 @@ describe("session store", () => {
 			});
 		});
 
-		it("reflects app oolong when set on body", () => {
+		it("reflects app oolong when set on body", async () => {
 			setBodyDataset({ app: "oolong" });
-			refreshSession();
+			await refreshSession();
 			expect(get(app)).toBe("oolong");
 		});
 
-		it("treats isModerator !== 'true' as false", () => {
+		it("treats isModerator !== 'true' as false", async () => {
 			setBodyDataset({ userDid: "did:plc:x", isModerator: "false" });
-			refreshSession();
+			await refreshSession();
 			expect(get(session).isModerator).toBe(false);
 		});
 
-		it("coerces unreadNotifications to a number, falling back to 0 on NaN", () => {
+		it("coerces unreadNotifications to a number, falling back to 0 on NaN", async () => {
 			setBodyDataset({ userDid: "did:plc:x", unreadNotifications: "not-a-number" });
-			refreshSession();
+			await refreshSession();
 			expect(get(session).unreadNotifications).toBe(0);
 		});
 
-		it("preserves last-read session until refreshSession is called again", () => {
+		it("preserves last-read session until refreshSession is called again", async () => {
 			setBodyDataset({ userDid: "did:plc:alice" });
-			refreshSession();
+			await refreshSession();
 			expect(get(session).did).toBe("did:plc:alice");
 
 			// mutate body without refresh; store is stale by design
 			setBodyDataset({ userDid: "did:plc:bob" });
 			expect(get(session).did).toBe("did:plc:alice");
 
-			refreshSession();
+			await refreshSession();
 			expect(get(session).did).toBe("did:plc:bob");
 		});
 	});
 
 	describe("profileIdentifier", () => {
-		it("prefers the handle when set", () => {
+		it("prefers the handle when set", async () => {
 			setBodyDataset({ userDid: "did:plc:alice", userHandle: "alice.test" });
-			refreshSession();
+			await refreshSession();
 			expect(profileIdentifier(get(session))).toBe("alice.test");
 		});
 
-		it("falls back to the DID when handle is empty", () => {
+		it("falls back to the DID when handle is empty", async () => {
 			setBodyDataset({ userDid: "did:plc:alice" });
-			refreshSession();
+			await refreshSession();
 			expect(profileIdentifier(get(session))).toBe("did:plc:alice");
 		});
 
-		it("falls back to empty string for an unauthenticated session", () => {
-			refreshSession();
+		it("falls back to empty string for an unauthenticated session", async () => {
+			await refreshSession();
 			expect(profileIdentifier(get(session))).toBe("");
 		});
 

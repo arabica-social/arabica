@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from "svelte";
 	import Header from "$lib/components/Header.svelte";
 	import Footer from "$lib/components/Footer.svelte";
 	import LoginModal from "$lib/components/LoginModal.svelte";
@@ -77,6 +78,12 @@
 	function dismissLoginModal() {
 		showLoginModal = false;
 	}
+
+	onMount(() => {
+		// In production the Go SPA shell injects this state into <body>. Vite's
+		// development shell cannot, so refreshSession uses the proxied API.
+		void refreshSession();
+	});
 
 	$effect(() => {
 		// Apply theme before first paint to prevent flash.
