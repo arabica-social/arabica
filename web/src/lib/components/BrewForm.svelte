@@ -11,6 +11,7 @@
 	import { session } from "../stores/session";
 	import { pushToast } from "../stores/toasts";
 	import { goto } from "$app/navigation";
+	import { notifySessionExpiredForResponse } from "../api/client";
 	import type { Brew, Recipe } from "../types/entity_view";
 
 	type Pour = { water: string; time: string };
@@ -242,6 +243,11 @@
 				body: formData,
 			});
 			if (!res.ok) {
+				// A 401 means the OAuth session is missing or expired. Surface the
+				// shared re-authentication modal so the user can log back in
+				// without losing the in-progress brew form, instead of a generic
+				// "Failed to save brew" toast.
+				notifySessionExpiredForResponse(res);
 				const text = await res.text().catch(() => "");
 				throw new Error(`Save failed: ${res.status} ${text}`);
 			}

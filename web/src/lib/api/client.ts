@@ -30,8 +30,24 @@ export class APIError extends Error {
 	}
 }
 
-function notifySessionExpired(error: APIError) {
-	if (error.status !== 401 || error.code !== "session_expired") return;
+// notifySessionExpired surfaces a re-authentication prompt for any 401.
+// The SPA's session-expired modal is the single entry point for both an
+// expired OAuth token (session_expired) and a missing/invalid session
+// (authentication_required): in either case the user must log back in before
+// the mutation can succeed. Raw-fetch callers (e.g. BrewForm) and the shared
+// API client route here so the prompt appears regardless of which code the
+// server emitted.
+export function notifySessionExpired(error: APIError) {
+	if (error.status !== 401) return;
+	if (typeof window !== "undefined") window.__showSessionExpiredModal?.();
+}
+
+// notifySessionExpiredForResponse is the raw-fetch counterpart to
+// notifySessionExpired. Callers that bypass requestJSON (e.g. BrewForm, which
+// posts multipart form data) pass the response here so a 401 surfaces the same
+// re-authentication prompt regardless of which server code was emitted.
+export function notifySessionExpiredForResponse(response: Response) {
+	if (response.status !== 401) return;
 	if (typeof window !== "undefined") window.__showSessionExpiredModal?.();
 }
 

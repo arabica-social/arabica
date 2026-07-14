@@ -463,10 +463,13 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 
 // Create new brew
 func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
-	// Require authentication first
+	// Require authentication first. The SPA posts with Accept: application/json;
+	// honor that so an expired/missing session surfaces as a JSON 401 the
+	// client can react to (opening the session-expired modal) instead of a
+	// same-tab redirect that would discard an in-progress brew form.
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
+		handlers.WriteRequestError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -545,7 +548,7 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	brew, err := store.CreateBrew(r.Context(), req, 1) // User ID not used with atproto
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create brew")
-		handlers.HandleStoreError(w, err, "Failed to create brew")
+		handlers.HandleStoreErrorForRequest(w, r, err, "Failed to create brew")
 		return
 	}
 
@@ -671,7 +674,7 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	err := store.UpdateBrewByRKey(r.Context(), rkey, req)
 	if err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update brew")
-		handlers.HandleStoreError(w, err, "Failed to update brew")
+		handlers.HandleStoreErrorForRequest(w, r, err, "Failed to update brew")
 		return
 	}
 
@@ -683,7 +686,7 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		updated, err := store.GetBrewByRKey(r.Context(), rkey)
 		if err != nil {
 			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to fetch updated brew for JSON response")
-			handlers.HandleStoreError(w, err, "Failed to fetch updated brew")
+			handlers.HandleStoreErrorForRequest(w, r, err, "Failed to fetch updated brew")
 			return
 		}
 		authorDID, _ := atpmiddleware.GetDID(r.Context())

@@ -25,7 +25,7 @@ import (
 func (h *Handlers) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		handlers.WriteRequestError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -71,7 +71,7 @@ func (h *Handlers) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 	recipe, err := store.CreateRecipe(r.Context(), &req)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create recipe")
-		handlers.HandleStoreError(w, err, "Failed to create recipe")
+		handlers.HandleStoreErrorForRequest(w, r, err, "Failed to create recipe")
 		return
 	}
 
@@ -88,7 +88,7 @@ func (h *Handlers) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		handlers.WriteRequestError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication required")
 		return
 	}
 
@@ -132,7 +132,7 @@ func (h *Handlers) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err := store.UpdateRecipeByRKey(r.Context(), rkey, &req); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update recipe")
-		handlers.HandleStoreError(w, err, "Failed to update recipe")
+		handlers.HandleStoreErrorForRequest(w, r, err, "Failed to update recipe")
 		return
 	}
 
@@ -143,7 +143,7 @@ func (h *Handlers) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 	updated, err := store.GetRecipeByRKey(r.Context(), rkey)
 	if err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to fetch updated recipe for JSON response")
-		handlers.HandleStoreError(w, err, "Failed to fetch updated recipe")
+		handlers.HandleStoreErrorForRequest(w, r, err, "Failed to fetch updated recipe")
 		return
 	}
 	handlers.WriteJSON(w, updated, "recipe")

@@ -8,6 +8,7 @@
     type EntityRecord,
     type Suggestion,
   } from "../comboSelectRegistry";
+  import { notifySessionExpiredForResponse } from "../api/client";
 
   type ComboItem =
     | { type: "user"; entity: EntityRecord }
@@ -265,7 +266,7 @@
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        if (response.status === 401) window.__showSessionExpiredModal?.();
+        notifySessionExpiredForResponse(response);
         throw new Error(`Create failed: ${response.status}`);
       }
       const created = await response.json();
