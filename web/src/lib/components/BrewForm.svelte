@@ -11,7 +11,7 @@
 	import { session, warnIfSessionExpired } from "../stores/session";
 	import { pushToast } from "../stores/toasts";
 	import { goto } from "$app/navigation";
-	import { notifySessionExpiredForResponse } from "../api/client";
+	import { createBrew, updateBrew, type BrewInput } from "../api/entities";
 	import type { Brew, Recipe } from "../types/entity_view";
 
 	type Pour = { water: string; time: string };
@@ -200,68 +200,60 @@
 		if (submitting) return;
 		submitting = true;
 
-		const formData = new FormData(e.currentTarget as HTMLFormElement);
-		const selectedBeanRKey = String(formData.get("bean_rkey") ?? beanRKey);
-		const selectedGrinderRKey = String(formData.get("grinder_rkey") ?? grinderRKey);
-		const selectedBrewerRKey = String(formData.get("brewer_rkey") ?? brewerRKey);
-		const selectedRecipeRKey = String(formData.get("recipe_rkey") ?? recipeRKeyValue);
-		formData.set("bean_rkey", selectedBeanRKey || beanRKey);
-		if (selectedGrinderRKey || grinderRKey) formData.set("grinder_rkey", selectedGrinderRKey || grinderRKey);
-		if (selectedBrewerRKey || brewerRKey) formData.set("brewer_rkey", selectedBrewerRKey || brewerRKey);
-		if (selectedRecipeRKey || recipeRKeyValue) {
-			formData.set("recipe_rkey", selectedRecipeRKey || recipeRKeyValue);
-			if (recipeOwner) formData.set("recipe_owner_did", recipeOwner);
+		const input: BrewInput = { bean_rkey: beanRKey };
+		if (recipeRKeyValue) {
+			input.recipe_rkey = recipeRKeyValue;
+			if (recipeOwner) input.recipe_owner_did = recipeOwner;
 		}
-		if (method) formData.set("method", method);
-		if (coffeeAmount) formData.set("coffee_amount", coffeeAmount);
-		if (waterAmount) formData.set("water_amount", waterAmount);
-		if (grindSize) formData.set("grind_size", grindSize);
-		if (temperature) formData.set("temperature", temperature);
-		if (timeSeconds) formData.set("time_seconds", timeSeconds);
-		if (tastingNotes) formData.set("tasting_notes", tastingNotes);
-		if (rating) formData.set("rating", rating);
+		if (method) input.method = method;
+		if (coffeeAmount) input.coffee_amount = num(coffeeAmount);
+		if (waterAmount) input.water_amount = num(waterAmount);
+		if (grindSize) input.grind_size = grindSize;
+		if (temperature) input.temperature = num(temperature);
+		if (timeSeconds) input.time_seconds = num(timeSeconds);
+		if (tastingNotes) input.tasting_notes = tastingNotes;
+		if (rating) input.rating = num(rating);
+		if (grinderRKey) input.grinder_rkey = grinderRKey;
+		if (brewerRKey) input.brewer_rkey = brewerRKey;
 		// Pours
-		pours.forEach((pour, i) => {
-			if (pour.water) formData.set(`pour_water_${i}`, pour.water);
-			if (pour.time) formData.set(`pour_time_${i}`, pour.time);
-		});
+		const poursInput = pours
+			.filter((pour) => pour.water || pour.time)
+			.map((pour) => ({ water_amount: num(pour.water), time_seconds: num(pour.time) }));
+		if (poursInput.length > 0) input.pours = poursInput;
 		// Espresso params
-		if (espressoYieldWeight) formData.set("espresso_yield_weight", espressoYieldWeight);
-		if (espressoPressure) formData.set("espresso_pressure", espressoPressure);
-		if (espressoPreInfusionSeconds) formData.set("espresso_pre_infusion_seconds", espressoPreInfusionSeconds);
+		if (espressoYieldWeight || espressoPressure || espressoPreInfusionSeconds) {
+			input.espresso_params = {
+				yield_weight: num(espressoYieldWeight),
+				pressure: num(espressoPressure),
+				pre_infusion_seconds: num(espressoPreInfusionSeconds),
+			};
+		}
 		// Pourover params
-		if (pouroverBloomWater) formData.set("pourover_bloom_water", pouroverBloomWater);
-		if (pouroverBloomSeconds) formData.set("pourover_bloom_seconds", pouroverBloomSeconds);
-		if (pouroverDrawdownSeconds) formData.set("pourover_drawdown_seconds", pouroverDrawdownSeconds);
-		if (pouroverBypassWater) formData.set("pourover_bypass_water", pouroverBypassWater);
-		if (pouroverFilter) formData.set("pourover_filter", pouroverFilter);
-
-		const url = isEdit ? `/brews/${brew?.rkey ?? ""}` : "/brews";
-		const httpMethod = isEdit ? "PUT" : "POST";
+		if (
+			pouroverBloomWater ||
+			pouroverBloomSeconds ||
+			pouroverDrawdownSeconds ||
+			pouroverBypassWater ||
+			pouroverFilter
+		) {
+			input.pourover_params = {
+				bloom_water: num(pouroverBloomWater),
+				bloom_seconds: num(pouroverBloomSeconds),
+				drawdown_seconds: num(pouroverDrawdownSeconds),
+				bypass_water: num(pouroverBypassWater),
+				filter: pouroverFilter,
+			};
+		}
 
 		try {
-			const res = await fetch(url, {
-				method: httpMethod,
-				credentials: "same-origin",
-				headers: { Accept: "application/json" },
-				body: formData,
-			});
-			if (!res.ok) {
-				// A 401 means the OAuth session is missing or expired. Surface the
-				// shared re-authentication modal so the user can log back in
-				// without losing the in-progress brew form, instead of a generic
-				// "Failed to save brew" toast.
-				notifySessionExpiredForResponse(res);
-				const text = await res.text().catch(() => "");
-				throw new Error(`Save failed: ${res.status} ${text}`);
-			}
-			const data = await res.json();
-			const savedBrew = data.brew ?? data;
+			const data = isEdit
+				? await updateBrew(fetch, brew?.rkey ?? "", input)
+				: await createBrew(fetch, input);
+			const savedBrew = data.brew;
 			pushToast(isEdit ? "Brew updated!" : "Brew saved!");
-			// Redirect to the brew view or my-coffee. The JSON envelope carries
-			// author_did at the top level (the Brew record model has no author
-			// field); fall back to the session DID for edits where the envelope
-			// may omit it.
+			// The JSON envelope carries author_did at the top level (the Brew
+			// record model has no author field); fall back to the session DID
+			// for edits where the envelope may omit it.
 			const actor = data.author_did ?? $session.did ?? "";
 			const rkey = savedBrew.rkey ?? brew?.rkey ?? "";
 			if (actor && rkey) {

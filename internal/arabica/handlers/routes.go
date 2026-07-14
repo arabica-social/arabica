@@ -96,6 +96,11 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeCreateFromBrew)))
 	mux.Handle("POST /api/recipes/fork/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeFork)))
 
+	// Brew JSON mutations (typed JSON, mirroring /api/recipes). The legacy
+	// multipart POST /brews and PUT /brews/{id} routes remain for HTMX.
+	mux.Handle("POST /api/brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreateJSON)))
+	mux.Handle("PUT /api/brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdateJSON)))
+
 	// Entity page routes use explicit ownership; JSON, OG, mutation, and modal
 	// routes remain independent of the frontend owner.
 	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.Pages)

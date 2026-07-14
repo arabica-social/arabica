@@ -101,11 +101,13 @@ describe("BrewForm cafe-counter migration", () => {
 		expect(createCancel.getAttribute("href")).toBe("/my-coffee");
 	});
 
-	it("posts raw FormData with the expected brew field names and redirects to the brew view", async () => {
+	it("posts typed JSON with the expected brew fields and redirects to the brew view", async () => {
 		const user = userEvent.setup();
-		let capturedBody: FormData | null = null;
+		let capturedBody: string | null = null;
+		let capturedHeaders: Headers | null = null;
 		const fetchMock = vi.fn().mockImplementation((_url: string, init: RequestInit) => {
-			capturedBody = init.body as FormData;
+			capturedBody = init.body as string;
+			capturedHeaders = init.headers as Headers;
 			return Promise.resolve(
 				new Response(
 					JSON.stringify({
@@ -129,20 +131,21 @@ describe("BrewForm cafe-counter migration", () => {
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/brews/did:plc:alice/new-brew-1"));
 
 		expect(fetchMock).toHaveBeenCalledWith(
-			"/brews",
+			"/api/brews",
 			expect.objectContaining({ method: "POST" }),
 		);
 		expect(capturedBody).not.toBeNull();
-		const fd = capturedBody as FormData;
-		expect(fd.get("coffee_amount")).toBe("18");
-		expect(fd.get("water_amount")).toBe("300");
-		expect(fd.get("temperature")).toBe("94");
-		expect(fd.get("time_seconds")).toBe("210");
-		expect(fd.get("tasting_notes")).toBe("Bright and floral.");
-		expect(fd.get("rating")).toBe("5"); // default rating
+		const parsed = JSON.parse(capturedBody as string);
+		expect(parsed.coffee_amount).toBe(18);
+		expect(parsed.water_amount).toBe(300);
+		expect(parsed.temperature).toBe(94);
+		expect(parsed.time_seconds).toBe(210);
+		expect(parsed.tasting_notes).toBe("Bright and floral.");
+		expect(parsed.rating).toBe(5); // default rating
+		expect(capturedHeaders?.get("Content-Type")).toBe("application/json");
 	});
 
-	it("PUTs raw FormData to the brew's own route on update", async () => {
+	it("PUTs typed JSON to the brew's own API route on update", async () => {
 		const user = userEvent.setup();
 		let capturedMethod: string | undefined;
 		const fetchMock = vi.fn().mockImplementation((url: string, init: RequestInit) => {
@@ -164,7 +167,7 @@ describe("BrewForm cafe-counter migration", () => {
 
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/brews/did:plc:alice/brew-1"));
 		expect(fetchMock).toHaveBeenCalledWith(
-			"/brews/brew-1",
+			"/api/brews/brew-1",
 			expect.objectContaining({ method: "PUT" }),
 		);
 		expect(capturedMethod).toBe("PUT");
