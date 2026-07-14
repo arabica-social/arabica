@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BackButton from "$lib/components/BackButton.svelte";
+	import LedgerHeader from "$lib/components/LedgerHeader.svelte";
 	import StampTag from "$lib/components/StampTag.svelte";
 	import { goto } from "$app/navigation";
 	import { pushToast } from "$lib/stores/toasts";
@@ -204,37 +204,33 @@
 	</div>
 {:else}
 	<div class="page-container-xl">
-		<div class="flex items-center gap-3 mb-6">
-			<BackButton />
-			<h2 class="text-2xl font-semibold text-primary">Explore Recipes</h2>
-			<div class="ml-auto">
+		<LedgerHeader
+			title="Explore Recipes"
+			eyebrow="Community catalog"
+			description="Browse, compare, and fork brewing recipes shared by the Arabica community."
+		>
+			{#snippet actions()}
 				<a href="/recipes/new" class="btn-primary shadow-lg hover:shadow-xl">+ New Recipe</a>
-			</div>
-		</div>
+			{/snippet}
+		</LedgerHeader>
 
-		<div class="alert-warning mb-6">
-			<div class="flex items-start gap-3">
-				<span class="text-xl leading-none mt-0.5">&#9888;&#65039;</span>
-				<div class="text-sm">
-					<p class="font-bold text-base mb-1">Recipes are in early alpha</p>
-					<p class="mb-2">
-						The recipe format may change significantly as we figure out what works best (e.g. it
-						may be completely redesigned from the ground up with a more powerful recipe creator system).
-						If that happens, your brews won't break &ndash; brew fields are filled in from the recipe at
-						creation time, so they stand on their own. Only the recipe record itself would need to be
-						recreated.
-					</p>
-					<p class="mb-2">
-						Feedback is very welcome! Arabica has had a pourover bias so far (due to its developer's
-						preferences), so input from espresso folks is especially appreciated.
-					</p>
-					<p class="text-xs alert-warning-muted">
-						If you have feedback or suggestions (or comments) reach out on Bluesky or open an issue on
-						Tangled or GitHub.
-					</p>
-				</div>
+		<details class="alert-warning mb-6 recipe-alpha-notice" aria-labelledby="recipe-alpha-summary">
+			<summary id="recipe-alpha-summary" class="recipe-alpha-notice__summary">
+				<span class="recipe-alpha-notice__icon" aria-hidden="true">&#9888;&#65039;</span>
+				<span>Recipes are in early alpha</span>
+			</summary>
+			<div class="recipe-alpha-notice__body text-sm">
+				<p>
+					The recipe format may change significantly as we figure out what works best. If that
+					happens, your brews won’t break — brew fields are copied from the recipe at creation time,
+					so they stand on their own. Only the recipe record itself would need to be recreated.
+				</p>
+				<p>
+					Feedback is very welcome! Arabica has had a pourover bias so far, so input from espresso
+					folks is especially appreciated. Reach out on Bluesky or open an issue on Tangled or GitHub.
+				</p>
 			</div>
-		</div>
+		</details>
 
 		<div class="card card-inner mb-6">
 			<div class="space-y-4">
@@ -293,15 +289,19 @@
 			</div>
 		</div>
 
-		<div class="flex items-center justify-between mb-3">
-			{#if !loading && recipes.length > 0}
-				<p class="text-sm text-muted">
-					{recipes.length} recipe{recipes.length === 1 ? "" : "s"} found
+		<div class="flex items-center justify-between mb-3 catalog-results-bar">
+			{#if !loading}
+				<p class="catalog-results-bar__count" aria-live="polite" aria-atomic="true">
+					{#if recipes.length > 0}
+						{recipes.length} recipe{recipes.length === 1 ? "" : "s"} found
+					{:else}
+						No recipes found
+					{/if}
 				</p>
 			{:else}
-				<div></div>
+				<span class="catalog-results-bar__count" aria-hidden="true">Loading recipes…</span>
 			{/if}
-			<div class="flex items-center gap-1 text-sm">
+			<div class="flex items-center gap-1 text-sm" role="group" aria-label="Sort recipes">
 				<span class="stamp-sort-label">Sort</span>
 				{#each sorts as option}
 					<StampTag label={option.label} active={sortBy === option.value} onclick={() => setSort(option.value)} />
@@ -508,8 +508,8 @@
 				</div>
 			{:else if recipes.length === 0}
 				<div class="card card-inner text-center py-8">
-					<p class="text-emphasis text-lg font-medium">No recipes found</p>
-					<p class="text-sm text-muted mt-2">Try adjusting your filters or search terms</p>
+					<p class="text-emphasis text-lg font-medium">No recipes match these filters</p>
+					<p class="text-sm text-muted mt-2">Try widening the search, clearing filters, or changing the sort order.</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -632,5 +632,41 @@
 		font-weight: 600;
 		letter-spacing: .12em;
 		text-transform: uppercase;
+	}
+
+	.recipe-alpha-notice {
+		padding: .85rem 1rem;
+	}
+
+	.recipe-alpha-notice__summary {
+		display: flex;
+		align-items: center;
+		gap: .6rem;
+		font-size: .9rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.recipe-alpha-notice__summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.recipe-alpha-notice__icon {
+		line-height: 1;
+	}
+
+	.recipe-alpha-notice__body {
+		padding-top: .75rem;
+		padding-left: 1.6rem;
+	}
+
+	.recipe-alpha-notice__body > p + p {
+		margin-top: .55rem;
+	}
+
+	.catalog-results-bar__count {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: .85rem;
 	}
 </style>
