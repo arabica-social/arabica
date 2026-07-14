@@ -170,3 +170,49 @@ export function openLoginModal() {
     window.__showLoginModal();
   }
 }
+
+type SessionStatusResponse = {
+  is_authenticated: boolean;
+  session_expired: boolean;
+};
+
+/**
+ * Proactively checks whether the authenticated session is still resumable.
+ *
+ * The SPA reads session state from server-injected body attributes that are
+ * static for the page's lifetime, so a session deleted since page load isn't
+ * reflected until a mutation 401s. Long forms (e.g. the brew form) call this on
+ * mount so they can prompt re-authentication up front instead of after the user
+ * has filled everything in.
+ *
+ * This is a best-effort local check: it catches sessions gone from the local
+ * store (logout elsewhere, store cleared) but not a refresh token revoked
+ * server-side — that still surfaces lazily via the reactive 401 path.
+ *
+ * Returns true if the session appears expired and the caller should surface
+ * the re-authentication modal.
+ */
+export async function checkSessionExpired(): Promise<boolean> {
+  try {
+    const response = await fetch("/api/session/status", { credentials: "same-origin" });
+    if (!response.ok) return false;
+    const data = (await response.json()) as SessionStatusResponse;
+    return data.session_expired === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks the proactive session status and, if the session has expired since
+ * page load, opens the shared re-authentication modal. Safe to call from any
+ * form's onMount; no-ops when the session is healthy or the check is
+ * unavailable.
+ */
+export async function warnIfSessionExpired() {
+  if (await checkSessionExpired()) {
+    if (typeof window !== "undefined" && typeof window.__showSessionExpiredModal === "function") {
+      window.__showSessionExpiredModal();
+    }
+  }
+}

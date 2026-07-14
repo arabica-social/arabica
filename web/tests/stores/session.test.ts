@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
 import {
 	app,
+	checkSessionExpired,
 	displayHandle,
 	formatNotificationCount,
 	profileIdentifier,
 	refreshSession,
 	safeAvatarURL,
 	session,
+	warnIfSessionExpired,
 } from "../../src/lib/stores/session";
 
 const DATASET_KEYS = [
@@ -236,6 +238,83 @@ describe("session store", () => {
 		it("returns '99+' for counts greater than 99", () => {
 			expect(formatNotificationCount(100)).toBe("99+");
 			expect(formatNotificationCount(9999)).toBe("99+");
+		});
+	});
+
+	describe("checkSessionExpired", () => {
+		it("returns true when the status endpoint reports session_expired", async () => {
+			vi.stubGlobal(
+				"fetch",
+				vi.fn().mockResolvedValue({
+					ok: true,
+					json: async () => ({ is_authenticated: false, session_expired: true }),
+				}),
+			);
+
+			await expect(checkSessionExpired()).resolves.toBe(true);
+		});
+
+		it("returns false when the session is authenticated", async () => {
+			vi.stubGlobal(
+				"fetch",
+				vi.fn().mockResolvedValue({
+					ok: true,
+					json: async () => ({ is_authenticated: true, session_expired: false }),
+				}),
+			);
+
+			await expect(checkSessionExpired()).resolves.toBe(false);
+		});
+
+		it("returns false when the endpoint is unreachable", async () => {
+			vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+
+			await expect(checkSessionExpired()).resolves.toBe(false);
+		});
+
+		it("returns false on a non-OK response", async () => {
+			vi.stubGlobal(
+				"fetch",
+				vi.fn().mockResolvedValue({ ok: false, status: 500 }),
+			);
+
+			await expect(checkSessionExpired()).resolves.toBe(false);
+		});
+	});
+
+	describe("warnIfSessionExpired", () => {
+		it("opens the session-expired modal when the session is expired", async () => {
+			vi.stubGlobal(
+				"fetch",
+				vi.fn().mockResolvedValue({
+					ok: true,
+					json: async () => ({ is_authenticated: false, session_expired: true }),
+				}),
+			);
+			const showModal = vi.fn();
+			window.__showSessionExpiredModal = showModal;
+
+			await warnIfSessionExpired();
+
+			expect(showModal).toHaveBeenCalledOnce();
+			delete window.__showSessionExpiredModal;
+		});
+
+		it("does not open the modal when the session is healthy", async () => {
+			vi.stubGlobal(
+				"fetch",
+				vi.fn().mockResolvedValue({
+					ok: true,
+					json: async () => ({ is_authenticated: true, session_expired: false }),
+				}),
+			);
+			const showModal = vi.fn();
+			window.__showSessionExpiredModal = showModal;
+
+			await warnIfSessionExpired();
+
+			expect(showModal).not.toHaveBeenCalled();
+			delete window.__showSessionExpiredModal;
 		});
 	});
 });

@@ -8,7 +8,7 @@
 	import FormSection from "./FormSection.svelte";
 	import RailSection from "./RailSection.svelte";
 	import { appCache } from "../stores/appCache";
-	import { session } from "../stores/session";
+	import { session, warnIfSessionExpired } from "../stores/session";
 	import { pushToast } from "../stores/toasts";
 	import { goto } from "$app/navigation";
 	import { notifySessionExpiredForResponse } from "../api/client";
@@ -189,6 +189,10 @@
 		if (recipeRKeyValue && !brew) {
 			void applyRecipe(recipeRKeyValue, recipeOwner);
 		}
+		// Proactively check whether the OAuth session is still resumable so we
+		// can prompt re-authentication before a failed save, rather than after
+		// the user has filled in the whole form.
+		void warnIfSessionExpired();
 	});
 
 	async function submitForm(e: SubmitEvent) {

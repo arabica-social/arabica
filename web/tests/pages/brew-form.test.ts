@@ -17,6 +17,27 @@ vi.mock("../../src/lib/stores/appCache", () => ({
 	},
 }));
 
+// Mock the session store so warnIfSessionExpired is observable on mount and
+// does not issue a real fetch in jsdom. vi.hoisted keeps the spy reference
+// available inside the hoisted vi.mock factory.
+const { warnIfSessionExpired } = vi.hoisted(() => ({
+	warnIfSessionExpired: vi.fn(),
+}));
+vi.mock("../../src/lib/stores/session", async () => {
+	const { writable } = await import("svelte/store");
+	const session = writable({
+		did: "did:plc:alice",
+		handle: "alice.test",
+		displayName: "Alice",
+		avatar: "",
+		isAuthenticated: true,
+		isModerator: false,
+		unreadNotifications: 0,
+		temperatureUnit: "recorded",
+	});
+	return { session, warnIfSessionExpired };
+});
+
 const editBrew: Brew = {
 	rkey: "brew-1",
 	bean_rkey: "bean-1",
@@ -108,5 +129,10 @@ describe("BrewForm", () => {
 		expect(screen.getByText("Brewing")).toBeTruthy();
 		expect(screen.getByText("Results")).toBeTruthy();
 		expect(screen.getByText("Recipe (Optional)")).toBeTruthy();
+	});
+
+	it("proactively checks session validity on mount", () => {
+		render(BrewForm, { brew: null, isEdit: false });
+		expect(warnIfSessionExpired).toHaveBeenCalled();
 	});
 });
