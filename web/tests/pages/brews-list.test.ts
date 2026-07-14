@@ -69,10 +69,16 @@ describe("Brews list page", () => {
 		document.body.innerHTML = "";
 	});
 
-	it("renders the heading and new brew link", () => {
+	it("renders the ledger heading and log brew link", () => {
 		render(Brews, { data: { brews: brewsData, error: "" } });
-		expect(screen.getByText("Your Brews")).toBeTruthy();
-		expect(screen.getByText("+ New Brew")).toBeTruthy();
+		expect(screen.getByText("Brew Logbook")).toBeTruthy();
+		expect(screen.getByText("Coffee Ledger")).toBeTruthy();
+		expect(screen.getByText("+ Log Brew")).toBeTruthy();
+	});
+
+	it("groups brews by month", () => {
+		render(Brews, { data: { brews: brewsData, error: "" } });
+		expect(screen.getByText("January 2026")).toBeTruthy();
 	});
 
 	it("renders brew cards", () => {
@@ -119,16 +125,22 @@ describe("Brews list page", () => {
 		expect(screen.getByText("Load More")).toBeTruthy();
 	});
 
-	it("deletes a brew and removes it from the list", async () => {
+	it("deletes a brew and removes it from the list after confirmation", async () => {
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValue({ ok: true } as Response);
 		globalThis.fetch = fetchMock as unknown as typeof fetch;
+		vi.spyOn(window, "confirm").mockReturnValue(true);
 
 		render(Brews, { data: { brews: brewsData, error: "" } });
 		const deleteBtn = screen.getByText("Delete");
 		await fireEvent.click(deleteBtn);
 
+		await waitFor(() => {
+			expect(window.confirm).toHaveBeenCalledWith(
+				"Are you sure you want to delete this brew?",
+			);
+		});
 		await waitFor(() => {
 			expect(fetchMock).toHaveBeenCalledWith(
 				"/api/brews/brew-1",

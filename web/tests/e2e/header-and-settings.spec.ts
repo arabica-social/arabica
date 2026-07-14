@@ -15,6 +15,17 @@ test("header Create dropdown navigates to entity forms", async ({
   await page.goto("/");
   await page.waitForLoadState("networkidle");
 
+  await expect(
+    page.getByRole("link", { name: "Community" }).first(),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Brews" }).first()).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Recipes" }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "My Coffee" }).first(),
+  ).toBeVisible();
+
   // Open the "Create new" dropdown.
   const createBtn = page.getByRole("button", { name: "Create new" });
   await expect(createBtn).toBeVisible();
@@ -25,6 +36,17 @@ test("header Create dropdown navigates to entity forms", async ({
   await page.getByRole("menuitem", { name: /Bean/ }).click();
   await expect(page).toHaveURL(/\/beans\/new$/);
   await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
+});
+
+test("header marks the active ledger destination", async ({
+  authedPage: page,
+}) => {
+  await page.goto("/recipes");
+  await page.waitForLoadState("networkidle");
+
+  await expect(
+    page.getByRole("link", { name: "Recipes" }).first(),
+  ).toHaveAttribute("aria-current", "page");
 });
 
 test("header User dropdown navigates to settings", async ({

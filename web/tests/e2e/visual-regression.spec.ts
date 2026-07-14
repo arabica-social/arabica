@@ -66,6 +66,26 @@ test.describe("visual regression", () => {
 		});
 	});
 
+	test("brew logbook page", async ({ authedPage: page }) => {
+		await page.goto("/brews");
+		await page.waitForLoadState("networkidle");
+		await expect(page.getByRole("heading", { name: "Brew Logbook" })).toBeVisible();
+		await expect(page).toHaveScreenshot("brew-logbook.png", {
+			fullPage: true,
+			animations: "disabled",
+		});
+	});
+
+	test("recipes catalog page", async ({ authedPage: page }) => {
+		await page.goto("/recipes");
+		await page.waitForLoadState("networkidle");
+		await expect(page.getByRole("heading", { name: "Explore Recipes" })).toBeVisible();
+		await expect(page).toHaveScreenshot("recipes-catalog.png", {
+			fullPage: true,
+			animations: "disabled",
+		});
+	});
+
 	// -----------------------------------------------------------------------
 	// Pages with dynamic content — viewport-only capture + masking.
 	// fullPage is unreliable here because variable-height sections (feed
