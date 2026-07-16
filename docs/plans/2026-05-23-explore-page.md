@@ -1,5 +1,11 @@
 # Arabica Explore Page Plan
 
+> **Status:** Implemented. This plan preserves the original goals and delivery
+> reasoning, including some superseded frontend details. See
+> [`FDR-001: Explore`](../fdr/FDR-001-explore.md) for current user-visible
+> behavior and the [architecture inventory](../architecture/INDEX.md) for the
+> current implementation boundaries.
+
 Date: 2026-05-23
 
 ## Goal

@@ -1,144 +1,120 @@
-## Project Overview
+# Arabica Agent Guidance
 
-Arabica is a coffee brew tracking application built on AT Protocol. User data
-(beans, brews, cafes, drinks, etc.) lives in each user's Personal Data Server
-(PDS), not locally. The app authenticates via OAuth, then performs CRUD through
-XRPC calls to the user's PDS.
+Read this file first. It contains repository-wide rules and routes deeper
+context to the document or skill that owns it.
 
-## Version Control
+## Project
 
-Prefer `jj` over `git` for all version control operations in this repo. Fall
-back to `git` only when `jj` cannot accomplish the task.
+Arabica is a coffee brew tracking application built on AT Protocol. User
+records live in each user's Personal Data Server (PDS). The application
+authenticates with OAuth and performs record CRUD through XRPC calls to the
+user's PDS.
 
-## Dependencies
+The repository also contains Oolong, a sister tea-tracking application. Shared
+platform packages must remain app-agnostic; Arabica- and Oolong-specific
+behavior belongs in their respective app packages.
 
-Prefer standard library solutions over external dependencies. Only add a
-third-party dependency if stdlib genuinely cannot handle the requirement.
+## Where Context Lives
 
-## Architecture
+- [`docs/GLOSSARY.md`](docs/GLOSSARY.md) — canonical product, AT Protocol,
+  architecture, and frontend-transition terminology.
+- [`docs/architecture/INDEX.md`](docs/architecture/INDEX.md) — current runtime
+  structure, data authority, record contracts, interfaces, and migration state.
+- [`docs/adr/INDEX.md`](docs/adr/INDEX.md) — cross-cutting technical decisions
+  and their consequences.
+- [`docs/fdr/INDEX.md`](docs/fdr/INDEX.md) — current user-visible feature
+  behavior and feature-specific rationale.
+- [`docs/api/README.md`](docs/api/README.md) — current HTTP and JSON contracts.
+- [`docs/plans/`](docs/plans/) — proposed work, migrations, and unresolved
+  decisions. Plans are not authoritative descriptions of current behavior.
+- [`docs/road-to-v1.md`](docs/road-to-v1.md) — unresolved work targeted before
+  the first stable release.
+- [`PRODUCT.md`](PRODUCT.md) — audience, emotional goals, and product principles.
+- [`DESIGN.md`](DESIGN.md) — visual tokens and reusable interface patterns.
+- [`.agents/skills/arabica-record-evolution/SKILL.md`](.agents/skills/arabica-record-evolution/SKILL.md)
+  — compatibility workflow for lexicon and persisted-record changes.
+- [`.agents/skills/arabica-entity-change/SKILL.md`](.agents/skills/arabica-entity-change/SKILL.md)
+  — discovery-based workflow for adding or changing entity capabilities.
 
-### AT Protocol Integration
+## Current Status
 
-1. User authenticates via OAuth (indigo SDK handles PKCE/DPOP)
-2. Handler creates `AtprotoStore` scoped to user's DID + session
-3. Store methods make XRPC calls to user's PDS
-4. Results rendered via Templ components or returned as JSON
+Last reviewed: 2026-07-16.
 
-Collections (NSIDs) — defined in `internal/atproto/nsid.go`:
+- Arabica is transitioning page routes from Templ/HTMX to an embedded
+  SvelteKit SPA. `internal/arabica/handlers/routes.go` is the executable
+  route-cutover inventory.
+- Oolong shares the runtime and frontend build but has not begun SPA route
+  cutover; its `SPAOwnedRoutes` inventory is intentionally empty.
+- Breaking brew and recipe lexicon changes remain unresolved before v1. Treat
+  existing PDS records as durable compatibility inputs, not centrally
+  migratable rows.
+- Arabica cafe and drink records remain deferred. Do not infer support from
+  Oolong's cafe and drink entities or from historical plans.
 
-- `social.arabica.alpha.bean` — Coffee beans (references roaster)
-- `social.arabica.alpha.roaster` — Roasters
-- `social.arabica.alpha.grinder` — Grinders
-- `social.arabica.alpha.brewer` — Brewing devices
-- `social.arabica.alpha.cafe` — Cafes (references roaster)
-- `social.arabica.alpha.brew` — Brew sessions (references bean, grinder, brewer,
-  recipe)
-- `social.arabica.alpha.drink` — Drinks at cafes (references cafe, bean)
-- `social.arabica.alpha.recipe` — Recipes (references brewer)
-- `social.arabica.alpha.like` — Likes (strongRef to any record)
-- `social.arabica.alpha.comment` — Comments (strongRef to any record, optional
-  parent for threads)
+## Prime Directives
 
-Records reference each other via AT-URIs (`at://did/collection/rkey`). Record
-keys use TID format (timestamp-based identifiers).
+- **The PDS is authoritative.** Local record indexes and in-memory record caches
+  are read optimizations and rebuildable projections, not owners of user
+  records. Local operational stores can own sessions and other deployment state.
+- **Preserve existing-record compatibility.** Discuss breaking NSID, field,
+  reference, type, or unit changes before implementation and use the
+  `arabica-record-evolution` skill.
+- **Protect user boundaries.** Cross-user reads must respect visibility and
+  moderation; mutations must remain scoped to the authenticated user's store.
+- **Respect package seams.** Shared packages must not import
+  `internal/arabica` or `internal/oolong`. App behavior is supplied through app
+  configuration, registries, and interfaces.
+- **Keep entity identity lightweight.** Descriptors identify record types;
+  codecs, reference hydration, routing, and presentation live in their owning
+  layers.
+- **Cut SPA routes over explicitly.** Add a route to `SPAOwnedRoutes` only after
+  its direct-load path, JSON dependencies, session/error handling, and relevant
+  tests exist.
+- Prefer simple, clear changes over clever abstractions.
+- Prefer standard-library solutions. Add a dependency only when it materially
+  improves the result and standard library code is not a reasonable fit.
+- Use `jj` for version control. Never push unless the user explicitly asks.
 
-### Three-Layer Caching
+## Change Routing
 
-1. **SessionCache** (`internal/atproto/cache.go`) — per-user in-memory cache
-   (2-min TTL). Copy-on-write pattern, invalidated on writes. Dirty-collection
-   tracking skips witness cache after local writes until firehose catches up.
+- Lexicon, record shape, reference, NSID, or numeric-unit change → use
+  `arabica-record-evolution` and update compatibility fixtures/tests.
+- New entity or changed entity capabilities → use `arabica-entity-change`.
+- HTTP/JSON behavior change → update the relevant file in `docs/api/` and its
+  integration contract tests.
+- Current runtime boundary or data-flow change → update
+  `docs/architecture/`; write or supersede an ADR when the rationale is durable
+  and cross-cutting.
+- Current user-visible feature behavior change → update the relevant FDR.
+  Undecided future behavior remains in `docs/plans/`.
+- New or renamed canonical concept → update `docs/GLOSSARY.md`. The glossary
+  governs human-facing terminology; stable NSIDs, API paths, and persisted
+  identifiers remain compatibility contracts.
+- Product or visual-principle change → update `PRODUCT.md` or `DESIGN.md`.
 
-2. **WitnessCache** (`internal/firehose/index.go`) — SQLite-backed local index
-   populated by the Jetstream firehose consumer. Provides fast reads without PDS
-   calls. Used as fallback when session cache misses.
+## Verification
 
-3. **PDS fallback** — direct XRPC calls to the user's PDS when both caches miss.
+Run the narrowest checks that can catch regressions in the changed area, then
+broaden when the risk crosses layers.
 
-Write path: PDS write -> write-through to witness cache -> invalidate session
-cache (mark dirty).
+| Change | Useful checks |
+|---|---|
+| Go/domain logic | `just test` or a targeted `go test` |
+| Integration/API contract | `just integration-test` |
+| Svelte components/routes | `pnpm run check:svelte`, `pnpm run test:svelte` |
+| Browser and cross-route behavior | `just e2e` or a targeted Playwright spec |
+| Oolong browser behavior | `just e2e-oolong` |
+| Broad local CI checkpoint | `just ci-check` |
+| Formatting | `just format` |
 
-### Firehose & Feed Pipeline
+Never claim full verification when only a partial signal was run.
 
-`internal/firehose/` subscribes to AT Protocol's Jetstream relay for real-time
-events. Records are indexed into the SQLite feed index. The feed pipeline:
+## Conditional Rules
 
-1. **FeedIndex** (`firehose/index.go`) — SQLite store, `recordToFeedItem()`
-   converts indexed records to `feed.FeedItem` structs with resolved references.
-2. **FeedIndexAdapter** (`firehose/adapter.go`) — implements
-   `feed.FirehoseIndex` over `FeedIndex`. Items pass through as
-   `*feed.FeedItem`; the adapter only bridges the
-   `FirehoseFeedQuery`/`FeedQuery` query structs.
-3. **Feed Service** (`feed/service.go`) — applies moderation filtering, caching,
-   and pagination. The handler populates `IsLikedByViewer` and `IsOwner` on each
-   item once a viewer is identified.
-
-When adding a new entity type, fields live on a single `feed.FeedItem` struct;
-entity-specific population lives in `recordToFeedItem`'s switch.
-
-### Adding a New Entity Type (Checklist)
-
-The full stack for a new entity requires changes across many files. Follow the
-pattern of an existing entity (e.g., roaster for simple entities, brew for
-entities with references):
-
-1. **Lexicon JSON** in `lexicons/<namespace>/` (path mirrors the NSID, e.g.
-   `lexicons/social/arabica/alpha/bean.json`)
-2. **NSID constant** in `internal/atproto/nsid.go`
-3. **RecordType constant** in `internal/lexicons/record_type.go` (const +
-   ParseRecordType + DisplayName)
-4. **Model + request types + validation** in `internal/models/models.go`
-5. **Record conversion** (`XToRecord`/`RecordToX`) in
-   `internal/atproto/records.go`
-6. **Store interface methods** in `internal/arabica/store/store.go`
-7. **AtprotoStore implementation** in `internal/atproto/store.go` (CRUD +
-   witness + cache)
-8. **Cache fields + Set/Invalidate methods** in `internal/atproto/cache.go`
-9. **OAuth scope** in `internal/atproto/oauth.go`
-10. **Firehose config** (collection list) in `internal/firehose/config.go`
-11. **`recordToFeedItem` switch case** in `internal/firehose/index.go`
-    (entity-specific population on `feed.FeedItem`)
-12. **`FeedItem` fields** in `internal/feed/service.go` if the new entity needs
-    a field on the shared payload
-13. **CRUD handlers** in `internal/handlers/entities.go` (also update
-    `HandleManagePartial`, `HandleAPIListAll`, `HandleManageRefresh`)
-14. **View + OG image handlers** in `internal/handlers/entity_views.go`
-15. **Modal handlers** in `internal/handlers/modals.go`
-16. **Routes** in `internal/routing/routing.go` (page views, API CRUD, modals,
-    OG images)
-17. **Templ view page** in `internal/web/pages/` (e.g., `cafe_view.templ`)
-18. **Templ record content** in `internal/web/components/` (e.g.,
-    `record_cafe.templ`)
-19. **Entity table component** in `internal/web/components/entity_tables.templ`
-20. **Dialog modal** in `internal/web/components/dialog_modals.templ` (+
-    `getStringValue` cases)
-21. **Manage partial** tab in `internal/web/components/manage_partial.templ`
-22. **My Coffee tab** in `internal/web/pages/my_coffee.templ`
-23. **Feed card** switch cases in `internal/web/pages/feed.templ` (card class,
-    content, ActionText, share URL, title, delete URL)
-24. **OG card** function in `internal/ogcard/entities.go` (+ accent color in
-    `brew.go`)
-25. **Suggestions** config in `internal/suggestions/suggestions.go` + handler
-    map in `internal/handlers/suggestions.go`
-26. **Client-side cache** entity case in
-    `internal/web/assets/svelte/src/EntityCombo.svelte` `cachedEntities()`
-
-### Templ Architecture
-
-**Tabs only in `.templ` files** — never use spaces for indentation. A post-edit
-hook runs `templ fmt` automatically. After editing `.templ` files, run
-`templ generate` to regenerate Go code.
-
-Pages (`internal/web/pages/`) accept `*components.LayoutData` + page-specific
-props. Components (`internal/web/components/`) are reusable building blocks.
-
-Pattern: `pages.PageName(layoutData, props).Render(r.Context(), w)`
-
-## Using Go Tooling
-
-- `go mod download -json MODULE` — get dependency source path
-- `go doc foo.Bar` — read package/type/function docs
-- `go run ./cmd/arabica` instead of `go build` to avoid artifacts
-
-## Design Context
-
-See `DESIGN.md` and `PRODUCT.md` for the full design system reference.
+- `.templ` files use tabs. After editing them, run `templ generate` (or
+  `just templ-generate`) and include generated Go changes.
+- Do not expand legacy Templ/HTMX surfaces during the SPA migration unless the
+  user explicitly chooses that direction or a working fallback requires it.
+- Frontend work should reuse established components and the patterns in
+  `PRODUCT.md` and `DESIGN.md`; accessibility constraints are not "squishy"
+  visual preferences.
