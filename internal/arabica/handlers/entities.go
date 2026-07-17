@@ -63,8 +63,7 @@ func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
 }
 
 // API endpoint to list all user data (beans, roasters, grinders, brewers, brews)
-// Used by client-side cache for faster page loads. Arabica-specific —
-// oolong has its own /api/data handler registered via teahandlers.
+// Used by client-side cache for faster page loads. Arabica-specific.
 func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {

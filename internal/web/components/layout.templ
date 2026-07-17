@@ -21,11 +21,10 @@ type LayoutData struct {
 	// back to the arabica defaults via the helper methods below — keeps
 	// existing call sites that build LayoutData directly working until
 	// every handler threads the brand through.
-	BrandName    string // "Arabica", "Oolong"
+	BrandName    string // "Arabica"
 	BrandTagline string // "Your brew, your data"
 
-	// AppName is the running app's lowercase identifier (e.g. "arabica",
-	// "oolong"). Used to pick which compiled CSS file to load — empty
+	// AppName is the running app's lowercase identifier (e.g. "arabica"). Used to pick which compiled CSS file to load — empty
 	// falls back to arabica's stylesheet, keeping legacy call sites that
 	// build LayoutData directly working unchanged.
 	AppName string
@@ -103,23 +102,14 @@ func (d *LayoutData) ogDescription() string {
 }
 
 func (d *LayoutData) siteDescription() string {
-	if d.AppName == "oolong" {
-		return d.brandName() + " is a tea tracking app built on AT Protocol. Your steep logs, teas, and teaware are stored in your own Personal Data Server, giving you full ownership and portability."
-	}
 	return d.brandName() + " is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability."
 }
 
 func (d *LayoutData) lightThemeColor() string {
-	if d.AppName == "oolong" {
-		return "#b8d5aa"
-	}
 	return "#4a2c2a"
 }
 
 func (d *LayoutData) darkThemeColor() string {
-	if d.AppName == "oolong" {
-		return "#162018"
-	}
 	return "#0F0A08"
 }
 

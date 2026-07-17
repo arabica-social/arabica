@@ -18,8 +18,8 @@ import (
 // Init creates and registers a tracer provider with an OTLP HTTP exporter.
 // Bridges OTel's internal logger to zerolog before delegating to atp/tracing.
 // serviceName is the OTel service name (typically the app name, e.g.
-// "arabica" or "oolong") so traces are attributed to the running app
-// rather than hardcoded to Arabica.
+// "arabica") so traces are attributed to the running app rather than
+// hardcoded.
 func Init(ctx context.Context, serviceName string) (*sdktrace.TracerProvider, error) {
 	otel.SetLogger(zerologr.New(&log.Logger))
 	if serviceName == "" {

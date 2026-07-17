@@ -162,7 +162,7 @@ func (h *Handler) SetDevMode(v bool) {
 }
 
 // SetBrand wires the per-app branding into the handler. Called once at
-// startup from cmd/{arabica,oolong}/main.go after constructing the App.
+// startup from cmd/arabica or cmd/server after constructing the App.
 func (h *Handler) SetBrand(b domain.BrandConfig) {
 	h.brand = b
 }
@@ -520,8 +520,8 @@ func (h *Handler) GetRecordStore(r *http.Request) (records.Store, bool) {
 	}
 
 	// Create user-scoped atproto store with injected cache. App-specific
-	// social NSIDs are plumbed in so oolong stores write to
-	// social.oolong.alpha.{like,comment} rather than arabica's collections.
+	// social NSIDs are plumbed in so a sister app writes to its own
+	// social.<base>.alpha.{like,comment} collections rather than arabica's.
 	var likeNSID, commentNSID string
 	if h.app != nil {
 		likeNSID = h.app.LikeNSID()
@@ -647,7 +647,7 @@ func (h *Handler) ResolveOwnerHandle(ctx context.Context, owner string) string {
 
 // PopulateOGFields sets the standard OG metadata fields for an entity page.
 // The title follows the pattern "{type} from {owner} on {siteName}", where
-// siteName is the app's brand display name (e.g. "Arabica", "Oolong").
+// siteName is the app's brand display name (e.g. "Arabica").
 // The subtitle (OG description) shows record-specific detail like the bean name.
 func PopulateOGFields(layoutData *components.LayoutData, subtitle, recordType, owner, baseURL, shareURL, siteName string) {
 	layoutData.OGType = "article"

@@ -8,11 +8,8 @@ context to the document or skill that owns it.
 Arabica is a coffee brew tracking application built on AT Protocol. User
 records live in each user's Personal Data Server (PDS). The application
 authenticates with OAuth and performs record CRUD through XRPC calls to the
-user's PDS.
-
-The repository also contains Oolong, a sister tea-tracking application. Shared
-platform packages must remain app-agnostic; Arabica- and Oolong-specific
-behavior belongs in their respective app packages.
+user's PDS. Platform packages are app-agnostic so the same runtime can host a
+sister app via per-app configuration, registries, and interfaces.
 
 ## Where Context Lives
 
@@ -43,13 +40,11 @@ Last reviewed: 2026-07-16.
 - Arabica is transitioning page routes from Templ/HTMX to an embedded
   SvelteKit SPA. `internal/arabica/handlers/routes.go` is the executable
   route-cutover inventory.
-- Oolong shares the runtime and frontend build but has not begun SPA route
-  cutover; its `SPAOwnedRoutes` inventory is intentionally empty.
 - Breaking brew and recipe lexicon changes remain unresolved before v1. Treat
   existing PDS records as durable compatibility inputs, not centrally
   migratable rows.
 - Arabica cafe and drink records remain deferred. Do not infer support from
-  Oolong's cafe and drink entities or from historical plans.
+  historical plans.
 
 ## Prime Directives
 
@@ -62,7 +57,7 @@ Last reviewed: 2026-07-16.
 - **Protect user boundaries.** Cross-user reads must respect visibility and
   moderation; mutations must remain scoped to the authenticated user's store.
 - **Respect package seams.** Shared packages must not import
-  `internal/arabica` or `internal/oolong`. App behavior is supplied through app
+  `internal/arabica`. App behavior is supplied through app
   configuration, registries, and interfaces.
 - **Keep entity identity lightweight.** Descriptors identify record types;
   codecs, reference hydration, routing, and presentation live in their owning
@@ -103,7 +98,6 @@ broaden when the risk crosses layers.
 | Integration/API contract | `just integration-test` |
 | Svelte components/routes | `pnpm run check:svelte`, `pnpm run test:svelte` |
 | Browser and cross-route behavior | `just e2e` or a targeted Playwright spec |
-| Oolong browser behavior | `just e2e-oolong` |
 | Broad local CI checkpoint | `just ci-check` |
 | Formatting | `just format` |
 

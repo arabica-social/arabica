@@ -199,7 +199,7 @@ func (c *Consumer) processCommit(event JetstreamEvent) error {
 		}
 
 		// Special handling for likes - index for counts. Matches any
-		// app's like collection (arabica + oolong both use ".like" suffix).
+		// app's like collection (matched by the ".like" suffix).
 		if strings.HasSuffix(commit.Collection, ".like") {
 			var recordData map[string]any
 			if err := json.Unmarshal(commit.Record, &recordData); err == nil {

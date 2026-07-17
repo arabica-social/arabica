@@ -13,7 +13,7 @@ func TestValidateAppName(t *testing.T) {
 		wantErr bool
 	}{
 		{"arabica", false},
-		{"oolong", false},
+		{"testapp", false},
 		{"app2", false},
 		{"", true},
 		{"Arabica", true},     // uppercase
@@ -51,11 +51,11 @@ func TestResolveDataDir_XDGFallback(t *testing.T) {
 }
 
 func TestResolveDataDir_PerApp(t *testing.T) {
-	// Both apps under the same XDG root get isolated dirs.
+	// Different app names under the same XDG root get isolated dirs.
 	t.Setenv("ARABICA_DATA_DIR", "")
-	t.Setenv("OOLONG_DATA_DIR", "")
+	t.Setenv("TESTAPP_DATA_DIR", "")
 	t.Setenv("XDG_DATA_HOME", "/tmp/xdg")
 	a, _, _ := resolveDataDir("ARABICA", "arabica")
-	m, _, _ := resolveDataDir("OOLONG", "oolong")
+	m, _, _ := resolveDataDir("TESTAPP", "testapp")
 	assert.NotEqual(t, a, m)
 }

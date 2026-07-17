@@ -240,8 +240,7 @@
   </section>
 {/snippet}
 
-{#if appName === "arabica"}
-  <div class="cafe-counter">
+<div class="cafe-counter">
     <aside class="cafe-rail cafe-rail-left" aria-label="Your coffee journal">
       <section class="cafe-rail-section cafe-rail-lead">
         {#if isAuthenticated}
@@ -426,77 +425,6 @@
     </aside>
     {#if isAuthenticated}<ScrollTopButton />{/if}
   </div>
-{:else}
-  <div class="page-container-lg">
-    {#if appName === "oolong"}
-      <div class="alert-warning mb-4">
-        <strong>Heads up:</strong> oolong is <em>very</em> new and unstable
-        (initial release was May 17th). Breaking lexicon changes
-        <strong>will</strong> happen frequently.
-      </div>
-    {/if}
-    <section class="home-hero">
-      <h1 class="home-hero-title">{appDefinition.heroHeading}</h1>
-      {#if isAuthenticated && !ready}
-        <div class="home-nudge">
-          <div class="home-nudge-copy">
-            <span class="home-nudge-label">Get started</span><span
-              class="home-nudge-text">{appDefinition.readinessNudge}</span
-            >
-          </div>
-          <a href="/onboarding" class="btn-primary text-sm">Get Started →</a>
-        </div>
-      {/if}
-      {#if !isAuthenticated}
-        <p class="home-hero-deck">{appDefinition.heroDescription}</p>
-        <p class="home-hero-foot">
-          <a href="/atproto">Built on AT Protocol</a> — you own your data.
-        </p>
-      {/if}
-      <div class="home-actions mt-6 justify-center">
-        {#if isAuthenticated}
-          <a
-            href="/brews/new"
-            class="home-action-primary"
-            class:is-disabled={!ready}
-            aria-disabled={!ready}>{appDefinition.sessionAction}</a
-          >
-          <a href={appDefinition.libraryPath} class="home-action-secondary"
-            >{appDefinition.libraryLabel}</a
-          >
-          <a href="/profile/{data.userDID}" class="home-action-secondary"
-            >Profile</a
-          >
-        {:else}
-          <button
-            type="button"
-            onclick={openLoginModal}
-            class="home-action-primary">Log In</button
-          >
-          <a href="/join/create" class="home-action-secondary"
-            >Create an account</a
-          >
-          <a href="/about" class="home-action-secondary">Learn more</a>
-        {/if}
-      </div>
-    </section>
-    {@render feedSection()}
-    {#if isAuthenticated}
-      <ScrollTopButton />
-      <div class="card p-6 mb-8">
-        <h2 class="text-lg font-bold text-primary mb-2">
-          {appDefinition.aboutHeading}
-        </h2>
-        <p class="text-sm text-secondary">{appDefinition.aboutBody}</p>
-        <a
-          href="/about"
-          class="text-sm text-secondary hover:text-primary hover:underline mt-2 inline-block"
-          >Learn more →</a
-        >
-      </div>
-    {/if}
-  </div>
-{/if}
 
 <style>
   .cafe-counter {

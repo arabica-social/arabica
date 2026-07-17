@@ -5,7 +5,6 @@ Authoritative sources:
 - [`internal/routing/`](../../internal/routing/)
 - [`internal/handlers/`](../../internal/handlers/)
 - [`internal/arabica/handlers/routes.go`](../../internal/arabica/handlers/routes.go)
-- [`internal/oolong/handlers/routes.go`](../../internal/oolong/handlers/routes.go)
 - [`docs/api/`](../api/README.md)
 
 Related decisions: [ADR-004](../adr/ADR-004-shared-platform-and-app-owned-package-boundary.md)
@@ -33,9 +32,6 @@ Arabica's `Routes.SPAOwnedRoutes()` is the executable list of page patterns
 served by the SvelteKit shell. A listed route must have a working direct-load
 SvelteKit path and all required JSON/session/error behavior. Unlisted routes
 retain legacy handling.
-
-Oolong has a separate inventory and can migrate independently. Shared frontend
-code does not imply shared route ownership or identical enabled entities.
 
 JSON, mutation, OG image, modal, and compatibility endpoints remain independent
 of which frontend owns the corresponding page. A page cutover should not

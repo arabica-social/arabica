@@ -18,7 +18,7 @@ templ generate
 go run ./cmd/arabica
 ```
 
-Access at http://127.0.0.1:18910 (arabica) or http://127.0.0.1:18920 (oolong)
+Access at http://127.0.0.1:18910
 
 ## Configuration
 

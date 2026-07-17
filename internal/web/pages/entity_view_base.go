@@ -6,9 +6,9 @@ import (
 )
 
 // EntityViewBase holds the social and auth fields shared by all simple
-// entity view pages across both apps (arabica's bean/roaster/grinder/brewer,
-// oolong's tea/vendor/brewer/cafe/drink). Embed it in XxxViewProps so the
-// fields are promoted (props.IsAuthenticated etc. in templ).
+// entity view pages (arabica's bean/roaster/grinder/brewer, plus deferred
+// cafe/drink). Embed it in XxxViewProps so the fields are promoted
+// (props.IsAuthenticated etc. in templ).
 type EntityViewBase struct {
 	IsOwnProfile       bool
 	IsAuthenticated    bool

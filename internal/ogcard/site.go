@@ -5,11 +5,11 @@ import "image"
 // SiteCardOpts configures DrawSiteCard for a specific app/brand.
 // Zero values fall back to arabica's defaults so existing callers keep working.
 type SiteCardOpts struct {
-	// AppName is the lowercase identifier ("arabica", "oolong") used to
-	// pick the embedded logo when Logo is nil.
+	// AppName is the lowercase identifier ("arabica") used to pick the
+	// embedded logo when Logo is nil.
 	AppName string
 	// Wordmark is the brand text rendered as the title and bottom bar
-	// (e.g. "arabica.social", "Oolong"). Defaults to "arabica.social".
+	// (e.g. "arabica.social"). Defaults to "arabica.social".
 	Wordmark string
 	// Tagline is the secondary line under the title.
 	Tagline string

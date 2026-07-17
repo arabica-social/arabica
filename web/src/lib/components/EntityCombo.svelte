@@ -115,25 +115,15 @@
       case "bean":
         return cache.beans || [];
       case "brewer":
-      case "oolongBrewer":
         return cache.brewers || [];
       case "grinder":
         return cache.grinders || [];
       case "recipe":
-      case "oolongRecipe":
         return cache.recipes || [];
       case "roaster":
         return cache.roasters || [];
-      case "tea":
-        return cache.teas || [];
-      case "vendor":
-        return cache.vendors || [];
       case "cafe":
         return cache.cafes || [];
-      case "oolongVessel":
-        return cache.vessels || [];
-      case "oolongInfuser":
-        return cache.infusers || [];
       default:
         return [];
     }

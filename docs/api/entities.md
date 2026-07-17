@@ -22,16 +22,10 @@ Returns a single entity's detail data as JSON for the SvelteKit SPA.
 | `GET /api/brewers/{actor}/{id}`    | Brewer  |
 | `GET /api/brews/{actor}/{id}`      | Brew    |
 | `GET /api/recipes/{actor}/{id}`    | Recipe  |
-| `GET /api/teas/{actor}/{id}`       | Oolong tea |
-| `GET /api/vendors/{actor}/{id}`    | Oolong vendor |
-| `GET /api/vessels/{actor}/{id}`    | Oolong vessel |
-| `GET /api/infusers/{actor}/{id}`   | Oolong infuser |
-| `GET /api/brews/{actor}/{id}`      | Oolong steep (when served by Oolong) |
 
 These are registered via the `JSONView` slot on `EntityRouteBundle` (simple
 entities) and explicitly for Arabica brew/recipe (which have additional
-endpoints). The shared `/api/brews/{actor}/{id}` path is app-scoped: Arabica
-returns a coffee brew and Oolong returns a steep record.
+endpoints).
 
 ### Response
 

@@ -316,7 +316,7 @@ func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // injectBodyAttrs adds data-* attributes to the <body> tag in the HTML.
 // These are read by the SvelteKit app to determine auth state, which app
-// (arabica/oolong) is running, and the authenticated user's display
+// is running, and the authenticated user's display
 // profile / unread count / moderator flag. data-frontend is an explicit
 // browser-test marker proving that a direct load reached the SvelteKit shell.
 func injectBodyAttrs(html []byte, data ShellData) []byte {

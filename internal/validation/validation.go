@@ -1,7 +1,7 @@
 // Package validation provides the ValidationError type used by entity
 // validators to return per-field error messages. It lives in a separate
-// package to avoid import cycles: entity model packages (arabica/entities,
-// oolong/entities) import this, while the handlers package depends on
+// package to avoid import cycles: entity model packages (e.g.
+// arabica/entities) import this, while the handlers package depends on
 // entities and provides the FieldError interface check.
 package validation
 

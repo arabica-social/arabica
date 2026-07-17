@@ -609,8 +609,8 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 }
 
 // TestSessionCache_SetRecordsGenericNSID proves SetRecords/InvalidateRecords
-// work for any NSID/type combination, not just arabica entities. This is
-// the contract a sister app (oolong) depends on.
+// work for any NSID/type combination, not just arabica entities. This is the
+// generic contract the typed wrappers depend on.
 func TestSessionCache_SetRecordsGenericNSID(t *testing.T) {
 	sc := NewSessionCache()
 	sessionID := "test-session"

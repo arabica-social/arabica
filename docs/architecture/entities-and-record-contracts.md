@@ -6,7 +6,6 @@ Authoritative sources:
 - [`internal/entities/entities.go`](../../internal/entities/entities.go)
 - [`internal/entities/record_behavior.go`](../../internal/entities/record_behavior.go)
 - [`internal/arabica/entities/`](../../internal/arabica/entities/)
-- [`internal/oolong/entities/`](../../internal/oolong/entities/)
 - [`lexicons/`](../../lexicons/)
 
 Related decisions: [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md),
@@ -20,14 +19,13 @@ individual application. It provides the app name, NSID base, enabled entity
 descriptors, entity routes, branding, and record-store behavior.
 
 Shared packages discover an app's supported collections and routes through this
-configuration. They must not import Arabica or Oolong packages to ask app-
+configuration. They must not import app-specific packages to ask application-
 specific questions.
 
 | Concern | Owner |
 |---|---|
 | Shared AT Protocol, OAuth, routing, cache, firehose, feed, and record mechanics | Shared platform packages |
 | Coffee record registrations and behavior | `internal/arabica` |
-| Tea record registrations and behavior | `internal/oolong` |
 | Per-app enabled descriptors, routes, branding, and NSID base | `domain.App` construction |
 | Persisted record schema | `lexicons/` and compatibility behavior in app record code |
 

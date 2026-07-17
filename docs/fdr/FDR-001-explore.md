@@ -97,6 +97,5 @@ counts, and reuse relationships. Explore is a catalog, not solely a surface for
 
 - Whether Explore should eventually be available without authentication.
 - Whether related brew counts belong on discovery cards or only on record pages.
-- Whether Oolong should gain an app-specific Explore registry and route.
 - Whether future recommendations should remain part of Explore or become a
   separate personalized surface.

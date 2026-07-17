@@ -2,8 +2,8 @@
 // over a single content-hashed URL.
 //
 // Source files are embedded via go:embed; the production build path produces
-// one immutable byte slice per app (arabica, oolong, …) with a sha256-derived
-// cache buster. The dev path opts in via DevDir and re-reads the directory on
+// one immutable byte slice per app with a sha256-derived cache buster. The
+// dev path opts in via DevDir and re-reads the directory on
 // every request, so editing a CSS file under that path and refreshing the
 // browser shows the change without a server restart.
 package assets
@@ -22,7 +22,7 @@ import (
 	"sync"
 )
 
-//go:embed css/tokens.css css/reset.css css/utilities.css css/components/*.css css/themes/*.css
+//go:embed css/tokens.css css/reset.css css/utilities.css css/components/*.css
 var embedded embed.FS
 
 // Config configures a Bundle.

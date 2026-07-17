@@ -23,9 +23,9 @@ func testManifest() assets.Manifest {
 	return assets.NewManifest(nil, nil)
 }
 
-// arabicaBrand / oolongBrand mirror the BrandConfig set by each app's
-// constructor (internal/{arabica,oolong}/app/app.go). Keeping a local copy
-// lets the spa tests run without importing the app packages.
+// arabicaBrand mirrors the BrandConfig set by the arabica app constructor
+// (internal/arabica/app/app.go). Keeping a local copy lets the spa tests run
+// without importing the app package.
 func arabicaBrand() domain.BrandConfig {
 	return domain.BrandConfig{
 		DisplayName:     "Arabica",
@@ -33,16 +33,6 @@ func arabicaBrand() domain.BrandConfig {
 		SiteDescription: "Arabica is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability.",
 		LightThemeColor: "#4a2c2a",
 		DarkThemeColor:  "#0F0A08",
-	}
-}
-
-func oolongBrand() domain.BrandConfig {
-	return domain.BrandConfig{
-		DisplayName:     "Oolong",
-		Tagline:         "Your tea, your data",
-		SiteDescription: "Oolong is a tea tracking app built on AT Protocol. Your steep logs, teas, and teaware are stored in your own Personal Data Server, giving you full ownership and portability.",
-		LightThemeColor: "#b8d5aa",
-		DarkThemeColor:  "#162018",
 	}
 }
 
@@ -178,22 +168,6 @@ func TestShellHandler_SessionDataEscaped(t *testing.T) {
 	assert.Contains(t, html, `data-user-display="Alice &quot;&lt;script&gt;&quot;"`)
 	// The raw, unescaped angle brackets must not leak into the attribute.
 	assert.NotContains(t, html, `data-user-display="Alice "<script>""`)
-}
-
-func TestShellHandler_OolongBranding(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "oolong", oolongBrand())
-	require.NoError(t, err)
-
-	req := httptest.NewRequest("GET", "/", nil)
-	w := httptest.NewRecorder()
-	h.ServeHTTP(w, req)
-
-	body, _ := io.ReadAll(w.Result().Body)
-	html := string(body)
-
-	assert.Contains(t, html, "tea tracking app")
-	assert.Contains(t, html, "#b8d5aa") // light theme color
-	assert.Contains(t, html, `data-app="oolong"`)
 }
 
 func TestShellHandler_OGImage(t *testing.T) {

@@ -84,8 +84,8 @@ export interface SocialData {
 /**
  * EntityViewConfig captures per-entity behavior for RenderEntityView.
  * Construct via the h.xViewConfig() methods — closures capture h naturally.
- * Fields are exported so per-app handler packages (coffeehandlers,
- * teahandlers) can populate this struct directly.
+ * Fields are exported so per-app handler packages can populate this struct
+ * directly.
  */
 export interface EntityViewConfig {
   Descriptor?: any /* entities.Descriptor */;
@@ -141,7 +141,7 @@ export interface FeedQueryJSON {
 /**
  * FeedFilterTabJSON is a single filter pill in the feed filter bar. The
  * "All" tab has an empty Value; per-entity tabs use the filter noun from
- * the app's feed views. This is app-scoped so oolong gets its own tabs.
+ * the app's feed views.
  */
 export interface FeedFilterTabJSON {
   label: string;

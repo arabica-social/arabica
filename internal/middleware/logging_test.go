@@ -102,17 +102,15 @@ func TestGetCookiesRedactsSessionCookies(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: "account_did", Value: "did:plc:coffee"})
 	req.AddCookie(&http.Cookie{Name: "session_id", Value: "secret-session"})
-	req.AddCookie(&http.Cookie{Name: "oolong_account_did", Value: "did:plc:tea"})
-	req.AddCookie(&http.Cookie{Name: "oolong_session_id", Value: "secret-oolong-session"})
+	req.AddCookie(&http.Cookie{Name: "otherapp_session_id", Value: "secret-other-session"})
 
 	got := getCookies(req)
 
 	assert.Contains(t, got, "account_did=did:plc:coffee")
-	assert.Contains(t, got, "oolong_account_did=did:plc:tea")
 	assert.NotContains(t, got, "session_id")
 	assert.NotContains(t, got, "secret-session")
-	assert.NotContains(t, got, "oolong_session_id")
-	assert.NotContains(t, got, "secret-oolong-session")
+	assert.NotContains(t, got, "otherapp_session_id")
+	assert.NotContains(t, got, "secret-other-session")
 }
 
 func TestLoggingMiddleware(t *testing.T) {

@@ -79,7 +79,8 @@ func NewArabicaRegistry(nsidByType map[lexicons.RecordType]string) *Registry {
 // NewRegistry builds an Arabica-shaped explore registry for the given app
 // name. It is app-pluggable: an app registers its own TypeDefs via Register
 // (or NewRegistry) and the firehose looks them up by NSID base. Today only
-// Arabica registers explore types; Oolong has no explore surface.
+// Arabica registers explore types; a sister app with no explore surface
+// simply does not register.
 func NewRegistry(app string, nsidByType map[lexicons.RecordType]string) *Registry {
 	types := make([]TypeDef, 0, 5)
 	add := func(def TypeDef) {
@@ -138,7 +139,8 @@ func (r *Registry) Types() []TypeDef {
 // Apps register a RegistryFactory keyed by their NSID base (e.g.
 // "social.arabica.alpha") so the firehose can build an explore index for the
 // running app without importing app code. An app with no explore surface
-// (today: Oolong) simply does not register, and RegistryFor returns nil.
+// A sister app with no explore surface simply does not register, and
+// RegistryFor returns nil for it.
 
 type RegistryFactory func(nsids map[lexicons.RecordType]string) *Registry
 

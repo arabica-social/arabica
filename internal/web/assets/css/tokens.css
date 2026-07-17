@@ -170,11 +170,8 @@
   --type-roaster: oklch(0.51 0.135 40);
   --type-grinder: #78716c;
   --type-brewer: var(--brand-leaf-deep);
-  /* Cross-app accent fallbacks (oolong overrides these in its theme;
-     arabica picks defaults so the same pill classes render reasonably
-     even if arabica eventually exposes these entities). */
-  --type-tea: #4a6741;
-  --type-vendor: #92400e;
+  /* Accent fallbacks for deferred Arabica entities (cafe, drink) so the
+     same pill classes render reasonably if/when those ship. */
   --type-cafe: #7d5a3a;
   --type-drink: #8b6f47;
 
@@ -185,8 +182,6 @@
   --type-roaster-tint: oklch(0.51 0.135 40 / 0.13);
   --type-grinder-tint: rgba(120, 113, 108, 0.1);
   --type-brewer-tint: rgb(143 160 127 / 0.14);
-  --type-tea-tint: rgba(74, 103, 65, 0.12);
-  --type-vendor-tint: rgba(146, 64, 14, 0.12);
   --type-cafe-tint: rgba(125, 90, 58, 0.12);
   --type-drink-tint: rgba(139, 111, 71, 0.12);
 
@@ -297,8 +292,6 @@
     --type-roaster: oklch(0.68 0.16 45);
     --type-grinder: #a8a29e;
     --type-brewer: var(--brand-leaf);
-    --type-tea: #94b585;
-    --type-vendor: #c2610e;
     --type-cafe: #b89472;
     --type-drink: #c2a47d;
 
@@ -309,8 +302,6 @@
     --type-roaster-tint: oklch(0.68 0.16 45 / 0.2);
     --type-grinder-tint: rgba(168, 162, 158, 0.12);
     --type-brewer-tint: rgb(143 160 127 / 0.18);
-    --type-tea-tint: rgba(148, 181, 133, 0.18);
-    --type-vendor-tint: rgba(194, 97, 14, 0.15);
     --type-cafe-tint: rgba(184, 148, 114, 0.15);
     --type-drink-tint: rgba(194, 164, 125, 0.15);
 

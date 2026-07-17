@@ -6,7 +6,6 @@ Authoritative sources:
 - [`web/src/routes/`](../../web/src/routes/)
 - [`internal/web/spa/`](../../internal/web/spa/)
 - [`internal/arabica/handlers/routes.go`](../../internal/arabica/handlers/routes.go)
-- [`internal/oolong/handlers/routes.go`](../../internal/oolong/handlers/routes.go)
 
 Related decision: [ADR-006](../adr/ADR-006-embedded-spa-with-explicit-route-cutover.md).
 
@@ -25,7 +24,6 @@ serving, security headers, and well-known endpoints remain Go responsibilities.
 | Area | State | Notes |
 |---|---|---|
 | Arabica page routes | Transitional | Routes move individually through `SPAOwnedRoutes`; legacy fallbacks coexist |
-| Oolong page routes | Legacy | `SPAOwnedRoutes` is intentionally empty |
 | JSON APIs | Sturdy and expanding | Shared by the SPA and remaining legacy surfaces; documented under `docs/api/` |
 | Templ pages/components | Transitional | Retained for unported pages and fallbacks; avoid expanding without a deliberate reason |
 | Svelte islands in legacy pages | Transitional | Reusable components may survive the migration, but island mounting is not the target page architecture |
@@ -45,9 +43,8 @@ Before adding a page pattern to `SPAOwnedRoutes`:
 6. Any retained legacy handler is clearly a fallback rather than a second
    independently evolving implementation.
 
-Use an explicit cutover inventory instead of a catch-all assumption so Arabica
-and Oolong can migrate at different rates and individual routes can be reviewed
-or rolled back independently.
+Use an explicit cutover inventory instead of a catch-all assumption so
+individual routes can be reviewed or rolled back independently.
 
 ## Removal Conditions
 
@@ -55,7 +52,7 @@ A legacy page or island path can be removed when:
 
 - every route that depended on it is SPA-owned;
 - direct-load and browser behavior are covered at the appropriate level;
-- no Oolong or shared legacy surface still imports it;
+- no remaining legacy surface still imports it;
 - its HTML/HTMX endpoint is not an intentional public or compatibility contract;
 - generated Templ code and stale assets are removed in the same change.
 
@@ -64,7 +61,7 @@ A legacy page or island path can be removed when:
 - Do not treat the current coexistence layer as a permanent requirement.
 - Do not cut over a route by serving the shell before its data and error paths
   are ready.
-- Reuse shared Svelte components when Arabica and Oolong behavior is genuinely
-  the same; keep app vocabulary and entity availability app-scoped.
+- Keep app vocabulary and entity availability app-scoped when reusing shared
+  Svelte components.
 - Frontend tests verify presentation and interaction; Go/integration tests
   remain responsible for data, authorization, and JSON contracts.

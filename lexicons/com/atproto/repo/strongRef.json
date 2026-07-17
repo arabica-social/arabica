@@ -1,7 +1,7 @@
 {
   "lexicon": 1,
   "id": "com.atproto.repo.strongRef",
-  "description": "A URI with a content-hash fingerprint. Vendored from indigo's atproto lexicons so the local catalog can resolve refs from social.arabica.alpha.like / .comment and social.oolong.alpha.like / .comment.",
+  "description": "A URI with a content-hash fingerprint. Vendored from indigo's atproto lexicons so the local catalog can resolve refs from social.arabica.alpha.like / .comment.",
   "defs": {
     "main": {
       "type": "object",

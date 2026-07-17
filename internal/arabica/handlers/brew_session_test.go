@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleBrewCreateReturnsJSONSessionExpired(t *testing.T) {

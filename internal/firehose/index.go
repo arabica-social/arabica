@@ -61,9 +61,9 @@ type FeedIndex struct {
 	witness        *witnessRecordStorage
 
 	// commentNSID is the comment collection this index's binary serves
-	// (e.g. social.arabica.alpha.comment or social.oolong.alpha.comment).
-	// Used when rebuilding comment AT-URIs from indexed rows. Falls back
-	// to the Arabica comment collection when unset for backwards-compat with tests
+	// (e.g. social.arabica.alpha.comment). Used when rebuilding comment
+	// AT-URIs from indexed rows. Falls back to the Arabica comment
+	// collection when unset for backwards-compat with tests
 	// that construct a FeedIndex directly via NewFeedIndex.
 	commentNSID string
 

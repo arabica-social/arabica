@@ -20,13 +20,9 @@ project's domain language. Nested schema helpers such as `#pour` or
 `#espressoParams` stay in the lexicon unless their names become concepts we
 regularly use outside schema implementation.
 
-**Arabica** — The coffee-tracking application in this repository. It shares AT
-Protocol and runtime infrastructure with Oolong while owning coffee-specific
-records, routes, presentation, and product language.
-
-**Oolong** — The tea-tracking sister application. Oolong shares platform code
-with Arabica but has its own app configuration, NSID base, entity set, database,
-and route ownership.
+**Arabica** — The coffee-tracking application in this repository, owning its
+coffee-specific records, routes, presentation, and product language on the
+shared AT Protocol and runtime infrastructure.
 
 **Bean** — An Arabica coffee product or lot (`social.arabica.alpha.bean`) that
 can be referenced by brews and may reference a roaster.
@@ -48,30 +44,6 @@ Brew records an actual preparation.
 (`social.arabica.alpha.brew`), potentially referencing a bean, grinder, brewer,
 and recipe.
 
-**Tea** — An Oolong tea product or lot (`social.oolong.alpha.tea`) that may
-reference a Tea Vendor and is referenced by Tea Brews.
-
-**Tea Vendor** — An Oolong seller or producer of tea
-(`social.oolong.alpha.vendor`) referenced by Tea records.
-
-**Vessel** — An Oolong steeping or serving vessel
-(`social.oolong.alpha.vessel`) that can be referenced by a Tea Brew.
-
-**Infuser** — An Oolong infusing device (`social.oolong.alpha.infuser`) that can
-be referenced by a Tea Brew.
-
-**Tea Brew** — An observed Oolong tea-preparation session
-(`social.oolong.alpha.brew`), commonly called a **Steep** in Oolong's user
-interface. It references a Tea and may reference a Vessel or Infuser.
-
-**Tea Cafe** — An Oolong cafe record (`social.oolong.alpha.cafe`) that may
-reference a Tea Vendor. The lexicon exists, but the entity is currently deferred
-and not enabled in the Oolong app.
-
-**Tea Drink** — An Oolong prepared-drink record (`social.oolong.alpha.drink`)
-that must reference a Tea Cafe and may reference a Tea. The lexicon exists, but
-the entity is currently deferred and not enabled in the Oolong app.
-
 **Community Feed** — The activity-oriented surface showing what people are
 brewing or recording. It is distinct from Explore's reusable-record discovery.
 
@@ -82,12 +54,12 @@ records such as beans, roasters, grinders, brewers, and recipes. See
 **Backlink** — A reverse relationship showing records that refer to the current
 record, such as brews that use a bean or recipe.
 
-**Like** — An app-scoped social record (`social.arabica.alpha.like` or
-`social.oolong.alpha.like`) expressing approval of another record through a
+**Like** — An app-scoped social record such as
+`social.arabica.alpha.like`, expressing approval of another record through a
 strong reference.
 
-**Comment** — An app-scoped social record (`social.arabica.alpha.comment` or
-`social.oolong.alpha.comment`) attached to another record through a strong
+**Comment** — An app-scoped social record such as
+`social.arabica.alpha.comment` attached to another record through a strong
 reference, optionally linked to a parent comment for a thread.
 
 ## Pages and Surfaces
@@ -118,9 +90,6 @@ My Coffee or My Tea.
 `/my-coffee`, with tabs for the viewer's brews, beans, roasters, grinders,
 brewers, and recipes. This is the primary management view for coffee records.
 
-**My Tea Page** — Oolong's authenticated personal collection page at `/my-tea`,
-covering the viewer's steeps, teas, vendors, vessels, and infusers.
-
 **Your Brews Page (Brew List Page)** — Arabica's focused brew-journal page at
 `/brews`, listing the authenticated viewer's own brews. It is narrower than My
 Coffee and distinct from brews shown on a Profile Page or in the Home Feed.
@@ -136,11 +105,11 @@ recipes. It predates and remains separate from the general Explore Page.
 **Record View Page** — A shareable actor-scoped detail page for one record,
 generally using `/{entity-path}/{actor}/{id}`, such as
 `/beans/{actor}/{id}`. “Bean View Page,” “Roaster View Page,” “Grinder View
-Page,” “Brewer View Page,” “Recipe View Page,” “Tea View Page,” and equivalent
-names refer to the corresponding Record View Page.
+Page,” “Brewer View Page,” “Recipe View Page,” and equivalent names refer to
+the corresponding Record View Page.
 
-**Brew View Page** — The specialized Record View Page for one coffee or tea
-brew at `/brews/{actor}/{id}`. It presents the recorded preparation, resolved
+**Brew View Page** — The specialized Record View Page for one coffee brew at
+`/brews/{actor}/{id}`. It presents the recorded preparation, resolved
 references, social context, and owner actions where applicable.
 
 **Backlinks Page** — The page at a supported record's `/backlinks` route showing
@@ -153,18 +122,17 @@ such as the Brew Form Page, Bean Form Page, or Recipe Form Page. “New” and
 mutation behavior.
 
 **Onboarding Page** — The guided setup page at `/onboarding` that helps a new
-user establish the minimum records needed to begin logging brews or steeps.
+user establish the minimum records needed to begin logging brews.
 
 **Add Records Page** — Arabica's authenticated page at `/add` for adding more
 records after or outside the initial onboarding flow. It is not the same as the
-guided Onboarding Page; Oolong currently uses its own onboarding and My Tea
-flows instead.
+guided Onboarding Page.
 
 ## AT Protocol
 
 **PDS (Personal Data Server)** — The authoritative host for a user's repository
-and Arabica/Oolong records. Local Arabica databases do not replace PDS
-authority. See [ADR-001](adr/ADR-001-pds-records-are-authoritative.md).
+and Arabica records. Local databases do not replace PDS authority. See
+[ADR-001](adr/ADR-001-pds-records-are-authoritative.md).
 
 **DID (Decentralized Identifier)** — The stable identifier used for an AT
 Protocol account and repository. A handle can change while the DID remains the
@@ -179,7 +147,8 @@ not stable record ownership keys.
 `social.arabica.alpha.bean`.
 
 **NSID (Namespaced Identifier)** — The stable identifier for an AT Protocol
-record collection or XRPC method. Arabica and Oolong use separate NSID bases.
+record collection or XRPC method. Arabica uses the `social.arabica.alpha` NSID
+base.
 
 **AT-URI** — A record identifier containing its repository DID, collection
 NSID, and record key: `at://did/collection/rkey`.
@@ -200,8 +169,8 @@ likes and comments.
 
 ## Architecture
 
-**App** — Runtime configuration for Arabica or Oolong, including its name, NSID
-base, enabled entity descriptors, routes, branding, and record-store behavior.
+**App** — Runtime configuration for Arabica, including its name, NSID base,
+enabled entity descriptors, routes, branding, and record-store behavior.
 The current source is `internal/atplatform/domain/app.go`.
 
 **Record type** — The application-level category used to dispatch record

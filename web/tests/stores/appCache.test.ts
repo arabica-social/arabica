@@ -175,7 +175,7 @@ describe("appCache store", () => {
 
 	describe("app mismatch", () => {
 		it("treats the cache as invalid when the current app differs", async () => {
-			setBody("did:plc:alice", "oolong");
+			setBody("did:plc:alice", "other");
 			writeCache({
 				did: "did:plc:alice",
 				app: "arabica",

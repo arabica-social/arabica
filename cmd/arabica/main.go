@@ -1,6 +1,6 @@
 // Command arabica is the entrypoint for the arabica coffee tracker.
 // It runs a single app; the tea-tracking sister app lives in
-// ./cmd/oolong. Both binaries share the same internal/atplatform/server
+// (shared with cmd/server). All entrypoints share the same internal/atplatform/server
 // bootstrap but get their own listener, metrics endpoint, data
 // directory, and firehose consumer.
 package main

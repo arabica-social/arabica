@@ -96,12 +96,6 @@ describe("session store", () => {
 			});
 		});
 
-		it("reflects app oolong when set on body", async () => {
-			setBodyDataset({ app: "oolong" });
-			await refreshSession();
-			expect(get(app)).toBe("oolong");
-		});
-
 		it("treats isModerator !== 'true' as false", async () => {
 			setBodyDataset({ userDid: "did:plc:x", isModerator: "false" });
 			await refreshSession();

@@ -12,16 +12,16 @@ import (
 func TestNSIDForEntityUsesActiveAppDescriptors(t *testing.T) {
 	h := &Handler{}
 	h.SetApp(&domain.App{
-		Name: "oolong",
+		Name: "arabica",
 		Descriptors: []*entities.Descriptor{
-			{Type: "oolong-brewer", NSID: "social.oolong.alpha.brewer"},
+			{Type: "brewer", NSID: "social.arabica.alpha.brewer"},
 		},
 		EntityRoutes: []domain.EntityRoute{
-			{Type: "oolong-brewer", Path: "brewers", Noun: "brewer"},
+			{Type: "brewer", Path: "brewers", Noun: "brewer"},
 		},
 	})
 
-	assert.Equal(t, "social.oolong.alpha.brewer", h.nsidForEntity("brewers"))
+	assert.Equal(t, "social.arabica.alpha.brewer", h.nsidForEntity("brewers"))
 }
 
 func TestNSIDForEntityRejectsUnknownOrUnconfiguredPaths(t *testing.T) {
@@ -39,5 +39,5 @@ func TestNSIDForEntityRejectsUnknownOrUnconfiguredPaths(t *testing.T) {
 		},
 	})
 
-	assert.Empty(t, h.nsidForEntity("vendors"))
+	assert.Empty(t, h.nsidForEntity("roasters"))
 }

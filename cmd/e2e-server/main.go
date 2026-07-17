@@ -42,7 +42,7 @@ const controlURLFile = "tests/e2e/.control-url"
 var accountSequence atomic.Uint64
 
 func main() {
-	app := flag.String("app", e2eAppFromEnv(), "app to serve: arabica or oolong")
+	app := flag.String("app", e2eAppFromEnv(), "app to serve (defaults to arabica)")
 	flag.Parse()
 
 	dataDir, err := os.MkdirTemp("", "arabica-e2e-*")

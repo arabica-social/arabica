@@ -9,12 +9,6 @@ const ENTITY_NAMES = [
 	"recipe",
 	"roaster",
 	"cafe",
-	"tea",
-	"oolongBrewer",
-	"oolongVessel",
-	"oolongInfuser",
-	"oolongRecipe",
-	"vendor",
 ] as const;
 
 function config(name: string): EntityConfig {
@@ -93,19 +87,20 @@ describe("formatLabel", () => {
 		});
 	});
 
-	describe("cafe / vendor", () => {
-		it.each(["cafe", "vendor"] as const)("formats name + location (%s)", (name) => {
-			expect(config(name).formatLabel!({ name: "Sey", location: "Brooklyn, NY" })).toBe(
+	describe("cafe", () => {
+		const formatLabel = config("cafe").formatLabel!;
+		it("formats name + location", () => {
+			expect(formatLabel({ name: "Sey", location: "Brooklyn, NY" })).toBe(
 				"Sey (Brooklyn, NY)",
 			);
 		});
-		it.each(["cafe", "vendor"] as const)("accepts capitalized Location (%s)", (name) => {
-			expect(config(name).formatLabel!({ name: "Sey", Location: "Brooklyn, NY" })).toBe(
+		it("accepts capitalized Location", () => {
+			expect(formatLabel({ name: "Sey", Location: "Brooklyn, NY" })).toBe(
 				"Sey (Brooklyn, NY)",
 			);
 		});
-		it.each(["cafe", "vendor"] as const)("returns name only without location (%s)", (name) => {
-			expect(config(name).formatLabel!({ name: "Sey" })).toBe("Sey");
+		it("returns name only without location", () => {
+			expect(formatLabel({ name: "Sey" })).toBe("Sey");
 		});
 	});
 
@@ -129,56 +124,6 @@ describe("formatLabel", () => {
 		it.each(["brewer", "grinder"] as const)("accepts capitalized Name (%s)", (name) => {
 			expect(config(name).formatLabel!({ Name: "V60" })).toBe("V60");
 		});
-	});
-
-	describe("tea", () => {
-		const formatLabel = config("tea").formatLabel!;
-		it("formats name + category + origin", () => {
-			expect(formatLabel({ name: "Dong Ding", category: "oolong", origin: "Taiwan" })).toBe(
-				"Dong Ding (oolong · Taiwan)",
-			);
-		});
-		it("formats name + category only", () => {
-			expect(formatLabel({ name: "Dong Ding", category: "oolong" })).toBe(
-				"Dong Ding (oolong)",
-			);
-		});
-		it("formats name + origin only", () => {
-			expect(formatLabel({ name: "Dong Ding", origin: "Taiwan" })).toBe("Dong Ding (Taiwan)");
-		});
-		it("returns name only", () => {
-			expect(formatLabel({ name: "Dong Ding" })).toBe("Dong Ding");
-		});
-		it("accepts capitalized keys", () => {
-			expect(
-				formatLabel({ Name: "Dong Ding", Category: "oolong", Origin: "Taiwan" }),
-			).toBe("Dong Ding (oolong · Taiwan)");
-		});
-	});
-
-	describe("oolong brewer / vessel / infuser / recipe", () => {
-		it.each(["oolongBrewer", "oolongVessel", "oolongInfuser", "oolongRecipe"] as const)(
-			"formats name + style (%s)",
-			(name) => {
-				expect(config(name).formatLabel!({ name: "Gaiwan", style: "gaiwan" })).toBe(
-					"Gaiwan (gaiwan)",
-				);
-			},
-		);
-		it.each(["oolongBrewer", "oolongVessel", "oolongInfuser", "oolongRecipe"] as const)(
-			"accepts capitalized Style (%s)",
-			(name) => {
-				expect(config(name).formatLabel!({ name: "Gaiwan", Style: "gaiwan" })).toBe(
-					"Gaiwan (gaiwan)",
-				);
-			},
-		);
-		it.each(["oolongBrewer", "oolongVessel", "oolongInfuser", "oolongRecipe"] as const)(
-			"returns name only without style (%s)",
-			(name) => {
-				expect(config(name).formatLabel!({ name: "Gaiwan" })).toBe("Gaiwan");
-			},
-		);
 	});
 });
 
@@ -275,8 +220,8 @@ describe("formatCreateData", () => {
 		});
 	});
 
-	describe("roaster / cafe / vendor", () => {
-		it.each(["roaster", "cafe", "vendor"] as const)(
+	describe("roaster / cafe", () => {
+		it.each(["roaster", "cafe"] as const)(
 			"maps location and website (%s)",
 			(name) => {
 				expect(
@@ -286,7 +231,7 @@ describe("formatCreateData", () => {
 				).toEqual({ name: NAME, location: "Portland, OR", website: "https://heart.com" });
 			},
 		);
-		it.each(["roaster", "cafe", "vendor"] as const)(
+		it.each(["roaster", "cafe"] as const)(
 			"only sets present keys (%s)",
 			(name) => {
 				expect(config(name).formatCreateData!(NAME, { fields: { location: "Portland, OR" } })).toEqual(
@@ -294,79 +239,6 @@ describe("formatCreateData", () => {
 				);
 			},
 		);
-	});
-
-	describe("tea", () => {
-		const formatCreateData = config("tea").formatCreateData!;
-		it("maps category, subStyle, origin, and cultivar", () => {
-			expect(
-				formatCreateData(NAME, {
-					fields: {
-						category: "oolong",
-						subStyle: "Wuyi",
-						origin: "Taiwan",
-						cultivar: "Qing Xin",
-					},
-				}),
-			).toEqual({
-				name: NAME,
-				category: "oolong",
-				sub_style: "Wuyi",
-				origin: "Taiwan",
-				cultivar: "Qing Xin",
-			});
-		});
-	});
-
-	describe("oolongBrewer", () => {
-		const formatCreateData = config("oolongBrewer").formatCreateData!;
-		it("maps style, material, and link", () => {
-			expect(
-				formatCreateData(NAME, {
-					fields: { style: "gaiwan", material: "porcelain", link: "https://x.com" },
-				}),
-			).toEqual({
-				name: NAME,
-				style: "gaiwan",
-				material: "porcelain",
-				link: "https://x.com",
-			});
-		});
-	});
-
-	describe("oolongVessel", () => {
-		const formatCreateData = config("oolongVessel").formatCreateData!;
-		it("maps style and material", () => {
-			expect(
-				formatCreateData(NAME, { fields: { style: "teapot", material: "clay" } }),
-			).toEqual({ name: NAME, style: "teapot", material: "clay" });
-		});
-		it("does not map link", () => {
-			expect(
-				formatCreateData(NAME, { fields: { style: "teapot", link: "https://x.com" } }),
-			).toEqual({ name: NAME, style: "teapot" });
-		});
-	});
-
-	describe("oolongInfuser", () => {
-		const formatCreateData = config("oolongInfuser").formatCreateData!;
-		it("maps style and link", () => {
-			expect(
-				formatCreateData(NAME, { fields: { style: "basket", link: "https://x.com" } }),
-			).toEqual({ name: NAME, style: "basket", link: "https://x.com" });
-		});
-		it("does not map material", () => {
-			expect(
-				formatCreateData(NAME, { fields: { style: "basket", material: "steel" } }),
-			).toEqual({ name: NAME, style: "basket" });
-		});
-	});
-
-	describe("oolongRecipe", () => {
-		const formatCreateData = config("oolongRecipe").formatCreateData!;
-		it("ignores suggestion fields and returns { name }", () => {
-			expect(formatCreateData(NAME, { fields: { style: "gaiwan" } })).toEqual({ name: NAME });
-		});
 	});
 });
 
@@ -378,12 +250,6 @@ describe("extraFields", () => {
 		["recipe", 0, []],
 		["roaster", 2, ["location", "website"]],
 		["cafe", 2, ["location", "website"]],
-		["tea", 3, ["category", "origin", "cultivar"]],
-		["oolongBrewer", 3, ["style", "material", "link"]],
-		["oolongVessel", 2, ["style", "material"]],
-		["oolongInfuser", 2, ["style", "link"]],
-		["oolongRecipe", 0, []],
-		["vendor", 2, ["location", "website"]],
 	] as const)("has the expected length and field names (%s)", (name, length, fieldNames) => {
 		const fields = config(name).extraFields!;
 		expect(fields).toHaveLength(length);
@@ -408,10 +274,6 @@ describe("extraFields", () => {
 		["brewer", "brewer_type", ["pourover", "espresso", "immersion", "mokapot", "coldbrew", "cupping", "other"]],
 		["grinder", "grinder_type", ["Hand", "Electric", "Portable Electric"]],
 		["grinder", "burr_type", ["Conical", "Flat"]],
-		["tea", "category", ["green", "white", "yellow", "oolong", "black", "puerh-sheng", "puerh-shou", "herbal", "blend", "other"]],
-		["oolongBrewer", "style", ["gaiwan", "yixing", "kyusu", "teapot", "glass", "french-press", "tetsubin", "other"]],
-		["oolongVessel", "style", ["teapot", "mug", "jar", "matcha-bowl", "other"]],
-		["oolongInfuser", "style", ["basket", "ball", "sock", "other"]],
 	] as const)("select field %s.%s has the expected options", (entity, fieldName, options) => {
 		const field = config(entity).extraFields!.find((f) => f.name === fieldName);
 		expect(field, `expected ${entity} to define ${fieldName}`).toBeDefined();

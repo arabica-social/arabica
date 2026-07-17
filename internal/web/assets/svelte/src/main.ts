@@ -81,10 +81,6 @@ const modalShellIslands = new WeakMap<
   HTMLFormElement,
   ReturnType<typeof mount>
 >();
-const oolongFormIslands = new WeakMap<
-  HTMLFormElement,
-  ReturnType<typeof mount>
->();
 const beanRoasterPickerIslands = new WeakMap<
   HTMLElement,
   ReturnType<typeof mount>
@@ -408,31 +404,6 @@ async function mountModalContainers() {
     modalContainerIslands.set(
       target,
       mount(ModalContainerIsland, {
-        target: document.body,
-        props: { target },
-      }),
-    );
-  });
-}
-
-async function mountOolongForms() {
-  const targets = document.querySelectorAll<HTMLFormElement>(
-    "form[data-svelte-oolong-form]",
-  );
-  if (targets.length === 0) {
-    return;
-  }
-  const OolongFormIsland = await loadIsland(
-    "oolong-form",
-    () => import("./OolongFormIsland.svelte") as Promise<IslandModule>,
-  );
-  targets.forEach((target) => {
-    if (oolongFormIslands.has(target)) {
-      return;
-    }
-    oolongFormIslands.set(
-      target,
-      mount(OolongFormIsland, {
         target: document.body,
         props: { target },
       }),
@@ -1022,7 +993,6 @@ async function mountAll() {
     mountEntitySuggests(),
     mountModalContainers(),
     mountModalShells(),
-    mountOolongForms(),
     mountBeanRoasterPickers(),
     mountBeanRatings(),
     mountBeanViewActions(),

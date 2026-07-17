@@ -1,12 +1,7 @@
 arabica: templ-watch-arabica
 
-oolong: templ-watch-oolong
-
 run:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 go run ./cmd/arabica -known-dids known-dids.txt
-
-run-oolong: templ-generate
-    @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 go run ./cmd/oolong
 
 svelte-build:
     @pnpm run check:svelte
@@ -21,7 +16,7 @@ spa-dev:
     @VITE_BACKEND_URL=http://127.0.0.1:18910 VITE_DEV_PORT=5173 pnpm --dir web run dev
 
 # Legacy rebuild-on-refresh loop for exercising Go's disk-backed SPA shell.
-# Use run-spa-dev or run-oolong-spa-dev for normal Vite HMR development.
+# Use run-spa-dev for normal Vite HMR development.
 spa-watch:
     @./scripts/watch-spa.sh
 
@@ -96,18 +91,6 @@ herdr-spa-dev-stop:
         [[ -z "$workspace_id" ]] || herdr workspace close "$workspace_id" >/dev/null
     done
 
-# Run Oolong with the embedded SvelteKit shell enabled. Only routes listed in
-# Oolong's SPAOwnedRoutes are served by the SPA; all other pages stay legacy.
-run-oolong-spa: spa-build
-    @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 OOLONG_SPA=1 go run ./cmd/oolong
-
-# Run Oolong's Go backend and Vite's SPA HMR server together (see run-spa-dev).
-run-oolong-spa-dev:
-    @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 OOLONG_SPA=1 OOLONG_OAUTH_REDIRECT_URI=http://127.0.0.1:5174/oauth/callback go run ./cmd/oolong & \
-        backend_pid=$$!; \
-        trap 'kill $$backend_pid 2>/dev/null || true; wait $$backend_pid 2>/dev/null || true' EXIT INT TERM; \
-        VITE_APP=oolong VITE_BACKEND_URL=http://127.0.0.1:18920 VITE_DEV_PORT=5174 pnpm --dir web run dev
-
 build:
     @pnpm run build:svelte
     @./scripts/build-spa.sh
@@ -116,9 +99,6 @@ build:
 
 templ-watch-arabica:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 templ generate --watch --proxy="http://localhost:18079" --cmd="go run ./cmd/arabica -known-dids known-dids.txt"
-
-templ-watch-oolong:
-    @LOG_LEVEL=debug LOG_FORMAT=console OOLONG_DEV=1 templ generate --watch --proxy="http://localhost:18081" --cmd="go run ./cmd/oolong"
 
 templ-generate:
     @templ generate
@@ -172,11 +152,6 @@ _e2e-run *args:
 e2e: e2e-build
     @just _e2e-run
 
-# Run Playwright against the Oolong-configured test harness. Pass a spec or
-# Playwright arguments after the target to narrow the currently ported flows.
-e2e-oolong *args: e2e-build
-    @ARABICA_E2E_APP=oolong just _e2e-run {{args}}
-
 # Update Playwright screenshot baselines after intentional UI changes.
 # Defaults to the visual-regression spec; pass a spec + extra Playwright args
 # to scope the update, e.g. after moving a single button:
@@ -189,10 +164,6 @@ e2e-update-snapshots testfile='tests/e2e/visual-regression.spec.ts' *args='': e2
 # Run only the e2e-server (without Playwright) for manual testing.
 e2e-server: e2e-build
     @go run -tags=integration ./cmd/e2e-server
-
-# Run only the Oolong E2E server for manual SPA testing.
-e2e-oolong-server: e2e-build
-    @ARABICA_E2E_APP=oolong go run -tags=integration ./cmd/e2e-server
 
 # Run all CI checks locally (mirrors .github/workflows/ci.yml).
 ci-check:

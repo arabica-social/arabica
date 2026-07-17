@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 	"github.com/stretchr/testify/require"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 )
 
 func TestHandleSessionJSONAnonymous(t *testing.T) {

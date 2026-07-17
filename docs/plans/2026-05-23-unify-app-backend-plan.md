@@ -2,6 +2,13 @@
 
 Date: 2026-05-23
 
+> **Status:** Superseded. Oolong has been extracted into its own fork and
+> removed from this repository; Arabica is now the sole app here. This plan
+> is preserved as a historical record of the shared-backend direction that
+> preceded the split. See
+> [`2026-07-16-oolong-extraction-seam-cleanup`](2026-07-16-oolong-extraction-seam-cleanup.md)
+> for the extraction decision.
+
 ## Goal
 
 Reduce the Arabica/Oolong seam in backend code while keeping the real product

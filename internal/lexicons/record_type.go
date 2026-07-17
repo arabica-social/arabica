@@ -15,19 +15,6 @@ const (
 	RecordTypeRoaster RecordType = "roaster"
 )
 
-const (
-	RecordTypeOolongTea     RecordType = "oolong-tea"
-	RecordTypeOolongBrew    RecordType = "oolong-brew"
-	RecordTypeOolongVessel  RecordType = "oolong-vessel"
-	RecordTypeOolongInfuser RecordType = "oolong-infuser"
-	RecordTypeOolongVendor  RecordType = "oolong-vendor"
-	// Cafe and Drink are defined but deferred for the v1 launch — their
-	// descriptors are not registered. Keep the constants so feed/firehose
-	// code that switches on record type still has a stable name.
-	RecordTypeOolongCafe  RecordType = "oolong-cafe"
-	RecordTypeOolongDrink RecordType = "oolong-drink"
-)
-
 // String returns the string representation of the RecordType.
 func (r RecordType) String() string {
 	return string(r)
@@ -37,8 +24,6 @@ func (r RecordType) String() string {
 func ParseRecordType(s string) RecordType {
 	switch RecordType(s) {
 	case RecordTypeBean, RecordTypeBrew, RecordTypeBrewer, RecordTypeGrinder, RecordTypeRecipe, RecordTypeRoaster:
-		return RecordType(s)
-	case RecordTypeOolongTea, RecordTypeOolongBrew, RecordTypeOolongVessel, RecordTypeOolongInfuser, RecordTypeOolongVendor, RecordTypeOolongCafe, RecordTypeOolongDrink:
 		return RecordType(s)
 	default:
 		return ""
@@ -62,20 +47,6 @@ func (r RecordType) DisplayName() string {
 		return "Recipe"
 	case RecordTypeRoaster:
 		return "Roaster"
-	case RecordTypeOolongTea:
-		return "Tea"
-	case RecordTypeOolongBrew:
-		return "Tea Brew"
-	case RecordTypeOolongVessel:
-		return "Vessel"
-	case RecordTypeOolongInfuser:
-		return "Infuser"
-	case RecordTypeOolongVendor:
-		return "Tea Vendor"
-	case RecordTypeOolongCafe:
-		return "Tea Cafe"
-	case RecordTypeOolongDrink:
-		return "Tea Drink"
 	default:
 		return string(r)
 	}

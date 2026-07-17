@@ -21,22 +21,6 @@ func TestArabicaBundleFromEmbed(t *testing.T) {
 		"first bytes should come from tokens.css; got: %q", string(bytes[:300]))
 }
 
-func TestOolongBundleAppendsThemeOverlay(t *testing.T) {
-	b := New(Config{AppName: "oolong"})
-	b.MustBuild()
-
-	bytes, _, err := b.current()
-	assert.NoError(t, err)
-	assert.NotEmpty(t, bytes)
-
-	arabica := New(Config{AppName: "arabica"})
-	arabica.MustBuild()
-	arBytes, _, _ := arabica.current()
-
-	assert.Greater(t, len(bytes), len(arBytes),
-		"oolong bundle should be larger than arabica by the theme overlay")
-}
-
 func TestHrefIncludesContentHash(t *testing.T) {
 	b := New(Config{AppName: "arabica"})
 	href := b.Href()
@@ -45,11 +29,6 @@ func TestHrefIncludesContentHash(t *testing.T) {
 	// hash should be 16 hex chars after the ?h=
 	hash := strings.TrimPrefix(href, "/static/css/output.css?h=")
 	assert.Len(t, hash, 16)
-}
-
-func TestNonArabicaURLPath(t *testing.T) {
-	b := New(Config{AppName: "oolong"})
-	assert.Equal(t, "/static/css/output-oolong.css", b.URLPath())
 }
 
 func TestHandlerImmutableCacheInProduction(t *testing.T) {

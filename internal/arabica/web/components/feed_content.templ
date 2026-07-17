@@ -49,7 +49,6 @@ templ BrewerFeedContent(item *feed.FeedItem) {
 }
 
 // FeedBrewContentClickable renders brew content wrapped in a clickable link.
-// Moved from pages/feed.templ during Phase 1 of the oolong-frontend split.
 templ FeedBrewContentClickable(item *feed.FeedItem) {
 	@FeedBrewContentClickableWithPreferences(item, profileprefs.DefaultUserPreferences())
 }

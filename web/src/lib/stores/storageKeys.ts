@@ -1,9 +1,9 @@
 // App-scoped storage key derivation.
 //
-// Arabica and Oolong share a single SvelteKit build and may run on the same
-// origin. All localStorage / sessionStorage keys and custom event names must
-// be scoped by the active app name so the two apps never clobber each
-// other's caches, themes, or mutation events.
+// The Go shell injects data-app on <body>. All localStorage / sessionStorage
+// keys and custom event names are scoped by the active app name so caches,
+// themes, and mutation events never collide across apps that might share an
+// origin.
 
 function activeApp(): string {
   return document.body?.dataset?.app || "arabica";

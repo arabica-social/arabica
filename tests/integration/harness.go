@@ -25,8 +25,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
-	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
-	teahandlers "tangled.org/arabica.social/arabica/internal/oolong/handlers"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/spa"
@@ -134,8 +132,8 @@ type TestAccount struct {
 
 // HarnessOptions configures harness setup.
 type HarnessOptions struct {
-	// App selects the product handler tree. Supported values are "arabica"
-	// (the default) and "oolong".
+	// App selects the product handler tree. Only "arabica" is supported
+	// (Oolong now lives in its own fork). Kept for option compatibility.
 	App string
 	// PrimaryHandle is the handle of the default account. Defaults to "alice.test".
 	PrimaryHandle string
@@ -278,12 +276,7 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	logger := zerolog.Nop()
 	app := arabicaapp.New()
 	var appRoutes routing.AppRoutes = coffeehandlers.Routes{}
-	switch opts.App {
-	case "arabica":
-	case "oolong":
-		app = oolongapp.New()
-		appRoutes = teahandlers.Routes{}
-	default:
+	if opts.App != "" && opts.App != "arabica" {
 		return nil, fmt.Errorf("unsupported harness app %q", opts.App)
 	}
 	h.SetApp(app)

@@ -10,11 +10,6 @@
 		roaster: { icon: "store", label: "Roaster" },
 		grinder: { icon: "gear", label: "Grinder" },
 		brewer: { icon: "brewer", label: "Brewer" },
-		steep: { icon: "droplet", label: "Steep" },
-		tea: { icon: "leaf", label: "Tea" },
-		vendor: { icon: "store", label: "Vendor" },
-		infuser: { icon: "disc", label: "Infuser" },
-		vessel: { icon: "teapot", label: "Vessel" },
 		cafe: { icon: "mapPin", label: "Cafe" },
 		drink: { icon: "coffee", label: "Drink" },
 	};

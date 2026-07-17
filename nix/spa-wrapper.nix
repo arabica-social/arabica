@@ -5,7 +5,7 @@
   appName,
 }:
 
-# Thin wrapper around the base arabica/oolong package that boots the server
+# Thin wrapper around the base arabica package that boots the server
 # with the embedded SvelteKit SPA enabled (SPA=1). The base package already
 # embeds the SPA build output (see nix/default.nix preBuild); this derivation
 # only flips the runtime env var so `nix run .#arabica-spa` serves the SPA

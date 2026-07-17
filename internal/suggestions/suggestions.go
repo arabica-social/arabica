@@ -60,8 +60,8 @@ var entityConfigs = map[string]FieldConfig{}
 
 // Register installs a FieldConfig for the given collection NSID. Called
 // from each app's entity-registration init() — see
-// internal/entities/{arabica,oolong}/suggestions.go. Duplicate
-// registrations overwrite, on the theory that test fixtures may want
+// internal/arabica/entities/suggestions.go. Duplicate registrations
+// overwrite, on the theory that test fixtures may want
 // to replace a real config.
 func Register(nsid string, cfg FieldConfig) {
 	entityConfigs[nsid] = cfg

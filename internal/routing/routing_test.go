@@ -9,24 +9,18 @@ import (
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
 )
 
 func TestRegisterEntityRoutesFiltersUnionByAppDescriptors(t *testing.T) {
 	bundles := []handlers.EntityRouteBundle{
 		{RecordType: lexicons.RecordTypeBean, View: okHandler("bean")},
-		{RecordType: lexicons.RecordTypeOolongTea, View: okHandler("tea")},
+		{RecordType: lexicons.RecordTypeRoaster, View: okHandler("roaster")},
 	}
 
 	arabicaMux := http.NewServeMux()
 	RegisterEntityRoutes(arabicaMux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, NewPageRoutes(nil, nil))
 	assertRouteStatus(t, arabicaMux, "GET", "/beans/alice.test/r1", http.StatusOK)
-	assertRouteStatus(t, arabicaMux, "GET", "/teas/alice.test/r1", http.StatusNotFound)
-
-	oolongMux := http.NewServeMux()
-	RegisterEntityRoutes(oolongMux, http.NewCrossOriginProtection(), oolongapp.New(), bundles, NewPageRoutes(nil, nil))
-	assertRouteStatus(t, oolongMux, "GET", "/beans/alice.test/r1", http.StatusNotFound)
-	assertRouteStatus(t, oolongMux, "GET", "/teas/alice.test/r1", http.StatusOK)
+	assertRouteStatus(t, arabicaMux, "GET", "/roasters/alice.test/r1", http.StatusOK)
 }
 
 func TestRegisterEntityRoutesUsesExplicitPageOwnership(t *testing.T) {

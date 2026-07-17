@@ -18,7 +18,6 @@
   let createOpen = $state(false);
   let userOpen = $state(false);
 
-  let isOolong = $derived($app === "oolong");
   let definition = $derived(definitionFor($app));
   let s = $derived($session);
   let unread = $derived(s.unreadNotifications);
@@ -48,24 +47,22 @@
     if (s.isAuthenticated) {
       items.push({
         href: "/brews",
-        label: isOolong ? "Steeps" : "Brews",
-        shortLabel: isOolong ? "Steeps" : "Brews",
-        icon: isOolong ? "droplet" : "coffee",
+        label: "Brews",
+        shortLabel: "Brews",
+        icon: "coffee",
       });
       items.push({
         href: definition.libraryPath,
         label: definition.libraryLabel,
-        shortLabel: isOolong ? "My Tea" : "My Coffee",
-        icon: isOolong ? "leaf" : "bean",
+        shortLabel: "My Coffee",
+        icon: "bean",
       });
-      if (!isOolong) {
-        items.push({
-          href: "/recipes",
-          label: "Recipes",
-          shortLabel: "Recipes",
-          icon: "fileText",
-        });
-      }
+      items.push({
+        href: "/recipes",
+        label: "Recipes",
+        shortLabel: "Recipes",
+        icon: "fileText",
+      });
     }
     return items;
   });
@@ -117,7 +114,7 @@
   <nav class="site-header__bar" aria-label="Primary navigation">
     <a href="/" class="site-brand" aria-label={`${brandName} community home`}>
       <span class="site-brand__mark" aria-hidden="true">
-        <Icon name={isOolong ? "teapot" : "coffee"} />
+        <Icon name="coffee" />
       </span>
       <span class="site-brand__name">{brandName}</span>
       <span class="badge-alpha">ALPHA</span>
@@ -149,7 +146,7 @@
             aria-label="Create new"
             aria-expanded={createOpen}
           >
-            <Icon name={isOolong ? "droplet" : "coffee"} />
+            <Icon name="coffee" />
             <span class="create-action__long">{definition.sessionAction}</span>
             <span class="create-action__short">Log</span>
             <Icon name="chevronDown" class="create-action__chevron" />
@@ -158,9 +155,9 @@
             <div class="ledger-menu ledger-menu--create" role="menu">
               <div class="ledger-menu__heading"><span>01</span>Log</div>
               <a href="/brews/new" class="ledger-menu__primary" role="menuitem">
-                <Icon name={isOolong ? "droplet" : "coffee"} />
+                <Icon name="coffee" />
                 <span
-                  ><strong>{isOolong ? "New steep" : "New brew"}</strong><small
+                  ><strong>New brew</strong><small
                     >Add a session to your journal</small
                   ></span
                 >
@@ -168,42 +165,25 @@
               <div class="ledger-menu__heading ledger-menu__heading--secondary">
                 <span>02</span>Add to your ledger
               </div>
-              {#if isOolong}
-                <a href="/teas/new" class="ledger-menu__item" role="menuitem"
-                  ><Icon name="leaf" />Tea</a
-                >
-                <a href="/vendors/new" class="ledger-menu__item" role="menuitem"
-                  ><Icon name="store" />Vendor</a
-                >
-                <a href="/vessels/new" class="ledger-menu__item" role="menuitem"
-                  ><Icon name="brewer" />Vessel</a
-                >
-                <a
-                  href="/infusers/new"
-                  class="ledger-menu__item"
-                  role="menuitem"><Icon name="disc" />Infuser</a
-                >
-              {:else}
-                <a href="/beans/new" class="ledger-menu__item" role="menuitem"
-                  ><Icon name="bean" />Bean</a
-                >
-                <a
-                  href="/roasters/new"
-                  class="ledger-menu__item"
-                  role="menuitem"><Icon name="store" />Roaster</a
-                >
-                <a
-                  href="/grinders/new"
-                  class="ledger-menu__item"
-                  role="menuitem"><Icon name="disc" />Grinder</a
-                >
-                <a href="/brewers/new" class="ledger-menu__item" role="menuitem"
-                  ><Icon name="brewer" />Brewer</a
-                >
-                <a href="/recipes/new" class="ledger-menu__item" role="menuitem"
-                  ><Icon name="fileText" />Recipe</a
-                >
-              {/if}
+              <a href="/beans/new" class="ledger-menu__item" role="menuitem"
+                ><Icon name="bean" />Bean</a
+              >
+              <a
+                href="/roasters/new"
+                class="ledger-menu__item"
+                role="menuitem"><Icon name="store" />Roaster</a
+              >
+              <a
+                href="/grinders/new"
+                class="ledger-menu__item"
+                role="menuitem"><Icon name="disc" />Grinder</a
+              >
+              <a href="/brewers/new" class="ledger-menu__item" role="menuitem"
+                ><Icon name="brewer" />Brewer</a
+              >
+              <a href="/recipes/new" class="ledger-menu__item" role="menuitem"
+                ><Icon name="fileText" />Recipe</a
+              >
             </div>
           {/if}
         </div>

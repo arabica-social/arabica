@@ -27,14 +27,9 @@ var semiboldTTF []byte
 //go:embed arabica-logo.png
 var arabicaLogoPNG []byte
 
-//go:embed oolong-logo.png
-var oolongLogoPNG []byte
-
 var (
 	arabicaLogoImage image.Image
 	arabicaLogoOnce  sync.Once
-	oolongLogoImage  image.Image
-	oolongLogoOnce   sync.Once
 )
 
 // Card represents a drawable image canvas for generating OG card images.
@@ -366,15 +361,10 @@ func GetLogo() image.Image {
 	return arabicaLogoImage
 }
 
-// GetLogoFor returns the embedded logo for the given app name. Unknown
-// app names fall back to the arabica logo so legacy/site callers keep working.
+// GetLogoFor returns the embedded logo for the given app name. Only the
+// Arabica logo is embedded now; the parameter is retained for call-site
+// compatibility.
 func GetLogoFor(appName string) image.Image {
-	if appName == "oolong" {
-		oolongLogoOnce.Do(func() {
-			oolongLogoImage, _ = png.Decode(bytes.NewReader(oolongLogoPNG))
-		})
-		return oolongLogoImage
-	}
 	return GetLogo()
 }
 

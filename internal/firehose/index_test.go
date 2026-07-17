@@ -6,24 +6,22 @@ import (
 	"testing"
 	"time"
 
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewFeedIndexScopesFeedableCollectionsToDescriptors(t *testing.T) {
-	app := oolongapp.New()
+	app := arabicaapp.New()
 	idx, err := NewFeedIndex(t.TempDir()+"/test.db", time.Hour, WithFeedableDescriptors(app.Descriptors))
 	assert.NoError(t, err)
 	defer idx.Close()
 
-	_, hasTea := idx.recordTypeToNSID[lexicons.RecordTypeOolongTea]
 	_, hasCoffeeBean := idx.recordTypeToNSID[lexicons.RecordTypeBean]
-	assert.True(t, hasTea)
-	assert.False(t, hasCoffeeBean, "feed index should not inherit sister-app descriptors from global registration")
-	assert.NotContains(t, idx.feedableCollections, "social.arabica.alpha.bean")
+	assert.True(t, hasCoffeeBean)
+	assert.Contains(t, idx.feedableCollections, "social.arabica.alpha.bean")
 }
 
 func TestBackfillTracking(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	_ "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/entities"
-	_ "tangled.org/arabica.social/arabica/internal/oolong/entities"
 )
 
 func TestAllForApp_filtersByNSIDPrefix(t *testing.T) {
@@ -18,16 +17,7 @@ func TestAllForApp_filtersByNSIDPrefix(t *testing.T) {
 	}
 	assert.NotEmpty(t, arab, "expected arabica descriptors")
 
-	tea := entities.AllForApp("social.oolong.alpha")
-	for _, d := range tea {
-		assert.True(t, strings.HasPrefix(d.NSID, "social.oolong.alpha."),
-			"oolong filter leaked NSID %s", d.NSID)
-	}
-	assert.NotEmpty(t, tea, "expected oolong descriptors")
-
-	for _, a := range arab {
-		for _, o := range tea {
-			assert.NotEqual(t, a.NSID, o.NSID)
-		}
-	}
+	// A non-matching base returns no descriptors.
+	none := entities.AllForApp("social.other.alpha")
+	assert.Empty(t, none, "expected no descriptors for a non-matching base")
 }

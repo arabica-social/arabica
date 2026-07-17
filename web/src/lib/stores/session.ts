@@ -30,7 +30,7 @@ export type Session = {
   temperatureUnit: string;
 };
 
-export type AppName = "arabica" | "oolong";
+export type AppName = "arabica";
 
 function readBody(): HTMLElement {
   if (typeof document === "undefined") {
@@ -56,11 +56,9 @@ function readSession(): Session {
 }
 
 function readApp(): AppName {
-  const body = readBody();
-  if (body.dataset.app === "arabica" || body.dataset.app === "oolong") {
-    return body.dataset.app;
-  }
-  return import.meta.env.VITE_APP === "oolong" ? "oolong" : "arabica";
+  // The SPA is now Arabica-only. The Go shell still injects data-app for
+  // forward-compat; we keep reading it but always resolve to "arabica".
+  return "arabica";
 }
 
 export const session = writable<Session>(readSession());

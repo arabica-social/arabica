@@ -9,7 +9,7 @@ import (
 type HomeProps struct {
 	IsAuthenticated bool
 	UserDID         string
-	AppName         string                 // "arabica" or "oolong" — toggles welcome + dashboard embeds
+	AppName         string                 // "arabica"
 	Descriptors     []*entities.Descriptor // App-scoped descriptors for feed filter tabs
 	FeedViews       feedviews.Registry     // App-scoped feed labels/renderers for filter tabs
 	Ready           bool                   // false when the running app's required first-run records are missing
@@ -21,11 +21,6 @@ templ Home(layout *components.LayoutData, props HomeProps) {
 
 templ HomeContent(props HomeProps) {
 	<div class="page-container-lg">
-		if props.AppName == "oolong" {
-			<div class="alert-warning mb-4">
-				<strong>Heads up:</strong> oolong is <em>very</em> new and unstable (initial release was May 17th). Breaking lexicon changes <strong>will</strong> happen frequently.
-			</div>
-		}
 		if props.IsAuthenticated {
 			@components.WelcomeCard(components.WelcomeCardProps{
 				IsAuthenticated: props.IsAuthenticated,
@@ -35,12 +30,10 @@ templ HomeContent(props HomeProps) {
 			})
 			<!-- Modal container for entity create/edit dialogs opened from dashboard -->
 			<div id="modal-container"></div>
-			if props.AppName != "oolong" {
-				<!-- Incomplete records loaded async (arabica-only; oolong has no equivalent surface yet). -->
-				<div id="incomplete-records-section" hx-get="/api/incomplete-records" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML"></div>
-				<!-- Popular recipes loaded async (arabica-only handler). -->
-				<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML"></div>
-			}
+			<!-- Incomplete records loaded async. -->
+			<div id="incomplete-records-section" hx-get="/api/incomplete-records" hx-trigger="load, refreshManage from:body" hx-swap="innerHTML"></div>
+			<!-- Popular recipes loaded async. -->
+			<div hx-get="/api/popular-recipes" hx-trigger="load" hx-swap="innerHTML"></div>
 		} else {
 			@components.WelcomeHeroFor(props.AppName)
 		}

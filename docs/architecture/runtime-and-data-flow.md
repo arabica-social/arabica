@@ -16,7 +16,7 @@ Related decisions: [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md),
 
 | Data | Role | Durability | Owner/source |
 |---|---|---|---|
-| Arabica/Oolong records | Authoritative user data | PDS repository durability | User's PDS |
+| Arabica records | Authoritative user data | PDS repository durability | User's PDS |
 | OAuth sessions and requests | Local operational state | SQLite-backed and deployment-local | OAuth/session storage |
 | Session cache | Typed collection read optimization | In-memory, two-minute validity | User-scoped session cache |
 | Witness records | Local evidence of repository records | SQLite, recoverable through backfill/firehose | Firehose index |

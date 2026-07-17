@@ -120,30 +120,6 @@ describe("BacklinksView component", () => {
 		expect(link.getAttribute("href")).toBe("/brews/bob.test/brew-1");
 	});
 
-	it("uses the active Oolong app route mapping", () => {
-		app.set("oolong");
-		const oolongResult: BacklinksResult = {
-			...result,
-			LibraryEntries: [
-				{
-					...result.LibraryEntries[0],
-					Collection: "social.oolong.alpha.vendor",
-					RKey: "vendor-1",
-				},
-			],
-		};
-		render(BacklinksView, {
-			result: oolongResult,
-			entityNoun: "vendor",
-			entityName: "Tea House",
-			backURL: "",
-		});
-		expect(screen.getByText("Ethiopian Yirgacheffe")).toHaveAttribute(
-			"href",
-			"/vendors/alice.test/vendor-1",
-		);
-	});
-
 	it("renders empty state when result is null", () => {
 		render(BacklinksView, {
 			result: null,

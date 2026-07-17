@@ -29,7 +29,7 @@ type FeedQueryJSON struct {
 
 // FeedFilterTabJSON is a single filter pill in the feed filter bar. The
 // "All" tab has an empty Value; per-entity tabs use the filter noun from
-// the app's feed views. This is app-scoped so oolong gets its own tabs.
+// the app's feed views. This is app-scoped so each app gets its own tabs.
 type FeedFilterTabJSON struct {
 	Label string `json:"label"`
 	Value string `json:"value"`

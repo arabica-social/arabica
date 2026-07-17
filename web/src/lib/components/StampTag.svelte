@@ -96,14 +96,6 @@
     border-color: var(--type-roaster);
     background: var(--type-roaster);
   }
-  .stamp-tag.active[data-tab="tea"] {
-    border-color: var(--type-tea);
-    background: var(--type-tea);
-  }
-  .stamp-tag.active[data-tab="vendor"] {
-    border-color: var(--type-vendor);
-    background: var(--type-vendor);
-  }
   .stamp-tag.active[data-tab="cafe"] {
     border-color: var(--type-cafe);
     background: var(--type-cafe);

@@ -161,7 +161,7 @@ func (idx *FeedIndex) reindexExploreRecord(ctx context.Context, uri string) erro
 	rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
 	reg := idx.exploreRegistry()
 	if reg == nil {
-		// App has no explore surface (e.g. Oolong). Nothing to index.
+		// App has no explore surface. Nothing to index.
 		return nil
 	}
 	typ, ok := reg.TypeByNSID(rec.Collection)
@@ -414,7 +414,7 @@ func (idx *FeedIndex) reindexExploreDependents(ctx context.Context, uri, collect
 func (idx *FeedIndex) GetExplore(ctx context.Context, q ExploreQuery) (*ExploreResult, error) {
 	reg := idx.exploreRegistry()
 	if reg == nil {
-		// App has no explore surface (e.g. Oolong). Return an empty result
+		// App has no explore surface. Return an empty result
 		// rather than erroring, so handlers can render an empty explore page.
 		return &ExploreResult{Items: []*feed.FeedItem{}, Documents: map[string]ExploreDocument{}}, nil
 	}

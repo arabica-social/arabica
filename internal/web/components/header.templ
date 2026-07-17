@@ -14,7 +14,7 @@ type HeaderProps struct {
 	IsModerator             bool   // Show admin link in dropdown
 	UnreadNotificationCount int    // Badge count for bell icon
 	BrandName               string // "Arabica"; falls back to "Arabica" when empty
-	AppName                 string // "arabica" or "oolong" — selects the create-new dropdown contents
+	AppName                 string // "arabica" — selects the create-new dropdown contents
 }
 
 // brandName returns the configured brand name with the arabica default
@@ -78,11 +78,7 @@ templ HeaderWithProps(props HeaderProps) {
 								</svg>
 							</button>
 							<div data-disclosure-menu class="dropdown-menu w-52" role="menu">
-								if props.AppName == "oolong" {
-									@oolongCreateDropdownItems()
-								} else {
-									@arabicaCreateDropdownItems()
-								}
+								@arabicaCreateDropdownItems()
 							</div>
 						</div>
 						<!-- User profile dropdown -->
@@ -114,21 +110,15 @@ templ HeaderWithProps(props HeaderProps) {
 								<a href={ templ.SafeURL("/profile/" + getProfileIdentifier(props.UserProfile, props.UserDID)) } class="dropdown-item" role="menuitem">
 									View Profile
 								</a>
-								if props.AppName == "oolong" {
-									<a href="/my-tea" class="dropdown-item" role="menuitem">
-										My Tea
-									</a>
-								} else {
-									<a href="/explore" class="dropdown-item" role="menuitem">
-										Explore
-									</a>
-									<a href="/my-coffee" class="dropdown-item" role="menuitem">
-										My Coffee
-									</a>
-									<a href="/recipes" class="dropdown-item" role="menuitem">
-										Recipes
-									</a>
-								}
+								<a href="/explore" class="dropdown-item" role="menuitem">
+									Explore
+								</a>
+								<a href="/my-coffee" class="dropdown-item" role="menuitem">
+									My Coffee
+								</a>
+								<a href="/recipes" class="dropdown-item" role="menuitem">
+									Recipes
+								</a>
 								<a href="/settings" class="dropdown-item" role="menuitem">
 									Settings
 								</a>
@@ -285,34 +275,3 @@ templ arabicaCreateDropdownItems() {
 	</button>
 }
 
-// oolongCreateDropdownItems renders the "+" menu entries for the tea
-// app: open the steep/tea/vendor/vessel/infuser modals. Cafe, drink,
-// and recipe entries are deferred for v1.
-templ oolongCreateDropdownItems() {
-	<div class="dropdown-header">
-		<p class="text-xs font-semibold uppercase tracking-wider text-faint">Log</p>
-	</div>
-	<a href="/brews/new" class="dropdown-item w-full text-left" data-disclosure-close role="menuitem">
-		@IconDroplet()
-		New Steep
-	</a>
-	<div class="dropdown-divider">
-		<p class="px-4 pt-1 text-xs font-semibold uppercase tracking-wider text-faint">Add</p>
-	</div>
-	<a href="/teas/new" class="dropdown-item w-full text-left" data-disclosure-close role="menuitem">
-		@IconLeaf()
-		Tea
-	</a>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vendor/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
-		@IconStore()
-		Vendor
-	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/vessel/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
-		@IconBrewer()
-		Vessel
-	</button>
-	<button class="dropdown-item w-full text-left" hx-get="/api/modals/infuser/new" hx-target="#modal-container" hx-swap="innerHTML" data-disclosure-close role="menuitem">
-		@IconDisc()
-		Infuser
-	</button>
-}

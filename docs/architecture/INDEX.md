@@ -30,8 +30,9 @@ preserve. It is deliberately not a history or roadmap.
    legacy Templ page or the embedded SvelteKit SPA shell according to explicit
    route ownership.
 
-Arabica and Oolong share platform infrastructure while owning their own app
-configuration, record registrations, routes, presentation, and databases.
+The platform remains app-agnostic by design, while this repository hosts the
+Arabica application and its app-owned configuration, records, routes, and
+presentation.
 
 ## Inventories
 
@@ -40,7 +41,7 @@ configuration, record registrations, routes, presentation, and databases.
 | [Runtime and data flow](runtime-and-data-flow.md) | PDS authority, local read layers, writes, firehose ingestion, and rebuild paths |
 | [Entities and record contracts](entities-and-record-contracts.md) | App configuration, lexicons, descriptors, record behavior, and relationships |
 | [Interfaces and route ownership](interfaces-and-route-ownership.md) | OAuth/XRPC boundaries, HTTP/JSON surfaces, page ownership, and contract locations |
-| [Frontend transition](frontend-transition.md) | Embedded SPA architecture, current Arabica/Oolong cutover state, and coexistence rules |
+| [Frontend transition](frontend-transition.md) | Embedded SPA architecture and current Arabica cutover state |
 
 ## Stability Labels
 

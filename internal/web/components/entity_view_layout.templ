@@ -14,9 +14,7 @@ import (
 // entity.
 //
 // GuardActionBar gates rendering of ActionBar (and the gap-3 wrapper
-// around BackButton) behind a SubjectURI/SubjectCID non-empty check —
-// oolong views use this because freshly-created records may not yet be
-// indexed by the firehose; arabica views always render the bar.
+// around BackButton) behind a SubjectURI/SubjectCID non-empty check.
 type EntityViewLayoutProps struct {
 	RecordType        string
 	Title             string

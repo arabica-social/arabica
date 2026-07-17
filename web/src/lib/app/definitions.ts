@@ -1,6 +1,5 @@
 import type { AppName } from "$lib/stores/session";
 import { arabica } from "./arabica";
-import { oolong } from "./oolong";
 
 export type EntityRouteDefinition = Record<string, string>;
 
@@ -26,7 +25,7 @@ export type AppDefinition = {
 	aboutBody: string;
 };
 
-export const appDefinitions: Record<AppName, AppDefinition> = { arabica, oolong };
+export const appDefinitions: Record<AppName, AppDefinition> = { arabica };
 
 export function definitionFor(app: AppName): AppDefinition {
 	return appDefinitions[app];

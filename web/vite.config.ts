@@ -3,8 +3,7 @@ import { defineConfig } from "vite";
 
 // Keep browser requests same-origin in development: Vite owns SPA pages and
 // HMR, while Go continues to own APIs, OAuth, mutations, and shared assets.
-// The target is configurable so the same web workspace can run Arabica or
-// Oolong. Keep changeOrigin false so Go sees the browser-facing Vite host.
+// Keep changeOrigin false so Go sees the browser-facing Vite host.
 const backendTarget = process.env.VITE_BACKEND_URL ?? "http://127.0.0.1:18910";
 const devPort = Number(process.env.VITE_DEV_PORT ?? "5173");
 const backendRoute =

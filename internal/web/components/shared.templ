@@ -370,18 +370,14 @@ templ PageHeader(props PageHeaderProps) {
 type WelcomeCardProps struct {
 	IsAuthenticated bool
 	UserDID         string
-	AppName         string // "arabica" or "oolong" — toggles per-app copy + buttons
+	AppName         string // "arabica"
 	Ready           bool
 }
 
 // WelcomeCard renders the authenticated welcome with action buttons (used on home page)
 templ WelcomeCard(props WelcomeCardProps) {
 	if props.IsAuthenticated {
-		if props.AppName == "oolong" {
-			@welcomeAuthenticatedOolong(props)
-		} else {
-			@welcomeAuthenticatedArabica(props)
-		}
+		@welcomeAuthenticatedArabica(props)
 	}
 }
 
@@ -427,38 +423,6 @@ templ welcomeAuthenticatedArabica(props WelcomeCardProps) {
 	</div>
 }
 
-templ welcomeAuthenticatedOolong(props WelcomeCardProps) {
-	<div class="text-center mb-8 pt-4">
-		<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-6">Your tea journey, documented.</h1>
-		if !props.Ready {
-			<div class="alert-warning mb-6 max-w-xl mx-auto flex items-center justify-between gap-3 text-left">
-				<div>
-					<strong>Welcome!</strong>
-					<span class="alert-warning-muted">A vendor, a vessel, and a tea — then you're ready to log steeps.</span>
-				</div>
-				<a href="/onboarding" class="btn-primary text-sm whitespace-nowrap">Get Started →</a>
-			</div>
-		}
-		<div class="grid grid-cols-3 gap-3 max-w-xl mx-auto">
-			if props.Ready {
-				<a href="/brews/new" class="home-action-primary block text-center py-4 px-4 rounded-xl">
-					<span class="text-base font-semibold">Log Steep</span>
-				</a>
-			} else {
-				<a href="/onboarding" class="home-action-primary block text-center py-4 px-4 rounded-xl opacity-60" aria-disabled="true">
-					<span class="text-base font-semibold">Log Steep — finish setup</span>
-				</a>
-			}
-			<a href="/my-tea" class="home-action-secondary block text-center py-4 px-4 rounded-xl">
-				<span class="text-base font-semibold">My Tea</span>
-			</a>
-			<a href={ templ.SafeURL("/profile/" + props.UserDID) } class="home-action-secondary block text-center py-4 px-4 rounded-xl">
-				<span class="text-base font-semibold">Profile</span>
-			</a>
-		</div>
-	</div>
-}
-
 // WelcomeHero renders the landing hero for unauthenticated users.
 // Currently a single coffee-flavored variant. Per-app messaging on
 // the hero (and the per-app /about / /terms pages) lands in Phase 4e.
@@ -472,21 +436,9 @@ templ WelcomeHero() {
 	</div>
 }
 
-// WelcomeHeroFor returns the hero matching the running app. Unauth'd
-// homepage callers pass the app name so the tea variant lands in
-// oolong without an extra page-per-app.
+// WelcomeHeroFor is retained for callers that pass the app name.
 templ WelcomeHeroFor(appName string) {
-	if appName == "oolong" {
-		<div class="text-center mb-8 pt-4">
-			<h1 class="text-3xl sm:text-4xl font-semibold text-primary mb-3">Your tea journey, documented.</h1>
-			<p class="text-lg text-emphasis max-w-xl mx-auto mb-3">Log every steep, track your teaware and vendors, and share your tea story with the community.</p>
-			<p class="text-sm text-faint">
-				<a href="/atproto" class="hover:text-emphasis transition-colors">Built on AT Protocol</a> — you own your data.
-			</p>
-		</div>
-	} else {
-		@WelcomeHero()
-	}
+	@WelcomeHero()
 }
 
 // WelcomeLoginCard renders a compact login card for unauthenticated users

@@ -172,14 +172,6 @@ func main() {
 		{"/tmp/og-site.png", func() (*ogcard.Card, error) {
 			return ogcard.DrawSiteCard(ogcard.SiteCardOpts{})
 		}},
-		{"/tmp/og-site-oolong.png", func() (*ogcard.Card, error) {
-			return ogcard.DrawSiteCard(ogcard.SiteCardOpts{
-				AppName:  "oolong",
-				Wordmark: "Oolong",
-				Tagline:  "tea journaling for the open social web",
-				Detail:   "log every steep, share your tea story",
-			})
-		}},
 	}
 
 	for _, tc := range cases {

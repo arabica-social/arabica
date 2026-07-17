@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"github.com/stretchr/testify/assert"
 )
 
 // TestHandleBrewCreateJSONSessionExpired asserts the typed JSON create

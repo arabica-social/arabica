@@ -1,5 +1,5 @@
-// Command server runs Arabica and Oolong in one process while keeping each
-// app's listener, metrics port, data directory, and SQLite database isolated.
+// Command server runs the Arabica app. (It previously ran Arabica and Oolong
+// in one process; Oolong now lives in its own fork.)
 package main
 
 import (
@@ -17,8 +17,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/logging"
-	oolongapp "tangled.org/arabica.social/arabica/internal/oolong/app"
-	teahandlers "tangled.org/arabica.social/arabica/internal/oolong/handlers"
 	"tangled.org/arabica.social/arabica/internal/routing"
 
 	"github.com/rs/zerolog/log"
@@ -51,7 +49,6 @@ func main() {
 
 	runs := []appRun{
 		{app: arabicaapp.New(), defaultPort: "18910", defaultMetricsPort: "9101", appRoutes: coffeehandlers.Routes{}},
-		{app: oolongapp.New(), defaultPort: "18920", defaultMetricsPort: "9102", appRoutes: teahandlers.Routes{}, staticPages: teahandlers.StaticPages()},
 	}
 
 	if err := runApps(ctx, *knownDIDsFile, runs); err != nil {

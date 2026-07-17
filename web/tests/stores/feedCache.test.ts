@@ -104,7 +104,7 @@ describe("feedCache store", () => {
 
 		it("returns null and removes the entry when app changed", () => {
 			setCachedFeedJSON("/api/feed", { items: [] });
-			setBody("did:plc:alice", "oolong");
+			setBody("did:plc:alice", "other");
 
 			expect(getCachedFeedJSON("/api/feed")).toBeNull();
 			expect(sessionStorage.getItem(feedCacheKey("/api/feed"))).toBeNull();

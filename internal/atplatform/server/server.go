@@ -1,6 +1,6 @@
 // Package server holds the bootstrap that constructs every shared
 // dependency (database, OAuth, firehose, handlers, router) and serves
-// HTTP until shutdown. cmd/arabica/main.go and cmd/oolong/main.go both
+// HTTP until shutdown. cmd/arabica/main.go and cmd/server/main.go both
 // call Run after building their respective *domain.App, so a bug fix
 // in the boot sequence benefits both binaries with no duplication.
 package server
@@ -103,8 +103,8 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		Msg("Constructed app config")
 
 	// Initialize OpenTelemetry tracing once per process. Multi-app boot
-	// (cmd/server running both arabica and oolong) calls Run twice; the
-	// tracer provider is global, so init must not race or double-register.
+	// (cmd/server) calls Run once; the tracer provider is global, so init
+	// must not race or double-register.
 	tracingOnce.Do(func() {
 		tp, err := tracing.Init(context.Background(), app.Name)
 		if err != nil {
@@ -499,7 +499,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 //  3. ~/.local/share/<appName> — default for local dev on Linux.
 //     Source: "home".
 //
-// Both arabica and oolong running on the same host get isolated dirs
+// Multiple apps running on the same host get isolated dirs
 // regardless of which branch fires (the appName segment ensures that).
 //
 // The source string is returned so startup can log *why* a given path
@@ -562,9 +562,8 @@ func devModeEnabled(envPrefix string) bool {
 }
 
 // lookupAppEnv returns os.Getenv("<envPrefix>_<key>") if set, falling
-// back to os.Getenv(key). This lets a single binary running multiple
-// apps (cmd/server) keep per-app overrides like ARABICA_PORT and
-// OOLONG_PORT distinct, while a one-app deploy that only sets the
+// back to os.Getenv(key). This lets a binary running an app keep per-app
+// overrides like ARABICA_PORT distinct, while a deploy that only sets the
 // shared key continues to work unchanged.
 func lookupAppEnv(envPrefix, key string) string {
 	if v := os.Getenv(envPrefix + "_" + key); v != "" {

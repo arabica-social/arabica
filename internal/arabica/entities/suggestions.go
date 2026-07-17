@@ -9,7 +9,7 @@ import (
 
 // init wires the arabica entity collections into the suggestions
 // registry. Lives in the arabica entity package — not in suggestions —
-// so cmd/oolong's binary doesn't have to drag in arabica's NSID
+// so a sister app's binary doesn't have to drag in arabica's NSID
 // constants or dedup logic.
 func init() {
 	suggestions.Register(NSIDRoaster, suggestions.FieldConfig{

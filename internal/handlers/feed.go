@@ -266,7 +266,7 @@ func (h *Handler) handleFeedJSON(w http.ResponseWriter, r *http.Request) {
 	// hidden-record badges in the feed — mirroring the HTMX partial path.
 	modCtx := h.BuildModerationContext(r.Context(), res.viewerDID, res.items)
 	ApplyModerationContext(items, modCtx)
-	// Build app-scoped filter tabs so oolong gets its own labels.
+	// Build app-scoped filter tabs so each app gets its own labels.
 	var tabs []FeedFilterTabJSON
 	if h.app != nil {
 		tabs = BuildFeedTabs(h.app.Descriptors, h.feedViews)

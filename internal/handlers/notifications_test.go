@@ -12,16 +12,16 @@ import (
 func TestResolveNotificationLinkUsesActiveAppDescriptor(t *testing.T) {
 	app := &domain.App{
 		Descriptors: []*entities.Descriptor{
-			{Type: "oolong-tea", NSID: "social.oolong.alpha.tea"},
+			{Type: "bean", NSID: "social.arabica.alpha.bean"},
 		},
 		EntityRoutes: []domain.EntityRoute{
-			{Type: "oolong-tea", Path: "teas", Noun: "tea"},
+			{Type: "bean", Path: "beans", Noun: "bean"},
 		},
 	}
 
-	link := resolveNotificationLink(app, "at://did:plc:alice/social.oolong.alpha.tea/3abc")
+	link := resolveNotificationLink(app, "at://did:plc:alice/social.arabica.alpha.bean/3abc")
 
-	assert.Equal(t, "/teas/did:plc:alice/3abc", link)
+	assert.Equal(t, "/beans/did:plc:alice/3abc", link)
 }
 
 func TestResolveNotificationLinkRejectsUnknownCollections(t *testing.T) {
@@ -34,7 +34,7 @@ func TestResolveNotificationLinkRejectsUnknownCollections(t *testing.T) {
 		},
 	}
 
-	assert.Empty(t, resolveNotificationLink(app, "at://did:plc:alice/social.oolong.alpha.tea/3abc"))
+	assert.Empty(t, resolveNotificationLink(app, "at://did:plc:alice/social.other.alpha.tea/3abc"))
 	assert.Empty(t, resolveNotificationLink(app, "not-an-at-uri"))
 }
 
@@ -52,5 +52,5 @@ func TestResolveNotificationEntityNameUsesDescriptorNounWithFallback(t *testing.
 
 	assert.Equal(t, "bean", resolveNotificationEntityName(app, "at://did:plc:alice/social.arabica.alpha.bean/3abc"))
 	assert.Equal(t, "recipe", resolveNotificationEntityName(app, "at://did:plc:alice/social.arabica.alpha.recipe/3abc"))
-	assert.Equal(t, "content", resolveNotificationEntityName(app, "at://did:plc:alice/social.oolong.alpha.tea/3abc"))
+	assert.Equal(t, "content", resolveNotificationEntityName(app, "at://did:plc:alice/social.arabica.alpha.comment/3abc"))
 }

@@ -26,7 +26,7 @@ func TestSharedPackagesDoNotAddAppImports(t *testing.T) {
 	unexpected := difference(actual, expected)
 	stale := difference(expected, actual)
 
-	assert.Empty(t, unexpected, "new app-specific imports from shared packages are forbidden; move behavior to internal/arabica or internal/oolong, or deliberately update the baseline while paying down this seam")
+	assert.Empty(t, unexpected, "new app-specific imports from shared packages are forbidden; move behavior to internal/arabica, or deliberately update the baseline while paying down this seam")
 	assert.Empty(t, stale, "remove fixed imports from existingSharedAppImports so the seam guard keeps ratcheting down")
 }
 
@@ -79,7 +79,7 @@ func sharedAppImports(t *testing.T) map[string]struct{} {
 				return nil
 			}
 			rel := strings.TrimPrefix(path, "../../")
-			if rel == ".git" || rel == ".jj" || rel == "internal/arabica" || rel == "internal/oolong" {
+			if rel == ".git" || rel == ".jj" || rel == "internal/arabica" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -185,8 +185,7 @@ func unquoteImportPath(t *testing.T, spec *ast.ImportSpec) string {
 }
 
 func isAppImport(importPath string) bool {
-	return strings.HasPrefix(importPath, modulePath+"/internal/arabica") ||
-		strings.HasPrefix(importPath, modulePath+"/internal/oolong")
+	return strings.HasPrefix(importPath, modulePath+"/internal/arabica")
 }
 
 func stringSet(values []string) map[string]struct{} {
