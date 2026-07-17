@@ -841,7 +841,8 @@ func (h *Handler) HandleAdminExportDID(w http.ResponseWriter, r *http.Request) {
 		out.Collections[collection] = exported
 	}
 
-	filename := fmt.Sprintf("arabica-witness-%s-%s.json",
+	filename := fmt.Sprintf("%s-witness-%s-%s.json",
+		h.appName(),
 		strings.ReplaceAll(didStr, ":", "_"),
 		out.ExportedAt.Format("20060102-150405"))
 
@@ -1101,7 +1102,8 @@ func (h *Handler) HandleAdminFetchPDSRecords(w http.ResponseWriter, r *http.Requ
 		Str("actor", requester).
 		Msg("PDS fetch: returned records")
 
-	filename := fmt.Sprintf("arabica-pds-%s-%s.json",
+	filename := fmt.Sprintf("%s-pds-%s-%s.json",
+		h.appName(),
 		strings.ReplaceAll(didStr, ":", "_"),
 		out.FetchedAt.Format("20060102-150405"))
 

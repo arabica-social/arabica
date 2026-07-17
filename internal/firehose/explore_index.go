@@ -159,7 +159,11 @@ func (idx *FeedIndex) reindexExploreRecord(ctx context.Context, uri string) erro
 	}
 	rec.Record = json.RawMessage(recordStr)
 	rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
-	reg := explore.NewArabicaRegistry(idx.recordTypeToNSID)
+	reg := idx.exploreRegistry()
+	if reg == nil {
+		// App has no explore surface (e.g. Oolong). Nothing to index.
+		return nil
+	}
 	typ, ok := reg.TypeByNSID(rec.Collection)
 	if !ok {
 		_, _ = idx.db.ExecContext(ctx, `DELETE FROM explore_values WHERE uri=?`, uri)
@@ -408,9 +412,14 @@ func (idx *FeedIndex) reindexExploreDependents(ctx context.Context, uri, collect
 }
 
 func (idx *FeedIndex) GetExplore(ctx context.Context, q ExploreQuery) (*ExploreResult, error) {
-	reg := explore.NewArabicaRegistry(idx.recordTypeToNSID)
+	reg := idx.exploreRegistry()
+	if reg == nil {
+		// App has no explore surface (e.g. Oolong). Return an empty result
+		// rather than erroring, so handlers can render an empty explore page.
+		return &ExploreResult{Items: []*feed.FeedItem{}, Documents: map[string]ExploreDocument{}}, nil
+	}
 	if q.App == "" {
-		q.App = "arabica"
+		q.App = idx.exploreAppName()
 	}
 	if q.Limit <= 0 || q.Limit > 50 {
 		q.Limit = 20

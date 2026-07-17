@@ -25,9 +25,13 @@ func New() *domain.App {
 			{Type: lexicons.RecordTypeBrew, Path: "brews", Noun: "brew"},
 		},
 		Brand: domain.BrandConfig{
-			DisplayName: "Arabica",
-			Tagline:     "Your brew, your data",
+			DisplayName:     "Arabica",
+			Tagline:         "Your brew, your data",
+			SiteDescription: "Arabica is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability.",
+			LightThemeColor: "#4a2c2a",
+			DarkThemeColor:  "#0F0A08",
 		},
+		LegacyUnprefixedCookies: true,
 		RecordStore: func(store records.Store) records.Store {
 			if atpStore, ok := store.(*atproto.AtprotoStore); ok {
 				return arabicastore.NewAtprotoStore(atpStore)

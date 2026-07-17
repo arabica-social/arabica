@@ -15,6 +15,7 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/explore"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/tracing"
@@ -66,6 +67,14 @@ type FeedIndex struct {
 	// that construct a FeedIndex directly via NewFeedIndex.
 	commentNSID string
 
+	// nsidBase / appName identify the running app, used to look up an
+	// app-specific explore registry (explore.RegistryFor) instead of
+	// hardcoding Arabica. Empty in tests that skip WithApp; explore then
+	// resolves to Arabica via the legacy NewArabicaRegistry fallback so
+	// existing firehose tests keep working.
+	nsidBase string
+	appName  string
+
 	// App-scoped feed collections. The running app passes its descriptors at
 	// construction time so feed queries don't depend on package-global entity
 	// registration side effects or include sister-app collections.
@@ -84,6 +93,8 @@ type FeedIndexOption func(*feedIndexConfig)
 
 type feedIndexConfig struct {
 	feedableDescriptors []*entities.Descriptor
+	nsidBase            string
+	appName             string
 }
 
 // WithFeedableDescriptors configures which app-owned entity descriptors should
@@ -92,6 +103,16 @@ type feedIndexConfig struct {
 func WithFeedableDescriptors(descriptors []*entities.Descriptor) FeedIndexOption {
 	return func(cfg *feedIndexConfig) {
 		cfg.feedableDescriptors = descriptors
+	}
+}
+
+// WithApp records the running app's NSID base and name so derived indexes
+// (explore) can look up an app-specific registry via explore.RegistryFor and
+// tag documents with the app name, instead of hardcoding Arabica.
+func WithApp(nsidBase, appName string) FeedIndexOption {
+	return func(cfg *feedIndexConfig) {
+		cfg.nsidBase = nsidBase
+		cfg.appName = appName
 	}
 }
 
@@ -105,7 +126,35 @@ func (idx *FeedIndex) commentCollection() string {
 	if idx.commentNSID != "" {
 		return idx.commentNSID
 	}
+	if idx.nsidBase != "" {
+		return idx.nsidBase + ".comment"
+	}
 	return "social.arabica.alpha.comment"
+}
+
+// exploreRegistry returns the running app's explore registry, or nil if the
+// app has no explore surface. It looks up the factory registered for the
+// app's NSID base (via explore.RegistryFor) so the firehose does not import
+// app code or hardcode Arabica. When no app is configured (tests), it falls
+// back to the Arabica registry so existing firehose tests keep working.
+func (idx *FeedIndex) exploreRegistry() *explore.Registry {
+	if idx.nsidBase != "" {
+		if factory := explore.RegistryFor(idx.nsidBase); factory != nil {
+			return factory(idx.recordTypeToNSID)
+		}
+		return nil
+	}
+	return explore.NewArabicaRegistry(idx.recordTypeToNSID)
+}
+
+// exploreAppName returns the app name used to tag explore documents, falling
+// back to "arabica" only for unconfigured test indexes. Production indexes
+// always set appName via WithApp.
+func (idx *FeedIndex) exploreAppName() string {
+	if idx.appName != "" {
+		return idx.appName
+	}
+	return "arabica"
 }
 
 // schemaNoTrailingPragma is the firehose SQLite schema. PRAGMAs stay in the
@@ -199,6 +248,8 @@ func NewFeedIndex(path string, profileTTL time.Duration, opts ...FeedIndexOption
 		recordTypeToNSID:    recordTypeToNSID,
 		feedableCollections: feedableCollections,
 		profileCache:        make(map[string]*CachedProfile),
+		nsidBase:            cfg.nsidBase,
+		appName:             cfg.appName,
 	}
 
 	// One-time backfill: populate did_by_handle from any pre-existing profile rows

@@ -142,7 +142,7 @@ func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg E
 
 	ownerHandle := h.ResolveOwnerHandle(r.Context(), owner)
 	layoutData := h.BuildLayoutData(r, cfg.DisplayName(loaded.Record), isAuthenticated, didStr, userProfile)
-	PopulateOGFields(layoutData, cfg.OGSubtitle(loaded.Record), loaded.EntityNoun, ownerHandle, h.PublicBaseURL(r), shareURL)
+	PopulateOGFields(layoutData, cfg.OGSubtitle(loaded.Record), loaded.EntityNoun, ownerHandle, h.PublicBaseURL(r), shareURL, h.brandName())
 
 	sd := h.FetchSocialData(r.Context(), loaded.SubjectURI, didStr, isAuthenticated)
 	bl, blDetailURL := h.fetchBacklinks(r.Context(), loaded.SubjectURI, loaded.Route.Path, rkey, ownerSegment(owner, userProfile, didStr))

@@ -185,22 +185,60 @@ func appName(a *domain.App) string {
 	return a.Name
 }
 
-// CookieNames returns the auth cookie names for a given app. Arabica
-// keeps the legacy unprefixed names so prod sessions don't break;
-// every other app gets a per-app prefix so multiple apps can run on
-// localhost without clobbering each other's cookies (loopback OAuth
-// pins us to 127.0.0.1, so the browser shares one cookie jar across
-// ports).
-func CookieNames(app string) (did, sess string) {
-	if app == "" || app == "arabica" {
+// appName returns the running app's lowercase identifier via the package
+// helper, for handlers that want a method form.
+func (h *Handler) appName() string {
+	return appName(h.app)
+}
+
+// brandName returns the app's brand display name for OG titles and other
+// user-facing strings, falling back to the app name then "Arabica" for
+// unconfigured handlers (legacy tests, ad-hoc construction).
+func (h *Handler) brandName() string {
+	if h.app != nil {
+		if h.app.Brand.DisplayName != "" {
+			return h.app.Brand.DisplayName
+		}
+		if h.app.Name != "" {
+			return h.app.Name
+		}
+	}
+	return "Arabica"
+}
+
+// appClient returns a lowercased app identifier for the X-Client header on
+// outbound PDS search requests, derived from the app name. Falls back to
+// "arabica" for unconfigured handlers.
+func (h *Handler) appClient() string {
+	if h.app != nil && h.app.Name != "" {
+		return h.app.Name
+	}
+	return "arabica"
+}
+
+// CookieNames returns the auth cookie names for a given app. Apps with
+// App.LegacyUnprefixedCookies true (Arabica) keep the legacy unprefixed
+// names so prod sessions don't break; every other app gets a per-app
+// prefix so multiple apps can run on localhost without clobbering each
+// other's cookies (loopback OAuth pins us to 127.0.0.1, so the browser
+// shares one cookie jar across ports).
+func CookieNames(app *domain.App) (did, sess string) {
+	name := ""
+	if app != nil {
+		name = app.Name
+	}
+	if app != nil && app.LegacyUnprefixedCookies {
 		return "account_did", "session_id"
 	}
-	return app + "_account_did", app + "_session_id"
+	if name == "" {
+		name = "arabica"
+	}
+	return name + "_account_did", name + "_session_id"
 }
 
 // cookieNames returns this handler's auth cookie names.
 func (h *Handler) cookieNames() (did, sess string) {
-	return CookieNames(appName(h.app))
+	return CookieNames(h.app)
 }
 
 // appNSIDs returns the running app's NSID list. Returns nil if SetApp
@@ -608,15 +646,16 @@ func (h *Handler) ResolveOwnerHandle(ctx context.Context, owner string) string {
 }
 
 // PopulateOGFields sets the standard OG metadata fields for an entity page.
-// The title follows the pattern "{type} from {owner} on arabica.social".
+// The title follows the pattern "{type} from {owner} on {siteName}", where
+// siteName is the app's brand display name (e.g. "Arabica", "Oolong").
 // The subtitle (OG description) shows record-specific detail like the bean name.
-func PopulateOGFields(layoutData *components.LayoutData, subtitle, recordType, owner, baseURL, shareURL string) {
+func PopulateOGFields(layoutData *components.LayoutData, subtitle, recordType, owner, baseURL, shareURL, siteName string) {
 	layoutData.OGType = "article"
 
 	if owner != "" {
-		layoutData.OGTitle = fmt.Sprintf("%s from %s on arabica.social", recordType, owner)
+		layoutData.OGTitle = fmt.Sprintf("%s from %s on %s", recordType, owner, siteName)
 	} else {
-		layoutData.OGTitle = fmt.Sprintf("%s on arabica.social", recordType)
+		layoutData.OGTitle = fmt.Sprintf("%s on %s", recordType, siteName)
 	}
 
 	layoutData.OGDescription = subtitle

@@ -305,7 +305,7 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 		manifest := assets.NewManifest(cssBundle, jsAssets)
 		h.SetAssetManifest(manifest)
 
-		sh, err := spa.NewShellHandler(manifest, app.Name)
+		sh, err := spa.NewShellHandler(manifest, app.Name, app.Brand)
 		if err != nil {
 			return nil, fmt.Errorf("create SPA shell: %w", err)
 		}

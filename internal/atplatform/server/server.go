@@ -106,7 +106,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	// (cmd/server running both arabica and oolong) calls Run twice; the
 	// tracer provider is global, so init must not race or double-register.
 	tracingOnce.Do(func() {
-		tp, err := tracing.Init(context.Background())
+		tp, err := tracing.Init(context.Background(), app.Name)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to initialize tracing, continuing without it")
 			return
@@ -155,6 +155,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		dbPath,
 		time.Duration(firehoseConfig.ProfileCacheTTL)*time.Second,
 		firehose.WithFeedableDescriptors(app.Descriptors),
+		firehose.WithApp(app.NSIDBase, app.Name),
 	)
 	if err != nil {
 		return fmt.Errorf("open database at %s: %w", dbPath, err)
@@ -364,7 +365,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	// templ pages continue to work during migration.
 	var spaHandler http.Handler
 	if os.Getenv(envPrefix+"_SPA") == "1" || os.Getenv("SPA") == "1" {
-		sh, err := spa.NewShellHandler(manifest, app.Name)
+		sh, err := spa.NewShellHandler(manifest, app.Name, app.Brand)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to create SPA shell handler, SPA disabled")
 		} else {

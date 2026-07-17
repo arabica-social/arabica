@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 
@@ -22,14 +23,37 @@ func testManifest() assets.Manifest {
 	return assets.NewManifest(nil, nil)
 }
 
+// arabicaBrand / oolongBrand mirror the BrandConfig set by each app's
+// constructor (internal/{arabica,oolong}/app/app.go). Keeping a local copy
+// lets the spa tests run without importing the app packages.
+func arabicaBrand() domain.BrandConfig {
+	return domain.BrandConfig{
+		DisplayName:     "Arabica",
+		Tagline:         "Your brew, your data",
+		SiteDescription: "Arabica is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability.",
+		LightThemeColor: "#4a2c2a",
+		DarkThemeColor:  "#0F0A08",
+	}
+}
+
+func oolongBrand() domain.BrandConfig {
+	return domain.BrandConfig{
+		DisplayName:     "Oolong",
+		Tagline:         "Your tea, your data",
+		SiteDescription: "Oolong is a tea tracking app built on AT Protocol. Your steep logs, teas, and teaware are stored in your own Personal Data Server, giving you full ownership and portability.",
+		LightThemeColor: "#b8d5aa",
+		DarkThemeColor:  "#162018",
+	}
+}
+
 func TestNewShellHandler_ReadsEmbeddedIndex(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 	assert.NotEmpty(t, h.indexHTML, "indexHTML should be loaded from embed")
 }
 
 func TestShellHandler_InjectsHeadContent(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/some/spa/route", nil)
@@ -53,7 +77,7 @@ func TestShellHandler_InjectsHeadContent(t *testing.T) {
 }
 
 func TestShellHandler_InjectsCSPNonce(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 
 	// Simulate the security middleware adding a nonce to context.
@@ -76,7 +100,7 @@ func TestShellHandler_InjectsCSPNonce(t *testing.T) {
 }
 
 func TestShellHandler_InjectsBodyAttrs(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 
 	t.Run("with DID", func(t *testing.T) {
@@ -104,7 +128,7 @@ func TestShellHandler_InjectsBodyAttrs(t *testing.T) {
 }
 
 func TestShellHandler_InjectsSessionData(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 	h.SetSessionResolver(func(_ context.Context, did string) SessionData {
 		if did != "did:plc:test123" {
@@ -135,7 +159,7 @@ func TestShellHandler_InjectsSessionData(t *testing.T) {
 }
 
 func TestShellHandler_SessionDataEscaped(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 	h.SetSessionResolver(func(_ context.Context, _ string) SessionData {
 		return SessionData{
@@ -157,7 +181,7 @@ func TestShellHandler_SessionDataEscaped(t *testing.T) {
 }
 
 func TestShellHandler_OolongBranding(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "oolong")
+	h, err := NewShellHandler(testManifest(), "oolong", oolongBrand())
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/", nil)
@@ -173,7 +197,7 @@ func TestShellHandler_OolongBranding(t *testing.T) {
 }
 
 func TestShellHandler_OGImage(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 
 	// Simulate entity-specific OG data via context (future: middleware sets this)
@@ -244,7 +268,7 @@ func TestContentTypeLockingResponseWriter(t *testing.T) {
 }
 
 func TestShellHandler_TraceparentInjected(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/", nil)
@@ -258,7 +282,7 @@ func TestShellHandler_TraceparentInjected(t *testing.T) {
 }
 
 func TestShellHandler_MarkerReplaced(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/", nil)
@@ -275,7 +299,7 @@ func TestShellHandler_MarkerReplaced(t *testing.T) {
 }
 
 func TestShellHandler_NoCacheHeader(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/", nil)
@@ -287,7 +311,7 @@ func TestShellHandler_NoCacheHeader(t *testing.T) {
 
 // Ensure the shell HTML is well-formed enough to contain key structural elements
 func TestShellHandler_HTMLStructure(t *testing.T) {
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/", nil)
@@ -319,7 +343,7 @@ func TestShellHandler_DevDir_ReadsIndexFromDisk(t *testing.T) {
 		"</head><body data-dev-source=\"disk\">dev shell</body></html>"
 	require.NoError(t, os.WriteFile(filepath.Join(devDir, "index.html"), []byte(devIndex), 0o644))
 
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 	h.SetDevDir(devDir)
 
@@ -343,7 +367,7 @@ func TestShellHandler_DevDir_FallsBackToEmbedded(t *testing.T) {
 	// Temp dir with no index.html.
 	devDir := t.TempDir()
 
-	h, err := NewShellHandler(testManifest(), "arabica")
+	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
 	h.SetDevDir(devDir)
 

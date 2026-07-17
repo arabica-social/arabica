@@ -21,8 +21,11 @@ func New() *domain.App {
 			{Type: lexicons.RecordTypeOolongBrew, Path: "brews", Noun: "brew"},
 		},
 		Brand: domain.BrandConfig{
-			DisplayName: "Oolong",
-			Tagline:     "Your tea, your data",
+			DisplayName:     "Oolong",
+			Tagline:         "Your tea, your data",
+			SiteDescription: "Oolong is a tea tracking app built on AT Protocol. Your steep logs, teas, and teaware are stored in your own Personal Data Server, giving you full ownership and portability.",
+			LightThemeColor: "#b8d5aa",
+			DarkThemeColor:  "#162018",
 		},
 	}
 }

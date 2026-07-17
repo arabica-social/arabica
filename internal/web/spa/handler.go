@@ -32,6 +32,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -41,10 +42,12 @@ import (
 // All values are pre-computed by the handler before template execution —
 // the template only reads fields, never calls methods.
 type ShellData struct {
-	Title           string
-	BrandName       string
-	BrandTagline    string
-	AppName         string
+	Title        string
+	BrandName    string
+	BrandTagline string
+	AppName      string
+	// SiteDescription is the app-level meta description from domain.Brand.
+	SiteDescription string
 	OGTitle         string
 	OGDescription   string
 	OGImage         string
@@ -70,7 +73,6 @@ type ShellData struct {
 	TemperatureUnit         string
 
 	// Pre-computed values for the template (derived from the fields above).
-	SiteDescription string
 	PageTitle       string
 	LightThemeColor string
 	DarkThemeColor  string
@@ -87,7 +89,7 @@ type ShellHandler struct {
 	indexHTML    []byte
 	headTemplate *template.Template
 	appName      string
-	brandName    string
+	brand        domain.BrandConfig
 	manifest     assets.Manifest
 	// sessionResolver, when set, provides per-request session data
 	// (profile, unread count, moderator flag) for the authenticated user.
@@ -149,7 +151,7 @@ type OGResolver func(r *http.Request) OGData
 // NewShellHandler creates a handler that serves the SPA shell. It reads
 // the embedded index.html at construction time. The assets manifest
 // provides cache-busted CSS hrefs for the <head>.
-func NewShellHandler(manifest assets.Manifest, appName string) (*ShellHandler, error) {
+func NewShellHandler(manifest assets.Manifest, appName string, brand domain.BrandConfig) (*ShellHandler, error) {
 	fsys := EmbeddedFS()
 	indexBytes, err := fs.ReadFile(fsys, "index.html")
 	if err != nil {
@@ -167,7 +169,7 @@ func NewShellHandler(manifest assets.Manifest, appName string) (*ShellHandler, e
 		indexHTML:    indexBytes,
 		headTemplate: tmpl,
 		appName:      appName,
-		brandName:    brandNameForApp(appName),
+		brand:        brand,
 		manifest:     manifest,
 	}, nil
 }
@@ -202,10 +204,13 @@ func (h *ShellHandler) SetDevDir(dir string) {
 // ServeHTTP serves the SPA index.html with injected <head> content.
 func (h *ShellHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	data := ShellData{
-		AppName:        h.appName,
-		BrandName:      h.brandName,
-		BrandTagline:   brandTaglineForApp(h.appName),
-		StylesheetHref: h.manifest.StylesheetHref(h.appName),
+		AppName:         h.appName,
+		BrandName:       h.brand.DisplayName,
+		BrandTagline:    h.brand.Tagline,
+		SiteDescription: h.brand.SiteDescription,
+		LightThemeColor: h.brand.LightThemeColor,
+		DarkThemeColor:  h.brand.DarkThemeColor,
+		StylesheetHref:  h.manifest.StylesheetHref(h.appName),
 	}
 
 	// Populate from request context if available (auth state, traceparent,
@@ -399,24 +404,10 @@ func htmlEscapeAttr(s string) string {
 }
 
 func (d ShellData) siteDescription() string {
-	if d.AppName == "oolong" {
-		return d.BrandName + " is a tea tracking app built on AT Protocol. Your steep logs, teas, and teaware are stored in your own Personal Data Server, giving you full ownership and portability."
+	if d.SiteDescription != "" {
+		return d.SiteDescription
 	}
-	return d.BrandName + " is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability."
-}
-
-func brandNameForApp(appName string) string {
-	if appName == "oolong" {
-		return "Oolong"
-	}
-	return "Arabica"
-}
-
-func brandTaglineForApp(appName string) string {
-	if appName == "oolong" {
-		return "Your tea, your data"
-	}
-	return "Your brew, your data"
+	return d.BrandName + " is a brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability."
 }
 
 func (d ShellData) pageTitle() string {
@@ -427,15 +418,15 @@ func (d ShellData) pageTitle() string {
 }
 
 func (d ShellData) lightThemeColor() string {
-	if d.AppName == "oolong" {
-		return "#b8d5aa"
+	if d.LightThemeColor != "" {
+		return d.LightThemeColor
 	}
 	return "#4a2c2a"
 }
 
 func (d ShellData) darkThemeColor() string {
-	if d.AppName == "oolong" {
-		return "#162018"
+	if d.DarkThemeColor != "" {
+		return d.DarkThemeColor
 	}
 	return "#0F0A08"
 }

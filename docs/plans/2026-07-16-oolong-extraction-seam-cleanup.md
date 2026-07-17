@@ -213,7 +213,26 @@ These cleanups make the boundary honest. They are worthwhile **independently of
 extraction** — each one removes a fake-shared assumption or a string branch
 that should have been config. Ordered by impact and independence.
 
-### C1 — Make explore app-pluggable, or move it under `internal/arabica`
+> **Status (2026-07-16):** C1, C3, and the C4/C5 identity-derivation work
+> are implemented in change `platform: make app-identity seam honest for
+> oolong extraction`. C2 (moving coffee query methods out of firehose) is
+> deferred — see its note. The `internal/atproto` User-Agent and
+> `internal/backup` metric-name leaks are also deferred: both are deeper
+> refactors (19 call sites; deferred Prometheus registration) with low
+> control-flow impact, not extraction blockers.
+
+### C1 — Make explore app-pluggable, or move it under `internal/arabica` ✅
+
+**Implemented as app-pluggable.** Added `explore.Register(nsidBase,
+factory)` + `explore.RegistryFor(nsidBase)` (mirroring `backlinks` /
+`suggestions`). Arabica registers its factory from
+`internal/arabica/entities/explore.go` init; Oolong registers nothing, so
+`RegistryFor` returns nil and the firehose treats explore as a no-op for it.
+`internal/firehose` no longer calls `explore.NewArabicaRegistry`
+unconditionally or defaults `q.App = "arabica"`; it looks up the factory via
+`FeedIndex.WithApp(nsidBase, appName)` and tags documents with the configured
+app name. `NewArabicaRegistry` is retained as a test fallback for indexes built
+without `WithApp`.
 
 Because Oolong does not use explore at all, the lowest-risk option is to **move
 `internal/explore` into `internal/arabica/explore`** and move the
@@ -244,7 +263,16 @@ Also make `FeedIndex.commentCollection()` default derive from the configured
 comment NSID rather than a hardcoded `social.arabica.alpha.comment` literal, so
 the fallback is never silently wrong for a non-Arabica app.
 
-### C3 — Drive the SPA shell and assets from `domain.App.Brand`
+### C3 — Drive the SPA shell and assets from `domain.App.Brand` ✅
+
+**Implemented.** Added `SiteDescription`, `LightThemeColor`, and
+`DarkThemeColor` to `domain.BrandConfig`; both app constructors populate them.
+`spa.NewShellHandler` now takes a `domain.BrandConfig` and reads brand,
+tagline, description, and theme colors from it. The five
+`if d.AppName == "oolong"` branches and the `brandNameForApp` /
+`brandTaglineForApp` helpers are removed. (The CSS-bundle URL-path convention
+— arabica as the unnamed default `/static/css/output.css` — is left as a stable
+URL contract, not an identity leak.)
 
 Replace the five `if d.AppName == "oolong"` branches in
 `internal/web/spa/handler.go` with reads from `domain.App.Brand`
@@ -256,7 +284,18 @@ with no implicit "no-suffix default" special case.
 This is strictly an improvement even if Oolong never moves: it removes string
 branching in favor of the config struct that already exists.
 
-### C4 — Derive `internal/handlers` defaults from `domain.App`
+### C4 — Derive `internal/handlers` defaults from `domain.App` ✅ (partial)
+
+**Implemented:** OG titles use a new `siteName` parameter (from `h.brandName()`)
+instead of hardcoded `arabica.social`; `X-Client` header, witness/PDS export
+filenames, and the fallback `SiteCardOpts` wordmark derive from `h.app`.
+Cookie names now branch on an explicit `App.LegacyUnprefixedCookies` boolean
+(Arabica = true) instead of `app == "arabica"` string comparison; `CookieNames`
+takes `*domain.App`.
+
+**Deferred:** the `commentNSID` fallback in `FilterHiddenComments` already
+derives from `h.app.CommentNSID()` in production; the hardcoded literal is only
+a nil-app test fallback and is left as-is.
 
 - OG title/wordmark/site-card from `domain.App.Brand` instead of
   `arabica.social` literals.
@@ -270,7 +309,20 @@ branching in favor of the config struct that already exists.
   brand field) rather than a name string comparison, so the rule is declared
   rather than inferred from identity.
 
-### C5 — Parameterize remaining hardcoded identity
+### C5 — Parameterize remaining hardcoded identity ✅ (partial)
+
+**Implemented:** `internal/tracing` `Init` now takes a `serviceName` (passed
+`app.Name` from `server.Run`); `internal/routing` otel span name uses
+`cfg.App.Name`.
+
+**Deferred:** `internal/atproto` `userAgent` is a package-level `const` reached
+via 19 `NewPublicClient()` call sites; making it app-derived requires threading
+app identity through all of them (or a package-level setter set at startup) and
+is low control-flow impact, so deferred. `internal/backup` metric names
+(`arabica_backup_*`) are registered at package `init()` via `promauto` before
+app config is known, and the unified `cmd/server` binary runs both apps in one
+process (shared metric instances, distinguished by `source` label); deferring
+registration to app-config time is a non-trivial refactor, deferred.
 
 - `internal/atproto/client.go` — derive `User-Agent` from `domain.App` (passed
   into the store/client constructor).
@@ -373,6 +425,15 @@ catch regressions in each changed area, per the AGENTS.md verification table.
   metric names reflect the active app.
 - After any change touching `.templ` files: run `templ generate` and include
   generated Go.
+
+> **Verification run (2026-07-16):** `go build ./...` and
+> `go build -tags=integration ./...` both clean; `go vet ./...` clean;
+> `go test ./...` (excluding integration) all pass;
+> `go test -tags=integration ./tests/integration/...` passes (52s);
+> `tests/architecture` package-seam guard (`TestSharedPackagesDoNotAddAppImports`)
+> still passes with an empty baseline — no shared package imports app code.
+> `gofmt` clean on all changed files. No `.templ` files were touched, so no
+> `templ generate` was needed.
 - Broad checkpoint once a cleanup batch lands: `just ci-check`.
 
 Do not claim full verification when only a partial signal was run.

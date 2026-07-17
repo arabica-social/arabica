@@ -290,11 +290,7 @@ func SetupRouter(cfg Config) http.Handler {
 
 	// 3. Apply OAuth middleware to add auth context
 	if cfg.OAuthApp != nil {
-		appName := ""
-		if cfg.App != nil {
-			appName = cfg.App.Name
-		}
-		didCookieName, sessCookieName := handlers.CookieNames(appName)
+		didCookieName, sessCookieName := handlers.CookieNames(cfg.App)
 		handler = atpmiddleware.CookieAuth(atpmiddleware.CookieAuthConfig{
 			OAuthApp:       cfg.OAuthApp,
 			DIDCookieName:  didCookieName,
@@ -322,7 +318,11 @@ func SetupRouter(cfg Config) http.Handler {
 	handler = pageContextMiddleware(handler)
 
 	// 9. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
-	handler = otelhttp.NewHandler(handler, "arabica",
+	spanName := "arabica"
+	if cfg.App != nil && cfg.App.Name != "" {
+		spanName = cfg.App.Name
+	}
+	handler = otelhttp.NewHandler(handler, spanName,
 		otelhttp.WithFilter(func(r *http.Request) bool {
 			return !strings.HasPrefix(r.URL.Path, "/static/") && r.URL.Path != "/favicon.ico"
 		}),

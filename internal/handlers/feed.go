@@ -118,9 +118,13 @@ func (h *Handler) siteCardOpts() ogcard.SiteCardOpts {
 	if h.homeBehavior.SiteCardOpts != (ogcard.SiteCardOpts{}) {
 		return h.homeBehavior.SiteCardOpts
 	}
+	// Fallback (e.g. tests without app behavior wired): derive from brand so
+	// the default isn't hardcoded to Arabica.
+	name := h.appName()
 	return ogcard.SiteCardOpts{
-		Wordmark: "arabica.social",
-		Tagline:  "coffee journaling for the open social web",
+		AppName:  name,
+		Wordmark: h.brandName(),
+		Tagline:  "journaling for the open social web",
 		Detail:   "track, share, and own your brews",
 	}
 }

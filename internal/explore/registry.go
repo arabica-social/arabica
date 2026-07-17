@@ -3,6 +3,7 @@ package explore
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
@@ -72,9 +73,17 @@ type Registry struct {
 }
 
 func NewArabicaRegistry(nsidByType map[lexicons.RecordType]string) *Registry {
+	return NewRegistry("arabica", nsidByType)
+}
+
+// NewRegistry builds an Arabica-shaped explore registry for the given app
+// name. It is app-pluggable: an app registers its own TypeDefs via Register
+// (or NewRegistry) and the firehose looks them up by NSID base. Today only
+// Arabica registers explore types; Oolong has no explore surface.
+func NewRegistry(app string, nsidByType map[lexicons.RecordType]string) *Registry {
 	types := make([]TypeDef, 0, 5)
 	add := func(def TypeDef) {
-		def.App = "arabica"
+		def.App = app
 		def.NSID = nsidByType[def.RecordType]
 		if def.NSID == "" {
 			return
@@ -122,6 +131,41 @@ func (r *Registry) Types() []TypeDef {
 		out = append(out, t)
 	}
 	return out
+}
+
+// --- per-app registry factories ---
+//
+// Apps register a RegistryFactory keyed by their NSID base (e.g.
+// "social.arabica.alpha") so the firehose can build an explore index for the
+// running app without importing app code. An app with no explore surface
+// (today: Oolong) simply does not register, and RegistryFor returns nil.
+
+type RegistryFactory func(nsids map[lexicons.RecordType]string) *Registry
+
+var (
+	registryMu        sync.RWMutex
+	registryFactories = map[string]RegistryFactory{}
+)
+
+// Register associates an app NSID base with the factory that builds its
+// explore registry. Call once per app from an init() in the app's entity
+// package. Panics on duplicate registration to catch wiring bugs at startup.
+func Register(nsidBase string, factory RegistryFactory) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+	if _, ok := registryFactories[nsidBase]; ok {
+		panic(fmt.Sprintf("explore: duplicate registry factory for %s", nsidBase))
+	}
+	registryFactories[nsidBase] = factory
+}
+
+// RegistryFor returns the registered registry factory for an app NSID base,
+// or nil if the app has no explore surface. Callers that get nil must treat
+// explore as a no-op (no documents indexed, no results returned).
+func RegistryFor(nsidBase string) RegistryFactory {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
+	return registryFactories[nsidBase]
 }
 func (r *Registry) ValidateSort(sort string) string {
 	switch sort {

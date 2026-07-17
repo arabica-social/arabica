@@ -479,7 +479,7 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	req.Header.Set("X-Client", "arabica.social")
+	req.Header.Set("X-Client", h.appClient())
 	resp, err := apiClient.Do(req)
 	if err != nil {
 		log.Warn().Err(err).Str("query", query).Msg("Failed to search actors")

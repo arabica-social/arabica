@@ -18,6 +18,13 @@ type App struct {
 	EntityRoutes []EntityRoute
 	Brand        BrandConfig
 	RecordStore  func(records.Store) records.Store
+
+	// LegacyUnprefixedCookies, when true, keeps the legacy unprefixed auth
+	// cookie names ("account_did", "session_id") so existing prod sessions
+	// don't break. New apps set this false and get per-app prefixed names so
+	// multiple apps can share a localhost cookie jar without clobbering each
+	// other. Replaces an earlier string comparison on app name.
+	LegacyUnprefixedCookies bool
 }
 
 type EntityRoute struct {
@@ -29,6 +36,18 @@ type EntityRoute struct {
 type BrandConfig struct {
 	DisplayName string
 	Tagline     string
+
+	// SiteDescription is the default meta description used by the SPA shell
+	// and OG tags when no record-specific description applies. It should
+	// describe the app in product terms ("a coffee brew tracking app built
+	// on AT Protocol").
+	SiteDescription string
+
+	// LightThemeColor and DarkThemeColor are the theme-color meta values
+	// injected into the SPA shell <head> for browser UI chrome. They are
+	// brand-specific presentation, not derived from the app name.
+	LightThemeColor string
+	DarkThemeColor  string
 }
 
 func (a *App) NSIDs() []string {
