@@ -28,6 +28,8 @@
 	let cachedData = $state<Record<string, unknown>>({});
 	let activeRecipe = $state<Recipe | null>(null);
 	let recipeExpanded = $state(false);
+	let recipeRatio = $state("");
+	let recipePours = $state<Pour[]>([]);
 	let brewerCategory = $state("");
 
 	// Form state
@@ -105,7 +107,7 @@
 	}
 
 	function clearCombo(type: ComboType) {
-		if (type === "recipe") { recipeRKeyValue = ""; recipeLabel = ""; activeRecipe = null; recipeOwner = ""; recipeExpanded = false; }
+		if (type === "recipe") { recipeRKeyValue = ""; recipeLabel = ""; activeRecipe = null; recipeOwner = ""; recipeExpanded = false; recipeRatio = ""; recipePours = []; }
 		if (type === "bean") { beanRKey = ""; beanLabel = ""; }
 		if (type === "grinder") { grinderRKey = ""; grinderLabel = ""; }
 		if (type === "brewer") { brewerRKey = ""; brewerLabel = ""; brewerCategory = ""; }
@@ -123,12 +125,84 @@
 			recipeExpanded = false;
 			coffeeAmount = recipe.coffee_amount > 0 ? String(Math.round(recipe.coffee_amount)) : "";
 			waterAmount = recipe.water_amount > 0 ? String(Math.round(recipe.water_amount)) : "";
-			pours = (recipe.pours ?? []).map((p) => ({ water: String(p.water_amount ?? ""), time: String(p.time_seconds ?? "") }));
+			recipeRatio = formatRatio(recipe.coffee_amount, recipe.water_amount);
+			recipePours = (recipe.pours ?? []).map((p) => ({ water: String(p.water_amount ?? ""), time: String(p.time_seconds ?? "") }));
+			pours = recipePours.map((pour) => ({ ...pour }));
 			const recipeBrewerType = recipe.brewer_type || recipe.brewer_obj?.brewer_type || "";
 			if (recipeBrewerType) brewerCategory = normalizeBrewerCategory(recipeBrewerType);
 		} catch {
 			// Ignore — user can fill manually.
 		}
+	}
+
+	function formatRatio(coffee: number, water: number): string {
+		if (coffee <= 0 || water <= 0) return "";
+		return String(Number((water / coffee).toFixed(2)));
+	}
+
+	function positiveNumber(value: string): number | null {
+		const parsed = Number(value);
+		return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+	}
+
+	function roundedAmount(value: number): string {
+		return String(Math.round(value));
+	}
+
+	function scalePoursToWater(targetWater: number) {
+		const pourTotal = recipePours.reduce((total, pour) => total + (positiveNumber(pour.water) ?? 0), 0);
+		if (pourTotal <= 0) return;
+
+		const lastPourIndex = recipePours.reduce(
+			(lastIndex, pour, index) => (positiveNumber(pour.water) === null ? lastIndex : index),
+			-1,
+		);
+		if (lastPourIndex === -1) return;
+
+		let scaledTotal = 0;
+		const scaled = recipePours.map((pour) => {
+			const water = positiveNumber(pour.water);
+			if (water === null) return pour;
+			const scaledWater = Math.round((water / pourTotal) * targetWater);
+			scaledTotal += scaledWater;
+			return { ...pour, water: String(scaledWater) };
+		});
+		const lastPour = scaled[lastPourIndex];
+		scaled[lastPourIndex] = {
+			...lastPour,
+			water: String(Math.max(0, Number(lastPour.water) + targetWater - scaledTotal)),
+		};
+		pours = scaled;
+	}
+
+	function setRecipeMeasurements(nextCoffee: number, nextWater: number) {
+		coffeeAmount = roundedAmount(nextCoffee);
+		waterAmount = roundedAmount(nextWater);
+		scalePoursToWater(Math.round(nextWater));
+	}
+
+	function adjustRecipeCoffee(value: string) {
+		coffeeAmount = value;
+		const coffee = positiveNumber(value);
+		const ratio = positiveNumber(recipeRatio);
+		if (coffee === null || ratio === null) return;
+		setRecipeMeasurements(coffee, coffee * ratio);
+	}
+
+	function adjustRecipeWater(value: string) {
+		waterAmount = value;
+		const water = positiveNumber(value);
+		const ratio = positiveNumber(recipeRatio);
+		if (water === null || ratio === null) return;
+		setRecipeMeasurements(water / ratio, water);
+	}
+
+	function adjustRecipeRatio(value: string) {
+		recipeRatio = value;
+		const ratio = positiveNumber(value);
+		const coffee = positiveNumber(coffeeAmount);
+		if (ratio === null || coffee === null) return;
+		setRecipeMeasurements(coffee, coffee * ratio);
 	}
 
 	function showRecipeOverrides(): boolean {
@@ -350,10 +424,32 @@
 				<div class="section-box">
 					<div class="flex items-center justify-between gap-2">
 						<p class="text-sm text-emphasis flex-1">{recipeSummary()}</p>
-						<button type="button" onclick={() => (recipeExpanded = !recipeExpanded)} class="text-sm btn-secondary">
-							{recipeExpanded ? "Collapse" : "Edit"}
+						<button type="button" onclick={() => (recipeExpanded = !recipeExpanded)} class="text-sm btn-secondary" aria-expanded={recipeExpanded}>
+							{recipeExpanded ? "Done adjusting" : "Adjust"}
 						</button>
 					</div>
+					{#if recipeExpanded}
+						<div class="recipe-adjustment" aria-label="Recipe adjustment">
+							<div class="recipe-adjustment-heading">
+								<p class="form-label">Quick adjustment</p>
+								<p class="text-helper">Set a dose, water, or ratio. The other measurement follows, and recipe pours scale with the water.</p>
+							</div>
+							<div class="recipe-adjustment-grid">
+								<label for="recipe-adjustment-coffee">
+									<span class="form-label">Coffee (g)</span>
+									<input id="recipe-adjustment-coffee" type="number" value={coffeeAmount} oninput={(event) => adjustRecipeCoffee(event.currentTarget.value)} step="1" min="1" class="w-full form-input-lg" />
+								</label>
+								<label for="recipe-adjustment-ratio">
+									<span class="form-label">Ratio (1:X)</span>
+									<input id="recipe-adjustment-ratio" type="number" value={recipeRatio} oninput={(event) => adjustRecipeRatio(event.currentTarget.value)} step="0.1" min="0.1" class="w-full form-input-lg" />
+								</label>
+								<label for="recipe-adjustment-water">
+									<span class="form-label">Water (g)</span>
+									<input id="recipe-adjustment-water" type="number" value={waterAmount} oninput={(event) => adjustRecipeWater(event.currentTarget.value)} step="1" min="1" class="w-full form-input-lg" />
+								</label>
+							</div>
+						</div>
+					{/if}
 				</div>
 			{/if}
 		</FormSection>
@@ -377,7 +473,7 @@
 					onChange={(detail) => handleComboChange("bean", detail)}
 				/>
 			</div>
-			{#if showRecipeOverrides()}
+			{#if !activeRecipe}
 				<Field label="Coffee Amount (grams)" helper="Amount of ground coffee used">
 					<input type="number" bind:value={coffeeAmount} placeholder="e.g. 18" step="1" class="w-full form-input-lg" aria-invalid={coffeeAmountError} />
 					{#if coffeeAmountError}<p class="text-xs text-red-600 mt-1">Coffee amount must be greater than 0.</p>{/if}
@@ -421,10 +517,12 @@
 						onChange={(detail) => handleComboChange("brewer", detail)}
 					/>
 				</div>
-				<Field label="Water Amount (grams)" helper={pours.length > 0 ? "Total water (pours tracked separately below)" : "Total water used"}>
-					<input type="number" bind:value={waterAmount} placeholder="e.g. 250" step="1" class="w-full form-input-lg" aria-invalid={waterAmountError} />
-					{#if waterAmountError}<p class="text-xs text-red-600 mt-1">Water amount must be greater than 0.</p>{/if}
-				</Field>
+				{#if !activeRecipe}
+					<Field label="Water Amount (grams)" helper={pours.length > 0 ? "Total water (pours tracked separately below)" : "Total water used"}>
+						<input type="number" bind:value={waterAmount} placeholder="e.g. 250" step="1" class="w-full form-input-lg" aria-invalid={waterAmountError} />
+						{#if waterAmountError}<p class="text-xs text-red-600 mt-1">Water amount must be greater than 0.</p>{/if}
+					</Field>
+				{/if}
 				<PoursEditor bind:pours expectedWater={waterAmount} />
 			{/if}
 			<Field label="Temperature (°F/°C)">
@@ -526,4 +624,21 @@
 	.brew-form-sheet :global(.form-section) + :global(.form-section) { margin-top: 0; }
 	.brew-form-sheet :global(.combo-select) { margin-bottom: 1.5rem; }
 	.brew-form-sheet :global(.combo-select:last-child) { margin-bottom: 0; }
+	.recipe-adjustment {
+		margin-top: 0.75rem;
+		padding: 1rem;
+		border: 1px solid color-mix(in oklch, var(--type-recipe) 35%, var(--surface-border));
+		border-radius: 0.5rem;
+		background: color-mix(in oklch, var(--type-recipe-tint) 40%, var(--surface-bg));
+	}
+	.recipe-adjustment-heading { margin-bottom: 0.75rem; }
+	.recipe-adjustment-heading :global(.text-helper) { margin-top: 0.25rem; }
+	.recipe-adjustment-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+	@media (max-width: 38rem) {
+		.recipe-adjustment-grid { grid-template-columns: 1fr; }
+	}
 </style>

@@ -81,6 +81,55 @@ describe("BrewForm cafe-counter migration", () => {
 		expect(screen.getByText(/Ratio 1:16\.7/)).toBeTruthy();
 	});
 
+	it("quickly scales a selected recipe by dose, ratio, or water", async () => {
+		const user = userEvent.setup();
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockImplementation((url: string) => {
+				if (url === "/api/recipes/daily-v60") {
+					return Promise.resolve(new Response(JSON.stringify({
+						rkey: "daily-v60",
+						name: "Daily V60",
+						coffee_amount: 18,
+						water_amount: 300,
+						brewer_type: "pourover",
+						pours: [
+							{ water_amount: 50, time_seconds: 30 },
+							{ water_amount: 250, time_seconds: 90 },
+						],
+					}), { status: 200, headers: { "Content-Type": "application/json" } }));
+				}
+				return Promise.resolve(new Response("{}", { status: 200 }));
+			}),
+		);
+		render(BrewForm, { brew: null, recipeRKey: "daily-v60", isEdit: false });
+
+		await user.click(await screen.findByRole("button", { name: "Adjust" }));
+
+		const coffee = screen.getByLabelText("Coffee (g)");
+		const ratio = screen.getByLabelText("Ratio (1:X)");
+		const water = screen.getByLabelText("Water (g)");
+		expect(coffee).toHaveValue(18);
+		expect(ratio).toHaveValue(16.67);
+		expect(water).toHaveValue(300);
+
+		await user.clear(coffee);
+		await user.type(coffee, "20");
+		await waitFor(() => expect(water).toHaveValue(333));
+		await waitFor(() => expect(screen.getByLabelText("Pour 1")).toHaveValue(56));
+		await waitFor(() => expect(screen.getByLabelText("Pour 2")).toHaveValue(277));
+
+		await user.clear(ratio);
+		await user.type(ratio, "15");
+		await waitFor(() => expect(water).toHaveValue(300));
+
+		await user.clear(water);
+		await user.type(water, "240");
+		await waitFor(() => expect(coffee).toHaveValue(16));
+		await waitFor(() => expect(screen.getByLabelText("Pour 1")).toHaveValue(40));
+		await waitFor(() => expect(screen.getByLabelText("Pour 2")).toHaveValue(200));
+	});
+
 	it("counts recorded details in the completeness rail section", () => {
 		render(BrewForm, { brew: editBrew, isEdit: true });
 		// editBrew has bean, brewer, grinder, coffee, water, time, temperature,
