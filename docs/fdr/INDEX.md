@@ -17,3 +17,4 @@ Use [`TEMPLATE.md`](TEMPLATE.md) for new records.
 |---|---|---|---|
 | [FDR-001](FDR-001-explore.md) | Explore | Active | 2026-07-16 |
 | [FDR-002](FDR-002-brew-logging.md) | Brew logging | Active | 2026-07-18    |
+| [FDR-003](FDR-003-feedback.md) | Feedback | Active | 2026-07-19 |

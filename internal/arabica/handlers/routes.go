@@ -20,6 +20,7 @@ func (Routes) SPAOwnedRoutes() []string {
 	return []string{
 		"GET /{$}",
 		"GET /about",
+		"GET /feedback",
 		"GET /manage", // redirects to /my-coffee via SPA
 		"GET /brews",  // brew list page
 		"GET /terms",
@@ -63,6 +64,9 @@ func (Routes) SPAOwnedRoutes() []string {
 func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext) {
 	h := New(ctx.Handlers)
 	cop := ctx.CSRF
+	// Feedback is an SPA-only page. It opens a mail draft locally rather than
+	// storing operator correspondence in a user's PDS.
+	ctx.Pages.Register(mux, "GET /feedback", http.HandlerFunc(h.HandleNotFound))
 
 	// API routes used by both the templ stack and the SvelteKit SPA.
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)

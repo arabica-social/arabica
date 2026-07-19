@@ -13,6 +13,7 @@
 			</div>
 			<nav class="site-footer-nav flex flex-wrap justify-center gap-6 text-sm">
 				<a href="/about" class="text-emphasis hover:text-primary transition-colors">About</a>
+				<a href="/feedback" class="text-emphasis hover:text-primary transition-colors">Feedback</a>
 				<a href="/terms" class="text-emphasis hover:text-primary transition-colors">Terms of Service</a>
 				<a href="https://tangled.org/arabica.social/arabica" target="_blank" rel="noopener noreferrer" class="text-emphasis hover:text-primary transition-colors">Source Code</a>
 				<a href="/atproto" class="text-emphasis hover:text-primary transition-colors">AT Protocol</a>

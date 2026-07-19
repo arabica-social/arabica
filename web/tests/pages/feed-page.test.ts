@@ -91,7 +91,8 @@ describe("Feed page (home)", () => {
 		render(FeedPage, { data: authedPageData });
 		expect(screen.getByRole("complementary", { name: "Your coffee journal" })).toBeTruthy();
 		expect(screen.getByRole("complementary", { name: "Around the café" })).toBeTruthy();
-		expect(screen.getByText("A journal you can take with you.")).toBeTruthy();
+		expect(screen.getByRole("heading", { name: "Help shape Arabica." })).toBeTruthy();
+		expect(screen.getByRole("link", { name: /share feedback/i })).toHaveAttribute("href", "/feedback");
 	});
 
 	it("renders the unauth hero CTA for unauthenticated users", () => {

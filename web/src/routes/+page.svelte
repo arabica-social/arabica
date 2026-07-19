@@ -1,6 +1,7 @@
 <script lang="ts">
   import FeedCard from "$lib/components/FeedCard.svelte";
   import FeedFilters from "$lib/components/FeedFilters.svelte";
+  import FeedbackPrompt from "$lib/components/FeedbackPrompt.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import { app, openLoginModal } from "$lib/stores/session";
   import { pushToast } from "$lib/stores/toasts";
@@ -356,6 +357,7 @@
     </main>
 
     <aside class="cafe-rail cafe-rail-right" aria-label="Around the café">
+      <FeedbackPrompt />
       {#if isAuthenticated && popularRecipes?.length}
         <section class="cafe-rail-section cafe-rail-lead">
           <p class="cafe-label">Popular recipes</p>
