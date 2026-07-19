@@ -244,9 +244,9 @@
     <aside class="cafe-rail cafe-rail-left" aria-label="Your coffee journal">
       <section class="cafe-rail-section cafe-rail-lead">
         {#if isAuthenticated}
-          <p class="cafe-label">Your journal</p>
-          <h2>Keep the counter current.</h2>
-          <p>Your beans, equipment, and recipes stay close at hand.</p>
+          <p class="cafe-label">Your coffee</p>
+          <h2>Ready for the next cup.</h2>
+          <p>Your beans, gear, recipes, and brew notes.</p>
           <nav class="cafe-shortcuts" aria-label="Coffee journal shortcuts">
             <a href={appDefinition.libraryPath}
               ><Icon name="bean" /><span>{appDefinition.libraryLabel}</span></a
@@ -258,27 +258,26 @@
             >
           </nav>
         {:else}
-          <p class="cafe-label">Your coffee notebook</p>
-          <h2>Keep the details worth repeating.</h2>
+          <p class="cafe-label">Arabica</p>
+          <h2>Keep the notes you will want next time.</h2>
           <p>
-            Record beans, equipment, recipes, and the small adjustments that
-            make a cup click.
+            Save beans, gear, recipes, and the brews that taught you something.
           </p>
           <button
             type="button"
             onclick={openLoginModal}
             class="cafe-text-link cafe-rail-action"
-            >Log in to your journal</button
+            >Sign in</button
           >
         {/if}
       </section>
 
       {#if isAuthenticated && incompleteRecords?.records?.length}
         <section class="cafe-rail-section">
-          <p class="cafe-label">Needs attention</p>
+          <p class="cafe-label">To finish</p>
           <h2>
             {incompleteRecords.records.length}
-            {incompleteRecords.records.length === 1 ? "record" : "records"} need details.
+            {incompleteRecords.records.length === 1 ? "record" : "records"} to complete.
           </h2>
           <div class="cafe-record-list">
             {#each incompleteRecords.records as rec (rec.RKey)}
@@ -360,7 +359,7 @@
       {#if isAuthenticated && popularRecipes?.length}
         <section class="cafe-rail-section cafe-rail-lead">
           <p class="cafe-label">Popular recipes</p>
-          <h2>What people are brewing.</h2>
+          <h2>Worth a closer look.</h2>
           <div class="cafe-recipe-list">
             {#each popularRecipes.slice(0, 3) as recipe (recipe.rkey)}
               <a
@@ -391,25 +390,12 @@
           <a href="/recipes" class="cafe-text-link">Explore all recipes</a>
         </section>
       {/if}
-      <section
-        class="cafe-rail-section"
-        class:cafe-rail-lead={!popularRecipes?.length}
-      >
-        <p class="cafe-label">Your data</p>
-        <h2>A journal you can take with you.</h2>
-        <p>
-          Arabica stores your coffee records in your own Personal Data Server,
-          not in a private app database.
-        </p>
-        <a href="/atproto" class="cafe-text-link">How ownership works</a>
-      </section>
       {#if !isAuthenticated}
-        <section class="cafe-rail-section">
-          <p class="cafe-label">Come as you are</p>
-          <h2>See what the café is brewing.</h2>
+        <section class="cafe-rail-section cafe-rail-lead">
+          <p class="cafe-label">Community</p>
+          <h2>See what others are making.</h2>
           <p>
-            The community board is public, so you can browse before starting a
-            journal of your own.
+            Browse the public feed before you start keeping notes of your own.
           </p>
           <a href="/about" class="cafe-text-link">Learn more</a>
         </section>

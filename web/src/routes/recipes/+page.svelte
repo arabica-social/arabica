@@ -779,8 +779,16 @@
 <style>
   .recipe-alpha-notice {
     margin: 1rem 0 1.5rem;
-    border-block: 1px solid var(--card-border);
-    background: color-mix(in oklch, var(--brand-amber-50) 46%, transparent);
+    border: 0;
+    border-radius: 0.25rem;
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(
+      color-mix(in oklch, var(--brand-amber-50) 46%, transparent),
+      color-mix(in oklch, var(--brand-amber-50) 46%, transparent)
+    );
+    box-shadow:
+      1px 2px 4px rgba(0, 0, 0, 0.1),
+      0 1px 2px rgba(0, 0, 0, 0.06);
   }
   .recipe-alpha-notice__summary {
     display: flex;
@@ -832,16 +840,19 @@
   }
   .recipe-catalog-index {
     padding: 1rem;
-    border: 1px solid var(--card-border);
-    border-top: 3px double var(--text-primary);
-    border-radius: 0.55rem;
-    background: var(--card-bg);
-    background-image: var(--texture-kraft);
-    background-blend-mode: multiply;
+    border: 0;
+    border-radius: 0.25rem;
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(
+      var(--type-recipe-tint),
+      var(--type-recipe-tint)
+    );
+    box-shadow:
+      1px 2px 4px rgba(0, 0, 0, 0.1),
+      0 1px 2px rgba(0, 0, 0, 0.06);
   }
   .recipe-catalog-index__heading {
     padding-bottom: 0.85rem;
-    border-bottom: 1px solid var(--card-border);
   }
   .recipe-catalog-index__heading p {
     margin: 0;
@@ -893,8 +904,7 @@
     flex-direction: column;
     gap: 0.75rem;
     margin-bottom: 1rem;
-    padding: 0.65rem 0;
-    border-block: 1px solid var(--card-border);
+    padding: 0.25rem 0;
   }
   .catalog-results-bar__count {
     margin: 0;
@@ -916,13 +926,16 @@
   }
   .recipe-detail-sheet {
     padding: 1.25rem;
-    border: 1px solid var(--card-border);
-    border-top: 3px double var(--type-recipe);
-    border-radius: 0.55rem;
-    background: var(--card-bg);
-    background-image: var(--texture-kraft);
-    background-blend-mode: multiply;
-    box-shadow: var(--shadow-sm);
+    border: 0;
+    border-radius: 0.25rem;
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(
+      var(--type-recipe-tint),
+      var(--type-recipe-tint)
+    );
+    box-shadow:
+      1px 2px 4px rgba(0, 0, 0, 0.1),
+      0 1px 2px rgba(0, 0, 0, 0.06);
   }
   .recipe-ledger-grid {
     display: grid;
@@ -933,27 +946,25 @@
     position: relative;
     min-width: 0;
     padding: 1rem;
-    border: 1px solid var(--card-border);
-    border-top: 2px solid
-      color-mix(in oklch, var(--type-recipe) 55%, var(--card-border));
-    border-radius: 0.45rem;
+    border: 0;
+    border-radius: 0.25rem;
     color: var(--text-primary);
-    background: var(--card-bg);
-    box-shadow: var(--shadow-sm);
+    background-color: var(--feed-card-bg);
+    background-image: linear-gradient(
+      var(--type-recipe-tint),
+      var(--type-recipe-tint)
+    );
+    box-shadow:
+      1px 2px 4px rgba(0, 0, 0, 0.1),
+      0 1px 2px rgba(0, 0, 0, 0.06);
     cursor: pointer;
     text-align: left;
     transition:
       transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
-      border-color 150ms ease-out,
       box-shadow 150ms ease-out;
   }
   .recipe-ledger-card:hover {
     transform: translateY(-2px);
-    border-color: color-mix(
-      in oklch,
-      var(--type-recipe) 60%,
-      var(--card-border)
-    );
     box-shadow: var(--shadow-md);
   }
   .recipe-ledger-card:focus-visible {
@@ -961,9 +972,9 @@
     outline-offset: 2px;
   }
   .recipe-ledger-card--selected {
-    border-color: var(--type-recipe);
+    outline: 2px solid var(--type-recipe);
+    outline-offset: 2px;
     box-shadow:
-      inset 0 0 0 1px var(--type-recipe),
       var(--shadow-md);
   }
   .recipe-ledger-card--loading {
@@ -972,7 +983,12 @@
   }
   .recipe-empty-state {
     padding: 3rem 1rem;
-    border-block: 1px solid var(--card-border);
+    border-radius: 0.25rem;
+    background: color-mix(
+      in oklch,
+      var(--type-recipe-tint) 55%,
+      var(--feed-card-bg)
+    );
     text-align: center;
   }
   @media (min-width: 640px) {
