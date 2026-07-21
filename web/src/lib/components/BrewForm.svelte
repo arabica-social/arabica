@@ -128,8 +128,23 @@
 			recipeRatio = formatRatio(recipe.coffee_amount, recipe.water_amount);
 			recipePours = (recipe.pours ?? []).map((p) => ({ water: String(p.water_amount ?? ""), time: String(p.time_seconds ?? "") }));
 			pours = recipePours.map((pour) => ({ ...pour }));
+			// Derive the brewer from the recipe so the (hidden while collapsed,
+			// visible after Adjust) brewer combo and the posted brewer_rkey reflect
+			// the recipe's brewer rather than staying empty.
 			const recipeBrewerType = recipe.brewer_type || recipe.brewer_obj?.brewer_type || "";
 			if (recipeBrewerType) brewerCategory = normalizeBrewerCategory(recipeBrewerType);
+			if (recipe.brewer_rkey) {
+				brewerRKey = recipe.brewer_rkey;
+				brewerLabel = recipe.brewer_obj?.name ?? "";
+			}
+			// For pour-over recipes, the bloom mirrors the first pour: its water
+			// becomes the bloom amount and its time becomes the bloom duration.
+			if (brewerCategory === "pourover" && pours.length > 0) {
+				const firstPourWater = positiveNumber(pours[0].water);
+				if (firstPourWater !== null) pouroverBloomWater = String(firstPourWater);
+				const firstPourTime = positiveNumber(pours[0].time);
+				if (firstPourTime !== null) pouroverBloomSeconds = String(firstPourTime);
+			}
 		} catch {
 			// Ignore — user can fill manually.
 		}
@@ -173,6 +188,13 @@
 			water: String(Math.max(0, Number(lastPour.water) + targetWater - scaledTotal)),
 		};
 		pours = scaled;
+		// Keep the pour-over bloom water in lockstep with the first pour while a
+		// recipe is driving the pours. Bloom only tracks the first pour; later
+		// manual edits to bloom water survive until the next scaling pass.
+		if (activeRecipe && brewerCategory === "pourover" && scaled.length > 0) {
+			const firstPourWater = positiveNumber(scaled[0].water);
+			if (firstPourWater !== null) pouroverBloomWater = String(firstPourWater);
+		}
 	}
 
 	function setRecipeMeasurements(nextCoffee: number, nextWater: number) {

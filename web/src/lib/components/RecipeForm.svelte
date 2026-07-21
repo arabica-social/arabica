@@ -40,6 +40,8 @@
 	// svelte-ignore state_referenced_locally
 	let brewerRKey = $state(recipe?.brewer_rkey ?? "");
 	// svelte-ignore state_referenced_locally
+	let brewerLabel = $state(recipe?.brewer_obj?.name ?? "");
+	// svelte-ignore state_referenced_locally
 	let brewerType = $state(recipe?.brewer_type ?? "");
 	// svelte-ignore state_referenced_locally
 	let coffeeAmount = $state<number | string>(recipe?.coffee_amount ?? "");
@@ -192,6 +194,7 @@
 					placeholder="Search or create brewer"
 					sectionLabel="Your brewers"
 					bind:rkey={brewerRKey}
+					bind:label={brewerLabel}
 					ariaLabel="Brewer"
 					allowCreate={true}
 				/>

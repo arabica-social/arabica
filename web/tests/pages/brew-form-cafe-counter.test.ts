@@ -130,6 +130,52 @@ describe("BrewForm cafe-counter migration", () => {
 		await waitFor(() => expect(screen.getByLabelText("Pour 2")).toHaveValue(200));
 	});
 
+	it("derives the brewer and bloom water from a selected pour-over recipe", async () => {
+		const user = userEvent.setup();
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockImplementation((url: string) => {
+				if (url === "/api/recipes/daily-v60") {
+					return Promise.resolve(new Response(JSON.stringify({
+						rkey: "daily-v60",
+						name: "Daily V60",
+						coffee_amount: 18,
+						water_amount: 300,
+						brewer_rkey: "brewer-v60",
+						brewer_type: "pourover",
+						brewer_obj: { rkey: "brewer-v60", name: "V60", brewer_type: "pourover", description: "", link: "", created_at: "" },
+						pours: [
+							{ water_amount: 50, time_seconds: 30 },
+							{ water_amount: 250, time_seconds: 90 },
+						],
+					}), { status: 200, headers: { "Content-Type": "application/json" } }));
+				}
+				return Promise.resolve(new Response("{}", { status: 200 }));
+			}),
+		);
+		render(BrewForm, { brew: null, recipeRKey: "daily-v60", isEdit: false });
+
+		// Bloom water mirrors the first pour (50g) before any adjustment.
+		await waitFor(() => expect(screen.getByLabelText("Bloom Water (grams)")).toHaveValue(50));
+		// Bloom time mirrors the first pour's time (30s).
+		expect(screen.getByLabelText("Bloom Time (seconds)")).toHaveValue(30);
+
+		// The brewer combo is hidden while the recipe is collapsed; expanding it
+		// reveals the pre-filled brewer derived from the recipe.
+		await user.click(await screen.findByRole("button", { name: "Adjust" }));
+		const brewerCombo = screen.getByRole("combobox", { name: "Search brew methods" });
+		expect(brewerCombo).toHaveValue("V60");
+		expect(document.querySelector('input[name="brewer_rkey"]')?.getAttribute("value")).toBe("brewer-v60");
+
+		// Scaling the recipe (water 300 → 240) scales the first pour 50 → 40 and
+		// the bloom water tracks it.
+		const water = screen.getByLabelText("Water (g)");
+		await user.clear(water);
+		await user.type(water, "240");
+		await waitFor(() => expect(screen.getByLabelText("Pour 1")).toHaveValue(40));
+		await waitFor(() => expect(screen.getByLabelText("Bloom Water (grams)")).toHaveValue(40));
+	});
+
 	it("counts recorded details in the completeness rail section", () => {
 		render(BrewForm, { brew: editBrew, isEdit: true });
 		// editBrew has bean, brewer, grinder, coffee, water, time, temperature,

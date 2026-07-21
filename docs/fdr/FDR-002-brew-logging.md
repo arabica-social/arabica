@@ -1,7 +1,7 @@
 # FDR-002: Brew Logging
 
 **Status:** Active
-**Last reviewed:** 2026-07-18
+**Last reviewed:** 2026-07-21
 
 ## Overview
 
@@ -11,13 +11,15 @@ creation time, then records the specific cup that was made.
 
 ## Behavior
 
-- A user may select a recipe to fill its coffee, water, pour, and brewing
-  category details into a new brew.
+- A user may select a recipe to fill its coffee, water, pour, brewer, and
+  brewing category details into a new brew.
 - The selected recipe remains unchanged when a user changes the brew.
 - The selected-recipe summary includes an inline adjustment control. A user can
   set coffee dose, water, or brew ratio; the other amount updates to match.
 - When the selected recipe has pours, quick adjustments scale their water
   amounts to the adjusted total.
+- For pour-over recipes, the brew's bloom water and bloom time mirror the
+  first pour; bloom water stays in sync as quick adjustments rescale the pours.
 - Users can still edit the remaining brew details, such as bean, equipment,
   temperature, timing, notes, and rating.
 
@@ -43,6 +45,21 @@ the total water would leave the draft internally inconsistent.
 
 **Tradeoff:** A user who wants a different pour pattern must edit the pours
 after adjusting the recipe.
+
+### 3. Derive bloom water and time from the first pour
+
+**Decision:** For pour-over recipes, the brew's bloom water mirrors the first
+pour's water and its bloom time mirrors the first pour's time. Bloom water
+updates again as quick adjustments rescale the pours; bloom time is set once on
+recipe apply (pour times are not rescaled by quick adjustment).
+
+**Why:** The bloom is conventionally the first pour of a pour-over recipe, so
+asking the user to re-enter it duplicates the first pour and risks drift when
+the recipe is scaled. Deriving it keeps the brew self-consistent.
+
+**Tradeoff:** A user who wants a bloom that differs from the first pour must
+edit the bloom water (or time) after adjusting the recipe; the next
+quick-adjust pass resets bloom water to the first pour.
 
 ## Related
 
