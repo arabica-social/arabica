@@ -6,8 +6,8 @@ run:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt
 
 svelte-build:
-    @pnpm run check:svelte
-    @pnpm run build:svelte
+    @cd web && pnpm run check
+    @./scripts/build-spa.sh
 
 spa-build:
     @./scripts/build-spa.sh
@@ -91,7 +91,6 @@ herdr-spa-dev-stop:
     done
 
 build:
-    @pnpm run build:svelte
     @./scripts/build-spa.sh
     @templ generate
     @go build ./cmd/arabica
@@ -103,7 +102,6 @@ templ-generate:
     @templ generate
 
 test:
-    @pnpm run build:svelte
     @./scripts/build-spa.sh
     @templ generate
     @go test ./... -cover -coverprofile=cover.out
@@ -121,7 +119,6 @@ format:
 
 # Build the SPA (needed before running e2e-server).
 e2e-build:
-    @pnpm run build:svelte
     @./scripts/build-spa.sh
 
 # Boot the e2e-server (test PDS + SPA) and run Playwright with the given args.
@@ -172,7 +169,5 @@ ci-check:
     @go build ./cmd/arabica
     @go test ./... -count=1
     @cd tests/integration && go test -tags=integration -count=1 ./...
-    @pnpm run check:svelte
     @cd web && pnpm run check
     @cd web && pnpm run test
-    @pnpm run test:svelte

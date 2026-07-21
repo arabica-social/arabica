@@ -2,14 +2,9 @@
   "type": "module",
   "packageManager": "pnpm@11.1.1",
   "scripts": {
-    "build:svelte": "vite build",
-    "check:svelte": "svelte-check --tsconfig ./tsconfig.json",
-    "format": "prettier --plugin=prettier-plugin-svelte --write .prettierrc.json package.json pnpm-lock.yaml svelte.config.js tsconfig.json vite.config.js \"internal/web/assets/css/**/*.css\" \"internal/web/assets/svelte/**/*.{svelte,ts}\"",
-    "test:svelte": "vitest run",
-    "test:svelte:watch": "vitest"
+    "format": "prettier --plugin=prettier-plugin-svelte --write .prettierrc.json package.json pnpm-lock.yaml \"internal/web/assets/css/**/*.css\""
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.3.1",
     "@testing-library/user-event": "^14.6.1",
