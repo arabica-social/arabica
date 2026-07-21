@@ -11,7 +11,7 @@ import (
 )
 
 func TestHTTP_SPAShellIncludesTestAuthSession(t *testing.T) {
-	h := StartHarness(t, &HarnessOptions{EnableSPA: true})
+	h := StartHarness(t, nil)
 
 	resp := h.Get("/brews/new")
 	body := ReadBody(t, resp)

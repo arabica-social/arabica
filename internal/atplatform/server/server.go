@@ -361,40 +361,39 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 
 	// SvelteKit SPA shell. The handler reads the embedded SvelteKit build
 	// and injects server-side <head> content (OG tags, title, theme, CSS).
-	// Enable only when ARABICA_SPA (or <APP>_SPA) is set, so existing
-	// templ pages continue to work during migration.
+	// The SPA is the default frontend; page routes listed in SPAOwnedRoutes
+	// are served by the shell. (Legacy templ/HTMX fallbacks are retained
+	// only behind unlisted routes during the final retirement pass.)
 	var spaHandler http.Handler
-	if os.Getenv(envPrefix+"_SPA") == "1" || os.Getenv("SPA") == "1" {
-		sh, err := spa.NewShellHandler(manifest, app.Name, app.Brand)
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed to create SPA shell handler, SPA disabled")
-		} else {
-			// Resolve per-request session data (profile, unread count,
-			// moderator flag) so the SvelteKit header can render the
-			// authenticated state without an extra API call.
-			sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
-				return h.ResolveSessionData(ctx, did)
-			})
-			// Resolve entity-specific OG metadata for entity-view URL
-			// patterns so social shares show record-specific title,
-			// description, and image without executing JavaScript.
-			sh.SetOGResolver(func(r *http.Request) spa.OGData {
-				return resolveEntityOG(r, h, app)
-			})
-			// In dev mode, re-read index.html from disk on each request
-			// so `vite build --watch` output appears on the next refresh
-			// without a Go restart. web/build is where vite writes.
-			if devMode {
-				sh.SetDevDir("web/build")
-			}
-			spaHandler = sh
-			log.Info().Msg("SvelteKit SPA shell enabled")
+	sh, err := spa.NewShellHandler(manifest, app.Name, app.Brand)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to create SPA shell handler; SPA-owned page routes will not render")
+	} else {
+		// Resolve per-request session data (profile, unread count,
+		// moderator flag) so the SvelteKit header can render the
+		// authenticated state without an extra API call.
+		sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
+			return h.ResolveSessionData(ctx, did)
+		})
+		// Resolve entity-specific OG metadata for entity-view URL
+		// patterns so social shares show record-specific title,
+		// description, and image without executing JavaScript.
+		sh.SetOGResolver(func(r *http.Request) spa.OGData {
+			return resolveEntityOG(r, h, app)
+		})
+		// In dev mode, re-read index.html from disk on each request
+		// so `vite build --watch` output appears on the next refresh
+		// without a Go restart. web/build is where vite writes.
+		if devMode {
+			sh.SetDevDir("web/build")
 		}
+		spaHandler = sh
+		log.Info().Msg("SvelteKit SPA shell enabled")
 	}
 
-	// In dev mode with the SPA enabled, serve SPA assets (_app/**) from the
-	// on-disk SvelteKit build so `vite build --watch` output appears on the
-	// next refresh without a Go restart.
+	// In dev mode, serve SPA assets (_app/**) from the on-disk SvelteKit
+	// build so `vite build --watch` output appears on the next refresh
+	// without a Go restart.
 	spaAssetDevDir := ""
 	if devMode && spaHandler != nil {
 		spaAssetDevDir = "web/build"

@@ -145,11 +145,9 @@ type HarnessOptions struct {
 	// through the Consumer → FeedIndex pipeline, so records created via the
 	// PDS are automatically indexed. Use WaitForRecord to synchronise.
 	EnableFirehose bool
-	// EnableSPA wires the SvelteKit SPA shell handler so explicitly owned
-	// page routes serve index.html with server-side <head> injection. Used by
-	// E2E (Playwright) tests that need a real browser to load the SPA.
-	// Requires the SPA build to be present in internal/web/spa/build/.
-	EnableSPA bool
+	// EnableFirehose is the only harness toggle retained; the SvelteKit SPA
+	// shell is always constructed (mirroring production) using the embedded
+	// SPA build in internal/web/spa/build/.
 }
 
 // StartHarness boots a test PDS, creates a primary account, builds the full
@@ -281,32 +279,31 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	}
 	h.SetApp(app)
 
-	var spaHandler http.Handler
-	var cssBundle *assets.Bundle
-	var jsAssets *assets.JSAssets
-	if opts.EnableSPA {
-		// Build assets manifest (required for SPA shell <head> injection
-		// and for the templ layout to include CSS/JS script tags).
-		// Use the dev directory for JS so the legacy Svelte islands are
-		// served from disk (internal/web/assets/js/).
-		cssBundle = assets.New(assets.Config{AppName: app.Name})
-		cssBundle.MustBuild()
-		assets.Register(cssBundle)
-		jsAssets = assets.NewJSAssets(assets.JSConfig{DevDir: "internal/web/assets/js"})
-		jsAssets.MustBuild()
-		assets.RegisterJS(jsAssets)
-		manifest := assets.NewManifest(cssBundle, jsAssets)
-		h.SetAssetManifest(manifest)
+	// Build assets manifest (required for SPA shell <head> injection and
+	// for the templ layout to include CSS/JS script tags). Use the dev
+	// directory for JS so the legacy Svelte islands are served from disk
+	// (internal/web/assets/js/) during the final retirement pass.
+	cssBundle := assets.New(assets.Config{AppName: app.Name})
+	cssBundle.MustBuild()
+	assets.Register(cssBundle)
+	jsAssets := assets.NewJSAssets(assets.JSConfig{DevDir: "internal/web/assets/js"})
+	jsAssets.MustBuild()
+	assets.RegisterJS(jsAssets)
+	manifest := assets.NewManifest(cssBundle, jsAssets)
+	h.SetAssetManifest(manifest)
 
-		sh, err := spa.NewShellHandler(manifest, app.Name, app.Brand)
-		if err != nil {
-			return nil, fmt.Errorf("create SPA shell: %w", err)
-		}
-		sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
-			return h.ResolveSessionData(ctx, did)
-		})
-		spaHandler = sh
+	// The SvelteKit SPA shell is the default frontend (mirrors production
+	// in server.Run); the embedded build in internal/web/spa/build/ must be
+	// present. Page routes in SPAOwnedRoutes serve index.html with
+	// server-side <head> injection.
+	sh, err := spa.NewShellHandler(manifest, app.Name, app.Brand)
+	if err != nil {
+		return nil, fmt.Errorf("create SPA shell: %w", err)
 	}
+	sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
+		return h.ResolveSessionData(ctx, did)
+	})
+	spaHandler := http.Handler(sh)
 
 	router := routing.SetupRouter(routing.Config{
 		App:              app,

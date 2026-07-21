@@ -55,7 +55,6 @@ func main() {
 	h, err := integration.StartHarnessRuntime(context.Background(), filepath.Join(dataDir, "harness"), &integration.HarnessOptions{
 		App:            *app,
 		EnableFirehose: true,
-		EnableSPA:      true,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to start e2e harness: %v\n", err)

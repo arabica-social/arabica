@@ -35,11 +35,12 @@ sister app via per-app configuration, registries, and interfaces.
 
 ## Current Status
 
-Last reviewed: 2026-07-16.
+Last reviewed: 2026-07-21.
 
-- Arabica is transitioning page routes from Templ/HTMX to an embedded
-  SvelteKit SPA. `internal/arabica/handlers/routes.go` is the executable
-  route-cutover inventory.
+- The SvelteKit SPA is now the default frontend for every page route in
+  `internal/arabica/handlers/routes.go`'s `SPAOwnedRoutes`. The legacy
+  Templ/HTMX/Svelte-island stack and the `ARABICA_SPA` opt-in flag have
+  been retired; remaining legacy handlers are unreachable fallbacks.
 - Breaking brew and recipe lexicon changes remain unresolved before v1. Treat
   existing PDS records as durable compatibility inputs, not centrally
   migratable rows.

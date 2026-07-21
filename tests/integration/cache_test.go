@@ -97,15 +97,19 @@ func TestHTTP_WitnessCacheGetByRKeyFallback(t *testing.T) {
 	h.EvictWitnessRecord(h.PrimaryAccount, arabica.NSIDRoaster, created.RKey)
 	h.InvalidateSessionCache(h.PrimaryAccount)
 
-	// The view page calls GetRoasterRecordByRKey via HandleRoasterView. With
-	// the owner (the primary account's DID) in the path, the handler goes
-	// through the public-client path and should hit the PDS fallback after
-	// the witness cache eviction above.
-	resp := h.Get("/roasters/" + h.PrimaryAccount.DID + "/" + created.RKey)
+	// The JSON view endpoint calls GetRoasterRecordByRKey via
+	// HandleRoasterViewJSON. With the owner (the primary account's DID) in
+	// the path, the handler goes through the public-client path and should
+	// hit the PDS fallback after the witness cache eviction above.
+	resp := getJSON(t, h, "/api/roasters/"+h.PrimaryAccount.DID+"/"+created.RKey)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Contains(t, body, "Single-Get Fallback",
-		"roaster name should appear on view page after PDS fallback read")
+	var view struct {
+		Record arabica.Roaster `json:"record"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(body), &view))
+	assert.Equal(t, "Single-Get Fallback", view.Record.Name,
+		"roaster name should appear in view payload after PDS fallback read")
 }
 
 // containsRoaster reports whether a roaster with the given rkey exists in the

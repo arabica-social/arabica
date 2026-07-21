@@ -42,13 +42,20 @@ func TestHTTP_CrossUserView(t *testing.T) {
 	bobClient := h.NewClientForAccount(bob)
 	defer withClient(h, bobClient)()
 
-	// Bob fetches Alice's roaster view via ?owner=did:alice.
-	viewURL := "/roasters/" + url.PathEscape(h.PrimaryAccount.DID) + "/" + roaster.RKey
-	resp := h.Get(viewURL)
+	// Bob fetches Alice's roaster view via the JSON endpoint (?owner=did:alice).
+	// The SPA fetches JSON from /api/roasters/{actor}/{id}; this exercises
+	// the same witness-cache-backed cross-user read path that the legacy
+	// HTML view used.
+	viewURL := "/api/roasters/" + url.PathEscape(h.PrimaryAccount.DID) + "/" + roaster.RKey
+	resp := getJSON(t, h, viewURL)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-	assert.Contains(t, body, "Alice Roaster",
-		"Bob should see Alice's roaster name in the rendered view")
+	var view struct {
+		Record arabica.Roaster `json:"record"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(body), &view))
+	assert.Equal(t, "Alice Roaster", view.Record.Name,
+		"Bob should see Alice's roaster name in the view payload")
 }
 
 // TestHTTP_CrossUserDeleteIsolation verifies that DELETE /api/roasters/{rkey}

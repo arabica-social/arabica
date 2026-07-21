@@ -1,8 +1,16 @@
 # ADR-006: Embed the SPA with Explicit Route Cutover
 
-**Status:** Accepted
+**Status:** Superseded
 **Recorded:** 2026-07-16
 **Decision period:** Retrospective
+
+> **Note (2026-07-21):** The incremental migration is complete. The
+> SvelteKit SPA is now the default frontend for every page route in
+> `SPAOwnedRoutes`; the `ARABICA_SPA` opt-in flag and the legacy
+> Templ/HTMX/Svelte-island stack have been retired. This ADR is retained
+> as the historical record of the cutover design. The coexistence and
+> per-route-rollback rationales below describe the transition period, not
+> the current runtime. See [Frontend transition](../architecture/frontend-transition.md) for the current state.
 
 ## Context
 

@@ -21,13 +21,16 @@ serving, security headers, and well-known endpoints remain Go responsibilities.
 
 ## Current Ownership
 
+The SvelteKit SPA is the default frontend. Every Arabica page route listed in
+`SPAOwnedRoutes` is served by the embedded SPA shell; the `ARABICA_SPA`
+opt-in flag has been removed. The legacy Templ/HTMX/Svelte-island stack has
+been retired.
+
 | Area | State | Notes |
 |---|---|---|
-| Arabica page routes | Transitional | Routes move individually through `SPAOwnedRoutes`; legacy fallbacks coexist |
-| JSON APIs | Sturdy and expanding | Shared by the SPA and remaining legacy surfaces; documented under `docs/api/` |
-| Templ pages/components | Transitional | Retained for unported pages and fallbacks; avoid expanding without a deliberate reason |
-| Svelte islands in legacy pages | Transitional | Reusable components may survive the migration, but island mounting is not the target page architecture |
-| Go-owned OAuth/mutations/head/OG | Sturdy | These remain server responsibilities after page migration |
+| Arabica page routes | SPA-owned | All user-facing routes serve the SvelteKit shell via `SPAOwnedRoutes`; remaining legacy handler args are unreachable fallbacks pending removal |
+| JSON APIs | Sturdy and expanding | Sole data contract for the SPA; documented under `docs/api/` |
+| Go-owned OAuth/mutations/head/OG | Sturdy | Server responsibilities: OAuth, record mutations, JSON APIs, OG image generation, static asset serving, security headers |
 | Visual composition and copy | Squishy within constraints | Must still follow accessibility, `PRODUCT.md`, and `DESIGN.md` |
 
 ## Route Cutover Contract

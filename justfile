@@ -1,7 +1,9 @@
 arabica: templ-watch-arabica
 
+# Run the Go backend with the SvelteKit SPA shell (the default frontend).
+# Open http://127.0.0.1:18910. For live SvelteKit HMR, use `run-spa-dev`.
 run:
-    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 go run ./cmd/arabica -known-dids known-dids.txt
+    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt
 
 svelte-build:
     @pnpm run check:svelte
@@ -27,14 +29,11 @@ types-check:
     @tygo generate --config tygo.yml
     @git diff --exit-code web/src/lib/types/generated/ || (echo "Generated types are out of date. Run 'just types-generate' and commit." && exit 1)
 
-run-spa:
-    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 go run ./cmd/arabica -known-dids known-dids.txt
-
-# Run Arabica's Go backend and disk-backed SPA rebuild watcher together. Open
-# http://127.0.0.1:18910; refresh after a successful rebuild. OAuth returns to
-# Go's browser-facing development origin, which serves the app's CSS and assets.
+# Run Arabica's Go backend and the Vite HMR dev server together for live
+# SvelteKit development. Open http://127.0.0.1:18910; the SPA loads from the
+# running Vite dev server. OAuth returns to Go's browser-facing origin.
 run-spa-dev:
-    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt & \
+    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt & \
         backend_pid=$$!; \
         ./scripts/watch-spa.sh & \
         watcher_pid=$$!; \
@@ -70,7 +69,7 @@ herdr-spa-dev workspace='false':
         workspace_id=""
     fi
     herdr pane rename "$backend_pane" "Arabica backend" >/dev/null
-    herdr pane run "$backend_pane" 'exec env LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_SPA=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt' >/dev/null
+    herdr pane run "$backend_pane" 'exec env LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt' >/dev/null
     watcher_pane="$(herdr pane split "$backend_pane" --direction right --cwd "$PWD" --no-focus | jq -er '.result.pane.pane_id')"
     herdr pane rename "$watcher_pane" "SPA rebuilds" >/dev/null
     herdr pane run "$watcher_pane" 'exec ./scripts/watch-spa.sh' >/dev/null

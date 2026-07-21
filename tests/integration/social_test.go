@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 	"strings"
 	"testing"
@@ -309,13 +310,22 @@ func TestHTTP_LikeAndCommentTogether(t *testing.T) {
 	require.Len(t, indexed, 1)
 	commentRKey := indexed[0].RKey
 
-	// Render the roaster view page — it should show like + comment data
-	// pulled from the same feed index. This is the visible end-to-end check.
-	viewResp := h.Get("/roasters/" + h.PrimaryAccount.DID + "/" + rkey)
+	// Fetch the roaster view via the JSON endpoint — it should include the
+	// like + comment data pulled from the same feed index. This is the
+	// visible end-to-end check (the SPA renders from this payload).
+	viewResp := getJSON(t, h, "/api/roasters/"+h.PrimaryAccount.DID+"/"+rkey)
 	viewBody := ReadBody(t, viewResp)
 	require.Equal(t, 200, viewResp.StatusCode, statusErr(viewResp, viewBody))
-	assert.Contains(t, viewBody, "first impressions: solid",
-		"comment text should be embedded in the view page")
+	var view struct {
+		Social struct {
+			Comments []struct {
+				Text string `json:"text"`
+			} `json:"comments"`
+		} `json:"social"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(viewBody), &view))
+	require.Len(t, view.Social.Comments, 1, "comment should be embedded in the view payload")
+	assert.Contains(t, view.Social.Comments[0].Text, "first impressions: solid")
 
 	// Unlike + delete comment.
 	unlikeResp := h.PostForm("/api/likes/toggle", form("subject_uri", subjectURI, "subject_cid", subjectCID))
