@@ -1,7 +1,6 @@
 package coffeehandlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,10 +9,7 @@ import (
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	coffeeogcard "tangled.org/arabica.social/arabica/internal/arabica/ogcard"
-	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
 	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
-	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -103,15 +99,12 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleBrewList serves the user's brew list with content negotiation.
-// Accept: application/json returns {brews, has_more, next_offset} for the
-// SvelteKit SPA; HX-Request returns the existing HTML table partial.
+// HandleBrewList serves the user's brew list as JSON ({brews, has_more,
+// next_offset}) for the SvelteKit SPA. The SPA owns the /brews page and always
+// sends Accept: application/json, so the legacy HTMX HTML partial path has
+// been removed.
 func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
-	if handlers.WantsJSON(r) {
-		h.handleBrewListJSON(w, r)
-		return
-	}
-	h.handleBrewListPartial(w, r)
+	h.handleBrewListJSON(w, r)
 }
 
 // brewListResult holds the fetched brews and pagination state shared by the
@@ -197,113 +190,9 @@ type brewListError struct{ msg string }
 
 func (e *brewListError) Error() string { return e.msg }
 
-// handleBrewListPartial renders the brew list as an HTMX HTML table partial
-// (existing behavior).
-func (h *Handlers) handleBrewListPartial(w http.ResponseWriter, r *http.Request) {
-	res, err := h.fetchBrewList(r)
-	if err != nil {
-		if err == errBrewListUnauth {
-			http.Error(w, "Authentication required", http.StatusUnauthorized)
-			return
-		}
-		log.Error().Err(err).Msg("Failed to fetch brews")
-		handlers.HandleStoreError(w, err, "Failed to fetch brews")
-		return
-	}
-
-	if err := coffee.BrewListTablePartial(coffee.BrewListTableProps{
-		Brews:         res.brews,
-		IsOwnProfile:  true,
-		ProfileHandle: res.profileHandle,
-		HasMore:       res.hasMore,
-		NextOffset:    res.nextOffset,
-	}).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew list partial")
-	}
-}
-
-// Show new brew form
-func (h *Handlers) HandleBrewNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	if !brewNewReady(r.Context(), store) {
-		http.Redirect(w, r, "/onboarding", http.StatusFound)
-		return
-	}
-
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "New Brew")
-	brewFormProps := coffeepages.BrewFormProps{
-		Brew:           nil,
-		RecipeRKey:     r.URL.Query().Get("recipe"),
-		RecipeOwnerDID: r.URL.Query().Get("recipe_owner"),
-	}
-	if err := coffeepages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew form")
-	}
-}
-
-// brewNewReady wraps onboarding.CheckBrewReadiness with logging. A readiness
-// check failure (rare; PDS down) is treated as "not ready" so the user gets
-// the onboarding card instead of a blank brew form they can't submit.
-func brewNewReady(ctx context.Context, store onboarding.BrewPrerequisiteStore) bool {
-	status, err := onboarding.CheckBrewReadiness(ctx, store)
-	if err != nil {
-		log.Warn().Err(err).Msg("brew-readiness check failed; treating as not ready")
-		return false
-	}
-	return status.Ready()
-}
-
-// Show brew view page
-func (h *Handlers) HandleBrewView(w http.ResponseWriter, r *http.Request) {
-	h.RenderEntityView(w, r, h.brewViewConfig())
-}
-
 // HandleBrewViewJSON returns brew detail data as JSON for the SvelteKit SPA.
 func (h *Handlers) HandleBrewViewJSON(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityViewJSON(w, r, h.brewViewConfig())
-}
-
-// Show edit brew form
-func (h *Handlers) HandleBrewEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	// Require authentication
-	store, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	brew, err := store.GetBrewByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Brew not found", http.StatusNotFound)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get brew for edit")
-		return
-	}
-
-	// Don't fetch dropdown data from PDS - client will populate from cache
-	// This makes the page load much faster
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "Edit Brew")
-
-	brewFormProps := coffeepages.BrewFormProps{
-		Brew:      brew,
-		PoursJSON: coffeepages.PoursToJSON(brew.Pours),
-	}
-
-	if err := coffeepages.BrewFormPage(layoutData, brewFormProps).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render brew edit form")
-	}
 }
 
 // parseEspressoParams extracts espresso-specific params from form values.

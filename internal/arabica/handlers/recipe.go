@@ -9,8 +9,6 @@ import (
 	"strconv"
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
-	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/matching"
@@ -720,114 +718,9 @@ func (h *Handlers) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleRecipeModalNew returns the recipe creation modal HTML
-func (h *Handlers) HandleRecipeModalNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	brewers, err := listBrewers(r.Context(), store)
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to fetch brewers for recipe modal")
-		brewers = []*arabica.Brewer{}
-	}
-
-	brewersSlice := make([]arabica.Brewer, len(brewers))
-	for i, b := range brewers {
-		brewersSlice[i] = *b
-	}
-
-	if err := coffee.RecipeDialogModal(nil, brewersSlice).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render recipe modal")
-	}
-}
-
-// HandleRecipeModalEdit returns the recipe edit modal HTML
-func (h *Handlers) HandleRecipeModalEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-
-	store, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	recipe, err := store.GetRecipeByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Recipe not found", http.StatusNotFound)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get recipe for modal")
-		return
-	}
-
-	brewers, err := listBrewers(r.Context(), store)
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to fetch brewers for recipe modal")
-		brewers = []*arabica.Brewer{}
-	}
-
-	brewersSlice := make([]arabica.Brewer, len(brewers))
-	for i, b := range brewers {
-		brewersSlice[i] = *b
-	}
-
-	if err := coffee.RecipeDialogModal(recipe, brewersSlice).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render modal", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render recipe modal")
-	}
-}
-
-// HandleRecipeExplore renders the recipe explore page
-func (h *Handlers) HandleRecipeExplore(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "Explore Recipes")
-
-	if err := coffeepages.RecipeExplorePage(layoutData, coffeepages.RecipeExploreProps{
-		IsAuthenticated: authenticated,
-		UserDID:         layoutData.UserDID,
-	}).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render recipe explore page")
-	}
-}
-
-// HandlePopularRecipesPartial returns an HTML fragment of popular recipes for the home page.
+// HandlePopularRecipesPartial returns popular recipes as JSON for the
+// SvelteKit SPA. The SPA owns the home page and always sends Accept:
+// application/json, so the legacy HTMX HTML fragment path has been removed.
 func (h *Handlers) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Request) {
-	if handlers.WantsJSON(r) {
-		h.HandlePopularRecipesJSON(w, r)
-		return
-	}
-	recipes, err := h.listAllRecipesFromIndex(r.Context())
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to fetch recipes for popular section")
-		return
-	}
-
-	// Sort by popularity: brew_count + fork_count, descending
-	sort.Slice(recipes, func(i, j int) bool {
-		si := recipes[i].BrewCount + recipes[i].ForkCount
-		sj := recipes[j].BrewCount + recipes[j].ForkCount
-		return si > sj
-	})
-
-	const maxRecipes = 3
-	if len(recipes) > maxRecipes {
-		recipes = recipes[:maxRecipes]
-	}
-
-	if err := coffee.PopularRecipes(coffee.PopularRecipesProps{
-		Recipes: recipes,
-	}).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render popular recipes")
-	}
+	h.HandlePopularRecipesJSON(w, r)
 }

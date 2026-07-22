@@ -342,18 +342,9 @@ func (h *Handlers) recipeViewConfig() handlers.EntityViewConfig {
 	}
 }
 
-// HandleRecipeView displays a recipe detail page
-func (h *Handlers) HandleRecipeView(w http.ResponseWriter, r *http.Request) {
-	h.RenderEntityView(w, r, h.recipeViewConfig())
-}
-
 // HandleRecipeViewJSON returns recipe detail data as JSON for the SvelteKit SPA.
 func (h *Handlers) HandleRecipeViewJSON(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityViewJSON(w, r, h.recipeViewConfig())
-}
-
-func (h *Handlers) HandleRecipeBacklinks(w http.ResponseWriter, r *http.Request) {
-	h.RenderBacklinksView(w, r, h.recipeViewConfig())
 }
 
 // HandleRecipeBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.

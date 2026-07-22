@@ -49,10 +49,6 @@ type EntityRouteBundle struct {
 
 	// OGImage serves the entity's OpenGraph image.
 	OGImage http.HandlerFunc
-
-	// Modal partials return dialog HTML for create / edit flows.
-	ModalNew  http.HandlerFunc
-	ModalEdit http.HandlerFunc
 }
 
 // Per-app entity bundles live in their own packages:

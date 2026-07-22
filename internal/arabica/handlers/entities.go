@@ -10,7 +10,6 @@ import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
-	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/records"
@@ -225,48 +224,6 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	handlers.WriteJSON(w, bean, "bean")
 }
 
-// HandleBeanNew renders the full-page bean form.
-func (h *Handlers) HandleBeanNew(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "New Bean")
-	props := coffeepages.BeanFormProps{Roasters: beanModalRoasters(r.Context(), store)}
-	if err := coffeepages.BeanFormPage(layoutData, props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render bean form")
-	}
-}
-
-// HandleBeanEdit renders the full-page bean edit form.
-func (h *Handlers) HandleBeanEdit(w http.ResponseWriter, r *http.Request) {
-	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-	store, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-	bean, err := store.GetBeanByRKey(r.Context(), rkey)
-	if err != nil {
-		http.Error(w, "Bean not found", http.StatusNotFound)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to get bean for edit")
-		return
-	}
-
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "Edit Bean")
-	props := coffeepages.BeanFormProps{Bean: bean, Roasters: beanModalRoasters(r.Context(), store)}
-	if err := coffeepages.BeanFormPage(layoutData, props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to render bean edit form")
-	}
-}
-
 // API endpoint to create roaster
 func (h *Handlers) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.RequireRecordStore(w, r)
@@ -286,73 +243,12 @@ func (h *Handlers) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-// Manage page
-func (h *Handlers) HandleManage(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/my-coffee", http.StatusMovedPermanently)
-}
-
-// HandleMyCoffee renders the unified My Coffee page (replaces both /brews and /manage)
-func (h *Handlers) HandleMyCoffee(w http.ResponseWriter, r *http.Request) {
-	_, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "My Coffee")
-
-	if err := coffeepages.MyCoffee(layoutData, coffeepages.MyCoffeeProps{}).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render my coffee page")
-	}
-}
-
-// HandleIncompleteRecordsPartial returns an HTML fragment for incomplete records on the home dashboard.
+// HandleIncompleteRecordsPartial returns the user's incomplete records as
+// JSON ({records}) for the SvelteKit SPA. The SvelteKit SPA owns the home page
+// and always sends Accept: application/json, so the legacy HTMX HTML fragment
+// path has been removed.
 func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.Request) {
-	if handlers.WantsJSON(r) {
-		h.HandleIncompleteRecordsJSON(w, r)
-		return
-	}
-	store, authenticated := h.GetArabicaStore(r)
-	if !authenticated {
-		return
-	}
-
-	ctx := r.Context()
-	g, ctx := errgroup.WithContext(ctx)
-
-	var beans []*arabica.Bean
-	var grinders []*arabica.Grinder
-	var brewers []*arabica.Brewer
-
-	g.Go(func() error {
-		var err error
-		beans, err = store.ListBeans(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		grinders, err = listGrinders(ctx, store)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		brewers, err = listBrewers(ctx, store)
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
-		log.Error().Err(err).Msg("Failed to fetch data for incomplete records")
-		return
-	}
-
-	records := coffee.CollectIncompleteRecords(beans, grinders, brewers, 5)
-
-	if err := coffee.IncompleteRecords(coffee.IncompleteRecordsProps{
-		Records: records,
-	}).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render incomplete records")
-	}
+	h.HandleIncompleteRecordsJSON(w, r)
 }
 
 // HandleManageRefresh invalidates all caches and re-fetches records from the

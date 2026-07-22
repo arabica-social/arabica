@@ -32,8 +32,6 @@ func TestRegisterEntityRoutesUsesExplicitPageOwnership(t *testing.T) {
 			Backlinks:     okHandler("bean-backlinks"),
 			JSONBacklinks: okHandler("bean-json-backlinks"),
 			OGImage:       okHandler("bean-og"),
-			ModalNew:      okHandler("bean-modal-new"),
-			ModalEdit:     okHandler("bean-modal-edit"),
 		},
 	}
 
@@ -55,12 +53,10 @@ func TestRegisterEntityRoutesUsesExplicitPageOwnership(t *testing.T) {
 	RegisterEntityRoutes(mux2, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, pagesWithBacklinks)
 	assertRouteBody(t, mux2, "GET", "/beans/alice.test/r1/backlinks", http.StatusOK, "spa")
 
-	// JSON view/backlinks, OG image, mutations and modal partials remain.
+	// JSON view/backlinks, OG image, and mutations remain.
 	assertRouteStatus(t, mux, "GET", "/api/beans/alice.test/r1", http.StatusOK)
 	assertRouteStatus(t, mux, "GET", "/api/beans/alice.test/r1/backlinks", http.StatusOK)
 	assertRouteStatus(t, mux, "GET", "/beans/alice.test/r1/og-image", http.StatusOK)
-	assertRouteStatus(t, mux, "GET", "/api/modals/bean/new", http.StatusOK)
-	assertRouteStatus(t, mux, "GET", "/api/modals/bean/r1", http.StatusOK)
 }
 
 func TestPageRoutesRegisterExplicitOwners(t *testing.T) {

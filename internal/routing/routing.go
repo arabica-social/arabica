@@ -421,16 +421,6 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		if b.Delete != nil {
 			mux.Handle("DELETE /api/"+urlPath+"/{id}", cop.Handler(b.Delete))
 		}
-		// Modal partials are kept even in SPA mode because simple-entity
-		// create/edit pages have not been ported to SvelteKit yet. They are
-		// used by both the legacy manage pages and the ported SPA pages
-		// (e.g. recipe edit modal).
-		if b.ModalNew != nil && route.Noun != "" {
-			mux.HandleFunc("GET /api/modals/"+route.Noun+"/new", b.ModalNew)
-		}
-		if b.ModalEdit != nil && route.Noun != "" {
-			mux.HandleFunc("GET /api/modals/"+route.Noun+"/{id}", b.ModalEdit)
-		}
 	}
 }
 

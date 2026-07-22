@@ -5,7 +5,6 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/routing"
 )
 
@@ -109,43 +108,34 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	// routes remain independent of the frontend owner.
 	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.Pages)
 
-	// HTML/HTMX routes that have not been ported to SvelteKit yet. They are
-	// registered in both modes so users always have a working fallback.
-	mux.Handle("GET /api/get-started-card", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleGetStartedCard)))
-	mux.Handle("GET /api/onboarding/station-form/{kind}", middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleOnboardingStationForm)))
+	// Dead modal partials from the legacy templ stack. The SPA uses dedicated
+	// /recipes/new and /recipes/{id}/edit pages and its own station drawer;
+	// these HTMX-only routes have no live consumer.
+	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleNotFound)
+	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleNotFound)
 
-	ctx.Pages.Register(mux, "GET /manage", http.HandlerFunc(h.HandleManage))
-	ctx.Pages.Register(mux, "GET /brews", http.HandlerFunc(h.HandleBrewList))
-
-	ctx.Pages.Register(mux, "GET /recipes", http.HandlerFunc(h.HandleRecipeExplore))
-	ctx.Pages.Register(mux, "GET /recipes/{actor}/{id}/backlinks", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleRecipeBacklinks)))
-
-	// Recipe modal partials remain for the legacy stack; the SvelteKit SPA
-	// uses /recipes/new and /recipes/{id}/edit pages (SPAOwnedRoutes).
-	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleRecipeModalNew)
-	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleRecipeModalEdit)
-
-	ctx.Pages.Register(mux, "GET /onboarding", http.HandlerFunc(h.HandleOnboarding))
-	ctx.Pages.Register(mux, "GET /add", http.HandlerFunc(h.HandleAddRecords))
-	ctx.Pages.Register(mux, "GET /my-coffee", http.HandlerFunc(h.HandleMyCoffee))
-	ctx.Pages.Register(mux, "GET /explore", http.HandlerFunc(h.HandleExplore))
-	ctx.Pages.Register(mux, "GET /brews/new", http.HandlerFunc(h.HandleBrewNew))
-	ctx.Pages.Register(mux, "GET /brews/{id}/edit", http.HandlerFunc(h.HandleBrewEdit))
-	ctx.Pages.Register(mux, "GET /brews/{actor}/{id}", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleBrewView)))
-	ctx.Pages.Register(mux, "GET /recipes/{actor}/{id}", http.HandlerFunc(routing.RewriteActorToOwner(h.HandleRecipeView)))
-	ctx.Pages.Register(mux, "GET /profile/{actor}", http.HandlerFunc(h.HandleProfile))
-
-	// Simple-entity create/edit pages (bean, roaster, grinder, brewer,
-	// recipe) are SPA-owned (see SPAOwnedRoutes). They had no legacy
-	// full-page handlers — the templ stack used modal partials for these —
-	// so register them here purely to claim the SPA shell. pages.Register
-	// routes SPA-owned patterns to the SPA handler regardless of the legacy
-	// handler argument; the legacy arg is only a fallback for non-SPA mode,
-	// which is not exercised for these routes. A nil-safe 404 handler is
+	// SPA-owned page routes (see SPAOwnedRoutes). The legacy templ handlers
+	// have been removed; the SPA shell owns these URLs. A nil-safe 404 is
 	// passed as the legacy fallback so a non-SPA build still responds
 	// predictably instead of panicking on a nil handler.
 	notFound := http.HandlerFunc(h.HandleNotFound)
 	for _, pattern := range []string{
+		"GET /manage",
+		"GET /brews",
+		"GET /recipes",
+		"GET /recipes/{actor}/{id}/backlinks",
+		"GET /onboarding",
+		"GET /add",
+		"GET /my-coffee",
+		"GET /explore",
+		"GET /brews/new",
+		"GET /brews/{id}/edit",
+		"GET /brews/{actor}/{id}",
+		"GET /recipes/{actor}/{id}",
+		"GET /profile/{actor}",
+		// Simple-entity create/edit pages (bean, roaster, grinder, brewer,
+		// recipe) are SPA-owned (see SPAOwnedRoutes). They had no legacy
+		// full-page handlers — the templ stack used modal partials for these.
 		"GET /beans/new",
 		"GET /beans/{id}/edit",
 		"GET /roasters/new",
@@ -176,8 +166,6 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Backlinks:     h.HandleBeanBacklinks,
 			JSONBacklinks: h.HandleBeanBacklinksJSON,
 			OGImage:       h.HandleBeanOGImage,
-			ModalNew:      h.HandleBeanModalNew,
-			ModalEdit:     h.HandleBeanModalEdit,
 		},
 		{
 			RecordType:    lexicons.RecordTypeRoaster,
@@ -189,8 +177,6 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Backlinks:     h.HandleRoasterBacklinks,
 			JSONBacklinks: h.HandleRoasterBacklinksJSON,
 			OGImage:       h.HandleRoasterOGImage,
-			ModalNew:      h.HandleRoasterModalNew,
-			ModalEdit:     h.HandleRoasterModalEdit,
 		},
 		{
 			RecordType:    lexicons.RecordTypeGrinder,
@@ -202,8 +188,6 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Backlinks:     h.HandleGrinderBacklinks,
 			JSONBacklinks: h.HandleGrinderBacklinksJSON,
 			OGImage:       h.HandleGrinderOGImage,
-			ModalNew:      h.HandleGrinderModalNew,
-			ModalEdit:     h.HandleGrinderModalEdit,
 		},
 		{
 			RecordType:    lexicons.RecordTypeBrewer,
@@ -215,8 +199,6 @@ func (h *Handlers) EntityRouteBundles() []handlers.EntityRouteBundle {
 			Backlinks:     h.HandleBrewerBacklinks,
 			JSONBacklinks: h.HandleBrewerBacklinksJSON,
 			OGImage:       h.HandleBrewerOGImage,
-			ModalNew:      h.HandleBrewerModalNew,
-			ModalEdit:     h.HandleBrewerModalEdit,
 		},
 	}
 }

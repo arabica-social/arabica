@@ -6,6 +6,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
@@ -33,7 +34,7 @@ func (h *Handlers) HandleExploreJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, viewerDID, _ := h.LayoutDataFromRequest(r, "Explore")
+	viewerDID, _ := atpmiddleware.GetDID(r.Context())
 
 	query := parseExploreQuery(r)
 	cf := h.LoadContentFilter(r.Context())

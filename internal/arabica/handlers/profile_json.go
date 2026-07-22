@@ -47,21 +47,16 @@ type ProfileJSONResponse struct {
 	RoasterAvgBrewRatings map[string]float64 `json:"roaster_avg_brew_ratings"`
 }
 
-// HandleProfileAPI serves profile data with content negotiation.
-// Accept: application/json returns the full profile data bundle as JSON for
-// the SvelteKit SPA; HX-Request returns the existing HTML partial.
+// HandleProfileAPI serves profile data as JSON for the SvelteKit SPA. The
+// SvelteKit SPA owns the /profile/{actor} page and always sends Accept:
+// application/json, so the legacy HTMX HTML partial path has been removed.
 func (h *Handlers) HandleProfileAPI(w http.ResponseWriter, r *http.Request) {
-	if handlers.WantsJSON(r) {
-		h.HandleProfileJSON(w, r)
-		return
-	}
-	h.HandleProfilePartial(w, r)
+	h.HandleProfileJSON(w, r)
 }
 
 // HandleProfileJSON returns a user's profile data as JSON for the SvelteKit SPA.
-// It combines the shell-level checks (HandleProfile) with the heavy data fetch
-// (HandleProfilePartial): actor resolution, blacklist check, profile fetch,
-// paginated brews, entity lists, and all social/usage stats.
+// It performs actor resolution, blacklist check, profile fetch, paginated
+// brews, entity lists, and all social/usage stats.
 func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 	actor := r.PathValue("actor")
 	if actor == "" {
