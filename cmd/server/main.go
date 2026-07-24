@@ -15,7 +15,6 @@ import (
 	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
-	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/logging"
 	"tangled.org/arabica.social/arabica/internal/routing"
 
@@ -27,7 +26,6 @@ type appRun struct {
 	defaultPort        string
 	defaultMetricsPort string
 	appRoutes          routing.AppRoutes
-	staticPages        handlers.StaticPageRenderers
 }
 
 func main() {
@@ -70,8 +68,7 @@ func runApps(ctx context.Context, knownDIDsFile string, runs []appRun) error {
 				KnownDIDsPath:      knownDIDsFile,
 				DefaultPort:        run.defaultPort,
 				DefaultMetricsPort: run.defaultMetricsPort,
-				AppRoutes:          run.appRoutes,
-				StaticPages:        run.staticPages,
+				AppRoutes:           run.appRoutes,
 			})
 			if err != nil {
 				errCh <- fmt.Errorf("%s: %w", run.app.Name, err)

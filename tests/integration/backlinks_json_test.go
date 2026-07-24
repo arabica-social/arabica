@@ -107,8 +107,9 @@ func TestHTTP_BacklinksJSONNotFound(t *testing.T) {
 	assert.Equal(t, 404, resp.StatusCode)
 }
 
-// TestHTTP_BacklinksJSONHTMXStillHTML verifies that an HTMX request still
-// gets the HTML backlinks page (not JSON).
+// TestHTTP_BacklinksPageIsSPAOwned verifies that the backlinks page route is
+// served by the SPA shell (not a legacy HTML partial or JSON). The JSON
+// backlinks data lives at /api/{entity}/{actor}/{id}/backlinks.
 func TestHTTP_BacklinksJSONHTMXStillHTML(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -120,6 +121,7 @@ func TestHTTP_BacklinksJSONHTMXStillHTML(t *testing.T) {
 	resp := h.GetHTMX("/roasters/" + actor + "/" + rkey + "/backlinks")
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
+	// The SPA shell serves HTML; it is not JSON.
 	assert.NotEqual(t, "application/json", resp.Header.Get("Content-Type"))
 	assert.NotEmpty(t, body)
 }

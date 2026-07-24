@@ -4,15 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
-	"tangled.org/arabica.social/arabica/internal/profileprefs"
-	"tangled.org/arabica.social/arabica/internal/social"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
@@ -57,54 +52,6 @@ func (h *Handler) BuildModerationContext(ctx context.Context, viewerDID string, 
 	return modCtx
 }
 
-// Home page
-func (h *Handler) HandleHome(w http.ResponseWriter, r *http.Request) {
-	layoutData, didStr, isAuthenticated := h.LayoutDataFromRequest(r, "Home")
-
-	// Set OG metadata for the home page
-	layoutData.OGTitle = h.brand.DisplayName
-	layoutData.OGDescription = h.homeOGDescription()
-	baseURL := h.PublicBaseURL(r)
-	if baseURL != "" {
-		layoutData.OGImage = baseURL + "/og-image"
-		layoutData.OGUrl = baseURL + "/"
-	}
-
-	// Create home props
-	var descriptors []*entities.Descriptor
-	var appName string
-	if h.app != nil {
-		descriptors = h.app.Descriptors
-		appName = h.app.Name
-	}
-
-	ready := true
-	if isAuthenticated && h.homeBehavior.ReadinessChecker != nil {
-		if store, ok := h.GetRecordStore(r); ok {
-			if isReady, err := h.homeBehavior.ReadinessChecker(r.Context(), store); err != nil {
-				log.Warn().Err(err).Msg("readiness check failed; treating user as ready to avoid false block")
-			} else {
-				ready = isReady
-			}
-		}
-	}
-
-	homeProps := pages.HomeProps{
-		IsAuthenticated: isAuthenticated,
-		UserDID:         didStr,
-		AppName:         appName,
-		Descriptors:     descriptors,
-		FeedViews:       h.feedViews,
-		Ready:           ready,
-	}
-
-	// Render using templ component
-	if err := pages.Home(layoutData, homeProps).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render home page")
-	}
-}
-
 func (h *Handler) homeOGDescription() string {
 	if h.homeBehavior.OGDescription != "" {
 		return h.homeBehavior.OGDescription
@@ -145,21 +92,13 @@ func (h *Handler) HandleSiteOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleFeed serves the community feed with content negotiation.
-// Requests with Accept: application/json (or X-Requested-With: JSON) receive
-// a JSON response for the SvelteKit SPA; HTMX requests (HX-Request: true)
-// receive the existing HTML partial. This lets a single route serve both
-// clients during the migration.
+// HandleFeed serves the community feed as JSON for the SvelteKit SPA.
 func (h *Handler) HandleFeed(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.handleFeedJSON(w, r)
-		return
-	}
-	h.handleFeedPartial(w, r)
+	h.handleFeedJSON(w, r)
 }
 
 // feedQueryResult holds the fetched feed items plus the resolved query state
-// shared by both the HTML and JSON render paths.
+// shared by the JSON render path.
 type feedQueryResult struct {
 	items           []*feed.FeedItem
 	nextCursor      string
@@ -170,8 +109,7 @@ type feedQueryResult struct {
 }
 
 // fetchFeed loads feed items for the request, applying type/sort/cursor query
-// params and populating per-viewer IsLikedByViewer / IsOwner fields. Shared by
-// the HTML partial and JSON handlers so both paths see identical data.
+// params and populating per-viewer IsLikedByViewer / IsOwner fields.
 func (h *Handler) fetchFeed(r *http.Request) feedQueryResult {
 	viewerDID, isAuthenticated := atpmiddleware.GetDID(r.Context())
 
@@ -263,7 +201,7 @@ func (h *Handler) handleFeedJSON(w http.ResponseWriter, r *http.Request) {
 		items = append(items, NewFeedItemJSON(item))
 	}
 	// Build moderation context so moderators see hide/block controls and
-	// hidden-record badges in the feed — mirroring the HTMX partial path.
+	// hidden-record badges in the feed.
 	modCtx := h.BuildModerationContext(r.Context(), res.viewerDID, res.items)
 	ApplyModerationContext(items, modCtx)
 	// Build app-scoped filter tabs so each app gets its own labels.
@@ -283,150 +221,8 @@ func (h *Handler) handleFeedJSON(w http.ResponseWriter, r *http.Request) {
 	}, "feed")
 }
 
-// handleFeedPartial renders the feed as an HTMX HTML partial (existing behavior).
-func (h *Handler) handleFeedPartial(w http.ResponseWriter, r *http.Request) {
-	res := h.fetchFeed(r)
-	feedItems := res.items
-	nextCursor := res.nextCursor
-	viewerDID := res.viewerDID
-	isAuthenticated := res.isAuthenticated
-	typeFilter := res.typeFilter
-	sortBy := res.sortBy
-
-	// Build moderation context for moderators
-	modCtx := h.BuildModerationContext(r.Context(), viewerDID, feedItems)
-
-	// Build query state for template
-	typeFilterStr := string(typeFilter)
-	cursor := r.URL.Query().Get("cursor")
-	var descriptors []*entities.Descriptor
-	if h.app != nil {
-		descriptors = h.app.Descriptors
-	}
-	brandName := h.brand.DisplayName
-	userPrefs := profileprefs.DefaultUserPreferences()
-	if h.feedIndex != nil && viewerDID != "" {
-		userPrefs = h.feedIndex.GetUserPreferences(r.Context(), viewerDID)
-	}
-	queryState := pages.FeedQueryState{
-		TypeFilter:      typeFilterStr,
-		Sort:            string(sortBy),
-		NextCursor:      nextCursor,
-		IsAuthenticated: isAuthenticated,
-		Descriptors:     descriptors,
-		FeedViews:       h.feedViews,
-		BrandName:       brandName,
-		EmptyState:      h.feedPresentation.EmptyState,
-		UserPreferences: userPrefs,
-	}
-
-	// If this is a "load more" request (has cursor), render just the additional items
-	if cursor != "" {
-		if err := pages.FeedMoreItems(feedItems, isAuthenticated, modCtx, queryState).Render(r.Context(), w); err != nil {
-			http.Error(w, "Failed to render feed", http.StatusInternalServerError)
-			log.Error().Err(err).Msg("Failed to render feed partial")
-		}
-		return
-	}
-
-	if err := pages.FeedPartialWithModeration(feedItems, isAuthenticated, modCtx, queryState).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render feed", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render feed partial")
-	}
-}
-
-// HandleLikeToggle handles creating or deleting a like on a record
+// HandleLikeToggle handles creating or deleting a like on a record. The SPA
+// always sends Accept: application/json, so this delegates to the JSON path.
 func (h *Handler) HandleLikeToggle(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleLikeToggleJSON(w, r)
-		return
-	}
-	// Require authentication
-	store, authenticated := h.getSocialStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	didStr, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		log.Warn().Err(err).Msg("Failed to parse like toggle form")
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		return
-	}
-
-	subjectURI := r.FormValue("subject_uri")
-	subjectCID := r.FormValue("subject_cid")
-
-	if subjectURI == "" || subjectCID == "" {
-		log.Warn().Str("subject_uri", subjectURI).Str("subject_cid", subjectCID).Msg("Like toggle: missing required fields")
-		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
-		return
-	}
-
-	// Check if user already liked this record
-	existingLike, err := store.GetUserLikeForSubject(r.Context(), subjectURI)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to check existing like")
-		HandleStoreError(w, err, "Failed to check like status")
-		return
-	}
-
-	var isLiked bool
-	var likeCount int
-
-	if existingLike != nil {
-		// Unlike: delete the existing like
-		if err := store.DeleteLikeByRKey(r.Context(), existingLike.RKey); err != nil {
-			log.Error().Err(err).Msg("Failed to delete like")
-			HandleStoreError(w, err, "Failed to unlike")
-			return
-		}
-		isLiked = false
-		metrics.LikesTotal.WithLabelValues("delete").Inc()
-
-		// Update firehose index
-		if h.feedIndex != nil {
-			if err := h.feedIndex.DeleteLike(r.Context(), didStr, subjectURI); err != nil {
-				log.Warn().Err(err).Str("did", didStr).Str("subject_uri", subjectURI).Msg("Failed to delete like from feed index")
-			}
-			h.feedIndex.DeleteLikeNotification(didStr, subjectURI)
-			likeCount = h.feedIndex.GetLikeCount(r.Context(), subjectURI)
-		}
-	} else {
-		// Like: create a new like
-		req := &social.CreateLikeRequest{
-			SubjectURI: subjectURI,
-			SubjectCID: subjectCID,
-		}
-		like, err := store.CreateLike(r.Context(), req)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to create like")
-			HandleStoreError(w, err, "Failed to like")
-			return
-		}
-		isLiked = true
-		metrics.LikesTotal.WithLabelValues("create").Inc()
-
-		// Update firehose index
-		if h.feedIndex != nil {
-			if err := h.feedIndex.UpsertLike(r.Context(), didStr, like.RKey, subjectURI); err != nil {
-				log.Warn().Err(err).Str("did", didStr).Str("subject_uri", subjectURI).Msg("Failed to upsert like in feed index")
-			}
-			likeCount = h.feedIndex.GetLikeCount(r.Context(), subjectURI)
-		}
-	}
-
-	// Return the updated like button component
-	if err := components.LikeButton(components.LikeButtonProps{
-		SubjectURI:      subjectURI,
-		SubjectCID:      subjectCID,
-		IsLiked:         isLiked,
-		LikeCount:       likeCount,
-		IsAuthenticated: true,
-	}).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render like button")
-	}
+	h.HandleLikeToggleJSON(w, r)
 }

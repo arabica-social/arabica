@@ -5,7 +5,6 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -53,13 +52,11 @@ func TestDomainEntityDescriptorDoesNotOwnFeedActions(t *testing.T) {
 }
 
 func TestFeedPageDoesNotReadDescriptorRouteFields(t *testing.T) {
-	content, err := os.ReadFile("../../internal/web/pages/feed.templ")
-	assert.NoError(t, err)
-
-	source := string(content)
-	assert.NotContains(t, source, "entities.Get(")
-	assert.NotContains(t, source, ".Noun")
-	assert.NotContains(t, source, ".URLPath")
+	// The templ feed page was removed when the SvelteKit SPA became the
+	// sole frontend. This test previously asserted feed.templ did not read
+	// descriptor route fields; with the templ stack gone there is no feed
+	// page source to inspect, so the guard is obsolete.
+	t.Skip("feed.templ removed with the templ stack")
 }
 
 func sharedAppImports(t *testing.T) map[string]struct{} {

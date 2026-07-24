@@ -1,20 +1,20 @@
 package feedviews
 
 import (
-	"github.com/a-h/templ"
-
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
-	"tangled.org/arabica.social/arabica/internal/profileprefs"
 )
 
-type Renderer func(*feed.FeedItem) templ.Component
-type PreferenceRenderer func(*feed.FeedItem, profileprefs.UserPreferences) templ.Component
+// ActionURL computes a per-item action URL (share, delete, edit) from a feed
+// item. Kept as a typed function so the registry can be assembled declaratively
+// per app.
 type ActionURL func(*feed.FeedItem) string
 
+// View describes how a record type appears in the feed. Only the metadata
+// needed by the JSON feed path (filter labels, action URLs, compactness) is
+// retained; the legacy templ Render/RenderPrefs fields were removed with the
+// templ stack.
 type View struct {
-	Render        Renderer
-	RenderPrefs   PreferenceRenderer
 	Compact       bool
 	CardClassNoun string
 	ActionNoun    string
@@ -26,35 +26,7 @@ type View struct {
 	EditModalURL  ActionURL
 }
 
-func (r Registry) RenderWithPreferences(item *feed.FeedItem, prefs profileprefs.UserPreferences) templ.Component {
-	if item == nil {
-		return nil
-	}
-	view, ok := r[item.RecordType]
-	if !ok {
-		return nil
-	}
-	if view.RenderPrefs != nil {
-		return view.RenderPrefs(item, prefs.WithDefaults())
-	}
-	if view.Render == nil {
-		return nil
-	}
-	return view.Render(item)
-}
-
 type Registry map[lexicons.RecordType]View
-
-func (r Registry) Render(item *feed.FeedItem) templ.Component {
-	if item == nil {
-		return nil
-	}
-	view, ok := r[item.RecordType]
-	if !ok || view.Render == nil {
-		return nil
-	}
-	return view.Render(item)
-}
 
 func (r Registry) Compact(rt lexicons.RecordType) bool {
 	view, ok := r[rt]

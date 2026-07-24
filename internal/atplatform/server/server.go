@@ -56,10 +56,6 @@ type Options struct {
 	// AppRoutes registers app-owned routes into the shared HTTP router.
 	// Supplying this keeps internal/routing app-agnostic.
 	AppRoutes routing.AppRoutes
-
-	// StaticPages supplies app-owned static page renderers for shared routes
-	// such as /about and /terms.
-	StaticPages handlers.StaticPageRenderers
 }
 
 // tracingOnce ensures the global OpenTelemetry provider is initialised
@@ -292,7 +288,6 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	h.SetWitnessCache(feedIndex)
 	h.SetBrand(app.Brand)
 	h.SetApp(app)
-	h.SetStaticPageRenderers(opts.StaticPages)
 
 	// Moderation
 	moderatorsConfigPath := os.Getenv(envPrefix + "_MODERATORS_CONFIG")

@@ -11,9 +11,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	sharedpages "tangled.org/arabica.social/arabica/internal/web/pages"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -30,117 +28,10 @@ type hideRequest struct {
 	Reason string `json:"reason,omitempty"`
 }
 
-// HandleHideRecord handles POST /admin/hide
-// Auth and permission checks are handled by RequirePermission middleware.
-func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleHideRecordJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	var req hideRequest
-	req.URI = r.FormValue("uri")
-	req.Reason = r.FormValue("reason")
-
-	if req.URI == "" {
-		http.Error(w, "URI is required", http.StatusBadRequest)
-		return
-	}
-
-	// Hide the record
-	entry := moderation.HiddenRecord{
-		ATURI:      req.URI,
-		HiddenAt:   time.Now(),
-		HiddenBy:   userDID,
-		Reason:     req.Reason,
-		AutoHidden: false,
-	}
-
-	if err := h.moderationStore.HideRecord(r.Context(), entry); err != nil {
-		log.Error().Err(err).Str("uri", req.URI).Msg("Failed to hide record")
-		http.Error(w, "Failed to hide record", http.StatusInternalServerError)
-		return
-	}
-
-	// Log the action
-	auditEntry := moderation.AuditEntry{
-		ID:        generateTID(),
-		Action:    moderation.AuditActionHideRecord,
-		ActorDID:  userDID,
-		TargetURI: req.URI,
-		Reason:    req.Reason,
-		Timestamp: time.Now(),
-		AutoMod:   false,
-	}
-	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
-		log.Error().Err(err).Msg("Failed to log hide action")
-		// Don't fail the request, just log the error
-	}
-
-	log.Info().
-		Str("uri", req.URI).
-		Str("by", userDID).
-		Msg("Record hidden from feed")
-
-	w.Header().Set("HX-Trigger", `{"mod-action":null,"notify":{"message":"Record hidden from feed"}}`)
-	w.WriteHeader(http.StatusOK)
-}
-
-// HandleUnhideRecord handles POST /admin/unhide
-// Auth and permission checks are handled by RequirePermission middleware.
-func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleUnhideRecordJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	var req hideRequest
-	req.URI = r.FormValue("uri")
-	req.Reason = r.FormValue("reason")
-
-	if req.URI == "" {
-		http.Error(w, "URI is required", http.StatusBadRequest)
-		return
-	}
-
-	// Unhide the record
-	if err := h.moderationStore.UnhideRecord(r.Context(), req.URI); err != nil {
-		log.Error().Err(err).Str("uri", req.URI).Msg("Failed to unhide record")
-		http.Error(w, "Failed to unhide record", http.StatusInternalServerError)
-		return
-	}
-
-	// Log the action
-	auditEntry := moderation.AuditEntry{
-		ID:        generateTID(),
-		Action:    moderation.AuditActionUnhideRecord,
-		ActorDID:  userDID,
-		TargetURI: req.URI,
-		Reason:    req.Reason,
-		Timestamp: time.Now(),
-		AutoMod:   false,
-	}
-	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
-		log.Error().Err(err).Msg("Failed to log unhide action")
-	}
-
-	log.Info().
-		Str("uri", req.URI).
-		Str("by", userDID).
-		Msg("Record unhidden")
-
-	w.Header().Set("HX-Trigger", `{"mod-action":null,"notify":{"message":"Record unhidden"}}`)
-	w.WriteHeader(http.StatusOK)
+// blockRequest is the request body for blocking a user
+type blockRequest struct {
+	DID    string `json:"did"`
+	Reason string `json:"reason,omitempty"`
 }
 
 // generateTID generates a TID (timestamp-based identifier) using the AT Protocol TID format.
@@ -243,56 +134,6 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) sharedpag
 	}
 }
 
-// HandleAdmin renders the moderation dashboard
-func (h *Handler) HandleAdmin(w http.ResponseWriter, r *http.Request) {
-	// Check authentication
-	userDID, ok := atpmiddleware.GetDID(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
-	// Check if user is a moderator
-	if h.moderationService == nil || !h.moderationService.IsModerator(userDID) {
-		log.Warn().Str("did", userDID).Str("endpoint", "/_mod").Msg("Denied: not a moderator")
-		http.Error(w, "Access denied", http.StatusForbidden)
-		return
-	}
-
-	userProfile := h.GetUserProfile(r.Context(), userDID)
-	adminProps := h.buildAdminProps(r.Context(), userDID)
-
-	layoutData := &components.LayoutData{
-		Title:           "Moderation",
-		IsAuthenticated: true,
-		UserDID:         userDID,
-		UserProfile:     userProfile,
-		CSPNonce:        middleware.CSPNonceFromContext(r.Context()),
-		IsModerator:     true,
-	}
-
-	if err := sharedpages.Admin(layoutData, adminProps).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render admin page")
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-	}
-}
-
-// HandleAdminPartial renders just the admin dashboard content (for HTMX refresh)
-// Auth and moderator checks are handled by RequireModerator middleware.
-func (h *Handler) HandleAdminPartial(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleAdminJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-	adminProps := h.buildAdminProps(r.Context(), userDID)
-
-	if err := sharedpages.AdminDashboardBody(adminProps).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render admin partial")
-		http.Error(w, "Failed to render", http.StatusInternalServerError)
-	}
-}
-
 // enrichReports resolves handles and fetches post content for reports
 func (h *Handler) enrichReports(ctx context.Context, reports []moderation.Report) []sharedpages.EnrichedReport {
 	if len(reports) == 0 {
@@ -374,352 +215,40 @@ func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atp.P
 	return summary
 }
 
-// blockRequest is the request body for blocking a user
-type blockRequest struct {
-	DID    string `json:"did"`
-	Reason string `json:"reason,omitempty"`
+// Moderation action handlers. The SPA always sends Accept: application/json,
+// so each delegates to its JSON counterpart. Auth and permission checks are
+// handled by RequirePermission middleware in routing.go.
+
+func (h *Handler) HandleHideRecord(w http.ResponseWriter, r *http.Request) {
+	h.HandleHideRecordJSON(w, r)
 }
 
-// HandleBlockUser handles POST /_mod/block
-// Auth and permission checks are handled by RequirePermission middleware.
+func (h *Handler) HandleUnhideRecord(w http.ResponseWriter, r *http.Request) {
+	h.HandleUnhideRecordJSON(w, r)
+}
+
 func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleBlockUserJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	var req blockRequest
-	req.DID = r.FormValue("did")
-	req.Reason = r.FormValue("reason")
-
-	if req.DID == "" {
-		http.Error(w, "DID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Block the user
-	entry := moderation.BlacklistedUser{
-		DID:           req.DID,
-		BlacklistedAt: time.Now(),
-		BlacklistedBy: userDID,
-		Reason:        req.Reason,
-	}
-
-	if err := h.moderationStore.BlacklistUser(r.Context(), entry); err != nil {
-		log.Error().Err(err).Str("did", req.DID).Msg("Failed to block user")
-		http.Error(w, "Failed to block user", http.StatusInternalServerError)
-		return
-	}
-
-	// Log the action
-	auditEntry := moderation.AuditEntry{
-		ID:        generateTID(),
-		Action:    moderation.AuditActionBlacklistUser,
-		ActorDID:  userDID,
-		TargetURI: req.DID,
-		Reason:    req.Reason,
-		Timestamp: time.Now(),
-		AutoMod:   false,
-	}
-	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
-		log.Error().Err(err).Msg("Failed to log block action")
-	}
-
-	log.Info().
-		Str("did", req.DID).
-		Str("by", userDID).
-		Msg("User blocked")
-
-	w.Header().Set("HX-Trigger", `{"mod-action":null,"notify":{"message":"User blocked"}}`)
-	w.WriteHeader(http.StatusOK)
+	h.HandleBlockUserJSON(w, r)
 }
 
-// HandleUnblockUser handles POST /_mod/unblock
-// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleUnblockUserJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	var req blockRequest
-	req.DID = r.FormValue("did")
-
-	if req.DID == "" {
-		http.Error(w, "DID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Unblock the user
-	if err := h.moderationStore.UnblacklistUser(r.Context(), req.DID); err != nil {
-		log.Error().Err(err).Str("did", req.DID).Msg("Failed to unblock user")
-		http.Error(w, "Failed to unblock user", http.StatusInternalServerError)
-		return
-	}
-
-	// Log the action
-	auditEntry := moderation.AuditEntry{
-		ID:        generateTID(),
-		Action:    moderation.AuditActionUnblacklistUser,
-		ActorDID:  userDID,
-		TargetURI: req.DID,
-		Timestamp: time.Now(),
-		AutoMod:   false,
-	}
-	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
-		log.Error().Err(err).Msg("Failed to log unblock action")
-	}
-
-	log.Info().
-		Str("did", req.DID).
-		Str("by", userDID).
-		Msg("User unblocked")
-
-	w.Header().Set("HX-Trigger", "mod-action")
-	w.WriteHeader(http.StatusOK)
+	h.HandleUnblockUserJSON(w, r)
 }
 
-// HandleResetAutoHide handles POST /_mod/reset-autohide
-// Resets the per-user auto-hide report counter so that only future reports count toward the threshold.
-// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleResetAutoHide(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleResetAutoHideJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	targetDID := r.FormValue("did")
-	if targetDID == "" {
-		http.Error(w, "DID is required", http.StatusBadRequest)
-		return
-	}
-
-	now := time.Now()
-	if err := h.moderationStore.SetAutoHideReset(r.Context(), targetDID, now); err != nil {
-		log.Error().Err(err).Str("did", targetDID).Msg("Failed to reset auto-hide")
-		http.Error(w, "Failed to reset auto-hide", http.StatusInternalServerError)
-		return
-	}
-
-	auditEntry := moderation.AuditEntry{
-		ID:        generateTID(),
-		Action:    moderation.AuditActionResetAutoHide,
-		ActorDID:  userDID,
-		TargetURI: targetDID,
-		Reason:    "Auto-hide report counter reset",
-		Timestamp: now,
-		AutoMod:   false,
-	}
-	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
-		log.Error().Err(err).Msg("Failed to log reset-autohide action")
-	}
-
-	log.Info().
-		Str("did", targetDID).
-		Str("by", userDID).
-		Msg("Auto-hide counter reset for user")
-
-	w.Header().Set("HX-Trigger", "mod-action")
-	w.WriteHeader(http.StatusOK)
+	h.HandleResetAutoHideJSON(w, r)
 }
 
-// HandleDismissReport handles POST /_mod/dismiss-report
-// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleDismissReport(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleDismissReportJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	reportID := r.FormValue("id")
-	if reportID == "" {
-		http.Error(w, "Report ID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Dismiss the report
-	if err := h.moderationStore.ResolveReport(r.Context(), reportID, moderation.ReportStatusDismissed, userDID); err != nil {
-		log.Error().Err(err).Str("reportID", reportID).Msg("Failed to dismiss report")
-		http.Error(w, "Failed to dismiss report", http.StatusInternalServerError)
-		return
-	}
-
-	// Log the action
-	auditEntry := moderation.AuditEntry{
-		ID:        generateTID(),
-		Action:    moderation.AuditActionDismissReport,
-		ActorDID:  userDID,
-		TargetURI: reportID,
-		Timestamp: time.Now(),
-		AutoMod:   false,
-	}
-	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
-		log.Error().Err(err).Msg("Failed to log dismiss action")
-	}
-
-	log.Info().
-		Str("reportID", reportID).
-		Str("by", userDID).
-		Msg("Report dismissed")
-
-	w.Header().Set("HX-Trigger", "mod-action")
-	w.WriteHeader(http.StatusOK)
+	h.HandleDismissReportJSON(w, r)
 }
 
-// HandleAddLabel handles POST /_mod/label/add
-// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleAddLabel(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleAddLabelJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	entityType := r.FormValue("entity_type")
-	entityID := r.FormValue("entity_id")
-	labelName := r.FormValue("label")
-
-	if entityType == "" || entityID == "" || labelName == "" {
-		http.Error(w, "entity_type, entity_id, and label are required", http.StatusBadRequest)
-		return
-	}
-	if entityType != "user" && entityType != "record" {
-		http.Error(w, "entity_type must be 'user' or 'record'", http.StatusBadRequest)
-		return
-	}
-
-	label := moderation.Label{
-		ID:         generateTID(),
-		EntityType: entityType,
-		EntityID:   entityID,
-		Name:       labelName,
-		Value:      r.FormValue("value"),
-		CreatedAt:  time.Now(),
-		CreatedBy:  userDID,
-	}
-
-	// Parse optional TTL
-	if ttl := r.FormValue("expires"); ttl != "" {
-		if d, err := time.ParseDuration(ttl); err == nil {
-			exp := time.Now().Add(d)
-			label.ExpiresAt = &exp
-		}
-	}
-
-	if err := h.moderationStore.AddLabel(r.Context(), label); err != nil {
-		log.Error().Err(err).Str("label", labelName).Msg("Failed to add label")
-		http.Error(w, "Failed to add label", http.StatusInternalServerError)
-		return
-	}
-
-	// Log the action
-	auditEntry := moderation.AuditEntry{
-		ID:        generateTID(),
-		Action:    moderation.AuditActionAddLabel,
-		ActorDID:  userDID,
-		TargetURI: entityID,
-		Reason:    labelName,
-		Details: map[string]string{
-			"entity_type": entityType,
-			"label":       labelName,
-		},
-		Timestamp: time.Now(),
-	}
-	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
-		log.Error().Err(err).Msg("Failed to log add-label action")
-	}
-
-	log.Info().
-		Str("entity_type", entityType).
-		Str("entity_id", entityID).
-		Str("label", labelName).
-		Str("by", userDID).
-		Msg("Label added")
-
-	w.Header().Set("HX-Trigger", "mod-action")
-	w.WriteHeader(http.StatusOK)
+	h.HandleAddLabelJSON(w, r)
 }
 
-// HandleRemoveLabel handles POST /_mod/label/remove
-// Auth and permission checks are handled by RequirePermission middleware.
 func (h *Handler) HandleRemoveLabel(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleRemoveLabelJSON(w, r)
-		return
-	}
-	userDID, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	entityType := r.FormValue("entity_type")
-	entityID := r.FormValue("entity_id")
-	labelName := r.FormValue("label")
-
-	if entityType == "" || entityID == "" || labelName == "" {
-		http.Error(w, "entity_type, entity_id, and label are required", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.moderationStore.RemoveLabel(r.Context(), entityType, entityID, labelName); err != nil {
-		log.Error().Err(err).Str("label", labelName).Msg("Failed to remove label")
-		http.Error(w, "Failed to remove label", http.StatusInternalServerError)
-		return
-	}
-
-	// Log the action
-	auditEntry := moderation.AuditEntry{
-		ID:        generateTID(),
-		Action:    moderation.AuditActionRemoveLabel,
-		ActorDID:  userDID,
-		TargetURI: entityID,
-		Reason:    labelName,
-		Details: map[string]string{
-			"entity_type": entityType,
-			"label":       labelName,
-		},
-		Timestamp: time.Now(),
-	}
-	if err := h.moderationStore.LogAction(r.Context(), auditEntry); err != nil {
-		log.Error().Err(err).Msg("Failed to log remove-label action")
-	}
-
-	log.Info().
-		Str("entity_type", entityType).
-		Str("entity_id", entityID).
-		Str("label", labelName).
-		Str("by", userDID).
-		Msg("Label removed")
-
-	w.Header().Set("HX-Trigger", "mod-action")
-	w.WriteHeader(http.StatusOK)
+	h.HandleRemoveLabelJSON(w, r)
 }
 
 // collectAdminStats gathers current system statistics from available data sources.
@@ -756,26 +285,6 @@ func getGaugeValue(g prometheus.Gauge) float64 {
 	return 0
 }
 
-// HandleAdminStats renders the stats partial for HTMX refresh.
-// Auth and admin checks are handled by RequireAdmin middleware.
-func (h *Handler) HandleAdminStats(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleAdminStatsJSON(w, r)
-		return
-	}
-	stats := h.collectAdminStats(r.Context())
-	var backups []backup.SourceStatus
-	if h.backupService != nil {
-		backups = h.backupService.Status()
-	}
-
-	if err := sharedpages.AdminStatsPanel(stats, backups).Render(r.Context(), w); err != nil {
-		log.Error().Err(err).Msg("Failed to render admin stats partial")
-		http.Error(w, "Failed to render", http.StatusInternalServerError)
-	}
-}
-
-// exportedRecord is the per-record shape in the witness export payload.
 type exportedRecord struct {
 	URI       string          `json:"uri"`
 	RKey      string          `json:"rkey"`

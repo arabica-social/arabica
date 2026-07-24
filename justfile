@@ -1,4 +1,4 @@
-arabica: templ-watch-arabica
+arabica: run
 
 # Run the Go backend with the SvelteKit SPA shell (the default frontend).
 # Open http://127.0.0.1:18910. For live SvelteKit HMR, use `run-spa-dev`.
@@ -92,18 +92,10 @@ herdr-spa-dev-stop:
 
 build:
     @./scripts/build-spa.sh
-    @templ generate
     @go build ./cmd/arabica
-
-templ-watch-arabica:
-    @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 templ generate --watch --proxy="http://localhost:18079" --cmd="go run ./cmd/arabica -known-dids known-dids.txt"
-
-templ-generate:
-    @templ generate
 
 test:
     @./scripts/build-spa.sh
-    @templ generate
     @go test ./... -cover -coverprofile=cover.out
 
 integration-test:
@@ -115,7 +107,6 @@ verbose-integration-test:
 format:
     @pnpm run format
     @gofmt -w ./
-    @templ fmt . -w
 
 # Build the SPA (needed before running e2e-server).
 e2e-build:
@@ -164,7 +155,6 @@ e2e-server: e2e-build
 # Run all CI checks locally (mirrors .github/workflows/ci.yml).
 ci-check:
     @just types-check
-    @templ generate
     @go vet ./...
     @go build ./cmd/arabica
     @go test ./... -count=1

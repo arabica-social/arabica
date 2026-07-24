@@ -1,7 +1,6 @@
 {
   lib,
   buildGoModule,
-  templ,
   nodejs,
   pnpm,
   fetchPnpmDeps,
@@ -24,13 +23,12 @@ buildGoModule rec {
   nativeBuildInputs = [
     nodejs
     pnpm
-    templ
     zstd
   ];
 
   preBuild = ''
     if [[ "$name" == *-go-modules ]]; then
-      templ generate
+      :
     else
       export HOME=$TMPDIR
       export npm_config_manage_package_manager_versions=false
@@ -44,7 +42,6 @@ buildGoModule rec {
       # Copy SvelteKit build output to Go embed directory
       mkdir -p internal/web/spa/build
       cp -r web/build/* internal/web/spa/build/
-      templ generate
     fi
   '';
 

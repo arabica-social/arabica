@@ -33,15 +33,9 @@ type EntityRouteBundle struct {
 	Update http.HandlerFunc
 	Delete http.HandlerFunc
 
-	// View renders the public entity detail page.
-	View http.HandlerFunc
-
 	// JSONView returns the entity detail data as JSON for the SvelteKit SPA.
-	// Served at GET /api/{entity}/{actor}/{id} with content negotiation.
+	// Served at GET /api/{entity}/{actor}/{id}.
 	JSONView http.HandlerFunc
-
-	// Backlinks renders the community backlinks detail page for this entity.
-	Backlinks http.HandlerFunc
 
 	// JSONBacklinks returns backlinks data as JSON for the SvelteKit SPA.
 	// Served at GET /api/{entity}/{actor}/{id}/backlinks.

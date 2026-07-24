@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
@@ -17,10 +16,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
-	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
 	"tangled.org/pdewey.com/atp"
-	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
@@ -77,7 +73,7 @@ func ResolveOwnerDID(ctx context.Context, owner string) (string, error) {
 	return resolved, nil
 }
 
-// EntityViewConfig captures per-entity behavior for RenderEntityView.
+// EntityViewConfig captures per-entity behavior for RenderEntityViewJSON.
 // Construct via the h.xViewConfig() methods — closures capture h naturally.
 // Fields are exported so per-app handler packages (coffeehandlers,
 // teahandlers) can populate this struct directly.
@@ -96,7 +92,6 @@ type EntityViewConfig struct {
 	// (e.g. a recipe's resolved forked-from URL + author). Return nil when the
 	// entity has no extras. Only invoked by the JSON path.
 	ViewExtras func(ctx context.Context, record any) map[string]any
-	Render     func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error
 }
 
 func (cfg EntityViewConfig) loadConfig() EntityLoadConfig {
@@ -106,79 +101,6 @@ func (cfg EntityViewConfig) loadConfig() EntityLoadConfig {
 		FromPDS:     cfg.FromPDS,
 		FromStore:   cfg.FromStore,
 		ResolveRefs: cfg.ResolveRefs,
-	}
-}
-
-func (h *Handler) RenderEntityView(w http.ResponseWriter, r *http.Request, cfg EntityViewConfig) {
-	rkey := ValidateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-	owner := r.URL.Query().Get("owner")
-	didStr, _ := atpmiddleware.GetDID(r.Context())
-	isAuthenticated := didStr != ""
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.GetUserProfile(r.Context(), didStr)
-	}
-
-	loaded, err := h.EntityViewLoader().Load(r, rkey, cfg.loadConfig())
-	if err != nil {
-		if loadErr, ok := err.(*EntityLoadError); ok {
-			http.Error(w, loadErr.Msg, loadErr.HTTPStatus())
-		} else {
-			http.Error(w, "Failed to load record", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	var shareURL string
-	if owner != "" && loaded.Route.Path != "" {
-		shareURL = fmt.Sprintf("/%s/%s/%s", loaded.Route.Path, owner, rkey)
-	} else if userProfile != nil && userProfile.Handle != "" && loaded.Route.Path != "" {
-		shareURL = fmt.Sprintf("/%s/%s/%s", loaded.Route.Path, userProfile.Handle, rkey)
-	}
-
-	ownerHandle := h.ResolveOwnerHandle(r.Context(), owner)
-	layoutData := h.BuildLayoutData(r, cfg.DisplayName(loaded.Record), isAuthenticated, didStr, userProfile)
-	PopulateOGFields(layoutData, cfg.OGSubtitle(loaded.Record), loaded.EntityNoun, ownerHandle, h.PublicBaseURL(r), shareURL, h.brandName())
-
-	sd := h.FetchSocialData(r.Context(), loaded.SubjectURI, didStr, isAuthenticated)
-	bl, blDetailURL := h.fetchBacklinks(r.Context(), loaded.SubjectURI, loaded.Route.Path, rkey, ownerSegment(owner, userProfile, didStr))
-
-	authorDID := loaded.OwnerDID
-	if authorDID == "" {
-		authorDID = didStr
-	}
-	base := pages.EntityViewBase{
-		IsOwnProfile:       loaded.IsOwnProfile,
-		IsAuthenticated:    isAuthenticated,
-		SubjectURI:         loaded.SubjectURI,
-		SubjectCID:         loaded.SubjectCID,
-		IsLiked:            sd.IsLiked,
-		LikeCount:          sd.LikeCount,
-		CommentCount:       sd.CommentCount,
-		Comments:           sd.Comments,
-		CurrentUserDID:     didStr,
-		ShareURL:           shareURL,
-		IsModerator:        sd.IsModerator,
-		CanHideRecord:      sd.CanHideRecord,
-		CanBlockUser:       sd.CanBlockUser,
-		IsRecordHidden:     sd.IsRecordHidden,
-		AuthorDID:          loaded.OwnerDID,
-		Backlinks:          bl,
-		BacklinksDetailURL: blDetailURL,
-	}
-	if ap := h.GetUserProfile(r.Context(), authorDID); ap != nil {
-		base.AuthorHandle = ap.Handle
-		base.AuthorDisplayName = ap.DisplayName
-		base.AuthorAvatar = ap.Avatar
-	}
-
-	if err := cfg.Render(r.Context(), w, layoutData, loaded.Record, base); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Failed to render %s view", loaded.EntityNoun)
 	}
 }
 
@@ -273,73 +195,6 @@ func (s backlinkIndexSource) GetProfile(ctx context.Context, did string) (*backl
 		out.AvatarURL = *p.Avatar
 	}
 	return out, nil
-}
-
-func (h *Handler) RenderBacklinksView(w http.ResponseWriter, r *http.Request, cfg EntityViewConfig) {
-	rkey := ValidateRKey(w, r.PathValue("id"))
-	if rkey == "" {
-		return
-	}
-	owner := r.URL.Query().Get("owner")
-	didStr, _ := atpmiddleware.GetDID(r.Context())
-	isAuthenticated := didStr != ""
-	if owner == "" && !isAuthenticated {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.GetUserProfile(r.Context(), didStr)
-	}
-
-	loaded, err := h.EntityViewLoader().Load(r, rkey, cfg.loadConfig())
-	if err != nil {
-		if loadErr, ok := err.(*EntityLoadError); ok {
-			http.Error(w, loadErr.Msg, loadErr.HTTPStatus())
-		} else {
-			http.Error(w, "Failed to load record", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	name := cfg.DisplayName(loaded.Record)
-	if name == "" && cfg.Descriptor != nil {
-		name = cfg.Descriptor.DisplayName
-	}
-	ownerID := ownerSegment(owner, userProfile, didStr)
-	backURL := fmt.Sprintf("/%s/%s/%s", loaded.Route.Path, ownerID, rkey)
-	usageKey := r.URL.Query().Get("usage")
-	usagePage, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if usagePage <= 0 {
-		usagePage = 1
-	}
-	result, detailURL := h.fetchBacklinksWithOptions(r.Context(), loaded.SubjectURI, loaded.Route.Path, rkey, ownerID, backlinks.LookupOptions{UsageKey: usageKey, UsagePage: usagePage, UsagePerPage: 25})
-
-	layoutData := h.BuildLayoutData(r, "Community · "+name, isAuthenticated, didStr, userProfile)
-	props := pages.BacklinksViewProps{
-		EntityNoun: strings.ToLower(loaded.EntityNoun),
-		EntityName: name,
-		BackURL:    backURL,
-		DetailURL:  detailURL,
-		Result:     result,
-		RoutePaths: h.entityRoutePaths(),
-	}
-	if r.Header.Get("HX-Request") == "true" && usageKey != "" && usagePage > 1 && result != nil {
-		for _, group := range result.Usage {
-			if group.Key == usageKey {
-				if err := pages.BacklinksUsageMore(props, group).Render(r.Context(), w); err != nil {
-					http.Error(w, "Failed to render", http.StatusInternalServerError)
-					log.Error().Err(err).Msg("failed to render backlinks usage page")
-				}
-				return
-			}
-		}
-	}
-	if err := pages.BacklinksView(layoutData, props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("failed to render backlinks page")
-	}
 }
 
 func (h *Handler) entityRoutePaths() map[lexicons.RecordType]string {

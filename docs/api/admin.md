@@ -58,9 +58,7 @@ Returns admin stats + backup status as JSON.
 
 ## Mutation Endpoints
 
-All admin mutation endpoints support content negotiation: `Accept:
-application/json` returns `{ok, action, message}`; HTMX clients get the
-existing `HX-Trigger` response.
+All admin mutation endpoints return JSON: `{ok, action, message}`.
 
 ### Response (JSON)
 

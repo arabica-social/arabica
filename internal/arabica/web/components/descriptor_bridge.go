@@ -11,10 +11,13 @@ import (
 	_ "tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
+// FeedViews returns the per-record-type feed view metadata for Arabica. Only
+// the metadata needed by the JSON feed path (filter labels, action URLs,
+// compactness) is populated; the legacy templ Render/RenderPrefs renderers
+// were removed with the templ stack.
 func FeedViews() feedviews.Registry {
 	return feedviews.Registry{
 		lexicons.RecordTypeBean: {
-			Render:        BeanFeedContent,
 			CardClassNoun: "bean",
 			FilterLabel:   "Beans",
 			ShareURL:      shareURL("beans"),
@@ -22,7 +25,6 @@ func FeedViews() feedviews.Registry {
 			EditModalURL:  modalEditURL("bean"),
 		},
 		lexicons.RecordTypeRoaster: {
-			Render:        RoasterFeedContent,
 			Compact:       true,
 			CardClassNoun: "roaster",
 			ShareURL:      shareURL("roasters"),
@@ -30,7 +32,6 @@ func FeedViews() feedviews.Registry {
 			EditModalURL:  modalEditURL("roaster"),
 		},
 		lexicons.RecordTypeGrinder: {
-			Render:        GrinderFeedContent,
 			Compact:       true,
 			CardClassNoun: "grinder",
 			FilterLabel:   "Grinders",
@@ -39,7 +40,6 @@ func FeedViews() feedviews.Registry {
 			EditModalURL:  modalEditURL("grinder"),
 		},
 		lexicons.RecordTypeBrewer: {
-			Render:        BrewerFeedContent,
 			Compact:       true,
 			CardClassNoun: "brewer",
 			FilterLabel:   "Brewers",
@@ -48,7 +48,6 @@ func FeedViews() feedviews.Registry {
 			EditModalURL:  modalEditURL("brewer"),
 		},
 		lexicons.RecordTypeRecipe: {
-			Render:        FeedRecipeContent,
 			CardClassNoun: "recipe",
 			FilterLabel:   "Recipes",
 			ShareURL:      shareURL("recipes"),
@@ -56,8 +55,6 @@ func FeedViews() feedviews.Registry {
 			EditModalURL:  modalEditURL("recipe"),
 		},
 		lexicons.RecordTypeBrew: {
-			Render:        FeedBrewContentClickable,
-			RenderPrefs:   FeedBrewContentClickableWithPreferences,
 			CardClassNoun: "brew",
 			FilterLabel:   "Brews",
 			ShareURL:      shareURL("brews"),

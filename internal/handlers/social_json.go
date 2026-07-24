@@ -179,6 +179,12 @@ func (h *Handler) HandleCommentCreateJSON(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Validate that parent fields are either both present or both absent.
+	if (parentURI != "" && parentCID == "") || (parentURI == "" && parentCID != "") {
+		WriteJSONError(w, http.StatusBadRequest, "validation_failed", "both parent_uri and parent_cid must be provided together")
+		return
+	}
+
 	req := &social.CreateCommentRequest{
 		SubjectURI: subjectURI,
 		SubjectCID: subjectCID,

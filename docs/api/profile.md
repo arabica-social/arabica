@@ -5,11 +5,6 @@
 Returns a user's full profile data bundle: profile metadata, paginated brews,
 entity lists, brew social stats, and entity usage counts — all in one response.
 
-### Content Negotiation
-
-- **`Accept: application/json`** — returns JSON (below). Used by the SvelteKit SPA.
-- **`HX-Request: true`** — returns the existing HTML profile partial for HTMX clients.
-
 ### Path Parameters
 
 | Param | Description |

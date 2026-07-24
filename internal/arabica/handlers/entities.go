@@ -9,7 +9,6 @@ import (
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
-	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/records"
@@ -22,44 +21,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"tangled.org/pdewey.com/atp"
 )
-
-// Manage page partial (loaded async via HTMX)
-func (h *Handlers) HandleManagePartial(w http.ResponseWriter, r *http.Request) {
-	data, err := h.fetchManageData(r)
-	if err != nil {
-		if err == errManageUnauth {
-			http.Error(w, "Authentication required", http.StatusUnauthorized)
-			return
-		}
-		log.Error().Err(err).Msg("Failed to fetch manage page data")
-		handlers.HandleStoreError(w, err, "Failed to fetch data")
-		return
-	}
-
-	did, _ := atpmiddleware.GetDID(r.Context())
-	stats := h.computeManageStats(r.Context(), did)
-
-	props := coffee.ManagePartialProps{
-		Beans:                 data.beans,
-		Roasters:              data.roasters,
-		Grinders:              data.grinders,
-		Brewers:               data.brewers,
-		Recipes:               data.recipes,
-		OwnerDID:              did,
-		BeanBrewCounts:        stats.BeanBrewCounts,
-		GrinderBrewCounts:     stats.GrinderBrewCounts,
-		BrewerBrewCounts:      stats.BrewerBrewCounts,
-		RoasterBeanCounts:     stats.RoasterBeanCounts,
-		BeanAvgBrewRatings:    stats.BeanAvgBrewRatings,
-		RoasterAvgBrewRatings: stats.RoasterAvgBrewRatings,
-	}
-
-	// Render manage partial
-	if err := coffee.ManagePartial(props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render manage partial")
-	}
-}
 
 // API endpoint to list all user data (beans, roasters, grinders, brewers, brews)
 // Used by client-side cache for faster page loads. Arabica-specific.
@@ -255,7 +216,7 @@ func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http
 // user's PDS, writing them through to the witness cache so subsequent reads
 // are up to date. Returns the refreshed manage partial.
 func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
-	store, authenticated := h.GetArabicaStore(r)
+	_, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -331,87 +292,10 @@ func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		refreshSpan.End()
 	}
 
-	// Now fetch and render the manage partial with fresh PDS data
-	ctx := r.Context()
-	g, ctx := errgroup.WithContext(ctx)
-
-	var beans []*arabica.Bean
-	var roasters []*arabica.Roaster
-	var grinders []*arabica.Grinder
-	var brewers []*arabica.Brewer
-	var recipes []*arabica.Recipe
-
-	g.Go(func() error {
-		var err error
-		beans, err = store.ListBeans(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		roasters, err = store.ListRoasters(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		grinders, err = listGrinders(ctx, store)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		brewers, err = listBrewers(ctx, store)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		recipes, err = store.ListRecipes(ctx)
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
-		log.Error().Err(err).Msg("Failed to fetch manage page data after refresh")
-		handlers.HandleStoreError(w, err, "Failed to fetch data")
-		return
-	}
-
-	arabicastore.LinkBeansToRoasters(beans, roasters)
-
-	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
-	for _, b := range brewers {
-		brewerMap[b.RKey] = b
-	}
-	for _, recipe := range recipes {
-		if recipe.BrewerRKey != "" {
-			recipe.BrewerObj = brewerMap[recipe.BrewerRKey]
-		}
-	}
-
-	refreshProps := coffee.ManagePartialProps{
-		Beans:    beans,
-		Roasters: roasters,
-		Grinders: grinders,
-		Brewers:  brewers,
-		Recipes:  recipes,
-	}
-	if h.FeedIndex() != nil {
-		refreshProps.OwnerDID = didStr
-		refreshProps.BeanBrewCounts = h.FeedIndex().BrewCountsByBeanURI(r.Context(), didStr)
-		refreshProps.GrinderBrewCounts = h.FeedIndex().BrewCountsByGrinderURI(r.Context(), didStr)
-		refreshProps.BrewerBrewCounts = h.FeedIndex().BrewCountsByBrewerURI(r.Context(), didStr)
-		refreshProps.RoasterBeanCounts = h.FeedIndex().BeanCountsByRoasterURI(r.Context(), didStr)
-		refreshProps.BeanAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.FeedIndex().AvgBrewRatingByBeanURI(r.Context(), didStr) {
-			refreshProps.BeanAvgBrewRatings[uri] = stats.Average
-		}
-		refreshProps.RoasterAvgBrewRatings = make(map[string]float64)
-		for uri, stats := range h.FeedIndex().AvgBrewRatingByRoasterURI(r.Context(), didStr) {
-			refreshProps.RoasterAvgBrewRatings[uri] = stats.Average
-		}
-	}
-
-	if err := coffee.ManagePartial(refreshProps).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render content", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render manage partial after refresh")
-	}
+	// The SPA only checks for a 2xx response here, then refetches
+	// /api/manage and /api/brews for fresh JSON. Return a small JSON
+	// confirmation rather than re-rendering the legacy HTML partial.
+	handlers.WriteJSON(w, map[string]any{"refreshed": true}, "manage refresh")
 }
 
 // Bean update/delete handlers

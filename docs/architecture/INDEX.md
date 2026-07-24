@@ -26,9 +26,8 @@ preserve. It is deliberately not a history or roadmap.
    index.
 6. Feed, social, notification, and Explore reads derive local views from that
    index while the PDS remains authoritative for application records.
-7. Go serves HTTP APIs, mutations, OAuth, assets, head metadata, and either a
-   legacy Templ page or the embedded SvelteKit SPA shell according to explicit
-   route ownership.
+7. Go serves HTTP APIs, mutations, OAuth, assets, head metadata, and the
+   embedded SvelteKit SPA shell according to explicit route ownership.
 
 The platform remains app-agnostic by design, while this repository hosts the
 Arabica application and its app-owned configuration, records, routes, and

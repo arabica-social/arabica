@@ -1,102 +1,17 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 
 	"tangled.org/arabica.social/arabica/internal/profileprefs"
-	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/rs/zerolog/log"
 )
 
-// About page.
-func (h *Handler) HandleAbout(w http.ResponseWriter, r *http.Request) {
-	data, _, _ := h.LayoutDataFromRequest(r, "About")
-
-	render := h.staticPages.About
-	if render == nil {
-		render = func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
-			return pages.About(data).Render(ctx, w)
-		}
-	}
-	if err := render(r.Context(), w, data); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render about page")
-	}
-}
-
-// Terms of Service page.
-func (h *Handler) HandleTerms(w http.ResponseWriter, r *http.Request) {
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "Terms of Service")
-
-	render := h.staticPages.Terms
-	if render == nil {
-		render = func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
-			return pages.Terms(data).Render(ctx, w)
-		}
-	}
-	if err := render(r.Context(), w, layoutData); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render terms page")
-	}
-}
-
-func (h *Handler) HandleATProto(w http.ResponseWriter, r *http.Request) {
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "AT Protocol")
-
-	render := h.staticPages.ATProto
-	if render == nil {
-		render = func(ctx context.Context, w http.ResponseWriter, data *components.LayoutData) error {
-			return pages.ATProto(data).Render(ctx, w)
-		}
-	}
-	if err := render(r.Context(), w, layoutData); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render AT Protocol page")
-	}
-}
-
-// Settings page
-func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
-	data, _, isAuthenticated := h.LayoutDataFromRequest(r, "Settings")
-	if !isAuthenticated {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
-	didStr, _ := atpmiddleware.GetDID(r.Context())
-	sessionID, _ := atpmiddleware.GetSessionID(r.Context())
-
-	var statsVis profileprefs.ProfileStatsVisibility
-	prefs := profileprefs.DefaultUserPreferences()
-	if h.feedIndex != nil {
-		statsVis = h.feedIndex.GetProfileStatsVisibility(r.Context(), didStr)
-		prefs = h.feedIndex.GetUserPreferences(r.Context(), didStr)
-	} else {
-		statsVis = profileprefs.DefaultProfileStatsVisibility()
-	}
-
-	bskyForm := h.loadBlueskyProfileForm(r.Context(), didStr, sessionID)
-
-	if err := pages.Settings(data, pages.SettingsProps{
-		ProfileStatsVisibility: statsVis,
-		UserPreferences:        prefs,
-		BlueskyProfile: pages.BlueskyProfileSettings{
-			HasScopes:      bskyForm.HasScopes,
-			DisplayName:    bskyForm.DisplayName,
-			AvatarURL:      bskyForm.AvatarURL,
-			LoadError:      bskyForm.LoadError,
-			NeedsAuthAgain: bskyForm.NeedsAuthAgain,
-		},
-	}).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render settings page")
-	}
-}
-
+// HandleSettingsPreferences saves the user's brewing preferences. The SPA
+// always sends Accept: application/json, so this delegates to the JSON path;
+// the legacy HTML form branch is gone.
 func (h *Handler) HandleSettingsPreferences(w http.ResponseWriter, r *http.Request) {
 	if WantsJSON(r) {
 		h.HandleSettingsPreferencesJSON(w, r)
@@ -171,13 +86,10 @@ func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http
 	w.Write([]byte(`<span class="text-sm text-green-700 dark:text-green-400">Saved</span>`))
 }
 
-// HandleNotFound renders the 404 page
+// HandleNotFound renders a plain 404 response. SPA-owned routes are served by
+// the SvelteKit shell; this is only reached for truly unmatched paths.
 func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "Page Not Found")
-
 	w.WriteHeader(http.StatusNotFound)
-	if err := pages.NotFound(layoutData).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render 404 page")
-	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte("Not Found"))
 }

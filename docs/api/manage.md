@@ -6,10 +6,9 @@ Returns the authenticated user's records plus witness-cache-derived usage
 stats in a single response. This is the heavier counterpart to `GET /api/data`
 (which returns raw records without stats for the lightweight appCache use case).
 
-### Content Negotiation
+### Response
 
-- **`Accept: application/json`** — returns JSON (below). Used by the SvelteKit SPA.
-- **`HX-Request: true`** — returns the existing HTML manage partial for HTMX clients.
+The endpoint always returns JSON (the SvelteKit SPA is the sole frontend).
 
 ### Response (JSON)
 

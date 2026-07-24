@@ -15,19 +15,15 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/metrics"
-	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
-	"tangled.org/arabica.social/arabica/internal/profileprefs"
 	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/signup"
 	"tangled.org/arabica.social/arabica/internal/social"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/bff"
-	"tangled.org/arabica.social/arabica/internal/web/components"
 	"tangled.org/arabica.social/arabica/internal/web/feedviews"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
 	"tangled.org/arabica.social/arabica/internal/web/spa"
 	"tangled.org/pdewey.com/atp"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -47,24 +43,12 @@ type Config struct {
 	PublicURL string
 }
 
-type StaticPageRenderer func(context.Context, http.ResponseWriter, *components.LayoutData) error
-
-type StaticPageRenderers struct {
-	About   StaticPageRenderer
-	Terms   StaticPageRenderer
-	ATProto StaticPageRenderer
-}
-
 type HomeReadinessChecker func(context.Context, records.Store) (bool, error)
 
 type HomeBehavior struct {
 	OGDescription    string
 	SiteCardOpts     ogcard.SiteCardOpts
 	ReadinessChecker HomeReadinessChecker
-}
-
-type FeedPresentation struct {
-	EmptyState pages.FeedEmptyState
 }
 
 // Handler contains all HTTP handler methods and their dependencies.
@@ -100,11 +84,9 @@ type Handler struct {
 	// in the signup catalog and any other developer-facing affordances.
 	devMode bool
 
-	staticPages      StaticPageRenderers
-	homeBehavior     HomeBehavior
-	feedPresentation FeedPresentation
-	assets           assets.Manifest
-	feedViews        feedviews.Registry
+	homeBehavior HomeBehavior
+	assets      assets.Manifest
+	feedViews   feedviews.Registry
 
 	// storeOverride supports focused handler tests without constructing an
 	// OAuth-backed ATProto client. Production code leaves it nil.
@@ -118,12 +100,6 @@ func (h *Handler) SetStoreOverrideForTest(store records.Store) {
 	h.storeOverride = store
 }
 
-// SetStaticPageRenderers wires app-owned static page templates into the shared
-// page handlers. Nil renderers fall back to the default Arabica pages.
-func (h *Handler) SetStaticPageRenderers(renderers StaticPageRenderers) {
-	h.staticPages = renderers
-}
-
 // SetHomeReadinessChecker wires app-owned first-run readiness logic into the
 // shared home handler.
 func (h *Handler) SetHomeReadinessChecker(checker HomeReadinessChecker) {
@@ -134,10 +110,6 @@ func (h *Handler) SetHomeReadinessChecker(checker HomeReadinessChecker) {
 // handler.
 func (h *Handler) SetHomeBehavior(behavior HomeBehavior) {
 	h.homeBehavior = behavior
-}
-
-func (h *Handler) SetFeedPresentation(presentation FeedPresentation) {
-	h.feedPresentation = presentation
 }
 
 // SetAssetManifest wires the server's configured asset hrefs into layout data.
@@ -555,20 +527,6 @@ func (h *Handler) getSocialStore(r *http.Request) (socialStore, bool) {
 	return social, true
 }
 
-// layoutDataFromRequest extracts auth state from the request and builds layout data.
-// Returns the layout data, the user's DID (empty if not authenticated), and whether authenticated.
-func (h *Handler) LayoutDataFromRequest(r *http.Request, title string) (layoutData *components.LayoutData, didStr string, isAuthenticated bool) {
-	didStr, isAuthenticated = atpmiddleware.GetDID(r.Context())
-
-	var userProfile *bff.UserProfile
-	if isAuthenticated {
-		userProfile = h.GetUserProfile(r.Context(), didStr)
-	}
-
-	layoutData = h.BuildLayoutData(r, title, isAuthenticated, didStr, userProfile)
-	return
-}
-
 // HandleStoreError writes the appropriate HTTP error for a store operation failure.
 // If the error indicates an expired OAuth session, it returns 401 Unauthorized with
 // a user-friendly message. Otherwise it returns 500 with the fallbackMessage.
@@ -645,31 +603,6 @@ func (h *Handler) ResolveOwnerHandle(ctx context.Context, owner string) string {
 	return owner
 }
 
-// PopulateOGFields sets the standard OG metadata fields for an entity page.
-// The title follows the pattern "{type} from {owner} on {siteName}", where
-// siteName is the app's brand display name (e.g. "Arabica").
-// The subtitle (OG description) shows record-specific detail like the bean name.
-func PopulateOGFields(layoutData *components.LayoutData, subtitle, recordType, owner, baseURL, shareURL, siteName string) {
-	layoutData.OGType = "article"
-
-	if owner != "" {
-		layoutData.OGTitle = fmt.Sprintf("%s from %s on %s", recordType, owner, siteName)
-	} else {
-		layoutData.OGTitle = fmt.Sprintf("%s on %s", recordType, siteName)
-	}
-
-	layoutData.OGDescription = subtitle
-
-	if baseURL != "" && shareURL != "" {
-		layoutData.OGUrl = baseURL + shareURL
-		if idx := strings.Index(shareURL, "?"); idx >= 0 {
-			layoutData.OGImage = baseURL + shareURL[:idx] + "/og-image" + shareURL[idx:]
-		} else {
-			layoutData.OGImage = baseURL + shareURL + "/og-image"
-		}
-	}
-}
-
 // publicBaseURL returns the public-facing base URL for constructing absolute URLs.
 // It prefers the configured PublicURL, falling back to deriving it from the request.
 func (h *Handler) PublicBaseURL(r *http.Request) string {
@@ -711,140 +644,10 @@ func (h *Handler) ResolveSessionData(ctx context.Context, did string) spa.Sessio
 	return out
 }
 
-// buildLayoutData creates a LayoutData struct with common fields populated from the request
-func (h *Handler) BuildLayoutData(r *http.Request, title string, isAuthenticated bool, didStr string, userProfile *bff.UserProfile) *components.LayoutData {
-	// Check if user is a moderator
-	isModerator := false
-	if h.moderationService != nil && didStr != "" {
-		isModerator = h.moderationService.IsModerator(didStr)
-	}
-
-	// Get unread notification count for authenticated users
-	var unreadNotifCount int
-	userPrefs := profileprefs.DefaultUserPreferences()
-	if h.feedIndex != nil && didStr != "" {
-		unreadNotifCount = h.feedIndex.GetUnreadCount(didStr)
-		userPrefs = h.feedIndex.GetUserPreferences(r.Context(), didStr)
-	}
-
-	return &components.LayoutData{
-		Title:                   title,
-		IsAuthenticated:         isAuthenticated,
-		UserDID:                 didStr,
-		UserProfile:             userProfile,
-		CSPNonce:                middleware.CSPNonceFromContext(r.Context()),
-		IsModerator:             isModerator,
-		UnreadNotificationCount: unreadNotifCount,
-		UserPreferences:         userPrefs,
-		BrandName:               h.brand.DisplayName,
-		BrandTagline:            h.brand.Tagline,
-		AppName:                 appName(h.app),
-		Assets:                  h.assets,
-	}
-}
-
-// HandleCommentCreate handles creating a new comment
+// HandleCommentCreate handles creating a new comment. The SPA always sends
+// Accept: application/json, so this delegates to the JSON handler.
 func (h *Handler) HandleCommentCreate(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleCommentCreateJSON(w, r)
-		return
-	}
-	// Require authentication
-	store, authenticated := h.getSocialStore(r)
-	if !authenticated {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	didStr, _ := atpmiddleware.GetDID(r.Context())
-
-	if err := r.ParseForm(); err != nil {
-		log.Warn().Err(err).Msg("Failed to parse comment create form")
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		return
-	}
-
-	subjectURI := r.FormValue("subject_uri")
-	subjectCID := r.FormValue("subject_cid")
-	text := strings.TrimSpace(r.FormValue("text"))
-	parentURI := r.FormValue("parent_uri")
-	parentCID := r.FormValue("parent_cid")
-
-	if subjectURI == "" || subjectCID == "" {
-		log.Warn().Str("subject_uri", subjectURI).Str("subject_cid", subjectCID).Msg("Comment create: missing required fields")
-		http.Error(w, "subject_uri and subject_cid are required", http.StatusBadRequest)
-		return
-	}
-
-	if text == "" {
-		log.Warn().Str("subject_uri", subjectURI).Msg("Comment create: empty text")
-		http.Error(w, "comment text is required", http.StatusBadRequest)
-		return
-	}
-
-	if len(text) > social.MaxCommentLength {
-		log.Warn().Int("length", len(text)).Int("max", social.MaxCommentLength).Msg("Comment create: text too long")
-		http.Error(w, "comment text is too long", http.StatusBadRequest)
-		return
-	}
-
-	// Validate that parent fields are either both present or both absent
-	if (parentURI != "" && parentCID == "") || (parentURI == "" && parentCID != "") {
-		log.Warn().Str("parent_uri", parentURI).Str("parent_cid", parentCID).Msg("Comment create: incomplete parent reference")
-		http.Error(w, "both parent_uri and parent_cid must be provided together", http.StatusBadRequest)
-		return
-	}
-
-	req := &social.CreateCommentRequest{
-		SubjectURI: subjectURI,
-		SubjectCID: subjectCID,
-		Text:       text,
-		ParentURI:  parentURI,
-		ParentCID:  parentCID,
-	}
-
-	comment, err := store.CreateComment(r.Context(), req)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create comment")
-		HandleStoreError(w, err, "Failed to create comment")
-		return
-	}
-
-	metrics.CommentsTotal.WithLabelValues("create").Inc()
-
-	// Update firehose index (pass parent URI and comment's CID for threading)
-	if h.feedIndex != nil {
-		if err := h.feedIndex.UpsertComment(r.Context(), didStr, comment.RKey, subjectURI, parentURI, comment.CID, text, comment.CreatedAt); err != nil {
-			log.Warn().Err(err).Str("did", didStr).Str("rkey", comment.RKey).Str("subject_uri", subjectURI).Msg("Failed to upsert comment in feed index")
-		}
-		// Create notification for the comment/reply
-		h.feedIndex.CreateCommentNotification(didStr, subjectURI, parentURI)
-	}
-
-	// Return the updated comment section with threaded comments
-	comments := h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
-
-	// Build moderation context
-	var modCtx components.CommentModerationContext
-	if h.moderationService != nil {
-		if h.moderationService.IsModerator(didStr) {
-			modCtx.IsModerator = true
-			modCtx.CanHideRecord = h.moderationService.HasPermission(didStr, moderation.PermissionHideRecord)
-			modCtx.CanBlockUser = h.moderationService.HasPermission(didStr, moderation.PermissionBlacklistUser)
-		}
-	}
-
-	if err := components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      subjectURI,
-		SubjectCID:      subjectCID,
-		Comments:        comments,
-		IsAuthenticated: true,
-		CurrentUserDID:  didStr,
-		ModCtx:          modCtx,
-	}).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render comment section")
-	}
+	h.HandleCommentCreateJSON(w, r)
 }
 
 // HandleCommentDelete handles deleting a comment
@@ -934,68 +737,10 @@ func (h *Handler) FilterHiddenComments(ctx context.Context, comments []firehose.
 	return filtered
 }
 
-// HandleCommentList returns the comment section for a subject
+// HandleCommentList returns the comment section for a subject. The SPA
+// always sends Accept: application/json, so this delegates to the JSON handler.
 func (h *Handler) HandleCommentList(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleCommentListJSON(w, r)
-		return
-	}
-	subjectURI := r.URL.Query().Get("subject_uri")
-	if subjectURI == "" {
-		http.Error(w, "subject_uri is required", http.StatusBadRequest)
-		return
-	}
-
-	// Get authenticated user if any
-	didStr, isAuthenticated := atpmiddleware.GetDID(r.Context())
-
-	// Get the subject CID from query params (for the form)
-	subjectCID := r.URL.Query().Get("subject_cid")
-
-	// Get threaded comments from firehose index
-	var comments []firehose.IndexedComment
-	if h.feedIndex != nil {
-		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
-		comments = h.FilterHiddenComments(r.Context(), comments)
-	}
-
-	// Build moderation context
-	var modCtx components.CommentModerationContext
-	if h.moderationService != nil && isAuthenticated {
-		if h.moderationService.IsModerator(didStr) {
-			modCtx.IsModerator = true
-			modCtx.CanHideRecord = h.moderationService.HasPermission(didStr, moderation.PermissionHideRecord)
-			modCtx.CanBlockUser = h.moderationService.HasPermission(didStr, moderation.PermissionBlacklistUser)
-		}
-	}
-
-	if err := components.CommentSection(components.CommentSectionProps{
-		SubjectURI:      subjectURI,
-		SubjectCID:      subjectCID,
-		Comments:        comments,
-		IsAuthenticated: isAuthenticated,
-		CurrentUserDID:  didStr,
-		ModCtx:          modCtx,
-	}).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render comment section")
-	}
-}
-
-// HandleCreateAccount renders the account creation page (GET /join/create).
-// PDS server options come from the internal/signup catalog.
-func (h *Handler) HandleCreateAccount(w http.ResponseWriter, r *http.Request) {
-	layoutData, _, _ := h.LayoutDataFromRequest(r, "Create Account")
-
-	props := pages.CreateAccountProps{
-		Error:      r.URL.Query().Get("error"),
-		Categories: signup.Categories(h.devMode),
-	}
-
-	if err := pages.CreateAccount(layoutData, props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render create account page")
-	}
+	h.HandleCommentListJSON(w, r)
 }
 
 // HandleSignupCategories returns the PDS provider catalog as JSON

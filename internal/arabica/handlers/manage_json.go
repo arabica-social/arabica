@@ -140,15 +140,10 @@ func (h *Handlers) computeManageStats(ctx context.Context, did string) ManageSta
 	return stats
 }
 
-// HandleManageAPI serves the manage page data with content negotiation.
-// Accept: application/json returns records + stats as JSON for the SvelteKit
-// SPA; HX-Request returns the existing HTML partial for HTMX clients.
+// HandleManageAPI serves the manage page data as JSON for the SvelteKit SPA.
+// The SPA always sends Accept: application/json.
 func (h *Handlers) HandleManageAPI(w http.ResponseWriter, r *http.Request) {
-	if handlers.WantsJSON(r) {
-		h.HandleManageJSON(w, r)
-		return
-	}
-	h.HandleManagePartial(w, r)
+	h.HandleManageJSON(w, r)
 }
 
 // HandleManageJSON returns the user's records + usage stats as JSON for the

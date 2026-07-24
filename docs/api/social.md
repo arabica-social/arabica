@@ -2,12 +2,7 @@
 
 ## `POST /api/likes/toggle`
 
-Toggles a like on a record. Returns the new like state and count.
-
-### Content Negotiation
-
-- **`Accept: application/json`** — returns JSON (below). Used by the SvelteKit SPA.
-- **No JSON Accept** — returns the HTML `LikeButton` fragment (existing HTMX behavior).
+Toggles a like on a record. Returns the new like state and count as JSON.
 
 ### Request (form-urlencoded)
 
@@ -28,12 +23,7 @@ Toggles a like on a record. Returns the new like state and count.
 
 ## `GET /api/comments`
 
-Returns the comment thread for a subject record.
-
-### Content Negotiation
-
-- **`Accept: application/json`** — returns JSON (below).
-- **`HX-Request: true`** — returns the HTML `CommentSection` fragment.
+Returns the comment thread for a subject record as JSON.
 
 ### Request
 
@@ -55,12 +45,7 @@ Returns the comment thread for a subject record.
 ## `POST /api/comments`
 
 Creates a comment on a record. Returns the created comment and the updated
-comment thread.
-
-### Content Negotiation
-
-- **`Accept: application/json`** — returns JSON (below).
-- **No JSON Accept** — returns the HTML `CommentSection` fragment.
+comment thread as JSON.
 
 ### Request (form-urlencoded)
 

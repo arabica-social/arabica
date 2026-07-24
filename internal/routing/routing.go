@@ -142,24 +142,22 @@ func SetupRouter(cfg Config) http.Handler {
 	// Suggestion routes for entity typeahead (auth-protected, read-only GET)
 	mux.HandleFunc("GET /api/suggestions/{entity}", h.HandleEntitySuggestions)
 
-	// Feed supports content negotiation: Accept: application/json returns
-	// JSON for the SvelteKit SPA; HX-Request returns the HTML partial.
+	// Feed is JSON-only for the SvelteKit SPA.
 	mux.HandleFunc("GET /api/feed", h.HandleFeed)
 
-	// Page routes (must come before static files). Each route is assigned to
-	// either SvelteKit or its legacy handler by the app-owned allowlist.
-	pages.Register(mux, "GET /{$}", http.HandlerFunc(h.HandleHome)) // {$} means exact match
-	pages.Register(mux, "GET /about", http.HandlerFunc(h.HandleAbout))
-	pages.Register(mux, "GET /terms", http.HandlerFunc(h.HandleTerms))
-	pages.Register(mux, "GET /join/create", http.HandlerFunc(h.HandleCreateAccount))
-	pages.Register(mux, "GET /atproto", http.HandlerFunc(h.HandleATProto))
-	pages.Register(mux, "GET /notifications", http.HandlerFunc(h.HandleNotifications))
-	pages.Register(mux, "GET /settings", http.HandlerFunc(h.HandleSettings))
-	pages.Register(mux, "GET /_mod", http.HandlerFunc(h.HandleAdmin))
-	mux.Handle("GET /_mod/content", middleware.RequireModerator(cfg.ModerationService,
-		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminPartial))))
-	mux.Handle("GET /_mod/stats", middleware.RequireAdmin(cfg.ModerationService,
-		middleware.RequireHTMXMiddleware(http.HandlerFunc(h.HandleAdminStats))))
+	// Page routes (must come before static files). These patterns are all
+	// SPA-owned (see each app's SPAOwnedRoutes), so pages.Register routes
+	// them to the SPA shell; the legacy handler arg is a nil-safe 404
+	// fallback for a non-SPA build rather than a templ renderer.
+	notFound := http.HandlerFunc(h.HandleNotFound)
+	pages.Register(mux, "GET /{$}", notFound) // {$} means exact match
+	pages.Register(mux, "GET /about", notFound)
+	pages.Register(mux, "GET /terms", notFound)
+	pages.Register(mux, "GET /join/create", notFound)
+	pages.Register(mux, "GET /atproto", notFound)
+	pages.Register(mux, "GET /notifications", notFound)
+	pages.Register(mux, "GET /settings", notFound)
+	pages.Register(mux, "GET /_mod", notFound)
 	mux.HandleFunc("GET /og-image", h.HandleSiteOGImage)
 	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
 	mux.HandleFunc("GET /api/signup/categories", h.HandleSignupCategories)
@@ -397,12 +395,15 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		}
 
 		urlPath := route.Path
-		if b.View != nil {
-			pages.Register(mux, "GET /"+urlPath+"/{actor}/{id}", http.HandlerFunc(RewriteActorToOwner(b.View)))
-		}
-		if b.Backlinks != nil {
-			pages.Register(mux, "GET /"+urlPath+"/{actor}/{id}/backlinks", http.HandlerFunc(RewriteActorToOwner(b.Backlinks)))
-		}
+		// Entity view and backlinks page routes are SPA-owned: the SvelteKit
+		// shell serves them directly. Register them through pages.Register so
+		// a non-SPA build (e.g. tests without a shell handler) falls back to
+		// the 404 handler instead of a nil panic.
+		notFound := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "Not Found", http.StatusNotFound)
+		})
+		pages.Register(mux, "GET /"+urlPath+"/{actor}/{id}", notFound)
+		pages.Register(mux, "GET /"+urlPath+"/{actor}/{id}/backlinks", notFound)
 		if b.JSONView != nil {
 			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.JSONView))
 		}

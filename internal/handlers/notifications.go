@@ -7,93 +7,12 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/notifications"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
-	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
-
-	"github.com/rs/zerolog/log"
 )
 
-// HandleNotifications renders the notifications page
-func (h *Handler) HandleNotifications(w http.ResponseWriter, r *http.Request) {
-	layoutData, didStr, isAuthenticated := h.LayoutDataFromRequest(r, "Notifications")
-	if !isAuthenticated {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	cursor := r.URL.Query().Get("cursor")
-
-	var props pages.NotificationsProps
-
-	if h.feedIndex != nil {
-		notifications, nextCursor, err := h.feedIndex.GetNotifications(didStr, 30, cursor)
-		if err != nil {
-			log.Error().Err(err).Str("did", didStr).Msg("Failed to get notifications")
-			http.Error(w, "Failed to load notifications", http.StatusInternalServerError)
-			return
-		}
-
-		props.NextCursor = nextCursor
-
-		// Resolve actor profiles and links for each notification
-		for _, notif := range notifications {
-			item := pages.NotificationItem{
-				Notification: notif,
-				Link:         resolveNotificationLink(h.app, notif.SubjectURI),
-				ActionText:   notifActionText(h.app, notif),
-			}
-
-			profile, err := h.feedIndex.GetProfile(r.Context(), notif.ActorDID)
-			if err == nil && profile != nil {
-				item.ActorHandle = profile.Handle
-				if profile.DisplayName != nil {
-					item.ActorDisplayName = *profile.DisplayName
-				}
-				if profile.Avatar != nil {
-					item.ActorAvatar = *profile.Avatar
-				}
-			} else {
-				item.ActorHandle = notif.ActorDID
-			}
-
-			props.Notifications = append(props.Notifications, item)
-		}
-
-		// Mark all as read when the page is viewed
-		if err := h.feedIndex.MarkAllRead(didStr); err != nil {
-			log.Warn().Err(err).Str("did", didStr).Msg("Failed to mark notifications as read on view")
-		}
-	}
-
-	if err := pages.Notifications(layoutData, props).Render(r.Context(), w); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to render notifications page")
-	}
-}
-
-// HandleNotificationsMarkRead marks all notifications as read
+// HandleNotificationsMarkRead marks all notifications as read. The SPA always
+// sends Accept: application/json, so this delegates to the JSON path.
 func (h *Handler) HandleNotificationsMarkRead(w http.ResponseWriter, r *http.Request) {
-	if WantsJSON(r) {
-		h.HandleNotificationsMarkReadJSON(w, r)
-		return
-	}
-
-	didStr, ok := atpmiddleware.GetDID(r.Context())
-	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	if h.feedIndex != nil {
-		if err := h.feedIndex.MarkAllRead(didStr); err != nil {
-			log.Error().Err(err).Str("did", didStr).Msg("Failed to mark notifications as read")
-			http.Error(w, "Failed to mark notifications as read", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	// Redirect back to notifications page
-	http.Redirect(w, r, "/notifications", http.StatusSeeOther)
+	h.HandleNotificationsMarkReadJSON(w, r)
 }
 
 // resolveNotificationLink converts a SubjectURI (AT-URI) to a local page URL.

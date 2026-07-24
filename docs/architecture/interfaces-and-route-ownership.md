@@ -17,8 +17,8 @@ and [ADR-006](../adr/ADR-006-embedded-spa-with-explicit-route-cutover.md).
 | AT Protocol OAuth | Authenticate users and establish scoped PDS access | OAuth client/session configuration |
 | XRPC to a user's PDS | Authoritative record CRUD | App lexicons and PDS behavior |
 | Public AT Protocol reads | Resolve public records and profiles across users | Public PDS/XRPC responses plus visibility rules |
-| Go HTTP pages | Legacy Templ pages or the embedded SPA shell | Route registration and page ownership |
-| Go JSON APIs | Data consumed by SvelteKit and legacy clients | [`docs/api/`](../api/README.md) plus integration tests |
+| Go HTTP pages | The embedded SvelteKit SPA shell | Route registration and page ownership |
+| Go JSON APIs | Data consumed by the SvelteKit SPA | [`docs/api/`](../api/README.md) plus integration tests |
 | Mutation endpoints | CSRF-protected creates, updates, deletes, and actions | Handler validation, authenticated store, and JSON response contracts |
 | OG image/head surfaces | Link previews, page titles, and social metadata | Go handlers and SPA shell injection |
 

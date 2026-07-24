@@ -2,7 +2,7 @@
 
 ## `GET /api/feed`
 
-Returns the community feed as JSON or HTML depending on content negotiation.
+Returns the community feed as JSON for the SvelteKit SPA.
 
 ### Request
 
@@ -12,10 +12,9 @@ Returns the community feed as JSON or HTML depending on content negotiation.
 | `sort`  | string | `recent`  | Sort order: `recent` or `popular`.               |
 | `cursor`| string | (none)    | Pagination cursor from a previous response's `next_cursor`. |
 
-### Content Negotiation
+### Response
 
-- **`Accept: application/json`** (or `X-Requested-With: JSON`) — returns the JSON envelope below. Used by the SvelteKit SPA.
-- **`HX-Request: true`** (no JSON Accept) — returns the existing HTML partial. Used by HTMX clients during migration.
+The endpoint always returns JSON (the SvelteKit SPA is the sole frontend).
 
 ### Response (JSON)
 

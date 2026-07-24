@@ -35,12 +35,12 @@ sister app via per-app configuration, registries, and interfaces.
 
 ## Current Status
 
-Last reviewed: 2026-07-21.
+Last reviewed: 2026-07-24.
 
-- The SvelteKit SPA is now the default frontend for every page route in
-  `internal/arabica/handlers/routes.go`'s `SPAOwnedRoutes`. The legacy
-  Templ/HTMX/Svelte-island stack and the `ARABICA_SPA` opt-in flag have
-  been retired; remaining legacy handlers are unreachable fallbacks.
+- The SvelteKit SPA is the sole frontend. The legacy Templ/HTMX/Svelte-island
+  stack, the `ARABICA_SPA` opt-in flag, and all `.templ`/`*_templ.go` files
+  have been removed; page routes in `SPAOwnedRoutes` are served by the SPA
+  shell, and the Go handlers that remain are JSON APIs and OG-image endpoints.
 - Breaking brew and recipe lexicon changes remain unresolved before v1. Treat
   existing PDS records as durable compatibility inputs, not centrally
   migratable rows.
@@ -106,10 +106,8 @@ Never claim full verification when only a partial signal was run.
 
 ## Conditional Rules
 
-- `.templ` files use tabs. After editing them, run `templ generate` (or
-  `just templ-generate`) and include generated Go changes.
-- Do not expand legacy Templ/HTMX surfaces during the SPA migration unless the
-  user explicitly chooses that direction or a working fallback requires it.
+- Do not reintroduce a server-side HTML templating layer. Page rendering lives
+  in the SvelteKit SPA; Go handlers expose JSON APIs and OG-image endpoints.
 - Frontend work should reuse established components and the patterns in
   `PRODUCT.md` and `DESIGN.md`; accessibility constraints are not "squishy"
   visual preferences.

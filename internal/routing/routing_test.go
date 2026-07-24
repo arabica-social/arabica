@@ -13,50 +13,40 @@ import (
 
 func TestRegisterEntityRoutesFiltersUnionByAppDescriptors(t *testing.T) {
 	bundles := []handlers.EntityRouteBundle{
-		{RecordType: lexicons.RecordTypeBean, View: okHandler("bean")},
-		{RecordType: lexicons.RecordTypeRoaster, View: okHandler("roaster")},
+		{RecordType: lexicons.RecordTypeBean, JSONView: okHandler("bean-json")},
+		{RecordType: lexicons.RecordTypeRoaster, JSONView: okHandler("roaster-json")},
 	}
 
 	arabicaMux := http.NewServeMux()
 	RegisterEntityRoutes(arabicaMux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, NewPageRoutes(nil, nil))
-	assertRouteStatus(t, arabicaMux, "GET", "/beans/alice.test/r1", http.StatusOK)
-	assertRouteStatus(t, arabicaMux, "GET", "/roasters/alice.test/r1", http.StatusOK)
+	assertRouteStatus(t, arabicaMux, "GET", "/api/beans/alice.test/r1", http.StatusOK)
+	assertRouteStatus(t, arabicaMux, "GET", "/api/roasters/alice.test/r1", http.StatusOK)
 }
 
-func TestRegisterEntityRoutesUsesExplicitPageOwnership(t *testing.T) {
+func TestRegisterEntityRoutesRegistersJSONAndOGAndMutations(t *testing.T) {
 	bundles := []handlers.EntityRouteBundle{
 		{
 			RecordType:    lexicons.RecordTypeBean,
-			View:          okHandler("bean-view"),
 			JSONView:      okHandler("bean-json"),
-			Backlinks:     okHandler("bean-backlinks"),
 			JSONBacklinks: okHandler("bean-json-backlinks"),
 			OGImage:       okHandler("bean-og"),
+			Create:        okHandler("bean-create"),
+			Update:        okHandler("bean-update"),
+			Delete:        okHandler("bean-delete"),
 		},
 	}
 
 	mux := http.NewServeMux()
-	pages := NewPageRoutes(okHandler("spa"), []string{"GET /beans/{actor}/{id}"})
-	RegisterEntityRoutes(mux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, pages)
+	RegisterEntityRoutes(mux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, NewPageRoutes(nil, nil))
 
-	// Only the explicitly owned detail route uses the SPA. Backlinks retain
-	// their working legacy handler when not listed as SPA-owned.
-	assertRouteBody(t, mux, "GET", "/beans/alice.test/r1", http.StatusOK, "spa")
-	assertRouteBody(t, mux, "GET", "/beans/alice.test/r1/backlinks", http.StatusOK, "bean-backlinks")
-
-	// When the backlinks pattern IS SPA-owned, it routes to the SPA shell.
-	pagesWithBacklinks := NewPageRoutes(okHandler("spa"), []string{
-		"GET /beans/{actor}/{id}",
-		"GET /beans/{actor}/{id}/backlinks",
-	})
-	mux2 := http.NewServeMux()
-	RegisterEntityRoutes(mux2, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, pagesWithBacklinks)
-	assertRouteBody(t, mux2, "GET", "/beans/alice.test/r1/backlinks", http.StatusOK, "spa")
-
-	// JSON view/backlinks, OG image, and mutations remain.
+	// JSON view/backlinks, OG image, and mutations are registered independently
+	// of the SPA-owned page routes (which the shell serves directly).
 	assertRouteStatus(t, mux, "GET", "/api/beans/alice.test/r1", http.StatusOK)
 	assertRouteStatus(t, mux, "GET", "/api/beans/alice.test/r1/backlinks", http.StatusOK)
 	assertRouteStatus(t, mux, "GET", "/beans/alice.test/r1/og-image", http.StatusOK)
+	assertRouteStatus(t, mux, "POST", "/api/beans", http.StatusOK)
+	assertRouteStatus(t, mux, "PUT", "/api/beans/r1", http.StatusOK)
+	assertRouteStatus(t, mux, "DELETE", "/api/beans/r1", http.StatusOK)
 }
 
 func TestPageRoutesRegisterExplicitOwners(t *testing.T) {
@@ -113,13 +103,4 @@ func assertRouteStatus(t *testing.T, h http.Handler, method, path string, want i
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
 	assert.Equal(t, want, w.Code)
-}
-
-func assertRouteBody(t *testing.T, h http.Handler, method, path string, wantStatus int, wantBody string) {
-	t.Helper()
-	req := httptest.NewRequest(method, path, nil)
-	w := httptest.NewRecorder()
-	h.ServeHTTP(w, req)
-	assert.Equal(t, wantStatus, w.Code)
-	assert.Equal(t, wantBody, w.Body.String())
 }

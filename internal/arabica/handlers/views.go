@@ -8,15 +8,12 @@ import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	coffeeogcard "tangled.org/arabica.social/arabica/internal/arabica/ogcard"
 	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
-	coffeepages "tangled.org/arabica.social/arabica/internal/arabica/web/pages"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
-	"tangled.org/arabica.social/arabica/internal/web/components"
-	"tangled.org/arabica.social/arabica/internal/web/pages"
 	"tangled.org/pdewey.com/atp"
 
 	"github.com/rs/zerolog/log"
@@ -40,21 +37,6 @@ func (h *Handlers) roasterViewConfig() handlers.EntityViewConfig {
 			}
 			return h.FeedIndex().BeanCountsByRoasterURI(ctx, ownerDID)[subjectURI]
 		},
-		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			roaster := record.(*arabica.Roaster)
-			props := coffeepages.RoasterViewProps{
-				Roaster:        roaster,
-				EntityViewBase: base,
-			}
-			if h.FeedIndex() != nil && base.SubjectURI != "" {
-				ownerDID := base.AuthorDID
-				if ownerDID == "" {
-					ownerDID = base.CurrentUserDID
-				}
-				props.BeanCount = h.FeedIndex().BeanCountsByRoasterURI(ctx, ownerDID)[base.SubjectURI]
-			}
-			return coffeepages.RoasterView(layoutData, props).Render(ctx, w)
-		},
 	}
 }
 
@@ -76,21 +58,6 @@ func (h *Handlers) grinderViewConfig() handlers.EntityViewConfig {
 			}
 			return h.FeedIndex().BrewCountsByGrinderURI(ctx, ownerDID)[subjectURI]
 		},
-		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			grinder := record.(*arabica.Grinder)
-			props := coffeepages.GrinderViewProps{
-				Grinder:        grinder,
-				EntityViewBase: base,
-			}
-			if h.FeedIndex() != nil && base.SubjectURI != "" {
-				ownerDID := base.AuthorDID
-				if ownerDID == "" {
-					ownerDID = base.CurrentUserDID
-				}
-				props.BrewCount = h.FeedIndex().BrewCountsByGrinderURI(ctx, ownerDID)[base.SubjectURI]
-			}
-			return coffeepages.GrinderView(layoutData, props).Render(ctx, w)
-		},
 	}
 }
 
@@ -111,21 +78,6 @@ func (h *Handlers) brewerViewConfig() handlers.EntityViewConfig {
 				return 0
 			}
 			return h.FeedIndex().BrewCountsByBrewerURI(ctx, ownerDID)[subjectURI]
-		},
-		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			brewer := record.(*arabica.Brewer)
-			props := coffeepages.BrewerViewProps{
-				Brewer:         brewer,
-				EntityViewBase: base,
-			}
-			if h.FeedIndex() != nil && base.SubjectURI != "" {
-				ownerDID := base.AuthorDID
-				if ownerDID == "" {
-					ownerDID = base.CurrentUserDID
-				}
-				props.BrewCount = h.FeedIndex().BrewCountsByBrewerURI(ctx, ownerDID)[base.SubjectURI]
-			}
-			return coffeepages.BrewerView(layoutData, props).Render(ctx, w)
 		},
 	}
 }
@@ -161,27 +113,7 @@ func (h *Handlers) beanViewConfig() handlers.EntityViewConfig {
 			}
 			return h.FeedIndex().BrewCountsByBeanURI(ctx, ownerDID)[subjectURI]
 		},
-		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			bean := record.(*arabica.Bean)
-			props := coffeepages.BeanViewProps{
-				Bean:           bean,
-				EntityViewBase: base,
-			}
-			if h.FeedIndex() != nil && base.SubjectURI != "" {
-				ownerDID := base.AuthorDID
-				if ownerDID == "" {
-					ownerDID = base.CurrentUserDID
-				}
-				props.BrewCount = h.FeedIndex().BrewCountsByBeanURI(ctx, ownerDID)[base.SubjectURI]
-			}
-			return coffeepages.BeanView(layoutData, props).Render(ctx, w)
-		},
 	}
-}
-
-// HandleBeanView shows a bean detail page with social features
-func (h *Handlers) HandleBeanView(w http.ResponseWriter, r *http.Request) {
-	h.RenderEntityView(w, r, h.beanViewConfig())
 }
 
 // HandleBeanViewJSON returns bean detail data as JSON for the SvelteKit SPA.
@@ -189,18 +121,9 @@ func (h *Handlers) HandleBeanViewJSON(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityViewJSON(w, r, h.beanViewConfig())
 }
 
-func (h *Handlers) HandleBeanBacklinks(w http.ResponseWriter, r *http.Request) {
-	h.RenderBacklinksView(w, r, h.beanViewConfig())
-}
-
 // HandleBeanBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
 func (h *Handlers) HandleBeanBacklinksJSON(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksViewJSON(w, r, h.beanViewConfig())
-}
-
-// HandleRoasterView shows a roaster detail page with social features
-func (h *Handlers) HandleRoasterView(w http.ResponseWriter, r *http.Request) {
-	h.RenderEntityView(w, r, h.roasterViewConfig())
 }
 
 // HandleRoasterViewJSON returns roaster detail data as JSON for the SvelteKit SPA.
@@ -208,18 +131,9 @@ func (h *Handlers) HandleRoasterViewJSON(w http.ResponseWriter, r *http.Request)
 	h.RenderEntityViewJSON(w, r, h.roasterViewConfig())
 }
 
-func (h *Handlers) HandleRoasterBacklinks(w http.ResponseWriter, r *http.Request) {
-	h.RenderBacklinksView(w, r, h.roasterViewConfig())
-}
-
 // HandleRoasterBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
 func (h *Handlers) HandleRoasterBacklinksJSON(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksViewJSON(w, r, h.roasterViewConfig())
-}
-
-// HandleGrinderView shows a grinder detail page with social features
-func (h *Handlers) HandleGrinderView(w http.ResponseWriter, r *http.Request) {
-	h.RenderEntityView(w, r, h.grinderViewConfig())
 }
 
 // HandleGrinderViewJSON returns grinder detail data as JSON for the SvelteKit SPA.
@@ -227,27 +141,14 @@ func (h *Handlers) HandleGrinderViewJSON(w http.ResponseWriter, r *http.Request)
 	h.RenderEntityViewJSON(w, r, h.grinderViewConfig())
 }
 
-func (h *Handlers) HandleGrinderBacklinks(w http.ResponseWriter, r *http.Request) {
-	h.RenderBacklinksView(w, r, h.grinderViewConfig())
-}
-
 // HandleGrinderBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
 func (h *Handlers) HandleGrinderBacklinksJSON(w http.ResponseWriter, r *http.Request) {
 	h.RenderBacklinksViewJSON(w, r, h.grinderViewConfig())
 }
 
-// HandleBrewerView shows a brewer detail page with social features
-func (h *Handlers) HandleBrewerView(w http.ResponseWriter, r *http.Request) {
-	h.RenderEntityView(w, r, h.brewerViewConfig())
-}
-
 // HandleBrewerViewJSON returns brewer detail data as JSON for the SvelteKit SPA.
 func (h *Handlers) HandleBrewerViewJSON(w http.ResponseWriter, r *http.Request) {
 	h.RenderEntityViewJSON(w, r, h.brewerViewConfig())
-}
-
-func (h *Handlers) HandleBrewerBacklinks(w http.ResponseWriter, r *http.Request) {
-	h.RenderBacklinksView(w, r, h.brewerViewConfig())
 }
 
 // HandleBrewerBacklinksJSON returns backlinks data as JSON for the SvelteKit SPA.
@@ -295,49 +196,6 @@ func (h *Handlers) recipeViewConfig() handlers.EntityViewConfig {
 				"source_recipe_url":    fmt.Sprintf("/recipes/%s/%s", sourceOwner, srcURI.RKey),
 				"source_recipe_author": author,
 			}
-		},
-		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			recipe := record.(*arabica.Recipe)
-			props := coffeepages.RecipeViewProps{
-				Recipe:             recipe,
-				IsOwnProfile:       base.IsOwnProfile,
-				IsAuthenticated:    base.IsAuthenticated,
-				SubjectURI:         base.SubjectURI,
-				SubjectCID:         base.SubjectCID,
-				IsLiked:            base.IsLiked,
-				LikeCount:          base.LikeCount,
-				CommentCount:       base.CommentCount,
-				Comments:           base.Comments,
-				CurrentUserDID:     base.CurrentUserDID,
-				ShareURL:           base.ShareURL,
-				IsModerator:        base.IsModerator,
-				CanHideRecord:      base.CanHideRecord,
-				CanBlockUser:       base.CanBlockUser,
-				IsRecordHidden:     base.IsRecordHidden,
-				AuthorDID:          base.AuthorDID,
-				AuthorHandle:       base.AuthorHandle,
-				AuthorDisplayName:  base.AuthorDisplayName,
-				AuthorAvatar:       base.AuthorAvatar,
-				Backlinks:          base.Backlinks,
-				BacklinksDetailURL: base.BacklinksDetailURL,
-			}
-			if recipe.SourceRef != "" {
-				if srcURI, err := atp.ParseATURI(recipe.SourceRef); err == nil {
-					sourceOwner := srcURI.DID
-					if h.FeedIndex() != nil {
-						if profile, err := h.FeedIndex().GetProfile(ctx, srcURI.DID); err == nil && profile != nil {
-							sourceOwner = profile.Handle
-							if profile.DisplayName != nil && *profile.DisplayName != "" {
-								props.SourceRecipeAuthor = *profile.DisplayName
-							} else {
-								props.SourceRecipeAuthor = profile.Handle
-							}
-						}
-					}
-					props.SourceRecipeURL = fmt.Sprintf("/recipes/%s/%s", sourceOwner, srcURI.RKey)
-				}
-			}
-			return coffeepages.RecipeView(layoutData, props).Render(ctx, w)
 		},
 	}
 }
@@ -398,31 +256,6 @@ func (h *Handlers) brewViewConfig() handlers.EntityViewConfig {
 				}
 			}
 			return sub
-		},
-		Render: func(ctx context.Context, w http.ResponseWriter, layoutData *components.LayoutData, record any, base pages.EntityViewBase) error {
-			brew := record.(*arabica.Brew)
-			props := coffeepages.BrewViewProps{
-				Brew:              brew,
-				IsOwnProfile:      base.IsOwnProfile,
-				IsAuthenticated:   base.IsAuthenticated,
-				SubjectURI:        base.SubjectURI,
-				SubjectCID:        base.SubjectCID,
-				IsLiked:           base.IsLiked,
-				LikeCount:         base.LikeCount,
-				CommentCount:      base.CommentCount,
-				Comments:          base.Comments,
-				CurrentUserDID:    base.CurrentUserDID,
-				ShareURL:          base.ShareURL,
-				IsModerator:       base.IsModerator,
-				CanHideRecord:     base.CanHideRecord,
-				CanBlockUser:      base.CanBlockUser,
-				IsRecordHidden:    base.IsRecordHidden,
-				AuthorDID:         base.AuthorDID,
-				AuthorHandle:      base.AuthorHandle,
-				AuthorDisplayName: base.AuthorDisplayName,
-				AuthorAvatar:      base.AuthorAvatar,
-			}
-			return coffeepages.BrewView(layoutData, props).Render(ctx, w)
 		},
 	}
 }

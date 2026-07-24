@@ -35,12 +35,8 @@ and one bean — the minimum required to log a brew.
 
 ## `GET /api/incomplete-records`
 
-Returns the user's incomplete records (beans/grinders/brewers with missing fields).
-
-### Content Negotiation
-
-- **`Accept: application/json`** — returns JSON (below).
-- **`HX-Request: true`** — returns the HTML incomplete records partial.
+Returns the user's incomplete records (beans/grinders/brewers with missing
+fields) as JSON.
 
 ### Response
 
@@ -68,10 +64,7 @@ Returns popular recipes sorted by brew_count + fork_count (descending).
 
 ### Content Negotiation
 
-- **`Accept: application/json`** — returns JSON array.
-- **`HX-Request: true`** — returns the HTML popular recipes partial.
-
-### Response (JSON)
+### Response
 
 ```json
 [Recipe, Recipe, Recipe]

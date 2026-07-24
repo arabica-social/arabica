@@ -2,12 +2,8 @@
 
 ## `GET /api/brews`
 
-Returns a paginated list of the authenticated user's brews.
-
-### Content Negotiation
-
-- **`Accept: application/json`** — returns JSON (below). Used by the SvelteKit SPA.
-- **`HX-Request: true`** — returns the existing HTML brew table partial for HTMX clients.
+Returns a paginated list of the authenticated user's brews as JSON for the
+SvelteKit SPA.
 
 ### Request
 

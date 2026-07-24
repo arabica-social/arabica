@@ -28,7 +28,8 @@ func TestFeedViews_AllArabicaEntitiesHaveFeedRenderer(t *testing.T) {
 		if d == nil {
 			continue
 		}
-		assert.NotNil(t, views[rt].Render, "feed renderer not wired for %s", rt)
+		_, ok := views[rt]
+		assert.True(t, ok, "feed view not wired for %s", rt)
 		assert.Equal(t, filterLabel, views.FilterLabel(rt), "feed filter label for %s", rt)
 		assert.NotEmpty(t, views.CardClassNoun(rt), "feed card noun for %s", rt)
 	}
