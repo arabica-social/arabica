@@ -1,9 +1,10 @@
-// Package coffeehandlers carries the arabica-app-specific HTTP handlers.
+// Package handlers carries the arabica-app-specific HTTP handlers.
 //
-// Each handler hangs off *Handlers, which embeds *handlers.Handler so the
-// shared infrastructure (auth, atproto store, witness cache, layout data,
-// etc.) remains accessible via method promotion.
-package coffeehandlers
+// Each handler hangs off *Handlers, which embeds the shared
+// *handlers.Handler (from internal/handlers) so the shared infrastructure
+// (auth, atproto store, witness cache, layout data, etc.) remains accessible
+// via method promotion.
+package handlers
 
 import (
 	"context"
@@ -11,7 +12,6 @@ import (
 
 	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
 	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
-	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/records"
@@ -39,7 +39,7 @@ func (h *Handlers) GetArabicaStore(r *http.Request) (arabicastore.Store, bool) {
 // New constructs a Handlers wrapper over an already-configured base.
 // The base handler is shared across all per-app handler sets in a binary.
 func New(base *handlers.Handler) *Handlers {
-	base.SetFeedViews(coffee.FeedViews())
+	base.SetFeedViews(FeedViews())
 	base.SetHomeBehavior(handlers.HomeBehavior{
 		OGDescription: "Coffee journaling for the open social web. Track, share, and own your brews.",
 		SiteCardOpts: ogcard.SiteCardOpts{

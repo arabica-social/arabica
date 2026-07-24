@@ -1,4 +1,4 @@
-package coffeehandlers
+package handlers
 
 import (
 	"encoding/json"

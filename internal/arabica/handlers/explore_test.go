@@ -1,4 +1,4 @@
-package coffeehandlers
+package handlers
 
 import (
 	"context"
@@ -78,4 +78,3 @@ func TestGetModeratedExploreOverfetchesHiddenRecords(t *testing.T) {
 		assert.False(t, cf.ShouldHide(item.SubjectURI, item.Author.DID))
 	}
 }
-

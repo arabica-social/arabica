@@ -20,11 +20,11 @@ import (
 	"time"
 
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
-	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
+	"tangled.org/arabica.social/arabica/internal/arabica/handlers"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
-	"tangled.org/arabica.social/arabica/internal/handlers"
+	basehandlers "tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/spa"
@@ -94,7 +94,7 @@ type Harness struct {
 	T              *testing.T
 	PDS            *testpds.TestPDS
 	Server         *httptest.Server
-	Handler        *handlers.Handler
+	Handler        *basehandlers.Handler
 	FeedIndex      *firehose.FeedIndex
 	Consumer       *firehose.Consumer
 	ProfileWatcher *firehose.ProfileWatcher
@@ -251,13 +251,13 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	feedRegistry := feed.NewRegistry()
 	feedService := feed.NewService(feedRegistry)
 
-	h := handlers.NewHandler(
+	h := basehandlers.NewHandler(
 		oauthApp,
 		atprotoClient,
 		sessionCache,
 		feedService,
 		feedRegistry,
-		handlers.Config{
+		basehandlers.Config{
 			SecureCookies: false,
 			PublicURL:     "http://localhost",
 		},
@@ -273,23 +273,19 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	// Build the router with no moderation service (most tests don't need it).
 	logger := zerolog.Nop()
 	app := arabicaapp.New()
-	var appRoutes routing.AppRoutes = coffeehandlers.Routes{}
+	var appRoutes routing.AppRoutes = handlers.Routes{}
 	if opts.App != "" && opts.App != "arabica" {
 		return nil, fmt.Errorf("unsupported harness app %q", opts.App)
 	}
 	h.SetApp(app)
 
-	// Build assets manifest (required for SPA shell <head> injection and
-	// for the templ layout to include CSS/JS script tags). Use the dev
-	// directory for JS so the legacy Svelte islands are served from disk
-	// (internal/web/assets/js/) during the final retirement pass.
+	// Build the CSS assets manifest (required for SPA shell <head>
+	// injection). JS assets were removed with the templ/HTMX stack; the
+	// SPA ships its own JS via the embedded SvelteKit build.
 	cssBundle := assets.New(assets.Config{AppName: app.Name})
 	cssBundle.MustBuild()
 	assets.Register(cssBundle)
-	jsAssets := assets.NewJSAssets(assets.JSConfig{DevDir: "internal/web/assets/js"})
-	jsAssets.MustBuild()
-	assets.RegisterJS(jsAssets)
-	manifest := assets.NewManifest(cssBundle, jsAssets)
+	manifest := assets.NewManifest(cssBundle)
 	h.SetAssetManifest(manifest)
 
 	// The SvelteKit SPA shell is the default frontend (mirrors production
@@ -313,7 +309,6 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 		AppRoutes:        appRoutes,
 		SPAHandler:       spaHandler,
 		CSSBundle:        cssBundle,
-		JSAssets:         jsAssets,
 		DisableRateLimit: true,
 	})
 
@@ -462,8 +457,9 @@ func (h *Harness) Get(path string) *http.Response {
 	return resp
 }
 
-// GetHTMX fetches a path as the primary account with the HX-Request header set,
-// for endpoints behind RequireHTMXMiddleware.
+// GetHTMX fetches a path as the primary account with the HX-Request header
+// set. Formerly required by RequireHTMXMiddleware (now removed); the header
+// is now a no-op for these routes, kept so existing callers compile unchanged.
 func (h *Harness) GetHTMX(path string) *http.Response {
 	h.T.Helper()
 	req, err := http.NewRequest("GET", h.URL(path), nil)

@@ -1,4 +1,4 @@
-package coffee
+package handlers
 
 import (
 	"fmt"
@@ -6,9 +6,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/web/feedviews"
-
-	// Ensure arabica descriptors are registered before we attach hooks.
-	_ "tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // FeedViews returns the per-record-type feed view metadata for Arabica. Only

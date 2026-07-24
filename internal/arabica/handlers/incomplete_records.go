@@ -1,4 +1,4 @@
-package coffee
+package handlers
 
 import (
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"

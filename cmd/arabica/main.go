@@ -13,7 +13,7 @@ import (
 	"syscall"
 
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
-	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
+	"tangled.org/arabica.social/arabica/internal/arabica/handlers"
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
 	"tangled.org/arabica.social/arabica/internal/logging"
 
@@ -48,7 +48,7 @@ func main() {
 		KnownDIDsPath:      *knownDIDsFile,
 		DefaultPort:        defaultPort,
 		DefaultMetricsPort: defaultMetricsPort,
-		AppRoutes:          coffeehandlers.Routes{},
+		AppRoutes:          handlers.Routes{},
 	})
 	if err != nil {
 		log.Fatal().Err(err).Str("app", app.Name).Msg("App exited with error")

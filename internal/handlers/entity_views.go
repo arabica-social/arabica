@@ -75,8 +75,8 @@ func ResolveOwnerDID(ctx context.Context, owner string) (string, error) {
 
 // EntityViewConfig captures per-entity behavior for RenderEntityViewJSON.
 // Construct via the h.xViewConfig() methods — closures capture h naturally.
-// Fields are exported so per-app handler packages (coffeehandlers,
-// teahandlers) can populate this struct directly.
+// Fields are exported so per-app handler packages (e.g.
+// internal/arabica/handlers) can populate this struct directly.
 type EntityViewConfig struct {
 	Descriptor  *entities.Descriptor
 	FromWitness func(ctx context.Context, m map[string]any, uri, rkey, ownerDID string) (any, error)

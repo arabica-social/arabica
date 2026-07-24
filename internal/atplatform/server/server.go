@@ -333,25 +333,20 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		log.Info().Str("dir", backupDir).Msg("Automated backups enabled")
 	}
 
-	// Static assets: CSS bundle + per-file JS. Embedded at build time, or
-	// re-read from disk per-request when <APP>_DEV is set. The hash-based
-	// URLs replace the manually-bumped ?v= query params.
+	// Static assets: the CSS bundle is embedded at build time, or re-read
+	// from disk per-request when <APP>_DEV is set. The hash-based URL
+	// replaces the manually-bumped ?v= query param.
 	devMode := devModeEnabled(envPrefix)
 	h.SetDevMode(devMode)
 	cssDevDir := ""
-	jsDevDir := ""
 	if devMode {
 		cssDevDir = "internal/web/assets/css"
-		jsDevDir = "internal/web/assets/js"
 		log.Info().Msg("Dev mode enabled — assets re-read from disk on each request; dev-only signup providers visible")
 	}
 	cssBundle := assets.New(assets.Config{AppName: app.Name, DevDir: cssDevDir})
 	cssBundle.MustBuild()
 	assets.Register(cssBundle)
-	jsAssets := assets.NewJSAssets(assets.JSConfig{DevDir: jsDevDir})
-	jsAssets.MustBuild()
-	assets.RegisterJS(jsAssets)
-	manifest := assets.NewManifest(cssBundle, jsAssets)
+	manifest := assets.NewManifest(cssBundle)
 	h.SetAssetManifest(manifest)
 
 	// SvelteKit SPA shell. The handler reads the embedded SvelteKit build
@@ -404,7 +399,6 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		ModerationService: moderationSvc,
 		FirehoseConsumer:  firehoseConsumer,
 		CSSBundle:         cssBundle,
-		JSAssets:          jsAssets,
 		AppRoutes:         opts.AppRoutes,
 		SPAHandler:        spaHandler,
 		SPAAssetDevDir:    spaAssetDevDir,

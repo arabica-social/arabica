@@ -1,4 +1,4 @@
-package coffeehandlers
+package handlers
 
 import (
 	"net/http"
@@ -6,7 +6,6 @@ import (
 
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/arabica/onboarding"
-	coffee "tangled.org/arabica.social/arabica/internal/arabica/web/components"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 
 	"github.com/rs/zerolog/log"
@@ -23,7 +22,7 @@ type OnboardingResponseJSON struct {
 
 // IncompleteRecordsResponseJSON is the JSON envelope returned by GET /api/incomplete-records.
 type IncompleteRecordsResponseJSON struct {
-	Records []coffee.IncompleteRecord `json:"records"`
+	Records []IncompleteRecord `json:"records"`
 }
 
 // HandleOnboardingJSON returns the user's onboarding readiness + entity lists
@@ -105,7 +104,7 @@ func (h *Handlers) HandleIncompleteRecordsJSON(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	records := coffee.CollectIncompleteRecords(beans, grinders, brewers, 5)
+	records := CollectIncompleteRecords(beans, grinders, brewers, 5)
 
 	handlers.WriteJSON(w, IncompleteRecordsResponseJSON{
 		Records: records,

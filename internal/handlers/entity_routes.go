@@ -46,7 +46,7 @@ type EntityRouteBundle struct {
 }
 
 // Per-app entity bundles live in their own packages:
-//   - arabica: coffeehandlers.(*Handlers).EntityRouteBundles
+//   - arabica: internal/arabica/handlers.(*Handlers).EntityRouteBundles
 //
 // Cafe and Drink bundles are deferred for v1; their descriptors are not
 // registered so registerEntityRoutes skips them.

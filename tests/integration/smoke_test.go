@@ -72,29 +72,3 @@ func TestHTTP_EntityViewSmoke(t *testing.T) {
 		})
 	}
 }
-
-// TestHTTP_HTMXPartialSmoke exercises HTMX-only fragment routes. They sit
-// behind RequireHTMXMiddleware so the test sets HX-Request. A 200 + non-empty
-// body catches silent template breakage in fragment renderers.
-func TestHTTP_HTMXPartialSmoke(t *testing.T) {
-	h := StartHarness(t, nil)
-
-	partials := []string{
-		"/api/feed",
-		"/api/brews",
-		"/api/manage",
-		"/api/incomplete-records",
-		"/api/popular-recipes",
-	}
-
-	for _, path := range partials {
-		t.Run(path, func(t *testing.T) {
-			resp := h.GetHTMX(path)
-			body := ReadBody(t, resp)
-			// Some partials legitimately render empty when the user has no data
-			// (incomplete-records, popular-recipes). A 200 is enough — templ
-			// panics would surface as 500.
-			require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
-		})
-	}
-}

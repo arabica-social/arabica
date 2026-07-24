@@ -85,8 +85,8 @@ type Handler struct {
 	devMode bool
 
 	homeBehavior HomeBehavior
-	assets      assets.Manifest
-	feedViews   feedviews.Registry
+	assets       assets.Manifest
+	feedViews    feedviews.Registry
 
 	// storeOverride supports focused handler tests without constructing an
 	// OAuth-backed ATProto client. Production code leaves it nil.

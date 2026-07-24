@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
-	coffeehandlers "tangled.org/arabica.social/arabica/internal/arabica/handlers"
+	"tangled.org/arabica.social/arabica/internal/arabica/handlers"
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
 	"tangled.org/arabica.social/arabica/internal/logging"
@@ -46,7 +46,7 @@ func main() {
 	}()
 
 	runs := []appRun{
-		{app: arabicaapp.New(), defaultPort: "18910", defaultMetricsPort: "9101", appRoutes: coffeehandlers.Routes{}},
+		{app: arabicaapp.New(), defaultPort: "18910", defaultMetricsPort: "9101", appRoutes: handlers.Routes{}},
 	}
 
 	if err := runApps(ctx, *knownDIDsFile, runs); err != nil {
@@ -68,7 +68,7 @@ func runApps(ctx context.Context, knownDIDsFile string, runs []appRun) error {
 				KnownDIDsPath:      knownDIDsFile,
 				DefaultPort:        run.defaultPort,
 				DefaultMetricsPort: run.defaultMetricsPort,
-				AppRoutes:           run.appRoutes,
+				AppRoutes:          run.appRoutes,
 			})
 			if err != nil {
 				errCh <- fmt.Errorf("%s: %w", run.app.Name, err)

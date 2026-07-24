@@ -1,4 +1,4 @@
-package coffee
+package handlers
 
 import (
 	"testing"

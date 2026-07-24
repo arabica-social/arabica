@@ -20,7 +20,7 @@ import (
 )
 
 func testManifest() assets.Manifest {
-	return assets.NewManifest(nil, nil)
+	return assets.NewManifest(nil)
 }
 
 // arabicaBrand mirrors the BrandConfig set by the arabica app constructor

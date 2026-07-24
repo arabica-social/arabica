@@ -2,15 +2,14 @@ package assets
 
 // Manifest gives templates explicit access to cache-busted asset URLs.
 //
-// The zero value is usable: it falls back to the package registries so tests
+// The zero value is usable: it falls back to the package registry so tests
 // and older call sites that build LayoutData directly continue to render.
 type Manifest struct {
 	css *Bundle
-	js  *JSAssets
 }
 
-func NewManifest(css *Bundle, js *JSAssets) Manifest {
-	return Manifest{css: css, js: js}
+func NewManifest(css *Bundle) Manifest {
+	return Manifest{css: css}
 }
 
 func (m Manifest) StylesheetHref(appName string) string {
@@ -18,13 +17,4 @@ func (m Manifest) StylesheetHref(appName string) string {
 		return m.css.Href()
 	}
 	return HrefFor(appName)
-}
-
-func (m Manifest) ScriptHref(name string) string {
-	if m.js != nil {
-		if href := m.js.Href(name); href != "" {
-			return href
-		}
-	}
-	return JSHrefFor(name)
 }

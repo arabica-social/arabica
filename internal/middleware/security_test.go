@@ -212,7 +212,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 	t.Run("static paths and favicon bypass all limiters", func(t *testing.T) {
 		// Hammer well past the global limit; every request must still be 200.
-		for _, path := range []string{"/static/css/output.css", "/static/js/htmx.min.js", "/favicon.ico"} {
+		for _, path := range []string{"/static/css/output.css", "/static/favicon.ico", "/favicon.ico"} {
 			for range 20 {
 				req := httptest.NewRequest(http.MethodGet, path, nil)
 				req.RemoteAddr = "5.5.5.5:1234"
@@ -221,42 +221,6 @@ func TestRateLimitMiddleware(t *testing.T) {
 				assert.Equal(t, http.StatusOK, rec.Code, "path %s should bypass rate limiting", path)
 			}
 		}
-	})
-}
-
-func TestRequireHTMXMiddleware(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-
-	wrapped := RequireHTMXMiddleware(handler)
-
-	t.Run("allows HTMX requests", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/partial", nil)
-		req.Header.Set("HX-Request", "true")
-		rec := httptest.NewRecorder()
-
-		wrapped.ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "OK", rec.Body.String())
-	})
-
-	t.Run("blocks non-HTMX requests", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/partial", nil)
-		rec := httptest.NewRecorder()
-
-		wrapped.ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusNotFound, rec.Code)
-	})
-
-	t.Run("blocks wrong HX-Request value", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/partial", nil)
-		req.Header.Set("HX-Request", "false")
-		rec := httptest.NewRecorder()
-
-		wrapped.ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusNotFound, rec.Code)
 	})
 }
 
