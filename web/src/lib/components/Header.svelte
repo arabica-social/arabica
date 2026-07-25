@@ -46,12 +46,6 @@
     ];
     if (s.isAuthenticated) {
       items.push({
-        href: "/brews",
-        label: "Brews",
-        shortLabel: "Brews",
-        icon: "coffee",
-      });
-      items.push({
         href: definition.libraryPath,
         label: definition.libraryLabel,
         shortLabel: "My Coffee",
@@ -168,15 +162,11 @@
               <a href="/beans/new" class="ledger-menu__item" role="menuitem"
                 ><Icon name="bean" />Bean</a
               >
-              <a
-                href="/roasters/new"
-                class="ledger-menu__item"
-                role="menuitem"><Icon name="store" />Roaster</a
+              <a href="/roasters/new" class="ledger-menu__item" role="menuitem"
+                ><Icon name="store" />Roaster</a
               >
-              <a
-                href="/grinders/new"
-                class="ledger-menu__item"
-                role="menuitem"><Icon name="disc" />Grinder</a
+              <a href="/grinders/new" class="ledger-menu__item" role="menuitem"
+                ><Icon name="disc" />Grinder</a
               >
               <a href="/brewers/new" class="ledger-menu__item" role="menuitem"
                 ><Icon name="brewer" />Brewer</a

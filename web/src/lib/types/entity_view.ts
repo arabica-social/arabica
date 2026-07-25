@@ -1,13 +1,7 @@
 // Hand-maintained types for the entity view JSON API.
 // Mirrors internal/handlers/entity_view_json.go (EntityViewJSONResponse,
 // AuthorSummary, SocialDataJSON) and internal/backlinks/service.go
-// (Result, Entry, UsageGroup). Run `just types-generate` for entity
-// model types; these envelope types are maintained by hand (see
-// docs/api/entities.md).
-//
-// The `record` field is generic — each page supplies its own record type.
-// We define lightweight record types here to avoid importing the generated
-// entities.ts (which has some unresolvable cross-package consts).
+// (Result, Entry, UsageGroup). See docs/api/entities.md.
 
 export type Roaster = {
 	rkey: string;

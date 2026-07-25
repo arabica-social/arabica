@@ -22,13 +22,6 @@ spa-dev:
 spa-watch:
     @./scripts/watch-spa.sh
 
-types-generate:
-    @tygo generate --config tygo.yml
-
-types-check:
-    @tygo generate --config tygo.yml
-    @git diff --exit-code web/src/lib/types/generated/ || (echo "Generated types are out of date. Run 'just types-generate' and commit." && exit 1)
-
 # Run Arabica's Go backend and the Vite HMR dev server together for live
 # SvelteKit development. Open http://127.0.0.1:18910; the SPA loads from the
 # running Vite dev server. OAuth returns to Go's browser-facing origin.
@@ -154,7 +147,6 @@ e2e-server: e2e-build
 
 # Run all CI checks locally (mirrors .github/workflows/ci.yml).
 ci-check:
-    @just types-check
     @go vet ./...
     @go build ./cmd/arabica
     @go test ./... -count=1
