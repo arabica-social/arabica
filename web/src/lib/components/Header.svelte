@@ -52,10 +52,10 @@
         icon: "bean",
       });
       items.push({
-        href: "/recipes",
-        label: "Recipes",
-        shortLabel: "Recipes",
-        icon: "fileText",
+        href: `/profile/${profileIdentifier(s)}`,
+        label: "Profile",
+        shortLabel: "Profile",
+        icon: "user",
       });
     }
     return items;

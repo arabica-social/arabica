@@ -13,6 +13,18 @@
   pointer-events: auto;
 }
 
+/* On mobile the fixed bottom nav bar (.mobile-ledger-nav, z-index 190,
+   ~4rem tall) would otherwise cover this button. Lift the button above
+   the nav and raise its stacking so the nav's box-shadow doesn't paint
+   over it. The nav is hidden at >= 1040px, so the offset only applies
+   below that breakpoint. */
+@media (max-width: 1039px) {
+  .scroll-top-btn {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    z-index: 200;
+  }
+}
+
 /* Alert banners */
 .alert-warning {
   border-radius: 0.5rem;
