@@ -104,7 +104,6 @@
 </script>
 
 <header class="site-header">
-  <div class="site-header__rule" aria-hidden="true"></div>
   <nav class="site-header__bar" aria-label="Primary navigation">
     <a href="/" class="site-brand" aria-label={`${brandName} community home`}>
       <span class="site-brand__mark" aria-hidden="true">
@@ -269,14 +268,6 @@
     color: var(--header-text);
     background: var(--header-bg);
     box-shadow: var(--shadow-sm);
-  }
-  .site-header__rule {
-    height: 2px;
-    background: color-mix(
-      in oklch,
-      var(--brand-amber-500) 68%,
-      var(--header-bg)
-    );
   }
   .site-header__bar {
     display: grid;
