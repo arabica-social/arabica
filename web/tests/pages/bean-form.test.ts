@@ -28,6 +28,7 @@ const existing: Bean = {
 	rating: 8,
 	closed: false,
 	created_at: "2026-07-09T12:00:00Z",
+	roaster: { name: "Heart Coffee", location: "Portland, OR", rkey: "roaster1" },
 };
 
 describe("BeanForm", () => {
@@ -132,6 +133,18 @@ describe("BeanForm", () => {
 		expect(screen.getByLabelText("Roast level")).toHaveValue("Light");
 		expect(screen.getByLabelText("Roast date")).toHaveValue("2026-07-01");
 		expect(screen.getByLabelText("Link")).toHaveValue("https://roaster.example/beans/gedeb");
+	});
+
+	it("keeps the roaster selected when editing an existing bean", () => {
+		render(BeanForm, { bean: existing, isEdit: true });
+
+		// The visible search field shows the roaster name, and the hidden
+		// roaster_rkey input retains the selected roaster's rkey.
+		expect(screen.getByLabelText("Roaster")).toHaveValue("Heart Coffee");
+		expect(screen.getByDisplayValue("roaster1")).toHaveAttribute(
+			"name",
+			"roaster_rkey",
+		);
 	});
 
 	it("renders all roast level options and the closed checkbox", () => {

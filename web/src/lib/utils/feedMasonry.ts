@@ -118,13 +118,13 @@ function flattenLayout(container: HTMLElement) {
     if (right[index]) merged.push(right[index]);
   }
 
-  const ref =
-    Array.from(container.children).find((child) => {
-      return (
-        !child.classList.contains("feed-masonry-col") &&
-        !isCard(container, child)
-      );
-    }) ?? null;
+  // Restore the merged cards to the position the column block occupied
+  // (i.e. before the first column). Anchoring on the first column — rather
+  // than on the first trailing non-card scaffolding (e.g. the "Load more"
+  // button) — keeps newly appended cards after the originals. Otherwise a
+  // load-more that adds cards past the columns would leave the merged
+  // originals behind the new cards, surfacing older items at the top.
+  const ref = columns[0] ?? null;
 
   for (const card of merged) {
     container.insertBefore(card, ref);

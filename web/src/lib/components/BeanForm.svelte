@@ -50,6 +50,8 @@
 	// svelte-ignore state_referenced_locally
 	let roasterRKey = $state(bean?.roaster?.rkey ?? "");
 	// svelte-ignore state_referenced_locally
+	let roasterLabel = $state(bean?.roaster?.name ?? "");
+	// svelte-ignore state_referenced_locally
 	let rating = $state<number | undefined>(bean?.rating);
 	// Keep rating opt-in for new beans. A native range input supplies a default
 	// value when rendered, so render it only after the user explicitly adds one.
@@ -201,6 +203,7 @@
 							placeholder="Search or create roaster"
 							sectionLabel="Your roasters"
 							bind:rkey={roasterRKey}
+							bind:label={roasterLabel}
 							ariaLabel="Roaster"
 							allowCreate={true}
 						/>
