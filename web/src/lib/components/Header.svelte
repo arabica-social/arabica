@@ -30,7 +30,8 @@
     icon: IconName;
   };
   let primaryItems = $derived.by<NavItem[]>(() => {
-    const items: NavItem[] = [
+    if (!s.isAuthenticated) return [];
+    return [
       {
         href: "/",
         label: "Community",
@@ -43,22 +44,19 @@
         shortLabel: "Explore",
         icon: "globe",
       },
-    ];
-    if (s.isAuthenticated) {
-      items.push({
+      {
         href: definition.libraryPath,
         label: definition.libraryLabel,
         shortLabel: "My Coffee",
         icon: "bean",
-      });
-      items.push({
+      },
+      {
         href: `/profile/${profileIdentifier(s)}`,
         label: "Profile",
         shortLabel: "Profile",
         icon: "user",
-      });
-    }
-    return items;
+      },
+    ];
   });
 
   function isActive(href: string): boolean {
@@ -247,18 +245,20 @@
   </nav>
 </header>
 
-<nav class="mobile-ledger-nav" aria-label="Mobile navigation">
-  {#each primaryItems as item (item.href)}
-    <a
-      href={item.href}
-      class:active={isActive(item.href)}
-      aria-current={isActive(item.href) ? "page" : undefined}
-    >
-      <Icon name={item.icon} />
-      <span>{item.shortLabel}</span>
-    </a>
-  {/each}
-</nav>
+{#if primaryItems.length > 0}
+  <nav class="mobile-ledger-nav" aria-label="Mobile navigation">
+    {#each primaryItems as item (item.href)}
+      <a
+        href={item.href}
+        class:active={isActive(item.href)}
+        aria-current={isActive(item.href) ? "page" : undefined}
+      >
+        <Icon name={item.icon} />
+        <span>{item.shortLabel}</span>
+      </a>
+    {/each}
+  </nav>
+{/if}
 
 <style>
   .site-header {
@@ -613,7 +613,7 @@
     height: 1rem;
     color: currentColor;
   }
-  :global(main) {
+  :global(body:has(.mobile-ledger-nav) main) {
     padding-bottom: 5.5rem !important;
   }
   @media (min-width: 760px) {
