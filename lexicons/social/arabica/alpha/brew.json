@@ -28,8 +28,8 @@
           "temperature": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 1000,
-            "description": "Water temperature in tenths of a degree Celsius (e.g., 935 = 93.5°C)"
+            "maximum": 2120,
+            "description": "Water temperature in tenths of a degree Celsius or Fahrenheit (e.g., 935 = 93.5°C)"
           },
           "waterAmount": {
             "type": "integer",

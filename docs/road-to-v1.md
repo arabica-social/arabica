@@ -2,7 +2,7 @@
 
 ## Release Checklist
 
-- [ ] Add optional links to bean and gear lexicons
+- [x] Add optional links to bean and gear lexicons
 - [ ] Switch precision of coffee amount in brew to decigrams (and any other
       places, I think this is the only one though) (BREAKING)
 
@@ -35,7 +35,7 @@
   - Make the OAuth session db change in the V1 move to avoid session disruption
     during alpha (since full release will require reauth anyway)
 
-- [ ] Explore page
+- [x] Explore page
   - Find things other people rated high that you might like based on your
     history
 

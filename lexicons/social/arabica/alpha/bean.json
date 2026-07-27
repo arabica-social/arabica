@@ -42,7 +42,7 @@
           },
           "description": {
             "type": "string",
-            "maxLength": 1000,
+            "maxLength": 5000,
             "description": "Public roaster description or tasting notes for the beans"
           },
           "notes": {
