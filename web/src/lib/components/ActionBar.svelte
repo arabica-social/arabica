@@ -100,7 +100,6 @@
 		likePending = true;
 		const prevLiked = isLiked;
 		const prevCount = likeCount;
-		// Optimistic update
 		isLiked = !prevLiked;
 		likeCount = prevCount + (prevLiked ? -1 : 1);
 		try {
@@ -117,7 +116,7 @@
 				}),
 			});
 			if (!res.ok) throw new Error(`Like failed: ${res.status}`);
-			// Parse JSON response from the social API (P1.9) to sync real state.
+			// Replace the optimistic values with the server's canonical state.
 			const contentType = res.headers.get("content-type") ?? "";
 			if (contentType.includes("application/json")) {
 				const data = await res.json();
@@ -125,7 +124,6 @@
 				if (typeof data.like_count === "number") likeCount = data.like_count;
 			}
 		} catch (error) {
-			// Revert on failure
 			isLiked = prevLiked;
 			likeCount = prevCount;
 			console.error("Like toggle failed:", error);
@@ -142,7 +140,6 @@
 			try {
 				await navigator.share({ title: shareTitle, text: shareText, url });
 			} catch {
-				// User cancelled
 			}
 			return;
 		}
@@ -151,7 +148,6 @@
 			shareCopied = true;
 			setTimeout(() => (shareCopied = false), 2000);
 		} catch {
-			// Silent
 		}
 	}
 
@@ -236,7 +232,6 @@
 </script>
 
 <div class="action-bar">
-	<!-- Comments -->
 	<a href={commentHref()} class="action-btn" title="View comments">
 		<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"></path>
@@ -244,7 +239,6 @@
 		<span>{commentCount}</span>
 	</a>
 
-	<!-- Hidden indicator (visible to moderators) -->
 	{#if isModerator && isRecordHidden}
 		<span class="hidden-badge" title="This record is hidden from the public feed">
 			<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -254,7 +248,6 @@
 		</span>
 	{/if}
 
-	<!-- Like -->
 	{#if subjectURI && subjectCID}
 		<button
 			type="button"
@@ -271,7 +264,6 @@
 		</button>
 	{/if}
 
-	<!-- Share -->
 	{#if shareURL}
 		<button type="button" onclick={share} class="action-btn" aria-label="Share">
 			<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
@@ -283,7 +275,6 @@
 		</button>
 	{/if}
 
-	<!-- More menu -->
 	<div class="relative z-10" data-more-menu-root>
 		<button
 			type="button"
@@ -311,7 +302,6 @@
 						<div class="action-menu-divider"></div>
 					{/if}
 				{/if}
-				<!-- Moderation actions -->
 				{#if canHideRecord && subjectURI}
 					{#if isRecordHidden}
 						<button
@@ -349,7 +339,6 @@
 						<div class="action-menu-divider"></div>
 					{/if}
 				{/if}
-				<!-- Report -->
 				{#if isAuthenticated && !isOwner}
 					<button
 						type="button"
@@ -375,7 +364,7 @@
 	onclose={handleReportClose}
 	onclick={(e) => {
 		// Clicking the ::backdrop (the dialog itself, not its content)
-		// closes the modal — same UX as the legacy report modal.
+		// closes the modal.
 		if (e.target === reportDialog) reportOpen = false;
 	}}
 >

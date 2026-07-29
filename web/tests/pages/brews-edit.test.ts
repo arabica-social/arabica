@@ -3,12 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import BrewEditPage from "../../src/routes/brews/[id]/edit/+page.svelte";
 import type { Brew } from "../../src/lib/types/entity_view";
 
-// Mock $app/navigation goto
 vi.mock("$app/navigation", () => ({
 	goto: vi.fn(),
 }));
 
-// Mock appCache store to avoid fetch in jsdom
 vi.mock("../../src/lib/stores/appCache", () => ({
 	appCache: {
 		getData: vi.fn().mockResolvedValue(null),

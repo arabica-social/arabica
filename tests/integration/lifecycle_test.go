@@ -36,8 +36,6 @@ type listAllResponse struct {
 	Brews    []arabica.Brew    `json:"brews"`
 }
 
-// TestHTTP_BeanLifecycle covers POST → PUT → DELETE for beans, including the
-// roaster reference field that's unique to bean update.
 func TestHTTP_BeanLifecycle(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -52,7 +50,6 @@ func TestHTTP_BeanLifecycle(t *testing.T) {
 	))
 	beanRKey := mustRKey(t, createResp, "bean")
 
-	// Update: change name + swap roasters.
 	updateResp := h.PutForm("/api/beans/"+beanRKey, form(
 		"name", "Lifecycle Bean v2",
 		"origin", "Kenya",
@@ -73,7 +70,6 @@ func TestHTTP_BeanLifecycle(t *testing.T) {
 	assert.Equal(t, "Kenya", found.Origin)
 	assert.Equal(t, otherRoasterRKey, found.RoasterRKey)
 
-	// Delete.
 	delResp := h.Delete("/api/beans/" + beanRKey)
 	require.Equal(t, 200, delResp.StatusCode, statusErr(delResp, ReadBody(t, delResp)))
 
@@ -83,7 +79,6 @@ func TestHTTP_BeanLifecycle(t *testing.T) {
 	}
 }
 
-// TestHTTP_GrinderLifecycle covers POST → PUT → DELETE for grinders.
 func TestHTTP_GrinderLifecycle(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -122,7 +117,6 @@ func TestHTTP_GrinderLifecycle(t *testing.T) {
 	}
 }
 
-// TestHTTP_BrewerLifecycle covers POST → PUT → DELETE for brewers.
 func TestHTTP_BrewerLifecycle(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -158,8 +152,6 @@ func TestHTTP_BrewerLifecycle(t *testing.T) {
 	}
 }
 
-// TestHTTP_RecipeLifecycle covers POST → PUT → DELETE for recipes, including
-// the brewer reference and pours field.
 func TestHTTP_RecipeLifecycle(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -217,11 +209,6 @@ func TestHTTP_RecipeLifecycle(t *testing.T) {
 	}
 }
 
-// TestHTTP_BrewLifecycle covers POST → PUT → DELETE for brews. The update path
-// is the most complex: it re-marshals references, pours, and method-specific
-// params. This test starts with a pourover brew and updates it to espresso to
-// exercise method-param swapping (the EspressoParams marshaling path that
-// TestHTTP_BrewCreatePourover doesn't reach).
 func TestHTTP_BrewLifecycle(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -235,7 +222,6 @@ func TestHTTP_BrewLifecycle(t *testing.T) {
 	pourBrewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "LC V60", "brewer_type", "Pour Over")), "brewer")
 	espBrewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "LC Espresso", "brewer_type", "Espresso")), "brewer")
 
-	// Create as pourover.
 	createForm := url.Values{}
 	createForm.Set("bean_rkey", beanRKey)
 	createForm.Set("grinder_rkey", grinderRKey)
@@ -260,8 +246,6 @@ func TestHTTP_BrewLifecycle(t *testing.T) {
 	brewRKey := data.Brews[0].RKey
 	require.NotEmpty(t, brewRKey)
 
-	// Update to espresso: drop pours + pourover params, add espresso params,
-	// swap brewer.
 	updateForm := url.Values{}
 	updateForm.Set("bean_rkey", beanRKey)
 	updateForm.Set("grinder_rkey", grinderRKey)
@@ -292,7 +276,6 @@ func TestHTTP_BrewLifecycle(t *testing.T) {
 	assert.Equal(t, 9.0, updated.EspressoParams.Pressure)
 	assert.Equal(t, 5, updated.EspressoParams.PreInfusionSeconds)
 
-	// Delete.
 	delResp := h.Delete("/brews/" + brewRKey)
 	require.Equal(t, 200, delResp.StatusCode, statusErr(delResp, ReadBody(t, delResp)))
 

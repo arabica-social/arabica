@@ -87,7 +87,6 @@ describe("toasts store", () => {
 			const id = get(toasts)[0].id;
 			dismissToast(id);
 
-			// Advancing past the original auto-dismiss window must not re-add or error.
 			vi.advanceTimersByTime(5000);
 			expect(get(toasts)).toHaveLength(0);
 		});
@@ -110,7 +109,6 @@ describe("toasts store", () => {
 			pushToast("b");
 			clearToasts();
 
-			// No timers should fire after clearing.
 			vi.advanceTimersByTime(10000);
 			expect(get(toasts)).toHaveLength(0);
 		});
@@ -147,7 +145,6 @@ describe("toasts store", () => {
 		});
 
 		it("prefers the nested value.message over a top-level message", () => {
-			// {value: {message}} is checked before d.message.
 			expect(
 				extractNotifyMessage({ value: { message: "nested" }, message: "top-level" }),
 			).toBe("nested");

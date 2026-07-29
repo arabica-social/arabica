@@ -6,23 +6,16 @@ import (
 	"strings"
 )
 
-// WantsJSON reports whether the client prefers a JSON response over the
-// default HTML/HTMX rendering. The SPA migration uses Accept-header
-// content negotiation on shared paths (e.g. GET /api/feed) so a single
-// route can serve both HTMX partials (existing templ clients) and JSON
-// (SvelteKit frontend) without a parallel URL namespace.
+// WantsJSON reports whether the client requests a JSON response.
 //
 // A request is treated as JSON when:
 //   - the Accept header lists application/json (anywhere, any q-value), or
 //   - the request carries an explicit X-Requested-With: JSON marker.
-//
-// HTMX requests (HX-Request: true) without a JSON Accept are served HTML.
 func WantsJSON(r *http.Request) bool {
 	accept := r.Header.Get("Accept")
 	if accept != "" {
 		for _, part := range strings.Split(accept, ",") {
 			mediaType := strings.TrimSpace(part)
-			// Strip q-value parameters (e.g. "application/json; q=0.9")
 			if semi := strings.IndexByte(mediaType, ';'); semi != -1 {
 				mediaType = strings.TrimSpace(mediaType[:semi])
 			}
@@ -34,9 +27,7 @@ func WantsJSON(r *http.Request) bool {
 	return r.Header.Get("X-Requested-With") == "JSON"
 }
 
-// ParseFormOrMultipart parses the request body for form values regardless of
-// Content-Type. The SvelteKit SPA submits forms as multipart/form-data (via
-// FormData), while legacy HTMX clients submit application/x-www-form-urlencoded.
+// ParseFormOrMultipart parses either URL-encoded or multipart form values.
 //
 // Request.ParseForm alone only handles url-encoded bodies: for multipart it
 // leaves PostForm empty and, once r.Form is non-nil, subsequent FormValue calls

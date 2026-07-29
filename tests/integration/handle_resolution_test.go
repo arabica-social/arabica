@@ -60,9 +60,6 @@ func TestHandleReassignment_NewOwnerWinsLookup(t *testing.T) {
 	assert.Equal(t, newDID, got, "handle should resolve to the most recent owner, not the orphan")
 }
 
-// TestHandleChange_OldHandleStopsResolving covers a single DID changing its
-// handle (no reassignment between DIDs). The stale handle row must be cleared
-// so the old handle no longer resolves.
 func TestHandleChange_OldHandleStopsResolving(t *testing.T) {
 	h := StartHarness(t, nil)
 	ctx := context.Background()
@@ -215,10 +212,6 @@ func TestInvalidateProfile_RemovesHandleMapping(t *testing.T) {
 	assert.False(t, ok, "InvalidateProfile must clear the handle mapping")
 }
 
-// TestHandleResolution_BackfillFromExistingProfiles verifies that a FeedIndex
-// opened against a database with pre-existing profile rows but no
-// did_by_handle table populates the index on startup, so handle lookups work
-// for users observed before this fix shipped.
 func TestHandleResolution_BackfillFromExistingProfiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := tmpDir + "/feed-backfill.db"

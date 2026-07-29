@@ -32,7 +32,6 @@
 	let recipePours = $state<Pour[]>([]);
 	let brewerCategory = $state("");
 
-	// Form state
 	// svelte-ignore state_referenced_locally
 	let recipeRKeyValue = $state(recipeRKey);
 	let recipeLabel = $state("");
@@ -311,12 +310,10 @@
 		if (rating) input.rating = num(rating);
 		if (grinderRKey) input.grinder_rkey = grinderRKey;
 		if (brewerRKey) input.brewer_rkey = brewerRKey;
-		// Pours
 		const poursInput = pours
 			.filter((pour) => pour.water || pour.time)
 			.map((pour) => ({ water_amount: num(pour.water), time_seconds: num(pour.time) }));
 		if (poursInput.length > 0) input.pours = poursInput;
-		// Espresso params
 		if (espressoYieldWeight || espressoPressure || espressoPreInfusionSeconds) {
 			input.espresso_params = {
 				yield_weight: num(espressoYieldWeight),
@@ -324,7 +321,6 @@
 				pre_infusion_seconds: num(espressoPreInfusionSeconds),
 			};
 		}
-		// Pourover params
 		if (
 			pouroverBloomWater ||
 			pouroverBloomSeconds ||
@@ -367,7 +363,6 @@
 
 	let submitLabel = $derived(isEdit ? "Update Brew" : "Save Brew");
 
-	// --- Live brew context rail derivations ---
 	function num(value: string): number {
 		const n = Number(value);
 		return Number.isFinite(n) ? n : 0;
@@ -420,7 +415,6 @@
 	/>
 
 	<form class="brew-form-sheet" novalidate onsubmit={submitForm}>
-		<!-- Recipe (optional) -->
 		<FormSection title="Recipe (Optional)" description="Select a recipe to autofill brew parameters.">
 			<div class="alert-warning px-3 py-2 mb-2 text-xs">
 				Recipes are in early alpha, the format may change. Your brew data won't be affected.
@@ -476,7 +470,6 @@
 			{/if}
 		</FormSection>
 
-		<!-- Coffee section -->
 		<FormSection title="Coffee" description="The bean, grinder, and dose set up the brew.">
 			<div class="combo-select">
 				<span class="form-label">Coffee Bean <span class="text-red-500" aria-hidden="true">*</span></span>
@@ -521,7 +514,6 @@
 			</Field>
 		</FormSection>
 
-		<!-- Brewing section -->
 		<FormSection title="Brewing" description="Water, method, and timing drive extraction.">
 			{#if showRecipeOverrides()}
 				<div class="combo-select">
@@ -557,7 +549,6 @@
 			</Field>
 		</FormSection>
 
-		<!-- Espresso params -->
 		{#if brewerCategory === "espresso"}
 			<FormSection title="Espresso" description="Shot output, pressure, and pre-infusion.">
 				<Field label="Yield Weight (grams)" helper="Weight of espresso output">
@@ -572,7 +563,6 @@
 			</FormSection>
 		{/if}
 
-		<!-- Pourover params -->
 		{#if brewerCategory === "pourover"}
 			<FormSection title="Pour-over Details" description="Bloom, drawdown, and filter shape the cup.">
 				<div class="grid grid-cols-2 gap-4">
@@ -595,7 +585,6 @@
 			</FormSection>
 		{/if}
 
-		<!-- Results -->
 		<FormSection title="Results" description="Tasting notes and a rating close out the session.">
 			<Field label="Tasting Notes">
 				<textarea bind:value={tastingNotes} placeholder="Describe the flavors, aroma, and your thoughts..." rows="4" class="w-full form-input-lg"></textarea>

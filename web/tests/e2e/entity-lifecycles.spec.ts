@@ -1,17 +1,5 @@
 import { test, expect } from "./fixtures";
 
-/**
- * Entity lifecycle coverage for the entity types that previously only had
- * page-level (Vitest) tests: bean, grinder, brewer, recipe.
- *
- * Each test follows the pattern established by the roaster lifecycle spec:
- * create via the SPA form → verify detail page → reload → edit → verify
- * changes → verify on my-coffee → delete → verify gone.
- */
-
-// ---------------------------------------------------------------------------
-// Bean
-// ---------------------------------------------------------------------------
 test("bean lifecycle: create, reload, edit, delete", async ({
 	authedPage: page,
 	did,
@@ -36,7 +24,6 @@ test("bean lifecycle: create, reload, edit, delete", async ({
 	await page.getByLabel("Variety").fill(variety);
 	await page.getByLabel("Roast level").selectOption("Light");
 	await page.getByLabel("Process").fill("Washed");
-	// Expand the personal-details disclosure to reveal notes.
 	await page.getByText("Personal details (optional)").click();
 	await page.getByLabel("Personal notes").fill("Initial notes");
 	await page.getByRole("button", { name: "Add Bean" }).click();
@@ -46,18 +33,15 @@ test("bean lifecycle: create, reload, edit, delete", async ({
 	const rkey = detailURL.pathname.split("/").at(-1);
 	expect(rkey).toBeTruthy();
 
-	// Detail page shows the submitted fields.
 	await expect(page.getByRole("heading", { name })).toBeVisible();
 	await expect(page.getByText(origin)).toBeVisible();
 	await expect(page.getByText(variety)).toBeVisible();
 	await expect(page.getByText("Light")).toBeVisible();
 	await expect(page.getByText("Washed")).toBeVisible();
 
-	// Reload persists.
 	await page.reload();
 	await expect(page.getByRole("heading", { name })).toBeVisible();
 
-	// Edit.
 	await page.goto(`/beans/${rkey}/edit`);
 	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
 	await expect(page.getByLabel("Name")).toHaveValue(name);
@@ -68,14 +52,12 @@ test("bean lifecycle: create, reload, edit, delete", async ({
 	await page.waitForURL(/\/beans\/[^/]+\/[^/]+$/);
 	await expect(page.getByText(updatedNotes)).toBeVisible();
 
-	// Verify on my-coffee.
 	const uri = `at://${did}/social.arabica.alpha.bean/${rkey}`;
 	await waitForIndex(uri);
 	await page.goto("/my-coffee");
 	await page.getByRole("button", { name: "Beans" }).click();
 	await expect(page.getByRole("link", { name })).toBeVisible();
 
-	// Delete via the action bar.
 	await page.goto(detailURL.pathname);
 	await page.getByRole("button", { name: "More options" }).click();
 	page.once("dialog", (dialog) => dialog.accept());
@@ -83,14 +65,10 @@ test("bean lifecycle: create, reload, edit, delete", async ({
 	await expect(page).toHaveURL(/\/my-coffee$/);
 	await waitForIndex(uri, false);
 
-	// View returns not-found.
 	await page.goto(detailURL.pathname);
 	await expect(page.getByText("Record not found")).toBeVisible();
 });
 
-// ---------------------------------------------------------------------------
-// Grinder
-// ---------------------------------------------------------------------------
 test("grinder lifecycle: create, reload, edit, delete", async ({
 	authedPage: page,
 	did,
@@ -125,7 +103,6 @@ test("grinder lifecycle: create, reload, edit, delete", async ({
 	await page.reload();
 	await expect(page.getByRole("heading", { name })).toBeVisible();
 
-	// Edit.
 	await page.goto(`/grinders/${rkey}/edit`);
 	await expect(page.getByLabel("Name")).toHaveValue(name);
 	await page.getByLabel("Notes").fill(updatedNotes);
@@ -140,7 +117,6 @@ test("grinder lifecycle: create, reload, edit, delete", async ({
 	await page.getByRole("button", { name: "Grinders" }).click();
 	await expect(page.getByRole("link", { name })).toBeVisible();
 
-	// Delete.
 	await page.goto(detailURL.pathname);
 	await page.getByRole("button", { name: "More options" }).click();
 	page.once("dialog", (dialog) => dialog.accept());
@@ -152,9 +128,6 @@ test("grinder lifecycle: create, reload, edit, delete", async ({
 	await expect(page.getByText("Record not found")).toBeVisible();
 });
 
-// ---------------------------------------------------------------------------
-// Brewer
-// ---------------------------------------------------------------------------
 test("brewer lifecycle: create, reload, edit, delete", async ({
 	authedPage: page,
 	did,
@@ -187,7 +160,6 @@ test("brewer lifecycle: create, reload, edit, delete", async ({
 	await page.reload();
 	await expect(page.getByRole("heading", { name })).toBeVisible();
 
-	// Edit.
 	await page.goto(`/brewers/${rkey}/edit`);
 	await expect(page.getByLabel("Name")).toHaveValue(name);
 	await page.getByLabel("Description").fill(updatedDescription);
@@ -202,7 +174,6 @@ test("brewer lifecycle: create, reload, edit, delete", async ({
 	await page.getByRole("button", { name: "Brewers" }).click();
 	await expect(page.getByRole("link", { name })).toBeVisible();
 
-	// Delete.
 	await page.goto(detailURL.pathname);
 	await page.getByRole("button", { name: "More options" }).click();
 	page.once("dialog", (dialog) => dialog.accept());
@@ -214,9 +185,6 @@ test("brewer lifecycle: create, reload, edit, delete", async ({
 	await expect(page.getByText("Record not found")).toBeVisible();
 });
 
-// ---------------------------------------------------------------------------
-// Recipe
-// ---------------------------------------------------------------------------
 test("recipe lifecycle: create, reload, edit, delete", async ({
 	authedPage: page,
 	did,
@@ -253,7 +221,6 @@ test("recipe lifecycle: create, reload, edit, delete", async ({
 	await page.reload();
 	await expect(page.getByRole("heading", { name })).toBeVisible();
 
-	// Edit.
 	await page.goto(`/recipes/${rkey}/edit`);
 	await expect(page.getByLabel("Name")).toHaveValue(name);
 	await page.getByRole("textbox", { name: "Notes" }).fill(updatedNotes);
@@ -268,7 +235,6 @@ test("recipe lifecycle: create, reload, edit, delete", async ({
 	await page.getByRole("button", { name: "Recipes" }).click();
 	await expect(page.getByRole("link", { name })).toBeVisible();
 
-	// Delete.
 	await page.goto(detailURL.pathname);
 	await page.getByRole("button", { name: "More options" }).click();
 	page.once("dialog", (dialog) => dialog.accept());

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS records (
     did         TEXT NOT NULL,
     collection  TEXT NOT NULL,
     rkey        TEXT NOT NULL,
-    record      TEXT NOT NULL, -- Raw JSON record
+    record      TEXT NOT NULL,
     cid         TEXT NOT NULL DEFAULT '',
     indexed_at  TEXT NOT NULL,
     created_at  TEXT NOT NULL

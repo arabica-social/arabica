@@ -12,7 +12,6 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const recipeRKey = url.searchParams.get("recipe") ?? "";
 	const recipeOwnerDID = url.searchParams.get("recipe_owner") ?? "";
 
-	// New brew: no existing record to load.
 	return {
 		brew: null as Brew | null,
 		error: "",

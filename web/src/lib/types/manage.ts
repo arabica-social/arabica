@@ -1,5 +1,5 @@
 // Hand-maintained types for the manage and brew list JSON APIs.
-// Mirrors internal/arabica/handlers/manage_json.go (ManageResponseJSON,
+// Must match internal/arabica/handlers/manage_json.go (ManageResponseJSON,
 // ManageStatsJSON) and internal/arabica/handlers/brew.go
 // (BrewListJSONResponse). See docs/api/manage.md and docs/api/brews.md.
 

@@ -16,24 +16,18 @@ import (
 )
 
 const (
-	// PublicFeedCacheTTL is the duration for which the public feed cache is valid.
-	// This value can be adjusted based on desired freshness vs. performance tradeoff.
-	// Consider values between 5-10 minutes for a good balance.
+	// PublicFeedCacheTTL bounds public-feed staleness.
 	PublicFeedCacheTTL = 5 * time.Minute
 
-	// PublicFeedCacheSize is the number of items to cache in the server
+	// PublicFeedCacheSize is the number of cached public-feed items.
 	PublicFeedCacheSize = 20
-	// PublicFeedLimit is the number of items to show for unauthenticated users
+	// PublicFeedLimit is the unauthenticated response limit.
 	PublicFeedLimit = 10
-	// Number of feed items to show for authenticated users.
+	// FeedLimit is the authenticated response limit.
 	FeedLimit = 20
 )
 
-// FeedItem is a feed entry produced by the firehose layer and consumed
-// by the feed service and templates. The like/comment counts and
-// SubjectURI/CID populate during indexing; IsLikedByViewer and IsOwner
-// populate per-request when an authenticated viewer is present and stay
-// zero otherwise.
+// FeedItem is an indexed feed entry. Viewer-specific fields are populated per request.
 type FeedItem struct {
 	RecordType lexicons.RecordType // Use lexicons.RecordTypeBrew, lexicons.RecordTypeBean, etc.
 	Action     string              // "added a new brew", "added a new bean", etc.
@@ -222,11 +216,9 @@ func (s *Service) GetCachedPublicFeed(ctx context.Context) ([]*FeedItem, error) 
 
 	if cacheValid {
 		metrics.FeedCacheHitsTotal.Inc()
-		// Apply moderation filtering to cached items
-		// This ensures recently hidden content doesn't appear
+		// Re-apply moderation so content hidden after caching doesn't surface.
 		items = s.filterModeratedItems(ctx, items)
 
-		// Return only the first PublicFeedLimit items from the cache
 		if len(items) > PublicFeedLimit {
 			items = items[:PublicFeedLimit]
 		}
@@ -234,7 +226,7 @@ func (s *Service) GetCachedPublicFeed(ctx context.Context) ([]*FeedItem, error) 
 		return items, nil
 	}
 
-	// Cache is expired or empty, refresh it
+	// Cache expired or empty; refresh.
 	return s.refreshPublicFeedCache(ctx)
 }
 
@@ -243,9 +235,8 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 	s.cache.mu.Lock()
 	defer s.cache.mu.Unlock()
 
-	// Double-check if another goroutine already refreshed the cache
+	// Double-check under the lock in case another goroutine refreshed first.
 	if time.Now().Before(s.cache.expiresAt) && len(s.cache.items) > 0 {
-		// Return only the first PublicFeedLimit items
 		items := s.cache.items
 		if len(items) > PublicFeedLimit {
 			items = items[:PublicFeedLimit]
@@ -256,10 +247,10 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 	metrics.FeedCacheMissesTotal.Inc()
 	log.Debug().Msg("feed: refreshing public feed cache")
 
-	// Fetch PublicFeedCacheSize items to cache (20 items)
+	// Cache PublicFeedCacheSize items but return only PublicFeedLimit.
 	items, err := s.GetRecentRecords(ctx, PublicFeedCacheSize)
 	if err != nil {
-		// If we have stale data, return it rather than failing
+		// If refresh fails, serve stale data rather than erroring.
 		if len(s.cache.items) > 0 {
 			log.Warn().Err(err).Msg("feed: failed to refresh cache, returning stale data")
 			cachedItems := s.cache.items
@@ -271,7 +262,6 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 		return nil, err
 	}
 
-	// Update cache with all fetched items
 	s.cache.items = items
 	s.cache.expiresAt = time.Now().Add(PublicFeedCacheTTL)
 
@@ -280,7 +270,6 @@ func (s *Service) refreshPublicFeedCache(ctx context.Context) ([]*FeedItem, erro
 		Time("expires_at", s.cache.expiresAt).
 		Msg("feed: updated public feed cache")
 
-	// Return only the first PublicFeedLimit items to the user
 	displayItems := items
 	if len(displayItems) > PublicFeedLimit {
 		displayItems = displayItems[:PublicFeedLimit]
@@ -300,8 +289,7 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 
 	log.Debug().Msg("feed: using firehose index")
 
-	// Fetch more items than requested to account for filtered content
-	// This ensures we can still return `limit` items after filtering
+	// Over-fetch so moderation filtering can still yield `limit` items.
 	fetchLimit := limit
 	if s.moderationFilter != nil {
 		fetchLimit = limit + 10 // Buffer for filtered items
@@ -312,10 +300,8 @@ func (s *Service) GetRecentRecords(ctx context.Context, limit int) ([]*FeedItem,
 		return nil, err
 	}
 
-	// Apply moderation filtering
 	items = s.filterModeratedItems(ctx, items)
 
-	// Trim to requested limit
 	if len(items) > limit {
 		items = items[:limit]
 	}
@@ -336,7 +322,7 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 		q.Sort = FeedSortRecent
 	}
 
-	// Fetch more than needed to account for moderation filtering
+	// Over-fetch to absorb moderation filtering.
 	fetchLimit := q.Limit
 	if s.moderationFilter != nil {
 		fetchLimit = q.Limit + 10
@@ -357,7 +343,6 @@ func (s *Service) GetFeedWithQuery(ctx context.Context, q FeedQuery) (*FeedResul
 	// and populated by the handler once a viewer is identified.
 	items := s.filterModeratedItems(ctx, sourceResult.Items)
 
-	// Trim to requested limit
 	result := &FeedResult{
 		NextCursor: sourceResult.NextCursor,
 	}

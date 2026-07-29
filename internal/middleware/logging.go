@@ -48,17 +48,14 @@ func LoggingMiddleware(logger zerolog.Logger, observers ...RequestObserver) func
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			// Create a response writer wrapper to capture status code and bytes written
 			rw := &responseWriter{
 				ResponseWriter: w,
 				statusCode:     http.StatusOK,
 				bytesWritten:   0,
 			}
 
-			// Call the next handler
 			next.ServeHTTP(rw, r)
 
-			// Calculate duration
 			duration := time.Since(start)
 
 			// Use the context logger (enriched with trace_id by RequestIDMiddleware)
@@ -67,7 +64,6 @@ func LoggingMiddleware(logger zerolog.Logger, observers ...RequestObserver) func
 				ctxLogger = &logger
 			}
 
-			// Select log level based on status code
 			var logEvent *zerolog.Event
 			if rw.statusCode >= 500 {
 				logEvent = ctxLogger.Error()
@@ -77,7 +73,6 @@ func LoggingMiddleware(logger zerolog.Logger, observers ...RequestObserver) func
 				logEvent = ctxLogger.Info()
 			}
 
-			// Add core fields
 			logEvent.
 				Str("method", r.Method).
 				Str("path", r.URL.Path).
@@ -90,7 +85,6 @@ func LoggingMiddleware(logger zerolog.Logger, observers ...RequestObserver) func
 				Str("proto", r.Proto).
 				Str("arabica_cookies", getCookies(r))
 
-			// Add optional fields only if present
 			if referer := r.Referer(); referer != "" {
 				logEvent.Str("referer", referer)
 			}
@@ -100,7 +94,6 @@ func LoggingMiddleware(logger zerolog.Logger, observers ...RequestObserver) func
 			if contentType := r.Header.Get("Content-Type"); contentType != "" {
 				logEvent.Str("content_type", contentType)
 			}
-			// FIX: this doesn't seem to be logging correctly?
 			if did, ok := atpmiddleware.GetDID(r.Context()); ok {
 				logEvent.Str("user_did", did)
 			}

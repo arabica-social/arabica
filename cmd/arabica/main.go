@@ -1,8 +1,4 @@
-// Command arabica is the entrypoint for the arabica coffee tracker.
-// It runs a single app; the tea-tracking sister app lives in
-// (shared with cmd/server). All entrypoints share the same internal/atplatform/server
-// bootstrap but get their own listener, metrics endpoint, data
-// directory, and firehose consumer.
+// Command arabica runs the Arabica coffee tracker.
 package main
 
 import (

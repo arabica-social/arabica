@@ -53,7 +53,6 @@ describe("BeanForm", () => {
 	});
 
 	it("shows accessible feedback when the required name is empty", async () => {
-		// Edit mode renders a plain Name input (create mode uses NameSuggest).
 		render(BeanForm, { bean: existing, isEdit: true });
 
 		const name = screen.getByLabelText("Name");
@@ -138,8 +137,6 @@ describe("BeanForm", () => {
 	it("keeps the roaster selected when editing an existing bean", () => {
 		render(BeanForm, { bean: existing, isEdit: true });
 
-		// The visible search field shows the roaster name, and the hidden
-		// roaster_rkey input retains the selected roaster's rkey.
 		expect(screen.getByLabelText("Roaster")).toHaveValue("Heart Coffee");
 		expect(screen.getByDisplayValue("roaster1")).toHaveAttribute(
 			"name",

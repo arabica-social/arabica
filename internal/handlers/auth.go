@@ -36,7 +36,6 @@ var defaultHTTPClient = &http.Client{
 }
 
 // HandleLogin redirects to the home page
-// The login form is now integrated into the home page
 func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -97,7 +96,6 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Process the callback with all query parameters
 	sessData, err := h.oauth.HandleCallback(r.Context(), r.URL.Query())
 	if err != nil {
 		metrics.AuthLoginsTotal.WithLabelValues("failure").Inc()
@@ -111,7 +109,6 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		h.feedRegistry.Register(sessData.DID.String())
 	}
 
-	// Set session cookies
 	didCookieName, sessCookieName := h.cookieNames()
 	http.SetCookie(w, &http.Cookie{
 		Name:     didCookieName,
@@ -140,11 +137,9 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		Str("session_id", sessData.SessionID).
 		Msg("User logged in successfully")
 
-	// Check for reauth return path
 	redirectTo := "/"
 	if cookie, err := r.Cookie("reauth_return"); err == nil && cookie.Value != "" {
 		redirectTo = cookie.Value
-		// Clear the cookie
 		http.SetCookie(w, &http.Cookie{
 			Name: "reauth_return", Value: "", Path: "/",
 			HttpOnly: true, Secure: h.config.SecureCookies,
@@ -226,7 +221,6 @@ func (h *Handler) HandleScopeUpgrade(w http.ResponseWriter, r *http.Request) {
 // HandleReauth clears the stale session and immediately restarts the OAuth
 // login flow so the user doesn't have to re-enter their handle.
 func (h *Handler) HandleReauth(w http.ResponseWriter, r *http.Request) {
-	// Clear the stale session
 	didCookieName, sessCookieName := h.cookieNames()
 	didCookie, err1 := r.Cookie(didCookieName)
 	sessionCookie, err2 := r.Cookie(sessCookieName)
@@ -240,7 +234,6 @@ func (h *Handler) HandleReauth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Clear session cookies
 	http.SetCookie(w, &http.Cookie{
 		Name: didCookieName, Value: "", Path: "/",
 		HttpOnly: true, Secure: h.config.SecureCookies,
@@ -261,7 +254,6 @@ func (h *Handler) HandleReauth(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Delegate to the existing login flow
 	h.HandleLoginSubmit(w, r)
 }
 
@@ -272,16 +264,13 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get session cookies
 	didCookieName, sessCookieName := h.cookieNames()
 	didCookie, err1 := r.Cookie(didCookieName)
 	sessionCookie, err2 := r.Cookie(sessCookieName)
 
 	if err1 == nil && err2 == nil {
-		// Parse DID
 		did, err := syntax.ParseDID(didCookie.Value)
 		if err == nil {
-			// Delete session from store
 			err = h.oauth.DeleteSession(r.Context(), did, sessionCookie.Value)
 			if err != nil {
 				log.Warn().Err(err).Str("user_did", did.String()).Msg("Failed to delete session during logout")
@@ -289,7 +278,6 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Clear session cookies
 	http.SetCookie(w, &http.Cookie{
 		Name:     didCookieName,
 		Value:    "",
@@ -310,7 +298,6 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 	})
 
-	// Redirect to home page
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -331,8 +318,7 @@ func (h *Handler) HandleClientMetadata(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleResolveHandle resolves an AT Protocol handle and returns basic profile info
-// This is used for the autocomplete login feature
+// HandleResolveHandle returns public profile data for login autocomplete.
 func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	handle := atp.NormalizeHandle(r.URL.Query().Get("handle"))
 	if handle == "" {
@@ -340,12 +326,9 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use a public API client to resolve the handle
-	// We don't need authentication for this
 	apiClient := defaultHTTPClient
 
-	// First resolve the handle to a DID using the public API
-	// Note: public.api.bsky.app is the public Bluesky API endpoint that works for any handle
+	// public.api.bsky.app is the public Bluesky API endpoint that works for any handle
 	resolveURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=%s", url.QueryEscape(handle))
 	resp, err := apiClient.Get(resolveURL)
 	if err != nil {
@@ -365,7 +348,6 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		// Read the error body for better debugging
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Warn().
 			Str("handle", handle).
@@ -373,7 +355,6 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 			Str("body", string(bodyBytes)).
 			Msg("Unexpected status resolving handle")
 
-		// Return a more informative error for 400s
 		if resp.StatusCode == 400 {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
@@ -396,7 +377,6 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Now fetch the profile for this DID using the public API
 	profileURL := fmt.Sprintf("https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=%s", resolveResult.DID)
 	profileResp, err := apiClient.Get(profileURL)
 	if err != nil {
@@ -444,7 +424,6 @@ func (h *Handler) HandleResolveHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return the profile info
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(profile); err != nil {
 		log.Error().Err(err).Msg("Failed to encode profile response")
@@ -460,10 +439,8 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use a public API client with timeout
 	apiClient := defaultHTTPClient
 
-	// Try using the public API endpoint with typeahead parameter
 	// Some PDS instances support public search
 	searchURL := fmt.Sprintf(
 		"https://%s/xrpc/app.bsky.actor.searchActorsTypeahead?q=%s&limit=5",
@@ -526,7 +503,6 @@ func (h *Handler) HandleSearchActors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return the actors
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(searchResult); err != nil {
 		log.Error().Err(err).Msg("Failed to encode search result response")

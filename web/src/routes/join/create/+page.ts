@@ -1,8 +1,7 @@
 import type { PageLoad } from "./$types";
 import type { SignupCategoriesResponse } from "$lib/types/signup";
 
-// Fetch the PDS provider catalog from the JSON API. The endpoint returns
-// dev-only providers when dev mode is enabled on the server.
+// The server includes development-only providers when dev mode is enabled.
 export const load: PageLoad = async ({ fetch, url }) => {
   const error = url.searchParams.get("error") ?? "";
   try {

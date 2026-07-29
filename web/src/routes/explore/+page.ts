@@ -6,7 +6,6 @@ import type { ExploreResponse } from "$lib/types/api";
 export const load: PageLoad = async ({ fetch, url }) => {
 	const s = get(session);
 
-	// Read all filters from URL query params.
 	const params = new URLSearchParams();
 	const keys = ["type", "q", "sort", "cursor", "origin", "variety", "process", "roast_level", "roaster", "min_rating", "closed", "location", "grinder_type", "burr_type", "brewer_type", "ratio_min", "ratio_max"];
 	for (const key of keys) {

@@ -1,6 +1,4 @@
 <script lang="ts">
-	// Redirects to /my-coffee via +page.ts load. This component only renders
-	// if the redirect is somehow bypassed.
 	import type { PageData } from "./$types";
 	let { data }: { data: PageData } = $props();
 </script>

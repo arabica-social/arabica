@@ -61,7 +61,6 @@ describe("appCache store", () => {
 		vi.useRealTimers();
 		vi.unstubAllGlobals();
 		clearBody();
-		// reset the singleton's internal state between tests
 		appCache.invalidateCache();
 	});
 
@@ -201,12 +200,10 @@ describe("appCache store", () => {
 			const fetchFn = vi.fn().mockResolvedValue(okResponse({ did: "did:plc:alice", fresh: true }));
 			vi.stubGlobal("fetch", fetchFn);
 
-			// just under TTL: no fetch
 			vi.advanceTimersByTime(5 * 60 * 1000 - 1);
 			await appCache.getData();
 			expect(fetchFn).not.toHaveBeenCalled();
 
-			// cross the TTL boundary
 			vi.advanceTimersByTime(2);
 			await appCache.getData();
 			expect(fetchFn).toHaveBeenCalledTimes(1);

@@ -84,8 +84,6 @@ describe("RecipeForm", () => {
 		expect(screen.getByLabelText("Coffee amount in grams")).toHaveValue(15);
 		expect(screen.getByLabelText("Water amount in grams")).toHaveValue(240);
 		expect(screen.getByLabelText("Notes")).toHaveValue("Bright and sweet");
-		// The brewer combo shows the recipe's brewer name and carries its rkey
-		// in the hidden input, instead of appearing empty on edit.
 		expect(screen.getByRole("combobox", { name: "Brewer" })).toHaveValue("V60");
 		expect(document.querySelector('input[name="brewer_rkey"]')?.getAttribute("value")).toBe("brewer-1");
 	});

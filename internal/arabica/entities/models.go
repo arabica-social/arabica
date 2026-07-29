@@ -116,7 +116,6 @@ var (
 	ErrCommentTooLong   = social.ErrCommentTooLong
 )
 
-// TODO: maybe add a "rating" field that can be updated when a bag is closed
 type Bean struct {
 	RKey        string    `json:"rkey"` // Record key (AT Protocol or stringified ID for SQLite)
 	Name        string    `json:"name"`
@@ -721,8 +720,8 @@ const (
 // Notification represents a notification for a user
 type Notification = notifications.Notification
 
-// Report represents a user-submitted content report
-// TODO: Store reports in database (BoltDB or SQLite) for moderation review
+// Report represents a user-submitted content report. Reports are held
+// in-memory pending moderation review.
 type Report struct {
 	ID          string    `json:"id"`
 	SubjectURI  string    `json:"subject_uri"`  // AT-URI of the reported content

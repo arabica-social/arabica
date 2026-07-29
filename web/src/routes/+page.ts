@@ -39,8 +39,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		error = "Network error";
 	}
 
-	// Authenticated arabica users get a readiness nudge, incomplete-records
-	// prompt, and popular-recipes strip — mirroring the old home page.
+  // Authenticated users receive viewer-specific readiness and recipe data.
 	if (isAuthenticated && appName === "arabica") {
 		const [onbRes, incRes, popRes] = await Promise.all([
 			fetch("/api/onboarding", { headers: { Accept: "application/json" } }).catch(() => null),

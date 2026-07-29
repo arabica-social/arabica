@@ -54,7 +54,7 @@ func (h *Handlers) fetchProfileFromWitness(ctx context.Context, did string, brew
 	results := make(map[string][]*atproto.WitnessRecord)
 	totalRecords := 0
 
-	// Fetch non-brew collections in full (they're small)
+	// Non-brew collections are small; fetch them in full.
 	for _, coll := range []string{arabica.NSIDBean, arabica.NSIDRoaster, arabica.NSIDGrinder, arabica.NSIDBrewer} {
 		records, err := witnessCache.ListWitnessRecords(ctx, did, coll)
 		if err != nil {
@@ -65,7 +65,7 @@ func (h *Handlers) fetchProfileFromWitness(ctx context.Context, did string, brew
 		totalRecords += len(records)
 	}
 
-	// Fetch brews with pagination when limit > 0
+	// Brews paginate when limit > 0.
 	if brewsLimit > 0 {
 		records, err := witnessCache.ListWitnessRecordsPaginated(ctx, did, arabica.NSIDBrew, brewsOffset, brewsLimit)
 		if err != nil {
@@ -94,7 +94,6 @@ func (h *Handlers) fetchProfileFromWitness(ctx context.Context, did string, brew
 
 	metrics.WitnessCacheHitsTotal.WithLabelValues("profile").Inc()
 
-	// Convert witness records to models
 	beanMap := make(map[string]*arabica.Bean)
 	beanRoasterRefMap := make(map[string]string)
 	beans := make([]*arabica.Bean, 0, len(results[arabica.NSIDBean]))
@@ -177,7 +176,7 @@ func (h *Handlers) fetchProfileFromWitness(ctx context.Context, did string, brew
 			continue
 		}
 		brew.RKey = wr.RKey
-		// Store full AT-URI refs for resolution below
+		// Keep full AT-URI refs for resolution below.
 		if beanRef, ok := m["beanRef"].(string); ok {
 			brew.BeanRKey = beanRef
 		}
@@ -190,7 +189,7 @@ func (h *Handlers) fetchProfileFromWitness(ctx context.Context, did string, brew
 		brews = append(brews, brew)
 	}
 
-	// Resolve references (same logic as PDS path)
+	// Resolve references (mirrors the PDS path below).
 	for _, bean := range beans {
 		if roasterRef, found := beanRoasterRefMap[atp.BuildATURI(did, arabica.NSIDBean, bean.RKey)]; found {
 			if roaster, found := roasterMap[roasterRef]; found {
@@ -221,7 +220,7 @@ func (h *Handlers) fetchProfileFromWitness(ctx context.Context, did string, brew
 		return brews[i].CreatedAt.After(brews[j].CreatedAt)
 	})
 
-	// Get total brew count from witness cache for accurate stats display.
+	// Witness counts may exceed the paginated slice; fetch the true total.
 	totalBrews := len(brews)
 	if brewsLimit > 0 {
 		if c, err := witnessCache.CountWitnessRecords(ctx, did, arabica.NSIDBrew); err == nil {
@@ -243,7 +242,6 @@ func (h *Handlers) fetchProfileFromWitness(ctx context.Context, did string, brew
 func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicClient *atp.PublicClient) (*ProfileDataBundle, error) {
 	metrics.WitnessCacheMissesTotal.WithLabelValues("profile").Inc()
 
-	// Fetch all user data in parallel
 	g, gCtx := errgroup.WithContext(ctx)
 
 	var brews []*arabica.Brew
@@ -259,7 +257,6 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 	var brewerMap map[string]*arabica.Brewer
 	var grinderMap map[string]*arabica.Grinder
 
-	// Fetch beans
 	g.Go(func() error {
 		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDBean, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
@@ -281,8 +278,6 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 		}
 		return nil
 	})
-
-	// Fetch roasters
 	g.Go(func() error {
 		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDRoaster, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
@@ -301,7 +296,6 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 		return nil
 	})
 
-	// Fetch grinders
 	g.Go(func() error {
 		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDGrinder, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
@@ -320,7 +314,6 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 		return nil
 	})
 
-	// Fetch brewers
 	g.Go(func() error {
 		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDBrewer, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
@@ -339,7 +332,6 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 		return nil
 	})
 
-	// Fetch brews
 	g.Go(func() error {
 		records, _, err := publicClient.ListPublicRecords(gCtx, did, arabica.NSIDBrew, atp.ListPublicRecordsOpts{Limit: 100, Reverse: true})
 		if err != nil {
@@ -351,7 +343,7 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 			if err != nil {
 				continue
 			}
-			// Store the raw record for reference resolution later
+			// Keep raw AT-URI refs for resolution after the parallel fetch.
 			brew.BeanRKey = ""
 			if beanRef, ok := record.Value["beanRef"].(string); ok {
 				brew.BeanRKey = beanRef
@@ -371,7 +363,7 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 		return nil, err
 	}
 
-	// Resolve references for beans (roaster refs)
+	// Resolve bean roaster refs.
 	for _, bean := range beans {
 		if roasterRef, found := beanRoasterRefMap[atp.BuildATURI(did, arabica.NSIDBean, bean.RKey)]; found {
 			if roaster, found := roasterMap[roasterRef]; found {
@@ -380,21 +372,18 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 		}
 	}
 
-	// Resolve references for brews
+	// Resolve brew refs.
 	for _, brew := range brews {
-		// Resolve bean reference
 		if brew.BeanRKey != "" {
 			if bean, found := beanMap[brew.BeanRKey]; found {
 				brew.Bean = bean
 			}
 		}
-		// Resolve grinder reference
 		if brew.GrinderRKey != "" {
 			if grinder, found := grinderMap[brew.GrinderRKey]; found {
 				brew.GrinderObj = grinder
 			}
 		}
-		// Resolve brewer reference
 		if brew.BrewerRKey != "" {
 			if brewer, found := brewerMap[brew.BrewerRKey]; found {
 				brew.BrewerObj = brewer
@@ -402,7 +391,7 @@ func (h *Handlers) fetchProfileFromPDS(ctx context.Context, did string, publicCl
 		}
 	}
 
-	// Sort brews in reverse chronological order (newest first)
+	// Sort brews newest first.
 	sort.Slice(brews, func(i, j int) bool {
 		return brews[i].CreatedAt.After(brews[j].CreatedAt)
 	})

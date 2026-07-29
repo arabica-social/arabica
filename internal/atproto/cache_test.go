@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ========== UserCache Tests ==========
-
 func TestUserCache_IsValid(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -105,7 +103,6 @@ func TestUserCache_clone(t *testing.T) {
 		cloned := original.clone()
 		require.NotNil(t, cloned)
 
-		// Verify all slices are copied (shallow copy)
 		assert.Equal(t, len(CachedSlice[arabica.Bean](original, arabica.NSIDBean)), len(CachedSlice[arabica.Bean](cloned, arabica.NSIDBean)))
 		assert.Equal(t, len(CachedSlice[arabica.Roaster](original, arabica.NSIDRoaster)), len(CachedSlice[arabica.Roaster](cloned, arabica.NSIDRoaster)))
 		assert.Equal(t, len(CachedSlice[arabica.Grinder](original, arabica.NSIDGrinder)), len(CachedSlice[arabica.Grinder](cloned, arabica.NSIDGrinder)))
@@ -113,7 +110,6 @@ func TestUserCache_clone(t *testing.T) {
 		assert.Equal(t, len(CachedSlice[arabica.Brew](original, arabica.NSIDBrew)), len(CachedSlice[arabica.Brew](cloned, arabica.NSIDBrew)))
 		assert.Equal(t, original.Timestamp, cloned.Timestamp)
 
-		// Verify shallow copy: modifying slice element affects both
 		CachedSlice[arabica.Bean](original, arabica.NSIDBean)[0].Name = "Modified"
 		assert.Equal(t, "Modified", CachedSlice[arabica.Bean](cloned, arabica.NSIDBean)[0].Name)
 	})
@@ -128,10 +124,8 @@ func TestUserCache_clone(t *testing.T) {
 
 		cloned := original.clone()
 
-		// Replace the slice in the original's map (clone should be independent)
 		original.Records[arabica.NSIDBean] = []*arabica.Bean{{RKey: "bean2"}}
 
-		// Cloned should still have old reference
 		assert.Equal(t, "bean1", CachedSlice[arabica.Bean](cloned, arabica.NSIDBean)[0].RKey)
 	})
 }
@@ -182,7 +176,6 @@ func TestSessionCache_SetCollections(t *testing.T) {
 	cache := NewSessionCache()
 	sessionID := "session123"
 
-	// Initialize cache with some data
 	initial := &UserCache{
 		Records: map[string]any{
 			arabica.NSIDBean:    []*arabica.Bean{{RKey: "bean1"}},
@@ -205,17 +198,14 @@ func TestSessionCache_SetCollections(t *testing.T) {
 		result := cache.Get(sessionID)
 		require.NotNil(t, result)
 
-		// Beans should be updated
 		assert.Len(t, CachedSlice[arabica.Bean](result, arabica.NSIDBean), 2)
 		assert.Equal(t, "bean2", CachedSlice[arabica.Bean](result, arabica.NSIDBean)[0].RKey)
 
-		// Other collections unchanged
 		assert.Len(t, CachedSlice[arabica.Roaster](result, arabica.NSIDRoaster), 1)
 		assert.Len(t, CachedSlice[arabica.Grinder](result, arabica.NSIDGrinder), 1)
 		assert.Len(t, CachedSlice[arabica.Brewer](result, arabica.NSIDBrewer), 1)
 		assert.Len(t, CachedSlice[arabica.Brew](result, arabica.NSIDBrew), 1)
 
-		// Timestamp should be updated
 		assert.True(t, result.Timestamp.After(initial.Timestamp))
 	})
 
@@ -352,14 +342,12 @@ func TestSessionCache_InvalidateCollections(t *testing.T) {
 		cache.InvalidateRecords("nonexistent", arabica.NSIDGrinder)
 		cache.InvalidateRecords("nonexistent", arabica.NSIDBrewer)
 		cache.InvalidateRecords("nonexistent", arabica.NSIDBrew)
-		// Should not panic
 	})
 }
 
 func TestSessionCache_Cleanup(t *testing.T) {
 	cache := NewSessionCache()
 
-	// Add fresh cache
 	freshCache := &UserCache{
 		Records: map[string]any{
 			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1"}},
@@ -368,7 +356,6 @@ func TestSessionCache_Cleanup(t *testing.T) {
 	}
 	cache.Set("session-fresh", freshCache)
 
-	// Add old cache (beyond 2x TTL)
 	oldCache := &UserCache{
 		Records: map[string]any{
 			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean2"}},
@@ -377,7 +364,6 @@ func TestSessionCache_Cleanup(t *testing.T) {
 	}
 	cache.Set("session-old", oldCache)
 
-	// Add cache within TTL
 	recentCache := &UserCache{
 		Records: map[string]any{
 			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean3"}},
@@ -386,21 +372,17 @@ func TestSessionCache_Cleanup(t *testing.T) {
 	}
 	cache.Set("session-recent", recentCache)
 
-	// Run cleanup
 	cache.Cleanup()
 
-	// Fresh and recent should remain
 	assert.NotNil(t, cache.Get("session-fresh"))
 	assert.NotNil(t, cache.Get("session-recent"))
 
-	// Old should be removed
 	assert.Nil(t, cache.Get("session-old"))
 }
 
 func TestSessionCache_StartCleanupRoutine(t *testing.T) {
 	cache := NewSessionCache()
 
-	// Add old cache
 	oldCache := &UserCache{
 		Records: map[string]any{
 			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1"}},
@@ -409,38 +391,26 @@ func TestSessionCache_StartCleanupRoutine(t *testing.T) {
 	}
 	cache.Set("session-old", oldCache)
 
-	// Start cleanup with very short interval
 	stop := cache.StartCleanupRoutine(10 * time.Millisecond)
 
-	// Wait for cleanup to run
 	time.Sleep(50 * time.Millisecond)
 
-	// Old cache should be cleaned up
 	assert.Nil(t, cache.Get("session-old"))
 
-	// Add another old cache
 	cache.Set("session-old2", oldCache)
 
-	// Wait for another cleanup cycle
 	time.Sleep(50 * time.Millisecond)
 
-	// Should be cleaned again
 	assert.Nil(t, cache.Get("session-old2"))
 
-	// Stop the routine
 	stop()
 
-	// Add old cache again
 	cache.Set("session-old3", oldCache)
 
-	// Wait - cleanup should not run after stop
 	time.Sleep(50 * time.Millisecond)
 
-	// Cache should still exist (cleanup stopped)
 	assert.NotNil(t, cache.Get("session-old3"))
 }
-
-// ========== Concurrency Tests ==========
 
 func TestSessionCache_ConcurrentAccess(t *testing.T) {
 	cache := NewSessionCache()
@@ -451,7 +421,6 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(numGoroutines * 2)
 
-		// Writers
 		for i := range numGoroutines {
 			go func(id int) {
 				defer wg.Done()
@@ -468,7 +437,6 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 			}(i)
 		}
 
-		// Readers
 		for i := range numGoroutines {
 			go func(id int) {
 				defer wg.Done()
@@ -479,7 +447,6 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		}
 
 		wg.Wait()
-		// Should not panic or race
 	})
 
 	t.Run("concurrent collection updates", func(t *testing.T) {
@@ -533,14 +500,12 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		}()
 
 		wg.Wait()
-		// Should not panic or race
 	})
 
 	t.Run("concurrent cleanup and access", func(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(3)
 
-		// Writer
 		go func() {
 			defer wg.Done()
 			for range numOperations {
@@ -553,7 +518,6 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 			}
 		}()
 
-		// Reader
 		go func() {
 			defer wg.Done()
 			for range numOperations {
@@ -561,7 +525,6 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 			}
 		}()
 
-		// Cleanup
 		go func() {
 			defer wg.Done()
 			for range numOperations {
@@ -570,7 +533,6 @@ func TestSessionCache_ConcurrentAccess(t *testing.T) {
 		}()
 
 		wg.Wait()
-		// Should not panic or race
 	})
 }
 
@@ -578,7 +540,6 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 	cache := NewSessionCache()
 	sessionID := "session123"
 
-	// Initialize cache
 	original := &UserCache{
 		Records: map[string]any{
 			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1", Name: "Original"}},
@@ -587,24 +548,19 @@ func TestSessionCache_CopyOnWrite(t *testing.T) {
 	}
 	cache.Set(sessionID, original)
 
-	// Get reference before update
 	before := cache.Get(sessionID)
 	require.NotNil(t, before)
 	assert.Equal(t, "Original", CachedSlice[arabica.Bean](before, arabica.NSIDBean)[0].Name)
 
-	// Update beans
 	newBeans := []*arabica.Bean{{RKey: "bean2", Name: "Updated"}}
 	cache.SetRecords(sessionID, arabica.NSIDBean, newBeans)
 
-	// Get reference after update
 	after := cache.Get(sessionID)
 	require.NotNil(t, after)
 
-	// Verify copy-on-write: old reference still has old data
 	assert.Equal(t, "Original", CachedSlice[arabica.Bean](before, arabica.NSIDBean)[0].Name)
 	assert.Equal(t, "Updated", CachedSlice[arabica.Bean](after, arabica.NSIDBean)[0].Name)
 
-	// Verify they are different instances
 	assert.NotEqual(t, before, after)
 }
 
@@ -627,7 +583,6 @@ func TestSessionCache_SetRecordsGenericNSID(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, widgets, got)
 
-	// Not dirty right after Set
 	assert.False(t, cache.IsDirty(fakeNSID))
 
 	sc.InvalidateRecords(sessionID, fakeNSID)
@@ -640,7 +595,6 @@ func TestSessionCache_SetRecordsGenericNSID(t *testing.T) {
 func TestSessionCache_MultipleSessionsIsolation(t *testing.T) {
 	cache := NewSessionCache()
 
-	// Create caches for different sessions
 	cache.Set("session1", &UserCache{
 		Records: map[string]any{
 			arabica.NSIDBean: []*arabica.Bean{{RKey: "bean1"}},
@@ -662,13 +616,10 @@ func TestSessionCache_MultipleSessionsIsolation(t *testing.T) {
 		Timestamp: time.Now(),
 	})
 
-	// Update session2
 	cache.SetRecords("session2", arabica.NSIDBean, []*arabica.Bean{{RKey: "bean2-updated"}})
 
-	// Invalidate session3
 	cache.Invalidate("session3")
 
-	// Verify isolation
 	s1 := cache.Get("session1")
 	require.NotNil(t, s1)
 	assert.Equal(t, "bean1", CachedSlice[arabica.Bean](s1, arabica.NSIDBean)[0].RKey)

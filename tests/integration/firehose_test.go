@@ -28,11 +28,9 @@ func TestFirehose_RecordIndexing(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 	ctx := context.Background()
 
-	// Create a roaster via the HTTP API.
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Firehose Roaster", "location", "Portland, OR")), "roaster")
 	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
 
-	// Wait for the firehose to index the record.
 	h.WaitForRecord(uri, firehoseWait)
 
 	rec, err := h.FeedIndex.GetRecord(ctx, uri)
@@ -81,14 +79,11 @@ func TestFirehose_DeleteRemovesFromIndex(t *testing.T) {
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Delete Me")), "roaster")
 	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
 
-	// Wait for firehose to index it first.
 	h.WaitForRecord(uri, firehoseWait)
 
-	// Delete via HTTP API.
 	resp := h.Delete("/api/roasters/" + rkey)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, ReadBody(t, resp)))
 
-	// Wait for firehose to remove it.
 	h.WaitForRecordAbsent(uri, firehoseWait)
 
 	rec, err := h.FeedIndex.GetRecord(context.Background(), uri)
@@ -102,11 +97,9 @@ func TestFirehose_LikeCreatesNotification(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 	ctx := context.Background()
 
-	// Alice creates a roaster.
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Likeable Roaster")), "roaster")
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
-	// Bob likes Alice's roaster.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 
@@ -146,11 +139,9 @@ func TestFirehose_CommentCreatesNotification(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 	ctx := context.Background()
 
-	// Alice creates a roaster.
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Commentable Roaster")), "roaster")
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
-	// Bob comments on Alice's roaster.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 
@@ -162,7 +153,6 @@ func TestFirehose_CommentCreatesNotification(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, commentResp.StatusCode, statusErr(commentResp, ReadBody(t, commentResp)))
 
-	// Wait for the comment to be indexed.
 	deadline := time.Now().Add(firehoseWait)
 	for time.Now().Before(deadline) {
 		if h.FeedIndex.GetCommentCount(ctx, subjectURI) > 0 {
@@ -172,7 +162,6 @@ func TestFirehose_CommentCreatesNotification(t *testing.T) {
 	}
 	assert.Equal(t, 1, h.FeedIndex.GetCommentCount(ctx, subjectURI), "firehose should index the comment")
 
-	// Alice should have a notification.
 	notifs, _, err := h.FeedIndex.GetNotifications(h.PrimaryAccount.DID, 10, "")
 	require.NoError(t, err)
 
@@ -186,15 +175,12 @@ func TestFirehose_CommentCreatesNotification(t *testing.T) {
 	assert.True(t, foundCommentNotif, "Alice should have a comment notification from Bob")
 }
 
-// --- Feed query end-to-end ---
-
 // TestFirehose_FeedQueryReturnsIndexedRecords creates several entity types via
 // HTTP, waits for firehose indexing, and verifies they appear in feed queries.
 func TestFirehose_FeedQueryReturnsIndexedRecords(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 	ctx := context.Background()
 
-	// Create entities that should appear in the feed.
 	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Feed Roaster")), "roaster")
 	beanRKey := mustRKey(t, h.PostForm("/api/beans", form(
 		"name", "Feed Bean",
@@ -202,7 +188,6 @@ func TestFirehose_FeedQueryReturnsIndexedRecords(t *testing.T) {
 	)), "bean")
 	grinderRKey := mustRKey(t, h.PostForm("/api/grinders", form("name", "Feed Grinder")), "grinder")
 
-	// Wait for all records to be indexed.
 	roasterURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, roasterRKey)
 	beanURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDBean, beanRKey)
 	grinderURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDGrinder, grinderRKey)
@@ -211,13 +196,11 @@ func TestFirehose_FeedQueryReturnsIndexedRecords(t *testing.T) {
 	h.WaitForRecord(beanURI, firehoseWait)
 	h.WaitForRecord(grinderURI, firehoseWait)
 
-	// Query the feed — all three should appear.
 	result, err := h.FeedIndex.GetFeedWithQuery(ctx, feed.FeedQuery{Limit: 10})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.GreaterOrEqual(t, len(result.Items), 3, "feed should contain at least 3 items")
 
-	// Verify specific items are present by checking record types.
 	types := map[lexicons.RecordType]bool{}
 	for _, item := range result.Items {
 		types[item.RecordType] = true
@@ -239,7 +222,6 @@ func TestFirehose_FeedQueryTypeFilter(t *testing.T) {
 	roasterURI := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, roasterRKey)
 	h.WaitForRecord(roasterURI, firehoseWait)
 
-	// Filter to roasters only.
 	result, err := h.FeedIndex.GetFeedWithQuery(ctx, feed.FeedQuery{
 		Limit:      10,
 		TypeFilter: lexicons.RecordTypeRoaster,
@@ -260,7 +242,6 @@ func TestFirehose_FeedQueryWithLikeAndCommentCounts(t *testing.T) {
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Popular Roaster")), "roaster")
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
-	// Bob likes the roaster.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 
@@ -271,7 +252,6 @@ func TestFirehose_FeedQueryWithLikeAndCommentCounts(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, likeResp.StatusCode)
 
-	// Bob comments on the roaster.
 	commentResp, err := bobClient.PostForm(h.URL("/api/comments"), url.Values{
 		"subject_uri": {subjectURI},
 		"subject_cid": {subjectCID},
@@ -280,13 +260,11 @@ func TestFirehose_FeedQueryWithLikeAndCommentCounts(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, commentResp.StatusCode)
 
-	// Wait for firehose to process the like and comment.
 	waitFor(t, firehoseWait, func() bool {
 		return h.FeedIndex.GetLikeCount(ctx, subjectURI) >= 1 &&
 			h.FeedIndex.GetCommentCount(ctx, subjectURI) >= 1
 	})
 
-	// Query the feed and find the roaster item.
 	result, err := h.FeedIndex.GetFeedWithQuery(ctx, feed.FeedQuery{
 		Limit:      10,
 		TypeFilter: lexicons.RecordTypeRoaster,
@@ -305,8 +283,6 @@ func TestFirehose_FeedQueryWithLikeAndCommentCounts(t *testing.T) {
 	assert.Equal(t, 1, found.CommentCount, "feed item should show 1 comment")
 }
 
-// --- Record update via firehose ---
-
 // TestFirehose_RecordUpdateReflected verifies that updating a record via HTTP
 // results in the firehose re-indexing it with the new data.
 func TestFirehose_RecordUpdateReflected(t *testing.T) {
@@ -318,16 +294,13 @@ func TestFirehose_RecordUpdateReflected(t *testing.T) {
 
 	h.WaitForRecord(uri, firehoseWait)
 
-	// Verify original data is indexed.
 	rec, err := h.FeedIndex.GetRecord(ctx, uri)
 	require.NoError(t, err)
 	assert.Contains(t, string(rec.Record), "Original Name")
 
-	// Update the roaster.
 	updateResp := h.PutForm("/api/roasters/"+rkey, form("name", "Updated Name", "location", "SF"))
 	require.Equal(t, 200, updateResp.StatusCode, statusErr(updateResp, ReadBody(t, updateResp)))
 
-	// Wait for the firehose to re-index with the updated data.
 	waitFor(t, firehoseWait, func() bool {
 		rec, err := h.FeedIndex.GetRecord(ctx, uri)
 		if err != nil || rec == nil {
@@ -344,8 +317,6 @@ func TestFirehose_RecordUpdateReflected(t *testing.T) {
 	assert.NotContains(t, string(rec.Record), "Original Name", "index should not contain old name")
 }
 
-// --- Unlike / uncomment via firehose ---
-
 // TestFirehose_UnlikeCleansUpIndex verifies that unliking a record (toggling
 // the like off) results in the firehose removing the like from the index and
 // cleaning up the notification.
@@ -353,11 +324,9 @@ func TestFirehose_UnlikeCleansUpIndex(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 	ctx := context.Background()
 
-	// Alice creates a roaster.
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Unlike Roaster")), "roaster")
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
-	// Bob likes it.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 
@@ -368,7 +337,6 @@ func TestFirehose_UnlikeCleansUpIndex(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, likeResp.StatusCode)
 
-	// Wait for the like to be fully indexed via firehose.
 	waitFor(t, firehoseWait, func() bool {
 		return h.FeedIndex.GetLikeCount(ctx, subjectURI) == 1
 	})
@@ -392,7 +360,6 @@ func TestFirehose_UnlikeCleansUpIndex(t *testing.T) {
 	assert.Equal(t, 0, h.FeedIndex.GetLikeCount(ctx, subjectURI), "like count should be 0 after unlike")
 	assert.False(t, h.FeedIndex.HasUserLiked(ctx, bob.DID, subjectURI), "Bob should no longer have liked")
 
-	// The notification should have been cleaned up.
 	notifs, _, err := h.FeedIndex.GetNotifications(h.PrimaryAccount.DID, 10, "")
 	require.NoError(t, err)
 	for _, n := range notifs {
@@ -409,11 +376,9 @@ func TestFirehose_CommentDeleteCleansUpIndex(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 	ctx := context.Background()
 
-	// Alice creates a roaster.
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Uncomment Roaster")), "roaster")
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
-	// Bob comments on it.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 
@@ -425,31 +390,26 @@ func TestFirehose_CommentDeleteCleansUpIndex(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, commentResp.StatusCode)
 
-	// Wait for the comment to be indexed.
 	waitFor(t, firehoseWait, func() bool {
 		return h.FeedIndex.GetCommentCount(ctx, subjectURI) == 1
 	})
 
-	// Find the comment rkey.
 	comments := h.FeedIndex.GetThreadedCommentsForSubject(ctx, subjectURI, 10, "")
 	require.Len(t, comments, 1)
 	commentRKey := comments[0].RKey
 
-	// Bob deletes the comment.
 	deleteReq, err := http.NewRequest("DELETE", h.URL("/api/comments/"+commentRKey), nil)
 	require.NoError(t, err)
 	deleteResp, err := bobClient.Do(deleteReq)
 	require.NoError(t, err)
 	require.Equal(t, 200, deleteResp.StatusCode)
 
-	// Wait for the comment to be removed from the index via firehose.
 	waitFor(t, firehoseWait, func() bool {
 		return h.FeedIndex.GetCommentCount(ctx, subjectURI) == 0
 	})
 
 	assert.Equal(t, 0, h.FeedIndex.GetCommentCount(ctx, subjectURI), "comment count should be 0 after delete")
 
-	// The notification should have been cleaned up.
 	notifs, _, err := h.FeedIndex.GetNotifications(h.PrimaryAccount.DID, 10, "")
 	require.NoError(t, err)
 	for _, n := range notifs {
@@ -516,8 +476,6 @@ func TestFirehose_AccountDeleted_PurgesData(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, rec, "deleted account's records should be purged from index")
 }
-
-// --- helpers ---
 
 // waitFor polls condition until it returns true or the timeout expires.
 func waitFor(t *testing.T, timeout time.Duration, condition func() bool) {

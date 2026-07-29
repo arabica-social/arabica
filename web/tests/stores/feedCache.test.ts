@@ -61,7 +61,6 @@ describe("feedCache store", () => {
 		});
 
 		it("normalizes a bare relative URL against window.location.origin", () => {
-			// relative URL resolves against origin; pathname/search preserved
 			expect(feedCacheKey("feed")).toBe(`${CACHE_PREFIX}did:plc:alice:/feed`);
 		});
 	});
@@ -98,7 +97,6 @@ describe("feedCache store", () => {
 			setBody("did:plc:bob", "arabica");
 
 			expect(getCachedFeedJSON("/api/feed")).toBeNull();
-			// entry under the new DID key never existed
 			expect(sessionStorage.getItem(feedCacheKey("/api/feed"))).toBeNull();
 		});
 
@@ -112,7 +110,6 @@ describe("feedCache store", () => {
 
 		it("returns null and removes the entry when the version is wrong", () => {
 			setCachedFeedJSON("/api/feed", { items: [] });
-			// mutate the stored envelope's version in place
 			const key = feedCacheKey("/api/feed");
 			const envelope = JSON.parse(sessionStorage.getItem(key) as string);
 			envelope.version = 999;

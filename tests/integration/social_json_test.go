@@ -14,8 +14,6 @@ import (
 	"tangled.org/pdewey.com/atp"
 )
 
-// --- Notifications ---
-
 // notificationsJSONResponse mirrors the GET /api/notifications JSON envelope.
 type notificationsJSONResponse struct {
 	Notifications []struct {
@@ -29,12 +27,9 @@ type notificationsJSONResponse struct {
 	NextCursor string `json:"next_cursor"`
 }
 
-// TestHTTP_NotificationsJSON verifies that GET /api/notifications returns JSON.
-// Requires a like/comment notification to exist, so we create one first.
 func TestHTTP_NotificationsJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
-	// Create a roaster and like it to generate a notification.
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Notif JSON Roaster")), "roaster")
 	subjectURI := atp.BuildATURI(h.PrimaryAccount.DID, "social.arabica.alpha.roaster", rkey)
 	subjectCID := "bafyfake"
@@ -52,8 +47,6 @@ func TestHTTP_NotificationsJSON(t *testing.T) {
 	assert.NotNil(t, notifs.Notifications)
 }
 
-// TestHTTP_NotificationsMarkReadJSON verifies POST /api/notifications/read
-// returns JSON when Accept: application/json is sent.
 func TestHTTP_NotificationsMarkReadJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -70,8 +63,6 @@ func TestHTTP_NotificationsMarkReadJSON(t *testing.T) {
 	assert.True(t, result["read"])
 }
 
-// --- Explore ---
-
 // exploreJSONResponse mirrors the GET /api/explore JSON envelope.
 type exploreJSONResponse struct {
 	Items       []json.RawMessage          `json:"items"`
@@ -80,11 +71,9 @@ type exploreJSONResponse struct {
 	NextCursor  string                     `json:"next_cursor"`
 }
 
-// TestHTTP_ExploreJSON verifies that GET /api/explore returns JSON.
 func TestHTTP_ExploreJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
-	// Create some records so explore has data.
 	mustRKey(t, h.PostForm("/api/roasters", form("name", "Explore JSON Roaster")), "roaster")
 	mustRKey(t, h.PostForm("/api/beans", form("name", "Explore JSON Bean", "origin", "Ethiopia")), "bean")
 	beanURI := atp.BuildATURI(h.PrimaryAccount.DID, "social.arabica.alpha.bean", "")
@@ -101,7 +90,6 @@ func TestHTTP_ExploreJSON(t *testing.T) {
 	assert.NotNil(t, explore.Documents)
 }
 
-// TestHTTP_ExploreJSONUnauth verifies unauthenticated requests get 401.
 func TestHTTP_ExploreJSONUnauth(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -114,8 +102,6 @@ func TestHTTP_ExploreJSONUnauth(t *testing.T) {
 	assert.Equal(t, 401, resp.StatusCode)
 }
 
-// --- Social: Likes ---
-
 // likeToggleJSONResponse mirrors the POST /api/likes/toggle JSON envelope.
 type likeToggleJSONResponse struct {
 	IsLiked    bool   `json:"is_liked"`
@@ -123,8 +109,6 @@ type likeToggleJSONResponse struct {
 	SubjectURI string `json:"subject_uri"`
 }
 
-// TestHTTP_LikeToggleJSON verifies that POST /api/likes/toggle with Accept:
-// application/json returns JSON (not an HTML LikeButton fragment).
 func TestHTTP_LikeToggleJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -132,7 +116,6 @@ func TestHTTP_LikeToggleJSON(t *testing.T) {
 	subjectURI := atp.BuildATURI(h.PrimaryAccount.DID, "social.arabica.alpha.roaster", rkey)
 	subjectCID := "bafyfake"
 
-	// Like via JSON path.
 	formData := url.Values{}
 	formData.Set("subject_uri", subjectURI)
 	formData.Set("subject_cid", subjectCID)
@@ -151,7 +134,6 @@ func TestHTTP_LikeToggleJSON(t *testing.T) {
 	assert.True(t, result.IsLiked)
 	assert.Equal(t, subjectURI, result.SubjectURI)
 
-	// Unlike via JSON path.
 	resp2, err := h.Client.Do(req.Clone(req.Context()))
 	require.NoError(t, err)
 	body2 := ReadBody(t, resp2)
@@ -161,8 +143,6 @@ func TestHTTP_LikeToggleJSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(body2), &result2))
 	assert.False(t, result2.IsLiked)
 }
-
-// --- Social: Comments ---
 
 // commentListJSONResponse mirrors the GET /api/comments JSON envelope.
 type commentListJSONResponse struct {
@@ -177,8 +157,6 @@ type commentCreateJSONResponse struct {
 	Comments []json.RawMessage `json:"comments"`
 }
 
-// TestHTTP_CommentListJSON verifies that GET /api/comments with Accept:
-// application/json returns JSON (not an HTML CommentSection fragment).
 func TestHTTP_CommentListJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -196,8 +174,6 @@ func TestHTTP_CommentListJSON(t *testing.T) {
 	assert.True(t, list.IsAuthenticated)
 }
 
-// TestHTTP_CommentCreateJSON verifies that POST /api/comments with Accept:
-// application/json returns the created comment + updated comment list as JSON.
 func TestHTTP_CommentCreateJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -228,8 +204,6 @@ func TestHTTP_CommentCreateJSON(t *testing.T) {
 	assert.NotEmpty(t, comment["rkey"])
 }
 
-// TestHTTP_CommentDeleteJSON verifies that DELETE /api/comments/{id} with
-// Accept: application/json returns {deleted: true}.
 func TestHTTP_CommentDeleteJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -237,7 +211,6 @@ func TestHTTP_CommentDeleteJSON(t *testing.T) {
 	subjectURI := atp.BuildATURI(h.PrimaryAccount.DID, "social.arabica.alpha.roaster", rkey)
 	subjectCID := "bafyfake"
 
-	// Create a comment first via JSON path.
 	formData := url.Values{}
 	formData.Set("subject_uri", subjectURI)
 	formData.Set("subject_cid", subjectCID)
@@ -258,7 +231,6 @@ func TestHTTP_CommentDeleteJSON(t *testing.T) {
 	commentRKey := comment["rkey"].(string)
 	require.NotEmpty(t, commentRKey)
 
-	// Delete via JSON path.
 	delReq, err := http.NewRequest("DELETE", h.URL("/api/comments/"+commentRKey), nil)
 	require.NoError(t, err)
 	delReq.Header.Set("Accept", "application/json")
@@ -272,12 +244,6 @@ func TestHTTP_CommentDeleteJSON(t *testing.T) {
 	assert.True(t, result["deleted"])
 }
 
-// --- Social: Report ---
-
-// TestHTTP_ReportJSON verifies that POST /api/report with Accept:
-// application/json returns {report_id, submitted: true} when moderation is
-// configured. Since the test harness has no moderation store, this test just
-// verifies the error shape.
 func TestHTTP_ReportJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 

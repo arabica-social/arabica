@@ -137,7 +137,6 @@
 				authorAvatar={v.author?.avatar}
 			/>
 			<div class="record-journal p-4">
-				<!-- Brew summary: rating + stats -->
 				{#if b.rating > 0 || ratioDisplay(b) || timeDisplay(b) || brewerName(b)}
 					<div class="brew-summary">
 						{#if b.rating > 0}
@@ -162,7 +161,6 @@
 					</div>
 				{/if}
 
-				<!-- Bean reference card -->
 				{#if b.bean}
 					<div class="journal-bean-ref mb-2">
 						<span class="detail-label mb-2 block">
@@ -201,7 +199,6 @@
 					</div>
 				{/if}
 
-				<!-- Inputs -->
 				<div class="my-6">
 					<div class="ledger-section">Inputs</div>
 					{#if b.coffee_amount > 0}
@@ -246,7 +243,6 @@
 					{/if}
 				</div>
 
-				<!-- Process -->
 				<div>
 					<div class="ledger-section">Process</div>
 					{#if brewerName(b)}
@@ -308,7 +304,6 @@
 					{/if}
 				</div>
 
-				<!-- Recipe / Pours / Tasting notes -->
 				<div class="space-y-6">
 					{#if b.recipe_obj}
 						<div>

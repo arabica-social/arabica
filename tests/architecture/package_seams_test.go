@@ -52,10 +52,7 @@ func TestDomainEntityDescriptorDoesNotOwnFeedActions(t *testing.T) {
 }
 
 func TestFeedPageDoesNotReadDescriptorRouteFields(t *testing.T) {
-	// The templ feed page was removed when the SvelteKit SPA became the
-	// sole frontend. This test previously asserted feed.templ did not read
-	// descriptor route fields; with the templ stack gone there is no feed
-	// page source to inspect, so the guard is obsolete.
+	// The guard is obsolete because feed.templ no longer exists.
 	t.Skip("feed.templ removed with the templ stack")
 }
 

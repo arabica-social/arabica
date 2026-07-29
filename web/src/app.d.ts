@@ -12,13 +12,11 @@ declare global {
 	}
 
 	interface Window {
-		// Legacy bridge: existing Svelte islands (EntityCombo, BrewFormIsland,
-		// …) read window.AppCache. The layout installs the appCache singleton
-		// here during migration so islands keep working unchanged.
+    // Shared entity controls access the record cache through this global contract.
 		AppCache?: AppCacheAPI;
 		// Fetch helpers call this on 401 to show the session-expired modal.
 		__showSessionExpiredModal?: () => void;
-		// Theme toggle affordance (kept for parity with the legacy runtime).
+    // Applies the persisted theme choice.
 		applyTheme?: () => void;
 	}
 }

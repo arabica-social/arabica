@@ -38,7 +38,6 @@ func NewPersistentRegistry(store PersistentStore) *Registry {
 		store: store,
 	}
 
-	// Load existing registrations from store
 	if store != nil {
 		for _, did := range store.List() {
 			r.dids[did] = struct{}{}
@@ -54,13 +53,10 @@ func (r *Registry) Register(did string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Add to in-memory cache
 	r.dids[did] = struct{}{}
 
-	// Persist if store is configured
 	if r.store != nil {
-		// Ignore errors for now - the in-memory cache is the source of truth
-		// during this session, and we'll retry on next restart
+		// Persistence is best effort; memory remains authoritative for this process.
 		_ = r.store.Register(did)
 	}
 }

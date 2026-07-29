@@ -34,10 +34,8 @@ type EntityViewJSONResponse struct {
 	Extras map[string]any `json:"extras,omitempty"`
 }
 
-// RenderEntityViewJSON is the JSON counterpart to RenderEntityView. It reuses
-// the same EntityViewLoader.Load pipeline (own-store -> witness -> PDS + ref
-// resolution), FetchSocialData, and fetchBacklinks, then serializes the
-// assembled data to JSON instead of rendering a templ page.
+// RenderEntityViewJSON loads records own-store -> witness -> PDS, resolves
+// references, and adds social and backlink data.
 //
 // cfg.CountLookup is invoked when available to populate EntityCount (e.g.
 // brew count for a bean, bean count for a roaster).

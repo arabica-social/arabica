@@ -67,8 +67,6 @@ func Register(nsid string, cfg FieldConfig) {
 	entityConfigs[nsid] = cfg
 }
 
-// --- Normalization helpers ---
-
 // Normalize lowercases, trims whitespace, and collapses internal whitespace.
 // Exported so per-app dedup keys (registered via Register) can share a
 // single canonical normalization.

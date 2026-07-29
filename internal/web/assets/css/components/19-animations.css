@@ -215,7 +215,6 @@ body.htmx-history-restoring .htmx-transitioning {
   transform: scale(1);
 }
 
-/* Backdrop fade-in transition */
 .modal-dialog::backdrop {
   background-color: rgba(0, 0, 0, 0);
   transition:
@@ -242,9 +241,6 @@ body.htmx-history-restoring .htmx-transitioning {
   }
 }
 
-/* Modal content inside dialog - no separate animation needed */
-/* The dialog element itself handles the transition */
-
 /* ========================================
    Keyframes
    ======================================== */
@@ -269,7 +265,6 @@ body.htmx-history-restoring .htmx-transitioning {
   }
 }
 
-/* Like button pop animation */
 @keyframes like-pop {
   0% {
     transform: scale(1);
@@ -282,7 +277,6 @@ body.htmx-history-restoring .htmx-transitioning {
   }
 }
 
-/* Like button shrink animation for unlike */
 @keyframes like-shrink {
   0% {
     transform: scale(1);
@@ -299,7 +293,6 @@ body.htmx-history-restoring .htmx-transitioning {
    Loading States
    ======================================== */
 
-/* Enhance skeleton loading animations */
 .animate-pulse {
   animation: enhanced-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -318,7 +311,6 @@ body.htmx-history-restoring .htmx-transitioning {
    Reduced Motion Override
    ======================================== */
 
-/* Respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

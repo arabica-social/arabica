@@ -23,8 +23,6 @@ func NewModerationStore(db *sql.DB) *ModerationStore {
 	return &ModerationStore{db: db}
 }
 
-// ========== Hidden Records ==========
-
 func (s *ModerationStore) HideRecord(ctx context.Context, entry moderation.HiddenRecord) error {
 	autoHidden := 0
 	if entry.AutoHidden {
@@ -119,8 +117,6 @@ func (s *ModerationStore) ListHiddenURIs(ctx context.Context) ([]string, error) 
 	return uris, rows.Err()
 }
 
-// ========== Blacklist ==========
-
 func (s *ModerationStore) BlacklistUser(ctx context.Context, entry moderation.BlacklistedUser) error {
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO moderation_blacklist (did, blacklisted_at, blacklisted_by, reason)
@@ -205,8 +201,6 @@ func (s *ModerationStore) ListBlacklistedUsers(ctx context.Context) ([]moderatio
 	}
 	return users, rows.Err()
 }
-
-// ========== Reports ==========
 
 func (s *ModerationStore) CreateReport(ctx context.Context, report moderation.Report) error {
 	_, err := s.db.ExecContext(ctx, `
@@ -337,8 +331,6 @@ func (s *ModerationStore) CountReportsFromUserSince(ctx context.Context, reporte
 	return count, err
 }
 
-// ========== Audit Log ==========
-
 func (s *ModerationStore) LogAction(ctx context.Context, entry moderation.AuditEntry) error {
 	details, err := json.Marshal(entry.Details)
 	if err != nil {
@@ -386,8 +378,6 @@ func (s *ModerationStore) ListAuditLog(ctx context.Context, limit int) ([]modera
 	return entries, rows.Err()
 }
 
-// ========== Auto-hide Resets ==========
-
 func (s *ModerationStore) SetAutoHideReset(ctx context.Context, did string, resetAt time.Time) error {
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO moderation_autohide_resets (did, reset_at) VALUES (?, ?)
@@ -411,8 +401,6 @@ func (s *ModerationStore) GetAutoHideReset(ctx context.Context, did string) (tim
 	t, _ := time.Parse(time.RFC3339Nano, resetAtStr)
 	return t, nil
 }
-
-// ========== Labels ==========
 
 func (s *ModerationStore) AddLabel(ctx context.Context, label moderation.Label) error {
 	var expiresAt *string

@@ -35,12 +35,9 @@ func getJSON(t *testing.T, h *Harness, path string) *http.Response {
 	return resp
 }
 
-// TestHTTP_FeedJSON verifies that GET /api/feed with Accept: application/json
-// returns a JSON envelope (not an HTML partial) with the expected shape.
 func TestHTTP_FeedJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
-	// Create a roaster so the feed has at least one item.
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Feed JSON Roaster")), "roaster")
 	uri := atp.BuildATURI(h.PrimaryAccount.DID, "social.arabica.alpha.roaster", rkey)
 	h.WaitForRecord(uri, firehoseWait)
@@ -57,9 +54,6 @@ func TestHTTP_FeedJSON(t *testing.T) {
 	assert.NotEmpty(t, feed.Items, "feed should contain the created roaster")
 }
 
-// TestHTTP_FeedJSONHTMXStillHTML verifies that an HTMX request (no Accept:
-// application/json) still gets the HTML partial, confirming content
-// negotiation doesn't break existing HTMX clients.
 func TestHTTP_FeedJSONHTMXStillHTML(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -70,8 +64,6 @@ func TestHTTP_FeedJSONHTMXStillHTML(t *testing.T) {
 	assert.NotEqual(t, "application/json", resp.Header.Get("Content-Type"))
 }
 
-// TestHTTP_FeedJSONTypeFilter verifies the type query param is echoed in the
-// response and the items match the filter.
 func TestHTTP_FeedJSONTypeFilter(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 

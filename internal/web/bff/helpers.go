@@ -1,5 +1,4 @@
-// Package bff provides Backend-For-Frontend functionality including
-// template rendering and helper functions for the web UI.
+// Package bff provides presentation helpers shared by the web layer.
 package bff
 
 import (
@@ -99,36 +98,28 @@ func HasTemp(temp float64) bool {
 	return temp > 0
 }
 
-// SafeAvatarURL validates and sanitizes avatar URLs to prevent XSS and other attacks.
-// Only allows HTTPS URLs from trusted domains (Bluesky CDN) or relative paths.
-// Returns a safe URL or empty string if invalid.
+// SafeAvatarURL allows local static assets and HTTPS URLs from trusted avatar CDNs.
 func SafeAvatarURL(avatarURL string) string {
 	if avatarURL == "" {
 		return ""
 	}
 
-	// Allow relative paths (e.g., /static/icon-placeholder.svg)
 	if strings.HasPrefix(avatarURL, "/") {
-		// Basic validation - must start with /static/
 		if strings.HasPrefix(avatarURL, "/static/") {
 			return avatarURL
 		}
 		return ""
 	}
 
-	// Parse the URL
 	parsedURL, err := url.Parse(avatarURL)
 	if err != nil {
 		return ""
 	}
 
-	// Only allow HTTPS scheme
 	if parsedURL.Scheme != "https" {
 		return ""
 	}
 
-	// Whitelist trusted domains for avatar images
-	// Bluesky uses cdn.bsky.app for avatars
 	trustedDomains := []string{
 		"cdn.bsky.app",
 		"av-cdn.bsky.app",
@@ -141,31 +132,25 @@ func SafeAvatarURL(avatarURL string) string {
 		}
 	}
 
-	// URL is not from a trusted domain
 	return ""
 }
 
-// SafeWebsiteURL validates and sanitizes website URLs for display.
-// Only allows HTTP/HTTPS URLs and performs basic validation.
-// Returns a safe URL or empty string if invalid.
+// SafeWebsiteURL allows absolute HTTP(S) URLs with a dotted hostname.
 func SafeWebsiteURL(websiteURL string) string {
 	if websiteURL == "" {
 		return ""
 	}
 
-	// Parse the URL
 	parsedURL, err := url.Parse(websiteURL)
 	if err != nil {
 		return ""
 	}
 
-	// Only allow HTTP and HTTPS schemes
 	scheme := strings.ToLower(parsedURL.Scheme)
 	if scheme != "http" && scheme != "https" {
 		return ""
 	}
 
-	// Basic hostname validation - must have at least one dot
 	if !strings.Contains(parsedURL.Host, ".") {
 		return ""
 	}

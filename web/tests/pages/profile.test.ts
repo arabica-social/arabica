@@ -63,7 +63,6 @@ const profileData = {
 	},
 };
 
-// Unwrap the nested structure for the test
 const testData = {
 	profile: profileData.profile.profile,
 	error: "",

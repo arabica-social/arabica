@@ -7,8 +7,7 @@ import (
 
 // EntityViewBase holds the social and auth fields shared by all simple
 // entity view pages (arabica's bean/roaster/grinder/brewer, plus deferred
-// cafe/drink). Embed it in XxxViewProps so the fields are promoted
-// (props.IsAuthenticated etc. in templ).
+// cafe/drink). Embed it in XxxViewProps to promote the fields.
 type EntityViewBase struct {
 	IsOwnProfile       bool
 	IsAuthenticated    bool

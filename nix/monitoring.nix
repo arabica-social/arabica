@@ -9,7 +9,6 @@
 
     mkdir -p "$TMPDIR"/{grafana/{data,plugins,logs},prometheus,loki,tempo}
 
-    # Prometheus config
     cat > "$TMPDIR/prometheus/prometheus.yml" <<'EOF'
     global:
       scrape_interval: 15s
@@ -20,7 +19,6 @@
           - targets: ['localhost:9101']
     EOF
 
-    # Loki config
     cat > "$TMPDIR/loki/loki.yaml" <<'EOF'
     auth_enabled: false
     server:
@@ -46,7 +44,6 @@
         directory: /tmp/loki/chunks
     EOF
 
-    # Tempo config
     cat > "$TMPDIR/tempo/tempo.yaml" <<'EOF'
     server:
       http_listen_port: 3200
@@ -67,7 +64,6 @@
           path: /tmp/tempo/wal
     EOF
 
-    # Grafana datasources
     mkdir -p "$TMPDIR/grafana/provisioning/datasources"
     cat > "$TMPDIR/grafana/provisioning/datasources/datasources.yaml" <<'EOF'
     apiVersion: 1

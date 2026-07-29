@@ -94,7 +94,6 @@ func TestPDS_RoasterCRUD(t *testing.T) {
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
 
-	// Create
 	roaster, err := store.CreateRoaster(ctx, &arabica.CreateRoasterRequest{
 		Name:     "Counter Culture",
 		Location: "Durham, NC",
@@ -105,14 +104,12 @@ func TestPDS_RoasterCRUD(t *testing.T) {
 	assert.Equal(t, "Durham, NC", roaster.Location)
 	assert.NotEmpty(t, roaster.RKey)
 
-	// Read
 	fetched, err := store.GetRoasterByRKey(ctx, roaster.RKey)
 	require.NoError(t, err)
 	assert.Equal(t, "Counter Culture", fetched.Name)
 	assert.Equal(t, "Durham, NC", fetched.Location)
 	assert.Equal(t, "https://counterculturecoffee.com", fetched.Website)
 
-	// Update
 	err = store.UpdateRoasterByRKey(ctx, roaster.RKey, &arabica.UpdateRoasterRequest{
 		Name:     "Counter Culture Coffee",
 		Location: "Durham, NC",
@@ -124,13 +121,11 @@ func TestPDS_RoasterCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Counter Culture Coffee", updated.Name)
 
-	// List
 	roasters, err := store.ListRoasters(ctx)
 	require.NoError(t, err)
 	assert.Len(t, roasters, 1)
 	assert.Equal(t, "Counter Culture Coffee", roasters[0].Name)
 
-	// Delete
 	err = store.DeleteRoasterByRKey(ctx, roaster.RKey)
 	require.NoError(t, err)
 
@@ -145,13 +140,11 @@ func TestPDS_BeanWithRoasterRef(t *testing.T) {
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
 
-	// Create a roaster first
 	roaster, err := store.CreateRoaster(ctx, &arabica.CreateRoasterRequest{
 		Name: "Sweet Maria's",
 	})
 	require.NoError(t, err)
 
-	// Create a bean referencing the roaster
 	bean, err := store.CreateBean(ctx, &arabica.CreateBeanRequest{
 		Name:        "Ethiopia Yirgacheffe",
 		Origin:      "Ethiopia",
@@ -162,7 +155,6 @@ func TestPDS_BeanWithRoasterRef(t *testing.T) {
 	assert.Equal(t, "Ethiopia Yirgacheffe", bean.Name)
 	assert.NotEmpty(t, bean.RKey)
 
-	// Fetch and verify roaster reference is intact
 	fetched, err := store.GetBeanByRKey(ctx, bean.RKey)
 	require.NoError(t, err)
 	assert.Equal(t, "Ethiopia Yirgacheffe", fetched.Name)
@@ -215,7 +207,6 @@ func TestPDS_FullBrewSession(t *testing.T) {
 	store := newTestStore(t, pds.URL, acct)
 	ctx := context.Background()
 
-	// Set up entities
 	roaster, err := store.CreateRoaster(ctx, &arabica.CreateRoasterRequest{Name: "Onyx"})
 	require.NoError(t, err)
 
@@ -239,7 +230,6 @@ func TestPDS_FullBrewSession(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Create a brew referencing all entities
 	brew, err := store.CreateBrew(ctx, &arabica.CreateBrewRequest{
 		BeanRKey:    bean.RKey,
 		GrinderRKey: grinder.RKey,
@@ -256,7 +246,6 @@ func TestPDS_FullBrewSession(t *testing.T) {
 	assert.Equal(t, 8, brew.Rating)
 	assert.NotEmpty(t, brew.RKey)
 
-	// Verify the brew can be fetched back
 	fetched, err := store.GetBrewByRKey(ctx, brew.RKey)
 	require.NoError(t, err)
 	assert.InDelta(t, 250, fetched.WaterAmount, 0.01)
@@ -266,7 +255,6 @@ func TestPDS_FullBrewSession(t *testing.T) {
 	assert.Equal(t, grinder.RKey, fetched.GrinderRKey)
 	assert.Equal(t, brewer.RKey, fetched.BrewerRKey)
 
-	// List brews
 	brews, err := store.ListBrews(ctx, 0, 0, 0)
 	require.NoError(t, err)
 	assert.Len(t, brews, 1)

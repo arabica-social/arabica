@@ -4,14 +4,12 @@
    Minimal reset based on Tailwind v4 Preflight.
    ======================================== */
 
-/* Box-sizing border-box by default */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
-/* Remove default margin */
 html,
 body,
 h1,
@@ -31,7 +29,6 @@ dd {
   margin: 0;
 }
 
-/* Set core body defaults */
 body {
   min-height: 100vh;
   line-height: 1.5;
@@ -39,14 +36,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove list styling */
 ol,
 ul {
   list-style: none;
   padding: 0;
 }
 
-/* Make images easier to work with */
 img,
 picture,
 video,
@@ -56,7 +51,6 @@ svg {
   max-width: 100%;
 }
 
-/* Inherit fonts for form elements */
 input,
 button,
 textarea,
@@ -65,7 +59,6 @@ select {
   color: inherit;
 }
 
-/* Remove default button styling */
 button {
   cursor: pointer;
   background: transparent;
@@ -73,13 +66,11 @@ button {
   padding: 0;
 }
 
-/* Remove default link styling */
 a {
   color: inherit;
   text-decoration: inherit;
 }
 
-/* Reset heading font weight */
 h1,
 h2,
 h3,
@@ -90,12 +81,10 @@ h6 {
   font-weight: inherit;
 }
 
-/* Remove textarea resize default */
 textarea {
   resize: vertical;
 }
 
-/* Reset all scrolling to auto */
 html {
   -webkit-text-size-adjust: 100%;
 }
@@ -108,7 +97,6 @@ html {
   border-color: var(--card-border, currentcolor);
 }
 
-/* h1-h3 font-weight from app.css base layer */
 h1,
 h2,
 h3 {

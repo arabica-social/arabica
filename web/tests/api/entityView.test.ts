@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { fetchEntityView } from "../../src/lib/api/entityView";
 import type { EntityViewResponse } from "../../src/lib/types/entity_view";
 
-/** Builds a successful JSON Response carrying an EntityViewResponse. */
 function successResponse(record: Record<string, unknown>): Response {
 	const payload: EntityViewResponse = {
 		record,
@@ -135,8 +134,6 @@ describe("fetchEntityView", () => {
 		);
 		const result = await fetchEntityView(fetchFn as typeof fetch, "bean", "alice", "r1");
 
-		// invalid-response kind is not 'network' and status is 200 (not 404/401),
-		// so it falls through to {error: error.message, status: error.status}.
 		expect(result.status).toBe(200);
 		expect(result.error).toBe("Arabica returned malformed JSON.");
 		expect(result.data).toBeUndefined();

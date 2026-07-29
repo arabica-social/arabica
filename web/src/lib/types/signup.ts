@@ -1,5 +1,5 @@
 // Hand-maintained types for the signup JSON API.
-// Mirrors internal/signup.Provider and internal/signup.Category.
+// Must match internal/signup.Provider and internal/signup.Category.
 // See docs/api/README.md.
 
 export type SignupProvider = {

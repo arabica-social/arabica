@@ -6,7 +6,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// Narrow the record to the roaster shape.
 	let r = $derived(
 		data.data?.record as
 			| { name: string; location: string; website: string; rkey: string; created_at: string }

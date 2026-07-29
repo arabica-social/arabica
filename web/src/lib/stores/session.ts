@@ -1,4 +1,3 @@
-// Session store for the SvelteKit SPA.
 //
 // Reads the data-* attributes the Go shell injects on <body>:
 //   data-user-did, data-user-handle, data-user-display, data-user-avatar,
@@ -56,8 +55,8 @@ function readSession(): Session {
 }
 
 function readApp(): AppName {
-  // The SPA is now Arabica-only. The Go shell still injects data-app for
-  // forward-compat; we keep reading it but always resolve to "arabica".
+  // Arabica is the only SPA app. The Go shell may still inject data-app
+  // for forward-compat, but it is unused here — always resolve to "arabica".
   return "arabica";
 }
 

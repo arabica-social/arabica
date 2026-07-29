@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import FeedPage from "../../src/routes/+page.svelte";
 import type { FeedResponse } from "../../src/lib/types/feed";
 
-// Mock $app/navigation goto so updateURL doesn't throw in jsdom.
 vi.mock("$app/navigation", () => ({
 	goto: vi.fn(),
 }));
@@ -175,11 +174,9 @@ describe("Feed page (home)", () => {
 
 		render(FeedPage, { data: authedPageData });
 
-		// Click the "Roasters" filter tab.
 		const roastersTab = screen.getByText("Roasters");
 		await user.click(roastersTab);
 
-		// The fetch should have been called with the filter.
 		expect(fetchSpy).toHaveBeenCalled();
 		const calledURL = fetchSpy.mock.calls[0][0] as string;
 		expect(calledURL).toContain("type=roaster");

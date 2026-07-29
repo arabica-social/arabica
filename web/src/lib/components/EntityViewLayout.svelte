@@ -21,7 +21,6 @@
 		statLine?: Snippet;
 		backlinks?: BacklinksResult | null;
 		backlinksDetailURL?: string;
-		// ActionBar props
 		subjectURI: string;
 		subjectCID: string;
 		isLiked: boolean;
@@ -37,7 +36,6 @@
 		canHideRecord?: boolean;
 		canBlockUser?: boolean;
 		isRecordHidden?: boolean;
-		// Comments
 		comments?: import("../types/entity_view").IndexedComment[];
 		currentUserDID?: string;
 	};

@@ -69,14 +69,6 @@ func roasterURI(did, rkey string) string {
 	return "at://" + did + "/social.arabica.alpha.roaster/" + rkey
 }
 
-// TestHTTP_SuggestionScoring_PrefersReferenced verifies the sourceRef selection
-// logic end-to-end: when a roaster has been "adopted" by other users (their
-// records carry source_ref pointing back at the original), that original URI
-// should win as the canonical sourceRef in the suggestions response.
-//
-// This is the original motivating scenario for the scoring work — exercises
-// witness cache writes, the json_extract reference query, and the composite
-// score function all together.
 func TestHTTP_SuggestionScoring_PrefersReferenced(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -120,8 +112,6 @@ func TestHTTP_SuggestionScoring_PrefersReferenced(t *testing.T) {
 		"alice's roaster (referenced by 2 others) should win as the canonical sourceRef")
 }
 
-// TestHTTP_SuggestionScoring_PreferredDIDOverride verifies that a DID added to
-// suggestions.PreferredDIDs wins over a record with more references.
 func TestHTTP_SuggestionScoring_PreferredDIDOverride(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -160,9 +150,6 @@ func TestHTTP_SuggestionScoring_PreferredDIDOverride(t *testing.T) {
 		"bob's roaster should win because his DID is in PreferredDIDs")
 }
 
-// TestHTTP_SuggestionDedupe verifies that when multiple users post a roaster
-// with the same fuzzy-name, the suggestion endpoint dedupes them into a
-// single result and counts all contributing DIDs.
 func TestHTTP_SuggestionDedupe(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -186,7 +173,6 @@ func TestHTTP_SuggestionDedupe(t *testing.T) {
 	results := fetchSuggestions(t, h, daveClient, "roasters", "counter")
 	require.NotEmpty(t, results, "expected at least one suggestion")
 
-	// Find the Counter Culture entry.
 	var cc *suggestionResult
 	for i := range results {
 		if strings.Contains(strings.ToLower(results[i].Name), "counter culture") {
@@ -196,20 +182,15 @@ func TestHTTP_SuggestionDedupe(t *testing.T) {
 	}
 	require.NotNil(t, cc, "expected a Counter Culture suggestion in results")
 
-	// All three contributing users should be counted in a single dedupe group.
 	assert.Equal(t, 3, cc.Count, "all three contributing users should be counted")
 }
 
-// TestHTTP_SuggestionScoring_ExcludesRequester verifies that the suggestion
-// handler hides the requesting user's own records (so users only see community
-// data, not their own data echoed back).
 func TestHTTP_SuggestionScoring_ExcludesRequester(t *testing.T) {
 	h := StartHarness(t, nil)
 
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 
-	// Alice creates a roaster.
 	postRoasterAs(t, h, h.Client, "Onyx Coffee Lab", "Rogers, AR", "")
 
 	// Alice queries — should see nothing (her own roaster is excluded).

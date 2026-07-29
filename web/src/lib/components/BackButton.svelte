@@ -1,6 +1,4 @@
 <script lang="ts">
-	// Simple back button using browser history. Ported from
-	// internal/web/components/buttons.templ BackButton().
 	function goBack() {
 		if (window.history.length > 1) {
 			window.history.back();

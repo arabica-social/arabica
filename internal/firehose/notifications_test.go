@@ -41,7 +41,6 @@ func TestCreateNotification(t *testing.T) {
 	err := idx.CreateNotification(targetDID, notif)
 	assert.NoError(t, err)
 
-	// Verify it was created
 	notifications, _, err := idx.GetNotifications(targetDID, 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, notifications, 1)
@@ -81,7 +80,6 @@ func TestCreateNotification_Deduplication(t *testing.T) {
 		CreatedAt:  time.Now(),
 	}
 
-	// Create the same notification twice
 	assert.NoError(t, idx.CreateNotification(targetDID, notif))
 	assert.NoError(t, idx.CreateNotification(targetDID, notif))
 
@@ -96,10 +94,8 @@ func TestGetUnreadCount(t *testing.T) {
 	targetDID := "did:plc:target123"
 	baseTime := time.Now().Add(-time.Minute)
 
-	// Initially zero
 	assert.Equal(t, 0, idx.GetUnreadCount(targetDID))
 
-	// Add some notifications
 	for i := range 3 {
 		notif := notification.Notification{
 			Type:       notification.Like,
@@ -119,7 +115,6 @@ func TestMarkAllRead(t *testing.T) {
 	targetDID := "did:plc:target123"
 	baseTime := time.Now().Add(-time.Minute) // use past times to avoid race
 
-	// Add notifications
 	for i := range 3 {
 		notif := notification.Notification{
 			Type:       notification.Like,
@@ -132,11 +127,9 @@ func TestMarkAllRead(t *testing.T) {
 
 	assert.Equal(t, 3, idx.GetUnreadCount(targetDID))
 
-	// Mark all as read
 	assert.NoError(t, idx.MarkAllRead(targetDID))
 	assert.Equal(t, 0, idx.GetUnreadCount(targetDID))
 
-	// Notifications still exist, but are marked as read
 	notifications, _, err := idx.GetNotifications(targetDID, 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, notifications, 3)
@@ -151,7 +144,6 @@ func TestGetNotifications_Pagination(t *testing.T) {
 	targetDID := "did:plc:target123"
 	baseTime := time.Now().Add(-time.Minute)
 
-	// Add 5 notifications
 	for i := range 5 {
 		notif := notification.Notification{
 			Type:       notification.Like,
@@ -162,13 +154,11 @@ func TestGetNotifications_Pagination(t *testing.T) {
 		assert.NoError(t, idx.CreateNotification(targetDID, notif))
 	}
 
-	// Get first page of 3
 	page1, cursor1, err := idx.GetNotifications(targetDID, 3, "")
 	assert.NoError(t, err)
 	assert.Len(t, page1, 3)
 	assert.NotEmpty(t, cursor1)
 
-	// Get second page
 	page2, cursor2, err := idx.GetNotifications(targetDID, 3, cursor1)
 	assert.NoError(t, err)
 	assert.Len(t, page2, 2)

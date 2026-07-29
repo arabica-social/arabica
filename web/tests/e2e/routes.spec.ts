@@ -1,14 +1,5 @@
 import { test, expect } from "./fixtures";
 
-/**
- * SPA route coverage for pages that previously only had page-level (Vitest)
- * tests. These verify real data flow through the API + SvelteKit load
- * functions, not just component rendering.
- */
-
-// ---------------------------------------------------------------------------
-// Onboarding / Get Started
-// ---------------------------------------------------------------------------
 test("onboarding page shows setup stations for a fresh account", async ({
 	authedPage: page,
 }) => {
@@ -16,13 +7,11 @@ test("onboarding page shows setup stations for a fresh account", async ({
 	await page.waitForLoadState("networkidle");
 	await expect(page.getByRole("heading", { name: "Let's get you started." })).toBeVisible();
 
-	// The four stations should be present: Brewer, Roaster, Bean, Grinder.
 	await expect(page.getByRole("heading", { name: "Brewer" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Roaster" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Bean" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Grinder" })).toBeVisible();
 
-	// Brewer, Roaster, Bean are required; Grinder is optional.
 	await expect(page.getByText("required").first()).toBeVisible();
 	await expect(page.locator("span.station-tag[data-tag='optional']")).toBeVisible();
 });
@@ -31,12 +20,9 @@ test("onboarding station drawer opens on click", async ({ authedPage: page }) =>
 	await page.goto("/onboarding");
 	await page.waitForLoadState("networkidle");
 
-	// Click the "Add a Brewer" station button.
 	const brewerAdd = page.locator("article.station[data-kind='brewer'] button.station-add");
 	await brewerAdd.click();
 
-	// The drawer should open — the StationDrawer renders an inline add form.
-	// The aria-expanded attribute reflects the drawer state.
 	await expect(brewerAdd).toHaveAttribute("aria-expanded", "true");
 });
 
@@ -49,7 +35,6 @@ test("add records page loads with setup stations", async ({ authedPage: page }) 
 	await expect(page.getByRole("heading", { name: "Add records." })).toBeVisible();
 	await expect(page.getByText("your coffee bar")).toBeVisible();
 
-	// The same GetStartedCard component renders the stations in library mode.
 	await expect(page.getByRole("heading", { name: "Brewer" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Bean" })).toBeVisible();
 });
@@ -58,7 +43,6 @@ test("add records page loads with setup stations", async ({ authedPage: page }) 
 // Explore
 // ---------------------------------------------------------------------------
 test("explore page loads with search and filters", async ({ authedPage: page, apiRequest }) => {
-	// Seed a record so explore has data.
 	await apiRequest.post("/api/roasters", {
 		form: { name: "Explore Route Roaster", location: "Brooklyn, NY" },
 	});
@@ -75,14 +59,11 @@ test("explore page loads with search and filters", async ({ authedPage: page, ap
 	await page.waitForLoadState("networkidle");
 	await expect(page.getByRole("heading", { name: "Explore records." })).toBeVisible();
 
-	// Search input and type filter.
 	await expect(page.getByPlaceholder("Ethiopia, V60, washed")).toBeVisible();
 
-	// The type filter dropdown should list entity types.
 	const typeSelect = page.locator("select").first();
 	await typeSelect.selectOption("roaster");
 
-	// Apply filters (form submit).
 	await page.getByRole("button", { name: "Explore" }).click();
 	await page.waitForLoadState("networkidle");
 
@@ -92,9 +73,6 @@ test("explore page loads with search and filters", async ({ authedPage: page, ap
 	expect(hasResults || hasEmpty).toBeTruthy();
 });
 
-// ---------------------------------------------------------------------------
-// Moderation dashboard (_mod) — permission denied
-// ---------------------------------------------------------------------------
 test("moderation dashboard shows permission denied for non-moderators", async ({
 	authedPage: page,
 }) => {
@@ -110,14 +88,10 @@ test("moderation dashboard shows permission denied for non-moderators", async ({
 	expect(hasDenied || hasTitle).toBeTruthy();
 });
 
-// ---------------------------------------------------------------------------
-// Static content pages
-// ---------------------------------------------------------------------------
 test("about page renders content", async ({ authedPage: page }) => {
 	await page.goto("/about");
 	await page.waitForLoadState("networkidle");
 	await expect(page.getByRole("heading", { name: "About Arabica" })).toBeVisible();
-	// Key content about data ownership.
 	await expect(page.getByText("You own your data.")).toBeVisible();
 });
 

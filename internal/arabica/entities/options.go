@@ -1,7 +1,6 @@
 package arabica
 
-// Dropdown options for form fields
-// These constants eliminate duplication across template files
+// Shared form option values.
 
 var (
 	// RoastLevels defines the available roast level options for beans

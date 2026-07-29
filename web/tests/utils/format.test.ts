@@ -184,25 +184,20 @@ describe("formatTempForUnit", () => {
 
 	describe("C→F conversion", () => {
 		it("converts a recorded Celsius value to Fahrenheit", () => {
-			// 93°C = 199.4°F
 			expect(formatTempForUnit(93, "F")).toBe("199.4°F");
 		});
 
 		it("converts 0°C-ish boundary (recorded as C since <=100)", () => {
-			// 100°C = 212°F
 			expect(formatTempForUnit(100, "F")).toBe("212.0°F");
 		});
 
 		it("converts 0°C to 32°F", () => {
-			// Note: 0 is the N/A sentinel, so use a tiny non-zero... but 0 returns N/A.
-			// Use 1°C instead: 1°C = 33.8°F
 			expect(formatTempForUnit(1, "F")).toBe("33.8°F");
 		});
 	});
 
 	describe("F→C conversion", () => {
 		it("converts a recorded Fahrenheit value to Celsius", () => {
-			// 205°F = 96.111...°C → 96.1°C
 			expect(formatTempForUnit(205, "C")).toBe("96.1°C");
 		});
 
@@ -226,22 +221,16 @@ describe("formatTempForUnit", () => {
 		});
 
 		it("does NOT treat capitalized 'Recorded' as recorded (falls through to conversion)", () => {
-			// Only the lowercase "recorded" (or empty) keeps the recorded unit.
 			expect(formatTempForUnit(93, "Recorded")).toBe("199.4°F");
 		});
 	});
 
 	describe("unrecognized preference strings", () => {
-		// A preference that is neither empty/'recorded' nor 'C'/'F' has prefUpper
-		// not matching the recorded unit, so it falls into the else branch:
-		// recorded C → converts to F; recorded F → converts to C.
 		it("converts C to F for an unrecognized preference when recorded as C", () => {
 			expect(formatTempForUnit(93, "kelvin")).toBe("199.4°F");
 		});
 
 		it("converts F to F (mis-applies C→F formula) for an unrecognized preference when recorded as F", () => {
-			// prefUpper 'Kelvin' !== 'C', so the else branch applies F = C*9/5+32 to an
-			// already-Fahrenheit value: 205*9/5+32 = 401.
 			expect(formatTempForUnit(205, "kelvin")).toBe("401.0°F");
 		});
 	});

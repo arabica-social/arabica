@@ -113,7 +113,6 @@ describe("session store", () => {
 			await refreshSession();
 			expect(get(session).did).toBe("did:plc:alice");
 
-			// mutate body without refresh; store is stale by design
 			setBodyDataset({ userDid: "did:plc:bob" });
 			expect(get(session).did).toBe("did:plc:alice");
 

@@ -32,12 +32,10 @@ func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 
 // checkAutomod checks if automod thresholds are met and auto-hides content if needed.
 func (h *Handler) checkAutomod(ctx context.Context, report moderation.Report) {
-	// Skip if record is already hidden
 	if h.moderationStore.IsRecordHidden(ctx, report.SubjectURI) {
 		return
 	}
 
-	// Check report count for this specific URI
 	uriReportCount, err := h.moderationStore.CountReportsForURI(ctx, report.SubjectURI)
 	if err != nil {
 		log.Error().Err(err).Str("uri", report.SubjectURI).Msg("moderation: failed to count URI reports for automod")
@@ -61,7 +59,6 @@ func (h *Handler) checkAutomod(ctx context.Context, report moderation.Report) {
 		return
 	}
 
-	// Determine if we should auto-hide
 	shouldAutoHide := false
 	autoHideReason := ""
 
@@ -74,7 +71,6 @@ func (h *Handler) checkAutomod(ctx context.Context, report moderation.Report) {
 	}
 
 	if shouldAutoHide {
-		// Auto-hide the record
 		hiddenRecord := moderation.HiddenRecord{
 			ATURI:      report.SubjectURI,
 			HiddenAt:   time.Now(),
@@ -88,7 +84,6 @@ func (h *Handler) checkAutomod(ctx context.Context, report moderation.Report) {
 			return
 		}
 
-		// Log the automod action
 		auditEntry := moderation.AuditEntry{
 			ID:        generateTID(),
 			Action:    moderation.AuditActionHideRecord,

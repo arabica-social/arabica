@@ -12,7 +12,6 @@
 	let handleInput = $state<HTMLInputElement>();
 	let handle = $state("");
 
-	// Autocomplete state
 	type Actor = {
 		handle: string;
 		displayName?: string;

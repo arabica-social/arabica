@@ -23,7 +23,6 @@ func (f *failingSource) Backup(_ context.Context, _ string) error {
 }
 
 func TestSQLiteBackup(t *testing.T) {
-	// Create a temp SQLite DB with some data.
 	dbPath := filepath.Join(t.TempDir(), "test.db")
 	db, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
@@ -34,7 +33,6 @@ func TestSQLiteBackup(t *testing.T) {
 	_, err = db.Exec("INSERT INTO t (val) VALUES ('hello'), ('world')")
 	require.NoError(t, err)
 
-	// Backup via VACUUM INTO.
 	src := NewSQLiteSource("test-db", db)
 	assert.Equal(t, "test-db", src.Name())
 
@@ -42,7 +40,6 @@ func TestSQLiteBackup(t *testing.T) {
 	err = src.Backup(context.Background(), backupPath)
 	require.NoError(t, err)
 
-	// Verify the backup is a valid SQLite DB with the data.
 	backupDB, err := sql.Open("sqlite", backupPath)
 	require.NoError(t, err)
 	defer backupDB.Close()
@@ -60,7 +57,6 @@ func TestLocalDestinationRetention(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Create 4 fake backup files.
 	for _, name := range []string{
 		"db-20260101-000000.bak",
 		"db-20260102-000000.bak",
@@ -72,7 +68,6 @@ func TestLocalDestinationRetention(t *testing.T) {
 		require.NoError(t, dest.Write(ctx, name, tmpFile))
 	}
 
-	// List should return newest first.
 	keys, err := dest.List(ctx, "db-")
 	require.NoError(t, err)
 	assert.Equal(t, []string{
@@ -82,7 +77,6 @@ func TestLocalDestinationRetention(t *testing.T) {
 		"db-20260101-000000.bak",
 	}, keys)
 
-	// Delete oldest two.
 	require.NoError(t, dest.Delete(ctx, "db-20260101-000000.bak"))
 	require.NoError(t, dest.Delete(ctx, "db-20260102-000000.bak"))
 
@@ -92,7 +86,6 @@ func TestLocalDestinationRetention(t *testing.T) {
 }
 
 func TestServicePrunesOldBackups(t *testing.T) {
-	// Set up a real SQLite DB.
 	dbPath := filepath.Join(t.TempDir(), "test.db")
 	db, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
@@ -106,7 +99,6 @@ func TestServicePrunesOldBackups(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Pre-seed 3 old backups.
 	for _, name := range []string{
 		"test-20260101-000000.bak",
 		"test-20260102-000000.bak",
@@ -121,7 +113,6 @@ func TestServicePrunesOldBackups(t *testing.T) {
 	})
 	svc.AddSource(NewSQLiteSource("test", db))
 
-	// One new backup run — should create 1 new + prune old to keep only 2 total.
 	svc.runAll(ctx)
 
 	keys, err := dest.List(ctx, "test-")

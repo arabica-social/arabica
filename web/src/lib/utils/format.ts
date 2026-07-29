@@ -1,6 +1,3 @@
-// Shared formatting helpers for entity view pages. Ported from
-// internal/web/components/shared.templ and internal/arabica/web/pages/*.templ.
-
 /** Returns "s" for non-1 counts, "" for 1. */
 export function pluralS(n: number): string {
 	return n === 1 ? "" : "s";
@@ -40,7 +37,7 @@ export function formatAvgRating(avg: number): string {
 	return `${avg.toFixed(1)}/10`;
 }
 
-/** Formats a duration in seconds as "45s", "2m", or "2m 30s". Mirrors bff.FormatTime. */
+/** Formats a duration in seconds as "45s", "2m", or "2m 30s".. */
 export function formatTime(seconds: number): string {
 	if (seconds === 0) return "N/A";
 	if (seconds < 60) return `${seconds}s`;

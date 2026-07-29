@@ -115,34 +115,27 @@ func TestGetCookiesRedactsSessionCookies(t *testing.T) {
 
 func TestLoggingMiddleware(t *testing.T) {
 	t.Run("logs request details", func(t *testing.T) {
-		// Create a buffer to capture log output
 		var buf bytes.Buffer
 		logger := zerolog.New(&buf)
 
-		// Create a simple handler that returns 200 OK
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("OK"))
 		})
 
-		// Wrap with logging middleware
 		middleware := LoggingMiddleware(logger)
 		wrapped := middleware(handler)
 
-		// Create test request
 		req := httptest.NewRequest(http.MethodGet, "/test?q=1", nil)
 		req.Header.Set("User-Agent", "test-agent")
 		recorder := httptest.NewRecorder()
 
-		// Execute
 		wrapped.ServeHTTP(recorder, req)
 
-		// Verify response
 		if recorder.Code != http.StatusOK {
 			t.Errorf("status code = %d, want %d", recorder.Code, http.StatusOK)
 		}
 
-		// Verify log contains expected fields
 		logOutput := buf.String()
 		expectedFields := []string{
 			`"method":"GET"`,

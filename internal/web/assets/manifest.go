@@ -1,9 +1,9 @@
 package assets
 
-// Manifest gives templates explicit access to cache-busted asset URLs.
+// Manifest provides cache-busted asset URLs to the web shell.
 //
 // The zero value is usable: it falls back to the package registry so tests
-// and older call sites that build LayoutData directly continue to render.
+// and callers without an injected bundle continue to render.
 type Manifest struct {
 	css *Bundle
 }

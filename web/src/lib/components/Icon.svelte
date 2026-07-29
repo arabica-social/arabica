@@ -1,5 +1,4 @@
 <script lang="ts" module>
-  // Icon path data, ported from internal/web/components/icons.templ.
   // Each entry is the inner SVG markup (paths/circles/etc.) — the
   // wrapper <svg> is rendered by Icon.svelte with the shared class.
   export const iconPaths = {
@@ -50,13 +49,12 @@
 
   export type IconName = keyof typeof iconPaths;
 
-  // Per-icon defaults ported from internal/web/components/icons.templ.
-  // Each legacy icon baked in a semantic color class so it read correctly
+  // Semantic color defaults keep each icon legible in its intended context,
   // wherever it was dropped; the SPA Icon applies `color` only when the
   // caller hasn't passed its own `text-*` color utility (otherwise both
   // would be present and CSS source order would decide the winner).
   // `fill` is "currentColor" for icons that should render solid (star);
-  // the default "none" renders a stroked outline, matching legacy.
+  // the default "none" renders a stroked outline.
   const iconDefaults: Partial<
     Record<IconName, { color?: string; fill?: string }>
   > = {

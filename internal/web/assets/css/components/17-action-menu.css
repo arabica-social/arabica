@@ -54,7 +54,7 @@
 }
 
 .dropdown-item {
-  /* Flex+gap baked into the component class so templates don't need
+  /* Flex+gap live in the component class so markup doesn't need
      `flex items-center gap-N` utilities (component CSS loads after
      utilities, so `display: block` here would silently win and zero
      out the gap). */

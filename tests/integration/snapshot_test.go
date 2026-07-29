@@ -52,8 +52,6 @@ func snapPDSCollection(t *testing.T, h *Harness, title, collection string, rkeys
 	)
 }
 
-// --- Roaster ---
-
 func TestSnap_PDS_RoasterCreate(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -85,8 +83,6 @@ func TestSnap_PDS_RoasterUpdate(t *testing.T) {
 	})
 }
 
-// --- Bean with roaster reference ---
-
 func TestSnap_PDS_BeanWithRoaster(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -106,8 +102,6 @@ func TestSnap_PDS_BeanWithRoaster(t *testing.T) {
 	})
 }
 
-// --- Grinder ---
-
 func TestSnap_PDS_GrinderCreate(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -123,8 +117,6 @@ func TestSnap_PDS_GrinderCreate(t *testing.T) {
 	})
 }
 
-// --- Brewer ---
-
 func TestSnap_PDS_BrewerCreate(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -138,8 +130,6 @@ func TestSnap_PDS_BrewerCreate(t *testing.T) {
 		"brewer": rkey,
 	})
 }
-
-// --- Recipe with pours ---
 
 func TestSnap_PDS_RecipeWithPours(t *testing.T) {
 	h := StartHarness(t, nil)
@@ -169,8 +159,6 @@ func TestSnap_PDS_RecipeWithPours(t *testing.T) {
 		"recipe": recipeRKey,
 	})
 }
-
-// --- Pourover brew (full references + pours + params) ---
 
 func TestSnap_PDS_PouroverBrew(t *testing.T) {
 	h := StartHarness(t, nil)
@@ -224,8 +212,6 @@ func TestSnap_PDS_PouroverBrew(t *testing.T) {
 	snapPDSRecord(t, h, "pourover brew record", arabica.NSIDBrew, brewRKey, rkeys)
 }
 
-// --- Espresso brew (method-specific params) ---
-
 func TestSnap_PDS_EspressoBrew(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -268,8 +254,6 @@ func TestSnap_PDS_EspressoBrew(t *testing.T) {
 	snapPDSRecord(t, h, "espresso brew record", arabica.NSIDBrew, brewRKey, rkeys)
 }
 
-// --- Brew update: pourover → espresso (verify old params removed) ---
-
 func TestSnap_PDS_BrewMethodSwap(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -281,7 +265,6 @@ func TestSnap_PDS_BrewMethodSwap(t *testing.T) {
 	pourBrewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "Snap V60", "brewer_type", "Pour Over")), "brewer")
 	espBrewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "Snap Espresso", "brewer_type", "Espresso")), "brewer")
 
-	// Create as pourover.
 	createForm := url.Values{}
 	createForm.Set("bean_rkey", beanRKey)
 	createForm.Set("grinder_rkey", grinderRKey)
@@ -305,7 +288,6 @@ func TestSnap_PDS_BrewMethodSwap(t *testing.T) {
 	require.Len(t, data.Brews, 1)
 	brewRKey := data.Brews[0].RKey
 
-	// Update to espresso.
 	updateForm := url.Values{}
 	updateForm.Set("bean_rkey", beanRKey)
 	updateForm.Set("grinder_rkey", grinderRKey)
@@ -335,8 +317,6 @@ func TestSnap_PDS_BrewMethodSwap(t *testing.T) {
 	snapPDSRecord(t, h, "brew after pourover to espresso", arabica.NSIDBrew, brewRKey, rkeys)
 }
 
-// --- Roaster field permutations ---
-
 func TestSnap_PDS_RoasterPermutations(t *testing.T) {
 	cases := []struct {
 		name string
@@ -358,8 +338,6 @@ func TestSnap_PDS_RoasterPermutations(t *testing.T) {
 		})
 	}
 }
-
-// --- Bean field permutations ---
 
 func TestSnap_PDS_BeanPermutations(t *testing.T) {
 	h := StartHarness(t, nil)
@@ -403,8 +381,6 @@ func TestSnap_PDS_BeanPermutations(t *testing.T) {
 	}
 }
 
-// --- Grinder field permutations ---
-
 func TestSnap_PDS_GrinderPermutations(t *testing.T) {
 	cases := []struct {
 		name string
@@ -436,8 +412,6 @@ func TestSnap_PDS_GrinderPermutations(t *testing.T) {
 	}
 }
 
-// --- Brewer field permutations ---
-
 func TestSnap_PDS_BrewerPermutations(t *testing.T) {
 	cases := []struct {
 		name string
@@ -463,8 +437,6 @@ func TestSnap_PDS_BrewerPermutations(t *testing.T) {
 		})
 	}
 }
-
-// --- Recipe field permutations ---
 
 func TestSnap_PDS_RecipePermutations(t *testing.T) {
 	h := StartHarness(t, nil)
@@ -522,8 +494,6 @@ func TestSnap_PDS_RecipePermutations(t *testing.T) {
 		})
 	}
 }
-
-// --- Brew field permutations ---
 
 func TestSnap_PDS_BrewPermutations(t *testing.T) {
 	h := StartHarness(t, nil)
@@ -725,8 +695,6 @@ func TestSnap_PDS_BrewPermutations(t *testing.T) {
 	_ = rkeys
 }
 
-// --- Full user repo: create multiple entities, snapshot entire collections ---
-
 func TestSnap_PDS_FullRepo(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -749,7 +717,6 @@ func TestSnap_PDS_FullRepo(t *testing.T) {
 		"name", "V60", "brewer_type", "Pour Over",
 	)), "brewer")
 
-	// Create a brew.
 	brewForm := url.Values{}
 	brewForm.Set("bean_rkey", beanRKey)
 	brewForm.Set("grinder_rkey", grinderRKey)

@@ -50,8 +50,6 @@ func (f *fakeSource) insert(t *testing.T, did, collection, rkey string, fields m
 	})
 }
 
-// --- Roaster dedup tests ---
-
 func TestRoasterDedup_SameNameDifferentLocation(t *testing.T) {
 	idx := newFakeSource()
 	idx.insert(t, "did:plc:alice", arabica.NSIDRoaster, "r1", map[string]any{
@@ -97,8 +95,6 @@ func TestRoasterDedup_NoLocationMerges(t *testing.T) {
 	assert.Equal(t, 2, results[0].Count)
 }
 
-// --- Grinder dedup tests ---
-
 func TestGrinderDedup_SameNameDifferentType(t *testing.T) {
 	idx := newFakeSource()
 	idx.insert(t, "did:plc:alice", arabica.NSIDGrinder, "g1", map[string]any{
@@ -128,8 +124,6 @@ func TestGrinderDedup_SameEverythingMerges(t *testing.T) {
 	assert.Equal(t, 2, results[0].Count)
 }
 
-// --- Brewer dedup tests ---
-
 func TestBrewerDedup_SameNameDifferentType(t *testing.T) {
 	idx := newFakeSource()
 	idx.insert(t, "did:plc:alice", arabica.NSIDBrewer, "br1", map[string]any{
@@ -158,8 +152,6 @@ func TestBrewerDedup_SameNameSameTypeMerges(t *testing.T) {
 	assert.Len(t, results, 1)
 	assert.Equal(t, 2, results[0].Count)
 }
-
-// --- Bean dedup tests ---
 
 func TestBeanDedup_SameNameDifferentProcess(t *testing.T) {
 	idx := newFakeSource()
@@ -199,8 +191,6 @@ func TestBeanDedup_SameEverythingMerges(t *testing.T) {
 	assert.Len(t, results, 1)
 	assert.Equal(t, 2, results[0].Count)
 }
-
-// --- General search tests ---
 
 func TestSearch_PrefixMatch(t *testing.T) {
 	idx := newFakeSource()

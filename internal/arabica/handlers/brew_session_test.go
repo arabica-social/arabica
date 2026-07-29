@@ -118,8 +118,7 @@ func TestBrewSessionErrorsFallbackToPlainTextForLegacyRequests(t *testing.T) {
 		return nil, atproto.ErrSessionExpired
 	}
 
-	// Legacy HTMX callers (no Accept: application/json) keep the plain-text
-	// 401 body so existing flows are unchanged.
+	// Non-JSON form callers keep the plain-text 401 contract.
 	req := newMiddlewareAuthenticatedRequest(http.MethodPost, "/brews")
 	req.Body = ioNopCloser("bean_rkey=3jzfcijpj2z2a")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

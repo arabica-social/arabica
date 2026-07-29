@@ -40,7 +40,6 @@ func TestLoadFilter_NilSource(t *testing.T) {
 	f, err := LoadFilter(context.Background(), nil)
 	require.NoError(t, err)
 	assert.NotNil(t, f)
-	// Empty filter should hide nothing
 	assert.False(t, f.ShouldHide("at://anything", "did:plc:anyone"))
 }
 
@@ -130,9 +129,7 @@ func TestLoadFilter_SourceErrors(t *testing.T) {
 			blacklistedDIDs: []string{"did:plc:bad"},
 		})
 		require.NoError(t, err)
-		// Blacklist still works
 		assert.True(t, f.IsBlocked("did:plc:bad"))
-		// Hidden URIs degraded gracefully
 		assert.False(t, f.ShouldHide("at://anything", ""))
 	})
 
@@ -142,9 +139,7 @@ func TestLoadFilter_SourceErrors(t *testing.T) {
 			blacklistErr: assert.AnError,
 		})
 		require.NoError(t, err)
-		// Hidden URIs still work
 		assert.True(t, f.ShouldHide("at://did:plc:a/col/1", ""))
-		// Blacklist degraded gracefully
 		assert.False(t, f.IsBlocked("did:plc:bad"))
 	})
 }

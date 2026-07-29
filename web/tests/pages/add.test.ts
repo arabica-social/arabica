@@ -35,7 +35,6 @@ describe("Add records page", () => {
 
 	it("renders the stations without progress strip", () => {
 		render(AddPage, { data: addData });
-		// Station titles
 		expect(screen.getAllByText("Brewer").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("Roaster").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("Bean").length).toBeGreaterThan(0);

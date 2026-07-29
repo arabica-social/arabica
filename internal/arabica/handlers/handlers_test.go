@@ -17,34 +17,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestHandleBrewList_Success tests successful brew list retrieval
 func TestHandleBrewList_Success(t *testing.T) {
 	tc := NewTestContext()
 	fixtures := tc.Fixtures
 
-	// Mock store to return test brews
 	tc.MockStore.ListBrewsFunc = func(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
 		return []*arabica.Brew{fixtures.Brew}, nil
 	}
 
-	// Create handler with injected mock store dependency
 	handler := tc.Handler
-
-	// We need to modify the handler to use our mock store
-	// Since getAtprotoStore creates a new store, we'll need to test this differently
-	// For now, let's test the authentication flow
 
 	req := NewAuthenticatedRequest("GET", "/api/brews/list", nil)
 	rec := httptest.NewRecorder()
 
 	handler.HandleBrewList(rec, req)
 
-	// The handler will try to create an atproto store which will fail without proper setup
-	// This shows we need architectural changes to make handlers testable
 	assert.Equal(t, http.StatusUnauthorized, rec.Code, "Expected unauthorized when OAuth is nil")
 }
 
-// TestHandleBrewList_Unauthenticated tests unauthenticated access
 func TestHandleBrewList_Unauthenticated(t *testing.T) {
 	tc := NewTestContext()
 
@@ -57,11 +47,9 @@ func TestHandleBrewList_Unauthenticated(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "Authentication required")
 }
 
-// TestHandleBrewDelete_Success tests successful brew deletion
 func TestHandleBrewDelete_Success(t *testing.T) {
 	tc := NewTestContext()
 
-	// Mock store to succeed deletion
 	tc.MockStore.DeleteBrewByRKeyFunc = func(ctx context.Context, rkey string) error {
 		assert.Equal(t, "test-brew-rkey", rkey)
 		return nil
@@ -73,7 +61,6 @@ func TestHandleBrewDelete_Success(t *testing.T) {
 
 	tc.Handler.HandleBrewDelete(rec, req)
 
-	// Will fail with 401 due to OAuth being nil
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
@@ -104,7 +91,6 @@ func TestHandleBrewDelete_InvalidRKey(t *testing.T) {
 	}
 }
 
-// TestHandleBeanCreate_ValidationError tests bean creation with invalid data
 func TestHandleBeanCreate_ValidationError(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -139,13 +125,11 @@ func TestHandleBeanCreate_ValidationError(t *testing.T) {
 
 			tc.Handler.HandleBeanCreate(rec, req)
 
-			// Should get validation error
 			assert.Contains(t, []int{http.StatusBadRequest, http.StatusUnauthorized}, rec.Code)
 		})
 	}
 }
 
-// TestValidateRKey tests the rkey validation function
 func TestValidateRKey(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -173,7 +157,6 @@ func TestValidateRKey(t *testing.T) {
 	}
 }
 
-// TestValidateOptionalRKey tests optional rkey validation
 func TestValidateOptionalRKey(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -194,7 +177,6 @@ func TestValidateOptionalRKey(t *testing.T) {
 	}
 }
 
-// TestHandleBrewExport tests brew export functionality
 func TestHandleBrewExport(t *testing.T) {
 	tc := NewTestContext()
 	fixtures := tc.Fixtures
@@ -208,16 +190,13 @@ func TestHandleBrewExport(t *testing.T) {
 
 	tc.Handler.HandleBrewExport(rec, req)
 
-	// Will be unauthorized due to OAuth being nil
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
-// TestHandleAPIListAll tests the API endpoint for listing all user data
 func TestHandleAPIListAll(t *testing.T) {
 	tc := NewTestContext()
 	fixtures := tc.Fixtures
 
-	// Mock all list operations
 	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*arabica.Bean, error) {
 		return []*arabica.Bean{fixtures.Bean}, nil
 	}
@@ -239,15 +218,12 @@ func TestHandleAPIListAll(t *testing.T) {
 
 	tc.Handler.HandleAPIListAll(rec, req)
 
-	// Will be unauthorized due to OAuth being nil
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
-// TestHandleAPIListAll_StoreError tests error handling in list all
 func TestHandleAPIListAll_StoreError(t *testing.T) {
 	tc := NewTestContext()
 
-	// Mock store to return error
 	tc.MockStore.ListBeansFunc = func(ctx context.Context) ([]*arabica.Bean, error) {
 		return nil, errors.New("database error")
 	}
@@ -257,11 +233,9 @@ func TestHandleAPIListAll_StoreError(t *testing.T) {
 
 	tc.Handler.HandleAPIListAll(rec, req)
 
-	// Will be unauthorized - but this tests the error path would work
 	assert.Contains(t, []int{http.StatusInternalServerError, http.StatusUnauthorized}, rec.Code)
 }
 
-// TestParsePours tests pour parsing from form data
 func TestParsePours(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -316,7 +290,6 @@ func TestParsePours(t *testing.T) {
 	}
 }
 
-// TestValidateBrewRequest tests brew request validation
 func TestValidateBrewRequest(t *testing.T) {
 	tests := []struct {
 		name     string

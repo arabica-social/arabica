@@ -132,8 +132,7 @@ type TestAccount struct {
 
 // HarnessOptions configures harness setup.
 type HarnessOptions struct {
-	// App selects the product handler tree. Only "arabica" is supported
-	// (Oolong now lives in its own fork). Kept for option compatibility.
+	// App must be empty or "arabica".
 	App string
 	// PrimaryHandle is the handle of the default account. Defaults to "alice.test".
 	PrimaryHandle string
@@ -279,9 +278,7 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	}
 	h.SetApp(app)
 
-	// Build the CSS assets manifest (required for SPA shell <head>
-	// injection). JS assets were removed with the templ/HTMX stack; the
-	// SPA ships its own JS via the embedded SvelteKit build.
+	// The SPA shell injects this CSS bundle; SvelteKit supplies its own JS.
 	cssBundle := assets.New(assets.Config{AppName: app.Name})
 	cssBundle.MustBuild()
 	assets.Register(cssBundle)
@@ -348,7 +345,6 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 		go harness.firehoseBridge(ctx, ch)
 	}
 
-	// Create the primary account and register it.
 	harness.PrimaryAccount, err = harness.createAccount(opts.PrimaryEmail, opts.PrimaryHandle, opts.PrimaryPassword)
 	if err != nil {
 		return nil, fmt.Errorf("create primary account: %w", err)
@@ -457,9 +453,7 @@ func (h *Harness) Get(path string) *http.Response {
 	return resp
 }
 
-// GetHTMX fetches a path as the primary account with the HX-Request header
-// set. Formerly required by RequireHTMXMiddleware (now removed); the header
-// is now a no-op for these routes, kept so existing callers compile unchanged.
+// GetHTMX fetches a path with the HX-Request compatibility header.
 func (h *Harness) GetHTMX(path string) *http.Response {
 	h.T.Helper()
 	req, err := http.NewRequest("GET", h.URL(path), nil)
@@ -552,7 +546,6 @@ func (h *Harness) PDSListRecords(acct TestAccount, collection string) []map[stri
 	return values
 }
 
-// Delete sends a DELETE request as the primary account.
 func (h *Harness) Delete(path string) *http.Response {
 	h.T.Helper()
 	req, err := http.NewRequest("DELETE", h.URL(path), nil)
@@ -562,7 +555,6 @@ func (h *Harness) Delete(path string) *http.Response {
 	return resp
 }
 
-// DeleteJSON sends a DELETE request selecting the JSON representation.
 func (h *Harness) DeleteJSON(path string) *http.Response {
 	h.T.Helper()
 	req, err := http.NewRequest("DELETE", h.URL(path), nil)
@@ -573,7 +565,6 @@ func (h *Harness) DeleteJSON(path string) *http.Response {
 	return resp
 }
 
-// ReadBody drains and returns the response body, closing it.
 func ReadBody(t *testing.T, resp *http.Response) string {
 	t.Helper()
 	defer resp.Body.Close()
@@ -581,8 +572,6 @@ func ReadBody(t *testing.T, resp *http.Response) string {
 	require.NoError(t, err)
 	return string(body)
 }
-
-// --- internals ---
 
 // harnessAuthMiddleware injects authentication context based on test headers.
 // Runs before the real OAuth middleware. When the OAuth middleware sees no
@@ -658,8 +647,6 @@ func createAccountOnPDS(pdsURL, email, handle, password string) (TestAccount, er
 		AccessJwt: result.AccessJwt,
 	}, nil
 }
-
-// --- firehose bridge ---
 
 // firehoseBridge reads testpds firehose events, fetches records via XRPC, and
 // feeds them through the Consumer's event processing pipeline.

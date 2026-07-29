@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// --- Settings ---
-
 // settingsJSONResponse mirrors the GET /api/settings JSON envelope.
 type settingsJSONResponse struct {
 	ProfileStatsVisibility struct {
@@ -38,8 +36,6 @@ type settingsSavedJSON struct {
 	Saved bool `json:"saved"`
 }
 
-// TestHTTP_SettingsJSON verifies that GET /api/settings returns the settings
-// envelope as JSON.
 func TestHTTP_SettingsJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -58,7 +54,6 @@ func TestHTTP_SettingsJSON(t *testing.T) {
 	assert.False(t, settings.BlueskyProfile.HasScopes)
 }
 
-// TestHTTP_SettingsJSONUnauth verifies unauthenticated requests get 401.
 func TestHTTP_SettingsJSONUnauth(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -73,8 +68,6 @@ func TestHTTP_SettingsJSONUnauth(t *testing.T) {
 	assert.JSONEq(t, `{"error":"Authentication required","code":"authentication_required"}`, body)
 }
 
-// TestHTTP_SettingsPreferencesJSON verifies that POST /api/settings/preferences
-// with Accept: application/json returns {saved: true}.
 func TestHTTP_SettingsPreferencesJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -94,7 +87,6 @@ func TestHTTP_SettingsPreferencesJSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
 	assert.True(t, result.Saved)
 
-	// Verify the preference persisted by reading settings again.
 	resp2 := getJSON(t, h, "/api/settings")
 	body2 := ReadBody(t, resp2)
 	require.Equal(t, 200, resp2.StatusCode, statusErr(resp2, body2))
@@ -103,9 +95,6 @@ func TestHTTP_SettingsPreferencesJSON(t *testing.T) {
 	assert.Equal(t, "fahrenheit", settings.UserPreferences.TemperatureUnit)
 }
 
-// TestHTTP_SettingsProfileVisibilityJSON verifies that POST
-// /api/settings/profile-visibility with Accept: application/json returns
-// {saved: true}.
 func TestHTTP_SettingsProfileVisibilityJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -126,7 +115,6 @@ func TestHTTP_SettingsProfileVisibilityJSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
 	assert.True(t, result.Saved)
 
-	// Verify the visibility persisted.
 	resp2 := getJSON(t, h, "/api/settings")
 	body2 := ReadBody(t, resp2)
 	require.Equal(t, 200, resp2.StatusCode, statusErr(resp2, body2))
@@ -136,9 +124,6 @@ func TestHTTP_SettingsProfileVisibilityJSON(t *testing.T) {
 	assert.Equal(t, "public", settings.ProfileStatsVisibility.RoasterAvgRating)
 }
 
-// TestHTTP_SettingsProfileVisibilityInvalidValueDefaults verifies that an
-// unrecognized visibility value falls back to "public" (the handler validates
-// and defaults invalid values).
 func TestHTTP_SettingsProfileVisibilityInvalidValueDefaults(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -168,9 +153,6 @@ func TestHTTP_SettingsProfileVisibilityInvalidValueDefaults(t *testing.T) {
 	assert.Equal(t, "public", settings.ProfileStatsVisibility.RoasterAvgRating)
 }
 
-// TestHTTP_SettingsPreferencesHTMXStillHTML verifies that the preferences
-// endpoint without Accept: application/json still returns the HTML span
-// (existing HTMX behavior).
 func TestHTTP_SettingsPreferencesHTMXStillHTML(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -182,8 +164,6 @@ func TestHTTP_SettingsPreferencesHTMXStillHTML(t *testing.T) {
 	assert.NotEqual(t, "application/json", resp.Header.Get("Content-Type"))
 	assert.Contains(t, body, "Saved")
 }
-
-// --- Onboarding ---
 
 // onboardingJSONResponse mirrors the GET /api/onboarding JSON envelope.
 type onboardingJSONResponse struct {
@@ -198,8 +178,6 @@ type onboardingJSONResponse struct {
 	Roasters []json.RawMessage `json:"roasters"`
 }
 
-// TestHTTP_OnboardingJSON verifies that GET /api/onboarding returns the
-// onboarding envelope as JSON.
 func TestHTTP_OnboardingJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -220,12 +198,9 @@ func TestHTTP_OnboardingJSON(t *testing.T) {
 	assert.NotNil(t, onboarding.Roasters)
 }
 
-// TestHTTP_OnboardingJSONAfterCreate verifies that the readiness flags and
-// entity lists update after creating records.
 func TestHTTP_OnboardingJSONAfterCreate(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Create one of each prerequisite entity.
 	mustRKey(t, h.PostForm("/api/roasters", form("name", "Onboard Roaster")), "roaster")
 	mustRKey(t, h.PostForm("/api/beans", form("name", "Onboard Bean")), "bean")
 	mustRKey(t, h.PostForm("/api/brewers", form("name", "Onboard Brewer")), "brewer")
@@ -244,7 +219,6 @@ func TestHTTP_OnboardingJSONAfterCreate(t *testing.T) {
 	assert.Len(t, onboarding.Roasters, 1)
 }
 
-// TestHTTP_OnboardingJSONUnauth verifies unauthenticated requests get 401.
 func TestHTTP_OnboardingJSONUnauth(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -268,12 +242,9 @@ type incompleteRecordsJSONResponse struct {
 	} `json:"records"`
 }
 
-// TestHTTP_IncompleteRecordsJSON verifies that GET /api/incomplete-records
-// returns the incomplete records envelope as JSON.
 func TestHTTP_IncompleteRecordsJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Create a bean with only a name — it's missing origin, roast_level, etc.
 	mustRKey(t, h.PostForm("/api/beans", form("name", "Incomplete Bean")), "bean")
 
 	resp := getJSON(t, h, "/api/incomplete-records")
@@ -283,7 +254,6 @@ func TestHTTP_IncompleteRecordsJSON(t *testing.T) {
 
 	var result incompleteRecordsJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
-	// The incomplete bean should appear in the list.
 	require.NotEmpty(t, result.Records, "should find at least one incomplete record")
 	var foundBean bool
 	for _, rec := range result.Records {
@@ -296,7 +266,6 @@ func TestHTTP_IncompleteRecordsJSON(t *testing.T) {
 	assert.True(t, foundBean, "incomplete bean should be in the list")
 }
 
-// TestHTTP_IncompleteRecordsJSONUnauth verifies unauthenticated requests get 401.
 func TestHTTP_IncompleteRecordsJSONUnauth(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -309,12 +278,9 @@ func TestHTTP_IncompleteRecordsJSONUnauth(t *testing.T) {
 	assert.Equal(t, 401, resp.StatusCode)
 }
 
-// TestHTTP_PopularRecipesJSON verifies that GET /api/popular-recipes returns
-// a JSON array of recipes.
 func TestHTTP_PopularRecipesJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Create a recipe so the popular list has data.
 	mustRKey(t, h.PostForm("/api/brewers", form("name", "Popular Recipe Brewer")), "brewer")
 	mustRKey(t, h.PostForm("/api/recipes", form("name", "Popular Recipe", "brewer_rkey", "unused")), "recipe")
 
@@ -331,7 +297,6 @@ func TestHTTP_PopularRecipesJSON(t *testing.T) {
 	assert.NotNil(t, recipes)
 }
 
-// TestHTTP_PopularRecipesJSONUnauth verifies unauthenticated requests get 401.
 func TestHTTP_PopularRecipesJSONUnauth(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -343,8 +308,6 @@ func TestHTTP_PopularRecipesJSONUnauth(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, 401, resp.StatusCode)
 }
-
-// --- Signup ---
 
 // signupCategoriesJSONResponse mirrors the GET /api/signup/categories envelope.
 type signupCategoriesJSONResponse struct {
@@ -364,8 +327,6 @@ type signupCategoriesJSONResponse struct {
 	} `json:"categories"`
 }
 
-// TestHTTP_SignupCategoriesJSON verifies that GET /api/signup/categories
-// returns the PDS provider catalog as JSON.
 func TestHTTP_SignupCategoriesJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -385,8 +346,6 @@ func TestHTTP_SignupCategoriesJSON(t *testing.T) {
 	}
 }
 
-// TestHTTP_SignupCategoriesJSONUnauth verifies that the signup categories
-// endpoint is accessible without authentication (it's needed before login).
 func TestHTTP_SignupCategoriesJSONUnauth(t *testing.T) {
 	h := StartHarness(t, nil)
 

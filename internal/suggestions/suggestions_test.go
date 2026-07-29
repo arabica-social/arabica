@@ -6,13 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// --- Helper unit tests ---
-// Lives in package suggestions (internal) so it can reach unexported
-// helpers like extractDomain. Integration tests that need the full
-// config registry live next to each app's entity package (see
-// internal/entities/arabica/suggestions_test.go) to avoid a circular
-// dependency.
-
+// Keep these tests in-package so they can cover unexported normalization helpers.
 func TestFuzzyName(t *testing.T) {
 	tests := []struct {
 		input string

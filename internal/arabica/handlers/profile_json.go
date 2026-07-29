@@ -47,16 +47,12 @@ type ProfileJSONResponse struct {
 	RoasterAvgBrewRatings map[string]float64 `json:"roaster_avg_brew_ratings"`
 }
 
-// HandleProfileAPI serves profile data as JSON for the SvelteKit SPA. The
-// SvelteKit SPA owns the /profile/{actor} page and always sends Accept:
-// application/json, so the legacy HTMX HTML partial path has been removed.
+// HandleProfileAPI serves profile data as JSON.
 func (h *Handlers) HandleProfileAPI(w http.ResponseWriter, r *http.Request) {
 	h.HandleProfileJSON(w, r)
 }
 
-// HandleProfileJSON returns a user's profile data as JSON for the SvelteKit SPA.
-// It performs actor resolution, blacklist check, profile fetch, paginated
-// brews, entity lists, and all social/usage stats.
+// HandleProfileJSON returns a user's profile, records, and social statistics.
 func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 	actor := r.PathValue("actor")
 	if actor == "" {
@@ -67,27 +63,24 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	publicClient := atproto.NewPublicClient()
 
-	// Parse pagination params for brews tab
 	brewsOffset, _ := strconv.Atoi(r.URL.Query().Get("brews_offset"))
 	brewsLimit, _ := strconv.Atoi(r.URL.Query().Get("brews_limit"))
 	if brewsLimit <= 0 || brewsLimit > 100 {
 		brewsLimit = 25
 	}
 
-	// Resolve actor to DID
 	did, err := h.resolveProfileActor(ctx, actor, publicClient)
 	if err != nil {
 		handlers.WriteJSONError(w, http.StatusNotFound, "not_found", "User not found")
 		return
 	}
 
-	// Check if user is blacklisted
 	if cf := h.LoadContentFilter(ctx); cf != nil && cf.IsBlocked(did) {
 		handlers.WriteJSONError(w, http.StatusNotFound, "not_found", "User not found")
 		return
 	}
 
-	// Fetch all user data (witness cache first, PDS fallback).
+	// Witness cache first, then PDS fallback.
 	profileData, err := h.fetchUserProfileData(ctx, did, publicClient, brewsOffset, brewsLimit)
 	if err != nil {
 		// A PDS fetch failure for an unknown DID is a not-found, not a server
@@ -98,14 +91,14 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Filter moderated content from brews
+	// Filter hidden records and content from blacklisted users.
 	if cf := h.LoadContentFilter(ctx); cf != nil {
 		profileData.Brews = moderation.FilterSlice(cf, profileData.Brews, func(b *arabica.Brew) (string, string) {
 			return atp.BuildATURI(did, arabica.NSIDBrew, b.RKey), did
 		})
 	}
 
-	// Check if this is an Arabica user
+	// A user counts as an Arabica user if they've registered or authored records.
 	isArabicaUser := h.FeedRegistry().IsRegistered(did) ||
 		len(profileData.Brews) > 0 || len(profileData.Beans) > 0 ||
 		len(profileData.Roasters) > 0 || len(profileData.Grinders) > 0 ||
@@ -115,7 +108,7 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Viewer state
+	// Viewer state.
 	didStr, isAuthenticated := atpmiddleware.GetDID(ctx)
 	isOwnProfile := isAuthenticated && didStr == did
 
@@ -133,7 +126,7 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Build the profile summary
+	// Build the profile summary.
 	var profileSummary *bff.UserProfile
 	if profile != nil {
 		profileSummary = &bff.UserProfile{Handle: profile.Handle}
@@ -150,7 +143,7 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Compute brew social stats and entity usage counts
+	// Compute brew social stats and entity usage counts.
 	resp := ProfileJSONResponse{
 		Profile:           profileSummary,
 		DID:               did,
@@ -172,7 +165,7 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 		RoasterBeanCounts: map[string]int{},
 	}
 
-	// Determine pagination state
+	// Pagination state.
 	totalBrews := profileData.TotalBrews
 	if totalBrews == 0 {
 		totalBrews = len(profileData.Brews)
@@ -185,7 +178,7 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 		resp.Brews = resp.Brews[:brewsLimit]
 	}
 
-	// Fetch social stats from firehose index
+	// Social stats from the firehose index.
 	if h.FeedIndex() != nil && profile != nil {
 		brewURIs := make([]string, 0, len(resp.Brews))
 		uriToRKey := make(map[string]string, len(resp.Brews))
@@ -214,13 +207,13 @@ func (h *Handlers) HandleProfileJSON(w http.ResponseWriter, r *http.Request) {
 			resp.BrewCommentCounts[rkey] = batchComments[uri]
 		}
 
-		// Entity usage counts
+		// Entity usage counts.
 		resp.BeanBrewCounts = h.FeedIndex().BrewCountsByBeanURI(ctx, did)
 		resp.GrinderBrewCounts = h.FeedIndex().BrewCountsByGrinderURI(ctx, did)
 		resp.BrewerBrewCounts = h.FeedIndex().BrewCountsByBrewerURI(ctx, did)
 		resp.RoasterBeanCounts = h.FeedIndex().BeanCountsByRoasterURI(ctx, did)
 
-		// Average brew ratings — respect profile visibility settings
+		// Average brew ratings, respecting profile visibility settings.
 		statsVis := h.FeedIndex().GetProfileStatsVisibility(ctx, did)
 		if isOwnProfile || statsVis.BeanAvgRating == arabica.VisibilityPublic {
 			resp.BeanAvgBrewRatings = make(map[string]float64)

@@ -10,7 +10,6 @@ import (
 )
 
 func TestNewService_NoConfig(t *testing.T) {
-	// Service should work in disabled mode with empty config path
 	svc, err := NewService("")
 	require.NoError(t, err)
 	assert.NotNil(t, svc)
@@ -21,7 +20,6 @@ func TestNewService_NoConfig(t *testing.T) {
 }
 
 func TestNewService_MissingFile(t *testing.T) {
-	// Service should work in disabled mode when file doesn't exist
 	svc, err := NewService("/nonexistent/path/config.json")
 	require.NoError(t, err)
 	assert.NotNil(t, svc)
@@ -133,7 +131,6 @@ func TestIsAdmin(t *testing.T) {
 func TestIsModerator(t *testing.T) {
 	svc := createTestService(t)
 
-	// Both admins and moderators should return true
 	assert.True(t, svc.IsModerator("did:plc:admin1"))
 	assert.True(t, svc.IsModerator("did:plc:mod1"))
 	assert.False(t, svc.IsModerator("did:plc:unknown"))
@@ -142,18 +139,15 @@ func TestIsModerator(t *testing.T) {
 func TestHasPermission(t *testing.T) {
 	svc := createTestService(t)
 
-	// Admin has all permissions
 	assert.True(t, svc.HasPermission("did:plc:admin1", PermissionHideRecord))
 	assert.True(t, svc.HasPermission("did:plc:admin1", PermissionBlacklistUser))
 	assert.True(t, svc.HasPermission("did:plc:admin1", PermissionViewAuditLog))
 
-	// Moderator has limited permissions
 	assert.True(t, svc.HasPermission("did:plc:mod1", PermissionHideRecord))
 	assert.True(t, svc.HasPermission("did:plc:mod1", PermissionViewReports))
 	assert.False(t, svc.HasPermission("did:plc:mod1", PermissionBlacklistUser))
 	assert.False(t, svc.HasPermission("did:plc:mod1", PermissionViewAuditLog))
 
-	// Unknown user has no permissions
 	assert.False(t, svc.HasPermission("did:plc:unknown", PermissionHideRecord))
 }
 
@@ -198,7 +192,6 @@ func TestListModerators(t *testing.T) {
 	users := svc.ListModerators()
 	assert.Len(t, users, 2)
 
-	// Verify it returns copies (mutation shouldn't affect service)
 	users[0].Handle = "mutated"
 	originalUser, _ := svc.GetModeratorUser("did:plc:admin1")
 	assert.Equal(t, "admin.test", originalUser.Handle)
@@ -234,7 +227,6 @@ func TestReload(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "moderators.json")
 
-	// Start with one admin
 	config1 := `{
 		"roles": {
 			"admin": {
@@ -255,7 +247,6 @@ func TestReload(t *testing.T) {
 	assert.True(t, svc.IsAdmin("did:plc:admin1"))
 	assert.False(t, svc.IsAdmin("did:plc:admin2"))
 
-	// Update config with another admin
 	config2 := `{
 		"roles": {
 			"admin": {
@@ -330,7 +321,6 @@ func TestConfig_Validate(t *testing.T) {
 }
 
 func TestDisabledService(t *testing.T) {
-	// All methods should be safe to call on a disabled service
 	svc, err := NewService("")
 	require.NoError(t, err)
 
@@ -351,6 +341,5 @@ func TestDisabledService(t *testing.T) {
 	assert.Nil(t, svc.ListRoles())
 	assert.Nil(t, svc.GetPermissionsForDID("did:plc:any"))
 
-	// Reload should be a no-op
 	assert.NoError(t, svc.Reload())
 }

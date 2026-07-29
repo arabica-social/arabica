@@ -18,7 +18,6 @@
 
 	let { item, isAuthenticated, footer }: Props = $props();
 
-	// Build the share URL for this item's record: /{noun}/{actor}/{rkey}
 	function shareURL(i: FeedItem): string {
 		const actor = i.author?.handle || i.author?.did || "";
 		const rkey = rkeyOf(i);
@@ -100,7 +99,6 @@
 </script>
 
 <div class={cardClass()}>
-	<!-- Author row -->
 	<div class="mb-3">
 		<div class="flex items-center gap-2">
 			<a href={`/profile/${item.author.did}`}>
@@ -115,14 +113,12 @@
 		</div>
 	</div>
 
-	<!-- Action header -->
 	<div class="mb-2 text-sm text-emphasis">
 		added a
 		<a href={url} class="underline hover:text-primary">new {actionNoun()}</a>
 		<TypeBadge recordType={actionNoun()} />
 	</div>
 
-	<!-- Record content (per entity) — clickable card surface -->
 	<div
 		role="link"
 		tabindex="0"
@@ -268,7 +264,6 @@
 		{/if}
 	</div>
 
-	<!-- Action bar -->
 	{#if item.subject_uri && item.subject_cid}
 		<ActionBar
 			subjectURI={item.subject_uri}

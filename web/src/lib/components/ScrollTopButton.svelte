@@ -1,11 +1,4 @@
 <script lang="ts">
-  // Floating "back to top" button. Mirrors the SSR home page's
-  // .scroll-top-btn markup (internal/web/pages/home.templ) and the
-  // ScrollTopIsland scroll behavior (internal/web/assets/svelte/src/
-  // ScrollTopIsland.svelte). The .scroll-top-btn + .is-visible styles
-  // live in the shared global CSS bundle (components/18-misc.css) that
-  // the SPA loads via the Go server's SPA shell, so no scoped CSS is
-  // needed here.
   let visible = $state(false);
 
   function applyVisibility() {

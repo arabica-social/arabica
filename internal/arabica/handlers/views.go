@@ -287,7 +287,6 @@ func (h *Handlers) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 					metrics.WitnessCacheHitsTotal.WithLabelValues("bean_og").Inc()
 					bean = b
 					bean.RKey = rkey
-					// Resolve roaster
 					if roasterRef, ok := m["roasterRef"].(string); ok && roasterRef != "" {
 						if rwr, _ := h.WitnessCache().GetWitnessRecord(r.Context(), roasterRef); rwr != nil {
 							if rm, err := atproto.WitnessRecordToMap(rwr); err == nil {
@@ -314,7 +313,6 @@ func (h *Handlers) HandleBeanOGImage(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to load bean", http.StatusInternalServerError)
 			return
 		}
-		// Resolve roaster reference
 		if roasterRef, ok := record.Value["roasterRef"].(string); ok && roasterRef != "" {
 			roasterRKey := atp.RKeyFromURI(roasterRef)
 			if roasterRKey != "" {
@@ -417,7 +415,6 @@ func (h *Handlers) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 					metrics.WitnessCacheHitsTotal.WithLabelValues("recipe_og").Inc()
 					recipe = rec
 					recipe.RKey = rkey
-					// Resolve brewer from witness
 					if brewerRef, ok := m["brewerRef"].(string); ok && brewerRef != "" {
 						if bwr, _ := h.WitnessCache().GetWitnessRecord(r.Context(), brewerRef); bwr != nil {
 							if bm, err := atproto.WitnessRecordToMap(bwr); err == nil {
@@ -445,7 +442,6 @@ func (h *Handlers) HandleRecipeOGImage(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to load recipe", http.StatusInternalServerError)
 			return
 		}
-		// Resolve brewer reference
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
 			brewerRKey := atp.RKeyFromURI(brewerRef)
 			if brewerRKey != "" {

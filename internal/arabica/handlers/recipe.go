@@ -19,7 +19,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// HandleRecipeCreate creates a new recipe
+// HandleRecipeCreate creates a recipe from JSON or form data.
 func (h *Handlers) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
@@ -77,7 +77,7 @@ func (h *Handlers) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
 	handlers.WriteJSON(w, recipe, "recipe")
 }
 
-// HandleRecipeUpdate updates an existing recipe
+// HandleRecipeUpdate updates an existing recipe.
 func (h *Handlers) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
@@ -147,7 +147,7 @@ func (h *Handlers) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
 	handlers.WriteJSON(w, updated, "recipe")
 }
 
-// HandleRecipeDelete deletes a recipe
+// HandleRecipeDelete deletes a recipe and removes it from the feed index.
 func (h *Handlers) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
@@ -166,7 +166,7 @@ func (h *Handlers) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Remove from firehose feed index
+	// Remove from feed index so the recipe stops appearing in suggestions.
 	if h.FeedIndex() != nil {
 		didStr, _ := atpmiddleware.GetDID(r.Context())
 		if didStr != "" {
@@ -181,7 +181,7 @@ func (h *Handlers) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// HandleRecipeGet returns a single recipe as JSON (for autofill)
+// HandleRecipeGet returns a single recipe as JSON for autofill.
 // Accepts optional ?owner= query param to fetch from another user's PDS.
 func (h *Handlers) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
@@ -217,9 +217,9 @@ func (h *Handlers) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 		recipe.RKey = rkey
 		recipe.AuthorDID = ownerDID
 
-		// Resolve brewer reference: fetch source brewer info, then match
-		// against the current user's brewers so the returned brewer_rkey
-		// is usable in the current user's brew form.
+		// Resolve brewer: fetch the source brewer, then match it against the
+		// current user's brewers so the returned brewer_rkey is usable in the
+		// current user's brew form.
 		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
 			brewerRKey := atp.RKeyFromURI(brewerRef)
 			if brewerRKey != "" {
@@ -229,7 +229,7 @@ func (h *Handlers) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
 						brewer.RKey = brewerRKey
 						recipe.BrewerObj = brewer
 
-						// Try to match source brewer to the current user's brewers
+						// Try to match the source brewer to one of the current user's brewers.
 						if userBrewers, err := listBrewers(r.Context(), store); err == nil {
 							candidates := make([]matching.Candidate, len(userBrewers))
 							for i, b := range userBrewers {
@@ -276,7 +276,7 @@ func (h *Handlers) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Get the brew to extract parameters
+	// Get the brew to derive recipe parameters from.
 	brew, err := store.GetBrewByRKey(r.Context(), brewRKey)
 	if err != nil {
 		http.Error(w, "Brew not found", http.StatusNotFound)
@@ -291,7 +291,6 @@ func (h *Handlers) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Build recipe from brew parameters
 	req := &arabica.CreateRecipeRequest{
 		Name:         name,
 		BrewerRKey:   brew.BrewerRKey,
@@ -299,7 +298,6 @@ func (h *Handlers) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Req
 		WaterAmount:  float64(brew.WaterAmount),
 	}
 
-	// Copy pours
 	if len(brew.Pours) > 0 {
 		req.Pours = make([]arabica.CreatePourData, len(brew.Pours))
 		for i, pour := range brew.Pours {
@@ -357,7 +355,6 @@ func (h *Handlers) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch the source recipe via public client
 	publicClient := atproto.NewPublicClient()
 	record, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
 	if err != nil {
@@ -372,13 +369,13 @@ func (h *Handlers) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build the source AT-URI for provenance
+	// sourceURI records where this recipe was forked from.
 	sourceURI := atp.BuildATURI(ownerDID, arabica.NSIDRecipe, rkey)
 
-	// Resolve brewer: try to match source brewer to current user's brewers
+	// Resolve brewer: try to match the source brewer to one of the current
+	// user's brewers.
 	var brewerRKey, brewerType string
 	if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
-		// Fetch the source brewer to get name and type for matching
 		brewerRKeySource := atp.RKeyFromURI(brewerRef)
 		if brewerRKeySource != "" {
 			if sourceBrewer, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKeySource); err == nil {
@@ -391,7 +388,7 @@ func (h *Handlers) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 					brewerType = t
 				}
 
-				// Match against the current user's brewers
+				// Match the source brewer to one of the current user's brewers.
 				if userBrewers, err := listBrewers(r.Context(), store); err == nil {
 					candidates := make([]matching.Candidate, len(userBrewers))
 					for i, b := range userBrewers {
@@ -409,7 +406,7 @@ func (h *Handlers) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		brewerType = sourceRecipe.BrewerType
 	}
 
-	// Create a copy in the current user's PDS
+	// Fork the recipe into the current user's PDS.
 	req := &arabica.CreateRecipeRequest{
 		Name:         sourceRecipe.Name,
 		BrewerRKey:   brewerRKey,
@@ -420,7 +417,6 @@ func (h *Handlers) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
 		SourceRef:    sourceURI,
 	}
 
-	// Copy pours
 	if len(sourceRecipe.Pours) > 0 {
 		req.Pours = make([]arabica.CreatePourData, len(sourceRecipe.Pours))
 		for i, pour := range sourceRecipe.Pours {
@@ -486,7 +482,7 @@ func (h *Handlers) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Reques
 
 	filtered := arabica.FilterRecipes(recipes, filter)
 
-	// Sort results (default: popular)
+	// Default sort is popular.
 	sortBy := r.URL.Query().Get("sort")
 	if sortBy == "" {
 		sortBy = "popular"
@@ -526,13 +522,13 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 		return nil, err
 	}
 
-	// Batch-collect unique DIDs for profile lookups (authors + source refs)
+	// Collect unique DIDs (authors + source-ref authors) to batch profile lookups.
 	didSet := make(map[string]struct{}, len(records))
 	for _, rec := range records {
 		didSet[rec.DID] = struct{}{}
 	}
 
-	// Pre-scan records for sourceRef DIDs so we can batch profile lookups
+	// Pre-scan records for sourceRef DIDs so they're included in the batch.
 	type parsedRecord struct {
 		uri        string
 		did        string
@@ -565,7 +561,7 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 		parsed = append(parsed, pr)
 	}
 
-	// Resolve profiles for all DIDs (authors + source authors)
+	// Resolve profiles for all DIDs in one pass.
 	profiles := make(map[string]*atproto.Profile, len(didSet))
 	for did := range didSet {
 		profile, err := h.FeedIndex().GetProfile(ctx, did)
@@ -574,7 +570,6 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 		}
 	}
 
-	// Build fork map: source URI -> list of forker DIDs
 	type forkInfo struct {
 		count   int
 		avatars []string
@@ -596,10 +591,9 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 		}
 	}
 
-	// Batch query brew counts per recipe
+	// Batch query brew counts and brewer records referenced by the recipes.
 	brewCounts := h.FeedIndex().BrewCountsByRecipeURI(ctx)
 
-	// Batch-fetch brewer records referenced by recipes
 	brewerURIs := make([]string, 0)
 	for _, pr := range parsed {
 		if brewerRef, ok := pr.data["brewerRef"].(string); ok && brewerRef != "" {
@@ -608,12 +602,10 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 	}
 	brewerRecords := h.FeedIndex().GetRecordsBatch(ctx, brewerURIs)
 
-	// Build final recipe list
 	recipes := make([]*arabica.Recipe, 0, len(parsed))
 	for _, pr := range parsed {
 		recipe := pr.recipe
 
-		// Resolve brewer reference from the record data
 		if brewerRef, ok := pr.data["brewerRef"].(string); ok && brewerRef != "" {
 			if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
 				recipe.BrewerRKey = rkey
@@ -631,7 +623,7 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 			recipe.BrewerType = recipe.BrewerObj.BrewerType
 		}
 
-		// Populate author info
+		// Author and source-author info come from the resolved profiles.
 		recipe.AuthorDID = pr.did
 		if profile, ok := profiles[pr.did]; ok {
 			recipe.AuthorHandle = profile.Handle
@@ -658,7 +650,7 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 			}
 		}
 
-		// Populate social stats
+		// Social stats: fork count + brew count.
 		recipeURI := pr.uri
 		if fi, ok := forkMap[recipeURI]; ok {
 			recipe.ForkCount = fi.count
@@ -672,7 +664,7 @@ func (h *Handlers) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Reci
 		recipes = append(recipes, recipe)
 	}
 
-	// Filter moderated content (hidden records + blacklisted users)
+	// Filter out hidden records and content from blacklisted users.
 	if cf := h.LoadContentFilter(ctx); cf != nil {
 		recipes = moderation.FilterSlice(cf, recipes, func(r *arabica.Recipe) (string, string) {
 			if r.AuthorDID != "" && r.RKey != "" {
@@ -700,7 +692,7 @@ func (h *Handlers) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve brewer references using cached data
+	// Resolve brewer references against cached brewers.
 	brewers, _ := listBrewers(r.Context(), store)
 	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
 	for _, b := range brewers {
@@ -718,9 +710,7 @@ func (h *Handlers) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandlePopularRecipesPartial returns popular recipes as JSON for the
-// SvelteKit SPA. The SPA owns the home page and always sends Accept:
-// application/json, so the legacy HTMX HTML fragment path has been removed.
+// HandlePopularRecipesPartial returns popular recipes as JSON.
 func (h *Handlers) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Request) {
 	h.HandlePopularRecipesJSON(w, r)
 }

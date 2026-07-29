@@ -11,7 +11,7 @@
 	import { pushToast } from "$lib/stores/toasts";
 	import type { Brewer } from "$lib/types/entity_view";
 
-	// Canonical brewer type values (internal/arabica/entities/models.go).
+	// Values must match the brewer record contract.
 	const BREWER_TYPES = [
 		{ value: "pourover", label: "Pour-over" },
 		{ value: "espresso", label: "Espresso" },

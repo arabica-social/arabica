@@ -39,7 +39,6 @@ buildGoModule rec {
       pnpm config set package-import-method clone-or-copy
       pnpm install --offline --ignore-scripts --frozen-lockfile
       cd web && pnpm install --offline --ignore-scripts --frozen-lockfile && pnpm run build && cd ..
-      # Copy SvelteKit build output to Go embed directory
       mkdir -p internal/web/spa/build
       cp -r web/build/* internal/web/spa/build/
     fi
@@ -65,7 +64,6 @@ buildGoModule rec {
           mkdir -p $out/bin
           mkdir -p $out/share/${appName}
 
-          # Copy static files
           cp -r static $out/share/${appName}/
           cp ${appName} $out/bin/${appName}-unwrapped
           cat > $out/bin/${appName} <<'WRAPPER'

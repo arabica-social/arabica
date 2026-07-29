@@ -27,8 +27,7 @@
 	let posting = $state(false);
 	// Local copy so we can optimistically add/remove without mutating props.
 	let localComments = $state<IndexedComment[]>([]);
-	// Reply state: the rkey of the comment being replied to ("" = no reply
-	// form open). The old templ stack allowed replies up to depth 2.
+	// Replies are limited to depth 2; an empty rkey means no reply form is open.
 	let replyToRKey = $state("");
 	let replyText = $state("");
 	let postingReply = $state(false);
@@ -95,7 +94,7 @@
 				body,
 			});
 			if (!res.ok) throw new Error(`Comment failed: ${res.status}`);
-			// Parse the JSON response (P1.9) to sync the updated comment thread.
+			// Replace local state with the server's canonical thread.
 			const contentType = res.headers.get("content-type") ?? "";
 			if (contentType.includes("application/json")) {
 				const data = await res.json();
@@ -130,8 +129,7 @@
 		}
 	}
 
-	// Build the AT-URI for a comment so it can be liked via /api/likes/toggle.
-	// Mirrors buildCommentURI in the old templ stack.
+	// Likes require the comment's canonical AT URI.
 	function commentURI(c: IndexedComment): string {
 		return `at://${c.actor_did}/${definitionFor($app).commentCollection}/${c.rkey}`;
 	}
@@ -162,7 +160,6 @@
 			const contentType = res.headers.get("content-type") ?? "";
 			if (contentType.includes("application/json")) {
 				const data = await res.json();
-				// Update the local comment in place.
 				localComments = localComments.map((lc) =>
 					lc.rkey === c.rkey
 						? { ...lc, is_liked: !!data.is_liked, like_count: data.like_count ?? lc.like_count }

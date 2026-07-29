@@ -41,10 +41,7 @@ type Config struct {
 	// output on refresh without a Go restart. Empty in production.
 	SPAAssetDevDir string
 
-	// SPAHandler, when non-nil, serves the SvelteKit SPA shell for unmatched
-	// page routes explicitly owned by AppRoutes.SPAOwnedRoutes. During
-	// migration this is nil unless explicitly enabled, so existing templ
-	// pages work unchanged.
+	// SPAHandler serves page routes listed by AppRoutes.SPAOwnedRoutes.
 	SPAHandler http.Handler
 }
 
@@ -64,9 +61,8 @@ type AppRouteContext struct {
 	Pages    PageRoutes
 }
 
-// PageRoutes registers each page pattern with either its legacy handler or
-// the SPA shell according to an explicit app-owned allowlist. API, mutation,
-// auth, asset, and unknown routes do not participate in page ownership.
+// PageRoutes registers page patterns against the app-owned SPA allowlist.
+// API, mutation, auth, asset, and unknown routes do not participate.
 type PageRoutes struct {
 	spaHandler http.Handler
 	spaOwned   map[string]struct{}
@@ -109,10 +105,9 @@ func SetupRouter(cfg Config) http.Handler {
 	}
 	pages := NewPageRoutes(cfg.SPAHandler, spaOwned)
 
-	// Create CrossOriginProtection for CSRF protection
 	cop := http.NewCrossOriginProtection()
 
-	// OAuth routes (no CSRF protection needed for GET and callback)
+	// State-changing OAuth routes require CSRF protection; GET callbacks do not.
 	mux.HandleFunc("GET /login", h.HandleLogin)
 	mux.Handle("POST /auth/login", cop.Handler(http.HandlerFunc(h.HandleLoginSubmit)))
 	mux.HandleFunc("GET /oauth/callback", h.HandleOAuthCallback)
@@ -133,21 +128,17 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.HandleFunc("GET /api/session", h.HandleSessionJSON)
 	mux.HandleFunc("GET /api/session/status", h.HandleSessionStatusJSON)
 
-	// API routes for handle resolution (used by login autocomplete)
-	// These are intentionally public and don't require HTMX headers
+	// Handle resolution is public so login can use it before authentication.
 	mux.HandleFunc("GET /api/resolve-handle", h.HandleResolveHandle)
 	mux.HandleFunc("GET /api/search-actors", h.HandleSearchActors)
 
-	// Suggestion routes for entity typeahead (auth-protected, read-only GET)
 	mux.HandleFunc("GET /api/suggestions/{entity}", h.HandleEntitySuggestions)
 
 	// Feed is JSON-only for the SvelteKit SPA.
 	mux.HandleFunc("GET /api/feed", h.HandleFeed)
 
-	// Page routes (must come before static files). These patterns are all
-	// SPA-owned (see each app's SPAOwnedRoutes), so pages.Register routes
-	// them to the SPA shell; the legacy handler arg is a nil-safe 404
-	// fallback for a non-SPA build rather than a templ renderer.
+	// Page routes must be registered before static files. The fallback is a
+	// nil-safe 404 for builds without an SPA handler.
 	notFound := http.HandlerFunc(h.HandleNotFound)
 	pages.Register(mux, "GET /{$}", notFound) // {$} means exact match
 	pages.Register(mux, "GET /about", notFound)
@@ -192,24 +183,19 @@ func SetupRouter(cfg Config) http.Handler {
 		http.Redirect(w, r, "/"+route.Path+"/"+actor+"/"+rkey, http.StatusFound)
 	})
 
-	// Comment routes
 	mux.Handle("GET /api/comments", http.HandlerFunc(h.HandleCommentList))
 	mux.Handle("POST /api/comments", cop.Handler(http.HandlerFunc(h.HandleCommentCreate)))
 	mux.Handle("DELETE /api/comments/{id}", cop.Handler(http.HandlerFunc(h.HandleCommentDelete)))
 
-	// Notification routes
 	mux.HandleFunc("GET /api/notifications", h.HandleNotificationsJSON)
 	mux.Handle("POST /api/notifications/read", cop.Handler(http.HandlerFunc(h.HandleNotificationsMarkRead)))
 
-	// Settings
 	mux.HandleFunc("GET /api/settings", h.HandleSettingsJSON)
 	mux.Handle("POST /api/settings/preferences", cop.Handler(http.HandlerFunc(h.HandleSettingsPreferences)))
 	mux.Handle("POST /api/settings/profile-visibility", cop.Handler(http.HandlerFunc(h.HandleSettingsProfileVisibility)))
 	mux.Handle("POST /api/settings/bluesky-profile", cop.Handler(http.HandlerFunc(h.HandleUpdateBlueskyProfile)))
 	mux.Handle("POST /settings/bluesky-profile/upgrade-scopes", cop.Handler(http.HandlerFunc(h.HandleScopeUpgrade)))
 
-	// Moderation routes
-	// HandleAdmin keeps its own auth check (redirects to / instead of 401)
 	modSvc := cfg.ModerationService
 	mux.Handle("GET /api/_mod", middleware.RequireModerator(modSvc,
 		http.HandlerFunc(h.HandleAdminJSON)))
@@ -249,10 +235,8 @@ func SetupRouter(cfg Config) http.Handler {
 		mux.Handle("GET "+cfg.CSSBundle.URLPath(), cfg.CSSBundle.Handler())
 	}
 
-	// Static files (must come after specific routes)
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
-	// Serve favicon.ico for pdsls
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/x-icon")
 		http.ServeFile(w, r, "static/favicon.ico")
@@ -272,17 +256,13 @@ func SetupRouter(cfg Config) http.Handler {
 	// patterns above, so unknown direct loads remain real 404 responses.
 	mux.HandleFunc("/", h.HandleNotFound)
 
-	// Apply middleware in order (outermost first, innermost last)
 	var handler http.Handler = mux
 
-	// 1. Limit request body size (innermost - runs first on request)
 	handler = middleware.LimitBodyMiddleware(handler)
 
-	// 2. Add authenticated user attributes to the active HTTP span. This must
-	// sit inside CookieAuth so the request context already contains the DID.
+	// This must remain inside CookieAuth so the context already contains the DID.
 	handler = middleware.UserDIDSpanMiddleware(handler)
 
-	// 3. Apply OAuth middleware to add auth context
 	if cfg.OAuthApp != nil {
 		didCookieName, sessCookieName := handlers.CookieNames(cfg.App)
 		handler = atpmiddleware.CookieAuth(atpmiddleware.CookieAuthConfig{
@@ -293,25 +273,19 @@ func SetupRouter(cfg Config) http.Handler {
 		})(handler)
 	}
 
-	// 4. Apply rate limiting
 	if !cfg.DisableRateLimit {
 		rateLimitConfig := middleware.NewDefaultRateLimitConfig()
 		handler = middleware.RateLimitMiddleware(rateLimitConfig)(handler)
 	}
 
-	// 5. Apply security headers
 	handler = middleware.SecurityHeadersMiddleware(handler)
 
-	// 6. Apply logging middleware
 	handler = middleware.LoggingMiddleware(cfg.Logger, metrics.HTTPRequestObserver{})(handler)
 
-	// 7. Inject trace_id into zerolog context (runs after otelhttp creates the span)
+	// These enrich the span created by the outer otelhttp handler.
 	handler = middleware.RequestIDMiddleware(cfg.Logger)(handler)
-
-	// 8. Enrich trace spans with client page context (runs inside otelhttp span)
 	handler = pageContextMiddleware(handler)
 
-	// 9. Apply OpenTelemetry HTTP instrumentation (outermost - wraps everything)
 	spanName := "arabica"
 	if cfg.App != nil && cfg.App.Name != "" {
 		spanName = cfg.App.Name

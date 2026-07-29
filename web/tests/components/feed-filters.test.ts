@@ -14,7 +14,6 @@ const baseProps = {
 
 function renderFeedFilters(overrides: Partial<typeof baseProps> = {}) {
 	const props = { ...baseProps, ...overrides };
-	// Re-create the mocks per render so call counts don't leak between tests.
 	props.onType = vi.fn();
 	props.onSort = vi.fn();
 	const result = render(FeedFilters, props);
@@ -126,7 +125,6 @@ describe("FeedFilters component", () => {
 		const popularButton = screen.getByRole("button", { name: "Popular" });
 		expect(popularButton.getAttribute("aria-pressed")).toBe("true");
 		expect(popularButton.className).toContain("filter-pill-active");
-		// New should be inactive in this case.
 		const newButton = screen.getByRole("button", { name: "New" });
 		expect(newButton.getAttribute("aria-pressed")).toBe("false");
 	});

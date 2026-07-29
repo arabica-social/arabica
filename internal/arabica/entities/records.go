@@ -22,8 +22,6 @@ func toFloat64(v any) (float64, bool) {
 	}
 }
 
-// ========== Recipe Conversions ==========
-
 // RecipeToRecord converts a Recipe to an atproto record map
 func RecipeToRecord(recipe *Recipe, brewerURI string) (map[string]any, error) {
 	record := map[string]any{
@@ -132,8 +130,6 @@ func RecordToRecipe(record map[string]any, atURI string) (*Recipe, error) {
 	return recipe, nil
 }
 
-// ========== Brew Conversions ==========
-
 // BrewToRecord converts a Brew to an atproto record map
 // Note: References (beanRef, grinderRef, brewerRef, recipeRef) must be AT-URIs
 func BrewToRecord(brew *Brew, beanURI, grinderURI, brewerURI, recipeURI string) (map[string]any, error) {
@@ -147,7 +143,6 @@ func BrewToRecord(brew *Brew, beanURI, grinderURI, brewerURI, recipeURI string) 
 		"createdAt": brew.CreatedAt.Format(time.RFC3339),
 	}
 
-	// Optional fields
 	if brew.Method != "" {
 		record["method"] = brew.Method
 	}
@@ -183,7 +178,7 @@ func BrewToRecord(brew *Brew, beanURI, grinderURI, brewerURI, recipeURI string) 
 		record["rating"] = brew.Rating
 	}
 
-	// Convert pours to embedded array
+	// Convert pours to the embedded record array.
 	if len(brew.Pours) > 0 {
 		pours := make([]map[string]any, len(brew.Pours))
 		for i, pour := range brew.Pours {
@@ -243,7 +238,6 @@ func BrewToRecord(brew *Brew, beanURI, grinderURI, brewerURI, recipeURI string) 
 func RecordToBrew(record map[string]any, atURI string) (*Brew, error) {
 	brew := &Brew{}
 
-	// Extract rkey from AT-URI
 	if atURI != "" {
 		parsedURI, err := syntax.ParseATURI(atURI)
 		if err != nil {
@@ -252,15 +246,12 @@ func RecordToBrew(record map[string]any, atURI string) (*Brew, error) {
 		brew.RKey = parsedURI.RecordKey().String()
 	}
 
-	// Required field: beanRef
 	beanRef, ok := record["beanRef"].(string)
 	if !ok || beanRef == "" {
 		return nil, fmt.Errorf("beanRef is required")
 	}
-	// Store the beanRef for later resolution
-	// For now, we'll just note it exists but won't resolve it here
+	// beanRef is resolved later by resolveBrewRefs, not here.
 
-	// Required field: createdAt
 	createdAtStr, ok := record["createdAt"].(string)
 	if !ok {
 		return nil, fmt.Errorf("createdAt is required")
@@ -271,7 +262,6 @@ func RecordToBrew(record map[string]any, atURI string) (*Brew, error) {
 	}
 	brew.CreatedAt = createdAt
 
-	// Optional fields
 	if method, ok := record["method"].(string); ok {
 		brew.Method = method
 	}
@@ -298,7 +288,7 @@ func RecordToBrew(record map[string]any, atURI string) (*Brew, error) {
 		brew.Rating = int(rating)
 	}
 
-	// Convert pours from embedded array
+	// Convert pours from the embedded record array.
 	if poursRaw, ok := record["pours"].([]any); ok {
 		brew.Pours = make([]*Pour, len(poursRaw))
 		for i, pourRaw := range poursRaw {
@@ -357,8 +347,6 @@ func RecordToBrew(record map[string]any, atURI string) (*Brew, error) {
 	return brew, nil
 }
 
-// ========== Bean Conversions ==========
-
 // BeanToRecord converts a Bean to an atproto record map
 func BeanToRecord(bean *Bean, roasterURI string) (map[string]any, error) {
 	record := map[string]any{
@@ -367,7 +355,6 @@ func BeanToRecord(bean *Bean, roasterURI string) (map[string]any, error) {
 		"createdAt": bean.CreatedAt.Format(time.RFC3339),
 	}
 
-	// Optional fields
 	if bean.Origin != "" {
 		record["origin"] = bean.Origin
 	}
@@ -411,7 +398,6 @@ func BeanToRecord(bean *Bean, roasterURI string) (map[string]any, error) {
 func RecordToBean(record map[string]any, atURI string) (*Bean, error) {
 	bean := &Bean{}
 
-	// Extract rkey from AT-URI
 	if atURI != "" {
 		parsedURI, err := syntax.ParseATURI(atURI)
 		if err != nil {
@@ -420,14 +406,12 @@ func RecordToBean(record map[string]any, atURI string) (*Bean, error) {
 		bean.RKey = parsedURI.RecordKey().String()
 	}
 
-	// Required field: name
 	name, ok := record["name"].(string)
 	if !ok || name == "" {
 		return nil, fmt.Errorf("name is required")
 	}
 	bean.Name = name
 
-	// Required field: createdAt
 	createdAtStr, ok := record["createdAt"].(string)
 	if !ok {
 		return nil, fmt.Errorf("createdAt is required")
@@ -438,7 +422,6 @@ func RecordToBean(record map[string]any, atURI string) (*Bean, error) {
 	}
 	bean.CreatedAt = createdAt
 
-	// Optional fields
 	if origin, ok := record["origin"].(string); ok {
 		bean.Origin = origin
 	}
@@ -477,8 +460,6 @@ func RecordToBean(record map[string]any, atURI string) (*Bean, error) {
 	return bean, nil
 }
 
-// ========== Roaster Conversions ==========
-
 // RoasterToRecord converts a Roaster to an atproto record map
 func RoasterToRecord(roaster *Roaster) (map[string]any, error) {
 	record := map[string]any{
@@ -487,7 +468,6 @@ func RoasterToRecord(roaster *Roaster) (map[string]any, error) {
 		"createdAt": roaster.CreatedAt.Format(time.RFC3339),
 	}
 
-	// Optional fields
 	if roaster.Location != "" {
 		record["location"] = roaster.Location
 	}
@@ -505,7 +485,6 @@ func RoasterToRecord(roaster *Roaster) (map[string]any, error) {
 func RecordToRoaster(record map[string]any, atURI string) (*Roaster, error) {
 	roaster := &Roaster{}
 
-	// Extract rkey from AT-URI
 	if atURI != "" {
 		parsedURI, err := syntax.ParseATURI(atURI)
 		if err != nil {
@@ -514,14 +493,12 @@ func RecordToRoaster(record map[string]any, atURI string) (*Roaster, error) {
 		roaster.RKey = parsedURI.RecordKey().String()
 	}
 
-	// Required field: name
 	name, ok := record["name"].(string)
 	if !ok || name == "" {
 		return nil, fmt.Errorf("name is required")
 	}
 	roaster.Name = name
 
-	// Required field: createdAt
 	createdAtStr, ok := record["createdAt"].(string)
 	if !ok {
 		return nil, fmt.Errorf("createdAt is required")
@@ -532,7 +509,6 @@ func RecordToRoaster(record map[string]any, atURI string) (*Roaster, error) {
 	}
 	roaster.CreatedAt = createdAt
 
-	// Optional fields
 	if location, ok := record["location"].(string); ok {
 		roaster.Location = location
 	}
@@ -545,8 +521,6 @@ func RecordToRoaster(record map[string]any, atURI string) (*Roaster, error) {
 
 	return roaster, nil
 }
-
-// ========== Grinder Conversions ==========
 
 // GrinderToRecord converts a Grinder to an atproto record map
 // The grinder lexicon's grinderType and burrType enums are lowercase
@@ -586,7 +560,6 @@ func GrinderToRecord(grinder *Grinder) (map[string]any, error) {
 		"createdAt": grinder.CreatedAt.Format(time.RFC3339),
 	}
 
-	// Optional fields
 	if grinder.GrinderType != "" {
 		v := grinder.GrinderType
 		if mapped, ok := grinderTypeToWire[v]; ok {
@@ -618,7 +591,6 @@ func GrinderToRecord(grinder *Grinder) (map[string]any, error) {
 func RecordToGrinder(record map[string]any, atURI string) (*Grinder, error) {
 	grinder := &Grinder{}
 
-	// Extract rkey from AT-URI
 	if atURI != "" {
 		parsedURI, err := syntax.ParseATURI(atURI)
 		if err != nil {
@@ -627,14 +599,12 @@ func RecordToGrinder(record map[string]any, atURI string) (*Grinder, error) {
 		grinder.RKey = parsedURI.RecordKey().String()
 	}
 
-	// Required field: name
 	name, ok := record["name"].(string)
 	if !ok || name == "" {
 		return nil, fmt.Errorf("name is required")
 	}
 	grinder.Name = name
 
-	// Required field: createdAt
 	createdAtStr, ok := record["createdAt"].(string)
 	if !ok {
 		return nil, fmt.Errorf("createdAt is required")
@@ -672,8 +642,6 @@ func RecordToGrinder(record map[string]any, atURI string) (*Grinder, error) {
 	return grinder, nil
 }
 
-// ========== Brewer Conversions ==========
-
 // BrewerToRecord converts a Brewer to an atproto record map
 func BrewerToRecord(brewer *Brewer) (map[string]any, error) {
 	record := map[string]any{
@@ -682,7 +650,6 @@ func BrewerToRecord(brewer *Brewer) (map[string]any, error) {
 		"createdAt": brewer.CreatedAt.Format(time.RFC3339),
 	}
 
-	// Optional fields
 	if brewer.Description != "" {
 		record["description"] = brewer.Description
 	}
@@ -703,7 +670,6 @@ func BrewerToRecord(brewer *Brewer) (map[string]any, error) {
 func RecordToBrewer(record map[string]any, atURI string) (*Brewer, error) {
 	brewer := &Brewer{}
 
-	// Extract rkey from AT-URI
 	if atURI != "" {
 		parsedURI, err := syntax.ParseATURI(atURI)
 		if err != nil {
@@ -712,14 +678,12 @@ func RecordToBrewer(record map[string]any, atURI string) (*Brewer, error) {
 		brewer.RKey = parsedURI.RecordKey().String()
 	}
 
-	// Required field: name
 	name, ok := record["name"].(string)
 	if !ok || name == "" {
 		return nil, fmt.Errorf("name is required")
 	}
 	brewer.Name = name
 
-	// Required field: createdAt
 	createdAtStr, ok := record["createdAt"].(string)
 	if !ok {
 		return nil, fmt.Errorf("createdAt is required")
@@ -730,7 +694,6 @@ func RecordToBrewer(record map[string]any, atURI string) (*Brewer, error) {
 	}
 	brewer.CreatedAt = createdAt
 
-	// Optional fields
 	if description, ok := record["description"].(string); ok {
 		brewer.Description = description
 	}
@@ -747,8 +710,6 @@ func RecordToBrewer(record map[string]any, atURI string) (*Brewer, error) {
 	return brewer, nil
 }
 
-// ========== Like Conversions ==========
-
 // LikeToRecord converts a Like to an atproto record map.
 func LikeToRecord(like *Like) (map[string]any, error) {
 	return social.LikeToRecord(NSIDLike, like)
@@ -758,8 +719,6 @@ func LikeToRecord(like *Like) (map[string]any, error) {
 func RecordToLike(record map[string]any, atURI string) (*Like, error) {
 	return social.RecordToLike(record, atURI)
 }
-
-// ========== Comment Conversions ==========
 
 // CommentToRecord converts a Comment to an atproto record map.
 func CommentToRecord(comment *Comment) (map[string]any, error) {

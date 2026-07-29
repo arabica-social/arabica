@@ -21,7 +21,6 @@ func (h *Handler) BuildModerationContext(ctx context.Context, viewerDID string, 
 		HiddenURIs: make(map[string]bool),
 	}
 
-	// Check if moderation is configured and user is a moderator
 	if h.moderationService == nil || viewerDID == "" {
 		return modCtx
 	}
@@ -168,7 +167,6 @@ func (h *Handler) fetchFeed(r *http.Request) feedQueryResult {
 		}
 	}
 
-	// Populate IsLikedByViewer and IsOwner for each feed item if user is authenticated
 	if isAuthenticated {
 		var likedByViewer map[string]bool
 		if h.feedIndex != nil {

@@ -43,7 +43,6 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q feed.FeedQuery) (*
 		q.Sort = feed.FeedSortRecent
 	}
 
-	// Determine collection filters
 	var collectionFilters []string
 	if len(q.TypeFilters) > 0 {
 		for _, tf := range q.TypeFilters {
@@ -95,7 +94,6 @@ func (idx *FeedIndex) GetFeedWithQuery(ctx context.Context, q feed.FeedQuery) (*
 
 // getFeedItems fetches records from SQLite, resolves references, and returns FeedItems.
 func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []string, limit int, cursor string) ([]*feed.FeedItem, error) {
-	// Build query for feedable records
 	var args []any
 	query := `SELECT uri, did, collection, rkey, record, cid, indexed_at, created_at FROM records WHERE `
 
@@ -110,7 +108,6 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 		}
 		query += `collection IN (` + strings.Join(placeholders, ",") + `) `
 	} else {
-		// Only feedable collections
 		if len(idx.feedableCollections) == 0 {
 			return nil, nil
 		}
@@ -122,7 +119,7 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 		query += `collection IN (` + strings.Join(placeholders, ",") + `) `
 	}
 
-	// Cursor-based pagination: cursor format is "created_at|uri"
+	// Cursor format is "created_at|uri".
 	if cursor != "" {
 		parts := strings.SplitN(cursor, "|", 2)
 		if len(parts) == 2 {
@@ -164,7 +161,7 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 		return nil, err
 	}
 
-	// Build lookup map starting with the fetched records
+	// Index fetched records by URI for reference hydration.
 	recordsByURI := make(map[string]*IndexedRecord, len(records))
 	for _, r := range records {
 		recordsByURI[r.URI] = r
@@ -172,7 +169,7 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 
 	idx.fetchReferenceRecords(ctx, recordsByURI, refURIs)
 
-	// Batch-fetch social data for all records
+	// Batch-fetch like/comment counts and profiles for all fetched records.
 	recordURIs := make([]string, 0, len(records))
 	didSet := make(map[string]struct{}, len(records))
 	for _, r := range records {
@@ -182,7 +179,6 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 	likeCounts := idx.GetLikeCountsBatch(ctx, recordURIs)
 	commentCounts := idx.GetCommentCountsBatch(ctx, recordURIs)
 
-	// Pre-warm profile cache for all unique DIDs
 	profiles := make(map[string]*atproto.Profile, len(didSet))
 	for did := range didSet {
 		if p, err := idx.GetProfile(ctx, did); err == nil {
@@ -190,7 +186,6 @@ func (idx *FeedIndex) getFeedItems(ctx context.Context, collectionFilters []stri
 		}
 	}
 
-	// Convert to FeedItems
 	items := make([]*feed.FeedItem, 0, len(records))
 	for _, record := range records {
 		item, err := idx.recordToFeedItem(ctx, record, recordsByURI, profiles)
@@ -223,7 +218,8 @@ func (idx *FeedIndex) recordToFeedItem(ctx context.Context, record *IndexedRecor
 		TimeAgo:   formatTimeAgo(record.CreatedAt),
 	}
 
-	// Get author profile from pre-fetched map or fallback to individual fetch
+	// Get author profile from the pre-fetched map, falling back to an
+	// individual fetch (which logs and degrades to a DID-as-handle profile).
 	profile, ok := profiles[record.DID]
 	if !ok || profile == nil {
 		var err error

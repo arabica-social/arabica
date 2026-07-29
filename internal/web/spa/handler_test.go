@@ -62,7 +62,6 @@ func TestShellHandler_InjectsHeadContent(t *testing.T) {
 	assert.Contains(t, html, `name="twitter:card"`)
 	assert.Contains(t, html, `rel="stylesheet"`)
 	assert.Contains(t, html, `rel="manifest" href="/static/manifest.json"`)
-	// The SvelteKit bootstrap script should still be present
 	assert.Contains(t, html, "__sveltekit")
 }
 
@@ -182,7 +181,6 @@ func TestShellHandler_OGImage(t *testing.T) {
 	body, _ := io.ReadAll(w.Result().Body)
 	html := string(body)
 
-	// Without an OG image, twitter:card should be "summary"
 	assert.Contains(t, html, `name="twitter:card" content="summary"`)
 	assert.NotContains(t, html, "og:image")
 }
@@ -266,9 +264,7 @@ func TestShellHandler_MarkerReplaced(t *testing.T) {
 	body, _ := io.ReadAll(w.Result().Body)
 	html := string(body)
 
-	// The marker meta tag should be replaced with actual head content
 	assert.NotContains(t, html, `name="arabica-spa-head"`)
-	// But the SvelteKit modulepreload links should still be present
 	assert.Contains(t, html, "modulepreload")
 }
 
@@ -283,7 +279,6 @@ func TestShellHandler_NoCacheHeader(t *testing.T) {
 	assert.Equal(t, "no-cache", w.Header().Get("Cache-Control"))
 }
 
-// Ensure the shell HTML is well-formed enough to contain key structural elements
 func TestShellHandler_HTMLStructure(t *testing.T) {
 	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
 	require.NoError(t, err)
@@ -303,12 +298,6 @@ func TestShellHandler_HTMLStructure(t *testing.T) {
 	assert.Contains(t, html, "</html>")
 }
 
-// TestShellHandler_DevDir_ReadsIndexFromDisk verifies that when a dev dir
-// is set, the shell re-reads index.html from disk on each request so
-// `vite build --watch` output appears without a Go restart. It writes a
-// fresh index.html (mirroring app.html's head marker) into a temp dir,
-// points the handler at it, and asserts the served HTML reflects the
-// on-disk file rather than the embedded copy.
 func TestShellHandler_DevDir_ReadsIndexFromDisk(t *testing.T) {
 	devDir := t.TempDir()
 	// Mirror the shape SvelteKit produces: the head marker that
@@ -329,16 +318,11 @@ func TestShellHandler_DevDir_ReadsIndexFromDisk(t *testing.T) {
 	html := string(body)
 	assert.Contains(t, html, `data-dev-source="disk"`, "dev dir should override embedded index.html")
 	assert.Contains(t, html, "dev shell")
-	// The marker is still replaced with injected head content.
 	assert.NotContains(t, html, `name="arabica-spa-head"`)
 	assert.Contains(t, html, `<title>`)
 }
 
-// TestShellHandler_DevDir_FallsBackToEmbedded verifies that when the dev
-// dir is set but index.html is missing (e.g. before the first vite build),
-// ServeHTTP falls back to the embedded copy rather than 500ing.
 func TestShellHandler_DevDir_FallsBackToEmbedded(t *testing.T) {
-	// Temp dir with no index.html.
 	devDir := t.TempDir()
 
 	h, err := NewShellHandler(testManifest(), "arabica", arabicaBrand())
@@ -354,9 +338,6 @@ func TestShellHandler_DevDir_FallsBackToEmbedded(t *testing.T) {
 	assert.NotContains(t, string(body), `name="arabica-spa-head"`, "embedded marker should still be replaced")
 }
 
-// TestAssetHandlerWithDevDir_ServesFromDisk verifies the disk-backed asset
-// handler serves chunks from the dev build directory with no-cache, so
-// `vite build --watch` output appears on the next refresh.
 func TestAssetHandlerWithDevDir_ServesFromDisk(t *testing.T) {
 	devDir := t.TempDir()
 	// Mirror the embedded layout: build/_app/immutable/entry/start.<hash>.js

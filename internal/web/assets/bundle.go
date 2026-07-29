@@ -69,8 +69,7 @@ func (b *Bundle) MustBuild() {
 	}
 }
 
-// Href returns the URL the layout template should link, including a content
-// hash query parameter for cache busting.
+// Href returns the bundle URL with a content hash for cache busting.
 func (b *Bundle) Href() string {
 	hash, _ := b.hashOnly()
 	return b.URLPath() + "?h=" + hash
@@ -131,8 +130,7 @@ func (b *Bundle) current() ([]byte, string, error) {
 }
 
 // hashOnly returns the hash without forcing a build of the full bytes slice
-// when one is already cached. It's used by Href, which renders into many
-// templ pages — keeps that path off the lock when possible.
+// when one is already cached, keeping frequent Href calls off the lock.
 func (b *Bundle) hashOnly() (string, error) {
 	_, hash, err := b.current()
 	return hash, err
@@ -174,8 +172,6 @@ func (b *Bundle) build(fsys fs.FS, root string) ([]byte, string, error) {
 	sum := sha256.Sum256(buf)
 	return buf, hex.EncodeToString(sum[:])[:16], nil
 }
-
-// --- package-level registry, for the templ helper to look up bundles by app name ---
 
 var (
 	registryMu sync.RWMutex

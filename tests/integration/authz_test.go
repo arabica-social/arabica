@@ -164,7 +164,6 @@ func TestHTTP_CrossUserMutationIsolation(t *testing.T) {
 				brewerRKey:  mustRKey(t, h.PostForm("/api/brewers", form("name", "Refs Brewer", "brewer_type", "Pour Over")), "brewer"),
 			}
 
-			// Alice creates the entity under test.
 			createResp := h.PostForm(tc.createPath, tc.createForm(refs))
 			rkey := mustRKey(t, createResp, tc.name)
 
@@ -174,7 +173,6 @@ func TestHTTP_CrossUserMutationIsolation(t *testing.T) {
 			require.True(t, ok, "%s not found right after create", tc.name)
 			require.NotEmpty(t, origName)
 
-			// Bob signs in.
 			bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 			bobClient := h.NewClientForAccount(bob)
 
@@ -216,7 +214,6 @@ func TestHTTP_CrossUserMutationIsolation(t *testing.T) {
 func TestHTTP_CrossUserBrewIsolation(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Alice creates a brew + its dependencies.
 	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Alice Roaster")), "roaster")
 	beanRKey := mustRKey(t, h.PostForm("/api/beans", form(
 		"name", "Alice Bean",
@@ -240,7 +237,6 @@ func TestHTTP_CrossUserBrewIsolation(t *testing.T) {
 	require.Len(t, data.Brews, 1)
 	brewRKey := data.Brews[0].RKey
 
-	// Bob signs in and attacks.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 
@@ -248,9 +244,9 @@ func TestHTTP_CrossUserBrewIsolation(t *testing.T) {
 		restore := withClient(h, bobClient)
 		defer restore()
 
-		// Bob's PUT requires a valid bean_rkey from his own context. Use a fake
-		// (well-formed) rkey — handler should reject because it doesn't exist
-		// in Bob's PDS, and even if it doesn't, Alice's record must be safe.
+		// Bob sends Alice's bean_rkey/brewer_rkey. The handler treats posted
+		// rkeys as the caller's own, so Alice's record must stay untouched even
+		// if Bob's request would otherwise validate.
 		attack := url.Values{}
 		attack.Set("bean_rkey", beanRKey) // Alice's rkey — handler treats it as Bob's
 		attack.Set("brewer_rkey", brewerRKey)

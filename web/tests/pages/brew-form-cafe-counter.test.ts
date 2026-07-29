@@ -58,7 +58,6 @@ describe("BrewForm cafe-counter migration", () => {
 
 	it("renders the live brew context rail with a ratio derived from coffee and water", async () => {
 		render(BrewForm, { brew: editBrew, isEdit: true });
-		// 250g water / 15g coffee = 1:16.7
 		expect(screen.getByText(/Ratio 1:16\.7/)).toBeTruthy();
 	});
 
@@ -71,13 +70,11 @@ describe("BrewForm cafe-counter migration", () => {
 		const user = userEvent.setup();
 		render(BrewForm, { brew: null, isEdit: false });
 
-		// No ratio until both values are present.
 		expect(screen.queryByText(/Ratio 1:/)).toBeNull();
 
 		await user.type(screen.getByLabelText("Coffee Amount (grams)"), "18");
 		await user.type(screen.getByLabelText("Water Amount (grams)"), "300");
 
-		// 300/18 = 16.7
 		expect(screen.getByText(/Ratio 1:16\.7/)).toBeTruthy();
 	});
 
@@ -160,14 +157,12 @@ describe("BrewForm cafe-counter migration", () => {
 		// Bloom time mirrors the first pour's time (30s).
 		expect(screen.getByLabelText("Bloom Time (seconds)")).toHaveValue(30);
 
-		// The brewer combo is hidden while the recipe is collapsed; expanding it
 		// reveals the pre-filled brewer derived from the recipe.
 		await user.click(await screen.findByRole("button", { name: "Adjust" }));
 		const brewerCombo = screen.getByRole("combobox", { name: "Search brew methods" });
 		expect(brewerCombo).toHaveValue("V60");
 		expect(document.querySelector('input[name="brewer_rkey"]')?.getAttribute("value")).toBe("brewer-v60");
 
-		// Scaling the recipe (water 300 → 240) scales the first pour 50 → 40 and
 		// the bloom water tracks it.
 		const water = screen.getByLabelText("Water (g)");
 		await user.clear(water);
@@ -178,7 +173,6 @@ describe("BrewForm cafe-counter migration", () => {
 
 	it("counts recorded details in the completeness rail section", () => {
 		render(BrewForm, { brew: editBrew, isEdit: true });
-		// editBrew has bean, brewer, grinder, coffee, water, time, temperature,
 		// tasting notes, and rating set — all 9 useful details.
 		expect(screen.getByText("9 of 9 useful details recorded.")).toBeTruthy();
 	});

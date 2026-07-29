@@ -87,8 +87,7 @@ type SessionCache struct {
 	caches map[string]*UserCache // keyed by session ID
 }
 
-// NewSessionCache creates a new session cache instance.
-// Prefer this over global state for better testability and dependency injection.
+// NewSessionCache creates a session cache.
 func NewSessionCache() *SessionCache {
 	return &SessionCache{
 		caches: make(map[string]*UserCache),

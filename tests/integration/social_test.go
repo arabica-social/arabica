@@ -42,10 +42,8 @@ func TestHTTP_LikeToggleFlow(t *testing.T) {
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Likeable Roaster")), "roaster")
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
-	// Initial state: no likes.
 	assert.Equal(t, 0, h.FeedIndex.GetLikeCount(context.Background(), subjectURI))
 
-	// Like.
 	likeResp := h.PostForm("/api/likes/toggle", form(
 		"subject_uri", subjectURI,
 		"subject_cid", subjectCID,
@@ -55,7 +53,6 @@ func TestHTTP_LikeToggleFlow(t *testing.T) {
 	assert.Equal(t, 1, h.FeedIndex.GetLikeCount(context.Background(), subjectURI),
 		"like count should be 1 after liking")
 
-	// Toggle off.
 	unlikeResp := h.PostForm("/api/likes/toggle", form(
 		"subject_uri", subjectURI,
 		"subject_cid", subjectCID,
@@ -66,22 +63,16 @@ func TestHTTP_LikeToggleFlow(t *testing.T) {
 		"like count should be 0 after unliking")
 }
 
-// TestHTTP_LikeCrossUser verifies that when Bob likes Alice's record, the
-// count reflects both users' likes independently. Each like is stored in the
-// liker's PDS but indexed against the subject URI, so this exercises the
-// "many likers, one subject" path.
 func TestHTTP_LikeCrossUser(t *testing.T) {
 	h := StartHarness(t, nil)
 
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Popular Roaster")), "roaster")
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
-	// Alice likes her own record.
 	resp := h.PostForm("/api/likes/toggle", form("subject_uri", subjectURI, "subject_cid", subjectCID))
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, ReadBody(t, resp)))
 	require.Equal(t, 1, h.FeedIndex.GetLikeCount(context.Background(), subjectURI))
 
-	// Bob signs in and likes the same record.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 	func() {
@@ -95,8 +86,6 @@ func TestHTTP_LikeCrossUser(t *testing.T) {
 		"count should reflect likes from both Alice and Bob")
 }
 
-// TestHTTP_LikeValidation covers the input rejection paths in the like
-// toggle handler: missing subject_uri or subject_cid must return 400.
 func TestHTTP_LikeValidation(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -118,13 +107,9 @@ func TestHTTP_LikeValidation(t *testing.T) {
 	}
 }
 
-// TestHTTP_CommentCreateAndList covers the basic comment lifecycle on a
-// brew (the most common comment subject): post a comment, list it via the
-// HTMX-only GET endpoint, then delete it.
 func TestHTTP_CommentCreateAndList(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Set up something to comment on.
 	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "C Roaster")), "roaster")
 	beanRKey := mustRKey(t, h.PostForm("/api/beans", form(
 		"name", "C Bean", "roaster_rkey", roasterRKey, "roast_level", "Medium",
@@ -142,7 +127,6 @@ func TestHTTP_CommentCreateAndList(t *testing.T) {
 	brewRKey := data.Brews[0].RKey
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDBrew, brewRKey)
 
-	// Post a comment.
 	commentResp := h.PostForm("/api/comments", form(
 		"subject_uri", subjectURI,
 		"subject_cid", subjectCID,
@@ -161,13 +145,11 @@ func TestHTTP_CommentCreateAndList(t *testing.T) {
 	commentRKey := indexed[0].RKey
 	require.NotEmpty(t, commentRKey)
 
-	// Verify the HTMX list endpoint also returns it.
 	listResp := h.GetHTMX("/api/comments?subject_uri=" + url.QueryEscape(subjectURI) + "&subject_cid=" + url.QueryEscape(subjectCID))
 	listBody := ReadBody(t, listResp)
 	require.Equal(t, 200, listResp.StatusCode, statusErr(listResp, listBody))
 	assert.Contains(t, listBody, "great extraction")
 
-	// Delete and verify gone from the index.
 	delResp := h.Delete("/api/comments/" + commentRKey)
 	require.Equal(t, 200, delResp.StatusCode, statusErr(delResp, ReadBody(t, delResp)))
 
@@ -210,7 +192,6 @@ func TestHTTP_CommentReplyThreading(t *testing.T) {
 	))
 	require.Equal(t, 200, replyResp.StatusCode, statusErr(replyResp, ReadBody(t, replyResp)))
 
-	// Both comments should appear, with the reply at depth 1 and naming the parent.
 	indexed = h.FeedIndex.GetThreadedCommentsForSubject(context.Background(), subjectURI, 100, h.PrimaryAccount.DID)
 	require.Len(t, indexed, 2)
 
@@ -231,8 +212,6 @@ func TestHTTP_CommentReplyThreading(t *testing.T) {
 		"reply should reference the parent URI")
 }
 
-// TestHTTP_CommentValidation covers comment input rejection: missing subject,
-// missing text, oversized text, and orphan parent_uri without parent_cid.
 func TestHTTP_CommentValidation(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -292,11 +271,9 @@ func TestHTTP_LikeAndCommentTogether(t *testing.T) {
 	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Combined Roaster")), "roaster")
 	subjectURI, subjectCID := subjectRefFor(t, h, h.PrimaryAccount, arabica.NSIDRoaster, rkey)
 
-	// Like.
 	likeResp := h.PostForm("/api/likes/toggle", form("subject_uri", subjectURI, "subject_cid", subjectCID))
 	require.Equal(t, 200, likeResp.StatusCode)
 
-	// Comment.
 	commentResp := h.PostForm("/api/comments", form(
 		"subject_uri", subjectURI,
 		"subject_cid", subjectCID,
@@ -304,15 +281,12 @@ func TestHTTP_LikeAndCommentTogether(t *testing.T) {
 	))
 	require.Equal(t, 200, commentResp.StatusCode)
 
-	// Both should be visible.
 	assert.Equal(t, 1, h.FeedIndex.GetLikeCount(context.Background(), subjectURI))
 	indexed := h.FeedIndex.GetThreadedCommentsForSubject(context.Background(), subjectURI, 100, h.PrimaryAccount.DID)
 	require.Len(t, indexed, 1)
 	commentRKey := indexed[0].RKey
 
-	// Fetch the roaster view via the JSON endpoint — it should include the
-	// like + comment data pulled from the same feed index. This is the
-	// visible end-to-end check (the SPA renders from this payload).
+	// The entity view and social endpoints must agree on indexed state.
 	viewResp := getJSON(t, h, "/api/roasters/"+h.PrimaryAccount.DID+"/"+rkey)
 	viewBody := ReadBody(t, viewResp)
 	require.Equal(t, 200, viewResp.StatusCode, statusErr(viewResp, viewBody))
@@ -327,7 +301,6 @@ func TestHTTP_LikeAndCommentTogether(t *testing.T) {
 	require.Len(t, view.Social.Comments, 1, "comment should be embedded in the view payload")
 	assert.Contains(t, view.Social.Comments[0].Text, "first impressions: solid")
 
-	// Unlike + delete comment.
 	unlikeResp := h.PostForm("/api/likes/toggle", form("subject_uri", subjectURI, "subject_cid", subjectCID))
 	require.Equal(t, 200, unlikeResp.StatusCode)
 	delResp := h.Delete("/api/comments/" + commentRKey)

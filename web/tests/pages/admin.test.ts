@@ -2,7 +2,6 @@ import { cleanup, render, screen } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AdminPage from "../../src/routes/_mod/+page.svelte";
 
-// Mock $app/navigation
 vi.mock("$app/navigation", () => ({
 	goto: vi.fn(),
 }));
@@ -51,7 +50,6 @@ describe("Admin dashboard", () => {
 
 	it("renders all tab buttons", () => {
 		render(AdminPage, { data: adminData });
-		// Tab buttons + section headings share the same text; check they exist.
 		expect(screen.getAllByText("Hidden Records").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("Blocked Users").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("Reports").length).toBeGreaterThan(0);
@@ -63,7 +61,6 @@ describe("Admin dashboard", () => {
 
 	it("shows hidden records count badge", () => {
 		render(AdminPage, { data: adminData });
-		// The badge appears next to the Hidden Records tab
 		const badges = screen.getAllByText("1");
 		expect(badges.length).toBeGreaterThan(0);
 	});

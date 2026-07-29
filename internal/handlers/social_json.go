@@ -209,7 +209,6 @@ func (h *Handler) HandleCommentCreateJSON(w http.ResponseWriter, r *http.Request
 		h.feedIndex.CreateCommentNotification(didStr, subjectURI, parentURI)
 	}
 
-	// Return the updated comment section
 	var comments []firehose.IndexedComment
 	if h.feedIndex != nil {
 		comments = h.feedIndex.GetThreadedCommentsForSubject(r.Context(), subjectURI, 100, didStr)
@@ -222,7 +221,7 @@ func (h *Handler) HandleCommentCreateJSON(w http.ResponseWriter, r *http.Request
 	}, "comment-create")
 }
 
-// HandleCommentDeleteJSON deletes a comment and returns JSON for the SvelteKit SPA.
+// HandleCommentDeleteJSON deletes a comment.
 func (h *Handler) HandleCommentDeleteJSON(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
@@ -308,7 +307,6 @@ func (h *Handler) HandleReportJSON(w http.ResponseWriter, r *http.Request) {
 		reason = reason[:MaxReportReasonLength]
 	}
 
-	// Rate limit check
 	oneHourAgo := time.Now().Add(-1 * time.Hour)
 	recentCount, err := h.moderationStore.CountReportsFromUserSince(ctx, reporterDID, oneHourAgo)
 	if err != nil {

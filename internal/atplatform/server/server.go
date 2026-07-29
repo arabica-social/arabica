@@ -1,8 +1,4 @@
-// Package server holds the bootstrap that constructs every shared
-// dependency (database, OAuth, firehose, handlers, router) and serves
-// HTTP until shutdown. cmd/arabica/main.go and cmd/server/main.go both
-// call Run after building their respective *domain.App, so a bug fix
-// in the boot sequence benefits both binaries with no duplication.
+// Package server bootstraps and runs the Arabica HTTP server.
 package server
 
 import (
@@ -136,8 +132,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		return fmt.Errorf("migrate legacy db path: %w", err)
 	}
 
-	// Firehose config -- wantedCollections come from app.NSIDs() so the
-	// jetstream subscription tracks the running app's entity set.
+	// Subscribe only to collections owned by this app.
 	firehoseConfig := firehose.DefaultConfig()
 	firehoseConfig.IndexPath = dbPath
 	firehoseConfig.WantedCollections = app.NSIDs()
@@ -163,8 +158,6 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 
 	sessionStore := oauthsqlite.NewOAuthStore(feedIndex.DB())
 
-	// OAuth manager
-	// REFACTOR: this feels a bit messy
 	clientID := lookupAppEnv(envPrefix, "OAUTH_CLIENT_ID")
 	redirectURI := lookupAppEnv(envPrefix, "OAUTH_REDIRECT_URI")
 	if clientID == "" && redirectURI == "" {
@@ -349,11 +342,7 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 	manifest := assets.NewManifest(cssBundle)
 	h.SetAssetManifest(manifest)
 
-	// SvelteKit SPA shell. The handler reads the embedded SvelteKit build
-	// and injects server-side <head> content (OG tags, title, theme, CSS).
-	// The SPA is the default frontend; page routes listed in SPAOwnedRoutes
-	// are served by the shell. (Legacy templ/HTMX fallbacks are retained
-	// only behind unlisted routes during the final retirement pass.)
+	// The shell injects request-specific metadata into the embedded SPA build.
 	var spaHandler http.Handler
 	sh, err := spa.NewShellHandler(manifest, app.Name, app.Brand)
 	if err != nil {

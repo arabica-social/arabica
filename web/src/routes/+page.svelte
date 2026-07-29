@@ -32,7 +32,6 @@
   let loading = $state(false);
   let loadingMore = $state(false);
 
-  // Sync load function data into local state.
   // svelte-ignore state_referenced_locally
   $effect(() => {
     typeFilter = data.typeFilter ?? "";
@@ -141,9 +140,7 @@
   let isAuthenticated = $derived(data.isAuthenticated);
   let appName = $derived(data.appName ?? "arabica");
   let appDefinition = $derived(definitionFor(appName));
-  // Filters only make sense for authenticated viewers — the unauth feed is
-  // an unfiltered cached public list, so showing filter pills would imply
-  // interactivity that doesn't exist. Mirrors the old templ gate.
+  // The public feed is an unfiltered cache; filters require viewer context.
   let showFilters = $derived(isAuthenticated);
   let onboarding = $derived(data.onboarding);
   let incompleteRecords = $derived(data.incompleteRecords);

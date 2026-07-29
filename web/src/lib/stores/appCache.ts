@@ -1,17 +1,5 @@
-// Client record cache for the SvelteKit SPA.
-//
-// This is the SvelteKit port of `internal/web/assets/svelte/src/appCache.ts`.
-// It talks to the same `GET /api/data` endpoint and uses the same localStorage
-// envelope (same key, version, and TTL) so the cache survives a page reload
-// regardless of which shell rendered it.
-//
-// Two access patterns coexist during migration:
-//
-//   1. SvelteKit routes import `appCache` and call `getData()` / `invalidate()`.
-//   2. Existing Svelte islands (EntityCombo, BrewFormIsland, …) read
-//      `window.AppCache`. The layout installs the same object onto
-//      `window.AppCache` so islands keep working unchanged until they are
-//      ported to SvelteKit components.
+// Cache GET /api/data records in a versioned, app- and viewer-scoped
+// localStorage envelope. Consumers may import the singleton or use window.AppCache.
 
 import { writable, type Writable } from "svelte/store";
 import type { AppCacheAPI } from "../types/appCache";
@@ -259,9 +247,7 @@ class AppCacheStore implements AppCacheAPI {
 // Singleton — one cache for the whole app.
 export const appCache = new AppCacheStore();
 
-// Install the singleton onto `window.AppCache` so existing Svelte islands
-// (EntityCombo, BrewFormIsland, …) that read `window.AppCache` keep working
-// during the migration. Safe to call multiple times.
+// Expose the singleton through the shared global contract. Safe to call repeatedly.
 export function installAppCacheGlobal() {
   (window as unknown as { AppCache?: AppCacheAPI }).AppCache = appCache;
 }

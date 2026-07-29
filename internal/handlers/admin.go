@@ -79,7 +79,6 @@ func (h *Handler) buildAdminProps(ctx context.Context, userDID string) sharedpag
 
 	isAdmin := h.moderationService.IsAdmin(userDID)
 
-	// Build stats for admin users
 	var stats sharedpages.AdminStats
 	var backups []backup.SourceStatus
 	if isAdmin {
@@ -148,17 +147,14 @@ func (h *Handler) enrichReports(ctx context.Context, reports []moderation.Report
 			Report: report,
 		}
 
-		// Resolve owner handle
 		if profile, err := publicClient.GetProfile(ctx, report.SubjectDID); err == nil {
 			er.OwnerHandle = profile.Handle
 		}
 
-		// Resolve reporter handle
 		if profile, err := publicClient.GetProfile(ctx, report.ReporterDID); err == nil {
 			er.ReporterHandle = profile.Handle
 		}
 
-		// Fetch post content summary
 		er.PostContent = h.getPostContentSummary(ctx, publicClient, report.SubjectURI)
 
 		enriched = append(enriched, er)
@@ -169,22 +165,18 @@ func (h *Handler) enrichReports(ctx context.Context, reports []moderation.Report
 
 // getPostContentSummary fetches a summary of post content from an AT-URI
 func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atp.PublicClient, atURI string) string {
-	// Parse AT-URI to get DID, collection, and rkey
 	uriParts, err := atp.ParseATURI(atURI)
 	if err != nil {
 		return ""
 	}
 
-	// Fetch the record
 	record, err := publicClient.GetPublicRecord(ctx, uriParts.DID, uriParts.Collection, uriParts.RKey)
 	if err != nil {
 		return ""
 	}
 
-	// Build summary based on record type
 	var summary string
 
-	// Check for brew records
 	if method, ok := record.Value["method"].(string); ok {
 		summary = "Brew: " + method
 	}
@@ -192,7 +184,6 @@ func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atp.P
 		if summary != "" {
 			summary += "\n"
 		}
-		// Truncate long tasting notes
 		if len(tastingNotes) > 200 {
 			summary += tastingNotes[:200] + "..."
 		} else {
@@ -200,14 +191,12 @@ func (h *Handler) getPostContentSummary(ctx context.Context, publicClient *atp.P
 		}
 	}
 
-	// Check for bean records
 	if name, ok := record.Value["name"].(string); ok {
 		if summary == "" {
 			summary = "Bean: " + name
 		}
 	}
 
-	// If no specific fields found, return a generic message
 	if summary == "" {
 		summary = "(Record content not available)"
 	}
@@ -267,7 +256,6 @@ func (h *Handler) collectAdminStats(ctx context.Context) sharedpages.AdminStats 
 		stats.RegisteredUsers = h.feedRegistry.Count()
 	}
 
-	// Read firehose connection state from the Prometheus gauge
 	stats.FirehoseConnected = getGaugeValue(metrics.FirehoseConnectionState) == 1
 
 	return stats

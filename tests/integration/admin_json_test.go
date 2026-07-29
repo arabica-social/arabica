@@ -19,9 +19,6 @@ type adminMutationJSONResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
-// TestHTTP_AdminJSON verifies that the admin JSON endpoints return 403 for
-// non-moderators (the test harness has no moderation service configured, so
-// the RequireModerator middleware denies access).
 func TestHTTP_AdminJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -37,8 +34,6 @@ func TestHTTP_AdminJSON(t *testing.T) {
 	ReadBody(t, resp2)
 }
 
-// TestHTTP_AdminMutationJSON verifies that the admin mutation endpoints return
-// 403 for non-moderators even with Accept: application/json.
 func TestHTTP_AdminMutationJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -55,10 +50,6 @@ func TestHTTP_AdminMutationJSON(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 }
 
-// TestHTTP_AdminMutationJSONContentType verifies the response is JSON when
-// the moderation service is configured. Since the harness doesn't set up
-// moderation, this test just verifies the content negotiation doesn't crash
-// and returns an appropriate status code.
 func TestHTTP_AdminMutationJSONContentType(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -76,9 +67,6 @@ func TestHTTP_AdminMutationJSONContentType(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 }
 
-// TestHTTP_AdminStatsJSONShape verifies the JSON response shape for the stats
-// endpoint when access is denied. This is a lightweight check that the route
-// is wired and returns the expected status code.
 func TestHTTP_AdminStatsJSONShape(t *testing.T) {
 	h := StartHarness(t, nil)
 

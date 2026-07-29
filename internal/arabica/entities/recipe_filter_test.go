@@ -60,7 +60,6 @@ func TestMatchesFilter_MultipleFilters(t *testing.T) {
 		WaterAmount:  250,
 	}
 
-	// All match
 	assert.True(t, MatchesFilter(recipe, RecipeFilter{
 		Query:      "V60",
 		BrewerType: "Pour-Over",
@@ -68,7 +67,6 @@ func TestMatchesFilter_MultipleFilters(t *testing.T) {
 		MaxWater:   300,
 	}))
 
-	// One fails
 	assert.False(t, MatchesFilter(recipe, RecipeFilter{
 		Query:      "V60",
 		BrewerType: "French Press",
@@ -134,7 +132,6 @@ func TestMatchesFilter_CategoryExplicitOverride(t *testing.T) {
 
 func TestMatchesFilter_UnknownCategory(t *testing.T) {
 	recipe := &Recipe{Name: "Test", CoffeeAmount: 18}
-	// Unknown category is ignored
 	assert.True(t, MatchesFilter(recipe, RecipeFilter{Category: "unknown"}))
 }
 
@@ -254,7 +251,6 @@ func TestFilterRecipes(t *testing.T) {
 	result = FilterRecipes(recipes, RecipeFilter{MinCoffee: 20})
 	assert.Len(t, result, 2)
 
-	// Empty filter returns all
 	result = FilterRecipes(recipes, RecipeFilter{})
 	assert.Len(t, result, 4)
 }

@@ -1,7 +1,5 @@
 arabica: run
 
-# Run the Go backend with the SvelteKit SPA shell (the default frontend).
-# Open http://127.0.0.1:18910. For live SvelteKit HMR, use `run-spa-dev`.
 run:
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt
 
@@ -17,8 +15,6 @@ spa-build:
 spa-dev:
     @VITE_BACKEND_URL=http://127.0.0.1:18910 VITE_DEV_PORT=5173 pnpm --dir web run dev
 
-# Legacy rebuild-on-refresh loop for exercising Go's disk-backed SPA shell.
-# Use run-spa-dev for normal Vite HMR development.
 spa-watch:
     @./scripts/watch-spa.sh
 
@@ -101,12 +97,9 @@ format:
     @pnpm run format
     @gofmt -w ./
 
-# Build the SPA (needed before running e2e-server).
 e2e-build:
     @./scripts/build-spa.sh
 
-# Boot the e2e-server (test PDS + SPA) and run Playwright with the given args.
-# Private helper; call via `e2e` or `e2e-update-snapshots`.
 _e2e-run *args:
     @set -eu; \
         rm -f tests/e2e/.server-url tests/e2e/.server-did tests/e2e/.control-url; \
@@ -127,25 +120,15 @@ _e2e-run *args:
         cd web; \
         ARABICA_E2E_BASE_URL=$base_url ARABICA_E2E_CONTROL_URL=$control_url CHROMIUM_PATH=$(nix-shell -p chromium --run 'which chromium' 2>/dev/null | tail -1) pnpm exec playwright test {{args}}
 
-# Run E2E tests with Playwright. Boots the e2e-server (test PDS + SPA),
-# then runs the Playwright spec files against it.
 e2e: e2e-build
     @just _e2e-run
 
-# Update Playwright screenshot baselines after intentional UI changes.
-# Defaults to the visual-regression spec; pass a spec + extra Playwright args
-# to scope the update, e.g. after moving a single button:
-#   just e2e-update-snapshots
-#   just e2e-update-snapshots tests/e2e/visual-regression.spec.ts -g "brew view"
-# Updated baselines land in web/tests/e2e/visual-regression.spec.ts-snapshots/.
 e2e-update-snapshots testfile='tests/e2e/visual-regression.spec.ts' *args='': e2e-build
     @just _e2e-run {{testfile}} --update-snapshots {{args}}
 
-# Run only the e2e-server (without Playwright) for manual testing.
 e2e-server: e2e-build
     @go run -tags=integration ./cmd/e2e-server
 
-# Run all CI checks locally (mirrors .github/workflows/ci.yml).
 ci-check:
     @go vet ./...
     @go build ./cmd/arabica

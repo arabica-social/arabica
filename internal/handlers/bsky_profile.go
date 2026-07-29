@@ -204,8 +204,7 @@ func (h *Handler) HandleUpdateBlueskyProfile(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// HTMX-friendly inline success ack. The caller swaps a small status
-	// span; full redirect not needed.
+	// Return the small inline status fragment expected by the settings form.
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(`<span class="text-sm text-green-700 dark:text-green-400">Saved</span>`))
 }

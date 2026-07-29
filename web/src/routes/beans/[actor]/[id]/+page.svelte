@@ -77,8 +77,7 @@
 		}
 	}
 
-	// Inline bag rating: mirrors the old BeanViewActionsIsland. PUTs the full
-	// bean with an overridden rating, then reloads so the header badge updates.
+	// Rating updates replace the full record, then reload its derived view data.
 	let rateDialog = $state<HTMLDialogElement | undefined>();
 	let ratingValue = $state(5);
 	let savingRating = $state(false);

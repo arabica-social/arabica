@@ -13,9 +13,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/atproto"
 )
 
-// TestHandleBrewCreateJSONSessionExpired asserts the typed JSON create
-// endpoint surfaces a 401 session_expired envelope when the store reports an
-// expired OAuth session, mirroring the legacy HandleBrewCreate JSON path.
 func TestHandleBrewCreateJSONSessionExpired(t *testing.T) {
 	tc := NewTestContext()
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
@@ -36,8 +33,6 @@ func TestHandleBrewCreateJSONSessionExpired(t *testing.T) {
 	assert.JSONEq(t, `{"error":"Your session has expired. Please log in again.","code":"session_expired"}`, rec.Body.String())
 }
 
-// TestHandleBrewCreateJSONUnauthenticated asserts the typed JSON create
-// endpoint returns a JSON 401 for a missing session instead of redirecting.
 func TestHandleBrewCreateJSONUnauthenticated(t *testing.T) {
 	tc := NewTestContext()
 	req := httptest.NewRequest(http.MethodPost, "/api/brews", ioNopCloser(`{"bean_rkey":"3jzfcijpj2z2a"}`))
@@ -53,8 +48,6 @@ func TestHandleBrewCreateJSONUnauthenticated(t *testing.T) {
 	assert.Empty(t, rec.Header().Get("Location"))
 }
 
-// TestHandleBrewCreateJSONValidationMissingBean asserts a JSON create without
-// a bean_rkey returns a 400 validation_failed envelope.
 func TestHandleBrewCreateJSONValidationMissingBean(t *testing.T) {
 	tc := NewTestContext()
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
@@ -71,9 +64,6 @@ func TestHandleBrewCreateJSONValidationMissingBean(t *testing.T) {
 	assert.JSONEq(t, `{"error":"Bean selection is required","code":"validation_failed"}`, rec.Body.String())
 }
 
-// TestHandleBrewCreateJSONValidationOutOfRange asserts the numeric range
-// validation (replicated from the legacy validateBrewRequest) rejects an
-// out-of-range temperature via the JSON envelope.
 func TestHandleBrewCreateJSONValidationOutOfRange(t *testing.T) {
 	tc := NewTestContext()
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
@@ -91,9 +81,6 @@ func TestHandleBrewCreateJSONValidationOutOfRange(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "validation_failed")
 }
 
-// TestHandleBrewCreateJSONHappyPath asserts a successful JSON create returns
-// the brew model envelope with author_did, and skips the incomplete-bean nudge
-// when the referenced bean fetch fails.
 func TestHandleBrewCreateJSONHappyPath(t *testing.T) {
 	tc := NewTestContext()
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
@@ -123,8 +110,6 @@ func TestHandleBrewCreateJSONHappyPath(t *testing.T) {
 	assert.Nil(t, resp.IncompleteNudge)
 }
 
-// TestHandleBrewCreateJSONIncompleteBeanNudge asserts the nudge is populated
-// when the referenced bean is incomplete.
 func TestHandleBrewCreateJSONIncompleteBeanNudge(t *testing.T) {
 	tc := NewTestContext()
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
@@ -152,9 +137,6 @@ func TestHandleBrewCreateJSONIncompleteBeanNudge(t *testing.T) {
 	assert.Equal(t, "Test Bean", resp.IncompleteNudge.Name)
 }
 
-// TestHandleBrewUpdateJSONSessionExpired asserts the typed JSON update endpoint
-// surfaces a 401 session_expired envelope when the store reports an expired
-// OAuth session.
 func TestHandleBrewUpdateJSONSessionExpired(t *testing.T) {
 	tc := NewTestContext()
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
@@ -176,8 +158,6 @@ func TestHandleBrewUpdateJSONSessionExpired(t *testing.T) {
 	assert.JSONEq(t, `{"error":"Your session has expired. Please log in again.","code":"session_expired"}`, rec.Body.String())
 }
 
-// TestHandleBrewUpdateJSONHappyPath asserts a successful JSON update returns
-// the re-fetched brew model envelope with author_did.
 func TestHandleBrewUpdateJSONHappyPath(t *testing.T) {
 	tc := NewTestContext()
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
@@ -207,8 +187,6 @@ func TestHandleBrewUpdateJSONHappyPath(t *testing.T) {
 	assert.Nil(t, resp.IncompleteNudge)
 }
 
-// TestHandleBrewUpdateJSONValidationMissingBean asserts a JSON update without
-// a bean_rkey returns a 400 validation_failed envelope.
 func TestHandleBrewUpdateJSONValidationMissingBean(t *testing.T) {
 	tc := NewTestContext()
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)

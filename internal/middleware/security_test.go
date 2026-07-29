@@ -14,7 +14,6 @@ import (
 
 func TestSecurityHeadersMiddleware(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify nonce is available in context
 		nonce := CSPNonceFromContext(r.Context())
 		assert.NotEmpty(t, nonce, "nonce should be set in context")
 		w.WriteHeader(http.StatusOK)
@@ -226,7 +225,6 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 func TestLimitBodyMiddleware(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Try to read the body
 		buf := make([]byte, 2<<20) // 2MB buffer
 		_, err := r.Body.Read(buf)
 		if err != nil && err.Error() != "EOF" {
@@ -346,7 +344,6 @@ func TestGenerateNonce(t *testing.T) {
 		nonce, err := generateNonce()
 		require.NoError(t, err)
 		assert.NotEmpty(t, nonce)
-		// Base64 of 16 bytes = 24 chars
 		assert.Len(t, nonce, 24)
 	})
 

@@ -77,7 +77,6 @@ func TestArabicaRegistry_RKey(t *testing.T) {
 		assert.NotNil(t, behavior, "behavior not wired for %s", c.rt)
 		assert.NotNil(t, behavior.RKey, "RKey not wired for %s", c.rt)
 		assert.Equal(t, c.want, behavior.RKey(c.rec), c.rt)
-		// Wrong type yields "".
 		assert.Equal(t, "", behavior.RKey(struct{}{}), "%s should reject wrong type", c.rt)
 	}
 }

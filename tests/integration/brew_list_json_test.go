@@ -18,12 +18,9 @@ type brewListJSONResponse struct {
 	NextOffset int               `json:"next_offset"`
 }
 
-// TestHTTP_BrewListJSON verifies that GET /api/brews with Accept: application/json
-// returns the brew list as JSON with pagination metadata.
 func TestHTTP_BrewListJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Create prerequisites and a few brews.
 	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Brew List Roaster")), "roaster")
 	beanRKey := mustRKey(t, h.PostForm("/api/beans", form("name", "Brew List Bean", "roaster_rkey", roasterRKey)), "bean")
 	grinderRKey := mustRKey(t, h.PostForm("/api/grinders", form("name", "Brew List Grinder")), "grinder")
@@ -55,7 +52,6 @@ func TestHTTP_BrewListJSON(t *testing.T) {
 	assert.True(t, list.HasMore, "should have more results")
 	assert.Equal(t, 2, list.NextOffset, "next offset should be 2")
 
-	// Fetch the second page.
 	resp2 := getJSON(t, h, "/api/brews?limit=2&offset=2")
 	body2 := ReadBody(t, resp2)
 	require.Equal(t, 200, resp2.StatusCode, statusErr(resp2, body2))
@@ -66,7 +62,6 @@ func TestHTTP_BrewListJSON(t *testing.T) {
 	assert.False(t, list2.HasMore, "should not have more results")
 }
 
-// TestHTTP_BrewListJSONHTMXStillHTML verifies HTMX clients still get HTML.
 func TestHTTP_BrewListJSONHTMXStillHTML(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -76,7 +71,6 @@ func TestHTTP_BrewListJSONHTMXStillHTML(t *testing.T) {
 	assert.NotEqual(t, "application/json", resp.Header.Get("Content-Type"))
 }
 
-// TestHTTP_BrewListJSONUnauth verifies unauthenticated requests get 401.
 func TestHTTP_BrewListJSONUnauth(t *testing.T) {
 	h := StartHarness(t, nil)
 

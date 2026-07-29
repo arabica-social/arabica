@@ -13,9 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// AtprotoStore implements generic AT Protocol record CRUD using atproto records.
-// Context is passed as a parameter to each method rather than stored in the struct,
-// following Go best practices for context propagation.
+// AtprotoStore implements generic AT Protocol record CRUD for one user session.
 type AtprotoStore struct {
 	client       *Client
 	did          syntax.DID
@@ -30,8 +28,7 @@ type AtprotoStore struct {
 	commentNSID string
 }
 
-// NewAtprotoStore creates a new atproto store for a specific user session.
-// The cache parameter allows for dependency injection and testability.
+// NewAtprotoStore creates an AT Protocol store for a user session.
 func NewAtprotoStore(client *Client, did syntax.DID, sessionID string, cache *SessionCache) *AtprotoStore {
 	return &AtprotoStore{
 		client:    client,
@@ -180,8 +177,6 @@ func (s *AtprotoStore) getWitnessRecordByURI(ctx context.Context, uri string) *W
 	return wr
 }
 
-// ========== Like Operations ==========
-
 func (s *AtprotoStore) CreateLike(ctx context.Context, req *social.CreateLikeRequest) (*social.Like, error) {
 	if req.SubjectURI == "" {
 		return nil, fmt.Errorf("subject_uri is required")
@@ -226,7 +221,6 @@ func (s *AtprotoStore) DeleteLikeByRKey(ctx context.Context, rkey string) error 
 }
 
 func (s *AtprotoStore) GetUserLikeForSubject(ctx context.Context, subjectURI string) (*social.Like, error) {
-	// List all likes and find the one matching the subject URI
 	likes, err := s.ListUserLikes(ctx)
 	if err != nil {
 		return nil, err
@@ -238,7 +232,7 @@ func (s *AtprotoStore) GetUserLikeForSubject(ctx context.Context, subjectURI str
 		}
 	}
 
-	return nil, nil // Not found (not an error)
+	return nil, nil
 }
 
 func (s *AtprotoStore) ListUserLikes(ctx context.Context) ([]*social.Like, error) {
@@ -264,7 +258,7 @@ func (s *AtprotoStore) ListUserLikes(ctx context.Context) ([]*social.Like, error
 			continue
 		}
 
-		// Extract rkey from URI
+		// Extract rkey from URI.
 		if rkey := atp.RKeyFromURI(rec.URI); rkey != "" {
 			like.RKey = rkey
 		}
@@ -274,8 +268,6 @@ func (s *AtprotoStore) ListUserLikes(ctx context.Context) ([]*social.Like, error
 
 	return likes, nil
 }
-
-// ========== Comment Operations ==========
 
 func (s *AtprotoStore) CreateComment(ctx context.Context, req *social.CreateCommentRequest) (*social.Comment, error) {
 	if req.SubjectURI == "" {
@@ -311,7 +303,7 @@ func (s *AtprotoStore) CreateComment(ctx context.Context, req *social.CreateComm
 		return nil, fmt.Errorf("failed to create comment record: %w", err)
 	}
 	commentModel.RKey = rkey
-	// Store the CID of this comment record (useful for threading)
+	// CID is used for threading (parent reply chains).
 	commentModel.CID = cid
 
 	return commentModel, nil
@@ -329,9 +321,8 @@ func (s *AtprotoStore) DeleteCommentByRKey(ctx context.Context, rkey string) err
 }
 
 func (s *AtprotoStore) GetCommentsForSubject(ctx context.Context, subjectURI string) ([]*social.Comment, error) {
-	// List all comments and filter by subject URI
-	// Note: This is inefficient for large numbers of comments.
-	// The firehose index provides a more efficient lookup.
+	// This scans the user's own comments in-memory. The firehose index provides a
+	// more efficient lookup for cross-user comment threading.
 	comments, err := s.ListUserComments(ctx)
 	if err != nil {
 		return nil, err
@@ -370,7 +361,7 @@ func (s *AtprotoStore) ListUserComments(ctx context.Context) ([]*social.Comment,
 			continue
 		}
 
-		// Extract rkey from URI
+		// Extract rkey from URI.
 		if rkey := atp.RKeyFromURI(rec.URI); rkey != "" {
 			comment.RKey = rkey
 		}
@@ -382,6 +373,5 @@ func (s *AtprotoStore) ListUserComments(ctx context.Context) ([]*social.Comment,
 }
 
 func (s *AtprotoStore) Close() error {
-	// No persistent connection to close for atproto
 	return nil
 }

@@ -2,7 +2,6 @@ import { cleanup, render, screen, fireEvent } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Explore from "../../src/routes/explore/+page.svelte";
 
-// Mock $app/navigation
 vi.mock("$app/navigation", () => ({
 	goto: vi.fn(),
 }));

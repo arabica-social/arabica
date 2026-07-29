@@ -49,7 +49,6 @@ func mustRKey(t *testing.T, resp *http.Response, label string) string {
 func TestHTTP_BrewCreatePourover(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Set up the entities the brew references.
 	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Brew Roaster")), "roaster")
 	beanRKey := mustRKey(t, h.PostForm("/api/beans",
 		form("name", "Brew Bean", "roaster_rkey", roasterRKey)), "bean")
@@ -88,7 +87,6 @@ func TestHTTP_BrewCreatePourover(t *testing.T) {
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
 	assert.Equal(t, "/my-coffee", resp.Header.Get("HX-Redirect"))
 
-	// Verify the brew round-tripped by listing all data.
 	listResp := h.Get("/api/data")
 	listBody := ReadBody(t, listResp)
 	require.Equal(t, 200, listResp.StatusCode, statusErr(listResp, listBody))

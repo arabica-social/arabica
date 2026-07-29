@@ -12,9 +12,7 @@ import (
 // app package prevents the shared router from importing coffee handlers.
 type Routes struct{}
 
-// SPAOwnedRoutes is the explicit Arabica page-cutover inventory. A route is
-// added only after its SvelteKit direct-load path exists; unlisted routes keep
-// their legacy handlers during migration.
+// SPAOwnedRoutes lists Arabica page routes with SvelteKit direct-load support.
 func (Routes) SPAOwnedRoutes() []string {
 	return []string{
 		"GET /{$}",
@@ -67,7 +65,6 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	// storing operator correspondence in a user's PDS.
 	ctx.Pages.Register(mux, "GET /feedback", http.HandlerFunc(h.HandleNotFound))
 
-	// API routes used by both the templ stack and the SvelteKit SPA.
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
 	mux.HandleFunc("GET /api/brews", h.HandleBrewList)
 	mux.HandleFunc("GET /api/manage", h.HandleManageAPI)
@@ -99,8 +96,7 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	mux.Handle("POST /api/recipes/from-brew/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeCreateFromBrew)))
 	mux.Handle("POST /api/recipes/fork/{id}", cop.Handler(http.HandlerFunc(h.HandleRecipeFork)))
 
-	// Brew JSON mutations (typed JSON, mirroring /api/recipes). The legacy
-	// multipart POST /brews and PUT /brews/{id} routes remain for HTMX.
+	// Keep the multipart routes above for compatibility with existing clients.
 	mux.Handle("POST /api/brews", cop.Handler(http.HandlerFunc(h.HandleBrewCreateJSON)))
 	mux.Handle("PUT /api/brews/{id}", cop.Handler(http.HandlerFunc(h.HandleBrewUpdateJSON)))
 
@@ -108,16 +104,11 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	// routes remain independent of the frontend owner.
 	routing.RegisterEntityRoutes(mux, cop, ctx.App, h.EntityRouteBundles(), ctx.Pages)
 
-	// Dead modal partials from the legacy templ stack. The SPA uses dedicated
-	// /recipes/new and /recipes/{id}/edit pages and its own station drawer;
-	// these HTMX-only routes have no live consumer.
+	// Preserve retired modal URLs as explicit 404s rather than SPA fallbacks.
 	mux.HandleFunc("GET /api/modals/recipe/new", h.HandleNotFound)
 	mux.HandleFunc("GET /api/modals/recipe/{id}", h.HandleNotFound)
 
-	// SPA-owned page routes (see SPAOwnedRoutes). The legacy templ handlers
-	// have been removed; the SPA shell owns these URLs. A nil-safe 404 is
-	// passed as the legacy fallback so a non-SPA build still responds
-	// predictably instead of panicking on a nil handler.
+	// Non-SPA builds return 404 for routes owned by the SPA.
 	notFound := http.HandlerFunc(h.HandleNotFound)
 	for _, pattern := range []string{
 		"GET /manage",
@@ -133,9 +124,6 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 		"GET /brews/{actor}/{id}",
 		"GET /recipes/{actor}/{id}",
 		"GET /profile/{actor}",
-		// Simple-entity create/edit pages (bean, roaster, grinder, brewer,
-		// recipe) are SPA-owned (see SPAOwnedRoutes). They had no legacy
-		// full-page handlers — the templ stack used modal partials for these.
 		"GET /beans/new",
 		"GET /beans/{id}/edit",
 		"GET /roasters/new",

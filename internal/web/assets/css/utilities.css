@@ -6,7 +6,6 @@
 
 /* ── Section 1: Display & Layout ── */
 
-/* Display */
 [hidden] {
   display: none !important;
 }
@@ -31,18 +30,14 @@
   display: none;
 }
 
-/* Flex direction */
-
 .flex-col {
   flex-direction: column;
 }
 
-/* Flex wrap */
 .flex-wrap {
   flex-wrap: wrap;
 }
 
-/* Flex */
 .flex-1 {
   flex: 1 1 0%;
 }
@@ -56,7 +51,6 @@
   flex-shrink: 0;
 }
 
-/* Align items */
 .items-start {
   align-items: flex-start;
 }
@@ -70,8 +64,6 @@
   align-items: baseline;
 }
 
-/* Justify content */
-
 .justify-center {
   justify-content: center;
 }
@@ -82,12 +74,10 @@
   justify-content: space-between;
 }
 
-/* Self */
 .self-start {
   align-self: flex-start;
 }
 
-/* Grid */
 .grid-cols-1 {
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
@@ -104,7 +94,6 @@
 
 /* ── Section 2: Spacing (ScaleUtility) ── */
 
-/* Margin — all sides */
 .m-0 {
   margin: 0;
 }
@@ -203,7 +192,6 @@
   margin-left: auto;
 }
 
-/* Padding */
 .p-0 {
   padding: 0;
 }
@@ -324,7 +312,6 @@
   padding-left: 2.75rem;
 }
 
-/* Gap */
 .gap-1 {
   gap: 0.25rem;
 }
@@ -532,7 +519,6 @@
 
 /* ── Section 4: Typography ── */
 
-/* Font family */
 .font-sans {
   font-family: "Iosevka Patrick", system-ui, sans-serif;
 }
@@ -540,7 +526,6 @@
   font-family: "Iosevka Patrick", ui-monospace, monospace;
 }
 
-/* Font size */
 .text-xs {
   font-size: 0.75rem;
   line-height: 1rem;
@@ -584,7 +569,6 @@
   font-size: 0.9375rem;
 }
 
-/* Font weight */
 .font-medium {
   font-weight: 500;
 }
@@ -595,7 +579,6 @@
   font-weight: 700;
 }
 
-/* Letter spacing */
 .tracking-wide {
   letter-spacing: 0.025em;
 }
@@ -603,7 +586,6 @@
   letter-spacing: 0.05em;
 }
 
-/* Line height */
 .leading-none {
   line-height: 1;
 }
@@ -611,7 +593,6 @@
   line-height: 1.625;
 }
 
-/* Text decoration */
 .underline {
   text-decoration-line: underline;
 }
@@ -627,7 +608,6 @@
   text-underline-offset: 2px;
 }
 
-/* Text alignment */
 .text-left {
   text-align: left;
 }
@@ -635,7 +615,6 @@
   text-align: center;
 }
 
-/* Whitespace */
 .whitespace-nowrap {
   white-space: nowrap;
 }
@@ -649,14 +628,12 @@
   overflow-wrap: break-word;
 }
 
-/* Truncate */
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Line clamp */
 .line-clamp-2 {
   overflow: hidden;
   display: -webkit-box;
@@ -667,10 +644,9 @@
 /* ── Section 5: Colors (ColorUtility) ── */
 
 /* --- Brown palette ---
-   The full text-brown-{X} family has been migrated to semantic tokens
-   (text-primary/secondary/emphasis/muted/faint/placeholder in
-   12-text-utilities.css). A few rare 50/100/300 variants remain for cases
-   where the brown shade IS the intent (e.g. inverse text on dark headers). */
+   Only 50/100/300 variants remain — where the brown shade itself is the
+   intent (e.g. inverse text on dark headers). Semantic text colors live
+   in 12-text-utilities.css. */
 .text-brown-50 {
   color: var(--brand-brown-50);
 }
@@ -750,8 +726,6 @@
 .border-amber-200 {
   border-color: var(--brand-amber-200);
 }
-
-/* Amber opacity variants */
 
 /* --- Red palette --- */
 .text-red-400 {
@@ -855,7 +829,7 @@
   border-color: var(--btn-primary-text);
 }
 
-/* --- Gradient (from output.css) --- */
+/* --- Gradient utilities --- */
 .bg-linear-to-br {
   --tw-gradient-position: to bottom right;
   background-image: linear-gradient(var(--tw-gradient-stops));
@@ -915,7 +889,6 @@
 
 /* ── Section 6: Border & Radius ── */
 
-/* Border width */
 .border {
   border-width: 1px;
   border-style: solid;
@@ -937,7 +910,6 @@
   border-bottom-style: solid;
 }
 
-/* Border radius */
 .rounded {
   border-radius: 0.25rem;
 }
@@ -957,8 +929,6 @@
   border-radius: 9999px;
 }
 
-/* Ring (simplified — matches Tailwind's ring-2 pattern) */
-
 /* ── Section 7: Effects ── */
 
 /* Shadows — reference SemanticToken */
@@ -972,13 +942,10 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* Opacity */
-
 .opacity-60 {
   opacity: 0.6;
 }
 
-/* Transitions */
 .transition {
   transition-property:
     color, background-color, border-color, text-decoration-color, fill, stroke,
@@ -1024,7 +991,6 @@
   position: sticky;
 }
 
-/* Z-index */
 .z-10 {
   z-index: 10;
 }
@@ -1032,7 +998,6 @@
   z-index: 50;
 }
 
-/* Top / Right / Bottom / Left */
 .top-0 {
   top: 0;
 }
@@ -1059,15 +1024,12 @@
   right: 1.5rem;
 }
 
-/* Transforms */
-
 .-translate-y-1\/2 {
   transform: translateY(-50%);
 }
 
 /* ── Section 9: Overflow & Misc ── */
 
-/* Container */
 .container {
   width: 100%;
 }
@@ -1097,7 +1059,6 @@
   }
 }
 
-/* List styles */
 .list-disc {
   list-style-type: disc;
 }
@@ -1213,7 +1174,6 @@
   font-size: 1.375rem;
 }
 
-/* Cursor */
 .cursor-pointer {
   cursor: pointer;
 }
@@ -1383,8 +1343,6 @@
 .focus-visible\:ring-amber-400\/50:focus-visible {
   --ring-color: color-mix(in srgb, var(--brand-amber-400) 50%, transparent);
 }
-
-/* Outline hidden */
 
 /* Disabled */
 .disabled\:opacity-50:disabled {

@@ -1,13 +1,4 @@
-// Toast notification store for the SvelteKit SPA.
-//
-// Replaces the HTMX `HX-Trigger: {"notify":{"message":"..."}}` pattern.
-// Mutations (likes, comments, moderation actions) call `pushToast()` with
-// a message; the layout renders a toast region that auto-dismisses.
-//
-// Components can also dispatch a `notify` window event (the legacy
-// convention used by existing islands like BeanViewActionsIsland) — the
-// layout listens for it and forwards to this store, so islands keep
-// working unchanged during the migration.
+// Toasts can be pushed directly or through the shared `notify` window event.
 
 import { writable } from "svelte/store";
 
@@ -47,7 +38,7 @@ export function clearToasts() {
   timers.clear();
 }
 
-/** Extracts a toast message from a `notify` event detail (legacy shape). */
+/** Extracts a toast message from supported `notify` event payloads. */
 export function extractNotifyMessage(detail: unknown): string {
   if (!detail) return "";
   if (typeof detail === "string") return detail;

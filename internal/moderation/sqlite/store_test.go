@@ -66,12 +66,10 @@ func TestHasLabel(t *testing.T) {
 	store := setupTestDB(t)
 	ctx := context.Background()
 
-	// No label yet
 	has, err := store.HasLabel(ctx, "user", "did:plc:test", "warned")
 	assert.NoError(t, err)
 	assert.False(t, has)
 
-	// Add label
 	assert.NoError(t, store.AddLabel(ctx, moderation.Label{
 		ID:         "tid001",
 		EntityType: "user",
@@ -101,7 +99,6 @@ func TestHasLabel_Expired(t *testing.T) {
 		ExpiresAt:  &past,
 	}))
 
-	// HasLabel should return false for expired labels
 	has, err := store.HasLabel(ctx, "user", "did:plc:test", "rate_limited")
 	assert.NoError(t, err)
 	assert.False(t, has)
@@ -160,19 +157,16 @@ func TestCleanExpiredLabels(t *testing.T) {
 	past := time.Now().Add(-1 * time.Hour)
 	future := time.Now().Add(24 * time.Hour)
 
-	// Expired label
 	assert.NoError(t, store.AddLabel(ctx, moderation.Label{
 		ID: "tid001", EntityType: "user", EntityID: "did:plc:a",
 		Name: "rate_limited", CreatedAt: time.Now(), CreatedBy: "automod",
 		ExpiresAt: &past,
 	}))
-	// Active label with future expiry
 	assert.NoError(t, store.AddLabel(ctx, moderation.Label{
 		ID: "tid002", EntityType: "user", EntityID: "did:plc:b",
 		Name: "warned", CreatedAt: time.Now(), CreatedBy: "mod",
 		ExpiresAt: &future,
 	}))
-	// Permanent label
 	assert.NoError(t, store.AddLabel(ctx, moderation.Label{
 		ID: "tid003", EntityType: "user", EntityID: "did:plc:c",
 		Name: "trusted", CreatedAt: time.Now(), CreatedBy: "mod",
@@ -182,7 +176,6 @@ func TestCleanExpiredLabels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cleaned)
 
-	// Only 2 labels should remain
 	all, err := store.ListAllLabels(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, all, 2)
@@ -192,13 +185,11 @@ func TestAddLabel_Upsert(t *testing.T) {
 	store := setupTestDB(t)
 	ctx := context.Background()
 
-	// Add label
 	assert.NoError(t, store.AddLabel(ctx, moderation.Label{
 		ID: "tid001", EntityType: "user", EntityID: "did:plc:test",
 		Name: "warned", Value: "first", CreatedAt: time.Now(), CreatedBy: "mod1",
 	}))
 
-	// Upsert same label with new value
 	assert.NoError(t, store.AddLabel(ctx, moderation.Label{
 		ID: "tid002", EntityType: "user", EntityID: "did:plc:test",
 		Name: "warned", Value: "second", CreatedAt: time.Now(), CreatedBy: "mod2",
@@ -210,7 +201,6 @@ func TestAddLabel_Upsert(t *testing.T) {
 	assert.Equal(t, "second", got.Value)
 	assert.Equal(t, "mod2", got.CreatedBy)
 
-	// Should still be only one label
 	labels, err := store.ListLabels(ctx, "user", "did:plc:test")
 	assert.NoError(t, err)
 	assert.Len(t, labels, 1)

@@ -1,6 +1,4 @@
-// Shared type for the appCache store. Mirrors the API of the legacy
-// `internal/web/assets/svelte/src/appCache.ts` so existing islands can read
-// `window.AppCache` without changes during the SvelteKit migration.
+// Contract exposed by the client record cache and window.AppCache.
 export type AppCacheAPI = {
   getData: (forceRefresh?: boolean) => Promise<Record<string, unknown> | null>;
   getCachedData: () => Record<string, unknown> | null;

@@ -52,8 +52,6 @@ func (s *AtprotoStore) resolveBrewRefsFromWitness(ctx context.Context, brew *ara
 	arabica.HydrateBrewRefs(brew, record, lookup)
 }
 
-// ========== Brew Helpers ==========
-
 // ExtractBrewRefRKeys extracts rkeys from AT-URI references in a brew record's raw values.
 func ExtractBrewRefRKeys(brew *arabica.Brew, record map[string]any) {
 	if beanRef, _ := record["beanRef"].(string); beanRef != "" {
@@ -108,8 +106,6 @@ func brewModelFromRequest(req *arabica.CreateBrewRequest, createdAt time.Time) *
 	brew.PouroverParams = req.PouroverParams
 	return brew
 }
-
-// ========== Brew Operations ==========
 
 // resolveBrewRefs dispatches reference resolution. When the brew came from
 // the witness cache (fromWitness=true), all refs are resolved from witness
@@ -173,7 +169,7 @@ func (s *AtprotoStore) CreateBrew(ctx context.Context, brew *arabica.CreateBrewR
 		return nil, err
 	}
 	model.RKey = rkey
-	// Populate Bean/GrinderObj/BrewerObj for the response.
+	// Resolve bean/grinder/brewer refs for the response.
 	if atpClient, err := s.AtprotoStore.ATPClient(ctx); err == nil {
 		if err := arabica.ResolveBrewRefs(ctx, atpClient, model, beanURI, grinderURI, brewerURI); err != nil {
 			log.Warn().Err(err).Str("brew_rkey", rkey).Msg("resolve brew refs after create")
@@ -239,7 +235,7 @@ func (s *AtprotoStore) ListBrews(ctx context.Context, userID int, offset, limit 
 		return nil, err
 	}
 	brews := s.convertBrewRecords(raws)
-	// Resolve references in bulk
+	// Resolve references in bulk.
 	s.resolveBrewReferences(ctx, brews)
 	s.AtprotoStore.Cache().SetRecords(s.AtprotoStore.SessionID(), arabica.NSIDBrew, brews)
 	s.AtprotoStore.Cache().ClearDirty(s.AtprotoStore.SessionID(), arabica.NSIDBrew)
@@ -373,8 +369,6 @@ func (s *AtprotoStore) GetBrewerRecordByRKey(ctx context.Context, rkey string) (
 	return atproto.GetEntityRecord(ctx, s, brewerCodec, rkey)
 }
 
-// ========== Bean Operations ==========
-
 // resolveBeanRefs populates bean.RoasterRKey and bean.Roaster from the
 // record's roasterRef field. RoasterRKey is always extracted (cheap); the
 // full Roaster is resolved by trying the witness cache first, falling
@@ -447,16 +441,14 @@ func (s *AtprotoStore) ListBeans(ctx context.Context) ([]*arabica.Bean, error) {
 	})
 }
 
-// LinkBeansToRoasters populates the Roaster field on beans using a pre-fetched roasters map
-// This avoids N+1 queries when listing beans with their roasters
+// LinkBeansToRoasters populates the Roaster field on beans from a pre-fetched
+// roasters slice, avoiding N+1 queries when listing beans with their roasters.
 func LinkBeansToRoasters(beans []*arabica.Bean, roasters []*arabica.Roaster) {
-	// Build a map of rkey -> roaster for O(1) lookups
 	roasterMap := make(map[string]*arabica.Roaster, len(roasters))
 	for _, r := range roasters {
 		roasterMap[r.RKey] = r
 	}
 
-	// Link beans to their roasters
 	for _, bean := range beans {
 		if bean.RoasterRKey != "" {
 			bean.Roaster = roasterMap[bean.RoasterRKey]
@@ -490,8 +482,6 @@ func (s *AtprotoStore) UpdateBeanByRKey(ctx context.Context, rkey string, bean *
 func (s *AtprotoStore) DeleteBeanByRKey(ctx context.Context, rkey string) error {
 	return atproto.DeleteEntity(ctx, s, arabica.NSIDBean, rkey)
 }
-
-// ========== Roaster Operations ==========
 
 func (s *AtprotoStore) CreateRoaster(ctx context.Context, roaster *arabica.CreateRoasterRequest) (*arabica.Roaster, error) {
 	return atproto.CreateEntity(ctx, s, roasterCodec, &arabica.Roaster{
@@ -542,8 +532,6 @@ func (s *AtprotoStore) DeleteRoasterByRKey(ctx context.Context, rkey string) err
 	return nil
 }
 
-// ========== Grinder/Brewer compatibility helpers ==========
-
 func (s *AtprotoStore) CreateGrinder(ctx context.Context, grinder *arabica.CreateGrinderRequest) (*arabica.Grinder, error) {
 	return atproto.CreateEntity(ctx, s, grinderCodec, &arabica.Grinder{
 		Name:        grinder.Name,
@@ -575,8 +563,6 @@ func (s *AtprotoStore) GetBrewerByRKey(ctx context.Context, rkey string) (*arabi
 	return atproto.GetEntity(ctx, s, brewerCodec, rkey)
 }
 
-// ========== Grinder/Brewer list helpers ==========
-
 func (s *AtprotoStore) listGrinders(ctx context.Context) ([]*arabica.Grinder, error) {
 	return atproto.ListEntity(ctx, s, grinderCodec, func() []*arabica.Grinder {
 		return atproto.CachedSlice[arabica.Grinder](s.AtprotoStore.Cache().Get(s.AtprotoStore.SessionID()), arabica.NSIDGrinder)
@@ -588,8 +574,6 @@ func (s *AtprotoStore) listBrewers(ctx context.Context) ([]*arabica.Brewer, erro
 		return atproto.CachedSlice[arabica.Brewer](s.AtprotoStore.Cache().Get(s.AtprotoStore.SessionID()), arabica.NSIDBrewer)
 	})
 }
-
-// ========== Recipe Operations ==========
 
 // resolveRecipeRefs populates recipe.BrewerRKey and recipe.BrewerObj from
 // the record's brewerRef field. Tries the witness cache first, falls back

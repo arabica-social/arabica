@@ -22,8 +22,8 @@ import (
 	"tangled.org/pdewey.com/atp"
 )
 
-// API endpoint to list all user data (beans, roasters, grinders, brewers, brews)
-// Used by client-side cache for faster page loads. Arabica-specific.
+// HandleAPIListAll returns all of the user's records (beans, roasters,
+// grinders, brewers, brews) in one response for client-side caching.
 func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
@@ -31,12 +31,10 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user DID for cache validation
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 
 	ctx := r.Context()
 
-	// Fetch all collections in parallel using errgroup
 	g, ctx := errgroup.WithContext(ctx)
 
 	var beans []*arabica.Bean
@@ -83,7 +81,6 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Link beans to roasters
 	arabicastore.LinkBeansToRoasters(beans, roasters)
 
 	response := map[string]any{
@@ -99,9 +96,8 @@ func (h *Handlers) HandleAPIListAll(w http.ResponseWriter, r *http.Request) {
 	handlers.WriteJSON(w, response, "data")
 }
 
-// API endpoint to create bean
+// HandleBeanCreate creates a bean from JSON or form data.
 func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
@@ -110,7 +106,6 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 
 	var req arabica.CreateBeanRequest
 
-	// Decode request (JSON or form)
 	if err := handlers.DecodeRequest(r, &req, func() error {
 		req = arabica.CreateBeanRequest{
 			Name:        r.FormValue("name"),
@@ -139,7 +134,6 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate request
 	if err := req.Validate(); err != nil {
 		log.Warn().Err(err).Str("name", req.Name).Msg("Bean create validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -162,7 +156,6 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		log.Info().Str("roaster_rkey", roaster.RKey).Str("name", newRoasterName).Msg("Auto-created roaster for bean")
 	}
 
-	// Validate optional roaster rkey
 	if errMsg := handlers.ValidateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
 		log.Warn().Str("roaster_rkey", req.RoasterRKey).Msg("Bean create: invalid roaster rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
@@ -185,7 +178,7 @@ func (h *Handlers) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 	handlers.WriteJSON(w, bean, "bean")
 }
 
-// API endpoint to create roaster
+// HandleRoasterCreate creates a roaster from JSON or form data.
 func (h *Handlers) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 	store, ok := h.RequireRecordStore(w, r)
 	if !ok {
@@ -204,10 +197,7 @@ func (h *Handlers) HandleRoasterCreate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-// HandleIncompleteRecordsPartial returns the user's incomplete records as
-// JSON ({records}) for the SvelteKit SPA. The SvelteKit SPA owns the home page
-// and always sends Accept: application/json, so the legacy HTMX HTML fragment
-// path has been removed.
+// HandleIncompleteRecordsPartial returns the user's incomplete records as JSON.
 func (h *Handlers) HandleIncompleteRecordsPartial(w http.ResponseWriter, r *http.Request) {
 	h.HandleIncompleteRecordsJSON(w, r)
 }
@@ -292,20 +282,17 @@ func (h *Handlers) HandleManageRefresh(w http.ResponseWriter, r *http.Request) {
 		refreshSpan.End()
 	}
 
-	// The SPA only checks for a 2xx response here, then refetches
-	// /api/manage and /api/brews for fresh JSON. Return a small JSON
-	// confirmation rather than re-rendering the legacy HTML partial.
+	// The SPA refetches /api/manage and /api/brews after this confirmation.
 	handlers.WriteJSON(w, map[string]any{"refreshed": true}, "manage refresh")
 }
 
-// Bean update/delete handlers
+// HandleBeanUpdate updates an existing bean from JSON or form data.
 func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
-	// Require authentication
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
@@ -314,7 +301,6 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var req arabica.UpdateBeanRequest
 
-	// Decode request (JSON or form)
 	if err := handlers.DecodeRequest(r, &req, func() error {
 		req = arabica.UpdateBeanRequest{
 			Name:        r.FormValue("name"),
@@ -343,8 +329,6 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
-	// Validate request
 	if err := req.Validate(); err != nil {
 		log.Warn().Err(err).Str("rkey", rkey).Msg("Bean update validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -367,7 +351,6 @@ func (h *Handlers) HandleBeanUpdate(w http.ResponseWriter, r *http.Request) {
 		log.Info().Str("roaster_rkey", roaster.RKey).Str("name", newRoasterName).Msg("Auto-created roaster for bean update")
 	}
 
-	// Validate optional roaster rkey
 	if errMsg := handlers.ValidateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
 		log.Warn().Str("rkey", rkey).Str("roaster_rkey", req.RoasterRKey).Msg("Bean update: invalid roaster rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)
@@ -405,7 +388,7 @@ func (h *Handlers) HandleBeanDelete(w http.ResponseWriter, r *http.Request) {
 	h.DeleteEntity(w, r, store.DeleteBeanByRKey, "bean", arabica.NSIDBean)
 }
 
-// Roaster update/delete handlers
+// HandleRoasterUpdate updates an existing roaster.
 func (h *Handlers) HandleRoasterUpdate(w http.ResponseWriter, r *http.Request) {
 	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
@@ -440,7 +423,7 @@ func (h *Handlers) HandleRoasterDelete(w http.ResponseWriter, r *http.Request) {
 	h.DeleteEntity(w, r, store.DeleteRoasterByRKey, "roaster", arabica.NSIDRoaster)
 }
 
-// Grinder CRUD handlers
+// Grinder entity handlers.
 func grinderFormDecoder(r *http.Request) arabica.CreateGrinderRequest {
 	return arabica.CreateGrinderRequest{
 		Name: r.FormValue("name"), GrinderType: r.FormValue("grinder_type"),
@@ -509,7 +492,7 @@ func (h *Handlers) HandleGrinderDelete(w http.ResponseWriter, r *http.Request) {
 	}, "grinder", arabica.NSIDGrinder)
 }
 
-// Brewer CRUD handlers
+// Brewer entity handlers.
 func brewerFormDecoder(r *http.Request) arabica.CreateBrewerRequest {
 	return arabica.CreateBrewerRequest{
 		Name: r.FormValue("name"), BrewerType: r.FormValue("brewer_type"),

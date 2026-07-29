@@ -28,7 +28,6 @@ func withClient(h *Harness, c *http.Client) func() {
 func TestHTTP_CrossUserView(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Alice creates a roaster.
 	createResp := h.PostForm("/api/roasters", form("name", "Alice Roaster", "location", "Seattle"))
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
@@ -37,15 +36,10 @@ func TestHTTP_CrossUserView(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(createBody), &roaster))
 	require.NotEmpty(t, roaster.RKey)
 
-	// Bob signs in.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 	defer withClient(h, bobClient)()
 
-	// Bob fetches Alice's roaster view via the JSON endpoint (?owner=did:alice).
-	// The SPA fetches JSON from /api/roasters/{actor}/{id}; this exercises
-	// the same witness-cache-backed cross-user read path that the legacy
-	// HTML view used.
 	viewURL := "/api/roasters/" + url.PathEscape(h.PrimaryAccount.DID) + "/" + roaster.RKey
 	resp := getJSON(t, h, viewURL)
 	body := ReadBody(t, resp)
@@ -67,7 +61,6 @@ func TestHTTP_CrossUserView(t *testing.T) {
 func TestHTTP_CrossUserDeleteIsolation(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Alice creates a roaster.
 	createResp := h.PostForm("/api/roasters", form("name", "Alice Owned"))
 	createBody := ReadBody(t, createResp)
 	require.Equal(t, 200, createResp.StatusCode, statusErr(createResp, createBody))
@@ -75,7 +68,6 @@ func TestHTTP_CrossUserDeleteIsolation(t *testing.T) {
 	var alicesRoaster arabica.Roaster
 	require.NoError(t, json.Unmarshal([]byte(createBody), &alicesRoaster))
 
-	// Bob signs in and tries to delete Alice's record by rkey.
 	bob := h.CreateAccount("bob@test.com", "bob.test", "hunter2")
 	bobClient := h.NewClientForAccount(bob)
 
@@ -89,7 +81,6 @@ func TestHTTP_CrossUserDeleteIsolation(t *testing.T) {
 	// a not-found error. What matters is that Alice's data survives.
 	t.Logf("bob delete attempt: status=%d body=%s", bobAttempt.StatusCode, bobBody)
 
-	// Back as Alice: confirm her roaster is still present.
 	data := fetchData(t, h)
 	var found bool
 	for _, r := range data.Roasters {
@@ -129,7 +120,6 @@ func TestHTTP_CrossUserUpdateIsolation(t *testing.T) {
 	bobBody := ReadBody(t, bobAttempt)
 	t.Logf("bob update attempt: status=%d body=%s", bobAttempt.StatusCode, bobBody)
 
-	// Alice re-reads her roaster: name and location must be untouched.
 	data := fetchData(t, h)
 	var found *arabica.Roaster
 	for i := range data.Roasters {

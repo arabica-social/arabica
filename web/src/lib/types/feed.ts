@@ -1,5 +1,5 @@
 // Hand-maintained types for the feed JSON API.
-// Mirrors internal/handlers/feed.go (FeedJSONResponse) and
+// Must match internal/handlers/feed.go (FeedJSONResponse) and
 // internal/feed/service.go (FeedItem). See docs/api/feed.md.
 
 import type {

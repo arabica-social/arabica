@@ -45,7 +45,7 @@ func (h *Handlers) HandleExploreJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Populate IsLikedByViewer and IsOwner
+	// Populate viewer-context fields (IsLikedByViewer, IsOwner).
 	uris := make([]string, 0, len(result.Items))
 	for _, item := range result.Items {
 		uris = append(uris, item.SubjectURI)
@@ -58,7 +58,6 @@ func (h *Handlers) HandleExploreJSON(w http.ResponseWriter, r *http.Request) {
 		item.IsLikedByViewer = liked[item.SubjectURI]
 	}
 
-	// Convert feed items to JSON form
 	items := make([]handlers.FeedItemJSON, 0, len(result.Items))
 	for _, item := range result.Items {
 		items = append(items, handlers.NewFeedItemJSON(item))
@@ -79,5 +78,5 @@ func (h *Handlers) HandleExploreJSON(w http.ResponseWriter, r *http.Request) {
 	}, "explore")
 }
 
-// Ensure feed import is used (for type references in getModeratedExplore).
+// feed import is referenced only for type aliases used by getModeratedExplore.
 var _ = feed.FeedSortRecent

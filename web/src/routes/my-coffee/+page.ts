@@ -2,8 +2,7 @@ import type { PageLoad } from "./$types";
 import type { ManageResponseJSON, BrewListResponse } from "$lib/types/manage";
 
 export const load: PageLoad = async ({ fetch }) => {
-	// Fetch the user's records + stats and the first page of brews in
-	// parallel. Both require authentication; a 401 redirects to login.
+	// Fetch both authenticated datasets in parallel.
 	try {
 		const [manageRes, brewsRes] = await Promise.all([
 			fetch("/api/manage", { headers: { Accept: "application/json" } }),

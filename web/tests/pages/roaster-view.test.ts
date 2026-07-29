@@ -85,7 +85,6 @@ describe("Roaster view", () => {
 
 	it("does not show edit menu for non-owners", () => {
 		render(RoasterView, { data: noOwnerData });
-		// The more menu button is still there (for report), but Edit isn't.
 		expect(screen.queryByText("Edit")).toBeNull();
 	});
 

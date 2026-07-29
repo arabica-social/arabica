@@ -9,9 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// HandleSettingsPreferences saves the user's brewing preferences. The SPA
-// always sends Accept: application/json, so this delegates to the JSON path;
-// the legacy HTML form branch is gone.
+// HandleSettingsPreferences saves the user's brewing preferences.
 func (h *Handler) HandleSettingsPreferences(w http.ResponseWriter, r *http.Request) {
 	if WantsJSON(r) {
 		h.HandleSettingsPreferencesJSON(w, r)
@@ -65,7 +63,6 @@ func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http
 		RoasterAvgRating: profileprefs.Visibility(r.FormValue("roaster_avg_rating")),
 	}
 
-	// Validate — fall back to public for unrecognized values
 	if !settings.BeanAvgRating.IsValid() {
 		settings.BeanAvgRating = profileprefs.VisibilityPublic
 	}
@@ -81,13 +78,11 @@ func (h *Handler) HandleSettingsProfileVisibility(w http.ResponseWriter, r *http
 		}
 	}
 
-	// Return a success indicator for HTMX
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(`<span class="text-sm text-green-700 dark:text-green-400">Saved</span>`))
 }
 
-// HandleNotFound renders a plain 404 response. SPA-owned routes are served by
-// the SvelteKit shell; this is only reached for truly unmatched paths.
+// HandleNotFound renders a plain 404 response.
 func (h *Handler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")

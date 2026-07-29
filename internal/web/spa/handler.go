@@ -16,9 +16,8 @@
 // serves the result. This ensures crawlers and social media bots see
 // correct metadata without executing JavaScript.
 //
-// During migration, shared routing registers the shell only for explicit
-// app-owned page patterns. Ported pages use SvelteKit routes, unported pages
-// keep their existing templ handlers, and unknown direct loads remain 404s.
+// Shared routing serves the shell for SPAOwnedRoutes; unknown direct loads
+// remain 404s.
 package spa
 
 import (
@@ -58,8 +57,7 @@ type ShellData struct {
 	Traceparent     string
 	UserDID         string
 	IsAuthenticated bool
-	// StylesheetHref is the cache-busted CSS URL (the existing global CSS
-	// bundle). The SPA continues to use the same stylesheet during migration.
+	// StylesheetHref is the cache-busted global CSS bundle URL.
 	StylesheetHref string
 
 	// Session data injected as data-* attributes on <body> so the SvelteKit
@@ -158,7 +156,6 @@ func NewShellHandler(manifest assets.Manifest, appName string, brand domain.Bran
 		return nil, fmt.Errorf("read embedded index.html: %w", err)
 	}
 
-	// Verify the head marker is present (app.html must contain it).
 	if !bytes.Contains(indexBytes, []byte(headMarker)) {
 		return nil, fmt.Errorf("spa: embedded index.html missing arabica-spa-head marker — check web/src/app.html")
 	}
@@ -546,8 +543,6 @@ func IsSPAAsset(path string) bool {
 	return strings.HasPrefix(path, "/_app/")
 }
 
-// --- context keys for shell data injection ---
-
 type contextKey int
 
 const (
@@ -586,9 +581,8 @@ func traceparentFromContext(ctx context.Context) string {
 const headMarker = `<meta name="arabica-spa-head" content="" />`
 
 // headFragmentTemplate is the server-rendered <head> content injected at
-// the <!--ARABICA_SPA_HEAD--> marker. It mirrors the <head> structure from
-// components/layout.templ: theme script, OG metadata, Twitter cards,
-// theme-color, title, favicon, stylesheet, manifest, traceparent.
+// the <!--ARABICA_SPA_HEAD--> marker: theme script, social metadata,
+// theme-color, title, favicon, stylesheet, manifest, and traceparent.
 //
 // SvelteKit's own %sveltekit.head% output (modulepreload links) remains
 // after this fragment — both coexist in <head>.

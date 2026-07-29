@@ -3,12 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BrewNewPage from "../../src/routes/brews/new/+page.svelte";
 
-// Mock $app/navigation goto
 vi.mock("$app/navigation", () => ({
 	goto: vi.fn(),
 }));
 
-// Mock appCache store to avoid fetch in jsdom
 vi.mock("../../src/lib/stores/appCache", () => ({
 	appCache: {
 		getData: vi.fn().mockResolvedValue(null),
@@ -41,9 +39,7 @@ describe("Brews new page", () => {
 		const { component } = render(BrewNewPage, {
 			data: { brew: null, error: "", recipeRKey: "recipe-1", recipeOwnerDID: "did:plc:other" },
 		});
-		// The page should render without error and show the form title.
 		expect(screen.getByText("New Brew")).toBeTruthy();
-		// Verify BrewForm receives the right props by checking the component instance.
 		expect(component).toBeTruthy();
 	});
 

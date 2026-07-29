@@ -118,7 +118,6 @@ describe("LoginModal component", () => {
 
 		expect(submitButton).toBeDisabled();
 
-		// Selecting a suggestion closes the dropdown and re-enables the button.
 		const option = screen.getByText(`@${ACTOR.handle}`);
 		await user.click(option);
 		await waitFor(() => expect(submitButton).not.toBeDisabled());

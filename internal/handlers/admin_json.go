@@ -28,10 +28,8 @@ type AdminStatsResponseJSON struct {
 	Backups []backup.SourceStatus  `json:"backups"`
 }
 
-// HandleAdminJSON returns the admin dashboard data as JSON for the SvelteKit SPA.
-// Auth and moderator checks are handled by the caller (the route registration
-// uses RequireModerator middleware). This mirrors buildAdminProps but serializes
-// to JSON instead of rendering a templ page.
+// HandleAdminJSON returns admin dashboard data. Route middleware enforces
+// moderator access.
 func (h *Handler) HandleAdminJSON(w http.ResponseWriter, r *http.Request) {
 	userDID, _ := atpmiddleware.GetDID(r.Context())
 	props := h.buildAdminProps(r.Context(), userDID)

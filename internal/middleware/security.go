@@ -46,24 +46,20 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 
 		r = r.WithContext(context.WithValue(r.Context(), cspNonceKey, nonce))
 
-		// Prevent clickjacking
 		w.Header().Set("X-Frame-Options", "DENY")
 
-		// Prevent MIME type sniffing
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 
 		// XSS protection (legacy but still useful for older browsers)
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 
-		// Control referrer information
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Permissions policy - disable unnecessary features
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
 		// Content Security Policy
-		// Allows: self for scripts/styles, inline styles (for Tailwind), inline HTMX
-		// Note: form-action allows https: for OAuth redirects to external authorization servers
+		// Allows: self for scripts/styles, inline styles (for Tailwind)
+		// form-action allows https: for OAuth redirects to external authorization servers
 		// TODO: set nonce/hash on unsafe tags -- needs to be set in elements as well
 		csp := strings.Join([]string{
 			"default-src 'self'",
@@ -107,7 +103,6 @@ func NewRateLimiter(rate int, window time.Duration) *RateLimiter {
 		cleanup:  window * 2,
 	}
 
-	// Start cleanup goroutine
 	go rl.cleanupLoop()
 
 	return rl
@@ -139,20 +134,18 @@ func (rl *RateLimiter) Allow(ip string) bool {
 
 	if !exists {
 		rl.visitors[ip] = &visitor{
-			tokens:    rl.rate - 1, // Use one token
+			tokens:    rl.rate - 1,
 			lastReset: now,
 		}
 		return true
 	}
 
-	// Reset tokens if window has passed
 	if now.Sub(v.lastReset) >= rl.window {
 		v.tokens = rl.rate - 1
 		v.lastReset = now
 		return true
 	}
 
-	// Check if tokens available
 	if v.tokens > 0 {
 		v.tokens--
 		return true
@@ -200,7 +193,6 @@ func RateLimitMiddleware(config *RateLimitConfig) func(http.Handler) http.Handle
 
 			var limiter *RateLimiter
 
-			// Select appropriate limiter based on path
 			switch {
 			case strings.HasPrefix(path, "/auth/") || path == "/login" || path == "/oauth/callback":
 				limiter = config.AuthLimiter
@@ -241,7 +233,7 @@ func LimitBodyMiddleware(next http.Handler) http.Handler {
 				strings.HasPrefix(contentType, "multipart/form-data"):
 				maxSize = MaxFormBodySize
 			default:
-				maxSize = MaxJSONBodySize // Default limit
+				maxSize = MaxJSONBodySize
 			}
 
 			r.Body = http.MaxBytesReader(w, r.Body, maxSize)

@@ -96,10 +96,9 @@ func (h *Handlers) fetchManageData(r *http.Request) (*manageData, error) {
 		return nil, err
 	}
 
-	// Link beans to their roasters
+	// Link beans to roasters and recipes to brewers.
 	arabicastore.LinkBeansToRoasters(data.beans, data.roasters)
 
-	// Link recipes to their brewers
 	brewerMap := make(map[string]*arabica.Brewer, len(data.brewers))
 	for _, b := range data.brewers {
 		brewerMap[b.RKey] = b

@@ -36,7 +36,6 @@ let
     };
   };
 
-  # Build the moderators JSON config file from Nix settings
   moderatorsConfigFile = pkgs.writeText "moderators.json" (
     builtins.toJSON {
       roles = {

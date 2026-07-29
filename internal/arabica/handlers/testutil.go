@@ -117,9 +117,7 @@ func NewTestContext() *TestContext {
 func NewAuthenticatedRequest(method, path string, body any) *http.Request {
 	req := httptest.NewRequest(method, path, nil)
 
-	// Add authenticated DID to context using the legacy string keys. Most
-	// historical tests intentionally don't satisfy atp/middleware.GetDID, so
-	// handlers take the unauthenticated path instead of constructing real stores.
+	// String keys intentionally bypass atp/middleware.GetDID in older handler tests.
 	ctx := context.WithValue(req.Context(), "atp_did", "did:plc:test123456789")
 	ctx = context.WithValue(ctx, "atp_session_id", "test-session-id")
 

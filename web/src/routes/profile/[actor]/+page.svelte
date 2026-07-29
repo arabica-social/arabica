@@ -634,7 +634,6 @@
                 </div>
               {/if}
             </div>
-            <!-- Brewers -->
             <div>
               <h4 class="text-lg font-semibold text-primary mb-3">Brewers</h4>
               {#if profile.brewers.length === 0}

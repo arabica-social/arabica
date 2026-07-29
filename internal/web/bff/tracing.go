@@ -8,9 +8,7 @@ import (
 )
 
 // Traceparent returns the W3C traceparent header value for the current span,
-// or an empty string if no active trace exists. This is intended to be called
-// from templ templates so that client-side requests (HTMX) can propagate the
-// trace context back to the server.
+// or an empty string if no active trace exists.
 func Traceparent(ctx context.Context) string {
 	sc := trace.SpanFromContext(ctx).SpanContext()
 	if !sc.HasTraceID() || !sc.HasSpanID() {

@@ -115,7 +115,7 @@ func (c *Consumer) Stop() {
 	c.upstream.Stop()
 }
 
-// IsConnected returns true if currently connected to Jetstream
+// IsConnected reports whether the consumer is connected to Jetstream.
 func (c *Consumer) IsConnected() bool {
 	return c.upstream.IsConnected()
 }

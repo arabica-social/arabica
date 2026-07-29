@@ -13,10 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestKnownDIDsLogging verifies loadKnownDIDs parses comments and DIDs
-// correctly and that the structured-log fields shape stays stable
-// (count, file, dids array). The shape is part of our observability
-// contract — bumping zerolog or refactoring should not break it.
+// The structured fields are part of the startup observability contract.
 func TestKnownDIDsLogging(t *testing.T) {
 	var buf bytes.Buffer
 

@@ -10,8 +10,7 @@ import (
 )
 
 // TestHTTP_PageRenderSmoke renders top-level pages and asserts they return
-// 200 with a non-empty body. Catches templ panics, missing layout data, and
-// broken context plumbing introduced when refactoring shared page wiring.
+// 200 with a non-empty SPA shell.
 func TestHTTP_PageRenderSmoke(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -37,12 +36,10 @@ func TestHTTP_PageRenderSmoke(t *testing.T) {
 }
 
 // TestHTTP_EntityViewSmoke creates each kind of entity and renders its public
-// view page. Catches breakage in view-handler templ rendering and reference
-// resolution that unit tests with mocked stores miss.
+// view page, covering direct-load routing and reference resolution.
 func TestHTTP_EntityViewSmoke(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Create one of each entity that has a view page.
 	roasterResp := h.PostForm("/api/roasters", form("name", "View Roaster"))
 	roaster := mustRKey(t, roasterResp, "roaster")
 

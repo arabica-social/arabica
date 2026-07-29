@@ -33,12 +33,9 @@ type profileJSONResponse struct {
 	BeanAvgBrewRatings map[string]float64 `json:"bean_avg_brew_ratings"`
 }
 
-// TestHTTP_ProfileJSON verifies that GET /api/profile/{actor} with Accept:
-// application/json returns the full profile data bundle as JSON.
 func TestHTTP_ProfileJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
-	// Create some entities so the profile is non-empty.
 	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Profile JSON Roaster")), "roaster")
 	beanRKey := mustRKey(t, h.PostForm("/api/beans", form("name", "Profile JSON Bean", "roaster_rkey", roasterRKey)), "bean")
 	grinderRKey := mustRKey(t, h.PostForm("/api/grinders", form("name", "Profile JSON Grinder")), "grinder")
@@ -60,7 +57,6 @@ func TestHTTP_ProfileJSON(t *testing.T) {
 	beanURI := atp.BuildATURI(h.PrimaryAccount.DID, "social.arabica.alpha.bean", beanRKey)
 	h.WaitForRecord(beanURI, firehoseWait)
 
-	// Fetch own profile via DID.
 	actor := h.PrimaryAccount.DID
 	resp := getJSON(t, h, "/api/profile/"+actor)
 	body := ReadBody(t, resp)
@@ -77,13 +73,11 @@ func TestHTTP_ProfileJSON(t *testing.T) {
 	assert.NotEmpty(t, profile.Beans, "should have at least one bean")
 	assert.GreaterOrEqual(t, profile.TotalBrews, 1)
 
-	// Verify the profile object has a handle.
 	var profileObj map[string]any
 	require.NoError(t, json.Unmarshal(profile.Profile, &profileObj))
 	assert.NotEmpty(t, profileObj["handle"])
 }
 
-// TestHTTP_ProfileJSONNotFound verifies that a non-existent user returns 404.
 func TestHTTP_ProfileJSONNotFound(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -91,11 +85,9 @@ func TestHTTP_ProfileJSONNotFound(t *testing.T) {
 	assert.Equal(t, 404, resp.StatusCode)
 }
 
-// TestHTTP_ProfileJSONHTMXStillHTML verifies HTMX clients still get HTML.
 func TestHTTP_ProfileJSONHTMXStillHTML(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
-	// Create a record so the user is an arabica user.
 	mustRKey(t, h.PostForm("/api/roasters", form("name", "HTMX Profile Roaster")), "roaster")
 	roasterURI := atp.BuildATURI(h.PrimaryAccount.DID, "social.arabica.alpha.roaster", "")
 	_ = roasterURI

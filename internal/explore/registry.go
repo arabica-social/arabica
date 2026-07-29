@@ -134,13 +134,10 @@ func (r *Registry) Types() []TypeDef {
 	return out
 }
 
-// --- per-app registry factories ---
-//
 // Apps register a RegistryFactory keyed by their NSID base (e.g.
 // "social.arabica.alpha") so the firehose can build an explore index for the
 // running app without importing app code. An app with no explore surface
-// A sister app with no explore surface simply does not register, and
-// RegistryFor returns nil for it.
+// simply does not register, and RegistryFor returns nil for it.
 
 type RegistryFactory func(nsids map[lexicons.RecordType]string) *Registry
 

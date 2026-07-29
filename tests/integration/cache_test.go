@@ -13,23 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestHTTP_WitnessCacheFallback verifies that reads succeed even when both
-// cache layers (session cache + witness cache) are empty, by falling through
-// to a real PDS XRPC call.
-//
-// This is the riskiest architectural piece in the codebase: if write-through
-// ever drifts from PDS reads, or if the fallback path silently breaks, users
-// would see "missing" data right after creating it. This test exercises:
-//
-//  1. Create a roaster (write-through to witness cache happens here).
-//  2. Confirm a normal read returns it (witness-cache hit path).
-//  3. Evict the witness cache entry + invalidate the session cache.
-//  4. Read again — must still return the same data, this time via the
-//     real-PDS fallback inside AtprotoStore.GetRoasterByRKey/ListRoasters.
+// TestHTTP_WitnessCacheFallback verifies that reads fall through to the PDS
+// after both cache layers are emptied.
 func TestHTTP_WitnessCacheFallback(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Step 1: create a roaster.
 	createResp := h.PostForm("/api/roasters", form(
 		"name", "Cache Fallback Roaster",
 		"location", "Portland",
@@ -42,24 +30,16 @@ func TestHTTP_WitnessCacheFallback(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(createBody), &created))
 	require.NotEmpty(t, created.RKey)
 
-	// Step 2: read via /api/data — this should hit the witness cache (or
-	// session cache, populated by ListRoasters).
 	preData := fetchData(t, h)
 	prePresent := containsRoaster(preData.Roasters, created.RKey)
 	require.True(t, prePresent, "roaster should be readable immediately after create")
 
-	// Step 3: evict the witness record and clear the session cache. After
-	// this, both fast paths in AtprotoStore.ListRoasters will miss and the
-	// store has to fall through to s.client.ListAllRecords (real PDS read).
 	h.EvictWitnessRecord(h.PrimaryAccount, arabica.NSIDRoaster, created.RKey)
 	h.InvalidateSessionCache(h.PrimaryAccount)
 
-	// Sanity check: confirm the witness cache really is empty for that record.
 	wr, _ := h.FeedIndex.GetWitnessRecord(t.Context(), atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, created.RKey))
 	require.Nil(t, wr, "witness record should have been evicted")
 
-	// Step 4: read again — must still return the roaster, this time via the
-	// PDS fallback path.
 	postData := fetchData(t, h)
 	var found *arabica.Roaster
 	for i := range postData.Roasters {
@@ -70,9 +50,7 @@ func TestHTTP_WitnessCacheFallback(t *testing.T) {
 	}
 	require.NotNil(t, found, "roaster must still be readable via PDS fallback after both caches are empty")
 
-	// Field-level: the fallback path goes through a different decode path
-	// (RecordToRoaster on a fresh PDS payload, not WitnessRecordToMap on
-	// cached JSON). Verify the round-trip preserves all the fields we set.
+	// The PDS fallback uses a different decode path than the witness cache.
 	assert.Equal(t, "Cache Fallback Roaster", found.Name)
 	assert.Equal(t, "Portland", found.Location)
 	assert.Equal(t, "https://example.com", found.Website)

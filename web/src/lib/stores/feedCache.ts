@@ -1,14 +1,5 @@
-// JSON feed cache for the SvelteKit SPA.
-//
-// This is the SvelteKit port of `internal/web/assets/svelte/src/feedCache.ts`.
-// The legacy version cached HTML fragments returned by HTMX partials. The SPA
-// consumes JSON from `GET /api/feed`, so this cache stores parsed JSON
-// payloads keyed by the request URL (path + query).
-//
-// The invalidation contract is unchanged: mutations dispatch a
-// `{app}:feed-mutation` event on `document.body`, which clears the cache
-// and lets feed components refetch. The TTL is short (60s) to match the
-// legacy behavior.
+// Cache GET /api/feed JSON by app, viewer, and request URL for 60 seconds.
+// Mutations dispatch `{app}:feed-mutation` on document.body to invalidate it.
 
 import { feedCachePrefix, feedMutationEvent } from "./storageKeys";
 

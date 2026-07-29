@@ -1,5 +1,4 @@
-// Command server runs the Arabica app. (It previously ran Arabica and Oolong
-// in one process; Oolong now lives in its own fork.)
+// Command server runs the Arabica app.
 package main
 
 import (

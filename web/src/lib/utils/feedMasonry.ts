@@ -1,9 +1,3 @@
-// Feed masonry layout for the SvelteKit SPA.
-//
-// Ported from the legacy HTMX island (internal/web/assets/svelte/src/feedMasonry.ts)
-// with the HTMX/`window.__arabicaApplyFeedMasonry` bridge removed — the SPA drives
-// re-layout through Svelte reactivity instead of `htmx:afterSettle`.
-//
 // The layout is a two-column "corkboard": at desktop width (≥768px) loose
 // `.feed-card` children are distributed into two `.feed-masonry-col` flex
 // columns by shortest-column height, and each card gets a subtle random

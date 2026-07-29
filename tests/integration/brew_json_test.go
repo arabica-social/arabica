@@ -76,8 +76,6 @@ func putFormJSON(t *testing.T, h *Harness, path string, form string) *http.Respo
 	return resp
 }
 
-// TestHTTP_BrewCreateJSON verifies that POST /brews with Accept: application/json
-// returns the created brew as JSON (not an HX-Redirect).
 func TestHTTP_BrewCreateJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -111,8 +109,6 @@ func TestHTTP_BrewCreateJSON(t *testing.T) {
 	assert.NotEmpty(t, result.Brew.RKey, "created brew should have an rkey")
 }
 
-// TestHTTP_BrewUpdateJSON verifies that PUT /brews/{id} with Accept:
-// application/json returns the updated brew as JSON.
 func TestHTTP_BrewUpdateJSON(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -121,7 +117,6 @@ func TestHTTP_BrewUpdateJSON(t *testing.T) {
 	grinderRKey := mustRKey(t, h.PostForm("/api/grinders", form("name", "Update JSON Grinder")), "grinder")
 	brewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "Update JSON Brewer")), "brewer")
 
-	// Create a brew first (via JSON path so we get the rkey back).
 	createForm := form(
 		"bean_rkey", beanRKey,
 		"grinder_rkey", grinderRKey,
@@ -139,7 +134,6 @@ func TestHTTP_BrewUpdateJSON(t *testing.T) {
 	brewRKey := created.Brew.RKey
 	require.NotEmpty(t, brewRKey)
 
-	// Update via JSON path.
 	updateForm := form(
 		"bean_rkey", beanRKey,
 		"grinder_rkey", grinderRKey,
@@ -162,13 +156,10 @@ func TestHTTP_BrewUpdateJSON(t *testing.T) {
 	assert.Equal(t, 8, updated.Brew.Rating)
 }
 
-// TestHTTP_BrewCreateJSONIncompleteNudge verifies that when the referenced bean
-// is incomplete (missing fields), the JSON response includes the nudge.
 func TestHTTP_BrewCreateJSONIncompleteNudge(t *testing.T) {
 	h := StartHarness(t, nil)
 
-	// Create a bean with only a name — no origin, roast_level, etc. This
-	// makes it "incomplete" per Bean.IsIncomplete().
+	// A name-only bean is incomplete per Bean.IsIncomplete().
 	beanRKey := mustRKey(t, h.PostForm("/api/beans", form("name", "Incomplete Bean")), "bean")
 	grinderRKey := mustRKey(t, h.PostForm("/api/grinders", form("name", "Nudge Grinder")), "grinder")
 	brewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "Nudge Brewer")), "brewer")
@@ -194,8 +185,6 @@ func TestHTTP_BrewCreateJSONIncompleteNudge(t *testing.T) {
 	assert.Equal(t, "Incomplete Bean", result.IncompleteNudge.Name)
 }
 
-// TestHTTP_BrewCreateHTMXStillRedirects verifies that a form POST without
-// Accept: application/json still gets the HX-Redirect (existing HTMX behavior).
 func TestHTTP_BrewCreateHTMXStillRedirects(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -217,14 +206,9 @@ func TestHTTP_BrewCreateHTMXStillRedirects(t *testing.T) {
 	assert.Equal(t, "/my-coffee", resp.Header.Get("HX-Redirect"))
 }
 
-// TestHTTP_BrewCreateMultipartJSON verifies that POST /brews accepts a
-// multipart/form-data body (as submitted by the SvelteKit SPA via FormData)
-// and returns the created brew as JSON. This is a regression test for a bug
-// where Request.ParseForm leaves multipart PostForm empty, so every field
-// — including the required bean_rkey — read as "" and the handler rejected
-// the request with 400 "Bean selection is required".
 func TestHTTP_BrewCreateMultipartJSON(t *testing.T) {
 	h := StartHarness(t, nil)
+	// Multipart parsing previously dropped form fields after ParseForm.
 
 	roasterRKey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Multipart Roaster")), "roaster")
 	beanRKey := mustRKey(t, h.PostForm("/api/beans", form("name", "Multipart Bean", "roaster_rkey", roasterRKey)), "bean")
@@ -251,8 +235,6 @@ func TestHTTP_BrewCreateMultipartJSON(t *testing.T) {
 	assert.Equal(t, 7, result.Brew.Rating)
 	assert.NotEmpty(t, result.Brew.RKey)
 
-	// Update via multipart PUT too — same ParseForm gotcha affected the
-	// update handler.
 	updateResp := postMultipartJSON(t, h, "/brews/"+result.Brew.RKey, "PUT", map[string]string{
 		"bean_rkey":     beanRKey,
 		"grinder_rkey":  grinderRKey,

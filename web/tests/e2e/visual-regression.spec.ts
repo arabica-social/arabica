@@ -1,31 +1,9 @@
 import { test, expect } from "./fixtures";
 
-/**
- * Visual regression tests.
- *
- * Captures screenshots of key routes and compares them against committed
- * baselines. Run:
- *
- *   pnpm exec playwright test tests/e2e/visual-regression.spec.ts --update-snapshots
- *
- * from the web/ directory to regenerate baselines after intentional UI
- * changes.
- *
- * Static pages (forms, settings) use fullPage screenshots. Pages with
- * dynamic content (feed, entity views) capture the viewport only and mask
- * regions that vary per run (DIDs, community usage, feed item count) so
- * only the stable chrome/layout is compared.
- */
-
-// Shared viewport for stable, reproducible screenshots.
 const VIEWPORT = { width: 1280, height: 900 } as const;
 
 test.describe("visual regression", () => {
 	test.use({ viewport: VIEWPORT });
-
-	// -----------------------------------------------------------------------
-	// Static pages — fullPage screenshots, no masking.
-	// -----------------------------------------------------------------------
 
 	test("new brew form", async ({ authedPage: page }) => {
 		await page.goto("/brews/new");
@@ -86,11 +64,8 @@ test.describe("visual regression", () => {
 		});
 	});
 
-	// -----------------------------------------------------------------------
-	// Pages with dynamic content — viewport-only capture + masking.
 	// fullPage is unreliable here because variable-height sections (feed
 	// items, community backlinks) shift the total page height per run.
-	// -----------------------------------------------------------------------
 
 	test("home feed chrome", async ({ authedPage: page }) => {
 		await page.goto("/");

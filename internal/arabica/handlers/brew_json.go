@@ -13,15 +13,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// BrewMutationJSONResponse is the JSON envelope returned by brew create/update
-// handlers when the client requests JSON (Accept: application/json or no
-// __redirect form value). The brew model carries json tags so it serializes
-// directly; incomplete_nudge is populated when the referenced bean is missing
-// fields, mirroring the X-Incomplete-Nudge header the HTMX path sets.
-// AuthorDID carries the owning user's DID so the SPA can navigate to the
-// brew's view URL (/brews/{actor}/{rkey}) after a create/update. The Brew
-// record model itself does not carry authorship — it is derived from the
-// authenticated session.
+// BrewMutationJSONResponse includes the owner DID because Brew has no author
+// field. IncompleteNudge identifies missing metadata on the referenced bean.
 type BrewMutationJSONResponse struct {
 	Brew            *arabica.Brew `json:"brew"`
 	AuthorDID       string        `json:"author_did"`
@@ -37,11 +30,7 @@ type BeanNudge struct {
 	MissingFields string `json:"missing"`
 }
 
-// HandleBrewCreateJSON creates a new brew from a typed JSON request body. It
-// mirrors HandleRecipeCreate but uses arabica.CreateBrewRequest and replicates
-// the numeric range validation the legacy multipart HandleBrewCreate performs
-// via validateBrewRequest. The response is BrewMutationJSONResponse so the SPA
-// can navigate to the new brew's view URL and surface an incomplete-bean nudge.
+// HandleBrewCreateJSON creates a brew and returns its view URL and bean nudge.
 func (h *Handlers) HandleBrewCreateJSON(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
@@ -51,8 +40,7 @@ func (h *Handlers) HandleBrewCreateJSON(w http.ResponseWriter, r *http.Request) 
 
 	var req arabica.CreateBrewRequest
 	if err := handlers.DecodeRequest(r, &req, func() error {
-		// Form fallback mirrors the legacy multipart handler so non-JSON
-		// callers (e.g. legacy HTMX) still work if routed here.
+		// Form callers use the same validation as the multipart endpoint.
 		temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, errs := validateBrewRequest(r)
 		if len(errs) > 0 {
 			return fmt.Errorf("%s", errs[0].Message)
@@ -246,10 +234,7 @@ func (h *Handlers) HandleBrewUpdateJSON(w http.ResponseWriter, r *http.Request) 
 	handlers.WriteJSON(w, BrewMutationJSONResponse{Brew: updated, AuthorDID: authorDID}, "brew")
 }
 
-// validateBrewNumericRanges checks the typed numeric fields of a
-// CreateBrewRequest against the same bounds the legacy multipart
-// validateBrewRequest enforces. Returns a human-readable message on the first
-// failure, or empty string when all values are in range.
+// validateBrewNumericRanges applies the same bounds as the form endpoint.
 func validateBrewNumericRanges(req *arabica.CreateBrewRequest) string {
 	if req.Temperature < 0 || req.Temperature > 212 {
 		return "temperature must be between 0 and 212"

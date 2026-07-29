@@ -11,11 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestHTTP_ValidationErrors covers the per-entity Validate() error matrix.
-// Each case asserts the create handler returns 4xx for clearly invalid input.
-// We don't pin the exact status (some validations land in the decode path,
-// some in Validate(), some in field-specific guards) — only that the request
-// is rejected and no record was persisted.
 func TestHTTP_ValidationErrors(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -135,9 +130,6 @@ func TestHTTP_ValidationErrors(t *testing.T) {
 	assert.Empty(t, data.Recipes, "no recipes should have been created by validation cases")
 }
 
-// TestHTTP_BrewValidationErrors covers brew-specific input rejection: missing
-// bean reference, malformed rkey, and out-of-range numeric fields validated by
-// validateBrewRequest.
 func TestHTTP_BrewValidationErrors(t *testing.T) {
 	h := StartHarness(t, nil)
 

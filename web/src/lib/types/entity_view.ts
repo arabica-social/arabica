@@ -1,5 +1,5 @@
 // Hand-maintained types for the entity view JSON API.
-// Mirrors internal/handlers/entity_view_json.go (EntityViewJSONResponse,
+// Must match internal/handlers/entity_view_json.go (EntityViewJSONResponse,
 // AuthorSummary, SocialDataJSON) and internal/backlinks/service.go
 // (Result, Entry, UsageGroup). See docs/api/entities.md.
 

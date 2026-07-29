@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# Build the SvelteKit SPA and copy output into the Go embed directory.
-#
-# The SvelteKit app lives in web/ and builds to web/build/. The Go server
-# embeds internal/web/spa/build/ via go:embed, so the build output must be
-# copied there before `go build`.
-#
-# Usage: ./scripts/build-spa.sh
-# Or via justfile: just build-spa
 
 set -euo pipefail
 

@@ -1,14 +1,5 @@
 import { test, expect } from "./fixtures";
 
-/**
- * Error-path and edge-case tests.
- *
- * Covers failure modes that previously had no e2e coverage:
- *   - Brew form submission rejected by server (missing required bean)
- *   - Nonexistent entity views across multiple entity types
- *   - Explore empty state when the witness cache has no community data
- */
-
 test("brew create API rejects without a required bean", async ({
 	apiRequest,
 }) => {
@@ -73,13 +64,10 @@ test("nonexistent recipe view renders not-found state", async ({
 test("explore renders empty state when no community records exist", async ({
 	authedPage: page,
 }) => {
-	// A fresh account's witness cache has no community records, so explore
-	// should show the "No matching records" empty state, not a crash.
 	await page.goto("/explore");
 	await page.waitForLoadState("networkidle");
 	await expect(page.getByRole("heading", { name: "Explore records." })).toBeVisible();
 
-	// The search input and filter controls should be present.
 	await expect(page.getByPlaceholder("Ethiopia, V60, washed")).toBeVisible();
 
 	// Either results render (if the global index has data from other tests)

@@ -120,7 +120,6 @@
 		}
 	}
 
-	// Live recipe context rail derivations.
 	let coffeeValue = $derived(num(coffeeAmount));
 	let waterValue = $derived(num(waterAmount));
 	let ratio = $derived(

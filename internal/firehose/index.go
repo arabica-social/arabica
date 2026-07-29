@@ -1271,7 +1271,6 @@ func (idx *FeedIndex) MarkBackfilled(ctx context.Context, did string) error {
 	return err
 }
 
-// BackfillUser fetches all existing records for a DID and adds them to the index
 // BackfillUser fetches every record this user has in the supplied
 // collections and indexes them into the witness cache. Collections
 // typically come from app.NSIDs() so backfill tracks the running app's
@@ -1359,8 +1358,6 @@ func (idx *FeedIndex) BackfillUser(ctx context.Context, did string, collections 
 	return nil
 }
 
-// ========== Like Indexing Methods ==========
-
 // UpsertLike adds or updates a like in the index
 func (idx *FeedIndex) UpsertLike(ctx context.Context, actorDID, rkey, subjectURI string) error {
 	err := idx.social.upsertLike(ctx, actorDID, rkey, subjectURI)
@@ -1399,8 +1396,6 @@ func (idx *FeedIndex) HasUserLiked(ctx context.Context, actorDID, subjectURI str
 func (idx *FeedIndex) GetUserLikeRKey(ctx context.Context, actorDID, subjectURI string) string {
 	return idx.social.userLikeRKey(ctx, actorDID, subjectURI)
 }
-
-// ========== Batch Query Methods ==========
 
 // placeholders returns a string of "?,?,?" for n items and a corresponding []any slice.
 func placeholders(uris []string) (string, []any) {
@@ -1552,13 +1547,12 @@ func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subject
 		return nil
 	}
 
-	// Build a map of comment rkey -> comment for quick lookup
+	// Index comments by rkey and by parent for tree traversal.
 	commentMap := make(map[string]*IndexedComment)
 	for i := range allComments {
 		commentMap[allComments[i].RKey] = &allComments[i]
 	}
 
-	// Build parent -> children map
 	childrenMap := make(map[string][]*IndexedComment)
 	var topLevel []*IndexedComment
 
@@ -1571,19 +1565,18 @@ func (idx *FeedIndex) GetThreadedCommentsForSubject(ctx context.Context, subject
 		}
 	}
 
-	// Sort top-level comments by creation time (oldest first)
+	// Oldest-first at every level (top-level and within each parent).
 	sort.Slice(topLevel, func(i, j int) bool {
 		return topLevel[i].CreatedAt.Before(topLevel[j].CreatedAt)
 	})
 
-	// Sort children within each parent by creation time
 	for _, children := range childrenMap {
 		sort.Slice(children, func(i, j int) bool {
 			return children[i].CreatedAt.Before(children[j].CreatedAt)
 		})
 	}
 
-	// Flatten the tree in depth-first order
+	// Flatten depth-first, capping visual depth at 2.
 	var result []IndexedComment
 	var flatten func(comment *IndexedComment, depth int)
 	flatten = func(comment *IndexedComment, depth int) {

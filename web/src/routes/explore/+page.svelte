@@ -17,7 +17,6 @@
 	let loading = $state(false);
 	let loadingMore = $state(false);
 
-	// Filter form state — initialized from URL.
 	let q = $state("");
 	let typeFilter = $state("");
 	let sort = $state("recent");
@@ -151,7 +150,7 @@
 	let isAuthenticated = $derived(data.isAuthenticated);
 
 	// Feed masonry: re-pack cards into two corkboard columns whenever the
-	// result set changes (filter/load-more). Mirrors the home feed page.
+	// result set changes after filtering or loading more.
 	$effect(() => {
 		items;
 		const teardown = installFeedMasonry();
@@ -189,7 +188,6 @@
 	</header>
 
 	<div class="space-y-6">
-		<!-- Search & filters -->
 		<details class="explore-controls" open>
 			<summary class="explore-controls-summary cursor-pointer">
 				<span class="explore-controls-title">
@@ -294,7 +292,6 @@
 			</form>
 		</details>
 
-		<!-- Results -->
 		{#if data.error}
 			<div class="card card-inner text-center py-8">
 				{#if !isAuthenticated}

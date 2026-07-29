@@ -52,8 +52,6 @@ func snapAPIJSON(t *testing.T, h *Harness, title, path string, rkeys map[string]
 	shutter.SnapJSON(t, title, string(pretty), scrubAPI(h.PrimaryAccount.DID, rkeys)...)
 }
 
-// --- Feed JSON snapshot ---
-
 func TestSnap_API_FeedJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -70,8 +68,6 @@ func TestSnap_API_FeedJSON(t *testing.T) {
 		"bean":    beanRKey,
 	})
 }
-
-// --- Entity view JSON snapshots ---
 
 func TestSnap_API_EntityViewBeanJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
@@ -114,8 +110,6 @@ func TestSnap_API_EntityViewRoasterJSON(t *testing.T) {
 	})
 }
 
-// --- Manage JSON snapshot ---
-
 func TestSnap_API_ManageJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -124,7 +118,6 @@ func TestSnap_API_ManageJSON(t *testing.T) {
 	grinderRKey := mustRKey(t, h.PostForm("/api/grinders", form("name", "Snap Manage Grinder")), "grinder")
 	brewerRKey := mustRKey(t, h.PostForm("/api/brewers", form("name", "Snap Manage Brewer")), "brewer")
 
-	// Create a brew so stats are non-zero.
 	brewRKey := mustBrewRKey(t, h, form(
 		"bean_rkey", beanRKey,
 		"grinder_rkey", grinderRKey,
@@ -168,8 +161,6 @@ func mustBrewRKey(t *testing.T, h *Harness, brewForm url.Values) string {
 	return data.Brews[0].RKey
 }
 
-// --- Brew list JSON snapshot ---
-
 func TestSnap_API_BrewListJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -199,8 +190,6 @@ func TestSnap_API_BrewListJSON(t *testing.T) {
 		"brew":    brewRKey,
 	})
 }
-
-// --- Profile JSON snapshot ---
 
 func TestSnap_API_ProfileJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
@@ -232,8 +221,6 @@ func TestSnap_API_ProfileJSON(t *testing.T) {
 		"brew":    brewRKey,
 	})
 }
-
-// --- Settings JSON snapshot ---
 
 func TestSnap_API_SettingsJSON(t *testing.T) {
 	h := StartHarness(t, nil)

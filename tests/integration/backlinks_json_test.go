@@ -21,8 +21,6 @@ type backlinksJSONResponse struct {
 	Result     json.RawMessage `json:"result"`
 }
 
-// TestHTTP_BacklinksJSON verifies that GET /api/roasters/{actor}/{id}/backlinks
-// with Accept: application/json returns the backlinks envelope.
 func TestHTTP_BacklinksJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -48,8 +46,6 @@ func TestHTTP_BacklinksJSON(t *testing.T) {
 	assert.NotNil(t, view.Result, "result should be present (even if empty backlinks)")
 }
 
-// TestHTTP_BacklinksJSONBean verifies the bean backlinks endpoint includes
-// usage data when a brew references the bean.
 func TestHTTP_BacklinksJSONBean(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -98,7 +94,6 @@ func TestHTTP_BacklinksJSONBean(t *testing.T) {
 	assert.NotNil(t, result.Usage)
 }
 
-// TestHTTP_BacklinksJSONNotFound verifies that a non-existent record returns 404.
 func TestHTTP_BacklinksJSONNotFound(t *testing.T) {
 	h := StartHarness(t, nil)
 
@@ -107,9 +102,6 @@ func TestHTTP_BacklinksJSONNotFound(t *testing.T) {
 	assert.Equal(t, 404, resp.StatusCode)
 }
 
-// TestHTTP_BacklinksPageIsSPAOwned verifies that the backlinks page route is
-// served by the SPA shell (not a legacy HTML partial or JSON). The JSON
-// backlinks data lives at /api/{entity}/{actor}/{id}/backlinks.
 func TestHTTP_BacklinksJSONHTMXStillHTML(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 

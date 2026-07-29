@@ -26,9 +26,6 @@ type entityViewJSONResponse struct {
 	EntityCount     int             `json:"entity_count"`
 }
 
-// TestHTTP_EntityViewJSON verifies that GET /api/roasters/{actor}/{id} with
-// Accept: application/json returns a JSON envelope with the record and social
-// context, not an HTML page.
 func TestHTTP_EntityViewJSON(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -50,15 +47,12 @@ func TestHTTP_EntityViewJSON(t *testing.T) {
 	assert.NotEmpty(t, view.ShareURL)
 	assert.Contains(t, view.ShareURL, "/roasters/"+actor+"/"+rkey)
 
-	// The record field should contain the roaster name.
 	var record map[string]any
 	require.NoError(t, json.Unmarshal(view.Record, &record))
 	assert.Equal(t, "JSON Roaster", record["name"])
 	assert.Equal(t, "Seattle, WA", record["location"])
 }
 
-// TestHTTP_EntityViewJSONBean verifies the bean JSON view includes ref
-// resolution (roaster hydration) and the entity count.
 func TestHTTP_EntityViewJSONBean(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 
@@ -136,7 +130,6 @@ func TestHTTP_EntityViewJSONBrew(t *testing.T) {
 	assert.Equal(t, beanRKey, brew["bean_rkey"])
 }
 
-// TestHTTP_EntityViewJSONNotFound verifies that a non-existent record returns 404.
 func TestHTTP_EntityViewJSONNotFound(t *testing.T) {
 	h := StartHarness(t, nil)
 

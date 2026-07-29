@@ -78,7 +78,6 @@ test("roaster lifecycle: create, reload, edit, manage, delete", async ({
  * Flow: create roaster → view roaster detail page → verify content.
  */
 test("view entity detail page", async ({ authedPage: page, apiRequest, did, waitForIndex }) => {
-	// Create a roaster.
 	const resp = await apiRequest.post("/api/roasters", {
 		form: {
 			name: "E2E View Roaster",
@@ -90,11 +89,9 @@ test("view entity detail page", async ({ authedPage: page, apiRequest, did, wait
 
 	await waitForIndex(`at://${did}/social.arabica.alpha.roaster/${roaster.rkey}`);
 
-	// Navigate to the roaster view page using the DID + rkey.
 	await page.goto(`/roasters/${did}/${roaster.rkey}`);
 	await page.waitForLoadState("networkidle");
 
-	// Verify the roaster details render.
 	await expect(page.getByText("E2E View Roaster")).toBeVisible();
 	await expect(page.getByText("Austin, TX")).toBeVisible();
 });

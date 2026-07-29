@@ -8,10 +8,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/feedviews"
 )
 
-// FeedViews returns the per-record-type feed view metadata for Arabica. Only
-// the metadata needed by the JSON feed path (filter labels, action URLs,
-// compactness) is populated; the legacy templ Render/RenderPrefs renderers
-// were removed with the templ stack.
+// FeedViews returns Arabica's per-record-type JSON feed metadata.
 func FeedViews() feedviews.Registry {
 	return feedviews.Registry{
 		lexicons.RecordTypeBean: {

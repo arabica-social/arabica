@@ -82,7 +82,6 @@
 			});
 			if (!res.ok) throw new Error(`Failed: ${res.status}`);
 			pushToast(successMsg);
-			// Reload admin data to reflect the change.
 			const adminRes = await fetch("/api/_mod", { headers: { Accept: "application/json" } });
 			if (adminRes.ok) admin = (await adminRes.json()) as AdminResponse;
 		} catch (error) {
@@ -204,7 +203,6 @@
 		</div>
 	{:else if admin}
 		<div class="space-y-6">
-			<!-- Tab nav -->
 			<nav class="flex flex-wrap gap-2">
 				{#if admin.CanHide || admin.CanUnhide}
 					<button type="button" onclick={() => (activeTab = "hidden")} class="px-3 py-1.5 rounded-lg border font-medium text-sm transition-colors {activeTab === 'hidden' ? 'bg-amber-100 border-amber-300 text-amber-800' : 'border-brown-200 text-muted hover:bg-brown-50'}">
@@ -241,7 +239,6 @@
 				{/if}
 			</nav>
 
-			<!-- Hidden Records -->
 			{#if activeTab === "hidden" && (admin.CanHide || admin.CanUnhide)}
 				<div class="card card-inner">
 					<h2 class="section-title">Hidden Records</h2>
@@ -276,7 +273,6 @@
 				</div>
 			{/if}
 
-			<!-- Blocked Users -->
 			{#if activeTab === "blocked" && (admin.CanBlock || admin.CanUnblock)}
 				<div class="card card-inner">
 					<h2 class="section-title">Blocked Users</h2>
@@ -309,7 +305,6 @@
 				</div>
 			{/if}
 
-			<!-- Reports -->
 			{#if activeTab === "reports" && admin.CanViewReports}
 				<div class="card card-inner">
 					<h2 class="section-title">Pending Reports</h2>
@@ -371,7 +366,6 @@
 				</div>
 			{/if}
 
-			<!-- Activity Log -->
 			{#if activeTab === "activity" && admin.CanViewLogs}
 				<div class="card card-inner">
 					<h2 class="section-title">Recent Activity</h2>
@@ -409,7 +403,6 @@
 				</div>
 			{/if}
 
-			<!-- Labels -->
 			{#if activeTab === "labels" && admin.CanManageLabels}
 				<div class="card card-inner">
 					<div class="flex items-center justify-between mb-4">
@@ -494,7 +487,6 @@
 				{/if}
 			{/if}
 
-			<!-- Stats (admin only) -->
 			{#if activeTab === "stats" && admin.IsAdmin}
 				<div class="card card-inner">
 					<h2 class="section-title">System Stats</h2>
@@ -519,7 +511,6 @@
 						</div>
 					{/if}
 				</div>
-				<!-- Backups -->
 				<div class="card card-inner mt-4">
 					<h2 class="section-title">Database Backups</h2>
 					{#if admin.Backups.length === 0}
@@ -549,7 +540,6 @@
 				</div>
 			{/if}
 
-			<!-- Cache (admin only) -->
 			{#if activeTab === "cache" && admin.IsAdmin}
 				<div class="space-y-4">
 					<div class="card card-inner">

@@ -24,9 +24,7 @@
 	let showSessionModal = $state(false);
 	let showLoginModal = $state(false);
 
-	// Theme runtime — applies the saved theme on mount and listens for
-	// storage changes (e.g. theme toggle in another tab). Mirrors
-	// ThemeRuntimeIsland.svelte without the HTMX event hooks.
+	// Apply the saved theme and synchronize changes across tabs.
 	// applyTheme reads the persisted theme choice and applies it to the
 	// document. "system" (no stored value) removes the data-theme attribute
 	// so CSS prefers-color-scheme drives light/dark. Exposed on window so
@@ -89,8 +87,7 @@
 		// Apply theme before first paint to prevent flash.
 		applyTheme();
 
-		// Install the appCache singleton onto window.AppCache so existing
-		// Svelte islands (EntityCombo, BrewFormIsland, …) keep working.
+		// Entity controls share this cache through the global app contract.
 		installAppCacheGlobal();
 
 		// Preload the user's record cache on authed pages. Non-fatal if it
@@ -134,7 +131,6 @@
 
 <Footer {brandName} tagline={brandTagline} />
 
-<!-- Toast region -->
 <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="false">
 	{#each $toasts as toast (toast.id)}
 		<div class="toast" role="status">
@@ -143,7 +139,6 @@
 	{/each}
 </div>
 
-<!-- Session expired modal -->
 {#if showSessionModal}
 	<dialog open class="modal-dialog" data-testid="session-expired-modal">
 		<div class="modal-content text-center">
@@ -172,5 +167,4 @@
 	</dialog>
 {/if}
 
-<!-- Login modal -->
 <LoginModal bind:open={showLoginModal} />

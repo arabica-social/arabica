@@ -10,10 +10,7 @@ import (
 // per app.
 type ActionURL func(*feed.FeedItem) string
 
-// View describes how a record type appears in the feed. Only the metadata
-// needed by the JSON feed path (filter labels, action URLs, compactness) is
-// retained; the legacy templ Render/RenderPrefs fields were removed with the
-// templ stack.
+// View describes how a record type appears in the JSON feed.
 type View struct {
 	Compact       bool
 	CardClassNoun string

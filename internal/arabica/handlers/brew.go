@@ -33,7 +33,6 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve owner to DID
 	publicClient := atproto.NewPublicClient()
 	var ownerDID string
 	if strings.HasPrefix(owner, "did:") {
@@ -84,7 +83,6 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 		arabica.HydrateBrewRefs(brew, record.Value, handlers.PublicLookup(r.Context()))
 	}
 
-	// Generate card
 	card, err := coffeeogcard.DrawBrewCard(brew)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate OG image")
@@ -99,16 +97,12 @@ func (h *Handlers) HandleBrewOGImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleBrewList serves the user's brew list as JSON ({brews, has_more,
-// next_offset}) for the SvelteKit SPA. The SPA owns the /brews page and always
-// sends Accept: application/json, so the legacy HTMX HTML partial path has
-// been removed.
+// HandleBrewList serves the user's paginated brew list as JSON.
 func (h *Handlers) HandleBrewList(w http.ResponseWriter, r *http.Request) {
 	h.handleBrewListJSON(w, r)
 }
 
-// brewListResult holds the fetched brews and pagination state shared by the
-// HTML and JSON render paths.
+// brewListResult holds fetched brews and pagination state.
 type brewListResult struct {
 	brews         []*arabica.Brew
 	hasMore       bool
@@ -289,7 +283,6 @@ type ValidationError struct {
 
 // validateBrewRequest validates brew form input and returns any validation errors
 func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, coffeeAmount, timeSeconds, rating int, pours []arabica.CreatePourData, errs []ValidationError) {
-	// Parse and validate temperature
 	if tempStr := r.FormValue("temperature"); tempStr != "" {
 		var err error
 		temperature, err = strconv.ParseFloat(tempStr, 64)
@@ -300,7 +293,6 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 		}
 	}
 
-	// Parse and validate water amount
 	if waterStr := r.FormValue("water_amount"); waterStr != "" {
 		var err error
 		waterAmount, err = strconv.Atoi(waterStr)
@@ -311,7 +303,6 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 		}
 	}
 
-	// Parse and validate coffee amount
 	if coffeeStr := r.FormValue("coffee_amount"); coffeeStr != "" {
 		var err error
 		coffeeAmount, err = strconv.Atoi(coffeeStr)
@@ -322,7 +313,6 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 		}
 	}
 
-	// Parse and validate time
 	if timeStr := r.FormValue("time_seconds"); timeStr != "" {
 		var err error
 		timeSeconds, err = strconv.Atoi(timeStr)
@@ -333,7 +323,6 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 		}
 	}
 
-	// Parse and validate rating
 	if ratingStr := r.FormValue("rating"); ratingStr != "" {
 		var err error
 		rating, err = strconv.Atoi(ratingStr)
@@ -344,15 +333,13 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 		}
 	}
 
-	// Parse pours
 	pours = parsePours(r)
 
 	return
 }
 
-// Create new brew
 func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
-	// Require authentication first. The SPA posts with Accept: application/json;
+	// The SPA posts with Accept: application/json;
 	// honor that so an expired/missing session surfaces as a JSON 401 the
 	// client can react to (opening the session-expired modal) instead of a
 	// same-tab redirect that would discard an in-progress brew form.
@@ -368,7 +355,6 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate input
 	temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
 	if len(validationErrs) > 0 {
 		log.Warn().Str("field", validationErrs[0].Field).Str("error", validationErrs[0].Message).Msg("Brew create validation failed")
@@ -376,7 +362,6 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields
 	beanRKey := r.FormValue("bean_rkey")
 	if beanRKey == "" {
 		log.Warn().Msg("Brew create: missing bean_rkey")
@@ -389,7 +374,6 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate optional rkeys
 	grinderRKey := r.FormValue("grinder_rkey")
 	if errMsg := handlers.ValidateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
 		log.Warn().Str("grinder_rkey", grinderRKey).Msg("Brew create: invalid grinder rkey")
@@ -443,7 +427,6 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 
 	h.InvalidateFeedCache()
 
-	// Check if the bean is incomplete and include nudge info.
 	var nudge *BeanNudge
 	ctx := r.Context()
 	if beanRKey != "" {
@@ -457,15 +440,14 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// JSON path: SvelteKit SPA sends Accept: application/json. Return the
-	// brew model + nudge instead of the hardcoded HTMX redirect.
+	// JSON callers receive the model and incomplete-bean nudge.
 	if handlers.WantsJSON(r) {
 		authorDID, _ := atpmiddleware.GetDID(r.Context())
 		handlers.WriteJSON(w, BrewMutationJSONResponse{Brew: brew, AuthorDID: authorDID, IncompleteNudge: nudge}, "brew")
 		return
 	}
 
-	// HTMX path: set the nudge header for the brew form JS, then redirect.
+	// Form callers receive the nudge header and redirect target.
 	if nudge != nil {
 		w.Header().Set("X-Incomplete-Nudge", fmt.Sprintf(`{"entity_type":"bean","rkey":"%s","name":"%s","missing":"%s"}`,
 			nudge.RKey, nudge.Name, nudge.MissingFields))
@@ -474,14 +456,12 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Update existing brew
 func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	rkey := handlers.ValidateRKey(w, r.PathValue("id"))
 	if rkey == "" {
 		return
 	}
 
-	// Require authentication
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Redirect(w, r, "/login", http.StatusFound)
@@ -494,7 +474,6 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate input
 	temperature, waterAmount, coffeeAmount, timeSeconds, rating, pours, validationErrs := validateBrewRequest(r)
 	if len(validationErrs) > 0 {
 		log.Warn().Str("rkey", rkey).Str("field", validationErrs[0].Field).Str("error", validationErrs[0].Message).Msg("Brew update validation failed")
@@ -502,7 +481,6 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields
 	beanRKey := r.FormValue("bean_rkey")
 	if beanRKey == "" {
 		log.Warn().Str("rkey", rkey).Msg("Brew update: missing bean_rkey")
@@ -515,7 +493,6 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate optional rkeys
 	grinderRKey := r.FormValue("grinder_rkey")
 	if errMsg := handlers.ValidateOptionalRKey(grinderRKey, "Grinder selection"); errMsg != "" {
 		log.Warn().Str("rkey", rkey).Str("grinder_rkey", grinderRKey).Msg("Brew update: invalid grinder rkey")
@@ -569,8 +546,7 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 
 	h.InvalidateFeedCache()
 
-	// JSON path: SvelteKit SPA sends Accept: application/json. Return the
-	// updated brew model instead of the hardcoded HTMX redirect.
+	// JSON callers receive the updated model.
 	if handlers.WantsJSON(r) {
 		updated, err := store.GetBrewByRKey(r.Context(), rkey)
 		if err != nil {
@@ -587,7 +563,6 @@ func (h *Handlers) HandleBrewUpdate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Delete brew
 func (h *Handlers) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
@@ -597,9 +572,7 @@ func (h *Handlers) HandleBrewDelete(w http.ResponseWriter, r *http.Request) {
 	h.DeleteEntity(w, r, store.DeleteBrewByRKey, "brew", arabica.NSIDBrew)
 }
 
-// Export brews as JSON
 func (h *Handlers) HandleBrewExport(w http.ResponseWriter, r *http.Request) {
-	// Require authentication
 	store, authenticated := h.GetArabicaStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)

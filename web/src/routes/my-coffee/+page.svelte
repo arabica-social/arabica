@@ -52,7 +52,7 @@
     brewsData = data.brews;
   });
 
-  // Restore last tab from localStorage (matches legacy manageTab key).
+  // Restore the last selected tab from localStorage.
   $effect(() => {
     try {
       const saved = localStorage.getItem("manageTab") as Tab | null;
@@ -178,7 +178,7 @@
   let did = $derived(manage?.did ?? "");
   let error = $derived(data.error);
 
-  // Bean lists split by closed state — mirrors the old manage partial.
+  // Closed bags remain separate from the active bean list.
   let openBeans = $derived(
     (manage?.beans ?? []).filter((bean) => !bean.closed),
   );

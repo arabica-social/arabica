@@ -70,9 +70,7 @@ type Handler struct {
 	// Backup service (optional) — exposes per-source status to admin views.
 	backupService *backup.Service
 
-	// Brand carries the per-app display name and tagline. Set via
-	// SetBrand at startup; consumed by buildLayoutData so templ
-	// components can read brand strings without hardcoding "Arabica".
+	// Brand carries the display name and tagline supplied at startup.
 	brand domain.BrandConfig
 
 	// app carries the per-app config so handlers that need the entity
@@ -224,7 +222,6 @@ func (h *Handler) appNSIDs() []string {
 }
 
 // NewHandler creates a new Handler with all required dependencies.
-// This constructor pattern ensures the Handler is always fully initialized.
 func NewHandler(
 	oauth *atp.OAuthApp,
 	atprotoClient *atproto.Client,
@@ -358,12 +355,10 @@ func IsJSONRequest(r *http.Request) bool {
 // Returns an error if parsing fails.
 func DecodeRequest(r *http.Request, target any, parseForm func() error) error {
 	if IsJSONRequest(r) {
-		// Parse as JSON
 		if err := json.NewDecoder(r.Body).Decode(target); err != nil {
 			return err
 		}
 	} else {
-		// Parse as form data using the provided function
 		if err := r.ParseForm(); err != nil {
 			return err
 		}
@@ -418,9 +413,7 @@ func WriteJSONValidationError(w http.ResponseWriter, fields map[string]string) {
 	}, "validation error")
 }
 
-// WriteRequestError returns JSON when the request selected the JSON
-// representation, while preserving plain-text errors for legacy form/HTMX
-// callers during the migration.
+// WriteRequestError returns JSON for JSON requests and plain text otherwise.
 func WriteRequestError(w http.ResponseWriter, r *http.Request, status int, code, message string) {
 	if IsJSONRequest(r) || WantsJSON(r) {
 		WriteJSONError(w, status, code, message)
@@ -470,19 +463,16 @@ func (h *Handler) GetUserProfile(ctx context.Context, did string) *bff.UserProfi
 // GetRecordStore creates a user-scoped app-generic record store from the request context.
 // Returns the store and true if authenticated, or nil and false if not authenticated.
 func (h *Handler) GetRecordStore(r *http.Request) (records.Store, bool) {
-	// Get authenticated DID from context
 	didStr, ok := atpmiddleware.GetDID(r.Context())
 	if !ok {
 		return nil, false
 	}
 
-	// Parse DID string to syntax.DID
 	did, err := syntax.ParseDID(didStr)
 	if err != nil {
 		return nil, false
 	}
 
-	// Get session ID from context
 	sessionID, ok := atpmiddleware.GetSessionID(r.Context())
 	if !ok {
 		return nil, false
@@ -570,7 +560,6 @@ func (h *Handler) DeleteEntity(w http.ResponseWriter, r *http.Request, deleteFn 
 		HandleStoreErrorForRequest(w, r, err, "Failed to delete "+entityName)
 		return
 	}
-	// Remove from firehose feed index
 	if h.feedIndex != nil && collection != "" {
 		didStr, _ := atpmiddleware.GetDID(r.Context())
 		if didStr != "" {
@@ -617,9 +606,7 @@ func (h *Handler) PublicBaseURL(r *http.Request) string {
 }
 
 // ResolveSessionData returns the authenticated user's display state for the
-// SPA shell. It is the SPA equivalent of the profile/moderator/unread fields
-// that BuildLayoutData populates for templ pages. Returns zero values when
-// the DID is empty or the backing stores are unavailable.
+// SPA shell. It returns zero values when the DID or backing stores are absent.
 //
 // This is called once per SPA page load by the shell handler's session
 // resolver; it relies on the feed index profile cache so it stays cheap.
@@ -656,7 +643,6 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 		h.HandleCommentDeleteJSON(w, r)
 		return
 	}
-	// Require authentication
 	store, authenticated := h.getSocialStore(r)
 	if !authenticated {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
@@ -671,7 +657,6 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete the comment from the user's PDS
 	if err := store.DeleteCommentByRKey(r.Context(), rkey); err != nil {
 		log.Error().Err(err).Str("rkey", rkey).Str("did", didStr).Msg("Failed to delete comment from PDS")
 		HandleStoreError(w, err, "Failed to delete comment")
@@ -680,7 +665,6 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 
 	metrics.CommentsTotal.WithLabelValues("delete").Inc()
 
-	// Update firehose index and remove notifications
 	if h.feedIndex != nil {
 		// Look up subject URI before deletion for notification cleanup
 		subjectURI := h.feedIndex.GetCommentSubjectURI(didStr, rkey)
@@ -694,7 +678,6 @@ func (h *Handler) HandleCommentDelete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Return empty response (the comment element will be removed via hx-swap="outerHTML")
 	w.Header().Set("HX-Trigger", "entityDeleted")
 	w.WriteHeader(http.StatusOK)
 }
@@ -706,7 +689,6 @@ func (h *Handler) FilterHiddenComments(ctx context.Context, comments []firehose.
 		return comments
 	}
 
-	// Build set of hidden comment rkeys for depth adjustment
 	commentNSID := "social.arabica.alpha.comment"
 	if h.app != nil {
 		commentNSID = h.app.CommentNSID()
@@ -775,7 +757,6 @@ func (h *Handler) HandleCreateAccountSubmit(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Initiate OAuth flow with prompt=create
 	authURL, err := h.oauth.StartSignup(r.Context(), pdsURL)
 	if err != nil {
 		log.Error().Err(err).Str("pds_url", pdsURL).Msg("Failed to initiate signup flow")

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import PoursEditor from "../../src/lib/components/PoursEditor.svelte";
 
-// Collapse whitespace so templ-rendered textContent (newlines/spaces from markup)
+// Collapse whitespace so rendered textContent (newlines/spaces from markup)
 // matches plain string assertions.
 function summaryText(): string {
 	const el = screen.getByTestId("pour-summary");
@@ -33,7 +33,6 @@ describe("PoursEditor component", () => {
 
 		await user.click(screen.getByText("+ Add pours"));
 
-		// Header title + water/time inputs now present
 		expect(screen.getByText("Pours")).toBeTruthy();
 		expect(screen.getByPlaceholderText("Water (g)")).toBeTruthy();
 		expect(screen.getByPlaceholderText("e.g. 45")).toBeTruthy();
@@ -113,7 +112,6 @@ describe("PoursEditor component", () => {
 	it("does NOT show warning when expectedWater is empty/unset", () => {
 		render(PoursEditor, {
 			pours: [{ water: 150, time: "" }],
-			// expectedWater omitted -> defaults to ""
 		});
 		expect(screen.queryByRole("status")).toBeNull();
 	});
@@ -129,7 +127,6 @@ describe("PoursEditor component", () => {
 		await user.click(screen.getByText("+ Add Pour"));
 
 		expect(screen.getAllByPlaceholderText("Water (g)")).toHaveLength(2);
-		// New row input is empty
 		const waterInputs = screen.getAllByPlaceholderText("Water (g)");
 		expect((waterInputs[1] as HTMLInputElement).value).toBe("");
 	});
@@ -143,10 +140,8 @@ describe("PoursEditor component", () => {
 			],
 		});
 
-		// Remove the first pour ("Remove pour 1")
 		await user.click(screen.getByLabelText("Remove pour 1"));
 
-		// Only one pour remains, and its water value is the second pour's (100)
 		expect(screen.getAllByPlaceholderText("Water (g)")).toHaveLength(1);
 		const remaining = screen.getByPlaceholderText("Water (g)") as HTMLInputElement;
 		expect(remaining.value).toBe("100");
@@ -158,7 +153,6 @@ describe("PoursEditor component", () => {
 			pours: [{ water: 50, time: 30 }],
 		});
 
-		// Add a second pour and type into it
 		await user.click(screen.getByText("+ Add Pour"));
 
 		const waterInputs = screen.getAllByPlaceholderText("Water (g)");
@@ -166,7 +160,6 @@ describe("PoursEditor component", () => {
 		await user.type(waterInputs[1], "100");
 		await user.type(timeInputs[1], "45");
 
-		// Summary should reflect new total (50 + 100 = 150) and new last time (max(30,45)=45)
 		await waitFor(() => {
 			expect(summaryText()).toBe("2 pours · 150g total · last at 45s");
 		});

@@ -10,8 +10,7 @@ import (
 	"tangled.org/arabica.social/arabica/internal/web/pages"
 )
 
-// FeedResponseJSON is the JSON envelope returned by GET /api/feed for the
-// SvelteKit SPA. See docs/api/feed.md for the contract.
+// FeedResponseJSON is the GET /api/feed response envelope.
 type FeedResponseJSON struct {
 	Items           []FeedItemJSON      `json:"items"`
 	NextCursor      string              `json:"next_cursor"`
@@ -96,8 +95,7 @@ func NewFeedItemJSON(item *feed.FeedItem) FeedItemJSON {
 
 // BuildFeedTabs returns the filter pills for the feed filter bar, app-scoped
 // to the running app's descriptors + feed views. The "All" tab is always
-// first; per-entity tabs follow descriptor order. Mirrors feedFilterTabs in
-// the templ layer.
+// first; per-entity tabs follow descriptor order.
 func BuildFeedTabs(descriptors []*entities.Descriptor, views feedviews.Registry) []FeedFilterTabJSON {
 	tabs := []FeedFilterTabJSON{{Label: "All", Value: ""}}
 	for _, d := range descriptors {
@@ -110,11 +108,8 @@ func BuildFeedTabs(descriptors []*entities.Descriptor, views feedviews.Registry)
 	return tabs
 }
 
-// ApplyModerationContext populates the per-item moderation fields on a slice
-// of FeedItemJSON from a FeedModerationContext. This mirrors what the templ
-// feed card does with modCtx — moderators get hide/block controls and a
-// hidden-record badge. Non-moderator viewers are unaffected (all fields
-// stay zero-valued). Call this after building the items slice.
+// ApplyModerationContext adds moderator controls and hidden-record state.
+// Non-moderator fields stay zero-valued.
 func ApplyModerationContext(items []FeedItemJSON, modCtx pages.FeedModerationContext) {
 	if !modCtx.IsModerator {
 		return
@@ -128,10 +123,8 @@ func ApplyModerationContext(items []FeedItemJSON, modCtx pages.FeedModerationCon
 }
 
 // CommentJSON is the JSON-serializable view of a firehose.IndexedComment.
-// The IndexedComment struct marks computed profile fields (Handle, DisplayName,
-// Avatar, Depth, Replies) with json:"-" because the templ layer reads them
-// via accessor functions. The JSON API flattens these into the comment object
-// so the SPA has everything it needs in one payload.
+// IndexedComment omits computed profile and threading fields from JSON;
+// this type includes them in the API payload.
 type CommentJSON struct {
 	RKey        string    `json:"rkey"`
 	SubjectURI  string    `json:"subject_uri"`

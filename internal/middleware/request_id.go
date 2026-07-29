@@ -24,11 +24,9 @@ func RequestIDMiddleware(logger zerolog.Logger) func(http.Handler) http.Handler 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			traceID := extractTraceID(r)
 
-			// Create a sub-logger with trace_id and inject into context
 			subLogger := logger.With().Str("trace_id", traceID).Logger()
 			ctx := subLogger.WithContext(r.Context())
 
-			// Set response header for client-side correlation
 			w.Header().Set("X-Trace-ID", traceID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
