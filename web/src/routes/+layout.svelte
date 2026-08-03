@@ -23,6 +23,7 @@
 
 	let showSessionModal = $state(false);
 	let showLoginModal = $state(false);
+	let sessionDialog = $state<HTMLDialogElement>();
 
 	// Apply the saved theme and synchronize changes across tabs.
 	// applyTheme reads the persisted theme choice and applies it to the
@@ -68,6 +69,25 @@
 	function dismissSessionModal() {
 		showSessionModal = false;
 	}
+
+	function handleSessionBackdropClick(event: MouseEvent) {
+		if (event.target === sessionDialog) {
+			showSessionModal = false;
+		}
+	}
+
+	// Drive the session-expired dialog via showModal()/close() (not the `open`
+	// attribute) so it is promoted to the top layer: centered in the viewport
+	// with a backdrop, matching LoginModal and the other dialogs.
+	$effect(() => {
+		const d = sessionDialog;
+		if (!d) return;
+		if (showSessionModal && !d.open) {
+			d.showModal();
+		} else if (!showSessionModal && d.open) {
+			d.close();
+		}
+	});
 
 	function showLoginModalFn() {
 		showLoginModal = true;
@@ -139,32 +159,36 @@
 	{/each}
 </div>
 
-{#if showSessionModal}
-	<dialog open class="modal-dialog" data-testid="session-expired-modal">
-		<div class="modal-content text-center">
-			<div class="mb-4">
-				<svg class="w-12 h-12 mx-auto text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"></path>
-				</svg>
-			</div>
-			<h3 class="modal-title text-center">Session Expired</h3>
-			<p class="text-emphasis text-sm mb-6">
-				Your login session has expired. Log back in to continue where you left off.
-			</p>
-			<div class="flex flex-col gap-3">
-				<form id="reauth-form" method="POST" action="/reauth">
-					{#if $session.handle}
-						<input type="hidden" name="handle" value={$session.handle} />
-					{/if}
-					<input type="hidden" name="return_to" value={window.location.pathname} />
-					<button type="submit" class="btn-primary w-full">Log In Again</button>
-				</form>
-				<button type="button" onclick={dismissSessionModal} class="btn-secondary w-full">
-					Dismiss
-				</button>
-			</div>
+<dialog
+	bind:this={sessionDialog}
+	class="modal-dialog"
+	data-testid="session-expired-modal"
+	onclose={dismissSessionModal}
+	onclick={handleSessionBackdropClick}
+>
+	<div class="modal-content text-center">
+		<div class="mb-4">
+			<svg class="w-12 h-12 mx-auto text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"></path>
+			</svg>
 		</div>
-	</dialog>
-{/if}
+		<h3 class="modal-title text-center">Session Expired</h3>
+		<p class="text-emphasis text-sm mb-6">
+			Your login session has expired. Log back in to continue where you left off.
+		</p>
+		<div class="flex flex-col gap-3">
+			<form id="reauth-form" method="POST" action="/reauth">
+				{#if $session.handle}
+					<input type="hidden" name="handle" value={$session.handle} />
+				{/if}
+				<input type="hidden" name="return_to" value={window.location.pathname} />
+				<button type="submit" class="btn-primary w-full">Log In Again</button>
+			</form>
+			<button type="button" onclick={dismissSessionModal} class="btn-secondary w-full">
+				Dismiss
+			</button>
+		</div>
+	</div>
+</dialog>
 
 <LoginModal bind:open={showLoginModal} />
