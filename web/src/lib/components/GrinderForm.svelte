@@ -202,7 +202,7 @@
 			<p>Only the name is required. Type and burr help you compare dial-in results across grinders.</p>
 		</RailSection>
 		<RailSection title="What belongs here" eyebrow="Field notes">
-			<p>Grinders are reusable across brews. Note modifications or click settings under Notes so future-you can repeat a dial-in.</p>
+			<p>Use Notes for modifications, click settings, or anything else you need for the next dial-in.</p>
 		</RailSection>
 	{/snippet}
 </FormWorkspace>

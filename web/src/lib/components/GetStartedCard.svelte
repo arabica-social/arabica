@@ -34,10 +34,10 @@
       !r.HasBean && "bean",
     ].filter(Boolean) as string[];
     if (missing.length === 3)
-      return "Start anywhere, they all take less than a minute.";
+      return "Add a brewer, roaster, and bean to log a brew.";
     if (missing.length === 2)
-      return `Add a ${missing[0]} and a ${missing[1]} to unlock your first brew.`;
-    return `Just a ${missing[0]} left, you're almost there.`;
+      return `Add a ${missing[0]} and a ${missing[1]} to log your first brew.`;
+    return `Add a ${missing[0]} to finish setup.`;
   }
   function itemLabels(kind: string): string[] {
     if (!currentOnboarding) return [];
@@ -124,7 +124,7 @@
     {/if}
 
     <div class="stations">
-      {#each [{ no: "01", kind: "brewer", title: "Brewer", hint: "Espresso machine, V60, French press, whatever you brew with.", required: true }, { no: "02", kind: "roaster", title: "Roaster", hint: "Who roasted the beans. Pick a favorite local roaster to start.", required: true }, { no: "03", kind: "bean", title: "Bean", hint: "Your current bag, single origin, blend, anything you're drinking.", required: true }, { no: "04", kind: "grinder", title: "Grinder", hint: "Optional, skip this if you brew with pre-ground beans.", required: false }] as station (station.kind)}
+      {#each [{ no: "01", kind: "brewer", title: "Brewer", hint: "The brewer you use, such as an espresso machine, V60, or French press.", required: true }, { no: "02", kind: "roaster", title: "Roaster", hint: "The company or person who roasted your beans.", required: true }, { no: "03", kind: "bean", title: "Bean", hint: "A bag of beans you are currently using.", required: true }, { no: "04", kind: "grinder", title: "Grinder", hint: "Optional if you use pre-ground coffee.", required: false }] as station (station.kind)}
         <article
           class="station"
           data-no={station.no}
@@ -172,15 +172,13 @@
             </ul>
           {:else}
             <p class="station-empty">
-              Nothing here yet, <strong
-                >{station.kind === "brewer"
-                  ? "add the one you brew with most"
-                  : station.kind === "roaster"
-                    ? "add a roaster you love"
-                    : station.kind === "bean"
-                      ? "add the bag you're on now"
-                      : "skip if you brew pre-ground"}</strong
-              >
+              <strong>{station.kind === "brewer"
+                ? "Add your brewer"
+                : station.kind === "roaster"
+                  ? "Add a roaster"
+                  : station.kind === "bean"
+                    ? "Add your current bag"
+                    : "Add a grinder if you use one"}</strong>
             </p>
           {/if}
           <button
@@ -208,8 +206,7 @@
       {#if remaining(currentOnboarding.readiness) === 0}
         <div class="ready-panel" data-state="ready">
           <div class="ready-copy">
-            <p class="ready-headline">You're ready to brew.</p>
-            <p class="ready-sub">Your kit is set up. Pour something good.</p>
+            <p class="ready-headline">You're ready to log your first brew.</p>
           </div>
           <a href="/brews/new" class="ready-cta"
             >Log your first brew <span

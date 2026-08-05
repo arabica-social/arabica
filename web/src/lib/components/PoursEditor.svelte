@@ -17,8 +17,8 @@
   let {
     pours = $bindable([]),
     title = "Pours",
-    description = "Track individual pours for bloom and subsequent additions",
-    emptyLabel = "+ Add pours",
+    description = "Record the water amount and time for each pour.",
+    emptyLabel = "Add first pour",
     expectedWater = "",
   }: Props = $props();
 
@@ -67,7 +67,7 @@
     <div class="flex items-center justify-between mb-2">
       <span class="block text-sm font-medium text-primary">{title}</span>
       <button type="button" onclick={addPour} class="text-sm btn-secondary"
-        >+ Add Pour</button
+        >Add pour</button
       >
     </div>
     {#if description}
@@ -108,7 +108,7 @@
           <div class="flex-1">
             <label
               class="text-xs text-emphasis font-medium"
-              for={`pour-time-${index}`}>Time (sec)</label
+              for={`pour-time-${index}`}>Time (s)</label
             >
             <input
               id={`pour-time-${index}`}

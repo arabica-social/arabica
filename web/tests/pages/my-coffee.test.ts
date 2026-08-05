@@ -115,7 +115,7 @@ describe("My Coffee page", () => {
 
 	it("renders an empty state when no brews", () => {
 		render(MyCoffee, { data: { manage: manageData, brews: { brews: [], has_more: false, next_offset: 0 }, error: "" } });
-		expect(screen.getByText("Your brew journal is empty.")).toBeTruthy();
+		expect(screen.getByText("No brews recorded yet.")).toBeTruthy();
 	});
 
 	it("renders an error state", () => {

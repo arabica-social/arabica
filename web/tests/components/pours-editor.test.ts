@@ -18,20 +18,20 @@ describe("PoursEditor component", () => {
 
 	it("renders empty-state button with default label when pours is empty", () => {
 		render(PoursEditor, { pours: [] });
-		expect(screen.getByText("+ Add pours")).toBeTruthy();
+		expect(screen.getByText("Add first pour")).toBeTruthy();
 	});
 
 	it("renders empty-state button with custom emptyLabel when provided", () => {
 		render(PoursEditor, { pours: [], emptyLabel: "+ Add a pour" });
 		expect(screen.getByText("+ Add a pour")).toBeTruthy();
-		expect(screen.queryByText("+ Add pours")).toBeNull();
+		expect(screen.queryByText("Add first pour")).toBeNull();
 	});
 
 	it("clicking add-pour in empty state adds a pour row", async () => {
 		const user = userEvent.setup();
 		render(PoursEditor, { pours: [] });
 
-		await user.click(screen.getByText("+ Add pours"));
+		await user.click(screen.getByText("Add first pour"));
 
 		expect(screen.getByText("Pours")).toBeTruthy();
 		expect(screen.getByPlaceholderText("Water (g)")).toBeTruthy();
@@ -116,7 +116,7 @@ describe("PoursEditor component", () => {
 		expect(screen.queryByRole("status")).toBeNull();
 	});
 
-	it('clicking "+ Add Pour" appends a new empty pour row', async () => {
+	it('clicking "Add pour" appends a new empty pour row', async () => {
 		const user = userEvent.setup();
 		render(PoursEditor, {
 			pours: [{ water: 50, time: 30 }],
@@ -124,7 +124,7 @@ describe("PoursEditor component", () => {
 
 		expect(screen.getAllByPlaceholderText("Water (g)")).toHaveLength(1);
 
-		await user.click(screen.getByText("+ Add Pour"));
+		await user.click(screen.getByText("Add pour"));
 
 		expect(screen.getAllByPlaceholderText("Water (g)")).toHaveLength(2);
 		const waterInputs = screen.getAllByPlaceholderText("Water (g)");
@@ -153,7 +153,7 @@ describe("PoursEditor component", () => {
 			pours: [{ water: 50, time: 30 }],
 		});
 
-		await user.click(screen.getByText("+ Add Pour"));
+		await user.click(screen.getByText("Add pour"));
 
 		const waterInputs = screen.getAllByPlaceholderText("Water (g)");
 		const timeInputs = screen.getAllByPlaceholderText("e.g. 45");

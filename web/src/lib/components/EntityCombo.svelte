@@ -419,7 +419,7 @@
         {/each}
       {/if}
       {#if closedResults.length > 0}
-        <div class="combo-section-label">Closed bags</div>
+        <div class="combo-section-label">Finished bags</div>
         {#each closedResults as entity, index}
           <button
             type="button"

@@ -168,7 +168,7 @@
     <div class="cafe-feed-heading">
       <div>
         <p class="cafe-label">Around the café</p>
-        <h2 id="community-activity-title">Community Activity</h2>
+        <h2 id="community-activity-title">Recent records</h2>
       </div>
       {#if showFilters}
         <FeedFilters
@@ -187,7 +187,7 @@
           <div class="cafe-feed-state" style="grid-column: 1 / -1;">
             <Icon name="coffee" class="w-8 h-8 text-muted mb-3" />
             <p class="text-emphasis font-medium mb-1">
-              The feed is quiet today
+              The feed could not be loaded
             </p>
             <p class="text-sm text-faint">{data.error}</p>
           </div>
@@ -211,10 +211,10 @@
           <div class="cafe-feed-state" style="grid-column: 1 / -1;">
             <Icon name="coffee" class="w-8 h-8 text-muted mb-3" />
             <p class="text-emphasis font-medium mb-1">
-              The feed is quiet today
+              No records here yet
             </p>
             <p class="text-sm text-faint">
-              Follow people or add your first record to get started.
+              Add a record or follow someone to see their latest brews.
             </p>
           </div>
         {:else}
@@ -311,7 +311,7 @@
           </h1>
           <p class="cafe-deck">
             {isAuthenticated
-              ? "Keep the details that helped a cup click, then compare notes with people brewing around the Atmosphere."
+              ? "Keep track of what you brewed and how it turned out. Compare notes with other people around the Atmosphere."
               : appDefinition.heroDescription}
           </p>
           {#if !isAuthenticated}
@@ -336,7 +336,7 @@
             <button
               type="button"
               onclick={openLoginModal}
-              class="home-action-primary">Log In</button
+              class="home-action-primary">Log in</button
             >
             <a href="/join/create" class="cafe-text-link">Create an account</a>
           {/if}
@@ -392,7 +392,7 @@
       {#if !isAuthenticated}
         <section class="cafe-rail-section cafe-rail-lead">
           <p class="cafe-label">Community</p>
-          <h2>See what others are making.</h2>
+          <h2>Browse recent brews.</h2>
           <p>
             Browse the public feed before you start keeping notes of your own.
           </p>
@@ -402,10 +402,10 @@
       <section class="cafe-rail-section">
         <p class="cafe-label">About Arabica</p>
         <p>
-          A federated coffee journal for people who enjoy keeping the useful
-          details.
+          A coffee journal that stores your records in your own Personal Data
+          Server.
         </p>
-        <a href="/about" class="cafe-text-link">Read the story</a>
+        <a href="/about" class="cafe-text-link">About Arabica</a>
       </section>
     </aside>
     {#if isAuthenticated}<ScrollTopButton />{/if}

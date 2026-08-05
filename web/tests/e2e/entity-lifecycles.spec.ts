@@ -15,7 +15,7 @@ test("bean lifecycle: create, reload, edit, delete", async ({
 	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
 
 	// Validation: name + origin required (bean form shows both errors).
-	await page.getByRole("button", { name: "Add Bean" }).click();
+	await page.getByRole("button", { name: "Add bean" }).click();
 	await expect(page.getByText("Name is required")).toBeVisible();
 	await expect(page.getByText("Origin is required")).toBeVisible();
 
@@ -24,9 +24,9 @@ test("bean lifecycle: create, reload, edit, delete", async ({
 	await page.getByLabel("Variety").fill(variety);
 	await page.getByLabel("Roast level").selectOption("Light");
 	await page.getByLabel("Process").fill("Washed");
-	await page.getByText("Personal details (optional)").click();
-	await page.getByLabel("Personal notes").fill("Initial notes");
-	await page.getByRole("button", { name: "Add Bean" }).click();
+	await page.getByText("Your notes and rating (optional)").click();
+	await page.getByLabel("Notes").fill("Initial notes");
+	await page.getByRole("button", { name: "Add bean" }).click();
 
 	await page.waitForURL(/\/beans\/[^/]+\/[^/]+$/);
 	const detailURL = new URL(page.url());
@@ -45,9 +45,9 @@ test("bean lifecycle: create, reload, edit, delete", async ({
 	await page.goto(`/beans/${rkey}/edit`);
 	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
 	await expect(page.getByLabel("Name")).toHaveValue(name);
-	const notesField = page.getByLabel("Personal notes");
+	const notesField = page.getByLabel("Notes");
 	await notesField.fill(updatedNotes);
-	await page.getByRole("button", { name: "Save Changes" }).click();
+	await page.getByRole("button", { name: "Save changes" }).click();
 
 	await page.waitForURL(/\/beans\/[^/]+\/[^/]+$/);
 	await expect(page.getByText(updatedNotes)).toBeVisible();

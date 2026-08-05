@@ -57,7 +57,7 @@ describe("BeanForm", () => {
 
 		const name = screen.getByLabelText("Name");
 		await userEvent.clear(name);
-		await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+		await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
 		expect(name).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByRole("alert")).toHaveTextContent("Name is required");
@@ -68,7 +68,7 @@ describe("BeanForm", () => {
 
 		const origin = screen.getByLabelText("Origin");
 		await userEvent.clear(origin);
-		await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+		await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
 		expect(origin).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByRole("alert")).toHaveTextContent("Origin is required");
@@ -87,7 +87,7 @@ describe("BeanForm", () => {
 		expect(screen.queryByLabelText("Rating")).not.toBeInTheDocument();
 		await userEvent.type(screen.getByLabelText("Name"), "Ethiopia Gedeb");
 		await userEvent.type(screen.getByLabelText("Origin"), "Ethiopia, Gedeb");
-		await userEvent.click(screen.getByRole("button", { name: "Add Bean" }));
+		await userEvent.click(screen.getByRole("button", { name: "Add bean" }));
 
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/beans/did%3Aplc%3Aalice/created-rkey"));
 		expect(fetchMock).toHaveBeenCalledWith(
@@ -111,11 +111,11 @@ describe("BeanForm", () => {
 		await userEvent.type(screen.getByLabelText("Name"), "Ethiopia Gedeb");
 		await userEvent.type(screen.getByLabelText("Origin"), "Ethiopia, Gedeb");
 		await userEvent.click(
-			screen.getByText(/^Personal details/, { selector: "summary span" }),
+			screen.getByText(/^Your notes and rating/, { selector: "summary span" }),
 		);
 		await userEvent.click(screen.getByRole("button", { name: "Add rating" }));
 		expect(screen.getByLabelText("Rating")).toHaveValue("5");
-		await userEvent.click(screen.getByRole("button", { name: "Add Bean" }));
+		await userEvent.click(screen.getByRole("button", { name: "Add bean" }));
 
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/beans/did%3Aplc%3Aalice/created-rkey"));
 		const [, request] = fetchMock.mock.calls[0];
@@ -160,7 +160,7 @@ describe("BeanForm", () => {
 			expect(roastLevel).toContainHTML(level);
 		}
 
-		const closed = screen.getByLabelText("Bag is closed/finished");
+		const closed = screen.getByLabelText("Bag is finished");
 		expect(closed).toHaveAttribute("type", "checkbox");
 		expect(closed).not.toBeChecked();
 	});
@@ -175,10 +175,10 @@ describe("BeanForm", () => {
 		vi.stubGlobal("fetch", fetchMock);
 		render(BeanForm, { bean: existing, isEdit: true });
 
-		const notes = screen.getByLabelText("Personal notes");
+		const notes = screen.getByLabelText("Notes");
 		await userEvent.clear(notes);
 		await userEvent.type(notes, "Updated notes");
-		await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+		await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/beans/did%3Aplc%3Aalice/r1"));
 		expect(fetchMock).toHaveBeenCalledWith(
@@ -201,7 +201,7 @@ describe("BeanForm", () => {
 
 		await userEvent.type(screen.getByLabelText("Name"), "Ethiopia Gedeb");
 		await userEvent.type(screen.getByLabelText("Origin"), "Ethiopia, Gedeb");
-		await userEvent.click(screen.getByRole("button", { name: "Add Bean" }));
+		await userEvent.click(screen.getByRole("button", { name: "Add bean" }));
 
 		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Name is already in use"));
 		expect(screen.getByLabelText("Origin")).toHaveValue("Ethiopia, Gedeb");
@@ -215,7 +215,7 @@ describe("BeanForm", () => {
 		const link = screen.getByLabelText("Link");
 		await userEvent.clear(link);
 		await userEvent.type(link, "https://updated.example");
-		await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+		await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
 		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Unable to reach Arabica"));
 		expect(link).toHaveValue("https://updated.example");

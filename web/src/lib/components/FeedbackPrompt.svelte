@@ -1,8 +1,8 @@
 <script lang="ts">
   let {
     eyebrow = "Notes from the counter",
-    title = "Help shape Arabica.",
-    description = "A rough edge, a missing detail, or an idea for the next cup, we want to hear it.",
+    title = "Tell us what needs work.",
+    description = "Found something confusing, broken, or missing? Let us know.",
     actionLabel = "Share feedback",
     href = "/feedback",
   }: {

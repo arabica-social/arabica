@@ -63,21 +63,21 @@ test("brew form: create, view, edit", async ({
 	await grinderCombo.fill(grinderName);
 	await page.getByRole("option", { name: grinderName }).click();
 
-	// --- Select the brewer (pourover → reveals Pour-over Details section). ---
+	// --- Select the brewer (pourover → reveals Pour-over details section). ---
 	const brewerCombo = page.getByRole("combobox", { name: "Search brew methods" });
 	await brewerCombo.fill(brewerName);
 	await page.getByRole("option", { name: brewerName }).click();
 
-	await expect(page.getByText("Pour-over Details")).toBeVisible();
+	await expect(page.getByText("Pour-over details")).toBeVisible();
 
-	await page.getByLabel("Coffee Amount (grams)").fill("18");
-	await page.getByLabel("Water Amount (grams)").fill("300");
+	await page.getByLabel("Coffee amount (g)").fill("18");
+	await page.getByLabel("Water amount (g)").fill("300");
 	await page.getByLabel("Grind Size").fill("Medium");
 	await page.getByLabel("Temperature (°F/°C)").fill("94");
-	await page.getByLabel("Brew Time (seconds)").fill("210");
+	await page.getByLabel("Brew time (s)").fill("210");
 
-	await page.getByLabel("Bloom Water (grams)").fill("50");
-	await page.getByLabel("Bloom Time (seconds)").fill("45");
+	await page.getByLabel("Bloom water (g)").fill("50");
+	await page.getByLabel("Bloom time (s)").fill("45");
 	await page.getByLabel("Drawdown Time (seconds)").fill("30");
 	await page.getByLabel("Filter").fill("paper");
 
@@ -94,7 +94,7 @@ test("brew form: create, view, edit", async ({
 		(response) =>
 			new URL(response.url()).pathname === "/api/brews" && response.request().method() === "POST",
 	);
-	await page.getByRole("button", { name: "Save Brew" }).click();
+	await page.getByRole("button", { name: "Save brew" }).click();
 	const brewResp = await saveResponse;
 	expect(brewResp.ok()).toBeTruthy();
 
@@ -117,7 +117,7 @@ test("brew form: create, view, edit", async ({
 	await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
 	await expect(page.getByRole("heading", { name: "Edit Brew" })).toBeVisible();
 
-	await expect(page.getByText("Pour-over Details")).toBeVisible();
+	await expect(page.getByText("Pour-over details")).toBeVisible();
 
 	const notesField = page.getByLabel("Tasting Notes");
 	await notesField.fill("Updated: more caramel than expected.");
@@ -132,7 +132,7 @@ test("brew form: create, view, edit", async ({
 			new URL(response.url()).pathname === `/api/brews/${rkey}` &&
 			response.request().method() === "PUT",
 	);
-	await page.getByRole("button", { name: "Update Brew" }).click();
+	await page.getByRole("button", { name: "Update brew" }).click();
 	const updatedResp = await updateResponse;
 	expect(updatedResp.ok()).toBeTruthy();
 

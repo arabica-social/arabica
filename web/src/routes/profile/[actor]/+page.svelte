@@ -206,10 +206,10 @@
               <div class="card card-inner text-center py-8">
                 {#if isOwnProfile}
                   <p class="text-secondary mb-4">
-                    No brews recorded yet! Start tracking your coffee journey.
+                    No brews recorded yet. Add the cup you're drinking now.
                   </p>
                   <a href="/brews/new" class="btn-primary"
-                    >Add Your First Brew</a
+                    >Add your first brew</a
                   >
                 {:else}
                   <p class="text-secondary">No brews yet.</p>
@@ -349,7 +349,7 @@
           <div class="space-y-6">
             <!-- Open bags -->
             <div>
-              <h4 class="text-lg font-semibold text-primary mb-3">Open Bags</h4>
+              <h4 class="text-lg font-semibold text-primary mb-3">Open bags</h4>
               {#if openBeans().length === 0}
                 <div class="card card-inner text-center py-6">
                   <p class="text-secondary">
@@ -495,7 +495,7 @@
             {#if closedBeans().length > 0}
               <div>
                 <h4 class="text-lg font-semibold text-primary mb-3">
-                  Closed Bags
+                  Finished bags
                 </h4>
                 <div
                   class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"

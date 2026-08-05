@@ -11,7 +11,7 @@ test("feed renders in a single column on mobile", async ({
 
 	await page.goto("/");
 	await page.waitForLoadState("networkidle");
-	await expect(page.getByText("Community Activity")).toBeVisible();
+	await expect(page.getByText("Recent records")).toBeVisible();
 
 	// The feed masonry JS distributes cards into .feed-masonry-col elements
 	// only at >=768px. On mobile (375px) the cards should NOT be in
@@ -33,7 +33,7 @@ test("brew form is usable on mobile — fields visible and not clipped", async (
 	await expect(page.getByRole("region", { name: "Brewing" })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Results" })).toBeVisible();
 
-	const submitButton = page.getByRole("button", { name: "Save Brew" });
+	const submitButton = page.getByRole("button", { name: "Save brew" });
 	await expect(submitButton).toBeVisible();
 	const box = await submitButton.boundingBox();
 	expect(box).not.toBeNull();

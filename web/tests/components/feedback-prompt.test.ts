@@ -11,7 +11,7 @@ describe("FeedbackPrompt", () => {
     render(FeedbackPrompt);
 
     expect(
-      screen.getByRole("heading", { name: "Help shape Arabica." }),
+      screen.getByRole("heading", { name: "Tell us what needs work." }),
     ).toBeTruthy();
     expect(
       screen.getByRole("link", { name: /share feedback/i }),

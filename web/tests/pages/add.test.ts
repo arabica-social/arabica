@@ -28,7 +28,7 @@ describe("Add records page", () => {
 
 	it("renders the library lede", () => {
 		render(AddPage, { data: addData });
-		expect(screen.getByText(/anything new on the shelf/)).toBeTruthy();
+		expect(screen.getByText(/to use in your brew records/)).toBeTruthy();
 		expect(screen.getAllByText("brewer").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("roaster").length).toBeGreaterThan(0);
 	});

@@ -70,7 +70,7 @@ test.describe("visual regression", () => {
 	test("home feed chrome", async ({ authedPage: page }) => {
 		await page.goto("/");
 		await page.waitForLoadState("networkidle");
-		await expect(page.getByText("Community Activity")).toBeVisible();
+		await expect(page.getByText("Recent records")).toBeVisible();
 		await page.waitForTimeout(500);
 		await expect(page).toHaveScreenshot("home-feed.png", {
 			animations: "disabled",

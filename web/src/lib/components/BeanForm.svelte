@@ -141,7 +141,7 @@
 	<LedgerHeader
 		title={isEdit ? "Edit Bean" : "Add a Bean"}
 		eyebrow="Coffee label"
-		description="Capture the details you will want when you come back to this bag later."
+		description="Record the coffee, roaster, origin, and details from the bag."
 		showBack={true}
 	/>
 
@@ -150,7 +150,7 @@
 				<div class="alert-error" role="alert">{formError}</div>
 			{/if}
 
-			<FormSection title="Essentials" description="Name and origin are required. The rest helps future-you compare bags.">
+			<FormSection title="Essentials" description="Name and origin are required. Add the other details you want to keep with this record.">
 				<div class="space-y-6">
 					<div>
 						<label class="form-label" for="bean-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
@@ -256,7 +256,7 @@
 				</div>
 			</FormSection>
 
-			<FormSection title="Origin details" description="Optional — variety and process help you compare coffees.">
+			<FormSection title="Origin details" description="Add the variety and processing method if they are listed.">
 				<div class="space-y-6">
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
@@ -289,17 +289,18 @@
 				</div>
 			</FormSection>
 
-			<FormSection title="Details" description="Optional — roaster copy, a link, and your private notes and rating.">
+			<FormSection title="Details" description="Add the roaster's description, a source link, your notes, and an optional rating.">
 				<div class="space-y-6">
 					<div>
 						<label class="form-label" for="bean-description">Description</label>
+						<p class="text-sm text-muted mb-2">Description supplied by the roaster.</p>
 						<textarea
 							id="bean-description"
 							name="description"
 							rows="3"
 							class="w-full form-textarea"
 							bind:value={description}
-							placeholder="Roaster description, tasting notes, etc."
+							placeholder="Roaster's description of this coffee"
 							aria-label="Description"
 						></textarea>
 					</div>
@@ -319,19 +320,20 @@
 					<details class="form-details-disclosure" open={isEdit}>
 						<summary class="text-sm font-semibold text-secondary cursor-pointer hover:text-primary transition-colors flex items-center gap-2">
 							<span aria-hidden="true" class="form-details-triangle">▶</span>
-							<span>Personal details <span class="form-optional-hint">(optional)</span></span>
+								<span>Your notes and rating <span class="form-optional-hint">(optional)</span></span>
 						</summary>
 						<div class="mt-3 space-y-4">
 							<div>
-								<label class="form-label" for="bean-notes">Personal notes</label>
+								<label class="form-label" for="bean-notes">Notes</label>
+								<p class="text-sm text-muted mb-2">Your impressions or dial-in notes.</p>
 								<textarea
 									id="bean-notes"
 									name="notes"
 									rows="3"
 									class="w-full form-textarea"
 									bind:value={notes}
-									placeholder="Your own notes about this bag"
-									aria-label="Personal notes"
+									placeholder="Flavors, brew adjustments, or other notes"
+									aria-label="Notes"
 								></textarea>
 							</div>
 							{#if showRating}
@@ -367,7 +369,7 @@
 									bind:checked={closed}
 									class="rounded-sm border-brown-300 text-emphasis focus:ring-brown-500"
 								/>
-								<label for="bean-closed-checkbox" class="text-sm text-primary">Bag is closed/finished</label>
+								<label for="bean-closed-checkbox" class="text-sm text-primary">Bag is finished</label>
 							</div>
 						</div>
 					</details>
@@ -377,7 +379,7 @@
 			<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
 				<a href={isEdit && bean ? `/beans/${encodeURIComponent(actor())}/${encodeURIComponent(bean.rkey)}` : "/my-coffee"} class="btn-secondary text-center">Cancel</a>
 				<button type="submit" class="btn-primary" disabled={submitting}>
-					{submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Bean"}
+					{submitting ? "Saving..." : isEdit ? "Save changes" : "Add bean"}
 				</button>
 			</div>
 	</form>
@@ -388,12 +390,11 @@
 			<p>{origin || "Add an origin to place this coffee."}</p>
 			{#if variety || process}<p>{[variety, process].filter(Boolean).join(" · ")}</p>{/if}
 		</RailSection>
-		<RailSection title="Record completeness" eyebrow="Journal status">
-			<p>{[name, origin, roasterRKey, roastLevel, variety, process].filter(Boolean).length} of 6 useful details recorded.</p>
-			<p>Name and origin are required. Everything else helps future-you compare bags.</p>
+		<RailSection title="Bean details" eyebrow="Record summary">
+			<p>Name and origin are required. Add any other information available for this coffee.</p>
 		</RailSection>
-		<RailSection title="What belongs here" eyebrow="Field notes">
-			<p>Use Description for the roaster's public copy. Keep your own impressions and dial-in notes under Personal details.</p>
+		<RailSection title="Description and notes" eyebrow="Field notes">
+			<p>Use Description for the roaster's copy. Use Notes for your impressions and dial-in notes.</p>
 		</RailSection>
 	{/snippet}
 </FormWorkspace>

@@ -72,8 +72,8 @@ describe("BrewForm cafe-counter migration", () => {
 
 		expect(screen.queryByText(/Ratio 1:/)).toBeNull();
 
-		await user.type(screen.getByLabelText("Coffee Amount (grams)"), "18");
-		await user.type(screen.getByLabelText("Water Amount (grams)"), "300");
+		await user.type(screen.getByLabelText("Coffee amount (g)"), "18");
+		await user.type(screen.getByLabelText("Water amount (g)"), "300");
 
 		expect(screen.getByText(/Ratio 1:16\.7/)).toBeTruthy();
 	});
@@ -153,9 +153,9 @@ describe("BrewForm cafe-counter migration", () => {
 		render(BrewForm, { brew: null, recipeRKey: "daily-v60", isEdit: false });
 
 		// Bloom water mirrors the first pour (50g) before any adjustment.
-		await waitFor(() => expect(screen.getByLabelText("Bloom Water (grams)")).toHaveValue(50));
+		await waitFor(() => expect(screen.getByLabelText("Bloom water (g)")).toHaveValue(50));
 		// Bloom time mirrors the first pour's time (30s).
-		expect(screen.getByLabelText("Bloom Time (seconds)")).toHaveValue(30);
+		expect(screen.getByLabelText("Bloom time (s)")).toHaveValue(30);
 
 		// reveals the pre-filled brewer derived from the recipe.
 		await user.click(await screen.findByRole("button", { name: "Adjust" }));
@@ -168,13 +168,12 @@ describe("BrewForm cafe-counter migration", () => {
 		await user.clear(water);
 		await user.type(water, "240");
 		await waitFor(() => expect(screen.getByLabelText("Pour 1")).toHaveValue(40));
-		await waitFor(() => expect(screen.getByLabelText("Bloom Water (grams)")).toHaveValue(40));
+		await waitFor(() => expect(screen.getByLabelText("Bloom water (g)")).toHaveValue(40));
 	});
 
-	it("counts recorded details in the completeness rail section", () => {
+	it("explains which brew details are required", () => {
 		render(BrewForm, { brew: editBrew, isEdit: true });
-		// tasting notes, and rating set — all 9 useful details.
-		expect(screen.getByText("9 of 9 useful details recorded.")).toBeTruthy();
+		expect(screen.getByText(/The bean is required/)).toBeTruthy();
 	});
 
 	it("points the Cancel link at the brew view in edit mode and my-coffee in create mode", () => {
@@ -210,12 +209,12 @@ describe("BrewForm cafe-counter migration", () => {
 		vi.stubGlobal("fetch", fetchMock);
 		render(BrewForm, { brew: null, isEdit: false });
 
-		await user.type(screen.getByLabelText("Coffee Amount (grams)"), "18");
-		await user.type(screen.getByLabelText("Water Amount (grams)"), "300");
+		await user.type(screen.getByLabelText("Coffee amount (g)"), "18");
+		await user.type(screen.getByLabelText("Water amount (g)"), "300");
 		await user.type(screen.getByLabelText("Temperature (°F/°C)"), "94");
-		await user.type(screen.getByLabelText("Brew Time (seconds)"), "210");
-		await user.type(screen.getByLabelText("Tasting Notes"), "Bright and floral.");
-		await user.click(screen.getByRole("button", { name: "Save Brew" }));
+		await user.type(screen.getByLabelText("Brew time (s)"), "210");
+		await user.type(screen.getByLabelText("Tasting notes"), "Bright and floral.");
+		await user.click(screen.getByRole("button", { name: "Save brew" }));
 
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/brews/did:plc:alice/new-brew-1"));
 
@@ -252,7 +251,7 @@ describe("BrewForm cafe-counter migration", () => {
 		vi.stubGlobal("fetch", fetchMock);
 		render(BrewForm, { brew: editBrew, isEdit: true });
 
-		await user.click(screen.getByRole("button", { name: "Update Brew" }));
+		await user.click(screen.getByRole("button", { name: "Update brew" }));
 
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/brews/did:plc:alice/brew-1"));
 		expect(fetchMock).toHaveBeenCalledWith(

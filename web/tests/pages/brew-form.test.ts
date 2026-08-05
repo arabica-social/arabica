@@ -83,7 +83,7 @@ describe("BrewForm", () => {
 
 	it("shows the pourover params section for pourover brewers", () => {
 		render(BrewForm, { brew: editBrew, isEdit: true });
-		expect(screen.getByText("Pour-over Details")).toBeTruthy();
+		expect(screen.getByText("Pour-over details")).toBeTruthy();
 		expect(screen.getByPlaceholderText("e.g. 50")).toBeTruthy(); // bloom water
 		expect(screen.getByPlaceholderText("e.g. paper, metal, cloth")).toBeTruthy(); // filter
 	});
@@ -113,12 +113,12 @@ describe("BrewForm", () => {
 
 	it("renders the submit button with correct label", () => {
 		render(BrewForm, { brew: null, isEdit: false });
-		expect(screen.getByText("Save Brew")).toBeTruthy();
+		expect(screen.getByText("Save brew")).toBeTruthy();
 	});
 
 	it("renders the submit button with update label in edit mode", () => {
 		render(BrewForm, { brew: editBrew, isEdit: true });
-		expect(screen.getByText("Update Brew")).toBeTruthy();
+		expect(screen.getByText("Update brew")).toBeTruthy();
 	});
 
 	it("renders all required form sections", () => {
@@ -126,7 +126,7 @@ describe("BrewForm", () => {
 		expect(screen.getByText("Coffee")).toBeTruthy();
 		expect(screen.getByText("Brewing")).toBeTruthy();
 		expect(screen.getByText("Results")).toBeTruthy();
-		expect(screen.getByText("Recipe (Optional)")).toBeTruthy();
+		expect(screen.getByText("Recipe (optional)")).toBeTruthy();
 	});
 
 	it("proactively checks session validity on mount", () => {

@@ -90,21 +90,21 @@ describe("Feed page (home)", () => {
 		render(FeedPage, { data: authedPageData });
 		expect(screen.getByRole("complementary", { name: "Your coffee journal" })).toBeTruthy();
 		expect(screen.getByRole("complementary", { name: "Around the café" })).toBeTruthy();
-		expect(screen.getByRole("heading", { name: "Help shape Arabica." })).toBeTruthy();
+		expect(screen.getByRole("heading", { name: "Tell us what needs work." })).toBeTruthy();
 		expect(screen.getByRole("link", { name: /share feedback/i })).toHaveAttribute("href", "/feedback");
 	});
 
 	it("renders the unauth hero CTA for unauthenticated users", () => {
 		render(FeedPage, { data: unauthedPageData });
 		expect(screen.queryByPlaceholderText("your-handle.bsky.social")).toBeNull();
-		expect(screen.getByText("Log In")).toBeTruthy();
+		expect(screen.getByText("Log in")).toBeTruthy();
 		expect(screen.getByText("Create an account")).toBeTruthy();
 		expect(screen.getByText("Learn more")).toBeTruthy();
 	});
 
-	it("renders the Community Activity heading", () => {
+	it("renders the recent records heading", () => {
 		render(FeedPage, { data: authedPageData });
-		expect(screen.getByText("Community Activity")).toBeTruthy();
+		expect(screen.getByText("Recent records")).toBeTruthy();
 	});
 
 	it("renders feed filter tabs", () => {
@@ -127,7 +127,7 @@ describe("Feed page (home)", () => {
 			feed: { ...feedData, items: [] },
 		};
 		render(FeedPage, { data: emptyData });
-		expect(screen.getByText("The feed is quiet today")).toBeTruthy();
+		expect(screen.getByText("No records here yet")).toBeTruthy();
 	});
 
 	it("renders an error state when feed failed to load", () => {
@@ -137,7 +137,7 @@ describe("Feed page (home)", () => {
 			error: "Failed to load feed",
 		};
 		render(FeedPage, { data: errorData });
-		expect(screen.getByText("The feed is quiet today")).toBeTruthy();
+		expect(screen.getByText("The feed could not be loaded")).toBeTruthy();
 		expect(screen.getByText("Failed to load feed")).toBeTruthy();
 	});
 

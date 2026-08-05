@@ -201,7 +201,7 @@
 </svelte:head>
 
 <div class="coffee-library">
-  <LedgerHeader title="My Coffee" eyebrow="Personal collection" description="Your brewing archive, working shelf, and equipment ledger.">
+  <LedgerHeader title="My Coffee" eyebrow="Personal collection" description="Your brews, beans, roasters, grinders, brewers, and recipes.">
     {#snippet actions()}
       <div class="coffee-library-actions">
         <a href="/add" class="btn-secondary">Add records</a>
@@ -214,7 +214,7 @@
     <div class="card card-inner text-center py-8">
       <p class="text-secondary mb-4">{error}</p>
       <button type="button" onclick={openLoginModal} class="btn-primary"
-        >Log In</button
+        >Log in</button
       >
     </div>
   {:else if manage}
@@ -243,13 +243,13 @@
         {#if !brewsData || brewsData.brews.length === 0}
           <div class="card card-inner text-center py-8">
             <p class="text-secondary text-lg mb-2">
-              Your brew journal is empty.
+              No brews recorded yet.
             </p>
             <p class="text-sm text-muted mb-4">
-              Log your first cup and start building your coffee story.
+              Add the cup you're drinking now.
             </p>
             <a href="/brews/new" class="btn-primary px-6 py-3"
-              >Log Your First Brew</a
+              >Log your first brew</a
             >
           </div>
         {:else}
@@ -358,7 +358,7 @@
                 onclick={loadMore}
                 disabled={loadingMore}
               >
-                {loadingMore ? "Loading..." : "Load More"}
+                {loadingMore ? "Loading..." : "Load more"}
               </button>
             </div>
           {/if}
@@ -371,11 +371,11 @@
       <div class="space-y-6">
         <!-- Open bags -->
         <div>
-          <h4 class="section-heading">Open Bags</h4>
+          <h4 class="section-heading">Open bags</h4>
           {#if openBeans.length === 0}
             <div class="card card-inner text-center py-8">
               <p class="text-secondary">
-                No open bags. <a href="/beans/new" class="link-bold">Add one</a
+                No open bags. <a href="/beans/new" class="link-bold">Add the bag you're drinking now</a
                 >.
               </p>
             </div>
@@ -465,7 +465,7 @@
         <!-- Closed bags -->
         {#if closedBeans.length > 0}
           <div>
-            <h4 class="section-heading">Closed Bags</h4>
+            <h4 class="section-heading">Finished bags</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {#each closedBeans as bean (bean.rkey)}
                 <div class="feed-card feed-card-bean opacity-75">
@@ -556,7 +556,7 @@
     {#if activeTab === "roasters"}
       {#if manage.roasters.length === 0}
         <div class="card card-inner text-center py-8">
-          <p class="text-secondary">No roasters yet.</p>
+          <p class="text-secondary">No roasters yet. <a href="/roasters/new" class="link-bold">Add a roaster</a>.</p>
         </div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -612,7 +612,7 @@
     {#if activeTab === "grinders"}
       {#if manage.grinders.length === 0}
         <div class="card card-inner text-center py-8">
-          <p class="text-secondary">No grinders yet.</p>
+          <p class="text-secondary">No grinders yet. <a href="/grinders/new" class="link-bold">Add a grinder</a>.</p>
         </div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -662,7 +662,7 @@
     {#if activeTab === "brewers"}
       {#if manage.brewers.length === 0}
         <div class="card card-inner text-center py-8">
-          <p class="text-secondary">No brewers yet.</p>
+          <p class="text-secondary">No brewers yet. <a href="/brewers/new" class="link-bold">Add a brewer</a>.</p>
         </div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -705,14 +705,14 @@
     <!-- Recipes tab -->
     {#if activeTab === "recipes"}
       <div class="alert-warning mb-2">
-        <span class="text-sm font-bold">⚠️ Recipes are in early alpha</span>
+        <span class="text-sm font-bold">⚠️ Recipes are in early alpha.</span>
         <span class="text-sm">
-          — the format may change. Your brews won't break.</span
+          The recipe format may change, but your brew records will still work.</span
         >
       </div>
       {#if manage.recipes.length === 0}
         <div class="card card-inner text-center py-8">
-          <p class="text-secondary">No recipes yet.</p>
+          <p class="text-secondary">No recipes yet. <a href="/recipes/new" class="link-bold">Add a recipe</a>.</p>
         </div>
       {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -763,14 +763,9 @@
           <p>{manage.brewers.length} brewers and {manage.grinders.length} grinders are ready for your next entry.</p>
         </section>
         <section class="library-rail-section">
-          <p class="collection-label">Current view</p>
-          <h2>Collection summary</h2>
-          <p>{collectionCount(activeTab)} {tabs.find((tab) => tab.id === activeTab)?.label.toLowerCase()} loaded in this view.</p>
-        </section>
-        <section class="library-rail-section">
-          <p class="collection-label">Keep it current</p>
-          <p>Refresh after editing records from another device or app.</p>
-          <button type="button" class="library-refresh" onclick={refresh}><Icon name="coffee" />Refresh collection</button>
+          <p class="collection-label">Changes missing?</p>
+          <p>Made changes on another device or app? Refresh to see them here.</p>
+          <button type="button" class="library-refresh" onclick={refresh}><Icon name="coffee" />Refresh</button>
         </section>
       </aside>
     </div>

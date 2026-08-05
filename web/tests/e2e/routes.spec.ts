@@ -5,7 +5,7 @@ test("onboarding page shows setup stations for a fresh account", async ({
 }) => {
 	await page.goto("/onboarding");
 	await page.waitForLoadState("networkidle");
-	await expect(page.getByRole("heading", { name: "Let's get you started." })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Set up your first brew." })).toBeVisible();
 
 	await expect(page.getByRole("heading", { name: "Brewer" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Roaster" })).toBeVisible();

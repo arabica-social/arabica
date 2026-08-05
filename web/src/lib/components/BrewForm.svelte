@@ -361,7 +361,7 @@
 		}
 	}
 
-	let submitLabel = $derived(isEdit ? "Update Brew" : "Save Brew");
+	let submitLabel = $derived(isEdit ? "Update brew" : "Save brew");
 
 	function num(value: string): number {
 		const n = Number(value);
@@ -388,36 +388,20 @@
 									: "",
 	);
 	let pourCount = $derived(pours.filter((p) => p.water !== "" || p.time !== "").length);
-	let ratingValue = $derived(num(rating));
-	// Useful details for a brew: bean, brewer, grinder, coffee, water, time,
-	// temperature, tasting notes, rating.
-	let completeness = $derived(
-		[
-			beanRKey,
-			brewerRKey,
-			grinderRKey,
-			coffeeAmount ? "coffee" : "",
-			waterAmount ? "water" : "",
-			timeSeconds ? "time" : "",
-			temperature ? "temperature" : "",
-			tastingNotes.trim() ? "notes" : "",
-			ratingValue > 0 ? "rating" : "",
-		].filter(Boolean).length,
-	);
 </script>
 
 <FormWorkspace>
 	<LedgerHeader
 		title={isEdit ? "Edit Brew" : "New Brew"}
 		eyebrow="Brew session"
-		description="Log the recipe, equipment, and results so you can repeat the good ones."
+		description="Record the recipe, equipment, measurements, and results."
 		showBack={true}
 	/>
 
 	<form class="brew-form-sheet" novalidate onsubmit={submitForm}>
-		<FormSection title="Recipe (Optional)" description="Select a recipe to autofill brew parameters.">
+		<FormSection title="Recipe (optional)" description="Select a recipe to fill in its measurements and pours.">
 			<div class="alert-warning px-3 py-2 mb-2 text-xs">
-				Recipes are in early alpha, the format may change. Your brew data won't be affected.
+				Recipes are in early alpha. The recipe format may change, but your brew record will not.
 			</div>
 			<div class="combo-select">
 				<EntityCombo
@@ -470,9 +454,9 @@
 			{/if}
 		</FormSection>
 
-		<FormSection title="Coffee" description="The bean, grinder, and dose set up the brew.">
+		<FormSection title="Coffee" description="Choose the beans and enter the dose and grind setting.">
 			<div class="combo-select">
-				<span class="form-label">Coffee Bean <span class="text-red-500" aria-hidden="true">*</span></span>
+				<span class="form-label">Coffee bean <span class="text-red-500" aria-hidden="true">*</span></span>
 				<EntityCombo
 					entityType="bean"
 					inputName="bean_rkey"
@@ -489,7 +473,7 @@
 				/>
 			</div>
 			{#if !activeRecipe}
-				<Field label="Coffee Amount (grams)" helper="Amount of ground coffee used">
+				<Field label="Coffee amount (g)" helper="Amount of ground coffee used">
 					<input type="number" bind:value={coffeeAmount} placeholder="e.g. 18" step="1" class="w-full form-input-lg" aria-invalid={coffeeAmountError} />
 					{#if coffeeAmountError}<p class="text-xs text-red-600 mt-1">Coffee amount must be greater than 0.</p>{/if}
 				</Field>
@@ -509,15 +493,15 @@
 					onChange={(detail) => handleComboChange("grinder", detail)}
 				/>
 			</div>
-			<Field label="Grind Size" helper={'Enter a number (grinder setting) or description (e.g. "Medium", "Fine")'}>
+			<Field label="Grind size" helper={'Enter a grinder setting or description, such as "Medium" or "Fine"'}>
 				<input type="text" bind:value={grindSize} placeholder="e.g. 18, Medium, 3.5, Fine" class="w-full form-input-lg" />
 			</Field>
 		</FormSection>
 
-		<FormSection title="Brewing" description="Water, method, and timing drive extraction.">
+		<FormSection title="Brewing" description="Record the brewer, water, temperature, and time.">
 			{#if showRecipeOverrides()}
 				<div class="combo-select">
-					<span class="form-label">Brew Method</span>
+					<span class="form-label">Brew method</span>
 					<EntityCombo
 						entityType="brewer"
 						inputName="brewer_rkey"
@@ -532,7 +516,7 @@
 					/>
 				</div>
 				{#if !activeRecipe}
-					<Field label="Water Amount (grams)" helper={pours.length > 0 ? "Total water (pours tracked separately below)" : "Total water used"}>
+					<Field label="Water amount (g)" helper={pours.length > 0 ? "Total water (pours tracked separately below)" : "Total water used"}>
 						<input type="number" bind:value={waterAmount} placeholder="e.g. 250" step="1" class="w-full form-input-lg" aria-invalid={waterAmountError} />
 						{#if waterAmountError}<p class="text-xs text-red-600 mt-1">Water amount must be greater than 0.</p>{/if}
 					</Field>
@@ -543,7 +527,7 @@
 				<input type="number" bind:value={temperature} placeholder="e.g. 93.5" step="0.1" class="w-full form-input-lg" aria-invalid={temperatureError} />
 				{#if temperatureError}<p class="text-xs text-red-600 mt-1">Temperature must be greater than 0.</p>{/if}
 			</Field>
-			<Field label="Brew Time (seconds)">
+			<Field label="Brew time (s)">
 				<input type="number" bind:value={timeSeconds} placeholder="e.g. 180" class="w-full form-input-lg" aria-invalid={timeSecondsError} />
 				{#if timeSecondsError}<p class="text-xs text-red-600 mt-1">Brew time must be greater than 0.</p>{/if}
 			</Field>
@@ -551,32 +535,32 @@
 
 		{#if brewerCategory === "espresso"}
 			<FormSection title="Espresso" description="Shot output, pressure, and pre-infusion.">
-				<Field label="Yield Weight (grams)" helper="Weight of espresso output">
+				<Field label="Yield weight (g)" helper="Weight of espresso output">
 					<input type="number" bind:value={espressoYieldWeight} placeholder="e.g. 36" step="0.1" class="w-full form-input-lg" />
 				</Field>
 				<Field label="Pressure (bar)" helper="Brewing pressure">
 					<input type="number" bind:value={espressoPressure} placeholder="e.g. 9" step="0.1" class="w-full form-input-lg" />
 				</Field>
-				<Field label="Pre-infusion Time (seconds)">
+				<Field label="Pre-infusion time (s)">
 					<input type="number" bind:value={espressoPreInfusionSeconds} placeholder="e.g. 5" class="w-full form-input-lg" />
 				</Field>
 			</FormSection>
 		{/if}
 
 		{#if brewerCategory === "pourover"}
-			<FormSection title="Pour-over Details" description="Bloom, drawdown, and filter shape the cup.">
+			<FormSection title="Pour-over details" description="Record bloom, drawdown, bypass water, and filter details.">
 				<div class="grid grid-cols-2 gap-4">
-					<Field label="Bloom Water (grams)" helper="Water for bloom">
+					<Field label="Bloom water (g)" helper="Water for bloom">
 						<input type="number" bind:value={pouroverBloomWater} placeholder="e.g. 50" class="w-full form-input-lg" />
 					</Field>
-					<Field label="Bloom Time (seconds)" helper="Bloom wait time">
+					<Field label="Bloom time (s)" helper="Bloom wait time">
 						<input type="number" bind:value={pouroverBloomSeconds} placeholder="e.g. 45" class="w-full form-input-lg" />
 					</Field>
 				</div>
-				<Field label="Drawdown Time (seconds)" helper="Time after last pour until bed is dry">
+				<Field label="Drawdown time (s)" helper="Time after last pour until bed is dry">
 					<input type="number" bind:value={pouroverDrawdownSeconds} placeholder="e.g. 30" class="w-full form-input-lg" />
 				</Field>
-				<Field label="Bypass Water (grams)" helper="Water added after brewing">
+				<Field label="Bypass water (g)" helper="Water added after brewing">
 					<input type="number" bind:value={pouroverBypassWater} placeholder="e.g. 100" class="w-full form-input-lg" />
 				</Field>
 				<Field label="Filter" helper="Type of filter used">
@@ -585,8 +569,8 @@
 			</FormSection>
 		{/if}
 
-		<FormSection title="Results" description="Tasting notes and a rating close out the session.">
-			<Field label="Tasting Notes">
+		<FormSection title="Results" description="Add tasting notes and an optional rating.">
+			<Field label="Tasting notes">
 				<textarea bind:value={tastingNotes} placeholder="Describe the flavors, aroma, and your thoughts..." rows="4" class="w-full form-input-lg"></textarea>
 			</Field>
 			<div>
@@ -609,7 +593,7 @@
 			{#if activeRecipe}
 				<p>Recipe: {recipeSummary() || activeRecipe.name}</p>
 			{:else}
-				<p>No recipe selected — fields are freehand.</p>
+				<p>No recipe selected.</p>
 			{/if}
 			{#if ratio !== null}
 				<p>Ratio 1:{ratio.toFixed(1)} ({coffeeValue}g → {waterValue}g)</p>
@@ -619,12 +603,11 @@
 			{#if brewerCategoryLabel}<p>Method: {brewerCategoryLabel}</p>{/if}
 			{#if pourCount > 0}<p>{pourCount} {pourCount === 1 ? "pour" : "pours"} tracked.</p>{/if}
 		</RailSection>
-		<RailSection title="Record completeness" eyebrow="Brew status">
-			<p>{completeness} of 9 useful details recorded.</p>
-			<p>A bean is required. Brewer, grinder, and timing make the brew reproducible; notes and rating make it worth revisiting.</p>
+		<RailSection title="Brew details" eyebrow="Brew record">
+			<p>The bean is required. Add any other measurements and equipment you want to reference later.</p>
 		</RailSection>
-		<RailSection title="What belongs here" eyebrow="Field notes">
-			<p>Use Tasting Notes for what you tasted, not what you did — technique lives in the recipe. Rating is your overall impression of the cup.</p>
+		<RailSection title="Notes and recipe" eyebrow="Field notes">
+			<p>Use tasting notes for flavors, aromas, and impressions. Put repeatable steps in the recipe.</p>
 		</RailSection>
 	{/snippet}
 </FormWorkspace>

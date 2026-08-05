@@ -18,11 +18,11 @@ export const arabica: AppDefinition = {
 		brew: "brews",
 	},
 	feedRecordTypes: ["bean", "roaster", "grinder", "brewer", "recipe", "brew"],
-	heroHeading: "Your coffee journey, documented.",
+	heroHeading: "Keep a record of every brew.",
 	heroDescription:
-		"Log every brew, track your beans and equipment, and share your coffee story with the community.",
+		"Record your brews, beans, recipes, and equipment, and compare notes with other coffee drinkers.",
 	metaDescription:
-		"Log every brew, track your beans and equipment, and share your coffee story with the community. Built on AT Protocol — you own your data.",
+		"Record your brews, beans, recipes, and equipment. Built on AT Protocol, so your records stay in your own data store.",
 	readinessEntityTypes: ["bean", "brewer", "roaster"],
 	readinessNudge: "Add a bean, brewer, and roaster to start logging brews.",
 	aboutHeading: "About Arabica",
