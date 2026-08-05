@@ -12,7 +12,6 @@ func TestRoutesSPAOwnedRoutes(t *testing.T) {
 	for _, pattern := range []string{
 		"GET /{$}",
 		"GET /about",
-		"GET /feedback",
 		"GET /manage",
 		"GET /brews",
 		"GET /my-coffee",

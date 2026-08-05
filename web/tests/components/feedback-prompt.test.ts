@@ -7,22 +7,26 @@ describe("FeedbackPrompt", () => {
     cleanup();
   });
 
-  it("links people to the feedback page", () => {
+  it("links people to the feedback board in a new tab", () => {
     render(FeedbackPrompt);
 
     expect(
       screen.getByRole("heading", { name: "Tell us what needs work." }),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: /share feedback/i }),
-    ).toHaveAttribute("href", "/feedback");
+    const link = screen.getByRole("link", { name: /share feedback/i });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://userinput.app/s/did:plc:chqc2ockzmyvlrasfb66x64a/3mrgh3b4f722p",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("accepts copy and destination overrides for reuse", () => {
     render(FeedbackPrompt, {
       title: "A different note",
       actionLabel: "Write to us",
-      href: "/contact",
+      href: "https://example.com/contact",
     });
 
     expect(
@@ -30,7 +34,7 @@ describe("FeedbackPrompt", () => {
     ).toBeTruthy();
     expect(screen.getByRole("link", { name: /write to us/i })).toHaveAttribute(
       "href",
-      "/contact",
+      "https://example.com/contact",
     );
   });
 });

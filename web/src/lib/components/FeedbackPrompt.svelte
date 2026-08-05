@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { app } from "$lib/stores/session";
+  import { definitionFor } from "$lib/app/definitions";
+
   let {
     eyebrow = "Notes from the counter",
     title = "Tell us what needs work.",
     description = "Found something confusing, broken, or missing? Let us know.",
     actionLabel = "Share feedback",
-    href = "/feedback",
+    href,
   }: {
     eyebrow?: string;
     title?: string;
@@ -12,6 +15,10 @@
     actionLabel?: string;
     href?: string;
   } = $props();
+
+  // Feedback lives on the app's external board; the prompt opens it in a new
+  // tab. An explicit href override still wins for special placements.
+  let feedbackHref = $derived(href ?? definitionFor($app).feedbackUrl);
 </script>
 
 <section class="feedback-prompt" aria-label={title}>
@@ -20,7 +27,12 @@
     <h2>{title}</h2>
     <p>{description}</p>
   </div>
-  <a class="feedback-prompt-action" {href}>
+  <a
+    class="feedback-prompt-action"
+    href={feedbackHref}
+    target="_blank"
+    rel="noopener noreferrer"
+  >
     {actionLabel}
   </a>
 </section>

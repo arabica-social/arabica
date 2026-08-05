@@ -23,6 +23,8 @@ export type AppDefinition = {
 	readinessNudge: string;
 	aboutHeading: string;
 	aboutBody: string;
+	// External feedback board opened from feedback CTAs (footer, home rail)
+	feedbackUrl: string;
 };
 
 export const appDefinitions: Record<AppName, AppDefinition> = { arabica };

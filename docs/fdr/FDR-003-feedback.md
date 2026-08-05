@@ -1,35 +1,37 @@
 # FDR-003: Feedback
 
-**Status:** Active **Last reviewed:** 2026-07-19
+**Status:** Active **Last reviewed:** 2026-08-05
 
 ## Overview
 
 Feedback gives visitors a lightweight way to tell Arabica's operators about a
-rough edge, missing detail, or idea without putting operator correspondence in
-their Personal Data Server.
+rough edge, missing detail, or idea. Operator correspondence never touches a
+user's Personal Data Server.
 
 ## Behavior
 
-- The home page includes a reusable feedback prompt that links to `/feedback`.
-  The same component can be placed on other SvelteKit pages.
-- The feedback page collects a required short title, an optional email address
-  or AT Protocol handle, and an optional longer description.
-- Submitting opens a plain-text email draft addressed to `mail@arabica.systems`.
-  Arabica does not persist the form content or write it to the user's PDS.
+- The home page's "Around the café" rail includes a reusable feedback prompt,
+  and the footer links to Feedback. Both open the Arabica feedback board on
+  userinput.app in a new tab
+  (`https://userinput.app/s/did:plc:chqc2ockzmyvlrasfb66x64a/3mrgh3b4f722p`).
+- There is no dedicated in-app feedback page and no feedback form. The board
+  URL is app configuration (`AppDefinition.feedbackUrl`), so a sister app can
+  point its CTAs at its own board.
 
 ## Design Decisions
 
-### 1. Send feedback through the visitor's email client
+### 1. Send feedback to the Arabica userinput.app board
 
-**Decision:** The form uses a `mailto:` submission rather than an in-app
-feedback inbox.
+**Decision:** Feedback CTAs open the Arabica feedback board on userinput.app in
+a new tab instead of collecting notes in an in-app page or a mail draft.
 
-**Why:** Feedback is operator correspondence, not user-owned coffee data. A mail
-draft makes the delivery path clear and avoids collecting contact details in a
-new server-side store.
+**Why:** Suggestions stay public and visible to other users, and operators can
+review them without Arabica storing operator correspondence in a new
+server-side store or in user PDSes. Opening a new tab keeps the visitor in
+context.
 
-**Tradeoff:** A visitor needs an available email client to send the message. The
-form cannot offer delivery confirmation inside Arabica.
+**Tradeoff:** Contributing requires an account on userinput.app, and operators
+must watch the board rather than receiving notes in email.
 
 ## Related
 

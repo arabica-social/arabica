@@ -110,15 +110,6 @@ test("terms page renders content", async ({ authedPage: page }) => {
 	await expect(page.getByText("You own all of your data.")).toBeVisible();
 });
 
-test("feedback page loads with a titled feedback form", async ({ authedPage: page }) => {
-	await page.goto("/feedback");
-	await page.waitForLoadState("networkidle");
-	await expect(page.getByRole("heading", { name: "Submit feedback" })).toBeVisible();
-	await expect(page.getByLabel(/^Title/)).toHaveAttribute("required", "");
-	await expect(page.getByLabel("Contact (optional)")).toBeVisible();
-	await expect(page.getByLabel("Description")).toBeVisible();
-});
-
 // ---------------------------------------------------------------------------
 // Join / Create account
 // ---------------------------------------------------------------------------

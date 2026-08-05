@@ -91,7 +91,10 @@ describe("Feed page (home)", () => {
 		expect(screen.getByRole("complementary", { name: "Your coffee journal" })).toBeTruthy();
 		expect(screen.getByRole("complementary", { name: "Around the café" })).toBeTruthy();
 		expect(screen.getByRole("heading", { name: "Tell us what needs work." })).toBeTruthy();
-		expect(screen.getByRole("link", { name: /share feedback/i })).toHaveAttribute("href", "/feedback");
+		expect(screen.getByRole("link", { name: /share feedback/i })).toHaveAttribute(
+			"href",
+			"https://userinput.app/s/did:plc:chqc2ockzmyvlrasfb66x64a/3mrgh3b4f722p",
+		);
 	});
 
 	it("renders the unauth hero CTA for unauthenticated users", () => {
