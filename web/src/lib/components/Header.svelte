@@ -453,7 +453,6 @@
     width: min(20rem, calc(100vw - 1.5rem));
     padding: 0.35rem;
     border: 1px solid var(--card-border);
-    border-top: 3px double var(--text-primary);
     border-radius: 0.45rem;
     color: var(--text-primary);
     background: var(--card-bg);
@@ -615,6 +614,17 @@
   }
   :global(body:has(.mobile-ledger-nav) main) {
     padding-bottom: 5.5rem !important;
+  }
+  @media (max-width: 759px) {
+    /* The log menu is wider than its compact trigger on phones, so center it
+       in the viewport instead of aligning it to the trigger. */
+    .ledger-menu--create {
+      position: fixed;
+      top: calc(4.25rem + 0.65rem);
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%);
+    }
   }
   @media (min-width: 760px) {
     .site-header__bar {

@@ -52,6 +52,24 @@ test("header elements are accessible on mobile", async ({ authedPage: page }) =>
 	await expect(page.getByRole("button", { name: "User menu" })).toBeVisible();
 });
 
+test("log menu stays centered within the viewport on mobile", async ({
+	authedPage: page,
+}) => {
+	await page.goto("/");
+	await page.waitForLoadState("networkidle");
+
+	await page.getByRole("button", { name: "Create new" }).click();
+	const menu = page.locator(".ledger-menu--create");
+	await expect(menu).toBeVisible();
+
+	const box = await menu.boundingBox();
+	expect(box).not.toBeNull();
+	const viewportWidth = page.viewportSize()!.width;
+	expect(box!.x).toBeGreaterThanOrEqual(0);
+	expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth);
+	expect(box!.x + box!.width / 2).toBeCloseTo(viewportWidth / 2, 0);
+});
+
 test("my coffee tabs scroll horizontally on mobile", async ({ authedPage: page }) => {
 	await page.goto("/my-coffee");
 	await page.waitForLoadState("networkidle");
