@@ -63,6 +63,10 @@ returns an `HX-Redirect` to `/my-coffee` (existing HTMX behavior).
 | `brew`             | `Brew`  | The created brew model with all fields.                      |
 | `incomplete_nudge` | `object`| Present only when the referenced bean is missing fields. `null` otherwise. |
 
+The returned `brew` includes `recipe_owner_did` when a recipe reference is
+present. This value is derived from the recipe reference authority and is not
+stored as a separate lexicon field.
+
 ### Incomplete Nudge
 
 When the referenced bean `IsIncomplete()`, the response includes a nudge

@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "packageManager": "pnpm@11.1.1",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "format": "prettier --plugin=prettier-plugin-svelte --write .prettierrc.json package.json pnpm-lock.yaml \"internal/web/assets/css/**/*.css\""
   },

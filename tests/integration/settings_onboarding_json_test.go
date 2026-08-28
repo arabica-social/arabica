@@ -21,6 +21,7 @@ type settingsJSONResponse struct {
 	} `json:"profile_stats_visibility"`
 	UserPreferences struct {
 		TemperatureUnit string `json:"temperature_unit"`
+		SmartAutofill   string `json:"smart_autofill"`
 	} `json:"user_preferences"`
 	BlueskyProfile struct {
 		HasScopes      bool   `json:"has_scopes"`
@@ -47,9 +48,11 @@ func TestHTTP_SettingsJSON(t *testing.T) {
 	var settings settingsJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &settings))
 	// The harness feed index has no saved prefs, so defaults are returned.
-	// Defaults are "public" for both visibility fields.
+	// Defaults are "public" for both visibility fields and "on" for smart
+	// autofill.
 	assert.Equal(t, "public", settings.ProfileStatsVisibility.BeanAvgRating)
 	assert.Equal(t, "public", settings.ProfileStatsVisibility.RoasterAvgRating)
+	assert.Equal(t, "on", settings.UserPreferences.SmartAutofill)
 	// Bluesky profile fields should be present (even if empty/false).
 	assert.False(t, settings.BlueskyProfile.HasScopes)
 }
@@ -73,6 +76,7 @@ func TestHTTP_SettingsPreferencesJSON(t *testing.T) {
 
 	formData := url.Values{}
 	formData.Set("temperature_unit", "fahrenheit")
+	formData.Set("smart_autofill", "off")
 	req, err := http.NewRequest("POST", h.URL("/api/settings/preferences"), strings.NewReader(formData.Encode()))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -93,6 +97,34 @@ func TestHTTP_SettingsPreferencesJSON(t *testing.T) {
 	var settings settingsJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body2), &settings))
 	assert.Equal(t, "fahrenheit", settings.UserPreferences.TemperatureUnit)
+	assert.Equal(t, "off", settings.UserPreferences.SmartAutofill)
+}
+
+func TestHTTP_SettingsPreferencesSmartAutofillInvalidDefaults(t *testing.T) {
+	h := StartHarness(t, nil)
+
+	formData := url.Values{}
+	formData.Set("smart_autofill", "bogus_value")
+	req, err := http.NewRequest("POST", h.URL("/api/settings/preferences"), strings.NewReader(formData.Encode()))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	resp, err := h.Client.Do(req)
+	require.NoError(t, err)
+	body := ReadBody(t, resp)
+	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))
+
+	var result settingsSavedJSON
+	require.NoError(t, json.Unmarshal([]byte(body), &result))
+	assert.True(t, result.Saved)
+
+	// Invalid values should have defaulted to on.
+	resp2 := getJSON(t, h, "/api/settings")
+	body2 := ReadBody(t, resp2)
+	require.Equal(t, 200, resp2.StatusCode, statusErr(resp2, body2))
+	var settings settingsJSONResponse
+	require.NoError(t, json.Unmarshal([]byte(body2), &settings))
+	assert.Equal(t, "on", settings.UserPreferences.SmartAutofill)
 }
 
 func TestHTTP_SettingsProfileVisibilityJSON(t *testing.T) {

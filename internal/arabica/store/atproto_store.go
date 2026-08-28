@@ -73,25 +73,33 @@ func ExtractBrewRefRKeys(brew *arabica.Brew, record map[string]any) {
 		if rkey := atp.RKeyFromURI(recipeRef); rkey != "" {
 			brew.RecipeRKey = rkey
 		}
+		// The recipe owner DID travels in the ref's authority. Persisted brew
+		// records do not store it separately, so derive it here for read paths
+		// (brew lists, views, exports); write paths already set it from the
+		// request.
+		if parsed, err := atp.ParseATURI(recipeRef); err == nil && parsed.DID != "" {
+			brew.RecipeOwnerDID = parsed.DID
+		}
 	}
 }
 
 // brewModelFromRequest converts a CreateBrewRequest into a Brew model with the given creation time.
 func brewModelFromRequest(req *arabica.CreateBrewRequest, createdAt time.Time) *arabica.Brew {
 	brew := &arabica.Brew{
-		BeanRKey:     req.BeanRKey,
-		RecipeRKey:   req.RecipeRKey,
-		GrinderRKey:  req.GrinderRKey,
-		BrewerRKey:   req.BrewerRKey,
-		Method:       req.Method,
-		Temperature:  req.Temperature,
-		WaterAmount:  req.WaterAmount,
-		CoffeeAmount: req.CoffeeAmount,
-		TimeSeconds:  req.TimeSeconds,
-		GrindSize:    req.GrindSize,
-		TastingNotes: req.TastingNotes,
-		Rating:       req.Rating,
-		CreatedAt:    createdAt,
+		BeanRKey:       req.BeanRKey,
+		RecipeRKey:     req.RecipeRKey,
+		RecipeOwnerDID: req.RecipeOwnerDID,
+		GrinderRKey:    req.GrinderRKey,
+		BrewerRKey:     req.BrewerRKey,
+		Method:         req.Method,
+		Temperature:    req.Temperature,
+		WaterAmount:    req.WaterAmount,
+		CoffeeAmount:   req.CoffeeAmount,
+		TimeSeconds:    req.TimeSeconds,
+		GrindSize:      req.GrindSize,
+		TastingNotes:   req.TastingNotes,
+		Rating:         req.Rating,
+		CreatedAt:      createdAt,
 	}
 	if len(req.Pours) > 0 {
 		brew.Pours = make([]*arabica.Pour, len(req.Pours))

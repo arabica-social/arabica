@@ -64,4 +64,4 @@ quick-adjust pass resets bloom water to the first pour.
 ## Related
 
 - **ADRs:** [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md)
-- **FDRs:** None
+- **FDRs:** [FDR-004: Smart Autofill](FDR-004-smart-autofill.md) (autofill remains lower precedence than recipe copying)

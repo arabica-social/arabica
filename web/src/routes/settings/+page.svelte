@@ -2,6 +2,7 @@
   import { pushToast } from "$lib/stores/toasts";
   import { openLoginModal } from "$lib/stores/session";
   import { themeStorageKey } from "$lib/stores/storageKeys";
+  import { setSmartAutofillEnabled } from "$lib/stores/userPrefs";
   import LedgerHeader from "$lib/components/LedgerHeader.svelte";
   import type { PageData } from "./$types";
   import type { SettingsResponse } from "$lib/types/api";
@@ -21,6 +22,10 @@
     settings?.user_preferences.temperature_unit ?? "recorded",
   );
   // svelte-ignore state_referenced_locally
+  let smartAutofillEnabled = $state(
+    settings?.user_preferences.smart_autofill !== "off",
+  );
+  // svelte-ignore state_referenced_locally
   let beanAvgRating = $state(
     settings?.profile_stats_visibility.bean_avg_rating ?? "public",
   );
@@ -36,6 +41,8 @@
 
   $effect(() => {
     tempUnit = settings?.user_preferences.temperature_unit ?? "recorded";
+    smartAutofillEnabled =
+      settings?.user_preferences.smart_autofill !== "off";
     beanAvgRating =
       settings?.profile_stats_visibility.bean_avg_rating ?? "public";
     roasterAvgRating =
@@ -53,9 +60,13 @@
           "Content-Type": "application/x-www-form-urlencoded",
           Accept: "application/json",
         },
-        body: new URLSearchParams({ temperature_unit: tempUnit }),
+        body: new URLSearchParams({
+          temperature_unit: tempUnit,
+          smart_autofill: smartAutofillEnabled ? "on" : "off",
+        }),
       });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      setSmartAutofillEnabled(smartAutofillEnabled);
       pushToast("Preferences saved");
     } catch {
       pushToast("Failed to save preferences");
@@ -294,6 +305,23 @@
                 <option value="celsius">Celsius (°C)</option>
                 <option value="fahrenheit">Fahrenheit (°F)</option>
               </select>
+            </div>
+            <div class="settings-row">
+              <div>
+                <label for="smart-autofill"
+                  >Smart autofill brew details</label
+                >
+                <p>
+                  Fill empty brew details from your recent brews of the same
+                  bean.
+                </p>
+              </div>
+              <input
+                id="smart-autofill"
+                type="checkbox"
+                class="form-checkbox"
+                bind:checked={smartAutofillEnabled}
+              />
             </div>
             <div class="settings-form__actions">
               <button type="submit" class="btn-primary" disabled={savingPrefs}

@@ -8,6 +8,7 @@ version: 0.1.0
   RKey: "tid123",
   BeanRKey: "",
   RecipeRKey: "",
+  RecipeOwnerDID: "",
   Method: "",
   Temperature: 0.0,
   WaterAmount: 0,

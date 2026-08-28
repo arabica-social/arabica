@@ -18,3 +18,4 @@ Use [`TEMPLATE.md`](TEMPLATE.md) for new records.
 | [FDR-001](FDR-001-explore.md) | Explore | Active | 2026-07-16 |
 | [FDR-002](FDR-002-brew-logging.md) | Brew logging | Active | 2026-07-18    |
 | [FDR-003](FDR-003-feedback.md) | Feedback | Active | 2026-08-05 |
+| [FDR-004](FDR-004-smart-autofill.md) | Smart Autofill | Active | 2026-08-29 |

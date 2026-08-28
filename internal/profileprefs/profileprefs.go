@@ -23,6 +23,29 @@ func DefaultTemperatureUnit() TemperatureUnit {
 	return TemperatureUnitRecorded
 }
 
+// SmartAutofillSetting is the user's preference for automatically filling
+// empty brew details on the new-brew form from their own recent brews.
+type SmartAutofillSetting string
+
+const (
+	SmartAutofillOn  SmartAutofillSetting = "on"
+	SmartAutofillOff SmartAutofillSetting = "off"
+)
+
+func (s SmartAutofillSetting) IsValid() bool {
+	switch s {
+	case SmartAutofillOn, SmartAutofillOff:
+		return true
+	}
+	return false
+}
+
+// DefaultSmartAutofill returns the default smart autofill preference. The
+// feature helps most users, so it defaults to on.
+func DefaultSmartAutofill() SmartAutofillSetting {
+	return SmartAutofillOn
+}
+
 type Visibility string
 
 const (
@@ -57,16 +80,23 @@ func DefaultProfileStatsVisibility() ProfileStatsVisibility {
 // DID across devices and sessions. Device-local preferences (currently theme)
 // intentionally stay outside this struct.
 type UserPreferences struct {
-	TemperatureUnit TemperatureUnit `json:"temperature_unit"`
+	TemperatureUnit TemperatureUnit      `json:"temperature_unit"`
+	SmartAutofill   SmartAutofillSetting `json:"smart_autofill"`
 }
 
 func DefaultUserPreferences() UserPreferences {
-	return UserPreferences{TemperatureUnit: DefaultTemperatureUnit()}
+	return UserPreferences{
+		TemperatureUnit: DefaultTemperatureUnit(),
+		SmartAutofill:   DefaultSmartAutofill(),
+	}
 }
 
 func (p UserPreferences) WithDefaults() UserPreferences {
 	if !p.TemperatureUnit.IsValid() {
 		p.TemperatureUnit = DefaultTemperatureUnit()
+	}
+	if !p.SmartAutofill.IsValid() {
+		p.SmartAutofill = DefaultSmartAutofill()
 	}
 	return p
 }

@@ -14,7 +14,8 @@ preferences, and Bluesky profile sync state.
     "roaster_avg_rating": "public"
   },
   "user_preferences": {
-    "temperature_unit": "fahrenheit"
+    "temperature_unit": "fahrenheit",
+    "smart_autofill": "on"
   },
   "bluesky_profile": {
     "has_scopes": false,
@@ -28,7 +29,7 @@ preferences, and Bluesky profile sync state.
 
 ## `POST /api/settings/preferences`
 
-Saves user preferences (temperature unit).
+Saves user preferences (temperature unit, smart autofill).
 
 ### Content Negotiation
 
@@ -40,6 +41,7 @@ Saves user preferences (temperature unit).
 | Field | Type | Description |
 |-------|------|-------------|
 | `temperature_unit` | string | `fahrenheit` or `celsius`. |
+| `smart_autofill` | string | `on` or `off`. Defaults to `on` when absent or unknown. |
 
 ### Response (JSON)
 

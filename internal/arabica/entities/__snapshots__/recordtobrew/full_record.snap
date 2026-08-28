@@ -8,6 +8,7 @@ version: 0.1.0
   RKey: "brew123",
   BeanRKey: "",
   RecipeRKey: "",
+  RecipeOwnerDID: "",
   Method: "V60",
   Temperature: 93.5,
   WaterAmount: 300,

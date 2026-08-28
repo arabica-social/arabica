@@ -44,6 +44,10 @@ Brew records an actual preparation.
 (`social.arabica.alpha.brew`), potentially referencing a bean, grinder, brewer,
 and recipe.
 
+**Smart Autofill** — An optional new-brew form feature that derives likely
+preparation details from the user's prior brews for the selected bean and
+recipe, without writing any separate habit record.
+
 **Community Feed** — The activity-oriented surface showing what people are
 brewing or recording. It is distinct from Explore's reusable-record discovery.
 

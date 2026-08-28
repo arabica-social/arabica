@@ -35,6 +35,8 @@ SvelteKit SPA.
 - Brews are ordered by creation time, newest first.
 - Each brew includes resolved references (bean, grinder, brewer) when available
   from the session/witness cache.
+- When a brew references a recipe, `recipe_owner_did` identifies the recipe
+  owner's DID. It is derived from the persisted `recipeRef` AT-URI.
 
 ### Errors
 

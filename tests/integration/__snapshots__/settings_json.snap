@@ -14,6 +14,7 @@ version: 0.1.0
     "roaster_avg_rating": "public"
   },
   "user_preferences": {
+    "smart_autofill": "on",
     "temperature_unit": "fahrenheit"
   }
 }

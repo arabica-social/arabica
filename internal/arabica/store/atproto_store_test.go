@@ -51,3 +51,46 @@ func TestLinkBeansToRoasters(t *testing.T) {
 		})
 	})
 }
+
+func TestExtractBrewRefRKeys(t *testing.T) {
+	t.Run("derives recipe owner DID from the recipeRef authority", func(t *testing.T) {
+		brew := &arabica.Brew{}
+		record := map[string]any{
+			"beanRef":    "at://did:plc:brewer123/social.arabica.alpha.bean/bean1",
+			"grinderRef": "at://did:plc:brewer123/social.arabica.alpha.grinder/grinder1",
+			"recipeRef":  "at://did:plc:chef456/social.arabica.alpha.recipe/recipe9",
+		}
+
+		ExtractBrewRefRKeys(brew, record)
+
+		assert.Equal(t, "bean1", brew.BeanRKey)
+		assert.Equal(t, "grinder1", brew.GrinderRKey)
+		assert.Equal(t, "recipe9", brew.RecipeRKey)
+		assert.Equal(t, "did:plc:chef456", brew.RecipeOwnerDID)
+	})
+
+	t.Run("no recipeRef leaves recipe fields empty", func(t *testing.T) {
+		brew := &arabica.Brew{}
+		record := map[string]any{
+			"beanRef": "at://did:plc:brewer123/social.arabica.alpha.bean/bean1",
+		}
+
+		ExtractBrewRefRKeys(brew, record)
+
+		assert.Equal(t, "bean1", brew.BeanRKey)
+		assert.Empty(t, brew.RecipeRKey)
+		assert.Empty(t, brew.RecipeOwnerDID)
+	})
+
+	t.Run("invalid recipeRef is ignored", func(t *testing.T) {
+		brew := &arabica.Brew{}
+		record := map[string]any{
+			"recipeRef": "not-an-at-uri",
+		}
+
+		ExtractBrewRefRKeys(brew, record)
+
+		assert.Empty(t, brew.RecipeRKey)
+		assert.Empty(t, brew.RecipeOwnerDID)
+	})
+}

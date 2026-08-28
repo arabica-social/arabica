@@ -247,20 +247,23 @@ func (r *Recipe) Interpolate() {
 }
 
 type Brew struct {
-	RKey         string    `json:"rkey"` // Record key
-	BeanRKey     string    `json:"bean_rkey"`
-	RecipeRKey   string    `json:"recipe_rkey"`
-	Method       string    `json:"method,omitempty"`
-	Temperature  float64   `json:"temperature"`
-	WaterAmount  int       `json:"water_amount"`
-	CoffeeAmount int       `json:"coffee_amount"`
-	TimeSeconds  int       `json:"time_seconds"`
-	GrindSize    string    `json:"grind_size"`
-	GrinderRKey  string    `json:"grinder_rkey"`
-	BrewerRKey   string    `json:"brewer_rkey"`
-	TastingNotes string    `json:"tasting_notes"`
-	Rating       int       `json:"rating"`
-	CreatedAt    time.Time `json:"created_at"`
+	RKey       string `json:"rkey"` // Record key
+	BeanRKey   string `json:"bean_rkey"`
+	RecipeRKey string `json:"recipe_rkey"`
+	// RecipeOwnerDID is derived on read paths from the recipeRef AT-URI's
+	// authority (recipes can be cross-user). Not persisted on the record.
+	RecipeOwnerDID string    `json:"recipe_owner_did,omitempty"`
+	Method         string    `json:"method,omitempty"`
+	Temperature    float64   `json:"temperature"`
+	WaterAmount    int       `json:"water_amount"`
+	CoffeeAmount   int       `json:"coffee_amount"`
+	TimeSeconds    int       `json:"time_seconds"`
+	GrindSize      string    `json:"grind_size"`
+	GrinderRKey    string    `json:"grinder_rkey"`
+	BrewerRKey     string    `json:"brewer_rkey"`
+	TastingNotes   string    `json:"tasting_notes"`
+	Rating         int       `json:"rating"`
+	CreatedAt      time.Time `json:"created_at"`
 
 	// Method-specific parameters
 	EspressoParams *EspressoParams `json:"espresso_params,omitempty"`

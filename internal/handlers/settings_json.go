@@ -78,6 +78,7 @@ func (h *Handler) HandleSettingsPreferencesJSON(w http.ResponseWriter, r *http.R
 
 	prefs := profileprefs.UserPreferences{
 		TemperatureUnit: profileprefs.TemperatureUnit(r.FormValue("temperature_unit")),
+		SmartAutofill:   profileprefs.SmartAutofillSetting(r.FormValue("smart_autofill")),
 	}.WithDefaults()
 
 	if h.feedIndex != nil {

@@ -61,6 +61,7 @@ export type ProfileStatsVisibility = {
 
 export type UserPreferences = {
 	temperature_unit: string;
+	smart_autofill: "on" | "off";
 };
 
 export type BlueskyProfileSettings = {

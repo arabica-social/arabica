@@ -118,6 +118,7 @@ export type Brew = {
 	recipe_obj?: Recipe;
 	grinder_obj?: Grinder;
 	brewer_obj?: Brewer;
+	recipe_owner_did?: string;
 	pours?: Pour[];
 };
 
