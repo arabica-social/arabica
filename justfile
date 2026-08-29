@@ -1,6 +1,6 @@
 arabica: run
 
-run:
+run: spa-build
     @LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt
 
 svelte-build:
@@ -87,10 +87,10 @@ test:
     @./scripts/build-spa.sh
     @go test ./... -cover -coverprofile=cover.out
 
-integration-test:
+integration-test: spa-build
     @cd tests/integration && go test -tags=integration -v ./... -count=1
 
-verbose-integration-test:
+verbose-integration-test: spa-build
     @cd tests/integration && INTEGRATION_LOGS=true go test -tags=integration -v ./... -count=1
 
 format:
@@ -129,7 +129,7 @@ e2e-update-snapshots testfile='tests/e2e/visual-regression.spec.ts' *args='': e2
 e2e-server: e2e-build
     @go run -tags=integration ./cmd/e2e-server
 
-ci-check:
+ci-check: spa-build
     @go vet ./...
     @go build ./cmd/arabica
     @go test ./... -count=1

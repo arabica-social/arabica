@@ -6,8 +6,9 @@
 //   - index.html — the SPA shell
 //   - _app/immutable/** — versioned JS chunks
 //
-// At build time, the SvelteKit output is copied into internal/web/spa/build/
-// (overwriting the placeholder) so the go:embed directive always resolves.
+// At build time, the SvelteKit output is copied into internal/web/spa/build/.
+// The tracked marker file keeps the embed directory present in a clean
+// checkout; the handler fails clearly if the frontend build has not run.
 // In production, index.html is NOT served as-is. Instead, SPAShellHandler
 // reads the template, injects server-side <head> content (OG tags, title,
 // theme script, CSP nonce, CSS/JS hrefs, traceparent), and serves the

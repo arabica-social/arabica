@@ -6,8 +6,9 @@
 //   - index.html — the SPA fallback page
 //   - _app/immutable/** — versioned JS chunks
 //
-// At build time, the SvelteKit output is copied into internal/web/spa/build/
-// (overwriting the placeholder) so the go:embed directive always resolves.
+// At build time, the SvelteKit output is copied into internal/web/spa/build/.
+// The tracked marker file keeps the embed directory present in a clean
+// checkout; the handler fails clearly if the frontend build has not run.
 //
 // In production, index.html is NOT served as-is. Instead, ShellHandler
 // reads the built template, injects server-side <head> content (OG tags,
@@ -153,7 +154,7 @@ func NewShellHandler(manifest assets.Manifest, appName string, brand domain.Bran
 	fsys := EmbeddedFS()
 	indexBytes, err := fs.ReadFile(fsys, "index.html")
 	if err != nil {
-		return nil, fmt.Errorf("read embedded index.html: %w", err)
+		return nil, fmt.Errorf("read embedded index.html: %w (run scripts/build-spa.sh first)", err)
 	}
 
 	if !bytes.Contains(indexBytes, []byte(headMarker)) {
