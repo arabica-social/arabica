@@ -25,6 +25,8 @@ import (
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	basehandlers "tangled.org/arabica.social/arabica/internal/handlers"
+	"tangled.org/arabica.social/arabica/internal/moderation"
+	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
 	"tangled.org/arabica.social/arabica/internal/routing"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	"tangled.org/arabica.social/arabica/internal/web/spa"
@@ -269,7 +271,15 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	// this in server.go; tests need it for feed-related assertions.
 	feedService.SetSource(feedIndex)
 
-	// Build the router with no moderation service (most tests don't need it).
+	// Keep moderation permissions disabled, but provide its store so the public
+	// report flow can be exercised by E2E tests. The store shares the feed index
+	// database and already has the moderation tables from its schema.
+	moderationService, err := moderation.NewService("")
+	if err != nil {
+		return nil, fmt.Errorf("create moderation service: %w", err)
+	}
+	h.SetModeration(moderationService, moderationsqlite.NewModerationStore(feedIndex.DB()))
+
 	logger := zerolog.Nop()
 	app := arabicaapp.New()
 	var appRoutes routing.AppRoutes = handlers.Routes{}

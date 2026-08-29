@@ -78,7 +78,7 @@ test("brew form: create, view, edit", async ({
 
 	await page.getByLabel("Bloom water (g)").fill("50");
 	await page.getByLabel("Bloom time (s)").fill("45");
-	await page.getByLabel("Drawdown Time (seconds)").fill("30");
+	await page.getByLabel("Drawdown time (s)").fill("30");
 	await page.getByLabel("Filter").fill("paper");
 
 	await page.getByLabel("Tasting Notes").fill("Bright, floral, and sweet.");

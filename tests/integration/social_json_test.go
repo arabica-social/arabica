@@ -258,8 +258,12 @@ func TestHTTP_ReportJSON(t *testing.T) {
 	require.NoError(t, err)
 	body := ReadBody(t, resp)
 
-	// Without a moderation store, the handler returns an error JSON.
-	var result map[string]string
+	var result struct {
+		ReportID  string `json:"report_id"`
+		Submitted bool   `json:"submitted"`
+	}
+	require.Equal(t, http.StatusOK, resp.StatusCode, statusErr(resp, body))
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
-	assert.Contains(t, result["error"], "not enabled")
+	assert.NotEmpty(t, result.ReportID)
+	assert.True(t, result.Submitted)
 }

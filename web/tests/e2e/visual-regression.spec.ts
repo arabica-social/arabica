@@ -44,16 +44,6 @@ test.describe("visual regression", () => {
 		});
 	});
 
-	test("brew logbook page", async ({ authedPage: page }) => {
-		await page.goto("/brews");
-		await page.waitForLoadState("networkidle");
-		await expect(page.getByRole("heading", { name: "Brew Logbook" })).toBeVisible();
-		await expect(page).toHaveScreenshot("brew-logbook.png", {
-			fullPage: true,
-			animations: "disabled",
-		});
-	});
-
 	test("recipes catalog page", async ({ authedPage: page }) => {
 		await page.goto("/recipes");
 		await page.waitForLoadState("networkidle");
@@ -72,6 +62,11 @@ test.describe("visual regression", () => {
 		await page.waitForLoadState("networkidle");
 		await expect(page.getByText("Recent records")).toBeVisible();
 		await page.waitForTimeout(500);
+		// Feed contents vary with records created by earlier tests. Keep the
+		// masked region fixed so its bottom edge cannot move between runs.
+		await page.addStyleTag({
+			content: `#feed-items { height: 500px !important; max-height: 500px !important; overflow: hidden !important; }`,
+		});
 		await expect(page).toHaveScreenshot("home-feed.png", {
 			animations: "disabled",
 			maxDiffPixelRatio: 0.02,

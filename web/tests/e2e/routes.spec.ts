@@ -33,7 +33,7 @@ test("add records page loads with setup stations", async ({ authedPage: page }) 
 	await page.goto("/add");
 	await page.waitForLoadState("networkidle");
 	await expect(page.getByRole("heading", { name: "Add records." })).toBeVisible();
-	await expect(page.getByText("your coffee bar")).toBeVisible();
+	await expect(page.getByText("Your coffee")).toBeVisible();
 
 	await expect(page.getByRole("heading", { name: "Brewer" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Bean" })).toBeVisible();

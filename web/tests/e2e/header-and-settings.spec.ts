@@ -10,13 +10,11 @@ test("header Create dropdown navigates to entity forms", async ({
   await expect(
     page.getByRole("link", { name: "Community" }).first(),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Brews" }).first()).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Recipes" }).first(),
-  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Explore" }).first()).toBeVisible();
   await expect(
     page.getByRole("link", { name: "My Coffee" }).first(),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Profile" }).first()).toBeVisible();
 
   const createBtn = page.getByRole("button", { name: "Create new" });
   await expect(createBtn).toBeVisible();
@@ -30,11 +28,11 @@ test("header Create dropdown navigates to entity forms", async ({
 test("header marks the active ledger destination", async ({
   authedPage: page,
 }) => {
-  await page.goto("/recipes");
+  await page.goto("/my-coffee");
   await page.waitForLoadState("networkidle");
 
   await expect(
-    page.getByRole("link", { name: "Recipes" }).first(),
+    page.getByRole("link", { name: "My Coffee" }).first(),
   ).toHaveAttribute("aria-current", "page");
 });
 
