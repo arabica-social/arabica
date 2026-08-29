@@ -170,6 +170,7 @@
   --type-roaster: oklch(0.51 0.135 40);
   --type-grinder: #78716c;
   --type-brewer: var(--brand-leaf-deep);
+  --autofill-text: var(--brand-amber-800);
   /* Accent fallbacks for deferred Arabica entities (cafe, drink) so the
      same pill classes render reasonably if/when those ship. */
   --type-cafe: #7d5a3a;
@@ -292,6 +293,7 @@
     --type-roaster: oklch(0.68 0.16 45);
     --type-grinder: #a8a29e;
     --type-brewer: var(--brand-leaf);
+    --autofill-text: var(--brand-amber-300);
     --type-cafe: #b89472;
     --type-drink: #c2a47d;
 
@@ -386,6 +388,7 @@
   --type-roaster: oklch(0.68 0.16 45);
   --type-grinder: #a8a29e;
   --type-brewer: var(--brand-leaf);
+  --autofill-text: var(--brand-amber-300);
   --type-brew-tint: rgba(166, 124, 82, 0.18);
   --type-bean-tint: rgba(217, 119, 6, 0.15);
   --type-recipe-tint: rgba(196, 114, 74, 0.15);

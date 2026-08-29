@@ -101,6 +101,10 @@
 		return `Autofilled · in ${s.matches} of ${s.total} brews (${pct}%)`;
 	}
 
+	function autofillInputClass(field: AutofillField): string {
+		return `w-full form-input-lg${autofilled[field] ? " autofilled-input" : ""}`;
+	}
+
 	function clearFieldValue(field: AutofillField) {
 		switch (field) {
 			case "grinder_rkey": grinderRKey = ""; grinderLabel = ""; break;
@@ -708,16 +712,16 @@
 			</div>
 			{#if !activeRecipe}
 				<Field label="Coffee amount (g)" helper="Amount of ground coffee used" badge={autofillBadge("coffee_amount")}>
-					<input type="number" bind:value={coffeeAmount} oninput={() => clearAutofillField("coffee_amount")} placeholder="e.g. 18" step="1" class="w-full form-input-lg" aria-invalid={coffeeAmountError} />
+					<input type="number" bind:value={coffeeAmount} oninput={() => clearAutofillField("coffee_amount")} placeholder="e.g. 18" step="1" class={autofillInputClass("coffee_amount")} aria-invalid={coffeeAmountError} />
 					{#if coffeeAmountError}<p class="text-xs text-red-600 mt-1">Coffee amount must be greater than 0.</p>{/if}
 				</Field>
 			{/if}
 			<div class="combo-select">
 				<span class="form-label">Grinder</span>
-				{#if autofillBadge("grinder_rkey")}<span class="autofill-badge">{autofillBadge("grinder_rkey")}</span>{/if}
 				<EntityCombo
 					entityType="grinder"
 					inputName="grinder_rkey"
+					inputClass={autofillInputClass("grinder_rkey")}
 					apiEndpoint="/api/grinders"
 					suggestEndpoint="/api/suggestions/grinders"
 					placeholder="Search grinders..."
@@ -727,9 +731,12 @@
 					ariaLabel="Search grinders"
 					onChange={(detail) => handleComboChange("grinder", detail)}
 				/>
+				<div class="autofill-status" aria-live="polite">
+					{#if autofillBadge("grinder_rkey")}<span class="autofill-badge">{autofillBadge("grinder_rkey")}</span>{/if}
+				</div>
 			</div>
 			<Field label="Grind size" helper={'Enter a grinder setting or description, such as "Medium" or "Fine"'} badge={autofillBadge("grind_size")}>
-				<input type="text" bind:value={grindSize} oninput={() => clearAutofillField("grind_size")} placeholder="e.g. 18, Medium, 3.5, Fine" class="w-full form-input-lg" />
+				<input type="text" bind:value={grindSize} oninput={() => clearAutofillField("grind_size")} placeholder="e.g. 18, Medium, 3.5, Fine" class={autofillInputClass("grind_size")} />
 			</Field>
 		</FormSection>
 
@@ -737,10 +744,10 @@
 			{#if showRecipeOverrides()}
 				<div class="combo-select">
 					<span class="form-label">Brew method</span>
-					{#if autofillBadge("brewer_rkey")}<span class="autofill-badge">{autofillBadge("brewer_rkey")}</span>{/if}
 					<EntityCombo
 						entityType="brewer"
 						inputName="brewer_rkey"
+						inputClass={autofillInputClass("brewer_rkey")}
 						apiEndpoint="/api/brewers"
 						suggestEndpoint="/api/suggestions/brewers"
 						placeholder="Search brew methods..."
@@ -750,21 +757,24 @@
 						ariaLabel="Search brew methods"
 						onChange={(detail) => handleComboChange("brewer", detail)}
 					/>
+					<div class="autofill-status" aria-live="polite">
+						{#if autofillBadge("brewer_rkey")}<span class="autofill-badge">{autofillBadge("brewer_rkey")}</span>{/if}
+					</div>
 				</div>
 				{#if !activeRecipe}
 					<Field label="Water amount (g)" helper={pours.length > 0 ? "Total water (pours tracked separately below)" : "Total water used"} badge={autofillBadge("water_amount")}>
-						<input type="number" bind:value={waterAmount} oninput={() => clearAutofillField("water_amount")} placeholder="e.g. 250" step="1" class="w-full form-input-lg" aria-invalid={waterAmountError} />
+						<input type="number" bind:value={waterAmount} oninput={() => clearAutofillField("water_amount")} placeholder="e.g. 250" step="1" class={autofillInputClass("water_amount")} aria-invalid={waterAmountError} />
 						{#if waterAmountError}<p class="text-xs text-red-600 mt-1">Water amount must be greater than 0.</p>{/if}
 					</Field>
 				{/if}
 				<PoursEditor bind:pours expectedWater={waterAmount} />
 			{/if}
 			<Field label="Temperature (°F/°C)" badge={autofillBadge("temperature")}>
-				<input type="number" bind:value={temperature} oninput={() => clearAutofillField("temperature")} placeholder="e.g. 93.5" step="0.1" class="w-full form-input-lg" aria-invalid={temperatureError} />
+				<input type="number" bind:value={temperature} oninput={() => clearAutofillField("temperature")} placeholder="e.g. 93.5" step="0.1" class={autofillInputClass("temperature")} aria-invalid={temperatureError} />
 				{#if temperatureError}<p class="text-xs text-red-600 mt-1">Temperature must be greater than 0.</p>{/if}
 			</Field>
 			<Field label="Brew time (s)" badge={autofillBadge("time_seconds")}>
-				<input type="number" bind:value={timeSeconds} oninput={() => clearAutofillField("time_seconds")} placeholder="e.g. 180" class="w-full form-input-lg" aria-invalid={timeSecondsError} />
+				<input type="number" bind:value={timeSeconds} oninput={() => clearAutofillField("time_seconds")} placeholder="e.g. 180" class={autofillInputClass("time_seconds")} aria-invalid={timeSecondsError} />
 				{#if timeSecondsError}<p class="text-xs text-red-600 mt-1">Brew time must be greater than 0.</p>{/if}
 			</Field>
 		</FormSection>
@@ -772,13 +782,13 @@
 		{#if brewerCategory === "espresso"}
 			<FormSection title="Espresso" description="Shot output, pressure, and pre-infusion.">
 				<Field label="Yield weight (g)" helper="Weight of espresso output" badge={autofillBadge("espresso_yield_weight")}>
-					<input type="number" bind:value={espressoYieldWeight} oninput={() => clearAutofillField("espresso_yield_weight")} placeholder="e.g. 36" step="0.1" class="w-full form-input-lg" />
+					<input type="number" bind:value={espressoYieldWeight} oninput={() => clearAutofillField("espresso_yield_weight")} placeholder="e.g. 36" step="0.1" class={autofillInputClass("espresso_yield_weight")} />
 				</Field>
 				<Field label="Pressure (bar)" helper="Brewing pressure" badge={autofillBadge("espresso_pressure")}>
-					<input type="number" bind:value={espressoPressure} oninput={() => clearAutofillField("espresso_pressure")} placeholder="e.g. 9" step="0.1" class="w-full form-input-lg" />
+					<input type="number" bind:value={espressoPressure} oninput={() => clearAutofillField("espresso_pressure")} placeholder="e.g. 9" step="0.1" class={autofillInputClass("espresso_pressure")} />
 				</Field>
 				<Field label="Pre-infusion time (s)" badge={autofillBadge("espresso_pre_infusion_seconds")}>
-					<input type="number" bind:value={espressoPreInfusionSeconds} oninput={() => clearAutofillField("espresso_pre_infusion_seconds")} placeholder="e.g. 5" class="w-full form-input-lg" />
+					<input type="number" bind:value={espressoPreInfusionSeconds} oninput={() => clearAutofillField("espresso_pre_infusion_seconds")} placeholder="e.g. 5" class={autofillInputClass("espresso_pre_infusion_seconds")} />
 				</Field>
 			</FormSection>
 		{/if}
@@ -787,20 +797,20 @@
 			<FormSection title="Pour-over details" description="Record bloom, drawdown, bypass water, and filter details.">
 				<div class="grid grid-cols-2 gap-4">
 					<Field label="Bloom water (g)" helper="Water for bloom" badge={autofillBadge("pourover_bloom_water")}>
-						<input type="number" bind:value={pouroverBloomWater} oninput={() => clearAutofillField("pourover_bloom_water")} placeholder="e.g. 50" class="w-full form-input-lg" />
+						<input type="number" bind:value={pouroverBloomWater} oninput={() => clearAutofillField("pourover_bloom_water")} placeholder="e.g. 50" class={autofillInputClass("pourover_bloom_water")} />
 					</Field>
 					<Field label="Bloom time (s)" helper="Bloom wait time" badge={autofillBadge("pourover_bloom_seconds")}>
-						<input type="number" bind:value={pouroverBloomSeconds} oninput={() => clearAutofillField("pourover_bloom_seconds")} placeholder="e.g. 45" class="w-full form-input-lg" />
+						<input type="number" bind:value={pouroverBloomSeconds} oninput={() => clearAutofillField("pourover_bloom_seconds")} placeholder="e.g. 45" class={autofillInputClass("pourover_bloom_seconds")} />
 					</Field>
 				</div>
 				<Field label="Drawdown time (s)" helper="Time after last pour until bed is dry" badge={autofillBadge("pourover_drawdown_seconds")}>
-					<input type="number" bind:value={pouroverDrawdownSeconds} oninput={() => clearAutofillField("pourover_drawdown_seconds")} placeholder="e.g. 30" class="w-full form-input-lg" />
+					<input type="number" bind:value={pouroverDrawdownSeconds} oninput={() => clearAutofillField("pourover_drawdown_seconds")} placeholder="e.g. 30" class={autofillInputClass("pourover_drawdown_seconds")} />
 				</Field>
 				<Field label="Bypass water (g)" helper="Water added after brewing" badge={autofillBadge("pourover_bypass_water")}>
-					<input type="number" bind:value={pouroverBypassWater} oninput={() => clearAutofillField("pourover_bypass_water")} placeholder="e.g. 100" class="w-full form-input-lg" />
+					<input type="number" bind:value={pouroverBypassWater} oninput={() => clearAutofillField("pourover_bypass_water")} placeholder="e.g. 100" class={autofillInputClass("pourover_bypass_water")} />
 				</Field>
 				<Field label="Filter" helper="Type of filter used" badge={autofillBadge("pourover_filter")}>
-					<input type="text" bind:value={pouroverFilter} oninput={() => clearAutofillField("pourover_filter")} placeholder="e.g. paper, metal, cloth" class="w-full form-input-lg" />
+					<input type="text" bind:value={pouroverFilter} oninput={() => clearAutofillField("pourover_filter")} placeholder="e.g. paper, metal, cloth" class={autofillInputClass("pourover_filter")} />
 				</Field>
 			</FormSection>
 		{/if}
@@ -865,18 +875,28 @@
 		border-radius: 0.5rem;
 		background: color-mix(in oklch, var(--surface-bg) 74%, transparent);
 	}
+	.brew-form-sheet :global(.autofilled-input) {
+		color: var(--autofill-text);
+	}
+	.brew-form-sheet :global(.autofill-status) {
+		display: flex;
+		align-items: center;
+		min-height: 1.25rem;
+		margin-top: 0.25rem;
+	}
 	.brew-form-sheet :global(.autofill-badge) {
-		display: inline-block;
-		margin-left: 0.5rem;
+		display: inline-flex;
+		align-items: center;
+		min-height: 1.1rem;
 		padding: 0.15rem 0.5rem;
-		border: 1px dashed var(--card-border);
+		border: 1px dashed var(--autofill-text);
 		border-radius: 999px;
 		background: color-mix(in oklch, var(--surface-bg) 74%, transparent);
-		color: var(--text-muted);
+		color: var(--autofill-text);
 		font-size: 0.68rem;
 		font-weight: 600;
 		letter-spacing: 0.02em;
-		vertical-align: middle;
+		line-height: 1.1;
 	}
 	.recipe-adjustment {
 		margin-top: 0.75rem;
