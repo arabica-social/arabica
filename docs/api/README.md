@@ -10,6 +10,9 @@ streams in the SvelteKit SPA migration:
 Each file documents the request/response shapes for a domain area. When
 adding or changing an endpoint, update the spec here first, then implement.
 
+The non-JSON [homepage Open Graph contract](open-graph.md) covers crawler
+metadata and the public preview image endpoint.
+
 ## Conventions
 
 - All JSON endpoints return `Content-Type: application/json; charset=utf-8`.

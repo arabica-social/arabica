@@ -18,6 +18,9 @@ before the Svelte application starts.
 
 OAuth flows, record mutations, JSON APIs, OG image generation, static asset
 serving, security headers, and well-known endpoints remain Go responsibilities.
+The homepage resolver supplies an absolute `/og-image` URL and canonical root
+URL; the shell supplies the brand title and description. See the
+[homepage preview contract](../api/open-graph.md).
 
 ## Current Ownership
 

@@ -354,11 +354,10 @@ func Run(ctx context.Context, app *domain.App, opts Options) error {
 		sh.SetSessionResolver(func(ctx context.Context, did string) spa.SessionData {
 			return h.ResolveSessionData(ctx, did)
 		})
-		// Resolve entity-specific OG metadata for entity-view URL
-		// patterns so social shares show record-specific title,
-		// description, and image without executing JavaScript.
+		// Resolve homepage and entity OG metadata so social shares include
+		// their preview image without executing JavaScript.
 		sh.SetOGResolver(func(r *http.Request) spa.OGData {
-			return resolveEntityOG(r, h, app)
+			return resolvePageOG(r, h, app)
 		})
 		// In dev mode, re-read index.html from disk on each request
 		// so `vite build --watch` output appears on the next refresh
@@ -674,11 +673,18 @@ func loadKnownDIDs(filePath string) ([]string, error) {
 	return dids, nil
 }
 
-// resolveEntityOG inspects the request URL for entity-view patterns
-// (/{entity}/{actor}/{id}) and returns OG metadata for social sharing.
-// When the URL is not an entity view or the record can't be resolved,
-// it returns zero-value OGData and the shell falls back to brand defaults.
-func resolveEntityOG(r *http.Request, h *handlers.Handler, app *domain.App) spa.OGData {
+// resolvePageOG returns image and URL metadata for the homepage and entity
+// views (/{entity}/{actor}/{id}). Other pages use the shell's brand defaults.
+func resolvePageOG(r *http.Request, h *handlers.Handler, app *domain.App) spa.OGData {
+	if r.URL.Path == "/" {
+		baseURL := strings.TrimRight(h.PublicBaseURL(r), "/")
+		return spa.OGData{
+			URL:      baseURL + "/",
+			Image:    baseURL + "/og-image",
+			ImageAlt: app.Brand.DisplayName,
+		}
+	}
+
 	// Path patterns: /{entity_path}/{actor}/{id}
 	// Skip non-entity paths immediately.
 	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
