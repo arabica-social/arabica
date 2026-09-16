@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -277,4 +278,38 @@ func TestLoggingMiddleware(t *testing.T) {
 			t.Errorf("log should contain bytes_written:11, got: %s", logOutput)
 		}
 	})
+}
+
+type recordedRequest struct {
+	method       string
+	routePattern string
+	status       int
+}
+
+type recordingObserver struct {
+	requests []recordedRequest
+}
+
+func (o *recordingObserver) ObserveRequest(method, routePattern string, status int, _ time.Duration) {
+	o.requests = append(o.requests, recordedRequest{method: method, routePattern: routePattern, status: status})
+}
+
+func TestLoggingMiddlewareObserverUsesMatchedRoutePattern(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/brews/{actor}/{id}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("/", http.NotFound)
+
+	observer := &recordingObserver{}
+	handler := LoggingMiddleware(zerolog.Nop(), observer)(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/brews/alice.test/3abc", nil)
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.Equal(t, []recordedRequest{{
+		method:       http.MethodGet,
+		routePattern: "GET /api/brews/{actor}/{id}",
+		status:       http.StatusNoContent,
+	}}, observer.requests)
 }

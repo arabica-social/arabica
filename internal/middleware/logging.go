@@ -13,7 +13,7 @@ import (
 
 // RequestObserver records completed HTTP request observations.
 type RequestObserver interface {
-	ObserveRequest(method, path string, status int, duration time.Duration)
+	ObserveRequest(method, routePattern string, status int, duration time.Duration)
 }
 
 // GetClientIP extracts the real client IP address from the request,
@@ -111,7 +111,7 @@ func LoggingMiddleware(logger zerolog.Logger, observers ...RequestObserver) func
 
 			for _, observer := range observers {
 				if observer != nil {
-					observer.ObserveRequest(r.Method, r.URL.Path, rw.statusCode, duration)
+					observer.ObserveRequest(r.Method, r.Pattern, rw.statusCode, duration)
 				}
 			}
 		})

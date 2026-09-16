@@ -212,7 +212,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "sum by (path) (increase(arabica_http_requests_total{path!=\"/static/*\"}[1h])) > 0",
+          "expr": "sum by (path) (increase(arabica_http_requests_total{path!=\"/static/*\",path!=\"/_app/*\"}[1h])) > 0",
           "legendFormat": "{{path}}",
           "refId": "A"
         }
@@ -234,17 +234,17 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(arabica_http_request_duration_seconds_bucket{path!=\"/static/*\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(arabica_http_request_duration_seconds_bucket{path!=\"/static/*\",path!=\"/_app/*\"}[5m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(arabica_http_request_duration_seconds_bucket{path!=\"/static/*\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(arabica_http_request_duration_seconds_bucket{path!=\"/static/*\",path!=\"/_app/*\"}[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(arabica_http_request_duration_seconds_bucket{path!=\"/static/*\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(arabica_http_request_duration_seconds_bucket{path!=\"/static/*\",path!=\"/_app/*\"}[5m])) by (le))",
           "legendFormat": "p99",
           "refId": "C"
         }
@@ -266,7 +266,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le, path) (rate(arabica_http_request_duration_seconds_bucket{path!=\"/static/*\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, path) (rate(arabica_http_request_duration_seconds_bucket{path!=\"/static/*\",path!=\"/_app/*\"}[5m])))",
           "legendFormat": "{{path}}",
           "refId": "A"
         }

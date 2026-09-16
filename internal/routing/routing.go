@@ -292,10 +292,13 @@ func SetupRouter(cfg Config) http.Handler {
 	}
 	handler = otelhttp.NewHandler(handler, spanName,
 		otelhttp.WithFilter(func(r *http.Request) bool {
-			return !strings.HasPrefix(r.URL.Path, "/static/") && r.URL.Path != "/favicon.ico"
+			return !strings.HasPrefix(r.URL.Path, "/static/") &&
+				!strings.HasPrefix(r.URL.Path, "/_app/") &&
+				r.URL.Path != "/favicon.ico"
 		}),
 		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
-			return r.Method + " " + r.URL.Path
+			// otelhttp calls this again after ServeMux has populated Pattern.
+			return metrics.HTTPSpanName(r.Method, r.Pattern)
 		}),
 	)
 

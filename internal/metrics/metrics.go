@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"strings"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -150,83 +152,43 @@ var (
 	})
 )
 
-// NormalizePath reduces high-cardinality path labels by replacing dynamic
-// segments with placeholders. This keeps the metric label space bounded.
-func NormalizePath(path string) string {
-	// Static assets - collapse into one label
-	if len(path) > 8 && path[:8] == "/static/" {
+// RouteLabel returns a bounded path label from the pattern selected by
+// http.ServeMux. Call it after the handler has returned, when Request.Pattern
+// has been populated. Unknown requests share one label rather than using the
+// raw URL path.
+func RouteLabel(pattern string) string {
+	if _, route, ok := strings.Cut(pattern, " "); ok {
+		pattern = route
+	}
+
+	switch {
+	case pattern == "", pattern == "/":
+		return "/{unmatched}"
+	case pattern == "/{$}":
+		return "/"
+	case strings.HasPrefix(pattern, "/static/"):
 		return "/static/*"
+	case strings.HasPrefix(pattern, "/_app/"):
+		return "/_app/*"
+	default:
+		return pattern
 	}
-
-	// Known patterns with IDs - normalize the dynamic segments
-	// Routes like /brews/{id}, /beans/{id}, /profile/{actor}, etc.
-	segments := splitPath(path)
-	if len(segments) < 2 {
-		return path
-	}
-
-	switch segments[0] {
-	case "brews":
-		if len(segments) == 2 {
-			if segments[1] == "new" || segments[1] == "export" {
-				return path
-			}
-			return "/brews/:id"
-		}
-		if len(segments) == 3 && segments[2] == "edit" {
-			return "/brews/:id/edit"
-		}
-	case "beans", "roasters", "grinders", "brewers":
-		if len(segments) == 2 {
-			return "/" + segments[0] + "/:id"
-		}
-	case "profile":
-		if len(segments) == 2 {
-			return "/profile/:actor"
-		}
-	case "api":
-		if len(segments) >= 3 {
-			switch segments[1] {
-			case "beans", "roasters", "grinders", "brewers", "comments":
-				if len(segments) == 3 {
-					return "/api/" + segments[1] + "/:id"
-				}
-			case "profile":
-				if len(segments) == 3 {
-					return "/api/profile/:actor"
-				}
-			case "modals":
-				if len(segments) == 4 {
-					if segments[3] == "new" {
-						return "/api/modals/" + segments[2] + "/new"
-					}
-					return "/api/modals/" + segments[2] + "/:id"
-				}
-			}
-		}
-	}
-
-	return path
 }
 
-func splitPath(path string) []string {
-	// Skip leading slash
-	if len(path) > 0 && path[0] == '/' {
-		path = path[1:]
+// HTTPMethod returns a bounded request method label. HTTP methods are arbitrary
+// tokens on the wire, so recording an unknown token verbatim would let callers
+// create series just as raw paths did.
+func HTTPMethod(method string) string {
+	switch method {
+	case "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS":
+		return method
+	default:
+		return "OTHER"
 	}
-	// Split on /
-	var segments []string
-	start := 0
-	for i := 0; i < len(path); i++ {
-		if path[i] == '/' {
-			if i > start {
-				segments = append(segments, path[start:i])
-			}
-			start = i + 1
-		}
-	}
-	if start < len(path) {
-		segments = append(segments, path[start:])
-	}
-	return segments
+}
+
+// HTTPSpanName returns the low-cardinality span name used for HTTP server
+// spans. Both the method and route portions are bounded.
+func HTTPSpanName(method, pattern string) string {
+	return HTTPMethod(method) + " " + RouteLabel(pattern)
 }

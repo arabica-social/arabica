@@ -129,7 +129,7 @@ func (c *Consumer) handleEvent(_ context.Context, evt *atpjetstream.Event) error
 		return nil
 	}
 
-	metrics.FirehoseEventsTotal.WithLabelValues(evt.Commit.Collection, evt.Commit.Operation).Inc()
+	metrics.FirehoseEventsTotal.WithLabelValues(evt.Commit.Collection, metricOperation(evt.Commit.Operation)).Inc()
 
 	log.Debug().
 		Str("did", evt.DID).
@@ -164,6 +164,17 @@ func (c *Consumer) ProcessEvent(event JetstreamEvent) error {
 		return nil
 	}
 	return c.processCommit(event)
+}
+
+// metricOperation bounds the remote operation value before it becomes a
+// Prometheus label.
+func metricOperation(operation string) string {
+	switch operation {
+	case "create", "update", "delete":
+		return operation
+	default:
+		return "unknown"
+	}
 }
 
 // isWantedCollection reports whether the collection NSID is in this
