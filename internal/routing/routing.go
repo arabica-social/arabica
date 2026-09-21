@@ -302,7 +302,18 @@ func SetupRouter(cfg Config) http.Handler {
 		}),
 	)
 
-	return handler
+	// ServeMux selects the route pattern on the request it receives. Middleware
+	// such as otelhttp and CookieAuth clones that request, so the outer logging
+	// and tracing layers otherwise keep an empty Pattern. Resolve it before any
+	// middleware runs so every clone carries the bounded route pattern.
+	return routePatternMiddleware(mux, handler)
+}
+
+func routePatternMiddleware(mux *http.ServeMux, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, r.Pattern = mux.Handler(r)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.HandlerFunc {

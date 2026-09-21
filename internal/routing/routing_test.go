@@ -3,12 +3,20 @@ package routing
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
+	"tangled.org/arabica.social/arabica/internal/metrics"
 )
 
 func TestRegisterEntityRoutesFiltersUnionByAppDescriptors(t *testing.T) {
@@ -89,6 +97,87 @@ func TestPageRoutesRegisterExplicitOwners(t *testing.T) {
 			assert.Equal(t, tt.wantBody, w.Body.String())
 		})
 	}
+}
+
+type telemetryTestRoutes struct{}
+
+func (telemetryTestRoutes) SPAOwnedRoutes() []string {
+	return []string{
+		"GET /{$}",
+		"GET /explore",
+		"GET /brews/{actor}/{id}",
+	}
+}
+
+func (telemetryTestRoutes) RegisterAppRoutes(mux *http.ServeMux, ctx AppRouteContext) {
+	page := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	ctx.Pages.Register(mux, "GET /explore", page)
+	ctx.Pages.Register(mux, "GET /brews/{actor}/{id}", page)
+}
+
+func TestSetupRouterRecordsMatchedRoutesInMetricsAndTraces(t *testing.T) {
+	recorder := tracetest.NewSpanRecorder()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
+	previousProvider := otel.GetTracerProvider()
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() {
+		otel.SetTracerProvider(previousProvider)
+		_ = provider.Shutdown(t.Context())
+	})
+
+	page := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	router := SetupRouter(Config{
+		Handlers:         &handlers.Handler{},
+		Logger:           zerolog.Nop(),
+		AppRoutes:        telemetryTestRoutes{},
+		SPAHandler:       page,
+		DisableRateLimit: true,
+	})
+
+	tests := []struct {
+		name       string
+		path       string
+		wantRoute  string
+		wantStatus int
+	}{
+		{name: "health check", path: "/healthz", wantRoute: "/healthz", wantStatus: http.StatusOK},
+		{name: "home", path: "/", wantRoute: "/", wantStatus: http.StatusNoContent},
+		{name: "main page", path: "/explore", wantRoute: "/explore", wantStatus: http.StatusNoContent},
+		{name: "dynamic page", path: "/brews/alice.test/3abc", wantRoute: "/brews/{actor}/{id}", wantStatus: http.StatusNoContent},
+		{name: "unknown page", path: "/not-a-real-page", wantRoute: "/{unmatched}", wantStatus: http.StatusNotFound},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			counter := metrics.HTTPRequestsTotal.WithLabelValues(http.MethodGet, tt.wantRoute, strconv.Itoa(tt.wantStatus))
+			before := counterValue(t, counter)
+
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.wantStatus, w.Code)
+			assert.Equal(t, before+1, counterValue(t, counter))
+		})
+	}
+
+	ended := recorder.Ended()
+	if assert.Len(t, ended, len(tests)) {
+		for i, tt := range tests {
+			assert.Equal(t, http.MethodGet+" "+tt.wantRoute, ended[i].Name())
+		}
+	}
+}
+
+func counterValue(t *testing.T, counter prometheus.Counter) float64 {
+	t.Helper()
+	var metric dto.Metric
+	assert.NoError(t, counter.Write(&metric))
+	return metric.GetCounter().GetValue()
 }
 
 func okHandler(body string) http.HandlerFunc {
