@@ -93,9 +93,10 @@ describe("BrewForm", () => {
 		expect(screen.queryByText("Espresso")).toBeNull();
 	});
 
-	it("shows espresso params for espresso brewers", () => {
+	it("hides water and pours for espresso brewers, including on edits with existing values", () => {
 		const espressoBrew: Brew = {
 			...editBrew,
+			pours: [{ water_amount: 50, time_seconds: 30 }],
 			pourover_params: undefined,
 			espresso_params: { yield_weight: 36, pressure: 9, pre_infusion_seconds: 5 },
 			brewer_obj: { rkey: "brewer-2", name: "La Marzocco", brewer_type: "espresso", description: "", link: "", created_at: "" },
@@ -104,6 +105,16 @@ describe("BrewForm", () => {
 		expect(screen.getByText("Espresso")).toBeTruthy();
 		expect(screen.getByPlaceholderText("e.g. 36")).toBeTruthy(); // yield weight
 		expect(screen.getByPlaceholderText("e.g. 9")).toBeTruthy(); // pressure
+		expect(screen.queryByLabelText("Water amount (g)")).toBeNull();
+		expect(screen.queryByRole("button", { name: /add pour/i })).toBeNull();
+		expect(screen.queryByLabelText("Pour 1")).toBeNull();
+	});
+
+	it("keeps water and pours available for non-espresso brewers", () => {
+		render(BrewForm, { brew: { ...editBrew, pours: [{ water_amount: 50, time_seconds: 30 }] }, isEdit: true });
+		expect(screen.getByLabelText("Water amount (g)")).toBeTruthy();
+		expect(screen.getByRole("button", { name: "Add pour" })).toBeTruthy();
+		expect(screen.getByLabelText("Pour 1")).toBeTruthy();
 	});
 
 	it("renders the rating slider with correct value", () => {

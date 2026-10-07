@@ -761,13 +761,15 @@
 						{#if autofillBadge("brewer_rkey")}<span class="autofill-badge">{autofillBadge("brewer_rkey")}</span>{/if}
 					</div>
 				</div>
-				{#if !activeRecipe}
+				{#if !activeRecipe && brewerCategory !== "espresso"}
 					<Field label="Water amount (g)" helper={pours.length > 0 ? "Total water (pours tracked separately below)" : "Total water used"} badge={autofillBadge("water_amount")}>
 						<input type="number" bind:value={waterAmount} oninput={() => clearAutofillField("water_amount")} placeholder="e.g. 250" step="1" class={autofillInputClass("water_amount")} aria-invalid={waterAmountError} />
 						{#if waterAmountError}<p class="text-xs text-red-600 mt-1">Water amount must be greater than 0.</p>{/if}
 					</Field>
 				{/if}
-				<PoursEditor bind:pours expectedWater={waterAmount} />
+				{#if brewerCategory !== "espresso"}
+					<PoursEditor bind:pours expectedWater={waterAmount} />
+				{/if}
 			{/if}
 			<Field label="Temperature (°F/°C)" badge={autofillBadge("temperature")}>
 				<input type="number" bind:value={temperature} oninput={() => clearAutofillField("temperature")} placeholder="e.g. 93.5" step="0.1" class={autofillInputClass("temperature")} aria-invalid={temperatureError} />

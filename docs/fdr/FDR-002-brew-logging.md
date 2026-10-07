@@ -20,6 +20,10 @@ creation time, then records the specific cup that was made.
   amounts to the adjusted total.
 - For pour-over recipes, the brew's bloom water and bloom time mirror the
   first pour; bloom water stays in sync as quick adjustments rescale the pours.
+- When the selected brewer is espresso, the main brew form hides the water
+  amount field and pour controls. The recipe's quick-adjustment water input
+  remains available. Switching methods does not erase draft measurements or
+  pours, including values already present on an edited brew.
 - Users can still edit the remaining brew details, such as bean, equipment,
   temperature, timing, notes, and rating.
 

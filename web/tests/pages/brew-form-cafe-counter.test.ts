@@ -127,6 +127,31 @@ describe("BrewForm cafe-counter migration", () => {
 		await waitFor(() => expect(screen.getByLabelText("Pour 2")).toHaveValue(200));
 	});
 
+	it("hides pours when an espresso recipe is applied, even with recipe pours", async () => {
+		const user = userEvent.setup();
+		vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => {
+			if (url === "/api/recipes/daily-espresso") {
+				return Promise.resolve(new Response(JSON.stringify({
+					rkey: "daily-espresso",
+					name: "Daily Espresso",
+					coffee_amount: 18,
+					water_amount: 40,
+					brewer_type: "espresso",
+					pours: [{ water_amount: 40, time_seconds: 30 }],
+				}), { status: 200, headers: { "Content-Type": "application/json" } }));
+			}
+			return Promise.resolve(new Response("{}", { status: 200 }));
+		}));
+		render(BrewForm, { brew: null, recipeRKey: "daily-espresso", isEdit: false });
+		await user.click(await screen.findByRole("button", { name: "Adjust" }));
+		expect(screen.getByText("Espresso")).toBeTruthy();
+		expect(screen.queryByLabelText("Water amount (g)")).toBeNull();
+		expect(screen.queryByRole("button", { name: /add pour/i })).toBeNull();
+		expect(screen.queryByLabelText("Pour 1")).toBeNull();
+		// The recipe's separate quick adjustment is not the main brew field.
+		expect(screen.getByLabelText("Water (g)")).toHaveValue(40);
+	});
+
 	it("derives the brewer and bloom water from a selected pour-over recipe", async () => {
 		const user = userEvent.setup();
 		vi.stubGlobal(
