@@ -3,44 +3,43 @@ import { afterEach, describe, expect, it } from "vitest";
 import About from "../../src/routes/about/+page.svelte";
 
 describe("About page", () => {
-	afterEach(() => {
-		cleanup();
-		document.body.innerHTML = "";
-	});
+  afterEach(() => {
+    cleanup();
+    document.body.innerHTML = "";
+  });
 
-	it("renders the page heading and hero", () => {
-		render(About);
+  it("renders the page heading and hero", () => {
+    render(About);
 
-		expect(screen.getByText("About Arabica")).toBeTruthy();
-		expect(
-			screen.getByText(/Alpha Software:/),
-		).toBeTruthy();
-	});
+    expect(screen.getByText("About Arabica")).toBeTruthy();
+    expect(screen.getByText(/Alpha Software:/)).toBeTruthy();
+  });
 
-	it("renders the support links", () => {
-		render(About);
+  it("renders the support links", () => {
+    render(About);
 
-		const kofi = screen.getByText("Ko-fi").closest("a");
-		expect(kofi).toHaveAttribute(
-			"href",
-			"https://ko-fi.com/pdewey",
-		);
-		const sponsors = screen.getByText("GitHub Sponsors").closest("a");
-		expect(sponsors).toHaveAttribute(
-			"href",
-			"https://github.com/sponsors/ptdewey",
-		);
-	});
+    const kofi = screen.getByText("Ko-fi").closest("a");
+    expect(kofi).toHaveAttribute("href", "https://ko-fi.com/pdewey");
+    const sponsors = screen.getByText("GitHub Sponsors").closest("a");
+    expect(sponsors).toHaveAttribute(
+      "href",
+      "https://github.com/sponsors/ptdewey",
+    );
+  });
 
-	it("links to bsky.app in the getting started section", () => {
-		render(About);
+  it("links to account creation and protocol guidance", () => {
+    render(About);
 
-		const link = screen.getByText("bsky.app").closest("a");
-		expect(link).toHaveAttribute("href", "https://bsky.app");
-	});
+    expect(
+      screen.getByRole("link", { name: "choose a provider" }),
+    ).toHaveAttribute("href", "/join/create");
+    expect(
+      screen.getByRole("link", { name: "how Arabica uses AT Protocol" }),
+    ).toHaveAttribute("href", "/atproto");
+  });
 
-	it("shows a back button", () => {
-		render(About);
-		expect(screen.getByRole("button", { name: "Go back" })).toBeTruthy();
-	});
+  it("shows a back button", () => {
+    render(About);
+    expect(screen.getByRole("button", { name: "Go back" })).toBeTruthy();
+  });
 });

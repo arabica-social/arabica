@@ -1,7 +1,6 @@
 <script lang="ts">
   import FeedCard from "$lib/components/FeedCard.svelte";
   import FeedFilters from "$lib/components/FeedFilters.svelte";
-  import FeedbackPrompt from "$lib/components/FeedbackPrompt.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import { app, openLoginModal } from "$lib/stores/session";
   import { pushToast } from "$lib/stores/toasts";
@@ -167,8 +166,7 @@
   <section class="cafe-feed" aria-labelledby="community-activity-title">
     <div class="cafe-feed-heading">
       <div>
-        <p class="cafe-label">Around the café</p>
-        <h2 id="community-activity-title">Recent records</h2>
+        <h2 id="community-activity-title">Recent activity</h2>
       </div>
       {#if showFilters}
         <FeedFilters
@@ -210,11 +208,11 @@
         {:else if items.length === 0}
           <div class="cafe-feed-state" style="grid-column: 1 / -1;">
             <Icon name="coffee" class="w-8 h-8 text-muted mb-3" />
-            <p class="text-emphasis font-medium mb-1">
-              No records here yet
-            </p>
+            <p class="text-emphasis font-medium mb-1">No activity yet</p>
             <p class="text-sm text-faint">
-              Add a record or follow someone to see their latest brews.
+              {typeFilter
+                ? "Try another filter."
+                : "Community brews and other updates will appear here."}
             </p>
           </div>
         {:else}
@@ -239,177 +237,146 @@
 {/snippet}
 
 <div class="cafe-counter">
-    <aside class="cafe-rail cafe-rail-left" aria-label="Your coffee journal">
-      <section class="cafe-rail-section cafe-rail-lead">
-        {#if isAuthenticated}
-          <p class="cafe-label">Your coffee</p>
-          <h2>Ready for the next cup.</h2>
-          <p>Your beans, gear, recipes, and brew notes.</p>
-          <nav class="cafe-shortcuts" aria-label="Coffee journal shortcuts">
-            <a href={appDefinition.libraryPath}
-              ><Icon name="bean" /><span>{appDefinition.libraryLabel}</span></a
+  <aside
+    class="cafe-rail cafe-rail-left"
+    aria-label="Your coffee journal"
+    aria-hidden={!isAuthenticated}
+  >
+    {#if isAuthenticated}
+      <section class="cafe-rail-section">
+        <nav class="cafe-shortcuts" aria-label="Home shortcuts">
+          <a href={appDefinition.libraryPath}
+            ><Icon name="bean" /><span>{appDefinition.libraryLabel}</span></a
+          >
+          <a href="/explore"><Icon name="brewer" /><span>Explore</span></a>
+          <a href="/recipes"><Icon name="fileText" /><span>Recipes</span></a>
+          <a href="/profile/{data.userDID}"
+            ><Icon name="coffee" /><span>Your profile</span></a
+          >
+        </nav>
+      </section>
+    {/if}
+
+    {#if isAuthenticated && incompleteRecords?.records?.length}
+      <section class="cafe-rail-section">
+        <h2>Unfinished entries</h2>
+        <div class="cafe-record-list">
+          {#each incompleteRecords.records as rec (rec.RKey)}
+            <a
+              href={`/${entityRouteForCollection($app, rec.EntityType)}/${rec.RKey}/edit`}
             >
-            <a href="/explore"><Icon name="brewer" /><span>Explore</span></a>
-            <a href="/recipes"><Icon name="fileText" /><span>Recipes</span></a>
-            <a href="/profile/{data.userDID}"
-              ><Icon name="coffee" /><span>Your profile</span></a
-            >
-          </nav>
-        {:else}
-          <p class="cafe-label">Arabica</p>
-          <h2>Keep the notes you will want next time.</h2>
-          <p>
-            Save beans, gear, recipes, and the brews that taught you something.
+              <span
+                ><strong>{rec.Name}</strong
+                >{#if rec.MissingFields?.length}<small
+                    >Missing {rec.MissingFields.join(", ")}</small
+                  >{/if}</span
+              >
+              <span aria-hidden="true">→</span>
+            </a>
+          {/each}
+        </div>
+      </section>
+    {/if}
+  </aside>
+
+  <main class="cafe-main">
+    <header class="cafe-journal-head">
+      <div>
+        <p class="cafe-label">
+          {isAuthenticated
+            ? "Your home coffee journal"
+            : "A coffee journal on the Atmosphere"}
+        </p>
+        <h1>
+          {isAuthenticated
+            ? "Good coffee deserves a record."
+            : appDefinition.heroHeading}
+        </h1>
+        <p class="cafe-deck">
+          {isAuthenticated
+            ? ready
+              ? "Keep track of what you brewed and how it turned out. Compare notes with other people around the Atmosphere."
+              : appDefinition.readinessNudge
+            : appDefinition.heroDescription}
+        </p>
+        {#if !isAuthenticated}
+          <p class="cafe-account-note">
+            Coffee records are saved to your account's server through
+            <a href="/atproto">AT Protocol</a>.
           </p>
+        {/if}
+      </div>
+      <div class="cafe-actions">
+        {#if isAuthenticated}
+          <a
+            href={ready ? "/brews/new" : "/onboarding"}
+            class="home-action-primary"
+            aria-label={ready ? appDefinition.sessionAction : "Finish setup"}
+          >
+            {ready ? `${appDefinition.sessionAction} →` : "Finish setup →"}
+          </a>
+          <a href={appDefinition.libraryPath} class="cafe-text-link"
+            >Browse your journal</a
+          >
+        {:else}
           <button
             type="button"
             onclick={openLoginModal}
-            class="cafe-text-link cafe-rail-action"
-            >Sign in</button
+            class="home-action-primary">Log in</button
           >
+          <a href="/join/create" class="cafe-text-link">Create an account</a>
         {/if}
-      </section>
+      </div>
+    </header>
+    {@render feedSection()}
+  </main>
 
-      {#if isAuthenticated && incompleteRecords?.records?.length}
-        <section class="cafe-rail-section">
-          <p class="cafe-label">To finish</p>
-          <h2>
-            {incompleteRecords.records.length}
-            {incompleteRecords.records.length === 1 ? "record" : "records"} to complete.
-          </h2>
-          <div class="cafe-record-list">
-            {#each incompleteRecords.records as rec (rec.RKey)}
-              <a
-                href={`/${entityRouteForCollection($app, rec.EntityType)}/${rec.RKey}/edit`}
-              >
-                <span
-                  ><strong>{rec.Name}</strong
-                  >{#if rec.MissingFields?.length}<small
-                      >Missing {rec.MissingFields.join(", ")}</small
-                    >{/if}</span
-                >
-                <span aria-hidden="true">→</span>
-              </a>
-            {/each}
-          </div>
-        </section>
-      {/if}
-    </aside>
-
-    <main class="cafe-main">
-      <header class="cafe-journal-head">
-        <div>
-          <p class="cafe-label">
-            {isAuthenticated
-              ? "Your home coffee journal"
-              : "A coffee journal on the Atmosphere"}
-          </p>
-          <h1>
-            {isAuthenticated
-              ? "Good coffee deserves a record."
-              : appDefinition.heroHeading}
-          </h1>
-          <p class="cafe-deck">
-            {isAuthenticated
-              ? "Keep track of what you brewed and how it turned out. Compare notes with other people around the Atmosphere."
-              : appDefinition.heroDescription}
-          </p>
-          {#if !isAuthenticated}
-            <p class="cafe-ownership">
-              <a href="/atproto">Built on AT Protocol</a>. Your journal stays
-              yours.
-            </p>
-          {/if}
-        </div>
-        <div class="cafe-actions">
-          {#if isAuthenticated}
-            <a
-              href={ready ? "/brews/new" : "/onboarding"}
-              class="home-action-primary"
-            >
-              {ready ? `${appDefinition.sessionAction} →` : "Finish setup →"}
-            </a>
-            <a href={appDefinition.libraryPath} class="cafe-text-link"
-              >Browse your journal</a
-            >
-          {:else}
-            <button
-              type="button"
-              onclick={openLoginModal}
-              class="home-action-primary">Log in</button
-            >
-            <a href="/join/create" class="cafe-text-link">Create an account</a>
-          {/if}
-        </div>
-        {#if isAuthenticated && !ready}
-          <div class="cafe-setup-nudge">
-            <span
-              ><strong>First brew</strong>{appDefinition.readinessNudge}</span
-            >
-            <a href="/onboarding">Open setup</a>
-          </div>
-        {/if}
-      </header>
-      {@render feedSection()}
-    </main>
-
-    <aside class="cafe-rail cafe-rail-right" aria-label="Around the café">
-      <FeedbackPrompt />
-      {#if isAuthenticated && popularRecipes?.length}
-        <section class="cafe-rail-section cafe-rail-lead">
-          <p class="cafe-label">Popular recipes</p>
-          <h2>Worth a closer look.</h2>
-          <div class="cafe-recipe-list">
-            {#each popularRecipes.slice(0, 3) as recipe (recipe.rkey)}
-              <a
-                href={recipe.author_handle || recipe.author_did
-                  ? `/recipes/${encodeURIComponent(recipe.author_handle || recipe.author_did || "")}/${encodeURIComponent(recipe.rkey)}`
-                  : "/recipes"}
-              >
-                <strong>{recipe.name}</strong>
-                <span
-                  >{recipe.brewer_obj?.name ||
-                    recipe.brewer_type ||
-                    "Coffee recipe"}</span
-                >
-                {#if recipe.brew_count || recipe.fork_count}
-                  <small
-                    >{recipe.brew_count || 0} brews {#if recipe.fork_count}
-                      · {#if recipe.fork_count == 1}
-                        fork
-                      {:else}
-                        {recipe.fork_count} forks
-                      {/if}
-                    {/if}</small
-                  >
-                {/if}
-              </a>
-            {/each}
-          </div>
-          <a href="/recipes" class="cafe-text-link">Explore all recipes</a>
-        </section>
-      {/if}
-      {#if !isAuthenticated}
-        <section class="cafe-rail-section cafe-rail-lead">
-          <p class="cafe-label">Community</p>
-          <h2>Browse recent brews.</h2>
-          <p>
-            Browse the public feed before you start keeping notes of your own.
-          </p>
-          <a href="/about" class="cafe-text-link">Learn more</a>
-        </section>
-      {/if}
-      <section class="cafe-rail-section">
-        <p class="cafe-label">About Arabica</p>
-        <p>
-          A coffee journal that stores your records in your own Personal Data
-          Server.
-        </p>
+  <aside class="cafe-rail cafe-rail-right" aria-label="Community links">
+    <section class="cafe-rail-section">
+      <p class="cafe-rail-note">
+        Found something confusing, broken, or missing? Let us know.
+      </p>
+      <div class="cafe-support-links">
+        <a
+          href={appDefinition.feedbackUrl}
+          class="cafe-text-link"
+          target="_blank"
+          rel="noopener noreferrer">Feedback</a
+        >
         <a href="/about" class="cafe-text-link">About Arabica</a>
+      </div>
+    </section>
+    {#if isAuthenticated && popularRecipes?.length}
+      <section class="cafe-rail-section">
+        <h2>Popular recipes</h2>
+        <div class="cafe-recipe-list">
+          {#each popularRecipes.slice(0, 3) as recipe (recipe.rkey)}
+            <a
+              href={recipe.author_handle || recipe.author_did
+                ? `/recipes/${encodeURIComponent(recipe.author_handle || recipe.author_did || "")}/${encodeURIComponent(recipe.rkey)}`
+                : "/recipes"}
+            >
+              <strong>{recipe.name}</strong>
+              <span
+                >{recipe.brewer_obj?.name ||
+                  recipe.brewer_type ||
+                  "Coffee recipe"}</span
+              >
+              {#if recipe.brew_count || recipe.fork_count}
+                <small
+                  >{recipe.brew_count || 0} brews{#if recipe.fork_count}{" · "}{recipe.fork_count}
+                    {recipe.fork_count === 1 ? "fork" : "forks"}{/if}</small
+                >
+              {/if}
+            </a>
+          {/each}
+        </div>
+        <a href="/recipes" class="cafe-text-link">Explore all recipes</a>
       </section>
-    </aside>
-    {#if isAuthenticated}<ScrollTopButton />{/if}
-  </div>
+    {/if}
+  </aside>
+  {#if isAuthenticated}<ScrollTopButton />{/if}
+</div>
 
 <style>
   .cafe-counter {
@@ -482,13 +449,15 @@
     font-size: 0.95rem;
     line-height: 1.65;
   }
-  .cafe-ownership {
-    margin: 0.8rem 0 0;
-    color: var(--text-faint);
-    font-size: 0.72rem;
-  }
-  .cafe-ownership a {
+  .cafe-account-note {
+    max-width: 54ch;
+    margin: 0.75rem 0 0;
     color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+  .cafe-account-note a {
+    color: var(--text-emphasis);
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -525,47 +494,13 @@
     color: var(--text-primary);
     text-decoration-color: currentColor;
   }
-  .cafe-rail-action {
-    padding: 0;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-  }
-  .cafe-setup-nudge {
-    grid-column: 1/-1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.8rem 0;
-    border-top: 1px dashed var(--card-border);
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-  }
-  .cafe-setup-nudge span {
-    display: flex;
-    gap: 0.65rem;
-    align-items: baseline;
-  }
-  .cafe-setup-nudge strong {
-    color: var(--text-muted);
-    font-size: 0.65rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .cafe-setup-nudge a {
-    min-height: 2.75rem;
-    display: inline-flex;
-    align-items: center;
-    color: var(--text-emphasis);
-    font-weight: 600;
-  }
   .cafe-feed {
     min-width: 0;
     margin-bottom: 2rem;
   }
   .cafe-feed-heading {
     display: flex;
+    flex-wrap: wrap;
     align-items: end;
     justify-content: space-between;
     gap: 1rem;
@@ -573,6 +508,7 @@
     padding-top: 0.2rem;
   }
   .cafe-feed-heading h2 {
+    white-space: nowrap;
     margin: 0;
     color: var(--text-primary);
     font-family: var(--font-display);
@@ -604,10 +540,9 @@
   }
   .cafe-rail-section {
     padding: 1rem 0 1.2rem;
-    border-top: 1px solid var(--card-border);
   }
-  .cafe-rail-lead {
-    border-top: 2px solid var(--text-secondary);
+  .cafe-rail-section + .cafe-rail-section {
+    border-top: 1px solid var(--card-border);
   }
   .cafe-rail-section h2 {
     margin: 0 0 0.5rem;
@@ -618,16 +553,21 @@
     line-height: 1.25;
     letter-spacing: -0.01em;
   }
-  .cafe-rail-section p:not(.cafe-label) {
-    margin: 0 0 0.75rem;
-    color: var(--text-muted);
-    font-size: 0.76rem;
-    line-height: 1.55;
+  .cafe-rail-note {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.65;
+  }
+  .cafe-support-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+    margin-top: 0.25rem;
   }
   .cafe-shortcuts {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    border-top: 1px dotted var(--card-border);
   }
   .cafe-shortcuts a {
     display: flex;
@@ -723,10 +663,6 @@
     }
     .cafe-text-link {
       justify-content: center;
-    }
-    .cafe-setup-nudge {
-      align-items: flex-start;
-      flex-direction: column;
     }
     .cafe-feed-heading {
       align-items: stretch;

@@ -79,7 +79,7 @@ describe("Recipes catalog page", () => {
       name: "Explore Recipes",
     });
     expect(heading).toBeTruthy();
-    expect(screen.getByText("Community catalog")).toBeTruthy();
+    expect(screen.queryByText("Community catalog")).toBeNull();
     expect(
       screen.getByText(
         "Browse, compare, and fork brewing recipes shared by the Arabica community.",
@@ -102,7 +102,7 @@ describe("Recipes catalog page", () => {
     await user.click(summary!);
     expect(disclosure?.open).toBe(true);
     expect(
-      screen.getByText(/recipe format may change significantly/),
+      screen.getByText(/Brews keep their own copy of recipe values/),
     ).toBeTruthy();
   });
 

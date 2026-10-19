@@ -111,7 +111,7 @@
       <span class="badge-alpha">ALPHA</span>
     </a>
 
-    <div class="desktop-nav" aria-label="Ledger destinations">
+    <div class="desktop-nav">
       {#each primaryItems as item (item.href)}
         <a
           href={item.href}
@@ -126,7 +126,7 @@
     <div class="site-actions">
       {#if !s.isAuthenticated}
         <button type="button" onclick={openLoginModal} class="login-action"
-          >Log In</button
+          >Log in</button
         >
       {:else}
         <div class="create-control" data-menu-root>
@@ -144,17 +144,13 @@
           </button>
           {#if createOpen}
             <div class="ledger-menu ledger-menu--create" role="menu">
-              <div class="ledger-menu__heading"><span>01</span>Log</div>
+              <div class="ledger-menu__heading">Log</div>
               <a href="/brews/new" class="ledger-menu__primary" role="menuitem">
                 <Icon name="coffee" />
-                <span
-                  ><strong>New brew</strong><small
-                    >Add a session to your journal</small
-                  ></span
-                >
+                <span>New brew</span>
               </a>
               <div class="ledger-menu__heading ledger-menu__heading--secondary">
-                <span>02</span>Add to your ledger
+                Add
               </div>
               <a href="/beans/new" class="ledger-menu__item" role="menuitem"
                 ><Icon name="bean" />Bean</a
@@ -207,7 +203,6 @@
             <div class="ledger-menu ledger-menu--account" role="menu">
               {#if s.handle}
                 <div class="account-slip">
-                  <p>Your ledger</p>
                   <strong>{s.displayName || displayHandle(s.handle)}</strong>
                   <small>@{displayHandle(s.handle)}</small>
                 </div>
@@ -470,9 +465,6 @@
     letter-spacing: 0.14em;
     text-transform: uppercase;
   }
-  .ledger-menu__heading span {
-    font-variant-numeric: tabular-nums;
-  }
   .ledger-menu__heading--secondary {
     margin-top: 0.35rem;
     border-top: 1px solid var(--surface-border);
@@ -499,19 +491,6 @@
     height: 1rem;
     color: currentColor;
   }
-  .ledger-menu__primary strong,
-  .ledger-menu__primary small {
-    display: block;
-  }
-  .ledger-menu__primary strong {
-    font-family: var(--font-display);
-    font-size: 1rem;
-  }
-  .ledger-menu__primary small {
-    margin-top: 0.1rem;
-    color: var(--text-muted);
-    font-size: 0.67rem;
-  }
   .ledger-menu__item {
     border-top: 1px solid var(--surface-border);
     font-size: 0.8rem;
@@ -530,18 +509,10 @@
     padding: 0.7rem 0.65rem 0.8rem;
     border-bottom: 1px solid var(--card-border);
   }
-  .account-slip p,
   .account-slip strong,
   .account-slip small {
     display: block;
     margin: 0;
-  }
-  .account-slip p {
-    color: var(--text-faint);
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
   }
   .account-slip strong {
     margin-top: 0.35rem;

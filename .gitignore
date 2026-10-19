@@ -41,7 +41,6 @@ result-*
 known-dids.txt
 roles.json
 .superpowers/
-.impeccable/critique/
 
 # E2E test artifacts
 tests/e2e/.server-url

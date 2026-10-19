@@ -170,16 +170,6 @@
                   + {itemLabels(station.kind).length - 3} more
                 </li>{/if}
             </ul>
-          {:else}
-            <p class="station-empty">
-              <strong>{station.kind === "brewer"
-                ? "Add your brewer"
-                : station.kind === "roaster"
-                  ? "Add a roaster"
-                  : station.kind === "bean"
-                    ? "Add your current bag"
-                    : "Add a grinder if you use one"}</strong>
-            </p>
           {/if}
           <button
             type="button"

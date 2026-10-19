@@ -26,8 +26,8 @@ sister app via per-app configuration, registries, and interfaces.
   decisions. Plans are not authoritative descriptions of current behavior.
 - [`docs/road-to-v1.md`](docs/road-to-v1.md) — unresolved work targeted before
   the first stable release.
-- [`PRODUCT.md`](PRODUCT.md) — audience, emotional goals, and product principles.
-- [`DESIGN.md`](DESIGN.md) — visual tokens and reusable interface patterns.
+- [`PRODUCT.md`](PRODUCT.md) — audience, product priorities, and writing guidance.
+- [`DESIGN.md`](DESIGN.md) — visual, accessibility, and implementation guidance.
 - [`.agents/skills/arabica-record-evolution/SKILL.md`](.agents/skills/arabica-record-evolution/SKILL.md)
   — compatibility workflow for lexicon and persisted-record changes.
 - [`.agents/skills/arabica-entity-change/SKILL.md`](.agents/skills/arabica-entity-change/SKILL.md)

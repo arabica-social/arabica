@@ -41,8 +41,7 @@
 
   $effect(() => {
     tempUnit = settings?.user_preferences.temperature_unit ?? "recorded";
-    smartAutofillEnabled =
-      settings?.user_preferences.smart_autofill !== "off";
+    smartAutofillEnabled = settings?.user_preferences.smart_autofill !== "off";
     beanAvgRating =
       settings?.profile_stats_visibility.bean_avg_rating ?? "public";
     roasterAvgRating =
@@ -191,11 +190,7 @@
 </svelte:head>
 
 <div class="settings-ledger">
-  <LedgerHeader
-    title="Settings"
-    eyebrow="Account ledger"
-    description="Choose how your journal looks, how measurements are displayed, and what your public profile shares."
-  />
+  <LedgerHeader title="Settings" />
 
   {#if data.error}
     <div class="settings-state">
@@ -207,12 +202,11 @@
   {:else if settings}
     <div class="settings-workspace">
       <nav class="settings-index" aria-label="Settings sections">
-        <p class="settings-index__label">Index</p>
-        <a href="#appearance"><span>01</span>Appearance</a>
-        <a href="#brewing"><span>02</span>Brewing</a>
-        <a href="#visibility"><span>03</span>Visibility</a>
-        <a href="#bluesky"><span>04</span>Bluesky profile</a>
-        <a href="#developer"><span>05</span>Developer</a>
+        <a href="#appearance">Appearance</a>
+        <a href="#brewing">Brewing</a>
+        <a href="#visibility">Visibility</a>
+        <a href="#bluesky">Bluesky profile</a>
+        <a href="#developer">Developer</a>
       </nav>
 
       <div class="settings-sheet">
@@ -222,15 +216,13 @@
           aria-labelledby="appearance-title"
         >
           <header class="settings-section__header">
-            <span class="settings-section__number">01</span>
             <div>
-              <p class="settings-section__eyebrow">This device</p>
               <h2 id="appearance-title">Appearance</h2>
             </div>
           </header>
           <p class="settings-section__intro">
-            System follows your operating system. Light and dark stay local to
-            this device.
+            Saved only in this browser on this device. System follows your
+            operating system's theme.
           </p>
           <div class="theme-choices" role="group" aria-label="Theme">
             <button
@@ -257,7 +249,7 @@
                 class="theme-preview theme-preview--light"
                 aria-hidden="true"><i></i></span
               >
-              <span><strong>Light</strong><small>Cream paper</small></span>
+              <span><strong>Light</strong></span>
             </button>
             <button
               type="button"
@@ -268,7 +260,7 @@
               <span class="theme-preview theme-preview--dark" aria-hidden="true"
                 ><i></i></span
               >
-              <span><strong>Dark</strong><small>Espresso paper</small></span>
+              <span><strong>Dark</strong></span>
             </button>
           </div>
         </section>
@@ -279,12 +271,14 @@
           aria-labelledby="brewing-title"
         >
           <header class="settings-section__header">
-            <span class="settings-section__number">02</span>
             <div>
-              <p class="settings-section__eyebrow">Travels with your DID</p>
               <h2 id="brewing-title">Brewing preferences</h2>
             </div>
           </header>
+          <p class="settings-section__intro">
+            Saved by Arabica for your account and used across devices when you
+            sign in.
+          </p>
           <form
             class="settings-form"
             onsubmit={(e) => {
@@ -308,9 +302,7 @@
             </div>
             <div class="settings-row">
               <div>
-                <label for="smart-autofill"
-                  >Smart autofill brew details</label
-                >
+                <label for="smart-autofill">Smart autofill brew details</label>
                 <p>
                   Fill empty brew details from your recent brews of the same
                   bean.
@@ -337,9 +329,7 @@
           aria-labelledby="visibility-title"
         >
           <header class="settings-section__header">
-            <span class="settings-section__number">03</span>
             <div>
-              <p class="settings-section__eyebrow">Public profile</p>
               <h2 id="visibility-title">Profile visibility</h2>
             </div>
           </header>
@@ -407,16 +397,13 @@
           aria-labelledby="bluesky-title"
         >
           <header class="settings-section__header">
-            <span class="settings-section__number">04</span>
             <div>
-              <p class="settings-section__eyebrow">Shared identity</p>
               <h2 id="bluesky-title">Bluesky profile</h2>
             </div>
           </header>
           <p class="settings-section__intro">
-            Changes write directly to your PDS and apply to every app that reads <code
-              >app.bsky.actor.profile</code
-            >, not only Arabica.
+            Changes here update your Bluesky profile and appear in other apps
+            that use it, not only Arabica.
           </p>
           {#if bsky?.needs_auth_again}
             <p class="settings-notice">
@@ -496,12 +483,13 @@
           aria-labelledby="developer-title"
         >
           <header class="settings-section__header">
-            <span class="settings-section__number">05</span>
             <div>
-              <p class="settings-section__eyebrow">Advanced</p>
               <h2 id="developer-title">Developer</h2>
             </div>
           </header>
+          <p class="settings-section__intro">
+            Saved only in this browser on this device.
+          </p>
           <label class="settings-check">
             <input
               type="checkbox"
@@ -543,9 +531,6 @@
     border-bottom: 1px solid var(--card-border);
     scrollbar-width: thin;
   }
-  .settings-index__label {
-    display: none;
-  }
   .settings-index a {
     display: inline-flex;
     align-items: center;
@@ -559,11 +544,6 @@
     font-weight: 600;
     text-decoration: none;
     white-space: nowrap;
-  }
-  .settings-index a span {
-    color: var(--text-faint);
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
   }
   .settings-index a:hover,
   .settings-index a:focus-visible {
@@ -597,22 +577,6 @@
     align-items: flex-start;
     gap: 0.85rem;
   }
-  .settings-section__number {
-    flex: 0 0 auto;
-    color: var(--text-faint);
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    padding-top: 0.35rem;
-  }
-  .settings-section__eyebrow {
-    margin: 0 0 0.15rem;
-    color: var(--text-faint);
-    font-size: 0.64rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
   .settings-section h2 {
     margin: 0;
     color: var(--text-primary);
@@ -623,7 +587,7 @@
   }
   .settings-section__intro {
     max-width: 64ch;
-    margin: 0.85rem 0 1.25rem 2.25rem;
+    margin: 0.85rem 0 1.25rem;
     color: var(--text-muted);
     font-size: 0.88rem;
     line-height: 1.6;
@@ -632,7 +596,6 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.75rem;
-    margin-left: 2.25rem;
   }
   .theme-choice {
     display: grid;
@@ -707,7 +670,7 @@
     background: #2b1b18;
   }
   .settings-form {
-    margin: 1.25rem 0 0 2.25rem;
+    margin: 1.25rem 0 0;
   }
   .settings-row {
     display: grid;
@@ -767,7 +730,7 @@
   }
   .settings-notice,
   .settings-error {
-    margin: 1rem 0 0 2.25rem;
+    margin: 1rem 0 0;
     padding: 0.85rem 1rem;
     border: 1px solid var(--card-border);
     border-radius: 0.4rem;
@@ -788,7 +751,7 @@
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
-    margin: 1rem 0 0 2.25rem;
+    margin: 1rem 0 0;
     cursor: pointer;
   }
   .settings-check input {
@@ -852,16 +815,6 @@
       padding: 0.75rem 0;
       border-top: 2px solid var(--text-primary);
       border-bottom: 1px solid var(--card-border);
-    }
-    .settings-index__label {
-      display: block;
-      margin: 0 0 0.5rem;
-      padding: 0 0.5rem;
-      color: var(--text-faint);
-      font-size: 0.64rem;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
     }
     .settings-index a {
       min-height: 2.6rem;

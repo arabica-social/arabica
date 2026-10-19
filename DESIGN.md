@@ -1,256 +1,124 @@
----
-name: Arabica
-description: A cozy, federated coffee journal for tracking brews, beans, equipment, and community notes.
-colors:
-  espresso-ink: "#4a2c2a"
-  espresso-deep: "#3d2319"
-  paper-cream: "#FAF7F5"
-  paper-blush: "#f2e8e5"
-  warm-border: "#eaddd7"
-  roaster-amber: "#fbbf24"
-  amber-deep: "#92400e"
-  pinboard-cork: "#C4A882"
-  sticky-paper: "#FFFDF5"
-  brewer-green: "#5b6e4e"
-  bean-copper: "#b45309"
-  grinder-stone: "#78716c"
-  danger-red: "#b91c1c"
-  success-green: "#15803d"
-typography:
-  display:
-    fontFamily: "Fraunces, Iosevka Patrick, ui-serif, Georgia, serif"
-    fontSize: "2rem to 3.4rem"
-    fontWeight: 600
-    lineHeight: 0.98
-    letterSpacing: "-0.02em"
-  headline:
-    fontFamily: "Fraunces, Iosevka Patrick, ui-serif, Georgia, serif"
-    fontSize: "1.5rem"
-    fontWeight: 600
-    lineHeight: 1.33
-    letterSpacing: "-0.015em"
-  title:
-    fontFamily: "Fraunces, Iosevka Patrick, ui-serif, Georgia, serif"
-    fontSize: "1.25rem"
-    fontWeight: 600
-    lineHeight: 1.4
-  body:
-    fontFamily: "Iosevka Patrick, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-    fontSize: "1rem"
-    fontWeight: 400
-    lineHeight: 1.5
-  prose:
-    fontFamily: "Iosevka Patrick, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-    fontSize: "1.0625rem"
-    fontWeight: 400
-    lineHeight: 1.75
-  label:
-    fontFamily: "Iosevka Patrick, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-    fontSize: "0.75rem"
-    fontWeight: 600
-    lineHeight: 1.33
-    letterSpacing: "0.1em"
-rounded:
-  xs: "2px"
-  sm: "4px"
-  md: "8px"
-  lg: "12px"
-  xl: "16px"
-  hero: "21.6px"
-  full: "9999px"
-spacing:
-  xs: "4px"
-  sm: "8px"
-  md: "12px"
-  lg: "16px"
-  xl: "24px"
-  xxl: "32px"
-components:
-  button-primary:
-    backgroundColor: "{colors.espresso-ink}"
-    textColor: "{colors.paper-cream}"
-    rounded: "{rounded.md}"
-    padding: "8px 16px"
-  button-primary-hover:
-    backgroundColor: "{colors.espresso-deep}"
-    textColor: "{colors.paper-cream}"
-    rounded: "{rounded.md}"
-    padding: "8px 16px"
-  button-secondary:
-    backgroundColor: "{colors.sticky-paper}"
-    textColor: "{colors.bean-copper}"
-    rounded: "{rounded.md}"
-    padding: "8px 16px"
-  card:
-    backgroundColor: "{colors.sticky-paper}"
-    textColor: "{colors.espresso-deep}"
-    rounded: "{rounded.lg}"
-    padding: "24px"
-  input:
-    backgroundColor: "{colors.sticky-paper}"
-    textColor: "{colors.espresso-deep}"
-    rounded: "{rounded.md}"
-    padding: "8px 12px"
-  filter-pill:
-    backgroundColor: "{colors.paper-cream}"
-    textColor: "{colors.bean-copper}"
-    rounded: "{rounded.full}"
-    padding: "4px 12px"
----
+# Arabica interface guidance
 
-# Design System: Arabica
+Preserve Arabica's warm palette and established typography. Prioritize readable
+coffee notes, clear controls, and space for the content. This document is a
+design reference, not a template that every page must reproduce.
 
-## 1. Overview
+## Visual direction
 
-**Creative North Star: "Neighborhood Brew Journal"**
+Take cues from specialty coffee packaging and analog brew journals: confident
+type, earthy colors, and tactile surfaces. Familiar controls keep logging easy;
+craft details give the journal and community feed their character. Use those
+details where they suit the content, without decorating every control.
 
-Arabica should feel like a well-used coffee notebook left on the counter at a neighborhood cafe. It is social, but not performative. It is technical, but never cold. The interface supports the ritual of brewing: slow enough to feel intentional, structured enough to keep data useful, warm enough to invite return visits.
+Avoid generic SaaS dashboards and corporate productivity styling, cold developer
+aesthetics, and personality-free social feed clones. Data-heavy views should
+still feel like part of a coffee journal. Warmth and community matter alongside
+clarity; reducing copy is not a reason to strip away the visual identity.
 
-The visual system blends community cafe atmosphere with analog lab notes. Product surfaces use familiar app patterns so people can log a brew, edit a bean, or scan a feed without learning invented controls. Craft details carry the personality: kraft texture, corkboard feed surfaces, sticky-note cards, entity-tinted washes, dashed rubber-stamp progress, and coffee-toned neutrals.
+## Colors and typography
 
-Arabica explicitly rejects generic SaaS dashboards, corporate productivity tools, overly techy developer aesthetics, and social media feed clones. Data should feel warm, not cold. The feed should feel like overhearing conversations at a cafe, not scrolling a timeline.
+- Use the existing theme tokens for surfaces, text, borders, and interaction
+  states. Brown and cream are the base palette in light mode; dark mode uses
+  the corresponding warm dark surfaces. Do not hard-code light-only colors.
+- Iosevka Patrick is the reading and UI font, including forms, tables, feed
+  content, and explanatory pages. Fraunces is for short display moments such
+  as page and record titles, not data or compact labels. Do not add another
+  typeface.
+- Use entity colors to identify entity types, and semantic colors for warnings
+  and status. Decorative color should not compete with those meanings.
+- Keep body copy legible and paragraphs to a comfortable reading width, roughly
+  65–75 characters. Small uppercase labels are optional and should add context
+  that the heading does not already provide.
 
-**Key Characteristics:**
-- Cozy, social, inviting, and grounded in coffee ritual.
-- Familiar product UI with craft details, not novelty controls.
-- Warm brown and cream neutrals with restrained amber and entity accents.
-- Tactile texture and modest lift, not glass, neon, or glossy polish.
-- Light and dark themes both supported, with the same coffee-shop warmth.
+The token definitions in `internal/web/assets/css/tokens.css` are the source
+of truth for actual values.
 
-## 2. Colors
+## Layout
 
-The palette is espresso, paper, cork, and roast labels: warm neutrals first, then amber and entity colors used with intent.
+Use headings and panels to clarify content. Keep the visual details people
+like without surrounding each one with explanatory copy. Empty space does not
+need another paragraph.
 
-### Primary
-- **Espresso Ink**: The core brand brown used for primary actions, headers, strong text, and the deepest UI anchors. It should feel like coffee stain and ink, not black.
-- **Deep Espresso**: The darker companion for hover states, header depth, and dark text emphasis.
+- Start with a page title, necessary context, and the primary action. Preserve
+  Home's established journal header as a composition: its small label, Fraunces
+  headline, introduction, and bottom-aligned action/library links. Keep the
+  original bean beside the headline and actions, at its original bottom crop.
+  Do not move it below the text or add minimum header height to accommodate it.
+  Check copy changes against the original rendering at narrow and wide widths.
+- Home's icon navigation provides useful shortcuts; keep Feedback and About
+  easy to find. Omit empty data sections without making the remaining content
+  harder to reach.
+- Use cards for meaningful groups or independent entries. Prose usually needs
+  headings and spacing, not nested boxes or feature grids.
+- Keep borders and shadows modest. Avoid decorative gradients, glass effects,
+  and dashboard-style metric tiles without a user need. Keep the homepage bean
+  illustration faint and behind the content.
+- Do not require numbered sections, tilted elements, progress stamps, entrance
+  animations, or extra eyebrow headings. Existing examples are not mandates
+  for new work.
 
-### Secondary
-- **Roaster Amber**: The warm alert and badge color. Use it for alpha labels, warnings, and small moments of attention. It should read as roasted warmth, not generic yellow.
-- **Bean Copper**: The bean and roaster accent family. Use for entity pills, type badges, and coffee-specific highlights.
-- **Brewer Green**: The brewer accent. Use for equipment-oriented completion, station cards, and gentle success-adjacent cues when the entity is the focus.
+## Established patterns
 
-### Tertiary
-- **Pinboard Cork**: The community feed board color. It frames social content as pinned notes, not a timeline.
-- **Grinder Stone**: A muted equipment neutral for grinder identity and low-chroma type accents.
+Reuse these where they clarify the content or state. They are options, not a
+checklist for every page.
 
-### Neutral
-- **Paper Cream**: The page background and default cream surface. It is the main environmental color.
-- **Paper Blush**: The softer divider and surface layer for table headers, hover rows, and quiet panels.
-- **Warm Border**: The default card and container stroke. It keeps surfaces tactile without heavy outlines.
-- **Sticky Paper**: The feed card and journal-card base. Use where content should feel like a note or label.
+- Entity-focused cards can use `--type-{entity}` for borders, badges, or active
+  states and `--type-{entity}-tint` for a restrained wash. In mixed collections,
+  keep each entity's identity rather than applying one accent to the whole
+  page. Color must not be the only way to identify the type.
+- Kraft texture can warm a page-level container; cork and paper-note surfaces
+  give the community feed a distinct setting. Use the existing `--texture-kraft`
+  and `--texture-cork` tokens and check readability in both themes. Utility pages
+  do not need the same treatment.
+- Setup progress should distinguish required, optional, current, and completed
+  states with text and clear visual cues. Existing dashed and filled stamp
+  treatments can help. Name the missing prerequisites and change the primary
+  action when it becomes available; do not substitute a decorative step count
+  for useful guidance.
+- Empty states name a concrete next action when one is available, such as
+  "Add a bean." If the viewer cannot add records, explain that state without
+  offering an unavailable action. "Add another" can shorten a repeated action
+  once the entity is clear from context.
 
-### Named Rules
+## Controls and content
 
-**The Brown Paper Rule.** Tint every neutral toward coffee. New surfaces should start from Paper Cream, Sticky Paper, Paper Blush, or Espresso Ink, never from sterile gray.
+Reuse established buttons, inputs, dialogs, and page components in
+`web/src/lib/components/`. Their names may reflect older visual treatments;
+reuse their behavior without adding decorative framing to match the name.
 
-**The Accent Has a Job Rule.** Amber is for attention and state. Entity colors are for entity identity. Do not use saturated color as decoration without a semantic role.
+- Buttons name their action. Use one primary page action; make other actions
+  visually secondary. Repeated navigation is justified only by a real access
+  need, such as mobile navigation.
+- Preserve required/optional indicators, validation messages, and explanations
+  of privacy or cross-app effects. Keep them next to the relevant control.
+- Empty, loading, and error states must be distinct. Do not describe a failed
+  request as an empty collection.
+- Use icons consistently, with text or accessible names for controls. Do not
+  introduce emoji as replacements for the established UI icons.
+- Write direct copy as described in [PRODUCT.md](PRODUCT.md). Do not add slogans
+  or encouragement merely to fill a layout.
 
-**The Corkboard Rule.** Social feed surfaces may be more tactile than utility pages. Cork texture and sticky-note treatment belong in community context, not every settings panel.
+## Accessibility and responsive behavior
 
-## 3. Typography
+- Use semantic headings and landmarks, labeled controls, visible keyboard
+  focus, and usable contrast in both themes.
+- Keep primary navigation and action targets at least 44px tall. Do not rely
+  on hover or color alone to convey state.
+- Keep reading and focus order sensible when columns collapse. Mobile users
+  should reach the main task before optional supporting content.
+- Allow text to wrap and controls to reflow at narrow widths and browser zoom.
+- Motion should explain state changes, not decorate page loading. Respect
+  `prefers-reduced-motion` wherever motion exists.
 
-**Display Font:** Fraunces (variable, self-hosted), with ui-serif, Georgia, and Iosevka Patrick fallbacks.
-**Reading, UI, and Label Font:** Iosevka Patrick, with ui-monospace and system monospace fallbacks.
+## Implementation and checks
 
-**Character:** Arabica uses two typefaces only: a warm display serif (Fraunces) and a measured monospace voice (Iosevka Patrick). Fraunces carries short display moments — heroes, page titles, selected record titles, and occasional pull quotes. Iosevka carries everything else, including long-form reading, so the product retains a consistent logged, notebook quality.
+Component-specific styles belong with the Svelte component. Shared styles live
+in `internal/web/assets/css/components/`; numbered files preserve cascade order.
+Do not add another token source or generated design specification.
 
-### Hierarchy
-- **Display** (600, 2rem to 3.4rem, 0.98 line-height): Use Fraunces for static-page heroes and rare large product moments. Tight tracking is allowed when the heading needs packaging-label confidence.
-- **Headline** (600, 1.5rem, 2rem line-height): Use Fraunces for page titles, record titles, and primary section names.
-- **Title** (600, 1.25rem, 1.75rem line-height): Use Fraunces for modal titles, card headings, and focused content modules.
-- **Body** (400, 1rem, 1.5 line-height): Use Iosevka Patrick for product UI, forms, lists, table content, and any data-dense surface.
-- **Prose** (400–500, 1.0625rem, 1.75 line-height): Use Iosevka Patrick for about, AT Protocol, terms, onboarding explanation, hero decks, and other long reading surfaces. Keep prose line length to 65 to 75 characters.
-- **Label** (600, 0.75rem, 0.1em tracking, uppercase): Use Iosevka Patrick for section labels, filter metadata, field groups, and stamp-like status text.
-
-### Named Rules
-
-**The Two-Font Rule.** Iosevka Patrick is the default voice for body copy, UI, data, labels, forms, tables, brew views, feed cards, and explanatory pages. Fraunces is an identity accent for major page titles, heroes, selected record titles, and short introductory statements. Do not introduce a third typeface. Text longer than roughly two lines should usually stay in Iosevka, and Fraunces never carries table data, form fields, feed cards, or compact UI labels.
-
-**The Coffee Ledger Rule.** Build personality from ledger rules, indexed labels, metadata, restrained stamps, and occasional line engravings. Use entity colors as isolated solid inks, not blended decoration. Kraft and other textures are enhancements, not the identity itself.
-
-**The Gradient Restraint Rule.** Do not use soft decorative gradients in headers, heroes, banners, or primary actions. Prefer solid espresso and paper fields, a single tinted texture, rules, and deliberate adjacent color blocks. Hard-stop diagrams, single-color tint layers, and implementation gradients such as loading shimmers may remain when they communicate structure or state.
-
-**The Label Restraint Rule.** Uppercase tracking is for labels and tags, not whole paragraphs or button-heavy regions.
-
-## 4. Elevation
-
-Arabica uses tactile but restrained elevation. Borders and tonal layers establish the default structure. Warm shadows appear for cards, dropdowns, modals, hover lift, and feed notes. Texture can also create depth, especially kraft paper and corkboard surfaces.
-
-### Shadow Vocabulary
-- **Low Surface** (`box-shadow: 0 1px 3px var(--card-shadow)`): Default cards and small containers.
-- **Raised Surface** (`box-shadow: 0 4px 12px var(--card-shadow-hover)`): Hovered cards, dropdowns, and focused panels.
-- **Floating Surface** (`box-shadow: 0 10px 25px var(--card-shadow-hover)`): Modals, combo dropdowns, and high-priority overlays.
-- **Sticky Note** (`box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)`): Feed cards on corkboard surfaces.
-
-### Named Rules
-
-**The Border First Rule.** Use a warm 1px border before reaching for a large shadow. The interface should feel printed and tactile, not floating in space.
-
-**The Lift on Intent Rule.** A 2px hover lift is enough. Elevation should confirm interaction, not perform choreography.
-
-## 5. Components
-
-Components should be familiar product UI with craft details. Controls need predictable states, generous touch targets, and consistent shapes. Personality belongs in texture, entity tinting, copy, and small state cues.
-
-### Buttons
-- **Shape:** Gently rounded rectangles (8px radius).
-- **Primary:** Espresso Ink background with Paper Cream text, medium weight, 8px vertical and 16px horizontal padding.
-- **Hover / Focus:** Hover deepens to Deep Espresso. Focus uses the global 2px input-focus outline. Motion is 150ms and state-based.
-- **Secondary:** Sticky Paper or card surface with Warm Border and Bean Copper text. Use for alternative actions, sponsor links, and lower-priority navigation.
-- **Danger / Link:** Destructive actions use the red semantic token as text first. Avoid heavy filled danger buttons unless the action is both destructive and primary in the moment.
-
-### Chips
-- **Style:** Filter pills are rounded capsules with 12px horizontal padding, 4px vertical padding, 0.75rem type, and a 1px warm border.
-- **State:** Inactive pills are quiet and bordered. Active pills fill with Espresso Ink or the relevant entity color. Entity hover should shift border and text toward that entity color.
-
-### Cards / Containers
-- **Corner Style:** Standard cards use 12px radius. Static-page heroes use larger 21.6px radius. Feed notes use sharper 4px or 8px radii to feel like paper scraps.
-- **Background:** Product cards use card surfaces and Paper Cream layers. Entity cards may use `--type-{entity}-tint` as a translucent wash.
-- **Shadow Strategy:** Low Surface at rest, Raised Surface on hover, Floating Surface for overlays.
-- **Border:** Default 1px Warm Border. Do not use colored side stripes.
-- **Internal Padding:** 16px for compact cards, 24px for major containers, 32px for spacious static-page heroes.
-
-### Inputs / Fields
-- **Style:** 8px radius, card or input background, 1px warm border, 12px horizontal padding.
-- **Focus:** Border shifts to the focus token and gets a 2px warm ring. Background warms slightly.
-- **Error / Disabled:** Error uses semantic red for border and text. Disabled fields should mute text and preserve shape rather than disappearing.
-
-### Navigation
-- **Style:** Navigation inherits the warm text hierarchy. Links are muted by default and strengthen on hover.
-- **Active State:** Active tabs use Espresso Ink border or fill depending on context. Profile and manage tabs should remain visually connected to their content region.
-- **Mobile Treatment:** Preserve 44px touch targets. Dense pills may opt out only when they are not primary navigation.
-
-### Combo Select
-- **Style:** Dropdowns use card background, 8px radius, input border, and Floating Surface shadow. Section labels use uppercase label treatment on a quiet surface background.
-- **State:** Hovered or highlighted rows use the warm surface layer. Creation rows are medium weight and separated by a 1px warm divider.
-
-### Feed Cards
-- **Style:** Feed cards are sticky notes on a Pinboard Cork board. They use warm paper backgrounds, entity-tinted washes, slight rotation on desktop, and modest hover lift.
-- **State:** Hover removes the casual tilt and lifts the note 2px. Keep feed cards legible first, charming second.
-
-### Modals and Menus
-- **Style:** Modals use the card background, 12px radius, 24px padding, and Floating Surface shadow on a solid backdrop.
-- **State:** Dialog animation is brief: fade and scale over 100 to 150ms. Dropdown menus scale from 0.95 to 1 and fade in over 100ms.
-
-## 6. Do's and Don'ts
-
-### Do:
-- **Do** use Paper Cream as the environmental base and Espresso Ink as the main anchor.
-- **Do** keep product flows familiar: standard buttons, inputs, dropdowns, tabs, and modals with predictable states.
-- **Do** use entity colors for entity identity: bean, brew, brewer, grinder, roaster, recipe, tea, vendor, cafe, and drink.
-- **Do** add texture where it supports the metaphor: kraft containers, cork feed boards, and sticky notes.
-- **Do** keep motion short and state-based: 100 to 250ms for most UI, 300 to 380ms only for page or feed entrances.
-- **Do** write empty states that name the next action, such as "add the bag you're on now".
-- **Do** preserve dark mode warmth. Dark surfaces should be coffee-black and brown, not neutral charcoal.
-
-### Don't:
-- **Don't** make Arabica look like generic SaaS dashboards or corporate productivity tools.
-- **Don't** use an overly techy/developer aesthetic. Data should feel warm, not cold.
-- **Don't** make the feed feel like Instagram, Twitter, or any social media feed clone with no personality.
-- **Don't** use colored `border-left` or `border-right` accents greater than 1px on cards, callouts, alerts, or list items.
-- **Don't** use gradient text, decorative gradients, glassmorphism, neon-on-black, or hero-metric SaaS templates.
-- **Don't** wrap everything in identical card grids. Use cards when they clarify grouping, not as the default answer.
-- **Don't** add new pure black or pure white neutrals. Existing legacy white card tokens should not be the model for new surfaces.
-- **Don't** use emoji as primary UI glyphs. Use inline SVG with `stroke="currentColor"`.
-- **Don't** animate layout properties or use bounce/elastic easings. Motion should feel like a hand placing a note, not an app trying to impress.
+After layout changes, check signed-in and signed-out states where applicable,
+empty and populated content, narrow and wide screens, and both themes. Run
+Svelte checks and relevant tests; inspect rendered pages for hierarchy and
+layout issues that unit tests cannot catch. Update visual baselines only after
+reviewing the new rendering.

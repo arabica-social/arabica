@@ -1,6 +1,6 @@
 # FDR-003: Feedback
 
-**Status:** Active **Last reviewed:** 2026-08-05
+**Status:** Active **Last reviewed:** 2026-10-28
 
 ## Overview
 
@@ -10,9 +10,8 @@ user's Personal Data Server.
 
 ## Behavior
 
-- The home page's "Around the café" rail includes a reusable feedback prompt,
-  and the footer links to Feedback. Both open the Arabica feedback board on
-  userinput.app in a new tab
+- The homepage right rail and the shared footer link to Feedback. Both
+  open the Arabica feedback board on userinput.app in a new tab
   (`https://userinput.app/s/did:plc:chqc2ockzmyvlrasfb66x64a/3mrgh3b4f722p`).
 - There is no dedicated in-app feedback page and no feedback form. The board
   URL is app configuration (`AppDefinition.feedbackUrl`), so a sister app can
@@ -33,7 +32,20 @@ context.
 **Tradeoff:** Contributing requires an account on userinput.app, and operators
 must watch the board rather than receiving notes in email.
 
+### 2. Keep a concise invitation on Home
+
+**Decision:** Group Feedback and About links in the homepage right rail with
+one sentence inviting reports of confusing, broken, or missing behavior. Keep
+the footer link plain.
+
+**Why:** Alpha users benefit from knowing what feedback is welcome. A short
+invitation serves that purpose without the old panel's extra headline and
+labels or separate promotional sections.
+
+**Tradeoff:** The invitation takes more space than a bare link, but remains
+secondary to brew logging and community content.
+
 ## Related
 
 - **ADRs:** [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md)
-- **FDRs:** None
+- **FDRs:** [FDR-005: Home](FDR-005-home.md)

@@ -1,4 +1,10 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/svelte";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsPage from "../../src/routes/settings/+page.svelte";
@@ -32,11 +38,16 @@ describe("Settings page", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the account ledger and section index", () => {
+  it("renders settings with section navigation and the shared-profile warning", () => {
     render(SettingsPage, { data: { settings, error: "" } });
 
     expect(screen.getByRole("heading", { name: "Settings" })).toBeTruthy();
-    expect(screen.getByText("Account ledger")).toBeTruthy();
+    expect(screen.queryByText("Account ledger")).toBeNull();
+    expect(
+      screen.getByText(
+        /Changes here update your Bluesky profile and appear in other apps/,
+      ),
+    ).toBeTruthy();
     expect(
       screen.getByRole("navigation", { name: "Settings sections" }),
     ).toBeTruthy();
@@ -52,17 +63,38 @@ describe("Settings page", () => {
     ).toBeTruthy();
   });
 
+  it("explains browser-local and account-wide preference scopes beside the controls", () => {
+    render(SettingsPage, { data: { settings, error: "" } });
+
+    expect(
+      within(screen.getByRole("region", { name: "Appearance" })).getByText(
+        /Saved only in this browser on this device\. System follows your operating system's theme\./,
+      ),
+    ).toBeTruthy();
+    expect(
+      within(
+        screen.getByRole("region", { name: "Brewing preferences" }),
+      ).getByText(
+        "Saved by Arabica for your account and used across devices when you sign in.",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByRole("region", { name: "Developer" })).getByText(
+        "Saved only in this browser on this device.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("Travels with your DID")).toBeNull();
+  });
+
   it("persists a local theme choice", async () => {
     const user = userEvent.setup();
     render(SettingsPage, { data: { settings, error: "" } });
 
-    await user.click(
-      screen.getByRole("button", { name: /DarkEspresso paper/ }),
-    );
+    await user.click(screen.getByRole("button", { name: "Dark", exact: true }));
 
     expect(localStorage.getItem("arabica-theme")).toBe("dark");
     expect(
-      screen.getByRole("button", { name: /DarkEspresso paper/ }),
+      screen.getByRole("button", { name: "Dark", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
   });
 

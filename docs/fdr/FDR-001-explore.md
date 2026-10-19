@@ -19,7 +19,8 @@ user find beans, roasters, gear, and recipes worth examining or reusing.
   reusable discovery object.
 - Results can be searched, filtered by record type and type-specific facets,
   and sorted by recent, popular, or highest-rated.
-- Results load in cursor-based pages.
+- Results load in cursor-based pages. Empty results suggest changing filters;
+  the interface does not expose internal cache terminology.
 - The viewer's own records remain in results and retain ownership affordances.
 - Cards show author identity and applicable rating, like, comment, and reuse
   context. The viewer's like state is reflected in the card actions.

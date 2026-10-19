@@ -227,7 +227,6 @@
   <div class="page-container-xl">
     <LedgerHeader
       title="Explore Recipes"
-      eyebrow="Community catalog"
       description="Browse, compare, and fork brewing recipes shared by the Arabica community."
     >
       {#snippet actions()}
@@ -242,21 +241,18 @@
         <Icon name="fileText" />
         <span
           ><strong>Alpha format</strong><small
-            >Recipes are still evolving. Existing brews remain intact.</small
+            >Recipes may need to be recreated. Existing brews are safe.</small
           ></span
         >
       </summary>
       <div class="recipe-alpha-notice__body text-sm">
         <p>
-          The recipe format may change significantly as we figure out what works
-          best. If that happens, your brews won’t break because brew fields are
-          copied from the recipe at creation time, so they stand on their own.
-          Only the recipe record itself would need to be recreated.
+          Brews keep their own copy of recipe values, so recipe format changes
+          won’t affect brews you’ve already logged.
         </p>
         <p>
-          Feedback is very welcome! Arabica has had a pourover bias so far, so
-          input from espresso folks is especially appreciated. Reach out on
-          Bluesky or open an issue on Tangled or GitHub.
+          Recipes have focused on pourover so far. Espresso feedback is welcome
+          on Bluesky, Tangled, or GitHub.
         </p>
       </div>
     </details>
@@ -267,7 +263,6 @@
         aria-labelledby="recipe-catalog-index-title"
       >
         <div class="recipe-catalog-index__heading">
-          <p>Catalog index</p>
           <h2 id="recipe-catalog-index-title">Find a recipe</h2>
         </div>
         <div class="recipe-filter-group">
@@ -854,14 +849,6 @@
   .recipe-catalog-index__heading {
     padding-bottom: 0.85rem;
   }
-  .recipe-catalog-index__heading p {
-    margin: 0;
-    color: var(--text-faint);
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
   .recipe-catalog-index__heading h2 {
     margin: 0.25rem 0 0;
     color: var(--text-primary);
@@ -974,8 +961,7 @@
   .recipe-ledger-card--selected {
     outline: 2px solid var(--type-recipe);
     outline-offset: 2px;
-    box-shadow:
-      var(--shadow-md);
+    box-shadow: var(--shadow-md);
   }
   .recipe-ledger-card--loading {
     min-height: 12rem;

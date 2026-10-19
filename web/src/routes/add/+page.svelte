@@ -1,30 +1,28 @@
 <script lang="ts">
-	import GetStartedCard from "$lib/components/GetStartedCard.svelte";
-	import { openLoginModal } from "$lib/stores/session";
-	import type { PageData } from "./$types";
+  import GetStartedCard from "$lib/components/GetStartedCard.svelte";
+  import { openLoginModal } from "$lib/stores/session";
+  import type { PageData } from "./$types";
 
-	let { data }: { data: PageData } = $props();
+  let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>
-	<title>Add Records - Arabica</title>
+  <title>Add - Arabica</title>
 </svelte:head>
 
 <div class="onboarding-wrap">
-	<header class="onboarding-hero">
-		<span class="onboarding-eyebrow">Your coffee</span>
-		<h1 class="onboarding-title">Add records.</h1>
-		<p class="onboarding-lede">
-			Add a <strong>brewer</strong>, <strong>roaster</strong>, <strong>bean</strong>, or <strong>grinder</strong> to use in your brew records.
-		</p>
-	</header>
+  <header class="onboarding-hero">
+    <h1 class="onboarding-title">What would you like to add?</h1>
+  </header>
 
-	{#if data.error}
-		<div class="card card-inner text-center py-8">
-			<p class="text-secondary mb-4">{data.error}</p>
-			<button type="button" onclick={openLoginModal} class="btn-primary">Log in</button>
-		</div>
-	{:else}
-		<GetStartedCard onboarding={data.onboarding} mode="library" />
-	{/if}
+  {#if data.error}
+    <div class="card card-inner text-center py-8">
+      <p class="text-secondary mb-4">{data.error}</p>
+      <button type="button" onclick={openLoginModal} class="btn-primary"
+        >Log in</button
+      >
+    </div>
+  {:else}
+    <GetStartedCard onboarding={data.onboarding} mode="library" />
+  {/if}
 </div>
