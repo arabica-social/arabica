@@ -1,6 +1,6 @@
 module tangled.org/arabica.social/arabica
 
-go 1.26.1
+go 1.26.10
 
 require (
 	github.com/XSAM/otelsql v0.41.0
