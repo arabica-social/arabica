@@ -17,7 +17,7 @@
         pkgs: system: {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              go
+              go_1_27
               just
               nodejs
               pnpm

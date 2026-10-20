@@ -1,14 +1,16 @@
 {
   lib,
-  buildGoModule,
+  buildGo127Module,
   nodejs,
   pnpm,
   fetchPnpmDeps,
+  sqlite,
   zstd,
   appName ? "arabica",
 }:
 
-buildGoModule rec {
+# The nixpkgs default builder still uses Go 1.26.9, below go.mod's minimum.
+buildGo127Module rec {
   pname = appName;
   version = "0.1.0";
   src = ../.;
@@ -16,13 +18,14 @@ buildGoModule rec {
 
   pnpmDeps = fetchPnpmDeps {
     inherit pname version src;
-    fetcherVersion = 3;
-    hash = "sha256-+AeoImiQZNJ5GXOocS4DNK7MgUCsosdPT4z/s43kexA=";
+    fetcherVersion = 4;
+    hash = "sha256-5XRwnjbcacyPJ+JQWqnFo+NeSXvpjuv23GbXspBqF/w=";
   };
 
   nativeBuildInputs = [
     nodejs
     pnpm
+    sqlite
     zstd
   ];
 
@@ -31,10 +34,16 @@ buildGoModule rec {
       :
     else
       export HOME=$TMPDIR
-      export npm_config_manage_package_manager_versions=false
+      export pnpm_config_pm_on_fail=ignore
+      # Supply-chain policies were already checked by fetchPnpmDeps.
+      export pnpm_config_trust_lockfile=true
       STORE_PATH=$(mktemp -d)
       tar --zstd -xf ${pnpmDeps}/pnpm-store.tar.zst -C "$STORE_PATH"
       chmod -R +w "$STORE_PATH"
+      if [ -f "$STORE_PATH/v11/index.db.sql" ]; then
+        sqlite3 "$STORE_PATH/v11/index.db" < "$STORE_PATH/v11/index.db.sql"
+        rm "$STORE_PATH/v11/index.db.sql"
+      fi
       pnpm config set store-dir "$STORE_PATH"
       pnpm config set package-import-method clone-or-copy
       pnpm install --offline --ignore-scripts --frozen-lockfile
