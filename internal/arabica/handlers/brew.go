@@ -318,8 +318,8 @@ func validateBrewRequest(r *http.Request) (temperature float64, waterAmount, cof
 		timeSeconds, err = strconv.Atoi(timeStr)
 		if err != nil {
 			errs = append(errs, ValidationError{Field: "time_seconds", Message: "invalid time"})
-		} else if timeSeconds < 0 || timeSeconds > 3600 {
-			errs = append(errs, ValidationError{Field: "time_seconds", Message: "brew time must be between 0 and 3600 seconds"})
+		} else if timeSeconds < 0 {
+			errs = append(errs, ValidationError{Field: "time_seconds", Message: "brew time must be nonnegative"})
 		}
 	}
 
@@ -381,6 +381,11 @@ func (h *Handlers) HandleBrewCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	brewerRKey := r.FormValue("brewer_rkey")
+	// Require equipment for new brews without tightening legacy record updates.
+	if brewerRKey == "" {
+		http.Error(w, "Brewer selection is required", http.StatusBadRequest)
+		return
+	}
 	if errMsg := handlers.ValidateOptionalRKey(brewerRKey, "Brewer selection"); errMsg != "" {
 		log.Warn().Str("brewer_rkey", brewerRKey).Msg("Brew create: invalid brewer rkey")
 		http.Error(w, errMsg, http.StatusBadRequest)

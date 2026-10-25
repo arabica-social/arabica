@@ -5,7 +5,10 @@ import SettingsPage from "../../src/routes/settings/+page.svelte";
 import { pushToast } from "$lib/stores/toasts";
 
 vi.mock("$lib/stores/toasts", () => ({ pushToast: vi.fn() }));
-vi.mock("$lib/stores/session", () => ({ openLoginModal: vi.fn() }));
+vi.mock("$lib/stores/session", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("$lib/stores/session")>()),
+  openLoginModal: vi.fn(),
+}));
 
 const settings = {
   user_preferences: { temperature_unit: "recorded" },

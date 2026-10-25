@@ -12,17 +12,17 @@ returns an `HX-Redirect` to `/my-coffee` (existing HTMX behavior).
 |------------------------|--------|----------|------------------------------------------------|
 | `bean_rkey`            | string | yes      | RKey of the referenced bean.                   |
 | `grinder_rkey`         | string | no       | RKey of the referenced grinder.                |
-| `brewer_rkey`          | string | no       | RKey of the referenced brewer.                 |
+| `brewer_rkey`          | string | yes      | RKey of the referenced brewer (create only).   |
 | `recipe_rkey`          | string | no       | RKey of the referenced recipe.                  |
 | `recipe_owner_did`     | string | no       | DID of the recipe owner (for cross-user recipes). |
 | `method`               | string | no       | Brewing method (e.g. "Pour Over", "Espresso"). |
 | `temperature`          | float  | no       | Water temperature.                             |
 | `water_amount`         | int    | no       | Total water in ml.                             |
 | `coffee_amount`        | int    | no       | Coffee dose in grams.                           |
-| `time_seconds`         | int    | no       | Total brew time in seconds.                    |
+| `time_seconds`         | int    | no       | Nonnegative integer seconds; no upper time bound.                    |
 | `grind_size`           | string | no       | Grind size description.                        |
 | `tasting_notes`        | string | no       | Free-form tasting notes.                       |
-| `rating`               | int    | no       | Rating 0-10.                                   |
+| `rating`               | int    | no       | Rating 1-10; omitted, empty, or 0 means unrated. |
 | `pour_water_{n}`       | int    | no       | Water amount for pour *n* (0-indexed).         |
 | `pour_time_{n}`        | int    | no       | Time for pour *n*.                             |
 | `espresso_yield_weight`| float  | no       | Espresso yield in grams.                       |
@@ -73,9 +73,32 @@ When the referenced bean `IsIncomplete()`, the response includes a nudge
 object prompting the user to fill in missing bean fields. The HTMX path
 sets the same data via the `X-Incomplete-Nudge` response header.
 
-## `PUT /brews/{id}` (update)
+## `POST /api/brews` (create)
 
-Updates an existing brew. Same content negotiation and form fields as create.
+Accepts a JSON body using the same snake_case fields, or a form-urlencoded
+body. Returns the same JSON envelope as `POST /brews`.
+Both create endpoints require a non-empty, valid `bean_rkey` and `brewer_rkey`.
+A missing brewer returns 400 with `Brewer selection is required`; the JSON
+endpoint uses error code `validation_failed`. Method, grinder, measurements,
+and rating remain optional. JSON method-specific blocks use `espresso_params`
+and `pourover_params`; pours use an array of `{water_amount, time_seconds}`.
+
+This is a create-handler policy, not a new required lexicon field. Existing PDS
+brews without `brewerRef` remain readable and editable.
+
+## `PUT /brews/{id}` and `PUT /api/brews/{id}` (update)
+
+Updates an existing brew. `/brews/{id}` accepts the same form fields and content
+negotiation as create; `/api/brews/{id}` accepts JSON or form data and returns
+JSON. Unlike create, `brewer_rkey` is optional so legacy brewer-less brews can
+still be updated.
+
+Updates replace the editable fields rather than patching them. Omitting a rating
+(or sending an empty form rating or numeric 0) removes the persisted rating;
+responses represent an unrated brew as `rating: 0`. Legacy free-text `method`
+and descriptive or numeric-string `grind_size` remain supported. Resubmitted
+pours and both method-specific parameter blocks are retained independently of
+the selected method; switching methods does not implicitly discard them.
 
 ### Response (JSON)
 
@@ -86,6 +109,6 @@ Returns the same envelope as create (`{brew, incomplete_nudge?}`), with
 
 | Status | Cause                                        |
 |--------|----------------------------------------------|
-| 400    | Validation error (invalid field, missing bean_rkey). |
+| 400    | Validation error (invalid field, missing bean_rkey, or missing brewer_rkey on create). |
 | 401    | Not authenticated.                           |
 | 500    | Store error (PDS write failure).             |

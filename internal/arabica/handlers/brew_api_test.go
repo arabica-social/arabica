@@ -21,7 +21,7 @@ func TestHandleBrewCreateJSONSessionExpired(t *testing.T) {
 	}
 
 	req := newMiddlewareAuthenticatedRequest(http.MethodPost, "/api/brews")
-	req.Body = ioNopCloser(`{"bean_rkey":"3jzfcijpj2z2a","coffee_amount":18,"water_amount":250}`)
+	req.Body = ioNopCloser(`{"bean_rkey":"3jzfcijpj2z2a","brewer_rkey":"brewer123","coffee_amount":18,"water_amount":250}`)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	rec := httptest.NewRecorder()
@@ -93,7 +93,7 @@ func TestHandleBrewCreateJSONHappyPath(t *testing.T) {
 	}
 
 	req := newMiddlewareAuthenticatedRequest(http.MethodPost, "/api/brews")
-	req.Body = ioNopCloser(`{"bean_rkey":"3jzfcijpj2z2a","coffee_amount":18,"water_amount":250,"rating":8}`)
+	req.Body = ioNopCloser(`{"bean_rkey":"3jzfcijpj2z2a","brewer_rkey":"brewer123","coffee_amount":18,"water_amount":250,"rating":8}`)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	rec := httptest.NewRecorder()
@@ -122,7 +122,7 @@ func TestHandleBrewCreateJSONIncompleteBeanNudge(t *testing.T) {
 	}
 
 	req := newMiddlewareAuthenticatedRequest(http.MethodPost, "/api/brews")
-	req.Body = ioNopCloser(`{"bean_rkey":"3jzfcijpj2z2a"}`)
+	req.Body = ioNopCloser(`{"bean_rkey":"3jzfcijpj2z2a","brewer_rkey":"brewer123"}`)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	rec := httptest.NewRecorder()

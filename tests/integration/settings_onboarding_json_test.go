@@ -22,6 +22,7 @@ type settingsJSONResponse struct {
 	UserPreferences struct {
 		TemperatureUnit string `json:"temperature_unit"`
 		SmartAutofill   string `json:"smart_autofill"`
+		BrewFormMode    string `json:"brew_form_mode"`
 	} `json:"user_preferences"`
 	BlueskyProfile struct {
 		HasScopes      bool   `json:"has_scopes"`
@@ -53,6 +54,7 @@ func TestHTTP_SettingsJSON(t *testing.T) {
 	assert.Equal(t, "public", settings.ProfileStatsVisibility.BeanAvgRating)
 	assert.Equal(t, "public", settings.ProfileStatsVisibility.RoasterAvgRating)
 	assert.Equal(t, "on", settings.UserPreferences.SmartAutofill)
+	assert.Equal(t, "quick", settings.UserPreferences.BrewFormMode)
 	// Bluesky profile fields should be present (even if empty/false).
 	assert.False(t, settings.BlueskyProfile.HasScopes)
 }
@@ -394,4 +396,29 @@ func TestHTTP_SignupCategoriesJSONUnauth(t *testing.T) {
 	var result signupCategoriesJSONResponse
 	require.NoError(t, json.Unmarshal([]byte(body), &result))
 	assert.NotEmpty(t, result.Categories)
+}
+
+func TestHTTP_SettingsBrewModePartialUpdates(t *testing.T) {
+	h := StartHarness(t, nil)
+	for _, form := range []string{
+		"temperature_unit=fahrenheit&smart_autofill=off",
+		"brew_form_mode=detailed",
+		"smart_autofill=off",
+	} {
+		resp := postFormJSON(t, h, "/api/settings/preferences", form)
+		body := ReadBody(t, resp)
+		require.Equal(t, 200, resp.StatusCode, body)
+	}
+	resp := getJSON(t, h, "/api/settings")
+	var settings settingsJSONResponse
+	require.NoError(t, json.Unmarshal([]byte(ReadBody(t, resp)), &settings))
+	assert.Equal(t, "detailed", settings.UserPreferences.BrewFormMode)
+	assert.Equal(t, "fahrenheit", settings.UserPreferences.TemperatureUnit)
+	assert.Equal(t, "off", settings.UserPreferences.SmartAutofill)
+	resp = postFormJSON(t, h, "/api/settings/preferences", "brew_form_mode=invalid")
+	require.Equal(t, 200, resp.StatusCode, ReadBody(t, resp))
+	resp = getJSON(t, h, "/api/settings")
+	require.NoError(t, json.Unmarshal([]byte(ReadBody(t, resp)), &settings))
+	assert.Equal(t, "quick", settings.UserPreferences.BrewFormMode)
+	assert.Equal(t, "fahrenheit", settings.UserPreferences.TemperatureUnit)
 }

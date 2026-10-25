@@ -117,6 +117,9 @@ func TestHTTP_CommentCreateAndList(t *testing.T) {
 
 	createBrew := url.Values{}
 	createBrew.Set("bean_rkey", beanRKey)
+	createBrew.Set("brewer_rkey", mustRKey(t, h.PostForm("/api/brewers", form(
+		"name", "C Brewer", "brewer_type", "pourover",
+	)), "brewer"))
 	createBrew.Set("water_amount", "300")
 	createBrew.Set("coffee_amount", "18")
 	brewResp := h.PostForm("/brews", createBrew)

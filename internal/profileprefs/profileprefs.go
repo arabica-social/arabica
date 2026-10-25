@@ -46,6 +46,18 @@ func DefaultSmartAutofill() SmartAutofillSetting {
 	return SmartAutofillOn
 }
 
+// BrewFormMode controls the initial layout for new brews, not record content.
+type BrewFormMode string
+
+const (
+	BrewFormQuick    BrewFormMode = "quick"
+	BrewFormDetailed BrewFormMode = "detailed"
+)
+
+func (m BrewFormMode) IsValid() bool {
+	return m == BrewFormQuick || m == BrewFormDetailed
+}
+
 type Visibility string
 
 const (
@@ -80,18 +92,23 @@ func DefaultProfileStatsVisibility() ProfileStatsVisibility {
 // DID across devices and sessions. Device-local preferences (currently theme)
 // intentionally stay outside this struct.
 type UserPreferences struct {
+	BrewFormMode    BrewFormMode         `json:"brew_form_mode"`
 	TemperatureUnit TemperatureUnit      `json:"temperature_unit"`
 	SmartAutofill   SmartAutofillSetting `json:"smart_autofill"`
 }
 
 func DefaultUserPreferences() UserPreferences {
 	return UserPreferences{
+		BrewFormMode:    BrewFormQuick,
 		TemperatureUnit: DefaultTemperatureUnit(),
 		SmartAutofill:   DefaultSmartAutofill(),
 	}
 }
 
 func (p UserPreferences) WithDefaults() UserPreferences {
+	if !p.BrewFormMode.IsValid() {
+		p.BrewFormMode = BrewFormQuick
+	}
 	if !p.TemperatureUnit.IsValid() {
 		p.TemperatureUnit = DefaultTemperatureUnit()
 	}

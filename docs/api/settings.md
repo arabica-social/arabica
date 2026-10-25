@@ -15,7 +15,8 @@ preferences, and Bluesky profile sync state.
   },
   "user_preferences": {
     "temperature_unit": "fahrenheit",
-    "smart_autofill": "on"
+    "smart_autofill": "on",
+    "brew_form_mode": "quick"
   },
   "bluesky_profile": {
     "has_scopes": false,
@@ -29,7 +30,10 @@ preferences, and Bluesky profile sync state.
 
 ## `POST /api/settings/preferences`
 
-Saves user preferences (temperature unit, smart autofill).
+Partially updates DID-scoped operational preferences. Omitted fields retain their
+stored values in both transports. Missing or unreadable stored preferences use
+defaults; this does not change PDS records. Updates are serialized within the
+running process to preserve unrelated fields across concurrent requests.
 
 ### Content Negotiation
 
@@ -40,8 +44,13 @@ Saves user preferences (temperature unit, smart autofill).
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `temperature_unit` | string | `fahrenheit` or `celsius`. |
-| `smart_autofill` | string | `on` or `off`. Defaults to `on` when absent or unknown. |
+| `temperature_unit` | string | `recorded`, `fahrenheit` or `celsius`. Invalid submitted values use `recorded`. |
+| `smart_autofill` | string | `on` or `off`. Invalid submitted values use `on`. |
+| `brew_form_mode` | string | `quick` or `detailed`. Missing/invalid stored values and invalid submitted values use `quick`. |
+
+`brew_form_mode` selects the initial new-brew layout only. Clients should save it
+on explicit mode selection, not edit-page initialization. Preference persistence
+failure must not block brew submission; clients may fall back to Quick.
 
 ### Response (JSON)
 

@@ -52,6 +52,7 @@ type CachedProfile struct {
 
 // FeedIndex provides persistent storage for firehose events
 type FeedIndex struct {
+	preferencesMu  sync.Mutex
 	db             *sql.DB
 	publicClient   *atp.PublicClient
 	profileTTL     time.Duration
@@ -1192,6 +1193,20 @@ func (idx *FeedIndex) GetUserPreferences(ctx context.Context, did string) profil
 }
 
 func (idx *FeedIndex) SetUserPreferences(ctx context.Context, did string, prefs profileprefs.UserPreferences) error {
+	idx.preferencesMu.Lock()
+	defer idx.preferencesMu.Unlock()
+	return idx.setUserPreferences(ctx, did, prefs)
+}
+
+// UpdateUserPreferences serializes partial updates so unrelated fields cannot
+// overwrite a mode selected by another request.
+func (idx *FeedIndex) UpdateUserPreferences(ctx context.Context, did string, update func(profileprefs.UserPreferences) profileprefs.UserPreferences) error {
+	idx.preferencesMu.Lock()
+	defer idx.preferencesMu.Unlock()
+	return idx.setUserPreferences(ctx, did, update(idx.GetUserPreferences(ctx, did)))
+}
+
+func (idx *FeedIndex) setUserPreferences(ctx context.Context, did string, prefs profileprefs.UserPreferences) error {
 	raw, err := json.Marshal(prefs.WithDefaults())
 	if err != nil {
 		return fmt.Errorf("marshal preferences: %w", err)

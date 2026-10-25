@@ -76,13 +76,10 @@ func (h *Handler) HandleSettingsPreferencesJSON(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	prefs := profileprefs.UserPreferences{
-		TemperatureUnit: profileprefs.TemperatureUnit(r.FormValue("temperature_unit")),
-		SmartAutofill:   profileprefs.SmartAutofillSetting(r.FormValue("smart_autofill")),
-	}.WithDefaults()
-
 	if h.feedIndex != nil {
-		if err := h.feedIndex.SetUserPreferences(r.Context(), didStr, prefs); err != nil {
+		if err := h.feedIndex.UpdateUserPreferences(r.Context(), didStr, func(p profileprefs.UserPreferences) profileprefs.UserPreferences {
+			return preferencesFromForm(r, p)
+		}); err != nil {
 			log.Error().Err(err).Msg("Failed to save user preferences")
 			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Failed to save preferences")
 			return

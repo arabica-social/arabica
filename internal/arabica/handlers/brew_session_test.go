@@ -20,7 +20,7 @@ func TestHandleBrewCreateReturnsJSONSessionExpired(t *testing.T) {
 	}
 
 	req := newMiddlewareAuthenticatedRequest(http.MethodPost, "/brews")
-	req.Body = ioNopCloser("bean_rkey=3jzfcijpj2z2a")
+	req.Body = ioNopCloser("bean_rkey=3jzfcijpj2z2a&brewer_rkey=brewer123")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 	rec := httptest.NewRecorder()
@@ -120,7 +120,7 @@ func TestBrewSessionErrorsFallbackToPlainTextForLegacyRequests(t *testing.T) {
 
 	// Non-JSON form callers keep the plain-text 401 contract.
 	req := newMiddlewareAuthenticatedRequest(http.MethodPost, "/brews")
-	req.Body = ioNopCloser("bean_rkey=3jzfcijpj2z2a")
+	req.Body = ioNopCloser("bean_rkey=3jzfcijpj2z2a&brewer_rkey=brewer123")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec := httptest.NewRecorder()
 

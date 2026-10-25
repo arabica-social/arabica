@@ -1,7 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { computeAutofill } from "./brewAutofill";
 import type { AutofillField, AutofillResult } from "./brewAutofill";
-import type { Brew } from "../types/entity_view";
+import type {
+  Brew,
+  EspressoParams,
+  PouroverParams,
+} from "../types/entity_view";
+
+const espresso = (values: Partial<EspressoParams>): EspressoParams => ({
+  yield_weight: 0,
+  pressure: 0,
+  pre_infusion_seconds: 0,
+  ...values,
+});
+const pourover = (values: Partial<PouroverParams>): PouroverParams => ({
+  bloom_water: 0,
+  bloom_seconds: 0,
+  drawdown_seconds: 0,
+  bypass_water: 0,
+  filter: "",
+  ...values,
+});
 
 const DAY = 86_400_000;
 const EPOCH = 1_700_000_000_000;
@@ -34,7 +53,10 @@ function makeBrew(overrides: Partial<Brew> & { created_at: string }): Brew {
 }
 
 /** Builds brews at rank 0..count-1 (0 = newest) with the given temperature. */
-function temperatureBrews(count: number, assign: (rank: number) => number | undefined): Brew[] {
+function temperatureBrews(
+  count: number,
+  assign: (rank: number) => number | undefined,
+): Brew[] {
   const brews: Brew[] = [];
   for (let rank = 0; rank < count; rank += 1) {
     const value = assign(rank);
@@ -49,10 +71,114 @@ function temperatureBrews(count: number, assign: (rank: number) => number | unde
 }
 
 function suggestionOf(result: AutofillResult, field: AutofillField) {
-  return result.fields[field] as NonNullable<AutofillResult["fields"][AutofillField]>;
+  return result.fields[field] as NonNullable<
+    AutofillResult["fields"][AutofillField]
+  >;
 }
 
 describe("brewAutofill", () => {
+  it("does not suggest conflicting method text from a mixed historical record", () => {
+    const history = [t(2), t(1)].map((created_at) =>
+      makeBrew({
+        created_at,
+        method: "Espresso",
+        brewer_obj: {
+          rkey: "brewer-1",
+          name: "V60",
+          brewer_type: "pourover",
+          description: "",
+          link: "",
+          created_at: "",
+        },
+      }),
+    );
+    const result = computeAutofill(history, {
+      beanRKey: "bean-1",
+      brewerRKey: "brewer-1",
+      brewerCategory: "pourover",
+    })!;
+    expect(result.fields.coffee_amount?.value).toBe("20");
+    expect(result.fields.method).toBeUndefined();
+  });
+
+  it("uses only the selected category and ignores mixed historical method parameters", () => {
+    const brews = [
+      makeBrew({
+        created_at: t(4),
+        method: "espresso",
+        brewer_rkey: "espresso",
+        temperature: 92,
+        espresso_params: espresso({ yield_weight: 36 }),
+        pourover_params: pourover({ bloom_water: 60 }),
+      }),
+      makeBrew({
+        created_at: t(3),
+        method: "espresso",
+        brewer_rkey: "espresso",
+        temperature: 92,
+        espresso_params: espresso({ yield_weight: 36 }),
+      }),
+      makeBrew({
+        created_at: t(2),
+        method: "pour-over",
+        temperature: 96,
+        pourover_params: pourover({ bloom_water: 50 }),
+        espresso_params: espresso({ pressure: 9 }),
+      }),
+    ];
+    const result = computeAutofill(brews, {
+      beanRKey: "bean-1",
+      brewerRKey: "brewer-1",
+      brewerCategory: "Pour Over",
+    })!;
+    expect(result.fields.temperature?.value).toBe("96");
+    expect(result.fields.pourover_bloom_water?.value).toBe("50");
+    expect(result.fields.espresso_pressure).toBeUndefined();
+    expect(result.fields.espresso_yield_weight).toBeUndefined();
+    expect(result.fields.brewer_rkey).toBeUndefined();
+  });
+
+  it("selects the brewer before method-specific suggestions", () => {
+    const result = computeAutofill(
+      [t(2), t(1)].map((created_at) =>
+        makeBrew({
+          created_at,
+          method: "espresso",
+          espresso_params: espresso({ pressure: 9 }),
+          pourover_params: pourover({ bloom_water: 50 }),
+        }),
+      ),
+      { beanRKey: "bean-1" },
+    )!;
+    expect(Object.keys(result.fields)[0]).toBe("brewer_rkey");
+    expect(result.fields.espresso_pressure?.value).toBe("9");
+    expect(result.fields.pourover_bloom_water).toBeUndefined();
+  });
+
+  it("takes grind settings only from the selected or suggested grinder", () => {
+    const brews = [
+      ...[t(5), t(4), t(3)].map((created_at) =>
+        makeBrew({ created_at, grinder_rkey: "a", grind_size: "" }),
+      ),
+      ...[t(2), t(1)].map((created_at) =>
+        makeBrew({ created_at, grinder_rkey: "b", grind_size: "12" }),
+      ),
+    ];
+    const suggested = computeAutofill(brews, { beanRKey: "bean-1" })!;
+    expect(suggested.fields.grinder_rkey?.value).toBe("a");
+    expect(suggested.fields.grind_size).toBeUndefined();
+    const selected = computeAutofill(brews, {
+      beanRKey: "bean-1",
+      grinderRKey: "b",
+    })!;
+    expect(selected.fields.grinder_rkey).toBeUndefined();
+    expect(selected.fields.grind_size?.value).toBe("12");
+    expect(
+      computeAutofill(brews, { beanRKey: "bean-1", grinderRKey: "new" })!.fields
+        .grind_size,
+    ).toBeUndefined();
+  });
+
   it("returns null with fewer than 2 matching brews", () => {
     expect(computeAutofill([], { beanRKey: "bean-1" })).toBeNull();
     const one = makeBrew({ bean_rkey: "bean-1", created_at: t(0) });
@@ -72,12 +198,18 @@ describe("brewAutofill", () => {
     const recipeB = [makeBrew({ recipe_rkey: "recipe-B", created_at: t(3) })];
     const brews = [...beanOnly, ...recipeA, ...recipeB];
 
-    const withA = computeAutofill(brews, { beanRKey: "bean-1", recipeRKey: "recipe-A" });
+    const withA = computeAutofill(brews, {
+      beanRKey: "bean-1",
+      recipeRKey: "recipe-A",
+    });
     expect(withA).not.toBeNull();
     expect(withA!.basis).toBe("bean+recipe");
     expect(withA!.totalBrews).toBe(3);
 
-    const withB = computeAutofill(brews, { beanRKey: "bean-1", recipeRKey: "recipe-B" });
+    const withB = computeAutofill(brews, {
+      beanRKey: "bean-1",
+      recipeRKey: "recipe-B",
+    });
     expect(withB).not.toBeNull();
     expect(withB!.basis).toBe("bean");
     expect(withB!.totalBrews).toBe(8);
@@ -110,7 +242,10 @@ describe("brewAutofill", () => {
     // 10 appears in the newer brew (rank 2 vs 3) and should win.
     const brews = temperatureBrews(
       10,
-      (r) => [undefined, undefined, 10, 11, undefined, undefined, 11, 10, 11, 10][r] as number | undefined,
+      (r) =>
+        [undefined, undefined, 10, 11, undefined, undefined, 11, 10, 11, 10][
+          r
+        ] as number | undefined,
     );
     const result = computeAutofill(brews, { beanRKey: "bean-1" });
     expect(result).not.toBeNull();
@@ -121,7 +256,9 @@ describe("brewAutofill", () => {
   });
 
   it("normalizes numeric fields to strings usable by the form", () => {
-    const brews = [t(1), t(0)].map((d) => makeBrew({ temperature: 93, created_at: d }));
+    const brews = [t(1), t(0)].map((d) =>
+      makeBrew({ temperature: 93, created_at: d }),
+    );
     const result = computeAutofill(brews, { beanRKey: "bean-1" });
     expect(result).not.toBeNull();
     expect(suggestionOf(result!, "temperature").value).toBe("93");
@@ -159,8 +296,32 @@ describe("brewAutofill", () => {
 
   it("never suggests tasting_notes, rating, or pours", () => {
     const brews = [
-      makeBrew({ tasting_notes: "berry", rating: 4, pours: [{ pour_number: 1, water_amount: 60, time_seconds: 10, created_at: t(0) }], created_at: t(2) }),
-      makeBrew({ tasting_notes: "berry", rating: 5, pours: [{ pour_number: 1, water_amount: 80, time_seconds: 12, created_at: t(0) }], created_at: t(1) }),
+      makeBrew({
+        tasting_notes: "berry",
+        rating: 4,
+        pours: [
+          {
+            pour_number: 1,
+            water_amount: 60,
+            time_seconds: 10,
+            created_at: t(0),
+          },
+        ],
+        created_at: t(2),
+      }),
+      makeBrew({
+        tasting_notes: "berry",
+        rating: 5,
+        pours: [
+          {
+            pour_number: 1,
+            water_amount: 80,
+            time_seconds: 12,
+            created_at: t(0),
+          },
+        ],
+        created_at: t(1),
+      }),
     ];
     const result = computeAutofill(brews, { beanRKey: "bean-1" });
     expect(result).not.toBeNull();
@@ -174,12 +335,28 @@ describe("brewAutofill", () => {
     const brews = [
       makeBrew({
         grinder_rkey: "grinder-1",
-        grinder_obj: { rkey: "grinder-1", name: "Comandante C40", grinder_type: "", burr_type: "", notes: "", link: "", created_at: "" },
+        grinder_obj: {
+          rkey: "grinder-1",
+          name: "Comandante C40",
+          grinder_type: "",
+          burr_type: "",
+          notes: "",
+          link: "",
+          created_at: "",
+        },
         created_at: t(1),
       }),
       makeBrew({
         grinder_rkey: "grinder-1",
-        grinder_obj: { rkey: "grinder-1", name: "Comandante C40", grinder_type: "", burr_type: "", notes: "", link: "", created_at: "" },
+        grinder_obj: {
+          rkey: "grinder-1",
+          name: "Comandante C40",
+          grinder_type: "",
+          burr_type: "",
+          notes: "",
+          link: "",
+          created_at: "",
+        },
         created_at: t(0),
       }),
     ];

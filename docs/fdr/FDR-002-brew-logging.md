@@ -1,7 +1,7 @@
 # FDR-002: Brew Logging
 
 **Status:** Active
-**Last reviewed:** 2026-07-21
+**Last reviewed:** 2026-10-25
 
 ## Overview
 
@@ -20,12 +20,42 @@ creation time, then records the specific cup that was made.
   amounts to the adjusted total.
 - For pour-over recipes, the brew's bloom water and bloom time mirror the
   first pour; bloom water stays in sync as quick adjustments rescale the pours.
-- When the selected brewer is espresso, the main brew form hides the water
-  amount field and pour controls. The recipe's quick-adjustment water input
-  remains available. Switching methods does not erase draft measurements or
-  pours, including values already present on an edited brew.
-- Users can still edit the remaining brew details, such as bean, equipment,
-  temperature, timing, notes, and rating.
+- Quick shows an optional recipe when available, a required bean and brewer,
+  optional tasting notes, and an optional 1–10 rating. Rating
+  starts unset. “Add rating” reveals a 1–10 slider starting at 5; “Remove
+  rating” hides it and clears the value, including on edit. Bean and brewer
+  creation opens in separate tabs so the draft and recipe-link context stay in
+  place.
+- New users start in Quick. Explicit mode selections on new brews update a
+  DID-scoped operational preference; missing or unavailable preferences use
+  Quick. Edits start in Detailed when preparation data exists, otherwise Quick,
+  without changing the preference.
+- Switching modes preserves the draft. Quick summarizes preparation values
+  already copied from a recipe, entered in Detailed, or loaded from a record.
+  “Edit brewing details” opens Detailed without changing the remembered mode.
+- The form omits decorative header copy and the explanatory sidebar. The
+  coffee-to-water ratio appears with those measurements in Detailed.
+- Detailed uses the saved brewer's category. Espresso puts coffee dose, beverage
+  yield, shot time, and grinder first. Pour-over puts coffee, water, brew time,
+  and grinder first. Immersion, cold brew, and cupping put coffee, water, and
+  steep time first. Moka pot puts coffee and water first; other categories put
+  coffee, water, and brew time first. Remaining optional fields appear under
+  “More brewing details”. Long steeps can be entered in minutes or hours and
+  are converted to the existing seconds representation.
+- Grind setting appears after choosing a grinder. Changing or removing a grinder
+  clears its old setting, with confirmation for user-entered or saved settings.
+  Legacy settings without a grinder remain editable without a new association.
+- Changing brewer category asks before clearing incompatible espresso or
+  pour-over parameters and pours. Cancellation retains the previous selection
+  and values. Common measurements survive. Mixed legacy values stay reachable
+  and survive unrelated edits until the user changes category.
+- Recipe copying works in either mode and never changes the recipe. Foreign
+  recipe ownership is retained; only a matching saved brewer in the user's own
+  collection can satisfy the brewer requirement. Later recipe responses cannot
+  overwrite a newer recipe selection or explicit brewer choice.
+- Brewer is required only for creation. Existing records without a brewer,
+  hydrated references, or rating remain editable. No lexicon or unit changes
+  accompany this layout.
 
 ## Design Decisions
 

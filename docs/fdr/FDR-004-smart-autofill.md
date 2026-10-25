@@ -1,7 +1,7 @@
 # FDR-004: Smart Autofill
 
 **Status:** Active
-**Last reviewed:** 2026-08-29
+**Last reviewed:** 2026-10-25
 
 ## Overview
 
@@ -14,22 +14,29 @@ record or change existing brews.
 
 - Smart Autofill is enabled by default and can be turned off in Settings under
   **Brewing preferences**. The preference follows the user's DID.
-- On a new-brew form, selecting a bean computes suggestions from the user's
-  matching brew history. When a recipe is selected, matching first uses the
-  bean-plus-recipe pair, then falls back to bean-only history when the pair has
+- On a new-brew form in Detailed mode, selecting a bean computes suggestions
+  from the user's matching brew history. Quick does not apply new history
+  suggestions, including after delayed preference, history, or recipe loads.
+  Switching to Quick preserves previously applied values and their provenance;
+  Clear autofill remains available. Explicit recipe copying also works in Quick.
+  With a recipe selected, matching first uses the bean-plus-recipe pair, then falls back to bean-only history when the pair has
   fewer than two brews.
 - Autofill only writes into empty fields. Explicit user input and values copied
   from a Recipe always take precedence.
 - Suggested fields include equipment and preparation measurements such as the
-  Grinder, Brewer, grind size, temperature, brew time, filter, and relevant
-  method-specific parameters. Tasting notes, rating, and pour stages are not
-  autofilled.
+  Grinder, Brewer, grind setting, temperature, brew time, filter, and relevant
+  method-specific parameters. The selected or suggested brewer determines the
+  category used for preparation suggestions. Espresso and pour-over parameters
+  are restricted to their matching category. Grind settings come only from
+  history for the selected or suggested grinder. Tasting notes, rating, and pour
+  stages are not autofilled.
 - Each autofilled field is marked with its raw support, such as
   “Autofilled · in 12 of 15 brews (80%).” Editing that field removes its
   autofill marker.
 - A form-level **Clear autofill** action appears while autofilled fields remain.
   It clears those suggestions without changing fields the user subsequently
-  edited.
+  edited. An autofilled grinder or brewer is retained if an edited dependent
+  setting or method-specific value now needs that association.
 
 ## Design Decisions
 

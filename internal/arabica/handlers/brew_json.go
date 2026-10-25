@@ -94,7 +94,13 @@ func (h *Handlers) HandleBrewCreateJSON(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Optional rkeys.
+	// The create policy is intentionally not part of the shared update request.
+	if req.BrewerRKey == "" {
+		handlers.WriteRequestError(w, r, http.StatusBadRequest, "validation_failed", "Brewer selection is required")
+		return
+	}
+
+	// Remaining rkey format validation.
 	if errMsg := handlers.ValidateOptionalRKey(req.GrinderRKey, "Grinder selection"); errMsg != "" {
 		handlers.WriteRequestError(w, r, http.StatusBadRequest, "validation_failed", errMsg)
 		return
@@ -245,8 +251,8 @@ func validateBrewNumericRanges(req *arabica.CreateBrewRequest) string {
 	if req.CoffeeAmount < 0 || req.CoffeeAmount > 1000 {
 		return "coffee amount must be between 0 and 1000g"
 	}
-	if req.TimeSeconds < 0 || req.TimeSeconds > 3600 {
-		return "brew time must be between 0 and 3600 seconds"
+	if req.TimeSeconds < 0 {
+		return "brew time must be nonnegative"
 	}
 	if req.Rating < 0 || req.Rating > 10 {
 		return "rating must be between 0 and 10"

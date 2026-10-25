@@ -4,62 +4,100 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import BrewNewPage from "../../src/routes/brews/new/+page.svelte";
 
 vi.mock("$app/navigation", () => ({
-	goto: vi.fn(),
+  goto: vi.fn(),
+  beforeNavigate: vi.fn(),
 }));
 
 vi.mock("../../src/lib/stores/appCache", () => ({
-	appCache: {
-		getData: vi.fn().mockResolvedValue(null),
-		invalidateCache: vi.fn(),
-	},
+  appCache: {
+    getData: vi.fn().mockResolvedValue(null),
+    invalidateCache: vi.fn(),
+  },
 }));
 
 describe("Brews new page", () => {
-	afterEach(() => {
-		cleanup();
-		document.body.innerHTML = "";
-	});
+  afterEach(() => {
+    cleanup();
+    document.body.innerHTML = "";
+  });
 
-	it("renders the New Brew title", () => {
-		render(BrewNewPage, {
-			data: { brew: null, error: "", recipeRKey: "", recipeOwnerDID: "" },
-		});
-		expect(screen.getByText("New Brew")).toBeTruthy();
-	});
+  it("starts in Quick with no rating or technical inputs", () => {
+    render(BrewNewPage, {
+      data: { brew: null, error: "", recipeRKey: "", recipeOwnerDID: "" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Quick", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.queryByRole("slider", { name: "Rating" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add rating" })).toBeEnabled();
+    expect(
+      screen.queryByLabelText("Coffee amount (g)"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Brewer (required)")).toBeTruthy();
+  });
 
-	it("renders an error state when authentication is required", () => {
-		render(BrewNewPage, {
-			data: { brew: null, error: "Authentication required", recipeRKey: "", recipeOwnerDID: "" },
-		});
-		expect(screen.getByText("Authentication required")).toBeTruthy();
-		expect(screen.getByText("Log In")).toBeTruthy();
-	});
+  it("renders the New Brew title", () => {
+    render(BrewNewPage, {
+      data: { brew: null, error: "", recipeRKey: "", recipeOwnerDID: "" },
+    });
+    expect(screen.getByText("New Brew")).toBeTruthy();
+  });
 
-	it("renders the BrewForm component when authenticated", () => {
-		const { component } = render(BrewNewPage, {
-			data: { brew: null, error: "", recipeRKey: "recipe-1", recipeOwnerDID: "did:plc:other" },
-		});
-		expect(screen.getByText("New Brew")).toBeTruthy();
-		expect(component).toBeTruthy();
-	});
+  it("renders an error state when authentication is required", () => {
+    render(BrewNewPage, {
+      data: {
+        brew: null,
+        error: "Authentication required",
+        recipeRKey: "",
+        recipeOwnerDID: "",
+      },
+    });
+    expect(screen.getByText("Authentication required")).toBeTruthy();
+    expect(screen.getByText("Log In")).toBeTruthy();
+  });
 
-	it("renders the Log In button when not authenticated", () => {
-		render(BrewNewPage, {
-			data: { brew: null, error: "Authentication required", recipeRKey: "", recipeOwnerDID: "" },
-		});
-		const loginButton = screen.getByText("Log In");
-		expect(loginButton.tagName).toBe("BUTTON");
-	});
+  it("renders the BrewForm component when authenticated", () => {
+    const { component } = render(BrewNewPage, {
+      data: {
+        brew: null,
+        error: "",
+        recipeRKey: "recipe-1",
+        recipeOwnerDID: "did:plc:other",
+      },
+    });
+    expect(screen.getByText("New Brew")).toBeTruthy();
+    expect(component).toBeTruthy();
+  });
 
-	it("opens the login modal when the Log In button is clicked", async () => {
-		const user = userEvent.setup();
-		const showModal = vi.fn();
-		window.__showLoginModal = showModal;
-		render(BrewNewPage, {
-			data: { brew: null, error: "Authentication required", recipeRKey: "", recipeOwnerDID: "" },
-		});
-		const loginButton = screen.getByText("Log In");
-		await user.click(loginButton);
-		expect(showModal).toHaveBeenCalled();
-	});
+  it("renders the Log In button when not authenticated", () => {
+    render(BrewNewPage, {
+      data: {
+        brew: null,
+        error: "Authentication required",
+        recipeRKey: "",
+        recipeOwnerDID: "",
+      },
+    });
+    const loginButton = screen.getByText("Log In");
+    expect(loginButton.tagName).toBe("BUTTON");
+  });
+
+  it("opens the login modal when the Log In button is clicked", async () => {
+    const user = userEvent.setup();
+    const showModal = vi.fn();
+    window.__showLoginModal = showModal;
+    render(BrewNewPage, {
+      data: {
+        brew: null,
+        error: "Authentication required",
+        recipeRKey: "",
+        recipeOwnerDID: "",
+      },
+    });
+    const loginButton = screen.getByText("Log In");
+    await user.click(loginButton);
+    expect(showModal).toHaveBeenCalled();
+  });
 });

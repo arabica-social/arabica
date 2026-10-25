@@ -6,7 +6,12 @@
     helper = "",
     badge,
     children,
-  }: { label: string; helper?: string; badge?: string; children: Snippet } = $props();
+  }: {
+    label: string;
+    helper?: string;
+    badge?: string;
+    children: Snippet;
+  } = $props();
 </script>
 
 <div>
@@ -23,12 +28,15 @@
 </div>
 
 <style>
-  .form-label { display: block; }
+  .form-label {
+    display: block;
+  }
   .autofill-status {
     display: flex;
     align-items: center;
-    min-height: 1.25rem;
-    margin-top: 0.25rem;
+  }
+  .autofill-status:not(:empty) {
+    margin-top: 0.5rem;
   }
   .autofill-badge {
     display: inline-flex;

@@ -53,5 +53,5 @@ func TestUserPreferencesJSON(t *testing.T) {
 
 	raw, err := json.Marshal(UserPreferences{TemperatureUnit: TemperatureUnitCelsius, SmartAutofill: SmartAutofillOn})
 	require.NoError(t, err)
-	assert.JSONEq(t, `{"temperature_unit":"celsius","smart_autofill":"on"}`, string(raw))
+	assert.JSONEq(t, `{"temperature_unit":"celsius","smart_autofill":"on","brew_form_mode":""}`, string(raw))
 }

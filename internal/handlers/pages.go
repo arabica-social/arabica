@@ -9,6 +9,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// preferencesFromForm applies only submitted fields; absent fields retain the
+// stored value while explicitly invalid values use the default.
+func preferencesFromForm(r *http.Request, p profileprefs.UserPreferences) profileprefs.UserPreferences {
+	if r.Form.Has("temperature_unit") {
+		p.TemperatureUnit = profileprefs.TemperatureUnit(r.FormValue("temperature_unit"))
+	}
+	if r.Form.Has("smart_autofill") {
+		p.SmartAutofill = profileprefs.SmartAutofillSetting(r.FormValue("smart_autofill"))
+	}
+	if r.Form.Has("brew_form_mode") {
+		p.BrewFormMode = profileprefs.BrewFormMode(r.FormValue("brew_form_mode"))
+	}
+	return p.WithDefaults()
+}
+
 // HandleSettingsPreferences saves the user's brewing preferences.
 func (h *Handler) HandleSettingsPreferences(w http.ResponseWriter, r *http.Request) {
 	if WantsJSON(r) {
@@ -26,12 +41,10 @@ func (h *Handler) HandleSettingsPreferences(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	prefs := profileprefs.UserPreferences{
-		TemperatureUnit: profileprefs.TemperatureUnit(r.FormValue("temperature_unit")),
-	}.WithDefaults()
-
 	if h.feedIndex != nil {
-		if err := h.feedIndex.SetUserPreferences(r.Context(), didStr, prefs); err != nil {
+		if err := h.feedIndex.UpdateUserPreferences(r.Context(), didStr, func(p profileprefs.UserPreferences) profileprefs.UserPreferences {
+			return preferencesFromForm(r, p)
+		}); err != nil {
 			log.Error().Err(err).Msg("Failed to save user preferences")
 			http.Error(w, "Failed to save preferences", http.StatusInternalServerError)
 			return

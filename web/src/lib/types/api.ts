@@ -59,9 +59,12 @@ export type ProfileStatsVisibility = {
 	roaster_avg_rating: string;
 };
 
+export type BrewFormMode = "quick" | "detailed";
+
 export type UserPreferences = {
 	temperature_unit: string;
 	smart_autofill: "on" | "off";
+	brew_form_mode?: BrewFormMode;
 };
 
 export type BlueskyProfileSettings = {

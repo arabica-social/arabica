@@ -671,6 +671,10 @@ func TestSnap_PDS_BrewPermutations(t *testing.T) {
 			}
 
 			resp := sub.PostForm("/brews", remapped)
+			if remapped.Get("brewer_rkey") == "" {
+				require.Equal(t, 400, resp.StatusCode, ReadBody(t, resp))
+				return
+			}
 			require.Equal(t, 200, resp.StatusCode, statusErr(resp, ReadBody(t, resp)))
 
 			data := fetchData(t, sub)
