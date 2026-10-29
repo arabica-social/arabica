@@ -66,7 +66,9 @@ test.describe("visual regression", () => {
   test("home feed chrome", async ({ authedPage: page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText("Recent activity")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Community", exact: true }),
+    ).toBeVisible();
     await page.waitForTimeout(500);
     // Feed contents vary with records created by earlier tests. Keep the
     // masked region fixed so its bottom edge cannot move between runs.

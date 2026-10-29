@@ -4,69 +4,68 @@ import type { Page } from "@playwright/test";
 async function expectHomeComposition(page: Page) {
   await page.evaluate(() => document.fonts.ready);
   const width = page.viewportSize()!.width;
-  const artwork = await page.locator(".cafe-journal-head").evaluate((el) => {
+  const masthead = page.locator(".cafe-masthead");
+  await expect(
+    masthead.getByRole("heading", { level: 1, name: "Community", exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("heading", { name: "Recent activity" }),
+  ).toHaveCount(0);
+  const artwork = await masthead.evaluate((el) => {
     const style = getComputedStyle(el, "::before");
-    const header = el.getBoundingClientRect();
     const headerStyle = getComputedStyle(el);
-    const intro = el.firstElementChild!.getBoundingClientRect();
-    const actions = el.querySelector(".cafe-actions")!.getBoundingClientRect();
     return {
       width: parseFloat(style.width),
       height: parseFloat(style.height),
+      top: parseFloat(style.top),
       bottom: parseFloat(style.bottom),
+      right: parseFloat(style.right),
       opacity: style.opacity,
       mask: decodeURIComponent(style.maskImage),
+      overflow: headerStyle.overflow,
       minHeight: headerStyle.minHeight,
-      headerHeight: header.height,
-      contentHeight: Math.max(intro.height, actions.height),
-      verticalPadding:
-        parseFloat(headerStyle.paddingTop) +
-        parseFloat(headerStyle.paddingBottom),
-      border: parseFloat(headerStyle.borderBottomWidth),
-      introBottom: intro.bottom,
-      actionsBottom: actions.bottom,
+      border: headerStyle.borderBottomWidth,
     };
   });
-  expect(artwork.width).toBeCloseTo(
-    Math.min(400, Math.max(272, width * 0.3)),
-    0,
-  );
+  expect(artwork.width).toBe(width < 720 ? 240 : 320);
   expect(artwork.height).toBe(artwork.width);
   expect(artwork.opacity).toBe("0.045");
   expect(artwork.mask).toContain("rx='5.5' ry='9'");
   expect(artwork.mask).toContain("rotate(25 12 12)");
   expect(artwork.mask).toContain("M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9");
-
-  // Main's original crop and content-driven height. Do not push the bean
-  // below the headline or add empty height to make that placement fit.
-  expect(artwork.bottom).toBe(-120);
+  expect(artwork.overflow).toBe("hidden");
   expect(artwork.minHeight).toBe("0px");
-  if (width >= 720) {
-    expect(artwork.headerHeight).toBeCloseTo(
-      artwork.contentHeight + artwork.verticalPadding + artwork.border,
-      0,
-    );
-    expect(artwork.actionsBottom).toBeCloseTo(artwork.introBottom, 0);
+  expect(artwork.border).toBe("1px");
+  if (width < 720) {
+    // The approved mobile bean is larger, farther right, and buried below
+    // the divider. Its crop must survive extra setup or visitor guidance.
+    expect(artwork.bottom).toBe(-104);
+    expect(artwork.right).toBe(0);
+  } else {
+    expect(artwork.top).toBeCloseTo(-11.2, 1);
+    expect(artwork.right).toBe(48);
   }
+
+  const title = await masthead.getByRole("heading", { level: 1 }).boundingBox();
+  const action = await masthead.locator(".home-action-primary").boundingBox();
+  expect(action!.height).toBeGreaterThanOrEqual(44);
+  expect(
+    title!.x + title!.width <= action!.x ||
+      title!.y + title!.height <= action!.y,
+  ).toBeTruthy();
+  const header = await masthead.boundingBox();
+  const feed = await page.locator(".cafe-feed-board").boundingBox();
+  expect(feed!.y).toBeGreaterThanOrEqual(header!.y + header!.height);
+  expect(feed!.y - (header!.y + header!.height)).toBeLessThan(32);
 
   if (width >= 1040) {
     const left = await page.locator(".cafe-rail-left").boundingBox();
     const main = await page.locator(".cafe-main").boundingBox();
     const right = await page.locator(".cafe-rail-right").boundingBox();
-    expect(left).not.toBeNull();
-    expect(main).not.toBeNull();
-    expect(right).not.toBeNull();
     expect(left!.x + left!.width).toBeLessThan(main!.x);
     expect(main!.x + main!.width).toBeLessThan(right!.x);
     expect(main!.width).toBeLessThan(width * 0.67);
   }
-  const feedHeading = await page
-    .getByRole("heading", { name: "Recent activity" })
-    .evaluate((el) => ({
-      height: el.getBoundingClientRect().height,
-      lineHeight: parseFloat(getComputedStyle(el).lineHeight),
-    }));
-  expect(feedHeading.height).toBeCloseTo(feedHeading.lineHeight, 0);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(width);
@@ -83,7 +82,7 @@ async function expectHeaderScreenshot(
     width === 1440 ||
     (width === 1920 && state === "ready")
   ) {
-    await expect(page.locator(".cafe-journal-head")).toHaveScreenshot(
+    await expect(page.locator(".cafe-masthead")).toHaveScreenshot(
       `home-${state}-${width}-${theme}.png`,
       { animations: "disabled" },
     );
@@ -91,7 +90,7 @@ async function expectHeaderScreenshot(
 }
 
 for (const colorScheme of ["light", "dark"] as const) {
-  for (const width of [390, 1040, 1440, 1920]) {
+  for (const width of [320, 390, 719, 720, 1040, 1440, 1920]) {
     test(`visitor home at ${width}px in ${colorScheme} mode`, async ({
       page,
     }) => {
@@ -99,7 +98,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
       await page.goto("/");
       await expect(
-        page.getByRole("heading", { level: 1, name: "A coffee journal" }),
+        page.getByRole("heading", { level: 1, name: "Community", exact: true }),
       ).toBeVisible();
       await expectHomeComposition(page);
       await expectHeaderScreenshot(page, "visitor", colorScheme);
@@ -119,8 +118,14 @@ for (const colorScheme of ["light", "dark"] as const) {
         links.getByRole("link", { name: "About Arabica" }),
       ).toHaveAttribute("href", "/about");
       await expect(
+        page.getByText("Track brews, beans, and recipes."),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("group", { name: "Feed filters" }),
+      ).toHaveCount(0);
+      await expect(
         page
-          .locator(".cafe-journal-head")
+          .getByRole("contentinfo")
           .getByRole("link", { name: "AT Protocol" }),
       ).toHaveAttribute("href", "/atproto");
       await expect(
@@ -148,13 +153,17 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: "Good coffee deserves a record.",
+          name: "Community",
+          exact: true,
         }),
       ).toBeVisible();
       await expectHomeComposition(page);
       await expectHeaderScreenshot(page, "fresh", colorScheme);
       const setup = page.getByRole("link", { name: "Finish setup" });
       await expect(setup).toHaveCount(1);
+      await expect(page.locator(".cafe-masthead-note")).toHaveText(
+        "Add a bean, brewer, and roaster to start logging brews.",
+      );
       await expect(
         page.getByRole("heading", { name: "Popular recipes" }),
       ).toHaveCount(0);
@@ -222,12 +231,12 @@ for (const colorScheme of ["light", "dark"] as const) {
       ).toHaveAttribute("href", "/brews/new");
       await expectHomeComposition(page);
       await expectHeaderScreenshot(page, "ready", colorScheme);
-      if (width === 1920) {
-        // Measured from main's original ready-account header, which matches
-        // the reference screenshot. The former 384px minimum was too tall.
-        const header = await page.locator(".cafe-journal-head").boundingBox();
-        expect(header!.height).toBeCloseTo(236.95, 0);
-      }
+      await expect(page.locator(".cafe-masthead-note")).toHaveCount(0);
+      await expect(
+        page
+          .locator(".cafe-masthead")
+          .getByRole("group", { name: "Feed filters" }),
+      ).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "Popular recipes" }),
       ).toBeVisible();

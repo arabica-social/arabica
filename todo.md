@@ -1,7 +1,8 @@
 # TODO
 
 Unimplemented items from `docs/road-to-v1.md`, verified against the codebase on
-2026-07-26. Already-done items are listed at the bottom for reference.
+2026-07-26, plus subsequent review follow-ups. Already-done items are listed at
+the bottom for reference.
 
 ## Breaking lexicon changes
 
@@ -79,6 +80,57 @@ Unimplemented items from `docs/road-to-v1.md`, verified against the codebase on
     deeper nesting; the UI does not.
 - [ ] Make comments collapsible
   - No collapse/expand behavior in `CommentSection.svelte`.
+
+## Copy and UI cleanup follow-ups
+
+From the 2026-10-29 post-cleanup review. Preserve the warm palette, display
+typography, and coffee artwork; simplify redundant framing rather than adding
+filler or stripping the visual identity. Suggested order: My Coffee tools,
+entity-form sidebars, then mobile Explore.
+
+- [ ] Consolidate My Coffee's remaining sidebar into compact collection tools
+  - `web/src/routes/my-coffee/+page.svelte`: the dedicated right column and
+    heavy divider now frame only View beans, equipment counts, and refresh
+    instructions. Remove redundant summaries (especially zero counts), keep
+    Refresh discoverable, and review the detached tools on mobile.
+  - Review repeated logging actions across the header, page toolbar, and empty
+    state; retain the empty-state action where it helps.
+- [ ] Simplify entity-form sidebars and repeated instructions
+  - `web/src/lib/components/{Bean,Roaster,Brewer,Grinder,Recipe}Form.svelte`:
+    remove duplicate explanations, decorative eyebrow labels, and unnecessary
+    completeness counters. Keep required-field guidance beside controls and
+    useful live previews, such as recipe ratio.
+- [ ] Make mobile Explore prioritize results
+  - `web/src/routes/explore/+page.svelte`: the expanded controls occupy most
+    of the first screen at 390px. Explore compact search with collapsible
+    filters and an active-filter summary. Use an established icon instead of
+    the magnifying-glass emoji in the empty state.
+- [ ] Remove the duplicate existing-account login invitation
+  - `web/src/routes/join/create/+page.svelte`: the new introduction and the
+    bottom of the provider chooser both invite existing users to log in.
+    Keep one contextual invitation.
+- [ ] Adjust About spacing for the shorter content
+  - `web/src/routes/about/+page.svelte` and its shared styles: review the large
+    framed introduction and broad section gaps. Make a modest spacing pass,
+    not a wholesale visual redesign.
+- [ ] Distinguish general Add choices from first-time setup
+  - `web/src/lib/components/GetStartedCard.svelte`: in library mode on `/add`,
+    remove numbered stations and required badges that imply a setup sequence.
+    Preserve meaningful prerequisites and completion states on onboarding.
+- [ ] Make user-facing terminology consistent
+  - Review "Coffee ledger" on profiles and "fork" versus "copy" for recipes;
+    use clear coffee-domain language consistently without changing persisted
+    identifiers or API contracts.
+  - Remove unsupported "drinks" references in `RoasterForm.svelte` help text.
+- [ ] Review and refresh stale home screenshot baselines
+  - The focused 2026-10-29 Playwright run had 54 passes and 8 screenshot
+    comparison failures: seven dark-mode masthead baselines and the whole-page
+    home baseline still show the old composition. Review current renders in
+    both themes before updating; do not blindly accept snapshots.
+
+Check affected layouts with empty and populated content, narrow and wide
+screens, and both themes. Update current feature/design documentation when
+implementing changes; do not reintroduce filler to occupy removed-copy space.
 
 ## UX improvements
 

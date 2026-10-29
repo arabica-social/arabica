@@ -164,21 +164,6 @@
 
 {#snippet feedSection()}
   <section class="cafe-feed" aria-labelledby="community-activity-title">
-    <div class="cafe-feed-heading">
-      <div>
-        <h2 id="community-activity-title">Recent activity</h2>
-      </div>
-      {#if showFilters}
-        <FeedFilters
-          {typeFilter}
-          {sort}
-          {loading}
-          onType={applyFilter}
-          onSort={applySort}
-          tabs={data.feed?.tabs ?? []}
-        />
-      {/if}
-    </div>
     <div id="feed-board" class="feed-board cafe-feed-board">
       <div id="feed-items" class="feed-grid" data-feed-masonry>
         {#if data.error && items.length === 0}
@@ -280,53 +265,44 @@
   </aside>
 
   <main class="cafe-main">
-    <header class="cafe-journal-head">
-      <div>
-        <p class="cafe-label">
-          {isAuthenticated
-            ? "Your home coffee journal"
-            : "A coffee journal on the Atmosphere"}
-        </p>
-        <h1>
-          {isAuthenticated
-            ? "Good coffee deserves a record."
-            : appDefinition.heroHeading}
-        </h1>
-        <p class="cafe-deck">
-          {isAuthenticated
-            ? ready
-              ? "Keep track of what you brewed and how it turned out. Compare notes with other people around the Atmosphere."
-              : appDefinition.readinessNudge
-            : appDefinition.heroDescription}
-        </p>
-        {#if !isAuthenticated}
-          <p class="cafe-account-note">
-            Coffee records are saved to your account's server through
-            <a href="/atproto">AT Protocol</a>.
-          </p>
-        {/if}
+    <header class="cafe-masthead">
+      <div class="cafe-masthead-lead">
+        <h1 id="community-activity-title">Community</h1>
+        <div class="cafe-actions">
+          {#if isAuthenticated}
+            <a
+              href={ready ? "/brews/new" : "/onboarding"}
+              class="home-action-primary"
+            >
+              {ready ? appDefinition.sessionAction : "Finish setup"}
+            </a>
+          {:else}
+            <button
+              type="button"
+              onclick={openLoginModal}
+              class="home-action-primary">Log in</button
+            >
+          {/if}
+        </div>
       </div>
-      <div class="cafe-actions">
-        {#if isAuthenticated}
-          <a
-            href={ready ? "/brews/new" : "/onboarding"}
-            class="home-action-primary"
-            aria-label={ready ? appDefinition.sessionAction : "Finish setup"}
-          >
-            {ready ? `${appDefinition.sessionAction} →` : "Finish setup →"}
-          </a>
-          <a href={appDefinition.libraryPath} class="cafe-text-link"
-            >Browse your journal</a
-          >
-        {:else}
-          <button
-            type="button"
-            onclick={openLoginModal}
-            class="home-action-primary">Log in</button
-          >
-          <a href="/join/create" class="cafe-text-link">Create an account</a>
-        {/if}
-      </div>
+      {#if !isAuthenticated}
+        <p class="cafe-masthead-note">Track brews, beans, and recipes.</p>
+        <a href="/join/create" class="cafe-text-link">Create an account</a>
+      {:else if !ready}
+        <p class="cafe-masthead-note">{appDefinition.readinessNudge}</p>
+      {/if}
+      {#if showFilters}
+        <div class="cafe-controls">
+          <FeedFilters
+            {typeFilter}
+            {sort}
+            {loading}
+            onType={applyFilter}
+            onSort={applySort}
+            tabs={data.feed?.tabs ?? []}
+          />
+        </div>
+      {/if}
     </header>
     {@render feedSection()}
   </main>
@@ -398,24 +374,22 @@
   .cafe-rail-right {
     order: 3;
   }
-  .cafe-journal-head {
+  .cafe-masthead {
     position: relative;
+    isolation: isolate;
     overflow: hidden;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    gap: clamp(1.25rem, 3vw, 2.5rem);
-    margin-bottom: 1.75rem;
-    padding: 0.5rem clamp(0.25rem, 2vw, 1.25rem) 1.4rem 0;
+    margin: 0 0 1.4rem;
+    padding: 0.75rem 0 1.1rem;
     border-bottom: 1px solid var(--card-border);
   }
-  .cafe-journal-head::before {
+  .cafe-masthead::before {
     content: "";
     position: absolute;
-    right: clamp(-1rem, -1vw, -0.25rem);
-    bottom: -7.5rem;
-    width: clamp(17rem, 30vw, 25rem);
-    height: clamp(17rem, 30vw, 25rem);
+    z-index: -1;
+    top: -0.7rem;
+    right: 3rem;
+    width: 20rem;
+    height: 20rem;
     background-color: var(--text-emphasis);
     opacity: 0.045;
     -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cellipse cx='12' cy='12' rx='5.5' ry='9' transform='rotate(25 12 12)'/%3E%3Cpath d='M12 3c-1.5 3 1.5 6 0 9s1.5 6 0 9' transform='rotate(25 12 12)'/%3E%3C/svg%3E")
@@ -424,56 +398,51 @@
       center / contain no-repeat;
     pointer-events: none;
   }
-  .cafe-journal-head > * {
-    position: relative;
-    z-index: 1;
+  .cafe-masthead-lead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-right: 1.25rem;
   }
-  .cafe-journal-head h1 {
-    max-width: 13ch;
-    margin: 0.35rem 0 0.8rem;
+  .cafe-masthead h1 {
+    margin: 0;
     color: var(--text-primary);
     font-family: var(--font-display);
-    font-size: clamp(2.35rem, 5vw, 3.9rem);
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
     font-weight: 600;
-    line-height: 0.96;
+    line-height: 1.05;
     letter-spacing: -0.025em;
     font-variation-settings:
       "opsz" 96,
       "SOFT" 50,
       "WONK" 0;
   }
-  .cafe-deck {
-    max-width: 60ch;
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    line-height: 1.65;
-  }
-  .cafe-account-note {
-    max-width: 54ch;
+  .cafe-masthead-note {
+    position: relative;
+    max-width: 48ch;
     margin: 0.75rem 0 0;
-    color: var(--text-muted);
-    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
     line-height: 1.6;
-  }
-  .cafe-account-note a {
-    color: var(--text-emphasis);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-  .cafe-label {
-    margin: 0 0 0.45rem;
-    color: var(--text-muted);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
   }
   .cafe-actions {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.55rem;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+  .cafe-actions .home-action-primary {
+    min-height: 2.75rem;
+    white-space: nowrap;
+  }
+  .cafe-controls {
+    position: relative;
+    margin-top: 1.8rem;
+  }
+  .cafe-controls > :global(div) {
+    margin-bottom: 0;
   }
   .cafe-text-link {
     display: inline-flex;
@@ -497,24 +466,6 @@
   .cafe-feed {
     min-width: 0;
     margin-bottom: 2rem;
-  }
-  .cafe-feed-heading {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding-top: 0.2rem;
-  }
-  .cafe-feed-heading h2 {
-    white-space: nowrap;
-    margin: 0;
-    color: var(--text-primary);
-    font-family: var(--font-display);
-    font-size: 1.45rem;
-    font-weight: 600;
-    letter-spacing: -0.012em;
   }
   .cafe-feed-board {
     border-radius: 4px;
@@ -649,31 +600,40 @@
     }
   }
   @media (max-width: 719px) {
-    .cafe-journal-head {
-      grid-template-columns: 1fr;
-      align-items: start;
-      padding-top: 0;
+    .cafe-masthead {
+      padding: 0.25rem 0 1rem;
+      margin-bottom: 1.15rem;
+    }
+    .cafe-masthead-lead {
+      padding-right: 0;
+      gap: 0.75rem;
+    }
+    .cafe-masthead h1 {
+      font-size: 2.25rem;
     }
     .cafe-actions {
-      align-items: stretch;
+      gap: 0.5rem;
     }
-    .cafe-actions :global(.home-action-primary) {
-      width: 100%;
-      justify-content: center;
+    .cafe-actions .home-action-primary {
+      padding-inline: 0.85rem;
+      font-size: 0.85rem;
     }
-    .cafe-text-link {
-      justify-content: center;
+    .cafe-controls {
+      margin-top: 1.4rem;
     }
-    .cafe-feed-heading {
-      align-items: stretch;
-      flex-direction: column;
+    .cafe-masthead::before {
+      width: 15rem;
+      height: 15rem;
+      top: auto;
+      bottom: -6.5rem;
+      right: 0;
     }
     .cafe-shortcuts {
       grid-template-columns: 1fr;
     }
   }
   @media (prefers-reduced-transparency: reduce) {
-    .cafe-journal-head::before {
+    .cafe-masthead::before {
       display: none;
     }
   }

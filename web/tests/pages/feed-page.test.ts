@@ -1,7 +1,9 @@
-import { cleanup, render, screen } from "@testing-library/svelte";
+import { cleanup, render, screen, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { goto } from "$app/navigation";
 import FeedPage from "../../src/routes/+page.svelte";
+import { definitionFor } from "../../src/lib/app/definitions";
 import type { FeedResponse } from "../../src/lib/types/feed";
 
 vi.mock("$app/navigation", () => ({
@@ -67,6 +69,31 @@ const unauthedPageData = {
   appName: "arabica",
 };
 
+function expectCommunityMasthead() {
+  expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  const heading = screen.getByRole("heading", {
+    level: 1,
+    name: "Community",
+    exact: true,
+  });
+  expect(screen.queryByRole("heading", { name: "Recent activity" })).toBeNull();
+  for (const copy of [
+    "Good coffee deserves a record.",
+    "Your home coffee journal",
+    "A coffee journal",
+    "A coffee journal on the Atmosphere",
+    "Keep track of what you brewed and how it turned out. Compare notes with other people around the Atmosphere.",
+    "Keep your brew notes and recipes, and see what other people are making.",
+    "Ready for the next cup.",
+  ]) {
+    expect(screen.queryByText(copy)).toBeNull();
+  }
+  expect(
+    screen.queryByRole("link", { name: "Browse your journal" }),
+  ).toBeNull();
+  return within(heading.closest("header")!);
+}
+
 describe("Feed page (home)", () => {
   afterEach(() => {
     cleanup();
@@ -74,28 +101,18 @@ describe("Feed page (home)", () => {
     vi.restoreAllMocks();
   });
 
-  it("preserves the original journal header and brew action", () => {
+  it("shows the Community masthead and brew action for ready users", () => {
     render(FeedPage, { data: authedPageData });
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "Good coffee deserves a record.",
-      }),
-    ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Log Brew" })).toHaveAttribute(
+    const masthead = expectCommunityMasthead();
+    expect(masthead.getByRole("link", { name: "Log Brew" })).toHaveAttribute(
       "href",
       "/brews/new",
     );
+    expect(screen.queryByRole("link", { name: "Finish setup" })).toBeNull();
     expect(
-      screen.getByText(
-        "Keep track of what you brewed and how it turned out. Compare notes with other people around the Atmosphere.",
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText("Your home coffee journal")).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Browse your journal" }),
-    ).toHaveAttribute("href", "/my-coffee");
-    expect(screen.queryByText("Ready for the next cup.")).toBeNull();
+      screen.queryByText(definitionFor("arabica").readinessNudge),
+    ).toBeNull();
+    expect(screen.queryByText("Track brews, beans, and recipes.")).toBeNull();
     expect(
       screen.queryByRole("heading", { name: "Unfinished entries" }),
     ).toBeNull();
@@ -151,20 +168,19 @@ describe("Feed page (home)", () => {
         },
       },
     });
+    const masthead = expectCommunityMasthead();
     expect(screen.getAllByRole("link", { name: "Finish setup" })).toHaveLength(
       1,
     );
-    expect(screen.getByRole("link", { name: "Finish setup" })).toHaveAttribute(
-      "href",
-      "/onboarding",
-    );
+    expect(
+      masthead.getByRole("link", { name: "Finish setup" }),
+    ).toHaveAttribute("href", "/onboarding");
     expect(screen.queryByRole("link", { name: "Log Brew" })).toBeNull();
     expect(screen.queryByText("Open setup")).toBeNull();
     expect(
-      screen.queryByText(
-        "Keep track of what you brewed and how it turned out. Compare notes with other people around the Atmosphere.",
-      ),
-    ).toBeNull();
+      masthead.getByText(definitionFor("arabica").readinessNudge),
+    ).toBeTruthy();
+    expect(screen.queryByText("Track brews, beans, and recipes.")).toBeNull();
   });
 
   it("shows only useful sidebar sections when their data is present", () => {
@@ -219,14 +235,25 @@ describe("Feed page (home)", () => {
     expect(screen.queryByText("Worth a closer look.")).toBeNull();
   });
 
-  it("renders the unauth hero CTA for unauthenticated users", () => {
+  it("shows concise visitor guidance and account actions without filters", () => {
     render(FeedPage, { data: unauthedPageData });
+    const masthead = expectCommunityMasthead();
     expect(screen.queryByPlaceholderText("your-handle.bsky.social")).toBeNull();
-    expect(screen.getByText("Log in")).toBeTruthy();
-    expect(screen.getByText("Create an account")).toBeTruthy();
+    expect(masthead.getByRole("button", { name: "Log in" })).toBeTruthy();
     expect(
-      screen.getByRole("heading", { level: 1, name: "A coffee journal" }),
-    ).toBeTruthy();
+      masthead.getByRole("link", { name: "Create an account" }),
+    ).toHaveAttribute("href", "/join/create");
+    expect(masthead.getByText("Track brews, beans, and recipes.")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Log Brew" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Finish setup" })).toBeNull();
+    expect(
+      screen.queryByText(definitionFor("arabica").readinessNudge),
+    ).toBeNull();
+    expect(screen.queryByRole("group", { name: "Feed filters" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "New", exact: true }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Popular" })).toBeNull();
     expect(
       screen.queryByRole("complementary", { name: "Your coffee journal" }),
     ).toBeNull();
@@ -236,28 +263,28 @@ describe("Feed page (home)", () => {
     expect(screen.getByRole("link", { name: "Feedback" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "About Arabica" })).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: "AT Protocol", exact: true }),
-    ).toHaveAttribute("href", "/atproto");
+      masthead.queryByRole("link", { name: "AT Protocol", exact: true }),
+    ).toBeNull();
     expect(
-      screen.getByText(
+      screen.queryByText(
         /Coffee records are saved to your account's server through/,
       ),
-    ).toBeTruthy();
+    ).toBeNull();
   });
 
-  it("renders the recent activity heading", () => {
+  it("renders feed filters and sort controls in the masthead", () => {
     render(FeedPage, { data: authedPageData });
+    const masthead = expectCommunityMasthead();
+    const filters = within(
+      masthead.getByRole("group", { name: "Feed filters" }),
+    );
+    for (const name of ["All", "Brews", "Beans", "Roasters"]) {
+      expect(filters.getByRole("button", { name, exact: true })).toBeTruthy();
+    }
     expect(
-      screen.getByRole("heading", { name: "Recent activity" }),
+      masthead.getByRole("button", { name: "New", exact: true }),
     ).toBeTruthy();
-  });
-
-  it("renders feed filter tabs", () => {
-    render(FeedPage, { data: authedPageData });
-    expect(screen.getByText("All")).toBeTruthy();
-    expect(screen.getByText("Brews")).toBeTruthy();
-    expect(screen.getByText("Beans")).toBeTruthy();
-    expect(screen.getByText("Roasters")).toBeTruthy();
+    expect(masthead.getByRole("button", { name: "Popular" })).toBeTruthy();
   });
 
   it("renders feed items from load data", () => {
@@ -324,6 +351,45 @@ describe("Feed page (home)", () => {
     expect(fetchSpy).toHaveBeenCalled();
     const calledURL = fetchSpy.mock.calls[0][0] as string;
     expect(calledURL).toContain("type=roaster");
+    expect(await screen.findByText("Filtered Roaster")).toBeTruthy();
+    expect(goto).toHaveBeenCalledWith("/?type=roaster", {
+      replaceState: true,
+      keepFocus: true,
+      noScroll: true,
+    });
+  });
+
+  it("fetches a new sort while preserving the selected filter", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...feedData,
+          items: [],
+          query: { type: "brew", sort: "popular" },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+    render(FeedPage, {
+      data: { ...authedPageData, typeFilter: "brew" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Popular" }));
+
+    expect(fetchSpy).toHaveBeenCalledWith("/api/feed?type=brew&sort=popular", {
+      headers: { Accept: "application/json" },
+    });
+    expect(goto).toHaveBeenCalledWith("/?type=brew&sort=popular", {
+      replaceState: true,
+      keepFocus: true,
+      noScroll: true,
+    });
+    expect(await screen.findByText("No activity yet")).toBeTruthy();
+    expect(screen.getByText("Try another filter.")).toBeTruthy();
   });
 
   it("shows a Load more button when next_cursor is present", () => {

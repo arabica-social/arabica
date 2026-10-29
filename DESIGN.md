@@ -40,12 +40,20 @@ Use headings and panels to clarify content. Keep the visual details people
 like without surrounding each one with explanatory copy. Empty space does not
 need another paragraph.
 
-- Start with a page title, necessary context, and the primary action. Preserve
-  Home's established journal header as a composition: its small label, Fraunces
-  headline, introduction, and bottom-aligned action/library links. Keep the
-  original bean beside the headline and actions, at its original bottom crop.
-  Do not move it below the text or add minimum header height to accommodate it.
-  Check copy changes against the original rendering at narrow and wide widths.
+- Start with a page title, necessary context, and the primary action. Home uses
+  one Fraunces H1, “Community,” with Log Brew alongside for ready accounts.
+  Signed-in feed filters sit beneath it within the masthead, and the feed
+  follows directly without a separate “Recent activity” heading. Omit the
+  returning-user eyebrow, slogan, introduction, and secondary journal link.
+  Keep setup guidance and visitor introduction only where needed for those
+  states, as specified in [FDR-005](docs/fdr/FDR-005-home.md).
+- Home retains the original masked bean SVG at opacity `.045`, positioned
+  independently of prose. On desktop it is `20rem` square at `top: -.7rem` and
+  `right: 3rem`. At widths up to `719px`, it is `15rem` square at `top: auto`,
+  `bottom: -6.5rem`, and `right: 0`, clipped at the existing masthead divider.
+  Keep masthead height content-driven; do not add a minimum height or extra
+  padding to accommodate the artwork. Check all account states at narrow and
+  wide widths.
 - Home's icon navigation provides useful shortcuts; keep Feedback and About
   easy to find. Omit empty data sections without making the remaining content
   harder to reach.

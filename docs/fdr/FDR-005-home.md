@@ -10,20 +10,25 @@ brew. Visitors can browse the public feed before logging in.
 
 ## Behavior
 
-- Signed-out visitors see a short introduction, login and account-creation
-  actions, and the public feed. A brief server-storage explanation links to
-  AT Protocol. Visitors do not see personal shortcuts, suggestions, or feed
-  filters.
-- Signed-in users retain the original journal header: its small journal label,
-  “Good coffee deserves a record” display headline, brew/community introduction,
-  Log Brew action with an arrow, and Browse your journal link. If required setup
-  is incomplete, one Finish setup action replaces Log Brew and the introduction
-  explains the prerequisites. There is no second setup action.
-- The original masked bean artwork remains faint behind the right side of the
-  header, beside the headline and actions, cropped by the lower separator.
-  Its original size and bottom offset are retained. Header height follows the
-  content; no minimum height or extra mobile bottom padding is added.
-- Signed-in users can filter and sort the feed and load more activity.
+- One masthead replaces the journal hero and separate “Recent activity” heading.
+  It has a single Fraunces H1, “Community,” with the primary action alongside.
+  Signed-in feed filters and sorting controls sit beneath the title within the
+  masthead. The feed follows directly; signed-in users can load more activity.
+- Ready accounts see Log Brew without an eyebrow, slogan, introduction, or
+  secondary Browse your journal link.
+- If required setup is incomplete, one Finish setup action replaces Log Brew.
+  App readiness guidance explains the missing prerequisites. There is no second
+  setup action.
+- Signed-out visitors see Log in, a separate Create an account link, and
+  “Track brews, beans, and recipes.” above the public feed. The masthead has no
+  account-server explanation. Visitors do not see personal shortcuts,
+  suggestions, or feed filters.
+- The original masked bean SVG remains behind the masthead at opacity `.045`,
+  positioned independently of prose. On desktop it is `20rem` square at
+  `top: -.7rem` and `right: 3rem`. At widths up to `719px`, it is `15rem` square
+  at `top: auto`, `bottom: -6.5rem`, and `right: 0`, clipped by the existing
+  lower divider. Masthead height follows the content; no minimum height or
+  extra mobile bottom padding is added.
 - The established three-column desktop layout keeps the feed between two rails.
   The left rail contains icon shortcuts to My Coffee, Explore, Recipes, and
   the user's profile when signed in, plus any unfinished entries. The right
@@ -38,34 +43,35 @@ brew. Visitors can browse the public feed before logging in.
 
 ## Design Decisions
 
-### 1. Trim repetition without removing useful guidance
+### 1. Put community activity first
 
-**Decision:** Keep the established journal header composition and one setup
-action, icon navigation, and concise feedback guidance. Group the rail's
-supporting links rather than giving each a separate promotional section.
+**Decision:** Replace the journal hero and repeated feed heading with one
+Community masthead, the primary action, and signed-in feed controls. Keep the
+left shortcuts and right rail unchanged.
 
-**Why:** The old setup actions and surrounding pitches repeated each other.
-The feedback invitation explains what users can report, and the visitor storage
-line explains something the generic journal introduction does not.
+**Why:** Returning users can reach logging and community activity without
+passing a repeated introduction. Journal navigation remains in the shortcuts
+and shared navigation.
 
-**Tradeoff:** The homepage retains some supporting copy. Each line must add
-information rather than restating an action label.
+**Tradeoff:** Ready accounts have no explanatory copy. Visitors still need a
+factual introduction and separate login and account-creation actions;
+setup-incomplete accounts need readiness guidance and one Finish setup action.
+Account and storage explanations remain available through About and AT Protocol,
+including the footer links.
 
-### 2. Restore the original header composition
+### 2. Position artwork independently of copy
 
-**Decision:** Retain the desktop column proportions, original header alignment,
-bean mask, size, opacity, and `bottom: -7.5rem` crop. Preserve the journal label,
-ready-account introduction, and secondary library link as part of that layout.
+**Decision:** Keep the original bean mask and opacity in a new, smaller
+composition, using desktop top/right placement and a mobile bottom crop.
+Keep the masthead content-driven rather than preserving the old hero's height.
 
-**Why:** Moving the bean below the headline and adding minimum header height
-made it more cropped while adding unwanted empty space. The preferred design
-shows the bean beside the headline and actions. Restoring offsets alone while
-removing the original header content also clips the bean's top.
+**Why:** The former crop depended on the journal headline and introduction.
+Independent placement lets the masthead lose that copy without adding empty
+space to support the illustration.
 
-**Tradeoff:** The header retains more copy than a minimal title and button.
-Browser tests pin the original crop, content-driven height, and bottom-aligned
-columns. Header snapshots cover visitor, setup-incomplete, and ready accounts
-in both themes, including the wide ready-account composition from main.
+**Tradeoff:** This composition does not reproduce the old hero crop. Review
+artwork placement across ready, setup-incomplete, and visitor states at narrow
+and wide widths in both themes.
 
 ## Related
 

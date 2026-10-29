@@ -16,7 +16,9 @@ test("feed renders in a single column on mobile", async ({
 
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  await expect(page.getByText("Recent activity")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Community", exact: true }),
+  ).toBeVisible();
 
   // The feed masonry JS distributes cards into .feed-masonry-col elements
   // only at >=768px. On mobile (375px) the cards should NOT be in

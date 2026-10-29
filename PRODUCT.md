@@ -46,11 +46,14 @@ can say "Feedback."
 
 ## Page priorities
 
-- Home preserves its established journal header: the small label, display
-  headline, introduction, brew or setup action, secondary library link, and
-  original bean beside the text and actions. Keep its content-driven height
-  and original crop rather than introducing empty space to reposition the art.
-  The community feed follows the header.
+- Home opens with a Community masthead and the primary action alongside it.
+  Signed-in feed filters sit beneath the title; the feed follows directly.
+  Ready accounts need no introduction, slogan, eyebrow, or secondary journal
+  link. Setup-incomplete accounts get one Finish setup action and readiness
+  guidance. Visitors get Log in, a separate Create an account link, and
+  “Track brews, beans, and recipes.” Keep account-storage explanations on the
+  AT Protocol and About pages, not in the masthead. Preserve the bean artwork
+  without adding empty space to accommodate it.
 - My Coffee is the user's collection. Navigation, search, and logging take
   precedence over summaries of what a collection is.
 - Forms and setup explain requirements and next actions. Do not repeat the same

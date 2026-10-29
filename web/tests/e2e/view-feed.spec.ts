@@ -9,7 +9,9 @@ test("view feed and filter", async ({ authedPage: page, apiRequest }) => {
 
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  await expect(page.getByText("Recent activity")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Community", exact: true }),
+  ).toBeVisible();
 
   await expect(page.locator("#feed-items")).toBeAttached();
 
