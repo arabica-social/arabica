@@ -1,6 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const { pushToast } = vi.hoisted(() => ({ pushToast: vi.fn() }));
+vi.mock("$lib/stores/toasts", () => ({ pushToast }));
 import MyCoffee from "../../src/routes/my-coffee/+page.svelte";
 
 const manageData = {
@@ -124,6 +127,8 @@ describe("My Coffee page", () => {
     cleanup();
     document.body.innerHTML = "";
     localStorage.clear();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
 
   it("renders the heading and tab navigation", () => {
@@ -136,7 +141,9 @@ describe("My Coffee page", () => {
     expect(screen.getByText("Roasters")).toBeTruthy();
     expect(screen.getByText("Grinders")).toBeTruthy();
     expect(screen.queryByText("Personal collection")).toBeNull();
-    expect(screen.getByText("1 brewer and 1 grinder saved.")).toBeTruthy();
+    expect(screen.queryByText("1 brewer and 1 grinder saved.")).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Collection tools" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Refresh", exact: true })).toBeTruthy();
   });
 
   it("shows the brews tab by default", () => {
@@ -157,7 +164,7 @@ describe("My Coffee page", () => {
     expect(screen.getByText(/7.5\/10 avg/)).toBeTruthy();
   });
 
-  it("counts only open bags in the shortcut and opens the beans collection", async () => {
+  it("opens the beans collection and separates open and finished bags", async () => {
     const user = userEvent.setup();
     render(MyCoffee, {
       data: {
@@ -181,7 +188,7 @@ describe("My Coffee page", () => {
       screen.getByRole("button", { name: "Beans", exact: true }),
     ).toHaveAttribute("data-count", "2");
     await user.click(
-      screen.getByRole("button", { name: "View beans (1 open bag)" }),
+      screen.getByRole("button", { name: "Beans", exact: true }),
     );
     expect(
       screen.getByRole("button", { name: "Beans", exact: true }),
@@ -193,7 +200,7 @@ describe("My Coffee page", () => {
     expect(screen.getByText("Finished coffee")).toBeTruthy();
   });
 
-  it("shows zero open bags and saved equipment counts without implying readiness", async () => {
+  it("shows the actionable empty bean state without redundant equipment summaries", async () => {
     const user = userEvent.setup();
     render(MyCoffee, {
       data: {
@@ -211,9 +218,9 @@ describe("My Coffee page", () => {
       },
     });
 
-    expect(screen.getByText("0 brewers and 2 grinders saved.")).toBeTruthy();
+    expect(screen.queryByText("0 brewers and 2 grinders saved.")).toBeNull();
     await user.click(
-      screen.getByRole("button", { name: "View beans (0 open bags)" }),
+      screen.getByRole("button", { name: "Beans", exact: true }),
     );
     expect(screen.getByText(/No open bags\./)).toBeTruthy();
     expect(
@@ -257,6 +264,52 @@ describe("My Coffee page", () => {
       data: { manage: null, brews: null, error: "Authentication required" },
     });
     expect(screen.getByText("Authentication required")).toBeTruthy();
+  });
+
+  it("refreshes the collection without switching tabs", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ...manageData, beans: [] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => brewsData });
+    vi.stubGlobal("fetch", fetchMock);
+    render(MyCoffee, { data: { manage: manageData, brews: brewsData, error: "" } });
+    await user.click(screen.getByRole("button", { name: "Beans", exact: true }));
+    await user.click(screen.getByRole("button", { name: "Refresh", exact: true }));
+    expect(fetchMock).toHaveBeenCalledWith("/api/manage/refresh", {
+      method: "POST", credentials: "same-origin",
+    });
+    expect(screen.getByText(/No open bags\./)).toBeTruthy();
+    expect(localStorage.getItem("manageTab")).toBe("beans");
+    expect(pushToast).toHaveBeenCalledWith("Refreshed");
+  });
+
+  it("disables refresh while the account is reloading", async () => {
+    const user = userEvent.setup();
+    let finish!: (value: { ok: boolean }) => void;
+    const pending = new Promise<{ ok: boolean }>((resolve) => { finish = resolve; });
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(pending));
+    render(MyCoffee, { data: { manage: manageData, brews: brewsData, error: "" } });
+    await user.click(screen.getByRole("button", { name: "Refresh", exact: true }));
+    expect(screen.getByRole("button", { name: "Refreshing…" })).toBeDisabled();
+    finish({ ok: false });
+    expect(await screen.findByRole("button", { name: "Refresh", exact: true })).not.toBeDisabled();
+  });
+
+  it.each(["refresh", "reload"])("reports %s failure and retains visible records", async (stage) => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    if (stage === "refresh") fetchMock.mockResolvedValue({ ok: false });
+    else fetchMock.mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true, json: async () => brewsData });
+    vi.stubGlobal("fetch", fetchMock);
+    render(MyCoffee, { data: { manage: manageData, brews: brewsData, error: "" } });
+    await user.click(screen.getByRole("button", { name: "Refresh", exact: true }));
+    expect(screen.getByText("Bright and sweet")).toBeTruthy();
+    expect(pushToast).toHaveBeenCalledWith("Refresh failed");
+    expect(pushToast).not.toHaveBeenCalledWith("Refreshed");
+    expect(screen.getByRole("button", { name: "Refresh", exact: true })).not.toBeDisabled();
   });
 
   it("links brew cards to the view URL", () => {

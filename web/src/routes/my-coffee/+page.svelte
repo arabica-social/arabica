@@ -45,6 +45,7 @@
   let manage = $state<ManageResponseJSON | null>(null);
   let brewsData = $state<BrewListResponse | null>(null);
   let loadingMore = $state(false);
+  let refreshing = $state(false);
 
   // Sync load function data into local state (so refresh can update it).
   $effect(() => {
@@ -74,26 +75,34 @@
   }
 
   async function refresh() {
+    if (refreshing) return;
+    refreshing = true;
     try {
       const res = await fetch("/api/manage/refresh", {
         method: "POST",
         credentials: "same-origin",
       });
-      if (res.ok) {
-        appCache.invalidateCache();
-        // Refetch manage + brews.
-        const [m, b] = await Promise.all([
-          fetch("/api/manage", { headers: { Accept: "application/json" } }),
-          fetch("/api/brews?limit=25", {
-            headers: { Accept: "application/json" },
-          }),
-        ]);
-        if (m.ok) manage = (await m.json()) as ManageResponseJSON;
-        if (b.ok) brewsData = (await b.json()) as BrewListResponse;
-        pushToast("Refreshed");
-      }
+      if (!res.ok) throw new Error("Refresh failed");
+      appCache.invalidateCache();
+      // Refetch manage + brews.
+      const [m, b] = await Promise.all([
+        fetch("/api/manage", { headers: { Accept: "application/json" } }),
+        fetch("/api/brews?limit=25", {
+          headers: { Accept: "application/json" },
+        }),
+      ]);
+      if (!m.ok || !b.ok) throw new Error("Refresh failed");
+      const [nextManage, nextBrews] = await Promise.all([
+        m.json() as Promise<ManageResponseJSON>,
+        b.json() as Promise<BrewListResponse>,
+      ]);
+      manage = nextManage;
+      brewsData = nextBrews;
+      pushToast("Refreshed");
     } catch {
       pushToast("Refresh failed");
+    } finally {
+      refreshing = false;
     }
   }
 
@@ -220,7 +229,16 @@
   {:else if manage}
     <div class="coffee-library-grid">
       <aside class="collection-index" aria-label="Coffee collections">
-        <p class="collection-label">Collections</p>
+        <div class="collection-tools">
+          <p class="collection-label">Collections</p>
+          <button
+            type="button"
+            class="library-refresh"
+            title="Reload records from your account"
+            onclick={refresh}
+            disabled={refreshing}
+          >{refreshing ? "Refreshing…" : "Refresh"}</button>
+        </div>
         <nav>
           {#each tabs as tab (tab.id)}
             <button
@@ -795,31 +813,6 @@
           {/if}
         {/if}
       </main>
-      <aside class="coffee-library-rail" aria-label="Collection tools">
-        <section class="library-rail-section lead">
-          <button
-            type="button"
-            class="library-refresh"
-            onclick={() => switchTab("beans")}
-            >View beans ({openBeans.length} open {openBeans.length === 1
-              ? "bag"
-              : "bags"})</button
-          >
-          <p>
-            {manage.brewers.length} brewer{pluralS(manage.brewers.length)} and
-            {manage.grinders.length} grinder{pluralS(manage.grinders.length)} saved.
-          </p>
-        </section>
-        <section class="library-rail-section">
-          <p class="collection-label">Changes missing?</p>
-          <p>
-            Made changes on another device or app? Refresh to see them here.
-          </p>
-          <button type="button" class="library-refresh" onclick={refresh}
-            ><Icon name="coffee" />Refresh</button
-          >
-        </section>
-      </aside>
     </div>
   {/if}
 </div>
@@ -849,12 +842,14 @@
     order: 0;
     min-width: 0;
   }
-  .coffee-library-rail {
-    order: 2;
-    min-width: 0;
+  .collection-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
   }
   .collection-label {
-    margin: 0 0 0.45rem;
+    margin: 0;
     color: var(--text-muted);
     font-size: 0.65rem;
     font-weight: 700;
@@ -866,7 +861,7 @@
     overflow-x: auto;
     border-block: 1px solid var(--card-border);
   }
-  .collection-index button {
+  .collection-index nav button {
     display: flex;
     min-width: max-content;
     min-height: 2.75rem;
@@ -877,30 +872,17 @@
     border-bottom: 2px solid transparent;
     font-size: 0.78rem;
   }
-  .collection-index button::after {
+  .collection-index nav button::after {
     content: attr(data-count);
     color: var(--text-faint);
     font-size: 0.7rem;
     font-weight: 400;
     font-variant-numeric: tabular-nums;
   }
-  .collection-index button.active {
+  .collection-index nav button.active {
     color: var(--text-primary);
     border-bottom-color: var(--text-secondary);
     font-weight: 600;
-  }
-  .library-rail-section {
-    padding: 1rem 0 1.2rem;
-    border-top: 1px solid var(--card-border);
-  }
-  .library-rail-section.lead {
-    border-top: 2px solid var(--text-secondary);
-  }
-  .library-rail-section p:not(.collection-label) {
-    margin: 0 0 0.7rem;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    line-height: 1.55;
   }
   .library-refresh {
     display: inline-flex;
@@ -915,20 +897,15 @@
   }
   @media (min-width: 1040px) {
     .coffee-library-grid {
-      grid-template-columns: minmax(10rem, 0.65fr) minmax(34rem, 2.5fr) minmax(
-          12rem,
-          0.8fr
-        );
+      grid-template-columns: minmax(10rem, 0.65fr) minmax(0, 3.3fr);
       gap: clamp(1.25rem, 2.2vw, 2.5rem);
       align-items: start;
     }
     .coffee-collection,
-    .collection-index,
-    .coffee-library-rail {
+    .collection-index {
       order: initial;
     }
-    .collection-index,
-    .coffee-library-rail {
+    .collection-index {
       position: sticky;
       top: 5rem;
     }
@@ -938,14 +915,14 @@
       border-block: 0;
       border-top: 2px solid var(--text-secondary);
     }
-    .collection-index button {
+    .collection-index nav button {
       width: 100%;
       justify-content: space-between;
       border-bottom: 1px dotted var(--card-border);
       border-left: 2px solid transparent;
       padding-inline: 0.65rem;
     }
-    .collection-index button.active {
+    .collection-index nav button.active {
       border-bottom-color: var(--card-border);
       border-left-color: var(--text-secondary);
     }

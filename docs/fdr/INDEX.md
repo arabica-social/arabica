@@ -20,3 +20,4 @@ Use [`TEMPLATE.md`](TEMPLATE.md) for new records.
 | [FDR-003](FDR-003-feedback.md) | Feedback | Active | 2026-10-19 |
 | [FDR-004](FDR-004-smart-autofill.md) | Smart Autofill | Active | 2026-08-29 |
 | [FDR-005](FDR-005-home.md) | Home | Active | 2026-10-19 |
+| [FDR-006](FDR-006-my-coffee.md) | My Coffee | Active | 2026-10-30 |
