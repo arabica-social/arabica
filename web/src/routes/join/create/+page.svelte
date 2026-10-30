@@ -129,10 +129,4 @@
       class="link">run their own provider</a
     > to host their account.
   </div>
-  <p class="text-sm text-muted text-center">
-    Already have an Atmosphere account?
-    <button type="button" onclick={openLoginModal} class="link-bold"
-      >Log in here</button
-    >.
-  </p>
 </div>

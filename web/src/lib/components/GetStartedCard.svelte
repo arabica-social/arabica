@@ -127,14 +127,14 @@
       {#each [{ no: "01", kind: "brewer", title: "Brewer", hint: "The brewer you use, such as an espresso machine, V60, or French press.", required: true }, { no: "02", kind: "roaster", title: "Roaster", hint: "The company or person who roasted your beans.", required: true }, { no: "03", kind: "bean", title: "Bean", hint: "A bag of beans you are currently using.", required: true }, { no: "04", kind: "grinder", title: "Grinder", hint: "Optional if you use pre-ground coffee.", required: false }] as station (station.kind)}
         <article
           class="station"
-          data-no={station.no}
+          data-no={isLibrary ? undefined : station.no}
           data-kind={station.kind}
           data-optional={station.required ? undefined : "true"}
         >
           <header class="station-head">
-            <span class="station-no">{station.no}</span>
+            {#if !isLibrary}<span class="station-no">{station.no}</span>{/if}
             <h3 class="station-title">{station.title}</h3>
-            {#if done(station.kind)}
+            {#if !isLibrary && done(station.kind)}
               <span class="station-tag" data-tag="done"
                 ><svg
                   width="12"
@@ -148,14 +148,18 @@
                   aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg
                 >added</span
               >
-            {:else if station.required}<span
+            {:else if !isLibrary && station.required}<span
                 class="station-tag"
                 data-tag="required">required</span
               >
-            {:else}<span class="station-tag" data-tag="optional">optional</span
+            {:else if !isLibrary}<span class="station-tag" data-tag="optional">optional</span
               >{/if}
           </header>
-          <p class="station-hint">{station.hint}</p>
+          <p class="station-hint">
+            {isLibrary && station.kind === "grinder"
+              ? "For whole beans; skip if you use pre-ground coffee."
+              : station.hint}
+          </p>
           {#if itemLabels(station.kind).length}
             <ul class="station-items">
               {#each itemLabels(station.kind).slice(0, 3) as item}<li
@@ -195,9 +199,6 @@
     {#if !isLibrary}
       {#if remaining(currentOnboarding.readiness) === 0}
         <div class="ready-panel" data-state="ready">
-          <div class="ready-copy">
-            <p class="ready-headline">You're ready to log your first brew.</p>
-          </div>
           <a href="/brews/new" class="ready-cta"
             >Log your first brew <span
               class="ready-cta-arrow"
@@ -208,15 +209,6 @@
       {:else}
         <div class="ready-panel" data-state="not-ready">
           <div class="ready-copy">
-            <p class="ready-headline">
-              <span class="ready-count"
-                ><span class="ready-count-num"
-                  >{remaining(currentOnboarding.readiness)}</span
-                >{remaining(currentOnboarding.readiness) === 1
-                  ? "step"
-                  : "steps"} to go.</span
-              >
-            </p>
             <p class="ready-sub">
               {encouragement(currentOnboarding.readiness)}
             </p>
@@ -226,3 +218,14 @@
     {/if}
   </section>
 {/if}
+
+<style>
+  @media (min-width: 640px) {
+    .onboarding-card[data-mode="library"] .stations {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .onboarding-card[data-mode="library"] .station[data-optional="true"] {
+      grid-column: auto;
+    }
+  }
+</style>

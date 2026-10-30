@@ -16,7 +16,7 @@
 </svelte:head>
 
 <div class="info-page">
-  <div class="info-hero">
+  <div class="info-hero about-hero">
     <div class="info-hero-row">
       <div class="info-title-group">
         <div class="info-eyebrow">
@@ -36,7 +36,7 @@
       Features may change, and data structures could be modified in future updates.
     </p>
   </div>
-  <div class="prose prose-lg max-w-none info-stack">
+  <div class="prose prose-lg max-w-none info-stack about-stack">
     <section>
       <h2 class="text-2xl font-semibold text-primary mb-4">
         Accounts and data
@@ -107,3 +107,21 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .about-hero {
+    margin-bottom: 1.5rem;
+  }
+
+  .about-stack {
+    gap: 2rem;
+  }
+
+  .about-stack > section :global(h2) {
+    margin-top: 0;
+  }
+
+  .about-stack > section > :global(:last-child) {
+    margin-bottom: 0;
+  }
+</style>

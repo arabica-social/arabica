@@ -56,6 +56,12 @@ describe("Join/Create page", () => {
 		).toBeTruthy();
 	});
 
+	it("keeps one contextual login invitation", () => {
+		render(JoinCreate, { data: { error: "", categories: [], loadFailed: false } });
+		expect(screen.getAllByRole("button", { name: "Log in" })).toHaveLength(1);
+		expect(screen.queryByText(/Already have an Atmosphere account/)).toBeNull();
+	});
+
 	it("renders provider cards from loaded categories", () => {
 		render(JoinCreate, {
 			data: { error: "", categories: sampleCategories, loadFailed: false },
