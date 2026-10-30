@@ -83,56 +83,62 @@ the bottom for reference.
 
 ## Copy and UI cleanup follow-ups
 
-From the 2026-10-29 post-cleanup review. Preserve the warm palette, display
-typography, and coffee artwork; simplify redundant framing rather than adding
-filler or stripping the visual identity. Suggested order: My Coffee tools,
-entity-form sidebars, then mobile Explore.
+Implemented from the 2026-10-29 review on 2026-10-30. The warm palette,
+display typography, and coffee artwork are preserved.
 
-- [ ] Consolidate My Coffee's remaining sidebar into compact collection tools
-  - `web/src/routes/my-coffee/+page.svelte`: the dedicated right column and
-    heavy divider now frame only View beans, equipment counts, and refresh
-    instructions. Remove redundant summaries (especially zero counts), keep
-    Refresh discoverable, and review the detached tools on mobile.
-  - Review repeated logging actions across the header, page toolbar, and empty
-    state; retain the empty-state action where it helps.
-- [ ] Simplify entity-form sidebars and repeated instructions
+- [x] Consolidate My Coffee's sidebar into compact collection tools
+  - `web/src/routes/my-coffee/+page.svelte`: Refresh sits beside collection
+    navigation; the equipment-summary/troubleshooting rail is removed. Refresh
+    disables while pending and reports failures without replacing records.
+    Page actions and the useful first-brew empty-state action remain.
+- [x] Simplify entity-form sidebars and repeated instructions
   - `web/src/lib/components/{Bean,Roaster,Brewer,Grinder,Recipe}Form.svelte`:
-    remove duplicate explanations, decorative eyebrow labels, and unnecessary
-    completeness counters. Keep required-field guidance beside controls and
-    useful live previews, such as recipe ratio.
-- [ ] Make mobile Explore prioritize results
-  - `web/src/routes/explore/+page.svelte`: the expanded controls occupy most
-    of the first screen at 390px. Explore compact search with collapsible
-    filters and an active-filter summary. Use an established icon instead of
-    the magnifying-glass emoji in the empty state.
-- [ ] Remove the duplicate existing-account login invitation
-  - `web/src/routes/join/create/+page.svelte`: the new introduction and the
-    bottom of the provider chooser both invite existing users to log in.
-    Keep one contextual invitation.
-- [ ] Adjust About spacing for the shorter content
-  - `web/src/routes/about/+page.svelte` and its shared styles: review the large
-    framed introduction and broad section gaps. Make a modest spacing pass,
-    not a wholesale visual redesign.
-- [ ] Distinguish general Add choices from first-time setup
-  - `web/src/lib/components/GetStartedCard.svelte`: in library mode on `/add`,
-    remove numbered stations and required badges that imply a setup sequence.
-    Preserve meaningful prerequisites and completion states on onboarding.
-- [ ] Make user-facing terminology consistent
-  - Review "Coffee ledger" on profiles and "fork" versus "copy" for recipes;
-    use clear coffee-domain language consistently without changing persisted
-    identifiers or API contracts.
-  - Remove unsupported "drinks" references in `RoasterForm.svelte` help text.
-- [ ] Review and refresh stale home screenshot baselines
-  - The focused 2026-10-29 Playwright run had 54 passes and 8 screenshot
-    comparison failures: seven dark-mode masthead baselines and the whole-page
-    home baseline still show the old composition. Review current renders in
-    both themes before updating; do not blindly accept snapshots.
+    removed explanatory rails, completeness counters, and repetitive copy.
+    Required indicators, validation, and meaningful field help remain. Live
+    recipe ratio is beside measurements, which share a row on desktop.
+- [x] Make mobile Explore prioritize results
+  - `web/src/routes/explore/+page.svelte`: compact search/type/sort controls,
+    collapsed additional filters, applied-filter summary, and established icon.
+    Filtered direct loads, reset, failed searches, and stale pending responses
+    are covered without changing API parameters.
+- [x] Remove the duplicate existing-account login invitation
+  - `web/src/routes/join/create/+page.svelte`: kept the contextual top Log in
+    invitation and removed the repeated invitation below provider choices.
+- [x] Adjust About spacing for the shorter content
+  - `web/src/routes/about/+page.svelte`: page-scoped spacing removes stacked
+    prose margins; the framed introduction, texture, and warnings remain.
+- [x] Distinguish general Add choices from first-time setup
+  - `web/src/lib/components/GetStartedCard.svelte`: library mode has equal
+    choices without numbered stations or setup badges; onboarding retains
+    prerequisites and completion states. Removed redundant countdown/ready copy.
+- [x] Make user-facing terminology consistent
+  - Removed "Coffee ledger" on profiles and unsupported "drinks" in roaster
+    help. Recipe UI consistently says "copy"; persisted fields and API names
+    such as `fork_count` and `most_forked` remain unchanged. See the glossary.
+- [x] Review and refresh stale home screenshot baselines
+  - Reviewed both themes and refreshed seven dark-mode mastheads and the
+    whole-page home composition, plus changed collection, bean-form, and
+    recipe-catalog baselines. The baseline-update run passed all 50 tests.
 
-Check affected layouts with empty and populated content, narrow and wide
-screens, and both themes. Update current feature/design documentation when
-implementing changes; do not reintroduce filler to occupy removed-copy space.
+Final verification: 659 unit tests passed; Svelte check reported zero errors
+and warnings; 87 targeted browser/layout/snapshot tests passed without updating
+snapshots. The responsive matrix covers 390px and 1280px in both themes, empty
+and populated collections, filters/reset, forms and live ratio, Add/onboarding,
+and account creation. The full browser run's separate pagination failure is
+tracked below. Preserve those states when revising these surfaces.
 
 ## UX improvements
+
+- [ ] Investigate Community feed pagination's duplicate-key error
+  - The 2026-10-30 full browser run passed 122/123 tests; `view-feed.spec.ts`
+    failed after Load more with Svelte `each_key_duplicate`. The home feed
+    append/render path was unchanged by the copy/UI follow-ups. Reproduce with
+    enough indexed records to guarantee a second page and inspect overlapping
+    `subject_uri` values before choosing a fix; do not mask the browser error.
+  - Read-only diagnosis: `internal/firehose/feed_reader.go` uses timestamp/URI
+    cursors but orders SQL by timestamp alone. Equal-timestamp page overlap is
+    a hypothesis to test, not a confirmed root cause of this run. Also inspect
+    the separate cursor/truncation boundary in `internal/feed/service.go`.
 
 - [ ] My coffee page (`web/src/routes/my-coffee/+page.svelte`)
   - [ ] Brew cards: clicking the bean name should view the bean (currently the

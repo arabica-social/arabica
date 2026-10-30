@@ -55,9 +55,14 @@ can say "Feedback."
   AT Protocol and About pages, not in the masthead. Preserve the bean artwork
   without adding empty space to accommodate it.
 - My Coffee is the user's collection. Navigation, search, and logging take
-  precedence over summaries of what a collection is.
+  precedence over summaries of what a collection is. Keep Refresh beside the
+  collection navigation, not in a separate equipment-summary or troubleshooting
+  rail.
 - Forms and setup explain requirements and next actions. Do not repeat the same
   instruction in a page introduction, a card description, and an empty state.
+  The general Add page presents independent choices without onboarding's
+  numbering or prerequisite badges; setup retains meaningful required and
+  optional states.
 - About explains the app and how to start. The AT Protocol page owns the deeper
   explanation of accounts and data storage.
 
