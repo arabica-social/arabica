@@ -100,6 +100,9 @@ reuse their behavior without adding decorative framing to match the name.
   need, such as mobile navigation.
 - Preserve required/optional indicators, validation messages, and explanations
   of privacy or cross-app effects. Keep them next to the relevant control.
+- Record forms use a single content column without explanatory sidebars or
+  completeness counters. Keep helpful previews beside the fields they describe,
+  such as the live recipe ratio below coffee and water measurements.
 - Empty, loading, and error states must be distinct. Do not describe a failed
   request as an empty collection.
 - Use icons consistently, with text or accessible names for controls. Do not

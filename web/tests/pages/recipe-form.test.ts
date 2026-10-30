@@ -47,6 +47,13 @@ describe("RecipeForm", () => {
 		vi.unstubAllGlobals();
 	});
 
+	it("keeps the task and fields ahead of redundant form chrome", () => {
+		render(RecipeForm, { recipe: null, isEdit: false });
+		expect(screen.queryByRole("complementary", { name: "Form context" })).not.toBeInTheDocument();
+		expect(screen.queryByText(/record completeness|fields recorded|useful details recorded/i)).not.toBeInTheDocument();
+		expect(screen.getByLabelText("Name")).toBeRequired();
+	});
+
 	it("shows accessible feedback when the required name is empty", async () => {
 		render(RecipeForm, { recipe: null, isEdit: false });
 
@@ -86,6 +93,16 @@ describe("RecipeForm", () => {
 		expect(screen.getByLabelText("Notes")).toHaveValue("Bright and sweet");
 		expect(screen.getByRole("combobox", { name: "Brewer" })).toHaveValue("V60");
 		expect(document.querySelector('input[name="brewer_rkey"]')?.getAttribute("value")).toBe("brewer-1");
+	});
+
+	it("shows a live ratio next to measurements without a duplicate sidebar", async () => {
+		render(RecipeForm, { recipe: null, isEdit: false });
+		expect(screen.queryByText(/Brew ratio 1:/)).not.toBeInTheDocument();
+		await userEvent.type(screen.getByLabelText("Coffee amount in grams"), "15");
+		await userEvent.type(screen.getByLabelText("Water amount in grams"), "240");
+		expect(screen.getByText("Brew ratio 1:16.0 (15g coffee · 240g water)")).toBeInTheDocument();
+		await userEvent.clear(screen.getByLabelText("Water amount in grams"));
+		expect(screen.queryByText(/Brew ratio 1:/)).not.toBeInTheDocument();
 	});
 
 	it("renders all brewer type options", () => {

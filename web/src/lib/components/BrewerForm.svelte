@@ -3,7 +3,6 @@
 	import FormWorkspace from "./FormWorkspace.svelte";
 	import LedgerHeader from "./LedgerHeader.svelte";
 	import FormSection from "./FormSection.svelte";
-	import RailSection from "./RailSection.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createBrewer, updateBrewer } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -90,19 +89,11 @@
 		}
 	}
 
-	let brewerTypeLabel = $derived(
-		brewerType ? BREWER_TYPES.find((t) => t.value === brewerType)?.label ?? brewerType : "",
-	);
-	let completeness = $derived(
-		[name, brewerType, description, link].filter((v) => v.trim() !== "").length,
-	);
 </script>
 
 <FormWorkspace>
 	<LedgerHeader
 		title={isEdit ? "Edit Brewer" : "Add a Brewer"}
-		eyebrow="Brewer"
-		description="Log a brewing device once and reuse it across recipes and brews."
 		showBack={true}
 	/>
 
@@ -111,11 +102,10 @@
 			<div class="alert-error" role="alert">{formError}</div>
 		{/if}
 
-		<FormSection title="Essentials" description="The name is required. Type groups brewers in your journal.">
+		<FormSection title="Essentials">
 			<div class="space-y-6">
 				<div>
 					<label class="form-label" for="brewer-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
-					<p id="brewer-name-help" class="text-sm text-muted mb-2">The brewer name shown in your journal.</p>
 					<input
 						id="brewer-name"
 						name="name"
@@ -127,7 +117,7 @@
 						required
 						autocomplete="off"
 						aria-invalid={nameError !== ""}
-						aria-describedby={nameError ? "brewer-name-help brewer-name-error" : "brewer-name-help"}
+						aria-describedby={nameError ? "brewer-name-error" : undefined}
 						oninput={() => { if (nameError && name.trim()) nameError = ""; }}
 					/>
 					{#if nameError}
@@ -147,11 +137,10 @@
 			</div>
 		</FormSection>
 
-		<FormSection title="Details" description="Optional description and a link for future reference.">
+		<FormSection title="Details">
 			<div class="space-y-6">
 				<div>
 					<label class="form-label" for="brewer-description">Description</label>
-					<p id="brewer-description-help" class="text-sm text-muted mb-2">Notes about this brewer.</p>
 					<textarea
 						id="brewer-description"
 						name="description"
@@ -160,7 +149,6 @@
 						bind:value={description}
 						placeholder="Capacity, material, etc."
 						aria-label="Description"
-						aria-describedby="brewer-description-help"
 					></textarea>
 				</div>
 
@@ -188,19 +176,6 @@
 		</div>
 	</form>
 
-	{#snippet rail()}
-		<RailSection title={name || "Untitled brewer"} eyebrow="Brewer" lead={true}>
-			<p>{brewerTypeLabel || "Type not selected"}</p>
-			{#if link}<p>{link}</p>{/if}
-		</RailSection>
-		<RailSection title="Record completeness" eyebrow="Journal status">
-			<p>{completeness} of 4 fields recorded.</p>
-			<p>Only the name is required. Picking a type helps filter your recipes later.</p>
-		</RailSection>
-		<RailSection title="What belongs here" eyebrow="Field notes">
-			<p>Brewers are reusable across recipes and brews. Note capacity or material under Description so you can match recipes to gear.</p>
-		</RailSection>
-	{/snippet}
 </FormWorkspace>
 
 <style>

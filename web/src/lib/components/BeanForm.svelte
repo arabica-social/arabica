@@ -5,7 +5,6 @@
 	import FormWorkspace from "./FormWorkspace.svelte";
 	import LedgerHeader from "./LedgerHeader.svelte";
 	import FormSection from "./FormSection.svelte";
-	import RailSection from "./RailSection.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createBean, updateBean } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -140,8 +139,6 @@
 <FormWorkspace>
 	<LedgerHeader
 		title={isEdit ? "Edit Bean" : "Add a Bean"}
-		eyebrow="Coffee label"
-		description="Record the coffee, roaster, origin, and details from the bag."
 		showBack={true}
 	/>
 
@@ -150,11 +147,10 @@
 				<div class="alert-error" role="alert">{formError}</div>
 			{/if}
 
-			<FormSection title="Essentials" description="Name and origin are required. Add the other details you want to keep with this record.">
+			<FormSection title="Essentials">
 				<div class="space-y-6">
 					<div>
 						<label class="form-label" for="bean-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
-						<p id="bean-name-help" class="text-sm text-muted mb-2">The coffee name shown in your journal.</p>
 						{#if isEdit}
 							<input
 								id="bean-name"
@@ -167,7 +163,7 @@
 								required
 								autocomplete="off"
 								aria-invalid={nameError !== ""}
-								aria-describedby={nameError ? "bean-name-help bean-name-error" : "bean-name-help"}
+								aria-describedby={nameError ? "bean-name-error" : undefined}
 								oninput={() => { if (nameError && name.trim()) nameError = ""; }}
 							/>
 						{:else}
@@ -176,7 +172,7 @@
 								placeholder="e.g. Ethiopia Gedeb"
 								inputId="bean-name"
 								ariaLabel="Name"
-								ariaDescribedby={nameError ? "bean-name-help bean-name-error" : "bean-name-help"}
+								ariaDescribedby={nameError ? "bean-name-error" : undefined}
 								bind:name
 								bind:origin
 								bind:roastLevel
@@ -194,7 +190,6 @@
 
 					<div>
 						<span class="form-label" id="bean-roaster-label">Roaster</span>
-						<p class="text-sm text-muted mb-2">Search your roasters or create a new one.</p>
 						<EntityCombo
 							entityType="roaster"
 							apiEndpoint="/api/roasters"
@@ -256,7 +251,7 @@
 				</div>
 			</FormSection>
 
-			<FormSection title="Origin details" description="Add the variety and processing method if they are listed.">
+			<FormSection title="Origin details">
 				<div class="space-y-6">
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
@@ -289,7 +284,7 @@
 				</div>
 			</FormSection>
 
-			<FormSection title="Details" description="Add the roaster's description, a source link, your notes, and an optional rating.">
+			<FormSection title="Details">
 				<div class="space-y-6">
 					<div>
 						<label class="form-label" for="bean-description">Description</label>
@@ -384,19 +379,6 @@
 			</div>
 	</form>
 
-	{#snippet rail()}
-		<RailSection title={name || "Untitled coffee"} eyebrow="Bean label" lead={true}>
-			<p>{roastLevel || "Roast not selected"}</p>
-			<p>{origin || "Add an origin to place this coffee."}</p>
-			{#if variety || process}<p>{[variety, process].filter(Boolean).join(" · ")}</p>{/if}
-		</RailSection>
-		<RailSection title="Bean details" eyebrow="Record summary">
-			<p>Name and origin are required. Add any other information available for this coffee.</p>
-		</RailSection>
-		<RailSection title="Description and notes" eyebrow="Field notes">
-			<p>Use Description for the roaster's copy. Use Notes for your impressions and dial-in notes.</p>
-		</RailSection>
-	{/snippet}
 </FormWorkspace>
 
 <style>

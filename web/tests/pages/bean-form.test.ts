@@ -52,6 +52,13 @@ describe("BeanForm", () => {
 		vi.unstubAllGlobals();
 	});
 
+	it("keeps the task and fields ahead of redundant form chrome", () => {
+		render(BeanForm, { bean: existing, isEdit: true });
+		expect(screen.queryByRole("complementary", { name: "Form context" })).not.toBeInTheDocument();
+		expect(screen.queryByText(/record completeness|fields recorded|useful details recorded/i)).not.toBeInTheDocument();
+		expect(screen.getByLabelText("Name")).toBeRequired();
+	});
+
 	it("shows accessible feedback when the required name is empty", async () => {
 		render(BeanForm, { bean: existing, isEdit: true });
 

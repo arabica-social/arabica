@@ -3,7 +3,6 @@
 	import FormWorkspace from "./FormWorkspace.svelte";
 	import LedgerHeader from "./LedgerHeader.svelte";
 	import FormSection from "./FormSection.svelte";
-	import RailSection from "./RailSection.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createGrinder, updateGrinder } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -86,16 +85,11 @@
 		}
 	}
 
-	let completeness = $derived(
-		[name, grinderType, burrType, notes, link].filter((v) => v.trim() !== "").length,
-	);
 </script>
 
 <FormWorkspace>
 	<LedgerHeader
 		title={isEdit ? "Edit Grinder" : "Add a Grinder"}
-		eyebrow="Grinder"
-		description="Log a grinder once and reuse it across every brew."
 		showBack={true}
 	/>
 
@@ -104,11 +98,10 @@
 			<div class="alert-error" role="alert">{formError}</div>
 		{/if}
 
-		<FormSection title="Essentials" description="The name is required. Type and burr help you compare grinders.">
+		<FormSection title="Essentials">
 			<div class="space-y-6">
 				<div>
 					<label class="form-label" for="grinder-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
-					<p id="grinder-name-help" class="text-sm text-muted mb-2">The grinder make/model shown in your journal.</p>
 					<input
 						id="grinder-name"
 						name="name"
@@ -120,7 +113,7 @@
 						required
 						autocomplete="off"
 						aria-invalid={nameError !== ""}
-						aria-describedby={nameError ? "grinder-name-help grinder-name-error" : "grinder-name-help"}
+						aria-describedby={nameError ? "grinder-name-error" : undefined}
 						oninput={() => { if (nameError && name.trim()) nameError = ""; }}
 					/>
 					{#if nameError}
@@ -151,11 +144,10 @@
 			</div>
 		</FormSection>
 
-		<FormSection title="Details" description="Optional notes and a link for future reference.">
+		<FormSection title="Details">
 			<div class="space-y-6">
 				<div>
 					<label class="form-label" for="grinder-notes">Notes</label>
-					<p id="grinder-notes-help" class="text-sm text-muted mb-2">Personal notes about this grinder.</p>
 					<textarea
 						id="grinder-notes"
 						name="notes"
@@ -164,7 +156,6 @@
 						bind:value={notes}
 						placeholder="Modifications, dial-in notes, etc."
 						aria-label="Notes"
-						aria-describedby="grinder-notes-help"
 					></textarea>
 				</div>
 
@@ -192,19 +183,6 @@
 		</div>
 	</form>
 
-	{#snippet rail()}
-		<RailSection title={name || "Untitled grinder"} eyebrow="Grinder" lead={true}>
-			<p>{[grinderType, burrType].filter(Boolean).join(" · ") || "Type and burr not selected"}</p>
-			{#if link}<p>{link}</p>{/if}
-		</RailSection>
-		<RailSection title="Record completeness" eyebrow="Journal status">
-			<p>{completeness} of 5 fields recorded.</p>
-			<p>Only the name is required. Type and burr help you compare dial-in results across grinders.</p>
-		</RailSection>
-		<RailSection title="What belongs here" eyebrow="Field notes">
-			<p>Use Notes for modifications, click settings, or anything else you need for the next dial-in.</p>
-		</RailSection>
-	{/snippet}
 </FormWorkspace>
 
 <style>

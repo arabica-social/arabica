@@ -5,7 +5,6 @@
 	import FormWorkspace from "./FormWorkspace.svelte";
 	import LedgerHeader from "./LedgerHeader.svelte";
 	import FormSection from "./FormSection.svelte";
-	import RailSection from "./RailSection.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createRecipe, updateRecipe } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -24,9 +23,7 @@
 		{ value: "other", label: "Other" },
 	];
 
-	const BREWER_TYPE_LABELS: Record<string, string> = Object.fromEntries(
-		BREWER_TYPES.map((t) => [t.value, t.label]),
-	);
+
 
 	type Props = {
 		recipe: Recipe | null;
@@ -125,32 +122,11 @@
 	let ratio = $derived(
 		coffeeValue > 0 && waterValue > 0 ? waterValue / coffeeValue : null,
 	);
-	let brewerTypeLabel = $derived(
-		brewerType ? (BREWER_TYPE_LABELS[brewerType] ?? brewerType) : "",
-	);
-	let pourCount = $derived(
-		pours.filter((p) => p.water !== "" || p.time !== "").length,
-	);
-	// Useful details for a reusable recipe: name, brewer, brewer type,
-	// coffee, water, pours, notes.
-	let completeness = $derived(
-		[
-			name.trim(),
-			brewerRKey,
-			brewerType,
-			coffeeAmount !== "" ? String(coffeeAmount) : "",
-			waterAmount !== "" ? String(waterAmount) : "",
-			pourCount > 0 ? "pours" : "",
-			notes.trim(),
-		].filter(Boolean).length,
-	);
 </script>
 
 <FormWorkspace>
 	<LedgerHeader
 		title={isEdit ? "Edit Recipe" : "Add a Recipe"}
-		eyebrow="Recipe"
-		description="Lay out a repeatable brew recipe so future sessions stay on track."
 		showBack={true}
 	/>
 
@@ -162,7 +138,6 @@
 		<FormSection title="Essentials">
 			<div>
 				<label class="form-label" for="recipe-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
-				<p id="recipe-name-help" class="text-sm text-muted mb-2">A memorable name for this recipe.</p>
 				<input
 					id="recipe-name"
 					name="name"
@@ -174,7 +149,7 @@
 					required
 					autocomplete="off"
 					aria-invalid={nameError !== ""}
-					aria-describedby={nameError ? "recipe-name-help recipe-name-error" : "recipe-name-help"}
+					aria-describedby={nameError ? "recipe-name-error" : undefined}
 					oninput={() => { if (nameError && name.trim()) nameError = ""; }}
 				/>
 				{#if nameError}
@@ -200,8 +175,8 @@
 			</div>
 		</FormSection>
 
-		<FormSection title="Measurements" description="Coffee and water set the recipe's strength. Brewer type keeps it sorted.">
-			<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+		<FormSection title="Measurements">
+			<div class="recipe-measurements grid grid-cols-1 gap-4">
 				<div>
 					<label class="form-label" for="recipe-brewer-type">Brewer type</label>
 					<select id="recipe-brewer-type" name="brewer_type" class="w-full form-input-lg" bind:value={brewerType}>
@@ -240,6 +215,9 @@
 					/>
 				</div>
 			</div>
+			{#if ratio !== null}
+				<p class="recipe-ratio" aria-live="polite">Brew ratio 1:{ratio.toFixed(1)} ({coffeeValue}g coffee · {waterValue}g water)</p>
+			{/if}
 		</FormSection>
 
 		<FormSection title="Pours" description="Break the total water into stages for bloom and dilution.">
@@ -250,7 +228,7 @@
 			/>
 		</FormSection>
 
-		<FormSection title="Recipe notes" description="Grind size, technique, and tasting targets belong here.">
+		<FormSection title="Technique">
 			<div>
 				<label class="form-label" for="recipe-notes">Notes</label>
 				<textarea
@@ -273,27 +251,14 @@
 		</div>
 	</form>
 
-	{#snippet rail()}
-		<RailSection title={name.trim() || "Untitled recipe"} eyebrow="Recipe" lead={true}>
-			<p>{brewerTypeLabel || "Brewer type not selected"}</p>
-			{#if ratio !== null}
-				<p>Ratio 1:{ratio.toFixed(1)} ({num(coffeeAmount)}g → {num(waterAmount)}g)</p>
-			{:else}
-				<p>Add coffee and water to see the brew ratio.</p>
-			{/if}
-		</RailSection>
-		<RailSection title="Record completeness" eyebrow="Recipe status">
-			<p>{completeness} of 7 useful details recorded.</p>
-			<p>Name is required. Brewer, measurements, and pours make the recipe reproducible.</p>
-		</RailSection>
-		<RailSection title="What belongs here" eyebrow="Field notes">
-			<p>Recipes are reusable templates. Use Notes for grind and technique; track actual results in a brew that references this recipe.</p>
-		</RailSection>
-	{/snippet}
 </FormWorkspace>
 
 <style>
 	.recipe-form-sheet { padding-top: 1.5rem; }
 	.recipe-form-sheet > :global(.alert-error) { margin-bottom: 1rem; }
 	.recipe-form-sheet :global(.form-section) { margin: 0; }
+	.recipe-ratio { margin: 1rem 0 0; color: var(--text-secondary); font-size: 0.9rem; }
+  @media (min-width: 640px) {
+    .recipe-measurements { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
 </style>

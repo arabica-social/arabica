@@ -42,6 +42,14 @@ describe("RoasterForm", () => {
 		vi.unstubAllGlobals();
 	});
 
+	it("keeps the task and fields ahead of redundant form chrome", () => {
+		render(RoasterForm, { roaster: null, isEdit: false });
+		expect(screen.queryByRole("complementary", { name: "Form context" })).not.toBeInTheDocument();
+		expect(screen.queryByText(/record completeness|fields recorded|useful details recorded/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/beans and drinks|attach them to beans and drinks/i)).not.toBeInTheDocument();
+		expect(screen.getByLabelText("Name")).toBeRequired();
+	});
+
 	it("shows accessible feedback when the required name is empty", async () => {
 		render(RoasterForm, { roaster: null, isEdit: false });
 

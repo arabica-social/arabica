@@ -3,7 +3,6 @@
 	import FormWorkspace from "./FormWorkspace.svelte";
 	import LedgerHeader from "./LedgerHeader.svelte";
 	import FormSection from "./FormSection.svelte";
-	import RailSection from "./RailSection.svelte";
 	import { APIError } from "$lib/api/client";
 	import { createRoaster, updateRoaster } from "$lib/api/entities";
 	import { appCache } from "$lib/stores/appCache";
@@ -76,16 +75,11 @@
 		}
 	}
 
-	let completeness = $derived(
-		[name, location, website].filter((v) => v.trim() !== "").length,
-	);
 </script>
 
 <FormWorkspace>
 	<LedgerHeader
 		title={isEdit ? "Edit Roaster" : "Add a Roaster"}
-		eyebrow="Roaster"
-		description="Record the roaster so it shows up when you log beans and drinks."
 		showBack={true}
 	/>
 
@@ -94,11 +88,10 @@
 			<div class="alert-error" role="alert">{formError}</div>
 		{/if}
 
-		<FormSection title="Essentials" description="The name is required. Location and website help you find this roaster again.">
+		<FormSection title="Essentials">
 			<div class="space-y-6">
 				<div>
 					<label class="form-label" for="roaster-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
-					<p id="roaster-name-help" class="text-sm text-muted mb-2">The name shown on bags and in your coffee journal.</p>
 					<input
 						id="roaster-name"
 						name="name"
@@ -109,7 +102,7 @@
 						required
 						autocomplete="organization"
 						aria-invalid={nameError !== ""}
-						aria-describedby={nameError ? "roaster-name-help roaster-name-error" : "roaster-name-help"}
+						aria-describedby={nameError ? "roaster-name-error" : undefined}
 						oninput={() => { if (nameError && name.trim()) nameError = ""; }}
 					/>
 					{#if nameError}
@@ -134,7 +127,6 @@
 
 				<div>
 					<label class="form-label" for="roaster-website">Website</label>
-					<p id="roaster-website-help" class="text-sm text-muted mb-2">A link to the roaster's website.</p>
 					<input
 						id="roaster-website"
 						name="website"
@@ -144,7 +136,6 @@
 						aria-label="Website"
 						placeholder="https://example.com"
 						autocomplete="url"
-						aria-describedby="roaster-website-help"
 					/>
 				</div>
 			</div>
@@ -158,19 +149,6 @@
 		</div>
 	</form>
 
-	{#snippet rail()}
-		<RailSection title={name || "Untitled roaster"} eyebrow="Roaster" lead={true}>
-			<p>{location || "Add a location to place this roaster."}</p>
-			{#if website}<p>{website}</p>{/if}
-		</RailSection>
-		<RailSection title="Record completeness" eyebrow="Journal status">
-			<p>{completeness} of 3 fields recorded.</p>
-			<p>Only the name is required. A website makes it easy to revisit the roaster later.</p>
-		</RailSection>
-		<RailSection title="What belongs here" eyebrow="Field notes">
-			<p>Roasters are reusable — once added, you can attach them to beans and drinks.</p>
-		</RailSection>
-	{/snippet}
 </FormWorkspace>
 
 <style>
