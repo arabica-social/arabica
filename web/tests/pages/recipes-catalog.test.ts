@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RecipesCatalog from "../../src/routes/recipes/+page.svelte";
 import type { Recipe } from "$lib/types/entity_view";
 
+vi.mock("$app/navigation", () => ({ goto: vi.fn().mockResolvedValue(undefined) }));
+
 const mockRecipe1: Recipe = {
   rkey: "recipe-1",
   name: "V60 Standard",
@@ -72,7 +74,7 @@ describe("Recipes catalog page", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders LedgerHeader with h1, eyebrow, description, and New Recipe action", () => {
+  it("renders LedgerHeader with h1 and New Recipe action without redundant introductory copy", () => {
     render(RecipesCatalog, { data: catalogData });
     const heading = screen.getByRole("heading", {
       level: 1,
@@ -80,11 +82,7 @@ describe("Recipes catalog page", () => {
     });
     expect(heading).toBeTruthy();
     expect(screen.queryByText("Community catalog")).toBeNull();
-    expect(
-      screen.getByText(
-        "Browse, compare, and fork brewing recipes shared by the Arabica community.",
-      ),
-    ).toBeTruthy();
+    expect(screen.queryByText(/Browse, compare/)).toBeNull();
     const newRecipe = screen.getByRole("link", { name: /New Recipe/i });
     expect(newRecipe).toHaveAttribute("href", "/recipes/new");
   });
@@ -117,17 +115,35 @@ describe("Recipes catalog page", () => {
     expect(screen.getByLabelText("Max coffee (g)")).toBeTruthy();
   });
 
+  it("keeps the stable sort parameter behind the copy label", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+    vi.stubGlobal("fetch", fetchMock);
+    render(RecipesCatalog, { data: catalogData });
+    await user.click(screen.getByRole("button", { name: "Most Copied" }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("sort=most_forked"), expect.any(Object),
+    );
+  });
+
+  it.each([1, 2])("labels %i recipe copies without fork jargon", (count) => {
+    render(RecipesCatalog, { data: { ...catalogData, recipes: [{ ...mockRecipe1, fork_count: count }] } });
+    expect(screen.getByText(count === 1 ? "1 copy" : "2 copies")).toBeTruthy();
+  });
+
   it("renders the sort control group", () => {
     render(RecipesCatalog, { data: catalogData });
     expect(screen.getByRole("group", { name: "Sort recipes" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Popular" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Newest" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Most Forked" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Most Copied" })).toBeTruthy();
   });
 
   it("displays the result count and recipe cards", () => {
     render(RecipesCatalog, { data: catalogData });
     expect(screen.getByText("2 recipes found")).toBeTruthy();
+    expect(screen.getByText("1 copy")).toBeTruthy();
+    expect(screen.queryByText(/1 fork/)).toBeNull();
     expect(screen.getByText("V60 Standard")).toBeTruthy();
     expect(screen.getByText("French Press Bold")).toBeTruthy();
   });

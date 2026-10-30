@@ -151,7 +151,6 @@
         size="lg"
       />
       <div class="profile-identity">
-        <p class="profile-label">Coffee ledger</p>
         <h1>
           {profile.profile.display_name ||
             displayHandle(profile.profile.handle)}

@@ -80,6 +80,7 @@ describe("Profile page", () => {
 		render(ProfilePage, { data: testData });
 		expect(screen.getByText("Alice")).toBeTruthy();
 		expect(screen.getByText("@alice.test")).toBeTruthy();
+		expect(screen.queryByText("Coffee ledger")).toBeNull();
 	});
 
 	it("renders the stats grid", () => {

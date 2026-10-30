@@ -40,6 +40,11 @@ can be referenced by brews and may reference a roaster.
 (`social.arabica.alpha.recipe`). A recipe describes intended preparation; a
 Brew records an actual preparation.
 
+**Copy Recipe** — Save an independent copy of another person's recipe to the
+user's collection while retaining its source reference. The interface says
+"copy"; existing API paths and fields named `fork`, `fork_count`, and
+`most_forked` remain unchanged.
+
 **Brew** — An observed Arabica coffee-preparation session
 (`social.arabica.alpha.brew`), potentially referencing a bean, grinder, brewer,
 and recipe.
@@ -103,7 +108,7 @@ search, facets, sorting, and reusable community records. It is distinct from the
 Explore Recipes Page. See [FDR-001](fdr/FDR-001-explore.md).
 
 **Explore Recipes Page (Recipe Explore Page)** — The recipe-specific discovery
-page at `/recipes`, focused on searching, inspecting, using, and forking
+page at `/recipes`, focused on searching, inspecting, using, and copying
 recipes. It predates and remains separate from the general Explore Page.
 
 **Record View Page** — A shareable actor-scoped detail page for one record,

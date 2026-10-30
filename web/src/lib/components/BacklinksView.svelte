@@ -151,7 +151,7 @@
 										{formatDate(e.CreatedAt)}
 										{#if e.ChainDepth > 1}
 											<span class="text-faint"
-												>· fork depth {e.ChainDepth}</span
+												>· copy depth {e.ChainDepth}</span
 											>
 										{/if}
 									</span>

@@ -38,7 +38,7 @@
   const sorts = [
     { label: "Popular", value: "popular" },
     { label: "Newest", value: "newest" },
-    { label: "Most Forked", value: "most_forked" },
+    { label: "Most Copied", value: "most_forked" },
   ];
 
   $effect(() => {
@@ -210,7 +210,7 @@
   <title>Explore Recipes - Arabica</title>
   <meta
     name="description"
-    content="Browse and fork brewing recipes from the Arabica community."
+    content="Browse and copy brewing recipes from the Arabica community."
   />
 </svelte:head>
 
@@ -227,7 +227,6 @@
   <div class="page-container-xl">
     <LedgerHeader
       title="Explore Recipes"
-      description="Browse, compare, and fork brewing recipes shared by the Arabica community."
     >
       {#snippet actions()}
         <a href="/recipes/new" class="btn-primary shadow-lg hover:shadow-xl"
@@ -523,10 +522,7 @@
                           d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
                         ></path>
                       </svg>
-                      {selectedRecipe.fork_count} fork{selectedRecipe.fork_count ===
-                      1
-                        ? ""
-                        : "s"}
+                      {selectedRecipe.fork_count} {selectedRecipe.fork_count === 1 ? "copy" : "copies"}
                       {#if selectedRecipe.forker_avatars && selectedRecipe.forker_avatars.length > 0}
                         <span class="flex -space-x-1.5 ml-1">
                           {#each selectedRecipe.forker_avatars.slice(0, 5) as avatar}
@@ -550,7 +546,7 @@
 
               {#if selectedRecipe.source_ref}
                 <p class="text-sm text-faint mb-3">
-                  Forked from
+                  Copied from
                   {#if selectedRecipe.source_author_display || selectedRecipe.source_author_handle}
                     <a
                       href={sourceRecipeURL(selectedRecipe)}
@@ -724,7 +720,7 @@
                       {#if (recipe.fork_count || 0) > 0}
                         <span
                           class="flex items-center gap-1"
-                          title={`${recipe.fork_count} forks`}
+                          title={`${recipe.fork_count} ${recipe.fork_count === 1 ? "copy" : "copies"}`}
                         >
                           <svg
                             class="w-3.5 h-3.5"
@@ -740,9 +736,7 @@
                               d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
                             ></path>
                           </svg>
-                          {recipe.fork_count} fork{recipe.fork_count === 1
-                            ? ""
-                            : "s"}
+                          {recipe.fork_count} {recipe.fork_count === 1 ? "copy" : "copies"}
                         </span>
                       {/if}
                       {#if recipe.forker_avatars && recipe.forker_avatars.length > 0}

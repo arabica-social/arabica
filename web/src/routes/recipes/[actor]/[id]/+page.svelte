@@ -110,7 +110,7 @@
 			{#if v.extras?.source_recipe_url}
 				<div class="-mt-3 mb-3">
 					<span class="fork-chip">
-						↳ forked from
+						↳ copied from
 						<a href={String(v.extras.source_recipe_url)}>
 							{v.extras.source_recipe_author
 								? `${String(v.extras.source_recipe_author)}'s recipe`
