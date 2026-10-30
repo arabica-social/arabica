@@ -16,6 +16,9 @@
   let explore = $state<ExploreResponse | null>(data.explore);
   let loading = $state(false);
   let loadingMore = $state(false);
+  let searchError = $state(false);
+  let appliedParams = $state(new URLSearchParams());
+  let searchRequest = 0;
 
   let q = $state("");
   let typeFilter = $state("");
@@ -52,7 +55,11 @@
     ratioMin = u.searchParams.get("ratio_min") ?? "";
     ratioMax = u.searchParams.get("ratio_max") ?? "";
     closed = u.searchParams.get("closed") ?? "";
+    searchRequest++;
+    loading = false;
     explore = data.explore;
+    appliedParams = new URLSearchParams(u.search);
+    searchError = false;
   });
 
   function buildURL(cursor = ""): string {
@@ -78,26 +85,9 @@
     return `/api/explore${query ? `?${query}` : ""}`;
   }
 
-  function updateURL() {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (typeFilter) params.set("type", typeFilter);
-    if (sort && sort !== "recent") params.set("sort", sort);
-    if (origin) params.set("origin", origin);
-    if (roaster) params.set("roaster", roaster);
-    if (roastLevel) params.set("roast_level", roastLevel);
-    if (process) params.set("process", process);
-    if (variety) params.set("variety", variety);
-    if (location) params.set("location", location);
-    if (grinderType) params.set("grinder_type", grinderType);
-    if (burrType) params.set("burr_type", burrType);
-    if (brewerType) params.set("brewer_type", brewerType);
-    if (minRating) params.set("min_rating", minRating);
-    if (ratioMin) params.set("ratio_min", ratioMin);
-    if (ratioMax) params.set("ratio_max", ratioMax);
-    if (closed) params.set("closed", closed);
-    const query = params.toString();
-    goto(query ? `/explore?${query}` : "/explore", {
+  function updateURL(requestURL: string) {
+    const query = requestURL.split("?")[1] ?? "";
+    void goto(query ? `/explore?${query}` : "/explore", {
       replaceState: true,
       keepFocus: true,
       noScroll: true,
@@ -106,18 +96,25 @@
 
   async function applyFilters(e: SubmitEvent) {
     e.preventDefault();
+    if (loading) return;
     loading = true;
-    updateURL();
+    searchError = false;
+    const request = ++searchRequest;
+    const requestURL = buildURL();
     try {
-      const res = await fetch(buildURL(), {
+      const res = await fetch(requestURL, {
         headers: { Accept: "application/json" },
       });
       if (!res.ok) throw new Error("Failed");
-      explore = (await res.json()) as ExploreResponse;
+      const result = (await res.json()) as ExploreResponse;
+      if (request !== searchRequest) return;
+      explore = result;
+      appliedParams = new URLSearchParams(requestURL.split("?")[1] ?? "");
+      updateURL(requestURL);
     } catch {
-      pushToast("Failed to search");
+      if (request === searchRequest) searchError = true;
     } finally {
-      loading = false;
+      if (request === searchRequest) loading = false;
     }
   }
 
@@ -138,25 +135,32 @@
     ratioMin = "";
     ratioMax = "";
     closed = "";
-    goto("/explore");
+    searchRequest++;
+    loading = false;
+    searchError = false;
+    void goto("/explore");
   }
 
   async function loadMore() {
     if (!explore?.next_cursor || loadingMore) return;
     loadingMore = true;
+    const request = searchRequest;
     try {
-      const res = await fetch(buildURL(explore.next_cursor), {
+      const params = new URLSearchParams(appliedParams);
+      params.set("cursor", explore.next_cursor);
+      const res = await fetch(`/api/explore?${params.toString()}`, {
         headers: { Accept: "application/json" },
       });
       if (!res.ok) throw new Error("Failed");
       const next = (await res.json()) as ExploreResponse;
+      if (request !== searchRequest) return;
       explore = {
         ...explore,
         items: [...(explore?.items ?? []), ...next.items],
         next_cursor: next.next_cursor,
       };
     } catch {
-      pushToast("Failed to load more");
+      if (request === searchRequest) pushToast("Failed to load more");
     } finally {
       loadingMore = false;
     }
@@ -179,6 +183,43 @@
       closed
     );
   }
+
+  const advancedLabels: Record<string, string> = {
+    origin: "Origin",
+    roaster: "Roaster",
+    roast_level: "Roast level",
+    process: "Process",
+    variety: "Variety",
+    location: "Location",
+    grinder_type: "Grinder type",
+    burr_type: "Burr type",
+    brewer_type: "Brewer type",
+    min_rating: "Minimum rating",
+    ratio_min: "Ratio min",
+    ratio_max: "Ratio max",
+    closed: "Closed beans",
+  };
+
+  let appliedSummary = $derived.by(() => {
+    const parts: string[] = [];
+    const query = appliedParams.get("q");
+    if (query) parts.push(`Search: ${query}`);
+    const type = appliedParams.get("type");
+    if (type)
+      parts.push(
+        `Type: ${type === "recipe" ? "Recipes" : type[0].toUpperCase() + type.slice(1) + "s"}`,
+      );
+    for (const [key, label] of Object.entries(advancedLabels)) {
+      const value = appliedParams.get(key);
+      if (value) parts.push(`${label}: ${value}`);
+    }
+    const order = appliedParams.get("sort");
+    if (order && order !== "recent")
+      parts.push(
+        `Sort: ${order === "rating_high" ? "Rating high" : "Popular"}`,
+      );
+    return parts;
+  });
 
   let items = $derived(explore?.items ?? []);
   let health = $derived(explore?.health);
@@ -215,7 +256,6 @@
   <header class="explore-hero">
     <div class="explore-hero-copy">
       <h1 class="explore-title">Explore</h1>
-      <p class="explore-lede">Find beans, roasters, gear, and recipes.</p>
     </div>
     {#if health?.Dirty}
       <div class="explore-stale-note" role="status" aria-live="polite">
@@ -225,14 +265,7 @@
   </header>
 
   <div class="space-y-6">
-    <details class="explore-controls" open>
-      <summary class="explore-controls-summary cursor-pointer">
-        <span class="explore-controls-title">
-          <span class="block text-sm font-semibold text-primary"
-            >Search and filters</span
-          >
-        </span>
-      </summary>
+    <div class="explore-controls">
       <form onsubmit={applyFilters} class="explore-controls-form space-y-4">
         <div class="explore-primary-filters grid grid-cols-1 gap-3 items-end">
           <label class="block">
@@ -248,7 +281,7 @@
           <label class="block">
             <span class="block text-sm font-medium text-muted mb-1">Type</span>
             <select class="form-select w-full" bind:value={typeFilter}>
-              <option value="">All records</option>
+              <option value="">All</option>
               <option value="bean">Beans</option>
               <option value="roaster">Roasters</option>
               <option value="grinder">Grinders</option>
@@ -268,7 +301,7 @@
 
         <details class="explore-advanced-filters" open={hasAdvancedFilters()}>
           <summary class="text-sm font-medium text-emphasis cursor-pointer"
-            >Advanced filters</summary
+            >More filters{hasAdvancedFilters() ? " (selected)" : ""}</summary
           >
           <div
             class="explore-filter-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
@@ -421,13 +454,31 @@
           <button class="btn-primary" type="submit" disabled={loading}
             >{loading ? "Searching..." : "Explore"}</button
           >
-          <a class="btn-secondary" href="/explore">Clear</a>
-          {#if items.length > 0}
-            <span class="text-sm text-muted ml-auto">{items.length} shown</span>
-          {/if}
+          <button class="btn-secondary" type="button" onclick={clearFilters}
+            >Clear</button
+          >
         </div>
       </form>
-    </details>
+    </div>
+
+    {#if appliedSummary.length > 0 || items.length > 0}
+      <p class="text-sm text-muted explore-applied-summary">
+        {#if appliedSummary.length > 0}Filters: {appliedSummary.join(
+            " · ",
+          )}{/if}
+        {#if items.length > 0}{appliedSummary.length > 0
+            ? " · "
+            : ""}{items.length} shown{/if}
+      </p>
+    {/if}
+
+    {#if searchError}
+      <div class="card card-inner" role="alert">
+        Search failed. {items.length > 0
+          ? "Showing previous results."
+          : "Please try again."}
+      </div>
+    {/if}
 
     {#if data.error}
       <div class="card card-inner text-center py-8">
@@ -440,15 +491,15 @@
           <p class="text-secondary">{data.error}</p>
         {/if}
       </div>
-    {:else if items.length === 0}
+    {:else if items.length === 0 && !searchError}
       <div class="card card-inner text-center py-12">
-        <div class="text-4xl mb-3">🔍</div>
+        <Icon name="sliders" class="inline-block w-8 h-8 text-muted mb-3" />
         <p class="text-emphasis font-medium mb-1">No matching records yet.</p>
         <p class="text-sm text-muted">
           Try fewer filters, or check back later for more from the community.
         </p>
       </div>
-    {:else}
+    {:else if items.length > 0}
       <div class="explore-results feed-grid" data-feed-masonry>
         {#each items as item (item.subject_uri)}
           <FeedCard {item} {isAuthenticated}>
@@ -486,3 +537,28 @@
     {/if}
   </div>
 </section>
+
+<style>
+  /* Search stays available; secondary facets remain one disclosure away. */
+  .explore-controls-form {
+    padding-top: 1rem;
+  }
+  .explore-primary-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-top: 0;
+  }
+  .explore-primary-filters label:first-child {
+    grid-column: 1 / -1;
+  }
+  .explore-applied-summary {
+    overflow-wrap: anywhere;
+  }
+  @media (min-width: 720px) {
+    .explore-primary-filters {
+      grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+    }
+    .explore-primary-filters label:first-child {
+      grid-column: auto;
+    }
+  }
+</style>

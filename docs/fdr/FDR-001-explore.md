@@ -1,7 +1,7 @@
 # FDR-001: Explore
 
 **Status:** Active
-**Last reviewed:** 2026-07-16
+**Last reviewed:** 2026-10-30
 
 ## Overview
 
@@ -19,8 +19,12 @@ user find beans, roasters, gear, and recipes worth examining or reusing.
   reusable discovery object.
 - Results can be searched, filtered by record type and type-specific facets,
   and sorted by recent, popular, or highest-rated.
-- Results load in cursor-based pages. Empty results suggest changing filters;
-  the interface does not expose internal cache terminology.
+- Results load in cursor-based pages. Search, type, and sort remain visible;
+  additional facets are collapsed by default, but expand when a direct URL
+  supplies one. Applied filters are summarized next to results, with a clear
+  action to reset the search. Empty results suggest changing filters; failed
+  searches show an error instead of presenting an empty result. The interface
+  does not expose internal cache terminology.
 - The viewer's own records remain in results and retain ownership affordances.
 - Cards show author identity and applicable rating, like, comment, and reuse
   context. The viewer's like state is reflected in the card actions.
