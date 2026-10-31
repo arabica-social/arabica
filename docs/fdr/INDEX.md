@@ -21,3 +21,4 @@ Use [`TEMPLATE.md`](TEMPLATE.md) for new records.
 | [FDR-004](FDR-004-smart-autofill.md) | Smart Autofill | Active | 2026-08-29 |
 | [FDR-005](FDR-005-home.md) | Home | Active | 2026-10-19 |
 | [FDR-006](FDR-006-my-coffee.md) | My Coffee | Active | 2026-10-30 |
+| [FDR-007](FDR-007-ai-assisted-creation.md) | AI-assisted creation | Experimental | 2026-10-31 |

@@ -47,6 +47,30 @@ need another paragraph.
   returning-user eyebrow, slogan, introduction, and secondary journal link.
   Keep setup guidance and visitor introduction only where needed for those
   states, as specified in [FDR-005](docs/fdr/FDR-005-home.md).
+- Optional AI entry on configured signed-in Home is just a growing textarea and
+  inset Send button, aligned with the feed edges. No extra label, panel, example
+  pills or slogan; preserve the Community masthead and manual actions.
+- Community places its chat prompt before the masthead separator; feed filters
+  and sorting sit below that separator, directly above the feed.
+- Chat reuses Community's small circular arrow Send control and theme-primary
+  colors. The visible disc is 28px; retain a 44px touch target around it. Center it
+  vertically with the text. Prompt inputs have no manual resize grip: start at one
+  line and grow only for their content, reflow on width changes, and shrink when
+  cleared or when a shorter draft is restored.
+- Brew draft cards keep the optional Rating input visible beside Save, not inside
+  Edit details or behind Add rating. Leave it blank until supplied; clearing is
+  supported. Keep one editable rating control backed by the canonical draft.
+  Use a single centered reading lane, compact actions and a floating composer,
+  not a permanent history sidebar or full-width control panels. Stored drafts
+  stay available in Chat options for now; a larger resume workflow is deferred.
+  An empty chat can center the composer without adding a decorative greeting.
+  Keep the conversation primary: actual-value draft card and Save, with optional
+  Edit details instead of an automatic full form or repeated mode controls. Keep
+  that fallback flat and limited to common correction fields; do not duplicate
+  recipe instructions, recipe selectors or advanced pour editing in chat. Tuck
+  record type and Undo into options. Pending work gets visible, truthful status.
+  Home → Chat may share a short composer transition; all movement must respect
+  reduced motion, and unsupported browsers must navigate normally.
 - Home retains the original masked bean SVG at opacity `.045`, positioned
   independently of prose. On desktop it is `20rem` square at `top: -.7rem` and
   `right: 3rem`. At widths up to `719px`, it is `15rem` square at `top: auto`,

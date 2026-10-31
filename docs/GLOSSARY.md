@@ -53,6 +53,18 @@ and recipe.
 preparation details from the user's prior brews for the selected bean and
 recipe, without writing any separate habit record.
 
+**AI-assisted creation** — An optional task-specific chat that proposes editable
+brew, bean, grinder and brewer drafts. It is distinct from history-based Smart
+Autofill; only an explicit Save button creates a PDS record. See
+[FDR-007](fdr/FDR-007-ai-assisted-creation.md).
+
+**Chat session** — A locally persisted, account-scoped conversation and its active
+record draft, with request/field revisions to protect newer edits. Initially one
+session per account is exposed; it is not a server-side record archive.
+
+**Record draft** — Unsaved form state shared by chat and editable controls. It
+becomes a PDS record only through the normal authenticated mutation API.
+
 **Community Feed** — The activity-oriented surface showing what people are
 brewing or recording. It is distinct from Explore's reusable-record discovery.
 

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -10,13 +11,14 @@ import (
 
 // Routes owns Arabica-specific HTTP route registration. Keeping this in the
 // app package prevents the shared router from importing coffee handlers.
-type Routes struct{}
+type Routes struct{ AI *arabicaai.Service }
 
 // SPAOwnedRoutes lists Arabica page routes with SvelteKit direct-load support.
 func (Routes) SPAOwnedRoutes() []string {
 	return []string{
 		"GET /{$}",
 		"GET /about",
+		"GET /chat",
 		"GET /manage", // redirects to /my-coffee via SPA
 		"GET /brews",  // brew list page
 		"GET /terms",
@@ -57,9 +59,12 @@ func (Routes) SPAOwnedRoutes() []string {
 	}
 }
 
-func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext) {
+func (routes Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext) {
 	h := New(ctx.Handlers)
 	cop := ctx.CSRF
+	aiHandlers := AIHandlers{Handlers: h, Service: routes.AI}
+	mux.HandleFunc("GET /api/ai/status", aiHandlers.HandleStatus)
+	mux.Handle("POST /api/ai/chat", cop.Handler(http.HandlerFunc(aiHandlers.HandleChat)))
 
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
 	mux.HandleFunc("GET /api/brews", h.HandleBrewList)
@@ -108,6 +113,7 @@ func (Routes) RegisterAppRoutes(mux *http.ServeMux, ctx routing.AppRouteContext)
 	notFound := http.HandlerFunc(h.HandleNotFound)
 	for _, pattern := range []string{
 		"GET /manage",
+		"GET /chat",
 		"GET /brews",
 		"GET /recipes",
 		"GET /recipes/{actor}/{id}/backlinks",

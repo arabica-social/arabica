@@ -42,6 +42,10 @@ brew. Visitors can browse the public feed before logging in.
 - Loading, empty, and failed-feed states are distinct.
 - Load more appends records once per AT-URI, ignoring overlapping entries
   within or between pages while retaining their existing order.
+- When AI is configured, signed-in users also see a compact description input
+  between the masthead and feed. It adds no heading or suggestions and does not
+  replace Community, manual actions or feed controls. See
+  [FDR-007](FDR-007-ai-assisted-creation.md).
 
 ## Design Decisions
 

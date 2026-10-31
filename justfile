@@ -33,17 +33,30 @@ run-spa-dev:
 # Herdr workspace. Pass workspace=true for a dedicated persistent workspace
 # (which `just herdr-spa-dev-stop` closes). Outside Herdr, a dedicated
 # workspace is created automatically.
-herdr-spa-dev workspace='false':
+herdr-spa-dev workspace='false' public_url='' oauth_client_id='':
     #!/usr/bin/env bash
     set -euo pipefail
     command -v herdr >/dev/null || { echo "error: herdr is required" >&2; exit 1; }
     command -v jq >/dev/null || { echo "error: jq is required" >&2; exit 1; }
-    create_workspace="{{workspace}}"
+    create_workspace="{{ workspace }}"
     case "$create_workspace" in
         true|workspace=true) create_workspace=true ;;
         false|workspace=false) create_workspace=false ;;
         *) echo "error: workspace must be true or false" >&2; exit 2 ;;
     esac
+    backend_env=(LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1)
+    public_url="{{ public_url }}"
+    if [[ -n "$public_url" ]]; then
+        public_url="${public_url%/}"
+        client_id="{{ oauth_client_id }}"
+        client_id="${client_id:-$public_url/.well-known/oauth-client-metadata.json}"
+        backend_env+=(ARABICA_BIND_ADDR=127.0.0.1 ARABICA_PORT=18910 SECURE_COOKIES=true
+            "ARABICA_PUBLIC_URL=$public_url" "ARABICA_OAUTH_CLIENT_ID=$client_id"
+            "ARABICA_OAUTH_REDIRECT_URI=$public_url/oauth/callback")
+    else
+        backend_env+=(ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback)
+    fi
+    printf -v backend_command '%q ' exec env "${backend_env[@]}" go run ./cmd/arabica -known-dids known-dids.txt
     workspace_label="arabica spa dev"
     if [[ "$create_workspace" == "true" || "${HERDR_ENV:-}" != "1" ]]; then
         herdr workspace list | jq -r --arg label "$workspace_label" '.result.workspaces[] | select(.label == $label) | .workspace_id' | while IFS= read -r workspace_id; do
@@ -58,7 +71,7 @@ herdr-spa-dev workspace='false':
         workspace_id=""
     fi
     herdr pane rename "$backend_pane" "Arabica backend" >/dev/null
-    herdr pane run "$backend_pane" 'exec env LOG_LEVEL=debug LOG_FORMAT=console ARABICA_MODERATORS_CONFIG=roles.json ARABICA_DEV=1 ARABICA_OAUTH_REDIRECT_URI=http://127.0.0.1:18910/oauth/callback go run ./cmd/arabica -known-dids known-dids.txt' >/dev/null
+    herdr pane run "$backend_pane" "$backend_command" >/dev/null
     watcher_pane="$(herdr pane split "$backend_pane" --direction right --cwd "$PWD" --no-focus | jq -er '.result.pane.pane_id')"
     herdr pane rename "$watcher_pane" "SPA rebuilds" >/dev/null
     herdr pane run "$watcher_pane" 'exec ./scripts/watch-spa.sh' >/dev/null
@@ -118,13 +131,13 @@ _e2e-run *args:
         base_url=$(cat tests/e2e/.server-url); \
         control_url=$(cat tests/e2e/.control-url); \
         cd web; \
-        ARABICA_E2E_BASE_URL=$base_url ARABICA_E2E_CONTROL_URL=$control_url CHROMIUM_PATH=$(nix-shell -p chromium --run 'which chromium' 2>/dev/null | tail -1) pnpm exec playwright test {{args}}
+        ARABICA_E2E_BASE_URL=$base_url ARABICA_E2E_CONTROL_URL=$control_url CHROMIUM_PATH=$(nix-shell -p chromium --run 'which chromium' 2>/dev/null | tail -1) pnpm exec playwright test {{ args }}
 
 e2e: e2e-build
     @just _e2e-run
 
 e2e-update-snapshots testfile='tests/e2e/visual-regression.spec.ts' *args='': e2e-build
-    @just _e2e-run {{testfile}} --update-snapshots {{args}}
+    @just _e2e-run {{ testfile }} --update-snapshots {{ args }}
 
 e2e-server: e2e-build
     @go run -tags=integration ./cmd/e2e-server

@@ -38,6 +38,11 @@ metadata and the public preview image endpoint.
 - AT-URIs are full `at://did:plc:.../collection/rkey` strings.
 - Pagination uses cursor strings; an empty `next_cursor` means no more pages.
 
+## AI-assisted creation
+
+See [ai-chat.md](ai-chat.md) for availability, chat draft proposals and server-side
+provider configuration. Saving uses existing record mutation endpoints.
+
 ## Existing JSON Endpoints (already working)
 
 These endpoints already return JSON and need no changes:

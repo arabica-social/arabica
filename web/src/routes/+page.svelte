@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HomeEntry from "#lib/components/ai/HomeEntry.svelte";
   import FeedCard from "#lib/components/FeedCard.svelte";
   import FeedFilters from "#lib/components/FeedFilters.svelte";
   import Icon from "#lib/components/Icon.svelte";
@@ -167,6 +168,21 @@
   <meta name="description" content={appDefinition.metaDescription} />
 </svelte:head>
 
+{#snippet feedControls()}
+  {#if showFilters}
+    <div class="cafe-controls">
+      <FeedFilters
+        {typeFilter}
+        {sort}
+        {loading}
+        onType={applyFilter}
+        onSort={applySort}
+        tabs={data.feed?.tabs ?? []}
+      />
+    </div>
+  {/if}
+{/snippet}
+
 {#snippet feedSection()}
   <section class="cafe-feed" aria-labelledby="community-activity-title">
     <div id="feed-board" class="feed-board cafe-feed-board">
@@ -296,19 +312,15 @@
       {:else if !ready}
         <p class="cafe-masthead-note">{appDefinition.readinessNudge}</p>
       {/if}
-      {#if showFilters}
-        <div class="cafe-controls">
-          <FeedFilters
-            {typeFilter}
-            {sort}
-            {loading}
-            onType={applyFilter}
-            onSort={applySort}
-            tabs={data.feed?.tabs ?? []}
-          />
-        </div>
+      {#if isAuthenticated && data.aiEnabled}
+        <div class="cafe-prompt"><HomeEntry accountDid={data.userDID} /></div>
+      {:else}
+        {@render feedControls()}
       {/if}
     </header>
+    {#if isAuthenticated && data.aiEnabled}
+      <div class="cafe-feed-controls">{@render feedControls()}</div>
+    {/if}
     {@render feedSection()}
   </main>
 
@@ -441,6 +453,15 @@
   .cafe-actions .home-action-primary {
     min-height: 2.75rem;
     white-space: nowrap;
+  }
+  .cafe-prompt {
+    margin-top: 1.8rem;
+  }
+  .cafe-feed-controls {
+    margin-bottom: 1.5rem;
+  }
+  .cafe-feed-controls .cafe-controls {
+    margin-top: 0;
   }
   .cafe-controls {
     position: relative;
@@ -623,7 +644,8 @@
       padding-inline: 0.85rem;
       font-size: 0.85rem;
     }
-    .cafe-controls {
+    .cafe-controls,
+    .cafe-prompt {
       margin-top: 1.4rem;
     }
     .cafe-masthead::before {

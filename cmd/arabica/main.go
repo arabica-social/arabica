@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/arabica/handlers"
 	"tangled.org/arabica.social/arabica/internal/atplatform/server"
@@ -26,6 +27,10 @@ func main() {
 	flag.Parse()
 
 	logging.ConfigureFromEnv(os.Stdout)
+	aiService, aiErr := arabicaai.FromEnv()
+	if aiErr != nil {
+		log.Fatal().Err(aiErr).Msg("Invalid assistant configuration")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -44,7 +49,7 @@ func main() {
 		KnownDIDsPath:      *knownDIDsFile,
 		DefaultPort:        defaultPort,
 		DefaultMetricsPort: defaultMetricsPort,
-		AppRoutes:          handlers.Routes{},
+		AppRoutes:          handlers.Routes{AI: aiService},
 	})
 	if err != nil {
 		log.Fatal().Err(err).Str("app", app.Name).Msg("App exited with error")

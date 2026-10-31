@@ -113,6 +113,24 @@ edit a Svelte file, refresh the browser, and the server picks up the rebuilt
 assets. `just spa-dev` gives full Vite HMR but does not render Go's injected
 document head, so pair it with a running server for API and OAuth routes.
 
+For temporary HTTPS development at `https://europa.tailaf2ec2.ts.net`, use
+`just herdr-spa-dev-tailnet`. It keeps the backend on `127.0.0.1:18910`, enables
+secure cookies, and sets the public URL and OAuth callback to that HTTPS origin.
+It does not enable or change Tailscale Serve/Funnel. Like `herdr-spa-dev`, it
+accepts `workspace=true` and uses `herdr-spa-dev-stop` to close a dedicated
+workspace.
+
+With tailnet-only Serve, the OAuth server cannot fetch metadata from this
+origin. Host the JSON from `/.well-known/oauth-client-metadata.json` at a public
+HTTPS URL and pass that URL as the second argument:
+
+```sh
+just herdr-spa-dev-tailnet false https://public.example/arabica-client.json
+```
+
+Without that argument, the client ID uses the Europa origin, which requires
+public access to its metadata endpoint for OAuth to work.
+
 ### Testing
 
 ```sh

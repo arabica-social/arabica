@@ -1,66 +1,82 @@
+import { aiStatus } from "#lib/api/ai.js";
 import type { PageLoad } from "./$types";
 import { session, app } from "#lib/stores/session.js";
 import { get } from "svelte/store";
 import type { FeedResponse } from "#lib/types/feed.js";
-import type { OnboardingResponse, IncompleteRecordsResponse } from "#lib/types/api.js";
+import type {
+  OnboardingResponse,
+  IncompleteRecordsResponse,
+} from "#lib/types/api.js";
 import type { Recipe } from "#lib/types/entity_view.js";
 
 export const load: PageLoad = async ({ fetch, url }) => {
-	const s = get(session);
-	const isAuthenticated = s.isAuthenticated;
-	const appName = get(app);
+  const s = get(session);
+  const isAuthenticated = s.isAuthenticated;
+  const appName = get(app);
 
-	// Read filter/sort from the URL query so deep links and back-button work.
-	const type = url.searchParams.get("type") ?? "";
-	const sort = url.searchParams.get("sort") ?? "recent";
+  // Read filter/sort from the URL query so deep links and back-button work.
+  const type = url.searchParams.get("type") ?? "";
+  const sort = url.searchParams.get("sort") ?? "recent";
 
-	let feed: FeedResponse | null = null;
-	let error = "";
-	let onboarding: OnboardingResponse | null = null;
-	let incompleteRecords: IncompleteRecordsResponse | null = null;
-	let popularRecipes: Recipe[] = [];
+  let feed: FeedResponse | null = null;
+  let error = "";
+  let onboarding: OnboardingResponse | null = null;
+  let incompleteRecords: IncompleteRecordsResponse | null = null;
+  let popularRecipes: Recipe[] = [];
+  const status =
+    isAuthenticated && appName === "arabica"
+      ? aiStatus(fetch).catch(() => ({ enabled: false }))
+      : Promise.resolve({ enabled: false });
 
-	// The feed is public (shows community activity). Authenticated viewers
-	// get viewer-context fields (is_liked_by_viewer, is_owner).
-	try {
-		const params = new URLSearchParams();
-		if (type) params.set("type", type);
-		if (sort && sort !== "recent") params.set("sort", sort);
-		const query = params.toString();
-		const res = await fetch(`/api/feed${query ? `?${query}` : ""}`, {
-			headers: { Accept: "application/json" },
-		});
-		if (res.ok) {
-			feed = (await res.json()) as FeedResponse;
-		} else {
-			error = "Failed to load feed";
-		}
-	} catch {
-		error = "Network error";
-	}
+  // The feed is public (shows community activity). Authenticated viewers
+  // get viewer-context fields (is_liked_by_viewer, is_owner).
+  try {
+    const params = new URLSearchParams();
+    if (type) params.set("type", type);
+    if (sort && sort !== "recent") params.set("sort", sort);
+    const query = params.toString();
+    const res = await fetch(`/api/feed${query ? `?${query}` : ""}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (res.ok) {
+      feed = (await res.json()) as FeedResponse;
+    } else {
+      error = "Failed to load feed";
+    }
+  } catch {
+    error = "Network error";
+  }
 
   // Authenticated users receive viewer-specific readiness and recipe data.
-	if (isAuthenticated && appName === "arabica") {
-		const [onbRes, incRes, popRes] = await Promise.all([
-			fetch("/api/onboarding", { headers: { Accept: "application/json" } }).catch(() => null),
-			fetch("/api/incomplete-records", { headers: { Accept: "application/json" } }).catch(() => null),
-			fetch("/api/popular-recipes", { headers: { Accept: "application/json" } }).catch(() => null),
-		]);
-		if (onbRes?.ok) onboarding = (await onbRes.json()) as OnboardingResponse;
-		if (incRes?.ok) incompleteRecords = (await incRes.json()) as IncompleteRecordsResponse;
-		if (popRes?.ok) popularRecipes = (await popRes.json()) as Recipe[];
-	}
+  if (isAuthenticated && appName === "arabica") {
+    const [onbRes, incRes, popRes] = await Promise.all([
+      fetch("/api/onboarding", {
+        headers: { Accept: "application/json" },
+      }).catch(() => null),
+      fetch("/api/incomplete-records", {
+        headers: { Accept: "application/json" },
+      }).catch(() => null),
+      fetch("/api/popular-recipes", {
+        headers: { Accept: "application/json" },
+      }).catch(() => null),
+    ]);
+    if (onbRes?.ok) onboarding = (await onbRes.json()) as OnboardingResponse;
+    if (incRes?.ok)
+      incompleteRecords = (await incRes.json()) as IncompleteRecordsResponse;
+    if (popRes?.ok) popularRecipes = (await popRes.json()) as Recipe[];
+  }
 
-	return {
-		feed,
-		error,
-		typeFilter: type,
-		sort,
-		isAuthenticated,
-		userDID: s.did,
-		appName,
-		onboarding,
-		incompleteRecords,
-		popularRecipes,
-	};
+  return {
+    feed,
+    error,
+    typeFilter: type,
+    sort,
+    isAuthenticated,
+    userDID: s.did,
+    appName,
+    onboarding,
+    incompleteRecords,
+    popularRecipes,
+    aiEnabled: (await status).enabled,
+  };
 };
