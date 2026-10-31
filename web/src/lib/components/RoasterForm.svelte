@@ -99,6 +99,7 @@
 						class="w-full form-input-lg"
 						bind:value={name}
 						aria-label="Name"
+						placeholder="e.g. Onyx Coffee Lab"
 						required
 						autocomplete="organization"
 						aria-invalid={nameError !== ""}
@@ -120,6 +121,7 @@
 						class="w-full form-input-lg"
 						bind:value={location}
 						aria-label="Location"
+						placeholder="e.g. Oslo, Norway"
 						autocomplete="address-level2"
 						aria-describedby="roaster-location-help"
 					/>
