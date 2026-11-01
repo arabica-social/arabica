@@ -22,6 +22,9 @@ func (f *ProviderFailure) Error() string {
 }
 func (f *ProviderFailure) Unwrap() error { return ErrProvider }
 func providerRequestFailure(err error) error {
+	if errors.Is(err, provider.ErrRequestTooLarge) {
+		return ErrProviderRequestTooLarge
+	}
 	return &ProviderFailure{Stage: "request", Reason: "upstream_failure", Transport: provider.DescribeFailure(err)}
 }
 func rejected(reason string, c provider.Completion) *ProviderFailure {

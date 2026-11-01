@@ -50,7 +50,7 @@ func (h AIHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 		handlers.WriteJSONError(w, 415, "invalid_content_type", "JSON content type required")
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, 262144)
+	r.Body = http.MaxBytesReader(w, r.Body, 6*1024*1024)
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
 	var req arabicaai.Request
@@ -77,6 +77,8 @@ func (h AIHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, arabicaai.ErrInvalidRequest):
 			handlers.WriteJSONError(w, 400, "invalid_request", "Invalid assistant request")
+		case errors.Is(err, arabicaai.ErrProviderRequestTooLarge):
+			handlers.WriteJSONError(w, 413, "ai_provider_request_too_large", "Images and context exceed the configured provider request limit; remove images or ask the operator to increase max_request_bytes")
 		case errors.Is(err, arabicaai.ErrLibrary):
 			handlers.WriteJSONError(w, 503, "ai_library_unavailable", "Own library unavailable; check selected records or try again")
 		case errors.Is(err, arabicaai.ErrLimit):

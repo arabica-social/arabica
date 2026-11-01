@@ -13,6 +13,7 @@
     type SessionSummary,
   } from "#lib/ai/persistence.js";
   import { MAX_MESSAGES, MAX_USER_CHARS } from "#lib/ai/types.js";
+  import { prepareImage, MAX_IMAGES, type PreparedImage } from "#lib/ai/images.js";
   import type {
     ApplyResult,
     ChangeOptions,
@@ -23,6 +24,7 @@
     RequestToken,
   } from "#lib/ai/types.js";
   import { chat, entryKey, type ChatReply } from "#lib/api/ai.js";
+  import { takeHomeImages } from "#lib/ai/homeImages.js";
   import {
     createBrew,
     createBean,
@@ -60,6 +62,94 @@
   let persistenceError = $state("");
   let notice = $state("");
   let input = $state("");
+  // Deliberately outside DraftSession: no bytes/previews enter either browser store.
+  let pendingImages = $state<PreparedImage[]>([]);
+  let messageImages = $state<Record<number, PreparedImage[]>>({});
+  let preparingImages = $state(false);
+  let imageError = $state("");
+  let imagePicker = $state<HTMLInputElement>();
+  let imageGeneration = 0;
+  function clearImages() {
+    imageGeneration++;
+    pendingImages = [];
+    messageImages = {};
+    preparingImages = false;
+    imageError = "";
+    if (imagePicker) imagePicker.value = "";
+  }
+  async function attachImages(selected: File[]) {
+    const origin = engine;
+    const generation = imageGeneration;
+    const owner = accountDid;
+    if (
+      !origin ||
+      preparingImages ||
+      saving ||
+      !enabled ||
+      origin.snapshot().pending ||
+      origin.snapshot().status !== "active"
+    )
+      return;
+    imageError = "";
+    const retained = Object.values(messageImages).reduce(
+      (sum, images) => sum + images.length,
+      0,
+    );
+    if (retained + pendingImages.length + selected.length > MAX_IMAGES) {
+      imageError = `Up to ${MAX_IMAGES} images can stay in this chat. Remove an unsent image or start a new chat.`;
+      return;
+    }
+    preparingImages = true;
+    try {
+      const prepared: PreparedImage[] = [];
+      // Sequential decoding bounds peak memory, including a multi-file paste.
+      for (const file of selected) {
+        prepared.push(await prepareImage(file));
+        if (
+          generation !== imageGeneration ||
+          engine !== origin ||
+          accountDid !== owner
+        )
+          return;
+      }
+      pendingImages = [...pendingImages, ...prepared];
+    } catch (e) {
+      if (
+        generation === imageGeneration &&
+        engine === origin &&
+        accountDid === owner
+      )
+        imageError =
+          e instanceof Error ? e.message : "Could not prepare that image.";
+    } finally {
+      if (generation === imageGeneration) preparingImages = false;
+    }
+  }
+  function pasteImages(event: ClipboardEvent) {
+    const items = Array.from(event.clipboardData?.items ?? []);
+    const images = items
+      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+    if (!images.length) return; // Ordinary text paste keeps native selection/undo behavior.
+    event.preventDefault();
+    const text = event.clipboardData?.getData("text/plain");
+    if (text && !saving && !snapshot?.pending && !preparingImages) {
+      const target = event.currentTarget as HTMLTextAreaElement;
+      const next =
+        input.slice(0, target.selectionStart) +
+        text +
+        input.slice(target.selectionEnd);
+      if (next.length > MAX_USER_CHARS) {
+        imageError =
+          "Pasted text is too long. Paste the images and text separately.";
+        return;
+      }
+      input = next;
+      void sync();
+    }
+    void attachImages(images);
+  }
   let revealed = $state(false);
   let manualOpen = $state(false);
   let optionsOpen = $state(false);
@@ -98,6 +188,7 @@
     }
     if (loaded.ok && sameSession(loaded.value, writer.expected)) return true;
     writer.valid = false;
+    clearImages();
     engine.stopRequest();
     controller?.abort();
     controller = undefined;
@@ -227,6 +318,7 @@
       historyOpen = false;
       choices = [];
       input = "";
+      clearImages();
       error = "";
       notice = "";
       persistenceError = "";
@@ -277,19 +369,27 @@
       void (async () => {
         if (enabled) {
           try {
-            const queued = sessionStorage.getItem(entryKey(owner));
-            if (queued) {
+            const pasted = takeHomeImages(owner);
+            const queued =
+              pasted?.text ?? sessionStorage.getItem(entryKey(owner));
+            if (queued || pasted?.images.length) {
               // A home entry starts a new conversation, not an append to an old thread.
               if (
                 engine.snapshot().messages.length ||
                 Object.keys(engine.snapshot().draft.fields).length ||
                 input
               ) {
-                if (!(await fresh("brew", true))) return;
+                if (!(await fresh("brew", true))) {
+                  if (pasted?.images.length)
+                    error =
+                      "Could not start a new chat for the pasted images. Your existing draft is unchanged; paste the images again after making room.";
+                  return;
+                }
               }
               if (accountDid !== owner) return;
-              input = queued;
-              sessionStorage.removeItem(entryKey(owner));
+              input = queued ?? "";
+              pendingImages = pasted?.images ?? [];
+              if (!pasted) sessionStorage.removeItem(entryKey(owner));
               void send();
             }
           } catch {
@@ -307,7 +407,10 @@
   });
   onMount(() => {
     mounted = true;
-    const persistOnLeave = () => sync();
+    const persistOnLeave = () => {
+      void stop();
+      clearImages();
+    };
     const storageChanged = (event: StorageEvent) => {
       if (
         !engine ||
@@ -338,6 +441,7 @@
       engine?.stopRequest();
       sync();
       controller?.abort();
+      clearImages();
       engine = undefined; // Detached save/request observers must not reselect this chat.
       mounted = false;
     };
@@ -376,6 +480,7 @@
     if (
       !current ||
       !enabled ||
+      preparingImages ||
       saving ||
       current.snapshot().pending ||
       current.snapshot().status !== "active"
@@ -383,19 +488,45 @@
       return;
     error = "";
     notice = "";
+    if (retry) {
+      const messages = current.snapshot().messages;
+      const last = messages.at(-1);
+      if (
+        last?.imageCount &&
+        messageImages[messages.length - 1]?.length !== last.imageCount
+      ) {
+        imageError =
+          "Images from that message are no longer available. Attach them again and send a new message.";
+        return;
+      }
+      if (pendingImages.length) {
+        imageError =
+          "Send the attached images as a new message rather than retrying the previous one.";
+        return;
+      }
+    }
     if (!retry) {
       const text = input.trim();
-      if (!text) return;
+      if (!text && !pendingImages.length) return;
       if (current.snapshot().messages.length > MAX_MESSAGES - 2) {
         error =
           "Conversation limit reached. Save or explicitly discard this draft before starting again.";
         return;
       }
-      const result = current.appendMessage({ role: "user", content: text });
+      const index = current.snapshot().messages.length;
+      const result = current.appendMessage({
+        role: "user",
+        content: text,
+        ...(pendingImages.length ? { imageCount: pendingImages.length } : {}),
+      });
       if (!result.ok) {
         error = result.error ?? "Message could not be added";
         return;
       }
+      if (pendingImages.length)
+        messageImages = { ...messageImages, [index]: pendingImages };
+      pendingImages = [];
+      imageError = "";
       input = "";
     }
     const token = current.beginRequest(id());
@@ -423,7 +554,18 @@
           session_id: s.id,
           request_id: token.requestId,
           revision: token.revision,
-          messages: s.messages,
+          messages: s.messages.map((message, index) => {
+            const images = messageImages[index];
+            return {
+              role: message.role,
+              content: message.content,
+              ...(images?.length
+                ? { images: images.map((image) => image.image) }
+                : message.imageCount
+                  ? { images_unavailable: message.imageCount }
+                  : {}),
+            };
+          }),
           draft: s.draft,
         },
         abort.signal,
@@ -542,6 +684,7 @@
     session: DraftSession,
     expected: DraftSession | null = session,
   ) {
+    clearImages();
     engine = restoreSession(session, expected);
     choices = [];
     error = "";
@@ -577,6 +720,8 @@
       !snapshot.messages.length &&
       !Object.keys(snapshot.draft.fields).length &&
       !input &&
+      !pendingImages.length &&
+      !preparingImages &&
       !uncertainSave
     ) {
       engine?.setKind(kind);
@@ -725,6 +870,7 @@
     try {
       const saved = await operation;
       if (engine === origin) {
+        clearImages();
         engine = restoreSession(saved);
         choices = [];
         snapshot = engine.snapshot();
@@ -758,6 +904,12 @@
             latest.value?.id === origin.snapshot().id &&
             latest.value.revision >= origin.snapshot().revision
           ) {
+            if (
+              latest.value.status !== "active" ||
+              JSON.stringify(latest.value.messages) !==
+                JSON.stringify(origin.snapshot().messages)
+            )
+              clearImages();
             engine = restoreSession(latest.value);
             snapshot = engine.snapshot();
             if (snapshot.editorRevealed || isUsefulDraft(snapshot.draft))
@@ -1029,6 +1181,23 @@
                     <span class="sr-only"
                       >{message.role === "user" ? "You" : "Assistant"}:
                     </span>{message.content}
+                    {#if messageImages[index]?.length}
+                      <div class="message-images">
+                        {#each messageImages[index] as image, imageIndex}
+                          <img
+                            src={image.preview}
+                            alt={`Attached image ${imageIndex + 1}`}
+                          />
+                        {/each}
+                      </div>
+                    {:else if message.imageCount}
+                      <p class="image-unavailable">
+                        {message.imageCount === 1
+                          ? "Image no longer available"
+                          : `${message.imageCount} images no longer available`}.
+                        Attach again if needed.
+                      </p>
+                    {/if}
                   </div>{/each}
               </div>
               {#if snapshot.pending}<WorkingIndicator />{/if}
@@ -1135,6 +1304,54 @@
                 void send();
               }}
             >
+              {#if pendingImages.length}
+                <div class="pending-images" aria-label="Attached images">
+                  {#each pendingImages as image, imageIndex}
+                    <div class="pending-image">
+                      <img
+                        src={image.preview}
+                        alt={`Image ${imageIndex + 1} to send`}
+                      />
+                      <button
+                        type="button"
+                        aria-label={`Remove image ${imageIndex + 1}`}
+                        disabled={preparingImages ||
+                          saving ||
+                          !!snapshot.pending}
+                        onclick={() => {
+                          pendingImages = pendingImages.filter(
+                            (_, i) => i !== imageIndex,
+                          );
+                          imageError = "";
+                        }}><Icon name="x" class="h-4 w-4" /></button
+                      >
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                aria-label="Choose images"
+                class="image-picker"
+                bind:this={imagePicker}
+                disabled={saving || !!snapshot.pending || preparingImages}
+                onchange={(event) => {
+                  const selected = Array.from(event.currentTarget.files ?? []);
+                  event.currentTarget.value = "";
+                  void attachImages(selected);
+                }}
+              />
+              <button
+                type="button"
+                class="attach-button"
+                aria-label="Attach images"
+                title="Attach images"
+                disabled={saving || !!snapshot.pending || preparingImages}
+                onclick={() => imagePicker?.click()}
+                ><Icon name="plus" class="h-4 w-4" /></button
+              >
               <label class="sr-only" for="chat-message">Message</label>
               <textarea
                 id="chat-message"
@@ -1146,6 +1363,7 @@
                 maxlength={MAX_USER_CHARS}
                 bind:value={input}
                 use:autosizeTextarea={input}
+                onpaste={pasteImages}
                 onkeydown={(e) => {
                   if (
                     e.key === "Enter" &&
@@ -1184,8 +1402,22 @@
                       fill="currentColor"
                     /></svg
                   ></button
-                >{:else}<SendButton disabled={saving || !input.trim()} />{/if}
+                >{:else}<SendButton
+                  disabled={saving ||
+                    preparingImages ||
+                    (!input.trim() && !pendingImages.length)}
+                />{/if}
             </form>
+            {#if preparingImages}<p class="image-feedback" role="status">
+                Preparing images…
+              </p>{/if}
+            {#if pendingImages.length}<p class="image-feedback">
+                Images are sent to the AI provider, not saved in Arabica. They
+                clear when you leave or switch chats.
+              </p>{/if}
+            {#if imageError}<p class="image-feedback" role="alert">
+                {imageError}
+              </p>{/if}
             {#if retryable || (!revealed && !snapshot.messages.length)}
               <div class="composer-secondary">
                 {#if retryable}<button type="button" onclick={() => send(true)}
@@ -1564,12 +1796,90 @@
     width: min(100%, 48rem);
     margin: auto;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.25rem 0.5rem;
     padding: 0.0625rem 0.15rem 0.0625rem 0.5rem;
     border: 1px solid var(--surface-border);
     border-radius: 1.25rem;
     background: var(--surface-bg);
+  }
+  .image-picker {
+    display: none;
+  }
+  .attach-button {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    min-height: 44px;
+    color: var(--text-muted);
+    border-radius: 50%;
+  }
+  .attach-button:hover,
+  .attach-button:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+  }
+  .attach-button:focus-visible,
+  .pending-image button:focus-visible {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 2px;
+  }
+  .attach-button:disabled,
+  .pending-image button:disabled {
+    opacity: 0.5;
+  }
+  .pending-images,
+  .message-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .pending-images {
+    flex-basis: 100%;
+    padding: 0.5rem;
+  }
+  .pending-image {
+    position: relative;
+  }
+  .pending-image img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 0.5rem;
+  }
+  .pending-image button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 0.5rem;
+    background: var(--surface-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--surface-border);
+  }
+  .message-images {
+    margin-top: 0.5rem;
+  }
+  .message-images img {
+    max-width: min(100%, 10rem);
+    max-height: 10rem;
+    object-fit: contain;
+    border-radius: 0.5rem;
+  }
+  .image-feedback {
+    width: min(100%, 48rem);
+    margin: 0.5rem auto 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .image-unavailable {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0.25rem 0 0;
   }
   .composer:focus-within {
     outline: 2px solid var(--text-muted);

@@ -1,10 +1,16 @@
 import { requestJSON } from "./client";
-import type { Draft, DraftKind, DraftPatch, Message } from "#lib/ai/types.js";
+import type { Draft, DraftKind, DraftPatch } from "#lib/ai/types.js";
+import type { ChatImage } from "#lib/ai/images.js";
 export type ChatRequest = {
   session_id: string;
   request_id: string;
   revision: number;
-  messages: Message[];
+  messages: {
+    role: "user" | "assistant";
+    content: string;
+    images?: ChatImage[];
+    images_unavailable?: number;
+  }[];
   draft: Draft;
 };
 export type ChatReply = {

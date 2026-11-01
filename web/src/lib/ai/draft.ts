@@ -511,13 +511,23 @@ export class DraftEngine {
       !["user", "assistant"].includes(message.role) ||
       typeof message.content !== "string" ||
       this.state.messages.length >= MAX_MESSAGES ||
-      (message.role === "user" && message.content.length > MAX_USER_CHARS)
+      (message.role === "user" && message.content.length > MAX_USER_CHARS) ||
+      (message.imageCount !== undefined &&
+        (message.role !== "user" ||
+          !Number.isInteger(message.imageCount) ||
+          message.imageCount < 1 ||
+          message.imageCount > 4))
     )
       return {
         ok: false,
         error: "Conversation limit reached or invalid message",
       };
-    this.state.messages.push(clone(message));
+    // Never let transport-only image bytes enter the canonical/persisted draft.
+    this.state.messages.push({
+      role: message.role,
+      content: message.content,
+      ...(message.imageCount ? { imageCount: message.imageCount } : {}),
+    });
     return { ok: true };
   }
   markSaved(recordURI: string): boolean {

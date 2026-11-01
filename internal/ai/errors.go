@@ -12,6 +12,9 @@ import (
 	"syscall"
 )
 
+// ErrRequestTooLarge means the configured provider cap rejected the request locally.
+var ErrRequestTooLarge = errors.New("ai: request exceeds configured provider limit")
+
 // FailureDetails contains only application-defined categories and numeric status.
 // It never contains URLs, credentials, headers, prompts, or provider error bodies.
 type FailureDetails struct {

@@ -18,7 +18,7 @@ func TestConfigParsing(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := c.Providers[c.DefaultProvider]
-	if p.TimeoutSeconds != 30 || p.MaxRequestBytes != 262144 || p.MaxResponseBytes != 1048576 || p.MaxTokens != 2048 {
+	if p.TimeoutSeconds != 30 || p.MaxRequestBytes != 6*1024*1024 || p.MaxResponseBytes != 1048576 || p.MaxTokens != 2048 {
 		t.Fatalf("unexpected defaults %+v", p)
 	}
 	path := filepath.Join(t.TempDir(), "ai.json")
@@ -42,7 +42,7 @@ func TestConfigParsing(t *testing.T) {
 		t.Fatal(err)
 	}
 	p = c.Providers["a"]
-	if p.TimeoutSeconds != 30 || p.MaxRequestBytes != 262144 || p.MaxResponseBytes != 1048576 || p.MaxTokens != 2048 {
+	if p.TimeoutSeconds != 30 || p.MaxRequestBytes != 6*1024*1024 || p.MaxResponseBytes != 1048576 || p.MaxTokens != 2048 {
 		t.Fatalf("unexpected defaults %+v", p)
 	}
 }
@@ -58,7 +58,7 @@ func TestConfigValidation(t *testing.T) {
 		func(p *ProviderConfig) { p.APIKey = "secret\nvalue" }, func(p *ProviderConfig) { p.APIKey = " PAD " },
 		func(p *ProviderConfig) { p.TimeoutSeconds = -1 }, func(p *ProviderConfig) { p.TimeoutSeconds = 121 },
 		func(p *ProviderConfig) { p.MaxTokens = -1 }, func(p *ProviderConfig) { p.MaxTokens = 16385 },
-		func(p *ProviderConfig) { p.MaxRequestBytes = -1 }, func(p *ProviderConfig) { p.MaxRequestBytes = 1024*1024 + 1 },
+		func(p *ProviderConfig) { p.MaxRequestBytes = -1 }, func(p *ProviderConfig) { p.MaxRequestBytes = 8*1024*1024 + 1 },
 		func(p *ProviderConfig) { p.MaxResponseBytes = -1 }, func(p *ProviderConfig) { p.MaxResponseBytes = 4*1024*1024 + 1 },
 	} {
 		cfg := testConfig("http://localhost:8080/v1")

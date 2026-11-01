@@ -101,3 +101,22 @@ is catching up or may be stale.
   locally indexed records.
 - Test both cache hits and the authoritative fallback path for correctness-
   sensitive changes.
+
+
+## Transient AI image context
+
+Chat attachment preprocessing belongs to the SPA (`web/src/lib/ai/images.ts`);
+`ChatWorkspace.svelte` keeps sanitized images in a bounded, per-mounted-chat memory
+map, separate from the canonical draft and persistence envelope. Home image paste
+uses the same preprocessor; `homeImages.ts` transfers sanitized attachments to chat
+in a single-use, account-scoped memory slot expiring after 30 seconds. No images
+are serialized for route navigation. Only attachment
+counts are part of saved message metadata. Chat/account changes, route teardown,
+pagehide and external-state reconciliation release the map and invalidate pending
+preprocessing. Images cannot authorize record writes.
+
+The app-owned assistant service validates inline images and supplies typed
+multimodal context to the app-agnostic `internal/ai` provider transport. There are
+no attachment records, blob uploads, remote image fetches, server archives or disk
+files in this flow. Provider retention is outside Arabica's control. For request
+bounds and the missing-image contract, see [AI chat API](../api/ai-chat.md).

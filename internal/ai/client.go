@@ -13,10 +13,11 @@ import (
 
 // Message supports text conversation and tool-call/result round trips.
 type Message struct {
-	Role       string     `json:"role"`
-	Content    string     `json:"content,omitempty"`
-	ToolCallID string     `json:"tool_call_id,omitempty"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+	Role       string        `json:"role"`
+	Content    string        `json:"content,omitempty"`
+	ToolCallID string        `json:"tool_call_id,omitempty"`
+	ToolCalls  []ToolCall    `json:"tool_calls,omitempty"`
+	Parts      []ContentPart `json:"-"`
 }
 
 // Tool deliberately leaves provider-specific schema and strictness to callers.
@@ -85,7 +86,7 @@ func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool,
 		return zero, errors.New("ai: invalid request JSON")
 	}
 	if int64(len(body)) > c.provider.MaxRequestBytes {
-		return zero, errors.New("ai: request exceeds limit")
+		return zero, ErrRequestTooLarge
 	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(c.provider.TimeoutSeconds)*time.Second)
 	defer cancel()

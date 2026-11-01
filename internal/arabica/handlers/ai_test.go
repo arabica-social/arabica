@@ -91,8 +91,8 @@ func TestAIChatErrorContract(t *testing.T) {
 		{"trailing", chatRequest + ` {}`, "application/json", 400, "invalid_request"},
 		{"invalid messages", strings.Replace(chatRequest, `"role":"user"`, `"role":"system"`, 1), "application/json", 400, "invalid_request"},
 		{"missing fields", `{}`, "application/json", 400, "invalid_request"},
-		{"oversize", `{"session_id":"` + strings.Repeat("x", 262145) + `"}`, "application/json", 413, "request_too_large"},
-		{"oversize trailing", chatRequest + strings.Repeat(" ", 262145), "application/json", 413, "request_too_large"},
+		{"oversize", `{"session_id":"` + strings.Repeat("x", 6*1024*1024+1) + `"}`, "application/json", 413, "request_too_large"},
+		{"oversize trailing", chatRequest + strings.Repeat(" ", 6*1024*1024+1), "application/json", 413, "request_too_large"},
 		{"wrong content type", chatRequest, "text/plain", 415, "invalid_content_type"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

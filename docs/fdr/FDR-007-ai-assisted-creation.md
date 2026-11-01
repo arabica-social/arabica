@@ -30,6 +30,32 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   Stop, failure and completion remove it. Errors preserve the draft and offer Retry.
   Reloading an interrupted or failed request also offers Retry for its unanswered
   user message; retrying does not append the message again.
+- Chat supports JPEG, PNG and WebP attachments through a file picker or paste,
+  with removable thumbnails and image-only messages. Mixed text/image paste keeps
+  the text; ordinary text paste retains native editing behavior. Up to four images
+  remain in memory across the current chat's turns and retries. The browser always
+  reencodes images without source metadata, shrinking the longest edge to at most
+  2048px and compressing to at most 1 MiB each. Source files above 20 MiB or
+  40 megapixels are rejected before decoding. Failed preparation retains any
+  existing unsent attachments; excess attachments are refused, never silently dropped.
+- Images go inline through the authenticated chat API to the configured
+  vision-capable provider, never to the PDS, a file store or browser storage.
+  Provider retention is governed by the provider, not Arabica. Leaving/reloading,
+  switching chats/accounts, starting a new chat or reconciling another tab's state
+  releases image data, as does a successful Save. Only message image counts survive locally. Restored history
+  shows unavailable images; retries of an image message require reattachment and
+  a new message. Follow-ups explicitly mark missing historical images to the model.
+  The homepage bar also accepts image paste, including image-only and mixed
+  text/image paste, with removable previews but no extra upload button. Send
+  transfers sanitized images to a fresh chat through a single-use account-scoped
+  in-memory handoff, never sessionStorage. Failed navigation retains the homepage
+  input and images; unused handoffs expire after 30 seconds. Leaving/reloading
+  Home or switching accounts clears its unsent images and invalidates late decodes.
+  Only Save writes records, never attachments.
+  A conversation containing visual context does not authorize the sole-open-bag
+  default, including on later text-only follow-ups: visible coffee names
+  are not lexical proof, so proposed library references remain reviewable unless
+  grounded in explicit user text.
 - The server grounds references against the viewer's own library. Uncertain
   matches appear as clickable record choices; choosing one changes the draft,
   never creates/imports a record. Hover and keyboard focus visibly highlight a
@@ -192,7 +218,7 @@ validation, caps and read-only capabilities enforce the operational boundary.
 ## Deferred
 
 History search, streaming, conversational save confirmation,
-recipe/roaster drafts, image/URL ingestion, and editing/deleting saved records.
+recipe/roaster drafts, URL ingestion, and editing/deleting saved records.
 
 ## Related
 

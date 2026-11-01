@@ -631,3 +631,68 @@ describe("multiple local sessions", () => {
     }
   });
 });
+
+describe("image metadata persistence boundary", () => {
+  it("round trips image counts, never transport bytes", () => {
+    const storage = new MemoryStorage();
+    const e = new DraftEngine(session());
+    const message = {
+      role: "user" as const,
+      content: "",
+      imageCount: 1,
+      images: [{ data: "PRIVATE_IMAGE", mime_type: "image/jpeg" }],
+      preview: "data:image/jpeg;base64,PRIVATE_IMAGE",
+    };
+    expect(e.appendMessage(message).ok).toBe(true);
+    expect(e.snapshot().messages).toEqual([
+      { role: "user", content: "", imageCount: 1 },
+    ]);
+    expect(saveSession(storage, "did:plc:a", e.snapshot()).ok).toBe(true);
+    expect(storage.getItem(storageKey("did:plc:a"))).not.toContain(
+      "PRIVATE_IMAGE",
+    );
+    expect(loadSession(storage, "did:plc:a")).toEqual({
+      ok: true,
+      value: e.snapshot(),
+    });
+  });
+  it("refuses transport image fields accidentally passed to persistence", () => {
+    const storage = new MemoryStorage();
+    const s = {
+      ...session(),
+      messages: [
+        {
+          role: "user" as const,
+          content: "label",
+          images: [{ data: "PRIVATE_IMAGE" }],
+        },
+      ],
+    };
+    expect(saveSession(storage, "did:plc:a", s)).toEqual({
+      ok: false,
+      error: "corrupt",
+    });
+    expect(storage.values.size).toBe(0);
+  });
+  it.each([0, -1, 5, 1.5, "1"])(
+    "rejects invalid image count %s without touching storage",
+    (count) => {
+      const storage = new MemoryStorage();
+      const s = {
+        ...session(),
+        messages: [
+          {
+            role: "user" as const,
+            content: "label",
+            imageCount: count as number,
+          },
+        ],
+      };
+      expect(saveSession(storage, "did:plc:a", s)).toEqual({
+        ok: false,
+        error: "corrupt",
+      });
+      expect(storage.values.size).toBe(0);
+    },
+  );
+});

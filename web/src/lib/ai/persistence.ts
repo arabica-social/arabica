@@ -116,7 +116,15 @@ export function validSession(
         typeof message.role === "string" &&
         ["user", "assistant"].includes(message.role) &&
         typeof message.content === "string" &&
-        (message.role !== "user" || message.content.length <= MAX_USER_CHARS),
+        (message.role !== "user" || message.content.length <= MAX_USER_CHARS) &&
+        Object.keys(message).every((key) =>
+          ["role", "content", "imageCount"].includes(key),
+        ) &&
+        (message.imageCount === undefined ||
+          (message.role === "user" &&
+            integer(message.imageCount) &&
+            message.imageCount >= 1 &&
+            message.imageCount <= 4)),
     )
   )
     return false;

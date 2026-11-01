@@ -29,7 +29,7 @@ JSON-schema response support or tool execution is not required initially.
 Transport supports caller-defined tools, but the app exposes no executable or
 record-writing tools. There are no automatic provider retries or fallbacks.
 
-The example defaults to a 30-second timeout, 256 KiB provider request cap,
+The example defaults to a 30-second timeout, 6 MiB provider request cap,
 1 MiB provider response cap and 2048 output tokens. Redirects are not followed.
 Provider response bodies and credentials are not returned as API errors.
 
@@ -57,7 +57,7 @@ provider, target URL, system prompt, tool definitions or library catalog accepte
 }
 ```
 
-Kinds: `brew`, `bean`, `grinder`, `brewer`. Messages are user/assistant text only;
+Kinds: `brew`, `bean`, `grinder`, `brewer`. Messages are user/assistant text, with optional user images;
 maximum 40 messages, with user messages limited to 4000 characters. Identifiers
 are correlation aids, not authentication. The server reads only the authenticated
 user's library for grounding. It does not accept arbitrary cross-user references.
@@ -66,6 +66,49 @@ to the provider; account DID, handle and the entire brew history are not include
 for identification or personalization. Recipe context includes actual dose,
 water, ordered pours and saved instructions, never arbitrary fetched URLs.
 Recipe instructions are untrusted data, not authority to execute actions.
+
+### Transient images
+
+A user message may include `images`, for example:
+
+```json
+{"role":"user","content":"What does this bag say?","images":[{"mime_type":"image/jpeg","data":"<bare base64>"}]}
+```
+
+Only JPEG, PNG and WebP are accepted. No URLs, data-URL prefixes, SVG or GIF.
+Image-only user messages may have empty `content`; assistant messages cannot carry
+images. After reload/switch, a user message may instead carry
+`images_unavailable: 1` (integer 1–4), mutually exclusive with `images`. Empty
+content is also valid with this marker. It tells the provider those earlier images
+are no longer visible, not to reconstruct their contents. Retry of an unanswered
+image-bearing turn with unavailable images is blocked by the client; reattach in a
+new message. The browser downsizes larger images before sending. Oversized or malformed
+images are rejected, not transformed by the server.
+
+Homepage image paste uses the same preprocessing and image-only support as chat.
+Send transfers the text and sanitized images through a single-use account-scoped
+in-memory handoff (30-second expiry), starting a fresh chat rather than appending
+to an older draft. Image handoffs never enter sessionStorage; failed navigation
+keeps the homepage attachments for retry. Ordinary text-only handoff compatibility
+is unchanged. No upload control is added on Home.
+
+Images remain in browser memory for follow-ups/retries until leaving, reloading or
+switching chats. They are excluded from browser chat persistence. The server keeps
+no image archive and does not log bytes or filenames; it only validates and forwards
+them in the current request. The upstream provider receives them and its own data
+retention policy applies. Use a vision-capable model; provider capability is not
+automatically probed and unsupported providers fail without retry/fallback.
+
+For image-bearing requests, the provider receives real ordered user/assistant
+messages, with inline data URLs in typed `image_url` content parts on the original
+user turns. Images are never base64 text inside the JSON grounding context.
+Text-only requests retain the existing provider encoding. Images are untrusted
+coffee context and confer no Save, tool or library-reference authority. A conversation
+containing images (including unavailable-image markers) cannot authorize the
+sole-open-bean default, even on later text-only follow-ups; explicit textual
+library matches remain eligible, while image-only
+reference guesses require review. Image decoding occurs only after request
+admission and within the operation deadline.
 
 Fields are a flat partial map of existing mutation input keys. `recipe_rkey` may
 select an existing recipe in the authenticated user's own library. Nonempty
@@ -196,7 +239,14 @@ proposals; stale recipe choices require a current-revision confirmation.
 
 ## Request bounds
 
-- HTTP body: 262144 bytes; composed provider context: 196608 bytes.
+- HTTP body: 6 MiB (6291456 bytes); composed text/library context: 196608 bytes,
+  checked separately without image bytes.
+- At most four images across the entire request conversation; each at most 1 MiB
+  decoded, longest edge 2048 pixels and at most 2048×2048 pixels. Actual MIME,
+  dimensions and full decodability are validated before forwarding.
+- Provider request default: 6 MiB; configurable up to 8 MiB. A lower explicit
+  `max_request_bytes` is respected and returns HTTP 413 with
+  `ai_provider_request_too_large`; remove images or increase the operator limit.
 - Up to 40 messages, each up to 4000 characters; full accepted conversation kept.
 - Up to 100 each of beans, roasters, brewers and grinders, plus 20 saved recipes
   in provider context, retaining selected references and preferring relevant/open

@@ -195,7 +195,7 @@ func TestRequestLimitsAndInvalidJSON(t *testing.T) {
 	p.MaxRequestBytes = 10
 	cfg.Providers["test"] = p
 	_, err := testClient(t, cfg).Complete(context.Background(), testMessages, nil, nil)
-	if err == nil || !strings.Contains(err.Error(), "request exceeds limit") {
+	if !errors.Is(err, ErrRequestTooLarge) {
 		t.Fatal(err)
 	}
 	client := testClient(t, testConfig(server.URL))

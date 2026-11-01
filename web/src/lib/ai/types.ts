@@ -44,7 +44,12 @@ export type RequestToken = {
   requestId: string;
   revision: number;
 };
-export type Message = { role: "user" | "assistant"; content: string };
+/** Image bytes live outside the persisted draft; only their count survives reload. */
+export type Message = {
+  role: "user" | "assistant";
+  content: string;
+  imageCount?: number;
+};
 export type ChangeOptions = {
   /** From a validated own-library brewer, never a model-invented category. */
   brewerType?: string;
