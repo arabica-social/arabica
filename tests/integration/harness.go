@@ -43,6 +43,12 @@ import (
 )
 
 func init() {
+	// This integration-only harness deliberately runs its PDS on loopback.
+	// Public clients are secure by default outside this test environment.
+	if err := os.Setenv("ARABICA_ALLOW_PRIVATE_NETWORKS", "true"); err != nil {
+		panic(err)
+	}
+
 	// Chrysalis constructs its gorm sessions with `&gorm.Config{}` (no Logger),
 	// so each session falls back to gormlogger.Default. Replace it with one
 	// that ignores ErrRecordNotFound — chrysalis's preflight existence checks

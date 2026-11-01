@@ -2,13 +2,14 @@ package firehose
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProfileWatcher_AccountDeleted_PurgesData(t *testing.T) {
+func TestProfileWatcher_AccountDeleted_KeepsData(t *testing.T) {
 	tmpDir := t.TempDir()
 	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
 	assert.NoError(t, err)
@@ -26,14 +27,15 @@ func TestProfileWatcher_AccountDeleted_PurgesData(t *testing.T) {
 		watchedDIDs: map[string]struct{}{target: {}},
 	}
 
+	pw.accountClient = accountResponseClient(t, http.StatusOK, `{}`)
 	pw.ProcessEvent(accountEvent(target, "deleted"))
 
-	assert.Equal(t, 0, idx.RecordCount(), "records should be purged on account deletion")
+	assert.Equal(t, 1, idx.RecordCount(), "untrusted account deletion must preserve records")
 
 	pw.watchedDIDsMu.RLock()
 	_, present := pw.watchedDIDs[target]
 	pw.watchedDIDsMu.RUnlock()
-	assert.False(t, present, "DID should be unwatched after deletion")
+	assert.True(t, present, "untrusted account deletion must preserve the subscription")
 }
 
 func TestProfileWatcher_AccountDeactivated_KeepsData(t *testing.T) {
@@ -63,7 +65,7 @@ func TestProfileWatcher_AccountDeactivated_KeepsData(t *testing.T) {
 	assert.True(t, present, "DID should remain watched on reversible status changes")
 }
 
-func TestProfileWatcher_AccountTakendown_PurgesData(t *testing.T) {
+func TestProfileWatcher_AccountTakendown_KeepsData(t *testing.T) {
 	tmpDir := t.TempDir()
 	idx, err := NewFeedIndex(tmpDir+"/test.db", 1*time.Hour)
 	assert.NoError(t, err)
@@ -80,9 +82,10 @@ func TestProfileWatcher_AccountTakendown_PurgesData(t *testing.T) {
 		watchedDIDs: map[string]struct{}{target: {}},
 	}
 
+	pw.accountClient = accountResponseClient(t, http.StatusOK, `{}`)
 	pw.ProcessEvent(accountEvent(target, "takendown"))
 
-	assert.Equal(t, 0, idx.RecordCount(), "takendown accounts should be purged")
+	assert.Equal(t, 1, idx.RecordCount(), "untrusted takedown must preserve records")
 }
 
 func accountEvent(did, status string) JetstreamEvent {

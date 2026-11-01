@@ -54,6 +54,12 @@ an unprefixed form (e.g. `PORT`); the prefixed form wins when both are set.
   (optional)
 - `ARABICA_DEV` - Enable dev mode: re-read CSS and the SPA build from disk on
   each request, and unlock dev-only signup providers
+- `ARABICA_ALLOW_PRIVATE_NETWORKS` - Disables the dial-time private-address
+  guard on public AT Protocol fetches (loopback, RFC1918, link-local, CGNAT,
+  6to4/Teredo/NAT64, cloud metadata). For local development and the integration
+  suite only; never enable on an Internet-facing deployment. Note that public
+  fetches always dial directly and therefore ignore `HTTP_PROXY`/`HTTPS_PROXY`,
+  so the guard cannot be evaded by a proxy resolving the origin.
 - `SECURE_COOKIES` - Set to true for HTTPS (default: false)
 - `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
 - `LOG_FORMAT` - Log format: console, json (default: console)

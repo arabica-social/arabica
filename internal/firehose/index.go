@@ -399,7 +399,7 @@ func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey st
 }
 
 // DeleteAllByDID removes all data associated with a DID from the index.
-// Used when a Jetstream account event reports the DID as deleted or takendown.
+// Reserved for explicit trusted operations; relay account events must not call it.
 //
 // Removes: records authored by the DID; likes/comments by the DID; likes/comments
 // targeting the DID's records; profile cache; notifications to or from the DID;
@@ -409,6 +409,12 @@ func (idx *FeedIndex) DeleteRecord(ctx context.Context, did, collection, rkey st
 // records, autohide resets) — those are evidence of moderation actions and
 // should outlive the account.
 func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
+	return idx.deleteAccountContent(ctx, did, false)
+}
+
+// Relay-triggered cleanup preserves local preferences and registration so these
+// operational rows survive even a corroborated account's later restoration.
+func (idx *FeedIndex) deleteAccountContent(ctx context.Context, did string, preserveOperational bool) error {
 	uriPrefix := fmt.Sprintf("at://%s/%%", did)
 	affectedExploreSubjects := idx.exploreSubjectsAffectedByDID(ctx, did, uriPrefix)
 	for sourceRef := range idx.exploreSourceRefsByDID(ctx, did) {
@@ -435,9 +441,17 @@ func (idx *FeedIndex) DeleteAllByDID(ctx context.Context, did string) error {
 		{`DELETE FROM profiles WHERE did = ?`, []any{did}},
 		{`DELETE FROM did_by_handle WHERE did = ?`, []any{did}},
 		{`DELETE FROM known_dids WHERE did = ?`, []any{did}},
-		{`DELETE FROM registered_dids WHERE did = ?`, []any{did}},
 		{`DELETE FROM backfilled WHERE did = ?`, []any{did}},
-		{`DELETE FROM user_settings WHERE did = ?`, []any{did}},
+	}
+	if !preserveOperational {
+		for _, query := range []string{
+			`DELETE FROM registered_dids WHERE did = ?`,
+			`DELETE FROM user_settings WHERE did = ?`,
+		} {
+			if _, err := tx.ExecContext(ctx, query, did); err != nil {
+				return fmt.Errorf("delete operational data by did: %w", err)
+			}
+		}
 	}
 
 	for _, s := range stmts {
@@ -659,25 +673,45 @@ func (idx *FeedIndex) InvalidatePublicCachesForDID(did string) {
 	}
 }
 
-// OnIdentityEvent reconciles caches when a Jetstream identity event reports
-// that a DID's handle has changed. It is the only path through which a handle
-// can be reassigned from one DID to another (handle release + reclaim by a
-// different account), so this is where stale mappings must be evicted.
-//
-// Steps:
-//  1. Look up this DID's previously cached handle (the old handle).
-//  2. Find any *other* DID whose cached profile still claims the new handle —
-//     that's the prior owner; invalidate its profile and resolver entries.
-//  3. Drop the old handle from the resolver cache (it may now resolve to
-//     someone else, or to nothing).
-//  4. Drop the new handle from the resolver cache so the next ResolveHandle
-//     re-fetches from the directory.
-//  5. Refresh this DID's profile via the API; storeProfile then writes the
-//     authoritative did_by_handle row. The AppView's getProfile lags the relay
-//     during a handle change, so we overwrite the returned Handle with the
-//     value from the Jetstream event (which the relay verified bidirectionally
-//     before emitting) to avoid caching a stale handle indefinitely.
+// OnIdentityEvent treats relay identity events only as refresh hints for known
+// or registered users. Both the AppView profile and its handle resolution must
+// agree before any profile or handle mapping is changed. A lagging AppView or
+// failed verification leaves existing data intact. The event's handle is never
+// stored directly.
 func (idx *FeedIndex) OnIdentityEvent(ctx context.Context, did, newHandle string) {
+	idx.verifyIdentityEvent(ctx, did, newHandle)
+}
+
+func (idx *FeedIndex) verifyIdentityEvent(ctx context.Context, did, newHandle string) bool {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	known, err := idx.lookupIdentityDIDKnown(ctx, did)
+	if err != nil {
+		return false
+	}
+	if !known {
+		return true
+	}
+	profile, err := idx.publicClient.GetProfile(ctx, did)
+	if err != nil {
+		log.Warn().Err(err).Str("did", did).Msg("identity event: verification failed; keeping cached profile")
+		return false
+	}
+	if profile == nil || profile.DID != did || profile.Handle == "" || (newHandle != "" && profile.Handle != newHandle) {
+		return false
+	}
+	idx.publicClient.InvalidateHandle(profile.Handle)
+	resolvedDID, err := idx.publicClient.ResolveHandle(ctx, profile.Handle)
+	if err != nil || resolvedDID != did {
+		log.Warn().Err(err).Str("did", did).Msg("identity event: handle verification failed; keeping cached profile")
+		return false
+	}
+	if ctx.Err() != nil {
+		return false
+	}
+	newHandle = profile.Handle
+
 	var oldHandle string
 	idx.profileCacheMu.RLock()
 	if cached, ok := idx.profileCache[did]; ok && cached.Profile != nil {
@@ -707,26 +741,24 @@ func (idx *FeedIndex) OnIdentityEvent(ctx context.Context, did, newHandle string
 	if oldHandle != "" && oldHandle != newHandle {
 		idx.publicClient.InvalidateHandle(oldHandle)
 	}
-	if newHandle != "" {
-		idx.publicClient.InvalidateHandle(newHandle)
-	}
 	idx.publicClient.InvalidateDID(did)
 
-	profile, err := idx.publicClient.GetProfile(ctx, did)
-	if err != nil {
-		log.Warn().Err(err).Str("did", did).Msg("identity event: profile refresh failed, invalidating instead")
-		idx.InvalidateProfile(did)
-		return
-	}
-	if profile != nil && newHandle != "" && profile.Handle != newHandle {
-		log.Info().
-			Str("did", did).
-			Str("appview_handle", profile.Handle).
-			Str("event_handle", newHandle).
-			Msg("identity event: overriding stale appview handle with relay-verified value")
-		profile.Handle = newHandle
-	}
 	idx.storeProfile(ctx, did, profile)
+	return true
+}
+
+func (idx *FeedIndex) identityDIDKnown(ctx context.Context, did string) bool {
+	known, err := idx.lookupIdentityDIDKnown(ctx, did)
+	return err == nil && known
+}
+
+func (idx *FeedIndex) lookupIdentityDIDKnown(ctx context.Context, did string) (bool, error) {
+	var known bool
+	err := idx.db.QueryRowContext(ctx, `SELECT EXISTS (
+  SELECT did FROM known_dids WHERE did = ?
+  UNION ALL SELECT did FROM registered_dids WHERE did = ?
+ )`, did, did).Scan(&known)
+	return known, err
 }
 
 // GetKnownDIDs returns all DIDs that have created Arabica records

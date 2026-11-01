@@ -2,7 +2,9 @@ package atproto
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -37,11 +39,19 @@ var ErrSessionExpired = atp.ErrSessionExpired
 type Profile = atp.PublicProfile
 
 // NewPublicClient creates a public client with OTel-instrumented transport and
-// the arabica User-Agent header.
+// the arabica User-Agent header. Private networks are blocked at dial time.
+// ARABICA_ALLOW_PRIVATE_NETWORKS=true disables that guard for local development
+// and integration tests only; never enable it on an Internet-facing deployment.
+// Redirects are refused and environment proxies are not used.
 func NewPublicClient() *atp.PublicClient {
+	allowPrivate := os.Getenv("ARABICA_ALLOW_PRIVATE_NETWORKS") == "true"
+	warnProxyBypassed(allowPrivate)
 	hc := &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: &userAgentTransport{base: otelhttp.NewTransport(http.DefaultTransport)},
+		Transport: &userAgentTransport{base: otelhttp.NewTransport(publicTransport(allowPrivate))},
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return errors.New("public client redirects blocked")
+		},
 	}
 	return atp.NewPublicClientWithHTTP(hc)
 }

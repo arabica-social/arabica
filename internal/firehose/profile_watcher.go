@@ -2,7 +2,9 @@ package firehose
 
 import (
 	"context"
+	"net/http"
 	"sync"
+	"time"
 
 	atpjetstream "tangled.org/pdewey.com/atp/jetstream"
 
@@ -27,6 +29,15 @@ type ProfileWatcher struct {
 
 	upstreamMu sync.Mutex
 	upstream   *atpjetstream.Consumer
+
+	verificationOnce        sync.Once
+	verificationMu          sync.Mutex
+	verificationWake        chan struct{}
+	verificationPending     map[verificationKey]*verificationWork
+	verificationRecent      map[verificationKey]verificationHint
+	verificationRetryDelays []time.Duration
+	verificationDone        chan struct{}
+	accountClient           *http.Client
 }
 
 // NewProfileWatcher creates a ProfileWatcher seeded with all currently known
@@ -140,11 +151,16 @@ func (pw *ProfileWatcher) ensureUpstream() *atpjetstream.Consumer {
 	return pw.upstream
 }
 
-func (pw *ProfileWatcher) handleEvent(_ context.Context, evt *atpjetstream.Event) error {
+func (pw *ProfileWatcher) handleEvent(ctx context.Context, evt *atpjetstream.Event) error {
 	if evt == nil {
 		return nil
 	}
-	pw.dispatch(toLegacyEvent(evt))
+	event := toLegacyEvent(evt)
+	if event.Kind == "identity" || event.Kind == "account" {
+		pw.enqueueVerification(ctx, event)
+	} else {
+		pw.dispatchContext(ctx, event)
+	}
 	return nil
 }
 
@@ -190,6 +206,10 @@ func (pw *ProfileWatcher) ProcessEvent(event JetstreamEvent) {
 }
 
 func (pw *ProfileWatcher) dispatch(event JetstreamEvent) {
+	pw.dispatchContext(context.Background(), event)
+}
+
+func (pw *ProfileWatcher) dispatchContext(ctx context.Context, event JetstreamEvent) {
 	switch event.Kind {
 	case "commit":
 		if event.Commit == nil || event.Commit.Collection != NSIDBlueskyProfile {
@@ -201,38 +221,39 @@ func (pw *ProfileWatcher) dispatch(event JetstreamEvent) {
 		}
 
 	case "identity":
-		// Handle change, handle reassignment, or PDS migration. OnIdentityEvent
-		// reconciles the profile cache, did_by_handle index, and resolver caches
-		// before refreshing — this is also the only signal we get when a handle
-		// moves from an abandoned DID to a new one.
+		// Relay fields are untrusted hints. The index verifies the claim against
+		// the AppView before changing profiles or handle ownership.
 		handle := ""
 		if event.Identity != nil {
 			handle = event.Identity.Handle
 		}
-		pw.index.OnIdentityEvent(context.Background(), event.DID, handle)
-		log.Info().Str("did", event.DID).Str("handle", handle).Msg("profile watcher: identity update reconciled")
+		pw.index.OnIdentityEvent(ctx, event.DID, handle)
+		log.Info().Str("did", event.DID).Str("handle", handle).Msg("profile watcher: identity hint processed")
 
 	case "account":
 		if event.Account == nil {
 			return
 		}
 		status := event.Account.Status
-		log.Info().
-			Str("did", event.DID).
-			Str("status", status).
-			Bool("active", event.Account.Active).
-			Msg("profile watcher: account event")
-
-		// Only act on terminal states. deactivated/suspended are reversible —
-		// we keep the data so it reappears if the account comes back.
-		if status == "deleted" || status == "takendown" {
-			if err := pw.index.DeleteAllByDID(context.Background(), event.DID); err != nil {
-				log.Error().Err(err).Str("did", event.DID).Str("status", status).Msg("profile watcher: failed to delete user data")
-				return
-			}
-			pw.index.InvalidatePublicCachesForDID(event.DID)
-			log.Warn().Str("did", event.DID).Str("status", status).Msg("profile watcher: purged all data for account")
-			pw.Unwatch(event.DID)
+		if status != "deleted" && status != "takendown" {
+			return
 		}
+		if !pw.index.identityDIDKnown(ctx, event.DID) {
+			log.Warn().Str("did", event.DID).Msg("profile watcher: unknown account DID; keeping data")
+			return
+		}
+		corroborated, reason := pw.corroborateAccountStatus(ctx, event.DID)
+		if !corroborated {
+			log.Warn().Str("did", event.DID).Str("status", status).Str("reason", reason).Msg("profile watcher: account status not corroborated; keeping data")
+			return
+		}
+		if err := pw.index.deleteAccountContent(ctx, event.DID, true); err != nil {
+			log.Error().Err(err).Str("did", event.DID).Msg("profile watcher: corroborated account cleanup failed")
+			return
+		}
+		pw.index.InvalidatePublicCachesForDID(event.DID)
+		pw.Unwatch(event.DID)
+		log.Warn().Str("did", event.DID).Str("status", status).Str("reason", reason).Msg("profile watcher: AppView corroborated terminal account; purged content, retained preferences and registration")
+
 	}
 }

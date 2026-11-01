@@ -68,6 +68,24 @@ also enumerate existing repository records into the same index. Feed, social,
 notification, witness, and Explore capabilities share this SQLite-backed
 runtime while retaining separate query responsibilities.
 
+### Identity Reconciliation
+
+Jetstream identity events are untrusted refresh hints for known or registered
+DIDs. The profile watcher changes handle ownership only when the trusted AppView
+profile and a fresh handle resolution agree. Failed verification preserves
+existing profiles and handle mappings.
+
+A single background worker retains at most 64 pending DID/event-kind pairs.
+Changed identity hints replace older pending identity hints; account hints are
+retained separately. Identical hints do not reset the retry budget. Identity
+verification failures retry after 1, 5, 30, and 120 seconds without blocking
+other ready work. Completed or exhausted identical hints have a 30-second
+cooldown. Cancellation stops pending retries. Queue overflow drops new hints;
+retry exhaustion logs a warning and retains existing data. This is bounded,
+best-effort reconciliation, not a durable delivery guarantee: a later event or
+explicit profile refresh may still be needed after prolonged authority lag,
+overflow, or process restart.
+
 Explore has its own schema version and rebuild operation. A rebuild clears
 derived Explore rows and re-extracts searchable documents from indexed records.
 The UI can continue serving results while explicitly reporting that the index
