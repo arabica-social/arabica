@@ -1,14 +1,14 @@
 <script lang="ts">
-  import FeedCard from "$lib/components/FeedCard.svelte";
-  import Icon from "$lib/components/Icon.svelte";
+  import FeedCard from "#lib/components/FeedCard.svelte";
+  import Icon from "#lib/components/Icon.svelte";
   import { goto } from "$app/navigation";
   import { tick } from "svelte";
-  import { pushToast } from "$lib/stores/toasts";
-  import { displayHandle, openLoginModal } from "$lib/stores/session";
-  import { applyFeedMasonry, installFeedMasonry } from "$lib/utils/feedMasonry";
+  import { pushToast } from "#lib/stores/toasts.js";
+  import { displayHandle, openLoginModal } from "#lib/stores/session.js";
+  import { applyFeedMasonry, installFeedMasonry } from "#lib/utils/feedMasonry.js";
   import type { PageData } from "./$types";
-  import type { ExploreResponse, ExploreDocument } from "$lib/types/api";
-  import type { FeedItem } from "$lib/types/feed";
+  import type { ExploreResponse, ExploreDocument } from "#lib/types/api.js";
+  import type { FeedItem } from "#lib/types/feed.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -88,9 +88,8 @@
   function updateURL(requestURL: string) {
     const query = requestURL.split("?")[1] ?? "";
     void goto(query ? `/explore?${query}` : "/explore", {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true,
+      replace: true,
+      reset: false,
     });
   }
 

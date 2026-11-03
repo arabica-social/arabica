@@ -1,6 +1,6 @@
 <script lang="ts">
-	import RecipeForm from "$lib/components/RecipeForm.svelte";
-	import { openLoginModal } from "$lib/stores/session";
+	import RecipeForm from "#lib/components/RecipeForm.svelte";
+	import { openLoginModal } from "#lib/stores/session.js";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

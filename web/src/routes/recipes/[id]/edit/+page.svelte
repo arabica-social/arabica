@@ -1,5 +1,5 @@
 <script lang="ts">
-	import RecipeForm from "$lib/components/RecipeForm.svelte";
+	import RecipeForm from "#lib/components/RecipeForm.svelte";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

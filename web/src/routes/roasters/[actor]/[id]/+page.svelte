@@ -1,7 +1,7 @@
 <script lang="ts">
-	import EntityViewLayout from "$lib/components/EntityViewLayout.svelte";
-	import Icon from "$lib/components/Icon.svelte";
-	import { safeWebsiteURL, pluralS } from "$lib/utils/format";
+	import EntityViewLayout from "#lib/components/EntityViewLayout.svelte";
+	import Icon from "#lib/components/Icon.svelte";
+	import { safeWebsiteURL, pluralS } from "#lib/utils/format.js";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

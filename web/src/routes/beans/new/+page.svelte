@@ -1,6 +1,6 @@
 <script lang="ts">
-	import BeanForm from "$lib/components/BeanForm.svelte";
-	import { openLoginModal } from "$lib/stores/session";
+	import BeanForm from "#lib/components/BeanForm.svelte";
+	import { openLoginModal } from "#lib/stores/session.js";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

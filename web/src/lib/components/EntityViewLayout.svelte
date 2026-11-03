@@ -6,8 +6,8 @@
 	import BacklinksSection from "./BacklinksSection.svelte";
 	import type { Snippet } from "svelte";
 	import type { BacklinksResult } from "../types/entity_view";
-	import { definitionFor } from "$lib/app/definitions";
-	import { app } from "$lib/stores/session";
+	import { definitionFor } from "#lib/app/definitions.js";
+	import { app } from "#lib/stores/session.js";
 
 	type Props = {
 		recordType: string;

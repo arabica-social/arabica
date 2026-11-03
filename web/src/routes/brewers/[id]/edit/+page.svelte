@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BrewerForm from "$lib/components/BrewerForm.svelte";
+	import BrewerForm from "#lib/components/BrewerForm.svelte";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

@@ -1,6 +1,6 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
-import type { AppCacheAPI } from "$lib/types/appCache";
+import type { AppCacheAPI } from "#lib/types/appCache.js";
 
 declare global {
 	namespace App {

@@ -8,11 +8,11 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsPage from "../../src/routes/settings/+page.svelte";
-import { pushToast } from "$lib/stores/toasts";
+import { pushToast } from "#lib/stores/toasts.js";
 
-vi.mock("$lib/stores/toasts", () => ({ pushToast: vi.fn() }));
-vi.mock("$lib/stores/session", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("$lib/stores/session")>()),
+vi.mock("#lib/stores/toasts.js", () => ({ pushToast: vi.fn() }));
+vi.mock("#lib/stores/session.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("#lib/stores/session.js")>()),
   openLoginModal: vi.fn(),
 }));
 

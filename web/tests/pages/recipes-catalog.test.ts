@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RecipesCatalog from "../../src/routes/recipes/+page.svelte";
-import type { Recipe } from "$lib/types/entity_view";
+import type { Recipe } from "#lib/types/entity_view.js";
 
 vi.mock("$app/navigation", () => ({ goto: vi.fn().mockResolvedValue(undefined) }));
 

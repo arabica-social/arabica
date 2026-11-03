@@ -1,6 +1,6 @@
 <script lang="ts">
-  import GetStartedCard from "$lib/components/GetStartedCard.svelte";
-  import { openLoginModal } from "$lib/stores/session";
+  import GetStartedCard from "#lib/components/GetStartedCard.svelte";
+  import { openLoginModal } from "#lib/stores/session.js";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();

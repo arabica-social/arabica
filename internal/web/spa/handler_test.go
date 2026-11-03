@@ -2,6 +2,7 @@ package spa
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -86,6 +87,20 @@ func TestShellHandler_InjectsCSPNonce(t *testing.T) {
 	assert.Contains(t, html, "__sveltekit")
 	// The nonce should only appear on script tags (not elsewhere).
 	assert.Equal(t, 2, strings.Count(html, `nonce="test-nonce-xyz"`))
+}
+
+func TestInjectSvelteKitScriptNonce(t *testing.T) {
+	for _, whitespace := range []string{"\n\t", " ", "\r\n  ", ""} {
+		t.Run(fmt.Sprintf("whitespace_%q", whitespace), func(t *testing.T) {
+			bootstrap := "<script>" + whitespace + "{" + whitespace + "__sveltekit_test = {};}</script>"
+			input := `<script>alert(1)</script>` + bootstrap + `<script>other()</script>`
+			result := string(injectSvelteKitScriptNonce([]byte(input), `a"<&`))
+			assert.Equal(t, `<script>alert(1)</script>`+strings.Replace(bootstrap, "<script>", `<script nonce="a&quot;&lt;&amp;">`, 1)+`<script>other()</script>`, result)
+			assert.Equal(t, input, string(injectSvelteKitScriptNonce([]byte(input), "")))
+		})
+	}
+	input := `<script>unrelated()</script>`
+	assert.Equal(t, input, string(injectSvelteKitScriptNonce([]byte(input), "nonce")))
 }
 
 func TestShellHandler_InjectsBodyAttrs(t *testing.T) {

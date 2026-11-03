@@ -1,8 +1,8 @@
 import type { PageLoad } from "./$types";
-import { session } from "$lib/stores/session";
+import { session } from "#lib/stores/session.js";
 import { get } from "svelte/store";
-import { fetchEntityView } from "$lib/api/entityView";
-import type { Brew } from "$lib/types/entity_view";
+import { fetchEntityView } from "#lib/api/entityView.js";
+import type { Brew } from "#lib/types/entity_view.js";
 
 export const load: PageLoad = async ({ fetch, params }) => {
 	const s = get(session);

@@ -1,7 +1,7 @@
 import type { PageLoad } from "./$types";
 import { get } from "svelte/store";
-import { session } from "$lib/stores/session";
-import type { Recipe } from "$lib/types/entity_view";
+import { session } from "#lib/stores/session.js";
+import type { Recipe } from "#lib/types/entity_view.js";
 
 export const load: PageLoad = async ({ fetch, url }) => {
 	const s = get(session);

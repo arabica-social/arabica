@@ -1,5 +1,5 @@
 import type { PageLoad } from "./$types";
-import { fetchBacklinksView } from "$lib/api/backlinks";
+import { fetchBacklinksView } from "#lib/api/backlinks.js";
 
 export const load: PageLoad = async ({ fetch, params, url }) => {
 	const usage = url.searchParams.get("usage") ?? "";

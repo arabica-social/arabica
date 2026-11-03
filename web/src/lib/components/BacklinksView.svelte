@@ -4,8 +4,8 @@
 		BacklinkEntry,
 		UsageGroup,
 	} from "../types/entity_view";
-	import { entityRouteForCollection } from "$lib/app/definitions";
-	import { app } from "$lib/stores/session";
+	import { entityRouteForCollection } from "#lib/app/definitions.js";
+	import { app } from "#lib/stores/session.js";
 
 	type Props = {
 		result?: BacklinksResult | null;

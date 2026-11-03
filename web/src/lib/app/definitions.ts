@@ -1,4 +1,4 @@
-import type { AppName } from "$lib/stores/session";
+import type { AppName } from "#lib/stores/session.js";
 import { arabica } from "./arabica";
 
 export type EntityRouteDefinition = Record<string, string>;

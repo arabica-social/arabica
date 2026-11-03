@@ -1,5 +1,5 @@
 import type { PageLoad } from "./$types";
-import type { ManageResponseJSON, BrewListResponse } from "$lib/types/manage";
+import type { ManageResponseJSON, BrewListResponse } from "#lib/types/manage.js";
 
 export const load: PageLoad = async ({ fetch }) => {
 	// Fetch both authenticated datasets in parallel.

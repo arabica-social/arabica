@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { pushToast } from "$lib/stores/toasts";
-  import { openLoginModal } from "$lib/stores/session";
-  import { themeStorageKey } from "$lib/stores/storageKeys";
-  import { setSmartAutofillEnabled } from "$lib/stores/userPrefs";
-  import LedgerHeader from "$lib/components/LedgerHeader.svelte";
+  import { pushToast } from "#lib/stores/toasts.js";
+  import { openLoginModal } from "#lib/stores/session.js";
+  import { themeStorageKey } from "#lib/stores/storageKeys.js";
+  import { setSmartAutofillEnabled } from "#lib/stores/userPrefs.js";
+  import LedgerHeader from "#lib/components/LedgerHeader.svelte";
   import type { PageData } from "./$types";
-  import type { SettingsResponse } from "$lib/types/api";
+  import type { SettingsResponse } from "#lib/types/api.js";
 
   let { data }: { data: PageData } = $props();
 

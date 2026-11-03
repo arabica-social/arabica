@@ -1,9 +1,9 @@
 import type { PageLoad } from "./$types";
-import { session, app } from "$lib/stores/session";
+import { session, app } from "#lib/stores/session.js";
 import { get } from "svelte/store";
-import type { FeedResponse } from "$lib/types/feed";
-import type { OnboardingResponse, IncompleteRecordsResponse } from "$lib/types/api";
-import type { Recipe } from "$lib/types/entity_view";
+import type { FeedResponse } from "#lib/types/feed.js";
+import type { OnboardingResponse, IncompleteRecordsResponse } from "#lib/types/api.js";
+import type { Recipe } from "#lib/types/entity_view.js";
 
 export const load: PageLoad = async ({ fetch, url }) => {
 	const s = get(session);

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import BackButton from "$lib/components/BackButton.svelte";
-	import RecordViewHeader from "$lib/components/RecordViewHeader.svelte";
-	import ActionBar from "$lib/components/ActionBar.svelte";
-	import CommentSection from "$lib/components/CommentSection.svelte";
-	import BacklinksSection from "$lib/components/BacklinksSection.svelte";
-	import Icon from "$lib/components/Icon.svelte";
-	import { safeWebsiteURL, pluralS, formatRating } from "$lib/utils/format";
-	import { pushToast } from "$lib/stores/toasts";
+	import BackButton from "#lib/components/BackButton.svelte";
+	import RecordViewHeader from "#lib/components/RecordViewHeader.svelte";
+	import ActionBar from "#lib/components/ActionBar.svelte";
+	import CommentSection from "#lib/components/CommentSection.svelte";
+	import BacklinksSection from "#lib/components/BacklinksSection.svelte";
+	import Icon from "#lib/components/Icon.svelte";
+	import { safeWebsiteURL, pluralS, formatRating } from "#lib/utils/format.js";
+	import { pushToast } from "#lib/stores/toasts.js";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

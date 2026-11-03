@@ -1,6 +1,6 @@
 <script lang="ts">
-	import GrinderForm from "$lib/components/GrinderForm.svelte";
-	import { openLoginModal } from "$lib/stores/session";
+	import GrinderForm from "#lib/components/GrinderForm.svelte";
+	import { openLoginModal } from "#lib/stores/session.js";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

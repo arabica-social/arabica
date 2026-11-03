@@ -1,6 +1,6 @@
 import type { PageLoad } from "./$types";
 import { get } from "svelte/store";
-import { session } from "$lib/stores/session";
+import { session } from "#lib/stores/session.js";
 
 export const load: PageLoad = async () => {
 	if (!get(session).isAuthenticated) {

@@ -221,6 +221,7 @@
   }
 
   beforeNavigate((navigation) => {
+    if (navigation.shallow) return;
     // Full-document exits use the browser's beforeunload prompt below.
     if (navigation.willUnload) return;
     if (

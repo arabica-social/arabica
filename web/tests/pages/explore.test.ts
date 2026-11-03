@@ -211,7 +211,7 @@ describe("Explore page", () => {
     );
     expect(goto).toHaveBeenCalledWith(
       "/explore?q=Kenya",
-      expect.objectContaining({ replaceState: true }),
+      expect.objectContaining({ replace: true }),
     );
     expect(screen.getByText("No matching records yet.")).toBeTruthy();
   });

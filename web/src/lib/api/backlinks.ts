@@ -1,4 +1,4 @@
-import type { BacklinksResult } from "$lib/types/entity_view";
+import type { BacklinksResult } from "#lib/types/entity_view.js";
 import { APIError, requestJSON } from "./client";
 
 export type BacklinksResponseJSON = {

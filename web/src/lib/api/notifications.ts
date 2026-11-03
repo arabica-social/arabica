@@ -1,5 +1,5 @@
 import { requestJSON } from "./client";
-import type { NotificationsResponse } from "$lib/types/api";
+import type { NotificationsResponse } from "#lib/types/api.js";
 
 export function getNotifications(
 	fetchFn: typeof fetch,

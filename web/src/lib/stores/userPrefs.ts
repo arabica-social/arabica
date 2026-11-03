@@ -1,7 +1,7 @@
 // Account-level brew preferences. Operational settings are owned by the server;
 // local state is optimistic and is discarded whenever the session DID changes.
 import { writable, derived, type Readable, type Writable } from "svelte/store";
-import type { BrewFormMode, SettingsResponse } from "$lib/types/api";
+import type { BrewFormMode, SettingsResponse } from "#lib/types/api.js";
 import { session } from "./session";
 
 export type UserPrefs = {

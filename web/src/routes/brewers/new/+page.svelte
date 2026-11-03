@@ -1,6 +1,6 @@
 <script lang="ts">
-	import BrewerForm from "$lib/components/BrewerForm.svelte";
-	import { openLoginModal } from "$lib/stores/session";
+	import BrewerForm from "#lib/components/BrewerForm.svelte";
+	import { openLoginModal } from "#lib/stores/session.js";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

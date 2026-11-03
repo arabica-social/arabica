@@ -30,6 +30,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
@@ -362,20 +363,23 @@ func injectBodyAttrs(html []byte, data ShellData) []byte {
 	return result
 }
 
-// injectSvelteKitScriptNonce adds the CSP nonce to the SvelteKit bootstrap
-// inline script. The script is the only inline <script> in the generated
-// index.html; it loads the start/app entry chunks and calls kit.start().
+var svelteKitBootstrap = regexp.MustCompile(`<script>[\t\n\r ]*\{[\t\n\r ]*__sveltekit_`)
+
+// injectSvelteKitScriptNonce targets the generated bootstrap rather than other inline scripts.
 func injectSvelteKitScriptNonce(html []byte, nonce string) []byte {
 	if nonce == "" {
 		return html
 	}
-	// The inline script is the only <script> in the generated index.html
-	// (the theme script is injected via the head template above). Target the
-	// exact pattern SvelteKit emits so we don't accidentally rewrite other
-	// scripts.
-	target := []byte("<script>\n\t\t\t\t{\n\t\t\t\t\t__sveltekit_")
-	replacement := []byte(`<script nonce="` + htmlEscapeAttr(nonce) + `">` + "\n\t\t\t\t{\n\t\t\t\t\t__sveltekit_")
-	return bytes.Replace(html, target, replacement, 1)
+	match := svelteKitBootstrap.FindIndex(html)
+	if match == nil {
+		return html
+	}
+	tag := []byte(`<script nonce="` + htmlEscapeAttr(nonce) + `">`)
+	result := make([]byte, 0, len(html)+len(tag)-len("<script>"))
+	result = append(result, html[:match[0]]...)
+	result = append(result, tag...)
+	result = append(result, html[match[0]+len("<script>"):]...)
+	return result
 }
 
 // htmlEscapeAttr escapes a string for safe inclusion in a double-quoted HTML

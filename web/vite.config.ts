@@ -1,3 +1,5 @@
+import adapter from "@sveltejs/adapter-static";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite";
 
@@ -10,7 +12,20 @@ const backendRoute =
   "^/(?:api(?:/|$)|auth(?:/|$)|oauth(?:/|$)|\\.well-known(?:/|$)|static(?:/|$)|_mod(?:/|$)|at(?:/|$)|login$|logout$|reauth$|join/create$|settings/bluesky-profile/upgrade-scopes$|og-image$|favicon\\.ico$|robots\\.txt$|healthz$|.+/og-image$)";
 
 export default defineConfig({
-  plugins: [sveltekit()],
+  plugins: [
+    sveltekit({
+      preprocess: vitePreprocess(),
+      // SPA mode: pre-render nothing, fall back to index.html for all routes.
+      // The Go server serves this shell with <head> populated server-side for
+      // OG tags; SvelteKit hydrates and takes over routing client-side.
+      adapter: adapter({ fallback: "index.html" }),
+
+      // Files under web/static/ are copied as-is into the build output and
+      // served at the root. We keep this minimal — the Go server owns
+      // /static/ (CSS, fonts, favicons) via its own embed FS.
+      files: { assets: "static" },
+    }),
+  ],
   server: {
     host: "127.0.0.1",
     port: devPort,

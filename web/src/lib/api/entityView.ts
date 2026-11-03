@@ -1,4 +1,4 @@
-import type { EntityViewResponse } from "$lib/types/entity_view";
+import type { EntityViewResponse } from "#lib/types/entity_view.js";
 import { APIError, requestJSON } from "./client";
 
 /**

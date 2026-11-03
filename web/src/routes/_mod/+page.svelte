@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { pushToast } from "$lib/stores/toasts";
-	import { displayHandle } from "$lib/stores/session";
+	import { pushToast } from "#lib/stores/toasts.js";
+	import { displayHandle } from "#lib/stores/session.js";
 	import type { PageData } from "./$types";
-	import type { AdminResponse, HiddenRecord, BlacklistedUser, EnrichedReport, AuditEntry, Label, SourceStatus } from "$lib/types/api";
+	import type { AdminResponse, HiddenRecord, BlacklistedUser, EnrichedReport, AuditEntry, Label, SourceStatus } from "#lib/types/api.js";
 
 	let { data }: { data: PageData } = $props();
 

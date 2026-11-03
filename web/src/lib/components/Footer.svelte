@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { app } from "$lib/stores/session";
-	import { definitionFor } from "$lib/app/definitions";
+	import { app } from "#lib/stores/session.js";
+	import { definitionFor } from "#lib/app/definitions.js";
 
 	let {
 		brandName = "Arabica",

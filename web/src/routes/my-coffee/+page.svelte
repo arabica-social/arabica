@@ -1,17 +1,17 @@
 <script lang="ts">
-  import Icon from "$lib/components/Icon.svelte";
-  import LedgerHeader from "$lib/components/LedgerHeader.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import LedgerHeader from "#lib/components/LedgerHeader.svelte";
   import {
     pluralS,
     formatAvgRating,
     formatTemp,
     formatTime,
-  } from "$lib/utils/format";
-  import { appCache } from "$lib/stores/appCache";
-  import { openLoginModal } from "$lib/stores/session";
-  import { pushToast } from "$lib/stores/toasts";
+  } from "#lib/utils/format.js";
+  import { appCache } from "#lib/stores/appCache.js";
+  import { openLoginModal } from "#lib/stores/session.js";
+  import { pushToast } from "#lib/stores/toasts.js";
   import type { PageData } from "./$types";
-  import type { ManageResponseJSON, BrewListResponse } from "$lib/types/manage";
+  import type { ManageResponseJSON, BrewListResponse } from "#lib/types/manage.js";
   import type {
     Bean,
     Brewer,
@@ -19,7 +19,7 @@
     Recipe,
     Roaster,
     Brew,
-  } from "$lib/types/entity_view";
+  } from "#lib/types/entity_view.js";
 
   let { data }: { data: PageData } = $props();
 

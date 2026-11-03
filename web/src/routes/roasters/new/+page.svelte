@@ -1,6 +1,6 @@
 <script lang="ts">
-	import RoasterForm from "$lib/components/RoasterForm.svelte";
-	import { openLoginModal } from "$lib/stores/session";
+	import RoasterForm from "#lib/components/RoasterForm.svelte";
+	import { openLoginModal } from "#lib/stores/session.js";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

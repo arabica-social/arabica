@@ -1,7 +1,7 @@
 import type { PageLoad } from "./$types";
-import { session } from "$lib/stores/session";
+import { session } from "#lib/stores/session.js";
 import { get } from "svelte/store";
-import type { OnboardingResponse } from "$lib/types/api";
+import type { OnboardingResponse } from "#lib/types/api.js";
 
 export const load: PageLoad = async ({ fetch, url }) => {
 	const s = get(session);

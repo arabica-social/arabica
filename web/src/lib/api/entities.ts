@@ -1,5 +1,5 @@
 import { deleteJSON, postJSON, putJSON } from "./client";
-import type { Bean, Brewer, Brew, Grinder, Recipe, Roaster } from "$lib/types/entity_view";
+import type { Bean, Brewer, Brew, Grinder, Recipe, Roaster } from "#lib/types/entity_view.js";
 
 export type RoasterInput = {
 	name: string;

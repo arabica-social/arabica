@@ -353,9 +353,8 @@ describe("Feed page (home)", () => {
     expect(calledURL).toContain("type=roaster");
     expect(await screen.findByText("Filtered Roaster")).toBeTruthy();
     expect(goto).toHaveBeenCalledWith("/?type=roaster", {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true,
+      replace: true,
+      reset: false,
     });
   });
 
@@ -384,12 +383,42 @@ describe("Feed page (home)", () => {
       headers: { Accept: "application/json" },
     });
     expect(goto).toHaveBeenCalledWith("/?type=brew&sort=popular", {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true,
+      replace: true,
+      reset: false,
     });
     expect(await screen.findByText("No activity yet")).toBeTruthy();
     expect(screen.getByText("Try another filter.")).toBeTruthy();
+  });
+
+  it("keeps feed keys unique when pagination overlaps existing and repeated records", async () => {
+    const nextItem = {
+      ...brewItem,
+      record: {
+        ...brewItem.record,
+        rkey: "brew-2",
+        bean: { name: "Next Bean" },
+      },
+      subject_uri: "at://did:plc:abc/social.arabica.alpha.brew/brew-2",
+    };
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ ...feedData, items: [brewItem, nextItem, nextItem] }),
+      ),
+    );
+    render(FeedPage, {
+      data: {
+        ...authedPageData,
+        feed: { ...feedData, next_cursor: "cursor-abc" },
+      },
+    });
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Load more" }));
+    expect(await screen.findByText("Next Bean")).toBeVisible();
+    expect(document.querySelectorAll("#feed-items > .feed-card")).toHaveLength(
+      2,
+    );
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 
   it("shows a Load more button when next_cursor is present", () => {

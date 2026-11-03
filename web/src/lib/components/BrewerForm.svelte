@@ -3,12 +3,12 @@
 	import FormWorkspace from "./FormWorkspace.svelte";
 	import LedgerHeader from "./LedgerHeader.svelte";
 	import FormSection from "./FormSection.svelte";
-	import { APIError } from "$lib/api/client";
-	import { createBrewer, updateBrewer } from "$lib/api/entities";
-	import { appCache } from "$lib/stores/appCache";
-	import { session } from "$lib/stores/session";
-	import { pushToast } from "$lib/stores/toasts";
-	import type { Brewer } from "$lib/types/entity_view";
+	import { APIError } from "#lib/api/client.js";
+	import { createBrewer, updateBrewer } from "#lib/api/entities.js";
+	import { appCache } from "#lib/stores/appCache.js";
+	import { session } from "#lib/stores/session.js";
+	import { pushToast } from "#lib/stores/toasts.js";
+	import type { Brewer } from "#lib/types/entity_view.js";
 
 	// Values must match the brewer record contract.
 	const BREWER_TYPES = [

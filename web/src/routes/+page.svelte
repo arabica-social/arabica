@@ -1,20 +1,20 @@
 <script lang="ts">
-  import FeedCard from "$lib/components/FeedCard.svelte";
-  import FeedFilters from "$lib/components/FeedFilters.svelte";
-  import Icon from "$lib/components/Icon.svelte";
-  import { app, openLoginModal } from "$lib/stores/session";
-  import { pushToast } from "$lib/stores/toasts";
+  import FeedCard from "#lib/components/FeedCard.svelte";
+  import FeedFilters from "#lib/components/FeedFilters.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import { app, openLoginModal } from "#lib/stores/session.js";
+  import { pushToast } from "#lib/stores/toasts.js";
   import { goto } from "$app/navigation";
   import { tick } from "svelte";
-  import { applyFeedMasonry, installFeedMasonry } from "$lib/utils/feedMasonry";
-  import { getCachedFeedJSON, setCachedFeedJSON } from "$lib/stores/feedCache";
-  import ScrollTopButton from "$lib/components/ScrollTopButton.svelte";
+  import { applyFeedMasonry, installFeedMasonry } from "#lib/utils/feedMasonry.js";
+  import { getCachedFeedJSON, setCachedFeedJSON } from "#lib/stores/feedCache.js";
+  import ScrollTopButton from "#lib/components/ScrollTopButton.svelte";
   import type { PageData } from "./$types";
-  import type { FeedItem, FeedResponse } from "$lib/types/feed";
+  import type { FeedItem, FeedResponse } from "#lib/types/feed.js";
   import {
     definitionFor,
     entityRouteForCollection,
-  } from "$lib/app/definitions";
+  } from "#lib/app/definitions.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -73,9 +73,8 @@
     if (nextSort && nextSort !== "recent") params.set("sort", nextSort);
     const query = params.toString();
     goto(query ? `/?${query}` : "/", {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true,
+      replace: true,
+      reset: false,
     });
   }
 
@@ -127,7 +126,13 @@
       });
       if (!res.ok) throw new Error(`Load more failed: ${res.status}`);
       const data = (await res.json()) as FeedResponse;
-      items = [...items, ...(data.items ?? [])];
+      const seen = new Set(items.map((item) => item.subject_uri));
+      const nextItems = (data.items ?? []).filter((item) => {
+        if (seen.has(item.subject_uri)) return false;
+        seen.add(item.subject_uri);
+        return true;
+      });
+      items = [...items, ...nextItems];
       nextCursor = data.next_cursor ?? "";
     } catch {
       pushToast("Failed to load more");

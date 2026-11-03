@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BeanForm from "$lib/components/BeanForm.svelte";
+	import BeanForm from "#lib/components/BeanForm.svelte";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();

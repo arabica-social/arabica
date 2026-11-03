@@ -1,7 +1,7 @@
 <script lang="ts">
   import { afterNavigate } from "$app/navigation";
   import { page } from "$app/state";
-  import { definitionFor } from "$lib/app/definitions";
+  import { definitionFor } from "#lib/app/definitions.js";
   import {
     app,
     displayHandle,
@@ -9,7 +9,7 @@
     openLoginModal,
     profileIdentifier,
     session,
-  } from "$lib/stores/session";
+  } from "#lib/stores/session.js";
   import Avatar from "./Avatar.svelte";
   import Icon, { type IconName } from "./Icon.svelte";
 

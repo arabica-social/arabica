@@ -40,6 +40,8 @@ brew. Visitors can browse the public feed before logging in.
 - Global navigation remains in the shared header and mobile navigation.
   Feedback, About, and AT Protocol links also remain in the footer.
 - Loading, empty, and failed-feed states are distinct.
+- Load more appends records once per AT-URI, ignoring overlapping entries
+  within or between pages while retaining their existing order.
 
 ## Design Decisions
 

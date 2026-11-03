@@ -1,13 +1,13 @@
 <script lang="ts">
-  import LedgerHeader from "$lib/components/LedgerHeader.svelte";
-  import Icon from "$lib/components/Icon.svelte";
-  import StampTag from "$lib/components/StampTag.svelte";
+  import LedgerHeader from "#lib/components/LedgerHeader.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import StampTag from "#lib/components/StampTag.svelte";
   import { goto } from "$app/navigation";
-  import { pushToast } from "$lib/stores/toasts";
+  import { pushToast } from "#lib/stores/toasts.js";
   import { get } from "svelte/store";
-  import { openLoginModal, session } from "$lib/stores/session";
+  import { openLoginModal, session } from "#lib/stores/session.js";
   import type { PageData } from "./$types";
-  import type { Recipe } from "$lib/types/entity_view";
+  import type { Recipe } from "#lib/types/entity_view.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -87,9 +87,8 @@
     const params = searchParams();
     const q = params.toString();
     goto(q ? `/recipes?${q}` : "/recipes", {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true,
+      replace: true,
+      reset: false,
     });
   }
 

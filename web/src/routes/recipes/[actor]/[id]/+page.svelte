@@ -1,11 +1,11 @@
 <script lang="ts">
-	import EntityViewLayout from "$lib/components/EntityViewLayout.svelte";
-	import Icon from "$lib/components/Icon.svelte";
-	import { formatTime } from "$lib/utils/format";
-	import { pushToast } from "$lib/stores/toasts";
-	import { session } from "$lib/stores/session";
+	import EntityViewLayout from "#lib/components/EntityViewLayout.svelte";
+	import Icon from "#lib/components/Icon.svelte";
+	import { formatTime } from "#lib/utils/format.js";
+	import { pushToast } from "#lib/stores/toasts.js";
+	import { session } from "#lib/stores/session.js";
 	import type { PageData } from "./$types";
-	import type { Recipe } from "$lib/types/entity_view";
+	import type { Recipe } from "#lib/types/entity_view.js";
 
 	let { data }: { data: PageData } = $props();
 

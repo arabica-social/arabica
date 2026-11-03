@@ -2,7 +2,7 @@
 
 Authoritative sources:
 
-- [`web/svelte.config.js`](../../web/svelte.config.js)
+- [`web/vite.config.ts`](../../web/vite.config.ts)
 - [`web/src/routes/`](../../web/src/routes/)
 - [`internal/web/spa/`](../../internal/web/spa/)
 - [`internal/arabica/handlers/routes.go`](../../internal/arabica/handlers/routes.go)
@@ -11,6 +11,8 @@ Related decision: [ADR-006](../adr/ADR-006-embedded-spa-with-explicit-route-cuto
 
 ## Target Runtime
 
+SvelteKit 3 is configured through the Vite plugin in `web/vite.config.ts`.
+Application imports use the `#lib` package imports in `web/package.json`.
 SvelteKit builds a client-rendered static application with an `index.html`
 fallback. The generated assets are embedded in the Go binary. Go serves the
 shell and injects server-owned head, session, CSP, trace, and Open Graph data

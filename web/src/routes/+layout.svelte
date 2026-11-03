@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import Header from "$lib/components/Header.svelte";
-	import Footer from "$lib/components/Footer.svelte";
-	import LoginModal from "$lib/components/LoginModal.svelte";
-	import { app, session, refreshSession } from "$lib/stores/session";
-	import { themeStorageKey } from "$lib/stores/storageKeys";
+	import Header from "#lib/components/Header.svelte";
+	import Footer from "#lib/components/Footer.svelte";
+	import LoginModal from "#lib/components/LoginModal.svelte";
+	import { app, session, refreshSession } from "#lib/stores/session.js";
+	import { themeStorageKey } from "#lib/stores/storageKeys.js";
 	import {
 		toasts,
 		pushToast,
 		dismissToast,
 		extractNotifyMessage,
-	} from "$lib/stores/toasts";
-	import { appCache, installAppCacheGlobal } from "$lib/stores/appCache";
-	import { clearFeedCache } from "$lib/stores/feedCache";
-	import { definitionFor } from "$lib/app/definitions";
+	} from "#lib/stores/toasts.js";
+	import { appCache, installAppCacheGlobal } from "#lib/stores/appCache.js";
+	import { clearFeedCache } from "#lib/stores/feedCache.js";
+	import { definitionFor } from "#lib/app/definitions.js";
 
 	let { children } = $props();
 

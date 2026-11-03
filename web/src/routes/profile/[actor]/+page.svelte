@@ -1,19 +1,19 @@
 <script lang="ts">
-  import Avatar from "$lib/components/Avatar.svelte";
-  import Icon from "$lib/components/Icon.svelte";
-  import ActionBar from "$lib/components/ActionBar.svelte";
-  import { displayHandle, safeAvatarURL } from "$lib/stores/session";
+  import Avatar from "#lib/components/Avatar.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import ActionBar from "#lib/components/ActionBar.svelte";
+  import { displayHandle, safeAvatarURL } from "#lib/stores/session.js";
   import {
     pluralS,
     formatAvgRating,
     formatTemp,
     formatTime,
-  } from "$lib/utils/format";
-  import { pushToast } from "$lib/stores/toasts";
+  } from "#lib/utils/format.js";
+  import { pushToast } from "#lib/stores/toasts.js";
   import { goto } from "$app/navigation";
   import type { PageData } from "./$types";
-  import type { ProfileResponse } from "$lib/types/api";
-  import type { Bean, Brew } from "$lib/types/entity_view";
+  import type { ProfileResponse } from "#lib/types/api.js";
+  import type { Bean, Brew } from "#lib/types/entity_view.js";
 
   let { data }: { data: PageData } = $props();
 

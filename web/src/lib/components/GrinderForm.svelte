@@ -3,12 +3,12 @@
 	import FormWorkspace from "./FormWorkspace.svelte";
 	import LedgerHeader from "./LedgerHeader.svelte";
 	import FormSection from "./FormSection.svelte";
-	import { APIError } from "$lib/api/client";
-	import { createGrinder, updateGrinder } from "$lib/api/entities";
-	import { appCache } from "$lib/stores/appCache";
-	import { session } from "$lib/stores/session";
-	import { pushToast } from "$lib/stores/toasts";
-	import type { Grinder } from "$lib/types/entity_view";
+	import { APIError } from "#lib/api/client.js";
+	import { createGrinder, updateGrinder } from "#lib/api/entities.js";
+	import { appCache } from "#lib/stores/appCache.js";
+	import { session } from "#lib/stores/session.js";
+	import { pushToast } from "#lib/stores/toasts.js";
+	import type { Grinder } from "#lib/types/entity_view.js";
 
 	const GRINDER_TYPES = ["Hand", "Electric", "Portable Electric"];
 	const BURR_TYPES = ["Conical", "Flat"];

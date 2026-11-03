@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { pushToast } = vi.hoisted(() => ({ pushToast: vi.fn() }));
-vi.mock("$lib/stores/toasts", () => ({ pushToast }));
+vi.mock("#lib/stores/toasts.js", () => ({ pushToast }));
 import MyCoffee from "../../src/routes/my-coffee/+page.svelte";
 
 const manageData = {

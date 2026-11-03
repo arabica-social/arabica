@@ -1,15 +1,15 @@
 <script lang="ts">
   import EntityCombo from "./EntityCombo.svelte";
-  import { APIError } from "$lib/api/client";
+  import { APIError } from "#lib/api/client.js";
   import {
     createBean,
     createBrewer,
     createGrinder,
     createRoaster,
-  } from "$lib/api/entities";
-  import { appCache } from "$lib/stores/appCache";
-  import { pushToast } from "$lib/stores/toasts";
-  import type { Roaster } from "$lib/types/entity_view";
+  } from "#lib/api/entities.js";
+  import { appCache } from "#lib/stores/appCache.js";
+  import { pushToast } from "#lib/stores/toasts.js";
+  import type { Roaster } from "#lib/types/entity_view.js";
 
   type Props = {
     kind: string;

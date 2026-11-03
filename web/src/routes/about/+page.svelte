@@ -1,6 +1,6 @@
 <script lang="ts">
-  import BackButton from "$lib/components/BackButton.svelte";
-  import { openLoginModal, session } from "$lib/stores/session";
+  import BackButton from "#lib/components/BackButton.svelte";
+  import { openLoginModal, session } from "#lib/stores/session.js";
 
   let isAuthenticated = $derived($session.isAuthenticated);
 </script>

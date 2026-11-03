@@ -65,7 +65,7 @@ an unprefixed form (e.g. `PORT`); the prefixed form wins when both are set.
 ### Prerequisites
 
 - [Go](https://go.dev/) 1.26+
-- [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/)
+- [Node.js](https://nodejs.org/) 22.17+ and [pnpm](https://pnpm.io/) (version pinned in `package.json`)
 - [just](https://github.com/casey/just) (optional but recommended); run helpers
   in `justfile`
 - [inotify-tools](https://github.com/inotify-tools/inotify-tools) for the SPA

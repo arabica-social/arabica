@@ -1,6 +1,6 @@
 <script lang="ts">
-  import BackButton from "$lib/components/BackButton.svelte";
-  import { openLoginModal } from "$lib/stores/session";
+  import BackButton from "#lib/components/BackButton.svelte";
+  import { openLoginModal } from "#lib/stores/session.js";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();

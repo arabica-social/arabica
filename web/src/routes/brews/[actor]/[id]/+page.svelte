@@ -1,14 +1,14 @@
 <script lang="ts">
-	import BackButton from "$lib/components/BackButton.svelte";
-	import RecordViewHeader from "$lib/components/RecordViewHeader.svelte";
-	import ActionBar from "$lib/components/ActionBar.svelte";
-	import CommentSection from "$lib/components/CommentSection.svelte";
-	import Icon from "$lib/components/Icon.svelte";
-	import { formatTime, formatTempForUnit } from "$lib/utils/format";
-	import { pushToast } from "$lib/stores/toasts";
-	import { session } from "$lib/stores/session";
+	import BackButton from "#lib/components/BackButton.svelte";
+	import RecordViewHeader from "#lib/components/RecordViewHeader.svelte";
+	import ActionBar from "#lib/components/ActionBar.svelte";
+	import CommentSection from "#lib/components/CommentSection.svelte";
+	import Icon from "#lib/components/Icon.svelte";
+	import { formatTime, formatTempForUnit } from "#lib/utils/format.js";
+	import { pushToast } from "#lib/stores/toasts.js";
+	import { session } from "#lib/stores/session.js";
 	import type { PageData } from "./$types";
-	import type { Brew, Pour } from "$lib/types/entity_view";
+	import type { Brew, Pour } from "#lib/types/entity_view.js";
 
 	let { data }: { data: PageData } = $props();
 

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Avatar from "$lib/components/Avatar.svelte";
-	import BackButton from "$lib/components/BackButton.svelte";
-	import { pushToast } from "$lib/stores/toasts";
-	import { displayHandle, openLoginModal } from "$lib/stores/session";
-	import { markAllNotificationsRead } from "$lib/api/notifications";
+	import Avatar from "#lib/components/Avatar.svelte";
+	import BackButton from "#lib/components/BackButton.svelte";
+	import { pushToast } from "#lib/stores/toasts.js";
+	import { displayHandle, openLoginModal } from "#lib/stores/session.js";
+	import { markAllNotificationsRead } from "#lib/api/notifications.js";
 	import type { PageData } from "./$types";
-	import type { NotificationItem } from "$lib/types/api";
+	import type { NotificationItem } from "#lib/types/api.js";
 
 	let { data }: { data: PageData } = $props();
 

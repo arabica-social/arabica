@@ -14,12 +14,12 @@ buildGo127Module rec {
   pname = appName;
   version = "0.1.0";
   src = ../.;
-  vendorHash = "sha256-7DiiI/T8SYcC+zzHrSW31VZ7wmPlgpquKj+9xC8gUV0=";
+  vendorHash = "sha256-z++vFgR6/XMM5ppa+7xTL0/ZiQLBew2sM9K+CdtNOt8=";
 
   pnpmDeps = fetchPnpmDeps {
     inherit pname version src;
     fetcherVersion = 4;
-    hash = "sha256-5XRwnjbcacyPJ+JQWqnFo+NeSXvpjuv23GbXspBqF/w=";
+    hash = "sha256-Mw0pGRuSabLisC/B514pFqVf6Tf9LAOfa7Nn6uUKMd4=";
   };
 
   nativeBuildInputs = [

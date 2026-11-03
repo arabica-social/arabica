@@ -1,5 +1,5 @@
 import type { PageLoad } from "./$types";
-import type { SignupCategoriesResponse } from "$lib/types/signup";
+import type { SignupCategoriesResponse } from "#lib/types/signup.js";
 
 // The server includes development-only providers when dev mode is enabled.
 export const load: PageLoad = async ({ fetch, url }) => {

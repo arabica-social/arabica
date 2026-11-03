@@ -1,9 +1,9 @@
 import type { PageLoad } from "./$types";
-import { session } from "$lib/stores/session";
+import { session } from "#lib/stores/session.js";
 import { get } from "svelte/store";
-import type { NotificationsResponse } from "$lib/types/api";
-import { APIError } from "$lib/api/client";
-import { getNotifications } from "$lib/api/notifications";
+import type { NotificationsResponse } from "#lib/types/api.js";
+import { APIError } from "#lib/api/client.js";
+import { getNotifications } from "#lib/api/notifications.js";
 
 export const load: PageLoad = async ({ fetch, url }) => {
 	const s = get(session);
