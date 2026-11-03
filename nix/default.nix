@@ -19,7 +19,7 @@ buildGo127Module rec {
   pnpmDeps = fetchPnpmDeps {
     inherit pname version src;
     fetcherVersion = 4;
-    hash = "sha256-Mw0pGRuSabLisC/B514pFqVf6Tf9LAOfa7Nn6uUKMd4=";
+    hash = "sha256-OkuRtZFwu98BEhxdZmmr8AjpWPxImoEUCOoVrVxFF9A=";
   };
 
   nativeBuildInputs = [

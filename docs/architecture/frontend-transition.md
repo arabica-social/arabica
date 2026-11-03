@@ -13,6 +13,12 @@ Related decision: [ADR-006](../adr/ADR-006-embedded-spa-with-explicit-route-cuto
 
 SvelteKit 3 is configured through the Vite plugin in `web/vite.config.ts`.
 Application imports use the `#lib` package imports in `web/package.json`.
+`pnpm --dir web run check` and `check:watch` use the native TypeScript 7
+compiler through `svelte-check --tsgo --incremental`. The checker keeps generated
+files under `.svelte-kit/.svelte-check`; its incremental manifest removes outputs
+for deleted components. TypeScript 6 remains installed for
+the compiler API required by Svelte tooling. Vite builds use Rolldown/Oxc,
+not the TypeScript type checker.
 SvelteKit builds a client-rendered static application with an `index.html`
 fallback. The generated assets are embedded in the Go binary. Go serves the
 shell and injects server-owned head, session, CSP, trace, and Open Graph data
