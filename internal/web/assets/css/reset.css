@@ -111,12 +111,6 @@ input[type="button"] {
   min-width: 44px;
 }
 
-/* Filter pills opt out of the 44px touch target */
-[class*="filter-pill"] {
-  min-height: auto;
-  min-width: auto;
-}
-
 /* Global keyboard focus ring */
 :focus-visible {
   outline: 2px solid var(--input-border-focus);

@@ -58,7 +58,7 @@
 	<div class="flex items-center justify-between mb-8">
 		<div class="flex items-center gap-3">
 			<BackButton />
-			<h1 class="text-2xl font-semibold text-primary">Notifications</h1>
+			<h1 class="page-title">Notifications</h1>
 		</div>
 		{#if notifications.length > 0}
 			<button type="button" class="btn-secondary text-sm" onclick={markAllRead} disabled={markingRead}>

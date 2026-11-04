@@ -291,7 +291,7 @@
                     {/if}
                   </div>
                   {#if brew.bean}
-                    <div class="font-bold text-primary">
+                    <div class="record-title">
                       {brew.bean.name || brew.bean.origin}
                     </div>
                     {#if brew.bean.roaster?.name}
@@ -322,18 +322,18 @@
                         >{/if}
                     </div>
                   {:else}
-                    <div class="font-bold text-primary">Brew</div>
+                    <div class="record-title">Brew</div>
                   {/if}
                   {#if brew.brewer_obj?.name || brew.method}
                     <div class="mb-2">
                       <span class="text-meta">Brewer:</span>
-                      <span class="text-sm font-semibold text-primary"
+                      <span class="text-sm text-primary"
                         >{brew.brewer_obj?.name ?? brew.method}</span
                       >
                     </div>
                   {/if}
                   <div
-                    class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emphasis"
+                    class="brew-meta-grid grid gap-x-4 gap-y-1 text-xs text-emphasis"
                   >
                     {#if brew.grinder_obj?.name}
                       <div>
@@ -406,7 +406,7 @@
                       <div class="flex items-center justify-between mb-2">
                         <a
                           href={`/beans/${did}/${bean.rkey}`}
-                          class="font-bold text-primary hover:underline"
+                          class="record-title hover:underline"
                           >{bean.name}</a
                         >
                         {#if bean.rating}
@@ -496,7 +496,7 @@
                       <div class="flex items-center justify-between mb-2">
                         <a
                           href={`/beans/${did}/${bean.rkey}`}
-                          class="font-bold text-primary hover:underline"
+                          class="record-title hover:underline"
                           >{bean.name}</a
                         >
                         <div class="flex items-center gap-2">
@@ -597,7 +597,7 @@
                 <div class="feed-card feed-card-roaster">
                   <a
                     href={`/roasters/${did}/${roaster.rkey}`}
-                    class="font-bold text-primary hover:underline"
+                    class="record-title hover:underline"
                     >{roaster.name}</a
                   >
                   {#if roaster.location}
@@ -660,7 +660,7 @@
                 <div class="feed-card feed-card-grinder">
                   <a
                     href={`/grinders/${did}/${grinder.rkey}`}
-                    class="font-bold text-primary hover:underline"
+                    class="record-title hover:underline"
                     >{grinder.name}</a
                   >
                   <div
@@ -717,7 +717,7 @@
                 <div class="feed-card feed-card-brewer">
                   <a
                     href={`/brewers/${did}/${brewer.rkey}`}
-                    class="font-bold text-primary hover:underline"
+                    class="record-title hover:underline"
                     >{brewer.name}</a
                   >
                   {#if brewer.brewer_type}
@@ -776,7 +776,7 @@
                 <div class="feed-card feed-card-recipe">
                   <a
                     href={`/recipes/${did}/${recipe.rkey}`}
-                    class="font-bold text-primary hover:underline"
+                    class="record-title hover:underline"
                     >{recipe.name}</a
                   >
                   {#if recipe.brewer_obj?.name || recipe.brewer_type}
@@ -818,6 +818,11 @@
 </div>
 
 <style>
+  .feed-card {
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-sm);
+  }
+
   .coffee-library {
     width: 100%;
     max-width: 88rem;

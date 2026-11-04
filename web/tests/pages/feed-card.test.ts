@@ -129,7 +129,7 @@ describe("FeedCard", () => {
 		expect(screen.getByText("250.0g")).toBeTruthy();
 	});
 
-	it("renders pours as pills", () => {
+	it("renders pours as an aligned strip", () => {
 		const item = makeItem({
 			record: {
 				rkey: "brew-1",
@@ -139,10 +139,14 @@ describe("FeedCard", () => {
 				],
 			},
 		});
-		render(FeedCard, { item, isAuthenticated: true });
-		expect(screen.getByText("Pours:")).toBeTruthy();
+		const { container } = render(FeedCard, { item, isAuthenticated: true });
+		expect(screen.getByText("Pours")).toBeTruthy();
 		expect(screen.getByText("50g")).toBeTruthy();
 		expect(screen.getByText("100g")).toBeTruthy();
+		expect(screen.getByText("30s")).toBeTruthy();
+		expect(screen.getByText("1m")).toBeTruthy();
+		const cells = container.querySelectorAll(".pour-cell");
+		expect(cells.length).toBe(2);
 	});
 
 	it("renders tasting notes", () => {

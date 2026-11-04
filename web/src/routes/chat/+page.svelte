@@ -5,6 +5,7 @@
 </script>
 
 <svelte:head><title>Chat · Arabica</title></svelte:head>
+<h1 class="sr-only">Chat</h1>
 <ChatWorkspace
   accountDid={$session.isAuthenticated ? $session.did : ""}
   enabled={data.enabled}

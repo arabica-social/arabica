@@ -92,7 +92,7 @@
 					<div class="journal-field">
 						<span class="detail-label">
 							<span class="inline-flex items-center gap-1">
-								<Icon name="fileText" class="w-4 h-4 text-blue-400" />
+								<Icon name="fileText" class="w-4 h-4 text-type-recipe" />
 								Link
 							</span>
 						</span>

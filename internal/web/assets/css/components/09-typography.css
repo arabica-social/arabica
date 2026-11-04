@@ -70,3 +70,19 @@
   text-transform: uppercase;
   color: var(--text-muted);
 }
+
+/* Compact record title — Fraunces for entity titles on feed and collection
+   cards, matching page and record-view titles. */
+.record-title {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  line-height: 1.35rem;
+  font-weight: 600;
+  font-variation-settings:
+    "opsz" 24,
+    "SOFT" 50,
+    "WONK" 0;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}

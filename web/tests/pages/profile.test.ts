@@ -85,11 +85,11 @@ describe("Profile page", () => {
 
 	it("renders the stats grid", () => {
 		render(ProfilePage, { data: testData });
-		expect(screen.getAllByText("Brews").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Brew").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("Beans").length).toBeGreaterThan(0);
-		expect(screen.getAllByText("Roasters").length).toBeGreaterThan(0);
-		expect(screen.getAllByText("Grinders").length).toBeGreaterThan(0);
-		expect(screen.getAllByText("Brewers").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Roaster").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Grinder").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Brewer").length).toBeGreaterThan(0);
 	});
 
 	it("shows the brews tab by default with brew cards", () => {

@@ -243,6 +243,46 @@
 {/snippet}
 
 <div class="cafe-counter">
+
+
+  <main class="cafe-main">
+    <header class="cafe-masthead">
+      <div class="cafe-masthead-lead">
+        <h1 id="community-activity-title">Community</h1>
+        <div class="cafe-actions">
+          {#if isAuthenticated}
+            <a
+              href={ready ? "/brews/new" : "/onboarding"}
+              class="home-action-primary"
+            >
+              {ready ? appDefinition.sessionAction : "Finish setup"}
+            </a>
+          {:else}
+            <button
+              type="button"
+              onclick={openLoginModal}
+              class="home-action-primary">Log in</button
+            >
+          {/if}
+        </div>
+      </div>
+      {#if !isAuthenticated}
+        <p class="cafe-masthead-note">Track brews, beans, and recipes.</p>
+        <a href="/join/create" class="cafe-text-link">Create an account</a>
+      {:else if !ready}
+        <p class="cafe-masthead-note">{appDefinition.readinessNudge}</p>
+      {/if}
+      {#if isAuthenticated && data.aiEnabled}
+        <div class="cafe-prompt"><HomeEntry accountDid={data.userDID} /></div>
+      {:else}
+        {@render feedControls()}
+      {/if}
+    </header>
+    {#if isAuthenticated && data.aiEnabled}
+      <div class="cafe-feed-controls">{@render feedControls()}</div>
+    {/if}
+    {@render feedSection()}
+  </main>
   <aside
     class="cafe-rail cafe-rail-left"
     aria-label="Your coffee journal"
@@ -284,45 +324,6 @@
       </section>
     {/if}
   </aside>
-
-  <main class="cafe-main">
-    <header class="cafe-masthead">
-      <div class="cafe-masthead-lead">
-        <h1 id="community-activity-title">Community</h1>
-        <div class="cafe-actions">
-          {#if isAuthenticated}
-            <a
-              href={ready ? "/brews/new" : "/onboarding"}
-              class="home-action-primary"
-            >
-              {ready ? appDefinition.sessionAction : "Finish setup"}
-            </a>
-          {:else}
-            <button
-              type="button"
-              onclick={openLoginModal}
-              class="home-action-primary">Log in</button
-            >
-          {/if}
-        </div>
-      </div>
-      {#if !isAuthenticated}
-        <p class="cafe-masthead-note">Track brews, beans, and recipes.</p>
-        <a href="/join/create" class="cafe-text-link">Create an account</a>
-      {:else if !ready}
-        <p class="cafe-masthead-note">{appDefinition.readinessNudge}</p>
-      {/if}
-      {#if isAuthenticated && data.aiEnabled}
-        <div class="cafe-prompt"><HomeEntry accountDid={data.userDID} /></div>
-      {:else}
-        {@render feedControls()}
-      {/if}
-    </header>
-    {#if isAuthenticated && data.aiEnabled}
-      <div class="cafe-feed-controls">{@render feedControls()}</div>
-    {/if}
-    {@render feedSection()}
-  </main>
 
   <aside class="cafe-rail cafe-rail-right" aria-label="Community links">
     <section class="cafe-rail-section">
@@ -608,6 +609,7 @@
       grid-template-columns:
         minmax(10.5rem, 0.72fr) minmax(34rem, 2.5fr)
         minmax(12rem, 0.85fr);
+      grid-template-areas: "rail-left main rail-right";
       align-items: start;
       gap: clamp(1.25rem, 2.2vw, 2.5rem);
     }
@@ -615,6 +617,15 @@
     .cafe-rail-left,
     .cafe-rail-right {
       order: initial;
+    }
+    .cafe-main {
+      grid-area: main;
+    }
+    .cafe-rail-left {
+      grid-area: rail-left;
+    }
+    .cafe-rail-right {
+      grid-area: rail-right;
     }
     .cafe-rail {
       position: sticky;

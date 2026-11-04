@@ -134,7 +134,7 @@
             type="button"
             onclick={toggleCreate}
             class="create-action"
-            aria-label="Create new"
+            aria-label={definition.sessionAction}
             aria-expanded={createOpen}
           >
             <Icon name="coffee" />

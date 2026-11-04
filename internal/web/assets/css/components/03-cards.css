@@ -98,10 +98,15 @@
 
 /* Record view — title area */
 .record-view-title {
+  font-family: var(--font-display);
   font-size: 1.5rem;
   line-height: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  font-variation-settings:
+    "opsz" 36,
+    "SOFT" 50,
+    "WONK" 0;
+  letter-spacing: -0.015em;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
@@ -155,11 +160,9 @@
 }
 
 .record-view-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
   padding-top: 1rem;
   margin-top: 1.5rem;
   min-width: 0;
@@ -169,6 +172,9 @@
   min-width: 0;
   max-width: 100%;
   flex-wrap: wrap;
+}
+.record-view-footer .action-bar {
+  margin-top: 0.5rem;
 }
 
 .record-stat-line {

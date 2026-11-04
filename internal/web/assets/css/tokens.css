@@ -66,6 +66,9 @@
 
   --brand-cream-50: #faf7f5;
 
+  /* Paper-corner radius for stamps, tags, and small chips. */
+  --radius-paper: 4px;
+
   /* Coffee-led brand inks. Copper is the primary action/registration
      color; leaf is the botanical counterpoint, not the success color. */
   --brand-copper: oklch(0.62 0.15 45);
@@ -129,11 +132,11 @@
   --text-emphasis: #6b4423;
   --text-muted: #7f5539;
   --text-faint: #8a6758;
-  --text-placeholder: #d2bab0;
+  --text-placeholder: #906c5a;
 
   /* Interactive */
-  --btn-primary-bg: var(--brand-copper);
-  --btn-primary-bg-hover: oklch(0.55 0.16 42);
+  --btn-primary-bg: oklch(0.54 0.14 42);
+  --btn-primary-bg-hover: oklch(0.48 0.14 42);
   --btn-primary-text: #faf7f5;
   --btn-secondary-bg: oklch(0.992 0.006 62);
   --btn-secondary-border: #e0cec7;
@@ -252,7 +255,7 @@
     --text-emphasis: #e0cec4;
     --text-muted: #c4a898;
     --text-faint: #a98f82;
-    --text-placeholder: #5a4a40;
+    --text-placeholder: #95826f;
 
     /* Interactive */
     --btn-primary-bg: var(--brand-copper-bright);
@@ -359,7 +362,7 @@
   --text-emphasis: #e0cec4;
   --text-muted: #c4a898;
   --text-faint: #a98f82;
-  --text-placeholder: #5a4a40;
+  --text-placeholder: #95826f;
   --btn-primary-bg: var(--brand-copper-bright);
   --btn-primary-bg-hover: oklch(0.78 0.16 58);
   --btn-primary-text: oklch(0.18 0.025 30);

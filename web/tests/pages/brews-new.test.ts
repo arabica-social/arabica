@@ -35,7 +35,7 @@ describe("Brews new page", () => {
     expect(
       screen.queryByLabelText("Coffee amount (g)"),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Brewer (required)")).toBeTruthy();
+    expect(screen.getByText("Fields marked * are required.")).toBeTruthy();
   });
 
   it("renders the New Brew title", () => {

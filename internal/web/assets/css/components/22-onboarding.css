@@ -43,8 +43,12 @@
   font-family: var(--font-display);
   font-size: clamp(2rem, 5.5vw, 3rem);
   line-height: 1.05;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-variation-settings:
+    "opsz" 96,
+    "SOFT" 50,
+    "WONK" 0;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
   margin: 0;
 }

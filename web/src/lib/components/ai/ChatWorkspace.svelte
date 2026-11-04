@@ -1818,7 +1818,7 @@
   .attach-button:hover,
   .attach-button:focus-visible {
     color: var(--text-primary);
-    background: var(--surface-hover);
+    background: var(--surface-bg);
   }
   .attach-button:focus-visible,
   .pending-image button:focus-visible {

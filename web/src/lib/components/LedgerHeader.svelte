@@ -66,6 +66,10 @@
     font-weight: 600;
     line-height: 1;
     letter-spacing: -0.025em;
+    font-variation-settings:
+      "opsz" 96,
+      "SOFT" 50,
+      "WONK" 0;
   }
   .ledger-header__description {
     max-width: 60ch;

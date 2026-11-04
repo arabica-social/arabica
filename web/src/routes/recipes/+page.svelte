@@ -357,7 +357,6 @@
             role="group"
             aria-label="Sort recipes"
           >
-            <span class="stamp-sort-label">Sort</span>
             {#each sorts as option}
               <StampTag
                 label={option.label}
@@ -373,7 +372,7 @@
             <div class="recipe-detail-sheet">
               <div class="flex justify-between items-start mb-4">
                 <div class="min-w-0 flex-1">
-                  <h3 class="text-xl font-bold text-primary wrap-break-word">
+                  <h3 class="record-title wrap-break-word">
                     {selectedRecipe.name}
                   </h3>
                   <a
@@ -601,10 +600,7 @@
             </div>
           {:else if recipes.length === 0}
             <div class="recipe-empty-state">
-              <p class="text-emphasis text-lg font-medium">
-                No recipes match these filters
-              </p>
-              <p class="text-sm text-muted mt-2">
+              <p class="text-sm text-muted">
                 Try widening the search, clearing filters, or changing the sort
                 order.
               </p>
@@ -658,7 +654,7 @@
                     </span>
                   </a>
 
-                  <span class="block font-semibold text-primary mb-2 truncate"
+                  <span class="block record-title mb-2 truncate"
                     >{recipe.name}</span
                   >
                   {#if getBrewerDisplay(recipe) !== "-"}
@@ -769,14 +765,9 @@
     margin: 1rem 0 1.5rem;
     border: 0;
     border-radius: 0.25rem;
-    background-color: var(--feed-card-bg);
-    background-image: linear-gradient(
-      color-mix(in oklch, var(--brand-amber-50) 46%, transparent),
-      color-mix(in oklch, var(--brand-amber-50) 46%, transparent)
-    );
-    box-shadow:
-      1px 2px 4px rgba(0, 0, 0, 0.1),
-      0 1px 2px rgba(0, 0, 0, 0.06);
+    background: var(--alert-warning-bg);
+    border: 1px solid var(--alert-warning-border);
+    box-shadow: var(--shadow-sm);
   }
   .recipe-alpha-notice__summary {
     display: flex;
@@ -792,7 +783,7 @@
   .recipe-alpha-notice__summary :global(svg) {
     width: 1rem;
     height: 1rem;
-    color: var(--brand-amber-700);
+    color: var(--alert-warning-text);
   }
   .recipe-alpha-notice__summary span,
   .recipe-alpha-notice__summary strong,
@@ -807,14 +798,14 @@
   }
   .recipe-alpha-notice__summary small {
     margin-top: 0.1rem;
-    color: var(--text-muted);
+    color: var(--alert-warning-text-muted);
     font-size: 0.73rem;
     font-weight: 400;
   }
   .recipe-alpha-notice__body {
     max-width: 72ch;
     padding: 0 1rem 1rem 2.5rem;
-    color: var(--text-muted);
+    color: var(--alert-warning-text-muted);
     line-height: 1.55;
   }
   .recipe-alpha-notice__body > p + p {

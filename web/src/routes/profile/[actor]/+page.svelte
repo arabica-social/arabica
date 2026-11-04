@@ -23,6 +23,11 @@
   // svelte-ignore state_referenced_locally
   let profile = $state<ProfileResponse | null>(data.profile);
 
+  let identity = $derived(
+    profile?.profile?.display_name ||
+      (profile ? displayHandle(profile.profile.handle) : ""),
+  );
+
   // svelte-ignore state_referenced_locally
   $effect(() => {
     profile = data.profile;
@@ -151,11 +156,17 @@
         size="lg"
       />
       <div class="profile-identity">
-        <h1>
-          {profile.profile.display_name ||
-            displayHandle(profile.profile.handle)}
+        <h1
+          class:did-fallback={identity.startsWith("did:")}
+          title={identity.startsWith("did:") ? identity : undefined}
+        >
+          {identity.startsWith("did:")
+            ? `${identity.slice(0, 11)}…${identity.slice(-4)}`
+            : identity}
         </h1>
-        <p class="profile-handle">@{displayHandle(profile.profile.handle)}</p>
+        {#if !identity.startsWith("did:")}
+          <p class="profile-handle">@{displayHandle(profile.profile.handle)}</p>
+        {/if}
       </div>
       {#if isOwnProfile}<a href="/settings" class="btn-secondary text-sm"
           >Settings</a
@@ -163,17 +174,16 @@
     </header>
 
     <section class="profile-stats" aria-label="Coffee collection statistics">
-      <div><strong>{profile.total_brews}</strong><span>Brews</span></div>
-      <div><strong>{profile.beans.length}</strong><span>Beans</span></div>
-      <div><strong>{profile.roasters.length}</strong><span>Roasters</span></div>
-      <div><strong>{profile.grinders.length}</strong><span>Grinders</span></div>
-      <div><strong>{profile.brewers.length}</strong><span>Brewers</span></div>
+      <div><strong>{profile.total_brews}</strong><span>{profile.total_brews === 1 ? "Brew" : "Brews"}</span></div>
+      <div><strong>{profile.beans.length}</strong><span>{profile.beans.length === 1 ? "Bean" : "Beans"}</span></div>
+      <div><strong>{profile.roasters.length}</strong><span>{profile.roasters.length === 1 ? "Roaster" : "Roasters"}</span></div>
+      <div><strong>{profile.grinders.length}</strong><span>{profile.grinders.length === 1 ? "Grinder" : "Grinders"}</span></div>
+      <div><strong>{profile.brewers.length}</strong><span>{profile.brewers.length === 1 ? "Brewer" : "Brewers"}</span></div>
     </section>
 
     <div class="profile-grid">
       <aside class="profile-index" aria-label="Profile sections">
-        <p class="profile-label">Index</p>
-        <div role="tablist" aria-label="Profile collections">
+          <div role="tablist" aria-label="Profile collections">
           <button
             type="button"
             onclick={() => (activeTab = "brews")}
@@ -233,7 +243,7 @@
                       {/if}
                     </div>
                     {#if brew.bean}
-                      <div class="font-bold text-primary">
+                      <div class="record-title">
                         {brew.bean.name || brew.bean.origin}
                       </div>
                       {#if brew.bean.roaster?.name}
@@ -267,13 +277,13 @@
                     {#if brew.brewer_obj?.name || brew.method}
                       <div class="mb-2">
                         <span class="text-meta">Brewer:</span>
-                        <span class="text-sm font-semibold text-primary"
+                        <span class="text-sm text-primary"
                           >{brew.brewer_obj?.name ?? brew.method}</span
                         >
                       </div>
                     {/if}
                     <div
-                      class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emphasis"
+                      class="brew-meta-grid grid gap-x-4 gap-y-1 text-xs text-emphasis"
                     >
                       {#if brew.grinder_obj?.name}
                         <div>
@@ -348,7 +358,7 @@
           <div class="space-y-6">
             <!-- Open bags -->
             <div>
-              <h4 class="text-lg font-semibold text-primary mb-3">Open bags</h4>
+              <h4 class="section-heading">Open bags</h4>
               {#if openBeans().length === 0}
                 <div class="card card-inner text-center py-6">
                   <p class="text-secondary">
@@ -363,7 +373,7 @@
                     <div class="feed-card feed-card-bean">
                       <a
                         href={`/beans/${did}/${bean.rkey}`}
-                        class="font-bold text-primary hover:underline"
+                        class="record-title hover:underline"
                         >{bean.name || bean.origin}</a
                       >
                       {#if bean.roaster?.name}
@@ -433,7 +443,7 @@
             </div>
             <!-- Roasters -->
             <div>
-              <h4 class="text-lg font-semibold text-primary mb-3">Roasters</h4>
+              <h4 class="section-heading">Roasters</h4>
               {#if profile.roasters.length === 0}
                 <div class="card card-inner text-center py-6">
                   <p class="text-secondary">No roasters yet.</p>
@@ -446,7 +456,7 @@
                     <div class="feed-card feed-card-roaster">
                       <a
                         href={`/roasters/${did}/${roaster.rkey}`}
-                        class="font-bold text-primary hover:underline"
+                        class="record-title hover:underline"
                         >{roaster.name}</a
                       >
                       {#if roaster.location}
@@ -493,9 +503,7 @@
             <!-- Closed bags -->
             {#if closedBeans().length > 0}
               <div>
-                <h4 class="text-lg font-semibold text-primary mb-3">
-                  Finished bags
-                </h4>
+                <h4 class="section-heading">Finished bags</h4>
                 <div
                   class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                 >
@@ -503,7 +511,7 @@
                     <div class="feed-card feed-card-bean opacity-75">
                       <a
                         href={`/beans/${did}/${bean.rkey}`}
-                        class="font-bold text-primary hover:underline"
+                        class="record-title hover:underline"
                         >{bean.name || bean.origin}</a
                       >
                       <span class="text-xs text-faint">Closed</span>
@@ -580,7 +588,7 @@
           <div class="space-y-6">
             <!-- Grinders -->
             <div>
-              <h4 class="text-lg font-semibold text-primary mb-3">Grinders</h4>
+              <h4 class="section-heading">Grinders</h4>
               {#if profile.grinders.length === 0}
                 <div class="card card-inner text-center py-6">
                   <p class="text-secondary">No grinders yet.</p>
@@ -593,7 +601,7 @@
                     <div class="feed-card feed-card-grinder">
                       <a
                         href={`/grinders/${did}/${grinder.rkey}`}
-                        class="font-bold text-primary hover:underline"
+                        class="record-title hover:underline"
                         >{grinder.name}</a
                       >
                       <div
@@ -634,7 +642,7 @@
               {/if}
             </div>
             <div>
-              <h4 class="text-lg font-semibold text-primary mb-3">Brewers</h4>
+              <h4 class="section-heading">Brewers</h4>
               {#if profile.brewers.length === 0}
                 <div class="card card-inner text-center py-6">
                   <p class="text-secondary">No brewers yet.</p>
@@ -647,7 +655,7 @@
                     <div class="feed-card feed-card-brewer">
                       <a
                         href={`/brewers/${did}/${brewer.rkey}`}
-                        class="font-bold text-primary hover:underline"
+                        class="record-title hover:underline"
                         >{brewer.name}</a
                       >
                       {#if brewer.brewer_type}
@@ -703,14 +711,6 @@
     padding: 0.75rem 0 1.5rem;
     border-bottom: 1px solid var(--card-border);
   }
-  .profile-label {
-    margin: 0 0 0.35rem;
-    color: var(--text-muted);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
   .profile-identity h1 {
     margin: 0;
     color: var(--text-primary);
@@ -719,15 +719,25 @@
     font-weight: 600;
     line-height: 1;
     letter-spacing: -0.025em;
+    font-variation-settings:
+      "opsz" 96,
+      "SOFT" 50,
+      "WONK" 0;
+    overflow-wrap: anywhere;
+  }
+  .profile-identity h1.did-fallback {
+    font-size: clamp(1.2rem, 4vw, 1.75rem);
+    line-height: 1.2;
   }
   .profile-handle {
     margin: 0.4rem 0 0;
     color: var(--text-emphasis);
     font-size: 0.85rem;
+    overflow-wrap: anywhere;
   }
   .profile-stats {
     display: grid;
-    grid-template-columns: repeat(5, minmax(7rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
     overflow-x: auto;
     margin-bottom: 1.75rem;
     border-bottom: 1px solid var(--card-border);
@@ -736,7 +746,6 @@
     display: flex;
     align-items: baseline;
     gap: 0.45rem;
-    min-width: 7rem;
     padding: 0.9rem 1rem 0.9rem 0;
     border-right: 1px solid var(--card-border);
   }
@@ -755,6 +764,10 @@
     font-size: 0.65rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+  .profile-content .feed-card {
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-sm);
   }
   .profile-grid {
     display: grid;
@@ -786,7 +799,11 @@
     min-width: 0;
   }
   @media (min-width: 860px) {
-    .profile-grid {
+    .profile-content .feed-card {
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-sm);
+  }
+  .profile-grid {
       grid-template-columns: minmax(9rem, 0.55fr) minmax(0, 2.8fr);
       gap: clamp(1.5rem, 3vw, 3rem);
       align-items: start;

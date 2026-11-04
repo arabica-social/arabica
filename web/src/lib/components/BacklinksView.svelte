@@ -165,7 +165,7 @@
 					{#if group.Count > 0}
 						<section id={usageSectionID(group)} class="mt-8">
 							<h2 class="backlinks-heading">
-								Used in {group.Count} {group.Label}
+								Used in {group.Count} {group.Count === 1 ? group.Label.replace(/s$/, "") : group.Label}
 							</h2>
 							<ul class="backlinks-entry-list">
 								{#each group.Entries as e (e.RecordURI)}

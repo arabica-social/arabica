@@ -1536,7 +1536,7 @@
       </FormSection>
     {/if}
 
-    <FormSection title="Coffee">
+    <FormSection title="Coffee" description="Fields marked * are required.">
       <div class="combo-select">
         <span class="form-label"
           >Coffee bean <span class="text-red-500" aria-hidden="true">*</span
@@ -1565,7 +1565,7 @@
       </div>
 
       <div class="combo-select">
-        <span class="form-label">Brewer{isEdit ? "" : " (required)"}</span>
+        <span class="form-label">Brewer {#if !isEdit}<span class="text-red-500" aria-hidden="true">*</span>{/if}</span>
         {#key brewerRevision}
           <EntityCombo
             entityType="brewer"
@@ -1763,8 +1763,9 @@
     min-height: 44px;
   }
   .mode-switch [aria-pressed="true"] {
-    background: var(--text-primary);
-    color: var(--surface-bg);
+    background: var(--type-brew);
+    border-color: var(--type-brew);
+    color: var(--btn-primary-text);
   }
   .more-details {
     border-top: 1px solid var(--card-border);

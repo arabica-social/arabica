@@ -207,7 +207,7 @@
 				{/if}
 				{#if safeLink}
 					<div class="mt-4 text-sm inline-flex items-center gap-1">
-						<Icon name="fileText" class="w-4 h-4 text-blue-400" />
+						<Icon name="fileText" class="w-4 h-4 text-type-recipe" />
 						<a href={safeLink} target="_blank" rel="noopener noreferrer" class="text-secondary hover:underline">{safeLink}</a>
 					</div>
 				{/if}
@@ -241,7 +241,7 @@
 							<button type="button" class="btn-secondary text-sm text-center" onclick={openRateDialog}>
 								{b.rating ? "Edit Rating" : "Rate Bag"}
 							</button>
-							<a href={`/beans/${b.rkey}/edit`} class="btn-secondary text-sm text-center">
+							<a href={`/beans/${b.rkey}/edit`} class="btn-primary text-sm text-center">
 								Edit Bean
 							</a>
 						</div>

@@ -11,13 +11,6 @@
   max-width: 100%;
 }
 
-/* Action bar inside brew view container - no separator needed */
-.brew-view-actions .action-bar {
-  margin-top: 0;
-  padding-top: 0;
-  border-top-width: 0;
-}
-
 /* Compact action bar variant for comments */
 .comment-item .action-bar {
   margin-top: 0.25rem;

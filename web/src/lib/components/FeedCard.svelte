@@ -90,6 +90,10 @@
 			: "",
 	);
 
+	function shortDID(did: string): string {
+		if (!did.startsWith("did:")) return did;
+		return `${did.slice(0, 11)}…${did.slice(-4)}`;
+	}
 	function bloomText(pp: NonNullable<Brew["pourover_params"]>): string {
 		const parts: string[] = [];
 		if (pp.bloom_water > 0) parts.push(`${pp.bloom_water}g`);
@@ -105,10 +109,16 @@
 				<Avatar avatarURL={item.author.avatar} displayName={item.author.display_name || item.author.handle} size="md" />
 			</a>
 			<div class="flex-1 min-w-0">
-				<a href={`/profile/${item.author.did}`} class="font-medium text-primary hover:underline text-sm">
-					{item.author.display_name || displayHandle(item.author.handle)}
+				<a
+					href={`/profile/${item.author.did}`}
+					class="font-medium text-primary hover:underline text-sm block truncate"
+					title={(item.author.display_name || item.author.handle || "").startsWith("did:") ? item.author.display_name || item.author.handle : undefined}
+				>
+					{shortDID(item.author.display_name || displayHandle(item.author.handle))}
 				</a>
-				<div class="text-xs text-muted">@{displayHandle(item.author.handle)} · {item.time_ago}</div>
+				<div class="text-xs text-muted truncate">
+					{#if item.author.display_name && !item.author.display_name.startsWith("did:") && displayHandle(item.author.handle) !== item.author.display_name}@{displayHandle(item.author.handle)} · {/if}{item.time_ago}
+				</div>
 			</div>
 		</div>
 	</div>
@@ -131,7 +141,7 @@
 				<div class="flex items-start justify-between gap-3 mb-3">
 					<div class="flex-1 min-w-0">
 						{#if brew.bean}
-							<div class="font-bold text-primary text-base">{brew.bean.name || brew.bean.origin}</div>
+							<div class="record-title">{brew.bean.name || brew.bean.origin}</div>
 							{#if brew.bean.roaster?.name}
 								<div class="text-sm text-emphasis mt-0.5 flex items-center gap-1">
 									<Icon name="store" class="w-3 h-3" />
@@ -144,7 +154,7 @@
 								{#if brew.coffee_amount > 0}<span class="flex items-center gap-1"><Icon name="scale" class="w-3 h-3" />{brew.coffee_amount}g</span>{/if}
 							</div>
 						{:else}
-							<div class="font-bold text-primary text-base">Brew</div>
+							<div class="record-title">Brew</div>
 						{/if}
 					</div>
 					{#if brew.rating > 0}
@@ -157,10 +167,10 @@
 				{#if brew.brewer_obj?.name || brew.method}
 					<div class="mb-2">
 						<span class="text-meta">Brewer:</span>
-						<span class="text-sm font-semibold text-primary">{brew.brewer_obj?.name ?? brew.method}</span>
+						<span class="text-sm text-primary">{brew.brewer_obj?.name ?? brew.method}</span>
 					</div>
 				{/if}
-				<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-emphasis">
+				<div class="brew-meta-grid grid gap-x-4 gap-y-1 text-xs text-emphasis">
 					{#if brew.grinder_obj?.name}
 						<div><span class="text-label">Grinder:</span> {brew.grinder_obj.name}{#if brew.grind_size} ({brew.grind_size}){/if}</div>
 					{:else if brew.grind_size}
@@ -180,18 +190,19 @@
 					{#if pp && pp.filter}<div><span class="text-label">Filter:</span> {pp.filter}</div>{/if}
 				</div>
 				{#if brew.pours && brew.pours.length > 0}
-					<div class="mt-2 flex flex-wrap items-center gap-1.5">
-						<span class="text-xs text-label">Pours:</span>
-						{#each brew.pours as pour, i (pour.pour_number)}
-							<span class="inline-flex items-center gap-1.5 bg-brown-50 rounded-md px-2 py-1 border border-brown-200 text-xs">
-								<span class="font-medium text-emphasis">{i + 1}</span>
-								<span class="text-primary">{pour.water_amount}g</span>
-								{#if pour.time_seconds > 0}
-									<span class="text-placeholder">·</span>
-									<span class="text-faint">{formatTime(pour.time_seconds)}</span>
-								{/if}
-							</span>
-						{/each}
+					<div class="pour-strip mt-2">
+						<span class="text-label pour-strip-label">Pours</span>
+						<div class="pour-strip-grid">
+							{#each brew.pours as pour, i (pour.pour_number)}
+								<span class="pour-cell">
+									<span class="pour-num">{i + 1}</span>
+									<span class="pour-water">{pour.water_amount}g</span>
+									{#if pour.time_seconds > 0}
+										<span class="pour-time">{formatTime(pour.time_seconds)}</span>
+									{/if}
+								</span>
+							{/each}
+						</div>
 					</div>
 				{/if}
 				{#if brew.tasting_notes}
@@ -200,7 +211,7 @@
 			</div>
 		{:else if bean}
 			<div class="feed-content-box-sm">
-				<div class="font-bold text-primary text-base">{bean.name || bean.origin}</div>
+				<div class="record-title">{bean.name || bean.origin}</div>
 				{#if bean.roaster?.name}
 					<div class="text-sm text-emphasis mt-0.5 flex items-center gap-1">
 						<Icon name="store" class="w-3 h-3" />{bean.roaster.name}
@@ -225,7 +236,7 @@
 			</div>
 		{:else if roaster}
 			<div class="feed-content-box-sm">
-				<div class="font-bold text-primary text-base">{roaster.name}</div>
+				<div class="record-title">{roaster.name}</div>
 				<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
 					{#if roaster.location}<span class="flex items-center gap-1"><Icon name="mapPin" class="w-3 h-3" />{roaster.location}</span>{/if}
 					{#if roaster.website && safeWebsiteURL(roaster.website)}
@@ -235,7 +246,7 @@
 			</div>
 		{:else if grinder}
 			<div class="feed-content-box-sm">
-				<div class="font-bold text-primary text-base">{grinder.name}</div>
+				<div class="record-title">{grinder.name}</div>
 				<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
 					{#if grinder.grinder_type}<span class="flex items-center gap-1"><Icon name="tag" class="w-3 h-3" />{grinder.grinder_type}</span>{/if}
 					{#if grinder.burr_type}<span class="flex items-center gap-1"><Icon name="disc" class="w-3 h-3" />{grinder.burr_type}</span>{/if}
@@ -244,7 +255,7 @@
 			</div>
 		{:else if brewer}
 			<div class="feed-content-box-sm">
-				<div class="font-bold text-primary text-base">{brewer.name}</div>
+				<div class="record-title">{brewer.name}</div>
 				{#if brewer.brewer_type}
 					<div class="text-xs text-muted mt-1"><span class="flex items-center gap-1"><Icon name="brewer" class="w-3 h-3" />{brewer.brewer_type}</span></div>
 				{/if}
@@ -252,7 +263,7 @@
 			</div>
 		{:else if recipe}
 			<div class="feed-content-box-sm">
-				<div class="text-base mb-2"><span class="font-bold text-primary">{recipe.name}</span></div>
+				<div class="text-base mb-2"><span class="record-title">{recipe.name}</span></div>
 				<div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
 					{#if recipe.coffee_amount > 0}<span class="flex items-center gap-1"><Icon name="coffee" class="w-3 h-3" />{recipe.coffee_amount.toFixed(1)}g</span>{/if}
 					{#if recipe.water_amount > 0}<span class="flex items-center gap-1"><Icon name="droplet" class="w-3 h-3" />{recipe.water_amount.toFixed(1)}g</span>{/if}

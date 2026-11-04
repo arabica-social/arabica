@@ -49,7 +49,7 @@
 
 {#if result && !isEmpty}
 	<section class="backlinks-section" aria-labelledby="backlinks-heading">
-		<h2 id="backlinks-heading" class="backlinks-heading">Community</h2>
+		<h2 id="backlinks-heading" class="backlinks-heading section-heading">Community</h2>
 		<div class="backlinks-grid">
 			{#if result.LibraryCount > 0}
 				<div class="backlinks-block">
@@ -81,13 +81,13 @@
 				{#if group.Count > 0}
 					<div class="backlinks-block">
 						<div class="backlinks-label">
-							Used in {group.Count} {group.Label}
+							Used in {group.Count} {group.Count === 1 ? group.Label.replace(/s$/, "") : group.Label}
 							{#if usageRatingPill(group)}
 								<span class="badge-rating">{usageRatingPill(group)}</span>
 							{/if}
 						</div>
 						{#if entriesToAvatars(group.Entries, 5).length > 0}
-							<div class="backlinks-avatars" aria-label={`Used in ${group.Count} ${group.Label}`}>
+							<div class="backlinks-avatars" aria-label={`Used in ${group.Count} ${group.Count === 1 ? group.Label.replace(/s$/, "") : group.Label}`}>
 								{#each entriesToAvatars(group.Entries, 5) as a, i (i)}
 									<a href={profileURL(a.handle)} class="backlinks-avatar" title={a.title}>
 										{#if a.avatarURL}

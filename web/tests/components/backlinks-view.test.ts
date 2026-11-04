@@ -115,7 +115,7 @@ describe("BacklinksView component", () => {
 			entityName: "Ethiopian Yirgacheffe",
 			backURL: "",
 		});
-		expect(screen.getByText("Used in 1 brews")).toBeTruthy();
+		expect(screen.getByText("Used in 1 brew")).toBeTruthy();
 		const link = screen.getByText("Morning cup");
 		expect(link.getAttribute("href")).toBe("/brews/bob.test/brew-1");
 	});

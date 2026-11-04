@@ -178,7 +178,7 @@ describe("Recipes catalog page", () => {
     render(RecipesCatalog, {
       data: { recipes: [], error: "", isAuthenticated: true },
     });
-    expect(screen.getByText("No recipes match these filters")).toBeTruthy();
+    expect(screen.getByText("No recipes found")).toBeTruthy();
     expect(screen.getByText(/Try widening the search/)).toBeTruthy();
   });
 });

@@ -64,7 +64,7 @@
 			<div class="label-detail">
 				<span class="detail-label">
 					<span class="inline-flex items-center gap-1">
-						<Icon name="mapPin" class="w-4 h-4 text-red-400" />
+						<Icon name="mapPin" class="w-4 h-4 text-type-roaster" />
 						Location
 					</span>
 				</span>
@@ -78,7 +78,7 @@
 				<div class="label-detail">
 					<span class="detail-label">
 						<span class="inline-flex items-center gap-1">
-							<Icon name="fileText" class="w-4 h-4 text-blue-400" />
+							<Icon name="fileText" class="w-4 h-4 text-type-recipe" />
 							Website
 						</span>
 					</span>

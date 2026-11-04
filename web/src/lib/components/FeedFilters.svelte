@@ -29,8 +29,23 @@
   }
 </script>
 
+<style>
+  @media (max-width: 719px) {
+    div.feed-filters {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      justify-content: flex-start;
+      scrollbar-width: thin;
+    }
+    div.feed-filters > div {
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+    }
+  }
+</style>
+
 <div
-  class="mb-5 flex flex-wrap items-center justify-between gap-2"
+  class="feed-filters mb-5 flex flex-wrap items-center justify-between gap-2"
   aria-busy={loading}
 >
   <div class="flex flex-wrap gap-1" role="group" aria-label="Feed filters">
@@ -44,8 +59,7 @@
       />
     {/each}
   </div>
-  <div class="flex items-center gap-1 flex-shrink-0">
-    <span class="sort-label">Sort</span>
+  <div class="flex items-center gap-1 flex-shrink-0" role="group" aria-label="Sort">
     <StampTag
       label="New"
       active={sortActive("recent")}
@@ -61,13 +75,4 @@
   </div>
 </div>
 
-<style>
-  .sort-label {
-    margin-right: 0.2rem;
-    color: var(--text-faint);
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-</style>
+

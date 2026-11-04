@@ -18,8 +18,6 @@
 
 <button
   type="button"
-  class:filter-pill={!active}
-  class:filter-pill-active={active}
   class:stamp-tag={true}
   class:active
   aria-pressed={active ? "true" : "false"}
@@ -35,7 +33,7 @@
     position: relative;
     min-height: 2rem;
     padding: 0.32rem 0.68rem 0.32rem 0.68rem;
-    border: 1.5px dashed var(--card-border);
+    border: 1px solid var(--card-border);
     border-radius: var(--radius-paper, 4px);
     background: color-mix(in oklch, var(--surface-bg) 74%, transparent);
     color: var(--text-muted);
@@ -60,18 +58,15 @@
 
   .stamp-tag.active {
     border-style: solid;
-    border-color: var(--text-secondary);
-    background: var(--text-secondary);
+    border-color: var(--type-brew);
+    background: var(--type-brew);
     color: var(--btn-primary-text);
     font-weight: 600;
     box-shadow: 1px 2px 0
-      color-mix(in oklch, var(--text-secondary) 24%, transparent);
+      color-mix(in oklch, var(--type-brew) 24%, transparent);
     transform: rotate(-1.25deg);
   }
 
-  .stamp-tag.active::before {
-    background: var(--brand-amber, var(--rating-star));
-  }
   .stamp-tag.active[data-tab="bean"] {
     border-color: var(--type-bean);
     background: var(--type-bean);

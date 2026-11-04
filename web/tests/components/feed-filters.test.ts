@@ -43,7 +43,7 @@ describe("FeedFilters component", () => {
 		expect(screen.getByText("Beans")).toBeTruthy();
 	});
 
-	it("marks the active type tab with aria-pressed='true' and filter-pill-active class", () => {
+	it("marks the active type tab with aria-pressed='true' and active class", () => {
 		const tabs: FeedFilterTab[] = [
 			{ label: "Brews", value: "brew" },
 			{ label: "Beans", value: "bean" },
@@ -58,7 +58,7 @@ describe("FeedFilters component", () => {
 		const group = screen.getByRole("group", { name: "Feed filters" });
 		const brewsButton = group.querySelector('[data-tab="brew"]') as HTMLButtonElement;
 		expect(brewsButton.getAttribute("aria-pressed")).toBe("true");
-		expect(brewsButton.className).toContain("filter-pill-active");
+		expect(brewsButton.className).toContain("active");
 	});
 
 	it("marks inactive tabs with aria-pressed='false'", () => {
@@ -76,8 +76,8 @@ describe("FeedFilters component", () => {
 		const group = screen.getByRole("group", { name: "Feed filters" });
 		const beansButton = group.querySelector('[data-tab="bean"]') as HTMLButtonElement;
 		expect(beansButton.getAttribute("aria-pressed")).toBe("false");
-		expect(beansButton.className).toContain("filter-pill");
-		expect(beansButton.className).not.toContain("filter-pill-active");
+		expect(beansButton.className).toContain("stamp-tag");
+		expect(beansButton.className).not.toContain("active");
 	});
 
 	it("calls onType with the tab value when a type tab is clicked", async () => {
@@ -100,7 +100,7 @@ describe("FeedFilters component", () => {
 		});
 		const newButton = screen.getByRole("button", { name: "New" });
 		expect(newButton.getAttribute("aria-pressed")).toBe("true");
-		expect(newButton.className).toContain("filter-pill-active");
+		expect(newButton.className).toContain("active");
 	});
 
 	it("marks 'New' sort button active when sort is '' (empty)", () => {
@@ -112,7 +112,7 @@ describe("FeedFilters component", () => {
 		});
 		const newButton = screen.getByRole("button", { name: "New" });
 		expect(newButton.getAttribute("aria-pressed")).toBe("true");
-		expect(newButton.className).toContain("filter-pill-active");
+		expect(newButton.className).toContain("active");
 	});
 
 	it("marks 'Popular' sort button active when sort is 'popular'", () => {
@@ -124,7 +124,7 @@ describe("FeedFilters component", () => {
 		});
 		const popularButton = screen.getByRole("button", { name: "Popular" });
 		expect(popularButton.getAttribute("aria-pressed")).toBe("true");
-		expect(popularButton.className).toContain("filter-pill-active");
+		expect(popularButton.className).toContain("active");
 		const newButton = screen.getByRole("button", { name: "New" });
 		expect(newButton.getAttribute("aria-pressed")).toBe("false");
 	});

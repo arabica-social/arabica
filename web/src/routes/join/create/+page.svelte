@@ -23,7 +23,7 @@
 <div class="page-container-md">
   <div class="flex items-center gap-3 mb-8">
     <BackButton />
-    <h1 class="text-4xl font-bold text-primary">
+    <h1 class="page-title">
       Create an Atmosphere Account
     </h1>
   </div>

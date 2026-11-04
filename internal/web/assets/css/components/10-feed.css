@@ -319,3 +319,46 @@
   border-radius: 0.5rem;
   padding: 0.5rem;
 }
+
+/* Pour strip — feed-card pour schedule as an aligned wrapping grid.
+   Equal cells with hairline dividers read intentionally from one pour
+   to seven; long counts wrap to a second aligned row. */
+.pour-strip {
+  margin-top: 0.5rem;
+}
+.pour-strip-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.65rem;
+}
+.pour-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-paper);
+  overflow: hidden;
+}
+.pour-cell {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.32rem 0.3rem;
+  font-size: 0.72rem;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow:
+    1px 0 0 0 var(--surface-border),
+    0 1px 0 0 var(--surface-border);
+}
+.pour-num {
+  font-weight: 600;
+  color: var(--text-emphasis);
+}
+.pour-water {
+  color: var(--text-primary);
+}
+.pour-time {
+  color: var(--text-muted);
+}
