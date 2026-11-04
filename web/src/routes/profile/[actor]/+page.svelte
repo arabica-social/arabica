@@ -2,6 +2,7 @@
   import Avatar from "#lib/components/Avatar.svelte";
   import Icon from "#lib/components/Icon.svelte";
   import ActionBar from "#lib/components/ActionBar.svelte";
+  import PourStrip from "#lib/components/PourStrip.svelte";
   import { displayHandle, safeAvatarURL } from "#lib/stores/session.js";
   import {
     pluralS,
@@ -310,6 +311,7 @@
                           {formatTime(brew.time_seconds)}
                         </div>{/if}
                     </div>
+                    <PourStrip pours={brew.pours} />
                     {#if brew.tasting_notes}
                       <div class="text-sm text-secondary mt-1 line-clamp-2">
                         {brew.tasting_notes}
@@ -329,8 +331,9 @@
                         : "Brew"}
                       shareText="Check out this brew on Arabica"
                       isOwner={isOwnProfile}
+                      editURL={isOwnProfile ? `/brews/${brew.rkey}/edit` : ""}
                       deleteURL={isOwnProfile ? `/api/brews/${brew.rkey}` : ""}
-                      deleteRedirect="/profile/{data.actor}"
+                      deleteRedirect={`/profile/${data.actor}`}
                       viewURL={`/brews/${did}/${brew.rkey}`}
                       isAuthenticated={data.isAuthenticated}
                     />

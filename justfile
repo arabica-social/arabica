@@ -142,6 +142,13 @@ e2e-update-snapshots testfile='tests/e2e/visual-regression.spec.ts' *args='': e2
 e2e-server: e2e-build
     @go run -tags=integration ./cmd/e2e-server
 
+# Component workbench: stories render with the app's real CSS tokens.
+storybook:
+    @cd web && pnpm run storybook
+
+storybook-build:
+    @cd web && pnpm run storybook:build
+
 ci-check: spa-build
     @go vet ./...
     @go build ./cmd/arabica
@@ -149,3 +156,4 @@ ci-check: spa-build
     @cd tests/integration && go test -tags=integration -count=1 ./...
     @cd web && pnpm run check
     @cd web && pnpm run test
+    @cd web && pnpm run storybook:build

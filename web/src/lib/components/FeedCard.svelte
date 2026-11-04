@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
 	import ActionBar from "./ActionBar.svelte";
+	import PourStrip from "./PourStrip.svelte";
 	import Avatar from "./Avatar.svelte";
 	import TypeBadge from "./TypeBadge.svelte";
 	import Icon from "./Icon.svelte";
@@ -189,22 +190,7 @@
 					{#if pp && pp.bypass_water > 0}<div><span class="text-label">Bypass:</span> {pp.bypass_water}g</div>{/if}
 					{#if pp && pp.filter}<div><span class="text-label">Filter:</span> {pp.filter}</div>{/if}
 				</div>
-				{#if brew.pours && brew.pours.length > 0}
-					<div class="pour-strip mt-2">
-						<span class="text-label pour-strip-label">Pours</span>
-						<div class="pour-strip-grid">
-							{#each brew.pours as pour, i (pour.pour_number)}
-								<span class="pour-cell">
-									<span class="pour-num">{i + 1}</span>
-									<span class="pour-water">{pour.water_amount}g</span>
-									{#if pour.time_seconds > 0}
-										<span class="pour-time">{formatTime(pour.time_seconds)}</span>
-									{/if}
-								</span>
-							{/each}
-						</div>
-					</div>
-				{/if}
+				<PourStrip pours={brew.pours} />
 				{#if brew.tasting_notes}
 					<div class="mt-3 text-sm text-secondary italic border-t border-brown-200 pt-2">"{brew.tasting_notes}"</div>
 				{/if}

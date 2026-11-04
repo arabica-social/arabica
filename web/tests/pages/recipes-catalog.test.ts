@@ -178,7 +178,9 @@ describe("Recipes catalog page", () => {
     render(RecipesCatalog, {
       data: { recipes: [], error: "", isAuthenticated: true },
     });
-    expect(screen.getByText("No recipes found")).toBeTruthy();
-    expect(screen.getByText(/Try widening the search/)).toBeTruthy();
+    expect(screen.getByText("No recipes yet")).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Add a recipe" }),
+    ).toHaveAttribute("href", "/recipes/new");
   });
 });

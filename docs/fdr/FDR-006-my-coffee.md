@@ -1,7 +1,7 @@
 # FDR-006: My Coffee
 
 **Status:** Active
-**Last reviewed:** 2026-10-30
+**Last reviewed:** 2026-11-05
 
 ## Behavior
 
@@ -19,6 +19,12 @@ Refresh sits beside the collection navigation. It reloads records from the
 user's account without switching collection, disables while pending, and reports
 success or failure. A failed refresh retains the currently displayed records.
 It remains available without a permanent troubleshooting panel.
+
+Brew cards match the community presentation: the shared pour schedule strip
+renders when a brew has pours, and each card carries the standard action bar
+(comments, share, and owner edit/delete) fed by the per-page social counts from
+`GET /api/brews` (`like_counts`, `comment_counts`, `liked_by_user`, `cids`,
+empty maps when the firehose index is unavailable).
 
 ## Rationale
 

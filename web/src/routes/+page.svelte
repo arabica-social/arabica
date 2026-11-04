@@ -340,7 +340,7 @@
         <a href="/about" class="cafe-text-link">About Arabica</a>
       </div>
     </section>
-    {#if isAuthenticated && popularRecipes?.length}
+    {#if popularRecipes?.length}
       <section class="cafe-rail-section">
         <h2>Popular recipes</h2>
         <div class="cafe-recipe-list">
@@ -365,6 +365,11 @@
             </a>
           {/each}
         </div>
+        <a href="/recipes" class="cafe-text-link">Explore all recipes</a>
+      </section>
+    {:else}
+      <section class="cafe-rail-section">
+        <h2>Recipes</h2>
         <a href="/recipes" class="cafe-text-link">Explore all recipes</a>
       </section>
     {/if}

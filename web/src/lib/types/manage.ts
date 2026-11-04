@@ -28,4 +28,8 @@ export type BrewListResponse = {
 	brews: import("./entity_view").Brew[];
 	has_more: boolean;
 	next_offset: number;
+	like_counts: Record<string, number>;
+	comment_counts: Record<string, number>;
+	liked_by_user: Record<string, boolean>;
+	cids: Record<string, string>;
 };

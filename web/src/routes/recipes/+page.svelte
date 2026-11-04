@@ -16,6 +16,7 @@
   // svelte-ignore state_referenced_locally
   let recipes = $state<Recipe[]>(data.recipes ?? []);
   let loading = $state(false);
+  let loadFailed = $state(false);
 
   // Filter form state, initialized from URL.
   let query = $state("");
@@ -94,6 +95,7 @@
 
   async function search() {
     loading = true;
+    loadFailed = false;
     updateURL();
     try {
       const res = await fetch(`/api/recipes/suggestions?${searchParams()}`, {
@@ -106,6 +108,7 @@
     } catch (error) {
       console.error("Failed to search recipes:", error);
       recipes = [];
+      loadFailed = true;
       pushToast("Failed to search recipes");
     } finally {
       loading = false;
@@ -343,8 +346,10 @@
             >
               {#if recipes.length > 0}
                 {recipes.length} recipe{recipes.length === 1 ? "" : "s"} found
-              {:else}
+              {:else if query || category || brewerType || minCoffee || maxCoffee}
                 No recipes found
+              {:else}
+                No recipes yet
               {/if}
             </p>
           {:else}
@@ -598,12 +603,20 @@
                 </div>
               {/each}
             </div>
+          {:else if loadFailed}
+            <div class="recipe-empty-state">
+              <p class="text-sm text-muted">Couldn't load recipes.</p>
+            </div>
           {:else if recipes.length === 0}
             <div class="recipe-empty-state">
-              <p class="text-sm text-muted">
-                Try widening the search, clearing filters, or changing the sort
-                order.
-              </p>
+              {#if query || category || brewerType || minCoffee || maxCoffee}
+                <p class="text-sm text-muted">
+                  Try widening the search, clearing filters, or changing the
+                  sort order.
+                </p>
+              {:else}
+                <a href="/recipes/new" class="btn-primary">Add a recipe</a>
+              {/if}
             </div>
           {:else}
             <div class="recipe-ledger-grid">

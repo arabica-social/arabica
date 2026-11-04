@@ -33,10 +33,10 @@ brew. Visitors can browse the public feed before logging in.
   The left rail contains icon shortcuts to My Coffee, Explore, Recipes, and
   the user's profile when signed in, plus any unfinished entries. The right
   rail groups Feedback and About links with a brief invitation to report
-  problems or suggest improvements, followed by any popular recipes. Both rails
+  problems or suggest improvements, followed by popular recipes when any exist; otherwise a compact Recipes section with an Explore-all-recipes link keeps the rail present. Both rails
   follow the feed on narrow screens.
 - Unfinished-entry links open the relevant edit page; recipe links open the
-  recipe. Empty data sections are omitted without changing desktop column widths.
+  recipe. Individual rail sections beyond the always-present feedback and Recipes sections are omitted when empty, without changing desktop column widths.
 - Global navigation remains in the shared header and mobile navigation.
   Feedback, About, and AT Protocol links also remain in the footer.
 - Loading, empty, and failed-feed states are distinct.

@@ -18,7 +18,11 @@ SvelteKit SPA.
 {
   "brews": [Brew],
   "has_more": true,
-  "next_offset": 25
+  "next_offset": 25,
+  "like_counts": {"3mz...": 2},
+  "comment_counts": {"3mz...": 1},
+  "liked_by_user": {"3mz...": false},
+  "cids": {"3mz...": "bafy..."}
 }
 ```
 
@@ -27,6 +31,12 @@ SvelteKit SPA.
 | `brews` | `Brew[]` | Brew records for the current page, newest first. |
 | `has_more` | `bool` | Whether there are more brews beyond this page. |
 | `next_offset` | `int` | Offset to use for the next page (`offset + limit`). |
+| `like_counts` | `map[string]int` | Like counts per brew rkey. |
+| `comment_counts` | `map[string]int` | Comment counts per brew rkey. |
+| `liked_by_user` | `map[string]bool` | Whether the signed-in user liked each brew. |
+| `cids` | `map[string]string` | Record CIDs per brew rkey. |
+
+The four social maps are emitted empty when the firehose index is unavailable. `GET /api/brews` is scoped to the caller's own brews, so the URIs are built from the session DID.
 
 ### Notes
 

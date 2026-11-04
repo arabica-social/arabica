@@ -151,11 +151,15 @@ func (h *Handlers) fetchBrewList(r *http.Request) (*brewListResult, error) {
 }
 
 // BrewListJSONResponse is the JSON envelope returned by GET /api/brews for the
-// SvelteKit SPA. See docs/api/brews.md for the contract.
+// SvelteKit SPA. See docs/api/brew_list.md for the contract.
 type BrewListJSONResponse struct {
-	Brews      []*arabica.Brew `json:"brews"`
-	HasMore    bool            `json:"has_more"`
-	NextOffset int             `json:"next_offset"`
+	Brews         []*arabica.Brew    `json:"brews"`
+	HasMore       bool               `json:"has_more"`
+	NextOffset    int                `json:"next_offset"`
+	LikeCounts    map[string]int     `json:"like_counts"`
+	CommentCounts map[string]int     `json:"comment_counts"`
+	LikedByUser   map[string]bool    `json:"liked_by_user"`
+	CIDs          map[string]string  `json:"cids"`
 }
 
 // handleBrewListJSON returns the brew list as JSON for the SvelteKit SPA.
@@ -170,11 +174,41 @@ func (h *Handlers) handleBrewListJSON(w http.ResponseWriter, r *http.Request) {
 		handlers.HandleStoreError(w, err, "Failed to fetch brews")
 		return
 	}
-	handlers.WriteJSON(w, BrewListJSONResponse{
-		Brews:      res.brews,
-		HasMore:    res.hasMore,
-		NextOffset: res.nextOffset,
-	}, "brews")
+
+	resp := BrewListJSONResponse{
+		Brews:         res.brews,
+		HasMore:       res.hasMore,
+		NextOffset:    res.nextOffset,
+		LikeCounts:    map[string]int{},
+		CommentCounts: map[string]int{},
+		LikedByUser:   map[string]bool{},
+		CIDs:          map[string]string{},
+	}
+
+	didStr, _ := atpmiddleware.GetDID(r.Context())
+	if h.FeedIndex() != nil && didStr != "" {
+		brewURIs := make([]string, 0, len(res.brews))
+		uriToRKey := make(map[string]string, len(res.brews))
+		for _, brew := range res.brews {
+			uri := atp.BuildATURI(didStr, arabica.NSIDBrew, brew.RKey)
+			brewURIs = append(brewURIs, uri)
+			uriToRKey[uri] = brew.RKey
+		}
+		batchLikes := h.FeedIndex().GetLikeCountsBatch(r.Context(), brewURIs)
+		batchRecords := h.FeedIndex().GetRecordsBatch(r.Context(), brewURIs)
+		batchLiked := h.FeedIndex().HasUserLikedBatch(r.Context(), didStr, brewURIs)
+		batchComments := h.FeedIndex().GetCommentCountsBatch(r.Context(), brewURIs)
+		for uri, rkey := range uriToRKey {
+			resp.LikeCounts[rkey] = batchLikes[uri]
+			resp.LikedByUser[rkey] = batchLiked[uri]
+			resp.CommentCounts[rkey] = batchComments[uri]
+			if rec, ok := batchRecords[uri]; ok {
+				resp.CIDs[rkey] = rec.CID
+			}
+		}
+	}
+
+	handlers.WriteJSON(w, resp, "brews")
 }
 
 // errBrewListUnauth is a sentinel for unauthenticated requests.

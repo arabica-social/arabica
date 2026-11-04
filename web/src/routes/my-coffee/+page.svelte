@@ -1,5 +1,7 @@
 <script lang="ts">
   import Icon from "#lib/components/Icon.svelte";
+  import ActionBar from "#lib/components/ActionBar.svelte";
+  import PourStrip from "#lib/components/PourStrip.svelte";
   import LedgerHeader from "#lib/components/LedgerHeader.svelte";
   import {
     pluralS,
@@ -122,6 +124,10 @@
         brews: [...(brewsData.brews ?? []), ...next.brews],
         has_more: next.has_more,
         next_offset: next.next_offset,
+        like_counts: { ...(brewsData.like_counts ?? {}), ...(next.like_counts ?? {}) },
+        comment_counts: { ...(brewsData.comment_counts ?? {}), ...(next.comment_counts ?? {}) },
+        liked_by_user: { ...(brewsData.liked_by_user ?? {}), ...(next.liked_by_user ?? {}) },
+        cids: { ...(brewsData.cids ?? {}), ...(next.cids ?? {}) },
       };
     } catch {
       pushToast("Failed to load more");
@@ -271,10 +277,8 @@
               </div>
             {:else}
               {#each brewsData.brews as brew (brew.rkey)}
-                <a
-                  href={`/brews/${did}/${brew.rkey}`}
-                  class="feed-card feed-card-brew block"
-                >
+                <div class="feed-card feed-card-brew">
+                <a href={`/brews/${did}/${brew.rkey}`} class="block">
                   <div class="flex items-center justify-between mb-2">
                     <div class="text-sm text-muted">
                       {new Date(brew.created_at).toLocaleDateString(undefined, {
@@ -360,12 +364,30 @@
                         {formatTime(brew.time_seconds)}
                       </div>{/if}
                   </div>
+                  <PourStrip pours={brew.pours} />
                   {#if brew.tasting_notes}
                     <div class="text-sm text-secondary mt-1 line-clamp-2">
                       {brew.tasting_notes}
                     </div>
                   {/if}
                 </a>
+                <ActionBar
+                  subjectURI={`at://${did}/social.arabica.alpha.brew/${brew.rkey}`}
+                  subjectCID={brewsData.cids?.[brew.rkey] ?? ""}
+                  isLiked={brewsData.liked_by_user?.[brew.rkey] ?? false}
+                  likeCount={brewsData.like_counts?.[brew.rkey] ?? 0}
+                  commentCount={brewsData.comment_counts?.[brew.rkey] ?? 0}
+                  shareURL={`/brews/${did}/${brew.rkey}`}
+                  shareTitle={brew.bean ? brew.bean.name || brew.bean.origin : "Brew"}
+                  shareText="Check out this brew on Arabica"
+                  isOwner={true}
+                  editURL={`/brews/${brew.rkey}/edit`}
+                  deleteURL={`/api/brews/${brew.rkey}`}
+                  deleteRedirect="/my-coffee"
+                  viewURL={`/brews/${did}/${brew.rkey}`}
+                  isAuthenticated={true}
+                />
+                </div>
               {/each}
               {#if brewsData.has_more}
                 <div class="text-center py-4">
