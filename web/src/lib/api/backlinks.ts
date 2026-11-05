@@ -2,11 +2,11 @@ import type { BacklinksResult } from "#lib/types/entity_view.js";
 import { APIError, requestJSON } from "./client";
 
 export type BacklinksResponseJSON = {
-	entity_noun: string;
-	entity_name: string;
-	back_url: string;
-	detail_url: string;
-	result: BacklinksResult | null;
+  entity_noun: string;
+  entity_name: string;
+  back_url: string;
+  detail_url: string;
+  result: BacklinksResult | null;
 };
 
 /**
@@ -22,31 +22,33 @@ export type BacklinksResponseJSON = {
  * Never throws — load functions should not throw for 404s/401s.
  */
 export async function fetchBacklinksView(
-	fetchFn: typeof fetch,
-	entity: string,
-	actor: string,
-	id: string,
-	opts: { usage?: string; page?: number } = {},
+  fetchFn: typeof fetch,
+  entity: string,
+  actor: string,
+  id: string,
+  opts: { usage?: string; page?: number } = {},
 ): Promise<{ data?: BacklinksResponseJSON; error?: string; status: number }> {
-	const params = new URLSearchParams();
-	if (opts.usage) params.set("usage", opts.usage);
-	if (opts.page && opts.page > 0) params.set("page", String(opts.page));
-	const query = params.toString();
-	const url = `/api/${entity}/${encodeURIComponent(actor)}/${encodeURIComponent(id)}/backlinks${query ? `?${query}` : ""}`;
-	try {
-		const data = await requestJSON<BacklinksResponseJSON>(fetchFn, url);
-		return { data, status: 200 };
-	} catch (error) {
-		if (error instanceof APIError) {
-			if (error.status === 404) return { error: "Record not found", status: 404 };
-			if (error.status === 401)
-				return { error: "Authentication required", status: 401 };
-			if (error.kind === "network") return { error: "Network error", status: 0 };
-			return {
-				error: error.message || `Failed to load (${error.status})`,
-				status: error.status,
-			};
-		}
-		return { error: "Network error", status: 0 };
-	}
+  const params = new URLSearchParams();
+  if (opts.usage) params.set("usage", opts.usage);
+  if (opts.page && opts.page > 0) params.set("page", String(opts.page));
+  const query = params.toString();
+  const url = `/api/${entity}/${encodeURIComponent(actor)}/${encodeURIComponent(id)}/backlinks${query ? `?${query}` : ""}`;
+  try {
+    const data = await requestJSON<BacklinksResponseJSON>(fetchFn, url);
+    return { data, status: 200 };
+  } catch (error) {
+    if (error instanceof APIError) {
+      if (error.status === 404)
+        return { error: "Record not found", status: 404 };
+      if (error.status === 401)
+        return { error: "Authentication required", status: 401 };
+      if (error.kind === "network")
+        return { error: "Network error", status: 0 };
+      return {
+        error: error.message || `Failed to load (${error.status})`,
+        status: error.status,
+      };
+    }
+    return { error: "Network error", status: 0 };
+  }
 }

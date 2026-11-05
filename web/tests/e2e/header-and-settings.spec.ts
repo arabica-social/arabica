@@ -10,11 +10,15 @@ test("header Create dropdown navigates to entity forms", async ({
   await expect(
     page.getByRole("link", { name: "Community" }).first(),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Explore" }).first()).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Explore" }).first(),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "My Coffee" }).first(),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Profile" }).first()).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Profile" }).first(),
+  ).toBeVisible();
 
   const createBtn = page.getByRole("button", { name: "Create new" });
   await expect(createBtn).toBeVisible();

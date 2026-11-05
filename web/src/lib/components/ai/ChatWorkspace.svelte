@@ -13,7 +13,11 @@
     type SessionSummary,
   } from "#lib/ai/persistence.js";
   import { MAX_MESSAGES, MAX_USER_CHARS } from "#lib/ai/types.js";
-  import { prepareImage, MAX_IMAGES, type PreparedImage } from "#lib/ai/images.js";
+  import {
+    prepareImage,
+    MAX_IMAGES,
+    type PreparedImage,
+  } from "#lib/ai/images.js";
   import type {
     ApplyResult,
     ChangeOptions,

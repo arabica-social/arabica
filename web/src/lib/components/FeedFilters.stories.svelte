@@ -19,12 +19,35 @@
   ];
 </script>
 
-<Story name="Community defaults" args={{ typeFilter: "", sort: "", loading: false, onType: () => {}, onSort: () => {} }} />
+<Story
+  name="Community defaults"
+  args={{
+    typeFilter: "",
+    sort: "",
+    loading: false,
+    onType: () => {},
+    onSort: () => {},
+  }}
+/>
 <Story
   name="Brews filtered"
-  args={{ typeFilter: "brew", sort: "popular", loading: false, onType: () => {}, onSort: () => {}, tabs: entityTabs }}
+  args={{
+    typeFilter: "brew",
+    sort: "popular",
+    loading: false,
+    onType: () => {},
+    onSort: () => {},
+    tabs: entityTabs,
+  }}
 />
 <Story
   name="Loading"
-  args={{ typeFilter: "", sort: "", loading: true, onType: () => {}, onSort: () => {}, tabs: entityTabs }}
+  args={{
+    typeFilter: "",
+    sort: "",
+    loading: true,
+    onType: () => {},
+    onSort: () => {},
+    tabs: entityTabs,
+  }}
 />

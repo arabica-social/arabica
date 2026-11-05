@@ -13,7 +13,10 @@
   import { openLoginModal } from "#lib/stores/session.js";
   import { pushToast } from "#lib/stores/toasts.js";
   import type { PageData } from "./$types";
-  import type { ManageResponseJSON, BrewListResponse } from "#lib/types/manage.js";
+  import type {
+    ManageResponseJSON,
+    BrewListResponse,
+  } from "#lib/types/manage.js";
   import type {
     Bean,
     Brewer,
@@ -124,9 +127,18 @@
         brews: [...(brewsData.brews ?? []), ...next.brews],
         has_more: next.has_more,
         next_offset: next.next_offset,
-        like_counts: { ...(brewsData.like_counts ?? {}), ...(next.like_counts ?? {}) },
-        comment_counts: { ...(brewsData.comment_counts ?? {}), ...(next.comment_counts ?? {}) },
-        liked_by_user: { ...(brewsData.liked_by_user ?? {}), ...(next.liked_by_user ?? {}) },
+        like_counts: {
+          ...(brewsData.like_counts ?? {}),
+          ...(next.like_counts ?? {}),
+        },
+        comment_counts: {
+          ...(brewsData.comment_counts ?? {}),
+          ...(next.comment_counts ?? {}),
+        },
+        liked_by_user: {
+          ...(brewsData.liked_by_user ?? {}),
+          ...(next.liked_by_user ?? {}),
+        },
         cids: { ...(brewsData.cids ?? {}), ...(next.cids ?? {}) },
       };
     } catch {
@@ -243,7 +255,8 @@
             title="Reload records from your account"
             onclick={refresh}
             disabled={refreshing}
-          >{refreshing ? "Refreshing…" : "Refresh"}</button>
+            >{refreshing ? "Refreshing…" : "Refresh"}</button
+          >
         </div>
         <nav>
           {#each tabs as tab (tab.id)}
@@ -278,115 +291,120 @@
             {:else}
               {#each brewsData.brews as brew (brew.rkey)}
                 <div class="feed-card feed-card-brew">
-                <a href={`/brews/${did}/${brew.rkey}`} class="block">
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="text-sm text-muted">
-                      {new Date(brew.created_at).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                  <a href={`/brews/${did}/${brew.rkey}`} class="block">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="text-sm text-muted">
+                        {new Date(brew.created_at).toLocaleDateString(
+                          undefined,
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          },
+                        )}
+                      </div>
+                      {#if brew.rating > 0}
+                        <span class="badge-rating flex items-center gap-1">
+                          <Icon name="star" class="w-3 h-3 text-amber-500" />
+                          {brew.rating}/10
+                        </span>
+                      {/if}
                     </div>
-                    {#if brew.rating > 0}
-                      <span class="badge-rating flex items-center gap-1">
-                        <Icon name="star" class="w-3 h-3 text-amber-500" />
-                        {brew.rating}/10
-                      </span>
+                    {#if brew.bean}
+                      <div class="record-title">
+                        {brew.bean.name || brew.bean.origin}
+                      </div>
+                      {#if brew.bean.roaster?.name}
+                        <div class="text-sm text-muted flex items-center gap-1">
+                          <Icon name="store" class="w-3 h-3" />
+                          {brew.bean.roaster.name}
+                        </div>
+                      {/if}
+                      <div
+                        class="text-xs text-faint mt-1 flex flex-wrap gap-x-2 gap-y-1"
+                      >
+                        {#if brew.bean.origin}<span
+                            class="inline-flex items-center gap-1"
+                            ><Icon name="mapPin" class="w-3 h-3" />{brew.bean
+                              .origin}</span
+                          >{/if}
+                        {#if brew.bean.roast_level}<span
+                            class="inline-flex items-center gap-1"
+                            ><Icon name="flame" class="w-3 h-3" />{brew.bean
+                              .roast_level}</span
+                          >{/if}
+                        {#if brew.coffee_amount > 0}<span
+                            class="inline-flex items-center gap-1"
+                            ><Icon
+                              name="scale"
+                              class="w-3 h-3"
+                            />{brew.coffee_amount}g</span
+                          >{/if}
+                      </div>
+                    {:else}
+                      <div class="record-title">Brew</div>
                     {/if}
-                  </div>
-                  {#if brew.bean}
-                    <div class="record-title">
-                      {brew.bean.name || brew.bean.origin}
-                    </div>
-                    {#if brew.bean.roaster?.name}
-                      <div class="text-sm text-muted flex items-center gap-1">
-                        <Icon name="store" class="w-3 h-3" />
-                        {brew.bean.roaster.name}
+                    {#if brew.brewer_obj?.name || brew.method}
+                      <div class="mb-2">
+                        <span class="text-meta">Brewer:</span>
+                        <span class="text-sm text-primary"
+                          >{brew.brewer_obj?.name ?? brew.method}</span
+                        >
                       </div>
                     {/if}
                     <div
-                      class="text-xs text-faint mt-1 flex flex-wrap gap-x-2 gap-y-1"
+                      class="brew-meta-grid grid gap-x-4 gap-y-1 text-xs text-emphasis"
                     >
-                      {#if brew.bean.origin}<span
-                          class="inline-flex items-center gap-1"
-                          ><Icon name="mapPin" class="w-3 h-3" />{brew.bean
-                            .origin}</span
-                        >{/if}
-                      {#if brew.bean.roast_level}<span
-                          class="inline-flex items-center gap-1"
-                          ><Icon name="flame" class="w-3 h-3" />{brew.bean
-                            .roast_level}</span
-                        >{/if}
-                      {#if brew.coffee_amount > 0}<span
-                          class="inline-flex items-center gap-1"
-                          ><Icon
-                            name="scale"
-                            class="w-3 h-3"
-                          />{brew.coffee_amount}g</span
-                        >{/if}
+                      {#if brew.grinder_obj?.name}
+                        <div>
+                          <span class="text-label">Grinder:</span>
+                          {brew.grinder_obj.name}{#if brew.grind_size}
+                            ({brew.grind_size}){/if}
+                        </div>
+                      {:else if brew.grind_size}
+                        <div>
+                          <span class="text-label">Grind:</span>
+                          {brew.grind_size}
+                        </div>
+                      {/if}
+                      {#if brew.water_amount > 0}<div>
+                          <span class="text-label">Water:</span>
+                          {brew.water_amount}g
+                        </div>{/if}
+                      {#if brew.temperature > 0}<div>
+                          <span class="text-label">Temp:</span>
+                          {formatTemp(brew.temperature)}
+                        </div>{/if}
+                      {#if brew.time_seconds > 0}<div>
+                          <span class="text-label">Time:</span>
+                          {formatTime(brew.time_seconds)}
+                        </div>{/if}
                     </div>
-                  {:else}
-                    <div class="record-title">Brew</div>
-                  {/if}
-                  {#if brew.brewer_obj?.name || brew.method}
-                    <div class="mb-2">
-                      <span class="text-meta">Brewer:</span>
-                      <span class="text-sm text-primary"
-                        >{brew.brewer_obj?.name ?? brew.method}</span
-                      >
-                    </div>
-                  {/if}
-                  <div
-                    class="brew-meta-grid grid gap-x-4 gap-y-1 text-xs text-emphasis"
-                  >
-                    {#if brew.grinder_obj?.name}
-                      <div>
-                        <span class="text-label">Grinder:</span>
-                        {brew.grinder_obj.name}{#if brew.grind_size}
-                          ({brew.grind_size}){/if}
-                      </div>
-                    {:else if brew.grind_size}
-                      <div>
-                        <span class="text-label">Grind:</span>
-                        {brew.grind_size}
+                    <PourStrip pours={brew.pours} />
+                    {#if brew.tasting_notes}
+                      <div class="text-sm text-secondary mt-1 line-clamp-2">
+                        {brew.tasting_notes}
                       </div>
                     {/if}
-                    {#if brew.water_amount > 0}<div>
-                        <span class="text-label">Water:</span>
-                        {brew.water_amount}g
-                      </div>{/if}
-                    {#if brew.temperature > 0}<div>
-                        <span class="text-label">Temp:</span>
-                        {formatTemp(brew.temperature)}
-                      </div>{/if}
-                    {#if brew.time_seconds > 0}<div>
-                        <span class="text-label">Time:</span>
-                        {formatTime(brew.time_seconds)}
-                      </div>{/if}
-                  </div>
-                  <PourStrip pours={brew.pours} />
-                  {#if brew.tasting_notes}
-                    <div class="text-sm text-secondary mt-1 line-clamp-2">
-                      {brew.tasting_notes}
-                    </div>
-                  {/if}
-                </a>
-                <ActionBar
-                  subjectURI={`at://${did}/social.arabica.alpha.brew/${brew.rkey}`}
-                  subjectCID={brewsData.cids?.[brew.rkey] ?? ""}
-                  isLiked={brewsData.liked_by_user?.[brew.rkey] ?? false}
-                  likeCount={brewsData.like_counts?.[brew.rkey] ?? 0}
-                  commentCount={brewsData.comment_counts?.[brew.rkey] ?? 0}
-                  shareURL={`/brews/${did}/${brew.rkey}`}
-                  shareTitle={brew.bean ? brew.bean.name || brew.bean.origin : "Brew"}
-                  shareText="Check out this brew on Arabica"
-                  isOwner={true}
-                  editURL={`/brews/${brew.rkey}/edit`}
-                  deleteURL={`/api/brews/${brew.rkey}`}
-                  deleteRedirect="/my-coffee"
-                  viewURL={`/brews/${did}/${brew.rkey}`}
-                  isAuthenticated={true}
-                />
+                  </a>
+                  <ActionBar
+                    subjectURI={`at://${did}/social.arabica.alpha.brew/${brew.rkey}`}
+                    subjectCID={brewsData.cids?.[brew.rkey] ?? ""}
+                    isLiked={brewsData.liked_by_user?.[brew.rkey] ?? false}
+                    likeCount={brewsData.like_counts?.[brew.rkey] ?? 0}
+                    commentCount={brewsData.comment_counts?.[brew.rkey] ?? 0}
+                    shareURL={`/brews/${did}/${brew.rkey}`}
+                    shareTitle={brew.bean
+                      ? brew.bean.name || brew.bean.origin
+                      : "Brew"}
+                    shareText="Check out this brew on Arabica"
+                    isOwner={true}
+                    editURL={`/brews/${brew.rkey}/edit`}
+                    deleteURL={`/api/brews/${brew.rkey}`}
+                    deleteRedirect="/my-coffee"
+                    viewURL={`/brews/${did}/${brew.rkey}`}
+                    isAuthenticated={true}
+                  />
                 </div>
               {/each}
               {#if brewsData.has_more}
@@ -428,8 +446,7 @@
                       <div class="flex items-center justify-between mb-2">
                         <a
                           href={`/beans/${did}/${bean.rkey}`}
-                          class="record-title hover:underline"
-                          >{bean.name}</a
+                          class="record-title hover:underline">{bean.name}</a
                         >
                         {#if bean.rating}
                           <span class="badge-rating flex items-center gap-1">
@@ -518,8 +535,7 @@
                       <div class="flex items-center justify-between mb-2">
                         <a
                           href={`/beans/${did}/${bean.rkey}`}
-                          class="record-title hover:underline"
-                          >{bean.name}</a
+                          class="record-title hover:underline">{bean.name}</a
                         >
                         <div class="flex items-center gap-2">
                           {#if bean.rating}
@@ -619,8 +635,7 @@
                 <div class="feed-card feed-card-roaster">
                   <a
                     href={`/roasters/${did}/${roaster.rkey}`}
-                    class="record-title hover:underline"
-                    >{roaster.name}</a
+                    class="record-title hover:underline">{roaster.name}</a
                   >
                   {#if roaster.location}
                     <div
@@ -682,8 +697,7 @@
                 <div class="feed-card feed-card-grinder">
                   <a
                     href={`/grinders/${did}/${grinder.rkey}`}
-                    class="record-title hover:underline"
-                    >{grinder.name}</a
+                    class="record-title hover:underline">{grinder.name}</a
                   >
                   <div
                     class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1"
@@ -739,8 +753,7 @@
                 <div class="feed-card feed-card-brewer">
                   <a
                     href={`/brewers/${did}/${brewer.rkey}`}
-                    class="record-title hover:underline"
-                    >{brewer.name}</a
+                    class="record-title hover:underline">{brewer.name}</a
                   >
                   {#if brewer.brewer_type}
                     <div
@@ -798,8 +811,7 @@
                 <div class="feed-card feed-card-recipe">
                   <a
                     href={`/recipes/${did}/${recipe.rkey}`}
-                    class="record-title hover:underline"
-                    >{recipe.name}</a
+                    class="record-title hover:underline">{recipe.name}</a
                   >
                   {#if recipe.brewer_obj?.name || recipe.brewer_type}
                     <div class="text-sm text-muted">

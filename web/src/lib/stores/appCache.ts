@@ -209,7 +209,9 @@ class AppCacheStore implements AppCacheAPI {
     this.listeners.add(callback);
   };
 
-  removeListener = (callback: (data: Record<string, unknown>) => void): void => {
+  removeListener = (
+    callback: (data: Record<string, unknown>) => void,
+  ): void => {
     this.listeners.delete(callback);
   };
 

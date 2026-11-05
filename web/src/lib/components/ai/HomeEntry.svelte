@@ -1,7 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
-  import { prepareImage, MAX_IMAGES, type PreparedImage } from "#lib/ai/images.js";
+  import {
+    prepareImage,
+    MAX_IMAGES,
+    type PreparedImage,
+  } from "#lib/ai/images.js";
   import {
     stageHomeImages,
     cancelHomeImages,

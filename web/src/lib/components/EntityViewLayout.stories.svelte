@@ -10,9 +10,18 @@
   });
 
   const libraryEntry: BacklinkEntry = {
-    DID: "did:plc:a", Handle: "mika.arabica.example", DisplayName: "Mika", AvatarURL: "",
-    RecordURI: "at://did:plc:a/app.arabica.record.roaster/r", Collection: "app.arabica.record.roaster",
-    RKey: "r", CreatedAt: "2026-10-01T12:00:00Z", Title: "Mika", Rating: 0, HasRating: false, ChainDepth: 1,
+    DID: "did:plc:a",
+    Handle: "mika.arabica.example",
+    DisplayName: "Mika",
+    AvatarURL: "",
+    RecordURI: "at://did:plc:a/app.arabica.record.roaster/r",
+    Collection: "app.arabica.record.roaster",
+    RKey: "r",
+    CreatedAt: "2026-10-01T12:00:00Z",
+    Title: "Mika",
+    Rating: 0,
+    HasRating: false,
+    ChainDepth: 1,
   };
 
   const backlinks: BacklinksResult = {
@@ -35,13 +44,15 @@
     authorHandle: "viewer.arabica.example",
     authorDisplay: "Pat",
     backlinks,
-    backlinksDetailURL: "/roasters/viewer.arabica.example/roaster-rkey/backlinks",
+    backlinksDetailURL:
+      "/roasters/viewer.arabica.example/roaster-rkey/backlinks",
     subjectURI: "at://did:plc:viewer/app.arabica.record.roaster/roaster-rkey",
     subjectCID: "bafyrei-roaster",
     isLiked: true,
     likeCount: 2,
     commentCount: 0,
-    shareURL: "https://arabica.example/roasters/viewer.arabica.example/roaster-rkey",
+    shareURL:
+      "https://arabica.example/roasters/viewer.arabica.example/roaster-rkey",
     isOwner: true,
     editURL: "/roasters/viewer.arabica.example/roaster-rkey/edit",
     deleteURL: "/api/roasters/roaster-rkey",

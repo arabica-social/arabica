@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RecipesCatalog from "../../src/routes/recipes/+page.svelte";
 import type { Recipe } from "#lib/types/entity_view.js";
 
-vi.mock("$app/navigation", () => ({ goto: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("$app/navigation", () => ({
+  goto: vi.fn().mockResolvedValue(undefined),
+}));
 
 const mockRecipe1: Recipe = {
   rkey: "recipe-1",
@@ -117,17 +119,25 @@ describe("Recipes catalog page", () => {
 
   it("keeps the stable sort parameter behind the copy label", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => [] });
     vi.stubGlobal("fetch", fetchMock);
     render(RecipesCatalog, { data: catalogData });
     await user.click(screen.getByRole("button", { name: "Most Copied" }));
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("sort=most_forked"), expect.any(Object),
+      expect.stringContaining("sort=most_forked"),
+      expect.any(Object),
     );
   });
 
   it.each([1, 2])("labels %i recipe copies without fork jargon", (count) => {
-    render(RecipesCatalog, { data: { ...catalogData, recipes: [{ ...mockRecipe1, fork_count: count }] } });
+    render(RecipesCatalog, {
+      data: {
+        ...catalogData,
+        recipes: [{ ...mockRecipe1, fork_count: count }],
+      },
+    });
     expect(screen.getByText(count === 1 ? "1 copy" : "2 copies")).toBeTruthy();
   });
 
@@ -179,8 +189,9 @@ describe("Recipes catalog page", () => {
       data: { recipes: [], error: "", isAuthenticated: true },
     });
     expect(screen.getByText("No recipes yet")).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Add a recipe" }),
-    ).toHaveAttribute("href", "/recipes/new");
+    expect(screen.getByRole("link", { name: "Add a recipe" })).toHaveAttribute(
+      "href",
+      "/recipes/new",
+    );
   });
 });

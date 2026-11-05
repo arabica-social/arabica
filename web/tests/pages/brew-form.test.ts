@@ -611,7 +611,9 @@ describe("BrewForm Quick and Detailed", () => {
         "true",
       ),
     );
-    expect(screen.getByLabelText("Tasting notes")).toHaveValue("Keep this draft");
+    expect(screen.getByLabelText("Tasting notes")).toHaveValue(
+      "Keep this draft",
+    );
     expect(mocks.computeAutofill).not.toHaveBeenCalled();
   });
 

@@ -4,122 +4,122 @@
 // (Result, Entry, UsageGroup). See docs/api/entities.md.
 
 export type Roaster = {
-	rkey: string;
-	name: string;
-	location: string;
-	website: string;
-	source_ref?: string;
-	created_at: string;
+  rkey: string;
+  name: string;
+  location: string;
+  website: string;
+  source_ref?: string;
+  created_at: string;
 };
 
 export type Grinder = {
-	rkey: string;
-	name: string;
-	grinder_type: string;
-	burr_type: string;
-	notes: string;
-	link: string;
-	source_ref?: string;
-	created_at: string;
+  rkey: string;
+  name: string;
+  grinder_type: string;
+  burr_type: string;
+  notes: string;
+  link: string;
+  source_ref?: string;
+  created_at: string;
 };
 
 export type Brewer = {
-	rkey: string;
-	name: string;
-	brewer_type: string;
-	description: string;
-	link: string;
-	source_ref?: string;
-	created_at: string;
+  rkey: string;
+  name: string;
+  brewer_type: string;
+  description: string;
+  link: string;
+  source_ref?: string;
+  created_at: string;
 };
 
 export type Bean = {
-	rkey: string;
-	name: string;
-	origin: string;
-	variety: string;
-	roast_level: string;
-	roast_date?: string;
-	process: string;
-	description: string;
-	notes: string;
-	link: string;
-	rating?: number;
-	closed: boolean;
-	source_ref?: string;
-	created_at: string;
-	roaster?: { name: string; location: string; rkey: string };
+  rkey: string;
+  name: string;
+  origin: string;
+  variety: string;
+  roast_level: string;
+  roast_date?: string;
+  process: string;
+  description: string;
+  notes: string;
+  link: string;
+  rating?: number;
+  closed: boolean;
+  source_ref?: string;
+  created_at: string;
+  roaster?: { name: string; location: string; rkey: string };
 };
 
 export type Pour = {
-	pour_number: number;
-	water_amount: number;
-	time_seconds: number;
-	created_at: string;
+  pour_number: number;
+  water_amount: number;
+  time_seconds: number;
+  created_at: string;
 };
 
 export type EspressoParams = {
-	yield_weight: number;
-	pressure: number;
-	pre_infusion_seconds: number;
+  yield_weight: number;
+  pressure: number;
+  pre_infusion_seconds: number;
 };
 
 export type PouroverParams = {
-	bloom_water: number;
-	bloom_seconds: number;
-	drawdown_seconds: number;
-	bypass_water: number;
-	filter: string;
+  bloom_water: number;
+  bloom_seconds: number;
+  drawdown_seconds: number;
+  bypass_water: number;
+  filter: string;
 };
 
 export type Recipe = {
-	rkey: string;
-	name: string;
-	brewer_rkey: string;
-	brewer_type: string;
-	coffee_amount: number;
-	water_amount: number;
-	notes: string;
-	source_ref?: string;
-	created_at: string;
-	brewer_obj?: Brewer;
-	pours?: Pour[];
-	ratio?: number;
-	author_did?: string;
-	author_handle?: string;
-	author_avatar?: string;
-	author_display?: string;
-	source_author_handle?: string;
-	source_author_avatar?: string;
-	source_author_display?: string;
-	fork_count?: number;
-	brew_count?: number;
-	forker_avatars?: string[];
+  rkey: string;
+  name: string;
+  brewer_rkey: string;
+  brewer_type: string;
+  coffee_amount: number;
+  water_amount: number;
+  notes: string;
+  source_ref?: string;
+  created_at: string;
+  brewer_obj?: Brewer;
+  pours?: Pour[];
+  ratio?: number;
+  author_did?: string;
+  author_handle?: string;
+  author_avatar?: string;
+  author_display?: string;
+  source_author_handle?: string;
+  source_author_avatar?: string;
+  source_author_display?: string;
+  fork_count?: number;
+  brew_count?: number;
+  forker_avatars?: string[];
 };
 
 export type Brew = {
-	rkey: string;
-	bean_rkey: string;
-	recipe_rkey: string;
-	method?: string;
-	temperature: number;
-	water_amount: number;
-	coffee_amount: number;
-	time_seconds: number;
-	grind_size: string;
-	grinder_rkey: string;
-	brewer_rkey: string;
-	tasting_notes: string;
-	rating: number;
-	created_at: string;
-	espresso_params?: EspressoParams;
-	pourover_params?: PouroverParams;
-	bean?: Bean;
-	recipe_obj?: Recipe;
-	grinder_obj?: Grinder;
-	brewer_obj?: Brewer;
-	recipe_owner_did?: string;
-	pours?: Pour[];
+  rkey: string;
+  bean_rkey: string;
+  recipe_rkey: string;
+  method?: string;
+  temperature: number;
+  water_amount: number;
+  coffee_amount: number;
+  time_seconds: number;
+  grind_size: string;
+  grinder_rkey: string;
+  brewer_rkey: string;
+  tasting_notes: string;
+  rating: number;
+  created_at: string;
+  espresso_params?: EspressoParams;
+  pourover_params?: PouroverParams;
+  bean?: Bean;
+  recipe_obj?: Recipe;
+  grinder_obj?: Grinder;
+  brewer_obj?: Brewer;
+  recipe_owner_did?: string;
+  pours?: Pour[];
 };
 
 export type AuthorSummary = {

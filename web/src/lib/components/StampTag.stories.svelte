@@ -10,5 +10,11 @@
 </script>
 
 <Story name="Inactive" args={{ label: "Quick notes", onclick: () => {} }} />
-<Story name="Active" args={{ label: "Espresso", active: true, onclick: () => {} }} />
-<Story name="Disabled" args={{ label: "Locked", disabled: true, onclick: () => {} }} />
+<Story
+  name="Active"
+  args={{ label: "Espresso", active: true, onclick: () => {} }}
+/>
+<Story
+  name="Disabled"
+  args={{ label: "Locked", disabled: true, onclick: () => {} }}
+/>

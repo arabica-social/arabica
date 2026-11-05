@@ -175,16 +175,36 @@
     </header>
 
     <section class="profile-stats" aria-label="Coffee collection statistics">
-      <div><strong>{profile.total_brews}</strong><span>{profile.total_brews === 1 ? "Brew" : "Brews"}</span></div>
-      <div><strong>{profile.beans.length}</strong><span>{profile.beans.length === 1 ? "Bean" : "Beans"}</span></div>
-      <div><strong>{profile.roasters.length}</strong><span>{profile.roasters.length === 1 ? "Roaster" : "Roasters"}</span></div>
-      <div><strong>{profile.grinders.length}</strong><span>{profile.grinders.length === 1 ? "Grinder" : "Grinders"}</span></div>
-      <div><strong>{profile.brewers.length}</strong><span>{profile.brewers.length === 1 ? "Brewer" : "Brewers"}</span></div>
+      <div>
+        <strong>{profile.total_brews}</strong><span
+          >{profile.total_brews === 1 ? "Brew" : "Brews"}</span
+        >
+      </div>
+      <div>
+        <strong>{profile.beans.length}</strong><span
+          >{profile.beans.length === 1 ? "Bean" : "Beans"}</span
+        >
+      </div>
+      <div>
+        <strong>{profile.roasters.length}</strong><span
+          >{profile.roasters.length === 1 ? "Roaster" : "Roasters"}</span
+        >
+      </div>
+      <div>
+        <strong>{profile.grinders.length}</strong><span
+          >{profile.grinders.length === 1 ? "Grinder" : "Grinders"}</span
+        >
+      </div>
+      <div>
+        <strong>{profile.brewers.length}</strong><span
+          >{profile.brewers.length === 1 ? "Brewer" : "Brewers"}</span
+        >
+      </div>
     </section>
 
     <div class="profile-grid">
       <aside class="profile-index" aria-label="Profile sections">
-          <div role="tablist" aria-label="Profile collections">
+        <div role="tablist" aria-label="Profile collections">
           <button
             type="button"
             onclick={() => (activeTab = "brews")}
@@ -459,8 +479,7 @@
                     <div class="feed-card feed-card-roaster">
                       <a
                         href={`/roasters/${did}/${roaster.rkey}`}
-                        class="record-title hover:underline"
-                        >{roaster.name}</a
+                        class="record-title hover:underline">{roaster.name}</a
                       >
                       {#if roaster.location}
                         <div
@@ -604,8 +623,7 @@
                     <div class="feed-card feed-card-grinder">
                       <a
                         href={`/grinders/${did}/${grinder.rkey}`}
-                        class="record-title hover:underline"
-                        >{grinder.name}</a
+                        class="record-title hover:underline">{grinder.name}</a
                       >
                       <div
                         class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1"
@@ -658,8 +676,7 @@
                     <div class="feed-card feed-card-brewer">
                       <a
                         href={`/brewers/${did}/${brewer.rkey}`}
-                        class="record-title hover:underline"
-                        >{brewer.name}</a
+                        class="record-title hover:underline">{brewer.name}</a
                       >
                       {#if brewer.brewer_type}
                         <div
@@ -803,10 +820,10 @@
   }
   @media (min-width: 860px) {
     .profile-content .feed-card {
-    border: 1px solid var(--card-border);
-    box-shadow: var(--shadow-sm);
-  }
-  .profile-grid {
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+    }
+    .profile-grid {
       grid-template-columns: minmax(9rem, 0.55fr) minmax(0, 2.8fr);
       gap: clamp(1.5rem, 3vw, 3rem);
       align-items: start;

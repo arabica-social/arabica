@@ -4,18 +4,23 @@ import { get } from "svelte/store";
 import type { Brew } from "#lib/types/entity_view.js";
 
 export const load: PageLoad = async ({ fetch, url }) => {
-	const s = get(session);
-	if (!s.isAuthenticated) {
-		return { brew: null, error: "Authentication required", recipeRKey: "", recipeOwnerDID: "" };
-	}
+  const s = get(session);
+  if (!s.isAuthenticated) {
+    return {
+      brew: null,
+      error: "Authentication required",
+      recipeRKey: "",
+      recipeOwnerDID: "",
+    };
+  }
 
-	const recipeRKey = url.searchParams.get("recipe") ?? "";
-	const recipeOwnerDID = url.searchParams.get("recipe_owner") ?? "";
+  const recipeRKey = url.searchParams.get("recipe") ?? "";
+  const recipeOwnerDID = url.searchParams.get("recipe_owner") ?? "";
 
-	return {
-		brew: null as Brew | null,
-		error: "",
-		recipeRKey,
-		recipeOwnerDID,
-	};
+  return {
+    brew: null as Brew | null,
+    error: "",
+    recipeRKey,
+    recipeOwnerDID,
+  };
 };

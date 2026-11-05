@@ -1,10 +1,12 @@
 <script lang="ts">
-	import type { PageData } from "./$types";
-	let { data }: { data: PageData } = $props();
+  import type { PageData } from "./$types";
+  let { data }: { data: PageData } = $props();
 </script>
 
 <div class="page-container-sm">
-	<div class="card card-inner text-center py-8">
-		<p class="text-secondary">Redirecting to <a href="/my-coffee">My Coffee</a>…</p>
-	</div>
+  <div class="card card-inner text-center py-8">
+    <p class="text-secondary">
+      Redirecting to <a href="/my-coffee">My Coffee</a>…
+    </p>
+  </div>
 </div>

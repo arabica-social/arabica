@@ -5,18 +5,18 @@ import { fetchEntityView } from "#lib/api/entityView.js";
 import type { Brew } from "#lib/types/entity_view.js";
 
 export const load: PageLoad = async ({ fetch, params }) => {
-	const s = get(session);
-	if (!s.isAuthenticated) {
-		return { brew: null, error: "Authentication required" };
-	}
+  const s = get(session);
+  if (!s.isAuthenticated) {
+    return { brew: null, error: "Authentication required" };
+  }
 
-	// Edit: load the existing brew. The edit URL uses /brews/{id}/edit
-	// (the owner is the current user). We fetch via the entity view API
-	// with the user's own DID as the actor.
-	const actor = s.did || s.handle;
-	const result = await fetchEntityView<Brew>(fetch, "brews", actor, params.id);
-	return {
-		brew: result.data?.record ?? null,
-		error: result.error ?? "",
-	};
+  // Edit: load the existing brew. The edit URL uses /brews/{id}/edit
+  // (the owner is the current user). We fetch via the entity view API
+  // with the user's own DID as the actor.
+  const actor = s.did || s.handle;
+  const result = await fetchEntityView<Brew>(fetch, "brews", actor, params.id);
+  return {
+    brew: result.data?.record ?? null,
+    error: result.error ?? "",
+  };
 };

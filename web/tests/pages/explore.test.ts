@@ -247,28 +247,72 @@ describe("Explore page", () => {
 
   it("ignores an old next page after clearing the filters", async () => {
     let finish!: (response: unknown) => void;
-    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(resolve => { finish = resolve; })));
-    render(Explore, { data: { ...exploreData, explore: { ...exploreData.explore, next_cursor: "next" } } });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      ),
+    );
+    render(Explore, {
+      data: {
+        ...exploreData,
+        explore: { ...exploreData.explore, next_cursor: "next" },
+      },
+    });
     await fireEvent.click(screen.getByRole("button", { name: "More results" }));
     await fireEvent.click(screen.getByRole("button", { name: "Clear" }));
-    finish({ ok: true, json: async () => ({ ...exploreData.explore, items: [{
-      ...exploreData.explore.items[0], subject_uri: "at://did:plc:abc/social.arabica.alpha.bean/stale",
-      record: { ...exploreData.explore.items[0].record, rkey: "stale", name: "Stale result" },
-    }] }) });
-    await waitFor(() => expect(screen.getByRole("button", { name: "More results" })).not.toBeDisabled());
+    finish({
+      ok: true,
+      json: async () => ({
+        ...exploreData.explore,
+        items: [
+          {
+            ...exploreData.explore.items[0],
+            subject_uri: "at://did:plc:abc/social.arabica.alpha.bean/stale",
+            record: {
+              ...exploreData.explore.items[0].record,
+              rkey: "stale",
+              name: "Stale result",
+            },
+          },
+        ],
+      }),
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "More results" }),
+      ).not.toBeDisabled(),
+    );
     expect(screen.queryByText("Stale result")).toBeNull();
   });
 
   it("resets pending state when navigation supplies another result set", async () => {
     let finish!: (response: unknown) => void;
-    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(resolve => { finish = resolve; })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      ),
+    );
     const { rerender } = render(Explore, { data: exploreData });
-    await fireEvent.click(screen.getByRole("button", { name: "Explore", exact: true }));
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Explore", exact: true }),
+    );
     expect(screen.getByRole("button", { name: "Searching..." })).toBeDisabled();
-    await rerender({ data: { ...exploreData, explore: { ...exploreData.explore, items: [] } } });
-    expect(screen.getByRole("button", { name: "Explore", exact: true })).not.toBeDisabled();
+    await rerender({
+      data: { ...exploreData, explore: { ...exploreData.explore, items: [] } },
+    });
+    expect(
+      screen.getByRole("button", { name: "Explore", exact: true }),
+    ).not.toBeDisabled();
     finish({ ok: true, json: async () => exploreData.explore });
-    await waitFor(() => expect(screen.getByText("No matching records yet.")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText("No matching records yet.")).toBeTruthy(),
+    );
     expect(screen.queryByText("Ethiopian Yirgacheffe")).toBeNull();
   });
 

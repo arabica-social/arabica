@@ -399,96 +399,101 @@
       class="combo-dropdown"
       onmousedown={(event) => event.preventDefault()}
     >
-    {#if isCreating}
-      <div class="combo-creating">Creating...</div>
-    {:else}
-      {#if userResults.length > 0}
-        <div class="combo-section-label">{sectionLabel}</div>
-        {#each userResults as entity, index}
+      {#if isCreating}
+        <div class="combo-creating">Creating...</div>
+      {:else}
+        {#if userResults.length > 0}
+          <div class="combo-section-label">{sectionLabel}</div>
+          {#each userResults as entity, index}
+            <button
+              type="button"
+              class="combo-item"
+              role="option"
+              aria-selected={highlightIndex === index}
+              data-highlighted={highlightIndex === index}
+              onmouseenter={() => (highlightIndex = index)}
+              onclick={() => selectEntity(entity)}
+            >
+              {formatLabel(entity)}
+            </button>
+          {/each}
+        {/if}
+        {#if closedResults.length > 0}
+          <div class="combo-section-label">Finished bags</div>
+          {#each closedResults as entity, index}
+            <button
+              type="button"
+              class="combo-item opacity-60"
+              role="option"
+              aria-selected={highlightIndex === userResults.length + index}
+              data-highlighted={highlightIndex === userResults.length + index}
+              onmouseenter={() => (highlightIndex = userResults.length + index)}
+              onclick={() => selectEntity(entity)}
+            >
+              {formatLabel(entity)}
+            </button>
+          {/each}
+        {/if}
+        {#if communityResults.length > 0}
+          <div class="combo-section-label">Community</div>
+          {#each communityResults as suggestion, index}
+            <button
+              type="button"
+              class="combo-item"
+              role="option"
+              aria-selected={highlightIndex ===
+                userResults.length + closedResults.length + index}
+              data-highlighted={highlightIndex ===
+                userResults.length + closedResults.length + index}
+              onmouseenter={() =>
+                (highlightIndex =
+                  userResults.length + closedResults.length + index)}
+              onclick={() => selectSuggestion(suggestion)}
+            >
+              <div>{suggestion.name}</div>
+              <div class="combo-item-sub">
+                {#if suggestion.fields?.origin}{suggestion.fields.origin}{/if}
+                {#if suggestion.fields?.origin && suggestion.fields?.roastLevel}
+                  ·
+                {/if}
+                {#if suggestion.fields?.roastLevel}{suggestion.fields
+                    .roastLevel}{/if}
+                {#if suggestion.fields?.location}{suggestion.fields
+                    .location}{/if}
+                {#if (suggestion.count || 0) > 1}
+                  · {suggestion.count} users{/if}
+              </div>
+            </button>
+          {/each}
+        {/if}
+        {#if allowCreate && query.trim() && !exactMatch && !passthrough}
           <button
             type="button"
-            class="combo-item"
-            role="option"
-            aria-selected={highlightIndex === index}
-            data-highlighted={highlightIndex === index}
-            onmouseenter={() => (highlightIndex = index)}
-            onclick={() => selectEntity(entity)}
-          >
-            {formatLabel(entity)}
-          </button>
-        {/each}
-      {/if}
-      {#if closedResults.length > 0}
-        <div class="combo-section-label">Finished bags</div>
-        {#each closedResults as entity, index}
-          <button
-            type="button"
-            class="combo-item opacity-60"
-            role="option"
-            aria-selected={highlightIndex === userResults.length + index}
-            data-highlighted={highlightIndex === userResults.length + index}
-            onmouseenter={() => (highlightIndex = userResults.length + index)}
-            onclick={() => selectEntity(entity)}
-          >
-            {formatLabel(entity)}
-          </button>
-        {/each}
-      {/if}
-      {#if communityResults.length > 0}
-        <div class="combo-section-label">Community</div>
-        {#each communityResults as suggestion, index}
-          <button
-            type="button"
-            class="combo-item"
+            class="combo-item-create"
             role="option"
             aria-selected={highlightIndex ===
-              userResults.length + closedResults.length + index}
+              userResults.length +
+                closedResults.length +
+                communityResults.length}
             data-highlighted={highlightIndex ===
-              userResults.length + closedResults.length + index}
+              userResults.length +
+                closedResults.length +
+                communityResults.length}
             onmouseenter={() =>
               (highlightIndex =
-                userResults.length + closedResults.length + index)}
-            onclick={() => selectSuggestion(suggestion)}
+                userResults.length +
+                closedResults.length +
+                communityResults.length)}
+            onclick={startCreate}
           >
-            <div>{suggestion.name}</div>
-            <div class="combo-item-sub">
-              {#if suggestion.fields?.origin}{suggestion.fields.origin}{/if}
-              {#if suggestion.fields?.origin && suggestion.fields?.roastLevel}
-                ·
-              {/if}
-              {#if suggestion.fields?.roastLevel}{suggestion.fields
-                  .roastLevel}{/if}
-              {#if suggestion.fields?.location}{suggestion.fields.location}{/if}
-              {#if (suggestion.count || 0) > 1}
-                · {suggestion.count} users{/if}
-            </div>
+            Create "{query.trim()}"
           </button>
-        {/each}
+        {/if}
+        {#if allItems.length === 0 && query.trim()}
+          <div class="combo-creating">No matches found</div>
+        {/if}
       {/if}
-      {#if allowCreate && query.trim() && !exactMatch && !passthrough}
-        <button
-          type="button"
-          class="combo-item-create"
-          role="option"
-          aria-selected={highlightIndex ===
-            userResults.length + closedResults.length + communityResults.length}
-          data-highlighted={highlightIndex ===
-            userResults.length + closedResults.length + communityResults.length}
-          onmouseenter={() =>
-            (highlightIndex =
-              userResults.length +
-              closedResults.length +
-              communityResults.length)}
-          onclick={startCreate}
-        >
-          Create "{query.trim()}"
-        </button>
-      {/if}
-      {#if allItems.length === 0 && query.trim()}
-        <div class="combo-creating">No matches found</div>
-      {/if}
-    {/if}
-  </div>
+    </div>
   {/if}
 </div>
 

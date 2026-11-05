@@ -108,6 +108,7 @@ verbose-integration-test: spa-build
 
 format:
     @pnpm run format
+    @pnpm run format ./src
     @gofmt -w ./
 
 e2e-build:

@@ -10,7 +10,9 @@
 </script>
 
 <Story name="Placeholder sizes">
-  <div style="display: flex; align-items: flex-end; gap: 1.5rem; padding: 1rem;">
+  <div
+    style="display: flex; align-items: flex-end; gap: 1.5rem; padding: 1rem;"
+  >
     <Avatar displayName="Mika" size="sm" />
     <Avatar displayName="Patrick" size="md" />
     <Avatar displayName="Solveig" size="lg" />

@@ -152,7 +152,8 @@
                 class="station-tag"
                 data-tag="required">required</span
               >
-            {:else if !isLibrary}<span class="station-tag" data-tag="optional">optional</span
+            {:else if !isLibrary}<span class="station-tag" data-tag="optional"
+                >optional</span
               >{/if}
           </header>
           <p class="station-hint">

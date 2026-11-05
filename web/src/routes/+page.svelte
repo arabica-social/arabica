@@ -7,8 +7,14 @@
   import { pushToast } from "#lib/stores/toasts.js";
   import { goto } from "$app/navigation";
   import { tick } from "svelte";
-  import { applyFeedMasonry, installFeedMasonry } from "#lib/utils/feedMasonry.js";
-  import { getCachedFeedJSON, setCachedFeedJSON } from "#lib/stores/feedCache.js";
+  import {
+    applyFeedMasonry,
+    installFeedMasonry,
+  } from "#lib/utils/feedMasonry.js";
+  import {
+    getCachedFeedJSON,
+    setCachedFeedJSON,
+  } from "#lib/stores/feedCache.js";
   import ScrollTopButton from "#lib/components/ScrollTopButton.svelte";
   import type { PageData } from "./$types";
   import type { FeedItem, FeedResponse } from "#lib/types/feed.js";
@@ -243,8 +249,6 @@
 {/snippet}
 
 <div class="cafe-counter">
-
-
   <main class="cafe-main">
     <header class="cafe-masthead">
       <div class="cafe-masthead-lead">

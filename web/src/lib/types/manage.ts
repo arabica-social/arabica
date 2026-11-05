@@ -6,30 +6,30 @@
 import type { Bean, Brewer, Grinder, Recipe, Roaster } from "./entity_view";
 
 export type ManageStatsJSON = {
-	bean_brew_counts: Record<string, number>;
-	grinder_brew_counts: Record<string, number>;
-	brewer_brew_counts: Record<string, number>;
-	roaster_bean_counts: Record<string, number>;
-	bean_avg_brew_ratings: Record<string, number>;
-	roaster_avg_brew_ratings: Record<string, number>;
+  bean_brew_counts: Record<string, number>;
+  grinder_brew_counts: Record<string, number>;
+  brewer_brew_counts: Record<string, number>;
+  roaster_bean_counts: Record<string, number>;
+  bean_avg_brew_ratings: Record<string, number>;
+  roaster_avg_brew_ratings: Record<string, number>;
 };
 
 export type ManageResponseJSON = {
-	did: string;
-	beans: Bean[];
-	roasters: Roaster[];
-	grinders: Grinder[];
-	brewers: Brewer[];
-	recipes: Recipe[];
-	stats: ManageStatsJSON;
+  did: string;
+  beans: Bean[];
+  roasters: Roaster[];
+  grinders: Grinder[];
+  brewers: Brewer[];
+  recipes: Recipe[];
+  stats: ManageStatsJSON;
 };
 
 export type BrewListResponse = {
-	brews: import("./entity_view").Brew[];
-	has_more: boolean;
-	next_offset: number;
-	like_counts: Record<string, number>;
-	comment_counts: Record<string, number>;
-	liked_by_user: Record<string, boolean>;
-	cids: Record<string, string>;
+  brews: import("./entity_view").Brew[];
+  has_more: boolean;
+  next_offset: number;
+  like_counts: Record<string, number>;
+  comment_counts: Record<string, number>;
+  liked_by_user: Record<string, boolean>;
+  cids: Record<string, string>;
 };

@@ -93,8 +93,11 @@ export async function refreshSession() {
   }
 
   try {
-    const response = await fetch("/api/session", { credentials: "same-origin" });
-    if (!response.ok) throw new Error(`Session request failed: ${response.status}`);
+    const response = await fetch("/api/session", {
+      credentials: "same-origin",
+    });
+    if (!response.ok)
+      throw new Error(`Session request failed: ${response.status}`);
     const data = (await response.json()) as SessionResponse;
     session.set({
       did: data.did ?? "",
@@ -163,7 +166,10 @@ export function formatNotificationCount(count: number): string {
 
 /** Opens the global login modal if the layout has mounted it. */
 export function openLoginModal() {
-  if (typeof window !== "undefined" && typeof window.__showLoginModal === "function") {
+  if (
+    typeof window !== "undefined" &&
+    typeof window.__showLoginModal === "function"
+  ) {
     window.__showLoginModal();
   }
 }
@@ -191,7 +197,9 @@ type SessionStatusResponse = {
  */
 export async function checkSessionExpired(): Promise<boolean> {
   try {
-    const response = await fetch("/api/session/status", { credentials: "same-origin" });
+    const response = await fetch("/api/session/status", {
+      credentials: "same-origin",
+    });
     if (!response.ok) return false;
     const data = (await response.json()) as SessionStatusResponse;
     return data.session_expired === true;
@@ -208,7 +216,10 @@ export async function checkSessionExpired(): Promise<boolean> {
  */
 export async function warnIfSessionExpired() {
   if (await checkSessionExpired()) {
-    if (typeof window !== "undefined" && typeof window.__showSessionExpiredModal === "function") {
+    if (
+      typeof window !== "undefined" &&
+      typeof window.__showSessionExpiredModal === "function"
+    ) {
       window.__showSessionExpiredModal();
     }
   }

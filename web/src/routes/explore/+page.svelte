@@ -5,7 +5,10 @@
   import { tick } from "svelte";
   import { pushToast } from "#lib/stores/toasts.js";
   import { displayHandle, openLoginModal } from "#lib/stores/session.js";
-  import { applyFeedMasonry, installFeedMasonry } from "#lib/utils/feedMasonry.js";
+  import {
+    applyFeedMasonry,
+    installFeedMasonry,
+  } from "#lib/utils/feedMasonry.js";
   import type { PageData } from "./$types";
   import type { ExploreResponse, ExploreDocument } from "#lib/types/api.js";
   import type { FeedItem } from "#lib/types/feed.js";

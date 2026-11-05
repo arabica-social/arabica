@@ -51,9 +51,8 @@
         (PDS). Read <a href="/atproto" class="link-bold"
           >how Arabica uses AT Protocol</a
         >
-        for details about storage and public records. If you don't have an
-        account, <a href="/join/create" class="link-bold">choose a provider</a> to
-        create one.
+        for details about storage and public records. If you don't have an account,
+        <a href="/join/create" class="link-bold">choose a provider</a> to create one.
       </p>
     </section>
     <section>

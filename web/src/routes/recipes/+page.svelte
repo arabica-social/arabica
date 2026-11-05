@@ -227,9 +227,7 @@
   </div>
 {:else}
   <div class="page-container-xl">
-    <LedgerHeader
-      title="Explore Recipes"
-    >
+    <LedgerHeader title="Explore Recipes">
       {#snippet actions()}
         <a href="/recipes/new" class="btn-primary shadow-lg hover:shadow-xl"
           >+ New Recipe</a
@@ -525,7 +523,8 @@
                           d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
                         ></path>
                       </svg>
-                      {selectedRecipe.fork_count} {selectedRecipe.fork_count === 1 ? "copy" : "copies"}
+                      {selectedRecipe.fork_count}
+                      {selectedRecipe.fork_count === 1 ? "copy" : "copies"}
                       {#if selectedRecipe.forker_avatars && selectedRecipe.forker_avatars.length > 0}
                         <span class="flex -space-x-1.5 ml-1">
                           {#each selectedRecipe.forker_avatars.slice(0, 5) as avatar}
@@ -744,7 +743,8 @@
                               d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
                             ></path>
                           </svg>
-                          {recipe.fork_count} {recipe.fork_count === 1 ? "copy" : "copies"}
+                          {recipe.fork_count}
+                          {recipe.fork_count === 1 ? "copy" : "copies"}
                         </span>
                       {/if}
                       {#if recipe.forker_avatars && recipe.forker_avatars.length > 0}

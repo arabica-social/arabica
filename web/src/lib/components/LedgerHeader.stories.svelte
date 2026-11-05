@@ -15,7 +15,8 @@
   args={{
     title: "My Coffee",
     eyebrow: "Library",
-    description: "Your beans, brewers, grinders, and roasters as they exist on your PDS.",
+    description:
+      "Your beans, brewers, grinders, and roasters as they exist on your PDS.",
   }}
 />
 <Story name="With back link" args={{ title: "Settings", showBack: true }} />

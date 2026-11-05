@@ -17,7 +17,11 @@
     avatar: "",
   };
 
-  function itemFor(recordType: FeedItem["record_type"], record: object, overrides: Partial<FeedItem> = {}): FeedItem {
+  function itemFor(
+    recordType: FeedItem["record_type"],
+    record: object,
+    overrides: Partial<FeedItem> = {},
+  ): FeedItem {
     return {
       record_type: recordType,
       action: "added",
@@ -70,10 +74,29 @@
     tasting_notes: "Cocoa, dried fig, and a syrupy finish.",
     rating: 9,
     created_at: "2026-11-01T08:30:00Z",
-    espresso_params: { yield_weight: 36.2, pressure: 9, pre_infusion_seconds: 6 },
+    espresso_params: {
+      yield_weight: 36.2,
+      pressure: 9,
+      pre_infusion_seconds: 6,
+    },
     bean,
-    brewer_obj: { rkey: "", name: "Flair 58", brewer_type: "manual", description: "", link: "", created_at: "" },
-    grinder_obj: { rkey: "", name: "1Zpresso J-Max", grinder_type: "hand", burr_type: "", notes: "", link: "", created_at: "" },
+    brewer_obj: {
+      rkey: "",
+      name: "Flair 58",
+      brewer_type: "manual",
+      description: "",
+      link: "",
+      created_at: "",
+    },
+    grinder_obj: {
+      rkey: "",
+      name: "1Zpresso J-Max",
+      grinder_type: "hand",
+      burr_type: "",
+      notes: "",
+      link: "",
+      created_at: "",
+    },
   };
 
   const pouroverBrew: Brew = {
@@ -90,7 +113,13 @@
     tasting_notes: "Juicy acidity, black tea body.",
     rating: 8,
     created_at: "2026-10-30T07:45:00Z",
-    pourover_params: { bloom_water: 50, bloom_seconds: 45, drawdown_seconds: 30, bypass_water: 0, filter: "Sibarist Fast" },
+    pourover_params: {
+      bloom_water: 50,
+      bloom_seconds: 45,
+      drawdown_seconds: 30,
+      bypass_water: 0,
+      filter: "Sibarist Fast",
+    },
     bean,
     pours: [
       { pour_number: 1, water_amount: 60, time_seconds: 10, created_at: "" },
@@ -108,11 +137,26 @@
   };
 </script>
 
-<Story name="Espresso brew" args={{ item: itemFor("brew", espressoBrew), isAuthenticated: true }} />
-<Story name="Pourover with pours" args={{ item: itemFor("brew", pouroverBrew), isAuthenticated: true }} />
-<Story name="New bean" args={{ item: itemFor("bean", bean), isAuthenticated: true }} />
-<Story name="New roaster (compact)" args={{ item: itemFor("roaster", roaster), isAuthenticated: true }} />
+<Story
+  name="Espresso brew"
+  args={{ item: itemFor("brew", espressoBrew), isAuthenticated: true }}
+/>
+<Story
+  name="Pourover with pours"
+  args={{ item: itemFor("brew", pouroverBrew), isAuthenticated: true }}
+/>
+<Story
+  name="New bean"
+  args={{ item: itemFor("bean", bean), isAuthenticated: true }}
+/>
+<Story
+  name="New roaster (compact)"
+  args={{ item: itemFor("roaster", roaster), isAuthenticated: true }}
+/>
 <Story
   name="Own record"
-  args={{ item: itemFor("brew", espressoBrew, { is_owner: true }), isAuthenticated: true }}
+  args={{
+    item: itemFor("brew", espressoBrew, { is_owner: true }),
+    isAuthenticated: true,
+  }}
 />

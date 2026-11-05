@@ -17,7 +17,8 @@ function makeMediaQuery(matches: boolean): MediaQueryList {
       listener: (e: MediaQueryListEvent) => void,
     ) => listeners.delete(listener),
     addListener: (l: (e: MediaQueryListEvent) => void) => listeners.add(l),
-    removeListener: (l: (e: MediaQueryListEvent) => void) => listeners.delete(l),
+    removeListener: (l: (e: MediaQueryListEvent) => void) =>
+      listeners.delete(l),
     dispatchEvent: () => false,
   } as unknown as MediaQueryList;
 }
@@ -69,11 +70,13 @@ describe("feedMasonry", () => {
 
     applyFeedMasonry();
 
-    const columns = grid.querySelectorAll<HTMLElement>(":scope > .feed-masonry-col");
+    const columns = grid.querySelectorAll<HTMLElement>(
+      ":scope > .feed-masonry-col",
+    );
     expect(columns.length).toBe(2);
     // All four cards should have moved into the two columns (none left loose).
-    const looseCards = Array.from(grid.children).filter(
-      (c) => c.classList.contains("feed-card"),
+    const looseCards = Array.from(grid.children).filter((c) =>
+      c.classList.contains("feed-card"),
     );
     expect(looseCards.length).toBe(0);
     expect(columns[0].children.length + columns[1].children.length).toBe(4);
@@ -167,9 +170,9 @@ describe("feedMasonry", () => {
     // "Load more" button, which left appended cards at the top instead.
     const originals = new Set(["a", "b"]);
     for (const col of columns) {
-      const ids = Array.from(col.querySelectorAll<HTMLElement>(".feed-card")).map(
-        (card) => card.dataset.cardId ?? "",
-      );
+      const ids = Array.from(
+        col.querySelectorAll<HTMLElement>(".feed-card"),
+      ).map((card) => card.dataset.cardId ?? "");
       // The first card in each column must be an original.
       expect(ids.length).toBeGreaterThan(0);
       expect(originals.has(ids[0])).toBe(true);

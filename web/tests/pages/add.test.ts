@@ -65,7 +65,9 @@ describe("Add records page", () => {
     render(AddPage, { data: addData });
     expect(screen.queryByText(/to use in your brew records/)).toBeNull();
     expect(screen.queryByText("optional", { exact: true })).toBeNull();
-    expect(screen.getByText("For whole beans; skip if you use pre-ground coffee.")).toBeTruthy();
+    expect(
+      screen.getByText("For whole beans; skip if you use pre-ground coffee."),
+    ).toBeTruthy();
     expect(screen.getByRole("button", { name: /Add a grinder/ })).toBeTruthy();
   });
 
@@ -76,7 +78,9 @@ describe("Add records page", () => {
     expect(screen.getAllByText("Bean").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Grinder").length).toBeGreaterThan(0);
     expect(screen.queryByRole("group", { name: /Setup progress/ })).toBeNull();
-    expect(document.querySelectorAll(".station-no, .station-tag")).toHaveLength(0);
+    expect(document.querySelectorAll(".station-no, .station-tag")).toHaveLength(
+      0,
+    );
     expect(document.querySelectorAll(".station[data-no]")).toHaveLength(0);
   });
 
@@ -92,7 +96,9 @@ describe("Add records page", () => {
     });
     expect(screen.queryByText("required", { exact: true })).toBeNull();
     expect(screen.queryByText(/steps? to go/)).toBeNull();
-    expect(screen.getAllByRole("button", { name: /Add another/ }).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("button", { name: /Add another/ }).length,
+    ).toBeGreaterThan(0);
   });
 
   it("preserves onboarding readiness and the first-brew action", () => {
@@ -105,7 +111,9 @@ describe("Add records page", () => {
     expect(
       screen.getByRole("link", { name: /Log your first brew/ }),
     ).toHaveAttribute("href", "/brews/new");
-    expect(screen.queryByText("You're ready to log your first brew.")).toBeNull();
+    expect(
+      screen.queryByText("You're ready to log your first brew."),
+    ).toBeNull();
   });
 
   it("names missing prerequisites and keeps the grinder optional", () => {

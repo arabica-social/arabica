@@ -153,13 +153,13 @@ func (h *Handlers) fetchBrewList(r *http.Request) (*brewListResult, error) {
 // BrewListJSONResponse is the JSON envelope returned by GET /api/brews for the
 // SvelteKit SPA. See docs/api/brew_list.md for the contract.
 type BrewListJSONResponse struct {
-	Brews         []*arabica.Brew    `json:"brews"`
-	HasMore       bool               `json:"has_more"`
-	NextOffset    int                `json:"next_offset"`
-	LikeCounts    map[string]int     `json:"like_counts"`
-	CommentCounts map[string]int     `json:"comment_counts"`
-	LikedByUser   map[string]bool    `json:"liked_by_user"`
-	CIDs          map[string]string  `json:"cids"`
+	Brews         []*arabica.Brew   `json:"brews"`
+	HasMore       bool              `json:"has_more"`
+	NextOffset    int               `json:"next_offset"`
+	LikeCounts    map[string]int    `json:"like_counts"`
+	CommentCounts map[string]int    `json:"comment_counts"`
+	LikedByUser   map[string]bool   `json:"liked_by_user"`
+	CIDs          map[string]string `json:"cids"`
 }
 
 // handleBrewListJSON returns the brew list as JSON for the SvelteKit SPA.

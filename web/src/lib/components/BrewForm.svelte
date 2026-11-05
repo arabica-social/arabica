@@ -1565,7 +1565,11 @@
       </div>
 
       <div class="combo-select">
-        <span class="form-label">Brewer {#if !isEdit}<span class="text-red-500" aria-hidden="true">*</span>{/if}</span>
+        <span class="form-label"
+          >Brewer {#if !isEdit}<span class="text-red-500" aria-hidden="true"
+              >*</span
+            >{/if}</span
+        >
         {#key brewerRevision}
           <EntityCombo
             entityType="brewer"

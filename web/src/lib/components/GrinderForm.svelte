@@ -1,191 +1,221 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import FormWorkspace from "./FormWorkspace.svelte";
-	import LedgerHeader from "./LedgerHeader.svelte";
-	import FormSection from "./FormSection.svelte";
-	import { APIError } from "#lib/api/client.js";
-	import { createGrinder, updateGrinder } from "#lib/api/entities.js";
-	import { appCache } from "#lib/stores/appCache.js";
-	import { session } from "#lib/stores/session.js";
-	import { pushToast } from "#lib/stores/toasts.js";
-	import type { Grinder } from "#lib/types/entity_view.js";
+  import { goto } from "$app/navigation";
+  import FormWorkspace from "./FormWorkspace.svelte";
+  import LedgerHeader from "./LedgerHeader.svelte";
+  import FormSection from "./FormSection.svelte";
+  import { APIError } from "#lib/api/client.js";
+  import { createGrinder, updateGrinder } from "#lib/api/entities.js";
+  import { appCache } from "#lib/stores/appCache.js";
+  import { session } from "#lib/stores/session.js";
+  import { pushToast } from "#lib/stores/toasts.js";
+  import type { Grinder } from "#lib/types/entity_view.js";
 
-	const GRINDER_TYPES = ["Hand", "Electric", "Portable Electric"];
-	const BURR_TYPES = ["Conical", "Flat"];
+  const GRINDER_TYPES = ["Hand", "Electric", "Portable Electric"];
+  const BURR_TYPES = ["Conical", "Flat"];
 
-	type Props = {
-		grinder: Grinder | null;
-		isEdit: boolean;
-	};
+  type Props = {
+    grinder: Grinder | null;
+    isEdit: boolean;
+  };
 
-	let { grinder, isEdit }: Props = $props();
+  let { grinder, isEdit }: Props = $props();
 
-	// svelte-ignore state_referenced_locally
-	let name = $state(grinder?.name ?? "");
-	// svelte-ignore state_referenced_locally
-	let grinderType = $state(grinder?.grinder_type ?? "");
-	// svelte-ignore state_referenced_locally
-	let burrType = $state(grinder?.burr_type ?? "");
-	// svelte-ignore state_referenced_locally
-	let notes = $state(grinder?.notes ?? "");
-	// svelte-ignore state_referenced_locally
-	let link = $state(grinder?.link ?? "");
+  // svelte-ignore state_referenced_locally
+  let name = $state(grinder?.name ?? "");
+  // svelte-ignore state_referenced_locally
+  let grinderType = $state(grinder?.grinder_type ?? "");
+  // svelte-ignore state_referenced_locally
+  let burrType = $state(grinder?.burr_type ?? "");
+  // svelte-ignore state_referenced_locally
+  let notes = $state(grinder?.notes ?? "");
+  // svelte-ignore state_referenced_locally
+  let link = $state(grinder?.link ?? "");
 
-	let nameError = $state("");
-	let formError = $state("");
-	let submitting = $state(false);
+  let nameError = $state("");
+  let formError = $state("");
+  let submitting = $state(false);
 
-	function validate(): boolean {
-		nameError = name.trim() ? "" : "Name is required";
-		return nameError === "";
-	}
+  function validate(): boolean {
+    nameError = name.trim() ? "" : "Name is required";
+    return nameError === "";
+  }
 
-	function actor(): string {
-		return $session.did || $session.handle;
-	}
+  function actor(): string {
+    return $session.did || $session.handle;
+  }
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (submitting) return;
-		formError = "";
-		if (!validate()) return;
+  async function submit(event: SubmitEvent) {
+    event.preventDefault();
+    if (submitting) return;
+    formError = "";
+    if (!validate()) return;
 
-		submitting = true;
-		const input = {
-			name: name.trim(),
-			grinder_type: grinderType,
-			burr_type: burrType,
-			notes: notes.trim(),
-			link: link.trim(),
-			...(grinder?.source_ref ? { source_ref: grinder.source_ref } : {}),
-		};
+    submitting = true;
+    const input = {
+      name: name.trim(),
+      grinder_type: grinderType,
+      burr_type: burrType,
+      notes: notes.trim(),
+      link: link.trim(),
+      ...(grinder?.source_ref ? { source_ref: grinder.source_ref } : {}),
+    };
 
-		try {
-			const saved = isEdit && grinder
-				? await updateGrinder(fetch, grinder.rkey, input)
-				: await createGrinder(fetch, input);
-			appCache.invalidateCache();
-			pushToast(isEdit ? "Grinder updated" : "Grinder added");
-			const owner = actor();
-			if (owner && saved.rkey) {
-				await goto(`/grinders/${encodeURIComponent(owner)}/${encodeURIComponent(saved.rkey)}`);
-				return;
-			}
-			await goto("/my-coffee");
-		} catch (error) {
-			if (error instanceof APIError) {
-				nameError = error.fields?.name ?? nameError;
-				formError = error.message;
-			} else {
-				formError = "Failed to save grinder";
-			}
-			pushToast(isEdit ? "Failed to update grinder" : "Failed to add grinder");
-		} finally {
-			submitting = false;
-		}
-	}
-
+    try {
+      const saved =
+        isEdit && grinder
+          ? await updateGrinder(fetch, grinder.rkey, input)
+          : await createGrinder(fetch, input);
+      appCache.invalidateCache();
+      pushToast(isEdit ? "Grinder updated" : "Grinder added");
+      const owner = actor();
+      if (owner && saved.rkey) {
+        await goto(
+          `/grinders/${encodeURIComponent(owner)}/${encodeURIComponent(saved.rkey)}`,
+        );
+        return;
+      }
+      await goto("/my-coffee");
+    } catch (error) {
+      if (error instanceof APIError) {
+        nameError = error.fields?.name ?? nameError;
+        formError = error.message;
+      } else {
+        formError = "Failed to save grinder";
+      }
+      pushToast(isEdit ? "Failed to update grinder" : "Failed to add grinder");
+    } finally {
+      submitting = false;
+    }
+  }
 </script>
 
 <FormWorkspace>
-	<LedgerHeader
-		title={isEdit ? "Edit Grinder" : "Add a Grinder"}
-		showBack={true}
-	/>
+  <LedgerHeader
+    title={isEdit ? "Edit Grinder" : "Add a Grinder"}
+    showBack={true}
+  />
 
-	<form class="grinder-form-sheet" novalidate onsubmit={submit}>
-		{#if formError}
-			<div class="alert-error" role="alert">{formError}</div>
-		{/if}
+  <form class="grinder-form-sheet" novalidate onsubmit={submit}>
+    {#if formError}
+      <div class="alert-error" role="alert">{formError}</div>
+    {/if}
 
-		<FormSection title="Essentials">
-			<div class="space-y-6">
-				<div>
-					<label class="form-label" for="grinder-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
-					<input
-						id="grinder-name"
-						name="name"
-						type="text"
-						class="w-full form-input-lg"
-						bind:value={name}
-						placeholder="e.g. Comandante C40"
-						aria-label="Name"
-						required
-						autocomplete="off"
-						aria-invalid={nameError !== ""}
-						aria-describedby={nameError ? "grinder-name-error" : undefined}
-						oninput={() => { if (nameError && name.trim()) nameError = ""; }}
-					/>
-					{#if nameError}
-						<p id="grinder-name-error" class="text-sm text-red-600 mt-2" role="alert">{nameError}</p>
-					{/if}
-				</div>
+    <FormSection title="Essentials">
+      <div class="space-y-6">
+        <div>
+          <label class="form-label" for="grinder-name"
+            >Name <span class="text-red-500" aria-hidden="true">*</span></label
+          >
+          <input
+            id="grinder-name"
+            name="name"
+            type="text"
+            class="w-full form-input-lg"
+            bind:value={name}
+            placeholder="e.g. Comandante C40"
+            aria-label="Name"
+            required
+            autocomplete="off"
+            aria-invalid={nameError !== ""}
+            aria-describedby={nameError ? "grinder-name-error" : undefined}
+            oninput={() => {
+              if (nameError && name.trim()) nameError = "";
+            }}
+          />
+          {#if nameError}
+            <p
+              id="grinder-name-error"
+              class="text-sm text-red-600 mt-2"
+              role="alert"
+            >
+              {nameError}
+            </p>
+          {/if}
+        </div>
 
-				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-					<div>
-						<label class="form-label" for="grinder-type">Type</label>
-						<select id="grinder-type" name="grinder_type" class="w-full form-input-lg" bind:value={grinderType}>
-							<option value="">Select type</option>
-							{#each GRINDER_TYPES as t}
-								<option value={t}>{t}</option>
-							{/each}
-						</select>
-					</div>
-					<div>
-						<label class="form-label" for="grinder-burr-type">Burr type</label>
-						<select id="grinder-burr-type" name="burr_type" class="w-full form-input-lg" bind:value={burrType}>
-							<option value="">Select burr type</option>
-							{#each BURR_TYPES as t}
-								<option value={t}>{t}</option>
-							{/each}
-						</select>
-					</div>
-				</div>
-			</div>
-		</FormSection>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="form-label" for="grinder-type">Type</label>
+            <select
+              id="grinder-type"
+              name="grinder_type"
+              class="w-full form-input-lg"
+              bind:value={grinderType}
+            >
+              <option value="">Select type</option>
+              {#each GRINDER_TYPES as t}
+                <option value={t}>{t}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="grinder-burr-type">Burr type</label>
+            <select
+              id="grinder-burr-type"
+              name="burr_type"
+              class="w-full form-input-lg"
+              bind:value={burrType}
+            >
+              <option value="">Select burr type</option>
+              {#each BURR_TYPES as t}
+                <option value={t}>{t}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+      </div>
+    </FormSection>
 
-		<FormSection title="Details">
-			<div class="space-y-6">
-				<div>
-					<label class="form-label" for="grinder-notes">Notes</label>
-					<textarea
-						id="grinder-notes"
-						name="notes"
-						rows="3"
-						class="w-full form-textarea"
-						bind:value={notes}
-						placeholder="Modifications, dial-in notes, etc."
-						aria-label="Notes"
-					></textarea>
-				</div>
+    <FormSection title="Details">
+      <div class="space-y-6">
+        <div>
+          <label class="form-label" for="grinder-notes">Notes</label>
+          <textarea
+            id="grinder-notes"
+            name="notes"
+            rows="3"
+            class="w-full form-textarea"
+            bind:value={notes}
+            placeholder="Modifications, dial-in notes, etc."
+            aria-label="Notes"
+          ></textarea>
+        </div>
 
-				<div>
-					<label class="form-label" for="grinder-link">Link</label>
-					<input
-						id="grinder-link"
-						name="link"
-						type="url"
-						class="w-full form-input-lg"
-						bind:value={link}
-						placeholder="https://example.com/grinder"
-						aria-label="Link"
-						autocomplete="url"
-					/>
-				</div>
-			</div>
-		</FormSection>
+        <div>
+          <label class="form-label" for="grinder-link">Link</label>
+          <input
+            id="grinder-link"
+            name="link"
+            type="url"
+            class="w-full form-input-lg"
+            bind:value={link}
+            placeholder="https://example.com/grinder"
+            aria-label="Link"
+            autocomplete="url"
+          />
+        </div>
+      </div>
+    </FormSection>
 
-		<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
-			<a href={isEdit && grinder ? `/grinders/${encodeURIComponent(actor())}/${encodeURIComponent(grinder.rkey)}` : "/my-coffee"} class="btn-secondary text-center">Cancel</a>
-			<button type="submit" class="btn-primary" disabled={submitting}>
-				{submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Grinder"}
-			</button>
-		</div>
-	</form>
-
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+      <a
+        href={isEdit && grinder
+          ? `/grinders/${encodeURIComponent(actor())}/${encodeURIComponent(grinder.rkey)}`
+          : "/my-coffee"}
+        class="btn-secondary text-center">Cancel</a
+      >
+      <button type="submit" class="btn-primary" disabled={submitting}>
+        {submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Grinder"}
+      </button>
+    </div>
+  </form>
 </FormWorkspace>
 
 <style>
-	.grinder-form-sheet { padding-top: 1.5rem; }
-	.grinder-form-sheet > :global(.alert-error) { margin-bottom: 1rem; }
+  .grinder-form-sheet {
+    padding-top: 1.5rem;
+  }
+  .grinder-form-sheet > :global(.alert-error) {
+    margin-bottom: 1rem;
+  }
 </style>

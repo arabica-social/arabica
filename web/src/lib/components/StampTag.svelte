@@ -62,8 +62,7 @@
     background: var(--type-brew);
     color: var(--btn-primary-text);
     font-weight: 600;
-    box-shadow: 1px 2px 0
-      color-mix(in oklch, var(--type-brew) 24%, transparent);
+    box-shadow: 1px 2px 0 color-mix(in oklch, var(--type-brew) 24%, transparent);
     transform: rotate(-1.25deg);
   }
 

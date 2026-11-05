@@ -1,184 +1,209 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import FormWorkspace from "./FormWorkspace.svelte";
-	import LedgerHeader from "./LedgerHeader.svelte";
-	import FormSection from "./FormSection.svelte";
-	import { APIError } from "#lib/api/client.js";
-	import { createBrewer, updateBrewer } from "#lib/api/entities.js";
-	import { appCache } from "#lib/stores/appCache.js";
-	import { session } from "#lib/stores/session.js";
-	import { pushToast } from "#lib/stores/toasts.js";
-	import type { Brewer } from "#lib/types/entity_view.js";
+  import { goto } from "$app/navigation";
+  import FormWorkspace from "./FormWorkspace.svelte";
+  import LedgerHeader from "./LedgerHeader.svelte";
+  import FormSection from "./FormSection.svelte";
+  import { APIError } from "#lib/api/client.js";
+  import { createBrewer, updateBrewer } from "#lib/api/entities.js";
+  import { appCache } from "#lib/stores/appCache.js";
+  import { session } from "#lib/stores/session.js";
+  import { pushToast } from "#lib/stores/toasts.js";
+  import type { Brewer } from "#lib/types/entity_view.js";
 
-	// Values must match the brewer record contract.
-	const BREWER_TYPES = [
-		{ value: "pourover", label: "Pour-over" },
-		{ value: "espresso", label: "Espresso" },
-		{ value: "immersion", label: "Immersion" },
-		{ value: "mokapot", label: "Moka Pot" },
-		{ value: "coldbrew", label: "Cold Brew" },
-		{ value: "cupping", label: "Cupping" },
-		{ value: "other", label: "Other" },
-	];
+  // Values must match the brewer record contract.
+  const BREWER_TYPES = [
+    { value: "pourover", label: "Pour-over" },
+    { value: "espresso", label: "Espresso" },
+    { value: "immersion", label: "Immersion" },
+    { value: "mokapot", label: "Moka Pot" },
+    { value: "coldbrew", label: "Cold Brew" },
+    { value: "cupping", label: "Cupping" },
+    { value: "other", label: "Other" },
+  ];
 
-	type Props = {
-		brewer: Brewer | null;
-		isEdit: boolean;
-	};
+  type Props = {
+    brewer: Brewer | null;
+    isEdit: boolean;
+  };
 
-	let { brewer, isEdit }: Props = $props();
+  let { brewer, isEdit }: Props = $props();
 
-	// svelte-ignore state_referenced_locally
-	let name = $state(brewer?.name ?? "");
-	// svelte-ignore state_referenced_locally
-	let brewerType = $state(brewer?.brewer_type ?? "");
-	// svelte-ignore state_referenced_locally
-	let description = $state(brewer?.description ?? "");
-	// svelte-ignore state_referenced_locally
-	let link = $state(brewer?.link ?? "");
+  // svelte-ignore state_referenced_locally
+  let name = $state(brewer?.name ?? "");
+  // svelte-ignore state_referenced_locally
+  let brewerType = $state(brewer?.brewer_type ?? "");
+  // svelte-ignore state_referenced_locally
+  let description = $state(brewer?.description ?? "");
+  // svelte-ignore state_referenced_locally
+  let link = $state(brewer?.link ?? "");
 
-	let nameError = $state("");
-	let formError = $state("");
-	let submitting = $state(false);
+  let nameError = $state("");
+  let formError = $state("");
+  let submitting = $state(false);
 
-	function validate(): boolean {
-		nameError = name.trim() ? "" : "Name is required";
-		return nameError === "";
-	}
+  function validate(): boolean {
+    nameError = name.trim() ? "" : "Name is required";
+    return nameError === "";
+  }
 
-	function actor(): string {
-		return $session.did || $session.handle;
-	}
+  function actor(): string {
+    return $session.did || $session.handle;
+  }
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (submitting) return;
-		formError = "";
-		if (!validate()) return;
+  async function submit(event: SubmitEvent) {
+    event.preventDefault();
+    if (submitting) return;
+    formError = "";
+    if (!validate()) return;
 
-		submitting = true;
-		const input = {
-			name: name.trim(),
-			brewer_type: brewerType,
-			description: description.trim(),
-			link: link.trim(),
-		};
+    submitting = true;
+    const input = {
+      name: name.trim(),
+      brewer_type: brewerType,
+      description: description.trim(),
+      link: link.trim(),
+    };
 
-		try {
-			const saved = isEdit && brewer
-				? await updateBrewer(fetch, brewer.rkey, input)
-				: await createBrewer(fetch, input);
-			appCache.invalidateCache();
-			pushToast(isEdit ? "Brewer updated" : "Brewer added");
-			const owner = actor();
-			if (owner && saved.rkey) {
-				await goto(`/brewers/${encodeURIComponent(owner)}/${encodeURIComponent(saved.rkey)}`);
-				return;
-			}
-			await goto("/my-coffee");
-		} catch (error) {
-			if (error instanceof APIError) {
-				nameError = error.fields?.name ?? nameError;
-				formError = error.message;
-			} else {
-				formError = "Failed to save brewer";
-			}
-			pushToast(isEdit ? "Failed to update brewer" : "Failed to add brewer");
-		} finally {
-			submitting = false;
-		}
-	}
-
+    try {
+      const saved =
+        isEdit && brewer
+          ? await updateBrewer(fetch, brewer.rkey, input)
+          : await createBrewer(fetch, input);
+      appCache.invalidateCache();
+      pushToast(isEdit ? "Brewer updated" : "Brewer added");
+      const owner = actor();
+      if (owner && saved.rkey) {
+        await goto(
+          `/brewers/${encodeURIComponent(owner)}/${encodeURIComponent(saved.rkey)}`,
+        );
+        return;
+      }
+      await goto("/my-coffee");
+    } catch (error) {
+      if (error instanceof APIError) {
+        nameError = error.fields?.name ?? nameError;
+        formError = error.message;
+      } else {
+        formError = "Failed to save brewer";
+      }
+      pushToast(isEdit ? "Failed to update brewer" : "Failed to add brewer");
+    } finally {
+      submitting = false;
+    }
+  }
 </script>
 
 <FormWorkspace>
-	<LedgerHeader
-		title={isEdit ? "Edit Brewer" : "Add a Brewer"}
-		showBack={true}
-	/>
+  <LedgerHeader
+    title={isEdit ? "Edit Brewer" : "Add a Brewer"}
+    showBack={true}
+  />
 
-	<form class="brewer-form-sheet" novalidate onsubmit={submit}>
-		{#if formError}
-			<div class="alert-error" role="alert">{formError}</div>
-		{/if}
+  <form class="brewer-form-sheet" novalidate onsubmit={submit}>
+    {#if formError}
+      <div class="alert-error" role="alert">{formError}</div>
+    {/if}
 
-		<FormSection title="Essentials">
-			<div class="space-y-6">
-				<div>
-					<label class="form-label" for="brewer-name">Name <span class="text-red-500" aria-hidden="true">*</span></label>
-					<input
-						id="brewer-name"
-						name="name"
-						type="text"
-						class="w-full form-input-lg"
-						bind:value={name}
-						placeholder="e.g. Hario V60-02"
-						aria-label="Name"
-						required
-						autocomplete="off"
-						aria-invalid={nameError !== ""}
-						aria-describedby={nameError ? "brewer-name-error" : undefined}
-						oninput={() => { if (nameError && name.trim()) nameError = ""; }}
-					/>
-					{#if nameError}
-						<p id="brewer-name-error" class="text-sm text-red-600 mt-2" role="alert">{nameError}</p>
-					{/if}
-				</div>
+    <FormSection title="Essentials">
+      <div class="space-y-6">
+        <div>
+          <label class="form-label" for="brewer-name"
+            >Name <span class="text-red-500" aria-hidden="true">*</span></label
+          >
+          <input
+            id="brewer-name"
+            name="name"
+            type="text"
+            class="w-full form-input-lg"
+            bind:value={name}
+            placeholder="e.g. Hario V60-02"
+            aria-label="Name"
+            required
+            autocomplete="off"
+            aria-invalid={nameError !== ""}
+            aria-describedby={nameError ? "brewer-name-error" : undefined}
+            oninput={() => {
+              if (nameError && name.trim()) nameError = "";
+            }}
+          />
+          {#if nameError}
+            <p
+              id="brewer-name-error"
+              class="text-sm text-red-600 mt-2"
+              role="alert"
+            >
+              {nameError}
+            </p>
+          {/if}
+        </div>
 
-				<div>
-					<label class="form-label" for="brewer-type">Type</label>
-					<select id="brewer-type" name="brewer_type" class="w-full form-input-lg" bind:value={brewerType}>
-						<option value="">Select type</option>
-						{#each BREWER_TYPES as t}
-							<option value={t.value}>{t.label}</option>
-						{/each}
-					</select>
-				</div>
-			</div>
-		</FormSection>
+        <div>
+          <label class="form-label" for="brewer-type">Type</label>
+          <select
+            id="brewer-type"
+            name="brewer_type"
+            class="w-full form-input-lg"
+            bind:value={brewerType}
+          >
+            <option value="">Select type</option>
+            {#each BREWER_TYPES as t}
+              <option value={t.value}>{t.label}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+    </FormSection>
 
-		<FormSection title="Details">
-			<div class="space-y-6">
-				<div>
-					<label class="form-label" for="brewer-description">Description</label>
-					<textarea
-						id="brewer-description"
-						name="description"
-						rows="3"
-						class="w-full form-textarea"
-						bind:value={description}
-						placeholder="Capacity, material, etc."
-						aria-label="Description"
-					></textarea>
-				</div>
+    <FormSection title="Details">
+      <div class="space-y-6">
+        <div>
+          <label class="form-label" for="brewer-description">Description</label>
+          <textarea
+            id="brewer-description"
+            name="description"
+            rows="3"
+            class="w-full form-textarea"
+            bind:value={description}
+            placeholder="Capacity, material, etc."
+            aria-label="Description"
+          ></textarea>
+        </div>
 
-				<div>
-					<label class="form-label" for="brewer-link">Link</label>
-					<input
-						id="brewer-link"
-						name="link"
-						type="url"
-						class="w-full form-input-lg"
-						bind:value={link}
-						placeholder="https://example.com/brewer"
-						aria-label="Link"
-						autocomplete="url"
-					/>
-				</div>
-			</div>
-		</FormSection>
+        <div>
+          <label class="form-label" for="brewer-link">Link</label>
+          <input
+            id="brewer-link"
+            name="link"
+            type="url"
+            class="w-full form-input-lg"
+            bind:value={link}
+            placeholder="https://example.com/brewer"
+            aria-label="Link"
+            autocomplete="url"
+          />
+        </div>
+      </div>
+    </FormSection>
 
-		<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
-			<a href={isEdit && brewer ? `/brewers/${encodeURIComponent(actor())}/${encodeURIComponent(brewer.rkey)}` : "/my-coffee"} class="btn-secondary text-center">Cancel</a>
-			<button type="submit" class="btn-primary" disabled={submitting}>
-				{submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Brewer"}
-			</button>
-		</div>
-	</form>
-
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+      <a
+        href={isEdit && brewer
+          ? `/brewers/${encodeURIComponent(actor())}/${encodeURIComponent(brewer.rkey)}`
+          : "/my-coffee"}
+        class="btn-secondary text-center">Cancel</a
+      >
+      <button type="submit" class="btn-primary" disabled={submitting}>
+        {submitting ? "Saving..." : isEdit ? "Save Changes" : "Add Brewer"}
+      </button>
+    </div>
+  </form>
 </FormWorkspace>
 
 <style>
-	.brewer-form-sheet { padding-top: 1.5rem; }
-	.brewer-form-sheet > :global(.alert-error) { margin-bottom: 1rem; }
+  .brewer-form-sheet {
+    padding-top: 1.5rem;
+  }
+  .brewer-form-sheet > :global(.alert-error) {
+    margin-bottom: 1rem;
+  }
 </style>

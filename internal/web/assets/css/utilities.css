@@ -1455,12 +1455,24 @@
 }
 
 /* Entity-type text colors — for icons and small accents identifying a type. */
-.text-type-brew { color: var(--type-brew); }
-.text-type-bean { color: var(--type-bean); }
-.text-type-recipe { color: var(--type-recipe); }
-.text-type-roaster { color: var(--type-roaster); }
-.text-type-grinder { color: var(--type-grinder); }
-.text-type-brewer { color: var(--type-brewer); }
+.text-type-brew {
+  color: var(--type-brew);
+}
+.text-type-bean {
+  color: var(--type-bean);
+}
+.text-type-recipe {
+  color: var(--type-recipe);
+}
+.text-type-roaster {
+  color: var(--type-roaster);
+}
+.text-type-grinder {
+  color: var(--type-grinder);
+}
+.text-type-brewer {
+  color: var(--type-brewer);
+}
 
 /* Collection brew-card metadata: fills the row at any card width instead of
    leaving a trailing half-empty column. */

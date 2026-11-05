@@ -3,22 +3,22 @@
 import type { AppCacheAPI } from "#lib/types/appCache.js";
 
 declare global {
-	namespace App {
-		// interface Error {}
-		// interface Locals {}
-		// interface PageData {}
-		// interface PageState {}
-		// interface Platform {}
-	}
+  namespace App {
+    // interface Error {}
+    // interface Locals {}
+    // interface PageData {}
+    // interface PageState {}
+    // interface Platform {}
+  }
 
-	interface Window {
+  interface Window {
     // Shared entity controls access the record cache through this global contract.
-		AppCache?: AppCacheAPI;
-		// Fetch helpers call this on 401 to show the session-expired modal.
-		__showSessionExpiredModal?: () => void;
+    AppCache?: AppCacheAPI;
+    // Fetch helpers call this on 401 to show the session-expired modal.
+    __showSessionExpiredModal?: () => void;
     // Applies the persisted theme choice.
-		applyTheme?: () => void;
-	}
+    applyTheme?: () => void;
+  }
 }
 
 export {};
