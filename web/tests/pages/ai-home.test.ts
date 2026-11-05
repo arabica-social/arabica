@@ -76,7 +76,7 @@ describe("AI home entry", () => {
     ).toBeInTheDocument();
   });
   it.each([{ aiEnabled: false }, { isAuthenticated: false }])(
-    "hides AI entry unless configured and signed in",
+    "hides AI entry for denied or anonymous accounts",
     (overrides) => {
       render(FeedPage, { data: { ...data, ...overrides } });
       expect(

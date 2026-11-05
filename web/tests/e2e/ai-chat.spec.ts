@@ -2,7 +2,7 @@ import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 // Record the interaction for visual motion review alongside the contract assertions.
-test.use({ video: "on" });
+test.use({ video: "on", aiAccess: true });
 
 async function settleMotion(page: Page) {
   await page.evaluate(async () => {
@@ -103,7 +103,7 @@ test("home chat draft survives reload and writes only on Save", async ({
       writes++;
   });
   await page.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: true } }),
+    route.fulfill({ json: { enabled: true, allowed: true } }),
   );
   await page.route("**/api/ai/chat", (route) =>
     route.fulfill({
@@ -165,18 +165,82 @@ test("home chat draft survives reload and writes only on Save", async ({
   expect(writes).toBe(1);
 });
 
-test("chat direct load is available without provider configuration", async ({
-  authedPage: page,
-}) => {
-  await page.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: false } }),
-  );
-  await page.goto("/chat");
-  await expect(page.locator('body[data-frontend="sveltekit"]')).toBeAttached();
-  await expect(
-    page.getByText(/not configured|unavailable|not available/i).first(),
-  ).toBeVisible();
-});
+for (const theme of ["light", "dark"] as const) {
+  for (const { width, height } of [
+    { width: 320, height: 812 },
+    { width: 1440, height: 900 },
+    { width: 1440, height: 2400 },
+  ]) {
+    test(`unavailable AI matches 404 placement (${theme}, ${width}x${height})`, async ({
+      authedPage: page,
+    }) => {
+      await page.setViewportSize({ width, height });
+      await page.emulateMedia({ colorScheme: theme });
+      let allowed = true;
+      await page.route("**/api/ai/status", (route) =>
+        route.fulfill({ json: { enabled: false, allowed } }),
+      );
+      let chatRequests = 0;
+      page.on("request", (request) => {
+        if (new URL(request.url()).pathname === "/api/ai/chat") chatRequests++;
+      });
+      const response = await page.goto("/chat");
+      expect(response?.status()).toBe(200);
+      const heading = page.getByRole("heading", {
+        name: "AI entry is unavailable.",
+        exact: true,
+      });
+      await expect(heading).toBeVisible();
+      const card = page.locator(".card").filter({ has: heading });
+      await expect(card).toBeVisible();
+      await expect(
+        card.getByText("You can still add a brew or bean manually."),
+      ).toBeVisible();
+      await expect(
+        card.getByRole("link", { name: "Add manually", exact: true }),
+      ).toHaveAttribute("href", "/add");
+      await expect(
+        page.getByRole("textbox", { name: "Message", exact: true }),
+      ).toHaveCount(0);
+      await page.evaluate(() => document.fonts.ready);
+      const frame = (await page.locator(".chat-unavailable").boundingBox())!;
+      const bounds = (await card.boundingBox())!;
+      expect(
+        Math.abs(bounds.x + bounds.width / 2 - frame.x - frame.width / 2),
+      ).toBeLessThan(2);
+      const header = (await page.locator(".site-header").boundingBox())!;
+      expect(bounds.y - header.y - header.height).toBeCloseTo(32, 0);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await page.screenshot({
+        path: test
+          .info()
+          .outputPath(`ai-unavailable-${theme}-${width}x${height}.png`),
+        fullPage: true,
+      });
+      await card
+        .getByRole("link", { name: "Back to Home", exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/$/);
+      allowed = false;
+      await page.goto("/chat");
+      const notFoundHeading = page.getByRole("heading", {
+        name: "Page Not Found",
+        exact: true,
+      });
+      await expect(notFoundHeading).toBeVisible();
+      const notFound = (await page
+        .locator(".card")
+        .filter({ has: notFoundHeading })
+        .boundingBox())!;
+      expect(Math.abs(bounds.y - notFound.y)).toBeLessThan(2);
+      expect(chatRequests).toBe(0);
+    });
+  }
+}
 
 test("library choices fill a brew without writing related records", async ({
   authedPage: page,
@@ -209,7 +273,7 @@ test("library choices fill a brew without writing related records", async ({
       writes.push(path);
   });
   await page.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: true } }),
+    route.fulfill({ json: { enabled: true, allowed: true } }),
   );
   await page.route("**/api/ai/chat", (route) =>
     route.fulfill({
@@ -298,7 +362,7 @@ for (const viewport of [
       localStorage.setItem("arabica-theme", "dark");
     });
     await page.route("**/api/ai/status", (route) =>
-      route.fulfill({ json: { enabled: true } }),
+      route.fulfill({ json: { enabled: true, allowed: true } }),
     );
     await page.route("**/api/data", (route) =>
       route.fulfill({
@@ -502,7 +566,7 @@ for (const theme of ["light", "dark"] as const) {
       theme,
     );
     await page.route("**/api/ai/status", (route) =>
-      route.fulfill({ json: { enabled: true } }),
+      route.fulfill({ json: { enabled: true, allowed: true } }),
     );
     await page.route("**/api/ai/chat", (route) =>
       route.fulfill({
@@ -635,7 +699,7 @@ test("saved recipe choices preserve source details through reload and only Save 
       writes.push(path);
   });
   await page.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: true } }),
+    route.fulfill({ json: { enabled: true, allowed: true } }),
   );
   const choiceLabel = `${recipe.name} · ${brewer.name}`;
   await page.route("**/api/ai/chat", (route) =>
@@ -756,7 +820,7 @@ for (const viewport of [
         writes.push(request.url());
     });
     await page.route("**/api/ai/status", (route) =>
-      route.fulfill({ json: { enabled: true } }),
+      route.fulfill({ json: { enabled: true, allowed: true } }),
     );
     await page.route("**/api/data", (route) =>
       route.fulfill({
@@ -996,7 +1060,7 @@ test.describe("Chat-first motion", () => {
           writes.push(path);
       });
       await page.route("**/api/ai/status", (route) =>
-        route.fulfill({ json: { enabled: true } }),
+        route.fulfill({ json: { enabled: true, allowed: true } }),
       );
       let release!: () => void;
       const waiting = new Promise<void>((resolve) => {
@@ -1155,7 +1219,7 @@ test("Save opens and focuses missing optional-editor details without writing", a
       writes.push(path);
   });
   await page.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: true } }),
+    route.fulfill({ json: { enabled: true, allowed: true } }),
   );
   await page.route("**/api/data", (route) =>
     route.fulfill({
@@ -1215,7 +1279,7 @@ test("ambiguity options show only bean alternatives, highlight, and dismiss once
       writes.push(request.url());
   });
   await page.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: true } }),
+    route.fulfill({ json: { enabled: true, allowed: true } }),
   );
   await page.route("**/api/data", (route) =>
     route.fulfill({

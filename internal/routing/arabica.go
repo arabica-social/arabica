@@ -58,7 +58,15 @@ func SPAOwnedRoutes() []string {
 func registerArabicaRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *arabicaapp.App, h *handlers.Handler, pages pageRoutes, ai *arabicaai.Service) {
 	aiHandlers := handlers.AIHandlers{Handler: h, Service: ai}
 	mux.HandleFunc("GET /api/ai/status", aiHandlers.HandleStatus)
-	mux.Handle("POST /api/ai/chat", cop.Handler(http.HandlerFunc(aiHandlers.HandleChat)))
+	mux.Handle("POST /api/ai/chat", aiHandlers.RequireAccess(cop.Handler(http.HandlerFunc(aiHandlers.HandleChat))))
+	mux.HandleFunc("GET /api/_mod/ai-access", h.HandleAIAccess)
+	mux.Handle("PUT /api/_mod/ai-access", cop.Handler(http.HandlerFunc(h.HandleAIAccess)))
+	mux.Handle("DELETE /api/_mod/ai-access", cop.Handler(http.HandlerFunc(h.HandleAIAccess)))
+	var chatPage http.Handler = http.HandlerFunc(h.HandleNotFound)
+	if pages.IsSPA("GET /chat") {
+		chatPage = pages.spaHandler
+	}
+	mux.Handle("GET /chat", aiHandlers.RequirePageAccess(chatPage))
 
 	mux.HandleFunc("GET /api/data", h.HandleAPIListAll)
 	mux.HandleFunc("GET /api/brews", h.HandleBrewList)
@@ -107,7 +115,6 @@ func registerArabicaRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, 
 	notFound := http.HandlerFunc(h.HandleNotFound)
 	for _, pattern := range []string{
 		"GET /manage",
-		"GET /chat",
 		"GET /brews",
 		"GET /recipes",
 		"GET /recipes/{actor}/{id}/backlinks",

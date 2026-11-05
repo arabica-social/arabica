@@ -18,6 +18,7 @@ Related decisions: [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md),
 |---|---|---|---|
 | Arabica records | Authoritative user data | PDS repository durability | User's PDS |
 | OAuth sessions and requests | Local operational state | SQLite-backed and deployment-local | OAuth/session storage |
+| AI access grants | Authoritative local operational state | SQLite-backed, deployment-local; not reconstructible from PDS | `internal/aiaccess`, `ai_access_grants` in the shared operational/index DB |
 | Session cache | Typed collection read optimization | In-memory, two-minute validity | User-scoped session cache |
 | Witness records | Local evidence of repository records | SQLite, recoverable through backfill/firehose | Firehose index |
 | Feed/social views | Local query projection | SQLite, rebuildable from indexed records/events | Firehose index |
@@ -120,3 +121,22 @@ multimodal context to the app-agnostic `internal/ai` provider transport. There a
 no attachment records, blob uploads, remote image fetches, server archives or disk
 files in this flow. Provider retention is outside Arabica's control. For request
 bounds and the missing-image contract, see [AI chat API](../api/ai-chat.md).
+
+## Optional AI access gate
+
+`internal/aiaccess` owns the dedicated, bounded `ai_access_grants` table, initialized
+by server composition on the existing SQLite connection. These are operational
+permissions, not a record projection: preserve the table when rebuilding indexes
+and include it in operational database backups. No PDS record schema changes.
+
+The HTTP adapter in `internal/handlers/ai_access.go` combines explicit grants with
+implicit `moderation.Service.IsModerator` access (including admins). It gates the
+SPA chat route and chat API before content decoding/provider work, while status
+returns per-caller configured availability. Missing storage or read errors never
+permit an explicit user. Grants are read by primary key per gated request, so
+revocation takes effect without a cache invalidation or server restart. Moderator
+management is authenticated and mutations have same-origin protection.
+
+The policy is deliberately separate from the AI drafting service and record
+stores; removing the temporary rollout restriction does not require changing
+provider, draft reconciliation or PDS mutation behavior.

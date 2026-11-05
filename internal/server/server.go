@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"tangled.org/arabica.social/arabica/internal/aiaccess"
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/atproto"
@@ -195,6 +196,10 @@ func Run(ctx context.Context, app *arabicaapp.App, opts Options) error {
 	feedService.SetSource(feedIndex)
 
 	moderationStore := moderationsqlite.NewModerationStore(feedIndex.DB())
+	aiAccess, err := aiaccess.NewStore(feedIndex.DB())
+	if err != nil {
+		return fmt.Errorf("initialize AI access: %w", err)
+	}
 	feedService.SetModerationFilter(moderationStore)
 	log.Info().Msg("Firehose consumer started")
 
@@ -278,6 +283,7 @@ func Run(ctx context.Context, app *arabicaapp.App, opts Options) error {
 
 	// Moderation
 	moderatorsConfigPath := os.Getenv(envPrefix + "_MODERATORS_CONFIG")
+	h.SetAIAccess(aiAccess)
 	moderationSvc, err := moderation.NewService(moderatorsConfigPath)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to initialize moderation service, moderation disabled")

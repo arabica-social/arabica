@@ -1,4 +1,6 @@
 import { test, expect } from "./fixtures";
+
+test.use({ aiAccess: true });
 import type { Page } from "@playwright/test";
 const entry = (page: Page) =>
   page.getByRole("textbox", { name: "Describe a brew or bean", exact: true });
@@ -10,7 +12,7 @@ async function openHome(page: Page) {
     }[];
   }[] = [];
   await page.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: true } }),
+    route.fulfill({ json: { enabled: true, allowed: true } }),
   );
   await page.route("**/api/ai/chat", (route) => {
     requests.push(route.request().postDataJSON());

@@ -21,7 +21,10 @@ export type ChatReply = {
   brewer_type?: string;
 };
 export const aiStatus = (fetchFn: typeof fetch) =>
-  requestJSON<{ enabled: boolean }>(fetchFn, "/api/ai/status");
+  requestJSON<{ enabled: boolean; allowed: boolean }>(
+    fetchFn,
+    "/api/ai/status",
+  );
 export const chat = (
   fetchFn: typeof fetch,
   body: ChatRequest,

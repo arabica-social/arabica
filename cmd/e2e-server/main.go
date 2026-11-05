@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -116,6 +117,15 @@ func e2eAppFromEnv() string {
 func e2eControlHandler(h *integration.Harness) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /accounts", func(w http.ResponseWriter, r *http.Request) {
+		var opts struct {
+			AIAccess bool `json:"ai_access"`
+		}
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&opts); err != nil && err != io.EOF {
+			http.Error(w, "Invalid fixture options", http.StatusBadRequest)
+			return
+		}
 		id := accountSequence.Add(1)
 		handle := fmt.Sprintf("e2e%d.test", id)
 		account, err := h.CreateRuntimeAccount(
@@ -126,6 +136,12 @@ func e2eControlHandler(h *integration.Harness) http.Handler {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		if opts.AIAccess {
+			if err := h.AIAccess.Grant(r.Context(), account.DID, h.PrimaryAccount.DID); err != nil {
+				http.Error(w, "Failed to grant fixture AI access", http.StatusInternalServerError)
+				return
+			}
 		}
 		writeControlJSON(w, http.StatusCreated, map[string]string{
 			"did":        account.DID,

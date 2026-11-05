@@ -33,7 +33,7 @@ func TestArabicaRouteContracts(t *testing.T) {
 				path = strings.NewReplacer("{$}", "", "{actor}", "alice.test", "{id}", "r1").Replace(path)
 				w := httptest.NewRecorder()
 				router.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
-				if shell {
+				if shell && path != "/chat" {
 					require.Equal(t, 200, w.Code, path)
 					require.Equal(t, "yes", w.Header().Get("X-Test-SPA"), path)
 				} else {
@@ -54,7 +54,11 @@ func TestArabicaRouteContracts(t *testing.T) {
 				req.Header.Set("Content-Type", "application/json")
 				w := httptest.NewRecorder()
 				router.ServeHTTP(w, req)
-				require.Equal(t, http.StatusForbidden, w.Code, path)
+				expected := http.StatusForbidden
+				if path == "/api/ai/chat" {
+					expected = http.StatusNotFound
+				}
+				require.Equal(t, expected, w.Code, path)
 			}
 		})
 	}

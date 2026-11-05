@@ -21,6 +21,7 @@ import (
 
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 
+	"tangled.org/arabica.social/arabica/internal/aiaccess"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
@@ -104,6 +105,7 @@ type Harness struct {
 	Server         *httptest.Server
 	Handler        *basehandlers.Handler
 	FeedIndex      *firehose.FeedIndex
+	AIAccess       *aiaccess.Store
 	Consumer       *firehose.Consumer
 	ProfileWatcher *firehose.ProfileWatcher
 	SessionCache   *atproto.SessionCache
@@ -285,6 +287,12 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 		return nil, fmt.Errorf("create moderation service: %w", err)
 	}
 	h.SetModeration(moderationService, moderationsqlite.NewModerationStore(feedIndex.DB()))
+	access, err := aiaccess.NewStore(feedIndex.DB())
+	if err != nil {
+		return nil, fmt.Errorf("create AI access store: %w", err)
+	}
+	h.SetAIAccess(access)
+	harness.AIAccess = access
 
 	logger := zerolog.Nop()
 	app := arabicaapp.New()

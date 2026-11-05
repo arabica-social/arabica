@@ -1,5 +1,6 @@
 <script lang="ts">
   import Avatar from "#lib/components/Avatar.svelte";
+  import NotFound from "#lib/components/NotFound.svelte";
   import Icon from "#lib/components/Icon.svelte";
   import ActionBar from "#lib/components/ActionBar.svelte";
   import PourStrip from "#lib/components/PourStrip.svelte";
@@ -141,14 +142,7 @@
 </svelte:head>
 
 {#if data.error && !profile}
-  <div class="page-container-lg">
-    <div class="card p-8 text-center">
-      <div class="text-6xl mb-4 font-bold text-secondary">404</div>
-      <h2 class="text-2xl font-bold text-primary mb-4">Page Not Found</h2>
-      <p class="text-emphasis mb-6">{data.error}</p>
-      <a href="/" class="btn-primary py-3 px-6">Back to Home</a>
-    </div>
-  </div>
+  <NotFound message={data.error} />
 {:else if profile}
   <div class="profile-ledger">
     <header class="profile-masthead">

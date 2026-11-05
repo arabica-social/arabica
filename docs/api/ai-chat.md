@@ -36,11 +36,48 @@ Provider response bodies and credentials are not returned as API errors.
 ## GET /api/ai/status
 
 ```json
-{"enabled": true}
+{"enabled": true, "allowed": true}
 ```
 
-Availability only. No provider URL, model, credential or account information.
-The homepage entry is shown only to authenticated users when enabled.
+Always returns 200 with `allowed` indicating whether the authenticated DID has
+access, independent of provider configuration, and `enabled` true only when a
+provider is configured and that DID is allowed. Anonymous and denied callers
+receive false for both. No
+provider URL, model, credential or account information is exposed. Responses are
+`Cache-Control: no-store`. The homepage composer is shown only when enabled.
+
+## Access policy and moderation management
+
+Admins and moderators have implicit access. Other DIDs require an explicit grant
+in the deployment-local SQLite `ai_access_grants` table. Missing storage or read
+errors deny explicit access. This policy is isolated in `internal/aiaccess` and
+`internal/handlers/ai_access.go`; it does not change PDS records or provider logic.
+
+Unauthorized callers, including anonymous users, receive 404 for `GET /chat`,
+`HEAD /chat` and `POST /api/ai/chat`, before request decoding or provider calls.
+Direct page loads serve the SPA shell with HTTP 404 so the client renders the
+shared Page Not Found card (also used for missing profiles), including its
+Back to Home action and normal navigation, without revealing the access restriction.
+API denials remain plain 404 responses.
+Authorized callers can load the chat shell even when provider configuration is
+disabled; the status endpoint returns `allowed: true, enabled: false` and chat submission
+returns 503. The frontend route denies only `allowed: false`, so an authorized
+user can still access local history and manual editing while AI is disabled.
+
+Moderator-only management endpoints (all responses `no-store`):
+
+- `GET /api/_mod/ai-access` returns
+  `{"entries":[{"did":"did:plc:example","granted_by":"did:plc:moderator","created_at":"2026-11-05T00:00:00Z"}],"moderators":[{"did":"did:plc:moderator"}]}`.
+- `PUT /api/_mod/ai-access` accepts `{"did":"did:plc:example"}` and grants
+  access idempotently without replacing the original grant metadata.
+- `DELETE /api/_mod/ai-access` accepts the same body and removes only the explicit
+  grant, idempotently. Staff access cannot be revoked through this list.
+
+Mutations require JSON and same-origin protection and return `{"success":true}`.
+DIDs use the established AT Protocol syntax parser. The list and storage are
+bounded to 1000 explicit grants; adding beyond the cap returns 409
+`ai_access_full`. Non-moderators receive 403, invalid requests 400 (or 415 for
+non-JSON content), and storage failures 503 `ai_access_unavailable`.
 
 ## POST /api/ai/chat
 
@@ -283,14 +320,16 @@ Late completion must not overwrite any newer stored session state.
 
 ## Failure behavior
 
-Errors use the standard `{error, code}` envelope with an appropriate HTTP status.
+Except for the deliberately concealed 404 access denial, errors use the standard
+`{error, code}` envelope with an appropriate HTTP status.
 Authentication, unavailable configuration, invalid/oversized requests, rate or
 concurrency limits, unavailable library reads, cancellation and provider failures
 must leave the client draft intact. The chat server performs no mutation in any case.
 
 | HTTP | Code |
 |---|---|
-| 401 | `authentication_required` |
+| 404 | Not found (unauthorized DID or anonymous caller) |
+| 401 | `authentication_required` (authorized DID with unavailable/mismatched session store) |
 | 408 | `request_cancelled` (caller cancellation or request deadline) |
 | 503 | `ai_disabled` |
 | 415 | `invalid_content_type` |

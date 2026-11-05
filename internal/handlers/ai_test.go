@@ -3,16 +3,19 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-	"time"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	_ "modernc.org/sqlite"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strings"
+	"tangled.org/arabica.social/arabica/internal/aiaccess"
+	"testing"
+	"time"
 
 	provider "tangled.org/arabica.social/arabica/internal/ai"
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
@@ -31,6 +34,19 @@ const chatOutput = `{"in_scope":true,"reply":"Which bean?","kind":"brew","patch"
 func setupAI(t *testing.T) (AIHandlers, *TestContext) {
 	t.Helper()
 	tc := NewTestContext()
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "access.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	access, err := aiaccess.NewStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := access.Grant(context.Background(), "did:plc:test123456789", "did:plc:admin"); err != nil {
+		t.Fatal(err)
+	}
+	tc.Handler.SetAIAccess(access)
 	tc.Handler.SetStoreOverrideForTest(tc.MockStore)
 	tc.MockStore.DIDFunc = func() string { return "did:plc:test123456789" }
 	service := arabicaai.NewService(aiFakeCompleter(func(context.Context, []provider.Message, []provider.Tool, json.RawMessage) (provider.Completion, error) {
@@ -52,10 +68,10 @@ func TestAIStatus(t *testing.T) {
 			h.Service = nil
 		}
 		recorder := httptest.NewRecorder()
-		h.HandleStatus(recorder, httptest.NewRequest("GET", "/api/ai/status", nil))
-		expected := `{"enabled":false}`
+		h.HandleStatus(recorder, newMiddlewareAuthenticatedRequest("GET", "/api/ai/status"))
+		expected := `{"enabled":false,"allowed":true}`
 		if enabled {
-			expected = `{"enabled":true}`
+			expected = `{"enabled":true,"allowed":true}`
 		}
 		if strings.TrimSpace(recorder.Body.String()) != expected || recorder.Header().Get("Cache-Control") != "no-store" {
 			t.Fatalf("status: %s", recorder.Body.String())
@@ -115,7 +131,7 @@ func TestAIChatErrorContract(t *testing.T) {
 		h, _ := setupAI(t)
 		rec := httptest.NewRecorder()
 		h.HandleChat(rec, httptest.NewRequest("POST", "/api/ai/chat", nil))
-		if rec.Code != 401 || !strings.Contains(rec.Body.String(), "authentication_required") {
+		if rec.Code != 404 {
 			t.Fatalf("%d %s", rec.Code, rec.Body.String())
 		}
 	})
@@ -241,5 +257,22 @@ func TestAIChatCancellationAndProviderTimeout(t *testing.T) {
 				t.Fatalf("request abort %d %s %s", rec.Code, rec.Body.String(), logs.String())
 			}
 		})
+	}
+}
+
+func TestAIStatusDenied(t *testing.T) {
+	h, _ := setupAI(t)
+	for _, anonymous := range []bool{false, true} {
+		req := newMiddlewareAuthenticatedRequest("GET", "/api/ai/status")
+		if anonymous {
+			req = httptest.NewRequest("GET", "/api/ai/status", nil)
+		} else {
+			h.SetAIAccess(nil)
+		}
+		rec := httptest.NewRecorder()
+		h.HandleStatus(rec, req)
+		if rec.Code != 200 || strings.TrimSpace(rec.Body.String()) != `{"enabled":false,"allowed":false}` {
+			t.Fatalf("denied status %d %s", rec.Code, rec.Body.String())
+		}
 	}
 }

@@ -25,13 +25,19 @@ type AIHandlers struct {
 
 func (h AIHandlers) HandleStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
+	allowed := h.allowed(r)
 	WriteJSON(w, struct {
 		Enabled bool `json:"enabled"`
-	}{h.Service.Enabled()}, "AI status")
+		Allowed bool `json:"allowed"`
+	}{h.Service.Enabled() && allowed, allowed}, "AI status")
 }
 
 func (h AIHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
+	if !h.allowed(r) {
+		http.NotFound(w, r)
+		return
+	}
 	// Authenticate before revealing feature state or decoding user content.
 	store, ok := h.GetRecordStore(r)
 	if !ok {

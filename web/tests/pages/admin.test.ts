@@ -1,5 +1,8 @@
 import { cleanup, render, screen } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { session } from "../../src/lib/stores/session";
+import { get } from "svelte/store";
 import AdminPage from "../../src/routes/_mod/+page.svelte";
 
 vi.mock("$app/navigation", () => ({
@@ -102,6 +105,7 @@ describe("Admin dashboard", () => {
   afterEach(() => {
     cleanup();
     document.body.innerHTML = "";
+    vi.unstubAllGlobals();
   });
 
   it("renders the dashboard title", () => {
@@ -118,6 +122,52 @@ describe("Admin dashboard", () => {
     expect(screen.getAllByText("Labels").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Stats").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Cache").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("button", { name: "AI access" }),
+    ).toBeInTheDocument();
+  });
+
+  it("loads AI grants only when the AI access tab is opened", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            entries: [],
+            moderators: [{ did: "did:plc:staff" }],
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    const user = userEvent.setup();
+    render(AdminPage, { data: adminData });
+    expect(fetcher).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "AI access" }));
+    expect(await screen.findByText("did:plc:staff")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "AI chat access" }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers AI access to moderators without admin privileges, not other dashboard roles", async () => {
+    const original = get(session);
+    try {
+      session.update((value) => ({ ...value, isModerator: false }));
+      const view = render(AdminPage, {
+        data: { ...adminData, admin: { ...adminData.admin, IsAdmin: false } },
+      });
+      expect(
+        screen.queryByRole("button", { name: "AI access" }),
+      ).not.toBeInTheDocument();
+      session.update((value) => ({ ...value, isModerator: true }));
+      expect(
+        await screen.findByRole("button", { name: "AI access" }),
+      ).toBeInTheDocument();
+      view.unmount();
+    } finally {
+      session.set(original);
+    }
   });
 
   it("shows hidden records count badge", () => {

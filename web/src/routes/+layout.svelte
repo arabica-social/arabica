@@ -28,7 +28,7 @@
   });
 
   let { children } = $props();
-  let chatRoute = $derived(page.url.pathname === "/chat");
+  let chatRoute = $derived(page.url.pathname === "/chat" && page.status < 400);
 
   let appDefinition = $derived(definitionFor($app));
   let brandName = $derived(appDefinition.displayName);

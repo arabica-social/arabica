@@ -706,7 +706,23 @@ describe("AI chat", () => {
     );
     expect(localStorage.getItem(storageKey(did))).toBe("broken");
     await view.rerender({ accountDid: did, enabled: false });
-    expect(screen.getByText("AI entry is unavailable.")).toBeInTheDocument();
+    const heading = screen.getByRole("heading", {
+      name: "AI entry is unavailable.",
+    });
+    expect(heading.closest(".card")).not.toBeNull();
+    expect(
+      screen.getByText("You can still add a brew or bean manually."),
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Add manually" })).toHaveAttribute(
+      "href",
+      "/add",
+    );
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.queryByLabelText("Message")).not.toBeInTheDocument();
+    expect(localStorage.getItem(storageKey(did))).toBe("broken");
   });
   it.each([
     [

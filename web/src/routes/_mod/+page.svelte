@@ -1,4 +1,6 @@
 <script lang="ts">
+  import AIAccess from "#lib/components/ai/AIAccess.svelte";
+  import { session } from "#lib/stores/session.js";
   import { pushToast } from "#lib/stores/toasts.js";
   import { displayHandle } from "#lib/stores/session.js";
   import type { PageData } from "./$types";
@@ -21,7 +23,8 @@
     | "activity"
     | "labels"
     | "stats"
-    | "cache";
+    | "cache"
+    | "ai-access";
   let activeTab = $state<Tab>("hidden");
 
   // svelte-ignore state_referenced_locally
@@ -391,7 +394,19 @@
               : 'border-brown-200 text-muted hover:bg-brown-50'}">Cache</button
           >
         {/if}
+        {#if $session.isModerator || admin.IsAdmin}
+          <button
+            type="button"
+            class="btn-secondary"
+            aria-pressed={activeTab === "ai-access"}
+            onclick={() => (activeTab = "ai-access")}>AI access</button
+          >
+        {/if}
       </nav>
+
+      {#if activeTab === "ai-access" && ($session.isModerator || admin.IsAdmin)}
+        <AIAccess />
+      {/if}
 
       {#if activeTab === "hidden" && (admin.CanHide || admin.CanUnhide)}
         <div class="card card-inner">

@@ -42,20 +42,24 @@ function readServerDID(): string {
 }
 
 export const test = base.extend<{
+  aiAccess: boolean;
   account: E2EAccount;
   authedPage: Page;
   apiRequest: APIRequestContext;
   did: string;
   waitForIndex: (uri: string, present?: boolean) => Promise<void>;
 }>({
-  account: async ({ playwright }, use) => {
+  aiAccess: [false, { option: true }],
+  account: async ({ playwright, aiAccess }, use) => {
     const controlURL = readControlURL();
     if (!controlURL)
       throw new Error("No E2E control URL found. Is cmd/e2e-server running?");
     const request = await playwright.request.newContext({
       baseURL: controlURL,
     });
-    const response = await request.post("/accounts");
+    const response = await request.post("/accounts", {
+      data: { ai_access: aiAccess },
+    });
     if (!response.ok()) {
       throw new Error(
         `Failed to provision isolated E2E account: ${response.status()} ${await response.text()}`,

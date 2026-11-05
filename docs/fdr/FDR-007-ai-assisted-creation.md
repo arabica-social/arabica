@@ -11,7 +11,16 @@ manual forms or a general-purpose assistant. Only the Save button writes records
 
 ## Behavior
 
-- A configured, authenticated Home Page offers one compact textarea, "Describe
+- AI chat is limited to DIDs granted access by a moderator; admins and moderators
+  have access automatically. The Moderator page manages explicit grants in a
+  deployment-local database table. Revoking an explicit grant cannot remove staff
+  access. Denied users see no homepage chat composer and receive 404 for direct
+  chat page loads and chat submissions. Page denials use the normal app error
+  screen and navigation with HTTP 404, not an access-specific message. Manual
+  logging remains available. Approved users with AI disabled see a horizontally centered,
+  themed unavailable card matching the missing-page typography and top spacing, with Add manually
+  and Back to Home actions.
+- A configured, authorized Home Page offers one compact textarea, "Describe
   a brew or bean", with the placeholder "Describe a brew or bean..." and an inset
   Send button. No heading, example suggestions,
   explanatory panel or decorative labels surround this input. Community title,

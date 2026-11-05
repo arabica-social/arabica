@@ -1,10 +1,12 @@
 import { test, expect } from "./fixtures";
+
+test.use({ aiAccess: true });
 import type { Page } from "@playwright/test";
 
 async function twoTabs(page: Page) {
   const context = page.context();
   await context.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: true } }),
+    route.fulfill({ json: { enabled: true, allowed: true } }),
   );
   await context.route("**/api/ai/chat", (route) =>
     route.fulfill({

@@ -1018,8 +1018,26 @@
 
 {#if !accountDid}<p>Log in to start a chat.</p>
   <a href="/">Home</a>
-{:else if !enabled}<p>AI entry is unavailable.</p>
-  <a href="/add">Add manually</a>
+{:else if !enabled}
+  <div class="chat-unavailable">
+    <section class="page-container-lg" aria-labelledby="chat-unavailable-title">
+      <div class="card p-8 text-center">
+        <h2
+          id="chat-unavailable-title"
+          class="text-2xl font-bold text-primary mb-4"
+        >
+          AI entry is unavailable.
+        </h2>
+        <p class="text-emphasis mb-6">
+          You can still add a brew or bean manually.
+        </p>
+        <div class="unavailable-actions">
+          <a href="/add" class="btn-primary py-3 px-6">Add manually</a>
+          <a href="/" class="btn-secondary py-3 px-6">Back to Home</a>
+        </div>
+      </div>
+    </section>
+  </div>
 {:else}
   <div class="chat-workspace">
     <nav class="chat-toolbar" aria-label="Chat actions">
@@ -1446,6 +1464,21 @@
 {/if}
 
 <style>
+  .chat-unavailable {
+    height: 100%;
+    overflow-y: auto;
+    padding: 2rem 0.5rem;
+  }
+  .chat-unavailable > section {
+    width: 100%;
+  }
+  .unavailable-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
   :global([data-theme="dark"]) .chat-workspace {
     color-scheme: dark;
   }

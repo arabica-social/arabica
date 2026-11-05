@@ -1,4 +1,6 @@
 import { test, expect } from "./fixtures";
+
+test.use({ aiAccess: true });
 import type { Page } from "@playwright/test";
 
 type Image = { mime_type: string; data: string };
@@ -26,7 +28,7 @@ const sent = (page: Page) =>
 async function openChat(page: Page, failures = 0) {
   const requests: ChatRequest[] = [];
   await page.route("**/api/ai/status", (route) =>
-    route.fulfill({ json: { enabled: true } }),
+    route.fulfill({ json: { enabled: true, allowed: true } }),
   );
   await page.route("**/api/ai/chat", (route) => {
     requests.push(route.request().postDataJSON() as ChatRequest);

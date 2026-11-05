@@ -1,0 +1,149 @@
+package handlers
+
+import (
+	"encoding/json"
+	"errors"
+	"io"
+	"mime"
+	"net/http"
+
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/arabica.social/arabica/internal/aiaccess"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
+)
+
+func (h *Handler) SetAIAccess(store *aiaccess.Store) { h.aiAccess = store }
+
+func (h AIHandlers) allowed(r *http.Request) bool {
+	did, ok := atpmiddleware.GetDID(r.Context())
+	if !ok || did == "" {
+		return false
+	}
+	if h.moderationService != nil && h.moderationService.IsModerator(did) {
+		return true
+	}
+	if h.aiAccess == nil {
+		return false
+	}
+	allowed, err := h.aiAccess.Allows(r.Context(), did)
+	return err == nil && allowed
+}
+
+func (h AIHandlers) RequireAccess(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		if !h.allowed(r) {
+			http.NotFound(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h AIHandlers) RequirePageAccess(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		if h.allowed(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		response := &notFoundPageWriter{ResponseWriter: w}
+		next.ServeHTTP(response, r)
+		response.WriteHeader(http.StatusNotFound)
+	})
+}
+
+type notFoundPageWriter struct {
+	http.ResponseWriter
+	wroteHeader bool
+}
+
+func (w *notFoundPageWriter) WriteHeader(status int) {
+	if w.wroteHeader {
+		return
+	}
+	w.wroteHeader = true
+	if status < http.StatusBadRequest {
+		status = http.StatusNotFound
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *notFoundPageWriter) Write(body []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusNotFound)
+	}
+	return w.ResponseWriter.Write(body)
+}
+
+func (h *Handler) HandleAIAccess(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	actor, ok := atpmiddleware.GetDID(r.Context())
+	if !ok || h.moderationService == nil || !h.moderationService.IsModerator(actor) {
+		WriteJSONError(w, http.StatusForbidden, "forbidden", "Moderator access required")
+		return
+	}
+	if h.aiAccess == nil {
+		WriteJSONError(w, 503, "ai_access_unavailable", "AI access management unavailable")
+		return
+	}
+	if r.Method == http.MethodGet {
+		entries, err := h.aiAccess.List(r.Context())
+		if err != nil {
+			WriteJSONError(w, 503, "ai_access_unavailable", "AI access management unavailable")
+			return
+		}
+		type staff struct {
+			DID string `json:"did"`
+		}
+		moderators := make([]staff, 0)
+		for _, user := range h.moderationService.ListModerators() {
+			moderators = append(moderators, staff{DID: user.DID})
+		}
+		WriteJSON(w, struct {
+			Entries    []aiaccess.Entry `json:"entries"`
+			Moderators []staff          `json:"moderators"`
+		}{entries, moderators}, "AI access")
+		return
+	}
+	contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || contentType != "application/json" {
+		WriteJSONError(w, 415, "invalid_content_type", "JSON content type required")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	var req struct {
+		DID string `json:"did"`
+	}
+	if err := decoder.Decode(&req); err != nil {
+		WriteJSONError(w, 400, "invalid_request", "A valid DID is required")
+		return
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		WriteJSONError(w, 400, "invalid_request", "A valid DID is required")
+		return
+	}
+	if _, err := syntax.ParseDID(req.DID); err != nil {
+		WriteJSONError(w, 400, "invalid_request", "A valid DID is required")
+		return
+	}
+	if r.Method == http.MethodPut {
+		err = h.aiAccess.Grant(r.Context(), req.DID, actor)
+	} else {
+		err = h.aiAccess.Revoke(r.Context(), req.DID)
+	}
+	if errors.Is(err, aiaccess.ErrFull) {
+		WriteJSONError(w, 409, "ai_access_full", "AI access grant limit reached")
+		return
+	}
+	if err != nil {
+		WriteJSONError(w, 503, "ai_access_unavailable", "AI access management unavailable")
+		return
+	}
+	WriteJSON(w, struct {
+		Success bool `json:"success"`
+	}{true}, "AI access updated")
+}
