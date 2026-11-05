@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"tangled.org/arabica.social/arabica/internal/suggestions"
+	"tangled.org/arabica.social/arabica/internal/matching"
 	"tangled.org/pdewey.com/atp"
 )
 
@@ -103,7 +103,7 @@ func TestLookupFindsSourceRefChainFuzzyMatchesAndUsage(t *testing.T) {
 	Register(testBean, EntityConfig{
 		AllFields: []string{"name", "origin"},
 		DedupKey: func(fields map[string]string) string {
-			return suggestions.Normalize(fields["name"]) + "|" + suggestions.Normalize(fields["origin"])
+			return matching.Normalize(fields["name"]) + "|" + matching.Normalize(fields["origin"])
 		},
 		UsageRefs: []UsageRef{{Collection: testBrew, Field: "beanRef", Label: "brews"}},
 	})
@@ -140,7 +140,7 @@ func TestLookupFindsSourceRefChainFuzzyMatchesAndUsage(t *testing.T) {
 func TestLookupPaginatesSelectedUsageGroup(t *testing.T) {
 	Register(testBean, EntityConfig{
 		AllFields: []string{"name", "origin"},
-		DedupKey:  func(fields map[string]string) string { return suggestions.Normalize(fields["name"]) },
+		DedupKey:  func(fields map[string]string) string { return matching.Normalize(fields["name"]) },
 		UsageRefs: []UsageRef{{Collection: testBrew, Field: "beanRef", Label: "brews"}},
 	})
 	root := testRecord(t, "did:plc:alice", testBean, "b1", 1, map[string]any{"name": "Gesha"})

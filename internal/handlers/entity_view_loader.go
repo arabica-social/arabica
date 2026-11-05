@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -37,7 +37,7 @@ type LoadedEntity struct {
 	SubjectCID   string
 	OwnerDID     string
 	IsOwnProfile bool
-	Route        domain.EntityRoute
+	Route        arabicaapp.EntityRoute
 	EntityNoun   string
 }
 

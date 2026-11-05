@@ -191,8 +191,8 @@ likes and comments.
 ## Architecture
 
 **App** — Runtime configuration for Arabica, including its name, NSID base,
-enabled entity descriptors, routes, branding, and record-store behavior.
-The current source is `internal/atplatform/domain/app.go`.
+entity descriptors, routes and branding.
+The current source is `internal/arabica/app/config.go`.
 
 **Record type** — The application-level category used to dispatch record
 identity and behavior across shared infrastructure.
@@ -201,9 +201,8 @@ identity and behavior across shared infrastructure.
 record type, NSID, and display name. See
 [ADR-005](adr/ADR-005-separate-entity-descriptors-from-record-behavior.md).
 
-**Record behavior** — Record-specific decoding, field access, display-title
-extraction, and reference hydration registered separately from an entity
-descriptor.
+**Record behavior** — Record-specific decoding, reference declarations and
+hydration registered separately from an entity descriptor.
 
 **Session cache** — A short-lived, per-session in-memory cache for typed
 collection reads.
@@ -250,10 +249,10 @@ the client application starts.
 
 **SPA-owned route** — A page route explicitly assigned to SvelteKit after its
 direct-load implementation and JSON dependencies exist. Arabica's source of
-truth is `Routes.SPAOwnedRoutes()`.
+truth is `routing.SPAOwnedRoutes()`.
 
-**Legacy route** — A page route still rendered by the Templ/HTMX stack during
-the incremental SPA migration.
+**Legacy route** — Historical term for a page rendered by the retired
+Templ/HTMX stack. No such page-rendering stack remains.
 
 **JSON contract** — A documented response shape consumed by the SPA and tested
 at the HTTP boundary. Current contracts live under [`docs/api/`](api/README.md).

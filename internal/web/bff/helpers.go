@@ -75,24 +75,6 @@ func FormatTime(seconds int) string {
 	return fmt.Sprintf("%dm %ds", minutes, remaining)
 }
 
-// FormatBeanRating formats a bean's optional rating as "X/10".
-// Returns empty string if rating is nil (unrated).
-func FormatBeanRating(rating *int) string {
-	if rating == nil {
-		return ""
-	}
-	return fmt.Sprintf("%d/10", *rating)
-}
-
-// FormatAvgRating formats an average rating as "X.X/10".
-// Returns empty string if avg is zero (no ratings).
-func FormatAvgRating(avg float64) string {
-	if avg == 0 {
-		return ""
-	}
-	return fmt.Sprintf("%.1f/10", avg)
-}
-
 // HasTemp returns true if temperature is greater than zero
 func HasTemp(temp float64) bool {
 	return temp > 0
@@ -156,11 +138,6 @@ func SafeWebsiteURL(websiteURL string) string {
 	}
 
 	return websiteURL
-}
-
-// FormatISO returns the time formatted as RFC3339 UTC, suitable for HTML datetime attributes.
-func FormatISO(t time.Time) string {
-	return t.UTC().Format(time.RFC3339)
 }
 
 // FormatTimeAgo returns a human-readable relative time string

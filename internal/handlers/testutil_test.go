@@ -1,0 +1,128 @@
+package handlers
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"time"
+
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+)
+
+// TestFixtures contains sample data for testing
+type TestFixtures struct {
+	Bean    *arabica.Bean
+	Roaster *arabica.Roaster
+	Grinder *arabica.Grinder
+	Brewer  *arabica.Brewer
+	Brew    *arabica.Brew
+}
+
+// NewTestFixtures creates a set of sample test data
+func NewTestFixtures() *TestFixtures {
+	now := time.Now()
+
+	roaster := &arabica.Roaster{
+		RKey:      "test-roaster-rkey",
+		Name:      "Test Roaster",
+		Location:  "Test City",
+		Website:   "https://test-roaster.com",
+		CreatedAt: now,
+	}
+
+	bean := &arabica.Bean{
+		RKey:        "test-bean-rkey",
+		Name:        "Test Bean",
+		Origin:      "Ethiopia",
+		RoastLevel:  "Medium",
+		Process:     "Washed",
+		Description: "Test description",
+		RoasterRKey: roaster.RKey,
+		Roaster:     roaster,
+		CreatedAt:   now,
+	}
+
+	grinder := &arabica.Grinder{
+		RKey:        "test-grinder-rkey",
+		Name:        "Test Grinder",
+		GrinderType: "Hand",
+		BurrType:    "Conical",
+		Notes:       "Test notes",
+		CreatedAt:   now,
+	}
+
+	brewer := &arabica.Brewer{
+		RKey:        "test-brewer-rkey",
+		Name:        "Test Brewer",
+		BrewerType:  "Pour Over",
+		Description: "Test brewer description",
+		CreatedAt:   now,
+	}
+
+	brew := &arabica.Brew{
+		RKey:         "test-brew-rkey",
+		BeanRKey:     bean.RKey,
+		Method:       "V60",
+		Temperature:  93.0,
+		WaterAmount:  250,
+		CoffeeAmount: 15,
+		TimeSeconds:  180,
+		GrindSize:    "Medium-Fine",
+		GrinderRKey:  grinder.RKey,
+		BrewerRKey:   brewer.RKey,
+		TastingNotes: "Fruity, bright",
+		Rating:       8,
+		CreatedAt:    now,
+		Bean:         bean,
+		GrinderObj:   grinder,
+		BrewerObj:    brewer,
+	}
+
+	return &TestFixtures{
+		Bean:    bean,
+		Roaster: roaster,
+		Grinder: grinder,
+		Brewer:  brewer,
+		Brew:    brew,
+	}
+}
+
+// TestContext contains test dependencies
+type TestContext struct {
+	Handler   *Handler
+	MockStore *MockStore
+	Fixtures  *TestFixtures
+	Request   *http.Request
+	Recorder  *httptest.ResponseRecorder
+}
+
+// NewTestContext creates a test context with mock dependencies
+func NewTestContext() *TestContext {
+	mockStore := &MockStore{}
+	fixtures := NewTestFixtures()
+
+	base := NewHandler(nil, nil, nil, nil, nil, Config{SecureCookies: false})
+	handler := base
+
+	return &TestContext{
+		Handler:   handler,
+		MockStore: mockStore,
+		Fixtures:  fixtures,
+	}
+}
+
+// NewAuthenticatedRequest creates a request with authentication context
+func NewAuthenticatedRequest(method, path string, body any) *http.Request {
+	req := httptest.NewRequest(method, path, nil)
+
+	// String keys intentionally bypass atp/middleware.GetDID in older handler tests.
+	ctx := context.WithValue(req.Context(), "atp_did", "did:plc:test123456789")
+	ctx = context.WithValue(ctx, "atp_session_id", "test-session-id")
+
+	return req.WithContext(ctx)
+}
+
+// NewUnauthenticatedRequest creates a request without authentication context
+func NewUnauthenticatedRequest(method, path string) *http.Request {
+	return httptest.NewRequest(method, path, nil)
+}

@@ -291,6 +291,7 @@ must leave the client draft intact. The chat server performs no mutation in any 
 | HTTP | Code |
 |---|---|
 | 401 | `authentication_required` |
+| 408 | `request_cancelled` (caller cancellation or request deadline) |
 | 503 | `ai_disabled` |
 | 415 | `invalid_content_type` |
 | 413 | `request_too_large` |
@@ -301,6 +302,10 @@ must leave the client draft intact. The chat server performs no mutation in any 
 
 
 ## Provider diagnostics
+
+Caller cancellation or an expired incoming request returns 408 where the
+connection is still writable and does not emit a provider-failure error log. An
+upstream provider timeout while the incoming request is live remains a 502.
 
 A 502 also emits an `AI chat provider failure` server log event correlated by
 `trace_id`. The public API error remains generic. Logs include only fixed

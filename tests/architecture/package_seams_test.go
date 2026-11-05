@@ -6,7 +6,6 @@ import (
 	"go/token"
 	"io/fs"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -16,17 +15,9 @@ import (
 
 const modulePath = "tangled.org/arabica.social/arabica"
 
-var existingSharedAppImports = []string{}
-
-func TestSharedPackagesDoNotAddAppImports(t *testing.T) {
-	actual := sharedAppImports(t)
-	expected := stringSet(existingSharedAppImports)
-
-	unexpected := difference(actual, expected)
-	stale := difference(expected, actual)
-
-	assert.Empty(t, unexpected, "new app-specific imports from shared packages are forbidden; move behavior to internal/arabica, or deliberately update the baseline while paying down this seam")
-	assert.Empty(t, stale, "remove fixed imports from existingSharedAppImports so the seam guard keeps ratcheting down")
+func TestProtocolPackagesDoNotImportApplication(t *testing.T) {
+	imports := protocolAppImports(t)
+	assert.Empty(t, imports, "protocol and record-store contracts must not import application behavior")
 }
 
 func TestDomainEntityRegistryDoesNotImportTempl(t *testing.T) {
@@ -51,12 +42,7 @@ func TestDomainEntityDescriptorDoesNotOwnFeedActions(t *testing.T) {
 	assert.NotContains(t, fields, "EditModalURL")
 }
 
-func TestFeedPageDoesNotReadDescriptorRouteFields(t *testing.T) {
-	// The guard is obsolete because feed.templ no longer exists.
-	t.Skip("feed.templ removed with the templ stack")
-}
-
-func sharedAppImports(t *testing.T) map[string]struct{} {
+func protocolAppImports(t *testing.T) map[string]struct{} {
 	t.Helper()
 
 	imports := map[string]struct{}{}
@@ -80,7 +66,7 @@ func sharedAppImports(t *testing.T) map[string]struct{} {
 		}
 
 		rel := strings.TrimPrefix(path, "../../")
-		if !strings.HasPrefix(rel, "internal/") || !strings.HasSuffix(rel, ".go") || strings.HasSuffix(rel, "_test.go") {
+		if !(strings.HasPrefix(rel, "internal/atproto/") || strings.HasPrefix(rel, "internal/records/")) || !strings.HasSuffix(rel, ".go") || strings.HasSuffix(rel, "_test.go") {
 			return nil
 		}
 
@@ -179,24 +165,10 @@ func unquoteImportPath(t *testing.T, spec *ast.ImportSpec) string {
 }
 
 func isAppImport(importPath string) bool {
-	return strings.HasPrefix(importPath, modulePath+"/internal/arabica")
-}
-
-func stringSet(values []string) map[string]struct{} {
-	set := make(map[string]struct{}, len(values))
-	for _, value := range values {
-		set[value] = struct{}{}
-	}
-	return set
-}
-
-func difference(left, right map[string]struct{}) []string {
-	var diff []string
-	for value := range left {
-		if _, ok := right[value]; !ok {
-			diff = append(diff, value)
+	for _, prefix := range []string{"arabica", "handlers", "routing", "server", "web"} {
+		if strings.HasPrefix(importPath, modulePath+"/internal/"+prefix+"/") || importPath == modulePath+"/internal/"+prefix {
+			return true
 		}
 	}
-	sort.Strings(diff)
-	return diff
+	return false
 }

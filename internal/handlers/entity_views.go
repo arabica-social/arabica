@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backlinks"
 	"tangled.org/arabica.social/arabica/internal/entities"
@@ -74,9 +74,7 @@ func ResolveOwnerDID(ctx context.Context, owner string) (string, error) {
 }
 
 // EntityViewConfig captures per-entity behavior for RenderEntityViewJSON.
-// Construct via the h.xViewConfig() methods — closures capture h naturally.
-// Fields are exported so per-app handler packages (e.g.
-// internal/arabica/handlers) can populate this struct directly.
+// Construct via the h.xViewConfig() methods; closures capture request dependencies.
 type EntityViewConfig struct {
 	Descriptor  *entities.Descriptor
 	FromWitness func(ctx context.Context, m map[string]any, uri, rkey, ownerDID string) (any, error)
@@ -208,14 +206,14 @@ func (h *Handler) entityRoutePaths() map[lexicons.RecordType]string {
 	return paths
 }
 
-func (h *Handler) entityRouteFor(desc *entities.Descriptor) domain.EntityRoute {
+func (h *Handler) entityRouteFor(desc *entities.Descriptor) arabicaapp.EntityRoute {
 	if desc == nil {
-		return domain.EntityRoute{}
+		return arabicaapp.EntityRoute{}
 	}
 	if route, ok := h.app.EntityRouteByType(desc.Type); ok {
 		return route
 	}
-	return domain.EntityRoute{Type: desc.Type, Noun: strings.ToLower(desc.DisplayName)}
+	return arabicaapp.EntityRoute{Type: desc.Type, Noun: strings.ToLower(desc.DisplayName)}
 }
 
 // OGImageConfig captures per-entity behavior for HandleSimpleOGImage.

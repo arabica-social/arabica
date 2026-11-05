@@ -29,9 +29,9 @@ preserve. It is deliberately not a history or roadmap.
 7. Go serves HTTP APIs, mutations, OAuth, assets, head metadata, and the
    embedded SvelteKit SPA shell according to explicit route ownership.
 
-The platform remains app-agnostic by design, while this repository hosts the
-Arabica application and its app-owned configuration, records, routes, and
-presentation.
+The backend serves Arabica only. HTTP routing and server composition wire the
+application directly; protocol and record-store contracts remain separate. See
+[ADR-007](../adr/ADR-007-single-app-backend-composition.md).
 
 ## Inventories
 

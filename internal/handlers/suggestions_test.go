@@ -3,7 +3,7 @@ package handlers
 import (
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/entities"
 
 	"github.com/stretchr/testify/assert"
@@ -11,12 +11,12 @@ import (
 
 func TestNSIDForEntityUsesActiveAppDescriptors(t *testing.T) {
 	h := &Handler{}
-	h.SetApp(&domain.App{
+	h.SetApp(&arabicaapp.App{
 		Name: "arabica",
 		Descriptors: []*entities.Descriptor{
 			{Type: "brewer", NSID: "social.arabica.alpha.brewer"},
 		},
-		EntityRoutes: []domain.EntityRoute{
+		EntityRoutes: []arabicaapp.EntityRoute{
 			{Type: "brewer", Path: "brewers", Noun: "brewer"},
 		},
 	})
@@ -29,12 +29,12 @@ func TestNSIDForEntityRejectsUnknownOrUnconfiguredPaths(t *testing.T) {
 
 	assert.Empty(t, h.nsidForEntity("brewers"))
 
-	h.SetApp(&domain.App{
+	h.SetApp(&arabicaapp.App{
 		Name: "arabica",
 		Descriptors: []*entities.Descriptor{
 			{Type: "bean", NSID: "social.arabica.alpha.bean"},
 		},
-		EntityRoutes: []domain.EntityRoute{
+		EntityRoutes: []arabicaapp.EntityRoute{
 			{Type: "bean", Path: "beans", Noun: "bean"},
 		},
 	})

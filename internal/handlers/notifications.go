@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/notifications"
 )
 
@@ -17,7 +17,7 @@ func (h *Handler) HandleNotificationsMarkRead(w http.ResponseWriter, r *http.Req
 
 // resolveNotificationLink converts a SubjectURI (AT-URI) to a local page URL.
 // Format: at://did:plc:xxx/social.arabica.alpha.brew/rkey -> /brews/did:plc:xxx/rkey
-func resolveNotificationLink(app *domain.App, subjectURI string) string {
+func resolveNotificationLink(app *arabicaapp.App, subjectURI string) string {
 	did, collection, rkey, ok := parseNotificationSubjectURI(subjectURI)
 	if !ok || app == nil {
 		return ""
@@ -30,7 +30,7 @@ func resolveNotificationLink(app *domain.App, subjectURI string) string {
 }
 
 // resolveNotificationEntityName returns the display name for the entity in a SubjectURI.
-func resolveNotificationEntityName(app *domain.App, subjectURI string) string {
+func resolveNotificationEntityName(app *arabicaapp.App, subjectURI string) string {
 	_, collection, _, ok := parseNotificationSubjectURI(subjectURI)
 	if !ok || app == nil {
 		return "content"
@@ -58,7 +58,7 @@ func parseNotificationSubjectURI(subjectURI string) (did, collection, rkey strin
 }
 
 // notifActionText returns human-readable action text for a notification.
-func notifActionText(app *domain.App, notif notifications.Notification) string {
+func notifActionText(app *arabicaapp.App, notif notifications.Notification) string {
 	entity := resolveNotificationEntityName(app, notif.SubjectURI)
 	switch notif.Type {
 	case notifications.Like:

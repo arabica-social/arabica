@@ -5,7 +5,7 @@ Authoritative sources:
 - [`web/vite.config.ts`](../../web/vite.config.ts)
 - [`web/src/routes/`](../../web/src/routes/)
 - [`internal/web/spa/`](../../internal/web/spa/)
-- [`internal/arabica/handlers/routes.go`](../../internal/arabica/handlers/routes.go)
+- [`internal/routing/arabica.go`](../../internal/routing/arabica.go)
 
 Related decision: [ADR-006](../adr/ADR-006-embedded-spa-with-explicit-route-cutover.md).
 

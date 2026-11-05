@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 
@@ -27,8 +27,8 @@ func testManifest() assets.Manifest {
 // arabicaBrand mirrors the BrandConfig set by the arabica app constructor
 // (internal/arabica/app/app.go). Keeping a local copy lets the spa tests run
 // without importing the app package.
-func arabicaBrand() domain.BrandConfig {
-	return domain.BrandConfig{
+func arabicaBrand() arabicaapp.BrandConfig {
+	return arabicaapp.BrandConfig{
 		DisplayName:     "Arabica",
 		Tagline:         "Your brew, your data",
 		SiteDescription: "Arabica is a coffee brew tracking app built on AT Protocol. Your brewing data is stored in your own Personal Data Server, giving you full ownership and portability.",

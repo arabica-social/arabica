@@ -20,7 +20,7 @@ import (
 	"time"
 
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
-	"tangled.org/arabica.social/arabica/internal/arabica/handlers"
+
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
@@ -288,7 +288,7 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 
 	logger := zerolog.Nop()
 	app := arabicaapp.New()
-	var appRoutes routing.AppRoutes = handlers.Routes{}
+
 	if opts.App != "" && opts.App != "arabica" {
 		return nil, fmt.Errorf("unsupported harness app %q", opts.App)
 	}
@@ -315,11 +315,11 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	spaHandler := http.Handler(sh)
 
 	router := routing.SetupRouter(routing.Config{
-		App:              app,
-		Handlers:         h,
-		OAuthApp:         oauthApp,
-		Logger:           logger,
-		AppRoutes:        appRoutes,
+		App:      app,
+		Handlers: h,
+		OAuthApp: oauthApp,
+		Logger:   logger,
+
 		SPAHandler:       spaHandler,
 		CSSBundle:        cssBundle,
 		DisableRateLimit: true,

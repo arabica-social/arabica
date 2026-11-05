@@ -80,7 +80,7 @@ func PutRecord(
 
 // RecordCRUDWrite is the common body for standard entity Create + Update
 // handlers: decode, validate, build model, encode to AT Protocol record,
-// write, invalidate, and respond with JSON or an optional HX redirect.
+// write, invalidate, and respond with JSON.
 func RecordCRUDWrite[Req any, PReq RequestValidator[Req], Model any](
 	w http.ResponseWriter,
 	r *http.Request,
@@ -91,7 +91,6 @@ func RecordCRUDWrite[Req any, PReq RequestValidator[Req], Model any](
 	setRKey func(*Model, string),
 	encode func(s records.Store, req *Req, m *Model) (map[string]any, error),
 	invalidate func(),
-	allowRedirect bool,
 ) {
 	if store == nil {
 		WriteRequestError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication required")
@@ -134,13 +133,6 @@ func RecordCRUDWrite[Req any, PReq RequestValidator[Req], Model any](
 	setRKey(model, newRKey)
 	if invalidate != nil {
 		invalidate()
-	}
-	if allowRedirect {
-		if redirect := r.FormValue("__redirect"); redirect != "" {
-			w.Header().Set("HX-Redirect", redirect)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
 	}
 	WriteJSON(w, model, jsonKey)
 }

@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/explore"
@@ -133,16 +134,8 @@ func (idx *FeedIndex) commentCollection() string {
 	return "social.arabica.alpha.comment"
 }
 
-// exploreRegistry returns the running app's explore registry, or nil if the
-// app has no explore surface. It looks up the factory registered for the
-// app's NSID base (via explore.RegistryFor) so the firehose does not import
-// app code or hardcode Arabica. When no app is configured (tests), it falls
-// back to the Arabica registry so existing firehose tests keep working.
 func (idx *FeedIndex) exploreRegistry() *explore.Registry {
-	if idx.nsidBase != "" {
-		if factory := explore.RegistryFor(idx.nsidBase); factory != nil {
-			return factory(idx.recordTypeToNSID)
-		}
+	if idx.nsidBase != "" && idx.nsidBase != arabica.NSIDBase {
 		return nil
 	}
 	return explore.NewArabicaRegistry(idx.recordTypeToNSID)

@@ -3,18 +3,18 @@ package handlers
 import (
 	"testing"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/entities"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestResolveNotificationLinkUsesActiveAppDescriptor(t *testing.T) {
-	app := &domain.App{
+	app := &arabicaapp.App{
 		Descriptors: []*entities.Descriptor{
 			{Type: "bean", NSID: "social.arabica.alpha.bean"},
 		},
-		EntityRoutes: []domain.EntityRoute{
+		EntityRoutes: []arabicaapp.EntityRoute{
 			{Type: "bean", Path: "beans", Noun: "bean"},
 		},
 	}
@@ -25,11 +25,11 @@ func TestResolveNotificationLinkUsesActiveAppDescriptor(t *testing.T) {
 }
 
 func TestResolveNotificationLinkRejectsUnknownCollections(t *testing.T) {
-	app := &domain.App{
+	app := &arabicaapp.App{
 		Descriptors: []*entities.Descriptor{
 			{Type: "bean", NSID: "social.arabica.alpha.bean"},
 		},
-		EntityRoutes: []domain.EntityRoute{
+		EntityRoutes: []arabicaapp.EntityRoute{
 			{Type: "bean", Path: "beans", Noun: "bean"},
 		},
 	}
@@ -39,12 +39,12 @@ func TestResolveNotificationLinkRejectsUnknownCollections(t *testing.T) {
 }
 
 func TestResolveNotificationEntityNameUsesDescriptorNounWithFallback(t *testing.T) {
-	app := &domain.App{
+	app := &arabicaapp.App{
 		Descriptors: []*entities.Descriptor{
 			{Type: "bean", NSID: "social.arabica.alpha.bean"},
 			{Type: "recipe", NSID: "social.arabica.alpha.recipe", DisplayName: "Recipe"},
 		},
-		EntityRoutes: []domain.EntityRoute{
+		EntityRoutes: []arabicaapp.EntityRoute{
 			{Type: "bean", Path: "beans", Noun: "bean"},
 			{Type: "recipe", Path: "recipes"},
 		},

@@ -20,19 +20,19 @@ import (
 )
 
 func TestRegisterEntityRoutesFiltersUnionByAppDescriptors(t *testing.T) {
-	bundles := []handlers.EntityRouteBundle{
+	bundles := []entityRouteBundle{
 		{RecordType: lexicons.RecordTypeBean, JSONView: okHandler("bean-json")},
 		{RecordType: lexicons.RecordTypeRoaster, JSONView: okHandler("roaster-json")},
 	}
 
 	arabicaMux := http.NewServeMux()
-	RegisterEntityRoutes(arabicaMux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, NewPageRoutes(nil, nil))
+	registerEntityRoutes(arabicaMux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, newPageRoutes(nil, nil))
 	assertRouteStatus(t, arabicaMux, "GET", "/api/beans/alice.test/r1", http.StatusOK)
 	assertRouteStatus(t, arabicaMux, "GET", "/api/roasters/alice.test/r1", http.StatusOK)
 }
 
 func TestRegisterEntityRoutesRegistersJSONAndOGAndMutations(t *testing.T) {
-	bundles := []handlers.EntityRouteBundle{
+	bundles := []entityRouteBundle{
 		{
 			RecordType:    lexicons.RecordTypeBean,
 			JSONView:      okHandler("bean-json"),
@@ -45,7 +45,7 @@ func TestRegisterEntityRoutesRegistersJSONAndOGAndMutations(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	RegisterEntityRoutes(mux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, NewPageRoutes(nil, nil))
+	registerEntityRoutes(mux, http.NewCrossOriginProtection(), arabicaapp.New(), bundles, newPageRoutes(nil, nil))
 
 	// JSON view/backlinks, OG image, and mutations are registered independently
 	// of the SPA-owned page routes (which the shell serves directly).
@@ -59,7 +59,7 @@ func TestRegisterEntityRoutesRegistersJSONAndOGAndMutations(t *testing.T) {
 
 func TestPageRoutesRegisterExplicitOwners(t *testing.T) {
 	mux := http.NewServeMux()
-	pages := NewPageRoutes(okHandler("spa"), []string{
+	pages := newPageRoutes(okHandler("spa"), []string{
 		"GET /about",
 		"GET /beans/{actor}/{id}",
 		"GET /roasters/new",
@@ -99,24 +99,6 @@ func TestPageRoutesRegisterExplicitOwners(t *testing.T) {
 	}
 }
 
-type telemetryTestRoutes struct{}
-
-func (telemetryTestRoutes) SPAOwnedRoutes() []string {
-	return []string{
-		"GET /{$}",
-		"GET /explore",
-		"GET /brews/{actor}/{id}",
-	}
-}
-
-func (telemetryTestRoutes) RegisterAppRoutes(mux *http.ServeMux, ctx AppRouteContext) {
-	page := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
-	})
-	ctx.Pages.Register(mux, "GET /explore", page)
-	ctx.Pages.Register(mux, "GET /brews/{actor}/{id}", page)
-}
-
 func TestSetupRouterRecordsMatchedRoutesInMetricsAndTraces(t *testing.T) {
 	recorder := tracetest.NewSpanRecorder()
 	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
@@ -131,9 +113,9 @@ func TestSetupRouterRecordsMatchedRoutesInMetricsAndTraces(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	router := SetupRouter(Config{
+		App:              arabicaapp.New(),
 		Handlers:         &handlers.Handler{},
 		Logger:           zerolog.Nop(),
-		AppRoutes:        telemetryTestRoutes{},
 		SPAHandler:       page,
 		DisableRateLimit: true,
 	})

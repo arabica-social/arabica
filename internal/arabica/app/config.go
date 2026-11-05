@@ -1,0 +1,189 @@
+package arabicaapp
+
+import (
+	"strings"
+
+	"tangled.org/arabica.social/arabica/internal/entities"
+	"tangled.org/arabica.social/arabica/internal/lexicons"
+)
+
+type App struct {
+	Name         string
+	NSIDBase     string
+	Descriptors  []*entities.Descriptor
+	EntityRoutes []EntityRoute
+	Brand        BrandConfig
+}
+
+type EntityRoute struct {
+	Type lexicons.RecordType
+	Path string
+	Noun string
+}
+
+type BrandConfig struct {
+	DisplayName string
+	Tagline     string
+
+	// SiteDescription is the default meta description used by the SPA shell
+	// and OG tags when no record-specific description applies. It should
+	// describe the app in product terms ("a coffee brew tracking app built
+	// on AT Protocol").
+	SiteDescription string
+
+	// LightThemeColor and DarkThemeColor are the theme-color meta values
+	// injected into the SPA shell <head> for browser UI chrome. They are
+	// brand-specific presentation, not derived from the app name.
+	LightThemeColor string
+	DarkThemeColor  string
+}
+
+func (a *App) NSIDs() []string {
+	out := make([]string, 0, len(a.Descriptors)+2)
+	for _, d := range a.Descriptors {
+		out = append(out, d.NSID)
+	}
+	out = append(out, a.NSIDBase+".like")
+	out = append(out, a.NSIDBase+".comment")
+	return out
+}
+
+// LikeNSID returns the like collection NSID for this app.
+func (a *App) LikeNSID() string {
+	return a.NSIDBase + ".like"
+}
+
+// CommentNSID returns the comment collection NSID for this app.
+func (a *App) CommentNSID() string {
+	return a.NSIDBase + ".comment"
+}
+
+func (a *App) OAuthScopes() []string {
+	nsids := a.NSIDs()
+	out := make([]string, 0, len(nsids)+1)
+	out = append(out, "atproto")
+	for _, nsid := range nsids {
+		out = append(out, "repo:"+nsid)
+	}
+	return out
+}
+
+// BlueskyProfileScopes are the extra OAuth scopes required to read and
+// update the user's Bluesky profile record (display name, description,
+// avatar, banner) on their PDS. Requested incrementally via a scope-upgrade
+// reauth flow when a user opts in to editing their Bluesky profile from
+// arabica — not asked for at initial login.
+func BlueskyProfileScopes() []string {
+	return []string{
+		"repo:app.bsky.actor.profile",
+		"blob:image/*",
+	}
+}
+
+// OAuthScopesWithProfile returns the union of OAuthScopes and
+// BlueskyProfileScopes. This is the full superset declared in client
+// metadata and requested by the scope-upgrade flow.
+func (a *App) OAuthScopesWithProfile() []string {
+	base := a.OAuthScopes()
+	extra := BlueskyProfileScopes()
+	out := make([]string, 0, len(base)+len(extra))
+	out = append(out, base...)
+	out = append(out, extra...)
+	return out
+}
+
+// HasBlueskyProfileScopes reports whether the given scope list includes the
+// scopes needed to edit the Bluesky profile record.
+func HasBlueskyProfileScopes(scopes []string) bool {
+	have := make(map[string]struct{}, len(scopes))
+	for _, s := range scopes {
+		have[s] = struct{}{}
+	}
+	for _, need := range BlueskyProfileScopes() {
+		if _, ok := have[need]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (a *App) DescriptorByNSID(nsid string) *entities.Descriptor {
+	for _, d := range a.Descriptors {
+		if d.NSID == nsid {
+			return d
+		}
+	}
+	return nil
+}
+
+// DescriptorByType returns the descriptor whose RecordType matches, or
+// nil if the app doesn't run that entity. Used by route registration
+// and any handler that wants to gate behaviour on per-app entity
+// availability.
+func (a *App) DescriptorByType(rt lexicons.RecordType) *entities.Descriptor {
+	for _, d := range a.Descriptors {
+		if d.Type == rt {
+			return d
+		}
+	}
+	return nil
+}
+
+func (a *App) EntityRouteByType(rt lexicons.RecordType) (EntityRoute, bool) {
+	if a == nil {
+		return EntityRoute{}, false
+	}
+	for _, route := range a.EntityRoutes {
+		if route.Type == rt {
+			return route, true
+		}
+	}
+	return EntityRoute{}, false
+}
+
+func (a *App) EntityRouteByNSID(nsid string) (EntityRoute, bool) {
+	if a == nil {
+		return EntityRoute{}, false
+	}
+	for _, d := range a.Descriptors {
+		if d.NSID != nsid {
+			continue
+		}
+		return a.EntityRouteByType(d.Type)
+	}
+	return EntityRoute{}, false
+}
+
+func (a *App) EntityRouteByPath(path string) (EntityRoute, bool) {
+	if a == nil {
+		return EntityRoute{}, false
+	}
+	for _, route := range a.EntityRoutes {
+		if route.Path == path {
+			return route, true
+		}
+	}
+	return EntityRoute{}, false
+}
+
+func (a *App) EntityRouteByNoun(noun string) (EntityRoute, bool) {
+	if a == nil {
+		return EntityRoute{}, false
+	}
+	for _, route := range a.EntityRoutes {
+		if route.Noun == noun {
+			return route, true
+		}
+	}
+	return EntityRoute{}, false
+}
+
+func (a *App) EntityNoun(rt lexicons.RecordType) string {
+	if route, ok := a.EntityRouteByType(rt); ok && route.Noun != "" {
+		return route.Noun
+	}
+	if d := a.DescriptorByType(rt); d != nil && d.DisplayName != "" {
+		return strings.ToLower(d.DisplayName)
+	}
+	return "content"
+}

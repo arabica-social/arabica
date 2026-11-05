@@ -9,7 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
+	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/backup"
 	"tangled.org/arabica.social/arabica/internal/feed"
@@ -17,7 +18,6 @@ import (
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
 	moderationsqlite "tangled.org/arabica.social/arabica/internal/moderation/sqlite"
-	"tangled.org/arabica.social/arabica/internal/ogcard"
 	"tangled.org/arabica.social/arabica/internal/records"
 	"tangled.org/arabica.social/arabica/internal/signup"
 	"tangled.org/arabica.social/arabica/internal/social"
@@ -43,14 +43,6 @@ type Config struct {
 	PublicURL string
 }
 
-type HomeReadinessChecker func(context.Context, records.Store) (bool, error)
-
-type HomeBehavior struct {
-	OGDescription    string
-	SiteCardOpts     ogcard.SiteCardOpts
-	ReadinessChecker HomeReadinessChecker
-}
-
 // Handler contains all HTTP handler methods and their dependencies.
 // Dependencies are injected via the constructor for better testability.
 type Handler struct {
@@ -71,20 +63,19 @@ type Handler struct {
 	backupService *backup.Service
 
 	// Brand carries the display name and tagline supplied at startup.
-	brand domain.BrandConfig
+	brand arabicaapp.BrandConfig
 
 	// app carries the per-app config so handlers that need the entity
 	// list (admin export, NSID-keyed loops) can read app.NSIDs(). Set
 	// via SetApp at startup.
-	app *domain.App
+	app *arabicaapp.App
 
 	// devMode reflects <APP>_DEV at startup. Gates dev-only PDS providers
 	// in the signup catalog and any other developer-facing affordances.
 	devMode bool
 
-	homeBehavior HomeBehavior
-	assets       assets.Manifest
-	feedViews    feedviews.Registry
+	assets    assets.Manifest
+	feedViews feedviews.Registry
 
 	// storeOverride supports focused handler tests without constructing an
 	// OAuth-backed ATProto client. Production code leaves it nil.
@@ -98,31 +89,9 @@ func (h *Handler) SetStoreOverrideForTest(store records.Store) {
 	h.storeOverride = store
 }
 
-// SetHomeReadinessChecker wires app-owned first-run readiness logic into the
-// shared home handler.
-func (h *Handler) SetHomeReadinessChecker(checker HomeReadinessChecker) {
-	h.homeBehavior.ReadinessChecker = checker
-}
-
-// SetHomeBehavior wires app-owned home-page behavior into the shared home
-// handler.
-func (h *Handler) SetHomeBehavior(behavior HomeBehavior) {
-	h.homeBehavior = behavior
-}
-
 // SetAssetManifest wires the server's configured asset hrefs into layout data.
 func (h *Handler) SetAssetManifest(manifest assets.Manifest) {
 	h.assets = manifest
-}
-
-func (h *Handler) SetFeedViews(views feedviews.Registry) {
-	h.feedViews = views
-}
-
-// SetRecordStoreOverrideForTest injects an app-generic record store for
-// handler tests that do not need Arabica's typed store interface.
-func (h *Handler) SetRecordStoreOverrideForTest(store records.Store) {
-	h.storeOverride = store
 }
 
 // SetDevMode toggles dev-mode features. Called once at startup from the
@@ -131,16 +100,15 @@ func (h *Handler) SetDevMode(v bool) {
 	h.devMode = v
 }
 
-// SetBrand wires the per-app branding into the handler. Called once at
-// startup from cmd/arabica or cmd/server after constructing the App.
-func (h *Handler) SetBrand(b domain.BrandConfig) {
+// SetBrand configures branding for the shell and Open Graph metadata.
+func (h *Handler) SetBrand(b arabicaapp.BrandConfig) {
 	h.brand = b
 }
 
 // SetApp wires the per-app config into the handler so app-aware code
 // paths (admin export, etc.) can read entity lists without depending on
 // arabica-specific globals.
-func (h *Handler) SetApp(a *domain.App) {
+func (h *Handler) SetApp(a *arabicaapp.App) {
 	h.app = a
 }
 
@@ -148,7 +116,7 @@ func (h *Handler) SetApp(a *domain.App) {
 // to "arabica" when SetApp wasn't called (legacy tests, ad-hoc handler
 // construction). The empty default matches the layout's stylesheet
 // switch which serves arabica's CSS for unknown app names.
-func appName(a *domain.App) string {
+func appName(a *arabicaapp.App) string {
 	if a == nil {
 		return ""
 	}
@@ -186,29 +154,14 @@ func (h *Handler) appClient() string {
 	return "arabica"
 }
 
-// CookieNames returns the auth cookie names for a given app. Apps with
-// App.LegacyUnprefixedCookies true (Arabica) keep the legacy unprefixed
-// names so prod sessions don't break; every other app gets a per-app
-// prefix so multiple apps can run on localhost without clobbering each
-// other's cookies (loopback OAuth pins us to 127.0.0.1, so the browser
-// shares one cookie jar across ports).
-func CookieNames(app *domain.App) (did, sess string) {
-	name := ""
-	if app != nil {
-		name = app.Name
-	}
-	if app != nil && app.LegacyUnprefixedCookies {
-		return "account_did", "session_id"
-	}
-	if name == "" {
-		name = "arabica"
-	}
-	return name + "_account_did", name + "_session_id"
+// CookieNames preserves the names used by existing authenticated sessions.
+func CookieNames() (did, sess string) {
+	return "account_did", "session_id"
 }
 
 // cookieNames returns this handler's auth cookie names.
 func (h *Handler) cookieNames() (did, sess string) {
-	return CookieNames(h.app)
+	return CookieNames()
 }
 
 // appNSIDs returns the running app's NSID list. Returns nil if SetApp
@@ -237,6 +190,7 @@ func NewHandler(
 		config:        config,
 		feedService:   feedService,
 		feedRegistry:  feedRegistry,
+		feedViews:     FeedViews(),
 	}
 }
 
@@ -254,22 +208,6 @@ func (h *Handler) FeedIndex() *firehose.FeedIndex {
 func (h *Handler) SetWitnessCache(wc atproto.WitnessCache) {
 	h.witnessCache = wc
 }
-
-// WitnessCache exposes the witness cache for per-app handler packages.
-func (h *Handler) WitnessCache() atproto.WitnessCache { return h.witnessCache }
-
-// AtprotoClient exposes the AT Protocol client for per-app handler packages.
-func (h *Handler) AtprotoClient() *atproto.Client { return h.atprotoClient }
-
-// SessionCache exposes the session cache for per-app handler packages.
-func (h *Handler) SessionCache() *atproto.SessionCache { return h.sessionCache }
-
-// FeedRegistry exposes the feed registry for per-app handler packages.
-func (h *Handler) FeedRegistry() *feed.Registry { return h.feedRegistry }
-
-// App exposes the per-app config for handler packages that need to inspect
-// app identity (e.g. for branch logic in cross-app endpoints).
-func (h *Handler) App() *domain.App { return h.app }
 
 // SetModeration configures the handler with moderation service and SQLite store.
 func (h *Handler) SetModeration(svc *moderation.Service, store *moderationsqlite.ModerationStore) {
@@ -481,19 +419,13 @@ func (h *Handler) GetRecordStore(r *http.Request) (records.Store, bool) {
 		return h.storeOverride, true
 	}
 
-	// Create user-scoped atproto store with injected cache. App-specific
-	// social NSIDs are plumbed in so a sister app writes to its own
-	// social.<base>.alpha.{like,comment} collections rather than arabica's.
 	var likeNSID, commentNSID string
 	if h.app != nil {
 		likeNSID = h.app.LikeNSID()
 		commentNSID = h.app.CommentNSID()
 	}
 	store := atproto.NewAtprotoStoreForApp(h.atprotoClient, did, sessionID, h.sessionCache, h.witnessCache, likeNSID, commentNSID)
-	if h.app != nil && h.app.RecordStore != nil {
-		return h.app.RecordStore(store), true
-	}
-	return store, true
+	return arabicastore.NewAtprotoStore(store), true
 }
 
 type socialStore interface {

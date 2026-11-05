@@ -204,28 +204,6 @@ func (s *AtprotoStore) GetBrewByRKey(ctx context.Context, rkey string) (*arabica
 	return brew, nil
 }
 
-// GetBrewRecordByRKey fetches a brew by rkey and returns it with its AT
-// Protocol metadata. Brew's ref-resolution is too complex for the
-// EntityCodec PostGet hook (bulk witness-batch lookups), so this stays
-// bespoke even though the wrapper shape is shared.
-func (s *AtprotoStore) GetBrewRecordByRKey(ctx context.Context, rkey string) (*atproto.EntityRecord[arabica.Brew], error) {
-	rec, uri, cid, hit, fromWitness, err := s.AtprotoStore.FetchRecordSource(ctx, arabica.NSIDBrew, rkey)
-	if err != nil {
-		return nil, err
-	}
-	if !hit {
-		return nil, fmt.Errorf("brew record %s not found", rkey)
-	}
-	brew, err := arabica.RecordToBrew(rec, uri)
-	if err != nil {
-		return nil, fmt.Errorf("convert brew: %w", err)
-	}
-	brew.RKey = rkey
-	ExtractBrewRefRKeys(brew, rec)
-	s.resolveBrewRefs(ctx, brew, rec, fromWitness)
-	return &atproto.EntityRecord[arabica.Brew]{Model: brew, URI: uri, CID: cid}, nil
-}
-
 func (s *AtprotoStore) ListBrews(ctx context.Context, userID int, offset, limit int) ([]*arabica.Brew, error) {
 	// For paginated requests, skip session cache and go directly to the witness
 	// cache (local SQLite) with LIMIT/OFFSET. The session cache is only useful for
@@ -359,22 +337,6 @@ func (s *AtprotoStore) UpdateBrewByRKey(ctx context.Context, rkey string, brew *
 
 func (s *AtprotoStore) DeleteBrewByRKey(ctx context.Context, rkey string) error {
 	return s.AtprotoStore.RemoveRecord(ctx, arabica.NSIDBrew, rkey)
-}
-
-func (s *AtprotoStore) GetBeanRecordByRKey(ctx context.Context, rkey string) (*atproto.EntityRecord[arabica.Bean], error) {
-	return atproto.GetEntityRecord(ctx, s, beanCodec, rkey)
-}
-
-func (s *AtprotoStore) GetRoasterRecordByRKey(ctx context.Context, rkey string) (*atproto.EntityRecord[arabica.Roaster], error) {
-	return atproto.GetEntityRecord(ctx, s, roasterCodec, rkey)
-}
-
-func (s *AtprotoStore) GetGrinderRecordByRKey(ctx context.Context, rkey string) (*atproto.EntityRecord[arabica.Grinder], error) {
-	return atproto.GetEntityRecord(ctx, s, grinderCodec, rkey)
-}
-
-func (s *AtprotoStore) GetBrewerRecordByRKey(ctx context.Context, rkey string) (*atproto.EntityRecord[arabica.Brewer], error) {
-	return atproto.GetEntityRecord(ctx, s, brewerCodec, rkey)
 }
 
 // resolveBeanRefs populates bean.RoasterRKey and bean.Roaster from the
@@ -646,10 +608,6 @@ func (s *AtprotoStore) CreateRecipe(ctx context.Context, req *arabica.CreateReci
 
 func (s *AtprotoStore) GetRecipeByRKey(ctx context.Context, rkey string) (*arabica.Recipe, error) {
 	return atproto.GetEntity(ctx, s, recipeCodec, rkey)
-}
-
-func (s *AtprotoStore) GetRecipeRecordByRKey(ctx context.Context, rkey string) (*atproto.EntityRecord[arabica.Recipe], error) {
-	return atproto.GetEntityRecord(ctx, s, recipeCodec, rkey)
 }
 
 func (s *AtprotoStore) ListRecipes(ctx context.Context) ([]*arabica.Recipe, error) {

@@ -74,7 +74,7 @@ func TestRecordCRUDWriteCreateSuccess(t *testing.T) {
 		func(_ records.Store, _ *crudTestRequest, m *crudTestModel) (map[string]any, error) {
 			return map[string]any{"name": m.Name}, nil
 		},
-		func() { invalidated = true }, false,
+		func() { invalidated = true },
 	)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -98,7 +98,7 @@ func TestRecordCRUDWriteUpdateSuccessFallsBackToExistingRKey(t *testing.T) {
 		func(_ records.Store, _ *crudTestRequest, m *crudTestModel) (map[string]any, error) {
 			return map[string]any{"name": m.Name}, nil
 		},
-		nil, false,
+		nil,
 	)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -117,7 +117,7 @@ func TestRecordCRUDWriteDecodeError(t *testing.T) {
 		func(req *crudTestRequest) *crudTestModel { return &crudTestModel{Name: req.Name} },
 		func(m *crudTestModel, rkey string) { m.RKey = rkey },
 		func(_ records.Store, _ *crudTestRequest, _ *crudTestModel) (map[string]any, error) { return nil, nil },
-		nil, false,
+		nil,
 	)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -135,7 +135,7 @@ func TestRecordCRUDWriteValidationError(t *testing.T) {
 		func(req *crudTestRequest) *crudTestModel { return &crudTestModel{Name: req.Name} },
 		func(m *crudTestModel, rkey string) { m.RKey = rkey },
 		func(_ records.Store, _ *crudTestRequest, _ *crudTestModel) (map[string]any, error) { return nil, nil },
-		nil, false,
+		nil,
 	)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -155,7 +155,7 @@ func TestRecordCRUDWriteStoreError(t *testing.T) {
 		func(_ records.Store, _ *crudTestRequest, m *crudTestModel) (map[string]any, error) {
 			return map[string]any{"name": m.Name}, nil
 		},
-		nil, false,
+		nil,
 	)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)

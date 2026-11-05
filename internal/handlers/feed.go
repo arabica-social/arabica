@@ -51,26 +51,11 @@ func (h *Handler) BuildModerationContext(ctx context.Context, viewerDID string, 
 	return modCtx
 }
 
-func (h *Handler) homeOGDescription() string {
-	if h.homeBehavior.OGDescription != "" {
-		return h.homeBehavior.OGDescription
-	}
-	return "Coffee journaling for the open social web. Track, share, and own your brews."
-}
-
-// siteCardOpts builds per-app SiteCardOpts so the site OG image picks up
-// the right brand name, tagline, and logo for the running binary.
 func (h *Handler) siteCardOpts() ogcard.SiteCardOpts {
-	if h.homeBehavior.SiteCardOpts != (ogcard.SiteCardOpts{}) {
-		return h.homeBehavior.SiteCardOpts
-	}
-	// Fallback (e.g. tests without app behavior wired): derive from brand so
-	// the default isn't hardcoded to Arabica.
-	name := h.appName()
 	return ogcard.SiteCardOpts{
-		AppName:  name,
-		Wordmark: h.brandName(),
-		Tagline:  "journaling for the open social web",
+		AppName:  "arabica",
+		Wordmark: "arabica.social",
+		Tagline:  "coffee journaling for the open social web",
 		Detail:   "track, share, and own your brews",
 	}
 }

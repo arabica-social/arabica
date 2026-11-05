@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/atproto"
-	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 	"tangled.org/arabica.social/arabica/internal/metrics"
 	"tangled.org/arabica.social/arabica/internal/moderation"
@@ -52,42 +51,6 @@ type FeedItem struct {
 	// when an authenticated viewer is present. Zero otherwise.
 	IsLikedByViewer bool
 	IsOwner         bool
-}
-
-// RKey returns the record key of whichever typed record is set on this
-// item, or "" if none. Dispatched through entities.Descriptor so each
-// app's record types contribute their own RKey extractor without this
-// shared package needing to know about them.
-func (f *FeedItem) RKey() string {
-	if f == nil || f.Record == nil {
-		return ""
-	}
-	b := entities.Behavior(f.RecordType)
-	if b == nil || b.RKey == nil {
-		return ""
-	}
-	return b.RKey(f.Record)
-}
-
-// DisplayTitle returns a human-readable title for share UI. Each
-// descriptor's DisplayTitle hook handles the record-specific logic
-// (e.g. brew falls back to the associated bean name). When the record
-// is nil or the hook returns "", the descriptor's DisplayName is used
-// as a fallback ("Bean", "Tea", etc.).
-func (f *FeedItem) DisplayTitle() string {
-	if f == nil {
-		return ""
-	}
-	d := entities.Get(f.RecordType)
-	if d == nil {
-		return ""
-	}
-	if b := entities.Behavior(f.RecordType); b != nil && b.DisplayTitle != nil && f.Record != nil {
-		if title := b.DisplayTitle(f.Record); title != "" {
-			return title
-		}
-	}
-	return d.DisplayName
 }
 
 // publicFeedCache holds cached feed items for unauthenticated users

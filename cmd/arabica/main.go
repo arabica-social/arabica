@@ -10,9 +10,8 @@ import (
 
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
-	"tangled.org/arabica.social/arabica/internal/arabica/handlers"
-	"tangled.org/arabica.social/arabica/internal/atplatform/server"
 	"tangled.org/arabica.social/arabica/internal/logging"
+	"tangled.org/arabica.social/arabica/internal/server"
 
 	"github.com/rs/zerolog/log"
 )
@@ -49,7 +48,7 @@ func main() {
 		KnownDIDsPath:      *knownDIDsFile,
 		DefaultPort:        defaultPort,
 		DefaultMetricsPort: defaultMetricsPort,
-		AppRoutes:          handlers.Routes{AI: aiService},
+		AI:                 aiService,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Str("app", app.Name).Msg("App exited with error")

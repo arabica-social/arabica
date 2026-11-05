@@ -75,10 +75,11 @@ func TestHTTP_WitnessCacheGetByRKeyFallback(t *testing.T) {
 	h.EvictWitnessRecord(h.PrimaryAccount, arabica.NSIDRoaster, created.RKey)
 	h.InvalidateSessionCache(h.PrimaryAccount)
 
-	// The JSON view endpoint calls GetRoasterRecordByRKey via
-	// HandleRoasterViewJSON. With the owner (the primary account's DID) in
-	// the path, the handler goes through the public-client path and should
-	// hit the PDS fallback after the witness cache eviction above.
+	// The JSON view endpoint reads the record through the entity view
+	// config via HandleRoasterViewJSON. With the owner (the primary
+	// account's DID) in the path, the handler goes through the
+	// public-client path and should hit the PDS fallback after the witness
+	// cache eviction above.
 	resp := getJSON(t, h, "/api/roasters/"+h.PrimaryAccount.DID+"/"+created.RKey)
 	body := ReadBody(t, resp)
 	require.Equal(t, 200, resp.StatusCode, statusErr(resp, body))

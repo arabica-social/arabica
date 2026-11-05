@@ -10,24 +10,11 @@ import (
 // from Descriptor so domain identity metadata does not also own codecs and
 // typed model accessors.
 type RecordBehavior struct {
-	// GetField extracts one named string field from a typed model pointer for
-	// form prefill. Returns ("", false) if entity is nil or field is unknown.
-	GetField func(entity any, field string) (string, bool)
-
 	// RecordToModel converts a raw record map (as fetched from PDS or witness
 	// cache) into the typed model for this entity. Returns the model as any;
 	// callers type-assert. nil callback means the entity does not appear in
 	// the feed pipeline.
 	RecordToModel func(record map[string]any, uri string) (any, error)
-
-	// RKey returns the record key of a typed record. The argument is the
-	// concrete record pointer (e.g. *arabica.Bean) typed as any to avoid
-	// import cycles. Returns "" if the assertion fails or the record is nil.
-	RKey func(record any) string
-
-	// DisplayTitle returns a human-readable title for a typed record.
-	// Empty string means "use the descriptor's DisplayName as fallback."
-	DisplayTitle func(record any) string
 
 	// ReferenceFields lists AT-URI string fields that should be fetched with a
 	// feed record before ResolveRefs runs. Firehose follows these fields

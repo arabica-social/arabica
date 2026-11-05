@@ -15,5 +15,5 @@ embedded fonts and logo. Successful responses use `Content-Type: image/png`
 and `Cache-Control: public, max-age=86400`. The image endpoint is independent
 of SPA page routing.
 
-The HTTP regression in `internal/atplatform/server/og_test.go` connects the
+The HTTP regression in `internal/server/og_test.go` connects the
 production resolver, embedded shell, Arabica router, and PNG renderer.

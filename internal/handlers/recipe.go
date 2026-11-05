@@ -1,0 +1,716 @@
+package handlers
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"sort"
+	"strconv"
+
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/atproto"
+
+	"tangled.org/arabica.social/arabica/internal/matching"
+	"tangled.org/arabica.social/arabica/internal/moderation"
+	"tangled.org/pdewey.com/atp"
+	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
+
+	"github.com/rs/zerolog/log"
+)
+
+// HandleRecipeCreate creates a recipe from JSON or form data.
+func (h *Handler) HandleRecipeCreate(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.getArabicaStore(r)
+	if !authenticated {
+		WriteRequestError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication required")
+		return
+	}
+
+	var req arabica.CreateRecipeRequest
+
+	if err := DecodeRequest(r, &req, func() error {
+		req = arabica.CreateRecipeRequest{
+			Name:       r.FormValue("name"),
+			BrewerRKey: r.FormValue("brewer_rkey"),
+			BrewerType: r.FormValue("brewer_type"),
+			Notes:      r.FormValue("notes"),
+			SourceRef:  r.FormValue("source_ref"),
+		}
+		if v := r.FormValue("coffee_amount"); v != "" {
+			if f, err := strconv.ParseFloat(v, 64); err == nil {
+				req.CoffeeAmount = f
+			}
+		}
+		if v := r.FormValue("water_amount"); v != "" {
+			if f, err := strconv.ParseFloat(v, 64); err == nil {
+				req.WaterAmount = f
+			}
+		}
+		req.Pours = parsePours(r)
+		return nil
+	}); err != nil {
+		log.Warn().Err(err).Msg("Failed to decode recipe create request")
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("name", req.Name).Msg("Recipe create validation failed")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if errMsg := ValidateOptionalRKey(req.BrewerRKey, "Brewer selection"); errMsg != "" {
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	recipe, err := store.CreateRecipe(r.Context(), &req)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create recipe")
+		HandleStoreErrorForRequest(w, r, err, "Failed to create recipe")
+		return
+	}
+
+	h.InvalidateFeedCache()
+	WriteJSON(w, recipe, "recipe")
+}
+
+// HandleRecipeUpdate updates an existing recipe.
+func (h *Handler) HandleRecipeUpdate(w http.ResponseWriter, r *http.Request) {
+	rkey := ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+
+	store, authenticated := h.getArabicaStore(r)
+	if !authenticated {
+		WriteRequestError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication required")
+		return
+	}
+
+	var req arabica.UpdateRecipeRequest
+
+	if err := DecodeRequest(r, &req, func() error {
+		req = arabica.UpdateRecipeRequest{
+			Name:       r.FormValue("name"),
+			BrewerRKey: r.FormValue("brewer_rkey"),
+			BrewerType: r.FormValue("brewer_type"),
+			Notes:      r.FormValue("notes"),
+		}
+		if v := r.FormValue("coffee_amount"); v != "" {
+			if f, err := strconv.ParseFloat(v, 64); err == nil {
+				req.CoffeeAmount = f
+			}
+		}
+		if v := r.FormValue("water_amount"); v != "" {
+			if f, err := strconv.ParseFloat(v, 64); err == nil {
+				req.WaterAmount = f
+			}
+		}
+		req.Pours = parsePours(r)
+		return nil
+	}); err != nil {
+		log.Warn().Err(err).Msg("Failed to decode recipe update request")
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		log.Warn().Err(err).Str("name", req.Name).Msg("Recipe update validation failed")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if errMsg := ValidateOptionalRKey(req.BrewerRKey, "Brewer selection"); errMsg != "" {
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	if err := store.UpdateRecipeByRKey(r.Context(), rkey, &req); err != nil {
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to update recipe")
+		HandleStoreErrorForRequest(w, r, err, "Failed to update recipe")
+		return
+	}
+
+	h.InvalidateFeedCache()
+
+	// Return the updated recipe as JSON so the SPA can navigate to it.
+	// Mirrors HandleRecipeCreate, which returns the created recipe.
+	updated, err := store.GetRecipeByRKey(r.Context(), rkey)
+	if err != nil {
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to fetch updated recipe for JSON response")
+		HandleStoreErrorForRequest(w, r, err, "Failed to fetch updated recipe")
+		return
+	}
+	WriteJSON(w, updated, "recipe")
+}
+
+// HandleRecipeDelete deletes a recipe and removes it from the feed index.
+func (h *Handler) HandleRecipeDelete(w http.ResponseWriter, r *http.Request) {
+	rkey := ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+
+	store, authenticated := h.getArabicaStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	if err := store.DeleteRecipeByRKey(r.Context(), rkey); err != nil {
+		log.Error().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe")
+		HandleStoreError(w, err, "Failed to delete recipe")
+		return
+	}
+
+	// Remove from feed index so the recipe stops appearing in suggestions.
+	if h.FeedIndex() != nil {
+		didStr, _ := atpmiddleware.GetDID(r.Context())
+		if didStr != "" {
+			if err := h.FeedIndex().DeleteRecord(r.Context(), didStr, arabica.NSIDRecipe, rkey); err != nil {
+				log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to delete recipe from feed index")
+			}
+		}
+	}
+
+	h.InvalidateFeedCache()
+	w.Header().Set("HX-Trigger", "entityDeleted")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleRecipeGet returns a single recipe as JSON for autofill.
+// Accepts optional ?owner= query param to fetch from another user's PDS.
+func (h *Handler) HandleRecipeGet(w http.ResponseWriter, r *http.Request) {
+	rkey := ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+
+	store, authenticated := h.getArabicaStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	ownerDID := r.URL.Query().Get("owner")
+
+	var recipe *arabica.Recipe
+	if ownerDID != "" {
+		// Fetch from the recipe owner's PDS via public client
+		publicClient := atproto.NewPublicClient()
+		record, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
+		if err != nil {
+			http.Error(w, "Recipe not found", http.StatusNotFound)
+			log.Warn().Err(err).Str("rkey", rkey).Str("owner", ownerDID).Msg("Failed to get recipe from owner PDS")
+			return
+		}
+
+		recipe, err = arabica.RecordToRecipe(record.Value, record.URI)
+		if err != nil {
+			http.Error(w, "Failed to parse recipe", http.StatusInternalServerError)
+			log.Error().Err(err).Str("rkey", rkey).Msg("Failed to parse recipe record")
+			return
+		}
+		recipe.RKey = rkey
+		recipe.AuthorDID = ownerDID
+
+		// Resolve brewer: fetch the source brewer, then match it against the
+		// current user's brewers so the returned brewer_rkey is usable in the
+		// current user's brew form.
+		if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
+			brewerRKey := atp.RKeyFromURI(brewerRef)
+			if brewerRKey != "" {
+				brewerRecord, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKey)
+				if err == nil {
+					if brewer, err := arabica.RecordToBrewer(brewerRecord.Value, brewerRecord.URI); err == nil {
+						brewer.RKey = brewerRKey
+						recipe.BrewerObj = brewer
+
+						// Try to match the source brewer to one of the current user's brewers.
+						if userBrewers, err := listBrewers(r.Context(), store); err == nil {
+							candidates := make([]matching.Candidate, len(userBrewers))
+							for i, b := range userBrewers {
+								candidates[i] = matching.Candidate{RKey: b.RKey, Name: b.Name, Type: b.BrewerType}
+							}
+							if m := matching.Match(brewer.Name, brewer.BrewerType, candidates); m != nil {
+								recipe.BrewerRKey = m.RKey
+							}
+						}
+					}
+				}
+			}
+		}
+	} else {
+		// Fetch from the logged-in user's own PDS
+		var err error
+		recipe, err = store.GetRecipeByRKey(r.Context(), rkey)
+		if err != nil {
+			http.Error(w, "Recipe not found", http.StatusNotFound)
+			log.Warn().Err(err).Str("rkey", rkey).Msg("Failed to get recipe")
+			return
+		}
+	}
+
+	recipe.Interpolate()
+	WriteJSON(w, recipe, "recipe")
+}
+
+// HandleRecipeCreateFromBrew creates a recipe pre-populated from an existing brew's parameters
+func (h *Handler) HandleRecipeCreateFromBrew(w http.ResponseWriter, r *http.Request) {
+	brewRKey := ValidateRKey(w, r.PathValue("id"))
+	if brewRKey == "" {
+		return
+	}
+
+	store, authenticated := h.getArabicaStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	// Get the brew to derive recipe parameters from.
+	brew, err := store.GetBrewByRKey(r.Context(), brewRKey)
+	if err != nil {
+		http.Error(w, "Brew not found", http.StatusNotFound)
+		log.Warn().Err(err).Str("rkey", brewRKey).Msg("Failed to get brew for recipe creation")
+		return
+	}
+
+	// Name is required from the form
+	name := r.FormValue("name")
+	if name == "" {
+		http.Error(w, "Recipe name is required", http.StatusBadRequest)
+		return
+	}
+
+	req := &arabica.CreateRecipeRequest{
+		Name:         name,
+		BrewerRKey:   brew.BrewerRKey,
+		CoffeeAmount: float64(brew.CoffeeAmount),
+		WaterAmount:  float64(brew.WaterAmount),
+	}
+
+	if len(brew.Pours) > 0 {
+		req.Pours = make([]arabica.CreatePourData, len(brew.Pours))
+		for i, pour := range brew.Pours {
+			req.Pours[i] = arabica.CreatePourData{
+				WaterAmount: pour.WaterAmount,
+				TimeSeconds: pour.TimeSeconds,
+			}
+		}
+	}
+
+	// If the brew has a brewer but no brewer type, get the brewer type
+	if brew.BrewerObj != nil {
+		req.BrewerType = brew.BrewerObj.BrewerType
+	}
+
+	if err := req.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	recipe, err := store.CreateRecipe(r.Context(), req)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create recipe from brew")
+		HandleStoreError(w, err, "Failed to create recipe")
+		return
+	}
+
+	h.InvalidateFeedCache()
+	WriteJSON(w, recipe, "recipe")
+}
+
+// HandleRecipeFork creates a copy of another user's recipe in the current user's PDS.
+// The source recipe is identified by rkey + owner query param (handle or DID).
+func (h *Handler) HandleRecipeFork(w http.ResponseWriter, r *http.Request) {
+	rkey := ValidateRKey(w, r.PathValue("id"))
+	if rkey == "" {
+		return
+	}
+
+	store, authenticated := h.getArabicaStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		http.Error(w, "owner query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	ownerDID, err := ResolveOwnerDID(r.Context(), owner)
+	if err != nil {
+		http.Error(w, "Could not resolve owner", http.StatusNotFound)
+		return
+	}
+
+	publicClient := atproto.NewPublicClient()
+	record, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDRecipe, rkey)
+	if err != nil {
+		http.Error(w, "Recipe not found", http.StatusNotFound)
+		log.Warn().Err(err).Str("rkey", rkey).Str("owner", owner).Msg("Failed to fetch recipe for fork")
+		return
+	}
+
+	sourceRecipe, err := arabica.RecordToRecipe(record.Value, record.URI)
+	if err != nil {
+		http.Error(w, "Failed to parse recipe", http.StatusInternalServerError)
+		return
+	}
+
+	// sourceURI records where this recipe was forked from.
+	sourceURI := atp.BuildATURI(ownerDID, arabica.NSIDRecipe, rkey)
+
+	// Resolve brewer: try to match the source brewer to one of the current
+	// user's brewers.
+	var brewerRKey, brewerType string
+	if brewerRef, ok := record.Value["brewerRef"].(string); ok && brewerRef != "" {
+		brewerRKeySource := atp.RKeyFromURI(brewerRef)
+		if brewerRKeySource != "" {
+			if sourceBrewer, err := publicClient.GetPublicRecord(r.Context(), ownerDID, arabica.NSIDBrewer, brewerRKeySource); err == nil {
+				var sourceName, sourceType string
+				if n, ok := sourceBrewer.Value["name"].(string); ok {
+					sourceName = n
+				}
+				if t, ok := sourceBrewer.Value["brewerType"].(string); ok {
+					sourceType = t
+					brewerType = t
+				}
+
+				// Match the source brewer to one of the current user's brewers.
+				if userBrewers, err := listBrewers(r.Context(), store); err == nil {
+					candidates := make([]matching.Candidate, len(userBrewers))
+					for i, b := range userBrewers {
+						candidates[i] = matching.Candidate{RKey: b.RKey, Name: b.Name, Type: b.BrewerType}
+					}
+					if m := matching.Match(sourceName, sourceType, candidates); m != nil {
+						brewerRKey = m.RKey
+						log.Debug().Str("matched", m.Name).Float64("score", m.Score).Msg("Matched brewer for recipe fork")
+					}
+				}
+			}
+		}
+	}
+	if brewerType == "" {
+		brewerType = sourceRecipe.BrewerType
+	}
+
+	// Fork the recipe into the current user's PDS.
+	req := &arabica.CreateRecipeRequest{
+		Name:         sourceRecipe.Name,
+		BrewerRKey:   brewerRKey,
+		BrewerType:   brewerType,
+		CoffeeAmount: sourceRecipe.CoffeeAmount,
+		WaterAmount:  sourceRecipe.WaterAmount,
+		Notes:        sourceRecipe.Notes,
+		SourceRef:    sourceURI,
+	}
+
+	if len(sourceRecipe.Pours) > 0 {
+		req.Pours = make([]arabica.CreatePourData, len(sourceRecipe.Pours))
+		for i, pour := range sourceRecipe.Pours {
+			req.Pours[i] = arabica.CreatePourData{
+				WaterAmount: pour.WaterAmount,
+				TimeSeconds: pour.TimeSeconds,
+			}
+		}
+	}
+
+	recipe, err := store.CreateRecipe(r.Context(), req)
+	if err != nil {
+		log.Error().Err(err).Str("source", sourceURI).Msg("Failed to fork recipe")
+		HandleStoreError(w, err, "Failed to fork recipe")
+		return
+	}
+
+	h.InvalidateFeedCache()
+	WriteJSON(w, recipe, "recipe")
+}
+
+// HandleRecipeSuggestions returns filtered recipes from all users via the feed index.
+// Query params: q (text search), brewer_type, min_coffee, max_coffee, min_water, max_water, category
+func (h *Handler) HandleRecipeSuggestions(w http.ResponseWriter, r *http.Request) {
+	_, authenticated := h.getArabicaStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	filter := arabica.RecipeFilter{
+		Query:      r.URL.Query().Get("q"),
+		BrewerType: r.URL.Query().Get("brewer_type"),
+		Category:   r.URL.Query().Get("category"),
+	}
+	if v := r.URL.Query().Get("min_coffee"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			filter.MinCoffee = f
+		}
+	}
+	if v := r.URL.Query().Get("max_coffee"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			filter.MaxCoffee = f
+		}
+	}
+	if v := r.URL.Query().Get("min_water"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			filter.MinWater = f
+		}
+	}
+	if v := r.URL.Query().Get("max_water"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			filter.MaxWater = f
+		}
+	}
+
+	recipes, err := h.listAllRecipesFromIndex(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to list recipes", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to list recipes from feed index")
+		return
+	}
+
+	filtered := arabica.FilterRecipes(recipes, filter)
+
+	// Default sort is popular.
+	sortBy := r.URL.Query().Get("sort")
+	if sortBy == "" {
+		sortBy = "popular"
+	}
+	switch sortBy {
+	case "popular":
+		sort.Slice(filtered, func(i, j int) bool {
+			si := filtered[i].BrewCount + filtered[i].ForkCount
+			sj := filtered[j].BrewCount + filtered[j].ForkCount
+			return si > sj
+		})
+	case "newest":
+		sort.Slice(filtered, func(i, j int) bool {
+			return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+		})
+	case "most_forked":
+		sort.Slice(filtered, func(i, j int) bool {
+			return filtered[i].ForkCount > filtered[j].ForkCount
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(filtered); err != nil {
+		log.Error().Err(err).Msg("Failed to encode recipe suggestions response")
+	}
+}
+
+// listAllRecipesFromIndex loads all recipe records from the feed index,
+// converts them to Recipe models, and populates author info.
+func (h *Handler) listAllRecipesFromIndex(ctx context.Context) ([]*arabica.Recipe, error) {
+	if h.FeedIndex() == nil {
+		return nil, fmt.Errorf("feed index not available")
+	}
+
+	records, err := h.FeedIndex().ListRecordsByCollection(ctx, arabica.NSIDRecipe)
+	if err != nil {
+		return nil, err
+	}
+
+	// Collect unique DIDs (authors + source-ref authors) to batch profile lookups.
+	didSet := make(map[string]struct{}, len(records))
+	for _, rec := range records {
+		didSet[rec.DID] = struct{}{}
+	}
+
+	// Pre-scan records for sourceRef DIDs so they're included in the batch.
+	type parsedRecord struct {
+		uri        string
+		did        string
+		data       map[string]any
+		recipe     *arabica.Recipe
+		sourceRef  string
+		sourceDID  string
+		sourceRKey string
+	}
+	parsed := make([]parsedRecord, 0, len(records))
+	for i := range records {
+		var recordData map[string]any
+		if err := json.Unmarshal(records[i].Record, &recordData); err != nil {
+			continue
+		}
+		recipe, err := arabica.RecordToRecipe(recordData, records[i].URI)
+		if err != nil {
+			continue
+		}
+
+		pr := parsedRecord{uri: records[i].URI, did: records[i].DID, data: recordData, recipe: recipe}
+		if recipe.SourceRef != "" {
+			if srcURI, err := atp.ParseATURI(recipe.SourceRef); err == nil {
+				pr.sourceDID = srcURI.DID
+				pr.sourceRKey = srcURI.RKey
+				pr.sourceRef = recipe.SourceRef
+				didSet[srcURI.DID] = struct{}{}
+			}
+		}
+		parsed = append(parsed, pr)
+	}
+
+	// Resolve profiles for all DIDs in one pass.
+	profiles := make(map[string]*atproto.Profile, len(didSet))
+	for did := range didSet {
+		profile, err := h.FeedIndex().GetProfile(ctx, did)
+		if err == nil && profile != nil {
+			profiles[did] = profile
+		}
+	}
+
+	type forkInfo struct {
+		count   int
+		avatars []string
+	}
+	forkMap := make(map[string]*forkInfo)
+	for _, pr := range parsed {
+		if pr.sourceRef != "" {
+			fi, ok := forkMap[pr.sourceRef]
+			if !ok {
+				fi = &forkInfo{}
+				forkMap[pr.sourceRef] = fi
+			}
+			fi.count++
+			if len(fi.avatars) < 5 {
+				if p, ok := profiles[pr.did]; ok && p.Avatar != nil && *p.Avatar != "" {
+					fi.avatars = append(fi.avatars, *p.Avatar)
+				}
+			}
+		}
+	}
+
+	// Batch query brew counts and brewer records referenced by the recipes.
+	brewCounts := h.FeedIndex().BrewCountsByRecipeURI(ctx)
+
+	brewerURIs := make([]string, 0)
+	for _, pr := range parsed {
+		if brewerRef, ok := pr.data["brewerRef"].(string); ok && brewerRef != "" {
+			brewerURIs = append(brewerURIs, brewerRef)
+		}
+	}
+	brewerRecords := h.FeedIndex().GetRecordsBatch(ctx, brewerURIs)
+
+	recipes := make([]*arabica.Recipe, 0, len(parsed))
+	for _, pr := range parsed {
+		recipe := pr.recipe
+
+		if brewerRef, ok := pr.data["brewerRef"].(string); ok && brewerRef != "" {
+			if rkey := atp.RKeyFromURI(brewerRef); rkey != "" {
+				recipe.BrewerRKey = rkey
+			}
+			if brewerRec, ok := brewerRecords[brewerRef]; ok {
+				var brewerData map[string]any
+				if err := json.Unmarshal(brewerRec.Record, &brewerData); err == nil {
+					if brewer, err := arabica.RecordToBrewer(brewerData, brewerRef); err == nil {
+						recipe.BrewerObj = brewer
+					}
+				}
+			}
+		}
+		if recipe.BrewerType == "" && recipe.BrewerObj != nil {
+			recipe.BrewerType = recipe.BrewerObj.BrewerType
+		}
+
+		// Author and source-author info come from the resolved profiles.
+		recipe.AuthorDID = pr.did
+		if profile, ok := profiles[pr.did]; ok {
+			recipe.AuthorHandle = profile.Handle
+			if profile.Avatar != nil {
+				recipe.AuthorAvatar = *profile.Avatar
+			}
+			if profile.DisplayName != nil {
+				recipe.AuthorDisplay = *profile.DisplayName
+			}
+		}
+
+		// Populate source author info
+		if pr.sourceDID != "" {
+			if profile, ok := profiles[pr.sourceDID]; ok {
+				recipe.SourceAuthorHandle = profile.Handle
+				if profile.Avatar != nil {
+					recipe.SourceAuthorAvatar = *profile.Avatar
+				}
+				if profile.DisplayName != nil && *profile.DisplayName != "" {
+					recipe.SourceAuthorDisplay = *profile.DisplayName
+				} else {
+					recipe.SourceAuthorDisplay = profile.Handle
+				}
+			}
+		}
+
+		// Social stats: fork count + brew count.
+		recipeURI := pr.uri
+		if fi, ok := forkMap[recipeURI]; ok {
+			recipe.ForkCount = fi.count
+			recipe.ForkerAvatars = fi.avatars
+		}
+		if bc, ok := brewCounts[recipeURI]; ok {
+			recipe.BrewCount = bc
+		}
+
+		recipe.Interpolate()
+		recipes = append(recipes, recipe)
+	}
+
+	// Filter out hidden records and content from blacklisted users.
+	if cf := h.LoadContentFilter(ctx); cf != nil {
+		recipes = moderation.FilterSlice(cf, recipes, func(r *arabica.Recipe) (string, string) {
+			if r.AuthorDID != "" && r.RKey != "" {
+				return atp.BuildATURI(r.AuthorDID, arabica.NSIDRecipe, r.RKey), r.AuthorDID
+			}
+			return "", r.AuthorDID
+		})
+	}
+
+	return recipes, nil
+}
+
+// HandleRecipeList returns all recipes as JSON
+func (h *Handler) HandleRecipeList(w http.ResponseWriter, r *http.Request) {
+	store, authenticated := h.getArabicaStore(r)
+	if !authenticated {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	recipes, err := store.ListRecipes(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to list recipes", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to list recipes")
+		return
+	}
+
+	// Resolve brewer references against cached brewers.
+	brewers, _ := listBrewers(r.Context(), store)
+	brewerMap := make(map[string]*arabica.Brewer, len(brewers))
+	for _, b := range brewers {
+		brewerMap[b.RKey] = b
+	}
+	for _, recipe := range recipes {
+		if recipe.BrewerRKey != "" {
+			recipe.BrewerObj = brewerMap[recipe.BrewerRKey]
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(recipes); err != nil {
+		log.Error().Err(err).Msg("Failed to encode recipes response")
+	}
+}
+
+// HandlePopularRecipesPartial returns popular recipes as JSON.
+func (h *Handler) HandlePopularRecipesPartial(w http.ResponseWriter, r *http.Request) {
+	h.HandlePopularRecipesJSON(w, r)
+}

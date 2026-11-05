@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"tangled.org/arabica.social/arabica/internal/backlinks"
-	"tangled.org/arabica.social/arabica/internal/suggestions"
+	"tangled.org/arabica.social/arabica/internal/matching"
 )
 
 func init() {
@@ -44,46 +44,46 @@ func init() {
 }
 
 func roasterBacklinkKey(fields map[string]string) string {
-	parts := []string{suggestions.FuzzyName(fields["name"])}
-	if loc := suggestions.Normalize(fields["location"]); loc != "" {
+	parts := []string{matching.FuzzyName(fields["name"])}
+	if loc := matching.Normalize(fields["location"]); loc != "" {
 		parts = append(parts, loc)
 	}
 	return strings.Join(parts, "|")
 }
 
 func grinderBacklinkKey(fields map[string]string) string {
-	parts := []string{suggestions.Normalize(fields["name"])}
-	if gt := suggestions.Normalize(fields["grinderType"]); gt != "" {
+	parts := []string{matching.Normalize(fields["name"])}
+	if gt := matching.Normalize(fields["grinderType"]); gt != "" {
 		parts = append(parts, gt)
 	}
-	if bt := suggestions.Normalize(fields["burrType"]); bt != "" {
+	if bt := matching.Normalize(fields["burrType"]); bt != "" {
 		parts = append(parts, bt)
 	}
 	return strings.Join(parts, "|")
 }
 
 func brewerBacklinkKey(fields map[string]string) string {
-	parts := []string{suggestions.Normalize(fields["name"])}
-	if bt := suggestions.Normalize(fields["brewerType"]); bt != "" {
+	parts := []string{matching.Normalize(fields["name"])}
+	if bt := matching.Normalize(fields["brewerType"]); bt != "" {
 		parts = append(parts, bt)
 	}
 	return strings.Join(parts, "|")
 }
 
 func beanBacklinkKey(fields map[string]string) string {
-	parts := []string{suggestions.Normalize(fields["name"])}
-	if o := suggestions.Normalize(fields["origin"]); o != "" {
+	parts := []string{matching.Normalize(fields["name"])}
+	if o := matching.Normalize(fields["origin"]); o != "" {
 		parts = append(parts, o)
 	}
-	if p := suggestions.Normalize(fields["process"]); p != "" {
+	if p := matching.Normalize(fields["process"]); p != "" {
 		parts = append(parts, p)
 	}
 	return strings.Join(parts, "|")
 }
 
 func recipeBacklinkKey(fields map[string]string) string {
-	parts := []string{suggestions.Normalize(fields["name"])}
-	if bt := suggestions.Normalize(fields["brewerType"]); bt != "" {
+	parts := []string{matching.Normalize(fields["name"])}
+	if bt := matching.Normalize(fields["brewerType"]); bt != "" {
 		parts = append(parts, bt)
 	}
 	return strings.Join(parts, "|")

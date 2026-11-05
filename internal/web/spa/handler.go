@@ -33,7 +33,7 @@ import (
 	"regexp"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/middleware"
 	"tangled.org/arabica.social/arabica/internal/web/assets"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
@@ -47,7 +47,7 @@ type ShellData struct {
 	BrandName    string
 	BrandTagline string
 	AppName      string
-	// SiteDescription is the app-level meta description from domain.Brand.
+	// SiteDescription is the app-level meta description from arabicaapp.Brand.
 	SiteDescription string
 	OGTitle         string
 	OGDescription   string
@@ -89,7 +89,7 @@ type ShellHandler struct {
 	indexHTML    []byte
 	headTemplate *template.Template
 	appName      string
-	brand        domain.BrandConfig
+	brand        arabicaapp.BrandConfig
 	manifest     assets.Manifest
 	// sessionResolver, when set, provides per-request session data
 	// (profile, unread count, moderator flag) for the authenticated user.
@@ -151,7 +151,7 @@ type OGResolver func(r *http.Request) OGData
 // NewShellHandler creates a handler that serves the SPA shell. It reads
 // the embedded index.html at construction time. The assets manifest
 // provides cache-busted CSS hrefs for the <head>.
-func NewShellHandler(manifest assets.Manifest, appName string, brand domain.BrandConfig) (*ShellHandler, error) {
+func NewShellHandler(manifest assets.Manifest, appName string, brand arabicaapp.BrandConfig) (*ShellHandler, error) {
 	fsys := EmbeddedFS()
 	indexBytes, err := fs.ReadFile(fsys, "index.html")
 	if err != nil {

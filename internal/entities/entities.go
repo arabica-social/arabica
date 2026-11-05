@@ -1,7 +1,6 @@
 // Package entities provides registries for record identity metadata and
 // record-specific behavior. Descriptors identify records; record behavior
-// owns codecs, rkey/title extraction, form field extraction, and feed ref
-// hydration.
+// owns codecs and feed reference hydration.
 package entities
 
 import (

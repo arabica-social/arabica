@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/firehose"
 	"tangled.org/arabica.social/arabica/internal/handlers"
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -24,7 +25,7 @@ import (
 
 // Config holds the configuration needed for setting up routes
 type Config struct {
-	App               *domain.App
+	App               *arabicaapp.App
 	Handlers          *handlers.Handler
 	OAuthApp          *atp.OAuthApp
 	OnAuth            func(did string)
@@ -32,7 +33,7 @@ type Config struct {
 	ModerationService *moderation.Service
 	FirehoseConsumer  *firehose.Consumer
 	CSSBundle         *assets.Bundle
-	AppRoutes         AppRoutes
+	AI                *arabicaai.Service
 	DisableRateLimit  bool
 
 	// SPAAssetDevDir, when non-empty, is a path to the SvelteKit build
@@ -41,44 +42,27 @@ type Config struct {
 	// output on refresh without a Go restart. Empty in production.
 	SPAAssetDevDir string
 
-	// SPAHandler serves page routes listed by AppRoutes.SPAOwnedRoutes.
+	// SPAHandler serves page routes listed by SPAOwnedRoutes.
 	SPAHandler http.Handler
 }
 
-// AppRoutes is implemented by app-owned packages that register routes whose
-// handlers or page models are not shared platform concerns.
-type AppRoutes interface {
-	RegisterAppRoutes(mux *http.ServeMux, ctx AppRouteContext)
-	SPAOwnedRoutes() []string
-}
-
-// AppRouteContext exposes the shared dependencies app route registrars need
-// without making routing import either app package.
-type AppRouteContext struct {
-	App      *domain.App
-	Handlers *handlers.Handler
-	CSRF     *http.CrossOriginProtection
-	Pages    PageRoutes
-}
-
-// PageRoutes registers page patterns against the app-owned SPA allowlist.
+// pageRoutes registers page patterns against the app-owned SPA allowlist.
 // API, mutation, auth, asset, and unknown routes do not participate.
-type PageRoutes struct {
+type pageRoutes struct {
 	spaHandler http.Handler
 	spaOwned   map[string]struct{}
 }
 
-// NewPageRoutes creates a page registrar for the supplied SPA-owned patterns.
-func NewPageRoutes(spaHandler http.Handler, spaOwned []string) PageRoutes {
+func newPageRoutes(spaHandler http.Handler, spaOwned []string) pageRoutes {
 	owned := make(map[string]struct{}, len(spaOwned))
 	for _, pattern := range spaOwned {
 		owned[pattern] = struct{}{}
 	}
-	return PageRoutes{spaHandler: spaHandler, spaOwned: owned}
+	return pageRoutes{spaHandler: spaHandler, spaOwned: owned}
 }
 
 // Register assigns one page route to its explicit owner.
-func (p PageRoutes) Register(mux *http.ServeMux, pattern string, legacy http.Handler) {
+func (p pageRoutes) Register(mux *http.ServeMux, pattern string, legacy http.Handler) {
 	if p.IsSPA(pattern) {
 		mux.Handle(pattern, p.spaHandler)
 		return
@@ -87,7 +71,7 @@ func (p PageRoutes) Register(mux *http.ServeMux, pattern string, legacy http.Han
 }
 
 // IsSPA reports whether a page pattern is explicitly owned by the SPA.
-func (p PageRoutes) IsSPA(pattern string) bool {
+func (p pageRoutes) IsSPA(pattern string) bool {
 	if p.spaHandler == nil {
 		return false
 	}
@@ -99,11 +83,7 @@ func (p PageRoutes) IsSPA(pattern string) bool {
 func SetupRouter(cfg Config) http.Handler {
 	h := cfg.Handlers
 	mux := http.NewServeMux()
-	var spaOwned []string
-	if cfg.AppRoutes != nil {
-		spaOwned = cfg.AppRoutes.SPAOwnedRoutes()
-	}
-	pages := NewPageRoutes(cfg.SPAHandler, spaOwned)
+	pages := newPageRoutes(cfg.SPAHandler, SPAOwnedRoutes())
 
 	cop := http.NewCrossOriginProtection()
 
@@ -152,14 +132,7 @@ func SetupRouter(cfg Config) http.Handler {
 	mux.Handle("POST /join/create", cop.Handler(http.HandlerFunc(h.HandleCreateAccountSubmit)))
 	mux.HandleFunc("GET /api/signup/categories", h.HandleSignupCategories)
 
-	if cfg.AppRoutes != nil {
-		cfg.AppRoutes.RegisterAppRoutes(mux, AppRouteContext{
-			App:      cfg.App,
-			Handlers: h,
-			CSRF:     cop,
-			Pages:    pages,
-		})
-	}
+	registerArabicaRoutes(mux, cop, cfg.App, h, pages, cfg.AI)
 
 	mux.Handle("POST /api/likes/toggle", cop.Handler(http.HandlerFunc(h.HandleLikeToggle)))
 	mux.Handle("POST /api/report", cop.Handler(http.HandlerFunc(h.HandleReport)))
@@ -258,13 +231,13 @@ func SetupRouter(cfg Config) http.Handler {
 
 	var handler http.Handler = mux
 
-	handler = middleware.LimitBodyMiddleware(handler)
+	handler = middleware.LimitBodyMiddlewareWithRouteLimits(handler, map[string]int64{"POST /api/ai/chat": handlers.MaxAIChatBodySize})
 
 	// This must remain inside CookieAuth so the context already contains the DID.
 	handler = middleware.UserDIDSpanMiddleware(handler)
 
 	if cfg.OAuthApp != nil {
-		didCookieName, sessCookieName := handlers.CookieNames(cfg.App)
+		didCookieName, sessCookieName := handlers.CookieNames()
 		handler = atpmiddleware.CookieAuth(atpmiddleware.CookieAuthConfig{
 			OAuthApp:       cfg.OAuthApp,
 			DIDCookieName:  didCookieName,
@@ -357,19 +330,9 @@ func handleHealthz(h *handlers.Handler, consumer *firehose.Consumer) http.Handle
 	}
 }
 
-// RegisterEntityRoutes wires the per-entity public routes — view page, OG
-// image, JSON CRUD, and modal partials — for every bundle whose
-// RecordType has a matching descriptor on app.
-//
-// The app entity route path becomes the URL segment (e.g., "beans"); the
-// app entity route noun becomes the modal path segment (e.g., "bean"). A
-// nil handler in a bundle field skips the corresponding route, letting
-// future entities omit (say) modal partials without forcing every app
-// to publish stubs.
-func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *domain.App, bundles []handlers.EntityRouteBundle, pages PageRoutes) {
+func registerEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, app *arabicaapp.App, bundles []entityRouteBundle, pages pageRoutes) {
 	for _, b := range bundles {
 		if app.DescriptorByType(b.RecordType) == nil {
-			// Bundle declared a route for an entity this app doesn't run.
 			// Skip silently — supports app-specific entity subsets.
 			continue
 		}
@@ -389,13 +352,13 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 		pages.Register(mux, "GET /"+urlPath+"/{actor}/{id}", notFound)
 		pages.Register(mux, "GET /"+urlPath+"/{actor}/{id}/backlinks", notFound)
 		if b.JSONView != nil {
-			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}", RewriteActorToOwner(b.JSONView))
+			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}", rewriteActorToOwner(b.JSONView))
 		}
 		if b.JSONBacklinks != nil {
-			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}/backlinks", RewriteActorToOwner(b.JSONBacklinks))
+			mux.HandleFunc("GET /api/"+urlPath+"/{actor}/{id}/backlinks", rewriteActorToOwner(b.JSONBacklinks))
 		}
 		if b.OGImage != nil {
-			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/og-image", RewriteActorToOwner(b.OGImage))
+			mux.HandleFunc("GET /"+urlPath+"/{actor}/{id}/og-image", rewriteActorToOwner(b.OGImage))
 		}
 		if b.Create != nil {
 			mux.Handle("POST /api/"+urlPath, cop.Handler(b.Create))
@@ -409,12 +372,12 @@ func RegisterEntityRoutes(mux *http.ServeMux, cop *http.CrossOriginProtection, a
 	}
 }
 
-// RewriteActorToOwner promotes the {actor} path segment to the ?owner= query
+// rewriteActorToOwner promotes the {actor} path segment to the ?owner= query
 // param so the existing record view/og-image handlers (which key off ?owner=)
 // can serve the new /{slug}/{actor}/{rkey} canonical route without changes.
 // The actor segment may be either a did:* identifier or a handle; both are
 // already accepted by the downstream resolver.
-func RewriteActorToOwner(h http.HandlerFunc) http.HandlerFunc {
+func rewriteActorToOwner(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if actor := r.PathValue("actor"); actor != "" {
 			q := r.URL.Query()

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"tangled.org/arabica.social/arabica/internal/arabica/entities"
 	_ "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/arabica.social/arabica/internal/entities"
 	"tangled.org/arabica.social/arabica/internal/lexicons"
@@ -56,51 +55,5 @@ func TestArabicaRegistry_AllContainsAllTypes(t *testing.T) {
 		lexicons.RecordTypeRoaster,
 	} {
 		assert.True(t, types[rt], "expected %s in All()", rt)
-	}
-}
-
-func TestArabicaRegistry_RKey(t *testing.T) {
-	cases := []struct {
-		rt   lexicons.RecordType
-		rec  any
-		want string
-	}{
-		{lexicons.RecordTypeBean, &arabica.Bean{RKey: "b1"}, "b1"},
-		{lexicons.RecordTypeRoaster, &arabica.Roaster{RKey: "r1"}, "r1"},
-		{lexicons.RecordTypeGrinder, &arabica.Grinder{RKey: "g1"}, "g1"},
-		{lexicons.RecordTypeBrewer, &arabica.Brewer{RKey: "br1"}, "br1"},
-		{lexicons.RecordTypeRecipe, &arabica.Recipe{RKey: "re1"}, "re1"},
-		{lexicons.RecordTypeBrew, &arabica.Brew{RKey: "bw1"}, "bw1"},
-	}
-	for _, c := range cases {
-		behavior := entities.Behavior(c.rt)
-		assert.NotNil(t, behavior, "behavior not wired for %s", c.rt)
-		assert.NotNil(t, behavior.RKey, "RKey not wired for %s", c.rt)
-		assert.Equal(t, c.want, behavior.RKey(c.rec), c.rt)
-		assert.Equal(t, "", behavior.RKey(struct{}{}), "%s should reject wrong type", c.rt)
-	}
-}
-
-func TestArabicaRegistry_DisplayTitle(t *testing.T) {
-	cases := []struct {
-		name string
-		rt   lexicons.RecordType
-		rec  any
-		want string
-	}{
-		{"bean name", lexicons.RecordTypeBean, &arabica.Bean{Name: "Geisha"}, "Geisha"},
-		{"bean fallback to origin", lexicons.RecordTypeBean, &arabica.Bean{Origin: "Ethiopia"}, "Ethiopia"},
-		{"roaster name", lexicons.RecordTypeRoaster, &arabica.Roaster{Name: "Onyx"}, "Onyx"},
-		{"recipe name", lexicons.RecordTypeRecipe, &arabica.Recipe{Name: "V60"}, "V60"},
-		{"brew uses bean name", lexicons.RecordTypeBrew, &arabica.Brew{Bean: &arabica.Bean{Name: "Geisha"}}, "Geisha"},
-		{"brew no bean falls back", lexicons.RecordTypeBrew, &arabica.Brew{}, "Coffee Brew"},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			behavior := entities.Behavior(c.rt)
-			assert.NotNil(t, behavior, "behavior not wired for %s", c.rt)
-			assert.NotNil(t, behavior.DisplayTitle, "DisplayTitle not wired for %s", c.rt)
-			assert.Equal(t, c.want, behavior.DisplayTitle(c.rec))
-		})
 	}
 }

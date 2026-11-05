@@ -1,6 +1,6 @@
 # ADR-004: Separate Shared Platform and App-Owned Packages
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-007](ADR-007-single-app-backend-composition.md)
 **Recorded:** 2026-07-16
 **Decision period:** Retrospective
 

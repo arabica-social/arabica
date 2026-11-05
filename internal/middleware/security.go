@@ -221,6 +221,12 @@ const (
 
 // LimitBodyMiddleware limits request body size to prevent DoS
 func LimitBodyMiddleware(next http.Handler) http.Handler {
+	return LimitBodyMiddlewareWithRouteLimits(next, nil)
+}
+
+// LimitBodyMiddlewareWithRouteLimits applies overrides for matched method-qualified
+// route patterns. The router must populate r.Pattern before invoking it.
+func LimitBodyMiddlewareWithRouteLimits(next http.Handler, limits map[string]int64) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body != nil {
 			contentType := r.Header.Get("Content-Type")
@@ -236,6 +242,9 @@ func LimitBodyMiddleware(next http.Handler) http.Handler {
 				maxSize = MaxJSONBodySize
 			}
 
+			if limit, ok := limits[r.Pattern]; ok && limit > 0 {
+				maxSize = limit
+			}
 			r.Body = http.MaxBytesReader(w, r.Body, maxSize)
 		}
 

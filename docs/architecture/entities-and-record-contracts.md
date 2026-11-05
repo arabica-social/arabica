@@ -2,32 +2,29 @@
 
 Authoritative sources:
 
-- [`internal/atplatform/domain/app.go`](../../internal/atplatform/domain/app.go)
+- [`internal/arabica/app/config.go`](../../internal/arabica/app/config.go)
 - [`internal/entities/entities.go`](../../internal/entities/entities.go)
 - [`internal/entities/record_behavior.go`](../../internal/entities/record_behavior.go)
 - [`internal/arabica/entities/`](../../internal/arabica/entities/)
 - [`lexicons/`](../../lexicons/)
 
 Related decisions: [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md),
-[ADR-004](../adr/ADR-004-shared-platform-and-app-owned-package-boundary.md),
+[ADR-007](../adr/ADR-007-single-app-backend-composition.md),
 and [ADR-005](../adr/ADR-005-separate-entity-descriptors-from-record-behavior.md).
 
 ## App Boundary
 
-`domain.App` is the runtime seam between shared platform infrastructure and an
-individual application. It provides the app name, NSID base, enabled entity
-descriptors, entity routes, branding, and record-store behavior.
-
-Shared packages discover an app's supported collections and routes through this
-configuration. They must not import app-specific packages to ask application-
-specific questions.
+`arabicaapp.App` groups Arabica collection identities, route metadata, branding
+and OAuth scope helpers. It is not a product plugin and does not decorate record
+stores. HTTP handlers construct the authenticated Arabica store directly.
 
 | Concern | Owner |
 |---|---|
-| Shared AT Protocol, OAuth, routing, cache, firehose, feed, and record mechanics | Shared platform packages |
-| Coffee record registrations and behavior | `internal/arabica` |
-| Per-app enabled descriptors, routes, branding, and NSID base | `domain.App` construction |
-| Persisted record schema | `lexicons/` and compatibility behavior in app record code |
+| Protocol clients and cached PDS record access | `internal/atproto` and `internal/records` |
+| Coffee models, codecs and record behavior | `internal/arabica/entities` and `internal/arabica/store` |
+| HTTP request behavior and route composition | `internal/handlers` and `internal/routing` |
+| Collection identities, routes and branding | `internal/arabica/app` |
+| Persisted record schema | `lexicons/` and compatibility behavior in record code |
 
 ## Descriptor and Behavior Registries
 
@@ -40,12 +37,10 @@ An entity descriptor contains identity metadata only:
 Record behavior is registered separately and can provide:
 
 - raw-record decoding
-- form-field extraction
-- record-key and display-title access
 - reference field declarations
 - reference hydration
 
-Routing, edit URLs, Templ/Svelte rendering, and feed-card presentation do not
+Routing, edit URLs, Svelte rendering, and feed-card presentation do not
 belong on the descriptor. Architecture tests enforce this boundary.
 
 ## Lexicons and Existing Records
@@ -82,8 +77,9 @@ clustering; they are not inferred from similar names.
 
 - App-specific record behavior remains in app-owned packages.
 - Shared registries must not acquire Templ or Svelte presentation ownership.
-- Global registration must not leak sister-app entities into app-scoped routes,
-  OAuth scopes, feed queries, or databases.
+- Collection lookups, OAuth scopes and routes must retain Arabica identities.
+- Explore constructs its coffee registry directly. Suggestions own a static
+  coffee field/deduplication configuration; neither uses per-app factories.
 - New entity capabilities are discovered from current registries and sibling
   implementations rather than from a fixed file checklist. Use the
   [`arabica-entity-change`](../../.agents/skills/arabica-entity-change/SKILL.md)

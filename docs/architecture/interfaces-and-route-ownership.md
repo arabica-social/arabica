@@ -4,10 +4,10 @@ Authoritative sources:
 
 - [`internal/routing/`](../../internal/routing/)
 - [`internal/handlers/`](../../internal/handlers/)
-- [`internal/arabica/handlers/routes.go`](../../internal/arabica/handlers/routes.go)
+- [`internal/routing/arabica.go`](../../internal/routing/arabica.go)
 - [`docs/api/`](../api/README.md)
 
-Related decisions: [ADR-004](../adr/ADR-004-shared-platform-and-app-owned-package-boundary.md)
+Related decisions: [ADR-007](../adr/ADR-007-single-app-backend-composition.md)
 and [ADR-006](../adr/ADR-006-embedded-spa-with-explicit-route-cutover.md).
 
 ## External Boundaries
@@ -25,14 +25,11 @@ and [ADR-006](../adr/ADR-006-embedded-spa-with-explicit-route-cutover.md).
 
 ## Route Ownership
 
-Shared routing infrastructure owns common mechanics, middleware, and the choice
-between SPA and legacy page handlers. Each app package owns its app-specific
-route registration and page-cutover inventory.
-
-Arabica's `Routes.SPAOwnedRoutes()` is the executable list of page patterns
-served by the SvelteKit shell. A listed route must have a working direct-load
-SvelteKit path and all required JSON/session/error behavior. Unlisted routes
-retain legacy handling.
+The routing package owns middleware and all Arabica route registration.
+`routing.SPAOwnedRoutes()` is the executable allowlist of page patterns served
+by the SvelteKit shell. A listed route must have a working direct-load path and
+all required JSON/session/error behavior. Without a shell, page routes return
+404. Unknown pages remain 404; no legacy page-rendering stack remains.
 
 JSON, mutation, OG image, modal, and compatibility endpoints remain independent
 of which frontend owns the corresponding page. A page cutover should not
@@ -50,8 +47,8 @@ than relying on prose alone.
 - Mutations use the authenticated user's store and retain CSRF protection where
   applicable.
 - Route cutover is explicit and reversible during migration.
-- A shared package must not import app handlers to register app-specific
-  behavior.
+- Routing depends directly on the application HTTP handlers; handlers do not
+  depend on routing.
 - Direct loads, in-app navigation, unauthenticated behavior, and error states
   are part of page-route correctness.
 - Public/cross-user reads must preserve moderation, visibility, and ownership

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/atplatform/domain"
+	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -57,7 +57,7 @@ func (h *Handler) loadBlueskyProfileForm(ctx context.Context, didStr, sessionID 
 		form.NeedsAuthAgain = true
 		return form
 	}
-	form.HasScopes = domain.HasBlueskyProfileScopes(scopes)
+	form.HasScopes = arabicaapp.HasBlueskyProfileScopes(scopes)
 	if !form.HasScopes {
 		return form
 	}
@@ -118,7 +118,7 @@ func (h *Handler) HandleUpdateBlueskyProfile(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Session expired", http.StatusUnauthorized)
 		return
 	}
-	if !domain.HasBlueskyProfileScopes(scopes) {
+	if !arabicaapp.HasBlueskyProfileScopes(scopes) {
 		http.Error(w, "Bluesky profile scopes not granted; re-authorize and try again.", http.StatusForbidden)
 		return
 	}

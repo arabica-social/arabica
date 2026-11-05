@@ -8,8 +8,8 @@ context to the document or skill that owns it.
 Arabica is a coffee brew tracking application built on AT Protocol. User
 records live in each user's Personal Data Server (PDS). The application
 authenticates with OAuth and performs record CRUD through XRPC calls to the
-user's PDS. Platform packages are app-agnostic so the same runtime can host a
-sister app via per-app configuration, registries, and interfaces.
+user's PDS. The backend serves Arabica only. HTTP routing and composition may depend on
+coffee-specific behavior; protocol and persistence seams remain separate.
 
 ## Where Context Lives
 
@@ -57,9 +57,9 @@ Last reviewed: 2026-07-24.
   `arabica-record-evolution` skill.
 - **Protect user boundaries.** Cross-user reads must respect visibility and
   moderation; mutations must remain scoped to the authenticated user's store.
-- **Respect package seams.** Shared packages must not import
-  `internal/arabica`. App behavior is supplied through app
-  configuration, registries, and interfaces.
+- **Respect package seams.** HTTP routing and server composition own Arabica
+  wiring directly. Keep protocol/storage mechanics independent of HTTP and
+  product composition; do not retain extension points solely for sister apps.
 - **Keep entity identity lightweight.** Descriptors identify record types;
   codecs, reference hydration, routing, and presentation live in their owning
   layers.
