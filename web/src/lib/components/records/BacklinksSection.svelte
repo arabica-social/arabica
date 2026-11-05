@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { BacklinksResult, BacklinkEntry } from "../types/entity_view";
+  import type { BacklinksResult, BacklinkEntry } from "../../types/entity_view";
 
   let {
     result,

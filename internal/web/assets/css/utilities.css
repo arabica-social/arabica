@@ -1474,9 +1474,3 @@
   color: var(--type-brewer);
 }
 
-/* Collection brew-card metadata: fills the row at any card width instead of
-   leaving a trailing half-empty column. */
-.brew-meta-grid {
-  grid-template-columns: repeat(auto-fit, minmax(9rem, max-content));
-  justify-content: start;
-}

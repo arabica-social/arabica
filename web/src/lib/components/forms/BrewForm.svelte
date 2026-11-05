@@ -5,34 +5,34 @@
     normalizeBrewerCategory,
     preparationLayout,
     type BrewFormMode,
-  } from "../utils/brewFormPolicy";
-  import EntityCombo from "./EntityCombo.svelte";
+  } from "../../utils/brewFormPolicy";
+  import EntityCombo from "../EntityCombo.svelte";
   import Field from "./BrewFormField.svelte";
   import PoursEditor from "./PoursEditor.svelte";
-  import FormWorkspace from "./FormWorkspace.svelte";
-  import LedgerHeader from "./LedgerHeader.svelte";
-  import FormSection from "./FormSection.svelte";
-  import { appCache } from "../stores/appCache";
+  import FormWorkspace from "../FormWorkspace.svelte";
+  import LedgerHeader from "../LedgerHeader.svelte";
+  import FormSection from "../FormSection.svelte";
+  import { appCache } from "../../stores/appCache";
   import {
     loadUserPrefs,
     setBrewFormMode,
     userPrefs,
-  } from "../stores/userPrefs";
-  import { session, warnIfSessionExpired } from "../stores/session";
-  import { pushToast } from "../stores/toasts";
+  } from "../../stores/userPrefs";
+  import { session, warnIfSessionExpired } from "../../stores/session";
+  import { pushToast } from "../../stores/toasts";
   import { beforeNavigate, goto } from "$app/navigation";
-  import { createBrew, updateBrew, type BrewInput } from "../api/entities";
+  import { createBrew, updateBrew, type BrewInput } from "../../api/entities";
   import {
     APIError,
     notifySessionExpired,
     notifySessionExpiredForResponse,
-  } from "../api/client";
+  } from "../../api/client";
   import {
     computeAutofill,
     type AutofillField,
     type AutofillSuggestion,
-  } from "../utils/brewAutofill";
-  import type { Brew, Brewer, Recipe } from "../types/entity_view";
+  } from "../../utils/brewAutofill";
+  import type { Brew, Brewer, Recipe } from "../../types/entity_view";
 
   type Pour = { water: string; time: string };
 

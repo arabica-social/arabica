@@ -8,7 +8,7 @@ import {
 } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import BrewForm from "../../src/lib/components/BrewForm.svelte";
+import BrewForm from "../../src/lib/components/forms/BrewForm.svelte";
 import { userPrefs } from "../../src/lib/stores/userPrefs";
 import type { Brew, Recipe } from "../../src/lib/types/entity_view";
 

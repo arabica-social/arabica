@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Avatar from "./Avatar.svelte";
-  import TypeBadge from "./TypeBadge.svelte";
-  import { displayHandle } from "../stores/session";
+  import Avatar from "../Avatar.svelte";
+  import TypeBadge from "../TypeBadge.svelte";
+  import { displayHandle } from "../../stores/session";
 
   let {
     recordType,

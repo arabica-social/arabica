@@ -1,5 +1,5 @@
 <script lang="ts">
-  import BacklinksView from "#lib/components/BacklinksView.svelte";
+  import BacklinksView from "#lib/components/records/BacklinksView.svelte";
   import { openLoginModal } from "#lib/stores/session.js";
   import type { PageData } from "./$types";
 

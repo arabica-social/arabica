@@ -1,8 +1,8 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import FormWorkspace from "./FormWorkspace.svelte";
-  import LedgerHeader from "./LedgerHeader.svelte";
-  import FormSection from "./FormSection.svelte";
+  import FormWorkspace from "../FormWorkspace.svelte";
+  import LedgerHeader from "../LedgerHeader.svelte";
+  import FormSection from "../FormSection.svelte";
   import { APIError } from "#lib/api/client.js";
   import { createGrinder, updateGrinder } from "#lib/api/entities.js";
   import { appCache } from "#lib/stores/appCache.js";

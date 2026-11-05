@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
-import RecipeForm from "../../src/lib/components/RecipeForm.svelte";
+import RecipeForm from "../../src/lib/components/forms/RecipeForm.svelte";
 import { session } from "../../src/lib/stores/session";
 import { clearToasts, toasts } from "../../src/lib/stores/toasts";
 import type { Recipe } from "../../src/lib/types/entity_view";

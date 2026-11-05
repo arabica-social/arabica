@@ -3,6 +3,7 @@
   import Icon from "#lib/components/Icon.svelte";
   import ActionBar from "#lib/components/ActionBar.svelte";
   import PourStrip from "#lib/components/PourStrip.svelte";
+  import BrewParams from "#lib/components/BrewParams.svelte";
   import { displayHandle, safeAvatarURL } from "#lib/stores/session.js";
   import {
     pluralS,
@@ -286,51 +287,9 @@
                             ><Icon name="flame" class="w-3 h-3" />{brew.bean
                               .roast_level}</span
                           >{/if}
-                        {#if brew.coffee_amount > 0}<span
-                            class="inline-flex items-center gap-1"
-                            ><Icon
-                              name="scale"
-                              class="w-3 h-3"
-                            />{brew.coffee_amount}g</span
-                          >{/if}
                       </div>
                     {/if}
-                    {#if brew.brewer_obj?.name || brew.method}
-                      <div class="mb-2">
-                        <span class="text-meta">Brewer:</span>
-                        <span class="text-sm text-primary"
-                          >{brew.brewer_obj?.name ?? brew.method}</span
-                        >
-                      </div>
-                    {/if}
-                    <div
-                      class="brew-meta-grid grid gap-x-4 gap-y-1 text-xs text-emphasis"
-                    >
-                      {#if brew.grinder_obj?.name}
-                        <div>
-                          <span class="text-label">Grinder:</span>
-                          {brew.grinder_obj.name}{#if brew.grind_size}
-                            ({brew.grind_size}){/if}
-                        </div>
-                      {:else if brew.grind_size}
-                        <div>
-                          <span class="text-label">Grind:</span>
-                          {brew.grind_size}
-                        </div>
-                      {/if}
-                      {#if brew.water_amount > 0}<div>
-                          <span class="text-label">Water:</span>
-                          {brew.water_amount}g
-                        </div>{/if}
-                      {#if brew.temperature > 0}<div>
-                          <span class="text-label">Temp:</span>
-                          {formatTemp(brew.temperature)}
-                        </div>{/if}
-                      {#if brew.time_seconds > 0}<div>
-                          <span class="text-label">Time:</span>
-                          {formatTime(brew.time_seconds)}
-                        </div>{/if}
-                    </div>
+                    <BrewParams {brew} />
                     <PourStrip pours={brew.pours} />
                     {#if brew.tasting_notes}
                       <div class="text-sm text-secondary mt-1 line-clamp-2">

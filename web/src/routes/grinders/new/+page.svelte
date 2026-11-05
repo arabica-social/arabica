@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GrinderForm from "#lib/components/GrinderForm.svelte";
+  import GrinderForm from "#lib/components/forms/GrinderForm.svelte";
   import { openLoginModal } from "#lib/stores/session.js";
   import type { PageData } from "./$types";
 

@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/svelte";
 import { afterEach, describe, expect, it } from "vitest";
-import BacklinksView from "../../src/lib/components/BacklinksView.svelte";
+import BacklinksView from "../../src/lib/components/records/BacklinksView.svelte";
 import { app } from "../../src/lib/stores/session";
 import type { BacklinksResult } from "../../src/lib/types/entity_view";
 

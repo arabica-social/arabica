@@ -1,5 +1,5 @@
 <script lang="ts">
-  import RoasterForm from "#lib/components/RoasterForm.svelte";
+  import RoasterForm from "#lib/components/forms/RoasterForm.svelte";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();

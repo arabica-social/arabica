@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { defineMeta } from "@storybook/addon-svelte-csf";
-  import type { BacklinksResult, BacklinkEntry } from "../types/entity_view";
+  import type { BacklinksResult, BacklinkEntry } from "../../types/entity_view";
   import BacklinksSection from "./BacklinksSection.svelte";
 
   const { Story } = defineMeta({

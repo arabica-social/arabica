@@ -1,5 +1,5 @@
 <script lang="ts">
-  import BeanForm from "#lib/components/BeanForm.svelte";
+  import BeanForm from "#lib/components/forms/BeanForm.svelte";
   import { openLoginModal } from "#lib/stores/session.js";
   import type { PageData } from "./$types";
 

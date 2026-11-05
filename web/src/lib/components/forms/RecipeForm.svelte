@@ -1,10 +1,10 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import EntityCombo from "./EntityCombo.svelte";
+  import EntityCombo from "../EntityCombo.svelte";
   import PoursEditor from "./PoursEditor.svelte";
-  import FormWorkspace from "./FormWorkspace.svelte";
-  import LedgerHeader from "./LedgerHeader.svelte";
-  import FormSection from "./FormSection.svelte";
+  import FormWorkspace from "../FormWorkspace.svelte";
+  import LedgerHeader from "../LedgerHeader.svelte";
+  import FormSection from "../FormSection.svelte";
   import { APIError } from "#lib/api/client.js";
   import { createRecipe, updateRecipe } from "#lib/api/entities.js";
   import { appCache } from "#lib/stores/appCache.js";

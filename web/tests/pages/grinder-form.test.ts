@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
-import GrinderForm from "../../src/lib/components/GrinderForm.svelte";
+import GrinderForm from "../../src/lib/components/forms/GrinderForm.svelte";
 import { session } from "../../src/lib/stores/session";
 import { clearToasts, toasts } from "../../src/lib/stores/toasts";
 import type { Grinder } from "../../src/lib/types/entity_view";

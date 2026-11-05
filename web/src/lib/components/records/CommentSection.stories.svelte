@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { defineMeta } from "@storybook/addon-svelte-csf";
-  import type { IndexedComment } from "../types/entity_view";
+  import type { IndexedComment } from "../../types/entity_view";
   import CommentSection from "./CommentSection.svelte";
 
   const { Story } = defineMeta({

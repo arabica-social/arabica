@@ -1,5 +1,5 @@
 <script lang="ts">
-  import EntityViewLayout from "#lib/components/EntityViewLayout.svelte";
+  import EntityViewLayout from "#lib/components/records/EntityViewLayout.svelte";
   import Icon from "#lib/components/Icon.svelte";
   import { formatTime } from "#lib/utils/format.js";
   import { pushToast } from "#lib/stores/toasts.js";

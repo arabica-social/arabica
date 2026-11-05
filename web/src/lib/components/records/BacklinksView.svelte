@@ -3,7 +3,7 @@
     BacklinksResult,
     BacklinkEntry,
     UsageGroup,
-  } from "../types/entity_view";
+  } from "../../types/entity_view";
   import { entityRouteForCollection } from "#lib/app/definitions.js";
   import { app } from "#lib/stores/session.js";
 

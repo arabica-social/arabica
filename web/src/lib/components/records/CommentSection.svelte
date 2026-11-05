@@ -1,14 +1,14 @@
 <script lang="ts">
-  import Avatar from "./Avatar.svelte";
+  import Avatar from "../Avatar.svelte";
   import {
     app,
     displayHandle,
     openLoginModal,
     session,
-  } from "../stores/session";
+  } from "../../stores/session";
   import { definitionFor } from "#lib/app/definitions.js";
-  import { pushToast } from "../stores/toasts";
-  import type { IndexedComment } from "../types/entity_view";
+  import { pushToast } from "../../stores/toasts";
+  import type { IndexedComment } from "../../types/entity_view";
 
   let {
     subjectURI = "",

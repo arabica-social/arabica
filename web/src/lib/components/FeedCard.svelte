@@ -2,10 +2,11 @@
   import type { Snippet } from "svelte";
   import ActionBar from "./ActionBar.svelte";
   import PourStrip from "./PourStrip.svelte";
+  import BrewParams from "./BrewParams.svelte";
   import Avatar from "./Avatar.svelte";
   import TypeBadge from "./TypeBadge.svelte";
   import Icon from "./Icon.svelte";
-  import { formatTime, formatTemp, safeWebsiteURL } from "../utils/format";
+  import { safeWebsiteURL } from "../utils/format";
   import { goto } from "$app/navigation";
   import { displayHandle } from "../stores/session";
   import type { FeedItem } from "../types/feed";
@@ -84,11 +85,6 @@
   let recipe = $derived(
     item.record_type === "recipe" ? (item.record as Recipe) : null,
   );
-  // Espresso/pourover params as standalone deriveds (avoids optional-chain
-  // narrowing issues in the template).
-  let ep = $derived(brew?.espresso_params ?? null);
-  let pp = $derived(brew?.pourover_params ?? null);
-
   function actionNoun(): string {
     return item.record_type;
   }
@@ -120,12 +116,6 @@
   function shortDID(did: string): string {
     if (!did.startsWith("did:")) return did;
     return `${did.slice(0, 11)}…${did.slice(-4)}`;
-  }
-  function bloomText(pp: NonNullable<Brew["pourover_params"]>): string {
-    const parts: string[] = [];
-    if (pp.bloom_water > 0) parts.push(`${pp.bloom_water}g`);
-    if (pp.bloom_seconds > 0) parts.push(`${pp.bloom_seconds}s`);
-    return parts.join(" for ");
   }
 </script>
 
@@ -165,10 +155,18 @@
     </div>
   </div>
 
-  <div class="mb-2 text-sm text-emphasis">
-    added a
-    <a href={url} class="underline hover:text-primary">new {actionNoun()}</a>
-    <TypeBadge recordType={actionNoun()} />
+  <div class="mb-2 flex items-center justify-between gap-2">
+    <div class="text-sm text-emphasis">
+      added a
+      <a href={url} class="underline hover:text-primary">new {actionNoun()}</a>
+      <TypeBadge recordType={actionNoun()} />
+    </div>
+    {#if brew && brew.rating > 0}
+      <span class="badge-rating flex items-center gap-1">
+        <Icon name="star" class="w-3 h-3 text-amber-500" />
+        {brew.rating}/10
+      </span>
+    {/if}
   </div>
 
   <div
@@ -185,108 +183,32 @@
   >
     {#if brew}
       <div class="feed-content-box">
-        <div class="flex items-start justify-between gap-3 mb-3">
-          <div class="flex-1 min-w-0">
-            {#if brew.bean}
-              <div class="record-title">
-                {brew.bean.name || brew.bean.origin}
-              </div>
-              {#if brew.bean.roaster?.name}
-                <div
-                  class="text-sm text-emphasis mt-0.5 flex items-center gap-1"
-                >
-                  <Icon name="store" class="w-3 h-3" />
-                  {brew.bean.roaster.name}
-                </div>
-              {/if}
-              <div
-                class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1"
-              >
-                {#if brew.bean.origin}<span class="flex items-center gap-1"
-                    ><Icon name="mapPin" class="w-3 h-3" />{brew.bean
-                      .origin}</span
-                  >{/if}
-                {#if brew.bean.roast_level}<span class="flex items-center gap-1"
-                    ><Icon name="flame" class="w-3 h-3" />{brew.bean
-                      .roast_level}</span
-                  >{/if}
-                {#if brew.coffee_amount > 0}<span
-                    class="flex items-center gap-1"
-                    ><Icon
-                      name="scale"
-                      class="w-3 h-3"
-                    />{brew.coffee_amount}g</span
-                  >{/if}
-              </div>
-            {:else}
-              <div class="record-title">Brew</div>
-            {/if}
-          </div>
-          {#if brew.rating > 0}
-            <span class="badge-rating flex items-center gap-1">
-              <Icon name="star" class="w-3 h-3 text-amber-500" />
-              {brew.rating}/10
-            </span>
-          {/if}
-        </div>
-        {#if brew.brewer_obj?.name || brew.method}
-          <div class="mb-2">
-            <span class="text-meta">Brewer:</span>
-            <span class="text-sm text-primary"
-              >{brew.brewer_obj?.name ?? brew.method}</span
-            >
-          </div>
-        {/if}
-        <div class="brew-meta-grid grid gap-x-4 gap-y-1 text-xs text-emphasis">
-          {#if brew.grinder_obj?.name}
-            <div>
-              <span class="text-label">Grinder:</span>
-              {brew.grinder_obj.name}{#if brew.grind_size}
-                ({brew.grind_size}){/if}
+        <div class="mb-3">
+          {#if brew.bean}
+            <div class="record-title">
+              {brew.bean.name || brew.bean.origin}
             </div>
-          {:else if brew.grind_size}
-            <div><span class="text-label">Grind:</span> {brew.grind_size}</div>
+            {#if brew.bean.roaster?.name}
+              <div class="text-sm text-emphasis mt-0.5 flex items-center gap-1">
+                <Icon name="store" class="w-3 h-3" />
+                {brew.bean.roaster.name}
+              </div>
+            {/if}
+            <div class="text-xs text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+              {#if brew.bean.origin}<span class="flex items-center gap-1"
+                  ><Icon name="mapPin" class="w-3 h-3" />{brew.bean
+                    .origin}</span
+                >{/if}
+              {#if brew.bean.roast_level}<span class="flex items-center gap-1"
+                  ><Icon name="flame" class="w-3 h-3" />{brew.bean
+                    .roast_level}</span
+                >{/if}
+            </div>
+          {:else}
+            <div class="record-title">Brew</div>
           {/if}
-          {#if brew.water_amount > 0}<div>
-              <span class="text-label">Water:</span>
-              {brew.water_amount}g
-            </div>{/if}
-          {#if brew.temperature > 0}<div>
-              <span class="text-label">Temp:</span>
-              {formatTemp(brew.temperature)}
-            </div>{/if}
-          {#if brew.time_seconds > 0}<div>
-              <span class="text-label">Time:</span>
-              {formatTime(brew.time_seconds)}
-            </div>{/if}
-          {#if ep && ep.yield_weight > 0}<div>
-              <span class="text-label">Yield:</span>
-              {ep.yield_weight.toFixed(1)}g
-            </div>{/if}
-          {#if ep && ep.pressure > 0}<div>
-              <span class="text-label">Pressure:</span>
-              {ep.pressure.toFixed(1)} bar
-            </div>{/if}
-          {#if ep && ep.pre_infusion_seconds > 0}<div>
-              <span class="text-label">Pre-infusion:</span>
-              {ep.pre_infusion_seconds}s
-            </div>{/if}
-          {#if pp && (pp.bloom_water > 0 || pp.bloom_seconds > 0)}
-            <div><span class="text-label">Bloom:</span> {bloomText(pp)}</div>
-          {/if}
-          {#if pp && pp.drawdown_seconds > 0}<div>
-              <span class="text-label">Drawdown:</span>
-              {pp.drawdown_seconds}s
-            </div>{/if}
-          {#if pp && pp.bypass_water > 0}<div>
-              <span class="text-label">Bypass:</span>
-              {pp.bypass_water}g
-            </div>{/if}
-          {#if pp && pp.filter}<div>
-              <span class="text-label">Filter:</span>
-              {pp.filter}
-            </div>{/if}
         </div>
+        <BrewParams {brew} />
         <PourStrip pours={brew.pours} />
         {#if brew.tasting_notes}
           <div

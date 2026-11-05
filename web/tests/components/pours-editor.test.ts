@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-import PoursEditor from "../../src/lib/components/PoursEditor.svelte";
+import PoursEditor from "../../src/lib/components/forms/PoursEditor.svelte";
 
 // Collapse whitespace so rendered textContent (newlines/spaces from markup)
 // matches plain string assertions.

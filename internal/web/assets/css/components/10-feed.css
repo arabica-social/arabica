@@ -362,3 +362,41 @@
 .pour-time {
   color: var(--text-muted);
 }
+
+/* Brew spec table — the brew's numbers as aligned label/value cells that fill
+   the card width, instead of one ragged run of "Label: value" facts. */
+.brew-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(5.5rem, 100%), 1fr));
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--surface-border);
+  font-size: 0.75rem;
+  line-height: 1.05rem;
+}
+
+/* Four facts read as a square; three plus an orphan does not. */
+.brew-params:has(> :nth-child(4):last-child) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.brew-params > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brew-params .text-label {
+  font-size: 0.62rem;
+  line-height: 0.9rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.brew-params .param-value {
+  color: var(--text-emphasis);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}

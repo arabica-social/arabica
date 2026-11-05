@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CommentSection from "../../src/lib/components/CommentSection.svelte";
+import CommentSection from "../../src/lib/components/records/CommentSection.svelte";
 import { session } from "../../src/lib/stores/session";
 import { clearToasts, toasts } from "../../src/lib/stores/toasts";
 import type { IndexedComment } from "../../src/lib/types/entity_view";

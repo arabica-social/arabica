@@ -1,11 +1,11 @@
 <script lang="ts">
-  import BackButton from "./BackButton.svelte";
+  import BackButton from "../BackButton.svelte";
   import RecordViewHeader from "./RecordViewHeader.svelte";
-  import ActionBar from "./ActionBar.svelte";
+  import ActionBar from "../ActionBar.svelte";
   import CommentSection from "./CommentSection.svelte";
   import BacklinksSection from "./BacklinksSection.svelte";
   import type { Snippet } from "svelte";
-  import type { BacklinksResult } from "../types/entity_view";
+  import type { BacklinksResult } from "../../types/entity_view";
   import { definitionFor } from "#lib/app/definitions.js";
   import { app } from "#lib/stores/session.js";
 
@@ -36,7 +36,7 @@
     canHideRecord?: boolean;
     canBlockUser?: boolean;
     isRecordHidden?: boolean;
-    comments?: import("../types/entity_view").IndexedComment[];
+    comments?: import("../../types/entity_view").IndexedComment[];
     currentUserDID?: string;
   };
 

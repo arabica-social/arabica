@@ -99,6 +99,10 @@ checklist for every page.
   states and `--type-{entity}-tint` for a restrained wash. In mixed collections,
   keep each entity's identity rather than applying one accent to the whole
   page. Color must not be the only way to identify the type.
+- Record cards that carry several measurements read best as a facts table:
+  small muted labels above emphasized values, in columns that fill the card
+  width. Prefer that over inline `Label: value` runs, which leave a ragged tail
+  and orphan single facts on their own line.
 - Kraft texture can warm a page-level container; cork and paper-note surfaces
   give the community feed a distinct setting. Use the existing `--texture-kraft`
   and `--texture-cork` tokens and check readability in both themes. Utility pages

@@ -1,7 +1,7 @@
 # FDR-005: Home
 
 **Status:** Active
-**Last reviewed:** 2026-10-28
+**Last reviewed:** 2026-11-04
 
 ## Overview
 
@@ -39,6 +39,12 @@ brew. Visitors can browse the public feed before logging in.
   recipe. Individual rail sections beyond the always-present feedback and Recipes sections are omitted when empty, without changing desktop column widths.
 - Global navigation remains in the shared header and mobile navigation.
   Feedback, About, and AT Protocol links also remain in the footer.
+- Feed brew cards lead with the bean name across the full card width, then the
+  roaster and bean facts. The brew's numbers follow as one facts table: aligned
+  label-over-value cells (brewer, grinder, dose, water, temperature, time, plus
+  espresso or pourover parameters when recorded) that fill the card width in up
+  to three columns. The rating sits at the right of the card's action line.
+  Tasting notes and the pour schedule close the card.
 - Loading, empty, and failed-feed states are distinct.
 - Load more appends records once per AT-URI, ignoring overlapping entries
   within or between pages while retaining their existing order.
@@ -78,6 +84,22 @@ space to support the illustration.
 **Tradeoff:** This composition does not reproduce the old hero crop. Review
 artwork placement across ready, setup-incomplete, and visitor states at narrow
 and wide widths in both themes.
+
+### 3. Align brew facts in a table
+
+**Decision:** Show a brew's numbers as label-over-value cells in a width-filling
+grid rather than an inline run of `Label: value` facts, and move the rating to
+the action line so the bean name spans the card.
+
+**Why:** Inline facts left each row with a ragged tail, put the dose on a line of
+its own, and gave the brewer a whole line. Aligned columns use the card's width,
+make values comparable down a column, and shorten the card. The rating moves to
+where the profile and My Coffee cards already place it, which also frees the bean
+name from a narrow column beside the badge.
+
+**Tradeoff:** A card with four recorded facts falls back to two columns instead
+of leaving an orphan cell in a three-column row, so column count varies with the
+amount of recorded data.
 
 ## Related
 
