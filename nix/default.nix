@@ -14,12 +14,12 @@ buildGo127Module rec {
   pname = appName;
   version = "0.1.0";
   src = ../.;
-  vendorHash = "sha256-7DiiI/T8SYcC+zzHrSW31VZ7wmPlgpquKj+9xC8gUV0=";
+  vendorHash = "sha256-z++vFgR6/XMM5ppa+7xTL0/ZiQLBew2sM9K+CdtNOt8=";
 
   pnpmDeps = fetchPnpmDeps {
     inherit pname version src;
     fetcherVersion = 4;
-    hash = "sha256-OkuRtZFwu98BEhxdZmmr8AjpWPxImoEUCOoVrVxFF9A=";
+    hash = "sha256-Iv7Evj/AecHF6b26ozlMN82Xx18I9kUk/+s4CBXqBPE=";
   };
 
   nativeBuildInputs = [
@@ -57,6 +57,13 @@ buildGo127Module rec {
     runHook preBuild
     go build -o ${appName} ./cmd/${appName}
     runHook postBuild
+  '';
+
+  checkPhase = ''
+    runHook preCheck
+    export GOFLAGS=''${GOFLAGS//-trimpath/}
+    go test -count=1 ./...
+    runHook postCheck
   '';
 
   installPhase =

@@ -33,6 +33,11 @@ The example defaults to a 30-second timeout, 6 MiB provider request cap,
 1 MiB provider response cap and 2048 output tokens. Redirects are not followed.
 Provider response bodies and credentials are not returned as API errors.
 
+On NixOS, `services.arabica.ai.settings` generates this JSON and sets its path;
+`services.arabica.ai.configFile` instead selects an existing runtime file.
+Supply API keys through a SOPS-backed `environmentFiles` entry, not literal
+Nix settings. See the [complete Nix/SOPS example](../nix-install.md#moderation-and-ai-with-sops).
+
 ## GET /api/ai/status
 
 ```json

@@ -90,6 +90,8 @@ func TestAIAccessRouter(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		require.Equal(t, 200, request("PUT", "/api/_mod/ai-access", "did:plc:admin", `{"did":"`+bodyLimitDID+`"}`, "same-origin").Code)
 	}
+	// HEAD resolves to the read-only listing and must never revoke a grant.
+	require.Equal(t, 200, request("HEAD", "/api/_mod/ai-access", "did:plc:admin", `{"did":"`+bodyLimitDID+`"}`, "same-origin").Code)
 	checkAccess(bodyLimitDID, true)
 	require.Equal(t, 200, request("POST", "/api/ai/chat", bodyLimitDID, `{"session_id":"session","request_id":"request","revision":0,"messages":[{"role":"user","content":"18g"}],"draft":{"kind":"brew","fields":{}}}`, "same-origin").Code)
 	require.Equal(t, 403, request("POST", "/api/ai/chat", bodyLimitDID, `{}`, "cross-site").Code)

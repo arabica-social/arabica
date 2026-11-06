@@ -88,7 +88,12 @@ func (h *Handler) HandleAIAccess(w http.ResponseWriter, r *http.Request) {
 		WriteJSONError(w, 503, "ai_access_unavailable", "AI access management unavailable")
 		return
 	}
-	if r.Method == http.MethodGet {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodPut && r.Method != http.MethodDelete {
+		w.Header().Set("Allow", "GET, HEAD, PUT, DELETE")
+		WriteJSONError(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed")
+		return
+	}
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
 		entries, err := h.aiAccess.List(r.Context())
 		if err != nil {
 			WriteJSONError(w, 503, "ai_access_unavailable", "AI access management unavailable")
@@ -132,7 +137,7 @@ func (h *Handler) HandleAIAccess(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodPut {
 		err = h.aiAccess.Grant(r.Context(), req.DID, actor)
-	} else {
+	} else if r.Method == http.MethodDelete {
 		err = h.aiAccess.Revoke(r.Context(), req.DID)
 	}
 	if errors.Is(err, aiaccess.ErrFull) {

@@ -305,7 +305,7 @@ func TestShellHandler_HTMLStructure(t *testing.T) {
 	body, _ := io.ReadAll(w.Result().Body)
 	html := string(body)
 
-	assert.True(t, strings.HasPrefix(strings.TrimSpace(html), "<!DOCTYPE html>"),
+	assert.Regexp(t, `(?i)^<!doctype html>`, strings.TrimSpace(html),
 		"HTML should start with DOCTYPE tag")
 	assert.Contains(t, html, "<head>")
 	assert.Contains(t, html, "</head>")

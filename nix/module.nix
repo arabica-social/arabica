@@ -7,6 +7,7 @@
 
 let
   cfg = config.services.arabica;
+  jsonFormat = pkgs.formats.json { };
 
   moderatorUserType = lib.types.submodule {
     options = {
@@ -79,6 +80,13 @@ let
       cfg.moderation.configFile
     else if cfg.moderation.moderators != [ ] then
       moderatorsConfigFile
+    else
+      null;
+  effectiveAIConfigPath =
+    if cfg.ai.configFile != null then
+      cfg.ai.configFile
+    else if cfg.ai.settings != null then
+      jsonFormat.generate "arabica-ai.json" cfg.ai.settings
     else
       null;
 in
@@ -167,6 +175,43 @@ in
       };
     };
 
+    ai = {
+      configFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = ''
+          Runtime path to an AI provider JSON file, for example a sops-nix
+          secret or template. Takes priority over ai.settings. Use a string
+          path, not a Nix path literal, to keep secrets out of the Nix store.
+          The service user must be able to read the file.
+        '';
+        example = "/run/secrets/arabica-ai.json";
+      };
+
+      settings = lib.mkOption {
+        type = lib.types.nullOr jsonFormat.type;
+        default = null;
+        description = ''
+          AI provider configuration, using the ai.example.json schema.
+          Generates a Nix-store JSON file and sets ARABICA_AI_CONFIG.
+          Never put literal API keys here: use a literal ''${ARABICA_AI_API_KEY}
+          placeholder and supply the key through environmentFiles instead.
+          Provider validation happens at application startup. With neither
+          AI option set, the application's existing file/env lookup is unchanged.
+        '';
+        example = lib.literalExpression ''
+          {
+            default_provider = "openai-compatible";
+            providers.openai-compatible = {
+              base_url = "https://api.openai.com/v1";
+              model = "replace-with-your-model";
+              api_key = "\''${ARABICA_AI_API_KEY}";
+            };
+          }
+        '';
+      };
+    };
+
     smtp = {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -204,8 +249,8 @@ in
       default = [ ];
       description = ''
         List of environment files to load into the systemd service.
-        Useful for secrets like SMTP_USER and SMTP_PASS that should
-        not be stored in the Nix store.
+        Useful for secrets like ARABICA_AI_API_KEY, SMTP_USER and SMTP_PASS
+        that should not be stored in the Nix store.
       '';
       example = lib.literalExpression ''[ "/run/secrets/arabica.env" ]'';
     };
@@ -323,6 +368,9 @@ in
       }
       // lib.optionalAttrs (effectiveConfigPath != null) {
         ARABICA_MODERATORS_CONFIG = toString effectiveConfigPath;
+      }
+      // lib.optionalAttrs (effectiveAIConfigPath != null) {
+        ARABICA_AI_CONFIG = toString effectiveAIConfigPath;
       }
       // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.host != "") {
         SMTP_HOST = cfg.smtp.host;
