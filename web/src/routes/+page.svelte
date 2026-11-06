@@ -229,7 +229,7 @@
           </div>
         {:else}
           {#each items as item (item.subject_uri)}
-            <FeedCard {item} {isAuthenticated} />
+            <FeedCard {item} {isAuthenticated} compactPours />
           {/each}
           {#if nextCursor}
             <div class="text-center pt-2" style="grid-column: 1 / -1;">

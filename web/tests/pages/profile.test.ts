@@ -26,6 +26,10 @@ const profileData = {
           grind_size: "Medium",
           grinder_rkey: "",
           brewer_rkey: "",
+          pours: [
+            { pour_number: 1, water_amount: 61, time_seconds: 12 },
+            { pour_number: 2, water_amount: 62, time_seconds: 57 },
+          ],
           tasting_notes: "Bright and sweet",
           rating: 8,
           created_at: "2026-01-20T10:00:00Z",
@@ -144,6 +148,18 @@ describe("Profile page", () => {
   afterEach(() => {
     cleanup();
     document.body.innerHTML = "";
+  });
+
+  it("shows a pour count in brew facts instead of a pour table", () => {
+    const { container } = render(ProfilePage, { data: testData });
+    const label = screen.getByText("Pours");
+    expect(label.closest(".brew-params")).toBeTruthy();
+    expect(
+      label.parentElement?.querySelector(".param-value"),
+    ).toHaveTextContent("2");
+    expect(container.querySelector(".pour-strip")).toBeNull();
+    expect(screen.queryByText("61g")).toBeNull();
+    expect(screen.queryByText("12s")).toBeNull();
   });
 
   it("renders the profile header with display name and handle", () => {

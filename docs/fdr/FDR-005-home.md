@@ -44,7 +44,11 @@ brew. Visitors can browse the public feed before logging in.
   label-over-value cells (brewer, grinder, dose, water, temperature, time, plus
   espresso or pourover parameters when recorded) that fill the card width in up
   to three columns. The rating sits at the right of the card's action line.
-  Tasting notes and the pour schedule close the card.
+  Home cards include a Pours cell in the same facts table, showing only the
+  count instead of individual water amounts and timings; omit it when no pours
+  are recorded.
+  Explore cards and brew detail pages retain the full pour breakdown. Tasting
+  notes close the card.
 - Loading, empty, and failed-feed states are distinct.
 - Load more appends records once per AT-URI, ignoring overlapping entries
   within or between pages while retaining their existing order.

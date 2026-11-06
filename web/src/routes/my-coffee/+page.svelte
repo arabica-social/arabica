@@ -1,6 +1,5 @@
 <script lang="ts">
   import Icon from "#lib/components/Icon.svelte";
-  import PourStrip from "#lib/components/PourStrip.svelte";
   import BrewParams from "#lib/components/BrewParams.svelte";
   import LedgerHeader from "#lib/components/LedgerHeader.svelte";
   import {
@@ -337,8 +336,7 @@
                     {:else}
                       <div class="record-title">Brew</div>
                     {/if}
-                    <BrewParams {brew} />
-                    <PourStrip pours={brew.pours} />
+                    <BrewParams {brew} showPourCount />
                     {#if brew.tasting_notes}
                       <div class="text-sm text-secondary mt-1 line-clamp-2">
                         {brew.tasting_notes}

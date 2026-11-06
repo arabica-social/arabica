@@ -2,7 +2,6 @@
   import Avatar from "#lib/components/Avatar.svelte";
   import NotFound from "#lib/components/NotFound.svelte";
   import Icon from "#lib/components/Icon.svelte";
-  import PourStrip from "#lib/components/PourStrip.svelte";
   import BrewParams from "#lib/components/BrewParams.svelte";
   import { displayHandle, safeAvatarURL } from "#lib/stores/session.js";
   import {
@@ -282,8 +281,7 @@
                           >{/if}
                       </div>
                     {/if}
-                    <BrewParams {brew} />
-                    <PourStrip pours={brew.pours} />
+                    <BrewParams {brew} showPourCount />
                     {#if brew.tasting_notes}
                       <div class="text-sm text-secondary mt-1 line-clamp-2">
                         {brew.tasting_notes}

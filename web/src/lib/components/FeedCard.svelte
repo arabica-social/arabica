@@ -23,9 +23,10 @@
     item: FeedItem;
     isAuthenticated: boolean;
     footer?: Snippet;
+    compactPours?: boolean;
   };
 
-  let { item, isAuthenticated, footer }: Props = $props();
+  let { item, isAuthenticated, footer, compactPours = false }: Props = $props();
 
   function shareURL(i: FeedItem): string {
     const actor = i.author?.handle || i.author?.did || "";
@@ -208,8 +209,10 @@
             <div class="record-title">Brew</div>
           {/if}
         </div>
-        <BrewParams {brew} />
-        <PourStrip pours={brew.pours} />
+        <BrewParams {brew} showPourCount={compactPours} />
+        {#if !compactPours}
+          <PourStrip pours={brew.pours} />
+        {/if}
         {#if brew.tasting_notes}
           <div
             class="mt-3 text-sm text-secondary italic border-t border-brown-200 pt-2"

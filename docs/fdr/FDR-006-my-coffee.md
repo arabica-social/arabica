@@ -20,8 +20,9 @@ user's account without switching collection, disables while pending, and reports
 success or failure. A failed refresh retains the currently displayed records.
 It remains available without a permanent troubleshooting panel.
 
-Brew cards on My Coffee and profile pages show brew details and the shared pour
-schedule strip when pours are present, without an action bar. Each card links
+Brew cards on My Coffee and profile pages show brew details with a Pours count
+in the facts table when pours are present, not individual pour amounts or timings,
+and without an action bar. Each card links
 to the brew detail page, where social and owner actions remain available.
 Community feed action bars are unchanged.
 

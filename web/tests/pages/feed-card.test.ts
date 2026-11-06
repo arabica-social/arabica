@@ -168,6 +168,44 @@ describe("FeedCard", () => {
     expect(cells.length).toBe(2);
   });
 
+  it.each([1, 3, 4, 8])("summarizes %i pours on compact cards", (count) => {
+    const item = makeItem({
+      record: {
+        rkey: "brew-1",
+        pours: Array.from({ length: count }, (_, i) => ({
+          pour_number: i + 1,
+          water_amount: 61,
+          time_seconds: 12 + i * 45,
+        })),
+      },
+    });
+    const { container } = render(FeedCard, {
+      item,
+      isAuthenticated: true,
+      compactPours: true,
+    });
+    const label = screen.getByText("Pours");
+    expect(label.closest(".brew-params")).toBeTruthy();
+    expect(
+      label.parentElement?.querySelector(".param-value"),
+    ).toHaveTextContent(String(count));
+    expect(screen.queryByText("61g")).toBeNull();
+    expect(screen.queryByText("12s")).toBeNull();
+    expect(container.querySelector(".pour-strip")).toBeNull();
+  });
+
+  it.each([undefined, []])(
+    "omits the count for absent or empty pours",
+    (pours) => {
+      render(FeedCard, {
+        item: makeItem({ record: { rkey: "brew-1", pours } }),
+        isAuthenticated: true,
+        compactPours: true,
+      });
+      expect(screen.queryByText(/\bpours?\b/i)).toBeNull();
+    },
+  );
+
   it("renders tasting notes", () => {
     const item = makeItem({
       record: { rkey: "brew-1", tasting_notes: "Bright and sweet" },

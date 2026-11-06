@@ -2,14 +2,15 @@
   import { formatTemp, formatTime } from "../utils/format";
   import type { Brew } from "../types/entity_view";
 
-  type Props = { brew: Brew };
-  let { brew }: Props = $props();
+  type Props = { brew: Brew; showPourCount?: boolean };
+  let { brew, showPourCount = false }: Props = $props();
 
   let ep = $derived(brew.espresso_params ?? null);
   let pp = $derived(brew.pourover_params ?? null);
   let brewerName = $derived(brew.brewer_obj?.name ?? brew.method ?? "");
   let hasParams = $derived(
-    brewerName !== "" ||
+    (showPourCount && !!brew.pours?.length) ||
+      brewerName !== "" ||
       !!brew.grinder_obj?.name ||
       !!brew.grind_size ||
       brew.coffee_amount > 0 ||
@@ -127,6 +128,13 @@
       <div>
         <span class="text-label">Bypass</span><span class="param-value"
           >{pp.bypass_water}g</span
+        >
+      </div>
+    {/if}
+    {#if showPourCount && brew.pours?.length}
+      <div>
+        <span class="text-label">Pours</span><span class="param-value"
+          >{brew.pours.length}</span
         >
       </div>
     {/if}
