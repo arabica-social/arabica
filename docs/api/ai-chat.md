@@ -33,6 +33,26 @@ The example defaults to a 30-second timeout, 6 MiB provider request cap,
 1 MiB provider response cap and 2048 output tokens. Redirects are not followed.
 Provider response bodies and credentials are not returned as API errors.
 
+### Daily allowance
+
+Every authenticated account has a daily request allowance of 10,000 characters,
+resetting at 00:00 UTC. `ARABICA_AI_DAILY_CHARS` overrides the amount; `0`
+disables the allowance. Admins and any DID listed in the comma-separated
+`ARABICA_AI_UNLIMITED_DIDS` are exempt. Moderators are not implicitly exempt.
+
+One accepted request is charged the characters it sends upstream: every message
+`content` in the request, including re-sent history, plus a fixed 1000 characters
+per attached image. A request that fails before the provider call (invalid
+request, unavailable library, rate limit) is not charged. A request that reaches
+the provider is charged even when the provider or the response contract fails.
+A conversation whose next request would exceed the remaining allowance is
+refused with `ai_daily_limit`; starting a new chat sends less context, and the
+allowance itself resets at the next UTC day. Counts live in the
+deployment-local SQLite `ai_daily_chat_usage` table (one row per account and
+day), survive restarts, and are only read for the current UTC day; older rows
+are purged. A missing or unreachable usage table refuses requests
+(`ai_usage_unavailable`) rather than serving them unmetered.
+
 On NixOS, `services.arabica.ai.settings` generates this JSON and sets its path;
 `services.arabica.ai.configFile` instead selects an existing runtime file.
 Supply API keys through a SOPS-backed `environmentFiles` entry, not literal
@@ -299,6 +319,8 @@ proposals; stale recipe choices require a current-revision confirmation.
 - Provider content: 32768 bytes; assistant reply: 2000 characters; up to 8 choices.
 - At most 8 active requests globally, 1/account, 10 admissions/minute/account.
   Rate-state map capped at 1024 accounts; expired inactive entries are pruned.
+- Daily allowance: 10,000 charged characters/account/UTC day by default, exempt
+  for admins and `ARABICA_AI_UNLIMITED_DIDS`; one row per account and day.
 - Whole operation deadline: 45 seconds, including library reads. Provider timeout
   remains separately configured (30 seconds by default). No queues or retries.
 
@@ -342,6 +364,8 @@ must leave the client draft intact. The chat server performs no mutation in any 
 | 400 | `invalid_request` |
 | 503 | `ai_library_unavailable` |
 | 429 | `ai_rate_limited` (`Retry-After: 60`) |
+| 429 | `ai_daily_limit` (`Retry-After` until 00:00 UTC) |
+| 503 | `ai_usage_unavailable` |
 | 502 | `ai_provider_error` |
 
 

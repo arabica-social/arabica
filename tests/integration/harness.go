@@ -14,11 +14,13 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 
 	"tangled.org/arabica.social/arabica/internal/aiaccess"
@@ -106,6 +108,9 @@ type Harness struct {
 	Handler        *basehandlers.Handler
 	FeedIndex      *firehose.FeedIndex
 	AIAccess       *aiaccess.Store
+	dataDir        string
+	moderation     *moderationsqlite.ModerationStore
+	staff          *moderation.Service
 	Consumer       *firehose.Consumer
 	ProfileWatcher *firehose.ProfileWatcher
 	SessionCache   *atproto.SessionCache
@@ -157,6 +162,10 @@ type HarnessOptions struct {
 	// EnableFirehose is the only harness toggle retained; the SvelteKit SPA
 	// shell is always constructed (mirroring production) using the embedded
 	// SPA build in internal/web/spa/build/.
+	//
+	// AI is the assistant service under test. Nil leaves the assistant
+	// unconfigured, exactly like a deployment without ai.json.
+	AI *arabicaai.Service
 }
 
 // StartHarness boots a test PDS, creates a primary account, builds the full
@@ -200,7 +209,7 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	if err := os.MkdirAll(pdsDataDir, 0o755); err != nil {
 		return nil, fmt.Errorf("create test PDS data directory: %w", err)
 	}
-	pds, err := testpds.Start(ctx, &testpds.Options{DataDir: pdsDataDir})
+	pds, err := startTestPDS(ctx, pdsDataDir)
 	if err != nil {
 		return nil, fmt.Errorf("start test PDS: %w", err)
 	}
@@ -221,6 +230,7 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 		PDS:          pds,
 		FeedIndex:    feedIndex,
 		SessionCache: sessionCache,
+		dataDir:      dataDir,
 		accounts:     make(map[string]*atclient.APIClient),
 		atpClients:   make(map[string]*atp.Client),
 		cleanup:      []func(){pds.Shutdown, func() { _ = feedIndex.Close() }},
@@ -279,14 +289,21 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	// this in server.go; tests need it for feed-related assertions.
 	feedService.SetSource(feedIndex)
 
-	// Keep moderation permissions disabled, but provide its store so the public
-	// report flow can be exercised by E2E tests. The store shares the feed index
-	// database and already has the moderation tables from its schema.
-	moderationService, err := moderation.NewService("")
+	// Keep moderation permissions disabled by default, but provide its store so
+	// the public report flow can be exercised by E2E tests. The service reads a
+	// harness-owned config file that SetStaff can rewrite and reload, so staff
+	// checks see updates without rebuilding the router.
+	staffPath := filepath.Join(dataDir, "roles.json")
+	if err := os.WriteFile(staffPath, []byte(`{"roles":{},"users":[]}`), 0o600); err != nil {
+		return nil, fmt.Errorf("write moderation config: %w", err)
+	}
+	moderationService, err := moderation.NewService(staffPath)
 	if err != nil {
 		return nil, fmt.Errorf("create moderation service: %w", err)
 	}
-	h.SetModeration(moderationService, moderationsqlite.NewModerationStore(feedIndex.DB()))
+	harness.staff = moderationService
+	harness.moderation = moderationsqlite.NewModerationStore(feedIndex.DB())
+	h.SetModeration(moderationService, harness.moderation)
 	access, err := aiaccess.NewStore(feedIndex.DB())
 	if err != nil {
 		return nil, fmt.Errorf("create AI access store: %w", err)
@@ -328,9 +345,11 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 		OAuthApp: oauthApp,
 		Logger:   logger,
 
-		SPAHandler:       spaHandler,
-		CSSBundle:        cssBundle,
-		DisableRateLimit: true,
+		AI:                opts.AI,
+		ModerationService: moderationService,
+		SPAHandler:        spaHandler,
+		CSSBundle:         cssBundle,
+		DisableRateLimit:  true,
 	})
 
 	// Wrap the router with the harness auth middleware so tests can pose as
@@ -841,4 +860,53 @@ func statusErr(resp *http.Response, body string) string {
 		body = body[:maxBody] + "... [truncated, " + fmt.Sprintf("%d", len(body)) + " bytes total]"
 	}
 	return fmt.Sprintf("status %d: %s", resp.StatusCode, body)
+}
+
+// startTestPDS works around the dependency's pick-a-free-port-then-bind race,
+// which intermittently collides with a port another test process just released.
+func startTestPDS(ctx context.Context, dataDir string) (*testpds.TestPDS, error) {
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		pds, err := testpds.Start(ctx, &testpds.Options{DataDir: dataDir})
+		if err == nil {
+			return pds, nil
+		}
+		lastErr = err
+		if !strings.Contains(err.Error(), "address already in use") {
+			return nil, err
+		}
+		time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond)
+	}
+	return nil, lastErr
+}
+
+// SetStaff replaces the moderation configuration so tests can exercise
+// moderator-only and admin-only endpoints and the AI admin exemption.
+func (h *Harness) SetStaff(admins, moderators []string) error {
+	type user struct {
+		DID  string `json:"did"`
+		Role string `json:"role"`
+	}
+	users := make([]user, 0, len(admins)+len(moderators))
+	for _, did := range admins {
+		users = append(users, user{DID: did, Role: "admin"})
+	}
+	for _, did := range moderators {
+		users = append(users, user{DID: did, Role: "moderator"})
+	}
+	config, err := json.Marshal(map[string]any{
+		"roles": map[string]any{
+			"admin":     map[string]any{"permissions": []string{}},
+			"moderator": map[string]any{"permissions": []string{}},
+		},
+		"users": users,
+	})
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(h.dataDir, "roles.json")
+	if err := os.WriteFile(path, config, 0o600); err != nil {
+		return err
+	}
+	return h.staff.Reload()
 }

@@ -19,6 +19,7 @@ Related decisions: [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md),
 | Arabica records | Authoritative user data | PDS repository durability | User's PDS |
 | OAuth sessions and requests | Local operational state | SQLite-backed and deployment-local | OAuth/session storage |
 | AI access grants | Authoritative local operational state | SQLite-backed, deployment-local; not reconstructible from PDS | `internal/aiaccess`, `ai_access_grants` in the shared operational/index DB |
+| AI daily usage | Authoritative local operational state | SQLite-backed, deployment-local; reset by UTC day | `internal/aiusage`, `ai_daily_chat_usage` in the shared operational/index DB |
 | Session cache | Typed collection read optimization | In-memory, two-minute validity | User-scoped session cache |
 | Witness records | Local evidence of repository records | SQLite, recoverable through backfill/firehose | Firehose index |
 | Feed/social views | Local query projection | SQLite, rebuildable from indexed records/events | Firehose index |
@@ -136,6 +137,14 @@ returns per-caller configured availability. Missing storage or read errors never
 permit an explicit user. Grants are read by primary key per gated request, so
 revocation takes effect without a cache invalidation or server restart. Moderator
 management is authenticated and mutations have same-origin protection.
+
+`internal/aiusage` owns the `ai_daily_chat_usage` table on the same connection:
+one charged-character count per account and UTC day. The drafting service consults
+it immediately before each provider call and charges the request's message
+characters plus a fixed rate per image; admins and an operator-configured DID list
+are exempt. Rows are keyed by account and day and purged once that day passes, so
+the table stays small. Missing storage or a failed write refuses the request
+rather than allowing unmetered provider spend.
 
 The policy is deliberately separate from the AI drafting service and record
 stores; removing the temporary rollout restriction does not require changing

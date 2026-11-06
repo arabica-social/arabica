@@ -22,6 +22,8 @@ var (
 	ErrProvider                = errors.New("assistant provider unavailable or returned invalid output")
 	ErrProviderRequestTooLarge = errors.New("assistant request exceeds configured provider limit")
 	ErrLimit                   = errors.New("assistant request limit reached")
+	ErrDailyLimit              = errors.New("assistant daily limit reached")
+	ErrQuota                   = errors.New("assistant usage accounting unavailable")
 )
 
 // Completer is the generic provider seam, easy to replace with a fake in tests.
@@ -31,6 +33,7 @@ type Completer interface {
 type Service struct {
 	client  Completer
 	limiter limiter
+	quota   *quota
 }
 
 func NewService(client Completer) *Service { return &Service{client: client} }
@@ -61,7 +64,13 @@ func FromEnv() (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewService(client), nil
+	quota, err := dailyQuota()
+	if err != nil {
+		return nil, err
+	}
+	service := NewService(client)
+	service.quota = quota
+	return service, nil
 }
 
 type Draft struct {
@@ -216,6 +225,9 @@ func (s *Service) Chat(ctx context.Context, did string, store LibraryStore, req 
 			return zero, ErrInvalidRequest
 		}
 		providerMessages = imageConversation(string(data), req.Messages)
+	}
+	if err := s.chargeDailyQuota(ctx, did, req); err != nil {
+		return zero, err
 	}
 	completion, err := s.client.Complete(ctx, providerMessages, nil, nil)
 	if err != nil {

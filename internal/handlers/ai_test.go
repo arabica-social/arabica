@@ -276,3 +276,66 @@ func TestAIStatusDenied(t *testing.T) {
 		}
 	}
 }
+
+type aiUsageStub struct {
+	allowed bool
+	err     error
+	calls   int
+}
+
+func (s *aiUsageStub) Consume(context.Context, string, string, int64, int64) (int64, bool, error) {
+	s.calls++
+	if s.err != nil {
+		return 0, false, s.err
+	}
+	return 0, s.allowed, nil
+}
+
+func (s *aiUsageStub) PurgeBefore(context.Context, string) error { return nil }
+
+func TestAIChatDailyLimitResponses(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		usage   *aiUsageStub
+		status  int
+		code    string
+		retry   bool
+		charged bool
+	}{
+		{"allowance exhausted", &aiUsageStub{allowed: false}, 429, "ai_daily_limit", true, true},
+		{"accounting unavailable", &aiUsageStub{allowed: true, err: errors.New("database is locked")}, 503, "ai_usage_unavailable", false, true},
+		{"within allowance", &aiUsageStub{allowed: true}, 200, "", false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h, _ := setupAI(t)
+			providerCalls := 0
+			h.Service = arabicaai.NewService(aiFakeCompleter(func(context.Context, []provider.Message, []provider.Tool, json.RawMessage) (provider.Completion, error) {
+				providerCalls++
+				return provider.Completion{Message: provider.Message{Content: chatOutput}, FinishReason: "stop"}, nil
+			}))
+			h.Service.SetUsageStore(tc.usage, 10000, nil)
+			rec := httptest.NewRecorder()
+			h.HandleChat(rec, aiRequest(chatRequest))
+			if rec.Code != tc.status {
+				t.Fatalf("status %d body %s", rec.Code, rec.Body.String())
+			}
+			if tc.usage.calls != 1 {
+				t.Fatalf("usage accounting not consulted: %d", tc.usage.calls)
+			}
+			if tc.code != "" && !strings.Contains(rec.Body.String(), tc.code) {
+				t.Fatalf("missing %s: %s", tc.code, rec.Body.String())
+			}
+			retry := rec.Header().Get("Retry-After")
+			if tc.retry && (retry == "" || retry == "0") {
+				t.Fatalf("missing Retry-After: %q", retry)
+			}
+			wantProvider := 0
+			if tc.status == 200 {
+				wantProvider = 1
+			}
+			if providerCalls != wantProvider {
+				t.Fatalf("provider calls %d, want %d", providerCalls, wantProvider)
+			}
+		})
+	}
+}

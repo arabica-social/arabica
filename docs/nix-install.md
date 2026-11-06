@@ -133,7 +133,10 @@ Without either AI option, the existing application lookup is unchanged:
 A missing default disables AI; an explicitly configured missing or invalid file
 fails startup. Environment-file values take precedence over module-generated
 systemd environment values, so remove a stale `ARABICA_AI_CONFIG` entry when
-switching to `ai.settings`. Restart the service after config/key changes;
+switching to `ai.settings`. The daily allowance is separate from provider
+configuration: set `ARABICA_AI_DAILY_CHARS` (default 10000, `0` disables) and
+optional `ARABICA_AI_UNLIMITED_DIDS` in the same `environmentFiles` entry or the
+systemd `Environment`; admins are exempt automatically. Restart the service after configuration, allowance or key changes;
 configure sops-nix `restartUnits = [ "arabica.service" ];` on secrets/templates
 if you want rotations to restart it automatically.
 

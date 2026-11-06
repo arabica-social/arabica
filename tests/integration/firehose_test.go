@@ -394,6 +394,21 @@ func TestFirehose_CommentDeleteCleansUpIndex(t *testing.T) {
 		return h.FeedIndex.GetCommentCount(ctx, subjectURI) == 1
 	})
 
+	// The HTTP path writes through immediately while the firehose replays the
+	// same events, so wait for the notification before deleting; otherwise a
+	// delayed create event can recreate it after the delete path cleaned up.
+	hasNotification := func() bool {
+		notifs, _, err := h.FeedIndex.GetNotifications(h.PrimaryAccount.DID, 50, "")
+		require.NoError(t, err)
+		for _, n := range notifs {
+			if n.Type == "comment" && n.ActorDID == bob.DID && n.SubjectURI == subjectURI {
+				return true
+			}
+		}
+		return false
+	}
+	waitFor(t, firehoseWait, hasNotification)
+
 	comments := h.FeedIndex.GetThreadedCommentsForSubject(ctx, subjectURI, 10, "")
 	require.Len(t, comments, 1)
 	commentRKey := comments[0].RKey
@@ -409,14 +424,8 @@ func TestFirehose_CommentDeleteCleansUpIndex(t *testing.T) {
 	})
 
 	assert.Equal(t, 0, h.FeedIndex.GetCommentCount(ctx, subjectURI), "comment count should be 0 after delete")
-
-	notifs, _, err := h.FeedIndex.GetNotifications(h.PrimaryAccount.DID, 10, "")
-	require.NoError(t, err)
-	for _, n := range notifs {
-		if n.Type == "comment" && n.ActorDID == bob.DID && n.SubjectURI == subjectURI {
-			t.Error("comment notification should have been removed after delete")
-		}
-	}
+	waitFor(t, firehoseWait, func() bool { return !hasNotification() })
+	assert.False(t, hasNotification(), "comment notification should have been removed after delete")
 }
 
 // TestFirehose_AccountDeactivated_KeepsData verifies an end-to-end account
@@ -446,35 +455,63 @@ func TestFirehose_AccountDeactivated_KeepsData(t *testing.T) {
 	assert.NotNil(t, rec, "deactivated accounts are reversible — record should remain indexed")
 }
 
-// TestFirehose_AccountDeleted_PurgesData verifies the deletion path through
-// the bridge → ProfileWatcher → DeleteAllByDID pipeline. testpds gates real
-// account deletion behind a server-side token (not exposed to clients), so we
-// synthesize the account event directly into the watcher to exercise the
-// integration wiring without bypassing it.
-func TestFirehose_AccountDeleted_PurgesData(t *testing.T) {
+// TestFirehose_AccountDeletedEvent_KeepsDataWithoutAppViewEvidence verifies that
+// an account event alone cannot delete indexed content. A relay-reported status
+// is an untrusted hint: only an explicit terminal takedown response from the
+// fixed AppView authorizes cleanup, and a bare "deleted" status never does.
+// testpds gates real account deletion behind a server-side token (not exposed to
+// clients), so the event is synthesized directly into the watcher.
+func TestFirehose_AccountDeletedEvent_KeepsDataWithoutAppViewEvidence(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 	ctx := context.Background()
 
-	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "About to be Purged")), "roaster")
+	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Not Purged Without Evidence")), "roaster")
 	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
 	h.WaitForRecord(uri, firehoseWait)
 
 	require.NotNil(t, h.ProfileWatcher)
-	h.ProfileWatcher.ProcessEvent(firehose.JetstreamEvent{
-		DID:    h.PrimaryAccount.DID,
-		TimeUS: time.Now().UnixMicro(),
-		Kind:   "account",
-		Account: &firehose.JetstreamAccount{
-			Active: false,
+	for _, status := range []string{"deleted", "takendown", "deactivated"} {
+		h.ProfileWatcher.ProcessEvent(firehose.JetstreamEvent{
 			DID:    h.PrimaryAccount.DID,
-			Status: "deleted",
-			Time:   time.Now().Format(time.RFC3339),
-		},
-	})
+			TimeUS: time.Now().UnixMicro(),
+			Kind:   "account",
+			Account: &firehose.JetstreamAccount{
+				Active: status != "deleted",
+				DID:    h.PrimaryAccount.DID,
+				Status: status,
+				Time:   time.Now().Format(time.RFC3339),
+			},
+		})
+
+		rec, err := h.FeedIndex.GetRecord(ctx, uri)
+		assert.NoError(t, err)
+		assert.NotNilf(t, rec, "an uncorroborated %q account event must not purge indexed records", status)
+	}
+}
+
+// TestAdminPurgeDID_RemovesIndexedContent covers the supported deletion path:
+// an admin-triggered purge clears records, handle mappings and settings for a
+// DID whose account the AppView never reports as terminally removed.
+func TestAdminPurgeDID_RemovesIndexedContent(t *testing.T) {
+	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
+	ctx := context.Background()
+
+	rkey := mustRKey(t, h.PostForm("/api/roasters", form("name", "Admin Purged")), "roaster")
+	uri := atp.BuildATURI(h.PrimaryAccount.DID, arabica.NSIDRoaster, rkey)
+	h.WaitForRecord(uri, firehoseWait)
+
+	anonymous := h.PostForm("/_mod/purge?did="+url.QueryEscape(h.PrimaryAccount.DID), nil)
+	require.Equal(t, http.StatusForbidden, anonymous.StatusCode, "purge must require a staff role")
+
+	require.NoError(t, h.SetStaff([]string{h.PrimaryAccount.DID}, nil))
+	response := h.PostForm("/_mod/purge?did="+url.QueryEscape(h.PrimaryAccount.DID), nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
 
 	rec, err := h.FeedIndex.GetRecord(ctx, uri)
 	assert.NoError(t, err)
-	assert.Nil(t, rec, "deleted account's records should be purged from index")
+	assert.Nil(t, rec, "admin purge must remove indexed records")
+	_, ok := h.FeedIndex.GetDIDByHandle(ctx, h.PrimaryAccount.Handle)
+	assert.False(t, ok, "admin purge must remove the handle mapping")
 }
 
 // waitFor polls condition until it returns true or the timeout expires.

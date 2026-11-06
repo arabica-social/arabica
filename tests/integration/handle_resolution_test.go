@@ -128,12 +128,11 @@ func TestPurgeDID_FreesHandleForReuse(t *testing.T) {
 	assert.Equal(t, newDID, got, "freed handle should resolve to the new owner")
 }
 
-// TestIdentityEvent_EvictsPriorOwnerOfHandle drives the OnIdentityEvent
-// reconciliation path through the profile watcher. When a Jetstream identity
-// event reports that a new DID has claimed an existing handle, the prior
-// owner's profile cache and handle mapping must be invalidated immediately —
-// before the eventual API refresh happens — so a concurrent lookup of the
-// shared handle never returns the stale owner.
+// TestIdentityEvent_KeepsPriorOwnerWithoutAppViewEvidence drives the
+// OnIdentityEvent reconciliation path through the profile watcher. A relay
+// identity event is only a refresh hint: until the AppView profile and public
+// handle resolution agree on the new DID, no profile or handle mapping may
+// change, so a forged or premature event cannot strip a real owner's handle.
 func TestIdentityEvent_EvictsPriorOwnerOfHandle(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{EnableFirehose: true})
 	ctx := context.Background()
@@ -147,9 +146,8 @@ func TestIdentityEvent_EvictsPriorOwnerOfHandle(t *testing.T) {
 	require.Equal(t, orphanDID, got, "precondition: orphan owns the handle")
 
 	// Synthesize an identity event for the new DID claiming the shared handle.
-	// OnIdentityEvent runs prior-owner eviction synchronously; the subsequent
-	// RefreshProfile call hits the public bsky API and fails for our synthetic
-	// DID, which is fine — we're verifying the eviction half of the path.
+	// Verification consults the AppView and fails for these synthetic DIDs,
+	// which is the case under test: no data may change.
 	require.NotNil(t, h.ProfileWatcher)
 	h.ProfileWatcher.ProcessEvent(firehose.JetstreamEvent{
 		DID:    newDID,
@@ -162,20 +160,14 @@ func TestIdentityEvent_EvictsPriorOwnerOfHandle(t *testing.T) {
 		},
 	})
 
-	// The orphan must no longer be the owner of the shared handle. Either the
-	// lookup misses entirely (because RefreshProfile failed and InvalidateProfile
-	// cleared everything) or it resolves to newDID — both are acceptable; what
-	// must not happen is the stale orphan winning.
+	// The synthetic DIDs are unknown to the index and unreachable to the
+	// AppView, so verification fails and the existing owner must survive
+	// untouched — a relay hint alone never moves a handle.
 	got, ok = h.FeedIndex.GetDIDByHandle(ctx, sharedHandle)
-	if ok {
-		assert.NotEqual(t, orphanDID, got, "shared handle must not resolve to the evicted prior owner")
-	}
-
-	// The orphan's in-memory profile entry must also be gone. The DB-side
-	// assertion above only catches did_by_handle cleanup; this catches the
-	// other half of InvalidateProfile.
-	assert.False(t, h.FeedIndex.ProfileCachedInMemory(orphanDID),
-		"orphan profile must be evicted from the in-memory cache")
+	require.True(t, ok, "unverified identity hint must keep the existing handle mapping")
+	assert.Equal(t, orphanDID, got, "unverified identity hint must not evict the prior owner")
+	assert.True(t, h.FeedIndex.ProfileCachedInMemory(orphanDID),
+		"unverified identity hint must keep the cached profile")
 
 	// Now seed the new DID's profile (as the watcher would, on a working API).
 	// The handle must resolve to newDID, never orphanDID.

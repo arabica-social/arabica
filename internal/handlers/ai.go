@@ -6,6 +6,8 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/trace"
@@ -30,6 +32,12 @@ func (h AIHandlers) HandleStatus(w http.ResponseWriter, r *http.Request) {
 		Enabled bool `json:"enabled"`
 		Allowed bool `json:"allowed"`
 	}{h.Service.Enabled() && allowed, allowed}, "AI status")
+}
+
+// secondsUntilUTCMidnight tells a limited caller when its allowance resets.
+func secondsUntilUTCMidnight(now time.Time) int {
+	midnight := now.UTC().AddDate(0, 0, 1).Truncate(24 * time.Hour)
+	return max(1, int(midnight.Sub(now.UTC()).Seconds()))
 }
 
 func (h AIHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
@@ -96,6 +104,12 @@ func (h AIHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, arabicaai.ErrLimit):
 			w.Header().Set("Retry-After", "60")
 			WriteJSONError(w, 429, "ai_rate_limited", "Assistant request limit reached; try again later")
+		case errors.Is(err, arabicaai.ErrDailyLimit):
+			w.Header().Set("Retry-After", strconv.Itoa(secondsUntilUTCMidnight(time.Now())))
+			WriteJSONError(w, 429, "ai_daily_limit", "Daily assistant limit reached; try again tomorrow or start a new chat")
+		case errors.Is(err, arabicaai.ErrQuota):
+			log.Error().Str("stage", "usage").Msg("AI daily usage unavailable")
+			WriteJSONError(w, 503, "ai_usage_unavailable", "Assistant daily usage unavailable; try again later")
 		default:
 			diagnostic := arabicaai.ProviderDiagnostic(err)
 			event := log.Error().Str("stage", diagnostic.Stage).Str("reason", diagnostic.Reason).

@@ -25,10 +25,12 @@ func scrubAPI(did string, rkeys map[string]string) []shutter.Option {
 	opts = append(opts, shutter.IgnoreKeyValue("actor_handle", "*"))
 	opts = append(opts, shutter.IgnoreKeyValue("display_name", "*"))
 	opts = append(opts, shutter.IgnoreKeyValue("actor_display_name", "*"))
-	// CIDs are PDS-generated content hashes that change every run.
+	// CIDs are PDS-generated content hashes that change every run. Responses
+	// also carry them as map values keyed by rkey, which key scrubbing misses.
 	opts = append(opts, shutter.IgnoreKeyValue("subject_cid", "*"))
 	opts = append(opts, shutter.IgnoreKeyValue("cid", "*"))
 	opts = append(opts, shutter.IgnoreKeyValue("SubjectCID", "*"))
+	opts = append(opts, shutter.ScrubRegex("bafy[a-z2-7]+", "<CID>"))
 	// The time_ago field is relative and changes between runs.
 	opts = append(opts, shutter.IgnoreKeyValue("time_ago", "*"))
 	return opts

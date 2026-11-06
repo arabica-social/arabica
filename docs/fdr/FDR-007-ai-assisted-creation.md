@@ -192,6 +192,15 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   disables both this animation and spinner movement.
 - Bounded storage/turn limits surface errors instead of silently deleting an
   unsaved draft. Account changes clear old in-memory library and pending work.
+- Each account has a daily character allowance for assistant requests: 10,000
+  characters per UTC day by default, configurable with `ARABICA_AI_DAILY_CHARS`
+  and disabled with `0`. Admins and explicitly listed DIDs
+  (`ARABICA_AI_UNLIMITED_DIDS`) are exempt; moderators are not. A request is
+  charged the message characters it sends, including re-sent history, plus 1000
+  characters per image. Requests refused before the provider call are not
+  charged. Exhaustion returns 429 `ai_daily_limit` with `Retry-After` to the next
+  UTC midnight; the client keeps the draft and shows the server's message, so
+  starting a new chat or waiting resets the practical cost without losing work.
 
 ## Decisions
 
@@ -207,6 +216,15 @@ Full-page forms own private state, navigation and save lifecycles. Chat needs on
 canonical draft shared with conversation requests. Small controlled editors use
 existing native controls/theme patterns without taking ownership from that draft.
 There is no new runtime UI dependency solely for message appearance.
+
+### Bound cost per account, not just per minute
+
+The admission limiter caps concurrency and request rate, but a granted account
+could still spend indefinitely. Provider spend scales with the characters sent,
+so the allowance meters characters rather than requests, is keyed by account and
+UTC day in the deployment-local database, and exempts staff and an operator
+list. Counting in the database keeps the bound across restarts and replicas; a
+missing table refuses requests instead of serving them unmetered.
 
 ### Keep deployment optional and provider-neutral
 

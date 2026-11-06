@@ -61,6 +61,18 @@ version: 0.1.0
       "water_amount": 250
     }
   ],
+  "cids": {
+    "<RKEY:brew>": "<CID>"
+  },
+  "comment_counts": {
+    "<RKEY:brew>": 0
+  },
   "has_more": false,
+  "like_counts": {
+    "<RKEY:brew>": 0
+  },
+  "liked_by_user": {
+    "<RKEY:brew>": false
+  },
   "next_offset": 25
 }

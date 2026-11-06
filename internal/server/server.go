@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/aiaccess"
+	"tangled.org/arabica.social/arabica/internal/aiusage"
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/atproto"
@@ -289,6 +290,16 @@ func Run(ctx context.Context, app *arabicaapp.App, opts Options) error {
 		log.Warn().Err(err).Msg("Failed to initialize moderation service, moderation disabled")
 	} else {
 		h.SetModeration(moderationSvc, moderationStore)
+	}
+	if opts.AI != nil && opts.AI.Enabled() {
+		aiUsage, err := aiusage.NewStore(feedIndex.DB())
+		if err != nil {
+			return fmt.Errorf("initialize AI usage: %w", err)
+		}
+		opts.AI.SetUsageStore(aiUsage, opts.AI.DailyChars(), func(did string) bool {
+			return moderationSvc != nil && moderationSvc.IsAdmin(did)
+		})
+		log.Info().Int64("daily_chars", opts.AI.DailyChars()).Msg("AI daily allowance configured")
 	}
 
 	// Periodic cleanup of expired moderation labels
