@@ -71,7 +71,8 @@ an unprefixed form (e.g. `PORT`); the prefixed form wins when both are set.
 ### Prerequisites
 
 - [Go](https://go.dev/) 1.26+
-- [Node.js](https://nodejs.org/) 22.17+ and [pnpm](https://pnpm.io/) (version pinned in `package.json`)
+- [Node.js](https://nodejs.org/) 22.17+ and [pnpm](https://pnpm.io/) (version
+  pinned in `package.json`)
 - [just](https://github.com/casey/just) (optional but recommended); run helpers
   in `justfile`
 - [inotify-tools](https://github.com/inotify-tools/inotify-tools) for the SPA
@@ -149,4 +150,11 @@ via a different URL than it's running on.
 
 ## License
 
-MIT
+Copyright (C) 2026 Patrick Dewey
+
+Arabica is licensed under [AGPL-3.0-only](LICENSE), except for the lexicon
+definitions in `lexicons/`. Arabica's definitions in `lexicons/social/arabica/`
+are licensed under [MIT](lexicons/social/arabica/LICENSE). Bundled AT Protocol
+definitions retain their upstream licensing; see [lexicons/README.md](lexicons/README.md).
+
+Arabica -- a coffee brew tracking application built on AT Protocol.
