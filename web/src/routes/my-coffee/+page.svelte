@@ -1,6 +1,5 @@
 <script lang="ts">
   import Icon from "#lib/components/Icon.svelte";
-  import ActionBar from "#lib/components/ActionBar.svelte";
   import PourStrip from "#lib/components/PourStrip.svelte";
   import BrewParams from "#lib/components/BrewParams.svelte";
   import LedgerHeader from "#lib/components/LedgerHeader.svelte";
@@ -346,24 +345,6 @@
                       </div>
                     {/if}
                   </a>
-                  <ActionBar
-                    subjectURI={`at://${did}/social.arabica.alpha.brew/${brew.rkey}`}
-                    subjectCID={brewsData.cids?.[brew.rkey] ?? ""}
-                    isLiked={brewsData.liked_by_user?.[brew.rkey] ?? false}
-                    likeCount={brewsData.like_counts?.[brew.rkey] ?? 0}
-                    commentCount={brewsData.comment_counts?.[brew.rkey] ?? 0}
-                    shareURL={`/brews/${did}/${brew.rkey}`}
-                    shareTitle={brew.bean
-                      ? brew.bean.name || brew.bean.origin
-                      : "Brew"}
-                    shareText="Check out this brew on Arabica"
-                    isOwner={true}
-                    editURL={`/brews/${brew.rkey}/edit`}
-                    deleteURL={`/api/brews/${brew.rkey}`}
-                    deleteRedirect="/my-coffee"
-                    viewURL={`/brews/${did}/${brew.rkey}`}
-                    isAuthenticated={true}
-                  />
                 </div>
               {/each}
               {#if brewsData.has_more}

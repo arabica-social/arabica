@@ -20,11 +20,10 @@ user's account without switching collection, disables while pending, and reports
 success or failure. A failed refresh retains the currently displayed records.
 It remains available without a permanent troubleshooting panel.
 
-Brew cards match the community presentation: the shared pour schedule strip
-renders when a brew has pours, and each card carries the standard action bar
-(comments, share, and owner edit/delete) fed by the per-page social counts from
-`GET /api/brews` (`like_counts`, `comment_counts`, `liked_by_user`, `cids`,
-empty maps when the firehose index is unavailable).
+Brew cards on My Coffee and profile pages show brew details and the shared pour
+schedule strip when pours are present, without an action bar. Each card links
+to the brew detail page, where social and owner actions remain available.
+Community feed action bars are unchanged.
 
 ## Rationale
 

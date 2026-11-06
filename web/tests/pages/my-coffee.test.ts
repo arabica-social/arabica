@@ -346,6 +346,19 @@ describe("My Coffee page", () => {
     },
   );
 
+  it("keeps brew cards linked without an action bar", () => {
+    const { container } = render(MyCoffee, {
+      data: { manage: manageData, brews: brewsData, error: "" },
+    });
+    const card = container.querySelector(".feed-card-brew")!;
+    expect(card.querySelector("a")).toHaveAttribute(
+      "href",
+      "/brews/did:plc:abc/brew-1",
+    );
+    expect(card.querySelector("button")).toBeNull();
+    expect(card.querySelectorAll("a")).toHaveLength(1);
+  });
+
   it("links brew cards to the view URL", () => {
     render(MyCoffee, {
       data: { manage: manageData, brews: brewsData, error: "" },

@@ -2,7 +2,6 @@
   import Avatar from "#lib/components/Avatar.svelte";
   import NotFound from "#lib/components/NotFound.svelte";
   import Icon from "#lib/components/Icon.svelte";
-  import ActionBar from "#lib/components/ActionBar.svelte";
   import PourStrip from "#lib/components/PourStrip.svelte";
   import BrewParams from "#lib/components/BrewParams.svelte";
   import { displayHandle, safeAvatarURL } from "#lib/stores/session.js";
@@ -291,26 +290,6 @@
                       </div>
                     {/if}
                   </a>
-                  {#if data.isAuthenticated}
-                    <ActionBar
-                      subjectURI={`at://${did}/social.arabica.alpha.brew/${brew.rkey}`}
-                      subjectCID={profile.brew_cids[brew.rkey] ?? ""}
-                      isLiked={profile.brew_liked_by_user[brew.rkey] ?? false}
-                      likeCount={profile.brew_like_counts[brew.rkey] ?? 0}
-                      commentCount={profile.brew_comment_counts[brew.rkey] ?? 0}
-                      shareURL={`/brews/${did}/${brew.rkey}`}
-                      shareTitle={brew.bean
-                        ? brew.bean.name || brew.bean.origin
-                        : "Brew"}
-                      shareText="Check out this brew on Arabica"
-                      isOwner={isOwnProfile}
-                      editURL={isOwnProfile ? `/brews/${brew.rkey}/edit` : ""}
-                      deleteURL={isOwnProfile ? `/api/brews/${brew.rkey}` : ""}
-                      deleteRedirect={`/profile/${data.actor}`}
-                      viewURL={`/brews/${did}/${brew.rkey}`}
-                      isAuthenticated={data.isAuthenticated}
-                    />
-                  {/if}
                 </div>
               {/each}
               {#if profile.brews_has_more}
