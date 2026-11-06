@@ -1,0 +1,27 @@
+name: arabica
+
+services:
+  arabica:
+    image: arabica:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "127.0.0.1:${ARABICA_HOST_PORT:-18910}:18910"
+    environment:
+      ARABICA_PUBLIC_URL: ${ARABICA_PUBLIC_URL:-}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+    volumes:
+      - arabica-data:/var/lib/arabica
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+volumes:
+  arabica-data:

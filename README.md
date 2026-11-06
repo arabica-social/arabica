@@ -147,6 +147,18 @@ just format               # prettier + gofmt
 
 ## Deployment
 
+### Containers
+
+Build and run without Nix using Docker:
+
+```sh
+docker compose --file deploy/compose.yaml up --build --detach
+```
+
+The Nix flake also provides a container image archive. See
+[container builds, smoke tests, and runtime configuration](docs/containers.md).
+
+
 ### Reverse Proxy Setup
 
 When deploying behind a reverse proxy (nginx, Caddy, Cloudflare Tunnel, etc.),

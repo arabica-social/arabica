@@ -92,6 +92,18 @@ herdr-spa-dev-stop:
         [[ -z "$workspace_id" ]] || herdr workspace close "$workspace_id" >/dev/null
     done
 
+container-build image='arabica:local' engine='docker':
+    @"{{ engine }}" build --file deploy/Dockerfile --tag "{{ image }}" .
+
+container-nix-build:
+    @nix build --impure --file nix/build-container.nix --out-link result-container
+
+container-check engine='docker':
+    @"{{ engine }}" build --file deploy/Dockerfile --target test .
+
+container-test image='arabica:local' engine='docker':
+    @python3 deploy/test-container.py --engine "{{ engine }}" "{{ image }}"
+
 build:
     @./scripts/build-spa.sh
     @go build ./cmd/arabica

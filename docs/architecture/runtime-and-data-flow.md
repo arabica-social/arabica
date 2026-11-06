@@ -93,6 +93,14 @@ derived Explore rows and re-extracts searchable documents from indexed records.
 The UI can continue serving results while explicitly reporting that the index
 is catching up or may be stale.
 
+## Container Packaging
+
+The portable `deploy/Dockerfile` and the Nix `container` output package the same Go/SPA
+application. Containers run as uid/gid 10001 and keep persistent SQLite state in
+`/var/lib/arabica`. Packaging does not split background workers from HTTP serving
+or make the runtime multi-replica. Each independent deployment needs its own data
+volume and OAuth origin. See [container operations](../containers.md).
+
 ## Current Constraints
 
 - Never make a local projection the only copy of a user record.

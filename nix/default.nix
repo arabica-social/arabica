@@ -13,7 +13,10 @@
 buildGo127Module rec {
   pname = appName;
   version = "0.1.0";
-  src = ../.;
+  src = lib.cleanSourceWith {
+    src = ../.;
+    filter = import ./source-filter.nix { root = ../.; };
+  };
   vendorHash = "sha256-z++vFgR6/XMM5ppa+7xTL0/ZiQLBew2sM9K+CdtNOt8=";
 
   pnpmDeps = fetchPnpmDeps {

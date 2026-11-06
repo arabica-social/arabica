@@ -30,6 +30,7 @@
         pkgs: system: rec {
           arabica = pkgs.callPackage ./nix/default.nix { appName = "arabica"; };
           default = arabica;
+          container = pkgs.callPackage ./nix/container.nix { inherit arabica; };
         }
       );
       apps = forAllSystems (
