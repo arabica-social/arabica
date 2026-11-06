@@ -23,7 +23,6 @@ import (
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 
-	"tangled.org/arabica.social/arabica/internal/aiaccess"
 	"tangled.org/arabica.social/arabica/internal/atproto"
 	"tangled.org/arabica.social/arabica/internal/feed"
 	"tangled.org/arabica.social/arabica/internal/firehose"
@@ -107,7 +106,7 @@ type Harness struct {
 	Server         *httptest.Server
 	Handler        *basehandlers.Handler
 	FeedIndex      *firehose.FeedIndex
-	AIAccess       *aiaccess.Store
+	AIAccess       *arabicaai.AccessStore
 	dataDir        string
 	moderation     *moderationsqlite.ModerationStore
 	staff          *moderation.Service
@@ -304,7 +303,7 @@ func StartHarnessRuntime(ctx context.Context, dataDir string, opts *HarnessOptio
 	harness.staff = moderationService
 	harness.moderation = moderationsqlite.NewModerationStore(feedIndex.DB())
 	h.SetModeration(moderationService, harness.moderation)
-	access, err := aiaccess.NewStore(feedIndex.DB())
+	access, err := arabicaai.NewAccessStore(feedIndex.DB())
 	if err != nil {
 		return nil, fmt.Errorf("create AI access store: %w", err)
 	}

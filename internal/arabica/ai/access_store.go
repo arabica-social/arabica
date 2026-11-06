@@ -1,4 +1,4 @@
-package aiaccess
+package ai
 
 import (
 	"context"
@@ -9,20 +9,20 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
-const MaxEntries = 1000
+const MaxAccessEntries = 1000
 
-var ErrFull = errors.New("AI access grant limit reached")
+var ErrAccessFull = errors.New("AI access grant limit reached")
 var ErrInvalidDID = errors.New("invalid DID")
 
-type Entry struct {
+type AccessEntry struct {
 	DID       string `json:"did"`
 	GrantedBy string `json:"granted_by"`
 	CreatedAt string `json:"created_at"`
 }
 
-type Store struct{ db *sql.DB }
+type AccessStore struct{ db *sql.DB }
 
-func NewStore(db *sql.DB) (*Store, error) {
+func NewAccessStore(db *sql.DB) (*AccessStore, error) {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS ai_access_grants (
  did TEXT PRIMARY KEY NOT NULL,
  granted_by TEXT NOT NULL,
@@ -31,24 +31,24 @@ func NewStore(db *sql.DB) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{db: db}, nil
+	return &AccessStore{db: db}, nil
 }
 
-func (s *Store) Allows(ctx context.Context, did string) (bool, error) {
+func (s *AccessStore) Allows(ctx context.Context, did string) (bool, error) {
 	var exists bool
 	err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM ai_access_grants WHERE did = ?)`, did).Scan(&exists)
 	return exists, err
 }
 
-func (s *Store) List(ctx context.Context) ([]Entry, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT did, granted_by, created_at FROM ai_access_grants ORDER BY created_at DESC, did LIMIT ?`, MaxEntries)
+func (s *AccessStore) List(ctx context.Context) ([]AccessEntry, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT did, granted_by, created_at FROM ai_access_grants ORDER BY created_at DESC, did LIMIT ?`, MaxAccessEntries)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	entries := make([]Entry, 0)
+	entries := make([]AccessEntry, 0)
 	for rows.Next() {
-		var entry Entry
+		var entry AccessEntry
 		if err := rows.Scan(&entry.DID, &entry.GrantedBy, &entry.CreatedAt); err != nil {
 			return nil, err
 		}
@@ -57,7 +57,7 @@ func (s *Store) List(ctx context.Context) ([]Entry, error) {
 	return entries, rows.Err()
 }
 
-func (s *Store) Grant(ctx context.Context, did, grantedBy string) error {
+func (s *AccessStore) Grant(ctx context.Context, did, grantedBy string) error {
 	if _, err := syntax.ParseDID(did); err != nil {
 		return ErrInvalidDID
 	}
@@ -66,7 +66,7 @@ func (s *Store) Grant(ctx context.Context, did, grantedBy string) error {
 	}
 	result, err := s.db.ExecContext(ctx, `INSERT INTO ai_access_grants (did, granted_by, created_at)
  SELECT ?, ?, ? WHERE (SELECT COUNT(*) FROM ai_access_grants) < ?
- ON CONFLICT(did) DO NOTHING`, did, grantedBy, time.Now().UTC().Format(time.RFC3339Nano), MaxEntries)
+ ON CONFLICT(did) DO NOTHING`, did, grantedBy, time.Now().UTC().Format(time.RFC3339Nano), MaxAccessEntries)
 	if err != nil {
 		return err
 	}
@@ -80,13 +80,13 @@ func (s *Store) Grant(ctx context.Context, did, grantedBy string) error {
 			return err
 		}
 		if !allowed {
-			return ErrFull
+			return ErrAccessFull
 		}
 	}
 	return nil
 }
 
-func (s *Store) Revoke(ctx context.Context, did string) error {
+func (s *AccessStore) Revoke(ctx context.Context, did string) error {
 	if _, err := syntax.ParseDID(did); err != nil {
 		return ErrInvalidDID
 	}

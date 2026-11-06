@@ -11,7 +11,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.org/arabica.social/arabica/internal/aiusage"
 )
 
 // DefaultDailyChars bounds the assistant context one account may send per UTC
@@ -109,14 +108,14 @@ func (s *Service) chargeDailyQuota(ctx context.Context, did string, req Request)
 		return nil
 	}
 	now := time.Now().UTC()
-	day := aiusage.Day(now)
+	day := UsageDay(now)
 	q.mu.Lock()
 	purge := q.purged != day
 	q.purged = day
 	q.mu.Unlock()
 	if purge {
 		// Counts are only ever read for today, so yesterday's rows are dead weight.
-		_ = q.store.PurgeBefore(ctx, aiusage.Day(now.AddDate(0, 0, -1)))
+		_ = q.store.PurgeBefore(ctx, UsageDay(now.AddDate(0, 0, -1)))
 	}
 	_, allowed, err := q.store.Consume(ctx, did, day, requestChars(req), q.chars)
 	if err != nil {

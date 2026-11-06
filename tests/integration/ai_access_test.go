@@ -13,7 +13,6 @@ import (
 	"time"
 
 	provider "tangled.org/arabica.social/arabica/internal/ai"
-	"tangled.org/arabica.social/arabica/internal/aiusage"
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 
 	"github.com/stretchr/testify/assert"
@@ -104,7 +103,7 @@ func TestAI_DailyAllowanceEnforcedPerAccount(t *testing.T) {
 	h := StartHarness(t, &HarnessOptions{AI: service})
 	require.NoError(t, h.AIAccess.Grant(context.Background(), h.PrimaryAccount.DID, "did:plc:staff"))
 
-	usage, err := aiusage.NewStore(h.FeedIndex.DB())
+	usage, err := arabicaai.NewDailyUsageStore(h.FeedIndex.DB())
 	require.NoError(t, err)
 	// "18 grams coffee" charges 15 characters, so a 20-character day admits one request.
 	service.SetUsageStore(usage, 20, nil)
@@ -124,7 +123,7 @@ func TestAI_DailyAllowanceEnforcedPerAccount(t *testing.T) {
 	assert.LessOrEqual(t, retry, 24*60*60)
 	assert.Equal(t, 1, completer.calls, "a refused request must not reach the provider")
 
-	used, err := usage.Used(context.Background(), h.PrimaryAccount.DID, aiusage.Day(time.Now()))
+	used, err := usage.Used(context.Background(), h.PrimaryAccount.DID, arabicaai.UsageDay(time.Now()))
 	require.NoError(t, err)
 	assert.EqualValues(t, 15, used, "one charged request must be persisted for the UTC day")
 }
@@ -134,7 +133,7 @@ func TestAI_DailyAllowanceExemptsAdmins(t *testing.T) {
 	service := arabicaai.NewService(completer)
 	h := StartHarness(t, &HarnessOptions{AI: service})
 	require.NoError(t, h.AIAccess.Grant(context.Background(), h.PrimaryAccount.DID, "did:plc:staff"))
-	usage, err := aiusage.NewStore(h.FeedIndex.DB())
+	usage, err := arabicaai.NewDailyUsageStore(h.FeedIndex.DB())
 	require.NoError(t, err)
 	service.SetUsageStore(usage, 1, func(did string) bool { return did == h.PrimaryAccount.DID })
 
@@ -143,7 +142,7 @@ func TestAI_DailyAllowanceExemptsAdmins(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode, "exempt accounts are not charged")
 	}
 	assert.Equal(t, 2, completer.calls)
-	used, err := usage.Used(context.Background(), h.PrimaryAccount.DID, aiusage.Day(time.Now()))
+	used, err := usage.Used(context.Background(), h.PrimaryAccount.DID, arabicaai.UsageDay(time.Now()))
 	require.NoError(t, err)
 	assert.Zero(t, used)
 }
@@ -155,14 +154,14 @@ func TestAI_RefusedRequestsDoNotSpendAllowance(t *testing.T) {
 	service := arabicaai.NewService(completer)
 	h := StartHarness(t, &HarnessOptions{AI: service})
 	require.NoError(t, h.AIAccess.Grant(context.Background(), h.PrimaryAccount.DID, "did:plc:staff"))
-	usage, err := aiusage.NewStore(h.FeedIndex.DB())
+	usage, err := arabicaai.NewDailyUsageStore(h.FeedIndex.DB())
 	require.NoError(t, err)
 	service.SetUsageStore(usage, 20, nil)
 
 	invalid := h.do(http.MethodPost, "/api/ai/chat", []byte(`{"session_id":"s","request_id":"r","revision":0,"messages":[],"draft":{"kind":"brew","fields":{}}}`))
 	require.Equal(t, http.StatusBadRequest, invalid.StatusCode)
 
-	used, err := usage.Used(context.Background(), h.PrimaryAccount.DID, aiusage.Day(time.Now()))
+	used, err := usage.Used(context.Background(), h.PrimaryAccount.DID, arabicaai.UsageDay(time.Now()))
 	require.NoError(t, err)
 	assert.Zero(t, used)
 	assert.Zero(t, completer.calls)

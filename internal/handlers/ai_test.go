@@ -13,7 +13,6 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
-	"tangled.org/arabica.social/arabica/internal/aiaccess"
 	"testing"
 	"time"
 
@@ -39,7 +38,7 @@ func setupAI(t *testing.T) (AIHandlers, *TestContext) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
-	access, err := aiaccess.NewStore(db)
+	access, err := arabicaai.NewAccessStore(db)
 	if err != nil {
 		t.Fatal(err)
 	}

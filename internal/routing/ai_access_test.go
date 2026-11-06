@@ -13,7 +13,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
-	"tangled.org/arabica.social/arabica/internal/aiaccess"
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/handlers"
@@ -30,7 +29,7 @@ func TestAIAccessRouter(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "access.db"))
 	require.NoError(t, err)
 	defer db.Close()
-	access, err := aiaccess.NewStore(db)
+	access, err := arabicaai.NewAccessStore(db)
 	require.NoError(t, err)
 	app := arabicaapp.New()
 	h := handlers.NewHandler(nil, nil, nil, nil, nil, handlers.Config{})

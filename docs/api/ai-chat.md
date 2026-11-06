@@ -75,8 +75,9 @@ provider URL, model, credential or account information is exposed. Responses are
 
 Admins and moderators have implicit access. Other DIDs require an explicit grant
 in the deployment-local SQLite `ai_access_grants` table. Missing storage or read
-errors deny explicit access. This policy is isolated in `internal/aiaccess` and
-`internal/handlers/ai_access.go`; it does not change PDS records or provider logic.
+errors deny explicit access. Storage lives in `internal/arabica/ai` (`AccessStore`),
+with enforcement in `internal/handlers/ai_access.go`; neither changes PDS records
+or provider logic.
 
 Unauthorized callers, including anonymous users, receive 404 for `GET /chat`,
 `HEAD /chat` and `POST /api/ai/chat`, before request decoding or provider calls.

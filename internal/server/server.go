@@ -13,8 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"tangled.org/arabica.social/arabica/internal/aiaccess"
-	"tangled.org/arabica.social/arabica/internal/aiusage"
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	"tangled.org/arabica.social/arabica/internal/atproto"
@@ -197,7 +195,7 @@ func Run(ctx context.Context, app *arabicaapp.App, opts Options) error {
 	feedService.SetSource(feedIndex)
 
 	moderationStore := moderationsqlite.NewModerationStore(feedIndex.DB())
-	aiAccess, err := aiaccess.NewStore(feedIndex.DB())
+	aiAccess, err := arabicaai.NewAccessStore(feedIndex.DB())
 	if err != nil {
 		return fmt.Errorf("initialize AI access: %w", err)
 	}
@@ -292,7 +290,7 @@ func Run(ctx context.Context, app *arabicaapp.App, opts Options) error {
 		h.SetModeration(moderationSvc, moderationStore)
 	}
 	if opts.AI != nil && opts.AI.Enabled() {
-		aiUsage, err := aiusage.NewStore(feedIndex.DB())
+		aiUsage, err := arabicaai.NewDailyUsageStore(feedIndex.DB())
 		if err != nil {
 			return fmt.Errorf("initialize AI usage: %w", err)
 		}

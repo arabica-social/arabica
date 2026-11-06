@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"tangled.org/arabica.social/arabica/internal/aiaccess"
+	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	arabicaapp "tangled.org/arabica.social/arabica/internal/arabica/app"
 	arabicastore "tangled.org/arabica.social/arabica/internal/arabica/store"
 	"tangled.org/arabica.social/arabica/internal/atproto"
@@ -59,7 +59,7 @@ type Handler struct {
 	// Moderation dependencies (optional)
 	moderationService *moderation.Service
 	moderationStore   *moderationsqlite.ModerationStore
-	aiAccess          *aiaccess.Store
+	aiAccess          *arabicaai.AccessStore
 
 	// Backup service (optional) — exposes per-source status to admin views.
 	backupService *backup.Service

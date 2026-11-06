@@ -8,11 +8,11 @@ import (
 	"net/http"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.org/arabica.social/arabica/internal/aiaccess"
+	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
 	atpmiddleware "tangled.org/pdewey.com/atp/middleware"
 )
 
-func (h *Handler) SetAIAccess(store *aiaccess.Store) { h.aiAccess = store }
+func (h *Handler) SetAIAccess(store *arabicaai.AccessStore) { h.aiAccess = store }
 
 func (h AIHandlers) allowed(r *http.Request) bool {
 	did, ok := atpmiddleware.GetDID(r.Context())
@@ -107,8 +107,8 @@ func (h *Handler) HandleAIAccess(w http.ResponseWriter, r *http.Request) {
 			moderators = append(moderators, staff{DID: user.DID})
 		}
 		WriteJSON(w, struct {
-			Entries    []aiaccess.Entry `json:"entries"`
-			Moderators []staff          `json:"moderators"`
+			Entries    []arabicaai.AccessEntry `json:"entries"`
+			Moderators []staff                 `json:"moderators"`
 		}{entries, moderators}, "AI access")
 		return
 	}
@@ -140,7 +140,7 @@ func (h *Handler) HandleAIAccess(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == http.MethodDelete {
 		err = h.aiAccess.Revoke(r.Context(), req.DID)
 	}
-	if errors.Is(err, aiaccess.ErrFull) {
+	if errors.Is(err, arabicaai.ErrAccessFull) {
 		WriteJSONError(w, 409, "ai_access_full", "AI access grant limit reached")
 		return
 	}

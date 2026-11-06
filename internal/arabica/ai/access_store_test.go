@@ -1,4 +1,4 @@
-package aiaccess
+package ai
 
 import (
 	"context"
@@ -10,14 +10,14 @@ import (
 	"testing"
 )
 
-func TestStorePersistenceAndBounds(t *testing.T) {
+func TestAccessStorePersistenceAndBounds(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "access.db")
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	store, err := NewStore(db)
+	store, err := NewAccessStore(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,16 +25,16 @@ func TestStorePersistenceAndBounds(t *testing.T) {
 	if err := store.Grant(ctx, "bad", "did:plc:admin"); !errors.Is(err, ErrInvalidDID) {
 		t.Fatal(err)
 	}
-	for i := 0; i < MaxEntries; i++ {
+	for i := 0; i < MaxAccessEntries; i++ {
 		if err := store.Grant(ctx, fmt.Sprintf("did:plc:user%d", i), "did:plc:admin"); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := store.Grant(ctx, "did:plc:overflow", "did:plc:admin"); !errors.Is(err, ErrFull) {
+	if err := store.Grant(ctx, "did:plc:overflow", "did:plc:admin"); !errors.Is(err, ErrAccessFull) {
 		t.Fatal(err)
 	}
 	entries, err := store.List(ctx)
-	if err != nil || len(entries) != MaxEntries {
+	if err != nil || len(entries) != MaxAccessEntries {
 		t.Fatalf("list %d %v", len(entries), err)
 	}
 	if err := store.Grant(ctx, "did:plc:user0", "did:plc:other"); err != nil {
@@ -54,7 +54,7 @@ func TestStorePersistenceAndBounds(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	store, err = NewStore(db)
+	store, err = NewAccessStore(db)
 	if err != nil {
 		t.Fatal(err)
 	}

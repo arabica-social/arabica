@@ -1,6 +1,4 @@
-// Package aiusage bounds how much assistant context one account may send per
-// UTC day. Counts are deployment-local operational state, like AI access grants.
-package aiusage
+package ai
 
 import (
 	"context"
@@ -9,9 +7,9 @@ import (
 	"time"
 )
 
-type Store struct{ db *sql.DB }
+type DailyUsageStore struct{ db *sql.DB }
 
-func NewStore(db *sql.DB) (*Store, error) {
+func NewDailyUsageStore(db *sql.DB) (*DailyUsageStore, error) {
 	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS ai_daily_chat_usage (
 		did TEXT NOT NULL,
 		day TEXT NOT NULL,
@@ -23,15 +21,15 @@ func NewStore(db *sql.DB) (*Store, error) {
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS ai_daily_chat_usage_day ON ai_daily_chat_usage (day)`); err != nil {
 		return nil, err
 	}
-	return &Store{db: db}, nil
+	return &DailyUsageStore{db: db}, nil
 }
 
-func Day(at time.Time) string { return at.UTC().Format(time.DateOnly) }
+func UsageDay(at time.Time) string { return at.UTC().Format(time.DateOnly) }
 
 // Consume records chars against one account's day budget in a single statement,
 // so concurrent or repeated requests can never exceed limit. A false result
 // means the request was not charged.
-func (s *Store) Consume(ctx context.Context, did, day string, chars, limit int64) (int64, bool, error) {
+func (s *DailyUsageStore) Consume(ctx context.Context, did, day string, chars, limit int64) (int64, bool, error) {
 	if did == "" || day == "" || chars < 0 || limit < 0 {
 		return 0, false, errors.New("aiusage: invalid consumption")
 	}
@@ -52,7 +50,7 @@ WHERE ai_daily_chat_usage.chars + excluded.chars <= ?`, did, day, chars, limit)
 	return used, charged > 0, nil
 }
 
-func (s *Store) Used(ctx context.Context, did, day string) (int64, error) {
+func (s *DailyUsageStore) Used(ctx context.Context, did, day string) (int64, error) {
 	var chars int64
 	err := s.db.QueryRowContext(ctx, `SELECT chars FROM ai_daily_chat_usage WHERE did = ? AND day = ?`, did, day).Scan(&chars)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -61,7 +59,7 @@ func (s *Store) Used(ctx context.Context, did, day string) (int64, error) {
 	return chars, err
 }
 
-func (s *Store) PurgeBefore(ctx context.Context, day string) error {
+func (s *DailyUsageStore) PurgeBefore(ctx context.Context, day string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM ai_daily_chat_usage WHERE day < ?`, day)
 	return err
 }
