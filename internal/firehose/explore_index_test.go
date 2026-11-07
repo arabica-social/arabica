@@ -51,6 +51,65 @@ func upsertExploreRecord(t *testing.T, idx *FeedIndex, did, collection, rkey str
 	return fmt.Sprintf("at://%s/%s/%s", did, collection, rkey)
 }
 
+func TestExploreDependencyRefreshWithSingleConnection(t *testing.T) {
+	for _, tc := range []struct {
+		name             string
+		parentCollection string
+		childCollection  string
+		refField         string
+		parentField      string
+		oldValue         string
+		newValue         string
+		facet            string
+	}{
+		{"roaster beans", arabica.NSIDRoaster, arabica.NSIDBean, "roasterRef", "name", "Before", "After", "roaster"},
+		{"brewer recipes", arabica.NSIDBrewer, arabica.NSIDRecipe, "brewerRef", "brewerType", "pourover", "immersion", "brewer_type"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			idx := newExploreTestIndex(t)
+			parent := map[string]any{"$type": tc.parentCollection, "name": "Parent", tc.parentField: tc.oldValue}
+			parentURI := upsertExploreRecord(t, idx, "did:plc:parent", tc.parentCollection, "parent", parent, 1)
+			var children []string
+			for i := range 3 {
+				children = append(children, upsertExploreRecord(t, idx, "did:plc:child", tc.childCollection, fmt.Sprint(i), map[string]any{"$type": tc.childCollection, "name": "Child", tc.refField: parentURI}, i+2))
+			}
+			idx.DB().SetMaxOpenConns(1)
+			ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+			defer cancel()
+			parent[tc.parentField] = tc.newValue
+			require.NoError(t, idx.UpsertRecord(ctx, "did:plc:parent", tc.parentCollection, "parent", "updated", rawRecord(t, parent), time.Now().Unix()))
+			require.NoError(t, ctx.Err(), "dependency refresh exhausted the connection pool")
+			for _, uri := range children {
+				var value string
+				require.NoError(t, idx.DB().QueryRowContext(ctx, `SELECT value_text FROM explore_values WHERE uri=? AND field=?`, uri, tc.facet).Scan(&value))
+				assert.Equal(t, tc.newValue, value)
+			}
+			require.NoError(t, idx.DB().PingContext(ctx))
+			assert.Zero(t, idx.DB().Stats().InUse)
+		})
+	}
+}
+
+func TestExploreRebuildWithSingleConnection(t *testing.T) {
+	idx := newExploreTestIndex(t)
+	parentURI := upsertExploreRecord(t, idx, "did:plc:parent", arabica.NSIDRoaster, "parent", map[string]any{"name": "Roaster"}, 1)
+	for i := range 3 {
+		upsertExploreRecord(t, idx, "did:plc:child", arabica.NSIDBean, fmt.Sprint(i), map[string]any{"name": "Bean", "roasterRef": parentURI}, i+2)
+	}
+	idx.DB().SetMaxOpenConns(1)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	require.NoError(t, idx.RebuildExploreIndex(ctx))
+	assert.True(t, idx.ExploreReadiness(ctx).Ready)
+	var documents int
+	require.NoError(t, idx.DB().QueryRowContext(ctx, `SELECT COUNT(*) FROM explore_documents`).Scan(&documents))
+	assert.Equal(t, 4, documents)
+	var facets int
+	require.NoError(t, idx.DB().QueryRowContext(ctx, `SELECT COUNT(*) FROM explore_values WHERE field='roaster' AND value_text='Roaster'`).Scan(&facets))
+	assert.Equal(t, 3, facets)
+	assert.Zero(t, idx.DB().Stats().InUse)
+}
+
 func TestExploreIndexesConfiguredArabicaTypesAndValues(t *testing.T) {
 	idx := newExploreTestIndex(t)
 	ctx := context.Background()

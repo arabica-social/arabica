@@ -107,6 +107,9 @@ volume and OAuth origin. See [container operations](../containers.md).
 - Never require a local index write to succeed before acknowledging a completed
   PDS mutation unless a new decision deliberately changes the failure contract.
 - Treat witness and Explore results as potentially lagging.
+- Explore rebuild and dependency-refresh scans release their selection cursor
+  before indexing individual records, so nested work cannot exhaust the shared
+  SQLite connection pool.
 - Preserve cross-user visibility, ownership, and moderation checks when using
   locally indexed records.
 - Test both cache hits and the authoritative fallback path for correctness-

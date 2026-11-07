@@ -104,21 +104,7 @@ func (idx *FeedIndex) RebuildExploreIndex(ctx context.Context) error {
 		return err
 	}
 
-	rows, err := idx.db.QueryContext(ctx, `SELECT uri FROM records ORDER BY created_at ASC`)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var uri string
-		if err := rows.Scan(&uri); err != nil {
-			return err
-		}
-		if err := idx.reindexExploreRecord(ctx, uri); err != nil {
-			return err
-		}
-	}
-	if err := rows.Err(); err != nil {
+	if err := idx.reindexExploreQuery(ctx, `SELECT uri FROM records ORDER BY created_at ASC`); err != nil {
 		return err
 	}
 	_, err = idx.db.ExecContext(ctx, `INSERT INTO meta(key,value) VALUES('explore_index_version', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, exploreIndexVersion)
@@ -394,21 +380,35 @@ func (idx *FeedIndex) reindexExploreDependents(ctx context.Context, uri, collect
 	default:
 		return nil
 	}
-	rows, err := idx.db.QueryContext(ctx, `SELECT uri FROM records WHERE json_extract(record, '$.`+field+`') = ?`, uri)
+	return idx.reindexExploreQuery(ctx, `SELECT uri FROM records WHERE json_extract(record, '$.`+field+`') = ?`, uri)
+}
+
+func (idx *FeedIndex) reindexExploreQuery(ctx context.Context, query string, args ...any) error {
+	rows, err := idx.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
+	var uris []string
 	for rows.Next() {
-		var dep string
-		if err := rows.Scan(&dep); err != nil {
+		var uri string
+		if err := rows.Scan(&uri); err != nil {
 			return err
 		}
-		if err := idx.reindexExploreRecord(ctx, dep); err != nil {
+		uris = append(uris, uri)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	for _, uri := range uris {
+		if err := idx.reindexExploreRecord(ctx, uri); err != nil {
 			return err
 		}
 	}
-	return rows.Err()
+	return nil
 }
 
 func (idx *FeedIndex) GetExplore(ctx context.Context, q ExploreQuery) (*ExploreResult, error) {

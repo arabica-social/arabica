@@ -38,12 +38,12 @@
         shortLabel: "Community",
         icon: "coffee",
       },
-      {
-        href: "/explore",
-        label: "Explore",
-        shortLabel: "Explore",
-        icon: "globe",
-      },
+      // {
+      //   href: "/explore",
+      //   label: "Explore",
+      //   shortLabel: "Explore",
+      //   icon: "globe",
+      // },
       {
         href: definition.libraryPath,
         label: definition.libraryLabel,
