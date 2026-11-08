@@ -297,6 +297,11 @@ func Run(ctx context.Context, app *arabicaapp.App, opts Options) error {
 		opts.AI.SetUsageStore(aiUsage, opts.AI.DailyChars(), func(did string) bool {
 			return moderationSvc != nil && moderationSvc.IsAdmin(did)
 		})
+		requestLog, err := arabicaai.NewRequestLogStore(feedIndex.DB())
+		if err != nil {
+			return fmt.Errorf("initialize AI request log: %w", err)
+		}
+		opts.AI.SetRequestLog(requestLog)
 		log.Info().Int64("daily_chars", opts.AI.DailyChars()).Msg("AI daily allowance configured")
 	}
 

@@ -32,9 +32,10 @@ type Completer interface {
 	Complete(context.Context, []provider.Message, []provider.Tool, json.RawMessage) (provider.Completion, error)
 }
 type Service struct {
-	client  Completer
-	limiter limiter
-	quota   *quota
+	client     Completer
+	limiter    limiter
+	quota      *quota
+	requestLog *RequestLogStore
 }
 
 func NewService(client Completer) *Service { return &Service{client: client} }
@@ -230,6 +231,7 @@ func (s *Service) Chat(ctx context.Context, did string, store LibraryStore, req 
 	if err := s.chargeDailyQuota(ctx, did, req); err != nil {
 		return zero, err
 	}
+	ctx = s.withRequestLog(ctx, did, req.RequestID)
 	completion, err := s.client.Complete(ctx, providerMessages, nil, nil)
 	if err != nil {
 		return zero, providerRequestFailure(err)

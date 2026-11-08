@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 )
@@ -16,6 +17,7 @@ type Usage struct {
 // Observation describes one attempted upstream call, including failed calls.
 // Provider and Model come from server configuration, never from responses.
 type Observation struct {
+	StartedAt   time.Time
 	Provider    string
 	Model       string
 	Duration    time.Duration
@@ -43,4 +45,13 @@ func parseUsage(raw json.RawMessage) (*Usage, string) {
 		return nil, "invalid"
 	}
 	return &Usage{InputTokens: *wire.Input, OutputTokens: *wire.Output, CachedInputTokens: wire.Details.Cached}, "reported"
+}
+
+type requestObserverKey struct{}
+
+// WithRequestObserver adds a request-scoped observer alongside the client observer.
+// The callback runs synchronously for each attempted upstream call, not for local
+// validation failures. It must be concurrency-safe when the context is shared.
+func WithRequestObserver(ctx context.Context, observe func(Observation)) context.Context {
+	return context.WithValue(ctx, requestObserverKey{}, observe)
 }

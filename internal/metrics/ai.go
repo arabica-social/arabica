@@ -9,6 +9,11 @@ import (
 )
 
 var (
+	// AIRequestLogErrorsTotal counts calls whose per-account history could not be persisted.
+	AIRequestLogErrorsTotal = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "arabica_ai_request_log_errors_total",
+		Help: "Failed AI request log writes; per-account usage history is incomplete.",
+	})
 	aiRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "arabica_ai_requests_total",
 		Help: "Attempted upstream AI calls by configured provider/model, outcome and HTTP status (0 when no response).",

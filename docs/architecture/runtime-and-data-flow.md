@@ -14,16 +14,17 @@ Related decisions: [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md),
 
 ## Data Authority
 
-| Data | Role | Durability | Owner/source |
-|---|---|---|---|
-| Arabica records | Authoritative user data | PDS repository durability | User's PDS |
-| OAuth sessions and requests | Local operational state | SQLite-backed and deployment-local | OAuth/session storage |
-| AI access grants | Authoritative local operational state | SQLite-backed, deployment-local; not reconstructible from PDS | `internal/arabica/ai` (`AccessStore`), `ai_access_grants` in the shared operational/index DB |
-| AI daily usage | Authoritative local operational state | SQLite-backed, deployment-local; reset by UTC day | `internal/arabica/ai` (`DailyUsageStore`), `ai_daily_chat_usage` in the shared operational/index DB |
-| Session cache | Typed collection read optimization | In-memory, two-minute validity | User-scoped session cache |
-| Witness records | Local evidence of repository records | SQLite, recoverable through backfill/firehose | Firehose index |
-| Feed/social views | Local query projection | SQLite, rebuildable from indexed records/events | Firehose index |
-| Explore documents and values | Search/facet projection | SQLite, versioned and rebuildable | Explore index |
+| Data                         | Role                                                                | Durability                                                    | Owner/source                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Arabica records              | Authoritative user data                                             | PDS repository durability                                     | User's PDS                                                                                          |
+| OAuth sessions and requests  | Local operational state                                             | SQLite-backed and deployment-local                            | OAuth/session storage                                                                               |
+| AI access grants             | Authoritative local operational state                               | SQLite-backed, deployment-local; not reconstructible from PDS | `internal/arabica/ai` (`AccessStore`), `ai_access_grants` in the shared operational/index DB        |
+| AI daily usage               | Authoritative local operational state                               | SQLite-backed, deployment-local; reset by UTC day             | `internal/arabica/ai` (`DailyUsageStore`), `ai_daily_chat_usage` in the shared operational/index DB |
+| AI request log               | Local operational usage history, not authoritative provider billing | SQLite-backed, deployment-local; retained indefinitely        | `internal/arabica/ai` (`RequestLogStore`), `ai_request_log` in the shared operational/index DB      |
+| Session cache                | Typed collection read optimization                                  | In-memory, two-minute validity                                | User-scoped session cache                                                                           |
+| Witness records              | Local evidence of repository records                                | SQLite, recoverable through backfill/firehose                 | Firehose index                                                                                      |
+| Feed/social views            | Local query projection                                              | SQLite, rebuildable from indexed records/events               | Firehose index                                                                                      |
+| Explore documents and values | Search/facet projection                                             | SQLite, versioned and rebuildable                             | Explore index                                                                                       |
 
 Local indexes can improve latency and availability but do not transfer record
 ownership away from the PDS.
@@ -34,9 +35,17 @@ ownership away from the PDS.
 optional synchronous observer. `internal/arabica/ai.FromEnv` wires that observer
 to `internal/metrics`, which owns Prometheus registration. The generic transport
 does not depend on application metrics. Provider-reported tokens, failures and
-latency are operational telemetry, not quota state or authoritative billing data.
-Prometheus owns retention; no new SQLite or PDS data is written. See
-[monitoring](../monitoring.md) for metric semantics and alert deployment.
+latency are operational telemetry, not quota state or authoritative billing
+data. Prometheus owns aggregate metric retention. Server bootstrap also attaches
+an app-owned request log in the shared SQLite database. `Service.Chat` binds its
+validated caller DID and client request ID to a request-scoped transport
+observer; the generic transport still has no account or database dependencies.
+Each completed observation appends one row, including failed/canceled calls and
+calls from quota-exempt accounts. Token counts are nullable when unreported.
+Writes use a separate two-second context after client cancellation; failure is
+observable but does not replace a valid response. There is no automatic pruning,
+PDS write, prompt logging, or per-DID Prometheus label. See
+[monitoring](../monitoring.md) for schema, failure limits and alert deployment.
 
 ## Read Paths
 
@@ -77,8 +86,8 @@ performance, but it must not redefine whether the record exists.
 
 The Jetstream consumer applies repository commits to `FeedIndex`. Backfill can
 also enumerate existing repository records into the same index. Feed, social,
-notification, witness, and Explore capabilities share this SQLite-backed
-runtime while retaining separate query responsibilities.
+notification, witness, and Explore capabilities share this SQLite-backed runtime
+while retaining separate query responsibilities.
 
 ### Identity Reconciliation
 
@@ -100,16 +109,17 @@ overflow, or process restart.
 
 Explore has its own schema version and rebuild operation. A rebuild clears
 derived Explore rows and re-extracts searchable documents from indexed records.
-The UI can continue serving results while explicitly reporting that the index
-is catching up or may be stale.
+The UI can continue serving results while explicitly reporting that the index is
+catching up or may be stale.
 
 ## Container Packaging
 
-The portable `deploy/Dockerfile` and the Nix `container` output package the same Go/SPA
-application. Containers run as uid/gid 10001 and keep persistent SQLite state in
-`/var/lib/arabica`. Packaging does not split background workers from HTTP serving
-or make the runtime multi-replica. Each independent deployment needs its own data
-volume and OAuth origin. See [container operations](../containers.md).
+The portable `deploy/Dockerfile` and the Nix `container` output package the same
+Go/SPA application. Containers run as uid/gid 10001 and keep persistent SQLite
+state in `/var/lib/arabica`. Packaging does not split background workers from
+HTTP serving or make the runtime multi-replica. Each independent deployment
+needs its own data volume and OAuth origin. See
+[container operations](../containers.md).
 
 ## Current Constraints
 
@@ -125,50 +135,51 @@ volume and OAuth origin. See [container operations](../containers.md).
 - Test both cache hits and the authoritative fallback path for correctness-
   sensitive changes.
 
-
 ## Transient AI image context
 
 Chat attachment preprocessing belongs to the SPA (`web/src/lib/ai/images.ts`);
-`ChatWorkspace.svelte` keeps sanitized images in a bounded, per-mounted-chat memory
-map, separate from the canonical draft and persistence envelope. Home image paste
-uses the same preprocessor; `homeImages.ts` transfers sanitized attachments to chat
-in a single-use, account-scoped memory slot expiring after 30 seconds. No images
-are serialized for route navigation. Only attachment
+`ChatWorkspace.svelte` keeps sanitized images in a bounded, per-mounted-chat
+memory map, separate from the canonical draft and persistence envelope. Home
+image paste uses the same preprocessor; `homeImages.ts` transfers sanitized
+attachments to chat in a single-use, account-scoped memory slot expiring after
+30 seconds. No images are serialized for route navigation. Only attachment
 counts are part of saved message metadata. Chat/account changes, route teardown,
-pagehide and external-state reconciliation release the map and invalidate pending
-preprocessing. Images cannot authorize record writes.
+pagehide and external-state reconciliation release the map and invalidate
+pending preprocessing. Images cannot authorize record writes.
 
 The app-owned assistant service validates inline images and supplies typed
-multimodal context to the app-agnostic `internal/ai` provider transport. There are
-no attachment records, blob uploads, remote image fetches, server archives or disk
-files in this flow. Provider retention is outside Arabica's control. For request
-bounds and the missing-image contract, see [AI chat API](../api/ai-chat.md).
+multimodal context to the app-agnostic `internal/ai` provider transport. There
+are no attachment records, blob uploads, remote image fetches, server archives
+or disk files in this flow. Provider retention is outside Arabica's control. For
+request bounds and the missing-image contract, see
+[AI chat API](../api/ai-chat.md).
 
 ## Optional AI access gate
 
 `AccessStore` in `internal/arabica/ai` owns the dedicated, bounded
-`ai_access_grants` table, initialized by server composition on the existing SQLite
-connection. These are operational
-permissions, not a record projection: preserve the table when rebuilding indexes
-and include it in operational database backups. No PDS record schema changes.
+`ai_access_grants` table, initialized by server composition on the existing
+SQLite connection. These are operational permissions, not a record projection:
+preserve the table when rebuilding indexes and include it in operational
+database backups. No PDS record schema changes.
 
-The HTTP adapter in `internal/handlers/ai_access.go` combines explicit grants with
-implicit `moderation.Service.IsModerator` access (including admins). It gates the
-SPA chat route and chat API before content decoding/provider work, while status
-returns per-caller configured availability. Missing storage or read errors never
-permit an explicit user. Grants are read by primary key per gated request, so
-revocation takes effect without a cache invalidation or server restart. Moderator
-management is authenticated and mutations have same-origin protection.
+The HTTP adapter in `internal/handlers/ai_access.go` combines explicit grants
+with implicit `moderation.Service.IsModerator` access (including admins). It
+gates the SPA chat route and chat API before content decoding/provider work,
+while status returns per-caller configured availability. Missing storage or read
+errors never permit an explicit user. Grants are read by primary key per gated
+request, so revocation takes effect without a cache invalidation or server
+restart. Moderator management is authenticated and mutations have same-origin
+protection.
 
-`DailyUsageStore` in the same package owns the `ai_daily_chat_usage` table on the
-same connection:
-one charged-character count per account and UTC day. The drafting service consults
-it immediately before each provider call and charges the request's message
-characters plus a fixed rate per image; admins and an operator-configured DID list
-are exempt. Rows are keyed by account and day and purged once that day passes, so
-the table stays small. Missing storage or a failed write refuses the request
-rather than allowing unmetered provider spend.
+`DailyUsageStore` in the same package owns the `ai_daily_chat_usage` table on
+the same connection: one charged-character count per account and UTC day. The
+drafting service consults it immediately before each provider call and charges
+the request's message characters plus a fixed rate per image; admins and an
+operator-configured DID list are exempt. Rows are keyed by account and day and
+purged once that day passes, so the table stays small. Missing storage or a
+failed write refuses the request rather than allowing unmetered provider spend.
 
 Access enforcement remains separate from drafting and record mutations, even
-though operational storage and drafting share the AI package; removing the temporary rollout restriction does not require changing
-provider, draft reconciliation or PDS mutation behavior.
+though operational storage and drafting share the AI package; removing the
+temporary rollout restriction does not require changing provider, draft
+reconciliation or PDS mutation behavior.

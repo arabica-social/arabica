@@ -72,3 +72,14 @@ groups:
             "AI p95 latency exceeds 30 seconds for {{ $labels.provider }}/{{
             $labels.model }}"
           description: "Check provider health and request sizes."
+      - alert: ArabicaAIRequestLogFailures
+        expr:
+          sum by (job) (increase(arabica_ai_request_log_errors_total[10m])) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI per-account usage history is incomplete"
+          description:
+            "SQLite request-log writes failed. Check database health and disk
+            space; successful replies are not discarded."

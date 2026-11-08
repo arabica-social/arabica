@@ -27,6 +27,9 @@ tests:
       - eval_time: 20m
         alertname: ArabicaAISlowProvider
         exp_alerts: []
+      - eval_time: 20m
+        alertname: ArabicaAIRequestLogFailures
+        exp_alerts: []
   - name: failing-expensive-slow-provider
     interval: 1m
     input_series:
@@ -46,6 +49,8 @@ tests:
         values: "0+10x30"
       - series: 'arabica_ai_request_duration_seconds_count{job="arabica",provider="test",model="test"}'
         values: "0+10x30"
+      - series: 'arabica_ai_request_log_errors_total{job="arabica"}'
+        values: "0+1x30"
     alert_rule_test:
       - eval_time: 20m
         alertname: ArabicaAIProviderErrors
@@ -111,3 +116,14 @@ tests:
             exp_annotations:
               summary: "AI p95 latency exceeds 30 seconds for test/test"
               description: "Check provider health and request sizes."
+      - eval_time: 20m
+        alertname: ArabicaAIRequestLogFailures
+        exp_alerts:
+          - exp_labels:
+              job: arabica
+              severity: warning
+            exp_annotations:
+              summary: "AI per-account usage history is incomplete"
+              description:
+                "SQLite request-log writes failed. Check database health and
+                disk space; successful replies are not discarded."

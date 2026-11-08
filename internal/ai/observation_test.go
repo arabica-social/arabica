@@ -44,7 +44,9 @@ func TestObservedCompletion(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := client.Complete(context.Background(), testMessages, nil, nil)
+			var scoped []Observation
+			ctx := WithRequestObserver(context.Background(), func(o Observation) { scoped = append(scoped, o) })
+			got, err := client.Complete(ctx, testMessages, nil, nil)
 			if (err != nil) != (tt.outcome != "") {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -52,6 +54,9 @@ func TestObservedCompletion(t *testing.T) {
 				t.Fatalf("observations: %d", len(seen))
 			}
 			o := seen[0]
+			if len(scoped) != 1 || scoped[0] != o || o.StartedAt.IsZero() {
+				t.Fatalf("scoped observation mismatch: %+v", scoped)
+			}
 			if o.Provider != "test" || o.Model != "test-model" || o.Duration <= 0 || o.HTTPStatus != tt.status || o.Failure.Category != tt.outcome || o.UsageStatus != tt.state {
 				t.Fatalf("unexpected observation: %+v", o)
 			}

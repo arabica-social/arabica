@@ -108,15 +108,19 @@ func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool,
 	if c.key != "" {
 		req.Header.Set("Authorization", "Bearer "+c.key)
 	}
-	observation := Observation{Provider: c.providerName, Model: c.provider.Model, UsageStatus: "unavailable"}
 	started := time.Now()
+	observation := Observation{StartedAt: started, Provider: c.providerName, Model: c.provider.Model, UsageStatus: "unavailable"}
+	requestObserver, _ := ctx.Value(requestObserverKey{}).(func(Observation))
 	defer func() {
+		observation.Duration = time.Since(started)
+		if err != nil {
+			observation.Failure = DescribeFailure(err)
+		}
 		if c.observe != nil {
-			observation.Duration = time.Since(started)
-			if err != nil {
-				observation.Failure = DescribeFailure(err)
-			}
 			c.observe(observation)
+		}
+		if requestObserver != nil {
+			requestObserver(observation)
 		}
 	}()
 	resp, err := c.http.Do(req)
