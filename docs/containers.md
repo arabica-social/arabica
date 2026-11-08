@@ -121,9 +121,9 @@ where supported). Do not run the application as root to bypass permissions.
 
 Neither image includes operator `ai.json`, `roles.json`, `known-dids.txt`, or
 `.env` files. Mount configuration read-only at explicit absolute paths and set
-`ARABICA_AI_CONFIG` / `ARABICA_MODERATORS_CONFIG`. Supply AI keys and SMTP
-credentials at runtime, not with build arguments or Dockerfile `ENV`. Config files
-must be readable by uid 10001. See [AI configuration](api/ai-chat.md).
+`ARABICA_AI_CONFIG` / `ARABICA_MODERATORS_CONFIG`. Supply AI keys at runtime, not
+with build arguments or Dockerfile `ENV`. Config files must be readable by uid
+10001. See [AI configuration](api/ai-chat.md).
 
 `deploy/Dockerfile.dockerignore` allowlists build inputs and excludes common secret filenames and
 generated artifacts. Keep arbitrary credentials outside the source tree; an

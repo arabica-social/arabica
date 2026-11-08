@@ -212,44 +212,12 @@ in
       };
     };
 
-    smtp = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = ''
-          Enable SMTP email notifications for join requests.
-          SMTP credentials (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM)
-          can be provided via environmentFiles.
-        '';
-      };
-
-      host = lib.mkOption {
-        type = lib.types.str;
-        default = "";
-        description = "SMTP server hostname. Can also be set via SMTP_HOST in an environment file.";
-        example = "smtp.example.com";
-      };
-
-      port = lib.mkOption {
-        type = lib.types.nullOr lib.types.port;
-        default = null;
-        description = "SMTP server port. Can also be set via SMTP_PORT in an environment file.";
-      };
-
-      from = lib.mkOption {
-        type = lib.types.str;
-        default = "";
-        description = "Sender address for outgoing email. Can also be set via SMTP_FROM in an environment file.";
-        example = "noreply@arabica.example.com";
-      };
-    };
-
     environmentFiles = lib.mkOption {
       type = lib.types.listOf lib.types.path;
       default = [ ];
       description = ''
         List of environment files to load into the systemd service.
-        Useful for secrets like ARABICA_AI_API_KEY, SMTP_USER and SMTP_PASS
+        Useful for secrets like ARABICA_AI_API_KEY
         that should not be stored in the Nix store.
       '';
       example = lib.literalExpression ''[ "/run/secrets/arabica.env" ]'';
@@ -371,15 +339,6 @@ in
       }
       // lib.optionalAttrs (effectiveAIConfigPath != null) {
         ARABICA_AI_CONFIG = toString effectiveAIConfigPath;
-      }
-      // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.host != "") {
-        SMTP_HOST = cfg.smtp.host;
-      }
-      // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.port != null) {
-        SMTP_PORT = toString cfg.smtp.port;
-      }
-      // lib.optionalAttrs (cfg.smtp.enable && cfg.smtp.from != "") {
-        SMTP_FROM = cfg.smtp.from;
       }
       // lib.optionalAttrs (cfg.otelEndpoint != null) {
         OTEL_EXPORTER_OTLP_ENDPOINT = cfg.otelEndpoint;
