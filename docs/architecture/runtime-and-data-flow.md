@@ -28,6 +28,16 @@ Related decisions: [ADR-001](../adr/ADR-001-pds-records-are-authoritative.md),
 Local indexes can improve latency and availability but do not transfer record
 ownership away from the PDS.
 
+## AI Transport Telemetry
+
+`internal/ai` reports content-free observations per upstream call through an
+optional synchronous observer. `internal/arabica/ai.FromEnv` wires that observer
+to `internal/metrics`, which owns Prometheus registration. The generic transport
+does not depend on application metrics. Provider-reported tokens, failures and
+latency are operational telemetry, not quota state or authoritative billing data.
+Prometheus owns retention; no new SQLite or PDS data is written. See
+[monitoring](../monitoring.md) for metric semantics and alert deployment.
+
 ## Read Paths
 
 There is no single function that always performs three identical steps. The

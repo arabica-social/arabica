@@ -13,6 +13,9 @@
     global:
       scrape_interval: 15s
 
+    rule_files:
+      - ${../grafana/ai-alerts.yml}
+
     scrape_configs:
       - job_name: arabica
         static_configs:

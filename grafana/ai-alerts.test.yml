@@ -1,0 +1,113 @@
+rule_files:
+  - ai-alerts.yml
+evaluation_interval: 1m
+tests:
+  - name: healthy-provider
+    interval: 1m
+    input_series:
+      - series: 'arabica_ai_requests_total{job="arabica",provider="test",model="test",outcome="success",status="200"}'
+        values: "0+1x30"
+      - series: 'arabica_ai_usage_reports_total{job="arabica",provider="test",model="test",state="reported"}'
+        values: "0+1x30"
+      - series: 'arabica_ai_tokens_total{job="arabica",provider="test",model="test",type="input"}'
+        values: "0+100x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: ArabicaAIProviderErrors
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: ArabicaAIRateLimited
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: ArabicaAIUsageMissing
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: ArabicaAIHighTokenVolume
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: ArabicaAISlowProvider
+        exp_alerts: []
+  - name: failing-expensive-slow-provider
+    interval: 1m
+    input_series:
+      - series: 'arabica_ai_requests_total{job="arabica",provider="test",model="test",outcome="success",status="200"}'
+        values: "0+1x30"
+      - series: 'arabica_ai_requests_total{job="arabica",provider="test",model="test",outcome="upstream_http",status="429"}'
+        values: "0+2x30"
+      - series: 'arabica_ai_usage_reports_total{job="arabica",provider="test",model="test",state="missing"}'
+        values: "0+1x30"
+      - series: 'arabica_ai_tokens_total{job="arabica",provider="test",model="test",type="input"}'
+        values: "0+100000x30"
+      - series: 'arabica_ai_request_duration_seconds_bucket{job="arabica",provider="test",model="test",le="30"}'
+        values: "0+0x30"
+      - series: 'arabica_ai_request_duration_seconds_bucket{job="arabica",provider="test",model="test",le="60"}'
+        values: "0+10x30"
+      - series: 'arabica_ai_request_duration_seconds_bucket{job="arabica",provider="test",model="test",le="+Inf"}'
+        values: "0+10x30"
+      - series: 'arabica_ai_request_duration_seconds_count{job="arabica",provider="test",model="test"}'
+        values: "0+10x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: ArabicaAIProviderErrors
+        exp_alerts:
+          - exp_labels:
+              job: arabica
+              provider: test
+              model: test
+              severity: warning
+            exp_annotations:
+              summary: "AI provider errors exceed 20% for test/test"
+              description:
+                "At least five failed upstream calls in ten minutes. Check
+                outcome and status metrics; do not log prompts or provider
+                bodies."
+      - eval_time: 20m
+        alertname: ArabicaAIRateLimited
+        exp_alerts:
+          - exp_labels:
+              job: arabica
+              provider: test
+              model: test
+              severity: warning
+            exp_annotations:
+              summary: "AI provider is rate limiting test/test"
+              description:
+                "Check provider quotas, billing limits and request volume."
+      - eval_time: 20m
+        alertname: ArabicaAIUsageMissing
+        exp_alerts:
+          - exp_labels:
+              job: arabica
+              provider: test
+              model: test
+              severity: warning
+            exp_annotations:
+              summary: "AI token accounting is incomplete for test/test"
+              description:
+                "Some responses omit valid usage counts. Token and spend
+                estimates undercount; consult provider billing."
+      - eval_time: 20m
+        alertname: ArabicaAIHighTokenVolume
+        exp_alerts:
+          - exp_labels:
+              job: arabica
+              provider: test
+              model: test
+              severity: warning
+            exp_annotations:
+              summary: "AI usage exceeds one million tokens/hour for test/test"
+              description:
+                "Example threshold: tune to the deployment budget and model
+                prices. Cached input is counted once. This alert does not stop
+                spending."
+      - eval_time: 20m
+        alertname: ArabicaAISlowProvider
+        exp_alerts:
+          - exp_labels:
+              job: arabica
+              provider: test
+              model: test
+              severity: warning
+            exp_annotations:
+              summary: "AI p95 latency exceeds 30 seconds for test/test"
+              description: "Check provider health and request sizes."

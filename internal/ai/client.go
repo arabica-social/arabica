@@ -37,19 +37,28 @@ type ToolCall struct {
 type Completion struct {
 	Message      Message
 	FinishReason string
+	Usage        *Usage
 }
 
 // Client is immutable after construction and safe for concurrent requests.
 // It never logs request bodies, credentials, URLs or upstream error bodies.
 type Client struct {
-	provider ProviderConfig
-	key      string
-	http     *http.Client
+	provider     ProviderConfig
+	key          string
+	http         *http.Client
+	providerName string
+	observe      func(Observation)
 }
 
 // NewClient resolves APIKey interpolation once. An omitted/empty key permits
 // intentionally unauthenticated providers; unresolved variables fail startup.
 func NewClient(config Config) (*Client, error) {
+	return NewClientWithObserver(config, nil)
+}
+
+// NewClientWithObserver reports upstream calls synchronously. The observer must
+// be concurrency-safe and must not block; it never receives request content.
+func NewClientWithObserver(config Config, observe func(Observation)) (*Client, error) {
 	c, err := normalize(config)
 	if err != nil {
 		return nil, err
@@ -60,7 +69,7 @@ func NewClient(config Config) (*Client, error) {
 		return nil, err
 	}
 	p.APIKey = "" // Retain the resolved secret only in the dedicated private field.
-	return &Client{provider: p, key: key, http: &http.Client{
+	return &Client{provider: p, key: key, providerName: c.DefaultProvider, observe: observe, http: &http.Client{
 		Timeout:       time.Duration(p.TimeoutSeconds) * time.Second,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}}, nil
@@ -68,7 +77,7 @@ func NewClient(config Config) (*Client, error) {
 
 // Complete makes exactly one non-streaming request. Tools and response format
 // are caller-owned encodings, not authorization or schema validation policies.
-func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool, responseFormat json.RawMessage) (Completion, error) {
+func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool, responseFormat json.RawMessage) (completion Completion, err error) {
 	var zero Completion
 	if len(messages) == 0 {
 		return zero, errors.New("ai: messages required")
@@ -99,6 +108,17 @@ func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool,
 	if c.key != "" {
 		req.Header.Set("Authorization", "Bearer "+c.key)
 	}
+	observation := Observation{Provider: c.providerName, Model: c.provider.Model, UsageStatus: "unavailable"}
+	started := time.Now()
+	defer func() {
+		if c.observe != nil {
+			observation.Duration = time.Since(started)
+			if err != nil {
+				observation.Failure = DescribeFailure(err)
+			}
+			c.observe(observation)
+		}
+	}()
 	resp, err := c.http.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -107,6 +127,7 @@ func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool,
 		return zero, networkFailure(err)
 	}
 	defer resp.Body.Close()
+	observation.HTTPStatus = resp.StatusCode
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return zero, upstreamHTTPFailure(resp.StatusCode)
 	}
@@ -121,17 +142,22 @@ func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool,
 		return zero, failed("response_too_large", "ai: provider response exceeds limit", 0)
 	}
 	var result struct {
+		Usage   json.RawMessage `json:"usage"`
 		Choices []struct {
 			Message      Message `json:"message"`
 			FinishReason string  `json:"finish_reason"`
 		} `json:"choices"`
 	}
-	if json.Unmarshal(data, &result) != nil || len(result.Choices) != 1 {
+	if json.Unmarshal(data, &result) != nil {
+		return zero, failed("invalid_provider_response", "ai: invalid provider response", 0)
+	}
+	observation.Usage, observation.UsageStatus = parseUsage(result.Usage)
+	if len(result.Choices) != 1 {
 		return zero, failed("invalid_provider_response", "ai: invalid provider response", 0)
 	}
 	choice := result.Choices[0]
 	if choice.Message.Role != "assistant" || (choice.Message.Content == "" && len(choice.Message.ToolCalls) == 0) {
 		return zero, failed("invalid_assistant_message", "ai: invalid assistant message", 0)
 	}
-	return Completion{Message: choice.Message, FinishReason: choice.FinishReason}, nil
+	return Completion{Message: choice.Message, FinishReason: choice.FinishReason, Usage: observation.Usage}, nil
 }

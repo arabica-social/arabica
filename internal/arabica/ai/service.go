@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	provider "tangled.org/arabica.social/arabica/internal/ai"
+	"tangled.org/arabica.social/arabica/internal/metrics"
 )
 
 var (
@@ -60,7 +61,7 @@ func FromEnv() (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := provider.NewClient(config)
+	client, err := provider.NewClientWithObserver(config, metrics.ObserveAI)
 	if err != nil {
 		return nil, err
 	}

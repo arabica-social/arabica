@@ -1,0 +1,74 @@
+groups:
+  - name: arabica-ai
+    rules:
+      - alert: ArabicaAIProviderErrors
+        expr: |
+          (sum by (job, provider, model) (increase(arabica_ai_requests_total{outcome!~"success|canceled"}[10m])) >= 5)
+          and
+          (sum by (job, provider, model) (rate(arabica_ai_requests_total{outcome!~"success|canceled"}[10m]))
+          / sum by (job, provider, model) (rate(arabica_ai_requests_total{outcome!="canceled"}[10m])) > 0.2)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary:
+            "AI provider errors exceed 20% for {{ $labels.provider }}/{{
+            $labels.model }}"
+          description:
+            "At least five failed upstream calls in ten minutes. Check outcome
+            and status metrics; do not log prompts or provider bodies."
+      - alert: ArabicaAIRateLimited
+        expr:
+          sum by (job, provider, model)
+          (increase(arabica_ai_requests_total{status="429"}[10m])) >= 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary:
+            "AI provider is rate limiting {{ $labels.provider }}/{{
+            $labels.model }}"
+          description:
+            "Check provider quotas, billing limits and request volume."
+      - alert: ArabicaAIUsageMissing
+        expr:
+          sum by (job, provider, model)
+          (increase(arabica_ai_usage_reports_total{state=~"missing|invalid"}[10m]))
+          > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary:
+            "AI token accounting is incomplete for {{ $labels.provider }}/{{
+            $labels.model }}"
+          description:
+            "Some responses omit valid usage counts. Token and spend estimates
+            undercount; consult provider billing."
+      - alert: ArabicaAIHighTokenVolume
+        expr:
+          sum by (job, provider, model)
+          (increase(arabica_ai_tokens_total{type=~"input|output"}[1h])) > 100000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary:
+            "AI usage exceeds one million tokens/hour for {{ $labels.provider
+            }}/{{ $labels.model }}"
+          description:
+            "Example threshold: tune to the deployment budget and model prices.
+            Cached input is counted once. This alert does not stop spending."
+      - alert: ArabicaAISlowProvider
+        expr: |
+          (histogram_quantile(0.95, sum by (job, provider, model, le) (rate(arabica_ai_request_duration_seconds_bucket[10m]))) > 30)
+          and
+          (sum by (job, provider, model) (increase(arabica_ai_request_duration_seconds_count[10m])) >= 20)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary:
+            "AI p95 latency exceeds 30 seconds for {{ $labels.provider }}/{{
+            $labels.model }}"
+          description: "Check provider health and request sizes."

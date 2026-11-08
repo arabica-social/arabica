@@ -782,6 +782,126 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 92
+      },
+      "id": 108,
+      "title": "AI provider usage",
+      "type": "row"
+    },
+    {
+      "id": 80,
+      "title": "Upstream calls / second",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 93
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (provider, model, outcome) (rate(arabica_ai_requests_total[$__rate_interval]))",
+          "legendFormat": "{{provider}} / {{model}} / {{outcome}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "title": "Tokens over selected range",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 93
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (provider, model, type) (increase(arabica_ai_tokens_total[$__range]))",
+          "legendFormat": "{{provider}} / {{model}} / {{type}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "title": "Upstream p95 latency",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 101
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (provider, model, le) (rate(arabica_ai_request_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "{{provider}} / {{model}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "title": "Usage reporting coverage / second",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 101
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (provider, model, state) (rate(arabica_ai_usage_reports_total[$__rate_interval]))",
+          "legendFormat": "{{provider}} / {{model}} / {{state}}",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "schemaVersion": 39,
@@ -792,5 +912,5 @@
   "timezone": "",
   "title": "Arabica - Prometheus Metrics",
   "uid": "arabica-prometheus",
-  "version": 1
+  "version": 2
 }

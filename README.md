@@ -46,7 +46,7 @@ an unprefixed form (e.g. `PORT`); the prefixed form wins when both are set.
   `~/.local/share/arabica`.
 - `ARABICA_PROFILE_CACHE_TTL` - Profile cache duration (default: 1h)
 - `ARABICA_METRICS_PORT` / `METRICS_PORT` - Prometheus metrics port, bound to
-  `127.0.0.1` (default: 9101)
+  `127.0.0.1` (default: 9101); see [AI monitoring and alerts](docs/monitoring.md)
 - `ARABICA_MODERATORS_CONFIG` - Path to the moderator roles JSON file
 - `ARABICA_OAUTH_CLIENT_ID` / `OAUTH_CLIENT_ID` - OAuth client ID (optional,
   uses loopback mode if not set)
