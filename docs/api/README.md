@@ -38,6 +38,14 @@ metadata and the public preview image endpoint.
 - AT-URIs are full `at://did:plc:.../collection/rkey` strings.
 - Pagination uses cursor strings; an empty `next_cursor` means no more pages.
 
+## Unknown page URLs
+
+Unknown GET/HEAD page URLs return the SPA shell with HTTP 404 and
+`Cache-Control: no-store`; SvelteKit renders the shared Page Not Found screen.
+Unknown API, asset, well-known, and auth URLs retain backend responses rather than
+HTML shell fallbacks. Non-GET/HEAD requests are also excluded. Registered API,
+auth, mutation, and asset routes keep their existing behavior.
+
 ## AI-assisted creation
 
 See [ai-chat.md](ai-chat.md) for availability, chat draft proposals and server-side

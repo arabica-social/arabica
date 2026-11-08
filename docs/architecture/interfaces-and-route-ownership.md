@@ -29,7 +29,13 @@ The routing package owns middleware and all Arabica route registration.
 `routing.SPAOwnedRoutes()` is the executable allowlist of page patterns served
 by the SvelteKit shell. A listed route must have a working direct-load path and
 all required JSON/session/error behavior. Without a shell, page routes return
-404. Unknown pages remain 404; no legacy page-rendering stack remains.
+404. Unknown GET/HEAD page URLs also serve the shell, with HTTP 404 and
+`Cache-Control: no-store`, so SvelteKit renders the shared Page Not Found screen.
+This is error presentation, not route ownership: unlisted URLs do not become
+supported pages. Unknown `/api`, `/static`, `/_app`, `/.well-known`, `/auth`, and
+`/oauth` paths (including the namespace roots) and non-GET/HEAD requests retain
+backend handling, not the SPA fallback. Existing asset-directory redirects remain
+unchanged. No legacy page-rendering stack remains.
 
 JSON, mutation, OG image, modal, and compatibility endpoints remain independent
 of which frontend owns the corresponding page. A page cutover should not

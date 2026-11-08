@@ -15,8 +15,8 @@
 // result. This ensures crawlers and social media bots see correct metadata
 // without executing JavaScript.
 //
-// Shared routing serves the shell for SPAOwnedRoutes; unknown direct loads
-// remain 404s.
+// Shared routing serves the shell for SPAOwnedRoutes and unknown page URLs;
+// unknown pages retain HTTP 404 so SvelteKit can render the shared error screen.
 package spa
 
 import (

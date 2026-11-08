@@ -47,34 +47,8 @@ func (h AIHandlers) RequirePageAccess(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		response := &notFoundPageWriter{ResponseWriter: w}
-		next.ServeHTTP(response, r)
-		response.WriteHeader(http.StatusNotFound)
+		NotFoundPage(next).ServeHTTP(w, r)
 	})
-}
-
-type notFoundPageWriter struct {
-	http.ResponseWriter
-	wroteHeader bool
-}
-
-func (w *notFoundPageWriter) WriteHeader(status int) {
-	if w.wroteHeader {
-		return
-	}
-	w.wroteHeader = true
-	if status < http.StatusBadRequest {
-		status = http.StatusNotFound
-	}
-	w.Header().Set("Cache-Control", "no-store")
-	w.ResponseWriter.WriteHeader(status)
-}
-
-func (w *notFoundPageWriter) Write(body []byte) (int, error) {
-	if !w.wroteHeader {
-		w.WriteHeader(http.StatusNotFound)
-	}
-	return w.ResponseWriter.Write(body)
 }
 
 func (h *Handler) HandleAIAccess(w http.ResponseWriter, r *http.Request) {

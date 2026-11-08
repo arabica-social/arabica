@@ -16,7 +16,8 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   deployment-local database table. Revoking an explicit grant cannot remove staff
   access. Denied users see no homepage chat composer and receive 404 for direct
   chat page loads and chat submissions. Page denials use the normal app error
-  screen and navigation with HTTP 404, not an access-specific message. Manual
+  screen and navigation with HTTP 404, matching unknown page URLs such as
+  `/chatt`, not an access-specific message. Manual
   logging remains available. Approved users with AI disabled see a horizontally centered,
   themed unavailable card matching the missing-page typography and top spacing, with Add manually
   and Back to Home actions.

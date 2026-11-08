@@ -40,7 +40,7 @@ func TestArabicaRouteContracts(t *testing.T) {
 					require.Equal(t, 404, w.Code, path)
 				}
 			}
-			for _, path := range []string{"/unknown-page", "/api/unknown", "/api/modals/recipe/new", "/api/ai/status", "/api/session", "/healthz", "/og-image"} {
+			for _, path := range []string{"/api/unknown", "/api/modals/recipe/new", "/api/ai/status", "/api/session", "/healthz", "/og-image"} {
 				w := httptest.NewRecorder()
 				router.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 				require.Empty(t, w.Header().Get("X-Test-SPA"), path)

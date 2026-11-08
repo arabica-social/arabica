@@ -57,8 +57,10 @@ Before adding a page pattern to `SPAOwnedRoutes`:
 6. Any retained legacy handler is clearly a fallback rather than a second
    independently evolving implementation.
 
-Use an explicit cutover inventory instead of a catch-all assumption so
-individual routes can be reviewed or rolled back independently.
+Use an explicit cutover inventory for supported pages. Unknown GET/HEAD page
+URLs use the same shell only to render SvelteKit's shared 404 screen; Go retains
+HTTP 404 rather than returning a successful page. Backend namespaces and mutation
+requests do not use this fallback; see [route ownership](interfaces-and-route-ownership.md).
 
 ## Removal Conditions
 

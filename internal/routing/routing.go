@@ -225,9 +225,7 @@ func SetupRouter(cfg Config) http.Handler {
 	}
 	mux.Handle("GET /_app/", assetHandler)
 
-	// Catch-all 404 handler. The SPA is registered only for explicit page
-	// patterns above, so unknown direct loads remain real 404 responses.
-	mux.HandleFunc("/", h.HandleNotFound)
+	mux.Handle("/", pageNotFound(cfg.SPAHandler, notFound))
 
 	var handler http.Handler = mux
 
@@ -280,6 +278,26 @@ func SetupRouter(cfg Config) http.Handler {
 	// and tracing layers otherwise keep an empty Pattern. Resolve it before any
 	// middleware runs so every clone carries the bounded route pattern.
 	return routePatternMiddleware(mux, handler)
+}
+
+func pageNotFound(shell, fallback http.Handler) http.Handler {
+	if shell == nil {
+		return fallback
+	}
+	notFound := handlers.NotFoundPage(shell)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			fallback.ServeHTTP(w, r)
+			return
+		}
+		for _, prefix := range []string{"/api", "/static", "/_app", "/.well-known", "/auth", "/oauth"} {
+			if r.URL.Path == prefix || strings.HasPrefix(r.URL.Path, prefix+"/") {
+				fallback.ServeHTTP(w, r)
+				return
+			}
+		}
+		notFound.ServeHTTP(w, r)
+	})
 }
 
 func routePatternMiddleware(mux *http.ServeMux, next http.Handler) http.Handler {
