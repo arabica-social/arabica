@@ -35,7 +35,7 @@ Provider response bodies and credentials are not returned as API errors.
 
 ### Daily allowance
 
-Every authenticated account has a daily request allowance of 10,000 characters,
+Every authenticated account has a daily request allowance of 50,000 characters,
 resetting at 00:00 UTC. `ARABICA_AI_DAILY_CHARS` overrides the amount; `0`
 disables the allowance. Admins and any DID listed in the comma-separated
 `ARABICA_AI_UNLIMITED_DIDS` are exempt. Moderators are not implicitly exempt.
@@ -320,7 +320,7 @@ proposals; stale recipe choices require a current-revision confirmation.
 - Provider content: 32768 bytes; assistant reply: 2000 characters; up to 8 choices.
 - At most 8 active requests globally, 1/account, 10 admissions/minute/account.
   Rate-state map capped at 1024 accounts; expired inactive entries are pruned.
-- Daily allowance: 10,000 charged characters/account/UTC day by default, exempt
+- Daily allowance: 50,000 charged characters/account/UTC day by default, exempt
   for admins and `ARABICA_AI_UNLIMITED_DIDS`; one row per account and day.
 - Whole operation deadline: 45 seconds, including library reads. Provider timeout
   remains separately configured (30 seconds by default). No queues or retries.

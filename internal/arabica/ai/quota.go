@@ -15,7 +15,7 @@ import (
 
 // DefaultDailyChars bounds the assistant context one account may send per UTC
 // day. ARABICA_AI_DAILY_CHARS overrides it; zero disables the limit.
-const DefaultDailyChars = 10000
+const DefaultDailyChars = 50000
 
 // imageChars charges an attached image roughly as the text it costs upstream.
 const imageChars = 1000

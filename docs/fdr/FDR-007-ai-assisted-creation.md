@@ -193,7 +193,7 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   disables both this animation and spinner movement.
 - Bounded storage/turn limits surface errors instead of silently deleting an
   unsaved draft. Account changes clear old in-memory library and pending work.
-- Each account has a daily character allowance for assistant requests: 10,000
+- Each account has a daily character allowance for assistant requests: 50,000
   characters per UTC day by default, configurable with `ARABICA_AI_DAILY_CHARS`
   and disabled with `0`. Admins and explicitly listed DIDs
   (`ARABICA_AI_UNLIMITED_DIDS`) are exempt; moderators are not. A request is
