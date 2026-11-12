@@ -29,6 +29,7 @@ type libraryItem struct {
 	RequestMatches        int  `json:"request_matches,omitempty"`
 	SoleOpenDefault       bool `json:"sole_open_default,omitempty"`
 	matchScore            int
+	recentGround          bool
 	pourCountMismatch     bool
 	uniqueLabel           bool
 	RoasterLabel          string         `json:"roaster,omitempty"`
@@ -59,6 +60,10 @@ func compact(s string, n int) string {
 // complete authoritative read. The store's full materialization is not a completeness
 // promise for the retained provider catalog.
 func loadCatalog(ctx context.Context, store LibraryStore, draft Draft, query ...string) (catalog, error) {
+	return loadCatalogPinned(ctx, store, draft, nil, query...)
+}
+
+func loadCatalogPinned(ctx context.Context, store LibraryStore, draft Draft, pins map[string]bool, query ...string) (catalog, error) {
 	var result catalog
 	// Dependency records are read first so joins never rely on model text or rkey alone.
 	dependencies := map[string]map[string]libraryItem{}
@@ -76,6 +81,11 @@ func loadCatalog(ctx context.Context, store LibraryStore, draft Draft, query ...
 		cap := 100
 		if kind == "recipe" {
 			cap = 20
+		}
+		for ref := range pins {
+			if strings.HasPrefix(ref, "at://"+store.DID()+"/"+nsid+"/") {
+				cap++
+			}
 		}
 		chosen := make([]libraryItem, 0, cap)
 		// Only dependency identity/labels need an index; bean and recipe history is
@@ -158,6 +168,9 @@ func loadCatalog(ctx context.Context, store LibraryStore, draft Draft, query ...
 			if item.Closed != nil && !*item.Closed {
 				item.score++
 			}
+			if pins["at://"+store.DID()+"/"+nsid+"/"+row.RKey] {
+				item.score += 1000
+			}
 			if row.RKey == selected {
 				item.score += 100
 				found = true
@@ -210,14 +223,14 @@ func loadCatalog(ctx context.Context, store LibraryStore, draft Draft, query ...
 			// the current reference, and always retain it when encountered late.
 			lowest := -1
 			for i := range chosen {
-				if chosen[i].rkey == selected {
+				if chosen[i].rkey == selected || pins["at://"+store.DID()+"/"+nsid+"/"+chosen[i].rkey] {
 					continue
 				}
 				if lowest < 0 || chosen[i].score < chosen[lowest].score {
 					lowest = i
 				}
 			}
-			if lowest >= 0 && (item.rkey == selected || item.score > chosen[lowest].score) {
+			if lowest >= 0 && (item.rkey == selected || pins["at://"+store.DID()+"/"+nsid+"/"+item.rkey] || item.score > chosen[lowest].score) {
 				chosen[lowest] = item
 			}
 		}

@@ -161,6 +161,9 @@ func (c catalog) safeGroundMatch(key, rkey, message string, current map[string]a
 		if item.pourCountMismatch {
 			return false
 		}
+		if item.recentGround && (current[key] == nil || current[key] == "") {
+			return true
+		}
 		if item.RequestMatch {
 			return true
 		}

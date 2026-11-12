@@ -94,6 +94,60 @@ async function expectNoPixelsStored(page: Page, imageData?: string) {
   if (imageData) expect(stored).not.toContain(imageData);
 }
 
+for (const width of [320, 1280]) {
+  for (const theme of ["light", "dark"]) {
+    test(`Home Add images picker works at ${width}px in ${theme} mode`, async ({
+      authedPage: page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: theme as "light" | "dark" });
+      await page.addInitScript(
+        (theme) => localStorage.setItem("arabica-theme", theme),
+        theme,
+      );
+      const requests: ChatRequest[] = [];
+      await page.route("**/api/ai/status", (route) =>
+        route.fulfill({ json: { enabled: true, allowed: true } }),
+      );
+      await page.route("**/api/ai/chat", (route) => {
+        requests.push(route.request().postDataJSON() as ChatRequest);
+        return route.fulfill({ json: reply });
+      });
+      await page.goto("/");
+      const add = page.getByRole("button", { name: "Add images", exact: true });
+      await expect(add).toBeVisible();
+      const box = await add.boundingBox();
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+      const input = page.getByLabel("Describe a brew or bean", { exact: true });
+      const padding = await input.evaluate((el) =>
+        parseFloat(getComputedStyle(el).paddingLeft),
+      );
+      expect(padding).toBeGreaterThanOrEqual(box!.width);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      const chooser = page.waitForEvent("filechooser");
+      await add.click();
+      const native = await chooser;
+      expect(native.isMultiple()).toBe(true);
+      const file = await pngFile(page);
+      await native.setFiles([file, { ...file, name: "coffee-two.png" }]);
+      await expect(pending(page)).toHaveCount(2);
+      await expect(add).toBeEnabled();
+      await expectNoPixelsStored(page);
+      await page.getByRole("button", { name: "Send", exact: true }).click();
+      await expect(page).toHaveURL(/\/chat$/);
+      await expect(page.getByRole("log")).toContainText(reply.reply);
+      expect(requests[0].messages[0].content).toBe("");
+      expect(requests[0].messages[0].images).toHaveLength(2);
+      await expectNoPixelsStored(page, requests[0].messages[0].images![0].data);
+    });
+  }
+}
+
 test("file picker downscales real pixels and supports image-only send without storing bytes", async ({
   authedPage: page,
 }) => {

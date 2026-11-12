@@ -23,12 +23,14 @@
   let pendingOwner: object | undefined;
   let images = $state<PreparedImage[]>([]);
   let preparing = $state(false);
+  let imagePicker: HTMLInputElement;
   let generation = 0;
   let handoff: ReturnType<typeof stageHomeImages> | undefined;
   function releaseImages() {
     generation++;
     images = [];
     preparing = false;
+    if (imagePicker) imagePicker.value = "";
     if (handoff) cancelHomeImages(handoff);
     handoff = undefined;
   }
@@ -51,12 +53,7 @@
       .filter((file): file is File => !!file);
     if (!selected.length) return;
     event.preventDefault();
-    if (navigating || preparing) return;
-    error = "";
-    if (images.length + selected.length > MAX_IMAGES) {
-      error = `Up to ${MAX_IMAGES} images can be sent. Remove an image before pasting more.`;
-      return;
-    }
+    if (!canAttachImages(selected)) return;
     const target = event.currentTarget as HTMLTextAreaElement;
     const pasted = event.clipboardData?.getData("text/plain") ?? "";
     const nextText =
@@ -68,6 +65,19 @@
       return;
     }
     if (pasted) text = nextText;
+    await attachImages(selected);
+  }
+  function canAttachImages(selected: File[]) {
+    if (navigating || preparing || !selected.length) return false;
+    error = "";
+    if (images.length + selected.length > MAX_IMAGES) {
+      error = `Up to ${MAX_IMAGES} images can be sent. Remove an image before adding more.`;
+      return false;
+    }
+    return true;
+  }
+  async function attachImages(selected: File[]) {
+    if (!canAttachImages(selected)) return;
     const currentGeneration = generation;
     const did = accountDid;
     preparing = true;
@@ -152,6 +162,29 @@
     </div>
   {/if}
   <div class="input-row">
+    <input
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      multiple
+      aria-label="Choose images"
+      class="image-picker"
+      bind:this={imagePicker}
+      disabled={navigating || preparing}
+      onchange={(event) => {
+        const selected = Array.from(event.currentTarget.files ?? []);
+        event.currentTarget.value = "";
+        void attachImages(selected);
+      }}
+    />
+    <button
+      type="button"
+      class="attach-button"
+      aria-label="Add images"
+      title="Add images"
+      disabled={navigating || preparing}
+      onclick={() => imagePicker?.click()}
+      ><Icon name="plus" class="h-4 w-4" /></button
+    >
     <label for="ai-home-entry" class="sr-only">Describe a brew or bean</label>
     <textarea
       id="ai-home-entry"
@@ -252,7 +285,36 @@
     font: inherit;
     font-size: 0.9rem;
     line-height: 1.5;
-    padding: 0.75rem 3rem 0.75rem 1rem;
+    padding: 0.75rem 3rem;
+  }
+  .image-picker {
+    display: none;
+  }
+  .attach-button {
+    position: absolute;
+    left: 0.15rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+  }
+  .attach-button:hover,
+  .attach-button:focus-visible {
+    color: var(--text-primary);
+  }
+  .attach-button:focus-visible {
+    outline: 2px solid var(--text-primary);
+    outline-offset: -2px;
+  }
+  .attach-button:disabled {
+    opacity: 0.5;
   }
   .send-slot {
     position: absolute;

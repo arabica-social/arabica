@@ -1,4 +1,12 @@
-# Historical layout studies
+# Design proposals and historical layout studies
+
+## Proposed architecture
+
+- [Tools-only AI record context](ai-tools-only-context.md) — future alternative
+  to always-included library/recent-brew context; compares typed lookup tools
+  with a shared search tool. Not implemented.
+
+## Historical layout studies
 
 These HTML files are design experiments, not current UI specifications. They
 can inform craft details such as entity tints, kraft surfaces, and progress

@@ -124,11 +124,39 @@ Kinds: `brew`, `bean`, `grinder`, `brewer`. Messages are user/assistant text, wi
 maximum 40 messages, with user messages limited to 4000 characters. Identifiers
 are correlation aids, not authentication. The server reads only the authenticated
 user's library for grounding. It does not accept arbitrary cross-user references.
-Compact labels, bean roaster/open status, saved recipe details and opaque IDs go
-to the provider; account DID, handle and the entire brew history are not included
-for identification or personalization. Recipe context includes actual dose,
-water, ordered pours and saved instructions, never arbitrary fetched URLs.
+Compact labels, bean roaster/open status, saved recipe details, the latest three
+brews with dates, and opaque IDs go to the provider. Account DID, handle and the
+entire brew history are not included for identification or personalization. Recipe
+context includes actual dose, water, ordered pours and saved instructions, never
+arbitrary fetched URLs.
 Recipe instructions are untrusted data, not authority to execute actions.
+
+Every request includes a server-built `recent_brews` array (empty when none are
+available), including requests for other draft kinds. It contains at most three
+own brews, newest first by parsed `createdAt` instant, with record key ascending
+as a deterministic tie-breaker. Missing/invalid dates are skipped; record-key
+order is never substituted for a missing date. Each entry includes an opaque ID,
+its recorded RFC3339 date, allowlisted preparation fields in human/API units,
+and labels/opaque library IDs for resolvable own bean, grinder, brewer and recipe
+links. Linked records are retained beyond the normal catalog cap when needed;
+foreign or missing links are not exposed as selectable references.
+
+Historical ratings, tasting notes, source references, raw record keys/AT-URIs
+and account identifiers are excluded. History is untrusted read-only context,
+not instructions. The model may use it for “same as last time” or a dated brew,
+while explicit new values and manual edits take precedence. Old dates and tasting
+results are not defaults for the new record. For a user-requested repeat/adaptation,
+the provider is instructed to return
+`recent_brew_id` selecting the supplied history entry it uses. The marker remains
+optional for requests that do not reuse history. The service validates this
+provider-only source marker and permits grounding only that entry's validated
+linked records; it is not accepted from the browser or returned in the HTTP
+response. Unrelated selections and replacements of differing existing references
+remain reviewable. Without a source marker, normal reference grounding applies.
+Stale-response protections and Save-only writes remain in force. A failed brew
+collection read fails the request before the provider call rather than silently
+claiming there is no history. The provider sees only three entries, although the
+current store seam reads the brew collection to select them.
 
 ### Transient images
 
@@ -148,12 +176,13 @@ image-bearing turn with unavailable images is blocked by the client; reattach in
 new message. The browser downsizes larger images before sending. Oversized or malformed
 images are rejected, not transformed by the server.
 
-Homepage image paste uses the same preprocessing and image-only support as chat.
+The homepage Add images (+) button opens a native multi-image picker; image paste
+remains supported. Both use the same preprocessing and image-only support as chat.
 Send transfers the text and sanitized images through a single-use account-scoped
 in-memory handoff (30-second expiry), starting a fresh chat rather than appending
 to an older draft. Image handoffs never enter sessionStorage; failed navigation
 keeps the homepage attachments for retry. Ordinary text-only handoff compatibility
-is unchanged. No upload control is added on Home.
+is unchanged.
 
 Images remain in browser memory for follow-ups/retries until leaving, reloading or
 switching chats. They are excluded from browser chat persistence. The server keeps

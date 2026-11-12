@@ -93,11 +93,69 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.mocked(prepareImage).mockReset();
 });
-describe("homepage image paste", () => {
+async function choose(count = 1) {
+  const picker = screen.getByLabelText("Choose images");
+  await fireEvent.change(picker, {
+    target: {
+      files: Array.from(
+        { length: count },
+        (_, i) => new File(["raw"], `coffee-${i}.png`, { type: "image/png" }),
+      ),
+    },
+  });
+}
+async function readyChoose(count = 1) {
+  await choose(count);
+  await screen.findByAltText("Image 1 to send");
+  await waitFor(() =>
+    expect(screen.queryByText("Preparing images…")).toBeNull(),
+  );
+}
+describe("homepage images", () => {
+  it("opens the native multiple-image picker from Add images", async () => {
+    render(HomeEntry, { accountDid: did });
+    const picker = screen.getByLabelText("Choose images");
+    expect(picker).toHaveAttribute("multiple");
+    expect(picker).toHaveAttribute("accept", "image/jpeg,image/png,image/webp");
+    const click = vi.spyOn(picker, "click");
+    await userEvent.click(screen.getByRole("button", { name: "Add images" }));
+    expect(click).toHaveBeenCalledOnce();
+  });
+  it("hands multiple picked images to a fresh chat without storing pixels", async () => {
+    const home = render(HomeEntry, { accountDid: did });
+    await readyChoose(2);
+    expect(screen.getByLabelText("Choose images")).toHaveValue("");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Send", exact: true }),
+    );
+    expect(goto).toHaveBeenCalledExactlyOnceWith("/chat");
+    home.unmount();
+    render(ChatWorkspace, { accountDid: did, enabled: true });
+    await screen.findByText("Image received");
+    expect(requests[0].messages[0]).toMatchObject({
+      content: "",
+      images: [image.image, image.image],
+    });
+    expect(
+      JSON.stringify({ ...localStorage, ...sessionStorage }),
+    ).not.toContain(image.image.data);
+  });
+  it("supports choosing the same file again after removal and cancelling the picker", async () => {
+    render(HomeEntry, { accountDid: did });
+    await readyChoose();
+    await choose(0);
+    expect(prepareImage).toHaveBeenCalledTimes(1);
+    expect(screen.getByAltText("Image 1 to send")).toBeVisible();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Remove image 1" }),
+    );
+    await readyChoose();
+    expect(prepareImage).toHaveBeenCalledTimes(2);
+  });
   it("sends image-only paste through the memory handoff and retains pixels for chat follow-ups", async () => {
     const home = render(HomeEntry, { accountDid: did });
     await readyPaste();
-    expect(screen.queryByRole("button", { name: "Attach images" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add images" })).toBeEnabled();
     expect(
       JSON.stringify({ ...localStorage, ...sessionStorage }),
     ).not.toContain(image.image.data);
@@ -190,51 +248,76 @@ describe("homepage image paste", () => {
     expect(event.defaultPrevented).toBe(false);
     expect(prepareImage).not.toHaveBeenCalled();
   });
-  it("keeps images and text for retry after failed navigation", async () => {
-    vi.mocked(goto).mockRejectedValueOnce(Error("failed"));
-    render(HomeEntry, { accountDid: did });
-    await readyPaste("Label");
-    await userEvent.click(
-      screen.getByRole("button", { name: "Send", exact: true }),
-    );
-    await screen.findByRole("alert");
-    expect(screen.getByAltText("Image 1 to send")).toBeVisible();
-    expect(screen.getByLabelText("Describe a brew or bean")).toHaveValue(
-      "Label",
-    );
-    expect(takeHomeImages(did)).toBeUndefined();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Send", exact: true }),
-    );
-    expect(takeHomeImages(did)?.images).toEqual([image]);
-  });
-  it("rejects excess or invalid paste without losing prior images", async () => {
-    render(HomeEntry, { accountDid: did });
-    await readyPaste();
-    await paste("", 4);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Up to 4");
-    expect(prepareImage).toHaveBeenCalledTimes(1);
-    vi.mocked(prepareImage).mockRejectedValueOnce(Error("Invalid image"));
-    await paste();
-    await screen.findByText("Invalid image");
-    expect(screen.getByAltText("Image 1 to send")).toBeVisible();
-  });
-  it("ignores a late decode after account change", async () => {
-    let finish!: (value: typeof image) => void;
-    vi.mocked(prepareImage).mockReturnValueOnce(
-      new Promise((resolve) => {
-        finish = resolve;
-      }),
-    );
-    const home = render(HomeEntry, { accountDid: did });
-    await paste();
-    await home.rerender({ accountDid: "did:plc:other" });
-    await act(() => finish(image));
-    expect(screen.queryByAltText("Image 1 to send")).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Send", exact: true }),
-    ).toBeDisabled();
-  });
+  it.each(["paste", "picker"])(
+    "keeps %s images and text for retry after failed navigation",
+    async (source) => {
+      vi.mocked(goto).mockRejectedValueOnce(Error("failed"));
+      render(HomeEntry, { accountDid: did });
+      if (source === "paste") await readyPaste("Label");
+      else {
+        await fireEvent.input(
+          screen.getByLabelText("Describe a brew or bean"),
+          {
+            target: { value: "Label" },
+          },
+        );
+        await readyChoose();
+      }
+      await userEvent.click(
+        screen.getByRole("button", { name: "Send", exact: true }),
+      );
+      await screen.findByRole("alert");
+      expect(screen.getByAltText("Image 1 to send")).toBeVisible();
+      expect(screen.getByLabelText("Describe a brew or bean")).toHaveValue(
+        "Label",
+      );
+      expect(takeHomeImages(did)).toBeUndefined();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Send", exact: true }),
+      );
+      expect(takeHomeImages(did)?.images).toEqual([image]);
+    },
+  );
+  it.each(["paste", "picker"])(
+    "rejects excess or invalid %s without losing prior images",
+    async (source) => {
+      render(HomeEntry, { accountDid: did });
+      await readyPaste();
+      if (source === "paste") await paste("", 4);
+      else await choose(4);
+      expect(await screen.findByRole("alert")).toHaveTextContent("Up to 4");
+      expect(prepareImage).toHaveBeenCalledTimes(1);
+      vi.mocked(prepareImage).mockRejectedValueOnce(Error("Invalid image"));
+      if (source === "paste") await paste();
+      else await choose();
+      await screen.findByText("Invalid image");
+      expect(screen.getByAltText("Image 1 to send")).toBeVisible();
+    },
+  );
+  it.each(["paste", "picker"])(
+    "ignores a late %s decode after account change",
+    async (source) => {
+      let finish!: (value: typeof image) => void;
+      vi.mocked(prepareImage).mockReturnValueOnce(
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      );
+      const home = render(HomeEntry, { accountDid: did });
+      if (source === "paste") await paste();
+      else await choose();
+      expect(screen.getByRole("button", { name: "Add images" })).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Send", exact: true }),
+      ).toBeDisabled();
+      await home.rerender({ accountDid: "did:plc:other" });
+      await act(() => finish(image));
+      expect(screen.queryByAltText("Image 1 to send")).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Send", exact: true }),
+      ).toBeDisabled();
+    },
+  );
   it("releases unsent images on pagehide", async () => {
     render(HomeEntry, { accountDid: did });
     await readyPaste();

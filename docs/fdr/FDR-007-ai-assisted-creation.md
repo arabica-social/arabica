@@ -23,7 +23,8 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   and Back to Home actions.
 - A configured, authorized Home Page offers one compact textarea, "Describe
   a brew or bean", with the placeholder "Describe a brew or bean..." and an inset
-  Send button. No heading, example suggestions,
+  Send button and a quiet inset Add images (+) button opening the native image
+  picker. No heading, example suggestions,
   explanatory panel or decorative labels surround this input. Community title,
   manual logging/setup action, navigation and feed filters remain available.
 - Enter sends from either composer; Shift+Enter inserts a newline. IME
@@ -55,8 +56,9 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   releases image data, as does a successful Save. Only message image counts survive locally. Restored history
   shows unavailable images; retries of an image message require reattachment and
   a new message. Follow-ups explicitly mark missing historical images to the model.
-  The homepage bar also accepts image paste, including image-only and mixed
-  text/image paste, with removable previews but no extra upload button. Send
+  The homepage bar accepts image selection through its visible + button and
+  image paste, including image-only and mixed text/image paste, with removable
+  previews. The + button has a 44px touch target and an accessible Add images name. Send
   transfers sanitized images to a fresh chat through a single-use account-scoped
   in-memory handoff, never sessionStorage. Failed navigation retains the homepage
   input and images; unused handoffs expire after 30 seconds. Leaving/reloading
@@ -79,6 +81,22 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   lone suggestion alone grant no selection authority. Choosing a match
   dismisses its resolved alternatives, not unrelated ambiguity groups.
   No arbitrary web search or tool execution.
+- Every request also includes up to three own recent brews, with their recorded
+  dates, preparation and resolvable own bean/equipment/recipe labels. Recency uses
+  recorded `createdAt`, not record-key order; undated/invalid-date brews are not
+  guessed into the latest three. This supports “same as last time” without adding
+  a history toggle. The model chooses whether this context is relevant; it must
+  preserve explicit changes and manual edits, and must not copy historical dates,
+  ratings or tasting results. For a requested repeat/adaptation the model can
+  identify one supplied brew as its source, grounding only that brew's own linked
+  records. Unrelated selections and changes to differing existing references
+  remain reviewable. A clearly selected historical source should fill its linked
+  bean, equipment and recipe together, not require one click per linked record.
+  Save-only writes are unchanged. Replies should describe changes or ask needed
+  questions, without routine “nothing is saved until you press Save” reminders;
+  genuine save failures and uncertain-write warnings remain visible. Missing/foreign links remain unavailable. This is bounded
+  always-included context, not a lookup tool; the alternative is described in
+  [the tools-only design proposal](../design/ai-tools-only-context.md).
 - Prefer a clear match over another selection step. Meaningful short names and
   minor long-word typos can fill beans, equipment and roasters directly, including
   references bundled into a model choice. For example, “Mango” can match the open

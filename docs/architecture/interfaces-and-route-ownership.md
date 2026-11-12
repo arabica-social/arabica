@@ -20,7 +20,7 @@ and [ADR-006](../adr/ADR-006-embedded-spa-with-explicit-route-cutover.md).
 | Go HTTP pages | The embedded SvelteKit SPA shell | Route registration and page ownership |
 | Go JSON APIs | Data consumed by the SvelteKit SPA | [`docs/api/`](../api/README.md) plus integration tests |
 | Mutation endpoints | CSRF-protected creates, updates, deletes, and actions | Handler validation, authenticated store, and JSON response contracts |
-| Configured AI provider | Bounded chat-completions transport for draft proposals only | Server JSON configuration; app-owned validation; [AI API](../api/ai-chat.md) |
+| Configured AI provider | Bounded chat-completions transport for draft proposals only, with own-library and latest-three dated brew context | Server JSON configuration; app-owned validation; [AI API](../api/ai-chat.md) |
 | OG image/head surfaces | Link previews, page titles, and social metadata | Go handlers and SPA shell injection |
 
 ## Route Ownership
