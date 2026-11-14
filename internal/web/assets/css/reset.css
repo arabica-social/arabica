@@ -122,11 +122,24 @@ input[type="button"] {
   outline: none;
 }
 
-/* Prevent iOS zoom on input focus */
-@media (max-width: 768px) {
-  input,
+/* iOS focus zoom depends on computed input size; component fonts must not override this floor. */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  input:not(
+    :where(
+      [type="button"],
+      [type="submit"],
+      [type="reset"],
+      [type="checkbox"],
+      [type="radio"],
+      [type="range"],
+      [type="color"],
+      [type="file"],
+      [type="image"],
+      [type="hidden"]
+    )
+  ),
   select,
   textarea {
-    font-size: 16px;
+    font-size: max(16px, 1rem) !important;
   }
 }

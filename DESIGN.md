@@ -147,6 +147,10 @@ reuse their behavior without adding decorative framing to match the name.
 - Keep reading and focus order sensible when columns collapse. Mobile users
   should reach the main task before optional supporting content.
 - Allow text to wrap and controls to reflow at narrow widths and browser zoom.
+- Editable inputs, selects, and textareas use at least 16px text on narrow screens
+  and primary-touch devices to avoid iOS focus zoom. The shared reset enforces
+  this over component font styles; keep labels and buttons independently sized.
+  Never disable user zoom through viewport restrictions.
 - Motion should explain state changes, not decorate page loading. Respect
   `prefers-reduced-motion` wherever motion exists.
 

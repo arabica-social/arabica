@@ -26,6 +26,11 @@ async function assertCompactComposer(page: Page, name: string) {
   const input = page.getByRole("textbox", { name, exact: true });
   const send = page.getByRole("button", { name: "Send", exact: true });
   const original = await input.inputValue();
+  await input.fill("");
+  const emptyHeight = await input.evaluate(
+    (el) => el.getBoundingClientRect().height,
+  );
+  await input.fill(original);
   const base = await input.evaluate((el) => el.getBoundingClientRect().height);
   expect(await input.evaluate((el) => getComputedStyle(el).resize)).toBe(
     "none",
@@ -75,7 +80,7 @@ async function assertCompactComposer(page: Page, name: string) {
   await input.fill("");
   await expect
     .poll(() => input.evaluate((el) => el.getBoundingClientRect().height))
-    .toBe(base);
+    .toBe(emptyHeight);
   await input.fill(original);
 }
 
