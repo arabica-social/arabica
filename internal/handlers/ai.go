@@ -114,7 +114,7 @@ func (h AIHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 			diagnostic := arabicaai.ProviderDiagnostic(err)
 			event := log.Error().Str("stage", diagnostic.Stage).Str("reason", diagnostic.Reason).
 				Str("provider_error", diagnostic.Transport.Category).Int("upstream_status", diagnostic.Transport.HTTPStatus).
-				Str("finish_reason", diagnostic.FinishReason).Int("response_bytes", diagnostic.ContentBytes).
+				Str("finish_reason", diagnostic.FinishReason).Str("message_role", diagnostic.MessageRole).Int("response_bytes", diagnostic.ContentBytes).
 				Int("tool_calls", diagnostic.ToolCalls).Str("field", diagnostic.Field)
 			if span := trace.SpanContextFromContext(r.Context()); span.IsValid() {
 				event = event.Str("trace_id", span.TraceID().String())

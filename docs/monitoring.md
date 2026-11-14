@@ -28,6 +28,18 @@ incurred charges without reporting tokens. Consult provider billing for
 authoritative spend. This is monitoring, not a billing ledger or hard budget
 enforcement.
 
+## AI chat failure diagnostics
+
+A chat 502 emits `AI chat provider failure`, correlated by `trace_id` when
+available. For `provider_error=invalid_assistant_message`, the provider returned
+a successful HTTP response but its choice had a non-assistant role, or empty
+content without tool calls. The log preserves `upstream_status`, `finish_reason`,
+`message_role`, `response_bytes` (message content bytes), and `tool_calls`.
+Unknown role and finish-reason values are recorded as `other`, never raw text.
+For example, an empty assistant message with `finish_reason=length` indicates
+the provider reached its output limit without returning visible content.
+No model content, tool arguments, credentials, or upstream error bodies are logged.
+
 ## Per-DID request history
 
 When AI is enabled, server startup creates `ai_request_log` in the shared SQLite

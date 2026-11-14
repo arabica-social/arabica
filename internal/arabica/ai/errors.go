@@ -12,6 +12,7 @@ type ProviderFailure struct {
 	Reason       string
 	Transport    provider.FailureDetails
 	FinishReason string
+	MessageRole  string
 	ContentBytes int
 	ToolCalls    int
 	Field        string
@@ -25,7 +26,12 @@ func providerRequestFailure(err error) error {
 	if errors.Is(err, provider.ErrRequestTooLarge) {
 		return ErrProviderRequestTooLarge
 	}
-	return &ProviderFailure{Stage: "request", Reason: "upstream_failure", Transport: provider.DescribeFailure(err)}
+	details := provider.DescribeFailure(err)
+	return &ProviderFailure{
+		Stage: "request", Reason: "upstream_failure", Transport: details,
+		FinishReason: details.FinishReason, MessageRole: details.MessageRole,
+		ContentBytes: details.ContentBytes, ToolCalls: details.ToolCalls,
+	}
 }
 func rejected(reason string, c provider.Completion) *ProviderFailure {
 	finish := "other"

@@ -15,11 +15,15 @@ import (
 // ErrRequestTooLarge means the configured provider cap rejected the request locally.
 var ErrRequestTooLarge = errors.New("ai: request exceeds configured provider limit")
 
-// FailureDetails contains only application-defined categories and numeric status.
+// FailureDetails contains only allowlisted categories and numeric response metadata.
 // It never contains URLs, credentials, headers, prompts, or provider error bodies.
 type FailureDetails struct {
-	Category   string
-	HTTPStatus int
+	Category     string
+	HTTPStatus   int
+	FinishReason string
+	MessageRole  string
+	ContentBytes int
+	ToolCalls    int
 }
 type failure struct {
 	details FailureDetails
@@ -75,4 +79,22 @@ func networkFailure(err error) error {
 }
 func upstreamHTTPFailure(status int) error {
 	return failed("upstream_http", fmt.Sprintf("ai: provider returned HTTP %d", status), status)
+}
+
+func safeFinishReason(reason string) string {
+	switch reason {
+	case "stop", "length", "content_filter", "tool_calls", "function_call", "":
+		return reason
+	default:
+		return "other"
+	}
+}
+
+func safeMessageRole(role string) string {
+	switch role {
+	case "assistant", "system", "user", "tool", "function", "developer", "":
+		return role
+	default:
+		return "other"
+	}
 }

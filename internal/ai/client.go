@@ -161,7 +161,12 @@ func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool,
 	}
 	choice := result.Choices[0]
 	if choice.Message.Role != "assistant" || (choice.Message.Content == "" && len(choice.Message.ToolCalls) == 0) {
-		return zero, failed("invalid_assistant_message", "ai: invalid assistant message", 0)
+		details := FailureDetails{
+			Category: "invalid_assistant_message", HTTPStatus: resp.StatusCode,
+			FinishReason: safeFinishReason(choice.FinishReason), MessageRole: safeMessageRole(choice.Message.Role),
+			ContentBytes: len(choice.Message.Content), ToolCalls: len(choice.Message.ToolCalls),
+		}
+		return zero, &failure{details: details, message: "ai: invalid assistant message"}
 	}
 	return Completion{Message: choice.Message, FinishReason: choice.FinishReason, Usage: observation.Usage}, nil
 }

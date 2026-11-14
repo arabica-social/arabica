@@ -60,3 +60,64 @@ func TestAIProviderFailureLogsSafeDiagnostics(t *testing.T) {
 		t.Fatal("opaque dependency error leaked into logs")
 	}
 }
+
+func TestAIInvalidAssistantMessageDiagnostics(t *testing.T) {
+	for _, tc := range []struct {
+		name, role, content, finish, wantRole, wantFinish string
+		tools                                             int
+	}{
+		{"empty truncated", "assistant", "", "length", "assistant", "length", 0},
+		{"empty stopped", "assistant", "", "stop", "assistant", "stop", 0},
+		{"wrong role", "user", "secret-response", "stop", "user", "stop", 0},
+		{"missing role", "", "secret-response", "", "", "", 0},
+		{"unknown values", "secret-role", "secret-response", "secret-finish", "other", "other", 0},
+		{"wrong role with tools", "user", "", "tool_calls", "user", "tool_calls", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logged bytes.Buffer
+			original := log.Logger
+			log.Logger = zerolog.New(&logged)
+			t.Cleanup(func() { log.Logger = original })
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var content any = tc.content
+				if tc.content == "" {
+					content = nil
+				}
+				message := map[string]any{"role": tc.role, "content": content}
+				if tc.tools > 0 {
+					message["tool_calls"] = []any{map[string]any{"id": "secret-tool", "type": "function", "function": map[string]any{"name": "secret-function", "arguments": "secret-arguments"}}}
+				}
+				json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": message, "finish_reason": tc.finish}}})
+			}))
+			defer upstream.Close()
+			client, err := provider.NewClient(provider.Config{DefaultProvider: "test", Providers: map[string]provider.ProviderConfig{"test": {BaseURL: upstream.URL, Model: "test", APIKey: "secret-key"}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			h, _ := setupAI(t)
+			h.Service = arabicaai.NewService(client)
+			rec := httptest.NewRecorder()
+			h.HandleChat(rec, aiRequest(chatRequest))
+			if rec.Code != 502 {
+				t.Fatalf("unexpected HTTP %d", rec.Code)
+			}
+			var entry map[string]any
+			if err := json.Unmarshal(bytes.TrimSpace(logged.Bytes()), &entry); err != nil {
+				t.Fatal(err)
+			}
+			want := map[string]any{
+				"stage": "request", "reason": "upstream_failure", "provider_error": "invalid_assistant_message",
+				"upstream_status": float64(200), "finish_reason": tc.wantFinish, "message_role": tc.wantRole,
+				"response_bytes": float64(len(tc.content)), "tool_calls": float64(tc.tools),
+			}
+			for key, value := range want {
+				if entry[key] != value {
+					t.Errorf("%s = %v, want %v", key, entry[key], value)
+				}
+			}
+			if strings.Contains(logged.String(), "secret") || strings.Contains(rec.Body.String(), "secret") {
+				t.Fatal("diagnostic leaked upstream content")
+			}
+		})
+	}
+}
