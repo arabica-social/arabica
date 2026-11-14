@@ -30,7 +30,9 @@ describe("FeedFilters component", () => {
     renderFeedFilters();
     const group = screen.getByRole("group", { name: "Feed filters" });
     expect(group).toBeTruthy();
-    expect(screen.getByText("All")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "All", exact: true }),
+    ).toBeTruthy();
   });
 
   it("renders provided tabs with correct labels", () => {
@@ -44,8 +46,12 @@ describe("FeedFilters component", () => {
       onSort: vi.fn(),
       tabs,
     });
-    expect(screen.getByText("Brews")).toBeTruthy();
-    expect(screen.getByText("Beans")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Brews", exact: true }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Beans", exact: true }),
+    ).toBeTruthy();
   });
 
   it("marks the active type tab with aria-pressed='true' and active class", () => {
@@ -96,7 +102,9 @@ describe("FeedFilters component", () => {
       { label: "Beans", value: "bean" },
     ];
     render(FeedFilters, { ...baseProps, onType, onSort: vi.fn(), tabs });
-    await userEvent.click(screen.getByText("Brews"));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Brews", exact: true }),
+    );
     expect(onType).toHaveBeenCalledWith("brew");
   });
 

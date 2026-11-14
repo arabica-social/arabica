@@ -11,14 +11,14 @@ import (
 	"tangled.org/arabica.social/arabica/internal/lexicons"
 )
 
-func TestFeedViews_AllArabicaEntitiesHaveFilterTab(t *testing.T) {
+func TestFeedViews_ArabicaFilterTabLabels(t *testing.T) {
 	views := FeedViews()
 	want := map[lexicons.RecordType]string{
 		lexicons.RecordTypeBean:    "Beans",
-		lexicons.RecordTypeRoaster: "",
-		lexicons.RecordTypeGrinder: "Grinders",
-		lexicons.RecordTypeBrewer:  "Brewers",
-		lexicons.RecordTypeRecipe:  "Recipes",
+		lexicons.RecordTypeRoaster: "Roasters",
+		lexicons.RecordTypeGrinder: "",
+		lexicons.RecordTypeBrewer:  "",
+		lexicons.RecordTypeRecipe:  "",
 		lexicons.RecordTypeBrew:    "Brews",
 	}
 	for rt, filterLabel := range want {
@@ -39,14 +39,12 @@ func TestFeedViews_FilterTabsMatchFilterValues(t *testing.T) {
 	}
 }
 
-func TestFeedViews_FeedTabJSONUnchanged(t *testing.T) {
+func TestFeedViews_FeedTabJSON(t *testing.T) {
 	tabs := BuildFeedTabs(entities.AllForApp(arabica.NSIDBase), FeedViews())
 	assert.Equal(t, []FeedFilterTabJSON{
 		{Label: "All", Value: ""},
 		{Label: "Beans", Value: "bean"},
 		{Label: "Brews", Value: "brew"},
-		{Label: "Brewers", Value: "brewer"},
-		{Label: "Grinders", Value: "grinder"},
-		{Label: "Recipes", Value: "recipe"},
+		{Label: "Roasters", Value: "roaster"},
 	}, tabs)
 }

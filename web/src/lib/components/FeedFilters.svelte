@@ -45,7 +45,7 @@
     {/each}
   </div>
   <div
-    class="flex items-center gap-1 flex-shrink-0"
+    class="feed-sort flex items-center gap-1 flex-shrink-0"
     role="group"
     aria-label="Sort"
   >
@@ -66,15 +66,8 @@
 
 <style>
   @media (max-width: 719px) {
-    div.feed-filters {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      justify-content: flex-start;
-      scrollbar-width: thin;
-    }
-    div.feed-filters > div {
-      flex-wrap: nowrap;
-      flex-shrink: 0;
+    .feed-sort {
+      display: none;
     }
   }
 </style>

@@ -26,7 +26,13 @@ The endpoint always returns JSON (the SvelteKit SPA is the sole frontend).
   "query": {
     "type": "brew",
     "sort": "recent"
-  }
+  },
+  "tabs": [
+    { "label": "All", "value": "" },
+    { "label": "Beans", "value": "bean" },
+    { "label": "Brews", "value": "brew" },
+    { "label": "Roasters", "value": "roaster" }
+  ]
 }
 ```
 
@@ -37,6 +43,7 @@ The endpoint always returns JSON (the SvelteKit SPA is the sole frontend).
 | `is_authenticated`| `bool`     | Whether the requesting user is authenticated.         |
 | `query.type`      | `string`   | The active type filter (empty string = all types).    |
 | `query.sort`      | `string`   | The active sort order.                                |
+| `tabs`            | `object[]` | Home filter controls, each with `label` and `value`. All includes every supported record type; equipment and recipes remain available through direct type queries. |
 
 ### FeedItem
 

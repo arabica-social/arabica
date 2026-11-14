@@ -6,24 +6,15 @@ import (
 )
 
 // FeedViews returns Arabica's per-record-type JSON feed filter metadata.
-// Roaster has no filter tab, so it is deliberately absent.
 func FeedViews() feedviews.Registry {
 	return feedviews.Registry{
 		lexicons.RecordTypeBean: {
 			FilterLabel: "Beans",
 			FilterValue: "bean",
 		},
-		lexicons.RecordTypeGrinder: {
-			FilterLabel: "Grinders",
-			FilterValue: "grinder",
-		},
-		lexicons.RecordTypeBrewer: {
-			FilterLabel: "Brewers",
-			FilterValue: "brewer",
-		},
-		lexicons.RecordTypeRecipe: {
-			FilterLabel: "Recipes",
-			FilterValue: "recipe",
+		lexicons.RecordTypeRoaster: {
+			FilterLabel: "Roasters",
+			FilterValue: "roaster",
 		},
 		lexicons.RecordTypeBrew: {
 			FilterLabel: "Brews",

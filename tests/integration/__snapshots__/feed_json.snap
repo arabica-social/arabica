@@ -91,16 +91,8 @@ version: 0.1.0
       "value": "brew"
     },
     {
-      "label": "Brewers",
-      "value": "brewer"
-    },
-    {
-      "label": "Grinders",
-      "value": "grinder"
-    },
-    {
-      "label": "Recipes",
-      "value": "recipe"
+      "label": "Roasters",
+      "value": "roaster"
     }
   ]
 }

@@ -345,7 +345,10 @@ describe("Feed page (home)", () => {
 
     render(FeedPage, { data: authedPageData });
 
-    const roastersTab = screen.getByText("Roasters");
+    const roastersTab = screen.getByRole("button", {
+      name: "Roasters",
+      exact: true,
+    });
     await user.click(roastersTab);
 
     expect(fetchSpy).toHaveBeenCalled();

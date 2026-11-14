@@ -14,6 +14,9 @@ brew. Visitors can browse the public feed before logging in.
   It has a single Fraunces H1, “Community,” with the primary action alongside.
   Signed-in feed filters and sorting controls sit beneath the title within the
   masthead. The feed follows directly; signed-in users can load more activity.
+  Type tabs are All, Beans, Brews, and Roasters. Mobile shows only these tabs;
+  New/Popular sorting is desktop-only. Tabs can wrap at narrow widths without
+  horizontal scrolling.
 - Ready accounts see Log Brew without an eyebrow, slogan, introduction, or
   secondary Browse your journal link.
 - If required setup is incomplete, one Finish setup action replaces Log Brew.
