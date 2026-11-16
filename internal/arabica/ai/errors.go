@@ -2,20 +2,23 @@ package ai
 
 import (
 	"errors"
+	"sort"
 	provider "tangled.org/arabica.social/arabica/internal/ai"
 )
 
 // ProviderFailure is safe to log: all text is application-defined, never raw
 // upstream errors, model content, credentials, or user/library values.
 type ProviderFailure struct {
-	Stage        string
-	Reason       string
-	Transport    provider.FailureDetails
-	FinishReason string
-	MessageRole  string
-	ContentBytes int
-	ToolCalls    int
-	Field        string
+	Stage           string
+	Reason          string
+	Transport       provider.FailureDetails
+	FinishReason    string
+	MessageRole     string
+	ContentBytes    int
+	ToolCalls       int
+	Field           string
+	ValidationIssue string
+	UnknownFields   int
 }
 
 func (f *ProviderFailure) Error() string {
@@ -43,9 +46,32 @@ func rejected(reason string, c provider.Completion) *ProviderFailure {
 }
 func rejectedFields(kind string, patch map[string]any, c provider.Completion) error {
 	f := rejected("invalid_draft_fields", c)
-	// Only allowlisted field names can enter logs; unknown model keys are withheld.
-	for name := range fields[kind] {
-		if value, ok := patch[name]; ok && validateFields(kind, map[string]any{name: value}) != nil {
+	rules, ok := fields[kind]
+	if !ok {
+		f.ValidationIssue = "invalid_kind"
+		return f
+	}
+	names := make([]string, 0, len(patch))
+	for name := range patch {
+		names = append(names, name)
+		if _, ok := rules[name]; !ok {
+			f.UnknownFields++
+		}
+	}
+	sort.Strings(names)
+	if f.UnknownFields > 0 {
+		f.ValidationIssue = "unknown_fields"
+		for _, name := range names {
+			if _, ok := rules[name]; !ok && diagnosticFieldName(name) {
+				f.Field = name
+				break
+			}
+		}
+		return f
+	}
+	f.ValidationIssue = "invalid_value"
+	for _, name := range names {
+		if validateFields(kind, map[string]any{name: patch[name]}) != nil {
 			f.Field = name
 			break
 		}
@@ -61,4 +87,18 @@ func ProviderDiagnostic(err error) *ProviderFailure {
 		return f
 	}
 	return &ProviderFailure{Stage: "unknown", Reason: "provider_failure"}
+}
+
+func diagnosticFieldName(name string) bool {
+	for _, rules := range fields {
+		if _, ok := rules[name]; ok {
+			return true
+		}
+	}
+	switch name {
+	case "in_scope", "reply", "kind", "patch", "choices", "recent_brew_id", "recent_brews", "espresso_params", "pourover_params":
+		return true
+	default:
+		return false
+	}
 }

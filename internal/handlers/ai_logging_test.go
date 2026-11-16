@@ -121,3 +121,56 @@ func TestAIInvalidAssistantMessageDiagnostics(t *testing.T) {
 		})
 	}
 }
+
+func TestAIInvalidDraftFieldsDiagnostics(t *testing.T) {
+	for _, tc := range []struct {
+		name, kind, issue, field string
+		patch                    map[string]any
+		unknown                  int
+	}{
+		{"unsupported kind", "secret-kind", "invalid_kind", "", map[string]any{}, 0},
+		{"unknown key", "brew", "unknown_fields", "", map[string]any{"secret-key": "secret-value"}, 1},
+		{"misplaced recent source", "brew", "unknown_fields", "recent_brew_id", map[string]any{"recent_brew_id": "recent-brew-1"}, 1},
+		{"nested preparation", "brew", "unknown_fields", "pourover_params", map[string]any{"pourover_params": map[string]any{"filter": "secret-value"}}, 1},
+		{"wrong kind field", "brew", "unknown_fields", "roast_level", map[string]any{"roast_level": "secret-value"}, 1},
+		{"invalid known value", "brew", "invalid_value", "temperature", map[string]any{"temperature": float64(999)}, 0},
+		{"multiple unknown keys", "brew", "unknown_fields", "recent_brew_id", map[string]any{"secret-key": "secret-value", "recent_brew_id": "recent-brew-1"}, 2},
+		{"deterministic invalid field", "brew", "invalid_value", "coffee_amount", map[string]any{"temperature": float64(999), "coffee_amount": "secret-value"}, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logged bytes.Buffer
+			original := log.Logger
+			log.Logger = zerolog.New(&logged)
+			t.Cleanup(func() { log.Logger = original })
+			body, err := json.Marshal(map[string]any{"in_scope": true, "reply": "secret-response", "kind": tc.kind, "patch": tc.patch, "choices": []any{}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			h, _ := setupAI(t)
+			h.Service = arabicaai.NewService(aiFakeCompleter(func(context.Context, []provider.Message, []provider.Tool, json.RawMessage) (provider.Completion, error) {
+				return provider.Completion{Message: provider.Message{Role: "assistant", Content: string(body)}, FinishReason: "stop"}, nil
+			}))
+			rec := httptest.NewRecorder()
+			h.HandleChat(rec, aiRequest(chatRequest))
+			if rec.Code != 502 {
+				t.Fatalf("unexpected HTTP %d", rec.Code)
+			}
+			var entry map[string]any
+			if err := json.Unmarshal(bytes.TrimSpace(logged.Bytes()), &entry); err != nil {
+				t.Fatal(err)
+			}
+			want := map[string]any{
+				"stage": "response", "reason": "invalid_draft_fields", "finish_reason": "stop",
+				"validation_issue": tc.issue, "field": tc.field, "unknown_fields": float64(tc.unknown),
+			}
+			for key, value := range want {
+				if entry[key] != value {
+					t.Errorf("%s = %v, want %v", key, entry[key], value)
+				}
+			}
+			if strings.Contains(logged.String(), "secret") || strings.Contains(rec.Body.String(), "secret") {
+				t.Fatal("diagnostic leaked model content")
+			}
+		})
+	}
+}

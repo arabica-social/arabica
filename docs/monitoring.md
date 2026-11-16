@@ -38,6 +38,13 @@ content without tool calls. The log preserves `upstream_status`, `finish_reason`
 Unknown role and finish-reason values are recorded as `other`, never raw text.
 For example, an empty assistant message with `finish_reason=length` indicates
 the provider reached its output limit without returning visible content.
+For `reason=invalid_draft_fields`, `validation_issue` distinguishes `invalid_kind`,
+`unknown_fields`, and `invalid_value`. `unknown_fields` counts unsupported patch
+keys; `field` identifies only names from the fixed schema/envelope allowlist.
+For example, `validation_issue=unknown_fields` with `field=recent_brew_id` means
+source metadata was incorrectly placed inside the patch instead of the envelope.
+Unrecognized key names, record-kind values, and all field values are withheld.
+These diagnostics do not relax draft validation or automatically drop fields.
 No model content, tool arguments, credentials, or upstream error bodies are logged.
 
 ## Per-DID request history
