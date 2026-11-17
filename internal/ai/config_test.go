@@ -18,7 +18,7 @@ func TestConfigParsing(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := c.Providers[c.DefaultProvider]
-	if p.TimeoutSeconds != 30 || p.MaxRequestBytes != 6*1024*1024 || p.MaxResponseBytes != 1048576 || p.MaxTokens != 2048 {
+	if p.TimeoutSeconds != 30 || p.MaxRequestBytes != 6*1024*1024 || p.MaxResponseBytes != 1048576 || p.MaxTokens != 8192 {
 		t.Fatalf("unexpected defaults %+v", p)
 	}
 	path := filepath.Join(t.TempDir(), "ai.json")
@@ -42,7 +42,7 @@ func TestConfigParsing(t *testing.T) {
 		t.Fatal(err)
 	}
 	p = c.Providers["a"]
-	if p.TimeoutSeconds != 30 || p.MaxRequestBytes != 6*1024*1024 || p.MaxResponseBytes != 1048576 || p.MaxTokens != 2048 {
+	if p.TimeoutSeconds != 30 || p.MaxRequestBytes != 6*1024*1024 || p.MaxResponseBytes != 1048576 || p.MaxTokens != 8192 {
 		t.Fatalf("unexpected defaults %+v", p)
 	}
 }

@@ -196,7 +196,9 @@ in
           Generates a Nix-store JSON file and sets ARABICA_AI_CONFIG.
           Never put literal API keys here: use a literal ''${ARABICA_AI_API_KEY}
           placeholder and supply the key through environmentFiles instead.
-          Provider validation happens at application startup. With neither
+          Omitted max_tokens uses the application default of 8192; explicit
+          provider limits are preserved. Provider validation happens at
+          application startup. With neither
           AI option set, the application's existing file/env lookup is unchanged.
         '';
         example = lib.literalExpression ''

@@ -75,15 +75,16 @@ func (s *RequestLogStore) Record(ctx context.Context, did, requestID, traceID st
 // leaves request logging disabled, independently of quotas and Prometheus.
 func (s *Service) SetRequestLog(store *RequestLogStore) { s.requestLog = store }
 
-func (s *Service) withRequestLog(ctx context.Context, did, requestID string) context.Context {
-	if s.requestLog == nil {
-		return ctx
-	}
+func (s *Service) withRequestTelemetry(ctx context.Context, did, requestID string) context.Context {
 	traceID := ""
 	if span := trace.SpanContextFromContext(ctx); span.IsValid() {
 		traceID = span.TraceID().String()
 	}
 	return provider.WithRequestObserver(ctx, func(o provider.Observation) {
+		o.RecordSpan(trace.SpanFromContext(ctx))
+		if s.requestLog == nil {
+			return
+		}
 		// Client cancellation must not erase the usage of a potentially billed call.
 		writeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 		defer cancel()

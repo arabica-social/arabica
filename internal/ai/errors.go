@@ -24,6 +24,7 @@ type FailureDetails struct {
 	MessageRole  string
 	ContentBytes int
 	ToolCalls    int
+	MaxTokens    int
 }
 type failure struct {
 	details FailureDetails

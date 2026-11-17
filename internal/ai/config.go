@@ -102,7 +102,7 @@ func normalize(c Config) (Config, error) {
 			p.MaxResponseBytes = 1024 * 1024
 		}
 		if p.MaxTokens == 0 {
-			p.MaxTokens = 2048
+			p.MaxTokens = 8192
 		}
 		if p.TimeoutSeconds < 1 || p.TimeoutSeconds > 120 || p.MaxRequestBytes < 1 || p.MaxRequestBytes > 8*1024*1024 || p.MaxResponseBytes < 1 || p.MaxResponseBytes > 4*1024*1024 || p.MaxTokens < 1 || p.MaxTokens > 16384 {
 			return Config{}, errors.New("ai: provider limits outside allowed range")

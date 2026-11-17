@@ -115,13 +115,17 @@ func (h AIHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 			event := log.Error().Str("stage", diagnostic.Stage).Str("reason", diagnostic.Reason).
 				Str("provider_error", diagnostic.Transport.Category).Int("upstream_status", diagnostic.Transport.HTTPStatus).
 				Str("finish_reason", diagnostic.FinishReason).Str("message_role", diagnostic.MessageRole).Int("response_bytes", diagnostic.ContentBytes).
-				Int("tool_calls", diagnostic.ToolCalls).Str("field", diagnostic.Field).
+				Int("tool_calls", diagnostic.ToolCalls).Int("max_tokens", diagnostic.Transport.MaxTokens).Str("field", diagnostic.Field).
 				Str("validation_issue", diagnostic.ValidationIssue).Int("unknown_fields", diagnostic.UnknownFields)
 			if span := trace.SpanContextFromContext(r.Context()); span.IsValid() {
 				event = event.Str("trace_id", span.TraceID().String())
 			}
 			event.Msg("AI chat provider failure")
-			WriteJSONError(w, 502, "ai_provider_error", "Assistant unavailable; your draft has not changed")
+			if diagnostic.FinishReason == "length" {
+				WriteJSONError(w, 502, "ai_output_limit", "Assistant ran out of output tokens; your draft has not changed. Ask the operator to increase max_tokens")
+			} else {
+				WriteJSONError(w, 502, "ai_provider_error", "Assistant unavailable; your draft has not changed")
+			}
 		}
 		return
 	}

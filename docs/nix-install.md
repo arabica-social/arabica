@@ -100,7 +100,7 @@ With the Arabica and sops-nix NixOS modules imported and
         timeout_seconds = 30;
         max_request_bytes = 6291456;
         max_response_bytes = 1048576;
-        max_tokens = 2048;
+        max_tokens = 8192;
       };
     };
     environmentFiles = [ config.sops.templates."arabica.env".path ];

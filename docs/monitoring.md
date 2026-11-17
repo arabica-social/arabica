@@ -28,16 +28,45 @@ incurred charges without reporting tokens. Consult provider billing for
 authoritative spend. This is monitoring, not a billing ledger or hard budget
 enforcement.
 
+## AI request traces
+
+With OpenTelemetry tracing enabled, `/api/ai/chat` contains a CLIENT span named
+`chat <configured model>` for each upstream call, with a nested outbound HTTP
+POST client span. The HTTP span shows the configured provider endpoint, status
+and timing and propagates trace context to the provider.
+
+The AI span identifies the request with `gen_ai.operation.name=chat`,
+`gen_ai.request.model`, `gen_ai.provider.name=openai` (the wire protocol),
+`arabica.ai.provider` (the configured alias), and `gen_ai.request.max_tokens`.
+Response metadata includes `gen_ai.response.finish_reasons` and
+`arabica.ai.usage.state` (`reported`, `missing`, `invalid`, or `unavailable`).
+Valid provider usage adds `gen_ai.usage.input_tokens`,
+`gen_ai.usage.output_tokens`, and `gen_ai.usage.cache_read.input_tokens`.
+Cached input defaults to zero when valid usage omits cache details; absent usage
+omits all token attributes. The request-scoped service observer also copies AI
+request, model, token-limit, status, finish-reason, and usage attributes onto the
+inbound server span. Missing usage is not zero usage; input tokens include cached
+input, so do not add them.
+
+Failures set the AI span status to Error and use fixed `error.type` categories,
+not upstream error text. A completion truncated with `finish_reason=length` is
+an AI failure even when the nested HTTP span reports HTTP 200 successfully.
+No prompts, responses, headers, or credentials are recorded in these spans;
+the standard HTTP URL attributes can expose the configured provider endpoint.
+No price rates are configured and no cost estimate is available. Use provider
+billing for spend, including requests whose usage was not reported.
+
 ## AI chat failure diagnostics
 
 A chat 502 emits `AI chat provider failure`, correlated by `trace_id` when
 available. For `provider_error=invalid_assistant_message`, the provider returned
 a successful HTTP response but its choice had a non-assistant role, or empty
 content without tool calls. The log preserves `upstream_status`, `finish_reason`,
-`message_role`, `response_bytes` (message content bytes), and `tool_calls`.
-Unknown role and finish-reason values are recorded as `other`, never raw text.
-For example, an empty assistant message with `finish_reason=length` indicates
-the provider reached its output limit without returning visible content.
+`message_role`, `response_bytes` (message content bytes), `tool_calls`, and the
+configured numeric `max_tokens`. Unknown role and finish-reason values are
+recorded as `other`, never raw text. `provider_error=output_token_limit` with
+`finish_reason=length` means the provider reached its output limit; even a
+nonempty truncated response is rejected rather than applied as a draft.
 For `reason=invalid_draft_fields`, `validation_issue` distinguishes `invalid_kind`,
 `unknown_fields`, and `invalid_value`. `unknown_fields` counts unsupported patch
 keys; `field` identifies only names from the fixed schema/envelope allowlist.
@@ -64,7 +93,7 @@ cancellations and calls by administrators or other quota-exempt accounts:
 | `id`                                                   | Unique local row ID; repeated client request IDs are not deduplicated because another upstream call can incur another charge.                  |
 | `started_at_ms`, `duration_ns`                         | UTC Unix start time in milliseconds, elapsed call time in nanoseconds.                                                                         |
 | `did`                                                  | Caller DID checked against the authenticated record store, not a model/browser-supplied owner.                                                 |
-| `request_id`, `trace_id`                               | Client request correlation ID and server OTel trace ID (empty when no valid span exists). Not sent to the provider.                            |
+| `request_id`, `trace_id`                               | Client request correlation ID (not sent to the provider) and server OTel trace ID (empty when no valid span exists). Trace context is propagated to the provider via `traceparent`.                            |
 | `provider`, `model`                                    | Server-configured provider and model.                                                                                                          |
 | `outcome`, `http_status`                               | Transport outcome and HTTP status, using the metric conventions above. A `success` can still contain a draft rejected by app-level validation. |
 | `usage_state`                                          | `reported`, `missing`, `invalid`, or `unavailable`.                                                                                            |

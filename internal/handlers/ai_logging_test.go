@@ -110,6 +110,12 @@ func TestAIInvalidAssistantMessageDiagnostics(t *testing.T) {
 				"upstream_status": float64(200), "finish_reason": tc.wantFinish, "message_role": tc.wantRole,
 				"response_bytes": float64(len(tc.content)), "tool_calls": float64(tc.tools),
 			}
+			if tc.finish == "length" {
+				want["provider_error"] = "output_token_limit"
+				if !strings.Contains(rec.Body.String(), "ai_output_limit") {
+					t.Fatal("missing output-limit API error")
+				}
+			}
 			for key, value := range want {
 				if entry[key] != value {
 					t.Errorf("%s = %v, want %v", key, entry[key], value)
@@ -172,5 +178,21 @@ func TestAIInvalidDraftFieldsDiagnostics(t *testing.T) {
 				t.Fatal("diagnostic leaked model content")
 			}
 		})
+	}
+}
+
+func TestAITruncatedDraftPreservesRequest(t *testing.T) {
+	for _, content := range []string{"", `{"in_scope":true,"reply":"Ready","kind":"brew","patch":{"coffee_amount":20},"choices":[]}`} {
+		h, _ := setupAI(t)
+		calls := 0
+		h.Service = arabicaai.NewService(aiFakeCompleter(func(context.Context, []provider.Message, []provider.Tool, json.RawMessage) (provider.Completion, error) {
+			calls++
+			return provider.Completion{Message: provider.Message{Role: "assistant", Content: content}, FinishReason: "length"}, nil
+		}))
+		rec := httptest.NewRecorder()
+		h.HandleChat(rec, aiRequest(chatRequest))
+		if rec.Code != 502 || !strings.Contains(rec.Body.String(), "ai_output_limit") || !strings.Contains(rec.Body.String(), "max_tokens") || strings.Contains(rec.Body.String(), "coffee_amount") || calls != 1 {
+			t.Fatalf("unexpected truncated result: %d %s (%d calls)", rec.Code, rec.Body.String(), calls)
+		}
 	}
 }

@@ -47,6 +47,18 @@ observable but does not replace a valid response. There is no automatic pruning,
 PDS write, prompt logging, or per-DID Prometheus label. See
 [monitoring](../monitoring.md) for schema, failure limits and alert deployment.
 
+`internal/ai` also owns a CLIENT `chat <configured model>` span around each
+provider call and wraps its HTTP transport with `otelhttp` for a nested outbound
+HTTP span and trace-context propagation. AI spans carry configured model/provider
+identity, the requested output-token limit, finish reasons, bounded failure
+categories, and valid provider-reported token counts with an explicit usage state.
+The service observer copies AI request, model, token-limit, status, finish-reason,
+and usage attributes to the inbound server span without adding account
+dependencies to the transport. HTTP success and AI success are
+separate: an HTTP 200 truncated completion can fail the AI span. Telemetry excludes
+prompts, replies, headers, and credentials; HTTP span URL attributes expose the
+configured provider endpoint. No pricing rates or estimated costs are available.
+
 ## Read Paths
 
 There is no single function that always performs three identical steps. The

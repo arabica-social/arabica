@@ -49,7 +49,7 @@ func TestCompleteSuccess(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Error(err)
 		}
-		if body.Model != "test-model" || body.MaxTokens != 2048 || body.Stream || len(body.Messages) != 3 || body.Messages[2].ToolCallID != "call-1" {
+		if body.Model != "test-model" || body.MaxTokens != 8192 || body.Stream || len(body.Messages) != 3 || body.Messages[2].ToolCallID != "call-1" {
 			t.Errorf("unexpected request: %+v", body)
 		}
 		if len(body.Tools) != 1 || !strings.Contains(string(body.Tools[0].Function), `"strict":false`) || string(body.ResponseFormat) != `{"type":"json_object"}` {
@@ -226,5 +226,69 @@ func TestNetworkErrorRedacted(t *testing.T) {
 	_, err := testClient(t, testConfig(endpoint)).Complete(context.Background(), testMessages, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "connection refused") || DescribeFailure(err).Category != "connection_refused" {
 		t.Fatalf("unexpected network error: %v", err)
+	}
+}
+
+func TestCompleteOutputBudget(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		limit   int
+		content string
+	}{
+		{"empty reasoning response", 2048, ""},
+		{"partial response", 4096, "secret-partial"},
+		{"apparently complete response", 16384, "hello"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var calls atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				var request struct {
+					MaxTokens int `json:"max_tokens"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+				}
+				if request.MaxTokens != tc.limit {
+					t.Errorf("budget = %d, want %d", request.MaxTokens, tc.limit)
+				}
+				var content any = tc.content
+				if tc.content == "" {
+					content = nil
+				}
+				json.NewEncoder(w).Encode(map[string]any{
+					"choices": []any{map[string]any{"message": map[string]any{"role": "assistant", "content": content}, "finish_reason": "length"}},
+					"usage":   map[string]any{"prompt_tokens": 100, "completion_tokens": tc.limit, "completion_tokens_details": map[string]any{"reasoning_tokens": tc.limit}},
+				})
+			}))
+			defer server.Close()
+			cfg := testConfig(server.URL)
+			p := cfg.Providers["test"]
+			p.MaxTokens = tc.limit
+			cfg.Providers["test"] = p
+			var observations []Observation
+			client, err := NewClientWithObserver(cfg, func(o Observation) { observations = append(observations, o) })
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := client.Complete(context.Background(), testMessages, nil, nil)
+			if err == nil || got.Message.Content != "" {
+				t.Fatal("accepted truncated response")
+			}
+			d := DescribeFailure(err)
+			if d.Category != "output_token_limit" || d.FinishReason != "length" || d.HTTPStatus != 200 || d.MaxTokens != tc.limit || d.ContentBytes != len(tc.content) {
+				t.Fatalf("wrong diagnostic: %+v", d)
+			}
+			if calls.Load() != 1 || len(observations) != 1 {
+				t.Fatal("output exhaustion must not retry")
+			}
+			o := observations[0]
+			if o.UsageStatus != "reported" || o.Usage == nil || o.Usage.OutputTokens != int64(tc.limit) || o.Failure.Category != "output_token_limit" {
+				t.Fatalf("lost billed usage: %+v", o)
+			}
+			if strings.Contains(err.Error(), "secret") {
+				t.Fatal("response leaked")
+			}
+		})
 	}
 }

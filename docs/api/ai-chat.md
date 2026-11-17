@@ -30,8 +30,15 @@ Transport supports caller-defined tools, but the app exposes no executable or
 record-writing tools. There are no automatic provider retries or fallbacks.
 
 The example defaults to a 30-second timeout, 6 MiB provider request cap,
-1 MiB provider response cap and 2048 output tokens. Redirects are not followed.
-Provider response bodies and credentials are not returned as API errors.
+1 MiB provider response cap and 8192 output tokens. Explicit `max_tokens` settings
+are preserved (allowed range 1–16384). Reasoning providers may count hidden
+reasoning against this output budget and return `finish_reason: "length"` with
+no visible content when it is exhausted. Existing deployments with an explicit
+2048-token limit should increase `max_tokens` to 8192 as a starting point; this
+allows higher per-request cost and may require tuning for the chosen model.
+No automatic retry increases the budget or incurs another provider call.
+Redirects are not followed. Provider response bodies and credentials are not
+returned as API errors.
 
 ### Daily allowance
 
@@ -397,6 +404,7 @@ must leave the client draft intact. The chat server performs no mutation in any 
 | 429 | `ai_daily_limit` (`Retry-After` until 00:00 UTC) |
 | 503 | `ai_usage_unavailable` |
 | 502 | `ai_provider_error` |
+| 502 | `ai_output_limit` (provider exhausted its output budget; draft unchanged) |
 
 
 ## Provider diagnostics
@@ -406,9 +414,12 @@ connection is still writable and does not emit a provider-failure error log. An
 upstream provider timeout while the incoming request is live remains a 502.
 
 A 502 also emits an `AI chat provider failure` server log event correlated by
-`trace_id`. The public API error remains generic. Logs include only fixed
+`trace_id`. The public API error remains generic except for `ai_output_limit`,
+which identifies output-budget exhaustion and suggests increasing `max_tokens`.
+Logs include only fixed
 `stage`/`reason`/`provider_error` categories, numeric `upstream_status`, allowlisted
-`finish_reason`, response byte/tool-call counts, and an allowlisted invalid field
+`finish_reason`, response byte/tool-call counts, configured `max_tokens` for
+transport-rejected completions, and an allowlisted invalid field
 name when applicable. They never include credentials, URLs, request headers,
 prompts, library values, raw model output or upstream error bodies.
 
@@ -419,10 +430,24 @@ Examples:
 - `provider_error=tls_protocol_mismatch`: HTTPS received plaintext HTTP; check
   configured base URL and HTTP(S) proxy schemes. TLS certificate, DNS, refused
   connections, timeout and cancellation have distinct categories.
-- `stage=response reason=incomplete_completion finish_reason=length`: the
-  completion hit its token budget rather than returning a finished draft.
+- `stage=request provider_error=output_token_limit finish_reason=length`: the
+  provider exhausted its output budget, even if the assistant content is empty.
+  `max_tokens` records the configured limit. Partial content is never applied.
+  Caller-defined completers can report this as
+  `stage=response reason=incomplete_completion finish_reason=length` instead.
 - `reason=invalid_json_envelope`, `missing_choices`, `missing_in_scope` or
   `invalid_draft_fields`: transport succeeded but the draft contract was rejected.
+
+With OpenTelemetry enabled, the inbound request span also carries the provider
+alias/model, configured output limit, finish reason, usage state and valid
+provider-reported input/output/cached-input token counts. A child
+`chat <configured model>` CLIENT span contains the same metadata; its nested
+HTTP POST span shows the provider endpoint, status and duration. W3C trace
+context is propagated upstream, but prompts, responses, API keys and headers
+are not captured. A failed completion can retain valid billed usage even when
+the provider returned HTTP 200. Missing usage is omitted, not treated as zero.
+No pricing is configured, so no cost is estimated. See
+[monitoring](../monitoring.md#ai-request-traces) for attribute names and limits.
 
 Restart the Go server after code/config changes before reproducing a failure.
 

@@ -17,14 +17,16 @@ type Usage struct {
 // Observation describes one attempted upstream call, including failed calls.
 // Provider and Model come from server configuration, never from responses.
 type Observation struct {
-	StartedAt   time.Time
-	Provider    string
-	Model       string
-	Duration    time.Duration
-	HTTPStatus  int
-	Failure     FailureDetails
-	Usage       *Usage
-	UsageStatus string
+	StartedAt    time.Time
+	Provider     string
+	Model        string
+	Duration     time.Duration
+	HTTPStatus   int
+	Failure      FailureDetails
+	Usage        *Usage
+	UsageStatus  string
+	MaxTokens    int
+	FinishReason string
 }
 
 func parseUsage(raw json.RawMessage) (*Usage, string) {

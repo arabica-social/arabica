@@ -71,6 +71,7 @@ func NewClientWithObserver(config Config, observe func(Observation)) (*Client, e
 	p.APIKey = "" // Retain the resolved secret only in the dedicated private field.
 	return &Client{provider: p, key: key, providerName: c.DefaultProvider, observe: observe, http: &http.Client{
 		Timeout:       time.Duration(p.TimeoutSeconds) * time.Second,
+		Transport:     tracedTransport(http.DefaultTransport),
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}}, nil
 }
@@ -108,14 +109,18 @@ func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool,
 	if c.key != "" {
 		req.Header.Set("Authorization", "Bearer "+c.key)
 	}
+	ctx, span := startCompletionSpan(ctx, c.providerName, c.provider)
+	req = req.WithContext(ctx)
 	started := time.Now()
-	observation := Observation{StartedAt: started, Provider: c.providerName, Model: c.provider.Model, UsageStatus: "unavailable"}
+	observation := Observation{StartedAt: started, Provider: c.providerName, Model: c.provider.Model, MaxTokens: c.provider.MaxTokens, UsageStatus: "unavailable"}
 	requestObserver, _ := ctx.Value(requestObserverKey{}).(func(Observation))
 	defer func() {
 		observation.Duration = time.Since(started)
 		if err != nil {
 			observation.Failure = DescribeFailure(err)
 		}
+		observation.RecordSpan(span)
+		span.End()
 		if c.observe != nil {
 			c.observe(observation)
 		}
@@ -160,11 +165,16 @@ func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool,
 		return zero, failed("invalid_provider_response", "ai: invalid provider response", 0)
 	}
 	choice := result.Choices[0]
-	if choice.Message.Role != "assistant" || (choice.Message.Content == "" && len(choice.Message.ToolCalls) == 0) {
+	observation.FinishReason = safeFinishReason(choice.FinishReason)
+	if choice.FinishReason == "length" || choice.Message.Role != "assistant" || (choice.Message.Content == "" && len(choice.Message.ToolCalls) == 0) {
 		details := FailureDetails{
 			Category: "invalid_assistant_message", HTTPStatus: resp.StatusCode,
 			FinishReason: safeFinishReason(choice.FinishReason), MessageRole: safeMessageRole(choice.Message.Role),
-			ContentBytes: len(choice.Message.Content), ToolCalls: len(choice.Message.ToolCalls),
+			ContentBytes: len(choice.Message.Content), ToolCalls: len(choice.Message.ToolCalls), MaxTokens: c.provider.MaxTokens,
+		}
+		if choice.FinishReason == "length" {
+			details.Category = "output_token_limit"
+			return zero, &failure{details: details, message: "ai: provider exhausted output token limit"}
 		}
 		return zero, &failure{details: details, message: "ai: invalid assistant message"}
 	}
